@@ -222,7 +222,7 @@ export default {
         this.createClusterTaskForApp({
           action: taskAction,
           data: {
-            id: "kickstart", // TODO
+            id: "nethvoice", // TODO
           },
           extra: {
             title: this.$t("action." + taskAction),
