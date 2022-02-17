@@ -18,7 +18,9 @@ ExecStart=/usr/bin/podman run \
     --cgroups=no-conmon \
     --log-opt=tag=%u \
     --replace --name=%N \
+    --volume=%S/initdb.d:/docker-entrypoint-initdb.d:Z \
     --publish=127.0.0.1:${MARIADB_PORT}:3306 \
+    --env=MARIADB_ROOT_PASSWORD \
     ${MARIADB_IMAGE}
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/nethvoice.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/nethvoice.ctr-id
