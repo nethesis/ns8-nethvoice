@@ -31,7 +31,7 @@ buildah config --entrypoint=/ \
     --label="org.nethserver.authorizations=traefik@any:routeadm" \
     --label="org.nethserver.tcp-ports-demand=3" \
     --label="org.nethserver.rootfull=0" \
-    --label="org.nethserver.images=docker.io/library/mariadb:latest docker.io/library/php:5.6-apache" \
+    --label="org.nethserver.images=docker.io/library/mariadb:latest docker.io/library/php:5.6-apache docker.io/dougbtv/asterisk13:latest" \
     "${container}"
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"

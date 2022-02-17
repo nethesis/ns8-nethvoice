@@ -1,0 +1,28 @@
+#
+# This systemd unit starts a asterisk instance using Podman.
+# Most parts of this file come from podman-generate-systemd.
+#
+[Unit]
+Description=asterisk server
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+WorkingDirectory=%S/state
+Restart=always
+ExecStartPre=/bin/rm -f %t/asterisk.pid %t/asterisk.ctr-id
+ExecStart=/usr/bin/podman run \
+    --detach \
+    --conmon-pidfile=%t/asterisk.pid \
+    --cidfile=%t/asterisk.ctr-id \
+    --cgroups=no-conmon \
+    --log-opt=tag=%u \
+    --replace --name=%N \
+    ${ASTERISK_IMAGE}
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/asterisk.ctr-id -t 10
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/asterisk.ctr-id
+PIDFile=%t/asterisk.pid
+Type=forking
+
+[Install]
+WantedBy=default.target
