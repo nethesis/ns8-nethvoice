@@ -1,20 +1,20 @@
 #
-# This systemd unit starts a nethvoice instance using Podman.
+# This systemd unit starts a mariadb instance using Podman.
 # Most parts of this file come from podman-generate-systemd.
 #
 [Unit]
-Description=nethvoice server
+Description=mariadb server
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%S/state/environment
 WorkingDirectory=%S/state
 Restart=always
-ExecStartPre=/bin/rm -f %t/nethvoice.pid %t/nethvoice.ctr-id
+ExecStartPre=/bin/rm -f %t/mariadb.pid %t/mariadb.ctr-id
 ExecStart=/usr/bin/podman run \
     --detach \
-    --conmon-pidfile=%t/nethvoice.pid \
-    --cidfile=%t/nethvoice.ctr-id \
+    --conmon-pidfile=%t/mariadb.pid \
+    --cidfile=%t/mariadb.ctr-id \
     --cgroups=no-conmon \
     --log-opt=tag=%u \
     --replace --name=%N \
@@ -23,9 +23,9 @@ ExecStart=/usr/bin/podman run \
     --publish=127.0.0.1:${MARIADB_PORT}:3306 \
     --env=MARIADB_ROOT_PASSWORD \
     ${MARIADB_IMAGE}
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/nethvoice.ctr-id -t 10
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/nethvoice.ctr-id
-PIDFile=%t/nethvoice.pid
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/mariadb.ctr-id -t 10
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/mariadb.ctr-id
+PIDFile=%t/mariadb.pid
 Type=forking
 
 [Install]
