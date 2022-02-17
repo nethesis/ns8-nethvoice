@@ -30,6 +30,7 @@ import string
 # coma separated port list
 port_list = os.environ['TCP_PORTS'].split(",")
 agent.set_env('MARIADB_PORT',port_list[0])
+agent.set_env('APACHE_PORT',port_list[1])
 
 # Set root password for MariaDB
 agent.set_env('MARIADB_ROOT_PASSWORD',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(64)))

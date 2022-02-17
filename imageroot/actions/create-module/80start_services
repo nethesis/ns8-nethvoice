@@ -23,3 +23,4 @@
 # If the control reaches this step, the service can be enabled and started
 
 systemctl --user enable --now mariadb.service
+systemctl --user enable --now apache2.service
