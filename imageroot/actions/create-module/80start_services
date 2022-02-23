@@ -24,3 +24,4 @@
 
 systemctl --user enable --now mariadb.service
 systemctl --user enable --now apache2.service
+systemctl --user enable --now asterisk.service

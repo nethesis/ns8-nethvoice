@@ -13,14 +13,18 @@ Restart=always
 ExecStartPre=/bin/rm -f %t/asterisk.pid %t/asterisk.ctr-id
 ExecStart=/usr/bin/podman run \
     --detach \
+    --network=host \
     --conmon-pidfile=%t/asterisk.pid \
     --cidfile=%t/asterisk.ctr-id \
     --cgroups=no-conmon \
     --log-opt=tag=%u \
+    --volume=%S/etc/asterisk:/etc/asterisk:Z \
     --replace --name=%N \
-    ${ASTERISK_IMAGE}
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/asterisk.ctr-id -t 10
+    ${ASTERISK_IMAGE} \
+    asterisk -f -C /etc/asterisk/asterisk.conf
+ExecStop=/usr/bin/podman run ${ASTERISK_IMAGE} /usr/sbin/asterisk -rx 'core stop now' -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/asterisk.ctr-id
+ExecReload=/usr/bin/podman run /usr/sbin/asterisk -rx 'core reload'
 PIDFile=%t/asterisk.pid
 Type=forking
 

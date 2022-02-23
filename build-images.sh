@@ -31,7 +31,7 @@ buildah config --entrypoint=/ \
     --label="org.nethserver.authorizations=traefik@any:routeadm" \
     --label="org.nethserver.tcp-ports-demand=3" \
     --label="org.nethserver.rootfull=0" \
-    --label="org.nethserver.images=docker.io/library/mariadb:latest docker.io/library/php:5.6-apache docker.io/dougbtv/asterisk13:latest" \
+    --label="org.nethserver.images=docker.io/library/mariadb:latest docker.io/library/php:5.6-apache $repobase/asterisk:latest" \
     "${container}"
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
@@ -39,17 +39,38 @@ buildah commit "${container}" "${repobase}/${reponame}"
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
 
-#
-# NOTICE:
-#
-# It is possible to build and publish multiple images.
-#
-# 1. create another buildah container
-# 2. add things to it and commit it
-# 3. append the image url to the images array
-#
+# Build Asterisk container
 
-#
+reponame="asterisk"
+container=$(buildah from centos:7)
+
+buildah run $container -- bash -s <<'EOF'
+yum install -y http://mirror.nethserver.org/nethserver/nethserver-release-7.rpm
+yum install -y epel-release
+yum install -y \
+    asterisk13-core \
+    asterisk13-odbc \
+    asterisk13-addons-mysql \
+    asterisk13-resample \
+    asterisk-codecs \
+    asterisk13-voicemail-odbcstorage \
+    asterisk13-dahdi \
+    asterisk13-speex \
+    asterisk13-addons-core \
+    asterisk-sounds-extra-en-ulaw
+yum clean all
+rm -rf /var/cache/yum
+EOF
+
+buildah config \
+    --workingdir=/var/lib/asterisk \
+    "${container}"
+
+# Commit the asterisk image
+buildah commit "${container}" "${repobase}/${reponame}"
+
+images+=("${repobase}/${reponame}")
+
 # Setup CI when pushing to Github. 
 # Warning! docker::// protocol expects lowercase letters (,,)
 if [[ -n "${CI}" ]]; then
