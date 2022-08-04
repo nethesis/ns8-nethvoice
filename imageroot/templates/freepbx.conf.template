@@ -1,0 +1,10 @@
+<?php
+$amp_conf['AMPDBUSER'] = '${AMPDBUSER}';
+$amp_conf['AMPDBPASS'] = '${AMPDBPASS}';
+$amp_conf['AMPDBHOST'] = '${AMPDBHOST}';
+$amp_conf['AMPDBNAME'] = '${AMPDBNAME}';
+$amp_conf['AMPDBENGINE'] = '${AMPDBENGINE}';
+$amp_conf['datasource'] = ''; //for sqlite3
+
+require_once('/var/www/html/freepbx/admin/bootstrap.php');
+?>

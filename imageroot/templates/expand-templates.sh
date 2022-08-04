@@ -20,8 +20,9 @@
 # along with NethServer.  If not, see COPYING.
 #
 
-# If the control reaches this step, the service can be enabled and started
+# substitute DB users and passwords
+envsubst < ../templates/database_grants.template > ../mariadb/initdb.d/20_grants.sql
 
-systemctl --user enable --now mariadb.service
-systemctl --user enable --now freepbx.service
-systemctl --user enable --now asterisk.service
+# various updates to asterisk DB
+envsubst < ../templates/asterisk_update.sql.template > ../mariadb/initdb.d/30_asterisk_updates.sql
+

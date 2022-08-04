@@ -35,4 +35,21 @@ agent.set_env('APACHE_PORT',port_list[1])
 # Set root password for MariaDB
 agent.set_env('MARIADB_ROOT_PASSWORD',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(64)))
 
+# Set DB configuration variables
+agent.set_env('AMPDBUSER','freepbxuser')
+agent.set_env('AMPDBHOST','localhost')
+agent.set_env('AMPDBNAME','asterisk')
+agent.set_env('AMPDBENGINE','mysql')
+agent.set_env('AMPDBPASS',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(64)))
+agent.set_env('CDRDBHOST','localhost')
+agent.set_env('CDRDBNAME','asteriskcdrdb')
+agent.set_env('CDRDBUSER','cdruser')
+agent.set_env('CDRDBPASS',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(64)))
+
+# Set password for Asterisk AMI for FreePBX
+agent.set_env('AMPMGRUSER','admin')
+agent.set_env('AMPMGRPASS',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(64)))
+
+
+
 agent.dump_env()

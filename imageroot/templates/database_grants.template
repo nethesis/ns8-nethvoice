@@ -1,0 +1,6 @@
+GRANT ALL on asteriskcdrdb.* to '$CDRDBUSER'@'localhost' identified by '$CDRDBPASS';
+
+GRANT ALL on asterisk.* to '$AMPDBUSER'@'localhost' identified by '$AMPDBPASS';
+
+FLUSH PRIVILEGES;
+

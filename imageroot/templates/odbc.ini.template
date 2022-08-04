@@ -1,0 +1,6 @@
+[MySQL-asteriskcdrdb]
+Server = localhost
+Database = asteriskcdrdb
+Port = ${MARIADB_PORT}
+Driver = MySQL
+Description = ODBC on asteriskcdrdb
