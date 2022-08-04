@@ -19,7 +19,6 @@ ExecStart=/usr/bin/podman run \
     --log-opt=tag=%u \
     --replace --name=%N \
     --volume=%N-data:/var/lib/mysql:Z \
-    --volume=%S/initdb.d:/docker-entrypoint-initdb.d:Z \
     --publish=127.0.0.1:${MARIADB_PORT}:3306 \
     --env=MARIADB_ROOT_PASSWORD \
     ${MARIADB_IMAGE}
