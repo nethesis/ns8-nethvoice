@@ -18,7 +18,8 @@ ExecStart=/usr/bin/podman run \
     --cidfile=%t/asterisk.ctr-id \
     --cgroups=no-conmon \
     --log-opt=tag=%u \
-    --volume=%S/etc/asterisk:/etc/asterisk:Z \
+    --volume=asterisk:/etc/asterisk:z \
+    --env=MARIADB_PORT \
     --replace --name=%N \
     ${ASTERISK_IMAGE} \
     asterisk -f -C /etc/asterisk/asterisk.conf

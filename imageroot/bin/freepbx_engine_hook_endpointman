@@ -1,0 +1,14 @@
+#!/bin/bash
+# This script is called when the user executes amportal
+#
+# Check to make sure we are in the chown mode
+if [ "$1" == "chown" ]
+    then
+        #Check for tftboot
+        if [ -f /tftpboot ]
+            then
+                #Change permissions regardless
+                chown -hR $AMPASTERISKUSER:$AMPASTERISKGROUP /tftpboot
+                chmod g+w /tftpboot
+        fi
+fi

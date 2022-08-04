@@ -1,0 +1,36 @@
+[nethserver-base]
+name=NethServer-$nsrelease - Base
+mirrorlist=http://mirrorlist.nethserver.org/?release=$releasever&repo=base&arch=$basearch&nsrelease=$nsrelease
+#baseurl=http://mirror.nethserver.org/nethserver/$releasever/base/$basearch/
+enabled=1
+enablegroups=0
+gpgcheck=0
+repo_gpgcheck=0
+
+[nethserver-updates]
+name=NethServer-$nsrelease - Updates
+mirrorlist=http://mirrorlist.nethserver.org/?release=$releasever&repo=updates&arch=$basearch&nsrelease=$nsrelease
+#baseurl=http://mirror.nethserver.org/nethserver/$releasever/updates/$basearch/
+enabled=1
+enablegroups=1
+gpgcheck=0
+repo_gpgcheck=0
+
+[nethserver-testing]
+name=NethServer-$nsrelease - Testing
+mirrorlist=http://mirrorlist.nethserver.org/?release=$releasever&repo=testing&arch=$basearch&nsrelease=$nsrelease
+#baseurl=http://mirror.nethserver.org/nethserver/$releasever/testing/$basearch/
+enabled=0
+enablegroups=0
+gpgcheck=0
+repo_gpgcheck=0
+
+[epel]
+name=Extra Packages for Enterprise Linux 7 - $basearch
+#baseurl=http://download.fedoraproject.org/pub/epel/7/$basearch
+metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-7&arch=$basearch&infra=$infra&content=$contentdir
+failovermethod=priority
+enabled=1
+enablegroups=0
+gpgcheck=0
+repo_gpgcheck=0
