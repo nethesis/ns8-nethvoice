@@ -1,0 +1,419 @@
+<module>
+	<rawname>core</rawname>
+	<repo>standard</repo>
+	<category>Applications</category>
+	<name>Core</name>
+	<version>14.0.28.29</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<candisable>no</candisable>
+	<canuninstall>no</canuninstall>
+	<changelog>
+		*14.0.28.19* FREEPBX-20564 Security issue with call tranfer (## or *2) being allowed for inbound caller 
+		*14.0.28.18* FREEI-733: Change allow_reload for pjsip to be No by default. 
+		*14.0.28.17* FREEI-730 Qcallback CID not passing for Outbound calls
+		*14.0.28.16* freepbx-17661 
+		*14.0.28.15* Fixes FREEPBX-20337: added CSS class "confidential" to secret input (FreePBX 14 backport) 
+		*14.0.28.14* FREEPBX-18879 
+		*14.0.28.13* FREEPBX-20190 Issue with Queue Callback Call Confimation. 
+		*14.0.28.12* FREEPBX-18676 Configuration File Link removed(http://freepbx.org/configuration_files) 
+		*14.0.28.11* FREEPBX-19927 Direct Media for pjsip endpoints 
+		*14.0.28.10* FREEPBX-19943 Wrong CallerID Sent on Calls from Custom Extensions 
+		*14.0.29* Better FastAGI and PM2 notifications when in weird states
+		*14.0.28.8* FREEPBX-17678 Quick create DAHDI creates invalid dial string 
+		*14.0.28.7* FREEPBX-19520 FREEPBX-19796  Call Confirm Not Allowing Acceptance through Queues 
+		*14.0.28.6* FREEPBX-19451 Wrong CallerID Sent on Calls from Custom Extensions 
+		*14.0.28.5* FREEPBX-18708 fatal_retry_interval get a Null value instead of 0 
+		*14.0.28.4* FREEPBX-18675 Adding force_rport config option for pjsip trunk in gui 
+		*14.0.28.3* FREEPBX-19643 
+		*14.0.28.2* FREEPBX-18785
+		*14.0.28.1* FREEPBX-19629
+		*14.0.28* FREEPBX-19770
+		*14.0.27* FREEPBX-19754 Can't unset headers using func-apply-sipheaders
+		*14.0.26* Use lazy loading console commands
+		*14.0.25.4* Fixing FREEPBX-17867
+		*14.0.25.3* FREEPBX-19613
+		*14.0.25.2* FREEPBX-19520 Too-Late Announce is not playing under Find Me Follow Me
+		*14.0.25.1* FREEPBX-19626
+		*14.0.25* FREEPBX-18661 Bulk Handler - Extensions :: import not setting outbound_proxy value
+		*14.0.24* FREEPBX-19637
+		*14.0.23* FREEI-418 Usage of Any/Any inbound route will get provider ip banned
+		*14.0.22* Fixing FREEPBx-18345
+		*14.0.21* Fixing FREEPBX-18708
+		*14.0.20* Fixing FREEPBX-19483 Extension import ignoring aggregate_mwi field issue
+		*14.0.19* Asterisk 13.25.0 and 16.2.0 voicemail changes
+		*14.0.18.54* Fixing FREEPBX-19389
+		*14.0.18.53* FREEPBX-14525 Uniform Behavior: Have trunks return to grid on submit
+		*14.0.18.52* FREEPBX-15249 Dialplan missing macro: macro-outisbusy
+		*14.0.18.51* dont launch needless agis if variables arent set, also load AGI handler so we dont abruptly hurt Asterisk
+		*14.0.18.50* Add ability to override the hints set in ext-local
+		*14.0.18.49* FREEPBX-18926
+		*14.0.18.48* FREEPBX-18801
+		*14.0.18.47* Fixing FREEPBX-18880 Adding allow/deny option for IAX2 extensions for
+		*14.0.18.46* FREEPBX-18926 FREEPBX-17953 FREEPBX-18942 remove call to sipaddheader and fix func-apply-sipheaders to address FREEPBX-18926
+		*14.0.18.45* FREEPBX-18509 PSTN calls forwarded off system to PSTN don't have correct CID Name
+		*14.0.18.44* Callaccounting changes to core
+		*14.0.18.43* FREEPBX-18507
+		*14.0.18.42* FREEPBX-18591 Disabled Option Allows Input
+		*14.0.18.41* FREEPBX-17953 Alert Info headers getting set twice for chan_sip devices
+		*14.0.18.40* FREEPBX-15536 Throw strong warning if user creates an outbound route with a single dot dial pattern
+		*14.0.18.39* FREEPBX-17953 FREEPBX-18336 Alert-Info header issue fixes
+		*14.0.18.38* Fixing FREEPBX-17953 Alert info headers getting set twice
+		*14.0.18.37* FREEPBX-18205
+		*14.0.18.36* FREEPBX-18176
+		*14.0.18.35* FREEPBX-18165 pjsip allow reload should be defaulted to yes
+		*14.0.18.34* FREEPBX-18161
+		*14.0.18.33* FREEPBX-18016 Trunk inbound Maximum Channels not honored.
+		*14.0.18.32* FREEPBX-18027 PBXact - Basic Mode - Admin Users with only CDR allowed can still restart the setup wizard
+		*14.0.18.31* FREEPBX-18016 Improving tool-tip for maximum channel field.
+		*14.0.18.30* FREEPBX-17948 Fixe separator for global vairable  DYNAMIC_FEATURES
+		*14.0.18.29* FREEPBX-17888 Cannot set T.38 MaxDatagram in PJSIP trunk
+		*14.0.18.28* FREEPBX-17841
+		*14.0.18.27* FREEPBX-17089 Follow Me with callconfirm doesn't work with external numbers
+		*14.0.18.26* FREEPBX-15896
+		*14.0.18.25* [core][search] Device link was wrong when Users/Devices mode is selected
+		*14.0.18.24* FREEPBX-17754 Bulk handler for virtual extension not working
+		*14.0.18.23* FREEPBX-16782 - make sure we set the disabled trunk flag in the pjsip table as well as the trunks table when enabling and disabling trunks
+		*14.0.18.22* FREEPBX-15833 FREEPBX-17630 In-call feature code *1 defined twice
+		*14.0.18.21* FREEPBX-16154  Invalid dialstatus in pjsip channels
+		*14.0.18.20* FREEPBX-17594 Import of pjsip extensions without match attributes
+		*14.0.18.19* FREEPBX-17600
+		*14.0.18.18* Always remove res_pjproject from modules.conf
+		*14.0.18.17* FREEPBX-17588 Fix sql column key
+		*14.0.18.16* Bugfix/FREEPBX-17437
+		*14.0.18.15* Update registration string check
+		*14.0.18.14* FREEPBX-15637
+		*14.0.18.13* FREEPBX-17492
+		*14.0.18.12* FREEPBX-17381 Trunk does not allow Any CID if Outbound Caller ID is populated
+		*14.0.18.11* FREEPBX-17446 PJSip Trunk 'Permanent Auth Rejection' UI wrong
+		*14.0.18.10* FREEPBX-17449 Alter Info : the inherit option under advanced settings is not working for Attended Transfer.
+		*14.0.18.9* Fix incorrect CDR logging
+		*14.0.18.8* Fixing FREEPBX-17499 Adding default values in DID required parameters.
+		*14.0.18.7* FREEPBX-7158 Device and User Mode - USEROUTCID Incorrect During Blind Transfer
+		*14.0.18.6* Fix trunk method
+		*14.0.18.5* FREEPBX-7158 Device and User Mode - USEROUTCID Incorrect During Blind Transfer
+		*14.0.18.4* FREEPBX-17209 Tonezone / ringback tone by international DID
+		*14.0.18.3* FREEPBX-17381 Trunk does not allow Any CID if Outbound Caller ID is populated
+		*14.0.18.2* FREEPBX-17094 AlertInfo not clearing after answer?
+		*14.0.18.1* FREEPBX-17158  PJSIP Trunk between FreePBX servers doesn't work with registration unless identify_by=auth_username is set
+		*14.0.18* FREEPBX-9493 Route Position dropdown menu missing items
+		*14.0.17* FREEPBX-16782 Disable PJSIP write out when disabled.
+		*14.0.16* FREEPBX-13173 CID Num Alias is used instead of Outbound CID in Follow Me outbound calls
+		*14.0.15* FREEPBX-10623 - Account code never deleted
+		*14.0.14* FREEPBX-17067 Outgoing Faxes from UCP not using Extension's Caller ID
+		*14.0.13* FREEPBX-14431
+		*14.0.12* FREEPBX-17175  Queues ring strategy not working if Call Screening enabled on extension
+		*14.0.11* FREEPBX-17253 Inbound Route CID needs Withheld added
+		*14.0.10* FREEPBX-16978 Add 'Answer' to inbound routes
+		*14.0.9* FREEPBX-17157 PJSIP trunk, inbound PAI is not trusted - Add GUI option or set as default
+		*14.0.8* FREEPBX-17055 Quick extension creation page allignment is broken for french language issue fix
+		*14.0.7* Fix FREEPBX-16357 Enabling Other tab in basic mode to display Endpoint
+		*14.0.6* Fix PJSIP Nat Issue
+		*14.0.5.31* Fixing FREEPBX-17041 Allowing mohclass to be empty while adding inbound routes
+		*14.0.5.30* FREEPBX-15389 Park Pro leaving permissions of deleted extensions in database
+		*14.0.5.29* FREEPBX-17036 Disabled PJSIP Trunks still accepting/processing calls.
+		*14.0.5.28* FREEPBX-15499 Need to add a checklist for Required fields while uploading bulk handler and do proper error handling.
+		*14.0.5.27* FREEPBX-16787 - Extension's Add Inbound CID shows wrong numbers
+		*14.0.5.26* FREEPBX-16782 Fix disabling registered trunks
+		*14.0.5.25* FREEPBX-16966 Remove option from Menu selections
+		*14.0.5.24* FREEPBX-16086
+		*14.0.5.23* If sections are empty allow extension creation
+		*14.0.5.22* FREEPBX-16980 if not logging in as a user then return empty array
+		*14.0.5.21* FREEPBX-16165 typo in On Demand Recording help text
+		*14.0.5.20* FREEPBX-15767 Showing a part of code using French Language (extension -quick create)
+		*14.0.5.19* FREEPBX-15778 PBXact Basic Mode Inbound Route
+		*14.0.5.18* FREEPBX-12244 Module Administrators allow create extensions when is disable the feature
+		*14.0.5.17* FREEPBX-16946
+		*14.0.5.16* FREEPBX-16803 save trunk settings correctly
+		*14.0.5.15* FREEPBX-16784 Remove requirement for PJSip trunks to have a port
+		*14.0.5.14* Revert FREEPBX-15459
+		*14.0.5.13* FREEPBX-16858
+		*14.0.5.12* FREEPBX-16645 Adding check to validate if IVR_CONTEXT is set or not
+		*14.0.5.11* FREEPBX-16018
+		*14.0.5.10* FREEPBX-15459 Remove in call disconnect feature code
+		*14.0.5.9* FREEPBX-16756 pjsip not saving settings
+		*14.0.5.8* FREEPBX-16613 Add Device Menu Fails to open when editing a device
+		*14.0.5.7* add support for pjsip media_address in trunk configuration
+		*14.0.5.6* FREEPBX-16714 fix js errors
+		*14.0.5.5* Remove duplication
+		*14.0.5.4* FREEPBX-16672 FREEPBX-16673 FREEPBX-16671
+		*14.0.5.3* Bugfix/FREEPBX-16672 =&amp;gt; managing t38 for pjsip
+		*14.0.5.2* Bugfix/FREEPBX-12299
+		*14.0.5.1* FREEPBX-12299 Default or configurable tos / cos for PJSIP tranport (SIP) and endpoints (RTP) audio/video)
+		*14.0.5* More PJSIP methods
+		*14.0.4* FREEPBX-16526 regression checks coming into play
+		*14.0.3* FREEPBX-16419 Fix trunks disable to use method to disable trunks.
+		*14.0.2* Migrate more settings from procedurals to objects
+		*14.0.1.25* Popover changes: extensions and trunks
+		*14.0.1.24* FREEPBX-16240 Add label to header, FREEPBX-16296 Extension Import ignores Max Reg field for PJSIP Extensions
+		*14.0.1.23* FREEPBX-16262 ignore conflicting values
+		*14.0.1.22* FREEPBX-16262 Migrate mediaencryption to media_encryption
+		*14.0.1.21* FREEPBX-15956
+		*14.0.1.20* Restrict modules in attendedtransfer-rec
+		*14.0.1.19* Remove automatically setting up media encryption for pjsip
+		*14.0.1.18* FREEPBX-16016 Bulk handler breaks RPID settings on extension import
+		*14.0.1.17* FREEPBX-15824 positioning
+		*14.0.1.16* FREEPBX-13173 FREEPBX-6753 FREEPBX-15550 FREEPBX-15824 FREEPBX-15840
+		*14.0.1.15* FREEPBX-15956
+		*14.0.1.14* FREEPBX-15903
+		*14.0.1.13* Merge from 13
+		*14.0.1.12* FREEPBX-15339 FREEPBX-15637 FREEPBX-15285
+		*14.0.1.11* Fix pjsip media encryption name
+		*14.0.1.10* FREEPBX-15840
+		*14.0.1.9* FREEPBX-15631
+		*14.0.1.8* FREEPBX-13837
+		*14.0.1.7* FREEPBX-15640 Issue with Follow me ringallv2 strategy
+		*14.0.1.6* FREEPBX-15588
+		*14.0.1.4* FREEPBX-15535 FREEPBX-15090 FREEPBX-13025 FREEPBX-13830 REEPBX-15459 FREEPBX-15459
+		*14.0.1.3* FREEPBX-15216
+		*14.0.1.2* FREEPBX-13739 FREEPBX-15217 FREEPBX-15008 FREEPBX-14952
+		*14.0.1.1* FREEPBX-12215 use proper methods to set headers
+		*14.0.1* Stable release
+		*14.0.1rc1.12* Bump from 13
+		*14.0.1rc1.11* FREEPBX-10489, FREEPBX-10139
+		*14.0.1rc1.10* FREEPBX-14735
+		*14.0.1rc1.9* FREEPBX-13068
+		*14.0.1rc1.8* Merge from 13 to 14
+		*14.0.1rc1.7* Merge from 13 to 14
+		*14.0.1rc1.6* FREEPBX-14477 Advanced settings language selection broken
+		*14.0.1rc1.5* FREEPBX-14430 Add values that were removed but are required to define conf settings
+		*14.0.1rc1.4* FREEPBX-14379 Cannot Create Outbound Routes
+		*14.0.1rc1.3* Merge from 13 to 14
+		*14.0.1rc1.2* FREEPBX-14017 Generate files correctly
+		*14.0.1rc1.1* Invalid key-ing
+		*14.0.1rc1* RC1
+		*14.0.1beta9 FREEPBX-14197 When adding an extension display the extension
+		*14.0.1beta8* FREEPBX-14050 Add detail to tool tip for 'block foreign CIDs' on trunk page
+		*14.0.1beta3* Fix dialparties issue
+		*14.0.1beta2* Feature parity with 13
+		*14.0.1beta1* Prepare for Beta
+		*14.0.1alpha1* Inital Release
+	</changelog>
+	<depends>
+		<version>14.0.9</version>
+	</depends>
+	<database>
+		<table name="trunks">
+			<field name="trunkid" type="integer" default="0" primaryKey="true"/>
+			<field name="name" type="string" length="50" default=""/>
+			<field name="tech" type="string" length="20" primaryKey="true"/>
+			<field name="outcid" type="string" length="40" default=""/>
+			<field name="keepcid" type="string" length="4" default="off" notnull="false"/>
+			<field name="maxchans" type="string" length="6" default="" notnull="false"/>
+			<field name="failscript" type="string" length="255" default=""/>
+			<field name="dialoutprefix" type="string" length="255" default=""/>
+			<field name="channelid" type="string" length="190" default="" primaryKey="true"/>
+			<field name="usercontext" type="string" length="255" notnull="false"/>
+			<field name="provider" type="string" length="40" notnull="false"/>
+			<field name="disabled" type="string" length="4" default="off" notnull="false"/>
+			<field name="continue" type="string" length="4" default="off" notnull="false"/>
+		</table>
+		<table name="pjsip">
+			<field name="id" type="string" length="20" default="-1" primaryKey="true"/>
+			<field name="keyword" type="string" length="30" default="" primaryKey="true"/>
+			<field name="data" type="string" length="255"/>
+			<field name="flags" type="integer" default="0"/>
+		</table>
+		<table name="sip">
+			<field name="id" type="string" length="20" default="-1" primaryKey="true"/>
+			<field name="keyword" type="string" length="30" default="" primaryKey="true"/>
+			<field name="data" type="string" length="255"/>
+			<field name="flags" type="integer" default="0"/>
+		</table>
+		<table name="dahdi">
+			<field name="id" type="string" length="20" default="-1" primaryKey="true"/>
+			<field name="keyword" type="string" length="30" default="" primaryKey="true"/>
+			<field name="data" type="string" length="255" default=""/>
+			<field name="flags" type="integer" default="0"/>
+		</table>
+		<table name="iax">
+			<field name="id" type="string" length="20" default="-1" primaryKey="true"/>
+			<field name="keyword" type="string" length="30" default="" primaryKey="true"/>
+			<field name="data" type="string" length="255"/>
+			<field name="flags" type="integer" default="0"/>
+		</table>
+		<table name="indications_zonelist">
+			<field name="name" type="string" length="80"/>
+			<field name="iso" type="string" length="20" primaryKey="true"/>
+			<field name="conf" type="blob" notnull="false"/>
+		</table>
+		<table name="devices">
+			<field name="id" type="string" length="20" default=""/>
+			<field name="tech" type="string" length="10" default=""/>
+			<field name="dial" type="string" length="255" default=""/>
+			<field name="devicetype" type="string" length="5" default=""/>
+			<field name="user" type="string" length="50" notnull="false"/>
+			<field name="description" type="string" length="50" notnull="false"/>
+			<field name="emergency_cid" type="string" length="100" notnull="false"/>
+			<field name="hint_override" type="string" length="100" notnull="false"/>
+			<key name="id" type="index">
+				<column name="id"/>
+			</key>
+			<key name="tech" type="index">
+				<column name="tech"/>
+			</key>
+		</table>
+		<table name="users">
+			<field name="extension" type="string" length="20" default=""/>
+			<field name="password" type="string" length="20" notnull="false"/>
+			<field name="name" type="string" length="50" notnull="false"/>
+			<field name="voicemail" type="string" length="50" notnull="false"/>
+			<field name="ringtimer" type="integer" notnull="false"/>
+			<field name="noanswer" type="string" length="100" notnull="false"/>
+			<field name="recording" type="string" length="50" notnull="false"/>
+			<field name="outboundcid" type="string" length="50" notnull="false"/>
+			<field name="sipname" type="string" length="50" notnull="false"/>
+			<field name="noanswer_cid" type="string" length="20" default=""/>
+			<field name="busy_cid" type="string" length="20" default=""/>
+			<field name="chanunavail_cid" type="string" length="20" default=""/>
+			<field name="noanswer_dest" type="string" length="255" default=""/>
+			<field name="busy_dest" type="string" length="255" default=""/>
+			<field name="chanunavail_dest" type="string" length="255" default=""/>
+			<field name="mohclass" type="string" length="80" default="default" notnull="false"/>
+			<key name="extension" type="index">
+				<column name="extension"/>
+			</key>
+		</table>
+		<table name="incoming">
+			<field name="cidnum" type="string" length="50" default="" primarykey="true"/>
+			<field name="extension" type="string" length="100" primarykey="true"/>
+			<field name="destination" type="string" length="50" notnull="false"/>
+			<field name="privacyman" type="boolean" notnull="false"/>
+			<field name="alertinfo" type="string" length="255" notnull="false"/>
+			<field name="ringing" type="string" length="20" notnull="false"/>
+			<field name="fanswer" type="string" length="20" notnull="false"/>
+			<field name="mohclass" type="string" length="80" default="default"/>
+			<field name="description" type="string" length="80" notnull="false"/>
+			<field name="grppre" type="string" length="80" notnull="false"/>
+			<field name="delay_answer" type="integer" notnull="false"/>
+			<field name="pricid" type="string" length="20" notnull="false"/>
+			<field name="pmmaxretries" type="string" length="2" notnull="false"/>
+			<field name="pmminlength" type="string" length="2" notnull="false"/>
+			<field name="reversal" type="string" length="10" notnull="false"/>
+			<field name="rvolume" type="string" length="2" default="" notnull="false"/>
+			<field name="mohclass" type="string" length="80" default="" notnull="false"/>
+			<field name="indication_zone" type="string" length="20" default="default" notnull="false"/>
+		</table>
+		<table name="outbound_routes">
+			<field name="route_id" type="integer" primaryKey="true" autoincrement="true"/>
+			<field name="name" type="string" length="40" notnull="false"/>
+			<field name="outcid" type="string" length="40" notnull="false"/>
+			<field name="outcid_mode" type="string" length="20" notnull="false"/>
+			<field name="password" type="string" length="30" notnull="false"/>
+			<field name="emergency_route" type="string" length="4" notnull="false"/>
+			<field name="intracompany_route" type="string" length="4" notnull="false"/>
+			<field name="mohclass" type="string" length="80" notnull="false"/>
+			<field name="time_mode" type="string" length="20" default="" notnull="false"/>
+			<field name="timezone" type="string" length="255" notnull="false"/>
+			<field name="time_group_id" type="integer" notnull="false"/>
+			<field name="calendar_id" type="string" length="255" notnull="false"/>
+			<field name="calendar_group_id" type="string" length="255" notnull="false"/>
+			<field name="dest" type="string" length="255" notnull="false"/>
+		</table>
+		<table name="dahdichandids">
+			<field name="channel" type="integer" default="0" primaryKey="true"/>
+			<field name="description" type="string" length="40" default=""/>
+			<field name="did" type="string" length="60" default=""/>
+		</table>
+		<table name="outbound_route_patterns">
+			<field name="route_id" type="integer" primarykey="true"/>
+			<field name="match_pattern_prefix" type="string" length="60" default="" primarykey="true"/>
+			<field name="match_pattern_pass" type="string" length="60" default="" primarykey="true"/>
+			<field name="match_cid" type="string" length="60" default="" primarykey="true"/>
+			<field name="prepend_digits" type="string" length="100" default="" primarykey="true"/>
+		</table>
+		<table name="outbound_route_sequence">
+			<field name="route_id" type="integer" primarykey="true"/>
+			<field name="seq" type="integer" primarykey="true"/>
+		</table>
+		<table name="outbound_route_trunks">
+			<field name="route_id" type="integer" primarykey="true"/>
+			<field name="trunk_id" type="integer" primarykey="true"/>
+			<field name="seq" type="integer" primarykey="true"/>
+		</table>
+		<table name="outbound_routes">
+			<field name="route_id" type="integer" primarykey="true" autoincrement="true"/>
+			<field name="name" type="string" length="40" notnull="false"/>
+			<field name="outcid" type="string" length="40" notnull="false"/>
+			<field name="outcid_mode" type="string" length="20" notnull="false"/>
+			<field name="password" type="string" length="30" notnull="false"/>
+			<field name="emergency_route" type="string" length="4" notnull="false"/>
+			<field name="intracompany_route" type="string" length="4" notnull="false"/>
+			<field name="mohclass" type="string" length="80" notnull="false"/>
+			<field name="time_group_id" type="integer" notnull="false"/>
+			<field name="dest" type="string" length="255" notnull="false"/>
+			<field name="time_mode" type="string" length="20" default="" notnull="false"/>
+			<field name="calendar_id" type="string" length="255" notnull="false"/>
+			<field name="calendar_group_id" type="string" length="255" notnull="false"/>
+			<field name="timezone" type="string" length="255" notnull="false"/>
+		</table>
+		<table name="trunk_dialpatterns">
+			<field name="trunkid" type="integer" default="0" primarykey="true"/>
+			<field name="match_pattern_prefix" type="string" length="50" default="" primarykey="true"/>
+			<field name="match_pattern_pass" type="string" length="50" default="" primarykey="true"/>
+			<field name="prepend_digits" type="string" length="50" default="" primarykey="true"/>
+			<field name="seq" type="integer" default="0" primarykey="true"/>
+		</table>
+	</database>
+	<menuitems>
+		<extensions needsenginedb="yes">Extensions</extensions>
+		<users needsenginedb="yes">Users</users>
+		<devices needsenginedb="yes">Devices</devices>
+		<did needsenginedb="yes" category="Connectivity">Inbound Routes</did>
+		<dahdichandids category="Connectivity">DAHDI Channel DIDs</dahdichandids>
+		<routing category="Connectivity" needsenginedb="yes">Outbound Routes</routing>
+		<trunks needsenginedb="yes" category="Connectivity">Trunks</trunks>
+		<advancedsettings category="Settings">Advanced Settings</advancedsettings>
+		<ampusers category="Admin">Administrators</ampusers>
+		<astmodules category="Admin">Asterisk Modules</astmodules>
+		<wiki category="Admin" requires_auth="false" href="http://www.freepbx.org/support-and-professional-services" target="_blank" access="all">FreePBX Support</wiki>
+	</menuitems>
+	<popovers>
+		<extensions>
+			<display>extensions</display>
+			<view>quick</view>
+		</extensions>
+		<users>
+			<display>users</display>
+			<view>add</view>
+		</users>
+		<trunks>
+			<display>trunks</display>
+		 </trunks>
+		 <did>
+			<display>did</display>
+			<view>form</view>
+		 </did>
+ 	 </popovers>
+	<methods>
+		<get_config pri="480">core_do_get_config</get_config>
+	</methods>
+	<console>
+		<command>
+			<name>trunks</name>
+		</command>
+	</console>
+	<hooks>
+		<bulkhandler namespace="FreePBX\modules" class="Bulkhandler" priority="100">
+			<method namespace="FreePBX\modules" class="Core" callingMethod="getTypes">bulkhandlerGetTypes</method>
+			<method namespace="FreePBX\modules" class="Core" callingMethod="getHeaders">bulkhandlerGetHeaders</method>
+			<method namespace="FreePBX\modules" class="Core" callingMethod="validate">bulkhandlerValidate</method>
+			<method namespace="FreePBX\modules" class="Core" callingMethod="import">bulkhandlerImport</method>
+			<method namespace="FreePBX\modules" class="Core" callingMethod="export">bulkhandlerExport</method>
+		</bulkhandler>
+		<framework class="Start" namespace="FreePBX\Console\Command">
+			<method callingMethod="postAsteriskHooks" class="Core" namespace="FreePBX\modules">startFreepbx</method>
+		</framework>
+		<framework class="Stop" namespace="FreePBX\Console\Command">
+			<method callingMethod="preAsteriskHooks" class="Core" namespace="FreePBX\modules">stopFreepbx</method>
+		</framework>
+		<framework class="Reload" namespace="FreePBX">
+			<method callingMethod="postReload" class="Core" namespace="FreePBX\Modules">postReloadFreepbx</method>
+			<method callingMethod="preReload" class="Core" namespace="FreePBX\Modules">preReloadFreepbx</method>
+		</framework>
+	</hooks>
+	<supported>
+		<version>14.0</version>
+	</supported>
+</module>

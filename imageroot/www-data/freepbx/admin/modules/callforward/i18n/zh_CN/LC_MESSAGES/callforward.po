@@ -1,0 +1,142 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX 2.5 Chinese Translation\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-02-01 18:25-0800\n"
+"PO-Revision-Date: 2015-02-05 21:19+0200\n"
+"Last-Translator: james <zhulizhong@gmail.com>\n"
+"Language-Team: Simplified Chinese <http://git.freepbx.org/projects/freepbx/"
+"callforward/zh_CN/>\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 1.10-dev\n"
+"X-Poedit-Language: Chinese\n"
+"X-Poedit-Country: CHINA\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: ucp/views/settings.php:5
+msgid "Always"
+msgstr ""
+
+#: callforward.i18n.php:6
+msgid "Applications"
+msgstr "应用"
+
+#: ucp/views/widget.php:13 ucp/views/widget.php:15
+msgid "Busy"
+msgstr ""
+
+#: callforward.i18n.php:4 install.php:6 ucp/Callforward.class.php:130
+msgid "Call Forward"
+msgstr "呼叫转移"
+
+#: callforward.i18n.php:24 install.php:7
+msgid "Call Forward All Activate"
+msgstr "呼叫转移 - 全部激活"
+
+#: callforward.i18n.php:20 install.php:8
+msgid "Call Forward All Deactivate"
+msgstr "呼叫转移 - 全部关闭"
+
+#: callforward.i18n.php:26 install.php:9
+msgid "Call Forward All Prompting Activate"
+msgstr ""
+
+#: callforward.i18n.php:22 install.php:10
+msgid "Call Forward All Prompting Deactivate"
+msgstr "呼叫转移 - 全部提示关闭"
+
+#: callforward.i18n.php:16 install.php:11
+msgid "Call Forward Busy Activate"
+msgstr "呼叫转移 - 忙时激活"
+
+#: callforward.i18n.php:12 install.php:12
+msgid "Call Forward Busy Deactivate"
+msgstr "呼叫转移 - 忙时关闭"
+
+#: callforward.i18n.php:18 install.php:13
+msgid "Call Forward Busy Prompting Activate"
+msgstr ""
+
+#: callforward.i18n.php:14 install.php:14
+msgid "Call Forward Busy Prompting Deactivate"
+msgstr "呼叫转移 - 忙时提示关闭"
+
+#: callforward.i18n.php:30 install.php:15
+msgid "Call Forward No Answer/Unavailable Activate"
+msgstr "呼叫转移 - 无应答或不可用时激活"
+
+#: callforward.i18n.php:28 install.php:16
+msgid "Call Forward No Answer/Unavailable Deactivate"
+msgstr "呼叫转移 - 无应答或不可用时关闭"
+
+#: callforward.i18n.php:32 install.php:17
+msgid "Call Forward No Answer/Unavailable Prompting Activate"
+msgstr ""
+
+#: callforward.i18n.php:10 install.php:18
+msgid "Call Forward Toggle"
+msgstr "呼叫前转触发"
+
+#: ucp/Callforward.class.php:87 ucp/Callforward.class.php:106
+msgid "Call Forwarding"
+msgstr ""
+
+#: ucp/Callforward.class.php:182
+msgid "Call Forwarding Has Been Updated!"
+msgstr ""
+
+#: ucp/Callforward.class.php:74
+#, php-format
+msgid "Call Forwarding for %s"
+msgstr ""
+
+#: ucp/views/settings.php:2
+msgid "CallForward Ringtimer"
+msgstr ""
+
+#: ucp/views/settings.php:4
+msgid "Default"
+msgstr ""
+
+#: ucp/views/widget.php:5 ucp/views/widget.php:10 ucp/views/widget.php:15
+msgid "Disabled"
+msgstr ""
+
+#: ucp/views/widget.php:5 ucp/views/widget.php:10 ucp/views/widget.php:15
+msgid "Enabled"
+msgstr ""
+
+#: ucp/views/settings.php:10
+msgid ""
+"Number of seconds to ring prior to going to voicemail or other fail over "
+"destinations that may be setup by an administrator on this account. The "
+"Always setting will ring the call forward destinaiton until answered or the "
+"caller hangs up. The Default setting will use the value set in Ring Time. "
+"Your setting here will be forced to Always if there is no Voicemail or "
+"alternartive fail over destination for a call to go to."
+msgstr ""
+
+#: callforward.i18n.php:8
+msgid "Provides callforward featurecodes"
+msgstr "提供呼叫前转功能代码"
+
+#: ucp/views/settings.php:7
+msgid "Seconds"
+msgstr ""
+
+#: ucp/views/widget.php:8 ucp/views/widget.php:10
+msgid "Unavailable"
+msgstr ""
+
+#: ucp/views/widget.php:3 ucp/views/widget.php:5
+msgid "Unconditional"
+msgstr ""

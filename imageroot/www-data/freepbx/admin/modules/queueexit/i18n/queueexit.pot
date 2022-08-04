@@ -1,0 +1,140 @@
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: 2018-04-12 14:55+0200\n"
+"PO-Revision-Date: 2018-03-15 12:03+0100\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: it_IT\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.0.6\n"
+"X-Poedit-Basepath: ..\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: Queueexit.class.php:114
+msgid "Delete"
+msgstr ""
+
+#: Queueexit.class.php:117
+msgid "Reset"
+msgstr ""
+
+#: Queueexit.class.php:119
+msgid "Submit"
+msgstr ""
+
+#: Queueexit.class.php:177
+msgid "Edit Queue Exit"
+msgstr ""
+
+#: Queueexit.class.php:180 views/bootnav.php:2
+msgid "Add Queue Exit"
+msgstr ""
+
+#: Queueexit.class.php:185
+msgid "Queue Exit List"
+msgstr ""
+
+#: install.php:23
+msgid "Creating the database table"
+msgstr ""
+
+#: install.php:45
+msgid "Table Created"
+msgstr ""
+
+#: install.php:47 uninstall.php:36
+msgid "Something went wrong"
+msgstr ""
+
+#: uninstall.php:24
+msgid "Removing the database table"
+msgstr ""
+
+#: uninstall.php:34
+msgid "Table Deleted"
+msgstr ""
+
+#: views/bootnav.php:1
+msgid "List Queue Exit"
+msgstr ""
+
+#: views/default.php:2
+msgid "Queue Exit"
+msgstr ""
+
+#: views/form.php:48
+msgid "Name"
+msgstr ""
+
+#: views/form.php:56
+msgid "Give this Queue Exit a brief name to help you identify it."
+msgstr ""
+
+#: views/form.php:69
+msgid "Timeout Destination"
+msgstr ""
+
+#: views/form.php:79
+msgid "Destination when call leave the queue because has reached maximum waiting time"
+msgstr ""
+
+#: views/form.php:87
+msgid "Full Destination"
+msgstr ""
+
+#: views/form.php:97
+msgid "Destination when call leave because queue has reached maximum number of waiting calls"
+msgstr ""
+
+#: views/form.php:105
+msgid "Joinempty Destination"
+msgstr ""
+
+#: views/form.php:115
+msgid "Destination when call leave the queue because there wasn't any agent"
+msgstr ""
+
+#: views/form.php:123
+msgid "Leaveempty Destination"
+msgstr ""
+
+#: views/form.php:133
+msgid "Destination when call leave the queue because during the waiting all available agent logged off"
+msgstr ""
+
+#: views/form.php:141
+msgid "Joinunavail Destination"
+msgstr ""
+
+#: views/form.php:151
+msgid "Destination when call leave the queue because there wasn't available agents"
+msgstr ""
+
+#: views/form.php:159
+msgid "Leaveunavail Destination"
+msgstr ""
+
+#: views/form.php:169
+msgid "Destination when call leave the queue because during the waiting all available agents changed status"
+msgstr ""
+
+#: views/form.php:177
+msgid "Continue Destination"
+msgstr ""
+
+#: views/form.php:187
+msgid "Destination when CONTINUE is value of QUEUESTATUS"
+msgstr ""
+
+#: views/grid.php:30
+msgid "Queue Exit"
+msgstr ""
+
+#: views/grid.php:31
+msgid "Actions"
+msgstr ""

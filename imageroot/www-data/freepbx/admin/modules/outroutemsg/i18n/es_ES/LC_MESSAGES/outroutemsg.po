@@ -1,0 +1,141 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for outroutemsg
+# Copyright (C) 2008-2015 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-03-16 13:47-0700\n"
+"PO-Revision-Date: 2016-12-11 05:38+0200\n"
+"Last-Translator: Ernesto <ecasas@sangoma.com>\n"
+"Language-Team: Spanish <http://weblate.freepbx.org/projects/freepbx/"
+"outroutemsg/es_ES/>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: es_ES\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: install.php:17
+msgid "Can not create outroutemsg table"
+msgstr "No se puede crear la tabla outroutemsg"
+
+#: outroutemsg.i18n.php:8
+msgid ""
+"Configures message or congestion tones played when all trunks are busy in a "
+"route. Allows different messages for Emergency Routes and Intra-Company "
+"Routes"
+msgstr ""
+"Configura tonos de mensaje o de congestión reproducidos cuando todas las "
+"troncales están ocupadas en una ruta. Permite diferentes mensajes para rutas "
+"de emergencia y rutas intra-empresa"
+
+#: page.outroutemsg.php:78 page.outroutemsg.php:112 page.outroutemsg.php:146
+#: page.outroutemsg.php:182 page.outroutemsg.php:216
+msgid "Congestion Tones"
+msgstr "Tonos de Congestión"
+
+#: page.outroutemsg.php:77 page.outroutemsg.php:111 page.outroutemsg.php:145
+#: page.outroutemsg.php:181 page.outroutemsg.php:215
+msgid "Default Message"
+msgstr "Mensaje por Defecto"
+
+#: page.outroutemsg.php:139
+msgid "Emergency Routes"
+msgstr "Rutas de Emergencia"
+
+#: page.outroutemsg.php:105
+msgid "Intra-Company Routes"
+msgstr "Rutas Intra-Company"
+
+#: page.outroutemsg.php:93
+msgid "Message or tone to be played if no trunks are available."
+msgstr "Mensaje o tono que será reproducido si NO hay líneas disponibles."
+
+#: page.outroutemsg.php:161
+msgid ""
+"Message or tone to be played if no trunks are available. Used on all "
+"emergency routes. Consider a message instructing callers to find an "
+"alternative means of calling emergency services such as a cell phone or "
+"alarm system panel."
+msgstr ""
+"Mensaje o tono que se reproducirá, si no se dispone de líneas. Utilizado en "
+"todas las rutas de emergencia. Considere la posibilidad de un mensaje que "
+"indique al llamante a encontrar una alternativa a llamar a los servicios de "
+"emergencia, tales como un teléfono móvil o panel de alarma del sistema."
+
+#: page.outroutemsg.php:127
+msgid ""
+"Message or tone to be played if no trunks are available. Used on routes "
+"marked as intra-company only."
+msgstr ""
+"Mensaje o tono que será reproducido si no hay líneas disponibles. Utilizado "
+"en rutas marcadas sólo como intra-company."
+
+#: page.outroutemsg.php:197
+msgid ""
+"Message or tone to be played if there was no answer. Default message is:<br>"
+"\"The number is not answering.\"<br> Hangupcause is 18 or 19"
+msgstr ""
+"Mensaje o tono que se reproducirá si no hay respuesta. Por defecto el "
+"mensaje es:<br>\"El número no responde.\"<br> HANGUPCAUSE es 18 o 19"
+
+#: page.outroutemsg.php:231
+msgid ""
+"Message or tone to be played if trunk reports Number or Address Incomplete. "
+"Usually this means that the number you have dialed is to short. Default "
+"message is:<br>\"The number you have dialed is not in service. Please check "
+"the number and try again.\"<br>Hangupcause is 28"
+msgstr ""
+"Mensaje o tono que se reproducirá si la línea reporta Número o Dirección "
+"Incompleta. Por lo general, esto significa que el número marcado es corto. "
+"Por defecto el mensaje es:<br>\"El número marcado no está en servicio. Por "
+"favor, consulte el número y vuelva a intentarlo.\"<br> HANGUPCAUSE es 28"
+
+#: page.outroutemsg.php:175
+msgid "No Answer"
+msgstr "No Contesta"
+
+#: page.outroutemsg.php:53
+msgid "No Routes Available"
+msgstr "Rutas Disponibles"
+
+#: page.outroutemsg.php:209
+msgid "Number or Address Incomplete"
+msgstr "Número o Dirección Incompleta"
+
+#: Outroutemsg.class.php:30
+msgid "Reset"
+msgstr "Reinicio"
+
+#: functions.inc.php:142 outroutemsg.i18n.php:4 outroutemsg.i18n.php:10
+#: page.outroutemsg.php:42
+msgid "Route Congestion Messages"
+msgstr "Mensajes Congestión Rutas"
+
+#: outroutemsg.i18n.php:6
+msgid "Settings"
+msgstr "Configuracion"
+
+#: page.outroutemsg.php:71
+msgid "Standard Routes"
+msgstr "Rutas Estandar"
+
+#: Outroutemsg.class.php:35
+msgid "Submit"
+msgstr "Enviar"
+
+#: page.outroutemsg.php:58
+msgid "Trunk Failures"
+msgstr "Fallos de Línea"
+
+#~ msgid "Message or Tone"
+#~ msgstr "Mensaje o Tono"
+
+#~ msgid "Submit Changes"
+#~ msgstr "Aplicar Cambios"

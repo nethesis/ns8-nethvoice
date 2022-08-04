@@ -1,0 +1,890 @@
+# CREDITS for JAPANESE TRANSLATION
+# ================================
+# Current translation & maintenance: QLOOG, Inc. (Kobe, Japan)
+# Inquiries: info@qloog.com / www.qloog.com
+#
+# This translation is a culmination of the hard work of
+# several outstanding individuals, which started in 2009 with the 
+# first-ever Japanese localization of FreePBX by Kenichi Fukaumi 
+# and Kazuhiro Tokuyama (FreePBX Japanized Project).
+#
+# Beginning in 2013, with the approval of the original authors, 
+# QLOOG undertook a large scale overhaul of the translation to 
+# expand it for compatibility with FreePBX 2.11. Our work is, 
+# of course, released under the same GPLv2 license as FreePBX. 
+# We only ask that you kindly retain these credits in honor of 
+# the time and effort that all of us have contributed. Enjoy!
+#
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# FreePBX language template for ringgroups
+# Copyright (C) 2008, 2009, 2010 Bandwith.com
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX 2.10.0.6\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-01-31 14:20+0530\n"
+"PO-Revision-Date: 2014-04-17 15:59+0200\n"
+"Last-Translator: Kevin <kevin@qloog.com>\n"
+"Language-Team: Japanese <http://git.freepbx.org/projects/freepbx/ringgroups/"
+"ja/>\n"
+"Language: ja_JP\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 1.9-dev\n"
+
+#: views/form.php:60
+msgid "*-prim"
+msgstr "*-prim"
+
+#: views/simple_form.php:79
+msgid ""
+"<strong>Simultaneous:</strong> Rings all extensions at once.</"
+"br><strong>Sequential:</strong> Rings each extension separately in the order "
+"defined in the list"
+msgstr ""
+
+#: views/advanced_form.php:178
+msgid "ALERT_INFO can be used for distinctive ring with SIP devices."
+msgstr "アラート情報（ALERT_INFO）を使ってSIP端末の着信音に設定できます。"
+
+#: views/rggrid.php:18
+msgid "Actions"
+msgstr ""
+
+#: views/bootnav.php:2 views/rggrid.php:2
+msgid "Add Ring Group"
+msgstr "着信グループを追加"
+
+#: views/advanced_form.php:166
+msgid "Alert Info"
+msgstr "アラート情報"
+
+#: views/form.php:247
+msgid "Always transmit the Fixed CID Value below."
+msgstr "常に以下の固定CIDを送信します。"
+
+#: views/form.php:101
+msgid "Announcement"
+msgstr ""
+
+#: ringgroups.i18n.php:6
+msgid "Applications"
+msgstr "アプリケーション"
+
+#: views/advanced_form.php:142
+msgid "CID Name Prefix"
+msgstr "CID名前プリフィックス"
+
+#: views/advanced_form.php:431
+msgid "Call Recording"
+msgstr "通話録音"
+
+#: views/advanced_form.php:381
+msgid "Change External CID Configuration"
+msgstr "外部CID設定を変更する"
+
+#: views/advanced_form.php:352
+msgid "Confirm Calls"
+msgstr "コールを確認する"
+
+#: ringgroups.i18n.php:8
+msgid ""
+"Creates a group of extensions that all ring together. Extensions can be rung "
+"all at once, or in various 'hunt' configurations. Additionally, external "
+"numbers are supported, and there is a call confirmation option where the "
+"callee has to confirm if they actually want to take the call before the "
+"caller is transferred."
+msgstr ""
+"同時に呼び出される内線のグループを作成します。内線は全て同時に呼び出すか、"
+"様々な'ハント'構成で呼び出すか設定できます。内線に加えて外部の番号が使える"
+"他、コールを転送する前に、呼び出し先の人がコールを受けたいかどうかを確認でき"
+"るオプションも使えます。"
+
+#: views/form.php:143 views/form.php:178 views/form.php:245 views/form.php:257
+msgid "Default"
+msgstr "デフォルト"
+
+#: Ringgroups.class.php:149
+msgid "Delete"
+msgstr ""
+
+#: views/bootnav.php:14 views/rggrid.php:17
+msgid "Description"
+msgstr ""
+
+#: views/advanced_form.php:465 views/simple_form.php:141
+msgid "Destination if no answer"
+msgstr "応答がない場合の転送先"
+
+#: ringgroups.i18n.php:12
+msgid "Display Extension Ring Group Members"
+msgstr "内線着信グループのメンバーを表示する"
+
+#: views/advanced_form.php:438
+msgid "Dont Care"
+msgstr ""
+
+#: views/advanced_form.php:325
+msgid "Enable Call Pickup"
+msgstr "コールピックアップを有効にする"
+
+#: views/advanced_form.php:367
+msgid ""
+"Enable this if you're calling external numbers that need confirmation - eg, "
+"a mobile phone may go to voicemail which will pick up the call. Enabling "
+"this requires the remote side push 1 on their phone before the call is put "
+"through. This feature only works with the ringall ring strategy"
+msgstr ""
+"外線番号で確認動作が必要な場合（例えば、ボイスメールが応答する携帯電話がリン"
+"ググループに含まれている）に、有効にしてください。有効にすると、リモート側で "
+"1 を押すまで、コールが転送されません。この機能は、ringall ストラテジーでのみ"
+"使用できます。"
+
+#: views/advanced_form.php:58 views/simple_form.php:32
+msgid "Extension List"
+msgstr "内線リスト"
+
+#: views/advanced_form.php:407 views/form.php:247 views/form.php:258
+msgid "Fixed CID Value"
+msgstr "固定CID"
+
+#: views/advanced_form.php:419
+msgid ""
+"Fixed value to replace the CID with used with some of the modes above. "
+"Should be in a format of digits only with an option of E164 format using a "
+"leading '+'."
+msgstr ""
+
+#: views/advanced_form.php:436
+msgid "Force"
+msgstr ""
+
+#: views/form.php:253 views/form.php:261
+msgid "Force Dialed Number"
+msgstr "ダイヤルした呼び出し側の番号を強制する"
+
+#: views/advanced_form.php:34
+msgid "Group Description"
+msgstr "グループの説明"
+
+#: functions.inc.php:334
+msgid "INUSE"
+msgstr "使用中"
+
+#: views/form.php:236
+msgid ""
+"If you select a Music on Hold class to play, instead of 'Ring', they will "
+"hear that instead of Ringing while they are waiting for someone to pick up."
+msgstr ""
+"「リング」の代わりに保留音クラスを選択した場合は、呼び出し中に通常の呼び出し"
+"音（リング）ではなく、保留音を再生します。"
+
+#: views/advanced_form.php:271
+msgid "Ignore CF Settings"
+msgstr "転送設定を無視する"
+
+#: views/form.php:219
+msgid "Inherit"
+msgstr ""
+
+#: assets/js/ringgroups.js:60
+msgid "Invalid CID"
+msgstr ""
+
+#: assets/js/ringgroups.js:54
+msgid "Invalid Group Number specified"
+msgstr "不正なグループ番号が入力されています。"
+
+#: assets/js/ringgroups.js:56
+msgid "Invalid time specified"
+msgstr "不正な時間が入力されています。"
+
+#: views/bootnav.php:3
+msgid "List Ring Groups"
+msgstr ""
+
+#: views/advanced_form.php:78
+msgid ""
+"List extensions to ring, one per line, or use the Extension Quick Select "
+"insert them here.<br><br>You can include an extension on a remote system, or "
+"an external number by suffixing a number with a '#'.  ex:  2448089# would "
+"dial 2448089 on the appropriate trunk (see Outbound "
+"Routing)<br><br>Extensions without a '#' will not ring a user's Follow-Me. "
+"To dial Follow-Me, Queues and other numbers that are not extensions, put a "
+"'#' at the end."
+msgstr ""
+
+#: views/simple_form.php:52
+msgid ""
+"List extensions to ring, one per line, or use the Extension Quick Select to "
+"insert them here.<br><br>You can include an extension on a remote system, or "
+"an external number by suffixing a number with a '#'.  ex:  2448089# would "
+"dial 2448089"
+msgstr ""
+
+#: views/form.php:66
+msgid ""
+"Makes a call could hop between the included extensions without a predefined "
+"priority to ensure that calls in the groups are (almost) evenly spread. "
+"Simulates a Queue when a Queue can not otherwise be used."
+msgstr ""
+
+#: views/advanced_form.php:244
+msgid "Mark Answered Elsewhere"
+msgstr ""
+
+#: views/form.php:122
+msgid ""
+"Message to be played to the caller before dialing this group.<br><br>To add "
+"additional recordings please use the \"System Recordings\" MENU above"
+msgstr ""
+
+#: views/form.php:157
+msgid ""
+"Message to be played to the person RECEIVING the call, if 'Confirm Calls' is "
+"enabled.<br><br>To add additional recordings use the \"System Recordings\" "
+"MENU above"
+msgstr ""
+
+#: views/form.php:192
+msgid ""
+"Message to be played to the person RECEIVING the call, if the call has "
+"already been accepted before they push 1.<br><br>To add additional "
+"recordings use the \"System Recordings\" MENU above"
+msgstr ""
+
+#: views/form.php:243
+msgid "Mode"
+msgstr "モード"
+
+#: views/advanced_form.php:440
+msgid "Never"
+msgstr "録音しない"
+
+#: views/advanced_form.php:224 views/advanced_form.php:251
+#: views/advanced_form.php:278 views/advanced_form.php:305
+#: views/advanced_form.php:332 views/advanced_form.php:359
+msgid "No"
+msgstr ""
+
+#: views/advanced_form.php:194 views/form.php:108
+msgid "None"
+msgstr "なし"
+
+#: assets/js/ringgroups.js:59
+msgid ""
+"Only ringall, ringallv2, hunt and the respective -prim versions are "
+"supported when confirmation is checked"
+msgstr ""
+"確認をチェックする場合は、ringall, ringallv2, hunt とその -prim つきバージョ"
+"ンのみをサポートします。"
+
+#: views/form.php:249 views/form.php:259
+msgid "Outside Calls Fixed CID Value"
+msgstr "外部コール用の固定CID"
+
+#: views/advanced_form.php:206
+#, php-format
+msgid ""
+"Override the ringer volume. Note: This is only valid for %s phones at this "
+"time"
+msgstr ""
+
+#: views/form.php:211
+msgid "Play Music On Hold"
+msgstr ""
+
+#: assets/js/ringgroups.js:58
+msgid "Please enter a valid Group Description"
+msgstr "有効なグループ説明を入力してください。"
+
+#: assets/js/ringgroups.js:55
+msgid "Please enter an extension list."
+msgstr "内線リストを入力してください。"
+
+#: views/advanced_form.php:46
+msgid "Provide a descriptive title for this Ring Group."
+msgstr "この着信グループの説明。"
+
+#: views/simple_form.php:20
+msgid "Provide a name for this Ring Group."
+msgstr ""
+
+#: views/form.php:136
+msgid "Remote Announce"
+msgstr ""
+
+#: Ringgroups.class.php:159
+msgid "Reset"
+msgstr ""
+
+#: views/form.php:218
+msgid "Ring"
+msgstr "リング"
+
+#: views/bootnav.php:13 views/rggrid.php:16
+msgid "Ring Group"
+msgstr "着信グループ"
+
+#: functions.inc.php:37
+#, php-format
+msgid "Ring Group %s: "
+msgstr "着信グループ %s: "
+
+#: functions.inc.php:458
+msgid "Ring Group Membership"
+msgstr "所属する着信グループ"
+
+#: ringgroups.i18n.php:14
+msgid "Ring Group Module"
+msgstr "着信グループモジュール"
+
+#: views/simple_form.php:8
+msgid "Ring Group Name"
+msgstr ""
+
+#: functions.inc.php:57 functions.inc.php:333
+#, php-format
+msgid "Ring Group: %s"
+msgstr "着信グループ: %s"
+
+#: functions.inc.php:360
+#, php-format
+msgid "Ring Group: %s (%s)"
+msgstr "着信グループ: %s (%s)"
+
+#: page.ringgroups.php:10 ringgroups.i18n.php:4 ringgroups.i18n.php:10
+msgid "Ring Groups"
+msgstr "着信グループ"
+
+#: views/advanced_form.php:90 views/simple_form.php:64
+msgid "Ring Strategy"
+msgstr ""
+
+#: views/simple_form.php:91
+msgid "Ring Time"
+msgstr ""
+
+#: views/advanced_form.php:116
+msgid "Ring Time (max 300 sec)"
+msgstr "呼び出し時間 (最大300秒)"
+
+#: views/simple_form.php:118
+msgid "Ring Tone"
+msgstr ""
+
+#: views/form.php:54
+msgid "Ring all available channels until one answers (default)"
+msgstr "誰かが応答するまで全ての空いているチャネルを鳴らす(デフォルト)"
+
+#: views/form.php:58
+msgid ""
+"Ring first extension in the list, then ring the 1st and 2nd extension, then "
+"ring 1st 2nd and 3rd extension in the list.... etc. This strategy will work "
+"only when Confirm Calls is disabled."
+msgstr ""
+
+#: views/advanced_form.php:9
+msgid "Ring-Group Number"
+msgstr "着信グループ番号"
+
+#: Ringgroups.class.php:129
+msgid "RingGroup"
+msgstr ""
+
+#: views/advanced_form.php:189
+msgid "Ringer Volume Override"
+msgstr ""
+
+#: views/simple_form.php:130
+msgid ""
+"Select a Ring Tone from the list of options above. This will determine how "
+"your phone sounds when it is rung from this group."
+msgstr ""
+
+#: views/advanced_form.php:217
+msgid "Send Progress"
+msgstr ""
+
+#: views/simple_form.php:70
+msgid "Sequential"
+msgstr ""
+
+#: views/advanced_form.php:259
+msgid "Should calls indicate answered elsewhere when a user answers."
+msgstr ""
+
+#: views/advanced_form.php:232
+msgid ""
+"Should this ringgroup indicate call progress to digital channels where "
+"supported."
+msgstr ""
+
+#: views/simple_form.php:69
+msgid "Simultaneous"
+msgstr ""
+
+#: views/advanced_form.php:298
+msgid "Skip Busy Agent"
+msgstr "ビジー状態のエージェントをスキップ"
+
+#: Ringgroups.class.php:154
+msgid "Submit"
+msgstr ""
+
+#: views/form.php:56
+msgid "Take turns ringing each available extension"
+msgstr "空いている内線を順番に鳴らす"
+
+#: assets/js/ringgroups.js:80
+msgid "The group list can only contain a maximum of 255 characters."
+msgstr ""
+
+#: views/advanced_form.php:21
+msgid "The number users will dial to ring extensions in this ring group"
+msgstr "このリンググループに所属する内線を鳴らすためのダイヤル番号"
+
+#: views/form.php:60
+msgid ""
+"These modes act as described above. However, if the primary extension (first "
+"in list) is occupied, the other extensions will not be rung. If the primary "
+"is FreePBX DND, it won't be rung. If the primary is FreePBX CF "
+"unconditional, then all will be rung"
+msgstr ""
+"このモードは上記と同じような挙動をしますが、メインの内線(リスト中の最初の内"
+"線)が占有されている場合、他の内線は鳴りません。もしメインがFreePBX DND(do "
+"not disturb)の場合は鳴りません。もしメインがFreePBX 無条件転送の場合、全てが"
+"鳴ります"
+
+#: Ringgroups.class.php:249
+msgid "This ringgroup"
+msgstr "この着信グループ"
+
+#: views/advanced_form.php:128
+msgid ""
+"Time in seconds that the phones will ring. For all hunt style ring "
+"strategies, this is the time for each iteration of phone(s) that are rung"
+msgstr ""
+"電話が鳴る秒数。全てのhunt型リングルールの場合は、それぞれの電話が反復して鳴"
+"る時間です。"
+
+#: views/simple_form.php:108
+msgid ""
+"Time in seconds that the phones will ring. For sequential ring strategies, "
+"this is the time for each iteration of phone(s) that are rung"
+msgstr ""
+
+#: assets/js/ringgroups.js:57
+msgid "Time must be between 1 and 300 seconds"
+msgstr "1～300秒の時間を入力してください。"
+
+#: views/form.php:171
+msgid "Too-Late Announce"
+msgstr ""
+
+#: views/form.php:249
+msgid ""
+"Transmit the Fixed CID Value below on calls that come in from outside only. "
+"Internal extension to extension calls will continue to operate in default "
+"mode."
+msgstr ""
+"外線から着信したコールのCIDを、以下の固定CIDに置き換えます。内部の内線間コー"
+"ルは引き続きデフォルトモードで動作します。"
+
+#: views/form.php:253
+msgid ""
+"Transmit the number that was dialed as the CID for calls coming from "
+"outside. Internal extension to extension calls will continue to operate in "
+"default mode. There must be a DID on the inbound route for this. This WILL "
+"be transmitted on trunks that block foreign CallerID"
+msgstr ""
+"外部コールの場合に、ダイアルした呼び出し側の番号をCIDとして送信します。内部の"
+"内線間コールはデフォルトモードで動作します。着信ルートにDIDが設定されている必"
+"要があります。外部のCallerIDをブロックするトランクにも送信します。"
+
+#: views/form.php:251
+msgid ""
+"Transmit the number that was dialed as the CID for calls coming from "
+"outside. Internal extension to extension calls will continue to operate in "
+"default mode. There must be a DID on the inbound route for this. This will "
+"be BLOCKED on trunks that block foreign CallerID"
+msgstr ""
+"外線から着信したコールの場合、ダイヤルした呼び出し側の番号をそのままCIDとして"
+"送信します。内部の内線間コールはデフォルトモードで動作します。この機能を使う"
+"には、着信ルートにDIDが設定されている必要があります。この機能は、外部 "
+"CallerIDをブロックするトランク上ではブロックされます。"
+
+#: views/form.php:245
+msgid "Transmits the Callers CID if allowed by the trunk."
+msgstr "発信者のCIDを送信する (トランクが許可する場合に)。"
+
+#: views/form.php:251 views/form.php:260
+msgid "Use Dialed Number"
+msgstr "ダイヤルした呼び出し側の番号を使用"
+
+#: Ringgroups.class.php:79
+msgid "Warning! Extension"
+msgstr "警告! 内線"
+
+#: views/advanced_form.php:313
+msgid ""
+"When enabled, agents who are on an occupied phone will be skipped as if the "
+"line were returning busy. This means that Call Waiting or multi-line phones "
+"will not be presented with the call and in the various hunt style ring "
+"strategies, the next agent will be attempted."
+msgstr ""
+
+#: views/advanced_form.php:340
+msgid ""
+"When enabled, this will allow calls to the Ring Group to be picked up with "
+"the directed call pickup feature using the group number from any extension. "
+"When not checked, individual extensions that are part of the group can still "
+"be picked up by doing a directed call pickup by dialing the group number. "
+"Any extensions can still be picked up by doing a directed call pickup to the "
+"ringing extension , which works whether or not this is checked."
+msgstr ""
+
+#: views/advanced_form.php:286
+msgid ""
+"When set to Yes, agents who attempt to Call Forward will be ignored, this "
+"applies to CF, CFU and CFB. Extensions entered with '#' at the end, for "
+"example to access the extension's Follow-Me, might not honor this setting ."
+msgstr ""
+
+#: ringgroups.i18n.php:16
+msgid ""
+"When set to true extensions that belong to one or more Ring Groups will have "
+"a Ring Group section and link back to each group they are a member of."
+msgstr ""
+"trueに設定すると、1つ以上の着信グループに所属する内線の設定ページで「着信グ"
+"ループ」の項目が追加され、所属するグループへのリンクが表示されます。"
+
+#: views/advanced_form.php:477 views/simple_form.php:153
+msgid "Where to send callers if there is no answer."
+msgstr ""
+
+#: views/advanced_form.php:222 views/advanced_form.php:249
+#: views/advanced_form.php:276 views/advanced_form.php:303
+#: views/advanced_form.php:330 views/advanced_form.php:357
+msgid "Yes"
+msgstr ""
+
+#: views/advanced_form.php:448
+msgid ""
+"You can always record calls that come into this ring group (Force), never "
+"record them (Never), or allow the extension that answers to do on-demand "
+"recording (Dont Care). If recording is denied then one-touch on demand "
+"recording will be blocked, unless they have the \"Override\" call recording "
+"setting."
+msgstr ""
+
+#: views/advanced_form.php:154
+msgid ""
+"You can optionally prefix the CallerID name when ringing extensions in this "
+"group. ie: If you prefix with \"Sales:\", a call from John Doe would display "
+"as \"Sales:John Doe\" on the extensions that ring."
+msgstr ""
+"CallerID名にプレフィックスが付けられます。例:「問合せ」と言うプレフィックスを"
+"付けると、「A様」からの着信は、着信端末に「問合せ: A様」として表示されます。"
+
+#: views/form.php:223
+msgid "default"
+msgstr "デフォルト"
+
+#: views/form.php:62
+msgid "firstavailable"
+msgstr "利用可能な最初"
+
+#: views/form.php:64
+msgid "firstnotonphone"
+msgstr "電話中でない最初のもの"
+
+#: views/form.php:56
+msgid "hunt"
+msgstr "hunt"
+
+#: Ringgroups.class.php:249
+msgid "is already in use"
+msgstr "は既に使用中です"
+
+#: Ringgroups.class.php:79
+msgid "is not allowed for your account"
+msgstr "はあなたのアカウントに許可されていません"
+
+#: views/form.php:58
+msgid "memoryhunt"
+msgstr "memoryhunt"
+
+#: views/form.php:222
+msgid "none"
+msgstr "なし"
+
+#: views/form.php:66
+msgid "random"
+msgstr ""
+
+#: views/form.php:62
+msgid ""
+"ring only the first available channel. This strategy will work only when "
+"Confirm Calls is disabled."
+msgstr ""
+
+#: views/form.php:64
+msgid ""
+"ring only the first channel which is not offhook - ignore CW. This strategy "
+"will work only when Confirm Calls is disabled."
+msgstr ""
+
+#: views/form.php:54
+msgid "ringall"
+msgstr "ringall"
+
+#~ msgid ""
+#~ "Ring first extension in the list, then ring the 1st and 2nd extension, "
+#~ "then ring 1st 2nd and 3rd extension in the list.... etc."
+#~ msgstr ""
+#~ "鳴らす内線の数が順番に増えていくルール。最初にリスト中の1番目の内線を鳴ら"
+#~ "し、その後に1番目と2番目の内線を鳴らし、その後に1番目、2番目、3番目の内線"
+#~ "を鳴らします。"
+
+#~ msgid "ring only the first available channel"
+#~ msgstr "最初の空いているチャネルのみ鳴らします"
+
+#~ msgid "ring only the first channel which is not offhook - ignore CW"
+#~ msgstr ""
+#~ "オフフック状態でない最初のチャネルのみ鳴らします。 - コールウェイテイング"
+#~ "を無視します。"
+
+#~ msgid "(pick extension)"
+#~ msgstr "(内線を選択)"
+
+#~ msgid "Always"
+#~ msgstr "常に"
+
+#~ msgid "Announcement:"
+#~ msgstr "アナウンス"
+
+#~ msgid "Checking if recordings need migration.."
+#~ msgstr "録音の移行が必要かチェック中.."
+
+#~ msgid ""
+#~ "Checking this will allow calls to the Ring Group to be picked up with the "
+#~ "directed call pickup feature using the group number. When not checked, "
+#~ "individual extensions that are part of the group can still be picked up "
+#~ "by doing a directed call pickup to the ringing extension, which works "
+#~ "whether or not this is checked."
+#~ msgstr ""
+#~ "チェックすると、リンググループへのコールは、ダイレクトコールピックアップ機"
+#~ "能を使用して、グループ番号で受けられます。チェックしていない場合でも、リン"
+#~ "ググループに所属している内線は、その内線へのダイレクトコールピックアップを"
+#~ "すると、受けられます。"
+
+#~ msgid ""
+#~ "Choose an extension to append to the end of the extension list above."
+#~ msgstr "上記の内線リストの最後に追加する内線を選択してください。"
+
+#~ msgid "Conflicting Extensions"
+#~ msgstr "内線の競合"
+
+#~ msgid "Delete Group"
+#~ msgstr "グループを削除"
+
+#~ msgid "Edit Ring Group"
+#~ msgstr "着信グループを編集"
+
+#~ msgid "Extension Quick Pick"
+#~ msgstr "内線クイック選択"
+
+#~ msgid ""
+#~ "Fixed value to replace the CID with used with some of the modes above. "
+#~ "Should be in a format of digits only with an option of E164 format using "
+#~ "a leading \"+\"."
+#~ msgstr ""
+#~ "CIDを置き換える固定値。上記のいくつかのモードで使用します。数字のみ、また"
+#~ "は先頭が \"+\" であるE164形式で入力してください。"
+
+#~ msgid ""
+#~ "List extensions to ring, one per line, or use the Extension Quick Pick "
+#~ "below to insert them here.<br><br>You can include an extension on a "
+#~ "remote system, or an external number by suffixing a number with a '#'.  "
+#~ "ex:  2448089# would dial 2448089 on the appropriate trunk (see Outbound "
+#~ "Routing)<br><br>Extensions (without a '#' will not ring a user's Follow-"
+#~ "Me. To dial Follow-Me, Queues and other numbers that are not extensions, "
+#~ "put a '#' at the end."
+#~ msgstr ""
+#~ "1 行にひとつずつ、呼び出す内線を直接入力するか、「内線クイック選択」を使っ"
+#~ "て追加します。<br/> 番号に '#'を付けると、リモートシステムのエクステンショ"
+#~ "ン、または外線番号を呼び出すことができます。例えば、2448089# を入力する"
+#~ "と、該当するトランクで 2448089 を呼び出します。<br><br>'#' なしの内線は、"
+#~ "ユーザーの Follow-Me を呼び出しません。Follow-me やキューのような内線でな"
+#~ "い番号を呼び出すには、最後に '#' を付けてください。"
+
+#~ msgid ""
+#~ "Message to be played to the caller before dialing this group.<br><br>To "
+#~ "add additional recordings please use the \"System Recordings\" MENU to "
+#~ "the left"
+#~ msgstr ""
+#~ "このグループをダイヤルする前に発信者に再生するメッセージ。<br><br>音声を追"
+#~ "加・録音するにはメニューにある「システム録音」を使ってください。"
+
+#~ msgid ""
+#~ "Message to be played to the caller before dialing this group.<br><br>You "
+#~ "must install and enable the \"Systems Recordings\" Module to edit this "
+#~ "option"
+#~ msgstr ""
+#~ "グループにダイヤルする前に発信者に再生するメッセージ。<br><br>このオプショ"
+#~ "ンを変更するには、\"システム録音\"モジュールをインストールして有効にする必"
+#~ "要があります。"
+
+#~ msgid ""
+#~ "Message to be played to the person RECEIVING the call, if 'Confirm Calls' "
+#~ "is enabled.<br><br>To add additional recordings use the \"System "
+#~ "Recordings\" MENU to the left"
+#~ msgstr ""
+#~ "「コールを確認する」設定が有効な場合に、コールを受ける人に再生するメッセー"
+#~ "ジです。<br><br>音声を追加するには、メニューにある「システム録音」を使って"
+#~ "ください。"
+
+#~ msgid ""
+#~ "Message to be played to the person RECEIVING the call, if the call has "
+#~ "already been accepted before they push 1.<br><br>To add additional "
+#~ "recordings use the \"System Recordings\" MENU to the left"
+#~ msgstr ""
+#~ "コールを受ける人が1を押す前に、コールが別の内線に既に接続された場合に再生"
+#~ "する音声<br><br>音声を追加するには、メニューにある「システム録音」を使って"
+#~ "ください。"
+
+#~ msgid "On Demand"
+#~ msgstr "オンデマンド"
+
+#~ msgid "Play Music On Hold?"
+#~ msgstr "呼び出し音"
+
+#~ msgid "Record Calls"
+#~ msgstr "通話を録音する"
+
+#~ msgid "Remote Announce:"
+#~ msgstr "リモートアナウンス"
+
+#~ msgid "Ring Strategy:"
+#~ msgstr "リングルール:"
+
+#~ msgid "Submit Changes"
+#~ msgstr "設定を適用する"
+
+#~ msgid "Too-Late Announce:"
+#~ msgstr "既に接続されたアナウンス"
+
+#~ msgid ""
+#~ "When checked, agents who are on an occupied phone will be skipped as if "
+#~ "the line were returning busy. This means that Call Waiting or multi-line "
+#~ "phones will not be presented with the call and in the various hunt style "
+#~ "ring strategies, the next agent will be attempted."
+#~ msgstr ""
+#~ "チェックされている場合、通話中のエージェントは「ビジー」とみなし、スキップ"
+#~ "します。つまり、複数回線やコールウェイティング機能を持っている電話機はス"
+#~ "キップされ、hunt型リングストラテジーを選択した場合でも同様にスキップされ、"
+#~ "次のエージェントを試します。"
+
+#~ msgid ""
+#~ "When checked, agents who attempt to Call Forward will be ignored, this "
+#~ "applies to CF, CFU and CFB. Extensions entered with '#' at the end, for "
+#~ "example to access the extension's Follow-Me, might not honor this "
+#~ "setting ."
+#~ msgstr ""
+#~ "チェックされている場合は、転送しようとするエージェントを無視します。この設"
+#~ "定は呼び出し転送、不在転送とビジー転送に適用されます。末尾に '#\" の付いた"
+#~ "エクステンョン、例えば Follow-Me に使うものは、この設定を無視することがあ"
+#~ "ります。"
+
+#~ msgid ""
+#~ "You can always record calls that come into this ring group, never record "
+#~ "them, or allow the extension that answers to do on-demand recording. If "
+#~ "recording is denied then one-touch on demand recording will be blocked."
+#~ msgstr ""
+#~ "このリンググループへのコールを常に録音する、録音しない、または応答した内線"
+#~ "にオンデマンド録音を許可することもできます。録音を禁止した場合は、ワンタッ"
+#~ "チオンデマンド録音はブロックされます。"
+
+#~ msgid "added field cfignore to ringgroups table"
+#~ msgstr "cfignoreフィールドをringgroupsテーブルに追加しました"
+
+#~ msgid "added field cpickup to ringgroups table"
+#~ msgstr "cpickupフィールドをringgroupsテーブルに追加しました"
+
+#~ msgid "added field cwignore to ringgroups table"
+#~ msgstr "cwignoreフィールドをringgroupsテーブルに追加しました"
+
+#~ msgid "added field recording to ringgroups table"
+#~ msgstr "recordingフィールドをringgroupsテーブルに追加しました"
+
+#~ msgid "adding annmsg_id field.."
+#~ msgstr "annmsg_idフィールドを追加中.."
+
+#~ msgid "adding remotealert_id field.."
+#~ msgstr "remotealert_idフィールドを追加中.."
+
+#~ msgid "adding toolate_id field.."
+#~ msgstr "toolate_idフィールドを追加中.."
+
+#~ msgid "already migrated"
+#~ msgstr "既に移行済み"
+
+#~ msgid "deleted"
+#~ msgstr "削除済み"
+
+#~ msgid "dropping annmsg field.."
+#~ msgstr "annmsgフィールドを削除中.."
+
+#~ msgid "dropping remotealert field.."
+#~ msgstr "remotealertフィールドを削除中..."
+
+#~ msgid "dropping toolate field.."
+#~ msgstr "toolateフィールドを削除中.."
+
+#~ msgid "fatal error"
+#~ msgstr "致命的なエラー"
+
+#~ msgid "migrate annmsg to ids.."
+#~ msgstr "annmsgをidsに移行中.."
+
+#~ msgid "migrate remotealert to  ids.."
+#~ msgstr "remotealertをidsに移行中..."
+
+#~ msgid "migrate toolate to ids.."
+#~ msgstr "toolateをidsに移行中..."
+
+#~ msgid "migrated %s entries"
+#~ msgstr "%s エントリーを移行しました"
+
+#~ msgid "migrating"
+#~ msgstr "移行中"
+
+#~ msgid "no annmsg field???"
+#~ msgstr "annmsgフィールドは存在しません???"
+
+#~ msgid "no remotealert field???"
+#~ msgstr "remotealertフィールドは存在しません???"
+
+#~ msgid "no toolate field???"
+#~ msgstr "toolateフィールドは存在しません???"
+
+#~ msgid "ok"
+#~ msgstr "OK"

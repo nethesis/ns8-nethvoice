@@ -1,0 +1,53 @@
+<module>
+	<rawname>dashboard</rawname>
+	<repo>standard</repo>
+	<name>System Dashboard</name>
+	<version>14.0.6.2</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>AGPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/agpl-3.0.txt</licenselink>
+	<candisable>no</candisable>
+	<canuninstall>no</canuninstall>
+	<category>Dashboard</category>
+	<description>
+		Provides a system information dashboard, showing information about Calls, CPU, Memory, Disks, Network, and processes.
+	</description>
+	<menuitems>
+		<dashboard display="index" access="all" category="Dashboard" order="99999">Dashboard</dashboard>
+	</menuitems>
+	<depends>
+		<version>14.0.5.26</version>
+	</depends>
+	<changelog>
+		*14.0.6.1-2* Clear output buffers so live network usage is more accurate
+		*14.0.6* FREEPBX-19466 Move live network graph away from running background daemon
+		*14.0.5.2* Require framework that has caching
+		*14.0.5.1* Keep more historical data
+		*14.0.5* Reduce amount of database interactions per system query
+		*14.0.4.4* FREEPBX-19052 add back sleep to dashboard scheduler 
+		*14.0.4.3* FFREEPBX-18939 
+		*14.0.4.2* Based on comments from PaulGLatour modify the lock to use Symfony locks
+		*14.0.4.1* Clear cache on installation
+		*14.0.4* Change RSS engine
+		*14.0.3.3* FREEPBX-16644 - provide compatibility with FreeBSD
+		*14.0.3.2* FREEPBX-16654 - Exim returns nothing when no email queued
+		*14.0.3.1* FREEPBX-16108 - remove debugging, FREEPBX-16595 - Capture stderr
+		*14.0.3* Add mail queue stats
+		*14.0.2.5* FREEPBX-16001 Remove debugging
+		*14.0.2.4* FREEPBX-15092
+		*14.0.2.3* FREEPBX-14939 Longpoll flag
+		*14.0.2.2* Merge from 13
+		*14.0.2.1* Add live network stats
+		*14.0.1* Inital Release
+	</changelog>
+	<hooks>
+		<framework namespace="FreePBX\Console\Command" class="Chown">
+			<method class="Dashboard" callingMethod="fwcChownFiles">chownFreepbx</method>
+		</framework>
+	</hooks>
+	<supported>
+		<version>14.0</version>
+	</supported>
+	<location/>
+	<md5sum/>
+</module>

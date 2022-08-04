@@ -1,0 +1,260 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for disa
+# Copyright (C) 2008-2015 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-03-28 07:39+0530\n"
+"PO-Revision-Date: 2017-12-01 22:40+0200\n"
+"Last-Translator: CATTAN Jérémie <jeremie@famillecattan.com>\n"
+"Language-Team: French <http://weblate.freepbx.org/projects/freepbx/disa/"
+"fr_FR/>\n"
+"Language: fr_FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: views/form.php:248
+msgid ""
+"(Experts Only) Sets the context that calls will originate from. Leave this "
+"as from-internal unless you know what you're doing."
+msgstr ""
+"(Experts seulement) Le contexte utilisé pour effectuer un appel. Laisser à "
+"\"from-internal\" à moins de savoir ce que vous faites."
+
+#: views/form.php:224
+msgid ""
+"(Optional) When using this DISA, the users CallerID will be set to this. "
+"Format is \"User Name\" <5551234>"
+msgstr ""
+"(Optionnel) L'ID appelant à utiliser lorsque vous utilisez ce DISA. Son "
+"format est \"Nom Utilisateur\" <5551234>"
+
+#: views/grid.php:11
+msgid "Actions"
+msgstr "Actions"
+
+#: views/bootnav.php:5 views/form.php:20 views/grid.php:5
+msgid "Add DISA"
+msgstr "Ajouter DISA"
+
+#: views/form.php:260
+msgid "Allow Hangup"
+msgstr "Permette de raccroche"
+
+#: views/form.php:275
+#, php-format
+msgid ""
+"Allow the current call to be disconnected and dial tone presented for a new "
+"call by pressing the Hangup feature code: %s while in a call"
+msgstr ""
+"Permet de terminer l'appel en cours et d'avoir une tonalité d'appel pour "
+"procéder à un autre appel en pressant le code %s durant un appel"
+
+#: disa.i18n.php:6
+msgid "Applications"
+msgstr "Applications"
+
+#: views/form.php:161
+msgid "Call Recording"
+msgstr "Enregistrer l'appel"
+
+#: views/form.php:212
+msgid "Caller ID"
+msgstr "ID Appelant"
+
+#: views/form.php:287
+msgid "Caller ID Override"
+msgstr "Remplacer ID appelant"
+
+#: views/form.php:236
+msgid "Context"
+msgstr "Contexte"
+
+#: views/form.php:318
+msgid "Context cannot be blank"
+msgstr "Le contexte ne peut être vide"
+
+#: disa.i18n.php:4 /usr/src/freepbx/disa/disa.i18n.php:10 page.disa.php:21
+#: views/bootnav.php:17 views/form.php:6 views/grid.php:10
+msgid "DISA"
+msgstr "DISA"
+
+#: disa.i18n.php:8
+msgid ""
+"DISA Allows you 'Direct Inward System Access'. This gives you the ability to "
+"have an option on an IVR that gives you a dial tone, and you're able to dial "
+"out from the FreePBX machine as if you were connected to a standard "
+"extension. It appears as a Destination."
+msgstr ""
+"DISA Vous permet l'accès distant au PBX. Ce qui vous donne la possibilité "
+"d'avoir une option dans une RVI qui, lorsque composée, donne une tonalité de "
+"composition pour entrer un numéro de téléphone et utiliser le FreePBX pour "
+"effectuer l'appel. Il apparaîtra comme destination."
+
+#: views/bootnav.php:6
+msgid "DISA List"
+msgstr "Liste de DISA"
+
+#: views/form.php:59
+msgid "DISA Name"
+msgstr "Nom DISA"
+
+#: views/form.php:319
+msgid "DISA Name Duplicate"
+msgstr ""
+
+#: page.disa.php:18
+msgid ""
+"DISA is used to allow people from the outside world to call into your PBX "
+"and then be able to dial out of the PBX so it appears that their call is "
+"coming from the office which can be handy when traveling. You can set a "
+"destination in an IVR that points to the DISA or set a DID. Make sure you "
+"password protect this to keep people from dialing in and using your PBX to "
+"make calls out."
+msgstr ""
+"DISA est utilisé pour permettre au monde extérieur d'utiliser votre PBX pour "
+"placer des appels externe qui semble provenir du bureau ce qui peut-être "
+"très utile sur la route. Vous pouvez le définir comme destination dans un  "
+"SVI ou comme destination pour un SDA (DID). Assurez-vous de mettre un mot de "
+"passe pour protéger l'accès à celui-ci."
+
+#: Disa.class.php:222 functions.inc.php:41
+#, php-format
+msgid "DISA: %s"
+msgstr "DISA : %s"
+
+#: Disa.class.php:57
+msgid "Delete"
+msgstr "Supprimer"
+
+#: views/form.php:302
+msgid ""
+"Determine if we keep the Caller ID being presented or if we override it. "
+"Default is No"
+msgstr ""
+"Détermine si on conserve l'identification de l'appelant présenté ou si on "
+"l'écrase. Le défaut est Non"
+
+#: views/form.php:134
+msgid "Digit Timeout"
+msgstr "Délais d'attente des chiffres"
+
+#: views/form.php:34
+msgid "Don't Care"
+msgstr "Peu importe"
+
+#: views/form.php:34
+msgid "Force"
+msgstr "Forcer"
+
+#: views/form.php:71
+msgid "Give this DISA a brief name to help you identify it."
+msgstr "Donner à ce DISA un nom pour permettre de l'identifier."
+
+#: views/form.php:302
+msgid "If you choose Yes the disa will pass the caller id set above."
+msgstr ""
+"Si vous choisissez Oui le DISA va forcer l'identifiant spécifié ci-dessus."
+
+#: views/form.php:95
+msgid "If you wish to have multiple PIN's, separate them with commas"
+msgstr "Si vous désirez avoir plusieurs NIPs, séparez-les par des virgules"
+
+#: views/form.php:34
+msgid "Never"
+msgstr "Jamais"
+
+#: views/form.php:34 views/form.php:192 views/form.php:267 views/form.php:294
+msgid "No"
+msgstr "Non"
+
+#: views/form.php:83
+msgid "PIN"
+msgstr "NIP"
+
+#: views/form.php:317
+msgid "Please enter a valid Caller ID or leave it blank"
+msgstr "S'il vous plaît saisir un ID appelant valide ou laisser à vide"
+
+#: views/form.php:315
+msgid "Please enter a valid DISA Name"
+msgstr "S'il vous plaît saisir un nom DISA valide"
+
+#: views/form.php:316
+msgid "Please enter a valid DISA PIN"
+msgstr "S'il vous plaît saisir un NIP DISA valide"
+
+#: views/form.php:173
+msgid "Record calls that use this DISA"
+msgstr "Enregistrer les appels qui utilisent ce DISA"
+
+#: views/form.php:185
+msgid "Require Confirmation"
+msgstr "Demande confirmation"
+
+#: Disa.class.php:62
+msgid "Reset"
+msgstr "Réinitialiser"
+
+#: views/form.php:107
+msgid "Response Timeout"
+msgstr "Délai d'attente de la réponse"
+
+#: views/form.php:113 views/form.php:140
+msgid "Seconds"
+msgstr "Secondes"
+
+#: Disa.class.php:67
+msgid "Submit"
+msgstr "Soumettre"
+
+#: views/form.php:334
+msgid "The DISA Name provided is too long."
+msgstr "Le nom DISA fourni est trop long."
+
+#: views/form.php:122
+msgid ""
+"The maximum amount of time it will wait before hanging up if the user has "
+"dialed an incomplete or invalid number. Default of 10 seconds"
+msgstr ""
+"Le temps d'attente maximal avant de raccrocher si l'utilisateur à signalé un "
+"numéro incomplet ou invalide. Par défaut, il s'agit de 10 secondes"
+
+#: views/form.php:149
+msgid ""
+"The maximum amount of time permitted between digits when the user is typing "
+"in an extension. Default of 5 seconds"
+msgstr ""
+"Le temps d'attente maximal entre les chiffres lors de la saisie d'un numéro "
+"de poste. Par défaut, il s'agit de 5 secondes"
+
+#: views/form.php:95
+msgid "The user will be prompted for this number."
+msgstr "L'utilisateur devra saisir ce numéro."
+
+#: views/form.php:34 views/form.php:190 views/form.php:265 views/form.php:292
+msgid "Yes"
+msgstr "Oui"
+
+#: views/form.php:200
+msgid ""
+"equire Confirmation before prompting for password. Used when your PSTN "
+"connection appears to answer the call immediately"
+msgstr ""
+"Requiert une confirmation avant de demander un mot de passe. À utiliser "
+"lorsque votre ligne téléphonique semble répondre à l'appel immédiatement"
+
+#~ msgid ""
+#~ "Determine if we keep the Caller ID being presented or if we override it. "
+#~ "Default is Yes"
+#~ msgstr ""
+#~ "Détermine si on garde l'ID appelant fourni ou si on le remplace. Oui par "
+#~ "défaut"

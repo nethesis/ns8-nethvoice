@@ -1,0 +1,38 @@
+@CHARSET "ISO-8859-1";
+
+#epm_templates option[value=""], #epm_advanced option[value=""], #epm_config option[value=""] {
+	background-color: #E5FFCC;
+}
+
+
+.section-title {
+	margin: 10px 10px 0px 10px;
+}
+
+.section {
+	margin-left: 10px;
+	margin-right: 10px;
+	margin-bottom: 10px;
+}
+
+.pull-xs-right
+{
+	float: right;
+}
+
+
+
+
+
+
+/* Class */
+.center-block {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Usage as a mixin */
+.element {
+  @include center-block;
+}

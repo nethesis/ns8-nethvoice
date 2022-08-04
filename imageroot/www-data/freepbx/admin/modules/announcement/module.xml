@@ -1,0 +1,52 @@
+<module>
+	<rawname>announcement</rawname>
+	<repo>standard</repo>
+	<name>Announcements</name>
+	<version>13.0.7.7</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<changelog>
+		*13.0.7.7* FREEPBX-18866 
+		*13.0.7.6* FREEPBX-15206 Multiple Appointment reminder can be added with same Name 
+		*13.0.7.5* FREEPBX-15206 Multiple Appointment reminder can be added with same Name 
+		*13.0.7.4* Fixing FREEPBX-15198 Multiple announcements can be added with same Name issue. 
+		*13.0.7.3* FREEPBX-17706 Wrong URL's in Used as Destination - Announcements 
+		*13.0.7.2* FREEPBX-17706 Wrong URL's in Used as Destination - Announcements 
+		*13.0.7.1* FREEPBX-14511 Announcement Redirect
+		*13.0.7* FREEPBX-12690 add view for destinations usage
+		*13.0.6.2* FREEPBX-14511 Fix behavior after redirect changes.
+		*13.0.6.1* FREEPBX-13958 Return to List after adding Announcement
+		*13.0.6* FREEPBX-12477
+		*13.0.5* FREEPBX-9773 1 second delay between annoucement
+		*13.0.4* Slideout rnav
+		*13.0.3* Adjust columns to be more meaningful. Show description and destination
+		*13.0.2* Version bump Beta
+		*13.0.1alpha4* FREEPBX-9495 Cannot Delete Announcement
+		*13.0.1alpha3* Overall fixes and tweaks
+		*13.0.1alpha2* Fix popovers
+		*13.0.1alpha1* Complete reskin
+	</changelog>
+	<category>Applications</category>
+	<description>
+		Plays back one of the system recordings (optionally allowing the user to skip it) and then goes to another destination.
+	</description>
+	<depends>
+		<version>13.0.191.12</version>
+		<module>recordings ge 3.3.8</module>
+	</depends>
+	<menuitems>
+		<announcement needsenginedb="yes">Announcements</announcement>
+	</menuitems>
+	<popovers>
+		<announcement>
+			<display>announcement</display>
+			<view>form</view>
+		</announcement>
+ 	</popovers>
+	<supported>
+		<version>13.0</version>
+	</supported>
+	<location>release/2.11/announcement-2.11.0.0.tgz</location>
+	<md5sum>704dee25bbe8e854fa4e126018b83864</md5sum>
+</module>

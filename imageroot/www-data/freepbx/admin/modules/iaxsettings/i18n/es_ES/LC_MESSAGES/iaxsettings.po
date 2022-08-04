@@ -1,0 +1,389 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for iaxsettings
+# Copyright (C) 2008-2015 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-02-12 19:18-0500\n"
+"PO-Revision-Date: 2016-12-11 05:28+0200\n"
+"Last-Translator: Ernesto <ecasas@sangoma.com>\n"
+"Language-Team: Spanish <http://weblate.freepbx.org/projects/freepbx/"
+"iaxsettings/es_ES/>\n"
+"Language: es_ES\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: views/form.php:415
+msgid ""
+" If you clear each codec and then add them one at a time, submitting with "
+"each addition, they will be added in order which will effect the codec "
+"priority."
+msgstr ""
+" Si se desactiva cada codec y luego los agrega uno a uno, aplicando cada "
+"adición, estos se agregarán al final marcando así la prioridad de cada uno."
+
+#: Iaxsettings.class.php:67
+#, php-format
+msgid "%s must be a non-negative integer"
+msgstr "%s debe ser un entero no negativo"
+
+#: views/form.php:313
+msgid "Add Field"
+msgstr "Agregar Campo"
+
+#: views/form.php:77
+msgid "Advanced Settings"
+msgstr "Configuración Avanzada"
+
+#: iaxsettings.i18n.php:4 iaxsettings.i18n.php:10
+msgid "Asterisk IAX Settings"
+msgstr "Configuración IAX Asterisk"
+
+#: views/form.php:388
+msgid ""
+"Asterisk: bandwidth. Specify bandwidth of low, medium, or high to control "
+"which codecs are used in general."
+msgstr ""
+"Asterisk:bandwidth. Especifique el ancho de banda de bajo, medio o alto para "
+"el control con el codecs que se utilizan en general."
+
+#: views/form.php:243
+msgid ""
+"Asterisk: bindaddr. The IP address to bind to and listen for calls on the "
+"Bind Port. If set to 0.0.0.0 Asterisk will listen on all addresses. To bind "
+"to multiple IP addresses or ports, use the Other 'IAX Settings' fields where "
+"you can put settings such as:<br /> bindaddr=192.168.10.100:4555.<br />  It "
+"is recommended to leave this blank."
+msgstr ""
+"Asterisk: bindaddr. La dirección IP que enlaza y escucha las llamadas en el "
+"puerto. Si se establece en 0.0.0.0 Asterisk escuchará en todas las "
+"direcciones. Para enlazar a múltiples direcciones IP o puertos, use los "
+"otros campos 'Configuraciones IAX' donde usted puede poner la configuración, "
+"tales como:<br /> bindaddr = 192.168.10.100:4555.<br /> Se recomienda dejar "
+"este espacio en blanco."
+
+#: views/form.php:267
+msgid ""
+"Asterisk: bindport. Local incoming UDP Port that Asterisk will bind to and "
+"listen for IAX messages. The IAX standard is 4569 and in most cases this is "
+"what you want. It is recommended to leave this blank."
+msgstr ""
+"Asterisk: bindport. Puerto local UDP entrante donde Asterisk enlaza y "
+"escucha los mensajes IAX. El estándar es IAX 4569 y en la mayoría de los "
+"casos es este el valor que quiere. Se recomienda dejar esto en blanco."
+
+#: views/form.php:357
+msgid ""
+"Asterisk: codecpriority. Controls the codec negotiation of an inbound IAX "
+"call. This option is inherited to all user entities.  It can also be defined "
+"in each user entity separately which will override the setting here. The "
+"valid values are:<br />host - Consider the host's preferred order ahead of "
+"the caller's.<br />caller - Consider the callers preferred order ahead of "
+"the host's.<br /> disabled - Disable the consideration of codec preference "
+"altogether. (this is the original behavior before preferences were "
+"added)<br />reqonly  - Same as disabled, only do not consider capabilities "
+"if the requested format is not available the call will only be accepted if "
+"the requested format is available."
+msgstr ""
+"Asterisk: codecpriority. Controla la negociación de un codec en una llamada "
+"IAX de entrante. Esta opción se hereda a todas las entidades del usuario. "
+"También se puede definir en cada entidad de usuario por separado y "
+"reemplazará la configuración aplicada aquí. Los valores válidos son:<br /"
+">host - Considera el orden de preferencia del huésped, por delante de la "
+"persona que llama.<br />caller - Considera el orden de preferencia del "
+"llamante por delante del anfitrión (host).<br />disabled - Desactivar la "
+"consideración de las preferencias codec por completo. (este es el "
+"comportamiento original antes de que las preferencias se han añadido)<br /"
+">reqonly - Igual que disabled, sólo que no tiene en cuenta las capacidades "
+"si el formato solicitado no está disponible, la llamada sólo se aceptará si "
+"elformato solicitado está disponible."
+
+#: views/form.php:294
+msgid ""
+"Asterisk: delayreject. For increased security against brute force password "
+"attacks enable this which will delay the sending of authentication reject "
+"for REGREQ or AUTHREP if there is a password."
+msgstr ""
+"Asterisk: delayreject. Para aumentar la seguridad contra los ataques de "
+"fuerza bruta al password active esta casilla lo que retrasará el envío de la "
+"autenticación de rechazo para REGREQ o AUTHREP si hay una contraseña."
+
+#: views/form.php:165
+msgid ""
+"Asterisk: forcejitterbuffer. Forces the use of a jitterbuffer on the receive "
+"side of an IAX channel. Normally the jitter buffer will not be used if "
+"receiving a jittery channel but sending it off to another channel such as a "
+"SIP channel to an endpoint, since there is typically a jitter buffer at the "
+"far end. This will force the use of the jitter buffer before sending the "
+"stream on. This is not typically desired as it adds additional latency into "
+"the stream."
+msgstr ""
+"Asterisk: forcejitterbuffer. Fuerza el uso de un jitterbuffer en el lado de "
+"recepción de un canal IAX. Normalmente, el jitter buffer no se utiliza si se "
+"recibe un canal jitter enviando ésto a otro canal como un canal SIP a un "
+"terminal, ya que normalmente existe un jitter buffer cerca del final. Esto "
+"obligará la utilización de los buffer antes de enviar el stream. Esto no "
+"suele ser deseado normalmente, ya que añade una latencia adicional en el "
+"stream."
+
+#: views/form.php:137
+msgid ""
+"Asterisk: jitterbuffer. You can adjust several parameters relating to the "
+"jitter buffer. The jitter buffer's function is to compensate for varying "
+"network delay. The jitter buffer works for INCOMING audio - the outbound "
+"audio will be dejittered by the jitter buffer at the other end."
+msgstr ""
+"Asterisk: jitterbuffer. Usted puede ajustar varios parámetros relativos al "
+"jitter buffer. La función del buffer es para compensar la variación en el "
+"retraso de la red. El jitter buffer funciona para audio de ENTRADA - el "
+"audio de salida es dejittered por el buffer en el otro extremo."
+
+#: views/form.php:192
+msgid ""
+"Asterisk: maxjitterbuffer. Max length of the jitterbuffer in milliseconds."
+"<br /> Asterisk: resyncthreshold. When the jitterbuffer notices a "
+"significant change in delay that continues over a few frames, it will "
+"resync, assuming that the change in delay was caused by a timestamping mix-"
+"up. The threshold for noticing a change in delay is measured as twice the "
+"measured jitter plus this resync threshold. Resyncing can be disabled by "
+"setting this parameter to -1."
+msgstr ""
+"Asterisk: maxjitterbuffer. Longitud máxima del jitterbuffer en milésimas de "
+"segundo.<br /> Asterisk: resyncthreshold. Cuando el jitterbuffer nota un un "
+"cambio significativo en la demora que continúa por una serie de frames, se "
+"resincroniza, en el supuesto de que el cambio en la demora era causada por "
+"un timestamping mix-up. El umbral para notar un cambio en el retardo se mide "
+"como el doble de la medida jitter más este umbral de resincronización. Se "
+"puede desactivar ajustando este parámetro en -1."
+
+#: views/form.php:216
+msgid ""
+"Asterisk: maxjitterinterps. The maximum number of interpolation frames the "
+"jitterbuffer should return in a row. Since some clients do not send CNG/DTX "
+"frames to indicate silence, the jitterbuffer will assume silence has begun "
+"after returning this many interpolations. This prevents interpolating "
+"throughout a long silence."
+msgstr ""
+"Asterisk: maxjitterinterps. El número máximo de fotogramas de interpolación "
+"que el jitterbuffer debe regresar en una fila. Dado que algunos clientes no "
+"envían fotogramas CNG/DTX para indicar silencio, el jitterbuffer asumirá que "
+"el silencio ha comenzado después de regresar a este muchas interpolaciones. "
+"Esto evita la interpolación a lo largo de un largo silencio."
+
+#: views/form.php:110
+msgid ""
+"Asterisk: minregexpire, maxregexpire. Minimum and maximum length of time "
+"that IAX peers can request as a registration expiration interval (in "
+"seconds)."
+msgstr ""
+"Asterisk: minregexpire, maxregexpire. Mínimo y Máximo tiempo de duración en "
+"que los peers IAX pueden solicitar un intervalo de caducidad de registro (en "
+"segundos)."
+
+#: views/form.php:328
+msgid "Audio Codecs"
+msgstr "Codecs de Audio"
+
+#: views/form.php:369
+msgid "Bandwidth"
+msgstr "Ancho de Banda"
+
+#: views/form.php:231
+msgid "Bind Address"
+msgstr "Dirección de Enlace"
+
+#: Iaxsettings.class.php:77
+msgid "Bind Address (bindaddr) must be an IP address."
+msgstr "Dirección Enlace (bindaddr) debe ser una dirección IP."
+
+#: views/form.php:255
+msgid "Bind Port"
+msgstr "Puerto"
+
+#: Iaxsettings.class.php:87
+msgid "Bind Port (bindport) must be between 1024..65535, default 4569"
+msgstr "Puerto (bindport) debe ser entre 1024..65535, por defecto 4569"
+
+#: views/form.php:415
+msgid "Check to enable and then choose allowed codecs."
+msgstr "Marcar para activar y elegir los codecs permitidos."
+
+#: views/form.php:338
+msgid "Codec Priority"
+msgstr "Prioridad de Codec"
+
+#: views/form.php:82
+msgid "Codec Settings"
+msgstr "Configuración  de Codec"
+
+#: install.php:69
+msgid "Default Settings added."
+msgstr ""
+
+#: views/form.php:279
+msgid "Delay Auth Rejects"
+msgstr "Retardo Autenticación Rechazada"
+
+#: views/form.php:400
+msgid "Enable Video Support"
+msgstr "Habilitar soporte de Video"
+
+#: views/form.php:150
+msgid "Force Jitter Buffer"
+msgstr "Forzar Jitter Buffer"
+
+#: views/form.php:72
+msgid "General Settings"
+msgstr "Configuración General"
+
+#: views/form.php:63
+msgid "IAX Settings"
+msgstr "Configuración IAX"
+
+#: views/form.php:122
+msgid "Jitter Buffer Enable"
+msgstr "Habilitar Jitter Biffer"
+
+#: views/form.php:177
+msgid "Jitter Buffer Size"
+msgstr "Tamaño Jitter Buffer"
+
+#: views/form.php:204
+msgid "Max Interpolations"
+msgstr "Max Interpolaciones"
+
+#: views/form.php:129 views/form.php:157 views/form.php:286 views/form.php:407
+msgid "No"
+msgstr "No"
+
+#: views/form.php:306
+msgid "Other IAX Settings"
+msgstr "Otras Configuraciones IAX"
+
+#: views/form.php:95
+msgid "Registration Times"
+msgstr "Tiempos de Registro"
+
+#: Iaxsettings.class.php:51
+msgid "Reset"
+msgstr "Reinicio"
+
+#: iaxsettings.i18n.php:6
+msgid "Settings"
+msgstr "Configuración"
+
+#: functions.inc.php:277
+#, php-format
+msgid "Settings in %s may override these. Those settings should be removed."
+msgstr ""
+"Ajustes en %s pueden anular estos valores. Estos valores deben ser "
+"eliminados."
+
+#: Iaxsettings.class.php:46
+msgid "Submit"
+msgstr "Enviar"
+
+#: iaxsettings.i18n.php:8
+msgid ""
+"Use to configure Various Asterisk IAX Settings in the General section of iax."
+"conf."
+msgstr ""
+"Utilícelo para configurar varios Asterisk IAX en la sección General de iax."
+"conf."
+
+#: views/form.php:127 views/form.php:155 views/form.php:284 views/form.php:405
+msgid "Yes"
+msgstr "Si"
+
+#: views/form.php:321
+msgid ""
+"You may set any other IAX settings not present here that are allowed to be "
+"configured in the General section of iax.conf. There will be no error "
+"checking against these settings so check them carefully. They should be "
+"entered as:<br /> [setting] = [value]<br /> in the boxes below. Click the "
+"Add Field box to add additional fields. Blank boxes will be deleted when "
+"submitted."
+msgstr ""
+"Usted puede configurar otros ajustes IAX que no esten presentes en la "
+"configuración de la sección General de iax.conf. No habrá verificación de "
+"error de estos valores así que verifique cuidadosamente. Los valores deben "
+"ser como:<br /> [setting] = [value]<br /> en las casillas de abajo. Haga "
+"clic en Agregar Campo para agregar campos adicionales. Casillas en blanco se "
+"eliminarán cuando sea aplicado."
+
+#: install.php:73
+msgid "already exists"
+msgstr "ya existe"
+
+#: install.php:56
+msgid "checking for iaxsettings table.."
+msgstr "verificando para tabla iaxsettings.."
+
+#: install.php:67
+msgid "fatal error occurred populating defaults, check module"
+msgstr "ha ocurrido un error fatal, verifique módulo"
+
+#: views/form.php:378
+msgid "high"
+msgstr "alto"
+
+#: views/form.php:374
+msgid "low"
+msgstr "bajo"
+
+#: views/form.php:376
+msgid "medium"
+msgstr "medio"
+
+#: install.php:60
+msgid "none, creating table"
+msgstr "ninguna, creando tabla"
+
+#: install.php:64
+msgid "populating default settings.."
+msgstr ""
+
+#: Iaxsettings.class.php:127
+msgid "resyncthreshold must be a non-negative integer or -1 to disable"
+msgstr "resyncthreshold debe ser un entero no negativo o -1 para desactivar"
+
+#: views/form.php:380
+msgid "unset"
+msgstr "Sin configurar"
+
+#~ msgid "populating default codecs.."
+#~ msgstr "rellenando códigos por defecto.."
+
+#~ msgid "ulaw, alaw, gsm added"
+#~ msgstr "agregado ulaw, alaw, gsm"
+
+#~ msgid "Default Language for a channel, Asterisk: language"
+#~ msgstr "Lenguaje por defecto para este canal, Asterisk: language"
+
+#~ msgid ""
+#~ "File %s should not have any settings in it. Those settings should be "
+#~ "removed."
+#~ msgstr ""
+#~ "El archivo %s no debe tener ningún valor. Estos valores deben ser "
+#~ "eliminados."
+
+#~ msgid "Language"
+#~ msgstr "Lenguaje"
+
+#~ msgid ""
+#~ "Use to configure Various Asterisk IAX Settings in the General section of "
+#~ "iax.conf. The module assumes Asterisk version 1.4 or higher. Some "
+#~ "settings may not exist in Asterisk 1.2 and will be ignored by Asterisk."
+#~ msgstr ""
+#~ "Se utiliza para editar varias configuraciones IAX de Asterisk en la "
+#~ "sección General de iax.conf. El módulo asume que tiene la versión "
+#~ "Asterisk 1.4 o superior. Algunas configuraciones pueden no existir en "
+#~ "Asterisk 1.2 y serán ignoradas por Asterisk."

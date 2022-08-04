@@ -1,0 +1,138 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for setcid
+# Copyright (C) 2008-2019 Sangoma Technologies, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-03-28 08:07+0530\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: assets/js/setcid.js:9
+msgid " already used, please use a different Description."
+msgstr ""
+
+#: views/grid.php:18
+msgid "Actions"
+msgstr ""
+
+#: views/grid.php:12
+#: views/rnav.php:2
+msgid "Add"
+msgstr ""
+
+#: views/form.php:21
+msgid "Add CID"
+msgstr ""
+
+#: setcid.i18n.php:8
+#: views/grid.php:8
+msgid "Adds the ability to change the CallerID within a call flow."
+msgstr ""
+
+#: setcid.i18n.php:6
+msgid "Applications"
+msgstr ""
+
+#: views/form.php:83
+msgid ""
+"Caller ID Number: The caller ID number will be changed to this. If you are "
+"appending to the current caller ID number, don't forget to include the "
+"appropriate variables. If you leave this box blank, the caller ID number "
+"will be blank. Default caller ID number variable: ${CALLERID(num)}"
+msgstr ""
+
+#: views/form.php:53
+msgid "CallerID Name"
+msgstr ""
+
+#: views/form.php:73
+msgid "CallerID Number"
+msgstr ""
+
+#: Setcid.class.php:115
+msgid "Delete"
+msgstr ""
+
+#: views/form.php:33
+#: views/grid.php:17
+msgid "Description"
+msgstr ""
+
+#: views/form.php:93
+msgid "Destination"
+msgstr ""
+
+#: views/form.php:103
+msgid "Destination to send the call to after CID has been processed"
+msgstr ""
+
+#: views/form.php:21
+#, php-format
+msgid "Edit CID: %s"
+msgstr ""
+
+#: views/rnav.php:3
+msgid "List SetCID"
+msgstr ""
+
+#: assets/js/setcid.js:6
+msgid "Please enter a valid Description."
+msgstr ""
+
+#: assets/js/setcid.js:13
+msgid "Please select an item."
+msgstr ""
+
+#: Setcid.class.php:120
+msgid "Reset"
+msgstr ""
+
+#: views/main.php:4
+msgid "Set CID"
+msgstr ""
+
+#: setcid.i18n.php:4
+#: setcid.i18n.php:10
+msgid "Set CallerID"
+msgstr ""
+
+#: functions.inc.php:103
+#, php-format
+msgid "Set CallerID %s: "
+msgstr ""
+
+#: views/rnav.php:14
+msgid "SetCID"
+msgstr ""
+
+#: Setcid.class.php:125
+msgid "Submit"
+msgstr ""
+
+#: views/form.php:63
+msgid ""
+"The caller ID name will be changed to this. If you are appending to the "
+"current caller ID name, don't forget to include the appropriate variables. "
+"If you leave this box blank, the caller ID name will be blank. Default "
+"caller ID name variable: ${CALLERID(name)}"
+msgstr ""
+
+#: views/form.php:43
+msgid ""
+"The descriptive name of this CallerID instance. For example \"new name here\""
+msgstr ""
+
+#: views/grid.php:4
+msgid "What is Set CID?"
+msgstr ""

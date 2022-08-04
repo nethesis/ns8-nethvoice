@@ -1,0 +1,238 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for blacklist
+# Copyright (C) 2008-2017 Sangoma Technologies, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-01-29 15:46+0530\n"
+"PO-Revision-Date: 2017-07-20 10:28+0200\n"
+"Last-Translator: PETER <ftek@ymail.com>\n"
+"Language-Team: Vietnamese <http://weblate.freepbx.org/projects/freepbx/"
+"blacklist/vi/>\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: views/blgrid.php:11
+msgid "Actions"
+msgstr "Các thao tác"
+
+#: views/addnumber.php:7
+msgid "Add or replace entry"
+msgstr "Thêm hoặc thay thế mục nhập"
+
+#: assets/js/blacklist.js:56
+#, perl-format
+msgid "Added %s to the blacklist."
+msgstr "Đã thêm %s vào danh sách đen."
+
+#: assets/js/blacklist.js:40
+msgid "Adding..."
+msgstr "Đang thêm..."
+
+#: Blacklist.class.php:21
+msgid ""
+"Adds a number to the Blacklist Module.  All calls from that number to the "
+"system will receive a disconnect recording.  Manage these in the Blacklist "
+"module."
+msgstr ""
+"Thêm một số vào mô đun danh sách đen. Tất cả các cuộc gọi từ các số đó đến "
+"hệ thống sẽ nhận một bản ghi ngắt kết nối. Quản lý chúng trong mô đun Danh "
+"sách đen."
+
+#: Blacklist.class.php:23
+msgid ""
+"Adds the last caller to the Blacklist Module.  All calls from that number to "
+"the system will receive a disconnect recording."
+msgstr ""
+"Thêm người gọi cuối cùng vào Mô đun Danh sách đen. Tất cả các cuộc gọi từ số "
+"đó đến hệ thống sẽ nhận được một bản ghi ngắt kết nối."
+
+#: blacklist.i18n.php:6
+msgid "Admin"
+msgstr "Quản trị viên"
+
+#: assets/js/blacklist.js:70
+msgid "Are you sure you want to delete this item?"
+msgstr ""
+
+#: Blacklist.class.php:20 Blacklist.class.php:543 blacklist.i18n.php:4
+#: blacklist.i18n.php:10 views/general.php:24
+msgid "Blacklist"
+msgstr "Danh sách đen"
+
+#: views/general.php:12
+msgid "Blacklist Module"
+msgstr "Mô đun Danh sách đen"
+
+#: views/blgrid.php:3
+msgid "Blacklist Number"
+msgstr "Số Danh sách đen"
+
+#: Blacklist.class.php:17
+msgid "Blacklist a number"
+msgstr "Ghi một số vào danh sách đen"
+
+#: Blacklist.class.php:19
+msgid "Blacklist the last caller"
+msgstr "Ghi người gọi cuối vào danh sách đen"
+
+#: views/general.php:56
+msgid "Block Unknown/Blocked Caller ID"
+msgstr "Khóa ID của người gọi không biết/ bị khóa"
+
+#: views/general.php:46
+msgid "Bulk Handler"
+msgstr "Bộ quản lý tổng hơp- Bulk Handler"
+
+#: views/addnumber.php:75
+msgid "Call Date/Time"
+msgstr "Thời gian/ Ngày của cuộc gọi"
+
+#: views/addnumber.php:69
+msgid "Call Log"
+msgstr "Nhật ký cuộc gọi"
+
+#: views/general.php:71
+msgid "Check here to catch Unknown/Blocked Caller ID"
+msgstr "Đánh dấu check ở đây để biết ID người gọi không biết/ bị chặn"
+
+#: views/general.php:95
+msgid "Choose where blacklisted calls go"
+msgstr "Chọn nơi các cuộc gọi đã bị liệt vào danh sách đen đến"
+
+#: views/addnumber.php:57
+msgid "Close"
+msgstr "Đóng"
+
+#: Blacklist.class.php:171
+msgid "Could not find file after upload"
+msgstr "Không tìm thấy tệp sau khi tải"
+
+#: views/blgrid.php:2
+msgid "Delete Selected"
+msgstr "Xóa những gì đã chọn"
+
+#: Blacklist.class.php:553 views/addnumber.php:40 views/blgrid.php:10
+msgid "Description"
+msgstr "Mô tả"
+
+#: Blacklist.class.php:553
+msgid "Description of number blacklisted"
+msgstr "Mô tả của số thuộc danh sách đen"
+
+#: views/general.php:83
+msgid "Destination for BlackListed Calls"
+msgstr "Điểm đến của các cuộc gọi thuộc danh sách đen"
+
+#: assets/js/blacklist.js:54
+msgid "Entry Updated"
+msgstr "Mục nhập đã được cập nhật"
+
+#: views/general.php:29
+msgid "Import/Export"
+msgstr "Nhập/ Xuất"
+
+#: Blacklist.class.php:544
+msgid "Import/Export Caller Blacklist"
+msgstr "NHập/ Xuất Danh sách đen người gọi"
+
+#: views/general.php:63
+msgid "No"
+msgstr "Không"
+
+#: Blacklist.class.php:190
+msgid "No Entries to export"
+msgstr "Không có mục nhập nào xuất ra"
+
+#: views/blgrid.php:9
+msgid "Number"
+msgstr "Số điện thoại"
+
+#: views/addnumber.php:18
+msgid "Number/CallerID"
+msgstr "Số điện thoại/ ID người gọi"
+
+#: assets/js/blacklist.js:35
+msgid "Number/CallerID cannot be blank"
+msgstr "Số điện thoại/ ID người gọi không thể để trống"
+
+#: Blacklist.class.php:63
+msgid "Numbers Deleted"
+msgstr "Các số điện thoại đã bị xóa"
+
+#: Blacklist.class.php:552
+msgid "Phone Number"
+msgstr "Số điện thoại"
+
+#: Blacklist.class.php:570
+msgid "Phone Number Required"
+msgstr "Số điện thoại yêu cầu"
+
+#: Blacklist.class.php:18
+msgid "Remove a number from the blacklist"
+msgstr "Xóa một số khỏi danh sách đen"
+
+#: Blacklist.class.php:22
+msgid "Removes a number from the Blacklist Module"
+msgstr "Xóa một số khỏi Mô đun danh sách đen"
+
+#: Blacklist.class.php:405
+msgid "Reset"
+msgstr "Cài đặt lại"
+
+#: assets/js/blacklist.js:51
+msgid "Save Changes"
+msgstr "Lưu các thay đổi"
+
+#: views/addnumber.php:58
+msgid "Save changes"
+msgstr "Lưu các thay đổi"
+
+#: views/general.php:34
+msgid "Settings"
+msgstr "Các cài đặt"
+
+#: Blacklist.class.php:411
+msgid "Submit"
+msgstr "Gửi đi"
+
+#: Blacklist.class.php:169
+msgid "Sucessfully imported all entries"
+msgstr "Xuất tất cả mục nhập thành công"
+
+#: Blacklist.class.php:174
+msgid "The file must be in CSV format!"
+msgstr "Tệp phải ở dạng CSV!"
+
+#: Blacklist.class.php:552
+msgid "The number as it appears in the callerid display"
+msgstr "số điện thoại như xuất hiện trong màn hình ID người gọi"
+
+#: Blacklist.class.php:149
+msgid "There was an error uploading the file"
+msgstr "Đã xảy ra lỗi khi đang tải tệp lên"
+
+#: views/general.php:44
+msgid "This functionality is now part of the Bulk Handler Module"
+msgstr ""
+"Chức năng này hiện tại là một phần của Mô đun Bulk Handler ( Bộ quản lý tổng "
+"hợp)"
+
+#: blacklist.i18n.php:8
+msgid "This module is used to manage a system wide list of blocked callers"
+msgstr ""
+"Mô đun này được sử dụng để quản lý một hệ thống danh sách lớn các người gọi "
+"bị khóa"
+
+#: views/general.php:61
+msgid "Yes"
+msgstr "Có"

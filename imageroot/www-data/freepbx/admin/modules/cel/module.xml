@@ -1,0 +1,49 @@
+<module>
+		<rawname>cel</rawname>
+		<repo>standard</repo>
+		<name>Call Event Logging</name>
+		<version>14.0.2.12</version>
+		<publisher>Sangoma Technologies Corporation</publisher>
+		<license>GPLv3+</license>
+		<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+		<changelog>
+		*14.0.2.12* FREEPBX-19506 Search option under Call Event Logging is not functional 
+		*14.0.2.11* FREEPBX-18944 take control of cel_odbc.conf, move usegmttime into cel_odbc.con under cel context 
+		*14.0.2.10* Fixing FREEPBX-18783 Undefined index issue 
+		*14.0.2.9* FREEPBX-18632 
+		*14.0.2.8* Fix playback and downloads
+		*14.0.2.7* FREEPBX-10883 FREEPBX-11014  CEL within UCP - PHP Fatal error 
+		*14.0.2.6* FREEPBX-16337 CDRDBHOST not following AMPDBHOST when empty 
+		*14.0.2.5* FREEPBX-17187 Don't set all fields to empty default when a new search is issued in Call Event Logging
+		*14.0.2.4* FREEPBX-15626 On clicking search button redirects to the home page. 
+			*14.0.2.3* FREEPBX-14302 jPlayer takes control of all input in UCP 14
+			*14.0.2.2* FREEPBX-15139 Recordings playing/downloading in call history doesn't work with multiple widget in the same dashboard
+			*14.0.2.1* Adjustments in UCP
+			*14.0.2* Support new UCP
+			*14.0.1* Merge from 13
+	</changelog>
+		<hooks>
+			<ucp class="Ucp">
+				<method callingMethod="constructModuleConfigPages" class="Cel" namespace="FreePBX\modules">ucpConfigPage</method>
+				<method callingMethod="addUser" class="Cel" namespace="FreePBX\modules">ucpAddUser</method>
+				<method callingMethod="updateUser" class="Cel" namespace="FreePBX\modules">ucpUpdateUser</method>
+				<method callingMethod="delUser" class="Cel" namespace="FreePBX\modules">ucpDelUser</method>
+				<method callingMethod="addGroup" class="Cel" namespace="FreePBX\modules">ucpAddGroup</method>
+				<method callingMethod="updateGroup" class="Cel" namespace="FreePBX\modules">ucpUpdateGroup</method>
+				<method callingMethod="delGroup" class="Cel" namespace="FreePBX\modules">ucpDelGroup</method>
+			</ucp>
+		</hooks>
+		<category>Reports</category>
+		<description>
+				Call Event Logging
+		</description>
+		<menuitems>
+				<cel beta="yes" needsenginedb="yes">Call Event Logging</cel>
+		</menuitems>
+		<depends>
+				<version>14.0.1alpha12</version>
+		</depends>
+		<supported>
+				<version>14.0</version>
+		</supported>
+</module>

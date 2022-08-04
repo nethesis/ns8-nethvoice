@@ -1,0 +1,22 @@
+<module>
+    <rawname>queuereport</rawname>
+    <repo>unsupported</repo>
+    <name>Queue Report</name>
+    <version>1.1.0</version>
+    <category>Reports</category>
+    <Publisher>Nethesis</Publisher>
+    <info></info>
+    <licence>GPL</licence>
+    <licenselink>http://www.gnu.org/licenses/gpl-2.0.txt</licenselink>
+    <menuitems>
+        <queuereport href="../queue-report" requires_auth="true" target="queue-report">Queue Report</queuereport>
+    </menuitems>
+    <depends>
+        <version>14</version>
+    </depends>
+    <supported>14.0</supported>
+
+    <description>Report and graphs for queues</description>
+    <changelog></changelog>
+
+</module>

@@ -1,0 +1,196 @@
+<module>
+	<rawname>userman</rawname>
+	<name>User Management</name>
+	<version>14.0.3.49</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>AGPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/agpl-3.0.txt</licenselink>
+	<repo>standard</repo>
+	<description>
+		This Module manages all PBX users. It allows an Administrator to create a User Account that can be used by other applications for login or API purposes.
+	</description>
+	<changelog>
+		*14.0.3.49* FREEPBX-19572 
+		*14.0.3.48* Fix landing page errors
+		*14.0.3.47* FREEPBX-18752 - improving help text 
+		*14.0.3.46* Display user locks
+		*14.0.3.45* Bugfix/FREEPBX-17069 dashboard ucp accessible 
+		*14.0.3.44* Added optional parameter forceType to sendEmail function 
+		*14.0.3.43* FREEPBX-17883
+		*14.0.3.42* FREEPBX-17848
+		*14.0.3.41* Fixing FREEPBX-17563 Importing userman groups issue 
+		*14.0.3.40* FREEPBX-16966 Remove 'FreePBX Support' option from Menu selections
+		*14.0.3.39* FREEPBX-16279 Error in database. Groups associated with a directory authenticated by voicemail
+		*14.0.3.38* FREEPBX-16966 Remove 'FreePBX Support' option from Menu selections
+		*14.0.3.37* FREEPBX-16241 FREEPBX-16494 FREEPBX-16377
+		*14.0.3.36* ZUC-121 Create users after extension is created
+		*14.0.3.35* FREEPBX-15647
+		*14.0.3.34* FREEPBX-15571
+		*14.0.3.33* Fix javascript error
+		*14.0.3.32* FREEPBX-15647
+		*14.0.3.31* FREEPBX-16131
+		*14.0.3.30* FREEPBX-16020 FREEPBX-15532
+		*14.0.3.29* FREEPBX-15571
+		*14.0.3.28* FREEPBX-15614
+		*14.0.3.27* FREEPBX-15304
+		*14.0.3.26* FREEPBX-15576 Add function to retrieve group locale settings
+		*14.0.3.25* FREEPBX-15464
+		*14.0.3.24* Openldap legacy: allow unauthenticated connection, openldap2 and msad2 views: fix secure connection select
+		*14.0.3.23* Ordering of directory deletions
+		*14.0.3.22* FREEPBX-15200 Use Custom Username option broken under Extensions
+		*14.0.3.21* Upgrade bug fixes
+		*14.0.3.20* Email
+		*14.0.3.19* Type equals text only
+		*14.0.3.18* More FREEPBX-15204
+		*14.0.3.17* FREEPBX-15204
+		*14.0.3.16* FREEPBX-15147 Always return empty array
+		*14.0.3.15* FREEPBX-15134
+		*14.0.3.14* FREEPBX-15137 Use doctrine for tables
+		*14.0.3.13* Dont lock down the password
+		*14.0.3.12* FREEPBX-15108 FREEPBX-15096
+		*14.0.3.11* Duplicate domains
+		*14.0.3.10* AD: Catch error if we cant find any primary groups
+		*14.0.3.9* Set default auth if one was not previously set
+		*14.0.3.8* Add account_suffix and use_tls configurations
+		*14.0.3.7* FREEPBX-14963 Put an alert in Userman if no directories are active
+		*14.0.3.6* FREEPBX-14973 add back removed function
+		*14.0.3.5* FREEPBX-14966 fix rnav options for different directories
+		*14.0.3.4* Bump
+		*14.0.3.3* Run force sync from the gui
+		*14.0.3.2* Merge from 13
+		*14.0.3.1* FREEPBX-14914 dont implement class
+		*14.0.3* Merge from 13
+		*14.0.2.1* Reduce key length in database
+		*14.0.2* FREEPBX-14209 use phppass instead of sha1s
+		*14.0.1.1* XML database creation
+		*14.0.1alpha7* Allow user and group counts above 1000
+		*14.0.1alpha1* Inital Release
+	</changelog>
+	<info/>
+	<category>Admin</category>
+	<menuitems>
+		<userman needsenginedb="yes">User Management</userman>
+	</menuitems>
+	<depends>
+		<phpversion>5.3.3</phpversion>
+		<version>14.0.1rc1.17</version>
+		<module>core ge 13.0.84</module>
+	</depends>
+	<hooks>
+		<core class="Core" namespace="FreePBX\modules">
+			<method callingMethod="getQuickCreateDisplay" class="Userman" namespace="FreePBX\modules">getQuickCreateDisplay</method>
+			<method callingMethod="processQuickCreate" class="Userman" namespace="FreePBX\modules">processQuickCreate</method>
+		</core>
+		<bulkhandler class="Bulkhandler" namespace="FreePBX\modules" priority="150">
+			<method callingMethod="getHeaders" class="Userman" namespace="FreePBX\modules">bulkhandlerGetHeaders</method>
+			<method callingMethod="getTypes" class="Userman" namespace="FreePBX\modules">bulkhandlerGetTypes</method>
+			<method callingMethod="import" class="Userman" namespace="FreePBX\modules">bulkhandlerImport</method>
+			<method callingMethod="export" class="Userman" namespace="FreePBX\modules">bulkhandlerExport</method>
+		</bulkhandler>
+	</hooks>
+	<database>
+		<table name="userman_users">
+			<field name="id" type="integer" primarykey="true" autoincrement="true"/>
+			<field name="auth" type="string" length="150" default="freepbx" notnull="false"/>
+			<field name="authid" type="string" length="750" notnull="false"/>
+			<field name="username" type="string" length="150" notnull="false"/>
+			<field name="description" type="string" length="255" notnull="false"/>
+			<field name="password" type="string" length="255" notnull="false"/>
+			<field name="default_extension" type="string" length="45" default="none"/>
+			<field name="primary_group" type="integer" notnull="false"/>
+			<field name="permissions" type="blob" notnull="false"/>
+			<field name="fname" type="string" length="100" notnull="false"/>
+			<field name="lname" type="string" length="100" notnull="false"/>
+			<field name="displayname" type="string" length="200" notnull="false"/>
+			<field name="title" type="string" length="100" notnull="false"/>
+			<field name="company" type="string" length="100" notnull="false"/>
+			<field name="department" type="string" length="100" notnull="false"/>
+			<field name="language" type="string" length="100" notnull="false"/>
+			<field name="timezone" type="string" length="100" notnull="false"/>
+			<field name="dateformat" type="string" length="100" notnull="false"/>
+			<field name="timeformat" type="string" length="100" notnull="false"/>
+			<field name="datetimeformat" type="string" length="100" notnull="false"/>
+			<field name="email" type="text" notnull="false"/>
+			<field name="cell" type="string" length="100" notnull="false"/>
+			<field name="work" type="string" length="100" notnull="false"/>
+			<field name="home" type="string" length="100" notnull="false"/>
+			<field name="fax" type="string" length="100" notnull="false"/>
+			<key name="username_UNIQUE" type="unique">
+				<column name="username"/>
+				<column name="auth"/>
+			</key>
+		</table>
+		<table name="userman_users_settings">
+			<field name="uid" type="integer"/>
+			<field name="module" type="string" length="65"/>
+			<field name="key" type="string" length="190"/>
+			<field name="val" type="blob"/>
+			<field name="type" type="string" length="16" notnull="false"/>
+			<key name="index4" type="unique">
+				<column name="uid"/>
+				<column name="module"/>
+				<column name="key"/>
+			</key>
+			<key name="index2" type="index">
+				<column name="uid"/>
+				<column name="key"/>
+			</key>
+			<key name="index6" type="index">
+				<column name="module"/>
+				<column name="uid"/>
+			</key>
+		</table>
+		<table name="userman_groups">
+			<field name="id" type="integer" primarykey="true" autoincrement="true"/>
+			<field name="auth" type="string" length="150" default="freepbx" notnull="false"/>
+			<field name="authid" type="string" length="750" notnull="false"/>
+			<field name="groupname" type="string" length="150" notnull="false"/>
+			<field name="description" type="string" length="255" notnull="false"/>
+			<field name="language" type="string" length="100" notnull="false"/>
+			<field name="timezone" type="string" length="100" notnull="false"/>
+			<field name="dateformat" type="string" length="100" notnull="false"/>
+			<field name="timeformat" type="string" length="100" notnull="false"/>
+			<field name="datetimeformat" type="string" length="100" notnull="false"/>
+			<field name="priority" type="integer" default="5"/>
+			<field name="users" type="blob" notnull="false"/>
+			<field name="permissions" type="blob" notnull="false"/>
+			<field name="local" type="integer" notnull="true" default="0"/>
+			<key name="groupname_UNIQUE" type="unique">
+				<column name="groupname"/>
+				<column name="auth"/>
+			</key>
+		</table>
+		<table name="userman_groups_settings">
+			<field name="gid" type="integer"/>
+			<field name="module" type="string" length="65"/>
+			<field name="key" type="string" length="190"/>
+			<field name="val" type="blob"/>
+			<field name="type" type="string" length="16" notnull="false"/>
+			<key name="index4" type="unique">
+				<column name="gid"/>
+				<column name="module"/>
+				<column name="key"/>
+			</key>
+			<key name="index2" type="index">
+				<column name="gid"/>
+				<column name="key"/>
+			</key>
+			<key name="index6" type="index">
+				<column name="module"/>
+				<column name="gid"/>
+			</key>
+		</table>
+		<table name="userman_directories">
+			<field name="id" type="integer" primarykey="true" autoincrement="true"/>
+			<field name="name" type="string" length="250" notnull="false"/>
+			<field name="driver" type="string" length="150" default=""/>
+			<field name="active" type="boolean" default="0"/>
+			<field name="order" type="integer" default="5"/>
+			<field name="default" type="boolean" default="0"/>
+			<field name="locked" type="boolean" default="0"/>
+		</table>
+	</database>
+	<supported>
+		<version>14.0</version>
+	</supported>
+</module>

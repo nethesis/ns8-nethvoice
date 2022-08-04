@@ -1,0 +1,334 @@
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Russian freePBX ver. translation
+# Copyright (c) 2006-2011 PostMet Corporation
+# Alexander Kozyrev <ceo@postmet.com>, Sergey Nikolayev <sergey@postmet.com>, 2006-2011.
+#
+# Использовать iconv announcement.utf8.po -f UTF-8 -t ISO-8859-5 -o announcement.po
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.4\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-12-31 12:25+0530\n"
+"PO-Revision-Date: 2016-04-15 12:21+0000\n"
+"Last-Translator: Weblate Admin <admin@postmet.com>\n"
+"Language-Team: Russian <https://weblate.postmet.com/projects/freepbx13/"
+"announcement/ru_RU/>\n"
+"Language: ru_RU\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: page.announcement.php:17
+msgid ": Add"
+msgstr ": Добавить"
+
+#: page.announcement.php:14
+msgid ": Edit"
+msgstr ": Редактировать"
+
+#: views/grid.php:18
+msgid "Actions"
+msgstr "Действия"
+
+#: views/grid.php:11
+msgid "Add"
+msgstr "Добавить"
+
+#: views/rnav.php:3
+msgid "Add Announcements"
+msgstr "Добавить приветствие"
+
+#: views/form.php:142
+msgid "Allow Skip"
+msgstr "Разрешить пропуситить"
+
+#: page.announcement.php:7
+msgid "Announcement"
+msgstr "Приветствие"
+
+#: assets/js/announcement.js:16
+msgid "Announcement Description Already Exist"
+msgstr ""
+
+#: functions.inc.php:31 functions.inc.php:51 functions.inc.php:226
+#, php-format
+msgid "Announcement: %s"
+msgstr "Приветствия: %s"
+
+#: announcement.i18n.php:4 announcement.i18n.php:10
+msgid "Announcements"
+msgstr "Приветствия"
+
+#: announcement.i18n.php:6
+msgid "Applications"
+msgstr "Приложения"
+
+#: install.php:90
+msgid "Checking if recordings need migration.."
+msgstr "Проверка нуждаются ли записи в перемещении.."
+
+#: Announcement.class.php:70
+msgid "Delete"
+msgstr "Удалить"
+
+#: views/form.php:91 views/grid.php:16
+msgid "Description"
+msgstr "Описание"
+
+#: views/grid.php:17
+msgid "Destination"
+msgstr "Назначение"
+
+#: views/form.php:223
+msgid "Destination after Playback"
+msgstr "Направление после проигрывания"
+
+#: views/rnav.php:8
+msgid "Destinations"
+msgstr "Направления"
+
+#: views/form.php:72
+msgid "Disable"
+msgstr "Выключить"
+
+#: views/form.php:196
+msgid "Don't Answer Channel"
+msgstr "Не отвечать в канал"
+
+#: views/form.php:157
+msgid "If the caller is allowed to press a key to skip the message."
+msgstr ""
+"Разрешить пропуск приветствия по нажатию клавиши, чтобы не слушать его "
+"каждый раз."
+
+#: views/form.php:184
+msgid ""
+"If this announcement came from an IVR and this is set to yes, the "
+"destination below will be ignored and instead it will return to the calling "
+"IVR. Otherwise, the destination below will be taken. Don't check if not "
+"using in this mode. <br>The IVR return location will be to the last IVR in "
+"the call chain that was called so be careful to only check when needed. For "
+"example, if an IVR directs a call to another destination which eventually "
+"calls this announcement and this box is checked, it will return to that IVR "
+"which may not be the expected behavior."
+msgstr ""
+"Если голосовое приветствие вызывается из голосового меню и эта опция "
+"установлена в \"да\" , назначение ,указанное ниже , будут проигнорировано и "
+"будет осуществлен возврат в голосовое меню. В противном случае вызов пойдет "
+"по указанному направлению. Оставляйте эту опцию отключенной , если не "
+"используете этот режим. Имейте ввиду , что если в цепочке обработки вызова "
+"имеется несколько вложенных голосовых меню , и данная опция отмечена , то "
+"вызов может вернуться  в последнее голосовое меню в цепочке , что может "
+"являться непредсказуемым поведением."
+
+#: assets/js/announcement.js:6
+msgid "Invalid description specified"
+msgstr "Использовано неправильное описание"
+
+#: views/form.php:130
+msgid ""
+"Key to press that will allow for the message to be replayed. If you choose "
+"this option there will be a short delay inserted after the message. If a "
+"longer delay is needed it should be incorporated into the recording."
+msgstr ""
+"Какую кнопку нажимать для повторения приветствия. Если используется эта "
+"опция, то будет небольшая задержка после сообщения. Если нужна более "
+"длительная задержка, её нужно вводить в конце записи."
+
+#: views/rnav.php:2
+msgid "List Announcements"
+msgstr "Список приветствий"
+
+#: views/form.php:59
+msgid ""
+"Message to be played.<br>To add additional recordings use the \"System "
+"Recordings\" MENU above"
+msgstr ""
+"Сообщение , которое будет проиграно. Для добавления других записей "
+"используйте пунк меню \"Системные записи\""
+
+#: views/form.php:149 views/form.php:176 views/form.php:203
+msgid "No"
+msgstr "Нет"
+
+#: assets/js/announcement.js:35
+msgid "No Destination"
+msgstr ""
+
+#: views/form.php:32
+msgid "None"
+msgstr "Нет"
+
+#: announcement.i18n.php:8
+msgid ""
+"Plays back one of the system recordings (optionally allowing the user to "
+"skip it) and then goes to another destination."
+msgstr ""
+"Воспроизводится одна из системных аудиозаписей (опционально можно разрешить "
+"абоненту пропускать её) и затем вызов направляется по назначению."
+
+#: views/form.php:45
+msgid "Recording"
+msgstr "Запись"
+
+#: views/form.php:116
+msgid "Repeat"
+msgstr "Повторить"
+
+#: Announcement.class.php:75
+msgid "Reset"
+msgstr "Сброс"
+
+#: views/form.php:169
+msgid "Return to IVR"
+msgstr "Возврат в Меню"
+
+#: views/form.php:211
+msgid ""
+"Set this to yes, to keep the channel from explicitly being answered. When "
+"checked, the message will be played and if the channel is not already "
+"answered it will be delivered as early media if the channel supports that. "
+"When not checked, the channel is answered followed by a 1 second delay. When "
+"using an announcement from an IVR or other sources that have already "
+"answered the channel, that 1 second delay may not be desired."
+msgstr ""
+"Установите в \"да\"  для предотвращения явного ответа в канале. Когда эта "
+"опция отмечена , сообщение будет проиграно , и если канал не получил "
+"ответа ,  сообщение будет доставлено как Early Media если канал поддерживает "
+"эту возможность. Когда опция не отмечена , канал получит ответ через 1 "
+"секунду. Когда используется приветствие из голосового меню или другого "
+"источника  , то канал уже получает ответ , так что задержка в 1 секунду "
+"может быть нежелательной."
+
+#: Announcement.class.php:80
+msgid "Submit"
+msgstr "Подтвердить"
+
+#: views/form.php:103
+msgid "The name of this announcement."
+msgstr "Имя приветствия."
+
+#: views/form.php:235
+msgid "Where to send the caller after the announcement is played."
+msgstr "Дальнейший пункт обработки вызова после проигрывания приветствия."
+
+#: views/form.php:147 views/form.php:174 views/form.php:201
+msgid "Yes"
+msgstr "Да"
+
+#: install.php:97
+msgid "adding recording_id field.."
+msgstr "добавляется поле recording_id.."
+
+#: install.php:147
+msgid "already migrated"
+msgstr "уже перенесено"
+
+#: install.php:137
+msgid "dropping recording field.."
+msgstr "сброс поля записей.."
+
+#: install.php:101 install.php:113 install.php:129
+msgid "fatal error"
+msgstr "неустранимая ошибка"
+
+#: install.php:109
+msgid "migrate to recording ids.."
+msgstr "переход к id записей.."
+
+#: install.php:133
+#, php-format
+msgid "migrated %s entries"
+msgstr "перемещено %s записей"
+
+#: install.php:96
+msgid "migrating"
+msgstr "перемещение"
+
+#: install.php:141
+msgid "no recording field???"
+msgstr "нет поля записи?"
+
+#: install.php:104 install.php:143
+msgid "ok"
+msgstr "ok"
+
+#~ msgid "Add Announcement"
+#~ msgstr "Добавить приветствие"
+
+#~ msgid ""
+#~ "Check this to keep the channel from explicitly being answered. When "
+#~ "checked, the message will be played and if the channel is not already "
+#~ "answered it will be delivered as early media if the channel supports "
+#~ "that. When not checked, the channel is answered followed by a 1 second "
+#~ "delay. When using an announcement from an IVR or other sources that have "
+#~ "already answered the channel, that 1 second delay may not be desired."
+#~ msgstr ""
+#~ "Использование этой опции при явном ответе. Если отмечено, приветствие "
+#~ "воспроизводится, даже если канал ещё не открылся. Если не отмечено, то "
+#~ "канал отвечает с задержкой примерно в 1 секунду. Если приветствие "
+#~ "используется как шаг, перенаправленый из Интерактивного меню или другого "
+#~ "источника, который уже проговорил что-то в канал, то эта задержка в 1 "
+#~ "секунду может быть нежелательна."
+
+#~ msgid "Destination after playback"
+#~ msgstr "Назначение после воспроизведения"
+
+#~ msgid "Edit Announcement"
+#~ msgstr "Изменить приветствие"
+
+#~ msgid ""
+#~ "If this announcement came from an IVR and this box is checked, the "
+#~ "destination below will be ignored and instead it will return to the "
+#~ "calling IVR. Otherwise, the destination below will be taken. Don't check "
+#~ "if not using in this mode. <br>The IVR return location will be to the "
+#~ "last IVR in the call chain that was called so be careful to only check "
+#~ "when needed. For example, if an IVR directs a call to another destination "
+#~ "which eventually calls this announcement and this box is checked, it will "
+#~ "return to that IVR which may not be the expected behavior."
+#~ msgstr ""
+#~ "Если приветствие используется как шаг в Интерактивном меню и отмечено "
+#~ "использование возврата назад здесь птичкой, то назначение ниже будет "
+#~ "проигнорировано, и звонок вернётся в Интерактивное меню после "
+#~ "воспроизведения приветствия. В другом случае звонок переходит на "
+#~ "следующий шаг, по назначению, указанному ниже. Не отмечайте эту опцию, "
+#~ "если не используете этот режим.<br>Возврат в Интерактивное меню "
+#~ "происходит на тот шаг, с которого было использовано направление на это "
+#~ "приветствие, поэтому используйте эту опцию только тогда, когда это "
+#~ "оправданно. Например, если Интеракивное меню направляет звонок в другое "
+#~ "назначение, где планируется воспроизвести это приветствие, и отмечена эта "
+#~ "опция, то возврат в Интерактивное меню может привести к непредсказуемому "
+#~ "поведению."
+
+#~ msgid ""
+#~ "Message to be played.<br>To add additional recordings use the \"System "
+#~ "Recordings\" MENU to the left"
+#~ msgstr ""
+#~ "Сообщение, которое будет воспроизведено.<br>Для создания сообщения "
+#~ "воспользуйтесь разделом \"Запись сообщений\" в меню слева"
+
+#~ msgid "Submit Changes"
+#~ msgstr "Применить изменения"
+
+#~ msgid "The name of this announcement"
+#~ msgstr "Имя для этого приветствия"
+
+#~ msgid "Inbound Call Control"
+#~ msgstr "Контроль входящих вызовов"

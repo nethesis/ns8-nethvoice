@@ -1,0 +1,80 @@
+<module>
+	<rawname>disa</rawname>
+	<repo>extended</repo>
+	<name>DISA</name>
+	<version>13.0.6.12</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>AGPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/agpl-3.0.txt</licenselink>
+	<category>Applications</category>
+	<menuitems>
+		<disa needsenginedb="yes">DISA</disa>
+	</menuitems>
+	<popovers>
+		<disa>
+			<display>disa</display>
+			<view>form</view>
+		</disa>
+ 	</popovers>
+	<description>DISA Allows you 'Direct Inward System Access'. This gives you the ability to have an option on an IVR that gives you a dial tone, and you're able to dial out from the FreePBX machine as if you were connected to a standard extension. It appears as a Destination.</description>
+	<changelog>
+		*13.0.6.12* Fixing FREEPBX-17867 
+		*13.0.6.11* Xml fixes
+		*13.0.6.10* FREEPBX-18594 Caller ID Override option is broken under Disa
+		*13.0.6.9* FREEPBX-18480
+		*13.0.6.8* go back to grid list on submit, remove old files during reload, actually write pin data on reload as well
+		*13.0.6.7* FREEPBX-18480 DISA: Cannot Change 'Call Recording' Setting
+		*13.0.6.6* FREEPBX-18191
+		*13.0.6.5* Additional php 5.3 fixes
+		*13.0.6.4* Add a backtrace function for deprecated items
+		*13.0.6.3* FREEPBX-18161, php 5.3 compatability
+		*13.0.6.2* FREEPBX-18161
+		*13.0.6.1* Use the advanced settings path
+		*13.0.6* FREEPBX-11589 Fix caller id override tool tip
+		*13.0.5* Add slideout menu and BMO Search agent
+		*13.0.4* FREEPBX-10191 Answer when pin is set
+		*13.0.3* Invalid array
+		*13.0.2* Version bump Beta
+		*13.0.1alpha2* Visual styling fixes
+		*13.0.1alpha1* FREEPBX-9039 Remove Departments from FreePBX
+		*12.0.2* Typo in depends
+		*12.0.1* Call Recording capabilities.
+		*2.11.0.6* #1953
+		*2.11.0.5* #7388 - Fix DB Syntax error
+		*2.11.0.4* #7263
+		*2.11.0.3* Add license file
+		*2.11.0.1* DB Abstraction Changes
+		*2.11.0.0* #6051
+		*2.10.0.2* #5574
+		*2.10.0.1* #5507, misc
+		*2.10.0.0* new version changes
+		*2.9.0.4* #4394
+		*2.9.0.3* #4859
+		*2.9.0.2* #4783
+		*2.9.0.1* set repo
+		*2.9.0.0* 2.9 Update
+	</changelog>
+	<depends>
+		<module>callrecording ge 12.0.1</module>
+		<version>13.0.5</version>
+	</depends>
+	<database>
+			<table name="disa">
+					<field name="disa_id" type="integer" primarykey="true" autoincrement="true"/>
+					<field name="displayname" type="string" length="50" notnull="false"/>
+					<field name="pin" type="string" length="50" notnull="false"/>
+					<field name="cid" type="string" length="50" notnull="false"/>
+					<field name="context" type="string" length="50" notnull="false"/>
+					<field name="digittimeout" type="integer" notnull="false"/>
+					<field name="resptimeout" type="integer" notnull="false"/>
+					<field name="needconf" type="string" length="10" notnull="false"/>
+					<field name="hangup" type="string" length="10" notnull="false"/>
+					<field name="keepcid" type="boolean" default="1"/>
+			</table>
+	</database>
+	<supported>
+		<version>13.0</version>
+	</supported>
+	<location/>
+	<md5sum/>
+</module>

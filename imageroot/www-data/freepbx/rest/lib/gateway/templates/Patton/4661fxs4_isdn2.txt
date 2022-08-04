@@ -1,0 +1,345 @@
+cli version 3.20
+dns-relay
+webserver port 80 language en
+sntp-client
+sntp-client server primary ASTERISKIP port 123 version 4
+
+system
+  ic voice 0
+    low-bitrate-codec g729
+
+system
+  clock-source 1 bri 0 0
+  clock-source 2 bri 0 1
+
+profile napt NAPT_WAN
+
+profile ppp default
+
+profile call-progress-tone IT_Dialtone
+  play 1 200 425 -12
+  pause 2 200
+  play 3 600 425 -12
+  pause 4 1000
+
+profile call-progress-tone IT_Alertingtone
+  play 1 1000 425 -12
+  pause 2 4000
+
+profile call-progress-tone IT_Busytone
+  play 1 500 425 -12
+  pause 2 500
+
+profile call-progress-tone IT_Congestion
+  play 1 250 425 -12
+  pause 2 250
+
+profile tone-set default
+  map call-progress-tone dial-tone IT_Dialtone
+  map call-progress-tone ringback-tone IT_Alertingtone
+  map call-progress-tone busy-tone IT_Busytone
+  map call-progress-tone release-tone IT_Busytone
+  map call-progress-tone congestion-tone IT_Congestion
+
+profile voip default
+  codec 1 g711alaw64k rx-length 20 tx-length 20
+  codec 2 g711ulaw64k rx-length 20 tx-length 20
+
+profile pstn default
+
+profile sip default
+  map cause to-sip user-busy to 502
+
+profile dhcp-server DHCPS_LAN
+  network 192.168.111.0 255.255.255.0
+  include 1 192.168.1.10 192.168.111.99
+  lease 2 hours
+  default-router 1 192.168.111.1
+  domain-name-server 1 192.168.111.1
+
+profile aaa default
+  method 1 local
+  method 2 none
+
+profile provisioning PF_PROVISIONING_CONFIG
+  destination configuration
+  location 1 tftp://ASTERISKIP/$(system.mac).cfg
+  location 2 tftp://$(dhcp.66)/$(system.mac).cfg
+  activation reload immediate
+
+context ip router
+
+  interface WAN
+    ipaddress GATEWAYIP 255.255.255.0
+    tcp adjust-mss rx mtu
+    tcp adjust-mss tx mtu
+
+  interface LAN
+    ipaddress 192.168.111.1 255.255.255.0
+    tcp adjust-mss rx mtu
+    tcp adjust-mss tx mtu
+
+context ip router
+  route 0.0.0.0 0.0.0.0 DEFGATEWAY 0
+
+context cs switch
+  national-prefix 0
+  international-prefix 00
+
+  routing-table called-e164 from_if_fxo-00
+    route default dest-interface IF_VOIP_ASTERISK FXO_00
+
+  routing-table called-e164 from_if_fxo-01
+    route default dest-interface IF_VOIP_ASTERISK2 FXO_01
+
+  routing-table called-e164 TAB-IN
+    route FXSEXTENSION0 dest-interface fxs-00
+    route FXSEXTENSION1 dest-interface fxs-01
+    route FXSEXTENSION2 dest-interface fxs-02
+    route FXSEXTENSION3 dest-interface fxs-03
+
+  routing-table called-e164 TAB-OUT
+    route .T dest-interface IF_VOIP_ASTERISK3
+
+  routing-table called-e164 to-IF_VOIP_ASTERISK
+    route .%T dest-interface IF_VOIP_ASTERISK
+
+  routing-table called-e164 to-IF_VOIP_ASTERISK2
+    route .%T dest-interface IF_VOIP_ASTERISK2
+
+  routing-table called-e164 to_isdn
+    route TRUNKNUMBER1.% dest-interface IF_S0_01 cutpref
+    route TRUNKNUMBER2.% dest-interface IF_S0_02 cutpref
+
+  mapping-table called-e164 to called-e164 cutpref
+    map TRUNKNUMBER1(.%) to \1
+    map TRUNKNUMBER2(.%) to \1
+
+  interface isdn IF_S0_01
+    route call dest-table to-IF_VOIP_ASTERISK
+    caller-name ignore-absence 0
+
+  interface isdn IF_S0_02
+    route call dest-table to-IF_VOIP_ASTERISK2
+    caller-name ignore-absence 0
+  
+  interface sip IF_VOIP_ASTERISK
+    bind context sip-gateway ASTERISK
+    route call dest-table to_isdn
+    remote ASTERISKIP 5060
+    early-disconnect
+
+  interface sip IF_VOIP_ASTERISK2
+    bind context sip-gateway ASTERISK2
+    route call dest-table to_isdn
+    remote ASTERISKIP 5060
+    early-disconnect
+
+  interface sip IF_VOIP_ASTERISK3
+    bind context sip-gateway ASTERISK3
+    route call dest-table TAB-IN
+    remote ASTERISKIP 5060
+    early-disconnect
+
+  interface fxs fxs-00
+    route call dest-table TAB-OUT
+    no call-waiting
+    call-transfer
+    caller-id-presentation mid-ring
+    subscriber-number FXSEXTENSION0
+
+  interface fxs fxs-01
+    route call dest-table TAB-OUT
+    no call-waiting
+    call-transfer
+    caller-id-presentation mid-ring
+    subscriber-number FXSEXTENSION1
+
+  interface fxs fxs-02
+    route call dest-table TAB-OUT
+    no call-waiting
+    call-transfer
+    caller-id-presentation mid-ring
+    subscriber-number FXSEXTENSION2
+
+  interface fxs fxs-03
+    route call dest-table TAB-OUT
+    no call-waiting
+    call-transfer
+    caller-id-presentation mid-ring
+    subscriber-number FXSEXTENSION3
+
+context cs switch
+  no shutdown
+
+authentication-service AUTH_TRAIN
+  username TRUNKNUMBER1 password TRUNKSECRET1
+  username TRUNKNUMBER2 password TRUNKSECRET2
+  username FXSEXTENSION0 password FXSPASS0
+  username FXSEXTENSION1 password FXSPASS1
+  username FXSEXTENSION2 password FXSPASS2
+  username FXSEXTENSION3 password FXSPASS3
+
+location-service LOC_SERV_TRAIN
+  domain 1 ASTERISKIP
+
+  identity TRUNKNUMBER1
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_TRAIN username TRUNKNUMBER1
+
+location-service LOC_SERV_TRAIN2
+  domain 1 ASTERISKIP
+
+  identity TRUNKNUMBER2
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_TRAIN username TRUNKNUMBER2
+
+location-service LOC_SERV_TRAIN3
+  domain 1 ASTERISKIP
+
+  identity FXSEXTENSION0
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_TRAIN username FXSEXTENSION0
+
+    registration outbound
+      register auto
+
+  identity FXSEXTENSION1
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_TRAIN username FXSEXTENSION1
+
+    registration outbound
+      register auto
+
+  identity FXSEXTENSION2
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_TRAIN username FXSEXTENSION2
+
+    registration outbound
+      register auto
+
+  identity FXSEXTENSION3
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_TRAIN username FXSEXTENSION3
+
+    registration outbound
+      register auto
+
+context sip-gateway ASTERISK
+
+  interface IF_GW_SIP_TRAIN
+    bind interface WAN context router port 5060
+
+context sip-gateway ASTERISK
+  bind location-service LOC_SERV_TRAIN
+  no shutdown
+
+context sip-gateway ASTERISK2
+
+  interface IF_GW_SIP_TRAIN2
+    bind interface WAN context router port 5062
+
+context sip-gateway ASTERISK2
+  bind location-service LOC_SERV_TRAIN2
+  no shutdown
+
+context sip-gateway ASTERISK3
+
+  interface IF_GW_SIP_TRAIN3
+    bind interface WAN context router port 5064
+
+context sip-gateway ASTERISK3
+  bind location-service LOC_SERV_TRAIN3
+  no shutdown
+
+port ethernet 0 0
+  medium auto
+  encapsulation ip
+  bind interface WAN router
+  no shutdown
+
+port ethernet 0 1
+  medium auto
+  encapsulation ip
+  bind interface LAN router
+  no shutdown
+
+port bri 0 0
+  clock auto
+  encapsulation q921
+
+  q921
+    PROTOCOLTYPE1
+    uni-side auto
+    encapsulation q931
+
+    q931
+      protocol dss1
+      uni-side user
+      bchan-number-order ascending
+      encapsulation cc-isdn
+      bind interface IF_S0_01 switch
+
+port bri 0 0
+  no shutdown
+
+port bri 0 1
+  clock auto
+  encapsulation q921
+
+  q921
+    PROTOCOLTYPE2
+    uni-side auto
+    encapsulation q931
+
+    q931
+      protocol dss1
+      uni-side user
+      bchan-number-order ascending
+      encapsulation cc-isdn
+      bind interface IF_S0_02 switch
+
+port bri 0 1
+  no shutdown
+
+port bri 0 2
+  clock auto
+  encapsulation q921
+
+  q921
+    uni-side auto
+    encapsulation q931
+
+    q931
+      protocol dss1
+      uni-side net
+      bchan-number-order ascending
+
+port bri 0 2
+  shutdown
+
+port fxs 0 0
+  encapsulation cc-fxs
+  bind interface fxs-00 switch
+  no shutdown
+
+port fxs 0 1
+  encapsulation cc-fxs
+  bind interface fxs-01 switch
+  no shutdown
+
+port fxs 0 2
+  encapsulation cc-fxs
+  bind interface fxs-02 switch
+  no shutdown
+
+port fxs 0 3
+  encapsulation cc-fxs
+  bind interface fxs-03 switch
+  no shutdown

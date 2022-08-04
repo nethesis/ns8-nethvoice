@@ -1,0 +1,35 @@
+<module>
+	<rawname>arimanager</rawname>
+	<repo>extended</repo>
+	<name>Asterisk REST Interface Users</name>
+	<version>13.0.5.2</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<category>Settings</category>
+	<menuitems>
+		<arimanager>Asterisk REST Interface Users</arimanager>
+	</menuitems>
+	<changelog>
+		*13.0.5.2* FREEPBX-19574 System standard user should be allowed to write
+		*13.0.5.1* FREEPBX-19021
+		*13.0.5* Fix visuals
+		*13.0.4* Comment and add function to find by username
+		*13.0.3* FREEPBX-9619 Adding user with Asterisk Rest Interface users does not prompt for system reload
+		*13.0.2* Version bump Beta
+		*13.0.1alpha2* Visual Styling Fixes
+		*12.0.2* FREEPBX-7793 Add Password generator to the ARI
+		*12.0.1* FREEPBX-7792 Add option to DELETE users
+		*12.0.0* Initial Release
+	</changelog>
+	<description>
+		Asterisk 12 introduces the Asterisk REST Interface (ARI), a set of RESTful API's for building Asterisk based applications. This module provides the ability to add and remove ARI users.
+	</description>
+	<depends>
+		<module>manager</module>
+		<engine>asterisk 12</engine>
+	</depends>
+	<supported>
+		<version>13.0</version>
+	</supported>
+</module>

@@ -1,0 +1,123 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for outroutemsg
+# Copyright (C) 2008-2015 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-03-16 13:47-0700\n"
+"PO-Revision-Date: 2015-02-20 19:43-0500\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: zh_CN\n"
+
+#: install.php:17
+msgid "Can not create outroutemsg table"
+msgstr "不能创建拥塞表"
+
+#: outroutemsg.i18n.php:8
+msgid ""
+"Configures message or congestion tones played when all trunks are busy in a "
+"route. Allows different messages for Emergency Routes and Intra-Company "
+"Routes"
+msgstr ""
+
+#: page.outroutemsg.php:78 page.outroutemsg.php:112 page.outroutemsg.php:146
+#: page.outroutemsg.php:182 page.outroutemsg.php:216
+msgid "Congestion Tones"
+msgstr "拥塞音"
+
+#: page.outroutemsg.php:77 page.outroutemsg.php:111 page.outroutemsg.php:145
+#: page.outroutemsg.php:181 page.outroutemsg.php:215
+msgid "Default Message"
+msgstr "默认信息"
+
+#: page.outroutemsg.php:139
+msgid "Emergency Routes"
+msgstr "紧急路由"
+
+#: page.outroutemsg.php:105
+msgid "Intra-Company Routes"
+msgstr "公司内部路由"
+
+#: page.outroutemsg.php:93
+msgid "Message or tone to be played if no trunks are available."
+msgstr "如果无中继可选，播放语音提示"
+
+#: page.outroutemsg.php:161
+msgid ""
+"Message or tone to be played if no trunks are available. Used on all "
+"emergency routes. Consider a message instructing callers to find an "
+"alternative means of calling emergency services such as a cell phone or "
+"alarm system panel."
+msgstr ""
+
+#: page.outroutemsg.php:127
+msgid ""
+"Message or tone to be played if no trunks are available. Used on routes "
+"marked as intra-company only."
+msgstr ""
+
+#: page.outroutemsg.php:197
+msgid ""
+"Message or tone to be played if there was no answer. Default message is:<br>"
+"\"The number is not answering.\"<br> Hangupcause is 18 or 19"
+msgstr ""
+
+#: page.outroutemsg.php:231
+msgid ""
+"Message or tone to be played if trunk reports Number or Address Incomplete. "
+"Usually this means that the number you have dialed is to short. Default "
+"message is:<br>\"The number you have dialed is not in service. Please check "
+"the number and try again.\"<br>Hangupcause is 28"
+msgstr ""
+
+#: page.outroutemsg.php:175
+msgid "No Answer"
+msgstr "无应答"
+
+#: page.outroutemsg.php:53
+msgid "No Routes Available"
+msgstr "无路由可选"
+
+#: page.outroutemsg.php:209
+msgid "Number or Address Incomplete"
+msgstr "号码或者地址不完整"
+
+#: Outroutemsg.class.php:30
+msgid "Reset"
+msgstr ""
+
+#: functions.inc.php:142 outroutemsg.i18n.php:4 outroutemsg.i18n.php:10
+#: page.outroutemsg.php:42
+msgid "Route Congestion Messages"
+msgstr "路由拥塞信息"
+
+#: outroutemsg.i18n.php:6
+msgid "Settings"
+msgstr "设置"
+
+#: page.outroutemsg.php:71
+msgid "Standard Routes"
+msgstr "标准路由"
+
+#: Outroutemsg.class.php:35
+msgid "Submit"
+msgstr ""
+
+#: page.outroutemsg.php:58
+msgid "Trunk Failures"
+msgstr "中继失败"
+
+#~ msgid "Message or Tone"
+#~ msgstr "信息或语音"
+
+#~ msgid "Submit Changes"
+#~ msgstr "提交修改"

@@ -1,0 +1,30 @@
+<module>
+	<rawname>asteriskinfo</rawname>
+	<repo>standard</repo>
+	<name>Asterisk Info</name>
+	<version>13.0.7.1</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<category>Reports</category>
+	<description>
+		Provides a snapshot of the current Asterisk configuration
+	</description>
+	<menuitems>
+		<asteriskinfo needsenginedb="yes">Asterisk Info</asteriskinfo>
+	</menuitems>
+	<changelog>
+		*13.0.7.1* FREEPBX-15253 Exception Asterisk is not connected
+		*13.0.7* FREEPBX-12153 fix mobile view
+		*13.0.6* FREEPBX-10254 Fix Queues html
+		*13.0.5* FREEPBX-10209 htmlentities need to use UTF-8
+		*13.0.4* FREEPBX-9757 asterisk info bad data
+		*13.0.3* FREEPBX-9648 asterisk info has no version information
+		*13.0.2* Version bump Beta
+		*13.0.1alpha2* FREEPBX-9481 Asterisk Info error page
+		*13.0.1alpha1* Complete reskin
+	</changelog>
+	<supported>
+		<version>13.0</version>
+	</supported>
+</module>

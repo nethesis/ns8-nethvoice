@@ -1,0 +1,337 @@
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# FreePBX language template for fax
+# Copyright (C) 2008, 2009, 2010 Bandwith.com
+#
+# Russian freePBX ver. translation
+# Copyright (c) 2006-2011 PostMet Corporation
+# This file is distributed under the same license as the freePBX package.
+# Alexander Kozyrev <ceo@postmet.com>, Sergey Nikolayev <sergey@postmet.com>, 2006-2011.
+#
+# Use iconv manager.pot -f UTF-8 -t ISO-8859-5 -o manager.po
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-08-13 10:21-0700\n"
+"PO-Revision-Date: 2015-04-25 00:18+0200\n"
+"Last-Translator: Yuriy <alliancesko@gmail.com>\n"
+"Language-Team: Russian <http://weblate.freepbx.org/projects/freepbx/manager/"
+"ru_RU/>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: ru_RU\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%"
+"10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 2.2-dev\n"
+
+#: views/grid.php:13
+msgid "Actions"
+msgstr ""
+
+#: page.manager.php:38 views/form.php:12 views/grid.php:5
+msgid "Add Manager"
+msgstr "Добавить менеджера"
+
+#: Manager.class.php:44
+msgid "Adding write timeout.."
+msgstr ""
+
+#: page.manager.php:25
+msgid "Asterisk Manager"
+msgstr ""
+
+#: functions.inc.php:234
+msgid "Choose Manager:"
+msgstr "Выбрать менеджера:"
+
+#: functions.inc.php:234
+msgid "Choose the user that PHPAGI will use to connect the Asterisk API."
+msgstr ""
+"Выбрать имя пользователя, которым PHPAGI будет образаться к Asterisk API."
+
+#: Manager.class.php:53
+msgid "Column present"
+msgstr ""
+
+#: Manager.class.php:116
+msgid "Delete"
+msgstr ""
+
+#: views/form.php:119 views/grid.php:11
+msgid "Deny"
+msgstr ""
+
+#: views/form.php:190
+msgid ""
+"For information on individual permissions please see the Asterisk Manager "
+"Documentation"
+msgstr ""
+
+#: views/form.php:56
+msgid "General"
+msgstr ""
+
+#: views/form.php:131
+msgid ""
+"If you want to deny many hosts or networks, use & char as separator.<br/><br/"
+">Example: 192.168.1.0/255.255.255.0&10.0.0.0/255.0.0.0"
+msgstr ""
+"Если необходимо запретить доступ с определённых хостов или сетей используйте "
+"эту опцию. Используйте & в качестве разделителя.<br/><br/>Например: "
+"192.168.1.0/255.255.255.0&10.0.0.0/255.0.0.0"
+
+#: views/form.php:155
+msgid ""
+"If you want to permit many hosts or networks, use & char as separator. Look "
+"at deny example."
+msgstr ""
+"Если необходимо разрешить доступ с определённых хостов или сетей используйте "
+"эту опцию. Используйте & в качестве разделителя. Посмотрите на правило "
+"Запретить в качестве примера."
+
+#: Manager.class.php:25
+msgid "Increasing read field size if needed.."
+msgstr "Увеличить размер поля чтения если необходимо.."
+
+#: Manager.class.php:35
+msgid "Increasing write field size if needed.."
+msgstr "Увеличить размер поля записи если необходимо.."
+
+#: page.manager.php:37
+msgid "List Managers"
+msgstr ""
+
+#: views/form.php:5
+msgid "Manager"
+msgstr "Менеджер"
+
+#: views/form.php:68
+msgid "Manager name"
+msgstr ""
+
+#: views/form.php:92
+msgid "Manager secret"
+msgstr ""
+
+#: views/grid.php:10
+msgid "Name"
+msgstr ""
+
+#: views/form.php:80
+msgid "Name of the manager without spaces."
+msgstr ""
+
+#: views/form.php:212 views/form.php:220 views/form.php:233 views/form.php:241
+msgid "No"
+msgstr ""
+
+#: views/form.php:107
+msgid "Password for the manager."
+msgstr "Пароль для этого менеджера."
+
+#: views/form.php:57
+msgid "Permissions"
+msgstr ""
+
+#: views/form.php:143 views/grid.php:12
+msgid "Permit"
+msgstr ""
+
+#: Manager.class.php:121
+msgid "Reset"
+msgstr ""
+
+#: views/form.php:182
+msgid ""
+"Sets the timeout used by Asterisk when writing data to the AMI connection "
+"for this user"
+msgstr ""
+
+#: Manager.class.php:126
+msgid "Submit"
+msgstr ""
+
+#: views/form.php:318
+msgid "The manager deny is not well formatted."
+msgstr "Поле Запрещено неправильно заполнено."
+
+#: views/form.php:316
+msgid "The manager name cannot be empty or may not have any space in it."
+msgstr "Имя менеджера не должно быть пустым и не должно содержать пробелы."
+
+#: views/form.php:319
+msgid "The manager permit is not well formatted."
+msgstr "Поле Разрешено неправильно заполнено."
+
+#: views/form.php:320
+msgid "The manager read field is not well formatted."
+msgstr "Поле Чтение неправильно заполнено."
+
+#: views/form.php:317
+msgid "The manager secret cannot be empty."
+msgstr "Пароль менеджера не может быть пустым."
+
+#: views/form.php:321
+msgid "The manager write field is not well formatted."
+msgstr "Поле Запись неправильно заполнено."
+
+#: functions.inc.php:201 functions.inc.php:207
+msgid "This manager already exists"
+msgstr "Такой менеджер уже существует"
+
+#: views/form.php:227
+msgid "Toggle All"
+msgstr ""
+
+#: views/form.php:167
+msgid "Write Timeout"
+msgstr ""
+
+#: views/form.php:210 views/form.php:218 views/form.php:231 views/form.php:239
+msgid "Yes"
+msgstr ""
+
+#: views/form.php:27
+msgid "agent"
+msgstr ""
+
+#: views/form.php:23
+msgid "call"
+msgstr ""
+
+#: views/form.php:32
+msgid "cdr"
+msgstr ""
+
+#: views/form.php:26
+msgid "command"
+msgstr ""
+
+#: views/form.php:29
+msgid "config"
+msgstr ""
+
+#: views/form.php:33
+msgid "dialplan"
+msgstr ""
+
+#: views/form.php:30
+msgid "dtmf"
+msgstr ""
+
+#: Manager.class.php:32 Manager.class.php:42
+msgid "error encountered, not altered"
+msgstr "обнаружена ошибка, не изменено"
+
+#: views/form.php:24
+msgid "log"
+msgstr ""
+
+#: views/form.php:173
+msgid "milliseconds"
+msgstr ""
+
+#: Manager.class.php:30 Manager.class.php:40 Manager.class.php:49
+msgid "ok"
+msgstr "ok"
+
+#: views/form.php:34
+msgid "originate"
+msgstr ""
+
+#: views/form.php:31
+msgid "reporting"
+msgstr ""
+
+#: views/form.php:22
+msgid "system"
+msgstr ""
+
+#: views/form.php:28
+msgid "user"
+msgstr ""
+
+#: views/form.php:25
+msgid "verbose"
+msgstr ""
+
+#~ msgid "Asterisk API"
+#~ msgstr "Астериск API"
+
+#~ msgid "Asterisk Manager Users"
+#~ msgstr "Управление пользователями Астериск"
+
+#~ msgid "Settings"
+#~ msgstr "Настройки"
+
+#~ msgid "Check All/None."
+#~ msgstr "Проверить всё/ничего."
+
+#~ msgid "Check Asterisk documentation."
+#~ msgstr "Проверить документацию Asterisk."
+
+#~ msgid "Conflicting FreePBX Manager of %s has not been added"
+#~ msgstr "Пользователь FreePBX конфликтует с %s и не был добавлен"
+
+#~ msgid "Delete Manager"
+#~ msgstr "Удалить менеджера"
+
+#~ msgid "Deny:"
+#~ msgstr "Запрещены:"
+
+#~ msgid "Edit Manager"
+#~ msgstr "Редактировать менеджера"
+
+#~ msgid "Manager name:"
+#~ msgstr "Имя менеджера:"
+
+#~ msgid "Manager secret:"
+#~ msgstr "Пароль менеджера:"
+
+#~ msgid "Manager:"
+#~ msgstr "Менеджер:"
+
+#~ msgid "Name of the manager without space."
+#~ msgstr "Имя менеджера без пробелов."
+
+#~ msgid "Permit:"
+#~ msgstr "Разрешены:"
+
+#~ msgid "Read"
+#~ msgstr "Чтение"
+
+#~ msgid "Rights"
+#~ msgstr "Права"
+
+#~ msgid "Submit Changes"
+#~ msgstr "Подтвердить изменения"
+
+#~ msgid "Write"
+#~ msgstr "Запись"
+
+#~ msgid "deleted"
+#~ msgstr "удалено"
+
+#~ msgid "Error writing the manager additional file."
+#~ msgstr "Ошибка при записи файла manager_additional.conf"
+
+#~ msgid "System Administration"
+#~ msgstr "Администрирование системы"
+
+#~ msgid "The manager read and write properties cannot be empty."
+#~ msgstr "Поля для прав на чтение и запись не могут быть пустыми."

@@ -1,0 +1,169 @@
+# CREDITS for JAPANESE TRANSLATION
+# ================================
+# Current translation & maintenance: QLOOG, Inc. (Kobe, Japan)
+# Inquiries: info@qloog.com / www.qloog.com
+#
+# This translation is a culmination of the hard work of
+# several outstanding individuals, which started in 2009 with the 
+# first-ever Japanese localization of FreePBX by Kenichi Fukaumi 
+# and Kazuhiro Tokuyama (FreePBX Japanized Project).
+#
+# Beginning in 2013, with the approval of the original authors, 
+# QLOOG undertook a large scale overhaul of the translation to 
+# expand it for compatibility with FreePBX 2.11. Our work is, 
+# of course, released under the same GPLv2 license as FreePBX. 
+# We only ask that you kindly retain these credits in honor of 
+# the time and effort that all of us have contributed. Enjoy!
+#
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# FreePBX language template for outroutemsg
+# Copyright (C) 2008, 2009, 2010 Bandwith.com
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-03-16 13:47-0700\n"
+"PO-Revision-Date: 2014-02-19 20:56+0200\n"
+"Last-Translator: Chise Mishima <c.mishima@qloog.com>\n"
+"Language-Team: Japanese <http://example.com/projects/freepbx/outroutemsg/ja/"
+">\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: ja\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 1.8\n"
+
+#: install.php:17
+msgid "Can not create outroutemsg table"
+msgstr "outroutemsgテーブルの作成ができません"
+
+#: outroutemsg.i18n.php:8
+msgid ""
+"Configures message or congestion tones played when all trunks are busy in a "
+"route. Allows different messages for Emergency Routes and Intra-Company "
+"Routes"
+msgstr ""
+"ルート内の全てのトランクがビジー状態のときに再生されるメッセージ又は輻輳トー"
+"ンを設定します。緊急ルートや社内ルートに対して異なるメッセージを許可します。"
+
+#: page.outroutemsg.php:78 page.outroutemsg.php:112 page.outroutemsg.php:146
+#: page.outroutemsg.php:182 page.outroutemsg.php:216
+msgid "Congestion Tones"
+msgstr "輻輳トーン"
+
+#: page.outroutemsg.php:77 page.outroutemsg.php:111 page.outroutemsg.php:145
+#: page.outroutemsg.php:181 page.outroutemsg.php:215
+msgid "Default Message"
+msgstr "デフォルトメッセージ"
+
+#: page.outroutemsg.php:139
+msgid "Emergency Routes"
+msgstr "緊急ルート"
+
+#: page.outroutemsg.php:105
+msgid "Intra-Company Routes"
+msgstr "社内ルート"
+
+#: page.outroutemsg.php:93
+msgid "Message or tone to be played if no trunks are available."
+msgstr "利用可能なトランクがない場合に再生されるメッセージ又はトーン。"
+
+#: page.outroutemsg.php:161
+msgid ""
+"Message or tone to be played if no trunks are available. Used on all "
+"emergency routes. Consider a message instructing callers to find an "
+"alternative means of calling emergency services such as a cell phone or "
+"alarm system panel."
+msgstr ""
+"利用可能なトランクがない場合に再生されるメッセージ又はトーン。全ての緊急ルー"
+"トとして使用されます。携帯電話やアラームシステムパネルなどの代替としての緊急"
+"サービスを呼び出す手段を見つけるように、発信者に対して指示するメッセージを検"
+"討してください。"
+
+#: page.outroutemsg.php:127
+msgid ""
+"Message or tone to be played if no trunks are available. Used on routes "
+"marked as intra-company only."
+msgstr ""
+"利用可能なトランクがない場合に再生されるメッセージ又はトーン。ルートが、社内"
+"ルートとしてマークされてる時のみ使用。"
+
+#: page.outroutemsg.php:197
+msgid ""
+"Message or tone to be played if there was no answer. Default message is:<br>"
+"\"The number is not answering.\"<br> Hangupcause is 18 or 19"
+msgstr ""
+"応答がない場合に再生されるメッセージ 又はトーン。デフォルトのメッセージは："
+"<br>\"The number is not answering.\"<br>ハングアップ理由は 18 又は 19　となり"
+"ます。"
+
+#: page.outroutemsg.php:231
+msgid ""
+"Message or tone to be played if trunk reports Number or Address Incomplete. "
+"Usually this means that the number you have dialed is to short. Default "
+"message is:<br>\"The number you have dialed is not in service. Please check "
+"the number and try again.\"<br>Hangupcause is 28"
+msgstr ""
+"トランクからのレポートが、番号 又は アドレスが不完全だった場合に再生される"
+"メッセージ又はトーン。通常はダイヤルした番号が短すぎる場合です。デフォルト"
+"メッセージ：<br>\"The number you have dialed is not in service. Please check "
+"the number and try again.\"<br>ハングアップ理由は 28　となります。"
+
+#: page.outroutemsg.php:175
+msgid "No Answer"
+msgstr "応答なし"
+
+#: page.outroutemsg.php:53
+msgid "No Routes Available"
+msgstr "利用可能なルートがありません"
+
+#: page.outroutemsg.php:209
+msgid "Number or Address Incomplete"
+msgstr "不完全な番号 又は アドレス"
+
+#: Outroutemsg.class.php:30
+msgid "Reset"
+msgstr ""
+
+#: functions.inc.php:142 outroutemsg.i18n.php:4 outroutemsg.i18n.php:10
+#: page.outroutemsg.php:42
+msgid "Route Congestion Messages"
+msgstr "ルートの輻輳メッセージ"
+
+#: outroutemsg.i18n.php:6
+msgid "Settings"
+msgstr "設定"
+
+#: page.outroutemsg.php:71
+msgid "Standard Routes"
+msgstr "標準ルート"
+
+#: Outroutemsg.class.php:35
+msgid "Submit"
+msgstr ""
+
+#: page.outroutemsg.php:58
+msgid "Trunk Failures"
+msgstr "トランクの障害"
+
+#~ msgid "Message or Tone"
+#~ msgstr "メッセージ or トーン"
+
+#~ msgid "Submit Changes"
+#~ msgstr "変更を適用"

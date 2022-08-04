@@ -1,0 +1,58 @@
+<module>
+	<rawname>logfiles</rawname>
+	<repo>standard</repo>
+	<name>Asterisk Logfiles</name>
+	<canuninstall>no</canuninstall>
+	<version>13.0.10.5</version>
+	<publisher>Schmooze Com. Inc.</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<changelog>
+		*13.0.10.5* FREEPBX-17752 Whoops\Exception\ErrorException Invalid argument supplied for foreach() 
+		*13.0.10.4* FREEPBX-16386 Verbosity level asterisk does not work 
+		*13.0.10.3* FREEPBX-15162
+		*13.0.10.2* FREEPBX-13341 Logfile settings not written correctly
+		*13.0.10.1* FREEPBX-13293 Validate data is NOT empty
+		*13.0.10* FREEPBX-12181 Change verbose dropdown to be in line with asterisk docs
+		*13.0.9* FREEPBX-11785 Add PCRE Filtering to log page
+		*13.0.8* FREEPBX-11578 Add js and server validation
+		*13.0.7* FREEPBX-10831
+		*13.0.6* FREEPBX-10831 FREEPBX-10922
+		*13.0.5* FREEPBX-10209 htmlentities need to use UTF-8
+		*13.0.4* FREEPBX-8790 Log verbosity level
+		*13.0.3* FREEPBX-9747 Changes made to Logfile Settings in GUI dont get submitted
+		*13.0.2* Version bump Beta
+		*13.0.1alpha2* Visuals for log settings
+		*13.0.1alpha1* Visual fixes and styling changes
+		*12.0.6* FREEPBX-7375 missing ? on insert
+		*12.0.5* More tweaks to color
+		*12.0.4* FREEPBX-7339 For the ampersand
+		*12.0.3* FREEPBX-7250 Completely re design how log files looks.
+		*12.0.2* Realign labels. They need to be AFTER the element to work with what we are doing
+		*12.0.1* FreePBX12 Update
+		*2.11.0.9* #7200 Solve The case of the missing logfiles.
+		*2.11.0.7* #7014 fixes back array population
+		*2.11.0.6* Fix fatal error on install because of improperly set variables
+		*2.11.0.5* #6982 Add security message and fix tooltips, courtesy of Xorcom
+		*2.11.0.4* Missing Files fix
+		*2.11.0.3* #6548 Fix highlighting links in navigation
+		*2.11.0.2* #6675 checked against incorrect link
+		*2.11.0.1* #6675
+		*2.11.0.0* added ability to view all logfiles
+		*2.10.0.13* re #1317 - remove debug
+		*2.10.0.12* re #1317 - move settings page to settings catagory; fix opts saving/display inconsistancies
+		*2.10.0.11* Packaging of ver 2.10.0.11
+		*2.10.0.10* re #1143, #1122 -
+		*2.10.0.9* re #1122 -
+	</changelog>
+	<category>Reports</category>
+	<menuitems>
+		<logfiles>Asterisk Logfiles</logfiles>
+		<logfiles_settings category="Settings">Asterisk Logfile Settings</logfiles_settings>
+	</menuitems>
+	<supported>
+		<version>13.0</version>
+	</supported>
+	<location/>
+	<md5sum/>
+</module>

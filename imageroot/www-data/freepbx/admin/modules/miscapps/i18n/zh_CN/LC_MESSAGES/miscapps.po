@@ -1,0 +1,176 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX 2.5 Chinese Translation\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-07-24 17:44-0400\n"
+"PO-Revision-Date: 2009-02-01 12:33+0800\n"
+"Last-Translator: 周征晟 <zhougongjizhe@163.com>\n"
+"Language-Team: EdwardBadBoy <zhougongjizhe@163.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Chinese\n"
+"X-Poedit-Country: CHINA\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: miscapps.i18n.php:12
+msgid "777"
+msgstr ""
+
+#: views/grid.php:9
+msgid "Actions"
+msgstr ""
+
+#: views/rnav.php:3
+msgid "Add Misc App"
+msgstr ""
+
+#: Miscapps.class.php:317 views/grid.php:2
+msgid "Add Misc Application"
+msgstr "添加杂项应用"
+
+#: miscapps.i18n.php:8
+msgid ""
+"Adds the ability to create feature codes that can go to any FreePBX "
+"destination (such as an IVR or queue)"
+msgstr ""
+
+#: miscapps.i18n.php:6
+msgid "Applications"
+msgstr ""
+
+#: views/form.php:107
+msgid "Choose the destination for this app when people dial the feature code"
+msgstr ""
+
+#: Miscapps.class.php:126
+msgid "Delete"
+msgstr "删除"
+
+#: views/grid.php:7 views/rnav.php:15
+msgid "Description"
+msgstr "描述"
+
+#: views/form.php:47
+msgid "Description:"
+msgstr ""
+
+#: views/form.php:95
+msgid "Destination"
+msgstr "目的地"
+
+#: Miscapps.class.php:325
+msgid "Edit Misc Application"
+msgstr "编辑杂项应用"
+
+#: views/form.php:26
+msgid "Enable"
+msgstr ""
+
+#: views/grid.php:8 views/rnav.php:14
+msgid "Extension"
+msgstr ""
+
+#: views/form.php:71
+msgid "Feature Code"
+msgstr "功能代码"
+
+#: assets/js/miscapps.js:6
+msgid "Invalid description specified"
+msgstr "指定了无效的描述"
+
+#: views/rnav.php:2
+msgid "List Misc App"
+msgstr ""
+
+#: Miscapps.class.php:338 views/main.php:1
+msgid "Misc Application"
+msgstr ""
+
+#: Miscapps.class.php:276 functions.inc.php:150
+#, php-format
+msgid "Misc Application: %s"
+msgstr "杂项应用：%s"
+
+#: miscapps.i18n.php:4 miscapps.i18n.php:10
+msgid "Misc Applications"
+msgstr "杂项应用"
+
+#: views/form.php:32
+msgid "No"
+msgstr ""
+
+#: assets/js/miscapps.js:36
+msgid "Please enter a valid Feature Code."
+msgstr ""
+
+#: Miscapps.class.php:41
+msgid "Removing Settings table"
+msgstr ""
+
+#: Miscapps.class.php:131
+msgid "Reset"
+msgstr ""
+
+#: Miscapps.class.php:136
+msgid "Submit"
+msgstr ""
+
+#: views/form.php:83
+msgid ""
+"The feature code/extension users can dial to access this application. This "
+"can also be modified on the Feature Codes page."
+msgstr ""
+"设置用户为了访问此应用，需要拨打的代码/分机号。这个设置也可以在功能代码设置页"
+"进行更改。"
+
+#: views/form.php:59
+msgid "The name of this application"
+msgstr "该应用的名字"
+
+#: assets/js/miscapps.js:44
+msgid "The number provided for the feature code is already in use by "
+msgstr ""
+
+#: views/form.php:75
+msgid "This field is required."
+msgstr ""
+
+#: views/form.php:30
+msgid "Yes"
+msgstr ""
+
+#~ msgid "Conflicting Extensions"
+#~ msgstr "分机号冲突"
+
+#~ msgid ""
+#~ "Misc Applications are for adding feature codes that you can dial from "
+#~ "internal phones that go to various destinations available in FreePBX. "
+#~ "This is in contrast to the <strong>Misc Destinations</strong> module, "
+#~ "which is for creating destinations that can be used by other FreePBX "
+#~ "modules to dial internal numbers or feature codes."
+#~ msgstr ""
+#~ "杂项应用是用来添加额外的功能代码的，它允许你从内线电话拨打此功能代码，然后"
+#~ "将呼叫发送到PBX中可用的各种目的地去。这个设置是与<strong>杂项目的地</"
+#~ "strong>相对的。杂项目的地用来添加各种目的地，以供其他的FreeOBX模块拨打内线"
+#~ "号码或功能代码。"
+
+#~ msgid "Disabled"
+#~ msgstr "禁用"
+
+#~ msgid "Enabled"
+#~ msgstr "启用"
+
+#~ msgid "Feature Status"
+#~ msgstr "功能状态"
+
+#~ msgid "If this code is enabled or not."
+#~ msgstr "设置此代码是否启用"
+
+#~ msgid "Submit Changes"
+#~ msgstr "提交更改"

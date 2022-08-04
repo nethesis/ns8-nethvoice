@@ -1,0 +1,127 @@
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright (C) 2009 Séverine GUTIERREZ, severine@medialsace.fr
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-03-07 14:44-0800\n"
+"PO-Revision-Date: 2009-04-20 13:56+0100\n"
+"Last-Translator: Séverine GUTIERREZ <severine@medialsace.fr>\n"
+"Language-Team: Français <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: views/main.php:32
+msgid "Actions"
+msgstr ""
+
+#: featurecodeadmin.i18n.php:6
+msgid "Admin"
+msgstr ""
+
+#: Featurecodeadmin.class.php:65 views/main.php:29
+msgid "Code"
+msgstr ""
+
+#: views/main.php:53
+msgid "Customize"
+msgstr ""
+
+#: Featurecodeadmin.class.php:64 views/main.php:26
+msgid "Description"
+msgstr ""
+
+#: views/main.php:57
+msgid "Enabled"
+msgstr "Activé"
+
+#: featurecodeadmin.i18n.php:4 views/main.php:9
+msgid "Feature Code Admin"
+msgstr "Admin de Code de Caractéristique"
+
+#: page.featurecodeadmin.php:44
+msgid "Feature Code Conflicts with other Extensions"
+msgstr "Conflits de Code de Caractéristique avec d'autres Extensions"
+
+#: Featurecodeadmin.class.php:62 featurecodeadmin.i18n.php:8
+msgid "Feature Codes"
+msgstr "Code de Caractéristique"
+
+#: functions.inc.php:20
+msgid "Featurecode: "
+msgstr "Code de la caractéristique :"
+
+#: assets/js/featurecodeadmin.js:29
+msgid "Please enter a Feature Code or uncheck Customize"
+msgstr ""
+
+#: Featurecodeadmin.class.php:25
+msgid "Reset"
+msgstr ""
+
+#: Featurecodeadmin.class.php:30
+msgid "Submit"
+msgstr ""
+
+#: page.featurecodeadmin.php:42
+msgid ""
+"You have feature code conflicts with extension numbers in other modules. "
+"This will result in unexpected and broken behavior."
+msgstr ""
+"Vous avez des conflits de code de caractéristique avec les numéros "
+"d'extension dans d'autres modules. Cela donne un comportement défectueux et "
+"inattendu."
+
+#~ msgid "Are you sure you wish to proceed?"
+#~ msgstr "Êtes-vous sûr de vouloir procéder ?"
+
+#~ msgid "Default"
+#~ msgstr "Par Défaut"
+
+#~ msgid "Disabled"
+#~ msgstr "Désactivé"
+
+#~ msgid "Feature"
+#~ msgstr "Caractéristiques"
+
+#~ msgid "Feature Codes have been duplicated"
+#~ msgstr "Les Codes de Caractéristique ont été dupliqués"
+
+#~ msgid ""
+#~ "Please enter a Feature Code or check Use Default for all Enabled Feature "
+#~ "Codes"
+#~ msgstr ""
+#~ "Veuillez entrer un Code de Caractéristique ou cochez Utiliser Par Défaut "
+#~ "pour tous les Codes de Caractéristique Activés"
+
+#~ msgid "Status"
+#~ msgstr "Statut"
+
+#~ msgid "Submit Changes"
+#~ msgstr "Appliquer les Modifications"
+
+#~ msgid "Use"
+#~ msgstr "Utiliser"
+
+#~ msgid "featuredescription"
+#~ msgstr "Description de la Caractéristique"
+
+#~ msgid "moduledescription"
+#~ msgstr "Description du Module"

@@ -1,0 +1,34 @@
+<module>
+	<rawname>blacklist</rawname>
+	<repo>standard</repo>
+	<name>Blacklist</name>
+	<version>14.0.2</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<category>Admin</category>
+	<description>This module is used to manage a system wide list of blocked callers</description>
+	<menuitems>
+		<blacklist needsenginedb="yes">Blacklist</blacklist>
+	</menuitems>
+	<changelog>
+		*14.0.2* FREEPBX-18905 Blacklist not working 
+		*14.0.1* Inital 14
+	</changelog>
+	<hooks>
+		<bulkhandler class="Bulkhandler" namespace="FreePBX\modules">
+			<method callingMethod="getHeaders" class="Blacklist">bulkhandlerGetHeaders</method>
+			<method callingMethod="getTypes" class="Blacklist">bulkhandlerGetTypes</method>
+			<method callingMethod="import" class="Blacklist">bulkhandlerImport</method>
+			<method callingMethod="export" class="Blacklist">bulkhandlerExport</method>
+		</bulkhandler>
+	</hooks>
+	<depends>
+		<module>core ge 14.0.18.9</module>
+	</depends>
+	<supported>
+		<version>14.0</version>
+	</supported>
+	<location>release/2.11/blacklist-2.11.0.2.tgz</location>
+	<md5sum>946bc59e73f980049e5e153c883b8b51</md5sum>
+</module>

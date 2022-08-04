@@ -1,0 +1,523 @@
+cli version 3.20
+dns-relay
+webserver port 80 language en
+sntp-client
+sntp-client server primary ASTERISKIP port 123 version 4
+
+system
+  ic voice 0
+    low-bitrate-codec g729
+
+system
+  clock-source 1 bri 0 0
+  clock-source 2 bri 0 1
+  clock-source 3 bri 0 2
+  clock-source 4 bri 0 3
+  clock-source 5 bri 0 4
+  clock-source 6 bri 0 5
+  clock-source 7 bri 0 6
+  clock-source 8 bri 0 7
+  clock-source 9 bri 0 8
+
+profile napt NAPT_WAN
+
+profile ppp default
+
+profile tone-set default
+
+profile voip default
+  codec 1 g711alaw64k rx-length 20 tx-length 20
+  codec 2 g711ulaw64k rx-length 20 tx-length 20
+
+profile pstn default
+
+profile sip default
+
+profile dhcp-server DHCPS_LAN
+  network 192.168.111.0 255.255.255.0
+  include 1 192.168.1.10 192.168.111.99
+  lease 2 hours
+  default-router 1 192.168.111.1
+  domain-name-server 1 192.168.111.1
+
+profile aaa default
+  method 1 local
+  method 2 none
+
+profile provisioning PF_PROVISIONING_CONFIG
+  destination configuration
+  location 1 tftp://ASTERISKIP/$(system.mac).cfg
+  location 2 tftp://$(dhcp.66)/$(system.mac).cfg
+  activation reload immediate
+
+context ip router
+
+  interface WAN
+    ipaddress GATEWAYIP 255.255.255.0
+    tcp adjust-mss rx mtu
+    tcp adjust-mss tx mtu
+
+  interface LAN
+    ipaddress 192.168.111.1 255.255.255.0
+    tcp adjust-mss rx mtu
+    tcp adjust-mss tx mtu
+
+context ip router
+  route 0.0.0.0 0.0.0.0 DEFGATEWAY 0
+
+context cs switch
+  national-prefix 0
+  international-prefix 00
+
+  routing-table called-e164 to-IF_VOIP_ASTERISK
+    route .%T dest-interface IF_VOIP_ASTERISK
+
+  routing-table called-e164 to-IF_VOIP_ASTERISK2
+    route .%T dest-interface IF_VOIP_ASTERISK2
+
+  routing-table called-e164 to-IF_VOIP_ASTERISK3
+    route .%T dest-interface IF_VOIP_ASTERISK3
+
+  routing-table called-e164 to-IF_VOIP_ASTERISK4
+    route .%T dest-interface IF_VOIP_ASTERISK4
+
+  routing-table called-e164 to-IF_VOIP_ASTERISK5
+    route .%T dest-interface IF_VOIP_ASTERISK5
+
+  routing-table called-e164 to-IF_VOIP_ASTERISK6
+    route .%T dest-interface IF_VOIP_ASTERISK6
+
+  routing-table called-e164 to-IF_VOIP_ASTERISK7
+    route .%T dest-interface IF_VOIP_ASTERISK7
+
+  routing-table called-e164 to-IF_VOIP_ASTERISK8
+    route .%T dest-interface IF_VOIP_ASTERISK8
+
+  routing-table called-e164 to_isdn
+    route TRUNKNUMBER1.% dest-interface IF_S0_01 cutpref
+    route TRUNKNUMBER2.% dest-interface IF_S0_02 cutpref
+    route TRUNKNUMBER3.% dest-interface IF_S0_03 cutpref
+    route TRUNKNUMBER4.% dest-interface IF_S0_04 cutpref
+    route TRUNKNUMBER5.% dest-interface IF_S0_05 cutpref
+    route TRUNKNUMBER6.% dest-interface IF_S0_06 cutpref
+    route TRUNKNUMBER7.% dest-interface IF_S0_07 cutpref
+    route TRUNKNUMBER8.% dest-interface IF_S0_08 cutpref
+
+  mapping-table called-e164 to called-e164 cutpref
+    map TRUNKNUMBER1(.%) to \1
+    map TRUNKNUMBER2(.%) to \1
+    map TRUNKNUMBER3(.%) to \1
+    map TRUNKNUMBER4(.%) to \1
+    map TRUNKNUMBER5(.%) to \1
+    map TRUNKNUMBER6(.%) to \1
+    map TRUNKNUMBER7(.%) to \1
+    map TRUNKNUMBER8(.%) to \1
+
+  interface isdn IF_S0_01
+    route call dest-table to-IF_VOIP_ASTERISK
+    caller-name ignore-absence 0
+
+  interface isdn IF_S0_02
+    route call dest-table to-IF_VOIP_ASTERISK2
+    caller-name ignore-absence 0
+  
+  interface isdn IF_S0_03
+    route call dest-table to-IF_VOIP_ASTERISK3
+    caller-name ignore-absence 0
+
+  interface isdn IF_S0_04
+    route call dest-table to-IF_VOIP_ASTERISK4
+    caller-name ignore-absence 0
+
+  interface isdn IF_S0_05
+    route call dest-table to-IF_VOIP_ASTERISK5
+    caller-name ignore-absence 0
+
+  interface isdn IF_S0_06
+    route call dest-table to-IF_VOIP_ASTERISK6
+    caller-name ignore-absence 0
+
+  interface isdn IF_S0_07
+    route call dest-table to-IF_VOIP_ASTERISK7
+    caller-name ignore-absence 0
+
+  interface isdn IF_S0_08
+    route call dest-table to-IF_VOIP_ASTERISK8
+    caller-name ignore-absence 0
+
+  interface sip IF_VOIP_ASTERISK
+    bind context sip-gateway ASTERISK
+    route call dest-table to_isdn
+    remote ASTERISKIP 5060
+    early-disconnect
+
+  interface sip IF_VOIP_ASTERISK2
+    bind context sip-gateway ASTERISK2
+    route call dest-table to_isdn
+    remote ASTERISKIP 5060
+    early-disconnect
+
+  interface sip IF_VOIP_ASTERISK3
+    bind context sip-gateway ASTERISK3
+    route call dest-table to_isdn
+    remote ASTERISKIP 5060
+    early-disconnect
+
+  interface sip IF_VOIP_ASTERISK4
+    bind context sip-gateway ASTERISK4
+    route call dest-table to_isdn
+    remote ASTERISKIP 5060
+    early-disconnect
+
+  interface sip IF_VOIP_ASTERISK5
+    bind context sip-gateway ASTERISK5
+    route call dest-table to_isdn
+    remote ASTERISKIP 5060
+    early-disconnect
+
+  interface sip IF_VOIP_ASTERISK6
+    bind context sip-gateway ASTERISK6
+    route call dest-table to_isdn
+    remote ASTERISKIP 5060
+    early-disconnect
+
+  interface sip IF_VOIP_ASTERISK7
+    bind context sip-gateway ASTERISK7
+    route call dest-table to_isdn
+    remote ASTERISKIP 5060
+    early-disconnect
+
+  interface sip IF_VOIP_ASTERISK8
+    bind context sip-gateway ASTERISK8
+    route call dest-table to_isdn
+    remote ASTERISKIP 5060
+    early-disconnect
+
+context cs switch
+  no shutdown
+
+authentication-service AUTH_TRAIN
+  username TRUNKNUMBER1 password TRUNKSECRET1
+  username TRUNKNUMBER2 password TRUNKSECRET2
+  username TRUNKNUMBER3 password TRUNKSECRET3
+  username TRUNKNUMBER4 password TRUNKSECRET4
+  username TRUNKNUMBER5 password TRUNKSECRET5
+  username TRUNKNUMBER6 password TRUNKSECRET6
+  username TRUNKNUMBER7 password TRUNKSECRET7 
+  username TRUNKNUMBER8 password TRUNKSECRET8
+
+location-service LOC_SERV_TRAIN
+  domain 1 ASTERISKIP
+
+  identity TRUNKNUMBER1
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_TRAIN username TRUNKNUMBER1
+
+location-service LOC_SERV_TRAIN2
+  domain 1 ASTERISKIP
+
+  identity TRUNKNUMBER2
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_TRAIN username TRUNKNUMBER2
+
+location-service LOC_SERV_TRAIN3
+  domain 1 ASTERISKIP
+
+  identity TRUNKNUMBER3
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_TRAIN username TRUNKNUMBER3
+
+location-service LOC_SERV_TRAIN4
+  domain 1 ASTERISKIP
+
+  identity TRUNKNUMBER4
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_TRAIN username TRUNKNUMBER4
+
+location-service LOC_SERV_TRAIN5
+  domain 1 ASTERISKIP
+
+  identity TRUNKNUMBER5
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_TRAIN username TRUNKNUMBER5
+
+location-service LOC_SERV_TRAIN6
+  domain 1 ASTERISKIP
+
+  identity TRUNKNUMBER6
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_TRAIN username TRUNKNUMBER6
+
+location-service LOC_SERV_TRAIN7
+  domain 1 ASTERISKIP
+
+  identity TRUNKNUMBER7
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_TRAIN username TRUNKNUMBER7
+
+location-service LOC_SERV_TRAIN8
+  domain 1 ASTERISKIP
+
+  identity TRUNKNUMBER8
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_TRAIN username TRUNKNUMBER8
+
+context sip-gateway ASTERISK
+
+  interface IF_GW_SIP_TRAIN
+    bind interface WAN context router port 5060
+
+context sip-gateway ASTERISK
+  bind location-service LOC_SERV_TRAIN
+  no shutdown
+
+context sip-gateway ASTERISK2
+
+  interface IF_GW_SIP_TRAIN2
+    bind interface WAN context router port 5062
+
+context sip-gateway ASTERISK2
+  bind location-service LOC_SERV_TRAIN2
+  no shutdown
+
+context sip-gateway ASTERISK3
+
+  interface IF_GW_SIP_TRAIN3
+    bind interface WAN context router port 5064
+
+context sip-gateway ASTERISK3
+  bind location-service LOC_SERV_TRAIN3
+  no shutdown
+
+context sip-gateway ASTERISK4
+
+  interface IF_GW_SIP_TRAIN4
+    bind interface WAN context router port 5066
+
+context sip-gateway ASTERISK4
+  bind location-service LOC_SERV_TRAIN4
+  no shutdown
+
+context sip-gateway ASTERISK5
+
+  interface IF_GW_SIP_TRAIN5
+    bind interface WAN context router port 5068
+
+context sip-gateway ASTERISK5
+  bind location-service LOC_SERV_TRAIN5
+  no shutdown
+
+context sip-gateway ASTERISK6
+
+  interface IF_GW_SIP_TRAIN6
+    bind interface WAN context router port 5070
+
+context sip-gateway ASTERISK6
+  bind location-service LOC_SERV_TRAIN6
+  no shutdown
+
+context sip-gateway ASTERISK7
+
+  interface IF_GW_SIP_TRAIN7
+    bind interface WAN context router port 5072
+
+context sip-gateway ASTERISK7
+  bind location-service LOC_SERV_TRAIN7
+  no shutdown
+
+context sip-gateway ASTERISK8
+
+  interface IF_GW_SIP_TRAIN8
+    bind interface WAN context router port 5074
+
+context sip-gateway ASTERISK8
+  bind location-service LOC_SERV_TRAIN8
+  no shutdown
+
+port ethernet 0 0
+  medium auto
+  encapsulation ip
+  bind interface WAN router
+  no shutdown
+
+port ethernet 0 1
+  medium auto
+  encapsulation ip
+  bind interface LAN router
+  no shutdown
+
+port bri 0 0
+  clock auto
+  encapsulation q921
+
+  q921
+    PROTOCOLTYPE1
+    uni-side auto
+    encapsulation q931
+
+    q931
+      protocol dss1
+      uni-side user
+      bchan-number-order ascending
+      encapsulation cc-isdn
+      bind interface IF_S0_01 switch
+
+port bri 0 0
+  no shutdown
+
+port bri 0 1
+  clock auto
+  encapsulation q921
+
+  q921
+    PROTOCOLTYPE2
+    uni-side auto
+    encapsulation q931
+
+    q931
+      protocol dss1
+      uni-side user
+      bchan-number-order ascending
+      encapsulation cc-isdn
+      bind interface IF_S0_02 switch
+
+port bri 0 1
+  no shutdown
+
+port bri 0 2
+  clock auto
+  encapsulation q921
+
+  q921
+    PROTOCOLTYPE3
+    uni-side auto
+    encapsulation q931
+
+    q931
+      protocol dss1
+      uni-side user
+      bchan-number-order ascending
+      encapsulation cc-isdn
+      bind interface IF_S0_03 switch
+
+port bri 0 2
+  no shutdown
+
+port bri 0 3
+  clock auto
+  encapsulation q921
+
+  q921
+    PROTOCOLTYPE4
+    uni-side auto
+    encapsulation q931
+
+    q931
+      protocol dss1
+      uni-side user
+      bchan-number-order ascending
+      encapsulation cc-isdn
+      bind interface IF_S0_04 switch
+
+port bri 0 3
+  no shutdown
+
+port bri 0 4
+  clock auto
+  encapsulation q921
+
+  q921
+    PROTOCOLTYPE5
+    uni-side auto
+    encapsulation q931
+
+    q931
+      protocol dss1
+      uni-side user
+      bchan-number-order ascending
+      encapsulation cc-isdn
+      bind interface IF_S0_05 switch
+
+port bri 0 4
+  no shutdown
+
+port bri 0 5
+  clock auto
+  encapsulation q921
+
+  q921
+    PROTOCOLTYPE6
+    uni-side auto
+    encapsulation q931
+
+    q931
+      protocol dss1
+      uni-side user
+      bchan-number-order ascending
+      encapsulation cc-isdn
+      bind interface IF_S0_06 switch
+
+port bri 0 5
+  no shutdown
+
+port bri 0 6
+  clock auto
+  encapsulation q921
+
+  q921
+    PROTOCOLTYPE7
+    uni-side auto
+    encapsulation q931
+
+    q931
+      protocol dss1
+      uni-side user
+      bchan-number-order ascending
+      encapsulation cc-isdn
+      bind interface IF_S0_07 switch
+
+port bri 0 6
+  no shutdown
+
+port bri 0 7
+  clock auto
+  encapsulation q921
+
+  q921
+    PROTOCOLTYPE8
+    uni-side auto
+    encapsulation q931
+
+    q931
+      protocol dss1
+      uni-side user
+      bchan-number-order ascending
+      encapsulation cc-isdn
+      bind interface IF_S0_08 switch
+
+port bri 0 7
+  no shutdown
+
+port bri 0 8
+  clock auto
+  encapsulation q921
+
+  q921
+    uni-side auto
+    encapsulation q931
+
+    q931
+      protocol dss1
+      uni-side net
+      bchan-number-order ascending
+
+port bri 0 8
+  shutdown

@@ -1,0 +1,1782 @@
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Russian freePBX ver. translation
+# Copyright (c) 2006-2011 PostMet Corporation
+# This file is distributed under the same license as the freePBX package.
+# Alexander Kozyrev <ceo@postmet.com>, Sergey Nikolayev <sergey@postmet.com>, 2006-2011.
+#
+# Use iconv sipsettings.pot -f UTF-8 -t ISO-8859-5 -o sipsettings.po
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-03-01 17:05+0530\n"
+"PO-Revision-Date: 2015-12-05 10:05+0200\n"
+"Last-Translator: Andrew <andrew.nagy@the159.com>\n"
+"Language-Team: Russian <http://weblate.freepbx.org/projects/freepbx/"
+"sipsettings/ru_RU/>\n"
+"Language: ru_RU\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 2.2-dev\n"
+
+#: general.page.php:829
+msgid ""
+" If you clear each codec and then add them one at a time, submitting with "
+"each addition, they will be added in order which will effect the codec "
+"priority."
+msgstr ""
+" Если очистите таблицу кодеков и затем добавите по одному, они будут "
+"использоваться в таком же порядке в приоритетах выбора кодеков."
+
+#: chansip.page.php:960
+msgid " See current version of Asterisk for limitations on SRV functionality."
+msgstr ""
+" Смотрите в текущую версию Астериск для ограничения по функциональности SRV "
+"запросов."
+
+#: functions.inc.php:349
+#, php-format
+msgid "%s must be a non-negative integer"
+msgstr "%s должен быть неотрицательным целым числом"
+
+#: functions.inc.php:393
+#, php-format
+msgid "%s must be alphanumeric"
+msgstr "%s должен быть буквенным"
+
+#: chansip.page.php:732
+msgid "Adaptive"
+msgstr "Адаптивный"
+
+#: general.page.php:520 general.page.php:562
+msgid "Add Address"
+msgstr ""
+
+#: chansip.page.php:35
+msgid "Add Field"
+msgstr "Добавить поле"
+
+#: chansip.page.php:37 general.page.php:19
+msgid "Add Local Network Field"
+msgstr "Добавить параметр 'Адреса локальной сети'"
+
+#: chansip.page.php:823
+msgid "Advanced General Settings"
+msgstr "Дополнительные основные настройки"
+
+#: chanpj.page.php:391
+msgid ""
+"After you enable/disable a transport, asterisk needs to be "
+"<strong>restarted</strong>, not just reloaded."
+msgstr ""
+
+#: general.page.php:52
+msgid "Allow Anonymous Inbound SIP Calls"
+msgstr "Разрешить входящие анонимные SIP звонки"
+
+#: general.page.php:77
+msgid "Allow SIP Guests"
+msgstr "Разрешить SIP вызовы без аутентификации"
+
+#: chanpj.page.php:176
+msgid "Allow Transports Reload"
+msgstr ""
+
+#: chanpj.page.php:189
+msgid "Allow transports to be reloaded when the PBX is reloaded"
+msgstr ""
+
+#: general.page.php:65
+msgid ""
+"Allowing Inbound Anonymous SIP calls means that you will allow any call "
+"coming in form an un-known IP source to be directed to the 'from-pstn' side "
+"of your dialplan. This is where inbound calls come in. Although FreePBX "
+"severely restricts access to the internal dialplan, allowing Anonymous SIP "
+"calls does introduced additional security risks. If you allow SIP URI "
+"dialing to your PBX or use services like ENUM, you will be required to set "
+"this to Yes for Inbound traffic to work. This is NOT an Asterisk sip.conf "
+"setting, it is used in the dialplan in conjuction with the Default Context. "
+"If that context is changed above to something custom this setting may be "
+"rendered useless as well as if 'Allow SIP Guests' is set to no."
+msgstr ""
+"Разрешение входящих анонимных SIP звонков означает, что вы разрешаете любому "
+"входящему звонку от неизвестного IP источника попасть в контекст 'from-pstn' "
+"вашего диалплана. Это то место, куда приходят входящие вызовы. Хотя FreePBX "
+"строго ограничивает доступ к внутреннему диалплану, разрешение входящих "
+"анонимных SIP звонков создает дополнительные проблемы безопасности. Если вы "
+"разрешаете SIP URI набор для Астериск или использования услуг, таких как "
+"ENUM, установите Да, чтобы это работало. Это не настройка в файле sip.conf "
+"Астериска, это используется диалпланом в сочетании с контекстом по "
+"умолчанию. Если этот контекст изменен вручную, этот параметр может быть "
+"бесполезен и лучше установить его в НЕТ."
+
+#: assets/js/sipsettings.js:169
+msgid ""
+"An Error occurred trying fetch network configuration and external IP address"
+msgstr "Ошибка получения сетевой конфигурации и внешний IP-адреса"
+
+#: Sipsettings.class.php:918
+msgid ""
+"An unknown port conflict has been detected in PJSIP. Please check and "
+"validate your PJSIP Ports to ensure they're not overlapping"
+msgstr ""
+
+#: chansip.page.php:174
+msgid ""
+"Asterisk NAT setting:<br /> yes = Always ignore info and assume NAT<br /> no "
+"= Use NAT mode only according to RFC3581 <br /> never = Never attempt NAT "
+"mode or RFC3581 <br /> route = Assume NAT, don't send rport"
+msgstr ""
+"Настройки NAT в Астериск:<br /> yes = Всегда игнорировать пакет info и "
+"предполагать NAT<br /> no = Использовать режим NAT в соостветствии с RFC3581 "
+"<br /> never = Никогда не пытаться использовать NAT или RFC3581 <br /> route "
+"= предполагая NAT не указывать rport"
+
+#: sipsettings.i18n.php:4 sipsettings.i18n.php:10
+msgid "Asterisk SIP Settings"
+msgstr "Установки Asterisk для SIP"
+
+#: Sipsettings.class.php:172
+#, php-format
+msgid "Asterisk is currently using %s for SIP Traffic."
+msgstr "Астериск использует %s для SIP трафика."
+
+#: chansip.page.php:851
+msgid ""
+"Asterisk: bindaddr. The IP address to bind to and listen for calls on the "
+"Bind Port. If set to 0.0.0.0 Asterisk will listen on all addresses. It is "
+"recommended to leave this blank."
+msgstr ""
+"Параметр Asterisk: bindaddr. ИП адрес, на котором \"слушаются\" входяшие "
+"вызовы на выбранном порту. Если установлено в 0.0.0.0 Asterisk будет слушать "
+"на всех доступных ИП адресах. Рекомендуем оставить это поле пустым."
+
+#: chansip.page.php:445
+msgid ""
+"Asterisk: canreinvite. yes: standard reinvites; no: never; nonat: An "
+"additional option is to allow media path redirection (reinvite) but only "
+"when the peer where the media is being sent is known to not be behind a NAT "
+"(as the RTP core can determine it based on the apparent IP address the media "
+"arrives from; update: use UPDATE for media path redirection, instead of "
+"INVITE. (yes = update + nonat)"
+msgstr ""
+"Параметр Asterisk: canreinvite. yes: стандартный реинвайт; no: никогда; "
+"nonat: дополнительная опция, разрешающая перенаправить медиа поток "
+"(реинвайт), но только если пир установлен не за NAT (RTP может определить "
+"это на основе ИП адресов абонентов) update: используется специальный SIP "
+"пакет UPDATE для приняти решения о перенаправлении вместо пакета INVITE. "
+"(Значение yes соответствует = update + nonat)"
+
+#: chansip.page.php:287
+msgid ""
+"Asterisk: externrefresh. How often to lookup and refresh the External Host "
+"FQDN, in seconds."
+msgstr ""
+"Параметр Аsterisk: externrefresh. Как часто происходит обновление информации "
+"резольвера по имени FQDN, в секундах."
+
+#: chansip.page.php:414
+msgid ""
+"Asterisk: g726nonstandard. If the peer negotiates G726-32 audio, use AAL2 "
+"packing order instead of RFC3551 packing order (this is required for Sipura "
+"and Grandstream ATAs, among others). This is contrary to the RFC3551 "
+"specification, the peer _should_ be negotiating AAL2-G726-32 instead."
+msgstr ""
+"Параметр Asterisk: g726nonstandard. Если пир распознаёт G726-32 аудио, "
+"используется AAL2 порядок распаковки вместо RFC3551 (обычно требуется для "
+"терминалов Sipura и Grandstream, в числе других). Это противоречит "
+"спецификации RFC3551, где установлено распознавание устройствами "
+"специального типа payload AAL2-G726-32 вместо G726-32."
+
+#: general.page.php:701
+msgid ""
+"Asterisk: t38pt_udptl. Enables T38 passthrough which makes faxes go through "
+"Asterisk without being processed.<ul><li>No - No passthrough</li><li>Yes - "
+"Enables T.38 with FEC error correction and overrides the other endpoint's "
+"provided value to assume we can send 400 byte T.38 FAX packets to it.</"
+"li><li>Yes with FEC - Enables T.38 with FEC error correction</li><li>Yes "
+"with Redundancy - Enables T.38 with redundancy error correction</li><li>Yes "
+"with no error correction - Enables T.38 with no error correction.</li></ul>"
+msgstr ""
+"Астериск: t38pt_udptl. Включает сквозноеое прохождение (passthrough) "
+"соединений протокола Т.38, при котором факсы напрямую пропускаются через "
+"Астериск без цифровой обработки.<ul><li>Нет  - без сквозного прохождения</"
+"li><li>Да - включить обработку T.38 с FEC (коррекция ошибок) и переписать "
+"значения для этого, предполагая, что мы можем посылать 400-байтовые пакеты "
+"Т.38.</li><li>Да с FEC - Включаем T.38 с FEC коррекцией ошибок</li><li>Да с "
+"резервированием - Включаем T.38 с резервированнием для коррекции ошибок</"
+"li><li>Да без коррекции ошибок - Включаем T.38 без коррекции ошибок.</li></"
+"ul>"
+
+#: general.page.php:672
+msgid "Audio Codecs"
+msgstr "Аудио кодеки"
+
+#: chansip.page.php:36
+msgid "Auto Configure"
+msgstr "Автоматическая конфигурация"
+
+#: chansip.page.php:861
+msgid "Bind Address"
+msgstr "Связывание с адресом"
+
+#: functions.inc.php:353
+msgid "Bind Address (bindaddr) must be an IP address."
+msgstr "Адрес (bindaddr) должен быть в виде четырёх октетов ИП адреса."
+
+#: chansip.page.php:883
+msgid "Bind Port"
+msgstr "Порт"
+
+#: functions.inc.php:359
+msgid "Bind Port (bindport) must be between 1024 and 65535"
+msgstr "Порт привязки (bindport). Адрес порта должен быть между 1024 и 65535"
+
+#: chanpj.page.php:255
+msgid "CA Chain File"
+msgstr ""
+
+#: Sipsettings.class.php:932
+msgid "CHANSIP Port Moved"
+msgstr ""
+
+#: Sipsettings.class.php:942
+msgid "CHANSIP TCP Disabled"
+msgstr ""
+
+#: Sipsettings.class.php:953
+msgid "CHANSIP TLS Port Moved"
+msgstr ""
+
+#: chansip.page.php:997
+msgid "Call Events"
+msgstr "События вызова"
+
+#: general.page.php:553
+msgid "Candidates"
+msgstr ""
+
+#: chanpj.page.php:267
+msgid "Certificate File"
+msgstr ""
+
+#: chanpj.page.php:292 chansip.page.php:324
+msgid "Certificate Manager"
+msgstr ""
+
+#: Sipsettings.class.php:203
+msgid "Chan PJSIP Settings"
+msgstr "Установки канала PJSIP"
+
+#: general.page.php:107
+msgid "Chan SIP"
+msgstr ""
+
+#: Sipsettings.class.php:196
+msgid "Chan SIP Settings"
+msgstr "Установки канала SIP"
+
+#: Sipsettings.class.php:953
+#, php-format
+msgid ""
+"Chansip was assigned a port that was already in use for TLS traffic. The "
+"Chansip TLS port has been changed to %s"
+msgstr ""
+
+#: Sipsettings.class.php:942
+msgid ""
+"Chansip was assigned the same port as pjsip for TCP traffic. Chansip has had "
+"the tcpenable setting removed, and is no longer listening for TCP "
+"connections."
+msgstr ""
+
+#: Sipsettings.class.php:932
+#, php-format
+msgid ""
+"Chansip was assigned the same port as pjsip for UDP traffic. The Chansip "
+"port has been changed to %s"
+msgstr ""
+
+#: general.page.php:829
+msgid "Check to enable and then choose allowed codecs."
+msgstr "Отметить если необходимо, и затем выбрать разрешаемые кодеки."
+
+#: general.page.php:714
+msgid "Codecs"
+msgstr "Кодеки"
+
+#: chansip.page.php:528
+msgid ""
+"Control whether subscriptions INUSE get sent ONHOLD when call is placed on "
+"hold. Useful when using BLF."
+msgstr ""
+"Контролирует внутренний номер о состоянии абонента INUSE получением пакета "
+"ONHOLD если звонок поставлен на ожидание Удобно при использовании BLF - Busy "
+"Lamp Functionality."
+
+#: chansip.page.php:501
+msgid ""
+"Control whether subscriptions already INUSE get sent RINGING when another "
+"call is sent. Useful when using BLF."
+msgstr ""
+"Контролирует внутренний номер о состоянии абонента INUSE получением пакета "
+"RINGING если уже принят один звонок. Удобно при использовании BLF - Busy "
+"Lamp Functionality."
+
+#: chanpj.page.php:321
+msgid "Default"
+msgstr ""
+
+#: chansip.page.php:833
+msgid "Default Context"
+msgstr "Дефолтный контекст"
+
+#: general.page.php:102
+msgid "Default TLS Port Assignment"
+msgstr ""
+
+#: install.php:72
+#, php-format
+msgid "Default bind port for CHAN_PJSIP is: %s, CHAN_SIP is: %s"
+msgstr "Привязка порта по умолчанию для CHAN_PJSIP: %s, CHAN_SIP: %s"
+
+#: chansip.page.php:845
+msgid ""
+"Default context for incoming calls if not specified. FreePBX sets this to "
+"from-sip-external which is used in conjunction with the Allow Anonymous SIP "
+"calls. If you change this you will effect that behavior. It is recommended "
+"to leave this blank."
+msgstr ""
+"Дефолтный контекст по умолчанию для входящих вызовов не указан. FreePBX "
+"использует from-sip-external, где обрабатываются входящие в том числе и при "
+"разрешённых анонимных входящих SIP вызовах без аутентификации. Если изменить "
+"этот контекст, то это нарушит такое поведение. Рекомендуется оставить это "
+"поле пустым."
+
+#: chansip.page.php:653
+msgid "Default length of incoming and outgoing registrations."
+msgstr "Длительность входящей или исходящей регистраций."
+
+#: general.page.php:167
+msgid "Detect Network Settings"
+msgstr "Детектировать сетевые настройки"
+
+#: general.page.php:821
+msgid "Disabled"
+msgstr "Выключено"
+
+#: chanpj.page.php:97
+msgid "Domain the transport comes from"
+msgstr "Домен транспорт исходит от"
+
+#: chansip.page.php:382
+msgid "Don't Require verification of server certificate (TLS ONLY)."
+msgstr ""
+
+#: chansip.page.php:369
+msgid "Don't Verify Server"
+msgstr ""
+
+#: chansip.page.php:248
+msgid "Dynamic Host"
+msgstr "Динамический хост"
+
+#: chansip.page.php:272
+msgid "Dynamic Host Refresh"
+msgstr "Динамическое обновление хоста"
+
+#: functions.inc.php:419
+msgid "Dynamic Host can not be blank"
+msgstr "Динамическое значение имени хоста не может быть пустым"
+
+#: chansip.page.php:195
+msgid "Dynamic IP"
+msgstr "Динамический ИП"
+
+#: chansip.page.php:132
+msgid "ERRORS"
+msgstr "ОШИБКИ"
+
+#: chansip.page.php:117
+msgid "Edit Settings"
+msgstr "Редактировать настройки"
+
+#: chansip.page.php:670
+msgid "Enable Jitter Buffer"
+msgstr "Включить джиттер-буфер"
+
+#: chansip.page.php:945
+msgid "Enable SRV Lookup"
+msgstr "Включиьт сервис поиска SRV"
+
+#: chansip.page.php:971 chansip.page.php:986
+msgid "Enable TCP"
+msgstr ""
+
+#: chansip.page.php:303
+msgid "Enable TLS"
+msgstr ""
+
+#: chansip.page.php:316
+msgid "Enable server for incoming TLS (secure) connections."
+msgstr ""
+
+#: general.page.php:819
+msgid "Enabled"
+msgstr "Включено"
+
+#: chansip.page.php:767
+msgid "Enables jitter buffer frame logging."
+msgstr "Включить журналирование фреймов джиттер-буфера."
+
+#: chansip.page.php:685
+msgid ""
+"Enables the use of a jitterbuffer on the receiving side of a SIP channel. An "
+"enabled jitterbuffer will be used only if the sending side can create and "
+"the receiving side can not accept jitter. The SIP channel can accept jitter, "
+"thus a jitterbuffer on the receive SIP side will be used only if it is "
+"forced and enabled. An example is if receiving from a jittery channel to "
+"voicemail, the jitter buffer will be used if enabled. However, it will not "
+"be used when sending to a SIP endpoint since they usually have their own "
+"jitter buffers. See jbforce to force its use always."
+msgstr ""
+
+#: general.page.php:249
+msgid "End"
+msgstr "Конец"
+
+#: chanpj.page.php:222
+msgid "Endpoint Identifier Order "
+msgstr ""
+
+#: chanpj.page.php:239
+msgid ""
+"Endpoint Identifier Order . The Default order is as follows:<ul><li>ip</"
+"li><li>username</li><li>anonymous</li><li>header</li><li>auth_username</li></"
+"ul><ul>Note : Changing this to get affected  may require asterisk restart</"
+"ul>"
+msgstr ""
+
+#: assets/js/sipsettings.js:258 assets/js/sipsettings.js:261
+#: assets/js/sipsettings.js:270
+msgid "Enter IP Address"
+msgstr "Введите ИП адрес"
+
+#: assets/js/sipsettings.js:266 assets/js/sipsettings.js:269
+#, perl-format
+msgid "Error: %s"
+msgstr "Ошибка: %s"
+
+#: general.page.php:162
+msgid "External Address"
+msgstr "Внешний адрес"
+
+#: chansip.page.php:260
+msgid ""
+"External FQDN as seen on the WAN side of the router and updated dynamically, "
+"e.g. mydomain.example.com. (asterisk: externhost)"
+msgstr ""
+"Внешнее имя FQDN в системе DNS на внешнем интерфейсе (WAN) роутера, которое "
+"динамически обновляется. Например - myhomerouter.dyndns.org (параметр "
+"externhost)"
+
+#: chanpj.page.php:98
+msgid "External IP Address"
+msgstr "Внешний IP адрес"
+
+#: functions.inc.php:409 assets/js/sipsettings.js:20
+msgid ""
+"External IP can not be blank when NAT Mode is set to Static and no default "
+"IP address provided on the main page"
+msgstr ""
+"Внешний IP не может быть пустым, если режим NAT установлен в Static и не "
+"дефолтный IP-адрес представлен на главной странице"
+
+#: chansip.page.php:234
+msgid ""
+"External Static IP or FQDN as seen on the WAN side of the router. (asterisk: "
+"externip)"
+msgstr ""
+"Внешний статический ИП или полное доменное имя FQDN в качестве WAN "
+"интерфейса маршрутизатора. (Параметр asterisk: externip)"
+
+#: chansip.page.php:730
+msgid "Fixed"
+msgstr "Фиксированный"
+
+#: chansip.page.php:698
+msgid "Force Jitter Buffer"
+msgstr "Форсировать использование джиттер-буфера"
+
+#: chansip.page.php:713
+msgid ""
+"Forces the use of a jitterbuffer on the receive side of a SIP channel. "
+"Normally the jitter buffer will not be used if receiving a jittery channel "
+"but sending it off to another channel such as another SIP channel to an "
+"endpoint, since there is typically a jitter buffer at the far end. This will "
+"force the use of the jitter buffer before sending the stream on. This is not "
+"typically desired as it adds additional latency into the stream."
+msgstr ""
+"Форсирует использование джиттер-буфера на принимающей стороне канада SIP. "
+"Обычным образом джиттер-буфер не используется если принимает дрожжащий канал "
+"с задержкой - джиттером, но  посылаются в другой SIP пир, который имеет свой "
+"собственный джиттер-буфер. Этот параметр форсирует использование джиттер-"
+"буфера перед отправкой голосового потока. Это не типично для использования,  "
+"так как добавляет дополнительную задержку в поток."
+
+#: chansip.page.php:474
+msgid ""
+"Frequency in seconds to check if MWI state has changed and inform peers."
+msgstr ""
+"Частота в секундах, когда состояние индикатора MWI будет изменяться и "
+"информировать пиры."
+
+#: Sipsettings.class.php:189
+msgid "General SIP Settings"
+msgstr "Общие настройки SIP"
+
+#: chansip.page.php:1012
+msgid "Generate manager events when sip ua performs events (e.g. hold)."
+msgstr ""
+"Генерировать события AMI при событиях sip абонентов (например call hold)."
+
+#: general.page.php:717
+msgid "Helpful Information"
+msgstr ""
+
+#: general.page.php:409 general.page.php:594
+msgid ""
+"Hostname or address for the STUN server used when determining the external "
+"IP address and port an RTP session can be reached at. The port number is "
+"optional. If omitted the default value of 3478 will be used. This option is "
+"blank by default. (A list of STUN servers: http://wiki.freepbx.org/x/YQCUAg)"
+msgstr ""
+"Имя хоста ли ИП адрес сервера STUN, который будет определять внешний ИП "
+"адрес  и порт сессии RTP. Номер порта - опционально. Если не указано, будет "
+"использоваться дефолтный номер порта - 3478. По умолчанию эта опция - пустое "
+"поле. (Список доступных серверов STUN - http://wiki.freepbx.org/x/YQCUAg)"
+
+#: general.page.php:433 general.page.php:618
+msgid ""
+"Hostname or address for the TURN server to be used as a relay. The port "
+"number is optional. If omitted the default value of 3478 will be used. This "
+"option is blank by default."
+msgstr ""
+"Имя хоста или адрес для TRUN сервера, используемого в качестве релея. Номер "
+"порта указывать необязательно. Если опустить, будет использоваться значение "
+"по умолчанию - 3478. Этот параметр пустой по умолчанию."
+
+#: general.page.php:488
+msgid "ICE Blacklist"
+msgstr ""
+
+#: general.page.php:531
+msgid "ICE Host Candidates"
+msgstr ""
+
+#: general.page.php:542
+msgid ""
+"IMPORTANT: Only use this functionality when your Asterisk server is behind a "
+"one-to-one NAT and you know what you're doing. If you do define anything "
+"here, you almost certainly will NOT want to specify 'stunaddr' or 'turnaddr' "
+"above."
+msgstr ""
+
+#: general.page.php:509
+msgid "IP Addresses"
+msgstr ""
+
+#: chansip.page.php:186
+msgid "IP Configuration"
+msgstr "Конфигурация ИП"
+
+#: chanpj.page.php:98
+msgid "If blank, will use the default settings"
+msgstr "Если оставить пустым, будут использованы настройки по умолчанию"
+
+#: chansip.page.php:725
+msgid "Implementation"
+msgstr "Применение"
+
+#: chansip.page.php:203
+msgid ""
+"Indicate whether the box has a public IP or requires NAT settings.<br/>If "
+"the public address is not correctly detected you can supply the external "
+"address manually.<br/>If your IP address is not static you can specify a "
+"dynamicDNS host name under Dynamic IP.<br/> Automatic configuration of what "
+"is often put in sip_nat.conf"
+msgstr ""
+"Указать, станция имеет публичный ИП адрес или требуются настройки NAT.<br/> "
+"Если публичный адрес корректно не распознан - вы можете указать внешний "
+"адрес вручную.<br/>Если ваш адрес не статический, можно указать имя через "
+"dynDNS для хоста с динамическим ИП.<br/>Параметры автоматической "
+"конфигурации часто указываются в sip_nat.conf"
+
+#: chanpj.page.php:324 chanpj.page.php:325 chanpj.page.php:326
+#: chansip.page.php:353 chansip.page.php:354
+msgid "Insecure"
+msgstr ""
+
+#: chansip.page.php:752
+msgid "Jitter Buffer Logging"
+msgstr "Журналирование джиттер-буфера"
+
+#: chansip.page.php:779
+msgid "Jitter Buffer Max Size"
+msgstr "Vfrcbvfkmysq hfpvth l;bnnth-,eathf"
+
+#: chansip.page.php:803
+msgid "Jitter Buffer Resync Threshold"
+msgstr "Порог срабатывания синхронизации джиттер-буфера"
+
+#: chansip.page.php:660
+msgid "Jitter Buffer Settings"
+msgstr "Установки джиттер-буфера"
+
+#: chansip.page.php:740
+msgid ""
+"Jitterbuffer implementation, used on the receiving side of a SIP channel. "
+"Two implementations are currently available:<br /> fixed: size always equals "
+"to jbmaxsize;<br /> adaptive: with variable size (the new jb of IAX2)."
+msgstr ""
+"Реализация джиттер-буфера, ипользуемая на принимающей стороне канала SIP. "
+"Обе различные реализации доступны к использованию:<br /> фиксированная: "
+"размер всегда равен величине jbmaxsize;<br /> адаптивная: с переменной "
+"длиной (новый jb на IAX2)."
+
+#: chansip.page.php:815
+msgid ""
+"Jump in the frame timestamps over which the jitterbuffer is resynchronized. "
+"Useful to improve the quality of the voice, with big jumps in/broken "
+"timestamps, usually sent from exotic devices and programs. Can be set to -1 "
+"to disable."
+msgstr ""
+"Перепрыгивает во фрейм с временной меткой, на котороую пересинхронизировался "
+"джиттер-буфер. Полезно для улучшения качества голоса при большом количестве "
+"потерянных меток времени, обычно посланных с экхотических устройств и "
+"програм.Можно установить в -1 для отключения."
+
+#: assets/js/sipsettings.js:251
+msgid "Loading"
+msgstr "Загружается"
+
+#: general.page.php:201
+msgid "Local Networks"
+msgstr "Локальные сети"
+
+#: chansip.page.php:933
+msgid ""
+"Local incoming TCP Port that Asterisk will bind to and listen for TLS SIP "
+"messages."
+msgstr ""
+
+#: chansip.page.php:893
+msgid ""
+"Local incoming UDP (and TCP if enabled) port that Asterisk will bind to and "
+"listen for chan_SIP messages. If left blank, it will default to 5060. Legacy "
+"installs (when only a single SIP driver was present) would set the chan_sip "
+"bind port to 5060, but new installs set it to 5160."
+msgstr ""
+
+#: chanpj.page.php:99
+msgid "Local network"
+msgstr "Локальная сеть"
+
+#: general.page.php:218
+msgid ""
+"Local network settings in the form of ip/cidr or ip/netmask. For networks "
+"with more than 1 LAN subnets, use the Add Local Network Field button for "
+"more fields. Blank fields will be ignored."
+msgstr ""
+"Параметры локальной сети в виде IP/CIDR или IP /маски сети. Для сетей с "
+"более, чем одной подсетью используйте кнопку 'Добавить локальную сеть', "
+"чтобы добавить полей. Пустые поля будут игнорированы."
+
+#: functions.inc.php:470
+msgid "Localnet netmask must be formatted properly (e.g. 255.255.255.0 or 24)"
+msgstr ""
+"Маска локальной сети должна быть указана в правильном формате (например "
+"255.255.255.0 или 24)"
+
+#: functions.inc.php:465
+msgid "Localnet setting must be an IP address"
+msgstr "Параметр Localnet должен быть в виде ИП адреса сети"
+
+#: chansip.page.php:389
+msgid "MEDIA & RTP Settings"
+msgstr "Установки Медиа и RTP"
+
+#: chansip.page.php:462
+msgid "MWI Polling Freq"
+msgstr "Частота запросов MWI"
+
+#: general.page.php:888
+msgid "Max Bit Rate"
+msgstr "Макимальная полоса пропускания"
+
+#: chansip.page.php:791
+msgid "Max length of the jitterbuffer in milliseconds."
+msgstr "Максимальный размер джиттер-буфера в милисекундах."
+
+#: chansip.page.php:629
+msgid "Maximum allowed time of incoming registrations"
+msgstr "Максимально разрешённое время для входящих регистраций"
+
+#: general.page.php:903
+msgid "Maximum bitrate for video calls in kb/s"
+msgstr "Максимальная полоса пропускания для видео звонков в кбит/сек"
+
+#: general.page.php:387
+msgid "Media Transport Settings"
+msgstr ""
+
+#: chanpj.page.php:333
+msgid ""
+"Method of SSL transport (TLS ONLY). The default is currently TLSv1, but may "
+"change with future releases."
+msgstr ""
+
+#: chansip.page.php:361
+msgid ""
+"Method of SSL transport (TLS ONLY). The default is currently tlsv1, but may "
+"change with future releases."
+msgstr ""
+
+#: install.php:119
+msgid "Migrate rtp.conf values if needed and initialize"
+msgstr "Перенос и инициализация значений rtp.conf, если нужно"
+
+#: install.php:217
+msgid "Migrating Audio Codecs"
+msgstr "Перемещение аудио кодеков"
+
+#: install.php:170
+msgid "Migrating LocalNets and Netmasks"
+msgstr "Перемещение локальных сетей и масок подсети"
+
+#: install.php:237
+msgid "Migrating Video Codecs"
+msgstr "Перемещение видео кодеков"
+
+#: install.php:145
+msgid "Migrating rtpend Setting from Old Format to BMO Object"
+msgstr "Перемещение настроек rtpend из старого формата в объект BMO"
+
+#: install.php:131
+msgid "Migrating rtpstart Setting from Old Format to BMO Object"
+msgstr "Перемещение настроек rtpstart из старого формата в объект BMO"
+
+#: chansip.page.php:605
+msgid "Minimum length of registrations/subscriptions."
+msgstr "Минимальная длина регистраций/подписок."
+
+#: chanpj.page.php:168
+msgid "Misc PJSip Settings"
+msgstr "Разные настройки PJSip"
+
+#: chansip.page.php:155
+msgid "NAT"
+msgstr "NAT"
+
+#: chansip.page.php:145 general.page.php:152
+msgid "NAT Settings"
+msgstr "Настройки NAT"
+
+#: chanpj.page.php:68 chanpj.page.php:183 chanpj.page.php:206
+#: chanpj.page.php:348 chanpj.page.php:369 chansip.page.php:310
+#: chansip.page.php:376 chansip.page.php:406 chansip.page.php:493
+#: chansip.page.php:520 chansip.page.php:677 chansip.page.php:705
+#: chansip.page.php:759 chansip.page.php:952 chansip.page.php:978
+#: chansip.page.php:1004 general.page.php:59 general.page.php:84
+#: general.page.php:279 general.page.php:302 general.page.php:688
+msgid "No"
+msgstr "Нет"
+
+#: chansip.page.php:399
+msgid "Non-Standard g726"
+msgstr "Нестандартный g726"
+
+#: chansip.page.php:852
+msgid ""
+"Note that chan_sip does not support IPv6 for UDP protocols. An address of "
+"'[::]' will listen on both IPv4 and IPv6, but is not recommended. If you "
+"want to use IPv6, it is recommended to use PJSip for those devices or trunks."
+msgstr ""
+
+#: chanpj.page.php:386
+msgid ""
+"Note that the interface is only displayed for your information, and is not "
+"referenced by asterisk."
+msgstr ""
+"Обратите внимание на то, что интерфейс только показан для информации и не "
+"ссылается на Астериск."
+
+#: chansip.page.php:234
+msgid ""
+"Note that this will, by default, inherit the settings from the General page"
+msgstr "Заметим, что это, по умолчанию, наследует параметры со страницы Общие"
+
+#: chansip.page.php:452
+msgid "Notification & MWI"
+msgstr "Уведомления и Индикатор ожидающих сообщений (MWI)"
+
+#: chansip.page.php:513
+msgid "Notify Hold"
+msgstr "Информация о статусе ожидания"
+
+#: chansip.page.php:486
+msgid "Notify Ringing"
+msgstr "Информация о наличии звонка"
+
+#: chansip.page.php:581
+msgid ""
+"Number of times to try and register before giving up. A value of 0 means "
+"keep trying forever. Normally this should be set to 0 so that Asterisk will "
+"continue to register until successful in the case of network or gateway "
+"outages."
+msgstr ""
+"Количество попыток регистрации после чего они будут прекращены. Значение 0 "
+"означает, что попытки регистрации будут делаться постоянно. Обычно это "
+"всегда ставится в 0 чтобы Астериск всё время продолжал попытки до тех пор, "
+"пока не зарегистрируется, это эффективно при отказах в сети или "
+"неработоспособности шлюза."
+
+#: chansip.page.php:1044
+msgid "Other SIP Settings"
+msgstr "Другие настройки SIP"
+
+#: chansip.page.php:216
+msgid "Override External IP"
+msgstr "Переопределить внешний IP"
+
+#: assets/js/sipsettings.js:239
+msgid "PJSIP transport port conflicts with SIP port"
+msgstr "Порт транспорта канала PJSIP конфликтует с портом канала SIP"
+
+#: general.page.php:107
+msgid "PJSip"
+msgstr ""
+
+#: general.page.php:481 general.page.php:666
+msgid ""
+"Password used to authenticate with TURN relay server. This option is "
+"disabled by default."
+msgstr ""
+"Пароль, используемый для аутентификации на TURN релей сервере. Эта опция "
+"отключена по умолчанию."
+
+#: chanpj.page.php:96
+msgid "Port to Listen On"
+msgstr "Порт для прослушивания"
+
+#: assets/js/sipsettings.js:14
+msgid ""
+"Port/Bind Address has changed. This requires an Asterisk restart after Apply "
+"Config"
+msgstr ""
+"Привязка адреса/порта была изменена. Это потребует рестарта Астериск после "
+"нажатия кнопки Применить конфигурацию"
+
+#: chanpj.page.php:279
+msgid "Private Key File"
+msgstr ""
+
+#: chansip.page.php:191
+msgid "Public IP"
+msgstr "Публичный ИП"
+
+#: general.page.php:272
+msgid "RTP Checksums"
+msgstr "Контрольные суммы RTP"
+
+#: general.page.php:344
+msgid "RTP Hold Timeout"
+msgstr "Холд RTP таймаут"
+
+#: general.page.php:368
+msgid "RTP Keep Alive"
+msgstr "RTP Keep Alive"
+
+#: general.page.php:235
+msgid "RTP Port Ranges"
+msgstr "Диапазон портов RTP"
+
+#: general.page.php:225
+msgid "RTP Settings"
+msgstr "Настройки RTP"
+
+#: general.page.php:320
+msgid "RTP Timeout"
+msgstr "Таймаут RTP"
+
+#: chansip.page.php:569
+msgid "Registration Attempts"
+msgstr "Попытки регистрации"
+
+#: chansip.page.php:641
+msgid "Registration Default Expiry"
+msgstr "Время действия регистрации по умолчанию"
+
+#: chansip.page.php:617
+msgid "Registration Maximum Expiry"
+msgstr ""
+
+#: chansip.page.php:593
+msgid "Registration Minimum Expiry"
+msgstr ""
+
+#: chansip.page.php:535
+msgid "Registration Settings"
+msgstr "Установки регистрации"
+
+#: chansip.page.php:545
+msgid "Registration Timeout"
+msgstr "Таймаут регистрации"
+
+#: chansip.page.php:426
+msgid "Reinvite Behavior"
+msgstr "Поведение Reinvite"
+
+#: chanpj.page.php:354
+msgid "Require verification of client certificate (TLS ONLY)."
+msgstr ""
+
+#: chanpj.page.php:375
+msgid "Require verification of server certificate (TLS ONLY)."
+msgstr ""
+
+#: Sipsettings.class.php:650
+msgid "Reset"
+msgstr "Сброс"
+
+#: chansip.page.php:557
+msgid ""
+"Retry registration attempts every registertimeout seconds until successful "
+"or until registrationattempts tries have been made."
+msgstr ""
+"Пытаться повторять попытки регистрации через registertimeout секунд до "
+"успешной регистрации, или до истечения количества попыток "
+"registrationattempts."
+
+#: page.sipsettings.php:15
+msgid "SIP Settings"
+msgstr "Настройки SIP"
+
+#: page.sipsettings.php:16
+msgid "SIP driver information"
+msgstr "Информация о SIP драйвере"
+
+#: chanpj.page.php:316 chansip.page.php:347
+msgid "SSL Method"
+msgstr ""
+
+#: general.page.php:397 general.page.php:582
+msgid "STUN Server Address"
+msgstr "Адрес сервера STUN"
+
+#: chansip.page.php:278
+msgid "Seconds"
+msgstr "Секунд"
+
+#: general.page.php:44
+msgid "Security Settings"
+msgstr "Настройки безопасности"
+
+#: chanpj.page.php:297 chansip.page.php:329
+msgid "Select a Certificate"
+msgstr ""
+
+#: chanpj.page.php:307 chansip.page.php:339
+msgid ""
+"Select a certificate to use for the TLS transport. These are configured in "
+"the module Certificate Manager"
+msgstr ""
+
+#: general.page.php:380
+msgid ""
+"Send keepalives in the RTP stream to keep NAT open during periods where no "
+"RTP stream may be flowing (like on hold)."
+msgstr ""
+"Посылает пакеты keepalives в потоке RTP поддерживая открытой трансляцию NAT "
+"в течение отсутствия потока RTP (как например при удержании - Hold)."
+
+#: sipsettings.i18n.php:6
+msgid "Settings"
+msgstr "Настройки"
+
+#: chansip.page.php:1106
+#, php-format
+msgid "Settings in %s may override these. Those settings should be removed."
+msgstr ""
+"Параметры, установленные в %s будет перебивать указанные здесь ниже. Они "
+"должны быть удалены."
+
+#: chanpj.page.php:199 chanpj.page.php:212
+msgid "Show Advanced Settings"
+msgstr "Показать дополнительные настройки"
+
+#: general.page.php:241
+msgid "Start"
+msgstr "Старт"
+
+#: chansip.page.php:193
+msgid "Static IP"
+msgstr "Статический ИП"
+
+#: general.page.php:295
+msgid "Strict RTP"
+msgstr "Строгий RTP"
+
+#: Sipsettings.class.php:655
+msgid "Submit"
+msgstr "Сохранить"
+
+#: chansip.page.php:38 general.page.php:20
+msgid "Submit Changes"
+msgstr "Сохранить изменения"
+
+#: general.page.php:498
+msgid ""
+"Subnets to exclude from ICE host, srflx and relay discovery. This is useful "
+"to optimize the ICE process where a system has multiple host address ranges "
+"and/or physical interfaces and certain of them are not expected to be used "
+"for RTP. For example, VPNs and local interconnections may not be suitable or "
+"necessary for ICE. Multiple subnets may be listed. If left unconfigured, all "
+"discovered host addresses are used."
+msgstr ""
+
+#: general.page.php:683
+msgid "T38 Pass-Through"
+msgstr "Прозрачное пропускание T38"
+
+#: chansip.page.php:913
+msgid ""
+"TCP Port to listen on for TLS (Encrypted) connections. Defaults to '[::]', "
+"which listens on all interfaces for both IPv4 and IPv6 connections. Note "
+"that PJSip is preferable for all IPv6 communications."
+msgstr ""
+
+#: chansip.page.php:903
+msgid "TLS Bind Address"
+msgstr ""
+
+#: chansip.page.php:923
+msgid "TLS Bind Port"
+msgstr ""
+
+#: chanpj.page.php:247 chansip.page.php:296
+msgid "TLS/SSL/SRTP Settings"
+msgstr ""
+
+#: general.page.php:421 general.page.php:606
+msgid "TURN Server Address"
+msgstr "Адрес сервера TURN"
+
+#: general.page.php:469 general.page.php:654
+msgid "TURN Server Password"
+msgstr "Пароль сервера TURN"
+
+#: general.page.php:445 general.page.php:630
+msgid "TURN Server Username"
+msgstr "Имя пользователя сервера TURN"
+
+#: general.page.php:356
+msgid ""
+"Terminate call if rtpholdtimeout seconds of no RTP or RTCP activity on the "
+"audio channel when we're on hold (must be > rtptimeout)."
+msgstr ""
+"Завершить вызов если через rtpholdtimeout секунд не будет активности RTP или "
+"RTCP в голосовом канале, когда вы вызов поставлен на удержание (Hold). Это "
+"значение должно быть больше, чем rtptimeout."
+
+#: general.page.php:332
+msgid ""
+"Terminate call if rtptimeout seconds of no RTP or RTCP activity on the audio "
+"channel when we're not on hold. This is to be able to hangup a call in the "
+"case of a phone disappearing from the net, like a powerloss or someone "
+"tripping over a cable."
+msgstr ""
+"Завершить вызов если rtptimeout секунд не будет активности RTP или RTCP в "
+"голосовом канале, когда вызов не на удержании. Часто это необходимо для "
+"прекращения зависшего вызова в результате пропадания телефона из сети, как "
+"например пропадание электрическтва или замыкания в кабеле."
+
+#: install.php:72
+#, php-format
+msgid ""
+"The default bind ports for %s have changed. Please keep this is mind while "
+"configuring your devices. You can change this in SIP Settings. CHAN_PJSIP "
+"is: %s, CHAN_SIP is: %s"
+msgstr ""
+"Порт по умолчанию для %s был изменён. Имейте это ввиду при конфигурировании "
+"ваших устройств. Вы можете это изменить в SIP настройках. CHAN_PJSIP: %s, "
+"CHAN_SIP: %s"
+
+#: general.page.php:499
+msgid "The format for these overrides is: [address] / [subnet]"
+msgstr ""
+
+#: general.page.php:543
+msgid ""
+"The format for these overrides is: [local address] => [advertised address]>"
+msgstr ""
+
+#: chanpj.page.php:96
+msgid "The port that this transport should listen on"
+msgstr "Адрес порта, на котором будут слушаться сигнальные сообщения"
+
+#: general.page.php:262
+msgid "The starting and ending RTP port range"
+msgstr "Начало и окончание диапазона портов RTP"
+
+#: general.page.php:40
+msgid "These settings apply to both chan_sip and chan_pjsip."
+msgstr "Эти настройки применяются как для chan_sip, так и chan_pjsip."
+
+#: general.page.php:175
+msgid "This address will be provided to clients if NAT is enabled and detected"
+msgstr ""
+"Этот адрес будет предоставляться клиентам, если NAT включен и обнаружен"
+
+#: general.page.php:500 general.page.php:544
+msgid "This is most commonly used for WebRTC"
+msgstr ""
+
+#: general.page.php:717
+msgid "This is the default Codec setting for new Trunks and Extensions."
+msgstr "Это значение кодека по умолчанию для новых внешних и внутренних линий."
+
+#: general.page.php:146
+msgid ""
+"This lets you explicitly control the SIP Protocol that listens on the "
+"default SIP TLS port (5061). If an option is not available, it is because "
+"that protocol is not enabled, or, that protocol does not have TLS enabled. "
+"If you change this, you will have to restart Asterisk"
+msgstr ""
+
+#: general.page.php:308
+msgid ""
+"This will drop RTP packets that do not come from the source of the RTP "
+"stream. It is unusual to turn this off"
+msgstr ""
+"Это отбросит пакеты RTP, которые приходят не из указанного адреса источника "
+"потока RTP. При обычной эксплуатации это опция не отключается"
+
+#: chanpj.page.php:382
+msgid "Transports"
+msgstr "Транспорты"
+
+#: chanpj.page.php:97
+msgid ""
+"Typically used with SIP calling. Example user@domain, where domain is the "
+"value that would be entered here"
+msgstr ""
+"Обычно используется при SIP вызовах. Пример: user@domain, где домен - "
+"значение, которое надо указать здесь"
+
+#: Natget.class.php:29
+msgid "Unknown Error"
+msgstr "Неизвестная ошибка"
+
+#: Sipsettings.class.php:918
+msgid "Unknown Port Conflict"
+msgstr ""
+
+#: Sipsettings.class.php:462 Sipsettings.class.php:549
+msgid "Unknown Type"
+msgstr "Неизвестный тип"
+
+#: chanpj.page.php:75
+msgid "Use "
+msgstr "Использовать "
+
+#: sipsettings.i18n.php:8
+msgid "Use to configure Various Asterisk SIP and PJSIP Settings"
+msgstr ""
+
+#: general.page.php:457 general.page.php:642
+msgid ""
+"Username used to authenticate with TURN relay server. This option is "
+"disabled by default."
+msgstr ""
+"Имя пользователя, используемое для аутентификации на TURN сервере. Эта опция "
+"отключена по умолчанию."
+
+#: chanpj.page.php:341
+msgid "Verify Client"
+msgstr ""
+
+#: chanpj.page.php:362
+msgid "Verify Server"
+msgstr ""
+
+#: general.page.php:804 general.page.php:842 general.page.php:876
+msgid "Video Codecs"
+msgstr "Видео кодеки"
+
+#: general.page.php:814
+msgid "Video Support"
+msgstr "Поддержка видео"
+
+#: general.page.php:572
+msgid "WebRTC Settings"
+msgstr ""
+
+#: general.page.php:494
+msgid "What is ICE Blacklist?"
+msgstr ""
+
+#: general.page.php:537
+msgid "What is ICE Host Candidates?"
+msgstr ""
+
+#: general.page.php:541
+msgid ""
+"When Asterisk is behind a static one-to-one NAT and ICE is in use, ICE will "
+"expose the server's internal IP address as one of the host candidates. "
+"Although using STUN (see the 'stunaddr' configuration option) will provide a "
+"publicly accessible IP, the internal IP will still be sent to the remote "
+"peer. To help hide the topology of your internal network, you can override "
+"the host candidates that Asterisk will send to the remote peer."
+msgstr ""
+
+#: general.page.php:92
+msgid ""
+"When set Asterisk will allow Guest SIP calls and send them to the Default "
+"SIP context. Turning this off will keep anonymous SIP calls from entering "
+"the system. Doing such will also stop 'Allow Anonymous Inbound SIP Calls' "
+"from functioning. Allowing guest calls but rejecting the Anonymous SIP calls "
+"below will enable you to see the call attempts and debug incoming calls that "
+"may be mis-configured and appearing as guests."
+msgstr ""
+"Если установлено в 'Да', Астериск разрешит гостевые SIP вызовы и отправит их "
+"в контекст по умолчанию для SIP from-sip-external. Отключение позволит "
+"запретить анонимные SIP звонки в систему. Дополнительная возможность также "
+"-  отключение 'Разрешить анонимные входящие SIP звонки'. Разрешая гостевые "
+"звонки, но отвергая анонимные SIP звонки, можно увидеть попытки входящих "
+"вызовов и отладить такие вызовы, которые, возможно, неправильно настроены и "
+"они приходят как гостевые."
+
+#: general.page.php:285
+msgid "Whether to enable or disable UDP checksums on RTP traffic"
+msgstr "Если включить или отключить UDP контрольные суммы RTP трафика"
+
+#: chanpj.page.php:66 chanpj.page.php:181 chanpj.page.php:204
+#: chanpj.page.php:346 chanpj.page.php:367 chansip.page.php:308
+#: chansip.page.php:374 chansip.page.php:404 chansip.page.php:491
+#: chansip.page.php:518 chansip.page.php:675 chansip.page.php:703
+#: chansip.page.php:757 chansip.page.php:950 chansip.page.php:976
+#: chansip.page.php:1002 general.page.php:57 general.page.php:82
+#: general.page.php:277 general.page.php:300 general.page.php:689
+msgid "Yes"
+msgstr "Да"
+
+#: general.page.php:690
+msgid "Yes with FEC"
+msgstr "Да, с FEC"
+
+#: general.page.php:691
+msgid "Yes with Redundancy"
+msgstr "Да, с резервированием"
+
+#: general.page.php:692
+msgid "Yes with no error correction"
+msgstr "Да, без коррекции ошибок"
+
+#: Sipsettings.class.php:178
+msgid "You can change this on the Advanced Settings Page"
+msgstr "Вы можете изменить это на странице дополнительных настроек"
+
+#: chanpj.page.php:389
+#, php-format
+msgid ""
+"You have Asterisk %s which no longer needs to be restarted for transport "
+"changes if 'Allow Transports Reload' is set to 'Yes' above. Note: If 'Allow "
+"Transports Reload' is set to 'Yes' reloading after changing transports does "
+"have the possibility to drop calls."
+msgstr ""
+
+#: chansip.page.php:1064
+msgid ""
+"You may set any other SIP settings not present here that are allowed to be "
+"configured in the General section of sip.conf. There will be no error "
+"checking against these settings so check them carefully. They should be "
+"entered as:<br /> [setting] = [value]<br /> in the boxes below. Click the "
+"Add Field box to add additional fields. Blank boxes will be deleted when "
+"submitted."
+msgstr ""
+"Здесь можно также добавлять другие параметры SIP которые допустимы в "
+"конфигурации секции [general] файла sip.conf. Здесь нет автоматической "
+"проверки синтаксиса параметров, поэтому будьте осторожны. Укажите их "
+"построчно в формате: параметр = значение<br /> [setting] = [value]<br /> в "
+"поле ниже. Кликните на Добавить поле чтобы указать ещё параметры. Пустые "
+"поля будут удалены при применении."
+
+#: chanpj.page.php:99
+msgid ""
+"You may use this to to define an additional local network per interface."
+msgstr ""
+"Вы можете использовать это, чтобы определить дополнительные локальные сети "
+"на интерфейсе."
+
+#: install.php:113
+msgid "already exists"
+msgstr "уже существует"
+
+#: Sipsettings.class.php:174
+msgid "chan_pjsip and chan_sip"
+msgstr ""
+
+#: install.php:21
+msgid "checking for sipsettings table.."
+msgstr "проверяем таблицу sipsettings.."
+
+#: install.php:97
+msgid "fatal error occurred populating defaults, check module"
+msgstr ""
+"произошла неустранимая ошибка при указании дефолтных значений, проверьте "
+"модуль"
+
+#: general.page.php:894
+msgid "kb/s"
+msgstr "кбит/сек"
+
+#: chansip.page.php:164
+msgid "never"
+msgstr "никогда"
+
+#: chansip.page.php:162 chansip.page.php:433
+msgid "no"
+msgstr "нет"
+
+#: install.php:66
+msgid "none, creating table"
+msgstr "отсутствует, создание таблицы"
+
+#: install.php:74
+msgid "populating default codecs.."
+msgstr "указание кодеков по умолчанию.."
+
+#: chansip.page.php:166
+msgid "route"
+msgstr "route"
+
+#: functions.inc.php:367
+msgid "rtpholdtimeout must be higher than rtptimeout"
+msgstr "rtpholdtimeout должен быть больше чем rtptimeout"
+
+#: install.php:127 install.php:141
+#, php-format
+msgid "saving previous value of %s"
+msgstr "сохранение предыдущего значения из %s"
+
+#: install.php:99
+msgid "ulaw, alaw, gsm, g726 added"
+msgstr "ulaw, alaw, gsm, g726 добавлены"
+
+#: chansip.page.php:160 chansip.page.php:431
+msgid "yes"
+msgstr "да"
+
+#~ msgid ""
+#~ "Use to configure Various Asterisk SIP Settings in the General section of "
+#~ "sip.conf. Also includes an auto-configuration tool to determine NAT "
+#~ "settings. The module assumes Asterisk version 1.4 or higher. Some "
+#~ "settings may not exist in Asterisk 1.2 and will be ignored by Asterisk."
+#~ msgstr ""
+#~ "Используется для конфигурации различных параметров SIP в Астериск в "
+#~ "секции [general] файла sip.conf. Также содержит параметры "
+#~ "автоконфигурации для распознавания настроек NAT. Модуль предполагает "
+#~ "наличие Asterisk версий 1.4 и выше. Некоторые параметры просто не "
+#~ "существуют в версии 1.2 и будут игнорироваться Asterisk."
+
+#~ msgid ""
+#~ "Also be warned: After you enable/disable a transport, asterisk needs to "
+#~ "be <strong>restarted</strong>, not just reloaded."
+#~ msgstr ""
+#~ "Имейте ввиду: После включения / отключения транспорта, Астериск "
+#~ "необходимо <strong>перезапустить</strong>, а не просто перезагрузить."
+
+#~ msgid ""
+#~ "Enables the use of a jitterbuffer on the receiving side of a SIP channel. "
+#~ "An enabled jitterbuffer will be used only if the sending side can create "
+#~ "and the receiving side can not accept jitter. The SIP channel can accept "
+#~ "jitter, thus a jitterbuffer on the receive SIP side will be used only if "
+#~ "it is forced and enabled. An example is if receiving from a jittery "
+#~ "channel to voicemail, the jitter buffer will be used if enabled. However, "
+#~ "it will not be used when sending to a SIP endpoint since they usually "
+#~ "have their own jitter buffers. See jbforce to force it's use always."
+#~ msgstr ""
+#~ "Включает использование джиттер-буфера на принимающей стороне канала SIP. "
+#~ "Использование джиттер-буфера эффективно только если с посылающей стороны "
+#~ "наблюдается  разность между быстро приходящим пакетом и пакетом с "
+#~ "задержкой - джиттер, а принимающая сторона не может обработать его. Канал "
+#~ "SIP может принять джиттер используя джиттер-буфер только в случае если он "
+#~ "включен и форсировано его использование. Наприер, при приёме дрожжащего "
+#~ "канала в голосовую почту джиттер-буфер будет использоваться если включен. "
+#~ "Однако он не будет использоваться, если пакеты посылаются в другой SIP "
+#~ "пир, который имеет свой собственный джиттер-буфер. См. параметр jbforce "
+#~ "для того, чтобы использовать его постоянно."
+
+#~ msgid "Allow Guests"
+#~ msgstr "Разрешён гостевой вход"
+
+#~ msgid "Regitration Maximum Expiry"
+#~ msgstr "Максимальный срок регистрации"
+
+#~ msgid "Regitration Minimum Expiry"
+#~ msgstr "Минимальный срок регистрации"
+
+#~ msgid ""
+#~ "Asterisk supports IPv6. An address of '::' will listen on both IPv4 and "
+#~ "IPv6."
+#~ msgstr ""
+#~ "Астериск поддерживает IPv6. Адреса с полями '::' слушают на портах как в "
+#~ "IPv4, так и в IPv6."
+
+#~ msgid ""
+#~ "Local incoming UDP Port that Asterisk will bind to and listen for SIP "
+#~ "messages. In the past CHAN_SIP was defaulted to port 5060, in new "
+#~ "installs this is defaulted to 5061"
+#~ msgstr ""
+#~ "Локальный порт UDP для входящих сигнальных сообщений SIP, на котором "
+#~ "слушает Астериск. В прошлом для CHAN_SIP по умолчанию был 5060, в новых "
+#~ "инсталляциях теперь это 5061 по умолчанию"
+
+#~ msgid "chan_pjsip support NOT FOUND."
+#~ msgstr "Поддержка chan_pjsip не найдена."
+
+#~ msgid "chan_pjsip support detected. Enabling."
+#~ msgstr "Поддержка chan_pjsip обнаружена. Включено."
+
+#~ msgid ""
+#~ "Asterisk: t38pt_udptl. Enables T38 passthrough if enabled. This SIP "
+#~ "channels that support sending/receiving T38 Fax codecs to pass the call. "
+#~ "Asterisk can not process the media."
+#~ msgstr ""
+#~ "Параметр Asterisk: t38pt_udptl. Используется Т38 транзитно, если "
+#~ "включено. Данный канал SIP поддерживает посылку/приём факс-протокола Т38 "
+#~ "для прохождения вызова. Сам Астериск не обрабатывает при этом медиа поток."
+
+#~ msgid ""
+#~ "Asterisk 1.8 all supports IPv6. An address of '::' will listen on both "
+#~ "IPv4 and IPv6."
+#~ msgstr ""
+#~ "Asterisk 1.8 поддерживает IPv6. Адрес '::' используется для одноврменной "
+#~ "работы IPv4 и IPv6."
+
+#~ msgid ""
+#~ "Asterisk: allowguest. When set Asterisk will allow Guest SIP calls and "
+#~ "send them to the Default SIP context. Turning this off will keep "
+#~ "anonymous SIP calls from entering the system. Doing such will also stop "
+#~ "'Allow Anonymous Inbound SIP Calls' from functioning. Allowing guest "
+#~ "calls but rejecting the Anonymous SIP calls below will enable you to see "
+#~ "the call attempts and debug incoming calls that may be mis-configured and "
+#~ "appearing as guests."
+#~ msgstr ""
+#~ "Астериск: allowguest. Когда установлено, Астериск разрешит гостям SIP "
+#~ "вызовы и отправит их в контекст по умолчанию SIP. Отключение позволит "
+#~ "удержать анонимные SIP звонки от входа в систему. Это можно так же "
+#~ "остановить отключением 'Разрешить анонимные входящие SIP звонки'. "
+#~ "Разрешая гостевые звонки, но отвергая анонимные SIP звонки, вы можете "
+#~ "увидеть попытки вызовов и отладить входящие вызовы, которые, возможно, вы "
+#~ "неправильно настроили и они появляются в качестве гостей."
+
+#~ msgid ""
+#~ "Asterisk: allowguest. When set Asterisk will allow Guest SIP calls and "
+#~ "send them to the Default SIP context. Turning this off will keep "
+#~ "anonymous SIP calls from entering the system. However, the Allow "
+#~ "Anonymous SIP calls from the General Settings section will not function. "
+#~ "Allowing guest calls but rejecting the Anonymous SIP calls in the General "
+#~ "Section will enable you to see the call attempts and debug incoming calls "
+#~ "that may be mis-configured and appearing as guests."
+#~ msgstr ""
+#~ "Параметр Asterisk: allowguest. Если указан, то Asterisk принимает "
+#~ "неизвестные SIP вызовы и обрабатывает их в дефолтном для SIP контексте по "
+#~ "умолчанию. Если же он выключен, то это защищает систему от ненужных "
+#~ "неизвестных SIP вызовов. Однако разрешение анонимных вызовов в разделе "
+#~ "Основные настройки не сработает. Разрешение неавторизованных вызовов в "
+#~ "этой секции но запрещение анонимных вызовов в разделе Основные настройки "
+#~ "видеть попытки таких входящих вызовов и анализировать их на на предмет "
+#~ "выявления ошибочной конфигурации и распознаваемых как неавторизованные "
+#~ "гостевые."
+
+#~ msgid ""
+#~ "Asterisk: bindport. Local incoming UDP Port that Asterisk will bind to "
+#~ "and listen for SIP messages. The SIP standard is 5060 and in most cases "
+#~ "this is what you want. It is recommended to leave this blank."
+#~ msgstr ""
+#~ "Параметр Asterisk: bindport. Входящий порт UDP на котором Asterisk будет "
+#~ "слушать сообщения SIP. Стандартный для SIP порт 5060, в большинстве "
+#~ "случаев его достаточно. Рекомендуем также оставить поле пустым."
+
+#~ msgid ""
+#~ "Asterisk: context. Default context for incoming calls if not specified. "
+#~ "FreePBX sets this to from-sip-external which is used in conjunction with "
+#~ "the Allow Anonymous SIP calls. If you change this you will effect that "
+#~ "behavior. It is recommended to leave this blank."
+#~ msgstr ""
+#~ "Параметр Asterisk: context. Дефолтный контекст для входящих звонков если "
+#~ "не указан во FreePBX на from-sip-external, в котором обрабатываются "
+#~ "входяшие в соответствии с опцией Разрешить анонимные SIP звонки."
+
+#~ msgid ""
+#~ "Asterisk: jbenable. Enables the use of a jitterbuffer on the receiving "
+#~ "side of a SIP channel. An enabled jitterbuffer will be used only if the "
+#~ "sending side can create and the receiving side can not accept jitter. The "
+#~ "SIP channel can accept jitter, thus a jitterbuffer on the receive SIP "
+#~ "side will be used only if it is forced and enabled. An example is if "
+#~ "receiving from a jittery channel to voicemail, the jitter buffer will be "
+#~ "used if enabled. However, it will not be used when sending to a SIP "
+#~ "endpoint since they usually have their own jitter buffers. See jbforce to "
+#~ "force it's use always."
+#~ msgstr ""
+#~ "Параметр Asterisk: jbenable. Используйте опцию джиттер-буфер на "
+#~ "принимающей стороне канала SIP. Включеный буфер будет задействован только "
+#~ "если посылающая сторона может создать джиттер (дрожжание звука) в канале, "
+#~ "а принимающая сторона не поддерживает джиттер. В таком случае сам канал "
+#~ "SIP содаст поддержку джиттера на принимающей стороне буферизируя поток, "
+#~ "если будут включены опции jbenable и jbforce (ниже). Например, такая "
+#~ "обработка может быть задействована при записи дрожащего канала в "
+#~ "голосовую почту, буфер будет использоваться если он включен. Однако он не "
+#~ "будет задействован, если посылающая SIP сторона уже имеет свой "
+#~ "собственный джиттер-буфер. Смотрите опцию jbforce форсировать "
+#~ "использование буфера во всех случаях."
+
+#~ msgid ""
+#~ "Asterisk: jbforce. Forces the use of a jitterbuffer on the receive side "
+#~ "of a SIP channel. Normally the jitter buffer will not be used if "
+#~ "receiving a jittery channel but sending it off to another channel such as "
+#~ "another SIP channel to an endpoint, since there is typically a jitter "
+#~ "buffer at the far end. This will force the use of the jitter buffer "
+#~ "before sending the stream on. This is not typically desired as it adds "
+#~ "additional latency into the stream."
+#~ msgstr ""
+#~ "Параметр Asterisk: jbforce. Форсирует использование джиттер-буфера на "
+#~ "принимающей стороне канала SIP. Обычным образом джиттер-буфер не "
+#~ "используется, если посылаемый аудио сигнал в канале имеет признаки "
+#~ "джитера, но необходимо отключать его при отправке в SIP канал удалённой "
+#~ "стороне, то есть типичная ситуация при использовании джиттер-буфера на "
+#~ "удалённой стороне. Эта опция форсирует использование буфера перед "
+#~ "отправкой речевого потока в канал. Это не типичная ситуация, и выбирая её "
+#~ "понимаем, что тем самым вносим дополнительную задержку в поток."
+
+#~ msgid ""
+#~ "Asterisk: jbimpl. Jitterbuffer implementation, used on the receiving side "
+#~ "of a SIP channel. Two implementations are currently available:<br /> "
+#~ "fixed: size always equals to jbmaxsize;<br /> adaptive: with variable "
+#~ "size (the new jb of IAX2)."
+#~ msgstr ""
+#~ "Параметр Asterisk: jbimpl. Применение джиттер-буфера на принимающей "
+#~ "стороне канала SIP. Две способа реализации доступны:<br /> фиксированный: "
+#~ "размер буфера постоянный и соответствует значению jbmaxsize;<br /> "
+#~ "адаптивный: размер буфера имеет динамически изменяемый размер (это новая "
+#~ "реализация джиттер-буфера в протоколе IAX2)."
+
+#~ msgid "Asterisk: jblog. Enables jitter buffer frame logging."
+#~ msgstr ""
+#~ "Параметр Asterisk: jblog. Включает журналирование фреймов джиттер-буфера."
+
+#~ msgid ""
+#~ "Asterisk: jbmaxsize. Max length of the jitterbuffer in milliseconds.<br /"
+#~ "> Asterisk: jbresyncthreshold. Jump in the frame timestamps over which "
+#~ "the jitterbuffer is resynchronized. Useful to improve the quality of the "
+#~ "voice, with big jumps in/broken timestamps, usually sent from exotic "
+#~ "devices and programs. Can be set to -1 to disable."
+#~ msgstr ""
+#~ "Параметр Asterisk: jbmaxsize. Максимальная длина джиттер-буфера в "
+#~ "милисекундах.<br /> Параметр Asterisk: jbresyncthreshold. Переход к "
+#~ "следующей метке времени во фрейме при потере синхронизации в джиттер-"
+#~ "буфере. Обычно повышает качество голоса при наличии больших разрывов и/"
+#~ "или повреждённых метках времени. Обычно такой неравномерный поток "
+#~ "посылают экзотические устройства и программы. Можно установить значение "
+#~ "-1 для выключения опции."
+
+#~ msgid ""
+#~ "Asterisk: minexpiry. Minimum length of registrations/subscriptions.<br /> "
+#~ "Asterisk: maxepiry. Maximum allowed time of incoming registrations<br /> "
+#~ "Asterisk: defaultexpiry. Default length of incoming and outgoing "
+#~ "registrations."
+#~ msgstr ""
+#~ "Параметр Asterisk: minexpiry. Минимальное значение действия регистрации/"
+#~ "подписки.<br />Параметр Asterisk: maxepiry. Максимально возможное время "
+#~ "действия вхоядщих регистраций.<br />Параметр Asterisk: defaultexpiry. "
+#~ "Дефолтное значение действия входящих и исходящих регистраций."
+
+#~ msgid ""
+#~ "Asterisk: registertimeout. Retry registration attempts every "
+#~ "registertimeout seconds until successful or until registrationattempts "
+#~ "tries have been made.<br /> Asterisk: registrationattempts. Number of "
+#~ "times to try and register before giving up. A value of 0 means keep "
+#~ "trying forever. Normally this should be set to 0 so that Asterisk will "
+#~ "continue to register until successful in the case of network or gateway "
+#~ "outages."
+#~ msgstr ""
+#~ "Параметр Asterisk: registertimeout. Повторяет попытки регистрации каждые "
+#~ "N секунд, указанные в registertimeout до успешной регистрации, или при "
+#~ "достижении указанного ограничения в registrationattempts.<br />Параметр "
+#~ "Asterisk: registrationattempts. Количество попыток регистрации. Значение "
+#~ "0 соответствует бесконечному числу попыток. Обычное значение указывается "
+#~ "в 0 для того, чтобы Астериск продолжал попытки зарегистрироваться при "
+#~ "пропадании локальной сети или маршрута в публичных сетях."
+
+#~ msgid ""
+#~ "Asterisk: rtptimeout. Terminate call if rtptimeout seconds of no RTP or "
+#~ "RTCP activity on the audio channel when we're not on hold. This is to be "
+#~ "able to hangup a call in the case of a phone disappearing from the net, "
+#~ "like a powerloss or someone tripping over a cable.<br /> Asterisk: "
+#~ "rtpholdtimeout. Terminate call if rtpholdtimeout seconds of no RTP or "
+#~ "RTCP activity on the audio channel when we're on hold (must be > "
+#~ "rtptimeout). <br /> Asterisk: rtpkeepalive. Send keepalives in the RTP "
+#~ "stream to keep NAT open during periods where no RTP stream may be flowing "
+#~ "(like on hold)."
+#~ msgstr ""
+#~ "Параметр Asterisk: rtptimeout. Завершает звонок если в установленное в "
+#~ "секундах значение rtptimeout не обнаруживается активности RTP или RTCP в "
+#~ "аудио канале, если абонент не поставлен на Hold (ожидание). Это позволяет "
+#~ "завершить звонок в случае внезапного пропадания телефона из ИП сети, "
+#~ "например потеря питания или повреждение кабеля Ethernet.<br />Параметр "
+#~ "Asterisk: rtpholdtimeout. Завершает звонок если в установленное в "
+#~ "секундах значение rtpholdtimeout не обнаруживается активности RTP или "
+#~ "RTCP в аудио канале при состоянии on Hold (в ожидании). Значение должно "
+#~ "быть > чем rtptimeout.<br /> Asterisk: rtpkeepalive. Посылает пакеты "
+#~ "rtpkeepalive в RTP поток для поддержки открытых динамических трансляций "
+#~ "NAT в то время, когда RTP поток может идти (например на удержании)."
+
+#~ msgid "Bind Port (bindport) must be between 1024..65535, default 5060"
+#~ msgstr ""
+#~ "Порт (bindport) должен быть иметь значение между 1024 и 65535, дефолтное "
+#~ "значение - 5060"
+
+#~ msgid ""
+#~ "Check the desired codecs, all others will be disabled unless explicitly "
+#~ "enabled in a device or trunks configuration. Drag to re-order."
+#~ msgstr ""
+#~ "Проверьте выбранные кодеки, все другие будут отключены без специального "
+#~ "разрешения в конфигурации устройства или внешней линий. Перетащите для "
+#~ "изменения приоритетов."
+
+#~ msgid "Default Language for a channel, Asterisk: language"
+#~ msgstr "Дефолтный язык в канале, параметр Asterisk: language"
+
+#~ msgid "Detect External IP"
+#~ msgstr "Определить внешний IP"
+
+#~ msgid "Disable"
+#~ msgstr "Выключить"
+
+#~ msgid "Enable"
+#~ msgstr "Включить"
+
+#~ msgid ""
+#~ "Enable Asterisk srvlookup. See current version of Asterisk for "
+#~ "limitations on SRV functionality."
+#~ msgstr ""
+#~ "Включение параметра Asterisk srvlookup. Смотрите в описание вашей текущей "
+#~ "версии Asterisk для информации об ограничениях функциональности SRV."
+
+#~ msgid ""
+#~ "External FQDN as seen on the WAN side of the router and updated "
+#~ "dynamically, e.g. mydomain.dyndns.com. (asterisk: externhost)"
+#~ msgstr ""
+#~ "Внешнее полное доменное имя FQDN на WAN интерфейсе маршрутизатора, "
+#~ "обновляемое динамически, например mydomain.dyndns.com. (Параметр "
+#~ "Аsterisk: externhost)"
+
+#~ msgid "External IP"
+#~ msgstr "Внешний ИП"
+
+#~ msgid "External IP can not be blank"
+#~ msgstr "Внешний ИП адрес не может быть пустым"
+
+#~ msgid "Failed to auto-detect local network settings"
+#~ msgstr "Не удалось распознать сетевые настройки автоматически"
+
+#~ msgid "Failed to auto-detect settings"
+#~ msgstr "Не удалось распознать настройки автоматически"
+
+#~ msgid ""
+#~ "File %s should not have any settings in it. Those settings should be "
+#~ "removed."
+#~ msgstr ""
+#~ "Файл %s не имеет каких либо значений. Такие параметры должны быть удалены."
+
+#~ msgid ""
+#~ "Hostname or address for the STUN server used when determining the "
+#~ "external IP address and port an RTP session can be reached at. The port "
+#~ "number is optional. If omitted the default value of 3478 will be used. "
+#~ "This option is blank by default. (A list of STUN servers: https://gist."
+#~ "github.com/zziuni/3741933)"
+#~ msgstr ""
+#~ "Имя хоста или адрес для STUN сервера, используемого для определения "
+#~ "внешнего IP адреса и порта для сеанса RTP. Номер порта указывать "
+#~ "необязательно. Если опустить, будет использоваться значение по умолчанию "
+#~ "- 3478. Этот параметр пустой по умолчанию. (Список STUN серверов: https://"
+#~ "gist.github.com/zziuni/3741933)"
+
+#~ msgid ""
+#~ "Indicate whether the box has a public IP or requires NAT settings. "
+#~ "Automatic configuration of what is often put in sip_nat.conf"
+#~ msgstr ""
+#~ "Указывается: стоит ли станция на публичном ИП адресе или требуются "
+#~ "настройки NAT. Автоматическая настройка сохраняется как правило в sip_nat."
+#~ "conf"
+
+#~ msgid "Items may moved! Please use the navigation on the right"
+#~ msgstr ""
+#~ "Детальные настройки перемещены! Пожалуйста, используйте навигацию справа"
+
+#~ msgid "Jitter Buffer"
+#~ msgstr "Джиттер-буфер"
+
+#~ msgid "Jitter Buffer Size"
+#~ msgstr "Размер джиттер-буфера"
+
+#~ msgid "Language"
+#~ msgstr "Язык"
+
+#~ msgid ""
+#~ "Local network settings (Asterisk: localnet) in the form of ip/mask such "
+#~ "as 192.168.1.0/255.255.255.0. For networks with more 1 lan subnets, use "
+#~ "the Add Local Network Field button for more fields. Blank fields will be "
+#~ "removed upon submitting."
+#~ msgstr ""
+#~ "Настройка локальных сетей (Параметр Asterisk: localnet) в форме ИП/маска, "
+#~ "например 192.168.1.0/255.255.255.0. Для сетей с более чем одной подсетью "
+#~ "используйте кнопку Добавить поле для локальной сети. Пустые поля будут "
+#~ "удалены после добавления."
+
+#~ msgid "RTP Timers"
+#~ msgstr "RTP таймеры"
+
+#~ msgid "Refresh Rate"
+#~ msgstr "Частота обновления"
+
+#~ msgid "Registration Times"
+#~ msgstr "Количество регистраций"
+
+#~ msgid "Registrations"
+#~ msgstr "Регистрация"
+
+#~ msgid "SRV Lookup"
+#~ msgstr "Поиск записей SRV"
+
+#~ msgid "ulaw, alaw, gsm added"
+#~ msgstr "добавлены ulaw, alaw, gsm"

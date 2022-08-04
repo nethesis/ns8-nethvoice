@@ -1,0 +1,97 @@
+<module>
+	<rawname>soundlang</rawname>
+	<repo>standard</repo>
+	<name>Sound Languages</name>
+	<version>14.0.7</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<changelog>
+		*14.0.7* FREEPBX-19029 Reset Button under Sound Languages --&amp;gt; Settings page is not working 
+		*14.0.6* Fix fwconsole to have better options that match the GUI
+		*14.0.5* Add support for new CDN
+		*14.0.4.6* FREEPBX-17221 Uploading tarball for custom Sound Language can fail 
+		*14.0.4.5* Fixing FREEPBX-17433 Whoops error due to typo error in sprintf 
+		*14.0.4.4* If there is an error and the mirror servers are different reset them back
+		*14.0.4.3* Set timeout on curl downloads
+		*14.0.4.2* FREEPBX-15281
+		*14.0.4.1* Add missing OOBE Hook
+		*14.0.3.1* Add XML database tables
+		*14.0.2.2* Merge from 13
+		*14.0.2* Don't download unneccesarily.
+		*14.0.1* Use new Languages
+		*13.0.15* FREEPBX-12606 Absolute paths used in some modules.
+		*13.0.14* Use Zip not Tar for zip files
+		*13.0.13* FREEPBX-12287 Display message on invalid upload
+		*13.0.12* FREEPBX-12287 If there were no files uploaded during an upload alert the user
+		*13.0.11* For custom languages allow uploading of files and archives
+		*13.0.10* FREEPBX-11733 remember grid settings
+		*13.0.9* Remove en_US Translations
+		*13.0.8* Work around /tmp directory issue on FreeBSD by lidl
+		*13.0.7* Spelling
+		*13.0.6* FREEPBX-10131
+		*13.0.5* FREEPBX-10521 Wrong update of language in Soung Language module
+		*13.0.4* FREEPBX-10147 save placement and location in cookie
+		*13.0.2* Describe console commands for the normal person
+		*13.0.1* Proper language replacement usage
+		*13.0.0beta6* Standardize look and feel
+		*13.0.0beta5* Start supporting locations (e.g. en_GB) and add a few languages/locations
+		*13.0.0beta3* Fix missing language names when language not already installed
+		*13.0.0beta2* Fix error when no languages installed
+		*13.0.0beta1* Add custom languages
+		*13.0.0alpha1* First release
+	</changelog>
+	<category>Admin</category>
+	<description>
+		Management of sound prompt languages.
+	</description>
+	<depends>
+		<version>14.0.1rc1.2</version>
+	</depends>
+	<menuitems>
+		<soundlang>Sound Languages</soundlang>
+	</menuitems>
+	<oobe method="oobeHook" priority="150"/>
+	<database>
+		<table name="soundlang_packages">
+			<field name="id" type="bigint" primarykey="true" autoincrement="true"/>
+			<field name="type" type="string" length="20"/>
+			<field name="module" type="string" length="80"/>
+			<field name="language" type="string" length="20"/>
+			<field name="license" type="blob" notnull="false"/>
+			<field name="author" type="string" length="80" notnull="false"/>
+			<field name="authorlink" type="string" length="256" notnull="false"/>
+			<field name="format" type="string" length="20"/>
+			<field name="version" type="string" length="20" notnull="false"/>
+			<field name="installed" type="string" length="20" notnull="false"/>
+			<key name="id" type="unique">
+				<column name="id"/>
+			</key>
+			<key name="unique" type="unique">
+				<column name="type"/>
+				<column name="module"/>
+				<column name="language"/>
+				<column name="format"/>
+			</key>
+		</table>
+		<table name="soundlang_settings">
+			<field name="keyword" type="string" length="20" primarykey="true"/>
+			<field name="value" type="string" length="80"/>
+		</table>
+		<table name="soundlang_customlangs">
+			<field name="id" type="integer" primarykey="true" autoincrement="true"/>
+			<field name="language" type="string" length="20"/>
+			<field name="description" type="string" length="80"/>
+		</table>
+		<table name="soundlang_prompts">
+			<field name="type" type="string" length="20"/>
+			<field name="module" type="string" length="80"/>
+			<field name="language" type="string" length="20"/>
+			<field name="format" type="string" length="20"/>
+			<field name="filename" type="string" length="80" notnull="false"/>
+		</table>
+	</database>
+	<supported>
+		<version>14.0</version>
+	</supported>
+</module>

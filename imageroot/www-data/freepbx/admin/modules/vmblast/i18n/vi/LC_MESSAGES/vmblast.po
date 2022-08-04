@@ -1,0 +1,262 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for vmblast
+# Copyright (C) 2008-2016 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-02-19 09:10+0530\n"
+"PO-Revision-Date: 2017-07-20 14:39+0200\n"
+"Last-Translator: PETER <ftek@ymail.com>\n"
+"Language-Team: Vietnamese <http://weblate.freepbx.org/projects/freepbx/"
+"vmblast/vi/>\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: views/grid.php:20
+msgid "Actions"
+msgstr "Các thao tác"
+
+#: views/bootnav.php:3 views/grid.php:5
+msgid "Add VM Blast Group"
+msgstr "Thêm nhóm VM Blast"
+
+#: page.vmblast.php:19
+msgid "Add VMBlast Group"
+msgstr "Thêm nhóm VMBlast"
+
+#: vmblast.i18n.php:6
+msgid "Applications"
+msgstr "Các ứng dụng"
+
+#: views/form.php:46
+msgid "Audio Label"
+msgstr "Nhãn âm thanh"
+
+#: views/form.php:52
+msgid "Beep Only - No Confirmation"
+msgstr "Chỉ có tiếng bíp- Không có xác nhận"
+
+#: page.vmblast.php:30
+msgid "Conflicting Extensions"
+msgstr "Các máy nhánh xung đột"
+
+#: vmblast.i18n.php:8
+msgid ""
+"Creates a group of extensions that calls a group of voicemail boxes and "
+"allows you to leave a message for them all at once."
+msgstr ""
+"Tạo một nhóm máy nhánh gọi một nhóm các hộp thư thoại và cho phép bạn để lại "
+"tin nhắn cho chúng cùng một lúc."
+
+#: views/grid.php:19
+msgid "Default"
+msgstr "Mặc định"
+
+#: functions.inc.php:281
+msgid "Default Group Inclusion"
+msgstr "Mặc định Group Inclusion"
+
+#: views/form.php:201
+msgid "Default VMBlast Group"
+msgstr "Mặc định nhóm VMBlast"
+
+#: functions.inc.php:284
+msgid "Default VMblast Group"
+msgstr "Mặc định nhóm VMblast"
+
+#: Vmblast.class.php:76
+msgid "Delete"
+msgstr "Xóa"
+
+#: views/grid.php:18
+msgid "Description"
+msgstr "Mô tả"
+
+#: install.php:60 install.php:74
+msgid "Done"
+msgstr "Đã xong"
+
+#: install.php:79
+msgid "Dropping grplist.."
+msgstr "Đang thả grplist..."
+
+#: install.php:97
+msgid "Dropping old grplist field.."
+msgstr "Đang thả trường grplist cũ.."
+
+#: views/form.php:216
+msgid ""
+"Each PBX system can have a single Default Voicemail Blast Group. If "
+"specified, extensions can be automatically added (or removed) from this "
+"default group in the Extensions (or Users) tab.<br />Making this group the "
+"default will uncheck the option from the current default group if specified."
+msgstr ""
+"Mỗi hệ thống PBX có thể có một nhóm Voicemail Blast Group mặc định riêng. "
+"Nếu được chỉ định, các máy nhánh có thể được tự động thêm (hoặc xóa) khỏi "
+"nhóm mặc định này trong tab Extensions (hoặc Users) .<br />Làm cho nhóm này "
+"mặc định sẽ không đánh dấu check vào tùy chọn từ nhóm mặc định hiện tại nếu "
+"được chỉ định."
+
+#: page.vmblast.php:17
+msgid "Edit VMBlast Group"
+msgstr "Chỉnh sửa nhóm VMBlast"
+
+#: functions.inc.php:262
+msgid "Exclude"
+msgstr "Không bao gồm"
+
+#: views/grid.php:17
+msgid "Group"
+msgstr "Nhóm"
+
+#: views/form.php:126
+msgid "Group Description"
+msgstr "Mô tả nhóm"
+
+#: functions.inc.php:263
+msgid "Include"
+msgstr "Bao gồm"
+
+#: views/bootnav.php:2
+msgid "List VM Blast Groups"
+msgstr "Danh sách các nhóm VM Blast"
+
+#: views/form.php:208
+msgid "No"
+msgstr "Không"
+
+#: install.php:107
+msgid "Not Needed"
+msgstr "Không cần thiết"
+
+#: install.php:53 install.php:67
+msgid "Not Required"
+msgstr "Không yêu cầu"
+
+#: install.php:103
+msgid "OK"
+msgstr "OK"
+
+#: views/form.php:151
+msgid "Optional Password"
+msgstr "Mật khẩu tự chọn"
+
+#: views/form.php:62
+msgid ""
+"Play this message to the caller so they can confirm they have dialed the "
+"proper voice mail group number, or have the system simply read the group "
+"number."
+msgstr ""
+"Phát tin nhắn này đến người gọi để họ có thể xác nhận rằng họ vừa quay đúng "
+"số nhóm thư thoại phù hợp, hoặc hệ thống đã đọc được số nhóm."
+
+#: views/form.php:138
+msgid "Provide a descriptive title for this VMBlast Group."
+msgstr "Cung cấp một tiêu đề mô tả cho nhóm VMBlast."
+
+#: views/form.php:51
+msgid "Read Group Number"
+msgstr "Đọc số nhóm"
+
+#: Vmblast.class.php:86
+msgid "Reset"
+msgstr "Cài đặt lại"
+
+#: views/form.php:189
+msgid ""
+"Select voice mail boxes to add to this group. Use Ctrl key to select "
+"multiple."
+msgstr ""
+"Chọn hộp thư thoại để thêm vào nhóm này. Sử dụng phím Ctrl để chọn nhiều hộp."
+
+#: Vmblast.class.php:81
+msgid "Submit"
+msgstr "Gửi đi"
+
+#: views/form.php:114
+msgid "The number users will dial to voicemail boxes in this VMBlast group"
+msgstr "Số người dùng sẽ quay đến các hộp thư thoại trong nhóm VMBlast này"
+
+#: install.php:49
+msgid "Upgrading vmblast to add audio_label field.."
+msgstr "Đang cập nhật vmblast để thêm vào trường audio_label.."
+
+#: install.php:63
+msgid "Upgrading vmblast to add password field.."
+msgstr "Đang cập nhật vmblast để thêm vào trường password.."
+
+#: views/bootnav.php:8
+msgid "VMBlast Group"
+msgstr "Nhóm VMblast"
+
+#: views/form.php:102
+msgid "VMBlast Number"
+msgstr "Số VMBlast"
+
+#: page.vmblast.php:6 vmblast.i18n.php:4 vmblast.i18n.php:10
+msgid "Voicemail Blasting"
+msgstr "Voicemail Blasting ( Một Mô đun của PBX)"
+
+#: views/form.php:175
+msgid "Voicemail Box List"
+msgstr "Danh sách hộp thư thoại"
+
+#: functions.inc.php:39
+#, php-format
+msgid "Voicemail Group %s: %s"
+msgstr "Nhóm thư thoại %s: %s"
+
+#: functions.inc.php:138
+msgid "Voicemail Group: "
+msgstr "Nhóm thư thoại: "
+
+#: Vmblast.class.php:38
+msgid "Warning! Extension"
+msgstr "Cảnh bán! Máy nhánh"
+
+#: views/form.php:206
+msgid "Yes"
+msgstr "Có"
+
+#: functions.inc.php:284
+msgid ""
+"You can include or exclude this extension/user from being part of the "
+"default voicemail blast group when creating or editing. Choosing this option "
+"will be ignored if the user does not have a voicemail box."
+msgstr ""
+"Bạn có thể bao gồm hoặc loại trừ máy nhánh / người dùng này khỏi trở thành "
+"một phần của nhóm voicemail blast  mặc định khi tạo hoặc chỉnh sửa. Việc "
+"chọn tùy chọn này sẽ bị bỏ qua nếu người dùng không có hộp thư thoại."
+
+#: views/form.php:163
+msgid ""
+"You can optionally include a password to authenticate before providing "
+"access to this group voicemail list."
+msgstr ""
+"Bạn có thể thêm một mật khẩu để xác thực trước khi cung cấp quyền truy cập "
+"vào danh sách thư thoại của nhóm này."
+
+#: install.php:93
+msgid "error populating vmblast_groups table"
+msgstr "Lỗi khi mở rộng bảng vmblast_groups"
+
+#: install.php:101
+msgid "failed to drop field"
+msgstr "Thả trường không thành công"
+
+#: Vmblast.class.php:38
+msgid "is not allowed for your account"
+msgstr "Tài khoản của bạn không được cho phép"
+
+#: install.php:96
+msgid "populated new table"
+msgstr "Bảng mới đã được mở rộng"

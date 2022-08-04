@@ -1,0 +1,86 @@
+<module>
+	<rawname>recordings</rawname>
+	<repo>standard</repo>
+	<name>Recordings</name>
+	<version>13.0.30.16</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<canuninstall>no</canuninstall>
+	<category>Admin</category>
+	<description>Creates and manages system recordings, used by many other modules (eg, IVR).</description>
+  	<more-info>https://wiki.freepbx.org/display/F2/System+Recordings+Module</more-info>
+	<changelog>
+		*13.0.30.15* Packaging of ver 13.0.30.15
+		*13.0.30.14* FREEI-924 Fix XSS Bootstrap Datatable Issues 
+		*13.0.30.13* FREEPBX-19040  System recording feature code works only with english language 
+		*13.0.31.12* FREEPBX-15711 Wrong sound file is played back in browser
+		*13.0.30.11* FREEPBX-14870 Removed System Recording does not remove Feature Code
+		*13.0.30.10* FREEPBX-14564 Multiple System recordings can be added with same Display Name
+		*13.0.30.9* FREEPBX-13607 Add New System Recording Bug In Chrome
+		*13.0.30.8* FREEPBX-14461 use the lowest value
+		*13.0.30.7* FREEPBX-14461 alert PHP file size limits
+		*13.0.30.6* FREEPBX-12936 Add dialplan to play system recordings
+		*13.0.30.5* FREEPBX-13675 Don't try to move custom directories
+		*13.0.30.4* FREEPBX-13607 Fix loop when uploading/recording files
+		*13.0.30.3* FREEPBX-12936 remove invalid recordings destination
+		*13.0.30.2* FREEPBX-13469 resolve issues with javascript not detecting langs correctly
+		*13.0.30.1* FREEPBX-13469 errors when no sound packages are installed or they are missing
+		*13.0.30* Select codecs for file that have been previously generated, fix feature code to record in all formats
+		*13.0.29* Fix bug in migration
+		*13.0.28* Load Media class before cleaning
+		*13.0.27* File Updates and exclusions
+		*13.0.26* FREEPBX-12657 Error when trying to creating new system recording
+		*13.0.25* FREEPBX-12465 System Recording with the same two system sounds can't be saved
+		*13.0.24* FREEPBX-12104 Cant use previous system recording to replace
+		*13.0.23* Add external function to playback system recordings in other modules
+		*13.0.22* Rely on framework for recordWorker
+		*13.0.21* Add recording function needs to return the recording ID
+		*13.0.20* FREEPBX-11600 Support sln16
+		*13.0.19* FREEPBX-11508 Though not prefered allow replacing of files when they are named the same
+		*13.0.18* FREEPBX-11199
+		*13.0.17* Support global filename function
+		*13.0.16* Floating bootnav formats fix
+		*13.0.15* FREEPBX-10333
+		*13.0.14* Allow 2 and 3 to be pressed during background playback. Also update tmp message when changing is accepted
+		*13.0.13* Better explaination of what to do
+		*13.0.12* The word set doesnt exist in en, dont move a file that doesnt exist
+		*13.0.11* FREEPBX-10867 FREEPBX-10856
+		*13.0.10* FREEPBX-10835 Use languages and allow lang switching when calling in from feature code
+		*13.0.9* FREEPBX-10731
+		*13.0.8* Use UTF8 fix to fix some bad encodings
+		*13.0.7* Better error checking on system recordings
+		*13.0.6* FREEPBX-10715
+		*13.0.5* FREEPBX-10486 FREEPBX-10515
+		*13.0.4* Return if file or recording not found instead of looking up recordings
+		*13.0.3* Casing issue with certain files
+		*13.0.2* FREEPBX-10210, FREEPBX-10199
+		*13.0.1beta16* Use temporary directory instead of sounds folder
+		*13.0.1beta14* Secure paths
+		*13.0.1beta13* Enter key fixes
+		*13.0.1beta12* Proper installer
+		*13.0.1beta11* Work with directories
+		*13.0.1beta10* Pathing issues and movement into custom folder
+		*13.0.1beta9* Migration antics
+		*13.0.1beta8* Wording, deletion and tweaks
+		*13.0.1beta7* FREEPBX-10087 issues and fixes
+		*13.0.1beta6* FREEPBX-10085 fixes migrator
+		*13.0.1beta5* Shorten convert to, to only show Asterisk formats
+		*13.0.1beta4* FREEPBX-3620 Use temporary files before placing them into lang dirs, FREEPBX-8580 remove save recoring and check recording feature codes
+		*13.0.1beta3* Re-record over the phone with language additions
+		*13.0.1beta2* FREEPBX-7713 turn all whitespace into dashes and lowercase all filenames
+		*13.0.1beta1* FREEPBX-6140, FREEPBX-5753, FREEPBX-5725, FREEPBX-3306, FREEPBX-3187, FREEPBX-7282, FREEPBX-8146, FREEPBX-8282, FREEPBX-9727
+	</changelog>
+	<menuitems>
+		<recordings>System Recordings</recordings>
+	</menuitems>
+	<depends>
+		<module>framework ge 13.0.72</module>
+		<module>soundlang ge 13.0.23.4</module>
+	</depends>
+	<supported>
+		<version>13.0</version>
+	</supported>
+	<location>release/2.11/recordings-3.3.11.9.tgz</location>
+	<md5sum>9e52d36bf0e8e680c7c112bd3ba4edde</md5sum>
+</module>

@@ -1,0 +1,23 @@
+<module>
+    <rawname>outboundlookup</rawname>
+    <name>Outbound Lookup</name>
+    <version>0.0.5</version>
+    <publisher>Nethesis</publisher>
+    <license>GPLv3+</license>
+    <licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+    <description>Allows Outbound Lookup of incoming calls against MySQL</description>
+    <category>Admin</category>
+    <changelog>
+        *0.0.1* First Package
+    </changelog>
+    <menuitems>
+        <outboundlookup>Outbound Lookup</outboundlookup>
+    </menuitems>
+    <depends>
+        <module>framework ge 13.0.121</module>
+        <module>core ge 13.0.13</module>
+    </depends>
+    <supported>
+        <version>13.0</version>
+    </supported>
+</module>

@@ -1,0 +1,368 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for iaxsettings
+# Copyright (C) 2008-2017 Sangoma Technologies, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-02-12 19:17-0500\n"
+"PO-Revision-Date: 2017-07-20 13:18+0200\n"
+"Last-Translator: PETER <ftek@ymail.com>\n"
+"Language-Team: Vietnamese <http://weblate.freepbx.org/projects/freepbx/"
+"iaxsettings/vi/>\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: views/form.php:415
+msgid ""
+" If you clear each codec and then add them one at a time, submitting with "
+"each addition, they will be added in order which will effect the codec "
+"priority."
+msgstr ""
+" Nếu bạn xóa từng codec và sau đó thêm lần lượt một lần 1 codec, gửi kèm với "
+"mỗi bổ sung, chúng sẽ được thêm vào lần lượt và điều này sẽ khiến codec ưu "
+"tiên có hiệu lực."
+
+#: Iaxsettings.class.php:67
+#, php-format
+msgid "%s must be a non-negative integer"
+msgstr "%s phải là số nguyên không âm"
+
+#: views/form.php:313
+msgid "Add Field"
+msgstr "Thêm trường"
+
+#: views/form.php:77
+msgid "Advanced Settings"
+msgstr "Cài đặt nâng cao"
+
+#: iaxsettings.i18n.php:4 iaxsettings.i18n.php:10
+msgid "Asterisk IAX Settings"
+msgstr "Cài đặt IAX Asterisk"
+
+#: views/form.php:388
+msgid ""
+"Asterisk: bandwidth. Specify bandwidth of low, medium, or high to control "
+"which codecs are used in general."
+msgstr ""
+"Asterisk: băng thông. Xác định băng thông thấp, trung bình, hoặc cao để kiểm "
+"soát các codec được sử dụng thông thường."
+
+#: views/form.php:243
+msgid ""
+"Asterisk: bindaddr. The IP address to bind to and listen for calls on the "
+"Bind Port. If set to 0.0.0.0 Asterisk will listen on all addresses. To bind "
+"to multiple IP addresses or ports, use the Other 'IAX Settings' fields where "
+"you can put settings such as:<br /> bindaddr=192.168.10.100:4555.<br />  It "
+"is recommended to leave this blank."
+msgstr ""
+"Asterisk: bindaddr. Địa chỉ IP để liên kết và nghe các cuộc gọi trên Cổng "
+"giao tiếp liên kết . Nếu cài đặt là 0.0.0.0 Asterisk sẽ nghe trên tất cả các "
+"địa chỉ. Để liên kết với nhiều địa chỉ IP hoặc cổng giao tiếp, sử dụng các "
+"trường ' Cài đặt IAX ' khác, nơi bạn có thể để các cài đặt như: <br /> "
+"bindaddr = 192.168.10.100: 4555. <br /> Bạn nên để trống trường này."
+
+#: views/form.php:267
+msgid ""
+"Asterisk: bindport. Local incoming UDP Port that Asterisk will bind to and "
+"listen for IAX messages. The IAX standard is 4569 and in most cases this is "
+"what you want. It is recommended to leave this blank."
+msgstr ""
+"Asterisk: bindport. Cổng UDP đến tại chỗ mà Asterisk sẽ liên kết tới và nghe "
+"tin nhắn của IAX. Tiêu chuẩn IAX là 4569 và trong hầu hết các trường hợp đây "
+"là những gì bạn muốn. Nên để trống trường này."
+
+#: views/form.php:357
+msgid ""
+"Asterisk: codecpriority. Controls the codec negotiation of an inbound IAX "
+"call. This option is inherited to all user entities.  It can also be defined "
+"in each user entity separately which will override the setting here. The "
+"valid values are:<br />host - Consider the host's preferred order ahead of "
+"the caller's.<br />caller - Consider the callers preferred order ahead of "
+"the host's.<br /> disabled - Disable the consideration of codec preference "
+"altogether. (this is the original behavior before preferences were "
+"added)<br />reqonly  - Same as disabled, only do not consider capabilities "
+"if the requested format is not available the call will only be accepted if "
+"the requested format is available."
+msgstr ""
+"Asterisk: codecpriority. Kiểm soát codec phụ của cuộc gọi IAX gửi đến. Tùy "
+"chọn này được kế thừa cho tất cả các đối tượng người dùng. Nó cũng có thể "
+"được xác định trong mỗi đối tượng người dùng riêng biệt mà sẽ ghi đè cài đặt "
+"ở đây. Các giá trị hợp lệ là: :<br />host - Xem xét thứ tự ưu tiên của host "
+"trước người gọi. <br />Caller - Xem xét thứ tự ưu tiên người gọi trước host. "
+"<br /> disabled - Vô hiệu hoá việc xem xét các codec tùy thích hoàn toàn . "
+"(Đây là hành vi ban đầu trước khi các tùy thích được thêm vào) <br /> "
+"reqonly - Tương tự như bị vô hiệu hoá, không xem xét các khả năng nếu định "
+"dạng được yêu cầu không có sẵn; Cuộc gọi sẽ chỉ được chấp nhận nếu định dạng "
+"yêu cầu có sẵn."
+
+#: views/form.php:294
+msgid ""
+"Asterisk: delayreject. For increased security against brute force password "
+"attacks enable this which will delay the sending of authentication reject "
+"for REGREQ or AUTHREP if there is a password."
+msgstr ""
+"Asterisk: delayreject. Để tăng tính an toàn chống lại các cuộc tấn công mật "
+"khẩu brute force, điều này sẽ làm chậm việc gửi từ chối xác thực đối với  "
+"REGREQ hoặc AUTHREP nếu có một mật khẩu."
+
+#: views/form.php:165
+msgid ""
+"Asterisk: forcejitterbuffer. Forces the use of a jitterbuffer on the receive "
+"side of an IAX channel. Normally the jitter buffer will not be used if "
+"receiving a jittery channel but sending it off to another channel such as a "
+"SIP channel to an endpoint, since there is typically a jitter buffer at the "
+"far end. This will force the use of the jitter buffer before sending the "
+"stream on. This is not typically desired as it adds additional latency into "
+"the stream."
+msgstr ""
+"Asterisk: forcejitterbuffer. Bắt buộc phải sử dụng  jitterbuffer ở phía nhận "
+"của kênh IAX. Thông thường,  jitterbuffer  sẽ không được sử dụng nếu nhận "
+"được một kênh  jitter nhưng lại gửi nó đến một kênh khác ví dụ như kênh SIP "
+"tới một điểm cuối, vì thường có một jitterbuffer ở phía cuối. Điều này sẽ "
+"buộc phải sử dụng jitter buffer trước khi gửi luồng. Vì điều này sẽ thêm độ "
+"trễ bổ sung vào luồng nên nó không phải là điều mong muốn."
+
+#: views/form.php:137
+msgid ""
+"Asterisk: jitterbuffer. You can adjust several parameters relating to the "
+"jitter buffer. The jitter buffer's function is to compensate for varying "
+"network delay. The jitter buffer works for INCOMING audio - the outbound "
+"audio will be dejittered by the jitter buffer at the other end."
+msgstr ""
+"Asterisk: jitterbuffer. Bạn có thể điều chỉnh một số thông số liên quan đến "
+"jitter buffer. Chức năng của jitter buffer là để bù cho việc trễ mạng. Các "
+"âm thanh đến sẽ hoạt động dựa trên Jitter buffer  - âm thanh đi ra sẽ bị "
+"tráo đổi bởi jitter buffer ở đầu kia."
+
+#: views/form.php:192
+msgid ""
+"Asterisk: maxjitterbuffer. Max length of the jitterbuffer in milliseconds."
+"<br /> Asterisk: resyncthreshold. When the jitterbuffer notices a "
+"significant change in delay that continues over a few frames, it will "
+"resync, assuming that the change in delay was caused by a timestamping mix-"
+"up. The threshold for noticing a change in delay is measured as twice the "
+"measured jitter plus this resync threshold. Resyncing can be disabled by "
+"setting this parameter to -1."
+msgstr ""
+"Asterisk: maxjitterbuffer. Chiều dài tối đa của  jitterbuffer tính bằng mili "
+"giây.<br /> Asterisk: resyncthreshold. Khi jitterbuffer thông báo một sự "
+"thay đổi quan trọng đối với việc chậm trễ kéo dài trên một vài khung hình, "
+"nó sẽ tái đồng bộ hóa (resync), giả sử rằng sự thay đổi trong sự chậm trễ là "
+"do sự pha trộn timestamping. Ngưỡng cho việc thông báo một thay đổi về độ "
+"trễ được đo sẽ bằng hai lần jitter đã đo cộng thêm với ngưỡng tái đồng bộ "
+"hóa ( resync). Có thể vô hiệu việc tái đồng bộ hóa (resync) bằng cách đặt "
+"tham số này là -1."
+
+#: views/form.php:216
+msgid ""
+"Asterisk: maxjitterinterps. The maximum number of interpolation frames the "
+"jitterbuffer should return in a row. Since some clients do not send CNG/DTX "
+"frames to indicate silence, the jitterbuffer will assume silence has begun "
+"after returning this many interpolations. This prevents interpolating "
+"throughout a long silence."
+msgstr ""
+"Asterisk: maxjitterinterps. Số khung hình (frame) nội suy tối đa, "
+"jitterbuffer sẽ trở lại trong một hàng. Vì một số máy khách không gửi các "
+"frame CNG / DTX để biểu thị sự im lặng, jitterbuffer sẽ cho rằng im lặng bắt "
+"đầu sau khi nhiều nội suy được trả lại. Điều này sẽ tránh việc nội suy trong "
+"suốt quá trình  im lặng dài."
+
+#: views/form.php:110
+msgid ""
+"Asterisk: minregexpire, maxregexpire. Minimum and maximum length of time "
+"that IAX peers can request as a registration expiration interval (in "
+"seconds)."
+msgstr ""
+"Asterisk: minregexpire, maxregexpire. Khoảng thời gian tối thiểu và tối đa "
+"mà các đồng đẳng IAX có thể yêu cầu như một đăng ký khoảng thời gian hết hạn "
+"(tính bằng giây)."
+
+#: views/form.php:328
+msgid "Audio Codecs"
+msgstr "Các codec âm thanh"
+
+#: views/form.php:369
+msgid "Bandwidth"
+msgstr "Băng thông"
+
+#: views/form.php:231
+msgid "Bind Address"
+msgstr "Địa chỉ liên kết"
+
+#: Iaxsettings.class.php:77
+msgid "Bind Address (bindaddr) must be an IP address."
+msgstr "Địa chỉ liên kết (bindaddr) phải là một địa chỉ IP."
+
+#: views/form.php:255
+msgid "Bind Port"
+msgstr "Cổng giao tiếp liên kết"
+
+#: Iaxsettings.class.php:87
+msgid "Bind Port (bindport) must be between 1024..65535, default 4569"
+msgstr ""
+"Cổng giao tiếp liên kết ( bindport) phải trong khoảng 1024..65535, mặc định "
+"là 4569"
+
+#: views/form.php:415
+msgid "Check to enable and then choose allowed codecs."
+msgstr "Đánh dấu check để bật và chọn các codecs được cho phép."
+
+#: views/form.php:338
+msgid "Codec Priority"
+msgstr "Codec ưu tiên"
+
+#: views/form.php:82
+msgid "Codec Settings"
+msgstr "Cài đặt Codec"
+
+#: install.php:69
+msgid "Default Settings added."
+msgstr ""
+
+#: views/form.php:279
+msgid "Delay Auth Rejects"
+msgstr "Hoãn Từ chối xác thực"
+
+#: views/form.php:400
+msgid "Enable Video Support"
+msgstr "Kích hoạt tính năng hỗ trợ Video"
+
+#: views/form.php:150
+msgid "Force Jitter Buffer"
+msgstr "Bắt buộc Jitter Buffer"
+
+#: views/form.php:72
+msgid "General Settings"
+msgstr "Cài đặt chung"
+
+#: views/form.php:63
+msgid "IAX Settings"
+msgstr "Cài đặt IAX"
+
+#: views/form.php:122
+msgid "Jitter Buffer Enable"
+msgstr "Kích hoạt Jitter Buffer"
+
+#: views/form.php:177
+msgid "Jitter Buffer Size"
+msgstr "Kich thước Jitter Buffer"
+
+#: views/form.php:204
+msgid "Max Interpolations"
+msgstr "Các nội suy tối đa"
+
+#: views/form.php:129 views/form.php:157 views/form.php:286 views/form.php:407
+msgid "No"
+msgstr "Không"
+
+#: views/form.php:306
+msgid "Other IAX Settings"
+msgstr "Các cài đặt IAX khác"
+
+#: views/form.php:95
+msgid "Registration Times"
+msgstr "Thời gian đăng ký"
+
+#: Iaxsettings.class.php:51
+msgid "Reset"
+msgstr "Cài đặt lại"
+
+#: iaxsettings.i18n.php:6
+msgid "Settings"
+msgstr "Cài đặt"
+
+#: functions.inc.php:277
+#, php-format
+msgid "Settings in %s may override these. Those settings should be removed."
+msgstr ""
+"Các cài đặt trong %s có thể ghi đè lên các cài đặt này. Các cài đặt kia nên "
+"được xóa."
+
+#: Iaxsettings.class.php:46
+msgid "Submit"
+msgstr "Gửi đi"
+
+#: iaxsettings.i18n.php:8
+msgid ""
+"Use to configure Various Asterisk IAX Settings in the General section of iax."
+"conf."
+msgstr ""
+"Sử dụng để cấu hình các cài đặt IAX Asterisk trong phần General của iax.conf."
+
+#: views/form.php:127 views/form.php:155 views/form.php:284 views/form.php:405
+msgid "Yes"
+msgstr "Có"
+
+#: views/form.php:321
+msgid ""
+"You may set any other IAX settings not present here that are allowed to be "
+"configured in the General section of iax.conf. There will be no error "
+"checking against these settings so check them carefully. They should be "
+"entered as:<br /> [setting] = [value]<br /> in the boxes below. Click the "
+"Add Field box to add additional fields. Blank boxes will be deleted when "
+"submitted."
+msgstr ""
+"Bạn có thể cài đặt bất kỳ các cài đặt IAX nào khác mà hiện nó không được nêu "
+"ở đây. Chúng được phép cấu hình trong phần General của iax.conf. Việc kiểm "
+"tra lỗi sẽ không được thực hiện trên các cài đặt này cho nên bạn cần phải "
+"cẩn thận khi đánh dấu check trên các cài đặt này. Chúng phải được nhập dưới "
+"dạng: <br /> [setting] = [value] <br /> trong các hộp thoại dưới đây. Nhấp "
+"vào hộp thoại  Add Field (Thêm trường) để thêm các trường bổ sung. Các hộp "
+"thoại khi gửi sẽ bị xóa."
+
+#: install.php:73
+msgid "already exists"
+msgstr "Đã tồn tại"
+
+#: install.php:56
+msgid "checking for iaxsettings table.."
+msgstr "Đang kiểm tra bảng  iaxsettings.."
+
+#: install.php:67
+msgid "fatal error occurred populating defaults, check module"
+msgstr ""
+"Lỗi cực nghiêm trọng xảy ra khi populating các mặc định, kiểm tra mô đun"
+
+#: views/form.php:378
+msgid "high"
+msgstr "cao"
+
+#: views/form.php:374
+msgid "low"
+msgstr "thấp"
+
+#: views/form.php:376
+msgid "medium"
+msgstr "trung bình"
+
+#: install.php:60
+msgid "none, creating table"
+msgstr "không có, đang tạo bảng"
+
+#: install.php:64
+msgid "populating default settings.."
+msgstr ""
+
+#: Iaxsettings.class.php:127
+msgid "resyncthreshold must be a non-negative integer or -1 to disable"
+msgstr ""
+"resyncthreshold phải là số nguyên không âm hoặc cài đặt là -1 để vô hiệu"
+
+#: views/form.php:380
+msgid "unset"
+msgstr "Không cài đặt"
+
+#~ msgid "populating default codecs.."
+#~ msgstr "Đang populating các codec mặc định.."
+
+#~ msgid "ulaw, alaw, gsm added"
+#~ msgstr "Đã thêm ulaw, alaw, gsm"

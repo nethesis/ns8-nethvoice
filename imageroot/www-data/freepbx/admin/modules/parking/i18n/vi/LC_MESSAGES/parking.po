@@ -1,0 +1,542 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for parking
+# Copyright (C) 2008-2017 Sangoma Technologies, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-03-14 14:02-0400\n"
+"PO-Revision-Date: 2017-07-19 15:57+0200\n"
+"Last-Translator: PETER <ftek@ymail.com>\n"
+"Language-Team: Vietnamese <http://weblate.freepbx.org/projects/freepbx/"
+"parking/vi/>\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: assets/js/park.js:96
+#, perl-format
+msgid "%s already in use by: %s"
+msgstr "%s đang được dùng bởi: %s"
+
+#: install.php:255
+#, php-format
+msgid "%s no longer supported"
+msgstr "%s không được hỗ trợ nữa"
+
+#: views/lot.php:384
+msgid ""
+"Alert-Info to add to the call prior to sending back to the Originator or to "
+"the Alternate Destination."
+msgstr ""
+"Thông tin cảnh báo được thêm vào cuộc gọi trước gửi đến trình khởi tạo hoặc "
+"tới điểm đích thay thế."
+
+#: views/lot.php:474
+msgid "Alternate Destination"
+msgstr "Điểm đích thay thế"
+
+#: views/lot.php:35
+msgid "Announcement"
+msgstr "Thông báo"
+
+#: parking.i18n.php:6
+msgid "Applications"
+msgstr "Các ứng dụng"
+
+#: views/lot.php:360
+msgid ""
+"Asterisk: parkedcallreparking. Enables or disables DTMF based parking when "
+"picking up a parked call."
+msgstr ""
+"Asterisk:parkedcallreparking. Kích hoạt hoặc vô hiệu tinh năng parking ( tạm "
+"giữ cuộc gọi vào phím nhớ ) dựa trên DTMF khi nghe một cuộc gọi được chuyển."
+
+#: views/lot.php:329
+msgid ""
+"Asterisk: parkedcalltransfers. Enables or disables DTMF based transfers when "
+"picking up a parked call."
+msgstr ""
+"Asterisk: parkedcalltransfers. Kích hoạt hoặc vô hiệu việc truyền cuộc gọi "
+"dựa trên DTMF khi nghe máy một cuộc goi được chuyển."
+
+#: views/overview.php:18
+msgid "Attended Transfer call into Park lot nn"
+msgstr "Truyền cuộc gọi có hỏi trước vào Park Lot nn"
+
+#: views/overview.php:10
+msgid ""
+"Attended Transfer call to the Parking Lot Extension. The lot number will be "
+"announced to the parker"
+msgstr ""
+"Truyền cuộc gọi có hỏi trước tới máy nhánh Parking Lot. Số Lot sẽ được thông "
+"báo đến parker"
+
+#: views/overview.php:14
+#, php-format
+msgid "Attended transfer to lot %d"
+msgstr "Truyền cuộc gọi có hỏi trước tới lot %d"
+
+#: views/lot.php:447
+msgid "Auto CallerID Prepend"
+msgstr "Tự động chèn trước CallerID"
+
+#: views/lot.php:288 views/lot.php:319 views/lot.php:350
+msgid "Both"
+msgstr "Cả hai"
+
+#: views/lot.php:284 views/lot.php:315 views/lot.php:346
+msgid "Caller"
+msgstr "Người gọi"
+
+#: views/lot.php:423
+msgid "CallerID Prepend"
+msgstr "Caller ID Prepend"
+
+#: views/lot.php:484
+msgid "Come Back to Origin"
+msgstr "Trở lại điểm ban đầu"
+
+#: install.php:186
+msgid "Default Lot"
+msgstr "Mặc định Lot"
+
+#: install.php:9
+msgid "Defines the Feature Code to use for Direct Call Pickup"
+msgstr ""
+"Xác định mã tính năng sử dụng cho Direct Call Pickup ( Nhấc máy trực tiếp)"
+
+#: parking.i18n.php:14
+msgid ""
+"Defines the Feature Code to use to force pickup a call that is parked in a "
+"private lot that the extension picking up the call does not have permissions "
+"for.  Example if a caller is parked in slot 81 and extension 8001 does not "
+"have permission to that"
+msgstr ""
+
+#: install.php:15
+msgid ""
+"Defines the Feature Code to use to force pickup a call that is parked in a "
+"private lot that the extension picking up the call does not have permissions "
+"for.  Example if a caller is parked in slot 81 and extension 8001 does not "
+"have permission to that private lot they could dial *8581 to pickup the "
+"parked call."
+msgstr ""
+
+#: Parking.class.php:158
+msgid "Delete"
+msgstr "Xóa"
+
+#: views/lot.php:511
+msgid "Destination"
+msgstr "Điểm đích"
+
+#: install.php:169
+msgid "ERROR: too many default lots detected, deleting and reinitializing"
+msgstr ""
+
+#: views/lot.php:64
+msgid "Edit: "
+msgstr "Chỉnh sửa: "
+
+#: views/overview.php:33
+msgid "Example Usage"
+msgstr "Ví dụ về cách dùng"
+
+#: views/lot.php:456
+msgid "Extension"
+msgstr "Máy nhánh"
+
+#: views/lot.php:523
+msgid "Failover Destination."
+msgstr "Điểm đích chịu lỗi."
+
+#: views/lot.php:247
+msgid "Find Slot"
+msgstr "Tìm kiếm chỗ"
+
+#: views/lot.php:254
+msgid "First"
+msgstr "Đầu tiên"
+
+#: views/lot.php:66
+msgid "General Settings"
+msgstr "Cai đặt chung"
+
+#: functions.inc/registries.php:23 functions.inc/registries.php:32
+msgid "INUSE"
+msgstr "INUSE"
+
+#: install.php:185
+msgid "Initializing default parkinglot.."
+msgstr "Đang khởi tạo parkinglot mặc định.."
+
+#: parking.i18n.php:8
+msgid ""
+"Manages parking lot extensions and other options.\tParking is a way of "
+"putting calls "
+msgstr ""
+"Quản lý parking lot các máy nhánh và các tùy chọn khác. Parking là một "
+"phương thức thực hiện cuộc gọi "
+
+#: views/lot.php:458
+msgid "Name"
+msgstr "Tên"
+
+#: views/lot.php:321 views/lot.php:352
+msgid "Neither"
+msgstr ""
+
+#: views/lot.php:252
+msgid "Next"
+msgstr "Tiếp theo"
+
+#: views/lot.php:262
+msgid ""
+"Next: If you want the parking lot to seek the next sequential parking slot "
+"relative to the the last parked call instead of seeking the first available "
+"slot. First: Use the first parking lot slot available"
+msgstr ""
+
+#: views/lot.php:491
+msgid "No"
+msgstr "Không"
+
+#: views/lot.php:21 views/lot.php:290 views/lot.php:400 views/lot.php:452
+msgid "None"
+msgstr "Không có"
+
+#: views/lot.php:148
+msgid "Number of Slots"
+msgstr "Số lượng chỗ"
+
+#: views/lot.php:49
+msgid ""
+"Optional message to be played to the call prior to sending back to the "
+"Originator or the Alternate Destination."
+msgstr ""
+"Một thông điệp sẽ được phát đến cuộc gọi trước khi gửi lại trạm gốc hoặc "
+"điểm đích thay thế."
+
+#: views/lot.php:412
+#, php-format
+msgid ""
+"Override the ringer volume. Note: This is only valid for %s phones at this "
+"time"
+msgstr ""
+"Ghi đè âm lượng chuông. Lưu ý: Điều này chỉ hợp lệ cho các điện thoại %s tại "
+"thời điểm này"
+
+#: views/bootnav.php:2
+msgid "Overview"
+msgstr "Tổng quan"
+
+#: install.php:7
+msgid "Park Prefix"
+msgstr ""
+
+#: views/overview.php:26
+#, php-format
+msgid "Park Yourself into lot %d"
+msgstr ""
+
+#: views/overview.php:30
+msgid "Park Yourself into lot nn"
+msgstr ""
+
+#: views/overview.php:22
+msgid "Park Yourself. The lot number will be announced to you"
+msgstr ""
+
+#: install.php:22 parking.i18n.php:16
+msgid "Park to your Assigned Lot"
+msgstr ""
+
+#: functions.inc/registries.php:22
+#, php-format
+msgid "ParkPlus: ParkCall %s"
+msgstr ""
+
+#: functions.inc/registries.php:31
+#, php-format
+msgid "ParkPlus: PickupSlot %s"
+msgstr ""
+
+#: views/lot.php:286 views/lot.php:317 views/lot.php:348
+msgid "Parked"
+msgstr ""
+
+#: views/lot.php:221
+msgid "Parked Music Class"
+msgstr ""
+
+#: parking.i18n.php:10
+msgid "Parking"
+msgstr ""
+
+#: views/lot.php:372
+msgid "Parking Alert-Info"
+msgstr ""
+
+#: views/overview.php:37
+msgid "Parking Help"
+msgstr ""
+
+#: parking.i18n.php:4 views/header.php:7
+msgid "Parking Lot"
+msgstr ""
+
+#: views/lot.php:76
+msgid "Parking Lot Extension"
+msgstr ""
+
+#: assets/js/park.js:79
+msgid "Parking Lot Extension and Starting Position can not be the same!"
+msgstr ""
+
+#: assets/js/park.js:16
+msgid "Parking Lot Extension can not be blank!"
+msgstr ""
+
+#: assets/js/park.js:20
+msgid "Parking Lot Extension can not be larger than 2147483647!"
+msgstr ""
+
+#: assets/js/park.js:24
+msgid "Parking Lot Extension can not start with a leading 0!"
+msgstr ""
+
+#: assets/js/park.js:90
+#, perl-format
+msgid "Parking Lot Extension: %s"
+msgstr ""
+
+#: views/lot.php:100
+msgid "Parking Lot Name"
+msgstr ""
+
+#: assets/js/park.js:28
+msgid "Parking Lot Name can not be blank!"
+msgstr ""
+
+#: views/lot.php:124
+msgid "Parking Lot Starting Position"
+msgstr ""
+
+#: assets/js/park.js:32
+msgid "Parking Lot Starting Position can not be blank!"
+msgstr ""
+
+#: assets/js/park.js:40
+msgid "Parking Lot Starting Position can not start with a leading 0!"
+msgstr ""
+
+#: functions.inc/registries.php:59 functions.inc/registries.php:94
+#, php-format
+msgid "Parking Lot: %s (%s)"
+msgstr ""
+
+#: views/overview.php:36
+msgid "Parking Settings"
+msgstr ""
+
+#: assets/js/park.js:90
+#, perl-format
+msgid "Parking Slot: %s"
+msgstr ""
+
+#: assets/js/park.js:36
+msgid "Parking Starting Position can not be larger than 2147483647!"
+msgstr ""
+
+#: assets/js/park.js:101
+msgid "Parking Starting Position/Slots can not be larger than 2147483647!"
+msgstr ""
+
+#: views/lot.php:197
+msgid "Parking Timeout (seconds)"
+msgstr ""
+
+#: Parking.class.php:90
+msgid "ParkingLot"
+msgstr ""
+
+#: install.php:10 install.php:23 parking.i18n.php:18
+msgid ""
+"Parks to your Assigned Lot if using Park Pro. If using standard parking this "
+"parks to the default lot"
+msgstr ""
+
+#: views/lot.php:279
+msgid "Pickup Courtesy Tone"
+msgstr ""
+
+#: install.php:6
+msgid "Pickup ParkedCall Any"
+msgstr ""
+
+#: install.php:8 parking.i18n.php:12
+msgid "Pickup ParkedCall Prefix"
+msgstr ""
+
+#: views/lot.php:112
+msgid "Provide a Descriptive Title for this Parking Lot"
+msgstr ""
+
+#: views/lot.php:341
+msgid "Re-Parking Capability"
+msgstr ""
+
+#: Parking.class.php:163
+msgid "Reset"
+msgstr ""
+
+#: views/lot.php:269
+msgid "Returned Call Behavior"
+msgstr ""
+
+#: views/lot.php:395
+msgid "Ringer Volume Override"
+msgstr ""
+
+#: views/lot.php:454
+msgid "Slot"
+msgstr ""
+
+#: views/lot.php:174
+msgid "Slot Range"
+msgstr ""
+
+#: views/lot.php:435
+msgid ""
+"String to prepend to the current Caller ID associated with the parked call "
+"prior to sending back to the Originator or the Alternate Destination."
+msgstr ""
+"Chuỗi để bạn thêm vào trước Caller ID hiện tại liên quan tới parked call "
+"trước khi gửi trở lại trạm gốc hoặc điểm đích thay thế."
+
+#: Parking.class.php:168
+msgid "Submit"
+msgstr ""
+
+#: views/lot.php:186
+msgid "The generated slot range"
+msgstr ""
+
+#: views/lot.php:209
+msgid ""
+"The timeout period in seconds that a parked call will attempt to ring back "
+"the original parker if not answered"
+msgstr ""
+
+#: views/lot.php:163
+msgid ""
+"The total number of parking lot spaces to configure. Example, if 70 is the "
+"extension and 8 slots are configured, the parking slots will be 71-78. Users "
+"can transfer a call directly into a parking slot."
+msgstr ""
+
+#: views/lot.php:466
+msgid ""
+"These options will be appended after CallerID Prepend if set. Otherwise they "
+"will appear first. The automatic options are as follows:<ul><li><strong>None:"
+"</strong> No Automatic Prepend</li><li><strong>Slot:</strong> Parking lot "
+"they were parked on</li><li><strong>Extension:</strong> The extension number "
+"that parked the call</li><li><strong>Name:</strong> The user who parked the "
+"call</li></ul>"
+msgstr ""
+"Những tùy chọn này sẽ được thêm vào sau khi Caller Prepend được cài đặt. Nếu "
+"không chúng sẽ xuất hiện đầu tiên. Các tùy chọn tự động như sau: :"
+"<ul><li><strong>None:</strong> No Automatic Prepend</li><li><strong>Slot:</"
+"strong> Phím nhớ nơi cuộc gọi được tạm giữ</li><li><strong>Extension:</"
+"strong> Số máy nhánh đang được tạm giữ cuộc gọi</li><li><strong>Name:</"
+"strong> Người dùng đã tạm giữ cuộc gọi</li></ul>"
+
+#: views/lot.php:88
+msgid "This is the extension where you will transfer a call to park it"
+msgstr ""
+
+#: views/lot.php:235
+msgid ""
+"This is the music class that will be played to a parked call while in the "
+"parking lot UNLESS the call flow prior to parking the call explicitly set a "
+"different music class, such as if the call came in through a queue or ring "
+"group."
+msgstr ""
+
+#: views/header.php:14
+msgid "This module is used to configure Parking Lot(s)"
+msgstr ""
+
+#: views/lot.php:310
+msgid "Transfer Capability"
+msgstr ""
+
+#: views/lot.php:499
+msgid ""
+"Where to send a parked call that has timed out. If set to yes then the "
+"parked call will be sent back to the originating device that sent the call "
+"to this parking lot. If the origin is busy then we will send the call to the "
+"Destination selected below. If set to no then we will send the call directly "
+"to the destination selected below"
+msgstr ""
+
+#: views/lot.php:298
+msgid "Whom to play the courtesy tone to when a parked call is retrieved."
+msgstr ""
+
+#: views/lot.php:489
+msgid "Yes"
+msgstr ""
+
+#: views/header.php:16
+msgid ""
+"You can also transfer directly to a lot number (71 through 78) and if that "
+"lot is empty, your call will be parked there"
+msgstr ""
+
+#: views/header.php:15
+msgid ""
+"You can transfer a call to the Parking Lot Extension (70 by default), the "
+"call will then be placed into a lot (71-78 by default) and the lot number "
+"will be announced to you."
+msgstr ""
+
+#: assets/js/park.js:49
+msgid "You have errors on the form. Please correct them before continuing"
+msgstr ""
+
+#: assets/js/park.js:44
+msgid "You must select a valid destination"
+msgstr ""
+
+#: views/lot.php:15
+msgid "default"
+msgstr ""
+
+#: install.php:188
+msgid "done"
+msgstr ""
+
+#: views/lot.php:136
+msgid "he starting postion of the parking lot"
+msgstr ""
+
+#: install.php:265
+msgid "migrated ... dropping old table parkinglot"
+msgstr ""
+
+#: install.php:194
+msgid "migrating old parkinglot data"
+msgstr ""
+
+#: views/overview.php:17 views/overview.php:29
+msgid "nn"
+msgstr ""

@@ -1,0 +1,178 @@
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright (C) 2009 Séverine GUTIERREZ, severine@medialsace.fr
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-02-01 18:25-0800\n"
+"PO-Revision-Date: 2015-04-25 00:41+0200\n"
+"Last-Translator: philippebolduc <philippe@florenceinc.com>\n"
+"Language-Team: French <http://weblate.freepbx.org/projects/freepbx/"
+"callforward/fr_FR/>\n"
+"Language: fr_FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 2.2-dev\n"
+
+#: ucp/views/settings.php:5
+msgid "Always"
+msgstr ""
+
+#: callforward.i18n.php:6
+msgid "Applications"
+msgstr "Applications"
+
+#: ucp/views/widget.php:13 ucp/views/widget.php:15
+msgid "Busy"
+msgstr "Occupé"
+
+#: callforward.i18n.php:4 install.php:6 ucp/Callforward.class.php:130
+msgid "Call Forward"
+msgstr "Renvoi d'appel"
+
+#: callforward.i18n.php:24 install.php:7
+msgid "Call Forward All Activate"
+msgstr "Renvoi d'appels Tous Actifs"
+
+#: callforward.i18n.php:20 install.php:8
+msgid "Call Forward All Deactivate"
+msgstr "Renvoi d'appel Tous Désactivés"
+
+#: callforward.i18n.php:26 install.php:9
+msgid "Call Forward All Prompting Activate"
+msgstr ""
+
+#: callforward.i18n.php:22 install.php:10
+msgid "Call Forward All Prompting Deactivate"
+msgstr "Messages de Transferts d'Appels Tous Désactivés"
+
+#: callforward.i18n.php:16 install.php:11
+msgid "Call Forward Busy Activate"
+msgstr "Renvoi d'appel occupé activé"
+
+#: callforward.i18n.php:12 install.php:12
+msgid "Call Forward Busy Deactivate"
+msgstr "Transfert d'Appels quand Occupé Désactivé"
+
+#: callforward.i18n.php:18 install.php:13
+msgid "Call Forward Busy Prompting Activate"
+msgstr ""
+
+#: callforward.i18n.php:14 install.php:14
+msgid "Call Forward Busy Prompting Deactivate"
+msgstr "Messages de Transfert d'Appels quand Occupé Désactivé"
+
+#: callforward.i18n.php:30 install.php:15
+msgid "Call Forward No Answer/Unavailable Activate"
+msgstr "Transfert d'Appels quand Pas de Réponse/Indisponible Activé"
+
+#: callforward.i18n.php:28 install.php:16
+msgid "Call Forward No Answer/Unavailable Deactivate"
+msgstr "Transfert d'Appels quand Pas de Réponse/Indisponible Désactivé"
+
+#: callforward.i18n.php:32 install.php:17
+msgid "Call Forward No Answer/Unavailable Prompting Activate"
+msgstr ""
+
+#: callforward.i18n.php:10 install.php:18
+msgid "Call Forward Toggle"
+msgstr "Basculer le renvoi"
+
+#: ucp/Callforward.class.php:87 ucp/Callforward.class.php:106
+msgid "Call Forwarding"
+msgstr "Renvoi d'appel"
+
+#: ucp/Callforward.class.php:182
+msgid "Call Forwarding Has Been Updated!"
+msgstr "Renvoi d'appel a été modifié !"
+
+#: ucp/Callforward.class.php:74
+#, php-format
+msgid "Call Forwarding for %s"
+msgstr ""
+
+#: ucp/views/settings.php:2
+msgid "CallForward Ringtimer"
+msgstr "Durée de la sonnerie lors de renvoi"
+
+#: ucp/views/settings.php:4
+msgid "Default"
+msgstr ""
+
+#: ucp/views/widget.php:5 ucp/views/widget.php:10 ucp/views/widget.php:15
+msgid "Disabled"
+msgstr ""
+
+#: ucp/views/widget.php:5 ucp/views/widget.php:10 ucp/views/widget.php:15
+msgid "Enabled"
+msgstr ""
+
+#: ucp/views/settings.php:10
+msgid ""
+"Number of seconds to ring prior to going to voicemail or other fail over "
+"destinations that may be setup by an administrator on this account. The "
+"Always setting will ring the call forward destinaiton until answered or the "
+"caller hangs up. The Default setting will use the value set in Ring Time. "
+"Your setting here will be forced to Always if there is no Voicemail or "
+"alternartive fail over destination for a call to go to."
+msgstr ""
+"Nombre de secondes à sonner avant d'aller vers la messagerie vocale ou "
+"autres destinations qui peuvent être configurées par un administrateur sur "
+"ce compte. Le réglage Toujours sonne la destination du renvoi avant jusqu'à "
+"réponse ou que l'appelant raccroche. Le réglage par défaut utilisera la "
+"valeur définie dans la durée de sonnerie . Votre réglage ici sera obligé à "
+"toujours s'il n'y a pas de messagerie ou une destination alternative pour un "
+"l'appel."
+
+#: callforward.i18n.php:8
+msgid "Provides callforward featurecodes"
+msgstr "Fournit les codes de fonction du renvoi"
+
+#: ucp/views/settings.php:7
+msgid "Seconds"
+msgstr "Secondes"
+
+#: ucp/views/widget.php:8 ucp/views/widget.php:10
+msgid "Unavailable"
+msgstr "Non disponible"
+
+#: ucp/views/widget.php:3 ucp/views/widget.php:5
+msgid "Unconditional"
+msgstr "Sans condition"
+
+#~ msgid "Forward immediately regardless of current state of line/PBX"
+#~ msgstr ""
+#~ "Renvoyer immédiatement indépendamment de l'état actuel de la ligne/PBX"
+
+#~ msgid ""
+#~ "Preconfigured number to which calls are forwarded if the customer "
+#~ "endpoint becomes unresponsive due to an Internet outage or software/"
+#~ "configuration failure of endpoint"
+#~ msgstr ""
+#~ "Numéro pré-configuré vers lequel les appels sont transmis si le téléphone "
+#~ "du client ne répond plus en raison d'une panne d'Internet ou du problème "
+#~ "de logiciel/configuration du téléphone"
+
+#~ msgid ""
+#~ "Preconfigured number to which calls are forwarded if the customer "
+#~ "endpoint is busy, usually due to being on an active call"
+#~ msgstr ""
+#~ "Numéro pré-configuré vers lequel les appels sont transmis si le téléphone "
+#~ "du client est occupé, généralement en raison d'être actuellement en ligne"

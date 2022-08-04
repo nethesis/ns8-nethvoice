@@ -1,0 +1,61 @@
+<module>
+  <rawname>music</rawname>
+  <repo>standard</repo>
+  <name>Music on Hold</name>
+  <version>13.0.22.7</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+  <candisable>no</candisable>
+  <canuninstall>no</canuninstall>
+  <category>Settings</category>
+  <description>Uploading and management of sound files (wav, mp3) to be used for on-hold music.</description>
+	<changelog>
+		*13.0.22.7* FREEPBX-19630 Add MOH Custom streaming fails with SQL error
+		*13.0.22.6* Fixing FREEPBX-19511 MoH rnav view
+		*13.0.22.5* FREEPBX-17836 MOH with french characters are not visible in MOH module after upload
+		*13.0.22.4* FREEPBX-17559 MOH not allowing uppercase letters
+		*13.0.22.3* FREEPBX-14461 use the lowest value
+		*13.0.22.2* FREEPBX-14461 alert PHP file size limits
+		*13.0.22* Language Update
+		*13.0.21* Put the right version in
+		*13.0.20* FREEPBX-12656 Hang on upgrade of Music on Hold module
+		*13.0.19* FREEPBX-12527 increase format length in DB
+		*13.0.18* Trap file upload failure - better than a runtime exception by lidl
+		*13.0.17* Visual styling issues cleaned up
+		*13.0.16* Add simple mode
+		*13.0.15* Recursively mkdir
+		*13.0.14* FREEPBX-11729 generate the none category
+		*13.0.13* Support all Asterisk supported media formats
+    *13.0.12* Support global file name function
+		*13.0.11* Fix formats
+		*13.0.10* FREEPBX-10629
+    *13.0.8* FREEPBX-10378 dont delete a file when asked to not delete it
+    *13.0.7* FREEPBX-10344, FREEPBX-10328 Fix deletion of music on hold files
+		*13.0.6* FREEPBX-10328 and other tweaks
+		*13.0.5* FREEPBX-6329, FREEPBX-5631, FREEPBX-6162, FREEPBX-4762, FREEPBX-1497, FREEPBX-7544, FREEPBX-6989 In browser playback
+    *13.0.4* FREEPBX-9688 Fixes numerous issues
+		*13.0.3* FREEPBX-9754 fixes visual issues
+		*13.0.2* Version bump Beta
+		*13.0.1alpha1* Visual Styling Changes
+		*12.0.1* BMO Object
+		*2.11.0.2* Include license file
+		*2.11.0.1* Use rate instead of resample for sox resampling #6347
+		*2.10.0.2* #5337, #4919
+		*2.10.0.1* #5478
+		*2.10.0.0* new version changes
+		*2.9.0.1* #4740
+		*2.9.0.0* 2.9 Update
+	</changelog>
+  <menuitems>
+    <music>Music on Hold</music>
+  </menuitems>
+  <depends>
+    <module>framework ge 13.0.121</module>
+  </depends>
+  <location>release/2.11/music-2.11.0.1.tgz</location>
+  <md5sum>787dc2e298cb49636534f9b7ae7114a0</md5sum>
+  <supported>
+    <version>13.0</version>
+  </supported>
+</module>

@@ -1,0 +1,172 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX 2.5 Chinese Translation\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-11-14 22:11-0500\n"
+"PO-Revision-Date: 2009-01-31 12:37+0800\n"
+"Last-Translator: 周征晟 <zhougongjizhe@163.com>\n"
+"Language-Team: EdwardBadBoy <zhougongjizhe@163.com>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Chinese\n"
+"X-Poedit-Country: CHINA\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: assets/js/languages.js:18
+#, perl-format
+msgid "%s already used, please use a different description."
+msgstr ""
+
+#: views/grid.php:25
+msgid "Actions"
+msgstr ""
+
+#: views/bootnav.php:3 views/grid.php:20
+msgid "Add Language"
+msgstr "添加语言"
+
+#: page.languages.php:13
+msgid "Add Language Instance"
+msgstr "添加一种语言"
+
+#: languages.i18n.php:8
+msgid ""
+"Adds the ability to changes the language within a call flow and add language "
+"attribute to users."
+msgstr ""
+
+#: functions.inc.php:274
+msgid "Allows you to set the language for this DID."
+msgstr ""
+
+#: languages.i18n.php:6
+msgid "Applications"
+msgstr ""
+
+#: functions.inc.php:160 functions.inc.php:257
+msgid "Default"
+msgstr ""
+
+#: Languages.class.php:74
+msgid "Delete"
+msgstr "删除"
+
+#: views/form.php:63
+msgid "Description"
+msgstr "描述"
+
+#: views/form.php:130
+msgid "Destination"
+msgstr "目的地"
+
+#: page.languages.php:11
+msgid "Edit Language Instance"
+msgstr "编辑一种语言"
+
+#: views/form.php:13
+msgid "Edit: "
+msgstr "编辑："
+
+#: functions.inc.php:154
+msgid "General"
+msgstr ""
+
+#: assets/js/languages.js:2
+msgid "Invalid description specified"
+msgstr "指定了无效的描述"
+
+#: Languages.class.php:213 functions.inc.php:153 functions.inc.php:247
+#: views/bootnav.php:8 views/grid.php:24
+msgid "Language"
+msgstr "语言"
+
+#: functions.inc.php:332
+#, php-format
+msgid "Language Change: %s"
+msgstr "改变语言：%s"
+
+#: functions.inc.php:172 functions.inc.php:174 views/form.php:87
+msgid "Language Code"
+msgstr "语言代码"
+
+#: functions.inc.php:36
+#, php-format
+msgid "Language: %s"
+msgstr "语言：%s"
+
+#: languages.i18n.php:4 languages.i18n.php:10 page.languages.php:5
+msgid "Languages"
+msgstr "语言"
+
+#: page.languages.php:4
+msgid ""
+"Languages allow you to change the language of the call flow and then "
+"continue on to the desired destination. For example, you may have an IVR "
+"option that says \"For French Press 5 now\". You would then create a French "
+"language instance and point it's destination at a French IVR. The language "
+"of the call's channel will now be in French. This will result in French "
+"sounds being chosen if installed."
+msgstr ""
+"语言设置可以让你改变呼叫流的语言，然后把呼叫转移到所希望的目的地去。比如，你"
+"可能有一个IVR选项，它对用户播放“中文请按5”。然后你可以创建一套中文的IVR，并把"
+"呼叫引导到此中文IVR。现在呼叫的频道就变成了中文。今后所有的声音都是中文（如果"
+"安装了中文声音的话）。"
+
+#: views/bootnav.php:2
+msgid "List Languagess"
+msgstr ""
+
+#: functions.inc.php:155
+msgid "Please enter a valid Language Code"
+msgstr "请输入有效的语言代码"
+
+#: Languages.class.php:69
+msgid "Reset"
+msgstr ""
+
+#: Languages.class.php:64
+msgid "Submit"
+msgstr ""
+
+#: views/form.php:118
+msgid ""
+"The Asterisk language code you want to change to. For example \"fr\" for "
+"French, \"de\" for German"
+msgstr "设定你希望切换到的Asterisk的语言代码。比如，法语是“fr”，德语是“de”"
+
+#: views/form.php:75
+msgid ""
+"The descriptive name of this language instance. For example \"French Main IVR"
+"\""
+msgstr "为这种语言设定一个描述性的名字，比如，“中文主IVR”"
+
+#: functions.inc.php:174
+msgid ""
+"This will cause all messages and voice prompts to use the selected language "
+"if installed."
+msgstr "如果安装好了所选择的语言，这会使所有的消息和语音提示都使用这种语言。"
+
+#: functions.inc.php:172
+msgid ""
+"This will cause all messages and voice prompts to use the selected language "
+"if installed.  Languages can be added or removed in the Sound Languages "
+"module"
+msgstr ""
+
+#: Languages.class.php:214
+msgid "Valid language string"
+msgstr ""
+
+#: views/form.php:142
+msgid "Where to send the caller after setting the language."
+msgstr ""
+
+#~ msgid "Submit Changes"
+#~ msgstr "提交更改"

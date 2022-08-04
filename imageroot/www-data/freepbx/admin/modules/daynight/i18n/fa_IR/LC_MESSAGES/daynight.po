@@ -1,0 +1,339 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for daynight
+# Copyright (C) 2008-2016 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-10-25 13:30-0700\n"
+"PO-Revision-Date: 2016-05-26 19:05+0200\n"
+"Last-Translator: Media <mousavi.media@gmail.com>\n"
+"Language-Team: Persian (Iran) <http://weblate.freepbx.org/projects/freepbx/"
+"daynight/fa_IR/>\n"
+"Language: fa_IR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: functions.inc.php:526
+msgid " - Force Time Condition False Destination"
+msgstr " - تحمیل شرط زمانی به مقصد غلط"
+
+#: functions.inc.php:524
+msgid " - Force Time Condition True Destination"
+msgstr " - تحمیل شرط زمانی به مقصد درست"
+
+#: page.daynight.php:16
+msgid ": Add"
+msgstr ":افزودن"
+
+#: page.daynight.php:14
+msgid ": Edit"
+msgstr ":ویرایش"
+
+#: views/grid.php:16
+msgid "Actions"
+msgstr "اعمال"
+
+#: views/grid.php:8
+msgid "Add"
+msgstr "افزودن"
+
+#: views/bootnav.php:6
+msgid "Add Callflow"
+msgstr "افزودن روند تماس"
+
+#: daynight.i18n.php:6
+msgid "Applications"
+msgstr "درخواست"
+
+#: assets/js/daynight.js:23
+msgid "Are you sure you want to delete this flow?"
+msgstr "آیا از حذف این روند اطمینان دارید؟"
+
+#: daynight.i18n.php:16
+msgid ""
+"By default, the Call Flow Control module will not hook Time Conditions "
+"allowing one to associate a call flow toggle feauture code with a time "
+"condition since time conditions have their own feature code as of version "
+"2.9. If there is already an associaiton configured (on an upgraded system), "
+"this will have no affect for the Time Conditions that are effected. Setting "
+"this to true reverts the 2.8 and prior behavior by allowing for the use of a "
+"call flow toggle to be associated with a time conditon. This can be useful "
+"for two scenarios. First, to override a Time Condition without the automatic "
+"resetting that occurs with the built in Time Condition overrides. The second "
+"use is the ability to associate a single call flow toggle with multiple time "
+"conditions thus creating a <b>master switch</b> that can be used to override "
+"several possible call flows through different time conditions."
+msgstr ""
+"By default, the Call Flow Control module will  not hook Time Conditions "
+"allowing one to associate a call flow toggle feauture code with a time "
+"condition since time conditions have their own feature code as of version "
+"2.9. If there is already an associaiton configured (on an upgraded system), "
+"this will have no affect for the Time Conditions that are effected. Setting "
+"this to true reverts the 2.8 and prior behavior by allowing for the use of a "
+"call flow toggle to be associated with a time conditon. This can be useful "
+"for two scenarios. First, to override a Time Condition without the automatic "
+"resetting that occurs with the built in Time Condition overrides. The second "
+"use is the ability to associate a single call flow toggle with multiple time "
+"conditions thus creating a <b>master switch</b> that can be used to override "
+"several possible call flows through different time conditions."
+
+#: views/bootnav.php:19
+msgid "Call Flow"
+msgstr "روند تماس"
+
+#: daynight.i18n.php:4 daynight.i18n.php:10
+msgid "Call Flow Control"
+msgstr "کنترل روند تماس"
+
+#: daynight.i18n.php:14
+msgid "Call Flow Control Module"
+msgstr "ماژول کنترل روند تماس"
+
+#: functions.inc.php:155
+#, php-format
+msgid "Call Flow Toggle (%s) : %s"
+msgstr "تغییر وضعیت روند تماس (%s) : %s"
+
+#: functions.inc.php:537
+msgid "Call Flow Toggle Associate with"
+msgstr "تغییر وضعیت روند تماس وابسته با"
+
+#: page.daynight.php:7
+msgid "Call Flow Toggle Control"
+msgstr "کنترل تغییر وضعیت روند تماس"
+
+#: views/form.php:126
+msgid "Call Flow Toggle Feature Code Index"
+msgstr "فهرست کد ویژه تغییر وضعیت روند تماس"
+
+#: functions.inc.php:404
+#, php-format
+msgid "Call Flow Toggle: %s (%s)"
+msgstr "تغییر وضعیت روند تماس: %s (%s)"
+
+#: daynight.i18n.php:8
+msgid ""
+"Call Flow manual toggle control - allows for two destinations to be chosen "
+"and provides a feature code\t\tthat toggles between the two destinations."
+msgstr ""
+"Call Flow manual toggle control - allows for two  destinations to be chosen "
+"and provides a feature code\t\tthat toggles between the two destinations."
+
+#: views/form.php:174
+msgid "Current Mode"
+msgstr "حالت کنونی"
+
+#: views/form.php:34 views/form.php:35
+msgid "Default"
+msgstr "پیشفرض"
+
+#: Daynight.class.php:53
+msgid "Delete"
+msgstr "حذف"
+
+#: views/form.php:150 views/grid.php:14
+msgid "Description"
+msgstr "شرح"
+
+#: views/form.php:162
+msgid "Description for this Call Flow Toggle Control"
+msgstr "شرحی برای کنترل تغییر وضعیت روند تماس"
+
+#: views/form.php:241
+msgid "Destination to use when set to Normal Flow (Green/BLF off) mode"
+msgstr "مقصد مورد استفاده وقتی حالت روند نرمال تنظیم شده باشد"
+
+#: views/form.php:265
+msgid "Destination to use when set to Override Flow (Red/BLF on) mode"
+msgstr "مقصد مورد استفاده وقتی حالت روند ابطال تنظیم شده باشد"
+
+#: views/grid.php:13
+msgid "Feature Code"
+msgstr "کد ویژه"
+
+#: views/form.php:101
+msgid "Forces to Normal Mode (Green/BLF off)"
+msgstr "تحمیل به حالت نرمال(سبز/BLF off )"
+
+#: views/form.php:101
+msgid "Forces to Override Mode (Red/BLF on)"
+msgstr "تحمیل به حالت ابطال (قرمز/BLF on)"
+
+#: daynight.i18n.php:12
+msgid "Hook Time Conditions Module"
+msgstr "ماژول هوک شرایط زمانی"
+
+#: functions.inc.php:551
+msgid ""
+"If a selection is made, this timecondition will be associated with the "
+"specified call flow toggle  featurecode. This means that if the Call Flow "
+"Feature code is set to override (Red/BLF on) then this time condition will "
+"always go to its True destination if the chosen association is to 'Force "
+"Time Condition True Destination' and it will always go to its False "
+"destination if the association is with the 'Force Time Condition False "
+"Destination'. When the associated Call Flow Control Feature code is in its "
+"Normal mode (Green/BLF off), then then this Time Condition will operate as "
+"normal based on the current time. The Destinations that are part of any "
+"Associated Call Flow Control Feature Code will have no affect on where a "
+"call will go if passing through this time condition. The only thing that is "
+"done when making an association is allowing the override state of a Call "
+"Flow Toggle to force this time condition to always follow one of its two "
+"destinations when that associated Call Flow Toggle is in its override (Red/"
+"BLF on) state."
+msgstr ""
+"If a selection is made, this timecondition will be  associated with the "
+"specified call flow toggle  featurecode. This means that if the Call Flow "
+"Feature code is set to override (Red/BLF on) then this time condition will "
+"always go to its True destination if the chosen association is to 'Force "
+"Time Condition True Destination' and it will always go to its False "
+"destination if the association is with the 'Force Time Condition False "
+"Destination'. When the associated Call Flow Control Feature code is in its "
+"Normal mode (Green/BLF off), then then this Time Condition will operate as "
+"normal based on the current time. The Destinations that are part of any "
+"Associated Call Flow Control Feature Code will have no affect on where a "
+"call will go if passing through this time condition. The only thing that is "
+"done when making an association is allowing the override state of a Call "
+"Flow Toggle to force this time condition to always follow one of its two "
+"destinations when that associated Call Flow Toggle is in its override (Red/"
+"BLF on) state."
+
+#: views/form.php:104
+#, php-format
+msgid "Linked to Time Condition %s - %s"
+msgstr "متصل شده به شرایط زمانی %s - %s"
+
+#: views/bootnav.php:7
+msgid "List Callflows"
+msgstr "فهرست روندهای تماس"
+
+#: views/form.php:64
+msgid ""
+"Message to be played in normal mode (Green/BLF off).<br>To add additional "
+"recordings use the \"System Recordings\" MENU above"
+msgstr ""
+"پیام برای پخش در حالت معمولی (سبز/BLF off).<br>برای افزودن فایل جدید از منوی "
+"\"ضبط شده های سیستمی\" استفاده کنید"
+
+#: views/form.php:90
+msgid ""
+"Message to be played in override mode (Red/BLF on).<br>To add additional "
+"recordings use the \"System Recordings\" MENU to the above"
+msgstr ""
+"پیام برای پخش در حالت بازنویسی.(قرمز/BLF on).<br>برای افزودن فایل جدید از "
+"منوی \"ضبط شده های سیستمی\" استفاده کنید"
+
+#: functions.inc.php:522
+msgid "No Association"
+msgstr "هیچ ارتباطی"
+
+#: views/form.php:179
+msgid "Normal (Green/BLF off)"
+msgstr "نرمال(سبز/BLF off)"
+
+#: views/form.php:229
+msgid "Normal Flow (Green/BLF off)"
+msgstr "روند نرمال (سبز/BLF off)"
+
+#: views/form.php:202
+msgid "Optional Password"
+msgstr "کلمه عبور اختیاری"
+
+#: views/form.php:181
+msgid "Override (Red/BLF on)"
+msgstr "ابطال (قرمز/ BLF on)"
+
+#: views/form.php:253
+msgid "Override Flow (Red/BLF on)"
+msgstr "ابطال روند (قرمز/ BLF on)"
+
+#: assets/js/daynight.js:4
+msgid "Please enter a valid numeric password, only numbers are allowed"
+msgstr "لطفا یک کلمه عبور عددی وارد کنید،فقط عدد مجاز است"
+
+#: assets/js/daynight.js:7
+msgid "Please set the Current Mode"
+msgstr "لطفا حالت فعلی را تنظیم کنید"
+
+#: assets/js/daynight.js:5
+msgid "Please set the Normal Flow destination"
+msgstr "لطفا مقصد روند نرمال را تنظیم کنید"
+
+#: assets/js/daynight.js:6
+msgid "Please set the Override Flow destination"
+msgstr "لطفا مقصد روند ابطال را تنظیم کنید"
+
+#: views/form.php:50
+msgid "Recording for Normal Mode"
+msgstr "ضبط برای حالت نرمال"
+
+#: views/form.php:76
+msgid "Recording for Override Mode"
+msgstr "ضبط برای حالت ابطال"
+
+#: Daynight.class.php:58
+msgid "Reset"
+msgstr "تنظیم مجدد"
+
+#: views/grid.php:15
+msgid "State"
+msgstr "کیفیت"
+
+#: Daynight.class.php:63
+msgid "Submit"
+msgstr "ارسال"
+
+#: views/form.php:138
+#, php-format
+msgid ""
+"There are a total of %s Feature code objects, %s, each can control a call "
+"flow and be toggled using the call flow toggle feature code plus the index."
+msgstr ""
+"There are a total of %s Feature code  objects, %s, each can control a call "
+"flow and be toggled using the call flow toggle feature code plus the index."
+
+#: views/form.php:189
+msgid ""
+"This will change the current state for this Call Flow Toggle Control, or set "
+"the initial state when creating a new one."
+msgstr ""
+"این وضعیت فعلی روند کنترل تماس را تغییر میدهد، یا وضعیت فعلی را برای مورد "
+"جدید تنظیم میکند."
+
+#: views/form.php:108
+msgid "Time Condition Reference"
+msgstr "مرجع شرایط زمانی"
+
+#: views/form.php:217
+msgid ""
+"You can optionally include a password to authenticate before toggling the "
+"call flow. If left blank anyone can use the feature code and it will be un-"
+"protected"
+msgstr ""
+"شما میتوانید قبل از ورود به روند تماس برای احراز هویت یک کلمه عبور انتخاب "
+"کنید. اگر خالی بگذارید هرکسی میتواند از کد ویژه استفاده کند و این مورد باعث "
+"ناامنی میشود"
+
+#: views/form.php:13
+msgid ""
+"You have reached the maximum limit for flow controls. Delete one to add a "
+"new one"
+msgstr ""
+"شما از حداکثر روند تماس استفاده کرده اید. برای افزودن مورد جدید یک مورد را "
+"حذف کنید"
+
+#~ msgid "ERROR: failed to alter primary keys "
+#~ msgstr "خطا:تغییر کلید اصلی ناموفق بود "
+
+#~ msgid "OK"
+#~ msgstr "تایید"
+
+#~ msgid "changing primary keys to all fields.."
+#~ msgstr "تغییر دادن کلیدهای اصلی برای همه فیلدها.."

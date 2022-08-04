@@ -1,0 +1,84 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for featurecodeadmin
+# Copyright (C) 2008-2016 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-03-07 14:44-0800\n"
+"PO-Revision-Date: 2016-12-06 20:50+0200\n"
+"Last-Translator: Sven <spiderrs4@web.de>\n"
+"Language-Team: German <http://weblate.freepbx.org/projects/freepbx/"
+"featurecodeadmin/de_DE/>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: de_DE\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: views/main.php:32
+msgid "Actions"
+msgstr "Aktionen"
+
+#: featurecodeadmin.i18n.php:6
+msgid "Admin"
+msgstr "Administrator"
+
+#: Featurecodeadmin.class.php:65 views/main.php:29
+msgid "Code"
+msgstr "Code"
+
+#: views/main.php:53
+msgid "Customize"
+msgstr "Benutzerdefiniert"
+
+#: Featurecodeadmin.class.php:64 views/main.php:26
+msgid "Description"
+msgstr "Beschreibung"
+
+#: views/main.php:57
+msgid "Enabled"
+msgstr "Aktiviert"
+
+#: featurecodeadmin.i18n.php:4 views/main.php:9
+msgid "Feature Code Admin"
+msgstr "Funktionscode Administrator"
+
+#: page.featurecodeadmin.php:44
+msgid "Feature Code Conflicts with other Extensions"
+msgstr "Der Code steht im Konflikt mit einer anderen Nebenstelle"
+
+#: Featurecodeadmin.class.php:62 featurecodeadmin.i18n.php:8
+msgid "Feature Codes"
+msgstr "Funktionscodes"
+
+#: functions.inc.php:20
+msgid "Featurecode: "
+msgstr "Funktionscode: "
+
+#: assets/js/featurecodeadmin.js:29
+msgid "Please enter a Feature Code or uncheck Customize"
+msgstr ""
+"Bitte geben Sie einen Code ein oder deaktivieren Sie die Option "
+"Benutzerdefiniert"
+
+#: Featurecodeadmin.class.php:25
+msgid "Reset"
+msgstr "Zurücksetzen"
+
+#: Featurecodeadmin.class.php:30
+msgid "Submit"
+msgstr "Bestätigen"
+
+#: page.featurecodeadmin.php:42
+msgid ""
+"You have feature code conflicts with extension numbers in other modules. "
+"This will result in unexpected and broken behavior."
+msgstr ""
+"Sie haben Funktionscode-Konflikte mit Nebenstellennummern in anderen "
+"Modulen. Dies wird zu unerwartetem Verhalten führen."

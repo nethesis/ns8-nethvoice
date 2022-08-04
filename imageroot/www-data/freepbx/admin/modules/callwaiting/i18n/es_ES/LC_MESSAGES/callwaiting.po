@@ -1,0 +1,84 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX - módulo callwaiting module spanish translation\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-02-01 18:27-0800\n"
+"PO-Revision-Date: 2016-06-06 20:49+0200\n"
+"Last-Translator: Ernesto <ecasas@sangoma.com>\n"
+"Language-Team: Spanish <http://weblate.freepbx.org/projects/freepbx/"
+"callwaiting/es_ES/>\n"
+"Language: es_ES\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+"X-Poedit-Language: Spanish\n"
+"X-Poedit-Country: SPAIN\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: callwaiting.i18n.php:6
+msgid "Applications"
+msgstr "Aplicaciones"
+
+#: callwaiting.i18n.php:4 install.php:9 ucp/Callwaiting.class.php:84
+#: ucp/Callwaiting.class.php:101
+msgid "Call Waiting"
+msgstr "Llamada en espera"
+
+#: callwaiting.i18n.php:12 install.php:10
+msgid "Call Waiting - Activate"
+msgstr "Activar llamada en espera"
+
+#: callwaiting.i18n.php:10 install.php:11
+msgid "Call Waiting - Deactivate"
+msgstr "Desactivar llamada en espera"
+
+#: Callwaiting.class.php:58
+msgid "Call Waiting Enabled"
+msgstr "Llamada en Espera Habilitado"
+
+#: Callwaiting.class.php:59
+msgid "Call Waiting Enabled: ENABLED to enable, blank to disable"
+msgstr "Llamada en Espera habilitado. Dejar en blanco para deshabilitar"
+
+#: ucp/Callwaiting.class.php:150
+msgid "Call Waiting Has Been Updated!"
+msgstr "Llamada en Espera ha sido actualizado!"
+
+#: ucp/Callwaiting.class.php:71
+#, php-format
+msgid "Call Waiting for %s"
+msgstr ""
+
+#: functions.inc.php:63
+msgid "Call Waiting: OFF"
+msgstr ""
+
+#: functions.inc.php:44
+msgid "Call Waiting: ON"
+msgstr ""
+
+#: ucp/views/widget.php:2
+msgid "Disabled"
+msgstr ""
+
+#: ucp/views/widget.php:2
+msgid "Enabled"
+msgstr ""
+
+#: callwaiting.i18n.php:8
+msgid "Provides an option to turn on/off call waiting"
+msgstr "Provee una opción para encender o apagar llamada en espera"
+
+#~ msgid ""
+#~ "A service whereby someone making a telephone call is notified of an "
+#~ "incoming call and is able to place the first call on hold while answering "
+#~ "the second."
+#~ msgstr ""
+#~ "Un servicio por el cual alguien que hace una llamada telefónica es "
+#~ "notificado  de una llamada entrante y es capaz de colocar la primera "
+#~ "llamada en espera mientras se contesta la segunda."
+
+#~ msgid "Enable"
+#~ msgstr "Activa"

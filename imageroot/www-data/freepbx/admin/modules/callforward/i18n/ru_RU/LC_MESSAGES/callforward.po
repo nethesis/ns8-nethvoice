@@ -1,0 +1,179 @@
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# FreePBX language template for callforward
+# Copyright (C) 2008, 2009, 2010 Bandwith.com
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 2.10\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-02-01 18:25-0800\n"
+"PO-Revision-Date: 2015-05-31 00:30+0200\n"
+"Last-Translator: Yuriy <alliancesko@gmail.com>\n"
+"Language-Team: Russian <http://weblate.freepbx.org/projects/freepbx/"
+"callforward/ru_RU/>\n"
+"Language: ru_RU\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 2.2-dev\n"
+
+#: ucp/views/settings.php:5
+msgid "Always"
+msgstr ""
+
+#: callforward.i18n.php:6
+msgid "Applications"
+msgstr "Приложения"
+
+#: ucp/views/widget.php:13 ucp/views/widget.php:15
+msgid "Busy"
+msgstr "Занято"
+
+#: callforward.i18n.php:4 install.php:6 ucp/Callforward.class.php:130
+msgid "Call Forward"
+msgstr "Перенаправление вызова"
+
+#: callforward.i18n.php:24 install.php:7
+msgid "Call Forward All Activate"
+msgstr "Задать перенаправление всез вызовов"
+
+#: callforward.i18n.php:20 install.php:8
+msgid "Call Forward All Deactivate"
+msgstr "Снять перенаправление всех вызовов"
+
+#: callforward.i18n.php:26 install.php:9
+msgid "Call Forward All Prompting Activate"
+msgstr ""
+
+#: callforward.i18n.php:22 install.php:10
+msgid "Call Forward All Prompting Deactivate"
+msgstr "Снять перенаправление всех вызовов"
+
+#: callforward.i18n.php:16 install.php:11
+msgid "Call Forward Busy Activate"
+msgstr "Задать перенаправление по занятости"
+
+#: callforward.i18n.php:12 install.php:12
+msgid "Call Forward Busy Deactivate"
+msgstr "Снять перенаправление по занятости"
+
+#: callforward.i18n.php:18 install.php:13
+msgid "Call Forward Busy Prompting Activate"
+msgstr ""
+
+#: callforward.i18n.php:14 install.php:14
+msgid "Call Forward Busy Prompting Deactivate"
+msgstr "Снять перенаправление по занятости"
+
+#: callforward.i18n.php:30 install.php:15
+msgid "Call Forward No Answer/Unavailable Activate"
+msgstr "Задать перенаправление по неответу или недоступности"
+
+#: callforward.i18n.php:28 install.php:16
+msgid "Call Forward No Answer/Unavailable Deactivate"
+msgstr "Снять перенаправление по неответу или недоступности"
+
+#: callforward.i18n.php:32 install.php:17
+msgid "Call Forward No Answer/Unavailable Prompting Activate"
+msgstr ""
+
+#: callforward.i18n.php:10 install.php:18
+msgid "Call Forward Toggle"
+msgstr "Переключить перенаправление"
+
+#: ucp/Callforward.class.php:87 ucp/Callforward.class.php:106
+msgid "Call Forwarding"
+msgstr "Переадресация звонка"
+
+#: ucp/Callforward.class.php:182
+msgid "Call Forwarding Has Been Updated!"
+msgstr "Переадресация звонков обновлено!"
+
+#: ucp/Callforward.class.php:74
+#, php-format
+msgid "Call Forwarding for %s"
+msgstr ""
+
+#: ucp/views/settings.php:2
+msgid "CallForward Ringtimer"
+msgstr "Таймер звонка переадресации вызова"
+
+#: ucp/views/settings.php:4
+msgid "Default"
+msgstr ""
+
+#: ucp/views/widget.php:5 ucp/views/widget.php:10 ucp/views/widget.php:15
+msgid "Disabled"
+msgstr ""
+
+#: ucp/views/widget.php:5 ucp/views/widget.php:10 ucp/views/widget.php:15
+msgid "Enabled"
+msgstr ""
+
+#: ucp/views/settings.php:10
+msgid ""
+"Number of seconds to ring prior to going to voicemail or other fail over "
+"destinations that may be setup by an administrator on this account. The "
+"Always setting will ring the call forward destinaiton until answered or the "
+"caller hangs up. The Default setting will use the value set in Ring Time. "
+"Your setting here will be forced to Always if there is no Voicemail or "
+"alternartive fail over destination for a call to go to."
+msgstr ""
+"Количество секунд вызова до перехода на голосовую почту или другое "
+"назначение при сбое, которые могут быть установлены администратором на этот "
+"аккаунт. Установка Всегда будет звонить в переадресацию, пока вызываемый не "
+"ответил или абонент не повешает трубку. Значение по умолчанию будет "
+"использовать значение, установленное во Времени Вызова. Ваши настройки здесь "
+"будут установлены на Всегда, если здесь нет Голосовой почты или "
+"альтернативного назначения при сбое вызова."
+
+#: callforward.i18n.php:8
+msgid "Provides callforward featurecodes"
+msgstr "Организует коды определения перенаправлений"
+
+#: ucp/views/settings.php:7
+msgid "Seconds"
+msgstr "Секунд"
+
+#: ucp/views/widget.php:8 ucp/views/widget.php:10
+msgid "Unavailable"
+msgstr "Недоступен"
+
+#: ucp/views/widget.php:3 ucp/views/widget.php:5
+msgid "Unconditional"
+msgstr "Безусловный"
+
+#~ msgid "Forward immediately regardless of current state of line/PBX"
+#~ msgstr "Перевести немедленно, независимо от текущего состояния линии/АТС"
+
+#~ msgid ""
+#~ "Preconfigured number to which calls are forwarded if the customer "
+#~ "endpoint becomes unresponsive due to an Internet outage or software/"
+#~ "configuration failure of endpoint"
+#~ msgstr ""
+#~ "Предварительно настроенный номер, на который будут переадресованы звонки, "
+#~ "если конечная точка клиентов перестает отвечать на запросы из-за интернет-"
+#~ "отключения или сбоя программного обеспечения/конфигурации конечной точки"
+
+#~ msgid ""
+#~ "Preconfigured number to which calls are forwarded if the customer "
+#~ "endpoint is busy, usually due to being on an active call"
+#~ msgstr ""
+#~ "Предварительно настроенный номер, на который будут переадресованы звонки, "
+#~ "если конечная точка клиента занята, как правило, из-за активного вызова"

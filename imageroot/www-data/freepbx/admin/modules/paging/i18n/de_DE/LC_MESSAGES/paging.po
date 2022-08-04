@@ -1,0 +1,535 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for paging
+# Copyright (C) 2008-2017 Sangoma Technologies, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-05-10 05:16+0000\n"
+"PO-Revision-Date: 2020-10-01 16:00+0000\n"
+"Last-Translator: Bastian Mertgen <b.mertgen@bastian-mertgen.de>\n"
+"Language-Team: German <http://*/projects/freepbx/paging/de/>\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 3.0.1\n"
+
+#: assets/js/paging.js:39
+msgid " Please set the event days."
+msgstr " Bitte Ereignistage festlegen."
+
+#: assets/js/paging.js:42
+msgid " Please set the event time."
+msgstr " Bitte Ereigniszeit festlegen."
+
+#: Paging.class.php:207
+msgid ""
+"<strong>Force</strong><br> Send the headers telling the phone to go into "
+"auto answer mode. This may not work, and is dependant on the phone."
+msgstr ""
+"<strong>Erzwingen</strong><br> Sendet den Header, der dem Telefon mitteilt, "
+"in den automatischen Antwortmodus zu wechseln. Dies funktioniert "
+"möglicherweise nicht und ist abhängig vom Telefon."
+
+#: Paging.class.php:205
+msgid "<strong>Reject</strong><br> Return a BUSY signal to the caller"
+msgstr ""
+"<strong>ablehenen</strong><br> Ein BESETZT-Signal an den Anrufer senden"
+
+#: Paging.class.php:206
+msgid ""
+"<strong>Ring</strong><br> Treat the page as a normal call, and ring the "
+"extension (if Call Waiting is disabled, this will return BUSY"
+msgstr ""
+"<strong>Klingeln</strong><br> Behandle den Alarm als normalen Anruf und rufe "
+"die Durchwahl an (wenn Warteschlange deaktiviert sit, wird das BESETZT "
+"zurückgeben)"
+
+#: views/form.php:222
+msgid ""
+"<ul>\n"
+"<li><b>\"Skip\"</b> will not page any busy extension. All other extensions "
+"will be paged as normal</li>\n"
+"<li><b>\"Force\"</b> will not check if the device is in use before paging "
+"it. This means conversations can be interrupted by a page (depending on how "
+"the device handles it). This is useful for \"emergency\" paging groups.</"
+"li>\n"
+"<li><b>\"Whisper\"</b> will attempt to use the ChanSpy capability on SIP "
+"channels, resulting in the page being sent to the device's earpiece "
+"\"whispered\" to the user but not heard by the remote party. If ChanSpy is "
+"not supported on the device or otherwise fails, no page will get through. It "
+"probably does not make too much sense to choose duplex if using Whisper mode."
+"</li>\n"
+"</ul>"
+msgstr ""
+"<ul>\n"
+"<li><b> \"Skip\" </b> ruft keine besetzten Nebenstellen auf. Alle anderen "
+"Nebenstellen werden wie gewohnt weitergeleitet.</li>\n"
+"<li><b> \"Force\" </b> prüft nicht, ob das Gerät verwendet wird, bevor Sie "
+"es anrufen. Dies bedeutet, dass Gespräche durch eine Benachrichtigung "
+"unterbrochen werden können (abhängig davon, wie das Gerät damit umgeht). "
+"Dies ist nützlich für \"Notfall\" -Paging-Gruppen.</li>\n"
+"<li><b>\"Whisper\" </b> versucht, die ChanSpy-Funktion auf SIP-Kanälen zu "
+"verwenden, was dazu führt, dass die Benachrichtigung an die Hörmuschel des "
+"Geräts gesendet wird, die dem Benutzer \"geflüstert\" wurde, aber von der "
+"Gegenstelle nicht gehört wird. Wenn ChanSpy auf dem Gerät nicht unterstützt "
+"wird oder anderweitig ausfällt, wird keine Benachrichtigung durchgelassen. "
+"Es ist wahrscheinlich nicht sinnvoll, Duplex zu wählen, wenn Sie den "
+"Flüstermodus verwenden.</li>\n"
+"</ul>"
+
+#: views/grid.php:14
+msgid "Actions"
+msgstr "Aktionen"
+
+#: views/bootnav.php:8 views/grid.php:6
+msgid "Add Page Group"
+msgstr "Benachrichtigungs/Alarmgruppe hinzufügen"
+
+#: views/form.php:150
+msgid "Alert Tone"
+msgstr "Alarmton"
+
+#: paging.i18n.php:8
+msgid ""
+"Allows creation of paging groups to make announcements using the speaker "
+"built into most SIP phones. Also creates an        Intercom feature code "
+"that can be used as a prefix to talk directly to one person, as well as "
+"optional feature codes        to block/allow intercom calls to all users as "
+"well as blocking specific users or only allowing specific users."
+msgstr ""
+
+#: views/settings.php:68
+msgid "Annoucement to be played to remote party. Default is a beep"
+msgstr "Meldung wird bei verbundener Partei abgespielt. Standard ist ein Piep"
+
+#: views/form.php:164
+msgid ""
+"Announcement to be played to remote party. If set to Default it will use the "
+"global setting from Page Groups. If Page Groups is not defined then it will "
+"default to beep. This Announcement file duration should not exceed Default "
+"ringtime(Advanced Settings)"
+msgstr ""
+"Ansage, die der Gegenstelle vorgespielt werden soll. Bei der Einstellung "
+"Standard wird die globale Einstellung aus Alarmgruppen verwendet. Wenn "
+"Alarmgruppen nicht definiert sind, ertönt standardmäßig ein Piepton. Die "
+"Dauer dieser Ansagedatei sollte die Standard-Laufzeit (Erweiterte "
+"Einstellungen) nicht überschreiten"
+
+#: paging.i18n.php:6
+msgid "Applications"
+msgstr "Anwendungen"
+
+#: views/settings.php:54
+msgid "Auto-answer defaults"
+msgstr "Auto-antworten standards"
+
+#: views/form.php:45
+msgid "Beep"
+msgstr "Piep"
+
+#: views/form.php:205
+msgid "Busy Extensions"
+msgstr "Besetzte Durchwahlen"
+
+#: views/form.php:44 views/grid.php:13 views/settings.php:4
+msgid "Default"
+msgstr "Standard"
+
+#: functions.inc.php:1112
+msgid "Default Group Inclusion"
+msgstr "Standardgruppe verwenden"
+
+#: functions.inc.php:1115 views/form.php:268
+msgid "Default Page Group"
+msgstr "Standard Alarmgruppe"
+
+#: Paging.class.php:97 Paging.class.php:258
+msgid "Delete"
+msgstr "Löschen"
+
+#: views/bootnav.php:14 views/form.php:109 views/grid.php:12
+msgid "Description"
+msgstr "Beschreibung"
+
+#: views/form.php:121
+msgid "Device List"
+msgstr "Geräte Liste"
+
+#: views/form.php:135
+msgid ""
+"Devices to page. Please note, paging calls the actual device (and not the "
+"user). Amount of pagable devices is restricted by the advanced setting key "
+"PAGINGMAXPARTICIPANTS and is currently set to "
+msgstr ""
+"Zu alarmierende Geräte. Bitte  beachten Sie, dass die Alarmierung das Gerät "
+"(und nicht den Benutzer) anruft. Die Anzahl der alarmierbaren Geräte  durch "
+"die erweiterte Einstellung ‚PAGINGMAXPARTICIPANTS‘ beschränkt und liegt zur "
+"Zeit bei "
+
+#: functions.inc.php:1091
+msgid "Disable"
+msgstr "Deaktivieren"
+
+#: functions.inc.php:1088
+msgid "Disabled"
+msgstr "Deaktiviert"
+
+#: views/settings.php:80
+msgid "Drop Silence"
+msgstr ""
+
+#: views/form.php:238
+msgid "Duplex"
+msgstr "Duplexbetrieb"
+
+#: functions.inc.php:1087
+msgid "Enabled"
+msgstr "Aktiviert"
+
+#: functions.inc.php:1083
+msgid "Exclude"
+msgstr "Ausschließen"
+
+#: functions.inc.php:1117
+msgid "Extension Options"
+msgstr "Durchwahl-Optionen"
+
+#: Paging.class.php:199 views/form.php:212
+msgid "Force"
+msgstr "Erzwingen"
+
+#: views/form.php:97
+msgid "Group Description"
+msgstr "Beschreibung der Gruppe"
+
+#: views/form.php:283
+msgid ""
+"If you choose to make a Page Group the \"default\" page group, a checkbox "
+"will appear in the Extensions Module that will allow you to include or "
+"exclude that Extension in the default Page Group when editing said extension"
+msgstr ""
+"Wenn Sie eine Alarmgruppe als \"Standardalarmgruppe\" festlegen, wird im "
+"Nebenstellenmodul ein Kontrollkästchen angezeigt, mit dem Sie diese "
+"Nebenstelle in die Standardalarmgruppe einschließen oder ausschließen "
+"können, wenn Sie diese Nebenstelle bearbeiten"
+
+#: functions.inc.php:1084
+msgid "Include"
+msgstr "Einbinden"
+
+#: functions.inc.php:1092
+msgid "Intercom"
+msgstr "Gegensprechanlage"
+
+#: functions.inc.php:1126
+msgid "Intercom Mode"
+msgstr "Gegensprechanlagen-Modus"
+
+#: Paging.class.php:203
+msgid "Intercom Override"
+msgstr "Gegensprechanlage übergehen"
+
+#: functions.inc.php:383
+#, php-format
+msgid "Intercom from %s: Disabled"
+msgstr "Gegensprechanlage von %s: deaktiviert"
+
+#: functions.inc.php:321
+#, php-format
+msgid "Intercom from %s: Enabled"
+msgstr "Gegensprechanlage von %s: aktiviert"
+
+#: install.php:5 paging.i18n.php:16
+msgid "Intercom prefix"
+msgstr "Gegensprechanlage Vorwahl"
+
+#: functions.inc.php:371
+msgid "Intercom: Disabled"
+msgstr "Gegensprechanlage: deaktiviert"
+
+#: functions.inc.php:309
+msgid "Intercom: Enabled"
+msgstr "Gegensprechanlage: aktiviert"
+
+#: functions.inc.php:1122
+msgid "Internal Auto Answer"
+msgstr "automatische interne Antwort"
+
+#: views/bootnav.php:7
+msgid "List Page Groups"
+msgstr "Alarmgruppen anzeigen"
+
+#: views/form.php:245 views/form.php:275 views/settings.php:87
+#: views/settings.php:114
+msgid "No"
+msgstr "Nein"
+
+#: functions.inc.php:1171 views/form.php:43 views/form.php:181
+#: views/settings.php:3
+msgid "None"
+msgstr "Kein*e"
+
+#: views/form.php:41
+msgid "Not Selected"
+msgstr "Nicht ausgewählt"
+
+#: views/form.php:193
+msgid ""
+"Override the speaker volume for this page. Note: This is only valid for "
+"Sangoma phones at this time"
+msgstr ""
+"Lautsprecherstärke für diesen Alarm übergehen. Achtung: Momentan ist das ist "
+"nur für Sangoma-Telefone gültig"
+
+#: functions.inc.php:832 functions.inc.php:1176 views/bootnav.php:13
+#: views/formwrap.php:9 views/grid.php:11
+msgid "Page Group"
+msgstr "Alarmgruppe"
+
+#: functions.inc.php:920
+msgid "Page Group: "
+msgstr "Alarmgruppe: "
+
+#: Paging.class.php:399
+#, php-format
+msgid "Page Group: %s (%s)"
+msgstr "Alarmgruppe: %s (%s)"
+
+#: assets/js/paging.js:107
+msgid "Page Groups"
+msgstr "Alarmgruppen"
+
+#: views/form.php:73
+msgid "Paging Extension"
+msgstr "Paging-Nebenstelle"
+
+#: functions.inc.php:849
+#, php-format
+msgid "Paging Group %s : %s"
+msgstr "Paging-Gruppe %s : %s"
+
+#: views/overview.php:22
+msgid "Paging Groups"
+msgstr "Paging-Gruppen"
+
+#: views/routing_hook.php:15
+msgid "Paging Notification"
+msgstr "Alarmierungshinweis"
+
+#: Paging.class.php:202 paging.i18n.php:4 paging.i18n.php:10
+#: views/overview.php:7
+msgid "Paging and Intercom"
+msgstr "Paging und Intercom"
+
+#: views/settings.php:42
+msgid "Paging and Intercom settings"
+msgstr "Paging- und Intercom-Einstellungen"
+
+#: views/form.php:253
+msgid ""
+"Paging is typically one way for announcements only. Checking this will make "
+"the paging duplex, allowing all phones in the paging group to be able to "
+"talk and be heard by all. This makes it like an \"instant conference\""
+msgstr ""
+"Paging ist normalerweise nur eine Möglichkeit für Ankündigungen. Wenn Sie "
+"dies aktivieren, wird der Funkruf duplexisiert, sodass alle Telefone in der "
+"Funkrufgruppe sprechen und von allen gehört werden können. Das macht es wie "
+"eine \"Sofortkonferenz\""
+
+#: assets/js/paging.js:11
+msgid "Please enter a valid end Date."
+msgstr "Bitte geben Sie ein gültiges Enddatum ein."
+
+#: assets/js/paging.js:6
+msgid "Please enter a valid start Date."
+msgstr "Bitte geben Sie ein gültiges Startdatum ein."
+
+#: views/settings.php:107
+msgid "Quiet"
+msgstr "Stumm"
+
+#: Paging.class.php:197
+msgid "Reject"
+msgstr "Ablehnen"
+
+#: Paging.class.php:263
+msgid "Reset"
+msgstr "Zurücksetzen"
+
+#: Paging.class.php:198
+msgid "Ring"
+msgstr "Klingeln"
+
+#: views/form.php:40
+msgid "Selected"
+msgstr "Ausgewählt"
+
+#: views/overview.php:27
+msgid "Settings"
+msgstr "Einstellungen"
+
+#: views/form.php:210
+msgid "Skip"
+msgstr "Überspringen"
+
+#: views/form.php:176
+msgid "Speaker Volume Override"
+msgstr "Lautsprecher-Lautstärke überschreiben"
+
+#: Paging.class.php:268 views/settings.php:128
+msgid "Submit"
+msgstr "Absenden"
+
+#: assets/js/paging.js:16
+msgid "The end date must biger greater the start date."
+msgstr "Das Enddatum muss größer sein als das Startdatum."
+
+#: views/form.php:85
+msgid "The number users will dial to page this group"
+msgstr "Die Nummer, die Nutzer wählen, um die Gruppe zu alarmieren"
+
+#: views/overview.php:6
+msgid ""
+"This module is for specific phones that are capable of Paging or Intercom. "
+"This section is for configuring group paging, intercom is configured through "
+"<strong>Feature Codes</strong>. Intercom must be enabled on a handset before "
+"it will allow incoming calls. It is possible to restrict incoming intercom "
+"calls to specific extensions only, or to allow intercom calls from all "
+"extensions but explicitly deny from specific extensions.<br /><br />This "
+"module should work with Aastra, Grandstream, Linksys/Sipura, Mitel, Polycom, "
+"SNOM , and possibly other SIP phones (not ATAs). Any phone that is always "
+"set to auto-answer should also work (such as the console extension if "
+"configured)."
+msgstr ""
+"Dieses Modul ist für bestimmte Telefone vorgesehen, die Paging oder Intercom "
+"unterstützen. In diesem Abschnitt wird das Gruppen-Paging konfiguriert. Die "
+"Intercom-Konfiguration erfolgt über <strong>Funktionscodes</strong>. Die "
+"Gegensprechfunktion muss auf einem Mobilteil aktiviert sein, bevor "
+"eingehende Anrufe zugelassen werden. Es ist möglich, eingehende Intercom-"
+"Anrufe nur auf bestimmte Nebenstellen zu beschränken oder Intercom-Anrufe "
+"von allen Nebenstellen zuzulassen, aber explizit von bestimmten Nebenstellen "
+"abzulehnen. <br /> <br /> Dieses Modul sollte mit Aastra, Grandstream, "
+"Linksys / Sipura, Mitel, Polycom, SNOM und möglicherweise anderen SIP-"
+"Telefonen (nicht ATAs) funktionieren. Jedes Telefon, das immer auf "
+"automatische Anrufbeantwortung eingestellt ist, sollte ebenfalls "
+"funktionieren (z. B. die Konsolenerweiterung, falls konfiguriert)."
+
+#: views/settings.php:95
+msgid ""
+"This option drops what Asterisk detects as silence from entering into the "
+"bridge. Enabling this option will drastically improve performance and help "
+"remove the buildup of background noise from the conference. Highly "
+"recommended for large conferences due to its performance enhancements."
+msgstr ""
+"Diese Option verhindert, dass das, was Asterisk als Stille erkennt, in die "
+"Brücke eintritt. Durch Aktivieren dieser Option wird die Leistung drastisch "
+"verbessert und die Entstehung von Hintergrundgeräuschen aus der Konferenz "
+"entfernt. Sehr empfehlenswert für große Konferenzen aufgrund der "
+"Leistungssteigerung."
+
+#: views/settings.php:122
+msgid "This option removes the beep from caller."
+msgstr "Diese Option entfernt den Signalton vom Anrufer."
+
+#: views/routing_hook.php:29
+msgid ""
+"This will cause the selected Page Group to be paged and connected to any "
+"call that is served by this route. It is recommended not to use a Page Group "
+"that uses (Force) Valet Paging(Paging Pro only)"
+msgstr ""
+"Dies bewirkt, dass die ausgewählte Alarmgruppe mit einem Anruf, der über "
+"diese Route bedient wird, verbunden wird. Es wird empfohlen, keine "
+"Alarmgruppe zu verwenden, die Valet-Paging (erzwingen) verwendet (nur Paging "
+"Pro)"
+
+#: Paging.class.php:185
+msgid "Unknown Request"
+msgstr "Unbekannte Anfrage"
+
+#: install.php:6 paging.i18n.php:14
+msgid "User Intercom Allow"
+msgstr "Benutzerschnittstelle zulassen"
+
+#: install.php:7 paging.i18n.php:12
+msgid "User Intercom Disallow"
+msgstr "Intercom nicht zulassen"
+
+#: functions.inc.php:1126
+msgid ""
+"When Enabled users can use *80<ext> to force intercom. When Disabled this "
+"user will reject intercom calls"
+msgstr ""
+"Wenn aktiviert, können Benutzer * 80<ext> verwenden, um die "
+"Gegensprechanlage zu erzwingen. Wenn deaktiviert, lehnt dieser Benutzer "
+"Intercom-Anrufe ab"
+
+#: functions.inc.php:1122
+msgid ""
+"When set to Intercom, calls to this extension/user from other internal users "
+"act as if they were intercom calls meaning they will be auto-answered if the "
+"endpoint supports this feature and the system is configured to operate in "
+"this mode. All the normal white list and black list settings will be honored "
+"if they are set. External calls will still ring as normal, as will certain "
+"other circumstances such as blind transfers and when a Follow Me is "
+"configured and enabled. If Disabled, the phone rings as a normal phone."
+msgstr ""
+"Bei der Einstellung Intercom verhalten sich Anrufe von anderen internen "
+"Benutzern an diese Nebenstelle / diesen Benutzer so, als wären sie Intercom-"
+"Anrufe, was bedeutet, dass sie automatisch beantwortet werden, wenn der "
+"Endpunkt diese Funktion unterstützt und das System für den Betrieb in diesem "
+"Modus konfiguriert ist. Alle normalen Einstellungen für weiße und schwarze "
+"Listen (Whitelist/Blacklist) werden berücksichtigt, wenn sie festgelegt "
+"sind. Externe Anrufe klingeln weiterhin wie gewohnt, ebenso wie bestimmte "
+"andere Umstände wie blinde Weiterleitungen und das Konfigurieren und "
+"Aktivieren einer Umleitungsfunktion. Wenn deaktiviert, klingelt das Telefon "
+"wie ein normales Telefon."
+
+#: Paging.class.php:204
+msgid ""
+"When using Intercom to page an extension, if the extension is in use, you "
+"have three options."
+msgstr ""
+"Wenn Sie Intercom zum Alarmieren einer Erweiterung verwenden und die "
+"Erweiterung verwendet wird, haben Sie drei Möglichkeiten."
+
+#: views/form.php:214
+msgid "Whisper"
+msgstr "Flüstern"
+
+#: views/form.php:243 views/form.php:273 views/settings.php:85
+#: views/settings.php:112
+msgid "Yes"
+msgstr "Ja"
+
+#: functions.inc.php:1115
+msgid ""
+"You can include or exclude this extension/device from being part of the "
+"default page group when creating or editing."
+msgstr ""
+"Sie können diese Nebenstelle / dieses Gerät beim Erstellen oder Bearbeiten "
+"als Teil der Standardalarmgruppe ein- oder ausschließen."
+
+#~ msgid ""
+#~ "Allows creation of paging groups to make announcements using the speaker "
+#~ "built into most SIP phones.\t\tAlso creates an Intercom feature code that "
+#~ "can be used as a prefix to talk directly to one person, as well as "
+#~ "optional feature codes to block/allow intercom calls to all users as well "
+#~ "as blocking specific users or only allowing specific users."
+#~ msgstr ""
+#~ "Ermöglicht die Erstellung von Paging-Gruppen, um mithilfe des in den "
+#~ "meisten SIP-Telefonen integrierten Lautsprechers Ansagen zu machen. "
+#~ "Erstellt außerdem einen Intercom-Funktionscode, der als Präfix verwendet "
+#~ "werden kann, um direkt mit einer Person zu sprechen, sowie optionale "
+#~ "Funktionscodes, um Intercom-Anrufe an alle Benutzer zu blockieren/ "
+#~ "zuzulassen sowie bestimmte Benutzer zu blockieren oder nur bestimmte "
+#~ "Benutzer zuzulassen."
+
+#~ msgid "Notifications"
+#~ msgstr "Benachrichtigungen"

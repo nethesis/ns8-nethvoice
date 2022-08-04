@@ -1,0 +1,54 @@
+<module>
+	<rawname>vmblast</rawname>
+	<repo>standard</repo>
+	<name>Voicemail Blasting</name>
+	<version>13.0.11</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<category>Applications</category>
+	<description>
+		Creates a group of extensions that calls a group of voicemail boxes and allows you to leave a message for them all at once.
+	</description>
+	<changelog>
+		*13.0.11* Fixing FREEPBX-17867 
+		*13.0.10* FREEPBX-18344 After adding/editing a Voicemail Blasting entry the page is not redirecting to list page 
+		*13.0.9* Fixing FREEPBX-18869 
+		*13.0.8* FREEPBX-11854 Add clicktoedit to password
+		*13.0.7* FREEPBX-11269
+		*13.0.6* FREEPBX-10677
+		*13.0.5* Slide out menu
+		*13.0.4* FREEPBX-9174 Change int to bigint
+		*13.0.3* FREEPBX-10336 Fix audio label field
+		*13.0.2* Version bump Beta
+		*13.0.1alpha1* Visual Changes
+		*12.0.1* Redo module_hook calls to use static obj
+		*2.11.0.4* #1953
+		*2.11.0.2* update license
+		*2.11.0.1* #6055
+		*2.11.0.0* #6051
+		*2.10.0.2* #5478
+		*2.10.0.1* #5463
+		*2.10.0.0* new version changes
+		*2.9.0.3* spellings
+		*2.9.0.2* #4850
+		*2.9.0.1* removed duplicate functions
+		*2.9.0.0* 2.9 Update
+	</changelog>
+	<menuitems>
+		<vmblast>Voicemail Blasting</vmblast>
+	</menuitems>
+	<popovers>
+		<vmblast>
+			<display>vmblast</display>
+		</vmblast>
+ 	</popovers>
+	<depends>
+		<version>13.0.6</version>
+	</depends>
+	<supported>
+		<version>13.0</version>
+	</supported>
+	<location>release/2.11/vmblast-2.11.0.1.tgz</location>
+	<md5sum>5c7d8c009bd41af1db0ebe87c2424ba4</md5sum>
+</module>

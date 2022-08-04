@@ -1,0 +1,67 @@
+<module>
+	<rawname>callback</rawname>
+	<repo>extended</repo>
+	<name>Callback</name>
+	<version>13.0.5.4</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<category>Applications</category>
+	<menuitems>
+		<callback needsenginedb="yes">Callback</callback>
+	</menuitems>
+	<popovers>
+		<callback>
+			<display>callback</display>
+		</callback>
+ 	</popovers>
+	<changelog>
+		*13.0.5.4* Fixing FREEPBX-17867 
+		*13.0.5.3* FREEPBX-18100 Callback timeout and cid on GUI 
+		*13.0.5.2* FREEPBX-14739 Unable to select the "Destination after Callback" value under Callback application.
+		*13.0.5.1* FREEPBX-14740 Multiple Callbacks can be added with same Name
+		*13.0.5* Use '/usr/bin/env php' to start script
+		*13.0.4* Invalid variable in destinations
+		*13.0.3* Slideout menu, move grid to ajax handler
+		*13.0.2* Version bump Beta
+		*13.0.1alpha1* FREEPBX-9039 Remove Departments
+		*2.11.0.4* #1953
+		*2.11.0.3* Generate license file
+		*2.11.0.1* Add wrapper function for DB helper
+		*2.11.0.0* #6051
+		*2.10.0.1* #5478
+		*2.10.0.0* new version changes
+		*2.9.0.4* spellings, localizaions
+		*2.9.0.3* #4840
+		*2.9.0.2* #4787
+		*2.9.0.1* set repo
+		*2.9.0.0* #4639, #4655
+		*2.8.0.0* published 2.8 version
+		*2.7.0.0* localizations
+		*2.6.0.1* #3838
+		*2.6.0.0* localizations, misc
+		*2.5.0.2* #3272 missing callback_check_destinations(), localization fixes
+		*2.5.0.1* Swedish Translations, fix Italian Translations
+		*2.5.0* #2845 tabindex
+		*2.4.0.2* #2843 Russian Translation
+		*2.4.0.1* add 2.4.0 dependency
+		*2.4.0* extension/destination registry, it translations
+		*1.4.2.3* changed categories
+		*1.4.2.2* bump for rc1
+		*1.4.2.1* changed freePBX to FreePBX
+		*1.4.2* merge findmefollow/core extension destinations if any
+		*1.4.1* Moved callback agi script from core to module
+		*1.4.0* SQLite3 support, fixes ticket:1793 (only for FreePBX 2.3)
+		*1.3.1* Add he_IL translation
+		*1.3* Fixed UI errors for new 2.2 look.
+		*1.2* First 2.2 release
+	</changelog>
+	<depends>
+		<version>13.0.5</version>
+	</depends>
+	<supported>
+		<version>13.0</version>
+	</supported>
+	<location>release/2.11/callback-2.11.0.0.tgz</location>
+	<md5sum>27e82a42a2d657a9a459d9e366c71747</md5sum>
+</module>

@@ -1,0 +1,1913 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for userman
+# Copyright (C) 2008-2016 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-03-13 17:43+0530\n"
+"PO-Revision-Date: 2019-02-25 12:31+0000\n"
+"Last-Translator: Bastian Mertgen <b.mertgen@bastian-mertgen.de>\n"
+"Language-Team: German <http://*/projects/freepbx/userman/de/>\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 3.0.1\n"
+
+#: views/groups.php:36 views/users.php:33
+#, php-format
+msgid "%s Administration GUI"
+msgstr "%s Administrationsoberfläche"
+
+#: functions.inc/auth/modules/Freepbx.php:24
+#, php-format
+msgid "%s Internal Directory"
+msgstr "%s Internes Verzeichnis"
+
+#: views/welcome.php:15
+#, php-format
+msgid ""
+"%s User Manager is taking the place of several modules which have attempted "
+"to create and manage users separate from Extensions. Modules such as "
+"iSymphony and RestAPI are examples of these type of modules. In %s 12, the "
+"new User Control Panel also uses User Manager."
+msgstr ""
+"Die %s-Benutzerverwaltung ersetzt mehrere Module, die versucht haben, "
+"Benutzer unabhängig von Nebenstellen zu erzeugen und zu verwalten. Module "
+"wie iSymphony und RestAPI sind Beispiele hierfür. In %s 12 verwendet das "
+"neue „User Control Panel“ ebenfalls die Benutzerverwaltung."
+
+#: Userman.class.php:2941
+#, php-format
+msgid "%s records failed validation"
+msgstr "%s Überprüfung beim Eintrag fehlgeschlagen"
+
+#: views/directories.php:103
+msgid "1 Day"
+msgstr "1 Tag"
+
+#: views/directories.php:101
+msgid "1 Hour"
+msgstr "1 Stunde"
+
+#: views/directories.php:100
+msgid "30 Minutes"
+msgstr "30 Minuten"
+
+#: views/directories.php:102
+msgid "6 Hours"
+msgstr "6 Stunden"
+
+#: views/users.php:95
+msgid "A brief description for this user."
+msgstr "Eine kurze Beschreibung für diesen Benutzer."
+
+#: views/welcome.php:61 views/welcome.php:92 views/welcome.php:117
+msgid "Action"
+msgstr "Aktion"
+
+#: views/welcome.php:114
+msgid "Active"
+msgstr "Aktiv"
+
+#: views/welcome.php:35 views/welcome.php:72 views/welcome.php:103
+msgid "Add"
+msgstr "Hinzufügen"
+
+#: Userman.class.php:885
+msgid "Add Device"
+msgstr "Gerät hinzufügen"
+
+#: views/rnav.php:40
+msgid "Add Directory"
+msgstr "Verzeichnis hinzufügen"
+
+#: Userman.class.php:885
+msgid "Add Extension"
+msgstr "Nebenstelle hinzufügen"
+
+#: views/groups.php:6 views/rnav.php:24
+msgid "Add Group"
+msgstr "Gruppe hinzufügen"
+
+#: functions.inc/auth/Auth.php:70
+msgid "Add Group is not defined"
+msgstr "„Gruppe hinzufügen“ ist nicht definiert"
+
+#: views/rnav.php:7 views/users.php:5
+msgid "Add User"
+msgstr "Benutzer hinzufügen"
+
+#: functions.inc/auth/Auth.php:62
+msgid "Add User is not defined"
+msgstr "„Benutzer hinzufügen“ ist nicht definiert"
+
+#: functions.inc/auth/modules/Voicemail.php:85
+#, php-format
+msgid "Added Voicemail User %s"
+msgstr "Anrufbeantworter-Benutzer %s hinzugefügt"
+
+#: userman.i18n.php:6
+msgid "Admin"
+msgstr "Administrator"
+
+#: views/groups.php:337 views/users.php:713
+msgid "Administration Access"
+msgstr "Administrationszugriff"
+
+#: views/groups.php:34 views/users.php:31
+msgid "Advanced"
+msgstr "erweitert"
+
+#: views/welcome.php:44 views/welcome.php:78
+msgid "All Directories"
+msgstr "Alle Verzeichnisse"
+
+#: Userman.class.php:1420
+msgid "All Users"
+msgstr "Alle Benutzer"
+
+#: views/groups.php:265 views/users.php:637
+#, php-format
+msgid "Allow %s Administration Login"
+msgstr "%s Administrator Login erlauben"
+
+#: functions.inc/auth/modules/Freepbx.php:189
+#: functions.inc/auth/modules/Freepbx.php:215
+msgid "An Unknown error occured while trying to update user data"
+msgstr ""
+"Beim Versuch, Benutzerdaten zu aktualisieren, ist ein unbekannter Fehler "
+"aufgetreten"
+
+#: Userman.class.php:886
+msgid "Apply Changes Bar"
+msgstr "Änderungen anwenden"
+
+#: assets/js/userman.js:142
+msgid "Are you sure you want to make this directory the system default?"
+msgstr ""
+"Sind Sie sicher, dass Sie dieses Verzeichnis zum Systemstandard machen "
+"möchten?"
+
+#: assets/js/userman.js:85
+#, perl-format
+msgid "Are you sure you wish to delete these %s?"
+msgstr "Wollen Sie diese %s wirklich löschen?"
+
+#: assets/js/userman.js:125
+#, perl-format
+msgid "Are you sure you wish to delete this %s?"
+msgstr "Wollen Sie diesen %s wirklich löschen?"
+
+#: functions.inc/auth/modules/Voicemail.php:34
+msgid "Asterisk Voicemail"
+msgstr "Asterisk Anrufbeantworter"
+
+#: views/general.php:10
+msgid "Authentication Settings"
+msgstr "Authentisierungseinstellungen"
+
+#: Userman.class.php:217 functions.inc/guihooks.php:301
+#: functions.inc/guihooks.php:374
+msgid "Autogenerated user on new device creation"
+msgstr "Automatisch generierter Benutzer zu neuem Nebenstellengerät"
+
+#: views/msad.php:117 views/msad2.php:143 views/openldap.php:188
+#: views/openldap2.php:121
+msgid "Base DN"
+msgstr "Basis-DN"
+
+#: views/openldap2.php:77
+msgid "Bind DN or Username"
+msgstr "Binde DN oder Benutzernamen"
+
+#: views/users.php:459
+msgid "Cell Phone Number"
+msgstr "Handynummer"
+
+#: views/passwordmodal.php:29
+msgid "Close"
+msgstr "Schließen"
+
+#: views/msad2.php:241 views/openldap2.php:219
+msgid "Common Name attribute"
+msgstr "Allgemeines Namensattribut"
+
+#: views/users.php:323
+msgid "Company"
+msgstr "Firma"
+
+#: functions.inc/auth/modules/Msad.php:156
+#: functions.inc/auth/modules/Msad2.php:175
+#: functions.inc/auth/modules/Openldap.php:168
+#: functions.inc/auth/modules/Openldap2.php:179
+msgid "Connected"
+msgstr "Verbunden"
+
+#: views/voicemail.php:7
+msgid "Context"
+msgstr "Kontext"
+
+#: functions.inc/auth/modules/Voicemail.php:103
+msgid "Could not find the voicemail context"
+msgstr "Konnte den Kontext für Sprachnachrichten nicht finden"
+
+#: views/msad2.php:189 views/openldap2.php:167
+msgid "Create Missing Extensions"
+msgstr "Erzeuge fehlende Durchwahlen"
+
+#: functions.inc/guihooks.php:204 functions.inc/guihooks.php:253
+msgid "Create New User"
+msgstr "Neuen Benutzer erstellen"
+
+#: views/quickCreate.php:8
+msgid "Create User Manager User"
+msgstr "Benutzermanager Benutzer erstellen"
+
+#: views/groups.php:240 views/users.php:610
+msgid "Date Format"
+msgstr "Datumsformat"
+
+#: views/groups.php:196 views/users.php:560
+msgid "Date and Time Format"
+msgstr "Datums- und Zeitformat"
+
+#: views/welcome.php:116
+msgid "Default"
+msgstr "Standard"
+
+#: views/freepbx.php:7
+msgid "Default Groups"
+msgstr "Standardgruppe"
+
+#: views/groups.php:367 views/users.php:742
+msgid "Default Landing Page"
+msgstr "Standard-Startseite"
+
+#: Userman.class.php:541 views/welcome.php:38 views/welcome.php:75
+#: views/welcome.php:106 assets/js/userman.js:90 assets/js/userman.js:96
+msgid "Delete"
+msgstr "Löschen"
+
+#: assets/js/userman.js:86
+msgid "Deleting..."
+msgstr "Löschen..."
+
+#: views/users.php:347
+msgid "Department"
+msgstr "Abteilung"
+
+#: Userman.class.php:2887 Userman.class.php:2888 Userman.class.php:2913
+#: Userman.class.php:2914 views/rnav.php:14 views/rnav.php:31
+#: views/users.php:83 views/welcome.php:60 views/welcome.php:90
+msgid "Description"
+msgstr "Beschreibung"
+
+#: views/msad2.php:263 views/openldap2.php:241
+msgid "Description attribute"
+msgstr "Beschreibungs-Attribut"
+
+#: views/welcome.php:27
+msgid "Directories"
+msgstr "Verzeichnisse"
+
+#: views/welcome.php:54 views/welcome.php:88
+msgid "Directory"
+msgstr "Verzeichnis"
+
+#: views/directories.php:47 views/rnav.php:45
+msgid "Directory Name"
+msgstr "Verzeichnisname"
+
+#: views/directories.php:117
+msgid "Directory Settings"
+msgstr "Telefonbuch-Einstellungen"
+
+#: views/directories.php:16
+msgid "Directory Type"
+msgstr "Telefonbuch-Typ"
+
+#: Userman.class.php:1762 Userman.class.php:1792
+msgid "Directory is locked. Can not add group"
+msgstr "Telefonbuch ist gesperrt. Gruppe kann nicht hinzugefügt werden"
+
+#: Userman.class.php:1676 Userman.class.php:1709
+msgid "Directory is locked. Can not add user"
+msgstr "Telefonbuch ist gesperrt. Benutzer kann nicht hinzugefügt werden"
+
+#: Userman.class.php:1921
+msgid "Directory is locked. Can not update group"
+msgstr "Telefonbuch ist gesperrt. Gruppe kann nicht aktualisiert werden"
+
+#: Userman.class.php:1877
+msgid "Directory is locked. Can not update user"
+msgstr "Telefonbuch ist gesperrt. Benutzer kann nicht aktualisiert werden"
+
+#: views/welcome.php:100
+msgid ""
+"Directory order can be changed by clicking and dragging directories around "
+"in the order you'd like. User logins will match based on the first directory "
+"then if no match was found waterfall down the list in the order chosen below"
+msgstr ""
+"Sie können die Reihenfolge der Verzeichnisse ändern, indem Sie die Einträge "
+"anklicken und die gewünschte Reihenfolge ziehen. Benutzeranmeldungen werden "
+"der Reihe nach mit den Verzeichnissen abgeglichen bis eine Übereinstimmung "
+"gefunden wird"
+
+#: Userman.class.php:2899 Userman.class.php:2900 views/openldap.php:144
+#: views/users.php:275 views/welcome.php:56
+msgid "Display Name"
+msgstr "Anzeigename"
+
+#: views/users.php:287
+msgid ""
+"Display Name. Used in User Control Panel and Contact Manager to display a "
+"customized user name"
+msgstr ""
+"Anzeigename. Wird im ‚User Control Panel‘ und im Kontakt-Manager verwendet, "
+"um einen angepassten Benutzernamen anzuzeigen"
+
+#: views/msad.php:95 views/msad2.php:121
+msgid "Domain"
+msgstr "Domäne"
+
+#: views/msad2.php:194 views/openldap2.php:172
+msgid "Don't Create"
+msgstr "Nicht erzeugen"
+
+#: views/groups.php:3
+msgid "Edit Group"
+msgstr "Gruppe bearbeiten"
+
+#: views/users.php:3
+msgid "Edit User"
+msgstr "Benutzer bearbeiten"
+
+#: userman.i18n.php:12
+msgid "Email "
+msgstr "E-Mail "
+
+#: views/users.php:435
+msgid "Email Address"
+msgstr "E-Mail-Adresse"
+
+#: views/general.php:128
+msgid "Email Body"
+msgstr "Inhalt"
+
+#: views/general.php:9 views/general.php:16
+msgid "Email Settings"
+msgstr "E-Mail Einstellungen"
+
+#: views/general.php:104
+msgid "Email Subject"
+msgstr "Betreff"
+
+#: views/directories.php:69
+msgid "Enable Directory"
+msgstr "Verzeichnis aktivieren"
+
+#: views/quickCreate.php:25
+msgid "Enable User Manager for this extension"
+msgstr "User-Manager für diese Erweiterung aktivieren"
+
+#: Userman.class.php:1045
+msgid "Error: No id provided"
+msgstr "Fehler: Es wurde keine ID angegeben"
+
+#: Userman.class.php:1084
+msgid "Error: You should never see this"
+msgstr "Fehler: Sie sollten dies nie sehen"
+
+#: views/msad.php:139 views/openldap.php:210
+msgid "Extension Link Attribute"
+msgstr "Verknüpfungsattribut der Nebenstelle"
+
+#: assets/js/userman.js:370
+msgid "False"
+msgstr "Falsch"
+
+#: views/users.php:531
+msgid "Fax Phone Number"
+msgstr "Faxnummer"
+
+#: Userman.class.php:2891 Userman.class.php:2892 views/users.php:227
+#: views/welcome.php:57
+msgid "First Name"
+msgstr "Vorname"
+
+#: Console/Userman.class.php:23
+msgid "Force syncronization"
+msgstr "Synchronisation erzwingen"
+
+#: Userman.class.php:1349 Userman.class.php:1897
+msgid "GID was not numeric"
+msgstr "GID war nicht numerisch"
+
+#: views/groups.php:94
+msgid "Give the group a description"
+msgstr "Geben Sie der Gruppe eine Beschreibung"
+
+#: views/groups.php:72
+msgid "Give the group a name"
+msgstr "Geben Sie der Gruppe einen Namen"
+
+#: views/groups.php:290 views/users.php:664
+msgid "Grant Full Administration Rights"
+msgstr "Administratorvollzugriff"
+
+#: views/groups.php:305 views/users.php:681
+msgid ""
+"Grant full administration rights regardless of extension range or module "
+"access."
+msgstr ""
+"Gewährt volle Administratorrechte unabhängig von Erweiterungsbereich oder "
+"ausgewählten Administrationszugängen."
+
+#: functions.inc/auth/modules/Freepbx.php:205
+#: functions.inc/auth/modules/Voicemail.php:221
+#, php-format
+msgid "Group '%s' Does Not Exist"
+msgstr "Gruppe '%s' existiert nicht"
+
+#: views/msad2.php:711 views/openldap2.php:665
+msgid "Group DN"
+msgstr "Gruppen-DN"
+
+#: views/groups.php:82
+msgid "Group Description"
+msgstr "Beschreibung der Gruppe"
+
+#: views/groups.php:33
+msgid "Group Details"
+msgstr "Gruppendetails"
+
+#: functions.inc/auth/Auth.php:456
+msgid "Group Does Not Exist"
+msgstr "Gruppe existiert nicht"
+
+#: Userman.class.php:2909 Userman.class.php:2910 views/groups.php:60
+#: views/rnav.php:30 views/welcome.php:89
+msgid "Group Name"
+msgstr "Gruppenname"
+
+#: views/welcome.php:69
+msgid ""
+"Group Priorities can be changed by clicking and dragging groups around in "
+"the order you'd like. Groups with a lower number for priority take priority "
+"(EG 0 is higher than 1)"
+msgstr ""
+"Sie können die Reihenfolge der Gruppen ändern, indem Sie die Einträge "
+"anklicken und die gewünschte Reihenfolge ziehen. Gruppen mit einer kleineren "
+"Nummer haben eine höhere Priorität (0 ist z.B. höher priorisiert als 1)"
+
+#: functions.inc/auth/modules/Freepbx.php:139
+#: functions.inc/auth/modules/Msad2.php:398
+#: functions.inc/auth/modules/Openldap2.php:398
+#: functions.inc/auth/modules/Voicemail.php:183
+msgid "Group Successfully Added"
+msgstr "Gruppe erfolgreich hinzugefügt"
+
+#: functions.inc/auth/Auth.php:468
+msgid "Group Successfully Deleted"
+msgstr "Gruppe erfolgreich gelöscht"
+
+#: functions.inc/auth/Auth.php:592
+msgid "Group Successfully Updated"
+msgstr "Gruppe erfolgreich aktualisiert"
+
+#: Userman.class.php:3069
+msgid "Group already exists"
+msgstr "Gruppe existiert bereits"
+
+#: views/msad2.php:704
+msgid "Group configuration"
+msgstr "Gruppenkonfiguration"
+
+#: views/msad2.php:777 views/openldap2.php:731
+msgid "Group members attribute"
+msgstr "Attribut für Gruppenmitglieder"
+
+#: views/msad2.php:733 views/openldap2.php:687
+msgid "Group object class"
+msgstr "Gruppenobjektklasse"
+
+#: views/msad2.php:755 views/openldap2.php:709
+msgid "Group object filter"
+msgstr "Gruppenobjekt-Filter"
+
+#: functions.inc/auth/modules/Msad.php:394
+#: functions.inc/auth/modules/Msad2.php:448
+#: functions.inc/auth/modules/Openldap.php:407
+#: functions.inc/auth/modules/Openldap2.php:448
+msgid "Group updated"
+msgstr "Gruppe aktualisiert"
+
+#: functions.inc/auth/Auth.php:563
+msgid "Groupname Can Not Be Blank!"
+msgstr "Gruppenname darf nicht leer sein!"
+
+#: Userman.class.php:1757 Userman.class.php:1787
+msgid "Groupname can not be blank"
+msgstr "Gruppenname darf nicht leer sein"
+
+#: functions.inc/guihooks.php:235 functions.inc/guihooks.php:279
+#: views/users.php:159 views/welcome.php:26
+msgid "Groups"
+msgstr "Gruppe"
+
+#: functions.inc/guihooks.php:235 functions.inc/guihooks.php:279
+msgid ""
+"Groups that this user is a part of. You can add and remove this user from "
+"groups in this view as well"
+msgstr ""
+"Gruppen, denen dieser Benutzer angehört. Sie können in dieser Ansicht auch "
+"die Gruppenmitglischaften dieses Benutzers ändern"
+
+#: views/users.php:507
+msgid "Home Phone Number"
+msgstr "Telefonnummer"
+
+#: views/msad.php:7 views/openldap.php:7
+msgid "Host"
+msgstr "Host"
+
+#: views/general.php:81
+msgid "Host Name"
+msgstr "Hostname"
+
+#: views/msad2.php:33 views/openldap2.php:33
+msgid "Host(s)"
+msgstr "Host(s)"
+
+#: Console/Userman.class.php:33
+msgid "ID"
+msgstr "ID"
+
+#: Userman.class.php:1331
+msgid "ID was not numeric"
+msgstr "ID war nicht numerisch"
+
+#: functions.inc/guihooks.php:234 functions.inc/guihooks.php:278
+msgid ""
+"If Create New User is selected this will be the autogenerated users new "
+"password"
+msgstr "Neuen Benutzer erstellen' gewählt ist wird dieses Passwort benutzt"
+
+#: functions.inc/guihooks.php:233 functions.inc/guihooks.php:277
+msgid ""
+"If Create New User is selected this will be the username. If blank the "
+"username will be the same number as this device"
+msgstr ""
+"Wenn 'Neuen Benutzer erstellen' gewählt ist können Sie hier einen Namen "
+"vergeben. Ist das Feld leer, wird die Nebenstellennummer eingetragen"
+
+#: views/msad2.php:206 views/openldap2.php:184
+msgid ""
+"If enabled and the 'User extension Link attribute' is set, a new extension "
+"will be created and linked to this user if one does not exist previously"
+msgstr ""
+"Sofern dies aktiviert ist und das 'Attribut für Benutzer-Nebenstellen-"
+"Zuordnung' gesetzt ist, wird eine neue Nebenstelle erzeugt und mit diesem "
+"Benutzer verknüpft, falls noch keine exisitiert"
+
+#: views/msad.php:151
+msgid ""
+"If this is set then User Manager will use the defined attribute of the user "
+"from the Active Directory server as the extension link. NOTE: If this field "
+"is set it will overwrite any manually linked extensions where this attribute "
+"extists!!"
+msgstr ""
+"Falls dies gesetzt ist, wird die Benutzerverwaltung das angegebene Attribut "
+"des Active-Directory-Benutzers als Nebenstellen-Verknüpfung nutzen. HINWEIS: "
+"Falls dieses Feld gesetzt ist, wird dadurch bei jedem Benutzer, bei dem das "
+"Attribut existiert, die manuell zugeordnete Nebenstelle überschrieben!!"
+
+#: views/msad2.php:698
+msgid ""
+"If this is set then User Manager will use the defined attribute of the user "
+"from the Active Directory server as the extension link. NOTE: If this field "
+"is set it will overwrite any manually linked extensions where this attribute "
+"extists!! (Try lowercase if it is not working.)"
+msgstr ""
+"Falls dies gesetzt ist, wird die Benutzerverwaltung das angegebene Attribut "
+"des Benutzers vom Active-Directory-Server als Nebenstellen-Verknüpfung "
+"nutzen. HINWEIS: Falls dieses Feld gesetzt ist, wird dadurch bei jedem "
+"Benutzer, bei dem das Attribut existiert, die manuell zugeordnete "
+"Nebenstelle überschrieben!! (Falls es nicht funktioniert, versuchen Sie "
+"bitte, das Attribut in Kleinbuchstaben zu schreiben.)"
+
+#: views/openldap.php:222 views/openldap2.php:652
+msgid ""
+"If this is set then User Manager will use the defined attribute of the user "
+"from the OpenLDAP server as the extension link. NOTE: If this field is set "
+"it will overwrite any manually linked extensions where this attribute "
+"extists!! (Try lowercase if it is not working.)"
+msgstr ""
+"Falls dies gesetzt ist, wird die Benutzerverwaltung das angegebene Attribut "
+"des Benutzers vom OpenLDAP-Server als Nebenstellen-Verknüpfung nutzen. "
+"HINWEIS: Falls dieses Feld gesetzt ist, wird dadurch bei jedem Benutzer, bei "
+"dem das Attribut existiert, die manuell zugeordnete Nebenstelle "
+"überschrieben!! (Falls es nicht funktioniert, versuchen Sie bitte, das "
+"Attribut in Kleinbuchstaben zu schreiben.)"
+
+#: Userman.class.php:123
+#, php-format
+msgid "Imported %s directory"
+msgstr "Verzeichnis %s importiert"
+
+#: views/welcome.php:16
+#, php-format
+msgid ""
+"In %s User Manager you can create users that have access to Extensions or "
+"Device/User Mode Users and the settings associated with those Devices. For "
+"example, a new user can be created that can log into User Control Panel and "
+"access the voicemail of 3 other accounts."
+msgstr ""
+"In der %s-Benutzerverwaltung können Sie Benutzer anlegen, die Zugriff auf "
+"Nebenstellen oder Geräte-/Benutzermodus-Benutzer und die zugehörigen "
+"Einstellungen haben. So können Sie z.B. einen neuen Benutzer anlegen, der "
+"sich am 'User Control Panel' anmelden und auf die Sprachnachrichten von drei "
+"anderen Konten zugreifen kann."
+
+#: views/users.php:376 views/users.php:408 views/users.php:646
+#: views/users.php:673
+msgid "Inherit"
+msgstr "Erben"
+
+#: Userman.class.php:1040
+msgid "Invalid User"
+msgstr "Ungültiger Benutzer"
+
+#: functions.inc/auth/modules/Msad.php:343
+#: functions.inc/auth/modules/Msad.php:356
+#: functions.inc/auth/modules/Msad2.php:374
+#: functions.inc/auth/modules/Msad2.php:400
+#: functions.inc/auth/modules/Openldap.php:356
+#: functions.inc/auth/modules/Openldap.php:369
+#: functions.inc/auth/modules/Openldap2.php:374
+#: functions.inc/auth/modules/Openldap2.php:400
+msgid "LDAP is in Read Only Mode. Addition denied"
+msgstr "LDAP befindet sich im Nur-lesen-Modus. Hinzufügen verweigert"
+
+#: views/groups.php:105 views/users.php:371
+msgid "Language"
+msgstr "Sprache"
+
+#: views/groups.php:125 views/users.php:391
+msgid "Language for this user"
+msgstr "Sprache für diesen Benutzer"
+
+#: Userman.class.php:2895 Userman.class.php:2896 views/users.php:251
+#: views/welcome.php:58
+msgid "Last Name"
+msgstr "Nachname"
+
+#: views/quickCreate.php:74
+msgid "Link to User Manager User"
+msgstr "Link zu einem Benutzermanager Benutzer"
+
+#: functions.inc/guihooks.php:229 functions.inc/guihooks.php:276
+msgid "Link to a Default User"
+msgstr "Link zu einem Standard Benutzer"
+
+#: functions.inc/guihooks.php:224
+msgid "Link to a Different Default User:"
+msgstr "Verweis auf einen anderen Standard-Benutzer:"
+
+#: functions.inc/guihooks.php:180
+msgid "Linked"
+msgstr "Verlinkt"
+
+#: views/welcome.php:59
+msgid "Linked Extension"
+msgstr "verlinkte Nebenstelle"
+
+#: functions.inc/guihooks.php:222
+#, php-format
+msgid "Linked to User %s"
+msgstr "Verlinkt zu Benutzer %s"
+
+#: views/rnav.php:39
+msgid "List Directories"
+msgstr "Verzeichnisse auflisten"
+
+#: views/rnav.php:22
+msgid "List Groups"
+msgstr "Gruppenliste"
+
+#: views/rnav.php:5
+msgid "List Users"
+msgstr "Benutzerliste"
+
+#: Console/Userman.class.php:24
+msgid "List directories"
+msgstr "Verzeichnisse auflisten"
+
+#: views/users.php:29
+msgid "Login Details"
+msgstr "Login Details"
+
+#: Userman.class.php:2873 Userman.class.php:2874 views/users.php:59
+msgid "Login Name"
+msgstr "Login Name"
+
+#: views/msad2.php:216 views/openldap2.php:194
+msgid "Manage groups locally"
+msgstr "Gruppen lokal verwalten"
+
+#: views/groups.php:280
+#, php-format
+msgid "May this group log in to the %s Administration Pages?"
+msgstr "Darf sich diese Gruppe an der %s-Verwaltungsseite anmelden?"
+
+#: views/directories.php:84 views/users.php:654
+#, php-format
+msgid "May this user log in to the %s Administration Pages?"
+msgstr "Darf sich dieser Benutzer an der %s-Verwaltungsseite anmelden?"
+
+#: functions.inc/auth/modules/Msad2.php:152
+msgid "Microsoft Active Directory"
+msgstr "Microsoft Active Directory"
+
+#: functions.inc/auth/modules/Msad.php:133
+msgid "Microsoft Active Directory (Legacy)"
+msgstr "Microsoft Active Directory (Legacy)"
+
+#: Userman.class.php:2670
+msgid "Migrated user from voicemail"
+msgstr "Benutzer aus dem Modul Voicemail migriert"
+
+#: Userman.class.php:600
+msgid "Module Core is disabled. Please enable it"
+msgstr "Das Core-Modul ist deaktivert. Bitte aktivieren Sie es"
+
+#: Console/Userman.class.php:33 views/welcome.php:113
+msgid "Name"
+msgstr "Name"
+
+#: assets/js/userman.js:17
+msgid "Name can not be blank!"
+msgstr "Name darf nicht leer sein!"
+
+#: views/directories.php:99
+msgid "Never"
+msgstr "Niemals"
+
+#: views/msad2.php:231 views/openldap2.php:209
+msgid ""
+"New groups created in this directory will be local and not saved to the LDAP "
+"directory. Groups synchronised from the remote directory will be read-only."
+msgstr ""
+"In diesem Verzeichnis können nur lokale Gruppen angelegt werden, die nicht "
+"im LDAP-Verzeichnis gespeichert werden. Die Gruppen, die aus dem entfernten "
+"Verzeichnis synchronisiert werden, sind nur lesbar."
+
+#: views/directories.php:76 views/general.php:32 views/general.php:61
+#: views/groups.php:272 views/groups.php:297 views/msad2.php:223
+#: views/openldap.php:59 views/openldap2.php:201 views/quickCreate.php:16
+#: views/users.php:644 views/users.php:671
+msgid "No"
+msgstr "Nein"
+
+#: Userman.class.php:191 functions.inc/guihooks.php:174
+#: functions.inc/guihooks.php:241 views/msad2.php:12 views/openldap2.php:12
+msgid "None"
+msgstr "Kein*e"
+
+#: functions.inc/auth/modules/Msad.php:147
+#: functions.inc/auth/modules/Msad2.php:166
+#: functions.inc/auth/modules/Openldap.php:159
+#: functions.inc/auth/modules/Openldap2.php:170
+msgid "Not Connected"
+msgstr "Nicht verbunden"
+
+#: functions.inc/auth/modules/Msad.php:169
+#: functions.inc/auth/modules/Msad2.php:188
+#: functions.inc/auth/modules/Openldap.php:181
+#: functions.inc/auth/modules/Openldap2.php:192
+msgid "Not all of the connection parameters have been filled out"
+msgstr "Es wurden nicht alle Verbindungsparameter ausgefüllt"
+
+#: Userman.class.php:2718
+msgid "Obfuscated. To reset use the reset link in this email"
+msgstr ""
+"Verschleiert. Verwenden Sie die Verknüpfung in dieser E-Mail zum Zurücksetzen"
+
+#: functions.inc/auth/modules/Openldap2.php:156
+msgid "OpenLDAP Directory"
+msgstr "OpenLDAP-Verzeichnis"
+
+#: functions.inc/auth/modules/Openldap.php:145
+msgid "OpenLDAP Directory (Legacy)"
+msgstr "OpenLDAP-Verzeichnis (Legacy)"
+
+#: views/msad2.php:182 views/openldap2.php:160
+msgid "Operational Settings"
+msgstr "Betriebseinstellungen"
+
+#: views/users.php:38
+msgid "Other Settings"
+msgstr "Andere Einstellungen"
+
+#: Userman.class.php:144 Userman.class.php:1400
+msgid "PBX Internal Directory"
+msgstr "Internes Verzeichnis der Telefonanlage"
+
+#: Userman.class.php:2878 views/msad.php:73 views/msad2.php:99
+#: views/openldap.php:100 views/openldap2.php:99 views/passwordmodal.php:16
+#: views/users.php:108
+msgid "Password"
+msgstr "Passwort"
+
+#: Userman.class.php:2879
+msgid "Password - plaintext"
+msgstr "Passwort - Klartext"
+
+#: functions.inc/guihooks.php:234 functions.inc/guihooks.php:278
+msgid "Password For New User"
+msgstr "Passwort für neue Benutzer"
+
+#: Userman.class.php:1671 Userman.class.php:1704
+msgid "Password can not be blank"
+msgstr "Passwort darf nicht leer sein"
+
+#: assets/js/userman.js:178 assets/js/userman.js:200
+msgid "Please fill all missing fields"
+msgstr "Bitte füllen Sie alle fehlenden Angaben aus"
+
+#: functions.inc/guihooks.php:233 functions.inc/guihooks.php:277
+msgid "Please select a valid username for New User Creation"
+msgstr "Bitte wählen Sie einen gültigen Benutzernamen für den neuen Benutzer"
+
+#: Userman.class.php:2962 Userman.class.php:3045
+msgid "Please set a default directory in User Manager"
+msgstr "Bitte stellen Sie im User-Manager ein Standardverzeichnis ein"
+
+#: views/msad.php:29 views/msad2.php:55 views/openldap.php:29
+#: views/openldap2.php:55
+msgid "Port"
+msgstr "Port"
+
+#: Userman.class.php:1900
+msgid "Previous Groupname can not be blank"
+msgstr "Vorheriger Gruppenname darf nicht leer sein"
+
+#: Userman.class.php:1865
+msgid "Previous Username can not be blank"
+msgstr "Vorheriger Benutzername darf nicht leer sein"
+
+#: Userman.class.php:2883
+msgid "Primary Extension"
+msgstr "Primäre Nebenstelle"
+
+#: views/users.php:132
+msgid "Primary Group"
+msgstr "Primäre Grupppe"
+
+#: Userman.class.php:2884 views/users.php:194
+msgid "Primary Linked Extension"
+msgstr "Primäre verlinkte Nebenstelle"
+
+#: views/welcome.php:91
+msgid "Priority"
+msgstr "Priorität"
+
+#: functions.inc/auth/modules/Voicemail.php:98
+#, php-format
+msgid "Removed Voicemail User %s"
+msgstr "Voicemail-Benutzer %s entfernt"
+
+#: Userman.class.php:547
+msgid "Reset"
+msgstr "Zurücksetzen"
+
+#: views/groups.php:327
+msgid ""
+"Restrict this groups's view to only Extensions, Ring Groups, and Queues "
+"within this range."
+msgstr ""
+"Dieser Gruppe ausschließlich erlauben, Nebenstellen, Rufgruppen und "
+"Warteshlangen in diesem Bereich zu sehen."
+
+#: views/users.php:703
+msgid ""
+"Restrict this user's view to only Extensions, Ring Groups, and Queues within "
+"this range."
+msgstr ""
+"Diesem Benutzer ausschließlich erlauben, Nebenstellen, Rufgruppen und "
+"Warteshlangen in diesem Bereich zu sehen."
+
+#: Userman.class.php:479
+msgid "Saved"
+msgstr "Gespeichert"
+
+#: views/msad2.php:7 views/openldap2.php:7
+msgid "Secure Connection Type"
+msgstr "Art der sicheren Verbindung"
+
+#: functions.inc/guihooks.php:223 functions.inc/guihooks.php:228
+#: functions.inc/guihooks.php:275
+msgid "Select User Directory:"
+msgstr "Wählen Sie ein Benutzerverzeichnis:"
+
+#: views/groups.php:386
+msgid "Select a landing page that will be used by default."
+msgstr ""
+"Wählen Sie eine Startseite aus, die standardmäßig verwendet werden soll."
+
+#: views/users.php:761
+msgid ""
+"Select a landing page that will be used by default.This settings will be "
+"overridden by Group setting if Allow PBXact Administration Login set to "
+"Inherit."
+msgstr ""
+"Wählen Sie eine Startseite aus, die standardmäßig verwendet werden soll. "
+"Diese Einstellung wird durch die Gruppeneinstellungen überschrieben, falls "
+"„Anmeldung an der PBXact-Administration erlauben“ auf „erben“ gestellt ist."
+
+#: functions.inc/guihooks.php:223 functions.inc/guihooks.php:228
+#: functions.inc/guihooks.php:275
+msgid "Select a user directory"
+msgstr "Wählen Sie ein Benutzerverzeichnis"
+
+#: functions.inc/guihooks.php:224 functions.inc/guihooks.php:229
+msgid ""
+"Select a user that this extension should be linked to in User Manager, else "
+"select Create New User to have User Manager autogenerate a new user that "
+"will be linked to this extension"
+msgstr ""
+"Wählen Sie einen Benutzer aus, mit dem diese Nebenstelle in der "
+"Benutzerverwaltung verknüpft werden soll oder wählen Sie 'Neuen Benutzer "
+"anlegen', damit die Benutzerverwaltung automatisch einen Benutzer erzeugt, "
+"der mit dieser Nebenstelle verknüpft wird"
+
+#: functions.inc/guihooks.php:276
+msgid ""
+"Select a user that this extension should be linked to in User Manager, else "
+"select None to have no association to a user"
+msgstr ""
+"Wählen Sie einen Benutzer aus, mit dem diese Nebenstelle in der "
+"Benutzerverwaltung verknüpft werden soll oder wählen Sie 'Keiner', um keine "
+"Zuordnung zu einem Benutzer anzulegen"
+
+#: views/groups.php:357
+msgid "Select the Admin Sections this group should have access to."
+msgstr "Wählen Sie die Admin-Bereiche, auf die diese Gruppe zugreifen darf."
+
+#: views/users.php:732
+msgid ""
+"Select the Admin Sections this user should have access to,This settings will "
+"be overridden by Group setting if Allow PBXact Administration Login set to "
+"Inherit."
+msgstr ""
+"Wählen Sie die Administrationsbereiche, auf die dieser Benutzer Zugriff "
+"erhalten soll. Diese Einstellung wird durch die Gruppeneinstellungen "
+"überschrieben, falls „Anmeldung an der PBXact-Administration erlauben“ auf "
+"„erben“ gestellt ist."
+
+#: views/freepbx.php:23
+msgid "Select which groups new users are added to when they are created"
+msgstr ""
+"Wählen Sie aus, zu welchen Gruppen neue Benutzer hinzugefügt werden sollen, "
+"wenn sie erstellt wurden"
+
+#: views/welcome.php:41
+msgid "Send Email"
+msgstr "E-Mail senden"
+
+#: views/general.php:53
+msgid "Send Email as HTML"
+msgstr "Email als HTML senden"
+
+#: views/general.php:24
+msgid "Send Email on External New User Creation"
+msgstr "Eine E-Mail an neuen externe Benutzer senden"
+
+#: views/passwordmodal.php:7
+msgid "Set Password"
+msgstr "Passwort festlegen"
+
+#: Userman.class.php:2716
+msgid "Set by your administrator"
+msgstr "Durch Administrator festgelegt"
+
+#: views/welcome.php:28
+msgid "Settings"
+msgstr "Einstellungen"
+
+#: views/msad.php:161 views/msad2.php:165 views/openldap.php:232
+#: views/openldap2.php:143
+msgid "Status"
+msgstr "Status"
+
+#: Userman.class.php:535
+msgid "Submit"
+msgstr "Absenden"
+
+#: Userman.class.php:529
+msgid "Submit & Send Email to User"
+msgstr "Bestätigen und E-Mail an Benutzer senden"
+
+#: views/directories.php:94
+msgid "Synchronize"
+msgstr "Synchronisieren"
+
+#: Console/Userman.class.php:22
+msgid "Syncronize a single directory by id (obtained from --list)"
+msgstr ""
+"Ein einzelnes Verzeichnis nach ID synchronisieren (durch „--list“ erhalten)"
+
+#: Console/Userman.class.php:21
+msgid "Syncronize all directories"
+msgstr "Alle Verzeichnisse synchronisieren"
+
+#: views/general.php:140
+#, php-format
+msgid ""
+"Text to be used for the body of the welcome email. Useable variables are:"
+"<ul><li>fname: First name</li><li>lname: Last name</li><li>brand: %s</"
+"li><li>title: title</li><li>username: Username</li><li>password: Password</"
+"li></ul>"
+msgstr ""
+"Folgende Variablen können für den Inhalt der Willkommen E-mail verwendet "
+"werden:<ul><li>fname: Vorname</li><li>lname: Nachname</li><li>brand: %s</"
+"li><li>title: Titel</li><li>username: Benutzername</li><li>password: "
+"Passwort</li></ul>"
+
+#: views/general.php:116
+#, php-format
+msgid ""
+"Text to be used for the subject of the welcome email. Useable variables are:"
+"<ul><li>fname: First name</li><li>lname: Last name</li><li>brand: %s</"
+"li><li>title: title</li><li>username: Username</li><li>password: Password</"
+"li></ul>"
+msgstr ""
+"Folgende Variablen können für den Inhalt der Willkommen E-mail verwendet "
+"werden:<ul><li>fname: Vorname</li><li>lname: Nachname</li><li>brand: %s</"
+"li><li>title: Titel</li><li>username: Benutzername</li><li>password: "
+"Passwort</li></ul>"
+
+#: views/msad2.php:23
+msgid "The Active Directory secure connection type"
+msgstr "Art der sicheren Verbindung zum Active-Directory"
+
+#: assets/js/userman.js:435
+msgid "The Browser Language could not be determined"
+msgstr "Die Browser-Sprache konnte nicht bestimmt werden"
+
+#: assets/js/userman.js:455
+msgid "The Browser Timezone could not be determined"
+msgstr "Die Browser-Zeitzone konnte nicht bestimmt werden"
+
+#: userman.i18n.php:16
+msgid ""
+"The From: field for emails when using the user management email feature."
+msgstr ""
+"Das Absender-Feld für E-Mails wenn die E-Mail-Funktion der "
+"Benutzerverwaltung verwendet wird."
+
+#: views/msad2.php:745 views/openldap2.php:699
+msgid "The LDAP user object class type to use when loading groups."
+msgstr ""
+"Die LDAP-Gruppenobjekt-Klasse, die beim Laden von Gruppen verwendet werden "
+"soll."
+
+#: views/msad2.php:344 views/openldap2.php:322
+msgid "The LDAP user object class type to use when loading users."
+msgstr ""
+"Die LDAP-Benutzerobjekt-Klasse, die beim Laden von Gruppen verwendet werden "
+"soll."
+
+#: views/openldap.php:200 views/openldap2.php:133
+msgid "The OpenLDAP Base-DN. Usually in the format of DC=example,DC=com"
+msgstr "Der Basis-DN für OpenLDAP. Üblicherweise im Format DC=example,DC=com"
+
+#: views/openldap.php:156
+msgid "The OpenLDAP Display Name. Usually is displayname"
+msgstr "Der OpenLDAP-Anzeigename. Üblicherweise ist dies 'displayname'"
+
+#: views/openldap.php:134
+msgid "The OpenLDAP User Identity. Usually is uid"
+msgstr "Die OpenLDAP-Benutzerkennung. Üblicherweise ist dies 'uid'"
+
+#: views/openldap.php:178
+msgid ""
+"The OpenLDAP User-DN. Usually in the format of OU=people,DC=example,DC=com)"
+msgstr ""
+"Der OpenLDAP-BenutzerDN. Üblicherweise im Format OU=people,DC=example,DC=com"
+
+#: views/openldap.php:19
+msgid "The OpenLDAP host"
+msgstr "Der OpenLDAP-Server"
+
+#: views/openldap2.php:45
+msgid "The OpenLDAP host(s), comma/space separated"
+msgstr "Der/die OpenLDAP Server, durch Komma oder Leerzeichen getrennt"
+
+#: views/openldap.php:112 views/openldap2.php:111
+msgid "The OpenLDAP password"
+msgstr "Das OpenLDAP-Passwort"
+
+#: views/openldap.php:41 views/openldap2.php:67
+msgid "The OpenLDAP port"
+msgstr "Der OpenLDAP-Port"
+
+#: views/openldap2.php:23
+msgid "The OpenLDAP secure connection type"
+msgstr "Die Art der sicheren Verbindung für OpenLDAP"
+
+#: views/openldap.php:90 views/openldap2.php:89
+msgid "The OpenLDAP username"
+msgstr "Der OpenLDAP-Benutzername"
+
+#: assets/js/userman.js:445
+msgid "The PBX Language is not set"
+msgstr "Die TK-Anlagen Sprache ist nicht definiert"
+
+#: assets/js/userman.js:465
+msgid "The PBX Timezone is not set"
+msgstr "Die TK-Anlagen Zeitzone ist nicht definiert"
+
+#: views/msad2.php:411
+msgid "The RDN to use when loading the user username (eg. cn)."
+msgstr ""
+"Der RDN, der verwendet werden soll, wenn der Benutzername geladen wird (z.B. "
+"cn)."
+
+#: views/msad.php:107 views/msad2.php:133
+msgid "The active directory domain"
+msgstr "Die Active-Directory-Domäne"
+
+#: views/msad.php:19
+msgid "The active directory host"
+msgstr "Der Active-Directory-Server"
+
+#: views/msad2.php:45
+msgid "The active directory host(s), comma/space separated"
+msgstr "Der/die Active-Directory-Server, durch Komma oder Leerzeichen getrennt"
+
+#: views/msad.php:85 views/msad2.php:111
+msgid "The active directory password"
+msgstr "Das Acitve-Directory-Passwort"
+
+#: views/msad.php:41 views/msad2.php:67
+msgid "The active directory port"
+msgstr "Der Active-Directory-Port"
+
+#: views/msad.php:63 views/msad2.php:89
+msgid "The active directory username"
+msgstr "Der Active-Directory-Benutzername"
+
+#: views/msad2.php:297 views/openldap2.php:275
+msgid ""
+"The attribute field to use for tracking user identity across object renames."
+msgstr ""
+"Das Attribut-Feld, das verwendet werden soll, um die Benutzerkennungen über "
+"Namensänderungen hinweg zu verfolgen."
+
+#: views/msad2.php:388 views/openldap2.php:366
+msgid "The attribute field to use on the user object (eg. cn, sAMAccountName)"
+msgstr ""
+"Das Attribut-Feld das beim Benutzerobjekt verwendet werden soll (z.B. cn, "
+"sAMAccountName)"
+
+#: views/msad2.php:789 views/openldap2.php:743
+msgid "The attribute field to use when loading the group members."
+msgstr ""
+"Das Attribut-Feld, das verwendet werden soll, wenn Gruppenmitglieder geladen "
+"werden."
+
+#: views/msad2.php:275 views/openldap2.php:253
+msgid "The attribute field to use when loading the object description."
+msgstr ""
+"Das Attribut-Feld, das verwendet werden soll, wenn die Objekt-Beschreibung "
+"geladen wird."
+
+#: views/msad2.php:253 views/openldap2.php:231
+msgid "The attribute field to use when loading the object's common name."
+msgstr ""
+"Das Attribut-Feld, das verwendet werden soll, wenn der  'common name' des "
+"Objekts geladen wird."
+
+#: views/msad2.php:654 views/openldap2.php:608
+msgid "The attribute field to use when loading the user cell phone."
+msgstr ""
+"Das Attribut-Feld, das verwendet werden soll, wenn die Mobiltelefonnummer "
+"des Benutzers geladen wird."
+
+#: views/msad2.php:566 views/openldap2.php:520
+msgid "The attribute field to use when loading the user company."
+msgstr ""
+"Das Attribut-Feld, das verwendet werden soll, wenn die Firma des Benutzers "
+"geladen wird."
+
+#: views/msad2.php:588 views/openldap2.php:542
+msgid "The attribute field to use when loading the user department."
+msgstr ""
+"Das Attribut-Feld, das verwendet werden soll, wenn die Abteilung des "
+"Benutzers geladen wird."
+
+#: views/msad2.php:522 views/openldap2.php:476
+msgid "The attribute field to use when loading the user email."
+msgstr ""
+"Das Attribut-Feld, das verwendet werden soll, wenn die E-Mail-Adresse des "
+"Benutzers geladen wird."
+
+#: views/msad2.php:676 views/openldap2.php:630
+msgid "The attribute field to use when loading the user fax."
+msgstr ""
+"Das Attribut-Feld, das verwendet werden soll, wenn die Faxnummer des "
+"Benutzers geladen wird."
+
+#: views/msad2.php:434 views/openldap2.php:388
+msgid "The attribute field to use when loading the user first name."
+msgstr ""
+"Das Attribut-Feld, das verwendet werden soll, wenn der Vorname des Benutzers "
+"geladen wird."
+
+#: views/msad2.php:478 views/openldap2.php:432
+msgid "The attribute field to use when loading the user full name."
+msgstr ""
+"Das Attribut-Feld, das verwendet werden soll, wenn vollständige Name des "
+"Benutzers geladen wird."
+
+#: views/msad2.php:610 views/openldap2.php:564
+msgid "The attribute field to use when loading the user home phone."
+msgstr ""
+"Das Attribut-Feld, das verwendet werden soll, wenn private Telefonnummer des "
+"Benutzers geladen wird."
+
+#: views/msad2.php:456 views/openldap2.php:410
+msgid "The attribute field to use when loading the user last name."
+msgstr ""
+"Das Attribut-Feld, das verwendet werden soll, wenn der Nachname des "
+"Benutzers geladen wird."
+
+#: views/msad2.php:544 views/openldap2.php:498
+msgid "The attribute field to use when loading the user title."
+msgstr ""
+"Das Attribut-Feld, das verwendet werden soll, wenn der Titel des Benutzers "
+"geladen wird."
+
+#: views/msad2.php:632 views/openldap2.php:586
+msgid "The attribute field to use when loading the user work phone."
+msgstr ""
+"Das Attribut-Feld, das verwendet werden soll, wenn die dienstliche "
+"Telefonnummer des Benutzers geladen wird."
+
+#: views/msad2.php:500 views/openldap2.php:454
+msgid "The attribute field to use when loading the users groups."
+msgstr ""
+"Das Attribut-Feld, das verwendet werden soll, wenn die Gruppen des Benutzers "
+"geladen wird."
+
+#: views/directories.php:37
+#, php-format
+msgid "The authentication engine to use"
+msgstr "Die Authentifizierungs-Engine, die verwendet werden soll"
+
+#: views/msad.php:129 views/msad2.php:155
+msgid "The base DN. Usually in the format of CN=Users,DC=domain,DC=local"
+msgstr "Der Basis-DN. Üblicherweise im Format CN=Users,DC=domain,DC=local"
+
+#: views/msad.php:173 views/msad2.php:177
+msgid "The connection status of the Active Directory Server"
+msgstr "Der Verbindungsstatus des Active-Directory-Servers"
+
+#: views/openldap.php:244 views/openldap2.php:155
+msgid "The connection status of the OpenLDAP Server"
+msgstr "Der Verbindungsstatus des OpenLDAP-Servers"
+
+#: views/groups.php:24
+msgid ""
+"The directory for this group is currently locked while updates are being run"
+msgstr ""
+"Das Verzeichnis für diese Gruppe ist zur Zeit gesperrt während "
+"Aktualisierungen durchgeführt werden"
+
+#: views/users.php:20
+msgid ""
+"The directory for this user is currently locked while updates are being run"
+msgstr ""
+"Das Verzeichnis für diesen Benutzer ist zur Zeit gesperrt während "
+"Aktualisierungen durchgeführt werden"
+
+#: views/directories.php:59
+msgid "The directory name"
+msgstr "Der Verzeichnisname"
+
+#: views/users.php:447
+msgid ""
+"The email address to associate with this user. Multiple email address need "
+"to be separated with a comma."
+msgstr ""
+"Die E-Mail-Adresse, die diesem Benutzer zugeordnet werden soll. Mehrere E-"
+"Mail-Adressen müssen durch ein Komma getrennt werden."
+
+#: views/msad2.php:767 views/openldap2.php:721
+msgid "The filter to use when searching group objects."
+msgstr ""
+"Der Filter, der bei der Suche nach Gruppenobjekten verwendet werden soll."
+
+#: views/msad2.php:366 views/openldap2.php:344
+msgid "The filter to use when searching user objects."
+msgstr ""
+"Der Filter, der bei der Suche nach Benutzerobjekten verwendet werden soll."
+
+#: views/users.php:575
+msgid ""
+"The format dates and times should display in. The default of \"llll\" is "
+"locale aware. If left blank this will use the group/system format. For more "
+"formats please see: http://momentjs.com/docs/#/displaying/format/"
+msgstr ""
+"Das Format, in dem Daten und Zeiten angezeigt werden sollen. Der "
+"Standardwert „llll“ berücksichtigt das Gebietsschema. Wird hier nichts "
+"angegeben, wird das Gruppen-/System-Format verwendet. Für weitere Formate "
+"schauen Sie bitte unter http://momentjs.com/docs/#/displaying/format/ nach"
+
+#: views/groups.php:208
+msgid ""
+"The format dates and times should display in. The default of \"llll\" is "
+"locale aware. If left blank this will use the system format. For more "
+"formats please see: http://momentjs.com/docs/#/displaying/format/"
+msgstr ""
+"Das Format, in dem Daten und Zeiten angezeigt werden sollen. Der "
+"Standardwert „llll“ berücksichtigt das Gebietsschema. Wird hier nichts "
+"angegeben, wird das System-Format verwendet. Für weitere Formate schauen Sie "
+"bitte unter http://momentjs.com/docs/#/displaying/format/ nach"
+
+#: views/users.php:625
+msgid ""
+"The format dates should display in. The default of \"l\" is locale aware. If "
+"left blank this will use the group/system format. For more formats please "
+"see: http://momentjs.com/docs/#/displaying/format/"
+msgstr ""
+"Das Format, in dem Daten und Zeiten angezeigt werden sollen. Der "
+"Standardwert „l“ berücksichtigt das Gebietsschema. Wird hier nichts "
+"angegeben, wird das Gruppen-/System-Format verwendet. Für weitere Formate "
+"schauen Sie bitte unter http://momentjs.com/docs/#/displaying/format/ nach"
+
+#: views/groups.php:252
+msgid ""
+"The format dates should display in. The default of \"l\" is locale aware. If "
+"left blank this will use the system format. For more formats please see: "
+"http://momentjs.com/docs/#/displaying/format/"
+msgstr ""
+"Das Format, in dem Daten und Zeiten angezeigt werden sollen. Der "
+"Standardwert „l“ berücksichtigt das Gebietsschema. Wird hier nichts "
+"angegeben, wird das System-Format verwendet. Für weitere Formate schauen Sie "
+"bitte unter http://momentjs.com/docs/#/displaying/format/ nach"
+
+#: views/users.php:600
+msgid ""
+"The format times should display in. The default of \"LT\" is locale aware. "
+"If left blank this will use the group/system format. For more formats please "
+"see: http://momentjs.com/docs/#/displaying/format/"
+msgstr ""
+"Das Format, in dem Daten und Zeiten angezeigt werden sollen. Der "
+"Standardwert „LT“ berücksichtigt das Gebietsschema. Wird hier nichts "
+"angegeben, wird das Gruppen-/System-Format verwendet. Für weitere Formate "
+"schauen Sie bitte unter http://momentjs.com/docs/#/displaying/format/ nach"
+
+#: views/groups.php:230
+msgid ""
+"The format times should display in. The default of \"LT\" is locale aware. "
+"If left blank this will use the system format. For more formats please see: "
+"http://momentjs.com/docs/#/displaying/format/"
+msgstr ""
+"Das Format, in dem Daten und Zeiten angezeigt werden sollen. Der "
+"Standardwert „LT“ berücksichtigt das Gebietsschema. Wird hier nichts "
+"angegeben, wird das System-Format verwendet. Für weitere Formate schauen Sie "
+"bitte unter http://momentjs.com/docs/#/displaying/format/ nach"
+
+#: views/general.php:93
+#, php-format
+msgid ""
+"The hostname used for email. If left blank the default value of '%s' will be "
+"used"
+msgstr ""
+"Der Rechnername für den E-Mail-Versand. Wird dieses Feld leer gelassen, wird "
+"der Standardwert ‚%s‘ verwendet"
+
+#: views/users.php:471
+msgid "The user's cell (mobile) phone number."
+msgstr "Die Mobilfunknummer des Benutzers."
+
+#: views/users.php:335
+msgid "The user's company."
+msgstr "Die Firma des Benutzers."
+
+#: views/users.php:359
+msgid "The user's department."
+msgstr "Die Abteilung des Benutzers."
+
+#: views/users.php:543
+msgid "The user's fax phone number."
+msgstr "Die Faxnummer des Benutzers."
+
+#: views/users.php:239
+msgid "The user's first name."
+msgstr "Der Vorname des Benutzers."
+
+#: views/users.php:519
+msgid "The user's home phone number."
+msgstr "Die private Telefonnummer des Benutzers."
+
+#: views/users.php:263
+msgid "The user's last name."
+msgstr "Der Nachname des Benutzers."
+
+#: views/users.php:120
+msgid "The user's password."
+msgstr "Das Passwort des Benutzers."
+
+#: views/users.php:311
+msgid "The user's title."
+msgstr "Der Titel des Bnutzers."
+
+#: views/users.php:495
+msgid "The user's work phone number."
+msgstr "Die dienstliche Telefonnummer des Benutzers."
+
+#: views/voicemail.php:19
+msgid "The voicemail context to get users from"
+msgstr "Der Voicemail-Kontext aus dem Benutzer abgerufen werden sollen"
+
+#: Userman.class.php:302
+msgid "There was an error saving the configuration"
+msgstr "Beim Speichern der Konfiguration trat ein Fehler auf"
+
+#: userman.i18n.php:8
+msgid ""
+"This Module manages all PBX users. It allows an Administrator to create a "
+"User Account that can be used by other applications for login or API "
+"purposes."
+msgstr ""
+"Dieses Modul verwaltet alle Benutzer der Telefonanlage. Es erlaubt einem "
+"Administrator, ein Benutzerkonto anzulegen, das von anderen Anwendungen zur "
+"Anmeldung oder für den Zugriff auf API-Funktionen verwendet werden kann."
+
+#: Userman.class.php:3038 Userman.class.php:3102
+msgid "This authentication driver does not allow importing"
+msgstr "Dieser Authentifizierungstreiber erlaubt keinen Import"
+
+#: Userman.class.php:1420
+msgid ""
+"This group was created on install and is automatically assigned to new "
+"users. This can be disabled in User Manager Settings"
+msgstr ""
+"Diese Gruppe wurde bei der Installation erzeugt und wird neuen Benutzern "
+"automatisch zugeordnet. Dieses Verhalten kann in den Einstellungen der "
+"Benutzerverwaltung deaktiviert werden"
+
+#: views/users.php:210
+msgid ""
+"This is the extension this user is linked to from the Extensions page. A "
+"single user can only be linked to one extension, and one extension can only "
+"be linked to a single user."
+msgstr ""
+"Dies ist die Nebenstelle, mit der dieser Benutzer auf der Nebenstellenseite "
+"verknüpft ist. Ein Benutzer kann immer nur mit einer Nebenstelle verknüpft "
+"sein und eine Nebenstelle kann ebenfalls immer niur mit einem Benutzer "
+"verknüpft sein."
+
+#: views/users.php:71
+msgid "This is the name that the user will use when logging in."
+msgstr "Dies ist der Name, mit dem der Benutzer sich anmelden wird."
+
+#: views/directories.php:112
+#, php-format
+msgid ""
+"This setting only applies to authentication engines other than the %s "
+"Internal Directory. For the %s Internal Directory this setting will be "
+"ignored."
+msgstr ""
+"Diese Einstellung gilt nur für andere Authentifizierungs-Engines als das "
+"interne %s Verzeichnis. Für das interne %s Verzeichnis wird diese "
+"Einstellung ignoriert."
+
+#: views/msad2.php:723 views/openldap2.php:677
+msgid ""
+"This value is used in addition to the base DN when searching and loading "
+"groups. An example is ou=Groups. If no value is supplied, the subtree search "
+"will start from the base DN."
+msgstr ""
+"Dieser Wert (z.B. ou=Groups) wird zusätzlich zum Basis-DN verwendet, wenn "
+"nach Gruppen gesucht wird. Wird kein Wert angegeben, beginnt die Suche am "
+"Basis-DN."
+
+#: views/msad2.php:322 views/openldap2.php:300
+msgid ""
+"This value is used in addition to the base DN when searching and loading "
+"users. An example is ou=Users. If no value is supplied, the subtree search "
+"will start from the base DN."
+msgstr ""
+"Dieser Wert wird in Verbindung mit dem Basis-DN beim Suchen und Laden von "
+"Benutzern verwendet. Ein Beispiel ist „ou=Benutzer“. Wird hier nichts "
+"eingetragen, beginnt die rekursive Suche am Basis-DN."
+
+#: views/groups.php:218 views/users.php:585
+msgid "Time Format"
+msgstr "Zeitformat"
+
+#: views/groups.php:137 views/users.php:403
+msgid "Timezone"
+msgstr "Zeitzone"
+
+#: views/groups.php:157 views/users.php:423
+msgid "Timezone for this user"
+msgstr "Die Zeitzone dieses Benutzers"
+
+#: views/users.php:299
+msgid "Title"
+msgstr "Titel"
+
+#: assets/js/userman.js:370
+msgid "True"
+msgstr "Wahr"
+
+#: views/welcome.php:115
+msgid "Type"
+msgstr "Typ"
+
+#: Userman.class.php:1862
+msgid "UID was not numeric"
+msgstr "UID war nicht numerisch"
+
+#: Userman.class.php:1422
+msgid "Unable to create default group"
+msgstr "Kann die Standardgruppe nicht anlegen"
+
+#: functions.inc/auth/Auth.php:557
+msgid "Unable to link group to an invalid directory"
+msgstr "Kann die Gruppe nicht mit einem ungültigen Verzeichnis verknüpfen"
+
+#: functions.inc/auth/Auth.php:511
+msgid "Unable to link user to an invalid directory"
+msgstr "Kann den Benutzer nicht mit einem ungültigen Verzeichnis verknüpfen"
+
+#: views/msad2.php:285 views/openldap2.php:263
+msgid "Unique identifier attribute"
+msgstr "Attribut für die eindeutige Kennung"
+
+#: functions.inc/auth/Auth.php:74
+msgid "Update Group is not defined"
+msgstr "Zu aktualisierende Gruppe ist nicht definiert"
+
+#: views/passwordmodal.php:30 assets/js/userman.js:301
+msgid "Update Password"
+msgstr "Passwort aktualisieren"
+
+#: functions.inc/auth/Auth.php:66
+msgid "Update User is not defined"
+msgstr "Zu aktualisierender Benutzer ist nicht definiert"
+
+#: functions.inc/auth/modules/Freepbx.php:217
+#: functions.inc/auth/modules/Voicemail.php:230
+msgid "Updated Group"
+msgstr "Gruppe altualisiert"
+
+#: functions.inc/auth/modules/Freepbx.php:186
+msgid "Updated User"
+msgstr "Benutzer aktualisiert"
+
+#: functions.inc/auth/modules/Voicemail.php:88
+#, php-format
+msgid "Updated Voicemail User %s"
+msgstr "Voicemail-Benutzer %s aktualisiert"
+
+#: assets/js/userman.js:305
+msgid "Updating"
+msgstr "Aktualisiere"
+
+#: views/groups.php:112 views/users.php:378
+msgid "Use Browser Language"
+msgstr "Sprache des Browsers verwenden"
+
+#: views/groups.php:144 views/users.php:410
+msgid "Use Browser Timezone"
+msgstr "Zeitzone des Browsers verwenden"
+
+#: functions.inc/guihooks.php:233 functions.inc/guihooks.php:277
+msgid "Use Custom Username"
+msgstr "Benutzerdefinierten Benutzernamen verwenden"
+
+#: views/groups.php:115 views/users.php:381
+msgid "Use PBX Language"
+msgstr "Sprache der TK-Anlage verwenden"
+
+#: views/groups.php:147 views/users.php:413
+msgid "Use PBX Timezone"
+msgstr "Zeitzone der TK-Anlage verwenden"
+
+#: views/groups.php:110
+msgid "Use System Language"
+msgstr "Systemsprache verwenden"
+
+#: views/groups.php:142
+msgid "Use System Timezone"
+msgstr "System-Zeitzone verwenden"
+
+#: views/openldap.php:51 views/openldap.php:68
+msgid "Use TLS"
+msgstr "TLS verwenden"
+
+#: functions.inc/auth/modules/Freepbx.php:105
+#: functions.inc/auth/modules/Freepbx.php:176
+#, php-format
+msgid "User '%s' Already Exists"
+msgstr "Benutzer '%s' existiert bereits"
+
+#: functions.inc/auth/modules/Freepbx.php:162
+#, php-format
+msgid "User '%s' Does Not Exist"
+msgstr "Benutzer '%s' existiert nicht"
+
+#: views/msad2.php:642 views/openldap2.php:596
+msgid "User Cell Phone attribute"
+msgstr "Attribut für die Mobiltelefonnummer des Benutzers"
+
+#: views/msad2.php:554 views/openldap2.php:508
+msgid "User Company attribute"
+msgstr "Attribut für die Firma des Benutzers"
+
+#: views/msad2.php:310 views/openldap.php:166 views/openldap2.php:288
+msgid "User DN"
+msgstr "Benutzer-DN"
+
+#: views/msad2.php:576 views/openldap2.php:530
+msgid "User Department attribute"
+msgstr "Attribut für die Abteilung des Benutzers"
+
+#: views/users.php:30
+msgid "User Details"
+msgstr "Benutzer-Details"
+
+#: functions.inc/auth/Auth.php:433
+msgid "User Does Not Exist"
+msgstr "Benutzer existiert nicht"
+
+#: views/msad2.php:664 views/openldap2.php:618
+msgid "User Fax attribute"
+msgstr "Attribut für die Faxnummer des Benutzers"
+
+#: views/msad2.php:598 views/openldap2.php:552
+msgid "User Home Phone attribute"
+msgstr "Attribut für die Private Telefonnummer des Benutzers"
+
+#: views/openldap.php:122
+msgid "User Identity"
+msgstr "Benutzerkennung"
+
+#: userman.i18n.php:4 userman.i18n.php:10
+msgid "User Management"
+msgstr "Benutzerverwaltung"
+
+#: userman.i18n.php:14
+msgid "User Management Module"
+msgstr "Benutzerverwaltungs-Modul"
+
+#: Console/Userman.class.php:19 views/welcome.php:6
+msgid "User Manager"
+msgstr "Benutzer-Manager"
+
+#: Userman.class.php:2855 Userman.class.php:2856 views/quickCreate.php:36
+msgid "User Manager Groups"
+msgstr "Benutzer-Manager-Gruppen"
+
+#: functions.inc/guihooks.php:62
+msgid "User Manager Settings"
+msgstr "Benutzer-Manager-Einstellungen"
+
+#: Userman.class.php:2849 Userman.class.php:2850
+msgid "User Manager Users"
+msgstr "Benutzer-Manager User"
+
+#: functions.inc/auth/Auth.php:537 functions.inc/auth/modules/Freepbx.php:124
+msgid "User Successfully Added"
+msgstr "Benutzer erfolgreich hinzugefügt"
+
+#: functions.inc/auth/Auth.php:445
+msgid "User Successfully Deleted"
+msgstr "Benutzer erfolgreich gelöscht"
+
+#: functions.inc/auth/Auth.php:546
+msgid "User Successfully Updated"
+msgstr "Benutzer erfolgreich geändert"
+
+#: views/msad2.php:532 views/openldap2.php:486
+msgid "User Title attribute"
+msgstr "Attribut für den Titel des Benutzers"
+
+#: views/msad2.php:620 views/openldap2.php:574
+msgid "User Work Phone attribute"
+msgstr "Attribut für die dienstliche Telefonnummer des Benutzers"
+
+#: Userman.class.php:2994
+msgid "User already exists"
+msgstr "Benutzer existiert bereits"
+
+#: views/msad2.php:303
+msgid "User configuration"
+msgstr "Benutzerkonfiguration"
+
+#: views/msad2.php:466 views/openldap2.php:420
+msgid "User display name attribute"
+msgstr "Attribut für den Anzeigenamen des Benutzers"
+
+#: views/msad2.php:510 views/openldap2.php:464
+msgid "User email attribute"
+msgstr "Attribut für die E-Mail-Adresse des Benutzers"
+
+#: views/msad2.php:686 views/openldap2.php:640
+msgid "User extension Link attribute"
+msgstr "Attribut für die Verknüpfung zwischen Benutzer und Nebenstelle"
+
+#: views/msad2.php:422 views/openldap2.php:376
+msgid "User first name attribute"
+msgstr "Attribut für den Vornamen des Benutzers"
+
+#: views/msad2.php:488 views/openldap2.php:442
+msgid "User group attribute"
+msgstr "Attribut für die Gruppen des Benutzers"
+
+#: views/msad2.php:444 views/openldap2.php:398
+msgid "User last name attribute"
+msgstr "Attribut für den Nachnamen des Benutzers"
+
+#: views/msad2.php:399
+msgid "User name RDN attribute"
+msgstr "RDN-Attribut des Benutzernamens"
+
+#: views/msad2.php:376 views/openldap2.php:354
+msgid "User name attribute"
+msgstr "Attribut für den Benutzernamen"
+
+#: views/msad2.php:332 views/openldap2.php:310
+msgid "User object class"
+msgstr "Benutzerobjektklasse"
+
+#: views/msad2.php:354 views/openldap2.php:332
+msgid "User object filter"
+msgstr "Benutzerobjekt-Filter"
+
+#: functions.inc/auth/modules/Msad.php:381
+#: functions.inc/auth/modules/Msad2.php:426
+#: functions.inc/auth/modules/Openldap.php:394
+#: functions.inc/auth/modules/Openldap2.php:426
+#: functions.inc/auth/modules/Voicemail.php:208
+msgid "User updated"
+msgstr "Benutzer geändert"
+
+#: functions.inc/guihooks.php:233 functions.inc/guihooks.php:277
+#: views/msad.php:51 views/msad2.php:77 views/openldap.php:78 views/rnav.php:13
+#: views/welcome.php:55
+msgid "Username"
+msgstr "Benutzername"
+
+#: functions.inc/auth/Auth.php:517
+msgid "Username Can Not Be Blank!"
+msgstr "Benutzername kann nicht leer sein!"
+
+#: Userman.class.php:1668 Userman.class.php:1701
+msgid "Username can not be blank"
+msgstr "Benutzername kann nicht leer sein"
+
+#: functions.inc/auth/modules/Freepbx.php:102
+msgid "Username/Password Can Not Be Blank!"
+msgstr "Benutzername/Passwort können nicht leer sein!"
+
+#: views/groups.php:168 views/welcome.php:25
+msgid "Users"
+msgstr "Benutzer"
+
+#: views/groups.php:315 views/users.php:691
+msgid "Visible Extension Range"
+msgstr "Bereich der sichtbaren Nebenstellen"
+
+#: functions.inc/auth/modules/Voicemail.php:160
+msgid "Voicemail is in Read Only Mode. Addition denied"
+msgstr "Voicemail befindet sich im Nur-lesen-Modus. Hinzufügen verweigert"
+
+#: Userman.class.php:818
+msgid "Warning"
+msgstr "Warnung"
+
+#: views/welcome.php:10
+msgid "What is User Manager"
+msgstr "Was ist die Benutzerwaltung"
+
+#: views/general.php:70
+msgid "Whether Email Body will send as HTML or plain text to the user."
+msgstr ""
+"Soll der E-Mail-Inhalt als HTML oder Nur-Text an den Benutzer gesendet "
+"werden?"
+
+#: views/general.php:41
+msgid ""
+"Whether to send an email (using the template below) to new users when they "
+"are created externally (not directly through User Manager)"
+msgstr ""
+"Soll neuen Benutzern eine E-Mail (nach der unten stehenden Vorlage) gesendet "
+"werden, wenn sie extern (nicht direkt über die Benutzerverwaltung) angelegt "
+"werden"
+
+#: views/quickCreate.php:90
+msgid "Which User Manager user this extension will link to"
+msgstr ""
+"Welchem Benutzer in der Benutzervewaltung wird die Nebenstelle zugeordnet"
+
+#: views/quickCreate.php:52 views/users.php:148 views/users.php:183
+msgid "Which groups this user is in"
+msgstr "In welchen Gruppen ist der Benutzer Mitglied"
+
+#: views/groups.php:184
+msgid "Which users are in this group"
+msgstr "Welche Benutzer sind in dieser Gruppe"
+
+#: views/users.php:483
+msgid "Work Phone Number"
+msgstr "Dienstliche Telefonnummer"
+
+#: views/directories.php:74 views/general.php:30 views/general.php:59
+#: views/groups.php:270 views/groups.php:295 views/msad2.php:221
+#: views/openldap.php:57 views/openldap2.php:199 views/quickCreate.php:14
+#: views/users.php:642 views/users.php:669
+msgid "Yes"
+msgstr "Ja"
+
+#: Userman.class.php:818
+msgid ""
+"You have no directories enabled. This will affect users ability to use "
+"features that require a login"
+msgstr ""
+"Sie haben keine Verzeichnisse aktiviert. Dadurch könnte die Nutzbarkeit von "
+"Funktionen, die eine Anmeldung erfordern, betroffen sein"
+
+#: Userman.class.php:2761 views/general.php:108
+msgid "Your %brand% Account"
+msgstr "Ihr %brand% Account"
+
+#: Userman.class.php:2970
+msgid "default_extension is required."
+msgstr "default_extension erforderlich."
+
+#: assets/js/userman.js:12
+msgid "directories"
+msgstr "Verzeichnisse"
+
+#: assets/js/userman.js:11
+msgid "directory"
+msgstr "Verzeichnis"
+
+#: assets/js/userman.js:9
+msgid "group"
+msgstr "Gruppe"
+
+#: functions.inc/auth/Auth.php:583
+msgid "group Successfully Added"
+msgstr "Gruppe erfolgreich hinzugefügt"
+
+#: Userman.class.php:3050
+msgid "groupname is required."
+msgstr "Gruppenname erforderlich."
+
+#: assets/js/userman.js:10
+msgid "groups"
+msgstr "Gruppen"
+
+#: Userman.class.php:3012
+msgid "password is required."
+msgstr "Passwort erforderlich."
+
+#: assets/js/userman.js:7
+msgid "user"
+msgstr "Benutzer"
+
+#: Userman.class.php:2967
+msgid "username is required."
+msgstr "Benutzername erforderlich."
+
+#: assets/js/userman.js:8
+msgid "users"
+msgstr "Benutzer"
+
+#~ msgid "Select the Admin Sections this user should have access to."
+#~ msgstr ""
+#~ "Wählen Sie die Admin-Bereiche, auf die dieser Benutzer zugreifen darf."
+
+#~ msgid "Database rename not completed"
+#~ msgstr "Datenbankumbenennung nicht abgeschlossen"
+
+#~ msgid "Email Sent"
+#~ msgstr "E-Mail gesendet"
+
+#~ msgid "Authentication Engine"
+#~ msgstr "Authentisierungsmaschine"

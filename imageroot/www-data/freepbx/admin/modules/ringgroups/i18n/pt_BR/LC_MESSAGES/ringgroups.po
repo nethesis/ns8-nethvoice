@@ -1,0 +1,719 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for ringgroups
+# Copyright (C) 2008-2016 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-01-31 14:20+0530\n"
+"PO-Revision-Date: 2016-12-15 23:31+0200\n"
+"Last-Translator: Alexander <alexander.schley@paranagua.pr.gov.br>\n"
+"Language-Team: Portuguese (Brazil) <http://weblate.freepbx.org/projects/"
+"freepbx/ringgroups/pt_BR/>\n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: views/form.php:60
+msgid "*-prim"
+msgstr "*-prim"
+
+#: views/simple_form.php:79
+msgid ""
+"<strong>Simultaneous:</strong> Rings all extensions at once.</"
+"br><strong>Sequential:</strong> Rings each extension separately in the order "
+"defined in the list"
+msgstr ""
+"<strong> Simultâneo:</strong> Toca todos os ramais de uma vez. </br><strong> "
+"Sequencial: </strong> Toca cada ramal separadamente na ordem definida na "
+"lista"
+
+#: views/advanced_form.php:178
+msgid "ALERT_INFO can be used for distinctive ring with SIP devices."
+msgstr ""
+"ALERT_INFO pode ser usado para toque diferenciado com dispositivos SIP."
+
+#: views/rggrid.php:18
+msgid "Actions"
+msgstr "Ações"
+
+#: views/bootnav.php:2 views/rggrid.php:2
+msgid "Add Ring Group"
+msgstr "Adicionar Grupo de Toques"
+
+#: views/advanced_form.php:166
+msgid "Alert Info"
+msgstr "Informação de Alerta"
+
+#: views/form.php:247
+msgid "Always transmit the Fixed CID Value below."
+msgstr "Transmita sempre o Valor de CID Fixo abaixo."
+
+#: views/form.php:101
+msgid "Announcement"
+msgstr "Anúncio"
+
+#: ringgroups.i18n.php:6
+msgid "Applications"
+msgstr "Aplicações"
+
+#: views/advanced_form.php:142
+msgid "CID Name Prefix"
+msgstr "Prefixo do Nome CID"
+
+#: views/advanced_form.php:431
+msgid "Call Recording"
+msgstr "Gravação do Chamadas"
+
+#: views/advanced_form.php:381
+msgid "Change External CID Configuration"
+msgstr "Alterar a Configuração do CID Externo"
+
+#: views/advanced_form.php:352
+msgid "Confirm Calls"
+msgstr "Confirmar Chamadas"
+
+#: ringgroups.i18n.php:8
+msgid ""
+"Creates a group of extensions that all ring together. Extensions can be rung "
+"all at once, or in various 'hunt' configurations. Additionally, external "
+"numbers are supported, and there is a call confirmation option where the "
+"callee has to confirm if they actually want to take the call before the "
+"caller is transferred."
+msgstr ""
+"Cria um grupo de ramais que tocam em conjunto. Os ramais podem ser "
+"executadas de uma só vez, ou em várias configurações de 'hunt'. Além disso, "
+"os números externos são suportados, e há uma opção de confirmação de chamada "
+"onde o destinatário tem de confirmar quer receber a chamada antes que "
+"usuário o chamador seja transferido."
+
+#: views/form.php:143 views/form.php:178 views/form.php:245 views/form.php:257
+msgid "Default"
+msgstr "Padrão"
+
+#: Ringgroups.class.php:149
+msgid "Delete"
+msgstr "Apagar"
+
+#: views/bootnav.php:14 views/rggrid.php:17
+msgid "Description"
+msgstr "Descrição"
+
+#: views/advanced_form.php:465 views/simple_form.php:141
+msgid "Destination if no answer"
+msgstr "Destino caso não responda"
+
+#: ringgroups.i18n.php:12
+msgid "Display Extension Ring Group Members"
+msgstr "Exibir Membros do Grupo de Toques de Ramais"
+
+#: views/advanced_form.php:438
+msgid "Dont Care"
+msgstr "Não Importa"
+
+#: views/advanced_form.php:325
+msgid "Enable Call Pickup"
+msgstr "Ativar Captura de Chamadas"
+
+#: views/advanced_form.php:367
+msgid ""
+"Enable this if you're calling external numbers that need confirmation - eg, "
+"a mobile phone may go to voicemail which will pick up the call. Enabling "
+"this requires the remote side push 1 on their phone before the call is put "
+"through. This feature only works with the ringall ring strategy"
+msgstr ""
+"Ativar se você estiver chamando números externos que precisam de confirmação "
+"- por exemplo, um telefone celular pode ir para o correio de voz que vai "
+"receber a chamada. Habilitando essa opção requer que o destino pressione 1 "
+"em seu telefone antes que a chamada seja feita. Esse recurso só funciona com "
+"a estratégia \"tocar todos\""
+
+#: views/advanced_form.php:58 views/simple_form.php:32
+msgid "Extension List"
+msgstr "Lista de Ramais"
+
+#: views/advanced_form.php:407 views/form.php:247 views/form.php:258
+msgid "Fixed CID Value"
+msgstr "Valor CID Fixo"
+
+#: views/advanced_form.php:419
+msgid ""
+"Fixed value to replace the CID with used with some of the modes above. "
+"Should be in a format of digits only with an option of E164 format using a "
+"leading '+'."
+msgstr ""
+"Valor fixo para substituir o CID usado com alguns dos modos acima. Deve "
+"estar em um formato de dígitos apenas com a opção de formato E164 usando um "
+"prefixo '+'."
+
+#: views/advanced_form.php:436
+msgid "Force"
+msgstr "Forçar"
+
+#: views/form.php:253 views/form.php:261
+msgid "Force Dialed Number"
+msgstr "Forçar Número Discado"
+
+#: views/advanced_form.php:34
+msgid "Group Description"
+msgstr "Descrição do Grupo"
+
+#: functions.inc.php:334
+msgid "INUSE"
+msgstr "EM USO"
+
+#: views/form.php:236
+msgid ""
+"If you select a Music on Hold class to play, instead of 'Ring', they will "
+"hear that instead of Ringing while they are waiting for someone to pick up."
+msgstr ""
+"Se você selecionar uma classe de Música em Espera para reproduzir, ao invés "
+"do 'Toque', eles ouvirão a música ao invés do Toque enquanto estiverem "
+"esperando alguém responder."
+
+#: views/advanced_form.php:271
+msgid "Ignore CF Settings"
+msgstr "Ignorar Configuração CF"
+
+#: views/form.php:219
+msgid "Inherit"
+msgstr "Herdar"
+
+#: assets/js/ringgroups.js:60
+msgid "Invalid CID"
+msgstr "CID Inválido"
+
+#: assets/js/ringgroups.js:54
+msgid "Invalid Group Number specified"
+msgstr "Número do Grupo especificado inválido"
+
+#: assets/js/ringgroups.js:56
+msgid "Invalid time specified"
+msgstr "Tempo especificado inválido"
+
+#: views/bootnav.php:3
+msgid "List Ring Groups"
+msgstr "Listar Grupo de Toques"
+
+#: views/advanced_form.php:78
+msgid ""
+"List extensions to ring, one per line, or use the Extension Quick Select "
+"insert them here.<br><br>You can include an extension on a remote system, or "
+"an external number by suffixing a number with a '#'.  ex:  2448089# would "
+"dial 2448089 on the appropriate trunk (see Outbound "
+"Routing)<br><br>Extensions without a '#' will not ring a user's Follow-Me. "
+"To dial Follow-Me, Queues and other numbers that are not extensions, put a "
+"'#' at the end."
+msgstr ""
+"Lista de ramais para tocar, uma por linha, ou usar a Seleção Rápida de ramal "
+"para inseri-los aqui. Você pode incluir um ramal em um sistema remoto, ou um "
+"número externo sufixando um número com um '#'. Ex: 2448089 # seria discar "
+"2448089 no tronco apropriado (consulte Roteamento de Saída) <br><br> os "
+"ramais sem '#' não tocarão o Siga-Me de um usuário. Para discar o Siga-me, "
+"filas e outros números que não são ramais, coloque um '#' no final."
+
+#: views/simple_form.php:52
+msgid ""
+"List extensions to ring, one per line, or use the Extension Quick Select to "
+"insert them here.<br><br>You can include an extension on a remote system, or "
+"an external number by suffixing a number with a '#'.  ex:  2448089# would "
+"dial 2448089"
+msgstr ""
+"Lista de ramais para tocar, uma por linha, ou use a Seleção Rápida de Ramais "
+"para inseri-las aqui. Você pode incluir um ramal em um sistema remoto, ou um "
+"número externo, sufixando um número com um '#'. Ex: 2448089 # irá discar "
+"2448089"
+
+#: views/form.php:66
+msgid ""
+"Makes a call could hop between the included extensions without a predefined "
+"priority to ensure that calls in the groups are (almost) evenly spread. "
+"Simulates a Queue when a Queue can not otherwise be used."
+msgstr ""
+"Faz com que uma chamada possa pular entre os ramais incluídos sem uma "
+"prioridade predefinida para garantir que as chamadas nos grupos sejam "
+"(quase) uniformemente distribuídas. Simula uma Fila quando uma Fila não pode "
+"ser usada de outra forma."
+
+#: views/advanced_form.php:244
+msgid "Mark Answered Elsewhere"
+msgstr ""
+
+#: views/form.php:122
+msgid ""
+"Message to be played to the caller before dialing this group.<br><br>To add "
+"additional recordings please use the \"System Recordings\" MENU above"
+msgstr ""
+"Mensagem a ser reproduzida para o usuario chamador antes de discar este "
+"grupo.<br><br> Para adicionar mais gravações, use o menu \"Gravações do "
+"Sistema\" acima"
+
+#: views/form.php:157
+msgid ""
+"Message to be played to the person RECEIVING the call, if 'Confirm Calls' is "
+"enabled.<br><br>To add additional recordings use the \"System Recordings\" "
+"MENU above"
+msgstr ""
+"Mensagem a ser reproduzida para a pessoa ao RECEBER a chamada, se 'Confirmar "
+"Chamadas' estiver ativada. <br> <br> Para adicionar gravações adicionais, "
+"use o menu \"Gravações do Sistema\" acima"
+
+#: views/form.php:192
+msgid ""
+"Message to be played to the person RECEIVING the call, if the call has "
+"already been accepted before they push 1.<br><br>To add additional "
+"recordings use the \"System Recordings\" MENU above"
+msgstr ""
+"Mensagem a ser reproduzida para a pessoa ao RECEBER a chamada, se a chamada "
+"já tiver sido aceita antes de pressionar 1. <br><br> Para adicionar "
+"gravações adicionais use o menu \"Gravações do Sistema\" acima"
+
+#: views/form.php:243
+msgid "Mode"
+msgstr "Modo"
+
+#: views/advanced_form.php:440
+msgid "Never"
+msgstr "Nunca"
+
+#: views/advanced_form.php:224 views/advanced_form.php:251
+#: views/advanced_form.php:278 views/advanced_form.php:305
+#: views/advanced_form.php:332 views/advanced_form.php:359
+msgid "No"
+msgstr "Não"
+
+#: views/advanced_form.php:194 views/form.php:108
+msgid "None"
+msgstr "Nenhum"
+
+#: assets/js/ringgroups.js:59
+msgid ""
+"Only ringall, ringallv2, hunt and the respective -prim versions are "
+"supported when confirmation is checked"
+msgstr ""
+"Somente ringall, ringallv2, hunt e as respectivas versões -prim são "
+"suportados quando a confirmação é verificada"
+
+#: views/form.php:249 views/form.php:259
+msgid "Outside Calls Fixed CID Value"
+msgstr "Valor CID Fixo para Chamadas Externas"
+
+#: views/advanced_form.php:206
+#, php-format
+msgid ""
+"Override the ringer volume. Note: This is only valid for %s phones at this "
+"time"
+msgstr ""
+"Substituir o volume do toque. Observação: isso só é válido para telefones %s "
+"neste momento"
+
+#: views/form.php:211
+msgid "Play Music On Hold"
+msgstr "Reproduzir Música em Espera"
+
+#: assets/js/ringgroups.js:58
+msgid "Please enter a valid Group Description"
+msgstr "Por favor, insira uma Descrição de Grupo válida"
+
+#: assets/js/ringgroups.js:55
+msgid "Please enter an extension list."
+msgstr "Por favor, insira uma lista de ramais."
+
+#: views/advanced_form.php:46
+msgid "Provide a descriptive title for this Ring Group."
+msgstr "Forneça um título descritivo para este Grupo de Toques."
+
+#: views/simple_form.php:20
+msgid "Provide a name for this Ring Group."
+msgstr "Forneça um nome para este Grupo de Toques."
+
+#: views/form.php:136
+msgid "Remote Announce"
+msgstr "Anúncio Remoto"
+
+#: Ringgroups.class.php:159
+msgid "Reset"
+msgstr "Reiniciar"
+
+#: views/form.php:218
+msgid "Ring"
+msgstr "Tocar"
+
+#: views/bootnav.php:13 views/rggrid.php:16
+msgid "Ring Group"
+msgstr "Grupo de Toques"
+
+#: functions.inc.php:37
+#, php-format
+msgid "Ring Group %s: "
+msgstr "Grupo de Toque %s: "
+
+#: functions.inc.php:458
+msgid "Ring Group Membership"
+msgstr "Membros do Grupo de Toque"
+
+#: ringgroups.i18n.php:14
+msgid "Ring Group Module"
+msgstr "Módulo de Grupo de Toque"
+
+#: views/simple_form.php:8
+msgid "Ring Group Name"
+msgstr "Nome do Grupo de Toque"
+
+#: functions.inc.php:57 functions.inc.php:333
+#, php-format
+msgid "Ring Group: %s"
+msgstr "Grupo de Toque: %s"
+
+#: functions.inc.php:360
+#, php-format
+msgid "Ring Group: %s (%s)"
+msgstr "Grupo de Toque: %s (%s)"
+
+#: page.ringgroups.php:10 ringgroups.i18n.php:4 ringgroups.i18n.php:10
+msgid "Ring Groups"
+msgstr "Grupos de Toques"
+
+#: views/advanced_form.php:90 views/simple_form.php:64
+msgid "Ring Strategy"
+msgstr "Estratégia de Toque"
+
+#: views/simple_form.php:91
+msgid "Ring Time"
+msgstr "Duração de Toque"
+
+#: views/advanced_form.php:116
+msgid "Ring Time (max 300 sec)"
+msgstr "Duração de Toque (max 300 seg)"
+
+#: views/simple_form.php:118
+msgid "Ring Tone"
+msgstr "Tom de Toque"
+
+#: views/form.php:54
+msgid "Ring all available channels until one answers (default)"
+msgstr "Toca todos os canais disponíveis até que um responda (padrão)"
+
+#: views/form.php:58
+msgid ""
+"Ring first extension in the list, then ring the 1st and 2nd extension, then "
+"ring 1st 2nd and 3rd extension in the list.... etc. This strategy will work "
+"only when Confirm Calls is disabled."
+msgstr ""
+
+#: views/advanced_form.php:9
+msgid "Ring-Group Number"
+msgstr "Número do Grupo de Toques"
+
+#: Ringgroups.class.php:129
+msgid "RingGroup"
+msgstr "Grupo de Toque"
+
+#: views/advanced_form.php:189
+msgid "Ringer Volume Override"
+msgstr "Substituição do Volume de Toque"
+
+#: views/simple_form.php:130
+msgid ""
+"Select a Ring Tone from the list of options above. This will determine how "
+"your phone sounds when it is rung from this group."
+msgstr ""
+"Selecione um Tom de Toque na lista de opções acima. Isto irá determinar como "
+"o seu telefone irá soar quando for executado a partir deste grupo."
+
+#: views/advanced_form.php:217
+msgid "Send Progress"
+msgstr "Enviar Progresso"
+
+#: views/simple_form.php:70
+msgid "Sequential"
+msgstr "Sequencial"
+
+#: views/advanced_form.php:259
+msgid "Should calls indicate answered elsewhere when a user answers."
+msgstr ""
+
+#: views/advanced_form.php:232
+msgid ""
+"Should this ringgroup indicate call progress to digital channels where "
+"supported."
+msgstr ""
+"Se este grupo de toque indicar o progresso de chamada para os canais "
+"digitais onde são suportados."
+
+#: views/simple_form.php:69
+msgid "Simultaneous"
+msgstr "Simultâneo"
+
+#: views/advanced_form.php:298
+msgid "Skip Busy Agent"
+msgstr "Ignorar Agentes Ocupados"
+
+#: Ringgroups.class.php:154
+msgid "Submit"
+msgstr "Enviar"
+
+#: views/form.php:56
+msgid "Take turns ringing each available extension"
+msgstr "Reveza o toque alternadamente para cada ramal disponível"
+
+#: assets/js/ringgroups.js:80
+msgid "The group list can only contain a maximum of 255 characters."
+msgstr "A lista de grupos pode conter apenas um máximo de 255 caracteres."
+
+#: views/advanced_form.php:21
+msgid "The number users will dial to ring extensions in this ring group"
+msgstr ""
+"O número de usuários que irão discar para os ramais neste grupo de toques"
+
+#: views/form.php:60
+msgid ""
+"These modes act as described above. However, if the primary extension (first "
+"in list) is occupied, the other extensions will not be rung. If the primary "
+"is FreePBX DND, it won't be rung. If the primary is FreePBX CF "
+"unconditional, then all will be rung"
+msgstr ""
+"Estes modos atuam como descrito acima. No entanto, se o ramal principal "
+"(primeiro na lista) estiver ocupado, os outros ramais não serão tocados. Se "
+"o principal for FreePBX DND, ele não será tocado. Se o principal é FreePBX "
+"CF incondicional, então todos serão tocados"
+
+#: Ringgroups.class.php:249
+msgid "This ringgroup"
+msgstr "Este grupo de toques"
+
+#: views/advanced_form.php:128
+msgid ""
+"Time in seconds that the phones will ring. For all hunt style ring "
+"strategies, this is the time for each iteration of phone(s) that are rung"
+msgstr ""
+"Tempo em segundos que os telefones tocarão. Para todas as estratégias de "
+"toque tipo \"hunt\", este é o tempo para cada iteração de telefone(s) que "
+"são tocados"
+
+#: views/simple_form.php:108
+msgid ""
+"Time in seconds that the phones will ring. For sequential ring strategies, "
+"this is the time for each iteration of phone(s) that are rung"
+msgstr ""
+"Tempo em segundos que os telefones tocarão. Para estratégias de toques "
+"sequenciais, este é o tempo para cada iteração de telefone(s) que tocarão"
+
+#: assets/js/ringgroups.js:57
+msgid "Time must be between 1 and 300 seconds"
+msgstr "A duração deve estar entre 1 e 300 segundos"
+
+#: views/form.php:171
+msgid "Too-Late Announce"
+msgstr "Anúncio de Muito Tarde"
+
+#: views/form.php:249
+msgid ""
+"Transmit the Fixed CID Value below on calls that come in from outside only. "
+"Internal extension to extension calls will continue to operate in default "
+"mode."
+msgstr ""
+"Transmite o Valor de CID Fixo abaixo em chamadas que vêm apenas "
+"externamente. O ramal interno para chamadas de ramais continuará a funcionar "
+"no modo padrão."
+
+#: views/form.php:253
+msgid ""
+"Transmit the number that was dialed as the CID for calls coming from "
+"outside. Internal extension to extension calls will continue to operate in "
+"default mode. There must be a DID on the inbound route for this. This WILL "
+"be transmitted on trunks that block foreign CallerID"
+msgstr ""
+"Transmite o número que foi discado como o CID para chamadas provenientes de "
+"fora. O ramal interno para chamadas de ramais continuará a funcionar no modo "
+"padrão. Deve haver um DID na rota de entrada para isso. Isso SERÁ "
+"transmitido em troncos que bloqueiam o ID Chamador estrangeiro"
+
+#: views/form.php:251
+msgid ""
+"Transmit the number that was dialed as the CID for calls coming from "
+"outside. Internal extension to extension calls will continue to operate in "
+"default mode. There must be a DID on the inbound route for this. This will "
+"be BLOCKED on trunks that block foreign CallerID"
+msgstr ""
+"Transmite o número que foi discado como o CID para chamadas provenientes de "
+"fora. O ramal interno para chamadas de ramais continuará a funcionar no modo "
+"padrão. Deve haver um DID na rota de entrada para isso. Isso será BLOQUEADO "
+"em troncos que bloqueiam o ID Chamador estrangeiro"
+
+#: views/form.php:245
+msgid "Transmits the Callers CID if allowed by the trunk."
+msgstr "Transmite os chamadores CID se permitido pelo tronco."
+
+#: views/form.php:251 views/form.php:260
+msgid "Use Dialed Number"
+msgstr "Usar Número Discado"
+
+#: Ringgroups.class.php:79
+msgid "Warning! Extension"
+msgstr "Atenção! Ramal"
+
+#: views/advanced_form.php:313
+msgid ""
+"When enabled, agents who are on an occupied phone will be skipped as if the "
+"line were returning busy. This means that Call Waiting or multi-line phones "
+"will not be presented with the call and in the various hunt style ring "
+"strategies, the next agent will be attempted."
+msgstr ""
+"Quando ativado, os agentes que estão em um telefone ocupado serão ignorados "
+"como se a linha estivesse retornando ocupada. Isso significa que Chamada em "
+"Espera ou telefones com várias linhas não serão apresentados com a chamada e "
+"nas várias estratégias de toques do tipo \"busca\", se tentará o próximo "
+"agente."
+
+#: views/advanced_form.php:340
+msgid ""
+"When enabled, this will allow calls to the Ring Group to be picked up with "
+"the directed call pickup feature using the group number from any extension. "
+"When not checked, individual extensions that are part of the group can still "
+"be picked up by doing a directed call pickup by dialing the group number. "
+"Any extensions can still be picked up by doing a directed call pickup to the "
+"ringing extension , which works whether or not this is checked."
+msgstr ""
+
+#: views/advanced_form.php:286
+msgid ""
+"When set to Yes, agents who attempt to Call Forward will be ignored, this "
+"applies to CF, CFU and CFB. Extensions entered with '#' at the end, for "
+"example to access the extension's Follow-Me, might not honor this setting ."
+msgstr ""
+"Quando definido como Sim, os agentes que tentam Redirecionar chamadas serão "
+"ignorados, isto aplica-se a CF, CFU e CFB. Os ramais inseridos com '#' no "
+"final, por exemplo, para acessar o Siga-Me do ramal, podem não respeitar "
+"essa configuração."
+
+#: ringgroups.i18n.php:16
+msgid ""
+"When set to true extensions that belong to one or more Ring Groups will have "
+"a Ring Group section and link back to each group they are a member of."
+msgstr ""
+"Quando configurado para ramais verdadeiros que pertencem a um ou mais Grupos "
+"de Toque terá uma seção de Grupo de Toques e um enlace para cada grupo do "
+"qual eles são membros."
+
+#: views/advanced_form.php:477 views/simple_form.php:153
+msgid "Where to send callers if there is no answer."
+msgstr "Onde enviar os usuários chamadores se não houver resposta."
+
+#: views/advanced_form.php:222 views/advanced_form.php:249
+#: views/advanced_form.php:276 views/advanced_form.php:303
+#: views/advanced_form.php:330 views/advanced_form.php:357
+msgid "Yes"
+msgstr "Sim"
+
+#: views/advanced_form.php:448
+msgid ""
+"You can always record calls that come into this ring group (Force), never "
+"record them (Never), or allow the extension that answers to do on-demand "
+"recording (Dont Care). If recording is denied then one-touch on demand "
+"recording will be blocked, unless they have the \"Override\" call recording "
+"setting."
+msgstr ""
+"Você sempre pode gravar chamadas que entram neste grupo de toques (Forçar), "
+"nunca as gravar (Nunca) ou permitir que o ramal que responde faça gravação "
+"sob demanda (Não Importa). Se a gravação for negada, a gravação sob demanda "
+"será bloqueada, a menos que eles tenham a configuração de gravação de "
+"chamada \"Substituir\"."
+
+#: views/advanced_form.php:154
+msgid ""
+"You can optionally prefix the CallerID name when ringing extensions in this "
+"group. ie: If you prefix with \"Sales:\", a call from John Doe would display "
+"as \"Sales:John Doe\" on the extensions that ring."
+msgstr ""
+"Você pode, opcionalmente, prefixar o nome do ID Chamador quando tocar ramais "
+"neste grupo. Ou seja: Se você prefixar com \"Vendas:\", uma chamada de John "
+"Doe iria mostrar como \"Vendas: John Doe\" sobre os ramais que tocam."
+
+#: views/form.php:223
+msgid "default"
+msgstr "padrão"
+
+#: views/form.php:62
+msgid "firstavailable"
+msgstr "primeiro disponível"
+
+#: views/form.php:64
+msgid "firstnotonphone"
+msgstr "primeiro que não estiver ao telefone"
+
+#: views/form.php:56
+msgid "hunt"
+msgstr "hunt"
+
+#: Ringgroups.class.php:249
+msgid "is already in use"
+msgstr "já está em uso"
+
+#: Ringgroups.class.php:79
+msgid "is not allowed for your account"
+msgstr "não é permitido para sua conta"
+
+#: views/form.php:58
+msgid "memoryhunt"
+msgstr "memoryhunt"
+
+#: views/form.php:222
+msgid "none"
+msgstr "nenhum"
+
+#: views/form.php:66
+msgid "random"
+msgstr "aleatório"
+
+#: views/form.php:62
+msgid ""
+"ring only the first available channel. This strategy will work only when "
+"Confirm Calls is disabled."
+msgstr ""
+
+#: views/form.php:64
+msgid ""
+"ring only the first channel which is not offhook - ignore CW. This strategy "
+"will work only when Confirm Calls is disabled."
+msgstr ""
+
+#: views/form.php:54
+msgid "ringall"
+msgstr "tocar todos"
+
+#~ msgid ""
+#~ "Ring first extension in the list, then ring the 1st and 2nd extension, "
+#~ "then ring 1st 2nd and 3rd extension in the list.... etc."
+#~ msgstr ""
+#~ "Toca no primeiro ramal na lista, em seguida, toca no 1° e 2° ramal, em "
+#~ "seguida, toca no 1°, 2° e 3° ramal na lista... etc."
+
+#~ msgid "ring only the first available channel"
+#~ msgstr "tocar apenas o primeiro canal disponível"
+
+#~ msgid "ring only the first channel which is not offhook - ignore CW"
+#~ msgstr ""
+#~ "tocar apenas no primeiro canal que não é offhook - ignore CW(chamada em "
+#~ "espera)"
+
+#~ msgid ""
+#~ "When enabled, this will allow calls to the Ring Group to be picked up "
+#~ "with the directed call pickup feature using the group number. When not "
+#~ "checked, individual extensions that are part of the group can still be "
+#~ "picked up by doing a directed call pickup to the ringing extension, which "
+#~ "works whether or not this is checked."
+#~ msgstr ""
+#~ "Quando ativado, isso permitirá que as chamadas para o Grupo de Toque "
+#~ "sejam captadas com o recurso de captura de chamadas direcionadas usando o "
+#~ "número do grupo. Quando não discado, os ramais individuais que fazem "
+#~ "parte do grupo ainda podem ser capturados fazendo uma chamada direcionada "
+#~ "para o ramal do toque, o que funciona independentemente de isso ser "
+#~ "verificado."

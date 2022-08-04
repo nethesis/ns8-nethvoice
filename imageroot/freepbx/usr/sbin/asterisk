@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# Dummy Asterisk executable for FreePBX
+
+echo 'Asterisk 18.12.1 built by makerpms @ b116.nethserver.org on a x86_64 running Linux on 2022-07-04 13:07:29 UTC'

@@ -1,0 +1,316 @@
+# FreePBX language for announcement
+# Copyright 2013 Schmooze Com Inc
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX - test module spanish translation\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-12-31 12:25+0530\n"
+"PO-Revision-Date: 2016-12-09 05:23+0200\n"
+"Last-Translator: Ernesto <ecasas@sangoma.com>\n"
+"Language-Team: Spanish <http://weblate.freepbx.org/projects/freepbx/"
+"announcement/es_ES/>\n"
+"Language: es_ES\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+"X-Poedit-Language: Spanish\n"
+"X-Poedit-Country: SPAIN\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: page.announcement.php:17
+msgid ": Add"
+msgstr ": Agregar"
+
+#: page.announcement.php:14
+msgid ": Edit"
+msgstr ": Editar"
+
+#: views/grid.php:18
+msgid "Actions"
+msgstr "Acciones"
+
+#: views/grid.php:11
+msgid "Add"
+msgstr "Agregar"
+
+#: views/rnav.php:3
+msgid "Add Announcements"
+msgstr "Agregar Anuncios"
+
+#: views/form.php:142
+msgid "Allow Skip"
+msgstr "Permitir saltar"
+
+#: page.announcement.php:7
+msgid "Announcement"
+msgstr "Anuncio"
+
+#: assets/js/announcement.js:16
+msgid "Announcement Description Already Exist"
+msgstr ""
+
+#: functions.inc.php:31 functions.inc.php:51 functions.inc.php:226
+#, php-format
+msgid "Announcement: %s"
+msgstr "Anuncio: %s"
+
+#: announcement.i18n.php:4 announcement.i18n.php:10
+msgid "Announcements"
+msgstr "Anuncios"
+
+#: announcement.i18n.php:6
+msgid "Applications"
+msgstr "Aplicaciones"
+
+#: install.php:90
+msgid "Checking if recordings need migration.."
+msgstr "Comprobando si las grabaciones necesitan migrarse..."
+
+#: Announcement.class.php:70
+msgid "Delete"
+msgstr "Eliminar"
+
+#: views/form.php:91 views/grid.php:16
+msgid "Description"
+msgstr "Descripción"
+
+#: views/grid.php:17
+msgid "Destination"
+msgstr "Destino"
+
+#: views/form.php:223
+msgid "Destination after Playback"
+msgstr "Destino luego de Reproducir"
+
+#: views/rnav.php:8
+msgid "Destinations"
+msgstr "Destinos"
+
+#: views/form.php:72
+msgid "Disable"
+msgstr "Deshabilitar"
+
+#: views/form.php:196
+msgid "Don't Answer Channel"
+msgstr "No contestar canal"
+
+#: views/form.php:157
+msgid "If the caller is allowed to press a key to skip the message."
+msgstr ""
+"Indica si el llamante puede presionar una tecla para saltarse el mensaje."
+
+#: views/form.php:184
+msgid ""
+"If this announcement came from an IVR and this is set to yes, the "
+"destination below will be ignored and instead it will return to the calling "
+"IVR. Otherwise, the destination below will be taken. Don't check if not "
+"using in this mode. <br>The IVR return location will be to the last IVR in "
+"the call chain that was called so be careful to only check when needed. For "
+"example, if an IVR directs a call to another destination which eventually "
+"calls this announcement and this box is checked, it will return to that IVR "
+"which may not be the expected behavior."
+msgstr ""
+"Si este anuncio se produjo desde un IVR y esto se establece en \"sí\", el "
+"destino a continuación será ignorado y en su lugar será retornado al IVR "
+"llamante. De lo contrario, el destino a continuación  será asumido. No lo "
+"seleccione si no esta siendo usado en este modo. <br>La dirección de retorno "
+"del IVR será el último IVR en la cadena de llamadas que fue usado que tenga "
+"cuidado de seleccionar sólo cuando sea necesario. Por ejemplo, si un IVR "
+"dirige una llamada a otro destino que eventualmente llama a este anuncio y "
+"se selecciona  esta casilla, se volverá a ese IVR lo cual puede no ser el "
+"comportamiento esperado."
+
+#: assets/js/announcement.js:6
+msgid "Invalid description specified"
+msgstr "La descripción especificada no es válida"
+
+#: views/form.php:130
+msgid ""
+"Key to press that will allow for the message to be replayed. If you choose "
+"this option there will be a short delay inserted after the message. If a "
+"longer delay is needed it should be incorporated into the recording."
+msgstr ""
+"Tecla que se debe presionar para repetir el mensaje. Si se selecciona esta "
+"opción, se insertará un pequeño retraso tras la reproducción del mensaje. Si "
+"se necesita un retardo mayor, se debería incorporar directamente al mensaje "
+"grabado."
+
+#: views/rnav.php:2
+msgid "List Announcements"
+msgstr "Listar Anuncios"
+
+#: views/form.php:59
+msgid ""
+"Message to be played.<br>To add additional recordings use the \"System "
+"Recordings\" MENU above"
+msgstr ""
+"Mensaje a ser reproducido. <br>Para agregar grabaciones adicionales use el "
+"MENU \"Grabaciones del Sistema\" arriba"
+
+#: views/form.php:149 views/form.php:176 views/form.php:203
+msgid "No"
+msgstr "No"
+
+#: assets/js/announcement.js:35
+msgid "No Destination"
+msgstr "No Destino"
+
+#: views/form.php:32
+msgid "None"
+msgstr "ninguno"
+
+#: announcement.i18n.php:8
+msgid ""
+"Plays back one of the system recordings (optionally allowing the user to "
+"skip it) and then goes to another destination."
+msgstr ""
+"Reproduce una de las grabaciones del sistema (permitiendo opcionalmente al "
+"usuario saltárselo) y luego se va a otro destino."
+
+#: views/form.php:45
+msgid "Recording"
+msgstr "Grabación"
+
+#: views/form.php:116
+msgid "Repeat"
+msgstr "Repetir"
+
+#: Announcement.class.php:75
+msgid "Reset"
+msgstr "Reiniciar"
+
+#: views/form.php:169
+msgid "Return to IVR"
+msgstr "Volver al IVR"
+
+#: views/form.php:211
+msgid ""
+"Set this to yes, to keep the channel from explicitly being answered. When "
+"checked, the message will be played and if the channel is not already "
+"answered it will be delivered as early media if the channel supports that. "
+"When not checked, the channel is answered followed by a 1 second delay. When "
+"using an announcement from an IVR or other sources that have already "
+"answered the channel, that 1 second delay may not be desired."
+msgstr ""
+"Ponga esto en sí, para mantener el canal de forma explícita siendo "
+"contestadas. Cuando se activa, el mensaje se reproducirá y si el canal no "
+"está ya respondido se entregará como la media anticipada (early media) si el "
+"canal soporta eso. Cuando no se marca, el canal se contesta seguido de un "
+"retardo de 1 segundo. Al utilizar un anuncio de un IVR u otras fuentes que "
+"ya han respondido el canal, ese1 segundo  de retraso puede no ser  deseado."
+
+#: Announcement.class.php:80
+msgid "Submit"
+msgstr "Enviar"
+
+#: views/form.php:103
+msgid "The name of this announcement."
+msgstr "El nombre de este anuncio."
+
+#: views/form.php:235
+msgid "Where to send the caller after the announcement is played."
+msgstr "Donde enviar al llamante despues de que el anuncio sea reproducido."
+
+#: views/form.php:147 views/form.php:174 views/form.php:201
+msgid "Yes"
+msgstr "Si"
+
+#: install.php:97
+msgid "adding recording_id field.."
+msgstr "añadiendo campo recording_id..."
+
+#: install.php:147
+msgid "already migrated"
+msgstr "ya se ha migrado"
+
+#: install.php:137
+msgid "dropping recording field.."
+msgstr "eliminando campo de grabación (recording).."
+
+#: install.php:101 install.php:113 install.php:129
+msgid "fatal error"
+msgstr "error fatal"
+
+#: install.php:109
+msgid "migrate to recording ids.."
+msgstr "migrar a identificadores de grabación (recording ids).."
+
+#: install.php:133
+#, php-format
+msgid "migrated %s entries"
+msgstr "migradas %s entradas"
+
+#: install.php:96
+msgid "migrating"
+msgstr "migrando"
+
+#: install.php:141
+msgid "no recording field???"
+msgstr "¿No hay campo de grabación (recording)?"
+
+#: install.php:104 install.php:143
+msgid "ok"
+msgstr "ok"
+
+#, fuzzy
+#~ msgid ""
+#~ "Check this to keep the channel from explicitly being answered. When "
+#~ "checked, the message will be played and if the channel is not already "
+#~ "answered it will be delivered as early media if the channel supports "
+#~ "that. When not checked, the channel is answered followed by a 1 second "
+#~ "delay. When using an announcement from an IVR or other sources that have "
+#~ "already answered the channel, that 1 second delay may not be desired."
+#~ msgstr ""
+#~ "#-#-#-#-#  - (FreePBX - test module spanish translation)  #-#-#-#-#\n"
+#~ "Marque esta opción para evitar que el canal sea contestado. Cuando esté "
+#~ "marcada, el mensaje se reproducirá y si el canal no ha sido ya "
+#~ "contestado, será atendido tan pronto como hayas medios y el canal lo "
+#~ "soporte. Cuando no esté marcada, el canal será contestado, seguido de un "
+#~ "retardo de 1 segundo. Cuando se use un anuncio desde un IVR u otros "
+#~ "orígenes que ya hayan contestado el canal, ese segundo de retardo puede "
+#~ "que no sea adecuado."
+
+#~ msgid "Add Announcement"
+#~ msgstr "Añadir anuncio"
+
+#~ msgid "Destination after playback"
+#~ msgstr "Destino tras la reproducción"
+
+#~ msgid "Edit Announcement"
+#~ msgstr "Editar anuncio"
+
+#~ msgid ""
+#~ "If this announcement came from an IVR and this box is checked, the "
+#~ "destination below will be ignored and instead it will return to the "
+#~ "calling IVR. Otherwise, the destination below will be taken. Don't check "
+#~ "if not using in this mode. <br>The IVR return location will be to the "
+#~ "last IVR in the call chain that was called so be careful to only check "
+#~ "when needed. For example, if an IVR directs a call to another destination "
+#~ "which eventually calls this announcement and this box is checked, it will "
+#~ "return to that IVR which may not be the expected behavior."
+#~ msgstr ""
+#~ "Si este anuncio llega desde un IVR y esta casilla está marcada, el "
+#~ "siguiente destino será ignorando y en su lugar se volverá al IVR. De lo "
+#~ "contrario, el destino siguiente se tomará. No marque esta casilla si no "
+#~ "utiliza en este modo.<br/>El punto de regreso del IVR será el último IVR "
+#~ "en la cadena de llamadas que llamó, así que tenga cuidado de marcar "
+#~ "sólamente cuando sea necesario. Por ejemplo, si un IVR dirige una llamada "
+#~ "a otro destino que ocasionalmente llama a este anuncio y esta casilla "
+#~ "está activada, regresará a ese IVR, lo que puede provocar un "
+#~ "comportamiento inesperado."
+
+#~ msgid ""
+#~ "Message to be played.<br>To add additional recordings use the \"System "
+#~ "Recordings\" MENU to the left"
+#~ msgstr ""
+#~ "El mensaje que será reproducido.<br/>Para añadir más grabaciones, use el "
+#~ "menú de \"Grabaciones del sistema\" a la izquierda"
+
+#~ msgid "Submit Changes"
+#~ msgstr "Enviar cambios"
+
+#~ msgid "The name of this announcement"
+#~ msgstr "El nombre de este anuncio"

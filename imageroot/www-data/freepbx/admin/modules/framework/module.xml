@@ -1,0 +1,422 @@
+<module>
+	<rawname>framework</rawname>
+	<modtype>framework</modtype>
+	<repo>standard</repo>
+	<name>FreePBX Framework</name>
+	<version>14.0.13.12</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv2+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<candisable>no</candisable>
+	<canuninstall>no</canuninstall>
+	<changelog>
+		*14.0.13.12* FREEPBX-20791
+		*14.0.13.9* bump 
+		*14.0.13.8* Revert FREEPBX-20441
+		*14.0.13.7* FREEPBX-20441 FreePBX 13 to SNG7 update breaks calling 
+		*14.0.13.6* FREEI-686 Recent Framework changes introduce delay with scheduled pages 
+		*14.0.13.5* FREEPBX-20496 Apache errors when browsing Admin GUI 
+		*14.0.13.4* FREEPBX-20002 - make fwconsole cronjob compatible with Debian
+		*14.0.13.3* FREEI-556 FREEI-567 - wait up to 30 seconds for Asterisk to be ready during a start/restart
+		*14.0.13.2* FREEPBX-19993 
+		*14.0.13.1* FREEI-522 ony variables should be passed by reference 
+		*14.0.13* Actually set the day in System Updates FREEPBX-16969
+		*14.0.12.13* Better inserting of jobs
+		*14.0.12.12* Enable or Disable crons based on module state
+		*14.0.12.11* Add rawname to console warning messages
+		*14.0.12.10* Check with core for status of FastAGI and PM2
+		*14.0.12.9* Declare correct const when using syslog
+		*14.0.12.8* Add locking trait to jobs cli
+		*14.0.12.7* FREEPBX-19930
+		*14.0.12.6* Expose 'html5Formats' array from Media 
+		*14.0.12.4* FREEPBX-19909
+		*14.0.12.3* FREEPBX-19601
+		*14.0.12.2* FREEPBX-19878
+		*14.0.12.1* Small fixes for job class
+		*14.0.12* Add centralized job class
+		*14.0.11.1* FREEPBX-19827
+		*14.0.11* Update locking code in system updates
+		*14.0.10.4* Add ability to forcefully define a codec
+		*14.0.10.3* FREEPBX-19806
+		*14.0.10.2* FREEPBX-19756
+		*14.0.10.1* FREEPBX-19733
+		*14.0.10* FREEPBX-19620 gpg keys refresh failed
+		*14.0.9.1* FREEPBX-19788
+		*14.0.9* FREEPBX-19762
+		*14.0.8.4* FREEPBX-19775
+		*14.0.8.3* FREEPBX-19767 Invalid parameter number
+		*14.0.8.2* FREEI-478 declare AUTH for inital OOBE setup
+		*14.0.8.1* Remove use outside of scope
+		*14.0.8* Lazy load console commands for performance improvements
+		*14.0.7.7* FREEI-468
+		*14.0.7.6* FREEPBX-19561
+		*14.0.7.5* FREEPBX-19619
+		*14.0.7.4* Set empty array for each table
+		*14.0.7.3* FREEPBX-19493
+		*14.0.7.2* FREEPBX-19494
+		*14.0.7.1* Remove Module Admin locking
+		*14.0.7* Fixing FREEPBX-12959
+		*14.0.6* Implement kvstore caching
+		*14.0.5.27* Change drop table to delete from in framework kvstore
+		*14.0.5.27* FREEPBX-19003
+		*14.0.5.26* FREEPBX-18910
+		*14.0.5.25* No longer reload system after framework upgrades. Wait for user to do so
+		*14.0.5.24* Fix issues reported in forums with certain modules
+		*14.0.5.23* Fix old style authenticator login fallback
+		*14.0.5.21* Add back onlystdout option to moduleadmin as a null option
+		*14.0.5.20* FREEPBX-18823 Email - System Updates
+		*14.0.5.19* FREEPBX-18845
+		*14.0.5.18* add ability to change and modify update manager settings from the cli
+		*14.0.5.17* Add updates management to OOBE
+		*14.0.5.16* FREEPBX-18674
+		*14.0.5.15* FREEPBX-18613
+		*14.0.5.14* FREEPBX-18808
+		*14.0.5.13* Fix update manager
+		*14.0.5.12* FREEPBX-16969 FREEPBX-13717 FREEPBX-18650 FREEPBX-16395
+		*14.0.5.11* FREEPBX-18632 - add advanced setting to allow user to toggle the ability to use GMT time for CDR and CEL
+		*14.0.5.10* Add Logger
+		*14.0.5.9* Add dontwarn=yes to asterisk.conf
+		*14.0.5.8* Add monologger
+		*14.0.5.7* FREEPBX-17069 Dashboard, UCP accessible even though not allowed in User Manager
+		*14.0.5.6* add dontwarn=yes to asterisk.conf
+		*14.0.5.5* Upgrade composer
+		*14.0.5.4* Add fallbacks just in case
+		*14.0.5.3* 14.0 Speed Improvements
+		*14.0.5.2* Add pico feed wrapper
+		*14.0.5.1* Cant rename if root
+		*14.0.5* FREEPBX-18531 dont fatally die when yum process fails
+		*14.0.4.5* Remove need for backup and restore methods in BMO classes
+		*14.0.4.4* FREEPBX-18423 fix array formation
+		*14.0.4.3* FREEPBX-17836 MOH with french characters are not visible in MOH module after upload
+		*14.0.4.2* FREEPBX-18262 cxpanel server options
+		*14.0.4.1* FREEPBX-18428 get rid of fixtures tests
+		*14.0.4* Upgrade Composer libaries
+		*14.0.3.26* Revert FREEPBX-18078
+		*14.0.3.25* Fix localization cli to actually work
+		*14.0.3.24* FREEPBX-17747 Typos in modulefunctions.class.php
+		*14.0.3.23* FREEPBX-18039 add extconfig_custom.conf include in extconfig.conf
+		*14.0.3.22* FREEPBX-17502 Disable/Enable module functions should execute function in module
+		*14.0.3.21* FREEPBX-18291 sangoma logo update
+		*14.0.3.20* FREEPBX-18078 delay astman socket connection until request
+		*14.0.3.19* FREEPBX-18234 Getting retrieve_conf error on running fwconsole r --verbose command from the CLI.
+		*14.0.3.18* FREEPBX-18200
+		*14.0.3.17* FREEPBX-18161
+		*14.0.3.16* Add presence state list
+		*14.0.3.15* Minor PHP 7.2 fix
+		*14.0.3.14* FREEPBX-18044 Allow Asterisk 16
+		*14.0.3.13* EOL definition
+		*14.0.3.12* Prevent crashes in GPG
+		*14.0.3.11* FREEPBX-17851 IVR 13.0.27.12 generates empty destination warnings
+		*14.0.3.10* FREEPBX-17411
+		*14.0.3.9* FREEPBX-17411
+		*14.0.3.8* FREEPBX-15896
+		*14.0.3.7* Remove experiemental warning
+		*14.0.3.6* FREEPBX-17591
+		*14.0.3.5* Use new name of UUID library
+		*14.0.3.4* FREEPBX-17492
+		*14.0.3.3* Announcement work
+		*14.0.3.2* FREEPBX-17493
+		*14.0.3.1* Remove invalid tests
+		*14.0.3* Update composer
+		*14.0.2.19* Return proper error code on reload
+		*14.0.2.18* FREEPBX-17264
+		*14.0.2.17* Check functions before creation
+		*14.0.2.16* Fixing FREEPBX-16357 do not allow 'advanced' mode settings if we are in 'basic' mode
+		*14.0.2.15* Repackage pbxlib.js to put moment duration at end
+		*14.0.2.14* Send 404 for missing file
+		*14.0.2.13* add more debug to output of die command
+		*14.0.2.12* Fix for voicemail refresh
+		*14.0.2.11* FREEPBX-16718
+		*14.0.2.10* Set correct stable state
+		*14.0.2.9* move out of destructor as globals are nulled, try to revert as much as possible
+		*14.0.2.8* FREEPBX-16811
+		*14.0.2.7* FREEPBX-15797 fwconsole ma refreshsignatures error
+		*14.0.2.6* Upgrade bootstrap tables
+		*14.0.2.5* Dont check pbx version
+		*14.0.2.4* Fix installer to use migrate multiple xml
+		*14.0.2.3* FREEPBX-16901
+		*14.0.2.2* Speed up xml database statements
+		*14.0.2.1* Revert FREEPBX-15459
+		*14.0.2* Add new BMore expansion
+		*14.0.1.37* Add index to recordingfield
+		*14.0.1.36* FREEPBX-16528 escape audio conversions better
+		*14.0.1.35* Fix issue with json output on retrieve_conf
+		*14.0.1.34* Fix order of table uninstalls from xml
+		*14.0.1.33* FREEPBX-16743 KVstore not deleting records on module uninstall
+		*14.0.1.32* FREEPBX-16697
+		*14.0.1.31* FREEPBX-16642
+		*14.0.1.30* FREEPBX-16653
+		*14.0.1.29* Fix naming of class in php 5.6
+		*14.0.1.28* Media autoloader setup
+		*14.0.1.27* FREEPBX-16395 - don't overwrite the fwconsole console command
+		*14.0.1.26* FREEPBX-16544 - check to see if we are upgrading to a new module
+		*14.0.1.25* Merge from 13
+		*14.0.1.24* FREEPBX-16425, Fix Asterisk Module issues
+		*14.0.1.22* Handle errors when installing on a machine without a network interface
+		*14.0.1.21* FREEPBX-16295, FREEPBX-16394, and Enable stack traces on the cli by default
+		*14.0.1.20* FREEPBX-15758 Revert the bootstrap export extension to fork
+		*14.0.1.19* Fix fwconsole m to detect tty or not
+		*14.0.1.18* Remove default on freepbx_log table
+		*14.0.1.16* FREEPBX-15800 FREEPBX-15944
+		*14.0.1.15* Support Asterisk 15
+		*14.0.1.14* fix issue with undefined newvers
+		*14.0.1.13* Fixes to system upgrades page
+		*14.0.1.12* FREEPBX-14185 wrong permissions on single files
+		*14.0.1.11* FREEPBX-15944 Errors during CLI installation
+		*14.0.1.10* Adjust Asterisk Manager Caching
+		*14.0.1.9* FREEPBX-15692
+		*14.0.1.8* Fixed bug in installer
+		*14.0.1.7* FREEPBX-15592
+		*14.0.1.6* FREEPBX-15369
+		*14.0.1.5* Enable caching
+		*14.0.1.4* Remove res_digium_phones from noload even if pjsip is disabled
+		*14.0.1.3* Remove res_digium_phones from noload
+		*14.0.1.2* FREEPBX-15283 FREEPBX-15364
+		*14.0.1.1* FREEPBX-15203 Fix the active count on module admin summary.
+		*14.0.1* Stable release
+		*14.0.1rc1.30* FREEPBX-15177
+		*14.0.1rc1.29* Runuser 'changes to the target users home directory'
+		*14.0.1rc1.28* FREEPBX-14745 Expose All Feature Codes in Advanced settings - codes are enabled by default
+		*14.0.1rc1.27* A trival fix for misconfigured RasPI type systems without PATH env set
+		*14.0.1rc1.26* FREEPBX-14703 - Handle yum update errors correctly
+		*14.0.1rc1.25* Minor installer fixes
+		*14.0.1rc1.24* Bump
+		*14.0.1rc1.23* FREEPBX-15088 fix login when using user manager
+		*14.0.1rc1.21* FREEPBX-14939 Add longpoll check ajax start
+		*14.0.1rc1.20* Developer Moder improvements
+		*14.0.1rc1.20* FREEPBX-15046 recursive chown blacklist
+		*14.0.1rc1.19* FREEPBX-14941 Mail wrapper setting header incorrectly
+		*14.0.1rc1.18* Change size of kvstore indexes and fix retrieve conf errors
+		*14.0.1rc1.17* FREEPBX-14934 fix broken login in rare cases
+		*14.0.1rc1.16* FREEPBX-14918 make sure asteriskcdrdb is set in install, if not then default
+		*14.0.1rc1.15* FREEPBX-14867 chown blacklist breaks chown
+		*14.0.1rc1.14* chown correction #1
+		*14.0.1rc1.13* Merge 13 into 14
+		*14.0.1rc1.12* Add view for destinations entry
+		*14.0.1rc1.10* Merge 13 into 14
+		*14.0.1rc1.9* Merge 13 release into 14
+		*14.0.1rc1.8* FREEPBX-14460 language selection not working
+		*14.0.1rc1.7* Add json stack traces
+		*14.0.1rc1.6* FREEPBX-14406: Tables created with different char sets
+		*14.0.1rc1.5* FREEPBX-14381
+		*14.0.1rc1.4* FREEPBX-14398
+		*14.0.1rc1.3* Merge 13 release into 14
+		*14.0.1rc1.2* Fix doctrine casing
+		*14.0.1rc1.1* Reference moment after ready
+		*14.0.1rc1* RC1
+		*14.0.1beta20* Merge 13 release into 14
+		*14.0.1beta19* add locking library
+		*14.0.1beta18* Update for 1702 release
+		*14.0.1beta16* Ensure update hooks are deleted
+		*14.0.1beta15* Fix issue with compressed js library
+		*14.0.1beta14* FREEPBX-14023 - Fix issues with yum updates
+		*14.0.1beta13* Merge 13 changes in
+		*14.0.1beta12* Quiet the chown during upgrades
+		*14.0.1beta11* Bad javascript new line
+		*14.0.1beta4* Testing of system updater in Module Admin
+		*14.0.1beta1* Betaing
+		*14.0.1alpha1* Inital Release
+	</changelog>
+	<description>
+		This module provides a facility to install bug fixes to the framework code that is not otherwise housed in a module
+	</description>
+	<depends>
+		<phpversion>5.6.0</phpversion>
+	</depends>
+	<supported>
+		<version>14.0</version>
+	</supported>
+	<database>
+		<table name="admin">
+			<field name="variable" type="string" length="20" default="" primarykey="true"/>
+			<field name="value" type="string" length="80" default=""/>
+		</table>
+		<table name="ampusers">
+			<field name="username" type="string" length="190" primarykey="true"/>
+			<field name="password_sha1" type="string" length="40"/>
+			<field name="extension_low" type="string" length="20" default=""/>
+			<field name="extension_high" type="string" length="20" default=""/>
+			<field name="deptname" type="string" length="20" default=""/>
+			<field name="sections" type="blob"/>
+		</table>
+		<table name="cronmanager">
+			<field name="module" type="string" length="24" default="" primarykey="true"/>
+			<field name="id" type="string" length="24" default="" primarykey="true"/>
+			<field name="time" type="string" length="5" notnull="false"/>
+			<field name="freq" type="integer" default="0"/>
+			<field name="lasttime" type="integer" default="0"/>
+			<field name="command" type="string" length="255" default=""/>
+		</table>
+		<table name="featurecodes">
+			<field name="modulename" type="string" length="50" default="" primarykey="true"/>
+			<field name="featurename" type="string" length="50" default="" primarykey="true"/>
+			<field name="description" type="string" length="200" default=""/>
+			<field name="helptext" type="string" length="500" default=""/>
+			<field name="defaultcode" type="string" length="20" notnull="false"/>
+			<field name="customcode" type="string" length="20" notnull="false"/>
+			<field name="enabled" type="boolean" default="0"/>
+			<field name="providedest" type="boolean" default="0"/>
+			<key name="enabled" type="index">
+				<column name="enabled"/>
+			</key>
+		</table>
+		<table name="freepbx_log">
+			<field name="id" type="integer" primarykey="true" autoincrement="true"/>
+			<field name="time" type="datetime"/>
+			<field name="section" type="string" length="50" notnull="false"/>
+			<field name="level" type="string" default="error"/>
+			<field name="status" type="integer" default="0"/>
+			<field name="message" type="text"/>
+			<key name="time" type="index">
+				<column name="time"/>
+				<column name="level"/>
+			</key>
+		</table>
+		<table name="freepbx_settings">
+			<field name="keyword" type="string" length="50" default="" primarykey="true"/>
+			<field name="value" type="string" length="255" notnull="false"/>
+			<field name="name" type="string" length="80" notnull="false"/>
+			<field name="level" type="boolean" default="0" notnull="false"/>
+			<field name="description" type="text" notnull="false"/>
+			<field name="type" type="string" length="25" notnull="false"/>
+			<field name="options" type="text" notnull="false"/>
+			<field name="defaultval" type="string" length="255" notnull="false"/>
+			<field name="readonly" type="boolean" default="0" notnull="false"/>
+			<field name="hidden" type="boolean" default="0" notnull="false"/>
+			<field name="category" type="string" length="50" notnull="false"/>
+			<field name="module" type="string" length="25" notnull="false"/>
+			<field name="emptyok" type="boolean" default="1" notnull="false"/>
+			<field name="sortorder" type="integer" default="0" notnull="false"/>
+		</table>
+		<table name="globals">
+			<field name="variable" type="string" length="190" primarykey="true"/>
+			<field name="value" type="string" length="255"/>
+		</table>
+		<table name="module_xml">
+			<field name="id" type="string" length="20" default="xml" primarykey="true"/>
+			<field name="time" type="integer" default="0"/>
+			<field name="data" type="blob" notnull="false"/>
+		</table>
+		<table name="modules">
+			<field name="id" type="integer" primarykey="true" autoincrement="true"/>
+			<field name="modulename" type="string" length="50" default=""/>
+			<field name="version" type="string" length="20" default=""/>
+			<field name="enabled" type="boolean" default="0"/>
+			<field name="signature" type="blob" notnull="false"/>
+		</table>
+		<table name="notifications">
+			<field name="module" type="string" length="24" default="" primarykey="true"/>
+			<field name="id" type="string" length="24" default="" primarykey="true"/>
+			<field name="level" type="integer" default="0"/>
+			<field name="display_text" type="string" length="255" default=""/>
+			<field name="extended_text" type="blob"/>
+			<field name="link" type="string" length="255" default=""/>
+			<field name="reset" type="boolean" default="0"/>
+			<field name="candelete" type="boolean" default="0"/>
+			<field name="timestamp" type="integer" default="0"/>
+		</table>
+		<table name="cron_jobs">
+			<field name="id" type="integer" unsigned="true" primarykey="true" autoincrement="true"/>
+			<field name="modulename" type="string" length="170" default=""/>
+			<field name="jobname" type="string" length="170" default=""/>
+			<field name="command" type="text" notnull="false"/>
+			<field name="class" type="string" length="255" default="" notnull="false"/>
+			<field name="schedule" type="string" length="255" default=""/>
+			<field name="max_runtime" type="integer" default="30"/>
+			<field name="enabled" type="boolean" default="1"/>
+			<field name="execution_order" type="integer" length="3" default="100"/>
+			<key name="modulename" type="unique">
+				<column name="modulename"/>
+				<column name="jobname"/>
+			</key>
+		</table>
+	</database>
+	<console>
+		<command>
+			<name>chown</name>
+		</command>
+		<command>
+			<name>context</name>
+			<alias>cx</alias>
+		</command>
+		<command>
+			<name>debug</name>
+			<alias>dbug</alias>
+		</command>
+		<command>
+			<name>doctrine</name>
+		</command>
+		<command>
+			<name>kvstore</name>
+		</command>
+		<command>
+			<name>localization</name>
+		</command>
+		<command>
+			<name>moduleadmin</name>
+			<alias>ma</alias>
+		</command>
+		<command>
+			<name>motd</name>
+		</command>
+		<command>
+			<name>mysql</name>
+			<alias>m</alias>
+		</command>
+		<command>
+			<name>notifications</name>
+			<alias>notification</alias>
+		</command>
+		<command>
+			<name>reload</name>
+			<alias>r</alias>
+		</command>
+		<command>
+			<name>restart</name>
+		</command>
+		<command>
+			<name>session</name>
+		</command>
+		<command>
+			<name>setting</name>
+			<alias>set</alias>
+		</command>
+		<command>
+			<name>start</name>
+		</command>
+		<command>
+			<name>stop</name>
+		</command>
+		<command>
+			<name>system</name>
+			<alias>sysup</alias>
+			<alias>sys</alias>
+			<alias>systemupdate</alias>
+		</command>
+		<command>
+			<name>unlock</name>
+		</command>
+		<command>
+			<name>updatemanager</name>
+			<alias>msm</alias>
+			<alias>modulesystemmanager</alias>
+		</command>
+		<command>
+			<name>util</name>
+		</command>
+		<command>
+			<name>validate</name>
+		</command>
+		<command>
+			<name>extip</name>
+			<alias>externalip</alias>
+		</command>
+		<command>
+			<name>job</name>
+		</command>
+	</console>
+	<category>Admin</category>
+	<!-- System level bugfixes are below. These are checked by individual packages -->
+	<!-- This is processed by the command 'xmlstarlet sel -t -v 'module/bugfix [@id="FD7-23"]' module.xml' -->
+	<bugfix id="FD7-23">http://issues.freepbx.org/browse/FD7-23</bugfix>
+</module>

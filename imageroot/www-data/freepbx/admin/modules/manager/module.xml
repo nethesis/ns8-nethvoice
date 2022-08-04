@@ -1,0 +1,38 @@
+<module>
+	<rawname>manager</rawname>
+	<repo>standard</repo>
+	<name>Asterisk API</name>
+	<version>13.0.2.5</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv2+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-2.0.txt</licenselink>
+	<category>Settings</category>
+	<menuitems>
+		<manager>Asterisk Manager Users</manager>
+	</menuitems>
+	<changelog>
+		*13.0.2.5* Tweaking database output error handling
+		*13.0.2.4* Add default parameter to the other add function as well
+		*13.0.2.3* FREEPBX-9783 add default parameter to add function
+		*13.0.2.2* Fix typo
+		*13.0.2* Version bump Beta
+		*13.0.1alpha2* Add Write Timeout, FREEPBX-6421
+		*13.0.1alpha1* Visual changes
+		*12.0.2* Minor update for BMO and FreePBX 12.
+		*2.11.0.2* #6088, don't allow duplicate FreePBX managers and rename
+		*2.11.0.1* #6429
+		*2.11.0.0* bump version
+		*2.10.0.2* #5565 properly generate manager_additional.conf with manager_conf class
+		*2.10.0.1* #5478
+		*2.10.0.0* new version changes
+		*2.9.0.3* #5097
+		*2.9.0.2* spelling, localizations
+		*2.9.0.1* removed duplicate functions, set repository
+		*2.9.0.0* 2.9 Update
+	</changelog>
+	<supported>
+		<version>13</version>
+	</supported>
+	<location>release/2.11/manager-2.11.0.1.tgz</location>
+	<md5sum>f78eed1f4b614c9f198864ec4b414997</md5sum>
+</module>

@@ -1,0 +1,46 @@
+<module>
+	<rawname>ringgroups</rawname>
+	<repo>standard</repo>
+	<name>Ring Groups</name>
+	<version>14.0.1.10</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<category>Applications</category>
+	<description>
+		Creates a group of extensions that all ring together. Extensions can be rung all at once, or in various 'hunt' configurations. Additionally, external numbers are supported, and there is a call confirmation option where the callee has to confirm if they actually want to take the call before the caller is transferred.
+	</description>
+	<changelog>
+		*14.0.1.10* Fixing FREEI-787 
+		*14.0.1.9* FREEPBX-19795
+		*14.0.1.8* FREEPBX-18379 
+		*14.0.1.7* FREEPBX-14518 Uniformity: Ring Groups Form return to grid 
+		*14.0.1.6* Feature/FREEPBX-15651 
+		*14.0.1.5* FREEPBX-17789 call confirmation message delivered twice
+		*14.0.1.4* fix missing quotes by miken32
+		*14.0.1.3* FREEPBX-15547
+		*14.0.1.2* FREEPBX-14945 Call Confirm Announcement under Virtual Queue module is broken
+		*14.0.1.1* FREEPBX-14872 Enable Call Pickup option under Ring Group is broken
+		*14.0.1* Merge from 13
+		*14.0.1alpha1*  FREEPBX-12113 Add Toggle to mark calls answered elsewhere
+	</changelog>
+	<depends>
+		<module>callrecording ge 12.0.1</module>
+		<module>core ge 12.0.16</module>
+		<version>13.0.70</version>
+	</depends>
+	<menuitems>
+		<ringgroups needsenginedb="yes">Ring Groups</ringgroups>
+	</menuitems>
+	<popovers>
+		<ringgroups>
+			<display>ringgroups</display>
+			<view>form</view>
+		</ringgroups>
+ 	</popovers>
+	<supported>
+		<version>14.0</version>
+	</supported>
+	<location/>
+	<md5sum/>
+</module>

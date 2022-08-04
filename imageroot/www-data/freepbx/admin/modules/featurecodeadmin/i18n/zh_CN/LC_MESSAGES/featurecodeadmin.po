@@ -1,0 +1,116 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX 2.5 Chinese Translation\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-03-07 14:44-0800\n"
+"PO-Revision-Date: 2015-11-17 12:22+0200\n"
+"Last-Translator: james <zhulizhong@gmail.com>\n"
+"Language-Team: Simplified Chinese <http://weblate.freepbx.org/projects/"
+"freepbx/featurecodeadmin/zh_CN/>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: zh_CN\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.2-dev\n"
+"X-Poedit-Language: Chinese\n"
+"X-Poedit-Country: CHINA\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: views/main.php:32
+msgid "Actions"
+msgstr "操作"
+
+#: featurecodeadmin.i18n.php:6
+msgid "Admin"
+msgstr ""
+
+#: Featurecodeadmin.class.php:65 views/main.php:29
+msgid "Code"
+msgstr "代码热键"
+
+#: views/main.php:53
+msgid "Customize"
+msgstr "自定义"
+
+#: Featurecodeadmin.class.php:64 views/main.php:26
+msgid "Description"
+msgstr "描述"
+
+#: views/main.php:57
+msgid "Enabled"
+msgstr "启用"
+
+#: featurecodeadmin.i18n.php:4 views/main.php:9
+msgid "Feature Code Admin"
+msgstr "功能代码管理"
+
+#: page.featurecodeadmin.php:44
+msgid "Feature Code Conflicts with other Extensions"
+msgstr "功能代码与其他分机有冲突"
+
+#: Featurecodeadmin.class.php:62 featurecodeadmin.i18n.php:8
+msgid "Feature Codes"
+msgstr "功能代码"
+
+#: functions.inc.php:20
+msgid "Featurecode: "
+msgstr "功能代码: "
+
+#: assets/js/featurecodeadmin.js:29
+msgid "Please enter a Feature Code or uncheck Customize"
+msgstr "请输入功能代码热键或者未检查的自定义代码"
+
+#: Featurecodeadmin.class.php:25
+msgid "Reset"
+msgstr "重置"
+
+#: Featurecodeadmin.class.php:30
+msgid "Submit"
+msgstr "提交"
+
+#: page.featurecodeadmin.php:42
+msgid ""
+"You have feature code conflicts with extension numbers in other modules. "
+"This will result in unexpected and broken behavior."
+msgstr "你的功能代码在其他的模块中与分机号有冲突。这将导致未知的错误行为。"
+
+#~ msgid "Are you sure you wish to proceed?"
+#~ msgstr "你确定要继续吗？"
+
+#~ msgid "Default"
+#~ msgstr "默认"
+
+#~ msgid "Disabled"
+#~ msgstr "禁用"
+
+#~ msgid "Feature"
+#~ msgstr "功能"
+
+#~ msgid "Feature Codes have been duplicated"
+#~ msgstr "功能代码已被复制"
+
+#~ msgid ""
+#~ "Please enter a Feature Code or check Use Default for all Enabled Feature "
+#~ "Codes"
+#~ msgstr "请输入一个功能代码或为所有启用的功能代码钩选“使用默认”"
+
+#~ msgid "Status"
+#~ msgstr "状态"
+
+#~ msgid "Submit Changes"
+#~ msgstr "提交更改"
+
+#~ msgid "Use"
+#~ msgstr "使用"
+
+#~ msgid "featuredescription"
+#~ msgstr "功能描述"
+
+#~ msgid "moduledescription"
+#~ msgstr "模块描述"

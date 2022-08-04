@@ -1,0 +1,58 @@
+<module>
+	<rawname>cdr</rawname>
+	<repo>standard</repo>
+	<description>Call Data Record report tools for viewing reports of your calls</description>
+	<name>CDR Reports</name>
+	<version>14.0.5.19</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<category>Reports</category>
+	<menuitems>
+		<cdr>CDR Reports</cdr>
+	</menuitems>
+	<changelog>
+		*14.0.5.19* Fixing FREEI-427 Call history on UCP not showing correctly issue 
+		*14.0.5.18* FREEPBX-18954 fallback to AMPDBHOST 
+		*14.0.5.17* Packaging of ver 14.0.5.17
+		*14.0.5.16* Fixing FREEPBX-18783 sql exception issue 
+		*14.0.5.15* Feature/FREEPBX-18632 
+		*14.0.5.14* Fixing FREEPBX-17091 making total duration default value to 1. 
+		*14.0.5.13* Changed query to avoid getting empty recording files and limited the output to 1 in case of registers that have same uniqueid 
+		*14.0.5.12* Add index to recordingfield
+		*14.0.5.11* FREEPBX-14302 jPlayer takes control of all input in UCP 14
+		*14.0.5.10* FREEPBX-14302 jPlayer takes control of all input in UCP 14
+		*14.0.5.9* FREEPBX-15567
+		*14.0.5.8* FREEPBX-15139 Recordings playing/downloading in call history doesn't work with multiple widget in the same dashboard
+		*14.0.5.7* FREEPBX-13535 Minor styling issue with Call Date row in CDR Reports module
+		*14.0.5.6* Add missing fields
+		*14.0.5.4* FREEPBX-14750 make max duration is 1
+		*14.0.5.3* Not supported in some versions
+		*14.0.5.2* Remove deprecated options from CDR res_odbc configuration to suppress warnings
+		*14.0.5.1* Default widget sizing
+		*14.0.5* Fix display of records in UCP
+		*14.0.3* UCP 14
+		*14.0.2* Fix namespace issues
+		*14.0.1alpha1* Inital Release
+	</changelog>
+	<hooks>
+		<ucp class="Ucp">
+			<method namespace="FreePBX\modules" class="Cdr" callingMethod="constructModuleConfigPages">ucpConfigPage</method>
+			<method namespace="FreePBX\modules" class="Cdr" callingMethod="addUser">ucpAddUser</method>
+			<method namespace="FreePBX\modules" class="Cdr" callingMethod="updateUser">ucpUpdateUser</method>
+			<method namespace="FreePBX\modules" class="Cdr" callingMethod="delUser">ucpDelUser</method>
+			<method namespace="FreePBX\modules" class="Cdr" callingMethod="addGroup">ucpAddGroup</method>
+			<method namespace="FreePBX\modules" class="Cdr" callingMethod="updateGroup">ucpUpdateGroup</method>
+			<method namespace="FreePBX\modules" class="Cdr" callingMethod="delGroup">ucpDelGroup</method>
+		</ucp>
+	</hooks>
+	<depends>
+		<module>framework ge 13.0.1beta3.56</module>
+		<module>core ge 12.0.8</module>
+	</depends>
+	<supported>
+		<version>14.0</version>
+	</supported>
+	<location>release/2.11/cdr-2.11.0.4.tgz</location>
+	<md5sum>31321560b9a2b33615d20239544812a5</md5sum>
+</module>

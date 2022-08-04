@@ -1,0 +1,94 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: 0.0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-10-02 12:41+0100\n"
+"PO-Revision-Date: 2018-10-02 12:41+0100\n"
+"Last-Translator: Stefano Fancello <stefano.fancello@nethesis.it>\n"
+"Language-Team: Italian\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Italian\n"
+"X-Poedit-Country: ITALY\n"
+
+
+msgid "Checking if field $name is present in cdr table.."
+msgstr ""
+
+msgid "OK!"
+msgstr ""
+
+msgid "Adding!"
+msgstr ""
+
+msgid "List Sources"
+msgstr ""
+
+msgid "Source"
+msgstr ""
+
+msgid "Add CIDLookup Source"
+msgstr ""
+
+msgid "Description"
+msgstr ""
+
+msgid "Type"
+msgstr "Tipo"
+
+msgid "Actions"
+msgstr "Azioni"
+
+msgid "Host"
+msgstr ""
+
+msgid "MySQL Host"
+msgstr "Host MySQL"
+
+msgid "Database"
+msgstr ""
+
+msgid "Database Name"
+msgstr "Nome Database"
+
+msgid "Query"
+msgstr ""
+
+msgid "Query, special token '[NUMBER]' will be replaced with caller number<br/>e.g.: SELECT name FROM phonebook WHERE number LIKE '%[NUMBER]%'"
+msgstr "La stringa speciale '[NUMBER]' verrà sostituita con il numero chiamante<br/>esempio: SELECT name FROM phonebook WHERE number LIKE '%[NUMBER]%'"
+
+
+msgid "Username"
+msgstr ""
+
+msgid "MySQL Username"
+msgstr "Username di MySQL"
+
+msgid "Password"
+msgstr ""
+
+msgid "MySQL Password"
+msgstr ""
+
+msgid "Character Set"
+msgstr ""
+
+msgid "MySQL Character Set. Leave blank for MySQL default latin1"
+msgstr ""
+
+msgid "Not yet implemented"
+msgstr ""
+
+msgid "Submit"
+msgstr "Salva"
+
+msgid "Delete"
+msgstr "Elimina"
+
+msgid "OutboundLookup"
+msgstr ""
+
+msgid "Resolves outgoing called numbers using MySQL query and saves them in CDR outbound_cnam field"
+msgstr "Risolve i numeri chiamati usando una query MySQL e li salva nel campo inbound_cnam del CDR"
+

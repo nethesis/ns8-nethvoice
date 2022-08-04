@@ -1,0 +1,166 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: 2019-06-03 00:00+0200\n"
+"PO-Revision-Date: 2019-06-03 00:00+0200\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: it_IT\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.0.6\n"
+"X-Poedit-Basepath: ..\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Poedit-SearchPath-0: .\n"
+
+msgid "Actions"
+msgstr "Azioni"
+
+msgid "Add Queue Options"
+msgstr "Aggiungi opzioni coda"
+
+msgid "Agent announce"
+msgstr "Annuncio agente"
+
+msgid "Agent announce overrides the announcement that is played to the queue agent before they’re bridged to the caller"
+msgstr "L'annuncio agente sovrascrive l'annuncio agente configurato nella coda"
+
+msgid "AGI"
+msgstr "AGI"
+
+msgid "Alert Info"
+msgstr "Alert Info"
+
+msgid "Allows to override destination on fail"
+msgstr "Consente di sovrascrivere la destinazione in caso di fallimento"
+
+msgid "Allows to override queue maxwait"
+msgstr "Consenti di sovrwascrivere l'impostazione di attesa massima \"maxwait\""
+
+msgid "Allows to specify a position for the caller"
+msgstr ""
+
+msgid "Attempt to enter the caller into the queue at the numerical position specified"
+msgstr "Tenta di inserire il chiamante ad una posizione specifica"
+
+msgid "Call Confirm Announce"
+msgstr "Annuncio di conferma chiamata"
+
+msgid "Caller ID Prefix"
+msgstr "Prefisso da anteporre al Caller ID"
+
+msgid "CID Prefix"
+msgstr "Prefisso CID"
+
+msgid "Continue in the dialplan if the callee hangs up"
+msgstr "Continua nel dialplan se il chiamante chiude la chiamata"
+
+msgid "Continue on hangup"
+msgstr "Continua dopo hangup"
+
+msgid "Delete"
+msgstr "Elimina"
+
+msgid "Destination"
+msgstr "Destinazione"
+
+msgid "Destination on fail"
+msgstr "Destinazione su fallimento"
+
+msgid "Destionation Queue"
+msgstr "Coda di destinazione"
+
+msgid "Edit Queue Options"
+msgstr "Modifica opzioni coda"
+
+msgid "Enable Lazy Members"
+msgstr "Abilita Lazy Members"
+
+msgid "Enable Lazy Members for this queue"
+msgstr "Abilita Lazy Members per questa coda"
+
+msgid "Fail destination"
+msgstr "Destinazione su fallimento"
+
+msgid "Go Sub"
+msgstr "Go Sub"
+
+msgid "If enabled, mark user as unavailable for current call if he doesn't answer"
+msgstr "Se abilitato, considera l'utente come non disponibile per la chiamata corrente se non risponde"
+
+msgid "Join message"
+msgstr "Messaggio di ingresso"
+
+msgid "Lazy Members"
+msgstr "Lazy Members"
+
+msgid "List Queue Options"
+msgstr "Lista dei set di opzioni coda"
+
+msgid "Max wait"
+msgstr "Attesa massima"
+
+msgid "Music on hold"
+msgstr "Musica di attesa"
+
+msgid "Name"
+msgstr "Nome"
+
+msgid "New Queue Options"
+msgstr "Nuovo set di opzioni coda"
+
+msgid "No"
+msgstr "No"
+
+msgid "No retries on timeout"
+msgstr "Non ritentare al timeout"
+
+msgid "On timeout, exit this application and go to the next step"
+msgstr "Al timeout, esci dall'applicazione e prosegui al passaggio successivo"
+
+msgid "Override fail destination"
+msgstr "Sovrascrivi destinazione su fallimento"
+
+msgid "Override queue max waiting time"
+msgstr "Sovrascrivi tempo massimo di attesa"
+
+msgid "Overrides music on hold category"
+msgstr "Sovrascrivi la categoria di musica di attesa"
+
+msgid "Position"
+msgstr "Posizione"
+
+msgid "Queue join message"
+msgstr "Messaggio di ingresso in coda"
+
+msgid "Queue Options"
+msgstr "Opzioni Coda"
+
+msgid "Queue Options List"
+msgstr "Lista Opzioni Coda"
+
+msgid "Run a gosub on the called party's channel (the queue member) once the parties are connected."
+msgstr "Lancia una Gosub quando operatore e chiamante sono connessi"
+
+msgid "Set max wait override"
+msgstr "Imposta il tempo massimo di attesa"
+
+msgid "Set position"
+msgstr "Imposta posizione"
+
+msgid "Submit"
+msgstr "Conferma"
+
+msgid "The destination queue"
+msgstr "La coda di destinazione"
+
+msgid "This is the name of the Queueoptions instance. It is just a label and it is usefull only if you need to setup different instance with different options"
+msgstr "Questo è il nome del set di impostazioni per coda. E' solo un'etichetta ed è utile solo per identificare il set se se ne usano più di uno"
+
+msgid "Will setup an AGI script to be executed on the calling party's channel once they are connected to a queue member"
+msgstr "Imposta un AGI script che viene eseguito sul canale del chiamante quando è connesso con un operatore"
+
+msgid "Yes"
+msgstr "Sì"
+

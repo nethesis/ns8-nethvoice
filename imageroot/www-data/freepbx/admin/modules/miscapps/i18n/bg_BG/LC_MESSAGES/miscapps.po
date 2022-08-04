@@ -1,0 +1,184 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX v2.5\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-07-24 17:44-0400\n"
+"PO-Revision-Date: 2014-07-22 10:12+0200\n"
+"Last-Translator: Chavdar <chavdar_75@yahoo.com>\n"
+"Language-Team: Bulgarian <http://git.freepbx.org/projects/freepbx/miscapps/"
+"bg/>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: bg_BG\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 1.10-dev\n"
+"X-Poedit-Language: Bulgarian\n"
+"X-Poedit-Country: BULGARIA\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: miscapps.i18n.php:12
+msgid "777"
+msgstr ""
+
+#: views/grid.php:9
+msgid "Actions"
+msgstr ""
+
+#: views/rnav.php:3
+msgid "Add Misc App"
+msgstr ""
+
+#: Miscapps.class.php:317 views/grid.php:2
+msgid "Add Misc Application"
+msgstr "Добави Друго Приложение"
+
+#: miscapps.i18n.php:8
+msgid ""
+"Adds the ability to create feature codes that can go to any FreePBX "
+"destination (such as an IVR or queue)"
+msgstr ""
+"Добавя възможност за създаване на специални кодове, които да насочват към "
+"всяко FreePBX направление (като IVR или опашка)"
+
+#: miscapps.i18n.php:6
+msgid "Applications"
+msgstr "Приложения"
+
+#: views/form.php:107
+msgid "Choose the destination for this app when people dial the feature code"
+msgstr ""
+
+#: Miscapps.class.php:126
+msgid "Delete"
+msgstr "Изтрий"
+
+#: views/grid.php:7 views/rnav.php:15
+msgid "Description"
+msgstr "Описание"
+
+#: views/form.php:47
+msgid "Description:"
+msgstr ""
+
+#: views/form.php:95
+msgid "Destination"
+msgstr "Направление"
+
+#: Miscapps.class.php:325
+msgid "Edit Misc Application"
+msgstr "Редактирай Друго Приложение"
+
+#: views/form.php:26
+msgid "Enable"
+msgstr ""
+
+#: views/grid.php:8 views/rnav.php:14
+msgid "Extension"
+msgstr ""
+
+#: views/form.php:71
+msgid "Feature Code"
+msgstr "Специален Код"
+
+#: assets/js/miscapps.js:6
+msgid "Invalid description specified"
+msgstr "Неправилно въведено описание"
+
+#: views/rnav.php:2
+msgid "List Misc App"
+msgstr ""
+
+#: Miscapps.class.php:338 views/main.php:1
+msgid "Misc Application"
+msgstr ""
+
+#: Miscapps.class.php:276 functions.inc.php:150
+#, php-format
+msgid "Misc Application: %s"
+msgstr "Друго Приложение: %s"
+
+#: miscapps.i18n.php:4 miscapps.i18n.php:10
+msgid "Misc Applications"
+msgstr "Други Приложения"
+
+#: views/form.php:32
+msgid "No"
+msgstr ""
+
+#: assets/js/miscapps.js:36
+msgid "Please enter a valid Feature Code."
+msgstr ""
+
+#: Miscapps.class.php:41
+msgid "Removing Settings table"
+msgstr ""
+
+#: Miscapps.class.php:131
+msgid "Reset"
+msgstr ""
+
+#: Miscapps.class.php:136
+msgid "Submit"
+msgstr ""
+
+#: views/form.php:83
+msgid ""
+"The feature code/extension users can dial to access this application. This "
+"can also be modified on the Feature Codes page."
+msgstr ""
+"Специален код / вътрешен номер който потребителите да избират за достъп до "
+"приложението. Може да се промени в меню Специални Кодове."
+
+#: views/form.php:59
+msgid "The name of this application"
+msgstr "Име на това приложение"
+
+#: assets/js/miscapps.js:44
+msgid "The number provided for the feature code is already in use by "
+msgstr ""
+
+#: views/form.php:75
+msgid "This field is required."
+msgstr ""
+
+#: views/form.php:30
+msgid "Yes"
+msgstr ""
+
+#~ msgid "Conflicting Extensions"
+#~ msgstr "Вътрешни Линии в Конфликт"
+
+#~ msgid ""
+#~ "Misc Applications are for adding feature codes that you can dial from "
+#~ "internal phones that go to various destinations available in FreePBX. "
+#~ "This is in contrast to the <strong>Misc Destinations</strong> module, "
+#~ "which is for creating destinations that can be used by other FreePBX "
+#~ "modules to dial internal numbers or feature codes."
+#~ msgstr ""
+#~ "Други Приложения служат за добавяне на специални кодове, които можете да "
+#~ "избирате от вашите вътрешни телефони за пренасочване към различни "
+#~ "направления достъпни в FreePBX. Те са в противоположност на модул "
+#~ "<strong>Други Направления</strong>, който е за създаване на направления "
+#~ "които да се използват от други FreePBX модули за избиране на вътрешни "
+#~ "номера или специални кодове."
+
+#~ msgid "Disabled"
+#~ msgstr "Забранен"
+
+#~ msgid "Enabled"
+#~ msgstr "Разрешен"
+
+#~ msgid "Feature Status"
+#~ msgstr "Статус на Функцията"
+
+#~ msgid "If this code is enabled or not."
+#~ msgstr "Дали този код е разрешен или не."
+
+#~ msgid "Submit Changes"
+#~ msgstr "Приеми Промените"

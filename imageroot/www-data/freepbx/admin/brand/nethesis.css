@@ -1,0 +1,100 @@
+/*-------------------------------- GENERALS --------------------------------*/
+
+a, a:visited {
+  color: #3f9c35;
+}
+
+/*-------------------------------- MAIN NAVIGATION MENU --------------------------------*/
+
+.freepbx-navbar .navbar {
+  border-top-color: #6ec664;
+}
+.freepbx-navbar .navbar .navbar-nav > li.open {
+  border-left-color: #6ec664;
+}
+.freepbx-navbar .navbar .navbar-nav > li:hover {
+  border-left-color: #6ec664;
+}
+
+/*-------------------------------- PANELS --------------------------------*/
+
+.login_item_title {
+  border-top-color: #6ec664;
+}
+.panel-default {
+  border-top-color: #6ec664;
+}
+#page_Main_Overview_overview.displaybox, #page_Main_Blogs_0.displaybox, #page_Main_Blogs_1.displaybox, #page_Main_Statistics_statistics.displaybox, #page_Main_Uptime_uptime.displaybox {
+  border-top-color: #6ec664;
+}
+
+/*-------------------------------- FOOTER --------------------------------*/
+
+#footer #footer_content a {
+  color: #6ec664;
+}
+
+/*-------------------------------- MODALS --------------------------------*/
+
+.ui-dialog .ui-dialog-titlebar, .modal-header {
+  border-bottom-color: #6ec664;
+}
+
+/*-------------------------------- backup wizard --------------------------------*/
+
+.swMain ul.anchor li a.selected .stepNumber, #wizard.swMain ul.anchor li a.selected .stepNumber, #wizard_convert.swMain ul.anchor li a.selected .stepNumber {
+  background-color: #6ec664;
+}
+
+/*-------------------------------- BUTTONS --------------------------------*/
+
+
+/*green primary buttons*/
+
+input#submit, button.ui-button.ui-corner-all.ui-widget:first-child, #wizard.swMain .buttonNext, #run_backup, input#Submit, input[value="Conferma"], #licensesub, input[name="addsubmit"] {
+  background: #6ec664;
+  background-image: -webkit-linear-gradient(top, #6ec664 0, #3f9c35 100%);
+  background-image: -o-linear-gradient(top, #6ec664 0, #3f9c35 100%);
+  background-image: linear-gradient(to bottom, #6ec664 0, #3f9c35 100%);
+  border-color: #3f9c35 !important;
+}
+input#submit:hover, input#submit:focus, input#submit:active, .ui-dialog-buttonset .ui-button:first-child:hover, #wizard.swMain .buttonNext:hover, #wizard.swMain .buttonNext:focus, #wizard.swMain .buttonNext:active, #run_backup:hover, #run_backup:focus, #run_backup:active, input#Submit:hover, input#Submit:focus, input#Submit:active {
+  background: #56b04c !important;
+}
+input[value="Conferma"]:hover, input[value="Conferma"]:focus, input[value="Conferma"]:active, #licensesub:hover, #licensesub:focus, #licensesub:active, input[name="addsubmit"]:hover, input[name="addsubmit"]:focus, input[name="addsubmit"]:active {
+  background: #56b04c !important;
+}
+
+/*-------------------------------- BUTTONS GROUPS --------------------------------*/
+
+.radioset input[type="radio"]:checked + label, .radioset input[type="radio"]:checked + label:hover, .radioset input[type="radio"]:checked + label:last-of-type:hover, .radioset input[type="checkbox"]:checked ~ label {
+  background-color: #6ec664 !important;
+  border-color: #6ec664 !important;
+}
+.radioset input[type="checkbox"]:checked ~ label:hover, .radioset input[type="checkbox"]:checked ~ label:focus, .radioset input[type="checkbox"]:checked ~ label:active {
+  border-color: #6ec664 !important;
+}
+
+/*-------------------------------- ALERT MESSAGES --------------------------------*/
+
+.notie-background-info {
+  background-color: #6ec664 !important;
+}
+
+/*-------------------------------- TABLES --------------------------------*/
+
+tbody {
+  border-top-color: #6ec664 !important;
+}
+
+/*-------------------------------- TABS --------------------------------*/
+
+.nav-pills>li.active>a, .nav-pills>li.active>a:hover, .nav-pills>li.active>a:focus, .nav-pills>li.active>a:active {
+  border-bottom-color: #6ec664;
+}
+
+/*-------------------------------- PROGRESS BAR --------------------------------*/
+
+.progress-bar {
+  background-color: #6ec664;
+}

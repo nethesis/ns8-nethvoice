@@ -1,0 +1,41 @@
+<module>
+  <rawname>miscapps</rawname>
+  <repo>extended</repo>
+  <name>Misc Applications</name>
+  <version>13.0.3.1</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+  <category>Applications</category>
+  <description>
+		Adds the ability to create feature codes that can go to any FreePBX destination (such as an IVR or queue)
+	</description>
+  <menuitems>
+    <miscapps>Misc Applications</miscapps>
+  </menuitems>
+	<changelog>
+	  *13.0.3.1* FREEPBX-13690 Overly restrictive validation when creating Misc Application feature code
+	  *13.0.3* FREEPBX-14792 List entries option missing under Misc Application module.
+	  *13.0.2.4* FREEPBX-12600 Misc Applications cancels user input if feature code already in use
+	  *13.0.2.3* FREEPBX-12371 Fix uninstall
+	  *13.0.2.2* FREEPBX-11234
+	  *13.0.2.1* Typo fix
+	  *13.0.2* Version bump Beta
+	  *13.0.1alpha1* BMO/Bootstrap
+	  *2.11.0.2* Include license file
+	  *2.11.0.0* #6055
+	  *2.10.0.1* #5478 
+	  *2.10.0.0* new version changes
+	  *2.9.0.2* #4831
+	  *2.9.0.1* set repository
+	  *2.9.0.0* #4651, #4655, #4724
+  </changelog>
+  <depends>
+    <version>2.4.0</version>
+  </depends>
+  <location>release/2.11/miscapps-2.11.0.0.tgz</location>
+  <md5sum>b288e7c7bc4c9f2213cd470f4d9c3791</md5sum>
+  <supported>
+    <version>13.0</version>
+  </supported>
+</module>

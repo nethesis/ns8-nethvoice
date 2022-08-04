@@ -1,0 +1,74 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for queuemetrics
+# Copyright (C) 2008-2015 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-02-20 19:52-0500\n"
+"PO-Revision-Date: 2016-06-22 10:52+0200\n"
+"Last-Translator: psdk <hyavari26@gmail.com>\n"
+"Language-Team: Persian (Iran) "
+"<http://weblate.freepbx.org/projects/freepbx/queuemetrics/fa_IR/>\n"
+"Language: fa_IR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: queuemetrics.i18n.php:5
+msgid ""
+"A module for QueueMetrics, that allows you to set if IVR selections should "
+"be logged to the queue logs."
+msgstr ""
+"ماژولی برای صف متریک، که اجازه میدهد تا اولویت را در منوی صوتی صفوف تایین "
+"کنید."
+
+#: install.php:40
+msgid "OK"
+msgstr "تایید"
+
+#: queuemetrics.i18n.php:3 queuemetrics.i18n.php:6
+msgid "QueueMetrics"
+msgstr "صف متریک"
+
+#: page.queuemetrics.php:20 queuemetrics.i18n.php:4
+msgid "Settings"
+msgstr "تنظیمات"
+
+#: page.queuemetrics.php:25
+msgid "Submit Changes"
+msgstr "ثبت تغییرات"
+
+#: page.queuemetrics.php:22
+msgid "When checked, IVR selections will be reported by QueueMetrics"
+msgstr "در زمان انتخاب، انتخاب های منوی صوتی توسط صف متریک گزارش داده میشوند"
+
+#: install.php:42
+msgid "already exists"
+msgstr "در حال حاضر وجود دارد"
+
+#: install.php:30
+msgid "checking for ivr_logging field..."
+msgstr "بررسی فیلد برای ivr_logging..."
+
+#: install.php:26
+msgid "creating queuemetrics...ok"
+msgstr "ایجاد صف متریک...تایید"
+
+#: uninstall.php:8
+msgid "done"
+msgstr "انجام شده"
+
+#: uninstall.php:6
+msgid "dropping table queuemetrics.."
+msgstr "حذف جدول صف های متریک.."
+
+#: install.php:9
+msgid "queuemetrics table already exists, exiting"
+msgstr "جدول صف های متریم وجود دارد، خارج شدن"

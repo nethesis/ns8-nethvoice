@@ -1,0 +1,88 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for callwaiting
+# Copyright (C) 2008-2015 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-02-01 18:27-0800\n"
+"PO-Revision-Date: 2016-04-30 17:09+0200\n"
+"Last-Translator: psdk <hyavari26@gmail.com>\n"
+"Language-Team: Persian (Iran) <http://weblate.freepbx.org/projects/freepbx/"
+"callwaiting/fa_IR/>\n"
+"Language: fa_IR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: callwaiting.i18n.php:6
+msgid "Applications"
+msgstr "برنامه های کاربردی"
+
+#: callwaiting.i18n.php:4 install.php:9 ucp/Callwaiting.class.php:84
+#: ucp/Callwaiting.class.php:101
+msgid "Call Waiting"
+msgstr "انتظار مکالمه"
+
+#: callwaiting.i18n.php:12 install.php:10
+msgid "Call Waiting - Activate"
+msgstr "انتظار مکالمه - فعال سازی"
+
+#: callwaiting.i18n.php:10 install.php:11
+msgid "Call Waiting - Deactivate"
+msgstr "انتظار مکالمه - غیرفعال سازی"
+
+#: Callwaiting.class.php:58
+msgid "Call Waiting Enabled"
+msgstr "انتظار مکالمه فعال شد"
+
+#: Callwaiting.class.php:59
+msgid "Call Waiting Enabled: ENABLED to enable, blank to disable"
+msgstr ""
+"فعال کردن انتظار مکالمه: فعال برای فعال کردن، و خالی برای غیر فعال کردن"
+
+#: ucp/Callwaiting.class.php:150
+msgid "Call Waiting Has Been Updated!"
+msgstr "انتظار مکالمه بروز شده است!"
+
+#: ucp/Callwaiting.class.php:71
+#, php-format
+msgid "Call Waiting for %s"
+msgstr ""
+
+#: functions.inc.php:63
+msgid "Call Waiting: OFF"
+msgstr ""
+
+#: functions.inc.php:44
+msgid "Call Waiting: ON"
+msgstr ""
+
+#: ucp/views/widget.php:2
+msgid "Disabled"
+msgstr ""
+
+#: ucp/views/widget.php:2
+msgid "Enabled"
+msgstr ""
+
+#: callwaiting.i18n.php:8
+msgid "Provides an option to turn on/off call waiting"
+msgstr "فراهم کردن گزینه ای برای روشن / خاموش کردن انتظار مکالمه"
+
+#~ msgid ""
+#~ "A service whereby someone making a telephone call is notified of an "
+#~ "incoming call and is able to place the first call on hold while answering "
+#~ "the second."
+#~ msgstr ""
+#~ "سرویسی که وقتی تماس گرفته می شود، شخص متوجه شده و می تواند تماس اول را "
+#~ "منتظر گذاشته و به تماس دوم پاسخ دهد."
+
+#~ msgid "Enable"
+#~ msgstr "فعال"

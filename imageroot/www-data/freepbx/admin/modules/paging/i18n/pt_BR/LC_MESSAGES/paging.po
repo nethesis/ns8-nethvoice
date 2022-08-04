@@ -1,0 +1,528 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for paging
+# Copyright (C) 2008-2016 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-05-10 05:16+0000\n"
+"PO-Revision-Date: 2016-12-14 21:54+0200\n"
+"Last-Translator: Alexander <alexander.schley@paranagua.pr.gov.br>\n"
+"Language-Team: Portuguese (Brazil) <http://weblate.freepbx.org/projects/"
+"freepbx/paging/pt_BR/>\n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: assets/js/paging.js:39
+msgid " Please set the event days."
+msgstr ""
+
+#: assets/js/paging.js:42
+msgid " Please set the event time."
+msgstr ""
+
+#: Paging.class.php:207
+msgid ""
+"<strong>Force</strong><br> Send the headers telling the phone to go into "
+"auto answer mode. This may not work, and is dependant on the phone."
+msgstr ""
+"<Strong>Forçar</strong><br>Enviar os cabeçalhos indicando ao telefone para "
+"entrar no modo de atendimento automático. Isso pode não funcionar e depende "
+"do telefone."
+
+#: Paging.class.php:205
+msgid "<strong>Reject</strong><br> Return a BUSY signal to the caller"
+msgstr ""
+"<Strong>Rejeitar</strong><br>Devolve um sinal OCUPADO ao usuário chamador"
+
+#: Paging.class.php:206
+msgid ""
+"<strong>Ring</strong><br> Treat the page as a normal call, and ring the "
+"extension (if Call Waiting is disabled, this will return BUSY"
+msgstr ""
+"<Strong>Tocar</strong><br>Trata o a chamada interfonada como uma chamada "
+"normal e tocará no ramal (se a Chamada em espera estiver desativada, "
+"retornará OCUPADO"
+
+#: views/form.php:222
+msgid ""
+"<ul>\n"
+"<li><b>\"Skip\"</b> will not page any busy extension. All other extensions "
+"will be paged as normal</li>\n"
+"<li><b>\"Force\"</b> will not check if the device is in use before paging "
+"it. This means conversations can be interrupted by a page (depending on how "
+"the device handles it). This is useful for \"emergency\" paging groups.</"
+"li>\n"
+"<li><b>\"Whisper\"</b> will attempt to use the ChanSpy capability on SIP "
+"channels, resulting in the page being sent to the device's earpiece "
+"\"whispered\" to the user but not heard by the remote party. If ChanSpy is "
+"not supported on the device or otherwise fails, no page will get through. It "
+"probably does not make too much sense to choose duplex if using Whisper mode."
+"</li>\n"
+"</ul>"
+msgstr ""
+"<ul>\n"
+"<li><b>\"Ignorar\"</b> não exibirá nenhum ramal ocupado. Todas os outros "
+"ramais serão chamados de forma normal </li>\n"
+"<li><b>\"Forçar\"</b> não verificará se o dispositivo está em uso antes de "
+"chamá-lo. Isso significa que as conversas podem ser interrompidas por um "
+"chamado de interfonia (dependendo de como o dispositivo o manipula). Isso é "
+"útil para grupos de \"interfonia de emergência\". </li>\n"
+"<li><b>\"Sussurro\"</b> tentará usar o recurso ChanSpy nos canais SIP, "
+"resultando no chamado de interfonia sendo enviado para o fone de ouvido do "
+"dispositivo \"sussurrado\" ao usuário, mas não ouvida pela parte remota. Se "
+"o ChanSpy não for suportado no dispositivo ou caso falhe, nenhuma chamado de "
+"interfonia passará. Provavelmente não faz muito sentido escolher duplex se "
+"usar o modo Susurro.</li>\n"
+"</ul>"
+
+#: views/grid.php:14
+msgid "Actions"
+msgstr "Ações"
+
+#: views/bootnav.php:8 views/grid.php:6
+msgid "Add Page Group"
+msgstr "Adicionar Grupo de Interfonia"
+
+#: views/form.php:150
+msgid "Alert Tone"
+msgstr ""
+
+#: paging.i18n.php:8
+msgid ""
+"Allows creation of paging groups to make announcements using the speaker "
+"built into most SIP phones. Also creates an        Intercom feature code "
+"that can be used as a prefix to talk directly to one person, as well as "
+"optional feature codes        to block/allow intercom calls to all users as "
+"well as blocking specific users or only allowing specific users."
+msgstr ""
+
+#: views/settings.php:68
+msgid "Annoucement to be played to remote party. Default is a beep"
+msgstr "Anúncio a ser reproduzido para a parte remota. O padrão é um bip"
+
+#: views/form.php:164
+msgid ""
+"Announcement to be played to remote party. If set to Default it will use the "
+"global setting from Page Groups. If Page Groups is not defined then it will "
+"default to beep. This Announcement file duration should not exceed Default "
+"ringtime(Advanced Settings)"
+msgstr ""
+
+#: paging.i18n.php:6
+msgid "Applications"
+msgstr "Aplicações"
+
+#: views/settings.php:54
+msgid "Auto-answer defaults"
+msgstr "Auto-Responder por padrão"
+
+#: views/form.php:45
+msgid "Beep"
+msgstr "Bip"
+
+#: views/form.php:205
+msgid "Busy Extensions"
+msgstr "Ramais Ocupados"
+
+#: views/form.php:44 views/grid.php:13 views/settings.php:4
+msgid "Default"
+msgstr "Padrão"
+
+#: functions.inc.php:1112
+msgid "Default Group Inclusion"
+msgstr "Inclusão de Grupo Padrão"
+
+#: functions.inc.php:1115 views/form.php:268
+msgid "Default Page Group"
+msgstr "Grupo de Interfonia Padrão"
+
+#: Paging.class.php:97 Paging.class.php:258
+msgid "Delete"
+msgstr "Apagar"
+
+#: views/bootnav.php:14 views/form.php:109 views/grid.php:12
+msgid "Description"
+msgstr "Descrição"
+
+#: views/form.php:121
+msgid "Device List"
+msgstr "Lista de Dispositivos"
+
+#: views/form.php:135
+msgid ""
+"Devices to page. Please note, paging calls the actual device (and not the "
+"user). Amount of pagable devices is restricted by the advanced setting key "
+"PAGINGMAXPARTICIPANTS and is currently set to "
+msgstr ""
+"Dispositivos para a interfonia. Observe, os chamados de interfonia chamam o "
+"dispositivo real (e não o usuário). A quantidade de dispositivos "
+"\"interfonáveis\" é restringida pela chave de configuração avançada "
+"PAGINGMAXPARTICIPANTS e está atualmente definida como "
+
+#: functions.inc.php:1091
+msgid "Disable"
+msgstr "Desabilitar"
+
+#: functions.inc.php:1088
+msgid "Disabled"
+msgstr "Desabilitado"
+
+#: views/settings.php:80
+msgid "Drop Silence"
+msgstr "Ficar em Silêncio"
+
+#: views/form.php:238
+msgid "Duplex"
+msgstr "Duplex"
+
+#: functions.inc.php:1087
+msgid "Enabled"
+msgstr "Habilitado"
+
+#: functions.inc.php:1083
+msgid "Exclude"
+msgstr "Excluir"
+
+#: functions.inc.php:1117
+msgid "Extension Options"
+msgstr "Opções de Ramal"
+
+#: Paging.class.php:199 views/form.php:212
+msgid "Force"
+msgstr "Forçar"
+
+#: views/form.php:97
+msgid "Group Description"
+msgstr "Descrição do Grupo"
+
+#: views/form.php:283
+msgid ""
+"If you choose to make a Page Group the \"default\" page group, a checkbox "
+"will appear in the Extensions Module that will allow you to include or "
+"exclude that Extension in the default Page Group when editing said extension"
+msgstr ""
+"Se você optar por fazer um Grupo de Interfonia \"padrão\", uma caixa de "
+"seleção aparecerá no Módulo de Ramais que permitirá que você inclua ou "
+"exclua essa ramal no Grupo de Interfonia padrão ao editar o referido ramal"
+
+#: functions.inc.php:1084
+msgid "Include"
+msgstr "Incluir"
+
+#: functions.inc.php:1092
+msgid "Intercom"
+msgstr "Interfonia"
+
+#: functions.inc.php:1126
+msgid "Intercom Mode"
+msgstr "Modo Interfonia"
+
+#: Paging.class.php:203
+msgid "Intercom Override"
+msgstr "Substituir Interfonia"
+
+#: functions.inc.php:383
+#, php-format
+msgid "Intercom from %s: Disabled"
+msgstr "Interfonia  de %s: Desabilitada"
+
+#: functions.inc.php:321
+#, php-format
+msgid "Intercom from %s: Enabled"
+msgstr "Interfonia de %s: Habilitada"
+
+#: install.php:5 paging.i18n.php:16
+msgid "Intercom prefix"
+msgstr "Prefixo de Interfonia"
+
+#: functions.inc.php:371
+msgid "Intercom: Disabled"
+msgstr "Interfonia: Desabilitado"
+
+#: functions.inc.php:309
+msgid "Intercom: Enabled"
+msgstr "Interfonia: Habilitado"
+
+#: functions.inc.php:1122
+msgid "Internal Auto Answer"
+msgstr "Auto-Resposta Interna"
+
+#: views/bootnav.php:7
+msgid "List Page Groups"
+msgstr "Lista de Grupos de Interfonia"
+
+#: views/form.php:245 views/form.php:275 views/settings.php:87
+#: views/settings.php:114
+msgid "No"
+msgstr "Não"
+
+#: functions.inc.php:1171 views/form.php:43 views/form.php:181
+#: views/settings.php:3
+msgid "None"
+msgstr "Nenhum"
+
+#: views/form.php:41
+msgid "Not Selected"
+msgstr "Não Selecionado"
+
+#: views/form.php:193
+msgid ""
+"Override the speaker volume for this page. Note: This is only valid for "
+"Sangoma phones at this time"
+msgstr ""
+"Substitui o volume do alto-falante para este interfone. Observação: isso só "
+"é válido para telefones Sangoma neste momento"
+
+#: functions.inc.php:832 functions.inc.php:1176 views/bootnav.php:13
+#: views/formwrap.php:9 views/grid.php:11
+msgid "Page Group"
+msgstr "Grupo de Interfonia"
+
+#: functions.inc.php:920
+msgid "Page Group: "
+msgstr "Grupo de Interfonia: "
+
+#: Paging.class.php:399
+#, php-format
+msgid "Page Group: %s (%s)"
+msgstr "Grupo de Interfonia: %s (%s)"
+
+#: assets/js/paging.js:107
+msgid "Page Groups"
+msgstr "Grupos de Interfonia"
+
+#: views/form.php:73
+msgid "Paging Extension"
+msgstr "Ramal de Interfonia"
+
+#: functions.inc.php:849
+#, php-format
+msgid "Paging Group %s : %s"
+msgstr "Grupo de Interfonia %s : %s"
+
+#: views/overview.php:22
+msgid "Paging Groups"
+msgstr "Grupos de Interfonia"
+
+#: views/routing_hook.php:15
+msgid "Paging Notification"
+msgstr ""
+
+#: Paging.class.php:202 paging.i18n.php:4 paging.i18n.php:10
+#: views/overview.php:7
+msgid "Paging and Intercom"
+msgstr "Megafonia e Interfonia"
+
+#: views/settings.php:42
+msgid "Paging and Intercom settings"
+msgstr "Configuração de Megafonia e Interfonia"
+
+#: views/form.php:253
+msgid ""
+"Paging is typically one way for announcements only. Checking this will make "
+"the paging duplex, allowing all phones in the paging group to be able to "
+"talk and be heard by all. This makes it like an \"instant conference\""
+msgstr ""
+"A megafonia é normalmente uma forma de fazer anúncios. Selecionando isso "
+"fará a comunicação duplex, permitindo que todos os telefones no grupo de "
+"interfonia/megafonia sejam capazes de falar e serem ouvidos por todos. "
+"Fazendo que seja como uma \"conferência instantânea\""
+
+#: assets/js/paging.js:11
+msgid "Please enter a valid end Date."
+msgstr ""
+
+#: assets/js/paging.js:6
+msgid "Please enter a valid start Date."
+msgstr ""
+
+#: views/settings.php:107
+msgid "Quiet"
+msgstr ""
+
+#: Paging.class.php:197
+msgid "Reject"
+msgstr "Rejeitar"
+
+#: Paging.class.php:263
+msgid "Reset"
+msgstr "Reiniciar"
+
+#: Paging.class.php:198
+msgid "Ring"
+msgstr "Tocar"
+
+#: views/form.php:40
+msgid "Selected"
+msgstr "Selecionado"
+
+#: views/overview.php:27
+msgid "Settings"
+msgstr "Configurações"
+
+#: views/form.php:210
+msgid "Skip"
+msgstr "Pular"
+
+#: views/form.php:176
+msgid "Speaker Volume Override"
+msgstr "Substituição do volume do auto-falante"
+
+#: Paging.class.php:268 views/settings.php:128
+msgid "Submit"
+msgstr "Enviar"
+
+#: assets/js/paging.js:16
+msgid "The end date must biger greater the start date."
+msgstr ""
+
+#: views/form.php:85
+msgid "The number users will dial to page this group"
+msgstr "Número de usuários que discará para a interfonar para este grupo"
+
+#: views/overview.php:6
+msgid ""
+"This module is for specific phones that are capable of Paging or Intercom. "
+"This section is for configuring group paging, intercom is configured through "
+"<strong>Feature Codes</strong>. Intercom must be enabled on a handset before "
+"it will allow incoming calls. It is possible to restrict incoming intercom "
+"calls to specific extensions only, or to allow intercom calls from all "
+"extensions but explicitly deny from specific extensions.<br /><br />This "
+"module should work with Aastra, Grandstream, Linksys/Sipura, Mitel, Polycom, "
+"SNOM , and possibly other SIP phones (not ATAs). Any phone that is always "
+"set to auto-answer should also work (such as the console extension if "
+"configured)."
+msgstr ""
+"Este módulo é para telefones específicos que são capazes de realizar "
+"chamados por megafone ou interfone. Esta seção é para configurar os grupos "
+"de interfonia, o interfone é configurado através de <strong>Códigos de "
+"Recurso</strong>. A interfonia deve ser ativada em um aparelho antes de "
+"permitir chamadas de entrada. É possível restringir chamadas de interfonia "
+"de entrada apenas para ramais específicos, ou permitir chamadas de "
+"interfonia de todos os ramais, mas negar explicitamente de ramais "
+"específicos. <br/><br/> Este módulo deve trabalhar com Aastra, Grandstream, "
+"Linksys/Sipura, Mitel, Polycom, SNOM, e, possivelmente, outros telefones SIP "
+"(não ATAs). Qualquer telefone que esteja sempre configurado para resposta "
+"automática também deve funcionar (como ramal do console, se configurado)."
+
+#: views/settings.php:95
+msgid ""
+"This option drops what Asterisk detects as silence from entering into the "
+"bridge. Enabling this option will drastically improve performance and help "
+"remove the buildup of background noise from the conference. Highly "
+"recommended for large conferences due to its performance enhancements."
+msgstr ""
+"Esta opção causa a queda do que o Asterisk detectar como silêncio ao entrar "
+"na ponte. A ativação desta opção melhorará drasticamente o desempenho e "
+"ajudará a remover o acúmulo de ruído de fundo da conferência. Altamente "
+"recomendado para grandes conferências devido às suas melhorias de desempenho."
+
+#: views/settings.php:122
+msgid "This option removes the beep from caller."
+msgstr ""
+
+#: views/routing_hook.php:29
+msgid ""
+"This will cause the selected Page Group to be paged and connected to any "
+"call that is served by this route. It is recommended not to use a Page Group "
+"that uses (Force) Valet Paging(Paging Pro only)"
+msgstr ""
+
+#: Paging.class.php:185
+msgid "Unknown Request"
+msgstr "Solicitação Desconhecida"
+
+#: install.php:6 paging.i18n.php:14
+msgid "User Intercom Allow"
+msgstr "Permitir Usuário de Interfonia"
+
+#: install.php:7 paging.i18n.php:12
+msgid "User Intercom Disallow"
+msgstr "Não Permitir Usuário de Interfonia"
+
+#: functions.inc.php:1126
+msgid ""
+"When Enabled users can use *80<ext> to force intercom. When Disabled this "
+"user will reject intercom calls"
+msgstr ""
+"Quando os usuários habilitados podem usar *80<ext> para forçar a interfonia. "
+"Quando Desativado, este utilizador irá rejeitar chamadas de interfonia"
+
+#: functions.inc.php:1122
+msgid ""
+"When set to Intercom, calls to this extension/user from other internal users "
+"act as if they were intercom calls meaning they will be auto-answered if the "
+"endpoint supports this feature and the system is configured to operate in "
+"this mode. All the normal white list and black list settings will be honored "
+"if they are set. External calls will still ring as normal, as will certain "
+"other circumstances such as blind transfers and when a Follow Me is "
+"configured and enabled. If Disabled, the phone rings as a normal phone."
+msgstr ""
+"Quando configurado para interfonia, as chamadas para este ramal/usuário de "
+"outros usuários internos agem como se fossem chamadas de interfonia, o que "
+"significa que serão respondidas automaticamente se o ponto de extremidade "
+"suportar esse recurso e o sistema estiver configurado para operar nesse "
+"modo. Todas as configurações normais da lista branca e da lista negra serão "
+"honradas se estiverem definidas. As chamadas externas continuarão a tocar "
+"normalmente, assim como em outras circunstâncias, tais como transferências "
+"cegas e quando um Siga-me estiver configurado e ativado. Se Desativado, o "
+"telefone toca como um telefone normal."
+
+#: Paging.class.php:204
+msgid ""
+"When using Intercom to page an extension, if the extension is in use, you "
+"have three options."
+msgstr ""
+"Ao interfonar para um ramal, se o ramal estiver em uso, você tem três opções."
+
+#: views/form.php:214
+msgid "Whisper"
+msgstr "Sussurar"
+
+#: views/form.php:243 views/form.php:273 views/settings.php:85
+#: views/settings.php:112
+msgid "Yes"
+msgstr "Sim"
+
+#: functions.inc.php:1115
+msgid ""
+"You can include or exclude this extension/device from being part of the "
+"default page group when creating or editing."
+msgstr ""
+"Você pode incluir ou excluir este ramal/dispositivo de fazer parte do grupo "
+"de interfonia padrão ao criar ou editar."
+
+#~ msgid ""
+#~ "Allows creation of paging groups to make announcements using the speaker "
+#~ "built into most SIP phones.\t\tAlso creates an Intercom feature code that "
+#~ "can be used as a prefix to talk directly to one person, as well as "
+#~ "optional feature codes to block/allow intercom calls to all users as well "
+#~ "as blocking specific users or only allowing specific users."
+#~ msgstr ""
+#~ "Permite a criação de grupos de intefonia para fazer anúncios usando o "
+#~ "alto-falante incorporado na maioria dos telefones SIP.\t\t Também cria um "
+#~ "código de recurso de interfone que pode ser usado como um prefixo para "
+#~ "falar diretamente com uma pessoa, bem como códigos de recurso opcionais "
+#~ "para bloquear/permitir a interfonia de todos os usuários, bem como "
+#~ "bloquear usuários específicos ou somente permitir usuários específicos."
+
+#~ msgid ""
+#~ "Annoucement to be played to remote party. If set to Default it will use "
+#~ "the global setting from Page Groups. If Page Groups is not defined then "
+#~ "it will default to beep"
+#~ msgstr ""
+#~ "Anúncio a ser reproduzido para a parte remota. Se definido como Padrão, "
+#~ "ele usará a configuração global de Grupos de Interfonia. Se eles não "
+#~ "estiverem definidos, o padrão será um bip"
+
+#~ msgid "Announcement"
+#~ msgstr "Anúncio"

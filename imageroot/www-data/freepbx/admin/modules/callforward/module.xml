@@ -1,0 +1,24 @@
+<module>
+	<rawname>callforward</rawname>
+	<repo>standard</repo>
+	<name>Call Forward</name>
+	<version>14.0.1.3</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>AGPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/agpl-3.0.txt</licenselink>
+	<changelog>
+		*14.0.1.3* FREEPBX-15976 add fromext variable in dialplan
+		*14.0.1.2* FREEPBX-15611
+		*14.0.1.1* UCP fixes and updates
+		*14.0.1* UCP 14
+		*13.0.4* FREEPBX-9740 Redid playback structure to allow for multilingual support, and added Japanese order
+		*13.0.3* FREEPBX-9564 UCP goes offline after changing settings
+		*13.0.2* Version bump Beta
+		*13.0.1alpha1* Hint updates
+	</changelog>
+	<description>Provides callforward featurecodes</description>
+	<category>Applications</category>
+	<supported>
+		<version>14.0</version>
+	</supported>
+</module>

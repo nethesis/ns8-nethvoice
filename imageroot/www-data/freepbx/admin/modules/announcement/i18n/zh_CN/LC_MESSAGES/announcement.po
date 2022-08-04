@@ -1,0 +1,304 @@
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# FreePBX language for announcement
+# Copyright (C) 2008, 2009 FreePBX
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX 2.5 Chinese Translation\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-12-31 12:25+0530\n"
+"PO-Revision-Date: 2015-11-16 07:30+0200\n"
+"Last-Translator: james <zhulizhong@gmail.com>\n"
+"Language-Team: Simplified Chinese <http://weblate.freepbx.org/projects/"
+"freepbx/announcement/zh_CN/>\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.2-dev\n"
+"X-Poedit-Language: Chinese\n"
+"X-Poedit-Country: CHINA\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: page.announcement.php:17
+msgid ": Add"
+msgstr ": 添加"
+
+#: page.announcement.php:14
+msgid ": Edit"
+msgstr ": 编辑"
+
+#: views/grid.php:18
+msgid "Actions"
+msgstr "命令"
+
+#: views/grid.php:11
+msgid "Add"
+msgstr "添加"
+
+#: views/rnav.php:3
+msgid "Add Announcements"
+msgstr "添加语音播报"
+
+#: views/form.php:142
+msgid "Allow Skip"
+msgstr "允许跳过"
+
+#: page.announcement.php:7
+msgid "Announcement"
+msgstr "语音播报"
+
+#: assets/js/announcement.js:16
+msgid "Announcement Description Already Exist"
+msgstr ""
+
+#: functions.inc.php:31 functions.inc.php:51 functions.inc.php:226
+#, php-format
+msgid "Announcement: %s"
+msgstr "公告：%s"
+
+#: announcement.i18n.php:4 announcement.i18n.php:10
+msgid "Announcements"
+msgstr "公告"
+
+#: announcement.i18n.php:6
+msgid "Applications"
+msgstr "应用"
+
+#: install.php:90
+msgid "Checking if recordings need migration.."
+msgstr "检查是否需要迁移录音。。"
+
+#: Announcement.class.php:70
+msgid "Delete"
+msgstr "删除"
+
+#: views/form.php:91 views/grid.php:16
+msgid "Description"
+msgstr "描述"
+
+#: views/grid.php:17
+msgid "Destination"
+msgstr "目的地"
+
+#: views/form.php:223
+msgid "Destination after Playback"
+msgstr "回放后目的地"
+
+#: views/rnav.php:8
+msgid "Destinations"
+msgstr "目的地"
+
+#: views/form.php:72
+msgid "Disable"
+msgstr "禁用"
+
+#: views/form.php:196
+msgid "Don't Answer Channel"
+msgstr "不要接听频道"
+
+#: views/form.php:157
+msgid "If the caller is allowed to press a key to skip the message."
+msgstr "设定主叫是否可以按下某键以跳过消息。"
+
+#: views/form.php:184
+msgid ""
+"If this announcement came from an IVR and this is set to yes, the "
+"destination below will be ignored and instead it will return to the calling "
+"IVR. Otherwise, the destination below will be taken. Don't check if not "
+"using in this mode. <br>The IVR return location will be to the last IVR in "
+"the call chain that was called so be careful to only check when needed. For "
+"example, if an IVR directs a call to another destination which eventually "
+"calls this announcement and this box is checked, it will return to that IVR "
+"which may not be the expected behavior."
+msgstr ""
+"如果此播报来自于一个IVR，并且设置为yes，以下的目的地将被忽略，将返回到呼叫的"
+"IVR。否则，使用以下目的地。如果不使用这个模式，请不要点击检查。<br>如果检查的"
+"话，IVR 返回的地址将是上一次呼叫时的地址。例如，如果IVR转发呼叫到了一个语音播"
+"报，并且勾选了勾选项，系统则返回到一个IVR，也许这个流程不是我们期望的流程。"
+
+#: assets/js/announcement.js:6
+msgid "Invalid description specified"
+msgstr "指定了无效的描述"
+
+#: views/form.php:130
+msgid ""
+"Key to press that will allow for the message to be replayed. If you choose "
+"this option there will be a short delay inserted after the message. If a "
+"longer delay is needed it should be incorporated into the recording."
+msgstr ""
+"设定按下某键后，可重复播放消息。如果你选择了这个选项，在消息之后会插入一个短"
+"暂的停顿，如果需要更长的停顿，直接把停顿合成到录音里。"
+
+#: views/rnav.php:2
+msgid "List Announcements"
+msgstr "语音播报列表"
+
+#: views/form.php:59
+msgid ""
+"Message to be played.<br>To add additional recordings use the \"System "
+"Recordings\" MENU above"
+msgstr ""
+"将播放语音。<br>支持更多语音录音文件，请使用 \"System Recordings\" 菜单"
+
+#: views/form.php:149 views/form.php:176 views/form.php:203
+msgid "No"
+msgstr ""
+
+#: assets/js/announcement.js:35
+msgid "No Destination"
+msgstr ""
+
+#: views/form.php:32
+msgid "None"
+msgstr "无"
+
+#: announcement.i18n.php:8
+msgid ""
+"Plays back one of the system recordings (optionally allowing the user to "
+"skip it) and then goes to another destination."
+msgstr "回放其中一个系统录音（可跳过），然后路由到另外一个目的地。"
+
+#: views/form.php:45
+msgid "Recording"
+msgstr "录音"
+
+#: views/form.php:116
+msgid "Repeat"
+msgstr "重复"
+
+#: Announcement.class.php:75
+msgid "Reset"
+msgstr "重新设置"
+
+#: views/form.php:169
+msgid "Return to IVR"
+msgstr "返回至IVR"
+
+#: views/form.php:211
+msgid ""
+"Set this to yes, to keep the channel from explicitly being answered. When "
+"checked, the message will be played and if the channel is not already "
+"answered it will be delivered as early media if the channel supports that. "
+"When not checked, the channel is answered followed by a 1 second delay. When "
+"using an announcement from an IVR or other sources that have already "
+"answered the channel, that 1 second delay may not be desired."
+msgstr ""
+
+#: Announcement.class.php:80
+msgid "Submit"
+msgstr "提交"
+
+#: views/form.php:103
+msgid "The name of this announcement."
+msgstr "语音播报名称。"
+
+#: views/form.php:235
+msgid "Where to send the caller after the announcement is played."
+msgstr "语音播报后发送此呼叫的目的地。"
+
+#: views/form.php:147 views/form.php:174 views/form.php:201
+msgid "Yes"
+msgstr ""
+
+#: install.php:97
+msgid "adding recording_id field.."
+msgstr "正在添加recording_id字段。。"
+
+#: install.php:147
+msgid "already migrated"
+msgstr "已经迁移过了"
+
+#: install.php:137
+msgid "dropping recording field.."
+msgstr "正在删除recording字段。。"
+
+#: install.php:101 install.php:113 install.php:129
+msgid "fatal error"
+msgstr "致命错误"
+
+#: install.php:109
+msgid "migrate to recording ids.."
+msgstr "迁移到录音ID。。"
+
+#: install.php:133
+#, php-format
+msgid "migrated %s entries"
+msgstr "迁移了 %s 个项目"
+
+#: install.php:96
+msgid "migrating"
+msgstr "正在迁移"
+
+#: install.php:141
+msgid "no recording field???"
+msgstr "recording字段不存在？"
+
+#: install.php:104 install.php:143
+msgid "ok"
+msgstr "完成"
+
+#~ msgid "Add Announcement"
+#~ msgstr "添加公告"
+
+#~ msgid ""
+#~ "Check this to keep the channel from explicitly being answered. When "
+#~ "checked, the message will be played and if the channel is not already "
+#~ "answered it will be delivered as early media if the channel supports "
+#~ "that. When not checked, the channel is answered followed by a 1 second "
+#~ "delay. When using an announcement from an IVR or other sources that have "
+#~ "already answered the channel, that 1 second delay may not be desired."
+#~ msgstr ""
+#~ "钩选此项可以防止频道被显式的接听。启用此功能后，消息会被播放，如果频道尚未"
+#~ "被接听，它会被当作早期媒体递送出去（如果频道支持的话）。如果不启用此功能，"
+#~ "频道就会被接听，接着会出现1秒的停顿。如果正在使用的公告是从IVR或其他的源引"
+#~ "导过来的，并且此前频道已被接听，那么这1秒的停顿可能是你不需要的。"
+
+#~ msgid "Destination after playback"
+#~ msgstr "播放后的目的地"
+
+#~ msgid "Edit Announcement"
+#~ msgstr "编辑公告"
+
+#~ msgid ""
+#~ "If this announcement came from an IVR and this box is checked, the "
+#~ "destination below will be ignored and instead it will return to the "
+#~ "calling IVR. Otherwise, the destination below will be taken. Don't check "
+#~ "if not using in this mode. <br>The IVR return location will be to the "
+#~ "last IVR in the call chain that was called so be careful to only check "
+#~ "when needed. For example, if an IVR directs a call to another destination "
+#~ "which eventually calls this announcement and this box is checked, it will "
+#~ "return to that IVR which may not be the expected behavior."
+#~ msgstr ""
+#~ "如果这项公告是由IVR发出的，而又钩选了此项，下面的目的地就会被忽略，因此最"
+#~ "后会返回到IVR。如果没钩选此项，最后会转向下面的目的地。如果不使用这种模式"
+#~ "就不必钩选。<br />返回到IVR时，会返回到IVR呼叫链的最后被呼叫的一项，所以仅"
+#~ "在需要这样的功能时才使用这种模式。例如，如果一个IVR引导一个呼叫到令一个目"
+#~ "的地，而此目的地最后呼叫了此通告且此选项被钩选，最后呼叫会返回到原来的"
+#~ "IVR，这也许是你想要的功能，也许不是。"
+
+#~ msgid ""
+#~ "Message to be played.<br>To add additional recordings use the \"System "
+#~ "Recordings\" MENU to the left"
+#~ msgstr "要播放的消息。<br />要添加额外的录音，使用左侧的“系统录音”菜单"
+
+#~ msgid "Submit Changes"
+#~ msgstr "提交更改"
+
+#~ msgid "The name of this announcement"
+#~ msgstr "这项公告的名字"

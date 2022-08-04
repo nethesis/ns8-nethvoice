@@ -1,0 +1,1804 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX 2.5 Chinese Translation\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-02-26 06:29+0000\n"
+"PO-Revision-Date: 2015-11-12 12:43+0200\n"
+"Last-Translator: james <zhulizhong@gmail.com>\n"
+"Language-Team: Simplified Chinese <http://weblate.freepbx.org/projects/"
+"freepbx/queues/zh_CN/>\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.2-dev\n"
+"X-Poedit-Language: Chinese\n"
+"X-Poedit-Country: CHINA\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: page.queues.php:19
+msgid " Add Queue"
+msgstr " 添加队列"
+
+#: page.queues.php:15
+msgid " Edit: "
+msgstr " 编辑: "
+
+#: views/form.php:495
+msgid ""
+"<b>ERROR</b>: You have selected an IVR that uses Announcements created from "
+"compound sound files. The Queue is not able to play these announcements. "
+"This IVRs recording will be truncated to use only the first sound file. You "
+"can correct the problem by selecting a different announcement for this IVR "
+"that is not from a compound sound file. The IVR itself can play such files, "
+"but the Queue subsystem can not"
+msgstr ""
+
+#: views/qgrid.php:16
+msgid "Actions"
+msgstr "命令"
+
+#: views/bootnav.php:3 views/qgrid.php:9
+msgid "Add Queue"
+msgstr "添加等待队列"
+
+#: views/form.php:887
+msgid ""
+"Add an Alert-Info Header like Snom and other Phones need for Ring or "
+"Ringtone informations"
+msgstr ""
+
+#: views/form.php:719
+msgid "Advanced Options"
+msgstr "高级选项"
+
+#: views/form.php:1430
+msgid ""
+"After a successful call, how many seconds to wait before sending a "
+"potentially free agent another call (default is 0, or no delay) If using "
+"Asterisk 1.6+, you can also set the 'Honor Wrapup Time Across Queues' "
+"setting (Asterisk: shared_lastcall) on the Advanced Settings page so that "
+"this is honored across queues for members logged on to multiple queues."
+msgstr ""
+
+#: functions.inc.php:65
+msgid "Agent Announce Msg"
+msgstr "坐席公告消息"
+
+#: views/form.php:232
+msgid "Agent Announcement"
+msgstr "坐席播报"
+
+#: queues.i18n.php:30
+msgid "Agent Called Events Default"
+msgstr ""
+
+#: views/form.php:1891
+msgid "Agent Regex Filter"
+msgstr "针对坐席的正则表达式过滤器"
+
+#: views/form.php:978
+msgid "Agent Restrictions"
+msgstr "坐席限定"
+
+#: views/form.php:313
+msgid "Agent Ringing"
+msgstr "坐席振铃"
+
+#: views/form.php:1334
+msgid "Agent Timeout"
+msgstr "坐席超时"
+
+#: views/form.php:1360
+msgid "Agent Timeout Restart"
+msgstr "坐席超时重启"
+
+#: views/form.php:875
+msgid "Alert Info"
+msgstr "警告信息"
+
+#: install.php:15 queues.i18n.php:42
+msgid ""
+"Allow Dynamic Members of a Queue to login or logout. See the Queues Module "
+"for how to assign a Dynamic Member to a Queue."
+msgstr "支持动态队列成员登录或退出。参考队列模块如何设置动态队列成员。"
+
+#: views/form.php:198
+msgid "Always"
+msgstr "总是"
+
+#: views/form.php:391
+msgid "Always allows the caller to join the Queue."
+msgstr "总是允许呼叫方加入队列。"
+
+#: views/form.php:1819
+msgid "Announce Hold Time"
+msgstr "播报音乐等待"
+
+#: views/form.php:1790
+msgid "Announce Position"
+msgstr "播报等待位置"
+
+#: views/form.php:1807
+msgid "Announce position of caller in the queue?"
+msgstr "向主叫通告在等待队列中的位置吗？"
+
+#: views/form.php:209
+msgid ""
+"Announcement played to callers prior to joining the queue. This can be "
+"skipped if there are agents ready to answer a call (meaning they still may "
+"be wrapping up from a previous call) or when they are free to answer the "
+"call right now. To add additional recordings please use the \"System "
+"Recordings\" MENU."
+msgstr ""
+
+#: views/form.php:246
+msgid ""
+"Announcement played to the Agent prior to bridging in the caller <br><br> "
+"Example: \"the Following call is from the Sales Queue\" or \"This call is "
+"from the Technical Support Queue\".<br><br>To add additional recordings "
+"please use the \"System Recordings\" MENU. Compound recordings composed of 2 "
+"or more sound files are not displayed as options since this feature can not "
+"accept such recordings."
+msgstr ""
+
+#: views/form.php:169
+msgid ""
+"Announcement played to the Queue Memeber announcing the Queue call and "
+"requesting confirmation prior to answering. If set to default, the standard "
+"call confirmation default message will be played unless the member is "
+"reached through a Follow-Me and there is an alternate message provided in "
+"the Follow-Me. This message will override any other message specified.."
+"<br><br>To add additional recordings please use the \"System Recordings\" "
+"MENU."
+msgstr ""
+
+#: views/cron.php:63
+msgid "Annually"
+msgstr "手动"
+
+#: queues.i18n.php:6
+msgid "Applications"
+msgstr ""
+
+#: views/form.php:1322
+msgid ""
+"Asterisk timeoutpriority. In 'Strict' mode, when the 'Max Wait Time' of a "
+"caller is hit, they will be pulled out of the queue immediately. In 'Loose' "
+"mode, if a queue member is currently ringing with this call, then we will "
+"wait until the queue stops ringing this queue member or otherwise the call "
+"is rejected by the queue member before taking the caller out of the queue. "
+"This means that the 'Max Wait Time' could be as long as 'Max Wait Time' + "
+"'Agent Timeout' combined."
+msgstr ""
+
+#: views/form.php:1721
+msgid ""
+"Asterisk: penaltymemberslimit. A limit can be set to disregard penalty "
+"settings, allowing all members to be tried, when the queue has too few "
+"members.  No penalty will be weighed in if there are only X or fewer queue "
+"members."
+msgstr ""
+
+#: views/form.php:1498
+msgid "Auto Pause"
+msgstr "自动暂停"
+
+#: views/form.php:1587
+msgid "Auto Pause Delay"
+msgstr "自动暂停延迟"
+
+#: views/form.php:1517
+msgid ""
+"Auto Pause an agent in this queue (or all queues they are a member of) if "
+"they don't answer a call. Specific behavior can be modified by the Auto "
+"Pause Delay as well as Auto Pause Busy/Unavailable settings if supported on "
+"this version of Asterisk."
+msgstr ""
+
+#: views/form.php:1529
+msgid "Auto Pause on Busy"
+msgstr "自动暂停忙"
+
+#: views/form.php:1558
+msgid "Auto Pause on Unavailable"
+msgstr "自动暂停无效"
+
+#: views/form.php:1036
+msgid "Autofill"
+msgstr "自动填入"
+
+#: functions.inc/geters_seters.php:39
+msgid "Bad Queue Number, can not be blank"
+msgstr "错误的队列号，队列号不可以为空"
+
+#: views/form.php:439
+msgid "Break Out Type"
+msgstr ""
+
+#: views/form.php:823
+msgid "CID Name Prefix"
+msgstr ""
+
+#: views/form.php:795
+msgid "Call Confirm"
+msgstr ""
+
+#: views/form.php:146
+msgid "Call Confirm Announce"
+msgstr ""
+
+#: views/form.php:1126
+msgid "Call Recording"
+msgstr ""
+
+#: views/form.php:986
+msgid "Call as Dialed"
+msgstr "呼叫"
+
+#: views/form.php:563
+msgid "Callback to use when caller presses 1."
+msgstr ""
+
+#: views/form.php:714
+msgid "Caller Announcements"
+msgstr ""
+
+#: views/form.php:1730
+msgid "Caller Position"
+msgstr ""
+
+#: views/form.php:400
+msgid ""
+"Callers will exit if all agents are paused, show an invalid state for their "
+"device or have penalty values less than QUEUE_MAX_PENALTY (not currently set "
+"in FreePBX dialplan)."
+msgstr ""
+
+#: views/form.php:394
+msgid ""
+"Callers will not be admitted if all agents are paused, show an invalid state "
+"for their device, or have penalty values less than QUEUE_MAX_PENALTY (not "
+"currently set in FreePBX dialplan)."
+msgstr ""
+
+#: views/form.php:709
+msgid "Capacity Options"
+msgstr "处理能力选项"
+
+#: functions.inc/queue_conf.php:226
+msgid "Compound Recordings in Queues Detected"
+msgstr "在等待队列的配置中检测到了复合录音"
+
+#: queues.i18n.php:8
+msgid ""
+"Creates a queue where calls are placed on hold and answered on a first-in, "
+"first-out basis. Many options are available, including ring strategy for "
+"agents, caller announcements, max wait times, etc."
+msgstr ""
+
+#: views/cron.php:60
+msgid "Daily"
+msgstr ""
+
+#: views/form.php:154
+msgid "Default"
+msgstr ""
+
+#: queues.i18n.php:32
+msgid ""
+"Default state for AMI emit events related to an agent's call. This setting "
+"will only affect the default for NEW queues, it won't change existing queues "
+"or enfore the option on in new ones."
+msgstr ""
+
+#: queues.i18n.php:36
+msgid ""
+"Default state for AMI to emit the QueueMemberStatus event. This setting will "
+"only affect the default for NEW queues, it won't change existing queues or "
+"enfore the option on in new ones."
+msgstr ""
+
+#: Queues.class.php:206
+msgid "Delete"
+msgstr ""
+
+#: views/bootnav.php:10 views/qgrid.php:15
+msgid "Description"
+msgstr ""
+
+#: views/form.php:398
+msgid ""
+"Determines if callers should be exited prematurely from the queue in "
+"situations where it appears no one is currently available to take the call. "
+"The options include:"
+msgstr ""
+
+#: views/form.php:389
+msgid ""
+"Determines if new callers will be admitted to the Queue, if not, the "
+"failover destination will be immediately pursued. The options include:"
+msgstr ""
+
+#: views/form.php:19 views/form.php:1133
+msgid "Don't Care"
+msgstr ""
+
+#: views/form.php:1243
+msgid "Dynamic Agents"
+msgstr ""
+
+#: views/form.php:1264
+msgid ""
+"Dynamic Members are extensions or callback numbers that can log in and out "
+"of the queue. When a member logs in to a queue, their penalty in the queue "
+"will be as specified here. Extensions included here will NOT automatically "
+"be logged in to the queue."
+msgstr ""
+
+#: views/form.php:495
+msgid ""
+"Earlier versions of this module allowed such queues to be chosen, once "
+"changing this setting, it will no longer appear as an option"
+msgstr ""
+"此模块的更早的版本允许选择这样的队列，只要更改了此项设置，它就不会再以选项出"
+"现"
+
+#: views/cron.php:37
+msgid "Enable this task"
+msgstr ""
+
+#: views/form.php:1171
+msgid ""
+"Enabling this option, all calls are marked as 'answered elsewhere' when "
+"cancelled. The effect is that missed queue calls are *not* shown on the "
+"phone (if the phone supports it)"
+msgstr ""
+
+#: views/form.php:619
+msgid "Event When Called"
+msgstr "呼叫后触发事件"
+
+#: functions.inc/hook_core.php:59
+msgid "Extension Options"
+msgstr ""
+
+#: views/form.php:990
+msgid "Extensions Only"
+msgstr "仅是分机"
+
+#: views/form.php:1183
+msgid "Fail Over Destination"
+msgstr "在目的地发生了错误"
+
+#: views/form.php:19 views/form.php:1131
+msgid "Force"
+msgstr ""
+
+#: views/form.php:1740
+msgid "Frequency"
+msgstr ""
+
+#: views/form.php:694
+msgid "General Settings"
+msgstr ""
+
+#: views/form.php:781
+msgid "Give this queue a brief name to help you identify it."
+msgstr "为这个队列取一个简短的名字以帮助你识别它。"
+
+#: views/form.php:1112
+msgid ""
+"Gives queues a 'weight' option, to ensure calls waiting in a higher priority "
+"queue will deliver its calls first if there are agents common to both queues."
+msgstr ""
+"为队列设定一个权重，保证两个队列都可用时，有高优先权的队列首先获得坐席的服"
+"务。"
+
+#: views/form.php:408
+msgid "Honor Penalties"
+msgstr ""
+
+#: queues.i18n.php:18
+msgid "Honor Wrapup Time Across Queues"
+msgstr ""
+
+#: views/cron.php:59
+msgid "Hourly"
+msgstr ""
+
+#: views/form.php:601
+msgid ""
+"How often to announce a voice menu to the caller (0 to Disable "
+"Announcements)."
+msgstr "向呼叫者通告语音菜单的频率（0既禁用通告）。"
+
+#: views/form.php:1754
+msgid ""
+"How often to announce queue position and estimated holdtime (0 to Disable "
+"Announcements)."
+msgstr ""
+"可以向等待者通告他在队列中的位置和剩下的等待时间，在这里设置通告的频率（0表示"
+"不要通告）。"
+
+#: functions.inc/destination_registry.php:98
+msgid "INUSE"
+msgstr "正在使用"
+
+#: functions.inc.php:75
+#, php-format
+msgid "IVR Announce: %s"
+msgstr "IVR远程公告：%s"
+
+#: views/form.php:444 views/form.php:507
+msgid "IVR Break Out Menu"
+msgstr ""
+
+#: views/form.php:810
+msgid ""
+"If checked, any queue member that is actually an outside telephone number, "
+"or any extensions Follow-Me or call forwarding that are pursued and leave "
+"the PBX will be forced into Call Confirmation mode where the member must "
+"acknowledge the call before it is answered and delivered."
+msgstr ""
+
+#: views/form.php:126
+msgid ""
+"If checked, the queue will not answer the call. Under most circumstance you "
+"should always have the queue answering calls. If not, then it's possible "
+"that recordings and MoH will not be heard by the waiting callers since early "
+"media capabilities vary and are inconsistent. Some cases where it may be "
+"desired to not answer a call is when using Strict Join Empty queue policies "
+"where the caller will not be admitted to the queue unless there is a queue "
+"member immediately available to take the call."
+msgstr ""
+
+#: views/form.php:863
+msgid ""
+"If the call is subsequently transferred, the wait time will reflect the time "
+"since it first entered the queue or reset if the call is transferred to "
+"another queue with this feature set."
+msgstr ""
+
+#: functions.inc/hook_core.php:65
+msgid ""
+"If this extension is part of a Queue then the Queue will attempt to use the "
+"user's extension state or device state information when determining if this "
+"queue member should be called. In some uncommon situations such as a Follow-"
+"Me with no physical device, or some virtual extension scenarios, the state "
+"information will indicate that this member is not available when they are. "
+"Setting this to 'Ignore State' will make the Queue ignore all state "
+"information thus always trying to contact this member. Certain side affects "
+"can occur when this route is taken due to the nature of how Queues handle "
+"Local channels, such as subsequent transfers will continue to show the "
+"member as busy until the original call is terminated. In most cases, this "
+"SHOULD BE set to 'Use State'."
+msgstr ""
+
+#: views/form.php:1051
+msgid ""
+"If this is Enabled, and multiple agents are available, Asterisk will send "
+"one call to each waiting agent (depending on the ring strategy). Otherwise, "
+"it will hold all calls while it tries to find an agent for the top call in "
+"the queue making other calls wait."
+msgstr ""
+
+#: views/form.php:1378
+msgid ""
+"If timeoutrestart is set to yes, then the time out for an agent to answer is "
+"reset if a BUSY or CONGESTION is received. This can be useful if agents are "
+"able to cancel a call with reject or similar."
+msgstr ""
+
+#: views/form.php:1456
+msgid ""
+"If you wish to have a delay before the member is connected to the caller (or "
+"before the member hears any announcement messages), set this to the number "
+"of seconds to delay."
+msgstr ""
+
+#: views/form.php:1486
+msgid ""
+"If you wish to report the caller's hold time to the member before they are "
+"connected to the caller, set this to yes."
+msgstr "如果希望对呼叫者播放播放队列中的呼叫等待的人数，设置成Yes。"
+
+#: functions.inc/hook_core.php:37
+msgid "Ignore State"
+msgstr ""
+
+#: views/form.php:1143
+msgid ""
+"Incoming calls to agents can be recorded. If 'never' is selected, then in-"
+"call on demand recording is blocked."
+msgstr ""
+
+#: views/form.php:183
+msgid "Join Announcement"
+msgstr ""
+
+#: views/form.php:1639
+msgid "Join Empty"
+msgstr ""
+
+#: views/form.php:1673
+msgid "Leave Empty"
+msgstr ""
+
+#: views/bootnav.php:2
+msgid "List Queues"
+msgstr ""
+
+#: views/form.php:395 views/form.php:403 views/form.php:1314
+#: views/form.php:1653 views/form.php:1687
+msgid "Loose"
+msgstr ""
+
+#: views/form.php:1155
+msgid "Mark calls answered elsewhere"
+msgstr ""
+
+#: views/form.php:1614
+msgid "Max Callers"
+msgstr ""
+
+#: views/form.php:1279
+msgid "Max Wait Time"
+msgstr ""
+
+#: views/form.php:1305
+msgid "Max Wait Time Mode"
+msgstr ""
+
+#: views/form.php:1627
+msgid "Maximum number of people waiting in the queue (0 for unlimited)"
+msgstr "在队列中等待的人数的上限（0代表无限制）"
+
+#: views/form.php:1442
+msgid "Member Delay"
+msgstr ""
+
+#: views/form.php:651
+msgid "Member Status Event"
+msgstr "成员状态事件"
+
+#: queues.i18n.php:34
+msgid "Member Status Event Default"
+msgstr ""
+
+#: views/form.php:481 views/form.php:485
+msgid "Menu ID "
+msgstr "菜单ID.. "
+
+#: views/form.php:1766
+msgid "Minimum Announcement Interval"
+msgstr ""
+
+#: views/form.php:312
+msgid "MoH Only"
+msgstr "仅语音等待"
+
+#: views/cron.php:62
+msgid "Monthly"
+msgstr ""
+
+#: views/form.php:323
+msgid ""
+"Music (MoH) played to the caller while they wait in line for an available "
+"agent. Choose \"inherit\" if you want the MoH class to be what is currently "
+"selected, such as by the inbound route. MoH Only will play music until the "
+"agent answers. Agent Ringing will play MoH until an agent's phone is "
+"presented with the call and is ringing. If they don't answer, MoH will "
+"return.  Ring Only makes callers hear a ringing tone instead of MoH ignoring "
+"any MoH Class selected as well as any configured periodic announcements. "
+"This music is defined in the \"Music on Hold\" Menu."
+msgstr ""
+
+#: views/form.php:291
+msgid "Music on Hold Class"
+msgstr ""
+
+#: views/form.php:19 views/form.php:1135
+msgid "Never"
+msgstr "从不"
+
+#: views/form.php:404
+msgid ""
+"Never have a caller leave the Queue until the Max Wait Time has expired."
+msgstr ""
+
+#: views/cron.php:28 views/cron.php:57 views/form.php:19 views/form.php:118
+#: views/form.php:394 views/form.php:404 views/form.php:627 views/form.php:659
+#: views/form.php:802 views/form.php:855 views/form.php:958 views/form.php:1043
+#: views/form.php:1070 views/form.php:1134 views/form.php:1163
+#: views/form.php:1369 views/form.php:1478 views/form.php:1504
+#: views/form.php:1538 views/form.php:1567 views/form.php:1651
+#: views/form.php:1685 views/form.php:1799 views/form.php:1828
+msgid "No"
+msgstr "无"
+
+#: views/form.php:988
+msgid "No Follow-Me or Call Forward"
+msgstr "无分机随行或呼叫前转"
+
+#: views/form.php:369
+msgid "No Retry"
+msgstr "无重试"
+
+#: views/form.php:190 views/form.php:218 views/form.php:512 views/form.php:553
+#: views/form.php:903
+msgid "None"
+msgstr "无"
+
+#: views/form.php:1830
+msgid "Once"
+msgstr "一次"
+
+#: views/form.php:730
+msgid "Other Options"
+msgstr ""
+
+#: views/form.php:915
+#, php-format
+msgid ""
+"Override the ringer volume. Note: This is only valid for %s phones at this "
+"time"
+msgstr ""
+
+#: views/form.php:1707
+msgid "Penalty Members Limit"
+msgstr ""
+
+#: views/form.php:1846
+msgid "Periodic Announcements"
+msgstr "循环语音播报"
+
+#: queues.i18n.php:12
+msgid "Persistent Members"
+msgstr ""
+
+#: install.php:29 queues.i18n.php:38
+msgid "Playback Queue Caller Count"
+msgstr ""
+
+#: views/form.php:1903
+msgid ""
+"Provides an optional regex expression that will be applied against the agent "
+"callback number. If the callback number does not pass the regex filter then "
+"it will be treated as invalid. This can be used to restrict agents to "
+"extensions within a range, not allow callbacks to include keys like *, or "
+"any other use that may be appropriate. An example input might be:<br /"
+">^([2-4][0-9]{3})$<br />This would restrict agents to extensions 2000-4999. "
+"Or <br />^([0-9]+)$ would allow any number of any length, but restrict the * "
+"key.<br />WARNING: make sure you understand what you are doing or otherwise "
+"leave this blank!"
+msgstr ""
+"针对坐席的回呼号码设置正则表达式过滤器。如果回呼号码没有通过正则表达式过滤"
+"器，它就被认为是无效的。这可以用来把坐席限制在一个范围的分机号内。不允许回呼"
+"号码中包含*号。例子：<br />^([2-4][0-9]{3})$<br />这将把坐席限制在2000-4999的"
+"分机号范围内。或者<br />^([0-9]+)$将允许任何长度的任何号码，但是不允许有*号。"
+"<br />警告：除非你知道你在做什么，否则请保留此设置为空白！"
+
+#: Queues.class.php:194 views/bootnav.php:9 views/qgrid.php:14
+msgid "Queue"
+msgstr "等待队列"
+
+#: functions.inc/destination_registry.php:36
+#, php-format
+msgid "Queue %s : %s"
+msgstr "等待队列 %s：%s"
+
+#: functions.inc/queue_conf.php:224
+#, php-format
+msgid "Queue - %s (%s): %s<br />"
+msgstr "等待队列 - %s（%s）：%s<br />"
+
+#: views/form.php:699
+msgid "Queue Agents"
+msgstr ""
+
+#: views/form.php:445 views/form.php:548
+msgid "Queue Callback"
+msgstr ""
+
+#: install.php:10
+msgid "Queue Callers"
+msgstr ""
+
+#: views/form.php:769
+msgid "Queue Name"
+msgstr ""
+
+#: views/form.php:111
+msgid "Queue No Answer"
+msgstr ""
+
+#: views/form.php:745
+msgid "Queue Number"
+msgstr ""
+
+#: assets/js/queues.js:40
+msgid "Queue Number must not be blank"
+msgstr "等待队列号码不能为空"
+
+#: views/form.php:82
+msgid "Queue Password"
+msgstr ""
+
+#: install.php:9 /dev/shm/freepbx/queues/install.php:22 queues.i18n.php:40
+msgid "Queue Pause Toggle"
+msgstr ""
+
+#: functions.inc/hook_core.php:64
+msgid "Queue State Detection"
+msgstr ""
+
+#: install.php:8
+msgid "Queue Toggle"
+msgstr ""
+
+#: views/form.php:1099
+msgid "Queue Weight"
+msgstr "队列权重"
+
+#: views/form.php:1073
+msgid "Queue calls only (ringinuse=no)"
+msgstr ""
+
+#: assets/js/queues.js:53
+msgid ""
+"Queue name must not be blank and must contain only alpha-numeric characters"
+msgstr "队列名称不能为空，并且只能包含字母和数字字符"
+
+#: functions.inc/destination_registry.php:56
+#: functions.inc/destination_registry.php:73
+#: functions.inc/destination_registry.php:97
+#, php-format
+msgid "Queue: %s"
+msgstr "等待队列：%s"
+
+#: functions.inc/destination_registry.php:126
+#, php-format
+msgid "Queue: %s (%s)"
+msgstr "等待队列：%s（%s）"
+
+#: page.queues.php:7 queues.i18n.php:4 queues.i18n.php:10
+msgid "Queues"
+msgstr "等待队列"
+
+#: queues.i18n.php:14
+msgid "Queues Module"
+msgstr ""
+
+#: bin/queue_reset_stats.php:12
+msgid "Queues module not found or is disabled. Aborting!"
+msgstr ""
+
+#: queues.i18n.php:28
+msgid ""
+"Queues: monitor-type = MixMonitor. Setting true will use the MixMonitor "
+"application instead of Monitor so the concept of 'joining/mixing' the in/out "
+"files now goes away when this is enabled."
+msgstr ""
+
+#: queues.i18n.php:16
+msgid ""
+"Queues: persistentmembers. Store each dynamic member in each queue in the "
+"astdb so that when asterisk is restarted, each member will be automatically "
+"read into their recorded queues."
+msgstr ""
+
+#: queues.i18n.php:20
+msgid ""
+"Queues: shared_lastcall, only valid with Asterisk 1.6+. This will make the "
+"lastcall and calls received be the same in members logged in more than one "
+"queue. This is useful to make the queue respect the wrapuptime of another "
+"queue for a shared member."
+msgstr ""
+
+#: queues.i18n.php:24
+msgid ""
+"Queues: updatecdr, only valid with Asterisk 1.6+. This option is implemented "
+"to mimic chan_agents behavior of populating CDR dstchannel field of a call "
+"with an agent name, which is set if available at the login time with "
+"AddQueueMember membername parameter, or with static members."
+msgstr ""
+
+#: views/cron.php:84
+msgid "RUN"
+msgstr ""
+
+#: views/cron.php:50
+msgid "Random"
+msgstr ""
+
+#: views/form.php:587
+msgid "Repeat Frequency"
+msgstr ""
+
+#: views/form.php:1469
+msgid "Report Hold Time"
+msgstr ""
+
+#: Queues.class.php:216
+msgid "Reset"
+msgstr ""
+
+#: views/form.php:724
+msgid "Reset Queue Stats"
+msgstr ""
+
+#: views/form.php:951
+msgid "Restrict Dynamic Agents"
+msgstr "限制动态坐席"
+
+#: views/form.php:966
+msgid ""
+"Restrict dynamic queue member logins to only those listed in the Dynamic "
+"Members list above. When set to Yes, members not listed will be DENIED "
+"ACCESS to the queue."
+msgstr ""
+
+#: views/form.php:1390
+msgid "Retry"
+msgstr ""
+
+#: views/form.php:314
+msgid "Ring Only"
+msgstr "仅振铃"
+
+#: views/form.php:1010
+msgid "Ring Strategy"
+msgstr ""
+
+#: views/form.php:898
+msgid "Ringer Volume Override"
+msgstr ""
+
+#: views/form.php:926
+msgid "Ringer Volume Override Mode"
+msgstr ""
+
+#: views/form.php:395
+msgid ""
+"Same as No except Callers will be admitted if there are paused agents who "
+"could become available."
+msgstr ""
+
+#: views/form.php:393
+msgid ""
+"Same as Strict plus a queue member must be able to answer the phone 'now' to "
+"let them in. Simply speaking, any 'available' agents that could answer but "
+"are currently on the phone or ringing on behalf of another caller will be "
+"considered unavailable."
+msgstr ""
+
+#: views/form.php:402
+msgid ""
+"Same as Strict plus a queue member must be able to answer the phone 'now' to "
+"let them remain. Simply speaking, any 'available' agents that could answer "
+"but are currently on the phone or ringing on behalf of another caller will "
+"be considered unavailable."
+msgstr ""
+
+#: views/form.php:392
+msgid ""
+"Same as Yes but more strict.  Simply speaking, if no agent could answer the "
+"phone then don't admit them. If agents are inuse or ringing someone else, "
+"caller will still be admitted."
+msgstr ""
+
+#: views/form.php:401
+msgid ""
+"Same as Yes but more strict.  Simply speaking, if no agent could answer the "
+"phone then have them leave the queue. If agents are inuse or ringing someone "
+"else, caller will still be held."
+msgstr ""
+
+#: views/form.php:403
+msgid ""
+"Same as Yes except Callers will remain in the Queue if there are paused "
+"agents who could become available."
+msgstr ""
+
+#: views/form.php:1865
+msgid "Service Level"
+msgstr ""
+
+#: queues.i18n.php:22
+msgid "Set Agent Name in CDR dstchannel"
+msgstr ""
+
+#: views/cron.php:72
+msgid "Set this task to happen at random"
+msgstr ""
+
+#: views/form.php:1838
+msgid ""
+"Should we include estimated hold time in position announcements?  Either "
+"yes, no, or only once; hold time will not be announced if <1 minute"
+msgstr ""
+"我们要在位置通告中包含剩余的等待时间的信息吗？可以选“是”、“否”或者“仅一次”，"
+"如果剩余等待时间不足一分钟，则不会通告此时间"
+
+#: views/form.php:1063
+msgid "Skip Busy Agents"
+msgstr ""
+
+#: views/form.php:274
+msgid ""
+"Some ring strategies (linear, round robin) require Asterisk to be restarted "
+"for changes to take effect."
+msgstr ""
+
+#: views/form.php:1210
+msgid "Static Agents"
+msgstr "静态坐席"
+
+#: views/form.php:1231
+msgid ""
+"Static agents are extensions that are assumed to always be on the queue.  "
+"Static agents do not need to 'log in' to the queue, and cannot 'log out' of "
+"the queue.<br><br>List extensions to ring, one per line.<br><br>You can "
+"include an extension on a remote system, or an external number (Outbound "
+"Routing must contain a valid route for external numbers). You can put a \","
+"\" after the agent followed by a penalty value, see Asterisk documentation "
+"concerning penalties.<br /><br /> An advanced mode has been added which "
+"allows you to prefix an agent number with S, P, X, Z, D or A. This will "
+"force the agent number to be dialed as an Asterisk device of type SIP, "
+"PJSIP, IAX2, ZAP, DAHDi or Agent respectively. This mode is for advanced "
+"users and can cause known issues in FreePBX as you are by-passing the normal "
+"dialplan. If your 'Agent Restrictions' are not set to 'Extension Only' you "
+"will have problems with subsequent transfers to voicemail and other issues "
+"may also exist."
+msgstr ""
+
+#: views/cron.php:20
+msgid "Stats Reset"
+msgstr ""
+
+#: views/form.php:392 views/form.php:401 views/form.php:1312
+#: views/form.php:1647 views/form.php:1681
+msgid "Strict"
+msgstr "严格"
+
+#: Queues.class.php:211
+msgid "Submit"
+msgstr ""
+
+#: views/form.php:1778
+msgid ""
+"The absolute minimum time between the start of each queue position and/or "
+"estimated holdtime announcement"
+msgstr ""
+
+#: views/form.php:1293
+msgid ""
+"The maximum number of seconds a caller can wait in a queue before being "
+"pulled out.  (0 for unlimited)."
+msgstr "在一个主叫被从队列中取走之前，它可以等待的最长的秒数（0代表无限制）。"
+
+#: views/form.php:1348
+msgid ""
+"The number of seconds an agent's phone can ring before we consider it a "
+"timeout. Unlimited or other timeout values may still be limited by system "
+"ringtime or individual extension defaults."
+msgstr ""
+"在坐席被判定为超时前，该坐席响铃的秒数。虽然可以设置成无限制或者其他时间，但"
+"响铃时间还是被系统响铃时间以及单个分机的响铃时间默认设置所限制。"
+
+#: views/form.php:1404
+msgid ""
+"The number of seconds we wait before trying all the phones again. Choosing "
+"\"No Retry\" will exit the Queue and go to the fail-over destination as soon "
+"as the first attempted agent times-out, additional agents will not be "
+"attempted."
+msgstr ""
+"在重试所有的电话之前，我们要等待的秒数。选择“无重试”将在尝试第一个坐席超时后"
+"立即退出队列，并且转移到处理此错误的目的地，并且不会尝试其他的坐席。"
+
+#: views/form.php:1599
+msgid ""
+"This setting will delay the auto pause of an agent by auto pause delay "
+"seconds from when it last took a call. For example, if this were set to 120 "
+"seconds, and a new call is presented to the agent 90 seconds after they last "
+"took a call, they will not be auto paused if they don't answer the call. If "
+"presented with a call 120 seconds or later after answering the last call, "
+"they will then be auto paused. If they have taken no calls, this will have "
+"no affect."
+msgstr ""
+
+#: views/form.php:1754
+msgid "This value is ignored if the caller's position changes"
+msgstr ""
+
+#: views/form.php:704
+msgid "Timing & Agent Options"
+msgstr "时间和座席选项"
+
+#: views/form.php:393 views/form.php:402 views/form.php:1649
+#: views/form.php:1683
+msgid "Ultra Strict"
+msgstr ""
+
+#: views/form.php:345 views/form.php:363
+msgid "Unlimited"
+msgstr "无限制"
+
+#: queues.i18n.php:26
+msgid "Use MixMonitor for Recordings"
+msgstr ""
+
+#: functions.inc/hook_core.php:36
+msgid "Use State"
+msgstr ""
+
+#: views/form.php:757
+msgid ""
+"Use this number to dial into the queue, or transfer callers to this number "
+"to put them into the queue"
+msgstr ""
+
+#: views/form.php:1879
+msgid ""
+"Used for service level statistics (calls answered within service level time "
+"frame)"
+msgstr ""
+
+#: assets/js/queues.js:29
+msgid ""
+"Using a Regex filter is fairly advanced, please confirm you know what you "
+"are doing or leave this blank"
+msgstr ""
+"正则表达式过滤器是相当高级的功能，请确认你知道自己在做什么，否则请留空此项"
+
+#: views/form.php:847
+msgid "Wait Time Prefix"
+msgstr ""
+
+#: Queues.class.php:145
+msgid "Warning! Extension"
+msgstr "警告！你的帐户无法使用分机"
+
+#: functions.inc/queue_conf.php:219
+msgid ""
+"Warning, there are compound recordings configured in one or more Queue "
+"configurations. Queues can not play these so they have been truncated to the "
+"first sound file. You should correct this problem.<br />Details:<br /><br />"
+msgstr ""
+"警告，在一项或更多项等待队列的配置中包含了复合录音。等待队列不能播放这样的录"
+"音，他们将被截断，只有第一个录音文件会被播放出来。你最好更正这个错误。<br />"
+"细节：<br /><br />"
+
+#: views/cron.php:61
+msgid "Weekly"
+msgstr ""
+
+#: views/form.php:199
+msgid "When No Free Agents"
+msgstr "当无空闲坐席"
+
+#: views/form.php:200
+msgid "When No Ready Agents"
+msgstr "当无已准备好坐席"
+
+#: views/form.php:998
+msgid ""
+"When set to 'Call as Dialed' the queue will call an extension just as if the "
+"queue were another user. Any Follow-Me or Call Forward states active on the "
+"extension will result in the queue call following these call paths. This "
+"behavior has been the standard queue behavior on past FreePBX versions. <br /"
+">When set to 'No Follow-Me or Call Forward', all agents that are extensions "
+"on the system will be limited to ringing their extensions only. Follow-Me "
+"and Call Forward settings will be ignored. Any other agent will be called as "
+"dialed. This behavior is similar to how extensions are dialed in ringgroups. "
+"<br />When set to 'Extensions Only' the queue will dial Extensions as "
+"described for 'No Follow-Me or Call Forward'. Any other number entered for "
+"an agent that is NOT a valid extension will be ignored. No error checking is "
+"provided when entering a static agent or when logging on as a dynamic agent, "
+"the call will simply be blocked when the queue tries to call it. For dynamic "
+"agents, see the 'Agent Regex Filter' to provide some validation."
+msgstr ""
+
+#: views/form.php:1087
+msgid ""
+"When set to 'Yes' agents who are on an occupied phone will be skipped as if "
+"the line were returning busy. This means that Call Waiting or multi-line "
+"phones will not be presented with the call and in the various hunt style "
+"ring strategies, the next agent will be attempted. <br />When set to 'Yes + "
+"(ringinuse=no)' the queue configuration flag 'ringinuse=no' is set for this "
+"queue in addition to the phone's device status being monitored. This results "
+"in the queue tracking remote agents (agents who are a remote PSTN phone, "
+"called through Follow-Me, and other means) as well as PBX connected agents, "
+"so the queue will not attempt to send another call if they are already on a "
+"call from any queue. <br />When set to 'Queue calls only (ringinuse=no)' the "
+"queue configuration flag 'ringinuse=no' is set for this queue also but the "
+"device status of locally connected agents is not monitored. The behavior is "
+"to limit an agent belonging to one or more queues to a single queue call. If "
+"they are occupied from other calls, such as outbound calls they initiated, "
+"the queue will consider them available and ring them since the device state "
+"is not monitored with this option. <br /><br />WARNING: When using the "
+"settings that set the 'ringinuse=no' flag, there is a NEGATIVE side effect. "
+"An agent who transfers a queue call will remain unavailable by any queue "
+"until that call is terminated as the call still appears as 'inuse' to the "
+"queue UNLESS 'Agent Restrictions' is set to 'Extensions Only'."
+msgstr ""
+
+#: views/form.php:667
+msgid ""
+"When set to YES, the following manager event will be generated: "
+"QueueMemberStatus"
+msgstr ""
+
+#: views/form.php:1546
+msgid ""
+"When set to Yes agents devices that report busy upon a call attempt will be "
+"considered as a missed call and auto paused immediately or after the auto "
+"pause delay if configured"
+msgstr ""
+
+#: views/form.php:1575
+msgid ""
+"When set to Yes agents devices that report congestion upon a call attempt "
+"will be considered as a missed call and auto paused immediately or after the "
+"auto pause delay if configured"
+msgstr ""
+
+#: views/form.php:863
+msgid ""
+"When set to Yes, the CID Name will be prefixed with the total wait time in "
+"the queue so the answering agent is aware how long they have waited. It will "
+"be rounded to the nearest minute, in the form of Mnn: where nn is the number "
+"of minutes."
+msgstr ""
+"当设置为“是”时，CID名会被加上在队列中总等待时间的前缀，让坐席能够知道他们已经"
+"等了多久了。等待时间会被四舍五入成整的分钟数，格式为 Mnn，其中nn是分钟数。"
+
+#: views/form.php:635
+msgid ""
+"When this option is set to YES, the following manager events will be "
+"generated: AgentCalled, AgentDump, AgentConnect and AgentComplete."
+msgstr ""
+"选择了“是”以后，以下的几个管理器事件会被引发：AgentCalled、AgentDump、"
+"AgentConnect和AgentComplete。"
+
+#: views/cron.php:96
+msgid ""
+"When to schedule this job. Note enabling 'Random' overrides these settings"
+msgstr ""
+
+#: views/form.php:1195
+msgid "Where calls should fail to"
+msgstr ""
+
+#: views/form.php:454
+msgid ""
+"Whether this queue uses an IVR Break Out Menu or a Queue Callback.  Queue "
+"Callbacks can also be achieved through an IVR, but requires extra "
+"configuration."
+msgstr ""
+
+#: views/form.php:939
+#, php-format
+msgid ""
+"While queue calls are distributed, any member has FM/FM(Find Me/Follow Me) "
+"enabled, Ringer Volume value will set based on the 'Ringer Volume Override "
+"Mode(RVOM)'."
+msgstr ""
+
+#: views/form.php:1416
+msgid "Wrap-Up-Time"
+msgstr ""
+
+#: views/cron.php:26 views/cron.php:55 views/form.php:19 views/form.php:116
+#: views/form.php:391 views/form.php:400 views/form.php:625 views/form.php:657
+#: views/form.php:800 views/form.php:853 views/form.php:956 views/form.php:1041
+#: views/form.php:1071 views/form.php:1132 views/form.php:1161
+#: views/form.php:1367 views/form.php:1476 views/form.php:1536
+#: views/form.php:1565 views/form.php:1645 views/form.php:1679
+#: views/form.php:1797 views/form.php:1826
+msgid "Yes"
+msgstr "是"
+
+#: views/form.php:1072
+msgid "Yes + (ringinuse=no)"
+msgstr ""
+
+#: views/form.php:1504
+msgid "Yes in all queues"
+msgstr ""
+
+#: views/form.php:1504
+msgid "Yes in this queue only"
+msgstr ""
+
+#: views/form.php:835
+msgid ""
+"You can optionally prefix the CallerID name of callers to the queue. ie: If "
+"you prefix with \"Sales:\", a call from John Doe would display as \"Sales:"
+"John Doe\" on the extensions that ring."
+msgstr ""
+
+#: views/form.php:522
+msgid ""
+"You can optionally present an existing IVR as a 'break out' menu."
+"<br><br>This IVR must only contain single-digit 'dialed options'. The "
+"Recording set for the IVR will be played at intervals specified in 'Repeat "
+"Frequency', below."
+msgstr ""
+"你可以插入一个可选的IVR菜单。<br /><br />这个IVR菜单只能包含一个数字选项。此"
+"IVR的录音集，会按照下面的“重复频率”中的设置重复播放。"
+
+#: views/form.php:94
+msgid ""
+"You can require agents to enter a password before they can log in to this "
+"queue.<br><br>This setting is optional."
+msgstr "你可以要求坐席在登录这个等待队列时输入密码。<br /><br />密码是可选的。"
+
+#: functions.inc.php:31
+msgid "day"
+msgstr "天"
+
+#: views/form.php:306
+msgid "default"
+msgstr "默认"
+
+#: views/form.php:268
+msgid "fewestcalls"
+msgstr "最少呼叫的坐席"
+
+#: functions.inc.php:32
+msgid "hour"
+msgstr "小时"
+
+#: functions.inc.php:32
+msgid "hours"
+msgstr "小时"
+
+#: views/form.php:304
+msgid "inherit"
+msgstr "继承"
+
+#: Queues.class.php:145
+msgid "is not allowed for your account."
+msgstr "不支持此帐号。"
+
+#: views/form.php:267
+msgid "leastrecent"
+msgstr "最久未呼叫的坐席"
+
+#: views/form.php:272
+msgid "linear"
+msgstr ""
+
+#: functions.inc.php:33
+msgid "minute"
+msgstr "分钟"
+
+#: functions.inc.php:33
+msgid "minutes"
+msgstr "分钟"
+
+#: views/form.php:305
+msgid "none"
+msgstr "无"
+
+#: views/form.php:269
+msgid "random"
+msgstr "随机"
+
+#: views/form.php:273
+msgid ""
+"random using the member's penalty as a weighting factor, see asterisk "
+"documentation for specifics"
+msgstr ""
+
+#: views/form.php:267
+msgid "ring agent which was least recently called by this queue"
+msgstr "呼叫在队列中最久没有被呼叫到的坐席"
+
+#: views/form.php:266
+msgid "ring all available agents until one answers (default)"
+msgstr "全部可用坐席都响铃直到有人接听（默认设置）"
+
+#: views/form.php:269
+msgid "ring random agent"
+msgstr "随机呼叫坐席"
+
+#: views/form.php:268
+msgid "ring the agent with fewest completed calls from this queue"
+msgstr "呼叫队列中被呼叫次数最少的坐席"
+
+#: views/form.php:266
+msgid "ringall"
+msgstr "全部响铃"
+
+#: views/form.php:272
+msgid ""
+"rings agents in the order specified, for dynamic agents in the order they "
+"logged in"
+msgstr ""
+
+#: views/form.php:270
+msgid "round robin with memory, remember where we left off last ring pass"
+msgstr "有记忆功能的循环制。记住我们中断的位置"
+
+#: views/form.php:270
+msgid "rrmemory"
+msgstr "记忆性搜寻"
+
+#: views/form.php:271
+msgid "rrordered"
+msgstr ""
+
+#: views/form.php:271
+msgid ""
+"same as rrmemory, except the queue member order from config file is preserved"
+msgstr ""
+
+#: functions.inc.php:34
+msgid "second"
+msgstr "秒"
+
+#: functions.inc.php:17 functions.inc.php:34 views/form.php:347
+#: views/form.php:350 views/form.php:371 views/form.php:377 views/form.php:386
+msgid "seconds"
+msgstr "秒"
+
+#: views/form.php:273
+msgid "wrandom"
+msgstr ""
+
+#~ msgid ""
+#~ "Use this number to dial into the queue, or transfer callers to this "
+#~ "number to put them into the queue.<br><br>Agents will dial this queue "
+#~ "number plus * to log onto the queue, and this queue number plus ** to log "
+#~ "out of the queue.<br><br>For example, if the queue number is 123:"
+#~ "<br><br><b>123* = log in<br>123** = log out</b>"
+#~ msgstr ""
+#~ "拨打这个号码，或者将呼叫转移到这个号码以加入这个等待队列。<br /><br />坐席"
+#~ "通过拨打队列号加*号以登录到队列，并可以拨打队列号码加**以从队列注销。<br /"
+#~ "><br />例如，如果队列号码为123：<br /><br /><b>123*是登录<br />123**是注销"
+#~ "</b>"
+
+#~ msgid "Creating queues_details.."
+#~ msgstr "正在创建队列细节。。"
+
+#~ msgid "ERROR: could not create table"
+#~ msgstr "错误：无法创建表格"
+
+#~ msgid "ERROR: could not migrate to queues_details"
+#~ msgstr "错误：无法迁移队列细节"
+
+#~ msgid "Migrating to queues_details.."
+#~ msgstr "正在迁移队列细节。。"
+
+#~ msgid "OK"
+#~ msgstr "确定"
+
+#~ msgid "already exists"
+#~ msgstr "已存在"
+
+#~ msgid "Checking for legacy queues table.."
+#~ msgstr "正在检查遗留的队列表格。。"
+
+#~ msgid "Checking if recordings need migration.."
+#~ msgstr "正在检查录音是否需要迁移。。。"
+
+#~ msgid "Creating queues_config.."
+#~ msgstr "正在创建队列配置。。"
+
+#~ msgid "Dropping old queues table.."
+#~ msgstr "正在删除旧的等待队列表格。"
+
+#~ msgid "ERROR were encountered"
+#~ msgstr "遇到了错误"
+
+#~ msgid "ERROR: accessing queues table obtaining context info, aborting"
+#~ msgstr "错误：在访问队列表格和上下文信息时出错，操作终止"
+
+#~ msgid "ERROR: accessing queues table obtaining id list, aborting"
+#~ msgstr "错误：在访问队列表格和id列表时出错，操作终止"
+
+#~ msgid "ERROR: accessing queues table obtaining rtone info, aborting"
+#~ msgstr "错误：在访问队列表格和rtone信息时出错，操作终止"
+
+#~ msgid "ERROR: inserting data for row %s: %s.."
+#~ msgstr "错误：在向行插入数据时发生错误。%s：%s。。"
+
+#~ msgid "Migrating data to queues_config.."
+#~ msgstr "正在数据迁移到队列配置.."
+
+#~ msgid "NO table found, no migration to do just create tables"
+#~ msgstr ""
+#~ "没有找到任何遗留的队列表格信息，不需要进行迁移，只需要创建新的队列表格"
+
+#~ msgid "WARNING FAILED %s"
+#~ msgstr "警告：%s失败"
+
+#~ msgid "adding agentannounce_id field.."
+#~ msgstr "正在添加agentannounce_id字段。。。"
+
+#~ msgid "adding joinannounce_id field.."
+#~ msgstr "正在添加joinannounce_id字段。。。"
+
+#~ msgid "already migrated"
+#~ msgstr "已经迁移过了"
+
+#~ msgid "checking for qregex field.."
+#~ msgstr "正在检查qregex字段。。。"
+
+#~ msgid "checking for queuewait field.."
+#~ msgstr "正在检查queuewait字段。。。"
+
+#~ msgid "checking for togglehint field.."
+#~ msgstr "检查触发的选项。。"
+
+#~ msgid "checking for use_queue_context field.."
+#~ msgstr "检查用户队列context 内容.."
+
+#~ msgid "dropping agentannounce field.."
+#~ msgstr "正在删除agentannounce字段。。。"
+
+#~ msgid "dropping joinannounce field.."
+#~ msgstr "正在删除joinannounce字段。。。"
+
+#~ msgid "fatal error"
+#~ msgstr "致命错误"
+
+#~ msgid "migrate agentannounce to ids.."
+#~ msgstr "把agentannounce迁移到ids。。。"
+
+#~ msgid "migrate joinannounce to ids.."
+#~ msgstr "把joinannounce迁移到ids。。。"
+
+#~ msgid "migrated %s entries"
+#~ msgstr "迁移了%s个项目"
+
+#~ msgid "migrating"
+#~ msgstr "正在迁移"
+
+#~ msgid "no agentannounce field???"
+#~ msgstr "agentannounce字段不存在？"
+
+#~ msgid "no joinannounce field???"
+#~ msgstr "joinannounce字段不存在？"
+
+#~ msgid "ok"
+#~ msgstr "完成"
+
+#~ msgid "removing queues data extensions table.."
+#~ msgstr "正在删除队列分机数据表格。。"
+
+#~ msgid "(**) ERRORS"
+#~ msgstr "（**）错误"
+
+#~ msgid "(**) Warning Potential Errors"
+#~ msgstr "（**）警告，可能会发生错误"
+
+#~ msgid "(pick extension)"
+#~ msgstr "（选取分机）"
+
+#~ msgid "ALERT_INFO can be used for distinctive ring with SIP devices."
+#~ msgstr "警告信息可以用来为SIP设备产生独特的铃声。"
+
+#~ msgid ""
+#~ "After a successful call, how many seconds to wait before sending a "
+#~ "potentially free agent another call (default is 0, or no delay)"
+#~ msgstr ""
+#~ "在某坐席完成了一次对话之后，要等待多少秒才重新把它视为空闲（默认是0，无延"
+#~ "迟）"
+
+#~ msgid "Agent Announcement:"
+#~ msgstr "坐席通告："
+
+#~ msgid "Agent Timeout Restart:"
+#~ msgstr "座席超时重启:"
+
+#~ msgid "Agent Timeout:"
+#~ msgstr "坐席超时："
+
+#~ msgid "Agent Volume Adjustment:"
+#~ msgstr "座席语音增益调整:"
+
+#~ msgid "Announce Hold Time:"
+#~ msgstr "通告等待的时间："
+
+#~ msgid "Announce Position:"
+#~ msgstr "通告位置："
+
+#~ msgid ""
+#~ "Announcement played to callers once prior to joining the queue.<br><br>To "
+#~ "add additional recordings please use the \"System Recordings\" MENU to "
+#~ "the left"
+#~ msgstr ""
+#~ "在加入这个队列之前，要播放给主叫的通告。<br /><br />要添加额外的录音，请使"
+#~ "用左边的“系统录音”菜单"
+
+#~ msgid ""
+#~ "Announcement played to callers once prior to joining the queue."
+#~ "<br><br>You must install and enable the \"Systems Recordings\" Module to "
+#~ "edit this option"
+#~ msgstr ""
+#~ "在加入这个队列之前，要播放给主叫的通告。<br /><br />请安装并启用“系统录"
+#~ "音”模块以编辑这个选项"
+
+#~ msgid ""
+#~ "Announcement played to the Agent prior to bridging in the caller <br><br> "
+#~ "Example: \"the Following call is from the Sales Queue\" or \"This call is "
+#~ "from the Technical Support Queue\".<br><br>To add additional recordings "
+#~ "please use the \"System Recordings\" MENU to the left. Compound "
+#~ "recordings composed of 2 or more sound files are not displayed as options "
+#~ "since this feature can not accept such recordings."
+#~ msgstr ""
+#~ "在与主叫桥接之前，要播放给坐席的消息。<br /><br />例如：“此呼叫是从销售队"
+#~ "列桥转过来的”或者“此呼叫是从技术支持队列转过来的”<br /><br />要添加额外的"
+#~ "录音，请使用左边的“系统录音”菜单。包含2以上录音的复合录音无法作为选项播放"
+#~ "出来，因为此功能不支持这种录音。"
+
+#~ msgid ""
+#~ "Announcement played to the Agent prior to bridging in the caller <br><br> "
+#~ "Example: \"the Following call is from the Sales Queue\" or \"This call is "
+#~ "from the Technical Support Queue\".<br><br>You must install and enable "
+#~ "the \"Systems Recordings\" Module to edit this option"
+#~ msgstr ""
+#~ "在与主叫桥接之前，要播放给坐席的消息。<br /><br />例如：“此呼叫是从销售队"
+#~ "列桥转过来的”或者“此呼叫是从技术支持队列转过来的”<br /><br />请安装并启"
+#~ "用“系统录音”模块以编辑这个选项"
+
+#~ msgid "Auto Pause Delay:"
+#~ msgstr "自动暂停延迟:"
+
+#~ msgid "Auto Pause on Busy:"
+#~ msgstr "忙状态自动暂停:"
+
+#~ msgid "Auto Pause on Unavailable:"
+#~ msgstr "无效状态自动暂停:"
+
+#~ msgid "Auto Pause:"
+#~ msgstr "自动暂停:"
+
+#~ msgid "Autofill:"
+#~ msgstr "自动填充"
+
+#~ msgid "CID Name Prefix:"
+#~ msgstr "主叫ID名的前缀"
+
+#~ msgid "Call Confirm Announce:"
+#~ msgstr "呼叫确认声明:"
+
+#~ msgid "Call Confirm:"
+#~ msgstr "呼叫确认"
+
+#~ msgid "Call Recording:"
+#~ msgstr "呼叫录音："
+
+#~ msgid "Caller Position Announcements"
+#~ msgstr "主叫位置通告"
+
+#~ msgid "Caller Volume Adjustment:"
+#~ msgstr "呼叫方音增益调整:"
+
+#~ msgid ""
+#~ "Choose an extension to append to the end of the static agents list above."
+#~ msgstr "选择一个分机以添加到上面的静态坐席列表的末尾。"
+
+#~ msgid "Conflicting Extensions"
+#~ msgstr "警告！你的帐户无法使用分机"
+
+#~ msgid "Delete Queue"
+#~ msgstr "删除等待队列"
+
+#~ msgid "Dynamic Members"
+#~ msgstr "动态号码"
+
+#~ msgid ""
+#~ "ERROR: You have selected an IVR's that use Announcements created from "
+#~ "compound sound files. The Queue is not able to play these announcements. "
+#~ "This IVR's recording will be truncated to use only the first sound file. "
+#~ "You can correct the problem by selecting a different announcement for "
+#~ "this IVR that is not from a compound sound file. The IVR itself can play "
+#~ "such files, but the Queue subsystem can not"
+#~ msgstr ""
+#~ "错误：你选择了一个公告是复合录音的IVR。等待队列不能播放这样的公告。此IVR的"
+#~ "录音将被截断，只有第一个录音文件会被播放出来。你可以为此IVR选择不包含复合"
+#~ "录音的公告来更正这个错误。IVR本身可以播放这种文件，只是等待队列子系统不能"
+#~ "播放。"
+
+#~ msgid "Edit Queue"
+#~ msgstr "编辑等待队列"
+
+#~ msgid "Event When Called:"
+#~ msgstr "被叫时产生事件："
+
+#~ msgid "Events, Stats and Advanced"
+#~ msgstr "事件状态，高级选项"
+
+#~ msgid "Extension Quick Pick"
+#~ msgstr "快速分机选取"
+
+#~ msgid "Frequency:"
+#~ msgstr "频率："
+
+#~ msgid "General Queue Options"
+#~ msgstr "队列基本选项"
+
+#~ msgid "Generate Device Hints:"
+#~ msgstr "生成设备Hints和拨号规则"
+
+#~ msgid "IVR Break Out Menu:"
+#~ msgstr "插入IVR菜单："
+
+#~ msgid ""
+#~ "If the call is subsequently transfered, the wait time will reflect the "
+#~ "time since it first entered the queue or reset if the call is transfered "
+#~ "to another queue with this feature set."
+#~ msgstr ""
+#~ "如果呼叫随后被转移，等待时间反映了呼叫进入队列后等待的时间，或者启用此项设"
+#~ "置后，呼叫被转移到其他队列时，等待时间将重置。"
+
+#~ msgid ""
+#~ "If you wish to allow callers to join queues that currently have no "
+#~ "agents, set this to yes. Set to strict if callers cannot join a queue "
+#~ "with no members or only unavailable members"
+#~ msgstr ""
+#~ "如果你允许呼叫者加入还没有坐席登录的队列，就选择“是”。如果不允许呼叫者加入"
+#~ "没有成员的队列或没有有效成员的队列，就选择“严格”"
+
+#~ msgid ""
+#~ "If you wish to remove callers from the queue if there are no agents "
+#~ "present, set this to yes. Set to strict if callers cannot join a queue "
+#~ "with no members or only unavailable members"
+#~ msgstr ""
+#~ "如果你希望呼叫者自动从没有坐席的队列离开，就选择“是”。如果不允许呼叫者加入"
+#~ "没有成员的队列或没有有效成员的队列，就选择“严格”"
+
+#~ msgid ""
+#~ "Incoming calls to agents can be recorded. (saved to /var/spool/asterisk/"
+#~ "monitor)"
+#~ msgstr "到坐席的呼叫可以被录音。（保存到/var/spool/asterisk/monitor）"
+
+#~ msgid "Join Announcement:"
+#~ msgstr "加入通告："
+
+#~ msgid "Join Empty:"
+#~ msgstr "加入无坐席队列："
+
+#~ msgid "Leave Empty:"
+#~ msgstr "留为空:"
+
+#~ msgid "Leave When Empty:"
+#~ msgstr "自动离开无坐席队列"
+
+#~ msgid "Mark calls answered elsewhere:"
+#~ msgstr "任何地方都可以应答呼叫:"
+
+#~ msgid "Max Callers:"
+#~ msgstr "最大呼叫数："
+
+#~ msgid "Max Wait Time Mode:"
+#~ msgstr "最长等待时间模式"
+
+#~ msgid "Max Wait Time:"
+#~ msgstr "等待时间上限："
+
+#~ msgid "Member Delay:"
+#~ msgstr "成员延迟:"
+
+#~ msgid "Member Status:"
+#~ msgstr "成员状态："
+
+#~ msgid ""
+#~ "Music (or Commercial) played to the caller while they wait in line for an "
+#~ "available agent. Choose \"inherit\" if you want the MoH class to be what "
+#~ "is currently selected, such as by the inbound route.<br><br>  This music "
+#~ "is defined in the \"Music on Hold\" Menu to the left."
+#~ msgstr ""
+#~ "在主叫等待坐席接听时所播放的音乐（或广告）。如果你希望使用当前已选择的等待"
+#~ "音乐类别（例如在入局线路中选择了音乐类别），就选择“继承”。<br /><br />  音"
+#~ "乐类别是在左侧的“等待音乐”菜单中定义的。"
+
+#~ msgid "Music on Hold Class:"
+#~ msgstr "等待音乐的类别："
+
+#~ msgid "Penalty Members Limit:"
+#~ msgstr "成员接听权重限制:"
+
+#~ msgid "Queue Name:"
+#~ msgstr "等待队列名："
+
+#~ msgid "Queue Number:"
+#~ msgstr "等待队列号码："
+
+#~ msgid "Queue Options"
+#~ msgstr "队列选项"
+
+#~ msgid "Queue Password:"
+#~ msgstr "等待队列密码："
+
+#~ msgid "Queue:"
+#~ msgstr "等待队列："
+
+#~ msgid "Recording Mode:"
+#~ msgstr "录音模式:"
+
+#~ msgid "Repeat Frequency:"
+#~ msgstr "重复频率："
+
+#~ msgid "Report Hold Time:"
+#~ msgstr "播放等待时间"
+
+#~ msgid "Retry:"
+#~ msgstr "重试："
+
+#~ msgid "Ring Strategy:"
+#~ msgstr "振铃策略："
+
+#~ msgid "Ringing Instead of MoH:"
+#~ msgstr "以振铃代替等待音乐："
+
+#~ msgid "Service Level:"
+#~ msgstr "服务级别"
+
+#~ msgid "Skip Busy Agents:"
+#~ msgstr "跳过忙的坐席："
+
+#~ msgid ""
+#~ "Starting with Asterisk 1.4, if this is checked, and multiple agents are "
+#~ "available, Asterisk will send one call to each waiting agent (depending "
+#~ "on the ring strategy). Otherwise, it will hold all calls while it tries "
+#~ "to find an agent for the top call in the queue making other calls wait. "
+#~ "This was the behavior in Asterisk 1.2 and has no effect in 1.2. See "
+#~ "Asterisk documentation for more details of this feature."
+#~ msgstr ""
+#~ "从Atserisk 1.4开始，如果选择了此项设置，在有多个坐席可用时，Asterisk将把一"
+#~ "个呼叫发送给每个等待的坐席（具体行为与振铃策略有关）。若不是这么做，它就会"
+#~ "在为队首呼叫寻找坐席时，挂起所有的其他的呼叫。这是Asterisk在1.2版本中的行"
+#~ "为，并且对Asterisk 1.2没有影响。请查看Asterisk的文档以获得关于此功能的更多"
+#~ "信息。"
+
+#~ msgid "Submit Changes"
+#~ msgstr "提交更改"
+
+#~ msgid "Wait Time Prefix:"
+#~ msgstr "等待时间前缀："
+
+#~ msgid ""
+#~ "When if this is option is set to YES, the following manager event will be "
+#~ "generated: QueueMemberStatus"
+#~ msgstr "这项设置成“是”时，以下的管理器事件会被引发：QueueMemberStatus"
+
+#~ msgid "Wrap-Up-Time:"
+#~ msgstr "隐藏时间："
+
+#~ msgid ""
+#~ "You can optionally prefix the Caller ID name of callers to the queue. ie: "
+#~ "If you prefix with \"Sales:\", a call from John Doe would display as "
+#~ "\"Sales:John Doe\" on the extensions that ring."
+#~ msgstr ""
+#~ "在为这个小组的分机响铃时，你可以为主叫ID名字添加可选的前缀。例如：如果你添"
+#~ "加了“销售：”前缀，从小王打来的电话在响铃的分机上会显示为：“销售：小王”。"
+
+#~ msgid "deleted"
+#~ msgstr "以删除"
+
+#~ msgid "gsm"
+#~ msgstr "gsm"
+
+#~ msgid "roundrobin"
+#~ msgstr "循环的"
+
+#~ msgid "take turns ringing each available agent"
+#~ msgstr "在可用的坐席上轮流响铃"
+
+#~ msgid "wav"
+#~ msgstr "wav"
+
+#~ msgid "wav49"
+#~ msgstr "wav49"

@@ -1,0 +1,316 @@
+# CREDITS for JAPANESE TRANSLATION
+# ================================
+# Current translation & maintenance: QLOOG, Inc. (Kobe, Japan)
+# Inquiries: info@qloog.com / www.qloog.com
+#
+# This translation is a culmination of the hard work of
+# several outstanding individuals, which started in 2009 with the 
+# first-ever Japanese localization of FreePBX by Kenichi Fukaumi 
+# and Kazuhiro Tokuyama (FreePBX Japanized Project).
+#
+# Beginning in 2013, with the approval of the original authors, 
+# QLOOG undertook a large scale overhaul of the translation to 
+# expand it for compatibility with FreePBX 2.11. Our work is, 
+# of course, released under the same GPLv2 license as FreePBX. 
+# We only ask that you kindly retain these credits in honor of 
+# the time and effort that all of us have contributed. Enjoy!
+#
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# FreePBX language template for asteriskinfo
+# Copyright (C) 2008, 2009, 2010 Bandwith.com
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX 2.10.0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-07-18 17:20-0400\n"
+"PO-Revision-Date: 2013-11-26 16:18+0900\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: ja\n"
+"X-Generator: Poedit 1.6beta2\n"
+
+#: page.asteriskinfo.php:31
+msgid "Active Channel(s)"
+msgstr "アクティブチャネル"
+
+#: Asteriskinfo.class.php:46
+msgid "Active IAX2 Channel(s): "
+msgstr "アクティブIAX2チャネル："
+
+#: Asteriskinfo.class.php:42
+msgid "Active PJSIP Channel(s): "
+msgstr ""
+
+#: Asteriskinfo.class.php:38
+msgid "Active SIP Channel(s): "
+msgstr "アクティブSIPチャネル："
+
+#: asteriskinfo.i18n.php:4 asteriskinfo.i18n.php:10 page.asteriskinfo.php:277
+msgid "Asterisk Info"
+msgstr "Asterisk情報"
+
+#: page.asteriskinfo.php:11
+msgid "Asterisk doesn't appear to be running"
+msgstr ""
+
+#: Asteriskinfo.class.php:150
+msgid "Available: "
+msgstr ""
+
+#: page.asteriskinfo.php:33
+msgid "Chan_PJSip Channel(s)"
+msgstr ""
+
+#: page.asteriskinfo.php:43
+msgid "Chan_PJSip Endpoints"
+msgstr ""
+
+#: page.asteriskinfo.php:23
+msgid "Chan_PJSip Info"
+msgstr ""
+
+#: page.asteriskinfo.php:37
+msgid "Chan_PJSip Registrations"
+msgstr ""
+
+#: page.asteriskinfo.php:38
+msgid "Chan_PJSip Transports"
+msgstr ""
+
+#: page.asteriskinfo.php:32
+msgid "Chan_Sip Channel(s)"
+msgstr ""
+
+#: page.asteriskinfo.php:22
+msgid "Chan_Sip Info"
+msgstr ""
+
+#: page.asteriskinfo.php:42
+msgid "Chan_Sip Peers"
+msgstr ""
+
+#: page.asteriskinfo.php:36
+msgid "Chan_Sip Registry"
+msgstr ""
+
+#: page.asteriskinfo.php:20
+msgid "Channels"
+msgstr "チャネル"
+
+#: page.asteriskinfo.php:49
+msgid "Conference Bridge Info"
+msgstr "カンファレンスブリッジ情報"
+
+#: page.asteriskinfo.php:25
+msgid "Conferences"
+msgstr "カンファレンス"
+
+#: page.asteriskinfo.php:280
+msgid "Current Asterisk Version:"
+msgstr ""
+
+#: page.asteriskinfo.php:46
+msgid "DAHDi Channels"
+msgstr ""
+
+#: page.asteriskinfo.php:28
+msgid "Dahdi"
+msgstr ""
+
+#: page.asteriskinfo.php:47
+msgid "Dahdi PRI Spans"
+msgstr ""
+
+#: page.asteriskinfo.php:29
+msgid "Full Report"
+msgstr "フルレポート"
+
+#: page.asteriskinfo.php:52
+msgid "Google Talk Channels"
+msgstr "Googleトークチャンネル"
+
+#: page.asteriskinfo.php:24
+msgid "IAX Info"
+msgstr "IAX情報"
+
+#: page.asteriskinfo.php:34
+msgid "IAX2 Channel(s)"
+msgstr "IAX2チャネル"
+
+#: page.asteriskinfo.php:35
+msgid "IAX2 Peers"
+msgstr "IAX2ピア"
+
+#: Asteriskinfo.class.php:48
+msgid "IAX2 Peers: "
+msgstr "IAX2ピア："
+
+#: page.asteriskinfo.php:44
+msgid "IAX2 Registry"
+msgstr "IAX2レジストリ"
+
+#: Asteriskinfo.class.php:47
+msgid "IAX2 Registry: "
+msgstr "IAX2レジストリ："
+
+#: page.asteriskinfo.php:53
+msgid "Jabber Connections"
+msgstr "Jabber接続"
+
+#: page.asteriskinfo.php:48
+msgid "MeetMe Conference Info"
+msgstr "MeetMeカンファレンス情報"
+
+#: page.asteriskinfo.php:54
+msgid "Motif Connections"
+msgstr "Motif接続"
+
+#: Asteriskinfo.class.php:140
+msgid "Offline-Unmonitored: "
+msgstr "オフライン-モニタ対象外："
+
+#: Asteriskinfo.class.php:140 Asteriskinfo.class.php:162
+msgid "Offline: "
+msgstr "オフライン："
+
+#: Asteriskinfo.class.php:139
+msgid "Online-Unmonitored: "
+msgstr "オンライン-モニタ対象外："
+
+#: Asteriskinfo.class.php:139 Asteriskinfo.class.php:162
+msgid "Online: "
+msgstr "オンライン："
+
+#: Asteriskinfo.class.php:44
+msgid "PJSip Endpoints: "
+msgstr ""
+
+#: Asteriskinfo.class.php:43
+msgid "PJSip Registrations: "
+msgstr ""
+
+#: page.asteriskinfo.php:21
+msgid "Peers"
+msgstr "ピア"
+
+#: asteriskinfo.i18n.php:8
+msgid "Provides a snapshot of the current Asterisk configuration"
+msgstr "現在のAsterisk設定のスナップショットを提供"
+
+#: page.asteriskinfo.php:26
+msgid "Queues"
+msgstr "キュー"
+
+#: page.asteriskinfo.php:50
+msgid "Queues Info"
+msgstr "キュー情報"
+
+#: page.asteriskinfo.php:19
+msgid "Registries"
+msgstr "レジストリ"
+
+#: asteriskinfo.i18n.php:6
+msgid "Reports"
+msgstr "レポート"
+
+#: Asteriskinfo.class.php:40
+msgid "Sip Peers: "
+msgstr "Sipピア："
+
+#: Asteriskinfo.class.php:39
+msgid "Sip Registry: "
+msgstr "Sipレジストリ："
+
+#: page.asteriskinfo.php:45
+msgid "Subscribe/Notify"
+msgstr "サブスクライブ/通知"
+
+#: page.asteriskinfo.php:27
+msgid "Subscriptions"
+msgstr "サブスクリプション"
+
+#: page.asteriskinfo.php:18 page.asteriskinfo.php:289
+msgid "Summary"
+msgstr "サマリー"
+
+#: page.asteriskinfo.php:186
+msgid ""
+"The module was unable to connect to the Asterisk manager.<br>Make sure "
+"Asterisk is running and your manager.conf settings are proper.<br><br>"
+msgstr ""
+"モジュールからAsteriskマネージャーへの接続ができませんでした。<br>Asteriskが"
+"起動しているかどうか、manager.confの設定が適切かどうかを確認してください。"
+"<br><br>"
+
+#: page.asteriskinfo.php:279
+msgid "This page supplies various information about Asterisk"
+msgstr ""
+
+#: Asteriskinfo.class.php:151
+msgid "Unavailable: "
+msgstr ""
+
+#: Asteriskinfo.class.php:151
+msgid "Unknown: "
+msgstr ""
+
+#: Asteriskinfo.class.php:162
+msgid "Unmonitored: "
+msgstr "モニタ対象外："
+
+#: page.asteriskinfo.php:30
+msgid "Uptime"
+msgstr "システム稼働時間"
+
+#: Asteriskinfo.class.php:37
+msgid "Uptime: "
+msgstr "システム稼働時間: "
+
+#: page.asteriskinfo.php:51
+msgid "Voicemail Users"
+msgstr "ボイスメールユーザ"
+
+#~ msgid "DAHDi driver info"
+#~ msgstr "DAHDiドリバー情報"
+
+#~ msgid "Zaptel driver info"
+#~ msgstr "Zaptelドライバ情報"
+
+#~ msgid "ASTERISK MANAGER ERROR"
+#~ msgstr "Asteriskマネージャーエラー"
+
+#~ msgid "Asterisk (Ver. "
+#~ msgstr "Asterisk (Ver. "
+
+#~ msgid "Refresh"
+#~ msgstr "更新"
+
+#~ msgid "Sip Channel(s)"
+#~ msgstr "Sipチャネル"
+
+#~ msgid "Sip Info"
+#~ msgstr "Sip情報"
+
+#~ msgid "Sip Peers"
+#~ msgstr "Sipピア"
+
+#~ msgid "Sip Registry"
+#~ msgstr "Sipレジストリ"

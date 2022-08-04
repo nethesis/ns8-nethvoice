@@ -1,0 +1,200 @@
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# FreePBX language template for languages
+# Copyright (C) 2008, 2009, 2010 Bandwith.com
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-11-14 22:11-0500\n"
+"PO-Revision-Date: 2017-03-03 14:37+0200\n"
+"Last-Translator: hammer125 <auswertung@aon.at>\n"
+"Language-Team: German <http://weblate.freepbx.org/projects/freepbx/languages/"
+"de_DE/>\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: assets/js/languages.js:18
+#, perl-format
+msgid "%s already used, please use a different description."
+msgstr ""
+
+#: views/grid.php:25
+msgid "Actions"
+msgstr "Aktionen"
+
+#: views/bootnav.php:3 views/grid.php:20
+msgid "Add Language"
+msgstr "Sprache hinzufügen"
+
+#: page.languages.php:13
+msgid "Add Language Instance"
+msgstr "Sprachinstanz hinzufügen"
+
+#: languages.i18n.php:8
+msgid ""
+"Adds the ability to changes the language within a call flow and add language "
+"attribute to users."
+msgstr ""
+"Fügt die Möglichkeit hinzu, die Sprache während einer Anrufverarbeitung "
+"(call flow) zu ändern und fügt den Benutzern ein Sprachenattribut hinzu."
+
+#: functions.inc.php:274
+msgid "Allows you to set the language for this DID."
+msgstr "Erlaubt Ihnen die Sprache für diese Durchwahl (DID) zu setzen."
+
+#: languages.i18n.php:6
+msgid "Applications"
+msgstr "Anwendungen"
+
+#: functions.inc.php:160 functions.inc.php:257
+msgid "Default"
+msgstr "Standard"
+
+#: Languages.class.php:74
+msgid "Delete"
+msgstr "Löschen"
+
+#: views/form.php:63
+msgid "Description"
+msgstr "Beschreibung"
+
+#: views/form.php:130
+msgid "Destination"
+msgstr "Ziel"
+
+#: page.languages.php:11
+msgid "Edit Language Instance"
+msgstr "Sprachinstanz bearbeiten"
+
+#: views/form.php:13
+msgid "Edit: "
+msgstr "Bearbeiten: "
+
+#: functions.inc.php:154
+msgid "General"
+msgstr "Allgemein"
+
+#: assets/js/languages.js:2
+msgid "Invalid description specified"
+msgstr "Ungültige Beschreibung angegeben"
+
+#: Languages.class.php:213 functions.inc.php:153 functions.inc.php:247
+#: views/bootnav.php:8 views/grid.php:24
+msgid "Language"
+msgstr "Sprache"
+
+#: functions.inc.php:332
+#, php-format
+msgid "Language Change: %s"
+msgstr "Sprachänderung: %s"
+
+#: functions.inc.php:172 functions.inc.php:174 views/form.php:87
+msgid "Language Code"
+msgstr "Sprachkürzel"
+
+#: functions.inc.php:36
+#, php-format
+msgid "Language: %s"
+msgstr "Sprache: %s"
+
+#: languages.i18n.php:4 languages.i18n.php:10 page.languages.php:5
+msgid "Languages"
+msgstr "Sprachen"
+
+#: page.languages.php:4
+msgid ""
+"Languages allow you to change the language of the call flow and then "
+"continue on to the desired destination. For example, you may have an IVR "
+"option that says \"For French Press 5 now\". You would then create a French "
+"language instance and point it's destination at a French IVR. The language "
+"of the call's channel will now be in French. This will result in French "
+"sounds being chosen if installed."
+msgstr ""
+"Sprachen erlauben es Ihnen die Sprache des Anrufs zu ändern um dann zu der "
+"gewünschten Rufnummer zu kommen. Zum Beispiel, Sie haben eine IVR Option die "
+"ansagt \"Für französisch drücken Sie bitte jetzt die 5\". Es würde dann eine "
+"französische Spracheninstanz erzeugt und der Anruf auf einen französischen "
+"IVR umgeleitet. Die Sprache des Anrufkanals wäre nun in französisch. D.h. "
+"die Ansagen würden in französisch ausgewählt, sofern diese installiert sind."
+
+#: views/bootnav.php:2
+msgid "List Languagess"
+msgstr "Sprachen auflisten"
+
+#: functions.inc.php:155
+msgid "Please enter a valid Language Code"
+msgstr "Bitte geben Sie einen gültiges Sprachk&uml;rzel ein"
+
+#: Languages.class.php:69
+msgid "Reset"
+msgstr "Zurücksetzen"
+
+#: Languages.class.php:64
+msgid "Submit"
+msgstr "Bestätigen"
+
+#: views/form.php:118
+msgid ""
+"The Asterisk language code you want to change to. For example \"fr\" for "
+"French, \"de\" for German"
+msgstr ""
+"Das Asterisk Sprachkürzel zu dem Sie wechseln wollen. Zum Beispiel \"fr\" "
+"f&uuml;r franz&ouml;sisch oder \"de\" für deutsch"
+
+#: views/form.php:75
+msgid ""
+"The descriptive name of this language instance. For example \"French Main IVR"
+"\""
+msgstr ""
+"Beschreibung oder Name für diese Sprachinstanz. Zum Beispiel \"franz&ouml;"
+"sischer Haupt IVR\""
+
+#: functions.inc.php:174
+msgid ""
+"This will cause all messages and voice prompts to use the selected language "
+"if installed."
+msgstr ""
+"Dies bedeutet, dass alle Nachrichten und Ansagen die ausgewählte Sprache "
+"nutzen, sofern diese installiert sind."
+
+#: functions.inc.php:172
+msgid ""
+"This will cause all messages and voice prompts to use the selected language "
+"if installed.  Languages can be added or removed in the Sound Languages "
+"module"
+msgstr ""
+"Dies bedeutet, dass alle Nachrichten und Ansagen die ausgewählte Sprache "
+"nutzen, sofern diese installiert sind.  Sprachen können im Sound Sprachen "
+"Modul hinzugefügt oder gelöscht werden"
+
+#: Languages.class.php:214
+msgid "Valid language string"
+msgstr "Gültiger Sprachstring"
+
+#: views/form.php:142
+msgid "Where to send the caller after setting the language."
+msgstr ""
+"Das Ziel wohin der Anrufer nach der Einstellung der Sprache weitergeleitet "
+"werden soll."
+
+#~ msgid "Submit Changes"
+#~ msgstr "&Auml;nderungen speichern"

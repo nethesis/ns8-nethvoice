@@ -1,0 +1,60 @@
+/* ================= DO NOT MODIFY THIS FILE ================= */
+/* */
+/* Manual changes will be lost when this file is regenerated. */
+a {
+  color: #6ec664;
+}
+.navbar-pf-alt {
+  border-top: 2px solid #3f9c35;
+}
+.nav-pf-vertical-alt .list-group-item.active:before {
+  background: #6ec664;
+}
+.wizard-pf-steps-indicator .active .wizard-pf-step-number {
+  background-color: #6ec664;
+  border-color: #3f9c35;
+}
+.nav-pf-vertical-alt .list-group-item .badge.notifications {
+  background: #3f9c35;
+}
+.btn-primary {
+  background-color: #3f9c35;
+  background-image: linear-gradient(to bottom, #6ec664 0%, #3f9c35 100%);
+  border-color: #3f9c35;
+  color: #fff;
+}
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active, .btn-primary:active:focus, .btn-primary.active, .btn-primary.active:hover, btn-primary.active:focus, btn-primary.active:active, btn-primary.active:active:focus {
+  background-color: #6ec664;
+  border-color: #3f9c35;
+  color: #fff;
+}
+.progress-bar-success {
+  background-color: #6ec664;
+}
+html {
+  background: #3f9c35;
+}
+.login-pf {
+  background-color: #3f9c35;
+  overflow-y: auto;
+}
+.list-view-pf-left .pficon.list-view-pf-icon-sm, .list-view-pf-left .fa.list-view-pf-icon-sm {
+  border: 2px solid #6ec664;
+}
+.card-pf-view .card-pf-top-element .card-pf-icon-circle {
+  border: 2px solid #6ec664;
+}
+.btn-link:hover {
+  color: #6ec664 !important;
+}
+.bootstrap-switch .bootstrap-switch-handle-on.bootstrap-switch-primary, .bootstrap-switch .bootstrap-switch-handle-off.bootstrap-switch-primary {
+  background: #6ec664;
+}
+.bootstrap-switch.bootstrap-switch-focused {
+  border-color: #3f9c35;
+  box-shadow: none;
+}
+.bootstrap-switch .bootstrap-switch-handle-on {
+  border-bottom-left-radius: 0px;
+  border-top-left-radius: 0px;
+}

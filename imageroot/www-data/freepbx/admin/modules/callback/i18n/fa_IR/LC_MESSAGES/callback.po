@@ -1,0 +1,152 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for callback
+# Copyright (C) 2008-2015 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-09-26 00:02-0400\n"
+"PO-Revision-Date: 2019-01-25 13:30+0000\n"
+"Last-Translator: Media Mousavi <mousavi.media@gmail.com>\n"
+"Language-Team: Persian <http://*/projects/freepbx/callback/fa/>\n"
+"Language: fa_IR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 3.0.1\n"
+
+#: page.callback.php:11
+msgid " Add"
+msgstr " .افزودن"
+
+#: page.callback.php:11
+msgid " Edit"
+msgstr " .ویرایش"
+
+#: assets/js/callback.js:18
+msgid " already used, please use a different description."
+msgstr " .وجود دارد، لطفاً شرح دیگری وارد استفاده کنید."
+
+#: views/grid.php:16
+msgid "Actions"
+msgstr "عملیات"
+
+#: views/bootnav.php:4 views/grid.php:2
+msgid "Add Callback"
+msgstr "افزودن تماس بازگشتی"
+
+#: callback.i18n.php:6
+msgid "Applications"
+msgstr "برنامه‌ های کاربردی"
+
+#: callback.i18n.php:4 callback.i18n.php:8 page.callback.php:6
+#: views/bootnav.php:15
+msgid "Callback"
+msgstr "تماس بازگشتی"
+
+#: views/form.php:41
+msgid "Callback Description"
+msgstr "توضیحات تماس بازگشتی"
+
+#: views/form.php:65 views/grid.php:15
+msgid "Callback Number"
+msgstr "شماره تماس بازگشتی"
+
+#: functions.inc.php:37 functions.inc.php:66
+#, php-format
+msgid "Callback: %s"
+msgstr "تماس بازگشتی：%s"
+
+#: views/form.php:116
+msgid "Caller Id"
+msgstr "کالر آیدی"
+
+#: views/form.php:89
+msgid "Delay Before Callback"
+msgstr "تاخیر قبل از تماس بازگشتی"
+
+#: Callback.class.php:54
+msgid "Delete"
+msgstr "حذف"
+
+#: views/form.php:167
+msgid "Destination after Callback"
+msgstr "مقصد پس از برقراری تماس بازگشتی"
+
+#: views/form.php:53
+msgid "Enter a description for this callback."
+msgstr "توضیحاتی برای این تماس بازگشتی بنویسید."
+
+#: views/grid.php:14
+msgid "Item"
+msgstr "عنوان"
+
+#: views/bootnav.php:3
+msgid "List Callbacks"
+msgstr "فهرست تماس های بازگشتی"
+
+#: views/form.php:146
+msgid "Milliseconds"
+msgstr "میلی ثانیه ها"
+
+#: views/form.php:128
+msgid ""
+"Optional: Enter the callerid for the callback.<br>Format: <b>\"caller name\" "
+"&lt;#######&gt;</b><br>Default: Callback"
+msgstr ""
+"Optional: Enter the callerid for the callback.<br>Format: <b>\"caller name\" "
+"&lt;#######&gt;</b><br>Default: Callback"
+
+#: views/form.php:104
+msgid ""
+"Optional: Enter the number of seconds the system should wait before calling "
+"back."
+msgstr "اختیاری: سیستم چند ثانیه قبل از برقراری تماس بازگشتی صبر کند."
+
+#: views/form.php:77
+msgid ""
+"Optional: Enter the number to dial for the callback.  Leave this blank to "
+"just dial the incoming CallerID Number"
+msgstr ""
+"اختیاری： شماره ای جهت برقرای تماس بازگشتی وارد کنید. برای شماره گیری شناسه "
+"تماس گیرنده، این فیلد را خالی بگذارید"
+
+#: views/form.php:155
+msgid "Optional: Timeout in Milliseconds.</br>Default: 15000"
+msgstr "Optional: Timeout in Milliseconds.</br>Default: 15000"
+
+#: assets/js/callback.js:15
+msgid "Please enter a valid Description"
+msgstr "لطفا توضیحات معتبر وارد نمایید"
+
+#: Callback.class.php:59
+msgid "Reset"
+msgstr "بازنشانی"
+
+#: views/form.php:95
+msgid "Seconds"
+msgstr "ثانیه"
+
+#: Callback.class.php:64
+msgid "Submit"
+msgstr "ثبت"
+
+#: assets/js/callback.js:13
+msgid "The callback description provided is too long."
+msgstr "توضیحات برای تماس بازگشتی طولانی است."
+
+#: views/form.php:140
+msgid "Timeout"
+msgstr "وقفه"
+
+#: views/form.php:186
+msgid "Where to send the caller once they are called back"
+msgstr "وقتی تماس بازگشتی برقرار شد، تماس به کجا وصل گردد"
+
+#~ msgid "Invalid Request"
+#~ msgstr "درخواست نامعتبر"

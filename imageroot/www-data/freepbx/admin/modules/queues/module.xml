@@ -1,0 +1,141 @@
+<module>
+	<rawname>queues</rawname>
+	<repo>standard</repo>
+	<name>Queues</name>
+	<version>14.0.2.39</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv2+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-2.0.txt</licenselink>
+	<category>Applications</category>
+	<description>Creates a queue where calls are placed on hold and answered on a first-in, first-out basis. Many options are available, including ring strategy for agents, caller announcements, max wait times, etc.</description>
+  	<more-info>https://wiki.freepbx.org/display/F2/Queues+Module</more-info>
+	<changelog>
+		*14.0.2.37* FREEI-2920	Method added for Dphone API 
+		*14.0.2.36* FREEI-2918 Added method for Dphone API 
+		*14.0.2.35* FREEI-2878 methods added for Dphone API 
+		*14.0.2.34* Packaging of ver 14.0.2.34
+		*14.0.2.33* Packaging of ver 14.0.2.33
+		*14.0.2.32* FREEPBX-21428 Increasing the queue max caller limit 
+		*14.0.2.31* FREEI-924 Fix XSS Bootstrap Datatable Issues 
+		*14.0.2.30* FREEPBX-20634 Dynamic Agents with comma character in name show as (Invalid) in queues 
+		*14.0.2.29* FREEPBX-20461 Add detail to Queues ring strategy tool tip. 
+		*14.0.2.28* FREEI-618 Dynamic Queue Agents causing ALL queue agents to disappear 
+		*14.0.2.27* FREEPBX-19819 Queue agent restriction is not working for 'No Follow-Me or Call Forward' option. 
+		*14.0.2.26* FREEI-492 Duplicate entry "Agent Availability Detail" qxact_reports 
+		*14.0.2.25* FREEPBX-19434 and FREEPBX-19433 
+		*14.0.2.24* FREEPBX-19434 
+		*14.0.2.23* FREEPBX-18609 Queue save/apply problem 
+		*14.0.2.22* vqplus position announcement fix 
+		*14.0.2.21* FREEPBX-17706 Wrong URL's in Used as Destination - Announcements 
+		*14.0.2.20* FREEPBX-17706 Wrong URL's in Used as Destination - Queues 
+		*14.0.2.19* prevent infinite loops in from-queue
+		*14.0.2.18* FREEPBX-17552 Wrong URL's in Used as Destination 
+		*14.0.2.17* Fixing FREEPBX-17647 Adding confirmation popup to deleting queue
+		*14.0.2.16* FREEPBX-17145 Queue 'Mark calls answered elsewhere' doesn't work good with 2 queues 
+		*14.0.2.15* FREEPBX-17175  Queues ring strategy not working if Call Screening enabled on extension 
+		*14.0.2.14* FREEPBX-15383 Page setting display line number shown lost after submit 
+		*14.0.2.13* FREEPBX-16371 Agent Retry not working after change 
+		*14.0.3.12* FREEPBX-15176 Remove outdated setting
+		*14.0.2.11* FREEPBX-15347 look at all agents
+		*14.0.2.10* FREEPBX-16064 Queue reports hold time to agents in the wrong language
+		*14.0.2.9* FREEPBX-15460 Playback Queue Caller Count feature code not working
+		*14.0.2.8* FREEPBX-15347 Unit tests
+		*14.0.2.7* FREEPBX-15347 Queue feature code for logout/login toggle and Pause toggle not working
+		*14.0.2.6* FREEPBX-15942 Queue Reset queue stats GUI glitch
+		*14.0.2.5* FREEPBX-15350 always write out database hints
+		*14.0.2.4* FREEPBX-15474
+		*14.0.2.3* FREEPBX-14945 FREEPBX-15058 FREEPBX-14938
+		*14.0.2.2* FREEPBX-14194 Queue volume override in GUI has no affect on sangoma phone
+		*14.0.2.1* FREEPBX-14133 Ignore rvol when writing conf
+		*14.0.2* FREEPBX-13364 Ability to set ringer volume
+		*13.0.31* FREEPBX-12966 Errors in Queue pause dialplan
+		*13.0.30* FREEPBX-12906
+		*13.0.29* Fix adding of call queues with modern databases (FreePBX-12845) by lidl
+		*13.0.28* FREEPBX-12592, FREEPBX-12754
+		*13.0.27* More checks for recording file before we force our own
+		*13.0.26* FREEPBX-11871 Queue call recordings not accessible in UCP with Asterisk 13
+		*13.0.25* FREEPBX-12185 Queues not generating dialplan or hints for individual queue pauses
+		*13.0.24* FREEPBX-9119 write out ivr context regardless
+		*13.0.23* Speed up reload times with dynamic hints
+		*13.0.22* Remove all cos references to hints
+		*13.0.21* FREEPBX-11866 FREEPBX-11829
+		*13.0.20* FREEPBX-11525 Add dialstatus check
+		*13.0.19* FREEPBX-11505 *47 (Play the caller count) doesnt work
+		*13.0.18* FREEPBX-11238 Fix Q* logon and logoff
+		*13.0.17* FREEPBX-11248 FREEPBX-11233
+		*13.0.16* Support Alert info drop down
+		*13.0.15* FREEPBX-10450
+		*13.0.14* FREEPBX-11033
+		*13.0.13* FREEPBX-10938
+		*13.0.12* FREEPBX-10918
+		*13.0.11* Dont double border
+		*13.0.10* FREEPBX-10655 Invalid array argument
+		*13.0.9* FREEPBX-10277 Fix musiconhold
+		*13.0.8* FREEPBX-10294 Correctly set periodic-announce option when using Queue Callback
+		*13.0.7* FREEPBX-9896 FREEPBX-10300 Array validation. Update tooltip for PJSIP
+		*13.0.6* FREEPBX-9896 ultra strict not selectable in queue capacity options
+		*13.0.5* FREEPBX-9843 Fix misspelling
+		*13.0.4* FREEPBX-9603 add tab for agents, FREEPBX-9603 prevent failover dest being empty
+		*13.0.3* FREEPBX-9511 Queue Breakout IVRs not selectable
+		*13.0.2* Version bump Beta
+		*13.0.1alpha8* FREEPBX-9482 Display issue with Periodic Announcements in Queues
+		*13.0.1alpha6* FREEPBX-9467 Update search hooks
+		*13.0.1alpha5* FREEPBX-9434 Error page on queue edit / create
+		*13.0.1alpha4* Add dynamic tab hooking to support BMO hooks and maintain backwards compatibility
+		*13.0.1alpha3* Resolves FREEPBX-8610 and fixes the config aspect of FREEPBX-8216 that was overlooked.
+		*13.0.1alpha2* Fix dialplan generation
+		*13.0.1alpha1* Visual Changes
+	</changelog>
+	<depends>
+		<version>14.0.1alpha24</version>
+		<module>recordings ge 3.3.8</module>
+		<module>core ge 13.0.22</module>
+	</depends>
+	<menuitems>
+		<queues needsenginedb="yes">Queues</queues>
+	</menuitems>
+	<popovers>
+		<queues>
+			<display>queues</display>
+			<view>form</view>
+		</queues>
+	</popovers>
+	<supported>
+		<version>14.0</version>
+	</supported>
+	<database>
+		<table name="queues_details">
+			<field name="id" type="string" length="45" default="-1" primarykey="true"/>
+			<field name="keyword" type="string" length="30" default="" primarykey="true"/>
+			<field name="data" type="string" length="150" default="" primarykey="true"/>
+			<field name="flags" type="integer" default="0"/>
+		</table>
+		<table name="queues_config">
+			<field name="extension" type="string" length="20" default="" primaryKey="true"/>
+			<field name="descr" type="string" length="35" default=""/>
+			<field name="grppre" type="string" length="100" default=""/>
+			<field name="alertinfo" type="string" length="254" default=""/>
+			<field name="ringing" type="boolean" default="0"/>
+			<field name="maxwait" type="string" length="8" default=""/>
+			<field name="password" type="string" length="20" default=""/>
+			<field name="ivr_id" type="string" length="8" default="0"/>
+			<field name="dest" type="string" length="50" default=""/>
+			<field name="cwignore" type="boolean" default="0"/>
+			<field name="queuewait" type="boolean" default="0" notnull="false"/>
+			<field name="use_queue_context" type="boolean" default="0" notnull="false"/>
+			<field name="togglehint" type="boolean" default="0" notnull="false"/>
+			<field name="qnoanswer" type="boolean" default="0" notnull="false"/>
+			<field name="callconfirm" type="boolean" default="0" notnull="false"/>
+			<field name="callconfirm_id" type="integer" notnull="false"/>
+			<field name="qregex" type="string" length="255" notnull="false"/>
+			<field name="agentannounce_id" type="integer" notnull="false"/>
+			<field name="joinannounce_id" type="integer" notnull="false"/>
+			<field name="monitor_type" type="string" length="5" notnull="false"/>
+			<field name="monitor_heard" type="integer" notnull="false"/>
+			<field name="monitor_spoken" type="integer" notnull="false"/>
+			<field name="callback_id" type="string" length="8" default=""/>
+		</table>
+	</database>
+	<location>release/2.11/queues-2.11.0.11.tgz</location>
+	<md5sum>71b1461cc558320b5f3ecf238d093da6</md5sum>
+</module>

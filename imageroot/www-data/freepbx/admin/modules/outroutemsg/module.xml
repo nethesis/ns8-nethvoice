@@ -1,0 +1,34 @@
+<module>
+  <rawname>outroutemsg</rawname>
+  <repo>standard</repo>
+  <name>Route Congestion Messages</name>
+  <version>13.0.2.1</version>
+  <publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+  <category>Settings</category>
+  <description>Configures message or congestion tones played when all trunks are busy in a route. Allows different messages for Emergency Routes and Intra-Company Routes
+	</description>
+  <menuitems>
+    <outroutemsg>Route Congestion Messages</outroutemsg>
+  </menuitems>
+  <changelog>
+		*13.0.2.1* FREEPBX-13620 Default messages reference a non-existent file
+		*13.0.2* Version bump Beta
+    *13.0.1alpha1* 13 Visual conformity
+  	*2.11.0.2* Add license file
+		*2.11.0.0* bump version
+		*2.10.0.1* #5478
+		*2.10.0.0* new version changes
+		*2.9.0.1* removed duplicate functions
+		*2.9.0.0* 2.9 Update
+	</changelog>
+  <depends>
+    <module>recordings ge 3.3.8</module>
+  </depends>
+  <location>release/2.11/outroutemsg-2.11.0.0.tgz</location>
+  <md5sum>c161073dabd8954d5ce3f4230c4a0902</md5sum>
+  <supported>
+    <version>13.0</version>
+  </supported>
+</module>

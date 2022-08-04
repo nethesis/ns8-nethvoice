@@ -1,0 +1,180 @@
+{
+  "template_data": {
+    "category": [{
+      "name": "Exp1",
+      "subcategory": [{
+        "name": "",
+        "item": [{
+          "description": "Exp 1 Keys (18-35)",
+          "type": "loop",
+          "loop_start": "18",
+          "loop_end": "35",
+          "data": {
+            "item": [{
+                "variable": "$exp1key_label",
+                "default_value": "",
+                "description": "Exp 1 Key {$count} Label",
+                "type": "input"
+              },
+              {
+                "variable": "$exp1key_context",
+                "default_value": "active",
+                "description": "Exp 1 Key {$count} Context",
+                "type": "list",
+                "data": [{
+                    "text": "Active",
+                    "value": "active"
+                  },
+                  {
+                    "text": "1",
+                    "value": "1"
+                  },
+                  {
+                    "text": "2",
+                    "value": "2"
+                  },
+                  {
+                    "text": "3",
+                    "value": "3"
+                  },
+                  {
+                    "text": "4",
+                    "value": "4"
+                  },
+                  {
+                    "text": "5",
+                    "value": "5"
+                  },
+                  {
+                    "text": "6",
+                    "value": "6"
+                  },
+                  {
+                    "text": "7",
+                    "value": "7"
+                  },
+                  {
+                    "text": "8",
+                    "value": "8"
+                  },
+                  {
+                    "text": "9",
+                    "value": "9"
+                  },
+                  {
+                    "text": "10",
+                    "value": "10"
+                  },
+                  {
+                    "text": "11",
+                    "value": "11"
+                  },
+                  {
+                    "text": "12",
+                    "value": "12"
+                  }
+                ]
+              },
+              {
+                "variable": "$exp1key_type",
+                "default_value": "line",
+                "description": "Exp 1 Key {$count} Type",
+                "type": "list",
+                "data": [{
+                    "text": "Line",
+                    "value": "line"
+                  },
+                  {
+                    "text": "Extension\/Destination",
+                    "value": "dest"
+                  },
+                  {
+                    "text": "Intercom",
+                    "value": "icom"
+                  },
+                  {
+                    "text": "Park Orbit",
+                    "value": "orbit"
+                  },
+                  {
+                    "text": "Voice Recorder",
+                    "value": "recorder"
+                  },
+                  {
+                    "text": "DTMF",
+                    "value": "dtmf"
+                  },
+                  {
+                    "text": "Shared Line",
+                    "value": "mult"
+                  },
+                  {
+                    "text": "Push2Talk",
+                    "value": "p2t"
+                  },
+                  {
+                    "text": "Action URL",
+                    "value": "URL"
+                  },
+                  {
+                    "text": "Key Event",
+                    "value": "keyevent"
+                  },
+                  {
+                    "text": "Speed Dial",
+                    "value": "speed"
+                  },
+                  {
+                    "text": "Button",
+                    "value": "button"
+                  },
+                  {
+                    "text": "BLF",
+                    "value": "blf"
+                  },
+                  {
+                    "text": "IVR",
+                    "value": "ivr"
+                  },
+                  {
+                    "text": "Presence",
+                    "value": "presence"
+                  },
+                  {
+                    "text": "Transfer To",
+                    "value": "transfer"
+                  },
+                  {
+                    "text": "Forward To",
+                    "value": "redirect"
+                  },
+                  {
+                    "text": "Auto Answer",
+                    "value": "autoanswer"
+                  },
+                  {
+                    "text": "XML Definition\/Customizable via XML",
+                    "value": "XML"
+                  },
+                  {
+                    "text": "None",
+                    "value": "none"
+                  }
+                ]
+              },
+              {
+                "variable": "$exp1key_value",
+                "default_value": "",
+                "description": "Exp 1 Key {$count} Value",
+                "type": "input"
+              },
+              {
+                "type": "break"
+              }
+            ]
+          }
+        }]
+      }]
+    }]
+  }
+}

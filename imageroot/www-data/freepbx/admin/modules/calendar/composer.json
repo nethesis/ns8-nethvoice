@@ -1,0 +1,17 @@
+{
+	"repositories": [
+		{
+			"type": "github",
+			"url": "https://github.com/tm1000/icalparser"
+		}
+	],
+	"require": {
+		"om/icalparser": "dev-hotfix/31",
+		"thecsea/simple-caldav-client": "0.1.5",
+		"eluceo/ical": "0.11.6",
+		"php-ews/php-ews": "1.0.0"
+	},
+	"config": {
+		"optimize-autoloader": true
+	}
+}

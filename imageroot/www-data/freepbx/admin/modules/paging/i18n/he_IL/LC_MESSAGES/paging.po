@@ -1,0 +1,482 @@
+# Hebrew version for Paging FreePBX Module.
+# Copyright (C) 2006
+# This file is distributed under the same license as the PACKAGE package.
+# Shimi <shimi@shimi.net>, 2006.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX 2.2.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-05-10 05:16+0000\n"
+"PO-Revision-Date: 2006-10-17 17:30+0300\n"
+"Last-Translator: Shimi <shimi@shimi.net>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: assets/js/paging.js:39
+msgid " Please set the event days."
+msgstr ""
+
+#: assets/js/paging.js:42
+msgid " Please set the event time."
+msgstr ""
+
+#: Paging.class.php:207
+msgid ""
+"<strong>Force</strong><br> Send the headers telling the phone to go into "
+"auto answer mode. This may not work, and is dependant on the phone."
+msgstr ""
+
+#: Paging.class.php:205
+msgid "<strong>Reject</strong><br> Return a BUSY signal to the caller"
+msgstr ""
+
+#: Paging.class.php:206
+msgid ""
+"<strong>Ring</strong><br> Treat the page as a normal call, and ring the "
+"extension (if Call Waiting is disabled, this will return BUSY"
+msgstr ""
+
+#: views/form.php:222
+msgid ""
+"<ul>\n"
+"<li><b>\"Skip\"</b> will not page any busy extension. All other extensions "
+"will be paged as normal</li>\n"
+"<li><b>\"Force\"</b> will not check if the device is in use before paging "
+"it. This means conversations can be interrupted by a page (depending on how "
+"the device handles it). This is useful for \"emergency\" paging groups.</"
+"li>\n"
+"<li><b>\"Whisper\"</b> will attempt to use the ChanSpy capability on SIP "
+"channels, resulting in the page being sent to the device's earpiece "
+"\"whispered\" to the user but not heard by the remote party. If ChanSpy is "
+"not supported on the device or otherwise fails, no page will get through. It "
+"probably does not make too much sense to choose duplex if using Whisper mode."
+"</li>\n"
+"</ul>"
+msgstr ""
+
+#: views/grid.php:14
+msgid "Actions"
+msgstr ""
+
+#: views/bootnav.php:8 views/grid.php:6
+msgid "Add Page Group"
+msgstr ""
+
+#: views/form.php:150
+msgid "Alert Tone"
+msgstr ""
+
+#: paging.i18n.php:8
+msgid ""
+"Allows creation of paging groups to make announcements using the speaker "
+"built into most SIP phones. Also creates an        Intercom feature code "
+"that can be used as a prefix to talk directly to one person, as well as "
+"optional feature codes        to block/allow intercom calls to all users as "
+"well as blocking specific users or only allowing specific users."
+msgstr ""
+
+#: views/settings.php:68
+msgid "Annoucement to be played to remote party. Default is a beep"
+msgstr ""
+
+#: views/form.php:164
+msgid ""
+"Announcement to be played to remote party. If set to Default it will use the "
+"global setting from Page Groups. If Page Groups is not defined then it will "
+"default to beep. This Announcement file duration should not exceed Default "
+"ringtime(Advanced Settings)"
+msgstr ""
+
+#: paging.i18n.php:6
+msgid "Applications"
+msgstr ""
+
+#: views/settings.php:54
+msgid "Auto-answer defaults"
+msgstr ""
+
+#: views/form.php:45
+msgid "Beep"
+msgstr ""
+
+#: views/form.php:205
+msgid "Busy Extensions"
+msgstr ""
+
+#: views/form.php:44 views/grid.php:13 views/settings.php:4
+msgid "Default"
+msgstr ""
+
+#: functions.inc.php:1112
+msgid "Default Group Inclusion"
+msgstr ""
+
+#: functions.inc.php:1115 views/form.php:268
+#, fuzzy
+msgid "Default Page Group"
+msgstr "מחק קבוצה"
+
+#: Paging.class.php:97 Paging.class.php:258
+msgid "Delete"
+msgstr ""
+
+#: views/bootnav.php:14 views/form.php:109 views/grid.php:12
+msgid "Description"
+msgstr ""
+
+#: views/form.php:121
+msgid "Device List"
+msgstr ""
+
+#: views/form.php:135
+msgid ""
+"Devices to page. Please note, paging calls the actual device (and not the "
+"user). Amount of pagable devices is restricted by the advanced setting key "
+"PAGINGMAXPARTICIPANTS and is currently set to "
+msgstr ""
+
+#: functions.inc.php:1091
+msgid "Disable"
+msgstr ""
+
+#: functions.inc.php:1088
+msgid "Disabled"
+msgstr ""
+
+#: views/settings.php:80
+msgid "Drop Silence"
+msgstr ""
+
+#: views/form.php:238
+msgid "Duplex"
+msgstr ""
+
+#: functions.inc.php:1087
+msgid "Enabled"
+msgstr ""
+
+#: functions.inc.php:1083
+msgid "Exclude"
+msgstr ""
+
+#: functions.inc.php:1117
+msgid "Extension Options"
+msgstr ""
+
+#: Paging.class.php:199 views/form.php:212
+msgid "Force"
+msgstr ""
+
+#: views/form.php:97
+msgid "Group Description"
+msgstr ""
+
+#: views/form.php:283
+msgid ""
+"If you choose to make a Page Group the \"default\" page group, a checkbox "
+"will appear in the Extensions Module that will allow you to include or "
+"exclude that Extension in the default Page Group when editing said extension"
+msgstr ""
+
+#: functions.inc.php:1084
+msgid "Include"
+msgstr ""
+
+#: functions.inc.php:1092
+msgid "Intercom"
+msgstr ""
+
+#: functions.inc.php:1126
+msgid "Intercom Mode"
+msgstr ""
+
+#: Paging.class.php:203
+msgid "Intercom Override"
+msgstr ""
+
+#: functions.inc.php:383
+#, php-format
+msgid "Intercom from %s: Disabled"
+msgstr ""
+
+#: functions.inc.php:321
+#, php-format
+msgid "Intercom from %s: Enabled"
+msgstr ""
+
+#: install.php:5 paging.i18n.php:16
+msgid "Intercom prefix"
+msgstr ""
+
+#: functions.inc.php:371
+msgid "Intercom: Disabled"
+msgstr ""
+
+#: functions.inc.php:309
+msgid "Intercom: Enabled"
+msgstr ""
+
+#: functions.inc.php:1122
+msgid "Internal Auto Answer"
+msgstr ""
+
+#: views/bootnav.php:7
+msgid "List Page Groups"
+msgstr ""
+
+#: views/form.php:245 views/form.php:275 views/settings.php:87
+#: views/settings.php:114
+msgid "No"
+msgstr ""
+
+#: functions.inc.php:1171 views/form.php:43 views/form.php:181
+#: views/settings.php:3
+msgid "None"
+msgstr ""
+
+#: views/form.php:41
+msgid "Not Selected"
+msgstr ""
+
+#: views/form.php:193
+msgid ""
+"Override the speaker volume for this page. Note: This is only valid for "
+"Sangoma phones at this time"
+msgstr ""
+
+#: functions.inc.php:832 functions.inc.php:1176 views/bootnav.php:13
+#: views/formwrap.php:9 views/grid.php:11
+msgid "Page Group"
+msgstr "קבוצת איתות"
+
+#: functions.inc.php:920
+#, fuzzy
+msgid "Page Group: "
+msgstr "קבוצת איתות"
+
+#: Paging.class.php:399
+#, php-format
+msgid "Page Group: %s (%s)"
+msgstr ""
+
+#: assets/js/paging.js:107
+msgid "Page Groups"
+msgstr ""
+
+#: views/form.php:73
+msgid "Paging Extension"
+msgstr "שלוחת איתות"
+
+#: functions.inc.php:849
+#, php-format
+msgid "Paging Group %s : %s"
+msgstr ""
+
+#: views/overview.php:22
+msgid "Paging Groups"
+msgstr ""
+
+#: views/routing_hook.php:15
+msgid "Paging Notification"
+msgstr ""
+
+#: Paging.class.php:202 paging.i18n.php:4 paging.i18n.php:10
+#: views/overview.php:7
+msgid "Paging and Intercom"
+msgstr "איתות ואינטרקום"
+
+#: views/settings.php:42
+msgid "Paging and Intercom settings"
+msgstr ""
+
+#: views/form.php:253
+msgid ""
+"Paging is typically one way for announcements only. Checking this will make "
+"the paging duplex, allowing all phones in the paging group to be able to "
+"talk and be heard by all. This makes it like an \"instant conference\""
+msgstr ""
+
+#: assets/js/paging.js:11
+msgid "Please enter a valid end Date."
+msgstr ""
+
+#: assets/js/paging.js:6
+msgid "Please enter a valid start Date."
+msgstr ""
+
+#: views/settings.php:107
+msgid "Quiet"
+msgstr ""
+
+#: Paging.class.php:197
+msgid "Reject"
+msgstr ""
+
+#: Paging.class.php:263
+msgid "Reset"
+msgstr ""
+
+#: Paging.class.php:198
+msgid "Ring"
+msgstr ""
+
+#: views/form.php:40
+msgid "Selected"
+msgstr ""
+
+#: views/overview.php:27
+msgid "Settings"
+msgstr ""
+
+#: views/form.php:210
+msgid "Skip"
+msgstr ""
+
+#: views/form.php:176
+msgid "Speaker Volume Override"
+msgstr ""
+
+#: Paging.class.php:268 views/settings.php:128
+msgid "Submit"
+msgstr ""
+
+#: assets/js/paging.js:16
+msgid "The end date must biger greater the start date."
+msgstr ""
+
+#: views/form.php:85
+msgid "The number users will dial to page this group"
+msgstr "המספר שמשתמשים יחייגו כדי לאותת לקבוצה זאת"
+
+#: views/overview.php:6
+#, fuzzy
+msgid ""
+"This module is for specific phones that are capable of Paging or Intercom. "
+"This section is for configuring group paging, intercom is configured through "
+"<strong>Feature Codes</strong>. Intercom must be enabled on a handset before "
+"it will allow incoming calls. It is possible to restrict incoming intercom "
+"calls to specific extensions only, or to allow intercom calls from all "
+"extensions but explicitly deny from specific extensions.<br /><br />This "
+"module should work with Aastra, Grandstream, Linksys/Sipura, Mitel, Polycom, "
+"SNOM , and possibly other SIP phones (not ATAs). Any phone that is always "
+"set to auto-answer should also work (such as the console extension if "
+"configured)."
+msgstr ""
+"מודול זה הוא עבור טלפונים התומכים באיתות או אינטרקום. חלק זה נועד עבור קביעת "
+"תצורה לאיתות קבוצות, אינטרקום מוגדר דרך <strong>קודי תכונות</strong>.<br /"
+"><br />הרשימה הנוכחית של הטלפונים הנתמכים היא GXP-2000 עם קושחא 1.0.13 או "
+"חדשה יותר, טלפונים של Snom עם קושחא 'עדכנית', טלפונים של פוליקום (שמוגדרים "
+"לענות באופן אוטומטי), טלפונים של לינקסיס/סיפורה, ומעט אחרים. כל טלפון שמוגדר "
+"לענות תמיד באופן אוטומטי גם יעבוד )כמו למשל הארכת קונסולה אם מוגדרת)."
+
+#: views/settings.php:95
+msgid ""
+"This option drops what Asterisk detects as silence from entering into the "
+"bridge. Enabling this option will drastically improve performance and help "
+"remove the buildup of background noise from the conference. Highly "
+"recommended for large conferences due to its performance enhancements."
+msgstr ""
+
+#: views/settings.php:122
+msgid "This option removes the beep from caller."
+msgstr ""
+
+#: views/routing_hook.php:29
+msgid ""
+"This will cause the selected Page Group to be paged and connected to any "
+"call that is served by this route. It is recommended not to use a Page Group "
+"that uses (Force) Valet Paging(Paging Pro only)"
+msgstr ""
+
+#: Paging.class.php:185
+msgid "Unknown Request"
+msgstr ""
+
+#: install.php:6 paging.i18n.php:14
+msgid "User Intercom Allow"
+msgstr ""
+
+#: install.php:7 paging.i18n.php:12
+msgid "User Intercom Disallow"
+msgstr ""
+
+#: functions.inc.php:1126
+msgid ""
+"When Enabled users can use *80<ext> to force intercom. When Disabled this "
+"user will reject intercom calls"
+msgstr ""
+
+#: functions.inc.php:1122
+msgid ""
+"When set to Intercom, calls to this extension/user from other internal users "
+"act as if they were intercom calls meaning they will be auto-answered if the "
+"endpoint supports this feature and the system is configured to operate in "
+"this mode. All the normal white list and black list settings will be honored "
+"if they are set. External calls will still ring as normal, as will certain "
+"other circumstances such as blind transfers and when a Follow Me is "
+"configured and enabled. If Disabled, the phone rings as a normal phone."
+msgstr ""
+
+#: Paging.class.php:204
+msgid ""
+"When using Intercom to page an extension, if the extension is in use, you "
+"have three options."
+msgstr ""
+
+#: views/form.php:214
+msgid "Whisper"
+msgstr ""
+
+#: views/form.php:243 views/form.php:273 views/settings.php:85
+#: views/settings.php:112
+msgid "Yes"
+msgstr ""
+
+#: functions.inc.php:1115
+msgid ""
+"You can include or exclude this extension/device from being part of the "
+"default page group when creating or editing."
+msgstr ""
+
+#, fuzzy
+#~ msgid "Please enter a valid Paging Extension"
+#~ msgstr "שלוחת איתות"
+
+#~ msgid "Add Paging Group"
+#~ msgstr "הוסף קבוצת איתות"
+
+#, fuzzy
+#~ msgid "Conflicting Extensions"
+#~ msgstr "שלוחת איתות"
+
+#~ msgid "Modify Paging Group"
+#~ msgstr "שנה קבוצת איתות"
+
+#, fuzzy
+#~ msgid "Delete Group %s"
+#~ msgstr "מחק קבוצה"
+
+#~ msgid ""
+#~ "There is a problem with install.sql, cannot re-create databases. Contact "
+#~ "support\n"
+#~ msgstr ""
+#~ "ישנה בעייה עם install.sql, לא יכול ליצור מחדש את מסדי הנתונים. צור קשר עם "
+#~ "תמיכה\n"
+
+#~ msgid "Database was deleted! Recreated successfully.<br>\n"
+#~ msgstr "מסד הנתונים נמחק! נוצר מחדש בהצלחה.<br />\n"
+
+#~ msgid "Paging Group Deleted<br>\n"
+#~ msgstr "קבוצת האיתות נמחקה<br />\n"
+
+#~ msgid "<h5>Paging Group $pagenbr Modified</h5>\n"
+#~ msgstr "<h5>קבוצת האיתות $pagebr שונתה</h5>\n"
+
+#~ msgid "extension list:"
+#~ msgstr "רשימת השלוחות:"
+
+#~ msgid "List extensions to page, one per line."
+#~ msgstr "רשימת השלוחות שיש לאותת להן, אחת בכל שורה."

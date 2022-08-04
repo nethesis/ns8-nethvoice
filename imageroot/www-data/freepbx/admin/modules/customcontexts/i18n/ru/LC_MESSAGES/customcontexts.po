@@ -1,0 +1,133 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for customcontexts
+# Copyright (C) 2008-2015 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.5\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-10-30 15:10-0400\n"
+"PO-Revision-Date: 2016-04-29 18:58+0200\n"
+"Last-Translator: ded <ceo@postmet.com>\n"
+"Language-Team: Russian <http://weblate.freepbx.org/projects/fpbxcn/"
+"customcontexts/ru/>\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: functions.inc.php:375 functions.inc.php:534
+msgid " v"
+msgstr " v"
+
+#: views/extensions_hook.php:23
+msgid "ALLOW ALL (Default)"
+msgstr ""
+
+#: functions.inc.php:377 functions.inc.php:536
+msgid "Add Context"
+msgstr "Добавить контекст"
+
+#: views/extensions_hook.php:32
+msgid "Add Extension"
+msgstr ""
+
+#: views/extensions_hook.php:34
+msgid "Add User"
+msgstr ""
+
+#: customcontexts.i18n.php:6
+msgid "Connectivity"
+msgstr ""
+
+#: functions.inc.php:368 functions.inc.php:392 functions.inc.php:525
+#: page.customcontexts.php:21 page.customcontextsadmin.php:24
+msgid "Context"
+msgstr "Контекст"
+
+#: customcontexts.i18n.php:8
+msgid ""
+"Creates custom contexts which can be used to allow limited access to "
+"dialplan applications. Allows for time restrictions on any dialplan access. "
+"Allows for pattern matching to allow/deny. Allows for failover destinations, "
+"and PIN protected failover. This can be very useful for multi-tennant "
+"systems. Inbound routing can be done using DID or zap channel routing,\tthis "
+"module allows for selective outbound routing. House/public phones can be "
+"placed in a restricted context allowing them only internal calls."
+msgstr ""
+
+#: views/extensions_hook.php:38
+msgid "Custom Context"
+msgstr ""
+
+#: functions.inc.php:773
+#, php-format
+msgid "Custom Context: %s"
+msgstr "Пользовательский контекст: %s"
+
+#: functions.inc.php:802
+#, php-format
+msgid "Custom Context: %s (%s)"
+msgstr "Пользовательский контекст: %s(%s)"
+
+#: customcontexts.i18n.php:4 customcontexts.i18n.php:10
+msgid "Custom Contexts"
+msgstr ""
+
+#: customcontexts.i18n.php:12
+msgid "Custom Contexts Admin"
+msgstr ""
+
+#: functions.inc.php:552
+msgid "Duplicate Context"
+msgstr "Дублирующий контекст"
+
+#: functions.inc.php:386 functions.inc.php:549
+msgid "Edit Context"
+msgstr "Редактировать контекст"
+
+#: views/extensions_hook.php:32
+msgid "Edit Extension"
+msgstr ""
+
+#: views/extensions_hook.php:34
+msgid "Edit User"
+msgstr ""
+
+#: functions.inc.php:388
+msgid "Remove Context"
+msgstr "Удалить контекст"
+
+#: install.php:33
+msgid "Time Conditions Module required and not present .. aborting install"
+msgstr ""
+"Отстутствует необходимый модуль Условия По Времени... завершение установки"
+
+#: views/extensions_hook.php:38
+#, php-format
+msgid ""
+"You can select a custom context from this list to limit this user to "
+"portions of the dialplan you defined in the %s module."
+msgstr ""
+
+#: install.php:141 install.php:149
+msgid "done"
+msgstr "выполнено"
+
+#: install.php:135
+msgid "migrating customcontexts_timegroups if needed.."
+msgstr "перенос customcontexts_timegroups если необходимо.."
+
+#: install.php:142
+msgid ""
+"removing customcontexts_timegroups and customcontexts_tiemgroups_detail "
+"tables.."
+msgstr ""
+"удаление таблиц customcontexts_timegroups и "
+"customcontexts_tiemgroups_detail.."

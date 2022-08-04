@@ -1,0 +1,44 @@
+<module>
+	<rawname>bulkdids</rawname>
+	<repo>unsupported</repo>
+	<name>Bulk DIDs</name>
+	<description>UNSUPPORTED. PLEASE USE Bulk Handler instead. Bulk DIDs uses CSV files to import bulk DIDs with a destination.</description>
+	<version>13.0.2</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<category>Applications</category>
+	<menuitems>
+		<bulkdids>Bulk DIDs</bulkdids>
+	</menuitems>
+	<depends>
+		<version>ge2.10alpha0</version>
+	</depends>
+	<location>release/2.11/bulkdids-2.11.0.0.tgz</location>
+	<info/>
+	<changelog>
+		*13.0.2* Version bump Beta
+		*13.0.1alpha1* Add unsupported messages
+		*2.11.1.4* #8401 - fix issue were fax detection time was not being set properly
+		*2.11.1.2* Generate License file
+		*2.11.1.0* Add Fax Import
+		*2.11.0.0* bump version
+		*2.10.0.5* #5852
+		*2.10.0.4* #5668
+		*2.10.0.3* #5478
+		*2.10.0.2 #5384
+		*2.10.0.1 Category Changes
+		*2.10.0.0 #4898
+		*2.9.0.2* #4897
+		*2.9.0.1* #4788, #4787
+		*2.9.0.0* Updated for 2.9, not released
+		*2.5.0.3* Updated licensing
+		*2.5.0.2* Fixed export functionality
+		*2.5.0.1* Fixed conflict with bulkextensions module
+		*2.5.0.0* Initial Release
+	</changelog>
+	<supported>
+		<version>13.0</version>
+	</supported>
+	<md5sum>b37d02df3a974cea0181fffe2aa0edd0</md5sum>
+</module>

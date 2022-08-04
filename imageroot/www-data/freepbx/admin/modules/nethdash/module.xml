@@ -1,0 +1,22 @@
+<module>
+  <rawname>nethdash</rawname>
+  <repo>unsupported</repo>
+  <name>Custom Dashboard</name>
+  <version>1.0.0</version>
+  <category>Dashboard</category>
+  <Publisher>Stefano Fancello</Publisher>
+  <info></info>
+  <licence>GPL</licence>
+  <licenselink>http://www.gnu.org/licenses/gpl-2.0.txt</licenselink>
+  <menuitems>
+    <nethdash>Dashboard</nethdash>
+  </menuitems>
+<depends>
+  <version>14</version>
+</depends>
+<supported>14.0</supported>
+
+<description>Alternative Dashboard for FreePBX</description>
+<changelog></changelog>
+
+</module>

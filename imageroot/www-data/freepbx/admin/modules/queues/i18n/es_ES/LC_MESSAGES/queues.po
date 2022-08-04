@@ -1,0 +1,1767 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-02-26 06:29+0000\n"
+"PO-Revision-Date: 2015-12-08 23:36+0200\n"
+"Last-Translator: Andrew <andrew.nagy@the159.com>\n"
+"Language-Team: Spanish <http://weblate.freepbx.org/projects/freepbx/queues/"
+"es_ES/>\n"
+"Language: es_ES\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.2-dev\n"
+
+#: page.queues.php:19
+msgid " Add Queue"
+msgstr ""
+
+#: page.queues.php:15
+msgid " Edit: "
+msgstr ""
+
+#: views/form.php:495
+msgid ""
+"<b>ERROR</b>: You have selected an IVR that uses Announcements created from "
+"compound sound files. The Queue is not able to play these announcements. "
+"This IVRs recording will be truncated to use only the first sound file. You "
+"can correct the problem by selecting a different announcement for this IVR "
+"that is not from a compound sound file. The IVR itself can play such files, "
+"but the Queue subsystem can not"
+msgstr ""
+
+#: views/qgrid.php:16
+msgid "Actions"
+msgstr ""
+
+#: views/bootnav.php:3 views/qgrid.php:9
+msgid "Add Queue"
+msgstr "Añadir cola"
+
+#: views/form.php:887
+msgid ""
+"Add an Alert-Info Header like Snom and other Phones need for Ring or "
+"Ringtone informations"
+msgstr ""
+
+#: views/form.php:719
+msgid "Advanced Options"
+msgstr ""
+
+#: views/form.php:1430
+msgid ""
+"After a successful call, how many seconds to wait before sending a "
+"potentially free agent another call (default is 0, or no delay) If using "
+"Asterisk 1.6+, you can also set the 'Honor Wrapup Time Across Queues' "
+"setting (Asterisk: shared_lastcall) on the Advanced Settings page so that "
+"this is honored across queues for members logged on to multiple queues."
+msgstr ""
+"Después de una llamada exitosa, ¿cuántos segundos de espera antes de enviar "
+"un agente potencialmente libre otra llamada (por defecto es 0, o sin "
+"retardo) Si utiliza Asterisk 1.6+, también puede establecer el valor 'Honor "
+"Wrapup Time Across Queues' (Asterisk: shared_lastcall ) en la página "
+"Configuración Avanzada de modo que esta es honrado en toda colas para los "
+"miembros conectados a múltiples colas."
+
+#: functions.inc.php:65
+msgid "Agent Announce Msg"
+msgstr "Menaje de anuncio de agente"
+
+#: views/form.php:232
+msgid "Agent Announcement"
+msgstr ""
+
+#: queues.i18n.php:30
+msgid "Agent Called Events Default"
+msgstr ""
+
+#: views/form.php:1891
+msgid "Agent Regex Filter"
+msgstr "Filtro Regex Agente"
+
+#: views/form.php:978
+msgid "Agent Restrictions"
+msgstr "Restricciones de Agente"
+
+#: views/form.php:313
+msgid "Agent Ringing"
+msgstr "Timbrado de Agente"
+
+#: views/form.php:1334
+msgid "Agent Timeout"
+msgstr ""
+
+#: views/form.php:1360
+msgid "Agent Timeout Restart"
+msgstr ""
+
+#: views/form.php:875
+msgid "Alert Info"
+msgstr "Información de alerta"
+
+#: install.php:15 queues.i18n.php:42
+msgid ""
+"Allow Dynamic Members of a Queue to login or logout. See the Queues Module "
+"for how to assign a Dynamic Member to a Queue."
+msgstr ""
+
+#: views/form.php:198
+msgid "Always"
+msgstr "Siempre"
+
+#: views/form.php:391
+msgid "Always allows the caller to join the Queue."
+msgstr "Siempre permite al llamante unirse a la Cola."
+
+#: views/form.php:1819
+msgid "Announce Hold Time"
+msgstr ""
+
+#: views/form.php:1790
+msgid "Announce Position"
+msgstr ""
+
+#: views/form.php:1807
+msgid "Announce position of caller in the queue?"
+msgstr "Indica si se debe anunciar la posición del llamante en la cola?"
+
+#: views/form.php:209
+msgid ""
+"Announcement played to callers prior to joining the queue. This can be "
+"skipped if there are agents ready to answer a call (meaning they still may "
+"be wrapping up from a previous call) or when they are free to answer the "
+"call right now. To add additional recordings please use the \"System "
+"Recordings\" MENU."
+msgstr ""
+"Anuncio reproducido a las personas que llaman antes de unirse a la cola. "
+"Esto se puede omitir si hay agentes listos para contestar una llamada (lo "
+"que significa que todavía pueden estar completando una llamada anterior) o "
+"cuando están libres para contestar la llamada en este momento. Para añadir "
+"grabaciones adicionales utilice el menú \"Grabaciones del Sistema\"."
+
+#: views/form.php:246
+msgid ""
+"Announcement played to the Agent prior to bridging in the caller <br><br> "
+"Example: \"the Following call is from the Sales Queue\" or \"This call is "
+"from the Technical Support Queue\".<br><br>To add additional recordings "
+"please use the \"System Recordings\" MENU. Compound recordings composed of 2 "
+"or more sound files are not displayed as options since this feature can not "
+"accept such recordings."
+msgstr ""
+"Anuncio reproducido al Agente antes de conectar a la persona que llama "
+"<br><br> Ejemplo: \"la llamada siguiente es de la Cola de ventas\" o \"Esta "
+"llamada es de la cola Soporte Técnico\" <br><br> Para añadir  grabaciones "
+"adicionales por favor utilice el menú \"Grabaciones del Sistema\". "
+"Grabaciones compuestas por 2 o más archivos de sonido no se muestran como "
+"opciones ya que esta característica no puede aceptar este tipo de "
+"grabaciones."
+
+#: views/form.php:169
+msgid ""
+"Announcement played to the Queue Memeber announcing the Queue call and "
+"requesting confirmation prior to answering. If set to default, the standard "
+"call confirmation default message will be played unless the member is "
+"reached through a Follow-Me and there is an alternate message provided in "
+"the Follow-Me. This message will override any other message specified.."
+"<br><br>To add additional recordings please use the \"System Recordings\" "
+"MENU."
+msgstr ""
+"Anuncio reproducido al Miembro de Cola para  anunciar la llamada a la Cola  "
+"y pedir confirmación antes de contestar. Si se establece por defecto, se "
+"reproducirá el mensaje de confirmación de llamada estándar por defecto a "
+"menos que el miembro se alcance a través de un Sigue-Me y hay un mensaje "
+"alternativo previsto. Este mensaje anulará cualquier otro mensaje "
+"especificado .. <br><br> Para añadir grabaciones adicionales por favor "
+"utilice el menú \"Grabaciones del Sistema\"."
+
+#: views/cron.php:63
+msgid "Annually"
+msgstr "Anualmente"
+
+#: queues.i18n.php:6
+msgid "Applications"
+msgstr "Aplicaciones"
+
+#: views/form.php:1322
+msgid ""
+"Asterisk timeoutpriority. In 'Strict' mode, when the 'Max Wait Time' of a "
+"caller is hit, they will be pulled out of the queue immediately. In 'Loose' "
+"mode, if a queue member is currently ringing with this call, then we will "
+"wait until the queue stops ringing this queue member or otherwise the call "
+"is rejected by the queue member before taking the caller out of the queue. "
+"This means that the 'Max Wait Time' could be as long as 'Max Wait Time' + "
+"'Agent Timeout' combined."
+msgstr ""
+"Timeoutpriority Asterisk. En el modo 'estricto', cuando el 'Max Tiempo de "
+"espera' de una persona que llama es alcanzado, se sacara de la cola "
+"inmediatamente. En el modo 'Loose', si un miembro de la cola está timbrando "
+"con esta llamada, entonces vamos a esperar hasta que la cola deje de sonar a "
+"este miembro cola o de lo contrario se rechaza la llamada por el miembro de "
+"la cola antes de tomar la persona que llama de la cola. Esto significa que "
+"el Maximo Tiempo de espera podría ser tan largo como 'Max Tiempo de espera "
+"'+' Agent Timeout 'combinado."
+
+#: views/form.php:1721
+msgid ""
+"Asterisk: penaltymemberslimit. A limit can be set to disregard penalty "
+"settings, allowing all members to be tried, when the queue has too few "
+"members.  No penalty will be weighed in if there are only X or fewer queue "
+"members."
+msgstr ""
+"Asterisk: penaltymemberslimit. Un límite se puede configurar para ignorar la "
+"configuración de penalización, lo que permite a todos los miembros a ser "
+"intentados, cuando la cola tiene muy pocos miembros. No habra medicion de "
+"penalidad  si sólo hay X o menos miembros en la cola."
+
+#: views/form.php:1498
+msgid "Auto Pause"
+msgstr ""
+
+#: views/form.php:1587
+msgid "Auto Pause Delay"
+msgstr ""
+
+#: views/form.php:1517
+msgid ""
+"Auto Pause an agent in this queue (or all queues they are a member of) if "
+"they don't answer a call. Specific behavior can be modified by the Auto "
+"Pause Delay as well as Auto Pause Busy/Unavailable settings if supported on "
+"this version of Asterisk."
+msgstr ""
+"Auto Pausa un agente en esta cola (o todas las colas donde es un miembro) si "
+"ellos no responden a una llamada. Comportamiento específico puede ser "
+"modificado por el Retardo Auto Pausa, así como de pausa automática "
+"configuración Ocupado / No disponible si es compatible en esta versión de "
+"Asterisk."
+
+#: views/form.php:1529
+msgid "Auto Pause on Busy"
+msgstr ""
+
+#: views/form.php:1558
+msgid "Auto Pause on Unavailable"
+msgstr ""
+
+#: views/form.php:1036
+msgid "Autofill"
+msgstr ""
+
+#: functions.inc/geters_seters.php:39
+msgid "Bad Queue Number, can not be blank"
+msgstr "Número de cola no válido; no puede estar vacío"
+
+#: views/form.php:439
+msgid "Break Out Type"
+msgstr "Tipo de descanso"
+
+#: views/form.php:823
+msgid "CID Name Prefix"
+msgstr ""
+
+#: views/form.php:795
+msgid "Call Confirm"
+msgstr ""
+
+#: views/form.php:146
+msgid "Call Confirm Announce"
+msgstr ""
+
+#: views/form.php:1126
+msgid "Call Recording"
+msgstr ""
+
+#: views/form.php:986
+msgid "Call as Dialed"
+msgstr "Llamada como discada"
+
+#: views/form.php:563
+msgid "Callback to use when caller presses 1."
+msgstr "Retorno Llamada a usar cuando el usuario escoge 1."
+
+#: views/form.php:714
+msgid "Caller Announcements"
+msgstr ""
+
+#: views/form.php:1730
+msgid "Caller Position"
+msgstr ""
+
+#: views/form.php:400
+msgid ""
+"Callers will exit if all agents are paused, show an invalid state for their "
+"device or have penalty values less than QUEUE_MAX_PENALTY (not currently set "
+"in FreePBX dialplan)."
+msgstr ""
+
+#: views/form.php:394
+msgid ""
+"Callers will not be admitted if all agents are paused, show an invalid state "
+"for their device, or have penalty values less than QUEUE_MAX_PENALTY (not "
+"currently set in FreePBX dialplan)."
+msgstr ""
+
+#: views/form.php:709
+msgid "Capacity Options"
+msgstr "Opciones de Capacidad"
+
+#: functions.inc/queue_conf.php:226
+msgid "Compound Recordings in Queues Detected"
+msgstr "Se han detectado grabaciones compuestas en las colas"
+
+#: queues.i18n.php:8
+msgid ""
+"Creates a queue where calls are placed on hold and answered on a first-in, "
+"first-out basis. Many options are available, including ring strategy for "
+"agents, caller announcements, max wait times, etc."
+msgstr ""
+"Crea una cola donde las llamadas se colocan en espera y contestar en esquema "
+"primero en entrar, primero en salir,. Muchas opciones están disponibles, "
+"incluyendo la estrategia de timbrado para agentes, los anuncios de llamadas, "
+"el tiempo de espera máximo, etc."
+
+#: views/cron.php:60
+msgid "Daily"
+msgstr "Diario"
+
+#: views/form.php:154
+msgid "Default"
+msgstr "Por defecto"
+
+#: queues.i18n.php:32
+msgid ""
+"Default state for AMI emit events related to an agent's call. This setting "
+"will only affect the default for NEW queues, it won't change existing queues "
+"or enfore the option on in new ones."
+msgstr ""
+
+#: queues.i18n.php:36
+msgid ""
+"Default state for AMI to emit the QueueMemberStatus event. This setting will "
+"only affect the default for NEW queues, it won't change existing queues or "
+"enfore the option on in new ones."
+msgstr ""
+
+#: Queues.class.php:206
+msgid "Delete"
+msgstr ""
+
+#: views/bootnav.php:10 views/qgrid.php:15
+msgid "Description"
+msgstr ""
+
+#: views/form.php:398
+msgid ""
+"Determines if callers should be exited prematurely from the queue in "
+"situations where it appears no one is currently available to take the call. "
+"The options include:"
+msgstr ""
+"Determina si las personas que llaman deben sacarse prematuramente de la cola "
+"en situaciones en las que aparece que nadie está actualmente disponible para "
+"tomar la llamada. Las opciones incluyen:"
+
+#: views/form.php:389
+msgid ""
+"Determines if new callers will be admitted to the Queue, if not, the "
+"failover destination will be immediately pursued. The options include:"
+msgstr ""
+"Determina si las nuevas personas que llaman serán admitidos a la cola, si "
+"no, se lbuscara de inmediato el destino de failover. Las opciones incluyen:"
+
+#: views/form.php:19 views/form.php:1133
+msgid "Don't Care"
+msgstr ""
+
+#: views/form.php:1243
+msgid "Dynamic Agents"
+msgstr ""
+
+#: views/form.php:1264
+msgid ""
+"Dynamic Members are extensions or callback numbers that can log in and out "
+"of the queue. When a member logs in to a queue, their penalty in the queue "
+"will be as specified here. Extensions included here will NOT automatically "
+"be logged in to the queue."
+msgstr ""
+"Miembros dinámicos son extensiones o números de devolución de llamada que se "
+"puede entrar y salir de la cola. Cuando un miembro inicia sesión en una "
+"cola, su penalización  en la cola será como se especifica aquí. Extensiones "
+"incluidas aquí no se registrarán automáticamente en la cola."
+
+#: views/form.php:495
+msgid ""
+"Earlier versions of this module allowed such queues to be chosen, once "
+"changing this setting, it will no longer appear as an option"
+msgstr ""
+"Las versiones anteriores de este módulo permitían seleccionar este tipo de "
+"colas; una vez que se cambié este parámetro, ya no aparecerá como opción"
+
+#: views/cron.php:37
+msgid "Enable this task"
+msgstr ""
+
+#: views/form.php:1171
+msgid ""
+"Enabling this option, all calls are marked as 'answered elsewhere' when "
+"cancelled. The effect is that missed queue calls are *not* shown on the "
+"phone (if the phone supports it)"
+msgstr ""
+"Al activar esta opción, todas las llamadas se marcan como 'respondió en otro "
+"lugar' cuando se cancela. El efecto es que las llamadas en cola perdidas * "
+"no * se muestra en el teléfono (si el teléfono lo soporta)"
+
+#: views/form.php:619
+msgid "Event When Called"
+msgstr "Evento cuando Cancelado"
+
+#: functions.inc/hook_core.php:59
+msgid "Extension Options"
+msgstr "Opciones de Extension"
+
+#: views/form.php:990
+msgid "Extensions Only"
+msgstr "Solo Extensiones"
+
+#: views/form.php:1183
+msgid "Fail Over Destination"
+msgstr "Destino en caso de fallo"
+
+#: views/form.php:19 views/form.php:1131
+msgid "Force"
+msgstr ""
+
+#: views/form.php:1740
+msgid "Frequency"
+msgstr ""
+
+#: views/form.php:694
+msgid "General Settings"
+msgstr ""
+
+#: views/form.php:781
+msgid "Give this queue a brief name to help you identify it."
+msgstr "Asigne a esta cola un breve nombre para ayudarle a identificarla."
+
+#: views/form.php:1112
+msgid ""
+"Gives queues a 'weight' option, to ensure calls waiting in a higher priority "
+"queue will deliver its calls first if there are agents common to both queues."
+msgstr ""
+"Da a las colas una opción de \"peso\", para garantizar que las llamadas en "
+"espera en una cola con prioridad más alta se entregarán primero si hay "
+"agentes comunes a las dos colas."
+
+#: views/form.php:408
+msgid "Honor Penalties"
+msgstr "Honrar Penalidades"
+
+#: queues.i18n.php:18
+msgid "Honor Wrapup Time Across Queues"
+msgstr ""
+
+#: views/cron.php:59
+msgid "Hourly"
+msgstr "Cada Hora"
+
+#: views/form.php:601
+msgid ""
+"How often to announce a voice menu to the caller (0 to Disable "
+"Announcements)."
+msgstr ""
+"Indica la frecuencia con la que se anunciará un menú de voz al llamante "
+"(indique el valor 0 para deshabilitar los anuncios)."
+
+#: views/form.php:1754
+msgid ""
+"How often to announce queue position and estimated holdtime (0 to Disable "
+"Announcements)."
+msgstr ""
+"La frecuencia con la que se anunciará la posición en la cola y el tiempo de "
+"espera estimado (indique el valor 0 para deshabilitar esta opción)."
+
+#: functions.inc/destination_registry.php:98
+msgid "INUSE"
+msgstr "EN USO"
+
+#: functions.inc.php:75
+#, php-format
+msgid "IVR Announce: %s"
+msgstr "Anuncio de IVR: %s"
+
+#: views/form.php:444 views/form.php:507
+msgid "IVR Break Out Menu"
+msgstr "Menú de IVR de Salida"
+
+#: views/form.php:810
+msgid ""
+"If checked, any queue member that is actually an outside telephone number, "
+"or any extensions Follow-Me or call forwarding that are pursued and leave "
+"the PBX will be forced into Call Confirmation mode where the member must "
+"acknowledge the call before it is answered and delivered."
+msgstr ""
+
+#: views/form.php:126
+msgid ""
+"If checked, the queue will not answer the call. Under most circumstance you "
+"should always have the queue answering calls. If not, then it's possible "
+"that recordings and MoH will not be heard by the waiting callers since early "
+"media capabilities vary and are inconsistent. Some cases where it may be "
+"desired to not answer a call is when using Strict Join Empty queue policies "
+"where the caller will not be admitted to the queue unless there is a queue "
+"member immediately available to take the call."
+msgstr ""
+"Si se marca, la cola no responderá a la llamada. Bajo la mayoría de los "
+"casos usted debería tener las colas  respondiendo a las llamadas. Si no es "
+"así, entonces es posible que las grabaciones y el MoH no serán escuchadas "
+"por las personas que estén esperando dado que el manejo de early media  "
+"varían y puede ser inconsistentes. Algunos casos en los que se puede desear "
+"no contestar una llamada es cuando se utiliza la política de cola Estricto "
+"Ingreso Vacio (Strict Join Empty), donde la persona que llama no se "
+"admitirán a la cola a menos que haya un miembro de la cola inmediatamente "
+"disponible para tomar la llamada."
+
+#: views/form.php:863
+msgid ""
+"If the call is subsequently transferred, the wait time will reflect the time "
+"since it first entered the queue or reset if the call is transferred to "
+"another queue with this feature set."
+msgstr ""
+"Si la llamada se transfiere posteriormente, el tiempo de espera reflejará el "
+"tiempo desde que entró en la cola o se  restablece si la llamada se "
+"transfiere a otra cola con este conjunto de características."
+
+#: functions.inc/hook_core.php:65
+msgid ""
+"If this extension is part of a Queue then the Queue will attempt to use the "
+"user's extension state or device state information when determining if this "
+"queue member should be called. In some uncommon situations such as a Follow-"
+"Me with no physical device, or some virtual extension scenarios, the state "
+"information will indicate that this member is not available when they are. "
+"Setting this to 'Ignore State' will make the Queue ignore all state "
+"information thus always trying to contact this member. Certain side affects "
+"can occur when this route is taken due to the nature of how Queues handle "
+"Local channels, such as subsequent transfers will continue to show the "
+"member as busy until the original call is terminated. In most cases, this "
+"SHOULD BE set to 'Use State'."
+msgstr ""
+"Si esta extensión es parte de una Cola entonces la cola intentará utilizar "
+"la información del estado del dispositivo  o de extensión del usuario para "
+"determinar si este miembro de la cola debe ser llamado. En algunas "
+"situaciones poco comunes, como un Sígue-Me sin dispositivo físico, o algunos "
+"de los escenarios virtuales de extensión, la información de estado indicará "
+"que esta persona no está disponible cuando de hecho si esta. Fijar esto a "
+"'Ignorar Estado' hará que la cola ignorare toda la información de estado por "
+"lo tanto siempre tratara de contactar a este miembro. Ciertos efectos "
+"secundarios pueden ocurrir cuando esta ruta se toma debido a la naturaleza "
+"de cómo Colas manejan los canales locales, como las transferencias "
+"posteriores seguirán viendo al miembro como  ocupado hasta que se termine la "
+"llamada original. En la mayoría de los casos, esto se debe establecer en "
+"\"Uso de Estado '."
+
+#: views/form.php:1051
+msgid ""
+"If this is Enabled, and multiple agents are available, Asterisk will send "
+"one call to each waiting agent (depending on the ring strategy). Otherwise, "
+"it will hold all calls while it tries to find an agent for the top call in "
+"the queue making other calls wait."
+msgstr ""
+
+#: views/form.php:1378
+msgid ""
+"If timeoutrestart is set to yes, then the time out for an agent to answer is "
+"reset if a BUSY or CONGESTION is received. This can be useful if agents are "
+"able to cancel a call with reject or similar."
+msgstr ""
+"Si timeoutrestart se establece en \"sí\", entonces el tiempo de espera para "
+"un agente para responder se restablece si se recibe una CONGESTIÓN u "
+"OCUPADO. Esto puede ser útil si los agentes son capaces de cancelar una "
+"llamada con rechazar o similar."
+
+#: views/form.php:1456
+msgid ""
+"If you wish to have a delay before the member is connected to the caller (or "
+"before the member hears any announcement messages), set this to the number "
+"of seconds to delay."
+msgstr ""
+"Si usted desea tener un retraso antes de que el miembro sea conectado a la "
+"persona que llama (o antes de que el miembro escuche los mensajes de aviso), "
+"ponga esto en el número de segundos a retrasar."
+
+#: views/form.php:1486
+msgid ""
+"If you wish to report the caller's hold time to the member before they are "
+"connected to the caller, set this to yes."
+msgstr ""
+"Si usted desea reportar el tiempo de espera de la persona que llama al "
+"miembro antes de que se conectan a la persona que llama, ponga esto en \"sí"
+"\"."
+
+#: functions.inc/hook_core.php:37
+msgid "Ignore State"
+msgstr "Ignorar Estado"
+
+#: views/form.php:1143
+msgid ""
+"Incoming calls to agents can be recorded. If 'never' is selected, then in-"
+"call on demand recording is blocked."
+msgstr ""
+
+#: views/form.php:183
+msgid "Join Announcement"
+msgstr ""
+
+#: views/form.php:1639
+msgid "Join Empty"
+msgstr ""
+
+#: views/form.php:1673
+msgid "Leave Empty"
+msgstr ""
+
+#: views/bootnav.php:2
+msgid "List Queues"
+msgstr ""
+
+#: views/form.php:395 views/form.php:403 views/form.php:1314
+#: views/form.php:1653 views/form.php:1687
+msgid "Loose"
+msgstr "Soltar"
+
+#: views/form.php:1155
+msgid "Mark calls answered elsewhere"
+msgstr ""
+
+#: views/form.php:1614
+msgid "Max Callers"
+msgstr ""
+
+#: views/form.php:1279
+msgid "Max Wait Time"
+msgstr ""
+
+#: views/form.php:1305
+msgid "Max Wait Time Mode"
+msgstr ""
+
+#: views/form.php:1627
+msgid "Maximum number of people waiting in the queue (0 for unlimited)"
+msgstr ""
+"Número máximo de usuarios que pueden estar esperando en la cola (indique 0 "
+"para no poner un límite)"
+
+#: views/form.php:1442
+msgid "Member Delay"
+msgstr ""
+
+#: views/form.php:651
+msgid "Member Status Event"
+msgstr "Evento Estado de Miembro"
+
+#: queues.i18n.php:34
+msgid "Member Status Event Default"
+msgstr ""
+
+#: views/form.php:481 views/form.php:485
+msgid "Menu ID "
+msgstr "Identificador de menú "
+
+#: views/form.php:1766
+msgid "Minimum Announcement Interval"
+msgstr ""
+
+#: views/form.php:312
+msgid "MoH Only"
+msgstr "Solo Música en Espera"
+
+#: views/cron.php:62
+msgid "Monthly"
+msgstr "Mensual"
+
+#: views/form.php:323
+msgid ""
+"Music (MoH) played to the caller while they wait in line for an available "
+"agent. Choose \"inherit\" if you want the MoH class to be what is currently "
+"selected, such as by the inbound route. MoH Only will play music until the "
+"agent answers. Agent Ringing will play MoH until an agent's phone is "
+"presented with the call and is ringing. If they don't answer, MoH will "
+"return.  Ring Only makes callers hear a ringing tone instead of MoH ignoring "
+"any MoH Class selected as well as any configured periodic announcements. "
+"This music is defined in the \"Music on Hold\" Menu."
+msgstr ""
+"Música (MoH) en espera se reprodujo a la persona que llama mientras espera "
+"en la cola por un agente disponible. Elija \"heredar\" si desea que la clase "
+"MoH sea lo que está seleccionado actualmente, como tal por la ruta entrante. "
+"MoH sólo reproducirá la música hasta que el agente contesta. El timbrado del "
+"Agente reproducira MoH hasta al teléfono de un agente se presenta la llamada "
+"y este sonando. Si ellos no responden, MoH volverá. \"Sólo Timbre\" hace que "
+"quien llama  escuche  timbre en lugar de MoH ignorando cualquier clase MoH "
+"seleccionada, así como cualquier tipo de anuncios periódicos configurados. "
+"Esta música se define en el menú \"Música en espera\"."
+
+#: views/form.php:291
+msgid "Music on Hold Class"
+msgstr ""
+
+#: views/form.php:19 views/form.php:1135
+msgid "Never"
+msgstr "Nunca"
+
+#: views/form.php:404
+msgid ""
+"Never have a caller leave the Queue until the Max Wait Time has expired."
+msgstr ""
+"Nunca dejara la cola la persona que llama hasta que el máximo tiempo de "
+"espera ha caducado."
+
+#: views/cron.php:28 views/cron.php:57 views/form.php:19 views/form.php:118
+#: views/form.php:394 views/form.php:404 views/form.php:627 views/form.php:659
+#: views/form.php:802 views/form.php:855 views/form.php:958 views/form.php:1043
+#: views/form.php:1070 views/form.php:1134 views/form.php:1163
+#: views/form.php:1369 views/form.php:1478 views/form.php:1504
+#: views/form.php:1538 views/form.php:1567 views/form.php:1651
+#: views/form.php:1685 views/form.php:1799 views/form.php:1828
+msgid "No"
+msgstr "No"
+
+#: views/form.php:988
+msgid "No Follow-Me or Call Forward"
+msgstr "No Sigue-Me o Desvío de Llamada"
+
+#: views/form.php:369
+msgid "No Retry"
+msgstr "No reintentar"
+
+#: views/form.php:190 views/form.php:218 views/form.php:512 views/form.php:553
+#: views/form.php:903
+msgid "None"
+msgstr "Ninguno"
+
+#: views/form.php:1830
+msgid "Once"
+msgstr "Sólo una vez"
+
+#: views/form.php:730
+msgid "Other Options"
+msgstr ""
+
+#: views/form.php:915
+#, php-format
+msgid ""
+"Override the ringer volume. Note: This is only valid for %s phones at this "
+"time"
+msgstr ""
+
+#: views/form.php:1707
+msgid "Penalty Members Limit"
+msgstr ""
+
+#: views/form.php:1846
+msgid "Periodic Announcements"
+msgstr "Anuncios periódicos"
+
+#: queues.i18n.php:12
+msgid "Persistent Members"
+msgstr ""
+
+#: install.php:29 queues.i18n.php:38
+msgid "Playback Queue Caller Count"
+msgstr ""
+
+#: views/form.php:1903
+msgid ""
+"Provides an optional regex expression that will be applied against the agent "
+"callback number. If the callback number does not pass the regex filter then "
+"it will be treated as invalid. This can be used to restrict agents to "
+"extensions within a range, not allow callbacks to include keys like *, or "
+"any other use that may be appropriate. An example input might be:<br /"
+">^([2-4][0-9]{3})$<br />This would restrict agents to extensions 2000-4999. "
+"Or <br />^([0-9]+)$ would allow any number of any length, but restrict the * "
+"key.<br />WARNING: make sure you understand what you are doing or otherwise "
+"leave this blank!"
+msgstr ""
+"Proporciona una expresión regex opcional que se aplicará contra el número de "
+"devolución de llamada del agente. Si el número de devolución de llamada no "
+"pasa el filtro de expresiones regulares entonces será tratado como no "
+"válido. Esto se puede utilizar para restringir los agentes a extensiones "
+"dentro de un rango, no permiten devoluciones de llamada para incluir claves "
+"como *, o cualquier otro uso que pueda ser apropiada. Un ejemplo de entrada "
+"podría ser: <br />^([2-4][0-9]{3})$<br /> Esto restringiría agentes a las "
+"extensiones 2000 a 4999. O <br />^([0-9]+)$ permitiría a cualquier número de "
+"cualquier longitud, pero restringir la tecla * <br /> ADVERTENCIA:. "
+"Asegúrese de que entiende lo que está haciendo o de lo contrario deja en "
+"blanco!"
+
+#: Queues.class.php:194 views/bootnav.php:9 views/qgrid.php:14
+msgid "Queue"
+msgstr "Cola"
+
+#: functions.inc/destination_registry.php:36
+#, php-format
+msgid "Queue %s : %s"
+msgstr "Cola %s: %s"
+
+#: functions.inc/queue_conf.php:224
+#, php-format
+msgid "Queue - %s (%s): %s<br />"
+msgstr "Cola - %s (%s): %s<br/>"
+
+#: views/form.php:699
+msgid "Queue Agents"
+msgstr ""
+
+#: views/form.php:445 views/form.php:548
+msgid "Queue Callback"
+msgstr "Cola de retorno de Llamada"
+
+#: install.php:10
+msgid "Queue Callers"
+msgstr "Cola de Llamantes"
+
+#: views/form.php:769
+msgid "Queue Name"
+msgstr ""
+
+#: views/form.php:111
+msgid "Queue No Answer"
+msgstr ""
+
+#: views/form.php:745
+msgid "Queue Number"
+msgstr ""
+
+#: assets/js/queues.js:40
+msgid "Queue Number must not be blank"
+msgstr "El número de la cola no puede estar vacío"
+
+#: views/form.php:82
+msgid "Queue Password"
+msgstr ""
+
+#: install.php:9 /dev/shm/freepbx/queues/install.php:22 queues.i18n.php:40
+msgid "Queue Pause Toggle"
+msgstr "Switch de pausa de Cola"
+
+#: functions.inc/hook_core.php:64
+msgid "Queue State Detection"
+msgstr "Detección Estado de la Cola"
+
+#: install.php:8
+msgid "Queue Toggle"
+msgstr "Switch de Cola"
+
+#: views/form.php:1099
+msgid "Queue Weight"
+msgstr "Peso de Cola"
+
+#: views/form.php:1073
+msgid "Queue calls only (ringinuse=no)"
+msgstr "Cola llamadas solo (ringinuse=no)"
+
+#: assets/js/queues.js:53
+msgid ""
+"Queue name must not be blank and must contain only alpha-numeric characters"
+msgstr ""
+"El nombre de la cola no puede estar vacío y sólo puede contener caracteres "
+"alfanuméricos"
+
+#: functions.inc/destination_registry.php:56
+#: functions.inc/destination_registry.php:73
+#: functions.inc/destination_registry.php:97
+#, php-format
+msgid "Queue: %s"
+msgstr "Cola: %s"
+
+#: functions.inc/destination_registry.php:126
+#, php-format
+msgid "Queue: %s (%s)"
+msgstr "Cola: %s (%s)"
+
+#: page.queues.php:7 queues.i18n.php:4 queues.i18n.php:10
+msgid "Queues"
+msgstr "Colas"
+
+#: queues.i18n.php:14
+msgid "Queues Module"
+msgstr ""
+
+#: bin/queue_reset_stats.php:12
+msgid "Queues module not found or is disabled. Aborting!"
+msgstr "Modulo de Colas no encontrado o deshabilitado. Abortando!"
+
+#: queues.i18n.php:28
+msgid ""
+"Queues: monitor-type = MixMonitor. Setting true will use the MixMonitor "
+"application instead of Monitor so the concept of 'joining/mixing' the in/out "
+"files now goes away when this is enabled."
+msgstr ""
+
+#: queues.i18n.php:16
+msgid ""
+"Queues: persistentmembers. Store each dynamic member in each queue in the "
+"astdb so that when asterisk is restarted, each member will be automatically "
+"read into their recorded queues."
+msgstr ""
+
+#: queues.i18n.php:20
+msgid ""
+"Queues: shared_lastcall, only valid with Asterisk 1.6+. This will make the "
+"lastcall and calls received be the same in members logged in more than one "
+"queue. This is useful to make the queue respect the wrapuptime of another "
+"queue for a shared member."
+msgstr ""
+
+#: queues.i18n.php:24
+msgid ""
+"Queues: updatecdr, only valid with Asterisk 1.6+. This option is implemented "
+"to mimic chan_agents behavior of populating CDR dstchannel field of a call "
+"with an agent name, which is set if available at the login time with "
+"AddQueueMember membername parameter, or with static members."
+msgstr ""
+
+#: views/cron.php:84
+msgid "RUN"
+msgstr ""
+
+#: views/cron.php:50
+msgid "Random"
+msgstr ""
+
+#: views/form.php:587
+msgid "Repeat Frequency"
+msgstr ""
+
+#: views/form.php:1469
+msgid "Report Hold Time"
+msgstr ""
+
+#: Queues.class.php:216
+msgid "Reset"
+msgstr ""
+
+#: views/form.php:724
+msgid "Reset Queue Stats"
+msgstr "Reiniciar estadísticas de Cola"
+
+#: views/form.php:951
+msgid "Restrict Dynamic Agents"
+msgstr "Restringir Agentes Dinamicos"
+
+#: views/form.php:966
+msgid ""
+"Restrict dynamic queue member logins to only those listed in the Dynamic "
+"Members list above. When set to Yes, members not listed will be DENIED "
+"ACCESS to the queue."
+msgstr ""
+"Restringir conexiones de miembros dinámicos a la cola a sólo a los que "
+"figuran en la lista de miembros dinámicos arriba. Cuando se establece en \"Sí"
+"\", los miembros no mencionados se les niega el acceso a la cola."
+
+#: views/form.php:1390
+msgid "Retry"
+msgstr ""
+
+#: views/form.php:314
+msgid "Ring Only"
+msgstr "Timbrar Solo"
+
+#: views/form.php:1010
+msgid "Ring Strategy"
+msgstr ""
+
+#: views/form.php:898
+msgid "Ringer Volume Override"
+msgstr ""
+
+#: views/form.php:926
+msgid "Ringer Volume Override Mode"
+msgstr ""
+
+#: views/form.php:395
+msgid ""
+"Same as No except Callers will be admitted if there are paused agents who "
+"could become available."
+msgstr ""
+
+#: views/form.php:393
+msgid ""
+"Same as Strict plus a queue member must be able to answer the phone 'now' to "
+"let them in. Simply speaking, any 'available' agents that could answer but "
+"are currently on the phone or ringing on behalf of another caller will be "
+"considered unavailable."
+msgstr ""
+"Igual que Estricto más un miembro de la cola debe ser capaz de contestar el "
+"teléfono \"ahora\" para  dejarlos entrar. En pocas palabras, los agentes "
+"disponibles de que pudiera responder, pero se encuentran actualmente en el "
+"teléfono o de llamada en nombre de otra persona que llama se considerarán no "
+"disponible ."
+
+#: views/form.php:402
+msgid ""
+"Same as Strict plus a queue member must be able to answer the phone 'now' to "
+"let them remain. Simply speaking, any 'available' agents that could answer "
+"but are currently on the phone or ringing on behalf of another caller will "
+"be considered unavailable."
+msgstr ""
+"Iguala Estricto más un miembro de cola debe ser capaz de contestar el "
+"teléfono \"ahora\" para dejarlos vivos. En pocas palabras, los agentes "
+"disponibles que pudieran responder, pero se encuentran actualmente en el "
+"teléfono o de llamada en nombre de otra persona que llama se considerarán no "
+"disponible."
+
+#: views/form.php:392
+msgid ""
+"Same as Yes but more strict.  Simply speaking, if no agent could answer the "
+"phone then don't admit them. If agents are inuse or ringing someone else, "
+"caller will still be admitted."
+msgstr ""
+"Igual que Sí pero más estricta. En pocas palabras, si no hay ningún agente "
+"que pueda contestar el teléfono, entonces no admitirlos. Si los agentes "
+"están inuse o timbrando a otra persona, aún se admitirá al que llama."
+
+#: views/form.php:401
+msgid ""
+"Same as Yes but more strict.  Simply speaking, if no agent could answer the "
+"phone then have them leave the queue. If agents are inuse or ringing someone "
+"else, caller will still be held."
+msgstr ""
+"Igual que Sí pero más estricta. En pocas palabras, si no hay ningún agente "
+"que pueda contestar el teléfono entonces se les hará dejar la cola. Si los "
+"agentes son inuse o timbrando a alguien más, todavía se mantendrá  a la "
+"persona que llama."
+
+#: views/form.php:403
+msgid ""
+"Same as Yes except Callers will remain in the Queue if there are paused "
+"agents who could become available."
+msgstr ""
+
+#: views/form.php:1865
+msgid "Service Level"
+msgstr ""
+
+#: queues.i18n.php:22
+msgid "Set Agent Name in CDR dstchannel"
+msgstr ""
+
+#: views/cron.php:72
+msgid "Set this task to happen at random"
+msgstr ""
+
+#: views/form.php:1838
+msgid ""
+"Should we include estimated hold time in position announcements?  Either "
+"yes, no, or only once; hold time will not be announced if <1 minute"
+msgstr ""
+"Indica si se debe anunciar al llamante el tiempo de espera aproximado. "
+"Seleccione 'Sí', 'No', o 'Sólo una vez'; el tiempo de espera no será "
+"anunciado si este es menor de 1 minuto"
+
+#: views/form.php:1063
+msgid "Skip Busy Agents"
+msgstr ""
+
+#: views/form.php:274
+msgid ""
+"Some ring strategies (linear, round robin) require Asterisk to be restarted "
+"for changes to take effect."
+msgstr ""
+
+#: views/form.php:1210
+msgid "Static Agents"
+msgstr "Agentes fijos"
+
+#: views/form.php:1231
+msgid ""
+"Static agents are extensions that are assumed to always be on the queue.  "
+"Static agents do not need to 'log in' to the queue, and cannot 'log out' of "
+"the queue.<br><br>List extensions to ring, one per line.<br><br>You can "
+"include an extension on a remote system, or an external number (Outbound "
+"Routing must contain a valid route for external numbers). You can put a \","
+"\" after the agent followed by a penalty value, see Asterisk documentation "
+"concerning penalties.<br /><br /> An advanced mode has been added which "
+"allows you to prefix an agent number with S, P, X, Z, D or A. This will "
+"force the agent number to be dialed as an Asterisk device of type SIP, "
+"PJSIP, IAX2, ZAP, DAHDi or Agent respectively. This mode is for advanced "
+"users and can cause known issues in FreePBX as you are by-passing the normal "
+"dialplan. If your 'Agent Restrictions' are not set to 'Extension Only' you "
+"will have problems with subsequent transfers to voicemail and other issues "
+"may also exist."
+msgstr ""
+
+#: views/cron.php:20
+msgid "Stats Reset"
+msgstr ""
+
+#: views/form.php:392 views/form.php:401 views/form.php:1312
+#: views/form.php:1647 views/form.php:1681
+msgid "Strict"
+msgstr "Estricto"
+
+#: Queues.class.php:211
+msgid "Submit"
+msgstr ""
+
+#: views/form.php:1778
+msgid ""
+"The absolute minimum time between the start of each queue position and/or "
+"estimated holdtime announcement"
+msgstr ""
+
+#: views/form.php:1293
+msgid ""
+"The maximum number of seconds a caller can wait in a queue before being "
+"pulled out.  (0 for unlimited)."
+msgstr ""
+"El tiempo máximo en segundos que un llamante en la cola esperará antes de "
+"ser eliminado (el valor 0 indica que nunca lo será)."
+
+#: views/form.php:1348
+msgid ""
+"The number of seconds an agent's phone can ring before we consider it a "
+"timeout. Unlimited or other timeout values may still be limited by system "
+"ringtime or individual extension defaults."
+msgstr ""
+"El número de segundos que se esperará a que un agente conteste una llamada. "
+"Un valor distinto o sin límite puede ser especificado también por extensión."
+
+#: views/form.php:1404
+msgid ""
+"The number of seconds we wait before trying all the phones again. Choosing "
+"\"No Retry\" will exit the Queue and go to the fail-over destination as soon "
+"as the first attempted agent times-out, additional agents will not be "
+"attempted."
+msgstr ""
+"El número de segundos que se esperará antes de intentar llamar a todos los "
+"agentes de nuevo. Seleccionando la opción 'No reintentar', se saldrá de cola "
+"e ira a la opción especificada en el apartado en el 'Destino en caso de "
+"fallo' en cuanto se alcance el tiempo de espera de un agente; no se "
+"intentará contactar con otros agentes."
+
+#: views/form.php:1599
+msgid ""
+"This setting will delay the auto pause of an agent by auto pause delay "
+"seconds from when it last took a call. For example, if this were set to 120 "
+"seconds, and a new call is presented to the agent 90 seconds after they last "
+"took a call, they will not be auto paused if they don't answer the call. If "
+"presented with a call 120 seconds or later after answering the last call, "
+"they will then be auto paused. If they have taken no calls, this will have "
+"no affect."
+msgstr ""
+"Este ajuste retrasará la pausa automática de un agente por  pausa automática "
+"de retardo en segundos desde que se tomó la última llamada. Por ejemplo, si "
+"se establece en 120 segundos, y una nueva llamada se presenta al agente 90 "
+"segundos después de que el tomo la ultima llamada, no va a entrar auto "
+"pausa  si no contestar la llamada. Si se presenta con una llamada 120 "
+"segundos o más tarde después de responder a la última llamada, será puesto "
+"en auto pausa. Si no  han tenido ninguna llamada, esto no tendrá ningún "
+"efecto."
+
+#: views/form.php:1754
+msgid "This value is ignored if the caller's position changes"
+msgstr ""
+
+#: views/form.php:704
+msgid "Timing & Agent Options"
+msgstr "Opciones de Agentes & Tiempo"
+
+#: views/form.php:393 views/form.php:402 views/form.php:1649
+#: views/form.php:1683
+msgid "Ultra Strict"
+msgstr "Ultra Estricto"
+
+#: views/form.php:345 views/form.php:363
+msgid "Unlimited"
+msgstr "Sin límite"
+
+#: queues.i18n.php:26
+msgid "Use MixMonitor for Recordings"
+msgstr ""
+
+#: functions.inc/hook_core.php:36
+msgid "Use State"
+msgstr "Usar Estado"
+
+#: views/form.php:757
+msgid ""
+"Use this number to dial into the queue, or transfer callers to this number "
+"to put them into the queue"
+msgstr ""
+
+#: views/form.php:1879
+msgid ""
+"Used for service level statistics (calls answered within service level time "
+"frame)"
+msgstr ""
+"Se utiliza para las estadísticas de nivel de servicio (llamadas contestadas "
+"dentro de marco de tiempo de nivel de servicio)"
+
+#: assets/js/queues.js:29
+msgid ""
+"Using a Regex filter is fairly advanced, please confirm you know what you "
+"are doing or leave this blank"
+msgstr ""
+"El uso de un filtro de Regex está bastante avanzado, por favor confirme que "
+"usted sabe lo que está haciendo o déjelo en blanco"
+
+#: views/form.php:847
+msgid "Wait Time Prefix"
+msgstr ""
+
+#: Queues.class.php:145
+msgid "Warning! Extension"
+msgstr "Aviso: La extensión"
+
+#: functions.inc/queue_conf.php:219
+msgid ""
+"Warning, there are compound recordings configured in one or more Queue "
+"configurations. Queues can not play these so they have been truncated to the "
+"first sound file. You should correct this problem.<br />Details:<br /><br />"
+msgstr ""
+"Atención, hay grabaciones compuestas configuradas en una o más "
+"configuraciones de colas. Las colas no pueden reproducir este tipo de "
+"grabaciones, por lo que sólo se usará la primera grabación. Debería corregir "
+"este problema.<br/>Detalles:<br/><br/>"
+
+#: views/cron.php:61
+msgid "Weekly"
+msgstr "Semanal"
+
+#: views/form.php:199
+msgid "When No Free Agents"
+msgstr "Cuando no hay Agentes Libres"
+
+#: views/form.php:200
+msgid "When No Ready Agents"
+msgstr "Cuando no hay Agentes Listos"
+
+#: views/form.php:998
+msgid ""
+"When set to 'Call as Dialed' the queue will call an extension just as if the "
+"queue were another user. Any Follow-Me or Call Forward states active on the "
+"extension will result in the queue call following these call paths. This "
+"behavior has been the standard queue behavior on past FreePBX versions. <br /"
+">When set to 'No Follow-Me or Call Forward', all agents that are extensions "
+"on the system will be limited to ringing their extensions only. Follow-Me "
+"and Call Forward settings will be ignored. Any other agent will be called as "
+"dialed. This behavior is similar to how extensions are dialed in ringgroups. "
+"<br />When set to 'Extensions Only' the queue will dial Extensions as "
+"described for 'No Follow-Me or Call Forward'. Any other number entered for "
+"an agent that is NOT a valid extension will be ignored. No error checking is "
+"provided when entering a static agent or when logging on as a dynamic agent, "
+"the call will simply be blocked when the queue tries to call it. For dynamic "
+"agents, see the 'Agent Regex Filter' to provide some validation."
+msgstr ""
+"Cuando se establece en 'Llamar como Marcadas' la cola llamara  a una "
+"extensión como si la cola fuera otro usuario. Cualquier Sigue-Me o Desvío de "
+"llamadas que este activo dará lugar a la llamada a seguir la ruta así "
+"indicada. Este comportamiento ha sido el comportamiento de la cola de serie "
+"en las versiones anteriores FreePBX. <br />Cuando se establece en 'No Sigue-"
+"Me o el desvío de llamadas', todos los agentes que son extensiones del "
+"sistema se limitará a sonar sus extensiones solamente. Sígue-Me y los "
+"ajustes de desvío de llamadas serán ignoradas. Cualquier otro agente se "
+"llamará como marcado. Este comportamiento es similar a cómo se marcan las "
+"extensiones en ringgroups. <br /> Cuando se establece en 'Extensiones Sólo' "
+"la cola marcará extensiones como se describe para 'No Follow-Me o el desvío "
+"de llamadas'. Cualquier otro número introducido por un agente que NO es una "
+"extensión válida será ignorado. No se proporciona ninguna comprobación de "
+"errores al introducir un agente estático o al iniciar la sesión como un "
+"agente dinámico, la llamada simplemente será bloqueada cuando la cola "
+"intenta llamarlo. Para los agentes dinámicos, consulte el \"Filtro de Agente "
+"Regex 'proporcionar alguna validación."
+
+#: views/form.php:1087
+msgid ""
+"When set to 'Yes' agents who are on an occupied phone will be skipped as if "
+"the line were returning busy. This means that Call Waiting or multi-line "
+"phones will not be presented with the call and in the various hunt style "
+"ring strategies, the next agent will be attempted. <br />When set to 'Yes + "
+"(ringinuse=no)' the queue configuration flag 'ringinuse=no' is set for this "
+"queue in addition to the phone's device status being monitored. This results "
+"in the queue tracking remote agents (agents who are a remote PSTN phone, "
+"called through Follow-Me, and other means) as well as PBX connected agents, "
+"so the queue will not attempt to send another call if they are already on a "
+"call from any queue. <br />When set to 'Queue calls only (ringinuse=no)' the "
+"queue configuration flag 'ringinuse=no' is set for this queue also but the "
+"device status of locally connected agents is not monitored. The behavior is "
+"to limit an agent belonging to one or more queues to a single queue call. If "
+"they are occupied from other calls, such as outbound calls they initiated, "
+"the queue will consider them available and ring them since the device state "
+"is not monitored with this option. <br /><br />WARNING: When using the "
+"settings that set the 'ringinuse=no' flag, there is a NEGATIVE side effect. "
+"An agent who transfers a queue call will remain unavailable by any queue "
+"until that call is terminated as the call still appears as 'inuse' to the "
+"queue UNLESS 'Agent Restrictions' is set to 'Extensions Only'."
+msgstr ""
+"Cuando se usa  'Sí' los Agentes que están en un teléfono ocupado se saltará "
+"como si la línea se pone ocupada. Esto significa que la llamada en espera o "
+"teléfono multilínea no se presentarán con la convocatoria y en las diversas "
+"estrategias de timbrado de estilo caza (hunt), se intentará el siguiente "
+"agente. <br /> Cuando usa en \"Sí + (ringinuse = no) 'el indicador de "
+"configuración de colas' ringinuse = no 'se ha fijado para esta cola, además "
+"de estado del dispositivo del teléfono está supervisando. Esto se traduce en "
+"el rastreo agentes remotos (agentes que están en un teléfono remoto PSTN, "
+"llamados por SígueMe, u otros medios), así como PBX conectado agentes, por "
+"lo que la cola no intentará enviar otra llamada si ya están en una llamada "
+"desde cualquier cola. <br /> Cuando se usa \"cola de llamadas sólo "
+"(ringinuse = no) 'el indicador de configuración de colas' ringinuse = no 'se "
+"establece para esta cola también, pero el estado del dispositivo de agentes "
+"conectados localmente no se supervisa. El comportamiento es limitar un "
+"agente que pertenece a una o más colas a  una sola llamada. Si ellos están "
+"ocupados de otras llamadas, como las llamadas salientes que habían iniciado, "
+"la cola los considerará disponible y timbrara a ellos ya que  el estado del "
+"dispositivo no se monitorea con esta opción. <br /><br /> ADVERTENCIA: "
+"Cuando se utiliza la configuración que establecen el 'ringinuse = no' , hay "
+"un efecto secundario negativo. Un agente que transfiere una llamada en cola "
+"no estará disponible por cualquier cola de espera hasta que la llamada se "
+"termina cuando la llamada sigue apareciendo como \"inuse 'a la cola A MENOS "
+"que 'Restricciones de Agente' este en 'Extensiones Only '."
+
+#: views/form.php:667
+msgid ""
+"When set to YES, the following manager event will be generated: "
+"QueueMemberStatus"
+msgstr ""
+"Cuando se establece en Sí, el siguiente evento de gestión se generará: "
+"QueueMemberStatus"
+
+#: views/form.php:1546
+msgid ""
+"When set to Yes agents devices that report busy upon a call attempt will be "
+"considered as a missed call and auto paused immediately or after the auto "
+"pause delay if configured"
+msgstr ""
+"Cuando se establece en Sí dispositivos de agentes que informan ocupado en un "
+"intento de llamada se considerará como una llamada perdida y auto pauados "
+"inmediatamente o después de la demora de pausa automática si se ha "
+"configurado"
+
+#: views/form.php:1575
+msgid ""
+"When set to Yes agents devices that report congestion upon a call attempt "
+"will be considered as a missed call and auto paused immediately or after the "
+"auto pause delay if configured"
+msgstr ""
+"Cuando se establece en Sí dispositivos agentes reporten  congestión en un "
+"intento de llamada se considerará como una llamada perdida y serán puesto en "
+"auto pausa inmediatamente o después de la demora de pausa automática si se "
+"ha configurado"
+
+#: views/form.php:863
+msgid ""
+"When set to Yes, the CID Name will be prefixed with the total wait time in "
+"the queue so the answering agent is aware how long they have waited. It will "
+"be rounded to the nearest minute, in the form of Mnn: where nn is the number "
+"of minutes."
+msgstr ""
+"Cuando se active esta opción, al nombre del llamante se le añadirá el tiempo "
+"total que el usuario ha estado en la cola, de tal forma que el agente que "
+"responda la llamada pueda saber cuánto tiempo ha estado esperando el "
+"usuario. Este tiempo será redondeado al minuto más cercano, de la forma, "
+"Mnn, donde nn es el número de minutos."
+
+#: views/form.php:635
+msgid ""
+"When this option is set to YES, the following manager events will be "
+"generated: AgentCalled, AgentDump, AgentConnect and AgentComplete."
+msgstr ""
+"Cuando esta opción se establece en YES(SI), se generarán los siguientes "
+"eventos : AgentCalled, AgentDump, AgentConnect y AgentComplete."
+
+#: views/cron.php:96
+msgid ""
+"When to schedule this job. Note enabling 'Random' overrides these settings"
+msgstr ""
+
+#: views/form.php:1195
+msgid "Where calls should fail to"
+msgstr ""
+
+#: views/form.php:454
+msgid ""
+"Whether this queue uses an IVR Break Out Menu or a Queue Callback.  Queue "
+"Callbacks can also be achieved through an IVR, but requires extra "
+"configuration."
+msgstr ""
+"Indica si esta cola utiliza un IVR Break Out Menu o una cola de devolución "
+"de llamada. Cola de devoluciones de llamada también se puede lograr a través "
+"de un IVR, pero requiere una configuración adicional."
+
+#: views/form.php:939
+#, php-format
+msgid ""
+"While queue calls are distributed, any member has FM/FM(Find Me/Follow Me) "
+"enabled, Ringer Volume value will set based on the 'Ringer Volume Override "
+"Mode(RVOM)'."
+msgstr ""
+
+#: views/form.php:1416
+msgid "Wrap-Up-Time"
+msgstr ""
+
+#: views/cron.php:26 views/cron.php:55 views/form.php:19 views/form.php:116
+#: views/form.php:391 views/form.php:400 views/form.php:625 views/form.php:657
+#: views/form.php:800 views/form.php:853 views/form.php:956 views/form.php:1041
+#: views/form.php:1071 views/form.php:1132 views/form.php:1161
+#: views/form.php:1367 views/form.php:1476 views/form.php:1536
+#: views/form.php:1565 views/form.php:1645 views/form.php:1679
+#: views/form.php:1797 views/form.php:1826
+msgid "Yes"
+msgstr "Sí"
+
+#: views/form.php:1072
+msgid "Yes + (ringinuse=no)"
+msgstr "Si + (ringinuse=no)"
+
+#: views/form.php:1504
+msgid "Yes in all queues"
+msgstr "Si en todas la colas"
+
+#: views/form.php:1504
+msgid "Yes in this queue only"
+msgstr "Si solo en esta cola"
+
+#: views/form.php:835
+msgid ""
+"You can optionally prefix the CallerID name of callers to the queue. ie: If "
+"you prefix with \"Sales:\", a call from John Doe would display as \"Sales:"
+"John Doe\" on the extensions that ring."
+msgstr ""
+"Usted puede prefijar opcionalmente el nombre del  identificador de llamadas "
+"de personas que llaman a la cola. es decir: Si se prefija con \"Ventas:\", "
+"una llamada de John Doe mostraría como \"Ventas: John Doe\" en las "
+"extensiones que suenan."
+
+#: views/form.php:522
+msgid ""
+"You can optionally present an existing IVR as a 'break out' menu."
+"<br><br>This IVR must only contain single-digit 'dialed options'. The "
+"Recording set for the IVR will be played at intervals specified in 'Repeat "
+"Frequency', below."
+msgstr ""
+"Usted puede presentar opcionalmente un IVR existente como un menú 'break-"
+"out'. <br><br> Este IVR sólo debe \"opciones a marca\" de un solo dígito. El "
+"conjunto de Grabación en la IVR se reproducirá a intervalos especificados en "
+"\"Frecuencia de repetición ', a continuación."
+
+#: views/form.php:94
+msgid ""
+"You can require agents to enter a password before they can log in to this "
+"queue.<br><br>This setting is optional."
+msgstr ""
+"Puede pedir a los agentes que introduzcan una contraseña antes de que puedan "
+"iniciar sesión en esta cola.<br/><br/>Este parámetro es opcional."
+
+#: functions.inc.php:31
+msgid "day"
+msgstr "día"
+
+#: views/form.php:306
+msgid "default"
+msgstr "Por defecto"
+
+#: views/form.php:268
+msgid "fewestcalls"
+msgstr "Agente con menos llamadas"
+
+#: functions.inc.php:32
+msgid "hour"
+msgstr "hora"
+
+#: functions.inc.php:32
+msgid "hours"
+msgstr "horas"
+
+#: views/form.php:304
+msgid "inherit"
+msgstr "Anterior"
+
+#: Queues.class.php:145
+msgid "is not allowed for your account."
+msgstr "no está permitida por su cuenta."
+
+#: views/form.php:267
+msgid "leastrecent"
+msgstr "Agente con última llamada más antigua"
+
+#: views/form.php:272
+msgid "linear"
+msgstr "lineal"
+
+#: functions.inc.php:33
+msgid "minute"
+msgstr "minuto"
+
+#: functions.inc.php:33
+msgid "minutes"
+msgstr "minutos"
+
+#: views/form.php:305
+msgid "none"
+msgstr "Ninguna"
+
+#: views/form.php:269
+msgid "random"
+msgstr "Aleatorio"
+
+#: views/form.php:273
+msgid ""
+"random using the member's penalty as a weighting factor, see asterisk "
+"documentation for specifics"
+msgstr ""
+"aleatoriamente  usando penalidad del miembro como un factor de ponderación, "
+"ver documentación asterisk para obtener información específica"
+
+#: views/form.php:267
+msgid "ring agent which was least recently called by this queue"
+msgstr ""
+"Hacer sonar el agente que menos recientemente contestó una llamada de esta "
+"cola"
+
+#: views/form.php:266
+msgid "ring all available agents until one answers (default)"
+msgstr ""
+"Hacer sonar todos los agentes disponibles hasta que uno conteste (opción por "
+"defecto)"
+
+#: views/form.php:269
+msgid "ring random agent"
+msgstr "Hacer sonar un agente aleatoriamente"
+
+#: views/form.php:268
+msgid "ring the agent with fewest completed calls from this queue"
+msgstr "Hacer sonar el agente que menos llamadas haya completado de esta cola"
+
+#: views/form.php:266
+msgid "ringall"
+msgstr "Sonar todos"
+
+#: views/form.php:272
+msgid ""
+"rings agents in the order specified, for dynamic agents in the order they "
+"logged in"
+msgstr ""
+"timbrando agentes en el orden especificado, para los agentes dinámicos en el "
+"orden en que registraron"
+
+#: views/form.php:270
+msgid "round robin with memory, remember where we left off last ring pass"
+msgstr ""
+"Todos contra todos ('roundrobin') con memoria; recuerda donde se dejó la "
+"última llamada"
+
+#: views/form.php:270
+msgid "rrmemory"
+msgstr "Con memoria"
+
+#: views/form.php:271
+msgid "rrordered"
+msgstr "Rrordered"
+
+#: views/form.php:271
+msgid ""
+"same as rrmemory, except the queue member order from config file is preserved"
+msgstr ""
+"mismo que rrmemory, excepto que el orden miembro cola definido en el archivo "
+"de configuración se conserva"
+
+#: functions.inc.php:34
+msgid "second"
+msgstr "segundo"
+
+#: functions.inc.php:17 functions.inc.php:34 views/form.php:347
+#: views/form.php:350 views/form.php:371 views/form.php:377 views/form.php:386
+msgid "seconds"
+msgstr "segundos"
+
+#: views/form.php:273
+msgid "wrandom"
+msgstr "wrandon"
+
+#~ msgid ""
+#~ "Use this number to dial into the queue, or transfer callers to this "
+#~ "number to put them into the queue.<br><br>Agents will dial this queue "
+#~ "number plus * to log onto the queue, and this queue number plus ** to log "
+#~ "out of the queue.<br><br>For example, if the queue number is 123:"
+#~ "<br><br><b>123* = log in<br>123** = log out</b>"
+#~ msgstr ""
+#~ "Use este número para llamar a la cola, o transferir llamantes a este "
+#~ "número para ponerlos en cola.<br/><br/>Los agentes marcarán este número "
+#~ "seguido del símbolo '*' para iniciar sesión en la cola, y el mismo número "
+#~ "pero seguido de dos símbolos '*' ('**') para cerrar sesión en la cola.<br/"
+#~ "><br/>Por ejemplo, si el número de la cola es 123:<br/><br/><b>123* -> "
+#~ "Para iniciar sesión en la cola.</b><br/><b>123** -> Para cerrar sesión en "
+#~ "la cola.</b>"
+
+#~ msgid ""
+#~ "Callers will exit if all agents are paused, show an invalid state for "
+#~ "their device or have penalty values less then QUEUE_MAX_PENALTY (not "
+#~ "currently set in FreePBX dialplan).."
+#~ msgstr ""
+#~ "Las personas que llamen saldrán si todos los agentes están en pausa, "
+#~ "mostrando un estado no válido para su dispositivo o teniendo valores de "
+#~ "penalización menores que QUEUE_MAX_PENALTY (actualmente no establecido en "
+#~ "el dialplan FreePBX) .."
+
+#~ msgid ""
+#~ "Callers will not be admitted if all agents are paused, show an invalid "
+#~ "state for their device, or have penalty values less then "
+#~ "QUEUE_MAX_PENALTY (not currently set in FreePBX dialplan)."
+#~ msgstr ""
+#~ "Las personas que llaman no serán admitidos si todos los agentes están en "
+#~ "pausa, muestrando un estado no válido para su dispositivo, o teniendo "
+#~ "valores de penalización menos QUEUE_MAX_PENALTY (actualmente no está "
+#~ "establecido en el dialplan FreePBX)."
+
+#~ msgid ""
+#~ "Same as No except Callers will be admitted if their are paused agents who "
+#~ "could become available."
+#~ msgstr ""
+#~ "Lo mismo que No excepto que llamantes eran admitidos si hay agentes en "
+#~ "pausa que pudiesen ponerse disponibles."
+
+#~ msgid ""
+#~ "Same as Yes except Callers will remain in the Queue if their are paused "
+#~ "agents who could become available."
+#~ msgstr ""
+#~ "Igual  a Sí, excepto las llamadas se mantendrán en la cola si hay agentes "
+#~ "pausadas que podrían estar disponibles."
+
+#~ msgid "Creating queues_details.."
+#~ msgstr "Creando tabla de detalles de colas (queues_details)..."
+
+#~ msgid "ERROR: could not create table"
+#~ msgstr "ERROR: no se pudo crear la tabla"
+
+#~ msgid "ERROR: could not migrate to queues_details"
+#~ msgstr ""
+#~ "ERROR: no se pudo migrar la tabla de detalles de colas (queues_details)"
+
+#~ msgid "Migrating to queues_details.."
+#~ msgstr "Migrando tabla de detalles de colas(queues_details).."
+
+#~ msgid "OK"
+#~ msgstr "Hecho."
+
+#~ msgid "already exists"
+#~ msgstr "Ya existe"
+
+#~ msgid "Checking for legacy queues table.."
+#~ msgstr "Comprobando tablas antiguas de colas..."
+
+#~ msgid "Checking if recordings need migration.."
+#~ msgstr "Comprobando si las grabaciones necesitan migrarse..."
+
+#~ msgid "Creating queues_config.."
+#~ msgstr "Creando tabla de configuración de colas (queues_config)..."
+
+#~ msgid "Dropping old queues table.."
+#~ msgstr "Eliminando tablas de colas antiguas..."
+
+#~ msgid "ERROR were encountered"
+#~ msgstr "Se han encontrado errores"
+
+#~ msgid "ERROR: accessing queues table obtaining context info, aborting"
+#~ msgstr ""
+#~ "ERROR: accediendo a la tabla de colas al obtener la información del "
+#~ "contexto; abortando"
+
+#~ msgid "ERROR: accessing queues table obtaining id list, aborting"
+#~ msgstr ""
+#~ "ERROR: accediendo a la tabla de colas al obtener el listado de "
+#~ "identificadores; abortando"
+
+#~ msgid "ERROR: accessing queues table obtaining rtone info, aborting"
+#~ msgstr ""
+#~ "ERROR: accediendo a la tabla de colas al obtener la información de "
+#~ "'rtone'; abortando"
+
+#~ msgid "ERROR: inserting data for row %s: %s.."
+#~ msgstr "ERROR: insertando datos para la fila %s: %s."
+
+#~ msgid "Migrating data to queues_config.."
+#~ msgstr ""
+#~ "Migrando datos de la tabla de configuración de colas (queues_config).."
+
+#~ msgid "NO table found, no migration to do just create tables"
+#~ msgstr ""
+#~ "No se han encontrado tablas, no hace falta migración, simplemente crear "
+#~ "las tablas"
+
+#~ msgid "WARNING FAILED %s"
+#~ msgstr "AVISO DE FALLO %s"
+
+#~ msgid "adding agentannounce_id field.."
+#~ msgstr "Añadiendo campo 'agentannounce_id'.."
+
+#~ msgid "adding joinannounce_id field.."
+#~ msgstr "Añadiendo campo 'joinannounce_id'.."
+
+#~ msgid "already migrated"
+#~ msgstr "Ya migrado"
+
+#~ msgid "checking for callback_id field.."
+#~ msgstr "chequeando campo callback_id.."
+
+#~ msgid "checking for callconfirm field.."
+#~ msgstr "Chequeando por campo callconfirm.."
+
+#~ msgid "checking for callconfirm_id field.."
+#~ msgstr "Chequeando por campo callconfirm_id.."
+
+#~ msgid "checking for monitor_heard field.."
+#~ msgstr "chequeando por campo monitor_heard.."
+
+#~ msgid "checking for monitor_spoken field.."
+#~ msgstr "chequeando por campo monitor_spoken.."
+
+#~ msgid "checking for monitor_type field.."
+#~ msgstr "chequeando por campo monitor_type.."
+
+#~ msgid "checking for qnoanswer field.."
+#~ msgstr "chequeando por campo qnoanswer.."
+
+#~ msgid "checking for qregex field.."
+#~ msgstr "Comprobando campo 'qregex'.."
+
+#~ msgid "checking for queuewait field.."
+#~ msgstr "Comprobando campo 'queuewait'.."
+
+#~ msgid "checking for togglehint field.."
+#~ msgstr "chequeando por campo togglehint.."
+
+#~ msgid "checking for use_queue_context field.."
+#~ msgstr "chequeando por campo use_queue_context.."
+
+#~ msgid "dropping agentannounce field.."
+#~ msgstr "Eliminando campo 'agentannounce'.."
+
+#~ msgid "dropping joinannounce field.."
+#~ msgstr "Eliminando campo 'agentannounce'.."
+
+#~ msgid "fatal error"
+#~ msgstr "error fatal"
+
+#~ msgid "migrate agentannounce to ids.."
+#~ msgstr "Migrando tabla 'agentannounce' a identificadores.."
+
+#~ msgid "migrate joinannounce to ids.."
+#~ msgstr "Migrando tabla 'joinannounce' a identificadores.."
+
+#~ msgid "migrated %s entries"
+#~ msgstr "Migrados %s elementos"
+
+#~ msgid "migrating"
+#~ msgstr "migrando"
+
+#~ msgid "no agentannounce field???"
+#~ msgstr "No existe el campo 'agentannounce'???"
+
+#~ msgid "no joinannounce field???"
+#~ msgstr "No existe el campo joinannounce???"
+
+#~ msgid "ok"
+#~ msgstr "ok"
+
+#~ msgid "removing queues data extensions table.."
+#~ msgstr "Eliminando datos de la tabla de extensiones de colas.."

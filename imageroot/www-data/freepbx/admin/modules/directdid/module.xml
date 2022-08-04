@@ -1,0 +1,22 @@
+<module>
+  <rawname>directdid</rawname>
+  <repo>unsupported</repo>
+  <name>Direct DID</name>
+  <version>1.1.5</version>
+  <category>Applications</category>
+  <Publisher>Stefano Fancello</Publisher>
+  <info></info>
+  <licence>GPL</licence>
+  <licenselink>http://www.gnu.org/licenses/gpl-2.0.txt</licenselink>
+  <menuitems>
+    <directdid>Direct DID</directdid>
+</menuitems>
+<depends>
+  <version>14</version>
+</depends>
+<supported>14.0</supported>
+
+<description>Allow to configure Direct DID for all extensions</description>
+<changelog></changelog>
+
+</module>

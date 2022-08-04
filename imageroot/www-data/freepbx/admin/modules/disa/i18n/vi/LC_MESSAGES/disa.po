@@ -1,0 +1,254 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for disa
+# Copyright (C) 2008-2017 Sangoma Technologies, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-03-28 07:39+0530\n"
+"PO-Revision-Date: 2017-07-04 08:40+0200\n"
+"Last-Translator: PETER <ftek@ymail.com>\n"
+"Language-Team: Vietnamese <http://weblate.freepbx.org/projects/freepbx/disa/"
+"vi/>\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: views/form.php:248
+msgid ""
+"(Experts Only) Sets the context that calls will originate from. Leave this "
+"as from-internal unless you know what you're doing."
+msgstr ""
+"( Chỉ có chuyên gia) Cài đặt ngữ cảnh nơi mà các cuộc gọi sẽ bắt nguồn. Để "
+"nguyên là từ nội bộ trừ khi bạn biết bạn đang làm gì."
+
+#: views/form.php:224
+msgid ""
+"(Optional) When using this DISA, the users CallerID will be set to this. "
+"Format is \"User Name\" <5551234>"
+msgstr ""
+"( Tùy chọn) Khi sử dụng DISA này, Caller ID người dùng sẽ được cài đặt tới "
+"DIS. Định dạng là \"User Name\" <5551234>"
+
+#: views/grid.php:11
+msgid "Actions"
+msgstr "Các thao tác"
+
+#: views/bootnav.php:5 views/form.php:20 views/grid.php:5
+msgid "Add DISA"
+msgstr "Thêm DISA"
+
+#: views/form.php:260
+msgid "Allow Hangup"
+msgstr "Cho phép cúp máy (hangup)"
+
+#: views/form.php:275
+#, php-format
+msgid ""
+"Allow the current call to be disconnected and dial tone presented for a new "
+"call by pressing the Hangup feature code: %s while in a call"
+msgstr ""
+"Cho phép cuộc gọi hiện tại sẽ bị ngắt kết nối và âm quay số được áp dụng cho "
+"cuộc gọi mới bằng cách nhấn mã tính năng Hangup: %s khi đang trong một cuộc "
+"gọi"
+
+#: disa.i18n.php:6
+msgid "Applications"
+msgstr "Các ứng dụng"
+
+#: views/form.php:161
+msgid "Call Recording"
+msgstr "Ghi âm cuộc gọi"
+
+#: views/form.php:212
+msgid "Caller ID"
+msgstr "Caller ID -Tính năng nhận dạng số gọi đến"
+
+#: views/form.php:287
+msgid "Caller ID Override"
+msgstr "Ghi đè Caller ID"
+
+#: views/form.php:236
+msgid "Context"
+msgstr "Ngữ cảnh"
+
+#: views/form.php:318
+msgid "Context cannot be blank"
+msgstr "Ngữ cảnh không được để trống"
+
+#: disa.i18n.php:4 /usr/src/freepbx/disa/disa.i18n.php:10 page.disa.php:21
+#: views/bootnav.php:17 views/form.php:6 views/grid.php:10
+msgid "DISA"
+msgstr ""
+"DISA( Direct inward system access- Hệ thống truy nhập trực tiếp thuê bao)"
+
+#: disa.i18n.php:8
+msgid ""
+"DISA Allows you 'Direct Inward System Access'. This gives you the ability to "
+"have an option on an IVR that gives you a dial tone, and you're able to dial "
+"out from the FreePBX machine as if you were connected to a standard "
+"extension. It appears as a Destination."
+msgstr ""
+"DISA cho phép bạn \" trực tiếp truy nhập hệ thống thuê bao nội bộ\". Điều "
+"này giúp bạn có thể có một tùy chọn trên IVR, cấp cho bạn một âm quay số, "
+"bạn có thể quay số từ freePBX như thể bạn đã kết nối đến một máy nhánh tiêu "
+"chuẩn. Nó xuất hiện như một điểm đích."
+
+#: views/bootnav.php:6
+msgid "DISA List"
+msgstr "Danh sách DISA"
+
+#: views/form.php:59
+msgid "DISA Name"
+msgstr "Tên DISA"
+
+#: views/form.php:319
+msgid "DISA Name Duplicate"
+msgstr ""
+
+#: page.disa.php:18
+msgid ""
+"DISA is used to allow people from the outside world to call into your PBX "
+"and then be able to dial out of the PBX so it appears that their call is "
+"coming from the office which can be handy when traveling. You can set a "
+"destination in an IVR that points to the DISA or set a DID. Make sure you "
+"password protect this to keep people from dialing in and using your PBX to "
+"make calls out."
+msgstr ""
+"DISA cho phép mọi người từ thế giới bên ngoài gọi vào hệ PBX của bạn và có "
+"thể quay số ra bên ngoài PBX vì thế nó như thể là cuộc gọi của họ đang đến "
+"từ văn phòng hay khi họ đang đi du lịch. Bạn có thể cài đặt điểm đích tại "
+"IVR trỏ đến DISA hay cài đặt một DID. Đảm bảo mật khẩu của bạn an toàn để "
+"tránh những người khác quay số vào hay sử dụng PBX của bạn để gọi ra ngoài."
+
+#: Disa.class.php:222 functions.inc.php:41
+#, php-format
+msgid "DISA: %s"
+msgstr "DISA:%s"
+
+#: Disa.class.php:57
+msgid "Delete"
+msgstr "Xóa"
+
+#: views/form.php:302
+msgid ""
+"Determine if we keep the Caller ID being presented or if we override it. "
+"Default is No"
+msgstr ""
+"Quyết định liệu chúng ta có nên để Caller ID được hiển thị hay ghi đè lên "
+"nó. Mặc định là No"
+
+#: views/form.php:134
+msgid "Digit Timeout"
+msgstr "Thời gian chờ nhập chữ số"
+
+#: views/form.php:34
+msgid "Don't Care"
+msgstr "Không quan tâm"
+
+#: views/form.php:34
+msgid "Force"
+msgstr "Bắt buộc"
+
+#: views/form.php:71
+msgid "Give this DISA a brief name to help you identify it."
+msgstr "Đặt cho DISA một tên ngắn gọn để giúp bạn nhận dạng nó."
+
+#: views/form.php:302
+msgid "If you choose Yes the disa will pass the caller id set above."
+msgstr "Nếu bạn chọn Yes disa sẽ thông qua Caller ID đã cài đặt ở trên."
+
+#: views/form.php:95
+msgid "If you wish to have multiple PIN's, separate them with commas"
+msgstr "Nếu bạn muốn có nhiều PIN, tách chúng bằng dấu phẩy"
+
+#: views/form.php:34
+msgid "Never"
+msgstr "Không bao giờ"
+
+#: views/form.php:34 views/form.php:192 views/form.php:267 views/form.php:294
+msgid "No"
+msgstr "Không"
+
+#: views/form.php:83
+msgid "PIN"
+msgstr "PIN"
+
+#: views/form.php:317
+msgid "Please enter a valid Caller ID or leave it blank"
+msgstr "Vui lòng nhập một Caller ID hợp lệ hoặc để trống"
+
+#: views/form.php:315
+msgid "Please enter a valid DISA Name"
+msgstr "Vui lòng nhập Tên DISA hợp lệ"
+
+#: views/form.php:316
+msgid "Please enter a valid DISA PIN"
+msgstr "Vui lòng nhập một PIN DISA hợp lệ"
+
+#: views/form.php:173
+msgid "Record calls that use this DISA"
+msgstr "Ghi âm các cuộc gọi sử dụng cho DISA này"
+
+#: views/form.php:185
+msgid "Require Confirmation"
+msgstr "Thông tin yêu cầu"
+
+#: Disa.class.php:62
+msgid "Reset"
+msgstr "Cài đặt lại"
+
+#: views/form.php:107
+msgid "Response Timeout"
+msgstr "Thời gian chờ trả lời"
+
+#: views/form.php:113 views/form.php:140
+msgid "Seconds"
+msgstr "giây"
+
+#: Disa.class.php:67
+msgid "Submit"
+msgstr "Gửi đi"
+
+#: views/form.php:334
+msgid "The DISA Name provided is too long."
+msgstr "Tên DISA quá dài."
+
+#: views/form.php:122
+msgid ""
+"The maximum amount of time it will wait before hanging up if the user has "
+"dialed an incomplete or invalid number. Default of 10 seconds"
+msgstr ""
+"Thời gian tối đa mà nó sẽ đợi trước khi cúp máy nếu người dùng vừa quay một "
+"số điện thoại không hợp lệ. Mặc định là 10 giây"
+
+#: views/form.php:149
+msgid ""
+"The maximum amount of time permitted between digits when the user is typing "
+"in an extension. Default of 5 seconds"
+msgstr ""
+"Thời gian tối đa cho phép giữa các chữ số khi người dùng gõ vào một máy "
+"nhánh. Mặc định là 5 giây"
+
+#: views/form.php:95
+msgid "The user will be prompted for this number."
+msgstr "Người dùng sẽ được nhắc nhở về số này."
+
+#: views/form.php:34 views/form.php:190 views/form.php:265 views/form.php:292
+msgid "Yes"
+msgstr "Có"
+
+#: views/form.php:200
+msgid ""
+"equire Confirmation before prompting for password. Used when your PSTN "
+"connection appears to answer the call immediately"
+msgstr ""
+"Yêu cầu xác nhận trước khi nhắc nhở nhập mật khẩu. Đươc sử dụng khi kết nối "
+"PSTN của bạn đang như thể trả lời cuộc gọi ngay lập tức"

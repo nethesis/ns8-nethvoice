@@ -1,0 +1,221 @@
+# CREDITS for JAPANESE TRANSLATION
+# ================================
+# Current translation & maintenance: QLOOG, Inc. (Kobe, Japan)
+# Inquiries: info@qloog.com / www.qloog.com
+#
+# This translation is a culmination of the hard work of
+# several outstanding individuals, which started in 2009 with the 
+# first-ever Japanese localization of FreePBX by Kenichi Fukaumi 
+# and Kazuhiro Tokuyama (FreePBX Japanized Project).
+#
+# Beginning in 2013, with the approval of the original authors, 
+# QLOOG undertook a large scale overhaul of the translation to 
+# expand it for compatibility with FreePBX 2.11. Our work is, 
+# of course, released under the same GPLv2 license as FreePBX. 
+# We only ask that you kindly retain these credits in honor of 
+# the time and effort that all of us have contributed. Enjoy!
+#
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# FreePBX language template for setcid
+# Copyright (C) 2008, 2009, 2010 Bandwith.com
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX 2.10.0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-03-28 08:07+0530\n"
+"PO-Revision-Date: 2015-10-27 12:57+0200\n"
+"Last-Translator: Kevin <kevin@qloog.com>\n"
+"Language-Team: Japanese <http://weblate.freepbx.org/projects/freepbx/setcid/"
+"ja_JP/>\n"
+"Language: ja_JP\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.2-dev\n"
+
+#: assets/js/setcid.js:9
+msgid " already used, please use a different Description."
+msgstr ""
+
+#: views/grid.php:18
+msgid "Actions"
+msgstr "アクション"
+
+#: views/grid.php:12 views/rnav.php:2
+msgid "Add"
+msgstr "追加"
+
+#: views/form.php:21
+msgid "Add CID"
+msgstr ""
+
+#: setcid.i18n.php:8 views/grid.php:8
+msgid "Adds the ability to change the CallerID within a call flow."
+msgstr "コールフローの機能を追加して発信者IDの変更を可能にする"
+
+#: setcid.i18n.php:6
+msgid "Applications"
+msgstr "アプリケーション"
+
+#: views/form.php:83
+msgid ""
+"Caller ID Number: The caller ID number will be changed to this. If you are "
+"appending to the current caller ID number, don't forget to include the "
+"appropriate variables. If you leave this box blank, the caller ID number "
+"will be blank. Default caller ID number variable: ${CALLERID(num)}"
+msgstr ""
+
+#: views/form.php:53
+msgid "CallerID Name"
+msgstr "CallerID Name"
+
+#: views/form.php:73
+msgid "CallerID Number"
+msgstr "CallerID番号"
+
+#: Setcid.class.php:115
+msgid "Delete"
+msgstr "削除"
+
+#: views/form.php:33 views/grid.php:17
+msgid "Description"
+msgstr "説明"
+
+#: views/form.php:93
+msgid "Destination"
+msgstr "宛先"
+
+#: views/form.php:103
+msgid "Destination to send the call to after CID has been processed"
+msgstr ""
+
+#: views/form.php:21
+#, php-format
+msgid "Edit CID: %s"
+msgstr ""
+
+#: views/rnav.php:3
+msgid "List SetCID"
+msgstr ""
+
+#: assets/js/setcid.js:6
+msgid "Please enter a valid Description."
+msgstr ""
+
+#: assets/js/setcid.js:13
+msgid "Please select an item."
+msgstr ""
+
+#: Setcid.class.php:120
+msgid "Reset"
+msgstr "リセット"
+
+#: views/main.php:4
+msgid "Set CID"
+msgstr ""
+
+#: setcid.i18n.php:4 setcid.i18n.php:10
+msgid "Set CallerID"
+msgstr "発信者IDの設定"
+
+#: functions.inc.php:103
+#, php-format
+msgid "Set CallerID %s: "
+msgstr "発信者IDに%sを設定しました"
+
+#: views/rnav.php:14
+msgid "SetCID"
+msgstr ""
+
+#: Setcid.class.php:125
+msgid "Submit"
+msgstr "送信"
+
+#: views/form.php:63
+msgid ""
+"The caller ID name will be changed to this. If you are appending to the "
+"current caller ID name, don't forget to include the appropriate variables. "
+"If you leave this box blank, the caller ID name will be blank. Default "
+"caller ID name variable: ${CALLERID(name)}"
+msgstr ""
+
+#: views/form.php:43
+msgid ""
+"The descriptive name of this CallerID instance. For example \"new name here\""
+msgstr "発信者IDインスタンスの詳細。例：\"new name here\""
+
+#: views/grid.php:4
+msgid "What is Set CID?"
+msgstr ""
+
+#~ msgid "Add CallerID"
+#~ msgstr "発信者IDの追加"
+
+#~ msgid "Add CallerID Instance"
+#~ msgstr "発信者IDインスタンスの追加"
+
+#~ msgid "Edit"
+#~ msgstr "編集"
+
+#~ msgid "Edit CallerID Instance"
+#~ msgstr "発信者IDインスタンスの編集"
+
+#~ msgid "Edit: "
+#~ msgstr "編集: "
+
+#~ msgid "Invalid description specified"
+#~ msgstr "無効な説明が入力されました"
+
+#~ msgid ""
+#~ "Set CallerID allows you to change the caller id of the call and then "
+#~ "continue on to the desired destination. For example, you may want to "
+#~ "change the caller id form \"John Doe\" to \"Sales: John Doe\". Please "
+#~ "note, the text you enter is what the callerid is changed to. To append to "
+#~ "the current callerid, use the proper asterisk variables, such as "
+#~ "\"${CALLERID(name)}\" for the currently set callerid name and "
+#~ "\"${CALLERID(num)}\" for the currently set callerid number."
+#~ msgstr ""
+#~ "発信者IDの設定によって発信者番号の発信者IDを変えることができ、次に進む場所"
+#~ "を指定することできます。例：発信者の名前を\"John Doe\"から\"Sales: John "
+#~ "Doe\"に変更する。注意：入力されたテキストが最終的に変換される名前になりま"
+#~ "す。使用している発信者IDに追加する場合、正確なasterisk変数を使ってくださ"
+#~ "い。例：使用している発信者IDに追加する場合\"${CALLERID(名前)}\"、使用して"
+#~ "いる発信者ID番号に追加する場合\"${CALLERID(num)}\"で設定します。"
+
+#~ msgid "Submit Changes"
+#~ msgstr "変更を適用"
+
+#~ msgid ""
+#~ "The CallerID Name that you want to change to. If you are appending to the "
+#~ "current callerid, dont forget to include the appropriate asterisk "
+#~ "variables. If you leave this box blank, the CallerID name will be blanked"
+#~ msgstr ""
+#~ "使いたい発信者ID名。使用している発信者IDに追加する場合、適切なasterisk変数"
+#~ "を入れてください。もしこのボックスを空欄にする場合、発信者ID名も空欄になり"
+#~ "ます。 "
+
+#~ msgid ""
+#~ "The CallerID Number that you want to change to. If you are appending to "
+#~ "the current callerid, dont forget to include the appropriate asterisk "
+#~ "variables. If you leave this box blank, the CallerID number will be "
+#~ "blanked"
+#~ msgstr ""
+#~ "使いたい発信者ID番号。使用している発信者IDに追加する場合、適切なasterisk変"
+#~ "数を入れてください。もしこのボックスを空欄にする場合、発信者ID番号も空欄に"
+#~ "なります。 "

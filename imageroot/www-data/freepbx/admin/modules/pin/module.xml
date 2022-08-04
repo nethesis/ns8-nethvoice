@@ -1,0 +1,22 @@
+<module>
+  <rawname>pin</rawname>
+  <repo>unsupported</repo>
+  <name>Pin</name>
+  <version>0.0.1</version>
+  <category>Applications</category>
+  <Publisher>Stefano Fancello</Publisher>
+  <info></info>
+  <licence>GPL</licence>
+  <licenselink>http://www.gnu.org/licenses/gpl-2.0.txt</licenselink>
+  <menuitems>
+    <pin>Pin</pin>
+</menuitems>
+<depends>
+  <version>14</version>
+</depends>
+<supported>14.0</supported>
+
+<description>Use a personalized numerical PIN to prevent extension from using outblund routes</description>
+<changelog></changelog>
+
+</module>

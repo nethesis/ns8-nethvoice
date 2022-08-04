@@ -1,0 +1,261 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for asteriskinfo
+# Copyright (C) 2008-2016 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-07-18 17:20-0400\n"
+"PO-Revision-Date: 2016-12-12 18:42+0200\n"
+"Last-Translator: Maxim <maxim@ua.fm>\n"
+"Language-Team: Ukrainian <http://weblate.freepbx.org/projects/freepbx/"
+"asteriskinfo/uk_UA/>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: uk_UA\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%"
+"10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: page.asteriskinfo.php:31
+msgid "Active Channel(s)"
+msgstr "Активни канали"
+
+#: Asteriskinfo.class.php:46
+msgid "Active IAX2 Channel(s): "
+msgstr ""
+
+#: Asteriskinfo.class.php:42
+msgid "Active PJSIP Channel(s): "
+msgstr ""
+
+#: Asteriskinfo.class.php:38
+msgid "Active SIP Channel(s): "
+msgstr "Активних SIP каналів: "
+
+#: asteriskinfo.i18n.php:4 asteriskinfo.i18n.php:10 page.asteriskinfo.php:277
+msgid "Asterisk Info"
+msgstr ""
+
+#: page.asteriskinfo.php:11
+msgid "Asterisk doesn't appear to be running"
+msgstr ""
+
+#: Asteriskinfo.class.php:150
+msgid "Available: "
+msgstr "Доступно: "
+
+#: page.asteriskinfo.php:33
+msgid "Chan_PJSip Channel(s)"
+msgstr ""
+
+#: page.asteriskinfo.php:43
+msgid "Chan_PJSip Endpoints"
+msgstr ""
+
+#: page.asteriskinfo.php:23
+msgid "Chan_PJSip Info"
+msgstr ""
+
+#: page.asteriskinfo.php:37
+msgid "Chan_PJSip Registrations"
+msgstr ""
+
+#: page.asteriskinfo.php:38
+msgid "Chan_PJSip Transports"
+msgstr ""
+
+#: page.asteriskinfo.php:32
+msgid "Chan_Sip Channel(s)"
+msgstr ""
+
+#: page.asteriskinfo.php:22
+msgid "Chan_Sip Info"
+msgstr ""
+
+#: page.asteriskinfo.php:42
+msgid "Chan_Sip Peers"
+msgstr ""
+
+#: page.asteriskinfo.php:36
+msgid "Chan_Sip Registry"
+msgstr ""
+
+#: page.asteriskinfo.php:20
+msgid "Channels"
+msgstr "Каналів"
+
+#: page.asteriskinfo.php:49
+msgid "Conference Bridge Info"
+msgstr ""
+
+#: page.asteriskinfo.php:25
+msgid "Conferences"
+msgstr "Конференції"
+
+#: page.asteriskinfo.php:280
+msgid "Current Asterisk Version:"
+msgstr "Поточна версія Asterisk:"
+
+#: page.asteriskinfo.php:46
+msgid "DAHDi Channels"
+msgstr "DAHDi канали"
+
+#: page.asteriskinfo.php:28
+msgid "Dahdi"
+msgstr ""
+
+#: page.asteriskinfo.php:47
+msgid "Dahdi PRI Spans"
+msgstr ""
+
+#: page.asteriskinfo.php:29
+msgid "Full Report"
+msgstr "Повний звіт"
+
+#: page.asteriskinfo.php:52
+msgid "Google Talk Channels"
+msgstr "Google Talk канали"
+
+#: page.asteriskinfo.php:24
+msgid "IAX Info"
+msgstr "IAX інформація"
+
+#: page.asteriskinfo.php:34
+msgid "IAX2 Channel(s)"
+msgstr "IAX2 канали"
+
+#: page.asteriskinfo.php:35
+msgid "IAX2 Peers"
+msgstr ""
+
+#: Asteriskinfo.class.php:48
+msgid "IAX2 Peers: "
+msgstr ""
+
+#: page.asteriskinfo.php:44
+msgid "IAX2 Registry"
+msgstr ""
+
+#: Asteriskinfo.class.php:47
+msgid "IAX2 Registry: "
+msgstr ""
+
+#: page.asteriskinfo.php:53
+msgid "Jabber Connections"
+msgstr ""
+
+#: page.asteriskinfo.php:48
+msgid "MeetMe Conference Info"
+msgstr ""
+
+#: page.asteriskinfo.php:54
+msgid "Motif Connections"
+msgstr ""
+
+#: Asteriskinfo.class.php:140
+msgid "Offline-Unmonitored: "
+msgstr ""
+
+#: Asteriskinfo.class.php:140 Asteriskinfo.class.php:162
+msgid "Offline: "
+msgstr "Вимкнені: "
+
+#: Asteriskinfo.class.php:139
+msgid "Online-Unmonitored: "
+msgstr ""
+
+#: Asteriskinfo.class.php:139 Asteriskinfo.class.php:162
+msgid "Online: "
+msgstr "Підключені: "
+
+#: Asteriskinfo.class.php:44
+msgid "PJSip Endpoints: "
+msgstr ""
+
+#: Asteriskinfo.class.php:43
+msgid "PJSip Registrations: "
+msgstr ""
+
+#: page.asteriskinfo.php:21
+msgid "Peers"
+msgstr ""
+
+#: asteriskinfo.i18n.php:8
+msgid "Provides a snapshot of the current Asterisk configuration"
+msgstr "Забезпечує знімок поточної конфігурації сервера Asterisk"
+
+#: page.asteriskinfo.php:26
+msgid "Queues"
+msgstr "Черги"
+
+#: page.asteriskinfo.php:50
+msgid "Queues Info"
+msgstr ""
+
+#: page.asteriskinfo.php:19
+msgid "Registries"
+msgstr ""
+
+#: asteriskinfo.i18n.php:6
+msgid "Reports"
+msgstr "Звіти"
+
+#: Asteriskinfo.class.php:40
+msgid "Sip Peers: "
+msgstr ""
+
+#: Asteriskinfo.class.php:39
+msgid "Sip Registry: "
+msgstr "SIP реєстрацій: "
+
+#: page.asteriskinfo.php:45
+msgid "Subscribe/Notify"
+msgstr ""
+
+#: page.asteriskinfo.php:27
+msgid "Subscriptions"
+msgstr "Підписки"
+
+#: page.asteriskinfo.php:18 page.asteriskinfo.php:289
+msgid "Summary"
+msgstr "Зведення"
+
+#: page.asteriskinfo.php:186
+msgid ""
+"The module was unable to connect to the Asterisk manager.<br>Make sure "
+"Asterisk is running and your manager.conf settings are proper.<br><br>"
+msgstr ""
+
+#: page.asteriskinfo.php:279
+msgid "This page supplies various information about Asterisk"
+msgstr "Ця сторінка надає різноманітну інформацію про сервер Asterisk"
+
+#: Asteriskinfo.class.php:151
+msgid "Unavailable: "
+msgstr "Недоступний: "
+
+#: Asteriskinfo.class.php:151
+msgid "Unknown: "
+msgstr "Невідомий: "
+
+#: Asteriskinfo.class.php:162
+msgid "Unmonitored: "
+msgstr "Неконтрольований: "
+
+#: page.asteriskinfo.php:30
+msgid "Uptime"
+msgstr "Час роботи"
+
+#: Asteriskinfo.class.php:37
+msgid "Uptime: "
+msgstr "Час роботи: "
+
+#: page.asteriskinfo.php:51
+msgid "Voicemail Users"
+msgstr "Користувачі голосової пошти"

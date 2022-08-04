@@ -1,0 +1,21 @@
+<module>
+	<rawname>donotdisturb</rawname>
+	<repo>standard</repo>
+	<name>Do-Not-Disturb (DND)</name>
+	<version>14.0.1.1</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<changelog>
+		*14.0.1.1* UCP fixes and updates
+		*14.0.1* UCP 14
+		*13.0.3* FREEPBX-9564 UCP goes offline after changing settings
+		*13.0.2* Version bump Beta
+		*13.0.1alpha1* Visuals
+	</changelog>
+	<description>Provides donotdisturb functionality</description>
+	<category>Applications</category>
+	<supported>
+		<version>14.0</version>
+	</supported>
+</module>

@@ -1,0 +1,410 @@
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright (C) 2009 EdwardBadBoy <zhougongjizhe@163.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX 2.5 Chinese Translation\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-10-25 13:30-0700\n"
+"PO-Revision-Date: 2015-10-16 14:24+0200\n"
+"Last-Translator: james <zhulizhong@gmail.com>\n"
+"Language-Team: Simplified Chinese <http://weblate.freepbx.org/projects/"
+"freepbx/daynight/zh_CN/>\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.2-dev\n"
+"X-Poedit-Language: Chinese\n"
+"X-Poedit-Country: CHINA\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: functions.inc.php:526
+msgid " - Force Time Condition False Destination"
+msgstr " - 强制时间条件为假目的地设置"
+
+#: functions.inc.php:524
+msgid " - Force Time Condition True Destination"
+msgstr " - 强制时间添加为真目的地设置"
+
+#: page.daynight.php:16
+msgid ": Add"
+msgstr ": 添加"
+
+#: page.daynight.php:14
+msgid ": Edit"
+msgstr ": 编辑"
+
+#: views/grid.php:16
+msgid "Actions"
+msgstr "命令"
+
+#: views/grid.php:8
+msgid "Add"
+msgstr "添加"
+
+#: views/bootnav.php:6
+msgid "Add Callflow"
+msgstr ""
+
+#: daynight.i18n.php:6
+msgid "Applications"
+msgstr ""
+
+#: assets/js/daynight.js:23
+msgid "Are you sure you want to delete this flow?"
+msgstr "确认要删除？"
+
+#: daynight.i18n.php:16
+msgid ""
+"By default, the Call Flow Control module will not hook Time Conditions "
+"allowing one to associate a call flow toggle feauture code with a time "
+"condition since time conditions have their own feature code as of version "
+"2.9. If there is already an associaiton configured (on an upgraded system), "
+"this will have no affect for the Time Conditions that are effected. Setting "
+"this to true reverts the 2.8 and prior behavior by allowing for the use of a "
+"call flow toggle to be associated with a time conditon. This can be useful "
+"for two scenarios. First, to override a Time Condition without the automatic "
+"resetting that occurs with the built in Time Condition overrides. The second "
+"use is the ability to associate a single call flow toggle with multiple time "
+"conditions thus creating a <b>master switch</b> that can be used to override "
+"several possible call flows through different time conditions."
+msgstr ""
+
+#: views/bootnav.php:19
+msgid "Call Flow"
+msgstr ""
+
+#: daynight.i18n.php:4 daynight.i18n.php:10
+msgid "Call Flow Control"
+msgstr ""
+
+#: daynight.i18n.php:14
+msgid "Call Flow Control Module"
+msgstr ""
+
+#: functions.inc.php:155
+#, php-format
+msgid "Call Flow Toggle (%s) : %s"
+msgstr "呼叫流程切换 (%s) : %s"
+
+#: functions.inc.php:537
+msgid "Call Flow Toggle Associate with"
+msgstr "呼叫流程切换关联"
+
+#: page.daynight.php:7
+msgid "Call Flow Toggle Control"
+msgstr "呼叫流程切换控制"
+
+#: views/form.php:126
+msgid "Call Flow Toggle Feature Code Index"
+msgstr "呼叫流程功能热键索引"
+
+#: functions.inc.php:404
+#, php-format
+msgid "Call Flow Toggle: %s (%s)"
+msgstr "呼叫流程切换: %s (%s)"
+
+#: daynight.i18n.php:8
+msgid ""
+"Call Flow manual toggle control - allows for two destinations to be chosen "
+"and provides a feature code\t\tthat toggles between the two destinations."
+msgstr ""
+
+#: views/form.php:174
+msgid "Current Mode"
+msgstr "当前模式"
+
+#: views/form.php:34 views/form.php:35
+msgid "Default"
+msgstr "默认"
+
+#: Daynight.class.php:53
+msgid "Delete"
+msgstr "删除"
+
+#: views/form.php:150 views/grid.php:14
+msgid "Description"
+msgstr "描述"
+
+#: views/form.php:162
+msgid "Description for this Call Flow Toggle Control"
+msgstr "呼叫流程切换描述"
+
+#: views/form.php:241
+msgid "Destination to use when set to Normal Flow (Green/BLF off) mode"
+msgstr "当设置为正常流程(Green/BLF off)模式时的目的地"
+
+#: views/form.php:265
+msgid "Destination to use when set to Override Flow (Red/BLF on) mode"
+msgstr "当使用覆盖流程(Red/BLF on) 模式时的目的地"
+
+#: views/grid.php:13
+msgid "Feature Code"
+msgstr "功能热键"
+
+#: views/form.php:101
+msgid "Forces to Normal Mode (Green/BLF off)"
+msgstr "强制使用标准模式 (Green/BLF off)"
+
+#: views/form.php:101
+msgid "Forces to Override Mode (Red/BLF on)"
+msgstr "强制使用覆盖模式 (Red/BLF on)"
+
+#: daynight.i18n.php:12
+msgid "Hook Time Conditions Module"
+msgstr ""
+
+#: functions.inc.php:551
+msgid ""
+"If a selection is made, this timecondition will be associated with the "
+"specified call flow toggle  featurecode. This means that if the Call Flow "
+"Feature code is set to override (Red/BLF on) then this time condition will "
+"always go to its True destination if the chosen association is to 'Force "
+"Time Condition True Destination' and it will always go to its False "
+"destination if the association is with the 'Force Time Condition False "
+"Destination'. When the associated Call Flow Control Feature code is in its "
+"Normal mode (Green/BLF off), then then this Time Condition will operate as "
+"normal based on the current time. The Destinations that are part of any "
+"Associated Call Flow Control Feature Code will have no affect on where a "
+"call will go if passing through this time condition. The only thing that is "
+"done when making an association is allowing the override state of a Call "
+"Flow Toggle to force this time condition to always follow one of its two "
+"destinations when that associated Call Flow Toggle is in its override (Red/"
+"BLF on) state."
+msgstr ""
+
+#: views/form.php:104
+#, php-format
+msgid "Linked to Time Condition %s - %s"
+msgstr "链接到时间条件控制 %s - %s"
+
+#: views/bootnav.php:7
+msgid "List Callflows"
+msgstr ""
+
+#: views/form.php:64
+msgid ""
+"Message to be played in normal mode (Green/BLF off).<br>To add additional "
+"recordings use the \"System Recordings\" MENU above"
+msgstr ""
+
+#: views/form.php:90
+msgid ""
+"Message to be played in override mode (Red/BLF on).<br>To add additional "
+"recordings use the \"System Recordings\" MENU to the above"
+msgstr ""
+
+#: functions.inc.php:522
+msgid "No Association"
+msgstr "无联系"
+
+#: views/form.php:179
+msgid "Normal (Green/BLF off)"
+msgstr "标准模式 (Green/BLF off)"
+
+#: views/form.php:229
+msgid "Normal Flow (Green/BLF off)"
+msgstr "标准流程 (Green/BLF off)"
+
+#: views/form.php:202
+msgid "Optional Password"
+msgstr "可选的密码"
+
+#: views/form.php:181
+msgid "Override (Red/BLF on)"
+msgstr "覆盖 (Red/BLF on)"
+
+#: views/form.php:253
+msgid "Override Flow (Red/BLF on)"
+msgstr "覆盖流程 (Red/BLF on)"
+
+#: assets/js/daynight.js:4
+msgid "Please enter a valid numeric password, only numbers are allowed"
+msgstr "请输入有效的密码，只能输入数字"
+
+#: assets/js/daynight.js:7
+msgid "Please set the Current Mode"
+msgstr "请设置当前模式"
+
+#: assets/js/daynight.js:5
+msgid "Please set the Normal Flow destination"
+msgstr "请设置标准流程目的地"
+
+#: assets/js/daynight.js:6
+msgid "Please set the Override Flow destination"
+msgstr "请设置覆盖流程目的地"
+
+#: views/form.php:50
+msgid "Recording for Normal Mode"
+msgstr "标准模式录音"
+
+#: views/form.php:76
+msgid "Recording for Override Mode"
+msgstr "覆盖模式录音"
+
+#: Daynight.class.php:58
+msgid "Reset"
+msgstr "重新设置"
+
+#: views/grid.php:15
+msgid "State"
+msgstr ""
+
+#: Daynight.class.php:63
+msgid "Submit"
+msgstr "提交"
+
+#: views/form.php:138
+#, php-format
+msgid ""
+"There are a total of %s Feature code objects, %s, each can control a call "
+"flow and be toggled using the call flow toggle feature code plus the index."
+msgstr ""
+
+#: views/form.php:189
+msgid ""
+"This will change the current state for this Call Flow Toggle Control, or set "
+"the initial state when creating a new one."
+msgstr ""
+
+#: views/form.php:108
+msgid "Time Condition Reference"
+msgstr "时间条件引用"
+
+#: views/form.php:217
+msgid ""
+"You can optionally include a password to authenticate before toggling the "
+"call flow. If left blank anyone can use the feature code and it will be un-"
+"protected"
+msgstr ""
+
+#: views/form.php:13
+msgid ""
+"You have reached the maximum limit for flow controls. Delete one to add a "
+"new one"
+msgstr "已经达到最大流程控制数量。删除或者添加新的"
+
+#~ msgid "ERROR: failed to alter primary keys "
+#~ msgstr "错误：在更改主键时发生错误"
+
+#~ msgid "OK"
+#~ msgstr "完成"
+
+#~ msgid "changing primary keys to all fields.."
+#~ msgstr "正在更改所有字段的主键。。。"
+
+#~ msgid "List Toggles"
+#~ msgstr "切换列表"
+
+#~ msgid "Associate with"
+#~ msgstr "与之相关的是"
+
+#~ msgid "Current Mode:"
+#~ msgstr "当前模式："
+
+#~ msgid "Destination to use when set to %s mode"
+#~ msgstr "当设置为%s模式时要使用的目的地"
+
+#~ msgid "Save"
+#~ msgstr "保存"
+
+#~ msgid "Day/Night (%s) : %s"
+#~ msgstr "昼/夜（%s）：%s"
+
+#~ msgid "Daynight: %s (%s)"
+#~ msgstr "昼夜（%s）：%s"
+
+#~ msgid "Day/Night Mode Association"
+#~ msgstr "昼/夜模式关联"
+
+#~ msgid ""
+#~ "If a selection is made, this timecondition will be associated with that "
+#~ "featurecode and will allow this timecondition to be direct overridden by "
+#~ "that daynight mode featurecode"
+#~ msgstr ""
+#~ "如果进行了某些选择，那么此时间条件控制设置将与该功能代码相联系，并且允许此"
+#~ "时间条件控制的设置被昼夜模式的功能代码所覆盖"
+
+#~ msgid " - Force Day"
+#~ msgstr " - 强制白昼模式"
+
+#~ msgid " - Force Night"
+#~ msgstr " - 强制夜晚模式"
+
+#~ msgid "Add Day/Night Code"
+#~ msgstr "添加昼/夜控制代码"
+
+#~ msgid "Day / Night Mode Control"
+#~ msgstr "昼/夜模式控制"
+
+#~ msgid "Delete Day/Night Feature Code %s"
+#~ msgstr "删除昼/夜功能代码：%s"
+
+#~ msgid "Forces to Day  Mode"
+#~ msgstr "强制使用昼模式"
+
+#~ msgid "Forces to Night Mode"
+#~ msgstr "强制使用夜晚模式"
+
+#~ msgid "Use feature code: %s to toggle DAY/NIGHT mode"
+#~ msgstr "使用功能代码：%s 来切换昼/夜模式"
+
+#~ msgid "Day/Night Feature Code Index:"
+#~ msgstr "昼/夜功能代码索引："
+
+#~ msgid ""
+#~ "There are a total of 10 Feature code objects, 0-9, each can control a "
+#~ "call flow and be toggled using the day/night feature code plus the index."
+#~ msgstr ""
+#~ "一共有10个功能代码对象，从0到9，每个都可以控制一个呼叫流，并可以由昼/夜模"
+#~ "式功能代码加索引来触发。"
+
+#~ msgid "Description for this Day/Night Control"
+#~ msgstr "对这项昼/夜控制规则的描述"
+
+#~ msgid ""
+#~ "This will change the current state for this Day/Night Mode Control, or "
+#~ "set the initial state when creating a new one."
+#~ msgstr "这会改变当前的昼/夜模式，或者会设置新建的昼/夜控制规则的默认值。"
+
+#~ msgid "Day"
+#~ msgstr "昼"
+
+#~ msgid "Night"
+#~ msgstr "夜"
+
+#~ msgid ""
+#~ "You can optionally include a password to authenticate before toggling the "
+#~ "day/night mode. If left blank anyone can use the feature code and it will "
+#~ "be un-protected"
+#~ msgstr ""
+#~ "你可以包含一个可选的密码，它在切换昼夜模式时起到验证的作用。如果不填，那么"
+#~ "所有人都可以使用功能代码，此功能代码不受保护。"
+
+#~ msgid "DAY"
+#~ msgstr "昼"
+
+#~ msgid "NIGHT"
+#~ msgstr "夜"
+
+#~ msgid "Day Night Mode"
+#~ msgstr "昼/夜模式"
+
+#~ msgid "Day/Night Control"
+#~ msgstr "昼/夜模式控制"

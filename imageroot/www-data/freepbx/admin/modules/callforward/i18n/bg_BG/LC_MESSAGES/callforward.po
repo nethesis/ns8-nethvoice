@@ -1,0 +1,170 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX v2.5\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-02-01 18:25-0800\n"
+"PO-Revision-Date: 2015-03-11 21:30+0200\n"
+"Last-Translator: Chavdar <chavdar_75@yahoo.com>\n"
+"Language-Team: Bulgarian <http://weblate.freepbx.org/projects/freepbx/"
+"callforward/bg_BG/>\n"
+"Language: bg_BG\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.2-dev\n"
+"X-Poedit-Language: Bulgarian\n"
+"X-Poedit-Country: BULGARIA\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: ucp/views/settings.php:5
+msgid "Always"
+msgstr ""
+
+#: callforward.i18n.php:6
+msgid "Applications"
+msgstr "Приложения"
+
+#: ucp/views/widget.php:13 ucp/views/widget.php:15
+msgid "Busy"
+msgstr "Заето"
+
+#: callforward.i18n.php:4 install.php:6 ucp/Callforward.class.php:130
+msgid "Call Forward"
+msgstr "Пренасочване на Разговор"
+
+#: callforward.i18n.php:24 install.php:7
+msgid "Call Forward All Activate"
+msgstr "Пренасочване на Разговор 'Общо' Включи"
+
+#: callforward.i18n.php:20 install.php:8
+msgid "Call Forward All Deactivate"
+msgstr "Пренасочване на Разговор 'Общо' Изключи"
+
+#: callforward.i18n.php:26 install.php:9
+msgid "Call Forward All Prompting Activate"
+msgstr "Пренасочване на Разговор 'Общо' Включи Напомняне"
+
+#: callforward.i18n.php:22 install.php:10
+msgid "Call Forward All Prompting Deactivate"
+msgstr "Пренасочване на Разговор 'Общо' Изключи Напомняне"
+
+#: callforward.i18n.php:16 install.php:11
+msgid "Call Forward Busy Activate"
+msgstr "Пренасочване на Разговор 'Заето' Включи"
+
+#: callforward.i18n.php:12 install.php:12
+msgid "Call Forward Busy Deactivate"
+msgstr "Пренасочване на Разговор 'Заето' Изключи"
+
+#: callforward.i18n.php:18 install.php:13
+msgid "Call Forward Busy Prompting Activate"
+msgstr "Пренасочване на Разговор 'Заето' Включи Напомняне"
+
+#: callforward.i18n.php:14 install.php:14
+msgid "Call Forward Busy Prompting Deactivate"
+msgstr "Пренасочване на Разговор 'Заето' Изключи Напомняне"
+
+#: callforward.i18n.php:30 install.php:15
+msgid "Call Forward No Answer/Unavailable Activate"
+msgstr "Пренасочване на Разговор 'Не Отговаря' Включи"
+
+#: callforward.i18n.php:28 install.php:16
+msgid "Call Forward No Answer/Unavailable Deactivate"
+msgstr "Пренасочване на Разговор 'Не Отговаря' Изключи"
+
+#: callforward.i18n.php:32 install.php:17
+msgid "Call Forward No Answer/Unavailable Prompting Activate"
+msgstr "Пренасочване на Разговор 'Не Отговаря' Включи Напомняне"
+
+#: callforward.i18n.php:10 install.php:18
+msgid "Call Forward Toggle"
+msgstr "Пренасочване на Разговор Превключи"
+
+#: ucp/Callforward.class.php:87 ucp/Callforward.class.php:106
+msgid "Call Forwarding"
+msgstr "Пренасочване на Разговор"
+
+#: ucp/Callforward.class.php:182
+msgid "Call Forwarding Has Been Updated!"
+msgstr "Пренасочване на Разговор е Актуализирано!"
+
+#: ucp/Callforward.class.php:74
+#, php-format
+msgid "Call Forwarding for %s"
+msgstr ""
+
+#: ucp/views/settings.php:2
+msgid "CallForward Ringtimer"
+msgstr "Таймер на Звънене за Пренасочване на Разговор"
+
+#: ucp/views/settings.php:4
+msgid "Default"
+msgstr ""
+
+#: ucp/views/widget.php:5 ucp/views/widget.php:10 ucp/views/widget.php:15
+msgid "Disabled"
+msgstr ""
+
+#: ucp/views/widget.php:5 ucp/views/widget.php:10 ucp/views/widget.php:15
+msgid "Enabled"
+msgstr ""
+
+#: ucp/views/settings.php:10
+msgid ""
+"Number of seconds to ring prior to going to voicemail or other fail over "
+"destinations that may be setup by an administrator on this account. The "
+"Always setting will ring the call forward destinaiton until answered or the "
+"caller hangs up. The Default setting will use the value set in Ring Time. "
+"Your setting here will be forced to Always if there is no Voicemail or "
+"alternartive fail over destination for a call to go to."
+msgstr ""
+"Брой секунди на звънене преди да продължи към гласова поща или друго "
+"направление при провал, които могат да бъдат настроени от администратора на "
+"този акаунт. Настройката Винаги ще звъни докато не бъде отговорено или "
+"обаждащия се затвори. Настройката по подразбиране ще използва зададената във "
+"Време на Звънене. Вашите настройки ще бъдат променяни на Винаги ако няма "
+"гласова поща или друго направление при провал към което да се насочи "
+"обаждането."
+
+#: callforward.i18n.php:8
+msgid "Provides callforward featurecodes"
+msgstr "Предоставя специални кодове за пренасочване на разговор"
+
+#: ucp/views/settings.php:7
+msgid "Seconds"
+msgstr "Секунди"
+
+#: ucp/views/widget.php:8 ucp/views/widget.php:10
+msgid "Unavailable"
+msgstr "Не Отговаря"
+
+#: ucp/views/widget.php:3 ucp/views/widget.php:5
+msgid "Unconditional"
+msgstr "Безусловно"
+
+#~ msgid "Forward immediately regardless of current state of line/PBX"
+#~ msgstr ""
+#~ "Незабавно пренасочва разговора независимо от текущото състояние на "
+#~ "линията/тел.централа"
+
+#~ msgid ""
+#~ "Preconfigured number to which calls are forwarded if the customer "
+#~ "endpoint becomes unresponsive due to an Internet outage or software/"
+#~ "configuration failure of endpoint"
+#~ msgstr ""
+#~ "Предварително конфигуриран номер, към който да се пренасочват обажданията "
+#~ "ако телефона на потребителя не отговаря вследствие на пропадане на "
+#~ "интернет мрежата или софтуерен/хардуерен проблем с телефонния апарат"
+
+#~ msgid ""
+#~ "Preconfigured number to which calls are forwarded if the customer "
+#~ "endpoint is busy, usually due to being on an active call"
+#~ msgstr ""
+#~ "Предварително конфигуриран номер, към който да се пренасочват обажданията "
+#~ "ако телефона на потребителя е зает"

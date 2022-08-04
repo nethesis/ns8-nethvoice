@@ -1,0 +1,20 @@
+<module>
+  <rawname>extraoptions</rawname>
+  <repo>unsupported</repo>
+  <name>Extra Features Options</name>
+  <version>0.0.1</version>
+  <category>Applications</category>
+  <Publisher>Nethesis</Publisher>
+  <info></info>
+  <licence>GPL</licence>
+  <licenselink>http://www.gnu.org/licenses/gpl-2.0.txt</licenselink>
+<depends>
+  <version>14</version>
+</depends>
+<supported>14.0</supported>
+<methods>
+    <get_config pri="600">extraoptions_get_config</get_config>
+</methods>
+<description>Allow to configure some Asterisk features</description>
+<changelog></changelog>
+</module>

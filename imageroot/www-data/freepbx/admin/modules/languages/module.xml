@@ -1,0 +1,70 @@
+<module>
+	<rawname>languages</rawname>
+	<repo>extended</repo>
+	<name>Languages</name>
+	<version>14.0.1.4</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<category>Applications</category>
+	<description>
+		Adds the ability to changes the language within a call flow and add language attribute to users.
+	</description>
+	<menuitems>
+		<languages needsenginedb="yes">Languages</languages>
+	</menuitems>
+	<popovers>
+		<languages>
+			<display>languages</display>
+		</languages>
+	</popovers>
+	<changelog>
+		*14.0.1.4* Fixing FREEPBX-17867 
+		*14.0.1.3* FREEPBX-18338 Languages module allows to create duplicate entries with same Description. 
+		*14.0.1.2* FREEPBX-17352 Call Asterisk Manager correctly 
+		*14.0.1.1* FREEPBX-13618 write out default language from user if device is of type fixed
+		*13.0.6* FREEPBX-11903 Add bulkhandler hook
+		*13.0.5* Slideout menu
+		*13.0.4* FREEPBX-10320
+		*13.0.3* Use languages from Sound Languages module, if enabled
+		*13.0.2* Version bump Beta
+		*13.0.1alpha1* Visual Changes
+		*2.11.0.2* Include license file
+		*2.11.0.1* Database abstraction fixes
+		*2.11.0.0* #6051
+		*2.10.0.1* #5478
+		*2.10.0.0* new version changes
+		*2.9.0.3* #5312, #5313
+		*2.9.0.2* #4914
+		*2.9.0.1* set repository
+		*2.9.0.0* #4657, #4655
+	</changelog>
+	<hooks>
+		<bulkhandler class="Bulkhandler" namespace="FreePBX\modules">
+			<method callingMethod="getHeaders" class="Languages" namespace="FreePBX\modules">bulkhandlerGetHeaders</method>
+			<method callingMethod="export" class="Languages" namespace="FreePBX\modules">bulkhandlerExport</method>
+			<method callingMethod="import" class="Languages" namespace="FreePBX\modules">bulkhandlerImport</method>
+		</bulkhandler>
+	</hooks>
+	<database>
+	  <table name="languages">
+	    <field name="language_id" type="integer" primaryKey="true" autoincrement="true"/>
+	    <field name="lang_code" type="string" length="50" notnull="false"/>
+	    <field name="description" type="string" length="50" notnull="false"/>
+	    <field name="dest" type="string" length="255" notnull="false"/>
+	  </table>
+		<table name="language_incoming">
+			<field name="extension" type="string" length="50" notnull="false"/>
+			<field name="cidnum" type="string" length="50" notnull="false"/>
+			<field name="language" type="string" length="10" notnull="false"/>
+		</table>
+	</database>
+	<depends>
+		<version>13.0.6</version>
+	</depends>
+	<location>release/2.11/languages-2.11.0.0.tgz</location>
+	<md5sum>b587ea591f4dbf4ee8c1de52bcfb464c</md5sum>
+	<supported>
+		<version>14.0</version>
+	</supported>
+</module>

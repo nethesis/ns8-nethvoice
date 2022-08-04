@@ -1,0 +1,57 @@
+{
+  "data": {
+    "brands": {
+      "name": "Snom",
+      "directory": "snom",
+      "brand_id": "6",
+      "package": "snom.tgz",
+      "md5sum": "dce6737850378430f14a28494b037693",
+      "last_modified": 1395183811,
+      "family_list": [{
+          "id": "1",
+          "name": "Snom 3xx Models [300, 320, 360, 370, D305, D315, D345, D375, D385]",
+          "directory": "3xx820m3",
+          "description": "Server + Password Settings, htm File Fixes",
+          "changelog": "",
+          "last_modified": "Thu Oct 15 2015"
+        },
+        {
+          "id": "3",
+          "name": "Snom 7xx Models [710, 715, 720, 760, D712, D717, D725, D735, D745, D765, D785]",
+          "directory": "7xx",
+          "description": "Server + Password Settings, htm File Fixes",
+          "changelog": "",
+          "last_modified": "Thu Oct 15 2015"
+        },
+        {
+          "id": "2",
+          "name": "Snom 8xx Models [820, 821, 870]",
+          "directory": "8xx",
+          "description": "Server + Password Settings, htm File Fixes",
+          "changelog": "",
+          "last_modified": "Thu Oct 15 2015"
+        },
+        {
+          "id": "4",
+          "name": "Snom Mxxx Models [M200, M300, M700]",
+          "directory": "Mxxx",
+          "description": "IP DECT first commit",
+          "changelog": "",
+          "last_modified": "Thu Jan 26 2017"
+        },
+        {
+          "id": "5",
+          "name": "Snom 1xx Models [D120]",
+          "directory": "1xx",
+          "description": "Server + Password Settings, htm File Fixes",
+          "changelog": "",
+          "last_modified": "Thu Oct 15 2015"
+        }
+      ],
+      "oui_list": [
+        "000413"
+      ],
+      "changelog": "PACKAGER: Nethesis."
+    }
+  }
+}

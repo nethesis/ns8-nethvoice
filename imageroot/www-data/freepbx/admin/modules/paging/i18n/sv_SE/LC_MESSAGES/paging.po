@@ -1,0 +1,581 @@
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# FreePBX language for paging
+# Copyright (C) 2009, 2010, 2011 Mikael Carlsson
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX paging\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-05-10 05:16+0000\n"
+"PO-Revision-Date: 2011-03-20 00:00+0100\n"
+"Last-Translator: Mikael Carlsson <mickecamino@gmail.com>\n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Swedish\n"
+"X-Poedit-Country: SWEDEN\n"
+
+#: assets/js/paging.js:39
+msgid " Please set the event days."
+msgstr ""
+
+#: assets/js/paging.js:42
+msgid " Please set the event time."
+msgstr ""
+
+#: Paging.class.php:207
+msgid ""
+"<strong>Force</strong><br> Send the headers telling the phone to go into "
+"auto answer mode. This may not work, and is dependant on the phone."
+msgstr ""
+
+#: Paging.class.php:205
+msgid "<strong>Reject</strong><br> Return a BUSY signal to the caller"
+msgstr ""
+
+#: Paging.class.php:206
+msgid ""
+"<strong>Ring</strong><br> Treat the page as a normal call, and ring the "
+"extension (if Call Waiting is disabled, this will return BUSY"
+msgstr ""
+
+#: views/form.php:222
+msgid ""
+"<ul>\n"
+"<li><b>\"Skip\"</b> will not page any busy extension. All other extensions "
+"will be paged as normal</li>\n"
+"<li><b>\"Force\"</b> will not check if the device is in use before paging "
+"it. This means conversations can be interrupted by a page (depending on how "
+"the device handles it). This is useful for \"emergency\" paging groups.</"
+"li>\n"
+"<li><b>\"Whisper\"</b> will attempt to use the ChanSpy capability on SIP "
+"channels, resulting in the page being sent to the device's earpiece "
+"\"whispered\" to the user but not heard by the remote party. If ChanSpy is "
+"not supported on the device or otherwise fails, no page will get through. It "
+"probably does not make too much sense to choose duplex if using Whisper mode."
+"</li>\n"
+"</ul>"
+msgstr ""
+
+#: views/grid.php:14
+msgid "Actions"
+msgstr ""
+
+#: views/bootnav.php:8 views/grid.php:6
+msgid "Add Page Group"
+msgstr ""
+
+#: views/form.php:150
+msgid "Alert Tone"
+msgstr ""
+
+#: paging.i18n.php:8
+msgid ""
+"Allows creation of paging groups to make announcements using the speaker "
+"built into most SIP phones. Also creates an        Intercom feature code "
+"that can be used as a prefix to talk directly to one person, as well as "
+"optional feature codes        to block/allow intercom calls to all users as "
+"well as blocking specific users or only allowing specific users."
+msgstr ""
+
+#: views/settings.php:68
+msgid "Annoucement to be played to remote party. Default is a beep"
+msgstr ""
+
+#: views/form.php:164
+msgid ""
+"Announcement to be played to remote party. If set to Default it will use the "
+"global setting from Page Groups. If Page Groups is not defined then it will "
+"default to beep. This Announcement file duration should not exceed Default "
+"ringtime(Advanced Settings)"
+msgstr ""
+
+#: paging.i18n.php:6
+msgid "Applications"
+msgstr ""
+
+#: views/settings.php:54
+msgid "Auto-answer defaults"
+msgstr ""
+
+#: views/form.php:45
+msgid "Beep"
+msgstr ""
+
+#: views/form.php:205
+msgid "Busy Extensions"
+msgstr ""
+
+#: views/form.php:44 views/grid.php:13 views/settings.php:4
+msgid "Default"
+msgstr ""
+
+#: functions.inc.php:1112
+msgid "Default Group Inclusion"
+msgstr "Standard gruppinkludering"
+
+#: functions.inc.php:1115 views/form.php:268
+msgid "Default Page Group"
+msgstr "Standard anropsgrupp"
+
+#: Paging.class.php:97 Paging.class.php:258
+msgid "Delete"
+msgstr ""
+
+#: views/bootnav.php:14 views/form.php:109 views/grid.php:12
+msgid "Description"
+msgstr ""
+
+#: views/form.php:121
+msgid "Device List"
+msgstr ""
+
+#: views/form.php:135
+msgid ""
+"Devices to page. Please note, paging calls the actual device (and not the "
+"user). Amount of pagable devices is restricted by the advanced setting key "
+"PAGINGMAXPARTICIPANTS and is currently set to "
+msgstr ""
+
+#: functions.inc.php:1091
+msgid "Disable"
+msgstr ""
+
+#: functions.inc.php:1088
+msgid "Disabled"
+msgstr "Avaktiverad"
+
+#: views/settings.php:80
+msgid "Drop Silence"
+msgstr ""
+
+#: views/form.php:238
+msgid "Duplex"
+msgstr "Tvåvägs-samtal"
+
+#: functions.inc.php:1087
+msgid "Enabled"
+msgstr ""
+
+#: functions.inc.php:1083
+msgid "Exclude"
+msgstr "Exkludera"
+
+#: functions.inc.php:1117
+msgid "Extension Options"
+msgstr ""
+
+#: Paging.class.php:199 views/form.php:212
+msgid "Force"
+msgstr ""
+
+#: views/form.php:97
+msgid "Group Description"
+msgstr "Beskrivning för gruppen"
+
+#: views/form.php:283
+msgid ""
+"If you choose to make a Page Group the \"default\" page group, a checkbox "
+"will appear in the Extensions Module that will allow you to include or "
+"exclude that Extension in the default Page Group when editing said extension"
+msgstr ""
+
+#: functions.inc.php:1084
+msgid "Include"
+msgstr "Inkludera"
+
+#: functions.inc.php:1092
+msgid "Intercom"
+msgstr ""
+
+#: functions.inc.php:1126
+msgid "Intercom Mode"
+msgstr ""
+
+#: Paging.class.php:203
+msgid "Intercom Override"
+msgstr ""
+
+#: functions.inc.php:383
+#, php-format
+msgid "Intercom from %s: Disabled"
+msgstr ""
+
+#: functions.inc.php:321
+#, php-format
+msgid "Intercom from %s: Enabled"
+msgstr ""
+
+#: install.php:5 paging.i18n.php:16
+msgid "Intercom prefix"
+msgstr "Prefix för snabbtelefon"
+
+#: functions.inc.php:371
+msgid "Intercom: Disabled"
+msgstr ""
+
+#: functions.inc.php:309
+msgid "Intercom: Enabled"
+msgstr ""
+
+#: functions.inc.php:1122
+msgid "Internal Auto Answer"
+msgstr ""
+
+#: views/bootnav.php:7
+msgid "List Page Groups"
+msgstr ""
+
+#: views/form.php:245 views/form.php:275 views/settings.php:87
+#: views/settings.php:114
+msgid "No"
+msgstr "Nej"
+
+#: functions.inc.php:1171 views/form.php:43 views/form.php:181
+#: views/settings.php:3
+msgid "None"
+msgstr ""
+
+#: views/form.php:41
+msgid "Not Selected"
+msgstr ""
+
+#: views/form.php:193
+msgid ""
+"Override the speaker volume for this page. Note: This is only valid for "
+"Sangoma phones at this time"
+msgstr ""
+
+#: functions.inc.php:832 functions.inc.php:1176 views/bootnav.php:13
+#: views/formwrap.php:9 views/grid.php:11
+msgid "Page Group"
+msgstr "Anropsgrupp"
+
+#: functions.inc.php:920
+msgid "Page Group: "
+msgstr "Anropsgrupp: "
+
+#: Paging.class.php:399
+#, php-format
+msgid "Page Group: %s (%s)"
+msgstr ""
+
+#: assets/js/paging.js:107
+msgid "Page Groups"
+msgstr ""
+
+#: views/form.php:73
+msgid "Paging Extension"
+msgstr "Anknytningsnummer för grupp"
+
+#: functions.inc.php:849
+#, php-format
+msgid "Paging Group %s : %s"
+msgstr ""
+
+#: views/overview.php:22
+msgid "Paging Groups"
+msgstr ""
+
+#: views/routing_hook.php:15
+msgid "Paging Notification"
+msgstr ""
+
+#: Paging.class.php:202 paging.i18n.php:4 paging.i18n.php:10
+#: views/overview.php:7
+msgid "Paging and Intercom"
+msgstr "Snabbtelefon"
+
+#: views/settings.php:42
+msgid "Paging and Intercom settings"
+msgstr ""
+
+#: views/form.php:253
+msgid ""
+"Paging is typically one way for announcements only. Checking this will make "
+"the paging duplex, allowing all phones in the paging group to be able to "
+"talk and be heard by all. This makes it like an \"instant conference\""
+msgstr ""
+"Anrop via grupper är normalt för envägs-meddelande. Om detta väljs kommer "
+"anropet att vara tvåvägs, alla telefoner i anropsgruppen kan prata och höras "
+"av varandra. Kan med fördel användas för \"omedelbar konferens\"."
+
+#: assets/js/paging.js:11
+msgid "Please enter a valid end Date."
+msgstr ""
+
+#: assets/js/paging.js:6
+msgid "Please enter a valid start Date."
+msgstr ""
+
+#: views/settings.php:107
+msgid "Quiet"
+msgstr ""
+
+#: Paging.class.php:197
+msgid "Reject"
+msgstr ""
+
+#: Paging.class.php:263
+msgid "Reset"
+msgstr ""
+
+#: Paging.class.php:198
+msgid "Ring"
+msgstr ""
+
+#: views/form.php:40
+msgid "Selected"
+msgstr ""
+
+#: views/overview.php:27
+msgid "Settings"
+msgstr ""
+
+#: views/form.php:210
+msgid "Skip"
+msgstr ""
+
+#: views/form.php:176
+msgid "Speaker Volume Override"
+msgstr ""
+
+#: Paging.class.php:268 views/settings.php:128
+msgid "Submit"
+msgstr ""
+
+#: assets/js/paging.js:16
+msgid "The end date must biger greater the start date."
+msgstr ""
+
+#: views/form.php:85
+msgid "The number users will dial to page this group"
+msgstr "Numret att använda för att anropa denna grupp"
+
+#: views/overview.php:6
+msgid ""
+"This module is for specific phones that are capable of Paging or Intercom. "
+"This section is for configuring group paging, intercom is configured through "
+"<strong>Feature Codes</strong>. Intercom must be enabled on a handset before "
+"it will allow incoming calls. It is possible to restrict incoming intercom "
+"calls to specific extensions only, or to allow intercom calls from all "
+"extensions but explicitly deny from specific extensions.<br /><br />This "
+"module should work with Aastra, Grandstream, Linksys/Sipura, Mitel, Polycom, "
+"SNOM , and possibly other SIP phones (not ATAs). Any phone that is always "
+"set to auto-answer should also work (such as the console extension if "
+"configured)."
+msgstr ""
+"Denna modul är för specifika telefoner som klarar av snabbtelefoni. Denna "
+"sektion används för att konfigurera anropsgrupper, själva snabbtelefonin "
+"konfigureras genom <strong>Funktionskoder</strong>. Snabbtelefonifunktionen "
+"måste aktiveras på telefonen först för att detta ska fungera. Det är möjligt "
+"att konfigurera snabbtelefoni för specifika anknytningar eller genom att "
+"tillåta snabbtelefoni till alla anknytningar förutom vissa anknytningar."
+"<br><br>Denna modul ska fungera med Aastra, Grandstream, Linksys/Sipura, "
+"Mitel, Polycom, SNOM och troligtvis andra SIP-telefoner (inga s.k. ATA-"
+"boxar). Telefoner med funktionen auto-answer bör också fungera."
+
+#: views/settings.php:95
+msgid ""
+"This option drops what Asterisk detects as silence from entering into the "
+"bridge. Enabling this option will drastically improve performance and help "
+"remove the buildup of background noise from the conference. Highly "
+"recommended for large conferences due to its performance enhancements."
+msgstr ""
+
+#: views/settings.php:122
+msgid "This option removes the beep from caller."
+msgstr ""
+
+#: views/routing_hook.php:29
+msgid ""
+"This will cause the selected Page Group to be paged and connected to any "
+"call that is served by this route. It is recommended not to use a Page Group "
+"that uses (Force) Valet Paging(Paging Pro only)"
+msgstr ""
+
+#: Paging.class.php:185
+msgid "Unknown Request"
+msgstr ""
+
+#: install.php:6 paging.i18n.php:14
+msgid "User Intercom Allow"
+msgstr "Tillåt snabbtelefon"
+
+#: install.php:7 paging.i18n.php:12
+msgid "User Intercom Disallow"
+msgstr "Förhindra snabbtelefon"
+
+#: functions.inc.php:1126
+msgid ""
+"When Enabled users can use *80<ext> to force intercom. When Disabled this "
+"user will reject intercom calls"
+msgstr ""
+
+#: functions.inc.php:1122
+msgid ""
+"When set to Intercom, calls to this extension/user from other internal users "
+"act as if they were intercom calls meaning they will be auto-answered if the "
+"endpoint supports this feature and the system is configured to operate in "
+"this mode. All the normal white list and black list settings will be honored "
+"if they are set. External calls will still ring as normal, as will certain "
+"other circumstances such as blind transfers and when a Follow Me is "
+"configured and enabled. If Disabled, the phone rings as a normal phone."
+msgstr ""
+
+#: Paging.class.php:204
+msgid ""
+"When using Intercom to page an extension, if the extension is in use, you "
+"have three options."
+msgstr ""
+
+#: views/form.php:214
+msgid "Whisper"
+msgstr "Viskningsläge"
+
+#: views/form.php:243 views/form.php:273 views/settings.php:85
+#: views/settings.php:112
+msgid "Yes"
+msgstr "Ja"
+
+#: functions.inc.php:1115
+msgid ""
+"You can include or exclude this extension/device from being part of the "
+"default page group when creating or editing."
+msgstr ""
+"Du kan inkludera eller exkludera denna anknytning/enhet från att vara med i "
+"standard anropsgruppen när du skapar eller rediderar den"
+
+#~ msgid "Please enter a valid Paging Extension"
+#~ msgstr "Skriv in en giltig anknytning"
+
+#~ msgid "Add Paging Group"
+#~ msgstr "Lägg till anropsgrupp"
+
+#~ msgid "Conflicting Extensions"
+#~ msgstr "Konfliktande anknytningar"
+
+#~ msgid ""
+#~ "Intercom mode is currently disabled, it can be enabled in the Feature "
+#~ "Codes Panel."
+#~ msgstr ""
+#~ "Snabbtelefonanrop är för närvarande avaktiverat, du kan aktivera detta i "
+#~ "Funktionskoder."
+
+#~ msgid "Modify Paging Group"
+#~ msgstr "Redigera anropsgrupp"
+
+#~ msgid "Provide a descriptive title for this Page Group."
+#~ msgstr "Skriv en in kortfattad beskrivning för denna grupp."
+
+#~ msgid ""
+#~ "Example usage:<br /><table><tr><td><strong>%snnn</strong>:</"
+#~ "td><td>Intercom extension nnn</td></tr><tr><td><strong>%s</strong>:</"
+#~ "td><td>Enable all extensions to intercom you (except those explicitly "
+#~ "denied)</td></tr><tr><td><strong>%snnn</strong>:</td><td>Explicitly allow "
+#~ "extension nnn to intercom you (even if others are disabled)</td></"
+#~ "tr><tr><td><strong>%s</strong>:</td><td>Disable all extensions from "
+#~ "intercom you (except those explicitly allowed)</td></tr><tr><td><strong>"
+#~ "%snnn</strong>:</td><td>Explicitly deny extension nnn to intercom you "
+#~ "(even if generally enabled)</td></tr></table>"
+#~ msgstr ""
+#~ "T.ex.<br /><table><tr><td><strong>%snnn</strong>:</td><td>Anropa "
+#~ "anknytning nnn</td></tr><tr><td><strong>%s</strong>:</td><td>Tillåt alla "
+#~ "anknytningar att anropa dig (förutom dom du specifikt förbjuder)</td></"
+#~ "tr><tr><td><strong>%snnn</strong>:</td><td>Tillåt anknynting nnn att "
+#~ "anropa dig (även om du förbjuder andra)</td></tr><tr><td><strong>%s</"
+#~ "strong>:</td><td>Förbjud alla anknytningar att anropa dig (förutom dom du "
+#~ "tillåtit)</td></tr><tr><td><strong>%snnn</strong>:</td><td>Förbjud "
+#~ "anknytning nnn att anropa dig (även om du generellt tillåter alla)</td></"
+#~ "tr></table>"
+
+#~ msgid "Delete Group %s"
+#~ msgstr "Ta bort grupp %s"
+
+#~ msgid "Device List:"
+#~ msgstr "Anknytningslista"
+
+#~ msgid ""
+#~ "Select Device(s) to page. This is the phone that should be paged. In most "
+#~ "installations, this is the same as the Extension. If you are configured "
+#~ "to use \"Users & Devices\" this is the actual Device and not the User.  "
+#~ "Use Ctrl key to select multiple.."
+#~ msgstr ""
+#~ "Välj anknytning(ar) du vill anropa. Detta kommer att ske till telefonen. "
+#~ "I de flesta fall är detta samma som anknytningen. Om du använder "
+#~ "konfigurationen \"Användare & Enheter\" kommer detta att vara enheten och "
+#~ "inte användaren. Använd Ctrl-tangenten för att markera flera i listan."
+
+#~ msgid "Force if busy"
+#~ msgstr "Forcera om det är upptaget"
+
+#~ msgid ""
+#~ "If yes, will not check if the device is in use before paging it. This "
+#~ "means conversations can be interrupted by a page (depending on how the "
+#~ "device handles it). This is useful for \"emergency\" paging groups. "
+#~ "Setting to 'Whisper' will attempt to use the ChanSpy capability on SIP "
+#~ "channels, resulting in the page being sent to the device's ear piece but "
+#~ "not heard by the remote party. If ChanSpy is not supported on the device "
+#~ "or otherwise fails, no page will get through. It probably does not make "
+#~ "too much sense to choose duplex if using Whisper mode."
+#~ msgstr ""
+#~ "Om detta är valt, och telefonen är upptagen, kommer pågående samtal att "
+#~ "avbrytas för anrop (beroende på om telefonen stödjer detta). Detta är "
+#~ "användbart för t.ex. anropsgruppen \"nödläge\".Om detta ställs till "
+#~ "Viskningsläge kommer funktionen ChanSpy för SIP att användas och anropet "
+#~ "kommer bara höras i telefonens hörlur. Om funktionen ChanSpy inte stöds "
+#~ "kommer anropet inte att nå telefonen. Att välja duplex i Viskningsläge "
+#~ "kommer inte att fungera"
+
+#~ msgid "The Whisper mode is new and considered experimental."
+#~ msgstr "Viskningsläget är nytt och anses som experimentellt"
+
+#~ msgid ""
+#~ "Each PBX system can have a single Default Page Group. If specified, "
+#~ "extensions can be automatically added (or removed) from this group in the "
+#~ "Extensions (or Devices) tab.<br />Making this group the default will "
+#~ "uncheck the option from the current default group if specified."
+#~ msgstr ""
+#~ "Varje instans av FreePBX kan ha en standard anropsgrupp. Om denna är "
+#~ "angiven, kan anknytningar automatiskt läggas till (eller tas bort från) "
+#~ "denna grupp i Anknytningar (eller Enheter)<br>Om denna grupp sätts som "
+#~ "standard kommer den grupp som tidigare var standard att avmarkeras."
+
+#~ msgid "Submit Changes"
+#~ msgstr "Spara ändringar"
+
+#~ msgid "Please select at least one extension"
+#~ msgstr "Välj minst en anknytning"
+
+#~ msgid " [DEFAULT]"
+#~ msgstr " [STANDARD]"
+
+#~ msgid ""
+#~ "Allows creation of paging groups to make announcements using the speaker "
+#~ "built into most SIP phones. \tAlso creates an Intercom feature code that "
+#~ "can be used as a prefix to talk directly to one person, as well as "
+#~ "optional feature codes to block/allow intercom calls to all users as well "
+#~ "as blocking specific users or only allowing specific users."
+#~ msgstr ""
+#~ "Denna modul ger dig möjlighet att använda snabbtelefonfunktioner i "
+#~ "systemet.Om SIP-telefonerna stöder funktionen kan dels massanrop göra, "
+#~ "dels en-till-en snabbtelefoni"
+
+#~ msgid "Internal Options & Configuration"
+#~ msgstr "Interna val och konfigurationer"

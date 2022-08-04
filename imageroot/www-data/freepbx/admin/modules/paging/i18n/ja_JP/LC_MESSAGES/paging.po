@@ -1,0 +1,687 @@
+# CREDITS for JAPANESE TRANSLATION
+# ================================
+# Current translation & maintenance: QLOOG, Inc. (Kobe, Japan)
+# Inquiries: info@qloog.com / www.qloog.com
+#
+# This translation is a culmination of the hard work of
+# several outstanding individuals, which started in 2009 with the 
+# first-ever Japanese localization of FreePBX by Kenichi Fukaumi 
+# and Kazuhiro Tokuyama (FreePBX Japanized Project).
+#
+# Beginning in 2013, with the approval of the original authors, 
+# QLOOG undertook a large scale overhaul of the translation to 
+# expand it for compatibility with FreePBX 2.11. Our work is, 
+# of course, released under the same GPLv2 license as FreePBX. 
+# We only ask that you kindly retain these credits in honor of 
+# the time and effort that all of us have contributed. Enjoy!
+#
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# FreePBX language template for paging
+# Copyright (C) 2008, 2009, 2010 Bandwith.com
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX 2.10.0.9\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-05-10 05:16+0000\n"
+"PO-Revision-Date: 2015-02-19 12:34+0200\n"
+"Last-Translator: Kevin <kevin@qloog.com>\n"
+"Language-Team: Japanese <http://weblate.freepbx.org/projects/freepbx/paging/"
+"ja_JP/>\n"
+"Language: ja_JP\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.2-dev\n"
+
+#: assets/js/paging.js:39
+msgid " Please set the event days."
+msgstr ""
+
+#: assets/js/paging.js:42
+msgid " Please set the event time."
+msgstr ""
+
+#: Paging.class.php:207
+msgid ""
+"<strong>Force</strong><br> Send the headers telling the phone to go into "
+"auto answer mode. This may not work, and is dependant on the phone."
+msgstr ""
+"<strong>強制</strong><br> 電話機に自動応答するヘッダーを送信します。未対応の"
+"機種の場合はこの設定が効かない場合があります。"
+
+#: Paging.class.php:205
+msgid "<strong>Reject</strong><br> Return a BUSY signal to the caller"
+msgstr "<strong>拒否</strong><br> この内線に発信した人にBUSY信号を返します"
+
+#: Paging.class.php:206
+msgid ""
+"<strong>Ring</strong><br> Treat the page as a normal call, and ring the "
+"extension (if Call Waiting is disabled, this will return BUSY"
+msgstr ""
+"<strong>リング</strong><br> 通常の通話として扱って、内線を鳴らします。キャッ"
+"チホンが無効の場合は、BUSY信号を返します"
+
+#: views/form.php:222
+msgid ""
+"<ul>\n"
+"<li><b>\"Skip\"</b> will not page any busy extension. All other extensions "
+"will be paged as normal</li>\n"
+"<li><b>\"Force\"</b> will not check if the device is in use before paging "
+"it. This means conversations can be interrupted by a page (depending on how "
+"the device handles it). This is useful for \"emergency\" paging groups.</"
+"li>\n"
+"<li><b>\"Whisper\"</b> will attempt to use the ChanSpy capability on SIP "
+"channels, resulting in the page being sent to the device's earpiece "
+"\"whispered\" to the user but not heard by the remote party. If ChanSpy is "
+"not supported on the device or otherwise fails, no page will get through. It "
+"probably does not make too much sense to choose duplex if using Whisper mode."
+"</li>\n"
+"</ul>"
+msgstr ""
+
+#: views/grid.php:14
+msgid "Actions"
+msgstr ""
+
+#: views/bootnav.php:8 views/grid.php:6
+msgid "Add Page Group"
+msgstr ""
+
+#: views/form.php:150
+msgid "Alert Tone"
+msgstr ""
+
+#: paging.i18n.php:8
+msgid ""
+"Allows creation of paging groups to make announcements using the speaker "
+"built into most SIP phones. Also creates an        Intercom feature code "
+"that can be used as a prefix to talk directly to one person, as well as "
+"optional feature codes        to block/allow intercom calls to all users as "
+"well as blocking specific users or only allowing specific users."
+msgstr ""
+
+#: views/settings.php:68
+msgid "Annoucement to be played to remote party. Default is a beep"
+msgstr ""
+
+#: views/form.php:164
+msgid ""
+"Announcement to be played to remote party. If set to Default it will use the "
+"global setting from Page Groups. If Page Groups is not defined then it will "
+"default to beep. This Announcement file duration should not exceed Default "
+"ringtime(Advanced Settings)"
+msgstr ""
+
+#: paging.i18n.php:6
+msgid "Applications"
+msgstr "アプリケーション"
+
+#: views/settings.php:54
+msgid "Auto-answer defaults"
+msgstr "自動応答デフォルト"
+
+#: views/form.php:45
+msgid "Beep"
+msgstr ""
+
+#: views/form.php:205
+msgid "Busy Extensions"
+msgstr "通話中の内線"
+
+#: views/form.php:44 views/grid.php:13 views/settings.php:4
+msgid "Default"
+msgstr "デフォルト"
+
+#: functions.inc.php:1112
+msgid "Default Group Inclusion"
+msgstr "デフォルトグループを含む"
+
+#: functions.inc.php:1115 views/form.php:268
+msgid "Default Page Group"
+msgstr "デフォルトページンググループ"
+
+#: Paging.class.php:97 Paging.class.php:258
+msgid "Delete"
+msgstr "削除"
+
+#: views/bootnav.php:14 views/form.php:109 views/grid.php:12
+msgid "Description"
+msgstr ""
+
+#: views/form.php:121
+msgid "Device List"
+msgstr "デバイスリスト"
+
+#: views/form.php:135
+msgid ""
+"Devices to page. Please note, paging calls the actual device (and not the "
+"user). Amount of pagable devices is restricted by the advanced setting key "
+"PAGINGMAXPARTICIPANTS and is currently set to "
+msgstr ""
+"ページングする端末。注意：ページングとは、ユーザー宛ではなく、実端末宛に行わ"
+"れる物です。ページングが可能なデバイス数は、詳細設定のキー "
+"PAGINMAXPARTICIPANTS によって指定されています。現在の設定は次の通りです： "
+
+#: functions.inc.php:1091
+msgid "Disable"
+msgstr ""
+
+#: functions.inc.php:1088
+msgid "Disabled"
+msgstr "無効"
+
+#: views/settings.php:80
+msgid "Drop Silence"
+msgstr ""
+
+#: views/form.php:238
+msgid "Duplex"
+msgstr "デュプレックス"
+
+#: functions.inc.php:1087
+msgid "Enabled"
+msgstr ""
+
+#: functions.inc.php:1083
+msgid "Exclude"
+msgstr "含まない"
+
+#: functions.inc.php:1117
+msgid "Extension Options"
+msgstr ""
+
+#: Paging.class.php:199 views/form.php:212
+msgid "Force"
+msgstr "強制"
+
+#: views/form.php:97
+msgid "Group Description"
+msgstr "グループ説明"
+
+#: views/form.php:283
+msgid ""
+"If you choose to make a Page Group the \"default\" page group, a checkbox "
+"will appear in the Extensions Module that will allow you to include or "
+"exclude that Extension in the default Page Group when editing said extension"
+msgstr ""
+
+#: functions.inc.php:1084
+msgid "Include"
+msgstr "含む"
+
+#: functions.inc.php:1092
+msgid "Intercom"
+msgstr ""
+
+#: functions.inc.php:1126
+msgid "Intercom Mode"
+msgstr ""
+
+#: Paging.class.php:203
+msgid "Intercom Override"
+msgstr "インターコムオーバーライド"
+
+#: functions.inc.php:383
+#, php-format
+msgid "Intercom from %s: Disabled"
+msgstr ""
+
+#: functions.inc.php:321
+#, php-format
+msgid "Intercom from %s: Enabled"
+msgstr ""
+
+#: install.php:5 paging.i18n.php:16
+msgid "Intercom prefix"
+msgstr "インターコムプリフィックス"
+
+#: functions.inc.php:371
+msgid "Intercom: Disabled"
+msgstr ""
+
+#: functions.inc.php:309
+msgid "Intercom: Enabled"
+msgstr ""
+
+#: functions.inc.php:1122
+msgid "Internal Auto Answer"
+msgstr ""
+
+#: views/bootnav.php:7
+msgid "List Page Groups"
+msgstr ""
+
+#: views/form.php:245 views/form.php:275 views/settings.php:87
+#: views/settings.php:114
+msgid "No"
+msgstr "いいえ"
+
+#: functions.inc.php:1171 views/form.php:43 views/form.php:181
+#: views/settings.php:3
+msgid "None"
+msgstr "なし"
+
+#: views/form.php:41
+msgid "Not Selected"
+msgstr "未選択"
+
+#: views/form.php:193
+msgid ""
+"Override the speaker volume for this page. Note: This is only valid for "
+"Sangoma phones at this time"
+msgstr ""
+
+#: functions.inc.php:832 functions.inc.php:1176 views/bootnav.php:13
+#: views/formwrap.php:9 views/grid.php:11
+msgid "Page Group"
+msgstr "ページンググループ"
+
+#: functions.inc.php:920
+msgid "Page Group: "
+msgstr "ページンググループ："
+
+#: Paging.class.php:399
+#, php-format
+msgid "Page Group: %s (%s)"
+msgstr ""
+
+#: assets/js/paging.js:107
+msgid "Page Groups"
+msgstr ""
+
+#: views/form.php:73
+msgid "Paging Extension"
+msgstr "ページング内線"
+
+#: functions.inc.php:849
+#, php-format
+msgid "Paging Group %s : %s"
+msgstr ""
+
+#: views/overview.php:22
+msgid "Paging Groups"
+msgstr ""
+
+#: views/routing_hook.php:15
+msgid "Paging Notification"
+msgstr ""
+
+#: Paging.class.php:202 paging.i18n.php:4 paging.i18n.php:10
+#: views/overview.php:7
+msgid "Paging and Intercom"
+msgstr "ページング & インターコム"
+
+#: views/settings.php:42
+msgid "Paging and Intercom settings"
+msgstr "ページング & インターコム設定"
+
+#: views/form.php:253
+msgid ""
+"Paging is typically one way for announcements only. Checking this will make "
+"the paging duplex, allowing all phones in the paging group to be able to "
+"talk and be heard by all. This makes it like an \"instant conference\""
+msgstr ""
+"ページングは一般的にアナウンス用の一方通行のみで使用されます。チェックボック"
+"スをオンにするとページングは相互連携で実行され、ページンググループ内の全ての"
+"端末同士で相互に通話することが許可されます。これは、\"簡易会議\"のような挙動"
+"になります。"
+
+#: assets/js/paging.js:11
+msgid "Please enter a valid end Date."
+msgstr ""
+
+#: assets/js/paging.js:6
+msgid "Please enter a valid start Date."
+msgstr ""
+
+#: views/settings.php:107
+msgid "Quiet"
+msgstr ""
+
+#: Paging.class.php:197
+msgid "Reject"
+msgstr "拒否"
+
+#: Paging.class.php:263
+msgid "Reset"
+msgstr ""
+
+#: Paging.class.php:198
+msgid "Ring"
+msgstr "リング"
+
+#: views/form.php:40
+msgid "Selected"
+msgstr "選択済み"
+
+#: views/overview.php:27
+msgid "Settings"
+msgstr ""
+
+#: views/form.php:210
+msgid "Skip"
+msgstr "スキップ"
+
+#: views/form.php:176
+msgid "Speaker Volume Override"
+msgstr ""
+
+#: Paging.class.php:268 views/settings.php:128
+msgid "Submit"
+msgstr "送信"
+
+#: assets/js/paging.js:16
+msgid "The end date must biger greater the start date."
+msgstr ""
+
+#: views/form.php:85
+msgid "The number users will dial to page this group"
+msgstr "このグループへページングするためにユーザーがダイヤルする番号"
+
+#: views/overview.php:6
+msgid ""
+"This module is for specific phones that are capable of Paging or Intercom. "
+"This section is for configuring group paging, intercom is configured through "
+"<strong>Feature Codes</strong>. Intercom must be enabled on a handset before "
+"it will allow incoming calls. It is possible to restrict incoming intercom "
+"calls to specific extensions only, or to allow intercom calls from all "
+"extensions but explicitly deny from specific extensions.<br /><br />This "
+"module should work with Aastra, Grandstream, Linksys/Sipura, Mitel, Polycom, "
+"SNOM , and possibly other SIP phones (not ATAs). Any phone that is always "
+"set to auto-answer should also work (such as the console extension if "
+"configured)."
+msgstr ""
+"このモジュールは、ページングやインターコム電話の機能を持つ特定の電話用のモ"
+"ジュールです。このセクションはグループページング用の設定です、インターコムの"
+"設定は<strong>キーコード</strong>を通じて行われます。インターコムは、ハンド"
+"セット上で着信コールを許可する前に有効になっている必要があります。着信イン"
+"ターコムコールを特定の内線だけに制限したり、明示的に指定した特定の内線からの"
+"着信を拒否した内線を除き全ての内線からのインターコムコールを許可することが可"
+"能です。<br/><br/>このモジュールはAastra, Grandstream, Linksys/Sipura, "
+"Mitel, Polycom, SNOM に対応しており、ATAs以外のSIP電話でも動く可能性がありま"
+"す。常に自動応答するように設定されている電話機とも動作します。(例：コンソール"
+"内線が設定されている場合)。"
+
+#: views/settings.php:95
+msgid ""
+"This option drops what Asterisk detects as silence from entering into the "
+"bridge. Enabling this option will drastically improve performance and help "
+"remove the buildup of background noise from the conference. Highly "
+"recommended for large conferences due to its performance enhancements."
+msgstr ""
+
+#: views/settings.php:122
+msgid "This option removes the beep from caller."
+msgstr ""
+
+#: views/routing_hook.php:29
+msgid ""
+"This will cause the selected Page Group to be paged and connected to any "
+"call that is served by this route. It is recommended not to use a Page Group "
+"that uses (Force) Valet Paging(Paging Pro only)"
+msgstr ""
+
+#: Paging.class.php:185
+msgid "Unknown Request"
+msgstr ""
+
+#: install.php:6 paging.i18n.php:14
+msgid "User Intercom Allow"
+msgstr "ユーザーインターコムを許可"
+
+#: install.php:7 paging.i18n.php:12
+msgid "User Intercom Disallow"
+msgstr "ユーザーインターコムを禁止"
+
+#: functions.inc.php:1126
+msgid ""
+"When Enabled users can use *80<ext> to force intercom. When Disabled this "
+"user will reject intercom calls"
+msgstr ""
+
+#: functions.inc.php:1122
+msgid ""
+"When set to Intercom, calls to this extension/user from other internal users "
+"act as if they were intercom calls meaning they will be auto-answered if the "
+"endpoint supports this feature and the system is configured to operate in "
+"this mode. All the normal white list and black list settings will be honored "
+"if they are set. External calls will still ring as normal, as will certain "
+"other circumstances such as blind transfers and when a Follow Me is "
+"configured and enabled. If Disabled, the phone rings as a normal phone."
+msgstr ""
+
+#: Paging.class.php:204
+msgid ""
+"When using Intercom to page an extension, if the extension is in use, you "
+"have three options."
+msgstr ""
+"インターコム機能で内線にページングするときに、もしその内線が使用中の場合は3つ"
+"の選択肢があります。"
+
+#: views/form.php:214
+msgid "Whisper"
+msgstr "ウィスパー"
+
+#: views/form.php:243 views/form.php:273 views/settings.php:85
+#: views/settings.php:112
+msgid "Yes"
+msgstr "はい"
+
+#: functions.inc.php:1115
+msgid ""
+"You can include or exclude this extension/device from being part of the "
+"default page group when creating or editing."
+msgstr ""
+"あなたがデフォルトページグループを作成や編集した際にこの内線/デバイスをデフォ"
+"ルトページグループの一部に含めることも、除外することもできます。"
+
+#~ msgid "Announcement"
+#~ msgstr "アナウンス"
+
+#~ msgid "Please enter a valid Paging Extension"
+#~ msgstr "有効なページング内線を入力してください"
+
+#~ msgid "Annoucement to be played to remote part. Default is a beep"
+#~ msgstr "リモートパートに対して再生するアナウンス。デフォルトはビープ音です"
+
+#~ msgid ""
+#~ "\"Force\" will not check if the device is in use before paging it. This "
+#~ "means conversations can be interrupted by a page (depending on how the "
+#~ "device handles it). This is useful for \"emergency\" paging groups."
+#~ msgstr ""
+#~ "「強制する」に設定すると、機器が通話中かどうかを確認せずにページングを行い"
+#~ "ます。これによって、宛先の相手が通話中でも、通話に割り込むことができるた"
+#~ "め、緊急グループページングなどの場合に役立ちます。"
+
+#~ msgid ""
+#~ "\"Skip\" will not page any busy extension. All other extensions will be "
+#~ "paged as normal"
+#~ msgstr ""
+#~ "「スキップ」に設定すると、通話中の内線宛にはページングを行いません。他の内"
+#~ "線は通常通りページングします"
+
+#~ msgid ""
+#~ "\"Whisper\" will attempt to use the ChanSpy capability on SIP channels, "
+#~ "resulting in the page being \"sent to the device's earpiece \"whispered\" "
+#~ "to the user but not heard by the remote party. If ChanSpy is not "
+#~ "supported on the device or otherwise fails, no page will get through. It "
+#~ "probably does not make too much sense to choose duplex if using Whisper "
+#~ "mode."
+#~ msgstr ""
+#~ "「ウィスパー」を選択した場合、SIPチャネル上でChanSpy機能を使用しようと試"
+#~ "み、このデバイスにページングし、又そのデバイスの耳元にささやきますが、相手"
+#~ "には聞こえません。もしChanSpyがサポートされていない場合や、他にエラーがお"
+#~ "きた場合は、ページングは実行されません。ささやきモードを使用している場合は"
+#~ "デュプレックスを選択してもおそらくあまり意味がありません。"
+
+#~ msgid "Add Paging Group"
+#~ msgstr "ページンググループ追加"
+
+#~ msgid "Conflicting Extensions"
+#~ msgstr "内線の競合"
+
+#~ msgid ""
+#~ "Disable all extensions from intercom you (except those explicitly allowed)"
+#~ msgstr ""
+#~ "明示的に許可した内線を除き、全ての内線からあなたへインターカムを無効にしま"
+#~ "す"
+
+#~ msgid ""
+#~ "Enable all extensions to intercom you (except those explicitly denied)"
+#~ msgstr ""
+#~ "明示的に拒否された物を除き、すべての内線からあなたへのインターコムを可能に"
+#~ "します"
+
+#~ msgid "Example usage:"
+#~ msgstr "使用例："
+
+#~ msgid ""
+#~ "Explicitly allow extension nnn to intercom you (even if others are "
+#~ "disabled)"
+#~ msgstr ""
+#~ "もし他の設定が無効になっていた場合でも、内線 nnn からあなたへのインターコ"
+#~ "ムを明示的に許可します"
+
+#~ msgid ""
+#~ "Explicitly deny extension nnn to intercom you (even if generally enabled)"
+#~ msgstr ""
+#~ "全般設定が有効になっていた場合でも、内線 nnn からあなたへのインターコムを"
+#~ "明示的に拒否します"
+
+#~ msgid "General Settings"
+#~ msgstr "一般設定"
+
+#~ msgid "Intercom extension nnn"
+#~ msgstr "インターコム内線 nnn"
+
+#~ msgid ""
+#~ "Intercom mode is currently disabled, it can be enabled in the Feature "
+#~ "Codes Panel."
+#~ msgstr ""
+#~ "インターコムモードは現在無効になっております、キーコードパネルより有効にす"
+#~ "ることができます。"
+
+#~ msgid "Modify Paging Group"
+#~ msgstr "ページンググループを修正"
+
+#~ msgid "New Paging Group"
+#~ msgstr "新規ページンググループ"
+
+#~ msgid "Overview"
+#~ msgstr "一覧"
+
+#~ msgid "Page Group "
+#~ msgstr "ページンググループ"
+
+#~ msgid "Paging"
+#~ msgstr "ページング"
+
+#~ msgid "Provide a descriptive title for this Page Group."
+#~ msgstr "このページンググループの説明タイトル。"
+
+#~ msgid "Save"
+#~ msgstr "保存"
+
+#~ msgid ""
+#~ "Allows creation of paging groups to make announcements using the speaker "
+#~ "built into most SIP phones.\n"
+#~ "\tAlso creates an Intercom feature code that can be used as a prefix to "
+#~ "talk directly to one person, as well as optional feature codes to block/"
+#~ "allow intercom calls to all users as well as blocking specific users or "
+#~ "only allowing specific users."
+#~ msgstr ""
+#~ "ページンググループを作成できます。多くのSIP電話機に搭載されているスピー"
+#~ "カーを使って、グループに対してアナウンスや呼出など放送します。\n"
+#~ "　また、インターコムの機能コードを作成することによって、一人に対して直接通"
+#~ "話することも可能です。さらにオプションの機能コードを使うと、インターコム通"
+#~ "話を許可もしくはブロックすることが可能で、ユーザー毎に許可・ブロックする設"
+#~ "定もできます。"
+
+#~ msgid ""
+#~ "Allows creation of paging groups to make announcements using the speaker "
+#~ "built into most SIP phones. \tAlso creates an Intercom feature code that "
+#~ "can be used as a prefix to talk directly to one person, as well as "
+#~ "optional feature codes to block/allow intercom calls to all users as well "
+#~ "as blocking specific users or only allowing specific users."
+#~ msgstr ""
+#~ "ほとんどのSIP電話機に組み込まれたスピーカーを使用してアナウンスを行うため"
+#~ "にページンググループの作成を許可します。\tインターコムコールを全てのユー"
+#~ "ザーにブロック/許可するためのオプションキーコードや、特定のユーザーをブ"
+#~ "ロックしたり特定のユーザーのみを許可するためのオプションキーコードのよう"
+#~ "に、一人の人間に直接話しかけるためのプリフィックスとして使用されるインター"
+#~ "コムキーコードも作成します。"
+
+#~ msgid ""
+#~ "Example usage:<br /><table><tr><td><strong>%snnn</strong>:</"
+#~ "td><td>Intercom extension nnn</td></tr><tr><td><strong>%s</strong>:</"
+#~ "td><td>Enable all extensions to intercom you (except those explicitly "
+#~ "denied)</td></tr><tr><td><strong>%snnn</strong>:</td><td>Explicitly allow "
+#~ "extension nnn to intercom you (even if others are disabled)</td></"
+#~ "tr><tr><td><strong>%s</strong>:</td><td>Disable all extensions from "
+#~ "intercom you (except those explicitly allowed)</td></tr><tr><td><strong>"
+#~ "%snnn</strong>:</td><td>Explicitly deny extension nnn to intercom you "
+#~ "(even if generally enabled)</td></tr></table>"
+#~ msgstr ""
+#~ "使用例：<br/><table><tr><td><strong>%snnn</strong>:</td><td>インターコム内"
+#~ "線 nnn</td></tr><tr><td><strong>%s</strong>:</td><td>全ての内線からあなた"
+#~ "へのインターコムを有効にする。(明示的に拒否したものを除く)</td></"
+#~ "tr><tr><td><strong>%snnn</strong>:</td><td>あなたへインターコム発信するこ"
+#~ "とができる内線 nnn を明示的に許可する (他の設定で無効にしてあっても)</"
+#~ "td></tr><tr><td><strong>%s</strong>:</td><td>全ての内線に対してあなたにイ"
+#~ "ンターコム発信することを無効にする (明示的に許可された内線を除く)</td></"
+#~ "tr><tr><td><strong>%snnn</strong>:</td><td>内線 nnn があなたにインターコム"
+#~ "発信することを明示的に拒否する (一般設定で許可されていても)</td></tr></"
+#~ "table>"
+
+#~ msgid "Delete Group %s"
+#~ msgstr "グループを削除 %s"
+
+#~ msgid ""
+#~ "Select Device(s) to page. This is the phone that should be paged. In most "
+#~ "installations, this is the same as the Extension. If you are configured "
+#~ "to use \"Users & Devices\" this is the actual Device and not the User.  "
+#~ "Use Ctrl key to select multiple.."
+#~ msgstr ""
+#~ "ページングするデバイスを選択してください。ここではページングされる電話を指"
+#~ "定します。たいていの場合、内線と同じになります。もし\"ユーザー&デバイス"
+#~ "\"を使用する設定になっている場合は、ユーザーではなく実際のデバイスとなりま"
+#~ "す。複数選択時にはCtrlキーを使用してください.."
+
+#~ msgid "Force if busy"
+#~ msgstr "ビジー時にも強制的実行"
+
+#~ msgid "The Whisper mode is new and considered experimental."
+#~ msgstr "ウィスパーモードは新機能でベータ版です。"
+
+#~ msgid ""
+#~ "Each PBX system can have a single Default Page Group. If specified, "
+#~ "extensions can be automatically added (or removed) from this group in the "
+#~ "Extensions (or Devices) tab.<br />Making this group the default will "
+#~ "uncheck the option from the current default group if specified."
+#~ msgstr ""
+#~ "PBXシステムはそれぞれ１つのデフォルトページグループを持つことができます。"
+#~ "指定された場合、内線は自動的に内線(またはデバイス)タブのこのグループから追"
+#~ "加(または削除)されます。<br />このグループを作成すると、指定されている現在"
+#~ "のデフォルトグループからオプションのチェックが外れます。"
+
+#~ msgid "Please select at least one extension"
+#~ msgstr "少なくとも１つ以上の内線を選択してください"
+
+#~ msgid " [DEFAULT]"
+#~ msgstr " [デフォルト]"

@@ -1,0 +1,60 @@
+<module>
+	<rawname>parking</rawname>
+	<repo>standard</repo>
+	<name>Parking Lot</name>
+	<version>13.0.19.8</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<category>Applications</category>
+	<description>Manages parking lot extensions and other options.
+	Parking is a way of putting calls "on hold", and then picking them up from any extension.
+	</description>
+	<changelog>
+		*13.0.19.8* FREEPBX-17018 Auto CallerID Prepend options not working for Park Pro 
+		*13.0.19.7* FREEPBX-15706 move res_parking to res_parking_additional and add include for res_parking
+		*13.0.19.6* FREEPBX-14861 custom alert info fields URL encoding
+		*13.0.19.5* Added support for res_parking_custom.conf - Thanks Darren Hollick!
+		*13.0.19.4* FREEPBX-14300 hints are always generated regardless
+		*13.0.19.3* FREEPBX-13470 fwconsole reload failure
+		*13.0.19.2* FREEPBX-13333 show slot range
+		*13.0.19.1* FREEPBX-13333 validate all input into the form correctly
+		*13.0.19* FREEPBX-13364 Ability to set ringer volumes
+		*13.0.18.1* FREEPBX-13294 more cleanup and testing
+		*13.0.18* FREEPBX-13294 cleanup in detecting empty slots
+		*13.0.17* FREEPBX-12576 better channel lookup
+		*13.0.16* Speed up reload times with dynamic hints
+		*13.0.15* Generate hints for pjsip
+		*13.0.14* Dont quote the channel name when getting shared channel variables
+		*13.0.13* FREEPBX-11236 deal with spaces in trunk names
+		*13.0.12* Add Park to your Assigned Lot feature code
+		*13.0.11* Support drop down Alert Info
+		*13.0.10* FREEPBX-10450
+		*13.0.9* FREEPBX-10657 Make id auto_increment
+		*13.0.8* Adjust layout to allow slideout menus
+		*13.0.7* FREEPBX-10447 Stop reverting destinations in parking lots
+		*13.0.6* FREEPBX-9138 change int to bigint
+		*13.0.5* FREEPBX-10217 Fix parking form
+		*13.0.4* Remove duplicated numeric checker which is bad
+		*13.0.3* FREEPBX-9542 Editing a Parking Lot Creates New Lot Instead
+		*13.0.2* Version bump Beta
+		*13.0.1alpha5* FREEPBX-9467 Update search hooks
+		*13.0.1alpha4* No device null error
+		*13.0.1alpha3* Restructure translations
+		*13.0.1alpha2* FREEPBX-8904 Fix park return routing in Asterisk 13.2 and higher
+		*13.0.1alpha1* Fix saving in 13 with PDO
+	</changelog>
+	<menuitems>
+		<parking needsenginedb="yes">Parking</parking>
+	</menuitems>
+	<depends>
+		<module>core ge 13.0.114</module>
+		<module>framework ge 13.0.121</module>
+		<module>callrecording ge 12.0.1</module>
+	</depends>
+	<supported>
+		<version>13.0</version>
+	</supported>
+	<location/>
+	<md5sum/>
+</module>

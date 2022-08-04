@@ -1,0 +1,288 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for daynight
+# Copyright (C) 2008-2017 Sangoma Technologies, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-10-25 13:30-0700\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: functions.inc.php:526
+msgid " - Force Time Condition False Destination"
+msgstr ""
+
+#: functions.inc.php:524
+msgid " - Force Time Condition True Destination"
+msgstr ""
+
+#: page.daynight.php:16
+msgid ": Add"
+msgstr ""
+
+#: page.daynight.php:14
+msgid ": Edit"
+msgstr ""
+
+#: views/grid.php:16
+msgid "Actions"
+msgstr ""
+
+#: views/grid.php:8
+msgid "Add"
+msgstr ""
+
+#: views/bootnav.php:6
+msgid "Add Callflow"
+msgstr ""
+
+#: daynight.i18n.php:6
+msgid "Applications"
+msgstr ""
+
+#: assets/js/daynight.js:23
+msgid "Are you sure you want to delete this flow?"
+msgstr ""
+
+#: daynight.i18n.php:16
+msgid ""
+"By default, the Call Flow Control module will not hook Time Conditions "
+"allowing one to associate a call flow toggle feauture code with a time "
+"condition since time conditions have their own feature code as of version "
+"2.9. If there is already an associaiton configured (on an upgraded system), "
+"this will have no affect for the Time Conditions that are effected. Setting "
+"this to true reverts the 2.8 and prior behavior by allowing for the use of a "
+"call flow toggle to be associated with a time conditon. This can be useful "
+"for two scenarios. First, to override a Time Condition without the automatic "
+"resetting that occurs with the built in Time Condition overrides. The second "
+"use is the ability to associate a single call flow toggle with multiple time "
+"conditions thus creating a <b>master switch</b> that can be used to override "
+"several possible call flows through different time conditions."
+msgstr ""
+
+#: views/bootnav.php:19
+msgid "Call Flow"
+msgstr ""
+
+#: daynight.i18n.php:4
+#: daynight.i18n.php:10
+msgid "Call Flow Control"
+msgstr ""
+
+#: daynight.i18n.php:14
+msgid "Call Flow Control Module"
+msgstr ""
+
+#: functions.inc.php:155
+#, php-format
+msgid "Call Flow Toggle (%s) : %s"
+msgstr ""
+
+#: functions.inc.php:537
+msgid "Call Flow Toggle Associate with"
+msgstr ""
+
+#: page.daynight.php:7
+msgid "Call Flow Toggle Control"
+msgstr ""
+
+#: views/form.php:126
+msgid "Call Flow Toggle Feature Code Index"
+msgstr ""
+
+#: functions.inc.php:404
+#, php-format
+msgid "Call Flow Toggle: %s (%s)"
+msgstr ""
+
+#: daynight.i18n.php:8
+msgid ""
+"Call Flow manual toggle control - allows for two destinations to be chosen "
+"and provides a feature code\t\tthat toggles between the two destinations."
+msgstr ""
+
+#: views/form.php:174
+msgid "Current Mode"
+msgstr ""
+
+#: views/form.php:34
+#: views/form.php:35
+msgid "Default"
+msgstr ""
+
+#: Daynight.class.php:53
+msgid "Delete"
+msgstr ""
+
+#: views/form.php:150
+#: views/grid.php:14
+msgid "Description"
+msgstr ""
+
+#: views/form.php:162
+msgid "Description for this Call Flow Toggle Control"
+msgstr ""
+
+#: views/form.php:241
+msgid "Destination to use when set to Normal Flow (Green/BLF off) mode"
+msgstr ""
+
+#: views/form.php:265
+msgid "Destination to use when set to Override Flow (Red/BLF on) mode"
+msgstr ""
+
+#: views/grid.php:13
+msgid "Feature Code"
+msgstr ""
+
+#: views/form.php:101
+msgid "Forces to Normal Mode (Green/BLF off)"
+msgstr ""
+
+#: views/form.php:101
+msgid "Forces to Override Mode (Red/BLF on)"
+msgstr ""
+
+#: daynight.i18n.php:12
+msgid "Hook Time Conditions Module"
+msgstr ""
+
+#: functions.inc.php:551
+msgid ""
+"If a selection is made, this timecondition will be associated with the "
+"specified call flow toggle  featurecode. This means that if the Call Flow "
+"Feature code is set to override (Red/BLF on) then this time condition will "
+"always go to its True destination if the chosen association is to 'Force "
+"Time Condition True Destination' and it will always go to its False "
+"destination if the association is with the 'Force Time Condition False "
+"Destination'. When the associated Call Flow Control Feature code is in its "
+"Normal mode (Green/BLF off), then then this Time Condition will operate as "
+"normal based on the current time. The Destinations that are part of any "
+"Associated Call Flow Control Feature Code will have no affect on where a "
+"call will go if passing through this time condition. The only thing that is "
+"done when making an association is allowing the override state of a Call "
+"Flow Toggle to force this time condition to always follow one of its two "
+"destinations when that associated Call Flow Toggle is in its override (Red/"
+"BLF on) state."
+msgstr ""
+
+#: views/form.php:104
+#, php-format
+msgid "Linked to Time Condition %s - %s"
+msgstr ""
+
+#: views/bootnav.php:7
+msgid "List Callflows"
+msgstr ""
+
+#: views/form.php:64
+msgid ""
+"Message to be played in normal mode (Green/BLF off).<br>To add additional "
+"recordings use the \"System Recordings\" MENU above"
+msgstr ""
+
+#: views/form.php:90
+msgid ""
+"Message to be played in override mode (Red/BLF on).<br>To add additional "
+"recordings use the \"System Recordings\" MENU to the above"
+msgstr ""
+
+#: functions.inc.php:522
+msgid "No Association"
+msgstr ""
+
+#: views/form.php:179
+msgid "Normal (Green/BLF off)"
+msgstr ""
+
+#: views/form.php:229
+msgid "Normal Flow (Green/BLF off)"
+msgstr ""
+
+#: views/form.php:202
+msgid "Optional Password"
+msgstr ""
+
+#: views/form.php:181
+msgid "Override (Red/BLF on)"
+msgstr ""
+
+#: views/form.php:253
+msgid "Override Flow (Red/BLF on)"
+msgstr ""
+
+#: assets/js/daynight.js:4
+msgid "Please enter a valid numeric password, only numbers are allowed"
+msgstr ""
+
+#: assets/js/daynight.js:7
+msgid "Please set the Current Mode"
+msgstr ""
+
+#: assets/js/daynight.js:5
+msgid "Please set the Normal Flow destination"
+msgstr ""
+
+#: assets/js/daynight.js:6
+msgid "Please set the Override Flow destination"
+msgstr ""
+
+#: views/form.php:50
+msgid "Recording for Normal Mode"
+msgstr ""
+
+#: views/form.php:76
+msgid "Recording for Override Mode"
+msgstr ""
+
+#: Daynight.class.php:58
+msgid "Reset"
+msgstr ""
+
+#: views/grid.php:15
+msgid "State"
+msgstr ""
+
+#: Daynight.class.php:63
+msgid "Submit"
+msgstr ""
+
+#: views/form.php:138
+#, php-format
+msgid ""
+"There are a total of %s Feature code objects, %s, each can control a call "
+"flow and be toggled using the call flow toggle feature code plus the index."
+msgstr ""
+
+#: views/form.php:189
+msgid ""
+"This will change the current state for this Call Flow Toggle Control, or set "
+"the initial state when creating a new one."
+msgstr ""
+
+#: views/form.php:108
+msgid "Time Condition Reference"
+msgstr ""
+
+#: views/form.php:217
+msgid ""
+"You can optionally include a password to authenticate before toggling the "
+"call flow. If left blank anyone can use the feature code and it will be un-"
+"protected"
+msgstr ""
+
+#: views/form.php:13
+msgid ""
+"You have reached the maximum limit for flow controls. Delete one to add a "
+"new one"
+msgstr ""

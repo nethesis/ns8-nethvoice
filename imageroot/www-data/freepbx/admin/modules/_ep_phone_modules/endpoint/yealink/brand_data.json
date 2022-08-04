@@ -1,0 +1,99 @@
+{
+  "data": {
+    "brands": {
+      "name": "Yealink\/Dreamwave",
+      "brand_id": "8",
+      "directory": "yealink",
+      "package": "yealink.tgz",
+      "md5sum": "",
+      "last_modified": 1444923600,
+      "family_list": [{
+          "id": "7",
+          "name": "Yealink\/Dreamwave T1X Models: [T19(P)E2]",
+          "directory": "t11x",
+          "description": "Make more configuration settings available from UI",
+          "changelog": "",
+          "last_modified": "Thu Mar 15 2018"
+        },
+        {
+          "id": "3",
+          "name": "Yealink\/Dreamwave T1X Models: [T19]",
+          "directory": "t1x",
+          "description": "Make more configuration settings available from UI",
+          "changelog": "",
+          "last_modified": "Thu Mar 15 2018"
+        },
+        {
+          "id": "8",
+          "name": "Yealink\/Dreamwave T2X Models: [T21P_E2, T23P/G, T27P, T27G, T29G]",
+          "directory": "t22x",
+          "description": "Make more configuration settings available from UI",
+          "changelog": "",
+          "last_modified": "Thu Mar 15 2018"
+        },
+        {
+          "id": "1",
+          "name": "Yealink\/Dreamwave T2X Models: [T20P, T21P, T22P, T23P, T26P, T28P]",
+          "directory": "t2x",
+          "description": "Make more configuration settings available from UI",
+          "changelog": "",
+          "last_modified": "Thu Mar 15 2018"
+        },
+        {
+          "id": "2",
+          "name": "Yealink\/Dreamwave T3X Models: [T32G, T38G]",
+          "directory": "t3x",
+          "description": "Make more settings available in user interface",
+          "changelog": "",
+          "last_modified": "Thu Mar 15 2018"
+        },
+        {
+          "id": "4",
+          "name": "Yealink T4x: [T40P, T40G, T41P, T41S, T42S, T42G, T46G, T46S, T48G, T48S]",
+          "directory": "t4x",
+          "description": "Make more configuration settings available from UI",
+          "changelog": "",
+          "last_modified": "Thu Mar 15 2018"
+        },
+        {
+          "id": "9",
+          "name": "Yealink T4x: [T49G]",
+          "directory": "t44x",
+          "description": "Make more configuration settings available from UI",
+          "changelog": "",
+          "last_modified": "Thu Mar 15 2018"
+        },
+        {
+          "id": "5",
+          "name": "Yealink VP Series: [VP530]",
+          "directory": "vPhone",
+          "description": "Make more configuration settings available from UI",
+          "changelog": "",
+          "last_modified": "Thu Mar 15 2018"
+        },
+        {
+          "id": "6",
+          "name": "Yealink T5x: [T52S, T53, T53W, T54S, T54W]",
+          "directory": "t5x",
+          "description": "Add T5x phone models",
+          "changelog": "",
+          "last_modified": "Thu Mar 15 2018"
+        },
+        {
+          "id": "10",
+          "name": "Yealink T5x: [T56A, T57, T57W, T58A, T58V, VP59]",
+          "directory": "t55x",
+          "description": "Add T5x phone models",
+          "changelog": "",
+          "last_modified": "Thu Mar 15 2018"
+        }
+      ],
+      "oui_list": [
+        "001565",
+        "805E0C",
+        "805EC0"
+      ],
+      "changelog": "PACKAGER: Nethesis."
+    }
+  }
+}

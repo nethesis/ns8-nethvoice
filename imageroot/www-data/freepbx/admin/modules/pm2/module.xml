@@ -1,0 +1,51 @@
+<module>
+	<rawname>pm2</rawname>
+	<repo>standard</repo>
+	<name>Process Management</name>
+	<version>13.0.5</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>AGPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/agpl-3.0.txt</licenselink>
+	<category>Admin</category>
+	<description>This module manages background processes for your PBX</description>
+	<changelog>
+		*13.0.5* Upgrade pm2 to 2.10, Avoid potential hang issues with pm2 reloadLogs command
+		*13.0.4.2* FREEPBX-16439
+		*13.0.4.1* Pass production arg to npm install
+		*13.0.4* Add new function 'startFromDirectory'
+		*13.0.3.23* FREEPBX-15950 fix displaying of messages
+		*13.0.3.22* Remove sending to background npm-cache
+		*13.0.3.21* Add support for production only npm installs
+		*13.0.4.20* FREEPBX-15591
+		*13.0.3.19* Reorder command
+		*13.0.3.18* Return status of npm installs
+		*13.0.3.17* Increase timeout FREEPBX-15407
+		*13.0.3.16* FREEPBX-15329
+		*13.0.3.15* FREEPBX-15186 Fix issues with pm2 not being executable on upgrades
+		*13.0.3.14* FREEPBX-15177
+		*13.0.3.13* Fix unset cwd
+		*13.0.3.12* Make logs folder if it doesnt exist
+		*13.0.3.11* Create the log file correctly
+		*13.0.3.10* Disable caching if it cant be installed
+		*13.0.3.9* Ability to disable package caching
+		*13.0.3.8* Allow installs through pm2
+		*13.0.3.7* FREEPBX-14654 Add newline for PHP bugs
+		*13.0.3.6* When proxying dont verify TLS
+		*13.0.3.5* Add more options to proxy addresses
+		*13.0.3.4* Add ability to use mirrors as a proxy cache
+		*13.0.3.3* FREEPBX-14625 Daemons not starting on boot
+		*13.0.3.2* enforce executability
+		*13.0.3.1* Remove GUI menu
+		*13.0.3* Support reloading logs
+		*13.0.2* Add reset command
+		*13.0.1* Inital Release
+	</changelog>
+	<hooks>
+		<framework class="Chown" namespace="FreePBX\Console\Command">
+			<method callingMethod="fwcChownFiles" class="Pm2" namespace="FreePBX\modules">chownFreepbx</method>
+		</framework>
+	</hooks>
+	<supported>
+		<version>13.0</version>
+	</supported>
+</module>

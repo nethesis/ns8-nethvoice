@@ -1,0 +1,194 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX 2.5 Chinese Translation\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-09-26 00:02-0400\n"
+"PO-Revision-Date: 2015-10-16 08:53+0200\n"
+"Last-Translator: james <zhulizhong@gmail.com>\n"
+"Language-Team: Simplified Chinese <http://weblate.freepbx.org/projects/"
+"freepbx/callback/zh_CN/>\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.2-dev\n"
+"X-Poedit-Language: Chinese\n"
+"X-Poedit-Country: CHINA\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: page.callback.php:11
+msgid " Add"
+msgstr " 添加"
+
+#: page.callback.php:11
+msgid " Edit"
+msgstr " 编辑"
+
+#: assets/js/callback.js:18
+msgid " already used, please use a different description."
+msgstr ""
+
+#: views/grid.php:16
+msgid "Actions"
+msgstr "命令"
+
+#: views/bootnav.php:4 views/grid.php:2
+msgid "Add Callback"
+msgstr "添加回呼"
+
+#: callback.i18n.php:6
+msgid "Applications"
+msgstr "应用模块"
+
+#: callback.i18n.php:4 callback.i18n.php:8 page.callback.php:6
+#: views/bootnav.php:15
+msgid "Callback"
+msgstr "回呼"
+
+#: views/form.php:41
+msgid "Callback Description"
+msgstr "回拨描述"
+
+#: views/form.php:65 views/grid.php:15
+msgid "Callback Number"
+msgstr "回拨号码"
+
+#: functions.inc.php:37 functions.inc.php:66
+#, php-format
+msgid "Callback: %s"
+msgstr "回呼：%s"
+
+#: views/form.php:116
+msgid "Caller Id"
+msgstr ""
+
+#: views/form.php:89
+msgid "Delay Before Callback"
+msgstr "回拨前延时"
+
+#: Callback.class.php:54
+msgid "Delete"
+msgstr "删除"
+
+#: views/form.php:167
+msgid "Destination after Callback"
+msgstr "回呼后的目的地"
+
+#: views/form.php:53
+msgid "Enter a description for this callback."
+msgstr "为此回呼输入一些描述。"
+
+#: views/grid.php:14
+msgid "Item"
+msgstr "项"
+
+#: views/bootnav.php:3
+msgid "List Callbacks"
+msgstr "回拨列表"
+
+#: views/form.php:146
+msgid "Milliseconds"
+msgstr ""
+
+#: views/form.php:128
+msgid ""
+"Optional: Enter the callerid for the callback.<br>Format: <b>\"caller name\" "
+"&lt;#######&gt;</b><br>Default: Callback"
+msgstr ""
+
+#: views/form.php:104
+msgid ""
+"Optional: Enter the number of seconds the system should wait before calling "
+"back."
+msgstr "可选的设置：在回呼前，系统需要等待的秒数。"
+
+#: views/form.php:77
+msgid ""
+"Optional: Enter the number to dial for the callback.  Leave this blank to "
+"just dial the incoming CallerID Number"
+msgstr "选项: 输入需要回拨的号码。如果为空则拨打呼入的CallerID 号码"
+
+#: views/form.php:155
+msgid "Optional: Timeout in Milliseconds.</br>Default: 15000"
+msgstr ""
+
+#: assets/js/callback.js:15
+msgid "Please enter a valid Description"
+msgstr "请输入有效描述"
+
+#: Callback.class.php:59
+msgid "Reset"
+msgstr "重新设置"
+
+#: views/form.php:95
+msgid "Seconds"
+msgstr ""
+
+#: Callback.class.php:64
+msgid "Submit"
+msgstr "提交"
+
+#: assets/js/callback.js:13
+msgid "The callback description provided is too long."
+msgstr "描述太长。"
+
+#: views/form.php:140
+msgid "Timeout"
+msgstr ""
+
+#: views/form.php:186
+msgid "Where to send the caller once they are called back"
+msgstr "回拨后转发呼叫方到达目的地"
+
+#~ msgid "Invalid Request"
+#~ msgstr "无效请求"
+
+#~ msgid ""
+#~ "A callback will hang up on the caller and then call them back, directing "
+#~ "them to the selected destination. This is useful for reducing mobile "
+#~ "phone charges as well as other applications. Outbound calls will proceed "
+#~ "according to the dial patterns in Outbound Routes."
+#~ msgstr ""
+#~ "回呼功能的工作方式是在用户打电话过来时把呼叫挂断，然后回拨原来呼叫方的号"
+#~ "码，并把原来的主叫引导到一个指定的目的地。这个功能对于减少移动电话的费用或"
+#~ "者其他应用来说都很有价值。出局呼叫将根据在出局线路中设置的拨号模式进行处"
+#~ "理。"
+
+#~ msgid "Callback "
+#~ msgstr "回呼"
+
+#~ msgid "Callback Description:"
+#~ msgstr "回呼描述："
+
+#~ msgid "Callback Number:"
+#~ msgstr "回呼号码："
+
+#~ msgid "Callback:"
+#~ msgstr "回呼："
+
+#~ msgid "Delay Before Callback:"
+#~ msgstr "回呼前的延迟："
+
+#~ msgid "Delete Callback"
+#~ msgstr "删除回呼"
+
+#~ msgid "Edit Callback"
+#~ msgstr "编辑回呼"
+
+#~ msgid "Submit Changes"
+#~ msgstr "提交更改"
+
+#~ msgid "deleted"
+#~ msgstr "已删除"
+
+#~ msgid ""
+#~ "Optional: Enter the number to dial for the callback.  Leave this blank to "
+#~ "just dial the incoming Caller ID Number"
+#~ msgstr ""
+#~ "可选的设置：输入回拨时拨打的号码。如果不填内容，将自动拨打入局的主叫ID号码"

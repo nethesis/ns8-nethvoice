@@ -1,0 +1,123 @@
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# FreePBX language template for customcontexts
+# Copyright (C) 2008, 2009, 2010 Bandwith.com
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-11-24 14:17-0800\n"
+"PO-Revision-Date: 2014-11-10 16:18+0200\n"
+"Last-Translator: Chavdar <chavdar_75@yahoo.com>\n"
+"Language-Team: Bulgarian <http://git.freepbx.org/projects/freepbx/"
+"customcontexts/bg/>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: bg\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 1.10-dev\n"
+
+#: functions.inc.php:413 functions.inc.php:572
+msgid " v"
+msgstr " v"
+
+#: functions.inc.php:415 functions.inc.php:574
+msgid "Add Context"
+msgstr "Добави Context"
+
+#: customcontexts.i18n.php:6 customcontexts.i18n.php:12
+msgid "Connectivity"
+msgstr "Свързване"
+
+#: functions.inc.php:406 functions.inc.php:430 functions.inc.php:563
+#: page.customcontexts.php:21 page.customcontextsadmin.php:24
+msgid "Context"
+msgstr "Context"
+
+#: customcontexts.i18n.php:8
+msgid ""
+"Creates custom contexts which can be used to allow limited access to "
+"dialplan applications. Allows for time restrictions on any dialplan access. "
+"Allows for pattern matching to allow/deny. Allows for failover destinations, "
+"and PIN protected failover. This can be very useful for multi-tennant "
+"systems. Inbound routing can be done using DID or zap channel routing,\tthis "
+"module allows for selective outbound routing. House/public phones can be "
+"placed in a restricted context allowing them only internal calls."
+msgstr ""
+"Създава потребителски контексти, които могат да бъдат използвани за да се "
+"позволи ограничен достъп до плановете за набиране. Дава възможност за "
+"времеви ограничения на всеки план за набиране. Позволява при съвпадение на "
+"модел да позволи/отмени набирането. Дава възможност за направления при "
+"проваляне и защита с PIN за направления при проваляне. Това може да бъде "
+"много полезно за multi-tennant системи. Входящите маршрути могат да се "
+"направят с помощта на DID или ZAP маршрутизация на каналите,\tтози модул "
+"позволява селективно изходящо маршрутизиране. Обществени телефони могат да "
+"бъдат поставени в ограничен контекст, който да им позволява само вътрешни "
+"обаждания."
+
+#: functions.inc.php:811
+#, php-format
+msgid "Custom Context: %s"
+msgstr "Custom Context: %s"
+
+#: functions.inc.php:840
+#, php-format
+msgid "Custom Context: %s (%s)"
+msgstr "Custom Context: %s (%s)"
+
+#: customcontexts.i18n.php:4 customcontexts.i18n.php:10
+msgid "Custom Contexts"
+msgstr "Custom Contexts"
+
+#: customcontexts.i18n.php:14
+msgid "Custom Contexts Admin"
+msgstr "Custom Contexts Админ"
+
+#: functions.inc.php:590
+msgid "Duplicate Context"
+msgstr "Дублирай Context"
+
+#: functions.inc.php:424 functions.inc.php:587
+msgid "Edit Context"
+msgstr "Редактирай Context"
+
+#: functions.inc.php:426
+msgid "Remove Context"
+msgstr "Премахни Context"
+
+#: install.php:33
+msgid "Time Conditions Module required and not present .. aborting install"
+msgstr ""
+"Изисква се модул Времеви Условия, който не е инсталиран .. прекъсване на "
+"инсталацията"
+
+#: install.php:141 install.php:149
+msgid "done"
+msgstr "изпълнено"
+
+#: install.php:135
+msgid "migrating customcontexts_timegroups if needed.."
+msgstr "мигриране на customcontexts_timegroups ако е необходимо.."
+
+#: install.php:142
+msgid ""
+"removing customcontexts_timegroups and customcontexts_tiemgroups_detail "
+"tables.."
+msgstr ""
+"премахване customcontexts_timegroups и customcontexts_tiemgroups_detail "
+"таблици.."

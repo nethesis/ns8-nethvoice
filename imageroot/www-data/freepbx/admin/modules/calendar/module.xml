@@ -1,0 +1,50 @@
+<module>
+	<rawname>calendar</rawname>
+	<repo>standard</repo>
+	<name>Calendar</name>
+	<version>14.0.2.16</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<category>Applications</category>
+	<description>This module is used to manage calendar and time based events for FreePBX</description>
+	<menuitems>
+		<calendar needsenginedb="yes">Calendar</calendar>
+		<calendargroups needsenginedb="yes">Calendar Event Groups</calendargroups>
+	</menuitems>
+	<changelog>
+		*14.0.2.16* FREEPBX-19608 
+		*14.0.2.15* Fixing FREEPBX-17867 
+		*14.0.2.14* FREEPBX-19607 Exception Invalid URL While creating the ical Calendar with empty URL field 
+		*14.0.2.13* FREEPBX-19606 Java script Issue in Calendar Events. 
+		*14.0.2.12* Fix uninstaller
+		*14.0.2.11* FREEPBX-17710 Fix issues with events with duplicated uids
+		*14.0.2.10* FREEPBX-15736 use system default timezone
+		*14.0.2.9* FREEPBX-18919
+		*14.0.2.8* FREEPBX-18903
+		*14.0.2.7* Bugfix/FREEPBX-17403 recurring events with no end date via ical google cause high load
+		*14.0.2.6* FREEPBX-17770 Calendar Module "Whole Day" goes to state unmachted
+		*14.0.2.5* FREEPBX-16507
+		*14.0.2.4* FREEPBX-15736 FREEPBX-17021
+		*14.0.2.3* FREEPBX-16890 support categories and calendars in group screen
+		*14.0.2.2* Make sure command is uninstalled
+		*14.0.2.1* Move code to install.php so we can be sure it was executed
+		*14.0.2* FREEPBX-16747 FREEPBX-16507 update libraries
+		*14.0.1.2* FREEPBX-14951 Fix whitespace in name, trim validation
+		*14.0.1.1* FREEPBX-15188 Fix Event form to submit properly through AJAX
+		*14.0.1* Stable release
+		*14.0.1beta2* FREEPBX-15175 FREEPBX-14951
+		*14.0.1beta1* FREEPBX-15023, FREEPBX-15022, FREEPBX-15021, FREEPBX-15016, FREEPBX-14951, FREEPBX-14860
+		*14.0.1alpha10* FREEPBX-14946 FREEPBX-14955 FREEPBX-14956 FREEPBX-14921
+		*14.0.1alpha9* FREEPBX-14956 FREEPBX-14921
+		*14.0.1alpha8* FREEPBX-14395 Calendar Month not displaying correctly in safari
+		*14.0.1alpha7* FREEPBX-14327, FREEPBX-14329, FREEPBX-14338, FREEPBX-14335, FREEPBX-14336
+		*14.0.1alpha1* Development
+	</changelog>
+	<depends>
+		<version>14.0.1rc1.18</version>
+	</depends>
+	<supported>
+		<version>14.0</version>
+	</supported>
+</module>

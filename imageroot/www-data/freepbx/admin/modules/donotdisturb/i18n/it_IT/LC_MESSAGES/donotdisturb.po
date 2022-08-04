@@ -1,0 +1,76 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: 2.5\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-02-01 18:35-0800\n"
+"PO-Revision-Date: \n"
+"Last-Translator: Francesco Romano <francesco.romano@alteclab.it>\n"
+"Language-Team: Italian\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Italian\n"
+"X-Poedit-Country: ITALY\n"
+
+#: donotdisturb.i18n.php:6
+msgid "Applications"
+msgstr ""
+
+#: donotdisturb.i18n.php:12 install.php:6
+msgid "DND Activate"
+msgstr "Attiva Non-Disturbare (DND)"
+
+#: donotdisturb.i18n.php:10 install.php:7
+msgid "DND Deactivate"
+msgstr "Disattiva Non-Disturbare (DND)"
+
+#: donotdisturb.i18n.php:14 install.php:8
+msgid "DND Toggle"
+msgstr "Attiva/Disattiva DND"
+
+#: ucp/views/widget.php:2
+msgid "Disabled"
+msgstr ""
+
+#: ucp/Donotdisturb.class.php:84
+msgid "Do Not Disturb"
+msgstr ""
+
+#: ucp/Donotdisturb.class.php:150
+msgid "Do Not Disturb Has Been Updated!"
+msgstr ""
+
+#: ucp/Donotdisturb.class.php:71
+#, php-format
+msgid "Do Not Disturb for %s"
+msgstr ""
+
+#: functions.inc.php:168
+#, php-format
+msgid "Do Not Disturb: %s"
+msgstr ""
+
+#: functions.inc.php:126
+msgid "Do Not Disturb: OFF"
+msgstr ""
+
+#: functions.inc.php:84
+msgid "Do Not Disturb: ON"
+msgstr ""
+
+#: donotdisturb.i18n.php:4 install.php:5
+msgid "Do-Not-Disturb (DND)"
+msgstr "Non-Disturbare (DND)"
+
+#: ucp/views/widget.php:2
+msgid "Enabled"
+msgstr ""
+
+#: ucp/Donotdisturb.class.php:101
+msgid "Follow Me"
+msgstr ""
+
+#: donotdisturb.i18n.php:8
+msgid "Provides donotdisturb functionality"
+msgstr ""

@@ -1,0 +1,173 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for setcid
+# Copyright (C) 2008-2015 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX 2.5 Chinese Translation\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-07-18 17:42-0400\n"
+"PO-Revision-Date: 2018-03-14 14:52+0200\n"
+"Last-Translator: james <zhulizhong@gmail.com>\n"
+"Language-Team: Simplified Chinese "
+"<http://weblate.freepbx.org/projects/freepbx/framework/zh_CN/>\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.2-dev\n"
+
+#: assets/js/setcid.js:9
+msgid " already used, please use a different Description."
+msgstr ""
+
+#: views/grid.php:18
+msgid "Actions"
+msgstr "操作"
+
+#: views/grid.php:12 views/rnav.php:2
+msgid "Add"
+msgstr "添加"
+
+#: views/form.php:21
+msgid "Add CID"
+msgstr ""
+
+#: setcid.i18n.php:8 views/grid.php:8
+msgid "Adds the ability to change the CallerID within a call flow."
+msgstr "添加修改来电显示策略"
+
+#: setcid.i18n.php:6
+msgid "Applications"
+msgstr "应用配置"
+
+#: views/form.php:83
+msgid ""
+"Caller ID Number: The caller ID number will be changed to this. If you are "
+"appending to the current caller ID number, don't forget to include the "
+"appropriate variables. If you leave this box blank, the caller ID number "
+"will be blank. Default caller ID number variable: ${CALLERID(num)}"
+msgstr ""
+
+#: views/form.php:53
+msgid "CallerID Name"
+msgstr ""
+
+#: views/form.php:73
+msgid "CallerID Number"
+msgstr ""
+
+#: Setcid.class.php:115
+msgid "Delete"
+msgstr "删除"
+
+#: views/form.php:33 views/grid.php:17
+msgid "Description"
+msgstr "描述"
+
+#: views/form.php:93
+msgid "Destination"
+msgstr "目的地"
+
+#: views/form.php:103
+msgid "Destination to send the call to after CID has been processed"
+msgstr ""
+
+#: views/form.php:21
+#, php-format
+msgid "Edit CID: %s"
+msgstr ""
+
+#: views/rnav.php:3
+msgid "List SetCID"
+msgstr ""
+
+#: assets/js/setcid.js:6
+msgid "Please enter a valid Description."
+msgstr ""
+
+#: assets/js/setcid.js:13
+msgid "Please select an item."
+msgstr ""
+
+#: Setcid.class.php:120
+msgid "Reset"
+msgstr "重置"
+
+#: views/main.php:4
+msgid "Set CID"
+msgstr ""
+
+#: setcid.i18n.php:4 setcid.i18n.php:10
+msgid "Set CallerID"
+msgstr "设置CallerID"
+
+#: functions.inc.php:103
+#, php-format
+msgid "Set CallerID %s: "
+msgstr "设置来电显示 %s:"
+
+#: views/rnav.php:14
+msgid "SetCID"
+msgstr ""
+
+#: Setcid.class.php:125
+msgid "Submit"
+msgstr "提交"
+
+#: views/form.php:63
+msgid ""
+"The caller ID name will be changed to this. If you are appending to the "
+"current caller ID name, don't forget to include the appropriate variables. "
+"If you leave this box blank, the caller ID name will be blank. Default "
+"caller ID name variable: ${CALLERID(name)}"
+msgstr ""
+
+#: views/form.php:43
+msgid ""
+"The descriptive name of this CallerID instance. For example \"new name here\""
+msgstr ""
+
+#: views/grid.php:4
+msgid "What is Set CID?"
+msgstr ""
+
+#~ msgid "Add CallerID"
+#~ msgstr "添加来电显示"
+
+#~ msgid "Add CallerID Instance"
+#~ msgstr "添加来电显示实体"
+
+#~ msgid "Edit"
+#~ msgstr "编辑"
+
+#~ msgid "Edit CallerID Instance"
+#~ msgstr "编辑来电显示实体"
+
+#~ msgid "Edit: "
+#~ msgstr "编辑: "
+
+#~ msgid "Invalid description specified"
+#~ msgstr "指定了无效的描述"
+
+#~ msgid ""
+#~ "Set CallerID allows you to change the caller id of the call and then "
+#~ "continue on to the desired destination. For example, you may want to "
+#~ "change the caller id form \"John Doe\" to \"Sales: John Doe\". Please "
+#~ "note, the text you enter is what the callerid is changed to. To append to "
+#~ "the current callerid, use the proper asterisk variables, such as "
+#~ "\"${CALLERID(name)}\" for the currently set callerid name and \"${CALLERID"
+#~ "(num)}\" for the currently set callerid number."
+#~ msgstr ""
+#~ "设置 CallerID 允许修改呼叫的Caller ID，发送此修改后的号码到目的地。例如，"
+#~ "用户可以修改 caller id  \"John Doe\" 到 \"Sales: John Doe\"。 请注意，用户"
+#~ "输入的文本是希望设置的callerid。如果附加当前的callerid，使用正确的 "
+#~ "asterisk 变量来处理，例如 \"${CALLERID(name)}\" 设置当前Callerid名称和"
+#~ "\"${CALLERID(num)}\"设置当前的 callerid 号码。"
+
+#~ msgid "Submit Changes"
+#~ msgstr "提交修改"

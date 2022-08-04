@@ -1,0 +1,25 @@
+{
+  "data": {
+    "brands": {
+      "name": "Panasonic",
+      "brand_id": "24",
+      "directory": "panasonic",
+      "package": "panasonic.tgz",
+      "md5sum": "",
+      "last_modified": 1444923600,
+      "family_list": [{
+          "id": "1",
+          "name": "Panasonic KX-HDV Models: [KX-HDV130NE, KX-HDV230NE, KX-HDV330NE, KX-HDV430NE]",
+          "directory": "KXHDV",
+          "description": "Make more configuration settings available from UI",
+          "changelog": "",
+          "last_modified": "Mon Jan 21 2019"
+        }
+      ],
+      "oui_list": [
+	"BCC342"
+      ],
+      "changelog": "PACKAGER: Nethesis."
+    }
+  }
+}

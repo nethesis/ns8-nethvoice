@@ -1,0 +1,28 @@
+<?php
+if (!defined('FREEPBX_IS_AUTH')) { die('No direct script access allowed'); }
+
+global $db;
+global $amp_conf;
+
+$sql='
+    CREATE TABLE IF NOT EXISTS `offhour` (
+      `id` int(11) NOT NULL auto_increment,
+      `displayname` varchar(50) default NULL,
+      `didcidnum` varchar(20) default NULL,
+      `didextension` varchar(20) default NULL,
+      `tsbegin` int(10) unsigned default 0,
+      `tsend` int(10) unsigned default 0,
+      `message` varchar(500) default NULL,
+      `action` int(1) DEFAULT NULL,
+      `param` varchar(50) DEFAULT NULL,
+      `destination` varchar(500) DEFAULT "",
+      `enabled` tinyint(1) DEFAULT "0",
+      PRIMARY KEY  (`id`)
+   ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+';
+
+$check = $db->query($sql);
+if(DB::IsError($check)) {
+    die_freepbx("Can not create inboundlookup table\n");
+}
+

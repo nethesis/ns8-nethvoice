@@ -1,0 +1,125 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Custom Context Swedish Language\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-10-30 15:10-0400\n"
+"PO-Revision-Date: 2010-06-19 11:41:+0200\n"
+"Last-Translator: Mikael Carlsson <mickecamino@gmail.com>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: functions.inc.php:375 functions.inc.php:534
+msgid " v"
+msgstr ""
+
+#: views/extensions_hook.php:23
+msgid "ALLOW ALL (Default)"
+msgstr ""
+
+#: functions.inc.php:377 functions.inc.php:536
+msgid "Add Context"
+msgstr ""
+
+#: views/extensions_hook.php:32
+msgid "Add Extension"
+msgstr ""
+
+#: views/extensions_hook.php:34
+msgid "Add User"
+msgstr ""
+
+#: customcontexts.i18n.php:6
+msgid "Connectivity"
+msgstr ""
+
+#: functions.inc.php:368 functions.inc.php:392 functions.inc.php:525
+#: page.customcontexts.php:21 page.customcontextsadmin.php:24
+msgid "Context"
+msgstr ""
+
+#: customcontexts.i18n.php:8
+msgid ""
+"Creates custom contexts which can be used to allow limited access to "
+"dialplan applications. Allows for time restrictions on any dialplan access. "
+"Allows for pattern matching to allow/deny. Allows for failover destinations, "
+"and PIN protected failover. This can be very useful for multi-tennant "
+"systems. Inbound routing can be done using DID or zap channel routing,\tthis "
+"module allows for selective outbound routing. House/public phones can be "
+"placed in a restricted context allowing them only internal calls."
+msgstr ""
+
+#: views/extensions_hook.php:38
+msgid "Custom Context"
+msgstr ""
+
+#: functions.inc.php:773
+#, php-format
+msgid "Custom Context: %s"
+msgstr ""
+
+#: functions.inc.php:802
+#, php-format
+msgid "Custom Context: %s (%s)"
+msgstr ""
+
+#: customcontexts.i18n.php:4 customcontexts.i18n.php:10
+msgid "Custom Contexts"
+msgstr ""
+
+#: customcontexts.i18n.php:12
+msgid "Custom Contexts Admin"
+msgstr ""
+
+#: functions.inc.php:552
+msgid "Duplicate Context"
+msgstr ""
+
+#: functions.inc.php:386 functions.inc.php:549
+msgid "Edit Context"
+msgstr ""
+
+#: views/extensions_hook.php:32
+msgid "Edit Extension"
+msgstr ""
+
+#: views/extensions_hook.php:34
+msgid "Edit User"
+msgstr ""
+
+#: functions.inc.php:388
+msgid "Remove Context"
+msgstr ""
+
+#: install.php:33
+msgid "Time Conditions Module required and not present .. aborting install"
+msgstr ""
+
+#: views/extensions_hook.php:38
+#, php-format
+msgid ""
+"You can select a custom context from this list to limit this user to "
+"portions of the dialplan you defined in the %s module."
+msgstr ""
+
+#: install.php:141 install.php:149
+msgid "done"
+msgstr ""
+
+#: install.php:135
+msgid "migrating customcontexts_timegroups if needed.."
+msgstr ""
+
+#: install.php:142
+msgid ""
+"removing customcontexts_timegroups and customcontexts_tiemgroups_detail "
+"tables.."
+msgstr ""

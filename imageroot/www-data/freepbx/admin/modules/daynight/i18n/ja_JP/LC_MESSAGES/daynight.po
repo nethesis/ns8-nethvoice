@@ -1,0 +1,415 @@
+# CREDITS for JAPANESE TRANSLATION
+# ================================
+# Current translation & maintenance: QLOOG, Inc. (Kobe, Japan)
+# Inquiries: info@qloog.com / www.qloog.com
+#
+# This translation is a culmination of the hard work of
+# several outstanding individuals, which started in 2009 with the 
+# first-ever Japanese localization of FreePBX by Kenichi Fukaumi 
+# and Kazuhiro Tokuyama (FreePBX Japanized Project).
+#
+# Beginning in 2013, with the approval of the original authors, 
+# QLOOG undertook a large scale overhaul of the translation to 
+# expand it for compatibility with FreePBX 2.11. Our work is, 
+# of course, released under the same GPLv2 license as FreePBX. 
+# We only ask that you kindly retain these credits in honor of 
+# the time and effort that all of us have contributed. Enjoy!
+#
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# FreePBX language template for daynight
+# Copyright (C) 2008, 2009, 2010 Bandwith.com
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-10-25 13:30-0700\n"
+"PO-Revision-Date: 2015-10-27 09:11+0200\n"
+"Last-Translator: Kevin <kevin@qloog.com>\n"
+"Language-Team: Japanese <http://weblate.freepbx.org/projects/freepbx/"
+"daynight/ja_JP/>\n"
+"Language: ja_JP\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.2-dev\n"
+
+#: functions.inc.php:526
+msgid " - Force Time Condition False Destination"
+msgstr "強制的に時間条件をFalse宛先にする。"
+
+#: functions.inc.php:524
+msgid " - Force Time Condition True Destination"
+msgstr "強制的に時間条件をTrue宛先にする。"
+
+#: page.daynight.php:16
+msgid ": Add"
+msgstr ": 追加"
+
+#: page.daynight.php:14
+msgid ": Edit"
+msgstr ": 編集"
+
+#: views/grid.php:16
+msgid "Actions"
+msgstr "アクション"
+
+#: views/grid.php:8
+msgid "Add"
+msgstr "追加"
+
+#: views/bootnav.php:6
+msgid "Add Callflow"
+msgstr ""
+
+#: daynight.i18n.php:6
+msgid "Applications"
+msgstr "アプリケーション"
+
+#: assets/js/daynight.js:23
+msgid "Are you sure you want to delete this flow?"
+msgstr "このコールフローを削除してもよろしいですか？"
+
+#: daynight.i18n.php:16
+msgid ""
+"By default, the Call Flow Control module will not hook Time Conditions "
+"allowing one to associate a call flow toggle feauture code with a time "
+"condition since time conditions have their own feature code as of version "
+"2.9. If there is already an associaiton configured (on an upgraded system), "
+"this will have no affect for the Time Conditions that are effected. Setting "
+"this to true reverts the 2.8 and prior behavior by allowing for the use of a "
+"call flow toggle to be associated with a time conditon. This can be useful "
+"for two scenarios. First, to override a Time Condition without the automatic "
+"resetting that occurs with the built in Time Condition overrides. The second "
+"use is the ability to associate a single call flow toggle with multiple time "
+"conditions thus creating a <b>master switch</b> that can be used to override "
+"several possible call flows through different time conditions."
+msgstr ""
+"時間条件はバージョン2.9から独自のキーコードを持つようになったため、デフォルト"
+"では、コールフロー制御モジュールはコールフロー切り替えキーコードを時間条件と"
+"連動することが許可された時間条件をフックしません。既に連動設定がされていた場"
+"合(アップグレードされたシステム上で)、有効な「時間条件」に影響をあたえませ"
+"ん。これを「true」に設定することで、時間条件に連動したコールフロー切り替えの"
+"仕様を許可することで2.8やそれ以前に戻ります。この機能は２つのシナリオで有効で"
+"す。第一に、ビルトインの「時間条件」上書きによって発生する自動リセットなし"
+"で、「時間条件」を上書きするため。二番目の使用方法は、このように異なる時間条"
+"件を通じて複数の可能なコールフローを上書きするために使用される<b>マスタース"
+"イッチ</b>を作成して、単一のコールフロー切り替えを複数の時間条件と連動させる"
+"機能です。"
+
+#: views/bootnav.php:19
+msgid "Call Flow"
+msgstr ""
+
+#: daynight.i18n.php:4 daynight.i18n.php:10
+msgid "Call Flow Control"
+msgstr "コールフロー制御"
+
+#: daynight.i18n.php:14
+msgid "Call Flow Control Module"
+msgstr "コールフロー制御モジュール"
+
+#: functions.inc.php:155
+#, php-format
+msgid "Call Flow Toggle (%s) : %s"
+msgstr "コールフロー切り替え (%s) : %s"
+
+#: functions.inc.php:537
+msgid "Call Flow Toggle Associate with"
+msgstr ""
+
+#: page.daynight.php:7
+msgid "Call Flow Toggle Control"
+msgstr "コールフロー切り替え制御"
+
+#: views/form.php:126
+msgid "Call Flow Toggle Feature Code Index"
+msgstr "機能コードのインデックス"
+
+#: functions.inc.php:404
+#, php-format
+msgid "Call Flow Toggle: %s (%s)"
+msgstr "コールフロー切り替え (%s) : %s"
+
+#: daynight.i18n.php:8
+msgid ""
+"Call Flow manual toggle control - allows for two destinations to be chosen "
+"and provides a feature code\t\tthat toggles between the two destinations."
+msgstr ""
+"コールフローの手動トグル制御 - 2つの宛先を選択できるようにし、その2つの宛先間"
+"が切り替わるキーコードを提供します。"
+
+#: views/form.php:174
+msgid "Current Mode"
+msgstr "現在のモード"
+
+#: views/form.php:34 views/form.php:35
+msgid "Default"
+msgstr "デフォルト"
+
+#: Daynight.class.php:53
+msgid "Delete"
+msgstr "削除"
+
+#: views/form.php:150 views/grid.php:14
+msgid "Description"
+msgstr "説明"
+
+#: views/form.php:162
+msgid "Description for this Call Flow Toggle Control"
+msgstr "このコールフロー切り替え制御の説明"
+
+#: views/form.php:241
+msgid "Destination to use when set to Normal Flow (Green/BLF off) mode"
+msgstr "通常モード (BLFが緑もしくは消灯) の宛先"
+
+#: views/form.php:265
+msgid "Destination to use when set to Override Flow (Red/BLF on) mode"
+msgstr "上書きモード (BLFが赤もしくは点灯) の宛先"
+
+#: views/grid.php:13
+msgid "Feature Code"
+msgstr "機能コード"
+
+#: views/form.php:101
+msgid "Forces to Normal Mode (Green/BLF off)"
+msgstr "強制的に通常モードにする (BLFが緑もしくは消灯)"
+
+#: views/form.php:101
+msgid "Forces to Override Mode (Red/BLF on)"
+msgstr "強制的に上書きモードにする (BLFが赤もしくは点灯)"
+
+#: daynight.i18n.php:12
+msgid "Hook Time Conditions Module"
+msgstr "時間条件フックモジュール"
+
+#: functions.inc.php:551
+msgid ""
+"If a selection is made, this timecondition will be associated with the "
+"specified call flow toggle  featurecode. This means that if the Call Flow "
+"Feature code is set to override (Red/BLF on) then this time condition will "
+"always go to its True destination if the chosen association is to 'Force "
+"Time Condition True Destination' and it will always go to its False "
+"destination if the association is with the 'Force Time Condition False "
+"Destination'. When the associated Call Flow Control Feature code is in its "
+"Normal mode (Green/BLF off), then then this Time Condition will operate as "
+"normal based on the current time. The Destinations that are part of any "
+"Associated Call Flow Control Feature Code will have no affect on where a "
+"call will go if passing through this time condition. The only thing that is "
+"done when making an association is allowing the override state of a Call "
+"Flow Toggle to force this time condition to always follow one of its two "
+"destinations when that associated Call Flow Toggle is in its override (Red/"
+"BLF on) state."
+msgstr ""
+"選択された場合、この時間分岐条件は指定されたコールフロー切り替え機能コードと"
+"関連づけられます。コールフロー機能コードが上書きモード (BLFが赤もしくは点灯) "
+"に設定された場合、この設定が「強制的に時間分岐条件をTrueの宛先にする」だった"
+"場合この時間条件は常にそのTrueの宛先に移動しますが、関連付けが「強制的に時間"
+"条件をFalseの宛先にする」だった場合は常にFalseの宛先に転送します。関連付けさ"
+"れたコールフロー切り替えが通常モード (BLFが緑もしくは消灯) の時は、この時間条"
+"件は現在時刻に基づいて通常どおり動作します。また、関連付けられたコールフロー"
+"切り替え側の宛先は、この時間条件を通った場合は適用されません。関連付けられた"
+"際に行われることは、その関連付けられたコールフロー切り替えが上書き状態 (BLFが"
+"赤もしくは点灯) の時に、関連付けられた時間条件に対して常にその２つの宛先のう"
+"ち１つに従うように強制上書きすることだけです。"
+
+#: views/form.php:104
+#, php-format
+msgid "Linked to Time Condition %s - %s"
+msgstr "時間条件にリンクしました %s - %s"
+
+#: views/bootnav.php:7
+msgid "List Callflows"
+msgstr ""
+
+#: views/form.php:64
+msgid ""
+"Message to be played in normal mode (Green/BLF off).<br>To add additional "
+"recordings use the \"System Recordings\" MENU above"
+msgstr ""
+"通常モード (BLFが緑もしくは消灯) のときに再生する音声。<br>音声を追加するに"
+"は、上にある「システム録音」メニューを使います。"
+
+#: views/form.php:90
+msgid ""
+"Message to be played in override mode (Red/BLF on).<br>To add additional "
+"recordings use the \"System Recordings\" MENU to the above"
+msgstr ""
+"上書きモード (BLFが赤もしくは点灯) のときに再生する音声。<br>音声を追加するに"
+"は、上にある「システム録音」メニューを使います。"
+
+#: functions.inc.php:522
+msgid "No Association"
+msgstr "連動なし"
+
+#: views/form.php:179
+msgid "Normal (Green/BLF off)"
+msgstr "通常 (BLFが緑もしくは消灯)"
+
+#: views/form.php:229
+msgid "Normal Flow (Green/BLF off)"
+msgstr "通常フロー (BLFが緑もしくは消灯)"
+
+#: views/form.php:202
+msgid "Optional Password"
+msgstr "パスワードをかける (オプション)"
+
+#: views/form.php:181
+msgid "Override (Red/BLF on)"
+msgstr "上書き (BLFが赤もしくは点灯)"
+
+#: views/form.php:253
+msgid "Override Flow (Red/BLF on)"
+msgstr "上書きフロー (BLFが赤もしくは点灯)"
+
+#: assets/js/daynight.js:4
+msgid "Please enter a valid numeric password, only numbers are allowed"
+msgstr ""
+"パスワードは数字以外の文字は使えません。数字のみのパスワードを入力してくださ"
+"い。"
+
+#: assets/js/daynight.js:7
+msgid "Please set the Current Mode"
+msgstr "現在のモードを設定してください。"
+
+#: assets/js/daynight.js:5
+msgid "Please set the Normal Flow destination"
+msgstr "通常モードの宛先を設定してください。"
+
+#: assets/js/daynight.js:6
+msgid "Please set the Override Flow destination"
+msgstr "上書きモードの宛先を設定してください。"
+
+#: views/form.php:50
+msgid "Recording for Normal Mode"
+msgstr "通常モードの音声"
+
+#: views/form.php:76
+msgid "Recording for Override Mode"
+msgstr "上書きモードの音声"
+
+#: Daynight.class.php:58
+msgid "Reset"
+msgstr "リセット"
+
+#: views/grid.php:15
+msgid "State"
+msgstr "ステータス"
+
+#: Daynight.class.php:63
+msgid "Submit"
+msgstr "送信"
+
+#: views/form.php:138
+#, php-format
+msgid ""
+"There are a total of %s Feature code objects, %s, each can control a call "
+"flow and be toggled using the call flow toggle feature code plus the index."
+msgstr "合計で %s の機能コードがあります。 %s"
+
+#: views/form.php:189
+msgid ""
+"This will change the current state for this Call Flow Toggle Control, or set "
+"the initial state when creating a new one."
+msgstr ""
+"このコールフロー切り替え制御の現ステータスを変更したり、新規作成時には初期ス"
+"テータスを設定します。"
+
+#: views/form.php:108
+msgid "Time Condition Reference"
+msgstr "時間分岐条件への参照"
+
+#: views/form.php:217
+msgid ""
+"You can optionally include a password to authenticate before toggling the "
+"call flow. If left blank anyone can use the feature code and it will be un-"
+"protected"
+msgstr ""
+"コールフローを切り替える前の認証パスワードをオプションとして含むことが可能で"
+"す。空白にしておくと、誰でもキーコードを使用することができるので、保護されま"
+"せん。"
+
+#: views/form.php:13
+msgid ""
+"You have reached the maximum limit for flow controls. Delete one to add a "
+"new one"
+msgstr ""
+"コールフロー切り替え制御の上限に達しました。既存の設定を1つ以上削除してからも"
+"う一度試してください。"
+
+#~ msgid "ERROR: failed to alter primary keys "
+#~ msgstr "エラー: プライマリキーの変更に失敗"
+
+#~ msgid "OK"
+#~ msgstr "OK"
+
+#~ msgid "changing primary keys to all fields.."
+#~ msgstr "全てのフィールドに対するプライマリキーを変更中.."
+
+#~ msgid "List Toggles"
+#~ msgstr "切り替え制御を一覧表示"
+
+#~ msgid "Add Call Flow Toggle Code"
+#~ msgstr "コールフロー切り替えコードを追加"
+
+#~ msgid "Associate with"
+#~ msgstr "次と連動"
+
+#~ msgid "Call Flow Toggle Feature Code Index:"
+#~ msgstr "コールフロー切り替えキーコードインデックス:"
+
+#~ msgid "Call Flow Toggle Mode Association"
+#~ msgstr "コールフロー切り替えモード連動"
+
+#~ msgid "Current Mode:"
+#~ msgstr "現在のモード:"
+
+#~ msgid "Delete Call Flow Toggle Feature Code %s"
+#~ msgstr "コールフロー切り替えキーコードを削除 %s"
+
+#~ msgid "Destination to use when set to %s mode"
+#~ msgstr "%sモードにセットされた時に使用する宛先"
+
+#~ msgid ""
+#~ "Message to be played in normal mode (Green/BLF off).<br>To add additional "
+#~ "recordings use the \"System Recordings\" MENU to the left"
+#~ msgstr ""
+#~ "ノーマルモードで再生されるメッセージ (緑/BLF オン)<br> さらに録音を追加す"
+#~ "る場合は左側の\"システム録音\"メニューを使用してください。"
+
+#~ msgid ""
+#~ "Message to be played in override mode (Red/BLF on).<br>To add additional "
+#~ "recordings use the \"System Recordings\" MENU to the left"
+#~ msgstr ""
+#~ "上書きモードで再生されるメッセージ (赤/BLF オン)<br> さらに録音を追加する"
+#~ "場合は左側の\"システム録音\"メニューを使用してください。"
+
+#~ msgid "Save"
+#~ msgstr "保存"
+
+#~ msgid ""
+#~ "There are a total of 10 Feature code objects, 0-9, each can control a "
+#~ "call flow and be toggled using the call flow toggle feature code plus the "
+#~ "index."
+#~ msgstr ""
+#~ "合計で10個のキーコード実体が存在します、 コールフロー切り替えキーコードプ"
+#~ "ラス、インデックスを使用して、0-9それぞれでコールフローを制御し切り替える"
+#~ "ことが可能です。"
+
+#~ msgid "Use feature code: %s to toggle the call flow mode"
+#~ msgstr "キーコードを使用する:  %s コールフローモードを切り替えるため"

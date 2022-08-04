@@ -1,0 +1,253 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for announcement
+# Copyright (C) 2008-2017 Sangoma Technologies, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-12-31 12:25+0530\n"
+"PO-Revision-Date: 2018-05-29 11:18+0000\n"
+"Last-Translator: Petr Varvarovsky <petrv@atlantis.cz>\n"
+"Language-Team: Czech <http://*/projects/freepbx/announcement/cs/>\n"
+"Language: cs\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"X-Generator: Weblate 2.19.1\n"
+
+#: page.announcement.php:17
+msgid ": Add"
+msgstr ": Přidat"
+
+#: page.announcement.php:14
+msgid ": Edit"
+msgstr ": Editovat"
+
+#: views/grid.php:18
+msgid "Actions"
+msgstr "Akce"
+
+#: views/grid.php:11
+msgid "Add"
+msgstr "Přidat"
+
+#: views/rnav.php:3
+msgid "Add Announcements"
+msgstr "Přidat oznámení"
+
+#: views/form.php:142
+msgid "Allow Skip"
+msgstr "Povolit přeskočení"
+
+#: page.announcement.php:7
+msgid "Announcement"
+msgstr "Oznámení"
+
+#: assets/js/announcement.js:16
+msgid "Announcement Description Already Exist"
+msgstr ""
+
+#: functions.inc.php:31 functions.inc.php:51 functions.inc.php:226
+#, php-format
+msgid "Announcement: %s"
+msgstr "Oznámení: %s"
+
+#: announcement.i18n.php:4 announcement.i18n.php:10
+msgid "Announcements"
+msgstr "Oznámení"
+
+#: announcement.i18n.php:6
+msgid "Applications"
+msgstr "Aplikace"
+
+#: install.php:90
+msgid "Checking if recordings need migration.."
+msgstr "Kontrola, jestli nahrávky potřebuji migraci."
+
+#: Announcement.class.php:70
+msgid "Delete"
+msgstr "Smazat"
+
+#: views/form.php:91 views/grid.php:16
+msgid "Description"
+msgstr "Popis"
+
+#: views/grid.php:17
+msgid "Destination"
+msgstr "Cíl"
+
+#: views/form.php:223
+msgid "Destination after Playback"
+msgstr "Cíl po přehrávání"
+
+#: views/rnav.php:8
+msgid "Destinations"
+msgstr "Cíle"
+
+#: views/form.php:72
+msgid "Disable"
+msgstr "Zakázat"
+
+#: views/form.php:196
+msgid "Don't Answer Channel"
+msgstr "Kanál neodpovídat"
+
+#: views/form.php:157
+msgid "If the caller is allowed to press a key to skip the message."
+msgstr "Je-li volajícímu umožněno stisknout klávesu pro přeskočení zprávy."
+
+#: views/form.php:184
+msgid ""
+"If this announcement came from an IVR and this is set to yes, the "
+"destination below will be ignored and instead it will return to the calling "
+"IVR. Otherwise, the destination below will be taken. Don't check if not "
+"using in this mode. <br>The IVR return location will be to the last IVR in "
+"the call chain that was called so be careful to only check when needed. For "
+"example, if an IVR directs a call to another destination which eventually "
+"calls this announcement and this box is checked, it will return to that IVR "
+"which may not be the expected behavior."
+msgstr ""
+"Pokud toto oznámení pochází z IVR a je nastaveno na ano, níže uvedený cíl "
+"bude ignorován a místo toho se vrátí do IVR. V opačném případě bude proveden "
+"níže uvedený cíl. Nezapomeňte, zda v tomto režimu nepoužíváte. <br> Místo "
+"návratu IVR bude k poslednímu IVR v řetězci hovorů, které bylo nazýváno, "
+"takže buďte opatrní, abyste si ověřili, kdy je potřeba. Například pokud IVR "
+"směruje volání do jiného cíle, které nakonec vyvolá toto oznámení a toto "
+"políčko je zaškrtnuto, vrátí se k tomu IVR, což pravděpodobně není "
+"očekávaným chováním."
+
+#: assets/js/announcement.js:6
+msgid "Invalid description specified"
+msgstr "Zadán neplatný popis"
+
+#: views/form.php:130
+msgid ""
+"Key to press that will allow for the message to be replayed. If you choose "
+"this option there will be a short delay inserted after the message. If a "
+"longer delay is needed it should be incorporated into the recording."
+msgstr ""
+"Tlačítko pro stisknutí, které umožní přehrání zprávy. Pokud zvolíte tuto "
+"možnost, bude po zprávě vloženo krátké zpoždění. Pokud je zapotřebí delší "
+"prodleva, měla by být do záznamu začleněna."
+
+#: views/rnav.php:2
+msgid "List Announcements"
+msgstr "Seznam oznámení"
+
+#: views/form.php:59
+msgid ""
+"Message to be played.<br>To add additional recordings use the \"System "
+"Recordings\" MENU above"
+msgstr ""
+"Zpráva, kterou chcete přehrát. <br> Chcete-li přidat další nahrávky, "
+"použijte MENU systému \"Nahrávky systému\" výše"
+
+#: views/form.php:149 views/form.php:176 views/form.php:203
+msgid "No"
+msgstr "Ne"
+
+#: assets/js/announcement.js:35
+msgid "No Destination"
+msgstr "Není cíl"
+
+#: views/form.php:32
+msgid "None"
+msgstr "Žádný"
+
+#: announcement.i18n.php:8
+msgid ""
+"Plays back one of the system recordings (optionally allowing the user to "
+"skip it) and then goes to another destination."
+msgstr ""
+"Přehrává jednu ze systémových nahrávek (volitelně umožňuje uživateli "
+"přeskočit) a přejde do jiného cíle."
+
+#: views/form.php:45
+msgid "Recording"
+msgstr "Nahrávání"
+
+#: views/form.php:116
+msgid "Repeat"
+msgstr "Opakovat"
+
+#: Announcement.class.php:75
+msgid "Reset"
+msgstr "Reset"
+
+#: views/form.php:169
+msgid "Return to IVR"
+msgstr "Návrat do IVR"
+
+#: views/form.php:211
+msgid ""
+"Set this to yes, to keep the channel from explicitly being answered. When "
+"checked, the message will be played and if the channel is not already "
+"answered it will be delivered as early media if the channel supports that. "
+"When not checked, the channel is answered followed by a 1 second delay. When "
+"using an announcement from an IVR or other sources that have already "
+"answered the channel, that 1 second delay may not be desired."
+msgstr ""
+"Nastavte tuto volbu na hodnotu ano, aby se kanále explicitně nereagovalo. "
+"Pokud je zaškrtnuto, zpráva se přehraje a pokud kanál již není zodpovězen, "
+"bude doručen jako časné médium, pokud to kanál podporuje. Pokud není "
+"zaškrtnuto, odpovídá kanál a následně 1 sekundové zpoždění. Při použití "
+"oznámení z IVR nebo jiných zdrojů, které již kanál již odpověděly, nemusí "
+"být 1 sekundové zpoždění požadováno."
+
+#: Announcement.class.php:80
+msgid "Submit"
+msgstr "Potvrdit"
+
+#: views/form.php:103
+msgid "The name of this announcement."
+msgstr "Jméno tohoto oznámení."
+
+#: views/form.php:235
+msgid "Where to send the caller after the announcement is played."
+msgstr "Kde přesměrovat hovor po přehrání oznámení."
+
+#: views/form.php:147 views/form.php:174 views/form.php:201
+msgid "Yes"
+msgstr "Ano"
+
+#: install.php:97
+msgid "adding recording_id field.."
+msgstr "Přidání pole record_id."
+
+#: install.php:147
+msgid "already migrated"
+msgstr "již přemigrováno"
+
+#: install.php:137
+msgid "dropping recording field.."
+msgstr "klesající pole záznamu .."
+
+#: install.php:101 install.php:113 install.php:129
+msgid "fatal error"
+msgstr "Kritická chyba"
+
+#: install.php:109
+msgid "migrate to recording ids.."
+msgstr "přemístění do záznamů ids .."
+
+#: install.php:133
+#, php-format
+msgid "migrated %s entries"
+msgstr "migrované položky %s"
+
+#: install.php:96
+msgid "migrating"
+msgstr "migrace"
+
+#: install.php:141
+msgid "no recording field???"
+msgstr "žádné pole nahrávky???"
+
+#: install.php:104 install.php:143
+msgid "ok"
+msgstr "ok"

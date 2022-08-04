@@ -1,0 +1,96 @@
+<module>
+	<rawname>findmefollow</rawname>
+	<repo>standard</repo>
+	<name>Follow Me</name>
+	<version>14.0.1.23</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<changelog>
+		*14.0.1.23* FREEPBX-19578 
+		*14.0.1.22* Fixing FREEPBX-19518 Enabling Find me /follow me from quick extenstion creation is not working 
+		*14.0.1.21* Feature/FREEPBX-15651 
+		*14.0.1.20* FREEPBX-17089 Follow Me with callconfirm doesn't work with external numbers 
+		*14.0.1.19* FREEPBX-17789 call confirmation message delivered twice 
+		*14.0.1.18* fixing bugfix/FREEPBX-17041 calling music_list api only if its available 
+		*14.0.1.17* FREEPBX-16838 FreePBX 14.0.1.36 d'nt work button "save" 
+		*14.0.1.16* FREEPBX-16513 Calendar Group under follow me broken 
+		*14.0.1.15* FREEPBX-15741 FREEPBX-15335 Ring strategy available in UCP
+		*14.0.1.14* FREEPBX-15429
+		*14.0.1.13* FREEPBX-15254 extension quick create - whoops when selecting Yes to enable follow-me
+		*14.0.1.12* FREEPBX-14945 Call Confirm Announcement under Virtual Queue module is broken
+		*14.0.1.11* FREEPBX-15173 Catch Exceptions on reload
+		*14.0.1.10* FREEPBX-15166 Require User Manager
+		*14.0.1.9* FREEPBX-14788 :Issue in Find Me follow me list under Extensions
+		*14.0.1.8* Merge 13 changes
+		*14.0.1.7* Findmefollow.class.php: Fix processQuickCreate
+		*14.0.1.6* UCP fixes and updates
+		*14.0.1.5* Remove reference to fmfm_del from class function
+		*14.0.1.4* Calendar fixes
+		*14.0.1.3* Astman during install
+		*14.0.1.2* Update installer for new database definitions
+		*14.0.1* Merge from 13
+		*14.0.1alpha1* Inital Changes
+	</changelog>
+	<depends>
+		<module>core ge 13.0.113.3</module>
+		<module>framework ge 13.0.117</module>
+		<module>recordings ge 3.3.8</module>
+		<module>userman ge 14.0.3.16</module>
+	</depends>
+	<category>Applications</category>
+	<description>
+		Much like a ring group, but works on individual extensions. When someone calls the extension, it can be setup to ring for a number of seconds before trying to ring other extensions and/or external numbers, or to ring all at once, or in other various 'hunt' configurations. Most commonly used to ring someone's cell phone if they don't answer their extension.
+	</description>
+	<menuitems>
+		<findmefollow needsenginedb="yes">Follow Me</findmefollow>
+	</menuitems>
+	<supported>
+		<version>14.0</version>
+	</supported>
+	<hooks>
+		<bulkhandler class="Bulkhandler" namespace="FreePBX\modules">
+			<method callingMethod="getHeaders" class="Findmefollow" namespace="FreePBX\modules">bulkhandlerGetHeaders</method>
+			<method callingMethod="import" class="Findmefollow" namespace="FreePBX\modules">bulkhandlerImport</method>
+			<method callingMethod="export" class="Findmefollow" namespace="FreePBX\modules">bulkhandlerExport</method>
+		</bulkhandler>
+		<core class="Core" namespace="FreePBX\modules">
+			<method callingMethod="getQuickCreateDisplay" class="Findmefollow" namespace="FreePBX\modules">getQuickCreateDisplay</method>
+			<method callingMethod="processQuickCreate" class="Findmefollow" namespace="FreePBX\modules">processQuickCreate</method>
+			<method callingMethod="delUser" class="Findmefollow" namespace="FreePBX\modules">delUser</method>
+		</core>
+                <ucp class="Ucp">
+			<method namespace="FreePBX\modules" callingMethod="constructModuleConfigPages" class="Findmefollow">ucpConfigPage</method>
+			<method namespace="FreePBX\modules" callingMethod="addUser" class="Findmefollow">ucpAddUser</method>
+			<method namespace="FreePBX\modules" callingMethod="updateUser" class="Findmefollow">ucpUpdateUser</method>
+			<method namespace="FreePBX\modules" callingMethod="delUser" class="Findmefollow">ucpDelUser</method>
+			<method namespace="FreePBX\modules" callingMethod="addGroup" class="Findmefollow">ucpAddGroup</method>
+			<method namespace="FreePBX\modules" callingMethod="updateGroup" class="Findmefollow">ucpUpdateGroup</method>
+			<method namespace="FreePBX\modules" callingMethod="delGroup" class="Findmefollow">ucpDelGroup</method>
+		</ucp>
+	</hooks>
+	<database>
+	  <table name="findmefollow">
+	    <field name="grpnum" type="string" length="20" primaryKey="true"/>
+	    <field name="strategy" type="string" length="50"/>
+	    <field name="grptime" type="smallint"/>
+	    <field name="grppre" type="string" length="100" notnull="false"/>
+	    <field name="grplist" type="string" length="255"/>
+	    <field name="annmsg_id" type="integer" notnull="false"/>
+	    <field name="postdest" type="string" length="255" notnull="false"/>
+	    <field name="dring" type="string" length="255" notnull="false"/>
+	    <field name="rvolume" type="string" length="2" notnull="false"/>
+	    <field name="remotealert_id" type="integer" notnull="false"/>
+	    <field name="needsconf" type="string" length="10" notnull="false"/>
+	    <field name="toolate_id" type="integer" notnull="false"/>
+	    <field name="pre_ring" type="smallint" default="0"/>
+	    <field name="ringing" type="string" length="80" notnull="false"/>
+			<field name="calendar_enable" type="boolean" default="0" notnull="false"/>
+	    <field name="calendar_id" type="string" length="80" default="" notnull="false"/>
+			<field name="calendar_group_id" type="string" length="80" default="" notnull="false"/>
+	    <field name="calendar_match" type="string" length="4" default="yes" notnull="false"/>
+	  </table>
+	</database>
+	<location>release/2.11/findmefollow-2.11.0.3.tgz</location>
+	<md5sum>eb10d338f7206c288e52b240ccf4b850</md5sum>
+</module>

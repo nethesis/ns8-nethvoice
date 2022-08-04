@@ -1,0 +1,195 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX - módulo callback module spanish translation\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-09-26 00:02-0400\n"
+"PO-Revision-Date: 2016-01-14 22:40+0200\n"
+"Last-Translator: Ernesto <ecasas@sangoma.com>\n"
+"Language-Team: Spanish <http://weblate.freepbx.org/projects/freepbx/callback/"
+"es_ES/>\n"
+"Language: es_ES\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.2-dev\n"
+"X-Poedit-Language: Spanish\n"
+"X-Poedit-Country: SPAIN\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: page.callback.php:11
+msgid " Add"
+msgstr " Agregar"
+
+#: page.callback.php:11
+msgid " Edit"
+msgstr " Editar"
+
+#: assets/js/callback.js:18
+msgid " already used, please use a different description."
+msgstr ""
+
+#: views/grid.php:16
+msgid "Actions"
+msgstr "Acciones"
+
+#: views/bootnav.php:4 views/grid.php:2
+msgid "Add Callback"
+msgstr "Añadir devolución de llamada"
+
+#: callback.i18n.php:6
+msgid "Applications"
+msgstr "Aplicaciones"
+
+#: callback.i18n.php:4 callback.i18n.php:8 page.callback.php:6
+#: views/bootnav.php:15
+msgid "Callback"
+msgstr "Devolución de llamada"
+
+#: views/form.php:41
+msgid "Callback Description"
+msgstr "Descripcion Callback"
+
+#: views/form.php:65 views/grid.php:15
+msgid "Callback Number"
+msgstr "Numero Callback"
+
+#: functions.inc.php:37 functions.inc.php:66
+#, php-format
+msgid "Callback: %s"
+msgstr "Devolución de llamada: %s"
+
+#: views/form.php:116
+msgid "Caller Id"
+msgstr ""
+
+#: views/form.php:89
+msgid "Delay Before Callback"
+msgstr "Espera antes de Callback"
+
+#: Callback.class.php:54
+msgid "Delete"
+msgstr "Eliminar"
+
+#: views/form.php:167
+msgid "Destination after Callback"
+msgstr "Destino después de devolver la llamada"
+
+#: views/form.php:53
+msgid "Enter a description for this callback."
+msgstr "Introduzca una descripción para esta devolución de llamada."
+
+#: views/grid.php:14
+msgid "Item"
+msgstr "Ítem"
+
+#: views/bootnav.php:3
+msgid "List Callbacks"
+msgstr "Lista de rellamadas (Callbacks)"
+
+#: views/form.php:146
+msgid "Milliseconds"
+msgstr ""
+
+#: views/form.php:128
+msgid ""
+"Optional: Enter the callerid for the callback.<br>Format: <b>\"caller name\" "
+"&lt;#######&gt;</b><br>Default: Callback"
+msgstr ""
+
+#: views/form.php:104
+msgid ""
+"Optional: Enter the number of seconds the system should wait before calling "
+"back."
+msgstr ""
+"Opcional. Introduzca el número de segundos que el sistema debe esperar antes "
+"de devolver la llamada."
+
+#: views/form.php:77
+msgid ""
+"Optional: Enter the number to dial for the callback.  Leave this blank to "
+"just dial the incoming CallerID Number"
+msgstr ""
+"Opcional. Ingrese el numero a marcar para el callback. Dejelo en blanco para "
+"marcar al numero del caller id entrante"
+
+#: views/form.php:155
+msgid "Optional: Timeout in Milliseconds.</br>Default: 15000"
+msgstr ""
+
+#: assets/js/callback.js:15
+msgid "Please enter a valid Description"
+msgstr "Por favor, introduzca una descripción válida"
+
+#: Callback.class.php:59
+msgid "Reset"
+msgstr "Reiniciar"
+
+#: views/form.php:95
+msgid "Seconds"
+msgstr "Segundos"
+
+#: Callback.class.php:64
+msgid "Submit"
+msgstr "Enviar"
+
+#: assets/js/callback.js:13
+msgid "The callback description provided is too long."
+msgstr "La descripción provista para la devolución de llamada en muy larga."
+
+#: views/form.php:140
+msgid "Timeout"
+msgstr ""
+
+#: views/form.php:186
+msgid "Where to send the caller once they are called back"
+msgstr "Dónde enviar la persona que llama una vez que se llaman de vuelta"
+
+#~ msgid "Invalid Request"
+#~ msgstr "Solicitud no válida"
+
+#~ msgid ""
+#~ "A callback will hang up on the caller and then call them back, directing "
+#~ "them to the selected destination. This is useful for reducing mobile "
+#~ "phone charges as well as other applications. Outbound calls will proceed "
+#~ "according to the dial patterns in Outbound Routes."
+#~ msgstr ""
+#~ "En una devolución de llamada, tras colgar el que llama, el sistema le "
+#~ "devolverá la llamada, marcando el destino seleccionado. Esta función es "
+#~ "útil para reducir el coste de movil así como de otras aplicaciones. Las "
+#~ "llamadas serán procesadas de acuerdo a los patrones de marcado de las "
+#~ "rutas de salida."
+
+#~ msgid "Callback "
+#~ msgstr "Devolución de llamada "
+
+#~ msgid "Callback Description:"
+#~ msgstr "Descripción de la devolución de llamada:"
+
+#~ msgid "Callback Number:"
+#~ msgstr "Número al cual devolver la llamada:"
+
+#~ msgid "Callback:"
+#~ msgstr "Devolución de llamada:"
+
+#~ msgid "Delay Before Callback:"
+#~ msgstr "Retardo antes de devolver la llamada:"
+
+#~ msgid "Delete Callback"
+#~ msgstr "Eliminar devolución de llamada"
+
+#~ msgid "Edit Callback"
+#~ msgstr "Editar devolución de llamada"
+
+#~ msgid "Submit Changes"
+#~ msgstr "Enviar cambios"
+
+#~ msgid "deleted"
+#~ msgstr "eliminado"
+
+#~ msgid ""
+#~ "Optional: Enter the number to dial for the callback.  Leave this blank to "
+#~ "just dial the incoming Caller ID Number"
+#~ msgstr ""
+#~ "Opcional. Introduzca el número al que se llamará. Deje este campo en "
+#~ "blanco para devolver la llamada al número desde el cual se llamó."

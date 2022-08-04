@@ -1,0 +1,8 @@
+{
+	"require": {
+		"analogic/lescript": "^0.1.3"
+	},
+	"config": {
+		"optimize-autoloader": true
+	}
+}

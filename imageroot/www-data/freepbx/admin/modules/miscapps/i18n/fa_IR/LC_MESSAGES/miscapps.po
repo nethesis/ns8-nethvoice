@@ -1,0 +1,171 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for miscapps
+# Copyright (C) 2008-2015 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-07-24 17:44-0400\n"
+"PO-Revision-Date: 2016-08-07 06:44+0200\n"
+"Last-Translator: Media <mousavi.media@gmail.com>\n"
+"Language-Team: Persian (Iran) <http://weblate.freepbx.org/projects/freepbx/"
+"miscapps/fa_IR/>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: fa_IR\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: miscapps.i18n.php:12
+msgid "777"
+msgstr ""
+
+#: views/grid.php:9
+msgid "Actions"
+msgstr ""
+
+#: views/rnav.php:3
+msgid "Add Misc App"
+msgstr "افزودن برنامه متفرقه"
+
+#: Miscapps.class.php:317 views/grid.php:2
+msgid "Add Misc Application"
+msgstr "افزودن برنامه متفرقه"
+
+#: miscapps.i18n.php:8
+msgid ""
+"Adds the ability to create feature codes that can go to any FreePBX "
+"destination (such as an IVR or queue)"
+msgstr ""
+"افزودن قابلیت ایجاد کدهای ویژه که بتواند به هر داخلی FreePBX برود (مانند "
+"منوصوتی یا صف)"
+
+#: miscapps.i18n.php:6
+msgid "Applications"
+msgstr "برنامه‌ ها"
+
+#: views/form.php:107
+msgid "Choose the destination for this app when people dial the feature code"
+msgstr "مقصد این برنامه را وقتی کد مخصوص شماره گیری میشود انتخاب کنید"
+
+#: Miscapps.class.php:126
+msgid "Delete"
+msgstr "حذف"
+
+#: views/grid.php:7 views/rnav.php:15
+msgid "Description"
+msgstr "شرح"
+
+#: views/form.php:47
+msgid "Description:"
+msgstr "شرح："
+
+#: views/form.php:95
+msgid "Destination"
+msgstr "مقصد"
+
+#: Miscapps.class.php:325
+msgid "Edit Misc Application"
+msgstr "ویرایش برنامه‌ اضافی"
+
+#: views/form.php:26
+msgid "Enable"
+msgstr "فعال"
+
+#: views/grid.php:8 views/rnav.php:14
+msgid "Extension"
+msgstr "داخلی"
+
+#: views/form.php:71
+msgid "Feature Code"
+msgstr "کد ویژه"
+
+#: assets/js/miscapps.js:6
+msgid "Invalid description specified"
+msgstr "شرح اختصاص داده شده نامعتبر است"
+
+#: views/rnav.php:2
+msgid "List Misc App"
+msgstr ""
+
+#: Miscapps.class.php:338 views/main.php:1
+msgid "Misc Application"
+msgstr ""
+
+#: Miscapps.class.php:276 functions.inc.php:150
+#, php-format
+msgid "Misc Application: %s"
+msgstr "برنامه‌ اضافی：%s"
+
+#: miscapps.i18n.php:4 miscapps.i18n.php:10
+msgid "Misc Applications"
+msgstr "برنامه‌ های اضافی"
+
+#: views/form.php:32
+msgid "No"
+msgstr "خیر"
+
+#: assets/js/miscapps.js:36
+msgid "Please enter a valid Feature Code."
+msgstr ""
+
+#: Miscapps.class.php:41
+msgid "Removing Settings table"
+msgstr "حذف تنظیمات جدول"
+
+#: Miscapps.class.php:131
+msgid "Reset"
+msgstr "بازنشانی"
+
+#: Miscapps.class.php:136
+msgid "Submit"
+msgstr "ثبت"
+
+#: views/form.php:83
+msgid ""
+"The feature code/extension users can dial to access this application. This "
+"can also be modified on the Feature Codes page."
+msgstr "کد ویژه/داخلی که کاربران با آن به برنامه دسترسی دارند."
+
+#: views/form.php:59
+msgid "The name of this application"
+msgstr "نام این برنامه"
+
+#: assets/js/miscapps.js:44
+msgid "The number provided for the feature code is already in use by "
+msgstr "شماره ایجاد شده برای کد ویژه استفاده میشود توسط "
+
+#: views/form.php:75
+msgid "This field is required."
+msgstr ""
+
+#: views/form.php:30
+msgid "Yes"
+msgstr "بله"
+
+#~ msgid "This field must only contain numbers and *'s"
+#~ msgstr "این فیلد تنها باید شامل عدد باشد و *'s"
+
+#~ msgid "Are you sure you want to delete this?"
+#~ msgstr "آیا از حذف مطمئن هستید؟"
+
+#~ msgid "Conflicting Extensions"
+#~ msgstr "داخلی های متضاد"
+
+#~ msgid ""
+#~ "Misc Applications are for adding feature codes that you can dial from "
+#~ "internal phones that go to various destinations available in FreePBX. "
+#~ "This is in contrast to the <strong>Misc Destinations</strong> module, "
+#~ "which is for creating destinations that can be used by other FreePBX "
+#~ "modules to dial internal numbers or feature codes."
+#~ msgstr ""
+#~ "Misc Applications are for adding feature codes that you can dial from "
+#~ "internal phones that go to various destinations available in FreePBX. "
+#~ "This is in contrast to the <strong> Misc Destinations </strong> module, "
+#~ "which is for creating destinations that can be used by other FreePBX "
+#~ "modules to dial internal numbers or feature codes ."

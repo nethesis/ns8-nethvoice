@@ -1,0 +1,143 @@
+# Russian freePBX ver. translation
+# Copyright (c) 2006-2012 PostMet Corporation
+# This file is distributed under the same license as the freePBX package.
+# Alexander Kozyrev <ceo@postmet.com>, Alexander Anikin <may@postmet.com>, 2006-2012.
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.4\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-03-16 13:47-0700\n"
+"PO-Revision-Date: 2015-04-25 00:19+0200\n"
+"Last-Translator: Yuriy <alliancesko@gmail.com>\n"
+"Language-Team: Russian <http://weblate.freepbx.org/projects/freepbx/"
+"outroutemsg/ru_RU/>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: ru_RU\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%"
+"10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 2.2-dev\n"
+
+#: install.php:17
+msgid "Can not create outroutemsg table"
+msgstr "Невозможно создать таблицу outroutemsg"
+
+#: outroutemsg.i18n.php:8
+msgid ""
+"Configures message or congestion tones played when all trunks are busy in a "
+"route. Allows different messages for Emergency Routes and Intra-Company "
+"Routes"
+msgstr ""
+"Конфигурирует сообщения или тональные сигналы проблем когда все транки на "
+"маршруте заняты. Допускаются разные сообщения для аварийных и "
+"внутрикорпоративных маршрутов"
+
+#: page.outroutemsg.php:78 page.outroutemsg.php:112 page.outroutemsg.php:146
+#: page.outroutemsg.php:182 page.outroutemsg.php:216
+msgid "Congestion Tones"
+msgstr "Тональные сигналы при проблемах на транке"
+
+#: page.outroutemsg.php:77 page.outroutemsg.php:111 page.outroutemsg.php:145
+#: page.outroutemsg.php:181 page.outroutemsg.php:215
+msgid "Default Message"
+msgstr "Сообщение по умолчанию"
+
+#: page.outroutemsg.php:139
+msgid "Emergency Routes"
+msgstr "Аварийные маршруты"
+
+#: page.outroutemsg.php:105
+msgid "Intra-Company Routes"
+msgstr "Внутрикорпоративные маршруты"
+
+#: page.outroutemsg.php:93
+msgid "Message or tone to be played if no trunks are available."
+msgstr ""
+"Будет воспроизводиться сообщение или тональный сигнал при отсутствии "
+"доступных транков."
+
+#: page.outroutemsg.php:161
+msgid ""
+"Message or tone to be played if no trunks are available. Used on all "
+"emergency routes. Consider a message instructing callers to find an "
+"alternative means of calling emergency services such as a cell phone or "
+"alarm system panel."
+msgstr ""
+"Сообщение или тональные сигналы, которые будут воспроизводиться при "
+"отстутствии доступных транков. Предлагаются речевые сообщения о поиске "
+"альтернативных способов связи. Например вызвать службы экстренной помощи "
+"через мобильный телефон или системы охранной сигнализации."
+
+#: page.outroutemsg.php:127
+msgid ""
+"Message or tone to be played if no trunks are available. Used on routes "
+"marked as intra-company only."
+msgstr ""
+"Сообщение или тональные сигналы, которые будут воспроизводиться при "
+"отстутствии доступных транков. Используются только на внутрикорпоративных "
+"маршрутах."
+
+#: page.outroutemsg.php:197
+msgid ""
+"Message or tone to be played if there was no answer. Default message is:<br>"
+"\"The number is not answering.\"<br> Hangupcause is 18 or 19"
+msgstr ""
+"Сообщение или тональные сигналы, которые будут воспроизводиться при "
+"неответе. Стандартное сообщение:<br>\"Номер не отвечает\"<br> Код отбоя 18 "
+"или 19"
+
+#: page.outroutemsg.php:231
+msgid ""
+"Message or tone to be played if trunk reports Number or Address Incomplete. "
+"Usually this means that the number you have dialed is to short. Default "
+"message is:<br>\"The number you have dialed is not in service. Please check "
+"the number and try again.\"<br>Hangupcause is 28"
+msgstr ""
+"Сообщение или тональные сигналы, которые будут воспроизводиться при "
+"неполномномере или адресе. Обычно бывает, когда набранный номер слишком "
+"короткий. Стандартное сообщение:<br>\"Набранный номер не существует. "
+"Пожалуйста проверьте ещё раз и наберите снова.\"<br> Код отбоя 28"
+
+#: page.outroutemsg.php:175
+msgid "No Answer"
+msgstr "Нет ответа"
+
+#: page.outroutemsg.php:53
+msgid "No Routes Available"
+msgstr "Нет доступных маршрутов"
+
+#: page.outroutemsg.php:209
+msgid "Number or Address Incomplete"
+msgstr "Номер или адрес неполный"
+
+#: Outroutemsg.class.php:30
+msgid "Reset"
+msgstr ""
+
+#: functions.inc.php:142 outroutemsg.i18n.php:4 outroutemsg.i18n.php:10
+#: page.outroutemsg.php:42
+msgid "Route Congestion Messages"
+msgstr "Сообщения о проблемах на маршруте"
+
+#: outroutemsg.i18n.php:6
+msgid "Settings"
+msgstr "Установки"
+
+#: page.outroutemsg.php:71
+msgid "Standard Routes"
+msgstr "Стандартные маршруты"
+
+#: Outroutemsg.class.php:35
+msgid "Submit"
+msgstr ""
+
+#: page.outroutemsg.php:58
+msgid "Trunk Failures"
+msgstr "Отказ транка"
+
+#~ msgid "Message or Tone"
+#~ msgstr "Сообщение или тональный сигнал"
+
+#~ msgid "Submit Changes"
+#~ msgstr "Применить изменения"

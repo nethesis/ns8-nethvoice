@@ -1,0 +1,143 @@
+{
+  "template_data": {
+    "category": [{
+      "name": "Exp2",
+      "subcategory": [{
+        "name": "basic",
+        "item": [{
+          "description": "Exp Keys (1-20)",
+          "type": "loop",
+          "loop_start": "1",
+          "loop_end": "20",
+          "data": {
+            "item": [{
+                "variable": "$exp2key_type",
+                "default_value": "0",
+                "description": "Exp Key {$count} Type",
+                "type": "list",
+                "data": [{
+                    "text": "None",
+                    "value": "0"
+                  },
+                  {
+                    "text": "Memory Key",
+                    "value": "1"
+                  },
+                  {
+                    "text": "Line",
+                    "value": "2"
+                  },
+                  {
+                    "text": "Key Event",
+                    "value": "4"
+                  },
+                  {
+                    "text": "DTMF",
+                    "value": "4"
+                  }
+                ]
+              },
+              {
+                "variable": "$exp2key_label",
+                "default_value": "",
+                "description": "Exp Key {$count} Name",
+                "type": "input"
+              },
+              {
+                "variable": "$exp2key_value",
+                "default_value": "",
+                "description": "Exp Key {$count} Value",
+                "type": "input"
+              },
+              {
+                "variable": "$exp2key_subtype",
+                "default_value": "",
+                "description": "Exp Key {$count} SubType",
+                "type": "list",
+                "data": [{
+                    "text": "None",
+                    "value": ""
+                  },
+                  {
+                    "text": "BLF",
+                    "value": "/bc**"
+                  },
+                  {
+                    "text": "Speed Dial",
+                    "value": "/f"
+                  },
+		  {
+                    "text": "MWI",
+                    "value": "F_MWI"
+                  },
+		  {
+                    "text": "DND",
+                    "value": "F_DND"
+                  },
+		  {
+                    "text": "Redial",
+                    "value": "F_REDIAL"
+                  },
+		  {
+                    "text": "Prefix",
+                    "value": "F_PREFIX:"
+                  },
+		  {
+                    "text": "LDAP",
+                    "value": "F_LDAPCONTACTS:0"
+                  },
+		  {
+                    "text": "Headset",
+                    "value": "F_HEADSET"
+                  },
+                  {
+                    "text": "Call Forward",
+                    "value": "F_CFWD"
+                  }
+                ]
+              },
+              {
+                "variable": "$exp2key_line",
+                "default_value": "",
+                "description": "Exp Key {$count} Line",
+                "type": "list",
+                "data": [{
+                    "text": "None",
+                    "value": ""
+                  },
+		  {
+                    "text": "Line 1",
+                    "value": "@1"
+                  },
+                  {
+                    "text": "Line 2",
+                    "value": "@2"
+                  },
+                  {
+                    "text": "Line 3",
+                    "value": "@3"
+                  },
+                  {
+                    "text": "Line 4",
+                    "value": "@4"
+                  },
+                  {
+                    "text": "Line 5",
+                    "value": "@5"
+                  },
+                  {
+                    "text": "Line 6",
+                    "value": "@6"
+                  }
+                ]
+              },
+              {
+                "type": "break"
+              }
+            ]
+          }
+        }]
+      }]
+    }]
+  }
+}

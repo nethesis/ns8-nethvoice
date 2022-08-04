@@ -1,0 +1,22 @@
+<module>
+  <rawname>rapidcode</rawname>
+  <repo>unsupported</repo>
+  <name>Rapid Code</name>
+  <version>1.0.0</version>
+  <category>Applications</category>
+  <Publisher>Stefano Fancello</Publisher>
+  <info></info>
+  <licence>GPL</licence>
+  <licenselink>http://www.gnu.org/licenses/gpl-2.0.txt</licenselink>
+  <menuitems>
+    <rapidcode>Rapid Code</rapidcode>
+</menuitems>
+<depends>
+  <version>14</version>
+</depends>
+<supported>14.0</supported>
+
+<description>Easy Speed Dial alternative</description>
+<changelog></changelog>
+
+</module>

@@ -1,0 +1,295 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for announcement
+# Copyright (C) 2008-2015 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-12-31 12:25+0530\n"
+"PO-Revision-Date: 2016-06-01 07:34+0200\n"
+"Last-Translator: Hans <info@hansvaneijsden.nl>\n"
+"Language-Team: Dutch <http://weblate.freepbx.org/projects/freepbx/"
+"announcement/nl_NL/>\n"
+"Language: nl_NL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: page.announcement.php:17
+msgid ": Add"
+msgstr ": Toevoegen"
+
+#: page.announcement.php:14
+msgid ": Edit"
+msgstr ": Bewerken"
+
+#: views/grid.php:18
+msgid "Actions"
+msgstr "Acties"
+
+#: views/grid.php:11
+msgid "Add"
+msgstr "Toevoegen"
+
+#: views/rnav.php:3
+msgid "Add Announcements"
+msgstr "Aankondigingen Toevoegen"
+
+#: views/form.php:142
+msgid "Allow Skip"
+msgstr "Overslaan toestaan"
+
+#: page.announcement.php:7
+msgid "Announcement"
+msgstr "Aankondiging"
+
+#: assets/js/announcement.js:16
+msgid "Announcement Description Already Exist"
+msgstr ""
+
+#: functions.inc.php:31 functions.inc.php:51 functions.inc.php:226
+#, php-format
+msgid "Announcement: %s"
+msgstr "Aankondiging: %s"
+
+#: announcement.i18n.php:4 announcement.i18n.php:10
+msgid "Announcements"
+msgstr "Aankondigingen"
+
+#: announcement.i18n.php:6
+msgid "Applications"
+msgstr "Aplicatie's"
+
+#: install.php:90
+msgid "Checking if recordings need migration.."
+msgstr "Controleren of opnames moeten worden gemigreerd.."
+
+#: Announcement.class.php:70
+msgid "Delete"
+msgstr "Verwijderen"
+
+#: views/form.php:91 views/grid.php:16
+msgid "Description"
+msgstr "Omschrijving"
+
+#: views/grid.php:17
+msgid "Destination"
+msgstr "Bestemming"
+
+#: views/form.php:223
+msgid "Destination after Playback"
+msgstr "Bestemming na weergave"
+
+#: views/rnav.php:8
+msgid "Destinations"
+msgstr "Bestemmingen"
+
+#: views/form.php:72
+msgid "Disable"
+msgstr "Uitschakelen"
+
+#: views/form.php:196
+msgid "Don't Answer Channel"
+msgstr "Kanaal niet beantwoorden"
+
+#: views/form.php:157
+msgid "If the caller is allowed to press a key to skip the message."
+msgstr "De aanroeper toestaan om het bericht over te laten slaan."
+
+#: views/form.php:184
+msgid ""
+"If this announcement came from an IVR and this is set to yes, the "
+"destination below will be ignored and instead it will return to the calling "
+"IVR. Otherwise, the destination below will be taken. Don't check if not "
+"using in this mode. <br>The IVR return location will be to the last IVR in "
+"the call chain that was called so be careful to only check when needed. For "
+"example, if an IVR directs a call to another destination which eventually "
+"calls this announcement and this box is checked, it will return to that IVR "
+"which may not be the expected behavior."
+msgstr ""
+
+#: assets/js/announcement.js:6
+msgid "Invalid description specified"
+msgstr "Ongeldige omschrijving ingevoerd"
+
+#: views/form.php:130
+msgid ""
+"Key to press that will allow for the message to be replayed. If you choose "
+"this option there will be a short delay inserted after the message. If a "
+"longer delay is needed it should be incorporated into the recording."
+msgstr ""
+"Toets kiezen om het bericht nogmaals te kunnen beluisteren. Als u de optie "
+"kiest, zal er een korte wachttijd na het bericht zijn. Als er een langere "
+"wachttijd nodig is, dan moet u dit in de opname meenemen."
+
+#: views/rnav.php:2
+msgid "List Announcements"
+msgstr "Lijst Aankondigingen"
+
+#: views/form.php:59
+msgid ""
+"Message to be played.<br>To add additional recordings use the \"System "
+"Recordings\" MENU above"
+msgstr ""
+
+#: views/form.php:149 views/form.php:176 views/form.php:203
+msgid "No"
+msgstr "Nee"
+
+#: assets/js/announcement.js:35
+msgid "No Destination"
+msgstr ""
+
+#: views/form.php:32
+msgid "None"
+msgstr "Geen"
+
+#: announcement.i18n.php:8
+msgid ""
+"Plays back one of the system recordings (optionally allowing the user to "
+"skip it) and then goes to another destination."
+msgstr ""
+"Speelt een van de systeem opnames af (met mogelijkheid om over te slaan) en "
+"gaat dan naar een andere bestemming."
+
+#: views/form.php:45
+msgid "Recording"
+msgstr "Opname"
+
+#: views/form.php:116
+msgid "Repeat"
+msgstr "Herhalen"
+
+#: Announcement.class.php:75
+msgid "Reset"
+msgstr "Herstellen"
+
+#: views/form.php:169
+msgid "Return to IVR"
+msgstr "Terugkeren naar IVR"
+
+#: views/form.php:211
+msgid ""
+"Set this to yes, to keep the channel from explicitly being answered. When "
+"checked, the message will be played and if the channel is not already "
+"answered it will be delivered as early media if the channel supports that. "
+"When not checked, the channel is answered followed by a 1 second delay. When "
+"using an announcement from an IVR or other sources that have already "
+"answered the channel, that 1 second delay may not be desired."
+msgstr ""
+
+#: Announcement.class.php:80
+msgid "Submit"
+msgstr "Verzenden"
+
+#: views/form.php:103
+msgid "The name of this announcement."
+msgstr "De naam van deze aankondiging."
+
+#: views/form.php:235
+msgid "Where to send the caller after the announcement is played."
+msgstr ""
+
+#: views/form.php:147 views/form.php:174 views/form.php:201
+msgid "Yes"
+msgstr "Ja"
+
+#: install.php:97
+msgid "adding recording_id field.."
+msgstr "toevoegen recording_id veld.."
+
+#: install.php:147
+msgid "already migrated"
+msgstr "al gemigreerd"
+
+#: install.php:137
+msgid "dropping recording field.."
+msgstr "opname veld laten vervallen.."
+
+#: install.php:101 install.php:113 install.php:129
+msgid "fatal error"
+msgstr "ernstige fout"
+
+#: install.php:109
+msgid "migrate to recording ids.."
+msgstr "migreren naar opname id's.."
+
+#: install.php:133
+#, php-format
+msgid "migrated %s entries"
+msgstr "%s inzendingen gemigreerd"
+
+#: install.php:96
+msgid "migrating"
+msgstr "migreren"
+
+#: install.php:141
+msgid "no recording field???"
+msgstr "geen opname veld???"
+
+#: install.php:104 install.php:143
+msgid "ok"
+msgstr "ok"
+
+#~ msgid "Add Announcement"
+#~ msgstr "Voeg aankondiging toe"
+
+#~ msgid ""
+#~ "Check this to keep the channel from explicitly being answered. When "
+#~ "checked, the message will be played and if the channel is not already "
+#~ "answered it will be delivered as early media if the channel supports "
+#~ "that. When not checked, the channel is answered followed by a 1 second "
+#~ "delay. When using an announcement from an IVR or other sources that have "
+#~ "already answered the channel, that 1 second delay may not be desired."
+#~ msgstr ""
+#~ "Selecteer dit om het kanaal expliciet niet op te nemen. Als deze optie "
+#~ "geselecteerd is, zal de aankondiging afgespeeld worden en als het kanaal "
+#~ "nog niet opgenomen is zal het afgeleverd worden als \"early media\" "
+#~ "indien ondersteund. Als deze optie niet geselecteerd is, zal het kanaal "
+#~ "beantwoord worden gevolgd door 1 seconde vertraging. Als deze "
+#~ "aankondiging komt vanaf een IVR of een andere bron die het kanaal al "
+#~ "opgenomen heeft, zal deze 1 seconde vertraging niet gewenst zijn."
+
+#~ msgid "Destination after playback"
+#~ msgstr "Bestemming na afspelen"
+
+#~ msgid "Edit Announcement"
+#~ msgstr "Aankondiging bewerken"
+
+#~ msgid ""
+#~ "If this announcement came from an IVR and this box is checked, the "
+#~ "destination below will be ignored and instead it will return to the "
+#~ "calling IVR. Otherwise, the destination below will be taken. Don't check "
+#~ "if not using in this mode. <br>The IVR return location will be to the "
+#~ "last IVR in the call chain that was called so be careful to only check "
+#~ "when needed. For example, if an IVR directs a call to another destination "
+#~ "which eventually calls this announcement and this box is checked, it will "
+#~ "return to that IVR which may not be the expected behavior."
+#~ msgstr ""
+#~ "Als deze aankondiging vanaf een IVR komt en deze optie is geselecteerd, "
+#~ "zal de onderstaande bestemming genegeerd worden en in plaats daarvan zal "
+#~ "het terugkeren naar het laatst gebruikte IVR. Als deze optie niet is "
+#~ "geselecteerd zal verder gegaan worden bij de onderstaande bestemming."
+#~ "<br>Let op: wees er zeker van dat u dit nodig heeft. Als na een IVR eerst "
+#~ "nog andere bestemmingen aangeroepen worden en later wordt deze "
+#~ "aankondiging als bestemming aangeroepen, dan keert u terug naar het IVR "
+#~ "wat misschien niet het gewenste gedrag is."
+
+#~ msgid ""
+#~ "Message to be played.<br>To add additional recordings use the \"System "
+#~ "Recordings\" MENU to the left"
+#~ msgstr ""
+#~ "Af te spelen bericht.<br>Voor het toevoegen van extra opnames gebruikt u "
+#~ "\"Systeem opnames\" MENU aan de linkerkant"
+
+#~ msgid "Submit Changes"
+#~ msgstr "Veranderingen opslaan"
+
+#~ msgid "The name of this announcement"
+#~ msgstr "De naam van deze aankondiging"

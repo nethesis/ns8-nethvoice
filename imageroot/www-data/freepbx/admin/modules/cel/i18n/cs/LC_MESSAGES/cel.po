@@ -1,0 +1,407 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for cel
+# Copyright (C) 2008-2018 Sangoma Technologies, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-03-07 09:05+0530\n"
+"PO-Revision-Date: 2018-08-29 14:00+0000\n"
+"Last-Translator: Petr Varvarovsky <petrv@atlantis.cz>\n"
+"Language-Team: Czech <http://*/projects/freepbx/cel/cs/>\n"
+"Language: cs\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"X-Generator: Weblate 3.0.1\n"
+
+#: ucp/assets/js/global.js:47
+#, perl-format
+msgid "%s seconds"
+msgstr "%s sekund"
+
+#: views/ucp_config.php:7
+msgid "Allow CEL"
+msgstr "Povolit CEL"
+
+#: views/ucp_config.php:64
+msgid "Allow CEL Downloads"
+msgstr "Povolit stažení CEL"
+
+#: views/ucp_config.php:95
+msgid "Allow CEL Playback"
+msgstr "Povolit přehrávání CEL"
+
+#: views/ucp_config.php:116
+msgid "Allow this user to playback recordings in UCP"
+msgstr "Umožnit tomuto uživateli přehrávat nahrávky v UCP"
+
+#: views/ucp_config.php:85
+msgid "Allow users to download recordings in UCP"
+msgstr "Umožnit uživatelům stahovat nahrávky v UCP"
+
+#: views/ucp_config.php:38
+msgid "Allowed CEL"
+msgstr "Povolené CEL"
+
+#: views/page.cel_view.php:161
+msgid "Application"
+msgstr "Aplikace"
+
+#: views/page.cel_view.php:175
+msgid "Application executed by a call participant"
+msgstr "Aplikace spuštěná účastníkem hovoru"
+
+#: cel.i18n.php:14
+msgid "CEL Report Module"
+msgstr "CEL reportingový modul"
+
+#: views/page.cel_view.php:22
+msgid "CEL Reports"
+msgstr "CEL reporty"
+
+#: views/page.cel_view.php:33
+msgid "Call Detail"
+msgstr "Detaily hovoru"
+
+#: Cel.class.php:243 /usr/src/freepbx/cel/cel.i18n.php:4 cel.i18n.php:8
+#: /usr/src/freepbx/cel/cel.i18n.php:10 page.cel.php:10
+msgid "Call Event Logging"
+msgstr "Protokol hovoru"
+
+#: ucp/Cel.class.php:58 ucp/Cel.class.php:89 ucp/assets/js/global.js:29
+msgid "Call Events"
+msgstr "Události hovoru"
+
+#: ucp/Cel.class.php:45
+#, php-format
+msgid "Call Events for %s"
+msgstr "Události hovoru pro %s"
+
+#: ucp/views/widget.php:25 views/page.cel_view.php:202
+msgid "Caller"
+msgstr "Volající"
+
+#: views/page.cel_view.php:56
+msgid "Channel Name"
+msgstr "Název kanálu"
+
+#: ucp/views/eventModal.php:21
+msgid "Channle Name"
+msgstr "Název kanálu"
+
+#: install.php:83
+#, php-format
+msgid "Checking for %s field to remove.."
+msgstr "Kontrola pro odstranění pole %s.."
+
+#: install.php:92
+msgid "Checking for context index.."
+msgstr "Kontrola indexu kontextu .."
+
+#: ucp/views/eventModal.php:18 views/page.cel_view.php:53
+#, fuzzy
+msgid "Cid num"
+msgstr "Cid num"
+
+#: views/page.cel_view.php:61 ucp/assets/js/global.js:31
+msgid "Close"
+msgstr "Zavřít"
+
+#: views/page.cel_view.php:9
+msgid "Conference"
+msgstr "Konference"
+
+#: ucp/views/eventModal.php:20 views/page.cel_view.php:55
+msgid "Context"
+msgstr "Kontext"
+
+#: ucp/views/widget.php:31
+msgid "Controls"
+msgstr "Ovládací prvky"
+
+#: cel.i18n.php:20
+msgid ""
+"DO NOT set this unless you know what you are doing. Only used if you do not "
+"use the default values provided by FreePBX. Name of database used for where "
+"the cel is stored. asteriskcdrdb is default."
+msgstr ""
+"Toto NENASTAVUJTE, pokud si nejste jisti, co děláte. Využívá se pouze v "
+"případě, že nepoužíváte standardní hodnoty poskytované FreePBX. Název "
+"databáze použitá pro CEL je uložena. Výchozí je asteriskcdrdb."
+
+#: cel.i18n.php:24
+msgid ""
+"DO NOT set this unless you know what you are doing. Only used if you do not "
+"use the default values provided by FreePBX. Name of the table in the db "
+"where the cel is stored. cel is default."
+msgstr ""
+"Toto NENASTAVUJTE, pokud si nejste jisti, co děláte. Využívá se pouze v "
+"případě, že nepoužíváte standardní hodnoty poskytované FreePBX. Název "
+"tabulky v databázi kde je CEL uložena. Výchozí je cel."
+
+#: ucp/views/widget.php:24 views/page.cel_view.php:201
+msgid "Date"
+msgstr "Datum"
+
+#: views/page.cel_view.php:74
+msgid "Date Range"
+msgstr "Časové období"
+
+#: views/page.cel_view.php:138
+msgid "Destination"
+msgstr "Cíl"
+
+#: views/page.cel_view.php:185
+msgid "Detailed Report"
+msgstr "Detailní zpráva"
+
+#: views/page.cel_view.php:206
+msgid "Details"
+msgstr "Detaily"
+
+#: ucp/views/widget.php:26 views/page.cel_view.php:203
+msgid "Dialed"
+msgstr "Volané"
+
+#: ucp/assets/js/global.js:58
+msgid "Download"
+msgstr "Stáhnout"
+
+#: ucp/views/widget.php:27 views/page.cel_view.php:204
+msgid "Duration"
+msgstr "Doba trvání"
+
+#: install.php:110
+msgid "ERROR failed to update database"
+msgstr "CHYBA aktualizace databáze se nezdařila"
+
+#: views/ucp_config.php:28
+msgid "Enable CEL (Call Event Logging) in UCP for this user"
+msgstr "Pro tohoto uživatele povolit CEL (Call Event Logging) v UCP"
+
+#: cel.i18n.php:12
+msgid "Enable CEL Reporting"
+msgstr "Povolit CEL reporty"
+
+#: ucp/assets/js/global.js:38 ucp/assets/js/global.js:42
+msgid "Error getting form"
+msgstr "Chyba při získávání formuláře"
+
+#: ucp/views/eventModal.php:15 views/page.cel_view.php:50
+msgid "Event Type"
+msgstr "Typ události"
+
+#: ucp/views/eventModal.php:19 views/page.cel_view.php:54
+msgid "Extension"
+msgstr "Pobočka"
+
+#: Cel.class.php:114 ucp/Cel.class.php:133 ucp/Cel.class.php:136
+msgid "File does not exist"
+msgstr "Soubor neexistuje"
+
+#: views/page.cel_view.php:126
+msgid "Filter by Source"
+msgstr "Filtrování podle zdroje"
+
+#: views/page.cel_view.php:150
+msgid "Filter by destination"
+msgstr "Filtrování podle cíle"
+
+#: ucp/Cel.class.php:204 ucp/Cel.class.php:215
+msgid "Forbidden"
+msgstr "Zakázáno"
+
+#: views/page.cel_view.php:78 views/page.cel_view.php:82
+msgid "From"
+msgstr "Od"
+
+#: views/ucp_config.php:18 views/ucp_config.php:75 views/ucp_config.php:106
+msgid "Inherit"
+msgstr "Zdědit"
+
+#: Cel.class.php:118
+msgid "Invalid Command"
+msgstr "Neplatný příkaz"
+
+#: ucp/views/eventModal.php:17 views/page.cel_view.php:52
+#, fuzzy
+msgid "LinkedID"
+msgstr "LinkedID"
+
+#: views/ucp_config.php:15 views/ucp_config.php:72 views/ucp_config.php:103
+msgid "No"
+msgstr "Ne"
+
+#: ucp/Cel.class.php:209
+msgid "Not Found"
+msgstr "Nenalezeno"
+
+#: install.php:67
+msgid "OK"
+msgstr "OK"
+
+#: views/page.cel_view.php:205
+msgid "Play"
+msgstr "Přehrát"
+
+#: ucp/views/widget.php:29
+msgid "Playback"
+msgstr "Přehrávání"
+
+#: views/page.cel_view.php:10
+msgid "Queue"
+msgstr "Fronta"
+
+#: views/page.cel_view.php:182
+msgid "Refresh"
+msgstr "Obnovit"
+
+#: cel.i18n.php:18
+msgid "Remote CEL DB Name"
+msgstr "Vzdálené jméno CEL DB"
+
+#: cel.i18n.php:22
+msgid "Remote CEL DB Table"
+msgstr "Vzdálená tabulka CEL DB"
+
+#: install.php:112
+msgid "Removed"
+msgstr "Odebráno"
+
+#: install.php:105
+msgid "Removing outdated fields (this might take a long time)"
+msgstr "Odstranění zastaralých polí (může to trvat dlouho)"
+
+#: cel.i18n.php:6
+msgid "Reports"
+msgstr "Reporty"
+
+#: views/page.cel_view.php:102
+msgid "Select the date range for the report"
+msgstr "Vyberte časové období pro report"
+
+#: cel.i18n.php:16
+msgid ""
+"Setting this true will enable the CEL module to create call reports from CEL "
+"data. Although the CEL module will assure there is a CEL table available, "
+"the reporting functionality in Asterisk and associated ODBC database and CEL "
+"configuration must be done outside of FreePBX either by the user or at the "
+"Distro level."
+msgstr ""
+"Nastavením této hodnoty umožníte modulu CEL vytvářet zprávy o volání z dat "
+"CEL. I když modul CEL zajistí, že je k dispozici tabulka CEL, funkčnost "
+"vykazování v Asterisku a přidružené databázi ODBC a konfiguraci CEL musí být "
+"provedena mimo FreePBX buď uživatelem, nebo na úrovni Distro."
+
+#: views/page.cel_view.php:114
+msgid "Source"
+msgstr "Zdroj"
+
+#: Cel.class.php:285
+msgid "The CEL module requires an Asterisk version of 12.0 or higher."
+msgstr "CEL modul vyžaduje verzi Asterisku 12.0 nebo vyšší."
+
+#: views/ucp_config.php:54
+msgid ""
+"These are the assigned and active extensions which will show up for this "
+"user to control and edit in UCP"
+msgstr ""
+"Jedná se o přiřazené a aktivní pobočky, která se pro uživatele zobrazí pro "
+"ovládání a úpravu v UCP"
+
+#: ucp/views/eventModal.php:14 views/page.cel_view.php:49
+msgid "Time"
+msgstr "Čas"
+
+#: views/page.cel_view.php:87 views/page.cel_view.php:91
+msgid "To"
+msgstr "Na"
+
+#: ucp/views/eventModal.php:16 views/page.cel_view.php:51
+msgid "UniqueID"
+msgstr "Unikátní ID"
+
+#: Cel.class.php:234
+msgid "User Primary Extension"
+msgstr "Primární pobočka uživatele"
+
+#: views/page.cel_view.php:11
+msgid "Voicemail"
+msgstr "Hlasová schránka"
+
+#: views/page.cel_view.php:12
+msgid "Voicemail Main"
+msgstr "Hlavní hlasová schránka"
+
+#: views/ucp_config.php:13 views/ucp_config.php:70 views/ucp_config.php:101
+msgid "Yes"
+msgstr "Ano"
+
+#: assets/js/cel.js:58 ucp/assets/js/global.js:103
+#, perl-format
+msgid ""
+"You are missing support for playback in this browser. To fully support HTML5 "
+"browser playback you will need to install programs that can not be "
+"distributed with the PBX. If you'd like to install the binaries needed for "
+"these conversions click <a href='%s'>here</a>"
+msgstr ""
+"Chybí vám podpora pro přehrávání v tomto prohlížeči. Chcete-li plně "
+"podporovat přehrávání v HTML5 prohlížeči, je třeba nainstalovat programy, "
+"které nelze distribuovat s pobočkovou ústřednou. Chcete-li nainstalovat "
+"binární soubory potřebné pro tyto konverze, klikněte <a href='%s'> zde </a> 2"
+
+#: page.cel.php:12
+msgid ""
+"You may search by any or all of the fields below. The more fields you fill "
+"in the more refined the report."
+msgstr ""
+"Můžete vyhledat některá nebo všechna níže uvedená pole. Čím více políček "
+"vyplníte, tím více zpřesníte report."
+
+#: install.php:77
+msgid "already exists"
+msgstr "již existuje"
+
+#: install.php:99
+msgid "already indexed"
+msgstr "již indexován"
+
+#: install.php:88
+msgid "already removed"
+msgstr "již odstraněn"
+
+#: install.php:72
+msgid "checking for extra field.."
+msgstr "hledání dalšího pole.."
+
+#: install.php:86 /usr/src/freepbx/cel/install.php:97
+msgid "found"
+msgstr "nalezeno"
+
+#: install.php:75
+msgid "not found"
+msgstr "nenalezeno"
+
+#~ msgid "Caller ID"
+#~ msgstr "ID volajícího"
+
+#~ msgid "Caller ID of a call participant"
+#~ msgstr "ID volajícího účastníka hovoru"
+
+#~ msgid "Date range of calls in the format of mm/dd/yyyy"
+#~ msgstr "Časové období hovorů ve formátu mm/dd/rrrr"
+
+#~ msgid "Dialed Number"
+#~ msgstr "Volané číslo"
+
+#~ msgid "Extension or DID dialed"
+#~ msgstr "Volána pobočka nebo DID"
+
+#~ msgid "Search"
+#~ msgstr "Hledat"

@@ -1,0 +1,251 @@
+[
+    {
+        "name": "eluceo/ical",
+        "version": "0.11.6",
+        "version_normalized": "0.11.6.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/markuspoerschke/iCal.git",
+            "reference": "e22ef0fad1a19ad1bbffd819f21fa6a83f96531c"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/markuspoerschke/iCal/zipball/e22ef0fad1a19ad1bbffd819f21fa6a83f96531c",
+            "reference": "e22ef0fad1a19ad1bbffd819f21fa6a83f96531c",
+            "shasum": ""
+        },
+        "require": {
+            "php": ">=5.3.0"
+        },
+        "require-dev": {
+            "phpunit/phpunit": "~4.3"
+        },
+        "suggest": {
+            "ext-mbstring": "Massive performance enhancement of line folding"
+        },
+        "time": "2018-04-30T07:46:32+00:00",
+        "type": "library",
+        "installation-source": "dist",
+        "autoload": {
+            "psr-0": {
+                "Eluceo\\iCal": "src/"
+            }
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "MIT"
+        ],
+        "authors": [
+            {
+                "name": "Maciej Łebkowski",
+                "email": "m.lebkowski@gmail.com",
+                "role": "Contributor"
+            },
+            {
+                "name": "Markus Poerschke",
+                "email": "markus@eluceo.de",
+                "role": "Developer"
+            }
+        ],
+        "description": "The eluceo/iCal package offers a abstraction layer for creating iCalendars. You can easily create iCal files by using PHP object instead of typing your *.ics file by hand. The output will follow RFC 2445 as best as possible.",
+        "homepage": "https://github.com/markuspoerschke/iCal",
+        "keywords": [
+            "calendar",
+            "iCalendar",
+            "ical",
+            "ics",
+            "php calendar"
+        ]
+    },
+    {
+        "name": "jamesiarmes/php-ntlm",
+        "version": "1.0.0",
+        "version_normalized": "1.0.0.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/jamesiarmes/php-ntlm.git",
+            "reference": "08fa988af7506b8dc366737b06c86633ba8cecbc"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/jamesiarmes/php-ntlm/zipball/08fa988af7506b8dc366737b06c86633ba8cecbc",
+            "reference": "08fa988af7506b8dc366737b06c86633ba8cecbc",
+            "shasum": ""
+        },
+        "require": {
+            "ext-soap": "*",
+            "php": ">=5.3.9"
+        },
+        "time": "2017-10-04T01:14:17+00:00",
+        "type": "library",
+        "extra": {
+            "branch-alias": {
+                "dev-master": "1.0.x-dev"
+            }
+        },
+        "installation-source": "dist",
+        "autoload": {
+            "psr-4": {
+                "jamesiarmes\\PhpNtlm\\": "src/"
+            }
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "MIT"
+        ],
+        "authors": [
+            {
+                "name": "James Armes",
+                "email": "jamesiarmes@gmail.com"
+            }
+        ],
+        "description": "Library for communicating with Microsoft services using NTLM authentication."
+    },
+    {
+        "name": "om/icalparser",
+        "version": "dev-hotfix/31",
+        "version_normalized": "dev-hotfix/31",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/tm1000/icalparser.git",
+            "reference": "70a839dd207bb5292c73d473024b4a33b4a22b48"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/tm1000/icalparser/zipball/70a839dd207bb5292c73d473024b4a33b4a22b48",
+            "reference": "70a839dd207bb5292c73d473024b4a33b4a22b48",
+            "shasum": ""
+        },
+        "require": {
+            "php": ">=5.6.0"
+        },
+        "require-dev": {
+            "nette/tester": "v2.0.1"
+        },
+        "time": "2018-07-23T15:44:19+00:00",
+        "type": "library",
+        "installation-source": "source",
+        "autoload": {
+            "classmap": [
+                "src/"
+            ]
+        },
+        "scripts": {
+            "tests": [
+                "./vendor/bin/tester tests -s -p php"
+            ]
+        },
+        "license": [
+            "BSD-3-Clause"
+        ],
+        "authors": [
+            {
+                "name": "Roman Ožana",
+                "email": "ozana@omdesign.cz"
+            }
+        ],
+        "description": "Simple ical parser",
+        "keywords": [
+            "calendar",
+            "ical",
+            "parser"
+        ],
+        "support": {
+            "source": "https://github.com/tm1000/icalparser/tree/hotfix/31"
+        }
+    },
+    {
+        "name": "php-ews/php-ews",
+        "version": "1.0.0",
+        "version_normalized": "1.0.0.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/jamesiarmes/php-ews.git",
+            "reference": "405f03cb679eff59c84f223962c9cadf14b38450"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/jamesiarmes/php-ews/zipball/405f03cb679eff59c84f223962c9cadf14b38450",
+            "reference": "405f03cb679eff59c84f223962c9cadf14b38450",
+            "shasum": ""
+        },
+        "require": {
+            "ext-soap": "*",
+            "jamesiarmes/php-ntlm": "~1.0",
+            "php": ">=5.3.9"
+        },
+        "require-dev": {
+            "mustache/mustache": "~2.0"
+        },
+        "time": "2017-10-04T01:18:36+00:00",
+        "type": "library",
+        "extra": {
+            "branch-alias": {
+                "dev-master": "1.0.x-dev"
+            }
+        },
+        "installation-source": "dist",
+        "autoload": {
+            "psr-4": {
+                "jamesiarmes\\PhpEws\\": "src/"
+            }
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "MIT"
+        ],
+        "authors": [
+            {
+                "name": "James Armes",
+                "email": "jamesiarmes@gmail.com"
+            }
+        ],
+        "description": "Library for communicating with Exchange Web Services.",
+        "homepage": "http://jamesarmes.com/php-ews/"
+    },
+    {
+        "name": "thecsea/simple-caldav-client",
+        "version": "v0.1.5",
+        "version_normalized": "0.1.5.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/thecsea/simpleCalDAV.git",
+            "reference": "b8f62de8f639da87fc72057b241d7edb0c6988bf"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/thecsea/simpleCalDAV/zipball/b8f62de8f639da87fc72057b241d7edb0c6988bf",
+            "reference": "b8f62de8f639da87fc72057b241d7edb0c6988bf",
+            "shasum": ""
+        },
+        "require": {
+            "php": ">=5.3.0"
+        },
+        "time": "2015-12-02T19:10:12+00:00",
+        "type": "library",
+        "installation-source": "dist",
+        "autoload": {
+            "psr-4": {
+                "it\\thecsea\\simple_caldav_client\\": "src/"
+            }
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "GPL-2.0"
+        ],
+        "authors": [
+            {
+                "name": "claudio cardinale",
+                "email": "cardi@thecsea.it",
+                "homepage": "http://thecsea.it"
+            }
+        ],
+        "description": "A simple and complete php caldav client",
+        "homepage": "http://www.thecsea.it",
+        "keywords": [
+            "CalDAV",
+            "Simple",
+            "client"
+        ]
+    }
+]

@@ -1,0 +1,90 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for donotdisturb
+# Copyright (C) 2008-2015 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-02-01 18:35-0800\n"
+"PO-Revision-Date: 2016-03-15 15:35+0300\n"
+"Last-Translator: Media <mousavi.media@gmail.com>\n"
+"Language-Team: Persian <http://weblate.freepbx.org/projects/freepbx/"
+"donotdisturb/fa/>\n"
+"Language: fa\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.2-dev\n"
+
+#: donotdisturb.i18n.php:6
+msgid "Applications"
+msgstr ""
+
+#: donotdisturb.i18n.php:12 install.php:6
+msgid "DND Activate"
+msgstr "DND فعال"
+
+#: donotdisturb.i18n.php:10 install.php:7
+msgid "DND Deactivate"
+msgstr "dND غیرفعال"
+
+#: donotdisturb.i18n.php:14 install.php:8
+msgid "DND Toggle"
+msgstr "آمار DND"
+
+#: ucp/views/widget.php:2
+msgid "Disabled"
+msgstr ""
+
+#: ucp/Donotdisturb.class.php:84
+msgid "Do Not Disturb"
+msgstr "مزاحم نشو"
+
+#: ucp/Donotdisturb.class.php:150
+msgid "Do Not Disturb Has Been Updated!"
+msgstr "مزاحم نشو به روز شد!"
+
+#: ucp/Donotdisturb.class.php:71
+#, php-format
+msgid "Do Not Disturb for %s"
+msgstr ""
+
+#: functions.inc.php:168
+#, php-format
+msgid "Do Not Disturb: %s"
+msgstr ""
+
+#: functions.inc.php:126
+msgid "Do Not Disturb: OFF"
+msgstr ""
+
+#: functions.inc.php:84
+msgid "Do Not Disturb: ON"
+msgstr ""
+
+#: donotdisturb.i18n.php:4 install.php:5
+msgid "Do-Not-Disturb (DND)"
+msgstr "مزاحم نشو (DND)"
+
+#: ucp/views/widget.php:2
+msgid "Enabled"
+msgstr ""
+
+#: ucp/Donotdisturb.class.php:101
+msgid "Follow Me"
+msgstr ""
+
+#: donotdisturb.i18n.php:8
+msgid "Provides donotdisturb functionality"
+msgstr ""
+
+#~ msgid "Enable"
+#~ msgstr "فعال"
+
+#~ msgid "Used to indicate that somebody does not wish to be disturbed."
+#~ msgstr "برای کسانی استفاده میشود که نمیخواهند مزاحمتی داشته باشند."

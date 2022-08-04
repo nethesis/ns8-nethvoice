@@ -1,0 +1,45 @@
+<module>
+	<rawname>setcid</rawname>
+	<repo>standard</repo>
+	<name>Set CallerID</name>
+	<version>13.0.6.3</version>
+	<category>Applications</category>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<description>
+		Adds the ability to change the CallerID within a call flow.
+	</description>
+	<menuitems>
+		<setcid needsenginedb="yes">Set CallerID</setcid>
+	</menuitems>
+	<changelog>
+		*13.0.6.3* Fixing FREEPBX-17867 
+		*13.0.6.2* FREEPBX-14874 Set CID can be created with Empty/Duplicate Description and Empty Destination Field values.
+		*13.0.6.1* FREEPBX-14874 Set CID can be created with Empty/Duplicate Description and Empty Destination Field values
+		*13.0.6* FREEPBX-12690 Restore usage info
+		*13.0.5.1* FREEPBX-13519 Set CallerID Module - Apply Changes red button doesnt appear
+		*13.0.5* Update Language
+		*13.0.4* Slideout rnav
+		*13.0.3* FREEPBX-10317 Fix tooltips
+		*13.0.2* Version bump Beta
+		*13.0.1alpha1* Updates for visuals in 13
+		*2.11.0.4* Update license file
+		*2.11.0.3* #7211
+		*2.11.0.2* Cleanup dbug statements
+		*2.11.0.1* Fixes #6740
+		*2.11.0.0* bump version
+		*2.10.0.0* new version changes
+		*2.9.0.2* #5180
+		*2.9.0.1* #4606
+		*2.9.0.0* 2.9 version moved to repo
+	</changelog>
+	<depends>
+		<version>13.0.191.12</version>
+	</depends>
+	<supported>
+		<version>13.0</version>
+	</supported>
+	<location>release/2.11/setcid-2.11.0.1.tgz</location>
+	<md5sum>97c4ecdafb9b1d4deaf792f05420545f</md5sum>
+</module>

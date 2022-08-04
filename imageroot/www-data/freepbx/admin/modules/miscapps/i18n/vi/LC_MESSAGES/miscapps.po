@@ -1,0 +1,154 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for miscapps
+# Copyright (C) 2008-2017 Sangoma Technologies, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-07-24 17:44-0400\n"
+"PO-Revision-Date: 2017-07-20 08:11+0200\n"
+"Last-Translator: PETER <ftek@ymail.com>\n"
+"Language-Team: Vietnamese <http://weblate.freepbx.org/projects/freepbx/"
+"miscapps/vi/>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: vi\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: miscapps.i18n.php:12
+msgid "777"
+msgstr "777"
+
+#: views/grid.php:9
+msgid "Actions"
+msgstr "Các thao tác"
+
+#: views/rnav.php:3
+msgid "Add Misc App"
+msgstr "Thêm ứng dụng Misc"
+
+#: Miscapps.class.php:317 views/grid.php:2
+msgid "Add Misc Application"
+msgstr "Thêm ứng dụng Misc"
+
+#: miscapps.i18n.php:8
+msgid ""
+"Adds the ability to create feature codes that can go to any FreePBX "
+"destination (such as an IVR or queue)"
+msgstr ""
+"Thêm khả năng tạo mã tính năng có thể đi tới bất kỳ điểm đích FreePBX ( ví "
+"dụ một IVR hoặc hàng đợi)"
+
+#: miscapps.i18n.php:6
+msgid "Applications"
+msgstr "Các ứng dụng"
+
+#: views/form.php:107
+msgid "Choose the destination for this app when people dial the feature code"
+msgstr "Chọn điểm đích cho ứng dụng này khi có người quay mã tính năng"
+
+#: Miscapps.class.php:126
+msgid "Delete"
+msgstr "Xóa"
+
+#: views/grid.php:7 views/rnav.php:15
+msgid "Description"
+msgstr "Mô tả"
+
+#: views/form.php:47
+msgid "Description:"
+msgstr "Mô tả:"
+
+#: views/form.php:95
+msgid "Destination"
+msgstr "Điểm đích"
+
+#: Miscapps.class.php:325
+msgid "Edit Misc Application"
+msgstr "Chỉnh sửa ứng dụng Misc"
+
+#: views/form.php:26
+msgid "Enable"
+msgstr "Kích hoạt"
+
+#: views/grid.php:8 views/rnav.php:14
+msgid "Extension"
+msgstr "Máy nhánh"
+
+#: views/form.php:71
+msgid "Feature Code"
+msgstr "Feature Code (Mã tính năng)"
+
+#: assets/js/miscapps.js:6
+msgid "Invalid description specified"
+msgstr "Mô tả không hợp lệ được xác định"
+
+#: views/rnav.php:2
+msgid "List Misc App"
+msgstr "Danh sách ứng dụng Misc"
+
+#: Miscapps.class.php:338 views/main.php:1
+msgid "Misc Application"
+msgstr "Ứng dụng Misc"
+
+#: Miscapps.class.php:276 functions.inc.php:150
+#, php-format
+msgid "Misc Application: %s"
+msgstr "Ứng dụng Misc: %s"
+
+#: miscapps.i18n.php:4 miscapps.i18n.php:10
+msgid "Misc Applications"
+msgstr "Các ứng dụng Misc"
+
+#: views/form.php:32
+msgid "No"
+msgstr "Không"
+
+#: assets/js/miscapps.js:36
+msgid "Please enter a valid Feature Code."
+msgstr ""
+
+#: Miscapps.class.php:41
+msgid "Removing Settings table"
+msgstr "Đang xóa bảng cài đặt"
+
+#: Miscapps.class.php:131
+msgid "Reset"
+msgstr "Cài đặt lại"
+
+#: Miscapps.class.php:136
+msgid "Submit"
+msgstr "Gửi đi"
+
+#: views/form.php:83
+msgid ""
+"The feature code/extension users can dial to access this application. This "
+"can also be modified on the Feature Codes page."
+msgstr ""
+"Mã tính năng/ người dùng máy nhánh có thể quay số truy nhập vào ứng dụng "
+"này. Điều này có thể được chỉnh sửa trên trang Feature Code."
+
+#: views/form.php:59
+msgid "The name of this application"
+msgstr "Tên của ứng dụng này"
+
+#: assets/js/miscapps.js:44
+msgid "The number provided for the feature code is already in use by "
+msgstr "Số được cung cấp cho mã tính năng này đang được sử dụng "
+
+#: views/form.php:75
+msgid "This field is required."
+msgstr "Trường này được yêu cầu."
+
+#: views/form.php:30
+msgid "Yes"
+msgstr "Có"
+
+#~ msgid "This field must only contain numbers and *'s"
+#~ msgstr "Trường này phải chỉ được các số và *'s"

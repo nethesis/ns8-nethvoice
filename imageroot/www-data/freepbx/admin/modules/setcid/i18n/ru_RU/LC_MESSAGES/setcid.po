@@ -1,0 +1,206 @@
+# Russian freePBX ver. translation
+# Copyright (c) 2006-2012 PostMet Corporation
+# This file is distributed under the same license as the freePBX package.
+# Alexander Kozyrev <ceo@postmet.com>, 2006-2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-03-28 08:07+0530\n"
+"PO-Revision-Date: 2017-05-17 02:01+0200\n"
+"Last-Translator: Evgeniy <yen81@mail.ru>\n"
+"Language-Team: Russian <http://weblate.freepbx.org/projects/freepbx/setcid/"
+"ru_RU/>\n"
+"Language: ru_RU\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: assets/js/setcid.js:9
+msgid " already used, please use a different Description."
+msgstr ""
+
+#: views/grid.php:18
+msgid "Actions"
+msgstr "Действия"
+
+#: views/grid.php:12 views/rnav.php:2
+msgid "Add"
+msgstr "Добавить"
+
+#: views/form.php:21
+msgid "Add CID"
+msgstr "Добавить CID"
+
+#: setcid.i18n.php:8 views/grid.php:8
+msgid "Adds the ability to change the CallerID within a call flow."
+msgstr "Добавляет возможность изменения CallerID во время прохождения вызова."
+
+#: setcid.i18n.php:6
+msgid "Applications"
+msgstr "Приложения"
+
+#: views/form.php:83
+msgid ""
+"Caller ID Number: The caller ID number will be changed to this. If you are "
+"appending to the current caller ID number, don't forget to include the "
+"appropriate variables. If you leave this box blank, the caller ID number "
+"will be blank. Default caller ID number variable: ${CALLERID(num)}"
+msgstr ""
+"CallerID номер: CallerID номер будет изменен на указанный. Если вы хотите "
+"добавить значения к текущему CallerID номеру, не забудьте прописать все "
+"необходимые Asterisk переменные. Если вы оставите это поле пустым, значение "
+"CallerID номера будет пустым. Переменная CallerID номера по умолчанию: "
+"${CALLERID(num)}"
+
+#: views/form.php:53
+msgid "CallerID Name"
+msgstr "Имя CallerID"
+
+#: views/form.php:73
+msgid "CallerID Number"
+msgstr "Номер CallerID"
+
+#: Setcid.class.php:115
+msgid "Delete"
+msgstr "Удалить"
+
+#: views/form.php:33 views/grid.php:17
+msgid "Description"
+msgstr "Описание"
+
+#: views/form.php:93
+msgid "Destination"
+msgstr "Назначение"
+
+#: views/form.php:103
+msgid "Destination to send the call to after CID has been processed"
+msgstr "Направление куда отправить звонок после обработки CID"
+
+#: views/form.php:21
+#, php-format
+msgid "Edit CID: %s"
+msgstr "Редактировать CID: %s"
+
+#: views/rnav.php:3
+msgid "List SetCID"
+msgstr ""
+
+#: assets/js/setcid.js:6
+msgid "Please enter a valid Description."
+msgstr ""
+
+#: assets/js/setcid.js:13
+msgid "Please select an item."
+msgstr ""
+
+#: Setcid.class.php:120
+msgid "Reset"
+msgstr "Сброс"
+
+#: views/main.php:4
+msgid "Set CID"
+msgstr "Назначить CID"
+
+#: setcid.i18n.php:4 setcid.i18n.php:10
+msgid "Set CallerID"
+msgstr "Установить CallerID"
+
+#: functions.inc.php:103
+#, php-format
+msgid "Set CallerID %s: "
+msgstr "Установить CallerID %s: "
+
+#: views/rnav.php:14
+msgid "SetCID"
+msgstr ""
+
+#: Setcid.class.php:125
+msgid "Submit"
+msgstr "Сохранить"
+
+#: views/form.php:63
+msgid ""
+"The caller ID name will be changed to this. If you are appending to the "
+"current caller ID name, don't forget to include the appropriate variables. "
+"If you leave this box blank, the caller ID name will be blank. Default "
+"caller ID name variable: ${CALLERID(name)}"
+msgstr ""
+"CallerID имя: CallerID имя будет изменено на указанное. Если вы хотите "
+"добавить значения к текущему CallerID имени, не забудьте прописать "
+"необходимые Asterisk переменные. Если вы оставите это поле пустым, значение "
+"CallerID имени будет пустым. Переменная CallerID имени по умолчанию: "
+"${CALLERID(name)}"
+
+#: views/form.php:43
+msgid ""
+"The descriptive name of this CallerID instance. For example \"new name here\""
+msgstr ""
+"Понятное название для этого значения CallerID. Например - \"Новое название\""
+
+#: views/grid.php:4
+msgid "What is Set CID?"
+msgstr "Что такое назначение CID?"
+
+#~ msgid "Add CallerID"
+#~ msgstr "Добавить CallerID"
+
+#~ msgid "Add CallerID Instance"
+#~ msgstr "Добавить значение CallerID"
+
+#~ msgid "Edit"
+#~ msgstr "Редактировать"
+
+#~ msgid "Edit CallerID Instance"
+#~ msgstr "Редактировать значение CallerID"
+
+#~ msgid "Edit: "
+#~ msgstr "Редактировать: "
+
+#~ msgid "Invalid description specified"
+#~ msgstr "Указано неверное описание"
+
+#~ msgid ""
+#~ "Set CallerID allows you to change the caller id of the call and then "
+#~ "continue on to the desired destination. For example, you may want to "
+#~ "change the caller id form \"John Doe\" to \"Sales: John Doe\". Please "
+#~ "note, the text you enter is what the callerid is changed to. To append to "
+#~ "the current callerid, use the proper asterisk variables, such as "
+#~ "\"${CALLERID(name)}\" for the currently set callerid name and "
+#~ "\"${CALLERID(num)}\" for the currently set callerid number."
+#~ msgstr ""
+#~ "Установка CallerID позволяет изменить его во время вызова и доставить "
+#~ "звонок по назначению. Например, Вы хотите изменить CallerID имя с \"John "
+#~ "Doe\" на \"Sales: John Doe\". Надо учесть, что CallerID изменится на то "
+#~ "значение, которое будет введено в поле ниже. Присоединять значения к уже "
+#~ "существующему CallerID можно с помощью переменнных Астериск, таких как "
+#~ "\"${CALLERID(name)}\" - для изменения имени и \"${CALLERID(num)}\" -для "
+#~ "изменения номера."
+
+#~ msgid "Submit Changes"
+#~ msgstr "Сохранить изменения"
+
+#~ msgid ""
+#~ "The CallerID Name that you want to change to. If you are appending to the "
+#~ "current callerid, dont forget to include the appropriate asterisk "
+#~ "variables. If you leave this box blank, the CallerID name will be blanked"
+#~ msgstr ""
+#~ "CallerID имя, на которое хотите изменять. Если это дополняется к "
+#~ "существующему CallerID, то не забывайте включить это во все назначенные "
+#~ "Asterisk переменные. Если оставить поле пустым, то CallerID имя будет "
+#~ "пустым"
+
+#~ msgid ""
+#~ "The CallerID Number that you want to change to. If you are appending to "
+#~ "the current callerid, dont forget to include the appropriate asterisk "
+#~ "variables. If you leave this box blank, the CallerID number will be "
+#~ "blanked"
+#~ msgstr ""
+#~ "CallerID номер, на который хотите изменять. Если это дополняется к "
+#~ "существующему CallerID, то не забывайте включить это во все назначенные "
+#~ "Asterisk переменные. Если оставить поле пустым, то CallerID номер будет "
+#~ "пустым"

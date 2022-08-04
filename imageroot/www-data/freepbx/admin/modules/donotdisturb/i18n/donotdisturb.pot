@@ -1,0 +1,85 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for donotdisturb
+# Copyright (C) 2008-2017 Sangoma Technologies, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-02-01 18:35-0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: donotdisturb.i18n.php:6
+msgid "Applications"
+msgstr ""
+
+#: donotdisturb.i18n.php:12
+#: install.php:6
+msgid "DND Activate"
+msgstr ""
+
+#: donotdisturb.i18n.php:10
+#: install.php:7
+msgid "DND Deactivate"
+msgstr ""
+
+#: donotdisturb.i18n.php:14
+#: install.php:8
+msgid "DND Toggle"
+msgstr ""
+
+#: ucp/views/widget.php:2
+msgid "Disabled"
+msgstr ""
+
+#: ucp/Donotdisturb.class.php:84
+msgid "Do Not Disturb"
+msgstr ""
+
+#: ucp/Donotdisturb.class.php:150
+msgid "Do Not Disturb Has Been Updated!"
+msgstr ""
+
+#: ucp/Donotdisturb.class.php:71
+#, php-format
+msgid "Do Not Disturb for %s"
+msgstr ""
+
+#: functions.inc.php:168
+#, php-format
+msgid "Do Not Disturb: %s"
+msgstr ""
+
+#: functions.inc.php:126
+msgid "Do Not Disturb: OFF"
+msgstr ""
+
+#: functions.inc.php:84
+msgid "Do Not Disturb: ON"
+msgstr ""
+
+#: donotdisturb.i18n.php:4
+#: install.php:5
+msgid "Do-Not-Disturb (DND)"
+msgstr ""
+
+#: ucp/views/widget.php:2
+msgid "Enabled"
+msgstr ""
+
+#: ucp/Donotdisturb.class.php:101
+msgid "Follow Me"
+msgstr ""
+
+#: donotdisturb.i18n.php:8
+msgid "Provides donotdisturb functionality"
+msgstr ""

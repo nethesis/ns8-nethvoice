@@ -1,0 +1,148 @@
+<module>
+	<rawname>certman</rawname>
+	<name>Certificate Manager</name>
+	<repo>standard</repo>
+	<version>14.0.3.2</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>AGPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/agpl-3.0.txt</licenselink>
+	<menuitems>
+		<certman>Certificate Management</certman>
+	</menuitems>
+	<description>
+		Certificate Manager for Asterisk. Used for TLS, DTLS connection (think WebRTC and secure traffic)
+	</description>
+	<changelog>
+		*14.0.3.2* FREEI-405 whoops error issue fix 
+		*14.0.3.1* FREEPBX-18181 fwconsole ce --list fails with undefined helper
+		*14.0.3* FREEPBX-17633
+		*14.0.2.1* Add xml
+		*14.0.2* Move database definitions to xml, ability to generate default cert from cli
+		*14.0.1* Bump
+		*13.0.37.6* Reorganize uses
+		*13.0.37.5* Use new autoloader
+		*13.0.37.4* Force optimized autoloaders
+		*13.0.37.2* Ungitify ca-bundle
+		*13.0.37.1* FREEPBX-16909 Utilize Composer CA bundles
+		*13.0.37* Add method to check ca bundles
+		*13.0.36.11* FREEPBX-16302, FREEPBX-15408
+		*13.0.36.10* Remove Windows carriage returns completely
+		*13.0.36.9* Fix windows carriage returns to be linux newlines
+		*13.0.36.8* FREEPBX-14631 Add Cross signed IdenTrust Cert to certificate.pem
+		*13.0.36.7* If CA files are missing or not in database then rebuild
+		*13.0.36.6* Send back proper pem
+		*13.0.36.5* Only execute updateCertificate if the certificate really updated
+		*13.0.36.4* Minor fix for uft8mb4 support
+		*13.0.36.3* FREEPBX-14293 Fix: Certman deletes self signed certs without permission
+		*13.0.36.2* FREEPBX-14353 fix certificate generation
+		*13.0.36.1* Remove passphrasing of self-signed certificates
+		*13.0.36* FREEPBX-14247 - Fix issue with long hostnames
+		*13.0.35.2* Allow stage 1 validation to happen over https
+		*13.0.35.1* FREEPBX-13075 and Make LetsEncrypt interface more intuitive
+		*13.0.34.8* Fix output of DTLS when theres no certificates
+		*13.0.34.7* FREEPBX-14013 Integration Certificates have wrong permissions after update
+		*13.0.34.6* Add more error handling
+		*13.0.34.5* FREEPBX-13833 Running 'fwconsole certificates updateall' as root requires chown afterwards
+		*13.0.34.4* Fix error reported on the forum with basename too long
+		*13.0.35.3* FREEPBX-12929 date() expects parameter 2 to be long, string given
+		*13.0.34.2* Fix dropdown menu in 14
+		*13.0.34.1* FREEPBX-12661 Dont remove certificate if canceling from certificate delete
+		*13.0.34* Add message about Let's Encrypt updating
+		*13.0.33* FREEPBX-12969
+		*13.0.32* Make sure to update default certificate
+		*13.0.31* Beta support for https Lets Encrypt Challenges
+		*13.0.30* Better error messages
+		*13.0.29* FREEPBX-12912 Certificate Manager Cancel button acts like OK
+		*13.0.28* Better support of certificates with chains
+		*13.0.27* Fix user errors
+		*13.0.26* Prevent blank hostnames
+		*13.0.25* FREEPBX-12627 a valid hostname is required
+		*13.0.24* Fix error with automatic updating, FREEPBX-12543
+		*13.0.23* FREEPBX-12407 require newer version of framework for sha256
+		*13.0.22* FREEPBX-12446 make sure certificates are readable before parsing
+		*13.0.21* FREEPBX-12355 firewall integration
+		*13.0.20* Reload asterisk when a Lets Encrypt cert updates
+		*13.0.19* FREEPBX-12236 Woops error in update certificate manager
+		*13.0.18* Dont delete CSR after successful import
+		*13.0.17* Dont abort out when the certificate is invalid
+		*13.0.16* Write out certificates for DTLS even if they dont have a CA
+		*13.0.15* Get old cert data when updating for comparision sakes
+		*13.0.14* Significantly change how this module works
+		*13.0.13* Remove en_US Translations
+		*13.0.12* FREEPBX-10468 invalid mapping col
+		*13.0.11* Floating menu
+		*13.0.10* FREEPBX-10562 Poorly written hooks
+		*13.0.9* Update core hook
+		*13.0.8* FREEPBX-9574 Add missing DTLS params
+		*13.0.7* FREEPBX-9719 turn int into bigint for longer extensions
+		*13.0.6* FREEPBX-9916 - Fix random cert generation issue.
+		*13.0.5* FREEPBX-9916 fix timeouts for slower machines
+		*13.0.4* FREEPBX-9918 Fix call for PJSIP
+		*13.0.3* Undefined index error
+		*13.0.2* Version bump Beta
+		*13.0.1alpha4* Cleanup and functionality changes/fixes
+		*13.0.1alpha3* Display the correctly selected cert in extensions
+		*13.0.1alpha2* Tweaks and fixes
+		*13.0.1alpha1* Visual skinning changes
+		*12.0.3* Update copyrights and licensing
+		*12.0.2* FREEPBX-8090 Generate default cert at install time.
+		*12.0.1* FREEPBX-7922 Help Text wrong for Upload Boxes
+		*12.0.0alpha1* Inital Release
+	</changelog>
+	<category>Admin</category>
+	<supported>
+		<version>14.0</version>
+	</supported>
+	<hooks>
+		<framework class="Chown" namespace="FreePBX\Console\Command">
+			<method callingMethod="fwcChownFiles" class="Certman" namespace="FreePBX\modules">chownFreepbx</method>
+		</framework>
+	</hooks>
+	<database>
+		<table name="certman_mapping">
+			<field name="id" type="string" length="20" primaryKey="true"/>
+			<field name="cid" type="integer" notnull="false"/>
+			<field name="verify" type="string" length="255" notnull="false"/>
+			<field name="setup" type="string" length="45" notnull="false"/>
+			<field name="rekey" type="integer" notnull="false"/>
+		</table>
+		<table name="certman_csrs">
+			<field name="cid" type="integer" primaryKey="true" autoincrement="true"/>
+			<field name="basename" type="string" length="190"/>
+			<key name="basename" type="unique">
+				<column name="basename"/>
+			</key>
+		</table>
+		<table name="certman_certs">
+			<field name="cid" type="integer" primaryKey="true" autoincrement="true"/>
+			<field name="caid" type="integer" notnull="false"/>
+			<field name="basename" type="string" length="190"/>
+			<field name="description" type="string" length="255" notnull="false"/>
+			<field name="type" type="string" length="2" default="ss"/>
+			<field name="default" type="boolean" default="0"/>
+			<field name="additional" type="blob" notnull="false"/>
+			<key name="basename_UNIQUE" type="unique">
+				<column name="basename"/>
+			</key>
+			<key name="basename" type="unique">
+				<column name="basename"/>
+			</key>
+		</table>
+		<table name="certman_cas">
+			<field name="uid" type="integer" primaryKey="true" autoincrement="true"/>
+			<field name="basename" type="string" length="190"/>
+			<field name="cn" type="string" length="255"/>
+			<field name="on" type="string" length="255"/>
+			<field name="passphrase" type="string" length="255" notnull="false"/>
+			<field name="salt" type="string" length="255" notnull="false"/>
+			<key name="basename" type="unique">
+				<column name="basename"/>
+			</key>
+		</table>
+	</database>
+	<depends>
+		<phpversion>5.3.3</phpversion>
+		<module>core ge 12.0.1beta6</module>
+		<version>14.0.3</version>
+	</depends>
+</module>

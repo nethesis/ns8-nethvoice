@@ -1,0 +1,1809 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for queues
+# Copyright (C) 2008-2017 Sangoma Technologies, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-02-26 06:29+0000\n"
+"PO-Revision-Date: 2017-08-08 15:22+0200\n"
+"Last-Translator: PETER <ftek@ymail.com>\n"
+"Language-Team: Vietnamese <http://weblate.freepbx.org/projects/freepbx/"
+"queues/vi/>\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: page.queues.php:19
+msgid " Add Queue"
+msgstr " Thêm Hàng đợi"
+
+#: page.queues.php:15
+msgid " Edit: "
+msgstr " Chỉnh sửa: "
+
+#: views/form.php:495
+msgid ""
+"<b>ERROR</b>: You have selected an IVR that uses Announcements created from "
+"compound sound files. The Queue is not able to play these announcements. "
+"This IVRs recording will be truncated to use only the first sound file. You "
+"can correct the problem by selecting a different announcement for this IVR "
+"that is not from a compound sound file. The IVR itself can play such files, "
+"but the Queue subsystem can not"
+msgstr ""
+"<b>ERROR</b>: Bạn đã chọn một IVR sử dụng Thông báo được tạo từ các tệp âm "
+"thanh phức hợp. Hàng đợi không thể phát các thông báo này. Bản ghi IVRs này "
+"sẽ được cắt ngắn để sử dụng chỉ mỗi tệp âm thanh đầu tiên. Bạn có thể sửa "
+"vấn đề bằng cách chọn một thông báo khác cho IVR này mà nó không phải là từ "
+"một tập tin âm thanh phức hợp. Bản thân IVR có thể phát các tệp như vậy, "
+"nhưng hệ thống con của Hàng đợi thì không thể"
+
+#: views/qgrid.php:16
+msgid "Actions"
+msgstr "Các thao tác"
+
+#: views/bootnav.php:3 views/qgrid.php:9
+msgid "Add Queue"
+msgstr "Thêm Hàng đợi"
+
+#: views/form.php:887
+msgid ""
+"Add an Alert-Info Header like Snom and other Phones need for Ring or "
+"Ringtone informations"
+msgstr ""
+"Thêm một Tiêu đề Alert-Infor như Snom hay các điện thoại di động khác cần "
+"cho các thông tin của Chuông hoặc Nhặc chuông"
+
+#: views/form.php:719
+msgid "Advanced Options"
+msgstr "Tùy chọn nâng cao"
+
+#: views/form.php:1430
+msgid ""
+"After a successful call, how many seconds to wait before sending a "
+"potentially free agent another call (default is 0, or no delay) If using "
+"Asterisk 1.6+, you can also set the 'Honor Wrapup Time Across Queues' "
+"setting (Asterisk: shared_lastcall) on the Advanced Settings page so that "
+"this is honored across queues for members logged on to multiple queues."
+msgstr ""
+"Sau một cuộc gọi thành công, phải đợi bao nhiêu giây trước khi gửi một cuộc "
+"gọi khác tới một tổng đài viên đang rỗi ( mặc định là 0, hoặc no delay). Nếu "
+"sử dụng Asterisk 1.6+, bạn có thể cài đặt 'Honor Wrapup Time Across "
+"Queues'  ( (Asterisk: shared_lastcall) tại trang Cài đặt nâng cao để cuộc "
+"gọi được ưu tiên trên hàng đợi cho các thành viên đăng nhập trên nhiều hàng "
+"đợi."
+
+#: functions.inc.php:65
+msgid "Agent Announce Msg"
+msgstr "Tin nhắn thông báo cho Tổng đài viên"
+
+#: views/form.php:232
+msgid "Agent Announcement"
+msgstr "Thông báo tổng đài viên"
+
+#: queues.i18n.php:30
+msgid "Agent Called Events Default"
+msgstr "Mặc định các sự kiện đã gọi Tổng đài viên"
+
+#: views/form.php:1891
+msgid "Agent Regex Filter"
+msgstr "Bộ lọc chính quy cho Tổng đài viên"
+
+#: views/form.php:978
+msgid "Agent Restrictions"
+msgstr "Các giới hạn đối với Tổng đài viên"
+
+#: views/form.php:313
+msgid "Agent Ringing"
+msgstr "Đổ chuông tới Tổng đài viên"
+
+#: views/form.php:1334
+msgid "Agent Timeout"
+msgstr "Thời gian chờ Tổng đài viên"
+
+#: views/form.php:1360
+msgid "Agent Timeout Restart"
+msgstr "Thời gian chờ khỏi động lại của Tổng đài viên"
+
+#: views/form.php:875
+msgid "Alert Info"
+msgstr "Alert Infor ( Thông tin cảnh báo)"
+
+#: install.php:15 queues.i18n.php:42
+msgid ""
+"Allow Dynamic Members of a Queue to login or logout. See the Queues Module "
+"for how to assign a Dynamic Member to a Queue."
+msgstr ""
+"Cho phép các thành viên của Hàng đợi đăng nhập và đăng xuất. Xem phần Queues "
+"Module để biết cách gán một Thành viên động vào Hàng đợi."
+
+#: views/form.php:198
+msgid "Always"
+msgstr "Luôn luôn"
+
+#: views/form.php:391
+msgid "Always allows the caller to join the Queue."
+msgstr "Luôn luôn cho phép người gọi tham gia và Hàng Đợi."
+
+#: views/form.php:1819
+msgid "Announce Hold Time"
+msgstr "Thong báo Thời gian giữ máy"
+
+#: views/form.php:1790
+msgid "Announce Position"
+msgstr "Thông báo vị trí"
+
+#: views/form.php:1807
+msgid "Announce position of caller in the queue?"
+msgstr "Thông báo vị trí của người gọi trong Hàng đợi?"
+
+#: views/form.php:209
+msgid ""
+"Announcement played to callers prior to joining the queue. This can be "
+"skipped if there are agents ready to answer a call (meaning they still may "
+"be wrapping up from a previous call) or when they are free to answer the "
+"call right now. To add additional recordings please use the \"System "
+"Recordings\" MENU."
+msgstr ""
+"Thông báo được phát tới những người gọi trước khi họ tham gia Hàng đợi. Điều "
+"này có thể bị bỏ qua nếu có những Tổng đài viên sẵn sàng trả lời cuộc gọi "
+"(Nghĩa là họ vẫn chỉ đang kết thúc cuộc gọi trước) hoăc khi họ có thể trả "
+"lời cuộc gọi ngay lập tức. Để thêm các bản ghi bổ sung, vui lòng sử dụng "
+"MENU \"System Recordings\"."
+
+#: views/form.php:246
+msgid ""
+"Announcement played to the Agent prior to bridging in the caller <br><br> "
+"Example: \"the Following call is from the Sales Queue\" or \"This call is "
+"from the Technical Support Queue\".<br><br>To add additional recordings "
+"please use the \"System Recordings\" MENU. Compound recordings composed of 2 "
+"or more sound files are not displayed as options since this feature can not "
+"accept such recordings."
+msgstr ""
+"Thông báo được phát tới Tổng đài viên trước khi kết nối với người goi "
+"<br><br> Ví dụ:  \"the Following call is from the Sales Queue\" hoặc \"This "
+"call is from the Technical Support Queue\". . Điều này có thể bị bỏ qua nếu "
+"Tổng đài viên sẵn sàng trả lời cuộc gọi (Nghĩa là họ đang kết thúc cuộc gọi "
+"trước đó) hoăc khi họ có thể trả lời cuộc gọi ngay lập tức. Để thêm các bản "
+"ghi bổ sung, vui lòng sử dụng MENU \"System Recordings\"."
+
+#: views/form.php:169
+msgid ""
+"Announcement played to the Queue Memeber announcing the Queue call and "
+"requesting confirmation prior to answering. If set to default, the standard "
+"call confirmation default message will be played unless the member is "
+"reached through a Follow-Me and there is an alternate message provided in "
+"the Follow-Me. This message will override any other message specified.."
+"<br><br>To add additional recordings please use the \"System Recordings\" "
+"MENU."
+msgstr ""
+"Thông báo sẽ được phát tới Queue Memeber để thông báo cuộc gọi hàng đợi và "
+"yêu cầu xác nhận trước khi trả lời. Nếu được thiết lập là mặc định, thông "
+"điệp mặc định xác nhận cuộc gọi tiêu chuẩn sẽ được phát trừ khi thành vien "
+"của hàng đợi được tiếp cận thông qua Follow-Me và có một thông điệp thay thế "
+"được cung cấp trong Follow-Me. Thông điệp này sx ghi đè bất kỳ thông điệp "
+"xác định nào khác..<br><br> Để thêm các bản ghi bổ sung vui lòng sử dụng "
+"MENU \"System Recordings\"."
+
+#: views/cron.php:63
+msgid "Annually"
+msgstr "Hằng năm"
+
+#: queues.i18n.php:6
+msgid "Applications"
+msgstr "Các ứng dụng"
+
+#: views/form.php:1322
+msgid ""
+"Asterisk timeoutpriority. In 'Strict' mode, when the 'Max Wait Time' of a "
+"caller is hit, they will be pulled out of the queue immediately. In 'Loose' "
+"mode, if a queue member is currently ringing with this call, then we will "
+"wait until the queue stops ringing this queue member or otherwise the call "
+"is rejected by the queue member before taking the caller out of the queue. "
+"This means that the 'Max Wait Time' could be as long as 'Max Wait Time' + "
+"'Agent Timeout' combined."
+msgstr ""
+"Asterisk timeoutpriority. Trong chế độ 'Strict' (Nghiêm ngặt), khi nhấn 'Max "
+"Wait Time' (Thời gian chờ Tối đa) của người gọi, chúng sẽ được kéo ra khỏi "
+"hàng đợi ngay lập tức. Trong chế độ 'Loose', nếu một thành viên trong hàng "
+"đợi đang đổ chuông cuộc gọi này thì chúng ta sẽ đợi cho đến khi hàng đợi "
+"ngừng đổ chuông hoặc nếu không cuộc gọi sẽ bị từ chối bởi thành viên hàng "
+"đợi trước khi người gọi ra khỏi hàng đợi. Điều này có nghĩa là 'Max Wait "
+"Time' có thể được kết hợp giữa 'Max Wait Time' + 'Agent Timeout'."
+
+#: views/form.php:1721
+msgid ""
+"Asterisk: penaltymemberslimit. A limit can be set to disregard penalty "
+"settings, allowing all members to be tried, when the queue has too few "
+"members.  No penalty will be weighed in if there are only X or fewer queue "
+"members."
+msgstr ""
+"Asterisk: penaltymemberslimit. Khi hàng đợi có quá ít thành viên, một giới "
+"hạn có thể được thiết lập để bỏ qua các thiết lập hình phạt, cho phép tất cả "
+"các thành viên được thử. Không có hình phạt nào nếu chỉ có X hoặc các thành "
+"viên hàng đợi ít."
+
+#: views/form.php:1498
+msgid "Auto Pause"
+msgstr "Tạm ngưng Tự động"
+
+#: views/form.php:1587
+msgid "Auto Pause Delay"
+msgstr "Hoãn tạm ngừng tự động"
+
+#: views/form.php:1517
+msgid ""
+"Auto Pause an agent in this queue (or all queues they are a member of) if "
+"they don't answer a call. Specific behavior can be modified by the Auto "
+"Pause Delay as well as Auto Pause Busy/Unavailable settings if supported on "
+"this version of Asterisk."
+msgstr ""
+"Tự động tạm dừng một tổng đài viên trong hàng đợi này ( hoặc tất cả các hàng "
+"đợi mà tổng đài viên này là thành viên) nếu họ không trả lời cuộc gọi.  "
+"Trạng thái cụ thể có thể được thay đổi bằng các cài đặt  Auto Pause Delay "
+"cũng như Auto Pause Busy/Unavailable nếu các cài đặt này được hỗ trợ trên "
+"phiên bản Asterisk này."
+
+#: views/form.php:1529
+msgid "Auto Pause on Busy"
+msgstr "Auto Pause khi Bận"
+
+#: views/form.php:1558
+msgid "Auto Pause on Unavailable"
+msgstr "Auto Pause khi Không khả dụng"
+
+#: views/form.php:1036
+msgid "Autofill"
+msgstr "Autofill ( Tự động điền)"
+
+#: functions.inc/geters_seters.php:39
+msgid "Bad Queue Number, can not be blank"
+msgstr "Số hàng đợi xấu, không thể để trống"
+
+#: views/form.php:439
+msgid "Break Out Type"
+msgstr "Kiểu Break Out"
+
+#: views/form.php:823
+msgid "CID Name Prefix"
+msgstr "Tiền tố Tên CID"
+
+#: views/form.php:795
+msgid "Call Confirm"
+msgstr "Xác nhận cuộc gọi"
+
+#: views/form.php:146
+msgid "Call Confirm Announce"
+msgstr "Thông báo xác nhận cuộc gọi"
+
+#: views/form.php:1126
+msgid "Call Recording"
+msgstr "Bản ghi cuộc gọi"
+
+#: views/form.php:986
+msgid "Call as Dialed"
+msgstr "Cuộc gọi bị vô hiệu"
+
+#: views/form.php:563
+msgid "Callback to use when caller presses 1."
+msgstr "Gọi lại khi người gọi nhấn phím 1."
+
+#: views/form.php:714
+msgid "Caller Announcements"
+msgstr "Các thông báo cho người gọi"
+
+#: views/form.php:1730
+msgid "Caller Position"
+msgstr "Vị trí của người gọi"
+
+#: views/form.php:400
+msgid ""
+"Callers will exit if all agents are paused, show an invalid state for their "
+"device or have penalty values less than QUEUE_MAX_PENALTY (not currently set "
+"in FreePBX dialplan)."
+msgstr ""
+"Người gọi sẽ thoát ra nếu như tất cả các tổng đài viên bị tạm ngưng, chỉ ra "
+"một trạng thái không hợp lệ cho thiết bị của họ và có giá trị phạt ít hơn "
+"gía trị phạt lớn nhất của hàng đợi ( không được cài đặt trong kế hoạch quay "
+"số FreePBX)."
+
+#: views/form.php:394
+msgid ""
+"Callers will not be admitted if all agents are paused, show an invalid state "
+"for their device, or have penalty values less than QUEUE_MAX_PENALTY (not "
+"currently set in FreePBX dialplan)."
+msgstr ""
+"Người gọi sẽ thoát ra nếu như tất cả các tổng đài viên bị tạm ngưng, chỉ ra "
+"một trạng thái không hợp lệ cho thiết bị của họ và có giá trị phạt ít hơn "
+"gía trị phạt lớn nhất của hàng đợi ( không được cài đặt trong kế hoạch quay "
+"số FreePBX)."
+
+#: views/form.php:709
+msgid "Capacity Options"
+msgstr "Các tùy chọn Capacity"
+
+#: functions.inc/queue_conf.php:226
+msgid "Compound Recordings in Queues Detected"
+msgstr "Các bản ghi phức hợp trong Hàng đợi được phát hiện"
+
+#: queues.i18n.php:8
+msgid ""
+"Creates a queue where calls are placed on hold and answered on a first-in, "
+"first-out basis. Many options are available, including ring strategy for "
+"agents, caller announcements, max wait times, etc."
+msgstr ""
+"Tạo một hàng đợi mà các cuộc gọi sẽ được đặt vào đó và được trả lời trên cơ "
+"sở first-in, first-out. Nhiều tùy chọn sẵn có, bao gồm các phương thức đổ "
+"chuông cho các tổng đài viện, các thông báo cho người gọi, số lần chờ tối "
+"đa,.."
+
+#: views/cron.php:60
+msgid "Daily"
+msgstr "Hằng ngày"
+
+#: views/form.php:154
+msgid "Default"
+msgstr "Mặc định"
+
+#: queues.i18n.php:32
+msgid ""
+"Default state for AMI emit events related to an agent's call. This setting "
+"will only affect the default for NEW queues, it won't change existing queues "
+"or enfore the option on in new ones."
+msgstr ""
+"Trạng thái mặc định cho các sự kiện AMI phát hành các sự kiện liên quan đến "
+"cuộc gọi của tổng đài viên. Cài đặt này sẽ chỉ ảnh hưởng đến mặc định của "
+"các hàng đợi mới, nó sẽ không thay đổi hàng đợi hiện tại hoặc thực thi các "
+"tùy chọn trên các hàng đợi mới."
+
+#: queues.i18n.php:36
+msgid ""
+"Default state for AMI to emit the QueueMemberStatus event. This setting will "
+"only affect the default for NEW queues, it won't change existing queues or "
+"enfore the option on in new ones."
+msgstr ""
+"Trạng thái mặc định cho AMI để phát hành sự kiện QueueMemberStatus. Cài đặt "
+"này sẽ chỉ ảnh hưởng đến mặc định đối với các hàng đợi mới, nó sẽ không thay "
+"đổi các hàng đợi hiện có hoặc thực thi tùy chọn trên các hàng đợi mới."
+
+#: Queues.class.php:206
+msgid "Delete"
+msgstr "Xóa"
+
+#: views/bootnav.php:10 views/qgrid.php:15
+msgid "Description"
+msgstr "Mô tả"
+
+#: views/form.php:398
+msgid ""
+"Determines if callers should be exited prematurely from the queue in "
+"situations where it appears no one is currently available to take the call. "
+"The options include:"
+msgstr ""
+"Xác định xem người gọi nên được thoát sớm khỏi hàng đợi trong những trường "
+"hợp không có ai sẵn sàng để thực hiện cuộc gọi. Các tùy chọn bao gồm:"
+
+#: views/form.php:389
+msgid ""
+"Determines if new callers will be admitted to the Queue, if not, the "
+"failover destination will be immediately pursued. The options include:"
+msgstr ""
+"Xác định những người gọi mới nào sẽ được nhận vào Hàng đợi, nếu không, điểm "
+"đến chịu lỗi sẽ bị bám theo ngay lập tức. Các tùy chọn bao gồm:"
+
+#: views/form.php:19 views/form.php:1133
+msgid "Don't Care"
+msgstr "Không quan tâm"
+
+#: views/form.php:1243
+msgid "Dynamic Agents"
+msgstr "Các tổng đài viên động"
+
+#: views/form.php:1264
+msgid ""
+"Dynamic Members are extensions or callback numbers that can log in and out "
+"of the queue. When a member logs in to a queue, their penalty in the queue "
+"will be as specified here. Extensions included here will NOT automatically "
+"be logged in to the queue."
+msgstr ""
+"Các thành viên động là các máy nhánh hoặc các thành viên gọi lại có thể đăng "
+"nhập đăng xuất ra khỏi hàng đợi. Khi một thành viên đăng nhập vào hàng đợi, "
+"hình phạt của chúng trong hàng đợi sẽ được xác định ở đây. Các máy nhánh "
+"được bao gồm sẽ không tự động được đăng nhập vào Hàng đợi."
+
+#: views/form.php:495
+msgid ""
+"Earlier versions of this module allowed such queues to be chosen, once "
+"changing this setting, it will no longer appear as an option"
+msgstr ""
+"Các phiên bản gần đây của mô đun này được cho phép được chọn những hàng đợi "
+"này, vì sự thay đổi trong cài đặt, nó sẽ không xuất hiện như là một tùy chọn "
+"nữa"
+
+#: views/cron.php:37
+msgid "Enable this task"
+msgstr "Kích hoạt tác vụ này"
+
+#: views/form.php:1171
+msgid ""
+"Enabling this option, all calls are marked as 'answered elsewhere' when "
+"cancelled. The effect is that missed queue calls are *not* shown on the "
+"phone (if the phone supports it)"
+msgstr ""
+"Kích hoạt tùy chọn này, khi bị hủy bỏ, tất cả các cuộc gọi được đánh dấu là "
+"'answered elsewhere'. Kết quả là các cuộc gọi hàng đợi bị lỡ sẽ không hiện "
+"lên trong điện thoại ( Nếu điện thoại có hỗ trợ tính năng này)"
+
+#: views/form.php:619
+msgid "Event When Called"
+msgstr "Sự kiện khi đã gọi"
+
+#: functions.inc/hook_core.php:59
+msgid "Extension Options"
+msgstr "Các tùy chọn máy nhánh"
+
+#: views/form.php:990
+msgid "Extensions Only"
+msgstr "Chỉ các máy nhánh"
+
+#: views/form.php:1183
+msgid "Fail Over Destination"
+msgstr "Các điểm đích chịu lỗi"
+
+#: views/form.php:19 views/form.php:1131
+msgid "Force"
+msgstr "Bắt buộc"
+
+#: views/form.php:1740
+msgid "Frequency"
+msgstr "Tần số"
+
+#: views/form.php:694
+msgid "General Settings"
+msgstr "Các cài đặt chung"
+
+#: views/form.php:781
+msgid "Give this queue a brief name to help you identify it."
+msgstr "Đặt cho Hàng đợi này một tên ngắn gọn để bạn nhận biết nó."
+
+#: views/form.php:1112
+msgid ""
+"Gives queues a 'weight' option, to ensure calls waiting in a higher priority "
+"queue will deliver its calls first if there are agents common to both queues."
+msgstr ""
+"Cung cấp cho các hàng đợi một tùy chọn 'trọng số' cho các hàng đợi để đảm "
+"bảo các cuộc gọi đang đợi trong hàng đợi ưu tiên cao hơn sẽ truyền các cuộc "
+"gọi của hàng đợi đó đầu tiên nếu có các tổng đài viên chung cho các hàng đợi."
+
+#: views/form.php:408
+msgid "Honor Penalties"
+msgstr ""
+
+#: queues.i18n.php:18
+msgid "Honor Wrapup Time Across Queues"
+msgstr ""
+
+#: views/cron.php:59
+msgid "Hourly"
+msgstr "Hàng giờ"
+
+#: views/form.php:601
+msgid ""
+"How often to announce a voice menu to the caller (0 to Disable "
+"Announcements)."
+msgstr ""
+"Mức độ thường xuyên để thông báo một menu giọng nói đến người gọi ( 0 để Vô "
+"hiệu Thông báo)."
+
+#: views/form.php:1754
+msgid ""
+"How often to announce queue position and estimated holdtime (0 to Disable "
+"Announcements)."
+msgstr ""
+"Mức độ thường xuyên để thông bao vị trị hàng đợi và thời gian giữ máy dự "
+"kiến ( 0 để vô hiệu Thông báo)."
+
+#: functions.inc/destination_registry.php:98
+msgid "INUSE"
+msgstr "INUSE"
+
+#: functions.inc.php:75
+#, php-format
+msgid "IVR Announce: %s"
+msgstr "Thông báo IVR: %s"
+
+#: views/form.php:444 views/form.php:507
+msgid "IVR Break Out Menu"
+msgstr "Menu IVR Break Out"
+
+#: views/form.php:810
+msgid ""
+"If checked, any queue member that is actually an outside telephone number, "
+"or any extensions Follow-Me or call forwarding that are pursued and leave "
+"the PBX will be forced into Call Confirmation mode where the member must "
+"acknowledge the call before it is answered and delivered."
+msgstr ""
+"Nếu được đánh dấu check, bất kỳ thành viên hàng đợi nào là một số máy bên "
+"ngoài, hoặc bất kỳ máy nhánh Follow Me nào hoặc cuộc gọi chờ nào đang được "
+"theo đuổi và đang rời khỏi PBX sẽ buộc phải vào chế độ Xác nhận cuộc gọi nơi "
+"các thành viên của hàng chờ phải xác nhận cuộc gọi trước khi nó được trả lời "
+"và gửi đi."
+
+#: views/form.php:126
+msgid ""
+"If checked, the queue will not answer the call. Under most circumstance you "
+"should always have the queue answering calls. If not, then it's possible "
+"that recordings and MoH will not be heard by the waiting callers since early "
+"media capabilities vary and are inconsistent. Some cases where it may be "
+"desired to not answer a call is when using Strict Join Empty queue policies "
+"where the caller will not be admitted to the queue unless there is a queue "
+"member immediately available to take the call."
+msgstr ""
+"Nếu được đánh dấu check, hàng đợi sẽ không trả lời cuộc gọi. Trong hầu hết "
+"các trường hợp, bạn cần luôn luôn để hàng đợi trả lời các cuộc gọi. Nếu "
+"không, những người gọi đang đợi sẽ không thể nghe thấy các bản ghi và MoH vì "
+"các khả năng truyền thông bị thay đổi và không đồng nhất. Một số trường hợp "
+"khi bạn không muốn trả lời cuộc gọi là khi bạn sử dụng các chính sách Strict "
+"Join Empty queue ( Tham gia hàng đợi trống nghiêm ngăt), nơi mà người gọi sẽ "
+"không được nhận vào hàng đợi trừ khi có một thành viên hàng đợi sẵn sàng để "
+"thực hiện cuộc gọi."
+
+#: views/form.php:863
+msgid ""
+"If the call is subsequently transferred, the wait time will reflect the time "
+"since it first entered the queue or reset if the call is transferred to "
+"another queue with this feature set."
+msgstr ""
+"Nếu cuộc gọi được truyền sau đó, thời gian chờ sẽ phản ánh thời gian kể từ "
+"khi lần đầu tien nó nhập vào hàng đợi hoặc được thiết lập lại nếu cuộc gọi "
+"được truyền đến hàng đợi khác với tính năng này."
+
+#: functions.inc/hook_core.php:65
+msgid ""
+"If this extension is part of a Queue then the Queue will attempt to use the "
+"user's extension state or device state information when determining if this "
+"queue member should be called. In some uncommon situations such as a Follow-"
+"Me with no physical device, or some virtual extension scenarios, the state "
+"information will indicate that this member is not available when they are. "
+"Setting this to 'Ignore State' will make the Queue ignore all state "
+"information thus always trying to contact this member. Certain side affects "
+"can occur when this route is taken due to the nature of how Queues handle "
+"Local channels, such as subsequent transfers will continue to show the "
+"member as busy until the original call is terminated. In most cases, this "
+"SHOULD BE set to 'Use State'."
+msgstr ""
+"Nếu máy nhánh này là một phần của Hàng đợi thì Hàng đợi sẽ thử sử dụng trạng "
+"thái máy nhánh hoặc thông tin trạng thái thiết bị của người dùng khi xác "
+"định xem thành viên hàng đợi này có được gọi hay không. Trong một số trường "
+"hợp không phổ biến ví dụ như Một Follow Me mà không có thiết bị vật lý hay "
+"một số kịch bản máy nhánh ảo, thông tin trạng thái sẽ cho biết rằng thành "
+"viên này lúc đố đang không khả dụng.  Thiết lập 'Ignore State' ( Bỏ qua "
+"trạng thái) sẽ khiến Hàng đợi bỏ qua tất cả các thông tin trạng thái do đó "
+"luôn thử liên hệ với thành viên này. Một số ảnh hưởng phụ có thể xảy ra khi "
+"tuyến cuộc gọi này được thực hiện do tính chất của Cách mà hàng đợi xử lý "
+"Các kênh cục bộ, chẳng hạn như chuyển tiếp tiếp theo sẽ tiếp tục cho thấy "
+"thành viên đang bận cho đến khi cuộc gọi ban đầu kết thúc. Trong hầu hết các "
+"trường hợp, điều này NÊN được cài đặt là 'Use State'."
+
+#: views/form.php:1051
+msgid ""
+"If this is Enabled, and multiple agents are available, Asterisk will send "
+"one call to each waiting agent (depending on the ring strategy). Otherwise, "
+"it will hold all calls while it tries to find an agent for the top call in "
+"the queue making other calls wait."
+msgstr ""
+"Nếu điều này được Bật, và nhiều tổng đài viên sẵn có, Asterisk sẽ gửi một "
+"cuộc gọi cho từng tổng đài viên đang chờ (tùy thuộc vào phương thức đổ "
+"chuông). Nếu không, Asterisk sẽ giữ tất cả các cuộc gọi trong khi nó cố gắng "
+"tìm một tổng đài viên cho cuộc gọi ưu tiên hàng đầu trong hàng đợi khiến các "
+"cuộc gọi khác phải chờ."
+
+#: views/form.php:1378
+msgid ""
+"If timeoutrestart is set to yes, then the time out for an agent to answer is "
+"reset if a BUSY or CONGESTION is received. This can be useful if agents are "
+"able to cancel a call with reject or similar."
+msgstr ""
+"Nếu timeoutrestart cài về Yes thì thời gian chờ cho mỗi tổng đài viên trả "
+"lời cuộc gọi sẽ được thiết lập lại nếu nhận được một cuộc gọi bận hay bị "
+"nghẽn mạng. Điề này sẽ có ích nếu các tổng đài viên có thể hủy một cuộc gọi "
+"với tính năng từ chối hoặc tương tự."
+
+#: views/form.php:1456
+msgid ""
+"If you wish to have a delay before the member is connected to the caller (or "
+"before the member hears any announcement messages), set this to the number "
+"of seconds to delay."
+msgstr ""
+"Nếu bạn muốn trì hoãn trước khi thành viên của hàng đợi được kết nối tới "
+"người gọi ( hoặc trước khi thành viên nghe thấy tin nhắn thông báo nào), cài "
+"đặt nó về số giây mà bạn muốn trì hoãn."
+
+#: views/form.php:1486
+msgid ""
+"If you wish to report the caller's hold time to the member before they are "
+"connected to the caller, set this to yes."
+msgstr ""
+"Nếu bạn muốn báo cáo thời gian chờ của người gọi tới một thành viên trong "
+"Hàng đợi trước khi họ chúng được kết nối tới người gọi thì hãy cài đặt điều "
+"này về Yes."
+
+#: functions.inc/hook_core.php:37
+msgid "Ignore State"
+msgstr "Bỏ qua Trạng thái"
+
+#: views/form.php:1143
+msgid ""
+"Incoming calls to agents can be recorded. If 'never' is selected, then in-"
+"call on demand recording is blocked."
+msgstr ""
+"Các cuộc gọi đến tới các tổng đài viên sẽ được ghi lại. Nếu chọn \"never' "
+"thì cuộc gọi đến trên bản ghi yêu cầu sẽ bị khóa."
+
+#: views/form.php:183
+msgid "Join Announcement"
+msgstr "Truy nhập vào Thông báo (Announcement)"
+
+#: views/form.php:1639
+msgid "Join Empty"
+msgstr "Truy nhập vào Empty"
+
+#: views/form.php:1673
+msgid "Leave Empty"
+msgstr "Rời khỏi Empty"
+
+#: views/bootnav.php:2
+msgid "List Queues"
+msgstr "Danh sách Hàng đợi"
+
+#: views/form.php:395 views/form.php:403 views/form.php:1314
+#: views/form.php:1653 views/form.php:1687
+msgid "Loose"
+msgstr "ơ6="
+
+#: views/form.php:1155
+msgid "Mark calls answered elsewhere"
+msgstr "Đánh dấu các cuộc gọi đã được trả lời ở những nơi khác"
+
+#: views/form.php:1614
+msgid "Max Callers"
+msgstr "Người gọi tối đa"
+
+#: views/form.php:1279
+msgid "Max Wait Time"
+msgstr "Thời gian đợi tối đa"
+
+#: views/form.php:1305
+msgid "Max Wait Time Mode"
+msgstr "Chế độ Thời gian đợi tối đa"
+
+#: views/form.php:1627
+msgid "Maximum number of people waiting in the queue (0 for unlimited)"
+msgstr ""
+"Số lượng người đang đợi tối đa trong Hàng đợi ( Không giới hạn đặt là 0)"
+
+#: views/form.php:1442
+msgid "Member Delay"
+msgstr "Hoãn thành viên"
+
+#: views/form.php:651
+msgid "Member Status Event"
+msgstr "Sự kiện trạng thái thành viên"
+
+#: queues.i18n.php:34
+msgid "Member Status Event Default"
+msgstr "Mặc định sự kiện trạng thái thành viên"
+
+#: views/form.php:481 views/form.php:485
+msgid "Menu ID "
+msgstr "Menu ID "
+
+#: views/form.php:1766
+msgid "Minimum Announcement Interval"
+msgstr "Khoảng thời gian thông báo tối thiểu"
+
+#: views/form.php:312
+msgid "MoH Only"
+msgstr "Chỉ MoH"
+
+#: views/cron.php:62
+msgid "Monthly"
+msgstr "Hằng tháng"
+
+#: views/form.php:323
+msgid ""
+"Music (MoH) played to the caller while they wait in line for an available "
+"agent. Choose \"inherit\" if you want the MoH class to be what is currently "
+"selected, such as by the inbound route. MoH Only will play music until the "
+"agent answers. Agent Ringing will play MoH until an agent's phone is "
+"presented with the call and is ringing. If they don't answer, MoH will "
+"return.  Ring Only makes callers hear a ringing tone instead of MoH ignoring "
+"any MoH Class selected as well as any configured periodic announcements. "
+"This music is defined in the \"Music on Hold\" Menu."
+msgstr ""
+"Nhạc chờ (MoH) được phát tới người gọi trong khi họ đợi một tổng đài viên "
+"sẵn có. Chọn \"\"inherit\" nếu bạn muốn lớp Nhạc nhờ được chọn chẳng hạn bởi "
+"một tuyến gọi vào. MoH  chỉ sẽ phát đến khi tổng đài viên trả lời. Đổ chuông "
+"tổng đài viên sẽ phát MoH đến khi điện thoại của Tổng đài viên hiển thị cuộc "
+"gọi và đang đổ chuông. Nếu họ không trả lời, Nhặc chờ sẽ đổ. Chuông chỉ làm "
+"cho người gọi nghe thấy một nhạc chuông chứ không phải là một nhạc chờ bỏ "
+"qua các lớp nhạc chờ được chọn cũng như các thông báo định kỳ đã được cấu "
+"hình. NHạc chờ này sẽ được xác định trong menu \"Music on Hold\"."
+
+#: views/form.php:291
+msgid "Music on Hold Class"
+msgstr "Lớp Nhạc chờ"
+
+#: views/form.php:19 views/form.php:1135
+msgid "Never"
+msgstr "Không bao giờ"
+
+#: views/form.php:404
+msgid ""
+"Never have a caller leave the Queue until the Max Wait Time has expired."
+msgstr ""
+"Không bao giờ để người gọi rời khỏi Hàng đợi cho đến khi Thời gian đợi tối "
+"đa kết thúc."
+
+#: views/cron.php:28 views/cron.php:57 views/form.php:19 views/form.php:118
+#: views/form.php:394 views/form.php:404 views/form.php:627 views/form.php:659
+#: views/form.php:802 views/form.php:855 views/form.php:958 views/form.php:1043
+#: views/form.php:1070 views/form.php:1134 views/form.php:1163
+#: views/form.php:1369 views/form.php:1478 views/form.php:1504
+#: views/form.php:1538 views/form.php:1567 views/form.php:1651
+#: views/form.php:1685 views/form.php:1799 views/form.php:1828
+msgid "No"
+msgstr "Không"
+
+#: views/form.php:988
+msgid "No Follow-Me or Call Forward"
+msgstr "Không Follow Me hay Chuyển Tiếp cuộc gọi"
+
+#: views/form.php:369
+msgid "No Retry"
+msgstr "Không có Thử lại"
+
+#: views/form.php:190 views/form.php:218 views/form.php:512 views/form.php:553
+#: views/form.php:903
+msgid "None"
+msgstr "Không có"
+
+#: views/form.php:1830
+msgid "Once"
+msgstr "Một lần"
+
+#: views/form.php:730
+msgid "Other Options"
+msgstr "Các tùy chọn khác"
+
+#: views/form.php:915
+#, php-format
+msgid ""
+"Override the ringer volume. Note: This is only valid for %s phones at this "
+"time"
+msgstr ""
+"Ghi đè âm lượng chuông. Lưu ý: Điều này chỉ hợp lệ cho điện thoại %s tại "
+"thời điểm này"
+
+#: views/form.php:1707
+msgid "Penalty Members Limit"
+msgstr "Giowis hạn Thành viên Penalty"
+
+#: views/form.php:1846
+msgid "Periodic Announcements"
+msgstr "Các thông báo định kỳ"
+
+#: queues.i18n.php:12
+msgid "Persistent Members"
+msgstr "Các thành viên không đổi"
+
+#: install.php:29 queues.i18n.php:38
+msgid "Playback Queue Caller Count"
+msgstr "Phát lại số lần gọi hàng đợi của người gọi"
+
+#: views/form.php:1903
+msgid ""
+"Provides an optional regex expression that will be applied against the agent "
+"callback number. If the callback number does not pass the regex filter then "
+"it will be treated as invalid. This can be used to restrict agents to "
+"extensions within a range, not allow callbacks to include keys like *, or "
+"any other use that may be appropriate. An example input might be:<br /"
+">^([2-4][0-9]{3})$<br />This would restrict agents to extensions 2000-4999. "
+"Or <br />^([0-9]+)$ would allow any number of any length, but restrict the * "
+"key.<br />WARNING: make sure you understand what you are doing or otherwise "
+"leave this blank!"
+msgstr ""
+"Cung cấp biểu thức regex tùy chọn mà nó sẽ được áp dụng đối với các số gọi "
+"lại của tổng đài viên. Nếu số gọi lại không vượt qua bộ lọc regex thì nó sẽ "
+"được xem là không hợp lệ. Điều này có thể được sử dụng để hạn chế các tổng "
+"đài viên tới  các máy nhánh trong một phạm vi, không cho phép gọi lại để bao "
+"gồm các phím như * hoặc bất kỳ cách sử dụng nào khác thích hợp. Một ví dụ, "
+"đầu vào có thể là:<br />^([2-4][0-9]{3})$<br /> Điều này sẽ hạn chế các tổng "
+"đài viên đến các máy nhánh 2000-4999. Hoặc <br /> ^ ([0-9] +) $ sẽ cho phép "
+"bất kỳ độ dài của đầu vào nào, nhưng hạn chế phím *. <br /> Chú ý: đảm bảo "
+"bạn hiểu bạn đang làm gì hoặc để trống!"
+
+#: Queues.class.php:194 views/bootnav.php:9 views/qgrid.php:14
+msgid "Queue"
+msgstr "Hàng đợi"
+
+#: functions.inc/destination_registry.php:36
+#, php-format
+msgid "Queue %s : %s"
+msgstr "Hàng đợi %s: %s"
+
+#: functions.inc/queue_conf.php:224
+#, php-format
+msgid "Queue - %s (%s): %s<br />"
+msgstr "Hàng đợi - %s (%s): %s<br />"
+
+#: views/form.php:699
+msgid "Queue Agents"
+msgstr "Các tổng đài viên Hàng đợi"
+
+#: views/form.php:445 views/form.php:548
+msgid "Queue Callback"
+msgstr "Gọi lại Hàng đợi"
+
+#: install.php:10
+msgid "Queue Callers"
+msgstr "Người gọi Hàng đợi"
+
+#: views/form.php:769
+msgid "Queue Name"
+msgstr "Tên Hàng đợi"
+
+#: views/form.php:111
+msgid "Queue No Answer"
+msgstr "Hàng đợi không trả lời"
+
+#: views/form.php:745
+msgid "Queue Number"
+msgstr "Số của Hàng đợi"
+
+#: assets/js/queues.js:40
+msgid "Queue Number must not be blank"
+msgstr "Số của Hàng đợi không được để trống"
+
+#: views/form.php:82
+msgid "Queue Password"
+msgstr "Mật khẩu Hàng đợi"
+
+#: install.php:9 /dev/shm/freepbx/queues/install.php:22 queues.i18n.php:40
+msgid "Queue Pause Toggle"
+msgstr "Chuyển đổi Tạm dừng ( Pause) Hàng đợi"
+
+#: functions.inc/hook_core.php:64
+msgid "Queue State Detection"
+msgstr "Phát hiện trạng thái Hàng đợi"
+
+#: install.php:8
+msgid "Queue Toggle"
+msgstr "Chuyển đổi Hàng đợi"
+
+#: views/form.php:1099
+msgid "Queue Weight"
+msgstr "Trọng dung Hàng đợi"
+
+#: views/form.php:1073
+msgid "Queue calls only (ringinuse=no)"
+msgstr "Chỉ mỗi các cuộc gọi Hàng đợi (ringinuse=no)"
+
+#: assets/js/queues.js:53
+msgid ""
+"Queue name must not be blank and must contain only alpha-numeric characters"
+msgstr "Tên Hàng đợi không được để trống và chỉ bao gồm các ký tự số- anphabe"
+
+#: functions.inc/destination_registry.php:56
+#: functions.inc/destination_registry.php:73
+#: functions.inc/destination_registry.php:97
+#, php-format
+msgid "Queue: %s"
+msgstr "Hàng đợi: %s"
+
+#: functions.inc/destination_registry.php:126
+#, php-format
+msgid "Queue: %s (%s)"
+msgstr "Hàng đợi: %s (%s)"
+
+#: page.queues.php:7 queues.i18n.php:4 queues.i18n.php:10
+msgid "Queues"
+msgstr "Các hàng đợi"
+
+#: queues.i18n.php:14
+msgid "Queues Module"
+msgstr "Mô đun Hàng đợi"
+
+#: bin/queue_reset_stats.php:12
+msgid "Queues module not found or is disabled. Aborting!"
+msgstr "Mô đun hàng đợi không tìm thấy hoặc bị vô hiệu. Đang hủy!"
+
+#: queues.i18n.php:28
+msgid ""
+"Queues: monitor-type = MixMonitor. Setting true will use the MixMonitor "
+"application instead of Monitor so the concept of 'joining/mixing' the in/out "
+"files now goes away when this is enabled."
+msgstr ""
+"Hàng đợi: monitor-type = MixMonitor. Cài đặt True sẽ sử dụng ứng dụng  "
+"MixMonitor thay vì Monitor vì thế khái niệm 'joining/mixing' trong các tệp "
+"vào/ra hiện sẽ biến mất khi điều này được kích hoạt."
+
+#: queues.i18n.php:16
+msgid ""
+"Queues: persistentmembers. Store each dynamic member in each queue in the "
+"astdb so that when asterisk is restarted, each member will be automatically "
+"read into their recorded queues."
+msgstr ""
+"Hàng đợi: persistentmembers. Lưu trữ mỗi thành viên động trong mỗi hàng đợi "
+"tại astdb để khi dấu hoa thị được khởi động lại, mỗi thành viên sẽ được tự "
+"động đọc vào hàng đợi đã được ghi lại của chúng."
+
+#: queues.i18n.php:20
+msgid ""
+"Queues: shared_lastcall, only valid with Asterisk 1.6+. This will make the "
+"lastcall and calls received be the same in members logged in more than one "
+"queue. This is useful to make the queue respect the wrapuptime of another "
+"queue for a shared member."
+msgstr ""
+"Hàng đợi: shared_lastcall,, chỉ hợp lệ với Asterisk 1.6 trở lên. Điều này sẽ "
+"khiến cuộc gọi cuối và các cuộc gọi đã nhận giống nhau trong các thanh viên "
+"đã đăng nhập vào nhiều hàng đợi. Điều này có ích cho việc tạo một hàng đợi "
+"liên quan tới wrapuptime của hàng đợi khác cho thành viên được chia sẻ."
+
+#: queues.i18n.php:24
+msgid ""
+"Queues: updatecdr, only valid with Asterisk 1.6+. This option is implemented "
+"to mimic chan_agents behavior of populating CDR dstchannel field of a call "
+"with an agent name, which is set if available at the login time with "
+"AddQueueMember membername parameter, or with static members."
+msgstr ""
+"Hàng đợi: updatecdr, chỉ hợp lệ với Asterisk 1.6 trở lên. Tùy chọn này được "
+"thực hiện nhằm bắt chước hành vi  chan_agents  của trường CDR dstchannel  "
+"của một cuộc gọi với một tên tổng đài viên mà nó được cài đặt nếu nó sẵn có "
+"tại thời gian đăng nhập với tham số AddQueueMember membername hoặc với các "
+"thành viên động."
+
+#: views/cron.php:84
+msgid "RUN"
+msgstr "CHẠY"
+
+#: views/cron.php:50
+msgid "Random"
+msgstr "Ngẫu nhiên"
+
+#: views/form.php:587
+msgid "Repeat Frequency"
+msgstr "Tần suất lặp lại"
+
+#: views/form.php:1469
+msgid "Report Hold Time"
+msgstr "Báo cáo Thời gian giữ máy"
+
+#: Queues.class.php:216
+msgid "Reset"
+msgstr "Cài đặt lại"
+
+#: views/form.php:724
+msgid "Reset Queue Stats"
+msgstr "Cài đặt lại Trạng thái Hàng đợi"
+
+#: views/form.php:951
+msgid "Restrict Dynamic Agents"
+msgstr "Hạn chế các tổng đài viên động"
+
+#: views/form.php:966
+msgid ""
+"Restrict dynamic queue member logins to only those listed in the Dynamic "
+"Members list above. When set to Yes, members not listed will be DENIED "
+"ACCESS to the queue."
+msgstr ""
+"Hạn chế đăng nhập thành viên động của Hàng đợi năng động vào danh sách đã "
+"được liệt kệ trong danh sách Thành viên động ở trên. Khi cài về Yes, các "
+"thành viên không được liệt kệ sẽ bị TỪ CHỐI TRUY NHẬP vào Hàng đợi."
+
+#: views/form.php:1390
+msgid "Retry"
+msgstr "Thử lại"
+
+#: views/form.php:314
+msgid "Ring Only"
+msgstr "Chỉ đổ chuông"
+
+#: views/form.php:1010
+msgid "Ring Strategy"
+msgstr "Phương thức đổ chuông"
+
+#: views/form.php:898
+msgid "Ringer Volume Override"
+msgstr "Ghi đè âm lượng chuông"
+
+#: views/form.php:926
+msgid "Ringer Volume Override Mode"
+msgstr ""
+
+#: views/form.php:395
+#, fuzzy
+msgid ""
+"Same as No except Callers will be admitted if there are paused agents who "
+"could become available."
+msgstr ""
+"Giống như No except Callers sẽ được nhận nếu có các tổng đài viên được tạm "
+"dừng và họ có thể trở nên sẽ khả dụng."
+
+#: views/form.php:393
+msgid ""
+"Same as Strict plus a queue member must be able to answer the phone 'now' to "
+"let them in. Simply speaking, any 'available' agents that could answer but "
+"are currently on the phone or ringing on behalf of another caller will be "
+"considered unavailable."
+msgstr ""
+
+#: views/form.php:402
+msgid ""
+"Same as Strict plus a queue member must be able to answer the phone 'now' to "
+"let them remain. Simply speaking, any 'available' agents that could answer "
+"but are currently on the phone or ringing on behalf of another caller will "
+"be considered unavailable."
+msgstr ""
+
+#: views/form.php:392
+msgid ""
+"Same as Yes but more strict.  Simply speaking, if no agent could answer the "
+"phone then don't admit them. If agents are inuse or ringing someone else, "
+"caller will still be admitted."
+msgstr ""
+
+#: views/form.php:401
+msgid ""
+"Same as Yes but more strict.  Simply speaking, if no agent could answer the "
+"phone then have them leave the queue. If agents are inuse or ringing someone "
+"else, caller will still be held."
+msgstr ""
+
+#: views/form.php:403
+msgid ""
+"Same as Yes except Callers will remain in the Queue if there are paused "
+"agents who could become available."
+msgstr ""
+
+#: views/form.php:1865
+msgid "Service Level"
+msgstr "Mức dịch vụ"
+
+#: queues.i18n.php:22
+msgid "Set Agent Name in CDR dstchannel"
+msgstr "Cài Tên Tổng đài viên trong CDR dstchannel"
+
+#: views/cron.php:72
+msgid "Set this task to happen at random"
+msgstr "Cài đặt tác vụ này xảy ra ngẫu nhiên"
+
+#: views/form.php:1838
+msgid ""
+"Should we include estimated hold time in position announcements?  Either "
+"yes, no, or only once; hold time will not be announced if <1 minute"
+msgstr ""
+"Chúng ta có nên bao hàm thời gian giữ dự kiến trong Các thông báo vị trí? Cả "
+"Yes, no, hoặc only once, thời gian giữ máy sẽ không được thông báo nếu nhỏ "
+"hơn 1 phút"
+
+#: views/form.php:1063
+msgid "Skip Busy Agents"
+msgstr "Bỏ qua các Tổng đài viên đang bận"
+
+#: views/form.php:274
+msgid ""
+"Some ring strategies (linear, round robin) require Asterisk to be restarted "
+"for changes to take effect."
+msgstr ""
+
+#: views/form.php:1210
+msgid "Static Agents"
+msgstr "Các tổng đài viên Tĩnh"
+
+#: views/form.php:1231
+msgid ""
+"Static agents are extensions that are assumed to always be on the queue.  "
+"Static agents do not need to 'log in' to the queue, and cannot 'log out' of "
+"the queue.<br><br>List extensions to ring, one per line.<br><br>You can "
+"include an extension on a remote system, or an external number (Outbound "
+"Routing must contain a valid route for external numbers). You can put a \","
+"\" after the agent followed by a penalty value, see Asterisk documentation "
+"concerning penalties.<br /><br /> An advanced mode has been added which "
+"allows you to prefix an agent number with S, P, X, Z, D or A. This will "
+"force the agent number to be dialed as an Asterisk device of type SIP, "
+"PJSIP, IAX2, ZAP, DAHDi or Agent respectively. This mode is for advanced "
+"users and can cause known issues in FreePBX as you are by-passing the normal "
+"dialplan. If your 'Agent Restrictions' are not set to 'Extension Only' you "
+"will have problems with subsequent transfers to voicemail and other issues "
+"may also exist."
+msgstr ""
+"Các tổng đài viên tĩnh là các máy nhánh được giả định là luôn luôn trên Hàng "
+"đợi. Các tổng đài viên tĩnh không cần 'đăng nhập' vào Hàng đợi, và không thể "
+"'đăng xuất' khỏi Hàng đợi.<br><br>Danh sách các máy nhánh đổ chuông, một "
+"dòng một máy. <br><br>Bạn có thể bao gồm một máy nhánh trên hệ thống từ xa, "
+"hoặc một số bên ngoài ) Việc định tuyến gọi ra phải chứa một tuyến hợp lệ "
+"cho các số bên ngoài). Bạn phải đặt dấu \",\" ngay sau tổng đài viên được "
+"theo sau bởi một giá trị penalty, xem phần Asterisk documentation concerning "
+"penalties ( Các penalty liên quan đến tài liệu về Asterisk). <br /><br />Một "
+"chế độ nâng cao đã được thêm vào cho phép bạn thêm tiền tố số tổng đài viên "
+"với S, P, X , Z, D hoặc A. Điều này sẽ buộc số tổng đài được quay số như là "
+"một thiết bị Asterisk theo kiểu SIP, PJSIP, IAX2, ZAP, DAHDi hoặc tổng đài "
+"viên tương ứng. Chế độ này dành cho người dùng nâng cao và có thể gây ra các "
+"sự cố sẽ biết trước trong FreePBX khi bạn đang dùng phương thức quay số "
+"thông thường. Nếu'Agent Restrictions' của bạn không được đặt thành "
+"'Extension Only' , bạn sẽ gặp sự cố khi chuyển thư sang thư thoại tiếp theo "
+"và các sự cố có thể tồn tại khác."
+
+#: views/cron.php:20
+msgid "Stats Reset"
+msgstr "Cài đặt lại Trạng thái"
+
+#: views/form.php:392 views/form.php:401 views/form.php:1312
+#: views/form.php:1647 views/form.php:1681
+msgid "Strict"
+msgstr "Nghiêm ngặt"
+
+#: Queues.class.php:211
+msgid "Submit"
+msgstr "Gửi đi"
+
+#: views/form.php:1778
+msgid ""
+"The absolute minimum time between the start of each queue position and/or "
+"estimated holdtime announcement"
+msgstr ""
+"Thời gian tối thiểu tuyệt đối giữa khi khởi động của mỗi vị trí hàng đợi và/"
+"hoặc thông báo thời gian giữ máy dự kiến"
+
+#: views/form.php:1293
+msgid ""
+"The maximum number of seconds a caller can wait in a queue before being "
+"pulled out.  (0 for unlimited)."
+msgstr ""
+"Số giây tối đa mà một người gọi có thể đợi trong một hàng đợi trước khi bị "
+"đẩy ra khỏi hàng. (Đặt là 0 để không giới hạn số giây)."
+
+#: views/form.php:1348
+msgid ""
+"The number of seconds an agent's phone can ring before we consider it a "
+"timeout. Unlimited or other timeout values may still be limited by system "
+"ringtime or individual extension defaults."
+msgstr ""
+"Số giây mà điện thoại của tổng đài viên có thể đổ chuông trước khi chúng ta "
+"xem chúng như là một Thời gian chờ. Không giới hạn hoặc Gía trị thời gian "
+"chờ khác có thể bị giới hạn bằng hệ thống ringtime hoặc các mặc định máy "
+"nhánh cá nhân."
+
+#: views/form.php:1404
+msgid ""
+"The number of seconds we wait before trying all the phones again. Choosing "
+"\"No Retry\" will exit the Queue and go to the fail-over destination as soon "
+"as the first attempted agent times-out, additional agents will not be "
+"attempted."
+msgstr ""
+"Số giây chúng ta đợi trước khi cố thử các điện thoại lần nữa. Chọn \" No "
+"Retry\" sẽ thoát khỏi Hàng đợi và đi tới điểm đích chịu lỗi ngay sau khi "
+"tổng đài viên đầu tiên được thử hết thời gian chờ, các tổng đài viên bổ sung "
+"sẽ không được thử."
+
+#: views/form.php:1599
+#, fuzzy
+msgid ""
+"This setting will delay the auto pause of an agent by auto pause delay "
+"seconds from when it last took a call. For example, if this were set to 120 "
+"seconds, and a new call is presented to the agent 90 seconds after they last "
+"took a call, they will not be auto paused if they don't answer the call. If "
+"presented with a call 120 seconds or later after answering the last call, "
+"they will then be auto paused. If they have taken no calls, this will have "
+"no affect."
+msgstr ""
+"Cài đặt này sẽ trì hoãn việc tạm dừng tự động một tổng đài viên bằng cách "
+"tạm  nhân bằng cách tự động tạm dừng giây trễ từ khi cuộc gọi cuối cùng được "
+"thực hiện. Ví dụ: nếu thiết lập này được đặt thành 120 giây và một cuộc gọi "
+"mới được trình bày cho tác nhân 90 giây sau khi họ thực hiện cuộc gọi, họ sẽ "
+"không bị tạm dừng tự động nếu họ không trả lời cuộc gọi. Nếu được gọi với "
+"cuộc gọi 120 giây hoặc muộn hơn sau khi trả lời cuộc gọi cuối cùng, chúng sẽ "
+"được tạm dừng tự động. Nếu họ không có cuộc gọi, điều này sẽ không có ảnh "
+"hưởng."
+
+#: views/form.php:1754
+msgid "This value is ignored if the caller's position changes"
+msgstr "Gía trị này bị bỏ qua nếu vị trí người gọi thay đổi"
+
+#: views/form.php:704
+msgid "Timing & Agent Options"
+msgstr "Tùy chọn Timing & Agent  ( Định giờ & Tổng đài viên)"
+
+#: views/form.php:393 views/form.php:402 views/form.php:1649
+#: views/form.php:1683
+msgid "Ultra Strict"
+msgstr "Cực nghiêm ngặt"
+
+#: views/form.php:345 views/form.php:363
+msgid "Unlimited"
+msgstr "Không giới hạn"
+
+#: queues.i18n.php:26
+msgid "Use MixMonitor for Recordings"
+msgstr "Sử dụng MixMonitor cho các bản ghi"
+
+#: functions.inc/hook_core.php:36
+msgid "Use State"
+msgstr "Sử dụng State ( Trạng thái)"
+
+#: views/form.php:757
+msgid ""
+"Use this number to dial into the queue, or transfer callers to this number "
+"to put them into the queue"
+msgstr ""
+
+#: views/form.php:1879
+msgid ""
+"Used for service level statistics (calls answered within service level time "
+"frame)"
+msgstr ""
+"Được sử dụng cho các thống kê cấp dịch vụ ( các cuộc gọi được trả lời trong "
+"khung thời gian của cấp dịch vụ)"
+
+#: assets/js/queues.js:29
+msgid ""
+"Using a Regex filter is fairly advanced, please confirm you know what you "
+"are doing or leave this blank"
+msgstr ""
+"Đang sử dụng một bộc lọc Regex là một thao tác nâng cao, vui lòng xác nhận "
+"bạn biết bạn đang làm gì hoặc để trống"
+
+#: views/form.php:847
+msgid "Wait Time Prefix"
+msgstr "Tiền tố thời gian đợi"
+
+#: Queues.class.php:145
+msgid "Warning! Extension"
+msgstr "Cảnh báo! Máy nhánh"
+
+#: functions.inc/queue_conf.php:219
+msgid ""
+"Warning, there are compound recordings configured in one or more Queue "
+"configurations. Queues can not play these so they have been truncated to the "
+"first sound file. You should correct this problem.<br />Details:<br /><br />"
+msgstr ""
+"Cảnh báo, có các bản ghi phức hợp được cấu hình trong một hoặc nhiều cấu "
+"hình hàng đợi. Các hàng đợi không thể phát các bản ghi vì thế chúng được cắt "
+"ngắn thành tệp âm thanh đầu tiên. Bạn nên khắc phục sự cố này. <br />Chi "
+"tiết:<br /><br />"
+
+#: views/cron.php:61
+msgid "Weekly"
+msgstr "Hằng tuần"
+
+#: views/form.php:199
+msgid "When No Free Agents"
+msgstr "Khi không có tổng đài viên nào rỗi"
+
+#: views/form.php:200
+msgid "When No Ready Agents"
+msgstr "Khi không có tổng đài viên nào sẵn sàng"
+
+#: views/form.php:998
+msgid ""
+"When set to 'Call as Dialed' the queue will call an extension just as if the "
+"queue were another user. Any Follow-Me or Call Forward states active on the "
+"extension will result in the queue call following these call paths. This "
+"behavior has been the standard queue behavior on past FreePBX versions. <br /"
+">When set to 'No Follow-Me or Call Forward', all agents that are extensions "
+"on the system will be limited to ringing their extensions only. Follow-Me "
+"and Call Forward settings will be ignored. Any other agent will be called as "
+"dialed. This behavior is similar to how extensions are dialed in ringgroups. "
+"<br />When set to 'Extensions Only' the queue will dial Extensions as "
+"described for 'No Follow-Me or Call Forward'. Any other number entered for "
+"an agent that is NOT a valid extension will be ignored. No error checking is "
+"provided when entering a static agent or when logging on as a dynamic agent, "
+"the call will simply be blocked when the queue tries to call it. For dynamic "
+"agents, see the 'Agent Regex Filter' to provide some validation."
+msgstr ""
+"Khi được đặt là 'Call as Dialed' hàng đợi sẽ gọi một máy nhánh giống như "
+"hàng đợi là một người dùng khác. Bất kỳ Trạng thái Follow-Me or Call Forward "
+"nào đang hoạt động trên máy nhánh sẽ dẫn đến cuộc gọi hàng đợi theo sau các "
+"đường dẫn cuộc gọi này. Hành vi này đã là hành vi Hàng đợi chuẩn đối với các "
+"phiên bản FreePBX trước đó. <br/> Khi thiết lập 'No Follow-Me or Call "
+"Forward', tất cả các tổng đài viên là các máy nhánh trên hệ thống đều sẽ bị "
+"giới hạn chỉ được đổ chuông đến máy nhánh của họ. Cài đặt 'Follow-Me or Call "
+"Forward' sẽ bị bỏ qua. Bất kỳ tổng đài viên nào khác đều sẽ được gọi. Hành "
+"vi này tương tự như cách mà các máy nhánh được quay số trong các ringgroup. "
+"<br /> Khi đặt thành 'Extensions Only'  thì Hàng đợi sẽ quay số máy nhánh "
+"như đã được mô tả cho 'No Follow-Me or Call Forward'. Bất kỳ số nào khác "
+"được nhập cho một tổng đàì viên mà không phải là một máy nhánh hợp lệ thì "
+"đều sẽ bị bỏ qua. Việc kiểm tra lỗi không được thực hiện khi nhập một tổng "
+"đài viên tĩnh hoặc khi đăng nhập như một tổng đài viên động, cuộc gọi sẽ bị "
+"khóa khi Hàng đợi cố gọi chúng. Đối với các tổng đài viên động, xem phần "
+"'Agent Regex Filter' để cung cấp thêm một số  xác nhận tính hợp lệ của mình."
+
+#: views/form.php:1087
+#, fuzzy
+msgid ""
+"When set to 'Yes' agents who are on an occupied phone will be skipped as if "
+"the line were returning busy. This means that Call Waiting or multi-line "
+"phones will not be presented with the call and in the various hunt style "
+"ring strategies, the next agent will be attempted. <br />When set to 'Yes + "
+"(ringinuse=no)' the queue configuration flag 'ringinuse=no' is set for this "
+"queue in addition to the phone's device status being monitored. This results "
+"in the queue tracking remote agents (agents who are a remote PSTN phone, "
+"called through Follow-Me, and other means) as well as PBX connected agents, "
+"so the queue will not attempt to send another call if they are already on a "
+"call from any queue. <br />When set to 'Queue calls only (ringinuse=no)' the "
+"queue configuration flag 'ringinuse=no' is set for this queue also but the "
+"device status of locally connected agents is not monitored. The behavior is "
+"to limit an agent belonging to one or more queues to a single queue call. If "
+"they are occupied from other calls, such as outbound calls they initiated, "
+"the queue will consider them available and ring them since the device state "
+"is not monitored with this option. <br /><br />WARNING: When using the "
+"settings that set the 'ringinuse=no' flag, there is a NEGATIVE side effect. "
+"An agent who transfers a queue call will remain unavailable by any queue "
+"until that call is terminated as the call still appears as 'inuse' to the "
+"queue UNLESS 'Agent Restrictions' is set to 'Extensions Only'."
+msgstr ""
+"Khi được đặt là  \"Yes\" tổng đài viên đang có cuộc gọi sẽ bị bỏ qua nếu "
+"đường dây phản hồi lại là đang bận. Điều này có nghĩa là Call Waiting hoặc "
+"các điện thoại đa đường dây sẽ không được đưa ra cho cuộc gọi và trong các "
+"phương thức đổ chuông khác nhau, tổng đài viên tiếp theo sẽ được thử gọi "
+"lại. <br /> Khi đặt thành 'Yes + (ringinuse=no)', bên cạnh trạng thái thiết "
+"bị được giám sát thì cờ (flag) cấu hình đặt hàng đợi 'ringinuse = no' cũng "
+"được cài đặt cho hàng đợi này. Điều này dẫn đến việc hàng đợi theo dõi các "
+"tổng đài viên từ xa ( Các tổng đài viên là những điện thoại PSTN từ xa, được "
+"gọi qua Follow Me hoặc các phương thức khác) cũng như PBX được kết nối với "
+"các tổng đài viên, vì vậy cờ cấu hình hàng đợi  'ringinuse=no' sẽ được cài "
+"đặt cho Hàng đợi này nhưng trạng thái thiết bị của các tổng đài viên được "
+"kết nối tại chỗ sẽ không được giám sát. \n"
+"Hành vi này là để giới hạn một tổng đài viên thuộc một hay nhiều hàng đợi "
+"đến một cuộc gọi hàng đợi đơn lẻ. Nếu họ đang có cuộc gọi khác ví dụ như các "
+"cuộc gọi ra mà họ đã khởi tạo, hàng đợi sẽ xem họ là khả dụng và đổ chuông "
+"một cuộc gọi hàng đợi đơn lẻ vì trạng thái thiết bị không được giám sát với "
+"tùy chọn này. <br /><br />CẢNH BÁO: Khi sử dụng các cài đặt để cài đặt cờ "
+"'ringinuse=no', sẽ có tác động tiêu cực. Một tổng đài viên truyền một cuộc "
+"gọi Hàng đợi sẽ được các hàng đợi khác xem là không khả dụng cho đến khi "
+"cuộc gọi đó kết thúc vì cuộc gọi vẫn được xuất hiện là 'inuse' trừ khi "
+"'Restrictions Agent' được đặt thành 'Extensions Only'."
+
+#: views/form.php:667
+msgid ""
+"When set to YES, the following manager event will be generated: "
+"QueueMemberStatus"
+msgstr ""
+"Khi cài đặt về YES, trình quản lý sự kiện sau sẽ được kích hoạt: "
+"QueueMemberStatus"
+
+#: views/form.php:1546
+msgid ""
+"When set to Yes agents devices that report busy upon a call attempt will be "
+"considered as a missed call and auto paused immediately or after the auto "
+"pause delay if configured"
+msgstr ""
+"Khi cài đặt là Yes các thiết bị của tổng đài viên báo cáo đang bận khi thử "
+"một cuộc gọi sẽ bị xem như một cuộc gọi nhỡ và tự động tạm dừng ngay lập tức "
+"hoặc sau khi trễ tạm dừng tự động nếu được cấu hình"
+
+#: views/form.php:1575
+msgid ""
+"When set to Yes agents devices that report congestion upon a call attempt "
+"will be considered as a missed call and auto paused immediately or after the "
+"auto pause delay if configured"
+msgstr ""
+"Khi cài đặt là Yes các thiết bị của tổng đài viên báo cáo đang bận khi thử "
+"một cuộc gọi sẽ bị xem như một cuộc gọi nhỡ và tự động tạm dừng ngay lập tức "
+"hoặc sau khi trễ tạm dừng tự động nếu được cấu hình"
+
+#: views/form.php:863
+msgid ""
+"When set to Yes, the CID Name will be prefixed with the total wait time in "
+"the queue so the answering agent is aware how long they have waited. It will "
+"be rounded to the nearest minute, in the form of Mnn: where nn is the number "
+"of minutes."
+msgstr ""
+"Khi cài đặt về Yes, tên CID sẽ được thêm tiền tố với tổng thời gian đợi "
+"trong hàng đợi vì vậy tổng đài viên đang trả lợi sẽ nhận biết được họ đợi "
+"bao lâu. Nó sẽ được làm tròn lên đến phút gần nhất, trong dạng mẫu của Mnn: "
+"Nơi nn là số phút."
+
+#: views/form.php:635
+msgid ""
+"When this option is set to YES, the following manager events will be "
+"generated: AgentCalled, AgentDump, AgentConnect and AgentComplete."
+msgstr ""
+"Khi tùy chọn này được cài đặt về Yes, các sự kiện của trình quản lý sau sẽ "
+"được kích hoạt: AgentCalled, AgentDump, AgentConnect and AgentComplete."
+
+#: views/cron.php:96
+msgid ""
+"When to schedule this job. Note enabling 'Random' overrides these settings"
+msgstr ""
+"Thời điểm để lên kế hoạch tác vụ này. Lưu ý việc kích hoạt \"Random\" sẽ ghi "
+"đè các cài đặt này"
+
+#: views/form.php:1195
+msgid "Where calls should fail to"
+msgstr "Nơi các cuộc gọi không thành công sẽ đến"
+
+#: views/form.php:454
+msgid ""
+"Whether this queue uses an IVR Break Out Menu or a Queue Callback.  Queue "
+"Callbacks can also be achieved through an IVR, but requires extra "
+"configuration."
+msgstr ""
+"Hàng đợi này sử dụng một Menu IVR Break Out ( Giải quyết sự cố IVR) hay "
+"Queue Callback ( Gọi lại Hàng đợi).  Queue Callback có thể đạt được qua một "
+"IVR, nhưng yêu cầu một cấu hình bổ sung."
+
+#: views/form.php:939
+#, php-format
+msgid ""
+"While queue calls are distributed, any member has FM/FM(Find Me/Follow Me) "
+"enabled, Ringer Volume value will set based on the 'Ringer Volume Override "
+"Mode(RVOM)'."
+msgstr ""
+
+#: views/form.php:1416
+msgid "Wrap-Up-Time"
+msgstr ""
+
+#: views/cron.php:26 views/cron.php:55 views/form.php:19 views/form.php:116
+#: views/form.php:391 views/form.php:400 views/form.php:625 views/form.php:657
+#: views/form.php:800 views/form.php:853 views/form.php:956 views/form.php:1041
+#: views/form.php:1071 views/form.php:1132 views/form.php:1161
+#: views/form.php:1367 views/form.php:1476 views/form.php:1536
+#: views/form.php:1565 views/form.php:1645 views/form.php:1679
+#: views/form.php:1797 views/form.php:1826
+msgid "Yes"
+msgstr "Có"
+
+#: views/form.php:1072
+msgid "Yes + (ringinuse=no)"
+msgstr "Có + (ringinuse=no)"
+
+#: views/form.php:1504
+msgid "Yes in all queues"
+msgstr "Yes trong tất cả Hàng đợi"
+
+#: views/form.php:1504
+msgid "Yes in this queue only"
+msgstr "Yes chỉ trên Hàng đợi này"
+
+#: views/form.php:835
+msgid ""
+"You can optionally prefix the CallerID name of callers to the queue. ie: If "
+"you prefix with \"Sales:\", a call from John Doe would display as \"Sales:"
+"John Doe\" on the extensions that ring."
+msgstr ""
+"Bạn có thể tùy thêm tiền tố vào tên Caller ID của người gọi vào Hàng đợi. Cụ "
+"thể: Nếu bạn thêm tiền tố với \"Sale:\", một cuộc gọi từ John Doe sẽ hiển "
+"thị là \"Sales:John Doe\" trên máy nhánh đang đổ chuông."
+
+#: views/form.php:522
+msgid ""
+"You can optionally present an existing IVR as a 'break out' menu."
+"<br><br>This IVR must only contain single-digit 'dialed options'. The "
+"Recording set for the IVR will be played at intervals specified in 'Repeat "
+"Frequency', below."
+msgstr ""
+"Bạn có thể đưa ra một VIR hiện có như một menu \" break out\". <br><br> IVR "
+"nàychỉ chứa 'các tùy tùy chọn quay số' chữ số đơn. Bản ghi cài đặt cho IVR "
+"sẽ được phát tại các khoảng thời gian xác định trong 'Repeat "
+"Frequency' ( Tần suất lặp lại) dưới đây."
+
+#: views/form.php:94
+msgid ""
+"You can require agents to enter a password before they can log in to this "
+"queue.<br><br>This setting is optional."
+msgstr ""
+"Bạn có thể yêu cầu các tổng đài viên nhập một mật khẩu trước khi họ đăng "
+"nhập vào hàng đợi này. <br><br> Cài đặt này là tùy chọn."
+
+#: functions.inc.php:31
+msgid "day"
+msgstr "ngày"
+
+#: views/form.php:306
+msgid "default"
+msgstr "mặc định"
+
+#: views/form.php:268
+msgid "fewestcalls"
+msgstr "fewestcalls ( cuộc gọi ít nhất)"
+
+#: functions.inc.php:32
+msgid "hour"
+msgstr "giờ"
+
+#: functions.inc.php:32
+msgid "hours"
+msgstr "giờ"
+
+#: views/form.php:304
+msgid "inherit"
+msgstr "kế thừa"
+
+#: Queues.class.php:145
+msgid "is not allowed for your account."
+msgstr "tài khoản của bạn không được cho phép."
+
+#: views/form.php:267
+msgid "leastrecent"
+msgstr "leastrecent"
+
+#: views/form.php:272
+msgid "linear"
+msgstr "linear"
+
+#: functions.inc.php:33
+msgid "minute"
+msgstr "phút"
+
+#: functions.inc.php:33
+msgid "minutes"
+msgstr "phút"
+
+#: views/form.php:305
+msgid "none"
+msgstr "không có"
+
+#: views/form.php:269
+msgid "random"
+msgstr "ngẫu nhiên"
+
+#: views/form.php:273
+msgid ""
+"random using the member's penalty as a weighting factor, see asterisk "
+"documentation for specifics"
+msgstr ""
+"Ngẫu nhiên sử dụng penalty của thành viên giống như một yếu tố trọng dung, "
+"xem tài liệu asterisk để biết cụ thể"
+
+#: views/form.php:267
+msgid "ring agent which was least recently called by this queue"
+msgstr "Đổ chuông tổng đài viên được gọi gần đây nhất bởi Hàng đợi này"
+
+#: views/form.php:266
+msgid "ring all available agents until one answers (default)"
+msgstr ""
+"đổ chuông tất cả các tổng đài viên khả dụng đến khi một tổng đài viên trả "
+"lời ( mặc định)"
+
+#: views/form.php:269
+msgid "ring random agent"
+msgstr "đổ chuông tổng đài viên ngẫu nhiên"
+
+#: views/form.php:268
+msgid "ring the agent with fewest completed calls from this queue"
+msgstr ""
+"đổ chuông tổng đài viên với các cuộc gọi đa hoàn thành ít nhất từ Hàng đợi "
+"này"
+
+#: views/form.php:266
+msgid "ringall"
+msgstr "đổ chuông tất cả"
+
+#: views/form.php:272
+msgid ""
+"rings agents in the order specified, for dynamic agents in the order they "
+"logged in"
+msgstr ""
+"đổ chuông các tổng đài viên theo thứ tự xác định, đối với các tổng đài viên "
+"động thì theo thứ tự mà họ đã đăng nhập"
+
+#: views/form.php:270
+msgid "round robin with memory, remember where we left off last ring pass"
+msgstr ""
+
+#: views/form.php:270
+msgid "rrmemory"
+msgstr "rrmemory (bộ nhớ rr)"
+
+#: views/form.php:271
+msgid "rrordered"
+msgstr "rrordered( thứ tự rr)"
+
+#: views/form.php:271
+msgid ""
+"same as rrmemory, except the queue member order from config file is preserved"
+msgstr ""
+
+#: functions.inc.php:34
+msgid "second"
+msgstr "giây"
+
+#: functions.inc.php:17 functions.inc.php:34 views/form.php:347
+#: views/form.php:350 views/form.php:371 views/form.php:377 views/form.php:386
+msgid "seconds"
+msgstr "giây"
+
+#: views/form.php:273
+msgid "wrandom"
+msgstr "wrandom ( ngẫu nhiên w)"
+
+#~ msgid "Generate queuenum*/** Login/off Codes"
+#~ msgstr "Khởi tạo  queuenum*/** Các mã Đăng nhập/Tắt"
+
+#~ msgid "Hide Queue No Answer Option"
+#~ msgstr "Ẩn tùy chọn Queue No Answer ( Không trả lời Hàng đợi)"
+
+#~ msgid ""
+#~ "It is possible for a queue to NOT Answer a call and still enter callers "
+#~ "to the queue. The normal behavior is that all  allers are answered before "
+#~ "entering the queue. If the call is not answered, it is possible that some "
+#~ "early media delivery would still allow callers to hear recordings, MoH, "
+#~ "etc. but this can be inconsistent and vary. Because of the volatility of "
+#~ "this option, it is not displayed by default. If a queue is set to not "
+#~ "answer, the setting will be displayed for that queue regardless of this "
+#~ "setting."
+#~ msgstr ""
+#~ "Một hàng đợi có thể KHÔNG Trả lời một cuộc gọi khi vẫn nhập người gọi vào "
+#~ "hàng đợi. Các hành vi bình thường là tất cả người gọi được trả lời trước "
+#~ "khi vào hàng đợi. Nếu cuộc gọi không được trả lời, có thể một số phương "
+#~ "tiện truyền thông vẫn sẽ cho phép người gọi nghe các bản ghi, MoH, vv "
+#~ "nhưng điều này có thể không phù hợp và thay đổi. Do sự bất định của tùy "
+#~ "chọn này, theo mặc định nó không được hiển thị. Nếu một hàng đợi được cài "
+#~ "đặt để không trả lời, các thiết lập sẽ được hiển thị cho hàng đợi này."
+
+#~ msgid ""
+#~ "Queue login and out codes were historically queunum* and queunum**. These "
+#~ "have been largely replaced by the *45 queue toggle codes. The legacy "
+#~ "codes are required to login or out a third party user that is not the "
+#~ "extension dialing. These can be removed from the system by setting this "
+#~ "to false."
+#~ msgstr ""
+#~ "Các mã đăng nhập và đăng xuất Hàng đợi cũ là queunum* and queunum**. "
+#~ "Chúng đã đươc thay thế bởi các mã chuyển đổi hàng đợi *45. Các mã legacy "
+#~ "là điều yêu cầu cho việc đăng nhập và đăng xuất đối với người dùng bên "
+#~ "thứ ba mà bên này không phải là quay số máy nhánh. Chúng có thể bị xóa bỏ "
+#~ "khỏi hệ thống bằng cách cài đặt về False."
+
+#~ msgid ""
+#~ "Use this number to dial into the queue, or transfer callers to this "
+#~ "number to put them into the queue.<br><br>Agents will dial this queue "
+#~ "number plus * to log onto the queue, and this queue number plus ** to log "
+#~ "out of the queue.<br><br>For example, if the queue number is 123:"
+#~ "<br><br><b>123* = log in<br>123** = log out</b>"
+#~ msgstr ""
+#~ "Sử dụng số này để quay số vào hàng đợi, hoặc truyền người gọi vào số này "
+#~ "để đặt họ vào hàng đợi. <br><br> Các tổng đài viên sẽ quay số này thêm * "
+#~ "để truy nhập vào hàng đợi, và thêm ** để đăng xuất khỏi hàng đợi. "
+#~ "<br><br> Ví dụ nếu số hàng đợi là 123: br><br><b>123* = truy "
+#~ "nhập<br>123** = đăng xuất</b>"
+
+#~ msgid "Checking for legacy queues table.."
+#~ msgstr "Đang kiểm tra bảng Hàng đợi legacy.."
+
+#~ msgid "Checking if recordings need migration.."
+#~ msgstr "Đang kiểm tra các bản ghi cần dịch chuyển.."
+
+#~ msgid "Creating queues_config.."
+#~ msgstr "Đang tạo queues_config.."
+
+#~ msgid "Creating queues_details.."
+#~ msgstr "Đang tạo queues_details.."
+
+#~ msgid "Dropping old queues table.."
+#~ msgstr "Đang thả bảng Hàng đợi cũ.."
+
+#~ msgid "ERROR were encountered"
+#~ msgstr "LỖI đã gặp phải"
+
+#~ msgid "ERROR: accessing queues table obtaining context info, aborting"
+#~ msgstr ""
+#~ "LỖI: Đang truy cập bảng Hàng đợi để lấy các thông tin ngữ cảnh, đang hủy "
+#~ "bỏ"
+
+#~ msgid "ERROR: accessing queues table obtaining id list, aborting"
+#~ msgstr "LỖI: Đang truy cập bảng Hàng đợi để lấy danh sách id, đang hủy bỏ"
+
+#~ msgid "ERROR: accessing queues table obtaining rtone info, aborting"
+#~ msgstr ""
+#~ "LỖI: Đang truy cập bảng hàng đợi để lấy các thông tin rtone, đang hủy bỏ"
+
+#~ msgid "ERROR: could not create table"
+#~ msgstr "LỖI; Không thể tạo bảng"
+
+#~ msgid "ERROR: could not migrate to queues_details"
+#~ msgstr "LỖI: Không thể dịch chuyển đến queues_details"
+
+#~ msgid "ERROR: inserting data for row %s: %s.."
+#~ msgstr "LỖI: Đang chèn dữ liệu cho hàng %s: %s.."
+
+#~ msgid "Migrating data to queues_config.."
+#~ msgstr "Đang dịch chuyển dữ liệu tới queues_config.."
+
+#~ msgid "Migrating to queues_details.."
+#~ msgstr "Đang dịch chuyển tới queues_details.."
+
+#~ msgid "NO table found, no migration to do just create tables"
+#~ msgstr ""
+#~ "Không tìm thấy bảng nào,Không có dịch chuyển nào để thực hiện chỉ tạo các "
+#~ "bảng"
+
+#~ msgid "OK"
+#~ msgstr "OK"
+
+#~ msgid "WARNING FAILED %s"
+#~ msgstr "CẢNH BÁO KHÔNG THÀNH CÔNG %s"
+
+#~ msgid "adding agentannounce_id field.."
+#~ msgstr "Đang thêm trường agentannounce_id.."
+
+#~ msgid "adding joinannounce_id field.."
+#~ msgstr "Đang thêm trường  joinannounce_id .."
+
+#~ msgid "already exists"
+#~ msgstr "Đã tồn tại"
+
+#~ msgid "already migrated"
+#~ msgstr "Đã được di chuyển"
+
+#~ msgid "checking for callback_id field.."
+#~ msgstr "Đang kiểm tra trường callback_id .."
+
+#~ msgid "checking for callconfirm field.."
+#~ msgstr "Đang kiểm tra trường callconfirm.."
+
+#~ msgid "checking for callconfirm_id field.."
+#~ msgstr "Đang kiểm tra trường callconfirm_id.."
+
+#~ msgid "checking for monitor_heard field.."
+#~ msgstr "Đang kiểm tra trường monitor_heard.."
+
+#~ msgid "checking for monitor_spoken field.."
+#~ msgstr "Đang kiểm tra trường monitor_spoken.."
+
+#~ msgid "checking for monitor_type field.."
+#~ msgstr "Đang kiểm tra trường .."
+
+#~ msgid "checking for qnoanswer field.."
+#~ msgstr "Đang kiểm tra trường qnoanswer.."
+
+#~ msgid "checking for qregex field.."
+#~ msgstr "Đang kiểm tra trường qregex.."
+
+#~ msgid "checking for queuewait field.."
+#~ msgstr "Đang kiểm tra trường queuewait.."
+
+#~ msgid "checking for togglehint field.."
+#~ msgstr "Đang kiểm tra trường togglehint .."
+
+#~ msgid "checking for use_queue_context field.."
+#~ msgstr "Đang kiểm tra trường use_queue_context .."
+
+#~ msgid "dropping agentannounce field.."
+#~ msgstr "Đang thả trường  agentannounce.."
+
+#~ msgid "dropping joinannounce field.."
+#~ msgstr "Đang thả trường joinannounce.."
+
+#~ msgid "fatal error"
+#~ msgstr "Lõi nghiêm trọng"
+
+#~ msgid "migrate agentannounce to ids.."
+#~ msgstr "dịch chuyển agentannounce đến ids.."
+
+#~ msgid "migrate joinannounce to ids.."
+#~ msgstr "dịch chuyển joinannounce đến  ids.."
+
+#~ msgid "migrated %s entries"
+#~ msgstr "Đã dịch chuyển các mục nhập %s"
+
+#~ msgid "migrating"
+#~ msgstr "Đang dịch chuyển"
+
+#~ msgid "no agentannounce field???"
+#~ msgstr "Không có trường agentannounce???"
+
+#~ msgid "no joinannounce field???"
+#~ msgstr "Không có trường joinannounce???"
+
+#~ msgid "ok"
+#~ msgstr "ok"

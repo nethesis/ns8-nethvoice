@@ -1,0 +1,928 @@
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Russian freePBX ver. translation
+# Copyright (c) 2006-2008 PostMet Corporation
+# Alexander Kozyrev <ceo@postmet.com>, Sergey Nikolayev <sergey@postmet.com>, 2006-2008.
+# Dmitry Luznetsov <dk@postmet.ru>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.4\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-10-10 11:21-0400\n"
+"PO-Revision-Date: 2017-05-17 01:42+0200\n"
+"Last-Translator: Evgeniy <yen81@mail.ru>\n"
+"Language-Team: Russian <http://weblate.freepbx.org/projects/freepbx/ivr/"
+"ru_RU/>\n"
+"Language: ru_RU\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: Ivr.class.php:166
+msgid "A PHP extension stopped the file upload"
+msgstr ""
+
+#: page.ivr.php:18
+msgid ""
+"A connection to Asterisk Manager could not be made. This module requires "
+"Asterisk to be running and have proper credentials"
+msgstr ""
+"Невозможно подключиться к Asterisk-менеджеру. Этот модуль требует "
+"запущенного процесса Asterisk  и должен иметь необходимые полномочия"
+
+#: views/advanced_form.php:162
+msgid "A value of 0 disables the timeout"
+msgstr "Значение \"0\" отключает данный таймаут"
+
+#: views/advanced_form.php:186
+msgid "ALERT_INFO can be used for distinctive ring with SIP devices."
+msgstr ""
+
+#: page.ivr.php:47
+msgid "Actions"
+msgstr "Действия"
+
+#: views/entries.php:70
+msgid "Add Another Entry"
+msgstr "Добавить другую запись"
+
+#: page.ivr.php:30 /dev/shm/freepbx/ivr/views/form.php:10 views/rnav.php:3
+msgid "Add IVR"
+msgstr "Добавить IVR"
+
+#: views/advanced_form.php:290
+msgid ""
+"After playing the Invalid Retry Recording the system will replay the main "
+"IVR Announcement"
+msgstr ""
+"После проигрывания записи Неверный Повтор система воспроизведет основное "
+"приветствие IVR"
+
+#: views/advanced_form.php:448
+msgid ""
+"After playing the Timeout Retry Recording the system will replay the main "
+"IVR Announcement"
+msgstr ""
+"После проигрывания записи Тайм-аут Повтора система воспроизведет основное "
+"приветствие IVR"
+
+#: views/advanced_form.php:174
+msgid "Alert Info"
+msgstr ""
+
+#: views/advanced_form.php:162
+msgid "Amount of time to be considered a timeout."
+msgstr "Интервал времени, используемый как таймаут."
+
+#: views/advanced_form.php:70 views/simple_form.php:33
+msgid "Announcement"
+msgstr "Уведомление"
+
+#: views/advanced_form.php:433
+msgid "Append Announcement on Timeout"
+msgstr "Добавьте уведомление о Тайм-ауте"
+
+#: views/advanced_form.php:275
+msgid "Append Announcement to Invalid"
+msgstr "Добавить уведомление при неверном наборе"
+
+#: ivr.i18n.php:6
+msgid "Applications"
+msgstr "Приложения"
+
+#: assets/js/ivr.js:88
+msgid "Are you sure you don't want a recording for this announcement?"
+msgstr ""
+
+#: views/simple_form.php:73
+msgid "Browse"
+msgstr ""
+
+#: Ivr.class.php:170
+msgid "Can Not Find Uploaded Files"
+msgstr ""
+
+#: views/advanced_form.php:475
+msgid ""
+"Check this box to have this option return to a parent IVR if it was called "
+"from a parent IVR. If not, it will go to the chosen destination.<br><br>The "
+"return path will be to any IVR that was in the call path prior to this IVR "
+"which could lead to strange results if there was an IVR called in the call "
+"path but not immediately before this"
+msgstr ""
+"Отметьте здесь, если нужно возвращать в родительское Меню, если вызов сюда "
+"поступает из другого Меню. Если не отмечено, вызов поступает на выбор "
+"назначений.<br><br>Возврат можно перенаправлять и в любые другие Меню, из "
+"которых также производится вызов в действующее Меню, но возврат и "
+"перенаправление может привести к неожиданным результатам"
+
+#: functions.inc.php:477
+msgid "Choose a destination to route the call to"
+msgstr ""
+
+#: views/advanced_form.php:317
+msgid ""
+"Choose yes to have this option return to a parent IVR if it was called from "
+"a parent IVR. If not, it will go to the chosen destination.<br><br>The "
+"return path will be to any IVR that was in the call path prior to this IVR "
+"which could lead to strange results if there was an IVR called in the call "
+"path but not immediately before this"
+msgstr ""
+"Если выбрано ДА , то будет осуществлён возврат в родительское меню  .Если "
+"НЕТ , то вызов пойдёт на выбранное направление . Если имеются  вложенные  "
+"меню ,то это может привести к неоднозначному поведению"
+
+#: page.ivr.php:16
+msgid "Connection Error"
+msgstr "Ошибка подключения"
+
+#: ivr.i18n.php:8
+msgid ""
+"Creates Digital Receptionist (aka Auto-Attendant, aka Interactive Voice "
+"Response) menus. These can be used to send callers to different locations "
+"(eg, Press 1 for sales) and/or allow direct-dialing of extension numbers."
+msgstr ""
+"Создает Цифровой Автоответчик (или Авто-Секретаря, или Интерактивное "
+"Голосовое меню). Эта функция может быть использована для перенаправления "
+"звонящих в разные назначения (например. Нажмите 1 для отдела продаж) и/или "
+"разрешить прямой донабор внутренних номеров."
+
+#: views/form.php:55 views/form.php:61 views/form.php:67 views/form.php:73
+msgid "Default"
+msgstr "По умолчанию"
+
+#: Ivr.class.php:68 functions.inc.php:477
+msgid "Delete"
+msgstr "Удалить"
+
+#: assets/js/ivr.js:495
+msgid "Delete Recording"
+msgstr ""
+
+#: views/entries.php:49
+msgid "Delete this entry. Dont forget to click Submit to save changes!"
+msgstr ""
+"Удалить этот вход. Не забудьте нажать ПРИМЕНИТЬ, чтобы сохранить изменения!"
+
+#: views/advanced_form.php:53
+msgid "Description of this IVR"
+msgstr "Описание голосового меню"
+
+#: functions.inc.php:477
+msgid "Destination"
+msgstr "Назначение"
+
+#: views/advanced_form.php:371
+msgid "Destination to send the call to after Invalid Recording is played"
+msgstr ""
+"Назначение перевода вызовы  после проигрывания записи о неверном наборе"
+
+#: views/advanced_form.php:529
+msgid "Destination to send the call to after Timeout Recording is played."
+msgstr ""
+"Назначения направления звонка после воспроизведения записи о Тайм-ауте."
+
+#: functions.inc.php:477
+msgid "Digits"
+msgstr ""
+
+#: assets/js/ivr.js:110
+msgid "Digits are limited to 10 digits."
+msgstr ""
+
+#: functions.inc.php:477
+msgid ""
+"Digits the caller needs to dial to access said destination. Digits are "
+"limited to 10 digits."
+msgstr ""
+
+#: views/simple_form.php:80
+msgid "Drop Annoucement Recording Here"
+msgstr ""
+
+#: Ivr.class.php:78
+msgid "Duplicate"
+msgstr ""
+
+#: views/form.php:44
+msgid "Edit IVR: "
+msgstr "Редактировать голосовое меню: "
+
+#: assets/js/ivr.js:235
+msgid "Edit:"
+msgstr "Редактировать:"
+
+#: views/advanced_form.php:96
+msgid "Enable Direct Dial"
+msgstr "Разрешить прямые наборы"
+
+#: Ivr.class.php:163
+msgid "Failed to write file to disk"
+msgstr ""
+
+#: views/advanced_form.php:123
+msgid "Force Strict Dial Timeout"
+msgstr ""
+
+#: views/simple_form.php:131
+msgid "Greeting to be played on entry to the IVR."
+msgstr "Приветствие , проигрываемое при входе в голосовое меню."
+
+#: views/simple_form.php:110
+msgid "Hit the red record button to start recording from your browser"
+msgstr ""
+
+#: Ivr.class.php:28 /dev/shm/freepbx/ivr/ivr.i18n.php:4 ivr.i18n.php:10
+#: /dev/shm/freepbx/ivr/page.ivr.php:24
+msgid "IVR"
+msgstr "Интерактивное меню (IVR)"
+
+#: views/advanced_form.php:60
+msgid "IVR DTMF Options"
+msgstr "DTMF-опции голосового меню"
+
+#: page.ivr.php:46 views/advanced_form.php:41
+msgid "IVR Description"
+msgstr "Описание Интерактивного меню"
+
+#: views/advanced_form.php:563
+msgid "IVR Entries"
+msgstr "Пункты Интерактивного меню"
+
+#: views/advanced_form.php:7
+msgid "IVR General Options"
+msgstr "Основыне настройки Интерактивного меню"
+
+#: views/rnav.php:14
+msgid "IVR List"
+msgstr "Список голосового емню"
+
+#: page.ivr.php:45 views/advanced_form.php:17 views/simple_form.php:8
+msgid "IVR Name"
+msgstr "Название Интерактивного меню"
+
+#: functions.inc.php:614 functions.inc.php:636
+#, php-format
+msgid "IVR: %s"
+msgstr "Интерактивное меню: %s"
+
+#: functions.inc.php:559 functions.inc.php:578
+#, php-format
+msgid "IVR: %s (%s)"
+msgstr ""
+
+#: functions.inc.php:541
+#, php-format
+msgid "IVR: %s / Option: %s"
+msgstr "Интерактивное меню: %s / Опция: %s"
+
+#: assets/js/ivr.js:82
+msgid "IVRs require a valid name"
+msgstr ""
+
+#: views/advanced_form.php:556
+msgid ""
+"If Yes, upon exiting voicemail a caller will be returned to this IVR if they "
+"got a users voicemail"
+msgstr ""
+"Если Да, то после выхода из голосовой почты вызывающий абонент вернётся в "
+"голосовое меню"
+
+#: views/advanced_form.php:138
+msgid ""
+"If set to 'Yes' then IVR will wait the specified timeout length for the full "
+"entry. If set to 'No' then IVR will match on the first digit(s) that match "
+"IVR entries, thus if you have entries of 1 and 123 when the caller presses 1 "
+"it will dial entry 1, when they press 123 it will match on the first entry "
+"so it will dial 1. Changing this setting to 'Yes' will wait the full timeout "
+"for the entry so that 123 will match 123. Default is 'No'"
+msgstr ""
+
+#: views/advanced_form.php:359
+msgid "Invalid Destination"
+msgstr "Неверное назначение"
+
+#: views/advanced_form.php:333
+msgid "Invalid Recording"
+msgstr "Сообщение при неудачном вводе"
+
+#: views/advanced_form.php:225
+msgid "Invalid Retries"
+msgstr "Неудачные попытки"
+
+#: views/advanced_form.php:249
+msgid "Invalid Retry Recording"
+msgstr "Воспроизведение при неуданой попытке "
+
+#: views/rnav.php:2
+msgid "List IVRs"
+msgstr "Спискок голосовых меню"
+
+#: Ivr.class.php:160
+msgid "Missing a temporary folder"
+msgstr ""
+
+#: views/advanced_form.php:29 views/simple_form.php:20
+msgid "Name of this IVR"
+msgstr "Имя голосового меню"
+
+#: views/advanced_form.php:103 views/advanced_form.php:130
+#: views/advanced_form.php:282 views/advanced_form.php:309
+#: views/advanced_form.php:440 views/advanced_form.php:467
+#: views/advanced_form.php:548 views/entries.php:43
+msgid "No"
+msgstr "Нет"
+
+#: page.ivr.php:15
+msgid "No Astman, Not loading IVR"
+msgstr ""
+
+#: assets/js/ivr.js:339
+msgid "No file to load!"
+msgstr ""
+
+#: Ivr.class.php:157
+msgid "No file was uploaded"
+msgstr ""
+
+#: views/advanced_form.php:202 views/advanced_form.php:363
+#: views/advanced_form.php:521 views/form.php:50 views/form.php:56
+#: views/form.php:62 views/form.php:68 views/form.php:74
+#: views/simple_form.php:171
+msgid "None"
+msgstr "Нет"
+
+#: views/advanced_form.php:395
+msgid ""
+"Number of times to retry when no DTMF is heard and the IVR choice times out."
+msgstr ""
+"Количество попыток повтора при отсутствии попыток набора DTMF и тайм-аута "
+"выбора пунктов IVR."
+
+#: views/advanced_form.php:237
+msgid ""
+"Number of times to retry when receiving an invalid/unmatched response from "
+"the caller"
+msgstr "Количество неудачных/несовпадающих попыток ввода от звонящего"
+
+#: views/advanced_form.php:214 views/simple_form.php:183
+#, php-format
+msgid ""
+"Override the ringer volume. Note: This is only valid for %s phones at this "
+"time"
+msgstr ""
+
+#: views/simple_form.php:62
+msgid "Play Previous Recording"
+msgstr ""
+
+#: assets/js/ivr.js:106
+msgid "Please enter a valid value for Digits Pressed"
+msgstr ""
+
+#: views/advanced_form.php:347 views/advanced_form.php:505
+msgid ""
+"Prompt to be played before sending the caller to an alternate destination "
+"due to the caller pressing 0 or receiving the maximum amount of invalid/"
+"unmatched responses (as determined by Invalid Retries)"
+msgstr ""
+"Сообщение воспроизводимое перед отправкой звонящего на альтернативное "
+"назначение при нажатии звонящим 0 или при достижении максимального "
+"количества неудачных попыток ввода"
+
+#: views/advanced_form.php:421
+msgid ""
+"Prompt to be played when a timeout occurs, before prompting the caller to "
+"try again"
+msgstr ""
+"Подсказка, звучащая по тайм-ауту, перед просьбой звонящему попробовать еще "
+"раз"
+
+#: views/advanced_form.php:263
+msgid ""
+"Prompt to be played when an invalid/unmatched response is received, before "
+"prompting the caller to try again"
+msgstr ""
+"Сообщение воспроизводимое когда произошла неудачная/несовпадающая попытка "
+"ввода, вопроизводится перед очередной попыткой повторить ввод. "
+
+#: views/advanced_form.php:111
+msgid "Provides options for callers to direct dial an extension."
+msgstr ""
+"Предлагает опции    вызывающим абонентам  для прямого набора внутреннего "
+"номера ."
+
+#: functions.inc.php:389
+#, php-format
+msgid "Recording created for IVR named '%s'"
+msgstr ""
+
+#: assets/js/ivr.js:573
+msgid "Recording..."
+msgstr ""
+
+#: Ivr.class.php:73
+msgid "Reset"
+msgstr "Сброс"
+
+#: functions.inc.php:477
+msgid "Return"
+msgstr "Возврат"
+
+#: views/advanced_form.php:302
+msgid "Return on Invalid"
+msgstr "Возврат при неверном наборе"
+
+#: views/advanced_form.php:460
+msgid "Return on Timeout"
+msgstr "Возврат по таймауту"
+
+#: views/advanced_form.php:541
+msgid "Return to IVR after VM"
+msgstr "Возвращение в Интерактивное меню после Голосовой Почты"
+
+#: functions.inc.php:477
+msgid "Return to this IVR when finished"
+msgstr ""
+
+#: views/simple_form.php:143
+msgid "Ring Tone"
+msgstr ""
+
+#: views/advanced_form.php:197 views/simple_form.php:166
+msgid "Ringer Volume Override"
+msgstr ""
+
+#: assets/js/ivr.js:495
+msgid "Save Recording"
+msgstr ""
+
+#: views/advanced_form.php:84
+msgid ""
+"Select a 'System Recording' here that will be played on entry to the IVR."
+msgstr ""
+
+#: views/simple_form.php:155
+msgid ""
+"Select a Ring Tone from the list of options above. This will determine how "
+"your phone sounds when it is rung from this group."
+msgstr ""
+
+#: Ivr.class.php:83
+msgid "Submit"
+msgstr "Подтвердить"
+
+#: Ivr.class.php:151
+msgid ""
+"The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in "
+"the HTML form"
+msgstr ""
+
+#: Ivr.class.php:148
+msgid "The uploaded file exceeds the upload_max_filesize directive in php.ini"
+msgstr ""
+
+#: Ivr.class.php:154
+msgid "The uploaded file was only partially uploaded"
+msgstr ""
+
+#: views/advanced_form.php:150
+msgid "Timeout"
+msgstr "Таймаут"
+
+#: views/advanced_form.php:517
+msgid "Timeout Destination"
+msgstr "Назначение при таймауте"
+
+#: views/advanced_form.php:491
+msgid "Timeout Recording"
+msgstr "Сообщение при таймауте"
+
+#: views/advanced_form.php:383
+msgid "Timeout Retries"
+msgstr "Таймаут попыток"
+
+#: views/advanced_form.php:407
+msgid "Timeout Retry Recording"
+msgstr "Сообщение при таймауте повторений"
+
+#: views/simple_form.php:66 views/simple_form.php:114
+#, php-format
+msgid ""
+"To play the media you will need to either update your browser to a recent "
+"version or update your %s"
+msgstr ""
+
+#: assets/js/ivr.js:163
+msgid "Unable to delete the first entry. Please edit instead"
+msgstr ""
+
+#: assets/js/ivr.js:159
+msgid "Unable to delete the last entry"
+msgstr ""
+
+#: Ivr.class.php:123
+msgid "Unknown Error"
+msgstr ""
+
+#: Ivr.class.php:143
+msgid "Unsupported file format"
+msgstr ""
+
+#: assets/js/ivr.js:262
+msgid "Unsupported file type"
+msgstr ""
+
+#: views/simple_form.php:65 views/simple_form.php:113
+msgid "Update Required"
+msgstr ""
+
+#: views/simple_form.php:131
+#, php-format
+msgid ""
+"Upload files from your local system. Supported upload formats are: %s. This "
+"includes archives (that include multiple files) and multiple files"
+msgstr ""
+
+#: views/advanced_form.php:101 views/advanced_form.php:128
+#: views/advanced_form.php:280 views/advanced_form.php:307
+#: views/advanced_form.php:438 views/advanced_form.php:465
+#: views/advanced_form.php:546 views/entries.php:41
+msgid "Yes"
+msgstr "Да"
+
+#: assets/js/ivr.js:577
+msgid "Your Browser Blocked The Recording, Please check your settings"
+msgstr ""
+
+#: views/entries.php:20
+msgid "digits pressed"
+msgstr "нажатии цифры"
+
+#~ msgid "Checking for invalid_append_announce.."
+#~ msgstr "Проверка на invalid_append_announce.."
+
+#~ msgid "Checking for invalid_id.."
+#~ msgstr "Проверка invalid_id.."
+
+#~ msgid "Checking for invalid_ivr_ret.."
+#~ msgstr "Проверка на invalid_ivr_ret.."
+
+#~ msgid "Checking for retvm.."
+#~ msgstr "Проверка retvm.."
+
+#~ msgid "Checking for timeout_append_announce.."
+#~ msgstr "Проверка на timeout_append_announce.."
+
+#~ msgid "Checking for timeout_id.."
+#~ msgstr "Проверка timeout_id.."
+
+#~ msgid "Checking for timeout_ivr_ret.."
+#~ msgstr "Проверка на  timeout_ivr_ret.."
+
+#~ msgid "Checking if announcements need migration.."
+#~ msgstr "Проверка, нуждаются ли объявления в перемещении..."
+
+#~ msgid "Deprecated Directory used by %s IVRs"
+#~ msgstr "Устаревшие Каталоги используемые %s Интерактивным меню"
+
+#~ msgid ""
+#~ "There are %s IVRs that have the legacy Directory dialing enabled. This "
+#~ "has been deprecated and will be removed from future releases. You should "
+#~ "convert your IVRs to use the Directory module for this functionality and "
+#~ "assign an IVR destination to a desired Directory. You can install the "
+#~ "Directory module from the Online Module Repository"
+#~ msgstr ""
+#~ "В Интерактивном меню %s активирован набор Каталога. Эта функция устарела "
+#~ "и будет удалена из будущих релизов. Вам следует конвертировать ваше "
+#~ "Интерактивное меню, что бы использовать модуль Каталога для этой "
+#~ "функциональности и присвоить назначение Интерактивного меню на выбранный "
+#~ "каталог. Вы можете установить модуль Каталога из Онлайн Репозитория "
+#~ "Модулей"
+
+#~ msgid "added"
+#~ msgstr "добавлено"
+
+#~ msgid "adding announcement_id field.."
+#~ msgstr "добавление поля announcement_id.."
+
+#~ msgid "already migrated"
+#~ msgstr "уже перенесено"
+
+#~ msgid "dropping announcement field.."
+#~ msgstr "сброс поля объявления.."
+
+#~ msgid "fatal error"
+#~ msgstr "неустранимая ошибка"
+
+#~ msgid "migrate to recording ids.."
+#~ msgstr "переход к id записей.."
+
+#~ msgid "migrated %s entries"
+#~ msgstr "перемещено %s записей"
+
+#~ msgid "migrating"
+#~ msgstr "перемещение"
+
+#~ msgid "no announcement field???"
+#~ msgstr "нет поля объявления???"
+
+#~ msgid "not needed"
+#~ msgstr "не нужно"
+
+#~ msgid "ok"
+#~ msgstr "ok"
+
+#~ msgid "posting notice about deprecated functionality"
+#~ msgstr "Выводит оповещение о устаревшей функциональности"
+
+#~ msgid "Ext"
+#~ msgstr "Номер"
+
+#~ msgid "Return to IVR"
+#~ msgstr "Возврат в Меню"
+
+#~ msgid "Add Entry"
+#~ msgstr "Добавить вход"
+
+#~ msgid "Add a new IVR"
+#~ msgstr "Добавить новое IVR"
+
+#~ msgid "Amount of time to be considered a timeout"
+#~ msgstr "Количество времени распозноваемое как таймаут"
+
+#~ msgid "Append Announcement on Invalid"
+#~ msgstr "Добавьте приветствие о неверном"
+
+#~ msgid "Completely disabled"
+#~ msgstr "Полностью отключено"
+
+#~ msgid "Delete IVR: %s"
+#~ msgstr "Удалить Интерактивное меню: %s"
+
+#~ msgid "Description of this ivr."
+#~ msgstr "Описание этого Интерактивного меню."
+
+#~ msgid "Destination to send the call to after Invalid Recording is played."
+#~ msgstr ""
+#~ "Назначение куда перенаправить звонящего после воспроизведения записи при "
+#~ "Неудачном вводе. "
+
+#~ msgid "Direct Dial"
+#~ msgstr "Прямой набор"
+
+#~ msgid "Disabled"
+#~ msgstr "Отключено"
+
+#~ msgid "Edit IVR: %s"
+#~ msgstr "Редактировать Интерактивное меню: %s"
+
+#~ msgid "Enabled for all extensions on a system"
+#~ msgstr "Активированно для всех внутренних номеров в системе"
+
+#~ msgid "Extensions"
+#~ msgstr "Внутренние номера"
+
+#~ msgid "Greeting to be played on entry to the Ivr."
+#~ msgstr "Приветствие воспроизводимое при входе в Интерактивное меню."
+
+#~ msgid "IVR Options (DTMF)"
+#~ msgstr "Настройки Интерактивного меню (DTFM)"
+
+#~ msgid ""
+#~ "If checked, upon exiting voicemail a caller will be returned to this IVR "
+#~ "if they got a users voicemail"
+#~ msgstr ""
+#~ "Если отмечено, то прежде чем выйти в Голосовую Почту звонок будет "
+#~ "возвращен в это Меню"
+
+#~ msgid "Name of this IVR."
+#~ msgstr "Название этого Интерактивного меню."
+
+#~ msgid ""
+#~ "Provides options for callers to direct dial an extension. Direct dialing "
+#~ "can be:"
+#~ msgstr ""
+#~ "Активирует опцию прямого набора внутреннего номера для звонящих. Прямой "
+#~ "набор может быть:"
+
+#~ msgid "Append Original Annoucement"
+#~ msgstr "Добавить исходное сообщение"
+
+#~ msgid ""
+#~ "After playing the Invalid Retry Recording the system will replay the main "
+#~ "IVR Annoucement"
+#~ msgstr ""
+#~ "После воспроизведения сообщения при неудачной попытке, система повторит "
+#~ "исходное сообщение Интерактивного меню"
+
+#~ msgid ""
+#~ "Number of times to retry when no DTMF is heard and the IVR choice "
+#~ "timesout."
+#~ msgstr ""
+#~ "Число попыток для ввода, когда небыло DTFM сигналов и время выбора пункта "
+#~ "Интерактивного меню истекло"
+
+#~ msgid ""
+#~ "After playing the Timeout Retry Recording the system will replay the main "
+#~ "IVR Annoucement"
+#~ msgstr ""
+#~ "После воспроизведения сообщения при таймауте повторении, система повторит "
+#~ "воспроизведение исходного сообщения Интерактивного меню"
+
+#~ msgid ""
+#~ "There is a problem with install.sql, cannot re-create databases. Contact "
+#~ "support\n"
+#~ msgstr ""
+#~ "Возникли проблемы со скриптом install.sql, невозможно пересоздать базу "
+#~ "данных. Обратитесь к службе поддержки\n"
+
+#~ msgid "Digital Receptionist"
+#~ msgstr "Автосекретарь"
+
+#~ msgid "Instructions"
+#~ msgstr "Инструкции"
+
+#~ msgid ""
+#~ "You use the Digital Receptionist to make IVR's, Interactive Voice "
+#~ "Response systems."
+#~ msgstr ""
+#~ "Вы используете модуль Автосекретарь для создания системы Интерактивного "
+#~ "голосового меню."
+
+#~ msgid ""
+#~ "When creating a menu option, apart from the standard options of 0-9,* and "
+#~ "#, you can also use 'i' and 't' destinations."
+#~ msgstr ""
+#~ "При создании меню используйте стандартные символы 0-9, *, и #. Есть "
+#~ "возможность также использовать опцию 'i' (invalid number) и 't' (timeout) "
+#~ "в качестве назначения."
+
+#~ msgid ""
+#~ "'i' is used when the caller pushes an invalid button, and 't' is used "
+#~ "when there is no response."
+#~ msgstr ""
+#~ "'i' используется, если позвонивший нажал неверную кнопку, а 't' при "
+#~ "отсутствииответа."
+
+#~ msgid ""
+#~ "If those options aren't supplied, the default 't' is to replay the menu "
+#~ "three times and then hang up,"
+#~ msgstr ""
+#~ "Если эти опции не задействованы, опция 't' воспроизводит сообщение меню "
+#~ "три раза и кладёт трубку,"
+
+#~ msgid ""
+#~ "and the default 'i' is to say 'Invalid option, please try again' and "
+#~ "replay the menu."
+#~ msgstr ""
+#~ "а опция 'i' сообщает 'Неверная опция, пробуйте ещё раз' и снова "
+#~ "возвращает в меню."
+
+#~ msgid "After three invalid attempts, the line is hung up."
+#~ msgstr "После трёх неверных попыток соединение разрывается."
+
+#~ msgid "Edit Menu"
+#~ msgstr "Изменить меню"
+
+#~ msgid "Queue Breakout Menu Usage List"
+#~ msgstr "Список опций Queue Breakout Menu"
+
+#~ msgid ""
+#~ "This IVR is being used by the following Queues, providing an ability for "
+#~ "callers to hear this Queue's announcement periodically and giving callers "
+#~ "an option to break out of the queue into this IVR's menu options. This "
+#~ "queue can not be deleted when being used in this mode"
+#~ msgstr ""
+#~ "Этот IVR используется следующими Очередями, давая возможностьпозвонившему "
+#~ "периодически слышать сообщение этой Очереди и предоставляетвозможность "
+#~ "выбора вариантов меню IVR. Эта очередьне может быть удалена, используясь "
+#~ "в этом режиме."
+
+#~ msgid "Change Name"
+#~ msgstr "Изменить имя"
+
+#~ msgid "This changes the short name, visible on the right, of this IVR"
+#~ msgstr ""
+#~ "Можно изменить название уже созданного Меню, которое отображается справа"
+
+#~ msgid ""
+#~ "Message to be played to the caller. To add additional recordings please "
+#~ "use the \"System Recordings\" MENU to the left"
+#~ msgstr ""
+#~ "Сообщение, которое услышит позвонивший. Чтобы создать запись используйте "
+#~ "секцию Запись сообщений в меню слева."
+
+#~ msgid ""
+#~ "Message to be played to the caller.<br><br>You must install and enable "
+#~ "the \"Systems Recordings\" Module to edit this option"
+#~ msgstr ""
+#~ "Сообщение, которое услышит позвонивший.<br><br>Нужно инсталлировать и "
+#~ "активировать модуль Запись сообщений чтобы изменять что либо в этой опции."
+
+#~ msgid ""
+#~ "The amount of time (in seconds) before the 't' option, if specified, is "
+#~ "used"
+#~ msgstr "Время таймаута (в секундах), если используется опция 't'"
+
+#~ msgid "Enable Directory"
+#~ msgstr "Разрешить доступ в директорию"
+
+#~ msgid "Directory Context"
+#~ msgstr "Контекст директории"
+
+#~ msgid ""
+#~ "When # is selected, this is the voicemail directory context that is used"
+#~ msgstr ""
+#~ "Если набрана '#' будет использоваться этот контекст для директории "
+#~ "голосовой почты"
+
+#~ msgid "VM Return to IVR"
+#~ msgstr "Возврат в Меню"
+
+#~ msgid "Let callers into the IVR dial an extension directly"
+#~ msgstr "Разрешить позвонившему донабор на внутренние номера."
+
+#~ msgid "Loop Before t-dest"
+#~ msgstr "Повтор перед t-dest"
+
+#~ msgid ""
+#~ "If checked, and there is a 't' (timeout) destination defined below, the "
+#~ "IVR will loop back to the beginning if no input is provided for the "
+#~ "designated loop counts prior to going to the timeout (t) destination."
+#~ msgstr ""
+#~ "Если отмечено,а ниже определено назначение опции t (timeout), Меню начнет "
+#~ "отрабатывать сначала заданное количество раз, прежде чем исполнить "
+#~ "назначение опции t (timeout)"
+
+#~ msgid "Timeout Message"
+#~ msgstr "Таймаут"
+
+#~ msgid ""
+#~ "If a timeout occurs and a message is selected, it will be played in place "
+#~ "of the announcement message when looping back to the top of the IVR. It "
+#~ "will not be played if the t destination is the next target."
+#~ msgstr ""
+#~ "Если произойдет таймаут и сообщение выбрано, оно будет играться "
+#~ "вместоглавного сообщения IVR. Не будет играться, если назначение t - "
+#~ "следующая цель."
+
+#~ msgid "Loop Before i-dest"
+#~ msgstr "Повтор перед i-dest"
+
+#~ msgid ""
+#~ "If checked, and there is an 'i' (invalid extension) destination defined "
+#~ "below, the IVR will play invalid option and then loop back to the "
+#~ "beginning for the designated loop counts prior to going to the invalid "
+#~ "(i) destination."
+#~ msgstr ""
+#~ "Если отмечено, и есть определенное направление 'i' (invalid extension), "
+#~ "IVR проиграет недействительный выбор и затем вернется к началупоскольку "
+#~ "цикл перенаправляется в invalid (i) destination."
+
+#~ msgid "Invalid Message"
+#~ msgstr "Сообщение об ошибке"
+
+#~ msgid ""
+#~ "If an invalid extension is pressed and a message is selected, it will be "
+#~ "played in place of the announcement message when looping back to the top "
+#~ "of the IVR. It will not be played if the t destination is the next "
+#~ "target. If nothing is selected, the system will play a default invalid "
+#~ "extension message before going back to the main announcement"
+#~ msgstr ""
+#~ "Если будет выбрано недействительное расширение и сообщение задано,оно "
+#~ "будет проиграно вместо приветствия IVR.Сообщение не будет играться, если "
+#~ "t предназначением будет следующая цель.Если ничто не отобрано, система "
+#~ "будет играть по умолчанию сообщениеinvalid extension перед возвращением к "
+#~ "главному меню."
+
+#~ msgid "Repeat Loops:"
+#~ msgstr "Количество повторов:"
+
+#~ msgid ""
+#~ "The number of times we should loop when invalid input or no input has "
+#~ "been entered before going to the defined or default generated 'i' or 't' "
+#~ "options. If the 'i' or 't' options are defined, the above check boxes "
+#~ "must be checked in order to loop."
+#~ msgstr ""
+#~ "Необходимое количество исполнения сценария в случае ошибочного или "
+#~ "отсутствия ввода прежде чем перейти на определенные или созданные по-"
+#~ "умолчанию опции 'i' или 't'. Если определены опции 'i' или 't, для "
+#~ "повтора сценария отметьте блоки ниже"

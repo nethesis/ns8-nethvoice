@@ -1,0 +1,22 @@
+<module>
+  <rawname>googletts</rawname>
+  <repo>unsupported</repo>
+  <name>Google TTS</name>
+  <version>0.0.3</version>
+  <category>Applications</category>
+  <Publisher>Stefano Fancello</Publisher>
+  <info></info>
+  <licence>GPL</licence>
+  <licenselink>http://www.gnu.org/licenses/gpl-2.0.txt</licenselink>
+  <menuitems>
+    <googletts>Google TTS</googletts>
+  </menuitems>
+  <depends>
+    <version>14</version>
+  </depends>
+  <supported>14.0</supported>
+
+  <description>Creates System Recordings messages using Google Cloud Text To Speech</description>
+  <changelog></changelog>
+
+</module>

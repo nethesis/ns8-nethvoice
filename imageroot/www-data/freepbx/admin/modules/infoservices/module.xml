@@ -1,0 +1,35 @@
+<module>
+	<rawname>infoservices</rawname>
+	<repo>standard</repo>
+	<name>Info Services</name>
+	<version>13.0.1.4</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv2+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-2.0.txt</licenselink>
+	<candisable>no</candisable>
+	<canuninstall>no</canuninstall>
+	<category>Applications</category>
+	<description>Provides a number of applications accessible by feature codes: company directory, call trace (last call information), echo test, speaking clock, and speak current extension number.</description>
+	<changelog>
+		*13.0.1.4* FREEPBX-15366 Call Trace Feature code IVR issue 
+		*13.0.1.3* FREEPBX-17345 [InfoService] Undefined variable 
+		*13.0.1.2* FREEPBX-15795 switch access-denied with invalid, press with vm-press
+		*13.0.1.1* FREEPBX-14350 Info Services prompts replacements
+		*13.0.1* FREEPBX-5116 Improved Speaking Clock
+		*12.0.3.2* FREEPBX-7738 - Complete internationalization.
+		*12.0.2* Use longer echo test as its language compatible, Allow people to exit out of the echo test by hitting keys
+		*12.0.1* FREEPBX-7368 Use 5 second echo test intro
+		*2.11.0.1* #6026
+		*2.11.0.0* #6021
+		*2.10.0.3* remove obsoleted directory feature code
+		*2.10.0.2* #5115
+		*2.10.0.1* #5478
+		*2.10.0.0* new version changes
+		*2.9.0.0* #4653
+	</changelog>
+	<supported>
+		<version>13.0</version>
+	</supported>
+	<location>release/2.11/infoservices-2.11.0.1.tgz</location>
+	<md5sum>efb62589052a3c83c2a2d5047ee7bb62</md5sum>
+</module>

@@ -1,0 +1,177 @@
+{
+  "template_data": {
+    "category": [{
+      "name": "Functionkeys",
+      "subcategory": [{
+        "name": "basic",
+        "item": [{
+          "description": "Function Keys (0-7)",
+          "type": "loop",
+          "loop_start": "0",
+          "loop_end": "7",
+          "data": {
+            "item": [{
+                "variable": "$functionkey_type",
+                "default_value": "-1",
+                "description": "Function Key {$count} Type",
+                "type": "list",
+                "data": [{
+                    "text": "No function",
+                    "value": "-1"
+                  },
+                  {
+                    "text": "Line",
+                    "value": "0"
+                  },
+                  {
+                    "text": "Shared Line",
+                    "value": "1"
+                  },
+                  {
+                    "text": "Park + Retrieve",
+                    "value": "2"
+                  },
+                  {
+                    "text": "Quick Dial",
+                    "value": "3"
+                  },
+                  {
+                    "text": "BLF",
+                    "value": "4"
+                  },
+                  {
+                    "text": "SIP URL",
+                    "value": "5"
+                  },
+                  {
+                    "text": "Call Divert",
+                    "value": "6"
+                  },
+                  {
+                    "text": "DTMF",
+                    "value": "7"
+                  },
+                  {
+                    "text": "Action URL",
+                    "value": "8"
+                  },
+                  {
+                    "text": "SIP INFO",
+                    "value": "9"
+                  },
+                  {
+                    "text": "FAC",
+                    "value": "10"
+                  }
+                ]
+              },
+              {
+                "variable": "$functionkey_action",
+                "default_value": "",
+                "description": "Action {$count} Value",
+                "type": "input"
+              },
+              {
+                "variable": "$functionkey_connection",
+                "default_value": "0",
+                "description": "Connection {$count} Value",
+                "type": "list",
+                "data": [{
+                    "text": "Account 1",
+                    "value": "0"
+                  },
+                  {
+                    "text": "Account 2",
+                    "value": "1"
+                  },
+                  {
+                    "text": "Account 3",
+                    "value": "2"
+                  },
+                  {
+                    "text": "Account 4",
+                    "value": "3"
+                  }
+                ]
+              },
+              {
+                "variable": "$functionkey_disablecode",
+                "default_value": "",
+                "description": "Disablecode {$count} Value",
+                "type": "input"
+              },
+              {
+                "variable": "$functionkey_enablecode",
+                "default_value": "",
+                "description": "Enablecode {$count} Value",
+                "type": "input"
+              },
+              {
+                "variable": "$functionkey_displayname",
+                "default_value": "",
+                "description": "Displayname {$count} Value",
+                "type": "input"
+              },
+              {
+                "variable": "$functionkey_phonenumber",
+                "default_value": "",
+                "description": "Phonenumber {$count} Value",
+                "type": "input"
+              },
+              {
+                "variable": "$functionkey_callpickupcode",
+                "default_value": "{$pickup_direct}",
+                "description": "CallPickupCode {$count} Value",
+                "type": "input"
+              },
+              {
+                "variable": "$functionkey_url",
+                "default_value": "",
+                "description": "URL {$count} Value",
+                "type": "input"
+              },
+              {
+                "variable": "$functionkey_calldiverttype",
+                "default_value": "",
+                "description": "CallDivertType {$count} Value",
+                "type": "input"
+              },
+              {
+                "variable": "$functionkey_dtmfcode",
+                "default_value": "",
+                "description": "DTMFCode {$count} Value",
+                "type": "input"
+              },
+              {
+                "variable": "$functionkey_color",
+                "default_value": "3",
+                "description": "Color {$count} Value",
+                "type": "list",
+                "data": [{
+                    "text": "Red",
+                    "value": "0"
+                  },
+                  {
+                    "text": "Yellow",
+                    "value": "1"
+                  },
+                  {
+                    "text": "Green",
+                    "value": "2"
+                  },
+                  {
+                    "text": "Standard",
+                    "value": "3"
+                  }
+                ]
+              },
+              {
+                "type": "break"
+              }
+            ]
+          }
+        }]
+      }]
+    }]
+  }
+}

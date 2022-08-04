@@ -1,0 +1,318 @@
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# FreePBX language for manager
+# Copyright (C) 2011 Mikael Carlsson
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX manager\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-08-13 10:21-0700\n"
+"PO-Revision-Date: 2011-03-20 00:00+0100\n"
+"Last-Translator: Mikael Carlsson <mickecamino@gmail.com>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Swedish\n"
+"X-Poedit-Country: SWEDEN\n"
+
+#: views/grid.php:13
+msgid "Actions"
+msgstr ""
+
+#: page.manager.php:38 views/form.php:12 views/grid.php:5
+msgid "Add Manager"
+msgstr "Lägg till hanterare"
+
+#: Manager.class.php:44
+msgid "Adding write timeout.."
+msgstr ""
+
+#: page.manager.php:25
+msgid "Asterisk Manager"
+msgstr ""
+
+#: functions.inc.php:234
+msgid "Choose Manager:"
+msgstr "Välj hanterare:"
+
+#: functions.inc.php:234
+msgid "Choose the user that PHPAGI will use to connect the Asterisk API."
+msgstr ""
+"Välj den användare PHPAGI ska använda när den ansluter till Asterisk API."
+
+#: Manager.class.php:53
+msgid "Column present"
+msgstr ""
+
+#: Manager.class.php:116
+msgid "Delete"
+msgstr ""
+
+#: views/form.php:119 views/grid.php:11
+msgid "Deny"
+msgstr ""
+
+#: views/form.php:190
+msgid ""
+"For information on individual permissions please see the Asterisk Manager "
+"Documentation"
+msgstr ""
+
+#: views/form.php:56
+msgid "General"
+msgstr ""
+
+#: views/form.php:131
+msgid ""
+"If you want to deny many hosts or networks, use & char as separator.<br/><br/"
+">Example: 192.168.1.0/255.255.255.0&10.0.0.0/255.0.0.0"
+msgstr ""
+"Om du vill förbjuda många datorer eller nätverk, använd & som "
+"separationstecken.<br><br>Exempel: "
+"192.168.1.0/255.255.255.0&10.0.0.0/255.0.0.0"
+
+#: views/form.php:155
+msgid ""
+"If you want to permit many hosts or networks, use & char as separator. Look "
+"at deny example."
+msgstr ""
+"Om du vill tillåta många datorer eller nätverk, använd & som "
+"separationstecken. Exempel: 192.168.1.0/255.255.255.0&10.0.0.0/255.0.0.0"
+
+#: Manager.class.php:25
+msgid "Increasing read field size if needed.."
+msgstr "Utökar fältet read om detta behövs.."
+
+#: Manager.class.php:35
+msgid "Increasing write field size if needed.."
+msgstr "Utökar fältet write om detta behövs.."
+
+#: page.manager.php:37
+msgid "List Managers"
+msgstr ""
+
+#: views/form.php:5
+msgid "Manager"
+msgstr "Hanterare"
+
+#: views/form.php:68
+msgid "Manager name"
+msgstr ""
+
+#: views/form.php:92
+msgid "Manager secret"
+msgstr ""
+
+#: views/grid.php:10
+msgid "Name"
+msgstr ""
+
+#: views/form.php:80
+msgid "Name of the manager without spaces."
+msgstr ""
+
+#: views/form.php:212 views/form.php:220 views/form.php:233 views/form.php:241
+msgid "No"
+msgstr ""
+
+#: views/form.php:107
+msgid "Password for the manager."
+msgstr "Skriv in ett lösenord hanteraren ska använda."
+
+#: views/form.php:57
+msgid "Permissions"
+msgstr ""
+
+#: views/form.php:143 views/grid.php:12
+msgid "Permit"
+msgstr ""
+
+#: Manager.class.php:121
+msgid "Reset"
+msgstr ""
+
+#: views/form.php:182
+msgid ""
+"Sets the timeout used by Asterisk when writing data to the AMI connection "
+"for this user"
+msgstr ""
+
+#: Manager.class.php:126
+msgid "Submit"
+msgstr ""
+
+#: views/form.php:318
+msgid "The manager deny is not well formatted."
+msgstr "Formateringen för förbjud (deny) är inte korrekt formaterat."
+
+#: views/form.php:316
+msgid "The manager name cannot be empty or may not have any space in it."
+msgstr "Namnet på hanteraren kan inte vara tomt eller ha mellanslag."
+
+#: views/form.php:319
+msgid "The manager permit is not well formatted."
+msgstr "Formateringen för tillåt (permit) är inte korrekt formaterat."
+
+#: views/form.php:320
+msgid "The manager read field is not well formatted."
+msgstr "Hanterarens läsfält är inte korrekt formaterat."
+
+#: views/form.php:317
+msgid "The manager secret cannot be empty."
+msgstr "Lösenordet för hanteraren kan inte vara tomt."
+
+#: views/form.php:321
+msgid "The manager write field is not well formatted."
+msgstr "Hanterarens skrivfält är inte korrekt formaterat."
+
+#: functions.inc.php:201 functions.inc.php:207
+msgid "This manager already exists"
+msgstr "Denna hanterare finns redan"
+
+#: views/form.php:227
+msgid "Toggle All"
+msgstr ""
+
+#: views/form.php:167
+msgid "Write Timeout"
+msgstr ""
+
+#: views/form.php:210 views/form.php:218 views/form.php:231 views/form.php:239
+msgid "Yes"
+msgstr ""
+
+#: views/form.php:27
+msgid "agent"
+msgstr ""
+
+#: views/form.php:23
+msgid "call"
+msgstr ""
+
+#: views/form.php:32
+msgid "cdr"
+msgstr ""
+
+#: views/form.php:26
+msgid "command"
+msgstr ""
+
+#: views/form.php:29
+msgid "config"
+msgstr ""
+
+#: views/form.php:33
+msgid "dialplan"
+msgstr ""
+
+#: views/form.php:30
+msgid "dtmf"
+msgstr ""
+
+#: Manager.class.php:32 Manager.class.php:42
+msgid "error encountered, not altered"
+msgstr "fel uppstod, ingen ändring utförd"
+
+#: views/form.php:24
+msgid "log"
+msgstr ""
+
+#: views/form.php:173
+msgid "milliseconds"
+msgstr ""
+
+#: Manager.class.php:30 Manager.class.php:40 Manager.class.php:49
+msgid "ok"
+msgstr "ok"
+
+#: views/form.php:34
+msgid "originate"
+msgstr ""
+
+#: views/form.php:31
+msgid "reporting"
+msgstr ""
+
+#: views/form.php:22
+msgid "system"
+msgstr ""
+
+#: views/form.php:28
+msgid "user"
+msgstr ""
+
+#: views/form.php:25
+msgid "verbose"
+msgstr ""
+
+#~ msgid "Asterisk API"
+#~ msgstr "Asterisk API"
+
+#~ msgid "Check All/None."
+#~ msgstr "Markera alla/inga."
+
+#~ msgid "Check Asterisk documentation."
+#~ msgstr "Läs i dokumentationen för Asterisk"
+
+#~ msgid "Delete Manager"
+#~ msgstr "Ta bort hanterare"
+
+#~ msgid "Deny:"
+#~ msgstr "Förbjud (deny):"
+
+#~ msgid "Edit Manager"
+#~ msgstr "Redigera hanterare"
+
+#~ msgid "Manager name:"
+#~ msgstr "Namn på hanterare:"
+
+#~ msgid "Manager secret:"
+#~ msgstr "Lösenord för hanteraren:"
+
+#~ msgid "Manager:"
+#~ msgstr "Hanterare:"
+
+#~ msgid "Name of the manager without space."
+#~ msgstr "Skriv in ett namn på en hanterare, använd inga mellanslag"
+
+#~ msgid "Permit:"
+#~ msgstr "Tillåt (permit):"
+
+#~ msgid "Read"
+#~ msgstr "Läs"
+
+#~ msgid "Rights"
+#~ msgstr "Rättigheter"
+
+#~ msgid "Submit Changes"
+#~ msgstr "Spara ändringar"
+
+#~ msgid "Write"
+#~ msgstr "Skriv"
+
+#~ msgid "deleted"
+#~ msgstr "borttagen"
+
+#~ msgid "Error writing the manager additional file."
+#~ msgstr "Fel vid skrivning till manager_additional.conf"
+
+#~ msgid "System Administration"
+#~ msgstr "Systemadministration"
+
+#~ msgid "The manager read and write properties cannot be empty."
+#~ msgstr "Hanterarens rättigheter för läs och skriv kan inte vara tomma."

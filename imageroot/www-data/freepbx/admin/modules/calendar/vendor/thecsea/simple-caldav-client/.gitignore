@@ -1,0 +1,132 @@
+# Created by https://www.gitignore.io
+
+### Linux ###
+*~
+
+# KDE directory preferences
+.directory
+
+# Linux trash folder which might appear on any partition or disk
+.Trash-*
+
+
+
+
+### OSX ###
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+
+
+### Windows ###
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+
+### PhpStorm ###
+# Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm
+
+*.iml
+
+## Directory-based project format:
+.idea/
+# if you remove the above rule, at least ignore the following:
+
+# Company-specific stuff:
+# .idea/workspace.xml
+# .idea/tasks.xml
+# .idea/dictionaries
+
+# Sensitive or high-churn files:
+# .idea/dataSources.ids
+# .idea/dataSources.xml
+# .idea/sqlDataSources.xml
+# .idea/dynamic.xml
+# .idea/uiDesigner.xml
+
+# Gradle:
+# .idea/gradle.xml
+# .idea/libraries
+
+# Mongo Explorer plugin:
+# .idea/mongoSettings.xml
+
+## File-based project format:
+*.ipr
+*.iws
+
+## Plugin-specific files:
+
+# IntelliJ
+/out/
+
+# mpeltonen/sbt-idea plugin
+.idea_modules/
+
+# JIRA plugin
+atlassian-ide-plugin.xml
+
+# Crashlytics plugin (for Android Studio and IntelliJ)
+com_crashlytics_export_strings.xml
+crashlytics.properties
+crashlytics-build.properties
+
+
+
+### Composer ###
+composer.phar
+composer.lock
+/vendor
+
+
+### tests ###
+coverage.xml
+coverage.txt
+coverage.clover
+
+### gulp ###
+node_modules/
+npm-debug.log
+public/css
+ 
+### laravel ide helper ###
+.phpstorm.meta.php
+_ide_helper.php
+
+
+### DEPLOYING ###
+.git_utility
+
+
+### laravel environment ###
+.env

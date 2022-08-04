@@ -1,0 +1,50 @@
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# FreePBX language template for bulkdids
+# Copyright (C) 2008, 2009, 2010 Bandwith.com
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 2.10\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-05-22 11:22-0400\n"
+"PO-Revision-Date: 2015-04-23 15:22+0200\n"
+"Last-Translator: Yuriy <alliancesko@gmail.com>\n"
+"Language-Team: Russian <http://weblate.freepbx.org/projects/freepbx/bulkdids/"
+"ru_RU/>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: ru_RU\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%"
+"10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 2.2-dev\n"
+
+#: page.bulkdids.php:305
+msgid ""
+"This module is depreciated in favor of Bulk Handler. Please use that "
+"instead. The two modules are not compatible!"
+msgstr ""
+
+#~ msgid "Applications"
+#~ msgstr "Приложения"
+
+#~ msgid "Bulk DIDs"
+#~ msgstr "Массовые DID'ы"
+
+#~ msgid "Bulk DIDs uses CSV files to import bulk DIDs with a destination."
+#~ msgstr ""
+#~ "Массовые DID'ы используют CSV файлы для импорта DID'ов с назначениями."

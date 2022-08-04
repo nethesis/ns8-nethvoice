@@ -1,0 +1,141 @@
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: GoogleTTS 0.0.1\n"
+"POT-Creation-Date: 2018-10-11 16:25+0200\n"
+"PO-Revision-Date: 2018-10-11 16:14+0200\n"
+"Last-Translator: \n"
+"Language-Team: Stefano Fancello <stefano.fancello@nethesis.it>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.1.1\n"
+"X-Poedit-Basepath: ..\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language: it_IT\n"
+"X-Poedit-SearchPath-0: functions.inc.php\n"
+"X-Poedit-SearchPath-1: install.php\n"
+"X-Poedit-SearchPath-2: Googletts.class.php\n"
+"X-Poedit-SearchPath-3: uninstall.php\n"
+"X-Poedit-SearchPath-4: page.googletts.php\n"
+"X-Poedit-SearchPath-5: assets/js/googletts.js\n"
+"X-Poedit-SearchPath-6: views/default.php\n"
+"X-Poedit-SearchPath-7: views/config.php\n"
+"X-Poedit-SearchPath-8: views/add.php\n"
+"X-Poedit-SearchPath-9: views/bootnav.php\n"
+
+#: Googletts.class.php:101
+msgid "Delete"
+msgstr ""
+
+#: Googletts.class.php:106
+msgid "Submit"
+msgstr ""
+
+#: Googletts.class.php:172
+msgid "Add a new TTS recording"
+msgstr ""
+
+#: Googletts.class.php:176
+msgid "Configure Google API Key"
+msgstr ""
+
+#: assets/js/googletts.js:2
+msgid "Invalid description specified"
+msgstr ""
+
+#: assets/js/googletts.js:3
+msgid "Invalid text specified"
+msgstr ""
+
+#: assets/js/googletts.js:4
+msgid "Invalid name specified"
+msgstr ""
+
+#: install.php:23
+msgid "Creating the database table"
+msgstr ""
+
+#: install.php:39
+msgid "Table Created"
+msgstr ""
+
+#: install.php:41 uninstall.php:36
+msgid "Something went wrong"
+msgstr ""
+
+#: uninstall.php:24
+msgid "Removing the database table"
+msgstr ""
+
+#: uninstall.php:34
+msgid "Table Deleted"
+msgstr ""
+
+#: views/add.php:32
+msgid "Name"
+msgstr ""
+
+#: views/add.php:40
+msgid "The name of the system recording on the file system. If it conflicts with another file then this will overwrite it."
+msgstr ""
+
+#: views/add.php:49
+msgid "Description"
+msgstr ""
+
+#: views/add.php:57
+msgid "Describe this recording"
+msgstr ""
+
+#: views/add.php:66
+msgid "Language"
+msgstr ""
+
+#: views/add.php:79
+msgid "Language of recording"
+msgstr ""
+
+#: views/add.php:88
+msgid "Voice"
+msgstr ""
+
+#: views/add.php:94
+msgid "male"
+msgstr ""
+
+#: views/add.php:94
+msgid "female"
+msgstr ""
+
+#: views/add.php:100
+msgid "Choose voice that will read the message. Wavenet voices has better quality"
+msgstr ""
+
+#: views/add.php:109
+msgid "Text"
+msgstr ""
+
+#: views/add.php:117
+msgid "Text to read"
+msgstr ""
+
+#: views/bootnav.php:1
+msgid "Set Google TTS API Key"
+msgstr ""
+
+#: views/bootnav.php:2
+msgid "Add TTS Recording"
+msgstr ""
+
+#: views/config.php:39
+msgid "Google API Key"
+msgstr ""
+
+#: views/config.php:47
+msgid "Your Google API Key to use TTS API. https://cloud.google.com/docs/authentication/api-keys#creating_an_api_key'"
+msgstr ""
+
+#: views/default.php:2
+msgid "Google TTS"
+msgstr ""

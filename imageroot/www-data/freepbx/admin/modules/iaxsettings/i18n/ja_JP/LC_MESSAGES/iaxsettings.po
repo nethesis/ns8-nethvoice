@@ -1,0 +1,457 @@
+# CREDITS for JAPANESE TRANSLATION
+# ================================
+# Current translation & maintenance: QLOOG, Inc. (Kobe, Japan)
+# Inquiries: info@qloog.com / www.qloog.com
+#
+# This translation is a culmination of the hard work of
+# several outstanding individuals, which started in 2009 with the 
+# first-ever Japanese localization of FreePBX by Kenichi Fukaumi 
+# and Kazuhiro Tokuyama (FreePBX Japanized Project).
+#
+# Beginning in 2013, with the approval of the original authors, 
+# QLOOG undertook a large scale overhaul of the translation to 
+# expand it for compatibility with FreePBX 2.11. Our work is, 
+# of course, released under the same GPLv2 license as FreePBX. 
+# We only ask that you kindly retain these credits in honor of 
+# the time and effort that all of us have contributed. Enjoy!
+#
+# This file is part of FreePBX.
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# FreePBX language template for iaxsettings
+# Copyright (C) 2008, 2009, 2010 Bandwith.com
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FreePBX 2.10.0.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-02-12 19:18-0500\n"
+"PO-Revision-Date: 2014-06-03 09:48+0200\n"
+"Last-Translator: Kevin <kevin@qloog.com>\n"
+"Language-Team: Japanese <http://git.freepbx.org/projects/freepbx/iaxsettings/"
+"ja/>\n"
+"Language: ja_JP\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 1.9-dev\n"
+
+#: views/form.php:415
+msgid ""
+" If you clear each codec and then add them one at a time, submitting with "
+"each addition, they will be added in order which will effect the codec "
+"priority."
+msgstr ""
+" すべてのコーデックをクリアし、その後一つずつ追加する毎に変更を適用すると、追"
+"加した順番でコーデック優先順位が設定されます。"
+
+#: Iaxsettings.class.php:67
+#, php-format
+msgid "%s must be a non-negative integer"
+msgstr "%s は非負の整数でなければなりません。"
+
+#: views/form.php:313
+msgid "Add Field"
+msgstr "フィールドを追加"
+
+#: views/form.php:77
+msgid "Advanced Settings"
+msgstr ""
+
+#: iaxsettings.i18n.php:4 iaxsettings.i18n.php:10
+msgid "Asterisk IAX Settings"
+msgstr "Asterisk IAX 設定"
+
+#: views/form.php:388
+msgid ""
+"Asterisk: bandwidth. Specify bandwidth of low, medium, or high to control "
+"which codecs are used in general."
+msgstr ""
+"対応するAsterisk設定: bandwidth。使用するコーデックをコントロールするために、"
+"低、中または高の帯域幅を指定します。"
+
+#: views/form.php:243
+msgid ""
+"Asterisk: bindaddr. The IP address to bind to and listen for calls on the "
+"Bind Port. If set to 0.0.0.0 Asterisk will listen on all addresses. To bind "
+"to multiple IP addresses or ports, use the Other 'IAX Settings' fields where "
+"you can put settings such as:<br /> bindaddr=192.168.10.100:4555.<br />  It "
+"is recommended to leave this blank."
+msgstr ""
+"対応するAsterisk設定: bindaddr。この IP アドレスの、バインドポートで指定した"
+"ポート番号を listen (受信待ち)します。0.0.0.0 を設定した場合には、このホスト"
+"に割り当てられているすべての IP アドレスで listen します。空に設定することを"
+"推奨します。"
+
+#: views/form.php:267
+msgid ""
+"Asterisk: bindport. Local incoming UDP Port that Asterisk will bind to and "
+"listen for IAX messages. The IAX standard is 4569 and in most cases this is "
+"what you want. It is recommended to leave this blank."
+msgstr ""
+"対応するAsterisk設定: bindport。Asteriskが IPメッセージを受信するローカル着信"
+"ポート。SIPの標準ポートは5060で、通常変更する必要はありません。空に設定するこ"
+"とを推奨します。"
+
+#: views/form.php:357
+msgid ""
+"Asterisk: codecpriority. Controls the codec negotiation of an inbound IAX "
+"call. This option is inherited to all user entities.  It can also be defined "
+"in each user entity separately which will override the setting here. The "
+"valid values are:<br />host - Consider the host's preferred order ahead of "
+"the caller's.<br />caller - Consider the callers preferred order ahead of "
+"the host's.<br /> disabled - Disable the consideration of codec preference "
+"altogether. (this is the original behavior before preferences were "
+"added)<br />reqonly  - Same as disabled, only do not consider capabilities "
+"if the requested format is not available the call will only be accepted if "
+"the requested format is available."
+msgstr ""
+"対応する Asterisk 設定: codecpriority。着信 IAX コールのコーデックネゴシエー"
+"ションをコントロールします。このオプションは、すべてのユーザに適用されます"
+"が、ユーザ別に定義されている場合には、個別の設定はここで設定された値をオー"
+"バーライドします。使用可能な値は: <br/> host - ホストの優先順位を優先する "
+"<br/> caller - 発信者の優先順位を優先する<br/> disabled - コーデック優先順位"
+"を無視する (この設定を追加する前の挙動), <br/> reqonly - disabled と同様だ"
+"が、リクエストされたフォーマットに対応していない場合には、コールを受理しな"
+"い。リクエストされたフォーマットに対応している場合にのみコールを受理する。"
+
+#: views/form.php:294
+msgid ""
+"Asterisk: delayreject. For increased security against brute force password "
+"attacks enable this which will delay the sending of authentication reject "
+"for REGREQ or AUTHREP if there is a password."
+msgstr ""
+"対応するAsterisk設定: delayreject。総当り攻撃の対策として有効です。パスワード"
+"が設定されている場合に、REGREQ or AUTHREP の認証否定応答を遅延させます。"
+
+#: views/form.php:165
+msgid ""
+"Asterisk: forcejitterbuffer. Forces the use of a jitterbuffer on the receive "
+"side of an IAX channel. Normally the jitter buffer will not be used if "
+"receiving a jittery channel but sending it off to another channel such as a "
+"SIP channel to an endpoint, since there is typically a jitter buffer at the "
+"far end. This will force the use of the jitter buffer before sending the "
+"stream on. This is not typically desired as it adds additional latency into "
+"the stream."
+msgstr ""
+"対応するAsterisk設定: forcejitterbuffer。IAX チャネルの受信側にジッターバッ"
+"ファーを強制します。通常、ジッターのあるチャネルから受信し、別 SIP チャネルに"
+"送信する場合、相手側にもジッターバッファーがあるため、ローカルのジッターバッ"
+"ファーは使用されません。この設定を有効にすると、ストリームを送信する前にジッ"
+"ターバッファーを強制的に使用します。ストリームにレイテンシーを加えるため、通"
+"常は望ましくありません。"
+
+#: views/form.php:137
+msgid ""
+"Asterisk: jitterbuffer. You can adjust several parameters relating to the "
+"jitter buffer. The jitter buffer's function is to compensate for varying "
+"network delay. The jitter buffer works for INCOMING audio - the outbound "
+"audio will be dejittered by the jitter buffer at the other end."
+msgstr ""
+"対応するAsterisk設定: jitterbuffer。ジッターバッファーのパラメータを調整でき"
+"ます。ジッターバッファーにより変動するネットワーク遅延を補正できます。ジッ"
+"ターバッファーは着信音声に用いられ、発信音声は相手側のジッターバッファーによ"
+"り、ジッターが取り除かれます。"
+
+#: views/form.php:192
+msgid ""
+"Asterisk: maxjitterbuffer. Max length of the jitterbuffer in milliseconds."
+"<br /> Asterisk: resyncthreshold. When the jitterbuffer notices a "
+"significant change in delay that continues over a few frames, it will "
+"resync, assuming that the change in delay was caused by a timestamping mix-"
+"up. The threshold for noticing a change in delay is measured as twice the "
+"measured jitter plus this resync threshold. Resyncing can be disabled by "
+"setting this parameter to -1."
+msgstr ""
+"対応するAsterisk設定: maxjitterbuffer。ジッターバッファーの最大長 (ミリ秒) "
+"<br/>対応するAsterisk設定: resyncthreshold。ジッターバッファーは、数フレーム"
+"に渡る大きな遅延変化を検出すると、遅延変化がタイムスタンプの錯綜によるものと"
+"仮定し、再同期します。再同期の要否の検出は、測定されたジッター量の 2 倍と"
+"resyncthresholdの値を比較することによって行われます。この値を -1 に設定する"
+"と、再同期は無効になります。"
+
+#: views/form.php:216
+msgid ""
+"Asterisk: maxjitterinterps. The maximum number of interpolation frames the "
+"jitterbuffer should return in a row. Since some clients do not send CNG/DTX "
+"frames to indicate silence, the jitterbuffer will assume silence has begun "
+"after returning this many interpolations. This prevents interpolating "
+"throughout a long silence."
+msgstr ""
+"対応するAsterisk設定: maxjitterinterps。ジッターバッファーが一度に返す最大の"
+"補間フレームの数。無音を表す CNG/DTX フレームを送信しないクライアントが存在す"
+"るため、ジッターバッファーは指定された補間フレームを送出後、信号は無音とみな"
+"します。この設定を使用すると、無音状態を長く補間し続けることを回避できます。"
+
+#: views/form.php:110
+msgid ""
+"Asterisk: minregexpire, maxregexpire. Minimum and maximum length of time "
+"that IAX peers can request as a registration expiration interval (in "
+"seconds)."
+msgstr ""
+"対応するAsterisk設定: minregexpire, maxregexpire。IAX ピアがリクエストできる"
+"登録の最小・最大時間 (秒)。"
+
+#: views/form.php:328
+msgid "Audio Codecs"
+msgstr "音声コーデック"
+
+#: views/form.php:369
+msgid "Bandwidth"
+msgstr "帯域幅"
+
+#: views/form.php:231
+msgid "Bind Address"
+msgstr "バインドIPアドレス"
+
+#: Iaxsettings.class.php:77
+msgid "Bind Address (bindaddr) must be an IP address."
+msgstr "バインドアドレス (bindaddr) はIPアドレスでなければなりません。"
+
+#: views/form.php:255
+msgid "Bind Port"
+msgstr "バインドポート"
+
+#: Iaxsettings.class.php:87
+msgid "Bind Port (bindport) must be between 1024..65535, default 4569"
+msgstr ""
+"バインドポート (bindport)。1024 ～ 65535 でなければなりません。デフォルト: "
+"5060。"
+
+#: views/form.php:415
+msgid "Check to enable and then choose allowed codecs."
+msgstr ""
+"ビデオサポートを使用するには、有効を選択し、使用するコーデックを選択してくだ"
+"さい。"
+
+#: views/form.php:338
+msgid "Codec Priority"
+msgstr "コーデックの優先順位"
+
+#: views/form.php:82
+msgid "Codec Settings"
+msgstr ""
+
+#: install.php:69
+msgid "Default Settings added."
+msgstr ""
+
+#: views/form.php:279
+msgid "Delay Auth Rejects"
+msgstr "認証否定応答を遅延する"
+
+#: views/form.php:400
+msgid "Enable Video Support"
+msgstr ""
+
+#: views/form.php:150
+msgid "Force Jitter Buffer"
+msgstr "ジッターバッファーの強制使用"
+
+#: views/form.php:72
+msgid "General Settings"
+msgstr ""
+
+#: views/form.php:63
+msgid "IAX Settings"
+msgstr ""
+
+#: views/form.php:122
+msgid "Jitter Buffer Enable"
+msgstr ""
+
+#: views/form.php:177
+msgid "Jitter Buffer Size"
+msgstr "ジッターバッファーのサイズ"
+
+#: views/form.php:204
+msgid "Max Interpolations"
+msgstr "最大補間回数"
+
+#: views/form.php:129 views/form.php:157 views/form.php:286 views/form.php:407
+msgid "No"
+msgstr "いいえ"
+
+#: views/form.php:306
+msgid "Other IAX Settings"
+msgstr "その他IAX設定"
+
+#: views/form.php:95
+msgid "Registration Times"
+msgstr "登録回数"
+
+#: Iaxsettings.class.php:51
+msgid "Reset"
+msgstr ""
+
+#: iaxsettings.i18n.php:6
+msgid "Settings"
+msgstr "設定"
+
+#: functions.inc.php:277
+#, php-format
+msgid "Settings in %s may override these. Those settings should be removed."
+msgstr ""
+"%s の設定はこれら設定をオーバーライドする可能性があるため、削除を推奨します。"
+
+#: Iaxsettings.class.php:46
+msgid "Submit"
+msgstr ""
+
+#: iaxsettings.i18n.php:8
+msgid ""
+"Use to configure Various Asterisk IAX Settings in the General section of iax."
+"conf."
+msgstr ""
+
+#: views/form.php:127 views/form.php:155 views/form.php:284 views/form.php:405
+msgid "Yes"
+msgstr "はい"
+
+#: views/form.php:321
+msgid ""
+"You may set any other IAX settings not present here that are allowed to be "
+"configured in the General section of iax.conf. There will be no error "
+"checking against these settings so check them carefully. They should be "
+"entered as:<br /> [setting] = [value]<br /> in the boxes below. Click the "
+"Add Field box to add additional fields. Blank boxes will be deleted when "
+"submitted."
+msgstr ""
+"iax.confの'general'セクションで設定できる、その他のSIP設定をここで記述できま"
+"す。設定のエラーチェックは行いませんので、入力値をよく確認してください。以下"
+"のテキストボックスに次のように入力します: <br/> [設定] = [値] <br/>フィールド"
+"を追加するには、「フィールド追加」ボタンをクリックしてください。空のボックス"
+"は設定適用時に削除されます。"
+
+#: install.php:73
+msgid "already exists"
+msgstr "既に存在しています。"
+
+#: install.php:56
+msgid "checking for iaxsettings table.."
+msgstr "iaxsettingsテーブルの存在をチェック中.."
+
+#: install.php:67
+msgid "fatal error occurred populating defaults, check module"
+msgstr ""
+"コーデック追加中に致命的なエラーが発生しました。モジュールを確認してくださ"
+"い。"
+
+#: views/form.php:378
+msgid "high"
+msgstr "高"
+
+#: views/form.php:374
+msgid "low"
+msgstr "低"
+
+#: views/form.php:376
+msgid "medium"
+msgstr "中"
+
+#: install.php:60
+msgid "none, creating table"
+msgstr "ありません、テーブルを作成しています。"
+
+#: install.php:64
+msgid "populating default settings.."
+msgstr ""
+
+#: Iaxsettings.class.php:127
+msgid "resyncthreshold must be a non-negative integer or -1 to disable"
+msgstr ""
+"resyncthreshold は非負の整数でなければなりません。無効にするには、-1 に設定し"
+"ます。"
+
+#: views/form.php:380
+msgid "unset"
+msgstr "未設定"
+
+#~ msgid "populating default codecs.."
+#~ msgstr "デフォルトのコーデック追加中..."
+
+#~ msgid "ulaw, alaw, gsm added"
+#~ msgstr "ulaw, alaw, gsm を追加しました。"
+
+#~ msgid "Default Language for a channel, Asterisk: language"
+#~ msgstr "チャネルのデフォルト言語。対応するAsterisk設定: language。"
+
+#~ msgid ""
+#~ "File %s should not have any settings in it. Those settings should be "
+#~ "removed."
+#~ msgstr "%s に設定を記述できません。このファイルの設定を削除してください。"
+
+#~ msgid "Language"
+#~ msgstr "言語"
+
+#~ msgid ""
+#~ "Use to configure Various Asterisk IAX Settings in the General section of "
+#~ "iax.conf. The module assumes Asterisk version 1.4 or higher. Some "
+#~ "settings may not exist in Asterisk 1.2 and will be ignored by Asterisk."
+#~ msgstr ""
+#~ "Asterisk iax.conf の 'general' セクションにある設定を構成します。このモ"
+#~ "ジュールは Asterisk 1.4 以上を想定しています。Asterisk 1.2 に存在しない設"
+#~ "定を生成することがあります。その場合、Asterisk は存在しない設定を無視しま"
+#~ "す。"
+
+#~ msgid "Advanced General Settings"
+#~ msgstr "高度な一般設定"
+
+#~ msgid ""
+#~ "Check the desired codecs, all others will be disabled unless explicitly "
+#~ "enabled in a device or trunks configuration. Drag to re-order."
+#~ msgstr ""
+#~ "使いたいコーデックをチェックしてください。チェックされていないその他のコー"
+#~ "デックは、端末やトランク設定で明示的に有効になっていない限り、無効になりま"
+#~ "す。ドラッグで順番を変更することができます。"
+
+#~ msgid "Codecs"
+#~ msgstr "コーデック"
+
+#~ msgid "Disable"
+#~ msgstr "無効"
+
+#~ msgid "Disabled"
+#~ msgstr "無効"
+
+#~ msgid "ERRORS"
+#~ msgstr "エラー"
+
+#~ msgid "Edit Settings"
+#~ msgstr "設定を編集"
+
+#~ msgid "Enable"
+#~ msgstr "有効"
+
+#~ msgid "Enabled"
+#~ msgstr "有効"
+
+#~ msgid "Jitter Buffer"
+#~ msgstr "ジッターバッファー"
+
+#~ msgid "Jitter Buffer Settings"
+#~ msgstr "ジッターバッファー設定"
+
+#~ msgid "Registration Settings"
+#~ msgstr "登録設定"
+
+#~ msgid "Submit Changes"
+#~ msgstr "変更を適用"
+
+#~ msgid "Video Codecs"
+#~ msgstr "ビデオコーデック"
+
+#~ msgid "Video Support"
+#~ msgstr "ビデオサポート"

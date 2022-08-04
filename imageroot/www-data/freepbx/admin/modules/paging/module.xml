@@ -1,0 +1,125 @@
+<module>
+	<rawname>paging</rawname>
+	<repo>standard</repo>
+	<name>Paging and Intercom</name>
+    <version>14.0.16.9</version>
+    <publisher>Sangoma Technologies Corporation</publisher>
+    <license>GPLv3+</license>
+    <licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+    <category>Applications</category>
+    <changelog>
+		*14.0.16.9* FREEI-3021 Auto-Answer in P-phones are not working 
+		*14.0.16.8* Packaging of ver 14.0.16.8
+		*14.0.16.7* FREEI-1481 Outbound Routes - move paging Notifications setting to the new tab 
+		*14.0.16.6* FREEI-1480: Renamed the Outbound Route paging notification option from "Notifications" to "Paging Notification" 
+		*14.0.16.5* FREEI-1241: make Notifications option available when creating a new Outbound Route 
+		*14.0.16.4* FREEI-1234 
+		*14.0.16.3* FREEI-1239: instead of trying to play the missing dialed sound, play the existing calling sound in outbound route notification announcements 
+		*14.0.16.2* FREEI-1093: moving Notifications feature for Outbound Routes from pagingpro to paging(free) 
+        *14.0.16.1* FREEPBX-20940
+        *14.0.16* FREEI-1019 paginpro Module Doesn't Play Announcement Sound
+        *14.0.15* FREEI-843 Paging not hanging up when audiofile is not present
+        *14.0.14* FREEI-922 Fix XSS Bootstrap Datatable Issues
+		*14.0.13* FREEI-521 Ticket#894180 - Problem with scheduling page 
+		*14.0.12* FREEI-444 
+		*14.0.11* FREEPBX-18784 Page announcements message under Park and announce 
+		*14.0.10* FREEPBX-18980 age Pro Announcements not playing after hangup plus 
+		*14.0.9* FREEPBX-18920 Page group schedule doesn't hang up 
+		*14.0.8* FREEPBX-18646 FREEPBX-18647 
+		*14.0.7* FREEPBX-18643 FREEPBX-18642 
+		*14.0.6* FREEPBX-17320 Paging announcement not playing if I set the Conference Room App as app_confbridge 
+		*14.0.5* Fixing FREEPBX-18264 Paging not breaking through calls for Pjsip 
+		*14.0.4* FREEPBX-17320 Paging announcement not playing if I set the Conference Room App as app_confbridge 
+		*14.0.3* FREEPBX-16357 - Display 'Paging and Intercom' section only for 'advanced mode'
+		*14.0.2* FREEPBX-16790
+		*14.0.1* FREEPBX-15580 PagingPro opens a duplex page, even when set to duplex:no leaving extensions hanging
+		*13.0.26.4* FREEPBX-16577 Paging Pro with Auto-Answer=False does not follow Ring Time value 
+		*13.0.26.3* FREEPBX-15739 Adding/Editing of the Paging and Intercom inserts non working Submit,Reset and Delete button on Home page
+		*13.0.26.2* FREEPBX-14551 FREEPBX-12391
+		*13.0.26.1* FREEPBX-14577 Paging and Intercom allows to create paging group with empty paging extension field
+		*13.0.26* FREEPBX-12690 add view for destinations usage
+		*13.0.25.5* FREEPBX-14264 Issues in 13 with paging groups containing an * or #
+		*13.0.25.4* FREEPBX-13953 Fix behavior with leading zero
+		*13.0.25.3* FREEPBX-14291 -Paging/Intercom module doesn't retain settings
+		*13.0.25.2* FREEPBX-13591 Add 'OpenStage' autoanswer
+		*13.0.25.1* FREEPBX-13274 validate data not null
+		*13.0.25* Set Volume correctly
+		*13.0.24* Allow settable paging speaker volume (Sangoma phones only)
+		*13.0.23* Generate auto-answer context [originate-aa] for external applications
+		*13.0.22* FREEPBX-12694 Changing Intercom setting from default to recording gives error
+		*13.0.21* Add sound languages: it,fr,en_GB
+		*13.0.20* Table sizing
+		*13.0.19* FREEPBX-12476 Validate data
+		*13.0.18* Cleanup Asterisk less than 11 references
+		*13.0.17* FREEPBX-12325 use proper function for adding sip headers
+		*13.0.16* FREEPBX-8801 Ability to disable intercom on extension
+		*13.0.15* FREEPBX-12060
+		*13.0.14.2* FREEPBX-11966 FREEPBX-11979
+		*13.0.14.1* FREEPBX-11929 - Allow UNKNOWN Dahdi devices to be paged
+		*13.0.14* FREEPBX-11833 Move device list to multi select
+		*13.0.13* FREEPBX-11643 Add core hook to clean up extensions when deleted
+		*13.0.12* FREEPBX-11358 getdestinfo for paging groups
+		*13.0.11* FREEPBX-11167
+		*13.0.10* FREEPBX-9951 Japanese language prompts
+		*13.0.9* Slide out menu, BMO search agent
+		*13.0.8* FREEPBX-9264 Option to disable dsp_drop_silence always enabled for paging calls
+		*13.0.7* FREEPBX-10321 Allow page groups without members
+		*13.0.6* FREEPBX-10133 Dont allow anything but a number
+		*13.0.5* Paging bug when there are no devices
+		*13.0.4* FREEPBX-9931 Allow for multilingual sound structure in remaining OSS modules
+		*13.0.3* FREEPBX-9846 All page groups disappear from list when deleting one
+		*13.0.2* Version bump Beta
+		*13.0.1alpha4* Add Spanish prompts
+		*13.0.1alpha3* FREEPBX-9478 Can not create page group
+		*13.0.1alpha2* FREEPBX-8397 Different announcement tones per page
+		*13.0.1alpha1* Styling and visual changes
+		*12.0.13* FREEPBX-7508 Invalid character for extension
+		*12.0.12* FREEPBX-6273 Add depends, remove requirements regression
+		*12.0.11* FREEPBX-8796 Generate default paging if no page groups
+		*12.0.10* FREEPBX-8622 Move answer to after the page agi so that we get all devices into the conference first
+		*12.0.9* FREEPBX-8474 Remove duplicate includes from context
+		*12.0.8.1* Add option to force paging through to in-use devices.
+		*12.0.7* Add skeleton support for Multicast RTP
+		*12.0.6* Fix regression where paging wouldn't work with Asterisk 1.8
+		*12.0.5* Changing the announcement would break auto answer.
+		*12.0.4* Auto-Answer fixes for PJSip and chan_sip
+		*12.0.3* Redo module_hook calls to use static obj
+		*12.0.2* Fix Radio button grouping
+		*12.0.1alpha2* #7112 - Ensure calls are recorded if required.
+		*12.0.1alpha1* Initial Support for PJSip
+	</changelog>
+	<depends>
+		<version>13.0.191.12</version>
+		<module>core ge 13.0.86</module>
+		<module>framework ge 14.0.2.16</module>
+		<module>conferences</module>
+	</depends>
+	<description>Allows creation of paging groups to make announcements using the speaker built into most SIP phones.
+		Also creates an Intercom feature code that can be used as a prefix to talk directly to one person, as well as optional feature codes to block/allow intercom calls to all users as well as blocking specific users or only allowing specific users.
+	</description>
+  	<more-info>https://wiki.freepbx.org/display/F2/Paging+and+Intercom+Module</more-info>
+	<database>
+        <table name="paging_core_routing">
+            <field name="route" type="string" length="25" default="" primaryKey="true"/>
+            <field name="page_id" type="string" length="50" notnull="false"/>
+        </table>
+	</database>
+	<menuitems>
+		<paging needsenginedb="yes">Paging and Intercom</paging>
+	</menuitems>
+	<popovers>
+		<paging>
+			<display>paging</display>
+			<view>form</view>
+			<action>add</action>
+		</paging>
+	</popovers>
+	<location>release/2.11/paging-2.11.0.7.tgz</location>
+	<md5sum>0a800b7068ce596aeff11247d09cba18</md5sum>
+	<supported>
+		<version>14.0</version>
+	</supported>
+    <methods>
+        <get_config pri="600">paging600_get_config</get_config>
+    </methods>
+</module>

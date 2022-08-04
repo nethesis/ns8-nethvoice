@@ -1,0 +1,54 @@
+<module>
+	<rawname>customappsreg</rawname>
+	<repo>standard</repo>
+	<name>Custom Applications</name>
+	<version>13.0.5.7</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<category>Admin</category>
+	<description>
+		Registry to add custom extensions and destinations that may be created and used so that the Extensions and Destinations Registry can include these.
+	</description>
+	<menuitems>
+		<customextens needsenginedb="yes">Custom Extensions</customextens>
+		<customdests needsenginedb="yes">Custom Destinations</customdests>
+	</menuitems>
+	<popovers>
+		<customappsreg>
+			<display>customdests</display>
+		</customappsreg>
+ 	</popovers>
+	<changelog>
+		*13.0.5.7* Fixing FREEPBX-17867 
+		*13.0.5.6* FREEPBX-18915 After editing a Custom Extension entry, page is not redirecting to list Custom Extensions page 
+		*13.0.5.5* FREEPBX-15555 Exception Asterisk is not connected error in some modules listed in description 
+		*13.0.5.4* FREEPBX-15468 Reset button under Custom Destination is broken. 
+		*13.0.5.3* FREEPBX-16230 Cannot edit neither delete custom extensions 
+		*13.0.5.2* FREEPBX-15473 FREEPBX-15467
+		*13.0.5.1* FREEPBX-14599 :Using a amper character in a Custom Destination dial string
+		*13.0.5* FREEPBX-11659 Custom Destination does not handle gosub args properly
+		*13.0.4.3* Add sliding bootnav
+		*13.0.4.3* FREEPBX-10209 htmlentities need to use UTF-8
+		*13.0.4.2* FREEPBX-9874 - fix variable names
+		*13.0.4.1* Import from 12
+		*13.0.3* FREEPBX-9668 Multiple issues with Custom Extensions
+		*13.0.2* Version bump Beta
+		*13.0.1* Visual Changes
+		*12.0.2* FREEPBX-9234 Escape out the exception
+		*12.0.1* Add advanced 'Return' function.
+		*2.11.0.2* Add license info
+		*2.11.0.1* Custom Application Popover Allowance
+		*2.11.0.0* #6051
+		*2.10.0.1* #5478
+		*2.10.0.0* new version changes
+	</changelog>
+  <depends>
+    <version>12.0.54</version>
+  </depends>
+  <location/>
+  <md5sum/>
+  <supported>
+    <version>13.0</version>
+  </supported>
+</module>

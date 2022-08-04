@@ -1,0 +1,54 @@
+{
+  "data": {
+    "name": "Alcatel Temporis",
+    "id": "1",
+    "directory": "temporis",
+    "firmware_ver": 1395185757,
+    "firmware_pkg": "temporis_firmware.tgz",
+    "firmware_md5sum": "ad32f8f0ec85d3de2a4426b66bb3c484",
+    "description": "Make more configuration settings available from UI",
+    "configuration_files": "Temporis_$model_$mac.cfg",
+    "changelog": "",
+    "provisioning_types": [
+      "tftp",
+      "http"
+    ],
+    "model_list": [{
+        "model": "IP150",
+        "lines": "2",
+        "id": "1",
+        "template_data": [
+          "template_data.json",
+          "line_keys_150.json"
+        ]
+      },
+      {
+        "model": "IP301G",
+        "lines": "3",
+        "id": "2",
+        "template_data": [
+          "template_data.json",
+          "line_keys_301.json"
+        ]
+      },
+      {
+        "model": "IP701G",
+        "lines": "6",
+        "id": "3",
+        "template_data": [
+          "template_data.json",
+          "line_keys_701.json"
+        ]
+      },
+      {
+        "model": "IP251G",
+        "lines": "2",
+        "id": "4",
+        "template_data": [
+          "template_data.json",
+          "line_keys_251.json"
+        ]
+      }
+    ]
+  }
+}

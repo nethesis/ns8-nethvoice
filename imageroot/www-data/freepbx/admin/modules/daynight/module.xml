@@ -1,0 +1,46 @@
+<module>
+	<rawname>daynight</rawname>
+	<repo>standard</repo>
+	<name>Call Flow Control</name>
+	<version>14.0.1</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<category>Applications</category>
+	<description>
+		Call Flow manual toggle control - allows for two destinations to be chosen and provides a feature code
+		that toggles between the two destinations.
+	</description>
+	<changelog>
+		*14.0.1* Migrate database calls into xml
+	</changelog>
+	<depends>
+		<version>14.0</version>
+	</depends>
+	<menuitems>
+		<daynight needsenginedb="yes">Call Flow Control</daynight>
+	</menuitems>
+	<popovers>
+		<daynight>
+			<display>daynight</display>
+			<view>form</view>
+		</daynight>
+	</popovers>
+	<database>
+		<table name="daynight">
+			<field name="ext" type="string" length="10" default="" primarykey="true"/>
+			<field name="dmode" type="string" length="40" default="" primarykey="true"/>
+			<field name="dest" type="string" length="190" default="" primarykey="true"/>
+		</table>
+	</database>
+	<hooks>
+		<timeconditions namespace="FreePBX\modules" class="Timeconditions">
+			<method namespace="FreePBX\Modules" class="Daynight" callingMethod="addTimeCondition">tcAdd</method>
+			<method namespace="FreePBX\Modules" class="Daynight" callingMethod="editTimeCondition">tcAdd</method>
+			<method namespace="FreePBX\Modules" class="Daynight" callingMethod="delTimeCondition">tcDelete</method>
+		</timeconditions>
+	</hooks>
+	<supported>
+		<version>14.0</version>
+	</supported>
+</module>

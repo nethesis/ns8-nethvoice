@@ -1,0 +1,204 @@
+cli version 3.20
+clock local offset +02:00
+webserver port 80 language en
+sntp-client
+sntp-client server primary ASTERISKIP port 123 version 4
+
+system
+  ic voice 0
+    low-bitrate-codec g729
+
+profile napt NAPT_WAN
+
+profile ppp default
+
+profile call-progress-tone IT_Dialtone
+  play 1 200 425 -12
+  pause 2 200
+  play 3 600 425 -12
+  pause 4 1000
+
+profile call-progress-tone IT_Alertingtone
+  play 1 1000 425 -12
+  pause 2 4000
+
+profile call-progress-tone IT_Busytone
+  play 1 500 425 -12
+  pause 2 500
+
+profile call-progress-tone IT_Congestion
+  play 1 250 425 -12
+  pause 2 250
+
+profile tone-set default
+  map call-progress-tone dial-tone IT_Dialtone
+  map call-progress-tone ringback-tone IT_Alertingtone
+  map call-progress-tone busy-tone IT_Busytone
+  map call-progress-tone release-tone IT_Busytone
+  map call-progress-tone congestion-tone IT_Congestion
+
+profile voip default
+  codec 1 g711alaw64k rx-length 20 tx-length 20
+  codec 2 g711ulaw64k rx-length 20 tx-length 20
+
+profile pstn default
+
+profile sip default
+  map cause to-sip user-busy to 502
+
+profile aaa default
+  method 1 local
+  method 2 none
+
+profile provisioning PF_PROVISIONING_CONFIG
+  destination configuration
+  location 1 tftp://ASTERISKIP/$(system.mac).cfg
+  location 2 tftp://$(dhcp.66)/$(system.mac).cfg
+  activation reload immediate
+
+context ip router
+
+  interface eth0
+    ipaddress GATEWAYIP NETMASK
+    tcp adjust-mss rx mtu
+    tcp adjust-mss tx mtu
+
+context ip router
+  route 0.0.0.0 0.0.0.0 DEFGATEWAY 0
+
+context cs switch
+  national-prefix 0
+  international-prefix 00
+
+  routing-table called-e164 from_if_fxo-00
+    route default dest-interface IF_VOIP_ASTERISK FXO_00
+
+  routing-table called-e164 from_if_fxo-01
+    route default dest-interface IF_VOIP_ASTERISK2 FXO_01
+
+  routing-table called-e164 to_fxo
+    route TRUNKNUMBER1.% dest-service OUTSERV0 cutpref
+    route TRUNKNUMBER2.% dest-service OUTSERV1 cutpref
+
+  mapping-table called-e164 to called-e164 FXO_00
+    map default to LINENUMBER1
+
+  mapping-table called-e164 to called-e164 FXO_01
+    map default to LINENUMBER2
+
+  mapping-table called-e164 to called-e164 cutpref
+    map TRUNKNUMBER1(.%) to \1
+    map TRUNKNUMBER2(.%) to \1
+
+  interface sip IF_VOIP_ASTERISK
+    bind context sip-gateway ASTERISK
+    route call dest-table to_fxo
+    remote ASTERISKIP 5060
+    early-disconnect
+
+  interface sip IF_VOIP_ASTERISK2
+    bind context sip-gateway ASTERISK2
+    route call dest-table to_fxo
+    remote ASTERISKIP 5060
+    early-disconnect
+
+  interface fxo fxo-00
+    route call dest-table from_if_fxo-00
+    disconnect-signal loop-break
+    disconnect-signal busy-tone
+    disconnect-signal battery-reversal
+    ring-number on-caller-id
+    dial-after timeout 1
+    mute-dialing
+
+  interface fxo fxo-01
+    route call dest-table from_if_fxo-01
+    disconnect-signal loop-break
+    disconnect-signal busy-tone
+    disconnect-signal battery-reversal
+    ring-number on-caller-id
+    dial-after timeout 1
+    mute-dialing
+
+  service hunt-group OUTSERV0
+    drop-cause normal-unspecified
+    drop-cause no-circuit-channel-available
+    drop-cause network-out-of-order
+    drop-cause temporary-failure
+    drop-cause switching-equipment-congestion
+    drop-cause access-info-discarded
+    drop-cause circuit-channel-not-available
+    drop-cause resources-unavailable
+    drop-cause user-busy
+    route call 1 dest-interface fxo-00
+
+  service hunt-group OUTSERV1
+    drop-cause normal-unspecified
+    drop-cause no-circuit-channel-available
+    drop-cause network-out-of-order
+    drop-cause temporary-failure
+    drop-cause switching-equipment-congestion
+    drop-cause access-info-discarded
+    drop-cause circuit-channel-not-available
+    drop-cause resources-unavailable
+    drop-cause user-busy
+    route call 1 dest-interface fxo-01
+
+context cs switch
+  no shutdown
+
+authentication-service AUTH_TRAIN
+  username TRUNKNUMBER1 password TRUNKSECRET1
+  username TRUNKNUMBER2 password TRUNKSECRET2
+
+location-service LOC_SERV_TRAIN
+  domain 1 ASTERISKIP
+
+  identity TRUNKNUMBER1
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_TRAIN username TRUNKNUMBER1
+
+location-service LOC_SERV_TRAIN2
+  domain 1 ASTERISKIP
+
+  identity TRUNKNUMBER2
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_TRAIN username TRUNKNUMBER2
+
+context sip-gateway ASTERISK
+
+  interface IF_GW_SIP_TRAIN
+    bind interface eth0 context router port 5060
+
+context sip-gateway ASTERISK
+  bind location-service LOC_SERV_TRAIN
+  no shutdown
+
+context sip-gateway ASTERISK2
+
+  interface IF_GW_SIP_TRAIN2
+    bind interface eth0 context router port 5062
+
+context sip-gateway ASTERISK2
+  bind location-service LOC_SERV_TRAIN2
+  no shutdown
+
+port ethernet 0 0
+  medium auto
+  encapsulation ip
+  bind interface eth0 router
+  no shutdown
+
+port fxo 0 0
+  encapsulation cc-fxo
+  bind interface fxo-00 switch
+  no shutdown
+
+port fxo 0 1
+  encapsulation cc-fxo
+  bind interface fxo-01 switch
+  no shutdown
+
+

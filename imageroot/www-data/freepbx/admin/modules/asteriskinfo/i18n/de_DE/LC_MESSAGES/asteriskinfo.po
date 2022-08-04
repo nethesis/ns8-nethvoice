@@ -1,0 +1,263 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for asteriskinfo
+# Copyright (C) 2008-2016 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-07-18 17:20-0400\n"
+"PO-Revision-Date: 2017-03-06 01:57+0200\n"
+"Last-Translator: hammer125 <auswertung@aon.at>\n"
+"Language-Team: German <http://weblate.freepbx.org/projects/freepbx/"
+"asteriskinfo/de_DE/>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: de_DE\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: page.asteriskinfo.php:31
+msgid "Active Channel(s)"
+msgstr "Aktive Kanäle"
+
+#: Asteriskinfo.class.php:46
+msgid "Active IAX2 Channel(s): "
+msgstr "Aktive IAX2 Kanäle: "
+
+#: Asteriskinfo.class.php:42
+msgid "Active PJSIP Channel(s): "
+msgstr "Aktive PJSIP Kanäle: "
+
+#: Asteriskinfo.class.php:38
+msgid "Active SIP Channel(s): "
+msgstr "Aktive SIP Kanäle: "
+
+#: asteriskinfo.i18n.php:4 asteriskinfo.i18n.php:10 page.asteriskinfo.php:277
+msgid "Asterisk Info"
+msgstr "Asterisk Informationen"
+
+#: page.asteriskinfo.php:11
+msgid "Asterisk doesn't appear to be running"
+msgstr ""
+
+#: Asteriskinfo.class.php:150
+msgid "Available: "
+msgstr "Verfügbar: "
+
+#: page.asteriskinfo.php:33
+msgid "Chan_PJSip Channel(s)"
+msgstr "PJSIP Kanäle"
+
+#: page.asteriskinfo.php:43
+msgid "Chan_PJSip Endpoints"
+msgstr "PJSIP Endpoints"
+
+#: page.asteriskinfo.php:23
+msgid "Chan_PJSip Info"
+msgstr "PJSIP Informationen"
+
+#: page.asteriskinfo.php:37
+msgid "Chan_PJSip Registrations"
+msgstr "PJSIP Registrierungen"
+
+#: page.asteriskinfo.php:38
+msgid "Chan_PJSip Transports"
+msgstr ""
+
+#: page.asteriskinfo.php:32
+msgid "Chan_Sip Channel(s)"
+msgstr "SIP Kanäle"
+
+#: page.asteriskinfo.php:22
+msgid "Chan_Sip Info"
+msgstr "SIP Informationen"
+
+#: page.asteriskinfo.php:42
+msgid "Chan_Sip Peers"
+msgstr "SIP Peers"
+
+#: page.asteriskinfo.php:36
+msgid "Chan_Sip Registry"
+msgstr "SIP Registrierung"
+
+#: page.asteriskinfo.php:20
+msgid "Channels"
+msgstr "Kanäle"
+
+#: page.asteriskinfo.php:49
+msgid "Conference Bridge Info"
+msgstr ""
+
+#: page.asteriskinfo.php:25
+msgid "Conferences"
+msgstr "Konferenzen"
+
+#: page.asteriskinfo.php:280
+msgid "Current Asterisk Version:"
+msgstr "Aktuelle Asterisk Version:"
+
+#: page.asteriskinfo.php:46
+msgid "DAHDi Channels"
+msgstr "DAHDi Kanäle"
+
+#: page.asteriskinfo.php:28
+msgid "Dahdi"
+msgstr "Dahdi"
+
+#: page.asteriskinfo.php:47
+msgid "Dahdi PRI Spans"
+msgstr ""
+
+#: page.asteriskinfo.php:29
+msgid "Full Report"
+msgstr "Vollständiger Bericht"
+
+#: page.asteriskinfo.php:52
+msgid "Google Talk Channels"
+msgstr "Google Sprachkanäle"
+
+#: page.asteriskinfo.php:24
+msgid "IAX Info"
+msgstr "IAX Information"
+
+#: page.asteriskinfo.php:34
+msgid "IAX2 Channel(s)"
+msgstr "IAX2 Kanäle"
+
+#: page.asteriskinfo.php:35
+msgid "IAX2 Peers"
+msgstr ""
+
+#: Asteriskinfo.class.php:48
+msgid "IAX2 Peers: "
+msgstr ""
+
+#: page.asteriskinfo.php:44
+msgid "IAX2 Registry"
+msgstr "IAX2 Registrierung"
+
+#: Asteriskinfo.class.php:47
+msgid "IAX2 Registry: "
+msgstr "IAX2 Registrierung: "
+
+#: page.asteriskinfo.php:53
+msgid "Jabber Connections"
+msgstr "Jabber Verbindungen"
+
+#: page.asteriskinfo.php:48
+msgid "MeetMe Conference Info"
+msgstr ""
+
+#: page.asteriskinfo.php:54
+msgid "Motif Connections"
+msgstr "Motiv-Verbindungen"
+
+#: Asteriskinfo.class.php:140
+msgid "Offline-Unmonitored: "
+msgstr "Offline-Nicht überwacht: "
+
+#: Asteriskinfo.class.php:140 Asteriskinfo.class.php:162
+msgid "Offline: "
+msgstr "Offline: "
+
+#: Asteriskinfo.class.php:139
+msgid "Online-Unmonitored: "
+msgstr "Online-Nicht überwacht: "
+
+#: Asteriskinfo.class.php:139 Asteriskinfo.class.php:162
+msgid "Online: "
+msgstr "Online: "
+
+#: Asteriskinfo.class.php:44
+msgid "PJSip Endpoints: "
+msgstr "PJSIP Endpoints: "
+
+#: Asteriskinfo.class.php:43
+msgid "PJSip Registrations: "
+msgstr "PJSIP Registrierungen: "
+
+#: page.asteriskinfo.php:21
+msgid "Peers"
+msgstr ""
+
+#: asteriskinfo.i18n.php:8
+msgid "Provides a snapshot of the current Asterisk configuration"
+msgstr "Liefert eine Momentaufnahme der aktuellen Asterisk-Konfiguration"
+
+#: page.asteriskinfo.php:26
+msgid "Queues"
+msgstr "Warteschlangen"
+
+#: page.asteriskinfo.php:50
+msgid "Queues Info"
+msgstr "Warteschlangeninformation"
+
+#: page.asteriskinfo.php:19
+msgid "Registries"
+msgstr "Registrierungen"
+
+#: asteriskinfo.i18n.php:6
+msgid "Reports"
+msgstr "Berichte"
+
+#: Asteriskinfo.class.php:40
+msgid "Sip Peers: "
+msgstr ""
+
+#: Asteriskinfo.class.php:39
+msgid "Sip Registry: "
+msgstr "SIP Registrierung: "
+
+#: page.asteriskinfo.php:45
+msgid "Subscribe/Notify"
+msgstr "Abonnieren/Benachrichtigen"
+
+#: page.asteriskinfo.php:27
+msgid "Subscriptions"
+msgstr "Abonnements"
+
+#: page.asteriskinfo.php:18 page.asteriskinfo.php:289
+msgid "Summary"
+msgstr "Zusammenfassung"
+
+#: page.asteriskinfo.php:186
+msgid ""
+"The module was unable to connect to the Asterisk manager.<br>Make sure "
+"Asterisk is running and your manager.conf settings are proper.<br><br>"
+msgstr ""
+"Das Modul konnte keine Verbindung zum Asterisk-Manager herstellen. <br> "
+"Stellen Sie sicher, dass Asterisk ausgeführt wird und Ihre manager.conf "
+"Einstellungen korrekt sind.<br>"
+
+#: page.asteriskinfo.php:279
+msgid "This page supplies various information about Asterisk"
+msgstr "Diese Seite liefert verschiedene Informationen über Asterisk"
+
+#: Asteriskinfo.class.php:151
+msgid "Unavailable: "
+msgstr "Nicht Verfügbar: "
+
+#: Asteriskinfo.class.php:151
+msgid "Unknown: "
+msgstr "Unbekannt: "
+
+#: Asteriskinfo.class.php:162
+msgid "Unmonitored: "
+msgstr "Nicht überwacht: "
+
+#: page.asteriskinfo.php:30
+msgid "Uptime"
+msgstr "Betriebszeit"
+
+#: Asteriskinfo.class.php:37
+msgid "Uptime: "
+msgstr "Betriebszeit: "
+
+#: page.asteriskinfo.php:51
+msgid "Voicemail Users"
+msgstr "Benutzernachrichten"

@@ -1,0 +1,60 @@
+@CHARSET "ISO-8859-1";
+
+/*
+#epm_config div.sortable
+{
+	background: transparent;
+	
+	border-top-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 1px;
+	border-left-width: 1px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	border-top-color: #00dddd;
+	border-right-color: #00dddd;
+	border-bottom-color: #00dddd;
+	border-left-color: #00dddd;
+	border-image-source: none;
+	border-image-slice: 100% 100% 100% 100%;
+	border-image-width: 1 1 1 1;
+	border-image-outset: 0 0 0 0;
+	border-image-repeat: stretch stretch;
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+	border-bottom-right-radius: 4px;
+	border-bottom-left-radius: 4px;
+	
+	padding-top: 0px;
+	padding-right: 0px;
+	padding-bottom: 0px;
+	padding-left: 0px;
+	
+	margin-top: 15px;
+	margin-bottom: 15px;
+	margin-right: 10px;
+	
+	box-shadow: 4px 4px 2px #00dddd;
+   -webkit-box-shadow: 4px 4px 2px #00dddd;
+   -moz-box-shadow: 4px 4px 2px #00dddd;
+}
+*/
+
+#moduledialogwrapper p {
+	padding: 0px;
+	font-weight: bold;	
+}
+
+#moduledialogwrapper p.error {
+	color: red;
+}
+
+#moduledialogwrapper p.done {
+	color: green;
+}
+
+#moduledialogwrapper p.txt {
+	font-weight: normal;
+}

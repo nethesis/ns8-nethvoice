@@ -1,0 +1,300 @@
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright (C) 2008, 2009 Francesco Romano <francesco.romano@alteclab.it>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 2.5\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-03-28 07:39+0530\n"
+"PO-Revision-Date: 2018-05-29 09:26+0000\n"
+"Last-Translator: Stell0 <stefano.fancello@nethesis.it>\n"
+"Language-Team: Italian <http://*/projects/freepbx/disa/it/>\n"
+"Language: it_IT\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.19.1\n"
+"X-Poedit-Language: Italian\n"
+"X-Poedit-Country: ITALY\n"
+
+#: views/form.php:248
+msgid ""
+"(Experts Only) Sets the context that calls will originate from. Leave this "
+"as from-internal unless you know what you're doing."
+msgstr ""
+"(Solo Esperti) Impostare il contesto da cui partiranno le chiamate. Lasciare "
+"questo su 'from-internal' se non si è sicuri."
+
+#: views/form.php:224
+msgid ""
+"(Optional) When using this DISA, the users CallerID will be set to this. "
+"Format is \"User Name\" <5551234>"
+msgstr ""
+"(Opzionale) Quando viene utilizzato il DISA, l'utente avrà questo ID "
+"Chiamante. Il Formato è \"Nome Utente\" <5551234>"
+
+#: views/grid.php:11
+msgid "Actions"
+msgstr "Azioni"
+
+#: views/bootnav.php:5 views/form.php:20 views/grid.php:5
+msgid "Add DISA"
+msgstr "Aggiunta DISA"
+
+#: views/form.php:260
+msgid "Allow Hangup"
+msgstr "Permetti Riaggancio"
+
+#: views/form.php:275
+#, php-format
+msgid ""
+"Allow the current call to be disconnected and dial tone presented for a new "
+"call by pressing the Hangup feature code: %s while in a call"
+msgstr ""
+"Permette alla chiamata corrente di essere disconnessa e ripresentare il tono "
+"di libero per effettuare una nuova chiamata premendo durante la chiamata il "
+"Codice Servizio di Riaggancio: %s"
+
+#: disa.i18n.php:6
+msgid "Applications"
+msgstr "Applicazioni"
+
+#: views/form.php:161
+msgid "Call Recording"
+msgstr "Registrazione chiamata"
+
+#: views/form.php:212
+msgid "Caller ID"
+msgstr "ID Chiamante"
+
+#: views/form.php:287
+msgid "Caller ID Override"
+msgstr "Override ID chiamante"
+
+#: views/form.php:236
+msgid "Context"
+msgstr "Contesto"
+
+#: views/form.php:318
+msgid "Context cannot be blank"
+msgstr "Il contesto non può essere lasciato vuoto"
+
+#: disa.i18n.php:4 /usr/src/freepbx/disa/disa.i18n.php:10 page.disa.php:21
+#: views/bootnav.php:17 views/form.php:6 views/grid.php:10
+msgid "DISA"
+msgstr "DISA"
+
+#: disa.i18n.php:8
+msgid ""
+"DISA Allows you 'Direct Inward System Access'. This gives you the ability to "
+"have an option on an IVR that gives you a dial tone, and you're able to dial "
+"out from the FreePBX machine as if you were connected to a standard "
+"extension. It appears as a Destination."
+msgstr ""
+"DISA Ti consente \"Accesso diretto al sistema in entrata\". Questo ti dà la "
+"possibilità di avere un'opzione su un IVR che ti dà un segnale di linea, e "
+"sei in grado di chiamare dal dispositivo FreePBX come se fossi connesso a "
+"un'estensione standard. Appare come una destinazione."
+
+#: views/bootnav.php:6
+msgid "DISA List"
+msgstr "Lista DISA"
+
+#: views/form.php:59
+msgid "DISA Name"
+msgstr "Nome DISA"
+
+#: views/form.php:319
+msgid "DISA Name Duplicate"
+msgstr ""
+
+#: page.disa.php:18
+msgid ""
+"DISA is used to allow people from the outside world to call into your PBX "
+"and then be able to dial out of the PBX so it appears that their call is "
+"coming from the office which can be handy when traveling. You can set a "
+"destination in an IVR that points to the DISA or set a DID. Make sure you "
+"password protect this to keep people from dialing in and using your PBX to "
+"make calls out."
+msgstr ""
+"DISA viene utilizzato per consentire alle persone provenienti dal mondo "
+"esterno di chiamare nel proprio PBX e quindi essere in grado di chiamare dal "
+"PBX in modo che appaia che la loro chiamata proviene dall'ufficio e che può "
+"essere utile quando si viaggia. È possibile impostare una destinazione in un "
+"IVR che punta al DISA o impostare un DID. Assicurati di proteggere con "
+"password questo per impedire alle persone di effettuare chiamate e "
+"utilizzare il PBX per effettuare chiamate."
+
+#: Disa.class.php:222 functions.inc.php:41
+#, php-format
+msgid "DISA: %s"
+msgstr "DISA: %s"
+
+#: Disa.class.php:57
+msgid "Delete"
+msgstr "Elimina"
+
+#: views/form.php:302
+msgid ""
+"Determine if we keep the Caller ID being presented or if we override it. "
+"Default is No"
+msgstr ""
+"Determina se teniamo presente l'ID chiamante o se lo sostituiamo. "
+"L'impostazione predefinita è No"
+
+#: views/form.php:134
+msgid "Digit Timeout"
+msgstr "Timeout Digitazione"
+
+#: views/form.php:34
+msgid "Don't Care"
+msgstr "Non importa"
+
+#: views/form.php:34
+msgid "Force"
+msgstr "Forza"
+
+#: views/form.php:71
+msgid "Give this DISA a brief name to help you identify it."
+msgstr "Dare al DISA un nome breve per una facile identificazione."
+
+#: views/form.php:302
+msgid "If you choose Yes the disa will pass the caller id set above."
+msgstr "Se si sceglie Sì, la disa passerà l'id del chiamante sopra impostato."
+
+#: views/form.php:95
+msgid "If you wish to have multiple PIN's, separate them with commas"
+msgstr "Si possono anche inserire più PIN, da separare con le virgole"
+
+#: views/form.php:34
+msgid "Never"
+msgstr "Mai"
+
+#: views/form.php:34 views/form.php:192 views/form.php:267 views/form.php:294
+msgid "No"
+msgstr "No"
+
+#: views/form.php:83
+msgid "PIN"
+msgstr "PIN"
+
+#: views/form.php:317
+msgid "Please enter a valid Caller ID or leave it blank"
+msgstr "Prego immettere un ID Chiamante valido o lasciare vuoto"
+
+#: views/form.php:315
+msgid "Please enter a valid DISA Name"
+msgstr "Prego immettere un Nome DISA valido"
+
+#: views/form.php:316
+msgid "Please enter a valid DISA PIN"
+msgstr "Prego immettere un PIN valido"
+
+#: views/form.php:173
+msgid "Record calls that use this DISA"
+msgstr "Registrare le chiamate che utilizzano questo DISA"
+
+#: views/form.php:185
+msgid "Require Confirmation"
+msgstr "Richiedi Conferma"
+
+#: Disa.class.php:62
+msgid "Reset"
+msgstr "Azzerare"
+
+#: views/form.php:107
+msgid "Response Timeout"
+msgstr "Timeout Risposta"
+
+#: views/form.php:113 views/form.php:140
+msgid "Seconds"
+msgstr "Secondi"
+
+#: Disa.class.php:67
+msgid "Submit"
+msgstr "Sottoscrivi"
+
+#: views/form.php:334
+msgid "The DISA Name provided is too long."
+msgstr "Il nome DISA fornito è troppo lungo."
+
+#: views/form.php:122
+msgid ""
+"The maximum amount of time it will wait before hanging up if the user has "
+"dialed an incomplete or invalid number. Default of 10 seconds"
+msgstr ""
+"Il tempo massimo che il sistema attende prima di riagganciare se un utente "
+"ha digitato un numero incompleto o sbagliato. Predefinito è 10 secondi."
+
+#: views/form.php:149
+msgid ""
+"The maximum amount of time permitted between digits when the user is typing "
+"in an extension. Default of 5 seconds"
+msgstr ""
+"Il tempo massimo consentito tra le cifre quando l'utente sta digitando "
+"un'estensione. Predefinito di 5 secondi"
+
+#: views/form.php:95
+msgid "The user will be prompted for this number."
+msgstr "All'utente sarà richiesto questo numero."
+
+#: views/form.php:34 views/form.php:190 views/form.php:265 views/form.php:292
+msgid "Yes"
+msgstr "Si"
+
+#: views/form.php:200
+msgid ""
+"equire Confirmation before prompting for password. Used when your PSTN "
+"connection appears to answer the call immediately"
+msgstr ""
+"richiede la conferma prima di richiedere la password. Utilizzato quando la "
+"connessione PSTN sembra rispondere immediatamente alla chiamata"
+
+#~ msgid "DISA name:"
+#~ msgstr "Nome DISA:"
+
+#~ msgid "Delete DISA %s"
+#~ msgstr "Elimina DISA %s"
+
+#~ msgid "Edit DISA"
+#~ msgstr "Modifica DISA"
+
+#~ msgid ""
+#~ "Require Confirmation before prompting for password. Used when your PSTN "
+#~ "connection appears to answer the call immediately"
+#~ msgstr ""
+#~ "Richiede Conferma prima della password. E' utilizzato quando la propria "
+#~ "connessione PSTN sembra rispondere immediatamente alla chiamata."
+
+#~ msgid "Submit Changes"
+#~ msgstr "Conferma Cambiamenti"
+
+#~ msgid ""
+#~ "The maximum amount of time permitted between digits when the user is "
+#~ "typing in an extension. Default of 5"
+#~ msgstr ""
+#~ "Il tempo massimo tra una digitazione e l'altra. Predefinito è 5 secondi."
+
+#~ msgid "deleted"
+#~ msgstr "eliminato"
+
+#~ msgid "Add"
+#~ msgstr "Aggiungi"
+
+#~ msgid "Used as Destination by %s %s"
+#~ msgstr "Usato come Destinazione da %s %s"

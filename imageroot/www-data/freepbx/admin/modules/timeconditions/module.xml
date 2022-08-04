@@ -1,0 +1,88 @@
+<module>
+	<rawname>timeconditions</rawname>
+	<repo>standard</repo>
+	<name>Time Conditions</name>
+	<version>14.0.2.17</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<category>Applications</category>
+	<description>
+		Creates a condition where calls will go to one of two destinations (eg, an extension, IVR, ring group..) based on the time and/or date. This can be used for example to ring a receptionist during the day, or go directly to an IVR at night.
+	</description>
+	<changelog>
+		*14.0.2.17* FREEPBX-18838 Time Condition allows to add the entry without Destination matches and/or Destination non-matches when the Time Group or Calendar is empty. 
+		*14.0.2.16* Fix always adding cronjobs, update to work against FREEPBX-17403
+		*14.0.2.15* Packaging of ver 14.0.2.15
+		*14.0.2.14* FREEPBX-17552 Wrong URL's in Used as Destination
+		*14.0.2.13* FREEPBX-17083
+		*14.0.2.12* FREEPBX-16710 Fix issue with the link Time Group
+		*14.0.2.11* FREEPBX-16483 dont allow default as a timezone
+		*14.0.2.10* FREEPBX-16490 Inbound Routes -&amp;gt; Time conditions going to main page not actual time condition
+		*14.0.2.9* FREEPBX-15663 add ability to duplicate time conditions and simplify code
+		*14.0.2.8* FREEPBX-15287
+		*14.0.2.7* FREEPBX-14922 Catch exceptions on calendar calls for deleted calendars
+		*14.0.2.6* FREEPBX-14892 Able to create Duplicate Time Conditions with same Time Condition name
+		*14.0.2.5* add init array because Undefined variable
+		*14.0.2.4* FREEPBX-14892 FREEPBX-14893
+		*14.0.2.3* More debug from time groups
+		*14.0.2.2* Merge from 13
+		*14.0.2.1* Add more calendar control and let calendars modify blfs
+		*14.0.1.2* FREEPBX-13950 require calendar module
+		*14.0.1* Merge from 13
+		*14.0.1alpha1* Inital Release
+	</changelog>
+	<depends>
+		<version>13.0.74</version>
+		<module>cel ge 13.0.18</module>
+		<module>calendar ge 14.0.2.7</module>
+	</depends>
+	<menuitems>
+		<timeconditions needsenginedb="yes">Time Conditions</timeconditions>
+		<timegroups needsenginedb="yes">Time Groups</timegroups>
+	</menuitems>
+	<hooks>
+		<framework namespace="FreePBX\Console\Command" class="Chown">
+			<method namespace="FreePBX\modules" class="Timeconditions" callingMethod="fwcChownFiles">chownFreepbx</method>
+		</framework>
+	</hooks>
+	<database>
+		<table name="timeconditions">
+			<field name="timeconditions_id" type="integer" primaryKey="true" autoincrement="true"/>
+			<field name="displayname" type="string" length="50" notnull="false"/>
+			<field name="time" type="integer" notnull="false"/>
+			<field name="truegoto" type="string" length="50" notnull="false"/>
+			<field name="falsegoto" type="string" length="50" notnull="false"/>
+			<field name="deptname" type="string" length="50" notnull="false"/>
+			<field name="generate_hint" type="boolean" default="0" notnull="false"/>
+			<field name="invert_hint" type="boolean" default="0" notnull="false"/>
+			<field name="fcc_password" type="string" length="20" default="" notnull="false"/>
+			<field name="priority" type="string" length="50" notnull="false"/>
+			<field name="timezone" type="string" length="255" notnull="false"/>
+			<field name="mode" type="string" length="20" default="time-group" notnull="false"/>
+			<field name="calendar_id" type="string" length="150" notnull="false"/>
+			<field name="calendar_group_id" type="string" length="150" notnull="false"/>
+		</table>
+		<table name="timegroups_groups">
+			<field name="id" type="integer" primaryKey="true" autoincrement="true"/>
+			<field name="description" type="string" length="50" default=""/>
+			<key name="display" type="unique">
+				<column name="description"/>
+			</key>
+		</table>
+		<table name="timegroups_details">
+			<field name="id" type="integer" primaryKey="true" autoincrement="true"/>
+			<field name="timegroupid" type="integer" default="0"/>
+			<field name="time" type="string" length="100" default=""/>
+		</table>
+	</database>
+	<popovers>
+		<timeconditions>
+			<display>timeconditions</display>
+			<view>form</view>
+		</timeconditions>
+	</popovers>
+	<supported>
+		<version>14.0</version>
+	</supported>
+</module>

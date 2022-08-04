@@ -1,0 +1,259 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for announcement
+# Copyright (C) 2008-2016 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-12-31 12:25+0530\n"
+"PO-Revision-Date: 2018-10-19 13:00+0000\n"
+"Last-Translator: Bastian Mertgen <b.mertgen@bastian-mertgen.de>\n"
+"Language-Team: German <http://*/projects/freepbx/announcement/de/>\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 3.0.1\n"
+
+#: page.announcement.php:17
+msgid ": Add"
+msgstr ": Hinzufügen"
+
+#: page.announcement.php:14
+msgid ": Edit"
+msgstr ": Bearbeiten"
+
+#: views/grid.php:18
+msgid "Actions"
+msgstr "Aktionen"
+
+#: views/grid.php:11
+msgid "Add"
+msgstr "Hinzufügen"
+
+#: views/rnav.php:3
+msgid "Add Announcements"
+msgstr "Ansagen hinzufügen"
+
+#: views/form.php:142
+msgid "Allow Skip"
+msgstr "Überspringen zulassen"
+
+#: page.announcement.php:7
+msgid "Announcement"
+msgstr "Ansage"
+
+#: assets/js/announcement.js:16
+msgid "Announcement Description Already Exist"
+msgstr ""
+
+#: functions.inc.php:31 functions.inc.php:51 functions.inc.php:226
+#, php-format
+msgid "Announcement: %s"
+msgstr "Ansage: %s"
+
+#: announcement.i18n.php:4 announcement.i18n.php:10
+msgid "Announcements"
+msgstr "Ansagen"
+
+#: announcement.i18n.php:6
+msgid "Applications"
+msgstr "Anwendungen"
+
+#: install.php:90
+msgid "Checking if recordings need migration.."
+msgstr "Es wird überprüft, ob die Aufnahmen eine Umstellung benötigen .."
+
+#: Announcement.class.php:70
+msgid "Delete"
+msgstr "Löschen"
+
+#: views/form.php:91 views/grid.php:16
+msgid "Description"
+msgstr "Beschreibung"
+
+#: views/grid.php:17
+msgid "Destination"
+msgstr "Ziel"
+
+#: views/form.php:223
+msgid "Destination after Playback"
+msgstr "Ziel nach Wiedergabe"
+
+#: views/rnav.php:8
+msgid "Destinations"
+msgstr "Ziele"
+
+#: views/form.php:72
+msgid "Disable"
+msgstr "Deaktivieren"
+
+#: views/form.php:196
+msgid "Don't Answer Channel"
+msgstr "Kanal nicht beantworten"
+
+#: views/form.php:157
+msgid "If the caller is allowed to press a key to skip the message."
+msgstr "Anrufern erlauben, die Nachricht per Tastendruck zu überspringen."
+
+#: views/form.php:184
+msgid ""
+"If this announcement came from an IVR and this is set to yes, the "
+"destination below will be ignored and instead it will return to the calling "
+"IVR. Otherwise, the destination below will be taken. Don't check if not "
+"using in this mode. <br>The IVR return location will be to the last IVR in "
+"the call chain that was called so be careful to only check when needed. For "
+"example, if an IVR directs a call to another destination which eventually "
+"calls this announcement and this box is checked, it will return to that IVR "
+"which may not be the expected behavior."
+msgstr ""
+"Wenn diese Ansage von einem IVR stammt und \"zurück zu IVR\" auf Ja gesetzt "
+"ist, wird das Ziel unten ignoriert und stattdessen an das anrufende IVR "
+"zurückgegeben. Andernfalls wird das Ziel unten genommen. Nicht aktivieren, "
+"wenn Sie diesen Modus nicht benutzten.<br>Der IVR Rückkehr Ort wird auf das "
+"letzte IVR in der Anruferkette gesetzt, die aufgerufen wurde, seien Sie also "
+"vorsichtig und überprüfen Sie nur wenn nötig. Wenn beispielsweise ein IVR "
+"einen Anruf an ein anderes Ziel weiterleitet, das diese Ansage schließlich "
+"aufruft und dieses Kontrollkästchen aktiviert ist, kehrt es zu dem IVR "
+"zurück, das möglicherweise nicht das erwartete ist."
+
+#: assets/js/announcement.js:6
+msgid "Invalid description specified"
+msgstr "Ungültige Beschreibung angegeben"
+
+#: views/form.php:130
+msgid ""
+"Key to press that will allow for the message to be replayed. If you choose "
+"this option there will be a short delay inserted after the message. If a "
+"longer delay is needed it should be incorporated into the recording."
+msgstr ""
+"Eine Taste welche das wiederholen der Ansage ermöglicht. Wenn Sie diese "
+"Option wählen, wird nach der Ansage eine kurze Verzögerung eingefügt. Wenn "
+"eine längere Verzögerung benötigt wird, sollten Sie diese in die "
+"Aufzeichnung integrieren."
+
+#: views/rnav.php:2
+msgid "List Announcements"
+msgstr "Ansagenliste"
+
+#: views/form.php:59
+msgid ""
+"Message to be played.<br>To add additional recordings use the \"System "
+"Recordings\" MENU above"
+msgstr ""
+"Nachricht, die wiedergegeben werden soll.<br>Um zusätzliche Aufnahmen "
+"hinzuzufügen, verwenden Sie im Menü unter Administrator den Punkt "
+"\"Systemaufzeichnungen\""
+
+#: views/form.php:149 views/form.php:176 views/form.php:203
+msgid "No"
+msgstr "Nein"
+
+#: assets/js/announcement.js:35
+msgid "No Destination"
+msgstr "Kein Ziel"
+
+#: views/form.php:32
+msgid "None"
+msgstr "Kein*e"
+
+#: announcement.i18n.php:8
+msgid ""
+"Plays back one of the system recordings (optionally allowing the user to "
+"skip it) and then goes to another destination."
+msgstr ""
+"Gibt eine Systemaufzeichnungen wieder (optional kann der Benutzer dies "
+"überspringen) und wird dann zu einem anderen Ziel geleitet."
+
+#: views/form.php:45
+msgid "Recording"
+msgstr "Aufnahme"
+
+#: views/form.php:116
+msgid "Repeat"
+msgstr "Wiederholen"
+
+#: Announcement.class.php:75
+msgid "Reset"
+msgstr "Zurücksetzen"
+
+#: views/form.php:169
+msgid "Return to IVR"
+msgstr "Zurück zu IVR"
+
+#: views/form.php:211
+msgid ""
+"Set this to yes, to keep the channel from explicitly being answered. When "
+"checked, the message will be played and if the channel is not already "
+"answered it will be delivered as early media if the channel supports that. "
+"When not checked, the channel is answered followed by a 1 second delay. When "
+"using an announcement from an IVR or other sources that have already "
+"answered the channel, that 1 second delay may not be desired."
+msgstr ""
+"Setzen Sie das auf Ja, um den Anruf davon abzuhalten, ausdrücklich "
+"beantwortet zu werden. Wenn angehakt, wird die Mitteilung abgespielt und "
+"wenn der Anruf noch nicht beantwortet wurde wird sie als early media "
+"übergeben, wenn der Anruf dies unterstützt. Wenn nicht angehakt, wird der "
+"Anruf beantwortet mit einer anschließenden 1-Sekunden-Verzögerung. Wenn die "
+"Mitteilung von IVR oder aus anderen Quellen, die bereits auf den Anruf "
+"geantwortet haben, verwendet wird, dann wir die 1-Sekunden-Verzögerung "
+"vielleicht nicht erwünscht sein."
+
+#: Announcement.class.php:80
+msgid "Submit"
+msgstr "Absenden"
+
+#: views/form.php:103
+msgid "The name of this announcement."
+msgstr "Der Name für diese Ansage."
+
+#: views/form.php:235
+msgid "Where to send the caller after the announcement is played."
+msgstr ""
+"Wohin der Anrufer geleitet werden soll, nachdem die Ansage abgespielt wurde."
+
+#: views/form.php:147 views/form.php:174 views/form.php:201
+msgid "Yes"
+msgstr "Ja"
+
+#: install.php:97
+msgid "adding recording_id field.."
+msgstr "Aufnahme id_Feld hinzufügen.."
+
+#: install.php:147
+msgid "already migrated"
+msgstr "bereits migriert"
+
+#: install.php:137
+msgid "dropping recording field.."
+msgstr "Aufnahmefeld weglassen.."
+
+#: install.php:101 install.php:113 install.php:129
+msgid "fatal error"
+msgstr "schwerwiegender Fehler"
+
+#: install.php:109
+msgid "migrate to recording ids.."
+msgstr "in Aufnahme-ids überführen.."
+
+#: install.php:133
+#, php-format
+msgid "migrated %s entries"
+msgstr "überführte %s Einträge"
+
+#: install.php:96
+msgid "migrating"
+msgstr "migrieren"
+
+#: install.php:141
+msgid "no recording field???"
+msgstr "kein Aufnahmefeld???"
+
+#: install.php:104 install.php:143
+msgid "ok"
+msgstr "Ok"

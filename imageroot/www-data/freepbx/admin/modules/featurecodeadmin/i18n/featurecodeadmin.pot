@@ -1,0 +1,80 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for featurecodeadmin
+# Copyright (C) 2008-2017 Sangoma Technologies, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-03-07 14:44-0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: views/main.php:32
+msgid "Actions"
+msgstr ""
+
+#: featurecodeadmin.i18n.php:6
+msgid "Admin"
+msgstr ""
+
+#: Featurecodeadmin.class.php:65
+#: views/main.php:29
+msgid "Code"
+msgstr ""
+
+#: views/main.php:53
+msgid "Customize"
+msgstr ""
+
+#: Featurecodeadmin.class.php:64
+#: views/main.php:26
+msgid "Description"
+msgstr ""
+
+#: views/main.php:57
+msgid "Enabled"
+msgstr ""
+
+#: featurecodeadmin.i18n.php:4
+#: views/main.php:9
+msgid "Feature Code Admin"
+msgstr ""
+
+#: page.featurecodeadmin.php:44
+msgid "Feature Code Conflicts with other Extensions"
+msgstr ""
+
+#: Featurecodeadmin.class.php:62
+#: featurecodeadmin.i18n.php:8
+msgid "Feature Codes"
+msgstr ""
+
+#: functions.inc.php:20
+msgid "Featurecode: "
+msgstr ""
+
+#: assets/js/featurecodeadmin.js:29
+msgid "Please enter a Feature Code or uncheck Customize"
+msgstr ""
+
+#: Featurecodeadmin.class.php:25
+msgid "Reset"
+msgstr ""
+
+#: Featurecodeadmin.class.php:30
+msgid "Submit"
+msgstr ""
+
+#: page.featurecodeadmin.php:42
+msgid ""
+"You have feature code conflicts with extension numbers in other modules. "
+"This will result in unexpected and broken behavior."
+msgstr ""

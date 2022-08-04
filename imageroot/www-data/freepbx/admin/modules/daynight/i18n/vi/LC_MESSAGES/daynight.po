@@ -1,0 +1,345 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for daynight
+# Copyright (C) 2008-2017 Sangoma Technologies, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-10-25 13:30-0700\n"
+"PO-Revision-Date: 2017-07-19 16:36+0200\n"
+"Last-Translator: PETER <ftek@ymail.com>\n"
+"Language-Team: Vietnamese <http://weblate.freepbx.org/projects/freepbx/"
+"daynight/vi/>\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: functions.inc.php:526
+msgid " - Force Time Condition False Destination"
+msgstr " - Điều kiện thời gian bắt buộc tại Điểm đích False"
+
+#: functions.inc.php:524
+msgid " - Force Time Condition True Destination"
+msgstr " - Điều kiện thời gian bắt buộc tại Điểm đích True"
+
+#: page.daynight.php:16
+msgid ": Add"
+msgstr ":Thêm"
+
+#: page.daynight.php:14
+msgid ": Edit"
+msgstr ": Chỉnh sửa"
+
+#: views/grid.php:16
+msgid "Actions"
+msgstr "Các thao tác"
+
+#: views/grid.php:8
+msgid "Add"
+msgstr "Thêm"
+
+#: views/bootnav.php:6
+msgid "Add Callflow"
+msgstr "Thêm Callflow ( Dòng cuộc gọi)"
+
+#: daynight.i18n.php:6
+msgid "Applications"
+msgstr "Các ứng dụng"
+
+#: assets/js/daynight.js:23
+msgid "Are you sure you want to delete this flow?"
+msgstr "Bạn có chắc muốn xóa dòng cuộc gọi này?"
+
+#: daynight.i18n.php:16
+msgid ""
+"By default, the Call Flow Control module will not hook Time Conditions "
+"allowing one to associate a call flow toggle feauture code with a time "
+"condition since time conditions have their own feature code as of version "
+"2.9. If there is already an associaiton configured (on an upgraded system), "
+"this will have no affect for the Time Conditions that are effected. Setting "
+"this to true reverts the 2.8 and prior behavior by allowing for the use of a "
+"call flow toggle to be associated with a time conditon. This can be useful "
+"for two scenarios. First, to override a Time Condition without the automatic "
+"resetting that occurs with the built in Time Condition overrides. The second "
+"use is the ability to associate a single call flow toggle with multiple time "
+"conditions thus creating a <b>master switch</b> that can be used to override "
+"several possible call flows through different time conditions."
+msgstr ""
+"Theo mặc định, mô-đun Call Flow Control ( Điều khiển dòng cuộc gọi) sẽ không "
+"móc nối các điều kiện thời gian cho phép kết hợp mã tính năng chuyển đổi "
+"dòng cuộc gọi với điều kiện thời gian vì điều kiện thời gian có mã tính năng "
+"riêng tại phiên bản 2.9. Nếu đã có một kết hợp được cấu hình (trên một hệ "
+"thống được nâng cấp), điều này sẽ không ảnh hưởng gì đến các điều kiện thời "
+"gian hiệu lực. Thiết lập điều này về True sẽ  quay về 2.8 và trạng thái "
+"trước đó bằng cách cho phép sử dụng chuyển đổi dòng cuộc gọi được kết hợp "
+"với một điều kiện thời gian. Điều này có thể hữu ích cho hai kịch bản. Thứ "
+"nhất, để ghi đè lên một Điều kiện Thời gian mà không cài đặt lại tự động,xảy "
+"ra với các Ghi đè điều kiện thời gian lập sẵn. Thứ hai, khả năng liên kết "
+"một chuyển đổi dòng cuộc gọi đơn lẻ với nhiều điều kiện thời gian do đó tạo "
+"ra một<b>chuyển đổi dòng chính</b> được sử dụng để ghi đè một số dòng cuộc "
+"gọi thông qua các điều kiện thời gian khác nhau."
+
+#: views/bootnav.php:19
+msgid "Call Flow"
+msgstr "Dòng cuộc gọi"
+
+#: daynight.i18n.php:4 daynight.i18n.php:10
+msgid "Call Flow Control"
+msgstr "Kiểm soát dòng cuộc gọi"
+
+#: daynight.i18n.php:14
+msgid "Call Flow Control Module"
+msgstr "Mô đun điều khiển dòng cuộc gọi"
+
+#: functions.inc.php:155
+#, php-format
+msgid "Call Flow Toggle (%s) : %s"
+msgstr "Chuyển đổi dòng cuộc gọi (%s): %s"
+
+#: functions.inc.php:537
+msgid "Call Flow Toggle Associate with"
+msgstr "Chuyển đổi dòng cuộc gọi kết hợp với"
+
+#: page.daynight.php:7
+msgid "Call Flow Toggle Control"
+msgstr "Điều khiển chuyển đổi dòng cuộc gọi"
+
+#: views/form.php:126
+msgid "Call Flow Toggle Feature Code Index"
+msgstr "Chỉ mục mã tính năng chuyển đổi dòng cuộc gọi"
+
+#: functions.inc.php:404
+#, php-format
+msgid "Call Flow Toggle: %s (%s)"
+msgstr "Chuyển đổi dòng cuộc gọi: %s (%s)"
+
+#: daynight.i18n.php:8
+msgid ""
+"Call Flow manual toggle control - allows for two destinations to be chosen "
+"and provides a feature code\t\tthat toggles between the two destinations."
+msgstr ""
+"Điều khiển chuyển đổi dòng cuộc gọi thủ công- cho phép được chọn 2 điểm đích "
+"và cung cấp một mã tính năng có thể chuyển đổi giữa 2 điểm đích."
+
+#: views/form.php:174
+msgid "Current Mode"
+msgstr "Chế độ hiện tại"
+
+#: views/form.php:34 views/form.php:35
+msgid "Default"
+msgstr "Mặc định"
+
+#: Daynight.class.php:53
+msgid "Delete"
+msgstr "Xóa"
+
+#: views/form.php:150 views/grid.php:14
+msgid "Description"
+msgstr "Mô tả"
+
+#: views/form.php:162
+msgid "Description for this Call Flow Toggle Control"
+msgstr "Mô tả cho điều khiển chuyển dòng đổi cuộc gọi này"
+
+#: views/form.php:241
+msgid "Destination to use when set to Normal Flow (Green/BLF off) mode"
+msgstr ""
+"Điểm đích để sử dụng khi cài đặt về chế độ dòng cuộc gọi thông thường ( xanh/"
+"BLF tắt)"
+
+#: views/form.php:265
+msgid "Destination to use when set to Override Flow (Red/BLF on) mode"
+msgstr ""
+"Điểm đích để sử dụng khi cài đặt về chế độ ghi đè dòng cuộc gọi ( Đỏ/ BLF "
+"bật)"
+
+#: views/grid.php:13
+msgid "Feature Code"
+msgstr "Mã tính năng"
+
+#: views/form.php:101
+msgid "Forces to Normal Mode (Green/BLF off)"
+msgstr "Bắt buộc đến chế độ thông thường (Green/BLF off)"
+
+#: views/form.php:101
+msgid "Forces to Override Mode (Red/BLF on)"
+msgstr "Bắt buộc đến chế độ ghi đè (Red/BLF on)"
+
+#: daynight.i18n.php:12
+msgid "Hook Time Conditions Module"
+msgstr "Hook mô đun điều kiện thời gian"
+
+#: functions.inc.php:551
+msgid ""
+"If a selection is made, this timecondition will be associated with the "
+"specified call flow toggle  featurecode. This means that if the Call Flow "
+"Feature code is set to override (Red/BLF on) then this time condition will "
+"always go to its True destination if the chosen association is to 'Force "
+"Time Condition True Destination' and it will always go to its False "
+"destination if the association is with the 'Force Time Condition False "
+"Destination'. When the associated Call Flow Control Feature code is in its "
+"Normal mode (Green/BLF off), then then this Time Condition will operate as "
+"normal based on the current time. The Destinations that are part of any "
+"Associated Call Flow Control Feature Code will have no affect on where a "
+"call will go if passing through this time condition. The only thing that is "
+"done when making an association is allowing the override state of a Call "
+"Flow Toggle to force this time condition to always follow one of its two "
+"destinations when that associated Call Flow Toggle is in its override (Red/"
+"BLF on) state."
+msgstr ""
+"Nếu một lựa chọn được tạo ra, điều kiện thời gian này sẽ được kết hợp với mã "
+"tính năng chuyển đổi dòng cuộc gọi xác định. Có nghĩa là nếu mã tính năng "
+"chuyển dòng cuộc gọi được cài đặt về override (ghi đè) ( Đỏ/BLF bật) thì sau "
+"đó điều kiện thời gian sẽ luôn luôn đi tới điểm đích True nếu kết hợp với "
+"'Force Time Condition False Destination'. Khi mã tính năng điều khiển dòng "
+"cuộc gọi đã kết hợp trong chế độ thông thường ( Xanh/BLF tắt) thì sau đó "
+"điều kiện thời gian này sẽ hoạt động thong thường dựa trên thời gian hiện "
+"tại. Các điểm đích là một phần của mã tính năng điều khiển dòng cuộc gọi sẽ "
+"không gây ảnh hưởng đến vị trí một cuộc gọi sẽ tới nếu đi qua điều kiện thời "
+"gian này. Chỉ duy nhất một điều được thực hiện khi tạo một sự kết hợp đang "
+"cho phép trạng thái ghi đè của một chuyển đổi dòng cuộc gọi để buộc điều "
+"kiện thời gian luôn luôn theo dõi một trong hai điểm đích khi mà chuyển đổi "
+"dòng cuộc gọi đang trong trạng thái ghi đè ( Đỏ/BLF bật)."
+
+#: views/form.php:104
+#, php-format
+msgid "Linked to Time Condition %s - %s"
+msgstr "Được liên kết tới điều kiện thời gian %s-%s"
+
+#: views/bootnav.php:7
+msgid "List Callflows"
+msgstr "Danh sách các dòng cuộc gọi"
+
+#: views/form.php:64
+msgid ""
+"Message to be played in normal mode (Green/BLF off).<br>To add additional "
+"recordings use the \"System Recordings\" MENU above"
+msgstr ""
+"Tin nhắn được phát trong chế độ thông thường  (Xanh/BLF tắt). <br> Để thêm "
+"các ghi ẩm bổ sung thì sử dụng MENU trên \"System  Recorrdings\" ( Các ghi "
+"âm hệ thống)"
+
+#: views/form.php:90
+msgid ""
+"Message to be played in override mode (Red/BLF on).<br>To add additional "
+"recordings use the \"System Recordings\" MENU to the above"
+msgstr ""
+"Tin nhắn sẽ được phát trong chế độ ghi đè  (Đỏ/BLF bật). <br> Để thêm các "
+"ghi ẩm bổ sung thì sử dụng MENU trên \"System  Recorrdings\" ( Các ghi âm hệ "
+"thống)"
+
+#: functions.inc.php:522
+msgid "No Association"
+msgstr "Không có sự kết hợp"
+
+#: views/form.php:179
+msgid "Normal (Green/BLF off)"
+msgstr "Thông thường (Xanh/BLF tắt)"
+
+#: views/form.php:229
+msgid "Normal Flow (Green/BLF off)"
+msgstr "Dòng bình thường ( Xanh/ BLF tắt)"
+
+#: views/form.php:202
+msgid "Optional Password"
+msgstr "Mật khẩu lựa chọn"
+
+#: views/form.php:181
+msgid "Override (Red/BLF on)"
+msgstr "Ghi đè (Đỏ/BLF bật)"
+
+#: views/form.php:253
+msgid "Override Flow (Red/BLF on)"
+msgstr "Ghi đè dòng ( Đỏ/ BLF bật)"
+
+#: assets/js/daynight.js:4
+msgid "Please enter a valid numeric password, only numbers are allowed"
+msgstr "Vui lòng nhập một mật khẩu số hợp lệ, chỉ cho phép các chữ số"
+
+#: assets/js/daynight.js:7
+msgid "Please set the Current Mode"
+msgstr "Vui lòng cài đặt Current Mode (Chế độ hiện tại)"
+
+#: assets/js/daynight.js:5
+msgid "Please set the Normal Flow destination"
+msgstr "Vui lòng cài đặt điểm đích Dòng thông thường"
+
+#: assets/js/daynight.js:6
+msgid "Please set the Override Flow destination"
+msgstr "Vui lòng cài đặt điểm đích Dòng ghi đè"
+
+#: views/form.php:50
+msgid "Recording for Normal Mode"
+msgstr "Ghi âm cho Chế độ thông thường"
+
+#: views/form.php:76
+msgid "Recording for Override Mode"
+msgstr "Ghi âm cho Chế độ ghi đè"
+
+#: Daynight.class.php:58
+msgid "Reset"
+msgstr "Cài đặt lại"
+
+#: views/grid.php:15
+msgid "State"
+msgstr "Tình trạng"
+
+#: Daynight.class.php:63
+msgid "Submit"
+msgstr "Gửi đi"
+
+#: views/form.php:138
+#, php-format
+msgid ""
+"There are a total of %s Feature code objects, %s, each can control a call "
+"flow and be toggled using the call flow toggle feature code plus the index."
+msgstr ""
+"Có tổng %s đối tượng mã tính năng, %s, mỗi mã tính năng điều khiển một dòng "
+"cuộc gọi và được chuyển đổi bằng cách sử dụng mã tính năng chuyển đổi dòng "
+"cuộc gọi cùng với chỉ mục."
+
+#: views/form.php:189
+msgid ""
+"This will change the current state for this Call Flow Toggle Control, or set "
+"the initial state when creating a new one."
+msgstr ""
+"Điều này sẽ thay đổi trạng thái hiện tại của điều khiển chuyển đổi dòng cuộc "
+"gọi, hoặc cài đặt trạng thái ban đầu khi tạo mới."
+
+#: views/form.php:108
+msgid "Time Condition Reference"
+msgstr "Tham chiếu điều kiện thời gian"
+
+#: views/form.php:217
+msgid ""
+"You can optionally include a password to authenticate before toggling the "
+"call flow. If left blank anyone can use the feature code and it will be un-"
+"protected"
+msgstr ""
+"Bạn có thể tùy chọn bao gồm mật khẩu để xác thực trước khi chuyển đổi dòng "
+"cuộc gọi. Nếu để trống, bất cứ ai cũng có thể sử dụng mã tính năng và nó sẽ "
+"không được bảo vệ"
+
+#: views/form.php:13
+msgid ""
+"You have reached the maximum limit for flow controls. Delete one to add a "
+"new one"
+msgstr ""
+"Bạn vừa đạt tới giới hạn tối đa của các điều khiển dòng cuộc gọi. Xóa một "
+"cái cũ để thêm một cái mới"
+
+#~ msgid "ERROR: failed to alter primary keys "
+#~ msgstr "LỖI: Thay đổi các khóa chính không thành công "
+
+#~ msgid "OK"
+#~ msgstr "OK"
+
+#~ msgid "changing primary keys to all fields.."
+#~ msgstr "Đang thay đổi khóa chính cho tất cả các trường.."

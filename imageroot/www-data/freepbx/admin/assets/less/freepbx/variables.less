@@ -1,0 +1,79 @@
+/* Base Colors */
+@base-color: rgb(215, 235, 249); //#D7F9D9;
+@background-color: @base-color;
+@text-color: darken(@background-color, 50%);
+@border-color: fadeout(darken(@background-color, 10%),10%);
+
+/* Table */
+@table-striped-even-background-color: @background-color;
+@table-striped-even-text-color: black;
+@table-striped-odd-background-color: #fff;
+@table-striped-odd-text-color: black;
+@table-th-background-color: @background-color;
+@table-th-text-color: black;
+@table-row-hover-background-color: @background-color;
+@table-row-hover-text-color: black;
+
+@hr-background-color: @background-color;
+@hr-border-color: @border-color;
+
+/* Buttons */
+@button-radius: 4px;
+
+@button-background-color: @background-color;
+@button-text-color: @text-color;
+@button-border-color: @border-color;
+@button-image: "";
+
+@button-active-background-color: darken(@button-background-color,50%);
+@button-active-text-color: #FFFFFF;
+@button-active-border-color: darken(@button-border-color,20%);
+@button-active-image: "";
+
+@button-hover-background-color: lighten(@button-background-color,5%);
+@button-hover-text-color: @text-color;
+@button-hover-border-color: lighten(@button-border-color,5%);
+@button-hover-image: "";
+
+@button-disabled-text-color: darken(@button-border-color,40%);
+
+/** Button Gradients **/
+@button-gradient: false;
+@button-background-gradient-top: "";
+@button-background-gradient-bottom: "";
+@button-border-gradient-top: "";
+@button-border-gradient-bottom: "";
+
+@button-active-background-gradient-top: "";
+@button-active-background-gradient-bottom: "";
+@button-active-border-gradient-top: "";
+@button-active-border-gradient-bottom: "";
+
+@button-hover-background-gradient-top: "";
+@button-hover-background-gradient-bottom: "";
+@button-hover-border-gradient-top: "";
+@button-hover-border-gradient-bottom: "";
+
+/** Action Bar **/
+@action-bar-background-color: @background-color;
+@action-bar-border-color: @border-color;
+@action-bar-text-color: @text-color;
+
+/** Menu **/
+@navbar-height: 34px;
+@menu-breakpoint: 991px;
+
+/** Nav Tabs **/
+@nav-active-background-color: @background-color;
+@nav-active-text-color: @text-color;
+
+@nav-hover-background-color: lighten(@background-color,5%);
+@nav-hover-text-color: @text-color;
+
+/** OLD **/
+@chosen-sprite: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADQAAAAlCAQAAACn+wJeAAAB4UlEQVRIx+2XsWtTURTGrwouLQQDwYLFzT3yJBDoYoVvySQoKFShSHe7qAgqiMn9rcUibnVwEARBl0AgUIh/QXBxFIpKJHAhUBz0HQcf4U0xtZwu+r3l8t4758fHPe/jvhBcRIUuWbFuMKAWnEB9jEQWAk0SRt8LtMo+RmKdhDGiHrzEChOMHGPsiAkhBDbIMXKu+2KaJUfZwcsXD4RJrJFKKHaw6fVmRnmNT5ydC9TDSDRCIGOMMfh9u8pegRmzNKP8NUZvzu+oR6NY19mddqVVgG7MKL5SvHPrcJu3g/F2xvMqowKUOHMYUJXhrAa8Ku1j90/dVFFXxaypoYFqfzFR80h9mZKyENRUkskrgrSqfZmS1pVkGskvG7SiiUy5TGP5RpA2lMuUyzeC1Cw5yrwxSWtKrij1ZEpqhKBMY5kGXqCKeioiSHXtain817+k9gLLLD887ozhLl8xjGG86onZxuIe99jCsHjTCRMvYvF9+1QIIcTz8RuTzmkfP0+jdaYJHW9jXPYBvYj5/ZNlf06HxvgEYzoC8Tk5l1xAnXP8IHVam8faC3GTn3x5cMJr6q5h0fjI5+L4suU24PFCfMkHhvExHQyL20eQEfERhsVncdEfdYfvGK2jcPUOK/+A/QJb5yp50uoC6QAAAABJRU5ErkJggg==";
+@chosen-sprite-2x: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADQAAAAlCAQAAACn+wJeAAAB4UlEQVRIx+2XsWtTURTGrwouLQQDwYLFzT3yJBDoYoVvySQoKFShSHe7qAgqiMn9rcUibnVwEARBl0AgUIh/QXBxFIpKJHAhUBz0HQcf4U0xtZwu+r3l8t4758fHPe/jvhBcRIUuWbFuMKAWnEB9jEQWAk0SRt8LtMo+RmKdhDGiHrzEChOMHGPsiAkhBDbIMXKu+2KaJUfZwcsXD4RJrJFKKHaw6fVmRnmNT5ydC9TDSDRCIGOMMfh9u8pegRmzNKP8NUZvzu+oR6NY19mddqVVgG7MKL5SvHPrcJu3g/F2xvMqowKUOHMYUJXhrAa8Ku1j90/dVFFXxaypoYFqfzFR80h9mZKyENRUkskrgrSqfZmS1pVkGskvG7SiiUy5TGP5RpA2lMuUyzeC1Cw5yrwxSWtKrij1ZEpqhKBMY5kGXqCKeioiSHXtain817+k9gLLLD887ozhLl8xjGG86onZxuIe99jCsHjTCRMvYvF9+1QIIcTz8RuTzmkfP0+jdaYJHW9jXPYBvYj5/ZNlf06HxvgEYzoC8Tk5l1xAnXP8IHVam8faC3GTn3x5cMJr6q5h0fjI5+L4suU24PFCfMkHhvExHQyL20eQEfERhsVncdEfdYfvGK2jcPUOK/+A/QJb5yp50uoC6QAAAABJRU5ErkJggg==";
+
+@button-has-error: #a94442;
+@button-has-warning: #8a6d3b;
+@button-has-success: #3c763d;

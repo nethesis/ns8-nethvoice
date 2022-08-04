@@ -1,0 +1,43 @@
+<module>
+	<rawname>featurecodeadmin</rawname>
+	<repo>standard</repo>
+	<name>Feature Code Admin</name>
+	<version>13.0.6.4</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
+	<candisable>no</candisable>
+	<canuninstall>no</canuninstall>
+	<category>Admin</category>
+	<menuitems>
+		<featurecodeadmin>Feature Codes</featurecodeadmin>
+	</menuitems>
+	<changelog>
+		*13.0.6.4* FREEPBX-14232 FC accepting same customize code for different features
+		*13.0.6.3* FREEPBX-13806 Fix validation length
+		*13.0.6.2* FREEPBX-7373 Hide *11/*12 feature codes by default exposed with Advanced Settings or if in deviceanduser mode
+		*13.0.6.1* FREEPBX-13348 - Fix invalid regexp in feature code validation
+		*13.0.6* FREEPBX-12232 Issues if there is a feature code conflict
+		*13.0.5* Add BMO Search provider
+		*13.0.4.1* FREEPBX-10225 Update validation to allow Any valid DTMF digit in any position
+		*13.0.4* FREEPBX-10225 Update validation to allow #
+		*13.0.3* Fixed error reported on the forums
+		*13.0.2* Version bump Beta
+		*13.0.1alpha2* Visual Tweaks and fixes
+		*13.0.1alpha1* Consistency changes
+	</changelog>
+	<hooks>
+		<featurecodeadmin class="Printextensions" namespace="FreePBX\modules">
+			<method callingMethod="getSections" class="Featurecodeadmin" namespace="FreePBX\modules">printExtensions</method>
+		</featurecodeadmin>
+	</hooks>
+	<depends>
+		<version>13.0</version>
+		<module>core ge 13.0.117.1</module>
+	</depends>
+	<supported>
+		<version>13.0</version>
+	</supported>
+	<md5sum>8d3a776210d49d0fd03b66cd51e5b23d</md5sum>
+	<location>release/2.11/featurecodeadmin-2.11.0.0.tgz</location>
+</module>

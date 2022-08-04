@@ -1,0 +1,262 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for asteriskinfo
+# Copyright (C) 2008-2015 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-07-18 17:20-0400\n"
+"PO-Revision-Date: 2016-05-26 18:58+0200\n"
+"Last-Translator: Media <mousavi.media@gmail.com>\n"
+"Language-Team: Persian (Iran) <http://weblate.freepbx.org/projects/freepbx/"
+"asteriskinfo/fa_IR/>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: fa_IR\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: page.asteriskinfo.php:31
+msgid "Active Channel(s)"
+msgstr "کانال(های) فعال"
+
+#: Asteriskinfo.class.php:46
+msgid "Active IAX2 Channel(s): "
+msgstr "کانال(های) فعال IAX2: "
+
+#: Asteriskinfo.class.php:42
+msgid "Active PJSIP Channel(s): "
+msgstr "کانال(های) فعال PJSIP: "
+
+#: Asteriskinfo.class.php:38
+msgid "Active SIP Channel(s): "
+msgstr "کانال(های) فعال SIP: "
+
+#: asteriskinfo.i18n.php:4 asteriskinfo.i18n.php:10 page.asteriskinfo.php:277
+msgid "Asterisk Info"
+msgstr "اطلاعات استریسک"
+
+#: page.asteriskinfo.php:11
+msgid "Asterisk doesn't appear to be running"
+msgstr ""
+
+#: Asteriskinfo.class.php:150
+msgid "Available: "
+msgstr "در دسترس: "
+
+#: page.asteriskinfo.php:33
+msgid "Chan_PJSip Channel(s)"
+msgstr "کانال (های) Chan_PJSip"
+
+#: page.asteriskinfo.php:43
+msgid "Chan_PJSip Endpoints"
+msgstr "نقاط پایانی Chan_PJSip"
+
+#: page.asteriskinfo.php:23
+msgid "Chan_PJSip Info"
+msgstr "اطلاعات Chan_PJSip"
+
+#: page.asteriskinfo.php:37
+msgid "Chan_PJSip Registrations"
+msgstr "رجیستری Chan_PJSip"
+
+#: page.asteriskinfo.php:38
+msgid "Chan_PJSip Transports"
+msgstr "پروتکل های انتقالی Chan_PJSip"
+
+#: page.asteriskinfo.php:32
+msgid "Chan_Sip Channel(s)"
+msgstr "کانال (های) Chan_Sip"
+
+#: page.asteriskinfo.php:22
+msgid "Chan_Sip Info"
+msgstr "اطلاعات Chan_Sip"
+
+#: page.asteriskinfo.php:42
+msgid "Chan_Sip Peers"
+msgstr "همتایان Chan_Sip"
+
+#: page.asteriskinfo.php:36
+msgid "Chan_Sip Registry"
+msgstr "رجیستری Chan_Sip"
+
+#: page.asteriskinfo.php:20
+msgid "Channels"
+msgstr "کانال ها"
+
+#: page.asteriskinfo.php:49
+msgid "Conference Bridge Info"
+msgstr "اطلاعات کنفرانس"
+
+#: page.asteriskinfo.php:25
+msgid "Conferences"
+msgstr "کنفرانس ها"
+
+#: page.asteriskinfo.php:280
+msgid "Current Asterisk Version:"
+msgstr "نسخه فعلی استریسک："
+
+#: page.asteriskinfo.php:46
+msgid "DAHDi Channels"
+msgstr "کانال های DAHDi"
+
+#: page.asteriskinfo.php:28
+msgid "Dahdi"
+msgstr "دهدی (Dahdi)"
+
+#: page.asteriskinfo.php:47
+msgid "Dahdi PRI Spans"
+msgstr "اسپن های Dahdi PRI"
+
+#: page.asteriskinfo.php:29
+msgid "Full Report"
+msgstr "گزارش کامل"
+
+#: page.asteriskinfo.php:52
+msgid "Google Talk Channels"
+msgstr "کانال های Google Talk"
+
+#: page.asteriskinfo.php:24
+msgid "IAX Info"
+msgstr "اطلاعات IAX"
+
+#: page.asteriskinfo.php:34
+msgid "IAX2 Channel(s)"
+msgstr "کانال (های) IAX2"
+
+#: page.asteriskinfo.php:35
+msgid "IAX2 Peers"
+msgstr "همتایان IAX2"
+
+#: Asteriskinfo.class.php:48
+msgid "IAX2 Peers: "
+msgstr "همتایان IAX2: "
+
+#: page.asteriskinfo.php:44
+msgid "IAX2 Registry"
+msgstr "رجیستری IAX2"
+
+#: Asteriskinfo.class.php:47
+msgid "IAX2 Registry: "
+msgstr "رجیستری IAX2: "
+
+#: page.asteriskinfo.php:53
+msgid "Jabber Connections"
+msgstr "اتصالات Jabber"
+
+#: page.asteriskinfo.php:48
+msgid "MeetMe Conference Info"
+msgstr "اطلاعات کنفرانس MeetMe"
+
+#: page.asteriskinfo.php:54
+msgid "Motif Connections"
+msgstr "اتصالات Motif"
+
+#: Asteriskinfo.class.php:140
+msgid "Offline-Unmonitored: "
+msgstr "آفلاین-مانتیور نشده: "
+
+#: Asteriskinfo.class.php:140 Asteriskinfo.class.php:162
+msgid "Offline: "
+msgstr "آفلاین: "
+
+#: Asteriskinfo.class.php:139
+msgid "Online-Unmonitored: "
+msgstr "آنلاین-مانیتور نشده: "
+
+#: Asteriskinfo.class.php:139 Asteriskinfo.class.php:162
+msgid "Online: "
+msgstr "آنلاین: "
+
+#: Asteriskinfo.class.php:44
+msgid "PJSip Endpoints: "
+msgstr "نقاط پایانی PJSip: "
+
+#: Asteriskinfo.class.php:43
+msgid "PJSip Registrations: "
+msgstr "رجیستری PJSip: "
+
+#: page.asteriskinfo.php:21
+msgid "Peers"
+msgstr "همتایان"
+
+#: asteriskinfo.i18n.php:8
+msgid "Provides a snapshot of the current Asterisk configuration"
+msgstr "تهیه یک تصویر فوری از تنطیمات فعلی استریسک"
+
+#: page.asteriskinfo.php:26
+msgid "Queues"
+msgstr "صف ها"
+
+#: page.asteriskinfo.php:50
+msgid "Queues Info"
+msgstr "اطلاعات صف ها"
+
+#: page.asteriskinfo.php:19
+msgid "Registries"
+msgstr "وضعیت رجیستری"
+
+#: asteriskinfo.i18n.php:6
+msgid "Reports"
+msgstr "گزارشات"
+
+#: Asteriskinfo.class.php:40
+msgid "Sip Peers: "
+msgstr "همتایان Sip: "
+
+#: Asteriskinfo.class.php:39
+msgid "Sip Registry: "
+msgstr "رجیستری Sip: "
+
+#: page.asteriskinfo.php:45
+msgid "Subscribe/Notify"
+msgstr "مشترک / اطلاع رسانی"
+
+#: page.asteriskinfo.php:27
+msgid "Subscriptions"
+msgstr "مشترکین"
+
+#: page.asteriskinfo.php:18 page.asteriskinfo.php:289
+msgid "Summary"
+msgstr "خلاصه"
+
+#: page.asteriskinfo.php:186
+msgid ""
+"The module was unable to connect to the Asterisk manager.<br>Make sure "
+"Asterisk is running and your manager.conf settings are proper.<br><br>"
+msgstr ""
+"این ماژول امکان اتصال به ماژول مدیریت استریسک را ندارد. <br>از اجرا بودن "
+"سرویس استریسک و صحت تنظیمات manager.conf اطمینان حاصل نمایید. <br><br>"
+
+#: page.asteriskinfo.php:279
+msgid "This page supplies various information about Asterisk"
+msgstr "این صفحه شامل اطلاعات گوناگونی درباره استریسک می باشد"
+
+#: Asteriskinfo.class.php:151
+msgid "Unavailable: "
+msgstr "غیر قابل دسترس： "
+
+#: Asteriskinfo.class.php:151
+msgid "Unknown: "
+msgstr "نامشخص: "
+
+#: Asteriskinfo.class.php:162
+msgid "Unmonitored: "
+msgstr "مانیتور نشده： "
+
+#: page.asteriskinfo.php:30
+msgid "Uptime"
+msgstr "آپ تایم"
+
+#: Asteriskinfo.class.php:37
+msgid "Uptime: "
+msgstr "آپ تایم： "
+
+#: page.asteriskinfo.php:51
+msgid "Voicemail Users"
+msgstr "کاربران صندوق صوتی"

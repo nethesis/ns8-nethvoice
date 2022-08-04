@@ -1,0 +1,256 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-07-18 17:20-0400\n"
+"PO-Revision-Date: 2016-06-06 20:21+0200\n"
+"Last-Translator: Ernesto <ecasas@sangoma.com>\n"
+"Language-Team: Spanish <http://weblate.freepbx.org/projects/freepbx/"
+"asteriskinfo/es_ES/>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: es_ES\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: page.asteriskinfo.php:31
+msgid "Active Channel(s)"
+msgstr "Canales activos"
+
+#: Asteriskinfo.class.php:46
+msgid "Active IAX2 Channel(s): "
+msgstr "Canal(es) IAX2 activos: "
+
+#: Asteriskinfo.class.php:42
+msgid "Active PJSIP Channel(s): "
+msgstr "Canal(es) Activos PJSIP: "
+
+#: Asteriskinfo.class.php:38
+msgid "Active SIP Channel(s): "
+msgstr "Canal(es) SIP activos: "
+
+#: asteriskinfo.i18n.php:4 asteriskinfo.i18n.php:10 page.asteriskinfo.php:277
+msgid "Asterisk Info"
+msgstr "Información Asterisk"
+
+#: page.asteriskinfo.php:11
+msgid "Asterisk doesn't appear to be running"
+msgstr ""
+
+#: Asteriskinfo.class.php:150
+msgid "Available: "
+msgstr "Disponible: "
+
+#: page.asteriskinfo.php:33
+msgid "Chan_PJSip Channel(s)"
+msgstr "Canal(es) Chan_PJSip"
+
+#: page.asteriskinfo.php:43
+msgid "Chan_PJSip Endpoints"
+msgstr "EndPoints Chan_PJSip"
+
+#: page.asteriskinfo.php:23
+msgid "Chan_PJSip Info"
+msgstr "Información Chan_PJSip"
+
+#: page.asteriskinfo.php:37
+msgid "Chan_PJSip Registrations"
+msgstr "Registros Chan_PJSip"
+
+#: page.asteriskinfo.php:38
+msgid "Chan_PJSip Transports"
+msgstr "Transportes Chan_PJSip"
+
+#: page.asteriskinfo.php:32
+msgid "Chan_Sip Channel(s)"
+msgstr "Canal(es) Chan_Sip"
+
+#: page.asteriskinfo.php:22
+msgid "Chan_Sip Info"
+msgstr "Información Chan_Sip"
+
+#: page.asteriskinfo.php:42
+msgid "Chan_Sip Peers"
+msgstr "Pares Chan_Sip"
+
+#: page.asteriskinfo.php:36
+msgid "Chan_Sip Registry"
+msgstr "Registro Chan_Sip"
+
+#: page.asteriskinfo.php:20
+msgid "Channels"
+msgstr "Canales"
+
+#: page.asteriskinfo.php:49
+msgid "Conference Bridge Info"
+msgstr "Información Puente de Conferencia"
+
+#: page.asteriskinfo.php:25
+msgid "Conferences"
+msgstr "Conferencias"
+
+#: page.asteriskinfo.php:280
+msgid "Current Asterisk Version:"
+msgstr "Version Asterisk Corriente:"
+
+#: page.asteriskinfo.php:46
+msgid "DAHDi Channels"
+msgstr "Canales DAHDi"
+
+#: page.asteriskinfo.php:28
+msgid "Dahdi"
+msgstr "DAHDi"
+
+#: page.asteriskinfo.php:47
+msgid "Dahdi PRI Spans"
+msgstr "Líneas PRI Dahdi"
+
+#: page.asteriskinfo.php:29
+msgid "Full Report"
+msgstr "Informe completo"
+
+#: page.asteriskinfo.php:52
+msgid "Google Talk Channels"
+msgstr "Canales Google Talk"
+
+#: page.asteriskinfo.php:24
+msgid "IAX Info"
+msgstr "Información IAX"
+
+#: page.asteriskinfo.php:34
+msgid "IAX2 Channel(s)"
+msgstr "Canales IAX2"
+
+#: page.asteriskinfo.php:35
+msgid "IAX2 Peers"
+msgstr "Pares IAX2"
+
+#: Asteriskinfo.class.php:48
+msgid "IAX2 Peers: "
+msgstr "Pares IAX2: "
+
+#: page.asteriskinfo.php:44
+msgid "IAX2 Registry"
+msgstr "Registro IAX2"
+
+#: Asteriskinfo.class.php:47
+msgid "IAX2 Registry: "
+msgstr "Registro IAX2: "
+
+#: page.asteriskinfo.php:53
+msgid "Jabber Connections"
+msgstr "Conexiones Jabber"
+
+#: page.asteriskinfo.php:48
+msgid "MeetMe Conference Info"
+msgstr "Información de conferencia MeetMe"
+
+#: page.asteriskinfo.php:54
+msgid "Motif Connections"
+msgstr "Conexiones Motif"
+
+#: Asteriskinfo.class.php:140
+msgid "Offline-Unmonitored: "
+msgstr "Fuera de Linea-No monitoreado: "
+
+#: Asteriskinfo.class.php:140 Asteriskinfo.class.php:162
+msgid "Offline: "
+msgstr "Desconectados: "
+
+#: Asteriskinfo.class.php:139
+msgid "Online-Unmonitored: "
+msgstr "En Linea-No Monitoreado "
+
+#: Asteriskinfo.class.php:139 Asteriskinfo.class.php:162
+msgid "Online: "
+msgstr "Conectados: "
+
+#: Asteriskinfo.class.php:44
+msgid "PJSip Endpoints: "
+msgstr "Endpoints PJSip "
+
+#: Asteriskinfo.class.php:43
+msgid "PJSip Registrations: "
+msgstr "Registros PJSip: "
+
+#: page.asteriskinfo.php:21
+msgid "Peers"
+msgstr "Pares"
+
+#: asteriskinfo.i18n.php:8
+msgid "Provides a snapshot of the current Asterisk configuration"
+msgstr "Proporciona una instantánea de la configuración actual del Asterisk"
+
+#: page.asteriskinfo.php:26
+msgid "Queues"
+msgstr "Colas"
+
+#: page.asteriskinfo.php:50
+msgid "Queues Info"
+msgstr "Información de Colas"
+
+#: page.asteriskinfo.php:19
+msgid "Registries"
+msgstr "Registros"
+
+#: asteriskinfo.i18n.php:6
+msgid "Reports"
+msgstr "Reportes"
+
+#: Asteriskinfo.class.php:40
+msgid "Sip Peers: "
+msgstr "Pares SIP: "
+
+#: Asteriskinfo.class.php:39
+msgid "Sip Registry: "
+msgstr "Registro SIP: "
+
+#: page.asteriskinfo.php:45
+msgid "Subscribe/Notify"
+msgstr "Suscribir/Notificar"
+
+#: page.asteriskinfo.php:27
+msgid "Subscriptions"
+msgstr "Suscripciones"
+
+#: page.asteriskinfo.php:18 page.asteriskinfo.php:289
+msgid "Summary"
+msgstr "Resumen"
+
+#: page.asteriskinfo.php:186
+msgid ""
+"The module was unable to connect to the Asterisk manager.<br>Make sure "
+"Asterisk is running and your manager.conf settings are proper.<br><br>"
+msgstr ""
+"El módulo no pudo conectar con el gestor de Asterisk.<br>Asegúrese de que "
+"Asterisk se está ejecutando y la configuración de su archivo manager.conf es "
+"correcta.<br><br>"
+
+#: page.asteriskinfo.php:279
+msgid "This page supplies various information about Asterisk"
+msgstr "Esta página provee informaciones varias acerca de Asterisk"
+
+#: Asteriskinfo.class.php:151
+msgid "Unavailable: "
+msgstr "indisponible: "
+
+#: Asteriskinfo.class.php:151
+msgid "Unknown: "
+msgstr "Desconocido: "
+
+#: Asteriskinfo.class.php:162
+msgid "Unmonitored: "
+msgstr "Sin monitorizar: "
+
+#: page.asteriskinfo.php:30
+msgid "Uptime"
+msgstr "Tiempo encendido"
+
+#: Asteriskinfo.class.php:37
+msgid "Uptime: "
+msgstr "Tiempo encendido: "
+
+#: page.asteriskinfo.php:51
+msgid "Voicemail Users"
+msgstr "Usuarios del buzón de voz"

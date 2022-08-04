@@ -1,0 +1,319 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for logfiles
+# Copyright (C) 2008-2015 Sangoma, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-07-24 19:16-0400\n"
+"PO-Revision-Date: 2016-04-02 16:11+0200\n"
+"Last-Translator: Media <mousavi.media@gmail.com>\n"
+"Language-Team: Persian <http://weblate.freepbx.org/projects/freepbx/logfiles/"
+"fa/>\n"
+"Language: fa\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: views/settings.php:236
+msgid "Add Log"
+msgstr "افزودن لاگ"
+
+#: views/settings.php:112
+msgid "Append Hostname"
+msgstr "اضافه کردن نام میزبان"
+
+#: views/settings.php:127
+msgid "Appends the hostname to the name of the log files"
+msgstr "اضافه کردن نام میزبان به لاگ فایل ها"
+
+#: views/logs.php:74
+msgid ""
+"Apply PCRE regex filter to the log output. <br/>This filters through the "
+"lines specified."
+msgstr "اعمال فیلتر PCRE در لاگ. <br/>این فیلترها از طریق خطوط مشخص میشوند."
+
+#: views/logs.php:6
+msgid "Asterisk Log Files"
+msgstr "لاگ فایل های استریسک"
+
+#: logfiles.i18n.php:10
+msgid "Asterisk Logfile Settings"
+msgstr "تنظیمات لاگ استریسک"
+
+#: logfiles.i18n.php:4 logfiles.i18n.php:8
+msgid "Asterisk Logfiles"
+msgstr "لاگ فایل های استریسک"
+
+#: views/settings.php:172
+msgid "Critical errors and issues"
+msgstr "خطاها و موارد مهم"
+
+#: views/settings.php:3
+msgid ""
+"Customize the display of debug message time stamps. See strftime(3) Linux "
+"manual for format specifiers. Note that there is also a fractional second "
+"parameter which may be used in this field.  Use %1q for tenths, %2q for "
+"hundredths, etc."
+msgstr ""
+"شخصی سازی نمایش برچسب زمانی پیام عیب یابی. See strftime(3) Linux manual for "
+"format specifiers. Note that there is also a fractional second parameter "
+"which may be used in this field.  Use %1q for tenths, %2q for hundredths, "
+"etc."
+
+#: views/settings.php:171 views/settings.php:185
+msgid "DTMF"
+msgstr "DTMF"
+
+#: views/settings.php:59
+msgid "Date Format"
+msgstr "فرمت تاریخ"
+
+#: views/settings.php:166 views/settings.php:184
+msgid "Debug"
+msgstr "اشکال زدایی"
+
+#: views/settings.php:192
+msgid "Delete"
+msgstr "حذف"
+
+#: views/settings.php:172 views/settings.php:186
+msgid "Error"
+msgstr "خطا"
+
+#: functions.inc.php:112
+msgid "Error parsing log file or file not found!"
+msgstr "خطای لاگ فایل یا عدم وجود فایل!"
+
+#: views/settings.php:173 views/settings.php:187
+msgid "Fax"
+msgstr "دورنگار"
+
+#: views/settings.php:164
+msgid "Field"
+msgstr "فیلد"
+
+#: views/logs.php:19
+msgid "File"
+msgstr "فایل"
+
+#: views/settings.php:165 views/settings.php:183
+msgid "File Name"
+msgstr "نام"
+
+#: views/logs.php:62
+msgid "Filter"
+msgstr "فیلتر"
+
+#: views/settings.php:45
+msgid "General Settings"
+msgstr "تنظیمات عمومی"
+
+#: views/settings.php:164
+msgid "Information"
+msgstr "اطلاعات"
+
+#: functions.inc.php:121
+msgid "Invalid pattern"
+msgstr "الگوی نامعتبر"
+
+#: views/settings.php:171
+msgid ""
+"Keypresses as understood by asterisk. Usefull for debuging IVR and VM issues."
+msgstr "مفید برای عیب یابی منو صوتی."
+
+#: views/settings.php:8
+msgid ""
+"Leave blank for default: ISO 8601 date format yyyy-mm-dd HH:MM:SS (%F %T)"
+msgstr ""
+"برای پیشفرض خالی بگذارید ：ISO 8601 date format yyyy-mm-dd HH:MM:SS (%F %T)"
+
+#: views/logs.php:44
+msgid "Lines"
+msgstr "خطوط"
+
+#: views/logs.php:90 assets/js/views/logs.js:24
+msgid "Loading..."
+msgstr "درحال لود شدن..."
+
+#: views/settings.php:38
+msgid "Log File Settings"
+msgstr "تنظیمات لاگ فایل"
+
+#: views/settings.php:46
+msgid "Log Files"
+msgstr "لاگ فایل"
+
+#: views/settings.php:139
+msgid "Log Queues"
+msgstr "صف لاگ"
+
+#: views/settings.php:83
+msgid "Log Rotation"
+msgstr "ورود به سیستم چرخشی"
+
+#: functions.inc.php:382
+msgid "Log file settings"
+msgstr "تنظیمات لاگ فایل"
+
+#: views/settings.php:154
+msgid "Log queue events to a file"
+msgstr "لاگ صف رویدادهای فایل"
+
+#: views/settings.php:162
+msgid "Logfile Help"
+msgstr "راهنما لاگ فایل"
+
+#: views/settings.php:174
+msgid ""
+"Messages of specific actions, such as a phone registration or call completion"
+msgstr "پیام عملکردهای مشخص, مانندثبت تلفن"
+
+#: views/settings.php:166
+msgid ""
+"Messages used for debuging. Do not report these as error's unless you have a "
+"specific issue that you are attempting to debug. Also note that Debug "
+"messages are also very verbose and can and do fill up logfiles (and disk "
+"storage) quickly."
+msgstr "پیامهای استفاده شده برای عیب یابی."
+
+#: views/settings.php:165
+msgid ""
+"Name of file, relative to Asterisk logpath. Use absolute path for a "
+"different location"
+msgstr ""
+"نام فیلتر, مرتبط با الگو لاگ استریسک. استفاده از الگو مشخص برای مکان های "
+"متفاوت"
+
+#: views/settings.php:119 views/settings.php:146
+msgid "No"
+msgstr "خیر"
+
+#: functions.inc.php:129
+msgid "No lines returned"
+msgstr "بدون خط برگشت"
+
+#: views/settings.php:174 views/settings.php:188
+msgid "Notice"
+msgstr "توجه"
+
+#: views/settings.php:16 views/settings.php:26
+msgid "Off"
+msgstr "خاموش"
+
+#: views/settings.php:15 views/settings.php:27
+msgid "On"
+msgstr "روشن"
+
+#: views/settings.php:177
+msgid "Possible issues with dialplan syntaxt or call flow, but not critical."
+msgstr "مشکلات احتمالی syntaxt dialplan یا جریان پاسخ، اما مهم نیست."
+
+#: logfiles.i18n.php:6
+msgid "Reports"
+msgstr "گزارش ها"
+
+#: Logfiles.class.php:31
+msgid "Reset"
+msgstr "بازنشانی"
+
+#: views/settings.php:90
+msgid "Rotate"
+msgstr "چرخشی"
+
+#: views/settings.php:11
+msgid ""
+"Rotate: Rotate all the old files, such that the oldest has the highest "
+"sequence number (expected behavior for Unix administrators)."
+msgstr ""
+"چرخش: چرخش تمام فایل های قدیمی، به طوری که از قدیمی ترین دارای بیشترین تعداد "
+"دنباله (رفتار مورد انتظار برای مدیران یونیکس)."
+
+#: views/settings.php:191
+msgid "Security"
+msgstr "امنیت"
+
+#: views/settings.php:88
+msgid "Sequential"
+msgstr "پی در پی"
+
+#: views/settings.php:10
+msgid ""
+"Sequential: Rename archived logs in order, such that the newest has the "
+"highest sequence number"
+msgstr ""
+"ترتیبی: تغییر نام آرشیو لاگ، به طوری که، جدید ترین دارای بیشترین تعداد دنباله"
+
+#: views/logs.php:80 assets/js/views/logs.js:30
+msgid "Show"
+msgstr "نمایش"
+
+#: Logfiles.class.php:36
+msgid "Submit"
+msgstr "ثبت"
+
+#: views/settings.php:92
+msgid "Timestamp"
+msgstr "برچسب زمان"
+
+#: views/settings.php:12
+msgid ""
+"Timestamp: Rename the logfiles using a timestamp instead of a sequence "
+"number when \"logger rotate\" is executed."
+msgstr ""
+"Timestamp: Rename the logfiles using a timestamp instead of a sequence  "
+"number when \"logger rotate\" is  executed ."
+
+#: views/settings.php:173
+msgid "Transmition and receiving of faxes"
+msgstr "انتقال و دریافت فکس"
+
+#: views/settings.php:175 views/settings.php:189
+msgid "Verbose"
+msgstr "بلند"
+
+#: functions.inc.php:381
+msgid "View Logs"
+msgstr "مشاهده لاگ ها"
+
+#: views/settings.php:177 views/settings.php:190
+msgid "Warning"
+msgstr "هشدار"
+
+#: views/settings.php:117 views/settings.php:144
+msgid "Yes"
+msgstr "بله"
+
+#: install.php:59
+msgid "failed"
+msgstr "ناموفق"
+
+#: install.php:53
+msgid "logger.conf symlinked to incorrect file:"
+msgstr "logger.conf symlinked to incorrect file :"
+
+#: install.php:57
+msgid "ok"
+msgstr "تایید"
+
+#: install.php:55
+msgid "removing.."
+msgstr "درحال حذف.."
+
+#~ msgid "Settings"
+#~ msgstr "تنظیمات"
+
+#~ msgid "Choose a log file"
+#~ msgstr "یک لاگ فایل انتخاب کنید"
+
+#~ msgid "How many lines to display."
+#~ msgstr "تعداد خط نمایشی."
+
+#~ msgid "Log File"
+#~ msgstr "لاگ فایل"

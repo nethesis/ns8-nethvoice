@@ -1,0 +1,24 @@
+<module>
+	<rawname>iaxsettings</rawname>
+	<repo>standard</repo>
+	<name>Asterisk IAX Settings</name>
+	<version>14.0.1.4</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<licenselink>http://www.gnu.org/licenses/agpl-3.0.txt</licenselink>
+	<license>AGPLv3</license>
+	<category>Settings</category>
+	<menuitems>
+		<iaxsettings>Asterisk IAX Settings</iaxsettings>
+	</menuitems>
+	<description>Use to configure Various Asterisk IAX Settings in the General section of iax.conf.</description>
+	<changelog>
+		*14.0.1.4* FREEPBX-16717
+		*14.0.1.3* FREEPBX-15724
+		*14.0.1.2* FREEPBX-15722 IAX Settings allows to set minregexpire greater than maxregexpire value
+		*14.0.1.1* FREEPBX-15723 FREEPBX-15722 IAX Settings
+		*14.0.1* FREEPBX-14263 for 14
+	</changelog>
+	<supported>
+		<version>14.0</version>
+	</supported>
+</module>

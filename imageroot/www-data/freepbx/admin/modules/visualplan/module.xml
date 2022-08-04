@@ -1,0 +1,24 @@
+<module>
+  <rawname>visualplan</rawname>
+  <repo>unsupported</repo>
+  <name>Visual Plan</name>
+  <version>0.0.1</version>
+  <category>Applications</category>
+  <Publisher>Nethesis</Publisher>
+  <info></info>
+  <licence>GPL</licence>
+  <licenselink>http://www.gnu.org/licenses/gpl-2.0.txt</licenselink>
+  <menuitems>
+    <visualplan>Visual Plan</visualplan>
+</menuitems>
+<depends>
+  <version>14</version>
+</depends>
+<supported>14.0</supported>
+
+<description>Visual Plan is intuitive graphic mode to create new route</description>
+<changelog>
+  *0.0.1* First version.
+</changelog>
+
+</module>

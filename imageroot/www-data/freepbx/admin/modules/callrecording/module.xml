@@ -1,0 +1,55 @@
+<module>
+	<rawname>callrecording</rawname>
+	<repo>standard</repo>
+	<name>Call Recording</name>
+	<version>14.0.14</version>
+	<publisher>Sangoma Technologies Corporation</publisher>
+	<license>AGPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/agpl-3.0.txt</licenselink>
+	<candisable>no</candisable>
+	<canuninstall>no</canuninstall>
+	<category>Applications</category>
+	<description>
+		Provides much of the call recording functionality.
+	</description>
+	<menuitems needsenginedb="yes">
+		<callrecording>Call Recording</callrecording>
+	</menuitems>
+ 	<popovers>
+		<callrecording>
+			<display>callrecording</display>
+			<view>form</view>
+		</callrecording>
+ 	</popovers>
+	<changelog>
+		*14.0.14* Fixing FREEPBX-17867 
+		*14.0.13* Fixing FREEI-419 
+		*14.0.12* Reverting FREEPBX-15208 fixes 
+		*14.0.11* FREEPBX-15208 Multiple Call Recording can be added with same Description.
+		*14.0.10* FREEPBX-17466 Call Recording Pause Function removed 
+		*14.0.9* FREEPBX-18449 Call Recording module allows to create duplicate entries with same Description 
+		*14.0.8* FREEPBX-18481 Parked calls are not recorded 
+		*14.0.7* FREEPBX-17846 Function AUDIOHOOK_INHERIT not registered 
+		*14.0.6* FREEPBX-17466 Call Recording Pause Function 
+		*14.0.5* FREEPBX-18304 Ondeman outbound call recording failing issue fix 
+		*14.0.4* FREEPBX-18117 Entire incoming calls are not recorded. 
+		*14.0.3* FREEPBX-17466 Call Recording Pause Function 
+		*14.0.2* Fixing FREEPBX-17499 Setting default value for callrecording during bulkimport 
+		*14.0.1* Branched from 13.0.11.5
+	</changelog>
+	<hooks>
+		<bulkhandler class="Bulkhandler" namespace="FreePBX\modules">
+			<method class="Callrecording" callingMethod="import">bulkhandlerImport</method>
+			<method class="Callrecording" callingMethod="export">bulkhandlerExport</method>
+		</bulkhandler>
+	</hooks>
+	<supported>
+		<version>14.0</version>
+	</supported>
+	<depends>
+		<module>core ge 12.0.7</module>
+		<version>13.0.5</version>
+	</depends>
+	<location/>
+	<md5sum/>
+</module>

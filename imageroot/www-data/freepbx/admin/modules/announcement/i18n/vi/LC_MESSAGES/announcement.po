@@ -1,0 +1,264 @@
+# This file is part of FreePBX.
+#
+# For licensing information, please see the file named LICENSE located in the module directory
+#
+# FreePBX language template for announcement
+# Copyright (C) 2008-2017 Sangoma Technologies, Inc.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-12-31 12:25+0530\n"
+"PO-Revision-Date: 2017-09-02 09:02+0200\n"
+"Last-Translator: PETER <ftek@ymail.com>\n"
+"Language-Team: Vietnamese <http://weblate.freepbx.org/projects/freepbx/"
+"announcement/vi/>\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 2.4\n"
+
+#: page.announcement.php:17
+msgid ": Add"
+msgstr ": Thêm"
+
+#: page.announcement.php:14
+msgid ": Edit"
+msgstr ": Chỉnh sửa"
+
+#: views/grid.php:18
+msgid "Actions"
+msgstr "Thao tác"
+
+#: views/grid.php:11
+msgid "Add"
+msgstr "Thêm"
+
+#: views/rnav.php:3
+msgid "Add Announcements"
+msgstr "Thêm Thông Báo"
+
+#: views/form.php:142
+msgid "Allow Skip"
+msgstr "Cho Phép Bỏ Qua"
+
+#: page.announcement.php:7
+msgid "Announcement"
+msgstr "Thông Báo"
+
+#: assets/js/announcement.js:16
+msgid "Announcement Description Already Exist"
+msgstr ""
+
+#: functions.inc.php:31 functions.inc.php:51 functions.inc.php:226
+#, php-format
+msgid "Announcement: %s"
+msgstr "Thông Báo: %s"
+
+#: announcement.i18n.php:4 announcement.i18n.php:10
+msgid "Announcements"
+msgstr "Các Thông báo"
+
+#: announcement.i18n.php:6
+msgid "Applications"
+msgstr "Các Ứng Dụng"
+
+#: install.php:90
+msgid "Checking if recordings need migration.."
+msgstr "Kiểm tra nếu bản ghi cần di chuyển .."
+
+#: Announcement.class.php:70
+msgid "Delete"
+msgstr "Xóa"
+
+#: views/form.php:91 views/grid.php:16
+msgid "Description"
+msgstr "Mô Tả"
+
+#: views/grid.php:17
+msgid "Destination"
+msgstr "Điểm đích"
+
+#: views/form.php:223
+msgid "Destination after Playback"
+msgstr "Điểm đích sau khi Phát Lại"
+
+#: views/rnav.php:8
+msgid "Destinations"
+msgstr "Những Điểm đích"
+
+#: views/form.php:72
+msgid "Disable"
+msgstr "Vô hiệu hóa"
+
+#: views/form.php:196
+msgid "Don't Answer Channel"
+msgstr "Không trả lời Kênh"
+
+#: views/form.php:157
+msgid "If the caller is allowed to press a key to skip the message."
+msgstr "Nếu người gọi được phép bấm phím để bỏ qua thông báo."
+
+#: views/form.php:184
+msgid ""
+"If this announcement came from an IVR and this is set to yes, the "
+"destination below will be ignored and instead it will return to the calling "
+"IVR. Otherwise, the destination below will be taken. Don't check if not "
+"using in this mode. <br>The IVR return location will be to the last IVR in "
+"the call chain that was called so be careful to only check when needed. For "
+"example, if an IVR directs a call to another destination which eventually "
+"calls this announcement and this box is checked, it will return to that IVR "
+"which may not be the expected behavior."
+msgstr ""
+"Return to IVR  (Interactive Voice Response = Tương tác bằng giọng nói) [Yes/"
+"No]\n"
+"Nếu thông báo đến từ hệ thống IVR và được đặt là Yes, \"Điểm Đến sau khi "
+"Phát Lại\" dưới đây sẽ bị bỏ qua và thay vào đó thông báo sẽ trả lời cuộc "
+"gọi tới IVR. Nếu không, điểm đến dưới đây sẽ được thực hiện. Đừng đánh dấu "
+"Check nếu không sử dụng chế độ này. <br> Vị trí trở lại IVR sẽ là IVR cuối "
+"cùng trong chuỗi gọi được gọi là nên cẩn thận chỉ Đánh dấu Check khi cần sử "
+"dụng. Ví dụ, nếu một IVR chỉ đạo một cuộc gọi đến một điểm đến khác mà cuối "
+"cùng sẽ gọi thông báo này và hộp này được đánh dấu Check, nó sẽ trở lại với "
+"IVR đó có thể không phải là hành vi mong đợi.\n"
+"Ví Dụ Mô Phỏng: \n"
+"(1) Khách gọi máy vào > Nghe Thông Báo (Chào bạn, cảm ơn bạn,...)\n"
+"(2a) Nghe Thông Báo xong, khách được đưa đến \"Điểm Đến\" kế (như Ấn phím #1 "
+"Tư Vấn Mua Hàng, #2 Hổ trợ kĩ thuật,...)\n"
+"(2b) Còn nếu chọn YES ở check box này, 2a sẽ bị loại bỏ, hệ thống sẽ đưa bạn "
+"về Thông Báo trước đó (dùng cho thông báo cuối cùng của hệ thống, như là "
+"Hiện giờ Bộ phận đã đóng cửa, gửi khách về Menu trước đó, để IVR hướng dẫn "
+"khách các hổ trợ khách."
+
+#: assets/js/announcement.js:6
+msgid "Invalid description specified"
+msgstr "Mô tả không hợp lệ được chỉ định"
+
+#: views/form.php:130
+msgid ""
+"Key to press that will allow for the message to be replayed. If you choose "
+"this option there will be a short delay inserted after the message. If a "
+"longer delay is needed it should be incorporated into the recording."
+msgstr ""
+"Phím nhấn cho phép tin nhắn được phát lại. Nếu bạn chọn tùy chọn này, sẽ có "
+"một sự chậm chễ ngắn được chèn vào sau tin nhắn. Nếu cần một sự trì hoãn dài "
+"hơn, nó phải được kết hợp vào bản ghi."
+
+#: views/rnav.php:2
+msgid "List Announcements"
+msgstr "Danh sách thông báo"
+
+#: views/form.php:59
+msgid ""
+"Message to be played.<br>To add additional recordings use the \"System "
+"Recordings\" MENU above"
+msgstr ""
+"Tin nhắn được phát. <br> Để thêm các bản ghi âm bổ sung, sử dụng menu \"Hệ "
+"thống Ghi âm\" ở trên"
+
+#: views/form.php:149 views/form.php:176 views/form.php:203
+msgid "No"
+msgstr "Không"
+
+#: assets/js/announcement.js:35
+msgid "No Destination"
+msgstr "Không có điểm đến"
+
+#: views/form.php:32
+msgid "None"
+msgstr "Không có gì hết"
+
+#: announcement.i18n.php:8
+msgid ""
+"Plays back one of the system recordings (optionally allowing the user to "
+"skip it) and then goes to another destination."
+msgstr ""
+"Phát lại một trong các bản ghi hệ thống (tùy chọn cho phép người dùng bỏ qua "
+"nó) và sau đó chuyển sang một điểm đến khác."
+
+#: views/form.php:45
+msgid "Recording"
+msgstr "Ghi âm"
+
+#: views/form.php:116
+msgid "Repeat"
+msgstr "Lặp lại"
+
+#: Announcement.class.php:75
+msgid "Reset"
+msgstr "Đặt lại"
+
+#: views/form.php:169
+msgid "Return to IVR"
+msgstr "Quay trở lại IVR"
+
+#: views/form.php:211
+msgid ""
+"Set this to yes, to keep the channel from explicitly being answered. When "
+"checked, the message will be played and if the channel is not already "
+"answered it will be delivered as early media if the channel supports that. "
+"When not checked, the channel is answered followed by a 1 second delay. When "
+"using an announcement from an IVR or other sources that have already "
+"answered the channel, that 1 second delay may not be desired."
+msgstr ""
+"Đặt giá trị này là Có để giữ kênh không được trả lời rõ ràng. Khi được chọn, "
+"thông báo sẽ được phát và nếu kênh chưa được trả lời, nó sẽ được phát như là "
+"phương tiện truyền thông sớm nếu kênh hỗ trợ. Khi không được kiểm tra, kênh "
+"được trả lời và theo sau là sự chậm trễ 1 giây. Khi sử dụng thông báo từ IVR "
+"hoặc các nguồn khác đã trả lời kênh, sự chậm trễ 1 giây đó có thể không được "
+"mong muốn."
+
+#: Announcement.class.php:80
+msgid "Submit"
+msgstr "Nộp"
+
+#: views/form.php:103
+msgid "The name of this announcement."
+msgstr "Tên của thông báo này."
+
+#: views/form.php:235
+msgid "Where to send the caller after the announcement is played."
+msgstr "Nơi gửi người gọi sau khi nghe thông báo."
+
+#: views/form.php:147 views/form.php:174 views/form.php:201
+msgid "Yes"
+msgstr "Có"
+
+#: install.php:97
+msgid "adding recording_id field.."
+msgstr "thêm vùng code recording_id .."
+
+#: install.php:147
+msgid "already migrated"
+msgstr "đã di cư"
+
+#: install.php:137
+msgid "dropping recording field.."
+msgstr "Bỏ vùng ghi âm .."
+
+#: install.php:101 install.php:113 install.php:129
+msgid "fatal error"
+msgstr "lỗi nghiêm trọng"
+
+#: install.php:109
+msgid "migrate to recording ids.."
+msgstr "Di chuyển đến id lưu trữ ."
+
+#: install.php:133
+#, php-format
+msgid "migrated %s entries"
+msgstr "Di chuyển %s mục nhập"
+
+#: install.php:96
+msgid "migrating"
+msgstr "đang di cư"
+
+#: install.php:141
+msgid "no recording field???"
+msgstr "Không có trường ghi âm ???"
+
+#: install.php:104 install.php:143
+msgid "ok"
+msgstr "ok"

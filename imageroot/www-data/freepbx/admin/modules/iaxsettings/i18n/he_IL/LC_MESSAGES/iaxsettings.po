@@ -1,0 +1,304 @@
+# This file is part of FreePBX.
+#
+#    FreePBX is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    FreePBX is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+#
+# FreePBX language template for iaxsettings
+# Copyright (C) 2008, 2009, 2010 Bandwith.com
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-02-12 19:18-0500\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: views/form.php:415
+msgid ""
+" If you clear each codec and then add them one at a time, submitting with "
+"each addition, they will be added in order which will effect the codec "
+"priority."
+msgstr ""
+
+#: Iaxsettings.class.php:67
+#, php-format
+msgid "%s must be a non-negative integer"
+msgstr ""
+
+#: views/form.php:313
+msgid "Add Field"
+msgstr ""
+
+#: views/form.php:77
+msgid "Advanced Settings"
+msgstr ""
+
+#: iaxsettings.i18n.php:4 iaxsettings.i18n.php:10
+msgid "Asterisk IAX Settings"
+msgstr ""
+
+#: views/form.php:388
+msgid ""
+"Asterisk: bandwidth. Specify bandwidth of low, medium, or high to control "
+"which codecs are used in general."
+msgstr ""
+
+#: views/form.php:243
+msgid ""
+"Asterisk: bindaddr. The IP address to bind to and listen for calls on the "
+"Bind Port. If set to 0.0.0.0 Asterisk will listen on all addresses. To bind "
+"to multiple IP addresses or ports, use the Other 'IAX Settings' fields where "
+"you can put settings such as:<br /> bindaddr=192.168.10.100:4555.<br />  It "
+"is recommended to leave this blank."
+msgstr ""
+
+#: views/form.php:267
+msgid ""
+"Asterisk: bindport. Local incoming UDP Port that Asterisk will bind to and "
+"listen for IAX messages. The IAX standard is 4569 and in most cases this is "
+"what you want. It is recommended to leave this blank."
+msgstr ""
+
+#: views/form.php:357
+msgid ""
+"Asterisk: codecpriority. Controls the codec negotiation of an inbound IAX "
+"call. This option is inherited to all user entities.  It can also be defined "
+"in each user entity separately which will override the setting here. The "
+"valid values are:<br />host - Consider the host's preferred order ahead of "
+"the caller's.<br />caller - Consider the callers preferred order ahead of "
+"the host's.<br /> disabled - Disable the consideration of codec preference "
+"altogether. (this is the original behavior before preferences were "
+"added)<br />reqonly  - Same as disabled, only do not consider capabilities "
+"if the requested format is not available the call will only be accepted if "
+"the requested format is available."
+msgstr ""
+
+#: views/form.php:294
+msgid ""
+"Asterisk: delayreject. For increased security against brute force password "
+"attacks enable this which will delay the sending of authentication reject "
+"for REGREQ or AUTHREP if there is a password."
+msgstr ""
+
+#: views/form.php:165
+msgid ""
+"Asterisk: forcejitterbuffer. Forces the use of a jitterbuffer on the receive "
+"side of an IAX channel. Normally the jitter buffer will not be used if "
+"receiving a jittery channel but sending it off to another channel such as a "
+"SIP channel to an endpoint, since there is typically a jitter buffer at the "
+"far end. This will force the use of the jitter buffer before sending the "
+"stream on. This is not typically desired as it adds additional latency into "
+"the stream."
+msgstr ""
+
+#: views/form.php:137
+msgid ""
+"Asterisk: jitterbuffer. You can adjust several parameters relating to the "
+"jitter buffer. The jitter buffer's function is to compensate for varying "
+"network delay. The jitter buffer works for INCOMING audio - the outbound "
+"audio will be dejittered by the jitter buffer at the other end."
+msgstr ""
+
+#: views/form.php:192
+msgid ""
+"Asterisk: maxjitterbuffer. Max length of the jitterbuffer in milliseconds."
+"<br /> Asterisk: resyncthreshold. When the jitterbuffer notices a "
+"significant change in delay that continues over a few frames, it will "
+"resync, assuming that the change in delay was caused by a timestamping mix-"
+"up. The threshold for noticing a change in delay is measured as twice the "
+"measured jitter plus this resync threshold. Resyncing can be disabled by "
+"setting this parameter to -1."
+msgstr ""
+
+#: views/form.php:216
+msgid ""
+"Asterisk: maxjitterinterps. The maximum number of interpolation frames the "
+"jitterbuffer should return in a row. Since some clients do not send CNG/DTX "
+"frames to indicate silence, the jitterbuffer will assume silence has begun "
+"after returning this many interpolations. This prevents interpolating "
+"throughout a long silence."
+msgstr ""
+
+#: views/form.php:110
+msgid ""
+"Asterisk: minregexpire, maxregexpire. Minimum and maximum length of time "
+"that IAX peers can request as a registration expiration interval (in "
+"seconds)."
+msgstr ""
+
+#: views/form.php:328
+msgid "Audio Codecs"
+msgstr ""
+
+#: views/form.php:369
+msgid "Bandwidth"
+msgstr ""
+
+#: views/form.php:231
+msgid "Bind Address"
+msgstr ""
+
+#: Iaxsettings.class.php:77
+msgid "Bind Address (bindaddr) must be an IP address."
+msgstr ""
+
+#: views/form.php:255
+msgid "Bind Port"
+msgstr ""
+
+#: Iaxsettings.class.php:87
+msgid "Bind Port (bindport) must be between 1024..65535, default 4569"
+msgstr ""
+
+#: views/form.php:415
+msgid "Check to enable and then choose allowed codecs."
+msgstr ""
+
+#: views/form.php:338
+msgid "Codec Priority"
+msgstr ""
+
+#: views/form.php:82
+msgid "Codec Settings"
+msgstr ""
+
+#: install.php:69
+msgid "Default Settings added."
+msgstr ""
+
+#: views/form.php:279
+msgid "Delay Auth Rejects"
+msgstr ""
+
+#: views/form.php:400
+msgid "Enable Video Support"
+msgstr ""
+
+#: views/form.php:150
+msgid "Force Jitter Buffer"
+msgstr ""
+
+#: views/form.php:72
+msgid "General Settings"
+msgstr ""
+
+#: views/form.php:63
+msgid "IAX Settings"
+msgstr ""
+
+#: views/form.php:122
+msgid "Jitter Buffer Enable"
+msgstr ""
+
+#: views/form.php:177
+msgid "Jitter Buffer Size"
+msgstr ""
+
+#: views/form.php:204
+msgid "Max Interpolations"
+msgstr ""
+
+#: views/form.php:129 views/form.php:157 views/form.php:286 views/form.php:407
+msgid "No"
+msgstr ""
+
+#: views/form.php:306
+msgid "Other IAX Settings"
+msgstr ""
+
+#: views/form.php:95
+msgid "Registration Times"
+msgstr ""
+
+#: Iaxsettings.class.php:51
+msgid "Reset"
+msgstr ""
+
+#: iaxsettings.i18n.php:6
+msgid "Settings"
+msgstr ""
+
+#: functions.inc.php:277
+#, php-format
+msgid "Settings in %s may override these. Those settings should be removed."
+msgstr ""
+
+#: Iaxsettings.class.php:46
+msgid "Submit"
+msgstr ""
+
+#: iaxsettings.i18n.php:8
+msgid ""
+"Use to configure Various Asterisk IAX Settings in the General section of iax."
+"conf."
+msgstr ""
+
+#: views/form.php:127 views/form.php:155 views/form.php:284 views/form.php:405
+msgid "Yes"
+msgstr ""
+
+#: views/form.php:321
+msgid ""
+"You may set any other IAX settings not present here that are allowed to be "
+"configured in the General section of iax.conf. There will be no error "
+"checking against these settings so check them carefully. They should be "
+"entered as:<br /> [setting] = [value]<br /> in the boxes below. Click the "
+"Add Field box to add additional fields. Blank boxes will be deleted when "
+"submitted."
+msgstr ""
+
+#: install.php:73
+msgid "already exists"
+msgstr ""
+
+#: install.php:56
+msgid "checking for iaxsettings table.."
+msgstr ""
+
+#: install.php:67
+msgid "fatal error occurred populating defaults, check module"
+msgstr ""
+
+#: views/form.php:378
+msgid "high"
+msgstr ""
+
+#: views/form.php:374
+msgid "low"
+msgstr ""
+
+#: views/form.php:376
+msgid "medium"
+msgstr ""
+
+#: install.php:60
+msgid "none, creating table"
+msgstr ""
+
+#: install.php:64
+msgid "populating default settings.."
+msgstr ""
+
+#: Iaxsettings.class.php:127
+msgid "resyncthreshold must be a non-negative integer or -1 to disable"
+msgstr ""
+
+#: views/form.php:380
+msgid "unset"
+msgstr ""
