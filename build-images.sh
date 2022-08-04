@@ -27,17 +27,33 @@ buildah add "${container}" imageroot /imageroot
 mkdir -p  ui/dist
 buildah add "${container}" ui/dist /ui
 # Setup the entrypoint, ask to reserve one TCP port with the label and set a rootless container
-buildah config --entrypoint=/ \
+buildah config \
     --label="org.nethserver.authorizations=traefik@any:routeadm" \
     --label="org.nethserver.tcp-ports-demand=3" \
     --label="org.nethserver.rootfull=0" \
-    --label="org.nethserver.images=docker.io/library/mariadb:latest docker.io/library/php:5.6-apache $repobase/asterisk:latest" \
+    --label="org.nethserver.images=docker.io/library/mariadb:latest $repobase/freepbx:latest $repobase/asterisk:latest" \
     "${container}"
+
+images+=("${repobase}/${reponame}"):
+
+reponame="freepbx"
+container=$(buildah from docker.io/library/php:5.6-apache)
+
+# Copy entrypoint script into freepbx container
+buildah add "${container}" imageroot/freepbx/entrypoint.sh /entrypoint.sh
+
+# Copy mysql initializzation data
+buildah add "${container}" imageroot/freepbx/initdb.d /
+
+buildah config \
+    --entrypoint='["/entrypoint.sh"]' \
+    "${container}"
+
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
 
 # Append the image URL to the images array
-images+=("${repobase}/${reponame}")
+images+=("${repobase}/${reponame}"):
 
 # Build Asterisk container
 
@@ -57,7 +73,9 @@ yum install -y \
     asterisk13-dahdi \
     asterisk13-speex \
     asterisk13-addons-core \
-    asterisk-sounds-extra-en-ulaw
+    asterisk-sounds-extra-en-ulaw \
+    unixODBC \
+    mysql-connector-odbc
 yum clean all
 rm -rf /var/cache/yum
 EOF
