@@ -44,49 +44,8 @@ EOF
 	# Configure mysql
 	php /initdb.d/initdb.php 
 
-	# Configure asterisk
-	cat > /etc/asterisk/asterisk.conf <<EOF
-[directories]
-astetcdir=/etc/asterisk
-astmoddir=/usr/lib64/asterisk/modules
-astvarlibdir=/var/lib/asterisk
-astagidir=/var/lib/asterisk/agi-bin
-astspooldir=/var/spool/asterisk
-astrundir=/var/run/asterisk
-astlogdir=/var/log/asterisk
-[options]
-transmit_silence_during_record=yes<F6>
-languageprefix=yes
-execincludes=yes
-dontwarn=yes
-[files]
-astctlpermissions=775
-[modules]
-autoload=yes
-EOF
-
 	# Create empty /etc/amportal.conf
 	touch /etc/amportal.conf
-
-	# Configure asterisk manager
-	cat > /etc/asterisk/manager.conf <<EOF
-[general]
-enabled = yes
-port = 5038
-bindaddr = 0.0.0.0
-displayconnects=no
-
-[${AMPMGRUSER}]
-secret = ${AMPMGRPASS}
-deny=0.0.0.0/0.0.0.0
-permit=127.0.0.1/255.255.255.0
-read = system,call,log,verbose,command,agent,user,config,command,dtmf,reporting,cdr,dialplan,originate,message
-write = system,call,log,verbose,command,agent,user,config,command,dtmf,reporting,cdr,dialplan,originate,message
-writetimeout = 5000
-
-#include manager_additional.conf
-#include manager_custom.conf
-EOF
 
 	# Configure freepbx
 	cat > /etc/freepbx.conf <<EOF

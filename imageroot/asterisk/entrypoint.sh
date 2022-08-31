@@ -27,9 +27,48 @@ if [[ ! -f /etc/asterisk/modules.conf ]]; then
 autoload=no
 EOF
 fi
-    
-touch /etc/asterisk/manager_additional.conf
-touch /etc/asterisk/manager_custom.conf
+
+if [[ ! -f /etc/asterisk/asterisk.conf ]]; then
+	# Configure asterisk
+	cat > /etc/asterisk/asterisk.conf <<EOF
+[directories]
+astetcdir=/etc/asterisk
+astmoddir=/usr/lib64/asterisk/modules
+astvarlibdir=/var/lib/asterisk
+astagidir=/var/lib/asterisk/agi-bin
+astspooldir=/var/spool/asterisk
+astrundir=/var/run/asterisk
+astlogdir=/var/log/asterisk
+[options]
+transmit_silence_during_record=yes<F6>
+languageprefix=yes
+execincludes=yes
+dontwarn=yes
+[files]
+astctlpermissions=775
+[modules]
+autoload=yes
+EOF
+fi
+
+if [[ ! -f /etc/asterisk/manager.conf ]]; then
+        # Configure asterisk manager
+        cat > /etc/asterisk/manager.conf <<EOF
+[general]
+enabled = yes
+port = ${ASTMANAGERPORT:-5038}
+bindaddr = 0.0.0.0
+displayconnects=no
+
+[${AMPMGRUSER}]
+secret = ${AMPMGRPASS}
+deny=0.0.0.0/0.0.0.0
+permit=127.0.0.1/255.255.255.0
+read = system,call,log,verbose,command,agent,user,config,command,dtmf,reporting,cdr,dialplan,originate,message
+write = system,call,log,verbose,command,agent,user,config,command,dtmf,reporting,cdr,dialplan,originate,message
+writetimeout = 5000
+EOF
+fi
 
 cd /var/lib/asterisk
 /usr/sbin/asterisk -f -C /etc/asterisk/asterisk.conf
