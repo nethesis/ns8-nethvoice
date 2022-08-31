@@ -17,6 +17,10 @@ $cdrdb->exec(file_get_contents("/initdb.d/asteriskcdrdb.sql"));
 $vars = array(
 	'AMPDBUSER' => $_ENV['AMPDBUSER'],
 	'AMPDBPASS' => $_ENV['AMPDBPASS'],
+	'ASTMANAGERHOST' => (empty($_ENV['ASTMANAGERHOST']) ? '127.0.0.1' : $_ENV['ASTMANAGERHOST']),
+	'ASTMANAGERPORT' => (empty($_ENV['ASTMANAGERPORT']) ? '5038' : $_ENV['ASTMANAGERPORT']),
+	'AMPMGRUSER' => (empty($_ENV['AMPMGRUSER']) ? 'admin' : $_ENV['AMPMGRUSER']),
+	'AMPMGRPASS' => (empty($_ENV['AMPMGRPASS']) ? 'amp111' : $_ENV['AMPMGRPASS']),
 	'CDRDBHOST' => '127.0.0.1',
 	'CDRDBPORT' => $_ENV['MARIADB_PORT'],
 	'CDRDBNAME' => 'asteriskcdrdb',
