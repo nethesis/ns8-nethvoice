@@ -72,3 +72,15 @@ fi
 
 cd /var/lib/asterisk
 /usr/sbin/asterisk -f -C /etc/asterisk/asterisk.conf
+
+# populate /var/spool/asterisk if it's needed
+
+mkdir -p /var/spool/asterisk/tmp
+mkdir -p /var/spool/asterisk/voicemail
+mkdir -p /var/spool/asterisk/voicemail/default
+mkdir -p /var/spool/asterisk/fax
+mkdir -p /var/spool/asterisk/monitor
+mkdir -p /var/spool/asterisk/cache
+mkdir -p /var/spool/asterisk/outgoing
+mkdir -p /var/spool/asterisk/uploads
+chmod o+w /var/spool/asterisk/* 

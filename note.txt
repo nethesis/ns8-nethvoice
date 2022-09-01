@@ -218,13 +218,15 @@ export MARIADB_ROOT_PASSWORD=dummymariadbpass
 export AMPDBUSER=freepbxuser
 export AMPDBHOST=127.0.0.1
 export AMPDBNAME=asterisk
+export ASTMANAGERHOST=127.0.0.1
+export ASTMANAGERPORT=5038
+export AMPMGRUSER=admin
+export AMPMGRPASS=dummyampmgrpass
 export AMPDBPASS=dummyampdbpass
 export CDRDBHOST=mariadb
 export CDRDBNAME=asteriskcdrdb
 export CDRDBUSER=cdruser
 export CDRDBPASS=dummycdrdbpass
-export AMPMGRUSER=admin
-export AMPMGRPASS=dummyampmgrpass
 
 #
 # MariaDB
@@ -274,6 +276,10 @@ rm -f /var/tmp/asterisk.ctr-id /var/tmp/asterisk.pid
     --volume=asterisk:/etc/asterisk:z \
     --volume=spool:/var/spool/asterisk:z \
     --env=APACHE_SSL_PORT \
+    --env=ASTMANAGERHOST \
+    --env=ASTMANAGERPORT \
+    --env=AMPMGRUSER \
+    --env=AMPMGRPASS \
     --network=host \
     asterisk
 
@@ -288,16 +294,17 @@ podman login -u Stell0 -p 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 ghcr.io
 repobase="${REPOBASE:-ghcr.io/nethserver}"
 reponame="nethvoice"
 
-
 container=$(buildah from docker.io/library/php:5.6-apache)
 
-buildah add "${container}" imageroot/freepbx/entrypoint.sh /entrypoint.sh
+#buildah add "${container}" imageroot/freepbx/root/entrypoint.sh /entrypoint.sh
 
-buildah add "${container}" imageroot/freepbx/initdb.d /initdb.d
+#buildah add "${container}" imageroot/freepbx/root/initdb.d /initdb.d
 
-buildah add "${container}"  imageroot/freepbx/var/lib/asterisk /var/lib/asterisk
+#buildah add "${container}"  imageroot/freepbx/root/var/lib/asterisk /var/lib/asterisk
 
-buildah add "${container}"  imageroot/freepbx/usr/sbin/asterisk /usr/sbin/asterisk
+#buildah add "${container}"  imageroot/freepbx/root/usr/sbin/asterisk /usr/sbin/asterisk
+
+buildah add "${container}"  imageroot/freepbx/root/ /
 
 buildah run "${container}" sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:$\{APACHE_PORT\}>/' /etc/apache2/sites-enabled/000-default.conf
 buildah run "${container}" sed -i 's/Listen 80/Listen $\{APACHE_PORT\}/' /etc/apache2/ports.conf
@@ -356,11 +363,11 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --cgroups=no-conmon \
     --log-opt=tag=freepbx14 \
     --replace --name=freepbx14 \
-    --volume=./imageroot/www-data:/var/www/html:Z \
-    --volume=./imageroot/freepbx/initdb.d:/initdb.d:Z \
     --volume=spool:/var/spool/asterisk:z \
     --env=MARIADB_ROOT_PASSWORD \
     --env=MARIADB_PORT \
+    --env=ASTMANAGERHOST \
+    --env=ASTMANAGERPORT \
     --env=AMPMGRUSER \
     --env=AMPMGRPASS \
     --env=AMPDBUSER \
@@ -406,6 +413,17 @@ Action: Login
 ActionID: 1
 Username: admin
 Secret: dummyampmgrpass
+
+
+
+
+
+
+
+
+
+
+
 
 
 
