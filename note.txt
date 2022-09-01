@@ -489,8 +489,10 @@ buildah run "${container}" docker-php-ext-install pdo_mysql
 buildah run "${container}" docker-php-ext-configure gettext
 buildah run "${container}" docker-php-ext-install gettext
 
-# TODO install pdo_odbcssh tux@makako
+buildah run "${container}" apt-get update
+buildah run "${container}" apt install -y gnupg
 
+# TODO install pdo_odbcssh tux@makako
 #buildah run "${container}" apt-get update
 #buildah run "${container}" apt install -y unixodbc unixodbc-dev
 #buildah run "${container}" docker-php-ext-configure pdo_odbc --with-pdo-odbc=unixODBC
@@ -510,6 +512,9 @@ buildah run "${container}" sed -i 's/^variables_order = "GPCS"/variables_order =
 
 # enable apache rewrite module
 buildah run "${container}" a2enmod rewrite
+
+# clean apt cache
+buildah run "${container}" apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,dpkg,cache,log}/
 
 # commit container
 buildah commit "${container}" freepbx16
