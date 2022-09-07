@@ -228,3 +228,68 @@ $app->post('/configuration/localnetworks', function (Request $request, Response 
     return $response->withStatus(500);
 });
 
+#
+# POST /configuration/voicemailgooglestt/<enabled|disabled>
+#
+# enable or disable google speech STT for voicemail attachment
+#
+$app->post('/configuration/voicemailgooglestt/{status:enabled|disabled}', function (Request $request, Response $response, $args) {
+    $route = $request->getAttribute('route');
+    $status = $route->getArgument('status');
+    if ($status == 'enabled') {
+        if ( !file_exists('/home/asterisk/google-auth.json')) {
+            return $response->withJson('Missing authentication file',412);
+        }
+        $vm = \FreePBX::Voicemail()->getVoicemail(false);
+        $vm['general']['mailcmd'] = '/var/lib/asterisk/bin/googlestt_sendmail.php';
+        \FreePBX::Voicemail()->saveVoicemail($vm);
+        //reload
+        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        return $response->withStatus(200);
+
+    } else if ($status == 'disabled') {
+        $vm = \FreePBX::Voicemail()->getVoicemail(false);
+        unset($vm['general']['mailcmd']);
+        \FreePBX::Voicemail()->saveVoicemail($vm);
+        //reload
+        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        return $response->withStatus(200);
+    }
+    return $response->withStatus(500);
+});
+
+#
+# GET /configuration/voicemailgooglestt
+#
+# return google speech STT for voicemail attachment status
+#
+$app->get('/configuration/voicemailgooglestt', function (Request $request, Response $response, $args) {
+    $status = "disabled";
+    $vm = \FreePBX::Voicemail()->getVoicemail(false);
+    if ($vm['general']['mailcmd'] == "/var/lib/asterisk/bin/googlestt_sendmail.php") {
+        $status = "enabled";
+    }
+    return $response->withJson($status,200);
+});
+
+#
+# POST /configuration/googleauth
+#
+# upload the google's auth json file into a specific directory
+#
+$app->post('/configuration/googleauth', function (Request $request, Response $response, $args) {
+    try {
+        $params = $request->getParsedBody();
+        $base64file = preg_replace('/^data:[a-z\.\-\/]*;base64,/','',$params['file']);
+        $currentfile = '/home/asterisk/google-auth.json';
+        if (file_exists($currentfile)) {
+            unlink($currentfile);
+        }
+        $str = base64_decode($base64file);
+        file_put_contents($currentfile, $str);
+        return $response->withStatus(200);
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return $response->withStatus(500);
+    }
+});

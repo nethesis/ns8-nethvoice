@@ -74,6 +74,7 @@ while ($row = $sth->fetch(\PDO::FETCH_ASSOC)) {
         break;
     case 'Fanvil':
     case 'Gigaset':
+    case 'Nethesis':
     case 'Panasonic':
     case 'Sangoma':
     case 'Thomson':

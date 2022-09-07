@@ -992,7 +992,7 @@ $app->get('/cti/streaming', function (Request $request, Response $response, $arg
 
             $sql = 'SELECT id FROM rest_cti_permissions WHERE name=?';
             $sth = $dbh->prepare($sql);
-            $sth->execute(array('vs_'.$descr));
+            $sth->execute(array('vs_'.strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$descr)))));
             $restemp = $sth->fetchAll(PDO::FETCH_ASSOC);
             $permission_id = null;
 
@@ -1074,7 +1074,7 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
 
         $sql = 'SELECT id FROM rest_cti_permissions WHERE name=?';
         $sth = $dbi->prepare($sql);
-        $sth->execute(array('vs_'.$name));
+        $sth->execute(array($permname));
         $res = $sth->fetchObject();
         $permission_id = null;
 

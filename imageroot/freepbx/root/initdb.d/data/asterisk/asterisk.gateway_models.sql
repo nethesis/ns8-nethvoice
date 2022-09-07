@@ -1,0 +1,31 @@
+/*!40101 SET NAMES binary*/;
+/*!40014 SET FOREIGN_KEY_CHECKS=0*/;
+/*!40103 SET TIME_ZONE='+00:00' */;
+INSERT INTO `gateway_models` (`id`,`model`,`manufacturer`,`tech`,`n_pri_trunks`,`n_isdn_trunks`,`n_fxo_trunks`,`n_fxs_ext`,`description`) VALUES
+(1,"4552","Patton","isdn",0,1,0,0,"SMARTNODE ISDN 1 Porta"),
+(2,"4554","Patton","isdn",0,2,0,0,"SMARTNODE ISDN 2 Porte"),
+(3,"4638","Patton","isdn",0,4,0,0,"SMARTNODE ISDN 4 Porte"),
+(4,"4661","Patton","isdn",0,8,0,0,"SMARTNODE ISDN 8 Porte"),
+(5,"4112fxs","Patton","fxs",0,0,0,2,"SMARTNODE Analogico 2 Porte FXS"),
+(6,"4112fxo","Patton","fxo",0,0,2,0,"SMARTNODE Analogico 2 Porte FXO"),
+(7,"4114fxs","Patton","fxs",0,0,0,4,"SMARTNODE Analogico 4 Porte FXS"),
+(8,"4114fxo","Patton","fxo",0,0,4,0,"SMARTNODE Analogico 4 Porte FXO"),
+(9,"4526fxs","Patton","fxs",0,0,0,6,"SMARTNODE Analogico 6 Porte FXS"),
+(10,"4118fxs","Patton","fxs",0,0,0,8,"SMARTNODE Analogico 8 Porte FXS"),
+(11,"4970","Patton","pri",1,0,0,0,"SMARTNODE PRI 1 Porta"),
+(12,"4970_4","Patton","pri",4,0,0,0,"SMARTNODE PRI 4 Porte"),
+(13,"TRI_ISDN_1","Patton","isdn",0,1,0,0,"TRINITY ISDN 1 Porta"),
+(14,"TRI_ISDN_2","Patton","isdn",0,2,0,0,"TRINITY ISDN 2 Porte"),
+(15,"TRI_ISDN_4","Patton","isdn",0,4,0,0,"TRINITY ISDN 4 Porte"),
+(16,"TRI_PRI_1","Patton","pri",1,0,0,0,"TRINITY PRI 1 Porta"),
+(17,"TRI_PRI_2","Patton","pri",2,0,0,0,"TRINITY PRI 2 Porte"),
+(18,"TRI_PRI_4","Patton","pri",4,0,0,0,"TRINITY PRI 4 Porte"),
+(19,"Vega_50_24fxs","Sangoma","fxs",0,0,0,24,"Vega 3000 FXS 24 Porte"),
+(20,"Vega_60_4fxo","Sangoma","fxo",0,0,4,0,"Vega 60 FXO 4 Porte"),
+(21,"Vega_60_2isdn","Sangoma","isdn",0,2,0,0,"Vega 60 ISDN 2 Porte"),
+(22,"Vega_60_4isdn","Sangoma","isdn",0,4,0,0,"Vega 60 ISDN 4 Porte"),
+(23,"Vega_100_1pri","Sangoma","pri",1,0,0,0,"Vega 100 PRI 1 Porta"),
+(24,"Vega_200_2pri","Sangoma","pri",2,0,0,0,"Vega 200 PRI 2 Porte"),
+(25,"M4401","Mediatrix","isdn",0,1,0,0,"4401 ISDN 1 Porta"),
+(26,"M4402","Mediatrix","isdn",0,2,0,0,"4402 ISDN 2 Porte"),
+(27,"M4404","Mediatrix","isdn",0,4,0,0,"4404 ISDN 4 Porte");

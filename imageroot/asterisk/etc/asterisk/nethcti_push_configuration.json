@@ -1,9 +1,0 @@
-
-
-{
-    "NotificationServerURL": "https://pp.nethesis.it/NotificaPush",
-    "Host": "demo-leopard.nethserver.net",
-    "SystemId": "FC33074F-4CC0-408C-8689-92EA1B8E964E",
-    "Secret": "fb065ce0d2bbd39cb5c031eb012e6de2b41b9721b6825f7e187be0087d92692b",
-    "AppBrandingID" : ""
-}

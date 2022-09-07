@@ -68,13 +68,13 @@ for host in nm.all_hosts():
         row['mac'] = nm[host]['addresses']['mac']
         row['ipv4'] = nm[host]['addresses']['ipv4']
         row['manufacturer'] = manufacturer[identifier]
-    except KeyError, IndexError:
+    except (KeyError, IndexError):
         continue
 
     #find device type
     try :
         row['type'] = types[manufacturer[identifier]]
-    except KeyError, IndexError:
+    except (KeyError, IndexError):
         row['type'] = 'unknown'
 
     #Sangoma exception
