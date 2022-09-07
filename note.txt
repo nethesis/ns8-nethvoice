@@ -195,7 +195,11 @@ asterisk: mettere volumes from freepbx (require, after)
 alternative:
 se e' possibile evitare del tutto la configurazione di odbc nell'entry point del container asterisk e farlo partire con un set di file di configurazione di base
 
-
+# dump mysql
+cd /home/tux/nethvoice
+for DB in asterisk asteriskcdrdb; do
+    mydumper -h 127.0.0.1 -u root -p $MARIADB_ROOT_PASSWORD -P $MARIADB_PORT -B ${DB} --complete-insert --outputdir imageroot/freepbx/root/initdb.d/data/${DB}
+done
 
 # Reset podman
 buildah rm --all
@@ -214,6 +218,8 @@ podman system reset -f
 export MARIADB_PORT=13306
 export APACHE_PORT=7188
 export APACHE_SSL_PORT=7189
+export APACHE_RUN_USER=asterisk
+export APACHE_RUN_GROUP=asterisk
 export MARIADB_ROOT_PASSWORD=dummymariadbpass
 export AMPDBUSER=freepbxuser
 export AMPDBHOST=127.0.0.1
@@ -252,10 +258,9 @@ MARIA_TAG=10.8.2
 #
 
 container=$(buildah from centos:7)
-buildah add "${container}" imageroot/asterisk/etc/yum.repos.d/nethserver.repo /etc/yum.repos.d/nethserver.repo
+buildah add "${container}" imageroot/asterisk/root/ /
 buildah run "${container}" yum -y install asterisk18-core asterisk18-addons-core asterisk18-dahdi asterisk18-odbc asterisk18-voicemail asterisk18-voicemail-odbcstorage unixODBC
 buildah run "${container}" rm -fr /var/cache/yum
-buildah add "${container}" imageroot/asterisk/entrypoint.sh /entrypoint.sh
 
 # configuration
 buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
@@ -296,16 +301,9 @@ reponame="nethvoice"
 
 container=$(buildah from docker.io/library/php:5.6-apache)
 
-#buildah add "${container}" imageroot/freepbx/root/entrypoint.sh /entrypoint.sh
-
-#buildah add "${container}" imageroot/freepbx/root/initdb.d /initdb.d
-
-#buildah add "${container}"  imageroot/freepbx/root/var/lib/asterisk /var/lib/asterisk
-
-#buildah add "${container}"  imageroot/freepbx/root/usr/sbin/asterisk /usr/sbin/asterisk
-
 buildah add "${container}"  imageroot/freepbx/root/ /
-
+buildah run "${container}" groupadd -r asterisk 
+buildah run "${container}" useradd -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk
 buildah run "${container}" sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:$\{APACHE_PORT\}>/' /etc/apache2/sites-enabled/000-default.conf
 buildah run "${container}" sed -i 's/Listen 80/Listen $\{APACHE_PORT\}/' /etc/apache2/ports.conf
 buildah run "${container}" sed -i 's/Listen 443/Listen $\{APACHE_SSL_PORT\}/' /etc/apache2/ports.conf
@@ -328,14 +326,20 @@ buildah run "${container}" docker-php-ext-install pdo_mysql
 buildah run "${container}" docker-php-ext-configure gettext
 buildah run "${container}" docker-php-ext-install gettext
 
+# install php semaphores (sysvsem)
+buildah run "${container}" docker-php-ext-configure sysvsem
+buildah run "${container}" docker-php-ext-install sysvsem
+
 # TODO install pdo_odbc
 #buildah run "${container}" apt-get update
 #buildah run "${container}" apt install -y unixodbc unixodbc-dev
 #buildah run "${container}" docker-php-ext-configure pdo_odbc --with-pdo-odbc=unixODBC
 #buildah run "${container}" docker-php-ext-install pdo_odbc
 
-# remove php sources
-buildah run "${container}" docker-php-source delete
+# Install required packages
+buildah run "${container}" apt-get update
+buildah run "${container}" apt install -y gnupg
+buildah run "${container}" apt install -y cron # TODO needed by freepbx cron module. To remove.
 
 # Use PHP development ini configuration and enable logging on syslog
 buildah run "${container}" cp -a "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
@@ -348,6 +352,12 @@ buildah run "${container}" sed -i 's/^variables_order = "GPCS"/variables_order =
 
 # enable apache rewrite module
 buildah run "${container}" a2enmod rewrite
+
+# remove php sources
+buildah run "${container}" docker-php-source delete
+
+# clean apt cache
+buildah run "${container}" apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/dpkg/info/* /var/lib/cache/* /var/lib/log/* && touch /var/lib/dpkg/status
 
 # commit container
 buildah commit "${container}" freepbx14
@@ -366,6 +376,8 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --volume=spool:/var/spool/asterisk:z \
     --env=MARIADB_ROOT_PASSWORD \
     --env=MARIADB_PORT \
+    --env=APACHE_RUN_USER \
+    --env=APACHE_RUN_GROUP \
     --env=ASTMANAGERHOST \
     --env=ASTMANAGERPORT \
     --env=AMPMGRUSER \
@@ -415,6 +427,8 @@ Username: admin
 Secret: dummyampmgrpass
 
 
+# TODO module fixing
+fwconsole ma install returnontransfer recordings voicemail queues queuereport paging nethcti3 customcontexts apicall
 
 
 
@@ -434,129 +448,5 @@ Secret: dummyampmgrpass
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-#
-# FreePBX 16 PHP 7
-#
-export PHP_INI_DIR=/usr/local/etc/php
-export REPOBASE=ghcr.io/stell0
-export REGISTRY_AUTH_FILE=/etc/nethserver/registry.json
-podman login -u Stell0 -p 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 ghcr.io
-repobase="${REPOBASE:-ghcr.io/nethserver}"
-reponame="nethvoice"
-
-
-container=$(buildah from docker.io/library/php:7-apache)
-
-buildah add "${container}" imageroot/freepbx/entrypoint.sh /entrypoint.sh
-
-buildah add "${container}" imageroot/freepbx/initdbAST_CONFIG_DIR.d /initdb.d
-
-buildah add "${container}"  imageroot/freepbx/usr/sbin/asterisk /usr/sbin/asterisk
-
-buildah add "${container}"  imageroot/freepbx/var/lib/asterisk /var/lib/asterisk
-
-buildah run "${container}" sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:$\{APACHE_PORT\}>/' /etc/apache2/sites-enabled/000-default.conf
-buildah run "${container}" sed -i 's/Listen 80/Listen $\{APACHE_PORT\}/' /etc/apache2/ports.conf
-buildah run "${container}" sed -i 's/Listen 443/Listen $\{APACHE_SSL_PORT\}/' /etc/apache2/ports.conf
-
-echo -e '\n: ${APACHE_PORT:=80}\nexport APACHE_PORT\n: ${APACHE_SSL_PORT:=443}\nexport APACHE_SSL_PORT\n' | buildah run "${container}" tee -a /etc/apache2/envvars
-
-buildah config \
-    --entrypoint='["/entrypoint.sh"]' \
-    "${container}"
-
-
-# install PHP additional modules
-buildah run "${container}" docker-php-source extractAST_CONFIG_DIR
-
-# install pdo_mysql
-buildah run "${container}" docker-php-ext-configure pdo_mysql
-buildah run "${container}" docker-php-ext-install pdo_mysql
-
-# install php gettext
-buildah run "${container}" docker-php-ext-configure gettext
-buildah run "${container}" docker-php-ext-install gettext
-
-buildah run "${container}" apt-get update
-buildah run "${container}" apt install -y gnupg
-
-# TODO install pdo_odbcssh tux@makako
-#buildah run "${container}" apt-get update
-#buildah run "${container}" apt install -y unixodbc unixodbc-dev
-#buildah run "${container}" docker-php-ext-configure pdo_odbc --with-pdo-odbc=unixODBC
-#buildah run "${container}" docker-php-ext-install pdo_odbc
-
-# remove php sources
-buildah run "${container}" docker-php-source delete
-
-# Use PHP development ini configuration and enable logging on syslog
-buildah run "${container}" cp -a "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
-buildah run "${container}" sed -i 's/^;error_log = syslog/error_log = syslog/' $PHP_INI_DIR/php.ini
-echo "error_log = syslog" | buildah run "${container}" tee -a "$PHP_INI_DIR/conf.d/freepbx.ini"
-echo "variables_order = "EGPCS"" | buildah run "${coAST_CONFIG_DIRntainer}" tee -a "$PHP_INI_DIR/conf.d/freepbx.ini"
-
-# Enable environment variables
-buildah run "${container}" sed -i 's/^variables_order = "GPCS"/variables_order = "EGPCS"/' $PHP_INI_DIR/php.ini
-
-# enable apache rewrite module
-buildah run "${container}" a2enmod rewrite
-
-# clean apt cache
-buildah run "${container}" apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,dpkg,cache,log}/
-
-# commit container
-buildah commit "${container}" freepbx16
-
-# Run
-rm -f /var/tmp/freepbx16.ctr-id /var/tmp/freepbx16.pid
-/usr/bin/podman run \
-    --detach \
-    --conmon-pidfile=/var/tmp/freepbx16.pid \
-    --cidfile=/var/tmp/freepbx16.ctr-id \
-    --cgroups=no-conmon \
-    --log-opt=tag=freepbx16 \
-    --replace --name=freepbx16 \
-    --volume=./imageroot/www-data:/var/www/html:Z \
-    --volume=./imageroot/freepbx/initdb.d:/initdb.d:Z \
-    --env=MARIADB_ROOT_PASSWORD \
-    --env=MARIADB_PORT \
-    --env=AMPMGRUSER \
-    --env=AMPMGRPASS \
-    --env=AMPDBUSER \
-    --env=AMPDBPASS \
-    --env=AMPDBHOST \
-    --env=AMPDBNAME \
-    --env=CDRDBUSER \
-    --env=CDRDBPASS \
-    --env=APACHE_PORT \
-    --volume=asterisk:/etc/asterisk:z \
-    --env=MARIADB_ROOT_PASSWORD \
-    --env=MARIADB_PORT \
-    --env=AMPMGRUSER \
-    --env=AMPMGRPASS \
-    --env=AMPDBUSER \
-    --env=AMPDBPASS \
-    --env=AMPDBHOST \
-    --env=AMPDBNAME \
-    --env=CDRDBUSER \
-    --env=CDRDBPASS \
-    --env=APACHE_PORT \
-    --env=APACHE_SSL_PORT \
-    --network=host \
-    freepbx16
-    
-podman exec -it freepbx16 bash
 
 
