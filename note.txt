@@ -205,6 +205,7 @@ done
 buildah rm --all
 podman system prune -f
 podman system reset -f
+rm -fr ~/.local/share/containers
 
 ############################################
 ############################################
@@ -233,74 +234,33 @@ export CDRDBHOST=mariadb
 export CDRDBNAME=asteriskcdrdb
 export CDRDBUSER=cdruser
 export CDRDBPASS=dummycdrdbpass
-
-#
-# MariaDB
-#
-
-rm -f /var/tmp/mariadb.ctr-id /var/tmp/mariadb.pid
-MARIA_TAG=10.8.2
-/usr/bin/podman run \
-    --detach \
-    --conmon-pidfile=/var/tmp/mariadb.pid \
-    --cidfile=/var/tmp/mariadb.ctr-id \
-    --cgroups=no-conmon \
-    --log-opt=tag=mariadb \
-    --replace --name=mariadb \
-    --volume=mariadb-data:/var/lib/mysql:Z \
-    --env=MARIADB_ROOT_PASSWORD \
-    --network=host \
-    docker.io/library/mariadb:${MARIA_TAG} \
-    --port ${MARIADB_PORT}
-
-#
-# Asterisk
-#
-
-container=$(buildah from centos:7)
-buildah add "${container}" imageroot/asterisk/root/ /
-buildah run "${container}" yum -y install asterisk18-core asterisk18-addons-core asterisk18-dahdi asterisk18-odbc asterisk18-voicemail asterisk18-voicemail-odbcstorage unixODBC
-buildah run "${container}" rm -fr /var/cache/yum
-
-# configuration
-buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
-
-# TODO clean up container
-
-# commit container
-buildah commit "${container}" asterisk
-
-rm -f /var/tmp/asterisk.ctr-id /var/tmp/asterisk.pid
-/usr/bin/podman run \
-    --detach \
-    --conmon-pidfile=/var/tmp/asterisk.pid \
-    --cidfile=/var/tmp/asterisk.ctr-id \
-    --cgroups=no-conmon \
-    --log-opt=tag=asterisk \
-    --replace --name=asterisk \
-    --volume=asterisk:/etc/asterisk:z \
-    --volume=spool:/var/spool/asterisk:z \
-    --env=APACHE_SSL_PORT \
-    --env=ASTMANAGERHOST \
-    --env=ASTMANAGERPORT \
-    --env=AMPMGRUSER \
-    --env=AMPMGRPASS \
-    --network=host \
-    asterisk
-
-
-#
-# FreePBX 14
-#
 export PHP_INI_DIR=/usr/local/etc/php
 export REPOBASE=ghcr.io/stell0
 export REGISTRY_AUTH_FILE=/etc/nethserver/registry.json
+export APACHE_PORT=7187
+export AMPASTERISKGROUP=asterisk
+export AMPASTERISKUSER=asterisk
+export AMPASTERISKWEBGROUP=asterisk
+export AMPASTERISKWEBUSER=asterisk
+
 podman login -u Stell0 -p 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 ghcr.io
 repobase="${REPOBASE:-ghcr.io/nethserver}"
 reponame="nethvoice"
 
-container=$(buildah from docker.io/library/php:5.6-apache)
+#
+# Asterisk
+#
+container=$(buildah from centos:7)
+buildah add "${container}" imageroot/asterisk/root/ /
+buildah run "${container}" yum -y install asterisk18-core asterisk18-addons-core asterisk18-dahdi asterisk18-odbc asterisk18-voicemail asterisk18-voicemail-odbcstorage unixODBC
+buildah run "${container}" rm -fr /var/cache/yum
+buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
+buildah commit "${container}" asterisk
 
+#
+# FreePBX 14
+#
+container=$(buildah from docker.io/library/php:5.6-apache)
 buildah add "${container}"  imageroot/freepbx/root/ /
 buildah run "${container}" groupadd -r asterisk 
 buildah run "${container}" useradd -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk
@@ -313,7 +273,6 @@ echo -e '\n: ${APACHE_PORT:=80}\nexport APACHE_PORT\n: ${APACHE_SSL_PORT:=443}\n
 buildah config \
     --entrypoint='["/entrypoint.sh"]' \
     "${container}"
-
 
 # install PHP additional modules
 buildah run "${container}" docker-php-source extract
@@ -362,9 +321,67 @@ buildah run "${container}" apt-get clean autoclean && apt-get autoremove --yes &
 # commit container
 buildah commit "${container}" freepbx14
 
-export APACHE_PORT=7187
 
-# Run
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#
+# MariaDB
+#
+rm -f /var/tmp/mariadb.ctr-id /var/tmp/mariadb.pid
+MARIA_TAG=10.8.2
+/usr/bin/podman run \
+    --detach \
+    --conmon-pidfile=/var/tmp/mariadb.pid \
+    --cidfile=/var/tmp/mariadb.ctr-id \
+    --cgroups=no-conmon \
+    --log-opt=tag=mariadb \
+    --replace --name=mariadb \
+    --volume=mariadb-data:/var/lib/mysql:Z \
+    --env=MARIADB_ROOT_PASSWORD \
+    --network=host \
+    docker.io/library/mariadb:${MARIA_TAG} \
+    --port ${MARIADB_PORT}
+
+
+sleep 30
+# Run Asterisk
+rm -f /var/tmp/asterisk.ctr-id /var/tmp/asterisk.pid
+/usr/bin/podman run \
+    --detach \
+    --conmon-pidfile=/var/tmp/asterisk.pid \
+    --cidfile=/var/tmp/asterisk.ctr-id \
+    --cgroups=no-conmon \
+    --log-opt=tag=asterisk \
+    --replace --name=asterisk \
+    --volume=asterisk:/etc/asterisk:z \
+    --volume=spool:/var/spool/asterisk:z \
+    --mount=type=bind,source=imageroot/volumes/freepbx,destination=/var/www/html/freepbx,relabel=shared,ro=true \
+    --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_sounds,destination=/var/lib/asterisk/sounds,relabel=shared,ro=true \
+    --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_agi-bin,destination=/var/lib/asterisk/agi-bin,relabel=shared,ro=true \
+    --env=APACHE_SSL_PORT \
+    --env=ASTMANAGERHOST \
+    --env=ASTMANAGERPORT \
+    --env=AMPMGRUSER \
+    --env=AMPMGRPASS \
+    --network=host \
+    asterisk
+    
+
+#    --userns=keep-id \
+sleep 30
+# Run FreePBX 14 
 rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
 /usr/bin/podman run \
     --detach \
@@ -374,22 +391,16 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --log-opt=tag=freepbx14 \
     --replace --name=freepbx14 \
     --volume=spool:/var/spool/asterisk:z \
+    --volume=asterisk:/etc/asterisk:z \
+    --mount=type=bind,source=imageroot/volumes/freepbx,destination=/var/www/html/freepbx,relabel=shared,ro=false \
+    --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_sounds,destination=/var/lib/asterisk/sounds,relabel=shared,ro=false \
+    --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_agi-bin,destination=/var/lib/asterisk/agi-bin,relabel=shared,ro=false \
     --env=MARIADB_ROOT_PASSWORD \
     --env=MARIADB_PORT \
     --env=APACHE_RUN_USER \
     --env=APACHE_RUN_GROUP \
     --env=ASTMANAGERHOST \
     --env=ASTMANAGERPORT \
-    --env=AMPMGRUSER \
-    --env=AMPMGRPASS \
-    --env=AMPDBUSER \
-    --env=AMPDBPASS \
-    --env=AMPDBHOST \
-    --env=AMPDBNAME \
-    --env=CDRDBUSER \
-    --env=CDRDBPASS \
-    --env=APACHE_PORT \
-    --volume=asterisk:/etc/asterisk:z \
     --env=MARIADB_ROOT_PASSWORD \
     --env=MARIADB_PORT \
     --env=AMPMGRUSER \
@@ -404,8 +415,7 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --env=APACHE_SSL_PORT \
     --network=host \
     freepbx14
-    
-podman exec -it freepbx14 bash
+
 
 #
 # Debug
@@ -416,9 +426,10 @@ podman exec -it asterisk bash
 
 apt-get update
 apt-get install -y mycli vim telnet
-# mycli -u root -h localhost -P $MARIADB_PORT -p $MARIADB_ROOT_PASSWORD
-# telnet 
 
+mycli -u root -h localhost -P $MARIADB_PORT -p $MARIADB_ROOT_PASSWORD
+
+# telnet 
 telnet 127.0.0.1 5038
 
 Action: Login
@@ -430,23 +441,5 @@ Secret: dummyampmgrpass
 # TODO module fixing
 fwconsole ma install returnontransfer recordings voicemail queues queuereport paging nethcti3 customcontexts apicall
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# TODO fix cache dir 
+chmod o+w imageroot/volumes/freepbx/admin/assets/less/cache
