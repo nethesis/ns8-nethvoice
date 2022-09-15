@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<gui-languages>
-  <language url="{$provisioning_type}://{$provisioning_path}/gui_lang_IT.xml" name="Italiano"/>
-  <language url="{$provisioning_type}://{$provisioning_path}/gui_lang_EN.xml" name="English"/>
-</gui-languages>

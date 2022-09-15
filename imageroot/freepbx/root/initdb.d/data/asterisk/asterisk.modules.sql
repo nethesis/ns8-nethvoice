@@ -38,7 +38,6 @@ INSERT INTO `modules` (`id`,`modulename`,`version`,`enabled`,`signature`) VALUES
 (34,"directdid","1.1.5",1,"{\"status\":129,\"details\":[]}"),
 (35,"disa","13.0.6.12",1,"{\"status\":129,\"details\":[]}"),
 (36,"donotdisturb","14.0.1.1",1,"{\"status\":129,\"details\":[]}"),
-(37,"endpointman","13.0.7.18",1,"{\"status\":129,\"details\":[]}"),
 (38,"extraoptions","0.0.1",1,"{\"status\":129,\"details\":[]}"),
 (39,"fax","14.0.2.7",1,"{\"status\":129,\"details\":[]}"),
 (40,"findmefollow","14.0.1.23",1,"{\"status\":129,\"details\":[]}"),

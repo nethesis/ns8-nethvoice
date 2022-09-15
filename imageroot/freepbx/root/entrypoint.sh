@@ -98,11 +98,11 @@ while (\$row = \$sth->fetch(\PDO::FETCH_ASSOC)) {
 
 EOF
 
-	# TODO apply changes
-	#fwconsole r
+	# Apply changes
+	fwconsole r
+	# Set ownership and permission
+	fwconsole chown
 
-	# TODO restart asterisk
-	#systemctl --user restart asterisk
 fi
 exec "$@"
 

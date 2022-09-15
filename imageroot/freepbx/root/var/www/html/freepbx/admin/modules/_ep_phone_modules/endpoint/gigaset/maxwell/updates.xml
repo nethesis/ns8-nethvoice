@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-    <nvm version="1.0" productID="mx3b">
-        <file version="{$date_gigaset}" url="{$provisioning_type}://{$provisioning_path}/%MACD.xml"/>
-    </nvm>

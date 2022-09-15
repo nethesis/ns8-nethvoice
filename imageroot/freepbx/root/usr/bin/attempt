@@ -1,0 +1,4 @@
+#!/bin/bash
+# log attemt to use deprecated binaries
+echo "$0 $@" | tee -a /dev/stderr /tmp/debug_execution_attempt.log
+

@@ -52,6 +52,15 @@ if(empty($mems)) {
 
 $freepbx_conf = \FreePBX::create()->Freepbx_conf;
 
+$loc = fpbx_which("asterisk");
+if(empty($loc)) {
+	writeout(_("Unable to find the Asterisk binary"),1);
+} else {
+	exec($loc . " -rx 'core show version'",$out,$ret);
+	if($ret != 0) {
+		writeout(_("Unable to connect to Asterisk through the CLI"),1);
+	}
+}
 // Load the BMO Object
 $bmo = FreePBX::create();
 //Load Asterisk Manager into Memory

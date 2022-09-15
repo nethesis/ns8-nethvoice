@@ -1,0 +1,13 @@
+[08-Sep-2022 17:38:48 Europe/Rome] file_put_contents(/etc/nethcti/users.json): failed to open stream: No such file or directory
+[08-Sep-2022 17:44:20 Europe/Rome] file_put_contents(/etc/nethcti/users.json): failed to open stream: No such file or directory
+[12-Sep-2022 15:16:47 Europe/Rome] file_put_contents(/etc/nethcti/users.json): failed to open stream: No such file or directory
+[12-Sep-2022 15:31:31 Europe/Rome] file_put_contents(/etc/nethcti/users.json): failed to open stream: No such file or directory
+[12-Sep-2022 15:32:08 Europe/Rome] file_put_contents(/etc/nethcti/users.json): failed to open stream: No such file or directory
+[12-Sep-2022 15:40:28 Europe/Rome] file_put_contents(/etc/nethcti/users.json): failed to open stream: No such file or directory
+[12-Sep-2022 15:40:46 Europe/Rome] file_put_contents(/etc/nethcti/users.json): failed to open stream: No such file or directory
+[12-Sep-2022 15:47:28 Europe/Rome] file_put_contents(/etc/nethcti/users.json): failed to open stream: No such file or directory
+[12-Sep-2022 16:13:35 Europe/Rome] file_put_contents(/etc/nethcti/users.json): failed to open stream: No such file or directory
+[13-Sep-2022 12:43:07 Europe/Rome] file_put_contents(/etc/nethcti/users.json): failed to open stream: No such file or directory
+[13-Sep-2022 12:49:11 Europe/Rome] file_put_contents(/etc/nethcti/users.json): failed to open stream: No such file or directory
+[13-Sep-2022 12:52:23 Europe/Rome] file_put_contents(/etc/nethcti/users.json): failed to open stream: No such file or directory
+[13-Sep-2022 12:56:19 Europe/Rome] file_put_contents(/etc/nethcti/users.json): failed to open stream: No such file or directory

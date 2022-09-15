@@ -9,4 +9,4 @@ CREATE TABLE `rest_cti_permissions` (
   `description` varchar(1024) NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   UNIQUE KEY `name_key` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=3001 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=4001 DEFAULT CHARSET=utf8mb4;

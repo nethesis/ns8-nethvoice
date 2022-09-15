@@ -57,7 +57,11 @@ $vars = array(
         'CDRDBPORT' => $_ENV['MARIADB_PORT'],
         'CDRDBNAME' => 'asteriskcdrdb',
         'CDRDBUSER' => $_ENV['CDRDBUSER'],
-        'CDRDBPASS' => $_ENV['CDRDBPASS'],
+	'CDRDBPASS' => $_ENV['CDRDBPASS'],
+	'AMPASTERISKGROUP' => (empty($_ENV['AMPASTERISKGROUP']) ? 'asterisk' : $_ENV['AMPASTERISKGROUP']), 
+	'AMPASTERISKUSER' => (empty($_ENV['AMPASTERISKUSER']) ? 'asterisk' : $_ENV['AMPASTERISKUSER']), 
+	'AMPASTERISKWEBGROUP' => (empty($_ENV['AMPASTERISKWEBGROUP']) ? 'asterisk' : $_ENV['AMPASTERISKWEBGROUP']), 
+	'AMPASTERISKWEBUSER' => (empty($_ENV['AMPASTERISKWEBUSER']) ? 'asterisk' : $_ENV['AMPASTERISKWEBUSER']), 
 );
 
 $exec = [];

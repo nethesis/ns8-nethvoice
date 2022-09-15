@@ -1,0 +1,64 @@
+#!/usr/bin/env php
+<?php
+$bootstrap_settings['freepbx_auth'] = false;
+// don't include any of the functions.inc.php files from modules, this CLI version of
+// module_admin is somtimes the only way to recover from a bad module being loaded into
+// a system.
+//
+$restrict_mods = true;
+if (!@include_once(getenv('FREEPBX_CONF') ? getenv('FREEPBX_CONF') : '/etc/freepbx.conf')) {
+        include_once('/etc/asterisk/freepbx.conf');
+}
+
+// Force autoloader to load all the includes since Zend issues can break and make this fail when this is run
+//
+fpbx_framework_autoloader(true);
+
+require_once("/var/www/html/freepbx/admin/modules/endpointman/includes/functions.inc");
+global $endpoint;
+
+$endpoint = new endpointmanager();
+
+global $db;
+
+if (! function_exists("out")) {
+    function out($text) {
+        echo $text."<br />";
+    }
+}
+
+if (! function_exists("outn")) {
+    function outn($text) {
+        echo $text;
+    }
+}
+
+
+if (!is_dir("/tmp/epm_temp")){
+	mkdir ("/tmp/epm_temp");
+	chown ("/tmp/epm_temp","asterisk");
+	chgrp ("/tmp/epm_temp","asterisk");
+}
+
+exec("rm -fr /tmp/epm_temp/*");
+
+$filelist = scandir("/var/www/html/freepbx/admin/modules/_ep_phone_modules/rpm_brand_packages/");
+foreach ($filelist as $file){
+	//consider only .tgz files that aren't firmware
+	if (!preg_match('/\.tgz/',$file)|| $file==='.'||$file==='..'||preg_match('/.*firmware.*/',$file)) continue;
+	echo "Extracting $file...\n";
+	exec("/bin/tar -xvf /var/www/html/freepbx/admin/modules/_ep_phone_modules/rpm_brand_packages/$file -C /tmp/epm_temp/");
+	exec("chown -R asterisk:asterisk /tmp/epm_temp/");
+	$file = preg_replace('/\.tgz/','',$file);
+	$endpoint->update_brand($file);
+	echo "\n";
+}
+
+//Enable all models by default
+$sql = 'UPDATE endpointman_model_list set enabled=1';
+$db->query($sql);
+
+
+
+
+

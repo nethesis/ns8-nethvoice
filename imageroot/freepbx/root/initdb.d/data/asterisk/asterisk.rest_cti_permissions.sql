@@ -26,4 +26,5 @@ INSERT INTO `rest_cti_permissions` (`id`,`name`,`displayname`,`description`) VAL
 (27,"ad_off_hour","Admin Off Hour","Allow to change all incoming call paths"),
 (1000,"screen_sharing","Screen Sharing","Allow to share the desktop"),
 (2000,"phone_buttons","Phone buttons","Allow the user to customize functions of physical phone buttons. These values correspond to the Line Keys settings shown in Devices -> Models and Configurations pages"),
-(3000,"video_conference","Video Conference","Allow to start a video conference");
+(3000,"video_conference","Video Conference","Allow to start a video conference"),
+(4000,"group_cdr","Group CDR","Allow to see call history of members of user groups");
