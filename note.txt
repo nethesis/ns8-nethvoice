@@ -201,17 +201,38 @@ for DB in asterisk asteriskcdrdb; do
     mydumper -h 127.0.0.1 -u root -p $MARIADB_ROOT_PASSWORD -P $MARIADB_PORT -B ${DB} --complete-insert --outputdir imageroot/freepbx/root/initdb.d/data/${DB}
 done
 
-# Reset podman
-buildah rm --all
-podman system prune -f
-podman system reset -f
-rm -fr ~/.local/share/containers
+###############################
+###  Copy data from FreePBX ###
+###############################
+cd /home/tux/nethvoice
+chown -R tux:tux /home/tux/nethvoice/imageroot/volumes/
+scp -r root@172.25.5.47:/var/www/html/freepbx/* imageroot/volumes/freepbx/
+scp -r root@172.25.5.47:/var/lib/asterisk/agi-bin/* imageroot/volumes/var_lib_asterisk_agi-bin/
+scp -r root@172.25.5.47:/var/lib/asterisk/sounds/* imageroot/volumes/var_lib_asterisk_sounds/
+
+patch -p0 < freepbx_fixes.patch
+rm -fr imageroot/volumes/freepbx/admin/assets/less/cache/*
+rm -fr imageroot/volumes/freepbx/admin/modules/*/assets/less/cache/*
+rm -fr imageroot/volumes/freepbx/admin/modules/*/assets/less/*/cache
+rm -fr imageroot/volumes/freepbx/admin/assets/endpointman/
+rm -fr imageroot/volumes/freepbx/admin/modules/_ep_phone_modules/
+rm -fr imageroot/volumes/freepbx/admin/modules/endpointman/
+mydumper -h 172.25.5.47 -u makako -p Makako,1234 -B asterisk --complete-insert --outputdir imageroot/freepbx/root/initdb.d/data/asterisk
+mydumper -h 172.25.5.47 -u makako -p Makako,1234 -B asteriskcdrdb --complete-insert --outputdir imageroot/freepbx/root/initdb.d/data/asteriskcdrdb
+
+
 
 ############################################
 ############################################
 ###  Manual containers build and launch  ###
 ############################################
 ############################################
+
+# Reset podman
+buildah rm --all
+podman system prune -f
+podman system reset -f
+rm -fr ~/.local/share/containers
 
 #
 # Set ENV
@@ -287,7 +308,8 @@ buildah run "${container}" docker-php-ext-install gettext
 
 # install php semaphores (sysvsem)
 buildah run "${container}" docker-php-ext-configure sysvsem
-buildah run "${container}" docker-php-ext-install sysvsem
+buildah run "${container}" docker-php-ext-inst
+all sysvsem
 
 # TODO install pdo_odbc
 #buildah run "${container}" apt-get update
@@ -401,8 +423,6 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --env=APACHE_RUN_GROUP \
     --env=ASTMANAGERHOST \
     --env=ASTMANAGERPORT \
-    --env=MARIADB_ROOT_PASSWORD \
-    --env=MARIADB_PORT \
     --env=AMPMGRUSER \
     --env=AMPMGRPASS \
     --env=AMPDBUSER \
@@ -443,3 +463,4 @@ fwconsole ma install returnontransfer recordings voicemail queues queuereport pa
 
 # TODO fix cache dir 
 chmod o+w imageroot/volumes/freepbx/admin/assets/less/cache
+
