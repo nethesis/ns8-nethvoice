@@ -6,7 +6,7 @@ CREATE TABLE `modules` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `modulename` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `version` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
-  `enabled` tinyint(1) NOT NULL DEFAULT 0,
-  `signature` longblob DEFAULT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT '0',
+  `signature` longblob,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=68 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=67 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

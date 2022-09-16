@@ -5,6 +5,6 @@
 CREATE TABLE `kvblobstore` (
   `uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
   `type` char(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `content` longblob DEFAULT NULL,
+  `content` longblob,
   PRIMARY KEY (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -11,4 +11,4 @@ CREATE TABLE `ivr_choice` (
   `ivr_name` varchar(60) NOT NULL,
   `choice` varchar(10) NOT NULL,
   KEY `UNIQUEID_INDEX` (`uniqueid`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;

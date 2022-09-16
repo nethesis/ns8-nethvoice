@@ -3,7 +3,7 @@
 
 /*!40103 SET TIME_ZONE='+00:00' */;
 CREATE TABLE `dahdichandids` (
-  `channel` int(11) NOT NULL DEFAULT 0,
+  `channel` int(11) NOT NULL DEFAULT '0',
   `description` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `did` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   PRIMARY KEY (`channel`)

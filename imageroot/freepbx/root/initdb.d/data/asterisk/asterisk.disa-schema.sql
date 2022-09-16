@@ -12,6 +12,6 @@ CREATE TABLE `disa` (
   `resptimeout` int(11) DEFAULT NULL,
   `needconf` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `hangup` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `keepcid` tinyint(1) NOT NULL DEFAULT 1,
+  `keepcid` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`disa_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

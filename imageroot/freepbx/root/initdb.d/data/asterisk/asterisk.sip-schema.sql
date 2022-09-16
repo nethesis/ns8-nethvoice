@@ -6,6 +6,7 @@ CREATE TABLE `sip` (
   `id` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '-1',
   `keyword` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `data` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `flags` int(11) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`,`keyword`)
+  `flags` int(11) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`,`keyword`),
+  KEY `keyword_idx` (`keyword`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

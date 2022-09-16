@@ -7,7 +7,7 @@ CREATE TABLE `soundlang_packages` (
   `type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
   `module` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
   `language` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `license` longblob DEFAULT NULL,
+  `license` longblob,
   `author` varchar(80) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `authorlink` varchar(256) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `format` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,

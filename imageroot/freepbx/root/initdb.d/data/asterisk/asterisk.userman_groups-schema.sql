@@ -13,10 +13,10 @@ CREATE TABLE `userman_groups` (
   `dateformat` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `timeformat` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `datetimeformat` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `priority` int(11) NOT NULL DEFAULT 5,
-  `users` longblob DEFAULT NULL,
-  `permissions` longblob DEFAULT NULL,
-  `local` int(11) NOT NULL DEFAULT 0,
+  `priority` int(11) NOT NULL DEFAULT '5',
+  `users` longblob,
+  `permissions` longblob,
+  `local` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `groupname_UNIQUE` (`groupname`,`auth`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

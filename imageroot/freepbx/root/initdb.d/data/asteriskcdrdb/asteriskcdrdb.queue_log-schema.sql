@@ -19,4 +19,4 @@ CREATE TABLE `queue_log` (
   KEY `event` (`event`),
   KEY `ib1` (`agent`,`queuename`),
   KEY `callid_idx` (`callid`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8;

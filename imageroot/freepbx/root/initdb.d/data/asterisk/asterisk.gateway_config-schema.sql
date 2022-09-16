@@ -4,7 +4,7 @@
 /*!40103 SET TIME_ZONE='+00:00' */;
 CREATE TABLE `gateway_config` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `model_id` int(10) unsigned NOT NULL DEFAULT 0,
+  `model_id` int(10) unsigned NOT NULL DEFAULT '0',
   `name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `ipv4` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `ipv4_new` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,

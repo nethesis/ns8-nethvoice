@@ -8,8 +8,8 @@ CREATE TABLE `announcement` (
   `recording_id` int(11) DEFAULT NULL,
   `allow_skip` int(11) DEFAULT NULL,
   `post_dest` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `return_ivr` tinyint(1) NOT NULL DEFAULT 0,
-  `noanswer` tinyint(1) NOT NULL DEFAULT 0,
+  `return_ivr` tinyint(1) NOT NULL DEFAULT '0',
+  `noanswer` tinyint(1) NOT NULL DEFAULT '0',
   `repeat_msg` varchar(2) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   PRIMARY KEY (`announcement_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

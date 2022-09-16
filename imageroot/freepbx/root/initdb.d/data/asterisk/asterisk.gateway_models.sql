@@ -28,4 +28,7 @@ INSERT INTO `gateway_models` (`id`,`model`,`manufacturer`,`tech`,`n_pri_trunks`,
 (24,"Vega_200_2pri","Sangoma","pri",2,0,0,0,"Vega 200 PRI 2 Porte"),
 (25,"M4401","Mediatrix","isdn",0,1,0,0,"4401 ISDN 1 Porta"),
 (26,"M4402","Mediatrix","isdn",0,2,0,0,"4402 ISDN 2 Porte"),
-(27,"M4404","Mediatrix","isdn",0,4,0,0,"4404 ISDN 4 Porte");
+(27,"M4404","Mediatrix","isdn",0,4,0,0,"4404 ISDN 4 Porte"),
+(65,"TRI_FXO_2","Patton","fxo",0,0,2,0,"TRINITY Analogico 2 Porte FXO"),
+(66,"TRI_FXO_4","Patton","fxo",0,0,4,0,"TRINITY Analogico 4 Porte FXO"),
+(67,"TRI_FXO_8","Patton","fxo",0,0,8,0,"TRINITY Analogico 8 Porte FXO");

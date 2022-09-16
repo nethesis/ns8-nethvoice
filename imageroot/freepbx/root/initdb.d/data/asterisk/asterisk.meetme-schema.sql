@@ -10,8 +10,8 @@ CREATE TABLE `meetme` (
   `description` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `joinmsg_id` int(11) DEFAULT NULL,
   `music` varchar(80) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `users` smallint(5) unsigned DEFAULT 0,
+  `users` smallint(5) unsigned DEFAULT '0',
   `language` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
-  `timeout` int(10) unsigned DEFAULT 21600,
+  `timeout` int(10) unsigned DEFAULT '21600',
   PRIMARY KEY (`exten`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -8,8 +8,8 @@ CREATE TABLE `certman_certs` (
   `basename` varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL,
   `description` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `type` varchar(2) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ss',
-  `default` tinyint(1) NOT NULL DEFAULT 0,
-  `additional` longblob DEFAULT NULL,
+  `default` tinyint(1) NOT NULL DEFAULT '0',
+  `additional` longblob,
   PRIMARY KEY (`cid`),
   UNIQUE KEY `basename_UNIQUE` (`basename`),
   UNIQUE KEY `basename` (`basename`)

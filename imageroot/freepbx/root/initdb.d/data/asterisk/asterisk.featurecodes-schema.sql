@@ -9,8 +9,8 @@ CREATE TABLE `featurecodes` (
   `helptext` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `defaultcode` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `customcode` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `enabled` tinyint(1) NOT NULL DEFAULT 0,
-  `providedest` tinyint(1) NOT NULL DEFAULT 0,
+  `enabled` tinyint(1) NOT NULL DEFAULT '0',
+  `providedest` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`modulename`,`featurename`),
   KEY `enabled` (`enabled`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

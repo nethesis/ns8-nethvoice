@@ -4,6 +4,6 @@
 INSERT INTO `admin` (`variable`,`value`) VALUES
 ("default_directory","1"),
 ("directory28_migrated","1"),
-("ip","172.25.5.83"),
-("need_reload","true"),
+("ip","172.25.5.47"),
+("need_reload","false"),
 ("version","14.0.13.12");

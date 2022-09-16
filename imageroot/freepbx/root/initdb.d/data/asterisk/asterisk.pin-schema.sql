@@ -5,6 +5,6 @@
 CREATE TABLE `pin` (
   `extension` int(11) NOT NULL,
   `pin` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `enabled` tinyint(1) NOT NULL DEFAULT 1,
+  `enabled` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`extension`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

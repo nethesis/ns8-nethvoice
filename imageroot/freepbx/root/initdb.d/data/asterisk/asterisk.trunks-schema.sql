@@ -3,7 +3,7 @@
 
 /*!40103 SET TIME_ZONE='+00:00' */;
 CREATE TABLE `trunks` (
-  `trunkid` int(11) NOT NULL DEFAULT 0,
+  `trunkid` int(11) NOT NULL DEFAULT '0',
   `tech` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
   `channelid` varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',

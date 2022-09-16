@@ -38,6 +38,7 @@ INSERT INTO `modules` (`id`,`modulename`,`version`,`enabled`,`signature`) VALUES
 (34,"directdid","1.1.5",1,"{\"status\":129,\"details\":[]}"),
 (35,"disa","13.0.6.12",1,"{\"status\":129,\"details\":[]}"),
 (36,"donotdisturb","14.0.1.1",1,"{\"status\":129,\"details\":[]}"),
+(37,"endpointman","13.0.7.18",1,"{\"status\":129,\"details\":[]}"),
 (38,"extraoptions","0.0.1",1,"{\"status\":129,\"details\":[]}"),
 (39,"fax","14.0.2.7",1,"{\"status\":129,\"details\":[]}"),
 (40,"findmefollow","14.0.1.23",1,"{\"status\":129,\"details\":[]}"),
@@ -53,7 +54,7 @@ INSERT INTO `modules` (`id`,`modulename`,`version`,`enabled`,`signature`) VALUES
 (50,"outboundlookup","0.0.5",1,"{\"status\":129,\"details\":[]}"),
 (51,"outroutemsg","13.0.2.1",1,"{\"status\":129,\"details\":[]}"),
 (52,"paging","14.0.16.9",1,"{\"status\":129,\"details\":[]}"),
-(53,"parking","13.0.19.8",1,"{\"status\":129,\"details\":[]}"),
+(53,"parking","13.0.19.14",1,"{\"status\":129,\"details\":[]}"),
 (54,"pin","0.0.1",1,"{\"status\":129,\"details\":[]}"),
 (55,"queueexit","0.0.1",1,"{\"status\":129,\"details\":[]}"),
 (56,"queuemetrics","2.11.0.1",1,"{\"status\":129,\"details\":[]}"),
@@ -66,5 +67,4 @@ INSERT INTO `modules` (`id`,`modulename`,`version`,`enabled`,`signature`) VALUES
 (63,"setcid","13.0.6.3",1,"{\"status\":129,\"details\":[]}"),
 (64,"vmblast","13.0.11",1,"{\"status\":129,\"details\":[]}"),
 (65,"customcontexts","13.0.3.2",1,"{\"status\":129,\"details\":[]}"),
-(66,"queuereport","1.1.0",1,"{\"status\":4,\"details\":[\"module.sig check failed! Unknown Signature ([GNUPG:] ERRSIG 0F6396405B597629 1 2 01 1616067054 9)\"]}"),
-(67,"apicall","0.0.1",1,"{\"status\":8,\"details\":[\"unsigned\"]}");
+(66,"recallonbusy","0.0.1",1,"{\"status\":129,\"details\":[]}");

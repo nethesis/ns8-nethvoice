@@ -9,5 +9,5 @@ CREATE TABLE `fax_incoming` (
   `detectionwait` varchar(5) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `destination` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `legacy_email` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `ring` int(11) DEFAULT 0
+  `ring` int(11) DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

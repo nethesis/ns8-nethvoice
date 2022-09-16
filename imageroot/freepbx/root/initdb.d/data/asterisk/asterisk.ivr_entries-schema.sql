@@ -6,5 +6,5 @@ CREATE TABLE `ivr_entries` (
   `ivr_id` int(11) NOT NULL,
   `selection` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `dest` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `ivr_ret` tinyint(1) NOT NULL DEFAULT 0
+  `ivr_ret` tinyint(1) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

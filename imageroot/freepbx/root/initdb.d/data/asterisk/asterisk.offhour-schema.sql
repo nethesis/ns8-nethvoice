@@ -7,12 +7,12 @@ CREATE TABLE `offhour` (
   `displayname` varchar(50) DEFAULT NULL,
   `didcidnum` varchar(20) DEFAULT NULL,
   `didextension` varchar(20) DEFAULT NULL,
-  `tsbegin` int(10) unsigned DEFAULT 0,
-  `tsend` int(10) unsigned DEFAULT 0,
+  `tsbegin` int(10) unsigned DEFAULT '0',
+  `tsend` int(10) unsigned DEFAULT '0',
   `message` varchar(500) DEFAULT NULL,
   `action` int(1) DEFAULT NULL,
   `param` varchar(50) DEFAULT NULL,
   `destination` varchar(500) DEFAULT '',
-  `enabled` tinyint(1) DEFAULT 0,
+  `enabled` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;

@@ -5,6 +5,6 @@
 CREATE TABLE `indications_zonelist` (
   `iso` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
   `name` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `conf` longblob DEFAULT NULL,
+  `conf` longblob,
   PRIMARY KEY (`iso`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

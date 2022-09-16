@@ -6,7 +6,7 @@ CREATE TABLE `music` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `category` varchar(190) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `type` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `random` tinyint(1) DEFAULT 0,
+  `random` tinyint(1) DEFAULT '0',
   `application` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `format` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),

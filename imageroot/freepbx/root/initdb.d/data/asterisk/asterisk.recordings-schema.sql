@@ -5,9 +5,9 @@
 CREATE TABLE `recordings` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `displayname` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `filename` blob DEFAULT NULL,
+  `filename` blob,
   `description` varchar(254) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `fcode` tinyint(1) DEFAULT 0,
+  `fcode` tinyint(1) DEFAULT '0',
   `fcode_pass` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `fcode_lang` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`)

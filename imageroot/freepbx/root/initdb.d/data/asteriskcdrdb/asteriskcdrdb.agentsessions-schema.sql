@@ -10,4 +10,4 @@ CREATE TABLE `agentsessions` (
   `reason` varchar(100) NOT NULL,
   `timestamp_out` bigint(20) DEFAULT NULL,
   `qdescr` varchar(35) NOT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;

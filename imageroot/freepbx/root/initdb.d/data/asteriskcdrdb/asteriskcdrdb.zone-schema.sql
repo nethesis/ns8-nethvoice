@@ -8,4 +8,4 @@ CREATE TABLE `zone` (
   `siglaprov` varchar(4) NOT NULL DEFAULT '0',
   `provincia` varchar(30) NOT NULL DEFAULT '0',
   `regione` varchar(30) NOT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
