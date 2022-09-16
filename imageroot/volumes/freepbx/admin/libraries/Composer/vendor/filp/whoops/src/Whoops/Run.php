@@ -110,7 +110,6 @@ final class Run implements RunInterface
      */
     public function register()
     {
-try{
         if (!$this->isRegistered) {
             // Workaround PHP bug 42098
             // https://bugs.php.net/bug.php?id=42098
@@ -125,10 +124,7 @@ try{
 
             $this->isRegistered = true;
         }
-} Catch (Exception $e) {
-file_put_contents('/tmp/php_debug.log',date('H:i:s').' '.__FILE__.':'.__LINE__.' '.__CLASS__.'>'.__FUNCTION__.">'".print_r( "foo" ,1)."'\n",FILE_APPEND);/*NethDEBUG*/
-	error_log($e->getMessage());
-}
+
         return $this;
     }
 

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-03-14 14:02-0400\n"
+"POT-Creation-Date: 2021-09-07 04:02+0000\n"
 "PO-Revision-Date: 2016-12-15 00:56+0200\n"
 "Last-Translator: Alexander <alexander.schley@paranagua.pr.gov.br>\n"
 "Language-Team: Portuguese (Brazil) <http://weblate.freepbx.org/projects/"
@@ -21,10 +21,15 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Generator: Weblate 2.4\n"
 
-#: assets/js/park.js:96
+#: assets/js/park.js:100
 #, perl-format
 msgid "%s already in use by: %s"
 msgstr "%s já em uso por: %s"
+
+#: assets/js/park.js:32
+#, perl-format
+msgid "%s already used, please use a different name."
+msgstr ""
 
 #: install.php:255
 #, php-format
@@ -113,15 +118,7 @@ msgid "Defines the Feature Code to use for Direct Call Pickup"
 msgstr ""
 "Define o código de recurso a ser usado para a Captura de Chamada Direta"
 
-#: parking.i18n.php:14
-msgid ""
-"Defines the Feature Code to use to force pickup a call that is parked in a "
-"private lot that the extension picking up the call does not have permissions "
-"for.  Example if a caller is parked in slot 81 and extension 8001 does not "
-"have permission to that"
-msgstr ""
-
-#: install.php:15
+#: install.php:15 parking.i18n.php:14
 msgid ""
 "Defines the Feature Code to use to force pickup a call that is parked in a "
 "private lot that the extension picking up the call does not have permissions "
@@ -135,7 +132,7 @@ msgstr ""
 "81 e o ramal 8001 não tem permissão para este estacionamento privado, ele "
 "poderia discar *8581 para capturar a chamada estacionada."
 
-#: Parking.class.php:158
+#: Parking.class.php:162
 msgid "Delete"
 msgstr "Apagar"
 
@@ -186,11 +183,9 @@ msgstr "Inicializando  estacionamento padrão..."
 
 #: parking.i18n.php:8
 msgid ""
-"Manages parking lot extensions and other options.\tParking is a way of "
+"Manages parking lot extensions and other options. Parking is a way of "
 "putting calls "
 msgstr ""
-"Gerencia os ramais dos estacionamentos e outras opções. \tO estacionamento é "
-"uma forma de reter chamadas "
 
 #: views/lot.php:458
 msgid "Name"
@@ -308,7 +303,7 @@ msgstr "Estacionamento"
 msgid "Parking Lot Extension"
 msgstr "Ramal de Estacionamento"
 
-#: assets/js/park.js:79
+#: assets/js/park.js:83
 msgid "Parking Lot Extension and Starting Position can not be the same!"
 msgstr "Ramal de Estacionamento e a Posição Inicial não podem ser o mesmo!"
 
@@ -324,7 +319,7 @@ msgstr "O Ramal de Estacionamento não pode ser maior que 2147483647!"
 msgid "Parking Lot Extension can not start with a leading 0!"
 msgstr "O Ramal do Estacionamento não pode começar com 0!"
 
-#: assets/js/park.js:90
+#: assets/js/park.js:94
 #, perl-format
 msgid "Parking Lot Extension: %s"
 msgstr "Ramal de Estacionamento: %s"
@@ -341,11 +336,11 @@ msgstr "Nome do Estacionamento não pode ficar em branco!"
 msgid "Parking Lot Starting Position"
 msgstr "Posição Inicial do Estacionamento"
 
-#: assets/js/park.js:32
+#: assets/js/park.js:36
 msgid "Parking Lot Starting Position can not be blank!"
 msgstr "Posição Inicial do Estacionamento não pode ficar em branco!"
 
-#: assets/js/park.js:40
+#: assets/js/park.js:44
 msgid "Parking Lot Starting Position can not start with a leading 0!"
 msgstr "Posição Inicial do Estacionamento não pode começar com 0!"
 
@@ -358,16 +353,16 @@ msgstr "Estacionamento:  %s (%s)"
 msgid "Parking Settings"
 msgstr "Configuração de Estacionamento"
 
-#: assets/js/park.js:90
+#: assets/js/park.js:94
 #, perl-format
 msgid "Parking Slot: %s"
 msgstr "Vaga de Estacionamento: %s"
 
-#: assets/js/park.js:36
+#: assets/js/park.js:40
 msgid "Parking Starting Position can not be larger than 2147483647!"
 msgstr "Posição Inicial do Estacionamento não pode ser maior que 2147483647!"
 
-#: assets/js/park.js:101
+#: assets/js/park.js:105
 msgid "Parking Starting Position/Slots can not be larger than 2147483647!"
 msgstr ""
 "Posição/Vaga Inicial de Estacionamento não pode ser maior que 2147483647!"
@@ -376,7 +371,7 @@ msgstr ""
 msgid "Parking Timeout (seconds)"
 msgstr "Tempo de Espera de Estacionamento (segundos)"
 
-#: Parking.class.php:90
+#: Parking.class.php:94
 msgid "ParkingLot"
 msgstr "Estacionamento"
 
@@ -408,7 +403,7 @@ msgstr "Forneça um Título Descritivo para este Estacionamento"
 msgid "Re-Parking Capability"
 msgstr "Capacidade de Re-Estacionamento"
 
-#: Parking.class.php:163
+#: Parking.class.php:167
 msgid "Reset"
 msgstr "Reiniciar"
 
@@ -436,7 +431,7 @@ msgstr ""
 "String para prefixar ao atual ID Chamador relacionado à chamada estacionada "
 "antes de enviar de volta para o Originador ou Destino Alternativo."
 
-#: Parking.class.php:168
+#: Parking.class.php:172
 msgid "Submit"
 msgstr "Enviar"
 
@@ -546,11 +541,11 @@ msgstr ""
 "padrão), a chamada será então colocada em uma vaga (71-78 por padrão) e o "
 "número da vaga será anunciada para você."
 
-#: assets/js/park.js:49
+#: assets/js/park.js:53
 msgid "You have errors on the form. Please correct them before continuing"
 msgstr "Você possui erros no formulário. Corrija-os antes de continuar"
 
-#: assets/js/park.js:44
+#: assets/js/park.js:48
 msgid "You must select a valid destination"
 msgstr "Você deve selecionar um destino válido"
 
@@ -577,6 +572,13 @@ msgstr "migrando dados da antiga tabela parkinglot"
 #: views/overview.php:17 views/overview.php:29
 msgid "nn"
 msgstr "nn"
+
+#~ msgid ""
+#~ "Manages parking lot extensions and other options.\tParking is a way of "
+#~ "putting calls "
+#~ msgstr ""
+#~ "Gerencia os ramais dos estacionamentos e outras opções. \tO "
+#~ "estacionamento é uma forma de reter chamadas "
 
 #~ msgid "BLF Capabilities"
 #~ msgstr "Capacidades BLF"

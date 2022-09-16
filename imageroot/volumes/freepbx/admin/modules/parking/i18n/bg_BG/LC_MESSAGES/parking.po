@@ -20,7 +20,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-03-14 14:02-0400\n"
+"POT-Creation-Date: 2021-09-07 04:02+0000\n"
 "PO-Revision-Date: 2014-08-28 18:22+0200\n"
 "Last-Translator: Chavdar <chavdar_75@yahoo.com>\n"
 "Language-Team: Bulgarian <http://git.freepbx.org/projects/freepbx/parking/bg/"
@@ -32,9 +32,14 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Generator: Weblate 1.10-dev\n"
 
-#: assets/js/park.js:96
+#: assets/js/park.js:100
 #, perl-format
 msgid "%s already in use by: %s"
+msgstr ""
+
+#: assets/js/park.js:32
+#, perl-format
+msgid "%s already used, please use a different name."
 msgstr ""
 
 #: install.php:255
@@ -115,15 +120,7 @@ msgstr ""
 msgid "Defines the Feature Code to use for Direct Call Pickup"
 msgstr ""
 
-#: parking.i18n.php:14
-msgid ""
-"Defines the Feature Code to use to force pickup a call that is parked in a "
-"private lot that the extension picking up the call does not have permissions "
-"for.  Example if a caller is parked in slot 81 and extension 8001 does not "
-"have permission to that"
-msgstr ""
-
-#: install.php:15
+#: install.php:15 parking.i18n.php:14
 msgid ""
 "Defines the Feature Code to use to force pickup a call that is parked in a "
 "private lot that the extension picking up the call does not have permissions "
@@ -132,7 +129,7 @@ msgid ""
 "parked call."
 msgstr ""
 
-#: Parking.class.php:158
+#: Parking.class.php:162
 msgid "Delete"
 msgstr ""
 
@@ -184,11 +181,9 @@ msgstr "Инициализиране на parkinglot по-подразбиран
 
 #: parking.i18n.php:8
 msgid ""
-"Manages parking lot extensions and other options.\tParking is a way of "
+"Manages parking lot extensions and other options. Parking is a way of "
 "putting calls "
 msgstr ""
-"Управление на вътрешните линии за паркиране на разговор и други опции."
-"\tПаркирането поставя обаждането "
 
 #: views/lot.php:458
 msgid "Name"
@@ -297,7 +292,7 @@ msgstr "Група за Паркиране"
 msgid "Parking Lot Extension"
 msgstr ""
 
-#: assets/js/park.js:79
+#: assets/js/park.js:83
 msgid "Parking Lot Extension and Starting Position can not be the same!"
 msgstr ""
 
@@ -313,7 +308,7 @@ msgstr ""
 msgid "Parking Lot Extension can not start with a leading 0!"
 msgstr ""
 
-#: assets/js/park.js:90
+#: assets/js/park.js:94
 #, perl-format
 msgid "Parking Lot Extension: %s"
 msgstr ""
@@ -330,11 +325,11 @@ msgstr ""
 msgid "Parking Lot Starting Position"
 msgstr ""
 
-#: assets/js/park.js:32
+#: assets/js/park.js:36
 msgid "Parking Lot Starting Position can not be blank!"
 msgstr ""
 
-#: assets/js/park.js:40
+#: assets/js/park.js:44
 msgid "Parking Lot Starting Position can not start with a leading 0!"
 msgstr ""
 
@@ -347,16 +342,16 @@ msgstr "Група за Паркиране: %s (%s)"
 msgid "Parking Settings"
 msgstr ""
 
-#: assets/js/park.js:90
+#: assets/js/park.js:94
 #, perl-format
 msgid "Parking Slot: %s"
 msgstr ""
 
-#: assets/js/park.js:36
+#: assets/js/park.js:40
 msgid "Parking Starting Position can not be larger than 2147483647!"
 msgstr ""
 
-#: assets/js/park.js:101
+#: assets/js/park.js:105
 msgid "Parking Starting Position/Slots can not be larger than 2147483647!"
 msgstr ""
 
@@ -364,7 +359,7 @@ msgstr ""
 msgid "Parking Timeout (seconds)"
 msgstr ""
 
-#: Parking.class.php:90
+#: Parking.class.php:94
 msgid "ParkingLot"
 msgstr ""
 
@@ -394,7 +389,7 @@ msgstr "Наименование за тази Група за Паркиран�
 msgid "Re-Parking Capability"
 msgstr ""
 
-#: Parking.class.php:163
+#: Parking.class.php:167
 msgid "Reset"
 msgstr ""
 
@@ -420,7 +415,7 @@ msgid ""
 "prior to sending back to the Originator or the Alternate Destination."
 msgstr ""
 
-#: Parking.class.php:168
+#: Parking.class.php:172
 msgid "Submit"
 msgstr ""
 
@@ -503,11 +498,11 @@ msgid ""
 "will be announced to you."
 msgstr ""
 
-#: assets/js/park.js:49
+#: assets/js/park.js:53
 msgid "You have errors on the form. Please correct them before continuing"
 msgstr ""
 
-#: assets/js/park.js:44
+#: assets/js/park.js:48
 msgid "You must select a valid destination"
 msgstr ""
 
@@ -534,6 +529,13 @@ msgstr "преместване на стари данни на parkinglot"
 #: views/overview.php:17 views/overview.php:29
 msgid "nn"
 msgstr ""
+
+#~ msgid ""
+#~ "Manages parking lot extensions and other options.\tParking is a way of "
+#~ "putting calls "
+#~ msgstr ""
+#~ "Управление на вътрешните линии за паркиране на разговор и други опции."
+#~ "\tПаркирането поставя обаждането "
 
 #~ msgid "creating table %s if needed"
 #~ msgstr "създаване на таблица %s ако е необходимо"

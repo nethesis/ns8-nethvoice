@@ -28,6 +28,10 @@ if($("#parkext").length) {
 			warnInvalid($('#name'),_('Parking Lot Name can not be blank!'));
 			return false;
 		}
+		if(typeof lotnameVal != "undefined" && $.inArray($('#name').val().trim(), lotnameVal) != -1) {
+			warnInvalid($('#name'),  sprintf(_("%s already used, please use a different name."),$('#name').val()));
+			return false;
+		}
 		if(!$('#parkpos').val()) {
 			warnInvalid($('#parkpos'), _('Parking Lot Starting Position can not be blank!'));
 			return false;

@@ -9,22 +9,26 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-03-14 14:02-0400\n"
-"PO-Revision-Date: 2016-03-17 00:42+0200\n"
-"Last-Translator: Media <mousavi.media@gmail.com>\n"
-"Language-Team: Persian <http://weblate.freepbx.org/projects/freepbx/parking/"
-"fa/>\n"
-"Language: fa\n"
+"POT-Creation-Date: 2021-09-07 04:02+0000\n"
+"PO-Revision-Date: 2019-01-25 14:57+0000\n"
+"Last-Translator: Media Mousavi <mousavi.media@gmail.com>\n"
+"Language-Team: Persian <http://*/projects/freepbx/parking/fa/>\n"
+"Language: fa_IR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 2.4\n"
+"X-Generator: Weblate 3.0.1\n"
 
-#: assets/js/park.js:96
+#: assets/js/park.js:100
 #, perl-format
 msgid "%s already in use by: %s"
-msgstr ""
+msgstr "٪s1 در حال حاضر توسط ٪s2 استفاده می شود"
+
+#: assets/js/park.js:32
+#, perl-format
+msgid "%s already used, please use a different name."
+msgstr "٪s1 در حال حاضر استفاده می شود، نام دیگر انتخاب کنید."
 
 #: install.php:255
 #, php-format
@@ -112,15 +116,7 @@ msgstr "پیشفرض"
 msgid "Defines the Feature Code to use for Direct Call Pickup"
 msgstr "تشخیص کد ویژه برای قطع تماس مستقیم کاربر"
 
-#: parking.i18n.php:14
-msgid ""
-"Defines the Feature Code to use to force pickup a call that is parked in a "
-"private lot that the extension picking up the call does not have permissions "
-"for.  Example if a caller is parked in slot 81 and extension 8001 does not "
-"have permission to that"
-msgstr ""
-
-#: install.php:15
+#: install.php:15 parking.i18n.php:14
 msgid ""
 "Defines the Feature Code to use to force pickup a call that is parked in a "
 "private lot that the extension picking up the call does not have permissions "
@@ -128,8 +124,13 @@ msgid ""
 "have permission to that private lot they could dial *8581 to pickup the "
 "parked call."
 msgstr ""
+"کد ویژگی را برای استفاده مجدد از تماس با یک پارامتر که در قسمت خصوصی ذخیره "
+"می شود تعریف می کند که فرمت تماس گرفتن مجوز ندارد. به عنوان مثال اگر یک تماس "
+"گیرنده در حافظه 81 پارک شده باشد و پسوند 8001 اجازه این تعداد خصوصی را "
+"نداشته باشد، آنها می توانند شماره * 8581 را با شماره گیری پارک شده تماس "
+"بگیرند."
 
-#: Parking.class.php:158
+#: Parking.class.php:162
 msgid "Delete"
 msgstr "حذف"
 
@@ -179,11 +180,9 @@ msgstr "تشخیص لات پارک پیشفرض.."
 
 #: parking.i18n.php:8
 msgid ""
-"Manages parking lot extensions and other options.\tParking is a way of "
+"Manages parking lot extensions and other options. Parking is a way of "
 "putting calls "
 msgstr ""
-"Manages parking lot extensions and other options .\tParking is a way of "
-"putting calls "
 
 #: views/lot.php:458
 msgid "Name"
@@ -231,6 +230,7 @@ msgid ""
 "Override the ringer volume. Note: This is only valid for %s phones at this "
 "time"
 msgstr ""
+"میزان رینگر را لغو کنید توجه: این در حال حاضر فقط برای تلفن های ٪s1 معتبر است"
 
 #: views/bootnav.php:2
 msgid "Overview"
@@ -295,26 +295,26 @@ msgstr "Lot پارک کردن"
 msgid "Parking Lot Extension"
 msgstr "داخلی لات پارک شده"
 
-#: assets/js/park.js:79
+#: assets/js/park.js:83
 msgid "Parking Lot Extension and Starting Position can not be the same!"
-msgstr ""
+msgstr "فرمت پارکینگ و موقعیت شروع نمی تواند یکسان باشد!"
 
 #: assets/js/park.js:16
 msgid "Parking Lot Extension can not be blank!"
-msgstr ""
+msgstr "فرمت پارکینگ نمیتواند خالی باشد!"
 
 #: assets/js/park.js:20
 msgid "Parking Lot Extension can not be larger than 2147483647!"
-msgstr ""
+msgstr "فرمت پارکینگ نمی تواند بزرگتر از 2147483647 باشد!"
 
 #: assets/js/park.js:24
 msgid "Parking Lot Extension can not start with a leading 0!"
-msgstr ""
+msgstr "فرمت پارکینگ نمیتواند با صفر شروع شود!"
 
-#: assets/js/park.js:90
+#: assets/js/park.js:94
 #, perl-format
 msgid "Parking Lot Extension: %s"
-msgstr ""
+msgstr "بخش پارکینگ: ٪s1"
 
 #: views/lot.php:100
 msgid "Parking Lot Name"
@@ -322,19 +322,19 @@ msgstr "نام Lot پارک کردن"
 
 #: assets/js/park.js:28
 msgid "Parking Lot Name can not be blank!"
-msgstr ""
+msgstr "نام پارکینگ نباید خالی باشد!"
 
 #: views/lot.php:124
 msgid "Parking Lot Starting Position"
 msgstr "موقعیت Lot شروع پارک کردن"
 
-#: assets/js/park.js:32
+#: assets/js/park.js:36
 msgid "Parking Lot Starting Position can not be blank!"
-msgstr ""
+msgstr "موقعیت شروع پارکینگ نمیتواند خالی باشد!"
 
-#: assets/js/park.js:40
+#: assets/js/park.js:44
 msgid "Parking Lot Starting Position can not start with a leading 0!"
-msgstr ""
+msgstr "پارکینگ شروع موقعیت شروع نمی شود با پیشرو 0!"
 
 #: functions.inc/registries.php:59 functions.inc/registries.php:94
 #, php-format
@@ -345,24 +345,24 @@ msgstr "Parking Lot : %s (%s)"
 msgid "Parking Settings"
 msgstr "تنظیمات پارک کردن"
 
-#: assets/js/park.js:90
+#: assets/js/park.js:94
 #, perl-format
 msgid "Parking Slot: %s"
-msgstr ""
+msgstr "پارکینگ اسلات: ٪s1"
 
-#: assets/js/park.js:36
+#: assets/js/park.js:40
 msgid "Parking Starting Position can not be larger than 2147483647!"
-msgstr ""
+msgstr "موقعیت شروع پارکینگ نمیتواند بزرگتر از 2147483647 باشد!"
 
-#: assets/js/park.js:101
+#: assets/js/park.js:105
 msgid "Parking Starting Position/Slots can not be larger than 2147483647!"
-msgstr ""
+msgstr "پارکینگ شروع موقعیت / اسلات نمی تواند بزرگتر از 2147483647 باشد!"
 
 #: views/lot.php:197
 msgid "Parking Timeout (seconds)"
 msgstr "وقفه پارک کردن (ثانیه)"
 
-#: Parking.class.php:90
+#: Parking.class.php:94
 msgid "ParkingLot"
 msgstr "Lot پارک کردن"
 
@@ -394,7 +394,7 @@ msgstr "ایجاد عنوان برای این لات"
 msgid "Re-Parking Capability"
 msgstr "قابلیت پارک کردن مجدد"
 
-#: Parking.class.php:163
+#: Parking.class.php:167
 msgid "Reset"
 msgstr "بازنشانی"
 
@@ -404,7 +404,7 @@ msgstr "رفتار تماس بازگشت"
 
 #: views/lot.php:395
 msgid "Ringer Volume Override"
-msgstr ""
+msgstr "رینگر دوره نادیده گرفتن"
 
 #: views/lot.php:454
 msgid "Slot"
@@ -412,7 +412,7 @@ msgstr "Slot"
 
 #: views/lot.php:174
 msgid "Slot Range"
-msgstr ""
+msgstr "محدوده اسلات"
 
 #: views/lot.php:435
 msgid ""
@@ -422,13 +422,13 @@ msgstr ""
 "String to prepend to the current Caller ID associated with the parked call "
 "prior to sending back to the Originator or the Alternate Destination ."
 
-#: Parking.class.php:168
+#: Parking.class.php:172
 msgid "Submit"
 msgstr "ارسال"
 
 #: views/lot.php:186
 msgid "The generated slot range"
-msgstr ""
+msgstr "محدوده اسلات تولید شده"
 
 #: views/lot.php:209
 msgid ""
@@ -523,13 +523,13 @@ msgid ""
 "will be announced to you."
 msgstr "شما میتوانید یک تماس را به داخلی لات پارک شده منتقل کنید(پیشفرض ۷۰)."
 
-#: assets/js/park.js:49
+#: assets/js/park.js:53
 msgid "You have errors on the form. Please correct them before continuing"
-msgstr ""
+msgstr "شما خطا در فرم دارید قبل از ادامه آنها را اصلاح کنید"
 
-#: assets/js/park.js:44
+#: assets/js/park.js:48
 msgid "You must select a valid destination"
-msgstr ""
+msgstr "شما باید یک مقصد معتبر را انتخاب کنید"
 
 #: views/lot.php:15
 msgid "default"
@@ -554,6 +554,24 @@ msgstr "انتقال دیتا قدیمی لات پارک شده"
 #: views/overview.php:17 views/overview.php:29
 msgid "nn"
 msgstr "nn"
+
+#~ msgid ""
+#~ "Manages parking lot extensions and other options.\tParking is a way of "
+#~ "putting calls "
+#~ msgstr ""
+#~ "Manages parking lot extensions and other options .\tParking is a way of "
+#~ "putting calls "
+
+#~ msgid ""
+#~ "Defines the Feature Code to use to force pickup a call that is parked in "
+#~ "a private lot that the extension picking up the call does not have "
+#~ "permissions for.  Example if a caller is parked in slot 81 and extension "
+#~ "8001 does not have permission to that"
+#~ msgstr ""
+#~ "کد ویژگی را برای استفاده مجدد از تماس با یک پارامتر که در قسمت خصوصی "
+#~ "ذخیره می شود تعریف می کند که فرمت تماس گرفتن مجوز ندارد. به عنوان مثال "
+#~ "اگر یک تماس گیرنده در حافظه 81 پارک شده باشد، پسوند 8001 اجازه دسترسی به "
+#~ "آن را ندارد"
 
 #~ msgid "BLF Capabilities"
 #~ msgstr "قابلیت های BLF"

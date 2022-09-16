@@ -1525,6 +1525,7 @@ function getHtmlRecordings(elemId, voices) {
 var recorder;
 var tempFilename;
 var audioFileName;
+const convertDots = /[.](?=.*[.])|\s/g;
 var recordedFilename;
 var recording = false;
 
@@ -1910,6 +1911,12 @@ function initRecordingListeners() {
             $('#newRecordingName').focus();
             return;
         }
+        audioFileName = audioFileName.replace(convertDots, "-");
+        /**
+         *  Now that we are sure that the audioFileName
+         *  has only one dot, we can proceed to create
+         *  a new variable who hasn't no one dots
+         */
         var filename = audioFileName.substring(0, audioFileName.lastIndexOf("."));
         var lang = $('#newRecordingLangSelect').val();
         var elemId = $(this).attr('attr-elemid');
@@ -1947,15 +1954,18 @@ function initRecordingListeners() {
 
     $("form#form1").submit(function (e) {
         try {
-            var formData = new FormData($(this)[0]);
+            const formData = new FormData(this);
+            const file1 = formData.get("file1");
+            const newFileName = file1.name.replace(convertDots, "-");
+            formData.set("file1", file1, newFileName);
             $.ajax({
                 url: "plugins.php",
                 type: "POST",
-                data: new FormData(this),
+                data: formData,
                 processData: false,
                 contentType: false
             }).done(function (c) {
-                tempFilename = c;
+                tempFilename = c.trim().replace(convertDots, "-");
                 $('#submitFileUpload').attr('disabled', 'disabled').addClass('disabled');
                 $("form#form1 input[type='file'],form#form1 label").attr('disabled', 'disabled').addClass('disabled');
                 $('#submitFileUpload').text(languages[browserLang]["view_uploadedfile_string"]);

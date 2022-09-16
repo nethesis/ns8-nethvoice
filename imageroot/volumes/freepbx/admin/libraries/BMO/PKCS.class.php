@@ -478,14 +478,8 @@ default_md = sha256
 				throw new \Exception(sprintf(_("Could Not Create the Asterisk Keys Folder: %s"),$keyloc));
 			}
 		}
-
-		if (is_writable($keyloc)) {
-			// This is a good Directory, and we're happy.
-			$this->keylocation = $keyloc;
-			return $keyloc;
-		} else {
-			throw new \Exception(sprintf(_("Don't have permission/can't write to: %s"),$keyloc));
-		}
+		$this->keylocation = $keyloc;
+		return $keyloc;
 	}
 
 	private function validateName($name) {

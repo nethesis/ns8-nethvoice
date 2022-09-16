@@ -8,6 +8,7 @@ class Parking implements BMO {
 
 		$this->FreePBX = $freepbx;
 		$this->db = $freepbx->Database;
+		$this->astman = $freepbx->astman;
 	}
 
 	public function install() {
@@ -65,6 +66,9 @@ class Parking implements BMO {
 					if($id !== false){
 						$_REQUEST['action'] = 'modify';
 						$_REQUEST['id'] = $id;
+					}
+					if($this->FreePBX->Modules->checkStatus('parkpro')) {
+						unset($_REQUEST['action']);
 					}
 				}
 			break;
@@ -182,5 +186,55 @@ class Parking implements BMO {
 		if(function_exists('parkpro_view')){
 			return \FreePBX::Parkpro()->getRightNav($request);
 		}
+	}
+	public function parkingGet($id = 'default') {
+		$results = array();
+		if (function_exists('parkpro_get')) {
+			return parkpro_get($id);
+		}
+		$sql = "SELECT * FROM parkplus WHERE defaultlot = 'yes' LIMIT 1";
+		if ($id == 'all' || $id == '') {
+			$res = sql($sql,'getAll',DB_FETCHMODE_ASSOC);
+			foreach($res as $vq) {
+				$results[$vq['id']] = $vq;
+			}
+		} else {
+			$results = sql($sql,'getRow',DB_FETCHMODE_ASSOC);
+		}
+		return $results;
+	}
+	public function getParkedCalls($id = '') {
+		// the $id param can be the desired lot's id number, but for the default
+		// lot, an id of 'default' must be used
+		$this->id = strval($id);
+		$actionId = 'getParkedCalls' . str_shuffle(strval(time()));
+		$this->parkedCalls = array();
+		$this->astman->events("on");
+		$this->astman->add_event_handler(
+			"parkedcall",
+			function ($event, $data, $server, $port) {
+				$lotId = str_replace('parkinglot_', '', $data['Parkinglot']);
+				if (empty($this->id) || $this->id === $lotId) {
+					unset($data['Event']);
+					unset($data['ActionID']);
+					array_push($this->parkedCalls, $data);
+				}
+			}
+		);
+
+		$this->astman->add_event_handler(
+			"parkedcallscomplete",
+			function ($event, $data, $server, $port) {
+				stream_set_timeout($this->astman->socket, 0, 1);
+			}
+		);
+
+		$response = $this->astman->ParkedCalls($actionId);
+		if ($response["Response"] == "Success") {
+			$this->astman->wait_response(true);
+			stream_set_timeout($this->astman->socket, 30);
+		}
+
+		return $this->parkedCalls;
 	}
 }

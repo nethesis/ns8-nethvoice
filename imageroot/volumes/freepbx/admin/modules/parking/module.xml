@@ -2,7 +2,7 @@
 	<rawname>parking</rawname>
 	<repo>standard</repo>
 	<name>Parking Lot</name>
-	<version>13.0.19.8</version>
+	<version>13.0.19.14</version>
 	<publisher>Sangoma Technologies Corporation</publisher>
 	<license>GPLv3+</license>
 	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
@@ -10,7 +10,14 @@
 	<description>Manages parking lot extensions and other options.
 	Parking is a way of putting calls "on hold", and then picking them up from any extension.
 	</description>
+  	<more-info>https://wiki.freepbx.org/display/F2/Parking+Module</more-info>
 	<changelog>
+		*13.0.19.14* Fixes FREEPBX-22740 
+		*13.0.19.13* FREEI-1995 - adding some methods to support unit tests from the dphoneAPI 
+		*13.0.19.12* Packaging of ver 13.0.19.12
+		*13.0.19.11* FREEPBX-18832 After adding/editing a Parking Lot entry, page is not redirecting to list Parking Lot page. 
+		*13.0.19.10* FREEPBX-18833 Parking Lot module allows to create duplicate entries with same Parking Lot Name 
+		*13.0.19.9* FREEPBX-17846 Function AUDIOHOOK_INHERIT not registered 
 		*13.0.19.8* FREEPBX-17018 Auto CallerID Prepend options not working for Park Pro 
 		*13.0.19.7* FREEPBX-15706 move res_parking to res_parking_additional and add include for res_parking
 		*13.0.19.6* FREEPBX-14861 custom alert info fields URL encoding

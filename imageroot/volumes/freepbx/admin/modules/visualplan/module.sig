@@ -23,7 +23,7 @@ Visualplan.class.php = 8ff16cecfb53991a6b08341b5ccbac0157a20a1f17e20c92de3087ccd
 assets/js/visualplan.js = e536e04e006dc9eb558a6215203213c393ff5fe1ee07e9d4824237022ee404f5
 htdocs/app/Application.js = 9327de34ebb3469fe196fa26d7e1560e0b6e654fae37f777b2c2587a3c65d933
 htdocs/app/Toolbar.js = 09f600519580b702da1404a76f4edd143879946f7d758de7a79fd0a5d3a637ac
-htdocs/app/View.js = cf117fb1acb5ace4781a53043315f7415d893e9f7c1256e15868c71fb68ad567
+htdocs/app/View.js = 1b85f03a5aefc23c2c207d7661da3306e27f3f7dda7fb1e192f0e23de11bd79f
 htdocs/app/widgets/Base.js = 541b3695edaaf419a2972acbbc7f662f2e94deb3eb4233a50ab2974d4edede92
 htdocs/assets/css/application.css = de98463991c4898c87e3aad918715f9dfab58f522c53872972e23a65def26d40
 htdocs/assets/css/bootstrap-select.min.css = 69279bee49c5f3502f7a3f07358da1562cc0a10d57e8a56cfc0f8977d367c99f
@@ -97,11 +97,11 @@ views/grid.php = 9acb5dae2413419e0dd35a1393eaf5311b6a65f688b37a7813b6e54e89c0a47
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1
 
-iQEcBAEBAgAGBQJia58uAAoJEA9jlkBbWXYpRCgH/0u3uejH2II5Xz7Xsf1k84m0
-mYo4CEhjHpdQRkbUOqGh6Tx5vXtD+2oovC8qHnmqo7iwpIL3wAJo+zDEynr4rLRC
-xV3O3jASfqTOIUiK4i70u+RqH5T6MSXnBmr6fVIVpEG34OCUbZ8rxCCINTtRhGA8
-JAHe1zAQ/cahvsJU0ekha8SW+r14pdUwHcYVIhPgUCMsvRfDWuh/Mp5hd/PRmzRA
-V9FvWOjNussQq6FtiJ9Qg+m0IM0RTZOSyw93c2rwcTj0uEpx2mPAVMVpVGMxX9I3
-DkXzm4tiH49KYd7QDW2AOo7MPD1P1sJUhn0V93sP3rsgZ8y1qUjrpVsG5pFNTG0=
-=SASe
+iQEcBAEBAgAGBQJilz7sAAoJEA9jlkBbWXYpHPUIAK8ymTpJQSLDPlgUFT93E49t
+VPh/+wPlg5U5IvpW0jIPE2C9WmusplBSUolXCzz3mLjNw7xijn8uUpoetspSIn3j
+VSLKhvV338l1ODGM8P11zix59MX/wpX/F+baa7lyE3liysKRIE38rg/8avf1yLOg
+vGNAte5zGc1EXJoqeQNxCDKpRyir66CsU5FljDlMosD5C2MadXvCYgIPIYsIyDEb
+FdIAmuls//kJ+TkvWyCNIs4+DJyxi0+WMc/67Ht4RmlQcL5jQ7JBII00ASEx0lui
+Wi/Vh3AZYmo0lXI8SEDm/MLk7QdgIYTFcPpCsJmayRKgxdk6FCBP6GPVeNUInI0=
+=m6mQ
 -----END PGP SIGNATURE-----

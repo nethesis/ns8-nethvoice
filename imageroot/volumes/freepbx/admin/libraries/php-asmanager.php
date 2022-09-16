@@ -169,7 +169,6 @@ class AGI_AsteriskManager {
 	*/
 	function __construct($config=NULL, $optconfig=array()) {
 		// load config
-
 		if(!is_null($config) && file_exists($config)) {
 			$this->config = parse_ini_file($config, true);
 		} elseif(file_exists(DEFAULT_PHPAGI_CONFIG)) {
@@ -180,6 +179,8 @@ class AGI_AsteriskManager {
 		foreach($optconfig as $var=>$val) {
 			$this->config['asmanager'][$var] = $val;
 		}
+
+
 		// add default values to config for uninitialized values
 		if (!isset($this->config['asmanager']['server'])) {
 			$this->config['asmanager']['server'] = 'localhost';
@@ -196,6 +197,7 @@ class AGI_AsteriskManager {
 		if (isset($this->config['asmanager']['cachemode'])) {
 			$this->useCaching = $this->config['asmanager']['cachemode'];
 		}
+
 		$this->log_level = (isset($this->config['asmanager']['log_level']) && is_numeric($this->config['asmanager']['log_level']))
 						? $this->config['asmanager']['log_level'] : false;
 		$this->reconnects = isset($this->config['asmanager']['reconnects']) ? $this->config['asmanager']['reconnects'] : 2;
@@ -237,7 +239,6 @@ class AGI_AsteriskManager {
 		$this->log("Sending Request down socket:",10);
 		$this->log($req,10);
 		if(!$this->connected()) {
-			throw new Exception("Asterisk is not connected ".$action." ".json_encode($parameters));
 			throw new Exception("Asterisk is not connected");
 		}
 		fwrite($this->socket, $req);
@@ -420,10 +421,6 @@ class AGI_AsteriskManager {
 	* @return boolean true on success
 	*/
 	function connect($server=NULL, $username=NULL, $secret=NULL, $events='on') {
-		error_log($server);
-		error_log($username);
-		error_log($secret);
-		error_log($events);
 		set_error_handler("phpasmanager_error_handler");
 
 		// use config if not specified
@@ -1829,11 +1826,7 @@ class AGI_AsteriskManager {
 			$parameters['Module'] = $module;
 			return $this->send_request('Reload', $parameters);
 		} else {
-			//Until https://issues.asterisk.org/jira/browse/ASTERISK-25996 is fixed
-			$a = function_exists("fpbx_which") ? fpbx_which("asterisk") : "asterisk";
-			if(!empty($a)) {
-				return exec($a . " -rx 'core reload'");
-			}
+			return $this->send_request('Reload', $parameters);
 		}
 
 	}

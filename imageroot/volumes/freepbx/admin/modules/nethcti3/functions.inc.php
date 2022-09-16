@@ -31,7 +31,7 @@ function nethcti3_get_config($engine) {
             /*Configure conference*/
             $defaultVal = $amp_conf['ASTCONFAPP'];
             $amp_conf['ASTCONFAPP'] = 'app_meetme';
-            $query='SELECT featurename,IF(customcode IS NULL OR customcode = "",defaultcode,customcode) as defaultcode FROM featurecodes WHERE ( modulename="nethcti3" OR modulename="donotdisturb" ) AND ( featurename="meetme_conf" OR featurename="incall_audio" OR featurename="dnd_on" OR featurename="dnd_off" OR featurename="dnd_toggle")';
+            $query='SELECT featurename,IF(customcode IS NULL OR customcode = "",defaultcode,customcode) as defaultcode FROM featurecodes WHERE ( modulename="nethcti3" OR modulename="donotdisturb" ) AND ( featurename="meetme_conf" OR featurename="incall_audio" OR featurename="dnd_on" OR featurename="dnd_off" OR featurename="dnd_toggle") AND enabled="1"';
             $codes = array();
             foreach ($db->getAll($query) as $feature) {
                 $codes[$feature[0]] = $feature[1];
@@ -389,6 +389,10 @@ function nethcti3_get_config_late($engine) {
 
 function nethcti3_get_config_early($engine) {
     include_once('/var/www/html/freepbx/rest/lib/libCTI.php');
+    // Check proviosioning engine and continue only for Tancredi
+    exec("/usr/bin/sudo /sbin/e-smith/config getprop nethvoice ProvisioningEngine", $out);
+    if ($out[0] !== 'tancredi') return TRUE;
+
     global $amp_conf;
     // Call Tancredi API to set variables that needs to be set on FreePBX retrieve conf
     // get featurecodes

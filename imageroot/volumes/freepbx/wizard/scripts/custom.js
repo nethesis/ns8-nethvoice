@@ -9,6 +9,6 @@ var customConfig = {
   BASE_API_URL_CTI: '/webrest',
   VPLAN_URL: '/freepbx/visualplan',
   OUTBOUNDS_URL: '/freepbx/admin/config.php?display=routing&view=form&id=',
-  SECRET_KEY: 'JrFJmD6_xnW0jNdH'
+  SECRET_KEY: 'd7_Jo3vurNMGn5oq'
 };
 

@@ -98,8 +98,11 @@ while (\$row = \$sth->fetch(\PDO::FETCH_ASSOC)) {
 
 EOF
 
+	touch /etc/asterisk/voicemail.conf
+
 	# Apply changes
 	fwconsole r
+
 	# Set ownership and permission
 	fwconsole chown
 

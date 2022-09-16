@@ -52,7 +52,6 @@ set_error_handler(function ($errno, $errstr){
 	throw new Exception($errstr);
 	return false;
 });
-
 try{
 	date_default_timezone_get();
 }
@@ -251,7 +250,6 @@ if ($bootstrap_settings['cdrdb']) {
 
 $bootstrap_settings['astman_connected'] = false;
 include $dirname . '/libraries/php-asmanager.php';
-error_log(json_encode($bootstrap_settings['astman_config']));
 $astman = new \AGI_AsteriskManager($bootstrap_settings['astman_config'], $bootstrap_settings['astman_options']);
 if (!$bootstrap_settings['skip_astman']) {
 	// attempt to connect to asterisk manager proxy

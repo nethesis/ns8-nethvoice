@@ -3,14 +3,14 @@
 
 $config = [
     'settings' => [
-        'secretkey' => 'JrFJmD6_xnW0jNdH',
+        'secretkey' => 'd7_Jo3vurNMGn5oq',
         'cti_config_path' => '/etc/nethcti'
     ],
     'nethctidb' => [
           'host' => 'localhost',
           'name' => 'nethcti3',
           'user' => 'nethcti',
-          'pass' => 'R0vK11IjMZJ_yzqB'
+          'pass' => '3NP4_EpXQoynD9DZ'
       ]
 ];
 
