@@ -12,6 +12,7 @@
 //MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //GNU General Public License for more details.
 
+set_time_limit(10);
 include_once ("/etc/freepbx.conf");
 define("AGIBIN_DIR", "/var/lib/asterisk/agi-bin");
 include(AGIBIN_DIR."/phpagi.php");
@@ -43,72 +44,105 @@ $number =  $argv[1];
 $cnam =  $argv[2];
 $name = '';
 $company = '';
+$apiFlag = false;
+$apiDir = '/usr/src/nethvoice/lookup.d';
+$apiFile = '';
 
 if (strlen($number)> 4) {
-    //get database data
-    $results = $db->getAll("SELECT * FROM outboundlookup","getRow",DB_FETCHMODE_ASSOC);
-    if (DB::isError($results) || empty($results)) {
-        outboundlookup_error ('Error getting outboundlookup data');
-        exit(1);
-    }
-
-    //Setup database connection:
-    $db_user = $results[0]['mysql_username'];
-    $db_pass = $results[0]['mysql_password'];
-    $db_host = $results[0]['mysql_host'];
-    $db_name = $results[0]['mysql_dbname'];
-    $db_engine = 'mysql';
-    $name = '';
-    $userfield = '';
-    $datasource = $db_engine.'://'.$db_user.':'.$db_pass.'@'.$db_host.'/'.$db_name;
-    $lookupdb = @DB::connect($datasource); // attempt connection
-    if($lookupdb instanceof DB_Error) {
-        outboundlookup_error("Error conecting to asterisk database, skipped");
-        exit(1);
-    } 
-    $sql=preg_replace('/\[NUMBER\]/',$number,$results[0]['mysql_query']);
-    outboundlookup_debug ($sql);
-
-    $res = @$lookupdb->getAll($sql,DB_FETCHMODE_ORDERED);
-    outboundlookup_debug ($res);
-
-    if ($lookupdb->isError($res)){
-        outboundlookup_debug("$sql\nERROR: ".$res->getMessage());
-        exit(1);
-    }
-
-    $name = '';
-    $company = '';
-    $namecount = 0;
-
-    if (!empty($res)) {
-        //get company
-        foreach ($res as $row) {
-            if (isset($row[1]) && !is_null($row[1]) && !empty($row[1])) {
-                $company = $row[1];
-                outboundlookup_debug("Company = $company");
-                break; //company setted, no need to continue
-            }
-        }
-        //get name
-        foreach ($res as $row) {
-            if (isset($row[0]) && !is_null($row[0]) && !empty($row[0])) {
-                $name = $row[0];
-                //if company is setted, make sure that there is only one name that correspond to this number, clear name if there are more than one
-                if ($company != '') {
-                    $namecount++;
-                    if ( $namecount > 1) {
-                        $name = '';
+    //search into dir custom API script(s)
+    if (is_dir($apiDir)) {
+        foreach (scandir($apiDir) as $file) {
+            //check if it's a file also it's executable
+            $apiFile = $apiDir . '/' . $file;
+            if (is_file($apiFile)) {
+                if (is_executable($apiFile)) {
+                    //call the exe file and check if it returns any valid json
+                    $shellCmd = escapeshellcmd($apiFile . ' ' . $number);
+                    $apiResult = shell_exec($shellCmd);
+                    //expects a json obj
+                    if ($apiResult != '') {
+                        $jsonData = json_decode($apiResult);
+                        $name = $jsonData->name;
+                        $company = $jsonData->company;
+                        if ($name == '' && $company == '') {
+                            //continue with the next exe file
+                            continue;
+                        }
+                        //almost one exe file returns valid info
+                        outboundlookup_debug("Name = $name, Company = $company, Number = $number, source = API");
+                        $apiFlag = true;
                         break;
                     }
-                } else {
-                    break;
                 }
             }
         }
     }
+    //look up $nanme and $company via Mysql query
+    if (!$apiFlag) {
+        //get database data
+        $results = $db->getAll("SELECT * FROM outboundlookup","getRow",DB_FETCHMODE_ASSOC);
+        if (DB::isError($results) || empty($results)) {
+            outboundlookup_error ('Error getting outboundlookup data');
+            exit(1);
+        }
 
-    outboundlookup_debug("Name = $name, Company = $company, Number = $number");
+        //Setup database connection:
+        $db_user = $results[0]['mysql_username'];
+        $db_pass = $results[0]['mysql_password'];
+        $db_host = $results[0]['mysql_host'];
+        $db_name = $results[0]['mysql_dbname'];
+        $db_engine = 'mysql';
+        $name = '';
+        $userfield = '';
+        $datasource = $db_engine.'://'.$db_user.':'.$db_pass.'@'.$db_host.'/'.$db_name;
+        $lookupdb = @DB::connect($datasource); // attempt connection
+        if($lookupdb instanceof DB_Error) {
+            outboundlookup_error("Error conecting to asterisk database, skipped");
+            exit(1);
+        } 
+        $sql=preg_replace('/\[NUMBER\]/',$number,$results[0]['mysql_query']);
+        outboundlookup_debug ($sql);
+
+        $res = @$lookupdb->getAll($sql,DB_FETCHMODE_ORDERED);
+        outboundlookup_debug ($res);
+
+        if ($lookupdb->isError($res)){
+            outboundlookup_debug("$sql\nERROR: ".$res->getMessage());
+            exit(1);
+        }
+
+        $name = '';
+        $company = '';
+        $namecount = 0;
+
+        if (!empty($res)) {
+            //get company
+            foreach ($res as $row) {
+                if (isset($row[1]) && !is_null($row[1]) && !empty($row[1])) {
+                    $company = $row[1];
+                    outboundlookup_debug("Company = $company");
+                    break; //company setted, no need to continue
+                }
+            }
+            //get name
+            foreach ($res as $row) {
+                if (isset($row[0]) && !is_null($row[0]) && !empty($row[0])) {
+                    $name = $row[0];
+                    //if company is setted, make sure that there is only one name that correspond to this number, clear name if there are more than one
+                    if ($company != '') {
+                        $namecount++;
+                        if ( $namecount > 1) {
+                            $name = '';
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+        outboundlookup_debug("Name = $name, Company = $company, Number = $number, source = mysql");
+    }
 }
 
 if ($name === '' && $company !== '') $displayname = $company;
