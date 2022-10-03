@@ -32,3 +32,94 @@
  		}
  
  	}
+--- imageroot/volumes/freepbx/rest/lib/freepbxFwConsole.php.ori	2022-09-20 15:46:18.031864851 +0200
++++ imageroot/volumes/freepbx/rest/lib/freepbxFwConsole.php	2022-09-20 15:47:02.259816377 +0200
+@@ -23,7 +23,7 @@
+ function fwconsole($cmd, $args = array()) {
+   //launch long running process
+   $st = new SystemTasks();
+-  $taskId = $st->startTask("/usr/bin/scl enable rh-php56 '/usr/sbin/fwconsole ". $cmd. " ". implode(' ', $args). "'");
++  $taskId = $st->startTask("/usr/sbin/fwconsole ". $cmd. " ". implode(' ', $args));
+   if (!$taskId) {
+       throw new Exception('fwconsole failed');
+   }
+--- imageroot/volumes/freepbx/rest/modules/configuration.php.ori	2022-09-20 17:21:39.770593560 +0200
++++ imageroot/volumes/freepbx/rest/modules/configuration.php	2022-09-20 17:23:00.890488033 +0200
+@@ -35,9 +35,8 @@
+ 
+ 
+ $app->get('/configuration/userprovider', function (Request $request, Response $response, $args) {
+-    exec("/usr/bin/sudo /var/www/html/freepbx/rest/lib/getSSSD.pl", $out);
+-    $out = json_decode($out[0]);
+-    return $response->withJson($out,200);
++    # Dummy user provider response
++    return $response->withJson(json_decode('{"configured":1,"type":"ldap","local":1}'),200);
+ });
+ 
+ # get enabled mode
+--- imageroot/volumes/freepbx/rest/lib/retrieveHelper.sh.ori	2022-09-22 17:55:46.491096933 +0200
++++ imageroot/volumes/freepbx/rest/lib/retrieveHelper.sh	2022-09-22 17:54:46.355156352 +0200
+@@ -36,14 +36,12 @@
+     # process name, so clean up the old lockdir and restart
+     if [ ! -f $LOCKFILE ]; then
+         rmdir $LOCKDIR 2>/dev/null
+-        echo "retrieveHelper.sh: no lock PID, clearing and restarting myself" >&2
+         exec $0 "$@"
+     fi
+     OTHERPID="$(cat "${LOCKFILE}")"
+     # if cat wasn't able to read the file anymore, another instance probably is
+     # about to remove the lock -- exit, we're *still* locked
+     if [ $? != 0 ]; then
+-        echo "retrieveHelper.sh: lock failed, PID ${OTHERPID} is active" >&2
+         #Create another file that means that another retrieve needs to be launched
+         mkdir $LOCKDIR2 2>/dev/null
+         touch $LOCKFILE2 2>/dev/null
+@@ -51,9 +49,7 @@
+     fi
+     if ! kill -0 $OTHERPID &>/dev/null; then
+         # lock is stale, remove it and restart
+-        echo "retrieveHelper.sh: removing stale lock of nonexistant PID ${OTHERPID}" >&2
+         rm -rf "${LOCKDIR}"
+-        echo "retrieveHelper.sh: restarting myself" >&2
+         exec $0 "$@"
+     else
+         # Remove stale (more than two hours old) lockfiles
+@@ -61,26 +57,23 @@
+         # if it's still there, it wasn't too old, bail
+         if [ -f $LOCKFILE ]; then
+             # lock is valid and OTHERPID is active - exit, we're locked!
+-            echo "retrieveHelper.sh: lock failed, PID ${OTHERPID} is active" >&2
+             #Create another file that means that another retrieve needs to be launched
+             mkdir $LOCKDIR2 2>/dev/null
+             touch $LOCKFILE2 2>/dev/null
+             exit 0
+         else
+             # lock was invalid, restart
+-	    echo "retrieveHelper.sh: removing stale lock belonging to stale PID ${OTHERPID}" >&2
+-            echo "retrieveHelper.sh: restarting myself" >&2
+             exec $0 "$@"
+         fi
+     fi
+ fi
+ 
+ trap "{ rm -f $LOCKFILE; rmdir $LOCKDIR 2>/dev/null; rm -f $LOCKFILE2; rmdir $LOCKDIR2 2>/dev/null;}" INT TERM EXIT
+-/usr/bin/scl enable rh-php56 '/var/lib/asterisk/bin/fwconsole r' | /usr/bin/logger -t FreePBX
++fwconsole r > /dev/stderr
+ sleep 10
+ while [[ -f $LOCKFILE2 ]]; do
+     rm -f $LOCKFILE2
+     rmdir $LOCKDIR2 2>/dev/null
+-    /usr/bin/scl enable rh-php56 '/var/lib/asterisk/bin/fwconsole r' | /usr/bin/logger -t FreePBX
++    fwconsole r > /dev/stderr
+     sleep 10
+ done
+--- imageroot/volumes/freepbx/rest/lib/libExtensions.php.ori	2022-09-26 15:28:41.519097548 +0200
++++ imageroot/volumes/freepbx/rest/lib/libExtensions.php	2022-09-26 15:29:47.139032555 +0200
+@@ -955,6 +955,5 @@
+ }
+ 
+ function getProvisioningEngine() {
+-    exec("/usr/bin/sudo /sbin/e-smith/config getprop nethvoice ProvisioningEngine", $out);
+-    return $out[0];
++    return 'tancredi';
+ }
