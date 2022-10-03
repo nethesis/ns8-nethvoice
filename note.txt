@@ -201,6 +201,29 @@ for DB in asterisk asteriskcdrdb; do
     mydumper -h 127.0.0.1 -u root -p $MARIADB_ROOT_PASSWORD -P $MARIADB_PORT -B ${DB} --complete-insert --outputdir imageroot/freepbx/root/initdb.d/data/${DB}
 done
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ###############################
 ###  Copy data from FreePBX ###
 ###############################
@@ -213,12 +236,17 @@ scp -r root@172.25.5.47:/var/lib/asterisk/sounds/* imageroot/volumes/var_lib_ast
 patch -p0 < freepbx_fixes.patch
 rm -fr imageroot/volumes/freepbx/admin/assets/less/cache/*
 rm -fr imageroot/volumes/freepbx/admin/modules/*/assets/less/cache/*
-rm -fr imageroot/volumes/freepbx/admin/modules/*/assets/less/*/cache
-rm -fr imageroot/volumes/freepbx/admin/assets/endpointman/
-rm -fr imageroot/volumes/freepbx/admin/modules/_ep_phone_modules/
-rm -fr imageroot/volumes/freepbx/admin/modules/endpointman/
+rm -fr imageroot/volumes/freepbx/admin/modules/*/assets/less/*/cache/*
+#rm -fr imageroot/volumes/freepbx/admin/assets/endpointman
+#rm -fr imageroot/volumes/freepbx/admin/modules/_ep_phone_modules
+#rm -fr imageroot/volumes/freepbx/admin/modules/endpointman
 mydumper -h 172.25.5.47 -u makako -p Makako,1234 -B asterisk --complete-insert --outputdir imageroot/freepbx/root/initdb.d/data/asterisk
 mydumper -h 172.25.5.47 -u makako -p Makako,1234 -B asteriskcdrdb --complete-insert --outputdir imageroot/freepbx/root/initdb.d/data/asteriskcdrdb
+mydumper -h 172.25.5.47 -u makako -p Makako,1234 -B nethcti3 --complete-insert --outputdir imageroot/freepbx/root/initdb.d/data/nethcti3
+rm -fr imageroot/freepbx/root/initdb.d/data/asterisk/asterisk.endpointman*
+
+
+
 
 
 
@@ -238,7 +266,6 @@ rm -fr ~/.local/share/containers
 # Set ENV
 #
 export MARIADB_PORT=13306
-export APACHE_PORT=7188
 export APACHE_SSL_PORT=7189
 export APACHE_RUN_USER=asterisk
 export APACHE_RUN_GROUP=asterisk
@@ -263,6 +290,9 @@ export AMPASTERISKGROUP=asterisk
 export AMPASTERISKUSER=asterisk
 export AMPASTERISKWEBGROUP=asterisk
 export AMPASTERISKWEBUSER=asterisk
+export NETHVOICESECRETKEY=dummysecretkey
+export CTIDBPASS=dummyctidbpass
+export TANCREDIPORT=7190
 
 podman login -u Stell0 -p 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 ghcr.io
 repobase="${REPOBASE:-ghcr.io/nethserver}"
@@ -282,7 +312,7 @@ buildah commit "${container}" asterisk
 # FreePBX 14
 #
 container=$(buildah from docker.io/library/php:5.6-apache)
-buildah add "${container}"  imageroot/freepbx/root/ /
+buildah add "${container}" imageroot/freepbx/root/ /
 buildah run "${container}" groupadd -r asterisk 
 buildah run "${container}" useradd -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk
 buildah run "${container}" sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:$\{APACHE_PORT\}>/' /etc/apache2/sites-enabled/000-default.conf
@@ -296,7 +326,10 @@ buildah config \
     "${container}"
 
 # install PHP additional modules
-buildah run "${container}" docker-php-source extract
+buildah run "${container}" docker-php-source extractRIADB_ROOT_PASSWORD \
+    --env=MARIADB_PORT \
+    --env=APACHE_RUN_USER \
+    --env=APACHE_
 
 # install pdo_mysql
 buildah run "${container}" docker-php-ext-configure pdo_mysql
@@ -308,8 +341,7 @@ buildah run "${container}" docker-php-ext-install gettext
 
 # install php semaphores (sysvsem)
 buildah run "${container}" docker-php-ext-configure sysvsem
-buildah run "${container}" docker-php-ext-inst
-all sysvsem
+buildah run "${container}" docker-php-ext-install sysvsem
 
 # TODO install pdo_odbc
 #buildah run "${container}" apt-get update
@@ -337,18 +369,41 @@ buildah run "${container}" a2enmod rewrite
 # remove php sources
 buildah run "${container}" docker-php-source delete
 
+# TODO REMOVE BEFORE DEPLOY
+buildah run "${container}" apt-get install -y mycli vim telnet
+
 # clean apt cache
-buildah run "${container}" apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/dpkg/info/* /var/lib/cache/* /var/lib/log/* && touch /var/lib/dpkg/status
+buildah run "${container}" apt-get clean autoclean 
+buildah run "${container}" apt-get autoremove --yes
+buildah run "${container}" rm -rf /var/lib/dpkg/info/* /var/lib/cache/* /var/lib/log/*
+buildah run "${container}" touch /var/lib/dpkg/status
 
 # commit container
 buildah commit "${container}" freepbx14
 
 
+#
+# Tancredi
+#
+container=$(buildah from docker.io/library/php:7-apache)
+
+buildah add "${container}"  imageroot/tancredi/root/ /
+
+buildah run "${container}" /bin/sh <<'EOF'
 
 
+# Install Tancredi files
+curl -L https://github.com/nethesis/nethserver-tancredi/archive/refs/heads/master.tar.gz -o - | tar xzp --strip-component=2 -C / nethserver-tancredi-master/root/usr/share/tancredi/ nethserver-tancredi-master/root/var/lib/tancredi
 
+EOF
 
+# clean apt cache
+buildah run "${container}" apt-get clean autoclean 
+buildah run "${container}" apt-get autoremove --yes
+buildah run "${container}" rm -rf /var/lib/dpkg/info/* /var/lib/cache/* /var/lib/log/*
+buildah run "${container}" touch /var/lib/dpkg/status
 
+buildah commit "${container}" tancredi
 
 
 
@@ -414,6 +469,7 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --replace --name=freepbx14 \
     --volume=spool:/var/spool/asterisk:z \
     --volume=asterisk:/etc/asterisk:z \
+    --volume=nethcti:/etc/nethcti:z \
     --mount=type=bind,source=imageroot/volumes/freepbx,destination=/var/www/html/freepbx,relabel=shared,ro=false \
     --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_sounds,destination=/var/lib/asterisk/sounds,relabel=shared,ro=false \
     --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_agi-bin,destination=/var/lib/asterisk/agi-bin,relabel=shared,ro=false \
@@ -433,8 +489,25 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --env=CDRDBPASS \
     --env=APACHE_PORT \
     --env=APACHE_SSL_PORT \
+    --env=NETHVOICESECRETKEY \
+    --env=CTIDBPASS \
     --network=host \
     freepbx14
+
+sleep 30
+# Run Tancredi
+rm -f /var/tmp/tancredi.ctr-id /var/tmp/tancredi.pid
+/usr/bin/podman run \
+    --detach \
+    --conmon-pidfile=/var/tmp/tancredi.pid \
+    --cidfile=/var/tmp/tancredi.ctr-id \
+    --cgroups=no-conmon \
+    --log-opt=tag=tancredi \
+    --replace --name=tancredi \
+    --volume=tancredi:/var/lib/tancredi:Z \
+    --env=TANCREDIPORT \
+    --network=host \
+    tancredi
 
 
 #
@@ -447,6 +520,8 @@ podman exec -it asterisk bash
 apt-get update
 apt-get install -y mycli vim telnet
 
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
 mycli -u root -h localhost -P $MARIADB_PORT -p $MARIADB_ROOT_PASSWORD
 
 # telnet 
