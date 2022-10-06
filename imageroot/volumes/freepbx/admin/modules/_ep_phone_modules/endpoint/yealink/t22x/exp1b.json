@@ -1,0 +1,265 @@
+{
+  "template_data": {
+    "category": [{
+      "name": "Exp1b",
+      "subcategory": [{
+        "name": "basic",
+        "item": [{
+          "description": "EXP Keys (EXP)",
+          "type": "loop",
+          "loop_start": "22",
+          "loop_end": "40",
+          "data": {
+            "item": [{
+                "category": "sidecar",
+                "variable": "$sdexp1_type",
+                "default_value": "1",
+                "description": "EXP Key {$count} Type",
+                "type": "list",
+                "data": [{
+                    "text": "N\/A",
+                    "value": "0"
+                  },
+                  {
+                    "text": "Conference",
+                    "value": "1"
+                  },
+                  {
+                    "text": "Forward",
+                    "value": "2"
+                  },
+                  {
+                    "text": "Transfer",
+                    "value": "3"
+                  },
+                  {
+                    "text": "Hold",
+                    "value": "4"
+                  },
+                  {
+                    "text": "Do Not Disturb",
+                    "value": "5"
+                  },
+                  {
+                    "text": "Call Return",
+                    "value": "7"
+                  },
+                  {
+                    "text": "SMS",
+                    "value": "8"
+                  },
+                  {
+                    "text": "Call Pickup",
+                    "value": "9"
+                  },
+                  {
+                    "text": "Call Park",
+                    "value": "10"
+                  },
+                  {
+                    "text": "DTMF",
+                    "value": "11"
+                  },
+                  {
+                    "text": "Voicemail",
+                    "value": "12"
+                  },
+                  {
+                    "text": "Speed Dial",
+                    "value": "13"
+                  },
+                  {
+                    "text": "Intercom",
+                    "value": "14"
+                  },
+                  {
+                    "text": "Line",
+                    "value": "15"
+                  },
+                  {
+                    "text": "BLF",
+                    "value": "16"
+                  },
+                  {
+                    "text": "URL",
+                    "value": "17"
+                  },
+                  {
+                    "text": "Group Listing",
+                    "value": "18"
+                  },
+                  {
+                    "text": "Private Hold",
+                    "value": "20"
+                  },
+                  {
+                    "text": "XML Phonebook",
+                    "value": "22"
+                  },
+                  {
+                    "text": "Group Pickup",
+                    "value": "23"
+                  },
+                  {
+                    "text": "Paging",
+                    "value": "24"
+                  },
+                  {
+                    "text": "Record",
+                    "value": "25"
+                  },
+                  {
+                    "text": "XML Browser",
+                    "value": "27"
+                  },
+                  {
+                    "text": "Hot Desking",
+                    "value": "34"
+                  },
+                  {
+                    "text": "URL Record",
+                    "value": "35"
+                  },
+                  {
+                    "text": "Switch",
+                    "value": "37"
+                  },
+                  {
+                    "text": "LDAP",
+                    "value": "38"
+                  },
+                  {
+                    "text": "BLF List",
+                    "value": "39"
+                  },
+                  {
+                    "text": "Prefix",
+                    "value": "40"
+                  },
+                  {
+                    "text": "Zero Touch",
+                    "value": "41"
+                  },
+                  {
+                    "text": "ACD",
+                    "value": "42"
+                  },
+                  {
+                    "text": "Local Group",
+                    "value": "45"
+                  },
+                  {
+                    "text": "Network Group",
+                    "value": "46"
+                  },
+                  {
+                    "text": "Custom Button",
+                    "value": "49"
+                  },
+                  {
+                    "text": "Phone Lock",
+                    "value": "50"
+                  },
+                  {
+                    "text": "Meet-Me Conference",
+                    "value": "55"
+                  },
+                  {
+                    "text": "Retrieve Park",
+                    "value": "56"
+                  },
+                  {
+                    "text": "Hoteling",
+                    "value": "57"
+                  },
+                  {
+                    "text": "ACD Trace",
+                    "value": "58"
+                  },
+                  {
+                    "text": "Disp Code",
+                    "value": "59"
+                  },
+                  {
+                    "text": "Emergency",
+                    "value": "60"
+                  },
+                  {
+                    "text": "Directory",
+                    "value": "61"
+                  },
+                  {
+                    "text": "Network Favorite",
+                    "value": "62"
+                  },
+                  {
+                    "text": "UC Favorite",
+                    "value": "63"
+                  },
+                  {
+                    "text": "Buddies",
+                    "value": "64"
+                  },
+                  {
+                    "text": "My Status",
+                    "value": "65"
+                  },
+                  {
+                    "text": "Paging List",
+                    "value": "66"
+                  },
+                  {
+                    "text": "Custom Key",
+                    "value": "73"
+                  }
+                ]
+              },
+              {
+                "category": "sidecar",
+                "variable": "$sdexp1_label",
+                "default_value": "",
+                "description": "EXP Key {$count} Label",
+                "type": "input"
+              },
+              {
+                "category": "sidecar",
+                "variable": "$sdexp1_value",
+                "default_value": "",
+                "description": "EXP Key {$count} Value",
+                "type": "input"
+              },
+              {
+                "variable": "$sdexp1_line",
+                "default_value": "1",
+                "description": "EXP Key {$count} Line",
+                "type": "list",
+                "data": [{
+                    "text": "Line 1",
+                    "value": "1"
+                  },
+                  {
+                    "text": "Line 2",
+                    "value": "2"
+                  },
+                  {
+                    "text": "Line 3",
+                    "value": "3"
+                  }
+                ]
+              },
+              {
+                "variable": "$sdexp1_pickup",
+                "default_value": "{$pickup_direct}",
+                "description": "EXP Key {$count} Pickup Number",
+                "type": "input"
+              },
+              {
+                "type": "break"
+              }
+            ]
+          }
+        }]
+      }]
+    }]
+  }
+}

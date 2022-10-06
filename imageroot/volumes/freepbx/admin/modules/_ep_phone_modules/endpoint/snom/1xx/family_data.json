@@ -1,0 +1,28 @@
+{
+  "data": {
+    "name": "Snom 1xx Models [D120]",
+    "id": "5",
+    "directory": "1xx",
+    "firmware_ver": "",
+    "firmware_pkg": "",
+    "firmware_md5sum": "",
+    "description": "Server + Password Settings, htm File Fixes",
+    "configuration_files": "general_custom.xml,general.xml,snom$model-$mac.htm,snom$model.htm,$mac_firmware.xml",
+    "changelog": "",
+    "provisioning_types": [
+      "tftp",
+      "http"
+    ],
+    "model_list": [{
+      "model": "D120",
+      "lines": "2",
+      "id": "1",
+      "firmware": "snomD120.bin",
+      "template_data": [
+        "template_data.json",
+        "keys_D120.json",
+	"function_keys_D120.json"
+      ]
+    }]
+  }
+}

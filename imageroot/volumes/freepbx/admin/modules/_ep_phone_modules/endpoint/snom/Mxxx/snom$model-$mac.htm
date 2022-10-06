@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings>
+<global>
+<web_inputs_allowed>on</web_inputs_allowed>
+<pnp_config>on</pnp_config>
+<dhcp_option_pnp>on</dhcp_option_pnp>
+<setting_server>tftp://{$server.ip.1}/snom{$model}.htm</setting_server>
+<management_password>{$adminpw}</management_password>
+<http_client_user>admin</http_client_user>
+<management_transfer_protocol>http</management_transfer_protocol>
+<management_upload_script>/CfgUpload</management_upload_script>
+<ip_adr>0.0.0.0</ip_adr>
+<http_user>admin</http_user>
+<http_pass>{$http_pass}</http_pass>
+<http_scheme perm="">off</http_scheme>
+<auto_dect_register>on</auto_dect_register>
+<syslog_server></syslog_server>
+<ntp_server>{$network_time_server}</ntp_server>
+<ntp_refresh_timer>3600</ntp_refresh_timer>
+<vlan_id>0</vlan_id>
+<dhcp>on</dhcp>
+<phone_name>{$model}</phone_name>
+<repeater_legacy_support>on</repeater_legacy_support>
+<min_jittbuf_depth>2</min_jittbuf_depth>
+<max_jittbuf_depth>7</max_jittbuf_depth>
+<rtp_port_start>50004</rtp_port_start>
+<rtp_port_end>50043</rtp_port_end>
+<tone_scheme>{$tones_scheme}</tone_scheme>
+<timezone_by_country_region>on</timezone_by_country_region>
+<dst_by_country_region>on</dst_by_country_region>
+<dst_enable>auto</dst_enable>
+<dst_fixed_day_enable>on</dst_fixed_day_enable>
+<dst_start_month>3</dst_start_month>
+<dst_start_date>0</dst_start_date>
+<dst_start_time>2</dst_start_time>
+<dst_start_day_of_week>1</dst_start_day_of_week>
+<dst_start_wday_last_in_month>5</dst_start_wday_last_in_month>
+<dst_stop_month>10</dst_stop_month>
+<dst_stop_date>0</dst_stop_date>
+<dst_stop_time>2</dst_stop_time>
+<dst_stop_day_of_week>1</dst_stop_day_of_week>
+<dst_stop_wday_last_in_month>5</dst_stop_wday_last_in_month>
+<time_24_format perm="">{$time_24_format}</time_24_format>
+<date_us_format perm="">{$date_format}</date_us_format>
+<timezone>{$timezone_snom}</timezone>
+<web_language>{$language_snom}</web_language>
+<language>{$language_snom}</language>
+<ldap_server perm="">{$ldap_server}</ldap_server>
+<ldap_port perm="">{$ldap_port}</ldap_port>
+<ldap_base perm="">{$ldap_base}</ldap_base>
+<ldap_max_hits perm="">50</ldap_max_hits>
+<ldap_search_filter perm="">{$ldap_name_filter}</ldap_search_filter>
+<ldap_number_filter perm="">{$ldap_number_filter}</ldap_number_filter>
+<ldap_name_attributes perm="">{$ldap_name_attr}</ldap_name_attributes>
+<ldap_number_attributes perm="">{$ldap_number_attr}</ldap_number_attributes>
+<ldap_display_name perm="">{$ldap_name_display}</ldap_display_name>
+<ldap_virtual_lists>on</ldap_virtual_lists>
+<phonebook_filename></phonebook_filename>
+<phonebook_location></phonebook_location>
+<phonebook_reload_time>0</phonebook_reload_time>
+<phonebook_server_location>1</phonebook_server_location>
+<stun_server></stun_server>
+<stun_binding_interval>90</stun_binding_interval>
+<sip_stun_bindtime_determine>on</sip_stun_bindtime_determine>
+<sip_stun_bindtime_guard>80</sip_stun_bindtime_guard>
+<dns_server1>{$server.ip.1}</dns_server1>
+<dns_server2></dns_server2>
+<sip_use_different_ports>on</sip_use_different_ports>
+<voip_sip_auto_upload>off</voip_sip_auto_upload>
+<network_sip_log_server></network_sip_log_server>
+<sip_conf_key_dtmf_string></sip_conf_key_dtmf_string>
+<sip_r_key_dtmf_string></sip_r_key_dtmf_string>
+<vlan_qos>0</vlan_qos>
+<codec_tos>160</codec_tos>
+<signaling_tos>160</signaling_tos>
+<gateway>0.0.0.0</gateway>
+<netmask>255.255.255.0</netmask>
+<network_id_port>5060</network_id_port>
+<network_vlan_synchronization>on</network_vlan_synchronization>
+<dialplan_enabled>off</dialplan_enabled>
+<dialplan_maxlength>0</dialplan_maxlength>
+<dialplan_prefix></dialplan_prefix>
+<rtp_collision_control>off</rtp_collision_control>
+<network_sntp_broadcast_enable>on</network_sntp_broadcast_enable>
+<enable_rport_rfc3581>on</enable_rport_rfc3581>
+<tls_server_authentication>off</tls_server_authentication>
+<log_level>6</log_level>
+<!-- <ac_code>**********</ac_code> -->
+<country_region_id>0</country_region_id>
+<fwu_tftp_server_image_path></fwu_tftp_server_image_path>
+<allow_call_groups>on</allow_call_groups>
+<sip_check_sync_always_reboot>off</sip_check_sync_always_reboot>
+<mdns_support>off</mdns_support>
+<secure_web>off</secure_web>
+</global>
+<server>
+<user_srtp idx="1">off</user_srtp>
+<user_host idx="1">{$server.ip.1}</user_host>
+<srv_sip_server_alias idx="1">Voice</srv_sip_server_alias>
+<srv_sip_show_ext_name_in_hs idx="1">on</srv_sip_show_ext_name_in_hs>
+<srv_sip_enable_blind_transfer idx="1">on</srv_sip_enable_blind_transfer>
+<keepalive_interval idx="1">on</keepalive_interval>
+<timer_support idx="1">on</timer_support>
+<session_timer idx="1">3600</session_timer>
+<srv_sip_signal_tcp_port idx="1">on</srv_sip_signal_tcp_port>
+<srv_sip_use_one_tcp_conn_per_ext idx="1">off</srv_sip_use_one_tcp_conn_per_ext>
+<user_outbound idx="1"></user_outbound>
+<conferencing idx="1"></conferencing>
+<srv_srtp_auth idx="1">off</srv_srtp_auth>
+<user_full_sdp_answer idx="1">off</user_full_sdp_answer>
+<srv_sip_rtp_base_equal idx="1">disabled</srv_sip_rtp_base_equal>
+<srv_sip_ua_data_server_nat_adaption idx="1">enabled</srv_sip_ua_data_server_nat_adaption>
+<srv_dtmf_payload_type idx="1">101</srv_dtmf_payload_type>
+<user_hold_inactive idx="1">off</user_hold_inactive>
+<srv_sip_transport idx="1">udp</srv_sip_transport>
+<user_dtmf_info idx="1">off</user_dtmf_info>
+<codec_size idx="1">20</codec_size>
+<codec_priority_list idx="1">pcmu, pcma, g726</codec_priority_list>
+<user_auth_tag idx="1">on</user_auth_tag>
+<user_expiry idx="1">3600</user_expiry>
+<srv_att_transfer_2nd_call_on_hold idx="1">on</srv_att_transfer_2nd_call_on_hold>
+<srv_bw_directed_call_pickup_enable idx="1">off</srv_bw_directed_call_pickup_enable>
+<srv_bw_directed_call_pickup_code idx="1"></srv_bw_directed_call_pickup_code>
+<srv_bw_group_call_pickup_enable idx="1">off</srv_bw_group_call_pickup_enable>
+<srv_bw_group_call_pickup_code idx="1"></srv_bw_group_call_pickup_code>
+<srv_broadsoft_calllog_enable idx="1">off</srv_broadsoft_calllog_enable>
+<srv_broadsoft_calllog_server_addr idx="1"></srv_broadsoft_calllog_server_addr>
+<srv_sip_cli_mode idx="1">0</srv_sip_cli_mode>
+</server>
+<extension>
+{line_loop}         
+<user_name idx="{$line}">{$username.line.{$count}}</user_name>
+<user_realname idx="{$line}">{$displayname.line.{$count}}</user_realname>
+<user_pname idx="{$line}">{$username.line.{$count}}</user_pname>
+<user_pass idx="{$line}">{$secret.line.{$count}}</user_pass>
+<user_active idx="{$line}">on</user_active>
+<fwd_all_enabled idx="{$line}">off</fwd_all_enabled>
+<fwd_all_target idx="{$line}"></fwd_all_target>
+<fwd_time_enabled idx="{$line}">off</fwd_time_enabled>
+<fwd_time_target idx="{$line}"></fwd_time_target>
+<fwd_busy_enabled idx="{$line}">off</fwd_busy_enabled>
+<fwd_busy_target idx="{$line}"></fwd_busy_target>
+<fwd_time_secs idx="{$line}">90</fwd_time_secs>
+<subscr_sip_hs_idx idx="{$line}">{$line}</subscr_sip_hs_idx>
+<subscr_sip_line_name idx="{$line}">Line{$line}</subscr_sip_line_name>
+<subscr_sip_ua_data_server_id idx="{$line}">1</subscr_sip_ua_data_server_id>
+<user_mailbox idx="{$line}"></user_mailbox>
+<subscr_dect_ipui idx="{$line}">ffffffffff</subscr_dect_ipui>
+<subscr_ua_data_emergency_number idx="{$line}"></subscr_ua_data_emergency_number>
+<subscr_ua_data_emergency_line idx="{$line}">255</subscr_ua_data_emergency_line>
+<subscr_sip_ua_use_base idx="{$line}">255</subscr_sip_ua_use_base>
+<subscr_sip_ua_pref_outg_sip_id idx="{$line}"></subscr_sip_ua_pref_outg_sip_id>
+<dfks idx="{$line}">off</dfks>
+<call_waiting idx="{$line}">on</call_waiting>
+<subscr_sip_pincode_dialout idx="{$line}"></subscr_sip_pincode_dialout>
+<subscr_dect_ac_code idx="{$line}"></subscr_dect_ac_code>
+<user_mailnumber idx="{$line}"></user_mailnumber>
+<user_shared_line idx="{$line}">off</user_shared_line>
+<user_shared_line_mapping idx="{$line}">65535, 65535, 65535, 65535, 65535, 65535, 65535, 65535, 13622, 12854, 53, 1, 1, 1, 1, 1</user_shared_line_mapping>
+<subscr_ua_data_bw_blf_reslist_uri idx="{$line}"></subscr_ua_data_bw_blf_reslist_uri>
+<subscr_ua_data_emergency_profiles idx="{$line}">00000000</subscr_ua_data_emergency_profiles>
+{/line_loop}
+</extension>
+<repeater>
+</repeater>
+<multicell>
+<network_auto_multi_primary>off</network_auto_multi_primary>
+<network_allow_multi_primary>off</network_allow_multi_primary>
+<network_sync_chain_id>512</network_sync_chain_id>
+<network_sync_enable>off</network_sync_enable>
+<network_roaming_deregister>off</network_roaming_deregister>
+<network_sync_data_transport>multicast</network_sync_data_transport>
+<network_dect_auto_sync_tree_config>on</network_dect_auto_sync_tree_config>
+<network_sync_time>60</network_sync_time>
+<network_sync_max_sip_reg_per_base>8</network_sync_max_sip_reg_per_base>
+<network_sync_primary_static_ip>0.0.0.0</network_sync_primary_static_ip>
+<network_sync_debug_enable>off</network_sync_debug_enable>
+</multicell>
+</settings>
+

@@ -1,0 +1,128 @@
+{
+  "data": {
+    "name": "Snom 3xx Models [300, 320, 360, 370, D305, D315, D345, D375, D385]",
+    "id": "1",
+    "directory": "3xx820m3",
+    "firmware_ver": "",
+    "firmware_pkg": "",
+    "firmware_md5sum": "",
+    "description": "Server + Password Settings, htm File Fixes",
+    "configuration_files": "general_custom.xml,general.xml,snom$model-$mac.htm,snom-$mac.htm,snom$model.htm,$mac_firmware.xml",
+    "changelog": "",
+    "provisioning_types": [
+      "tftp",
+      "http"
+    ],
+    "model_list": [{
+        "model": "300",
+        "lines": "6",
+        "id": "1",
+        "firmware": "snom300.bin",
+        "template_data": [
+          "template_data.json",
+          "function_keys_6.json"
+        ]
+      },
+      {
+        "model": "320",
+        "lines": "12",
+        "id": "2",
+        "firmware": "snom320.bin",
+        "template_data": [
+          "template_data.json",
+          "keys.json",
+          "function_keys_6.json"
+        ]
+      },
+      {
+        "model": "360",
+        "lines": "12",
+        "id": "3",
+        "firmware": "snom360.bin",
+        "template_data": [
+          "template_data.json",
+          "keys.json",
+          "function_keys_12.json"
+        ]
+      },
+      {
+        "model": "370",
+        "lines": "12",
+        "id": "4",
+        "firmware": "snom370.bin",
+        "template_data": [
+          "template_data.json",
+          "keys.json",
+          "function_keys_12.json"
+        ]
+      },
+      {
+        "model": "D305",
+        "lines": "5",
+        "id": "6",
+        "firmware": "snomD305.bin",
+        "template_data": [
+          "template_data.json",
+          "keys_D305.json",
+          "function_keys_D305.json"
+        ]
+      },
+      {
+        "model": "D315",
+        "lines": "5",
+        "id": "7",
+        "firmware": "snomD315.bin",
+        "template_data": [
+          "template_data.json",
+          "keys_D315.json",
+          "function_keys_D315.json",
+          "exp1_keys_D315.json",
+          "exp2_keys_D315.json",
+          "exp3_keys_D315.json"
+        ]
+      },
+      {
+        "model": "D345",
+        "lines": "12",
+        "id": "8",
+        "firmware": "snomD345.bin",
+        "template_data": [
+          "template_data.json",
+          "keys_D345.json",
+          "function_keys_D345.json",
+          "exp1_keys_D345.json",
+          "exp2_keys_D345.json",
+          "exp3_keys_D345.json"
+        ]
+      },
+      {
+        "model": "D375",
+        "lines": "12",
+        "id": "5",
+        "firmware": "snomD375.bin",
+        "template_data": [
+          "template_data.json",
+          "keys_D375.json",
+          "function_keys_D375.json",
+          "exp1_keys_D375.json",
+          "exp2_keys_D375.json",
+          "exp3_keys_D375.json"
+        ]
+      },
+      {
+        "model": "D385",
+        "lines": "12",
+        "id": "9",
+        "firmware": "snomD385.bin",
+        "template_data": [
+          "template_data.json",
+          "keys_D385.json",
+          "function_keys_D385.json",
+          "exp1_keys_D385.json",
+          "exp2_keys_D385.json",
+          "exp3_keys_D385.json"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "data": {
+    "name": "Sangoma S4xx Models: [S400,S405,S406]",
+    "id": "2",
+    "directory": "S4xx",
+    "firmware_ver": "",
+    "firmware_pkg": "NULL",
+    "firmware_md5sum": "",
+    "description": "Make more settings available in user interface",
+    "configuration_files": "cfg$mac.xml,cfg$mac-states.xml",
+    "changelog": "",
+    "provisioning_types": [
+      "tftp",
+      "http"
+    ],
+    "model_list": [{
+        "model": "S400",
+        "lines": "25",
+        "id": "1",
+        "template_data": [
+          "template_data.json",
+          "soft_keys.json",
+          "line_keys_400.json"
+        ]
+      },
+      {
+        "model": "S405",
+        "lines": "25",
+        "id": "2",
+        "template_data": [
+          "template_data.json",
+          "soft_keys.json",
+          "line_keys_400.json"
+        ]
+      },
+      {
+        "model": "S406",
+        "lines": "25",
+        "id": "3",
+        "template_data": [
+          "template_data.json",
+          "soft_keys.json",
+          "line_keys_400.json"
+        ]
+      }
+    ]
+  }
+}

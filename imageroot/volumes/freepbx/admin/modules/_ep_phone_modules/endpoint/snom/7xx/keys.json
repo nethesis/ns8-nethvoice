@@ -1,0 +1,105 @@
+{
+  "template_data": {
+    "category": [{
+      "name": "Keys",
+      "subcategory": [{
+        "name": "Keys",
+        "item": [{
+            "variable": "$gui_fkey1",
+            "default_value": "keyevent F_SETTINGS",
+            "description": "Soft Key #1",
+            "type": "input"
+          },
+          {
+            "variable": "$gui_fkey2",
+            "default_value": "keyevent F_CALL_LIST",
+            "description": "Soft Key #2",
+            "type": "input"
+          },
+          {
+            "variable": "$gui_fkey3",
+            "default_value": "keyevent F_DIRECTORY_SEARCH",
+            "description": "Soft Key #3",
+            "type": "input"
+          },
+          {
+            "variable": "$gui_fkey4",
+            "default_value": "keyevent F_REDIRECT",
+            "description": "Soft Key #4",
+            "type": "input"
+          },
+          {
+            "description": "Feature Keys",
+            "type": "group"
+          },
+          {
+            "variable": "$dkey_help",
+            "default_value": "keyevent F_HELP",
+            "description": "Help Key",
+            "type": "input"
+          },
+          {
+            "variable": "$dkey_snom",
+            "default_value": "dtmf ##70",
+            "description": "Snom Key",
+            "type": "input"
+          },
+          {
+            "variable": "$dkey_conf",
+            "default_value": "keyevent F_CONFERENCE",
+            "description": "Conference Key",
+            "type": "input"
+          },
+          {
+            "variable": "$dkey_transfer",
+            "default_value": "keyevent F_TRANSFER",
+            "description": "Transfer Key",
+            "type": "input"
+          },
+          {
+            "variable": "$dkey_hold",
+            "default_value": "keyevent F_R",
+            "description": "Hold Key",
+            "type": "input"
+          },
+          {
+            "variable": "$dkey_dnd",
+            "default_value": "keyevent F_DND",
+            "description": "Do Not Disturb Key",
+            "type": "input"
+          },
+          {
+            "variable": "$dkey_record",
+            "default_value": "dtmf *1",
+            "description": "Record Key",
+            "type": "input"
+          },
+          {
+            "variable": "$dkey_retrieve",
+            "default_value": "speed *97",
+            "description": "Retrieve Key",
+            "type": "input"
+          },
+          {
+            "variable": "$dkey_redial",
+            "default_value": "keyevent F_REDIAL",
+            "description": "Redial Key",
+            "type": "input"
+          },
+          {
+            "variable": "$dkey_directory",
+            "default_value": "keyevent F_DIRECTORY_SEARCH",
+            "description": "Directory Key",
+            "type": "input"
+          },
+          {
+            "variable": "$dkey_label_page_next",
+            "default_value": "keyevent F_LABEL_PAGE_NEXT",
+            "description": "Page Forward Key",
+            "type": "input"
+          }
+        ]
+      }]
+    }]
+  }
+}

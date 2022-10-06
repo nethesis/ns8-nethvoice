@@ -1,0 +1,26 @@
+{
+  "data": {
+    "brands": {
+      "name": "CTI App",
+      "directory": "app",
+      "brand_id": "23",
+      "package": "app.tgz",
+      "md5sum": "dce6737850378430f14a28494b037693",
+      "last_modified": 1395183811,
+      "family_list": [
+	{
+          "id": "1",
+          "name": "CTI App",
+          "directory": "gswave",
+          "description": "App template",
+          "changelog": "",
+          "last_modified": "Mon Dic 3 2018"
+        }
+      ],
+      "oui_list": [
+        "AAAAAA"
+      ],
+      "changelog": "PACKAGER: Nethesis."
+    }
+  }
+}

@@ -1,0 +1,177 @@
+@CHARSET "ISO-8859-1";
+
+#epm_advanced .linedwrap {
+	border-top-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 1px;
+	border-left-width: 1px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	border-top-color: #00dddd;
+	border-right-color: #00dddd;
+	border-bottom-color: #00dddd;
+	border-left-color: #00dddd;
+	border-image-source: none;
+	border-image-slice: 100% 100% 100% 100%;
+	border-image-width: 1 1 1 1;
+	border-image-outset: 0 0 0 0;
+	border-image-repeat: stretch stretch;
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+	border-bottom-right-radius: 4px;
+	border-bottom-left-radius: 4px;
+	
+	box-shadow: 4px 4px 2px #00dddd;
+   -webkit-box-shadow: 4px 4px 2px #00dddd;
+   -moz-box-shadow: 4px 4px 2px #00dddd;
+}
+
+#epm_advanced .custom_box_import div.col-md-9 {
+	display: table;
+}
+
+#epm_advanced .custom_box_import div.col-md-9 span {
+	display: table-cell;
+	margin: 0px;
+	padding: 0px 0px 0px 10px;
+}
+
+
+#poce .dropdown-menu {
+	width: 100%;
+	background-color: #d7ebf9;
+}
+
+#poce .dropdown-item
+{
+  display: block;
+  width: 100%;
+  padding-top: 3px;
+  padding-right: 20px;
+  padding-bottom: 3px;
+  padding-left: 20px;
+  clear: both;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #373a3c;
+  text-align: inherit;
+  white-space: nowrap;
+  
+  background-color: transparent;
+  background-image: none;
+  background-repeat: repeat;
+  background-attachment: scroll;
+  background-position: 0px 0px;
+  background-clip: border-box;
+  background-origin: padding-box;
+  background-size: auto auto;
+  
+  border-top-width: 0px;
+  border-right-width: 0px;
+  border-bottom-width: 0px;
+  border-left-width: 0px;
+  
+  border-top-style: none;
+  border-right-style: none;
+  border-bottom-style: none;
+  border-left-style: none;
+  
+  border-image-source: none;
+  border-image-slice: 100% 100% 100% 100%;
+  border-image-width: 1 1 1 1;
+  border-image-outset: 0 0 0 0;
+  border-image-repeat: stretch stretch;
+}
+
+#poce .dropdown-item:focus, #poce .dropdown-item:hover
+{
+  color: #2b2d2f;
+  text-decoration-line: none;
+  text-decoration-style: solid;
+  background-color: #f5f5f5;
+}
+
+#poce .dropdown-item:focus, #poce .dropdown-item:hover
+{
+  color: #2b2d2f;
+  text-decoration-line: none;
+  text-decoration-style: solid;
+  background-color: #f5f5f5;
+}
+
+#poce > #config_textarea {
+	width: 100%;
+	-ms-overflow-style: none;
+	overflow: hidden;
+}
+
+
+#box_bt_save, #box_bt_save_as, #box_bt_share {
+	margin-bottom: 10px;
+	
+}
+
+
+#epm_advanced div.CodeMirror
+{
+	/*
+  transition-property: border, box-shadow;
+  transition-duration: 0.2s, 0.2s;
+  transition-timing-function: linear, linear;
+  transition-delay: 0s, 0s;
+*/
+
+  padding-top: 0px;
+  padding-right: 0px;
+  padding-bottom: 0px;
+  padding-left: 0px;
+  
+  border-top-width: 1px;
+  border-right-width: 1px;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+  border-top-style: solid;
+  border-right-style: solid;
+  border-bottom-style: solid;
+  border-left-style: solid;
+  border-top-color: #cccccc;
+  border-right-color: #cccccc;
+  border-bottom-color: #cccccc;
+  border-left-color: #cccccc;
+  border-image-source: none;
+  border-image-slice: 100% 100% 100% 100%;
+  border-image-width: 1 1 1 1;
+  border-image-outset: 0 0 0 0;
+  border-image-repeat: stretch stretch;
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+  border-bottom-right-radius: 3px;
+  border-bottom-left-radius: 3px;
+  
+  margin-top: 5px;
+  margin-bottom: 10px;
+  background-color: #FFFFCC;
+  font-family: Courier, "dejavu sans mono","monaco","lucida console","courier new",monospace;
+}
+
+#epm_advanced div.CodeMirror:hover
+{
+	border-top-color: rgba(171, 213, 242, 0.9);
+	border-right-color: rgba(171, 213, 242, 0.9);
+	border-bottom-color: rgba(171, 213, 242, 0.9);
+	border-left-color: rgba(171, 213, 242, 0.9);
+	box-shadow: 0px 1px 1px rgba(0, 0, 0, 0.075) inset, 0px 0px 8px rgba(27, 118, 182, 0.6);
+}
+
+/*
+#epm_advanced div.CodeMirror:hover
+{
+  border-top-color: rgba(82, 168, 236, 0.8);
+  border-right-color: rgba(82, 168, 236, 0.8);
+  border-bottom-color: rgba(82, 168, 236, 0.8);
+  border-left-color: rgba(82, 168, 236, 0.8);
+  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1) inset, 0px 0px 8px rgba(82, 168, 236, 0.6);
+}
+*/

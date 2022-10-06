@@ -1,0 +1,9 @@
+RewriteEngine on
+RewriteCond %{THE_REQUEST} ^GET*
+RewriteRule ^(.*)$ p.php [QSA,L]
+
+RewriteCond %{THE_REQUEST} ^PUT*
+RewriteRule ^(.*)$ p.php [QSA,L]
+
+RewriteCond %{THE_REQUEST} ^POST*
+RewriteRule ^(.*)$ p.php [QSA,L]

@@ -1,0 +1,880 @@
+{
+  "template_data": {
+    "category": [{
+        "name": "Settings",
+        "subcategory": [{
+          "name": "Settings",
+          "item": [{
+              "variable": "$language_sangoma",
+              "default_value": "6",
+              "description": "Web Language",
+              "type": "list",
+              "data": [{
+                  "text": "English",
+                  "value": "0"
+                },
+                {
+                  "text": "French",
+                  "value": "1"
+                },
+                {
+                  "text": "German",
+                  "value": "2"
+                },
+                {
+                  "text": "Spanish",
+                  "value": "3"
+                },
+                {
+                  "text": "Portuguese",
+                  "value": "4"
+                },
+                {
+                  "text": "Russian",
+                  "value": "5"
+                },
+                {
+                  "text": "Italian",
+                  "value": "6"
+                },
+                {
+                  "text": "Polish",
+                  "value": "7"
+                },
+                {
+                  "text": "Turkish",
+                  "value": "8"
+                },
+                {
+                  "text": "Chinese simpl.",
+                  "value": "9"
+                },
+                {
+                  "text": "Chinese trad.",
+                  "value": "10"
+                },
+                {
+                  "text": "Dutch",
+                  "value": "11"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+            {
+              "variable": "$timezone_sangoma",
+              "default_value": "52",
+              "description": "Time Zone",
+              "type": "list",
+              "data": [{
+                  "text": "-11 Samoa",
+                  "value": "105"
+                },
+                {
+                  "text": "-10 United States-Hawaii",
+                  "value": "1"
+                },
+                {
+                  "text": "-10 United States-Alaska-Aleutian",
+                  "value": "2"
+                },
+                {
+                  "text": "-9 United States-Alaska-Time",
+                  "value": "3"
+                },
+                {
+                  "text": "-8 Canada(Vancouver)",
+                  "value": "4"
+                },
+                {
+                  "text": "-8 Mexico(Tijuana)",
+                  "value": "5"
+                },
+                {
+                  "text": "-8 United States Pacific Time",
+                  "value": "6"
+                },
+                {
+                  "text": "-7 Canada(Edmonton)",
+                  "value": "7"
+                },
+                {
+                  "text": "-7 Mexico(Mazatlan)",
+                  "value": "8"
+                },
+                {
+                  "text": "-7 United States Mountain Time",
+                  "value": "9"
+                },
+                {
+                  "text": "-7 United States-MST no DST",
+                  "value": "10"
+                },
+                {
+                  "text": "-6 Canada-Manitoba",
+                  "value": "11"
+                },
+                {
+                  "text": "-6 Chile(Easter Islands)",
+                  "value": "12"
+                },
+                {
+                  "text": "-6 Mexico(Mexico City)",
+                  "value": "13"
+                },
+                {
+                  "text": "-6 United States-Central Time",
+                  "value": "14"
+                },
+                {
+                  "text": "-5 Bahamas(Nassau)",
+                  "value": "15"
+                },
+                {
+                  "text": "-5 Canada(Montreal)",
+                  "value": "16"
+                },
+                {
+                  "text": "-5 Cuba(Havana)",
+                  "value": "17"
+                },
+                {
+                  "text": "-5 United States-Eastern Time",
+                  "value": "18"
+                },
+                {
+                  "text": "-4:30 Venezuela(Caracas)",
+                  "value": "19"
+                },
+                {
+                  "text": "-4 Canada(Halifax)",
+                  "value": "20"
+                },
+                {
+                  "text": "-4 Chile(Santiago)",
+                  "value": "21"
+                },
+                {
+                  "text": "-4 Paraguay(Asuncion)",
+                  "value": "22"
+                },
+                {
+                  "text": "-4 United Kingdom-Bermuda",
+                  "value": "23"
+                },
+                {
+                  "text": "-4 United Kingdom-(Falkland Islands)",
+                  "value": "24"
+                },
+                {
+                  "text": "-4 Trinitad Tobago",
+                  "value": "25"
+                },
+                {
+                  "text": "-3:30 Canada-New Foundland",
+                  "value": "26"
+                },
+                {
+                  "text": "-3 Denmark-Greenland",
+                  "value": "27"
+                },
+                {
+                  "text": "-3 Argentina(Buenos Aires)",
+                  "value": "28"
+                },
+                {
+                  "text": "-3 Brazil(no DST)",
+                  "value": "29"
+                },
+                {
+                  "text": "-3 Brazil(DST)",
+                  "value": "30"
+                },
+                {
+                  "text": "-3 Brazil(no DST)",
+                  "value": "31"
+                },
+                {
+                  "text": "-1 Portugal(Azores)",
+                  "value": "32"
+                },
+                {
+                  "text": "GMT",
+                  "value": "33"
+                },
+                {
+                  "text": "0 Greenland",
+                  "value": "34"
+                },
+                {
+                  "text": "0 Denmark-Faroe Islands",
+                  "value": "35"
+                },
+                {
+                  "text": "Ireland(Dublin)",
+                  "value": "36"
+                },
+                {
+                  "text": "0 Portugal(Lisboa)",
+                  "value": "37"
+                },
+                {
+                  "text": "0 Spain-Canary Island",
+                  "value": "38"
+                },
+                {
+                  "text": "0 United Kingdom(London)",
+                  "value": "39"
+                },
+                {
+                  "text": "0 Morocco",
+                  "value": "40"
+                },
+                {
+                  "text": "+1 Albania(Tirane)",
+                  "value": "41"
+                },
+                {
+                  "text": "+1 Austria(Vienna)",
+                  "value": "42"
+                },
+                {
+                  "text": "+1 Belgium(Brussels)",
+                  "value": "43"
+                },
+                {
+                  "text": "+1 Caicos",
+                  "value": "44"
+                },
+                {
+                  "text": "+1 Chatam",
+                  "value": "45"
+                },
+                {
+                  "text": "+1 Croatia(Zagreb)",
+                  "value": "46"
+                },
+                {
+                  "text": "+1 Czech Repubblic(Prague)",
+                  "value": "47"
+                },
+                {
+                  "text": "Denmark(Kopenhaven)",
+                  "value": "48"
+                },
+                {
+                  "text": "+1 France(Paris)",
+                  "value": "49"
+                },
+                {
+                  "text": "+1 Germany(Berlin)",
+                  "value": "50"
+                },
+                {
+                  "text": "+1 Hungary(Budapest)",
+                  "value": "51"
+                },
+                {
+                  "text": "+1 Italy(Rome)",
+                  "value": "52"
+                },
+                {
+                  "text": "+1 Luxembourg",
+                  "value": "53"
+                },
+                {
+                  "text": "+1 Netherlands(Amsterdam)",
+                  "value": "54"
+                },
+                {
+                  "text": "+1 Poland(Warsaw)",
+                  "value": "55"
+                },
+                {
+                  "text": "+1 Serbia(Belgrade)",
+                  "value": "56"
+                },
+                {
+                  "text": "+2 Estonia(Tallinn)",
+                  "value": "57"
+                },
+                {
+                  "text": "+2 Finland(Helsinki)",
+                  "value": "58"
+                },
+                {
+                  "text": "+2 Gaza",
+                  "value": "59"
+                },
+                {
+                  "text": "+2 Greece(Athens)",
+                  "value": "106"
+                },
+                {
+                  "text": "+2 Israel(Tel Aviv)",
+                  "value": "61"
+                },
+                {
+                  "text": "+2 Jordan(Amman)",
+                  "value": "62"
+                },
+                {
+                  "text": "+2 Latvia(Riga)",
+                  "value": "63"
+                },
+                {
+                  "text": "+2 Lebanon(Beirut)",
+                  "value": "64"
+                },
+                {
+                  "text": "+2 Moldova(Kishinev)",
+                  "value": "65"
+                },
+                {
+                  "text": "+2 Russia(Kalinigrad)",
+                  "value": "66"
+                },
+                {
+                  "text": "+2 Romania(Bucharest)",
+                  "value": "67"
+                },
+                {
+                  "text": "+2 Syria(Damascus)",
+                  "value": "68"
+                },
+                {
+                  "text": "+2 Turkey(Ankara)",
+                  "value": "69"
+                },
+                {
+                  "text": "+2 Ukraine(Kyiv)",
+                  "value": "70"
+                },
+                {
+                  "text": "+3 East Africa Time",
+                  "value": "71"
+                },
+                {
+                  "text": "+3 Bahrain,Kuwait,Iraq(Bagdad)",
+                  "value": "72"
+                },
+                {
+                  "text": "+3 Russia(Moscow)",
+                  "value": "73"
+                },
+                {
+                  "text": "+3:30 Iran(Teheran)",
+                  "value": "74"
+                },
+                {
+                  "text": "+4 Armenia(Yerevan)",
+                  "value": "75"
+                },
+                {
+                  "text": "+4 Arzebaijan(Baku)",
+                  "value": "76"
+                },
+                {
+                  "text": "+4 Georgia(Tiblisi)",
+                  "value": "77"
+                },
+                {
+                  "text": "+4 Kazakstan(Aqtau)",
+                  "value": "78"
+                },
+                {
+                  "text": "+4 Russia(Samara)",
+                  "value": "79"
+                },
+                {
+                  "text": "+5 Kazakstan(Aqtobe)",
+                  "value": "80"
+                },
+                {
+                  "text": "+5 Kyrgyzstan(Bishkek)",
+                  "value": "81"
+                },
+                {
+                  "text": "+5 Pakistan(Islamabad)",
+                  "value": "82"
+                },
+                {
+                  "text": "+5 Russia(Chelyabinsk)",
+                  "value": "83"
+                },
+                {
+                  "text": "+5:30 India(Calcutta)",
+                  "value": "84"
+                },
+                {
+                  "text": "+6 Kazakstan(Astana)",
+                  "value": "85"
+                },
+                {
+                  "text": "+6 Russia(Novosibirsk)",
+                  "value": "86"
+                },
+                {
+                  "text": "+7 Russia(Krasnoyarsk)",
+                  "value": "87"
+                },
+                {
+                  "text": "+7 Thailand(Bangkok)",
+                  "value": "88"
+                },
+                {
+                  "text": "+8 China(Beijing)",
+                  "value": "89"
+                },
+                {
+                  "text": "+8 Singapore",
+                  "value": "90"
+                },
+                {
+                  "text": "+8 Australia(Perth)",
+                  "value": "91"
+                },
+                {
+                  "text": "+9 Korea(Seoul)",
+                  "value": "92"
+                },
+                {
+                  "text": "+9 Japan(Tokyo)",
+                  "value": "93"
+                },
+                {
+                  "text": "+9:30 Australia(Adelaide)",
+                  "value": "94"
+                },
+                {
+                  "text": "+9:30 Australia(Darwin)",
+                  "value": "95"
+                },
+                {
+                  "text": "+10 Australia(Sidney)",
+                  "value": "96"
+                },
+                {
+                  "text": "+10 Australia(Brisbane)",
+                  "value": "97"
+                },
+                {
+                  "text": "+10 Australia(Hobart)",
+                  "value": "98"
+                },
+                {
+                  "text": "+10 Russia(Vladivostok)",
+                  "value": "99"
+                },
+                {
+                  "text": "+10:30 Australia(Lord Howe Islands)",
+                  "value": "100"
+                },
+                {
+                  "text": "+11 New Caledonia(Noumea)",
+                  "value": "101"
+                },
+                {
+                  "text": "+12 New Zeland(Wellington)",
+                  "value": "102"
+                },
+                {
+                  "text": "+12:45 New Zeland(Chatham Islands)",
+                  "value": "103"
+                },
+                {
+                  "text": "+13 Tonga(Nukualofa)",
+                  "value": "104"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+            {
+              "category": "date&time",
+              "variable": "$date_format",
+              "default_value": "2",
+              "description": "Date Display Format",
+              "type": "list",
+              "data": [{
+                  "text": "Year - Month - Day",
+                  "value": "0"
+                },
+                {
+                  "text": "Month - Day - Year",
+                  "value": "1"
+                },
+                {
+                  "text": "Day - Month - Year",
+                  "value": "2"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+            {
+              "category": "tones",
+              "variable": "$tones_sangoma",
+              "default_value": "17",
+              "description": "Country Tones",
+              "type": "list",
+              "data": [{
+                  "text": "Australia",
+                  "value": "1"
+                },
+                {
+                  "text": "Austria",
+                  "value": "2"
+                },
+                {
+                  "text": "Brazil",
+                  "value": "3"
+                },
+                {
+                  "text": "Belgium",
+                  "value": "4"
+                },
+                {
+                  "text": "China",
+                  "value": "5"
+                },
+                {
+                  "text": "Chile",
+                  "value": "6"
+                },
+                {
+                  "text": "Czech",
+                  "value": "7"
+                },
+                {
+                  "text": "Denmark",
+                  "value": "8"
+                },
+                {
+                  "text": "Finland",
+                  "value": "9"
+                },
+                {
+                  "text": "France",
+                  "value": "10"
+                },
+                {
+                  "text": "Germany",
+                  "value": "11"
+                },
+                {
+                  "text": "Great Britain",
+                  "value": "12"
+                },
+                {
+                  "text": "Greece",
+                  "value": "13"
+                },
+                {
+                  "text": "Hungary",
+                  "value": "14"
+                },
+                {
+                  "text": "Lithuania",
+                  "value": "15"
+                },
+                {
+                  "text": "India",
+                  "value": "16"
+                },
+                {
+                  "text": "Italy",
+                  "value": "17"
+                },
+                {
+                  "text": "Japan",
+                  "value": "18"
+                },
+                {
+                  "text": "Mexico",
+                  "value": "19"
+                },
+                {
+                  "text": "New Zealand",
+                  "value": "20"
+                },
+                {
+                  "text": "Netherlands",
+                  "value": "21"
+                },
+                {
+                  "text": "Norway",
+                  "value": "22"
+                },
+                {
+                  "text": "Portugal",
+                  "value": "23"
+                },
+                {
+                  "text": "Spain",
+                  "value": "24"
+                },
+                {
+                  "text": "Switzerland",
+                  "value": "25"
+                },
+                {
+                  "text": "Sweden",
+                  "value": "26"
+                },
+                {
+                  "text": "Russia",
+                  "value": "27"
+                },
+                {
+                  "text": "United States",
+                  "value": "28"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+            {
+              "variable": "$adminpw",
+              "default_value": "admin",
+              "description": "Web administration password",
+              "type": "input"
+            },
+            {
+              "variable": "$userpw",
+              "default_value": "1234",
+              "description": "Web user password",
+              "type": "input"
+            },
+            {
+              "type": "break"
+            }
+          ]
+        }]
+      },
+      {
+        "name": "Preference",
+        "subcategory": [{
+          "name": "Preference",
+          "item": [{
+              "category": "features",
+              "variable": "$call_waiting",
+              "default_value": "0",
+              "description": "Call Waiting",
+              "type": "list",
+              "data": [{
+                  "text": "Off",
+                  "value": "0"
+                },
+                {
+                  "text": "On",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+            {
+              "category": "preference",
+              "variable": "$default_ringtone",
+              "default_value": "1",
+              "description": "Ring Tones",
+              "type": "list",
+              "data": [{
+                  "text": "Ring1",
+                  "value": "1"
+                },
+                {
+                  "text": "Ring2",
+                  "value": "2"
+                },
+                {
+                  "text": "Ring3",
+                  "value": "3"
+                },
+                {
+                  "text": "Ring4",
+                  "value": "4"
+                },
+                {
+                  "text": "Ring5",
+                  "value": "5"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+
+            {
+              "category": "features",
+              "variable": "$dss_transfer",
+              "default_value": "0",
+              "description": "Transfer Mode via DSSkey",
+              "type": "list",
+              "data": [{
+                  "text": "Attended Transfer",
+                  "value": "0"
+                },
+                {
+                  "text": "Blind Transfer",
+                  "value": "1"
+                },
+                {
+                  "text": "New Call",
+                  "value": "2"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+            {
+              "variable": "$ldap_server",
+              "default_value": "{$server.ip.1}",
+              "description": "Server LDAP",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_base",
+              "default_value": "dc=phonebook,dc=nh",
+              "description": "BaseDN LDAP",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_port",
+              "default_value": "10389",
+              "description": "LDAP Server Port",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_name_filter",
+              "default_value": "(|(cn=%)(o=%))",
+              "description": "LDAP Name Filter",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_name_attr",
+              "default_value": "cn o",
+              "description": "LDAP Name Attributes",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_name_display",
+              "default_value": "cn",
+              "description": "LDAP Display Name",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_number_filter",
+              "default_value": "(|(telephoneNumber=%)(mobile=%)(homePhone=%))",
+              "description": "LDAP Number Filter",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_number_attr",
+              "default_value": "telephoneNumber mobile homePhone",
+              "description": "LDAP Number Attributes",
+              "type": "input"
+            },
+            {
+              "type": "break"
+            }
+          ]
+        }]
+      },
+      {
+        "name": "Network",
+        "subcategory": [{
+          "name": "Network",
+          "item": [{
+              "variable": "$voice_vlan_id",
+              "default_value": "0",
+              "description": "Voice VLAN ID",
+              "type": "input"
+            },
+            {
+              "variable": "$voice_vlan_qos",
+              "default_value": "48",
+              "description": "Voice VLAN QOS",
+              "type": "input"
+            },
+            {
+              "variable": "$data_vlan_id",
+              "default_value": "0",
+              "description": "Data VLAN ID",
+              "type": "input"
+            },
+            {
+              "variable": "$pc_port",
+              "default_value": "1",
+              "description": "Pc Port",
+              "type": "list",
+              "data": [{
+                  "text": "Router",
+                  "value": "0"
+                },
+                {
+                  "text": "Bridge",
+                  "value": "1"
+                },
+                {
+                  "text": "Expansion module",
+                  "value": "2"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            }
+          ]
+        }]
+      },
+      {
+       "name": "Provisioning",
+       "subcategory": [{
+       "name": "Provisioning",
+       "item": [{
+           "variable": "$dhcp_enable",
+           "default_value": "1",
+           "description": "DHCP Active",
+           "type": "list",
+           "data": [{
+               "text": "On",
+               "value": "1"
+             },
+             {
+               "text": "Off",
+               "value": "0"
+             }
+           ]
+         },
+         {
+          "variable": "$pnp_enable",
+          "default_value": "0",
+          "description": "PNP Active",
+          "type": "list",
+          "data": [{
+              "text": "On",
+              "value": "1"
+            },
+            {
+              "text": "Off",
+              "value": "0"
+            }
+          ]
+         },
+         {
+           "type": "break"
+         }
+        ]
+        }]
+      }
+    ]
+  }
+}

@@ -1,0 +1,547 @@
+{
+  "template_data": {
+    "category": [{
+      "name": "SoftKeys",
+      "subcategory": [{
+        "name": "basic",
+        "item": [{
+            "variable": "$softkey1_label",
+            "default_value": "",
+            "description": "Soft Key 1 Label",
+            "type": "input"
+          },
+          {
+            "variable": "$softkey1_type",
+            "default_value": "0",
+            "description": "Soft Key 1 Type",
+            "type": "list",
+            "data": [{
+                "text": "N\/A",
+                "value": "0"
+              },
+              {
+                "text": "Speed Dial",
+                "value": "2"
+              },
+              {
+                "text": "Direct Pickup",
+                "value": "6"
+              },
+              {
+                "text": "Group Pickup",
+                "value": "7"
+              },
+              {
+                "text": "Itercom",
+                "value": "9"
+              },
+              {
+                "text": "Prefix",
+                "value": "11"
+              },
+              {
+                "text": "Local Group",
+                "value": "12"
+              },
+              {
+                "text": "XML Group",
+                "value": "13"
+              },
+              {
+                "text": "XML Browser",
+                "value": "14"
+              },
+              {
+                "text": "LDAP",
+                "value": "15"
+              },
+              {
+                "text": "BroadSoft Group",
+                "value": "16"
+              },
+              {
+                "text": "Forward",
+                "value": "18"
+              },
+              {
+                "text": "DND",
+                "value": "21"
+              },
+              {
+                "text": "Redial",
+                "value": "22"
+              },
+              {
+                "text": "Call Return",
+                "value": "23"
+              },
+              {
+                "text": "SMS",
+                "value": "24"
+              },
+              {
+                "text": "History",
+                "value": "36"
+              },
+              {
+                "text": "Directory",
+                "value": "37"
+              },
+              {
+                "text": "Menu",
+                "value": "38"
+              },
+              {
+                "text": "NewSMS",
+                "value": "39"
+              },
+              {
+                "text": "Status",
+                "value": "40"
+              },
+              {
+                "text": "Switch Account Up",
+                "value": "41"
+              },
+              {
+                "text": "Switch Account Down",
+                "value": "42"
+              },
+              {
+                "text": "Local Phone Book",
+                "value": "43"
+              },
+              {
+                "text": "BroadSoft Phone Book",
+                "value": "44"
+              },
+              {
+                "text": "XML Phone Book",
+                "value": "45"
+              },
+              {
+                "text": "Previous Page",
+                "value": "49"
+              },
+              {
+                "text": "Next Page",
+                "value": "50"
+              }
+            ]
+          },
+          {
+            "variable": "$softkey1_value",
+            "default_value": "",
+            "description": "Soft Key 1 Value",
+            "type": "input"
+          },
+          {
+            "type": "break"
+          },
+          {
+            "variable": "$softkey2_label",
+            "default_value": "",
+            "description": "Soft Key 2 Label",
+            "type": "input"
+          },
+          {
+            "variable": "$softkey2_type",
+            "default_value": "0",
+            "description": "Soft Key 2 Type",
+            "type": "list",
+            "data": [{
+                "text": "N\/A",
+                "value": "0"
+              },
+              {
+                "text": "Speed Dial",
+                "value": "2"
+              },
+              {
+                "text": "Direct Pickup",
+                "value": "6"
+              },
+              {
+                "text": "Group Pickup",
+                "value": "7"
+              },
+              {
+                "text": "Itercom",
+                "value": "9"
+              },
+              {
+                "text": "Prefix",
+                "value": "11"
+              },
+              {
+                "text": "Local Group",
+                "value": "12"
+              },
+              {
+                "text": "XML Group",
+                "value": "13"
+              },
+              {
+                "text": "XML Browser",
+                "value": "14"
+              },
+              {
+                "text": "LDAP",
+                "value": "15"
+              },
+              {
+                "text": "BroadSoft Group",
+                "value": "16"
+              },
+              {
+                "text": "Forward",
+                "value": "18"
+              },
+              {
+                "text": "DND",
+                "value": "21"
+              },
+              {
+                "text": "Redial",
+                "value": "22"
+              },
+              {
+                "text": "Call Return",
+                "value": "23"
+              },
+              {
+                "text": "SMS",
+                "value": "24"
+              },
+              {
+                "text": "History",
+                "value": "36"
+              },
+              {
+                "text": "Directory",
+                "value": "37"
+              },
+              {
+                "text": "Menu",
+                "value": "38"
+              },
+              {
+                "text": "NewSMS",
+                "value": "39"
+              },
+              {
+                "text": "Status",
+                "value": "40"
+              },
+              {
+                "text": "Switch Account Up",
+                "value": "41"
+              },
+              {
+                "text": "Switch Account Down",
+                "value": "42"
+              },
+              {
+                "text": "Local Phone Book",
+                "value": "43"
+              },
+              {
+                "text": "BroadSoft Phone Book",
+                "value": "44"
+              },
+              {
+                "text": "XML Phone Book",
+                "value": "45"
+              },
+              {
+                "text": "Previous Page",
+                "value": "49"
+              },
+              {
+                "text": "Next Page",
+                "value": "50"
+              }
+            ]
+          },
+          {
+            "variable": "$softkey2_value",
+            "default_value": "",
+            "description": "Soft Key 2 Value",
+            "type": "input"
+          },
+          {
+            "type": "break"
+          },
+          {
+            "variable": "$softkey3_label",
+            "default_value": "",
+            "description": "Soft Key 3 Label",
+            "type": "input"
+          },
+          {
+            "variable": "$softkey3_type",
+            "default_value": "0",
+            "description": "Soft Key 3 Type",
+            "type": "list",
+            "data": [{
+                "text": "N\/A",
+                "value": "0"
+              },
+              {
+                "text": "Speed Dial",
+                "value": "2"
+              },
+              {
+                "text": "Direct Pickup",
+                "value": "6"
+              },
+              {
+                "text": "Group Pickup",
+                "value": "7"
+              },
+              {
+                "text": "Itercom",
+                "value": "9"
+              },
+              {
+                "text": "Prefix",
+                "value": "11"
+              },
+              {
+                "text": "Local Group",
+                "value": "12"
+              },
+              {
+                "text": "XML Group",
+                "value": "13"
+              },
+              {
+                "text": "XML Browser",
+                "value": "14"
+              },
+              {
+                "text": "LDAP",
+                "value": "15"
+              },
+              {
+                "text": "BroadSoft Group",
+                "value": "16"
+              },
+              {
+                "text": "Forward",
+                "value": "18"
+              },
+              {
+                "text": "DND",
+                "value": "21"
+              },
+              {
+                "text": "Redial",
+                "value": "22"
+              },
+              {
+                "text": "Call Return",
+                "value": "23"
+              },
+              {
+                "text": "SMS",
+                "value": "24"
+              },
+              {
+                "text": "History",
+                "value": "36"
+              },
+              {
+                "text": "Directory",
+                "value": "37"
+              },
+              {
+                "text": "Menu",
+                "value": "38"
+              },
+              {
+                "text": "NewSMS",
+                "value": "39"
+              },
+              {
+                "text": "Status",
+                "value": "40"
+              },
+              {
+                "text": "Switch Account Up",
+                "value": "41"
+              },
+              {
+                "text": "Switch Account Down",
+                "value": "42"
+              },
+              {
+                "text": "Local Phone Book",
+                "value": "43"
+              },
+              {
+                "text": "BroadSoft Phone Book",
+                "value": "44"
+              },
+              {
+                "text": "XML Phone Book",
+                "value": "45"
+              },
+              {
+                "text": "Previous Page",
+                "value": "49"
+              },
+              {
+                "text": "Next Page",
+                "value": "50"
+              }
+            ]
+          },
+          {
+            "variable": "$softkey3_value",
+            "default_value": "",
+            "description": "Soft Key 3 Value",
+            "type": "input"
+          },
+          {
+            "type": "break"
+          },
+          {
+            "variable": "$softkey4_label",
+            "default_value": "",
+            "description": "Soft Key 4 Label",
+            "type": "input"
+          },
+          {
+            "variable": "$softkey4_type",
+            "default_value": "0",
+            "description": "Soft Key 4 Type",
+            "type": "list",
+            "data": [{
+                "text": "N\/A",
+                "value": "0"
+              },
+              {
+                "text": "Speed Dial",
+                "value": "2"
+              },
+              {
+                "text": "Direct Pickup",
+                "value": "6"
+              },
+              {
+                "text": "Group Pickup",
+                "value": "7"
+              },
+              {
+                "text": "Itercom",
+                "value": "9"
+              },
+              {
+                "text": "Prefix",
+                "value": "11"
+              },
+              {
+                "text": "Local Group",
+                "value": "12"
+              },
+              {
+                "text": "XML Group",
+                "value": "13"
+              },
+              {
+                "text": "XML Browser",
+                "value": "14"
+              },
+              {
+                "text": "LDAP",
+                "value": "15"
+              },
+              {
+                "text": "BroadSoft Group",
+                "value": "16"
+              },
+              {
+                "text": "Forward",
+                "value": "18"
+              },
+              {
+                "text": "DND",
+                "value": "21"
+              },
+              {
+                "text": "Redial",
+                "value": "22"
+              },
+              {
+                "text": "Call Return",
+                "value": "23"
+              },
+              {
+                "text": "SMS",
+                "value": "24"
+              },
+              {
+                "text": "History",
+                "value": "36"
+              },
+              {
+                "text": "Directory",
+                "value": "37"
+              },
+              {
+                "text": "Menu",
+                "value": "38"
+              },
+              {
+                "text": "NewSMS",
+                "value": "39"
+              },
+              {
+                "text": "Status",
+                "value": "40"
+              },
+              {
+                "text": "Switch Account Up",
+                "value": "41"
+              },
+              {
+                "text": "Switch Account Down",
+                "value": "42"
+              },
+              {
+                "text": "Local Phone Book",
+                "value": "43"
+              },
+              {
+                "text": "BroadSoft Phone Book",
+                "value": "44"
+              },
+              {
+                "text": "XML Phone Book",
+                "value": "45"
+              },
+              {
+                "text": "Previous Page",
+                "value": "49"
+              },
+              {
+                "text": "Next Page",
+                "value": "50"
+              }
+            ]
+          },
+          {
+            "variable": "$softkey4_value",
+            "default_value": "",
+            "description": "Soft Key 4 Value",
+            "type": "input"
+          },
+          {
+            "type": "break"
+          }
+        ]
+      }]
+    }]
+  }
+}

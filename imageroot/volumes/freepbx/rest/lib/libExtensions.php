@@ -846,9 +846,9 @@ function checkFreeExtension($extension){
                 throw new Exception("Extension $extension already in use as custom code");
             }
 
-            //check defaul feturecodes
+            //check default featurecodes
             if (checkTableExists("featurecodes")){
-                $sql = 'SELECT * FROM `featurecodes` WHERE `defaultcode` = ? AND `customcode` IS NULL';
+                $sql = 'SELECT * FROM `featurecodes` WHERE `defaultcode` = ? AND (`customcode` IS NULL OR `customcode` = "")';
                 $sth = $dbh->prepare($sql);
                 $sth->execute(array($extension));
                 if($sth->fetch(\PDO::FETCH_ASSOC)) {
@@ -955,6 +955,5 @@ function setExtensionCustomContextProfile($extension) {
 }
 
 function getProvisioningEngine() {
-    exec("/usr/bin/sudo /sbin/e-smith/config getprop nethvoice ProvisioningEngine", $out);
-    return $out[0];
+    return 'tancredi';
 }

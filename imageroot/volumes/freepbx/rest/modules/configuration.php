@@ -35,9 +35,8 @@ function setLegacyMode($value) {
 
 
 $app->get('/configuration/userprovider', function (Request $request, Response $response, $args) {
-    exec("/usr/bin/sudo /var/www/html/freepbx/rest/lib/getSSSD.pl", $out);
-    $out = json_decode($out[0]);
-    return $response->withJson($out,200);
+    # Dummy user provider response
+    return $response->withJson(json_decode('{"configured":1,"type":"ldap","local":1}'),200);
 });
 
 # get enabled mode

@@ -1,0 +1,96 @@
+{
+  "data": {
+    "name": "Yealink T5x Models: [T56A, T57, T57W, T58A, T58V, VP59]",
+    "id": "10",
+    "directory": "t55x",
+    "firmware_ver": "",
+    "firmware_pkg": "NULL",
+    "firmware_md5sum": "",
+    "description": "Add T5x models",
+    "configuration_files": "y0000000000$suffix.cfg,$mac.cfg",
+    "changelog": "",
+    "provisioning_types": [
+      "tftp",
+      "http"
+    ],
+    "model_list": [{
+        "model": "T56A",
+        "id": "1",
+        "lines": "27",
+        "template_data": [
+          "template_data.json",
+          "hard_keys.json",
+          "soft_keys.json",
+          "line_keys_T56.json",
+          "exp.json",
+          "exp2.json"
+        ]
+      },
+      {
+        "model": "T57",
+        "id": "4",
+        "lines": "29",
+        "template_data": [
+          "template_data.json",
+          "hard_keys.json",
+          "soft_keys.json",
+          "line_keys_T57.json",
+          "exp.json",
+          "exp2.json"
+        ]
+      },
+      {
+        "model": "T57W",
+        "id": "5",
+        "lines": "29",
+        "template_data": [
+          "template_data.json",
+          "hard_keys.json",
+          "soft_keys.json",
+          "line_keys_T57.json",
+          "exp.json",
+          "exp2.json"
+        ]
+      },
+      {
+        "model": "T58A",
+        "id": "2",
+        "lines": "27",
+        "template_data": [
+          "template_data.json",
+          "hard_keys.json",
+          "soft_keys.json",
+          "line_keys_T58.json",
+          "exp.json",
+          "exp2.json"
+        ]
+      },
+      {
+        "model": "T58V",
+        "id": "3",
+        "lines": "27",
+        "template_data": [
+          "template_data.json",
+          "hard_keys.json",
+          "soft_keys.json",
+          "line_keys_T58.json",
+          "exp.json",
+          "exp2.json"
+        ]
+      },
+      {
+        "model": "VP59",
+        "id": "3",
+        "lines": "27",
+        "template_data": [
+          "template_data.json",
+          "hard_keys.json",
+          "soft_keys.json",
+          "line_keys_T58.json",
+          "exp.json",
+          "exp2.json"
+        ]
+      }
+    ]
+  }
+}

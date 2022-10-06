@@ -1,0 +1,24 @@
+{
+  "data": {
+    "brands": {
+      "name": "Alcatel Temporis",
+      "brand_id": "98",
+      "directory": "alcatel",
+      "package": "alcatel.tgz",
+      "md5sum": "",
+      "last_modified": 1444923600,
+      "family_list": [{
+        "id": "1",
+        "name": "Alcatel Temporis",
+        "directory": "temporis",
+        "description": "Make more configuration settings available from UI",
+        "changelog": "",
+        "last_modified": "Thu Oct 15 2015"
+      }],
+      "oui_list": [
+        "7465D1"
+      ],
+      "changelog": "PACKAGER: Nethesis."
+    }
+  }
+}

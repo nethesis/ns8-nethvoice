@@ -1,0 +1,532 @@
+{
+  "template_data": {
+    "category": [{
+        "name": "Settings",
+        "subcategory": [{
+          "name": "Settings",
+          "item": [{
+              "variable": "$language_panasonic",
+              "default_value": "it",
+              "description": "Language",
+              "type": "list",
+              "data": [{
+                  "text": "English",
+                  "value": "en"
+                },
+                {
+                  "text": "Spanish",
+                  "value": "es"
+                },
+                {
+                  "text": "French",
+                  "value": "fr"
+                },
+                {
+                  "text": "German",
+                  "value": "de"
+                },
+                {
+                  "text": "Italian",
+                  "value": "it"
+                },
+                {
+                  "text": "Danish",
+                  "value": "da"
+                },
+                {
+                  "text": "Dutch",
+                  "value": "nl"
+                },
+                {
+                  "text": "Swedish",
+                  "value": "sv"
+                },
+                {
+                  "text": "Finnish",
+                  "value": "fi"
+                },
+                {
+                  "text": "Greek",
+                  "value": "el"
+                },
+                {
+                  "text": "Hungarian",
+                  "value": "hu"
+                },
+                {
+                  "text": "Portuguese",
+                  "value": "Portuguese"
+                },
+                {
+                  "text": "Polish",
+                  "value": "Polish"
+                },
+                {
+                  "text": "Slovakian",
+                  "value": "sk"
+                },
+                {
+                  "text": "Czech",
+                  "value": "cs"
+                },
+                {
+                  "text": "Croatian",
+                  "value": "sh"
+                },
+                {
+                  "text": "Russian",
+                  "value": "Russian"
+                },
+                {
+                  "text": "Ukrainian",
+                  "value": "uk"
+                },
+                {
+                  "text": "Turkish",
+                  "value": "Turkish"
+                },
+                {
+                  "text": "Norwegian",
+                  "value": "no"
+                },
+                {
+                  "text": "Romanian",
+                  "value": "ro"
+                },
+                {
+                  "text": "Custom",
+                  "value": "ct"
+                },
+                {
+                  "text": "Kazakh",
+                  "value": "kk"
+                },
+                {
+                  "text": "Montenegrin",
+                  "value": "me"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+            {
+              "variable": "$timezone_panasonic",
+              "default_value": "60",
+              "description": "Timezone Name",
+              "type": "list",
+              "data": [{
+                  "text": "GMT -11",
+                  "value": "-660"
+                },
+                {
+                  "text": "GMT -10",
+                  "value": "-600"
+                },
+                {
+                  "text": "GMT -9:30",
+                  "value": "-570"
+                },
+                {
+                  "text": "GMT -9",
+                  "value": "-540"
+                },
+                {
+                  "text": "GMT -8",
+                  "value": "-480"
+                },
+                {
+                  "text": "GMT -7",
+                  "value": "-420"
+                },
+                {
+                  "text": "GMT -6",
+                  "value": "-360"
+                },
+                {
+                  "text": "GMT -5",
+                  "value": "-300"
+                },
+                {
+                  "text": "GMT -4",
+                  "value": "-240"
+                },
+                {
+                  "text": "GMT -3:30",
+                  "value": "-210"
+                },
+                {
+                  "text": "GMT -3",
+                  "value": "-180"
+                },
+                {
+                  "text": "GMT -2",
+                  "value": "-120)"
+                },
+                {
+                  "text": "GMT -1)",
+                  "value": "-60"
+                },
+                {
+                  "text": "GMT 0",
+                  "value": "0"
+                },
+                {
+                  "text": "GMT +1",
+                  "value": "60"
+                },
+                {
+                  "text": "GMT +2",
+                  "value": "120"
+                },
+                {
+                  "text": "GMT +3",
+                  "value": "180"
+                },
+                {
+                  "text": "GMT +3:30",
+                  "value": "210"
+                },
+                {
+                  "text": "GMT +4",
+                  "value": "240"
+                },
+                {
+                  "text": "GMT +4:30",
+                  "value": "270"
+                },
+                {
+                  "text": "GMT +5",
+                  "value": "300"
+                },
+                {
+                  "text": "GMT +5:30",
+                  "value": "330"
+                },
+                {
+                  "text": "GMT +5:45",
+                  "value": "345"
+                },
+                {
+                  "text": "GMT +6",
+                  "value": "360"
+                },
+                {
+                  "text": "GMT +6:30",
+                  "value": "390"
+                },
+                {
+                  "text": "GMT +7",
+                  "value": "420"
+                },
+                {
+                  "text": "GMT +8",
+                  "value": "480"
+                },
+                {
+                  "text": "GMT +8:45",
+                  "value": "525"
+                },
+                {
+                  "text": "GMT +9",
+                  "value": "540"
+                },
+                {
+                  "text": "GMT +9:30",
+                  "value": "570"
+                },
+                {
+                  "text": "GMT +10",
+                  "value": "600"
+                },
+                {
+                  "text": "GMT +10:30",
+                  "value": "630"
+                },
+                {
+                  "text": "GMT +11",
+                  "value": "660"
+                },
+                {
+                  "text": "GMT +11:30",
+                  "value": "690"
+                },
+                {
+                  "text": "GMT +12",
+                  "value": "720"
+                },
+                {
+                  "text": "GMT +12:45",
+                  "value": "765"
+                },
+                {
+                  "text": "GMT +13",
+                  "value": "780"
+                },
+                {
+                  "text": "GMT +13:30",
+                  "value": "810"
+                },
+                {
+                  "text": "GMT +14",
+                  "value": "840"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+            {
+              "variable": "$adminpw",
+              "default_value": "adminpass",
+              "description": "Web administration password",
+              "type": "input"
+            },
+	    {
+              "variable": "$userpw",
+              "default_value": "123456",
+              "description": "Web user password",
+              "type": "input"
+            },
+            {
+              "type": "break"
+            }
+          ]
+        }]
+      },
+      {
+        "name": "Preference",
+        "subcategory": [{
+          "name": "Preference",
+          "item": [{
+              "variable": "$call_waiting",
+              "default_value": "N",
+              "description": "Call Waiting",
+              "type": "list",
+              "data": [{
+                  "text": "Disabled",
+                  "value": "N"
+                },
+                {
+                  "text": "Enabled",
+                  "value": "Y"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+            {
+              "variable": "$default_ringtone",
+              "default_value": "1",
+              "description": "Default Ringtone",
+              "type": "list",
+              "data": [{
+                  "text": "Ring1",
+                  "value": "1"
+                },
+                {
+                  "text": "Ring2",
+                  "value": "2"
+                },
+                {
+                  "text": "Ring3",
+                  "value": "3"
+                },
+                {
+                  "text": "Ring4",
+                  "value": "4"
+                },
+                {
+                  "text": "Ring5",
+                  "value": "5"
+                },
+                {
+                  "text": "Ring6",
+                  "value": "6"
+                },
+                {
+                  "text": "Ring7",
+                  "value": "7"
+                },
+                {
+                  "text": "Ring8",
+                  "value": "8"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+	    {
+              "variable": "$ldap_server",
+              "default_value": "ldap://{$server.ip.1}",
+              "description": "Server LDAP",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_base",
+              "default_value": "dc=phonebook,dc=nh",
+              "description": "BaseDN LDAP",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_port",
+              "default_value": "10389",
+              "description": "LDAP Server Port",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_name_filter",
+              "default_value": "(|(cn=%)(o=%))",
+              "description": "LDAP Name Filter",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_name_attr",
+              "default_value": "cn,o",
+              "description": "LDAP Name Attributes",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_name_display",
+              "default_value": "%cn %o",
+              "description": "LDAP Display Name",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_number_filter",
+              "default_value": "(|(telephoneNumber=%)(mobile=%)(homePhone=%))",
+              "description": "LDAP Number Filter",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_number_attr",
+              "default_value": "telephoneNumber,mobile,homePhone",
+              "description": "LDAP Number Attributes",
+              "type": "input"
+            },
+            {
+              "type": "break"
+            }
+          ]
+        }]
+      },
+      {
+        "name": "Network",
+        "subcategory": [{
+          "name": "Network",
+          "item": [{
+              "variable": "$vlan_enable",
+              "default_value": "N",
+              "description": "Voice VLAN Enable",
+              "type": "list",
+              "data": [{
+                  "text": "True",
+                  "value": "Y"
+                },
+                {
+                  "text": "False",
+                  "value": "N"
+                }
+              ]
+            },
+            {
+              "variable": "$vlan_id_phone",
+              "default_value": "2",
+              "description": "Voice VLAN ID",
+              "type": "input"
+            },
+            {
+              "variable": "$vlan_qos_phone",
+              "default_value": "0",
+              "description": "Voice VLAN Priority",
+              "type": "list",
+              "data": [{
+                  "text": "0",
+                  "value": "0"
+                },
+                {
+                  "text": "1",
+                  "value": "1"
+                },
+                {
+                  "text": "2",
+                  "value": "2"
+                },
+                {
+                  "text": "3",
+                  "value": "3"
+                },
+                {
+                  "text": "4",
+                  "value": "4"
+                },
+                {
+                  "text": "5",
+                  "value": "5"
+                },
+                {
+                  "text": "6",
+                  "value": "7"
+                },
+                {
+                  "text": "7",
+                  "value": "7"
+                }
+              ]
+            },
+            {
+              "variable": "$vlan_id_pc",
+              "default_value": "1",
+              "description": "Data VLAN ID",
+              "type": "input"
+            },
+            {
+              "variable": "$vlan_qos_pc",
+              "default_value": "0",
+              "description": "Data VLAN Priority",
+              "type": "list",
+              "data": [{
+                  "text": "0",
+                  "value": "0"
+                },
+                {
+                  "text": "1",
+                  "value": "1"
+                },
+                {
+                  "text": "2",
+                  "value": "2"
+                },
+                {
+                  "text": "3",
+                  "value": "3"
+                },
+                {
+                  "text": "4",
+                  "value": "4"
+                },
+                {
+                  "text": "5",
+                  "value": "5"
+                },
+                {
+                  "text": "6",
+                  "value": "7"
+                },
+                {
+                  "text": "7",
+                  "value": "7"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            }
+          ]
+        }]
+      }
+    ]
+  }
+}

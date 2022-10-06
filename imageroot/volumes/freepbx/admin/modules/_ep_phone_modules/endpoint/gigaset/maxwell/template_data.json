@@ -1,0 +1,944 @@
+{
+  "template_data": {
+    "category": [{
+        "name": "setting",
+        "subcategory": [{
+          "name": "preference",
+          "item": [{
+              "variable": "$language_gigaset",
+              "default_value": "it-it",
+              "description": "Web Language",
+              "type": "list",
+              "data": [{
+                  "text": "English",
+                  "value": "en-us"
+                },
+                {
+                  "text": "French",
+                  "value": "fr-fr"
+                },
+                {
+                  "text": "German",
+                  "value": "de-de"
+                },
+                {
+                  "text": "Spanish",
+                  "value": "es-es"
+                },
+                {
+                  "text": "Portuguese",
+                  "value": "pt-pt"
+                },
+                {
+                  "text": "Russian",
+                  "value": "ru-ru"
+                },
+                {
+                  "text": "Italian",
+                  "value": "it-it"
+                },
+                {
+                  "text": "Polish",
+                  "value": "pl-pl"
+                },
+                {
+                  "text": "Greek",
+                  "value": "el-gr"
+                },
+                {
+                  "text": "Turkish",
+                  "value": "tr-tr"
+                },
+                {
+                  "text": "Danish",
+                  "value": "da-dk"
+                },
+                {
+                  "text": "Swedish",
+                  "value": "sv-se"
+                },
+                {
+                  "text": "Czech",
+                  "value": "cs-cz"
+                },
+                {
+                  "text": "Slovenian",
+                  "value": "sl-sl"
+                },
+                {
+                  "text": "Romanian",
+                  "value": "ro-ro"
+                },
+                {
+                  "text": "Dutch",
+                  "value": "nl-nl"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+            {
+              "variable": "$timezone_gigaset",
+              "default_value": "GMT+1.Europe/Amsterdam",
+              "description": "Time Zone",
+              "type": "list",
+              "data": [{
+                  "text": "-11 Samoa",
+                  "value": "GMT-11.Pacific/Midway"
+                },
+                {
+                  "text": "-10 United States-Hawaii",
+                  "value": "GMT-10.Pacific/Honolulu"
+                },
+                {
+                  "text": "-9 United States-Alaska-Time",
+                  "value": "GMT-9.America/Anchorage"
+                },
+                {
+                  "text": "-8 Mexico(Tijuana)",
+                  "value": "GMT-8.America/Tijuana"
+                },
+                {
+                  "text": "-8 United States Pacific Time",
+                  "value": "GMT-8.America/Los_Angeles"
+                },
+                {
+                  "text": "-7 Mexico(Mazatlan)",
+                  "value": "GMT-7.America/Chihuahua"
+                },
+                {
+                  "text": "-7 United States Mountain Time",
+                  "value": "GMT-7.America/Denver"
+                },
+                {
+                  "text": "-7 United States-MST no DST",
+                  "value": "GMT-7.America/Phoenix"
+                },
+                {
+                  "text": "-6 Canada-Manitoba",
+                  "value": "GMT-6.America/Regina"
+                },
+                {
+                  "text": "-6 Chile(Easter Islands)",
+                  "value": "GMT-6.America/Costa_Rica"
+                },
+                {
+                  "text": "-6 Mexico(Mexico City)",
+                  "value": "GMT-6.America/Mexico_City"
+                },
+                {
+                  "text": "-6 United States-Central Time",
+                  "value": "GMT-6.America/Chicago"
+                },
+                {
+                  "text": "-5 Colombia(Bogota)",
+                  "value": "GMT-5.America/Bogota"
+                },
+                {
+                  "text": "-5 United States-Eastern Time",
+                  "value": "GMT-5.America/New_York"
+                },
+                {
+                  "text": "-4 Canada(Halifax)",
+                  "value": "GMT-4.America/Halifax"
+                },
+                {
+                  "text": "-4 Brazil(Manaus)",
+                  "value": "GMT-4.America/Manaus"
+                },
+                {
+                  "text": "-4 United Kingdom-Bermuda",
+                  "value": "GMT-4.America/Barbados"
+                },
+                {
+                  "text": "-3 Denmark-Greenland",
+                  "value": "GMT-3.America/Godthab"
+                },
+                {
+                  "text": "-3 Argentina(Buenos Aires)",
+                  "value": "GMT-3.America/Argentina/Buenos_Aires"
+                },
+                {
+                  "text": "-3 Uruguay(Montevideo)",
+                  "value": "GMT-3.America/Montevideo"
+                },
+                {
+                  "text": "-3 Chile(Santiago)",
+                  "value": "GMT-3.America/Santiago"
+                },
+                {
+                  "text": "-3 Brazil(DST)",
+                  "value": "GMT-3.America/Sao_Paulo"
+                },
+                {
+                  "text": "-2 Mid-Atlantic",
+                  "value": "GMT-2.Atlantic/South_Georgia"
+                },
+                {
+                  "text": "-1 Portugal(Azores)",
+                  "value": "GMT-1.Atlantic/Azores"
+                },
+                {
+                  "text": "-1 Cape Verde Islands",
+                  "value": "GMT-1.Atlantic/Cape_Verde"
+                },
+                {
+                  "text": "GMT Morocco(Casablanca)",
+                  "value": "GMT.Africa/Casablanca"
+                },
+                {
+                  "text": "GMT United Kingdom(London)",
+                  "value": "GMT.Europe/London"
+                },
+                {
+                  "text": "+1 Belgium(Brussels)",
+                  "value": "GMT+1.Europe/Brussels"
+                },
+                {
+                  "text": "+1 Germany(Berlin)",
+                  "value": "GMT+1.Europe/Amsterdam"
+                },
+                {
+                  "text": "+1 Serbia(Belgrade)",
+                  "value": "GMT+1.Europe/Belgrade"
+                },
+                {
+                  "text": "+1 Bosnia(Sarajevo)",
+                  "value": "GMT+1.Europe/Sarajevo"
+                },
+                {
+                  "text": "+1 Namibia(Windhoek)",
+                  "value": "GMT+1.Africa/Windhoek"
+                },
+                {
+                  "text": "+1 Congo(Brazzaville)",
+                  "value": "GMT+1.Africa/Brazzaville"
+                },
+                {
+                  "text": "+2 Greece(Athens)",
+                  "value": "GMT+2.Europe/Athens"
+                },
+                {
+                  "text": "+2 Egypt(Cairo)",
+                  "value": "GMT+2.Africa/Cairo"
+                },
+                {
+                  "text": "+2 Jordan(Amman)",
+                  "value": "GMT+2.Asia/Amman"
+                },
+                {
+                  "text": "+2 Lebanon(Beirut)",
+                  "value": "GMT+2.Asia/Beirut"
+                },
+                {
+                  "text": "+2 Finland(Helsinki)",
+                  "value": "GMT+2.Europe/Helsinki"
+                },
+                {
+                  "text": "+2 Israel(Jerusalem)",
+                  "value": "GMT+2.Asia/Jerusalem"
+                },
+                {
+                  "text": "+2 Zimbabwe(Harare)",
+                  "value": "GMT+2.Africa/Harare"
+                },
+                {
+                  "text": "+3 Kuwait",
+                  "value": "GMT+3.Asia/Kuwait"
+                },
+                {
+                  "text": "+3 Iraq(Bagdad)",
+                  "value": "GMT+3.Asia/Baghdad"
+                },
+                {
+                  "text": "+3 Russia(Moscow)",
+                  "value": "GMT+3.Europe/Moscow"
+                },
+                {
+                  "text": "+3 Belarus(Mink)",
+                  "value": "GMT+3.Europe/Minsk"
+                },
+                {
+                  "text": "+3 Kenya(Nairobi)",
+                  "value": "GMT+3.Africa/Nairob"
+                },
+                {
+                  "text": "+4 Armenia(Yerevan)",
+                  "value": "GMT+4.Asia/Yerevan"
+                },
+                {
+                  "text": "+4 Arzebaijan(Baku)",
+                  "value": "GMT+4.Asia/Baku"
+                },
+                {
+                  "text": "+4 Georgia(Tiblisi)",
+                  "value": "GMT+4.Asia/Tbilisi"
+                },
+                {
+                  "text": "+4 Dubai",
+                  "value": "GMT+4.Asia/Dubai"
+                },
+                {
+                  "text": "+5 Pakistan(Karachi)",
+                  "value": "GMT+5.Asia/Karachi"
+                },
+                {
+                  "text": "+5 Kazakistan(Oral)",
+                  "value": "GMT+5.Asia/Oral"
+                },
+                {
+                  "text": "+5 Russia(Chelyabinsk)",
+                  "value": "GMT+5.Asia/Yekaterinburg"
+                },
+                {
+                  "text": "+6 Kazakstan(Astana)",
+                  "value": "GMT+6.Asia/Almaty"
+                },
+                {
+                  "text": "+7 Russia(Krasnoyarsk)",
+                  "value": "GMT+7.Asia/Krasnoyarsk"
+                },
+                {
+                  "text": "+7 Thailand(Bangkok)",
+                  "value": "GMT+7.Asia/Bangkok"
+                },
+                {
+                  "text": "+8 China(Beijing)",
+                  "value": "GMT+8.Asia/Shanghai"
+                },
+                {
+                  "text": "+8 Hong Kong",
+                  "value": "GMT+8.Asia/Hong_Kong"
+                },
+                {
+                  "text": "+8 Taipei",
+                  "value": "GMT+8.Asia/Taipei"
+                },
+                {
+                  "text": "+8 Malaysia(Kuala Lumpur)",
+                  "value": "GMT+8.Asia/Kuala_Lumpur"
+                },
+                {
+                  "text": "+8 Russia(Irkutsk)",
+                  "value": "GMT+8.Asia/Irkutsk"
+                },
+                {
+                  "text": "+8 Australia(Perth)",
+                  "value": "GMT+8.Australia/Perth"
+                },
+                {
+                  "text": "+9 Korea(Seoul)",
+                  "value": "GMT+9.Asia/Seoul"
+                },
+                {
+                  "text": "+9 Japan(Tokyo)",
+                  "value": "GMT+9.Asia/Tokyo"
+                },
+                {
+                  "text": "+9 Russia(Yakutsk)",
+                  "value": "GMT+9.Asia/Yakutsk"
+                },
+                {
+                  "text": "+10 Russia(Magadan)",
+                  "value": "GMT+10.Asia/Magadan"
+                },
+                {
+                  "text": "+10 Guam",
+                  "value": "GMT+10.Pacific/Guam"
+                },
+                {
+                  "text": "+10 Australia(Sidney)",
+                  "value": "GMT+10.Australia/Sydney"
+                },
+                {
+                  "text": "+10 Australia(Brisbane)",
+                  "value": "GMT+10.Australia/Brisbane"
+                },
+                {
+                  "text": "+10 Australia(Hobart)",
+                  "value": "GMT+10.Australia/Hobart"
+                },
+                {
+                  "text": "+10 Russia(Vladivostok)",
+                  "value": "GMT+10.Asia/Vladivostok"
+                },
+                {
+                  "text": "+10:30 Australia(Lord Howe Islands)",
+                  "value": "Australia/Lord_Howe"
+                },
+                {
+                  "text": "+12 Fiji",
+                  "value": "GMT+12.Pacific/Fiji"
+                },
+                {
+                  "text": "+12 New Zeland(Wellington)",
+                  "value": "GMT+12.Pacific/Auckland"
+                },
+                {
+                  "text": "+12 Marshall(Majuro)",
+                  "value": "GMT+12.Pacific/Majuro"
+                },
+                {
+                  "text": "+13 Tonga(Nukualofa)",
+                  "value": "GMT+13.Pacific/Tongatapu"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+            {
+              "category": "tones",
+              "variable": "$tones_gigaset",
+              "default_value": "ITA",
+              "description": "Country Tones",
+              "type": "list",
+              "data": [{
+                  "text": "International",
+                  "value": "INT"
+                },
+                {
+                  "text": "Austria",
+                  "value": "AUT"
+                },
+                {
+                  "text": "Canada",
+                  "value": "CAN"
+                },
+                {
+                  "text": "Czech Republic",
+                  "value": "CZE"
+                },
+                {
+                  "text": "Denmark",
+                  "value": "DNK"
+                },
+                {
+                  "text": "Egypt",
+                  "value": "EGY"
+                },
+                {
+                  "text": "Finland",
+                  "value": "FIN"
+                },
+                {
+                  "text": "France",
+                  "value": "FRA"
+                },
+                {
+                  "text": "Germany",
+                  "value": "DEU"
+                },
+                {
+                  "text": "Greece",
+                  "value": "GRC"
+                },
+                {
+                  "text": "Italy",
+                  "value": "ITA"
+                },
+                {
+                  "text": "Netherlands",
+                  "value": "NLD"
+                },
+                {
+                  "text": "Poland",
+                  "value": "POL"
+                },
+                {
+                  "text": "Portugal",
+                  "value": "PRT"
+                },
+                {
+                  "text": "Romania",
+                  "value": "ROU"
+                },
+                {
+                  "text": "South Africa",
+                  "value": "ZAF"
+                },
+                {
+                  "text": "Russia",
+                  "value": "RUS"
+                },
+                {
+                  "text": "Saudi Arabia",
+                  "value": "SAU"
+                },
+                {
+                  "text": "Slovakia",
+                  "value": "SVK"
+                },
+                {
+                  "text": "Spain",
+                  "value": "ESP"
+                },
+                {
+                  "text": "Sweden",
+                  "value": "SWE"
+                },
+                {
+                  "text": "Switzeland",
+                  "value": "CHE"
+                },
+                {
+                  "text": "United Arab Emirates",
+                  "value": "ARE"
+                },
+                {
+                  "text": "United Kingdom",
+                  "value": "GBR"
+                },
+                {
+                  "text": "United States of America",
+                  "value": "USA"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+            {
+              "variable": "$adminpw",
+              "default_value": "admin",
+              "description": "Web administration password",
+              "type": "input"
+            },
+            {
+              "variable": "$userpw",
+              "default_value": "1234",
+              "description": "Web user password",
+              "type": "input"
+            },
+            {
+              "type": "break"
+            },
+            {
+              "category": "preference",
+              "variable": "$default_ringtone",
+              "default_value": "06_Gigaset.wav",
+              "description": "Ring Tones",
+              "type": "list",
+              "data": [{
+                  "text": "01",
+                  "value": "01.wav"
+                },
+                {
+                  "text": "02_Memo",
+                  "value": "02_Memo.wav"
+                },
+                {
+                  "text": "03_Vibe",
+                  "value": "03_Vibe.wav"
+                },
+                {
+                  "text": "04_Listen",
+                  "value": "04_Listen.wav"
+                },
+                {
+                  "text": "05_Down",
+                  "value": "05_Down.wav"
+                },
+                {
+                  "text": "06_Gigaset",
+                  "value": "06_Gigaset.wav"
+                },
+                {
+                  "text": "07_Egg",
+                  "value": "07_Egg.wav"
+                },
+                {
+                  "text": "08_Peak",
+                  "value": "08_Peak.wav"
+                },
+                {
+                  "text": "09_Step",
+                  "value": "09_Step.wav"
+                },
+                {
+                  "text": "10_P Cut",
+                  "value": "10_P Cut.wav"
+                },
+                {
+                  "text": "11_Set",
+                  "value": "11_Set.wav"
+                },
+                {
+                  "text": "12_Sim",
+                  "value": "12_Sim.wav"
+                },
+                {
+                  "text": "13_Tone one",
+                  "value": "13_Tone one.wav"
+                },
+                {
+                  "text": "14_Dunken",
+                  "value": "14_Dunken.wav"
+                },
+                {
+                  "text": "15_Piano",
+                  "value": "15_Piano.wav"
+                },
+                {
+                  "text": "16_Officebuffer",
+                  "value": "16_Officebuffer.wav"
+                },
+                {
+                  "text": "17_Twelve",
+                  "value": "17_Twelve.wav"
+                },
+                {
+                  "text": "18_Flightzone",
+                  "value": "18_Flightzone.wav"
+                },
+                {
+                  "text": "19_Waste",
+                  "value": "19_Waste.wav"
+                },
+                {
+                  "text": "20_Smototh G",
+                  "value": "20_Smototh_G.wav"
+                },
+                {
+                  "text": "21_Green Tea",
+                  "value": "21_Green Tea.wav"
+                },
+                {
+                  "text": "22_Evolve 1",
+                  "value": "22_Evolve 1.ogg"
+                },
+                {
+                  "text": "23_Evolve 2",
+                  "value": "23_Evolve 2.ogg"
+                },
+                {
+                  "text": "Bellcore 1",
+                  "value": "bellcore_dr1.ogg"
+                },
+                {
+                  "text": "Bellcore 2",
+                  "value": "bellcore_dr2.ogg"
+                },
+                {
+                  "text": "Bellcore 3",
+                  "value": "bellcore_dr3.ogg"
+                },
+                {
+                  "text": "Bellcore 4",
+                  "value": "bellcore_dr4.ogg"
+                },
+                {
+                  "text": "Bellcore 5",
+                  "value": "bellcore_dr5.ogg"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+            {
+              "category": "preference",
+              "variable": "$color",
+              "default_value": "3",
+              "description": "Color Scheme",
+              "type": "list",
+              "data": [{
+                  "text": "White on Black",
+                  "value": "0"
+                },
+                {
+                  "text": "White on Blue",
+                  "value": "1"
+                },
+                {
+                  "text": "White on Red",
+                  "value": "2"
+                },
+                {
+                  "text": "White on Green",
+                  "value": "3"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+            {
+              "category": "preference",
+              "variable": "$call_waiting",
+              "default_value": "0",
+              "description": "Call Waiting",
+              "type": "list",
+              "data": [{
+                  "text": "Disabled",
+                  "value": "0"
+                },
+                {
+                  "text": "Enabled",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "category": "preference",
+              "variable": "$call_waiting_sign",
+              "default_value": "Off",
+              "description": "Call Waiting Tone",
+              "type": "list",
+              "data": [{
+                  "text": "Off",
+                  "value": "Off"
+                },
+                {
+                  "text": "Single Beep",
+                  "value": "SingleBeep"
+                },
+                {
+                  "text": "Beep Every 4s",
+                  "value": "BeepEvery4"
+                },
+                {
+                  "text": "Beep Every 10s",
+                  "value": "BeepEvery10"
+                },
+                {
+                  "text": "Beep Every 20s",
+                  "value": "BeepEvery20"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+
+            {
+              "category": "preference",
+              "variable": "$transfer_mode",
+              "default_value": "1",
+              "description": "Transfer Mode",
+              "type": "list",
+              "data": [{
+                  "text": "Early Attended",
+                  "value": "0"
+                },
+                {
+                  "text": "Semi-attended",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+            {
+              "category": "date&time",
+              "variable": "$date_format",
+              "default_value": "dd.mm.yyyy",
+              "description": "Date Display Format",
+              "type": "list",
+              "data": [{
+                  "text": "Month - Day - Year",
+                  "value": "Mmm.dd.yyyy"
+                },
+                {
+                  "text": "Day - Month - Year",
+                  "value": "dd.mm.yyyy"
+                }
+              ]
+            },
+            {
+              "category": "date&time",
+              "variable": "$time_format",
+              "default_value": "24h",
+              "description": "Time Display Format",
+              "type": "list",
+              "data": [{
+                  "text": "24h",
+                  "value": "24h"
+                },
+                {
+                  "text": "12h",
+                  "value": "12h"
+                }
+              ]
+            },
+            {
+              "type": "break"
+            },
+            {
+              "variable": "$ldap_server",
+              "default_value": "{$server.ip.1}",
+              "description": "Server LDAP",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_base",
+              "default_value": "dc=phonebook,dc=nh",
+              "description": "BaseDN LDAP",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_port",
+              "default_value": "10389",
+              "description": "LDAP Server Port",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_name_filter",
+              "default_value": "(|(cn=%)(o=%))",
+              "description": "LDAP Name Filter",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_name_display",
+              "default_value": "%cn %o",
+              "description": "LDAP Display Name",
+              "type": "input"
+            },
+            {
+              "variable": "$ldap_number_filter",
+              "default_value": "(|(telephoneNumber=%)(mobile=%)(homePhone=%))",
+              "description": "LDAP Number Filter",
+              "type": "input"
+            },
+            {
+              "type": "break"
+            }
+          ]
+        }]
+      },
+      {
+        "name": "network",
+        "subcategory": [{
+          "name": "network",
+          "item": [{
+              "variable": "$vlan_tagging",
+              "default_value": "0",
+              "description": "Enable vlan on LAN or PC port",
+              "type": "list",
+              "data": [{
+                  "text": "Disabled",
+                  "value": "0"
+                },
+                {
+                  "text": "LAN",
+                  "value": "1"
+                },
+                {
+                  "text": "LAN + PC",
+                  "value": "2"
+                }
+              ]
+            },
+            {
+              "variable": "$vlan_identifier",
+              "default_value": "0",
+              "description": "WAN port VID",
+              "type": "input"
+            },
+            {
+              "variable": "$vlan_priority",
+              "default_value": "0",
+              "description": "WAN VLAN port priority",
+              "type": "list",
+              "data": [{
+                  "text": "0",
+                  "value": "0"
+                },
+                {
+                  "text": "1",
+                  "value": "1"
+                },
+                {
+                  "text": "2",
+                  "value": "2"
+                },
+                {
+                  "text": "3",
+                  "value": "3"
+                },
+                {
+                  "text": "4",
+                  "value": "4"
+                },
+                {
+                  "text": "5",
+                  "value": "5"
+                },
+                {
+                  "text": "6",
+                  "value": "7"
+                },
+                {
+                  "text": "7",
+                  "value": "7"
+                }
+              ]
+            },
+            {
+              "variable": "$vlan_pc_identifier",
+              "default_value": "0",
+              "description": "PC port VID",
+              "type": "input"
+            },
+            {
+              "variable": "$vlan_pc_priority",
+              "default_value": "0",
+              "description": "PC vlan port priority",
+              "type": "list",
+              "data": [{
+                  "text": "0",
+                  "value": "0"
+                },
+                {
+                  "text": "1",
+                  "value": "1"
+                },
+                {
+                  "text": "2",
+                  "value": "2"
+                },
+                {
+                  "text": "3",
+                  "value": "3"
+                },
+                {
+                  "text": "4",
+                  "value": "4"
+                },
+                {
+                  "text": "5",
+                  "value": "5"
+                },
+                {
+                  "text": "6",
+                  "value": "7"
+                },
+                {
+                  "text": "7",
+                  "value": "7"
+                }
+              ]
+            },
+            {
+              "variable": "$qos_rtp",
+              "default_value": "46",
+              "description": "RTP ToS/DiffServ",
+              "type": "input"
+            },
+            {
+              "variable": "$qos_sip",
+              "default_value": "34",
+              "description": "SIP ToS/DiffServ",
+              "type": "input"
+            },
+            {
+              "type": "break"
+            }
+          ]
+        }]
+      }
+    ]
+  }
+}

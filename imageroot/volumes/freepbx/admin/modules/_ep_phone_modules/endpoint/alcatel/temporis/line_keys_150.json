@@ -1,0 +1,123 @@
+{
+  "template_data": {
+    "category": [{
+      "name": "Line Keys",
+      "subcategory": [{
+        "name": "basic",
+        "item": [{
+          "description": "Line Keys (1-20)",
+          "type": "loop",
+          "loop_start": "1",
+          "loop_end": "20",
+          "data": {
+            "item": [{
+                "variable": "$linekey_type",
+                "default_value": "unassigned",
+                "description": "Line Key {$count} Type",
+                "type": "list",
+                "data": [{
+                    "text": "Unassigned",
+                    "value": "unassigned"
+                  },
+                  {
+                    "text": "Line",
+                    "value": "line"
+                  },
+                  {
+                    "text": "Directory",
+                    "value": "dir"
+                  },
+                  {
+                    "text": "Call History",
+                    "value": "call log"
+                  },
+                  {
+                    "text": "Redial",
+                    "value": "redial"
+                  },
+                  {
+                    "text": "Messages",
+                    "value": "messages"
+                  },
+                  {
+                    "text": "DND",
+                    "value": "dnd"
+                  },
+                  {
+                    "text": "DND All",
+                    "value": "dnd all"
+                  },
+                  {
+                    "text": "Call Forward All",
+                    "value": "cfwd all"
+                  },
+                  {
+                    "text": "Call Forward Busy",
+                    "value": "cfwd busy"
+                  },
+                  {
+                    "text": "Call Forward No Answer",
+                    "value": "cfwd no answer"
+                  },
+                  {
+                    "text": "Quick Dial",
+                    "value": "quick dial"
+                  },
+                  {
+                    "text": "BLF",
+                    "value": "busy lamp field"
+                  },
+                  {
+                    "text": "ACD",
+                    "value": "acd"
+                  },
+                  {
+                    "text": "Intercom",
+                    "value": "page"
+                  },
+                  {
+                    "text": "Park Call",
+                    "value": "park call"
+                  },
+                  {
+                    "text": "Retrieve Parked Call",
+                    "value": "retrieve parked call"
+                  },
+                  {
+                    "text": "In Call DTMF",
+                    "value": "in call dtmf"
+                  },
+                  {
+                    "text": "Callback",
+                    "value": "callback"
+                  },
+                  {
+                    "text": "Group Call Pickup",
+                    "value": "group call pickup"
+                  },
+                  {
+                    "text": "Direct Call Pickup",
+                    "value": "direct call pickup"
+                  },
+                  {
+                    "text": "Prefix Dialing",
+                    "value": "prefix_dial"
+                  }
+                ]
+              },
+              {
+                "variable": "$linekey_extension",
+                "default_value": "",
+                "description": "Feature {$count} Value",
+                "type": "input"
+              },
+              {
+                "type": "break"
+              }
+            ]
+          }
+        }]
+      }]
+    }]
+  }
+}
