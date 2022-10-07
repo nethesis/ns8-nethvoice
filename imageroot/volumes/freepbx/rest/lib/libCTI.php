@@ -33,7 +33,7 @@ class NethCTI {
 
     public static function Init($config) {
         self::$db = new PDO(
-            'mysql:host='. $config['host']. ';dbname='. $config['name'],
+            'mysql:host='. $config['host']. ';port='.(isset($config['port']) ? $config['port'] : '3306').';dbname='. $config['name'],
             $config['user'],
             $config['pass']);
     }

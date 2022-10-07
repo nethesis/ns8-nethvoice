@@ -12,4 +12,4 @@ CREATE TABLE `manager` (
   `write` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `writetimeout` int(11) DEFAULT NULL,
   PRIMARY KEY (`manager_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

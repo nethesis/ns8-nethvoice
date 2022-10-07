@@ -2,7 +2,7 @@
 /*!40014 SET FOREIGN_KEY_CHECKS=0*/;
 /*!40103 SET TIME_ZONE='+00:00' */;
 INSERT INTO `modules` (`id`,`modulename`,`version`,`enabled`,`signature`) VALUES
-(1,"framework","14.0.13.12",1,"{\"status\":129,\"details\":[]}"),
+(1,"framework","14.0.13.12",1,"{\"status\":130,\"details\":[\"\\/var\\/www\\/html\\/freepbx\\/admin\\/modules\\/framework\\/amp_conf\\/etc\\/init.d\\/freepbx.init missing\",\"\\/var\\/www\\/html\\/freepbx\\/admin\\/modules\\/framework\\/install missing\",\"\\/var\\/www\\/html\\/freepbx\\/admin\\/modules\\/framework\\/installlib\\/SQL\\/asterisk.sql missing\",\"\\/var\\/www\\/html\\/freepbx\\/admin\\/modules\\/framework\\/installlib\\/SQL\\/cdr.sql missing\",\"\\/var\\/www\\/html\\/freepbx\\/admin\\/modules\\/framework\\/installlib\\/files\\/asterisk.conf missing\",\"\\/var\\/www\\/html\\/freepbx\\/admin\\/modules\\/framework\\/installlib\\/files\\/odbc.ini missing\",\"\\/var\\/www\\/html\\/freepbx\\/admin\\/modules\\/framework\\/installlib\\/installapplication.class.php missing\",\"\\/var\\/www\\/html\\/freepbx\\/admin\\/modules\\/framework\\/installlib\\/installcommand.class.php missing\",\"\\/var\\/www\\/html\\/freepbx\\/admin\\/modules\\/framework\\/installlib\\/installer.class.php missing\",\"\\/var\\/www\\/html\\/freepbx\\/admin\\/modules\\/framework\\/installlib\\/installhelpcommand.class.php missing\"]}"),
 (2,"core","14.0.28.29",1,"{\"status\":129,\"details\":[]}"),
 (3,"dashboard","14.0.6.2",1,"{\"status\":129,\"details\":[]}"),
 (4,"sipsettings","14.0.27.12",1,"{\"status\":129,\"details\":[]}"),
@@ -18,7 +18,7 @@ INSERT INTO `modules` (`id`,`modulename`,`version`,`enabled`,`signature`) VALUES
 (14,"logfiles","13.0.10.5",1,"{\"status\":129,\"details\":[]}"),
 (15,"music","13.0.22.7",1,"{\"status\":129,\"details\":[]}"),
 (16,"pm2","13.0.5",1,"{\"status\":129,\"details\":[]}"),
-(17,"userman","14.0.3.49",1,"{\"status\":8,\"details\":[\"unsigned\"]}"),
+(17,"userman","14.0.3.49",1,"{\"status\":129,\"details\":[]}"),
 (18,"visualplan","0.0.1",1,"{\"status\":129,\"details\":[]}"),
 (19,"announcement","13.0.7.7",1,"{\"status\":129,\"details\":[]}"),
 (20,"manager","13.0.2.5",1,"{\"status\":129,\"details\":[]}"),
