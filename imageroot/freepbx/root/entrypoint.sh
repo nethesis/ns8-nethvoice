@@ -23,6 +23,48 @@
 logger -t freepbx-entrypoint "Started FreePBX entrypoint"
 echo "freepbx-entrypoint Started FreePBX entrypoint"
 
+# Proxy pass to allow wizard to reach Tancredi
+cat > /etc/apache2/sites-available/tancredi.conf <<EOF
+ProxyPass "/tancredi"  "http://127.0.0.1:${TANCREDIPORT}/tancredi"
+ProxyPassReverse "/tancredi"  "http://127.0.0.1:${TANCREDIPORT}/tancredi"
+EOF
+
+ln -sf /etc/apache2/sites-available/tancredi.conf /etc/apache2/sites-enabled/tancredi.conf
+
+# Write wizard and restapy configuration
+cat > /var/www/html/freepbx/wizard/scripts/custom.js <<EOF
+var customConfig = {
+  BRAND_NAME: '${BRAND_NAME:=NethVoice}',
+  BRAND_SITE: '${BRAND_SITE:=http://www.nethvoice.it}',
+  BRAND_DOCS: '${BRAND_DOCS:=http://nethvoice.docs.nethesis.it}',
+  BASE_API_URL: '/freepbx/rest',
+  BASE_API_URL_CTI: '/webrest',
+  VPLAN_URL: '/freepbx/visualplan',
+  OUTBOUNDS_URL: '/freepbx/admin/config.php?display=routing&view=form&id=',
+  SECRET_KEY: '${NETHVOICESECRETKEY}'
+};
+
+EOF
+
+cat > /var/www/html/freepbx/rest/config.inc.php <<EOF
+<?php
+\$config = [
+    'settings' => [
+        'secretkey' => '${NETHVOICESECRETKEY}',
+        'cti_config_path' => '/etc/nethcti'
+    ],
+    'nethctidb' => [
+          'host' => '127.0.0.1',
+          'port' => '${MARIADB_PORT}',
+          'name' => 'nethcti3',
+          'user' => 'nethcti',
+          'pass' => '${CTIDBPASS}'
+      ]
+];
+EOF
+
+
+
 # Check if it is a new installation
 if [[ -f /etc/freepbx.conf ]]; then
 	# First configuration already done. Skipping

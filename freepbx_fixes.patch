@@ -123,3 +123,14 @@
 -    return $out[0];
 +    return 'tancredi';
  }
+--- imageroot/volumes/freepbx/rest/lib/libCTI.php.ori	2022-10-07 16:49:08.124599316 +0200
++++ imageroot/volumes/freepbx/rest/lib/libCTI.php	2022-10-07 16:48:07.960651074 +0200
+@@ -33,7 +33,7 @@
+ 
+     public static function Init($config) {
+         self::$db = new PDO(
+-            'mysql:host='. $config['host']. ';dbname='. $config['name'],
++            'mysql:host='. $config['host']. ';port='.(isset($config['port']) ? $config['port'] : '3306').';dbname='. $config['name'],
+             $config['user'],
+             $config['pass']);
+     }

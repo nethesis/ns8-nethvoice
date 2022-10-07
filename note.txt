@@ -294,6 +294,9 @@ export NETHVOICESECRETKEY=dummysecretkey
 export CTIDBPASS=dummyctidbpass
 export TANCREDIPORT=7190
 export TANCREDI_STATIC_TOKEN=dummytancredistatictoken
+export BRAND_NAME=NexthVoice
+export BRAND_SITE=http://www.nethvoice.it
+export BRAND_DOCS=http://nethvoice.docs.nethesis.it
 
 podman login -u Stell0 -p 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 ghcr.io
 repobase="${REPOBASE:-ghcr.io/nethserver}"
@@ -317,11 +320,11 @@ buildah add "${container}" imageroot/freepbx/root/ /
 buildah run "${container}" groupadd -r asterisk 
 buildah run "${container}" useradd -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk
 
-buildah run "${container}" /bin/sh <<'EOF'
-sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:$\{APACHE_PORT\}>/' /etc/apache2/sites-enabled/000-default.conf
-sed -i 's/Listen 80/Listen $\{APACHE_PORT\}/' /etc/apache2/ports.conf
-sed -i 's/Listen 443/Listen $\{APACHE_SSL_PORT\}/' /etc/apache2/ports.conf
-echo -e '\n: ${APACHE_PORT:=80}\nexport APACHE_PORT\n: ${APACHE_SSL_PORT:=443}\nexport APACHE_SSL_PORT\n' | buildah run "${container}" tee -a /etc/apache2/envvars
+buildah run "${container}" /bin/sh <<EOF
+sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:\$\{APACHE_PORT\}>/' /etc/apache2/sites-enabled/000-default.conf
+sed -i 's/Listen 80/Listen \$\{APACHE_PORT\}/' /etc/apache2/ports.conf
+sed -i 's/Listen 443/Listen \$\{APACHE_SSL_PORT\}/' /etc/apache2/ports.conf
+echo '\n: \${APACHE_PORT:=80}\nexport APACHE_PORT\n: \${APACHE_SSL_PORT:=443}\nexport APACHE_SSL_PORT\n' >> /etc/apache2/envvars
 EOF
 
 buildah config \
@@ -364,7 +367,7 @@ echo "variables_order = "EGPCS"" | buildah run "${container}" tee -a "$PHP_INI_D
 buildah run "${container}" sed -i 's/^variables_order = "GPCS"/variables_order = "EGPCS"/' $PHP_INI_DIR/php.ini
 
 # enable apache rewrite module
-buildah run "${container}" a2enmod rewrite
+buildah run "${container}" a2enmod rewrite proxy*
 
 # remove php sources
 buildah run "${container}" docker-php-source delete
@@ -373,7 +376,7 @@ buildah run "${container}" docker-php-source delete
 buildah run "${container}" apt-get install -y mycli vim telnet
 
 # clean apt cache
-buildah run "${container}" apt-get clean autoclean 
+buildah run "${container}" apt-get clean autoclean
 buildah run "${container}" apt-get autoremove --yes
 buildah run "${container}" rm -rf /var/lib/dpkg/info/* /var/lib/cache/* /var/lib/log/*
 buildah run "${container}" touch /var/lib/dpkg/status
@@ -419,7 +422,7 @@ docker-php-ext-install pdo_mysql
 docker-php-source delete
 
 # clean apt cache
-apt-get clean autoclean 
+apt-get clean autoclean
 apt-get autoremove --yes
 rm -rf /var/lib/dpkg/info/* /var/lib/cache/* /var/lib/log/*
 touch /var/lib/dpkg/status
@@ -437,7 +440,7 @@ buildah commit "${container}" tancredi
 
 
 
-
+sleep 5
 #
 # MariaDB
 #
@@ -457,7 +460,7 @@ MARIA_TAG=10.8.2
     --port ${MARIADB_PORT}
 
 
-sleep 30
+sleep 5
 # Run Asterisk
 rm -f /var/tmp/asterisk.ctr-id /var/tmp/asterisk.pid
 /usr/bin/podman run \
@@ -482,10 +485,11 @@ rm -f /var/tmp/asterisk.ctr-id /var/tmp/asterisk.pid
     
 
 #    --userns=keep-id \
-sleep 30
+sleep 5
+
 # Run FreePBX 14 
 rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
-/usr/bin/podman run \http://makako.nethesis.it:7187
+/usr/bin/podman run \
     --detach \
     --conmon-pidfile=/var/tmp/freepbx14.pid \
     --cidfile=/var/tmp/freepbx14.ctr-id \
@@ -516,10 +520,14 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --env=APACHE_SSL_PORT \
     --env=NETHVOICESECRETKEY \
     --env=CTIDBPASS \
+    --env=TANCREDIPORT \
+    --env=BRAND_NAME \
+    --env=BRAND_SITE \
+    --env=BRAND_DOCS \
     --network=host \
     freepbx14
 
-sleep 30
+sleep 5
 # Run Tancredi
 rm -f /var/tmp/tancredi.ctr-id /var/tmp/tancredi.pid
 /usr/bin/podman run \
@@ -562,7 +570,7 @@ SecretKey=$(echo -n "admin${fpbxPasswordHash}${NETHVOICESECRETKEY}" | sha1sum | 
 
 # GET tancredi available models
 curl -kv "http://127.0.0.1:${TANCREDIPORT}/tancredi/api/v1/models" -H "User: admin" -H "SecretKey: ${SecretKey}"
- 
+
 
 # telnet 
 telnet 127.0.0.1 5038
@@ -579,3 +587,5 @@ fwconsole ma install returnontransfer recordings voicemail queues queuereport pa
 # TODO fix cache dir 
 chmod o+w imageroot/volumes/freepbx/admin/assets/less/cache
 
+# TODO use asterisk AMI for Tancredi runtime filters instead of sqlite
+# TODO configure odbc for cdr
