@@ -1,0 +1,22 @@
+.default-check.check {
+	i {
+		color: green;
+		visibility: inherit;
+	}
+}
+
+.default-check {
+	width: 100%;
+	height: 100%;
+	i {
+		visibility: hidden;
+	}
+}
+
+td:hover > .default-check:not(.check) {
+	cursor: pointer;
+	> i{
+		visibility: inherit;
+		opacity: .5;
+	}
+}

@@ -211,7 +211,6 @@ rm -f /var/tmp/asterisk.ctr-id /var/tmp/asterisk.pid
     --replace --name=asterisk \
     --volume=asterisk:/etc/asterisk:z \
     --volume=spool:/var/spool/asterisk:z \
-    --mount=type=bind,source=imageroot/volumes/freepbx,destination=/var/www/html/freepbx,relabel=shared,ro=true \
     --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_sounds,destination=/var/lib/asterisk/sounds,relabel=shared,ro=true \
     --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_agi-bin,destination=/var/lib/asterisk/agi-bin,relabel=shared,ro=true \
     --env=APACHE_SSL_PORT \
@@ -236,7 +235,6 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --volume=spool:/var/spool/asterisk:z \
     --volume=asterisk:/etc/asterisk:z \
     --volume=nethcti:/etc/nethcti:z \
-    --mount=type=bind,source=imageroot/volumes/freepbx,destination=/var/www/html/freepbx,relabel=shared,ro=false \
     --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_sounds,destination=/var/lib/asterisk/sounds,relabel=shared,ro=false \
     --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_agi-bin,destination=/var/lib/asterisk/agi-bin,relabel=shared,ro=false \
     --env=MARIADB_ROOT_PASSWORD \

@@ -1,0 +1,7 @@
+.call {cursor: pointer;}
+
+@media (min-width: 1024px) {
+	#callpreview .modal-dialog {
+		width: 1024px;
+	}
+}

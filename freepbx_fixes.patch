@@ -1,5 +1,5 @@
---- imageroot/volumes/freepbx/admin/libraries/BMO/PKCS.class.php.ori	2022-09-16 10:13:24.195498228 +0200
-+++ imageroot/volumes/freepbx/admin/libraries/BMO/PKCS.class.php	2022-09-16 10:12:58.523530475 +0200
+--- imageroot/freepbx/root/var/www/html/freepbx/admin/libraries/BMO/PKCS.class.php.ori	2022-09-16 10:13:24.195498228 +0200
++++ imageroot/freepbx/root/var/www/html/freepbx/admin/libraries/BMO/PKCS.class.php	2022-09-16 10:12:58.523530475 +0200
 @@ -478,14 +478,8 @@
  				throw new \Exception(sprintf(_("Could Not Create the Asterisk Keys Folder: %s"),$keyloc));
  			}
@@ -17,8 +17,8 @@
  	}
  
  	private function validateName($name) {
---- imageroot/volumes/freepbx/admin/libraries/php-asmanager.php.ori	2022-09-16 10:13:45.319471792 +0200
-+++ imageroot/volumes/freepbx/admin/libraries/php-asmanager.php	2022-09-16 10:12:34.739560437 +0200
+--- imageroot/freepbx/root/var/www/html/freepbx/admin/libraries/php-asmanager.php.ori	2022-09-16 10:13:45.319471792 +0200
++++ imageroot/freepbx/root/var/www/html/freepbx/admin/libraries/php-asmanager.php	2022-09-16 10:12:34.739560437 +0200
 @@ -1826,11 +1826,7 @@
  			$parameters['Module'] = $module;
  			return $this->send_request('Reload', $parameters);
@@ -32,8 +32,8 @@
  		}
  
  	}
---- imageroot/volumes/freepbx/rest/lib/freepbxFwConsole.php.ori	2022-09-20 15:46:18.031864851 +0200
-+++ imageroot/volumes/freepbx/rest/lib/freepbxFwConsole.php	2022-09-20 15:47:02.259816377 +0200
+--- imageroot/freepbx/root/var/www/html/freepbx/rest/lib/freepbxFwConsole.php.ori	2022-09-20 15:46:18.031864851 +0200
++++ imageroot/freepbx/root/var/www/html/freepbx/rest/lib/freepbxFwConsole.php	2022-09-20 15:47:02.259816377 +0200
 @@ -23,7 +23,7 @@
  function fwconsole($cmd, $args = array()) {
    //launch long running process
@@ -43,8 +43,8 @@
    if (!$taskId) {
        throw new Exception('fwconsole failed');
    }
---- imageroot/volumes/freepbx/rest/modules/configuration.php.ori	2022-09-20 17:21:39.770593560 +0200
-+++ imageroot/volumes/freepbx/rest/modules/configuration.php	2022-09-20 17:23:00.890488033 +0200
+--- imageroot/freepbx/root/var/www/html/freepbx/rest/modules/configuration.php.ori	2022-09-20 17:21:39.770593560 +0200
++++ imageroot/freepbx/root/var/www/html/freepbx/rest/modules/configuration.php	2022-09-20 17:23:00.890488033 +0200
 @@ -35,9 +35,8 @@
  
  
@@ -57,8 +57,8 @@
  });
  
  # get enabled mode
---- imageroot/volumes/freepbx/rest/lib/retrieveHelper.sh.ori	2022-09-22 17:55:46.491096933 +0200
-+++ imageroot/volumes/freepbx/rest/lib/retrieveHelper.sh	2022-09-22 17:54:46.355156352 +0200
+--- imageroot/freepbx/root/var/www/html/freepbx/rest/lib/retrieveHelper.sh.ori	2022-09-22 17:55:46.491096933 +0200
++++ imageroot/freepbx/root/var/www/html/freepbx/rest/lib/retrieveHelper.sh	2022-09-22 17:54:46.355156352 +0200
 @@ -36,14 +36,12 @@
      # process name, so clean up the old lockdir and restart
      if [ ! -f $LOCKFILE ]; then
@@ -113,8 +113,8 @@
 +    fwconsole r > /dev/stderr
      sleep 10
  done
---- imageroot/volumes/freepbx/rest/lib/libExtensions.php.ori	2022-09-26 15:28:41.519097548 +0200
-+++ imageroot/volumes/freepbx/rest/lib/libExtensions.php	2022-09-26 15:29:47.139032555 +0200
+--- imageroot/freepbx/root/var/www/html/freepbx/rest/lib/libExtensions.php.ori	2022-09-26 15:28:41.519097548 +0200
++++ imageroot/freepbx/root/var/www/html/freepbx/rest/lib/libExtensions.php	2022-09-26 15:29:47.139032555 +0200
 @@ -955,6 +955,5 @@
  }
  
@@ -123,8 +123,8 @@
 -    return $out[0];
 +    return 'tancredi';
  }
---- imageroot/volumes/freepbx/rest/lib/libCTI.php.ori	2022-10-07 16:49:08.124599316 +0200
-+++ imageroot/volumes/freepbx/rest/lib/libCTI.php	2022-10-07 16:48:07.960651074 +0200
+--- imageroot/freepbx/root/var/www/html/freepbx/rest/lib/libCTI.php.ori	2022-10-07 16:49:08.124599316 +0200
++++ imageroot/freepbx/root/var/www/html/freepbx/rest/lib/libCTI.php	2022-10-07 16:48:07.960651074 +0200
 @@ -33,7 +33,7 @@
  
      public static function Init($config) {
@@ -134,3 +134,20 @@
              $config['user'],
              $config['pass']);
      }
+--- imageroot/freepbx/root/var/www/html/freepbx/admin/modules/nethcti3/functions.inc.php.ori	2022-10-10 16:54:14.781108751 +0200
++++ imageroot/freepbx/root/var/www/html/freepbx/admin/modules/nethcti3/functions.inc.php	2022-10-10 17:00:32.984459476 +0200
+@@ -379,7 +379,13 @@
+         nethvoice_report_config();
+ 
+         //Move provisioning files from /var/lib/tftpnethvoice to /var/lib/tftpboot
+-        system("/usr/bin/sudo /usr/bin/scl enable rh-php56 -- php /var/www/html/freepbx/rest/lib/moveProvisionFiles.php");
++	system("/usr/bin/sudo /usr/bin/scl enable rh-php56 -- php /var/www/html/freepbx/rest/lib/moveProvisionFiles.php");
++
++	// Convert /etc/asterisk symlinks to file copied
++	if (file_exists('/var/lib/asterisk/bin/symlink2copies.sh')) {
++	        system("/var/lib/asterisk/bin/symlink2copies.sh");
++	}
++
+         //Reload CTI
+         system("/var/www/html/freepbx/rest/lib/ctiReloadHelper.sh > /dev/null 2>&1 &");
+     } catch (Exception $e) {

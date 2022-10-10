@@ -60,4 +60,7 @@ INSERT INTO `queue_log_history` (`id`,`time`,`callid`,`queuename`,`agent`,`event
 (61,"2022-10-06 08:34:09.395773","NONE","NONE","NONE","CONFIGRELOAD","","","","","",""),
 (62,"2022-10-06 08:34:23.505744","NONE","NONE","NONE","CONFIGRELOAD","","","","","",""),
 (63,"2022-10-06 08:34:27.645602","NONE","NONE","NONE","QUEUESTART","","","","","",""),
-(64,"2022-10-06 08:34:51.023103","NONE","NONE","NONE","CONFIGRELOAD","","","","","","");
+(64,"2022-10-06 08:34:51.023103","NONE","NONE","NONE","CONFIGRELOAD","","","","","",""),
+(67,"2022-10-07 05:29:38.772239","NONE","NONE","NONE","CONFIGRELOAD","","","","","",""),
+(68,"2022-10-08 04:55:29.177870","NONE","NONE","NONE","CONFIGRELOAD","","","","","",""),
+(69,"2022-10-09 04:47:12.662308","NONE","NONE","NONE","CONFIGRELOAD","","","","","","");

@@ -23,4 +23,4 @@ CREATE TABLE `queue_log_processed` (
   KEY `datetime` (`datetime`),
   KEY `agentdev` (`agentdev`),
   KEY `origid` (`origid`)
-) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=64 DEFAULT CHARSET=utf8;
