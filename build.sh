@@ -115,7 +115,7 @@ echo "variables_order = "EGPCS"" | buildah run "${container}" tee -a "$PHP_INI_D
 buildah run "${container}" sed -i 's/^variables_order = "GPCS"/variables_order = "EGPCS"/' $PHP_INI_DIR/php.ini
 
 # enable apache rewrite module
-buildah run "${container}" a2enmod rewrite
+buildah run "${container}" a2enmod rewrite proxy*
 
 # remove php sources
 buildah run "${container}" docker-php-source delete
