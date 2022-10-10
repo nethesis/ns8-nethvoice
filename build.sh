@@ -41,6 +41,10 @@ export AMPASTERISKWEBUSER=asterisk
 export NETHVOICESECRETKEY=dummysecretkey
 export CTIDBPASS=dummyctidbpass
 export TANCREDIPORT=7190
+export TANCREDI_STATIC_TOKEN=dummytancredistatictoken
+export BRAND_NAME=NexthVoice
+export BRAND_SITE=http://www.nethvoice.it
+export BRAND_DOCS=http://nethvoice.docs.nethesis.it
 
 echo "[*] Set repobase"
 repobase="${REPOBASE:-ghcr.io/nethserver}"
@@ -131,20 +135,44 @@ buildah commit "${container}" freepbx14
 
 echo "[*] Build Tancredi container"
 container=$(buildah from docker.io/library/php:7-apache)
+buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
 buildah add "${container}"  imageroot/tancredi/root/ /
 buildah run "${container}" /bin/sh <<'EOF'
+apt update
+apt install -y libapache2-mod-xsendfile zip
+ln -sf /etc/apache2/sites-available/tancredi.conf /etc/apache2/sites-enabled/tancredi.conf
+
+sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:$\{TANCREDIPORT\}>/' /etc/apache2/sites-enabled/000-default.conf
+sed -i 's/Listen 80/Listen $\{TANCREDIPORT\}/' /etc/apache2/ports.conf
+sed -i 's/Listen 443/Listen $\{TANCREDI_SSL_PORT\}/' /etc/apache2/ports.conf
+echo -e '\n: ${TANCREDIPORT:=80}\nexport TANCREDIPORT\n: ${TANCREDI_SSL_PORT:=443}\nexport TANCREDI_SSL_PORT\n' | buildah run "${container}" tee -a /etc/apache2/envvars
 
 # Install Tancredi files
-curl -L https://github.com/nethesis/nethserver-tancredi/archive/refs/heads/master.tar.gz -o - | tar xzp --strip-component=2 -C / nethserver-tancredi-master/root/usr/share/tancredi/ nethserver-tancredi-master/root/var/lib/tancredi
+mkdir /usr/share/tancredi/
+curl -L https://github.com/nethesis/tancredi/archive/refs/heads/master.tar.gz -o - | tar xzp --strip-component=1 -C /usr/share/tancredi/ tancredi-master/data/ tancredi-master/public/ tancredi-master/scripts/ tancredi-master/src/ tancredi-master/composer.json tancredi-master/composer.lock
 
-EOF
+BRANCH=otherdb
+curl -L https://github.com/nethesis/nethserver-tancredi/archive/refs/heads/${BRANCH}.tar.gz -o - | tar xzp --strip-component=2 -C / nethserver-tancredi-${BRANCH}/root/usr/share/tancredi/ nethserver-tancredi-${BRANCH}/root/var/lib/tancredi
+cd /usr/share/tancredi/
+curl -s https://getcomposer.org/installer | php
+COMPOSER_ALLOW_SUPERUSER=1 php composer.phar install --no-dev
+rm -fr /usr/share/tancredi/src/Entity/SampleFilter.php /usr/share/tancredi/composer.phar /usr/share/tancredi/composer.json /usr/share/tancredi/composer.lock
+
+# install pdo_mysql
+docker-php-source extract
+docker-php-ext-configure pdo_mysql
+docker-php-ext-install pdo_mysql
+docker-php-source delete
 
 # clean apt cache
-buildah run "${container}" apt-get clean autoclean
-buildah run "${container}" apt-get autoremove --yes
-buildah run "${container}" rm -rf /var/lib/dpkg/info/* /var/lib/cache/* /var/lib/log/*
-buildah run "${container}" touch /var/lib/dpkg/status
+apt-get clean autoclean
+apt-get autoremove --yes
+rm -rf /var/lib/dpkg/info/* /var/lib/cache/* /var/lib/log/*
+touch /var/lib/dpkg/status
+EOF
 
+buildah run "${container}" cp -a "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+buildah run "${container}" sed -i 's/^;error_log = syslog/error_log = \/dev\/stderr/' $PHP_INI_DIR/php.ini
 buildah commit "${container}" tancredi
 
 echo "[*] Build nethcti container"
@@ -230,6 +258,10 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --env=APACHE_SSL_PORT \
     --env=NETHVOICESECRETKEY \
     --env=CTIDBPASS \
+    --env=TANCREDIPORT \
+    --env=BRAND_NAME \
+    --env=BRAND_SITE \
+    --env=BRAND_DOCS \
     --network=host \
     freepbx14
 
@@ -246,6 +278,11 @@ rm -f /var/tmp/tancredi.ctr-id /var/tmp/tancredi.pid
     --replace --name=tancredi \
     --volume=tancredi:/var/lib/tancredi:Z \
     --env=TANCREDIPORT \
+    --env=NETHVOICESECRETKEY \
+    --env=AMPDBUSER \
+    --env=AMPDBPASS \
+    --env=MARIADB_PORT \
+    --env=TANCREDI_STATIC_TOKEN \
     --network=host \
     tancredi
 
