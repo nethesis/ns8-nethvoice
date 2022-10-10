@@ -67,21 +67,20 @@ container=$(buildah from docker.io/library/php:5.6-apache)
 buildah add "${container}" imageroot/freepbx/root/ /
 buildah run "${container}" groupadd -r asterisk
 buildah run "${container}" useradd -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk
-buildah run "${container}" sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:$\{APACHE_PORT\}>/' /etc/apache2/sites-enabled/000-default.conf
-buildah run "${container}" sed -i 's/Listen 80/Listen $\{APACHE_PORT\}/' /etc/apache2/ports.conf
-buildah run "${container}" sed -i 's/Listen 443/Listen $\{APACHE_SSL_PORT\}/' /etc/apache2/ports.conf
 
-echo -e '\n: ${APACHE_PORT:=80}\nexport APACHE_PORT\n: ${APACHE_SSL_PORT:=443}\nexport APACHE_SSL_PORT\n' | buildah run "${container}" tee -a /etc/apache2/envvars
+buildah run "${container}" /bin/sh <<EOF
+sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:\$\{APACHE_PORT\}>/' /etc/apache2/sites-enabled/000-default.conf
+sed -i 's/Listen 80/Listen \$\{APACHE_PORT\}/' /etc/apache2/ports.conf
+sed -i 's/Listen 443/Listen \$\{APACHE_SSL_PORT\}/' /etc/apache2/ports.conf
+echo '\n: \${APACHE_PORT:=80}\nexport APACHE_PORT\n: \${APACHE_SSL_PORT:=443}\nexport APACHE_SSL_PORT\n' >> /etc/apache2/envvars
+EOF
 
 buildah config \
     --entrypoint='["/entrypoint.sh"]' \
     "${container}"
 
 # install PHP additional modules
-buildah run "${container}" docker-php-source extract $MARIADB_ROOT_PASSWORD \
-    --env=MARIADB_PORT \
-    --env=APACHE_RUN_USER \
-    --env=APACHE_
+buildah run "${container}" docker-php-source extract
 
 # install pdo_mysql
 buildah run "${container}" docker-php-ext-configure pdo_mysql
@@ -108,8 +107,8 @@ buildah run "${container}" apt install -y cron # TODO needed by freepbx cron mod
 
 # Use PHP development ini configuration and enable logging on syslog
 buildah run "${container}" cp -a "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
-buildah run "${container}" sed -i 's/^;error_log = syslog/error_log = stderr/' $PHP_INI_DIR/php.ini
-echo "error_log = stderr" | buildah run "${container}" tee -a "$PHP_INI_DIR/conf.d/freepbx.ini"
+buildah run "${container}" sed -i 's/^;error_log = syslog/error_log = \/dev\/stderr/' $PHP_INI_DIR/php.ini
+echo "error_log = /dev/stderr" | buildah run "${container}" tee -a "$PHP_INI_DIR/conf.d/freepbx.ini"
 echo "variables_order = "EGPCS"" | buildah run "${container}" tee -a "$PHP_INI_DIR/conf.d/freepbx.ini"
 
 # Enable environment variables
