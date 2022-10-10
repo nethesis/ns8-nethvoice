@@ -51,8 +51,9 @@ repobase="${REPOBASE:-ghcr.io/nethserver}"
 reponame="nethvoice"
 
 echo "[*] Clean containers"
-podman stop mariadb asterisk freepbx14 tancredi
-podman rm mariadb asterisk freepbx14 tancredi
+podman stop mariadb asterisk freepbx14 tancredi nethcti-server
+podman rm mariadb asterisk freepbx14 tancredi nethcti-server
+podman rmi mariadb asterisk freepbx14 tancredi nethcti-server
 
 echo "[*] Build asterisk container"
 container=$(buildah from centos:7)
@@ -175,10 +176,9 @@ buildah run "${container}" sed -i 's/^;error_log = syslog/error_log = \/dev\/std
 buildah commit "${container}" tancredi
 
 echo "[*] Build nethcti container"
-container=$(buildah from node:14.20.1-alpine)
+container=$(buildah from docker.io/library/node:14)
 buildah add "${container}" imageroot/nethcti/root/ /
 buildah config --workingdir /usr/lib/node/nethcti-server "${container}"
-#buildah run "${container}" npm install
 buildah config --entrypoint '["npm", "start"]' "${container}"
 buildah commit "${container}" nethcti-server
 
@@ -292,7 +292,7 @@ rm -f /var/tmp/nethcti-server.ctr-id /var/tmp/nethcti-server.pid
     --cgroups=no-conmon \
     --log-opt=tag=nethcti-server \
     --replace --name=nethcti-server \
-    --volume=nethcti:/var/lib/nethcti:Z \
+    --volume=nethcti-server:/root:Z \
     --network=host \
     nethcti-server
 
