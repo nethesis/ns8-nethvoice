@@ -1,0 +1,68 @@
+{
+  "author": "Mike D Pilsbury <mike.pilsbury@gmail.com>",
+  "contributors": [
+    "Alex Robson",
+    "Arthur Schreiber",
+    "Bret Copeland <bret@atlantisflight.org> (https://github.com/bretcope)",
+    "Bryan Ross <bryan@rossipedia.com> (https://github.com/rossipedia)",
+    "Ciaran Jessup <ciaranj@gmail.com>",
+    "Cort Fritz <cfritz@caa.com>",
+    "lastonesky",
+    "Patrik Simek <patrik@patriksimek.cz>",
+    "Phil Dodderidge <pdodde@poyntz.com>",
+    "Zach Aller"
+  ],
+  "name": "tedious",
+  "description": "A TDS driver, for connecting to MS SQLServer databases.",
+  "keywords": [
+    "sql",
+    "database",
+    "mssql",
+    "sqlserver",
+    "sql-server",
+    "tds",
+    "msnodesql",
+    "azure"
+  ],
+  "homepage": "https://github.com/pekim/tedious",
+  "bugs": "https://github.com/pekim/tedious/issues",
+  "license": "MIT",
+  "version": "1.14.0",
+  "main": "./lib/tedious.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pekim/tedious.git"
+  },
+  "engines": {
+    "node": ">= 0.10"
+  },
+  "dependencies": {
+    "babel-runtime": "^5.8.19",
+    "big-number": "0.3.1",
+    "bl": "^1.0.0",
+    "iconv-lite": "^0.4.11",
+    "readable-stream": "^2.0.2",
+    "semver": "^5.1.0",
+    "sprintf": "0.1.5"
+  },
+  "devDependencies": {
+    "async": "^1.4.0",
+    "babel": "^5.8.19",
+    "benchmark": "^1.0.0",
+    "coffee-script": "^1.9.3",
+    "eslint": "^1.10.3",
+    "nodeunit": "^0.9.1"
+  },
+  "scripts": {
+    "pretest": "eslint src test",
+    "test": "nodeunit --reporter minimal test/setup.js test/unit/ test/unit/token/ test/unit/tracking-buffer",
+    "pretest-all": "eslint src test",
+    "test-all": "nodeunit --reporter minimal test/setup.js test/unit/ test/unit/token/ test/unit/tracking-buffer test/integration/",
+    "pretest-integration": "eslint src test",
+    "test-integration": "nodeunit --reporter minimal test/setup.js test/integration/",
+    "prepublish": "coffee scripts/build.coffee"
+  },
+  "babel": {
+    "optional": [ "runtime" ]
+  }
+}

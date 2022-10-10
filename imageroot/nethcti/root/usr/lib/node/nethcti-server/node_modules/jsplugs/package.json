@@ -1,0 +1,26 @@
+{
+  "name": "jsplugs",
+  "description": "Dead-stupid init.d-like plugin manager for node.js",
+  "version": "0.1.0",
+  "author": "Elad Ben-Israel",
+  "main": "./main",
+  "keywords": [
+    "plugins",
+    "components",
+    "init.d"
+  ],
+  "license": "MIT",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "nodeunit": "~0.6.4",
+    "express": "~2.5.5"
+  },
+  "scripts": {
+    "test": "nodeunit test/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/eladb/node-jsplugs"
+  }
+}

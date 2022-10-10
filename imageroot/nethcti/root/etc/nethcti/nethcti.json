@@ -1,0 +1,8 @@
+{
+   "hostname" : "ns.edo.test.neth",
+   "loglevel" : "warn",
+   "publichost" : "",
+   "proxy_port" : 6061,
+   "privacy_numbers" : "xxx",
+   "logfile" : "/var/log/asterisk/nethcti.log"
+}

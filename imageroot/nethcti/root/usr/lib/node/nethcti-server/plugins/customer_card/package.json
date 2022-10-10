@@ -1,0 +1,16 @@
+{
+  "name": "customer_card",
+  "main": "arch_customer_card.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "user",
+      "logger",
+      "dbconn",
+      "authorization"
+    ],
+    "provides": [
+      "customerCard"
+    ]
+  }
+}

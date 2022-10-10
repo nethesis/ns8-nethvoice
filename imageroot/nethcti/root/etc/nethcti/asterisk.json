@@ -1,0 +1,10 @@
+{
+        "user": "proxycti",
+        "pass": "NOwGG9_bYd5GSgm3",
+        "host": "localhost",
+        "port": "5038",
+        "prefix": "",
+        "auto_c2c": "enabled",
+        "trunks_events": "enabled",
+        "qm_alarms_notifications": true
+    }

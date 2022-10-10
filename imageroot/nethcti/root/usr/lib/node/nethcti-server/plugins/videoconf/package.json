@@ -1,0 +1,14 @@
+{
+  "name": "videoconf",
+  "main": "arch_videoconf.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "logger",
+      "dbconn"
+    ],
+    "provides": [
+      "videoconf"
+    ]
+  }
+}

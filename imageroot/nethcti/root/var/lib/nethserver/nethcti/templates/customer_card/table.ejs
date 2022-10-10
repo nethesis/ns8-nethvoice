@@ -1,0 +1,32 @@
+<!-- color: red -->
+<% if(results.length==0){ %>
+  <div class="ui warning message">
+    <div class="header">
+      Sorry
+    </div>
+    <p>No data found</p>
+  </div>
+  <% } else { %>
+    <table class="ui unstackable red selectable table">
+      <thead>
+        <tr>
+          <% for (prop in results[0]) { %>
+            <th>
+              <%= prop %>
+            </th>
+            <%  } %>
+        </tr>
+      </thead>
+      <tbody>
+        <% for(var i=0; i<results.length; i++){ %>
+          <tr>
+            <% for (prop in results[i]) { %>
+              <td>
+                <%= results[i][prop] %>
+              </td>
+              <%  } %>
+          </tr>
+          <% } %>
+      </tbody>
+    </table>
+    <% } %>

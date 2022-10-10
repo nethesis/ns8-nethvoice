@@ -1,0 +1,12 @@
+{
+    "enabled": true,
+    "type": "pam",
+    "file": {
+        "path": "/etc/nethcti/users.json"
+    },
+    "expiration_timeout": "3600",
+    "unauthe_call": {
+        "status": "disabled",
+        "allowed_ip": "127.0.0.1 172.28.0.1/255.255.255.255 172.29.0.1/255.255.255.255 192.168.1.0/255.255.255.0"
+    }
+}

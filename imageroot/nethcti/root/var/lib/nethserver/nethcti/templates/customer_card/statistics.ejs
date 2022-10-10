@@ -1,0 +1,22 @@
+<!-- color: red -->
+<% if(results.length==0){ %>
+  <div class="ui warning message">
+    <div class="header">
+      Sorry
+    </div>
+    <p>No data found</p>
+  </div>
+  <% } else { %>
+    <div class="ui red statistics">
+      <div class="statistic">
+        <div class="statistic">
+          <div class="value">
+            <%= results.length %>
+          </div>
+          <div class="ui red label">
+            Results
+          </div>
+        </div>
+      </div>
+    </div>
+    <% } %>

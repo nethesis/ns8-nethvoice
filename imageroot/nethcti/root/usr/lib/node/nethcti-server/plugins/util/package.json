@@ -1,0 +1,13 @@
+{
+  "name": "util",
+  "main": "arch_util.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "logger"
+    ],
+    "provides": [
+      "util"
+    ]
+  }
+}

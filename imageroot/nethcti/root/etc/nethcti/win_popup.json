@@ -1,0 +1,18 @@
+{
+    "call": {
+        "width": "400",
+        "height": "174"
+    },
+    "stream": {
+        "width": "400",
+        "height": "400"
+    },
+    "close_timeout": "10",
+    "commands": {
+        "url": {
+            "command": "url",
+            "runwith": ""
+        }
+    },
+    "cti_proto": "https"
+}

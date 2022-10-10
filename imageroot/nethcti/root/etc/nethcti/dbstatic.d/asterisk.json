@@ -1,0 +1,66 @@
+{
+    "ampusers": {
+        "dbhost": "localhost",
+        "dbport": "\/var\/lib\/mysql\/mysql.sock",
+        "dbtype": "mysql",
+        "dbuser": "freepbxuser",
+        "dbpassword": "ffcd794e89cf6f81dd412d61b2357ad6",
+        "dbname": "asterisk"
+    },
+    "incoming": {
+        "dbhost": "localhost",
+        "dbport": "\/var\/lib\/mysql\/mysql.sock",
+        "dbtype": "mysql",
+        "dbuser": "freepbxuser",
+        "dbpassword": "ffcd794e89cf6f81dd412d61b2357ad6",
+        "dbname": "asterisk"
+    },
+    "offhour": {
+        "dbhost": "localhost",
+        "dbport": "\/var\/lib\/mysql\/mysql.sock",
+        "dbtype": "mysql",
+        "dbuser": "freepbxuser",
+        "dbpassword": "ffcd794e89cf6f81dd412d61b2357ad6",
+        "dbname": "asterisk"
+    },
+    "rest_users": {
+        "dbhost": "localhost",
+        "dbport": "\/var\/lib\/mysql\/mysql.sock",
+        "dbtype": "mysql",
+        "dbuser": "freepbxuser",
+        "dbpassword": "ffcd794e89cf6f81dd412d61b2357ad6",
+        "dbname": "asterisk"
+    },
+    "userman_users": {
+        "dbhost": "localhost",
+        "dbport": "\/var\/lib\/mysql\/mysql.sock",
+        "dbtype": "mysql",
+        "dbuser": "freepbxuser",
+        "dbpassword": "ffcd794e89cf6f81dd412d61b2357ad6",
+        "dbname": "asterisk"
+    },
+    "rest_cti_profiles_paramurl": {
+        "dbhost": "localhost",
+        "dbport": "\/var\/lib\/mysql\/mysql.sock",
+        "dbtype": "mysql",
+        "dbuser": "freepbxuser",
+        "dbpassword": "ffcd794e89cf6f81dd412d61b2357ad6",
+        "dbname": "asterisk"
+    },
+    "pin": {
+        "dbhost": "localhost",
+        "dbport": "\/var\/lib\/mysql\/mysql.sock",
+        "dbtype": "mysql",
+        "dbuser": "freepbxuser",
+        "dbpassword": "ffcd794e89cf6f81dd412d61b2357ad6",
+        "dbname": "asterisk"
+    },
+    "pin_protected_routes": {
+        "dbhost": "localhost",
+        "dbport": "\/var\/lib\/mysql\/mysql.sock",
+        "dbtype": "mysql",
+        "dbuser": "freepbxuser",
+        "dbpassword": "ffcd794e89cf6f81dd412d61b2357ad6",
+        "dbname": "asterisk"
+    }
+}

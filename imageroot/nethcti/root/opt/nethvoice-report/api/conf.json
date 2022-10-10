@@ -1,0 +1,95 @@
+{
+        "listen_address": "0.0.0.0:8585",
+        "redis_address": "/var/run/redis-nethvoice-report/nethvoice-report.sock",
+        "ttl_cache": 480,
+        "cdr_database": {
+          "host": "localhost",
+          "port": "3306",
+          "user": "nethvoice_report",
+          "password": "UuaZLFqp99QODR_z",
+          "name": "asteriskcdrdb"
+        },
+	"phonebook_database": {
+          "host": "localhost",
+          "port": "3306",
+          "user": "nethvoice_report",
+          "password": "UuaZLFqp99QODR_z",
+          "name": "phonebook"
+        },
+	"freepbx_database": {
+          "host": "localhost",
+          "port": "3306",
+          "user": "nethvoice_report",
+          "password": "UuaZLFqp99QODR_z",
+          "name": "asterisk"
+        },
+        "secret": "paCbeTBwdVzyuzhQChwjltPlTLnwg9RwttZb80yqNVGG0nzdJ1SSEc4QWIAbAoZd8qYXf_VeytAEFgUUE5SH70H34zwZ4bnziaBaxYeuC7FYsv16YUvEY8oLaUcK6eQX",
+  "query_path": "/opt/nethvoice-report/api/queries",
+  "template_path": "/opt/nethvoice-report/api/templates",
+  "values_path": "/opt/nethvoice-report/api/values",
+  "views_path": "/opt/nethvoice-report/api/views",
+  "phonebook_path": "/opt/nethvoice-report/api/phonebook/phonebook.sql",
+	"rrd_path": "/var/lib/collectd/rrd",
+        "user_auth_file": "/opt/nethvoice-report/api/user_authorizations.json",
+        "default_filter": {
+          "queues": [],
+          "groups": [],
+	        "time": {
+            "group": "day",
+            "division": "60",
+            "range": "yesterday",
+            "cdrDashboardRange": "past_week",
+            "interval": {
+                "start": "",
+                "end": ""
+            }
+          },
+          "name": "",
+          "agent": "",
+          "geoGroup": "regione"
+        },
+        "api_endpoint": "http://localhost:8585/api",
+        "api_key": "0qKW_uRiymrPECUQRyXn4vCmNcAFPte3DXApMj7s12eXbDnRNbO9Zw6uMxsqkNQcLA4Jwp7fPgHWutsEBHYeMhu7jWwUDT3W44lJ1JJHe_8m_CqGhhmDbm9BFGbXEzyy",
+        "settings": {
+          "start_hour": "09:00",
+          "end_hour": "18:00",
+          "query_limit": "2000",
+          "null_call_time": "5",
+          "destinations": ["National", "Mobile", "International", "Emergency", "PayNumber"],
+          "call_patterns": [
+            {
+              "prefix": "00390",
+              "destination": "National"
+            }, {
+              "prefix": "+390",
+              "destination": "National"
+            }, {
+              "prefix": "0",
+              "destination": "National"
+            }, {
+              "prefix": "00393",
+              "destination": "Mobile"
+            }, {
+              "prefix": "+393",
+              "destination": "Mobile"
+            }, {
+              "prefix": "3",
+              "destination": "Mobile"
+            }, {
+              "prefix": "00",
+              "destination": "International"
+            }, {
+              "prefix": "+",
+              "destination": "International"
+            }, {
+              "prefix": "1",
+              "destination": "Emergency"
+            }, {
+              "prefix": "8",
+              "destination": "PayNumber"
+            }
+          ],
+          "currency": "EUR",
+          "costs": []
+        }
+}

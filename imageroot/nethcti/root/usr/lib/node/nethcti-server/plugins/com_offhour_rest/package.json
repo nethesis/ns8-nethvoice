@@ -1,0 +1,15 @@
+{
+  "name": "com_offhour_rest",
+  "main": "arch_com_offhour_rest.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "util",
+      "logger",
+      "offhour",
+      "staticHttp",
+      "authorization"
+    ],
+    "provides": []
+  }
+}

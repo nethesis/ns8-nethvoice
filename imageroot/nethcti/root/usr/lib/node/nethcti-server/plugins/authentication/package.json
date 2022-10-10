@@ -1,0 +1,14 @@
+{
+  "name": "authentication",
+  "main": "arch_authentication.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "dbconn",
+      "logger"
+    ],
+    "provides": [
+      "authentication"
+    ]
+  }
+}

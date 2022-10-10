@@ -1,0 +1,12 @@
+{
+    "trunks": [],
+    "queues": [],
+    "feature_codes": {
+        "pickup": "**",
+        "dnd_toggle": "*76",
+        "meetme_conf": "987",
+        "incall_audio": "1987",
+        "que_toggle": "*45"
+    },
+    "transfer_context": "blindxfer_ringback"
+}

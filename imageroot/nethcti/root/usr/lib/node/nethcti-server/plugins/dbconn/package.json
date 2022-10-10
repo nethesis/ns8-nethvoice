@@ -1,0 +1,14 @@
+{
+  "name": "dbconn",
+  "main": "arch_dbconn.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "util",
+      "logger"
+    ],
+    "provides": [
+      "dbconn"
+    ]
+  }
+}

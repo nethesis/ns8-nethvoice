@@ -1,0 +1,11 @@
+
+{
+    "phonebook": {
+        "dbhost":     "localhost",
+        "dbport":     "/var/lib/mysql/mysql.sock",
+        "dbtype":     "mysql",
+        "dbuser":     "pbookuser",
+        "dbpassword": "sO8c1oEb2_bhvAzH",
+        "dbname":     "phonebook"
+    }
+}
