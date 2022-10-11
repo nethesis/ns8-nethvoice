@@ -45,6 +45,13 @@ export TANCREDI_STATIC_TOKEN=dummytancredistatictoken
 export BRAND_NAME=NexthVoice
 export BRAND_SITE=http://www.nethvoice.it
 export BRAND_DOCS=http://nethvoice.docs.nethesis.it
+export JANUS_ADMIN_SECRET=dummyjanusadminsecret
+export DEBUG_LEVEL=5
+export RTPSTART=10000
+export RTPEND=15000
+export STUNSERVER=stun1.l.google.com
+export STUNPORT=19302
+export ICEIGNORE=vmnet,tap,tun,virb,vb-
 
 echo "[*] Set repobase"
 repobase="${REPOBASE:-ghcr.io/nethserver}"
@@ -296,4 +303,22 @@ rm -f /var/tmp/nethcti-server.ctr-id /var/tmp/nethcti-server.pid
     --network=host \
     nethcti-server
 
-sleep 15
+echo "[*] Run Janus"
+rm -f /var/tmp/janus.ctr-id /var/tmp/janus.pid
+/usr/bin/podman run \
+    --detach \
+    --conmon-pidfile=/var/tmp/janus.pid \
+    --cidfile=/var/tmp/janus.ctr-id \
+    --cgroups=no-conmon \
+    --log-opt=tag=janus \
+    --replace --name=janus \
+    --mount=type=bind,source=imageroot/janus,destination=/usr/local/etc/janus,relabel=private,ro=true \
+    --network=host \
+    docker.io/canyan/janus-gateway:master \
+    /usr/local/bin/janus \
+    --configs-folder /usr/local/etc/janus \
+    --interface=lo \
+    --stun-server=${STUNSERVER:=stun1.l.google.com}:${STUNPORT:=19302} \
+    --ice-ignore-list=${ICEIGNORE:=vmnet,tap,tun,virb,vb-} \
+    --rtp-port-range=${RTPSTART:=10000}-${RTPEND:=20000} \
+    --debug-level=${DEBUG_LEVEL:=4}
