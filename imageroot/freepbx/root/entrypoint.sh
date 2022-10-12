@@ -20,16 +20,18 @@
 # along with NethServer.  If not, see COPYING.
 #
 
-logger -t freepbx-entrypoint "Started FreePBX entrypoint"
-echo "freepbx-entrypoint Started FreePBX entrypoint"
+NEEDRELOAD=FALSE
 
-# Proxy pass to allow wizard to reach Tancredi
+# ProxyPass to allow wizard to reach Tancredi
 cat > /etc/apache2/sites-available/tancredi.conf <<EOF
 ProxyPass "/tancredi"  "http://127.0.0.1:${TANCREDIPORT}/tancredi"
 ProxyPassReverse "/tancredi"  "http://127.0.0.1:${TANCREDIPORT}/tancredi"
 EOF
 
-ln -sf /etc/apache2/sites-available/tancredi.conf /etc/apache2/sites-enabled/tancredi.conf
+# Link Tancredi ProxyPass configuration
+if [[ ! -f /etc/apache2/sites-enabled/tancredi.conf ]] ; then
+	ln -sf /etc/apache2/sites-available/tancredi.conf /etc/apache2/sites-enabled/tancredi.conf
+fi
 
 # Write wizard and restapy configuration
 cat > /var/www/html/freepbx/wizard/scripts/custom.js <<EOF
@@ -63,18 +65,8 @@ cat > /var/www/html/freepbx/rest/config.inc.php <<EOF
 ];
 EOF
 
-
-
-# Check if it is a new installation
-if [[ -f /etc/freepbx.conf ]]; then
-	# First configuration already done. Skipping
-	logger -t freepbx-entrypoint "/etc/freepbx.conf already exists, skipping first configuration"
-else
-	# New installation
-	logger -t freepbx-entrypoint "/etc/freepbx.conf don't exists. Starting first configuration"
-
-	# configure ODBC for Asterisk
-	cat > /etc/odbc.ini <<EOF
+# configure ODBC for Asterisk
+cat > /etc/odbc.ini <<EOF
 [MySQL-asteriskcdrdb]
 Server = localhost
 Database = asteriskcdrdb
@@ -83,14 +75,30 @@ Driver = MySQL
 Description = ODBC on asteriskcdrdb
 EOF
 
+# Create empty /etc/amportal.conf
+if [[ ! -f /etc/amportal.conf ]]; then
+	touch /etc/amportal.conf
+fi
+
+if [[ ! -f /etc/asterisk/voicemail.conf ]]; then
+	touch /etc/asterisk/voicemail.conf
+fi
+
+if [[ ! -f /etc/freepbx.conf ]]; then
+	# First install
+
 	# Configure mysql
 	php /initdb.d/initdb.php 
 
-	# Create empty /etc/amportal.conf
-	touch /etc/amportal.conf
+	# Apply changes
+	fwconsole r
 
-	# Configure freepbx
-	cat > /etc/freepbx.conf <<EOF
+	# Set ownership and permission
+	fwconsole chown
+fi
+
+# Configure freepbx
+cat > /etc/freepbx.conf <<EOF
 <?php
 \$amp_conf['AMPDBUSER'] = '${AMPDBUSER}';
 \$amp_conf['AMPDBPASS'] = '${AMPDBPASS}';
@@ -104,8 +112,8 @@ require_once('/var/www/html/freepbx/admin/bootstrap.php');
 ?>
 EOF
 
-	# Configure freepbx_db.conf
-	cat > /etc/freepbx_db.conf <<EOF
+# Configure freepbx_db.conf
+cat > /etc/freepbx_db.conf <<EOF
 <?php
 
 \$amp_conf['AMPDBUSER'] = '${AMPDBUSER}';
@@ -140,14 +148,4 @@ while (\$row = \$sth->fetch(\PDO::FETCH_ASSOC)) {
 
 EOF
 
-	touch /etc/asterisk/voicemail.conf
-
-	# Apply changes
-	fwconsole r
-
-	# Set ownership and permission
-	fwconsole chown
-
-fi
 exec "$@"
-

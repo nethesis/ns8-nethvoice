@@ -256,6 +256,7 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --volume=nethcti:/etc/nethcti:z \
     --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_sounds,destination=/var/lib/asterisk/sounds,relabel=shared,ro=false \
     --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_agi-bin,destination=/var/lib/asterisk/agi-bin,relabel=shared,ro=false \
+    --mount=type=bind,source=imageroot/volumes/usr_src_nethvoice_lookup.d,destination=/usr/src/nethvoice/lookup.d,relabel=private,ro=true \
     --env=MARIADB_ROOT_PASSWORD \
     --env=MARIADB_PORT \
     --env=APACHE_RUN_USER \
@@ -299,6 +300,9 @@ rm -f /var/tmp/tancredi.ctr-id /var/tmp/tancredi.pid
     --env=AMPDBPASS \
     --env=MARIADB_PORT \
     --env=TANCREDI_STATIC_TOKEN \
+    --env=LOCAL_IP \
+    --env=RTPSTART \
+    --env=RTPEND \
     --network=host \
     tancredi
 
