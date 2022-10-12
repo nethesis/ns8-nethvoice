@@ -46,12 +46,14 @@ export BRAND_NAME=NexthVoice
 export BRAND_SITE=http://www.nethvoice.it
 export BRAND_DOCS=http://nethvoice.docs.nethesis.it
 export JANUS_ADMIN_SECRET=dummyjanusadminsecret
+export JANUS_TRANSPORT_PORT=8089
 export DEBUG_LEVEL=5
 export RTPSTART=10000
 export RTPEND=15000
 export STUNSERVER=stun1.l.google.com
 export STUNPORT=19302
 export ICEIGNORE=vmnet,tap,tun,virb,vb-
+export LOCAL_IP=172.25.5.83
 
 echo "[*] Set repobase"
 repobase="${REPOBASE:-ghcr.io/nethserver}"
@@ -189,6 +191,13 @@ buildah config --workingdir /usr/lib/node/nethcti-server "${container}"
 buildah config --entrypoint '["npm", "start"]' "${container}"
 buildah commit "${container}" nethcti-server
 
+echo "[*] Build Janus Gateway container"
+container=$(buildah from docker.io/canyan/janus-gateway:master)
+buildah add "${container}" imageroot/janus/root/ /
+buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
+buildah commit "${container}" janus
+
+
 echo "[*] Run MariaDB"
 rm -f /var/tmp/mariadb.ctr-id /var/tmp/mariadb.pid
 MARIA_TAG=10.8.2
@@ -225,6 +234,9 @@ rm -f /var/tmp/asterisk.ctr-id /var/tmp/asterisk.pid
     --env=ASTMANAGERPORT \
     --env=AMPMGRUSER \
     --env=AMPMGRPASS \
+    --env=LOCAL_IP \
+    --env=RTPSTART \
+    --env=RTPEND \
     --network=host \
     asterisk
 
@@ -312,9 +324,11 @@ rm -f /var/tmp/janus.ctr-id /var/tmp/janus.pid
     --cgroups=no-conmon \
     --log-opt=tag=janus \
     --replace --name=janus \
-    --mount=type=bind,source=imageroot/janus,destination=/usr/local/etc/janus,relabel=private,ro=true \
+    --env=LOCAL_IP \
+    --env=RTPSTART \
+    --env=RTPEND \
     --network=host \
-    docker.io/canyan/janus-gateway:master \
+    janus \
     /usr/local/bin/janus \
     --configs-folder /usr/local/etc/janus \
     --interface=lo \
