@@ -84,19 +84,6 @@ if [[ ! -f /etc/asterisk/voicemail.conf ]]; then
 	touch /etc/asterisk/voicemail.conf
 fi
 
-if [[ ! -f /etc/freepbx.conf ]]; then
-	# First install
-
-	# Configure mysql
-	php /initdb.d/initdb.php 
-
-	# Apply changes
-	fwconsole r
-
-	# Set ownership and permission
-	fwconsole chown
-fi
-
 # Configure freepbx
 cat > /etc/freepbx.conf <<EOF
 <?php
@@ -147,5 +134,16 @@ while (\$row = \$sth->fetch(\PDO::FETCH_ASSOC)) {
 	\$cdr_db_pass);
 
 EOF
+
+# Configure mysql
+php /initdb.d/initdb.php 
+
+if [[ ! -f /etc/asterisk/extensions_additional.conf ]]; then
+	# First install
+	# Set ownership and permission
+	fwconsole chown
+	# Apply changes
+	fwconsole r
+fi
 
 exec "$@"

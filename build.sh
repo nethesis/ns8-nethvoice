@@ -130,7 +130,7 @@ buildah run "${container}" a2enmod rewrite proxy*
 buildah run "${container}" docker-php-source delete
 
 # TODO REMOVE BEFORE DEPLOY
-buildah run "${container}" apt-get install -y mycli vim telnet
+buildah run "${container}" apt-get install -y vim telnet
 
 # clean apt cache
 buildah run "${container}" apt-get clean autoclean
