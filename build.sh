@@ -2,10 +2,6 @@
 echo "[*] Install packages"
 apt install -y patch buildah
 
-# patch some files
-echo "[*] Patch some files"
-patch -p0 < freepbx_fixes.patch
-
 echo "[*] Remove useless files"
 rm -rf imageroot/volumes/freepbx/admin/assets/less/cache/*
 rm -rf imageroot/volumes/freepbx/admin/modules/*/assets/less/cache/*
@@ -31,7 +27,6 @@ export CDRDBNAME=asteriskcdrdb
 export CDRDBUSER=cdruser
 export CDRDBPASS=dummycdrdbpass
 export PHP_INI_DIR=/usr/local/etc/php
-export REPOBASE=ghcr.io/stell0
 export REGISTRY_AUTH_FILE=/etc/nethserver/registry.json
 export APACHE_PORT=7187
 export AMPASTERISKGROUP=asterisk
@@ -54,15 +49,19 @@ export STUNSERVER=stun1.l.google.com
 export STUNPORT=19302
 export ICEIGNORE=vmnet,tap,tun,virb,vb-
 export LOCAL_IP=172.25.5.83
-
-echo "[*] Set repobase"
-repobase="${REPOBASE:-ghcr.io/nethserver}"
-reponame="nethvoice"
+export DUMB_CTI=prova
 
 echo "[*] Clean containers"
 podman stop mariadb asterisk freepbx14 tancredi nethcti-server
 podman rm mariadb asterisk freepbx14 tancredi nethcti-server
 podman rmi mariadb asterisk freepbx14 tancredi nethcti-server
+podman volume rm mariadb-data asterisk spool tancredi nethcti nethcti-server
+
+echo "[*] Clean podman system"
+podman image prune
+podman volume prune
+podman container prune
+podman system prune
 
 echo "[*] Build asterisk container"
 container=$(buildah from centos:7)
@@ -315,7 +314,10 @@ rm -f /var/tmp/nethcti-server.ctr-id /var/tmp/nethcti-server.pid
     --cgroups=no-conmon \
     --log-opt=tag=nethcti-server \
     --replace --name=nethcti-server \
+    --volume=nethcti:/etc/nethcti:z \
     --volume=nethcti-server:/root:Z \
+    --volume=nethcti-server-code:/usr/lib/node/nethcti-server:Z \
+    --env=DUMB_CTI \
     --network=host \
     nethcti-server
 
