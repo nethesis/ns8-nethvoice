@@ -88,6 +88,11 @@ buildah config \
     --entrypoint='["/entrypoint.sh"]' \
     "${container}"
 
+# Install required packages
+buildah run "${container}" apt-get update
+buildah run "${container}" apt install -y gnupg mycli libldap2-dev
+buildah run "${container}" apt install -y cron # TODO needed by freepbx cron module. To remove.
+
 # install PHP additional modules
 buildah run "${container}" docker-php-source extract
 
@@ -99,6 +104,11 @@ buildah run "${container}" docker-php-ext-install pdo_mysql
 buildah run "${container}" docker-php-ext-configure gettext
 buildah run "${container}" docker-php-ext-install gettext
 
+# install ldap
+buildah run "${container}" ln -s /usr/lib/x86_64-linux-gnu/libldap.so /usr/lib/libldap.so
+buildah run "${container}" docker-php-ext-configure ldap
+buildah run "${container}" docker-php-ext-install ldap
+
 # install php semaphores (sysvsem)
 buildah run "${container}" docker-php-ext-configure sysvsem
 buildah run "${container}" docker-php-ext-install sysvsem
@@ -108,11 +118,6 @@ buildah run "${container}" docker-php-ext-install sysvsem
 #buildah run "${container}" apt install -y unixodbc unixodbc-dev
 #buildah run "${container}" docker-php-ext-configure pdo_odbc --with-pdo-odbc=unixODBC
 #buildah run "${container}" docker-php-ext-install pdo_odbc
-
-# Install required packages
-buildah run "${container}" apt-get update
-buildah run "${container}" apt install -y gnupg
-buildah run "${container}" apt install -y cron # TODO needed by freepbx cron module. To remove.
 
 # Use PHP development ini configuration and enable logging on syslog
 buildah run "${container}" cp -a "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
@@ -208,12 +213,13 @@ MARIA_TAG=10.8.2
     --log-opt=tag=mariadb \
     --replace --name=mariadb \
     --volume=mariadb-data:/var/lib/mysql:Z \
+    --mount=type=bind,source=imageroot/volumes/mariadb_docker-entrypoint-initdb.d,destination=/docker-entrypoint-initdb.d,relabel=private,ro=true \
     --env=MARIADB_ROOT_PASSWORD \
     --network=host \
     docker.io/library/mariadb:${MARIA_TAG} \
     --port ${MARIADB_PORT}
 
-sleep 15
+sleep 5
 
 echo "[*] Run Asterisk"
 rm -f /var/tmp/asterisk.ctr-id /var/tmp/asterisk.pid
@@ -239,7 +245,7 @@ rm -f /var/tmp/asterisk.ctr-id /var/tmp/asterisk.pid
     --network=host \
     asterisk
 
-sleep 15
+sleep 30
 
 echo "[*] Run FreePBX"
 rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
@@ -281,7 +287,7 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --network=host \
     freepbx14
 
-sleep 15
+sleep 5
 
 echo "[*] Run Tancredi"
 rm -f /var/tmp/tancredi.ctr-id /var/tmp/tancredi.pid
