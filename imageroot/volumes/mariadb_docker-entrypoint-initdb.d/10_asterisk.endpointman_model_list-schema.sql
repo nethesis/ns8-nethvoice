@@ -2,6 +2,7 @@
 /*!40014 SET FOREIGN_KEY_CHECKS=0*/;
 
 /*!40103 SET TIME_ZONE='+00:00' */;
+USE `asterisk`;
 CREATE TABLE `endpointman_model_list` (
   `id` varchar(11) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Key ',
   `brand` int(11) NOT NULL COMMENT 'Brand',

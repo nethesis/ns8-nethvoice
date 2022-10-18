@@ -22,7 +22,7 @@ export ASTMANAGERPORT=5038
 export AMPMGRUSER=admin
 export AMPMGRPASS=dummyampmgrpass
 export AMPDBPASS=dummyampdbpass
-export CDRDBHOST=mariadb
+export CDRDBHOST=127.0.0.1
 export CDRDBNAME=asteriskcdrdb
 export CDRDBUSER=cdruser
 export CDRDBPASS=dummycdrdbpass
@@ -215,6 +215,12 @@ MARIA_TAG=10.8.2
     --volume=mariadb-data:/var/lib/mysql:Z \
     --mount=type=bind,source=imageroot/volumes/mariadb_docker-entrypoint-initdb.d,destination=/docker-entrypoint-initdb.d,relabel=private,ro=true \
     --env=MARIADB_ROOT_PASSWORD \
+    --env=MARIADB_PORT \
+    --env=AMPDBUSER \
+    --env=AMPDBPASS \
+    --env=CDRDBUSER \
+    --env=CDRDBHOST \
+    --env=CDRDBPASS \
     --network=host \
     docker.io/library/mariadb:${MARIA_TAG} \
     --port ${MARIADB_PORT}
@@ -245,7 +251,7 @@ rm -f /var/tmp/asterisk.ctr-id /var/tmp/asterisk.pid
     --network=host \
     asterisk
 
-sleep 30
+sleep 60
 
 echo "[*] Run FreePBX"
 rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
@@ -276,6 +282,7 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --env=AMPDBNAME \
     --env=CDRDBUSER \
     --env=CDRDBPASS \
+    --env=CTIDBPASS \
     --env=APACHE_PORT \
     --env=APACHE_SSL_PORT \
     --env=NETHVOICESECRETKEY \

@@ -1,6 +1,7 @@
 /*!40101 SET NAMES binary*/;
 /*!40014 SET FOREIGN_KEY_CHECKS=0*/;
 /*!40103 SET TIME_ZONE='+00:00' */;
+USE `asterisk`;
 INSERT INTO `endpointman_global_vars` (`idnum`,`var_name`,`value`) VALUES
 (1,"srvip","172.25.5.47"),
 (2,"tz","europe/rome"),

@@ -1,9 +1,23 @@
 <?php
 
-// Connect to DBs
-$db = new \PDO('mysql:host=127.0.0.1;port='.$_ENV['MARIADB_PORT'],
-        'root',
-        $_ENV['MARIADB_ROOT_PASSWORD']);
+// Connect to DBs waiting for 60 seconds mysql to come up
+$timeout = 5;
+for ($i=0; $i<=$timeout; $i++) {
+	try {
+		$db = new \PDO('mysql:host=127.0.0.1;port='.$_ENV['MARIADB_PORT'],
+        		$_ENV['AMPDBUSER'],
+	        	$_ENV['AMPDBPASS']);
+	} catch (Exception $e) {
+		if ($i < $timeout) {
+			sleep(1);
+                        continue;
+                } else {
+                        echo $e->getMessage()."\n";
+                        echo "Timeout!\n";
+                        exit(1);
+                }
+        }
+}
 
 // update freepbx settings
 $vars = array(
@@ -34,7 +48,4 @@ foreach ($vars as $key => $value) {
 $stmt = $db->prepare($sql);
 $stmt->execute($exec);
 $stmt->closeCursor();
-
-$db->exec("GRANT ALL on asterisk.* to '".$vars['AMPDBUSER']."'@'127.0.0.1' identified by '".$vars['AMPDBPASS']."'");
-$db->exec("GRANT ALL on asteriskcdrdb.* to '".$vars['CDRDBUSER']."'@'".$vars['CDRDBHOST']."' identified by '".$vars['CDRDBPASS']."'");
 

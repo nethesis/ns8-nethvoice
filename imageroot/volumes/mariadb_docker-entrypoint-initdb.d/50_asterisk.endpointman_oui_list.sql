@@ -1,6 +1,7 @@
 /*!40101 SET NAMES binary*/;
 /*!40014 SET FOREIGN_KEY_CHECKS=0*/;
 /*!40103 SET TIME_ZONE='+00:00' */;
+USE `asterisk`;
 INSERT INTO `endpointman_oui_list` (`id`,`oui`,`brand`,`custom`) VALUES
 (456,"00085D",1,0),
 (457,"0010BC",1,0),

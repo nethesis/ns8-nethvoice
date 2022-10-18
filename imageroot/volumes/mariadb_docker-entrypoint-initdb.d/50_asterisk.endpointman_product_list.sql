@@ -1,6 +1,7 @@
 /*!40101 SET NAMES binary*/;
 /*!40014 SET FOREIGN_KEY_CHECKS=0*/;
 /*!40103 SET TIME_ZONE='+00:00' */;
+USE `asterisk`;
 INSERT INTO `endpointman_product_list` (`id`,`brand`,`long_name`,`short_name`,`cfg_dir`,`cfg_ver`,`hidden`,`firmware_vers`,`firmware_files`,`config_files`,`special_cfgs`) VALUES
 ("11",1,"Aastra Models: 480i, 91xxi [480i, 480i CT, 9112i, 9133i]","Aastra Models: 480i, 91xxi ","aap91xxi","",0,"","","$mac.cfg,aastra.cfg",""),
 ("12",1,"Aastra Models: 94xx, 67xx, 68xx, 9143i [9480i, 9480i CT, 9143i, 67xx, 68xx]","Aastra Models: 94xx, 67xx, 68xx, 9143i ","aap9xxx6xxx","",0,"","","$mac.cfg,aastra.cfg",""),

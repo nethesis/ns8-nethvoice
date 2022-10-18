@@ -1,6 +1,7 @@
 /*!40101 SET NAMES binary*/;
 /*!40014 SET FOREIGN_KEY_CHECKS=0*/;
 /*!40103 SET TIME_ZONE='+00:00' */;
+USE `asterisk`;
 INSERT INTO `endpointman_brand_list` (`id`,`name`,`directory`,`cfg_ver`,`installed`,`local`,`hidden`) VALUES
 ("1","Aastra","aastra","1395185663",1,0,0),
 ("98","Alcatel Temporis","alcatel","1444923600",1,0,0),
