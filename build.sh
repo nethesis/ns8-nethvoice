@@ -49,19 +49,19 @@ export STUNSERVER=stun1.l.google.com
 export STUNPORT=19302
 export ICEIGNORE=vmnet,tap,tun,virb,vb-
 export LOCAL_IP=172.25.5.83
-export DUMB_CTI=prova
+export PROXYCTI_PASS=NOwGG9_bYd5GSgm3
 
 echo "[*] Clean containers"
 podman stop mariadb asterisk freepbx14 tancredi nethcti-server
 podman rm mariadb asterisk freepbx14 tancredi nethcti-server
 podman rmi mariadb asterisk freepbx14 tancredi nethcti-server
-podman volume rm mariadb-data asterisk spool tancredi nethcti nethcti-server
+podman volume rm mariadb-data asterisk spool tancredi nethcti nethcti-server nethcti-server-code nethcti-server-log
 
 echo "[*] Clean podman system"
-podman image prune
-podman volume prune
-podman container prune
-podman system prune
+podman image prune -f
+podman volume prune -f
+podman container prune -f
+podman system prune -f
 
 echo "[*] Build asterisk container"
 container=$(buildah from centos:7)
@@ -318,6 +318,8 @@ rm -f /var/tmp/tancredi.ctr-id /var/tmp/tancredi.pid
     --network=host \
     tancredi
 
+sleep 5
+
 echo "[*] Run NethCTI"
 rm -f /var/tmp/nethcti-server.ctr-id /var/tmp/nethcti-server.pid
 /usr/bin/podman run \
@@ -330,9 +332,12 @@ rm -f /var/tmp/nethcti-server.ctr-id /var/tmp/nethcti-server.pid
     --volume=nethcti:/etc/nethcti:z \
     --volume=nethcti-server:/root:Z \
     --volume=nethcti-server-code:/usr/lib/node/nethcti-server:Z \
-    --env=DUMB_CTI \
+    --volume=nethcti-server-log:/var/log/asterisk:Z \
+    --env=PROXYCTI_PASS \
     --network=host \
     nethcti-server
+
+sleep 5
 
 echo "[*] Run Janus"
 rm -f /var/tmp/janus.ctr-id /var/tmp/janus.pid
@@ -355,3 +360,23 @@ rm -f /var/tmp/janus.ctr-id /var/tmp/janus.pid
     --ice-ignore-list=${ICEIGNORE:=vmnet,tap,tun,virb,vb-} \
     --rtp-port-range=${RTPSTART:=10000}-${RTPEND:=20000} \
     --debug-level=${DEBUG_LEVEL:=4}
+
+sleep 5
+
+echo "[*] Set LDAP configuration"
+ldap_conf=$(runagent python3 -magent.ldapproxy |  cut -d "{" -f 2 | echo "{$(cat -)" | tr "'" '"')
+ldap_settings='{"host":"'$(echo $ldap_conf | jq -r .host)'","port":"'$(echo $ldap_conf | jq -r .port)'","basedn":"'$(echo $ldap_conf | jq -r .base_dn)'","username":"'$(echo $ldap_conf | jq -r .bind_dn)'","password":"'$(echo $ldap_conf | jq -r .bind_password)'","connection":"","localgroups":"0","createextensions":"","externalidattr":"entryUUID","descriptionattr":"description","commonnameattr":"cn","userdn":"","userobjectclass":"posixAccount","userobjectfilter":"(objectclass=posixAccount)","usernameattr":"uid","userfirstnameattr":"givenName","userlastnameattr":"sn","userdisplaynameattr":"displayName","usertitleattr":"","usercompanyattr":"","usercellphoneattr":"","userworkphoneattr":"telephoneNumber","userhomephoneattr":"","userfaxphoneattr":"","usermailattr":"mail","usergroupmemberattr":"memberOf","la":"","groupdnaddition":"","groupobjectclass":"groupOfUniqueNames","groupobjectfilter":"(objectclass=posixGroup)","groupmemberattr":"memberUid","sync":"*\/30 * * * *"}'
+podman exec -it mariadb mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e 'INSERT INTO userman_directories VALUES (2, "NethServer", "Openldap2", 1, 5, 1, 0);'
+podman exec -it mariadb mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e "INSERT INTO kvstore_FreePBX_modules_Userman VALUES ('auth-settings', '$ldap_settings', 'json-arr', 2);"
+podman exec -it mariadb mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e 'UPDATE userman_directories set `default` = 0 WHERE id = 1;'
+podman exec -it freepbx14 mkdir -p /var/run/asterisk
+podman exec -it freepbx14 touch /var/run/asterisk/userman.lock
+asterisk_pid=$(podman exec -it asterisk cat /var/run/asterisk/asterisk.pid)
+podman exec -it freepbx14 bash -c "echo $asterisk_pid > /var/run/asterisk/userman.lock"
+podman exec -it freepbx14 chown -R asterisk:asterisk /var/www/html/freepbx/admin/assets/less/cache/
+podman exec -it freepbx14 fwconsole userman --syncall --force
+
+echo "[*] Replace old asterisk pass"
+podman exec -it mariadb mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e "UPDATE manager set secret = '$PROXYCTI_PASS' WHERE name = 'proxycti';"
+podman exec -it freepbx14 fwconsole r
+podman restart asterisk
