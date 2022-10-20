@@ -140,10 +140,10 @@ php /initdb.d/initdb.php
 
 if [[ ! -f /etc/asterisk/extensions_additional.conf ]]; then
 	# First install
-	# Set ownership and permission
-	fwconsole chown
 	# Apply changes
 	fwconsole r
+	# Set ownership and permission
+	fwconsole chown
 fi
 
 exec "$@"
