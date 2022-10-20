@@ -1,1 +1,25 @@
-[]
+{
+  "edoardo": {
+    "name": "Edoardo Spadoni",
+    "endpoints": {
+      "mainextension": {
+        "200": {}
+      },
+      "extension": {
+        "200": {
+          "type": "webrtc",
+          "user": "200",
+          "password": "99b9b9981d55d0956ac8e88019abd7ac"
+        }
+      },
+      "email": {
+        "edoardo@edo.test.neth": {}
+      },
+      "jabber": {
+        "edoardo@edo.test.neth": {}
+      },
+      "cellphone": {}
+    },
+    "profile_id": "1"
+  }
+}

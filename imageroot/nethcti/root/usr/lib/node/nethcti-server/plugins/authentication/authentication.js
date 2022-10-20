@@ -1008,10 +1008,15 @@ function authByPam(username, password, cb) {
 
       throw new Error('wrong parameters: ' + JSON.stringify(arguments));
     }
+
     var child = childProcess.spawn(PAM_SCRIPT_PATH);
     child.stdin.write(username + '\n' + password);
     child.stdin.end();
-    child.on('close', function(code, signal) {
+    child.stdout.on('data', function (data) {
+    });
+    child.stderr.on('data', function (data) {
+    });
+    child.on('close', function(code, signal, err) {
       if (code !== 0) {
         cb({
           exitCode: code

@@ -2,50 +2,50 @@
 {
     "cti_phonebook": {
         "dbhost":     "localhost",
-        "dbport":     "/var/lib/mysql/mysql.sock",
+        "dbport":     "13306",
         "dbtype":     "mysql",
         "dbuser":     "nethcti",
-        "dbpassword": "wU2e_6Mok1c12sXA",
+        "dbpassword": "dummyctidbpass",
         "dbname":     "nethcti3"
     },
     "customer_card": {
         "dbhost":     "localhost",
-        "dbport":     "/var/lib/mysql/mysql.sock",
+        "dbport":     "13306",
         "dbtype":     "mysql",
         "dbuser":     "nethcti",
-        "dbpassword": "wU2e_6Mok1c12sXA",
+        "dbpassword": "dummyctidbpass",
         "dbname":     "nethcti3"
     },
     "user_dbconn": {
         "dbhost":     "localhost",
-        "dbport":     "/var/lib/mysql/mysql.sock",
+        "dbport":     "13306",
         "dbtype":     "mysql",
         "dbuser":     "nethcti",
-        "dbpassword": "wU2e_6Mok1c12sXA",
+        "dbpassword": "dummyctidbpass",
         "dbname":     "nethcti3"
     },
     "auth": {
         "dbhost":     "localhost",
-        "dbport":     "/var/lib/mysql/mysql.sock",
+        "dbport":     "13306",
         "dbtype":     "mysql",
         "dbuser":     "nethcti",
-        "dbpassword": "wU2e_6Mok1c12sXA",
+        "dbpassword": "dummyctidbpass",
         "dbname":     "nethcti3"
     },
     "offhour_files": {
         "dbhost":     "localhost",
-        "dbport":     "/var/lib/mysql/mysql.sock",
+        "dbport":     "13306",
         "dbtype":     "mysql",
         "dbuser":     "nethcti",
-        "dbpassword": "wU2e_6Mok1c12sXA",
+        "dbpassword": "dummyctidbpass",
         "dbname":     "nethcti3"
     },
     "user_settings": {
         "dbhost":     "localhost",
-        "dbport":     "/var/lib/mysql/mysql.sock",
+        "dbport":     "13306",
         "dbtype":     "mysql",
         "dbuser":     "nethcti",
-        "dbpassword": "wU2e_6Mok1c12sXA",
+        "dbpassword": "dummyctidbpass",
         "dbname":     "nethcti3"
     }
 }

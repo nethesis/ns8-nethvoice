@@ -2,7 +2,7 @@
 {
     "phonebook": {
         "dbhost":     "localhost",
-        "dbport":     "/var/lib/mysql/mysql.sock",
+        "dbport":     "13306",
         "dbtype":     "mysql",
         "dbuser":     "pbookuser",
         "dbpassword": "sO8c1oEb2_bhvAzH",

@@ -1,66 +1,66 @@
 {
     "ampusers": {
         "dbhost": "localhost",
-        "dbport": "\/var\/lib\/mysql\/mysql.sock",
+        "dbport": "13306",
         "dbtype": "mysql",
         "dbuser": "freepbxuser",
-        "dbpassword": "ffcd794e89cf6f81dd412d61b2357ad6",
+        "dbpassword": "dummyampdbpass",
         "dbname": "asterisk"
     },
     "incoming": {
         "dbhost": "localhost",
-        "dbport": "\/var\/lib\/mysql\/mysql.sock",
+        "dbport": "13306",
         "dbtype": "mysql",
         "dbuser": "freepbxuser",
-        "dbpassword": "ffcd794e89cf6f81dd412d61b2357ad6",
+        "dbpassword": "dummyampdbpass",
         "dbname": "asterisk"
     },
     "offhour": {
         "dbhost": "localhost",
-        "dbport": "\/var\/lib\/mysql\/mysql.sock",
+        "dbport": "13306",
         "dbtype": "mysql",
         "dbuser": "freepbxuser",
-        "dbpassword": "ffcd794e89cf6f81dd412d61b2357ad6",
+        "dbpassword": "dummyampdbpass",
         "dbname": "asterisk"
     },
     "rest_users": {
         "dbhost": "localhost",
-        "dbport": "\/var\/lib\/mysql\/mysql.sock",
+        "dbport": "13306",
         "dbtype": "mysql",
         "dbuser": "freepbxuser",
-        "dbpassword": "ffcd794e89cf6f81dd412d61b2357ad6",
+        "dbpassword": "dummyampdbpass",
         "dbname": "asterisk"
     },
     "userman_users": {
         "dbhost": "localhost",
-        "dbport": "\/var\/lib\/mysql\/mysql.sock",
+        "dbport": "13306",
         "dbtype": "mysql",
         "dbuser": "freepbxuser",
-        "dbpassword": "ffcd794e89cf6f81dd412d61b2357ad6",
+        "dbpassword": "dummyampdbpass",
         "dbname": "asterisk"
     },
     "rest_cti_profiles_paramurl": {
         "dbhost": "localhost",
-        "dbport": "\/var\/lib\/mysql\/mysql.sock",
+        "dbport": "13306",
         "dbtype": "mysql",
         "dbuser": "freepbxuser",
-        "dbpassword": "ffcd794e89cf6f81dd412d61b2357ad6",
+        "dbpassword": "dummyampdbpass",
         "dbname": "asterisk"
     },
     "pin": {
         "dbhost": "localhost",
-        "dbport": "\/var\/lib\/mysql\/mysql.sock",
+        "dbport": "13306",
         "dbtype": "mysql",
         "dbuser": "freepbxuser",
-        "dbpassword": "ffcd794e89cf6f81dd412d61b2357ad6",
+        "dbpassword": "dummyampdbpass",
         "dbname": "asterisk"
     },
     "pin_protected_routes": {
         "dbhost": "localhost",
-        "dbport": "\/var\/lib\/mysql\/mysql.sock",
+        "dbport": "13306",
         "dbtype": "mysql",
         "dbuser": "freepbxuser",
-        "dbpassword": "ffcd794e89cf6f81dd412d61b2357ad6",
+        "dbpassword": "dummyampdbpass",
         "dbname": "asterisk"
     }
 }

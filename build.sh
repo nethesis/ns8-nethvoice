@@ -34,6 +34,7 @@ export AMPASTERISKUSER=asterisk
 export AMPASTERISKWEBGROUP=asterisk
 export AMPASTERISKWEBUSER=asterisk
 export NETHVOICESECRETKEY=dummysecretkey
+export CTIUSER=nethcti
 export CTIDBPASS=dummyctidbpass
 export TANCREDIPORT=7190
 export TANCREDI_STATIC_TOKEN=dummytancredistatictoken
@@ -191,6 +192,9 @@ buildah commit "${container}" tancredi
 echo "[*] Build nethcti container"
 container=$(buildah from docker.io/library/node:14)
 buildah add "${container}" imageroot/nethcti/root/ /
+buildah run "${container}" apt-get clean autoclean
+buildah run "${container}" apt-get update
+buildah run "${container}" apt-get install -y jq ldap-utils
 buildah config --workingdir /usr/lib/node/nethcti-server "${container}"
 buildah config --entrypoint '["npm", "start"]' "${container}"
 buildah commit "${container}" nethcti-server
@@ -221,6 +225,8 @@ MARIA_TAG=10.8.2
     --env=CDRDBUSER \
     --env=CDRDBHOST \
     --env=CDRDBPASS \
+    --env=CTIUSER \
+    --env=CTIDBPASS \
     --network=host \
     docker.io/library/mariadb:${MARIA_TAG} \
     --port ${MARIADB_PORT}
@@ -264,10 +270,9 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --replace --name=freepbx14 \
     --volume=spool:/var/spool/asterisk:z \
     --volume=asterisk:/etc/asterisk:z \
-    --volume=nethcti:/etc/nethcti:z \
-    --volume=./imageroot/volumes/var_lib_asterisk_sounds:/var/lib/asterisk/sounds:Z \
-    --volume=./imageroot/volumes/var_lib_asterisk_agi-bin:/var/lib/asterisk/agi-bin:Z \
-    --volume=./imageroot/volumes/usr_src_nethvoice_lookup.d:/usr/src/nethvoice/lookup.d:z \
+    --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_sounds,destination=/var/lib/asterisk/sounds,relabel=shared,ro=false \
+    --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_agi-bin,destination=/var/lib/asterisk/agi-bin,relabel=shared,ro=false \
+    --mount=type=bind,source=imageroot/volumes/usr_src_nethvoice_lookup.d,destination=/usr/src/nethvoice/lookup.d,relabel=private,ro=true \
     --env=MARIADB_ROOT_PASSWORD \
     --env=MARIADB_PORT \
     --env=APACHE_RUN_USER \
@@ -286,7 +291,6 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --env=APACHE_PORT \
     --env=APACHE_SSL_PORT \
     --env=NETHVOICESECRETKEY \
-    --env=CTIDBPASS \
     --env=TANCREDIPORT \
     --env=BRAND_NAME \
     --env=BRAND_SITE \
@@ -333,7 +337,6 @@ rm -f /var/tmp/nethcti-server.ctr-id /var/tmp/nethcti-server.pid
     --volume=nethcti-server:/root:Z \
     --volume=nethcti-server-code:/usr/lib/node/nethcti-server:Z \
     --volume=nethcti-server-log:/var/log/asterisk:Z \
-    --env=PROXYCTI_PASS \
     --network=host \
     nethcti-server
 
