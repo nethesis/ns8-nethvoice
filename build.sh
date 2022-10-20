@@ -213,7 +213,7 @@ MARIA_TAG=10.8.2
     --log-opt=tag=mariadb \
     --replace --name=mariadb \
     --volume=mariadb-data:/var/lib/mysql:Z \
-    --mount=type=bind,source=imageroot/volumes/mariadb_docker-entrypoint-initdb.d,destination=/docker-entrypoint-initdb.d,relabel=private,ro=true \
+    --volume=./imageroot/volumes/mariadb_docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:z \
     --env=MARIADB_ROOT_PASSWORD \
     --env=MARIADB_PORT \
     --env=AMPDBUSER \
@@ -238,8 +238,8 @@ rm -f /var/tmp/asterisk.ctr-id /var/tmp/asterisk.pid
     --replace --name=asterisk \
     --volume=asterisk:/etc/asterisk:z \
     --volume=spool:/var/spool/asterisk:z \
-    --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_sounds,destination=/var/lib/asterisk/sounds,relabel=shared,ro=true \
-    --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_agi-bin,destination=/var/lib/asterisk/agi-bin,relabel=shared,ro=true \
+    --volume=./imageroot/volumes/var_lib_asterisk_sounds:/var/lib/asterisk/sounds:Z \
+    --volume=./imageroot/volumes/var_lib_asterisk_agi-bin:/var/lib/asterisk/agi-bin:Z \
     --env=APACHE_SSL_PORT \
     --env=ASTMANAGERHOST \
     --env=ASTMANAGERPORT \
@@ -265,9 +265,9 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --volume=spool:/var/spool/asterisk:z \
     --volume=asterisk:/etc/asterisk:z \
     --volume=nethcti:/etc/nethcti:z \
-    --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_sounds,destination=/var/lib/asterisk/sounds,relabel=shared,ro=false \
-    --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_agi-bin,destination=/var/lib/asterisk/agi-bin,relabel=shared,ro=false \
-    --mount=type=bind,source=imageroot/volumes/usr_src_nethvoice_lookup.d,destination=/usr/src/nethvoice/lookup.d,relabel=private,ro=true \
+    --volume=./imageroot/volumes/var_lib_asterisk_sounds:/var/lib/asterisk/sounds:Z \
+    --volume=./imageroot/volumes/var_lib_asterisk_agi-bin:/var/lib/asterisk/agi-bin:Z \
+    --volume=./imageroot/volumes/usr_src_nethvoice_lookup.d:/usr/src/nethvoice/lookup.d:z \
     --env=MARIADB_ROOT_PASSWORD \
     --env=MARIADB_PORT \
     --env=APACHE_RUN_USER \
