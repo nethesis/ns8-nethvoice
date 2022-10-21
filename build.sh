@@ -51,6 +51,7 @@ export STUNPORT=19302
 export ICEIGNORE=vmnet,tap,tun,virb,vb-
 export LOCAL_IP=172.25.5.83
 export PROXYCTI_PASS=NOwGG9_bYd5GSgm3
+export CTIUIPORT=8080
 
 echo "[*] Clean containers"
 podman stop mariadb asterisk freepbx14 tancredi nethcti-server janus
@@ -199,6 +200,12 @@ buildah config --workingdir /usr/lib/node/nethcti-server "${container}"
 buildah config --entrypoint '["npm", "start"]' "${container}"
 buildah commit "${container}" nethcti-server
 
+echo "[*] Build nethcti-ui container"
+container=$(buildah from docker.io/library/httpd:2.4)
+buildah add "${container}" imageroot/nethcti-ui/root/usr/share/cti/ /usr/local/apache2/htdocs/
+buildah run "${container}" sed -i "s/Listen 80/Listen ${CTIUIPORT}/g" conf/httpd.conf
+buildah commit "${container}" nethcti-ui
+
 echo "[*] Build Janus Gateway container"
 container=$(buildah from docker.io/canyan/janus-gateway:master)
 buildah add "${container}" janus/ /
@@ -341,6 +348,21 @@ rm -f /var/tmp/nethcti-server.ctr-id /var/tmp/nethcti-server.pid
     --volume=nethcti-server-log:/var/log/asterisk:Z \
     --network=host \
     nethcti-server
+
+sleep 5
+
+echo "[*] Run NethCTI UI"
+rm -f /var/tmp/nethcti-ui.ctr-id /var/tmp/nethcti-ui.pid
+/usr/bin/podman run \
+    --detach \
+    --conmon-pidfile=/var/tmp/nethcti-ui.pid \
+    --cidfile=/var/tmp/nethcti-ui.ctr-id \
+    --cgroups=no-conmon \
+    --log-opt=tag=nethcti-ui \
+    --replace --name=nethcti-ui \
+    --volume=nethcti-ui:/usr/local/apache2/htdocs:z \
+    --network=host \
+    nethcti-ui
 
 sleep 5
 

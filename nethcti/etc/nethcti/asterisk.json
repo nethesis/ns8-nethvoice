@@ -1,7 +1,7 @@
 {
         "user": "proxycti",
         "pass": "NOwGG9_bYd5GSgm3",
-        "host": "127.0.0.1",
+        "host": "localhost",
         "port": "5038",
         "prefix": "",
         "auto_c2c": "enabled",
