@@ -377,6 +377,7 @@ podman exec -it freepbx14 touch /var/run/asterisk/userman.lock
 asterisk_pid=$(podman exec -it asterisk cat /var/run/asterisk/asterisk.pid)
 podman exec -it freepbx14 bash -c "echo $asterisk_pid > /var/run/asterisk/userman.lock"
 podman exec -it freepbx14 chown -R asterisk:asterisk /var/www/html/freepbx/admin/assets/less/cache/
+podman exec -it freepbx14 chown -R asterisk:asterisk /etc/asterisk/*
 podman exec -it freepbx14 fwconsole userman --syncall --force
 
 echo "[*] Replace old asterisk pass"
