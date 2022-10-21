@@ -66,7 +66,7 @@ podman system prune -f
 
 echo "[*] Build asterisk container"
 container=$(buildah from centos:7)
-buildah add "${container}" imageroot/asterisk/root/ /
+buildah add "${container}" asterisk/ /
 buildah run "${container}" yum -y install asterisk18-core asterisk18-addons-core asterisk18-dahdi asterisk18-odbc asterisk18-voicemail asterisk18-voicemail-odbcstorage unixODBC
 buildah run "${container}" rm -fr /var/cache/yum
 buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
@@ -74,7 +74,7 @@ buildah commit "${container}" asterisk
 
 echo "[*] Build FreePBX container"
 container=$(buildah from docker.io/library/php:5.6-apache)
-buildah add "${container}" imageroot/freepbx/root/ /
+buildah add "${container}" freepbx/ /
 buildah run "${container}" groupadd -r asterisk
 buildah run "${container}" useradd -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk
 
@@ -150,7 +150,7 @@ buildah commit "${container}" freepbx14
 echo "[*] Build Tancredi container"
 container=$(buildah from docker.io/library/php:7-apache)
 buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
-buildah add "${container}"  imageroot/tancredi/root/ /
+buildah add "${container}"  tancredi/ /
 buildah run "${container}" /bin/sh <<'EOF'
 apt update
 apt install -y libapache2-mod-xsendfile zip
@@ -191,7 +191,7 @@ buildah commit "${container}" tancredi
 
 echo "[*] Build nethcti container"
 container=$(buildah from docker.io/library/node:14)
-buildah add "${container}" imageroot/nethcti/root/ /
+buildah add "${container}" nethcti/ /
 buildah run "${container}" apt-get clean autoclean
 buildah run "${container}" apt-get update
 buildah run "${container}" apt-get install -y jq ldap-utils
@@ -201,7 +201,7 @@ buildah commit "${container}" nethcti-server
 
 echo "[*] Build Janus Gateway container"
 container=$(buildah from docker.io/canyan/janus-gateway:master)
-buildah add "${container}" imageroot/janus/root/ /
+buildah add "${container}" janus/ /
 buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
 buildah commit "${container}" janus
 
@@ -270,9 +270,10 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --replace --name=freepbx14 \
     --volume=spool:/var/spool/asterisk:z \
     --volume=asterisk:/etc/asterisk:z \
-    --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_sounds,destination=/var/lib/asterisk/sounds,relabel=shared,ro=false \
-    --mount=type=bind,source=imageroot/volumes/var_lib_asterisk_agi-bin,destination=/var/lib/asterisk/agi-bin,relabel=shared,ro=false \
-    --mount=type=bind,source=imageroot/volumes/usr_src_nethvoice_lookup.d,destination=/usr/src/nethvoice/lookup.d,relabel=private,ro=true \
+    --volume=nethcti:/etc/nethcti:z \
+    --volume=./imageroot/volumes/var_lib_asterisk_sounds:/var/lib/asterisk/sounds:Z \
+    --volume=./imageroot/volumes/var_lib_asterisk_agi-bin:/var/lib/asterisk/agi-bin:Z \
+    --volume=./imageroot/volumes/usr_src_nethvoice_lookup.d:/usr/src/nethvoice/lookup.d:z \
     --env=MARIADB_ROOT_PASSWORD \
     --env=MARIADB_PORT \
     --env=APACHE_RUN_USER \
@@ -291,6 +292,7 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --env=APACHE_PORT \
     --env=APACHE_SSL_PORT \
     --env=NETHVOICESECRETKEY \
+    --env=CTIDBPASS \
     --env=TANCREDIPORT \
     --env=BRAND_NAME \
     --env=BRAND_SITE \
