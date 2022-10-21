@@ -1013,8 +1013,10 @@ function authByPam(username, password, cb) {
     child.stdin.write(username + '\n' + password);
     child.stdin.end();
     child.stdout.on('data', function (data) {
+      console.log("stdout", data.toString())
     });
     child.stderr.on('data', function (data) {
+      console.log("stderr", data.toString())
     });
     child.on('close', function(code, signal, err) {
       if (code !== 0) {

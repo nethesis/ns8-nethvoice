@@ -53,10 +53,10 @@ export LOCAL_IP=172.25.5.83
 export PROXYCTI_PASS=NOwGG9_bYd5GSgm3
 
 echo "[*] Clean containers"
-podman stop mariadb asterisk freepbx14 tancredi nethcti-server
-podman rm mariadb asterisk freepbx14 tancredi nethcti-server
-podman rmi mariadb asterisk freepbx14 tancredi nethcti-server
-podman volume rm mariadb-data asterisk spool tancredi nethcti nethcti-server nethcti-server-code nethcti-server-log
+podman stop mariadb asterisk freepbx14 tancredi nethcti-server janus
+podman rm mariadb asterisk freepbx14 tancredi nethcti-server janus
+podman rmi mariadb asterisk freepbx14 tancredi nethcti-server janus
+podman volume rm mariadb-data asterisk spool tancredi nethcti nethcti-server nethcti-server-code nethcti-server-log janus
 
 echo "[*] Clean podman system"
 podman image prune -f
@@ -383,3 +383,8 @@ echo "[*] Replace old asterisk pass"
 podman exec -it mariadb mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e "UPDATE manager set secret = '$PROXYCTI_PASS' WHERE name = 'proxycti';"
 podman exec -it freepbx14 fwconsole r
 podman restart asterisk
+
+echo "[*] Put nethcti-server env file for auth script"
+podman exec -it nethcti-server bash -c "touch /usr/lib/node/nethcti-server/scripts/nethcti_env"
+podman exec -it nethcti-server bash -c "echo LDAP_CONF=\''$ldap_conf'\' > /usr/lib/node/nethcti-server/scripts/nethcti_env"
+podman restart nethcti-server
