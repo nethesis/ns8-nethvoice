@@ -31,7 +31,7 @@ buildah config \
     --label="org.nethserver.authorizations=traefik@any:routeadm" \
     --label="org.nethserver.tcp-ports-demand=3" \
     --label="org.nethserver.rootfull=0" \
-    --label="org.nethserver.images=docker.io/library/mariadb:latest $repobase/freepbx:latest $repobase/asterisk:latest" \
+    --label="org.nethserver.images=docker.io/library/mariadb:latest $repobase/freepbx:latest $repobase/asterisk:latest $repobase/freepbx:latest $repobase/nethcti:latest $repobase/tancredi:latest $repobase/janus:latest" \
     "${container}"
 
 images+=("${repobase}/${reponame}"):
@@ -45,7 +45,7 @@ images+=("${repobase}/${reponame}"):
 echo "[*] Build Asterisk container"
 reponame="asterisk"
 container=$(buildah from centos:7)
-buildah add "${container}" imageroot/asterisk/root/ /
+buildah add "${container}" asterisk/ /
 buildah run "${container}" yum -y install asterisk18-core asterisk18-addons-core asterisk18-dahdi asterisk18-odbc asterisk18-voicemail asterisk18-voicemail-odbcstorage unixODBC
 buildah run "${container}" rm -fr /var/cache/yum
 buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
@@ -65,7 +65,7 @@ echo "[*] Build FreePBX container"
 reponame="freepbx14"
 
 container=$(buildah from docker.io/library/php:5.6-apache)
-buildah add "${container}" imageroot/freepbx/root/ /
+buildah add "${container}" freepbx/ /
 buildah run "${container}" groupadd -r asterisk
 buildah run "${container}" useradd -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk
 
@@ -150,7 +150,7 @@ echo "[*] Build Tancredi container"
 reponame="tancredi"
 container=$(buildah from docker.io/library/php:7-apache)
 buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
-buildah add "${container}"  imageroot/tancredi/root/ /
+buildah add "${container}"  tancredi/ /
 buildah run "${container}" /bin/sh <<'EOF'
 apt update
 apt install -y libapache2-mod-xsendfile zip
@@ -202,7 +202,7 @@ images+=("${repobase}/${reponame}"):
 echo "[*] Build nethcti container"
 reponame="nethcti"
 container=$(buildah from docker.io/library/node:14)
-buildah add "${container}" imageroot/nethcti/root/ /
+buildah add "${container}" nethcti/ /
 buildah config --workingdir /usr/lib/node/nethcti-server "${container}"
 buildah config --entrypoint '["npm", "start"]' "${container}"
 buildah commit "${container}" nethcti-server
@@ -221,7 +221,7 @@ images+=("${repobase}/${reponame}"):
 echo "[*] Build Janus Gateway container"
 reponame="janus"
 container=$(buildah from docker.io/canyan/janus-gateway:master)
-buildah add "${container}" imageroot/janus/root/ /
+buildah add "${container}" janus/ /
 buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
 buildah commit "${container}" janus
 

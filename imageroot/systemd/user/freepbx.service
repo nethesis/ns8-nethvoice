@@ -1,38 +1,59 @@
 #
-# This systemd unit starts a apache2 instance using Podman.
+# This systemd unit starts a freepbx instance using Podman.
 # Most parts of this file come from podman-generate-systemd.
 #
 [Unit]
-Description=apache2 server
+Description=FreePBX
+Requires=asterisk.service,mariadb.service
+After=asterisk.service,mariadb.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%S/state/environment
 WorkingDirectory=%S/state
 Restart=always
-ExecStartPre=/bin/rm -f %t/apache2.pid %t/apache2.ctr-id
+ExecStartPre=/bin/rm -f %t/freepbx.pid %t/freepbx.ctr-id
 ExecStart=/usr/bin/podman run \
     --detach \
-    --conmon-pidfile=%t/apache2.pid \
-    --cidfile=%t/apache2.ctr-id \
+    --conmon-pidfile=%t/freepbx.pid \
+    --cidfile=%t/freepbx.ctr-id \
     --cgroups=no-conmon \
     --log-opt=tag=%u \
     --replace --name=%N \
-    --volume=%S/www-data:/var/www/html:Z \
-    --volume=%S/freepbx/initdb.d:/initdb.d:Z \
+    --volume=spool:/var/spool/asterisk:z \
     --volume=asterisk:/etc/asterisk:z \
+    --volume=nethcti:/etc/nethcti:z \
+    --volume=./imageroot/volumes/var_lib_asterisk_sounds:/var/lib/asterisk/sounds:Z \
+    --volume=./imageroot/volumes/var_lib_asterisk_agi-bin:/var/lib/asterisk/agi-bin:Z \
+    --volume=./imageroot/volumes/usr_src_nethvoice_lookup.d:/usr/src/nethvoice/lookup.d:z \
     --env=MARIADB_ROOT_PASSWORD \
+    --env=MARIADB_PORT \
+    --env=APACHE_RUN_USER \
+    --env=APACHE_RUN_GROUP \
+    --env=ASTMANAGERHOST \
+    --env=ASTMANAGERPORT \
     --env=AMPMGRUSER \
     --env=AMPMGRPASS \
     --env=AMPDBUSER \
     --env=AMPDBPASS \
+    --env=AMPDBHOST \
+    --env=AMPDBNAME \
     --env=CDRDBUSER \
     --env=CDRDBPASS \
-    --publish=127.0.0.1:${APACHE_PORT}:80 \
-    ${PHP_IMAGE}
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/apache2.ctr-id -t 10
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/apache2.ctr-id
-PIDFile=%t/apache2.pid
+    --env=CTIDBPASS \
+    --env=APACHE_PORT \
+    --env=APACHE_SSL_PORT \
+    --env=NETHVOICESECRETKEY \
+    --env=CTIDBPASS \
+    --env=TANCREDIPORT \
+    --env=BRAND_NAME \
+    --env=BRAND_SITE \
+    --env=BRAND_DOCS \
+    --network=host \
+    ${FREEPBX_IMAGE}
+
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/freepbx.ctr-id
+PIDFile=%t/freepbx.pid
 Type=forking
 
 [Install]

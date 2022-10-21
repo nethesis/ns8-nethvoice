@@ -1,0 +1,39 @@
+#
+# This systemd unit starts a tancredi instance using Podman.
+# Most parts of this file come from podman-generate-systemd.
+#
+[Unit]
+Description=tancredi server
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+WorkingDirectory=%S/state
+Restart=always
+ExecStartPre=/bin/rm -f %t/tancredi.pid %t/tancredi.ctr-id
+ExecStart=/usr/bin/podman run \
+    --detach \
+    --conmon-pidfile=%t/tancredi.pid \
+    --cidfile=%t/tancredi.ctr-id \
+    --cgroups=no-conmon \
+    --log-opt=tag=%u \
+    --replace --name=%N \
+    --volume=tancredi:/var/lib/tancredi:Z \
+    --env=TANCREDIPORT \
+    --env=NETHVOICESECRETKEY \
+    --env=AMPDBUSER \
+    --env=AMPDBPASS \
+    --env=MARIADB_PORT \
+    --env=TANCREDI_STATIC_TOKEN \
+    --env=LOCAL_IP \
+    --env=RTPSTART \
+    --env=RTPEND \
+    --network=host \
+    ${TANCREDI_IMAGE}
+
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/tancredi.ctr-id
+PIDFile=%t/tancredi.pid
+Type=forking
+
+[Install]
+WantedBy=default.target

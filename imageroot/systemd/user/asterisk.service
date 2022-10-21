@@ -3,7 +3,10 @@
 # Most parts of this file come from podman-generate-systemd.
 #
 [Unit]
-Description=asterisk server
+Description=Asterisk server
+Requires=mariadb.service
+After=mariadb.service
+
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -13,16 +16,29 @@ Restart=always
 ExecStartPre=/bin/rm -f %t/asterisk.pid %t/asterisk.ctr-id
 ExecStart=/usr/bin/podman run \
     --detach \
-    --network=host \
     --conmon-pidfile=%t/asterisk.pid \
     --cidfile=%t/asterisk.ctr-id \
     --cgroups=no-conmon \
     --log-opt=tag=%u \
-    --volume=asterisk:/etc/asterisk:z \
-    --env=MARIADB_PORT \
     --replace --name=%N \
+    --volume=asterisk:/etc/asterisk:z \
+    --volume=spool:/var/spool/asterisk:z \
+    --volume=./imageroot/volumes/var_lib_asterisk_sounds:/var/lib/asterisk/sounds:Z \
+    --volume=./imageroot/volumes/var_lib_asterisk_agi-bin:/var/lib/asterisk/agi-bin:Z \
+    --env=ASTMANAGERHOST \
+    --env=ASTMANAGERPORT \
+    --env=AMPMGRUSER \
+    --env=AMPMGRPASS \
+    --env=LOCAL_IP \
+    --env=RTPSTART \
+    --env=RTPEND \
+    --network=host \
     ${ASTERISK_IMAGE} \
     asterisk -f -C /etc/asterisk/asterisk.conf
+
+# Wait till asterisk is active
+#ExecStartPost=podman exec mariadb bash -c "while ! mysql -u${AMPDBUSER} -p${AMPDBPASS} -h127.0.0.1 -P${MARIADB_PORT} asterisk -e 'SHOW TABLES' 2> /dev/null > /dev/null; do sleep 5; done"
+
 ExecStop=/usr/bin/podman run ${ASTERISK_IMAGE} /usr/sbin/asterisk -rx 'core stop now' -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/asterisk.ctr-id
 ExecReload=/usr/bin/podman run /usr/sbin/asterisk -rx 'core reload'
