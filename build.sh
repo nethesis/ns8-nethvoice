@@ -244,8 +244,8 @@ rm -f /var/tmp/asterisk.ctr-id /var/tmp/asterisk.pid
     --replace --name=asterisk \
     --volume=asterisk:/etc/asterisk:z \
     --volume=spool:/var/spool/asterisk:z \
-    --volume=./imageroot/volumes/var_lib_asterisk_sounds:/var/lib/asterisk/sounds:Z \
-    --volume=./imageroot/volumes/var_lib_asterisk_agi-bin:/var/lib/asterisk/agi-bin:Z \
+    --volume=sounds:/var/lib/asterisk/sounds:Z \
+    --volume=agi-bin:/var/lib/asterisk/agi-bin:Z \
     --env=APACHE_SSL_PORT \
     --env=ASTMANAGERHOST \
     --env=ASTMANAGERPORT \
@@ -271,9 +271,9 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --volume=spool:/var/spool/asterisk:z \
     --volume=asterisk:/etc/asterisk:z \
     --volume=nethcti:/etc/nethcti:z \
-    --volume=./imageroot/volumes/var_lib_asterisk_sounds:/var/lib/asterisk/sounds:Z \
-    --volume=./imageroot/volumes/var_lib_asterisk_agi-bin:/var/lib/asterisk/agi-bin:Z \
-    --volume=./imageroot/volumes/usr_src_nethvoice_lookup.d:/usr/src/nethvoice/lookup.d:z \
+    --volume=sounds:/var/lib/asterisk/sounds:Z \
+    --volume=agi-bin:/var/lib/asterisk/agi-bin:Z \
+    --volume=lookup.d:/usr/src/nethvoice/lookup.d:z \
     --env=MARIADB_ROOT_PASSWORD \
     --env=MARIADB_PORT \
     --env=APACHE_RUN_USER \
