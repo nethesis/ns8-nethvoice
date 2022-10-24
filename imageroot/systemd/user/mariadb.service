@@ -18,10 +18,10 @@ ExecStart=/usr/bin/podman run \
 	--cgroups=no-conmon \
 	--log-opt=tag=%u \
 	--replace --name=%N \
-	--volume=%N-data:/var/lib/mysql:Z \
-	--publish=127.0.0.1:${MARIADB_PORT}:3306 \
+	--volume=mariadb-data:/var/lib/mysql:Z \
+	--publish=127.0.0.1:${NETHVOICE_MARIADB_PORT}:3306 \
 	--env=MARIADB_ROOT_PASSWORD \
-	--env=MARIADB_PORT \
+	--env=NETHVOICE_MARIADB_PORT \
 	--env=AMPDBUSER \
 	--env=AMPDBPASS \
 	--env=CDRDBUSER \
@@ -32,7 +32,7 @@ ExecStart=/usr/bin/podman run \
 	--port ${NETHVOICE_MARIADB_PORT}
 
 # Wait till db is initialized
-ExecStartPost=podman exec mariadb bash -c "while ! mysql -u${AMPDBUSER} -p${AMPDBPASS} -h127.0.0.1 -P${MARIADB_PORT} asterisk -e 'SHOW TABLES' 2> /dev/null > /dev/null; do sleep 5; done"
+ExecStartPost=podman exec mariadb bash -c "while ! mysql -u${AMPDBUSER} -p${AMPDBPASS} -h127.0.0.1 -P${NETHVOICE_MARIADB_PORT} asterisk -e 'SHOW TABLES' 2> /dev/null > /dev/null; do sleep 5; done"
 
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/mariadb.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/mariadb.ctr-id

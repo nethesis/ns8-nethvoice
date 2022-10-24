@@ -4,7 +4,7 @@
 $timeout = 5;
 for ($i=0; $i<=$timeout; $i++) {
 	try {
-		$db = new \PDO('mysql:host=127.0.0.1;port='.$_ENV['MARIADB_PORT'],
+		$db = new \PDO('mysql:host=127.0.0.1;port='.$_ENV['NETHVOICE_MARIADB_PORT'],
         		$_ENV['AMPDBUSER'],
 	        	$_ENV['AMPDBPASS']);
 	} catch (Exception $e) {
@@ -28,7 +28,7 @@ $vars = array(
         'AMPMGRUSER' => (empty($_ENV['AMPMGRUSER']) ? 'admin' : $_ENV['AMPMGRUSER']),
         'AMPMGRPASS' => (empty($_ENV['AMPMGRPASS']) ? 'amp111' : $_ENV['AMPMGRPASS']),
         'CDRDBHOST' => '127.0.0.1',
-        'CDRDBPORT' => $_ENV['MARIADB_PORT'],
+        'CDRDBPORT' => $_ENV['NETHVOICE_MARIADB_PORT'],
         'CDRDBNAME' => 'asteriskcdrdb',
         'CDRDBUSER' => $_ENV['CDRDBUSER'],
 	'CDRDBPASS' => $_ENV['CDRDBPASS'],

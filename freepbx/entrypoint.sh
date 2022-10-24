@@ -57,7 +57,7 @@ cat > /var/www/html/freepbx/rest/config.inc.php <<EOF
     ],
     'nethctidb' => [
           'host' => '127.0.0.1',
-          'port' => '${MARIADB_PORT}',
+          'port' => '${NETHVOICE_MARIADB_PORT}',
           'name' => 'nethcti3',
           'user' => 'nethcti',
           'pass' => '${CTIDBPASS}'
@@ -70,7 +70,7 @@ cat > /etc/odbc.ini <<EOF
 [MySQL-asteriskcdrdb]
 Server = localhost
 Database = asteriskcdrdb
-Port = ${MARIADB_PORT}
+Port = ${NETHVOICE_MARIADB_PORT}
 Driver = MySQL
 Description = ODBC on asteriskcdrdb
 EOF
@@ -90,7 +90,7 @@ cat > /etc/freepbx.conf <<EOF
 \$amp_conf['AMPDBUSER'] = '${AMPDBUSER}';
 \$amp_conf['AMPDBPASS'] = '${AMPDBPASS}';
 \$amp_conf['AMPDBHOST'] = '${AMPDBHOST}';
-\$amp_conf['AMPDBPORT'] = '${MARIADB_PORT}';
+\$amp_conf['AMPDBPORT'] = '${NETHVOICE_MARIADB_PORT}';
 \$amp_conf['AMPDBNAME'] = '${AMPDBNAME}';
 \$amp_conf['AMPDBENGINE'] = 'mysql';
 \$amp_conf['datasource'] = ''; //for sqlite3
@@ -106,7 +106,7 @@ cat > /etc/freepbx_db.conf <<EOF
 \$amp_conf['AMPDBUSER'] = '${AMPDBUSER}';
 \$amp_conf['AMPDBPASS'] = '${AMPDBPASS}';
 \$amp_conf['AMPDBHOST'] = '${AMPDBHOST}';
-\$amp_conf['AMPDBPORT'] = '${MARIADB_PORT}';
+\$amp_conf['AMPDBPORT'] = '${NETHVOICE_MARIADB_PORT}';
 \$amp_conf['AMPDBNAME'] = '${AMPDBNAME}';
 \$amp_conf['AMPDBENGINE'] = 'mysql';
 \$amp_conf['datasource'] = ''; //for sqlite3

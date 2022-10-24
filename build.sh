@@ -9,7 +9,7 @@ rm -rf imageroot/volumes/freepbx/admin/modules/*/assets/less/*/cache/*
 rm -rf imageroot/freepbx/root/initdb.d/data/asterisk/asterisk.endpointman*
 
 echo "[*] Set environment variables"
-export MARIADB_PORT=13306
+export NETHVOICE_MARIADB_PORT=13306
 export APACHE_SSL_PORT=7189
 export APACHE_RUN_USER=asterisk
 export APACHE_RUN_GROUP=asterisk
@@ -229,7 +229,7 @@ rm -f /var/tmp/mariadb.ctr-id /var/tmp/mariadb.pid
     --replace --name=mariadb \
     --volume=mariadb-data:/var/lib/mysql:Z \
     --env=MARIADB_ROOT_PASSWORD \
-    --env=MARIADB_PORT \
+    --env=NETHVOICE_MARIADB_PORT \
     --env=AMPDBUSER \
     --env=AMPDBPASS \
     --env=CDRDBUSER \
@@ -239,7 +239,7 @@ rm -f /var/tmp/mariadb.ctr-id /var/tmp/mariadb.pid
     --env=CTIDBPASS \
     --network=host \
     mariadb
-    --port ${MARIADB_PORT}
+    --port ${NETHVOICE_MARIADB_PORT}
 
 sleep 5
 
@@ -285,7 +285,7 @@ rm -f /var/tmp/freepbx14.ctr-id /var/tmp/freepbx14.pid
     --volume=agi-bin:/var/lib/asterisk/agi-bin:Z \
     --volume=lookup.d:/usr/src/nethvoice/lookup.d:z \
     --env=MARIADB_ROOT_PASSWORD \
-    --env=MARIADB_PORT \
+    --env=NETHVOICE_MARIADB_PORT \
     --env=APACHE_RUN_USER \
     --env=APACHE_RUN_GROUP \
     --env=ASTMANAGERHOST \
@@ -326,7 +326,7 @@ rm -f /var/tmp/tancredi.ctr-id /var/tmp/tancredi.pid
     --env=NETHVOICESECRETKEY \
     --env=AMPDBUSER \
     --env=AMPDBPASS \
-    --env=MARIADB_PORT \
+    --env=NETHVOICE_MARIADB_PORT \
     --env=TANCREDI_STATIC_TOKEN \
     --env=LOCAL_IP \
     --env=RTPSTART \
