@@ -37,7 +37,18 @@ buildah config \
 images+=("${repobase}/${reponame}"):
 
 
+#######################
+##      MariaDB      ##
+#######################
+echo "[*] Build mariadb container"
+reponame="mariadb"
+container=$(buildah from docker.io/library/mariadb:10.8.2)
+buildah add "${container}" mariadb/ /
 
+# Commit the image
+buildah commit "${container}" "${repobase}/${reponame}"
+# Append the image URL to the images array
+images+=("${repobase}/${reponame}"):
 
 ########################
 ##      Asterisk      ##
@@ -78,6 +89,7 @@ EOF
 
 buildah config \
     --entrypoint='["/entrypoint.sh"]' \
+    --workingdir='/var/lib/asterisk' \
     "${container}"
 
 # Install required packages

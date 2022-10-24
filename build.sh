@@ -65,6 +65,11 @@ podman volume prune -f
 podman container prune -f
 podman system prune -f
 
+echo "[*] Build MariaDB container"
+container=$(buildah from docker.io/library/mariadb:10.8.2)
+buildah add "${container}" mariadb/ /
+buildah commit "${container}" mariadb
+
 echo "[*] Build asterisk container"
 container=$(buildah from centos:7)
 buildah add "${container}" asterisk/ /
@@ -215,7 +220,6 @@ buildah commit "${container}" janus
 
 echo "[*] Run MariaDB"
 rm -f /var/tmp/mariadb.ctr-id /var/tmp/mariadb.pid
-MARIA_TAG=10.8.2
 /usr/bin/podman run \
     --detach \
     --conmon-pidfile=/var/tmp/mariadb.pid \
@@ -224,7 +228,6 @@ MARIA_TAG=10.8.2
     --log-opt=tag=mariadb \
     --replace --name=mariadb \
     --volume=mariadb-data:/var/lib/mysql:Z \
-    --volume=./imageroot/volumes/mariadb_docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:z \
     --env=MARIADB_ROOT_PASSWORD \
     --env=MARIADB_PORT \
     --env=AMPDBUSER \
@@ -235,7 +238,7 @@ MARIA_TAG=10.8.2
     --env=CTIUSER \
     --env=CTIDBPASS \
     --network=host \
-    docker.io/library/mariadb:${MARIA_TAG} \
+    mariadb
     --port ${MARIADB_PORT}
 
 sleep 5

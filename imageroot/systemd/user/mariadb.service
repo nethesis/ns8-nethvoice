@@ -28,7 +28,7 @@ ExecStart=/usr/bin/podman run \
 	--env=CDRDBHOST \
 	--env=CDRDBPASS \
 	--network=host \
-	${MARIADB_IMAGE} \
+	${NETHVOICE_MARIADB_IMAGE} \
 	--port ${MARIADB_PORT}
 
 # Wait till db is initialized
