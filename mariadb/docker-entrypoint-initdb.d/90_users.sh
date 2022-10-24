@@ -20,7 +20,6 @@
 # along with NethServer.  If not, see COPYING.
 #
 
-/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -e "FLUSH PRIVILEGES"
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -e "GRANT ALL on asterisk.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'"
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -e "GRANT ALL on asteriskcdrdb.* to '${CDRDBUSER}'@'${CDRDBHOST:=127.0.0.1}' identified by '${CDRDBPASS}'"
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -e "GRANT ALL on nethcti3.* to '${CTIUSER}'@'${CDRDBHOST:=127.0.0.1}' identified by '${CTIDBPASS}'"
