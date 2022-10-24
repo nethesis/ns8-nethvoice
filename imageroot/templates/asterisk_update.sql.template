@@ -1,4 +1,0 @@
-USE asterisk;
-
-UPDATE `freepbx_settings` SET `value` = '${AMPMGRPASS}' WHERE `keyword` = 'AMPMGRPASS';
-UPDATE `freepbx_settings` SET `value` = '${AMPMGRUSER}' WHERE `keyword` = 'AMPMGRUSER';

@@ -19,7 +19,7 @@ if ! buildah containers --format "{{.ContainerName}}" | grep -q nodebuilder-neth
     buildah from --name nodebuilder-nethvoice -v "${PWD}:/usr/src:Z" docker.io/library/node:lts
 fi
 
-#echo "Build static UI files with node..."
+echo "Build static UI files with node..."
 buildah run nodebuilder-nethvoice sh -c "cd /usr/src/ui && yarn install && yarn build"
 
 # Add imageroot directory to the container image
@@ -32,6 +32,7 @@ buildah config \
     --label="org.nethserver.tcp-ports-demand=5" \
     --label="org.nethserver.rootfull=0" \
     --label="org.nethserver.images=$repobase/nethvoice-mariadb:latest $repobase/nethvoice-freepbx:latest $repobase/nethvoice-asterisk:latest $repobase/nethvoice-nethcti:latest $repobase/nethvoice-tancredi:latest $repobase/nethvoice-janus:latest" \
+    --entrypoint=/ \
     "${container}"
 
 # Commit the image
