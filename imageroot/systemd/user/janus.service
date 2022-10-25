@@ -22,7 +22,7 @@ ExecStart=/usr/bin/podman run \
     --env=RTPSTART \
     --env=RTPEND \
     --network=host \
-    janus \
+    ${NETHVOICE_JANUS_IMAGE}
     /usr/local/bin/janus \
     --configs-folder /usr/local/etc/janus \
     --interface=lo \
@@ -30,7 +30,6 @@ ExecStart=/usr/bin/podman run \
     --ice-ignore-list=${ICEIGNORE:=vmnet,tap,tun,virb,vb-} \
     --rtp-port-range=${RTPSTART:=10000}-${RTPEND:=20000} \
     --debug-level=${DEBUG_LEVEL:=4}
-    ${NETHVOICE_JANUS_IMAGE}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/janus.ctr-id
 PIDFile=%t/janus.pid
