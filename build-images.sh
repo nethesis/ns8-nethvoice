@@ -34,7 +34,7 @@ buildah config \
     --label="org.nethserver.images=$repobase/mariadb:latest $repobase/freepbx14:latest $repobase/asterisk:latest $repobase/nethcti:latest $repobase/tancredi:latest $repobase/janus:latest" \
     "${container}"
 
-images+=("${repobase}/${reponame}"):
+images+=("${repobase}/${reponame}")
 
 
 
@@ -49,7 +49,7 @@ buildah add "${container}" mariadb/ /
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
 # Append the image URL to the images array
-images+=("${repobase}/${reponame}"):
+images+=("${repobase}/${reponame}")
 
 
 ########################
@@ -66,7 +66,7 @@ buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
 # Append the image URL to the images array
-images+=("${repobase}/${reponame}"):
+images+=("${repobase}/${reponame}")
 
 
 
@@ -152,7 +152,7 @@ buildah run "${container}" touch /var/lib/dpkg/status
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
 # Append the image URL to the images array
-images+=("${repobase}/${reponame}"):
+images+=("${repobase}/${reponame}")
 
 
 
@@ -204,7 +204,7 @@ buildah run "${container}" sed -i 's/^;error_log = syslog/error_log = \/dev\/std
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
 # Append the image URL to the images array
-images+=("${repobase}/${reponame}"):
+images+=("${repobase}/${reponame}")
 
 
 
@@ -217,12 +217,11 @@ container=$(buildah from docker.io/library/node:14)
 buildah add "${container}" nethcti/ /
 buildah config --workingdir /usr/lib/node/nethcti-server "${container}"
 buildah config --entrypoint '["npm", "start"]' "${container}"
-buildah commit "${container}" nethcti-server
 
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
 # Append the image URL to the images array
-images+=("${repobase}/${reponame}"):
+images+=("${repobase}/${reponame}")
 
 
 
@@ -234,7 +233,6 @@ reponame="janus"
 container=$(buildah from docker.io/canyan/janus-gateway:master)
 buildah add "${container}" janus/ /
 buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
-buildah commit "${container}" janus
 
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
