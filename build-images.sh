@@ -20,7 +20,7 @@ if ! buildah containers --format "{{.ContainerName}}" | grep -q nodebuilder-neth
 fi
 
 #echo "Build static UI files with node..."
-#buildah run nodebuilder-nethvoice sh -c "cd /usr/src/ui && yarn install && yarn build"
+buildah run nodebuilder-nethvoice sh -c "cd /usr/src/ui && yarn install && yarn build"
 
 # Add imageroot directory to the container image
 buildah add "${container}" imageroot /imageroot
@@ -29,12 +29,13 @@ buildah add "${container}" ui/dist /ui
 # Setup the entrypoint, ask to reserve one TCP port with the label and set a rootless container
 buildah config \
     --label="org.nethserver.authorizations=traefik@any:routeadm" \
-    --label="org.nethserver.tcp-ports-demand=3" \
+    --label="org.nethserver.tcp-ports-demand=5" \
     --label="org.nethserver.rootfull=0" \
-    --label="org.nethserver.images=docker.io/library/mariadb:latest $repobase/freepbx:latest $repobase/asterisk:latest $repobase/freepbx:latest $repobase/nethcti:latest $repobase/tancredi:latest $repobase/janus:latest" \
+    --label="org.nethserver.images=$repobase/mariadb:latest $repobase/freepbx14:latest $repobase/asterisk:latest $repobase/nethcti:latest $repobase/tancredi:latest $repobase/janus:latest" \
     "${container}"
 
 images+=("${repobase}/${reponame}"):
+
 
 
 #######################
@@ -49,6 +50,7 @@ buildah add "${container}" mariadb/ /
 buildah commit "${container}" "${repobase}/${reponame}"
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}"):
+
 
 ########################
 ##      Asterisk      ##
@@ -65,7 +67,6 @@ buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
 buildah commit "${container}" "${repobase}/${reponame}"
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}"):
-
 
 
 
@@ -154,7 +155,6 @@ images+=("${repobase}/${reponame}"):
 
 
 
-
 ########################
 ##      Tancredi      ##
 ########################
@@ -207,7 +207,6 @@ images+=("${repobase}/${reponame}"):
 
 
 
-
 #######################
 ##      NethCTI      ##
 #######################
@@ -226,7 +225,6 @@ images+=("${repobase}/${reponame}"):
 
 
 
-
 #############################
 ##      Janus Gateway      ##
 #############################
@@ -240,7 +238,8 @@ buildah commit "${container}" janus
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
 # Append the image URL to the images array
-images+=("${repobase}/${reponame}"):
+images+=("${repobase}/${reponame}")
+
 
 
 # Setup CI when pushing to Github. 
