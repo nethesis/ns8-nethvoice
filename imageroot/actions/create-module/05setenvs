@@ -51,7 +51,7 @@ agent.set_env('APACHE_RUN_GROUP','asterisk')
 agent.set_env('AMPASTERISKWEBGROUP','asterisk')
 agent.set_env('AMPASTERISKWEBUSER','asterisk')
 
-agent.set_env('BRAND_NAME','NexthVoice')
+agent.set_env('BRAND_NAME','NethVoice')
 agent.set_env('BRAND_SITE','http://www.nethvoice.it')
 agent.set_env('BRAND_DOCS','http://nethvoice.docs.nethesis.it')
 
