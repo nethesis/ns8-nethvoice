@@ -23,7 +23,7 @@ container=$(buildah from scratch)
 #buildah run nodebuilder-nethvoice sh -c "cd /usr/src/ui && yarn install && yarn build"
 
 # Add imageroot directory to the container image
-#buildah add "${container}" imageroot /imageroot
+buildah add "${container}" imageroot /imageroot
 mkdir -p  ui/dist
 touch ui/dist/index.html
 buildah add "${container}" ui/dist /ui
