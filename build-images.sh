@@ -34,6 +34,9 @@ buildah config \
     --label="org.nethserver.images=$repobase/mariadb:latest $repobase/freepbx14:latest $repobase/asterisk:latest $repobase/nethcti:latest $repobase/tancredi:latest $repobase/janus:latest" \
     "${container}"
 
+# Commit the image
+buildah commit "${container}" "${repobase}/${reponame}"
+# Append the image URL to the images array
 images+=("${repobase}/${reponame}")
 
 
