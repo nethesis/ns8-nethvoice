@@ -245,7 +245,7 @@ images+=("${repobase}/${reponame}")
 # Warning! docker::// protocol expects lowercase letters (,,)
 if [[ -n "${CI}" ]]; then
     # Set output value for Github Actions
-    printf "::set-output name=images::%s\n" "${images[*],,}"
+    printf "::set-output name=images::%s\n" "${images[*]}"
 else
     # Just print info for manual push
     printf "Publish the images with:\n\n"
