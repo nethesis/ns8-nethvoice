@@ -125,6 +125,7 @@ buildah run "${container}" docker-php-ext-install sysvsem
 #buildah run "${container}" docker-php-ext-install pdo_odbc
 
 # Use PHP development ini configuration and enable logging on syslog
+export PHP_INI_DIR=/usr/local/etc/php
 buildah run "${container}" cp -a "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 buildah run "${container}" sed -i 's/^;error_log = syslog/error_log = \/dev\/stderr/' $PHP_INI_DIR/php.ini
 echo "error_log = /dev/stderr" | buildah run "${container}" tee -a "$PHP_INI_DIR/conf.d/freepbx.ini"
