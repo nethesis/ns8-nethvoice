@@ -4,8 +4,8 @@
 #
 [Unit]
 Description=FreePBX
-Requires=asterisk.service,mariadb.service
-After=asterisk.service,mariadb.service
+Requires=asterisk.service mariadb.service
+After=asterisk.service mariadb.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
