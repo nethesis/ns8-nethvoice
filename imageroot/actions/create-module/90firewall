@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2022 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import agent
+import os
+
+agent.add_public_service(os.environ['MODULE_ID'], [
+    os.environ['APACHE_PORT']+"/tcp", # Apache
+    os.environ['JANUS_TRANSPORT_PORT']+"/tcp", # Janus
+    os.environ['RTPSTART']+"-"+os.environ['RTPEND']+"/tcp", # Janus
+])
+
+# Ignore exit code
