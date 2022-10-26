@@ -1,0 +1,40 @@
+#
+# This systemd unit starts a janus instance using Podman.
+# Most parts of this file come from podman-generate-systemd.
+#
+[Unit]
+Description=janus server
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+WorkingDirectory=%S/state
+Restart=always
+ExecStartPre=/bin/rm -f %t/janus.pid %t/janus.ctr-id
+ExecStart=/usr/bin/podman run \
+    --detach \
+    --conmon-pidfile=%t/janus.pid \
+    --cidfile=%t/janus.ctr-id \
+    --cgroups=no-conmon \
+    --log-opt=tag=%u \
+    --replace --name=%N \
+    --env=LOCAL_IP \
+    --env=RTPSTART \
+    --env=RTPEND \
+    --network=host \
+    janus \
+    /usr/local/bin/janus \
+    --configs-folder /usr/local/etc/janus \
+    --interface=lo \
+    --stun-server=${STUNSERVER:=stun1.l.google.com}:${STUNPORT:=19302} \
+    --ice-ignore-list=${ICEIGNORE:=vmnet,tap,tun,virb,vb-} \
+    --rtp-port-range=${RTPSTART:=10000}-${RTPEND:=20000} \
+    --debug-level=${DEBUG_LEVEL:=4}
+    ${NETHVOICE_JANUS_IMAGE}
+
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/janus.ctr-id
+PIDFile=%t/janus.pid
+Type=forking
+
+[Install]
+WantedBy=default.target

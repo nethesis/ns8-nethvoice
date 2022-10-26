@@ -29,7 +29,7 @@ ExecStart=/usr/bin/podman run \
     --env=RTPSTART \
     --env=RTPEND \
     --network=host \
-    ${TANCREDI_IMAGE}
+    ${NETHVOICE_TANCREDI_IMAGE}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/tancredi.ctr-id
 PIDFile=%t/tancredi.pid

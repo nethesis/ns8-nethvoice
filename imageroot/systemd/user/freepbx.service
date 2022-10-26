@@ -50,7 +50,7 @@ ExecStart=/usr/bin/podman run \
     --env=BRAND_SITE \
     --env=BRAND_DOCS \
     --network=host \
-    ${FREEPBX_IMAGE}
+    ${NETHVOICE_FREEPBX_IMAGE}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/freepbx.ctr-id
 PIDFile=%t/freepbx.pid

@@ -25,7 +25,7 @@ ExecStart=/usr/bin/podman run \
     --volume=nethcti-server-code:/usr/lib/node/nethcti-server:Z \
     --env=DUMB_CTI \
     --network=host \
-    ${NETHCTI_IMAGE}
+    ${NETHVOICE_NETHCTI_IMAGE}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/nethcti.ctr-id
 ExecReload=/usr/bin/podman run node /usr/lib/node/nethcti-server/nethcti-cli reload

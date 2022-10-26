@@ -31,7 +31,7 @@ buildah config \
     --label="org.nethserver.authorizations=traefik@any:routeadm" \
     --label="org.nethserver.tcp-ports-demand=5" \
     --label="org.nethserver.rootfull=0" \
-    --label="org.nethserver.images=$repobase/mariadb:latest $repobase/freepbx14:latest $repobase/asterisk:latest $repobase/nethcti:latest $repobase/tancredi:latest $repobase/janus:latest" \
+    --label="org.nethserver.images=$repobase/nethvoice-mariadb:latest $repobase/nethvoice-freepbx:latest $repobase/nethvoice-asterisk:latest $repobase/nethvoice-nethcti:latest $repobase/nethvoice-tancredi:latest $repobase/nethvoice-janus:latest" \
     "${container}"
 
 # Commit the image
@@ -45,7 +45,7 @@ images+=("${repobase}/${reponame}")
 ##      MariaDB      ##
 #######################
 echo "[*] Build mariadb container"
-reponame="mariadb"
+reponame="nethvoice-mariadb"
 container=$(buildah from docker.io/library/mariadb:10.8.2)
 buildah add "${container}" mariadb/ /
 
@@ -59,7 +59,7 @@ images+=("${repobase}/${reponame}")
 ##      Asterisk      ##
 ########################
 echo "[*] Build Asterisk container"
-reponame="asterisk"
+reponame="nethvoice-asterisk"
 container=$(buildah from centos:7)
 buildah add "${container}" asterisk/ /
 buildah run "${container}" yum -y install asterisk18-core asterisk18-addons-core asterisk18-dahdi asterisk18-odbc asterisk18-voicemail asterisk18-voicemail-odbcstorage unixODBC
@@ -77,7 +77,7 @@ images+=("${repobase}/${reponame}")
 ##      FreePBX 14      ##
 ##########################
 echo "[*] Build FreePBX container"
-reponame="freepbx14"
+reponame="nethvoice-freepbx"
 
 container=$(buildah from docker.io/library/php:5.6-apache)
 buildah add "${container}" freepbx/ /
@@ -163,7 +163,7 @@ images+=("${repobase}/${reponame}")
 ##      Tancredi      ##
 ########################
 echo "[*] Build Tancredi container"
-reponame="tancredi"
+reponame="nethvoice-tancredi"
 container=$(buildah from docker.io/library/php:7-apache)
 buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
 buildah add "${container}"  tancredi/ /
@@ -215,7 +215,7 @@ images+=("${repobase}/${reponame}")
 ##      NethCTI      ##
 #######################
 echo "[*] Build nethcti container"
-reponame="nethcti"
+reponame="nethvoice-nethcti"
 container=$(buildah from docker.io/library/node:14)
 buildah add "${container}" nethcti/ /
 buildah config --workingdir /usr/lib/node/nethcti-server "${container}"
@@ -232,7 +232,7 @@ images+=("${repobase}/${reponame}")
 ##      Janus Gateway      ##
 #############################
 echo "[*] Build Janus Gateway container"
-reponame="janus"
+reponame="nethvoice-janus"
 container=$(buildah from docker.io/canyan/janus-gateway:master)
 buildah add "${container}" janus/ /
 buildah config --entrypoint='["/entrypoint.sh"]' "${container}"

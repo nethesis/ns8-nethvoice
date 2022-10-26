@@ -33,7 +33,7 @@ ExecStart=/usr/bin/podman run \
     --env=RTPSTART \
     --env=RTPEND \
     --network=host \
-    ${ASTERISK_IMAGE} \
+    ${NETHVOICE_ASTERISK_IMAGE} \
     asterisk -f -C /etc/asterisk/asterisk.conf
 
 # Wait till asterisk is active
