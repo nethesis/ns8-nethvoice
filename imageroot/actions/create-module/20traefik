@@ -20,13 +20,26 @@
 # along with NethServer.  If not, see COPYING.
 #
 
-import json
+import os
 import sys
+import json
 import agent
 import agent.tasks
-import os
 
-request = json.load(sys.stdin)
+# Talk with agent using file descriptor.
+# Setup configuration from user input.
+agent.set_env("TRAEFIK_HOST", host)
+agent.set_env("TRAEFIK_HTTP2HTTPS", True)
+agent.set_env("TRAEFIK_LETS_ENCRYPT", le)
+
+# Make sure everything is saved inside the environment file
+# just before starting systemd unit
+agent.dump_env()
+
+# Find default traefik instance for current node
+default_traefik_id = agent.resolve_agent_id('traefik@node')
+if default_traefik_id is None:
+    sys.exit(2)
 
 # Configure Traefik to route "/nethvoice" or /$BRAND_NAME
 response = agent.tasks.run(
