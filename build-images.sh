@@ -100,7 +100,7 @@ buildah config \
 
 # Install required packages
 buildah run "${container}" apt-get update
-buildah run "${container}" apt install -y gnupg mycli libldap2-dev
+buildah run "${container}" apt install -y gnupg mycli libldap2-dev zip
 buildah run "${container}" apt install -y cron # TODO needed by freepbx cron module. To remove.
 
 # install PHP additional modules
@@ -138,6 +138,15 @@ echo "variables_order = "EGPCS"" | buildah run "${container}" tee -a "$PHP_INI_D
 
 # Enable environment variables
 buildah run "${container}" sed -i 's/^variables_order = "GPCS"/variables_order = "EGPCS"/' $PHP_INI_DIR/php.ini
+
+# Install nethvoice-wizard-restapi
+buildah run "${container}" /bin/sh <<'EOF'
+mkdir -p /var/www/html/freepbx/rest
+curl -L https://github.com/nethesis/nethvoice-wizard-restapi/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=1 -C /var/www/html/freepbx/rest/
+curl -s https://getcomposer.org/installer | php
+COMPOSER_ALLOW_SUPERUSER=1 php composer.phar install --no-dev
+rm -fr README.md composer.json composer.lock composer.phar
+EOF
 
 # enable apache rewrite module
 buildah run "${container}" a2enmod rewrite proxy*
