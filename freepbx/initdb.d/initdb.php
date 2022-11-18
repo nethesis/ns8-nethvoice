@@ -1,23 +1,9 @@
 <?php
 
 // Connect to DBs waiting for 60 seconds mysql to come up
-$timeout = 5;
-for ($i=0; $i<=$timeout; $i++) {
-	try {
-		$db = new \PDO('mysql:host=127.0.0.1;port='.$_ENV['NETHVOICE_MARIADB_PORT'],
-        		$_ENV['AMPDBUSER'],
-	        	$_ENV['AMPDBPASS']);
-	} catch (Exception $e) {
-		if ($i < $timeout) {
-			sleep(1);
-                        continue;
-                } else {
-                        echo $e->getMessage()."\n";
-                        echo "Timeout!\n";
-                        exit(1);
-                }
-        }
-}
+$db = new \PDO('mysql:host=127.0.0.1;port='.$_ENV['NETHVOICE_MARIADB_PORT'],
+	$_ENV['AMPDBUSER'],
+	$_ENV['AMPDBPASS']);
 
 // update freepbx settings
 $vars = array(
