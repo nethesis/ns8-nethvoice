@@ -19,6 +19,7 @@ ExecStart=/usr/bin/podman run \
     --log-opt=tag=%u \
     --replace --name=%N \
     --volume=tancredi:/var/lib/tancredi:Z \
+    --volume=/dev/log:/dev/log \
     --env=TANCREDIPORT \
     --env=NETHVOICESECRETKEY \
     --env=AMPDBUSER \

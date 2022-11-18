@@ -25,6 +25,7 @@ ExecStart=/usr/bin/podman run \
     --volume=spool:/var/spool/asterisk:z \
     --volume=sounds:/var/lib/asterisk/sounds:Z \
     --volume=agi-bin:/var/lib/asterisk/agi-bin:Z \
+    --volume=/dev/log:/dev/log \
     --env=ASTMANAGERHOST \
     --env=ASTMANAGERPORT \
     --env=AMPMGRUSER \

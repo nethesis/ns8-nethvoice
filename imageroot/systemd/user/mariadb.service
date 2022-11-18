@@ -19,6 +19,7 @@ ExecStart=/usr/bin/podman run \
 	--log-opt=tag=%u \
 	--replace --name=%N \
 	--volume=mariadb-data:/var/lib/mysql:Z \
+        --volume=/dev/log:/dev/log \
 	--publish=127.0.0.1:${NETHVOICE_MARIADB_PORT}:3306 \
 	--env=MARIADB_ROOT_PASSWORD \
 	--env=NETHVOICE_MARIADB_PORT \
