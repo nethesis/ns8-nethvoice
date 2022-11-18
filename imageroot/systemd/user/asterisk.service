@@ -38,7 +38,7 @@ ExecStart=/usr/bin/podman run \
     asterisk -f -C /etc/asterisk/asterisk.conf
 
 # Wait till asterisk is active
-#ExecStartPost=podman exec mariadb bash -c "while ! mysql -u${AMPDBUSER} -p${AMPDBPASS} -h127.0.0.1 -P${MARIADB_PORT} asterisk -e 'SHOW TABLES' 2> /dev/null > /dev/null; do sleep 5; done"
+ExecStartPost=podman exec asterisk bash -c "while [[ $$(/usr/sbin/asterisk -rx 'core show version' 2>/dev/null) != Asterisk* ]]; do ((++attempt<30)) || exit 2; sleep 1 ; done"
 
 ExecStop=/usr/bin/podman run ${ASTERISK_IMAGE} /usr/sbin/asterisk -rx 'core stop now' -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/asterisk.ctr-id
