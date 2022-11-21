@@ -38,8 +38,8 @@ auth_nethvoice_dbuser = "${AMPDBUSER}"
 auth_nethvoice_dbpass = "${AMPDBPASS}"
 static_token = "${TANCREDI_STATIC_TOKEN}"
 auth_nethvoice_dbport = "${NETHVOICE_MARIADB_PORT}"
-#runtime_filters = "AsteriskRuntimeFilter"
-#astdb = "/var/lib/asterisk/astdb.sqlite3"
+runtime_filters = "AsteriskRuntimeFilter"
+astdb = "/var/lib/asterisk/db/astdb.sqlite3"
 file_reader = "apache"
 [macvendors]
 00A859 = fanvil
