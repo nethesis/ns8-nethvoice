@@ -66,7 +66,10 @@ container=$(buildah from centos:7)
 buildah add "${container}" asterisk/ /
 buildah run "${container}" yum -y install asterisk18-core asterisk18-addons-core asterisk18-dahdi asterisk18-odbc asterisk18-voicemail asterisk18-voicemail-odbcstorage unixODBC
 buildah run "${container}" rm -fr /var/cache/yum
-buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
+buildah config \
+    --entrypoint='["/entrypoint.sh"]' \
+    --workingdir='/var/lib/asterisk' \
+    "${container}"
 
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"

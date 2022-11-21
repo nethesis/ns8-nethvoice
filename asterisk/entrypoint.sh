@@ -43,6 +43,7 @@ writetimeout = 5000
 EOF
 fi
 
-cd /var/lib/asterisk
+chown asterisk:asterisk /var/lib/asterisk/db
+
 /usr/sbin/asterisk -f -C /etc/asterisk/asterisk.conf
 
