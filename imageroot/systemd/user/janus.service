@@ -25,7 +25,7 @@ ExecStart=/usr/bin/podman run \
     --network=host \
     ${NETHVOICE_JANUS_IMAGE}
     /usr/local/bin/janus \
-    --configs-folder /usr/local/etc/janus \
+    --configs-folder=/usr/local/etc/janus \
     --interface=lo \
     --stun-server=${STUNSERVER:=stun1.l.google.com}:${STUNPORT:=19302} \
     --ice-ignore-list=${ICEIGNORE:=vmnet,tap,tun,virb,vb-} \
