@@ -64,6 +64,8 @@ echo "[*] Build Asterisk container"
 reponame="nethvoice-asterisk"
 container=$(buildah from centos:7)
 buildah add "${container}" asterisk/ /
+buildah run "${container}" groupadd -g 101 -r asterisk
+buildah run "${container}" useradd -u 100 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk
 buildah run "${container}" yum -y install asterisk18-core asterisk18-addons-core asterisk18-dahdi asterisk18-odbc asterisk18-voicemail asterisk18-voicemail-odbcstorage unixODBC
 buildah run "${container}" rm -fr /var/cache/yum
 buildah config \
@@ -86,8 +88,8 @@ reponame="nethvoice-freepbx"
 
 container=$(buildah from docker.io/library/php:5.6-apache)
 buildah add "${container}" freepbx/ /
-buildah run "${container}" groupadd -r asterisk
-buildah run "${container}" useradd -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk
+buildah run "${container}" groupadd -g 101 -r asterisk
+buildah run "${container}" useradd -u 100 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk
 
 buildah run "${container}" /bin/sh <<EOF
 sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:\$\{APACHE_PORT\}>/' /etc/apache2/sites-enabled/000-default.conf
