@@ -33,6 +33,16 @@ if [[ ! -f /etc/apache2/sites-enabled/tancredi.conf ]] ; then
 	ln -sf /etc/apache2/sites-available/tancredi.conf /etc/apache2/sites-enabled/tancredi.conf
 fi
 
+# Customized wizard page
+cat > /etc/apache2/sites-available/wizard.conf <<EOF
+Alias ^/$(echo ${BRAND_NAME:=NethVoice} | tr '[:upper:]' '[:lower:]')(/.*)?\$ /freepbx/wizard\$1  [L,R=301]
+EOF
+
+# Link rewrite configuration
+if [[ ! -f /etc/apache2/sites-enabled/wizard.conf ]] ; then
+	ln -sf /etc/apache2/sites-available/wizard.conf /etc/apache2/sites-enabled/wizard.conf
+fi
+
 # Write wizard and restapy configuration
 cat > /var/www/html/freepbx/wizard/scripts/custom.js <<EOF
 var customConfig = {
