@@ -144,4 +144,7 @@ fi
 # Configure users
 php configure_users.php
 
+# Sync users
+fwconsole userman --syncall --force --verbose
+
 exec "$@"
