@@ -144,5 +144,4 @@ fi
 # Configure users
 php configure_users.php
 
-
 exec "$@"
