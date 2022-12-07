@@ -50,6 +50,12 @@ ExecStart=/usr/bin/podman run \
     --env=BRAND_NAME \
     --env=BRAND_SITE \
     --env=BRAND_DOCS \
+    --env=NETHVOICE_LDAP_HOST \
+    --env=NETHVOICE_LDAP_PORT \
+    --env=NETHVOICE_LDAP_USER \
+    --env=NETHVOICE_LDAP_PASS \
+    --env=NETHVOICE_LDAP_SCHEMA \
+    --env=NETHVOICE_LDAP_BASE \
     --network=host \
     ${NETHVOICE_FREEPBX_IMAGE}
 

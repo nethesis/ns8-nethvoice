@@ -141,4 +141,8 @@ if [[ ! -f /etc/asterisk/extensions_additional.conf ]]; then
 	fwconsole chown
 fi
 
+# Configure users
+php configure_users.php
+
+
 exec "$@"

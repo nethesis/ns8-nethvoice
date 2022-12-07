@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2022 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import sys
+import agent
+import os
+from agent.ldapproxy import Ldapproxy
+
+domparams = Ldapproxy().get_domain('nethserver.test')
+
+agent.set_env('NETHVOICE_LDAP_HOST', domparams['host'])
+agent.set_env('NETHVOICE_LDAP_PORT', domparams['port'])
+agent.set_env('NETHVOICE_LDAP_USER', domparams['bind_dn'])
+agent.set_env('NETHVOICE_LDAP_PASS', domparams['bind_password'])
+agent.set_env('NETHVOICE_LDAP_SCHEMA', domparams['schema'])
+agent.set_env('NETHVOICE_LDAP_BASE', domparams['base_dn'])
+
+agent.dump_env()
