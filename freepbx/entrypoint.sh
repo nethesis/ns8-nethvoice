@@ -35,7 +35,7 @@ fi
 
 # Customized wizard page
 cat > /etc/apache2/sites-available/wizard.conf <<EOF
-Alias ^/$(echo ${BRAND_NAME:=NethVoice} | tr '[:upper:]' '[:lower:]')(/.*)?\$ /freepbx/wizard\$1  [L,R=301]
+Alias ^/\$(echo \${BRAND_NAME:=NethVoice} | tr '[:upper:]' '[:lower:]')(/.*)?\$ /freepbx/wizard\$1  [L,R=301]
 EOF
 
 # Link rewrite configuration
