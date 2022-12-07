@@ -7,10 +7,7 @@
 
 import agent
 import os
-
-
 import sys
-sys.exit(0)
 
 agent.add_public_service(os.environ['MODULE_ID'], [
     os.environ['APACHE_PORT']+"/tcp", # Apache
