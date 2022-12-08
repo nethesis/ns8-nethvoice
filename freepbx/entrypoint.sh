@@ -142,7 +142,7 @@ if [[ ! -f /etc/asterisk/extensions_additional.conf ]]; then
 fi
 
 # Configure users
-php configure_users.php
+php /configure_users.php
 
 # Sync users
 fwconsole userman --syncall --force --verbose
