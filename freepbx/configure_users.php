@@ -17,6 +17,7 @@ if (!isset($_ENV['NETHVOICE_LDAP_HOST'])
 	$sql = "UPDATE userman_directories SET `active` = 0 WHERE `name` LIKE 'NethServer%' AND `name` != 'NethServer8 [custom]'";
 	$stmt = $db->prepare($sql);
 	$stmt->execute();
+	echo "NethServer8 LDAP configuration environment not setted. Any not-custom userbase disabled\n";
 	exit(0);
 }
 
@@ -66,6 +67,7 @@ $ldap_settings = array(
 
 if (empty($results)) {
 	// Not configured
+	echo "Userbase not configured. Creating a new one...\n";
 	$sql = "INSERT INTO `userman_directories` (`name`, `driver`, `active`, `order`, `default`, `locked`) VALUES ('NethServer8','Openldap2',1,5,1,0)";
 	$stmt = $db->prepare($sql);
 	$stmt->execute();
@@ -73,6 +75,7 @@ if (empty($results)) {
 } else {
 	// If userbase is "custom" exit without changes
 	if ($results[0]['name'] === 'NethServer8 [custom]') {
+		echo "Custom NethServer 8 userbase already configured. Exit\n";
 		exit (0);
 	}
 
@@ -83,7 +86,9 @@ if (empty($results)) {
 	if ($results[0]['name'] === 'NethServer AD' || $results[0]['name'] === 'NethServer LDAP') {
 		// Default NethServer7
 		$ldap_settings['name'] = 'NethServer8';
+		echo "Default NethServer 7 userbase found. Migrating it to NethServer 8...\n";
 	} elseif (strpos($results[0]['name'],'NethServer ') === 0) {
+		echo "Custom NethServer 7 userbase found. Migrating it to NethServer 8...\n";
 		// Custom NethServer7
 		$ldap_settings['name'] = 'NethServer8 [custom]';
 		// get old User Object Filter
@@ -95,6 +100,7 @@ if (empty($results)) {
 		$ldap_settings['userobjectfilter'] = $old_data['userobjectfilter'];
 	} else {
 		// NethServer8 default,
+		echo "Default NethServer 8 userbase found...\n";
 		$ldap_settings['name'] = 'NethServer8';
 	}
 	$stmt->execute([$ldap_settings['name'], $id]);
@@ -102,5 +108,6 @@ if (empty($results)) {
 	$sql = "INSERT INTO kvstore_FreePBX_modules_Userman (`key`, `val`, `type`, `id`) VALUES ('auth-settings',?,'json-arr',?)";
 	$stmt = $db->prepare($sql);
 	$stmt->execute([json_encode($ldap_settings), $id]);
+	echo "userbase configuration: " . $ldap_settings['name'];
 }
 
