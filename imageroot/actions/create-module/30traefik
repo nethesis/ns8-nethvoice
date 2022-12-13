@@ -26,7 +26,6 @@ response = agent.tasks.run(
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "True",
         'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
         'path': '/' + os.environ["BRAND_NAME"].lower(),
-        'strip_prefix': True
     },
 )
 
