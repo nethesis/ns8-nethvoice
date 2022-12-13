@@ -27,7 +27,7 @@ $stmt = $db->prepare($sql);
 $stmt->execute();
 $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-if ($NETHVOICE_LDAP_SCHEMA === 'ad') {
+if ($_ENV['NETHVOICE_LDAP_SCHEMA'] === 'ad') {
 	$ldap_settings = array(
 		"host" => $_ENV['NETHVOICE_LDAP_HOST'],
 		"port" => $_ENV['NETHVOICE_LDAP_PORT'],
