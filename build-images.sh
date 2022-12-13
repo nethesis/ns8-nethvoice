@@ -239,6 +239,7 @@ cd /usr/share/tancredi/
 curl -s https://getcomposer.org/installer | php
 COMPOSER_ALLOW_SUPERUSER=1 php composer.phar install --no-dev
 rm -fr /usr/share/tancredi/src/Entity/SampleFilter.php /usr/share/tancredi/composer.phar /usr/share/tancredi/composer.json /usr/share/tancredi/composer.lock
+chgrp -R www-data /var/lib/tancredi/data/*
 
 # install pdo_mysql
 docker-php-source extract
