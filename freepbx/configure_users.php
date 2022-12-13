@@ -27,50 +27,90 @@ $stmt = $db->prepare($sql);
 $stmt->execute();
 $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-$ldap_settings = array(
-	"host" => $_ENV['NETHVOICE_LDAP_HOST'],
-	"port" => $_ENV['NETHVOICE_LDAP_PORT'],
-	"basedn" => $_ENV['NETHVOICE_LDAP_BASE'],
-	"username" => $_ENV['NETHVOICE_LDAP_USER'],
-	"password" => $_ENV['NETHVOICE_LDAP_PASS'],
-	"displayname" => 'gecos',
-	"userdn" => 'ou=People',
-	"connection" => '',
-	"localgroups" => '0',
-	"createextensions" => '',
-	"externalidattr" => 'entryUUID',
-	"descriptionattr" => 'description',
-	"commonnameattr" => 'uid',
-	"userobjectclass" => 'posixAccount',
-	"userobjectfilter" => '(&(objectclass=posixAccount)(!(uid=domguests))(!(uid=domcomputers))(!(uid=nsstest))(!(uid=locals))(!(uid=domadmins)))',
-	"usernameattr" => 'uid',
-	"userfirstnameattr" => 'givenName',
-	"userlastnameattr" => 'sn',
-	"userdisplaynameattr" => 'gecos',
-	"usertitleattr" => '',
-	"usercompanyattr" => '',
-	"usercellphoneattr" => '',
-	"userworkphoneattr" => 'telephoneNumber',
-	"userhomephoneattr" => 'homephone',
-	"userfaxphoneattr" => 'facsimileTelephoneNumber',
-	"usermailattr" => 'mail',
-	"usergroupmemberattr" => 'memberOf',
-	"la" => '',
-	"groupnameattr" => 'cn',
-	"groupdnaddition" => 'ou=Groups',
-	"groupobjectclass" => 'posixGroup',
-	"groupobjectfilter" => '(objectclass=posixGroup)',
-	"groupmemberattr" => 'memberUid',
-	"sync" => '0 * * * *',
-	"driver" => 'Openldap2',
-);
+if ($NETHVOICE_LDAP_SCHEMA === 'ad') {
+	$ldap_settings = array(
+		"host" => $_ENV['NETHVOICE_LDAP_HOST'],
+		"port" => $_ENV['NETHVOICE_LDAP_PORT'],
+		"basedn" => $_ENV['NETHVOICE_LDAP_BASE'],
+		"username" => $_ENV['NETHVOICE_LDAP_USER'],
+		"password" => $_ENV['NETHVOICE_LDAP_PASS'],
+		"domain" => $_ENV['NETHVOICE_LDAP_DOMAIN']
+		"connection" => '',
+		"localgroups" => '0',
+		"createextensions" => '',
+		"externalidattr" => 'objectGUID',
+		"descriptionattr" => 'description',
+		"commonnameattr" => 'cn',
+		"userdn" => '',
+		"userobjectclass" => 'user',
+		"userobjectfilter" => '(&(objectClass=user)(objectCategory=person))',
+		"usernameattr" => 'sAMAccountName',
+		"userfirstnameattr" => 'givenName',
+		"userlastnameattr" => 'sn',
+		"userdisplaynameattr" => 'displayName',
+		"usertitleattr" => 'personaltitle',
+		"usercompanyattr" => 'company',
+		"usercellphoneattr" => 'mobile',
+		"userworkphoneattr" => 'telephoneNumber',
+		"userhomephoneattr" => 'homephone',
+		"userfaxphoneattr" => 'facsimileTelephoneNumber',
+		"usermailattr" => 'mail',
+		"usergroupmemberattr" => 'memberOf',
+		"la" => '',
+		"groupdnaddition" => '',
+		"groupobjectclass" => 'group',
+		"groupobjectfilter" => '(objectCategory=Group)',
+		"groupmemberattr" => 'member',
+		"sync" => '0 * * * *'
+	);
+	$driver = 'Msad2';
+} else {
+	$ldap_settings = array(
+		"host" => $_ENV['NETHVOICE_LDAP_HOST'],
+		"port" => $_ENV['NETHVOICE_LDAP_PORT'],
+		"basedn" => $_ENV['NETHVOICE_LDAP_BASE'],
+		"username" => $_ENV['NETHVOICE_LDAP_USER'],
+		"password" => $_ENV['NETHVOICE_LDAP_PASS'],
+		"displayname" => 'gecos',
+		"userdn" => 'ou=People',
+		"connection" => '',
+		"localgroups" => '0',
+		"createextensions" => '',
+		"externalidattr" => 'entryUUID',
+		"descriptionattr" => 'description',
+		"commonnameattr" => 'uid',
+		"userobjectclass" => 'posixAccount',
+		"userobjectfilter" => '(&(objectclass=posixAccount)(!(uid=domguests))(!(uid=domcomputers))(!(uid=nsstest))(!(uid=locals))(!(uid=domadmins)))',
+		"usernameattr" => 'uid',
+		"userfirstnameattr" => 'givenName',
+		"userlastnameattr" => 'sn',
+		"userdisplaynameattr" => 'gecos',
+		"usertitleattr" => '',
+		"usercompanyattr" => '',
+		"usercellphoneattr" => '',
+		"userworkphoneattr" => 'telephoneNumber',
+		"userhomephoneattr" => 'homephone',
+		"userfaxphoneattr" => 'facsimileTelephoneNumber',
+		"usermailattr" => 'mail',
+		"usergroupmemberattr" => 'memberOf',
+		"la" => '',
+		"groupnameattr" => 'cn',
+		"groupdnaddition" => 'ou=Groups',
+		"groupobjectclass" => 'posixGroup',
+		"groupobjectfilter" => '(objectclass=posixGroup)',
+		"groupmemberattr" => 'memberUid',
+		"sync" => '0 * * * *',
+		"driver" => 'Openldap2',
+	);
+	$driver = 'Openldap2';
+}
 
 if (empty($results)) {
 	// Not configured
 	echo "Userbase not configured. Creating a new one...\n";
-	$sql = "INSERT INTO `userman_directories` (`name`, `driver`, `active`, `order`, `default`, `locked`) VALUES ('NethServer8','Openldap2',1,5,1,0)";
+	$sql = "INSERT INTO `userman_directories` (`name`, `driver`, `active`, `order`, `default`, `locked`) VALUES ('NethServer8',?,1,5,1,0)";
 	$stmt = $db->prepare($sql);
-	$stmt->execute();
+	$stmt->execute([$driver]);
 	$id = $db->lastInsertId();
 } else {
 	// If userbase is "custom" exit without changes
@@ -80,7 +120,7 @@ if (empty($results)) {
 	}
 
 	$id = $results[0]['id'];
-	$sql = "UPDATE IGNORE `userman_directories` SET `name`= ?, `driver` = 'Openldap2', `active` = 1, `order` = 5, `default` = 1, `locked` = 0 WHERE `id` = ?";
+	$sql = "UPDATE IGNORE `userman_directories` SET `name`= ?, `driver` = ?, `active` = 1, `order` = 5, `default` = 1, `locked` = 0 WHERE `id` = ?";
 	$stmt = $db->prepare($sql);
 
 	if ($results[0]['name'] === 'NethServer AD' || $results[0]['name'] === 'NethServer LDAP') {
@@ -103,11 +143,11 @@ if (empty($results)) {
 		echo "Default NethServer 8 userbase found...\n";
 		$ldap_settings['name'] = 'NethServer8';
 	}
-	$stmt->execute([$ldap_settings['name'], $id]);
-
-	$sql = "INSERT INTO kvstore_FreePBX_modules_Userman (`key`, `val`, `type`, `id`) VALUES ('auth-settings',?,'json-arr',?)";
-	$stmt = $db->prepare($sql);
-	$stmt->execute([json_encode($ldap_settings), $id]);
-	echo "userbase configuration: " . $ldap_settings['name'];
+	$stmt->execute([$ldap_settings['name'], $driver, $id]);
 }
+
+$sql = "INSERT INTO kvstore_FreePBX_modules_Userman (`key`, `val`, `type`, `id`) VALUES ('auth-settings',?,'json-arr',?)";
+$stmt = $db->prepare($sql);
+$stmt->execute([json_encode($ldap_settings), $id]);
+echo "userbase configuration: " . $ldap_settings['name'];
 

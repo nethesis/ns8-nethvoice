@@ -20,5 +20,6 @@ agent.set_env('NETHVOICE_LDAP_USER', domparams['bind_dn'])
 agent.set_env('NETHVOICE_LDAP_PASS', domparams['bind_password'])
 agent.set_env('NETHVOICE_LDAP_SCHEMA', domparams['schema'])
 agent.set_env('NETHVOICE_LDAP_BASE', domparams['base_dn'])
+agent.set_env('NETHVOICE_LDAP_DOMAIN', request['user_domain'])
 
 agent.dump_env()
