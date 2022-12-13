@@ -47,3 +47,19 @@ response = agent.tasks.run(
 
 # Check if traefik configuration has been successfull
 agent.assert_exp(response['exit_code'] == 0)
+
+# Configure Traefik to route "/tancredi" path requests to the webapp service
+response = agent.tasks.run(
+    agent_id=agent.resolve_agent_id('traefik@node'),
+    action='set-route',
+    data={
+        'instance': os.environ['MODULE_ID'] + '-tancredi',
+        'url':  'http://127.0.0.1:' + os.environ["TANCREDIPORT"] + '/tancredi',
+        'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "True",
+        'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
+        'path': '/tancredi',
+    },
+)
+
+# Check if traefik configuration has been successfull
+agent.assert_exp(response['exit_code'] == 0)
