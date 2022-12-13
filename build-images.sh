@@ -168,6 +168,43 @@ buildah run "${container}" apt-get autoremove --yes
 buildah run "${container}" rm -rf /var/lib/dpkg/info/* /var/lib/cache/* /var/lib/log/*
 buildah run "${container}" touch /var/lib/dpkg/status
 
+# Set files permissions
+buildah run "${container}" /bin/sh <<'EOF'
+mkdir -p \
+	/var/run/asterisk/ \
+	/var/www/html/freepbx/admin/assets/less/cache \
+	/var/www/html/freepbx/admin/modules/calendar/assets/less/cache \
+	/var/www/html/freepbx/admin/modules/cdr/assets/less/cache \
+	/var/www/html/freepbx/admin/modules/certman/assets/less/cache \
+	/var/www/html/freepbx/admin/modules/conferences/assets/less/cache \
+	/var/www/html/freepbx/admin/modules/customappsreg/assets/less/cache \
+	/var/www/html/freepbx/admin/modules/dashboard/assets/less/cache \
+	/var/www/html/freepbx/admin/modules/featurecodeadmin/assets/less/cache \
+	/var/www/html/freepbx/admin/modules/ivr/assets/less/cache \
+	/var/www/html/freepbx/admin/modules/music/assets/less/cache \
+	/var/www/html/freepbx/admin/modules/recordings/assets/less/cache \
+	/var/www/html/freepbx/admin/modules/soundlang/assets/less/cache \
+	/var/www/html/freepbx/admin/modules/userman/assets/less/cache \
+	/var/www/html/freepbx/admin/modules/voicemail/assets/less/cache
+chown -R asterisk:asterisk \
+	/etc/asterisk/* \
+	/var/run/asterisk/ \
+        /var/www/html/freepbx/admin/assets/less/cache \
+        /var/www/html/freepbx/admin/modules/calendar/assets/less/cache \
+        /var/www/html/freepbx/admin/modules/cdr/assets/less/cache \
+        /var/www/html/freepbx/admin/modules/certman/assets/less/cache \
+        /var/www/html/freepbx/admin/modules/conferences/assets/less/cache \
+        /var/www/html/freepbx/admin/modules/customappsreg/assets/less/cache \
+        /var/www/html/freepbx/admin/modules/dashboard/assets/less/cache \
+        /var/www/html/freepbx/admin/modules/featurecodeadmin/assets/less/cache \
+        /var/www/html/freepbx/admin/modules/ivr/assets/less/cache \
+        /var/www/html/freepbx/admin/modules/music/assets/less/cache \
+        /var/www/html/freepbx/admin/modules/recordings/assets/less/cache \
+        /var/www/html/freepbx/admin/modules/soundlang/assets/less/cache \
+        /var/www/html/freepbx/admin/modules/userman/assets/less/cache \
+        /var/www/html/freepbx/admin/modules/voicemail/assets/less/cache
+EOF
+
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
 # Append the image URL to the images array

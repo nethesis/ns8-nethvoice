@@ -137,8 +137,6 @@ if [[ ! -f /etc/asterisk/extensions_additional.conf ]]; then
 	# First install
 	# Apply changes
 	fwconsole reload
-	# Set ownership and permission
-	fwconsole chown
 fi
 
 # Configure users
