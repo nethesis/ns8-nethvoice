@@ -56,7 +56,6 @@ ExecStart=/usr/bin/podman run \
     --env=NETHVOICE_LDAP_PASS \
     --env=NETHVOICE_LDAP_SCHEMA \
     --env=NETHVOICE_LDAP_BASE \
-    --env=NETHVOICE_LDAP_DOMAIN \
     --network=host \
     ${NETHVOICE_FREEPBX_IMAGE}
 
