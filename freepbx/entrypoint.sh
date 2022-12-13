@@ -7,17 +7,6 @@
 
 NEEDRELOAD=FALSE
 
-# ProxyPass to allow wizard to reach Tancredi
-cat > /etc/apache2/sites-available/tancredi.conf <<EOF
-ProxyPass "/tancredi"  "http://127.0.0.1:${TANCREDIPORT}/tancredi"
-ProxyPassReverse "/tancredi"  "http://127.0.0.1:${TANCREDIPORT}/tancredi"
-EOF
-
-# Link Tancredi ProxyPass configuration
-if [[ ! -f /etc/apache2/sites-enabled/tancredi.conf ]] ; then
-	ln -sf /etc/apache2/sites-available/tancredi.conf /etc/apache2/sites-enabled/tancredi.conf
-fi
-
 # Customized wizard page
 cat > /etc/apache2/sites-available/wizard.conf <<EOF
 Alias /$(echo ${BRAND_NAME:=NethVoice} | tr '[:upper:]' '[:lower:]') /var/www/html/freepbx/wizard
