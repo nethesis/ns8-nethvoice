@@ -149,5 +149,5 @@ if (empty($results)) {
 $sql = "INSERT INTO kvstore_FreePBX_modules_Userman (`key`, `val`, `type`, `id`) VALUES ('auth-settings',?,'json-arr',?)";
 $stmt = $db->prepare($sql);
 $stmt->execute([json_encode($ldap_settings), $id]);
-echo "userbase configuration: " . $ldap_settings['name'];
+echo $ldap_settings['name'] . " userbase configuration: " . json_encode($ldap_settings) . "\n";
 
