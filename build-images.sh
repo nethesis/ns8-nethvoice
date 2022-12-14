@@ -187,7 +187,6 @@ mkdir -p \
 	/var/www/html/freepbx/admin/modules/userman/assets/less/cache \
 	/var/www/html/freepbx/admin/modules/voicemail/assets/less/cache
 chown -R asterisk:asterisk \
-	/etc/asterisk/* \
 	/var/run/asterisk/ \
         /var/www/html/freepbx/admin/assets/less/cache \
         /var/www/html/freepbx/admin/modules/calendar/assets/less/cache \
