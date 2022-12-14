@@ -117,6 +117,7 @@ cat > /etc/freepbx_db.conf <<EOF
 while (\$row = \$sth->fetch(\PDO::FETCH_ASSOC)) {
 	\$amp_conf[\$row['keyword']] = \$row['value'];
 }
+\$sth->closeCursor();
 
 \$cdr_db_host = (\$amp_conf['CDRDBHOST'] ? \$amp_conf['CDRDBHOST'] : 'localhost');
 \$cdr_db_port = (\$amp_conf['CDRDBPORT'] ? \$amp_conf['CDRDBPORT'] : \$amp_conf['AMPDBPORT']);

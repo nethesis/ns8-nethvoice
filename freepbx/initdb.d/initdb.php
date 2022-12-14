@@ -35,3 +35,14 @@ $stmt = $db->prepare($sql);
 $stmt->execute($exec);
 $stmt->closeCursor();
 
+// Update /etc/amportal.conf
+$amportal = file_get_contents('/etc/amportal.conf');
+$sql = 'SELECT keyword,value FROM freepbx_settings';
+$stmt = $db->prepare($sql);
+$stmt->execute();
+while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+	$amportal = preg_replace('/^'.$row['keyword'].'=.*$/',$row['keyword'].'='.$row['value'],$amportal);
+}
+$stmt->closeCursor();
+file_put_contents('/etc/amportal.conf',$amportal);
+
