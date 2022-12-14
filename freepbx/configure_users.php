@@ -34,7 +34,7 @@ if ($NETHVOICE_LDAP_SCHEMA === 'ad') {
 		"basedn" => $_ENV['NETHVOICE_LDAP_BASE'],
 		"username" => $_ENV['NETHVOICE_LDAP_USER'],
 		"password" => $_ENV['NETHVOICE_LDAP_PASS'],
-		"domain" => $_ENV['NETHVOICE_LDAP_DOMAIN']
+		"domain" => $_ENV['NETHVOICE_LDAP_DOMAIN'],
 		"connection" => '',
 		"localgroups" => '0',
 		"createextensions" => '',
