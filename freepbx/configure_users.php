@@ -31,7 +31,7 @@ if ($_ENV['NETHVOICE_LDAP_SCHEMA'] === 'ad') {
 	$ldap_settings = array(
 		"host" => $_ENV['NETHVOICE_LDAP_HOST'],
 		"port" => $_ENV['NETHVOICE_LDAP_PORT'],
-		"basedn" => $_ENV['NETHVOICE_LDAP_BASE'],
+		"dn" => $_ENV['NETHVOICE_LDAP_BASE'],
 		"username" => preg_replace('/^(.*)@([^@]*)$/','\1',$_ENV['NETHVOICE_LDAP_USER']),
 		"password" => $_ENV['NETHVOICE_LDAP_PASS'],
 		"domain" => preg_replace('/^(.*)@([^@]*)$/','\2',$_ENV['NETHVOICE_LDAP_USER']),
