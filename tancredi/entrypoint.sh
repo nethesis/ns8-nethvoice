@@ -39,5 +39,53 @@ file_reader = "apache"
 E0E656 = nethesis
 EOF
 
+dst_file="/var/lib/tancredi/data/scopes/defaults.ini"
+if [[ ! -f ${dst_file} ]]; then
+	echo "NOTICE: $0 initializing ${dst_file}"
+	/bin/cp -v /usr/share/tancredi/data/scopes/defaults.ini ${dst_file}
+	chown www-data:www-data ${dst_file}
+
+	# Add variable for UI first configuration
+	echo 'ui_first_config = "1"' >> ${dst_file}
+
+	# Remove variables if they exists
+	for variable in timezone language tonezone hostname provisioning_url_scheme provisioning_freq time_format date_format ldap_server ldap_port ldap_tls ldap_user ldap_password ldap_base ldap_name_display ldap_number_attr ldap_mainphone_number_attr ldap_mobilephone_number_attr ldap_otherphone_number_attr ldap_name_attr ldap_number_filter ldap_name_filter adminpw userpw; do
+		sed -i '/^'${variable}' =.*/d' ${dst_file}
+	done
+	# Add defaults
+	echo 'timezone = "Europe/Rome"' >> ${dst_file}
+	echo 'language = "it"' >> ${dst_file}
+	echo 'tonezone = "it"' >> ${dst_file}
+	echo 'hostname = "'${NETHVOICE_HOST}'"' >> ${dst_file}
+	echo 'provisioning_url_scheme = "https"' >> ${dst_file}
+	echo 'provisioning_freq = "everyday"' >> ${dst_file}
+
+	# Add time_format and date_format
+	echo 'time_format = "24"' >> ${dst_file}
+	echo 'date_format = "DD MM YY"' >> ${dst_file}
+
+	# Add ldap defaults
+	echo 'ldap_server = ""' >> ${dst_file}
+	echo 'ldap_port = "10389"' >> ${dst_file}
+	echo 'ldap_tls = "none"' >> ${dst_file}
+	echo 'ldap_user = ""' >> ${dst_file}
+	echo 'ldap_password = ""' >> ${dst_file}
+	echo 'ldap_base = "dc=phonebook,dc=nh"' >> ${dst_file}
+	echo 'ldap_name_display = "%cn %o"' >> ${dst_file}
+	echo 'ldap_mainphone_number_attr = "telephoneNumber"' >> ${dst_file}
+	echo 'ldap_mobilephone_number_attr = "mobile"' >> ${dst_file}
+	echo 'ldap_otherphone_number_attr = "homePhone"' >> ${dst_file}
+	echo 'ldap_name_attr = "cn o"' >> ${dst_file}
+	echo 'ldap_number_filter = "(|(telephoneNumber=%)(mobile=%)(homePhone=%))"' >> ${dst_file}
+	echo 'ldap_name_filter = "(|(cn=%)(o=%))"' >> ${dst_file}
+
+	# Set default admin and user passwords
+	echo 'adminpw = "'$(head /dev/urandom | tr -dc a-z0-9 | head -c 10)'"' >> ${dst_file}
+	echo 'userpw = "'$(head /dev/urandom | tr -dc a-z | head -c 6)'"' >> ${dst_file}
+	
+fi
+
+runuser -s /bin/bash -c "php /usr/share/tancredi/scripts/upgrade.php" - www-data
+
 exec "$@"
 

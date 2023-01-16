@@ -12,7 +12,14 @@ import os
 import random
 import string
 
+request = json.load(sys.stdin)
+
 # NETHVOICE_HOST_LOCAL_NETWORKS should be a jason containing local networks {["network":"192.168.5.0","ip":"192.168.5.14","netmask":"255.255.255.0","gateway":"192.168.5.1"]}
 agent.set_env('NETHVOICE_HOST_LOCAL_NETWORKS','{[]}')
+
+if nethvoice_host in request:
+    agent.set_env('NETHVOICE_HOST', request['nethvoice_host'])
+else:
+    sys.exit(1)
 
 agent.dump_env()

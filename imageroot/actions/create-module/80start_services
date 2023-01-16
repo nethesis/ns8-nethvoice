@@ -8,8 +8,3 @@
 # If the control reaches this step, the service can be enabled and started
 
 systemctl --user enable --now mariadb.service
-systemctl --user enable --now asterisk.service
-systemctl --user enable --now freepbx.service
-systemctl --user enable --now janus.service
-systemctl --user enable --now nethcti.service
-systemctl --user enable --now tancredi.service
