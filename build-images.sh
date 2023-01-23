@@ -218,6 +218,7 @@ echo "[*] Build Tancredi container"
 reponame="nethvoice-tancredi"
 container=$(buildah from docker.io/library/php:7-apache)
 buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
+buildah config --workingdir /var/lib/tancredi "${container}"
 buildah add "${container}"  tancredi/ /
 buildah run "${container}" /bin/sh <<'EOF'
 apt update
