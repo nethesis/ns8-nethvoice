@@ -31,4 +31,15 @@ if 'nethvoice_host' in request:
 else:
     sys.exit(1)
 
+# Get subscription system id and secret if available
+if 'subscription_systemid' in request:
+    agent.set_env('SUBSCRIPTION_SYSTEMID', request['subscription_systemid'])
+else:
+    agent.set_env('SUBSCRIPTION_SYSTEMID', '')
+
+if 'subscription_secret' in request:
+    agent.set_env('SUBSCRIPTION_SECRET', request['subscription_secret'])
+else:
+    agent.set_env('SUBSCRIPTION_SECRET', '')
+
 agent.dump_env()

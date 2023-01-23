@@ -58,6 +58,8 @@ ExecStart=/usr/bin/podman run \
     --env=NETHVOICE_LDAP_BASE \
     --env=NETHVOICE_HOST \
     --env=NETHVOICE_HOST_LOCAL_NETWORKS \
+    --env=SUBSCRIPTION_SYSTEMID \
+    --env=SUBSCRIPTION_SECRET \
     --network=host \
     ${NETHVOICE_FREEPBX_IMAGE}
 
