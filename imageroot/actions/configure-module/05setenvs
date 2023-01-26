@@ -14,32 +14,26 @@ import string
 
 request = json.load(sys.stdin)
 
+def getFromRequest(request, var_name, env_name, default = ""):
+    if var_name in request:
+        agent.set_env(env_name, request[var_name])
+    else:
+        agent.set_env(env_name, default)
+
 # NETHVOICE_HOST_LOCAL_NETWORKS should be a jason containing local networks [{"network":"192.168.5.0","netmask":"255.255.255.0","gateway":"192.168.5.1"}]
-if 'nethvoice_host_local_network' in request:
-    agent.set_env('NETHVOICE_HOST_LOCAL_NETWORKS',request['nethvoice_host_local_network'])
-else:
-    agent.set_env('NETHVOICE_HOST_LOCAL_NETWORKS','{[]}')
-
-if 'conference_url' in request:
-    conference_url = request['conference_url']
-else:
-    conference_url = ' https://meet.jit.si/'
-agent.set_env('NETHVOICE_CONFERENCEURL', conference_url)
-
-if 'nethvoice_host' in request:
-    agent.set_env('NETHVOICE_HOST', request['nethvoice_host'])
-else:
-    sys.exit(1)
-
-# Get subscription system id and secret if available
-if 'subscription_systemid' in request:
-    agent.set_env('SUBSCRIPTION_SYSTEMID', request['subscription_systemid'])
-else:
-    agent.set_env('SUBSCRIPTION_SYSTEMID', '')
-
-if 'subscription_secret' in request:
-    agent.set_env('SUBSCRIPTION_SECRET', request['subscription_secret'])
-else:
-    agent.set_env('SUBSCRIPTION_SECRET', '')
+getFromRequest(request, 'nethvoice_host_local_networks', 'NETHVOICE_HOST_LOCAL_NETWORKS', '{[]}'))
+getFromRequest(request, 'conference_url', 'NETHVOICE_CONFERENCEURL', 'https://meet.jit.si/'))
+getFromRequest(request, 'nethvoice_host', 'NETHVOICE_HOST', ''))
+getFromRequest(request, 'subscription_systemid', 'SUBSCRIPTION_SYSTEMID', ''))
+getFromRequest(request, 'subscription_secret', 'SUBSCRIPTION_SECRET', ''))
+getFromRequest(request, 'nethcti_prefix', 'NETHCTI_PREFIX', ''))
+getFromRequest(request, 'nethcti_autoc2c', 'NETHCTI_AUTOC2C', 'enabled'))
+getFromRequest(request, 'nethcti_trunks_events', 'NETHCTI_TRUNKS_EVENTS', 'enabled'))
+getFromRequest(request, 'nethcti_alerts', 'NETHCTI_ALERTS', 'false'))
+getFromRequest(request, 'nethcti_authentication_enabled', 'NETHCTI_AUTHENTICATION_ENABLED', 'true'))
+getFromRequest(request, 'nethcti_unauthe_call', 'NETHCTI_UNAUTHE_CALL', 'disabled'))
+getFromRequest(request, 'nethcti_unauthe_call_ip', 'NETHCTI_UNAUTHE_CALL_IP', ''))
+getFromRequest(request, 'nethcti_jabber_url', 'NETHCTI_JABBER_URL', ''))
+getFromRequest(request, 'nethcti_jabber_domain', 'NETHCTI_JABBER_DOMAIN', ''))
 
 agent.dump_env()

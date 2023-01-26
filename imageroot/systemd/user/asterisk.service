@@ -32,6 +32,7 @@ ExecStart=/usr/bin/podman run \
     --env=AMPMGRUSER \
     --env=AMPMGRPASS \
     --env=LOCAL_IP \
+    --env=NETHVOICE_PHONEBOOK_DB_PASSWORD \
     --env=RTPSTART \
     --env=RTPEND \
     --network=host \

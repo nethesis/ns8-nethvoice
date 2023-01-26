@@ -25,7 +25,10 @@ ExecStart=/usr/bin/podman run \
     --volume=nethcti-server-code:/usr/lib/node/nethcti-server:Z \
     --volume=/dev/log:/dev/log \
     --env=NETHCTI* \
-    --env=ASTMANAGERPORT \
+    --env=NETHVOICE_MARIADB_PORT \
+    --env=NETHVOICE_PHONEBOOK_DB_PASSWORD \
+    --env=CTIDBUSER \
+    --env=CTIDBPASS \
     --network=host \
     ${NETHVOICE_NETHCTI_IMAGE}
 

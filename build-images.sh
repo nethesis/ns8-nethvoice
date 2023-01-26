@@ -273,7 +273,7 @@ reponame="nethvoice-nethcti"
 container=$(buildah from docker.io/library/node:14)
 buildah add "${container}" nethcti/ /
 buildah config --workingdir /usr/lib/node/nethcti-server "${container}"
-buildah config --entrypoint '["npm", "start"]' "${container}"
+buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
 
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
