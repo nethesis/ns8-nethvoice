@@ -5,8 +5,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-NEEDRELOAD=FALSE
-
 # Customized wizard page
 cat > /etc/apache2/sites-available/wizard.conf <<EOF
 Alias /$(echo ${BRAND_NAME:=NethVoice} | tr '[:upper:]' '[:lower:]') /var/www/html/freepbx/wizard
@@ -124,8 +122,21 @@ EOF
 php /initdb.d/initdb.php 
 
 if [[ ! -f /etc/asterisk/extensions_additional.conf ]]; then
-	# First install
-	# Apply changes
+	# First install, set needreload to true
+	php -r 'include_once "/etc/freepbx_db.conf"; $db->query("UPDATE admin SET value = \"true\" WHERE variable = \"need_reload\"");'
+fi
+
+# Check if apply changes is needed
+php <<'EOF'
+<?php
+include_once '/etc/freepbx_db.conf';
+$stmt = $db->prepare('SELECT value FROM admin WHERE variable = "need_reload"');
+$stmt->execute();
+if ($stmt->fetchAll()[0][0] == "true" ) exit(1);
+EOF
+
+# Apply changes if needed
+if [[ $? == 1 ]]; then
 	fwconsole reload
 fi
 

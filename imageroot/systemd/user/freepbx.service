@@ -50,6 +50,7 @@ ExecStart=/usr/bin/podman run \
     --env=BRAND_NAME \
     --env=BRAND_SITE \
     --env=BRAND_DOCS \
+    --env=NETHCTI_AMI_PASSWORD \
     --env=NETHVOICE_LDAP_HOST \
     --env=NETHVOICE_LDAP_PORT \
     --env=NETHVOICE_LDAP_USER \

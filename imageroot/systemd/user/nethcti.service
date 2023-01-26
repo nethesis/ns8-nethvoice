@@ -24,7 +24,8 @@ ExecStart=/usr/bin/podman run \
     --volume=nethcti-server:/root:Z \
     --volume=nethcti-server-code:/usr/lib/node/nethcti-server:Z \
     --volume=/dev/log:/dev/log \
-    --env=DUMB_CTI \
+    --env=NETHCTI* \
+    --env=ASTMANAGERPORT \
     --network=host \
     ${NETHVOICE_NETHCTI_IMAGE}
 
