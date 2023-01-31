@@ -22,7 +22,6 @@ def getFromRequest(request, var_name, env_name, default = ""):
 
 # NETHVOICE_HOST_LOCAL_NETWORKS should be a jason containing local networks [{"network":"192.168.5.0","netmask":"255.255.255.0","gateway":"192.168.5.1"}]
 getFromRequest(request, 'nethvoice_host_local_networks', 'NETHVOICE_HOST_LOCAL_NETWORKS', '{[]}')
-getFromRequest(request, 'conference_url', 'NETHVOICE_CONFERENCEURL', 'https://meet.jit.si/')
 getFromRequest(request, 'nethvoice_host', 'NETHVOICE_HOST', '')
 getFromRequest(request, 'subscription_systemid', 'SUBSCRIPTION_SYSTEMID', '')
 getFromRequest(request, 'subscription_secret', 'SUBSCRIPTION_SECRET', '')
@@ -35,5 +34,11 @@ getFromRequest(request, 'nethcti_unauthe_call', 'NETHCTI_UNAUTHE_CALL', 'disable
 getFromRequest(request, 'nethcti_unauthe_call_ip', 'NETHCTI_UNAUTHE_CALL_IP', '')
 getFromRequest(request, 'nethcti_jabber_url', 'NETHCTI_JABBER_URL', '')
 getFromRequest(request, 'nethcti_jabber_domain', 'NETHCTI_JABBER_DOMAIN', '')
+getFromRequest(request, 'nethcti_cdr_script', 'NETHCTI_CDR_SCRIPT', '')
+getFromRequest(request, 'nethcti_cdr_script_timeout', 'NETHCTI_CDR_SCRIPT_TIMEOUT', '')
+getFromRequest(request, 'nethcti_cdr_script_call_in', 'NETHCTI_CDR_SCRIPT_CALL_IN', '')
+getFromRequest(request, 'nethvoice_public_host', 'NETHVOICE_PUBLIC_HOST', '')
+getFromRequest(request, 'nethcti_log_level', 'NETHCTI_LOG_LEVEL', 'warn')
+getFromRequest(request, 'conference_jitsi_url', 'CONFERENCE_JITSI_URL', 'https://jitsi.nethserver.net')
 
 agent.dump_env()
