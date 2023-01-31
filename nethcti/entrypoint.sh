@@ -112,8 +112,6 @@ EOF
 
 FILE=/etc/nethcti/exec_script.json
 echo "{" > $FILE
-{
-EOF
 if [[ ! -z ${NETHCTI_CDR_SCRIPT} ]] ; then
 	cat > $FILE <<EOF
 	"cdr": {
