@@ -86,7 +86,7 @@ response = agent.tasks.run(
     action='set-route',
     data={
         'instance': os.environ['MODULE_ID'] + '-cti',
-        'url':  'http://127.0.0.1:' + os.environ["CTIPORT"] + '/cti',
+        'url':  'http://127.0.0.1:' + os.environ["NETHCTI_UI_PORT"] + '/cti',
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "True",
         'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
         'path': '/cti',
