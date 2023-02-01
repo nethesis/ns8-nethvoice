@@ -62,6 +62,8 @@ agent.set_env('STUNPORT',19302)
 agent.set_env('ICEIGNORE','vmnet,tap,tun,virb,vb-')
 agent.set_env('LOCAL_IP','172.25.5.83')
 
+agent.set_env('API_ENDPOINT','127.0.0.1')
+
 agent.set_env('TRAEFIK_HTTP2HTTPS','True')
 agent.set_env('TRAEFIK_LETS_ENCRYPT','True')
 
