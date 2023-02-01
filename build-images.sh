@@ -265,13 +265,13 @@ images+=("${repobase}/${reponame}")
 
 
 
-#######################
-##      NethCTI      ##
-#######################
+#############################
+##      NethCTI Server     ##
+#############################
 echo "[*] Build nethcti container"
-reponame="nethvoice-nethcti"
+reponame="nethvoice-cti-server"
 container=$(buildah from docker.io/library/node:14)
-buildah add "${container}" nethcti/ /
+buildah add "${container}" nethcti-server/ /
 buildah config --workingdir /usr/lib/node/nethcti-server "${container}"
 buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
 
@@ -280,7 +280,16 @@ buildah commit "${container}" "${repobase}/${reponame}"
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
 
+#############################
+##      NethCTI Client     ##
+#############################
+reponame="nethvoice-cti-ui"
+container=$(buildah from ghcr.io/nethesis/nethvoice-cti:latest)
 
+# Commit the image
+buildah commit "${container}" "${repobase}/${reponame}"
+# Append the image URL to the images array
+images+=("${repobase}/${reponame}")
 
 #############################
 ##      Janus Gateway      ##

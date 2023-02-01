@@ -13,6 +13,7 @@ agent.add_public_service(os.environ['MODULE_ID'], [
     os.environ['APACHE_PORT']+"/tcp", # Apache
     os.environ['JANUS_TRANSPORT_PORT']+"/tcp", # Janus
     os.environ['RTPSTART']+"-"+os.environ['RTPEND']+"/tcp", # Janus
+    os.environ['NETHCTI_UI_PORT']+"/tcp", # NethCTI UI
 ])
 
 # Ignore exit code

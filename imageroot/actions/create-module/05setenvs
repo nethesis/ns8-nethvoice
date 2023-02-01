@@ -19,6 +19,7 @@ agent.set_env('APACHE_PORT',port_list[1])
 agent.set_env('ASTMANAGERPORT',port_list[2])
 agent.set_env('TANCREDIPORT',port_list[3])
 agent.set_env('JANUS_TRANSPORT_PORT',port_list[4])
+agent.set_env('NETHCTI_UI_PORT',port_list[5)
 
 # Set root password for MariaDB
 agent.set_env('MARIADB_ROOT_PASSWORD',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
