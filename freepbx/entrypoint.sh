@@ -41,7 +41,7 @@ cat > /var/www/html/freepbx/rest/config.inc.php <<EOF
           'host' => '127.0.0.1',
           'port' => '${NETHVOICE_MARIADB_PORT}',
           'name' => 'nethcti3',
-          'user' => 'nethcti',
+          'user' => '${CTIDBUSER}',
           'pass' => '${CTIDBPASS}'
       ]
 ];
