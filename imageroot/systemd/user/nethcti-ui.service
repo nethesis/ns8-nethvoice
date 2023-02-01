@@ -25,10 +25,10 @@ ExecStart=/usr/bin/podman run \
     --env=NETHVOICE* \
     --network=host \
     --env=API_ENDPOINT \
-    -p 3000:${NETHCTI_UI_PORT}/tcp
+    -p ${NETHCTI_UI_PORT}:${NETHCTI_UI_PORT}/tcp \
     ${NETHVOICE_CTI_UI_IMAGE}
 
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/nethcti.ctr-id
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/nethcti-ui.ctr-id
 PIDFile=%t/nethcti-ui.pid
 Type=forking
 
