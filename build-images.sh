@@ -30,7 +30,7 @@ buildah add "${container}" ui/dist /ui
 # Setup the entrypoint, ask to reserve one TCP port with the label and set a rootless container
 buildah config \
     --label="org.nethserver.authorizations=traefik@any:routeadm node:fwadm" \
-    --label="org.nethserver.tcp-ports-demand=6" \
+    --label="org.nethserver.tcp-ports-demand=5" \
     --label="org.nethserver.rootfull=0" \
     --label="org.nethserver.images=$repobase/nethvoice-mariadb:latest $repobase/nethvoice-freepbx:latest $repobase/nethvoice-asterisk:latest $repobase/nethvoice-cti-server:latest $repobase/nethvoice-cti-ui:latest $repobase/nethvoice-tancredi:latest $repobase/nethvoice-janus:latest" \
     --entrypoint=/ \
