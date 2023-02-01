@@ -50,48 +50,48 @@ cat > $FILE <<EOF
         "dbhost":     "127.0.0.1",
         "dbport":     "${NETHVOICE_MARIADB_PORT}",
         "dbtype":     "mysql",
-        "dbuser":     "${CTIDBUSER}",
-        "dbpassword": "{$CTIDBPASS}",
+        "dbuser":     "${NETHCTI_DB_USER}",
+        "dbpassword": "{$NETHCTI_DB_PASSWORD}",
         "dbname":     "nethcti3"
     },
     "customer_card": {
         "dbhost":     "127.0.0.1",
         "dbport":     "${NETHVOICE_MARIADB_PORT}",
         "dbtype":     "mysql",
-        "dbuser":     "${CTIDBUSER}",
-        "dbpassword": "{$CTIDBPASS}",
+        "dbuser":     "${NETHCTI_DB_USER}",
+        "dbpassword": "{$NETHCTI_DB_PASSWORD}",
         "dbname":     "nethcti3"
     },
     "user_dbconn": {
         "dbhost":     "127.0.0.1",
         "dbport":     "${NETHVOICE_MARIADB_PORT}",
         "dbtype":     "mysql",
-        "dbuser":     "${CTIDBUSER}",
-        "dbpassword": "{$CTIDBPASS}",
+        "dbuser":     "${NETHCTI_DB_USER}",
+        "dbpassword": "{$NETHCTI_DB_PASSWORD}",
         "dbname":     "nethcti3"
     },
     "auth": {
         "dbhost":     "127.0.0.1",
         "dbport":     "${NETHVOICE_MARIADB_PORT}",
         "dbtype":     "mysql",
-        "dbuser":     "${CTIDBUSER}",
-        "dbpassword": "{$CTIDBPASS}",
+        "dbuser":     "${NETHCTI_DB_USER}",
+        "dbpassword": "{$NETHCTI_DB_PASSWORD}",
         "dbname":     "nethcti3"
     },
     "offhour_files": {
         "dbhost":     "127.0.0.1",
         "dbport":     "${NETHVOICE_MARIADB_PORT}",
         "dbtype":     "mysql",
-        "dbuser":     "${CTIDBUSER}",
-        "dbpassword": "{$CTIDBPASS}",
+        "dbuser":     "${NETHCTI_DB_USER}",
+        "dbpassword": "{$NETHCTI_DB_PASSWORD}",
         "dbname":     "nethcti3"
     },
     "user_settings": {
         "dbhost":     "127.0.0.1",
         "dbport":     "${NETHVOICE_MARIADB_PORT}",
         "dbtype":     "mysql",
-        "dbuser":     "${CTIDBUSER}",
-        "dbpassword": "{$CTIDBPASS}",
+        "dbuser":     "${NETHCTI_DB_USER}",
+        "dbpassword": "{$NETHCTI_DB_PASSWORD}",
         "dbname":     "nethcti3"
     }
 }

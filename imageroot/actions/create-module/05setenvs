@@ -45,7 +45,7 @@ agent.set_env('CDRDBNAME','asteriskcdrdb')
 agent.set_env('CDRDBUSER','cdruser')
 agent.set_env('CDRDBPASS',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
 
-agent.set_env('CTIDBPASS',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
+agent.set_env('NETHCTI_DB_PASSWORD',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
 
 agent.set_env('NETHVOICE_PHONEBOOK_DB_PASSWORD',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
 

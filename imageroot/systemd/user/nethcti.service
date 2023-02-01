@@ -26,8 +26,6 @@ ExecStart=/usr/bin/podman run \
     --volume=/dev/log:/dev/log \
     --env=NETHCTI* \
     --env=NETHVOICE* \
-    --env=CTIDBUSER \
-    --env=CTIDBPASS \
     --network=host \
     ${NETHVOICE_NETHCTI_IMAGE}
 
