@@ -66,6 +66,9 @@ if [[ ! -f /etc/asterisk/voicemail.conf ]]; then
 	touch /etc/asterisk/voicemail.conf
 fi
 
+# Configure mysql
+php /initdb.d/initdb.php
+
 # Configure freepbx
 cat > /etc/freepbx.conf <<EOF
 <?php
@@ -106,7 +109,7 @@ while (\$row = \$sth->fetch(\PDO::FETCH_ASSOC)) {
 }
 \$sth->closeCursor();
 
-\$cdr_db_host = (\$amp_conf['CDRDBHOST'] ? \$amp_conf['CDRDBHOST'] : 'localhost');
+\$cdr_db_host = (\$amp_conf['CDRDBHOST'] ? \$amp_conf['CDRDBHOST'] : '127.0.0.1');
 \$cdr_db_port = (\$amp_conf['CDRDBPORT'] ? \$amp_conf['CDRDBPORT'] : \$amp_conf['AMPDBPORT']);
 \$cdr_db_name = (\$amp_conf['CDRDBNAME'] ? \$amp_conf['CDRDBNAME'] : 'asteriskcdrdb');
 \$cdr_db_user = (\$amp_conf['CDRDBUSER'] ? \$amp_conf['CDRDBUSER'] : \$amp_conf['AMPDBUSER']);
@@ -117,9 +120,6 @@ while (\$row = \$sth->fetch(\PDO::FETCH_ASSOC)) {
 	\$cdr_db_pass);
 
 EOF
-
-# Configure mysql
-php /initdb.d/initdb.php 
 
 if [[ ! -f /etc/asterisk/extensions_additional.conf ]]; then
 	# First install, set needreload to true

@@ -5,7 +5,9 @@
 #
 
 // Connect to DB
-include_once '/etc/freepbx_db.conf';
+$db = new \PDO('mysql:host=127.0.0.1;port='.$_ENV['NETHVOICE_MARIADB_PORT'],
+	$_ENV['AMPDBUSER'],
+	$_ENV['AMPDBPASS']);
 
 // update freepbx settings
 $vars = array(
