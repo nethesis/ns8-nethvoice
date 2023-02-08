@@ -20,7 +20,7 @@ ExecStart=/usr/bin/podman run \
     --cgroups=no-conmon \
     --log-opt=tag=%u \
     --replace --name=%N \
-    --volume=nethcti-server-etc:/etc/nethcti-server:z \
+    --volume=nethcti:/etc/nethcti:Z \
     --volume=nethcti-server:/root:Z \
     --volume=nethcti-server-code:/usr/lib/node/nethcti-server:Z \
     --volume=/dev/log:/dev/log \
