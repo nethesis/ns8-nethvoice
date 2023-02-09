@@ -66,7 +66,7 @@ container=$(buildah from centos:7)
 buildah add "${container}" asterisk/ /
 buildah run "${container}" groupadd -g 991 -r asterisk
 buildah run "${container}" useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk
-buildah run "${container}" yum -y install asterisk18-core asterisk18-addons-core asterisk18-dahdi asterisk18-odbc asterisk18-voicemail asterisk18-voicemail-odbcstorage unixODBC
+buildah run "${container}" yum -y install asterisk18-core asterisk18-addons-core asterisk18-dahdi asterisk18-odbc asterisk18-voicemail asterisk18-voicemail-odbcstorage unixODBC mysql-connector-odbc
 buildah run "${container}" rm -fr /var/cache/yum
 buildah config \
     --entrypoint='["/entrypoint.sh"]' \
