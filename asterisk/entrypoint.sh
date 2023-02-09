@@ -28,6 +28,16 @@ writetimeout = 5000
 EOF
 fi
 
+# Configure ODBC for asteriskcdrdb
+cat > /etc/odbc.ini <<EOF
+[MySQL-asteriskcdrdb]
+Server = 127.0.0.1
+Database = asteriskcdrdb
+Port = ${NETHVOICE_MARIADB_PORT}
+Driver = MySQL
+Description = ODBC on asteriskcdrdb
+EOF
+
 chown asterisk:asterisk /var/lib/asterisk/db
 
 /usr/sbin/asterisk -f -C /etc/asterisk/asterisk.conf
