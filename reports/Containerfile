@@ -1,0 +1,50 @@
+FROM docker.io/library/golang:1.19.5-alpine as gobuilder
+WORKDIR /app
+
+# Clone repo, using gobuilder as sidecar
+FROM gobuilder as repofetcher
+ARG NETHVOICE_REPORT_VERSION=1.2.4
+RUN apk add --no-cache git \
+    && git clone --depth 1 --branch ${NETHVOICE_REPORT_VERSION} https://github.com/nethesis/nethvoice-report
+
+# Add needed dependencies for api building
+FROM gobuilder as apibuilder
+RUN apk add --no-cache \
+        build-base \
+        linux-pam-dev \
+        pkgconfig \
+        rrdtool-dev
+# Download go mod dependencies
+COPY --from=repofetcher /app/nethvoice-report/api/go.mod .
+COPY --from=repofetcher /app/nethvoice-report/api/go.sum .
+RUN go mod download
+# Build executable
+COPY --from=repofetcher /app/nethvoice-report/api/ /app
+RUN go build
+
+# Add needed dependencies for tasks building
+FROM gobuilder as taskbuilder
+RUN apk add --no-cache \
+        build-base \
+        linux-pam-dev \
+        pkgconfig \
+        rrdtool-dev
+# Download go mod dependencies
+COPY --from=repofetcher /app/nethvoice-report/tasks/go.mod .
+COPY --from=repofetcher /app/nethvoice-report/tasks/go.sum .
+RUN go mod download
+# Build executable
+COPY --from=repofetcher /app/nethvoice-report/tasks/ /app
+RUN go build
+
+# Using alpine for smaller images
+FROM docker.io/library/alpine:3.17.1 as apiproduction
+# Installing runtime dependencies
+RUN apk add --no-cache \
+        librrd \
+        linux-pam-dev
+# Copying executables and setting release environment
+ENV GIN_MODE=release
+COPY --from=apibuilder /app/api /usr/bin/api
+COPY --from=taskbuilder /app/tasks /usr/bin/tasks
+CMD [ "api" ]
