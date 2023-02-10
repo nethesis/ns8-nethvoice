@@ -304,6 +304,14 @@ popd
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
 
+#############################
+##      Reports            ##
+#############################
+pushd reports
+reponame="nethvoice-reports-api"
+buildah build --force-rm --layers --jobs "$(nproc)" --tag "${repobase}"/"${reponame}"
+images+=("${repobase}/${reponame}")
+popd
 
 # Setup CI when pushing to Github.
 # Warning! docker::// protocol expects lowercase letters (,,)
