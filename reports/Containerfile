@@ -1,19 +1,47 @@
+### REPOFETCHER ###
+# Multi-stage that installs git and fetches the repo from given version
+FROM docker.io/library/alpine:3.17.2 as repofetcher
+WORKDIR /app
+RUN apk add --no-cache git
+ARG NETHVOICE_REPORT_VERSION=ns8
+RUN git clone --depth 1 \
+        --branch ${NETHVOICE_REPORT_VERSION} \
+        https://github.com/nethesis/nethvoice-report
+
+### UI ###
+FROM docker.io/library/node:14.21.2-alpine as node_build
+WORKDIR /app
+# Install npm dependencies
+COPY --from=repofetcher /app/nethvoice-report/ui/package.json .
+COPY --from=repofetcher /app/nethvoice-report/ui/package-lock.json .
+RUN npm ci
+# Copy application, clean up and build
+COPY --from=repofetcher /app/nethvoice-report/ui/public public
+COPY --from=repofetcher /app/nethvoice-report/ui/src src
+COPY --from=repofetcher /app/nethvoice-report/ui/.browserslistrc .
+COPY --from=repofetcher /app/nethvoice-report/ui/.eslintrc.js .
+COPY --from=repofetcher /app/nethvoice-report/ui/babel.config.js .
+COPY --from=repofetcher /app/nethvoice-report/ui/vue.config.js .
+ENV NODE_ENV=production
+RUN rm public/config/config.production.js \
+    && npm run build
+
+# From build, copy content in nginx container
+FROM docker.io/library/nginx:1.23.3-alpine as ui-production
+COPY --from=node_build /app/dist /usr/share/nginx/html
+
+### API ###
+# Init go builder, installing needed dev packages
 FROM docker.io/library/golang:1.19.5-alpine as gobuilder
 WORKDIR /app
-
-# Clone repo, using gobuilder as sidecar
-FROM gobuilder as repofetcher
-ARG NETHVOICE_REPORT_VERSION=1.2.4
-RUN apk add --no-cache git \
-    && git clone --depth 1 --branch ${NETHVOICE_REPORT_VERSION} https://github.com/nethesis/nethvoice-report
-
-# Add needed dependencies for api building
-FROM gobuilder as apibuilder
 RUN apk add --no-cache \
         build-base \
         linux-pam-dev \
         pkgconfig \
         rrdtool-dev
+
+# Use previous step to build api
+FROM gobuilder as apibuilder
 # Download go mod dependencies
 COPY --from=repofetcher /app/nethvoice-report/api/go.mod .
 COPY --from=repofetcher /app/nethvoice-report/api/go.sum .
@@ -22,13 +50,8 @@ RUN go mod download
 COPY --from=repofetcher /app/nethvoice-report/api/ /app
 RUN go build
 
-# Add needed dependencies for tasks building
+# Use previous step to build tasks
 FROM gobuilder as taskbuilder
-RUN apk add --no-cache \
-        build-base \
-        linux-pam-dev \
-        pkgconfig \
-        rrdtool-dev
 # Download go mod dependencies
 COPY --from=repofetcher /app/nethvoice-report/tasks/go.mod .
 COPY --from=repofetcher /app/nethvoice-report/tasks/go.sum .
@@ -37,8 +60,8 @@ RUN go mod download
 COPY --from=repofetcher /app/nethvoice-report/tasks/ /app
 RUN go build
 
-# Using alpine for smaller images
-FROM docker.io/library/alpine:3.17.1 as apiproduction
+# Using alpine as runtime
+FROM docker.io/library/alpine:3.17.2 as api-production
 # Installing runtime dependencies
 RUN apk add --no-cache \
         librrd \
