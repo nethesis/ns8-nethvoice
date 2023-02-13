@@ -311,6 +311,9 @@ pushd reports
 reponame="nethvoice-reports-api"
 buildah build --force-rm --layers --jobs "$(nproc)" --tag "${repobase}"/"${reponame}"
 images+=("${repobase}/${reponame}")
+reponame="nethvoice-reports-ui"
+buildah build --force-rm --layers --jobs "$(nproc)" --file Containerfile.ui --tag "${repobase}"/"${reponame}"
+images+=("${repobase}/${reponame}")
 popd
 
 # Setup CI when pushing to Github.
