@@ -5,12 +5,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-import agent
 import json
 import sys
-import os
-import random
-import string
+
+import agent
 
 request = json.load(sys.stdin)
 
@@ -41,5 +39,9 @@ getFromRequest(request, 'nethcti_cdr_script_timeout', 'NETHCTI_CDR_SCRIPT_TIMEOU
 getFromRequest(request, 'nethcti_cdr_script_call_in', 'NETHCTI_CDR_SCRIPT_CALL_IN', '')
 getFromRequest(request, 'nethcti_log_level', 'NETHCTI_LOG_LEVEL', 'warn')
 getFromRequest(request, 'conference_jitsi_url', 'CONFERENCE_JITSI_URL', 'https://jitsi.nethserver.net')
+getFromRequest(request, 'nethcti_product_name', 'NETHCTI_PRODUCT_NAME', 'NethVoice CTI')
+getFromRequest(request, 'nethcti_company_name', 'NETHCTI_COMPANY_NAME', 'Nethesis')
+getFromRequest(request, 'nethcti_company_url', 'NETHCTI_COMPANY_URL', 'https://www.nethesis.it/')
+getFromRequest(request, 'nethcti_url', 'NETHCTI_URL', '')
 
 agent.dump_env()
