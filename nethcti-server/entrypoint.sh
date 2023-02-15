@@ -260,5 +260,5 @@ cat > $FILE <<EOF
 }
 EOF
 
-# Finally launch NethCTI
-npm start
+# Execute given CMD
+exec "$@"
