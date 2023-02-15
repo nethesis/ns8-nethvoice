@@ -51,7 +51,7 @@ cat > $FILE <<EOF
         "dbport":     "${NETHVOICE_MARIADB_PORT}",
         "dbtype":     "mysql",
         "dbuser":     "${NETHCTI_DB_USER}",
-        "dbpassword": "{$NETHCTI_DB_PASSWORD}",
+        "dbpassword": "${NETHCTI_DB_PASSWORD}",
         "dbname":     "nethcti3"
     },
     "customer_card": {
@@ -59,7 +59,7 @@ cat > $FILE <<EOF
         "dbport":     "${NETHVOICE_MARIADB_PORT}",
         "dbtype":     "mysql",
         "dbuser":     "${NETHCTI_DB_USER}",
-        "dbpassword": "{$NETHCTI_DB_PASSWORD}",
+        "dbpassword": "${NETHCTI_DB_PASSWORD}",
         "dbname":     "nethcti3"
     },
     "user_dbconn": {
@@ -67,7 +67,7 @@ cat > $FILE <<EOF
         "dbport":     "${NETHVOICE_MARIADB_PORT}",
         "dbtype":     "mysql",
         "dbuser":     "${NETHCTI_DB_USER}",
-        "dbpassword": "{$NETHCTI_DB_PASSWORD}",
+        "dbpassword": "${NETHCTI_DB_PASSWORD}",
         "dbname":     "nethcti3"
     },
     "auth": {
@@ -75,7 +75,7 @@ cat > $FILE <<EOF
         "dbport":     "${NETHVOICE_MARIADB_PORT}",
         "dbtype":     "mysql",
         "dbuser":     "${NETHCTI_DB_USER}",
-        "dbpassword": "{$NETHCTI_DB_PASSWORD}",
+        "dbpassword": "${NETHCTI_DB_PASSWORD}",
         "dbname":     "nethcti3"
     },
     "offhour_files": {
@@ -83,7 +83,7 @@ cat > $FILE <<EOF
         "dbport":     "${NETHVOICE_MARIADB_PORT}",
         "dbtype":     "mysql",
         "dbuser":     "${NETHCTI_DB_USER}",
-        "dbpassword": "{$NETHCTI_DB_PASSWORD}",
+        "dbpassword": "${NETHCTI_DB_PASSWORD}",
         "dbname":     "nethcti3"
     },
     "user_settings": {
@@ -91,7 +91,7 @@ cat > $FILE <<EOF
         "dbport":     "${NETHVOICE_MARIADB_PORT}",
         "dbtype":     "mysql",
         "dbuser":     "${NETHCTI_DB_USER}",
-        "dbpassword": "{$NETHCTI_DB_PASSWORD}",
+        "dbpassword": "${NETHCTI_DB_PASSWORD}",
         "dbname":     "nethcti3"
     }
 }
@@ -105,7 +105,7 @@ cat > $FILE <<EOF
         "dbport":     "${NETHVOICE_MARIADB_PORT}",
         "dbtype":     "mysql",
         "dbuser":     "pbookuser",
-        "dbpassword": "{$NETHVOICE_PHONEBOOK_DB_PASSWORD}",
+        "dbpassword": "${NETHVOICE_PHONEBOOK_DB_PASSWORD}",
         "dbname":     "phonebook"
 }
 EOF
@@ -148,7 +148,7 @@ cat > $FILE <<EOF
 	"logfile":"/dev/stderr",
 	"hostname":"${NETHVOICE_HOST}",
 	"publichost":"${NETHVOICE_PUBLIC_HOST}",
-	"loglevel":"{$NETHCTI_LOG_LEVEL}",
+	"loglevel":"${NETHCTI_LOG_LEVEL}",
 	"privacy_numbers":"xxx",
 	"proxy_port":""
 }
