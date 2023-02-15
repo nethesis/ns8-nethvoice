@@ -271,13 +271,9 @@ images+=("${repobase}/${reponame}")
 #############################
 echo "[*] Build nethcti container"
 reponame="nethvoice-cti-server"
-container=$(buildah from docker.io/library/node:14)
-buildah add "${container}" nethcti-server/ /
-buildah config --workingdir /usr/lib/node/nethcti-server "${container}"
-buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
-
-# Commit the image
-buildah commit "${container}" "${repobase}/${reponame}"
+pushd nethcti-server
+buildah build --force-rm --layers --jobs "$(nproc)" --target production --tag "${repobase}/${reponame}"
+popd
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
 
@@ -308,7 +304,7 @@ images+=("${repobase}/${reponame}")
 
 
 
-# Setup CI when pushing to Github. 
+# Setup CI when pushing to Github.
 # Warning! docker::// protocol expects lowercase letters (,,)
 if [[ -n "${CI}" ]]; then
     # Set output value for Github Actions

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
 #
 # Copyright (C) 2022 Nethesis S.r.l.
@@ -22,14 +22,14 @@ EOF
 FILE=/etc/nethcti/authentication.json
 cat > $FILE <<EOF
 {
-	"enabled": ${NETHCTI_AUTHENTICATION_ENABLED:true},
+	"enabled": ${NETHCTI_AUTHENTICATION_ENABLED:-true},
 	"type": "pam",
 	"file": {
 		"path": "/etc/nethcti/users.json"
 	},
 	"expiration_timeout": "3600",
 	"unauthe_call": {
-        	"status": "${NETHCTI_UNAUTHE_CALL:disabled}",
+        	"status": "${NETHCTI_UNAUTHE_CALL:-disabled}",
 	        "allowed_ip": "${NETHCTI_UNAUTHE_CALL_IP}"
     	}
 }
@@ -112,18 +112,18 @@ EOF
 
 FILE=/etc/nethcti/exec_script.json
 echo "{" > $FILE
-if [[ ! -z ${NETHCTI_CDR_SCRIPT} ]] ; then
+if [ -n "${NETHCTI_CDR_SCRIPT}" ] ; then
 	cat > $FILE <<EOF
 	"cdr": {
 		"script": "${NETHCTI_CDR_SCRIPT}",
 		"timeout": ${NETHCTI_CDR_SCRIPT_TIMEOUT},
 	}
 EOF
-	if [[ ! -z ${NETHCTI_CDR_SCRIPT_CALL_IN} ]] ; then
+	if [ -n "${NETHCTI_CDR_SCRIPT_CALL_IN}" ] ; then
 		echo "," >> $FILE
 	fi
 fi
-if [[ ! -z ${NETHCTI_CDR_SCRIPT_CALL_IN} ]] ; then
+if [ -n "${NETHCTI_CDR_SCRIPT_CALL_IN}" ] ; then
 	cat > $FILE <<EOF
 	"callin": {
 		"script": "${NETHCTI_CDR_SCRIPT_CALL_IN}",
