@@ -167,10 +167,10 @@ cat > $FILE <<EOF
     "cert": "/etc/asterisk/keys/NethServer.crt"
   },
   "websocket": {
-    "http_port": "8181"
+    "http_port": "${NETHCTI_SERVER_WS_PORT}"
   },
   "http_proxy": {
-    "http_port":  "8179",
+    "http_port":  "${NETHCTI_SERVER_API_PORT}",
     "router": {
       "/user": "http://127.0.0.1:50000/user",
       "/phonebook": "http://127.0.0.1:50001/phonebook",
