@@ -71,6 +71,7 @@ buildah run "${container}" rm -fr /var/cache/yum
 buildah config \
     --entrypoint='["/entrypoint.sh"]' \
     --workingdir='/var/lib/asterisk' \
+    --cmd=["/usr/sbin/asterisk","-f","-C","/etc/asterisk/asterisk.conf"] \
     "${container}"
 
 # Commit the image

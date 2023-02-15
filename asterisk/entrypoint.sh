@@ -40,5 +40,4 @@ EOF
 
 chown asterisk:asterisk /var/lib/asterisk/db
 
-/usr/sbin/asterisk -f -C /etc/asterisk/asterisk.conf
-
+exec "$@"
