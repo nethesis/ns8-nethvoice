@@ -37,6 +37,7 @@ agent.set_env('APACHE_RUN_USER','asterisk')
 agent.set_env('APACHE_RUN_GROUP','asterisk')
 agent.set_env('AMPASTERISKWEBGROUP','asterisk')
 agent.set_env('AMPASTERISKWEBUSER','asterisk')
+agent.set_env('NETHCTI_AMI_PASSWORD', ''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
 
 agent.set_env('BRAND_NAME','NethVoice')
 agent.set_env('BRAND_SITE','http://www.nethvoice.it')
