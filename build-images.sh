@@ -32,7 +32,7 @@ buildah config \
     --label="org.nethserver.authorizations=traefik@any:routeadm node:fwadm" \
     --label="org.nethserver.tcp-ports-demand=8" \
     --label="org.nethserver.rootfull=0" \
-    --label="org.nethserver.images=$repobase/nethvoice-mariadb:latest $repobase/nethvoice-freepbx:latest $repobase/nethvoice-asterisk:latest $repobase/nethvoice-cti-server:latest $repobase/nethvoice-cti-ui:latest $repobase/nethvoice-tancredi:latest $repobase/nethvoice-janus:latest" \
+    --label="org.nethserver.images=$repobase/nethvoice-mariadb:${IMAGETAG:-latest} $repobase/nethvoice-freepbx:${IMAGETAG:-latest} $repobase/nethvoice-asterisk:${IMAGETAG:-latest} $repobase/nethvoice-cti-server:${IMAGETAG:-latest} $repobase/nethvoice-cti-ui:${IMAGETAG:-latest} $repobase/nethvoice-tancredi:${IMAGETAG:-latest} $repobase/nethvoice-janus:${IMAGETAG:-latest}" \
     --entrypoint=/ \
     "${container}"
 
