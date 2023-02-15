@@ -5,12 +5,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-import agent
-import json
-import sys
 import os
 import random
 import string
+
+import agent
 
 # coma separated port list
 port_list = os.environ['TCP_PORTS'].split(",")
@@ -19,9 +18,9 @@ agent.set_env('APACHE_PORT',port_list[1])
 agent.set_env('ASTMANAGERPORT',port_list[2])
 agent.set_env('TANCREDIPORT',port_list[3])
 agent.set_env('JANUS_TRANSPORT_PORT',port_list[4])
-agent.set_env('NETHVOICE_NETHCTI_UI_PORT',port_list[5])
-
-agent.set_env('NETHCTI_UI_PORT',3000) #TODO nethvoice-cti port is hardcoded. The container should be fixed
+agent.set_env('NETHCTI_UI_PORT', port_list[5])
+agent.set_env('NETHCTI_SERVER_API_PORT', port_list[6])
+agent.set_env('NETHCTI_SERVER_WS_PORT', port_list[7])
 
 # Set root password for MariaDB
 agent.set_env('MARIADB_ROOT_PASSWORD',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))

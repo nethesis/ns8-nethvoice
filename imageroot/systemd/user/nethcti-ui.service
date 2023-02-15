@@ -25,10 +25,7 @@ ExecStart=/usr/bin/podman run \
     --env=PRODUCT_NAME=${NETHCTI_PRODUCT_NAME} \
     --env=COMPANY_NAME=${NETHCTI_COMPANY_NAME} \
     --env=COMPANY_URL=${NETHCTI_COMPANY_URL} \
-    --env=API_ENDPOINT=${API_CLI_ENDPOINT} \
-    --env=API_SCHEME=https:// \
-    --env=WS_ENDPOINT=${API_CLI_ENDPOINT} \
-    --env=PORT=${NETHVOICE_NETHCTI_UI_PORT} \
+    --env=PORT=${NETHCTI_UI_PORT} \
     ${NETHVOICE_CTI_UI_IMAGE}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/nethcti-ui.ctr-id
