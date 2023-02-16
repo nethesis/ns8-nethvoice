@@ -62,21 +62,10 @@ images+=("${repobase}/${reponame}")
 ########################
 echo "[*] Build Asterisk container"
 reponame="nethvoice-asterisk"
-container=$(buildah from centos:7)
-buildah run "${container}" groupadd -g 991 -r asterisk
-buildah run "${container}" useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk
-buildah run "${container}" yum -y install asterisk18-core asterisk18-addons-core asterisk18-dahdi asterisk18-odbc asterisk18-voicemail asterisk18-voicemail-odbcstorage unixODBC mysql-connector-odbc
-buildah run "${container}" rm -fr /var/cache/yum
-buildah copy "${container}" asterisk/ /
-buildah run "${container}" chown -R asterisk:asterisk /etc/asterisk
-buildah config \
-    --entrypoint='["/entrypoint.sh"]' \
-    --workingdir='/var/lib/asterisk' \
-    --cmd=["/usr/sbin/asterisk","-f","-C","/etc/asterisk/asterisk.conf"] \
-    "${container}"
+pushd asterisk
+buildah build --force-rm --layers --jobs "$(nproc)" --tag "${repobase}/${reponame}"
+popd
 
-# Commit the image
-buildah commit "${container}" "${repobase}/${reponame}"
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
 
