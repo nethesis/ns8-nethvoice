@@ -26,6 +26,7 @@ writetimeout = 5000
 #include manager_additional.conf
 #include manager_custom.conf
 EOF
+chown asterisk:asterisk /etc/asterisk/manager.conf
 fi
 
 # Configure ODBC for asteriskcdrdb
