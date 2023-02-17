@@ -757,7 +757,7 @@ function getHashToken(token) {
  *
  * @method newPersistentToken
  * @param {string} username The username
- * @param {string} password The password of the account
+ * @param {string} password The password of the account or a valid authentication token
  * @param {string} nonce It is used to create the HMAC-SHA1 token
  * @private
  */
@@ -769,6 +769,7 @@ async function newPersistentToken(username, password, nonce) {
     const insToken = await compDbconn.getToken(id);
     persistentTokens.set(username, insToken[0]);
     logger.log.info(IDLOG, `created persistent token for user "${username}"`);
+    return token
   } catch (err) {
     logger.log.error(IDLOG, err.stack);
   }
@@ -780,18 +781,19 @@ async function newPersistentToken(username, password, nonce) {
  * @method removePersistentToken
  * @param  {string} username The access key
  * @param  {string} token The token
+ * @param  {string} type The type of the persistent token
  * @return {boolean} True if the grant removing has been successful.
  */
-function removePersistentToken(username, token) {
+async function removePersistentToken(username, token, type) {
   try {
     // check the parameters
-    if (typeof username !== 'string' || typeof token !== 'string') {
+    if (typeof username !== 'string' || typeof token !== 'string' || typeof type !== 'string') {
       throw new Error('wrong parameters: ' + JSON.stringify(arguments));
     }
     // delete the persistent token
-    compDbconn.deleteAuthToken({ user: username });
+    await compDbconn.deleteAuthToken({ user: username });
     persistentTokens.delete(username);
-    logger.log.info(IDLOG, 'removed token "' + token + '" for user ' + username);
+    logger.log.info(IDLOG, 'removed persistent token of type "' + type + '" for user ' + username);
     if (!persistentTokens.has(username)) {
       return true;
     }
@@ -873,6 +875,17 @@ function getNonce(username, password, isRemoteSite) {
 }
 
 /**
+ * Creates a nonce string
+ *
+ * @return A new nonce string
+ */
+function createNonce () {
+  const random = crypto.randomBytes(256) + (new Date()).getTime();
+  const shasum = crypto.createHash('sha1');
+  return shasum.update(random).digest('hex');
+}
+
+/**
  * Creates an SHA1 nonce to be used in the authentication with persistent tokens.
  *
  * @method getNonceForPersistentToken
@@ -882,12 +895,34 @@ function getNonce(username, password, isRemoteSite) {
  */
 function getNonceForPersistentToken(username, password) {
   try {
-    const random = crypto.randomBytes(256) + (new Date()).getTime();
-    const shasum = crypto.createHash('sha1');
-    const nonce = shasum.update(random).digest('hex');
+    const nonce = createNonce();
     newPersistentToken(username, password, nonce);
     logger.log.info(IDLOG, `nonce for persistent token has been generated for user "${username}"`);
     return nonce;
+  } catch (err) {
+    logger.log.error(err.stack);
+  }
+}
+
+/**
+ * Creates a token valid for the authentication with persistent tokens.
+ *
+ * @method getPersistentToken
+ * @param {string} username The username used to create the token.
+ * @param {string} token A valid authentication token
+ * @return {string} The SHA1 nonce.
+ */
+ async function getPersistentToken(username, token) {
+  try {
+    const nonce = createNonce();
+    // Create the persistent token and save it's encrypted version to the db
+    const newToken = await newPersistentToken(username, token, nonce);
+    if (newToken) {
+      logger.log.info(IDLOG, `nonce for persistent token has been generated for user "${username}"`);
+      return newToken;
+    } else {
+      throw new Error('Error during persistent token creation');
+    }
   } catch (err) {
     logger.log.error(err.stack);
   }
@@ -1008,17 +1043,10 @@ function authByPam(username, password, cb) {
 
       throw new Error('wrong parameters: ' + JSON.stringify(arguments));
     }
-
     var child = childProcess.spawn(PAM_SCRIPT_PATH);
     child.stdin.write(username + '\n' + password);
     child.stdin.end();
-    child.stdout.on('data', function (data) {
-      console.log("stdout", data.toString())
-    });
-    child.stderr.on('data', function (data) {
-      console.log("stderr", data.toString())
-    });
-    child.on('close', function(code, signal, err) {
+    child.on('close', function(code, signal) {
       if (code !== 0) {
         cb({
           exitCode: code
@@ -1174,14 +1202,45 @@ function isAutoUpdateTokenExpires() {
  */
  function inPersistentTokens(username, token) {
   try {
+    const hashToken = getHashToken(token);
+    // Check the base persistent token
     if (persistentTokens.has(username)) {
       const pToken = persistentTokens.get(username).token;
-      const hashToken = getHashToken(token);
+      // Compare the given encrypted token with the persistent token
       if (pToken === hashToken) {
         return true;
       }
     }
+    // Check the api persistent token
+    if (persistentTokens.has(`${username}_phone-island`)) {
+      const pTokenApi = persistentTokens.get(`${username}_phone-island`).token;
+      // Compare the given encrypted token with the api persistent token
+      if (pTokenApi === hashToken) {
+        return true;
+      }
+    }
+    // Return false if there aren't matching tokens
     return false
+  } catch (err) {
+    logger.log.error(IDLOG, err.stack);
+    return false;
+  }
+}
+
+/**
+ * Check if persistent token exists.
+ *
+ * @method persistentTokenExists
+ * @param {string} username The username used to retrieve the token
+ * @return {boolean} True if the token is present inside persistent tokens.
+ * @private
+ */
+function persistentTokenExists(username) {
+  try {
+    if (persistentTokens.has(username)) {
+      return true;
+    }
+    return false;
   } catch (err) {
     logger.log.error(IDLOG, err.stack);
     return false;
@@ -1211,7 +1270,7 @@ function verifyToken(username, token, isRemote) {
     }
 
     // check the grant presence
-    if (!grants[username] && !persistentTokens.has(username)) {
+    if (!grants[username] && !persistentTokens.has(username) && !persistentTokens.has(`${username}_phone-island`)) {
       logger.log.warn(IDLOG, 'authentication failed for ' + (isRemote ? 'remote site ' : 'local ') + 'username: "' + username + '": no grant is present');
       return false;
     }
@@ -1363,10 +1422,12 @@ exports.addShibbolethMap = addShibbolethMap;
 exports.isShibbolethUser = isShibbolethUser;
 exports.getRemoteSiteName = getRemoteSiteName;
 exports.getAdminSecretKey = getAdminSecretKey;
+exports.getPersistentToken = getPersistentToken;
 exports.updateTokenExpires = updateTokenExpires;
 exports.removeShibbolethMap = removeShibbolethMap;
 exports.isUnautheCallEnabled = isUnautheCallEnabled;
 exports.removePersistentToken = removePersistentToken;
+exports.persistentTokenExists = persistentTokenExists;
 exports.getShibbolethUsername = getShibbolethUsername;
 exports.isUnautheCallIPEnabled = isUnautheCallIPEnabled;
 exports.authenticateRemoteSite = authenticateRemoteSite;

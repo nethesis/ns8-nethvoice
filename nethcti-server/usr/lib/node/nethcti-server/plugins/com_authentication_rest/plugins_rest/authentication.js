@@ -220,7 +220,9 @@ function setCompUser(comp) {
       // the REST api
       api: {
         'root': 'authentication',
-        'get': [],
+        'get': [
+          'phone_island_token_check'
+        ],
 
         /**
          * REST API to be requested using HTTP POST request.
@@ -243,7 +245,9 @@ function setCompUser(comp) {
         'post': [
           'login',
           'remotelogin',
-          'logout'
+          'logout',
+          'phone_island_token_login',
+          'persistent_token_remove'
         ],
         'head': [],
         'del': []
@@ -342,6 +346,121 @@ function setCompUser(comp) {
       },
 
       /**
+       * Provides the login function for the phone island with the following REST API:
+       *
+       *     phone_island_token_login
+       *
+       * Every user with a valid token can invoke it and receive an API token without expiration
+       * There is only a persistent phone island token for each user
+       *
+       * @method phone_island_token_login
+       * @param {object}   req  The client request
+       * @param {object}   res  The client response
+       * @return The token without expiration and the username
+       */
+       phone_island_token_login: async function(req, res) {
+        try {
+
+          // Get the username from the headers
+          const username = req.headers.authorization_user;
+          // Get the valid token from the request
+          // The token validity is checked inside the authorization proxy
+          const authToken = req.headers.authorization_token;
+
+          // Add _phone-island to the end of api username tokens
+          const apiUsername = `${username}_phone-island`;
+
+          // Create the persistent token using username and a valid authentication token
+          const apiToken = await compAuthe.getPersistentToken(apiUsername, authToken);
+          // Return the token ready to be used by api's and ws
+          res.send(200, {
+            token: apiToken,
+            username: username
+          });
+
+        } catch (err) {
+          logger.log.error(IDLOG, err.stack);
+          compUtil.net.sendHttp401(IDLOG, err);
+        }
+      },
+
+      /**
+       * Checks if the phone island token was already created REST API:
+       *
+       *     phone_island_token_check
+       *
+       * @method phone_island_token_check
+       * @param {object}   req  The client request
+       * @param {object}   res  The client response
+       * @return An object containing a boolean exists property
+       */
+       phone_island_token_check: async function(req, res) {
+        try {
+
+          // Get the username from the headers
+          const username = req.headers.authorization_user;
+
+          // Add _phone-island to the end of api username tokens
+          const islandUsername = `${username}_phone-island`;
+
+          // Check if the persistent token exists
+          const exists = await compAuthe.persistentTokenExists(islandUsername);
+          // Return the true if exists or false
+          res.send(200, {
+            exists: exists,
+          });
+
+        } catch (err) {
+          logger.log.error(IDLOG, err.stack);
+          compUtil.net.sendHttp401(IDLOG, err);
+        }
+      },
+
+      /**
+       * Provides the api to revoke a persistent token
+       * 
+       *    persistent_token_remove
+       * 
+       * @param {object} req The client request
+       * @param {object} res The client response
+       */
+      persistent_token_remove: async function(req, res) {
+        try {
+          // Check parameters
+          if (req.params.type !== 'phone-island' && req.params.type !== 'no-exp') {
+            throw new Error('wrong parameters: ' + JSON.stringify(arguments));
+          }
+
+          // Get the username from the headers
+          const username = req.headers.authorization_user;
+          // Get the token from the headers
+          const token = req.headers.authorization_token;
+
+          // Init target username to be revoked
+          let userToRevoke = '';
+
+          // Set target username to be revoked
+          if (req.params.type === 'phone-island') {
+            userToRevoke = `${username}_phone-island`;
+          } else if (req.params.type === 'no-exp') {
+            userToRevoke = username;
+          }
+          // Remove the persistent token using the username
+          const removed = await compAuthe.removePersistentToken(userToRevoke, token, req.params.type);
+
+          if (removed) {
+            // Return the token ready to be used by api's and ws
+            res.send(200, {});
+          } else {
+            throw new Error(`persistent token of type ${req.params.type} not removed for user: ${username}`);
+          }
+        } catch (err) {
+          logger.log.error(IDLOG, err.stack);
+          compUtil.net.sendHttp401(IDLOG, err);
+        }
+      },
+
+      /**
        * Provides the logout function with the following REST API:
        *
        *     logout
@@ -351,12 +470,12 @@ function setCompUser(comp) {
        * @param {object}   res  The client response
        * @param {function} next Function to run the next handler in the chain
        */
-      logout: function(req, res, next) {
+      logout: async function(req, res, next) {
         try {
           var token = req.headers.authorization_token;
           var username = req.headers.authorization_user;
           var authExpiration = req.headers["auth-exp"];
-          var isLoggedOut = (authExpiration === "no-exp") ? (compAuthe.removePersistentToken(username, token) === true) : (compAuthe.removeToken(username, token) === true);
+          var isLoggedOut = (authExpiration === "no-exp") ? (await compAuthe.removePersistentToken(username, token, 'no-exp') === true) : (compAuthe.removeToken(username, token) === true);
           if (isLoggedOut) {
             logger.log.info(IDLOG, 'user "' + username + '" successfully logged out');
             compUtil.net.sendHttp200(IDLOG, res);
@@ -375,6 +494,9 @@ function setCompUser(comp) {
     exports.api = authentication.api;
     exports.login = authentication.login;
     exports.logout = authentication.logout;
+    exports.phone_island_token_login = authentication.phone_island_token_login;
+    exports.persistent_token_remove = authentication.persistent_token_remove;
+    exports.phone_island_token_check = authentication.phone_island_token_check;
     exports.setLogger = setLogger;
     exports.setCompUtil = setCompUtil;
     exports.setCompUser = setCompUser;
