@@ -6,14 +6,9 @@
     "examples": [],
     "type": "object",
     "required": [
-        "nethcti_ui_host",
         "nethcti_server_host"
     ],
     "properties": {
-        "nethcti_ui_host": {
-            "type": "string",
-            "format": "hostname"
-        },
         "nethcti_server_host": {
             "type": "string",
             "format": "hostname"
