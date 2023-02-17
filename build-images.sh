@@ -30,9 +30,9 @@ buildah add "${container}" ui/dist /ui
 # Setup the entrypoint, ask to reserve one TCP port with the label and set a rootless container
 buildah config \
     --label="org.nethserver.authorizations=traefik@any:routeadm node:fwadm" \
-    --label="org.nethserver.tcp-ports-demand=6" \
+    --label="org.nethserver.tcp-ports-demand=8" \
     --label="org.nethserver.rootfull=0" \
-    --label="org.nethserver.images=$repobase/nethvoice-mariadb:latest $repobase/nethvoice-freepbx:latest $repobase/nethvoice-asterisk:latest $repobase/nethvoice-cti-server:latest $repobase/nethvoice-cti-ui:latest $repobase/nethvoice-tancredi:latest $repobase/nethvoice-janus:latest" \
+    --label="org.nethserver.images=$repobase/nethvoice-mariadb:${IMAGETAG:-latest} $repobase/nethvoice-freepbx:${IMAGETAG:-latest} $repobase/nethvoice-asterisk:${IMAGETAG:-latest} $repobase/nethvoice-cti-server:${IMAGETAG:-latest} $repobase/nethvoice-cti-ui:${IMAGETAG:-latest} $repobase/nethvoice-tancredi:${IMAGETAG:-latest} $repobase/nethvoice-janus:${IMAGETAG:-latest}" \
     --entrypoint=/ \
     "${container}"
 
@@ -62,20 +62,10 @@ images+=("${repobase}/${reponame}")
 ########################
 echo "[*] Build Asterisk container"
 reponame="nethvoice-asterisk"
-container=$(buildah from centos:7)
-buildah add "${container}" asterisk/ /
-buildah run "${container}" groupadd -g 991 -r asterisk
-buildah run "${container}" useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk
-buildah run "${container}" yum -y install asterisk18-core asterisk18-addons-core asterisk18-dahdi asterisk18-odbc asterisk18-voicemail asterisk18-voicemail-odbcstorage unixODBC mysql-connector-odbc
-buildah run "${container}" rm -fr /var/cache/yum
-buildah config \
-    --entrypoint='["/entrypoint.sh"]' \
-    --workingdir='/var/lib/asterisk' \
-    --cmd=["/usr/sbin/asterisk","-f","-C","/etc/asterisk/asterisk.conf"] \
-    "${container}"
+pushd asterisk
+buildah build --force-rm --layers --jobs "$(nproc)" --tag "${repobase}/${reponame}"
+popd
 
-# Commit the image
-buildah commit "${container}" "${repobase}/${reponame}"
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
 
@@ -271,13 +261,9 @@ images+=("${repobase}/${reponame}")
 #############################
 echo "[*] Build nethcti container"
 reponame="nethvoice-cti-server"
-container=$(buildah from docker.io/library/node:14)
-buildah add "${container}" nethcti-server/ /
-buildah config --workingdir /usr/lib/node/nethcti-server "${container}"
-buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
-
-# Commit the image
-buildah commit "${container}" "${repobase}/${reponame}"
+pushd nethcti-server
+buildah build --force-rm --layers --jobs "$(nproc)" --target production --tag "${repobase}/${reponame}"
+popd
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
 
@@ -308,7 +294,7 @@ images+=("${repobase}/${reponame}")
 
 
 
-# Setup CI when pushing to Github. 
+# Setup CI when pushing to Github.
 # Warning! docker::// protocol expects lowercase letters (,,)
 if [[ -n "${CI}" ]]; then
     # Set output value for Github Actions

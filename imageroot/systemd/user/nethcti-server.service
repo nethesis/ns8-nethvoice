@@ -24,12 +24,13 @@ ExecStart=/usr/bin/podman run \
     --volume=nethcti-server:/root:Z \
     --volume=nethcti-server-code:/usr/lib/node/nethcti-server:Z \
     --volume=/dev/log:/dev/log \
+    --env=ASTMANAGERPORT \
     --env=NETHCTI* \
     --env=NETHVOICE* \
     --network=host \
     ${NETHVOICE_CTI_SERVER_IMAGE}
 
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/nethcti.ctr-id
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/nethcti-server.ctr-id
 ExecReload=/usr/bin/podman run node /usr/lib/node/nethcti-server/nethcti-cli reload
 PIDFile=%t/nethcti-server.pid
 Type=forking

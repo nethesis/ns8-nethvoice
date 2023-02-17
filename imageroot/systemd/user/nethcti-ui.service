@@ -21,11 +21,12 @@ ExecStart=/usr/bin/podman run \
     --log-opt=tag=%u \
     --replace --name=%N \
     --volume=/dev/log:/dev/log \
-    --env=NETHCTI* \
-    --env=NETHVOICE* \
     --network=host \
-    --env=API_ENDPOINT \
-    --env=PORT=${NETHVOICE_NETHCTI_UI_PORT} \
+    --env=PRODUCT_NAME=${NETHCTI_PRODUCT_NAME} \
+    --env=COMPANY_NAME=${NETHCTI_COMPANY_NAME} \
+    --env=COMPANY_URL=${NETHCTI_COMPANY_URL} \
+    --env=API_ENDPOINT=${NETHCTI_SERVER_HOST} \
+    --env=PORT=${NETHCTI_UI_PORT} \
     ${NETHVOICE_CTI_UI_IMAGE}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/nethcti-ui.ctr-id

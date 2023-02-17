@@ -51,13 +51,13 @@ $stmt->closeCursor();
 file_put_contents('/etc/amportal.conf',$amportal);
 
 // Set NethCTI AMI user if it is needed
-$sql = 'SELECT password FROM arimanager WHERE name = "proxycti"';
+$sql = 'SELECT `password` FROM `asterisk`.`arimanager` WHERE `name` = "proxycti"';
 $stmt = $db->prepare($sql);
 $stmt->execute();
 $res = $stmt->fetchAll();
 if (empty($res)) {
         // prxycti user doesn't exists and needs to be created
-        $sql = "INSERT INTO `arimanager` (`name`, `password`, `password_format`, `read_only`) VALUES ('proxycti',?,'plain',1)";
+        $sql = "INSERT INTO `asterisk`.`arimanager` (`name`, `password`, `password_format`, `read_only`) VALUES ('proxycti',?,'plain',1)";
         $stmt = $db->prepare($sql);
         $stmt->execute([$_ENV['NETHCTI_AMI_PASSWORD']]);
 
@@ -65,22 +65,21 @@ if (empty($res)) {
         $id = $db->lastInsertId();
 
         // write manager entry
-        $sql = "INSERT INTO `manager` (`manager_id`, `name`, `secret`, `deny`, `permit`, `read`, `write`, `writetimeout`) VALUES (?,'proxycti',?,'0.0.0.0/0.0.0.0','127.0.0.1/255.255.255.0','system,call,log,verbose,command,agent,user,config,dtmf,reporting,cdr,dialplan,originate','system,call,log,verbose,command,agent,user,config,dtmf,reporting,cdr,dialplan,originate',100);";
+        $sql = "INSERT INTO `asterisk`.`manager` (`manager_id`, `name`, `secret`, `deny`, `permit`, `read`, `write`, `writetimeout`) VALUES (?,'proxycti',?,'0.0.0.0/0.0.0.0','127.0.0.1/255.255.255.0','system,call,log,verbose,command,agent,user,config,dtmf,reporting,cdr,dialplan,originate','system,call,log,verbose,command,agent,user,config,dtmf,reporting,cdr,dialplan,originate',100);";
         $stmt = $db->prepare($sql);
         $stmt->execute([$id,$_ENV['NETHCTI_AMI_PASSWORD']]);
 
         // Enable needreload
-        $db->query("UPDATE admin SET value = 'true' WHERE variable = 'need_reload'");
+        $db->query("UPDATE `asterisk`.`admin` SET `value` = 'true' WHERE `variable` = 'need_reload'");
 } else if ($res[0][0] !== $_ENV['NETHCTI_AMI_PASSWORD']) {
 	// user already exists, but password is different
-        $sql = "UPDATE `arimanager` SET `password` = ? WHERE `name`='proxycti'";
+        $sql = "UPDATE `asterisk`.`arimanager` SET `password` = ? WHERE `name`='proxycti'";
         $stmt = $db->prepare($sql);
         $stmt->execute([$_ENV['NETHCTI_AMI_PASSWORD']]);
-        $sql = "UPDATE `manager` SET `secret` = ? WHERE `name`='proxycti'";
+        $sql = "UPDATE `asterisk`.`manager` SET `secret` = ? WHERE `name`='proxycti'";
         $stmt = $db->prepare($sql);
         $stmt->execute([$_ENV['NETHCTI_AMI_PASSWORD']]);
 
         // Enable needreload
-        $db->query("UPDATE admin SET value = 'true' WHERE variable = 'need_reload'");
+        $db->query("UPDATE `asterisk`.`admin` SET `value` = 'true' WHERE `variable` = 'need_reload'");
 }
-

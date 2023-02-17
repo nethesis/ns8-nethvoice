@@ -5,12 +5,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-import agent
 import json
 import sys
-import os
-import random
-import string
+
+import agent
 
 request = json.load(sys.stdin)
 
@@ -26,7 +24,6 @@ getFromRequest(request, 'nethvoice_host', 'NETHVOICE_HOST', '')
 getFromRequest(request, 'nethvoice_public_host', 'NETHVOICE_PUBLIC_HOST', '')
 getFromRequest(request, 'subscription_systemid', 'SUBSCRIPTION_SYSTEMID', '')
 getFromRequest(request, 'subscription_secret', 'SUBSCRIPTION_SECRET', '')
-getFromRequest(request, 'nethvoice_host', 'API_CLI_ENDPOINT', '')
 getFromRequest(request, 'nethcti_prefix', 'NETHCTI_PREFIX', '')
 getFromRequest(request, 'nethcti_autoc2c', 'NETHCTI_AUTOC2C', 'enabled')
 getFromRequest(request, 'nethcti_trunks_events', 'NETHCTI_TRUNKS_EVENTS', 'enabled')
@@ -41,5 +38,12 @@ getFromRequest(request, 'nethcti_cdr_script_timeout', 'NETHCTI_CDR_SCRIPT_TIMEOU
 getFromRequest(request, 'nethcti_cdr_script_call_in', 'NETHCTI_CDR_SCRIPT_CALL_IN', '')
 getFromRequest(request, 'nethcti_log_level', 'NETHCTI_LOG_LEVEL', 'warn')
 getFromRequest(request, 'conference_jitsi_url', 'CONFERENCE_JITSI_URL', 'https://jitsi.nethserver.net')
+## NethCTI Server
+getFromRequest(request, 'nethcti_server_host', 'NETHCTI_SERVER_HOST', '')
+
+## NethCTI UI
+getFromRequest(request, 'nethcti_ui_product_name', 'NETHCTI_UI_PRODUCT_NAME', 'NethVoice CTI')
+getFromRequest(request, 'nethcti_ui_company_name', 'NETHCTI_UI_COMPANY_NAME', 'Nethesis')
+getFromRequest(request, 'nethcti_ui_company_url', 'NETHCTI_UI_COMPANY_URL', 'https://www.nethesis.it/')
 
 agent.dump_env()

@@ -1,0 +1,23 @@
+FROM docker.io/library/node:14-alpine as base
+WORKDIR /app
+
+FROM base as node_modules
+RUN apk add --no-cache \
+        python3 \
+        make
+COPY usr/lib/node/nethcti-server/package.json .
+COPY usr/lib/node/nethcti-server/package-lock.json .
+RUN npm ci
+
+FROM base as production
+COPY usr/lib/node/nethcti-server/plugins plugins
+COPY usr/lib/node/nethcti-server/scripts scripts
+COPY usr/lib/node/nethcti-server/sql sql
+COPY usr/lib/node/nethcti-server/nethcti-cli.js .
+COPY usr/lib/node/nethcti-server/nethcti.js .
+COPY --from=node_modules /app/package.json .
+COPY --from=node_modules /app/package-lock.json .
+COPY --from=node_modules /app/node_modules node_modules
+COPY entrypoint.sh /entrypoint
+ENTRYPOINT ["/entrypoint"]
+CMD ["npm", "start"]
