@@ -9,6 +9,7 @@ RUN groupadd -g 991 -r asterisk \
         asterisk18-dahdi \
         asterisk18-odbc \
         asterisk18-voicemail \
+        asterisk18-debuginfo \
         asterisk18-voicemail-odbcstorage \
         unixODBC \
         mysql-connector-odbc \
