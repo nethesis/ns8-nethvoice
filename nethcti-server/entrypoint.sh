@@ -43,6 +43,9 @@ cat > $FILE <<EOF
 }
 EOF
 
+# Create directory before cat
+mkdir -p /etc/nethcti/dbstatic.d
+
 FILE=/etc/nethcti/dbstatic.d/nethcti3.json
 cat > $FILE <<EOF
 {
@@ -107,6 +110,7 @@ cat > $FILE <<EOF
         "dbuser":     "pbookuser",
         "dbpassword": "${NETHVOICE_PHONEBOOK_DB_PASSWORD}",
         "dbname":     "phonebook"
+  }
 }
 EOF
 
