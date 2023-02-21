@@ -105,7 +105,8 @@ response = agent.tasks.run(
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "True",
         'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
         'host': os.environ["NETHCTI_SERVER_HOST"],
-        'path': '/webrest'
+        'path': '/webrest',
+        'strip_prefix': True
     },
 )
 agent.assert_exp(response['exit_code'] == 0)
