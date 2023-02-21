@@ -30,7 +30,7 @@ cat > $FILE <<EOF
 	"expiration_timeout": "3600",
 	"unauthe_call": {
         	"status": "${NETHCTI_UNAUTHE_CALL:-disabled}",
-	        "allowed_ip": "${NETHCTI_UNAUTHE_CALL_IP}"
+          "allowed_ip": "${NETHCTI_UNAUTHE_CALL_IP:-127.0.0.1}"
     	}
 }
 EOF
