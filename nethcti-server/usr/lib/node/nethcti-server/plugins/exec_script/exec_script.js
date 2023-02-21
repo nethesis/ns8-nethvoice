@@ -199,6 +199,7 @@ function setAstProxyListeners() {
  *  @param {string} data.billableseconds    The number of seconds between the answer and end times for the call
  *  @param {string} data.destinationcontext The destination context for the call
  *  @param {string} data.destinationchannel The called party’s channel
+ *  @param {string} data.accountcode        The accountcode of the caller
  */
 function evtNewCdr(data) {
   try {
