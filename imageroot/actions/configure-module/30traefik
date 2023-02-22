@@ -25,6 +25,7 @@ response = agent.tasks.run(
         'url':  'http://127.0.0.1:' + os.environ["APACHE_PORT"] + '/' + os.environ["BRAND_NAME"].lower(),
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "True",
         'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
+        'host': os.environ["NETHCTI_SERVER_HOST"],
         'path': '/' + os.environ["BRAND_NAME"].lower(),
     },
 )
@@ -41,6 +42,7 @@ response = agent.tasks.run(
         'url':  'http://127.0.0.1:' + os.environ["APACHE_PORT"] + '/freepbx',
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "True",
         'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
+        'host': os.environ["NETHCTI_SERVER_HOST"],
         'path': '/freepbx',
     },
 )
@@ -57,6 +59,7 @@ response = agent.tasks.run(
         'url':  'http://127.0.0.1:' + os.environ["TANCREDIPORT"] + '/tancredi',
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "True",
         'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
+        'host': os.environ["NETHCTI_SERVER_HOST"],
         'path': '/tancredi',
     },
 )
@@ -73,6 +76,7 @@ response = agent.tasks.run(
         'url':  'http://127.0.0.1:' + os.environ["TANCREDIPORT"] + '/provisioning',
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "True",
         'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
+        'host': os.environ["NETHCTI_SERVER_HOST"],
         'path': '/tancredi',
     },
 )
