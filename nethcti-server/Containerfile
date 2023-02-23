@@ -1,4 +1,4 @@
-FROM docker.io/library/node:14-alpine as base
+FROM docker.io/library/node:14.21.1-alpine as base
 WORKDIR /app
 
 FROM base as node_modules
