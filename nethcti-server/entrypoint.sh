@@ -22,16 +22,16 @@ EOF
 FILE=/etc/nethcti/authentication.json
 cat > $FILE <<EOF
 {
-	"enabled": ${NETHCTI_AUTHENTICATION_ENABLED:-true},
-	"type": "pam",
-	"file": {
-		"path": "/etc/nethcti/users.json"
-	},
-	"expiration_timeout": "3600",
-	"unauthe_call": {
-        	"status": "${NETHCTI_UNAUTHE_CALL:-disabled}",
+  "enabled": ${NETHCTI_AUTHENTICATION_ENABLED:-true},
+  "type": "pam",
+  "file": {
+    "path": "/etc/nethcti/users.json"
+  },
+  "expiration_timeout": "3600",
+  "unauthe_call": {
+          "status": "${NETHCTI_UNAUTHE_CALL:-disabled}",
           "allowed_ip": "${NETHCTI_UNAUTHE_CALL_IP:-127.0.0.1}"
-    	}
+  }
 }
 EOF
 
@@ -151,7 +151,7 @@ cat > $FILE <<EOF
 {
 	"logfile":"/dev/stderr",
 	"hostname":"${NETHVOICE_HOST}",
-	"publichost":"${NETHVOICE_PUBLIC_HOST}",
+	"publichost":"",
 	"loglevel":"${NETHCTI_LOG_LEVEL}",
 	"privacy_numbers":"xxx",
 	"proxy_port":""
@@ -163,7 +163,7 @@ cat > $FILE <<EOF
 {
   "tcp": {
     "port": "8182",
-    "base_templates": "http://${NETHVOICE_PUBLIC_HOST}/webrest/static/templates/notification_popup"
+    "base_templates": "http://${NETHVOICE_HOST}/webrest/static/templates/notification_popup"
   },
   "tls": {
     "port": "8183",
