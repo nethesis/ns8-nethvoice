@@ -21,7 +21,6 @@ def getFromRequest(request, var_name, env_name, default = ""):
 # NETHVOICE_HOST_LOCAL_NETWORKS should be a jason containing local networks [{"network":"192.168.5.0","netmask":"255.255.255.0","gateway":"192.168.5.1"}]
 getFromRequest(request, 'nethvoice_host_local_networks', 'NETHVOICE_HOST_LOCAL_NETWORKS', '{[]}')
 getFromRequest(request, 'nethvoice_host', 'NETHVOICE_HOST', '')
-getFromRequest(request, 'nethvoice_public_host', 'NETHVOICE_PUBLIC_HOST', '')
 getFromRequest(request, 'subscription_systemid', 'SUBSCRIPTION_SYSTEMID', '')
 getFromRequest(request, 'subscription_secret', 'SUBSCRIPTION_SECRET', '')
 getFromRequest(request, 'nethcti_prefix', 'NETHCTI_PREFIX', '')
@@ -38,8 +37,6 @@ getFromRequest(request, 'nethcti_cdr_script_timeout', 'NETHCTI_CDR_SCRIPT_TIMEOU
 getFromRequest(request, 'nethcti_cdr_script_call_in', 'NETHCTI_CDR_SCRIPT_CALL_IN', '')
 getFromRequest(request, 'nethcti_log_level', 'NETHCTI_LOG_LEVEL', 'warn')
 getFromRequest(request, 'conference_jitsi_url', 'CONFERENCE_JITSI_URL', 'https://jitsi.nethserver.net')
-## NethCTI Server
-getFromRequest(request, 'nethcti_server_host', 'NETHCTI_SERVER_HOST', '')
 
 ## NethCTI UI
 getFromRequest(request, 'nethcti_ui_product_name', 'NETHCTI_UI_PRODUCT_NAME', 'NethVoice CTI')

@@ -1,4 +1,4 @@
-FROM docker.io/library/node:14-alpine as base
+FROM docker.io/library/node:14.21.1-alpine as base
 WORKDIR /app
 
 FROM base as node_modules
@@ -10,6 +10,7 @@ COPY usr/lib/node/nethcti-server/package-lock.json .
 RUN npm ci
 
 FROM base as production
+RUN apk add --no-cache openldap-clients
 COPY var/lib/nethserver/nethcti/templates/customer_card /var/lib/nethserver/nethcti/templates/customer_card
 COPY usr/lib/node/nethcti-server/plugins plugins
 COPY usr/lib/node/nethcti-server/scripts scripts

@@ -140,13 +140,13 @@ var AUTH_TYPE = {
 };
 
 /**
- * The path of the pam authentication script.
+ * The path of the ldap authentication script.
  *
- * @property PAM_SCRIPT_PATH
+ * @property LDAP_SCRIPT_PATH
  * @type string
  * @private
  */
-var PAM_SCRIPT_PATH = path.join(process.cwd(), 'scripts/pam-authenticate.pl');
+var LDAP_SCRIPT_PATH = path.join(process.cwd(), 'scripts/ldap-authenticate.sh');
 
 /**
  * The secret key of FreePBX admin user.
@@ -1043,9 +1043,7 @@ function authByPam(username, password, cb) {
 
       throw new Error('wrong parameters: ' + JSON.stringify(arguments));
     }
-    var child = childProcess.spawn(PAM_SCRIPT_PATH);
-    child.stdin.write(username + '\n' + password);
-    child.stdin.end();
+    var child = childProcess.spawn(LDAP_SCRIPT_PATH, [username, password]);
     child.on('close', function(code, signal) {
       if (code !== 0) {
         cb({
