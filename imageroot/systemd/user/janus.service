@@ -22,6 +22,7 @@ ExecStart=/usr/bin/podman run \
     --env=LOCAL_IP \
     --env=RTPSTART \
     --env=RTPEND \
+    --env=JANUS_TRANSPORT_PORT \
     --volume=/dev/log:/dev/log \
     --network=host \
     ${NETHVOICE_JANUS_IMAGE} \
