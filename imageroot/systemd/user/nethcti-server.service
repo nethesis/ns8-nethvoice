@@ -27,6 +27,14 @@ ExecStart=/usr/bin/podman run \
     --env=ASTMANAGERPORT \
     --env=NETHCTI* \
     --env=NETHVOICE* \
+    --env=AMPDBUSER \
+    --env=AMPDBHOST \
+    --env=AMPDBNAME \
+    --env=AMPDBPASS \
+    --env=CDRDBHOST \
+    --env=CDRDBNAME \
+    --env=CDRDBUSER \
+    --env=CDRDBPASS \
     --network=host \
     ${NETHVOICE_CTI_SERVER_IMAGE}
 

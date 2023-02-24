@@ -46,6 +46,115 @@ EOF
 # Create directory before cat
 mkdir -p /etc/nethcti/dbstatic.d
 
+FILE=/etc/nethcti/dbstatic.d/asteriskcdrdb.json
+cat > $FILE <<EOF
+{
+    "history_call": {
+        "dbhost": "${CDRDBHOST}",
+        "dbport": "${NETHVOICE_MARIADB_PORT}",
+        "dbtype": "mysql",
+        "dbuser": "${CDRDBUSER}",
+        "dbpassword": "${CDRDBPASS}",
+        "dbname": "${CDRDBNAME}"
+    },
+    "cel": {
+        "dbhost": "${CDRDBHOST}",
+        "dbport": "${NETHVOICE_MARIADB_PORT}",
+        "dbtype": "mysql",
+        "dbuser": "${CDRDBUSER}",
+        "dbpassword": "${CDRDBPASS}",
+        "dbname": "${CDRDBNAME}"
+    },
+    "voicemail": {
+        "dbhost": "${CDRDBHOST}",
+        "dbport": "${NETHVOICE_MARIADB_PORT}",
+        "dbtype": "mysql",
+        "dbuser": "${CDRDBUSER}",
+        "dbpassword": "${CDRDBPASS}",
+        "dbname": "${CDRDBNAME}"
+    },
+    "queue_log": {
+        "dbhost": "${CDRDBHOST}",
+        "dbport": "${NETHVOICE_MARIADB_PORT}",
+        "dbtype": "mysql",
+        "dbuser": "${CDRDBUSER}",
+        "dbpassword": "${CDRDBPASS}",
+        "dbname": "${CDRDBNAME}"
+    }
+}
+EOF
+
+FILE=/etc/nethcti/dbstatic.d/asterisk.json
+cat > $FILE <<EOF
+{
+    "ampusers": {
+        "dbhost": "${AMPDBHOST}",
+        "dbport": "${NETHVOICE_MARIADB_PORT}",
+        "dbtype": "mysql",
+        "dbuser": "${AMPDBUSER}",
+        "dbpassword": "${AMPDBPASS}",
+        "dbname": "${AMPDBNAME}"
+    },
+    "incoming": {
+        "dbhost": "${AMPDBHOST}",
+        "dbport": "${NETHVOICE_MARIADB_PORT}",
+        "dbtype": "mysql",
+        "dbuser": "${AMPDBUSER}",
+        "dbpassword": "${AMPDBPASS}",
+        "dbname": "${AMPDBNAME}"
+    },
+    "offhour": {
+        "dbhost": "${AMPDBHOST}",
+        "dbport": "${NETHVOICE_MARIADB_PORT}",
+        "dbtype": "mysql",
+        "dbuser": "${AMPDBUSER}",
+        "dbpassword": "${AMPDBPASS}",
+        "dbname": "${AMPDBNAME}"
+    },
+    "rest_users": {
+        "dbhost": "${AMPDBHOST}",
+        "dbport": "${NETHVOICE_MARIADB_PORT}",
+        "dbtype": "mysql",
+        "dbuser": "${AMPDBUSER}",
+        "dbpassword": "${AMPDBPASS}",
+        "dbname": "${AMPDBNAME}"
+    },
+    "userman_users": {
+        "dbhost": "${AMPDBHOST}",
+        "dbport": "${NETHVOICE_MARIADB_PORT}",
+        "dbtype": "mysql",
+        "dbuser": "${AMPDBUSER}",
+        "dbpassword": "${AMPDBPASS}",
+        "dbname": "${AMPDBNAME}"
+    },
+    "rest_cti_profiles_paramurl": {
+        "dbhost": "${AMPDBHOST}",
+        "dbport": "${NETHVOICE_MARIADB_PORT}",
+        "dbtype": "mysql",
+        "dbuser": "${AMPDBUSER}",
+        "dbpassword": "${AMPDBPASS}",
+        "dbname": "${AMPDBNAME}"
+    },
+    "pin": {
+        "dbhost": "${AMPDBHOST}",
+        "dbport": "${NETHVOICE_MARIADB_PORT}",
+        "dbtype": "mysql",
+        "dbuser": "${AMPDBUSER}",
+        "dbpassword": "${AMPDBPASS}",
+        "dbname": "${AMPDBNAME}"
+    },
+    "pin_protected_routes": {
+        "dbhost": "${AMPDBHOST}",
+        "dbport": "${NETHVOICE_MARIADB_PORT}",
+        "dbtype": "mysql",
+        "dbuser": "${AMPDBUSER}",
+        "dbpassword": "${AMPDBPASS}",
+        "dbname": "${AMPDBNAME}"
+    }
+}
+EOF
+
+
 FILE=/etc/nethcti/dbstatic.d/nethcti3.json
 cat > $FILE <<EOF
 {
