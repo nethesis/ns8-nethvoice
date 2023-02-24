@@ -137,7 +137,7 @@ EOF
 
 # Apply changes if needed
 if [[ $? == 1 ]]; then
-	fwconsole reload
+	su - asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload"
 fi
 
 # Configure users
