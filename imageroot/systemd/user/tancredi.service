@@ -4,6 +4,8 @@
 #
 [Unit]
 Description=tancredi server
+Requires=asterisk.service
+After=asterisk.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
