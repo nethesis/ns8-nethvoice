@@ -28,6 +28,7 @@ ExecStart=/usr/bin/podman run \
     --volume=asterisk:/etc/asterisk:z \
     --volume=spool:/var/spool/asterisk:z \
     --volume=sounds:/var/lib/asterisk/sounds:z \
+    --volume=moh:/var/lib/asterisk/moh:z \
     --volume=agi-bin:/var/lib/asterisk/agi-bin:z \
     --volume=astdb:/var/lib/asterisk/db:z \
     --volume=/dev/log:/dev/log \
