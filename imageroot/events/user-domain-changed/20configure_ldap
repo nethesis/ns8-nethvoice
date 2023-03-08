@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2022 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import sys
+import agent
+import os
+
+event = json.load(sys.stdin)
+
+if event.get('domain') != os.getenv('EJABBERD_LDAP_DOMAIN'):
+    exit(0)
+
+if 'node' in event and str(event['node']) != os.getenv('NODE_ID'):
+    exit(0) # ignore event if the source is not in our node
+
+agent.run_helper('systemctl', '--user', '-T', 'try-reload-or-restart', 'ejabberd.service').check_returncode()

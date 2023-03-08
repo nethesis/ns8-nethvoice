@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import sys
+import agent
+import agent.tasks
+import os
+
+# Try to parse the stdin as JSON.
+# If parsing fails, output everything to stderr
+data = json.load(sys.stdin)
+
+host = data.get("nethvoice_host")
+
+# if the hostname is new we generate the selfsigned certificate, else do nothing
+if host != os.environ.get('NETHVOICE_HOST',''):
+    agent.run_helper('generate-certificate',host).check_returncode()

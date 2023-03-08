@@ -1,0 +1,9 @@
+[Unit]
+Description=Timer of Diffie-Hellman group generator
+
+[Timer]
+OnActiveSec=15 minutes
+OnUnitInactiveSec=15 days
+
+[Install]
+WantedBy=timers.target
