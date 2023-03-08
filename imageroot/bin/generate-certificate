@@ -31,4 +31,4 @@ openssl x509 -req -sha256 -days 3650 \
 
 cat ${keytmp} ${certtmp} > certificates/NethServer.pem
 mv ${keytmp} certificates/NethServer.key
-mv ${certmp} certificates/NethServer.crt
+mv ${certtmp} certificates/NethServer.crt
