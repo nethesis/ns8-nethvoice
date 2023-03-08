@@ -1,0 +1,34 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2022 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+HOST=$1
+
+mkdir -vp certificates
+
+# trap to clean tmp files
+certtmp=$(mktemp cert.pem.XXXXXX)
+keytmp=$(mktemp key.pem.XXXXXX)
+csrtmp=$(mktemp csr.pem.XXXXXX)
+
+trap 'rm -f ${certtmp} ${keytmp} ${csrtmp}' EXIT
+
+umask 0077
+
+# we request csr
+openssl req -nodes -newkey rsa:2048 \
+    -keyout ${keytmp} \
+    -out ${csrtmp} -new  \
+    -subj "/C=IT/ST=Italy/L=Pesaro/O=Nethesis/OU=NethVoice/CN=${HOST}/subjectAltName=cti.${HOST},nethvoice.${HOST},${HOST}"
+
+# we selfsign the certificate
+openssl x509 -req -sha256 -days 3650 \
+    -in ${csrtmp} \
+    -signkey ${keytmp} \
+    -out ${certtmp}
+
+cat ${keytmp} ${certtmp} > certificates/NethServer.pem
+mv ${keytmp} certificates/NethServer.key
+mv ${certmp} certificates/NethServer.crt

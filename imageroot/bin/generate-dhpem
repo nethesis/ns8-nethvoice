@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2022 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+mkdir -vp certificates
+dhtmp=$(mktemp dh.pem.XXXXXX)
+trap 'rm -f ${dhtmp}' EXIT
+openssl dhparam -out "${dhtmp}" 2048
+mv -v "${dhtmp}" certificates/dh.pem
