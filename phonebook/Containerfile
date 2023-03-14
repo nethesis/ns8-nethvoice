@@ -1,0 +1,25 @@
+FROM docker.io/library/alpine:latest as base
+WORKDIR /usr/share/phoenbook/
+
+RUN apk add --no-cache \
+        mysql-client \
+        php81-pdo_mysql \
+        php81-pdo_pgsql \
+        nodejs \
+        http-parser \
+        python3 \
+        py3-pip \
+        py3-pymysql \
+        curl
+
+RUN	\
+	groupadd -g 991 -r asterisk \
+	&& useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk \
+	mkdir -p /usr/share/phonebook && \
+	mkdir -p /etc/phonebook/sources.d/ && \
+	chown asterisk:asterisk /etc/phonebook/sources.d && \
+	chmod 644 /etc/phonebook/sources.d && \
+	curl -L https://github.com/nethesis/nethserver-phonebook-mysql/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=5 -C /usr/share/phonebooks/ nethserver-phonebook-mysql-ns8/root/usr/share/phonebooks/
+
+COPY entrypoint.sh /entrypoint
+ENTRYPOINT ["/entrypoint"]

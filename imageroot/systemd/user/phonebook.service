@@ -1,0 +1,41 @@
+#
+# This systemd unit starts a phonebook instance using Podman.
+# Most parts of this file come from podman-generate-systemd.
+#
+[Unit]
+Description=phonebook server
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+WorkingDirectory=%S/state
+Restart=always
+ExecStartPre=/bin/rm -f %t/phonebook.pid %t/janus.ctr-id
+
+ExecStart=/usr/bin/podman run \
+    --detach \
+    --conmon-pidfile=%t/phonebook.pid \
+    --cidfile=%t/phonebook.ctr-id \
+    --cgroups=no-conmon \
+    --log-opt=tag=%u \
+    --replace --name=%N \
+    --env=AMPDBHOST \
+    --env=AMPDBNAME \
+    --env=AMPDBUSER \
+    --env=AMPDBPASS \
+    --env=PHONEBOOK* \
+    --env=NETHVOICE* \
+    --volume=/dev/log:/dev/log \
+    --volume=scripts:/usr/share/phonebooks/scripts/:z \
+    --volume=pbooksources:/etc/phonebook/sources.d/:z \
+    --volume=post_scripts:/usr/share/phonebooks/post_scripts/:z \
+    --network=host \
+    ${NETHVOICE_PHONEBOOK_IMAGE} \
+    /usr/local/bin/phonebook 
+
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/phonebook.ctr-id
+PIDFile=%t/phonebook.pid
+Type=forking
+
+[Install]
+WantedBy=default.target
