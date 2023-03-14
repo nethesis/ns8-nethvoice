@@ -213,12 +213,12 @@ FILE=/etc/nethcti/dbstatic.d/phonebook.json
 cat > $FILE <<EOF
 {
 	"phonebook": {
-        "dbhost":     "127.0.0.1",
-        "dbport":     "${NETHVOICE_MARIADB_PORT}",
+        "dbhost":     "${PHONEBOOK_DB_HOST}",
+        "dbport":     "${PHONEBOOK_DB_PORT}",
         "dbtype":     "mysql",
-        "dbuser":     "pbookuser",
-        "dbpassword": "${NETHVOICE_PHONEBOOK_DB_PASSWORD}",
-        "dbname":     "phonebook"
+        "dbuser":     "${PHONEBOOK_DB_USER}",
+	"dbpassword": "${PHONEBOOK_DB_PASS}",
+        "dbname":     "${PHONEBOOK_DB_NAME}"
   }
 }
 EOF

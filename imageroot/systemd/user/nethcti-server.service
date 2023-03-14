@@ -27,6 +27,7 @@ ExecStart=/usr/bin/podman run \
     --env=ASTMANAGERPORT \
     --env=NETHCTI* \
     --env=NETHVOICE* \
+    --env=PHONEBOOK* \
     --env=AMPDBUSER \
     --env=AMPDBHOST \
     --env=AMPDBNAME \

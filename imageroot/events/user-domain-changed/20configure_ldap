@@ -18,4 +18,5 @@ if event.get('domain') != os.getenv('EJABBERD_LDAP_DOMAIN'):
 if 'node' in event and str(event['node']) != os.getenv('NODE_ID'):
     exit(0) # ignore event if the source is not in our node
 
-agent.run_helper('systemctl', '--user', '-T', 'try-reload-or-restart', 'ejabberd.service').check_returncode()
+agent.run_helper('systemctl', '--user', 'reload', 'asterisk.service').check_returncode()
+agent.run_helper('systemctl', '--user', 'restart', 'phonebook.service').check_returncode()

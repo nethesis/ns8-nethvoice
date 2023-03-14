@@ -15,11 +15,15 @@ RUN apk add --no-cache \
 RUN	\
 	groupadd -g 991 -r asterisk \
 	&& useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk \
-	mkdir -p /usr/share/phonebook && \
 	mkdir -p /etc/phonebook/sources.d/ && \
 	chown asterisk:asterisk /etc/phonebook/sources.d && \
 	chmod 644 /etc/phonebook/sources.d && \
-	curl -L https://github.com/nethesis/nethserver-phonebook-mysql/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=5 -C /usr/share/phonebooks/ nethserver-phonebook-mysql-ns8/root/usr/share/phonebooks/
+	curl -L https://github.com/nethesis/nethserver-phonebook-mysql/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=4 -C /usr/share/ nethserver-phonebook-mysql-ns8/root/usr/share/ && \
+	pushd /usr/share/phonebookjs && \
+	npm install && \
+	popd && \
+	mkdir -p /etc/certificates
 
 COPY entrypoint.sh /entrypoint
 ENTRYPOINT ["/entrypoint"]
+CMD [ "/usr/bin/node","/usr/share/phonebookjs/phonebook.js","/etc/config_ldaps.json"]

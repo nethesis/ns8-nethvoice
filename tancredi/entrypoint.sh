@@ -66,10 +66,10 @@ if [[ ! -f ${dst_file} ]]; then
 
 	# Add ldap defaults
 	echo 'ldap_server = ""' >> ${dst_file}
-	echo 'ldap_port = "10389"' >> ${dst_file}
-	echo 'ldap_tls = "none"' >> ${dst_file}
-	echo 'ldap_user = ""' >> ${dst_file}
-	echo 'ldap_password = ""' >> ${dst_file}
+	echo 'ldap_port = "'${PHONEBOOK_LDAP_PORT}'"' >> ${dst_file}
+	echo 'ldap_tls = "ldaps"' >> ${dst_file}
+	echo 'ldap_user = "cn='${PHONEBOOK_LDAP_USER}',dc=phonebook,dc=nh"' >> ${dst_file}
+	echo 'ldap_password = "'${PHONEBOOK_LDAP_PASS}'"' >> ${dst_file}
 	echo 'ldap_base = "dc=phonebook,dc=nh"' >> ${dst_file}
 	echo 'ldap_name_display = "%cn %o"' >> ${dst_file}
 	echo 'ldap_mainphone_number_attr = "telephoneNumber"' >> ${dst_file}

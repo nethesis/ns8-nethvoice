@@ -11,4 +11,6 @@ exec ldapsearch \
     -b "$NETHVOICE_LDAP_BASE" \
     -H "ldap://$NETHVOICE_LDAP_HOST:$NETHVOICE_LDAP_PORT" \
     -D "uid=$1,ou=People,$NETHVOICE_LDAP_BASE" \
-    -w "$2" > /dev/null
+    -w "$2" \
+    -o authzid="uid=$1,ou=People,$NETHVOICE_LDAP_BASE" \
+    -o authcmethod=simple > /dev/null

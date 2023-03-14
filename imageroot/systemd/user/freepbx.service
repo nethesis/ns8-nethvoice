@@ -27,6 +27,7 @@ ExecStart=/usr/bin/podman run \
     --volume=moh:/var/lib/asterisk/moh:z \
     --volume=agi-bin:/var/lib/asterisk/agi-bin:z \
     --volume=lookup.d:/usr/src/nethvoice/lookup.d:z \
+    --volume=pbooksources:/etc/phonebook/sources.d/:z \
     --volume=/dev/log:/dev/log \
     --env=MARIADB_ROOT_PASSWORD \
     --env=NETHVOICE* \

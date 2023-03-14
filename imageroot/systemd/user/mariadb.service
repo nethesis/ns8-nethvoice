@@ -30,7 +30,7 @@ ExecStart=/usr/bin/podman run \
 	--env=CDRDBPASS \
 	--env=CTIUSER \
 	--env=NETHCTI_DB_PASSWORD \
-	--env=NETHVOICE_PHONEBOOK_DB_PASSWORD \
+	--env=PHONEBOOK* \
 	--network=host \
 	${NETHVOICE_MARIADB_IMAGE} \
 	--port ${NETHVOICE_MARIADB_PORT}
