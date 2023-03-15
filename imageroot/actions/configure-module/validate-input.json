@@ -6,10 +6,15 @@
     "examples": [],
     "type": "object",
     "required": [
-        "nethvoice_host"
+        "nethvoice_host",
+        "nethcti_ui_host"
     ],
     "properties": {
         "nethvoice_host": {
+            "type": "string",
+            "format": "hostname"
+        },
+        "nethcti_ui_host": {
             "type": "string",
             "format": "hostname"
         }

@@ -92,7 +92,7 @@ response = agent.tasks.run(
         'url':  'http://127.0.0.1:' + os.environ["NETHCTI_UI_PORT"],
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "True",
         'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
-        'host': os.environ["NETHVOICE_HOST"],
+        'host': os.environ["NETHCTI_UI_HOST"],
     },
 )
 
@@ -110,7 +110,14 @@ response = agent.tasks.run(
         'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
         'host': os.environ["NETHVOICE_HOST"],
         'path': '/webrest',
-        'strip_prefix': True
+        'strip_prefix': True,
+        'headers': {
+            'response': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': "true",
+                'Access-Control-Allow-Headers': '*'
+            }
+        }
     },
 )
 agent.assert_exp(response['exit_code'] == 0)
@@ -125,7 +132,14 @@ response = agent.tasks.run(
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "True",
         'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
         'host': os.environ["NETHVOICE_HOST"],
-        'path': '/socket.io'
+        'path': '/socket.io',
+        'headers': {
+            'response': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': "true",
+                'Access-Control-Allow-Headers': '*'
+            }
+        }
     },
 )
 agent.assert_exp(response['exit_code'] == 0)
