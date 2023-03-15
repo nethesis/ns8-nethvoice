@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-if systemctl --user -q is-active ejabberd; then
+if systemctl --user -q is-active asterisk; then
     install-certificate
     systemctl --user -T try-reload-or-restart asterisk
     systemctl --user -T try-reload-or-restart janus
