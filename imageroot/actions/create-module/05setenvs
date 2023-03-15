@@ -12,7 +12,12 @@ import string
 import agent
 
 # coma separated port list
-port_list = os.environ['TCP_PORTS'].split(",")
+port_list = []
+ports = os.environ['TCP_PORTS_RANGE'].split("-")
+
+for i in range(int(ports[0]), int(ports[1]) + 1):
+    port_list.append(i)
+
 agent.set_env('NETHVOICE_MARIADB_PORT',port_list[0])
 agent.set_env('APACHE_PORT',port_list[1])
 agent.set_env('ASTMANAGERPORT',port_list[2])
