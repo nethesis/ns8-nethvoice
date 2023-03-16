@@ -27,6 +27,7 @@ ExecStart=/usr/bin/podman run \
     --env=AMPDBPASS \
     --env=PHONEBOOK* \
     --env=NETHVOICE* \
+    --env=NETHCTI* \
     --volume=/dev/log:/dev/log \
     --volume=scripts:/usr/share/phonebooks/scripts/:z \
     --volume=pbooksources:/etc/phonebook/sources.d/:z \
