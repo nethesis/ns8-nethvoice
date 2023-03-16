@@ -18,8 +18,8 @@ cat > /etc/config_ldaps.json <<EOF
   "user": "nobody",
   "group": "nobody",
   "limit": ${PHONEBOOK_LDAP_LIMIT:=500},
-  "certificate" : "/etc/pki/tls/NethServer.pem",
-  "key": "/etc/pki/tls/private/NethServer.key",
+  "certificate" : "/etc/certificates/NethServer.pem",
+  "key": "/etc/certificates/NethServer.key",
   "username": "${PHONEBOOK_LDAP_USER}",
   "password": "${PHONEBOOK_LDAP_PASS}"
 }
