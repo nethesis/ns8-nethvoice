@@ -13,8 +13,6 @@ Restart=always
 ExecStartPre=/bin/rm -f %t/phonebook.pid %t/janus.ctr-id
 ExecStartPre=bash -c "while [ ! -f certificates/NethServer.pem ]; do sleep 1; done"
 ExecStartPre=bash -c "while [ ! -f certificates/NethServer.key ]; do sleep 1; done"
-ExecStartPre=bash -c "while [ ! -f certificates/dh.pem ]; do sleep 1; done"
-
 
 ExecStart=/usr/bin/podman run \
     --detach \
@@ -34,13 +32,9 @@ ExecStart=/usr/bin/podman run \
     --volume=pbooksources:/etc/phonebook/sources.d/:z \
     --volume=post_scripts:/usr/share/phonebooks/post_scripts/:z \
     --volume=tancredi:/var/lib/tancredi:z \
-    --volume=pbcertificates:/etc/certificates:z \
+    --volume=./certificates:/etc/certificates:Z \
     --network=host \
     ${NETHVOICE_PHONEBOOK_IMAGE}
-
-ExecStartPost=/usr/bin/podman cp certificates/NethServer.pem phonebook:/etc/certificates/NethServer.pem
-ExecStartPost=/usr/bin/podman cp certificates/NethServer.key phonebook:/etc/certificates/NethServer.key
-ExecStartPost=/usr/bin/podman cp certificates/dh.pem phonebook:/etc/certificates/dh.pem
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/phonebook.ctr-id
 PIDFile=%t/phonebook.pid

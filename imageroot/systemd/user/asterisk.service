@@ -16,8 +16,6 @@ Restart=always
 ExecStartPre=/bin/rm -f %t/asterisk.pid %t/asterisk.ctr-id
 ExecStartPre=bash -c "while [ ! -f certificates/NethServer.pem ]; do sleep 1; done"
 ExecStartPre=bash -c "while [ ! -f certificates/NethServer.key ]; do sleep 1; done"
-ExecStartPre=bash -c "while [ ! -f certificates/NethServer.crt ]; do sleep 1; done"
-ExecStartPre=bash -c "while [ ! -f certificates/dh.pem ]; do sleep 1; done"
 ExecStart=/usr/bin/podman run \
     --detach \
     --conmon-pidfile=%t/asterisk.pid \
@@ -32,6 +30,7 @@ ExecStart=/usr/bin/podman run \
     --volume=agi-bin:/var/lib/asterisk/agi-bin:z \
     --volume=astdb:/var/lib/asterisk/db:z \
     --volume=/dev/log:/dev/log \
+    --volume=./certificates:/etc/asterisk/keys:Z \
     --env=ASTMANAGERHOST \
     --env=ASTMANAGERPORT \
     --env=AMPMGRUSER \
@@ -44,23 +43,10 @@ ExecStart=/usr/bin/podman run \
     ${NETHVOICE_ASTERISK_IMAGE}
 
 # Wait till asterisk is active
-ExecStartPost=/usr/bin/podman cp certificates/NethServer.pem asterisk:/etc/asterisk/keys/NethServer.pem
-ExecStartPost=/usr/bin/podman cp certificates/NethServer.key asterisk:/etc/asterisk/keys/NethServer.key
-ExecStartPost=/usr/bin/podman cp certificates/NethServer.crt asterisk:/etc/asterisk/keys/NethServer.crt
-ExecStartPost=/usr/bin/podman cp certificates/dh.pem asterisk:/etc/asterisk/keys/dh.pem
 ExecStartPost=podman exec asterisk bash -c "while [[ $$(/usr/sbin/asterisk -rx 'core show version' 2>/dev/null) != Asterisk* ]]; do ((++attempt<30)) || exit 2; sleep 1 ; done"
 
 ExecStop=/usr/bin/podman run ${ASTERISK_IMAGE} /usr/sbin/asterisk -rx 'core stop now' -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/asterisk.ctr-id
-ExecReload=bash -c "while [ ! -f certificates/NethServer.pem ]; do sleep 1; done"
-ExecReload=bash -c "while [ ! -f certificates/NethServer.key ]; do sleep 1; done"
-ExecReload=bash -c "while [ ! -f certificates/NethServer.crt ]; do sleep 1; done"
-ExecReload=bash -c "while [ ! -f certificates/dh.pem ]; do sleep 1; done"
-ExecReload=/usr/bin/podman cp certificates/NethServer.pem asterisk:/etc/asterisk/keys/NethServer.pem
-ExecReload=/usr/bin/podman cp certificates/NethServer.key asterisk:/etc/asterisk/keys/NethServer.key
-ExecReload=/usr/bin/podman cp certificates/NethServer.crt asterisk:/etc/asterisk/keys/NethServer.crt
-ExecReload=/usr/bin/podman cp certificates/dh.pem asterisk:/etc/asterisk/keys/dh.pem
-ExecReload=/usr/bin/podman run /usr/sbin/asterisk -rx 'core reload'
 PIDFile=%t/asterisk.pid
 Type=forking
 

@@ -1,11 +1,8 @@
 [Unit]
 Description=Diffie-Hellman group generator
-Requisite=asterisk.service
 
 [Service]
 Type=oneshot
 ExecStart=runagent generate-dhpem
-ExecStartPost=/usr/bin/podman cp certificates/dh.pem asterisk:/etc/asterisk/keys/dh.pem
-ExecStartPost=/usr/bin/podman cp certificates/dh.pem phonebook:/etc/certificate/dh.pem
 WorkingDirectory=%S/state
 SyslogIdentifier=%u/%N
