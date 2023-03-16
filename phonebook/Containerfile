@@ -3,6 +3,7 @@ WORKDIR /usr/share/phoenbook/
 
 RUN apk add --no-cache \
         mysql-client \
+        php81 \
         php81-pdo_mysql \
         php81-pdo_pgsql \
         nodejs \
