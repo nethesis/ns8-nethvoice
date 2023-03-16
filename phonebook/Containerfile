@@ -27,5 +27,4 @@ RUN	\
 
 COPY entrypoint.sh /entrypoint
 ENTRYPOINT ["/entrypoint"]
-CMD [ "env | grep _ >> /etc/environment"]
 CMD [ "/usr/bin/node","/usr/share/phonebookjs/phonebook.js","/etc/config_ldaps.json"]

@@ -5,6 +5,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+# make environment available to phonebook scripts
+env | grep _ >> /etc/environment
+
 cat > /etc/config_ldaps.json <<EOF
 {
   "basedn" : "dc=phonebook, dc=nh",
