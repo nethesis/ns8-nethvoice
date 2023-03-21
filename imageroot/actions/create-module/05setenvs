@@ -84,6 +84,6 @@ agent.set_env('PHONEBOOK_LDAP_USER','ldapuser')
 agent.set_env('PHONEBOOK_LDAP_PASS',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
 agent.set_env('PHONEBOOK_LDAP_LIMIT','500')
 
-
+agent.set_env('REPORTS_REDIS_PORT', port_list[9])
 
 agent.dump_env()
