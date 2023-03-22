@@ -7,16 +7,24 @@
     "type": "object",
     "required": [
         "nethvoice_host",
-        "nethcti_ui_host"
+        "nethcti_ui_host",
+        "reports_international_prefix"
     ],
     "properties": {
         "nethvoice_host": {
+            "description": "Host where nethvoice instance should be exposed to.",
             "type": "string",
             "format": "hostname"
         },
         "nethcti_ui_host": {
+            "description": "CTI host, must be different than nethvoice_host.",
             "type": "string",
             "format": "hostname"
+        },
+        "reports_international_prefix": {
+            "description": "International prefix for the reports.",
+            "type": "string",
+            "pattern": "^(\\d{4}|\\+\\d{2})$"
         }
     }
 }

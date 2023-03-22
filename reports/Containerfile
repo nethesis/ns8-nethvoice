@@ -40,7 +40,7 @@ RUN apk add --no-cache \
         pkgconfig \
         rrdtool-dev
 
-# Use previous step to build api
+# Use gobuilder stage to build api
 FROM gobuilder as apibuilder
 # Download go mod dependencies
 COPY --from=repofetcher /app/nethvoice-report/api/go.mod .
@@ -50,7 +50,7 @@ RUN go mod download
 COPY --from=repofetcher /app/nethvoice-report/api/ /app
 RUN go build
 
-# Use previous step to build tasks
+# Use gobuilder stage to build tasks
 FROM gobuilder as taskbuilder
 # Download go mod dependencies
 COPY --from=repofetcher /app/nethvoice-report/tasks/go.mod .
@@ -70,4 +70,5 @@ RUN apk add --no-cache \
 ENV GIN_MODE=release
 COPY --from=apibuilder /app/api /usr/bin/api
 COPY --from=taskbuilder /app/tasks /usr/bin/tasks
+COPY --from=repofetcher /app/nethvoice-report/root/opt/nethvoice-report/api /opt/nethvoice-report/api
 CMD [ "api" ]

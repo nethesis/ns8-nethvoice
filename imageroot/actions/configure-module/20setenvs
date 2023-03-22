@@ -7,41 +7,173 @@
 
 import json
 import sys
+import os
 
 import agent
 
 request = json.load(sys.stdin)
 
-def getFromRequest(request, var_name, env_name, default = ""):
+
+def get_from_request(var_name, env_name, default=""):
+    """Set an environment variable based on the request received."""
     if var_name in request:
         agent.set_env(env_name, request[var_name])
     else:
         agent.set_env(env_name, default)
 
-# NETHVOICE_HOST_LOCAL_NETWORKS should be a jason containing local networks [{"network":"192.168.5.0","netmask":"255.255.255.0","gateway":"192.168.5.1"}]
-getFromRequest(request, 'nethvoice_host_local_networks', 'NETHVOICE_HOST_LOCAL_NETWORKS', '{[]}')
-getFromRequest(request, 'nethvoice_host', 'NETHVOICE_HOST', '')
-getFromRequest(request, 'subscription_systemid', 'SUBSCRIPTION_SYSTEMID', '')
-getFromRequest(request, 'subscription_secret', 'SUBSCRIPTION_SECRET', '')
-getFromRequest(request, 'nethcti_prefix', 'NETHCTI_PREFIX', '')
-getFromRequest(request, 'nethcti_autoc2c', 'NETHCTI_AUTOC2C', 'enabled')
-getFromRequest(request, 'nethcti_trunks_events', 'NETHCTI_TRUNKS_EVENTS', 'enabled')
-getFromRequest(request, 'nethcti_alerts', 'NETHCTI_ALERTS', 'false')
-getFromRequest(request, 'nethcti_authentication_enabled', 'NETHCTI_AUTHENTICATION_ENABLED', 'true')
-getFromRequest(request, 'nethcti_unauthe_call', 'NETHCTI_UNAUTHE_CALL', 'disabled')
-getFromRequest(request, 'nethcti_unauthe_call_ip', 'NETHCTI_UNAUTHE_CALL_IP', '')
-getFromRequest(request, 'nethcti_jabber_url', 'NETHCTI_JABBER_URL', '')
-getFromRequest(request, 'nethcti_jabber_domain', 'NETHCTI_JABBER_DOMAIN', '')
-getFromRequest(request, 'nethcti_cdr_script', 'NETHCTI_CDR_SCRIPT', '')
-getFromRequest(request, 'nethcti_cdr_script_timeout', 'NETHCTI_CDR_SCRIPT_TIMEOUT', '')
-getFromRequest(request, 'nethcti_cdr_script_call_in', 'NETHCTI_CDR_SCRIPT_CALL_IN', '')
-getFromRequest(request, 'nethcti_log_level', 'NETHCTI_LOG_LEVEL', 'warn')
-getFromRequest(request, 'conference_jitsi_url', 'CONFERENCE_JITSI_URL', 'https://jitsi.nethserver.net')
 
-## NethCTI UI
-getFromRequest(request, 'nethcti_ui_host', 'NETHCTI_UI_HOST', '')
-getFromRequest(request, 'nethcti_ui_product_name', 'NETHCTI_UI_PRODUCT_NAME', 'NethVoice CTI')
-getFromRequest(request, 'nethcti_ui_company_name', 'NETHCTI_UI_COMPANY_NAME', 'Nethesis')
-getFromRequest(request, 'nethcti_ui_company_url', 'NETHCTI_UI_COMPANY_URL', 'https://www.nethesis.it/')
+# NETHVOICE_HOST_LOCAL_NETWORKS should be a jason containing local networks
+# [{"network":"192.168.5.0","netmask":"255.255.255.0","gateway":"192.168.5.1"}]
+get_from_request(
+    'nethvoice_host_local_networks', 'NETHVOICE_HOST_LOCAL_NETWORKS', '{[]}')
+get_from_request('nethvoice_host', 'NETHVOICE_HOST', '')
+get_from_request('subscription_systemid', 'SUBSCRIPTION_SYSTEMID', '')
+get_from_request('subscription_secret', 'SUBSCRIPTION_SECRET', '')
+get_from_request('nethcti_prefix', 'NETHCTI_PREFIX', '')
+get_from_request('nethcti_autoc2c', 'NETHCTI_AUTOC2C', 'enabled')
+get_from_request('nethcti_trunks_events', 'NETHCTI_TRUNKS_EVENTS', 'enabled')
+get_from_request('nethcti_alerts', 'NETHCTI_ALERTS', 'false')
+get_from_request(
+    'nethcti_authentication_enabled', 'NETHCTI_AUTHENTICATION_ENABLED', 'true')
+get_from_request('nethcti_unauthe_call', 'NETHCTI_UNAUTHE_CALL', 'disabled')
+get_from_request('nethcti_unauthe_call_ip', 'NETHCTI_UNAUTHE_CALL_IP', '')
+get_from_request('nethcti_jabber_url', 'NETHCTI_JABBER_URL', '')
+get_from_request('nethcti_jabber_domain', 'NETHCTI_JABBER_DOMAIN', '')
+get_from_request('nethcti_cdr_script', 'NETHCTI_CDR_SCRIPT', '')
+get_from_request(
+    'nethcti_cdr_script_timeout', 'NETHCTI_CDR_SCRIPT_TIMEOUT', '')
+get_from_request(
+    'nethcti_cdr_script_call_in', 'NETHCTI_CDR_SCRIPT_CALL_IN', '')
+get_from_request('nethcti_log_level', 'NETHCTI_LOG_LEVEL', 'warn')
+get_from_request(
+    'conference_jitsi_url', 'CONFERENCE_JITSI_URL',
+    'https://jitsi.nethserver.net')
 
-agent.dump_env()
+# NethCTI UI
+get_from_request('nethcti_ui_host', 'NETHCTI_UI_HOST', '')
+get_from_request(
+    'nethcti_ui_product_name', 'NETHCTI_UI_PRODUCT_NAME', 'NethVoice CTI')
+get_from_request(
+    'nethcti_ui_company_name', 'NETHCTI_UI_COMPANY_NAME', 'Nethesis')
+get_from_request(
+    'nethcti_ui_company_url', 'NETHCTI_UI_COMPANY_URL',
+    'https://www.nethesis.it/')
+
+# NethCTI Reports
+get_from_request('reports_international_prefix',
+                 'REPORTS_INTERNATIONAL_PREFIX')
+
+reports_config = {
+    'listen_address': '0.0.0.0:8585',
+    'redis_network_type': 'tcp',
+    'redis_address': '127.0.0.1:' + os.getenv('REPORTS_REDIS_PORT'),
+    'ttl_cache': 480,
+    'cdr_database': {
+        'host': '127.0.0.1',
+        'port': os.getenv('NETHVOICE_MARIADB_PORT'),
+        'user': 'nethvoice_report',
+        'password': os.getenv('REPORTS_PASSWORD'),
+        'name': 'asteriskcdrdb'
+    },
+    'phonebook_database': {
+        'host': '127.0.0.1',
+        'port': os.getenv('NETHVOICE_MARIADB_PORT'),
+        'user': 'nethvoice_report',
+        'password': os.getenv('REPORTS_PASSWORD'),
+        'name': 'phonebook'
+    },
+    'freepbx_database': {
+        'host': '127.0.0.1',
+        'port': os.getenv('NETHVOICE_MARIADB_PORT'),
+        'user': 'nethvoice_report',
+        'password': os.getenv('REPORTS_PASSWORD'),
+        'name': 'asterisk'
+    },
+    'secret': os.getenv('REPORTS_SECRET'),
+    'query_path': '/opt/nethvoice-report/api/queries',
+    'template_path': '/opt/nethvoice-report/api/templates',
+    'values_path': '/opt/nethvoice-report/api/values',
+    'views_path': '/opt/nethvoice-report/api/views',
+    'phonebook_path': '/opt/nethvoice-report/api/phonebook/phonebook.sql',
+    'rrd_path': '/var/lib/collectd/rrd',
+    'user_auth_file': '/opt/nethvoice-report/api/user_authorizations.json',
+    'default_filter': {
+        'queues': [],
+        'groups': [],
+        'time': {
+            'group': 'day',
+            'division': '60',
+            'range': 'yesterday',
+            'cdrDashboardRange': 'past_week',
+            'interval': {
+                'start': '',
+                'end': ''
+            }
+        },
+        'name': '',
+        'agent': '',
+        'geoGroup': 'regione'
+    },
+    'api_endpoint': '',
+    'api_key': os.getenv('REPORTS_API_KEY'),
+    'settings': {
+        'start_hour': '09:00',
+        'end_hour': '18:00',
+        'query_limit': '2000',
+        'null_call_time': '5',
+        'destinations': [
+            'National',
+            'Mobile',
+            'International',
+            'Emergency',
+            'PayNumber'
+        ],
+        'call_patterns': [
+            {
+                'prefix': '00390',
+                'destination': 'National'
+            },
+            {
+                'prefix': '+390',
+                'destination': 'National'
+            },
+            {
+                'prefix': '0',
+                'destination': 'National'
+            },
+            {
+                'prefix': '00393',
+                'destination': 'Mobile'
+            },
+            {
+                'prefix': '+393',
+                'destination': 'Mobile'
+            },
+            {
+                'prefix': '3',
+                'destination': 'Mobile'
+            },
+            {
+                'prefix': '00',
+                'destination': 'International'
+            },
+            {
+                'prefix': '+',
+                'destination': 'International'
+            },
+            {
+                'prefix': '1',
+                'destination': 'Emergency'
+            },
+            {
+                'prefix': '8',
+                'destination': 'PayNumber'
+            }
+        ],
+        'currency': 'EUR',
+        'costs': []
+    }
+}
+
+with open('./report-conf.json', 'w', encoding='utf-8') as file:
+    json.dump(reports_config, file, ensure_ascii=False)
