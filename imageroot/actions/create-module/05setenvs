@@ -11,6 +11,13 @@ import string
 
 import agent
 
+
+def gen_password(lenght=32):
+    """Generates a random password of specified length."""
+    choice_pool = string.ascii_letters+string.digits
+    return ''.join(random.choice(choice_pool) for _ in range(lenght))
+
+
 # coma separated port list
 port_list = []
 ports = os.environ['TCP_PORTS_RANGE'].split("-")
@@ -18,72 +25,73 @@ ports = os.environ['TCP_PORTS_RANGE'].split("-")
 for i in range(int(ports[0]), int(ports[1]) + 1):
     port_list.append(i)
 
-agent.set_env('NETHVOICE_MARIADB_PORT',port_list[0])
-agent.set_env('APACHE_PORT',port_list[1])
-agent.set_env('ASTMANAGERPORT',port_list[2])
-agent.set_env('TANCREDIPORT',port_list[3])
-agent.set_env('JANUS_TRANSPORT_PORT',port_list[4])
+agent.set_env('NETHVOICE_MARIADB_PORT', port_list[0])
+agent.set_env('APACHE_PORT', port_list[1])
+agent.set_env('ASTMANAGERPORT', port_list[2])
+agent.set_env('TANCREDIPORT', port_list[3])
+agent.set_env('JANUS_TRANSPORT_PORT', port_list[4])
 agent.set_env('NETHCTI_UI_PORT', port_list[5])
 agent.set_env('NETHCTI_SERVER_API_PORT', port_list[6])
 agent.set_env('NETHCTI_SERVER_WS_PORT', port_list[7])
 agent.set_env('PHONEBOOK_LDAP_PORT', port_list[8])
 
 # Set root password for MariaDB
-agent.set_env('MARIADB_ROOT_PASSWORD',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
+agent.set_env('MARIADB_ROOT_PASSWORD', gen_password())
 
 # Set DB configuration variables
-agent.set_env('AMPDBUSER','freepbxuser')
-agent.set_env('AMPDBHOST','127.0.0.1')
-agent.set_env('AMPDBNAME','asterisk')
-agent.set_env('AMPDBENGINE','mysql')
-agent.set_env('AMPDBPASS',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
-agent.set_env('AMPMGRUSER','asterisk')
-agent.set_env('AMPMGRPASS',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
-agent.set_env('APACHE_RUN_USER','asterisk')
-agent.set_env('APACHE_RUN_GROUP','asterisk')
-agent.set_env('AMPASTERISKWEBGROUP','asterisk')
-agent.set_env('AMPASTERISKWEBUSER','asterisk')
-agent.set_env('NETHCTI_AMI_PASSWORD', ''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
+agent.set_env('AMPDBUSER', 'freepbxuser')
+agent.set_env('AMPDBHOST', '127.0.0.1')
+agent.set_env('AMPDBNAME', 'asterisk')
+agent.set_env('AMPDBENGINE', 'mysql')
+agent.set_env('AMPDBPASS', gen_password())
+agent.set_env('AMPMGRUSER', 'asterisk')
+agent.set_env('AMPMGRPASS', gen_password())
+agent.set_env('APACHE_RUN_USER', 'asterisk')
+agent.set_env('APACHE_RUN_GROUP', 'asterisk')
+agent.set_env('AMPASTERISKWEBGROUP', 'asterisk')
+agent.set_env('AMPASTERISKWEBUSER', 'asterisk')
+agent.set_env('NETHCTI_AMI_PASSWORD', gen_password())
 
-agent.set_env('BRAND_NAME','NethVoice')
-agent.set_env('BRAND_SITE','http://www.nethvoice.it')
-agent.set_env('BRAND_DOCS','http://nethvoice.docs.nethesis.it')
+agent.set_env('BRAND_NAME', 'NethVoice')
+agent.set_env('BRAND_SITE', 'http://www.nethvoice.it')
+agent.set_env('BRAND_DOCS', 'http://nethvoice.docs.nethesis.it')
 
-agent.set_env('CDRDBHOST','127.0.0.1')
-agent.set_env('CDRDBNAME','asteriskcdrdb')
-agent.set_env('CDRDBUSER','cdruser')
-agent.set_env('CDRDBPASS',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
+agent.set_env('CDRDBHOST', '127.0.0.1')
+agent.set_env('CDRDBNAME', 'asteriskcdrdb')
+agent.set_env('CDRDBUSER', 'cdruser')
+agent.set_env('CDRDBPASS', gen_password())
 
 agent.set_env('NETHCTI_DB_HOST', '127.0.0.1')
 agent.set_env('NETHCTI_DB_PORT', port_list[0])
 agent.set_env('NETHCTI_DB_USER', 'nethcti3')
-agent.set_env('NETHCTI_DB_PASSWORD',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
+agent.set_env('NETHCTI_DB_PASSWORD', gen_password())
 
-agent.set_env('TANCREDI_STATIC_TOKEN',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
-agent.set_env('NETHVOICESECRETKEY',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
+agent.set_env('TANCREDI_STATIC_TOKEN', gen_password())
+agent.set_env('NETHVOICESECRETKEY', gen_password())
 
-agent.set_env('JANUS_ADMIN_SECRET',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
-agent.set_env('JANUS_DEBUG_LEVEL',5)
-agent.set_env('RTPSTART',10000)
-agent.set_env('RTPEND',15000)
-agent.set_env('STUNSERVER','stun1.l.google.com')
-agent.set_env('STUNPORT',19302)
-agent.set_env('ICEIGNORE','vmnet,tap,tun,virb,vb-')
-agent.set_env('LOCAL_IP','172.25.5.83')
+agent.set_env('JANUS_ADMIN_SECRET', gen_password())
+agent.set_env('JANUS_DEBUG_LEVEL', 5)
+agent.set_env('RTPSTART', 10000)
+agent.set_env('RTPEND', 15000)
+agent.set_env('STUNSERVER', 'stun1.l.google.com')
+agent.set_env('STUNPORT', 19302)
+agent.set_env('ICEIGNORE', 'vmnet,tap,tun,virb,vb-')
+agent.set_env('LOCAL_IP', '172.25.5.83')
 
-agent.set_env('TRAEFIK_HTTP2HTTPS','True')
-agent.set_env('TRAEFIK_LETS_ENCRYPT','True')
+agent.set_env('TRAEFIK_HTTP2HTTPS', 'True')
+agent.set_env('TRAEFIK_LETS_ENCRYPT', 'True')
 
-agent.set_env('PHONEBOOK_DB_HOST','127.0.0.1')
-agent.set_env('PHONEBOOK_DB_PORT',port_list[0])
-agent.set_env('PHONEBOOK_DB_NAME','phonebook')
-agent.set_env('PHONEBOOK_DB_USER','pbookuser')
-agent.set_env('PHONEBOOK_DB_PASS',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
-agent.set_env('PHONEBOOK_DB_USER','pbookuser')
-agent.set_env('PHONEBOOK_LDAP_USER','ldapuser')
-agent.set_env('PHONEBOOK_LDAP_PASS',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
-agent.set_env('PHONEBOOK_LDAP_LIMIT','500')
+agent.set_env('PHONEBOOK_DB_HOST', '127.0.0.1')
+agent.set_env('PHONEBOOK_DB_PORT', port_list[0])
+agent.set_env('PHONEBOOK_DB_NAME', 'phonebook')
+agent.set_env('PHONEBOOK_DB_USER', 'pbookuser')
+agent.set_env('PHONEBOOK_DB_PASS', gen_password())
+agent.set_env('PHONEBOOK_DB_USER', 'pbookuser')
+agent.set_env('PHONEBOOK_LDAP_USER', 'ldapuser')
+agent.set_env('PHONEBOOK_LDAP_PASS', gen_password())
+agent.set_env('PHONEBOOK_LDAP_LIMIT', '500')
 
 agent.set_env('REPORTS_REDIS_PORT', port_list[9])
-
-agent.dump_env()
+agent.set_env('REPORTS_PASSWORD', gen_password())
+agent.set_env('REPORTS_API_KEY', gen_password())
+agent.set_env('REPORTS_SECRET', gen_password())
