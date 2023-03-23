@@ -19,24 +19,24 @@ ExecStart=/usr/bin/podman run \
 	--log-opt=tag=%u \
 	--replace --name=%N \
 	--volume=mariadb-data:/var/lib/mysql:Z \
-        --volume=/dev/log:/dev/log \
 	--publish=127.0.0.1:${NETHVOICE_MARIADB_PORT}:3306 \
+	--health-cmd "healthcheck.sh --su-mysql --connect --innodb_initialized" \
 	--env=MARIADB_ROOT_PASSWORD \
-	--env=NETHVOICE_MARIADB_PORT \
+	--env=MARIADB_MYSQL_LOCALHOST_USER=1 \
 	--env=AMPDBUSER \
 	--env=AMPDBPASS \
 	--env=CDRDBUSER \
-	--env=CDRDBHOST \
 	--env=CDRDBPASS \
-	--env=CTIUSER \
+	--env=NETHCTI_DB_USER \
 	--env=NETHCTI_DB_PASSWORD \
-	--env=PHONEBOOK* \
-	--network=host \
-	${NETHVOICE_MARIADB_IMAGE} \
-	--port ${NETHVOICE_MARIADB_PORT}
+	--env=PHONEBOOK_DB_NAME \
+	--env=PHONEBOOK_DB_USER \
+	--env=PHONEBOOK_DB_PASS \
+	--env=REPORTS_PASSWORD \
+	${NETHVOICE_MARIADB_IMAGE}
 
 # Wait till db is initialized
-ExecStartPost=podman exec mariadb bash -c "while ! mysql -u${AMPDBUSER} -p${AMPDBPASS} -h127.0.0.1 -P${NETHVOICE_MARIADB_PORT} asterisk -e 'SHOW TABLES' 2> /dev/null > /dev/null; do sleep 5; done"
+ExecStartPost=until podman healthcheck run mariadb; do sleep 5; done
 
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/mariadb.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/mariadb.ctr-id
