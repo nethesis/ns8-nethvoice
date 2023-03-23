@@ -63,6 +63,8 @@ get_from_request(
 get_from_request('reports_international_prefix',
                  'REPORTS_INTERNATIONAL_PREFIX')
 
+os.makedirs('report', exist_ok=True)
+
 reports_config = {
     'listen_address': '0.0.0.0:8585',
     'redis_network_type': 'tcp',
@@ -175,5 +177,5 @@ reports_config = {
     }
 }
 
-with open('./report-conf.json', 'w', encoding='utf-8') as file:
+with open('./report/conf.json', 'w', encoding='utf-8') as file:
     json.dump(reports_config, file, ensure_ascii=False)
