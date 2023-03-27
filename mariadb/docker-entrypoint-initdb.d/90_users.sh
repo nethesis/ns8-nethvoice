@@ -20,10 +20,10 @@
 # along with NethServer.  If not, see COPYING.
 #
 
-mysql -e "GRANT ALL on asterisk.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'"
-mysql -e "GRANT ALL on asteriskcdrdb.* to '${CDRDBUSER}'@'127.0.0.1' identified by '${CDRDBPASS}'"
-mysql -e "GRANT ALL on nethcti3.* to '${NETHCTI_DB_USER}'@'127.0.0.1' identified by '${NETHCTI_DB_PASSWORD}'"
-mysql -e "GRANT ALL on ${PHONEBOOK_DB_NAME}.* to '${PHONEBOOK_DB_USER}'@'127.0.0.1' identified by '${PHONEBOOK_DB_PASS}'"
-mysql -e "GRANT ALL on asteriskcdrdb.* to 'nethvoice_report'@'127.0.0.1' identified by '${REPORTS_PASSWORD}';"
-mysql -e "GRANT ALL on asterisk.* to 'nethvoice_report'@'127.0.0.1' identified by '${REPORTS_PASSWORD}';"
-mysql -e "GRANT SELECT on phonebook.* to 'nethvoice_report'@'127.0.0.1' identified by '${REPORTS_PASSWORD}';"
+mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on asterisk.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'"
+mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on asteriskcdrdb.* to '${CDRDBUSER}'@'127.0.0.1' identified by '${CDRDBPASS}'"
+mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on nethcti3.* to '${NETHCTI_DB_USER}'@'127.0.0.1' identified by '${NETHCTI_DB_PASSWORD}'"
+mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on ${PHONEBOOK_DB_NAME}.* to '${PHONEBOOK_DB_USER}'@'127.0.0.1' identified by '${PHONEBOOK_DB_PASS}'"
+mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on asteriskcdrdb.* to 'nethvoice_report'@'127.0.0.1' identified by '${REPORTS_PASSWORD}';"
+mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on asterisk.* to 'nethvoice_report'@'127.0.0.1' identified by '${REPORTS_PASSWORD}';"
+mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT SELECT on phonebook.* to 'nethvoice_report'@'127.0.0.1' identified by '${REPORTS_PASSWORD}';"
