@@ -9,4 +9,4 @@ Asterisk container for NethServer 8
 - `AMPMGRUSER` User automatically configured to access ti AMI
 - `AMPMGRPASS` Password of AMI user
 - `NETHVOICE_MARIADB_PORT` Port of MariaDB
-- `RTPSTART` and `RTPEND` are the UDP port range for RTP packages
+- `ASTERISK_RTPSTART` and `ASTERISK_RTPEND` are the UDP port range for RTP packages

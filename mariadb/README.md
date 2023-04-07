@@ -18,7 +18,7 @@ MariaDB container for NethServer 8
     - `PHONEBOOK_DB_PASS` password of phonebook database
 
 
-- `RTPSTART` and `RTPEND` are the UDP port range for RTP packages
+- `ASTERISK_RTPSTART` and `ASTERISK_RTPEND` are the UDP port range for RTP packages
 - `ICEIGNORE` list of interfaces to ignore. Default is 'vmnet,tap,tun,virb,vb-' https://github.com/meetecho/janus-gateway#configure-and-start
 - `STUNSERVER` STUN server. Default is stun1.l.google.com
 - `STUNPORT` STUN port. Default is 19302

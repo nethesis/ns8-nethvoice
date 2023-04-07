@@ -24,8 +24,6 @@ INSERT INTO `kvstore_Sipsettings` (`key`,`val`,`type`,`id`) VALUES
 ("allowanon","No",NULL,"noid"),
 ("allowguest","yes",NULL,"noid"),
 ("tlsportowner","pjsip",NULL,"noid"),
-("rtpstart","10000",NULL,"noid"),
-("rtpend","20000",NULL,"noid"),
 ("rtpchecksums","yes",NULL,"noid"),
 ("strictrtp","Yes",NULL,"noid"),
 ("rtptimeout","30",NULL,"noid"),

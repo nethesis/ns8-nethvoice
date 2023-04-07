@@ -11,12 +11,21 @@ import string
 
 import agent
 
+# non-rtp ports
+base_ports=11
+# rtp span port for Janus and Asterisk
+span=2000
 # coma separated port list
 port_list = []
-ports = os.environ['TCP_PORTS_RANGE'].split("-")
+port_range = os.environ['TCP_PORTS_RANGE'].split("-")
 
-for i in range(int(ports[0]), int(ports[1]) + 1):
+for i in range(int(port_range[0]), int(port_range[0]) + base_ports):
     port_list.append(i)
+
+sip_start = int(port_range[0]) + base_ports
+janus_start=sip_start + span
+sip_end = sip_start + span -1
+janus_end=int(port_range[1])
 
 agent.set_env('NETHVOICE_MARIADB_PORT',port_list[0])
 agent.set_env('APACHE_PORT',port_list[1])
@@ -64,8 +73,10 @@ agent.set_env('NETHVOICESECRETKEY',''.join(random.choice(string.ascii_letters+st
 
 agent.set_env('JANUS_ADMIN_SECRET',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))
 agent.set_env('JANUS_DEBUG_LEVEL',5)
-agent.set_env('RTPSTART',10000)
-agent.set_env('RTPEND',15000)
+agent.set_env('JANUS_RTPSTART',janus_start)
+agent.set_env('JANUS_RTPEND',janus_end)
+agent.set_env('ASTERISK_RTPSTART',sip_start)
+agent.set_env('ASTERISK_RTPEND',sip_end)
 agent.set_env('STUNSERVER','stun1.l.google.com')
 agent.set_env('STUNPORT',19302)
 agent.set_env('ICEIGNORE','vmnet,tap,tun,virb,vb-')

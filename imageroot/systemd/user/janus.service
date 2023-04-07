@@ -29,7 +29,7 @@ ExecStart=/usr/bin/podman run \
     --interface=lo \
     --ice-ignore-list=${ICEIGNORE:=vmnet,tap,tun,virb,vb-} \
     --stun-server=${STUNSERVER}:${STUNPORT} \
-    --rtp-port-range=${RTPSTART}:${RTPEND} \
+    --rtp-port-range=${JANUS_RTPSTART}:${JANUS_RTPEND} \
     --debug-level=${JANUS_DEBUG_LEVEL}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/janus.ctr-id

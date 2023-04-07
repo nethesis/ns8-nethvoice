@@ -37,8 +37,7 @@ ExecStart=/usr/bin/podman run \
     --env=AMPMGRPASS \
     --env=LOCAL_IP \
     --env=NETHVOICE* \
-    --env=RTPSTART \
-    --env=RTPEND \
+    --env=ASTERISK_RTP* \
     --network=host \
     ${NETHVOICE_ASTERISK_IMAGE}
 
