@@ -6,14 +6,8 @@
 #
 
 # Customized wizard page
-cat > /etc/apache2/sites-available/wizard.conf <<EOF
-Alias /$(echo ${BRAND_NAME:=NethVoice} | tr '[:upper:]' '[:lower:]') /var/www/html/freepbx/wizard
-EOF
-
-# Link rewrite configuration
-if [[ ! -f /etc/apache2/sites-enabled/wizard.conf ]] ; then
-	ln -sf /etc/apache2/sites-available/wizard.conf /etc/apache2/sites-enabled/wizard.conf
-fi
+brand=$(echo ${BRAND_NAME:=NethVoice} | tr '[:upper:]' '[:lower:]')
+ln -sf /var/www/html/freepbx/wizard /var/www/html/${brand}
 
 # Write wizard and restapy configuration
 cat > /var/www/html/freepbx/wizard/scripts/custom.js <<EOF
