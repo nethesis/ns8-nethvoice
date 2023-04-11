@@ -22,6 +22,7 @@ ExecStart=/usr/bin/podman run \
     --env=LOCAL_IP \
     --env=JANUS_TRANSPORT_PORT \
     --volume=/dev/log:/dev/log \
+    --volume=./certificates:/etc/certificates:z \
     --network=host \
     ${NETHVOICE_JANUS_IMAGE} \
     /usr/local/bin/janus \
@@ -30,6 +31,8 @@ ExecStart=/usr/bin/podman run \
     --ice-ignore-list=${ICEIGNORE:=vmnet,tap,tun,virb,vb-} \
     --stun-server=${STUNSERVER}:${STUNPORT} \
     --rtp-port-range=${JANUS_RTPSTART}:${JANUS_RTPEND} \
+    --cert-pem=/etc/certificates/NethServer.pem \
+    --cert-key=/etc/certificates/NethServer.key \
     --debug-level=${JANUS_DEBUG_LEVEL}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/janus.ctr-id

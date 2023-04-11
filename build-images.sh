@@ -312,6 +312,7 @@ echo "[*] Build Janus Gateway container"
 reponame="nethvoice-janus"
 container=$(buildah from docker.io/canyan/janus-gateway:master)
 buildah add "${container}" janus/ /
+buildah run "${container}" mkdir /etc/certificates
 buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
 
 # Commit the image
