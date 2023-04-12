@@ -6,7 +6,7 @@ default-servers=proxy
 enable-snmp=false
 log-filename=flexisip.log
 log-level=debug
-transports=sip:${NETHVOICE_HOST}:${FLEXISIP_PORT};maddr=0.0.0.0 sips:${NETHVOICE_HOST}:${FLEXISIP_PORT};maddr=0.0.0.0;tls-verify-outgoing=0
+transports=sips:${NETHVOICE_HOST}:${FLEXISIP_PORT};maddr=0.0.0.0;tls-verify-outgoing=0
 
 aliases=localhost,${NETHVOICE_HOST}
 udp-mtu=4000
