@@ -62,8 +62,7 @@ reg-domains=*
 reg-on-response=true
 max-expires=604800
 db-implementation=redis
-redis-server-port=6377
-redis-auth-password=qXHn_nVEoOjf1JWe
+redis-server-port=${REDIS_PORT}
 
 [module::StatisticsCollector]
 enabled=false
