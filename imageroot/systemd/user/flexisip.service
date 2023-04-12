@@ -1,0 +1,27 @@
+[Unit]
+Description=NethVoice flexisip.service
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+Restart=always
+WorkingDirectory=%S/state
+TimeoutStopSec=70
+ExecStartPre=/bin/rm -f %t/flexisip.pid %t/flexisip.ctr-id
+ExecStart=/usr/bin/podman run \
+  --conmon-pidfile=%t/flexisip.pid \
+  --cidfile=%t/flexisip.ctr-id \
+  --replace --name=flexisip \
+  --detach \
+  --network=host \
+  --env NETHVOICE_HOST \
+  --env FLEXISIP_PORT \
+  --env REDIS_PORT \
+  ${NETHVOICE_FLEXISIP_IMAGE}
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/flexisip.ctr-id -t 10
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/flexisip.ctr-id
+PIDFile=%t/flexisip.pid
+Type=forking
+
+[Install]
+WantedBy=default.target

@@ -33,4 +33,5 @@ LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \
     ${REPOBASE}/nethvoice-cti-ui:${IMAGETAG} \
     ${REPOBASE}/nethvoice-tancredi:${IMAGETAG} \
     ${REPOBASE}/nethvoice-janus:${IMAGETAG} \
-    ${REPOBASE}/nethvoice-phonebook:${IMAGETAG}"
+    ${REPOBASE}/nethvoice-phonebook:${IMAGETAG} \
+    ${REPOBASE}/nethvoice-flexisip:${IMAGETAG}"
