@@ -25,7 +25,11 @@ FROM base as production
 RUN apk add --no-cache openldap-clients
 RUN addgroup -g 991 -S asterisk && adduser -u 990 -S -s /bin/false -h /var/lib/asterisk -H -g 'Asterisk User' -G asterisk asterisk
 RUN mkdir -p /etc/nethcti && chown asterisk:asterisk /etc/nethcti
-# copy repository from alpine container
+# complete container production configuration
+COPY entrypoint.sh /entrypoint
+ENTRYPOINT ["/entrypoint"]
+CMD ["npm", "start"]
+# copy application from alpine container
 COPY --from=repofetcher /app/root/var/lib/nethserver/nethcti/templates/customer_card /var/lib/nethserver/nethcti/templates/customer_card
 COPY --from=repofetcher /app/root/usr/lib/node/nethcti-server/plugins plugins
 COPY --from=repofetcher /app/root/usr/lib/node/nethcti-server/scripts scripts
@@ -37,7 +41,3 @@ COPY --from=repofetcher /app/root/usr/local/bin/rpm /usr/local/bin/rpm
 COPY --from=node_modules /app/package.json .
 COPY --from=node_modules /app/package-lock.json .
 COPY --from=node_modules /app/node_modules node_modules
-# copy container entrypoint
-COPY entrypoint.sh /entrypoint
-ENTRYPOINT ["/entrypoint"]
-CMD ["npm", "start"]
