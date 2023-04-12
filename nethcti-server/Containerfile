@@ -1,28 +1,43 @@
+# clone repository using alpine container
+FROM docker.io/library/alpine:3.17.2 as repofetcher
+WORKDIR /app
+RUN apk add --no-cache git
+ARG NETHVOICE_SERVER_COMMIT=97ae4c9b054bdc289d660ea49da538c7862d2ac1
+RUN git clone https://github.com/nethesis/nethcti-server.git . \
+    && git checkout "${NETHVOICE_SERVER_COMMIT}"
+
+# define base container for node environment
 FROM docker.io/library/node:14.21.1-alpine as base
 WORKDIR /app
 
 FROM base as node_modules
+# install dependencies for npm ci
 RUN apk add --no-cache \
         python3 \
         make
-COPY usr/lib/node/nethcti-server/package.json .
-COPY usr/lib/node/nethcti-server/package-lock.json .
+# download node_modules
+COPY --from=repofetcher /app/root/usr/lib/node/nethcti-server/package.json .
+COPY --from=repofetcher /app/root/usr/lib/node/nethcti-server/package-lock.json .
 RUN npm ci
 
 FROM base as production
+# install production packages, add astersik as user
 RUN apk add --no-cache openldap-clients
 RUN addgroup -g 991 -S asterisk && adduser -u 990 -S -s /bin/false -h /var/lib/asterisk -H -g 'Asterisk User' -G asterisk asterisk
 RUN mkdir -p /etc/nethcti && chown asterisk:asterisk /etc/nethcti
-COPY var/lib/nethserver/nethcti/templates/customer_card /var/lib/nethserver/nethcti/templates/customer_card
-COPY usr/lib/node/nethcti-server/plugins plugins
-COPY usr/lib/node/nethcti-server/scripts scripts
-COPY usr/lib/node/nethcti-server/sql sql
-COPY usr/lib/node/nethcti-server/nethcti-cli.js .
-COPY usr/lib/node/nethcti-server/nethcti.js .
-COPY usr/local/bin/rpm /usr/local/bin/rpm
+# copy repository from alpine container
+COPY --from=repofetcher /app/root/var/lib/nethserver/nethcti/templates/customer_card /var/lib/nethserver/nethcti/templates/customer_card
+COPY --from=repofetcher /app/root/usr/lib/node/nethcti-server/plugins plugins
+COPY --from=repofetcher /app/root/usr/lib/node/nethcti-server/scripts scripts
+COPY --from=repofetcher /app/root/usr/lib/node/nethcti-server/sql sql
+COPY --from=repofetcher /app/root/usr/lib/node/nethcti-server/nethcti-cli.js .
+COPY --from=repofetcher /app/root/usr/lib/node/nethcti-server/nethcti.js .
+COPY --from=repofetcher /app/root/usr/local/bin/rpm /usr/local/bin/rpm
+# copy node_modules
 COPY --from=node_modules /app/package.json .
 COPY --from=node_modules /app/package-lock.json .
 COPY --from=node_modules /app/node_modules node_modules
+# copy container entrypoint
 COPY entrypoint.sh /entrypoint
 ENTRYPOINT ["/entrypoint"]
 CMD ["npm", "start"]
