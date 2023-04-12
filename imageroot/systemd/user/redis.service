@@ -1,0 +1,25 @@
+[Unit]
+Description=NethVoice redis.service
+Before=flexisip.service
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+Restart=always
+TimeoutStopSec=70
+ExecStartPre=/bin/rm -f %t/redis.pid %t/redis.ctr-id
+ExecStart=/usr/bin/podman run \
+  --conmon-pidfile=%t/redis.pid \
+  --cidfile=%t/redis.ctr-id \
+  --replace --name=redis \
+  --detach \
+  --volume=redis:/data \
+  --network=host \
+  ${REDIS_IMAGE} --appendonly yes --port ${REDIS_PORT} --bind 127.0.0.1
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/redis.ctr-id -t 10
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/redis.ctr-id
+PIDFile=%t/redis.pid
+Type=forking
+
+[Install]
+WantedBy=default.target
