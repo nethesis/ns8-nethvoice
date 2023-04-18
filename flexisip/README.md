@@ -10,3 +10,6 @@ Relevant environment variables:
 - `FLEXISIP_PORT` Flexisip listen port
 - `REDIS_PORT` Redis listen port
 - `APACHE_PORT` Port used for httpd
+- `SUBSCRIPTION_SYSTEMID` subscription server SystemID
+- `SUBSCRIPTION_SECRET` subcription server secret
+- `BRAND_APPID` mobile app application id for push proxy

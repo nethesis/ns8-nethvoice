@@ -20,7 +20,8 @@
                 }
             ],
             "nethcti_log_level": "info",
-            "user_domain": "domain.ns8.local"
+            "user_domain": "domain.ns8.local",
+            "app_brand_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
         }
     ],
     "type": "object",
@@ -161,6 +162,10 @@
         },
         "user_domain": {
             "description": "Domain where the user accessing NethVoice are stored",
+            "type": "string"
+        },
+        "app_brand_id": {
+            "description": "Mobile app brand ID used for push proxy",
             "type": "string"
         }
     }

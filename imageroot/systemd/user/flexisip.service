@@ -14,11 +14,14 @@ ExecStart=/usr/bin/podman run \
   --replace --name=flexisip \
   --detach \
   --network=host \
+  --volume=asterisk:/etc/asterisk:z \
   --volume=./certificates:/etc/flexisip/tls:z \
   --env NETHVOICE_HOST \
   --env FLEXISIP_PORT \
   --env REDIS_PORT \
   --env APACHE_PORT \
+  --env SUBSCRIPTION_* \
+  --env BRAND_APPID \
   ${NETHVOICE_FLEXISIP_IMAGE}
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/flexisip.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/flexisip.ctr-id

@@ -108,4 +108,14 @@ masquerade-contacts-for-invites=false
 insert-domain=true
 EOF
 
+cat <<EOF > /etc/asterisk/nethcti_push_configuration.json
+{
+    "NotificationServerURL": "https://pp.nethesis.it/NotificaPush",
+    "Host": ""${NETHVOICE_HOST},
+    "SystemId": "${SUBSCRIPTION_SYSTEMID}",
+    "Secret": "${SUBSCRIPTION_SECRET}",
+    "AppBrandingID" : "${BRAND_APPID}"
+}
+EOF
+
 exec "$@"
