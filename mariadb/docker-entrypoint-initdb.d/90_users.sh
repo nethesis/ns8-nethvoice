@@ -25,4 +25,6 @@
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -e "GRANT ALL on nethcti3.* to '${NETHCTI_DB_USER}'@'127.0.0.1' identified by '${NETHCTI_DB_PASSWORD}'"
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -e "GRANT ALL on ${PHONEBOOK_DB_NAME}.* to '${PHONEBOOK_DB_USER}'@'127.0.0.1' identified by '${PHONEBOOK_DB_PASS}'"
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -e "GRANT SELECT on ${PHONEBOOK_DB_NAME}.* to '${NETHCTI_DB_USER}'@'127.0.0.1' identified by '${NETHCTI_DB_PASSWORD}'"
-
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on asteriskcdrdb.* to 'nethvoice_report'@'%' identified by '${REPORTS_PASSWORD}';"
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on asterisk.* to 'nethvoice_report'@'%' identified by '${REPORTS_PASSWORD}';"
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT SELECT on phonebook.* to 'nethvoice_report'@'%' identified by '${REPORTS_PASSWORD}';"
