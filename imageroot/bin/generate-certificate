@@ -43,3 +43,7 @@ cat ${keytmp} ${certtmp} > integration/certificate.pem
 cat ${keytmp} > integration/webserver.key
 cat ${certtmp} > integration/webserver.crt
 chmod a+r integration/*
+
+# required by flexisip
+cat ${keytmp} ${certtmp} > agent.pem
+cat ${certtmp} > cafile.pem
