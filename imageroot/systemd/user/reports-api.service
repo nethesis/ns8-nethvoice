@@ -1,7 +1,7 @@
 [Unit]
 Description=Reports API Service
-Requires=mariadb.service redis.service
-After=mariadb.service redis.service
+Requires=mariadb.service reports-redis.service
+After=mariadb.service reports-redis.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
