@@ -21,7 +21,8 @@
             ],
             "nethcti_log_level": "info",
             "user_domain": "domain.ns8.local",
-            "app_brand_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            "app_brand_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+            "flexisip_log_level": "debug"
         }
     ],
     "type": "object",
@@ -131,6 +132,16 @@
             "enum": [
                 "info",
                 "warn"
+            ]
+        },
+        "flexisip_log_level": {
+            "description": "Log level of Flexisip",
+            "type": "string",
+            "enum": [
+                "debug",
+                "warning",
+                "error",
+                "message"
             ]
         },
         "conference_jitsi_url": {
