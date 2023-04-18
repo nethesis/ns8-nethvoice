@@ -7,7 +7,8 @@
         {
             "nethvoice_host": "voice.ns8.local",
             "nethcti_ui_host": "cti.ns8.local",
-            "user_domain": "domain.ns8.local"
+            "user_domain": "domain.ns8.local",
+            "reports_international_prefix": "+39"
         },
         {
             "nethvoice_host": "voice.ns8.local",
@@ -22,13 +23,15 @@
             "nethcti_log_level": "info",
             "user_domain": "domain.ns8.local",
             "app_brand_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-            "flexisip_log_level": "debug"
+            "flexisip_log_level": "debug",
+            "reports_international_prefix": "0039"
         }
     ],
     "type": "object",
     "required": [
         "nethvoice_host",
-        "nethcti_ui_host"
+        "nethcti_ui_host",
+        "reports_international_prefix"
     ],
     "properties": {
         "nethvoice_host_local_networks": {
@@ -177,6 +180,23 @@
         },
         "app_brand_id": {
             "description": "Mobile app brand ID used for push proxy",
+            "type": "string"
+        },
+        "reports_international_prefix": {
+            "description": "International prefix for the reports.",
+            "type": "string",
+            "pattern": "^(\\d{4}|\\+\\d{2})$"
+        },
+        "reports_ui_app_name": {
+            "description": "Name of the reports UI app.",
+            "type": "string"
+        },
+        "reports_ui_help_url": {
+            "description": "Help URL of the reports UI app.",
+            "type": "string"
+        },
+        "reports_ui_company_name": {
+            "description": "Company name of the reports UI app.",
             "type": "string"
         }
     }

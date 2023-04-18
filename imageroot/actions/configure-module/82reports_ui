@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+"""
+This file is created with separation of resposability in mind.
+This configures UI segment of reports.
+"""
+
+import json
+import sys
+import os
+
+import agent
+from jinja2 import Environment, FileSystemLoader
+
+# Create folder scaffolding
+os.makedirs('report', exist_ok=True)
+
+# Fetch request
+request = json.load(sys.stdin)
+
+
+def set_from_request(env_name, var_name, default=""):
+    value = request[var_name] if var_name in request else default
+    agent.set_env(env_name, value)
+    return value
+
+
+reports_ui_app_name = set_from_request(
+    'REPORTS_UI_APP_NAME',
+    'reports_ui_app_name',
+    'NethVoice Reports'
+)
+reports_ui_help_url = set_from_request(
+    'REPORTS_UI_HELP_URL',
+    'reports_ui_help_url',
+    'https://nethvoice.docs.nethesis.it/it/v14/'
+)
+reports_ui_company_name = set_from_request(
+    'REPORTS_UI_COMPANY_NAME',
+    'reports_ui_company_name',
+    'Nethesis'
+)
+
+# Create configuration file
+env = Environment(
+    loader=FileSystemLoader('../templates/'),
+    autoescape=True
+)
+
+template = env.get_template('reports-ui.j2')
+with open('./report/ui-config.js', 'w', encoding='utf-8') as file:
+    file.write(template.render({
+        'app_name': reports_ui_app_name,
+        'help_url': reports_ui_help_url,
+        'company_name': reports_ui_company_name,
+        'api_endpoint': f'{os.environ["NETHVOICE_HOST"]}/pbx-report-api',
+    }))
+
+# Traefik endpoint
+response = agent.tasks.run(
+    agent_id=agent.resolve_agent_id('traefik@node'),
+    action='set-route',
+    data={
+        'instance': os.environ['MODULE_ID'] + '-reports-ui',
+        'url': 'http://127.0.0.1:' + os.environ["REPORTS_UI_PORT"],
+        'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "True",
+        'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
+        'host': os.environ["NETHVOICE_HOST"],
+        'path': '/pbx-report'
+    },
+)
+agent.assert_exp(response['exit_code'] == 0)
+
+# Enable service and restart
+agent.run_helper(
+    'systemctl',
+    '--user',
+    'enable',
+    'reports-ui.service'
+).check_returncode()
+agent.run_helper(
+    'systemctl',
+    '--user',
+    'restart',
+    'reports-ui.service'
+).check_returncode()
