@@ -9,3 +9,4 @@ Relevant environment variables:
 - `NETHVOICE_HOST` hostname of the NethVoice server
 - `FLEXISIP_PORT` Flexisip listen port
 - `REDIS_PORT` Redis listen port
+- `APACHE_PORT` Port used for httpd

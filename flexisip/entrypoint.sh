@@ -79,7 +79,7 @@ apple=false
 firebase=false
 windowsphone=false
 display-from-uri=true
-external-push-uri=http://localhost/push-proxy/index.php?type=\$type&from=\$from-uri&callid=\$call-id&to=\$to-uri&caller=\$from-name&loglevel=debug
+external-push-uri=http://127.0.0.1:${APACHE_PORT}/push-proxy/index.php?type=\$type&from=\$from-uri&callid=\$call-id&to=\$to-uri&caller=\$from-name&loglevel=debug
 
 [module::MediaRelay]
 enabled=false
