@@ -4,8 +4,8 @@ cat <<EOF > /etc/flexisip/flexisip.conf
 [global]
 default-servers=proxy
 enable-snmp=false
+log-directory=/var/log
 log-level=warning
-syslog-level=warning
 transports=sips:${NETHVOICE_HOST}:${FLEXISIP_PORT};maddr=0.0.0.0;tls-verify-outgoing=0
 
 aliases=localhost,${NETHVOICE_HOST}

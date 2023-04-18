@@ -16,6 +16,7 @@ ExecStart=/usr/bin/podman run \
   --network=host \
   --volume=asterisk:/etc/asterisk:z \
   --volume=./certificates:/etc/flexisip/tls:z \
+  --volume=/dev/log:/dev/log \
   --env NETHVOICE_HOST \
   --env FLEXISIP_PORT \
   --env REDIS_PORT \
