@@ -1,0 +1,92 @@
+### REPOFETCHER ###
+# Multi-stage that installs git and fetches the repo from given version
+FROM docker.io/library/alpine:3.17.2 as repofetcher
+WORKDIR /app
+RUN apk add --no-cache git
+ARG NETHVOICE_REPORT_COMMIT=8aff74be3556553eee604ec8b9c34e45911a2372
+RUN git clone https://github.com/nethesis/nethvoice-report \
+    && cd nethvoice-report \
+    && git checkout $NETHVOICE_REPORT_COMMIT
+
+### UI ###
+FROM docker.io/library/node:14.21.2-alpine as node_build
+WORKDIR /app
+# Install npm dependencies
+COPY --from=repofetcher /app/nethvoice-report/ui/package.json .
+COPY --from=repofetcher /app/nethvoice-report/ui/package-lock.json .
+RUN npm ci
+# Copy application, clean up and build
+COPY --from=repofetcher /app/nethvoice-report/ui/public public
+COPY --from=repofetcher /app/nethvoice-report/ui/src src
+COPY --from=repofetcher /app/nethvoice-report/ui/.browserslistrc .
+COPY --from=repofetcher /app/nethvoice-report/ui/.eslintrc.js .
+COPY --from=repofetcher /app/nethvoice-report/ui/babel.config.js .
+COPY --from=repofetcher /app/nethvoice-report/ui/vue.config.js .
+ENV NODE_ENV=production
+RUN rm public/config/config.production.js \
+    && npm run build
+
+# From build, copy content in nginx container
+FROM docker.io/library/nginx:1.23.3-alpine as ui-production
+COPY --from=node_build /app/dist /var/www/html/pbx-report
+# Adding production scripts
+ADD https://raw.githubusercontent.com/eficode/wait-for/d48601a8a90c3d22fade68d09b4240739fb44a46/wait-for /usr/bin/wait-for
+COPY ui/entrypoint.sh /docker-entrypoint.d/99-wait-for-app.sh
+COPY ui/etc/nginx/ /etc/nginx/
+RUN chmod +x /usr/bin/wait-for \
+    && chmod +x /docker-entrypoint.d/99-wait-for-app.sh
+
+### API ###
+# Init go builder, installing needed dev packages
+FROM docker.io/library/golang:1.19.5-alpine as gobuilder
+WORKDIR /app
+RUN apk add --no-cache \
+        build-base \
+        linux-pam-dev \
+        pkgconfig \
+        rrdtool-dev
+
+# Use gobuilder stage to build api
+FROM gobuilder as apibuilder
+# Download go mod dependencies
+COPY --from=repofetcher /app/nethvoice-report/api/go.mod .
+COPY --from=repofetcher /app/nethvoice-report/api/go.sum .
+RUN go mod download
+# Build executable
+COPY --from=repofetcher /app/nethvoice-report/api/ /app
+RUN go build
+
+# Use gobuilder stage to build tasks
+FROM gobuilder as taskbuilder
+# Download go mod dependencies
+COPY --from=repofetcher /app/nethvoice-report/tasks/go.mod .
+COPY --from=repofetcher /app/nethvoice-report/tasks/go.sum .
+RUN go mod download
+# Build executable
+COPY --from=repofetcher /app/nethvoice-report/tasks/ /app
+RUN go build
+
+# Using alpine as runtime
+FROM docker.io/library/alpine:3.17.2 as api-production
+# Installing runtime dependencies
+RUN apk add --no-cache \
+        jq \
+        librrd \
+        linux-pam-dev \
+        mariadb-client \
+        openldap-clients
+# Adding production scripts
+ADD https://raw.githubusercontent.com/eficode/wait-for/d48601a8a90c3d22fade68d09b4240739fb44a46/wait-for /usr/bin/wait-for
+COPY api/entrypoint.sh /entrypoint
+RUN chmod +x /usr/bin/wait-for \
+    && chmod +x /entrypoint
+# Copying executables and setting release environment
+ENV GIN_MODE=release
+COPY --from=apibuilder /app/api /usr/bin/api
+COPY --from=taskbuilder /app/tasks /usr/bin/tasks
+COPY --from=repofetcher /app/nethvoice-report/root/opt/nethvoice-report/api /opt/nethvoice-report/api
+COPY api/migration.sql.tmpl /opt/nethvoice-report/api/migration.sql.tmpl
+COPY api/ldap-authenticate.sh /usr/bin/ldap-authenticate
+RUN chmod +x /usr/bin/ldap-authenticate
+ENTRYPOINT [ "/entrypoint" ]
+CMD [ "api" ]
