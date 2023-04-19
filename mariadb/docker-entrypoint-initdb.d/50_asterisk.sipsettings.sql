@@ -6,7 +6,6 @@ INSERT INTO `sipsettings` (`keyword`,`data`,`seq`,`type`) VALUES
 ("","",0,9),
 ("allowguest","yes",10,0),
 ("bindaddr","",2,0),
-("bindport","5160",1,0),
 ("callerid","Unknown",0,0),
 ("callevents","no",0,0),
 ("canreinvite","no",10,0),

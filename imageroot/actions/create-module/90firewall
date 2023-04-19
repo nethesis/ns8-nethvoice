@@ -15,8 +15,6 @@ agent.add_public_service(os.environ['MODULE_ID'], [
     os.environ['ASTERISK_RTPSTART']+"-"+os.environ['ASTERISK_RTPEND']+"/udp", # Asterisk
     os.environ['ASTERISK_SIPS_PORT']+"/udp", # Asterisk
     os.environ['ASTERISK_SIPS_PORT']+"/tcp", # Asterisk
-    os.environ['ASTERISK_PJSIPS_PORT']+"/udp", # Asterisk
-    os.environ['ASTERISK_PJSIPS_PORT']+"/tcp", # Asterisk
     os.environ['ASTERISK_IAX_PORT']+"/udp", # Asterisk
 ])
 

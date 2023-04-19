@@ -3,15 +3,12 @@
 /*!40103 SET TIME_ZONE='+00:00' */;
 USE `asterisk`;
 INSERT INTO `kvstore_Sipsettings` (`key`,`val`,`type`,`id`) VALUES
-("udpport-0.0.0.0","5060",NULL,"noid"),
-("tlsport-0.0.0.0","5061",NULL,"noid"),
 ("voicecodecs","{\"ulaw\":1,\"alaw\":2,\"gsm\":3,\"g726\":4,\"g722\":5}","json-arr","noid"),
 ("pjsip_allow_reload","no",NULL,"noid"),
 ("allow.reload","no",NULL,"noid"),
 ("tcpdomain-0.0.0.0","",NULL,"noid"),
 ("tcpextip-0.0.0.0","",NULL,"noid"),
 ("tcplocalnet-0.0.0.0","none",NULL,"noid"),
-("tcpport-0.0.0.0","5062",NULL,"noid"),
 ("binds","{\"wss\":{\"0.0.0.0\":\"off\"},\"udp\":{\"0.0.0.0\":\"on\"},\"tcp\":{\"0.0.0.0\":\"on\"},\"ws\":{\"0.0.0.0\":\"off\"},\"tls\":{\"0.0.0.0\":\"on\"}}","json-arr","noid"),
 ("videocodecs","[]","json-arr","noid"),
 ("ice-blacklist","[]","json-arr","noid"),
@@ -72,9 +69,7 @@ INSERT INTO `kvstore_Sipsettings` (`key`,`val`,`type`,`id`) VALUES
 ("jbresyncthreshold","1000",NULL,"noid"),
 ("context","from-sip-external",NULL,"noid"),
 ("bindaddr","",NULL,"noid"),
-("bindport","5160",NULL,"noid"),
 ("tlsbindaddr","",NULL,"noid"),
-("tlsbindport","5161",NULL,"noid"),
 ("srvlookup","no",NULL,"noid"),
 ("tcpenable","no",NULL,"noid"),
 ("callevents","no",NULL,"noid"),

@@ -47,7 +47,6 @@ INSERT INTO `freepbx_settings` (`keyword`,`value`,`name`,`level`,`description`,`
 ("ASTETCDIR","/etc/asterisk","Asterisk etc Dir",4,"This is the default directory for Asterisks configuration files.","dir","","/etc/asterisk",1,0,"Directory Layout","",0,0),
 ("ASTLOGDIR","/var/log/asterisk","Asterisk Log Dir",4,"This is the default directory for Asterisks log files.","dir","","/var/log/asterisk",1,0,"Directory Layout","",0,0),
 ("ASTMANAGERHOST","localhost","Asterisk Manager Host",2,"Hostname for the Asterisk Manager","text","","localhost",1,0,"Asterisk Manager","",0,0),
-("ASTMANAGERPORT","5038","Asterisk Manager Port",2,"Port for the Asterisk Manager","int","1024,65535","5038",1,0,"Asterisk Manager","",0,0),
 ("ASTMANAGERPROXYPORT","","Asterisk Manager Proxy Port",2,"Optional port for an Asterisk Manager Proxy","int","1024,65535","",1,0,"Asterisk Manager","",1,0),
 ("ASTMGRWRITETIMEOUT","5000","Asterisk Manager Write Timeout",2,"Timeout, im ms, for write timeouts for cases where Asterisk disconnects frequently","int","100,100000","5000",1,0,"Asterisk Manager","",1,0),
 ("ASTMODDIR","/usr/lib64/asterisk/modules","Asterisk Modules Dir",4,"This is the default directory for Asterisks modules.","dir","","/usr/lib/asterisk/modules",1,0,"Directory Layout","",0,0),
