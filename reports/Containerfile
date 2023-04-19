@@ -3,7 +3,7 @@
 FROM docker.io/library/alpine:3.17.2 as repofetcher
 WORKDIR /app
 RUN apk add --no-cache git
-ARG NETHVOICE_REPORT_COMMIT=8aff74be3556553eee604ec8b9c34e45911a2372
+ARG NETHVOICE_REPORT_COMMIT=4f0eea757972b9bfcb8158b349f1b4232f587e7b
 RUN git clone https://github.com/nethesis/nethvoice-report \
     && cd nethvoice-report \
     && git checkout $NETHVOICE_REPORT_COMMIT
@@ -84,8 +84,7 @@ RUN chmod +x /usr/bin/wait-for \
 ENV GIN_MODE=release
 COPY --from=apibuilder /app/api /usr/bin/api
 COPY --from=taskbuilder /app/tasks /usr/bin/tasks
-COPY --from=repofetcher /app/nethvoice-report/root/opt/nethvoice-report/api /opt/nethvoice-report/api
-COPY api/migration.sql.tmpl /opt/nethvoice-report/api/migration.sql.tmpl
+COPY --from=repofetcher /app/nethvoice-report/root/opt/nethvoice-report /opt/nethvoice-report
 COPY api/ldap-authenticate.sh /usr/bin/ldap-authenticate
 RUN chmod +x /usr/bin/ldap-authenticate
 ENTRYPOINT [ "/entrypoint" ]

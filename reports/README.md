@@ -9,7 +9,6 @@
 - `Containerfile` has the build process for both `api` and `ui`.
 - `api/entrypoint.sh` is the main entrypoint for api image, is used to check the liveness of DB and Redis before starting the main process. Then uses `api/migration.sql.tmpl` to apply latest changes to database.
 - `api/ldap-authenticate.sh` allows the api to authenticate against used user-domain.
-- `api/migrations.sql.tmpl` list of migrations to be run at startup by `api/entrypoint.sh`.
 - `ui/entrypoint.sh` entrypoint for ui, stops nginx startup until backend is online.
 - `ui/etc` standard nginx configuration taken from [H5BP](https://github.com/h5bp/server-configs-nginx).
 
