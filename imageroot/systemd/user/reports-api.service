@@ -17,7 +17,7 @@ ExecStart=/usr/bin/podman run \
         --sdnotify=conmon \
         --replace \
         --volume=./report/api-config.json:/opt/nethvoice-report/api/conf.json:Z \
-        --volume=reports_config:/opt/nethvoice-report/freepbx/:z \
+        --volume=reports_config:/opt/nethvoice-report:z \
         --network=host \
         --env REPORTS_INTERNATIONAL_PREFIX \
         --env NETHVOICE_LDAP_SCHEMA \
