@@ -11,13 +11,14 @@ import string
 
 import agent
 
-# non-rtp ports
-base_ports=24
 # rtp span port for Janus and Asterisk
 span=2000
 # coma separated port list
 port_list = []
 port_range = os.environ['TCP_PORTS_RANGE'].split("-")
+
+# non-rtp ports
+base_ports=int(port_range[1]) - int(port_range[0]) + 1
 
 for i in range(int(port_range[0]), int(port_range[0]) + base_ports):
     port_list.append(i)
@@ -51,6 +52,11 @@ agent.set_env('NETHCTI_INTERNAL_REST_PORT12', port_list[20])
 agent.set_env('NETHCTI_INTERNAL_REST_PORT13', port_list[21])
 agent.set_env('NETHCTI_TCP_PORT', port_list[22])
 agent.set_env('NETHCTI_TLS_PORT', port_list[23])
+agent.set_env('ASTERISK_SIP_PORT', port_list[24])
+agent.set_env('ASTERISK_SIPS_PORT', port_list[25])
+agent.set_env('ASTERISK_PJSIP_PORT', port_list[26])
+agent.set_env('ASTERISK_PJSIPS_PORT', port_list[27])
+agent.set_env('ASTERISK_IAX_PORT', port_list[28])
 
 # Set root password for MariaDB
 agent.set_env('MARIADB_ROOT_PASSWORD',''.join(random.choice(string.ascii_letters+string.digits) for _ in range(32)))

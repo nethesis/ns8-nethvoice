@@ -10,3 +10,6 @@ Asterisk container for NethServer 8
 - `AMPMGRPASS` Password of AMI user
 - `NETHVOICE_MARIADB_PORT` Port of MariaDB
 - `ASTERISK_RTPSTART` and `ASTERISK_RTPEND` are the UDP port range for RTP packages
+- `ASTERISK_SIP_PORT` and `ASTERISK_SIPS_PORT` are the UDP and TCP ports for SIP transport
+- `ASTERISK_PJSIP_PORT` `ASTERISK_PJSIPS_PORT` are the UDP and TCP ports for PJSIP transport
+- `ASTERISK_IAX_PORT is the UDP port for IAX transport
