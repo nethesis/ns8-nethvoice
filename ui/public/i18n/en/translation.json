@@ -40,7 +40,10 @@
     "title": "Settings",
     "user_domain": "User Domain",
     "user_domain_placeholder": "Select an available domain inside the cluster.",
-    "user_domain_selector": "User Domain Source"
+    "user_domain_selector": "User Domain Source",
+    "reports_international_prefix": "Reports Prefix",
+    "reports_international_prefix_tooltip": "Format must be either \"00**\" or \"+**\"",
+    "reports_prefix_invalid": "Invalid format"
   },
   "status": {
     "app_images": "App image | App images",

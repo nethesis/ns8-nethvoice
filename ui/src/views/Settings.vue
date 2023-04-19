@@ -55,6 +55,17 @@
               v-model="form.user_domain"
               ref="user_domain"
             />
+            <NsTextInput
+              :label="$t('settings.reports_international_prefix')"
+              v-model="form.reports_international_prefix"
+              placeholder="+39"
+              :disabled="loadingState"
+              :invalid-message="error.reports_international_prefix"
+            >
+              <template slot="tooltip">
+                {{ $t("settings.reports_international_prefix_tooltip") }}
+              </template>
+            </NsTextInput>
             <cv-row v-if="error.configureModule">
               <cv-column>
                 <NsInlineNotification
@@ -114,6 +125,7 @@ export default {
         nethcti_ui_host: "",
         lets_encrypt: false,
         user_domain: "",
+        reports_international_prefix: "+39",
       },
       loading: {
         getConfiguration: false,
@@ -128,6 +140,7 @@ export default {
         nethcti_ui_host: "",
         lets_encrypt: "",
         user_domain: "",
+        reports_international_prefix: "",
       },
     };
   },
@@ -203,6 +216,10 @@ export default {
       this.form.nethcti_ui_host = config.nethcti_ui_host;
       this.form.lets_encrypt = config.lets_encrypt;
       this.form.user_domain = config.user_domain;
+      if (config.reports_international_prefix !== "") {
+        this.form.reports_international_prefix =
+          config.reports_international_prefix;
+      }
 
       this.focusElement("nethvoice_host");
     },
@@ -220,7 +237,18 @@ export default {
         isValidationOk = false;
       }
 
-      if (this.form.nethvoice_host === this.form.nethcti_ui_host) {
+      const reportsPrefixRegex = /^(\d{4}|\+\d{2})$/;
+      if (!reportsPrefixRegex.test(this.form.reports_international_prefix)) {
+        this.error.reports_international_prefix = this.$t(
+          "error.reports_prefix_invalid"
+        );
+        isValidationOk = false;
+      }
+
+      if (
+        this.form.nethvoice_host === this.form.nethcti_ui_host &&
+        this.form.nethvoice_host !== ""
+      ) {
         this.error.nethvoice_host = this.$t("error.same_host");
         this.error.nethcti_ui_host = this.$t("error.same_host");
         isValidationOk = false;
@@ -274,6 +302,8 @@ export default {
             nethcti_ui_host: this.form.nethcti_ui_host,
             lets_encrypt: this.form.lets_encrypt,
             user_domain: this.form.user_domain,
+            reports_international_prefix:
+              this.form.reports_international_prefix,
           },
           extra: {
             title: this.$t("settings.configure_instance", {

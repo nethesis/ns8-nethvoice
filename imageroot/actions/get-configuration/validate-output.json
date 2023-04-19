@@ -21,6 +21,10 @@
         "user_domain": {
             "description": "Domain where the user accessing Nethvoice are stored",
             "type": "string"
+        },
+        "reports_international_prefix": {
+            "description": "International prefix for the reports app",
+            "type": "string"
         }
     }
 }
