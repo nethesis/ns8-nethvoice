@@ -32,8 +32,13 @@ ExecStart=/usr/bin/podman run \
 	--env=NETHCTI_DB_USER \
 	--env=NETHCTI_DB_PASSWORD \
 	--env=PHONEBOOK* \
-	--env=ASTERISK* \
+	--env=ASTERISK_RTPSTART \
+	--env=ASTERISK_RTPEND \
+	--env=ASTERISK_SIP_PORT \
+	--env=ASTERISK_SIPS_PORT \
+	--env=ASTERISK_IAX_PORT \
 	--env=ASTMANAGERPORT \
+	--env=REPORTS_PASSWORD \
 	--network=host \
 	${NETHVOICE_MARIADB_IMAGE} \
 	--port ${NETHVOICE_MARIADB_PORT}
