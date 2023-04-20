@@ -93,7 +93,7 @@ enabled=false
 [module::Forward]
 enabled=true
 filter=
-route=<sip:192.168.5.211:5062;transport=tcp>
+route=<sip:127.0.0.1:${ASTERISK_SIP_PORT};transport=tcp>
 add-path=true
 rewrite-req-uri=false
 default-transport=

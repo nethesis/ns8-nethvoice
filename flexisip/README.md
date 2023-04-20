@@ -22,3 +22,4 @@ Relevant environment variables:
 - `BRAND_APPID` mobile app application id for push proxy
 - `FLEXISIP_LOG_LEVEL` Flexisip log level, valid valures are `debug`, `message`, `warning` and `error`,
   the error log level is also passed to push proxy script
+- `ASTERISK_SIP_PORT` SIP tcp port for routing
