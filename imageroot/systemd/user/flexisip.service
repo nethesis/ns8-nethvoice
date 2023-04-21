@@ -19,7 +19,7 @@ ExecStart=/usr/bin/podman run \
   --volume=/dev/log:/dev/log \
   --env NETHVOICE_HOST \
   --env FLEXISIP_* \
-  --env REDIS_PORT \
+  --env REDIS_FLEXISIP_PORT \
   --env APACHE_PORT \
   --env SUBSCRIPTION_* \
   --env ASTERISK_SIP_PORT \

@@ -1,0 +1,25 @@
+[Unit]
+Description=NethVoice redis-flexisip.service
+Before=flexisip.service
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+Restart=always
+TimeoutStopSec=70
+ExecStartPre=/bin/rm -f %t/redis-flexisip.pid %t/redis-flexisip.ctr-id
+ExecStart=/usr/bin/podman run \
+  --conmon-pidfile=%t/redis-flexisip.pid \
+  --cidfile=%t/redis-flexisip.ctr-id \
+  --replace --name=redis-flexisip \
+  --detach \
+  --volume=redis-flexisip:/data \
+  --network=host \
+  ${REDIS_IMAGE} --appendonly yes --port ${REDIS_FLEXISIP_PORT} --bind 127.0.0.1
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/redis-flexisip.ctr-id -t 10
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/redis-flexisip.ctr-id
+PIDFile=%t/redis-flexisip.pid
+Type=forking
+
+[Install]
+WantedBy=default.target

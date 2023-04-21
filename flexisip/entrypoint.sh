@@ -62,7 +62,7 @@ reg-domains=*
 reg-on-response=true
 max-expires=604800
 db-implementation=redis
-redis-server-port=${REDIS_PORT}
+redis-server-port=${REDIS_FLEXISIP_PORT}
 
 [module::StatisticsCollector]
 enabled=false

@@ -15,7 +15,7 @@ podman exec -ti flexisip more /var/log/flexisip-proxy.log
 Relevant environment variables:
 - `NETHVOICE_HOST` hostname of the NethVoice server
 - `FLEXISIP_PORT` Flexisip listen port
-- `REDIS_PORT` Redis listen port
+- `REDIS_FLEXISIP_PORT` Flexisip Redis instance listen port
 - `APACHE_PORT` Port used for httpd
 - `SUBSCRIPTION_SYSTEMID` subscription server SystemID
 - `SUBSCRIPTION_SECRET` subcription server secret

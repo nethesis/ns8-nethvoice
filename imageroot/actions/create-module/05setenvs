@@ -71,7 +71,7 @@ agent.set_env('NETHCTI_TLS_PORT', port_list[23])
 agent.set_env('ASTERISK_SIP_PORT', port_list[24])
 agent.set_env('ASTERISK_SIPS_PORT', port_list[25])
 agent.set_env('ASTERISK_IAX_PORT', port_list[26])
-agent.set_env('REDIS_PORT', port_list[27])
+agent.set_env('REDIS_FLEXISIP_PORT', port_list[27])
 agent.set_env('FLEXISIP_PORT', port_list[28])
 
 # Set root password for MariaDB
