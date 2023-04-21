@@ -6,27 +6,43 @@
 #
 
 import os
+import sys
 import random
 import string
-
 import agent
 
-# rtp span port for Janus and Asterisk
-span=2000
-# coma separated port list
+# FIXME: this is a fake RTP allocation
+# Allocation of RTP/UDP ports should be implemented system-wide
+def allocate_rtp_ports_range(size):
+    """Allocate in "node_id" a RTP port range of the given "size" for "module_id"
+       RTP range goes from 10000 to 20000.
+    """
+    key_path = f'module/{os.environ["MODULE_ID"]}/rtp_ports_sequence'
+    prdb = agent.redis_connect(privileged=True)
+    # Setup lower limit to 10000
+    if not prdb.get(key_path):
+        prdb.set(key_path, '10000')
+    # Check overflow
+    if (size + int(prdb.get(key_path))) > 20000:
+        print(agent.SD_ERROR + "RTP range exhausted", file=sys.stderr)
+        sys.exit(3)
+    # Allocate RTP ports
+    seq = prdb.incrby(key_path, size)
+    agent.assert_exp(int(seq) > 0)
+    return (seq - size, seq - 1)
+
+# RTP port range size for Janus and Asterisk: 500 calls each
+size = 1000
+sip_start, sip_end = allocate_rtp_ports_range(size)
+janus_start, janus_end = allocate_rtp_ports_range(size)
+
+# comma separated TCP port list
 port_list = []
 port_range = os.environ['TCP_PORTS_RANGE'].split("-")
 
-# non-rtp ports
-base_ports=int(port_range[1]) - int(port_range[0]) + 1
-
-for i in range(int(port_range[0]), int(port_range[0]) + base_ports):
+# TCP ports
+for i in range(int(port_range[0]), int(port_range[1]) + 1):
     port_list.append(i)
-
-sip_start = int(port_range[0]) + base_ports
-janus_start=sip_start + span
-sip_end = sip_start + span -1
-janus_end=int(port_range[1])
 
 agent.set_env('NETHVOICE_MARIADB_PORT',port_list[0])
 agent.set_env('APACHE_PORT',port_list[1])
