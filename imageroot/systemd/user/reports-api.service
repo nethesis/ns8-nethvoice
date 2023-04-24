@@ -16,7 +16,7 @@ ExecStart=/usr/bin/podman run \
         --rm \
         --sdnotify=conmon \
         --replace \
-        --volume=./report/api-config.json:/opt/nethvoice-report/api/conf.json:Z \
+        --volume=./report/api-config.json:/opt/nethvoice-report/api/conf.json:z \
         --volume=reports_config:/opt/nethvoice-report:z \
         --network=host \
         --env REPORTS_INTERNATIONAL_PREFIX \
