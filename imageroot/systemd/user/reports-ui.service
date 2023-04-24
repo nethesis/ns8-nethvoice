@@ -1,7 +1,7 @@
 [Unit]
 Description=Reports UI Service
-Requires=reports-api
-After=reports-api
+Requires=reports-api.service
+After=reports-api.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
