@@ -34,6 +34,7 @@ ExecStart=/usr/bin/podman run \
     --volume=./notify:/notify:z \
     --volume=./certificates:/etc/asterisk/keys:z \
     --volume=reports_config:/opt/nethvoice-report:z \
+    --volume=./report/api-config.json:/opt/nethvoice-report/api/conf.json:Z \
     --volume=tancredi:/var/lib/tancredi:z \
     --env=NETHVOICE* \
     --env=APACHE_RUN_USER \
