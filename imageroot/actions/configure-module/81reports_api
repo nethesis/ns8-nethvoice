@@ -76,3 +76,10 @@ agent.run_helper(
     'restart',
     'reports-api.service'
 ).check_returncode()
+agent.run_helper(
+    'systemctl',
+    '--user',
+    'enable',
+    '--now',
+    'reports-scheduler.timer'
+).check_returncode()
