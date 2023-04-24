@@ -81,6 +81,9 @@ buildah config \
     "${container}"
 
 # Install required packages
+buildah run "${container}" sed -i 's/deb\.debian\.org/archive.debian.org/g' /etc/apt/sources.list
+buildah run "${container}" sed -i 's/security\.debian\.org/archive.debian.org/g' /etc/apt/sources.list
+buildah run "${container}" sed -i '/.*stretch-updates.*/d' /etc/apt/sources.list
 buildah run "${container}" apt-get update
 buildah run "${container}" apt install -y gnupg mycli libldap2-dev zip
 buildah run "${container}" apt install -y cron # TODO needed by freepbx cron module. To remove.
