@@ -4,6 +4,14 @@ set -e
 
 # if command is api, wait for services to be up
 if [ "$1" = "api" ]; then
+  # Copy directory content into shared volume
+  cp -r /opt/defaults/nethvoice-report/* /opt/nethvoice-report
+
+  # Init user_authorization.json if missing
+  if [ ! -f /opt/nethvoice-report/api/user_authorizations.json ]; then
+    echo "[]" > /opt/nethvoice-report/api/user_authorizations.json
+  fi
+
   # Wait for redis to be ready
   redis_address=$(jq -r '.redis_address' /opt/nethvoice-report.json)
   wait-for "${redis_address}" -t 30 -- echo "redis is up"

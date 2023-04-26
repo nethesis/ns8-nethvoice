@@ -84,7 +84,7 @@ RUN chmod +x /usr/bin/wait-for \
 ENV GIN_MODE=release
 COPY --from=apibuilder /app/api /usr/bin/api
 COPY --from=taskbuilder /app/tasks /usr/bin/tasks
-COPY --from=repofetcher /app/nethvoice-report/root/opt/nethvoice-report /opt/nethvoice-report
+COPY --from=repofetcher /app/nethvoice-report/root/opt/nethvoice-report /opt/defaults/nethvoice-report
 COPY api/ldap-authenticate.sh /usr/bin/ldap-authenticate
 RUN chmod +x /usr/bin/ldap-authenticate
 ENTRYPOINT [ "/entrypoint" ]
