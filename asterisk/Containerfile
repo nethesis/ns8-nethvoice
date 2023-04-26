@@ -22,8 +22,8 @@ RUN rm -f /usr/lib64/asterisk/modules/res_timing_dahdi.so
 RUN mkdir download \
     && pushd download \
     && mkdir -p /var/lib/asterisk/sounds/{it,en,es,de,fr} \
-    && wget -nv https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-core-it-2.11.1.zip \
-    && wget -nv https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-extra-it-2.11.1.zip \
+    && wget -nv https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-core-it-opus-2.11.1.zip \
+    && wget -nv https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-extra-it-opus-2.11.1.zip \
     && unzip -o 'asterisk-sounds-*-it-*.zip' -d /var/lib/asterisk/sounds/it \
     && wget -nv --no-check-certificate http://www.asterisksounds.org/sites/asterisksounds.org/files/sounds/es-ES/download/asterisk-sounds-core-es-ES-2.9.15.zip \
     && wget -nv --no-check-certificate https://www.asterisksounds.org/sites/asterisksounds.org/files/sounds/es-ES/download/asterisk-sounds-extra-es-ES-2.9.15.zip \
@@ -34,8 +34,8 @@ RUN mkdir download \
     && wget -nv --no-check-certificate https://www.asterisksounds.org/sites/asterisksounds.org/files/sounds/de/download/asterisk-sounds-core-de-2.11.19.zip \
     && wget -nv --no-check-certificate https://www.asterisksounds.org/sites/asterisksounds.org/files/sounds/de/download/asterisk-sounds-extra-de-2.11.19.zip \
     && unzip -o 'asterisk-sounds-*-de-*.zip' -d /var/lib/asterisk/sounds/de \
-    && wget -nv --no-check-certificate https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-core-en-2.11.1.zip \
-    && wget -nv --no-check-certificate https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-extra-en-2.11.1.zip \
+    && wget -nv --no-check-certificate https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-core-en-opus-2.11.1.zip \
+    && wget -nv --no-check-certificate https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-extra-en-opus-2.11.1.zip \
     && unzip -o 'asterisk-sounds-*-en-*.zip' -d /var/lib/asterisk/sounds/en \
     && chown -R asterisk:asterisk /var/lib/asterisk/sounds \
     && popd && rm -rf download
