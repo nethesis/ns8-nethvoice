@@ -35,7 +35,7 @@ if [ "$1" = "api" ]; then
   sed \
     -e 's/@international_prefix/'"${REPORTS_INTERNATIONAL_PREFIX}"'/g' \
     -e 's/@database_name/'"${cdr_database_name}"'/g' \
-    /opt/nethvoice-report/scripts/migration.sql.tmpl | mysql -u"${cdr_database_user}" -p"${cdr_database_password}" -h"${cdr_database_host}" -P"${cdr_database_port}"
+    /opt/nethvoice-report/scripts/schema.sql.tmpl | mysql -u"${cdr_database_user}" -p"${cdr_database_password}" -h"${cdr_database_host}" -P"${cdr_database_port}"
 
   # Wait for phonebook database to be ready
   phonebook_database_host=$(jq -r '.phonebook_database.host' /opt/nethvoice-report.json)
