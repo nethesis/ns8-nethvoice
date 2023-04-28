@@ -43,6 +43,8 @@ with open('./report/api-config.json', 'w', encoding='utf-8') as file:
         'nethvoice_mariadb_port': os.environ['NETHVOICE_MARIADB_PORT'],
         'reports_password': os.environ['REPORTS_PASSWORD'],
         'reports_secret': os.environ['REPORTS_SECRET'],
+        'reports_api_endpoint': 'https://' + os.environ['NETHVOICE_HOST']
+        + '/pbx-report-api',
         'reports_api_key': os.environ['REPORTS_API_KEY'],
     }))
 
