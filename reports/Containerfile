@@ -48,22 +48,24 @@ RUN apk add --no-cache \
 
 # Use gobuilder stage to build api
 FROM gobuilder as apibuilder
+WORKDIR /app/api
 # Download go mod dependencies
 COPY --from=repofetcher /app/nethvoice-report/api/go.mod .
 COPY --from=repofetcher /app/nethvoice-report/api/go.sum .
 RUN go mod download
 # Build executable
-COPY --from=repofetcher /app/nethvoice-report/api/ /app
+COPY --from=repofetcher /app/nethvoice-report/api/ /app/api
 RUN go build
 
 # Use gobuilder stage to build tasks
-FROM gobuilder as taskbuilder
+FROM apibuilder as taskbuilder
+WORKDIR /app/tasks
 # Download go mod dependencies
 COPY --from=repofetcher /app/nethvoice-report/tasks/go.mod .
 COPY --from=repofetcher /app/nethvoice-report/tasks/go.sum .
 RUN go mod download
 # Build executable
-COPY --from=repofetcher /app/nethvoice-report/tasks/ /app
+COPY --from=repofetcher /app/nethvoice-report/tasks/ /app/tasks
 RUN go build
 
 # Using alpine as runtime
@@ -82,8 +84,8 @@ RUN chmod +x /usr/bin/wait-for \
     && chmod +x /entrypoint
 # Copying executables and setting release environment
 ENV GIN_MODE=release
-COPY --from=apibuilder /app/api /usr/bin/api
-COPY --from=taskbuilder /app/tasks /usr/bin/tasks
+COPY --from=apibuilder /app/api/api /usr/bin/api
+COPY --from=taskbuilder /app/tasks/tasks /usr/bin/tasks
 COPY --from=repofetcher /app/nethvoice-report/root/opt/nethvoice-report /opt/defaults/nethvoice-report
 COPY api/ldap-authenticate.sh /usr/bin/ldap-authenticate
 RUN chmod +x /usr/bin/ldap-authenticate
