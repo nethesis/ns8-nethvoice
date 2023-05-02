@@ -32,7 +32,7 @@ COPY --from=node_build /app/dist /var/www/html/pbx-report
 # Adding production scripts
 ADD https://raw.githubusercontent.com/eficode/wait-for/d48601a8a90c3d22fade68d09b4240739fb44a46/wait-for /usr/bin/wait-for
 COPY ui/entrypoint.sh /docker-entrypoint.d/99-wait-for-app.sh
-COPY ui/etc/nginx/ /etc/nginx/
+COPY ui/conf.d/ /etc/nginx/conf.d/
 RUN chmod +x /usr/bin/wait-for \
     && chmod +x /docker-entrypoint.d/99-wait-for-app.sh
 
