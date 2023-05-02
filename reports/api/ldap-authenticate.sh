@@ -1,5 +1,10 @@
 #!/usr/bin/env sh
 
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
 set -e
 
 if [ $# -ne 2 ]; then
