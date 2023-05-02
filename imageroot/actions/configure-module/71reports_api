@@ -15,31 +15,12 @@ import sys
 import os
 
 import agent
-from jinja2 import Environment, FileSystemLoader
-
-# Create folder scaffolding
-os.makedirs('report', exist_ok=True)
 
 # Fetch request
 request = json.load(sys.stdin)
 
 # Set environment variables
 agent.set_env('REPORTS_INTERNATIONAL_PREFIX', request['reports_international_prefix'])
-
-# Create configuration file
-env = Environment(loader=FileSystemLoader('../templates/'), autoescape=True)
-
-template = env.get_template('reports-api.j2')
-with open('./report/api-config.json', 'w', encoding='utf-8') as file:
-    file.write(template.render({
-        'reports_api_port': os.environ['REPORTS_API_PORT'],
-        'reports_redis_port': os.environ['REPORTS_REDIS_PORT'],
-        'nethvoice_mariadb_port': os.environ['NETHVOICE_MARIADB_PORT'],
-        'reports_password': os.environ['REPORTS_PASSWORD'],
-        'reports_secret': os.environ['REPORTS_SECRET'],
-        'reports_api_endpoint': 'https://' + os.environ['NETHVOICE_HOST'] + '/pbx-report-api',
-        'reports_api_key': os.environ['REPORTS_API_KEY'],
-    }))
 
 # Setup traefik routes
 # api endpoint

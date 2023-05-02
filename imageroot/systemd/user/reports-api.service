@@ -16,15 +16,21 @@ ExecStart=/usr/bin/podman run \
         --rm \
         --sdnotify=conmon \
         --replace \
-        --volume=./report/api-config.json:/opt/nethvoice-report.json:z \
         --volume=reports_config:/opt/nethvoice-report:z \
         --network=host \
         --env REPORTS_INTERNATIONAL_PREFIX \
+        --env NETHVOICE_HOST \
         --env NETHVOICE_LDAP_SCHEMA \
         --env NETHVOICE_LDAP_BASE \
         --env NETHVOICE_LDAP_USER \
         --env NETHVOICE_LDAP_HOST \
         --env NETHVOICE_LDAP_PORT \
+        --env REPORTS_API_PORT \
+        --env REPORTS_REDIS_PORT \
+        --env NETHVOICE_MARIADB_PORT \
+        --env REPORTS_PASSWORD \
+        --env REPORTS_SECRET \
+        --env REPORTS_API_KEY \
         --detach \
         --name %N \
         ${NETHVOICE_REPORTS_API_IMAGE}

@@ -15,10 +15,6 @@ import sys
 import os
 
 import agent
-from jinja2 import Environment, FileSystemLoader
-
-# Create folder scaffolding
-os.makedirs('report', exist_ok=True)
 
 # Fetch request
 request = json.load(sys.stdin)
@@ -33,18 +29,6 @@ def set_from_request(env_name, var_name, default=""):
 reports_ui_app_name = set_from_request('REPORTS_UI_APP_NAME', 'reports_ui_app_name', 'NethVoice Reports')
 reports_ui_help_url = set_from_request('REPORTS_UI_HELP_URL', 'reports_ui_help_url', 'https://nethvoice.docs.nethesis.it/it/v14/')
 reports_ui_company_name = set_from_request('REPORTS_UI_COMPANY_NAME', 'reports_ui_company_name', 'Nethesis')
-
-# Create configuration file
-env = Environment(loader=FileSystemLoader('../templates/'), autoescape=True)
-
-template = env.get_template('reports-ui.j2')
-with open('./report/ui-config.js', 'w', encoding='utf-8') as file:
-    file.write(template.render({
-        'app_name': reports_ui_app_name,
-        'help_url': reports_ui_help_url,
-        'company_name': reports_ui_company_name,
-        'api_endpoint': f'{os.environ["NETHVOICE_HOST"]}/pbx-report-api',
-    }))
 
 # Traefik endpoint
 response = agent.tasks.run(
