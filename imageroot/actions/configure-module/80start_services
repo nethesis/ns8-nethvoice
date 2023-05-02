@@ -18,3 +18,9 @@ systemctl --user enable --now phonebook-update.timer
 systemctl --user enable --now watcher.path
 systemctl --user enable --now redis-flexisip.service
 systemctl --user enable --now flexisip.service
+# Reports
+systemctl --user enable reports-api.service
+systemctl --user restart reports-api.service
+systemctl --user enable --now reports-scheduler.timer
+systemctl --user enable --now reports-ui.service
+systemctl --user restart reports-ui.service

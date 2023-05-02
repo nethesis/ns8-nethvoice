@@ -24,16 +24,10 @@ os.makedirs('report', exist_ok=True)
 request = json.load(sys.stdin)
 
 # Set environment variables
-agent.set_env(
-    'REPORTS_INTERNATIONAL_PREFIX',
-    request['reports_international_prefix']
-)
+agent.set_env('REPORTS_INTERNATIONAL_PREFIX', request['reports_international_prefix'])
 
 # Create configuration file
-env = Environment(
-    loader=FileSystemLoader('../templates/'),
-    autoescape=True
-)
+env = Environment(loader=FileSystemLoader('../templates/'), autoescape=True)
 
 template = env.get_template('reports-api.j2')
 with open('./report/api-config.json', 'w', encoding='utf-8') as file:
@@ -43,8 +37,7 @@ with open('./report/api-config.json', 'w', encoding='utf-8') as file:
         'nethvoice_mariadb_port': os.environ['NETHVOICE_MARIADB_PORT'],
         'reports_password': os.environ['REPORTS_PASSWORD'],
         'reports_secret': os.environ['REPORTS_SECRET'],
-        'reports_api_endpoint': 'https://' + os.environ['NETHVOICE_HOST']
-        + '/pbx-report-api',
+        'reports_api_endpoint': 'https://' + os.environ['NETHVOICE_HOST'] + '/pbx-report-api',
         'reports_api_key': os.environ['REPORTS_API_KEY'],
     }))
 
@@ -64,24 +57,3 @@ response = agent.tasks.run(
     },
 )
 agent.assert_exp(response['exit_code'] == 0)
-
-# Enable service and restart
-agent.run_helper(
-    'systemctl',
-    '--user',
-    'enable',
-    'reports-api.service'
-).check_returncode()
-agent.run_helper(
-    'systemctl',
-    '--user',
-    'restart',
-    'reports-api.service'
-).check_returncode()
-agent.run_helper(
-    'systemctl',
-    '--user',
-    'enable',
-    '--now',
-    'reports-scheduler.timer'
-).check_returncode()

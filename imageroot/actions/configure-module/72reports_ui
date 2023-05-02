@@ -30,27 +30,12 @@ def set_from_request(env_name, var_name, default=""):
     return value
 
 
-reports_ui_app_name = set_from_request(
-    'REPORTS_UI_APP_NAME',
-    'reports_ui_app_name',
-    'NethVoice Reports'
-)
-reports_ui_help_url = set_from_request(
-    'REPORTS_UI_HELP_URL',
-    'reports_ui_help_url',
-    'https://nethvoice.docs.nethesis.it/it/v14/'
-)
-reports_ui_company_name = set_from_request(
-    'REPORTS_UI_COMPANY_NAME',
-    'reports_ui_company_name',
-    'Nethesis'
-)
+reports_ui_app_name = set_from_request('REPORTS_UI_APP_NAME', 'reports_ui_app_name', 'NethVoice Reports')
+reports_ui_help_url = set_from_request('REPORTS_UI_HELP_URL', 'reports_ui_help_url', 'https://nethvoice.docs.nethesis.it/it/v14/')
+reports_ui_company_name = set_from_request('REPORTS_UI_COMPANY_NAME', 'reports_ui_company_name', 'Nethesis')
 
 # Create configuration file
-env = Environment(
-    loader=FileSystemLoader('../templates/'),
-    autoescape=True
-)
+env = Environment(loader=FileSystemLoader('../templates/'), autoescape=True)
 
 template = env.get_template('reports-ui.j2')
 with open('./report/ui-config.js', 'w', encoding='utf-8') as file:
@@ -75,17 +60,3 @@ response = agent.tasks.run(
     },
 )
 agent.assert_exp(response['exit_code'] == 0)
-
-# Enable service and restart
-agent.run_helper(
-    'systemctl',
-    '--user',
-    'enable',
-    'reports-ui.service'
-).check_returncode()
-agent.run_helper(
-    'systemctl',
-    '--user',
-    'restart',
-    'reports-ui.service'
-).check_returncode()
