@@ -237,7 +237,7 @@ export default {
         isValidationOk = false;
       }
 
-      const reportsPrefixRegex = /^(\d{4}|\+\d{2})$/;
+      const reportsPrefixRegex = /^(00\d{2}|\+\d{2})$/;
       if (!reportsPrefixRegex.test(this.form.reports_international_prefix)) {
         this.error.reports_international_prefix = this.$t(
           "error.reports_prefix_invalid"
