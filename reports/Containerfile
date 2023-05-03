@@ -1,6 +1,6 @@
 ### REPOFETCHER ###
 # Multi-stage that installs git and fetches the repo from given version
-FROM docker.io/library/alpine:3.17.2 as repofetcher
+FROM docker.io/library/alpine:3.17.3 as repofetcher
 WORKDIR /app
 RUN apk add --no-cache git
 ARG NETHVOICE_REPORT_COMMIT=144e0af
@@ -27,7 +27,7 @@ RUN rm public/config/config.production.js \
     && npm run build
 
 # From build, copy content in nginx container
-FROM docker.io/library/nginx:1.23.3-alpine as ui-production
+FROM docker.io/library/nginx:1.24.0-alpine as ui-production
 COPY --from=node_build /app/dist /var/www/html/pbx-report
 # Adding production scripts
 COPY ui/config-gen.sh /docker-entrypoint.d/99-config-gen.sh
@@ -36,7 +36,7 @@ RUN chmod +x /docker-entrypoint.d/99-config-gen.sh
 
 ### API ###
 # Init go builder, installing needed dev packages
-FROM docker.io/library/golang:1.19.5-alpine as gobuilder
+FROM docker.io/library/golang:1.19.9-alpine as gobuilder
 WORKDIR /app
 RUN apk add --no-cache \
         build-base \
@@ -67,7 +67,7 @@ COPY --from=repofetcher /app/nethvoice-report/tasks/ /app/tasks
 RUN go build
 
 # Using alpine as runtime
-FROM docker.io/library/alpine:3.17.2 as api-production
+FROM docker.io/library/alpine:3.17.3 as api-production
 # Installing runtime dependencies
 RUN apk add --no-cache \
         jq \
