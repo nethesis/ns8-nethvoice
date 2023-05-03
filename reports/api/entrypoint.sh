@@ -11,6 +11,7 @@ if [ "$1" = "api" ]; then
   if [ ! -f /opt/nethvoice-report/api/user_authorizations.json ]; then
     echo "[]" > /opt/nethvoice-report/api/user_authorizations.json
   fi
+  chown asterisk:asterisk /opt/nethvoice-report/api/user_authorizations.json
 
   reports_config=/opt/nethvoice-report/api/conf.json
   cat > $reports_config <<EOF

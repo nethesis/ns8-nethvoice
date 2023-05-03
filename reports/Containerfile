@@ -30,11 +30,9 @@ RUN rm public/config/config.production.js \
 FROM docker.io/library/nginx:1.23.3-alpine as ui-production
 COPY --from=node_build /app/dist /var/www/html/pbx-report
 # Adding production scripts
-ADD https://raw.githubusercontent.com/eficode/wait-for/d48601a8a90c3d22fade68d09b4240739fb44a46/wait-for /usr/bin/wait-for
-COPY ui/entrypoint.sh /docker-entrypoint.d/99-wait-for-app.sh
+COPY ui/config-gen.sh /docker-entrypoint.d/99-config-gen.sh
 COPY ui/conf.d/ /etc/nginx/conf.d/
-RUN chmod +x /usr/bin/wait-for \
-    && chmod +x /docker-entrypoint.d/99-wait-for-app.sh
+RUN chmod +x /docker-entrypoint.d/99-config-gen.sh
 
 ### API ###
 # Init go builder, installing needed dev packages
@@ -76,7 +74,9 @@ RUN apk add --no-cache \
         librrd \
         linux-pam-dev \
         mariadb-client \
-        openldap-clients
+        openldap-clients \
+    && addgroup -g 991 asterisk \
+    && adduser -u 990 -G asterisk -s /bin/false -D asterisk
 # Adding production scripts
 ADD https://raw.githubusercontent.com/eficode/wait-for/d48601a8a90c3d22fade68d09b4240739fb44a46/wait-for /usr/bin/wait-for
 COPY api/entrypoint.sh /entrypoint
