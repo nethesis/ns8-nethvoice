@@ -166,6 +166,7 @@ mkdir -p \
 	/var/lib/asterisk/playback \
 	/var/run/asterisk/ \
 	/var/run/nethvoice/ \
+	/var/log/asterisk/ \
 	/var/www/html/freepbx/admin/assets/less/cache \
 	/var/www/html/freepbx/admin/modules/calendar/assets/less/cache \
 	/var/www/html/freepbx/admin/modules/cdr/assets/less/cache \
@@ -188,6 +189,7 @@ chown -R asterisk:asterisk \
 	/var/lib/asterisk/playback \
 	/var/run/asterisk/ \
 	/var/run/nethvoice/ \
+	/var/log/asterisk \
 	/var/www/html/freepbx/admin/assets/less/cache \
 	/var/www/html/freepbx/admin/modules/calendar/assets/less/cache \
 	/var/www/html/freepbx/admin/modules/cdr/assets/less/cache \
