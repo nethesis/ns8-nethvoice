@@ -1,0 +1,30 @@
+#!/usr/bin/env sh
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+
+# run asterisk instance so volumes are populated with initial data
+podman run \
+    --rm \
+    --detach \
+    --name asterisk_restore \
+    --volume=sounds:/var/lib/asterisk/sounds:Z \
+    --volume=astdb:/var/lib/asterisk/db:z \
+    "$NETHVOICE_ASTERISK_IMAGE" sleep infinity
+
+trap 'podman stop -t 0 asterisk_restore' EXIT
+
+# restore sqldump
+podman cp asterisk_backup/var/lib/asterisk/db/astdb.sqlite3.dump asterisk_restore:/var/lib/asterisk/db/astdb.sqlite3.dump
+podman exec asterisk_restore restore_astdb
+podman exec asterisk_restore chown asterisk:asterisk /var/lib/asterisk/db/astdb.sqlite3
+podman exec asterisk_restore rm /var/lib/asterisk/db/astdb.sqlite3.dump
+
+# restore all other files
+podman cp asterisk_backup/. asterisk_restore:/
+podman exec asterisk_restore chown -R asterisk:asterisk /var/lib/asterisk/sounds
+rm -rf asterisk_backup

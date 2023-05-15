@@ -1,0 +1,91 @@
+#!/usr/bin/env python
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import sys
+
+import agent
+
+# get old environment from action
+request = json.load(sys.stdin)
+old_envs = request['environment']
+
+# list of variables to restore
+restore_envs = [
+    'MARIADB_ROOT_PASSWORD',
+    'AMPDBUSER',
+    'AMPDBHOST',
+    'AMPDBNAME',
+    'AMPDBENGINE',
+    'AMPDBPASS',
+    'AMPMGRUSER',
+    'AMPMGRPASS',
+    'APACHE_RUN_USER',
+    'APACHE_RUN_GROUP',
+    'AMPASTERISKWEBGROUP',
+    'AMPASTERISKWEBUSER',
+    'NETHCTI_AMI_PASSWORD',
+    'BRAND_NAME',
+    'BRAND_SITE',
+    'BRAND_DOCS',
+    'CDRDBHOST',
+    'CDRDBNAME',
+    'CDRDBUSER',
+    'CDRDBPASS',
+    'NETHCTI_DB_HOST',
+    'NETHCTI_DB_USER',
+    'NETHCTI_DB_PASSWORD',
+    'TANCREDI_STATIC_TOKEN',
+    'NETHVOICESECRETKEY',
+    'JANUS_ADMIN_SECRET',
+    'JANUS_DEBUG_LEVEL',
+    'STUNSERVER',
+    'STUNPORT',
+    'ICEIGNORE',
+    'LOCAL_IP',
+    'TRAEFIK_HTTP2HTTPS',
+    'PHONEBOOK_DB_HOST',
+    'PHONEBOOK_DB_NAME',
+    'PHONEBOOK_DB_USER',
+    'PHONEBOOK_DB_PASS',
+    'PHONEBOOK_DB_USER',
+    'PHONEBOOK_LDAP_USER',
+    'PHONEBOOK_LDAP_PASS',
+    'PHONEBOOK_LDAP_LIMIT',
+    'REPORTS_PASSWORD',
+    'REPORTS_API_KEY',
+    'REPORTS_SECRET',
+    'NETHVOICE_HOST_LOCAL_NETWORKS',
+    'SUBSCRIPTION_SYSTEMID',
+    'SUBSCRIPTION_SECRET',
+    'NETHCTI_PREFIX',
+    'NETHCTI_AUTOC2C',
+    'NETHCTI_TRUNKS_EVENTS',
+    'NETHCTI_ALERTS',
+    'NETHCTI_AUTHENTICATION_ENABLED',
+    'NETHCTI_UNAUTHE_CALL',
+    'NETHCTI_UNAUTHE_CALL_IP',
+    'NETHCTI_JABBER_URL',
+    'NETHCTI_JABBER_DOMAIN',
+    'NETHCTI_CDR_SCRIPT',
+    'NETHCTI_CDR_SCRIPT_TIMEOUT',
+    'NETHCTI_CDR_SCRIPT_CALL_IN',
+    'NETHCTI_LOG_LEVEL',
+    'CONFERENCE_JITSI_URL',
+    'BRAND_APPID',
+    'FLEXISIP_LOG_LEVEL',
+    'NETHCTI_UI_PRODUCT_NAME',
+    'NETHCTI_UI_COMPANY_NAME',
+    'NETHCTI_UI_COMPANY_URL',
+    'USER_DOMAIN',
+    'REPORTS_UI_APP_NAME',
+    'REPORTS_UI_HELP_URL',
+    'REPORTS_UI_COMPANY_NAME',
+]
+
+for env in restore_envs:
+    agent.set_env(env, old_envs[env])

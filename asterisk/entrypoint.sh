@@ -5,10 +5,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-# initialize manager.conf with credentials from environment
-if [[ ! -f /etc/asterisk/manager.conf ]]; then
-        # Configure asterisk manager
-        cat > /etc/asterisk/manager.conf <<EOF
+# Configure asterisk manager
+cat > /etc/asterisk/manager.conf <<EOF
 [general]
 enabled = yes
 port = ${ASTMANAGERPORT:-5038}
@@ -27,7 +25,6 @@ writetimeout = 5000
 #include manager_custom.conf
 EOF
 chown asterisk:asterisk /etc/asterisk/manager.conf
-fi
 
 # Configure ODBC for asteriskcdrdb
 cat > /etc/odbc.ini <<EOF
