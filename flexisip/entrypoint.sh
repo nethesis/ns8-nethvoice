@@ -5,6 +5,7 @@ cat <<EOF > /etc/flexisip/flexisip.conf
 default-servers=proxy
 enable-snmp=false
 log-directory=/var/log
+log-filename=flexisip.log
 log-level=${FLEXISIP_LOG_LEVEL}
 transports=sips:${NETHVOICE_HOST}:${FLEXISIP_PORT};maddr=0.0.0.0;tls-verify-outgoing=0
 
