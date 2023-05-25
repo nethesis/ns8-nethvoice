@@ -1,14 +1,26 @@
-FROM docker.io/library/debian:buster-slim as production
+FROM docker.io/library/debian:10.13-slim
 
-RUN apt-get update && apt-get install -y wget gnupg2
-RUN echo 'deb [arch=amd64] http://linphone.org/snapshots/debian buster stable' > /etc/apt/sources.list.d/belledonne.list
-RUN wget https://linphone.org/snapshots/debian/keyring.gpg -O - | apt-key add -
-RUN apt-get update && apt-get install -y libmariadb-dev && apt-get install -y bc-flexisip=2.1.5-1
-RUN apt-get -y remove wget gnupg2 && apt -y autoremove && apt-get -y clean
-
-RUN addgroup --system --gid 991 asterisk && adduser --system --uid 990 --shell /bin/false --home /var/lib/asterisk --gecos 'Asterisk User' --ingroup asterisk asterisk
-RUN mkdir -p /etc/flexisip/tls && chown asterisk:asterisk /etc/flexisip
-RUN mkdir -p /etc/asterisk && chown asterisk:asterisk /etc/asterisk
+RUN apt-get update \
+    && apt-get install -y \
+        gnupg2 \
+        wget \
+    && echo 'deb [arch=amd64] http://linphone.org/snapshots/debian buster stable' > /etc/apt/sources.list.d/belledonne.list \
+    && wget https://linphone.org/snapshots/debian/keyring.gpg -O - | apt-key add - \
+    && apt-get update \
+    && apt-get install -y \
+        libmariadb-dev \
+        bc-flexisip=2.1.5-1 \
+    && apt-get remove -y \
+        gnupg2 \
+        wget \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* \
+    && addgroup --system --gid 991 asterisk \
+    && adduser --system --uid 990 --shell /bin/false --home /var/lib/asterisk --gecos 'Asterisk User' --ingroup asterisk asterisk \
+    && mkdir -p /etc/flexisip/tls \
+    && chown asterisk:asterisk /etc/flexisip \
+    && mkdir -p /etc/asterisk \
+    && chown asterisk:asterisk /etc/asterisk
 
 COPY entrypoint.sh /entrypoint
 ENTRYPOINT ["/entrypoint"]
