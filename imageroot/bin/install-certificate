@@ -7,35 +7,33 @@
 
 set -e
 
-if [[ -z "${NETHVOICE_HOST}" ]]; then
+if [[ -z "$NETHVOICE_HOST" ]]; then
     exit 3 # Module is not fully configured, abort execution.
 fi
 
-mkdir -vp ${AGENT_STATE_DIR}/certificates/
-
-# trap to clean tmp files
-certtmp=$(mktemp cert.pem.XXXXXX)
-keytmp=$(mktemp key.pem.XXXXXX)
-
-trap 'rm -f ${certtmp} ${keytmp}' EXIT
+mkdir -vp "$AGENT_STATE_DIR/certificates/"
 
 umask 0077
 
 # Override redis-exec "privileged=True"
 export REDIS_USER=default
 
-mtraefik=$(redis-exec GET "node/${NODE_ID}/default_instance/traefik")
+traefik_instance=$(redis-exec GET "node/${NODE_ID}/default_instance/traefik")
 
-redis-exec HGET "module/${mtraefik}/certificate/${NETHVOICE_HOST}" key | base64 -d > ${keytmp}
-redis-exec HGET "module/${mtraefik}/certificate/${NETHVOICE_HOST}" cert | base64 -d > ${certtmp}
-
-if [[ $(head -c 5 server.key) != '-----' || $(head -c 5 server.pem) != '-----' ]]; then
-    echo "[WARNING] ${service_image} certificate for ${NETHVOICE_HOST} not found" 1>&2
-    exit 2
+if [ "0" = "$(redis-exec EXISTS "module/$traefik_instance/certificate/$NETHVOICE_HOST")" ]; then
+    echo "Certificate for $NETHVOICE_HOST is missing."
+    exit 4
 fi
 
-cat ${keytmp} ${certtmp} > certificates/NethServer.pem
-mv ${keytmp} certificates/NethServer.key
-mv ${certmp} certificates/NethServer.crt
+redis-exec HGET "module/$traefik_instance/certificate/$NETHVOICE_HOST" key | base64 -d > "certificates/$NETHVOICE_HOST.key"
+redis-exec HGET "module/$traefik_instance/certificate/$NETHVOICE_HOST" cert | base64 -d > "certificates/$NETHVOICE_HOST.crt"
 
-# Important! preserve import-certificate exit code
+cat "certificates/$NETHVOICE_HOST.key" "certificates/$NETHVOICE_HOST.crt" > "certificates/$NETHVOICE_HOST.pem"
+
+# generate certs for flexisip
+mkdir -p certificates/flexisip
+awk -v RS= '{print > ("certificates/flexisip/chain-" NR ".crt")}' "certificates/${NETHVOICE_HOST}.crt"
+cat "certificates/${NETHVOICE_HOST}.key" certificates/flexisip/chain-1.crt > certificates/flexisip/agent.pem
+rm certificates/flexisip/chain-1.crt
+cat certificates/flexisip/chain-*.crt > certificates/flexisip/cafile.pem
+rm -rf certificates/flexisip/chain-*.crt
