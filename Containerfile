@@ -21,7 +21,7 @@ COPY imageroot /imageroot
 # copy ui from ui_builder
 COPY --from=ui_builder /app/dist /ui
 ENTRYPOINT [ "/" ]
-LABEL org.nethserver.authorizations="traefik@any:routeadm node:fwadm"
+LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm"
 LABEL org.nethserver.tcp-ports-demand="32"
 LABEL org.nethserver.rootfull="0"
 ARG REPOBASE=ghcr.io/nethserver
