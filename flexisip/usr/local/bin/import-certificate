@@ -1,0 +1,26 @@
+#!/bin/ash
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+dest=/etc/flexisip/tls
+
+tmpdir=$(mktemp -d)
+trap 'rm -rf ${tmpdir}' EXIT
+cd "${tmpdir}"
+tar x -o -f -
+
+if [ ! -s server.pem ] || [ ! -s server.key ]; then
+    # empty file: abort
+    exit 3
+fi
+
+if diff -q "${dest}"/agent.pem <(cat server.key server.pem) ; then
+    # files are equal: abort
+    exit 2
+fi
+
+cat server.key server.pem | install -o root -g root -m 444 /dev/stdin "${dest}"/agent.pem

@@ -11,32 +11,42 @@ if [[ -z "${NETHVOICE_HOST}" ]]; then
     exit 3 # Module is not fully configured, abort execution.
 fi
 
-mkdir -vp ${AGENT_STATE_DIR}/certificates/
+declare -A images
 
-# trap to clean tmp files
-certtmp=$(mktemp cert.pem.XXXXXX)
-keytmp=$(mktemp key.pem.XXXXXX)
+images=([flexisip]="${NETHVOICE_FLEXISIP_IMAGE}")
 
-trap 'rm -f ${certtmp} ${keytmp}' EXIT
+service="${1:?}"
+service_image="${images[$service]:?Unknown service $service}"
 
-umask 0077
+tmpdir=$(mktemp -d)
+trap 'rm -rf ${tmpdir}' EXIT
+
+if [[ -f dh.pem ]]; then
+    with_dh_group=1
+    cp -p dh.pem "${tmpdir}"/dh.pem
+fi
+
+cd "${tmpdir}"
+umask 077
 
 # Override redis-exec "privileged=True"
 export REDIS_USER=default
 
 mtraefik=$(redis-exec GET "node/${NODE_ID}/default_instance/traefik")
 
-redis-exec HGET "module/${mtraefik}/certificate/${NETHVOICE_HOST}" key | base64 -d > ${keytmp}
-redis-exec HGET "module/${mtraefik}/certificate/${NETHVOICE_HOST}" cert | base64 -d > ${certtmp}
+redis-exec HGET "module/${mtraefik}/certificate/${MAIL_HOSTNAME}" key | base64 -d > server.key
+redis-exec HGET "module/${mtraefik}/certificate/${MAIL_HOSTNAME}" cert | base64 -d > server.pem
 
 if [[ $(head -c 5 server.key) != '-----' || $(head -c 5 server.pem) != '-----' ]]; then
-    echo "[WARNING] ${service_image} certificate for ${NETHVOICE_HOST} not found" 1>&2
+    echo "[WARNING] ${service_image} certificate for ${MAIL_HOSTNAME} not found" 1>&2
     exit 2
 fi
 
-cat ${keytmp} ${certtmp} > certificates/NethServer.pem
-cat ${keytmp} ${certtmp} > certificates/agent.pem
-mv ${keytmp} certificates/NethServer.key
-mv ${certmp} certificates/NethServer.crt
+tar -c -O server.key server.pem ${with_dh_group:+dh.pem} | podman run \
+    --interactive \
+    --replace --rm --name "${service}-import-certificate" \
+    --image-volume=tmpfs \
+    --volume="${service}-cert:/etc/ssl/${service}:z" \
+    "${service_image}" \
+    import-certificate
 
-# Important! preserve import-certificate exit code
