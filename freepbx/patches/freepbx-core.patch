@@ -1,0 +1,129 @@
+diff --git a/Dialplan/macroDialone.php b/Dialplan/macroDialone.php
+index 7fbd245e..7ddf5046 100644
+--- a/Dialplan/macroDialone.php
++++ b/Dialplan/macroDialone.php
+@@ -132,6 +132,7 @@ class macroDialone{
+ 
+ 		$exten = 'cf';
+ 		$ext->add($mcontext,$exten,'', new \ext_set('CFAMPUSER', '${IF($["${AMPUSER}"=""]?${CALLERID(number)}:${AMPUSER})}'));
++		$ext->add($mcontext,$exten,'', new ext_execif('$["${DB(AMPUSER/${DB_RESULT}/cidnum)}" == ""]', 'Set','__REALCALLERIDNUM=${DEXTEN}'));
+ 		$ext->add($mcontext,$exten,'', new \ext_execif('$["${DB(CF/${DEXTEN})}"="${CFAMPUSER}" | "${DB(CF/${DEXTEN})}"="${REALCALLERIDNUM}" | "${CUT(CUT(BLINDTRANSFER,-,1),/,1)}" = "${DB(CF/${DEXTEN})}" | "${DEXTEN}"="${DB(CF/${DEXTEN})}"]', 'Return'));
+ 		$ext->add($mcontext,$exten,'', new \ext_execif('$["${DB(AMPUSER/${DEXTEN}/cfringtimer)}" != "0" & "${DB(AMPUSER/${DEXTEN}/cfringtimer)}" != ""]', 'Set', 'ARG1=${IF($["${DB(AMPUSER/${DEXTEN}/cfringtimer)}"="-1"]? : ${DB(AMPUSER/${DEXTEN}/cfringtimer)})}'));
+ 		// FREEPBX-11431 Call Forward Ringtimer Default - Setting does not work
+diff --git a/agi-bin/dialparties.agi b/agi-bin/dialparties.agi
+index 418a76a8..4ca1428f 100755
+--- a/agi-bin/dialparties.agi
++++ b/agi-bin/dialparties.agi
+@@ -896,6 +896,7 @@ function get_dial_string( $agi, $extnum, $use_confirmation, $ringgroup_index ) {
+ 				// Check to see if this is a PJSIP device. If so, grab
+ 				// the correct dial string from PJSIP_DIAL_CONTACTS.
+ 
++				if (empty($dds['data'])) continue;
+ 				$ds = $dds['data'];
+ 				if (substr($ds, 0, 5) === "PJSIP") {
+ 					debug("Discovered PJSIP Endpoint $ds", 2);
+diff --git a/agi-bin/setContext.php b/agi-bin/setContext.php
+new file mode 100755
+index 00000000..7bc9cda3
+--- /dev/null
++++ b/agi-bin/setContext.php
+@@ -0,0 +1,37 @@
++#!/usr/bin/env php
++<?php
++
++#
++#    Copyright (C) 2021 Nethesis S.r.l.
++#    http://www.nethesis.it - support@nethesis.it
++#
++#    This file is part of FreePBX
++#
++#    This is free software: you can redistribute it and/or modify
++#    it under the terms of the GNU General Public License as published by
++#    the Free Software Foundation, either version 3 of the License, or any
++#    later version.
++#
++#    ReturnOnTransfer module is distributed in the hope that it will be useful,
++#    but WITHOUT ANY WARRANTY; without even the implied warranty of
++#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++#    GNU General Public License for more details.
++#
++#    You should have received a copy of the GNU General Public License
++#    along with ReturnOnTransfer module.  If not, see <http://www.gnu.org/licenses/>.
++#
++$restrict_mods = true; //dont load any functions.inc.phps
++include "/etc/freepbx.conf";
++require_once "phpagi.php";
++
++$db = FreePBX::create()->Database;
++$agi = new AGI();
++$extension = $argv[1];
++
++//get ext context
++$sql2 = "SELECT data FROM sip where `keyword`='context' and `id` = :extension";
++$sth = $db->prepare($sql2);
++$sth->execute(array(':extension' => $extension));
++$extension_context = $sth->fetch(\PDO::FETCH_COLUMN);
++
++@$agi->exec("Set", "ext_context=$extension_context");
+diff --git a/etc/extensions.conf b/etc/extensions.conf
+index a819602d..3225c057 100644
+--- a/etc/extensions.conf
++++ b/etc/extensions.conf
+@@ -198,6 +198,7 @@ exten => s,n,Wait(2)
+ exten => s,n,Playback(ss-noservice)
+ exten => s,n,Playtones(congestion)
+ exten => s,n,Congestion(5)
++exten => s,n,Hangup
+ exten => h,1,Hangup
+ exten => i,1,Hangup
+ exten => t,1,Hangup
+diff --git a/functions.inc.php b/functions.inc.php
+index d9061dd9..ca3a6fec 100644
+--- a/functions.inc.php
++++ b/functions.inc.php
+@@ -1306,19 +1306,23 @@ function core_do_get_config($engine) {
+ 			$intercom_code = $fcc->getCodeActive();
+ 			unset($fcc);
+ 
+-			$picklist = '${EXTEN:'.$fclen.'}';
++			// Add GROPUEXTENSION_CONTEXT nethesis/dev#6059
++
++			$picklist = '${EXTEN:'.$fclen.'}@${ext_context}';
+ 			$picklist .= '&${EXTEN:'.$fclen.'}@PICKUPMARK';
+ 			$ext->add('app-pickup', "_$fc_pickup.", '', new ext_macro('user-callerid'));
+ 			$ext->add('app-pickup', "_$fc_pickup.", '', new ext_set('PICKUP_EXTEN','${AMPUSER}'));
++			$ext->add('app-pickup', "_$fc_pickup.", '', new ext_agi('setContext.php,${EXTEN:'.$fclen.'}'));
+ 			$ext->add('app-pickup', "_$fc_pickup.", '', new $ext_pickup($picklist));
+ 			$ext->add('app-pickup', "_$fc_pickup.", '', new ext_hangup(''));
+ 
+ 			if ($intercom_code != '') {
+ 				$len = strlen($fc_pickup.$intercom_code);
+-				$picklist  = '${EXTEN:'.$len.'}';
++				$picklist  = '${EXTEN:'.$len.'}@${ext_context}';
+ 				$picklist .= '&${EXTEN:'.$len.'}@PICKUPMARK';
+ 				$ext->add('app-pickup', "_{$fc_pickup}{$intercom_code}.", '', new ext_macro('user-callerid'));
+ 				$ext->add('app-pickup', "_{$fc_pickup}{$intercom_code}.", '', new ext_set('PICKUP_EXTEN','${AMPUSER}'));
++				$ext->add('app-pickup', "_{$fc_pickup}{$intercom_code}.", '', new ext_agi('setContext.php,${EXTEN:'.$len.'}'));
+ 				$ext->add('app-pickup', "_{$fc_pickup}{$intercom_code}.", '', new $ext_pickup($picklist));
+ 				$ext->add('app-pickup', "_{$fc_pickup}{$intercom_code}.", '', new ext_hangup(''));
+ 			}
+@@ -1344,11 +1348,17 @@ function core_do_get_config($engine) {
+ 			// so we need to generate the callpickup dialplan for these specific extensions
+ 			// to try the ringgoup.
+ 			foreach ($rg_members as $exten => $grps) {
+-				$picklist  = $exten;
++				// Add GROPUEXTENSION_CONTEXT nethesis/dev#6059
++				$exten_data = \FreePBX::Core()->getDevice($exten);
++				$exten_context = (!empty($exten_data['context']) ? $exten_data['context'] : 'from-internal');
++				$picklist  = $exten.'@'.$exten_context;
+ 				$picklist .= '&'.$exten.'@PICKUPMARK';
+ 
+ 				foreach ($grps as $grp) {
+-					$picklist .= '&'.$grp.'@from-internal';
++					// Add GROPUEXTENSION_CONTEXT nethesis/dev#6039
++					$exten_data = \FreePBX::Core()->getDevice($exten);
++					$exten_context = (!empty($exten_data['context']) ? $exten_data['context'] : 'from-internal');
++					$picklist .= '&'.$grp.'@'.$exten_context;
+ 					$picklist .= '&'.$grp.'@from-internal-xfer';
+ 					$picklist .= '&'.$grp.'@ext-group';
+ 				}

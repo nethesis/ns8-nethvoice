@@ -1,0 +1,55 @@
+#!/usr/bin/env sh
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+
+# clean container files on exit
+cleanup () {
+    podman exec mariadb rm -rf /tmp/db_backup
+    podman exec asterisk rm -f /var/lib/asterisk/db/astdb.sqlite3.dump
+}
+
+trap cleanup EXIT
+
+## MariaDB
+# exec mariabackup to save database in /tmp/db_backup
+podman exec mariadb \
+    mariabackup \
+        --backup \
+        --target-dir=/tmp/db_backup \
+        --user=root \
+        --password="${MARIADB_ROOT_PASSWORD}"
+# copy db_backup in local filesystem
+podman cp mariadb:/tmp/db_backup db_backup
+
+
+## Asterisk
+
+# /var/lib/asterisk/db/astdb.sqlite3.dump
+# /var/lib/asterisk/sounds/*/custom
+# /var/lib/asterisk/sounds/nethcti
+# /var/spool/asterisk/voicemail
+# /var/spool/asterisk/monitor
+
+# dump asterisk sqlite db
+podman exec asterisk backup_astdb
+# copy sqlite db to local filesystem
+mkdir -p asterisk_backup/var/lib/asterisk/db
+podman cp asterisk:/var/lib/asterisk/db/astdb.sqlite3.dump asterisk_backup/var/lib/asterisk/db/astdb.sqlite3.dump
+
+# copy only custom sounds
+sounds_dirs=$(podman exec asterisk find /var/lib/asterisk/sounds -type d -name custom)
+for dir in $sounds_dirs; do
+    mkdir -p "asterisk_backup$dir"
+    podman cp "asterisk:$dir/." "asterisk_backup$dir"
+done
+
+# copy nethcti sounds
+if podman exec asterisk ls -alh /var/lib/asterisk/sounds/nethcti >/dev/null 2>&1; then
+    mkdir -p asterisk_backup/var/lib/asterisk/sounds/nethcti
+    podman cp asterisk:/var/lib/asterisk/sounds/nethcti/. asterisk_backup/var/lib/asterisk/sounds/nethcti
+fi

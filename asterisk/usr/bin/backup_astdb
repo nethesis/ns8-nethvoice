@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+
+sqlite3 /var/lib/asterisk/db/astdb.sqlite3 .dump | grep -v "VALUES('\\/SIP\\|VALUES('\\/RG\\|VALUES('\\/BLKVM\\|VALUES('\\/FM\\|VALUES('\\/dundi\\|VALUES('\\/\\/\\|VALUES('\\/IAX])\\|VALUES('\\/CALLTRACE\\|ccss\\/last_number" > /var/lib/asterisk/db/astdb.sqlite3.dump

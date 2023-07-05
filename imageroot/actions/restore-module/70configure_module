@@ -1,0 +1,26 @@
+#!/usr/bin/env python
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import sys
+import os
+
+import agent
+
+# get old environment from action
+request = json.load(sys.stdin)
+old_envs = request['environment']
+
+# call configure module
+response = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-module', data={
+    "nethvoice_host": old_envs["NETHVOICE_HOST"],
+    "nethcti_ui_host": old_envs["NETHCTI_UI_HOST"],
+    "lets_encrypt": old_envs["TRAEFIK_LETS_ENCRYPT"] == 'true',
+    "reports_international_prefix": old_envs["REPORTS_INTERNATIONAL_PREFIX"],
+})
+
+agent.assert_exp(response['exit_code'] == 0)

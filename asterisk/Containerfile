@@ -42,6 +42,8 @@ RUN mkdir download \
 COPY --chown=asterisk:asterisk etc/asterisk /etc/asterisk
 COPY etc/odbc.ini /etc/odbc.ini
 COPY var/lib/asterisk /var/lib/asterisk
+COPY usr/bin/backup_astdb /usr/bin/backup_astdb
+COPY usr/bin/restore_astdb /usr/bin/restore_astdb
 RUN chown asterisk:asterisk /var/lib/asterisk/db
 COPY entrypoint.sh /entrypoint
 ENTRYPOINT [ "/entrypoint" ]

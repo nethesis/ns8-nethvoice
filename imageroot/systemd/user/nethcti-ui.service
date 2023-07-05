@@ -25,6 +25,7 @@ ExecStart=/usr/bin/podman run \
     --env=COMPANY_URL=${NETHCTI_COMPANY_URL} \
     --env=API_ENDPOINT=${NETHVOICE_HOST} \
     --env=PORT=${NETHCTI_UI_PORT} \
+    --env=SIP_PORT=${ASTERISK_SIP_PORT} \
     ${NETHVOICE_CTI_UI_IMAGE}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/nethcti-ui.ctr-id

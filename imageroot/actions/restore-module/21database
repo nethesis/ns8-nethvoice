@@ -1,0 +1,28 @@
+#!/usr/bin/env sh
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+
+# prepare restore
+podman run \
+    --rm \
+    --name=prepare_db \
+    --volume=./db_backup:/backup:z \
+    "${NETHVOICE_MARIADB_IMAGE}" \
+    mariabackup --prepare --target-dir=/backup
+
+# execute restore in mariadb-data volume
+podman run \
+    --rm \
+    --name=restore_backup \
+    --volume=./db_backup:/backup:z \
+    --volume=mariadb-data:/var/lib/mysql:z \
+    "${NETHVOICE_MARIADB_IMAGE}" \
+    mariabackup --copy-back --target-dir=/backup
+
+# remove backup folder
+rm -rf db_backup

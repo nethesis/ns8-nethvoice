@@ -59,6 +59,7 @@ ExecStart=/usr/bin/podman run \
     --env=SUBSCRIPTION_SYSTEMID \
     --env=SUBSCRIPTION_SECRET \
     --network=host \
+    --hostname=${NETHVOICE_HOST} \
     ${NETHVOICE_FREEPBX_IMAGE}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/freepbx.ctr-id

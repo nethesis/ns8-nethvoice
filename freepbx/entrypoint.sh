@@ -7,7 +7,7 @@
 
 # Customized wizard page
 cat > /etc/apache2/sites-available/wizard.conf <<EOF
-Alias /$(echo ${BRAND_NAME:=NethVoice} | tr '[:upper:]' '[:lower:]') /var/www/html/freepbx/wizard
+Alias /$(echo "${BRAND_NAME:=NethVoice}" | tr '[:upper:]' '[:lower:]') /var/www/html/freepbx/wizard
 EOF
 
 # Link rewrite configuration
@@ -126,16 +126,103 @@ if [[ ! -f /etc/asterisk/extensions_additional.conf ]]; then
 	php -r 'include_once "/etc/freepbx_db.conf"; $db->query("UPDATE admin SET value = \"true\" WHERE variable = \"need_reload\"");'
 fi
 
-# Always apply changes on start
-su - asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload"
-
 # Configure users
 php /configure_users.php
+
+# Make sure config dir is writable from nethcti and freepbx containers
+chown -R asterisk:asterisk /etc/nethcti
+
+# Change Apache httpd port
+sed -i "s/<VirtualHost \*:80>/<VirtualHost \*:${APACHE_PORT}>/" /etc/apache2/sites-enabled/000-default.conf
+sed -i "s/Listen 80/Listen ${APACHE_PORT}/" /etc/apache2/ports.conf
+
+# Load apache envvars
+source /etc/apache2/envvars
+
+# Install FreePBX modules if required
+module_status=$(mktemp)
+trap 'rm -f ${module_status}' EXIT
+fwconsole ma list | grep '^| ' | grep -v '^| Module'| awk '{print $2,$6}' > $module_status
+for module in \
+        framework \
+        soundlang \
+        recordings \
+        announcement \
+        manager \
+        arimanager \
+        asteriskinfo \
+        filestore \
+        backup \
+        pm2 \
+        core \
+        cdr \
+        blacklist \
+        bosssecretary \
+        bulkdids \
+        calendar \
+        callback \
+        callforward \
+        callrecording \
+        callwaiting \
+        cel \
+        certman \
+        conferences \
+        customappsreg \
+        customcontexts \
+        dashboard \
+        daynight \
+        directdid \
+        disa \
+        donotdisturb \
+        extraoptions \
+        fax \
+        featurecodeadmin \
+        findmefollow \
+        googletts \
+        iaxsettings \
+        inboundlookup \
+        infoservices \
+        ivr \
+        languages \
+        logfiles \
+        miscapps \
+        music \
+        nethcqr \
+        nethcti3 \
+        nethdash \
+        outboundlookup \
+        outroutemsg \
+        paging \
+        parking \
+        pin \
+        pm2 \
+        queues \
+        queueexit \
+        queuemetrics \
+        queueoptions \
+        queueprio \
+        rapidcode \
+        recallonbusy \
+        returnontransfer \
+        ringgroups \
+        setcid \
+        sipsettings \
+        timeconditions \
+        userman \
+        visualplan \
+        voicemail \
+        vmblast
+do
+    if ! test -s "$module_status" || grep -q "$module " "$module_status" && ! grep -q "$module Enabled" "$module_status" ; then
+        echo Installing module $module
+        fwconsole moduleadmin install $module
+    fi
+done
 
 # Sync users
 fwconsole userman --syncall --force --verbose
 
-# Make sure config dir is writable from nethcti and freepbx containers
-chown -R asterisk:asterisk /etc/nethcti
+# Always apply changes on start
+su - asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload"
 
 exec "$@"

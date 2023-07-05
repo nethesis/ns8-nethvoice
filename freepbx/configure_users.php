@@ -112,6 +112,7 @@ if (empty($results)) {
 	$stmt = $db->prepare($sql);
 	$stmt->execute([$driver]);
 	$id = $db->lastInsertId();
+	$ldap_settings['name'] = 'NethServer8';
 } else {
 	// If userbase is "custom" exit without changes
 	if ($results[0]['name'] === 'NethServer8 [custom]') {
@@ -150,4 +151,3 @@ $sql = "INSERT INTO kvstore_FreePBX_modules_Userman (`key`, `val`, `type`, `id`)
 $stmt = $db->prepare($sql);
 $stmt->execute([json_encode($ldap_settings), $id]);
 echo $ldap_settings['name'] . " userbase configuration: " . json_encode($ldap_settings) . "\n";
-

@@ -26,6 +26,8 @@ $vars = array(
 	'AMPASTERISKUSER' => (empty($_ENV['AMPASTERISKUSER']) ? 'asterisk' : $_ENV['AMPASTERISKUSER']),
 	'AMPASTERISKWEBGROUP' => (empty($_ENV['AMPASTERISKWEBGROUP']) ? 'asterisk' : $_ENV['AMPASTERISKWEBGROUP']),
 	'AMPASTERISKWEBUSER' => (empty($_ENV['AMPASTERISKWEBUSER']) ? 'asterisk' : $_ENV['AMPASTERISKWEBUSER']),
+	'CELDBNAME' => 'asteriskcdrdb',
+	'CELDBTABLENAME' => 'cel',
 );
 
 $exec = [];
@@ -83,3 +85,14 @@ if (empty($res)) {
         // Enable needreload
         $db->query("UPDATE `asterisk`.`admin` SET `value` = 'true' WHERE `variable` = 'need_reload'");
 }
+
+// Cleanup freepbx_settings from deprecated entries
+$deprecated = array(
+	'AST_FUNC_CONNECTEDLINE',
+	'AST_FUNC_MASTER_CHANNEL',
+	'AST_FUNC_SHARED',
+	'AST_FUNC_EXTENSION_STATE',
+	'AST_FUNC_PRESENCE_STATE'
+);
+$sql = 'DELETE FROM `asterisk`.`freepbx_settings` WHERE `keyword` IN ("'.implode('","',$deprecated).'")';
+$db->query($sql);

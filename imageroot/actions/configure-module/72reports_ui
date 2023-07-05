@@ -37,8 +37,8 @@ response = agent.tasks.run(
     data={
         'instance': os.environ['MODULE_ID'] + '-reports-ui',
         'url': 'http://127.0.0.1:' + os.environ["REPORTS_UI_PORT"],
-        'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "True",
-        'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
+        'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
+        'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "true",
         'host': os.environ["NETHVOICE_HOST"],
         'path': '/pbx-report'
     },
