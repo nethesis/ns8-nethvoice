@@ -317,6 +317,7 @@ RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/dpkg/
 RUN mkdir -p /usr/share/phonebooks/ && \
 	curl -L https://github.com/nethesis/nethserver-phonebook-mysql/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=5 -C /usr/share/phonebooks/ nethserver-phonebook-mysql-ns8/root/usr/share/phonebooks
 
+COPY etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-default.conf
 COPY entrypoint.sh /entrypoint
 CMD ["apache2-foreground","-f","/etc/apache2/apache2.conf"]
 ENTRYPOINT ["/entrypoint"]
