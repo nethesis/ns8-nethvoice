@@ -7,7 +7,6 @@
 HOST=$1
 
 mkdir -vp certificates
-mkdir -vp certificates/flexisip
 
 cd certificates
 
