@@ -34,11 +34,11 @@ export REDIS_USER=default
 
 mtraefik=$(redis-exec GET "node/${NODE_ID}/default_instance/traefik")
 
-redis-exec HGET "module/${mtraefik}/certificate/${MAIL_HOSTNAME}" key | base64 -d > server.key
-redis-exec HGET "module/${mtraefik}/certificate/${MAIL_HOSTNAME}" cert | base64 -d > server.pem
+redis-exec HGET "module/${mtraefik}/certificate/${NETHVOICE_HOST}" key | base64 -d > server.key
+redis-exec HGET "module/${mtraefik}/certificate/${NETHVOICE_HOST}" cert | base64 -d > server.pem
 
 if [[ $(head -c 5 server.key) != '-----' || $(head -c 5 server.pem) != '-----' ]]; then
-    echo "[WARNING] ${service_image} certificate for ${MAIL_HOSTNAME} not found" 1>&2
+    echo "[WARNING] ${service_image} certificate for ${NETHVOICE_HOST} not found" 1>&2
     exit 2
 fi
 
