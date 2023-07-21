@@ -146,15 +146,13 @@ images+=("${repobase}/${reponame}")
 #############################
 echo "[*] Build Janus Gateway container"
 reponame="nethvoice-janus"
-container=$(buildah from docker.io/canyan/janus-gateway:master)
-buildah add "${container}" janus/ /
-buildah run "${container}" mkdir /etc/certificates
-buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
+pushd janus
+buildah build --force-rm --layers --jobs "$(nproc)" --tag "${repobase}/${reponame}"
+popd
 
-# Commit the image
-buildah commit "${container}" "${repobase}/${reponame}"
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
+
 
 #########################
 ##      Phonebook      ##

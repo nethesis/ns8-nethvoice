@@ -1,0 +1,9 @@
+FROM docker.io/canyan/janus-gateway:master as production
+RUN mkdir -p /etc/certificates
+COPY usr/local/bin/import-certificate /usr/local/bin/import-certificate
+COPY usr/local/etc/janus/janus.plugin.sip.jcfg /usr/local/etc/janus/janus.plugin.sip.jcfg
+COPY usr/local/etc/janus/janus.jcfg /usr/local/etc/janus/janus.jcfg
+COPY usr/local/etc/janus/janus.transport.http.jcfg /usr/local/etc/janus/janus.transport.http.jcfg
+COPY entrypoint.sh  /entrypoint
+COPY usr/local/bin/import-certificate /usr/local/bin/import-certificate
+ENTRYPOINT ["/entrypoint"]

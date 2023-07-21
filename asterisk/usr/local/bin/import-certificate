@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+dest=/etc/asterisk/keys
+
+tmpdir=$(mktemp -d)
+trap 'rm -rf ${tmpdir}' EXIT
+cd "${tmpdir}"
+tar x -o -f -
+
+if [ -s dh.pem ]; then
+    install -o root -g root -m 644 dh.pem "${dest}"/dh.pem
+fi
+
+if [ ! -s server.pem ] || [ ! -s server.key ]; then
+    # empty file: abort
+    exit 3
+fi
+
+if diff -q server.pem "${dest}"/NethServer.pem ; then
+    # files are equal: abort
+    exit 2
+fi
+
+install -o root -g root -m 444 server.pem "${dest}"/NethServer.pem
+install -o root -g root -m 444 server.key "${dest}"/NethServer.key

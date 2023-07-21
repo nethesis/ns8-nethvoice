@@ -44,6 +44,7 @@ COPY etc/odbc.ini /etc/odbc.ini
 COPY var/lib/asterisk /var/lib/asterisk
 COPY usr/bin/backup_astdb /usr/bin/backup_astdb
 COPY usr/bin/restore_astdb /usr/bin/restore_astdb
+COPY usr/local/bin/import-certificate /usr/local/bin/import-certificate
 RUN chown asterisk:asterisk /var/lib/asterisk/db
 COPY entrypoint.sh /entrypoint
 ENTRYPOINT [ "/entrypoint" ]

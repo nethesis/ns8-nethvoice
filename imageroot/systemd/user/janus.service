@@ -22,7 +22,7 @@ ExecStart=/usr/bin/podman run \
     --env=LOCAL_IP \
     --env=JANUS_TRANSPORT_PORT \
     --volume=/dev/log:/dev/log \
-    --volume=./certificates:/etc/certificates:z \
+    --volume=janus-cert:/etc/certificates:z \
     --network=host \
     ${NETHVOICE_JANUS_IMAGE} \
     /usr/local/bin/janus \

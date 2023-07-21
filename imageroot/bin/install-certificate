@@ -12,8 +12,10 @@ if [[ -z "${NETHVOICE_HOST}" ]]; then
 fi
 
 declare -A images
+declare -A destinations
 
-images=([flexisip]="${NETHVOICE_FLEXISIP_IMAGE}")
+images=([flexisip]="${NETHVOICE_FLEXISIP_IMAGE}" [janus]="${NETHVOICE_JANUS_IMAGE}" [asterisk]="${NETHVOICE_ASTERISK_IMAGE}")
+destinations=([flexisip]="/etc/flexisip/tls" [janus]="/etc/certificates" [asterisk]="/etc/asterisk/keys")
 
 service="${1:?}"
 service_image="${images[$service]:?Unknown service $service}"
@@ -46,7 +48,7 @@ tar -c -O server.key server.pem ${with_dh_group:+dh.pem} | podman run \
     --interactive \
     --replace --rm --name "${service}-import-certificate" \
     --image-volume=tmpfs \
-    --volume="${service}-cert:/etc/flexisip/tls:z" \
+    --volume="${service}-cert:${destinations[$service]}:z" \
     "${service_image}" \
     import-certificate
 
