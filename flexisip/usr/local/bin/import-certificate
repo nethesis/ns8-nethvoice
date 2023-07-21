@@ -18,7 +18,7 @@ if [ ! -s server.pem ] || [ ! -s server.key ]; then
     exit 3
 fi
 
-if diff -q "${dest}"/agent.pem <(cat server.key server.pem) ; then
+if [ -f "${dest}"/agent.pem ] && diff -q "${dest}"/agent.pem <(cat server.key server.pem) ; then
     # files are equal: abort
     exit 2
 fi
