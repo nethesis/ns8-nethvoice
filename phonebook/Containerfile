@@ -13,6 +13,7 @@ RUN	\
 	npm install && \
 	mkdir -p /etc/certificates
 
+COPY usr/local/bin/import-certificate /usr/local/bin/import-certificate
 COPY entrypoint.sh /entrypoint
 ENTRYPOINT ["/entrypoint"]
 CMD [ "/usr/bin/node","/usr/share/phonebookjs/phonebook.js","/etc/config_ldaps.json"]

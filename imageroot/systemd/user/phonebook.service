@@ -11,8 +11,7 @@ EnvironmentFile=%S/state/environment
 WorkingDirectory=%S/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/phonebook.pid %t/phonebook.ctr-id
-ExecStartPre=bash -c "while [ ! -f certificates/NethServer.pem ]; do sleep 1; done"
-ExecStartPre=bash -c "while [ ! -f certificates/NethServer.key ]; do sleep 1; done"
+ExecStartPre=-runagent install-certificate janus
 
 ExecStart=/usr/bin/podman run \
     --detach \
@@ -26,7 +25,7 @@ ExecStart=/usr/bin/podman run \
     --env=NETHVOICE_MARIADB_PORT \
     --volume=/dev/log:/dev/log \
     --volume=tancredi:/var/lib/tancredi:z \
-    --volume=./certificates:/etc/certificates:z \
+    --volume=phonebook-cert:/etc/certificates:z \
     --network=host \
     ${NETHVOICE_PHONEBOOK_IMAGE}
 
