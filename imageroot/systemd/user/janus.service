@@ -11,6 +11,7 @@ EnvironmentFile=%S/state/environment
 WorkingDirectory=%S/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/janus.pid %t/janus.ctr-id
+ExecStartPre=-runagent install-certificate janus
 
 ExecStart=/usr/bin/podman run \
     --detach \

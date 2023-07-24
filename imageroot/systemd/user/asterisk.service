@@ -14,8 +14,7 @@ EnvironmentFile=%S/state/environment
 WorkingDirectory=%S/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/asterisk.pid %t/asterisk.ctr-id
-ExecStartPre=bash -c "while [ ! -f certificates/NethServer.pem ]; do sleep 1; done"
-ExecStartPre=bash -c "while [ ! -f certificates/NethServer.key ]; do sleep 1; done"
+ExecStartPre=-runagent install-certificate asterisk
 ExecStart=/usr/bin/podman run \
     --detach \
     --conmon-pidfile=%t/asterisk.pid \
@@ -44,7 +43,6 @@ ExecStart=/usr/bin/podman run \
 # Wait till asterisk is active
 ExecStartPost=podman exec asterisk bash -c "while [[ $$(/usr/sbin/asterisk -rx 'core show version' 2>/dev/null) != Asterisk* ]]; do ((++attempt<30)) || exit 2; sleep 1 ; done"
 
-ExecStop=/usr/bin/podman run ${ASTERISK_IMAGE} /usr/sbin/asterisk -rx 'core stop now' -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/asterisk.ctr-id
 PIDFile=%t/asterisk.pid
 Type=forking

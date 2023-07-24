@@ -8,6 +8,7 @@ Restart=always
 WorkingDirectory=%S/state
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/flexisip.pid %t/flexisip.ctr-id
+ExecStartPre=-runagent install-certificate asterisk
 ExecStart=/usr/bin/podman run \
   --conmon-pidfile=%t/flexisip.pid \
   --cidfile=%t/flexisip.ctr-id \
