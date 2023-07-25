@@ -5,14 +5,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-if systemctl --user -q is-active flexisip; then
-    install-certificate flexisip && systemctl --user -T try-reload-or-restart flexisip
-fi
+systemctl --user -T try-reload-or-restart flexisip
 
-if systemctl --user -q is-active asterisk; then
-    systemctl --user -T try-reload-or-restart asterisk
-fi
+systemctl --user -T try-reload-or-restart asterisk
 
-if systemctl --user -q is-active janus; then
-    systemctl --user -T try-reload-or-restart janus
-fi
+systemctl --user -T try-reload-or-restart janus
+
+systemctl --user -T try-reload-or-restart phonebook
