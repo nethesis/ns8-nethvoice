@@ -11,7 +11,7 @@ EnvironmentFile=%S/state/environment
 WorkingDirectory=%S/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/phonebook.pid %t/phonebook.ctr-id
-ExecStartPre=-runagent install-certificate janus
+ExecStartPre=-runagent install-certificate phonebook
 
 ExecStart=/usr/bin/podman run \
     --detach \
