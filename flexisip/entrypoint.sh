@@ -127,4 +127,7 @@ EOF
 EOF
 fi
 
+#create CA file for flexisip
+cp -a /etc/ssl/certs/ca-certificates.crt /etc/flexisip/tls/cafile.pem
+
 exec "$@"
