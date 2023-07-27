@@ -18,9 +18,11 @@ if [ ! -s server.pem ] || [ ! -s server.key ]; then
     exit 3
 fi
 
-if [ -f "${dest}"/agent.pem ] && diff -q "${dest}"/agent.pem <(cat server.key server.pem) ; then
+openssl pkcs8 -in server.key -topk8 -nocrypt -out server.key.pkcs8
+
+if [ -f "${dest}"/agent.pem ] && diff -q "${dest}"/agent.pem <(cat server.key.pkcs8 server.pem) ; then
     # files are equal: abort
     exit 2
 fi
 
-cat server.key server.pem | install -o root -g root -m 444 /dev/stdin "${dest}"/agent.pem
+cat server.key.pkcs8 server.pem | install -o root -g root -m 444 /dev/stdin "${dest}"/agent.pem
