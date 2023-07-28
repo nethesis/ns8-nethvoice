@@ -12,3 +12,5 @@ systemctl --user -T try-reload-or-restart asterisk
 systemctl --user -T try-reload-or-restart janus
 
 systemctl --user -T try-reload-or-restart phonebook
+
+systemctl --user -T try-reload-or-restart nethcti-server
