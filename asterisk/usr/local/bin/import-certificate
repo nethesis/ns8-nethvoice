@@ -22,7 +22,7 @@ if [ ! -s server.pem ] || [ ! -s server.key ]; then
     exit 3
 fi
 
-if diff -q server.pem "${dest}"/NethServer.crt ; then
+if [ -f "${dest}"/NethServer.crt ] && diff -q server.pem "${dest}"/NethServer.crt ; then
     # files are equal: abort
     exit 2
 fi
