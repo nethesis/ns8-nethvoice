@@ -13,6 +13,7 @@ EnvironmentFile=%S/state/environment
 WorkingDirectory=%S/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/nethcti-server.pid %t/nethcti-server.ctr-id
+ExecStartPre=-runagent install-certificate nethcti-server
 
 ExecStart=/usr/bin/podman run \
     --detach \
@@ -24,7 +25,7 @@ ExecStart=/usr/bin/podman run \
     --volume=nethcti:/etc/nethcti:z \
     --volume=nethcti-server:/root:Z \
     --volume=nethcti-server-code:/usr/lib/node/nethcti-server:Z \
-    --volume=./certificates:/etc/certificates:z \
+    --volume=nethcti-sever-cert:/etc/certificates:z \
     --volume=/dev/log:/dev/log \
     --env=ASTMANAGERPORT \
     --env=APACHE_PORT \

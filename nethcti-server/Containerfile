@@ -27,6 +27,7 @@ RUN addgroup -g 991 -S asterisk && adduser -u 990 -S -s /bin/false -h /var/lib/a
 RUN mkdir -p /etc/nethcti && chown asterisk:asterisk /etc/nethcti
 # complete container production configuration
 COPY entrypoint.sh /entrypoint
+COPY usr/local/bin/import-certificate /usr/local/bin/import-certificate
 ENTRYPOINT ["/entrypoint"]
 CMD ["npm", "start"]
 # copy application from alpine container
