@@ -40,8 +40,22 @@ redis-exec HGET "module/${mtraefik}/certificate/${NETHVOICE_HOST}" key | base64 
 redis-exec HGET "module/${mtraefik}/certificate/${NETHVOICE_HOST}" cert | base64 -d > server.pem
 
 if [[ $(head -c 5 server.key) != '-----' || $(head -c 5 server.pem) != '-----' ]]; then
-    echo "[WARNING] ${service_image} certificate for ${NETHVOICE_HOST} not found" 1>&2
-    exit 2
+    echo "[WARNING] ${service_image} certificate for ${NETHVOICE_HOST} not found. Generating self signed certificate" 1>&2
+
+    # generate dhparam
+    openssl dhparam -dsaparam -out "${dhtmp}" 2048
+
+    # request csr
+    openssl req -nodes -newkey rsa:2048 \
+        -keyout server.key \
+        -out server.csr -new  \
+        -subj "/C=IT/ST=Italy/L=Pesaro/O=Nethesis/OU=NethVoice/CN=${HOST}/subjectAltName=${HOST},${CTI_HOST},${NETHVOICE_HOST}"
+
+    # selfsign the certificate
+    openssl x509 -req -sha256 -days 3650 \
+        -in server.csr \
+        -signkey server.key \
+        -out server.pem
 fi
 
 tar -c -O server.key server.pem ${with_dh_group:+dh.pem} | podman run \
