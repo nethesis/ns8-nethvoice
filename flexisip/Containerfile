@@ -21,8 +21,7 @@ RUN apt-get update \
     && chown asterisk:asterisk /etc/flexisip \
     && mkdir -p /etc/asterisk \
     && chown asterisk:asterisk /etc/asterisk \
-    && ln -sf /dev/stdout /var/log/flexisip.log \
-    && cp -a /etc/ssl/certs/ca-certificates.crt /etc/flexisip/tls/cafile.pem
+    && ln -sf /dev/stdout /var/log/flexisip.log
 
 COPY entrypoint.sh /entrypoint
 COPY usr/local/bin/import-certificate /usr/local/bin/import-certificate

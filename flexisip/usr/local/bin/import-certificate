@@ -26,3 +26,4 @@ if [ -f "${dest}"/agent.pem ] && diff -q "${dest}"/agent.pem <(cat server.key.pk
 fi
 
 cat server.key.pkcs8 server.pem | install -o root -g root -m 444 /dev/stdin "${dest}"/agent.pem
+install -o root -g root -m 444 server.pem "${dest}"/cafile.pem
