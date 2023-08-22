@@ -12,7 +12,7 @@ enable-snmp=false
 log-directory=/var/log
 log-filename=flexisip.log
 log-level=${FLEXISIP_LOG_LEVEL}
-transports=sips:${NETHVOICE_HOST}:${FLEXISIP_PORT};maddr=0.0.0.0;tls-verify-outgoing=0
+transports=sip:${NETHVOICE_HOST}:${FLEXISIP_SIP_PORT};maddr=0.0.0.0 sips:${NETHVOICE_HOST}:${FLEXISIP_PORT};maddr=0.0.0.0;tls-verify-outgoing=0
 
 aliases=localhost,${NETHVOICE_HOST}
 udp-mtu=4000

@@ -22,7 +22,7 @@ COPY imageroot /imageroot
 COPY --from=ui_builder /app/dist /ui
 ENTRYPOINT [ "/" ]
 LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm"
-LABEL org.nethserver.tcp-ports-demand="32"
+LABEL org.nethserver.tcp-ports-demand="33"
 LABEL org.nethserver.rootfull="0"
 ARG REPOBASE=ghcr.io/nethserver
 ARG IMAGETAG=latest
