@@ -18,6 +18,7 @@ old_envs = request['environment']
 # call configure module
 response = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-module', data={
     "nethvoice_host": old_envs["NETHVOICE_HOST"],
+    "nethvoice_admin_password": old_envs["NETHVOICE_ADMIN_PASSWORD"],
     "nethcti_ui_host": old_envs["NETHCTI_UI_HOST"],
     "lets_encrypt": old_envs["TRAEFIK_LETS_ENCRYPT"] == 'true',
     "reports_international_prefix": old_envs["REPORTS_INTERNATIONAL_PREFIX"],

@@ -10,6 +10,10 @@
             "description": "Host where nethvoice instance should be exposed to",
             "type": "string"
         },
+        "nethvoice_admin_password": {
+            "description": "NethVoice admin password to access user interface",
+            "type": "string"
+        },
         "nethcti_ui_host": {
             "description": "CTI host, must be different than nethvoice_host",
             "type": "string"

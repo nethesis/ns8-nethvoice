@@ -39,6 +39,14 @@
               :invalid-message="error.nethcti_ui_host"
               ref="nethcti_ui_host"
             />
+            <cv-text-input
+              :label="$t('settings.nethvoice_admin_password')"
+              v-model="form.nethvoice_admin_password"
+              placeholder="Nethesis,1234"
+              :disabled="loadingState"
+              :invalid-message="error.nethvoice_admin_password"
+              ref="nethvoice_admin_password"
+            />
             <cv-toggle
               :label="$t('settings.lets_encrypt')"
               value="lets_encrypt"
@@ -122,6 +130,7 @@ export default {
       urlCheckInterval: null,
       form: {
         nethvoice_host: "",
+        nethvoice_admin_password: "",
         nethcti_ui_host: "",
         lets_encrypt: false,
         user_domain: "",
@@ -137,6 +146,7 @@ export default {
         getConfiguration: "",
         configureModule: "",
         nethvoice_host: "",
+        nethvoice_admin_password: "",
         nethcti_ui_host: "",
         lets_encrypt: "",
         user_domain: "",
@@ -213,6 +223,7 @@ export default {
       const config = taskResult.output;
 
       this.form.nethvoice_host = config.nethvoice_host;
+      this.form.nethvoice_admin_password = config.nethvoice_admin_password;
       this.form.nethcti_ui_host = config.nethcti_ui_host;
       this.form.lets_encrypt = config.lets_encrypt;
       this.form.user_domain = config.user_domain;
@@ -229,6 +240,11 @@ export default {
 
       if (!this.form.nethvoice_host) {
         this.error.nethvoice_host = this.$t("error.required");
+        isValidationOk = false;
+      }
+
+      if (!this.form.nethvoice_admin_password) {
+        this.error.nethvoice_admin_password = this.$t("error.required");
         isValidationOk = false;
       }
 
@@ -299,6 +315,7 @@ export default {
           action: taskAction,
           data: {
             nethvoice_host: this.form.nethvoice_host,
+            nethvoice_admin_password: this.form.nethvoice_admin_password,
             nethcti_ui_host: this.form.nethcti_ui_host,
             lets_encrypt: this.form.lets_encrypt,
             user_domain: this.form.user_domain,

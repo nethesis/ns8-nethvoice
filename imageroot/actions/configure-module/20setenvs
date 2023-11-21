@@ -21,6 +21,7 @@ def getFromRequest(request, var_name, env_name, default = ""):
 # NETHVOICE_HOST_LOCAL_NETWORKS should be a jason containing local networks [{"network":"192.168.5.0","netmask":"255.255.255.0","gateway":"192.168.5.1"}]
 getFromRequest(request, 'nethvoice_host_local_networks', 'NETHVOICE_HOST_LOCAL_NETWORKS', '{[]}')
 getFromRequest(request, 'nethvoice_host', 'NETHVOICE_HOST', '')
+getFromRequest(request, 'nethvoice_admin_password', 'NETHVOICE_ADMIN_PASSWORD', '')
 getFromRequest(request, 'subscription_systemid', 'SUBSCRIPTION_SYSTEMID', '')
 getFromRequest(request, 'subscription_secret', 'SUBSCRIPTION_SECRET', '')
 getFromRequest(request, 'nethcti_prefix', 'NETHCTI_PREFIX', '')

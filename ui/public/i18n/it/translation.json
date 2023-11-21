@@ -37,6 +37,7 @@
     "lets_encrypt": "Richiedi certificato Let's Encrypt",
     "nethcti_ui_host": "Host base di NethCTI",
     "nethvoice_host": "Host base di NethVoice",
+    "nethvoice_admin_password": "Password di admin di NethVoice per accedere all'interfaccia",
     "save": "Salva",
     "title": "Impostazioni",
     "user_domain": "Host Dominio Utenti",

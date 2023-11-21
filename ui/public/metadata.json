@@ -13,7 +13,7 @@
   ],
   "docs": {
     "documentation_url": "https://github.com/nethesis/ns8-nethvoice",
-    "bug_url": "https://github.com/NethServer/dev",
+    "bug_url": "https://github.com/nethesis/dev",
     "code_url": "https://github.com/nethesis/ns8-nethvoice"
   },
   "source": "ghcr.io/nethesis/nethvoice"

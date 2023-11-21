@@ -36,6 +36,7 @@
     "lets_encrypt": "Request Let's Encrypt certificate",
     "nethcti_ui_host": "NethCTI UI base host",
     "nethvoice_host": "NethVoice base host",
+    "nethvoice_admin_password": "NethVoice admin password to access user interface",
     "save": "Save",
     "title": "Settings",
     "user_domain": "User Domain",
