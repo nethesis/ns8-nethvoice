@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "NethVoice admin user password",
+    "$id": "http://nethserver.org/json-schema/task/input/nethvoice/set-nethvoice-admin-password",
+    "description": "Overwrite NethVoice admin user password",
+    "examples": [
+        {
+            "nethvoice_admin_password": "Nethesis,1234"
+        }
+    ],
+    "type": "object",
+    "required": [
+        "nethvoice_admin_password"
+    ],
+    "properties": {
+        "nethvoice_admin_password": {
+            "description": "NethVoice admin user password",
+            "type": "string"
+        }
+    }
+}

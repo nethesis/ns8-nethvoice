@@ -69,10 +69,6 @@
             "type": "string",
             "format": "hostname"
         },
-        "nethvoice_admin_password": {
-            "description": "NethVoice admin password to access user interface",
-            "type": "string"
-        },
         "nethcti_prefix": {
             "description": "NethCTI Prefix",
             "type": "string"
