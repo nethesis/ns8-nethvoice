@@ -1,8 +1,0 @@
-#!/bin/bash
-
-#
-# Copyright (C) 202333Nethesis S.r.l.
-# SPDX-License-Identifier: GPL-3.0-or-later
-#
-
-systemctl --user enable --now mariadb.service
