@@ -13,7 +13,6 @@ import agent
 
 config = {
     'nethvoice_host': os.getenv('NETHVOICE_HOST', ''),
-    'nethvoice_admin_password': os.getenv('NETHVOICE_ADMIN_PASSWORD', ''),
     'nethcti_ui_host': os.getenv('NETHCTI_UI_HOST', ''),
     'lets_encrypt': os.getenv('TRAEFIK_LETS_ENCRYPT') == 'True',
     'user_domain': os.getenv('USER_DOMAIN', ''),
