@@ -36,7 +36,7 @@
     "lets_encrypt": "Request Let's Encrypt certificate",
     "nethcti_ui_host": "NethCTI UI base host",
     "nethvoice_host": "NethVoice base host",
-    "nethvoice_admin_password": "NethVoice admin password to access user interface",
+    "nethvoice_admin_password": "Reset NethVoice admin password to access user interface (optional)",
     "save": "Save",
     "title": "Settings",
     "user_domain": "User Domain",
@@ -44,7 +44,8 @@
     "user_domain_selector": "User Domain Source",
     "reports_international_prefix": "Reports Prefix",
     "reports_international_prefix_tooltip": "Format must be either \"00**\" or \"+**\"",
-    "reports_prefix_invalid": "Invalid format"
+    "reports_prefix_invalid": "Invalid format",
+    "set_password": "NethVoice admin password reset"
   },
   "status": {
     "app_images": "App image | App images",
