@@ -9,6 +9,7 @@ INSERT INTO `rest_cti_profiles_macro_permissions` (`profile_id`,`macro_permissio
 (1,4),
 (1,5),
 (1,6),
+(1,12),
 (2,1),
 (2,2),
 (2,3),
@@ -16,6 +17,7 @@ INSERT INTO `rest_cti_profiles_macro_permissions` (`profile_id`,`macro_permissio
 (2,5),
 (2,6),
 (2,8),
+(2,12),
 (3,1),
 (3,2),
 (3,3),
@@ -25,3 +27,4 @@ INSERT INTO `rest_cti_profiles_macro_permissions` (`profile_id`,`macro_permissio
 (3,7),
 (3,8),
 (3,9);
+(3,12),
