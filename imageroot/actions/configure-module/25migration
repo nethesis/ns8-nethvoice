@@ -1,0 +1,63 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+
+# check if there are mysql databases to migrate
+if [[ -d  ./restore && -f ./restore/astdb.sqlite3.dump && -f ./restore/asterisk.dump && -f ./restore/asteriskcdrdb.dump ]]; then
+    # restore astdb
+    podman run \
+        --rm \
+        --name=restore_astdb \
+        --volume=astdb:/var/lib/asterisk/db:z \
+        --volume=./restore:/backup:z \
+        "${NETHVOICE_ASTERISK_IMAGE}" \
+        su -c "rm -fr /var/lib/asterisk/db/astdb.sqlite3; sqlite3 /var/lib/asterisk/db/astdb.sqlite3 < /backup/astdb.sqlite3.dump" -s /bin/bash asterisk
+
+    # remove astdb dump 
+    rm -rf ./restore/astdb.sqlite3.dump
+
+    cat - > ./restore/restore.sh <<EOF
+#!/bin/bash
+set -e
+mysql --version
+rm -f /docker-entrypoint-initdb.d/*.sql
+mv /backup/asterisk.dump /docker-entrypoint-initdb.d/00_asterisk.sql
+mv /backup/asteriskcdrdb.dump /docker-entrypoint-initdb.d/01_asteriskcdrdb.sql
+EOF
+    chmod 755 ./restore/restore.sh
+
+    # prepare restore
+    podman run \
+        --rm \
+        --name=prepare_db \
+        --volume=./restore:/backup:z \
+        --volume=mariadb-data:/var/lib/mysql:Z \
+        --env=MARIADB_ROOT_PASSWORD \
+	    --env=NETHVOICE_MARIADB_PORT \
+	    --env=AMPDBUSER \
+	    --env=AMPDBPASS \
+	    --env=CDRDBUSER \
+	    --env=CDRDBHOST \
+	    --env=CDRDBPASS \
+	    --env=CTIUSER \
+	    --env=NETHCTI_DB_USER \
+	    --env=NETHCTI_DB_PASSWORD \
+	    --env=PHONEBOOK* \
+	    --env=ASTERISK_RTPSTART \
+	    --env=ASTERISK_RTPEND \
+	    --env=ASTERISK_SIP_PORT \
+	    --env=ASTERISK_SIPS_PORT \
+	    --env=ASTERISK_IAX_PORT \
+	    --env=ASTMANAGERPORT \
+	    --env=REPORTS_PASSWORD \
+        "${NETHVOICE_MARIADB_IMAGE}" \
+        /backup/restore.sh
+
+    # remove backup folder
+    rm -rf ./restore
+fi
