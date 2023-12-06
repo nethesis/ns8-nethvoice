@@ -21,16 +21,7 @@ if [[ -d  ./restore && -f ./restore/10_asterisk_structure.sql ]]; then
     # remove astdb dump 
     rm -rf ./restore/astdb.sqlite3.dump
 
-    cat - > ./restore/zz_restore.sh <<EOF
-#!/bin/bash
-set -e
-mysql --version
-docker_temp_server_stop
-exit 0
-EOF
-    chmod 755 ./restore/restore.sh
-
-    # Add permissions
+    # Add users, fixes and permissions
 cat - > ./restore/99permissions.sh <<'EOF'
 #!/bin/bash
 sip_sql='INSERT INTO `kvstore_Sipsettings` (`key`,`val`,`type`,`id`) VALUES ("udpport-0.0.0.0","'${ASTERISK_SIP_PORT}'",NULL,"noid"), ("tlsport-0.0.0.0","'${ASTERISK_SIPS_PORT}'",NULL,"noid"), ("tcpport-0.0.0.0","'${ASTERISK_SIP_PORT}'",NULL,"noid");'
@@ -66,7 +57,17 @@ http_sql_hack='INSERT INTO `freepbx_settings` (`keyword`,`value`,`name`,`level`,
 EOF
     chmod 755 ./restore/99permissions.sh
 
-    # prepare restore
+    # Add script that kill the temporary server
+    cat - > ./restore/zz_restore.sh <<EOF
+#!/bin/bash
+set -e
+mysql --version
+docker_temp_server_stop
+exit 0
+EOF
+    chmod 755 ./restore/zz_restore.sh
+
+    # launch a temporary server for restore the migration dumps
     podman run \
         --rm \
         --name=prepare_db \
