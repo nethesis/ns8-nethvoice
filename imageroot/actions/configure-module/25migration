@@ -24,7 +24,7 @@ if [[ -d  ./restore && -f ./restore/10_asterisk_structure.sql ]]; then
     # Add users, fixes and permissions
 cat - > ./restore/99permissions.sh <<'EOF'
 #!/bin/bash
-/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e 'DELETE FROM `kvstore_Sipsettings` WHERE `key`="udpport-0.0.0.0" OR `key`="tlsport-0.0.0.0" OR `key`="tcpport-0.0.0.0" OR `key`="bindport"'
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e 'DELETE FROM `kvstore_Sipsettings` WHERE `key`="udpport-0.0.0.0" OR `key`="tlsport-0.0.0.0" OR `key`="tcpport-0.0.0.0" OR `key`="bindport" OR `key`="tlsbindport"'
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e 'DELETE FROM `freepbx_settings` WHERE `keyword`="ASTMANAGERPORT" OR `keyword`="HTTPTLSENABLE"'
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e 'DELETE FROM `iaxsettings` WHERE `keyword`="bindport"'
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e 'DELETE FROM `sipsettings` WHERE `keyword`="bindport"'
@@ -60,23 +60,23 @@ http_sql_hack='INSERT INTO `freepbx_settings` (`keyword`,`value`,`name`,`level`,
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT SELECT on phonebook.* to 'nethvoice_report'@'%' identified by '${REPORTS_PASSWORD}';"
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT SELECT on phonebook.* to 'nethvoice_report'@'localhost' identified by '${REPORTS_PASSWORD}';"
 EOF
-EOF
-    chmod 755 ./restore/99permissions.sh
 
     # Add script that kill the temporary server
     cat - > ./restore/zz_restore.sh <<EOF
 #!/bin/bash
 set -e
 mysql --version
+set -- true
 docker_temp_server_stop
 exit 0
 EOF
-    chmod 755 ./restore/zz_restore.sh
 
     # launch a temporary server for restore the migration dumps
     podman run \
         --rm \
+        --interactive \
         --name=mariadb_migration \
+        --network=none \
         --volume=./restore:/docker-entrypoint-initdb.d:z \
         --volume=mariadb-data:/var/lib/mysql:Z \
         --env=MARIADB_ROOT_PASSWORD \
@@ -97,7 +97,7 @@ EOF
         --env=ASTERISK_IAX_PORT \
         --env=ASTMANAGERPORT \
         --env=REPORTS_PASSWORD \
-        --env=MARIADB_AUTO_UPGRADE=true \
+        --env=MARIADB_AUTO_UPGRADE=1 \
         "${NETHVOICE_MARIADB_IMAGE}"
 
     # remove backup folder
