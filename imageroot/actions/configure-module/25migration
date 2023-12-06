@@ -8,7 +8,7 @@
 set -e
 
 # check if there are mysql databases to migrate
-if [[ -d  ./restore && -f ./restore/astdb.sqlite3.dump && -f ./restore/asterisk.dump && -f ./restore/asteriskcdrdb.dump ]]; then
+if [[ -d  ./restore && -f ./restore/10_asterisk_structure.sql ]]; then
     # restore astdb
     podman run \
         --rm \
@@ -21,13 +21,12 @@ if [[ -d  ./restore && -f ./restore/astdb.sqlite3.dump && -f ./restore/asterisk.
     # remove astdb dump 
     rm -rf ./restore/astdb.sqlite3.dump
 
-    cat - > ./restore/restore.sh <<EOF
+    cat - > ./restore/zz_restore.sh <<EOF
 #!/bin/bash
 set -e
 mysql --version
-rm -f /docker-entrypoint-initdb.d/*.sql
-mv /backup/asterisk.dump /docker-entrypoint-initdb.d/00_asterisk.sql
-mv /backup/asteriskcdrdb.dump /docker-entrypoint-initdb.d/01_asteriskcdrdb.sql
+docker_temp_server_stop
+exit 0
 EOF
     chmod 755 ./restore/restore.sh
 
@@ -35,7 +34,7 @@ EOF
     podman run \
         --rm \
         --name=prepare_db \
-        --volume=./restore:/backup:z \
+        --volume=./restore:/docker-entrypoint-initdb.d:z \
         --volume=mariadb-data:/var/lib/mysql:Z \
         --env=MARIADB_ROOT_PASSWORD \
 	    --env=NETHVOICE_MARIADB_PORT \
@@ -55,8 +54,7 @@ EOF
 	    --env=ASTERISK_IAX_PORT \
 	    --env=ASTMANAGERPORT \
 	    --env=REPORTS_PASSWORD \
-        "${NETHVOICE_MARIADB_IMAGE}" \
-        /backup/restore.sh
+        "${NETHVOICE_MARIADB_IMAGE}"
 
     # remove backup folder
     rm -rf ./restore
