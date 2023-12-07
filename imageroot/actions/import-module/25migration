@@ -8,20 +8,19 @@
 set -e
 
 # check if there are mysql databases to migrate
-if [[ -d  ./restore && -f ./restore/10_asterisk_structure.sql ]]; then
-    # restore astdb
-    podman run \
-        --rm \
-        --name=restore_astdb \
-        --volume=astdb:/var/lib/asterisk/db:z \
-        --volume=./restore:/backup:z \
-        "${NETHVOICE_ASTERISK_IMAGE}" \
-        su -c "rm -fr /var/lib/asterisk/db/astdb.sqlite3; sqlite3 /var/lib/asterisk/db/astdb.sqlite3 < /backup/astdb.sqlite3.dump" -s /bin/bash asterisk
+# restore astdb
+podman run \
+    --rm \
+    --name=restore_astdb \
+    --volume=astdb:/var/lib/asterisk/db:z \
+    --volume=./restore:/backup:z \
+    "${NETHVOICE_ASTERISK_IMAGE}" \
+    su -c "rm -fr /var/lib/asterisk/db/astdb.sqlite3; sqlite3 /var/lib/asterisk/db/astdb.sqlite3 < /backup/astdb.sqlite3.dump" -s /bin/bash asterisk
 
-    # remove astdb dump 
-    rm -rf ./restore/astdb.sqlite3.dump
+# remove astdb dump 
+rm -f ./restore/astdb.sqlite3.dump
 
-    # Add users, fixes and permissions
+# Add users, fixes and permissions
 cat - > ./restore/99permissions.sh <<'EOF'
 #!/bin/bash
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e 'DELETE FROM `kvstore_Sipsettings` WHERE `key`="udpport-0.0.0.0" OR `key`="tlsport-0.0.0.0" OR `key`="tcpport-0.0.0.0" OR `key`="bindport" OR `key`="tlsbindport"'
@@ -61,8 +60,8 @@ http_sql_hack='INSERT INTO `freepbx_settings` (`keyword`,`value`,`name`,`level`,
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT SELECT on phonebook.* to 'nethvoice_report'@'localhost' identified by '${REPORTS_PASSWORD}';"
 EOF
 
-    # Add script that kill the temporary server
-    cat - > ./restore/zz_restore.sh <<EOF
+# Add script that kill the temporary server
+cat - > ./restore/zz_restore.sh <<EOF
 #!/bin/bash
 set -e
 mysql --version
@@ -71,35 +70,31 @@ docker_temp_server_stop
 exit 0
 EOF
 
-    # launch a temporary server for restore the migration dumps
-    podman run \
-        --rm \
-        --interactive \
-        --name=mariadb_migration \
-        --network=none \
-        --volume=./restore:/docker-entrypoint-initdb.d:z \
-        --volume=mariadb-data:/var/lib/mysql:Z \
-        --env=MARIADB_ROOT_PASSWORD \
-        --env=NETHVOICE_MARIADB_PORT \
-        --env=AMPDBUSER \
-        --env=AMPDBPASS \
-        --env=CDRDBUSER \
-        --env=CDRDBHOST \
-        --env=CDRDBPASS \
-        --env=CTIUSER \
-        --env=NETHCTI_DB_USER \
-        --env=NETHCTI_DB_PASSWORD \
-        --env=PHONEBOOK* \
-        --env=ASTERISK_RTPSTART \
-        --env=ASTERISK_RTPEND \
-        --env=ASTERISK_SIP_PORT \
-        --env=ASTERISK_SIPS_PORT \
-        --env=ASTERISK_IAX_PORT \
-        --env=ASTMANAGERPORT \
-        --env=REPORTS_PASSWORD \
-        --env=MARIADB_AUTO_UPGRADE=1 \
-        "${NETHVOICE_MARIADB_IMAGE}"
-
-    # remove backup folder
-    rm -rf ./restore
-fi
+# launch a temporary server for restore the migration dumps
+podman run \
+    --rm \
+    --interactive \
+    --name=mariadb_migration \
+    --network=none \
+    --volume=./restore:/docker-entrypoint-initdb.d:z \
+    --volume=mariadb-data:/var/lib/mysql:Z \
+    --env=MARIADB_ROOT_PASSWORD \
+    --env=NETHVOICE_MARIADB_PORT \
+    --env=AMPDBUSER \
+    --env=AMPDBPASS \
+    --env=CDRDBUSER \
+    --env=CDRDBHOST \
+    --env=CDRDBPASS \
+    --env=CTIUSER \
+    --env=NETHCTI_DB_USER \
+    --env=NETHCTI_DB_PASSWORD \
+    --env=PHONEBOOK* \
+    --env=ASTERISK_RTPSTART \
+    --env=ASTERISK_RTPEND \
+    --env=ASTERISK_SIP_PORT \
+    --env=ASTERISK_SIPS_PORT \
+    --env=ASTERISK_IAX_PORT \
+    --env=ASTMANAGERPORT \
+    --env=REPORTS_PASSWORD \
+    --env=MARIADB_AUTO_UPGRADE=1 \
+    "${NETHVOICE_MARIADB_IMAGE}"
