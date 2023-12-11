@@ -57,10 +57,6 @@ Driver = MySQL
 Description = ODBC on asteriskcdrdb
 EOF
 
-# Override /etc/amportal.conf settings
-sed -i "s/FPBXDBUGFILE=.*/FPBXDBUGFILE=php:\/\/stderr/" /etc/amportal.conf
-sed -i "s/FPBX_LOG_FILE=.*/FPBX_LOG_FILE=php:\/\/stderr/" /etc/amportal.conf
-
 # Create empty voicemail.conf if not exists
 if [[ ! -f /etc/asterisk/voicemail.conf ]]; then
 	touch /etc/asterisk/voicemail.conf
