@@ -25,7 +25,11 @@ if proxy_id is None:
 
 print(f"Proxy id: {proxy_id}", file=sys.stderr) # debug
 
-# Configure nethvoice-proxy to route SIP traffic for Nethvoice
+# Remove nethvoice-proxy route
+if "NETHVOICE_HOST" not in os.environ:
+    print("WARNING: No hostname configured, skipping proxy's route remove", file=sys.stderr)
+    sys.exit(0)
+
 response = agent.tasks.run(
     agent_id=proxy_id,
     action='remove-route',
