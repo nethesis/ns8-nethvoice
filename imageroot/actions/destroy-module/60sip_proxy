@@ -20,9 +20,10 @@ agent.set_env('TRAEFIK_LETS_ENCRYPT', lets_encrypt)
 # Find default traefik instance for current node
 proxy_id = agent.resolve_agent_id('nethvoice-proxy@node')
 if proxy_id is None:
-    sys.exit(2)
+    print("WARNING: No proxy found, skipping", file=sys.stderr)
+    sys.exit(0)
 
-print(f"Proxy id: {proxy_id}") # debug
+print(f"Proxy id: {proxy_id}", file=sys.stderr) # debug
 
 # Configure nethvoice-proxy to route SIP traffic for Nethvoice
 response = agent.tasks.run(
