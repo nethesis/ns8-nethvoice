@@ -11,6 +11,7 @@ set -e
 podman run \
     --rm \
     --name=asterisk_initialize_volumes \
+    --volume=asterisk:/etc/asterisk:z \
     --volume=sounds:/var/lib/asterisk/sounds:z \
     --volume=agi-bin:/var/lib/asterisk/agi-bin:z \
     "${NETHVOICE_ASTERISK_IMAGE}" \
