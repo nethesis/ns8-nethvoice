@@ -14,4 +14,4 @@ podman run \
     --volume=sounds:/var/lib/asterisk/sounds:z \
     --volume=agi-bin:/var/lib/asterisk/agi-bin:z \
     "${NETHVOICE_ASTERISK_IMAGE}" \
-    exit 0
+    echo "volumes initialized"
