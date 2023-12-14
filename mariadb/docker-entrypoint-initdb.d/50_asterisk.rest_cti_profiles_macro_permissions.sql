@@ -26,5 +26,5 @@ INSERT INTO `rest_cti_profiles_macro_permissions` (`profile_id`,`macro_permissio
 (3,6),
 (3,7),
 (3,8),
-(3,9);
-(3,12),
+(3,9),
+(3,12);

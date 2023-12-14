@@ -13,5 +13,5 @@ INSERT INTO `rest_cti_macro_permissions` (`id`,`name`,`displayname`,`description
 (8,"off_hour","Off Hour","Allow to change of his incoming call paths"),
 (9,"remote_sites","Remote Sites","Allow to view Remote Sites information"),
 (10,"qmanager","Queue Manager","Allow to view and manage queues in real time"),
-(11,"operator_panel","Operator Panel","Enables Operator Panel interface for operators");
+(11,"operator_panel","Operator Panel","Enables Operator Panel interface for operators"),
 (12,"nethvoice_cti","NethVoice CTI","Enables access to NethVoice CTI application");

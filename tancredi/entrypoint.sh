@@ -34,9 +34,14 @@ file_reader = "apache"
 005058 = sangoma
 000413 = snom
 001565 = yealink
+249AD8 = yealink
+44DBD2 = yealink
 805E0C = yealink
 805EC0 = yealink
+C4FC22 = yealink
 E0E656 = nethesis
+0C1105 = akuvox
+9C7514 = akuvox
 EOF
 
 dst_file="/var/lib/tancredi/data/scopes/defaults.ini"
