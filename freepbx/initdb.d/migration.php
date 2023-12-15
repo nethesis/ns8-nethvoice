@@ -64,10 +64,17 @@ if (count($extensions) > 0) {
 }
 
 # migrate profiles, macro_permissions and permissions scheme to new format
-$db->query("INSERT INTO `rest_cti_macro_permissions` VALUES (12,'nethvoice_cti','NethVoice CTI','Enables access to NethVoice CTI application')");
-$db->query("INSERT INTO `rest_cti_profiles_macro_permissions` (`profile_id`,`macro_permission_id`) VALUES (1,12)");
-$db->query("INSERT INTO `rest_cti_profiles_macro_permissions` (`profile_id`,`macro_permission_id`) VALUES (2,12)");
-$db->query("INSERT INTO `rest_cti_profiles_macro_permissions` (`profile_id`,`macro_permission_id`) VALUES (3,12)");
+# Check if NethVoice CTI macro_permission exists
+$sql = "SELECT * FROM `rest_cti_macro_permissions` WHERE `macro_permission_id` = 12";
+$stmt = $db->prepare($sql);
+$stmt->execute();
+$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+if (count($res) == 0) {
+	# Add NethVoice CTI macro_permission
+	$db->query("INSERT INTO `rest_cti_macro_permissions` VALUES (12,'nethvoice_cti','NethVoice CTI','Enables access to NethVoice CTI application')");
+	# Add NethVoice CTI macro_permission to all existing profiles
+	$db->query("INSERT INTO `rest_cti_profiles_macro_permissions` (`profile_id`, `macro_permission_id`) SELECT `id`, 12 FROM `rest_cti_profiles`");
+}
 # move pickup from presence_panel to settings
 $db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 5 AND `permission_id` = 18");
 $db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (1,18);");
