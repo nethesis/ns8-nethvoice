@@ -1,0 +1,16 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# start nethcti-server if wizard step is completed
+
+WIZARD_STEP=$(podman exec -it mariadb mysql -u root -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$MARIADB_ROOT_PASSWORD asterisk -BNe "select step from rest_wizard")
+if [[ $WIZARD_STEP == "13" ]]; then
+    systemctl --user start nethcti-server
+fi
+
+# restart asterisk when convenient
+podman exec -d asterisk asterisk -rx "core restart when convenient"
