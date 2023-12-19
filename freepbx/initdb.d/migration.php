@@ -44,8 +44,8 @@ if (count($extensions) > 0) {
 	$stmt->execute($extensions);
 
 	# configure proxy on all FreePBX extensions
-	$proxy_host = $_ENV['PUBLIC_IP'];
-	$proxy_port = 5060;
+	$proxy_host = $_ENV['PROXY_IP'];
+	$proxy_port = $_ENV['PROXY_PORT'];
 
 	$sql = "UPDATE `asterisk`.`sip` SET `data` = ? WHERE `keyword` = 'outbound_proxy' AND `id` IN ($qm_string)";
 	$stmt = $db->prepare($sql);
