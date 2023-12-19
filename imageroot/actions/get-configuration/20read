@@ -15,6 +15,7 @@ config = {
     'nethvoice_host': os.getenv('NETHVOICE_HOST', ''),
     'nethcti_ui_host': os.getenv('NETHCTI_UI_HOST', ''),
     'lets_encrypt': os.getenv('TRAEFIK_LETS_ENCRYPT') == 'True',
+    'timezone': os.getenv('TIMEZONE', 'UTC'),
     'user_domain': os.getenv('USER_DOMAIN', ''),
     'reports_international_prefix': os.getenv('REPORTS_INTERNATIONAL_PREFIX', '')
 }

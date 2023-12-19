@@ -18,6 +18,10 @@
             "description": "Enable Let's Encrypt certificate",
             "type": "boolean"
         },
+        "timezone": {
+            "description": "Timezone for the Nethvoice instance",
+            "type": "string"
+        },
         "user_domain": {
             "description": "Domain where the user accessing Nethvoice are stored",
             "type": "string"
