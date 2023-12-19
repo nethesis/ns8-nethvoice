@@ -198,6 +198,10 @@
         "reports_ui_company_name": {
             "description": "Company name of the reports UI app.",
             "type": "string"
+        },
+        "timezone": {
+            "description": "Asterisk Timezone for timeconditions",
+            "type": "string"
         }
     }
 }
