@@ -1,0 +1,26 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# if there is a background dump, import it in background then remove it
+
+# check if there are dumps that need to be imported
+if [[ $(find ./restore_background -type f | wc -l ) ==  0 ]] ; then
+    echo "no background dump found"
+    exit 0
+fi
+
+# launch a mysql container without mounting /var/lib/mysql and use it as client to import the dump
+podman run \
+    --rm \
+    --interactive \
+    --name=mariadb_background_restore \
+    --network=host \
+    --volume=./restore_background:/restore_background:z \
+    --env=MARIADB_ROOT_PASSWORD \
+    --env=NETHVOICE_MARIADB_PORT \
+    "${NETHVOICE_MARIADB_IMAGE}" \
+    bash -c 'for FILE in $(ls /restore_background/*.sql); do mysql -u root -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$MARIADB_ROOT_PASSWORD <  $FILE && rm $FILE; done'
