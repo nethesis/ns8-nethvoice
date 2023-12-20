@@ -37,7 +37,7 @@ ExecStart=/usr/bin/podman run \
     --env=NETHVOICE* \
     --env=ASTERISK_* \
     --network=host \
-    --tz=TIMEZONE \
+    --tz=${TIMEZONE} \
     ${NETHVOICE_ASTERISK_IMAGE}
 
 # Wait till asterisk is active
