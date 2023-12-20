@@ -39,6 +39,7 @@ getFromRequest(request, 'nethcti_log_level', 'NETHCTI_LOG_LEVEL', 'warn')
 getFromRequest(request, 'conference_jitsi_url', 'CONFERENCE_JITSI_URL', 'https://jitsi.nethserver.net')
 getFromRequest(request, 'app_brand_id', 'BRAND_APPID', '')
 getFromRequest(request, 'flexisip_log_level', 'FLEXISIP_LOG_LEVEL', 'warning')
+getFromRequest(request, 'timezone', 'TIMEZONE', 'UTC')
 
 ## NethCTI UI
 getFromRequest(request, 'nethcti_ui_host', 'NETHCTI_UI_HOST', '')
