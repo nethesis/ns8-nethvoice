@@ -15,32 +15,36 @@ $db->query("ALTER TABLE `asterisk`.`rest_devices_phones` ADD COLUMN `srtp` BOOLE
 
 /* Convert existing srtp physical and mobile extensions to be used with proxy */
 # get all NethVoice extensions with srtp enabled
-$sql = "SELECT extension
-		FROM `asterisk`.`rest_devices_phones` 
-		JOIN `asterisk`.`sip` 
-		ON `asterisk`.`rest_devices_phones`.`extension` = `asterisk`.`sip`.`id` 
-		WHERE ( `type` = 'physical' OR `type` = 'mobile' )
-		AND	`srtp` IS NULL 
-		AND `keyword`='media_encryption' 
-		AND `data`='sdes'";
+$sql = "SELECT extension,
+        IF (`asterisk`.`sip`.`data` = 'sdes', true, false) AS `srtp`
+        FROM `asterisk`.`rest_devices_phones`
+        JOIN `asterisk`.`sip`
+        ON `asterisk`.`rest_devices_phones`.`extension` = `asterisk`.`sip`.`id`
+        WHERE ( `type` = 'physical' OR `type` = 'mobile' )
+        AND	`srtp` IS NULL
+        AND `keyword`='media_encryption'
+        AND extension IS NOT NULL";
 
 $stmt = $db->prepare($sql);
 $stmt->execute();
 $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-$extensions = array_column($res, 'extension');
 
-if (count($extensions) > 0) {
-	$qm_string = str_repeat('?, ', count($extensions) - 1) . '?';
+if (count($res) > 0) {
+	$qm_string = str_repeat('?, ', count($res) - 1) . '?';
 
 	# set media_encryption to no in freepbx sip table
 	$sql = "UPDATE `asterisk`.`sip` SET `data` = 'no' WHERE `keyword` = 'media_encryption' AND `id` IN ($qm_string)";
 	$stmt = $db->prepare($sql);
-	$stmt->execute($extensions);
+	$stmt->execute(array_column($res, 'extension'));
 
-	# set srtp to true in rest_devices_phones table
-	$sql = "UPDATE `asterisk`.`rest_devices_phones` SET `srtp` = 1 WHERE `extension` IN ($qm_string)";
+	# set srtp true or false in rest_devices_phones table
+	$db->beginTransaction();
+	$sql = "UPDATE `asterisk`.`rest_devices_phones` SET `srtp` = ? WHERE `extension` = ?";
 	$stmt = $db->prepare($sql);
-	$stmt->execute($extensions);
+	foreach ($res as $row) {
+	    $stmt->execute([$row['srtp'], $row['extension']]);
+	}
+	$db->commit();
 
 	# configure proxy on all FreePBX extensions
 	$proxy_host = $_ENV['PROXY_IP'];
@@ -48,18 +52,27 @@ if (count($extensions) > 0) {
 
 	$sql = "UPDATE `asterisk`.`sip` SET `data` = ? WHERE `keyword` = 'outbound_proxy' AND `id` IN ($qm_string)";
 	$stmt = $db->prepare($sql);
-	$stmt->execute(array_merge(['sip:'.$proxy_host.':'.$proxy_port], $extensions));
+	$stmt->execute(array_merge(['sip:'.$proxy_host.':'.$proxy_port], array_column($res, 'extension')));
 
 	# set rtp_symmetric to no in freepbx sip table
 	$sql = "UPDATE `asterisk`.`sip` SET `data` = 'no' WHERE `keyword` = 'rtp_symmetric' WHERE `id` IN ($qm_string)";
 	$stmt = $db->prepare($sql);
-	$stmt->execute($extensions);
+	$stmt->execute(array_column($res, 'extension'));
 
 	# set rewrite_contact to no in freepbx sip table
 	$sql = "UPDATE `asterisk`.`sip` SET `data` = 'no' WHERE `keyword` = 'rewrite_contact' WHERE `id` IN ($qm_string)";
-	$db->query($sql);
 	$stmt = $db->prepare($sql);
-	$stmt->execute($extensions);
+	$stmt->execute(array_column($res, 'extension'));
+
+	# set force_rport to no in freepbx sip table
+	$sql = "UPDATE `asterisk`.`sip` SET `data` = 'no' WHERE `keyword` = 'force_rport' WHERE `id` IN ($qm_string)";
+	$stmt = $db->prepare($sql);
+	$stmt->execute(array_column($res, 'extension'));
+
+	# set transport to udp in freepbx sip table
+	$sql = "UPDATE `asterisk`.`sip` SET `data` = '0.0.0.0-udp' WHERE `keyword` = 'transport' WHERE `id` IN ($qm_string)";
+	$stmt = $db->prepare($sql);
+	$stmt->execute(array_column($res, 'extension'));
 }
 
 # migrate profiles, macro_permissions and permissions scheme to new format
