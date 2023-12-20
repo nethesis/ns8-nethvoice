@@ -13,14 +13,13 @@ $db->query("ALTER TABLE `asterisk`.`rest_devices_phones` ADD COLUMN `srtp` BOOLE
 
 
 
-/* Convert existing srtp extensions to be used with proxy */
-
+/* Convert existing srtp physical and mobile extensions to be used with proxy */
 # get all NethVoice extensions with srtp enabled
 $sql = "SELECT extension
 		FROM `asterisk`.`rest_devices_phones` 
 		JOIN `asterisk`.`sip` 
 		ON `asterisk`.`rest_devices_phones`.`extension` = `asterisk`.`sip`.`id` 
-		WHERE `type` = 'physical' 
+		WHERE ( `type` = 'physical' OR `type` = 'mobile' )
 		AND	`srtp` IS NULL 
 		AND `keyword`='media_encryption' 
 		AND `data`='sdes'";
