@@ -52,6 +52,28 @@ astctlpermissions=775
 autoload=yes
 EOF
 
+# create modules.conf
+cat > /etc/asterisk/modules.conf <<EOF
+[modules]
+autoload=yes
+preload = func_db.so
+preload = res_odbc.so
+preload = res_config_odbc.so
+preload = cdr_adaptive_odbc.so
+noload = chan_dahdi.so
+noload = codec_dahdi.so
+noload = res_ari_mailboxes.so
+noload = res_stir_shaken.so
+noload = res_pjsip_stir_shaken.so
+noload = res_pjsip_phoneprov.so
+noload = res_pjsip_phoneprov_provider.so
+noload = cdr_csv.so
+noload = cdr_syslog.so
+noload = app_alarmreceiver.so
+noload = res_http_media_cache.so
+noload = res_phoneprov.so
+EOF
+
 chown -c asterisk:asterisk /etc/asterisk/*.conf
 
 # Configure ODBC for asteriskcdrdb
