@@ -62,6 +62,8 @@ ExecStart=/usr/bin/podman run \
     --env=PROXY_PORT \
     --network=host \
     --hostname=${NETHVOICE_HOST} \
+    --health-cmd='curl -f http://127.0.0.1:${APACHE_PORT}/freepbx/admin/config.php || exit 1' \
+    --health-timeout=10s \
     ${NETHVOICE_FREEPBX_IMAGE}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/freepbx.ctr-id
