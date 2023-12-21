@@ -7,7 +7,7 @@
 
 # wait for FreePBX to be ready
 
-until /usr/bin/podman healthcheck run freepbx; do
-    echo "waiting for FreePBX to be ready"
+until /usr/bin/podman healthcheck run freepbx > /dev/null ; do
+    echo "waiting for FreePBX to be ready" > /dev/stderr
     sleep 5
 done
