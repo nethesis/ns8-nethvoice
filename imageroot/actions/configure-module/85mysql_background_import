@@ -16,7 +16,7 @@ fi
 # launch a mysql container without mounting /var/lib/mysql and use it as client to import the dump
 podman run \
     --rm \
-    --interactive \
+    --detach \
     --name=mariadb_background_restore \
     --network=host \
     --volume=./restore_background:/restore_background:z \
