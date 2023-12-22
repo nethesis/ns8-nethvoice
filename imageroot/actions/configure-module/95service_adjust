@@ -6,11 +6,12 @@
 #
 
 # start nethcti-server if wizard step is completed
-
-WIZARD_STEP=$(podman exec -it mariadb mysql -u root -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$MARIADB_ROOT_PASSWORD asterisk -BNe "select step from rest_wizard" | tr -d -c '[:digit:]' )
+WIZARD_STEP=$(/usr/bin/podman exec mariadb mysql -u root -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$MARIADB_ROOT_PASSWORD asterisk -BNe "select step from rest_wizard" | tr -d -c '[:digit:]')
 if [[ $WIZARD_STEP -ge 10 ]]; then
-    systemctl --user start nethcti-server
+    echo "Starting nethcti-server" >> /dev/stderr
+    /usr/bin/systemctl --user start nethcti-server
 fi
 
 # restart asterisk when convenient
-podman exec -d asterisk asterisk -rx "core restart when convenient"
+echo "Restarting asterisk when convenient" >> /dev/stderr
+/usr/bin/podman exec -d asterisk asterisk -rx "core restart when convenient"
