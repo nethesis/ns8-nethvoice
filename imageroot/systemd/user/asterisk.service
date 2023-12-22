@@ -36,6 +36,8 @@ ExecStart=/usr/bin/podman run \
     --env=AMPMGRPASS \
     --env=NETHVOICE* \
     --env=ASTERISK_* \
+    --env=PATH=/opt/rh/rh-php73/root/usr/bin:/opt/rh/rh-php73/root/usr/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin \
+    --env=LD_LIBRARY_PATH=/opt/rh/rh-php73/root/usr/lib64 \
     --network=host \
     --tz=${TIMEZONE} \
     ${NETHVOICE_ASTERISK_IMAGE}

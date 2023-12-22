@@ -16,6 +16,10 @@ RUN groupadd -g 991 -r asterisk \
         mysql-connector-odbc \
         unzip \
         wget \
+        centos-release-scl \
+    && yum install -y \
+        rh-php73 \
+        rh-php73-php \
     && rm -fr /var/cache/yum
 RUN rm -f /usr/lib64/asterisk/modules/res_timing_dahdi.so
 RUN wget -nv http://asterisk.hosting.lv/bin/codec_g729-ast180-gcc4-glibc-x86_64-pentium4.so -O /usr/lib64/asterisk/modules/codec_g729.so
