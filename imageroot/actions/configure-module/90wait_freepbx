@@ -7,7 +7,7 @@
 
 # wait for FreePBX to be ready
 
-until /usr/bin/podman healthcheck run freepbx > /dev/null ; do
+until curl -fs http://127.0.0.1:${APACHE_PORT}/freepbx/admin/config.php 2>1 > /dev/null ; do
     echo "waiting for FreePBX to be ready" > /dev/stderr
     sleep 5
 done
