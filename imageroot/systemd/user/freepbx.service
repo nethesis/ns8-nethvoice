@@ -35,6 +35,7 @@ ExecStart=/usr/bin/podman run \
     --volume=asterisk-cert:/etc/asterisk/keys:z \
     --volume=reports_config:/opt/nethvoice-report:z \
     --volume=tancredi:/var/lib/tancredi:z \
+    --volume=php-fpm-sock:/run/php/:Z \
     --env=NETHVOICE* \
     --env=APACHE_RUN_USER \
     --env=APACHE_RUN_GROUP \

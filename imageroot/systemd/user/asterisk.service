@@ -30,6 +30,7 @@ ExecStart=/usr/bin/podman run \
     --volume=astdb:/var/lib/asterisk/db:z \
     --volume=/dev/log:/dev/log \
     --volume=asterisk-cert:/etc/asterisk/keys:z \
+    --volume=php-fpm-sock:/run/php/:Z \
     --env=ASTMANAGERHOST \
     --env=ASTMANAGERPORT \
     --env=AMPMGRUSER \
