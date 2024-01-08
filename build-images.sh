@@ -57,7 +57,7 @@ images+=("${repobase}/${reponame}")
 echo "[*] Build FreePBX container"
 reponame="nethvoice-freepbx"
 pushd freepbx
-buildah build --force-rm --no-cache --jobs "$(nproc)" --target production --tag "${repobase}/${reponame}"
+buildah build --force-rm --no-cache --jobs "$(nproc)" --tag "${repobase}/${reponame}"
 popd
 
 # Append the image URL to the images array
