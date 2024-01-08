@@ -281,7 +281,7 @@ RUN apt-get update && apt-get install -y \
 	vim \
 	apache2 \
 	libapache2-mod-fcgid \
-	supervisord
+	supervisor
 
 RUN pip install mysql.connector
 
