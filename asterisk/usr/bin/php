@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Check if a script file is provided
+if [ -z "$1" ]; then
+    echo "Usage: $0 <script.php>"
+    exit 1
+fi
+
+# Path to PHP script is the last argument
+PHP_SCRIPT=${!#}
+
+# PHP-FPM socket or address
+PHP_FPM_SOCKET=/run/php/php-fpm.sock
+
+# Prepare the environment and parameters for cgi-fcgi
+SCRIPT_FILENAME=$PHP_SCRIPT
+REQUEST_METHOD=GET
+SCRIPT_NAME=$(basename $PHP_SCRIPT)
+QUERY_STRING=
+CONTENT_TYPE=text/html
+CONTENT_LENGTH=0
+
+# Execute the script via PHP-FPM
+export SCRIPT_FILENAME REQUEST_METHOD SCRIPT_NAME QUERY_STRING CONTENT_TYPE CONTENT_LENGTH
+exec cgi-fcgi -bind -connect $PHP_FPM_SOCKET
