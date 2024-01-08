@@ -1,4 +1,4 @@
-FROM docker.io/library/php:7.4-apache as production
+FROM docker.io/library/php:7.4-fpm
 
 RUN groupadd -g 991 -r asterisk && useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk
 
@@ -278,19 +278,22 @@ RUN apt-get update && apt-get install -y \
 	python3-pyodbc \
 	sox \
 	zip \
-	vim
+	vim \
+	apache2 \
+	libapache2-mod-fcgid \
+	supervisord
 
 RUN pip install mysql.connector
 
 # Use PHP development ini configuration and enable logging on syslog
-RUN cp -a /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini
-RUN sed -i 's/^;error_log = syslog/error_log = \/dev\/stderr/' /usr/local/etc/php/php.ini
-RUN echo "error_log = /dev/stderr" >> /usr/local/etc/php/conf.d/freepbx.ini
-RUN echo "variables_order = \"EGPCS\"" >> /usr/local/etc/php/conf.d/freepbx.ini
-RUN echo "memory_limit = 512M" >> /usr/local/etc/php/conf.d/freepbx.ini
+RUN cp -a /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini && \
+	sed -i 's/^;error_log = syslog/error_log = \/dev\/stderr/' /usr/local/etc/php/php.ini && \
+	echo "error_log = /dev/stderr" >> /usr/local/etc/php/conf.d/freepbx.ini && \
+	echo "variables_order = \"EGPCS\"" >> /usr/local/etc/php/conf.d/freepbx.ini && \
+	echo "memory_limit = 512M" >> /usr/local/etc/php/conf.d/freepbx.ini && \
+	sed -i 's/^variables_order = "GPCS"/variables_order = "EGPCS"/' /usr/local/etc/php/php.ini && \
+	echo -e "[global]\ndaemonize = no\n[www]\nlisten = /run/php/php-fpm.sock\nlisten.owner = asterisk\nlisten.group = asterisk\nlisten.mode = 0660" > /usr/local/etc/php-fpm.d/zz_docker.conf
 
-# Enable environment variables
-RUN sed -i 's/^variables_order = "GPCS"/variables_order = "EGPCS"/' /usr/local/etc/php/php.ini
 
 # Install php additional modules
 RUN docker-php-source extract
@@ -325,7 +328,7 @@ RUN curl -L https://github.com/nethesis/nethvoice-wizard-ui/archive/refs/heads/n
 RUN a2enmod rewrite proxy*
 
 # Clean apt files
-RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/dpkg/info/* /var/lib/cache/* /var/lib/log/* && touch /var/lib/dpkg/status
+RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,dpkg,cache,log}/* && touch /var/lib/dpkg/status
 
 # Install centralized phonebook update script
 RUN mkdir -p /usr/share/phonebooks/ && \
@@ -333,5 +336,6 @@ RUN mkdir -p /usr/share/phonebooks/ && \
 
 COPY etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-default.conf
 COPY entrypoint.sh /entrypoint
-CMD ["apache2-foreground","-f","/etc/apache2/apache2.conf"]
+COPY etc/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+CMD ["/usr/bin/supervisord"]
 ENTRYPOINT ["/entrypoint"]
