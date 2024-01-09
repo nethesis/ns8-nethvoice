@@ -292,7 +292,7 @@ RUN cp -a /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini && \
 	echo "variables_order = \"EGPCS\"" >> /usr/local/etc/php/conf.d/freepbx.ini && \
 	echo "memory_limit = 512M" >> /usr/local/etc/php/conf.d/freepbx.ini && \
 	sed -i 's/^variables_order = "GPCS"/variables_order = "EGPCS"/' /usr/local/etc/php/php.ini && \
-	echo -e "[global]\ndaemonize = no\n[www]\nlisten = /run/php/php-fpm.sock\nlisten.owner = asterisk\nlisten.group = asterisk\nlisten.mode = 0660" > /usr/local/etc/php-fpm.d/zz_docker.conf
+	printf "[global]\ndaemonize = no\n[www]\nlisten = /run/php/php-fpm.sock\nlisten.owner = asterisk\nlisten.group = asterisk\nlisten.mode = 0660" > /usr/local/etc/php-fpm.d/zz_docker.conf
 
 
 # Install php additional modules
