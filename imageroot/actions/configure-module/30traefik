@@ -80,7 +80,7 @@ response = agent.tasks.run(
     data={
         'instance': os.environ['MODULE_ID'] + '-provisioning',
         'url':  'http://127.0.0.1:' + os.environ["TANCREDIPORT"] + '/provisioning',
-        'http2https':  "false",
+        'http2https':  False,
         'lets_encrypt': lets_encrypt,
         'host': os.environ["NETHVOICE_HOST"],
         'path': '/provisioning',
