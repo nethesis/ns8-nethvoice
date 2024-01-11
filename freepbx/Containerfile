@@ -337,5 +337,6 @@ RUN mkdir -p /usr/share/phonebooks/ && \
 COPY etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-default.conf
 COPY entrypoint.sh /entrypoint
 COPY etc/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY usr/local/bin/apache2-foreground /usr/local/bin/
 CMD ["/usr/bin/supervisord"]
 ENTRYPOINT ["/entrypoint"]
