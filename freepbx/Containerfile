@@ -335,6 +335,7 @@ RUN mkdir -p /usr/share/phonebooks/ && \
 	curl -L https://github.com/nethesis/nethserver-phonebook-mysql/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=5 -C /usr/share/phonebooks/ nethserver-phonebook-mysql-ns8/root/usr/share/phonebooks
 
 COPY etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-default.conf
+COPY etc/apache2/envvars /etc/apache2/envvars
 COPY entrypoint.sh /entrypoint
 COPY etc/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY usr/local/bin/apache2-foreground /usr/local/bin/
