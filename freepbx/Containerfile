@@ -291,9 +291,7 @@ RUN cp -a /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini && \
 	echo "error_log = /dev/stderr" >> /usr/local/etc/php/conf.d/freepbx.ini && \
 	echo "variables_order = \"EGPCS\"" >> /usr/local/etc/php/conf.d/freepbx.ini && \
 	echo "memory_limit = 512M" >> /usr/local/etc/php/conf.d/freepbx.ini && \
-	sed -i 's/^variables_order = "GPCS"/variables_order = "EGPCS"/' /usr/local/etc/php/php.ini && \
-	printf "[global]\ndaemonize = no\n[www]\nlisten = /run/php/php-fpm.sock\nlisten.owner = asterisk\nlisten.group = asterisk\nlisten.mode = 0660" > /usr/local/etc/php-fpm.d/zz_docker.conf
-
+	sed -i 's/^variables_order = "GPCS"/variables_order = "EGPCS"/' /usr/local/etc/php/php.ini
 
 # Install php additional modules
 RUN docker-php-source extract
@@ -339,5 +337,7 @@ COPY etc/apache2/envvars /etc/apache2/envvars
 COPY entrypoint.sh /entrypoint
 COPY etc/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY usr/local/bin/apache2-foreground /usr/local/bin/
+COPY /usr/local/etc/php-fpm.d/zz-docker.conf /usr/local/etc/php-fpm.d/zz-docker.conf
+COPY etc/apache2/conf-enabled/docker-php-fpm.conf /etc/apache2/conf-enabled/docker-php-fpm.conf
 CMD ["/usr/bin/supervisord"]
 ENTRYPOINT ["/entrypoint"]
