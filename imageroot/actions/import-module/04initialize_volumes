@@ -1,0 +1,18 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+
+# initialize asterisk sounds volume with default files from asterisk container
+podman run \
+    --rm \
+    --name=asterisk_initialize_volumes \
+    --volume=asterisk:/etc/asterisk:z \
+    --volume=sounds:/var/lib/asterisk/sounds:z \
+    --volume=agi-bin:/var/lib/asterisk/agi-bin:z \
+    "${NETHVOICE_ASTERISK_IMAGE}" \
+    echo "volumes initialized"

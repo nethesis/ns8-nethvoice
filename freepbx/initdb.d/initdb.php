@@ -28,6 +28,8 @@ $vars = array(
 	'AMPASTERISKWEBUSER' => (empty($_ENV['AMPASTERISKWEBUSER']) ? 'asterisk' : $_ENV['AMPASTERISKWEBUSER']),
 	'CELDBNAME' => 'asteriskcdrdb',
 	'CELDBTABLENAME' => 'cel',
+	'FPBXDBUGFILE' => 'php://stderr',
+	'FPBX_LOG_FILE' => 'php://stderr',
 );
 
 $exec = [];

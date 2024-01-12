@@ -24,7 +24,57 @@ writetimeout = 5000
 #include manager_additional.conf
 #include manager_custom.conf
 EOF
-chown asterisk:asterisk /etc/asterisk/manager.conf
+
+# create asterisk.conf
+cat > /etc/asterisk/asterisk.conf <<EOF
+[directories]
+astetcdir => /etc/asterisk
+astmoddir => /usr/lib64/asterisk/modules
+astvarlibdir => /var/lib/asterisk
+astagidir => /var/lib/asterisk/agi-bin
+astspooldir => /var/spool/asterisk
+astrundir => /var/run/asterisk
+astlogdir => /var/log/asterisk
+astdbdir => /var/lib/asterisk/db
+
+[options]
+transmit_silence_during_record=yes
+languageprefix=yes
+execincludes=yes
+dontwarn=yes
+runuser=asterisk
+rungroup=asterisk
+
+[files]
+astctlpermissions=775
+
+[modules]
+autoload=yes
+EOF
+
+# create modules.conf
+cat > /etc/asterisk/modules.conf <<EOF
+[modules]
+autoload=yes
+preload = func_db.so
+preload = res_odbc.so
+preload = res_config_odbc.so
+preload = cdr_adaptive_odbc.so
+noload = chan_dahdi.so
+noload = codec_dahdi.so
+noload = res_ari_mailboxes.so
+noload = res_stir_shaken.so
+noload = res_pjsip_stir_shaken.so
+noload = res_pjsip_phoneprov.so
+noload = res_pjsip_phoneprov_provider.so
+noload = cdr_csv.so
+noload = cdr_syslog.so
+noload = app_alarmreceiver.so
+noload = res_http_media_cache.so
+noload = res_phoneprov.so
+EOF
+
+chown -c asterisk:asterisk /etc/asterisk/*.conf
 
 # Configure ODBC for asteriskcdrdb
 cat > /etc/odbc.ini <<EOF

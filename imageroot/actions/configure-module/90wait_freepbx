@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# wait for FreePBX to be ready
+
+until curl -fs http://127.0.0.1:${APACHE_PORT}/freepbx/admin/config.php &> /dev/null ; do
+    echo "waiting for FreePBX to be ready" > /dev/stderr
+    sleep 5
+done

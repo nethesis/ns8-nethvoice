@@ -57,11 +57,7 @@ Driver = MySQL
 Description = ODBC on asteriskcdrdb
 EOF
 
-# Create empty /etc/amportal.conf
-if [[ ! -f /etc/amportal.conf ]]; then
-	touch /etc/amportal.conf
-fi
-
+# Create empty voicemail.conf if not exists
 if [[ ! -f /etc/asterisk/voicemail.conf ]]; then
 	touch /etc/asterisk/voicemail.conf
 fi
@@ -123,7 +119,7 @@ EOF
 
 # Set proxy ip and port if not already set
 if [[ -z "${PROXY_IP}" ]]; then
-    export PROXY_IP=$(curl -s https://api.ipify.org)
+    export PROXY_IP=$(curl -s https://api.ipify.org || echo "127.0.0.1")
 fi
 if [[ -z "${PROXY_PORT}" ]]; then
     export PROXY_PORT=5060
