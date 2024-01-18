@@ -16,6 +16,11 @@ proxy_id = agent.resolve_agent_id('nethvoice-proxy@node')
 if proxy_id is None:
     sys.exit(2)
 
+# Get proxy srv records
+ksrv = agent.list_service_providers(agent.redis_connect(use_replica=True), "sip", "tcp", {"module_id": proxy_id.removeprefix("module/")})
+
+agent.set_env("NETHVOICE_PROXY_FQDN", ksrv[0]["fqdn"])
+
 # Configure nethvoice-proxy to route SIP traffic for Nethvoice
 response = agent.tasks.run(
     agent_id=proxy_id,
