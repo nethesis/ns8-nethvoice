@@ -63,7 +63,6 @@ if [[ ! -f ${dst_file} ]]; then
 	echo 'tonezone = "it"' >> ${dst_file}
 	echo 'hostname = "'${NETHVOICE_HOST}'"' >> ${dst_file}
 	echo 'outbound_proxy_1 = "'${PUBLIC_IP}'"' >> ${dst_file}
-	echo 'outbound_proxy_port_1 = "5060"' >> ${dst_file}
 	echo 'provisioning_url_scheme = "https"' >> ${dst_file}
 	echo 'provisioning_freq = "everyday"' >> ${dst_file}
 
@@ -97,12 +96,6 @@ if [[ ! -f ${dst_file} ]]; then
 
 	# Set default proxy
 	echo 'outbound_proxy_1 = "${PROXY_IP}"' >> ${dst_file}
-
-	# Set proxy port if not empty
-	if [[ ! -z "${PROXY_PORT}" ]]; then
-		echo 'outbound_proxy_port_1 = "${PROXY_PORT}"' >> ${dst_file}
-	fi
-
 fi
 
 runuser -s /bin/bash -c "php /usr/share/tancredi/scripts/upgrade.php" - www-data
