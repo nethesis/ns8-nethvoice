@@ -1,4 +1,4 @@
-FROM docker.io/library/php:7.4-fpm
+FROM docker.io/library/php:7.4-apache
 
 RUN groupadd -g 991 -r asterisk && useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk
 
@@ -279,8 +279,7 @@ RUN apt-get update && apt-get install -y \
 	sox \
 	zip \
 	vim \
-	apache2 \
-	libapache2-mod-fcgid \
+	socat \
 	supervisor
 
 RUN pip install mysql.connector
@@ -333,11 +332,9 @@ RUN mkdir -p /usr/share/phonebooks/ && \
 	curl -L https://github.com/nethesis/nethserver-phonebook-mysql/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=5 -C /usr/share/phonebooks/ nethserver-phonebook-mysql-ns8/root/usr/share/phonebooks
 
 COPY etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-default.conf
-COPY etc/apache2/envvars /etc/apache2/envvars
 COPY entrypoint.sh /entrypoint
 COPY etc/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY usr/local/bin/apache2-foreground /usr/local/bin/
-COPY /usr/local/etc/php-fpm.d/zz-docker.conf /usr/local/etc/php-fpm.d/zz-docker.conf
-COPY etc/apache2/conf-enabled/docker-php-fpm.conf /etc/apache2/conf-enabled/docker-php-fpm.conf
+COPY usr/local/bin/rce_server.sh /usr/local/bin/rce_server.sh
+COPY usr/local/bin/rce_worker.sh /usr/local/bin/rce_worker.sh
 CMD ["/usr/bin/supervisord"]
 ENTRYPOINT ["/entrypoint"]
