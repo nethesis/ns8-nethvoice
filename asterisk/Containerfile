@@ -48,7 +48,8 @@ COPY usr/bin/restore_astdb /usr/bin/restore_astdb
 COPY usr/local/bin/import-certificate /usr/local/bin/import-certificate
 COPY usr/local/bin/rce_client.sh /usr/local/bin/rce_client.sh
 RUN ln -sf /usr/local/bin/rce_client.sh /usr/local/bin/php
-RUN chown asterisk:asterisk /var/lib/asterisk/db
+RUN chown asterisk:asterisk /var/lib/asterisk/db \
+                            /usr/local/bin/rce_client.sh
 COPY entrypoint.sh /entrypoint
 ENTRYPOINT [ "/entrypoint" ]
 CMD [ "/usr/sbin/asterisk", "-f", "-C", "/etc/asterisk/asterisk.conf" ]
