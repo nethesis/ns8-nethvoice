@@ -3,7 +3,7 @@
 SOCKET_PATH="/run/rce/command.sock"
 
 # Send the command received as argument to the server
-IO_SOCKET_PATH=$(echo "$0 $@" | socat - UNIX-CONNECT:"$SOCKET_PATH")
+IO_SOCKET_PATH=$(echo "$0 $@" | socat - UNIX-CONNECT:"$SOCKET_PATH",chroot=/var/lib/asterisk,su-d=asterisk)
 echo "received socket path: ${IO_SOCKET_PATH}"
 trap "rm -f $IO_SOCKET_PATH" EXIT
 
