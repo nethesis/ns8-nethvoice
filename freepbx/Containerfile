@@ -1,16 +1,222 @@
-FROM docker.io/library/php:7.4-apache
+# Stage 1: Build Asterisk
+FROM docker.io/debian:11 as builder
 
-RUN groupadd -g 991 -r asterisk && useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk
+# Set fixed Asterisk version
+ARG ASTERISK_VERSION=18.20.2
+ARG PJSIP_VERSION=2.13.1
+ARG DEBIAN_FRONTEND=noninteractive
+ARG BUILDROOT=/usr/src/asterisk/build
+ARG LIBDIR=/usr/lib
+ARG DATADIR=/var/lib
+ARG MAKEARGS="DEBUG= OPTIMIZE= DESTDIR=${BUILDROOT} ASTVARRUNDIR=/var/run/asterisk ASTDATADIR=${DATADIR}/asterisk ASTVARLIBDIR=${DATADIR}/asterisk ASTDBDIR=${DATADIR}/asterisk/db NOISY_BUILD=1"
+COPY usr/src/asterisk /usr/src/asterisk
+RUN groupadd -g 991 -r asterisk && \
+    useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk && \
+	apt-get update && \
+	apt-get install -y \
+		wget \
+		build-essential \
+		libjansson-dev \
+		python3 \
+		automake \
+		ncurses-bin \
+		libssl-dev \
+		libnewt-dev \
+		libncursesw5-dev \
+		libcap-dev \
+		libsrtp2-dev \
+		libpopt-dev \
+		libxslt1-dev \
+		libgmime-3.0-dev \
+		doxygen \
+		graphviz \
+		libneon27-dev \
+		libical-dev \
+		libspeex-dev \
+		libspeexdsp-dev \
+		libogg-dev \
+		libvorbis-dev \
+		libgsm1-dev \
+		libsdl1.2-dev \
+		libsdl-image1.2-dev \
+		libedit-dev \
+		uuid-dev \
+		libunbound-dev \
+		libasound2-dev \
+		libcurl4-openssl-dev \
+		libpri-dev \
+		libss7-dev \
+		libspandsp-dev \
+		libtiff5-dev \
+		liblua5.3-dev \
+		libltdl-dev \
+		portaudio19-dev \
+		libsqlite3-dev \
+		libsybdb5 \
+		libresample1-dev \
+		libldap2-dev \
+		libmariadb-dev \
+		unixodbc-dev \
+		libpq-dev \
+		libsnmp-dev \
+		libsensors4-dev \
+		libjansson-dev \
+		libgcrypt20-dev \
+		libmariadb-dev \
+		libjpeg62-turbo-dev \
+		make && \
+	cd /usr/src/asterisk && \
+	wget https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz && \
+	tar xzf asterisk-${ASTERISK_VERSION}.tar.gz && \
+	rm -f asterisk-${ASTERISK_VERSION}.tar.gz && \
+	cd asterisk-${ASTERISK_VERSION} && \
+	mkdir cache && \
+	pushd cache && \
+	wget https://raw.githubusercontent.com/asterisk/third-party/master/pjproject/${PJSIP_VERSION}/pjproject-${PJSIP_VERSION}.tar.bz2 && \
+	popd && \
+	patch -p1 < ../asterisk-18-mp3.patch && \
+	patch -p1 < ../lazymembers.patch && \
+	mv ../menuselect.make* ./ && \
+	perl -pi -e 's/^all:.*$/all:/' sounds/Makefile && \
+	perl -pi -e 's/^install:.*$/install:/' sounds/Makefile && \
+	mv main/fskmodem.c main/fskmodem.c.old && \
+	iconv -f iso-8859-1 -t utf-8 -o main/fskmodem.c main/fskmodem.c.old	&& \
+	touch -r main/fskmodem.c.old main/fskmodem.c && \
+	rm main/fskmodem.c.old && \
+	chmod -x contrib/scripts/dbsep.cgi && \
+	export CFLAGS=" -Werror-implicit-function-declaration -DLUA_COMPAT_MODULE -fPIC" && \
+	export CXXFLAGS="-Werror-implicit-function-declaration -DLUA_COMPAT_MODULE -fPIC" && \
+	export FFLAGS="-Werror-implicit-function-declaration -DLUA_COMPAT_MODULE -fPIC" && \
+	export LDFLAGS="-m64 -Wl,--as-needed,--library-path=/usr/lib/x86_64-linux-gnu" && \
+	export ASTCFLAGS=" " && \
+	sed -i '1s/env python/python3/' contrib/scripts/refcounter.py && \
+	./bootstrap.sh && \
+	pushd menuselect && \
+	./configure && \
+	popd && \
+	./configure --without-imap --with-externals-cache=/usr/src/asterisk/cache --with-gsm=/usr --without-ilbc --with-libedit=yes --with-srtp --with-jansson-bundled --with-pjproject-bundled LDFLAGS="${LDFLAGS}" NOISY_BUILD=1 CPPFLAGS="-fPIC" && \
+	make menuselect-tree && \
+	perl -n -i -e 'print unless /openr2/i' menuselect-tree && \
+	make ${MAKEARGS} && \
+	make install ${MAKEARGS} && \
+	make samples ${MAKEARGS} && \
+	install -D -p -m 0755 apps/app_voicemail_odbc.so ${BUILDROOT}${LIBDIR}/asterisk/modules/app_voicemail_odbc.so && \
+	install -D -p -m 0755 apps/app_voicemail.so ${BUILDROOT}${LIBDIR}/asterisk/modules/app_voicemail.so && \
+	mkdir -p ${BUILDROOT}${DATADIR}/agi-bin && \
+		${BUILDROOT}${DATADIR}/asterisk/db && \
+		${BUILDROOT}${DATADIR}/asterisk/images && \
+		${BUILDROOT}${DATADIR}/asterisk/keys/stir_shaken && \
+		${BUILDROOT}${DATADIR}/asterisk/moh && \
+		${BUILDROOT}${DATADIR}/asterisk/sounds && \
+		${BUILDROOT}/var/spool/asterisk/outgoing && \
+		${BUILDROOT}/var/spool/asterisk/uploads && \
+		${BUILDROOT}/var/spool/asterisk/cache && \
+	rm -rf ${BUILDROOT}/usr/share /tmp ${BUILDROOT}${LIBDIR}/libasteriskssl.so && \
+	ln -s libasteriskssl.so.1 ${BUILDROOT}${LIBDIR}/libasteriskssl.so && \
+	cp contrib/ast-db-manage ${BUILDROOT}${DATADIR}/asterisk/ast-db-manage && \
+	wget http://downloads.digium.com/pub/telephony/codec_opus/asterisk-18.0/x86-64/codec_opus-18.0_current-x86_64.tar.gz && \
+	tar xzf codec_opus-18.0_current-x86_64.tar.gz --strip-components=1 && \
+	http://downloads.digium.com/pub/telephony/codec_silk/asterisk-18.0/x86-64/codec_silk-18.0_current-x86_64.tar.gz && \
+	tar xzf codec_silk-18.0_current-x86_64.tar.gz --strip-components=1 && \
+	http://downloads.digium.com/pub/telephony/codec_siren7/asterisk-18.0/x86-64/codec_siren7-18.0_current-x86_64.tar.gz && \
+	tar xzf codec_siren7-18.0_current-x86_64.tar.gz --strip-components=1 && \
+	http://downloads.digium.com/pub/telephony/codec_siren14/asterisk-18.0/x86-64/codec_siren14-18.0_current-x86_64.tar.gz && \
+	tar xzf codec_siren14-18.0_current-x86_64.tar.gz --strip-components=1 && \
+	cp *.so ${BUILDROOT}${LIBDIR}/asterisk/modules/ && \
+	codec_opus_config-en_US.xml ${BUILDROOT}${DATADIR}/asterisk/documentation/thirdparty/ && \
+	wget -nv http://asterisk.hosting.lv/bin/codec_g729-ast180-gcc4-glibc-x86_64-pentium4.so -O ${BUILDROOT}${LIBDIR}/codec_g729.so
+	
+
+
+
+	
+
+
+
+# TODO add ilbc?
+
+FROM docker.io/library/php:7.4-apache
+ARG DEBIAN_FRONTEND=noninteractive
+RUN groupadd -g 991 -r asterisk \
+    && useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk \
+	&& apt-get update && apt-get install -y \
+	cron \
+	gettext \
+	gnupg \
+	libldap2-dev \
+	libldap-2.4-2 \
+	libsodium-dev \
+	mycli \
+	nodejs \
+	npm \
+	pip \
+	python3-pycurl \
+	python3-pyodbc \
+	sox \
+	zip \
+	vim \
+	supervisor \
+	wget \
+    odbc-mariadb \
+	libjansson4 \
+	openssl \
+	libxml2 \
+	libxslt1.1 \
+	libsrtp2-1
+
+# Copy Asterisk files
+COPY --from=builder /usr/src/asterisk/build/* /
+RUN chown asterisk:asterisk \
+	/var/lib/asterisk \
+	/var/lib/asterisk/agi-bin \
+	/var/lib/asterisk/db \
+	/var/lib/asterisk/sounds \
+	/var/log/asterisk \
+	/var/log/asterisk/cdr-csv \
+	/var/log/asterisk/cdr-custom \
+	/var/spool/asterisk/ \
+	/var/spool/asterisk/monitor \
+	/var/spool/asterisk/outgoing \
+	/var/spool/asterisk/tmp \
+	/var/spool/asterisk/uploads \
+	/var/spool/asterisk/voicemail \
+	/var/spool/asterisk/cache
+
+RUN mkdir download \
+    && pushd download \
+    && mkdir -p /var/lib/asterisk/sounds/{it,en,es,de,fr} \
+    && wget -nv https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-core-it-2.11.1.zip \
+    && wget -nv https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-extra-it-2.11.1.zip \
+    && unzip -o 'asterisk-sounds-*-it-*.zip' -d /var/lib/asterisk/sounds/it \
+    && wget -nv --no-check-certificate http://www.asterisksounds.org/sites/asterisksounds.org/files/sounds/es-ES/download/asterisk-sounds-core-es-ES-2.9.15.zip \
+    && wget -nv --no-check-certificate https://www.asterisksounds.org/sites/asterisksounds.org/files/sounds/es-ES/download/asterisk-sounds-extra-es-ES-2.9.15.zip \
+    && unzip -o 'asterisk-sounds-*-es-*.zip' -d /var/lib/asterisk/sounds/es \
+    && wget -nv --no-check-certificate https://www.asterisksounds.org/sites/asterisksounds.org/files/sounds/fr-FR/download/asterisk-sounds-core-fr-FR-2.3.10.zip \
+    && wget -nv --no-check-certificate https://www.asterisksounds.org/sites/asterisksounds.org/files/sounds/fr-FR/download/asterisk-sounds-extra-fr-FR-2.3.10.zip \
+    && unzip -o 'asterisk-sounds-*-fr-*.zip' -d /var/lib/asterisk/sounds/fr \
+    && wget -nv --no-check-certificate https://www.asterisksounds.org/sites/asterisksounds.org/files/sounds/de/download/asterisk-sounds-core-de-2.11.19.zip \
+    && wget -nv --no-check-certificate https://www.asterisksounds.org/sites/asterisksounds.org/files/sounds/de/download/asterisk-sounds-extra-de-2.11.19.zip \
+    && unzip -o 'asterisk-sounds-*-de-*.zip' -d /var/lib/asterisk/sounds/de \
+    && wget -nv --no-check-certificate https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-core-en-2.11.1.zip \
+    && wget -nv --no-check-certificate https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-extra-en-2.11.1.zip \
+    && unzip -o 'asterisk-sounds-*-en-*.zip' -d /var/lib/asterisk/sounds/en \
+    && chown -R asterisk:asterisk /var/lib/asterisk/sounds \
+    && popd && rm -rf download
+
+COPY --chown=asterisk:asterisk etc/asterisk /etc/asterisk
+COPY etc/odbc.ini /etc/odbc.ini
+COPY var/lib/asterisk /var/lib/asterisk
+COPY usr/bin/backup_astdb /usr/bin/backup_astdb
+COPY usr/bin/restore_astdb /usr/bin/restore_astdb
+COPY usr/local/bin/import-certificate /usr/local/bin/import-certificate
+
 
 RUN mkdir -p \
-	/etc/asterisk/ \
 	/etc/phonebook/sources.d/ \
-	/var/lib/asterisk/.gnupg \
 	/var/lib/asterisk/playback \
 	/var/run/asterisk/ \
 	/var/run/nethvoice/ \
-	/var/www/html/freepbx/admin/modules/framework \
-	/var/lib/asterisk/bin
+	/var/www/html/freepbx/admin/modules/framework
 
 COPY var/lib/asterisk/bin/symlink2copies.sh /var/lib/asterisk/bin/
 
@@ -261,26 +467,6 @@ COPY configure_users.php /
 COPY var/www/html/freepbx/admin/brand/* /var/www/html/freepbx/admin/brand/
 
 RUN ln -sf /var/lib/asterisk/bin/fwconsole /usr/bin/fwconsole
-
-# Install additional packages
-RUN apt-get update && apt-get install -y \
-	cron \
-	gettext \
-	gnupg \
-	libldap2-dev \
-	libldap-2.4-2 \
-	libsodium-dev \
-	mycli \
-	nodejs \
-	npm \
-	pip \
-	python3-pycurl \
-	python3-pyodbc \
-	sox \
-	zip \
-	vim \
-	socat \
-	supervisor
 
 RUN pip install mysql.connector
 

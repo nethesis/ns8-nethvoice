@@ -1,0 +1,252 @@
+diff -ur asterisk-13.35.0/apps/app_queue.c asterisk-13.35.0.ori/apps/app_queue.c
+--- asterisk-13.35.0/apps/app_queue.c	2020-07-16 17:57:39.000000000 +0200
++++ asterisk-13.35.0.ori/apps/app_queue.c	2020-09-03 10:27:12.589261023 +0200
+@@ -1709,6 +1709,7 @@
+ 	int wrapuptime;                      /*!< Wrapup Time */
+ 	time_t starttime;                    /*!< The time at which the member answered the current caller. */
+ 	time_t lastcall;                     /*!< When last successful call was hungup */
++       time_t lastnoanswer;                 /*!< When last dial attempt timed out */
+ 	time_t lastpause;                    /*!< When started the last pause */
+ 	time_t logintime;                    /*!< The time when started the login */
+ 	struct call_queue *lastqueue;        /*!< Last queue we received a call */
+@@ -1844,6 +1845,7 @@
+ 	int weight;                         /*!< Respective weight */
+ 	int autopause;                      /*!< Auto pause queue members if they fail to answer */
+ 	int autopausedelay;                 /*!< Delay auto pause for autopausedelay seconds since last call */
++	int LazyMembers;                    /*!< skip non-answering members for this many seconds */
+ 	int timeoutpriority;                /*!< Do we allow a fraction of the timeout to occur for a ring? */
+ 
+ 	/* Queue strategy things */
+@@ -2402,6 +2404,9 @@
+ 				ast_debug(4, "%s is unavailable because his penalty is not between %d and %d\n", member->membername, min_penalty, max_penalty);
+ 				continue;
+ 			}
++		} else if (q->LazyMembers && member->lastnoanswer) {
++                        //TODO: Add log message here
++			continue;
+ 		}
+ 
+ 		switch (devstate ? ast_device_state(member->state_interface) : member->status) {
+@@ -2649,7 +2654,11 @@
+ 
+ 			/* check every member until we find one NOT_INUSE */
+ 			if (!avail) {
++				if (!(q->LazyMembers && m->lastnoanswer)) {
+ 				avail = is_member_available(q, m);
++				} else {
++					avail = 0;
++				}
+ 			}
+ 			if (avail && found_member) {
+ 				/* early exit as we've found an available member and the member of interest */
+@@ -3427,6 +3436,16 @@
+ 		}
+ 	} else if (!strcasecmp(param, "autopause")) {
+ 		q->autopause = autopause2int(val);
++                if (q->LazyMembers && q->autopause) {
++                       q->autopause = 0;
++                       ast_log(LOG_WARNING,"You should not set both autopause and LazyMembers. Pick one or the other! autopause NOT SET!\n");
++               }
++       } else if (!strcasecmp(param, "LazyMembers")) {
++               q->LazyMembers = ast_true(val);
++               if (q->autopause && q->LazyMembers) {
++                       q->LazyMembers = 0;
++                       ast_log(LOG_WARNING,"You should not set both autopause and LazyMembers. Pick one or the other! LazyMembers NOT SET!!\n");
++               }
+ 	} else if (!strcasecmp(param, "autopausedelay")) {
+ 		q->autopausedelay = atoi(val);
+ 	} else if (!strcasecmp(param, "autopausebusy")) {
+@@ -4433,7 +4452,9 @@
+ 	mem_iter = ao2_iterator_init(q->members, 0);
+ 	while ((mem = ao2_iterator_next(&mem_iter))) {
+ 
++		if (!(q->LazyMembers && mem->lastnoanswer)) {
+ 		avl += is_member_available(q, mem);
++		}
+ 		ao2_ref(mem, -1);
+ 
+ 		/* If autofill is not enabled or if the queue's strategy is ringall, then
+@@ -4549,6 +4570,11 @@
+ 		return 0;
+ 	}
+ 
++    if (qe->parent->LazyMembers && call->member->lastnoanswer) {
++        ast_log(LOG_DEBUG, "%s honoring LazyMembers\n", call->interface);
++		return 0;
++	}
++
+ 	if (use_weight && compare_weight(qe->parent, memberp)) {
+ 		ast_debug(1, "Priority queue delaying call to %s:%s\n",
+ 			qe->parent->name, call->interface);
+@@ -4972,6 +4998,20 @@
+ 	qe->parent->callsabandoned++;
+ 	ao2_unlock(qe->parent);
+ 
++	/* Schmooze Update: Update our members if this is an abadoned call, to avoid issues with people being skipped in the queue */
++        /* reset all the member lastnoanswer values */
++        if (qe->parent->LazyMembers) {
++                if (option_verbose > 2)
++                        ast_verbose(VERBOSE_PREFIX_3 "Abandoned! resetting all the member lastnoanswer values\n");
++                struct ao2_iterator memi;
++                struct member *cur;
++                memi = ao2_iterator_init(qe->parent->members, 0);
++                while ((cur = ao2_iterator_next(&memi))) {
++                        if (cur->lastnoanswer)
++                                cur->lastnoanswer = 0;
++                }
++        }
++	/* End Schmooze Update */
+ 	ast_channel_publish_cached_blob(qe->chan, queue_caller_abandon_type(), blob);
+ }
+ 
+@@ -5386,6 +5426,10 @@
+ 							endtime = (long) time(NULL);
+ 							endtime -= starttime;
+ 							rna(endtime * 1000, qe, o->chan, on, membername, qe->parent->autopausebusy);
++							if (qe->parent->LazyMembers) {
++                                               			ast_log(LOG_DEBUG, "Excluding %s from the members because LazyMembers is set.\n", membername);
++		                                               o->member->lastnoanswer = time(NULL);
++                		                        }
+ 							do_hang(o);
+ 							if (qe->parent->strategy != QUEUE_STRATEGY_RINGALL) {
+ 								if (qe->parent->timeoutrestart) {
+@@ -5601,6 +5645,10 @@
+ 	if (!*to) {
+ 		for (o = start; o; o = o->call_next) {
+ 			if (o->chan) {
++				if (qe->parent->LazyMembers) {
++                  	              ast_verbose(VERBOSE_PREFIX_3 "Excluding %s from the members, because LazyMembers is set.\n", o->member->membername);
++         	                      o->member->lastnoanswer = time(NULL);
++ 	                        }
+ 				rna(orig, qe, o->chan, o->interface, o->member->membername, 1);
+ 			}
+ 		}
+@@ -6877,6 +6925,8 @@
+ 	char tmpid[256];
+ 	int forwardsallowed = 1;
+ 	int block_connected_line = 0;
++	int nummems = 0;
++	int numnoans = 0;
+ 	struct ao2_iterator memi;
+ 	struct queue_end_bridge *queue_end_bridge = NULL;
+ 	int callcompletedinsl;
+@@ -6994,6 +7044,8 @@
+ 			/* Put them in the list of outgoing thingies...  We're ready now.
+ 			   XXX If we're forcibly removed, these outgoing calls won't get
+ 			   hung up XXX */
++			if (!cur->paused && (cur->status != AST_DEVICE_INUSE))
++                        	nummems++;
+ 			tmp->q_next = outgoing;
+ 			outgoing = tmp;
+ 		} else {
+@@ -7024,6 +7076,21 @@
+ 	ao2_unlock(qe->parent);
+ 	/* Call the queue members with the best metric now. */
+ 	ring_one(qe, outgoing, &numbusies);
++	//SHMZ: Give Us the count of numbusies (which is really our numnoans) and nummems for easier debugging of lazymembers
++	//NOTE: We can't use numbusies here because it's passed around but not always updated as it should be.
++	ast_verbose(VERBOSE_PREFIX_3 "LazyMembers debugging - Numbusies: %d, Nummems: %d\n", numnoans, nummems);
++	if (qe->parent->LazyMembers && (numnoans >= nummems)) {
++		/* if there isn't going to be any lines to ring any more, we
++		* might as well start over and clear all the lastnoanswer
++		* values
++		*/
++		ast_verbose(VERBOSE_PREFIX_3 "No-one left to call! Clearing all the member lastnoanswer values, starting over wrt lastnoanswers!\n");
++		memi = ao2_iterator_init(qe->parent->members, 0);
++		while ((cur = ao2_iterator_next(&memi))) {
++		  cur->lastnoanswer = 0;
++		}
++		ao2_iterator_destroy(&memi);
++	}
+ 	lpeer = wait_for_answer(qe, outgoing, &to, &digit, numbusies,
+ 		ast_test_flag(&(bridge_config.features_caller), AST_FEATURE_DISCONNECT),
+ 		forwardsallowed);
+@@ -7040,6 +7107,32 @@
+ 	peer = lpeer ? lpeer->chan : NULL;
+ 	if (!peer) {
+ 		qe->pending = 0;
++
++		memi = ao2_iterator_init(qe->parent->members, 0);
++		while ((cur = ao2_iterator_next(&memi))) {
++			if (cur->lastnoanswer)
++				numnoans++;
++		}
++		ao2_iterator_destroy(&memi);
++		//numnoans = numnoans - numbusies;
++
++		//SHMZ: Give Us the count of numbusies (which is really our numnoans) and nummems for easier debugging of lazymembers
++		//NOTE: We can't use numbusies here because it's passed around but not always updated as it should be.
++		ast_verbose(VERBOSE_PREFIX_3 "LazyMembers debugging - Numbusies: %d, Nummems: %d\n", numnoans, nummems);
++		if (qe->parent->LazyMembers && (numnoans >= nummems)) {
++			 /*
++			 * if there isn't going to be any lines to ring any more, we
++			 * might as well start over and clear all the lastnoanswer
++			 * values
++			 */
++			if (option_verbose > 2)
++				ast_verbose(VERBOSE_PREFIX_3 "No-one left to call! Clearing all the member lastnoanswer values, starting over wrt lastnoanswers!\n");
++			memi = ao2_iterator_init(qe->parent->members, 0);
++			while ((cur = ao2_iterator_next(&memi))) {
++				cur->lastnoanswer = 0;
++			}
++			ao2_iterator_destroy(&memi);
++		}
+ 		if (to) {
+ 			/* Must gotten hung up */
+ 			res = -1;
+@@ -7072,6 +7165,16 @@
+ 		/* Increment the refcount for this member, since we're going to be using it for awhile in here. */
+ 		ao2_ref(member, 1);
+ 		hangupcalls(qe, outgoing, peer, qe->cancel_answered_elsewhere);
++		/* reset all the member lastnoanswer values */
++                if (qe->parent->LazyMembers) {
++                        if (option_verbose > 2)
++                                ast_verbose(VERBOSE_PREFIX_3 "Answered! resetting all the member lastnoanswer values\n");
++                        memi = ao2_iterator_init(qe->parent->members, 0);
++                        while ((cur = ao2_iterator_next(&memi))) {
++                                if (cur->lastnoanswer)
++                                        cur->lastnoanswer = 0;
++                        }
++                }
+ 		outgoing = NULL;
+ 		if (announce || qe->parent->reportholdtime || qe->parent->memberdelay) {
+ 			int res2;
+@@ -7530,7 +7633,7 @@
+ 			member_add_to_queue(q, new_member);
+ 			queue_publish_member_blob(queue_member_added_type(), queue_member_blob_create(q, new_member));
+ 
+-			if (is_member_available(q, new_member)) {
++			if (!(q->LazyMembers && new_member->lastnoanswer) && is_member_available(q, new_member)) {
+ 				ast_devstate_changed(AST_DEVICE_NOT_INUSE, AST_DEVSTATE_CACHABLE, "Queue:%s_avail", q->name);
+ 			}
+ 
+@@ -7643,7 +7746,7 @@
+ 		dump_queue_members(q);
+ 	}
+ 
+-	if (is_member_available(q, mem)) {
++	if (!(q->LazyMembers && mem->lastnoanswer) && is_member_available(q, mem)) {
+ 		ast_devstate_changed(AST_DEVICE_NOT_INUSE, AST_DEVSTATE_CACHABLE,
+ 			"Queue:%s_avail", q->name);
+ 	} else if (!num_available_members(q)) {
+@@ -8647,6 +8750,20 @@
+ 		} else if (qe.valid_digits) {
+ 			ast_queue_log(args.queuename, ast_channel_uniqueid(chan), "NONE", "EXITWITHKEY",
+ 				"%s|%d|%d|%ld", qe.digits, qe.pos, qe.opos, (long) (time(NULL) - qe.start));
++			/* Schmooze Update: Update our members if call exited with a key, to avoid issues with people being skipped in the queue */
++			/* reset all the member lastnoanswer values */
++			if (qe.parent->LazyMembers) {
++				if (option_verbose > 2)
++					ast_verbose(VERBOSE_PREFIX_3 "Exited with a Key! resetting all the member lastnoanswer values\n");
++				struct ao2_iterator memi;
++				struct member *cur;
++				memi = ao2_iterator_init(qe.parent->members, 0);
++				while ((cur = ao2_iterator_next(&memi))) {
++					if (cur->lastnoanswer)
++						cur->lastnoanswer = 0;
++				}
++			}
++			/* End Schmooze Update */
+ 		}
+ 	}
+ 

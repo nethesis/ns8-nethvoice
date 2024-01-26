@@ -43,6 +43,18 @@ This container also hosts push-proxy script for Flexisip.
 - `SUBSCRIPTION_SYSTEMID` my.nethesis.it server SystemID
 - `SUBSCRIPTION_SECRET` my.nethesis.it server secret
 
+## Asterisk Environment variables
+
+- `ASTMANAGERHOST` is the ip where AMI , Asterisk Manager Interface is exposed. 127.0.0.1 in network=host configuration
+- `ASTMANAGERPORT` port of AMI, Asterisk Manager Interface
+- `AMPMGRUSER` User automatically configured to access ti AMI
+- `AMPMGRPASS` Password of AMI user
+- `NETHVOICE_MARIADB_PORT` Port of MariaDB
+- `ASTERISK_RTPSTART` and `ASTERISK_RTPEND` are the UDP port range for RTP packages
+- `ASTERISK_SIP_PORT` and `ASTERISK_SIPS_PORT` are the UDP and TCP ports for SIP transport
+- `ASTERISK_IAX_PORT is the UDP port for IAX transport
+
+
 Patches used after import:
 ```diff
 --- imageroot/freepbx/root/var/www/html/freepbx/admin/libraries/BMO/PKCS.class.php.ori	2022-09-16 10:13:24.195498228 +0200
@@ -97,3 +109,8 @@ Patches used after import:
          system("/var/www/html/freepbx/rest/lib/ctiReloadHelper.sh > /dev/null 2>&1 &");
      } catch (Exception $e) {
 ```
+
+
+# Asterisk
+
+Asterisk container merged with FreePBX

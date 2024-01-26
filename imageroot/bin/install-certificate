@@ -14,8 +14,8 @@ fi
 declare -A images
 declare -A destinations
 
-images=([flexisip]="${NETHVOICE_FLEXISIP_IMAGE}" [janus]="${NETHVOICE_JANUS_IMAGE}" [asterisk]="${NETHVOICE_ASTERISK_IMAGE}" [phonebook]="${NETHVOICE_PHONEBOOK_IMAGE}" [nethcti-server]="${NETHVOICE_CTI_SERVER_IMAGE}")
-destinations=([flexisip]="/etc/flexisip/tls" [janus]="/etc/certificates" [asterisk]="/etc/asterisk/keys" [phonebook]="/etc/certificates" [nethcti-server]="/etc/certificates")
+images=([flexisip]="${NETHVOICE_FLEXISIP_IMAGE}" [janus]="${NETHVOICE_JANUS_IMAGE}" [freepbx]="${NETHVOICE_FREEPBX_IMAGE}" [phonebook]="${NETHVOICE_PHONEBOOK_IMAGE}" [nethcti-server]="${NETHVOICE_CTI_SERVER_IMAGE}")
+destinations=([flexisip]="/etc/flexisip/tls" [janus]="/etc/certificates" [freepbx]="/etc/asterisk/keys" [phonebook]="/etc/certificates" [nethcti-server]="/etc/certificates")
 
 service="${1:?}"
 service_image="${images[$service]:?Unknown service $service}"

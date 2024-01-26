@@ -4,8 +4,8 @@
 #
 [Unit]
 Description=FreePBX
-Requires=asterisk.service mariadb.service
-After=asterisk.service mariadb.service
+Requires=mariadb.service
+After=mariadb.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -13,6 +13,7 @@ EnvironmentFile=%S/state/environment
 WorkingDirectory=%S/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/freepbx.pid %t/freepbx.ctr-id
+ExecStartPre=-runagent install-certificate asterisk
 ExecStart=/usr/bin/podman run \
     --detach \
     --conmon-pidfile=%t/freepbx.pid \
@@ -30,12 +31,15 @@ ExecStart=/usr/bin/podman run \
     --volume=pbooksources:/etc/phonebook/sources.d/:z \
     --volume=scripts:/usr/share/phonebooks/scripts/:z \
     --volume=post_scripts:/usr/share/phonebooks/post_scripts/:z \
-    --volume=/dev/log:/dev/log \
     --volume=./notify:/notify:z \
     --volume=asterisk-cert:/etc/asterisk/keys:z \
     --volume=reports_config:/opt/nethvoice-report:z \
     --volume=tancredi:/var/lib/tancredi:z \
-    --volume=rce-sock:/run/rce/:z \
+    --volume=astdb:/var/lib/asterisk/db:z \
+    --volume=/dev/log:/dev/log \
+    --env=NETHVOICE* \
+    --env=ASTERISK_* \
+    --tz=${TIMEZONE} \
     --env=NETHVOICE* \
     --env=APACHE_RUN_USER \
     --env=APACHE_RUN_GROUP \
@@ -64,6 +68,9 @@ ExecStart=/usr/bin/podman run \
     --network=host \
     --hostname=${NETHVOICE_HOST} \
     ${NETHVOICE_FREEPBX_IMAGE}
+
+# Wait till asterisk is active
+ExecStartPost=podman exec asterisk bash -c "while [[ $$(/usr/sbin/asterisk -rx 'core show version' 2>/dev/null) != Asterisk* ]]; do ((++attempt<30)) || exit 2; sleep 1 ; done"
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/freepbx.ctr-id
 PIDFile=%t/freepbx.pid

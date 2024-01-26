@@ -14,4 +14,4 @@ fi
 
 # restart asterisk when convenient
 echo "Restarting asterisk when convenient" >> /dev/stderr
-/usr/bin/podman exec -d asterisk asterisk -rx "core restart when convenient"
+/usr/bin/podman exec -d freepbx asterisk -rx "core restart when convenient"

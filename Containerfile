@@ -28,7 +28,6 @@ ARG REPOBASE=ghcr.io/nethserver
 ARG IMAGETAG=latest
 LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \
     ${REPOBASE}/nethvoice-freepbx:${IMAGETAG} \
-    ${REPOBASE}/nethvoice-asterisk:${IMAGETAG} \
     ${REPOBASE}/nethvoice-cti-server:${IMAGETAG} \
     ${REPOBASE}/nethvoice-cti-ui:${IMAGETAG} \
     ${REPOBASE}/nethvoice-tancredi:${IMAGETAG} \
