@@ -14,56 +14,54 @@ RUN groupadd -g 991 -r asterisk && \
     useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk && \
 	apt-get update && \
 	apt-get install -y \
-		wget \
-		build-essential \
-		libjansson-dev \
 		automake \
-		ncurses-bin \
-		libssl-dev \
-		libnewt-dev \
-		libncursesw5-dev \
-		libcap-dev \
-		libsrtp2-dev \
-		libpopt-dev \
-		libxslt1-dev \
-		libgmime-3.0-dev \
+		build-essential \
 		doxygen \
 		graphviz \
-		libneon27-dev \
-		libical-dev \
-		libspeex-dev \
-		libspeexdsp-dev \
-		libogg-dev \
-		libvorbis-dev \
+		libasound2-dev \
+		libcap-dev \
+		libcurl4-openssl-dev \
+		libedit-dev \
+		libgcrypt20-dev \
+		libgmime-3.0-dev \
 		libgsm1-dev \
+		libical-dev \
+		libjansson-dev \
+		libjpeg62-turbo-dev \
+		libldap2-dev \
+		libltdl-dev \
+		liblua5.3-dev \
+		libmariadb-dev \
+		libncursesw5-dev \
+		libneon27-dev \
+		libnewt-dev \
+		libogg-dev \
+		libpopt-dev \
+		libpq-dev \
+		libpri-dev \
+		libresample1-dev \
 		libsdl1.2-dev \
 		libsdl-image1.2-dev \
-		libedit-dev \
-		uuid-dev \
-		libunbound-dev \
-		libasound2-dev \
-		libcurl4-openssl-dev \
-		libpri-dev \
-		libss7-dev \
-		libspandsp-dev \
-		libtiff5-dev \
-		liblua5.3-dev \
-		libltdl-dev \
-		portaudio19-dev \
-		libsqlite3-dev \
-		libsybdb5 \
-		libresample1-dev \
-		libldap2-dev \
-		libmariadb-dev \
-		unixodbc-dev \
-		libpq-dev \
-		libsnmp-dev \
 		libsensors4-dev \
-		libjansson-dev \
-		libgcrypt20-dev \
-		libmariadb-dev \
-		libjpeg62-turbo-dev \
-		make && \
+		libsnmp-dev \
+		libspandsp-dev \
+		libspeex-dev \
+		libspeexdsp-dev \
+		libsqlite3-dev \
+		libsrtp2-dev \
+		libss7-dev \
+		libssl-dev \
+		libsybdb5 \
+		libtiff5-dev \
+		libunbound-dev \
+		libvorbis-dev \
+		libxslt1-dev \
+		make \
+		ncurses-bin \
+		portaudio19-dev \
+		unixodbc-dev \
+		uuid-dev \
+		wget && \
 	cd /usr/src/asterisk && \
 	wget https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz && \
 	tar xzf asterisk-${ASTERISK_VERSION}.tar.gz && \
@@ -72,6 +70,7 @@ RUN groupadd -g 991 -r asterisk && \
 	mkdir cache && \
 	cd cache && \
 	wget https://raw.githubusercontent.com/asterisk/third-party/master/pjproject/${PJSIP_VERSION}/pjproject-${PJSIP_VERSION}.tar.bz2 && \
+	wget http://www.digip.org/jansson/releases/jansson-2.13.1.tar.bz2 && \
 	cd .. && \
 	patch -p1 < ../asterisk-18-mp3.patch && \
 	patch -p1 < ../lazymembers.patch && \
