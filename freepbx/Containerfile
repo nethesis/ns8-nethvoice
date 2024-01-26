@@ -94,14 +94,14 @@ RUN groupadd -g 991 -r asterisk && \
 	./configure --without-imap --with-externals-cache=/usr/src/asterisk/cache --with-gsm=/usr --without-ilbc --with-libedit=yes --with-srtp --with-jansson-bundled --with-pjproject-bundled LDFLAGS="${LDFLAGS}" NOISY_BUILD=1 CPPFLAGS="-fPIC" && \
 	make menuselect-tree && \
 	perl -n -i -e 'print unless /openr2/i' menuselect-tree && \
-	mkdir -p ${BUILDROOT}${DATADIR}/agi-bin && \
-		${BUILDROOT}${DATADIR}/asterisk/db && \
-		${BUILDROOT}${DATADIR}/asterisk/images && \
-		${BUILDROOT}${DATADIR}/asterisk/keys/stir_shaken && \
-		${BUILDROOT}${DATADIR}/asterisk/moh && \
-		${BUILDROOT}${DATADIR}/asterisk/sounds && \
-		${BUILDROOT}/var/spool/asterisk/outgoing && \
-		${BUILDROOT}/var/spool/asterisk/uploads && \
+	mkdir -p ${BUILDROOT}${DATADIR}/agi-bin \
+		${BUILDROOT}${DATADIR}/asterisk/db \
+		${BUILDROOT}${DATADIR}/asterisk/images \
+		${BUILDROOT}${DATADIR}/asterisk/keys/stir_shaken \
+		${BUILDROOT}${DATADIR}/asterisk/moh \
+		${BUILDROOT}${DATADIR}/asterisk/sounds \
+		${BUILDROOT}/var/spool/asterisk/outgoing \
+		${BUILDROOT}/var/spool/asterisk/uploads \
 		${BUILDROOT}/var/spool/asterisk/cache && \
 	make ${MAKEARGS} && \
 	make install ${MAKEARGS} && \
