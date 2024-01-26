@@ -91,9 +91,6 @@ RUN groupadd -g 991 -r asterisk && \
 	cd menuselect && \
 	./configure && \
 	cd .. && \
-	./configure --without-imap --with-externals-cache=/usr/src/asterisk/cache --with-gsm=/usr --without-ilbc --with-libedit=yes --with-srtp --with-jansson-bundled --with-pjproject-bundled LDFLAGS="${LDFLAGS}" NOISY_BUILD=1 CPPFLAGS="-fPIC" && \
-	make menuselect-tree && \
-	perl -n -i -e 'print unless /openr2/i' menuselect-tree && \
 	mkdir -p ${BUILDROOT}${DATADIR}/agi-bin \
 		${BUILDROOT}${DATADIR}/asterisk/db \
 		${BUILDROOT}${DATADIR}/asterisk/images \
@@ -103,6 +100,9 @@ RUN groupadd -g 991 -r asterisk && \
 		${BUILDROOT}/var/spool/asterisk/outgoing \
 		${BUILDROOT}/var/spool/asterisk/uploads \
 		${BUILDROOT}/var/spool/asterisk/cache && \
+	./configure --without-imap --with-externals-cache=/usr/src/asterisk/cache --with-gsm=/usr --without-ilbc --with-libedit=yes --with-srtp --with-jansson-bundled --with-pjproject-bundled LDFLAGS="${LDFLAGS}" NOISY_BUILD=1 CPPFLAGS="-fPIC" && \
+	make menuselect-tree && \
+	perl -n -i -e 'print unless /openr2/i' menuselect-tree && \
 	make ${MAKEARGS} && \
 	make install ${MAKEARGS} && \
 	make samples ${MAKEARGS} && \
