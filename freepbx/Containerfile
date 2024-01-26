@@ -94,11 +94,6 @@ RUN groupadd -g 991 -r asterisk && \
 	./configure --without-imap --with-externals-cache=/usr/src/asterisk/cache --with-gsm=/usr --without-ilbc --with-libedit=yes --with-srtp --with-jansson-bundled --with-pjproject-bundled LDFLAGS="${LDFLAGS}" NOISY_BUILD=1 CPPFLAGS="-fPIC" && \
 	make menuselect-tree && \
 	perl -n -i -e 'print unless /openr2/i' menuselect-tree && \
-	make ${MAKEARGS} && \
-	make install ${MAKEARGS} && \
-	make samples ${MAKEARGS} && \
-	install -D -p -m 0755 apps/app_voicemail_odbc.so ${BUILDROOT}${LIBDIR}/asterisk/modules/app_voicemail_odbc.so && \
-	install -D -p -m 0755 apps/app_voicemail.so ${BUILDROOT}${LIBDIR}/asterisk/modules/app_voicemail.so && \
 	mkdir -p ${BUILDROOT}${DATADIR}/agi-bin && \
 		${BUILDROOT}${DATADIR}/asterisk/db && \
 		${BUILDROOT}${DATADIR}/asterisk/images && \
@@ -108,6 +103,11 @@ RUN groupadd -g 991 -r asterisk && \
 		${BUILDROOT}/var/spool/asterisk/outgoing && \
 		${BUILDROOT}/var/spool/asterisk/uploads && \
 		${BUILDROOT}/var/spool/asterisk/cache && \
+	make ${MAKEARGS} && \
+	make install ${MAKEARGS} && \
+	make samples ${MAKEARGS} && \
+	install -D -p -m 0755 apps/app_voicemail_odbc.so ${BUILDROOT}${LIBDIR}/asterisk/modules/app_voicemail_odbc.so && \
+	install -D -p -m 0755 apps/app_voicemail.so ${BUILDROOT}${LIBDIR}/asterisk/modules/app_voicemail.so && \
 	rm -rf ${BUILDROOT}/usr/share /tmp ${BUILDROOT}${LIBDIR}/libasteriskssl.so && \
 	ln -s libasteriskssl.so.1 ${BUILDROOT}${LIBDIR}/libasteriskssl.so && \
 	cp contrib/ast-db-manage ${BUILDROOT}${DATADIR}/asterisk/ast-db-manage && \
