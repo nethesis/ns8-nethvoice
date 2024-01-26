@@ -17,7 +17,6 @@ RUN groupadd -g 991 -r asterisk && \
 		wget \
 		build-essential \
 		libjansson-dev \
-		python3 \
 		automake \
 		ncurses-bin \
 		libssl-dev \
@@ -71,9 +70,9 @@ RUN groupadd -g 991 -r asterisk && \
 	rm -f asterisk-${ASTERISK_VERSION}.tar.gz && \
 	cd asterisk-${ASTERISK_VERSION} && \
 	mkdir cache && \
-	pushd cache && \
+	cd cache && \
 	wget https://raw.githubusercontent.com/asterisk/third-party/master/pjproject/${PJSIP_VERSION}/pjproject-${PJSIP_VERSION}.tar.bz2 && \
-	popd && \
+	cd .. && \
 	patch -p1 < ../asterisk-18-mp3.patch && \
 	patch -p1 < ../lazymembers.patch && \
 	mv ../menuselect.make* ./ && \
@@ -91,9 +90,9 @@ RUN groupadd -g 991 -r asterisk && \
 	export ASTCFLAGS=" " && \
 	sed -i '1s/env python/python3/' contrib/scripts/refcounter.py && \
 	./bootstrap.sh && \
-	pushd menuselect && \
+	cd menuselect && \
 	./configure && \
-	popd && \
+	cd .. && \
 	./configure --without-imap --with-externals-cache=/usr/src/asterisk/cache --with-gsm=/usr --without-ilbc --with-libedit=yes --with-srtp --with-jansson-bundled --with-pjproject-bundled LDFLAGS="${LDFLAGS}" NOISY_BUILD=1 CPPFLAGS="-fPIC" && \
 	make menuselect-tree && \
 	perl -n -i -e 'print unless /openr2/i' menuselect-tree && \
