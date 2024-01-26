@@ -110,7 +110,7 @@ RUN groupadd -g 991 -r asterisk && \
 	install -D -p -m 0755 apps/app_voicemail.so ${BUILDROOT}${LIBDIR}/asterisk/modules/app_voicemail.so && \
 	rm -rf ${BUILDROOT}/usr/share /tmp ${BUILDROOT}${LIBDIR}/libasteriskssl.so && \
 	ln -s libasteriskssl.so.1 ${BUILDROOT}${LIBDIR}/libasteriskssl.so && \
-	cp contrib/ast-db-manage ${BUILDROOT}${DATADIR}/asterisk/ast-db-manage && \
+	cp -a contrib/ast-db-manage ${BUILDROOT}${DATADIR}/asterisk/ast-db-manage && \
 	wget http://downloads.digium.com/pub/telephony/codec_opus/asterisk-18.0/x86-64/codec_opus-18.0_current-x86_64.tar.gz && \
 	tar xzf codec_opus-18.0_current-x86_64.tar.gz --strip-components=1 && \
 	http://downloads.digium.com/pub/telephony/codec_silk/asterisk-18.0/x86-64/codec_silk-18.0_current-x86_64.tar.gz && \
