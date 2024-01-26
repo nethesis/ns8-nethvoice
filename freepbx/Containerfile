@@ -113,11 +113,11 @@ RUN groupadd -g 991 -r asterisk && \
 	cp -a contrib/ast-db-manage ${BUILDROOT}${DATADIR}/asterisk/ast-db-manage && \
 	wget http://downloads.digium.com/pub/telephony/codec_opus/asterisk-18.0/x86-64/codec_opus-18.0_current-x86_64.tar.gz && \
 	tar xzf codec_opus-18.0_current-x86_64.tar.gz --strip-components=1 && \
-	http://downloads.digium.com/pub/telephony/codec_silk/asterisk-18.0/x86-64/codec_silk-18.0_current-x86_64.tar.gz && \
+	wget http://downloads.digium.com/pub/telephony/codec_silk/asterisk-18.0/x86-64/codec_silk-18.0_current-x86_64.tar.gz && \
 	tar xzf codec_silk-18.0_current-x86_64.tar.gz --strip-components=1 && \
-	http://downloads.digium.com/pub/telephony/codec_siren7/asterisk-18.0/x86-64/codec_siren7-18.0_current-x86_64.tar.gz && \
+	wget http://downloads.digium.com/pub/telephony/codec_siren7/asterisk-18.0/x86-64/codec_siren7-18.0_current-x86_64.tar.gz && \
 	tar xzf codec_siren7-18.0_current-x86_64.tar.gz --strip-components=1 && \
-	http://downloads.digium.com/pub/telephony/codec_siren14/asterisk-18.0/x86-64/codec_siren14-18.0_current-x86_64.tar.gz && \
+	wget http://downloads.digium.com/pub/telephony/codec_siren14/asterisk-18.0/x86-64/codec_siren14-18.0_current-x86_64.tar.gz && \
 	tar xzf codec_siren14-18.0_current-x86_64.tar.gz --strip-components=1 && \
 	cp *.so ${BUILDROOT}${LIBDIR}/asterisk/modules/ && \
 	codec_opus_config-en_US.xml ${BUILDROOT}${DATADIR}/asterisk/documentation/thirdparty/ && \
