@@ -448,7 +448,6 @@ COPY var/www/html/freepbx/admin/libraries/BMO/Cron.class.php /var/www/html/freep
 COPY etc/amportal.conf /etc
 COPY initdb.d/initdb.php /initdb.d/
 COPY initdb.d/migration.php /initdb.d/
-COPY usr/sbin/asterisk /usr/sbin/
 COPY var/www/html/freepbx/push-proxy.php /var/www/html/freepbx/push-proxy.php
 COPY usr/src/nethvoice/samples/* /usr/src/nethvoice/samples/
 COPY configure_users.php /
