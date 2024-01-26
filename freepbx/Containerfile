@@ -2,7 +2,7 @@
 FROM docker.io/debian:11 as builder
 
 # Set fixed Asterisk version
-ARG ASTERISK_VERSION=18.20.2
+ARG ASTERISK_VERSION=18.21.0
 ARG PJSIP_VERSION=2.13.1
 ARG DEBIAN_FRONTEND=noninteractive
 ARG BUILDROOT=/usr/src/asterisk/build
@@ -126,13 +126,6 @@ RUN groupadd -g 991 -r asterisk && \
 	codec_opus_config-en_US.xml ${BUILDROOT}${DATADIR}/asterisk/documentation/thirdparty/ && \
 	wget -nv http://asterisk.hosting.lv/bin/codec_g729-ast180-gcc4-glibc-x86_64-pentium4.so -O ${BUILDROOT}${LIBDIR}/codec_g729.so
 	
-
-
-
-	
-
-
-
 # TODO add ilbc?
 
 FROM docker.io/library/php:7.4-apache
