@@ -108,8 +108,10 @@ RUN groupadd -g 991 -r asterisk && \
 	make samples ${MAKEARGS} && \
 	install -D -p -m 0755 apps/app_voicemail_odbc.so ${BUILDROOT}${LIBDIR}/asterisk/modules/app_voicemail_odbc.so && \
 	install -D -p -m 0755 apps/app_voicemail.so ${BUILDROOT}${LIBDIR}/asterisk/modules/app_voicemail.so && \
-	rm -rf ${BUILDROOT}/usr/share /tmp ${BUILDROOT}${LIBDIR}/libasteriskssl.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/libasteriskssl.so && \
 	ln -s libasteriskssl.so.1 ${BUILDROOT}${LIBDIR}/libasteriskssl.so && \
+	rm -rf ${BUILDROOT}/etc/asterisk/* && \
+	rm -rf ${BUILDROOT}/var/lib/asterisk/phoneprov/* && \
 	cp -a contrib/ast-db-manage ${BUILDROOT}${DATADIR}/asterisk/ast-db-manage && \
 	wget http://downloads.digium.com/pub/telephony/codec_opus/asterisk-18.0/x86-64/codec_opus-18.0_current-x86_64.tar.gz && \
 	tar xzf codec_opus-18.0_current-x86_64.tar.gz --strip-components=1 && \
@@ -161,6 +163,7 @@ RUN groupadd -g 991 -r asterisk \
 
 # Copy Asterisk files
 COPY --from=builder /usr/src/asterisk/build/* /
+COPY --from=builder /usr/src/asterisk/build/var/lib/asterisk/* /var/lib/asterisk/
 RUN chown asterisk:asterisk \
 	/var/lib/asterisk \
 	/var/lib/asterisk/agi-bin \
