@@ -517,7 +517,5 @@ RUN mkdir -p /usr/share/phonebooks/ && \
 COPY etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-default.conf
 COPY entrypoint.sh /entrypoint
 COPY etc/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY usr/local/bin/rce_server.sh /usr/local/bin/rce_server.sh
-COPY usr/local/bin/rce_worker.sh /usr/local/bin/rce_worker.sh
 CMD ["/usr/bin/supervisord"]
 ENTRYPOINT ["/entrypoint"]
