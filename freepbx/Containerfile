@@ -216,8 +216,6 @@ RUN mkdir -p \
 	/var/run/nethvoice/ \
 	/var/www/html/freepbx/admin/modules/framework
 
-COPY var/lib/asterisk/bin/symlink2copies.sh /var/lib/asterisk/bin/
-
 # Download framework module
 RUN curl -L https://github.com/FreePBX/framework/archive/refs/tags/release/16.0.39.tar.gz | tar xzp --strip-component=1 -C /var/www/html/freepbx/admin/modules/framework
 RUN cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/htdocs/* /var/www/html/freepbx/
