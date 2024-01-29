@@ -39,8 +39,6 @@ ExecStart=/usr/bin/podman run \
     --volume=/dev/log:/dev/log \
     --env=NETHVOICE* \
     --env=ASTERISK_* \
-    --tz=${TIMEZONE} \
-    --env=NETHVOICE* \
     --env=APACHE_RUN_USER \
     --env=APACHE_RUN_GROUP \
     --env=ASTMANAGERHOST \
@@ -66,6 +64,7 @@ ExecStart=/usr/bin/podman run \
     --env=PROXY_IP \
     --env=PROXY_PORT \
     --network=host \
+    --tz=${TIMEZONE} \
     --hostname=${NETHVOICE_HOST} \
     ${NETHVOICE_FREEPBX_IMAGE}
 
