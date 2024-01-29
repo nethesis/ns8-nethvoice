@@ -13,7 +13,7 @@ EnvironmentFile=%S/state/environment
 WorkingDirectory=%S/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/freepbx.pid %t/freepbx.ctr-id
-ExecStartPre=-runagent install-certificate asterisk
+ExecStartPre=-runagent install-certificate freepbx
 ExecStart=/usr/bin/podman run \
     --detach \
     --conmon-pidfile=%t/freepbx.pid \
