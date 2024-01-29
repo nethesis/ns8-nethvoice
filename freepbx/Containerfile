@@ -91,7 +91,9 @@ RUN groupadd -g 991 -r asterisk && \
 	cd menuselect && \
 	./configure && \
 	cd .. && \
-	mkdir -p ${BUILDROOT}${DATADIR}/asterisk/agi-bin \
+	mkdir -p \
+		${BUILDROOT}${DATADIR}/asterisk/.gnupg \
+		${BUILDROOT}${DATADIR}/asterisk/agi-bin \
 		${BUILDROOT}${DATADIR}/asterisk/db \
 		${BUILDROOT}${DATADIR}/asterisk/images \
 		${BUILDROOT}${DATADIR}/asterisk/keys/stir_shaken \
@@ -163,6 +165,7 @@ COPY --from=builder /usr/src/asterisk/build/./ /
 
 RUN chown asterisk:asterisk \
 	/var/lib/asterisk \
+	/var/lib/asterisk/.gnupg \
 	/var/lib/asterisk/agi-bin \
 	/var/lib/asterisk/db \
 	/var/lib/asterisk/sounds \
