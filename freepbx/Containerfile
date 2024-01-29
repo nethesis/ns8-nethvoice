@@ -125,6 +125,11 @@ RUN groupadd -g 991 -r asterisk && \
 	
 # TODO add ilbc?
 
+#TODO remove
+RUN find /usr/src/asterisk/build -type d && \
+	find /usr/src/asterisk/build -type f
+
+
 FROM docker.io/library/php:7.4-apache
 ARG DEBIAN_FRONTEND=noninteractive
 RUN groupadd -g 991 -r asterisk \
