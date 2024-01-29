@@ -486,16 +486,14 @@ RUN docker-php-ext-configure sysvsem && docker-php-ext-install sysvsem
 # Remove php sources now that additional modules are installed
 RUN docker-php-source delete
 
-# Install nethvoice-wizard-restapi
+# Install nethvoice-wizard-restapi and nethvoice-wizard-ui
 RUN mkdir -p /var/www/html/freepbx/rest && \
 	curl -L https://github.com/nethesis/nethvoice-wizard-restapi/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=1 -C /var/www/html/freepbx/rest/ && \
 	cd /var/www/html/freepbx/rest/ && \
 	curl -s https://getcomposer.org/installer | php && \
 	COMPOSER_ALLOW_SUPERUSER=1 php composer.phar install --no-dev && \
-	rm -fr README.md composer.json composer.lock composer.phar test
-
-# Install nethvoice-wizard-ui
-RUN curl -L https://github.com/nethesis/nethvoice-wizard-ui/archive/refs/heads/ns8.tar.gz  -o - | tar xzp --strip-component=1 -C /tmp && \
+	rm -fr README.md composer.json composer.lock composer.phar test && \
+	curl -L https://github.com/nethesis/nethvoice-wizard-ui/archive/refs/heads/ns8.tar.gz  -o - | tar xzp --strip-component=1 -C /tmp && \
 	cd /tmp/wizard && \
 	npx -y -p npm@6 npm install yarn && node_modules/yarn/bin/yarn install && node_modules/grunt-cli/bin/grunt build && \
 	mkdir -p /var/www/html/freepbx/wizard && \
@@ -515,5 +513,6 @@ RUN mkdir -p /usr/share/phonebooks/ && \
 COPY etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-default.conf
 COPY entrypoint.sh /entrypoint
 COPY etc/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY freepbx_init.sh /freepbx_init.sh
 CMD ["/usr/bin/supervisord"]
 ENTRYPOINT ["/entrypoint"]
