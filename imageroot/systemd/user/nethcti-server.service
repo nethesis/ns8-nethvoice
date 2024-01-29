@@ -4,8 +4,8 @@
 #
 [Unit]
 Description=NethCTI server daemon
-Wants=asterisk.service
-After=asterisk.service
+Wants=freepbx.service
+After=freepbx.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n

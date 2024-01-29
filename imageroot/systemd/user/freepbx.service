@@ -70,7 +70,7 @@ ExecStart=/usr/bin/podman run \
     ${NETHVOICE_FREEPBX_IMAGE}
 
 # Wait till asterisk is active
-ExecStartPost=podman exec asterisk bash -c "while [[ $$(/usr/sbin/asterisk -rx 'core show version' 2>/dev/null) != Asterisk* ]]; do ((++attempt<30)) || exit 2; sleep 1 ; done"
+ExecStartPost=podman exec freepbx bash -c "while [[ $$(/usr/sbin/asterisk -rx 'core show version' 2>/dev/null) != Asterisk* ]]; do ((++attempt<30)) || exit 2; sleep 1 ; done"
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/freepbx.ctr-id
 PIDFile=%t/freepbx.pid

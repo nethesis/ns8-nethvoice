@@ -4,8 +4,8 @@
 #
 [Unit]
 Description=tancredi server
-Requires=asterisk.service
-After=asterisk.service
+Requires=freepbx.service
+After=freepbx.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
