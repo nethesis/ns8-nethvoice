@@ -86,7 +86,7 @@ Driver = MySQL
 Description = ODBC on asteriskcdrdb
 EOF
 
-chown asterisk:asterisk /var/lib/asterisk/db /run/rce
+chown asterisk:asterisk /var/lib/asterisk/db
 
 # Setup ca bundle for pjsip
 ln -sf /etc/pki/tls/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt
