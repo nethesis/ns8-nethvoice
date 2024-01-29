@@ -29,7 +29,7 @@ EOF
 cat > /etc/asterisk/asterisk.conf <<EOF
 [directories]
 astetcdir => /etc/asterisk
-astmoddir => /usr/lib64/asterisk/modules
+astmoddir => /usr/lib/asterisk/modules
 astvarlibdir => /var/lib/asterisk
 astagidir => /var/lib/asterisk/agi-bin
 astspooldir => /var/spool/asterisk
