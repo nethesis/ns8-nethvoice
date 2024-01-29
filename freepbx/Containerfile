@@ -91,7 +91,7 @@ RUN groupadd -g 991 -r asterisk && \
 	cd menuselect && \
 	./configure && \
 	cd .. && \
-	mkdir -p ${BUILDROOT}${DATADIR}/agi-bin \
+	mkdir -p ${BUILDROOT}${DATADIR}/asterisk/agi-bin \
 		${BUILDROOT}${DATADIR}/asterisk/db \
 		${BUILDROOT}${DATADIR}/asterisk/images \
 		${BUILDROOT}${DATADIR}/asterisk/keys/stir_shaken \
@@ -112,6 +112,8 @@ RUN groupadd -g 991 -r asterisk && \
 	ln -s libasteriskssl.so.1 ${BUILDROOT}${LIBDIR}/libasteriskssl.so && \
 	rm -rf ${BUILDROOT}/etc/asterisk/* && \
 	rm -rf ${BUILDROOT}/var/lib/asterisk/phoneprov/* && \
+	rm -rf ${BUILDROOT}/tmp && \
+	rm -rf ${BUILDROOT}/var/spool/asterisk/voicemail/default && \
 	cp -a contrib/ast-db-manage ${BUILDROOT}${DATADIR}/asterisk/ast-db-manage && \
 	wget http://downloads.digium.com/pub/telephony/codec_opus/asterisk-18.0/x86-64/codec_opus-18.0_current-x86_64.tar.gz && \
 	tar xzf codec_opus-18.0_current-x86_64.tar.gz --strip-components=1 && \
@@ -126,11 +128,6 @@ RUN groupadd -g 991 -r asterisk && \
 	wget -nv http://asterisk.hosting.lv/bin/codec_g729-ast180-gcc4-glibc-x86_64-pentium4.so -O ${BUILDROOT}${LIBDIR}/codec_g729.so
 	
 # TODO add ilbc?
-
-#TODO remove
-RUN find /usr/src/asterisk/build -type d && \
-	find /usr/src/asterisk/build -type f
-
 
 FROM docker.io/library/php:7.4-apache
 ARG DEBIAN_FRONTEND=noninteractive
@@ -162,8 +159,8 @@ RUN groupadd -g 991 -r asterisk \
 	libsrtp2-1
 
 # Copy Asterisk files
-COPY --from=builder /usr/src/asterisk/build/* /
-COPY --from=builder /usr/src/asterisk/build/var/lib/asterisk/* /var/lib/asterisk/
+COPY --from=builder /usr/src/asterisk/build/./ /
+
 RUN chown asterisk:asterisk \
 	/var/lib/asterisk \
 	/var/lib/asterisk/agi-bin \
@@ -181,7 +178,7 @@ RUN chown asterisk:asterisk \
 	/var/spool/asterisk/cache
 
 RUN mkdir download \
-    && pushd download \
+    && cd download \
     && mkdir -p /var/lib/asterisk/sounds/{it,en,es,de,fr} \
     && wget -nv https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-core-it-2.11.1.zip \
     && wget -nv https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-extra-it-2.11.1.zip \
@@ -199,7 +196,7 @@ RUN mkdir download \
     && wget -nv --no-check-certificate https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-extra-en-2.11.1.zip \
     && unzip -o 'asterisk-sounds-*-en-*.zip' -d /var/lib/asterisk/sounds/en \
     && chown -R asterisk:asterisk /var/lib/asterisk/sounds \
-    && popd && rm -rf download
+    && cd .. && rm -rf download
 
 COPY --chown=asterisk:asterisk etc/asterisk /etc/asterisk
 COPY etc/odbc.ini /etc/odbc.ini
