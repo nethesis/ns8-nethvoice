@@ -217,155 +217,155 @@ RUN mkdir -p \
 	/var/www/html/freepbx/admin/modules/framework
 
 # Download framework module
-RUN curl -L https://github.com/FreePBX/framework/archive/refs/tags/release/16.0.39.tar.gz | tar xzp --strip-component=1 -C /var/www/html/freepbx/admin/modules/framework
-RUN cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/htdocs/* /var/www/html/freepbx/
-RUN cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/enum.conf /etc/asterisk/
-RUN cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/musiconhold.conf /etc/asterisk/
-RUN cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/phpagi.conf /etc/asterisk/
-RUN cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/privacy.conf /etc/asterisk/
-RUN cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/queues.conf /etc/asterisk/
-RUN cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/ucc_restrict.conf /etc/asterisk/
-RUN cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/agi-bin /var/lib/asterisk/
-RUN cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/bin /var/lib/asterisk/
+RUN curl -L https://github.com/FreePBX/framework/archive/refs/tags/release/16.0.39.tar.gz | tar xzp --strip-component=1 -C /var/www/html/freepbx/admin/modules/framework && \
+	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/htdocs/* /var/www/html/freepbx/ && \
+	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/enum.conf /etc/asterisk/ && \
+	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/musiconhold.conf /etc/asterisk/ && \
+	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/phpagi.conf /etc/asterisk/ && \
+	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/privacy.conf /etc/asterisk/ && \
+	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/queues.conf /etc/asterisk/ && \
+	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/ucc_restrict.conf /etc/asterisk/ && \
+	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/agi-bin /var/lib/asterisk/ && \
+	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/bin /var/lib/asterisk/
 
 # Download other modules
 # for baseurl in $(grep wget retrieve_modules.sh | awk '{print $2}' | sed 's/archive.*/tags/'); do pkgurl=https://github.com$(curl $baseurl 2>/dev/null | grep '\.tar\.gz' | head -n1 | cut -d\" -f4) ; pkgname=$(echo $pkgurl | cut -d/ -f5 | tr '[:upper:]' '[:lower:]'); echo -e "RUN mkdir -p /var/www/html/freepbx/admin/modules/$pkgname && \\\n\t/bin/rm -fr /var/www/html/freepbx/admin/modules/$pkgname/* && \\\n\tcurl -sL $pkgurl -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/$pkgname"; done
 RUN mkdir -p /var/www/html/freepbx/admin/modules/announcement && \
-	curl -sL https://github.com/FreePBX/announcement/archive/refs/tags/release/16.0.6.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/announcement
-RUN mkdir -p /var/www/html/freepbx/admin/modules/arimanager && \
-	curl -sL https://github.com/FreePBX/arimanager/archive/refs/tags/release/16.0.12.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/arimanager
-RUN mkdir -p /var/www/html/freepbx/admin/modules/asteriskinfo && \
-	curl -sL https://github.com/FreePBX/asteriskinfo/archive/refs/tags/release/16.0.9.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/asteriskinfo
-RUN mkdir -p /var/www/html/freepbx/admin/modules/backup && \
-	curl -sL https://github.com/FreePBX/backup/archive/refs/tags/release/16.0.62.8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/backup
-RUN mkdir -p /var/www/html/freepbx/admin/modules/blacklist && \
-	curl -sL https://github.com/FreePBX/blacklist/archive/refs/tags/release/16.0.20.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/blacklist
-RUN mkdir -p /var/www/html/freepbx/admin/modules/bulkdids && \
-	curl -sL https://github.com/FreePBX-ContributedModules/bulkdids/archive/refs/tags/release/13.0.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/bulkdids
-RUN mkdir -p /var/www/html/freepbx/admin/modules/calendar && \
-	curl -sL https://github.com/FreePBX/calendar/archive/refs/tags/release/16.0.21.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/calendar
-RUN mkdir -p /var/www/html/freepbx/admin/modules/callback && \
-	curl -sL https://github.com/FreePBX/callback/archive/refs/tags/release/16.0.4.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/callback
-RUN mkdir -p /var/www/html/freepbx/admin/modules/callforward && \
-	curl -sL https://github.com/FreePBX/callforward/archive/refs/tags/release/16.0.5.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/callforward
-RUN mkdir -p /var/www/html/freepbx/admin/modules/callrecording && \
-	curl -sL https://github.com/FreePBX/callrecording/archive/refs/tags/release/16.0.19.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/callrecording
-RUN mkdir -p /var/www/html/freepbx/admin/modules/callwaiting && \
-	curl -sL https://github.com/FreePBX/callwaiting/archive/refs/tags/release/16.0.5.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/callwaiting
-RUN mkdir -p /var/www/html/freepbx/admin/modules/cdr && \
-	curl -sL https://github.com/FreePBX/cdr/archive/refs/tags/release/16.0.30.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/cdr
-RUN mkdir -p /var/www/html/freepbx/admin/modules/cel && \
-	curl -sL https://github.com/FreePBX/cel/archive/refs/tags/release/16.0.13.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/cel
-RUN mkdir -p /var/www/html/freepbx/admin/modules/certman && \
-	curl -sL https://github.com/FreePBX/certman/archive/refs/tags/release/16.0.25.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/certman
-RUN mkdir -p /var/www/html/freepbx/admin/modules/conferences && \
-	curl -sL https://github.com/FreePBX/conferences/archive/refs/tags/release/16.0.9.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/conferences
-RUN mkdir -p /var/www/html/freepbx/admin/modules/customappsreg && \
-	curl -sL https://github.com/FreePBX/customappsreg/archive/refs/tags/release/16.0.5.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/customappsreg
-RUN mkdir -p /var/www/html/freepbx/admin/modules/daynight && \
-	curl -sL https://github.com/FreePBX/daynight/archive/refs/tags/release/16.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/daynight
-RUN mkdir -p /var/www/html/freepbx/admin/modules/dashboard && \
-	curl -sL https://github.com/FreePBX/dashboard/archive/refs/tags/release/16.0.16.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/dashboard
-RUN mkdir -p /var/www/html/freepbx/admin/modules/disa && \
-	curl -sL https://github.com/FreePBX/disa/archive/refs/tags/release/16.0.4.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/disa
-RUN mkdir -p /var/www/html/freepbx/admin/modules/donotdisturb && \
-	curl -sL https://github.com/FreePBX/donotdisturb/archive/refs/tags/release/16.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/donotdisturb
-RUN mkdir -p /var/www/html/freepbx/admin/modules/fax && \
-	curl -sL https://github.com/FreePBX/fax/archive/refs/tags/release/16.0.13.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/fax
-RUN mkdir -p /var/www/html/freepbx/admin/modules/featurecodeadmin && \
-	curl -sL https://github.com/FreePBX/featurecodeadmin/archive/refs/tags/release/16.0.11.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/featurecodeadmin
-RUN mkdir -p /var/www/html/freepbx/admin/modules/filestore && \
-	curl -sL https://github.com/FreePBX/filestore/archive/refs/tags/release/16.0.15.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/filestore
-RUN mkdir -p /var/www/html/freepbx/admin/modules/findmefollow && \
-	curl -sL https://github.com/FreePBX/findmefollow/archive/refs/tags/release/16.0.19.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/findmefollow
-RUN mkdir -p /var/www/html/freepbx/admin/modules/framework && \
-	curl -sL https://github.com/FreePBX/framework/archive/refs/tags/release/16.0.39.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/framework
-RUN mkdir -p /var/www/html/freepbx/admin/modules/iaxsettings && \
-	curl -sL https://github.com/FreePBX/iaxsettings/archive/refs/tags/release/16.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/iaxsettings
-RUN mkdir -p /var/www/html/freepbx/admin/modules/infoservices && \
-	curl -sL https://github.com/FreePBX/infoservices/archive/refs/tags/release/16.0.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/infoservices
-RUN mkdir -p /var/www/html/freepbx/admin/modules/ivr && \
-	curl -sL https://github.com/FreePBX/ivr/archive/refs/tags/release/16.0.5.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/ivr
-RUN mkdir -p /var/www/html/freepbx/admin/modules/languages && \
-	curl -sL https://github.com/FreePBX/languages/archive/refs/tags/release/16.0.4.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/languages
-RUN mkdir -p /var/www/html/freepbx/admin/modules/logfiles && \
-	curl -sL https://github.com/FreePBX/logfiles/archive/refs/tags/release/16.0.7.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/logfiles
-RUN mkdir -p /var/www/html/freepbx/admin/modules/manager && \
-	curl -sL https://github.com/FreePBX/manager/archive/refs/tags/release/16.0.17.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/manager
-RUN mkdir -p /var/www/html/freepbx/admin/modules/miscapps && \
-	curl -sL https://github.com/FreePBX/miscapps/archive/refs/tags/release/16.0.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/miscapps
-RUN mkdir -p /var/www/html/freepbx/admin/modules/music && \
-	curl -sL https://github.com/FreePBX/music/archive/refs/tags/release/16.0.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/music
-RUN mkdir -p /var/www/html/freepbx/admin/modules/outroutemsg && \
-	curl -sL https://github.com/FreePBX/outroutemsg/archive/refs/tags/release/16.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/outroutemsg
-RUN mkdir -p /var/www/html/freepbx/admin/modules/parking && \
-	curl -sL https://github.com/FreePBX/parking/archive/refs/tags/release/16.0.4.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/parking
-RUN mkdir -p /var/www/html/freepbx/admin/modules/pm2 && \
-	curl -sL https://github.com/FreePBX/pm2/archive/refs/tags/release/14.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/pm2
-RUN mkdir -p /var/www/html/freepbx/admin/modules/queueprio && \
-	curl -sL https://github.com/FreePBX/queueprio/archive/refs/tags/release/16.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queueprio
-RUN mkdir -p /var/www/html/freepbx/admin/modules/ringgroups && \
-	curl -sL https://github.com/FreePBX/ringgroups/archive/refs/tags/release/16.0.11.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/ringgroups
-RUN mkdir -p /var/www/html/freepbx/admin/modules/setcid && \
-	curl -sL https://github.com/FreePBX/setcid/archive/refs/tags/release/16.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/setcid
-RUN mkdir -p /var/www/html/freepbx/admin/modules/sipsettings && \
-	curl -sL https://github.com/FreePBX/sipsettings/archive/refs/tags/release/16.0.26.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/sipsettings
-RUN mkdir -p /var/www/html/freepbx/admin/modules/soundlang && \
-	curl -sL https://github.com/FreePBX/soundlang/archive/refs/tags/release/16.0.9.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/soundlang
-RUN mkdir -p /var/www/html/freepbx/admin/modules/timeconditions && \
-	curl -sL https://github.com/FreePBX/timeconditions/archive/refs/tags/release/16.0.10.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/timeconditions
-RUN mkdir -p /var/www/html/freepbx/admin/modules/userman && \
-	curl -sL https://github.com/FreePBX/userman/archive/refs/tags/release/16.0.39.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/userman
-RUN mkdir -p /var/www/html/freepbx/admin/modules/vmblast && \
+	curl -sL https://github.com/FreePBX/announcement/archive/refs/tags/release/16.0.6.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/announcement && \
+	mkdir -p /var/www/html/freepbx/admin/modules/arimanager && \
+	curl -sL https://github.com/FreePBX/arimanager/archive/refs/tags/release/16.0.12.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/arimanager && \
+	mkdir -p /var/www/html/freepbx/admin/modules/asteriskinfo && \
+	curl -sL https://github.com/FreePBX/asteriskinfo/archive/refs/tags/release/16.0.9.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/asteriskinfo && \
+	mkdir -p /var/www/html/freepbx/admin/modules/backup && \
+	curl -sL https://github.com/FreePBX/backup/archive/refs/tags/release/16.0.62.8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/backup && \
+	mkdir -p /var/www/html/freepbx/admin/modules/blacklist && \
+	curl -sL https://github.com/FreePBX/blacklist/archive/refs/tags/release/16.0.20.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/blacklist && \
+	mkdir -p /var/www/html/freepbx/admin/modules/bulkdids && \
+	curl -sL https://github.com/FreePBX-ContributedModules/bulkdids/archive/refs/tags/release/13.0.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/bulkdids && \
+	mkdir -p /var/www/html/freepbx/admin/modules/calendar && \
+	curl -sL https://github.com/FreePBX/calendar/archive/refs/tags/release/16.0.21.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/calendar && \
+	mkdir -p /var/www/html/freepbx/admin/modules/callback && \
+	curl -sL https://github.com/FreePBX/callback/archive/refs/tags/release/16.0.4.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/callback && \
+	mkdir -p /var/www/html/freepbx/admin/modules/callforward && \
+	curl -sL https://github.com/FreePBX/callforward/archive/refs/tags/release/16.0.5.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/callforward && \
+	mkdir -p /var/www/html/freepbx/admin/modules/callrecording && \
+	curl -sL https://github.com/FreePBX/callrecording/archive/refs/tags/release/16.0.19.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/callrecording && \
+	mkdir -p /var/www/html/freepbx/admin/modules/callwaiting && \
+	curl -sL https://github.com/FreePBX/callwaiting/archive/refs/tags/release/16.0.5.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/callwaiting && \
+	mkdir -p /var/www/html/freepbx/admin/modules/cdr && \
+	curl -sL https://github.com/FreePBX/cdr/archive/refs/tags/release/16.0.30.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/cdr && \
+	mkdir -p /var/www/html/freepbx/admin/modules/cel && \
+	curl -sL https://github.com/FreePBX/cel/archive/refs/tags/release/16.0.13.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/cel && \
+	mkdir -p /var/www/html/freepbx/admin/modules/certman && \
+	curl -sL https://github.com/FreePBX/certman/archive/refs/tags/release/16.0.25.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/certman && \
+	mkdir -p /var/www/html/freepbx/admin/modules/conferences && \
+	curl -sL https://github.com/FreePBX/conferences/archive/refs/tags/release/16.0.9.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/conferences && \
+	mkdir -p /var/www/html/freepbx/admin/modules/customappsreg && \
+	curl -sL https://github.com/FreePBX/customappsreg/archive/refs/tags/release/16.0.5.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/customappsreg && \
+	mkdir -p /var/www/html/freepbx/admin/modules/daynight && \
+	curl -sL https://github.com/FreePBX/daynight/archive/refs/tags/release/16.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/daynight && \
+	mkdir -p /var/www/html/freepbx/admin/modules/dashboard && \
+	curl -sL https://github.com/FreePBX/dashboard/archive/refs/tags/release/16.0.16.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/dashboard && \
+	mkdir -p /var/www/html/freepbx/admin/modules/disa && \
+	curl -sL https://github.com/FreePBX/disa/archive/refs/tags/release/16.0.4.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/disa && \
+	mkdir -p /var/www/html/freepbx/admin/modules/donotdisturb && \
+	curl -sL https://github.com/FreePBX/donotdisturb/archive/refs/tags/release/16.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/donotdisturb && \
+	mkdir -p /var/www/html/freepbx/admin/modules/fax && \
+	curl -sL https://github.com/FreePBX/fax/archive/refs/tags/release/16.0.13.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/fax && \
+	mkdir -p /var/www/html/freepbx/admin/modules/featurecodeadmin && \
+	curl -sL https://github.com/FreePBX/featurecodeadmin/archive/refs/tags/release/16.0.11.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/featurecodeadmin && \
+	mkdir -p /var/www/html/freepbx/admin/modules/filestore && \
+	curl -sL https://github.com/FreePBX/filestore/archive/refs/tags/release/16.0.15.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/filestore && \
+	mkdir -p /var/www/html/freepbx/admin/modules/findmefollow && \
+	curl -sL https://github.com/FreePBX/findmefollow/archive/refs/tags/release/16.0.19.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/findmefollow && \
+	mkdir -p /var/www/html/freepbx/admin/modules/framework && \
+	curl -sL https://github.com/FreePBX/framework/archive/refs/tags/release/16.0.39.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/framework && \
+	mkdir -p /var/www/html/freepbx/admin/modules/iaxsettings && \
+	curl -sL https://github.com/FreePBX/iaxsettings/archive/refs/tags/release/16.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/iaxsettings && \
+	mkdir -p /var/www/html/freepbx/admin/modules/infoservices && \
+	curl -sL https://github.com/FreePBX/infoservices/archive/refs/tags/release/16.0.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/infoservices && \
+	mkdir -p /var/www/html/freepbx/admin/modules/ivr && \
+	curl -sL https://github.com/FreePBX/ivr/archive/refs/tags/release/16.0.5.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/ivr && \
+	mkdir -p /var/www/html/freepbx/admin/modules/languages && \
+	curl -sL https://github.com/FreePBX/languages/archive/refs/tags/release/16.0.4.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/languages && \
+	mkdir -p /var/www/html/freepbx/admin/modules/logfiles && \
+	curl -sL https://github.com/FreePBX/logfiles/archive/refs/tags/release/16.0.7.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/logfiles && \
+	mkdir -p /var/www/html/freepbx/admin/modules/manager && \
+	curl -sL https://github.com/FreePBX/manager/archive/refs/tags/release/16.0.17.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/manager && \
+	mkdir -p /var/www/html/freepbx/admin/modules/miscapps && \
+	curl -sL https://github.com/FreePBX/miscapps/archive/refs/tags/release/16.0.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/miscapps && \
+	mkdir -p /var/www/html/freepbx/admin/modules/music && \
+	curl -sL https://github.com/FreePBX/music/archive/refs/tags/release/16.0.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/music && \
+	mkdir -p /var/www/html/freepbx/admin/modules/outroutemsg && \
+	curl -sL https://github.com/FreePBX/outroutemsg/archive/refs/tags/release/16.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/outroutemsg && \
+	mkdir -p /var/www/html/freepbx/admin/modules/parking && \
+	curl -sL https://github.com/FreePBX/parking/archive/refs/tags/release/16.0.4.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/parking && \
+	mkdir -p /var/www/html/freepbx/admin/modules/pm2 && \
+	curl -sL https://github.com/FreePBX/pm2/archive/refs/tags/release/14.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/pm2 && \
+	mkdir -p /var/www/html/freepbx/admin/modules/queueprio && \
+	curl -sL https://github.com/FreePBX/queueprio/archive/refs/tags/release/16.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queueprio && \
+	mkdir -p /var/www/html/freepbx/admin/modules/ringgroups && \
+	curl -sL https://github.com/FreePBX/ringgroups/archive/refs/tags/release/16.0.11.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/ringgroups && \
+	mkdir -p /var/www/html/freepbx/admin/modules/setcid && \
+	curl -sL https://github.com/FreePBX/setcid/archive/refs/tags/release/16.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/setcid && \
+	mkdir -p /var/www/html/freepbx/admin/modules/sipsettings && \
+	curl -sL https://github.com/FreePBX/sipsettings/archive/refs/tags/release/16.0.26.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/sipsettings && \
+	mkdir -p /var/www/html/freepbx/admin/modules/soundlang && \
+	curl -sL https://github.com/FreePBX/soundlang/archive/refs/tags/release/16.0.9.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/soundlang && \
+	mkdir -p /var/www/html/freepbx/admin/modules/timeconditions && \
+	curl -sL https://github.com/FreePBX/timeconditions/archive/refs/tags/release/16.0.10.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/timeconditions && \
+	mkdir -p /var/www/html/freepbx/admin/modules/userman && \
+	curl -sL https://github.com/FreePBX/userman/archive/refs/tags/release/16.0.39.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/userman && \
+	mkdir -p /var/www/html/freepbx/admin/modules/vmblast && \
 	curl -sL https://github.com/FreePBX/vmblast/archive/refs/tags/release/16.0.10.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/vmblast
 
 # Download and install Nethesis modules
 RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
-	curl -sL https://github.com/nethesis/freepbx-bosssecretary/archive/master.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/bosssecretary
-RUN mkdir -p /var/www/html/freepbx/admin/modules/core && \
+	curl -sL https://github.com/nethesis/freepbx-bosssecretary/archive/master.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/bosssecretary && \
+	mkdir -p /var/www/html/freepbx/admin/modules/core && \
 	/bin/rm -fr /var/www/html/freepbx/admin/modules/core/* && \
-	curl -sL https://github.com/nethesis/freepbx-core/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/core
-RUN mkdir -p /var/www/html/freepbx/admin/modules/customcontexts && \
-	curl -sL https://github.com/nethesis/freepbx-customcontexts/archive/refs/tags/release/13.0.3.4.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/customcontexts
-RUN mkdir -p /var/www/html/freepbx/admin/modules/directdid && \
-	curl -sL https://github.com/nethesis/directdid/archive/1.1.8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/directdid
-RUN mkdir -p /var/www/html/freepbx/admin/modules/extraoptions && \
-	curl -sL https://github.com/nethesis/freepbx-extraoptions/archive/master.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/extraoptions
-RUN mkdir -p /var/www/html/freepbx/admin/modules/googletts && \
-	curl -sL https://github.com/nethesis/googletts/archive/refs/tags/0.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/googletts
-RUN mkdir -p /var/www/html/freepbx/admin/modules/inboundlookup && \
-	curl -sL https://github.com/nethesis/inboundlookup/archive/1.0.0.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/inboundlookup
-RUN mkdir -p /var/www/html/freepbx/admin/modules/nethcqr && \
-	curl -sL https://github.com/nethesis/nethcqr/archive/2.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/nethcqr
-RUN mkdir -p /var/www/html/freepbx/admin/modules/nethcti3 && \
-	curl -sL https://github.com/nethesis/nethcti3freepbx/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/nethcti3
-RUN mkdir -p /var/www/html/freepbx/admin/modules/nethdash && \
-	curl -sL https://github.com/nethesis/nethdash/archive/1.0.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/nethdash
-RUN mkdir -p /var/www/html/freepbx/admin/modules/outboundlookup && \
-	curl -sL https://github.com/nethesis/outboundlookup/archive/1.0.0.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/outboundlookup
-RUN mkdir -p /var/www/html/freepbx/admin/modules/paging && \
-	curl -sL https://github.com/nethesis/freepbx-paging/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/paging
-RUN mkdir -p /var/www/html/freepbx/admin/modules/pin && \
-	curl -sL https://github.com/nethesis/freepbx_pin/archive/0.0.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/pin
-RUN mkdir -p /var/www/html/freepbx/admin/modules/queueexit && \
-	curl -sL https://github.com/nethesis/queueexit/archive/0.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queueexit
-RUN mkdir -p /var/www/html/freepbx/admin/modules/queuemetrics && \
-	curl -sL https://github.com/nethesis/queuemetrics/archive/refs/tags/release/2.11.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queuemetrics
-RUN mkdir -p /var/www/html/freepbx/admin/modules/queueoptions && \
-	curl -sL https://github.com/nethesis/queueoptions/archive/0.0.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queueoptions
-RUN mkdir -p /var/www/html/freepbx/admin/modules/queues && \
-	curl -sL https://github.com/nethesis/freepbx-queues/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queues
-RUN mkdir -p /var/www/html/freepbx/admin/modules/rapidcode && \
-	curl -sL https://github.com/nethesis/RapidCode/archive/refs/tags/1.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/rapidcode
-RUN mkdir -p /var/www/html/freepbx/admin/modules/recallonbusy && \
-	curl -sL https://github.com/nethesis/freepbx-module-recallonbusy/archive/refs/tags/1.0.3.tar.gz -o - | tar xzp --wildcards --strip-components=2 -C /var/www/html/freepbx/admin/modules/recallonbusy */module
-RUN mkdir -p /var/www/html/freepbx/admin/modules/recordings && \
-	curl -sL https://github.com/nethesis/freepbx-recordings/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/recordings
-RUN mkdir -p /var/www/html/freepbx/admin/modules/returnontransfer && \
-	curl -sL https://github.com/nethesis/returnontransfer/archive/refs/tags/1.1.10.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/returnontransfer
-RUN mkdir -p /var/www/html/freepbx/admin/modules/visualplan && \
-	curl -sL https://github.com/nethesis/freepbx-visualplan/archive/refs/tags/14.3.7.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/visualplan
-RUN mkdir -p /var/www/html/freepbx/admin/modules/voicemail && \
+	curl -sL https://github.com/nethesis/freepbx-core/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/core && \
+	mkdir -p /var/www/html/freepbx/admin/modules/customcontexts && \
+	curl -sL https://github.com/nethesis/freepbx-customcontexts/archive/refs/tags/release/13.0.3.4.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/customcontexts && \
+	mkdir -p /var/www/html/freepbx/admin/modules/directdid && \
+	curl -sL https://github.com/nethesis/directdid/archive/1.1.8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/directdid && \
+	mkdir -p /var/www/html/freepbx/admin/modules/extraoptions && \
+	curl -sL https://github.com/nethesis/freepbx-extraoptions/archive/master.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/extraoptions && \
+	mkdir -p /var/www/html/freepbx/admin/modules/googletts && \
+	curl -sL https://github.com/nethesis/googletts/archive/refs/tags/0.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/googletts && \
+	mkdir -p /var/www/html/freepbx/admin/modules/inboundlookup && \
+	curl -sL https://github.com/nethesis/inboundlookup/archive/1.0.0.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/inboundlookup && \
+	mkdir -p /var/www/html/freepbx/admin/modules/nethcqr && \
+	curl -sL https://github.com/nethesis/nethcqr/archive/2.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/nethcqr && \
+	mkdir -p /var/www/html/freepbx/admin/modules/nethcti3 && \
+	curl -sL https://github.com/nethesis/nethcti3freepbx/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/nethcti3 && \
+	mkdir -p /var/www/html/freepbx/admin/modules/nethdash && \
+	curl -sL https://github.com/nethesis/nethdash/archive/1.0.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/nethdash && \
+	mkdir -p /var/www/html/freepbx/admin/modules/outboundlookup && \
+	curl -sL https://github.com/nethesis/outboundlookup/archive/1.0.0.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/outboundlookup && \
+	mkdir -p /var/www/html/freepbx/admin/modules/paging && \
+	curl -sL https://github.com/nethesis/freepbx-paging/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/paging && \
+	mkdir -p /var/www/html/freepbx/admin/modules/pin && \
+	curl -sL https://github.com/nethesis/freepbx_pin/archive/0.0.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/pin && \
+	mkdir -p /var/www/html/freepbx/admin/modules/queueexit && \
+	curl -sL https://github.com/nethesis/queueexit/archive/0.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queueexit && \
+	mkdir -p /var/www/html/freepbx/admin/modules/queuemetrics && \
+	curl -sL https://github.com/nethesis/queuemetrics/archive/refs/tags/release/2.11.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queuemetrics && \
+	mkdir -p /var/www/html/freepbx/admin/modules/queueoptions && \
+	curl -sL https://github.com/nethesis/queueoptions/archive/0.0.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queueoptions && \
+	mkdir -p /var/www/html/freepbx/admin/modules/queues && \
+	curl -sL https://github.com/nethesis/freepbx-queues/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queues && \
+	mkdir -p /var/www/html/freepbx/admin/modules/rapidcode && \
+	curl -sL https://github.com/nethesis/RapidCode/archive/refs/tags/1.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/rapidcode && \
+	mkdir -p /var/www/html/freepbx/admin/modules/recallonbusy && \
+	curl -sL https://github.com/nethesis/freepbx-module-recallonbusy/archive/refs/tags/1.0.3.tar.gz -o - | tar xzp --wildcards --strip-components=2 -C /var/www/html/freepbx/admin/modules/recallonbusy */module && \
+	mkdir -p /var/www/html/freepbx/admin/modules/recordings && \
+	curl -sL https://github.com/nethesis/freepbx-recordings/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/recordings && \
+	mkdir -p /var/www/html/freepbx/admin/modules/returnontransfer && \
+	curl -sL https://github.com/nethesis/returnontransfer/archive/refs/tags/1.1.10.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/returnontransfer && \
+	mkdir -p /var/www/html/freepbx/admin/modules/visualplan && \
+	curl -sL https://github.com/nethesis/freepbx-visualplan/archive/refs/tags/14.3.7.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/visualplan && \
+	mkdir -p /var/www/html/freepbx/admin/modules/voicemail && \
 	curl -sL https://github.com/nethesis/freepbx-voicemail/archive/14.0.6.26.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/voicemail
 
 # Create directories
@@ -448,15 +448,8 @@ RUN for asset in $(find /var/www/html/freepbx/admin/modules/ -type d -name asset
 	ln -s $asset /var/www/html/freepbx/admin/assets/$module; \
 done
 
-# PATCH FreePBX modules before signing again
 # Replace FreepBX cron implementation with noop
 COPY var/www/html/freepbx/admin/libraries/BMO/Cron.class.php /var/www/html/freepbx/admin/libraries/BMO/Cron.class.php
-COPY etc/amportal.conf /etc
-COPY initdb.d/initdb.php /initdb.d/
-COPY initdb.d/migration.php /initdb.d/
-COPY var/www/html/freepbx/push-proxy.php /var/www/html/freepbx/push-proxy.php
-COPY usr/src/nethvoice/samples/* /usr/src/nethvoice/samples/
-COPY configure_users.php /
 
 # Add branding
 COPY var/www/html/freepbx/admin/brand/* /var/www/html/freepbx/admin/brand/
@@ -474,17 +467,12 @@ RUN cp -a /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini && \
 	sed -i 's/^variables_order = "GPCS"/variables_order = "EGPCS"/' /usr/local/etc/php/php.ini
 
 # Install php additional modules
-RUN docker-php-source extract
-# install pdo_mysql
-RUN docker-php-ext-configure pdo_mysql && docker-php-ext-install pdo_mysql
-# install php gettext
-RUN docker-php-ext-configure gettext && docker-php-ext-install gettext
-# install ldap
-RUN ln -s /usr/lib/x86_64-linux-gnu/libldap.so /usr/lib/libldap.so && docker-php-ext-configure ldap && docker-php-ext-install ldap
-# install php semaphores (sysvsem)
-RUN docker-php-ext-configure sysvsem && docker-php-ext-install sysvsem
-# Remove php sources now that additional modules are installed
-RUN docker-php-source delete
+RUN docker-php-source extract && \
+	docker-php-ext-configure pdo_mysql && docker-php-ext-install pdo_mysql && \
+	docker-php-ext-configure gettext && docker-php-ext-install gettext && \
+	ln -s /usr/lib/x86_64-linux-gnu/libldap.so /usr/lib/libldap.so && docker-php-ext-configure ldap && docker-php-ext-install ldap && \
+	docker-php-ext-configure sysvsem && docker-php-ext-install sysvsem && \
+	docker-php-source delete
 
 # Install nethvoice-wizard-restapi and nethvoice-wizard-ui
 RUN mkdir -p /var/www/html/freepbx/rest && \
@@ -511,8 +499,14 @@ RUN mkdir -p /usr/share/phonebooks/ && \
 	curl -L https://github.com/nethesis/nethserver-phonebook-mysql/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=5 -C /usr/share/phonebooks/ nethserver-phonebook-mysql-ns8/root/usr/share/phonebooks
 
 COPY etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-default.conf
-COPY entrypoint.sh /entrypoint
 COPY etc/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY freepbx_init.sh /freepbx_init.sh
+COPY etc/amportal.conf /etc
+COPY initdb.d/initdb.php /initdb.d/
+COPY initdb.d/migration.php /initdb.d/
+COPY var/www/html/freepbx/push-proxy.php /var/www/html/freepbx/push-proxy.php
+COPY usr/src/nethvoice/samples/* /usr/src/nethvoice/samples/
+COPY configure_users.php /
+COPY entrypoint.sh /entrypoint
 CMD ["/usr/bin/supervisord"]
 ENTRYPOINT ["/entrypoint"]
