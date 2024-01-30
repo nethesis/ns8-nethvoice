@@ -165,7 +165,7 @@ RUN groupadd -g 991 -r asterisk && \
 FROM docker.io/library/php:7.4-apache
 WORKDIR /var/lib/asterisk
 ARG DEBIAN_FRONTEND=noninteractive
-RUN groupadd -g 991 -r asterisk \
+RUN groupadd -g 991 -r asterisk && \
     useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk && \
 	apt-get update && \
 	apt-get install -y \
