@@ -116,6 +116,13 @@ RUN groupadd -g 991 -r asterisk && \
 	rm -rf ${BUILDROOT}/var/lib/asterisk/phoneprov/* && \
 	rm -rf ${BUILDROOT}/tmp && \
 	rm -rf ${BUILDROOT}/var/spool/asterisk/voicemail/default && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/app_jack.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/cdr_pgsql.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/cel_pgsql.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/chan_console.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/chan_oss.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_config_pgsql.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_http_post.so && \
 	cp -a contrib/ast-db-manage ${BUILDROOT}${DATADIR}/asterisk/ast-db-manage && \
 	wget http://downloads.digium.com/pub/telephony/codec_opus/asterisk-18.0/x86-64/codec_opus-18.0_current-x86_64.tar.gz && \
 	tar xzf codec_opus-18.0_current-x86_64.tar.gz --strip-components=1 && \
@@ -159,7 +166,14 @@ RUN groupadd -g 991 -r asterisk \
 	openssl \
 	libxml2 \
 	libxslt1.1 \
-	libsrtp2-1
+	libsrtp2-1 \
+	libspeex1 \
+	libspeexdsp1 \
+	libneon27 \
+	libspandsp2 \
+	libsnmp40 \
+	libical3
+
 
 # Copy Asterisk files
 COPY --from=builder /usr/src/asterisk/build/./ /
