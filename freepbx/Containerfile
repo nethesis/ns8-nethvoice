@@ -109,7 +109,6 @@ RUN groupadd -g 991 -r asterisk && \
 	make install ${MAKEARGS} && \
 	make samples ${MAKEARGS} && \
 	install -D -p -m 0755 apps/app_voicemail_odbc.so ${BUILDROOT}${LIBDIR}/asterisk/modules/app_voicemail_odbc.so && \
-	install -D -p -m 0755 apps/app_voicemail.so ${BUILDROOT}${LIBDIR}/asterisk/modules/app_voicemail.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/libasteriskssl.so && \
 	ln -s libasteriskssl.so.1 ${BUILDROOT}${LIBDIR}/libasteriskssl.so && \
 	rm -rf ${BUILDROOT}/etc/asterisk/* && \
@@ -143,8 +142,11 @@ RUN groupadd -g 991 -r asterisk && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_hep_rtcp.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_http_post.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_hep_pjsip.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_mwi_external.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_mwi_external_ami.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_pjsip_transport_websocket.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_pktccops.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_stasis_mailbox.so && \
 	cp -a contrib/ast-db-manage ${BUILDROOT}${DATADIR}/asterisk/ast-db-manage && \
 	wget http://downloads.digium.com/pub/telephony/codec_opus/asterisk-18.0/x86-64/codec_opus-18.0_current-x86_64.tar.gz && \
 	tar xzf codec_opus-18.0_current-x86_64.tar.gz --strip-components=1 && \
