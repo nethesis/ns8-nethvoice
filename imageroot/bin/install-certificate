@@ -65,6 +65,7 @@ tar -c -O server.key server.pem ${with_dh_group:+dh.pem} | podman run \
     --replace --rm --name "${service}-import-certificate" \
     --image-volume=tmpfs \
     --volume="${service}-cert:${destinations[$service]}:z" \
+    --entrypoint="" \
     "${service_image}" \
     import-certificate
 
