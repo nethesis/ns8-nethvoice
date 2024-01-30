@@ -159,8 +159,7 @@ RUN groupadd -g 991 -r asterisk && \
 	cp *.so ${BUILDROOT}${LIBDIR}/asterisk/modules/ && \
 	cp codec_opus_config-en_US.xml ${BUILDROOT}${DATADIR}/asterisk/documentation/thirdparty/ && \
 	wget -nv http://asterisk.hosting.lv/bin/codec_g729-ast180-gcc4-glibc-x86_64-pentium4.so -O ${BUILDROOT}${LIBDIR}/asterisk/modules/codec_g729.so
-	
-# TODO add ilbc?
+
 
 FROM docker.io/library/php:7.4-apache
 WORKDIR /var/lib/asterisk
