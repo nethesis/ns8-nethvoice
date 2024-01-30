@@ -166,37 +166,39 @@ FROM docker.io/library/php:7.4-apache
 WORKDIR /var/lib/asterisk
 ARG DEBIAN_FRONTEND=noninteractive
 RUN groupadd -g 991 -r asterisk \
-    && useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk \
-	&& apt-get update && apt-get install -y \
-	cron \
-	gettext \
-	gnupg \
-	libldap2-dev \
-	libldap-2.4-2 \
-	libsodium-dev \
-	mycli \
-	nodejs \
-	npm \
-	pip \
-	python3-pycurl \
-	python3-pyodbc \
-	sox \
-	zip \
-	vim \
-	supervisor \
-	wget \
-    odbc-mariadb \
-	libjansson4 \
-	openssl \
-	libxml2 \
-	libxslt1.1 \
-	libsrtp2-1 \
-	libspeex1 \
-	libspeexdsp1 \
-	libneon27 \
-	libspandsp2 \
-	libsnmp40 \
-	libical3
+    useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk && \
+	apt-get update && \
+	apt-get install -y \
+		cron \
+		gettext \
+		gnupg \
+		libldap2-dev \
+		libldap-2.4-2 \
+		libsodium-dev \
+		mycli \
+		nodejs \
+		npm \
+		pip \
+		python3-pycurl \
+		python3-pyodbc \
+		sox \
+		zip \
+		vim \
+		supervisor \
+		wget \
+		odbc-mariadb \
+		libjansson4 \
+		openssl \
+		libxml2 \
+		libxslt1.1 \
+		libsrtp2-1 \
+		libspeex1 \
+		libspeexdsp1 \
+		libneon27 \
+		libspandsp2 \
+		libsnmp40 \
+		libical3 && \
+	sed -i 's/^"set mouse=a/set mouse-=a/g' /etc/vim/vimrc
 
 
 # Copy Asterisk files
