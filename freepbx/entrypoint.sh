@@ -82,7 +82,7 @@ cat > /etc/odbc.ini <<EOF
 Server = 127.0.0.1
 Database = asteriskcdrdb
 Port = ${NETHVOICE_MARIADB_PORT}
-Driver = MySQL
+Driver = MariaDB Unicode
 Description = ODBC on asteriskcdrdb
 EOF
 
