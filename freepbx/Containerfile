@@ -124,6 +124,7 @@ RUN groupadd -g 991 -r asterisk && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/app_jack.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/app_nbscat.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/app_url.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/app_voicemail.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/cdr_sqlite3_custom.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/cel_sqlite3_custom.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/chan_alsa.so && \
