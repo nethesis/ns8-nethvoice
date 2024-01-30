@@ -197,8 +197,7 @@ RUN groupadd -g 991 -r asterisk && \
 		libneon27 \
 		libspandsp2 \
 		libsnmp40 \
-		libical3 && \
-	sed -i 's/^"set mouse=a/set mouse-=a/g' /etc/vim/vimrc
+		libical3
 
 
 # Copy Asterisk files
