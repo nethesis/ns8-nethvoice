@@ -19,3 +19,5 @@ Check if nethvoice-proxy is installed correctly
     Set Global Variable    ${proxy_module_id}    ${output.module_id}
     Run task    cluster/alter-repository    {"name": "default", "status": true, "testing": true}
     ...    rc_expected=0
+    Run task    module/${proxy_module_id}/configure-module
+    ...    {"addresses": {"address": "1.2.3.4"}}

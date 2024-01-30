@@ -32,6 +32,7 @@ ExecStart=/usr/bin/podman run \
     --env=TANCREDI_STATIC_TOKEN \
     --env=PROXY_IP \
     --env=PROXY_PORT \
+    --env=NETHVOICE_PROXY_FQDN \
     --network=host \
     ${NETHVOICE_TANCREDI_IMAGE}
 

@@ -62,8 +62,7 @@ if [[ ! -f ${dst_file} ]]; then
 	echo 'language = "it"' >> ${dst_file}
 	echo 'tonezone = "it"' >> ${dst_file}
 	echo 'hostname = "'${NETHVOICE_HOST}'"' >> ${dst_file}
-	echo 'outbound_proxy_1 = "'${PUBLIC_IP}'"' >> ${dst_file}
-	echo 'outbound_proxy_port_1 = "5060"' >> ${dst_file}
+	echo 'outbound_proxy_1 = "'${NETHVOICE_PROXY_FQDN}'"' >> ${dst_file}
 	echo 'provisioning_url_scheme = "https"' >> ${dst_file}
 	echo 'provisioning_freq = "everyday"' >> ${dst_file}
 
@@ -89,20 +88,6 @@ if [[ ! -f ${dst_file} ]]; then
 	# Set default admin and user passwords
 	echo 'adminpw = "'$(head /dev/urandom | tr -dc a-z0-9 | head -c 10)'"' >> ${dst_file}
 	echo 'userpw = "'$(head /dev/urandom | tr -dc a-z | head -c 6)'"' >> ${dst_file}
-	
-	# Set proxy ip if not already set
-	if [[ -z "${PROXY_IP}" ]]; then
-		export PROXY_IP=${NETHVOICE_HOST}
-	fi
-
-	# Set default proxy
-	echo 'outbound_proxy_1 = "${PROXY_IP}"' >> ${dst_file}
-
-	# Set proxy port if not empty
-	if [[ ! -z "${PROXY_PORT}" ]]; then
-		echo 'outbound_proxy_port_1 = "${PROXY_PORT}"' >> ${dst_file}
-	fi
-
 fi
 
 runuser -s /bin/bash -c "php /usr/share/tancredi/scripts/upgrade.php" - www-data

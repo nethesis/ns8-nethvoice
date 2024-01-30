@@ -19,3 +19,20 @@ Check if nethvoice is configured as expected
 Check if the password can be changed
     ${response} =  Run task    module/${module_id}/set-nethvoice-admin-password   
     ...    {"nethvoice_admin_password": "Nethesis,1234"}
+
+Check if the route on nethvoice-proxy is created correctly
+    ${response} =  Run task    module/${module_id}/list-service-providers
+    ...    {"service": "sip", "transport": "tcp", "filter": {"module_id": "${proxy_module_id}"} }
+    ${proxy_addr} =  Set Variable   ${response[0]['host']}
+    ${response} =  Run task    module/${proxy_module_id}/get-route
+    ...    {"domain": "voice.ns8.local"}
+    Should Contain    ${response['address'][0]['uri']}    ${proxy_addr}
+
+    Run task    module/${proxy_module_id}/configure-module
+    ...    {"addresses": {"address": "5.6.7.8"}}
+    ${response} =  Run task    module/${module_id}/list-service-providers
+    ...    {"service": "sip", "transport": "tcp", "filter": {"module_id": "${proxy_module_id}"} }
+    ${proxy_addr} =  Set Variable   ${response[0]['host']}
+    ${response} =  Run task    module/${proxy_module_id}/get-route
+    ...    {"domain": "voice.ns8.local"}
+    Should Contain    ${response['address'][0]['uri']}    ${proxy_addr}
