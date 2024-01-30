@@ -116,13 +116,35 @@ RUN groupadd -g 991 -r asterisk && \
 	rm -rf ${BUILDROOT}/var/lib/asterisk/phoneprov/* && \
 	rm -rf ${BUILDROOT}/tmp && \
 	rm -rf ${BUILDROOT}/var/spool/asterisk/voicemail/default && \
+	# Remove unused modules
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/app_adsiprog.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/app_festival.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/app_getcpeid.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/app_ices.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/app_image.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/app_jack.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/app_nbscat.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/app_url.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/cdr_sqlite3_custom.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/cel_sqlite3_custom.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/chan_alsa.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/chan_console.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/chan_mgcp.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/chan_oss.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/chan_unistim.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/cdr_pgsql.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/cel_pgsql.so && \
-	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/chan_console.so && \
-	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/chan_oss.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/chan_skinny.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/pbx_ael.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/pbx_lua.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_adsi.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_config_pgsql.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_hep.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_hep_rtcp.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_http_post.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_hep_pjsip.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_pjsip_transport_websocket.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_pktccops.so && \
 	cp -a contrib/ast-db-manage ${BUILDROOT}${DATADIR}/asterisk/ast-db-manage && \
 	wget http://downloads.digium.com/pub/telephony/codec_opus/asterisk-18.0/x86-64/codec_opus-18.0_current-x86_64.tar.gz && \
 	tar xzf codec_opus-18.0_current-x86_64.tar.gz --strip-components=1 && \
