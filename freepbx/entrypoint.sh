@@ -134,16 +134,6 @@ cat > /var/www/html/freepbx/rest/config.inc.php <<EOF
 ];
 EOF
 
-# configure ODBC for Asterisk
-cat > /etc/odbc.ini <<EOF
-[MySQL-asteriskcdrdb]
-Server = localhost
-Database = asteriskcdrdb
-Port = ${NETHVOICE_MARIADB_PORT}
-Driver = MySQL
-Description = ODBC on asteriskcdrdb
-EOF
-
 # Create empty voicemail.conf if not exists
 if [[ ! -f /etc/asterisk/voicemail.conf ]]; then
 	touch /etc/asterisk/voicemail.conf
