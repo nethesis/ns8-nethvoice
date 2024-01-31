@@ -59,8 +59,9 @@ RUN apt-get update && \
 		portaudio19-dev \
 		unixodbc-dev \
 		uuid-dev \
-		wget && \
-	cd /usr/src/asterisk && \
+		wget
+
+RUN cd /usr/src/asterisk && \
 	wget https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz && \
 	tar xzf asterisk-${ASTERISK_VERSION}.tar.gz && \
 	rm -f asterisk-${ASTERISK_VERSION}.tar.gz && \
@@ -402,7 +403,7 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 	mkdir -p /var/www/html/freepbx/admin/modules/returnontransfer && \
 	curl -sL https://github.com/nethesis/returnontransfer/archive/refs/tags/1.1.10.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/returnontransfer && \
 	mkdir -p /var/www/html/freepbx/admin/modules/visualplan && \
-	curl -sL https://github.com/nethesis/freepbx-visualplan/archive/refs/tags/14.3.7.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/visualplan && \
+	curl -sL https://github.com/nethesis/freepbx-visualplan/archive/refs/tags/14.3.8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/visualplan && \
 	mkdir -p /var/www/html/freepbx/admin/modules/voicemail && \
 	curl -sL https://github.com/nethesis/freepbx-voicemail/archive/14.0.6.26.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/voicemail
 
