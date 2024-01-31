@@ -10,9 +10,7 @@ ARG LIBDIR=/usr/lib
 ARG DATADIR=/var/lib
 ARG MAKEARGS="DEBUG= OPTIMIZE= DESTDIR=${BUILDROOT} ASTVARRUNDIR=/var/run/asterisk ASTDATADIR=${DATADIR}/asterisk ASTVARLIBDIR=${DATADIR}/asterisk ASTDBDIR=${DATADIR}/asterisk/db NOISY_BUILD=1"
 COPY usr/src/asterisk /usr/src/asterisk
-RUN groupadd -g 991 -r asterisk && \
-    useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk && \
-	apt-get update && \
+RUN apt-get update && \
 	apt-get install -y \
 		automake \
 		build-essential \
