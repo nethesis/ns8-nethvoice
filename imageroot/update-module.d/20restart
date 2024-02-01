@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Restart FreePBX and Asterisk when all calls are finished
+(
+    while [[ $(podman exec freepbx asterisk -rx "core show channels" | grep 'active call' | cut -d" " -f1) -gt 0 ]]; do
+        sleep 1
+    done
+    systemctl --user restart freepbx nethcti-server janus
+) &
+
+# Restart other containers
+systemctl --user restart mariadb tancredi reports-ui reports-api reports-redis nethcti-ui phonebook
