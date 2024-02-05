@@ -1,7 +1,11 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "extends": [
-        "config:base"
+        "config:base",
+        ":disableDependencyDashboard"
+    ],
+    "includePaths": [
+        "build-images.sh"
     ],
     "regexManagers": [
         {
@@ -9,17 +13,9 @@
                 "build-images.sh"
             ],
             "matchStrings": [
-                "ghcr\\.io\/nethesis\/nethvoice-cti:(?<currentValue>[^\\s]+)"
+                "ghcr\\.io\/nethesis\/nethvoice-cti:(?<currentValue>[^\\s|)]+)"
             ],
-            "depNameTemplate": "nethesis/nethvoice-cti",
-            "datasourceTemplate": "github-releases"
-        }
-    ],
-    "packageRules": [
-        {
-            "matchPackageNames": [
-                "nethvoice-cti"
-            ]
+            "datasourceTemplate": "docker"
         }
     ]
 }
