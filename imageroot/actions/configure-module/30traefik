@@ -22,34 +22,16 @@ default_traefik_id = agent.resolve_agent_id('traefik@node')
 if default_traefik_id is None:
     sys.exit(2)
 
-# Configure Traefik to route "/nethvoice" or /$BRAND_NAME
+# Configure Traefik to route "/"
 response = agent.tasks.run(
     agent_id=agent.resolve_agent_id('traefik@node'),
     action='set-route',
     data={
         'instance': os.environ['MODULE_ID'] + '-wizard',
-        'url':  'http://127.0.0.1:' + os.environ["APACHE_PORT"] + '/' + os.environ["BRAND_NAME"].lower(),
+        'url':  'http://127.0.0.1:' + os.environ["APACHE_PORT"] + '/',
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
         'lets_encrypt': lets_encrypt,
-        'host': os.environ["NETHVOICE_HOST"],
-        'path': '/' + os.environ["BRAND_NAME"].lower(),
-    },
-)
-
-# Check if traefik configuration has been successfull
-agent.assert_exp(response['exit_code'] == 0)
-
-# Configure Traefik to route "/freepbx" path requests to the webapp service
-response = agent.tasks.run(
-    agent_id=agent.resolve_agent_id('traefik@node'),
-    action='set-route',
-    data={
-        'instance': os.environ['MODULE_ID'] + '-freepbx',
-        'url':  'http://127.0.0.1:' + os.environ["APACHE_PORT"] + '/freepbx',
-        'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
-        'lets_encrypt': lets_encrypt,
-        'host': os.environ["NETHVOICE_HOST"],
-        'path': '/freepbx',
+        'host': os.environ["NETHVOICE_HOST"]
     },
 )
 
