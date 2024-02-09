@@ -111,3 +111,15 @@ $db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permiss
 # move video_conference from settings to nethvoice_cti
 $db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 3000");
 $db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,3000);");
+
+# Fix inboundlookup and outboundlookup password field
+$db->query("ALTER TABLE `asterisk`.`inboundlookup` CHANGE COLUMN `mysql_password` `mysql_password` VARCHAR(255) DEFAULT NULL");
+$db->query("ALTER TABLE `asterisk`.`outboundlookup` CHANGE COLUMN `mysql_password` `mysql_password` VARCHAR(255) DEFAULT NULL");
+
+# change default host for inboundlookup and outboundlookup from localhost to 127.0.0.1:${PHONEBOOK_DB_PORT}
+$db->query("UPDATE `asterisk`.`inboundlookup` SET `mysql_host` = '127.0.0.1:{$_ENV['PHONEBOOK_DB_PORT']}' WHERE `mysql_host` = 'localhost'");
+$db->query("UPDATE `asterisk`.`outoundlookup` SET `mysql_host` = '127.0.0.1:{$_ENV['PHONEBOOK_DB_PORT']}' WHERE `mysql_host` = 'localhost'");
+
+# change default host for nethcqr from localhost to 127.0.0.1:${NETHVOICE_MARIADB_PORT}
+$db->query("UPDATE `asterisk`.`nethcqr_details` SET `db_url` = '127.0.0.1:{$_ENV['NETHVOICE_MARIADB_PORT']}' WHERE `db_url` = 'localhost'");
+$db->query("UPDATE `asterisk`.`nethcqr_details` SET `cc_db_url` = '127.0.0.1:{$_ENV['NETHVOICE_MARIADB_PORT']}' WHERE `cc_db_url` = 'localhost'");
