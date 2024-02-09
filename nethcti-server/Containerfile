@@ -24,8 +24,9 @@ FROM base as production
 # install production packages, add astersik as user
 RUN apk add --no-cache openldap-clients
 RUN addgroup -g 991 -S asterisk && adduser -u 990 -S -s /bin/false -h /var/lib/asterisk -H -g 'Asterisk User' -G asterisk asterisk
-RUN mkdir -p /etc/nethcti && chown asterisk:asterisk /etc/nethcti
-# complete container production configuration
+RUN mkdir -p /etc/nethcti /var/lib/asterisk/sounds \
+    && chown asterisk:asterisk /etc/nethcti /var/lib/asterisk/sounds
+# complete container production configuration 
 COPY entrypoint.sh /entrypoint
 COPY usr/local/bin/import-certificate /usr/local/bin/import-certificate
 ENTRYPOINT ["/entrypoint"]
