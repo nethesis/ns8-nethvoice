@@ -27,6 +27,7 @@ ExecStart=/usr/bin/podman run \
     --volume=nethcti-server-code:/usr/lib/node/nethcti-server:Z \
     --volume=nethcti-server-cert:/etc/certificates:z \
     --volume=sounds:/var/lib/asterisk/sounds:z \
+    --volume=spool:/var/spool/asterisk:z \
     --volume=reports_config:/opt/nethvoice-report:z \
     --volume=/dev/log:/dev/log \
     --env=ASTMANAGERPORT \
