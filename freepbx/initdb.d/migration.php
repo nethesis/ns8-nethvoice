@@ -111,3 +111,6 @@ $db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permiss
 # move video_conference from settings to nethvoice_cti
 $db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 3000");
 $db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,3000);");
+
+# Migrate old mobile app extensions to new Acrobit mobile app
+include '/var/www/html/admin/freepbx/rest/lib/appMigrationHelper.php';
