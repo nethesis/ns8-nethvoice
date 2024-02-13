@@ -372,16 +372,12 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 	curl -sL https://github.com/nethesis/freepbx-extraoptions/archive/master.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/extraoptions && \
 	mkdir -p /var/www/html/freepbx/admin/modules/googletts && \
 	curl -sL https://github.com/nethesis/googletts/archive/refs/tags/0.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/googletts && \
-	mkdir -p /var/www/html/freepbx/admin/modules/inboundlookup && \
-	curl -sL https://github.com/nethesis/inboundlookup/archive/1.0.0.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/inboundlookup && \
 	mkdir -p /var/www/html/freepbx/admin/modules/nethcqr && \
 	curl -sL https://github.com/nethesis/nethcqr/archive/2.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/nethcqr && \
 	mkdir -p /var/www/html/freepbx/admin/modules/nethcti3 && \
 	curl -sL https://github.com/nethesis/nethcti3freepbx/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/nethcti3 && \
 	mkdir -p /var/www/html/freepbx/admin/modules/nethdash && \
 	curl -sL https://github.com/nethesis/nethdash/archive/1.0.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/nethdash && \
-	mkdir -p /var/www/html/freepbx/admin/modules/outboundlookup && \
-	curl -sL https://github.com/nethesis/outboundlookup/archive/1.0.0.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/outboundlookup && \
 	mkdir -p /var/www/html/freepbx/admin/modules/paging && \
 	curl -sL https://github.com/nethesis/freepbx-paging/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/paging && \
 	mkdir -p /var/www/html/freepbx/admin/modules/pin && \
