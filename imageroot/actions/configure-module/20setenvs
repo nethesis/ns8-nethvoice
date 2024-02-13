@@ -46,4 +46,3 @@ getFromRequest(request, 'nethcti_ui_host', 'NETHCTI_UI_HOST', '')
 getFromRequest(request, 'nethcti_ui_product_name', 'NETHCTI_UI_PRODUCT_NAME', 'NethVoice CTI')
 getFromRequest(request, 'nethcti_ui_company_name', 'NETHCTI_UI_COMPANY_NAME', 'Nethesis')
 getFromRequest(request, 'nethcti_ui_company_url', 'NETHCTI_UI_COMPANY_URL', 'https://www.nethesis.it/')
-
