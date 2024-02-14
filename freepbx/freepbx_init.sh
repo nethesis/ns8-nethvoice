@@ -9,7 +9,7 @@ done
 # Install FreePBX modules if required
 module_status=$(mktemp)
 trap 'rm -f ${module_status}' EXIT
-fwconsole ma list | grep '^| ' | grep -v '^| Module'| awk '{print $2,$6}' > $module_status
+fwconsole ma list | grep '^| ' | grep -v '^| Module'| awk '{print $2,$6}' > "$module_status"
 for module in \
     framework \
     soundlang \
