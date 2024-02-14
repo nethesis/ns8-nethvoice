@@ -89,7 +89,7 @@ for module in \
     inboundlookup \
     outboundlookup
 do
-    if grep -q "$module Broken" "$module_status" ; then
+    if grep -q "$module" "$module_status" ; then
         echo Removing obsolete module $module
         fwconsole moduleadmin uninstall $module &>/dev/null || true # ignore errors, we know module files are missing
     fi
