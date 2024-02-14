@@ -113,4 +113,32 @@ $db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_pe
 $db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,3000);");
 
 # Migrate old mobile app extensions to new Acrobit mobile app
-include '/var/www/html/admin/freepbx/rest/lib/appMigrationHelper.php';
+$sip_options=[
+	'force_rport' => 'no',
+	'maximum_expiration' => '7200',
+	'media_encryption' => 'no',
+	'outbound_proxy' => 'sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'],
+	'qualifyfreq' => '60',
+	'rewrite_contact' => 'no',
+	'rtp_symmetric' => 'no',
+	'transport' => '0.0.0.0-udp',
+];
+
+$sql = "SELECT extension
+        FROM `asterisk`.`rest_devices_phones`
+        WHERE `type` = 'mobile'
+        AND extension IS NOT NULL";
+
+$stmt = $db->prepare($sql);
+$stmt->execute();
+$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+$extensions = array_column($res, 'extension');
+
+if (count($extensions) > 0) {
+	$qm_string = str_repeat('?, ',count($extensions) - 1) . '?';
+	foreach ($sip_options as $sip_option => $value)	{
+		$sql = "UPDATE `asterisk`.`sip` SET `data` = ? WHERE `keyword` = ? AND `id` IN ($qm_string)";
+		$stmt = $db->prepare($sql);
+		$stmt->execute(array_merge([$value,$sip_option],$extensions));
+	}
+}
