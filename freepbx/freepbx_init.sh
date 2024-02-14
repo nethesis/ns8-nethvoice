@@ -47,7 +47,6 @@ for module in \
         findmefollow \
         googletts \
         iaxsettings \
-        inboundlookup \
         infoservices \
         ivr \
         languages \
@@ -57,7 +56,6 @@ for module in \
         nethcqr \
         nethcti3 \
         nethdash \
-        outboundlookup \
         outroutemsg \
         paging \
         parking \
@@ -83,6 +81,17 @@ do
     if ! test -s "$module_status" || grep -q "$module " "$module_status" && ! grep -q "$module Enabled" "$module_status" ; then
         echo Installing module $module
         fwconsole moduleadmin install $module
+    fi
+done
+
+# Remove obsolete modules if required
+for module in \
+    inboundlookup \
+    outboundlookup
+do
+    if grep -q "$module Broken" "$module_status" ; then
+        echo Removing obsolete module $module
+        fwconsole moduleadmin uninstall $module &>/dev/null || true # ignore errors, we know module files are missing
     fi
 done
 
