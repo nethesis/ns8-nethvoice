@@ -27,6 +27,7 @@ services = [
     "janus",
     "reports-api",
     "reports-ui"
+    "users-portal",
 ]
 
 # Remove traefik route
