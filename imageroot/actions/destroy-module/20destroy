@@ -26,7 +26,8 @@ services = [
     "server-websocket",
     "janus",
     "reports-api",
-    "reports-ui"
+    "reports-ui",
+    "users-admin",
 ]
 
 # Remove traefik route

@@ -221,7 +221,12 @@ RUN chown asterisk:asterisk \
 
 RUN mkdir download \
     && cd download \
-    && mkdir -p /var/lib/asterisk/sounds/{it,en,es,de,fr} \
+    && mkdir -p /var/lib/asterisk/sounds/it \
+    && mkdir -p /var/lib/asterisk/sounds/en \
+    && mkdir -p /var/lib/asterisk/sounds/es \
+    && mkdir -p /var/lib/asterisk/sounds/de \
+    && mkdir -p /var/lib/asterisk/sounds/fr \
+    && mkdir -p /var/lib/asterisk/sounds/nethcti \
     && wget -nv https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-core-it-2.11.1.zip \
     && wget -nv https://github.com/nethesis/nethvoice-langs/releases/download/2.0.0/asterisk-sounds-extra-it-2.11.1.zip \
     && unzip -o 'asterisk-sounds-*-it-*.zip' -d /var/lib/asterisk/sounds/it \
