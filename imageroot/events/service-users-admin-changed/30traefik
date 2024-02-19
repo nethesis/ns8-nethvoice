@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2022 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import os
+import sys
+import json
+
+import agent
+import agent.tasks
+
+data = json.load(sys.stdin)
+
+# Get proxy srv records
+ksrv = agent.list_service_providers(agent.redis_connect(use_replica=True), "users-admin", "http", {"domain": os.environ["USER_DOMAIN"]]})
+
+# Configure Traefik to route "/users-admin" path requests to the user portal service
+response = agent.tasks.run(
+    agent_id=agent.resolve_agent_id('traefik@node'),
+    action='set-route',
+    data={
+        'instance': os.environ['MODULE_ID'] + '-users-admin',
+        'url': ksrv[0]["url"],
+        'http2https':  True,
+        'lets_encrypt': lets_encrypt,
+        'host': os.environ["NETHVOICE_HOST"],
+        'path': '/users-admin/' + os.environ["USER_DOMAIN"],
+        'strip_prefix': True,
+    },
+)
+agent.assert_exp(response['exit_code'] == 0)

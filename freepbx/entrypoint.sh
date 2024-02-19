@@ -88,13 +88,9 @@ EOF
 
 chown asterisk:asterisk /var/lib/asterisk/db
 
-# Setup ca bundle for pjsip
-ln -sf /etc/pki/tls/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt
-
-
 # Customized wizard page
 cat > /etc/apache2/sites-available/wizard.conf <<EOF
-Alias /$(echo "${BRAND_NAME:=NethVoice}" | tr '[:upper:]' '[:lower:]') /var/www/html/freepbx/wizard
+AliasMatch ^/(?!freepbx)(.+)$ /var/www/html/freepbx/wizard/\$1
 EOF
 
 # Link rewrite configuration
