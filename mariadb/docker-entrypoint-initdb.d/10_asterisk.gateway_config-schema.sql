@@ -13,6 +13,7 @@ CREATE TABLE `gateway_config` (
   `ipv4_green` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `netmask_green` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `mac` char(18) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `proxy` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `mac_key` (`mac`),
   KEY `model_id` (`model_id`),
