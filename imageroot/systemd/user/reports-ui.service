@@ -26,6 +26,7 @@ ExecStart=/usr/bin/podman run \
         --network slirp4netns:allow_host_loopback=true \
         --publish 127.0.0.1:${REPORTS_UI_PORT}:80 \
         --name %N \
+        --tz=${TIMEZONE} \
         ${NETHVOICE_REPORTS_UI_IMAGE}
 ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id

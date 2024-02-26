@@ -15,6 +15,7 @@ ExecStart=/usr/bin/podman run \
   --detach \
   --volume=redis-flexisip:/data \
   --network=host \
+  --tz=${TIMEZONE} \
   ${REDIS_IMAGE} --appendonly yes --port ${REDIS_FLEXISIP_PORT} --bind 127.0.0.1
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/redis-flexisip.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/redis-flexisip.ctr-id

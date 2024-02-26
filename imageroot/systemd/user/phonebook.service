@@ -27,6 +27,7 @@ ExecStart=/usr/bin/podman run \
     --volume=tancredi:/var/lib/tancredi:z \
     --volume=phonebook-cert:/etc/certificates:z \
     --network=host \
+    --tz=${TIMEZONE} \
     ${NETHVOICE_PHONEBOOK_IMAGE}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/phonebook.ctr-id

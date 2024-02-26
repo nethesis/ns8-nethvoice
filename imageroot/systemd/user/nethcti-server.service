@@ -44,6 +44,7 @@ ExecStart=/usr/bin/podman run \
     --env=CDRDBUSER \
     --env=CDRDBPASS \
     --network=host \
+    --tz=${TIMEZONE} \
     ${NETHVOICE_CTI_SERVER_IMAGE}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/nethcti-server.ctr-id
