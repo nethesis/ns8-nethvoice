@@ -28,14 +28,14 @@
     "network_error": "Errore di rete",
     "network_timeout": "Timeout di rete",
     "required": "Obbligatorio",
-    "same_host": "Non è possibile usare lo stesso dominio per NethVoice e NethCTI",
+    "same_host": "Non è possibile usare lo stesso dominio per NethVoice e NethVoice CTI",
     "validation_error": "Errore di validazione",
     "reports_prefix_invalid": "Formato errato"
   },
   "settings": {
     "configure_instance": "Configura {instance}",
     "lets_encrypt": "Richiedi certificato Let's Encrypt",
-    "nethcti_ui_host": "Host base di NethCTI",
+    "nethcti_ui_host": "Host base di NethVoice CTI",
     "nethvoice_host": "Host base di NethVoice",
     "nethvoice_admin_password": "Reset della password di admin di NethVoice per accedere all'interfaccia (opzionale)",
     "save": "Salva",
@@ -45,7 +45,10 @@
     "user_domain_selector": "Sorgente Dominio Utenti",
     "reports_international_prefix": "Prefisso Report",
     "reports_international_prefix_tooltip": "Il formato del prefisso deve essere \"00**\" o \"+**\"",
-    "set_password": "Reset della password di admin di NethVoice"
+    "set_password": "Reset della password di admin di NethVoice",
+    "timezone": "Timezone",
+    "timezone_placeholder": "Scegli timezone",
+    "timezone_tooltip": "Imposta la timezone di default per questa installazione di NethVoice"
   },
   "status": {
     "app_images": "Immagine app|Immagini app",
