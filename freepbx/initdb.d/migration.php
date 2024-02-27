@@ -172,4 +172,3 @@ if (count($res) == 0) {
 $old_gateways = ["TRI_FXO_2","TRI_FXO_4","TRI_FXO_8","TRI_ISDN_1","TRI_ISDN_2","TRI_ISDN_4","TRI_PRI_1","TRI_PRI_2","TRI_PRI_4","M4401","M4402","M4404","ht801","ht801TLS","ht802","ht802TLS","ht812","ht812TLS","ht814","ht814TLS","gxw4216","gxw4216TLS","gxw4224","gxw4224TLS","gxw4232","gxw4232TLS","gxw4248","gxw4248TLS"];
 $qm_string = str_repeat('?, ', count($old_gateways) - 1) . '?';
 $db->query("DELETE FROM `asterisk`.`gateway_config` WHERE `gateway` IN ($qm_string)", $old_gateways);
-
