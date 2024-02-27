@@ -28,13 +28,13 @@
     "network_error": "Network error",
     "network_timeout": "Network timeout",
     "required": "Required",
-    "same_host": "Cannot use the same host for NethVoice and NethCTI Server",
+    "same_host": "Cannot use the same host for NethVoice and NethVoice CTI",
     "validation_error": "Validation error"
   },
   "settings": {
     "configure_instance": "Configure {instance}",
     "lets_encrypt": "Request Let's Encrypt certificate",
-    "nethcti_ui_host": "NethCTI UI base host",
+    "nethcti_ui_host": "NethVoice CTI base host",
     "nethvoice_host": "NethVoice base host",
     "nethvoice_admin_password": "Reset NethVoice admin password to access user interface (optional)",
     "save": "Save",
@@ -45,7 +45,10 @@
     "reports_international_prefix": "Reports Prefix",
     "reports_international_prefix_tooltip": "Format must be either \"00**\" or \"+**\"",
     "reports_prefix_invalid": "Invalid format",
-    "set_password": "NethVoice admin password reset"
+    "set_password": "NethVoice admin password reset",
+    "timezone": "Timezone",
+    "timezone_placeholder": "Choose timezone",
+    "timezone_tooltip": "Set the default timezone for current NethVoice installation"
   },
   "status": {
     "app_images": "App image | App images",
