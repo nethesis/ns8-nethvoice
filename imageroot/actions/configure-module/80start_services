@@ -8,6 +8,12 @@
 set -e    # exit immediately if an error occurs
 exec 1>&2 # ensure any output is sent to stderr
 
+#restart services if they are already running
+
+if [ -n "$RESTART_SERVICES" ]; then
+systemctl --user try-restart $RESTART_SERVICES
+fi
+
 # If the control reaches this step, the service can be enabled and started
 
 systemctl --user enable --now mariadb.service
@@ -22,8 +28,6 @@ systemctl --user enable --now watcher.path
 systemctl --user enable --now redis-flexisip.service
 systemctl --user enable --now flexisip.service
 # Reports
-systemctl --user enable reports-api.service
-systemctl --user restart reports-api.service
+systemctl --user enable --now reports-api.service
 systemctl --user enable --now reports-scheduler.timer
 systemctl --user enable --now reports-ui.service
-systemctl --user restart reports-ui.service
