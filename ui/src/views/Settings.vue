@@ -160,18 +160,24 @@ export default {
         user_domain: "",
         reports_international_prefix: "+39",
         timezone: "",
+        nethvoice_adm: {},
       },
+      config: {},
       loading: {
         getConfiguration: false,
         configureModule: false,
         userDomains: false,
         getDefaults: false,
+        getUsers: false,
       },
       domainList: [],
       timezoneList: [],
+      providers: {},
+      users: {},
       error: {
         getConfiguration: "",
         getDefaults: "",
+        getUsers: "",
         configureModule: "",
         nethvoice_host: "",
         nethvoice_admin_password: "",
@@ -206,6 +212,16 @@ export default {
     this.getDefaults();
   },
   methods: {
+    generatePassword() {
+      var length = 16,
+        charset =
+          "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,£$%&",
+        retVal = "";
+      for (var i = 0, n = charset.length; i < length; ++i) {
+        retVal += charset.charAt(Math.floor(Math.random() * n));
+      }
+      return retVal;
+    },
     async getConfiguration() {
       this.loading.getConfiguration = true;
       this.error.getConfiguration = "";
@@ -252,6 +268,8 @@ export default {
       this.loading.getConfiguration = false;
       const config = taskResult.output;
 
+      this.config = taskResult.output;
+
       this.form.nethvoice_host = config.nethvoice_host;
       this.form.nethcti_ui_host = config.nethcti_ui_host;
       this.form.nethvoice_admin_password = "";
@@ -262,6 +280,8 @@ export default {
           config.reports_international_prefix;
       }
       this.form.timezone = config.timezone;
+      this.form.nethvoice_adm.username = config.nethvoice_adm_username;
+      this.form.nethvoice_adm.password = config.nethvoice_adm_password;
 
       this.focusElement("nethvoice_host");
     },
@@ -324,6 +344,74 @@ export default {
         return;
       }
 
+      // check if nethvoice adm exists
+      var exists = this.users[this.form.user_domain].filter((user) => {
+        return user.user === this.instanceName + "-adm";
+      });
+
+      // create nethvoice adm user, if not exists
+      if (exists.length == 0) {
+        // compose credentials
+        this.form.nethvoice_adm.username = this.instanceName + "-adm";
+        this.form.nethvoice_adm.password = this.generatePassword();
+
+        // execute task
+        const resAdm = await to(
+          this.createModuleTaskForApp(this.providers[this.form.user_domain], {
+            action: "add-user",
+            data: {
+              user: this.form.nethvoice_adm.username,
+              display_name: this.instanceName + " Administrator",
+              password: this.form.nethvoice_adm.password,
+              locked: false,
+              groups: ["domain admins"],
+            },
+            extra: {
+              title: this.$t("settings.create_nethvoice_adm"),
+              description: this.$t("common.processing"),
+              eventId,
+            },
+          })
+        );
+        const errAdm = resAdm[0];
+
+        // check error
+        if (errAdm) {
+          console.error(`error creating task ${taskAction}`, errAdm);
+          this.error.configureModule = this.getErrorMessage(errAdm);
+          this.loading.configureModule = false;
+          return;
+        }
+      } else {
+        // if domain changed
+        if (this.config.user_domain != this.form.user_domain) {
+          // change password
+          const resAdm = await to(
+            this.createModuleTaskForApp(this.providers[this.form.user_domain], {
+              action: "alter-user",
+              data: {
+                user: this.form.nethvoice_adm.username,
+                password: this.form.nethvoice_adm.password,
+              },
+              extra: {
+                title: this.$t("settings.set_nethvoice_adm_password"),
+                description: this.$t("common.processing"),
+                eventId,
+              },
+            })
+          );
+          const errAdm = resAdm[0];
+
+          // check error
+          if (errAdm) {
+            console.error(`error creating task ${taskAction}`, errAdm);
+            this.error.configureModule = this.getErrorMessage(errAdm);
+            this.loading.configureModule = false;
+            return;
+          }
+        }
+      }
+
       this.loading.configureModule = true;
       const taskAction = "configure-module";
       const eventId = this.getUuid();
@@ -357,6 +445,8 @@ export default {
             reports_international_prefix:
               this.form.reports_international_prefix,
             timezone: this.form.timezone,
+            nethvoice_adm_username: this.form.nethvoice_adm.username,
+            nethvoice_adm_password: this.form.nethvoice_adm.password,
           },
           extra: {
             title: this.$t("settings.configure_instance", {
@@ -430,6 +520,7 @@ export default {
 
       // reload configuration
       this.getConfiguration();
+      this.getUserDomains();
     },
     async getUserDomains() {
       this.loading.userDomains = true;
@@ -475,13 +566,20 @@ export default {
       this.getConfiguration();
     },
     getUserDomainsCompleted(taskContext, taskResult) {
-      taskResult.output.domains.forEach((value) =>
+      this.domainList = [];
+      for (var d in taskResult.output.domains) {
+        var domain = taskResult.output.domains[d];
+
         this.domainList.push({
-          name: value.name,
-          label: value.name,
-          value: value.name,
-        })
-      );
+          name: domain.name,
+          label: domain.name,
+          value: domain.name,
+        });
+        this.providers[domain.name] = domain.providers[0].id;
+
+        // get users for this domain
+        this.getUsers(domain.name);
+      }
       this.loading.userDomains = false;
       this.getConfiguration();
     },
@@ -529,6 +627,7 @@ export default {
       this.getConfiguration();
     },
     getDefaultsCompleted(taskContext, taskResult) {
+      this.timezoneList = [];
       taskResult.output.accepted_timezone_list.forEach((value) =>
         this.timezoneList.push({
           name: value,
@@ -538,6 +637,56 @@ export default {
       );
       this.loading.getDefaults = false;
       this.getConfiguration();
+    },
+    async getUsers(domain) {
+      this.loading.getUsers = true;
+
+      const taskAction = "list-domain-users";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.getUsersAborted
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.getUsersCompleted
+      );
+
+      const res = await to(
+        this.createClusterTaskForApp({
+          action: taskAction,
+          data: {
+            domain: domain,
+          },
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.getConfiguration = this.getErrorMessage(err);
+        this.loading.getUsers = false;
+        return;
+      }
+    },
+    getUsersAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.getConfiguration = this.$t("error.generic_error");
+      this.loading.getUsers = false;
+      this.getConfiguration();
+    },
+    getUsersCompleted(taskContext, taskResult) {
+      this.users[taskContext.data.domain] = taskResult.output.users;
+      this.loading.getUsers = false;
     },
   },
 };
