@@ -31,7 +31,9 @@
     "required": [
         "nethvoice_host",
         "nethcti_ui_host",
-        "reports_international_prefix"
+        "reports_international_prefix",
+	"nethvoice_adm_username",
+	"nethvoice_adm_password"
     ],
     "properties": {
         "nethvoice_host_local_networks": {
