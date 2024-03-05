@@ -17,7 +17,9 @@ config = {
     'lets_encrypt': os.getenv('TRAEFIK_LETS_ENCRYPT') == 'True',
     'timezone': os.getenv('TIMEZONE', 'UTC'),
     'user_domain': os.getenv('USER_DOMAIN', ''),
-    'reports_international_prefix': os.getenv('REPORTS_INTERNATIONAL_PREFIX', '')
+    'reports_international_prefix': os.getenv('REPORTS_INTERNATIONAL_PREFIX', ''),
+    'nethvoice_adm_username': os.getenv('NETHVOICE_USER_PORTAL_USERNAME', ''),
+    'nethvoice_adm_password': os.getenv('NETHVOICE_USER_PORTAL_PASSWORD', '')
 }
 
 json.dump(config, fp=sys.stdout)

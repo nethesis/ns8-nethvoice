@@ -46,6 +46,10 @@ getFromRequest(request, 'nethcti_ui_product_name', 'NETHCTI_UI_PRODUCT_NAME', 'N
 getFromRequest(request, 'nethcti_ui_company_name', 'NETHCTI_UI_COMPANY_NAME', 'Nethesis')
 getFromRequest(request, 'nethcti_ui_company_url', 'NETHCTI_UI_COMPANY_URL', 'https://www.nethesis.it/')
 
+## NethVoice adm account for users management
+getFromRequest(request, 'nethvoice_adm_username', 'NETHVOICE_USER_PORTAL_USERNAME', '')
+getFromRequest(request, 'nethvoice_adm_password', 'NETHVOICE_USER_PORTAL_PASSWORD', '')
+
 #Check if the services must be restarted
 agent.set_env('RESTART_SERVICES', '')
 services_to_restart = set()
