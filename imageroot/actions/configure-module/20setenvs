@@ -79,4 +79,8 @@ if 'timezone' in request and os.getenv('TIMEZONE') != request['timezone']:
     services_to_restart.add('tancredi.service')
     services_to_restart.add('nethcti-server.service')
 
+if (('nethvoice_adm_username' in request and os.getenv('NETHVOICE_USER_PORTAL_USERNAME') != request['nethvoice_adm_username']) or
+    ('nethvoice_adm_password' in request and os.getenv('NETHVOICE_USER_PORTAL_PASSWORD') != request['nethvoice_adm_password'])):
+    services_to_restart.add('freepbx.service')
+
 agent.set_env('RESTART_SERVICES', ' '.join(services_to_restart))
