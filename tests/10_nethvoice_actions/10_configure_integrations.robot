@@ -5,7 +5,7 @@ Resource  ../api.resource
 *** Test Cases ***
 Check if nethvoice can be configured correctly
     ${response} =  Run task    module/${module_id}/configure-module
-    ...    {"nethvoice_host": "voice.ns8.local", "nethcti_ui_host": "cti.ns8.local", "user_domain": "${users_domain}", "reports_international_prefix": "+39", "lets_encrypt": false}
+    ...    {"nethvoice_host": "voice.ns8.local", "nethcti_ui_host": "cti.ns8.local", "user_domain": "${users_domain}", "reports_international_prefix": "+39", "nethvoice_adm_username": "${nv_domain_admin}", "nethvoice_adm_password": "${nv_domain_admin_password}", "lets_encrypt": false}
     ...    decode_json=False
 
 Check if nethvoice is configured as expected
@@ -14,6 +14,8 @@ Check if nethvoice is configured as expected
     Should Be Equal As Strings    ${response['nethcti_ui_host']}    cti.ns8.local
     Should Be Equal As Strings    ${response['user_domain']}    ${users_domain}
     Should Be Equal As Strings    ${response['reports_international_prefix']}    +39
+    Should Be Equal As Strings    ${response['nethvoice_adm_username']}    ${nv_domain_admin}
+    Should Be Equal As Strings    ${response['nethvoice_adm_password']}    ${nv_domain_admin_password}
     Should Be Equal As Strings    ${response['lets_encrypt']}    False
 
 Check if the password can be changed
