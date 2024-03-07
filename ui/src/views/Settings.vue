@@ -49,6 +49,30 @@
               v-model="form.user_domain"
               ref="user_domain"
             />
+            <NsComboBox
+              v-model.trim="form.timezone"
+              :autoFilter="true"
+              :autoHighlight="true"
+              :title="$t('settings.timezone')"
+              :label="$t('settings.timezone_placeholder')"
+              :options="timezoneList"
+              :userInputLabel="core.$t('settings.choose_timezone')"
+              :acceptUserInput="false"
+              :showItemType="true"
+              :invalid-message="$t(error.timezone)"
+              :disabled="
+                loading.getConfiguration ||
+                loading.configureModule ||
+                loading.getDefaults
+              "
+              tooltipAlignment="start"
+              tooltipDirection="top"
+              ref="timezone"
+            >
+              <template slot="tooltip">
+                {{ $t("settings.timezone_tooltip") }}
+              </template>
+            </NsComboBox>
             <cv-toggle
               :label="$t('settings.lets_encrypt')"
               value="lets_encrypt"
@@ -135,15 +159,19 @@ export default {
         lets_encrypt: false,
         user_domain: "",
         reports_international_prefix: "+39",
+        timezone: "",
       },
       loading: {
         getConfiguration: false,
         configureModule: false,
         userDomains: false,
+        getDefaults: false,
       },
       domainList: [],
+      timezoneList: [],
       error: {
         getConfiguration: "",
+        getDefaults: "",
         configureModule: "",
         nethvoice_host: "",
         nethvoice_admin_password: "",
@@ -151,6 +179,7 @@ export default {
         lets_encrypt: "",
         user_domain: "",
         reports_international_prefix: "",
+        timezone: "",
       },
     };
   },
@@ -174,6 +203,7 @@ export default {
   },
   created() {
     this.getUserDomains();
+    this.getDefaults();
   },
   methods: {
     async getConfiguration() {
@@ -231,6 +261,7 @@ export default {
         this.form.reports_international_prefix =
           config.reports_international_prefix;
       }
+      this.form.timezone = config.timezone;
 
       this.focusElement("nethvoice_host");
     },
@@ -250,6 +281,11 @@ export default {
 
       if (!this.form.user_domain) {
         this.error.user_domain = this.$t("error.required");
+        isValidationOk = false;
+      }
+
+      if (!this.form.timezone) {
+        this.error.timezone = this.$t("error.required");
         isValidationOk = false;
       }
 
@@ -320,6 +356,7 @@ export default {
             user_domain: this.form.user_domain,
             reports_international_prefix:
               this.form.reports_international_prefix,
+            timezone: this.form.timezone,
           },
           extra: {
             title: this.$t("settings.configure_instance", {
@@ -446,6 +483,60 @@ export default {
         })
       );
       this.loading.userDomains = false;
+      this.getConfiguration();
+    },
+    async getDefaults() {
+      this.loading.getDefaults = true;
+
+      const taskAction = "get-defaults";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.getDefaultsAborted
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.getDefaultsCompleted
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.getConfiguration = this.getErrorMessage(err);
+        this.loading.getDefaults = false;
+        return;
+      }
+    },
+    getDefaultsAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.getConfiguration = this.$t("error.generic_error");
+      this.loading.getDefaults = false;
+      this.getConfiguration();
+    },
+    getDefaultsCompleted(taskContext, taskResult) {
+      taskResult.output.accepted_timezone_list.forEach((value) =>
+        this.timezoneList.push({
+          name: value,
+          label: value,
+          value: value,
+        })
+      );
+      this.loading.getDefaults = false;
       this.getConfiguration();
     },
   },

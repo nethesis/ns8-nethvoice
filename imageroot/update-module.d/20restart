@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# reload systemd changes
+systemctl --user daemon-reload
+
+# Restart containers
+systemctl --user restart flexisip freepbx janus mariadb nethcti-server nethcti-ui phonebook redis-flexisip reports-api reports-redis reports-ui tancredi

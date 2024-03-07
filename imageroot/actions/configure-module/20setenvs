@@ -7,6 +7,7 @@
 
 import json
 import sys
+import os
 
 import agent
 
@@ -44,3 +45,34 @@ getFromRequest(request, 'nethcti_ui_host', 'NETHCTI_UI_HOST', '')
 getFromRequest(request, 'nethcti_ui_product_name', 'NETHCTI_UI_PRODUCT_NAME', 'NethVoice CTI')
 getFromRequest(request, 'nethcti_ui_company_name', 'NETHCTI_UI_COMPANY_NAME', 'Nethesis')
 getFromRequest(request, 'nethcti_ui_company_url', 'NETHCTI_UI_COMPANY_URL', 'https://www.nethesis.it/')
+
+#Check if the services must be restarted
+agent.set_env('RESTART_SERVICES', '')
+services_to_restart = set()
+if 'nethvoice_host' in request and os.getenv('NETHVOICE_HOST') != request['nethvoice_host']:
+    services_to_restart.add('freepbx.service')
+    services_to_restart.add('flexisip.service')
+    services_to_restart.add('nethcti-ui.service')
+    services_to_restart.add('reports-api.service')
+    services_to_restart.add('reports-ui.service')
+    services_to_restart.add('tancredi.service')
+
+if 'reports_international_prefix' in request and os.getenv('REPORTS_INTERNATIONAL_PREFIX') != request['reports_international_prefix']:
+    services_to_restart.add('reports-api.service')
+    services_to_restart.add('reports-ui.service')
+
+if 'timezone' in request and os.getenv('TIMEZONE') != request['timezone']:
+    services_to_restart.add('freepbx.service')
+    services_to_restart.add('flexisip.service')
+    services_to_restart.add('janus.service')
+    services_to_restart.add('mariadb.service')
+    services_to_restart.add('nethcti-ui.service')
+    services_to_restart.add('phonebook.service')
+    services_to_restart.add('redis-flexisip.service')
+    services_to_restart.add('reports-api.service')
+    services_to_restart.add('reports-redis.service')
+    services_to_restart.add('reports-ui.service')
+    services_to_restart.add('tancredi.service')
+    services_to_restart.add('nethcti-server.service')
+
+agent.set_env('RESTART_SERVICES', ' '.join(services_to_restart))

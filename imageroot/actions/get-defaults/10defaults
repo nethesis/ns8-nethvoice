@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import sys
+import subprocess
+
+timezones_directory = "/usr/share/zoneinfo/posix/"
+command = "find *  -type f -or -type l"
+# Get the list of timezones
+accepted_timezone_list = subprocess.check_output(command, cwd=timezones_directory, text=True, shell=True).splitlines()
+
+config={
+        "accepted_timezone_list": accepted_timezone_list,
+        }
+
+json.dump(config, fp=sys.stdout)

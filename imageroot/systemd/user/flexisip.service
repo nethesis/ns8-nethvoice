@@ -24,6 +24,7 @@ ExecStart=/usr/bin/podman run \
   --env SUBSCRIPTION_* \
   --env ASTERISK_SIP_PORT \
   --env BRAND_APPID \
+  --tz=${TIMEZONE} \
   ${NETHVOICE_FLEXISIP_IMAGE}
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/flexisip.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/flexisip.ctr-id

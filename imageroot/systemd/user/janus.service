@@ -25,6 +25,7 @@ ExecStart=/usr/bin/podman run \
     --volume=/dev/log:/dev/log \
     --volume=janus-cert:/etc/certificates:z \
     --network=host \
+    --tz=${TIMEZONE} \
     ${NETHVOICE_JANUS_IMAGE} \
     /usr/local/bin/janus \
     --configs-folder=/usr/local/etc/janus \

@@ -33,6 +33,7 @@ ExecStart=/usr/bin/podman run \
     --env=PROXY_IP \
     --env=PROXY_PORT \
     --env=NETHVOICE_PROXY_FQDN \
+    --tz=${TIMEZONE} \
     --network=host \
     ${NETHVOICE_TANCREDI_IMAGE}
 

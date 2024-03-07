@@ -40,6 +40,7 @@ ExecStart=/usr/bin/podman run \
 	--env=ASTMANAGERPORT \
 	--env=REPORTS_PASSWORD \
 	--network=host \
+	--tz=${TIMEZONE} \
 	${NETHVOICE_MARIADB_IMAGE} \
 	--port ${NETHVOICE_MARIADB_PORT}
 
