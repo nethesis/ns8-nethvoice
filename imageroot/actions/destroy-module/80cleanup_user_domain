@@ -1,0 +1,18 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Redirect any output to the journal (stderr)
+exec 1>&2
+
+
+#Try to cleanup the NethVoice user domain administrator from the accounts provider
+
+# Get to admin token
+TOKEN=$(curl -k -s "https://$(hostname -f)/users-admin/${USER_DOMAIN}/api/login" --data-raw '{"username":"'${NETHVOICE_USER_PORTAL_USERNAME}'","password":"'${NETHVOICE_USER_PORTAL_PASSWORD}'"}' | jq -j .token)
+
+# Remove the user
+curl -s -k "https://$(hostname -f)/users-admin/$USER_DOMAIN/api/remove-user" -H "authorization: Bearer $TOKEN" --data '{"user":"'$NETHVOICE_USER_PORTAL_USERNAME'"}' > /dev/null
