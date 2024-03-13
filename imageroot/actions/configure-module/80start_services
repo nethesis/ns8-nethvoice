@@ -25,8 +25,6 @@ systemctl --user enable --now tancredi.service
 systemctl --user enable --now phonebook.service
 systemctl --user enable --now phonebook-update.timer
 systemctl --user enable --now watcher.path
-systemctl --user enable --now redis-flexisip.service
-systemctl --user enable --now flexisip.service
 # Reports
 systemctl --user enable --now reports-api.service
 systemctl --user enable --now reports-scheduler.timer
