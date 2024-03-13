@@ -3,5 +3,5 @@
 # reload systemd changes
 systemctl --user daemon-reload
 
-# Restart containers
-systemctl --user restart flexisip freepbx janus mariadb nethcti-server nethcti-ui phonebook redis-flexisip reports-api reports-redis reports-ui tancredi
+# try to restart all services if they are running
+systemctl --user try-restart flexisip freepbx janus mariadb nethcti-server nethcti-ui phonebook redis-flexisip reports-api reports-redis reports-ui tancredi
