@@ -263,7 +263,6 @@ cat > $FILE <<EOF
 	"publichost":"",
 	"loglevel":"${NETHCTI_LOG_LEVEL}",
 	"privacy_numbers":"xxx",
-	"proxy_port": ${FLEXISIP_PORT:-6051}
 }
 EOF
 
