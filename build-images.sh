@@ -154,17 +154,6 @@ popd
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
 
-#############################
-##      FlexiSIP proxy     ##
-#############################
-echo "[*] Build flexisip container"
-reponame="nethvoice-flexisip"
-pushd flexisip
-buildah build --force-rm --layers --jobs "$(nproc)" --tag "${repobase}/${reponame}"
-popd
-# Append the image URL to the images array
-images+=("${repobase}/${reponame}")
-
 #########################
 ##      Reports        ##
 #########################
