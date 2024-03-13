@@ -544,7 +544,6 @@ COPY freepbx_init.sh /freepbx_init.sh
 COPY etc/amportal.conf /etc
 COPY initdb.d/initdb.php /initdb.d/
 COPY initdb.d/migration.php /initdb.d/
-COPY var/www/html/freepbx/push-proxy.php /var/www/html/freepbx/push-proxy.php
 COPY usr/src/nethvoice/samples/* /usr/src/nethvoice/samples/
 COPY configure_users.php /
 COPY entrypoint.sh /entrypoint
