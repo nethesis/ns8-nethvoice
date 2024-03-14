@@ -4,7 +4,6 @@ FreePBX container for NethServer 8
 
 
 FreePBX and nethvoice-wizard-ui files are imported from NethVoice14 for NS7, nethvoice-wizard-restapi is taken from https://github.com/nethesis/nethvoice-wizard-restapi/tree/ns8 and phonebook update scripts are from https://github.com/nethesis/nethserver-phonebook-mysql/tree/ns8 .
-This container also hosts push-proxy script for Flexisip.
 
 ## Environment variables
 

@@ -7,4 +7,4 @@
 
 # If the control reaches this step, the service can be enabled and started
 
-systemctl --user try-restart freepbx.service flexisip.service
+systemctl --user try-restart freepbx.service

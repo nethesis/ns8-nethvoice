@@ -10,7 +10,6 @@ import os
 import agent
 
 agent.add_public_service(os.environ['MODULE_ID'], [
-    os.environ['FLEXISIP_PORT']+"/tcp", # Flexisip
     os.environ['NETHCTI_TLS_PORT']+"/tcp", # NethCTI TLS (Nethifier)
     os.environ['JANUS_RTPSTART']+"-"+os.environ['JANUS_RTPEND']+"/udp", # Janus
     os.environ['ASTERISK_IAX_PORT']+"/udp", # Asterisk

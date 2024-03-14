@@ -37,7 +37,6 @@ getFromRequest(request, 'nethcti_cdr_script_call_in', 'NETHCTI_CDR_SCRIPT_CALL_I
 getFromRequest(request, 'nethcti_log_level', 'NETHCTI_LOG_LEVEL', 'warn')
 getFromRequest(request, 'conference_jitsi_url', 'CONFERENCE_JITSI_URL', 'https://jitsi.nethserver.net')
 getFromRequest(request, 'app_brand_id', 'BRAND_APPID', '')
-getFromRequest(request, 'flexisip_log_level', 'FLEXISIP_LOG_LEVEL', 'warning')
 getFromRequest(request, 'timezone', 'TIMEZONE', 'UTC')
 
 ## NethCTI UI
@@ -55,7 +54,6 @@ agent.set_env('RESTART_SERVICES', '')
 services_to_restart = set()
 if 'nethvoice_host' in request and os.getenv('NETHVOICE_HOST') != request['nethvoice_host']:
     services_to_restart.add('freepbx.service')
-    services_to_restart.add('flexisip.service')
     services_to_restart.add('nethcti-ui.service')
     services_to_restart.add('reports-api.service')
     services_to_restart.add('reports-ui.service')
@@ -67,12 +65,10 @@ if 'reports_international_prefix' in request and os.getenv('REPORTS_INTERNATIONA
 
 if 'timezone' in request and os.getenv('TIMEZONE') != request['timezone']:
     services_to_restart.add('freepbx.service')
-    services_to_restart.add('flexisip.service')
     services_to_restart.add('janus.service')
     services_to_restart.add('mariadb.service')
     services_to_restart.add('nethcti-ui.service')
     services_to_restart.add('phonebook.service')
-    services_to_restart.add('redis-flexisip.service')
     services_to_restart.add('reports-api.service')
     services_to_restart.add('reports-redis.service')
     services_to_restart.add('reports-ui.service')
