@@ -137,9 +137,9 @@ agent.set_env('PHONEBOOK_LDAP_PASS', gen_password())
 agent.set_env('PHONEBOOK_LDAP_LIMIT', '500')
 
 # Reports
-agent.set_env('REPORTS_REDIS_PORT', port_list[30])
-agent.set_env('REPORTS_API_PORT', port_list[31])
+agent.set_env('REPORTS_REDIS_PORT', port_list[27])
+agent.set_env('REPORTS_API_PORT', port_list[28])
 agent.set_env('REPORTS_PASSWORD', gen_password())
 agent.set_env('REPORTS_API_KEY', gen_password())
 agent.set_env('REPORTS_SECRET', gen_password())
-agent.set_env('REPORTS_UI_PORT', port_list[32])
+agent.set_env('REPORTS_UI_PORT', port_list[29])
