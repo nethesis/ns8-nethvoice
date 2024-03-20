@@ -2,7 +2,7 @@
 FROM docker.io/debian:11 as builder
 
 # Set fixed Asterisk version
-ARG ASTERISK_VERSION=18.21.0
+ARG ASTERISK_VERSION=18.22.0
 ARG PJSIP_VERSION=2.13.1
 ARG DEBIAN_FRONTEND=noninteractive
 ARG BUILDROOT=/usr/src/asterisk/build
@@ -101,7 +101,7 @@ RUN cd /usr/src/asterisk && \
 		${BUILDROOT}/var/spool/asterisk/outgoing \
 		${BUILDROOT}/var/spool/asterisk/uploads \
 		${BUILDROOT}/var/spool/asterisk/cache && \
-	./configure --without-imap --with-externals-cache=/usr/src/asterisk/cache --with-gsm=/usr --without-ilbc --with-libedit=yes --with-srtp --with-jansson-bundled --with-pjproject-bundled LDFLAGS="${LDFLAGS}" NOISY_BUILD=1 CPPFLAGS="-fPIC" && \
+	./configure --without-imap --with-externals-cache=/usr/src/asterisk/cache --with-gsm=/usr --without-ilbc --with-libedit=yes --with-srtp --with-jansson-bundled --with-pjproject-bundled --with-libjwt-bundled LDFLAGS="${LDFLAGS}" NOISY_BUILD=1 CPPFLAGS="-fPIC" && \
 	make menuselect-tree && \
 	perl -n -i -e 'print unless /openr2/i' menuselect-tree && \
 	make ${MAKEARGS} && \
