@@ -45,30 +45,8 @@ E0E656 = nethesis
 EOF
 
 # Set defaults into an array
-DEFAULTS[timezone]="${TIMEZONE}"
-DEFAULTS[language]="it"
-DEFAULTS[tonezone]="it"
-DEFAULTS[hostname]="${NETHVOICE_HOST}"
-DEFAULTS[outbound_proxy_1]="${NETHVOICE_PROXY_FQDN}"
-DEFAULTS[provisioning_url_scheme]="https"
-DEFAULTS[provisioning_freq]="everyday"
-DEFAULTS[time_format]="24"
-DEFAULTS[date_format]="DD MM YY"
-DEFAULTS[ldap_server]="${NETHVOICE_HOST}"
-DEFAULTS[ldap_port]="${PHONEBOOK_LDAP_PORT}"
-DEFAULTS[ldap_tls]="ldaps"
-DEFAULTS[ldap_user]="cn=${PHONEBOOK_LDAP_USER},dc=phonebook,dc=nh"
-DEFAULTS[ldap_password]="${PHONEBOOK_LDAP_PASS}"
-DEFAULTS[ldap_base]="dc=phonebook,dc=nh"
-DEFAULTS[ldap_name_display]="%cn %o"
-DEFAULTS[ldap_mainphone_number_attr]="telephoneNumber"
-DEFAULTS[ldap_mobilephone_number_attr]="mobile"
-DEFAULTS[ldap_otherphone_number_attr]="homePhone"
-DEFAULTS[ldap_name_attr]="cn o"
-DEFAULTS[ldap_number_filter]="(|(telephoneNumber=%)(mobile=%)(homePhone=%))"
-DEFAULTS[ldap_name_filter]="(|(cn=%)(o=%))"
-DEFAULTS[adminpw]=$(head /dev/urandom | tr -dc a-z0-9 | head -c 10)
-DEFAULTS[userpw]=$(head /dev/urandom | tr -dc a-z | head -c 6)
+declare -A DEFAULTS
+DEFAULTS=( [timezone]="${TIMEZONE}" [language]="it" [tonezone]="it" [hostname]="${NETHVOICE_HOST}" [outbound_proxy_1]="${NETHVOICE_PROXY_FQDN}" [provisioning_url_scheme]="https" [provisioning_freq]="everyday" [time_format]="24" [date_format]="DD MM YY" [ldap_server]="${NETHVOICE_HOST}" [ldap_port]="${PHONEBOOK_LDAP_PORT}" [ldap_tls]="ldaps" [ldap_user]="cn=${PHONEBOOK_LDAP_USER},dc=phonebook,dc=nh" [ldap_password]="${PHONEBOOK_LDAP_PASS}" [ldap_base]="dc=phonebook,dc=nh" [ldap_name_display]="%cn %o" [ldap_mainphone_number_attr]="telephoneNumber" [ldap_mobilephone_number_attr]="mobile" [ldap_otherphone_number_attr]="homePhone" [ldap_name_attr]="cn o" [ldap_number_filter]="(|(telephoneNumber=%)(mobile=%)(homePhone=%))" [ldap_name_filter]="(|(cn=%)(o=%))" [adminpw]="$(head /dev/urandom | tr -dc a-z0-9 | head -c 10)" [userpw]="$(head /dev/urandom | tr -dc a-z | head -c 6)" )
 
 dst_file="/var/lib/tancredi/data/scopes/defaults.ini"
 if [[ ! -f ${dst_file} ]]; then
