@@ -205,6 +205,14 @@ cat > $FILE <<EOF
         "dbuser":     "${NETHCTI_DB_USER}",
         "dbpassword": "${NETHCTI_DB_PASSWORD}",
         "dbname":     "nethcti3"
+    },
+    "user_nethlink": {
+        "dbhost":     "127.0.0.1",
+        "dbport":     "${NETHVOICE_MARIADB_PORT}",
+        "dbtype":     "mysql",
+        "dbuser":     "${NETHCTI_DB_USER}",
+        "dbpassword": "${NETHCTI_DB_PASSWORD}",
+        "dbname":     "nethcti3"
     }
 }
 EOF
