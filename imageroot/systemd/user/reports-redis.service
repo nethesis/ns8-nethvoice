@@ -21,6 +21,7 @@ ExecStart=/usr/bin/podman run \
 	--publish=127.0.0.1:${REPORTS_REDIS_PORT}:6379 \
 	--health-cmd "redis-cli --raw incr ping" \
 	--tz=${TIMEZONE} \
+        --image-volume=ignore \
 	${REDIS_IMAGE}
 ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
