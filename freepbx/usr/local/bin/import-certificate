@@ -27,5 +27,5 @@ if [ -f "${dest}"/NethServer.crt ] && diff -q server.pem "${dest}"/NethServer.cr
     exit 2
 fi
 
-install -o root -g root -m 444 server.pem "${dest}"/NethServer.crt
-install -o root -g root -m 444 server.key "${dest}"/NethServer.key
+install -o asterisk -g asterisk -m 444 server.pem "${dest}"/NethServer.crt
+install -o asterisk -g asterisk -m 444 server.key "${dest}"/NethServer.key
