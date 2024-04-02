@@ -146,3 +146,6 @@ if (count($extensions) > 0) {
 		$stmt->execute(array_merge([$value,$sip_option],$extensions));
 	}
 }
+
+# add nethlink table if not exist
+$db->query("CREATE TABLE `user_nethlink` (`user` varchar(255) NOT NULL UNIQUE,`extension` varchar(255) NOT NULL,`timestamp` varchar(255) DEFAULT NULL) ENGINE=MyISAM DEFAULT CHARSET=utf8");

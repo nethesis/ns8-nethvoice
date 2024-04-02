@@ -19,7 +19,13 @@ if proxy_id is None:
 # Get proxy srv records
 ksrv = agent.list_service_providers(agent.redis_connect(use_replica=True), "sip", "tcp", {"module_id": proxy_id.removeprefix("module/")})
 
-agent.set_env("NETHVOICE_PROXY_FQDN", ksrv[0]["fqdn"])
+# Check if proxy srv records are present
+if os.getenv('NETHVOICE_PROXY_FQDN') != ksrv[0]["fqdn"]:
+    # Restart tancredi to apply new configuration
+    services_to_restart = set(os.environ['RESTART_SERVICES'].split())
+    services_to_restart.add("tancredi.service")
+    agent.set_env("NETHVOICE_PROXY_FQDN", ksrv[0]["fqdn"])
+    agent.set_env("RESTART_SERVICES", " ".join(services_to_restart))
 
 # Configure nethvoice-proxy to route SIP traffic for Nethvoice
 response = agent.tasks.run(
