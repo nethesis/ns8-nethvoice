@@ -26,6 +26,7 @@ ExecStart=/usr/bin/podman run \
     --env=API_ENDPOINT=${NETHCTI_UI_HOST} \
     --env=PORT=${NETHCTI_UI_PORT} \
     --env=SIP_PORT=${ASTERISK_SIP_PORT} \
+    --env=TIMEZONE=${TIMEZONE} \
     --tz=${TIMEZONE} \
     ${NETHVOICE_CTI_UI_IMAGE}
 
