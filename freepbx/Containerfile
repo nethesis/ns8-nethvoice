@@ -197,7 +197,8 @@ RUN groupadd -g 991 -r asterisk && \
 		libneon27 \
 		libspandsp2 \
 		libsnmp40 \
-		libical3
+		libical3 \
+		sqlite3
 
 
 # Copy Asterisk files
