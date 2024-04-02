@@ -144,4 +144,5 @@ restore_envs = [
 ]
 
 for env in restore_envs:
-    agent.set_env(env, old_envs[env])
+    if env in old_envs:
+        agent.set_env(env, old_envs[env])
