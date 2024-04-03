@@ -23,6 +23,8 @@ response = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-mo
     "reports_international_prefix": old_envs["REPORTS_INTERNATIONAL_PREFIX"],
     "timezone": old_envs["TIMEZONE"],
     "user_domain": old_envs["USER_DOMAIN"],
+	"nethvoice_adm_username": old_envs["NETHVOICE_USER_PORTAL_USERNAME"],
+	"nethvoice_adm_password": old_envs["NETHVOICE_USER_PORTAL_PASSWORD"],
 })
 
 agent.assert_exp(response['exit_code'] == 0)
