@@ -21,6 +21,9 @@ response = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-mo
     "nethcti_ui_host": old_envs["NETHCTI_UI_HOST"],
     "lets_encrypt": old_envs["TRAEFIK_LETS_ENCRYPT"] == 'true',
     "reports_international_prefix": old_envs["REPORTS_INTERNATIONAL_PREFIX"],
+    "timezone": old_envs["TIMEZONE"],
+    "nethvoice_adm_username": "",
+    "nethvoice_adm_password": "",
 })
 
 agent.assert_exp(response['exit_code'] == 0)
