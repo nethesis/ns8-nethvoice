@@ -7,5 +7,4 @@
 
 set -e
 
-podman exec freepbx fwconsole r
-systemctl --user restart nethcti-server
+systemctl --user restart freepbx nethcti-server
