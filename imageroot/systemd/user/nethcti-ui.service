@@ -24,8 +24,10 @@ ExecStart=/usr/bin/podman run \
     --env=COMPANY_NAME=${NETHCTI_COMPANY_NAME} \
     --env=COMPANY_URL=${NETHCTI_COMPANY_URL} \
     --env=API_ENDPOINT=${NETHCTI_UI_HOST} \
+    --env=VOICE_ENDPOINT=${NETHVOICE_HOST} \
     --env=PORT=${NETHCTI_UI_PORT} \
     --env=SIP_PORT=${ASTERISK_SIP_PORT} \
+    --env=TIMEZONE=${TIMEZONE} \
     --tz=${TIMEZONE} \
     ${NETHVOICE_CTI_UI_IMAGE}
 
