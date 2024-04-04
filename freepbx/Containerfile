@@ -500,12 +500,7 @@ RUN ln -sf /var/lib/asterisk/bin/fwconsole /usr/bin/fwconsole
 RUN pip install mysql.connector
 
 # Use PHP development ini configuration and enable logging on syslog
-RUN cp -a /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini && \
-	sed -i 's/^;error_log = syslog/error_log = \/dev\/stderr/' /usr/local/etc/php/php.ini && \
-	echo "error_log = /dev/stderr" >> /usr/local/etc/php/conf.d/freepbx.ini && \
-	echo "variables_order = \"EGPCS\"" >> /usr/local/etc/php/conf.d/freepbx.ini && \
-	echo "memory_limit = 512M" >> /usr/local/etc/php/conf.d/freepbx.ini && \
-	sed -i 's/^variables_order = "GPCS"/variables_order = "EGPCS"/' /usr/local/etc/php/php.ini
+COPY usr/local/etc/php/php.ini /usr/local/etc/php/php.ini
 
 # Install php additional modules
 RUN docker-php-source extract && \
