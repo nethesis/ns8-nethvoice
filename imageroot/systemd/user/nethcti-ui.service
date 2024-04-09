@@ -25,6 +25,7 @@ ExecStart=/usr/bin/podman run \
     --env=COMPANY_URL=${NETHCTI_COMPANY_URL} \
     --env=API_ENDPOINT=${NETHCTI_UI_HOST} \
     --env=VOICE_ENDPOINT=${NETHVOICE_HOST} \
+    --env=HOSTNAME=127.0.0.1 \
     --env=PORT=${NETHCTI_UI_PORT} \
     --env=SIP_PORT=${ASTERISK_SIP_PORT} \
     --env=TIMEZONE=${TIMEZONE} \
