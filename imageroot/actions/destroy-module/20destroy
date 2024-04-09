@@ -28,6 +28,7 @@ services = [
     "reports-api",
     "reports-ui",
     "users-admin",
+    "cti-server-api",
 ]
 
 # Remove traefik route
