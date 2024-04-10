@@ -57,7 +57,7 @@ images+=("${repobase}/${reponame}")
 echo "[*] Build Tancredi container"
 reponame="nethvoice-tancredi"
 pushd tancredi
-buildah build --force-rm --layers --jobs "$(nproc)" --target production --tag "${repobase}/${reponame}"
+buildah build --force-rm --layers --jobs "$(nproc)" --tag "${repobase}/${reponame}"
 popd
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
