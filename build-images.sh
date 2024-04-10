@@ -56,55 +56,11 @@ images+=("${repobase}/${reponame}")
 ########################
 echo "[*] Build Tancredi container"
 reponame="nethvoice-tancredi"
-container=$(buildah from docker.io/library/php:7-apache)
-buildah config --entrypoint='["/entrypoint.sh"]' "${container}"
-buildah config --workingdir /var/lib/tancredi "${container}"
-buildah add "${container}"  tancredi/ /
-buildah run "${container}" /bin/sh <<'EOF'
-apt update
-apt install -y libapache2-mod-xsendfile zip
-ln -sf /etc/apache2/sites-available/tancredi.conf /etc/apache2/sites-enabled/tancredi.conf
-
-sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:$\{TANCREDIPORT\}>/' /etc/apache2/sites-enabled/000-default.conf
-sed -i 's/Listen 80/Listen $\{TANCREDIPORT\}/' /etc/apache2/ports.conf
-sed -i 's/Listen 443/Listen $\{TANCREDI_SSL_PORT\}/' /etc/apache2/ports.conf
-echo -e '\n: ${TANCREDIPORT:=80}\nexport TANCREDIPORT\n: ${TANCREDI_SSL_PORT:=443}\nexport TANCREDI_SSL_PORT\n' | buildah run "${container}" tee -a /etc/apache2/envvars
-
-# Install Tancredi files
-mkdir /usr/share/tancredi/
-BRANCH=master
-curl -L https://github.com/nethesis/tancredi/archive/refs/heads/${BRANCH}.tar.gz -o - | tar xzp --strip-component=1 -C /usr/share/tancredi/ tancredi-${BRANCH}/data/ tancredi-${BRANCH}/public/ tancredi-${BRANCH}/scripts/ tancredi-${BRANCH}/src/ tancredi-${BRANCH}/composer.json tancredi-${BRANCH}/composer.lock
-
-BRANCH=master
-curl -L https://github.com/nethesis/nethserver-tancredi/archive/refs/heads/${BRANCH}.tar.gz -o - | tar xzp --strip-component=2 -C / nethserver-tancredi-${BRANCH}/root/usr/share/tancredi/ nethserver-tancredi-${BRANCH}/root/var/lib/tancredi
-cd /usr/share/tancredi/
-curl -s https://getcomposer.org/installer | php
-COMPOSER_ALLOW_SUPERUSER=1 php composer.phar install --no-dev
-rm -fr /usr/share/tancredi/src/Entity/SampleFilter.php /usr/share/tancredi/composer.phar /usr/share/tancredi/composer.json /usr/share/tancredi/composer.lock
-chgrp -R www-data /var/lib/tancredi/data/*
-
-# install pdo_mysql
-docker-php-source extract
-docker-php-ext-configure pdo_mysql
-docker-php-ext-install pdo_mysql
-docker-php-source delete
-
-# clean apt cache
-apt-get clean autoclean
-apt-get autoremove --yes
-rm -rf /var/lib/dpkg/info/* /var/lib/cache/* /var/lib/log/*
-touch /var/lib/dpkg/status
-EOF
-
-export PHP_INI_DIR=/usr/local/etc/php
-buildah run "${container}" cp -a "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
-buildah run "${container}" sed -i 's/^;error_log = syslog/error_log = \/dev\/stderr/' $PHP_INI_DIR/php.ini
-
-# Commit the image
-buildah commit "${container}" "${repobase}/${reponame}"
+pushd tancredi
+buildah build --force-rm --layers --jobs "$(nproc)" --target production --tag "${repobase}/${reponame}"
+popd
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
-
 
 
 #############################
@@ -117,6 +73,7 @@ buildah build --force-rm --layers --jobs "$(nproc)" --target production --tag "$
 popd
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
+
 
 #############################
 ##      NethCTI Client     ##
