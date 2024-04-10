@@ -1,7 +1,10 @@
 
 FROM docker.io/library/php:7-apache
 
-COPY tancredi/ /
+COPY etc /
+COPY usr /
+COPY entrypoint.sh /
+
 RUN apt update && \
 	apt install -y libapache2-mod-xsendfile zip && \
 	ln -sf /etc/apache2/sites-available/tancredi.conf /etc/apache2/sites-enabled/tancredi.conf && \
