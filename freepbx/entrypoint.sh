@@ -190,14 +190,6 @@ while (\$row = \$sth->fetch(\PDO::FETCH_ASSOC)) {
 
 EOF
 
-# Set proxy ip and port if not already set
-if [[ -z "${PROXY_IP}" ]]; then
-    export PROXY_IP=$(curl -s https://api.ipify.org || echo "127.0.0.1")
-fi
-if [[ -z "${PROXY_PORT}" ]]; then
-    export PROXY_PORT=5060
-fi
-
 # migrate database
 php /initdb.d/migration.php
 
