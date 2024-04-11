@@ -45,8 +45,9 @@ E0E656 = nethesis
 EOF
 
 # Set defaults into an array
+unset DEFAULTS
 declare -A DEFAULTS
-DEFAULTS=( [timezone]="${TIMEZONE}" [language]="it" [tonezone]="it" [hostname]="${NETHVOICE_HOST}" [outbound_proxy_1]="${NETHVOICE_PROXY_FQDN}" [provisioning_url_scheme]="https" [provisioning_freq]="everyday" [time_format]="24" [date_format]="DD MM YY" [ldap_server]="${NETHVOICE_HOST}" [ldap_port]="${PHONEBOOK_LDAP_PORT}" [ldap_tls]="ldaps" [ldap_user]="cn=${PHONEBOOK_LDAP_USER},dc=phonebook,dc=nh" [ldap_password]="${PHONEBOOK_LDAP_PASS}" [ldap_base]="dc=phonebook,dc=nh" [ldap_name_display]="%cn %o" [ldap_number_attr]="telephoneNumber mobile homePhone" [ldap_mainphone_number_attr]="telephoneNumber" [ldap_mobilephone_number_attr]="mobile" [ldap_otherphone_number_attr]="homePhone" [ldap_name_attr]="cn o" [ldap_number_filter]="(|(telephoneNumber=%)(mobile=%)(homePhone=%))" [ldap_name_filter]="(|(cn=%)(o=%))" [adminpw]="$(head /dev/urandom | tr -dc a-z0-9 | head -c 10)" [userpw]="$(head /dev/urandom | tr -dc a-z | head -c 6)" )
+DEFAULTS=([timezone]="${TIMEZONE}" [language]="it" [tonezone]="it" [hostname]="${NETHVOICE_HOST}" [outbound_proxy_1]="${NETHVOICE_PROXY_FQDN}" [provisioning_url_scheme]="https" [provisioning_freq]="everyday" [time_format]="24" [date_format]="DD MM YY" [ldap_server]="${NETHVOICE_HOST}" [ldap_port]="${PHONEBOOK_LDAP_PORT}" [ldap_tls]="ldaps" [ldap_user]="cn=${PHONEBOOK_LDAP_USER},dc=phonebook,dc=nh" [ldap_password]="${PHONEBOOK_LDAP_PASS}" [ldap_base]="dc=phonebook,dc=nh" [ldap_name_display]="%cn %o" [ldap_number_attr]="telephoneNumber mobile homePhone" [ldap_mainphone_number_attr]="telephoneNumber" [ldap_mobilephone_number_attr]="mobile" [ldap_otherphone_number_attr]="homePhone" [ldap_name_attr]="cn o" [ldap_number_filter]="(|(telephoneNumber=%)(mobile=%)(homePhone=%))" [ldap_name_filter]="(|(cn=%)(o=%))" [adminpw]="$(head /dev/urandom | tr -dc a-z0-9 | head -c 10)" [userpw]="$(head /dev/urandom | tr -dc a-z | head -c 6)" )
 
 dst_file="/var/lib/tancredi/data/scopes/defaults.ini"
 if [[ ! -f ${dst_file} ]]; then
@@ -88,11 +89,8 @@ for variable in \
 	ldap_number_filter \
 	ldap_name_filter
 do
-	if [[ -z $(grep "^${variable} = " ${dst_file}) ]]; then
-		echo "${variable} = \"${DEFAULTS[${variable}]}\"" >> ${dst_file}
-	else
-		sed -i "s/^${variable} =.*/${variable} = \"${DEFAULTS[${variable}]}\"/" ${dst_file}
-	fi
+	sed -i '/^'${variable}' =.*/d' ${dst_file}
+	echo "${variable} = \"${DEFAULTS[${variable}]}\"" >> ${dst_file}
 done
 
 runuser -s /bin/bash -c "php /usr/share/tancredi/scripts/upgrade.php" - www-data
