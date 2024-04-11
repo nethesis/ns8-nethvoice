@@ -42,4 +42,5 @@ ADD --chown=root:www-data https://github.com/nethesis/nethserver-tancredi/releas
 ADD --chown=root:www-data https://github.com/nethesis/nethserver-tancredi/releases/download/1.16.0/x5u-6906-P0.18.23.89-2.4.6.0.11-3610T2023-01-13-17.35.24.z /var/lib/tancredi/data/firmware/
 
 WORKDIR /var/lib/tancredi
+CMD ["apache2-foreground"]
 ENTRYPOINT ["/entrypoint.sh"]
