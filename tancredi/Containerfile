@@ -1,8 +1,8 @@
 
 FROM docker.io/library/php:7-apache
 
-COPY etc /
-COPY usr /
+COPY etc /etc
+COPY usr /usr
 COPY entrypoint.sh /
 
 RUN apt update && \
