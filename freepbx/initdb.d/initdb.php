@@ -101,7 +101,7 @@ $db->query($sql);
 
 // Set proxy ip and port in VoIP provider default settings
 if (!empty($_ENV['PROXY_IP']) && !empty($_ENV['PROXY_PORT'])) {
-	$sql = 'UPDATE `asterisk`.`rest_pjsip_trunks_defaults` SET `data` = ? WHERE `data` = ? AND `keyword` = "outbound_proxy"';
+	$sql = 'UPDATE `asterisk`.`rest_pjsip_trunks_defaults` SET `data` = ? AND `keyword` = "outbound_proxy"';
 	$stmt = $db->prepare($sql);
-	$stmt->execute(['sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'],'sip:127.0.0.1:5060']);
+	$stmt->execute(['sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'].';lr']);
 }
