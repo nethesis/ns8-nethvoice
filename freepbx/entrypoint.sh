@@ -188,6 +188,9 @@ while (\$row = \$sth->fetch(\PDO::FETCH_ASSOC)) {
 	\$cdr_db_user,
 	\$cdr_db_pass);
 
+\$nethcti3db = new \PDO('mysql:host='.\$amp_conf['AMPDBHOST'].';port='.\$amp_conf['AMPDBPORT'].';dbname=nethcti3; charset=utf8',
+  '${NETHCTI_DB_USER}',
+  '${NETHCTI_DB_PASSWORD}');
 EOF
 
 # migrate database
