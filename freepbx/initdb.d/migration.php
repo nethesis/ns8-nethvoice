@@ -52,7 +52,7 @@ if (count($res) > 0) {
 
 	$sql = "UPDATE `asterisk`.`sip` SET `data` = ? WHERE `keyword` = 'outbound_proxy' AND `id` IN ($qm_string)";
 	$stmt = $db->prepare($sql);
-	$stmt->execute(array_merge(['sip:'.$proxy_host.':'.$proxy_port], array_column($res, 'extension')));
+	$stmt->execute(array_merge(['sip:'.$proxy_host.':'.$proxy_port.';lr'], array_column($res, 'extension')));
 
 	# set rtp_symmetric to no in freepbx sip table
 	$sql = "UPDATE `asterisk`.`sip` SET `data` = 'no' WHERE `keyword` = 'rtp_symmetric' WHERE `id` IN ($qm_string)";
@@ -121,7 +121,7 @@ $sip_options=[
 	'force_rport' => 'no',
 	'maximum_expiration' => '7200',
 	'media_encryption' => 'no',
-	'outbound_proxy' => 'sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'],
+	'outbound_proxy' => 'sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'].';lr',
 	'qualifyfreq' => '60',
 	'rewrite_contact' => 'no',
 	'rtp_symmetric' => 'no',
