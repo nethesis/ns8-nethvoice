@@ -46,14 +46,6 @@ if (count($res) > 0) {
 	}
 	$db->commit();
 
-	# configure proxy on all FreePBX extensions
-	$proxy_host = $_ENV['PROXY_IP'];
-	$proxy_port = $_ENV['PROXY_PORT'];
-
-	$sql = "UPDATE `asterisk`.`sip` SET `data` = ? WHERE `keyword` = 'outbound_proxy' AND `id` IN ($qm_string)";
-	$stmt = $db->prepare($sql);
-	$stmt->execute(array_merge(['sip:'.$proxy_host.':'.$proxy_port.';lr'], array_column($res, 'extension')));
-
 	# set rtp_symmetric to no in freepbx sip table
 	$sql = "UPDATE `asterisk`.`sip` SET `data` = 'no' WHERE `keyword` = 'rtp_symmetric' WHERE `id` IN ($qm_string)";
 	$stmt = $db->prepare($sql);
@@ -75,6 +67,22 @@ if (count($res) > 0) {
 	$stmt->execute(array_column($res, 'extension'));
 }
 
+/* Set outbound_proxy to all physical and mobile extensions to be used with proxy */
+$sql = "UPDATE `asterisk`.`sip`
+	JOIN `asterisk`.`rest_devices_phones`
+	ON `sip`.`id` = `rest_devices_phones`.`extension`
+	SET `sip`.`data` = ?
+	WHERE `sip`.`keyword` = 'outbound_proxy'
+	AND `rest_devices_phones`.`type` IN ('physical', 'mobile', 'customphysical')";
+
+$stmt = $db->prepare($sql);
+$stmt->execute(['sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'].';lr']);
+$sql = "UPDATE `asterisk`.`pjsip`
+	SET `pjsip`.`data` = ?
+	WHERE `pjsip`.`keyword` = 'outbound_proxy'";
+
+$stmt = $db->prepare($sql);
+$stmt->execute(['sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'].';lr']);
 # migrate profiles, macro_permissions and permissions scheme to new format
 # Check if NethVoice CTI macro_permission exists
 $sql = "SELECT * FROM `rest_cti_macro_permissions` WHERE `macro_permission_id` = 12";
