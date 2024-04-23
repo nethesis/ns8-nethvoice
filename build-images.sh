@@ -81,6 +81,7 @@ images+=("${repobase}/${reponame}")
 reponame="nethvoice-cti-ui"
 container=$(buildah from ghcr.io/nethesis/nethvoice-cti:0.1.3)
 
+
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
 # Append the image URL to the images array
