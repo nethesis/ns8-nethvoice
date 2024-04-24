@@ -513,9 +513,7 @@ RUN docker-php-source extract && \
 
 # Install nethvoice-wizard-restapi and nethvoice-wizard-ui
 RUN mkdir -p /var/www/html/freepbx/rest && \
-	#TODO use ns8 branch when pr is merged https://github.com/nethesis/nethvoice-wizard-restapi/pull/227
-	#curl -L https://github.com/nethesis/nethvoice-wizard-restapi/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=1 -C /var/www/html/freepbx/rest/ && \
-	curl -L https://github.com/nethesis/nethvoice-wizard-restapi/archive/refs/heads/128.tar.gz -o - | tar xzp --strip-component=1 -C /var/www/html/freepbx/rest/ && \
+	curl -L https://github.com/nethesis/nethvoice-wizard-restapi/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=1 -C /var/www/html/freepbx/rest/ && \
 	cd /var/www/html/freepbx/rest/ && \
 	curl -s https://getcomposer.org/installer | php && \
 	COMPOSER_ALLOW_SUPERUSER=1 php composer.phar install --no-dev && \
