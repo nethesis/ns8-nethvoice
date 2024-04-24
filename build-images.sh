@@ -6,7 +6,7 @@ set -e
 # Prepare variables for later use
 images=()
 # The image will be pushed to GitHub container registry
-repobase="${REPOBASE:-ghcr.io/nethserver}"
+repobase="${REPOBASE:-ghcr.io/nethesis}"
 # Configure the image name
 reponame="nethvoice"
 
@@ -18,7 +18,8 @@ buildah build \
 	--build-arg REPOBASE="${repobase}" \
 	--build-arg IMAGETAG="${IMAGETAG:-latest}" \
 	--target dist \
-	--tag "${repobase}/${reponame}"
+	--tag "${repobase}/${reponame}" \
+	--tag "${repobase}/${reponame}:${IMAGETAG:-latest}" \
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
 
@@ -34,6 +35,7 @@ buildah add "${container}" mariadb/ /
 
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
+buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
 
@@ -44,7 +46,9 @@ images+=("${repobase}/${reponame}")
 echo "[*] Build FreePBX container"
 reponame="nethvoice-freepbx"
 pushd freepbx
-buildah build --force-rm --no-cache --jobs "$(nproc)" --tag "${repobase}/${reponame}"
+buildah build --force-rm --no-cache --jobs "$(nproc)" \
+	--tag "${repobase}/${reponame}" \
+	--tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
 popd
 
 # Append the image URL to the images array
@@ -57,7 +61,9 @@ images+=("${repobase}/${reponame}")
 echo "[*] Build Tancredi container"
 reponame="nethvoice-tancredi"
 pushd tancredi
-buildah build --force-rm --layers --jobs "$(nproc)" --tag "${repobase}/${reponame}"
+buildah build --force-rm --layers --jobs "$(nproc)" \
+	--tag "${repobase}/${reponame}" \
+	--tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
 popd
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
@@ -69,7 +75,9 @@ images+=("${repobase}/${reponame}")
 echo "[*] Build nethcti container"
 reponame="nethvoice-cti-server"
 pushd nethcti-server
-buildah build --force-rm --layers --jobs "$(nproc)" --target production --tag "${repobase}/${reponame}"
+buildah build --force-rm --layers --jobs "$(nproc)" --target production \
+	--tag "${repobase}/${reponame}" \
+	--tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
 popd
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
@@ -83,6 +91,7 @@ container=$(buildah from ghcr.io/nethesis/nethvoice-cti:0.1.3)
 
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
+buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
 
@@ -92,7 +101,9 @@ images+=("${repobase}/${reponame}")
 echo "[*] Build Janus Gateway container"
 reponame="nethvoice-janus"
 pushd janus
-buildah build --force-rm --layers --jobs "$(nproc)" --tag "${repobase}/${reponame}"
+buildah build --force-rm --layers --jobs "$(nproc)" \
+	--tag "${repobase}/${reponame}" \
+	--tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
 popd
 
 # Append the image URL to the images array
@@ -105,7 +116,9 @@ images+=("${repobase}/${reponame}")
 echo "[*] Build Phonebook container"
 reponame="nethvoice-phonebook"
 pushd phonebook
-buildah build --force-rm --layers --jobs "$(nproc)" --tag "${repobase}/${reponame}"
+buildah build --force-rm --layers --jobs "$(nproc)" \
+	--tag "${repobase}/${reponame}" \
+	--tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
 popd
 
 # Append the image URL to the images array
@@ -117,7 +130,9 @@ images+=("${repobase}/${reponame}")
 echo "[*] Build flexisip container"
 reponame="nethvoice-flexisip"
 pushd flexisip
-buildah build --force-rm --layers --jobs "$(nproc)" --tag "${repobase}/${reponame}"
+buildah build --force-rm --layers --jobs "$(nproc)" \
+	--tag "${repobase}/${reponame}" \
+	--tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
 popd
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
@@ -127,10 +142,14 @@ images+=("${repobase}/${reponame}")
 #########################
 pushd reports
 reponame="nethvoice-reports-api"
-buildah build --force-rm --layers --jobs "$(nproc)" --target api-production --tag "${repobase}"/"${reponame}"
+buildah build --force-rm --layers --jobs "$(nproc)" --target api-production \
+	--tag "${repobase}"/"${reponame}" \
+	--tag "${repobase}"/"${reponame}:${IMAGETAG:-latest}"
 images+=("${repobase}/${reponame}")
 reponame="nethvoice-reports-ui"
-buildah build --force-rm --layers --jobs "$(nproc)" --target ui-production --tag "${repobase}"/"${reponame}"
+buildah build --force-rm --layers --jobs "$(nproc)" --target ui-production \
+	--tag "${repobase}"/"${reponame}" \
+	--tag "${repobase}"/"${reponame}:${IMAGETAG:-latest}"
 images+=("${repobase}/${reponame}")
 popd
 
