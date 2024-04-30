@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import sys
+import agent
+import os
+
+
+# Check if NethVoice is configured
+if os.getenv('NETHVOICE_HOST') is None:
+    print(agent.SD_DEBUG + "Event ignored: NethVoice is not configured")
+    sys.exit(2)
+
+event = json.load(sys.stdin)
+
+# Check if the event is for this node
+if event['node_id'] != os.environ['NODE_ID']:
+    print(agent.SD_DEBUG + "Event ignored: node_id mismatch")
+    sys.exit(3)
+
+ksrv = agent.list_service_providers(agent.redis_connect(use_replica=True), "sip", "tcp", {"module_id": os.environ['AGENT_EVENT_SOURCE'].removeprefix("module/")})
+
+
+# Check if there is something changed in the configuration
+if (os.getenv('NETHVOICE_PROXY_FQDN') == ksrv[0]["fqdn"] and
+    os.getenv('PROXY_IP') == ksrv[0]["host"] and
+    os.getenv('PROXY_PORT') == ksrv[0]["port"]):
+    print(agent.SD_DEBUG + "Event ignored: configuration not changed")
+    sys.exit(4)

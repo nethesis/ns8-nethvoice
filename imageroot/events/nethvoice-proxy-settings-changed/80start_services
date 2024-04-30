@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e    # exit immediately if an error occurs
+exec 1>&2 # ensure any output is sent to stderr
+
+#restart services if they are already running
+
+systemctl --user try-restart freepbx tancredi
