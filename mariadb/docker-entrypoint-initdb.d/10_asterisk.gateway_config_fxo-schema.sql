@@ -9,7 +9,7 @@ CREATE TABLE `gateway_config_fxo` (
   `trunk` int(11) NOT NULL,
   `trunknumber` int(11) NOT NULL,
   `number` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `secret` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `secret` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `config_id` (`config_id`),
   CONSTRAINT `gateway_config_fxo_ibfk_1` FOREIGN KEY (`config_id`) REFERENCES `gateway_config` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
