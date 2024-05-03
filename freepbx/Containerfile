@@ -169,6 +169,7 @@ RUN groupadd -g 991 -r asterisk && \
 	apt-get update && \
 	apt-get install -y \
 		cron \
+		tdsodbc \
 		gettext \
 		gnupg \
 		libldap2-dev \
@@ -198,7 +199,8 @@ RUN groupadd -g 991 -r asterisk && \
 		libspandsp2 \
 		libsnmp40 \
 		libical3 \
-		sqlite3
+		sqlite3 \
+		unixodbc-dev
 
 
 # Copy Asterisk files
@@ -249,6 +251,7 @@ RUN mkdir download \
 
 COPY --chown=asterisk:asterisk etc/asterisk /etc/asterisk
 COPY etc/odbc.ini /etc/odbc.ini
+COPY etc/odbcinst.ini /etc/odbcinst.ini
 COPY var/lib/asterisk /var/lib/asterisk
 COPY usr/bin/backup_astdb /usr/bin/backup_astdb
 COPY usr/bin/restore_astdb /usr/bin/restore_astdb
@@ -509,6 +512,7 @@ RUN docker-php-source extract && \
 	docker-php-ext-configure gettext && docker-php-ext-install gettext && \
 	ln -s /usr/lib/x86_64-linux-gnu/libldap.so /usr/lib/libldap.so && docker-php-ext-configure ldap && docker-php-ext-install ldap && \
 	docker-php-ext-configure sysvsem && docker-php-ext-install sysvsem && \
+	docker-php-ext-configure pdo_odbc --with-pdo-odbc=unixODBC,/usr && docker-php-ext-install pdo_odbc && \
 	docker-php-source delete
 
 # Install nethvoice-wizard-restapi and nethvoice-wizard-ui
