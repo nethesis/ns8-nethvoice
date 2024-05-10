@@ -40,5 +40,3 @@ for service in services:
             'instance': f"{os.environ['MODULE_ID']}-{service}"
         },
     )
-    # Check if traefik configuration has been successfull
-    agent.assert_exp(response['exit_code'] == 0)

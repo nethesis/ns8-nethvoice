@@ -16,3 +16,6 @@ TOKEN=$(curl -k -s "https://$(hostname -f)/users-admin/${USER_DOMAIN}/api/login"
 
 # Remove the user
 curl -s -k "https://$(hostname -f)/users-admin/$USER_DOMAIN/api/remove-user" -H "authorization: Bearer $TOKEN" --data '{"user":"'$NETHVOICE_USER_PORTAL_USERNAME'"}' > /dev/null
+
+# Don't fail if domain is an external one
+exit 0
