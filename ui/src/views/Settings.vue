@@ -349,52 +349,32 @@ export default {
         return user.user === this.instanceName + "-adm";
       });
 
-      // create nethvoice adm user, if not exists
-      if (exists.length == 0) {
-        // compose credentials
-        this.form.nethvoice_adm.username = this.instanceName + "-adm";
-        this.form.nethvoice_adm.password = this.generatePassword();
+      // check if domain is internal
+      var internal =
+        this.domainList.filter((domain) => {
+          return domain.name == this.form.user_domain;
+        })[0].location == "internal";
 
-        // execute task
-        const resAdm = await to(
-          this.createModuleTaskForApp(this.providers[this.form.user_domain], {
-            action: "add-user",
-            data: {
-              user: this.form.nethvoice_adm.username,
-              display_name: this.instanceName + " Administrator",
-              password: this.form.nethvoice_adm.password,
-              locked: false,
-              groups: ["domain admins"],
-            },
-            extra: {
-              title: this.$t("settings.create_nethvoice_adm"),
-              description: this.$t("common.processing"),
-              eventId,
-            },
-          })
-        );
-        const errAdm = resAdm[0];
+      // create nethvoice adm user, if not exists and if domain is internal
+      if (internal) {
+        if (exists.length == 0) {
+          // compose credentials
+          this.form.nethvoice_adm.username = this.instanceName + "-adm";
+          this.form.nethvoice_adm.password = this.generatePassword();
 
-        // check error
-        if (errAdm) {
-          console.error(`error creating task ${taskAction}`, errAdm);
-          this.error.configureModule = this.getErrorMessage(errAdm);
-          this.loading.configureModule = false;
-          return;
-        }
-      } else {
-        // if domain changed
-        if (this.config.user_domain != this.form.user_domain) {
-          // change password
+          // execute task
           const resAdm = await to(
             this.createModuleTaskForApp(this.providers[this.form.user_domain], {
-              action: "alter-user",
+              action: "add-user",
               data: {
                 user: this.form.nethvoice_adm.username,
+                display_name: this.instanceName + " Administrator",
                 password: this.form.nethvoice_adm.password,
+                locked: false,
+                groups: ["domain admins"],
               },
               extra: {
-                title: this.$t("settings.set_nethvoice_adm_password"),
+                title: this.$t("settings.create_nethvoice_adm"),
                 description: this.$t("common.processing"),
                 eventId,
               },
@@ -408,6 +388,37 @@ export default {
             this.error.configureModule = this.getErrorMessage(errAdm);
             this.loading.configureModule = false;
             return;
+          }
+        } else {
+          // if domain changed
+          if (this.config.user_domain != this.form.user_domain) {
+            // change password
+            const resAdm = await to(
+              this.createModuleTaskForApp(
+                this.providers[this.form.user_domain],
+                {
+                  action: "alter-user",
+                  data: {
+                    user: this.form.nethvoice_adm.username,
+                    password: this.form.nethvoice_adm.password,
+                  },
+                  extra: {
+                    title: this.$t("settings.set_nethvoice_adm_password"),
+                    description: this.$t("common.processing"),
+                    eventId,
+                  },
+                }
+              )
+            );
+            const errAdm = resAdm[0];
+
+            // check error
+            if (errAdm) {
+              console.error(`error creating task ${taskAction}`, errAdm);
+              this.error.configureModule = this.getErrorMessage(errAdm);
+              this.loading.configureModule = false;
+              return;
+            }
           }
         }
       }
@@ -574,6 +585,7 @@ export default {
           name: domain.name,
           label: domain.name,
           value: domain.name,
+          location: domain.location,
         });
         this.providers[domain.name] = domain.providers[0].id;
 
