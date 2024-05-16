@@ -147,7 +147,7 @@ if (empty($results)) {
 	$stmt->execute([$ldap_settings['name'], $driver, $id]);
 }
 
-$sql = "INSERT INTO kvstore_FreePBX_modules_Userman (`key`, `val`, `type`, `id`) VALUES ('auth-settings',?,'json-arr',?)";
+$sql = "DELETE FROM kvstore_FreePBX_modules_Userman WHERE `id` = ? ; INSERT INTO kvstore_FreePBX_modules_Userman (`key`, `val`, `type`, `id`) VALUES ('auth-settings',?,'json-arr',?)";
 $stmt = $db->prepare($sql);
-$stmt->execute([json_encode($ldap_settings), $id]);
+$stmt->execute([$id, json_encode($ldap_settings), $id]);
 echo $ldap_settings['name'] . " userbase configuration: " . json_encode($ldap_settings) . "\n";
