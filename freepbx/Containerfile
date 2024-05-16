@@ -516,9 +516,8 @@ RUN docker-php-source extract && \
 	docker-php-source delete
 
 # Install nethvoice-wizard-restapi and nethvoice-wizard-ui
-RUN mkdir -p /var/www/html/freepbx/rest && \
-	curl -L https://github.com/nethesis/nethvoice-wizard-restapi/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=1 -C /var/www/html/freepbx/rest/ && \
-	cd /var/www/html/freepbx/rest/ && \
+COPY var/www/html/freepbx/rest /var/www/html/freepbx/rest
+RUN cd /var/www/html/freepbx/rest/ && \
 	curl -s https://getcomposer.org/installer | php && \
 	COMPOSER_ALLOW_SUPERUSER=1 php composer.phar install --no-dev && \
 	rm -fr README.md composer.json composer.lock composer.phar test && \
