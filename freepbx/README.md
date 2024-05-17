@@ -43,6 +43,16 @@ This container also hosts push-proxy script for Flexisip.
 - `SUBSCRIPTION_SYSTEMID` my.nethesis.it server SystemID
 - `SUBSCRIPTION_SECRET` my.nethesis.it server secret
 
+## User base Environments
+- `NETHVOICE_LDAP_PASS` Ldap password of user base
+- `NETHVOICE_LDAP_SCHEMA` [ad|rfc2307] luser base schema
+- `NETHVOICE_LDAP_BASE` ldap base
+- `NETHVOICE_LDAP_PORT` ldap port
+- `NETHVOICE_LDAP_USER` ldap username in the format od user@domain or basedn
+- `NETHVOICE_LDAP_HOST` ldap host
+
+If userbase is customized in FreePBX userman module, "Directory Name" in FreePBX directory configuration should be "NethVoice8 [custom]" and it won't be overwritten
+
 ## Asterisk Environment variables
 
 - `ASTMANAGERHOST` is the ip where AMI , Asterisk Manager Interface is exposed. 127.0.0.1 in network=host configuration

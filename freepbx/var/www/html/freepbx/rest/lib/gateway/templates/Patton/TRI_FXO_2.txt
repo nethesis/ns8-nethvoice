@@ -1,0 +1,291 @@
+cli version 4.00
+clock local default-offset +01:00
+clock local dst-rule DST_ON +01:00 from mar last sunday 02:00 2000 until oct last sunday 03:00 2036
+
+profile aaa DEFAULT
+  method 1 local
+  method 2 none
+
+console
+  use profile aaa DEFAULT
+
+telnet-server
+  use profile aaa DEFAULT
+  no shutdown
+
+ssh-server
+  use profile aaa DEFAULT
+  no shutdown
+
+snmp-server
+  shutdown
+
+web-server
+  protocol http port 80
+  no protocol https
+  use profile aaa DEFAULT
+  no shutdown
+
+ntp
+  server 0.patton.pool.ntp.org
+  server 1.patton.pool.ntp.org
+  server 2.patton.pool.ntp.org
+  no shutdown
+
+dns-server
+  relay dns-client
+  shutdown
+
+dns-client
+  name-server 8.8.8.8
+
+profile tls DEFAULT
+  no authentication incoming
+  no authentication outgoing
+  private-key pki:private-key/DEFAULT
+  own-certificate 1 pki:certificate/DEFAULT
+
+profile fxo DEFAULT
+  electrical-standard etsi
+  caller-id standard fsk-etsi
+  disconnect-signal polarity-reversal
+  disconnect-signal busy-tone
+  disconnect-signal loop-break
+
+profile call-progress-tone DT-AS
+
+profile call-progress-tone defaultBusytone
+  play 1 200 first-tone 425 -7
+  pause 2 200
+
+profile call-progress-tone defaultCongestiontone
+  play 1 500 first-tone 425 -7
+  pause 2 500
+
+profile call-progress-tone defaultDialtone
+  play 1 200 first-tone 425 0
+  pause 2 200
+  play 3 600 first-tone 425 0
+  pause 4 1000
+
+profile call-progress-tone defaultAlertingtone
+  play 1 1000 425 -7
+  pause 2 4000
+
+profile call-progress-tone defaultReleasetone
+  play 1 250 425 -7
+  pause 2 250
+
+profile tone-set DEFAULT
+
+profile voip DEFAULT
+  codec 1 g729 rx-length 20 tx-length 20
+  codec 2 g711alaw64k rx-length 20 tx-length 20
+  codec 3 g711ulaw64k rx-length 20 tx-length 20
+  srtp transmission preferred
+  codec response preferred g729
+
+profile pstn DEFAULT
+
+profile rip DEFAULT
+
+profile sip DEFAULT
+
+context ip ROUTER
+
+  interface WAN
+    ipaddress WAN GATEWAYIP NETMASK
+
+  routing-table DEFAULT
+    route 0.0.0.0/0 gateway DEFGATEWAY metric 0
+
+  bgp
+    shutdown
+
+  rip
+    shutdown
+
+nodems-client
+  server auto-discover
+  resource any
+  shutdown
+
+profile ppp DEFAULT
+
+cwmp-client
+  shutdown
+
+  stun
+    shutdown
+
+context cs SWITCH
+  national-prefix 0
+  international-prefix 00
+
+  mapping-table called-e164 to called-e164 cutpref
+    map TRUNKNUMBER1(.%) to \1
+    map TRUNKNUMBER2(.%) to \1
+
+  routing-table called-e164 to_fxo
+    route TRUNKNUMBER1.% dest-interface OUTSERV0 cutpref
+    route TRUNKNUMBER2.% dest-interface OUTSERV1 cutpref
+
+  interface fxo IF_FXO_0
+    dial after 1 seconds
+    route call dest-interface IF_VOIP_ASTERISK_00
+
+  interface fxo IF_FXO_1
+    dial after 1 seconds
+    route call dest-interface IF_VOIP_ASTERISK_01
+
+  interface sip IF_VOIP_ASTERISK_00
+    bind context sip-gateway ASTERISK_00
+    route call dest-table to_fxo
+    remote PROXY 5060
+    early-disconnect
+    privacy
+    uri-scheme sip
+    address-translation outgoing-call from-header user-part fix TRUNKUSERNAME1 host-part fix ASTERISKIP 5060
+    address-translation outgoing-call to-header user-part call host-part fix ASTERISKIP 5060
+    address-translation outgoing-call request-uri user-part to-header host-part fix ASTERISKIP 5060 target-param none
+    address-translation outgoing-call identity-header user-part call host-part fix ASTERISKIP 5060
+
+  interface sip IF_VOIP_ASTERISK_01
+    bind context sip-gateway ASTERISK_01
+    route call dest-table to_fxo
+    remote PROXY 5060
+    early-disconnect
+    privacy
+    uri-scheme sip
+    address-translation outgoing-call from-header user-part fix TRUNKUSERNAME2 host-part fix ASTERISKIP 5060
+    address-translation outgoing-call to-header user-part call host-part fix ASTERISKIP 5060
+    address-translation outgoing-call request-uri user-part to-header host-part fix ASTERISKIP 5060 target-param none
+
+  service hunt-group OUTSERV0
+    drop-cause normal-unspecified
+    drop-cause no-circuit-channel-available
+    drop-cause network-out-of-order
+    drop-cause temporary-failure
+    drop-cause switching-equipment-congestion
+    drop-cause access-info-discarded
+    drop-cause circuit-channel-not-available
+    drop-cause resources-unavailable
+    drop-cause user-busy
+    route call 1 dest-interface IF_FXO_0
+
+   service hunt-group OUTSERV1
+    drop-cause normal-unspecified
+    drop-cause no-circuit-channel-available
+    drop-cause network-out-of-order
+    drop-cause temporary-failure
+    drop-cause switching-equipment-congestion
+    drop-cause access-info-discarded
+    drop-cause circuit-channel-not-available
+    drop-cause resources-unavailable
+    drop-cause user-busy
+    route call 1 dest-interface IF_FXO_1
+
+context cs SWITCH
+  no shutdown
+
+authentication-service AUTH_SRV_0
+  realm 1 asterisk
+  username TRUNKUSERNAME1 password TRUNKSECRET1
+
+authentication-service AUTH_SRV_1
+  realm 1 asterisk
+  username TRUNKUSERNAME2 password TRUNKSECRET2
+
+location-service SER_LOC_00
+  domain 1 ASTERISKIP 5060
+  match-any-domain
+
+  identity TRUNKUSERNAME1
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_SRV_0 username TRUNKUSERNAME1
+
+    registration outbound
+      registrar ASTERISKIP 5060
+      force-destination manual PROXY 5060
+      proxy 1 PROXY 5060
+      lifetime 60
+      register auto
+      keep-alive options 60
+
+    call outbound
+      use profile tone-set DEFAULT
+      use profile voip DEFAULT
+      use profile sip DEFAULT
+
+    call inbound
+      use profile tone-set DEFAULT
+      use profile voip DEFAULT
+      use profile sip DEFAULT
+
+location-service SER_LOC_01
+  domain 1 ASTERISKIP 5060
+  match-any-domain
+
+  identity TRUNKUSERNAME2
+
+    authentication outbound
+      authenticate 1 authentication-service AUTH_SRV_1 username TRUNKUSERNAME2
+
+    registration outbound
+      registrar ASTERISKIP 5060
+      force-destination manual PROXY 5060
+      proxy 1 PROXY 5060
+      lifetime 60
+      register auto
+      keep-alive options 60
+
+    call outbound
+      use profile tone-set DEFAULT
+      use profile voip DEFAULT
+      use profile sip DEFAULT
+
+    call inbound
+      use profile tone-set DEFAULT
+      use profile voip DEFAULT
+      use profile sip DEFAULT
+
+context sip-gateway ASTERISK_00
+  bind location-service SER_LOC_00
+
+  interface IF_GW_SIP_TRAIN_00
+    transport-protocol udp+tcp 5060
+    no transport-protocol tls
+    bind ipaddress ROUTER WAN WAN
+
+context sip-gateway ASTERISK_00
+  no shutdown
+
+context sip-gateway ASTERISK_01
+  bind location-service SER_LOC_01
+
+  interface IF_GW_SIP_TRAIN_01
+    transport-protocol udp+tcp 5062
+    no transport-protocol tls
+    bind ipaddress ROUTER WAN WAN
+
+context sip-gateway ASTERISK_01
+  no shutdown
+
+sip-survivability
+  shutdown
+
+port ethernet 0 0
+  bind interface ROUTER WAN
+  no shutdown
+
+port fxo 0 0
+  subscriber-number LINENUMBER1
+  bind interface SWITCH IF_FXO_0
+  no shutdown
+
+port fxo 0 1
+  subscriber-number LINENUMBER2
+  bind interface SWITCH IF_FXO_1
+  no shutdown
+

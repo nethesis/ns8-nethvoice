@@ -11,7 +11,7 @@ exec 1>&2 # ensure any output is sent to stderr
 #restart services if they are already running
 
 if [ -n "$RESTART_SERVICES" ]; then
-systemctl --user try-restart $RESTART_SERVICES
+    systemctl --user try-restart $RESTART_SERVICES
 fi
 
 # If the control reaches this step, the service can be enabled and started
