@@ -62,7 +62,7 @@ RUN apt-get update && \
 		wget
 
 RUN cd /usr/src/asterisk && \
-	wget https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz && \
+	wget https://downloads.asterisk.org/pub/telephony/asterisk/old-releases/asterisk-${ASTERISK_VERSION}.tar.gz && \
 	tar xzf asterisk-${ASTERISK_VERSION}.tar.gz && \
 	rm -f asterisk-${ASTERISK_VERSION}.tar.gz && \
 	mkdir cache && \
