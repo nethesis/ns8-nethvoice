@@ -130,16 +130,12 @@ $app->delete('/phonebook/config/{id}', function (Request $request, Response $res
         $route = $request->getAttribute('route');
         $id = $route->getArgument('id');
         $file = '/etc/phonebook/sources.d/' . $id . '.json';
-        $res = delete_import_from_cron($id);
-        if (!$res) {
-            throw new Exception("Error deleting $file from crontab!");
-        }
 
         // Delete from phonebook db contacts imported from this source
         $phonebookdb = new PDO(
-            'mysql:host='.$ENV['PHONEBOOK_DB_HOST'].';port='.$ENV['PHONEBOOK_DB_PORT'].';dbname='.$ENV['PHONEBOOK_DB_NAME'],
-            $ENV['PHONEBOOK_DB_USER'],
-            $ENV['PHONEBOOK_DB_PASS']);
+            'mysql:host='.$_ENV['PHONEBOOK_DB_HOST'].';port='.$_ENV['PHONEBOOK_DB_PORT'].';dbname='.$_ENV['PHONEBOOK_DB_NAME'],
+            $_ENV['PHONEBOOK_DB_USER'],
+            $_ENV['PHONEBOOK_DB_PASS']);
 
         $sth = $phonebookdb->prepare('DELETE FROM phonebook WHERE sid_imported = ?');
         $sth->execute([$id]);
@@ -257,9 +253,9 @@ $app->get('/phonebook/ldap', function (Request $request, Response $response, $ar
         $configuration = array();
         $configuration['ldaps'] = array();
         $configuration['ldaps']['enabled'] = true;
-        $configuration['ldaps']['port'] = $ENV['PHONEBOOK_LDAP_PORT'];
-        $configuration['ldaps']['user'] = 'cn='.$ENV['PHONEBOOK_LDAP_USER'].',dc=phonebook,dc=nh';
-        $configuration['ldaps']['password'] = $ENV['PHONEBOOK_LDAP_PASS'];
+        $configuration['ldaps']['port'] = $_ENV['PHONEBOOK_LDAP_PORT'];
+        $configuration['ldaps']['user'] = 'cn='.$_ENV['PHONEBOOK_LDAP_USER'].',dc=phonebook,dc=nh';
+        $configuration['ldaps']['password'] = $_ENV['PHONEBOOK_LDAP_PASS'];
         $configuration['ldaps']['tls'] = 'ldaps';
         $configuration['ldaps']['base'] = 'dc=phonebook,dc=nh';
         $configuration['ldaps']['name_display'] = '%cn %o';
