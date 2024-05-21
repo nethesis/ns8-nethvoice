@@ -207,6 +207,10 @@ php /configure_users.php
 # Make sure config dir is writable from nethcti and freepbx containers
 chown -R asterisk:asterisk /etc/nethcti
 
+# make sure CSV uopload path exists if /var/lib/nethvoice isn't a volume or already initialized
+mkdir -p /var/lib/nethvoice/phonebook/uploads
+chown -R asterisk:asterisk /var/lib/nethvoice/phonebook/uploads
+
 # Change Apache httpd port
 sed -i "s/<VirtualHost \*:80>/<VirtualHost \*:${APACHE_PORT}>/" /etc/apache2/sites-enabled/000-default.conf
 sed -i "s/Listen 80/Listen ${APACHE_PORT}/" /etc/apache2/ports.conf

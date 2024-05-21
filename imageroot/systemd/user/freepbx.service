@@ -36,6 +36,7 @@ ExecStart=/usr/bin/podman run \
     --volume=reports_config:/opt/nethvoice-report:z \
     --volume=tancredi:/var/lib/tancredi:z \
     --volume=astdb:/var/lib/asterisk/db:z \
+    --volume=phonebookcsv:/var/lib/nethvoice/phonebook/uploads:z \
     --volume=/dev/log:/dev/log \
     --env=NETHVOICE* \
     --env=ASTERISK_* \
