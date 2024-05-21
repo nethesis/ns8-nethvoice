@@ -62,8 +62,8 @@ function getToken() {
 
 function getUser($username) {
     # add domain part if needed
-    if (strpos($username, '@') === false && !empty($ENV['NETHVOICE_LDAP_HOST'])) {
-        return "$username@{$ENV['NETHVOICE_LDAP_HOST']}";
+    if (strpos($username, '@') === false && !empty($_ENV['NETHVOICE_LDAP_HOST'])) {
+        return "$username@{$_ENV['NETHVOICE_LDAP_HOST']}";
     }
     return $username;
 }

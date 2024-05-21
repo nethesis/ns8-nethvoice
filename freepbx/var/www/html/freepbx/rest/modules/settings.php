@@ -78,6 +78,6 @@ $app->get('/settings/languages', function (Request $request, Response $response,
  * GET /settings/conferenceurl return the conference JitsiUrl
  */
 $app->get('/settings/conferenceurl', function (Request $request, Response $response, $args) {
-    return $response->withJson($ENV['NETHVOICE_CONFERENCEURL'], 200);
+    return $response->withJson($_ENV['NETHVOICE_CONFERENCEURL'], 200);
 });
 

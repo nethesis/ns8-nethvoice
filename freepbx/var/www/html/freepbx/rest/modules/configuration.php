@@ -65,9 +65,9 @@ $app->get('/configuration/mode', function (Request $request, Response $response,
 # GET /configuration/networks return green ip address and netmasks
 #
 $app->get('/configuration/networks', function (Request $request, Response $response, $args) {
-	if (!empty($ENV['NETHVOICE_HOST_LOCAL_NETWORKS'])) {
+	if (!empty($_ENV['NETHVOICE_HOST_LOCAL_NETWORKS'])) {
 		// Here a json object like this is expected [{"network":"192.168.5.0","ip":"192.168.5.14","netmask":"255.255.255.0","gateway":"192.168.5.1"},...]
-		$networks = json_decode($ENV['NETHVOICE_HOST_LOCAL_NETWORKS']);
+		$networks = json_decode($_ENV['NETHVOICE_HOST_LOCAL_NETWORKS']);
 	} else {
 		$networks = [];
 	}
