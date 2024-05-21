@@ -6,10 +6,9 @@ RUN apk add --no-cache \
         npm \
 	curl
 
-RUN	\
-	mkdir -p /usr/share/phonebookjs && \
-	curl -L https://github.com/nethesis/nethserver-phonebook-mysql/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=5 -C /usr/share/phonebookjs nethserver-phonebook-mysql-ns8/root/usr/share/phonebookjs && \
-	cd /usr/share/phonebookjs && \
+RUN mkdir -p /usr/share/phonebookjs
+COPY package.json package-lock.json phonebook.js /usr/share/phonebookjs/
+RUN cd /usr/share/phonebookjs && \
 	npm install && \
 	mkdir -p /etc/certificates
 
