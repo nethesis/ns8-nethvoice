@@ -230,7 +230,7 @@ $app->post('/phonebook/syncnow/{id}', function (Request $request, Response $resp
 
 /* Upload a local CSV file source */
 $app->post('/phonebook/uploadfile', function (Request $request, Response $response, $args) {
-    $upload_dest = sprintf('/var/lib/nethserver/nethvoice/phonebook/uploads/%s.csv', uniqid());
+    $upload_dest = sprintf('/var/lib/nethvoice/phonebook/uploads/%s.csv', uniqid());
     try {
         $file = array_pop($request->getUploadedFiles());
         if ($file->getError() != UPLOAD_ERR_OK) {
@@ -309,7 +309,7 @@ function unlink_local_csv($config)
 {
     if(isset($config['dbtype'], $config['url'])
         && $config['dbtype'] == 'csv'
-        && substr($config['url'], 0, 55) == 'file:///var/lib/nethserver/nethvoice/phonebook/uploads/'
+        && substr($config['url'], 0, 55) == 'file:///var/lib/nethvoice/phonebook/uploads/'
     ) {
         unlink(substr($config['url'], 7));
     }
