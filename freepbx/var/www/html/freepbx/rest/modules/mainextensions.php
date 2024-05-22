@@ -20,6 +20,7 @@
 #
 
 include_once('lib/libExtensions.php');
+include_once('lib/libUsers.php');
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
@@ -48,6 +49,13 @@ $app->post('/mainextensions', function (Request $request, Response $response, $a
     $outboundcid = $params['outboundcid'];
 
     if (checkUsermanIsUnlocked()) {
+        if (
+            count(array_filter(getAllUsers(), function($user) {return $user['default_extension'] != "none";})) >= 8 && // there are 8 users configured
+            (empty($_ENV['SUBSCRIPTION_SYSTEMID']) || empty($_ENV['SUBSCRIPTION_SECRET'])) && // it isn't registered as enterprise
+            !empty($mainextension) // the user is trying to create a new extension
+        ) {
+            return $response->withJson(array("status"=>'ERROR: community version is limited to 8 users'), 403);
+        }
         $ret = createMainExtensionForUser($username,$mainextension,$outboundcid);
     } else {
         return $response->withJson(array("status"=>'ERROR: directory is locked'), 500);
