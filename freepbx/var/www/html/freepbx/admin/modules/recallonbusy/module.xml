@@ -1,0 +1,20 @@
+<module>
+	<rawname>recallonbusy</rawname>
+	<repo>unsupported</repo>
+	<name>Recall On Busy</name>
+	<version>0.0.1</version>
+	<category>Applications</category>
+  	<menuitems>
+		<recallonbusy>Recall On Busy</recallonbusy>
+  	</menuitems>
+	<Publisher>Stefano Fancello</Publisher>
+	<description>Recall a busy extension when it became available</description>
+	<changelog></changelog>
+	<info></info>
+	<licence>GPL</licence>
+	<licenselink>http://www.gnu.org/licenses/gpl-2.0.txt</licenselink>
+	<depends>
+		<version>14.0.0</version>
+	</depends>
+	<supported>14.0.0</supported>
+</module>
