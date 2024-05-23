@@ -403,7 +403,7 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 	mkdir -p /var/www/html/freepbx/admin/modules/rapidcode && \
 	curl -sL https://github.com/nethesis/RapidCode/archive/refs/tags/1.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/rapidcode && \
 	mkdir -p /var/www/html/freepbx/admin/modules/recallonbusy && \
-	curl -sL https://github.com/nethesis/freepbx-module-recallonbusy/archive/refs/tags/1.0.3.tar.gz -o - | tar xzp --wildcards --strip-components=2 -C /var/www/html/freepbx/admin/modules/recallonbusy */module && \
+	curl -sL https://github.com/nethesis/freepbx-module-recallonbusy/archive/refs/heads/ns8.tar.gz -o - | tar xzp --wildcards --strip-components=2 -C /var/www/html/freepbx/admin/modules/recallonbusy */module */root/usr/sbin/recallonbusy && \
 	mkdir -p /var/www/html/freepbx/admin/modules/recordings && \
 	curl -sL https://github.com/nethesis/freepbx-recordings/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/recordings && \
 	mkdir -p /var/www/html/freepbx/admin/modules/returnontransfer && \
@@ -412,6 +412,10 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 	curl -sL https://github.com/nethesis/freepbx-visualplan/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/visualplan && \
 	mkdir -p /var/www/html/freepbx/admin/modules/voicemail && \
 	curl -sL https://github.com/nethesis/freepbx-voicemail/archive/14.0.6.26.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/voicemail
+
+# Special module recallonbusy also has a binary
+RUN mv /var/www/html/freepbx/admin/modules/recallonbusy/usr/sbin/recallonbusy /usr/sbin/recallonbusy && \
+	rm -rf /var/www/html/freepbx/admin/modules/recallonbusy/usr
 
 # Create directories
 RUN mkdir -p \
@@ -501,7 +505,8 @@ COPY var/www/html/freepbx/admin/brand/* /var/www/html/freepbx/admin/brand/
 
 RUN ln -sf /var/lib/asterisk/bin/fwconsole /usr/bin/fwconsole
 
-RUN pip install mysql.connector
+RUN pip install mysql.connector asterisk-ami configparser
+
 
 # Use PHP development ini configuration and enable logging on syslog
 COPY usr/local/etc/php/php.ini /usr/local/etc/php/php.ini

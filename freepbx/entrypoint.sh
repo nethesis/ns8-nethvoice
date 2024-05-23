@@ -193,6 +193,9 @@ while (\$row = \$sth->fetch(\PDO::FETCH_ASSOC)) {
   '${NETHCTI_DB_PASSWORD}');
 EOF
 
+sed -i 's/^Username: .*/Username: proxycti/' /etc/asterisk/recallonbusy.cfg
+sed -i 's/^Secret: .*/Secret: '${NETHCTI_AMI_PASSWORD}'/' /etc/asterisk/recallonbusy.cfg
+
 # migrate database
 php /initdb.d/migration.php
 
