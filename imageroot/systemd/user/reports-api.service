@@ -31,6 +31,8 @@ ExecStart=/usr/bin/podman run \
         --env REPORTS_PASSWORD \
         --env REPORTS_SECRET \
         --env REPORTS_API_KEY \
+        --env SUBSCRIPTION_SYSTEMID \
+        --env SUBSCRIPTION_SECRET \
         --tz=${TIMEZONE} \
         --detach \
         --name %N \
