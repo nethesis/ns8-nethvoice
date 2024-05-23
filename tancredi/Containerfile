@@ -14,10 +14,23 @@ RUN apt update && \
 	echo '\n: ${TANCREDIPORT:=80}\nexport TANCREDIPORT\n: ${TANCREDI_SSL_PORT:=443}\nexport TANCREDI_SSL_PORT\n' >> /etc/apache2/envvars && \
 	# Install Tancredi files
 	BRANCH=master && \
-	curl -L https://github.com/nethesis/tancredi/archive/refs/heads/${BRANCH}.tar.gz -o - | tar xzp --strip-component=1 -C /usr/share/tancredi/ tancredi-${BRANCH}/data/ tancredi-${BRANCH}/public/ tancredi-${BRANCH}/scripts/ tancredi-${BRANCH}/src/ tancredi-${BRANCH}/composer.json tancredi-${BRANCH}/composer.lock && \
-	BRANCH=master && \
-	curl -L https://github.com/nethesis/nethserver-tancredi/archive/refs/heads/${BRANCH}.tar.gz -o - | tar xzp --strip-component=2 -C / nethserver-tancredi-${BRANCH}/root/usr/share/tancredi/ nethserver-tancredi-${BRANCH}/root/var/lib/tancredi && \
-	cd /usr/share/tancredi/ && \
+	curl -L https://github.com/nethesis/tancredi/archive/refs/heads/${BRANCH}.tar.gz -o - | tar xzp --strip-component=1 -C /usr/share/tancredi/ tancredi-${BRANCH}/data/ tancredi-${BRANCH}/public/ tancredi-${BRANCH}/scripts/ tancredi-${BRANCH}/src/ tancredi-${BRANCH}/composer.json tancredi-${BRANCH}/composer.lock
+
+# Add Nethesis firmware template
+COPY usr/share/tancredi/data/templates/nethesis-firmware.tmpl /usr/share/tancredi/data/templates/nethesis-firmware.tmpl
+
+# Create Tancredi data directories
+RUN mkdir -p /var/lib/tancredi/data/backgrounds \
+ /var/lib/tancredi/data/firmware \
+ /var/lib/tancredi/data/first_access_tokens \
+ /var/lib/tancredi/data/ringtones \
+ /var/lib/tancredi/data/scopes \
+ /var/lib/tancredi/data/screensavers \
+ /var/lib/tancredi/data/templates-custom \
+ /var/lib/tancredi/data/tokens
+
+# Install Tancredi dependencies
+RUN cd /usr/share/tancredi/ && \
 	curl -s https://getcomposer.org/installer | php && \
 	COMPOSER_ALLOW_SUPERUSER=1 php composer.phar install --no-dev && \
 	rm -fr /usr/share/tancredi/src/Entity/SampleFilter.php /usr/share/tancredi/composer.phar /usr/share/tancredi/composer.json /usr/share/tancredi/composer.lock && \
