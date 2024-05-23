@@ -193,6 +193,8 @@ while (\$row = \$sth->fetch(\PDO::FETCH_ASSOC)) {
   '${NETHCTI_DB_PASSWORD}');
 EOF
 
+# configure recallonbusy
+sed -i 's/^Port: .*/Port: '${ASTMANAGERPORT}'/' /etc/asterisk/recallonbusy.cfg
 sed -i 's/^Username: .*/Username: proxycti/' /etc/asterisk/recallonbusy.cfg
 sed -i 's/^Secret: .*/Secret: '${NETHCTI_AMI_PASSWORD}'/' /etc/asterisk/recallonbusy.cfg
 
