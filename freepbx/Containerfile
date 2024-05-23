@@ -412,7 +412,7 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 	curl -sL https://github.com/nethesis/freepbx-voicemail/archive/14.0.6.26.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/voicemail
 
 # Install module recallonbusy
-COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/recallonbusy /var/www/html/freepbx/admin/modules/
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/recallonbusy /var/www/html/freepbx/admin/modules/recallonbusy
 COPY usr/sbin/recallonbusy /usr/sbin/recallonbusy
 
 # Create directories
