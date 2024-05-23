@@ -1,19 +1,20 @@
 <module>
 	<rawname>nethcqr</rawname>
 	<name>Call Query Routing</name>
-	<version>2.0.1</version>
+	<version>3.0.0</version>
         <publisher>Nethesis</publisher>
 	<type>tool</type>
 	<category>Applications</category>
-	<description>cqr cqr cqr cqr</description>
+	<description>Call Query Routing. Rout calls looking at result of a mysql query</description>
 	<menuitems>
 		<nethcqr>Call Query Routing</nethcqr>
 	</menuitems>
 	<depends>
 	</depends>
         <changelog>
+				*3.0.0* Nethesis: NethServer 8 version
                 *2.0.0* Nethesis: FreePBX 14 version
-		*0.0.0.2* Nethesis: fix manual code. Added some audio files.
+				*0.0.0.2* Nethesis: fix manual code. Added some audio files.
                 *0.0.0.1* Nethesis: testing some code
 	</changelog>
 </module>
