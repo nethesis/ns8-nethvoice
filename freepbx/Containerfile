@@ -410,8 +410,8 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 	curl -sL https://github.com/nethesis/freepbx-voicemail/archive/14.0.6.26.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/voicemail
 
 # Install Nethesis vendor modules
-COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcti3 /var/www/html/freepbx/admin/modules/
-COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/visualplan /var/www/html/freepbx/admin/modules/
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcti3 /var/www/html/freepbx/admin/modules/nethcti3
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/visualplan /var/www/html/freepbx/admin/modules/visualplan
 
 
 # Create directories
