@@ -400,8 +400,6 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 	curl -sL https://github.com/nethesis/freepbx-queues/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queues && \
 	mkdir -p /var/www/html/freepbx/admin/modules/rapidcode && \
 	curl -sL https://github.com/nethesis/RapidCode/archive/refs/tags/1.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/rapidcode && \
-	mkdir -p /var/www/html/freepbx/admin/modules/recallonbusy && \
-	curl -sL https://github.com/nethesis/freepbx-module-recallonbusy/archive/refs/tags/1.0.3.tar.gz -o - | tar xzp --wildcards --strip-components=2 -C /var/www/html/freepbx/admin/modules/recallonbusy */module && \
 	mkdir -p /var/www/html/freepbx/admin/modules/recordings && \
 	curl -sL https://github.com/nethesis/freepbx-recordings/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/recordings && \
 	mkdir -p /var/www/html/freepbx/admin/modules/returnontransfer && \
@@ -411,8 +409,9 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 
 # Install Nethesis vendor modules
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcti3 /var/www/html/freepbx/admin/modules/nethcti3
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/recallonbusy /var/www/html/freepbx/admin/modules/recallonbusy
+COPY usr/sbin/recallonbusy /usr/sbin/recallonbusy
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/visualplan /var/www/html/freepbx/admin/modules/visualplan
-
 
 # Create directories
 RUN mkdir -p \
@@ -502,7 +501,8 @@ COPY var/www/html/freepbx/admin/brand/* /var/www/html/freepbx/admin/brand/
 
 RUN ln -sf /var/lib/asterisk/bin/fwconsole /usr/bin/fwconsole
 
-RUN pip install mysql.connector
+RUN pip install mysql.connector asterisk-ami configparser
+
 
 # Use PHP development ini configuration and enable logging on syslog
 COPY usr/local/etc/php/php.ini /usr/local/etc/php/php.ini
