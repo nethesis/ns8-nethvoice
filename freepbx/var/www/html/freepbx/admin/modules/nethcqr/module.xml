@@ -1,0 +1,19 @@
+<module>
+	<rawname>nethcqr</rawname>
+	<name>Call Query Routing</name>
+	<version>2.0.1</version>
+        <publisher>Nethesis</publisher>
+	<type>tool</type>
+	<category>Applications</category>
+	<description>cqr cqr cqr cqr</description>
+	<menuitems>
+		<nethcqr>Call Query Routing</nethcqr>
+	</menuitems>
+	<depends>
+	</depends>
+        <changelog>
+                *2.0.0* Nethesis: FreePBX 14 version
+		*0.0.0.2* Nethesis: fix manual code. Added some audio files.
+                *0.0.0.1* Nethesis: testing some code
+	</changelog>
+</module>
