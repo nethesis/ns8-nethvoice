@@ -208,4 +208,30 @@ if (count($res) == 0) {
 	);
 }
 
+/* Migrate NethCQR */
+# get NethCQR configuration
+$sql = "SELECT * FROM `asterisk`.`nethcqr_details`";
+$stmt = $db->prepare($sql);
+$stmt->execute();
+$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+# change default configuration for phonebook database
+$sql = "UPDATE `asterisk`.`nethcqr_details` SET `db_url` = ?, `db_name` = ?, `db_user` = ?, `db_pass` = ?  WHERE `db_url` = 'localhost' AND `db_name` = 'phonebook' AND `db_user` = 'pbookuser'";
+$stmt = $db->prepare($sql);
+$stmt->execute([$_ENV['PHONEBOOK_DB_HOST'].':'.$_ENV['PHONEBOOK_DB_PORT'],$_ENV['PHONEBOOK_DB_NAME'],$_ENV['PHONEBOOK_DB_USER'],$_ENV['PHONEBOOK_DB_PASS']]);
+
+# do the same also for cc_... fields
+$sql = "UPDATE `asterisk`.`nethcqr_details` SET `cc_db_url` = ?, `cc_db_name` = ?, `cc_db_user` = ?, `cc_db_pass` = ?  WHERE `cc_db_url` = 'localhost' AND `cc_db_name` = 'phonebook' AND `cc_db_user` = 'pbookuser'";
+$stmt = $db->prepare($sql);
+$stmt->execute([$_ENV['PHONEBOOK_DB_HOST'].':'.$_ENV['PHONEBOOK_DB_PORT'],$_ENV['PHONEBOOK_DB_NAME'],$_ENV['PHONEBOOK_DB_USER'],$_ENV['PHONEBOOK_DB_PASS']]);
+
+# change default configuration for local databases
+$sql = "UPDATE `asterisk`.`nethcqr_details` SET `db_url` = ? WHERE `db_url` = 'localhost'";
+$stmt = $db->prepare($sql);
+$stmt->execute(['127.0.0.1:'.$_ENV['NETHVOICE_MARIADB_PORT']]);
+
+# do the same also for cc_... fields
+$sql = "UPDATE `asterisk`.`nethcqr_details` SET `cc_db_url` = ? WHERE `cc_db_url` = 'localhost'";
+$stmt = $db->prepare($sql);
+$stmt->execute(['127.0.0.1:'.$_ENV['NETHVOICE_MARIADB_PORT']]);
 
