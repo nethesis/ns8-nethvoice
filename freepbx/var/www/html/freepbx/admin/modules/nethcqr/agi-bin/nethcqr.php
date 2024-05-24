@@ -92,7 +92,16 @@ if (empty($cqr_details['use_code'])) {
             $agi->verbose("ERROR getting workphone from CID: ".$e->getMessage());
         }
 	}
-    $cqr_cc_db = new PDO($cqr_details['cc_db_type'].':host='.$cqr_details['cc_db_url'].';dbname='.$cqr_details['cc_db_name'],
+    if ($cqr_details['cc_db_type'] == 'mssql') {
+        $url = explode(":",$cqr_details['cc_db_url']);
+        if (count($url) == 1) {
+            $url[1] = 1433;
+        }
+        $dsn = "odbc:Driver=FreeTDS;Server={$url[0]},{$url[1]};Database={$cqr_details['cc_db_name']};";
+    } else {
+        $dsn = $cqr_details['cc_db_type'].':host='.$cqr_details['cc_db_url'].';dbname='.$cqr_details['cc_db_name'];
+    }
+    $cqr_cc_db = new PDO($dsn,
         $cqr_details['cc_db_user'],
         $cqr_details['cc_db_pass']
     );
@@ -166,10 +175,7 @@ if (empty($cqr_details['use_code'])) {
 
 	        //CHECK MANUAL CUSTOMER CODE
 		    if (isset($cqr_details['ccc_query']) && $cqr_details['ccc_query'] != '') {
-                $cqr_cc_db = new PDO($cqr_details['cc_db_type'].':host='.$cqr_details['cc_db_url'].';dbname='.$cqr_details['cc_db_name'],
-                    $cqr_details['cc_db_user'],
-                    $cqr_details['cc_db_pass']
-                );
+                // Use the customer code control query to check if the manually inserted customer code is correct
                 $query = nethcqr_evaluate($cqr_details['ccc_query'],array("CODCLI"=>$codcli));
                 $agi->verbose($query);
                 $stmt = $cqr_cc_db->prepare($query);
@@ -254,12 +260,25 @@ function nethcqr_goto($cqr_query_results) {
     nethcqr_goto_destination($cqr_details['default_destination']);
 }
 
+/**
+ * Function to go to a specified dialplan destination.
+ *
+ * @param string $destination The destination to go to.
+ * @return void
+ */
 function nethcqr_goto_destination($destination) {
     global $agi;
     @$agi->exec("Goto", $destination);
     exit(0);
 }
 
+/**
+ * Evaluates a message by replacing variable placeholders with their corresponding values.
+ *
+ * @param string $msg The message to be evaluated.
+ * @param array $variables An associative array of variable names and their values.
+ * @return string The evaluated message with variable placeholders replaced.
+ */
 function nethcqr_evaluate($msg, $variables) {
     //$variables = array ('VAR_NAME_IN_MSG' => var_value, ....)
     //VAR_NAME_IN_MSG : NAME, PIPPO,FOOBAR
