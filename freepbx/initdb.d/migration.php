@@ -209,12 +209,6 @@ if (count($res) == 0) {
 }
 
 /* Migrate NethCQR */
-# get NethCQR configuration
-$sql = "SELECT * FROM `asterisk`.`nethcqr_details`";
-$stmt = $db->prepare($sql);
-$stmt->execute();
-$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
 # change default configuration for phonebook database
 $sql = "UPDATE `asterisk`.`nethcqr_details` SET `db_url` = ?, `db_name` = ?, `db_user` = ?, `db_pass` = ?  WHERE `db_url` = 'localhost' AND `db_name` = 'phonebook' AND `db_user` = 'pbookuser'";
 $stmt = $db->prepare($sql);

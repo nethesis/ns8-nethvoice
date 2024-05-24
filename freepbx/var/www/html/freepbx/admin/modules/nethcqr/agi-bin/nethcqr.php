@@ -24,334 +24,250 @@
 include_once ("/etc/freepbx.conf");
 
 define("AGIBIN_DIR", "/var/lib/asterisk/agi-bin");
-define("DEBUG", "FALSE");
 include(AGIBIN_DIR."/phpagi.php");
-
-global $db;
-global $amp_conf;
 
 $agi = new AGI();
 
 //Get cqr id, passed as an argument and check that it isn't empty
-global $id_cqr;
 $id_cqr = $argv[1];
-if ($id_cqr == '') 
-{
-    nethcqr_debug("ERROR: id_cqr cannot be empty!");
+if (empty($id_cqr)) {
+    $agi->verbose("ERROR: id_cqr cannot be empty!");
     exit (1);
-} else {
-    nethcqr_debug("Starting cqr id ".$id_cqr.".");
 }
 
 //connetct to asterisk database and retrieve cqr details
-$sql = "SELECT * FROM nethcqr_details WHERE `id_cqr`='$id_cqr'";
-global $cqr;
-$cqr_tmp = nethcqr_query($sql,$db,'mysql');
-$cqr = $cqr_tmp[0];
-if (!is_array($cqr))
-{
-    nethcqr_debug ("ERROR: cqr object seems wrong");
-    exit(1);
-} else {
-    nethcqr_debug($cqr);
-}
+$sql = "SELECT * FROM nethcqr_details WHERE `id_cqr`= ?";
+$stmt = $db->prepare($sql);
+$stmt->execute(array($id_cqr));
+$cqr_details = $stmt->fetch(\PDO::FETCH_ASSOC);
 
 $variables = array (
     'DATE' => date("Y-m-d G:i:s"),
     'CID' => $agi->request['agi_callerid']
 );
 
-if (!isset($cqr['use_code']) || $cqr['use_code'] == 0)
-{
-    if (isset($variables['CID']) && $variables['CID'] != '' && $variables['CID'] != 0 )
-    {
+try {
+    $cqrdb = new PDO($cqr_details['db_type'].':host='.$cqr_details['db_url'].';dbname='.$cqr_details['db_name'],
+            $cqr_details['db_user'],
+            $cqr_details['db_pass']
+        );
+} catch (PDOException $e) {
+    $agi->verbose("ERROR: can't connect to database ".$cqr_details['db_name']." -> ".$e->getMessage());
+    exit(1);
+}
+
+if (empty($cqr_details['use_code'])) {
+    if (!empty($variables['CID'])) {
         //make destination query using only CID
-        nethcqr_debug("breakpoint 1 CQR id: $id_cqr, use_code: ".$cqr['use_code'].", CID: ".$variables['CID'].", customercode: not yet definded" );
-        $handler = nethcqr_db_connect($cqr['db_type'],$cqr['db_name'],$cqr['db_user'],$cqr['db_pass'],$cqr['db_url']);
-        nethcqr_debug (var_dump($cqr['query']));
-        $query = nethcqr_evaluate($cqr['query'],$variables);
-        nethcqr_debug ($query);
-        $query_results = nethcqr_query($query,$handler,$cqr['db_type']);
-        nethcqr_debug ($query_results);
-        nethcqr_goto ($query_results);    
+        $agi->verbose("INFO: CQR id: $id_cqr, use_code: ".$cqr_details['use_code'].", CID: is empty");
+        $query = nethcqr_evaluate($cqr_details['query'],$variables);
+        $agi->verbose("INFO: executing CQR query: $query");
+        $stmt = $cqrdb->prepare($query);
+        $stmt->execute();
+        $cqr_query_results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $agi->verbose("INFO: results: ".print_r($cqr_query_results,true));
+        nethcqr_goto($cqr_query_results);
+    } else {
+        $agi->verbose("INFO: CQR id: $id_cqr, use_code: ".$cqr_details['use_code'].", CID: ".$variables['CID']);
+        nethcqr_goto_destination($cqr_details['default_destination']);
     }
-    else
-    {
-        nethcqr_debug("breakpoint 2 CQR id: $id_cqr, use_code: ".$cqr['use_code'].", CID: ".$variables['CID'].", customercode: not yet definded" );
-        nethcqr_goto_destination($cqr['default_destination']);
-    }
-} 
-else 
-{
+} else {
     //try to get CUSTOMERCODE from CID
-    if (isset($variables['CID']) && $variables['CID'] != '' && $variables['CID'] != 0 ){
-	if ($cqr['use_workphone']) {
-	    //search if there is a workphone to use as CID 
-            $pb_user = $amp_conf["AMPDBUSER"];
-            $pb_pass = $amp_conf["AMPDBPASS"];
-            $pb_host = 'localhost';
-            $pb_name = 'phonebook';
-            $pb_engine = 'mysql';
-            $pb_datasource = $pb_engine.'://'.$pb_user.':'.$pb_pass.'@'.$pb_host.'/'.$pb_name;
-            $pb = @DB::connect($pb_datasource); // attempt connection
-            if(!$pb instanceof DB_Error) {
-                $number=$variables['CID'];
-	        $sql="SELECT `workphone` FROM `phonebook` WHERE (`homephone` LIKE '%$number' OR `cellphone` LIKE '%$number') AND `workphone` <> '' AND `workphone` IS NOT NULL";
-                $workphone = @$pb->getAll($sql,DB_FETCHMODE_ORDERED);
-                if ($pb->isError($workphone)){
-                    if (!empty($workphone) && count($workphone)==1){
-                         $variables['CID']=$workphone[0][0];
-                    }
-                }
-	    }
-   	    $pb->disconnect();
+    if (!empty($variables['CID']) && $cqr_details['use_workphone']) {
+        try {
+            //search if there is a workphone to use as CID in phonebook
+            $phonebookdb = new PDO('mysql:host='.$_ENV['PHONEBOOK_DB_HOST'].':'.$_ENV['PHONEBOOK_DB_PORT'].';dbname='.$_ENV['PHONEBOOK_DB_NAME'],
+                $_ENV['PHONEBOOK_DB_USER'],
+                $_ENV['PHONEBOOK_DB_PASS']
+            );
+            $number=$variables['CID'];
+            $sql="SELECT `workphone` FROM `phonebook` WHERE (`homephone` LIKE ? OR `cellphone` LIKE ?) AND `workphone` <> '' AND `workphone` IS NOT NULL";
+            $stmt = $phonebookdb->prepare($sql);
+            $stmt->execute(["%$number","%$number"]);
+            $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            if (!empty($workphones) && count($res)>=1){
+                $variables['CID'] = $res[0]['workphone'];
+            }
+        } catch (PDOException $e) {
+            $agi->verbose("ERROR getting workphone from CID: ".$e->getMessage());
+        }
 	}
-        $handler = nethcqr_db_connect($cqr['cc_db_type'],$cqr['cc_db_name'],$cqr['cc_db_user'],$cqr['cc_db_pass'],$cqr['cc_db_url']);
-        nethcqr_debug ($cqr['cc_query']);	
-        $cc_query = nethcqr_evaluate($cqr['cc_query'],$variables);
-        $cqr_query_results = nethcqr_query($cc_query,$handler,$cqr['cc_db_type']);
-    }
+    $cqr_cc_db = new PDO($cqr_details['cc_db_type'].':host='.$cqr_details['cc_db_url'].';dbname='.$cqr_details['cc_db_name'],
+        $cqr_details['cc_db_user'],
+        $cqr_details['cc_db_pass']
+    );
+    $cc_query = nethcqr_evaluate($cqr_details['cc_query'],$variables);
+    $stmt = $cqr_cc_db->prepare($cc_query);
+    $stmt->execute();
+    $cqr_query_results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
     if (is_array($cqr_query_results)) {
         if (is_array($cqr_query_results[0])) {
-             $variables['CUSTOMERCODE'] = array_pop($cqr_query_results[0]);
-	} else {
-             $variables['CUSTOMERCODE'] = $cqr_query_results[0];
+            $variables['CUSTOMERCODE'] = array_pop($cqr_query_results[0]);
+        } else {
+            $variables['CUSTOMERCODE'] = $cqr_query_results[0];
         }
+    } else {
+        $variables['CUSTOMERCODE'] = $cqr_query_results;
     }
-    else $variables['CUSTOMERCODE'] = $cqr_query_results;
 
-    if (isset($variables['CUSTOMERCODE']) && $variables['CUSTOMERCODE'] != 0 && $variables['CUSTOMERCODE'] != '')
-    {
+    if (!empty($variables['CUSTOMERCODE'])) {
         //make destination query using CUSTOMERCODE
-	nethcqr_debug("breakpoint 3 CQR id: $id_cqr, use_code: ".$cqr['use_code'].", CID: ".$variables['CID'].", customercode: ".$variables['CUSTOMERCODE']."" );
-	$handler = nethcqr_db_connect($cqr['db_type'],$cqr['db_name'],$cqr['db_user'],$cqr['db_pass'],$cqr['db_url']);
-	$query = nethcqr_evaluate($cqr['query'],$variables);
-	nethcqr_debug ($query);
-	$cqr_query_results = nethcqr_query($query,$handler,$cqr['db_type']);
-	nethcqr_debug ($cqr_query_results);
-	nethcqr_goto ($cqr_query_results);
-    } 
-    else 
-    {
-	if ($cqr['manual_code']=='1')
-	{
-            //ask for manual code
-            $try=1;
-            nethcqr_debug("Asking user for manual customer code");
-            $welcome_audio_file = recordings_get_file($cqr["cod_cli_announcement"]);
-            if ($cqr['code_retries']==0) $infinite = true;
-            else $infinite = false;
-            while($try <= $cqr['code_retries'] || $infinite)
-	    {
-                unset($buf);
-                $pinchr='';
-                $codcli='';
-                unset($pin);
-                nethcqr_debug("Getting manual customer code, try: $try");
-                $pin = $agi->fastpass_stream_file($buf,$welcome_audio_file,'1234567890#');
-                nethcqr_debug($pin);
-                nethcqr_debug($buf);
-                if ($pin['result'] >0)
-		{
-                    $codcli=chr($pin['result']);
-		}
-                # ciclo in attesa di numeri (codcli) fino a che non viene messo # o il numero di caratteri è < $cqr['code_length']
-                while($pinchr != "#" && strlen($codcli) < $cqr['code_length']) 
-		{
-                    $pin = $agi->wait_for_digit("6000");
-                    $pinchr=chr($pin['result']);
-                    nethcqr_debug($pin);
-                    if ($pin['code'] != AGIRES_OK || $pin['result'] <= 0 ) 
- 		    { #non funziona dtmf, vado avanti 
-                        nethcqr_debug("dtmf isn't working");
-			$codcli = -1;
-                    } elseif ($pinchr >= "0" and $pinchr <= "9") {
-                        $codcli = $codcli.$pinchr;
-                    }
-                    nethcqr_debug("Codcli: ".$pin['result']."-".$pin['code']."-".$codcli,1);
-		    if ($codcli == -1) break; //exit from asking digit loop if someone press # without any digit 	
-                }
-		if ($codcli == -1) 
-		{
-			//if someone pressed # without digit, go to next try. 
-			$try++;
-			nethcqr_debug ("Invalid code");
-			$err_msg = recordings_get_file($cqr["err_announcement"]);
-			$agi->stream_file($err_msg);
-			continue;
-		}
-	        //CHECK MANUAL CUSTOMER CODE
-		if (isset($cqr['ccc_query']) && $cqr['ccc_query'] != '')
-		{
-		    $handler = nethcqr_db_connect($cqr['cc_db_type'],$cqr['cc_db_name'],$cqr['cc_db_user'],$cqr['cc_db_pass'],$cqr['cc_db_url']);
-		    $ccc_query = nethcqr_evaluate($cqr['ccc_query'],array("CODCLI"=>$codcli));
-                    nethcqr_debug ($ccc_query);
-                    $cqr_query_results = nethcqr_query($ccc_query,$handler,$cqr['cc_db_type']);
-                    if (empty($cqr_query_results))
-		    {
-		        //Manual inserted customer code isn't correct
-                        $err_msg = recordings_get_file($cqr["err_announcement"]);
-                        $agi->stream_file($err_msg); # codice errato o inesistente
-			nethcqr_debug ("Manually provided customer code is wrong!");
-                    }
-		    else
-	 	    {
-		        //Manual inserted customer code is correct
-                        $variables['CUSTOMERCODE']=$codcli;
-		        nethcqr_debug("breakpoint 4 CQR id: $id_cqr, use_code: ".$cqr['use_code'].", CID: ".$variables['CID'].", customercode: ".$variables['CUSTOMERCODE']."" );
-                        $handler = nethcqr_db_connect($cqr['db_type'],$cqr['db_name'],$cqr['db_user'],$cqr['db_pass'],$cqr['db_url']);
-                        $query = nethcqr_evaluate($cqr['query'],$variables);
-                        nethcqr_debug ($query);
-                        $cqr_query_results = nethcqr_query($query,$handler,$cqr['db_type']);
-                        nethcqr_debug ($cqr_query_results);
-                        nethcqr_goto ($cqr_query_results);
+        $agi->verbose("INFO: CQR id: $id_cqr, use_code: ".$cqr_details['use_code'].", CID: ".$variables['CID'].", customercode: ".$variables['CUSTOMERCODE']);
+	    $query = nethcqr_evaluate($cqr_details['query'],$variables);
+	    $agi->verbose ($query);
+        $stmt = $cqrdb->prepare($query);
+        $stmt->execute();
+        $cqr_query_results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $agi->verbose("INFO: results: ".print_r($cqr_query_results,true));
+	    nethcqr_goto($cqr_query_results);
+    } elseif ($cqr_details['manual_code']=='1') {
+        //ask for manual code
+        $try=1;
+        $agi->verbose("Asking user for manual customer code");
+        $welcome_audio_file = recordings_get_file($cqr_details["cod_cli_announcement"]);
+        if ($cqr_details['code_retries']==0) $infinite = true;
+        else $infinite = false;
+        while($try <= $cqr_details['code_retries'] || $infinite) {
+            unset($buf);
+            $pinchr='';
+            $codcli='';
+            unset($pin);
+            $agi->verbose("Getting manual customer code, try: $try");
+            $pin = $agi->fastpass_stream_file($buf,$welcome_audio_file,'1234567890#');
+            $agi->verbose($pin);
+            $agi->verbose($buf);
+            if ($pin['result'] >0) {
+                $codcli=chr($pin['result']);
 		    }
-		} 
-		else
-		{
-		    //Don't check manual customer code. It's correct 
-		    nethcqr_debug("breakpoint 5 CQR id: $id_cqr, use_code: ".$cqr['use_code'].", CID: ".$variables['CID'].", customercode: ".$variables['CUSTOMERCODE']."" );
-                    $handler = nethcqr_db_connect($cqr['db_type'],$cqr['db_name'],$cqr['db_user'],$cqr['db_pass'],$cqr['db_url']);
-                    $query = nethcqr_evaluate($cqr['query'],$variables);
-                    nethcqr_debug ($query);
-                    $cqr_query_results = nethcqr_query($query,$handler,$cqr['db_type']);
-                    nethcqr_debug ($cqr_query_results);
-                    nethcqr_goto ($cqr_query_results);
-  		}
-                $try++;
+            # ciclo in attesa di numeri (codcli) fino a che non viene messo # o il numero di caratteri è < $cqr_details['code_length']
+            while($pinchr != "#" && strlen($codcli) < $cqr_details['code_length']) {
+                $pin = $agi->wait_for_digit("6000");
+                $pinchr=chr($pin['result']);
+                $agi->verbose($pin);
+                if ($pin['code'] != AGIRES_OK || $pin['result'] <= 0 ) {
+                    #non funziona dtmf, vado avanti 
+                    $agi->verbose("dtmf isn't working");
+			        $codcli = -1;
+                } elseif ($pinchr >= "0" and $pinchr <= "9") {
+                    $codcli = $codcli.$pinchr;
+                }
+                $agi->verbose("Codcli: ".$pin['result']."-".$pin['code']."-".$codcli,1);
+		        if ($codcli == -1) break; //exit from asking digit loop if someone press # without any digit 	
             }
+
+		    if ($codcli == -1) {
+			    //if someone pressed # without digit, go to next try. 
+			    $try++;
+			    $agi->verbose ("Invalid code");
+			    $err_msg = recordings_get_file($cqr_details["err_announcement"]);
+			    $agi->stream_file($err_msg);
+			    continue;
+		    }
+
+	        //CHECK MANUAL CUSTOMER CODE
+		    if (isset($cqr_details['ccc_query']) && $cqr_details['ccc_query'] != '') {
+                $cqr_cc_db = new PDO($cqr_details['cc_db_type'].':host='.$cqr_details['cc_db_url'].';dbname='.$cqr_details['cc_db_name'],
+                    $cqr_details['cc_db_user'],
+                    $cqr_details['cc_db_pass']
+                );
+                $query = nethcqr_evaluate($cqr_details['ccc_query'],array("CODCLI"=>$codcli));
+                $agi->verbose($query);
+                $stmt = $cqr_cc_db->prepare($query);
+                $stmt->execute();
+                $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                if (empty($res)) {
+		            //Manual inserted customer code isn't correct
+                    $err_msg = recordings_get_file($cqr_details["err_announcement"]);
+                    $agi->stream_file($err_msg); # codice errato o inesistente
+			        $agi->verbose ("Manually provided customer code is wrong!");
+                } else {
+		            //Manual inserted customer code is correct
+                    $variables['CUSTOMERCODE']=$codcli;
+		            $agi->verbose("breakpoint 4 CQR id: $id_cqr, use_code: ".$cqr_details['use_code'].", CID: ".$variables['CID'].", customercode: ".$variables['CUSTOMERCODE']."" );
+                    $query = nethcqr_evaluate($cqr_details['query'],$variables);
+                    $agi->verbose($query);
+                    $stmt = $cqrdb->prepare($query);        
+                    $stmt->execute();
+                    $cqr_query_results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                    $agi->verbose("INFO: results: ".print_r($cqr_query_results,true));
+                    nethcqr_goto($cqr_query_results);
+		        }
+		    } else {
+		        //Don't check manual customer code. It's correct 
+		        $agi->verbose("breakpoint 5 CQR id: $id_cqr, use_code: ".$cqr_details['use_code'].", CID: ".$variables['CID'].", customercode: ".$variables['CUSTOMERCODE']."" );
+                $query = nethcqr_evaluate($cqr_details['query'],$variables);
+                $agi->verbose($query);
+                $stmt = $cqrdb->prepare($query);        
+                $stmt->execute();
+                $cqr_query_results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                $agi->verbose("INFO: results: ".print_r($cqr_query_results,true));
+                nethcqr_goto($cqr_query_results);
+  		    }
+            $try++;
+        }
 	    //manually provided customer code was always wrong, goto default destination
-	    nethcqr_debug("breakpoint 6 CQR id: $id_cqr, use_code: ".$cqr['use_code'].", CID: ".$variables['CID'].", customercode: ".$variables['CUSTOMERCODE']."" );
-            nethcqr_goto_destination($cqr['default_destination']);
-	} 
-	else 
-	{
+	    $agi->verbose("breakpoint 6 CQR id: $id_cqr, use_code: ".$cqr_details['use_code'].", CID: ".$variables['CID'].", customercode: ".$variables['CUSTOMERCODE']."" );
+        nethcqr_goto_destination($cqr_details['default_destination']);
+	} else {
 	    //got default destination
-	    nethcqr_debug("breakpoint 7 CQR id: $id_cqr, use_code: ".$cqr['use_code'].", CID: ".$variables['CID'].", customercode: ".$variables['CUSTOMERCODE']."" );
-            nethcqr_goto_destination($cqr['default_destination']);
+	    $agi->verbose("breakpoint 7 CQR id: $id_cqr, use_code: ".$cqr_details['use_code'].", CID: ".$variables['CID'].", customercode: ".$variables['CUSTOMERCODE']."" );
+        nethcqr_goto_destination($cqr_details['default_destination']);
 	}
-    }
 }
 
-#FUNCTIONS#
-function nethcqr_debug($text) {
-    global $agi;
-    if (is_array($text))
-    {
-        $text=print_r($text,true);
-    }
-    {
-        $agi->verbose($text);
-    }
-}
-
-function nethcqr_goto($cqr_query_results)
-{
-    global $id_cqr;
+/**
+ * Function to process the query results and determine the destination based on the conditions.
+ *
+ * @param array $cqr_query_results The query results to process.
+ * @return void
+ */
+function nethcqr_goto($cqr_query_results) {
     global $db;
-    global $cqr;
-    //get entries 
-    $sql = "SELECT * FROM nethcqr_entries WHERE `id_cqr`='$id_cqr' ORDER BY `position` ASC";
-    $entries = nethcqr_query($sql,$db,'mysql');
-    foreach ($cqr_query_results as $cqr_query_result)
-    {
-        $cqr_query_result = array_values ($cqr_query_result);
-        $cqr_query_result = $cqr_query_result[0];
-	nethcqr_debug ("query result ".$cqr_query_result);
-        foreach ($entries as $entrie)
-	{
-	    if ($cqr_query_result == $entrie['condition']) 
-	    {//WIN
-                nethcqr_debug("'$cqr_query_result' == '".$entrie['condition']."' -> '".$entrie['destination']."'");
-                nethcqr_goto_destination($entrie['destination']);
-            } else {
-                nethcqr_debug("'$cqr_query_result' != '".$entrie['condition']."' -> '".$entrie['destination']."'");
+    global $id_cqr;
+    global $agi;
+    global $cqr_details;
+    
+    // Get entries from the database
+    $sql = "SELECT * FROM nethcqr_entries WHERE `id_cqr`= ? ORDER BY `position` ASC";
+    $stmt = $db->prepare($sql);
+    $stmt->execute(array($id_cqr));
+    $entries = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    
+    foreach ($cqr_query_results as $cqr_query_result) {
+        if (is_array($cqr_query_result)) {
+            $cqr_query_result = array_pop($cqr_query_result);
+            $agi->verbose ("query result ".$cqr_query_result);
+            foreach ($entries as $entry) {
+                if ($cqr_query_result == $entry['condition']){
+                    // Query result matches an entry condition
+                    $agi->verbose("'$cqr_query_result' == '".$entry['condition']."' -> '".$entry['destination']."'");
+                    nethcqr_goto_destination($entry['destination']);
+                } else {
+                    $agi->verbose("'$cqr_query_result' != '".$entry['condition']."' -> '".$entry['destination']."'");
+                }
             }
-	}
-    }
-    nethcqr_debug("No entry match with query results, going to default destination...");
-    nethcqr_goto_destination($cqr['default_destination']);
-}
-
-function nethcqr_goto_destination($destination,$exit=0)
-{
-        global $agi;
-        nethcqr_debug(__FUNCTION__.": goto $destination");
-        @$agi->exec("Goto","$destination");
-        exit($exit);
-}
-
-function nethcqr_evaluate($msg,$variables){
-        //$variables = array ('VAR_NAME_IN_MSG' => var_value, ....)
-        //VAR_NAME_IN_MSG : NAME, PIPPO,FOOBAR
-        //$msg example: "SELECT * FROM '%TABLE%'"
-        //var_value : 'pippo'
-        //expected return: "SELECT * FROM pippo"
-        nethcqr_debug('nethcqr_evaluate 1 '.$msg);
-        nethcqr_debug ($variables);
-        foreach ($variables as $variable_name => $variable_value ){
-                $msg = preg_replace('/%'.$variable_name.'%/',$variable_value,$msg);
         }
-        nethcqr_debug('nethcqr_evaluate 2 '.$msg);
-        return $msg;
-
+    }
+    
+    // No entry matches the query results, go to the default destination
+    $agi->verbose("No entry matches with query results, going to default destination ".$cqr_details['default_destination']);
+    nethcqr_goto_destination($cqr_details['default_destination']);
 }
 
-function nethcqr_db_connect($db_type,$db_name,$db_user,$db_pass,$db_url='localhost')
-{
-    if ($db_type=='mysql')
-    {
-        $datasource = 'mysql://'.$db_user.':'.$db_pass.'@'.$db_url.'/'.$db_name;
-        @$handle =& DB::connect($datasource);
-        if ($handle instanceof DB_Error)
-	{
-	    nethcqr_debug("ERROR: can't connect to database $db_name -> ". $handle->getMessage());
-	    return false;
-	}
-    }
-    elseif ($db_type=='mssql')
-    {
-        $handle = odbc_connect($db_name,$db_user,$db_pass);
-        if (!isset($handle))
-	{
-	    //ERROR
-	    nethcqr_debug("ERROR: can't connect to database $db_name -> ". odbc_errormsg());
-	    return false;
-	}    
-    }
-    return $handle;
+function nethcqr_goto_destination($destination) {
+    global $agi;
+    @$agi->exec("Goto", $destination);
+    exit(0);
 }
 
-function nethcqr_query($sql,$handle,$db_type='mysql')
-{
-    if ($db_type=='mysql')
-    {
-        $results = @$handle->getAll($sql, DB_FETCHMODE_ASSOC);
-	if($handle->isError($results))
-	{
-	    nethcqr_debug ("ERROR: $sql -> ".$results->getMessage());
-	    return false;
-	}
-    } 
-    elseif ($db_type=='mssql')
-    {
-	$result = odbc_exec($handle,$sql);
-	while ($row = odbc_fetch_array($result))
-	{
-            $results[] = $row;
-        }
-	    odbc_close($handle);
+function nethcqr_evaluate($msg, $variables) {
+    //$variables = array ('VAR_NAME_IN_MSG' => var_value, ....)
+    //VAR_NAME_IN_MSG : NAME, PIPPO,FOOBAR
+    //$msg example: "SELECT * FROM '%TABLE%'"
+    //var_value : 'foo'
+    //expected return: "SELECT * FROM foo"
+    foreach ($variables as $variable_name => $variable_value) {
+        $msg = preg_replace('/%' . $variable_name . '%/', $variable_value, $msg);
     }
-    nethcqr_debug("query $sql  -> ".print_r($results,true));
-    return $results;
+    return $msg;
 }
-
-
-
-
-
-
-
-
-
-
