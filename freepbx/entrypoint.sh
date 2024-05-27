@@ -86,7 +86,8 @@ Driver = MariaDB Unicode
 Description = ODBC on asteriskcdrdb
 EOF
 
-chown asterisk:asterisk /var/lib/asterisk/db
+mkdir -p /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads 
+chown asterisk:asterisk /var/lib/asterisk/db /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads
 
 # Customized wizard page
 cat > /etc/apache2/sites-available/wizard.conf <<EOF
