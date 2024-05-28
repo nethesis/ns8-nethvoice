@@ -1,0 +1,10 @@
+[Unit]
+Description=Timer for Asterisk full file rotation
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+Unit=logrotate.service
+
+[Install]
+WantedBy=timers.target

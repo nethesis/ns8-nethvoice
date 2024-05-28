@@ -1,0 +1,13 @@
+/var/log/asterisk/full {
+	hourly
+	missingok
+	rotate 50
+	size 10M
+	notifempty
+	compress
+	create 0640 asterisk asterisk
+	sharedscripts
+	postrotate
+    	/usr/sbin/asterisk -rx 'logger reload' > /dev/null 2> /dev/null
+	endscript
+}

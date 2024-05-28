@@ -175,6 +175,7 @@ RUN groupadd -g 991 -r asterisk && \
 		libldap2-dev \
 		libldap-2.4-2 \
 		libsodium-dev \
+		logrotate \
 		mpg123 \
 		mycli \
 		nodejs \
@@ -548,6 +549,7 @@ COPY freepbx_init.sh /freepbx_init.sh
 COPY etc/amportal.conf /etc
 COPY initdb.d/initdb.php /initdb.d/
 COPY initdb.d/migration.php /initdb.d/
+COPY etc/logrotate.d/asterisk /etc/logrotate.d/asterisk
 COPY var/www/html/freepbx/push-proxy.php /var/www/html/freepbx/push-proxy.php
 COPY usr/src/nethvoice/samples/* /usr/src/nethvoice/samples/
 COPY configure_users.php /
