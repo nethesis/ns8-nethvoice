@@ -1,0 +1,127 @@
+<div class="wizard-pf">
+  <div class="wizard-pf-body clearfix">
+    <div ng-if="wizard.isWizard" class="wizard-pf-steps">
+      <ul class="wizard-pf-steps-indicator">
+        <li class="wizard-pf-step {{resolveActiveTab('groups',2) ? 'active' : ''}}" data-tabgroup="1">
+          <a ng-click="goTo('configurations/groups')">
+            <span class="wizard-pf-step-number">1</span>
+            <span class="wizard-pf-step-title">{{'Groups' | translate}}</span></a>
+        </li>
+        <li class="wizard-pf-step {{resolveActiveTab('profiles',2) ? 'active' : ''}}" data-tabgroup="2">
+          <a ng-click="goTo('configurations/profiles')">
+            <span class="wizard-pf-step-number">2</span>
+            <span class="wizard-pf-step-title">{{'Profiles' | translate}}</span></a>
+        </li>
+        <li ng-if="wizard.provisioning != 'tancredi'" class="wizard-pf-step {{resolveActiveTab('devices',2) ? 'active' : ''}}" data-tabgroup="3">
+          <a ng-click="goTo('configurations/devices')">
+            <span class="wizard-pf-step-number">3</span>
+            <span class="wizard-pf-step-title">{{'Devices' | translate}}</span></a>
+        </li>
+        <li ng-if="wizard.provisioning != 'tancredi'" class="wizard-pf-step {{resolveActiveTab('configurations',2) ? 'active' : ''}}" data-tabgroup="4">
+          <a ng-click="goTo('configurations/preferences')">
+            <span class="wizard-pf-step-number">4</span>
+            <span class="wizard-pf-step-title">{{'Users' | translate}}</span></a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="wizard-pf-contents adjust-size">
+    <h1 class="control-label centered" for="textInput-markup">{{'Devices configuration' | translate}}</h1>
+    <div ng-if="!(networks | isEmpty)" class="container-fluid">
+      <div class="col-xs-12 col-sm-6 col-md-{{12/networkLength}} col-lg-{{12/networkLength}} devices-margin-top" ng-repeat="(key, network) in networks">
+        <div class="card-pf card-pf-view adjust-card">
+          <div class="card-pf-body">
+            <div class="card-pf-top-element">
+              <span class="pficon pficon-network card-pf-icon-circle"></span>
+            </div>
+            <h2 class="card-pf-title text-center">
+              {{key}} | <span class="weight">{{network.network}}</span>
+            </h2>
+            <div class="card-pf-items text-center">
+              <div class="card-pf-item">
+                <span class="pficon pficon-screen"></span>
+                <span class="card-pf-item-text"><b>{{network.ip}}</b> / </span>
+                <span class="inline-display" popover-placement="top" popover-trigger="'mouseenter'" popover-animation="true" uib-popover="{{'Netmask' | translate}}: {{network.netmask}}"><input ng-model="network.netmask" type="text" class="form-control config-form"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div ng-if="!(allDevices | isEmpty: true)" class="container-fluid scanned-lists">
+      <div id="#{{networkName}}" class="list-group list-view-pf list-view-pf-view" ng-repeat="(networkName, devices) in allDevices" ng-if="!(devices | isEmpty)">
+        <div class="row">
+          <h1 class="col-lg-6 col-md-6 col-sm-12 col-xs-12 adjust-header">
+            <span class="pficon pficon-network card-pf-icon-circle config-title-icon"></span>{{networkName}} <span class="weight">{{networks[networkName].network}}</span>
+          </h1>
+          <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 adjust-search">
+            <form role="form" class="search-pf has-button" id="form-lg-domains-details">
+              <div class="form-group has-clear">
+                <div class="search-pf-input-group" id="filter-domains-details">
+                  <input ng-model="searchDeviceString" type="text" class="form-control input-lg" placeholder="{{'Search' | translate}}..."></input>
+                </div>
+              </div>
+              <div class="form-group">
+                <button class="btn btn-default btn-lg" type="submit">
+                  <span class="fa fa-search"></span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="list-group-item" ng-repeat="device in devices | filter:searchDeviceString | orderBy: 'manufacturer'">
+          <div class="list-view-pf-actions">
+            <div ng-show="device.isInAction" class="spinner spinner-sm adjust-margin"></div>
+            <span ng-show="!device.isInAction" popover-placement="top-right" popover-trigger="'mouseenter'" popover-animation="true" uib-popover="{{device.model ? 'Configured' : 'Not configured' | translate}}" class="pficon {{device.model ? 'pficon-ok' : 'pficon-info'}} icon-med"></span>
+          </div>
+          <div class="list-view-pf-main-info">
+            <div class="list-view-pf-left">
+              <span class="fa fa-phone list-view-pf-icon-sm {{device.model ? '' : 'disabled'}}"></span>
+            </div>
+            <div class="list-view-pf-body">
+              <div class="list-view-pf-description">
+                <div class="list-group-item-heading {{device.model ? '' : 'disabled'}}">
+                  {{device.manufacturer}}
+                </div>
+                <div class="list-group-item-text">
+                  <div class="form-group">
+                    <select pf-select="{ noneSelectedText: '-' }" ng-change="setPhoneModel(device)" ng-model="device.model" ng-options="m for m in allModels[device.manufacturer] | orderBy:orderByValue">
+                        <option value="">-</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="list-view-pf-additional-info config-info {{device.model ? '' : 'disabled'}}">
+                <div>IP: <b>{{device.ipv4}}</b></div>
+                <div>MAC: <b>{{device.mac}}</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div ng-if="networks | isEmpty" class="blank-slate-pf ">
+      <div class="blank-slate-pf-icon">
+        <span class="pficon pficon-network"></span>
+      </div>
+      <h1>
+        {{'No networks found' | translate}}
+      </h1>
+      <p>
+        {{'There are problems to get networks configurations' | translate}}
+      </p>
+    </div>
+    <div ng-if="!(networks | isEmpty) && (allDevices | isEmpty: true) && scanned == true" class="blank-slate-pf ">
+      <div class="blank-slate-pf-icon">
+        <span class="fa fa-phone"></span>
+      </div>
+      <h1>
+        {{ 'No devices found' | translate }}
+      </h1>
+      <p>
+        {{'Check if the devices are connected in your network' | translate}}
+      </p>
+    </div>
+  </div>
+  <wizard-step ng-if="wizard.isWizard" id="wizardStepBase"></wizard-step>
+</div>

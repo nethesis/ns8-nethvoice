@@ -1,0 +1,42 @@
+<div class="blank-slate-pf no-border">
+  <div class="blank-slate-pf-icon">
+    <span class="fa fa-cogs"></span>
+  </div>
+
+  <div class="blank-slate-pf-title mt-10">
+    <h1>
+      {{'Edit the default settings before continuing' | translate}}
+    </h1>
+  </div>
+
+  <div class="blank-slate-pf-content mt-20 mb-30">
+    <p>
+      {{'If all phones connect from private networks' | translate}}
+      <br>
+      {{'disable the encryption, PBX address can be an IP.' | translate}}
+    </p>
+    <p>
+      {{'If at least one phone connects from the public network' | translate}}
+      <br>
+      {{'enable the encryption, PBX address must be a FQDN host name registered in the DNS, the system must have a valid TLS certificate.' | translate}}
+    </p>
+  </div>
+
+  <div class="blank-slate-pf-main-action">
+    <button ng-if="defaultSettings.ui_first_config === '1'" ng-click="openDefaultSettings()" class="btn btn-lgg btn-warning" type="button"><i class="fa fa-pencil-square-o"></i> {{"Edit the default settings" | translate}}</button>
+    <button ng-if="defaultSettings.ui_first_config === ''" ng-click="openDefaultSettings()" class="btn btn-lgg btn-primary" type="button"><i class="fa fa-check"></i> {{"Edit the default settings" | translate}}</button>
+  </div>
+
+  <wizard-step ng-if="wizard.isWizard" id="wizardStepBase"></wizard-step>
+</div>
+  
+<div
+  class="modal fade"
+  id="defaultSettingsModal"
+  ng-controller="DefaultModalUICtrl"
+  tabindex="-1"
+  role="dialog"
+  aria-hidden="true"
+  data-backdrop="static"
+  ng-include="defaultsModalUrl"
+  ></div>

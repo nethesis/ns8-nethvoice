@@ -1,0 +1,387 @@
+<div class="wizard-pf">
+  <div ng-if="wizard.isWizard" class="wizard-pf-body clearfix">
+    <div ng-if="wizard.isWizard" class="wizard-pf-steps">
+      <ul class="wizard-pf-steps-indicator">
+        <li class="wizard-pf-step {{resolveActiveTab('physical',2) ? 'active' : ''}}" data-tabgroup="1">
+          <a ng-click="goTo('trunks/physical')"><span class="wizard-pf-step-number">1</span><span class="wizard-pf-step-title">{{'Physical' | translate}}</span></a>
+        </li>
+        <li class="wizard-pf-step {{resolveActiveTab('voip',2) ? 'active' : ''}}" data-tabgroup="2">
+          <a ng-click="goTo('trunks/voip')"><span class="wizard-pf-step-number">2</span><span class="wizard-pf-step-title">{{'Voip' | translate}}</span></a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="wizard-pf-contents adjust-size">
+    <h1 class="control-label centered" for="textInput-markup">{{'Physical lines configuration' | translate}}</h1>
+
+    <div ng-if="allDevices['eth-fake'].length > 0" class="container-fluid scanned-lists col-lg-6 col-md-12 col-sm-12 col-xs-12">
+      <div id="#{{networkName}}" class="list-group list-view-pf list-view-pf-view list-gateway max-containers-height resizePhysical adjust-container-height" ng-repeat="(networkName, devices) in allDevices" ng-if="!(devices | isEmpty)" >
+        <div>
+          <div class="row">
+            <h1 class="col-lg-6 col-md-6 col-sm-12 col-xs-12 adjust-header">
+              <span class="pficon pficon-network card-pf-icon-circle config-title-icon"></span>{{'Main network' | translate}}
+            </h1>
+            <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 adjust-search adjust-search-gateway">
+              <form role="form" class="search-pf has-button" id="form-lg-domains-details">
+                <div class="form-group has-clear">
+                  <div class="search-pf-input-group" id="filter-domains-details">
+                    <input ng-model="searchDeviceString" type="text" class="form-control input-lg" placeholder="{{'Search' | translate}}..."></input>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <button class="btn btn-default btn-lg adjust-search-button" type="submit">
+                    <span class="fa fa-search"></span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      <div when-scrolled="scrollingPhysicalContainer(networkName)">
+       <div class="list-group-item {{selectedDevice.mac == device.mac ? 'selected' : ''}}" ng-repeat="device in devices | filter:searchDeviceString | orderBy: 'manufacturer' | limitTo: physicalLimit[networkName]" ng-click="selectDevice(device, networks[networkName], networkName)">
+          <div class="list-view-pf-actions">
+            <div ng-show="device.isInAction" class="spinner spinner-sm adjust-margin"></div>
+            <span ng-show="!device.isInAction" popover-placement="top-right" popover-trigger="'mouseenter'" popover-animation="true" uib-popover="{{device.isConfigured && device.isConnected ? 'Configured and Connected' : device.isConfigured && !device.isConnected ? 'Configured and Not Connected' : 'Not configured' | translate}}"
+                class="pficon {{device.isConfigured && device.isConnected ? 'pficon-ok' : device.isConfigured && !device.isConnected ? 'pficon-warning-triangle-o' : 'pficon-info'}} icon-med">
+            </span>
+          </div>
+          <div class="list-view-pf-main-info">
+            <div class="list-view-pf-left">
+              <span class="pficon pficon-container-node list-view-pf-icon-sm {{device.isConfigured ? '' : 'disabled'}}"></span>
+            </div>
+            <div class="list-view-pf-body">
+              <div class="list-view-pf-description">
+                <div class="list-group-item-heading {{device.isConfigured ? '' : 'disabled'}}">
+                  {{device.manufacturer}}
+                </div>
+                <div class="list-group-item-text {{device.isConfigured ? '' : 'disabled'}}">
+                  {{getModelDescription(device).description}}
+                </div>
+              </div>
+              <div class="list-view-pf-additional-info config-info {{device.isConfigured ? '' : 'disabled'}}">
+                <div>IP: <b>{{device.ipv4 || device.ipv4_new}}</b></div>
+                <div>MAC: <b>{{device.mac}}</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+        <div class="config-button-list">
+        </div>
+      </div>
+      <button class="btn btn-primary"
+          data-toggle="modal" data-target="#newGwDialog">{{'Add gateway' | translate}}</button>
+    </div>
+    <div class="col-lg-6 col-md-12 col-sm-12 col-xs-12 config-adjust-size-gateway" ng-if="!(selectedDevice | isEmpty)">
+      <div ng-if="selectedDevice.onSaveSuccess" class="alert alert-success alert-dismissable adjust-alert-gateway">
+        <button ng-click="close(selectedDevice)" type="button" class="close" data-dismiss="alert" aria-hidden="true">
+            <span class="pficon pficon-close"></span>
+          </button>
+        <span class="pficon pficon-ok"></span>
+        <strong>{{'Configuration saved' | translate}}.</strong> {{'Click' | translate}} <b>{{'Push' | translate}}</b> {{'to load configuration on device' | translate}}.
+      </div>
+      <div ng-if="selectedDevice.onError" class="alert alert-danger alert-dismissable adjust-alert-gateway">
+        <button ng-click="close(selectedDevice)" type="button" class="close" data-dismiss="alert" aria-hidden="true">
+        <span class="pficon pficon-close"></span>
+      </button>
+        <span class="pficon pficon-error-circle-o"></span>
+        <strong>{{'Configuration error' | translate}}.</strong> {{'Generic error on configuration' | translate}}.
+      </div>
+      <div ng-if="selectedDevice.onDeleteSuccess" class="alert alert-success alert-dismissable adjust-alert-gateway">
+        <button ng-click="close(selectedDevice)" type="button" class="close" data-dismiss="alert" aria-hidden="true">
+            <span class="pficon pficon-close"></span>
+          </button>
+        <span class="pficon pficon-ok"></span>
+        <strong>{{'Configuration deleted' | translate}}.</strong> {{'Configuration deleted with success' | translate}}.
+      </div>
+      <div ng-if="selectedDevice.onPushSuccess" class="alert alert-success alert-dismissable adjust-alert-gateway">
+        <button ng-click="close(selectedDevice)" type="button" class="close" data-dismiss="alert" aria-hidden="true">
+            <span class="pficon pficon-close"></span>
+          </button>
+        <span class="pficon pficon-ok"></span>
+        <strong>{{'Configuration pushed' | translate}}.</strong> {{'Configuration pushed with success' | translate}}.
+      </div>
+      <h1 class="control-label config-title-user" for="textInput-markup">
+          <span class="pficon pficon-container-node config-title-icon-adjust"></span>
+          {{selectedDevice.manufacturer}}
+      </h1>
+      <form class="form-horizontal config-form-gateway" ng-submit="saveConfig(selectedDevice)">
+        <!-- <div class="form-group">
+          <label class="col-sm-3 control-label">{{'Configuration name' | translate}}</label>
+          <div class="col-sm-9">
+            <input type="text" ng-model="selectedDevice.name" class="form-control" placeholder="{{selectedDevice.manufacturer}}-{{'Model'|translate}}" required disabled>
+          </div>
+        </div> -->
+        <div class="form-group">
+          <label class="col-sm-3 control-label">{{'Model' | translate}}</label>
+          <div class="col-sm-9">
+            <select ng-disabled="selectedDevice.isConfigured" required pf-select="{ width: '260px', noneSelectedText: '-' }" ng-model="selectedDevice.model" ng-change="updateExtraFields(selectedDevice)" ng-options="m.id as m.description + ' | ' + m.model for m in allModels[selectedDevice.manufacturer]">
+                <option value="">-</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="col-sm-3 control-label">{{'Device IP' | translate}}</label>
+          <div class="col-sm-9">
+            <input type="text" ng-model="selectedDevice.ipv4_new" class="form-control" required pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$" ng-disabled="selectedDevice.isConfigured">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="col-sm-3 control-label">{{'MAC address' | translate}}</label>
+          <div class="col-sm-9">
+            <input type="text" ng-model="selectedDevice.mac" class="form-control" disabled>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="col-sm-3 control-label">{{'Network mask' | translate}}</label>
+          <div class="col-sm-9">
+            <input type="text" ng-model="selectedDevice.netmask_green" class="form-control" required pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$" ng-disabled="selectedDevice.isConfigured">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="col-sm-3 control-label">{{'Network gateway' | translate}}</label>
+          <div class="col-sm-9">
+            <input type="text" ng-model="selectedDevice.gateway" class="form-control" required pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$" ng-disabled="selectedDevice.isConfigured">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="col-sm-3 control-label">{{'PBX IP' | translate}}</label>
+          <div class="col-sm-9">
+            <input type="text" ng-model="selectedDevice.ipv4_green" class="form-control" required pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$" ng-disabled="selectedDevice.isConfigured">
+          </div>
+        </div>
+
+        <div class="form-group ng-hide">
+          <label class="col-sm-3 control-label">{{'Proxy address' | translate}}</label>
+          <div class="col-sm-9">
+            <input type="text" ng-model="selectedDevice.proxy" class="form-control" ng-disabled="selectedDevice.isConfigured">
+          </div>
+        </div>
+
+        <div class="form-group" ng-repeat="trunk in selectedDevice.trunks_isdn">
+          <label class="col-sm-3 control-label">{{'Port' | translate}} ISDN {{trunk.name}}</label>
+          <div class="col-sm-9">
+            <select ng-disabled="selectedDevice.isConfigured" pf-select ng-model="trunk.type">
+              <option value="pmp">{{'Point-MultiPoint' | translate}}</option>
+              <option value="pp">{{'Point-Point' | translate}}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" ng-repeat="trunk in selectedDevice.trunks_fxo">
+          <label class="col-sm-3 control-label">{{'Port' | translate}} FXO {{trunk.name}}</label>
+          <div class="col-sm-4">
+            <input ng-disabled="selectedDevice.isConfigured" type="text" ng-model="trunk.number" placeholder="{{'Number'|translate}}" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-group" ng-repeat="trunk in selectedDevice.trunks_pri">
+        </div>
+
+        <div class="form-group" ng-repeat="exten in selectedDevice.trunks_fxs">
+          <label class="col-sm-3 control-label">{{'Port' | translate}} FXS {{exten.name}}</label>
+          <div class="col-sm-4">
+            <select ng-disabled="selectedDevice.isConfigured" pf-select="{ noneSelectedText: '-' }" ng-model="exten.linked_extension" ng-options="user.default_extension as user.displayname for user in users">
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="col-sm-12">
+            <div ng-show="selectedDevice.onSave" class="spinner spinner-sm adjust-margin loader-modal-gateway-not-form"></div>
+            <button data-toggle="modal" data-target="#confirmDeleteModal" ng-show="selectedDevice.isConfigured" type="button" ng-disabled="selectedDevice.onSave" class="btn btn-danger col-md-1 right-align">{{'Delete' | translate}}</button>
+            <button ng-click="downConfig(selectedDevice)" ng-show="selectedDevice.isConfigured" type="button" ng-disabled="selectedDevice.onSave" class="btn btn-success col-md-3 left-align adjust-center">{{'Download config' | translate}}</button>
+            <button data-toggle="modal" data-target="#confirmPushModal" ng-show="selectedDevice.isConfigured && selectedDevice.isConnected && !selectedDevice.isGrandStream" type="button" ng-disabled="selectedDevice.onSave" class="btn btn-warning col-md-2 left-align adjust-center">{{'Push config' | translate}}</button>
+            
+            <button ng-show="!selectedDevice.isConfigured" ng-disabled="selectedDevice.onSave" type="submit" class="btn btn-primary col-md-1 right-align">{{'Save' | translate}}</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div ng-show="allDevices['eth-fake'].length == 0" class="blank-slate-pf">
+      <div class="blank-slate-pf-icon mtn-30">
+        <span class="pficon pficon-container-node"></span>
+      </div>
+      <h1 class="mb-25 mt-25">
+        {{'No gateways configured' | translate}}
+      </h1>
+      <div class="mb-25">
+        <p>
+          {{"Click on the button below to add you first gateway" | translate}}
+        </p>
+      </div>
+      <div class="blank-slate-pf-main-action mb-30 mt-15">
+        <button class="btn btn-lgg btn-primary"
+          data-toggle="modal" data-target="#newGwDialog">{{'Add gateway' | translate}}</button>
+      </div>
+  </div>
+
+  <div class="modal fade" id="newGwDialog" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                <span class="pficon pficon-close"></span>
+              </button>
+          <h4 class="modal-title">{{'New Gateway' | translate}}</h4>
+        </div>
+        <div ng-if="newGateway.onSaveError" class="alert alert-danger alert-dismissable adjust-alert">
+          <button ng-click="close(newGateway)" type="button" class="close" data-dismiss="alert" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+          <span class="pficon pficon-error-circle-o"></span>
+          <strong>{{'Configuration error' | translate}}.</strong> {{'Generic error in configuration' | translate}}.
+        </div>
+        <form class="form-horizontal" ng-submit="saveConfig(newGateway, true)">
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="col-sm-3 control-label">{{'Vendor' | translate}}</label>
+              <div class="col-sm-9">
+                <select pf-select="{ width: '260px', noneSelectedText: '-' }" ng-model="newGateway.manufacturer" ng-change="updateExtraFields(newGateway)" ng-options="v as v for v in allVendors" required>
+                      <option value="">-</option>
+                  </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-3 control-label">{{'Model' | translate}}</label>
+              <div class="col-sm-9">
+                <select pf-select="{ width: '260px', noneSelectedText: '-' }" ng-model="newGateway.model" ng-change="updateExtraFields(newGateway)" ng-options="m.id as m.description + ' | ' + m.model for m in allModels[newGateway.manufacturer]" required>
+                  <option value="">-</option>
+              </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-3 control-label">{{'Device IP' | translate}}</label>
+              <div class="col-sm-9">
+                <input type="text" ng-model="newGateway.ipv4_new" class="form-control" required pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-3 control-label">{{'MAC address' | translate}}</label>
+              <div class="col-sm-9">
+                <input type="text" ng-model="newGateway.mac" placeholder="00:11:22:AA:BB:CC" class="form-control" required pattern="([0-9a-fA-F][0-9a-fA-F]:){5}([0-9a-fA-F][0-9a-fA-F])$">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-3 control-label">{{'Network mask' | translate}}</label>
+              <div class="col-sm-9">
+                <input type="text" ng-model="newGateway.netmask_green" class="form-control" required pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-3 control-label">{{'Network gateway' | translate}}</label>
+              <div class="col-sm-9">
+                <input type="text" ng-model="newGateway.gateway" class="form-control" required pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-3 control-label">{{'PBX IP' | translate}}</label>
+              <div class="col-sm-9">
+                <input type="text" ng-model="newGateway.ipv4_green" class="form-control">
+              </div>
+            </div>
+
+            <div class="form-group ng-hide">
+              <label class="col-sm-3 control-label">{{'Proxy address' | translate}}</label>
+              <div class="col-sm-9">
+                <input type="text" ng-model="newGateway.proxy" class="form-control">
+              </div>
+            </div>
+
+            <div class="form-group" ng-repeat="trunk in newGateway.trunks_isdn">
+              <label class="col-sm-3 control-label">{{'Port' | translate}} ISDN {{trunk.name}}</label>
+              <div class="col-sm-9">
+                <select pf-select ng-model="trunk.type">
+                <option value="pmp">{{'Point-MultiPoint' | translate}}</option>
+                <option value="pp">{{'Point-Point' | translate}}</option>
+              </select>
+              </div>
+            </div>
+
+            <div class="form-group" ng-repeat="trunk in newGateway.trunks_fxo">
+              <label class="col-sm-3 control-label">{{'Port' | translate}} FXO {{trunk.name}}</label>
+              <div class="col-sm-4">
+                <input type="text" ng-model="trunk.number" placeholder="{{'Number'|translate}}" class="form-control">
+              </div>
+            </div>
+
+            <div class="form-group" ng-repeat="trunk in newGateway.trunks_pri">
+            </div>
+
+            <div class="form-group" ng-repeat="exten in newGateway.trunks_fxs">
+              <label class="col-sm-3 control-label">{{'Port' | translate}} FXS {{exten.name}}</label>
+              <div class="col-sm-4">
+                <select pf-select="{ noneSelectedText: '-' }" ng-model="exten.linked_extension" ng-options="user.default_extension as user.displayname for user in users">
+                </select>
+              </div>
+            </div>
+            <div ng-show="newGateway.onSave" class="spinner spinner-sm adjust-margin loader-modal-gateway"></div>
+            <div class="modal-footer config-gateway-footer">
+              <button ng-click="hideGatewayDialog()" type="button" class="btn btn-default" data-dismiss="modal">{{'Close' | translate}}</button>
+              <button ng-disabled="newGateway.onSave" type="submit" class="btn btn-primary">{{'Save' | translate}}</button>
+            </div>
+        </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <wizard-step ng-if="wizard.isWizard" id="wizardStepBase"></wizard-step>
+</div>
+
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            <span class="pficon pficon-close"></span>
+          </button>
+        <h4 class="modal-title" id="myModalLabel">
+          {{"Delete configuration" | translate}}
+          {{selectedDevice.name}}
+        </h4>
+      </div>
+      <div class="modal-body">
+        <div class="form-group medium-font">
+          {{ "Are you sure" | translate }} ?
+        </div>
+      </div>
+      <div class="modal-footer submit">
+        <button type="button" class="btn btn-default" data-dismiss="modal">{{ "Cancel" | translate }}</button>
+        <button type="button" class="btn btn-danger" data-dismiss="modal" ng-click="deleteConfig(selectedDevice)">
+          {{ "Delete" | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="confirmPushModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            <span class="pficon pficon-close"></span>
+          </button>
+        <h4 class="modal-title" id="myModalLabel">
+          {{"Push configuration" | translate}} {{'on' | translate}} {{selectedDevice.name}}
+        </h4>
+      </div>
+      <div class="modal-body">
+        <div class="form-group medium-font">
+          {{ "Are you sure" | translate }} ?
+        </div>
+      </div>
+      <div class="modal-footer submit">
+        <button type="button" class="btn btn-default" data-dismiss="modal">{{ "Cancel" | translate }}</button>
+        <button type="button" class="btn btn-warning" data-dismiss="modal" ng-click="pushConfig(selectedDevice)">
+          {{ "Push" | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<a id="dlLink" class="hidden"></a>

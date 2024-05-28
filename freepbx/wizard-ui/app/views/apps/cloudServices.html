@@ -1,0 +1,150 @@
+<div class="wizard-pf">
+  <div class="wizard-pf-body clearfix">
+    <div ng-if="wizard.isWizard" class="wizard-pf-steps">
+      <ul class="wizard-pf-steps-indicator">
+        <li
+          class="wizard-pf-step {{resolveActiveTab('cloudServices',2) ? 'active' : ''}}"
+          data-tabgroup="1"
+        >
+          <a ng-click="goTo('apps/cloudServices')"
+            ><span class="wizard-pf-step-number">1</span
+            ><span class="wizard-pf-step-title"
+              >{{'Parameterized URLs' | translate}}</span
+            ></a
+          >
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="wizard-pf-contents adjust-size">
+    <!-- Title -->
+    <h1 class="control-label centered" for="textInput-markup">
+      {{'Cloud service configuration' | translate}}
+    </h1>
+    <!-- Google Cloud services section -->
+    <div class="cards-pf mt-20">
+      <div class="container-fluid container-cards-pf">
+        <!-- Upload authorization and general description  -->
+        <div class="row">
+          <div class="col-xs-6 col-sm-6 col-md-6">
+            <div class="card-pf card-pf-accented">
+              <div class="card-pf-heading">
+                <h2 class="card-pf-title">
+                  {{'Google cloud services' | translate}}
+                </h2>
+              </div>
+              <div class="card-pf-body">
+                <p>{{'Google Cloud services description' | translate}}</p>
+                <ul class="mt-3">
+                  <li>
+                    <a href="https://cloud.google.com/" target="_blank">
+                      {{'Google Cloud official page' | translate}}
+                    </a>
+                  </li>
+                  <li>
+                    <a href="https://cloud.google.com/docs" target="_blank">
+                      {{'Google Cloud official documentation' | translate}}
+                    </a>
+                  </li>
+                  <li>
+                    <a href="https://cloud.google.com/products" target="_blank">
+                      {{'Google Cloud products' | translate}}
+                    </a>
+                  </li>
+                </ul>
+                <p>{{'Token description' | translate}}</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-xs-6 col-sm-4 col-md-4">
+            <div class="card-pf card-pf-accented">
+              <div class="card-pf-heading">
+                <h2 class="card-pf-title">
+                  <span class="fa fa-cloud-upload mr-5"></span>
+                  {{'Upload Google Auth JSON File' | translate}}
+                </h2>
+              </div>
+              <div class="card-pf-body">
+                <div class="form-group config-row-button">
+                  <button
+                    ng-click="googleAuthorizationUpload()"
+                    class="btn btn-primary btn-lg no-margin"
+                  >
+                    {{'Upload' | translate}}
+                  </button>
+                  <input
+                    ng-model="temp.importFile"
+                    type="file"
+                    accept=".JSON"
+                    id="uploadInput"
+                  />
+                  <label for="uploadInput" class="file-label ml-3">
+                    {{'File already uploaded, click here to replace it' ||
+                    'Select a file to upload' | translate}}
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Google speech-to-text section -->
+        <div class="row mt-3">
+          <div class="col-xs-6 col-sm-6 col-md-6">
+            <div class="card-pf card-pf-accented">
+              <div class="card-pf-heading">
+                <h2 class="card-pf-title">
+                  {{'Google Speec-to-text' | translate}}
+                </h2>
+              </div>
+              <div class="card-pf-body">
+                <p>{{'Google speech description' | translate}}</p>
+                <ul class="mt-3">
+                  <li>
+                    <a
+                      href="https://cloud.google.com/speech-to-text/"
+                      target="_blank"
+                    >
+                      {{'Google STT official page' | translate}}
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="https://cloud.google.com/speech-to-text/docs/"
+                      target="_blank"
+                    >
+                      {{'Google STT official documentation' | translate}}
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div
+            class="col-xs-6 col-sm-4 col-md-4"
+            ng-show="authorizationAvailable"
+          >
+            <div class="card-pf card-pf-accented">
+              <div class="card-pf-heading">
+                <div class="dropdown card-pf-time-frame-filter">
+                  <input
+                    bs-switch
+                    ng-model="voicemailTextEnabled"
+                    ng-change="toggleVoicemailText()"
+                    id="bootstrap-switch-forcecodec"
+                    class="bootstrap-switch"
+                    type="checkbox"
+                  />
+                </div>
+                <h2 class="card-pf-title">
+                  <span class="fa fa-comment mr-5"></span>
+                  {{'Enable Google speech-to-text' | translate}}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- TODO Google text-to-speech section -->
+      </div>
+    </div>
+  </div>
+</div>

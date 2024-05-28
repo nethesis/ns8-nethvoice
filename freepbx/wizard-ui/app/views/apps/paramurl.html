@@ -1,0 +1,207 @@
+<div class="wizard-pf">
+  <div class="wizard-pf-body clearfix">
+    <div ng-if="wizard.isWizard" class="wizard-pf-steps">
+      <ul class="wizard-pf-steps-indicator">
+        <li class="wizard-pf-step {{resolveActiveTab('paramurl',2) ? 'active' : ''}}" data-tabgroup="1">
+          <a ng-click="goTo('apps/paramurl')"><span class="wizard-pf-step-number">1</span><span class="wizard-pf-step-title">{{'Parameterized URLs' | translate}}</span></a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="wizard-pf-contents adjust-size">
+    <h1 class="control-label centered" for="textInput-markup">{{'Parameterized URLs configuration' | translate}}</h1>
+    <!-- WIZARD -->
+    <div ng-if="(allUrls | isEmpty)" class="blank-slate-pf urls-margin-top">
+        <div class="blank-slate-pf-icon">
+          <span class="fa fa-link"></span>
+        </div>
+        <h1>
+          {{'No URL found' | translate}}
+        </h1>
+        <div class="blank-slate-pf-main-action">
+          <button ng-click="openModal()" data-toggle="modal" data-target="#newParamurlModal" class="btn btn-primary btn-lg">{{'Create new parameterized URL' | translate}}</button>
+        </div>
+      </div>
+      <!-- END WIZARD -->
+    <!-- SOURCES -->
+    <h3 ng-if="!(allUrls | isEmpty)" class="urls-margin-top">{{'Parameterized URL' | translate}}</h3>
+    <div ng-if="onSaveSuccessParamurl" class="alert alert-success alert-dismissable">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+        <span class="pficon pficon-close"></span>
+        </button>
+      <span class="pficon pficon-ok"></span>
+      <strong>{{'URL saved' | translate}}.</strong> {{'URL saved with success' | translate}}
+    </div>
+    <div ng-if="onSaveErrorParamurl" class="alert alert-danger alert-dismissable">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+        <span class="pficon pficon-close"></span>
+        </button>
+      <span class="pficon pficon-error-circle-o"></span>
+      <strong>{{'URL not saved' | translate}}.</strong> {{'URL saving error' | translate}}
+    </div>
+    <div ng-if="!(allUrls | isEmpty)" class="row row-cards-pf adjust-card">
+      <div ng-repeat="g in allUrls track by $index | orderBy:'name'" class="col-xs-12 col-sm-6">
+        <div id="accordion-markup-{{$index}}" class="card-pf">
+          <div data-toggle="collapse" data-parent="#accordion-markup-{{$index}}" href="#collapse-{{$index}}">
+            <h2 class="card-pf-title pointer">
+              <span class="fa fa-link vmiddle"></span>
+              <span class="paramurl-url-label vmiddle" title="{{g.url}}">{{g.url}}</span>
+              <span class="right-only small-font">Info
+                  <span class="fa fa-sort-desc"></span>
+              </span>
+            </h2>
+          </div>
+          <div class="card-pf-body card-body-small-bottom">
+            <div id="collapse-{{$index}}" class="panel-collapse collapse">
+              <div class="progress-description full-size-max">
+                {{'Profiles' | translate}}
+                <span class="right-only paramurl-input-span">
+                  <strong>
+                    <span ng-repeat="u in tdata.allProfiles">
+                      <label ng-if="g.profiles.indexOf(u.id) !== -1">{{u.name}}</label>
+                    </span>
+                  </strong>
+                </span>
+              </div>
+              <div class="progress-description full-size-max">
+                {{'Url' | translate}}
+                <span class="right-only paramurl-input-span">
+                  <strong>
+                    <input id="param-url-{{g.id}}" value="{{g.url}}" type="text" class="vmiddle form-control inline-display paramurl-input-readonly" readonly>
+                    <button ng-click="clipboardCopied(g.id)"
+                      class="btn btn-default copy-clipboard-btn"
+                      id="copy-clipboard-btn-{{g.id}}"
+                      data-placement="top"
+                      data-trigger="manual"
+                      data-toggle="popover"
+                      data-html="true"
+                      data-content="{{'Copied' | translate}}"
+                      data-clipboard-target="#param-url-{{g.id}}">
+                      <span class="fa fa-clipboard"></span>
+                    </button>
+                  </strong>
+                </span>
+              </div>
+              <div class="progress-description full-size-max" style="word-wrap: break-word">
+                {{'Calls only through queues' | translate}}
+                <span class="right-only paramurl-input-span">
+                  <label ng-if="g.only_queues">{{'Enabled' | translate}}</label>
+                  <label ng-if="!g.only_queues">{{'Disabled' | translate}}</label>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="card-pf-footer">
+            <div class="card-pf-time-frame-filter">
+              <div ng-show="g.onSave" class="spinner spinner-sm adjust-margin spinner-right"></div>
+            </div>
+            <p>
+              <button data-toggle="modal" data-target="#newParamurlModal" ng-click="modifyUrl(g)" class="btn btn-primary" type="button">{{'Modify' | translate}}</button>
+              <button ng-click="selectUrl(g)" data-toggle="modal" data-target="#deleteModal" class="btn btn-danger" type="button">{{'Delete' | translate}}</button>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button ng-click="openModal()" ng-if="!(allUrls | isEmpty)" ng-disabled="!tdata.dataLoaded" data-toggle="modal" data-target="#newParamurlModal" class="btn btn-primary btn-lg right-only">{{'Create new parameterized URL' | translate}}</button>
+    <!-- END SOURCES -->
+  </div>
+</div>
+<div class="modal fade" id="newParamurlModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">{{'New parameterized URL' | translate}}</h4>
+      </div>
+      <form class="form-horizontal" ng-submit="newUrl.url === '' ? undefined : saveParamurl(newUrl)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup"></label>
+            <label class="col-sm-8 control-label paramurl-descr-label" for="textInput-modal-markup">
+              {{'URL can contains four parameters identifying the caller' | translate}}:
+            </label>
+            <label class="col-sm-3 control-label" for="textInput-modal-markup"></label>
+            <label class="col-sm-8 paramurl-descr-label" for="textInput-modal-markup">
+              <ul>
+                <li>$CALLER_NUMBER</li>
+                <li>$CALLER_NAME</li>
+                <li>$CALLED</li>
+                <li>$UNIQUEID</li>
+              </ul>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'URL' | translate}}</label>
+            <div class="col-sm-9">
+              <input required ng-model="newUrl.url" type="text" class="form-control paramurl-input" title="https://mycrm.com/webservice.php?cnumber=$CALLER_NUMBER&cname=$CALLER_NAME&dest=$CALLED&callid=$UNIQUEID" placeholder="https://mycrm.com/webservice.php?cnumber=$CALLER_NUMBER&cname=$CALLER_NAME&dest=$CALLED&callid=$UNIQUEID">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Profile' | translate}}</label>
+            <div class="col-sm-9">
+              <select multiple title="-" pf-select="{ width: '180px' }" ng-model="newUrl.profiles">
+                <option ng-repeat="p in tdata.allProfiles" value="{{p.id}}"
+                  ng-disabled="(tdata.busyProfiles.indexOf(p.id) !== -1 && allUrlProfiles[newUrl.id].profiles.indexOf(p.id) === -1) ||
+                    (tdata.busyProfiles.indexOf(p.id) !== -1 && newUrl.id === undefined)">
+                  {{p.name}}
+                </option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Calls only through queues' | translate}}</label>
+            <div class="col-sm-9">
+              <input 
+                bs-switch 
+                ng-model="newUrl.only_queues"
+                class="bootstrap-switch bootstrap-switch-webrtc col-lg-6 col-md-6 col-sm-12 col-xs-12"
+                type="checkbox">
+            </div>
+          </div>
+          <div class="form-group" ng-if="!newUrl.onMod && tdata.busyProfiles.length === tdata.allProfiles.length">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup"></label>
+            <label class="col-sm-8 control-label paramurl-descr-label" for="textInput-modal-markup">
+              <div class="col-sm-12 alert alert-warning paramurl-warning paramurl-descr-label">
+                  <span class="pficon pficon-warning-triangle-o"></span>
+                  <strong>{{'No profile available' | translate}}.</strong> {{'To have one, free it from an existing URL' | translate}}.
+                </div>
+            </label>
+          </div>
+          <div ng-show="newUrl.onSave" class="spinner spinner-sm adjust-margin loader-modal-profile"></div>
+          <div class="modal-footer submit">
+            <button ng-click="cancelParamurl(newUrl)" type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
+            <button type="submit" class="btn btn-primary {{newUrl.url === '' || newUrl.profiles.length === 0 ? 'disabled' : ''}}">{{'Save' | translate}}</button>
+          </div>
+      </form>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            <span class="pficon pficon-close"></span>
+          </button>
+        <h4 class="modal-title" id="myModalLabel">
+          {{"Delete" | translate}} {{currentUrl.url}}
+        </h4>
+      </div>
+      <div class="modal-body">
+        <div class="form-group medium-font no-margin-bottom">
+          {{ "Are you sure" | translate }} ?
+        </div>
+      </div>
+      <div class="modal-footer submit adjust-header">
+        <button type="button" class="btn btn-default" data-dismiss="modal">{{ "Cancel" | translate }}</button>
+        <button type="button" class="btn btn-danger" data-dismiss="modal" ng-click="deleteUrl(currentUrl)">
+          {{ "Delete" | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

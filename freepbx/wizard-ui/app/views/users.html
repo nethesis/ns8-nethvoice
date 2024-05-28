@@ -1,0 +1,42 @@
+<div class="blank-slate-pf no-border" ng-if="showConfigSwitch">
+  <div class="blank-slate-pf-icon">
+    <span class="pficon pficon-server"></span>
+  </div>
+  <h1>
+    {{'Choose how to manage your PBX users' | translate}}
+  </h1>
+  <p>
+    {{'You can choose the users base to use for your PBX installation' | translate}}.
+  </p>
+  <p>
+    {{'Local LDAP, to run a new installation of LDAP Server that can be managed directly from your PBX' | translate}}.
+  </p>
+  <p>
+    {{'Configure Provider, to setup an already existing LDAP or Active Directory Server or to setup a new one using the Server Manager' | translate}}.
+  </p>
+  <p>
+    {{'Learn more about this' | translate}} <a target="_blank" href="{{customConfig.BRAND_DOCS}}">{{'on the documentation' | translate}}</a>.
+  </p>
+  <div class="blank-slate-pf-main-action">
+    <button id="legacy-button" ng-click="makeChoice('legacy')" class="btn btn-primary btn-lgg handle-margin"> {{'Local LDAP' | translate}} </button>
+    <button id="uc-button" ng-click="goNethserverSssdConfig()" class="btn btn-primary btn-lgg"> {{'Configure Provider' | translate}} </button>
+  </div>
+  <div ng-if="startInstall" class="progress-content">
+    <div class="progress-description">
+      <div ng-if="currentProgress < 100 && currentProgress != -1" class="spinner spinner-xs spinner-inline"></div>
+      <span ng-if="currentProgress == 100" class="pficon pficon-ok"></span>
+      <span ng-if="currentProgress == -1" class="pficon pficon-error-circle-o"></span>
+      <span ng-if="currentProgress != -1"><strong>{{'Installing' | translate}}:</strong> {{"LDAP" | translate}}</span>
+      <span ng-if="currentProgress == -1"><strong>{{'Error' | translate}}:</strong> {{'Installation failed' | translate}}</span>
+    </div>
+    <div class="progress progress-label-top-right">
+      <div class="progress-bar {{currentProgress == -1 ? 'progress-bar-danger' : 'progress-bar-success'}}" role="progressbar" aria-valuenow="0"
+        aria-valuemin="0" aria-valuemax="100" style="width: {{currentProgress == -1 ? '100' : currentProgress}}%;">
+        <span>{{currentProgress == -1 ? '100' : currentProgress}}%</span>
+      </div>
+    </div>
+    <div ng-if="currentProgress == 100" class="blank-slate-pf-main-action">
+      <button ng-click="nextStepUsers()" class="btn btn-primary btn-lg">{{'Next' | translate}}</button>
+    </div>
+  </div>
+</div>

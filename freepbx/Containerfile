@@ -517,11 +517,11 @@ RUN docker-php-source extract && \
 
 # Install nethvoice-wizard-restapi and nethvoice-wizard-ui
 COPY var/www/html/freepbx/rest /var/www/html/freepbx/rest
+COPY wizard-ui /tmp/wizard
 RUN cd /var/www/html/freepbx/rest/ && \
 	curl -s https://getcomposer.org/installer | php && \
 	COMPOSER_ALLOW_SUPERUSER=1 php composer.phar install --no-dev && \
 	rm -fr README.md composer.json composer.lock composer.phar test && \
-	curl -L https://github.com/nethesis/nethvoice-wizard-ui/archive/refs/heads/ns8.tar.gz  -o - | tar xzp --strip-component=1 -C /tmp && \
 	cd /tmp/wizard && \
 	npx -y -p npm@6 npm install yarn && node_modules/yarn/bin/yarn install && node_modules/grunt-cli/bin/grunt build && \
 	mkdir -p /var/www/html/freepbx/wizard && \

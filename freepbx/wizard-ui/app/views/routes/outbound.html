@@ -1,0 +1,143 @@
+<div class="wizard-pf">
+  <div class="wizard-pf-body clearfix">
+    <div ng-if="wizard.isWizard" class="wizard-pf-steps">
+      <ul class="wizard-pf-steps-indicator">
+        <li class="wizard-pf-step {{resolveActiveTab('inbound',2) ? 'active' : ''}}" data-tabgroup="1">
+          <a ng-click="goTo('routes/inbound')"><span class="wizard-pf-step-number">1</span><span class="wizard-pf-step-title">{{'Inbound' | translate}}</span></a>
+        </li>
+        <li class="wizard-pf-step {{resolveActiveTab('outbound',2) ? 'active' : ''}}" data-tabgroup="2">
+          <a ng-click="goTo('routes/outbound')"><span class="wizard-pf-step-number">2</span><span class="wizard-pf-step-title">{{'Outbound' | translate}}</span></a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="wizard-pf-contents adjust-size">
+    <h1 class="control-label centered" for="textInput-markup" class="control-label centered" for="textInput-markup">
+      {{'Outbound routes' | translate}}
+      <span ng-if="showDialDefault">- {{'Dial patterns' | translate}} in
+        <!--<span class="weight">{{getLangName()}}</span>-->
+        <select ng-change="setNewPattern(selectedRouteLang)" title="-" pf-select="{ width: '180px' }" ng-model="selectedRouteLang" ng-options="l as getLangName(l) for l in availableDialPatterns">
+        </select>
+      </span>
+    </h1>
+    <div ng-if="routes[selectedRouteLang].length || routes.length" class="container-fluid">
+      <div class="list-group list-view-pf list-view-pf-view no-background">
+        <div ng-if="!(routes.length == 0) && !(onSaveSuccess || onSaveError) && wizard.isWizard && showDialDefault" class="alert alert-warning alert-dismissable">
+          <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+            <span class="pficon pficon-close"></span>
+          </button>
+          <span class="pficon pficon-warning-triangle-o"></span>
+          {{'Remember to save before pushing forward' | translate}}
+        </div>
+        <div ng-if="onSaveSuccess" class="alert alert-success alert-dismissable">
+          <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+            <span class="pficon pficon-close"></span>
+          </button>
+          <span class="pficon pficon-ok"></span>
+          <strong>{{'Configuration saved' | translate}}.</strong> {{'Outbound routes configuration saved with success' |
+          translate}}
+        </div>
+        <div ng-if="onSaveError" class="alert alert-danger alert-dismissable">
+          <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+            <span class="pficon pficon-close"></span>
+          </button>
+          <span class="pficon pficon-error-circle-o"></span>
+          <strong>{{'Configuration not saved' | translate}}.</strong> {{'Outbound routes configuration error' | translate}}
+        </div>
+        <div class="list-group-item space-bottom" ng-repeat="(indexRoute,route) in routes[selectedRouteLang]">
+          <div ng-if="route.route_id" class="list-view-pf-actions">
+            <a target="_blank" href="{{customConfig.OUTBOUNDS_URL + route.route_id}}" class="btn btn-default">{{'Advanceds' | translate}}</a>
+          </div>
+          <div class="list-view-pf-main-info">
+            <div class="list-view-pf-left">
+              <span class="fa fa-long-arrow-up list-view-pf-icon-sm"></span>
+            </div>
+            <div class="list-view-pf-body">
+              <div class="list-view-pf-description adjust-list">
+                <div class="list-group-item-heading">
+                  {{route.name | translate}} <span class="route-name-id">({{route.name}})</span>
+                </div>
+                <div class="list-group-item-text">
+                </div>
+              </div>
+              <div class="list-view-pf-additional-info">
+                <div class="list-view-pf-additional-info-item">
+                  <div ng-click="toggleDetails($event)" class="list-view-pf-expand">
+                    <span class="pficon pficon-topology"></span>
+                    <strong>{{route.trunks.length || 0}}</strong> {{'Trunks' | translate}}
+                    <span class="fa fa-angle-right"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="list-group-item-container container-fluid hidden">
+            <div class="row">
+              <div class="col-md-12" as-sortable ng-model="route.trunks">
+                <div ng-if="allTrunks.length === 0" class="alert alert-warning alert-dismissable no-margin-bottom">
+                  <span class="pficon pficon-warning-triangle-o"></span>
+                  <strong>{{'Trunks not found' | translate}}.</strong> {{'No trunks created, go' | translate}}
+                  <a ng-click="goTo('trunks/physical')" class="alert-link">{{'here' | translate }}</a> {{'to create one'
+                  | translate}}.
+                </div>
+                <div class="sortable-item" as-sortable-item ng-repeat="trunk in route.trunks">
+                  <div class="list-view-pf-actions">
+                    <button ng-click="removeTrunk(indexRoute, $index)" class="btn btn-default">{{'Remove' | translate}}</button>
+                  </div>
+                  <div as-sortable-item-handle class="list-view-pf-main-info">
+                    <div class="btn btn-link dropdown-toggle anchor-sortable" type="button" id="dropdownKebab" data-toggle="dropdown" aria-haspopup="true"
+                      aria-expanded="true">
+                      <span class="fa fa-arrows-v"></span>
+                    </div>
+                    <!--<div class="btn btn-link dropdown-toggle anchor-sortable" type="button" id="dropdownKebab" data-toggle="dropdown" aria-haspopup="true"
+                      aria-expanded="true">
+                      <span class="">{{$index}}</span>
+                    </div>-->
+                    <div class="list-view-pf-left">
+                      <span class="pficon pficon-topology list-view-pf-icon-sm"></span>
+                    </div>
+                    <div class="list-view-pf-body">
+                      <div class="list-view-pf-description adjust-list">
+                        <div class="list-group-item-heading">
+                          {{trunk.name}}
+                        </div>
+                        <div ng-if="extractTrunkInfo(trunk.name).vendor" class="list-group-item-heading">
+                          {{'Device' | translate}}: {{extractTrunkInfo(trunk.name).vendor}}
+                        </div>
+                      </div>
+                      <div class="list-view-pf-additional-info">
+                        <div ng-if="extractTrunkInfo(trunk.name).port" class="list-view-pf-additional-info-item">
+                          {{'Port' | translate}}:&nbsp;<span class="weight-dest">{{extractTrunkInfo(trunk.name).port}}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div ng-if="filterAllTrunks(route.trunks).length > 0" class="dropdown">
+                  <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown">
+                    {{'Add trunk' | translate}}
+                    <span class="caret"></span>
+                  </button>
+                  <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu1">
+                    <li ng-repeat="trunk in filterAllTrunks(route.trunks) track by $index" role="presentation"><a role="menuitem" tabindex="-1" ng-click="addTrunkToRoute(indexRoute, trunk)">{{trunk.name}}</a></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div ng-show="onSave" class="spinner spinner-sm adjust-margin loader-modal-gateway-not-form-out"></div>
+      <button ng-click="saveRoutes()" class="btn btn-primary btn-lg right-only">{{'Save' | translate}}</button>
+    </div>
+    <div ng-if="routes.length == 0" class="blank-slate-pf ">
+      <div class="blank-slate-pf-icon">
+        <span class="fa fa-long-arrow-up"></span>
+      </div>
+      <h1>
+        {{'No outbound routes found' | translate}}
+      </h1>
+    </div>
+    <wizard-step ng-if="wizard.isWizard" id="wizardStepBase"></wizard-step>
+  </div>
+</div>

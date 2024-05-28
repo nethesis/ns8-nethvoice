@@ -1,0 +1,621 @@
+<div class="wizard-pf">
+  <div class="wizard-pf-body clearfix">
+    <div ng-if="wizard.isWizard" class="wizard-pf-steps">
+      <ul class="wizard-pf-steps-indicator">
+        <li class="wizard-pf-step {{resolveActiveTab('cards',2) ? 'active' : ''}}" data-tabgroup="1">
+          <a ng-click="goTo('apps/cards')"><span class="wizard-pf-step-number">1</span><span class="wizard-pf-step-title">{{'Phonebook sources' | translate}}</span></a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="wizard-pf-contents adjust-size">
+    <h1 class="control-label centered" for="textInput-markup">{{'Phonebook sources configuration' | translate}}</h1>
+    <!-- WIZARD -->
+    <div ng-if="(allSources | isEmpty)" class="blank-slate-pf ">
+      <div class="blank-slate-pf-icon">
+        <span class="fa fa-book"></span>
+      </div>
+      <h1>
+        {{'No custom phonebook source found' | translate}}
+      </h1>
+      <div class="blank-slate-pf-main-action">
+        <button ng-click="newSourceEvent()" data-toggle="modal" data-target="#creationsourceModal" class="btn btn-primary btn-lg ng-binding ng-scope">{{"Create new source" | translate}}</button>
+      </div>
+    </div>
+    <!-- END WIZARD -->
+    <!-- SOURCES -->
+    <h3 ng-if="!(allSources | isEmpty)" class="costumer-cards-margin-top" ng-if="true">{{'Sources' | translate}}</h3>
+    <div ng-if="onSaveSuccessSource" class="alert alert-success alert-dismissable">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+        <span class="pficon pficon-close"></span>
+      </button>
+      <span class="pficon pficon-ok"></span>
+      <strong>{{'Source saved' | translate}}.</strong> {{'Source saved with success' | translate}}
+    </div>
+    <div ng-if="onSaveErrorSource" class="alert alert-danger alert-dismissable">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+        <span class="pficon pficon-close"></span>
+      </button>
+      <span class="pficon pficon-error-circle-o"></span>
+      <strong>{{'Source not saved' | translate}}.</strong> {{'Source saving error' | translate}}
+    </div>
+    <div ng-if="!(allSources | isEmpty)" class="row row-cards-pf adjust-card">
+      <div ng-repeat="(kg, g) in allSources track by $index | orderBy:'dbname'" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+        <div id="accordion-markup-{{$index}}" class="card-pf">
+          <div data-toggle="collapse" data-parent="#accordion-markup-{{$index}}"
+          href="#collapse-{{$index}}">
+          <h2 class="card-pf-title phonebook-sources-title-size pointer">
+            <span class="pficon pficon-volume right-margin-fine"></span>
+            {{ getSourceName(g, '-') }}
+            <span class="right-only small-font"> {{ getSourceType(g, '-') }} <span class="fa fa-sort-desc"></span></span>
+          </h2>
+        </div>
+        <div id="collapse-{{$index}}" class="panel-collapse collapse">
+          <!-- mysql -->
+          <div ng-if="g.dbtype == 'mysql'" class="progress-description full-size-max">
+            {{'Database address' | translate}} <span class="right-only"><strong>{{g.host}}</strong></span>
+          </div>
+          <div ng-if="g.dbtype == 'mysql'" class="progress-description full-size-max">
+            {{'Database port' | translate}} <span class="right-only"><strong>{{g.port}}</strong></span>
+          </div>
+          <div ng-if="g.dbtype == 'mysql'" class="progress-description full-size-max">
+            {{'Database user' | translate}} <span class="right-only"><strong>{{g.user}}</strong></span>
+          </div>
+          <div ng-if="g.dbtype == 'mysql'" class="progress-description full-size-max">
+            {{'Database password' | translate}} <span class="right-only"><strong>{{g.showPass ? g.password : '*****'}}</strong>
+              <a ng-click="togglePass(g)">{{g.showPass ? 'Hide' : 'Show' | translate}}</a></span>
+          </div>
+          <!-- csv -->
+          <div ng-if="g.dbtype == 'csv'" class="progress-description full-size-max">
+            {{'URL' | translate}} <span class="right-only"><strong>{{ g.url }}</strong></span>
+          </div>
+        </div>
+        <div class="map-view-in-card">
+          <h2 class="card-pf-title pointer source-card-bottomside-title phonebook-sources-title-size">
+            <!-- {{"Status" | translate}} -->
+          </h2>
+        </div>
+        <div class="panel-group list-map-container-phonebook">
+
+          <div class="col-xs-12 col-sm-12 col-lg-6">
+            <p class="view-settings-string-phonebook">
+              {{"Synchronization status" | translate}}
+            </p>
+            <div class="form-group onof-button-phonebook">
+              <input bs-switch ng-model="g.enabled" ng-change="onOfSource(kg, g)" id="bootstrap-switch-enable-source" class="bootstrap-switch" type="checkbox">
+              <span class="onof-string">
+                {{g.enabled ? "Disable" : "Enable" | translate}}
+              </span>
+            </div>
+          </div>
+          <div class="col-xs-12 col-md-12 col-lg-6">
+            <p class="view-settings-string-phonebook">
+              {{"Database synchronization interval" | translate}}
+            </p>
+            <span class="badge phonebook-badge">{{syncIntervals[g.interval] | translate}}</span>
+          </div>
+        </div>
+        <div class="card-pf-footer phonebook-card-footer">
+          <div class="row">
+            <div class="col-xs-12 col-md-12 col-lg-6">
+              <button data-toggle="modal" data-target="#creationsourceModal" ng-click="modifySource(kg, g)" class="btn btn-primary phonebook-footer-card-buttons"
+                type="button">{{'Modify' | translate}}</button>
+              <button ng-click="openDeleteModal(kg)" class="btn btn-danger phonebook-footer-card-buttons" type="button">{{'Delete' | translate}}</button>
+            </div>
+            <div class="col-xs-12 col-md-12 col-lg-6">
+              <button ng-disabled="!g.enabled" ng-click="runSyncNow(kg)" class="btn btn-default right-only phonebook-footer-card-buttons" type="button">
+                <i class="fa fa-refresh sync-phonebook-icon" aria-hidden="true"></i>
+                {{'Sync' | translate}}
+              </button>
+              <div id="phonebookSyncSpinner" ng-if="allSources[kg].syncing" class="spinner spinner-sm right-only"></div>
+              <span ng-show="!allSources[kg].syncing && allSources[kg].startSync && allSources[kg].synced" class="pficon pficon-ok sync-source-res right-only"></span>
+              <span ng-show="!allSources[kg].syncing && allSources[kg].startSync && !allSources[kg].synced" class="pficon pficon-error-circle-o sync-source-res right-only"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button ng-if="!(allSources | isEmpty)" ng-click="newSourceEvent()" data-toggle="modal" data-target="#creationsourceModal"
+    class="btn btn-primary btn-lg right-only ng-binding ng-scope">{{"Create new source" | translate}}
+  </button>
+  <!-- END SOURCES -->
+</div>
+
+<!-- START DELETE MODAL -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="createUserLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+        <h4 class="modal-title" id="createUserLabel">{{'Delete source' | translate}}</h4>
+      </div>
+      <div class="modal-body">
+        <div class="form-group sm-font no-margin-bottom">
+          {{ "Are you sure" | translate }} ?
+        </div>
+      </div>
+      <div class="modal-footer submit adjust-header">
+        <button ng-click="getAllSources()" type="button" class="btn btn-default" data-dismiss="modal">{{ "Cancel" | translate }}</button>
+        <button type="button" class="btn btn-danger" data-dismiss="modal" ng-click="deletePhonebookSource()">
+          {{ "Delete" | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- START MODAL -->
+<div class="modal fade overflowSources" id="creationsourceModal" tabindex="-1" role="dialog" data-backdrop="static">
+  <div class="wizard-modal">
+    <div class="modal-dialog wizard-pf">
+      <div class="modal-content">
+        <div class="modal-header ">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true" aria-label="Close">
+            <span class="pficon pficon-close"></span>
+          </button>
+          <h4 class="modal-title">{{ (ui.onModify ? "pb_modal_title_modify" : "pb_modal_title_create") | translate}}</h4>
+        </div>
+        <div class="modal-body wizard-pf-body clearfix">
+          <div id="sidebarColl" class="col-xs-12 col-sm-3 col-md-3 col-lg-3">
+            <div class="wizard-pf-sidebar">
+              <ul class="list-group">
+                <li class="list-group-item {{sourceModal.tab === 'datasource' ? 'active' : 'disabled'}}">
+                  <a ng-click="ui.onModify ? switchsourceModalTab('datasource') : ''">
+                    <span class="wizard-pf-substep-number">1.</span>
+                    <span class="wizard-pf-substep-title">{{"Source" | translate}}</span>
+                  </a>
+                </li>
+                <li class="list-group-item {{sourceModal.tab === 'datamap' ? 'active' : 'disabled'}}">
+                  <a ng-click="ui.onModify ? switchsourceModalTab('datamap') : ''">
+                    <span class="wizard-pf-substep-number">2.</span>
+                    <span class="wizard-pf-substep-title">{{"Map" | translate}}</span>
+                  </a>
+                </li>
+                <li class="list-group-item {{sourceModal.tab === 'sync' ? 'active' : 'disabled'}}">
+                  <a ng-click="ui.onModify ? switchsourceModalTab('sync') : ''">
+                    <span class="wizard-pf-substep-number">3.</span>
+                    <span class="wizard-pf-substep-title">{{"Settings" | translate}}</span>
+                  </a>
+                </li>
+              </ul>
+            </div> <!-- /.wizard-pf-sidebar -->
+          </div>
+          <div id="bodyCall" class="col-xs-12 col-sm-9 col-md-9 col-lg-9">
+            <div class="wizard-pf-main">
+              <!-- START SYNC VIEW -->
+              <div ng-show="sourceModal.tab === 'sync'" class="wizard-pf-contents">
+                <!-- SQL SOURCE -->
+                <div class="list-group list-view-pf adjust-margin-extensions no-border no-margin-top">
+                  <div class="adjust-profile-margin">
+                    <div>
+                      <div class="settings-row">
+                        <h3 class="settings-title">{{"Synchronization" | translate}}</h3>
+                        <div class="phonebook-settings-rows col-xs-12 col-sm-6 col-lg-6">
+                          <p class="sync-settings-string">
+                            {{"Set the database synchronization interval" | translate}}.
+                          </p>
+                          <div class="dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown">
+                              {{syncIntervals[newSource.interval] | translate}}
+                              <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu1">
+                              <li ng-repeat="(ki, i) in syncIntervals" role="presentation">
+                                <a ng-click="newSource.interval = ki" class="{{ki == newSource.interval ? 'active-a-interval' : ''}}">
+                                  {{i | translate}}
+                                </a>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                        <div class="phonebook-settings-rows col-xs-12 col-sm-6 col-lg-6">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- START MAP VIEW -->
+              <div ng-show="sourceModal.tab === 'datamap'" class="wizard-pf-contents">
+                <div class="alert alert-info alert-dismissable">
+                  <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                  </button>
+                  <span class="pficon pficon-info"></span>
+                  {{"Associate the source columns with the destination columns" | translate}}.
+                </div>
+                <div ng-if="sourceModal.querySelectProgress" class="spinner phonebook-sources-map"></div>
+                <div ng-if="!sourceModal.querySelectionDone" class="list-group-item list-item-header list-item-header-phonebook">
+                  <div class="list-view-pf-main-info">
+                    <div class="list-view-pf-left">
+                      <span class="fa fa-usera list-view-pf-icon-sm adjust-line phonebook-table-left-border"></span>
+                    </div>
+                    <div class="list-view-pf-body">
+                      <div class="list-view-pf-description adjust-list">
+                        <div class="list-group-item-heading">
+                          {{"Source columns" | translate}}
+                        </div>
+                      </div>
+                      <div class="list-view-pf-additional-info">
+                        <div class="list-view-pf-additional-info-item">
+                          <label>{{"Destination columns" | translate}}</label>
+                        </div>
+                        <span type="button" id="informationSource" class="pficon-info" data-toggle="modal" data-target="#informationPopup">
+                        </span>
+                        <div class="modal fade" id="informationPopup" tabindex="-1" role="dialog" aria-labelledby="informationPopup" aria-hidden="true">
+                          <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                              <div class="modal-body">
+                                <table id="tableModal" class="table">
+                                  <thead class="thead-dark">
+                                    <tr id="columnModal">
+                                      <th scope="col">{{"Column"| translate}}</th>
+                                      <th scope="col">{{"Description"| translate}}</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr>
+                                      <td>owner_id</td>
+                                      <td>{{"Contact owner"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>type</td>
+                                      <td>{{"Source of origin"| translate}}</td>
+                                    </tr>
+                                    <tr>
+                                      <td>homeemail</td>
+                                      <td>{{"Home email address"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>workemail</td>
+                                      <td>{{"Business email address"| translate}}</td>
+                                    </tr>
+                                    <tr>
+                                      <td>homephone</td>
+                                      <td>{{"Home telephone number"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>workphone</td>
+                                      <td>{{"Business telephone number"| translate}}</td>
+                                    </tr>
+                                    <tr>
+                                      <td>cellphone</td>
+                                      <td>{{"Mobile number"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>fax</td>
+                                      <td>{{"Fax number"| translate}}</td>
+                                    </tr>
+                                    <tr>
+                                      <td>title</td>
+                                      <td>{{"Task"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>company</td>
+                                      <td>{{"Company"| translate}}</td>
+                                    </tr>
+                                    <tr>
+                                      <td>notes</td>
+                                      <td>{{"Notes"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>name</td>
+                                      <td>{{"Name and surname"| translate}}</td>
+                                    </tr>
+                                    <tr>
+                                      <td>homestreet</td>
+                                      <td>{{"Home address"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>homepob</td>
+                                      <td>{{"Home post box"| translate}}</td>
+                                    </tr>
+                                    <tr>
+                                      <td>homecity</td>
+                                      <td>{{"City of domicile"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored"> 
+                                      <td>homeprovince </td>
+                                      <td>{{"Province of domicile"| translate}}</td>
+                                    </tr>
+                                    <tr>
+                                      <td>homepostalcode</td>
+                                      <td>{{"Postal code domicile"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>homecountry</td>
+                                      <td>{{"State / region of domicile"| translate}}</td>
+                                    </tr>
+                                    <tr>
+                                      <td>workstreet</td>
+                                      <td>{{"Business address"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>workpob</td>
+                                      <td>{{"Post box work"| translate}}</td>
+                                    </tr>
+                                    <tr>
+                                      <td>workcity</td>
+                                      <td>{{"Working city"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>workprovince</td>
+                                      <td>{{"Work province"| translate}}</td>
+                                    </tr>
+                                    <tr>
+                                      <td>workpostalcode</td>
+                                      <td>{{"Business postal code"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>workcountry</td>
+                                      <td>{{"State / region of employment"| translate}}</td>
+                                    </tr>
+                                  </tbody>
+                                </table> 
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- on new source creation -->
+                <div class="list-group list-view-pf list-view-pf-view no-margin-top">
+                  <div ng-repeat="(kc, c) in colsSources" class="list-group-item">
+                    <div class="list-view-pf-main-info">
+                      <div class="list-view-pf-left">
+                        <span class="fa fa-columns list-view-pf-icon-sm"></span>
+                      </div>
+                      <div class="list-view-pf-body">
+                        <div class="list-view-pf-description">
+                          <div class="list-group-item-heading">{{kc}}
+                          </div>
+                        </div>
+                        <div class="list-view-pf-additional-info">
+                          <div class="dropdown">
+                            <button ng-disabled="newSource.readonly" class="form-control width-160 float-left select-text-inputs {{newSource.mapping[kc] ? '' : 'cursive disabled-color'}}" type="button" id="dropdownMenu1-{{kc}}" data-toggle="dropdown">
+                              {{newSource.mapping[kc] || 'Select column' | translate}}
+                            </button>
+                            <span ng-disabled="newSource.readonly" id="btnDropdown-{{kc}}" data-toggle="{{newSource.readonly ? false : 'dropdown'}}" 
+                              class="width-26 float-left adjust-button dropdown-toggle btn btn-default">
+                              <span class="fa fa-angle-down"></span>
+                            </span>
+                            <ul class="dropdown-menu middle-margin-bottom" role="menu" aria-labelledby="dropdownMenu1-{{kc}}">
+                              <li ng-if="newSource.mapping[kc]" ng-click="disassociatesColumn(kc, newSource.mapping[kc])" class="not-selectable">
+                                <a>{{"Empty field" | translate}}</a>
+                              </li>
+                              <li ng-if="newSource.mapping.lenght < 1" class="not-selectable cursive">
+                                <a>{{"No columns available" | translate}}</a>
+                              </li>
+                              <li ng-if="!d.inuse" ng-repeat="(kd, d) in colsDestinations" role="presentation" class="not-selectable">
+                                <a ng-click="enableSourceSave(kc, kd)" role="menuitem">
+                                  {{kd}}
+                                </a>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <h1 ng-click="toggleMig('collapse-syncpreview')" class="adjust-header adjust-profile-header phonebook-source-title-container margin-top-lg">
+                  <span class="fa fa-eye card-pf-icon-circle config-title-icon"></span>
+                  <span class="phonebook-source-title">{{'Phonebook preview' | translate}}</span>
+                  <span ng-if="!migration.profiles.loading" class="fa fa-angle-down toggle-icon-mig icon-med-reload profile-open-icon"></span>
+                </h1>
+                <div id="collapse-syncpreview" class="panel-collapse phonebook-source-border adjust-profile-body">
+                  <div class="panel-body profile-panel">
+                    <form class="form-horizontal">
+                      <div class="col-sm-12 selection-query-prev">
+                        <div ng-if="querySelect | isEmpty" class="blank-slate-pf empty-preview-phonebook">
+                          <div class="blank-slate-pf-icon preview-bigicon-container">
+                            <span class="fa fa-eye"></span>
+                          </div>
+                          <h1 class="empty-preview-text">
+                            {{"Preview" | translate}}
+                          </h1>
+                        </div>
+                        <div ng-if="!(querySelect | isEmpty)" ng-repeat="item in querySelect" class="oriziontal-segment-phonebook">
+                          <div class="orizontal-segment-phonebook-content">
+                              <div ng-if="(v !== '') && (phonebookIcons[newSource.mapping[k]])" 
+                              ng-repeat="(k, v) in item" class="orizontal-segment-phonebook-row">
+                                <i class="fa fa-{{phonebookIcons[newSource.mapping[k]].icon}} orizontal-segment-phonebook-icon"></i>
+                                <span class="orizontal-segment-phonebook-label">{{phonebookIcons[newSource.mapping[k]].label | translate}}</span>
+                                <span class="orizontal-segment-phonebook-values">{{v}}</span>
+                              </div>
+                              <div class="align-center">
+                                <div class="source-icon-container">
+                                  <i class="fa fa-cloud float-left"></i>
+                                </div>
+                              </div>
+                          </div>
+                        </div> 
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              <!-- START SOURCE VIEW -->
+              <div ng-show="sourceModal.tab === 'datasource'" class="wizard-pf-contents">
+                <!-- Query selection -->
+                <div class="list-group list-view-pf adjust-margin-extensions no-border no-margin-top">
+                  <div>
+                    <div>
+                      <h1 class="adjust-header adjust-profile-header phonebook-source-title-container">
+                        <span class="fa fa-database card-pf-icon-circle config-title-icon"></span>
+                        <span class="phonebook-source-title">{{'pb_source_dialog_title' | translate}}</span>
+                      </h1>
+                      <div id="collapse-queryselection" class="panel-collapse phonebook-source-border adjust-profile-body">
+                        <div class="panel-body profile-panel">
+                          <form id="dbInfoSqlSource" class="form-horizontal source-form" ng-submit="checkConnection(newSource)">
+                            <div class="modal-body">
+                              <div class="form-group">
+                                <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Phonebook name' | translate}}</label>
+                                <div class="col-sm-9 input-container">
+                                  <input required ng-disabled="newSource.readonly" ng-model="newSource.type" type="text" class="form-control"></div>
+                              </div>
+                              <div class="form-group">
+                                <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'pb_source_type_label' | translate}}</label>
+                                <div class="col-sm-9 input-container">
+                                  <select ng-change="updateDbType()" ng-disabled="newSource.readonly || ui.onModify" required title="-" pf-select="" ng-model="newSource.dbtype"
+                                    ng-options="k as v for (k, v) in  allDBTypes">
+                                  </select></div>
+                              </div>
+                              <!-- type mysql -->
+                              <div ng-if="newSource.dbtype == 'mysql'" ng-if="newSource.dbtype == 'mysql'" class="form-group">
+                                <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Database name' | translate}}</label>
+                                <div class="col-sm-9 input-container">
+                                  <input required ng-disabled="newSource.readonly" ng-model="newSource.dbname" type="text" class="form-control"></div>
+                              </div>
+                              <div ng-if="newSource.dbtype == 'mysql'" class="form-group">
+                                <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Database address' | translate}}</label>
+                                <div class="col-sm-9 input-container">
+                                  <input required ng-disabled="newSource.readonly" ng-model="newSource.host" type="text" class="form-control"></div>
+                              </div>
+                              <div ng-if="newSource.dbtype == 'mysql'" class="form-group">
+                                <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Database port' | translate}}</label>
+                                <div class="col-sm-9 input-container">
+                                  <input required ng-disabled="newSource.readonly" ng-model="newSource.port" type="text" class="form-control"></div>
+                              </div>
+                              <div ng-if="newSource.dbtype == 'mysql'" class="form-group">
+                                <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Database user' | translate}}</label>
+                                <div class="col-sm-9 input-container">
+                                  <input required ng-disabled="newSource.readonly" ng-model="newSource.user" type="text" class="form-control"></div>
+                              </div>
+                              <div ng-if="newSource.dbtype == 'mysql'" class="form-group">
+                                <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Database password' | translate}}</label>
+                                <div class="col-sm-9 input-container">
+                                  <input ng-disabled="newSource.readonly" ng-model="newSource.password" type="{{newSource.showPass ? 'text' : 'password'}}"
+                                    class="form-control">
+                                  <a ng-click="togglePass(newSource)">{{newSource.showPass ? 'Hide' : 'Show' | translate}}</a>
+                                </div>
+                              </div>
+                              <div ng-if="newSource.dbtype == 'mysql'" class="form-group">
+                                <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Select query' | translate}}</label>
+                                <div class="col-sm-9 input-container">
+                                  <div required ng-model="newSource.query" class="editor-form editor-form-phonebook" ui-ace="{theme:'twilight',mode: 'sql', onChange: editorOnChange}"></div>
+                                </div>
+                              </div>
+                              <!-- type CSV -->
+                              <div ng-if="newSource.dbtype == 'csv'" class="form-group">
+                                <label class="col-sm-3 control-label" for="input-csv-url">{{'pb_csv_url_label' | translate}}</label>
+                                <div class="col-sm-8 input-container" style="padding-right: 0 !important">
+                                  <input id="input-csv-url" required ng-disabled="newSource.readonly" ng-model="newSource.url" type="url" pattern="(https?://|file:///).+" type="text" class="form-control">
+                                </div>
+                                <div class="col-sm-1 input-container" style="padding-left: 0 !important">
+                                  <input type="file" class="hide" id="csvUploadFile">
+                                  <button tabindex="-1" type="button" class="btn btn-default mln-1 zindex-2" ng-disabled="newSource.readonly" ng-click="csvUploadClick($event)">
+                                    <span class="fa fa-upload"></span>
+                                  </button>
+                                </div>
+                              </div>
+                              <div class="form-group">
+                                <label class="col-sm-3 control-label" for="textInput-modal-markup"></label>
+                                <div class="col-sm-9">
+                                  <button class="btn btn-primary" type="submit" id="pbSourceCheckButton">{{'pb_check_button_label' | translate}}</button>
+                                  <div ng-show="newSource.isChecking" class="spinner spinner-sm inline-display language-name check-connection"></div>
+                                  <span ng-show="!newSource.isChecking && newSource.checked && newSource.verified" class="pficon pficon-ok check-status"></span>
+                                  <span ng-show="!newSource.isChecking && newSource.checked && !newSource.verified" class="pficon pficon-error-circle-o check-status"></span>
+                                </div>
+                              </div>
+                              <div class="form-group">
+                                <div class="col-sm-12 margin-top-md">
+                                  <h1 ng-click="toggleMig('collapse-mappreview')" class="adjust-header pointer adjust-profile-header phonebook-source-title-container">
+                                    <span class="fa fa-eye card-pf-icon-circle config-title-icon"></span>
+                                    <span class="phonebook-source-title">{{'Query preview' | translate}}</span>
+                                    <span ng-if="!migration.profiles.loading" class="fa fa-angle-down toggle-icon-mig icon-med-reload profile-open-icon"></span>
+                                  </h1>
+                                  <div id="collapse-mappreview" class="panel-collapse phonebook-source-border adjust-profile-body simple-hidden">
+                                    <div class="panel-body profile-panel">
+                                      <div ng-if="migration.profiles.status === 'success'" class="alert alert-success">
+                                        <span class="pficon pficon-ok"></span>
+                                        {{"Migration has been completed" | translate}}.
+                                      </div>
+                                      <form class="form-horizontal">
+                                        <div class="col-sm-12 selection-query-prev">
+                                          <div ng-if="querySelect | isEmpty" class="blank-slate-pf empty-preview-phonebook">
+                                            <div class="blank-slate-pf-icon preview-bigicon-container">
+                                              <span class="fa fa-eye"></span>
+                                            </div>
+                                            <h1 class="empty-preview-text">
+                                              {{"Preview" | translate}}
+                                            </h1>
+                                          </div>
+                                          <div ng-if="!(querySelect | isEmpty)" ng-repeat="item in querySelect" class="oriziontal-segment-phonebook">
+                                            <div class="orizontal-segment-phonebook-content">
+                                                <div ng-if="v != '' && v != null" ng-repeat="(k, v) in item" class="orizontal-segment-phonebook-row">
+                                                  <span class="orizontal-segment-phonebook-label">{{k}}</span>
+                                                  <span class="orizontal-segment-phonebook-values">{{v}}</span>
+                                                </div>
+                                                <div class="align-center">
+                                                  <div class="source-icon-container">
+                                                    <i class="fa fa-cloud float-left"></i>
+                                                  </div>
+                                                </div>
+                                            </div>
+                                          </div> 
+                                        </div>
+                                      </form>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </form>
+                          <div ng-if="migration.profiles.status === 'success'" class="alert alert-success">
+                            <span class="pficon pficon-ok"></span>
+                            {{"Migration has been completed" | translate}}.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div><!-- /.wizard-pf-main -->
+          </div>
+        </div><!-- /.wizard-pf-body -->
+        <div class="modal-footer wizard-pf-footer">
+          <button type="button" data-dismiss="modal" aria-hidden="true" aria-label="Close" class="btn btn-default btn-cancel wizard-pf-cancel wizard-pf-dismiss">{{"Cancel" | translate}}</button>
+          <button ng-if="sourceModal.tab === 'datamap'" ng-click="switchsourceModalTab('datasource')" type="button" class="btn btn-default wizard-pf-back" ng-disabled="sourceModal.tab === 'datasource' ? true : false">
+            <span class="i fa fa-angle-left"></span>
+            <span class="wizard-pf-button-text">
+              {{"Back" | translate}}
+            </span>
+          </button>
+          <button ng-if="sourceModal.tab === 'sync'" ng-click="switchsourceModalTab('datamap')" type="button" class="btn btn-default wizard-pf-back" ng-disabled="sourceModal.tab === 'datasource' ? true : false">
+            <span class="i fa fa-angle-left"></span>
+            <span class="wizard-pf-button-text">
+              {{"Back" | translate}}
+            </span>
+          </button>
+          <button ng-if="sourceModal.tab === 'datasource'" ng-click="switchsourceModalTab('datamap')" class="btn btn-primary wizard-pf-next"
+            ng-disabled="!newSource.verified">
+            <span class="wizard-pf-button-text">
+              {{"Next" | translate}}
+            </span>
+            <span class="i fa fa-angle-right"></span>
+          </button>
+          <button ng-if="sourceModal.tab === 'datamap'" ng-click="switchsourceModalTab('sync')" class="btn btn-primary wizard-pf-next"
+            ng-disabled="!newSource.verified">
+            <span class="wizard-pf-button-text">
+              {{"Next" | translate}}
+            </span>
+            <span class="i fa fa-angle-right"></span>
+          </button>
+          <button ng-if="sourceModal.tab === 'sync'" ng-click="ui.onModify ? updateSource() : saveSource()" class="btn btn-primary wizard-pf-next">
+            <span class="wizard-pf-button-text">
+              {{"Save" | translate}}
+            </span>
+            <span class="i fa fa-angle-right"></span>
+          </button>
+          <button type="button" class="btn btn-primary hidden wizard-pf-close wizard-pf-dismiss">Close</button>
+        </div><!-- /.wizard-pf-footer -->
+      </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+  </div>
+</div><!-- /.modal -->

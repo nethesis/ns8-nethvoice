@@ -1,0 +1,102 @@
+<div class="wizard-pf">
+  <div class="wizard-pf-body clearfix">
+    <div ng-if="wizard.isWizard" class="wizard-pf-steps">
+      <ul class="wizard-pf-steps-indicator">
+        <li class="wizard-pf-step {{resolveActiveTab('groups',2) ? 'active' : ''}}" data-tabgroup="1">
+          <a ng-click="goTo('configurations/groups')">
+            <span class="wizard-pf-step-number">1</span>
+            <span class="wizard-pf-step-title">{{'Groups' | translate}}</span></a>
+        </li>
+        <li class="wizard-pf-step {{resolveActiveTab('profiles',2) ? 'active' : ''}}" data-tabgroup="2">
+          <a ng-click="goTo('configurations/profiles')">
+            <span class="wizard-pf-step-number">2</span>
+            <span class="wizard-pf-step-title">{{'Profiles' | translate}}</span></a>
+        </li>
+        <li ng-if="wizard.provisioning != 'tancredi'" class="wizard-pf-step {{resolveActiveTab('devices',2) ? 'active' : ''}}" data-tabgroup="3">
+          <a ng-click="goTo('configurations/devices')">
+            <span class="wizard-pf-step-number">3</span>
+            <span class="wizard-pf-step-title">{{'Devices' | translate}}</span></a>
+        </li>
+        <li class="wizard-pf-step {{resolveActiveTab('preferences',2) ? 'active' : ''}}" data-tabgroup="3">
+          <a ng-click="goTo('configurations/preferences')">
+            <span class="wizard-pf-step-number">3</span>
+            <span class="wizard-pf-step-title">{{'Users' | translate}}</span></a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="wizard-pf-contents adjust-size">
+    <h1 class="control-label centered" for="textInput-markup">{{'CTI Groups Configuration' | translate}}</h1>
+    <div ng-if="onSaveSuccess" class="alert alert-success alert-dismissable">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+        <span class="pficon pficon-close"></span>
+        </button>
+      <span class="pficon pficon-ok"></span>
+      <strong>{{'Group saved' | translate}}.</strong> {{'Group saved with success' | translate}}
+    </div>
+    <div ng-if="onSaveError" class="alert alert-danger alert-dismissable">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+        <span class="pficon pficon-close"></span>
+        </button>
+      <span class="pficon pficon-error-circle-o"></span>
+      <strong>{{'Group not saved' | translate}}.</strong> {{'Group saving error' | translate}}
+    </div>
+    <div ng-if="!(allGroups | isEmpty)" class="row row-cards-pf adjust-card groups-margin-top">
+      <div ng-repeat="g in allGroups | orderBy:'name'" class="col-xs-12 col-sm-6 col-md-4 col-lg-3">
+        <div class="card-pf">
+          <h2 class="card-pf-title">
+            <span class="fa fa-users"></span>
+            {{g.name}}
+          </h2>
+          <div class="card-pf-footer">
+            <div class="card-pf-time-frame-filter">
+              <div ng-show="g.onSave" class="spinner spinner-sm adjust-margin spinner-right"></div>
+            </div>
+            <p>
+              <button ng-click="deleteGroup(g)" class="btn btn-danger" type="button">{{'Delete' | translate}}</button>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button ng-if="!(allGroups | isEmpty)" data-toggle="modal" data-target="#newGroupModal" class="btn btn-primary btn-lg right-only">{{'Create new group' | translate}}</button>
+  </div>
+  <div ng-if="allGroups | isEmpty" class="blank-slate-pf ">
+    <div class="blank-slate-pf-icon">
+      <span class="fa fa-object-group"></span>
+    </div>
+    <h1>
+      {{'No groups found' | translate}}
+    </h1>
+    <div class="blank-slate-pf-main-action">
+      <button data-toggle="modal" data-target="#newGroupModal" class="btn btn-primary btn-lg">{{'Create new group' | translate}}</button>
+    </div>
+  </div>
+</div>
+<wizard-step ng-if="wizard.isWizard" id="wizardStepBase"></wizard-step>
+</div>
+<div class="modal fade" id="newGroupModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">{{'New CTI group' | translate}}</h4>
+      </div>
+      <form class="form-horizontal" ng-submit="saveGroup(newGroup)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Name' | translate}}</label>
+            <div class="col-sm-9">
+              <input required ng-model="newGroup.name" type="text" class="form-control profile-new-name"></div>
+          </div>
+          <div ng-show="newGroup.onSave" class="spinner spinner-sm adjust-margin loader-modal-profile"></div>
+          <div class="modal-footer submit">
+            <button type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
+            <button type="submit" class="btn btn-primary">{{'Save' | translate}}</button>
+          </div>
+      </form>
+      </div>
+    </div>
+  </div>

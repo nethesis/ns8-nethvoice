@@ -1,0 +1,356 @@
+<div class="wizard-pf">
+  <div class="wizard-pf-body clearfix">
+    <div ng-if="wizard.isWizard" class="wizard-pf-steps">
+      <ul class="wizard-pf-steps-indicator">
+        <li class="wizard-pf-step {{resolveActiveTab('groups',2) ? 'active' : ''}}" data-tabgroup="1">
+          <a ng-click="goTo('configurations/groups')">
+            <span class="wizard-pf-step-number">1</span>
+            <span class="wizard-pf-step-title">{{'Groups' | translate}}</span></a>
+        </li>
+        <li class="wizard-pf-step {{resolveActiveTab('profiles',2) ? 'active' : ''}}" data-tabgroup="2">
+          <a ng-click="goTo('configurations/profiles')">
+            <span class="wizard-pf-step-number">2</span>
+            <span class="wizard-pf-step-title">{{'Profiles' | translate}}</span></a>
+        </li>
+        <li ng-if="wizard.provisioning != 'tancredi'" class="wizard-pf-step {{resolveActiveTab('devices',2) ? 'active' : ''}}" data-tabgroup="3">
+          <a ng-click="goTo('configurations/devices')">
+            <span class="wizard-pf-step-number">3</span>
+            <span class="wizard-pf-step-title">{{'Devices' | translate}}</span></a>
+        </li>
+        <li class="wizard-pf-step {{resolveActiveTab('preferences',2) ? 'active' : ''}}" data-tabgroup="3">
+          <a ng-click="goTo('configurations/preferences')">
+            <span class="wizard-pf-step-number">3</span>
+            <span class="wizard-pf-step-title">{{'Users' | translate}}</span></a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="wizard-pf-contents adjust-size">
+    <h1 class="control-label centered" for="textInput-markup">{{'Profiles Configuration' | translate}}</h1>
+    <div ng-if="!(allProfiles | isEmpty)" class="container-fluid profiles-margin-top">
+      <div ng-if="gruopsDisabled" class="alert alert-warning alert-dismissable">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+        <span class="pficon pficon-warning-triangle-o"></span>
+        <strong>{{'Some groups have not been enabled' | translate}}.</strong> {{'Check your groups permissions' | translate}}
+      </div>
+      <div ng-if="onSaveSuccess" class="alert alert-success alert-dismissable">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+            <span class="pficon pficon-close"></span>
+          </button>
+        <span class="pficon pficon-ok"></span>
+        <strong>{{'Configuration saved' | translate}}.</strong> {{'Profiles configuration saved with success' | translate}}
+      </div>
+      <div class="list-group list-view-pf adjust-margin-extensions no-border">
+        <div ng-repeat="profile in allProfiles" class="adjust-profile-margin">
+          <div id="accordion-markup-{{$index}}">
+            <h1 data-toggle="collapse" data-parent="#accordion-markup-{{$index}}" href="#collapse-{{$index}}" class="adjust-header adjust-profile-header">
+              <span class="pficon pficon-users card-pf-icon-circle config-title-icon"></span>{{'Profile' | translate}} <span
+                class="weight">{{profile.name | translate}}</span>
+              <span class="fa fa-angle-down icon-med-reload profile-open-icon"></span>
+              <div ng-show="profile.onSave" class="spinner spinner-sm profile-save-spinner"></div>
+            </h1>
+            <div id="collapse-{{$index}}" class="panel-collapse collapse adjust-profile-body">
+              <div class="panel-body profile-panel">
+                <!-- FOR THE SETTINGS MACRO PERMISSION -->
+                <div
+                  class="col-lg-12 profile-list-container"
+                  ng-repeat="(macro, obj_permissions) in profile.macro_permissions"
+                  ng-if="macro === 'settings'"
+                >
+                  <div
+                    ng-if="macro !== 'remote_sites'"
+                    class="row profile-macro-title {{!obj_permissions.value ? 'disabled' : ''}}"
+                  >
+                    <div
+                      popover-placement="top"
+                      popover-trigger="'mouseenter'"
+                      popover-animation="true"
+                      uib-popover="{{obj_permissions.description | translate}}"
+                      class="col-lg-2 col-md-3 col-sm-4 col-xs-12"
+                    >
+                      {{obj_permissions.displayname | translate}}
+                    </div>
+                    <div class="col-lg-1">
+                      <input bs-switch ng-change="saveProfile(profile)" ng-model="obj_permissions.value" class="bootstrap-switch bootstrap-switch-permission" type="checkbox">
+                    </div>
+                    <div class="col-lg-10"></div>
+                  </div>
+                  <div class="row {{obj_permissions.permissions.length > 0 ? 'profile-permission-container' : ''}}" ng-if="obj_permissions.value">
+                    <div
+                      ng-hide="(permission.name == 'phone_buttons' && wizard.provisioning != 'tancredi') || isInBlacklist(permission.name)"
+                      class="col-lg-12 col-md-12 col-sm-12 col-xs-12 profile-permission"
+                      ng-repeat="permission in obj_permissions.permissions"
+                    >
+                      <span class="col-lg-3 col-md-4 col-sm-6 col-xs-6">
+                        <span
+                          popover-placement="top"
+                          popover-trigger="'mouseenter'"
+                          popover-animation="true"
+                          uib-popover="{{permission.description | translate}}"
+                          class="config-span"
+                        >
+                          {{permission.displayname | translate}}
+                        </span>
+                      </span>
+                      <span class="col-lg-6 col-md-4 col-sm-6 col-xs-6">
+                        <input
+                          bs-switch
+                          ng-change="saveProfile(profile, obj_permissions, permission, macro)"
+                          ng-model="permission.value"
+                          class="bootstrap-switch bootstrap-switch-permission"
+                          type="checkbox"
+                        >
+                        <div
+                          ng-if= "permissionsStatus[permission.id] === 'error'"
+                          class="cutSpace errorConfiguration alert alert-danger alert-dismissable"
+                        >
+                          <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                            <span class="cutSpace hideItem pficon pficon-close"></span>
+                          </button>
+                          <span class="cutSpace pficon pficon-error-circle-o"></span>
+                          <span class="hideItem"><strong>{{'Configuration not saved' | translate}}. </strong>{{'Try again' | translate}}.</span>
+                        </div>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <!-- OUTBOUND ROUTES SECTION -->
+                <div class="col-lg-12 profile-list-container">
+                  <div class="row profile-macro-title">
+                    <div class="col-lg-2 col-md-3 col-sm-4 col-xs-12"> {{"Outbound routes" | translate }} </div>
+                  <div class="col-lg-10"></div>
+                </div>
+                  <div class="row profile-permission-container">
+                    <div ng-repeat="permissions in profile.outbound_routes_permissions" class="col-lg-12 col-md-12 col-sm-12 col-xs-12 profile-permission">
+                      <span class="col-lg-3 col-md-4 col-sm-6 col-xs-6">
+                        <span class="config-span">{{permissions.name | translate}}</span>
+                      </span>
+                      <span class="col-lg-6 col-md-4 col-sm-6 col-xs-6">
+                        <!-- <input bs-switch ng-change="saveProfile(profile, permissions)" ng-model="permissions.permission" class="bootstrap-switch bootstrap-switch-permission" type="checkbox"> -->
+                        <input bs-switch ng-change="saveProfile(profile, '', permissions, 'outbound_routes')" ng-model="permissions.permission" class="bootstrap-switch bootstrap-switch-permission" type="checkbox">
+                        <div ng-if= "outboundStatus[permissions.route_id] === 'error'" class="cutSpace errorConfiguration alert alert-danger alert-dismissable">
+                          <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                              <span class="cutSpace hideItem pficon pficon-close"></span>
+                            </button>
+                          <span class="cutSpace pficon pficon-error-circle-o"></span>
+                          <span class="hideItem"><strong>{{'Configuration not saved' | translate}}. </strong>{{'Try again' | translate}}.</span>
+                        </div>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <!-- FOR THE NETHVOICE CTI MACRO PERMISSION -->
+                <div
+                  class="col-lg-12 profile-list-container"
+                  ng-repeat="(macro, obj_permissions) in profile.macro_permissions"
+                  ng-if="macro === 'nethvoice_cti'"
+                >
+                  <div
+                    ng-if="macro !== 'remote_sites'"
+                    class="row profile-macro-title {{!obj_permissions.value ? 'disabled' : ''}}"
+                  >
+                    <div
+                      popover-placement="top"
+                      popover-trigger="'mouseenter'"
+                      popover-animation="true"
+                      uib-popover="{{obj_permissions.description | translate}}"
+                      class="col-lg-2 col-md-3 col-sm-4 col-xs-12"
+                    >
+                      {{obj_permissions.displayname | translate}}
+                    </div>
+                    <div class="col-lg-1">
+                      <input bs-switch ng-change="saveProfile(profile, obj_permissions, null, macro)" ng-model="obj_permissions.value" class="bootstrap-switch bootstrap-switch-permission" type="checkbox">
+                    </div>
+                    <div class="col-lg-10"></div>
+                  </div>
+                  <div class="row {{obj_permissions.permissions.length > 0 ? 'profile-permission-container' : ''}}" ng-if="obj_permissions.value">
+                    <div
+                      ng-hide="(permission.name == 'phone_buttons' && wizard.provisioning != 'tancredi') || isInBlacklist(permission.name)"
+                      class="col-lg-12 col-md-12 col-sm-12 col-xs-12 profile-permission"
+                      ng-repeat="permission in obj_permissions.permissions"
+                    >
+                      <span class="col-lg-3 col-md-4 col-sm-6 col-xs-6">
+                        <span
+                          popover-placement="top"
+                          popover-trigger="'mouseenter'"
+                          popover-animation="true"
+                          uib-popover="{{permission.description | translate}}"
+                          class="config-span"
+                        >
+                          {{permission.displayname | translate}}
+                        </span>
+                      </span>
+                      <span class="col-lg-6 col-md-4 col-sm-6 col-xs-6">
+                        <input
+                          bs-switch
+                          ng-change="saveProfile(profile, obj_permissions, permission, macro)"
+                          ng-model="permission.value"
+                          class="bootstrap-switch bootstrap-switch-permission"
+                          type="checkbox"
+                        >
+                        <div
+                          ng-if= "permissionsStatus[permission.id] === 'error'"
+                          class="cutSpace errorConfiguration alert alert-danger alert-dismissable"
+                        >
+                          <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                            <span class="cutSpace hideItem pficon pficon-close"></span>
+                          </button>
+                          <span class="cutSpace pficon pficon-error-circle-o"></span>
+                          <span class="hideItem"><strong>{{'Configuration not saved' | translate}}. </strong>{{'Try again' | translate}}.</span>
+                        </div>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <!-- FOR THE OTHER MACRO PERMISSIONS -->
+                <div
+                  class="col-lg-12 profile-list-container profile-list-container-child"
+                  ng-repeat="(macro, obj_permissions) in profile.macro_permissions"
+                  ng-if="macro !== 'settings' && macro !== 'remote_sites' && macro !== 'nethvoice_cti'"
+                >
+                  <div
+                    ng-if="macro !== 'remote_sites' && macro !== 'streaming' && macro != 'operator_panel'"
+                    class="row profile-macro-title {{!obj_permissions.value ? 'disabled' : ''}}"
+                  >
+                    <div
+                      popover-placement="top"
+                      popover-trigger="'mouseenter'"
+                      popover-animation="true"
+                      uib-popover="{{obj_permissions.description | translate}}"
+                      class="col-lg-2 col-md-3 col-sm-4 col-xs-12 child-font"
+                    >
+                      {{obj_permissions.displayname | translate}}
+                    </div>
+                    <div class="col-lg-1">
+                      <input bs-switch ng-change="saveProfile(profile)" ng-model="obj_permissions.value" class="bootstrap-switch bootstrap-switch-permission" type="checkbox">
+                    </div>
+                    <div class="col-lg-10"></div>
+                  </div>
+                  <div class="row {{obj_permissions.permissions.length > 0 ? 'profile-permission-container-child' : ''}}" ng-if="obj_permissions.value">
+                    <div
+                      ng-hide="(permission.name == 'phone_buttons' && wizard.provisioning != 'tancredi') || isInBlacklist(permission.name)"
+                      class="col-lg-12 col-md-12 col-sm-12 col-xs-12 profile-permission child-permission"
+                      ng-repeat="permission in obj_permissions.permissions"
+                    >
+                      <span class="col-lg-3 col-md-4 col-sm-6 col-xs-6">
+                        <span 
+                          ng-if="!isGroupPermission(permission.name) && permission.description.indexOf('Manage Queue') !== 0 && permission.description.indexOf('Use this queue for Operator Panel incoming calls') !== 0"
+                          popover-placement="top"
+                          popover-trigger="'mouseenter'"
+                          popover-animation="true"
+                          uib-popover="{{permission.description | translate}}"
+                          class="config-span"
+                        >
+                          {{permission.displayname | translate}}
+                        </span>
+                        <span
+                          ng-if="!isGroupPermission(permission.name) && permission.description.indexOf('Manage Queue') === 0"
+                          popover-placement="top"
+                          popover-trigger="'mouseenter'"
+                          popover-animation="true"             
+                          uib-popover="{{'Manage Queue' | translate}} {{permission.description.substring('Manage Queue'.length, permission.description.length)}}"
+                          class="config-span"
+                        >
+                          {{permission.displayname | translate}}
+                        </span>
+                        <span
+                          ng-if="!isGroupPermission(permission.name) && permission.description.indexOf('Use this queue for Operator Panel incoming calls') === 0" 
+                          popover-placement="top"
+                          popover-trigger="'mouseenter'"
+                          popover-animation="true"
+                          uib-popover="{{'Use this queue for Operator Panel incoming calls' | translate}}"
+                          class="config-span"
+                        >
+                          {{permission.displayname.substring('Queue '.length, permission.displayname.length)}}
+                        </span>
+                        <span
+                          ng-if="isGroupPermission(permission.name)"
+                          popover-placement="top"
+                          popover-trigger="'mouseenter'"
+                          popover-animation="true"
+                          uib-popover="{{splitGroupName(permission.description)[0] | translate}} {{splitGroupName(permission.description)[1]}} {{splitGroupName(permission.description)[2] | translate}}"
+                          class="config-span"
+                        >
+                          {{splitGroupName(permission.displayname)[0] | translate}} {{splitGroupName(permission.displayname)[1]}}
+                        </span>
+                      </span>
+                      <span class="col-lg-6 col-md-4 col-sm-6 col-xs-6">
+                        <input
+                          bs-switch
+                          ng-change="saveProfile(profile, obj_permissions, permission, macro)"
+                          ng-model="permission.value"
+                          class="bootstrap-switch bootstrap-switch-permission"
+                          type="checkbox">
+                        <div
+                          ng-if= "permissionsStatus[permission.id] === 'error'"
+                          class="cutSpace errorConfiguration alert alert-danger alert-dismissable"
+                        >
+                          <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                            <span class="cutSpace hideItem pficon pficon-close"></span>
+                          </button>
+                          <span class="cutSpace pficon pficon-error-circle-o"></span>
+                          <span class="hideItem"><strong>{{'Configuration not saved' | translate}}. </strong>{{'Try again' | translate}}.</span>
+                        </div>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <button ng-click="deleteProfile(profile)" class="btn btn-danger btn-lg profile-button-save" type="submit">
+                  {{'Delete' | translate}}
+                </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button data-toggle="modal" data-target="#newProfileModal" class="btn btn-primary btn-lg right-only">{{'Create new profile' | translate}}</button>
+    </div>
+  </div>
+  <div ng-if="allProfiles | isEmpty" class="blank-slate-pf ">
+    <div class="blank-slate-pf-icon">
+      <span class="pficon pficon-users"></span>
+    </div>
+    <h1>
+      {{'No profiles found' | translate}}
+    </h1>
+    <div class="blank-slate-pf-main-action">
+      <button data-toggle="modal" data-target="#newProfileModal" class="btn btn-primary btn-lg">{{'Create new profile' | translate}}</button>
+    </div>
+  </div>
+</div>
+
+<wizard-step ng-if="wizard.isWizard" id="wizardStepBase"></wizard-step>
+</div>
+<div class="modal fade" id="newProfileModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">{{'New profile' | translate}}</h4>
+      </div>
+      <form class="form-horizontal" ng-submit="createNewProfile(newProfile)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Name' | translate}}</label>
+            <div class="col-sm-9">
+              <input required ng-model="newProfile.name" type="text" class="form-control profile-new-name"></div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput2-modal-markup">{{'Duplicate from' | translate}}</label>
+            <div class="col-sm-9">
+              <select title="-" pf-select="{ width: '180px' }" ng-model="newProfile.duplicateProfile" ng-options="p as p.name for p in allProfiles | profileList">
+            </select>
+            </div>
+          </div>
+          <div ng-show="newProfile.onSave" class="spinner spinner-sm adjust-margin loader-modal-profile"></div>
+          <div class="modal-footer submit">
+            <button type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
+            <button type="submit" class="btn btn-primary">{{'Save' | translate}}</button>
+          </div>
+      </form>
+      </div>
+    </div>
+  </div>

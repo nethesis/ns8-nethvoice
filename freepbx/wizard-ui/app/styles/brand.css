@@ -1,0 +1,85 @@
+a {
+  color: #10b981;
+}
+
+.navbar-pf-alt {
+  background: #171717;
+  border-top: 2px solid #047857;
+}
+
+.nav-pf-vertical-alt .list-group-item.active:before {
+  background: #10b981;
+}
+
+.wizard-pf-steps-indicator .active .wizard-pf-step-number {
+  background-color: #10b981;
+  border-color: #047857;
+}
+
+.nav-pf-vertical-alt .list-group-item .badge.notifications {
+  background: #047857;
+}
+
+.btn-primary {
+  background-color: #047857;
+  background-image: linear-gradient(to bottom, #047857 0%, #047857 100%);
+  border-color: #047857;
+  color: #fff;
+}
+
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active, .btn-primary:active:focus, .btn-primary.active, .btn-primary.active:hover, btn-primary.active:focus, btn-primary.active:active, btn-primary.active:active:focus {
+  background-color: #10b981;
+  border-color: #047857;
+  color: #fff;
+}
+
+.progress-bar-success {
+  background-color: #10b981;
+}
+
+html {
+  background: #333;
+}
+
+.login-pf {
+  background-color: #047857;
+  overflow-y: auto;
+}
+
+.list-view-pf-left .pficon.list-view-pf-icon-sm, .list-view-pf-left .fa.list-view-pf-icon-sm {
+  border: 2px solid #10b981;
+}
+
+.card-pf-view .card-pf-top-element .card-pf-icon-circle {
+  border: 2px solid #10b981;
+}
+
+.btn-link:hover {
+  color: #10b981 !important;
+}
+
+.bootstrap-switch .bootstrap-switch-handle-on.bootstrap-switch-primary, .bootstrap-switch .bootstrap-switch-handle-off.bootstrap-switch-primary {
+  background: #10b981;
+}
+
+.bootstrap-switch.bootstrap-switch-focused {
+  border-color: #047857;
+  box-shadow: none;
+}
+
+.bootstrap-switch .bootstrap-switch-handle-on {
+  border-bottom-left-radius: 0px;
+  border-top-left-radius: 0px;
+}
+
+.wizard-modal .wizard-pf-sidebar .list-group-item.active > a {
+  color: #10b981 !important;
+}
+
+.wizard-modal .wizard-pf-sidebar .list-group-item.active > a::after {
+  color: #10b981 !important;
+}
+
+.wizard-modal .wizard-pf-sidebar .list-group-item.active > a::before {
+  background: #10b981 !important;
+}

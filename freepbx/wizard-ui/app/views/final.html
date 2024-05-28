@@ -1,0 +1,18 @@
+<div class="blank-slate-pf " id="">
+  <div class="blank-slate-pf-icon">
+    <span class="pficon pficon pficon-ok"></span>
+  </div>
+  <h1>
+    {{'Wizard completed' | translate}}!
+  </h1>
+  <p>
+    {{'You have successfully completed the wizard' | translate}}.
+  </p>
+  <p>
+    {{'Go to Home or Print final report for your created users' | translate}}.
+  </p>
+  <div class="blank-slate-pf-main-action">
+    <button ng-click="goTo('/')" class="btn btn-default btn-lg"> {{'Go to Home' | translate}} </button>
+    <button ng-click="generatePDF()" class="btn btn-primary btn-lg"> {{'Print final report' | translate}} </button>
+  </div>
+</div>

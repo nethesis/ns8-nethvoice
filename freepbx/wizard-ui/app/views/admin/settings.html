@@ -1,0 +1,56 @@
+<div class="wizard-pf">
+  <div class="wizard-pf-body clearfix">
+    <div ng-if="wizard.isWizard" class="wizard-pf-steps">
+      <ul class="wizard-pf-steps-indicator">
+        <li class="wizard-pf-step {{resolveActiveTab('settings',2) ? 'active' : ''}}" data-tabgroup="1">
+          <a ng-click="goTo('admin/settings')"><span class="wizard-pf-step-number">1</span><span class="wizard-pf-step-title">{{'Admin' | translate}}</span></a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="wizard-pf-contents adjust-size">
+    <h1 class="control-label centered" for="textInput-markup">{{'Settings' | translate}}</h1>
+    <div class="container-fluid col-xs-12 col-sm-12 col-md-6 col-lg-6 adjust-voip" ng-init="init()">
+      <div class="col-lg-12">
+        <div ng-show="onSaveSuccess" class="alert alert-success alert-dismissable">
+          <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+              <span class="pficon pficon-close"></span>
+          </button>
+          <span class="pficon pficon-ok"></span>
+          <strong>{{'Password changed' | translate}}.</strong> {{'Administrator password updated with success' | translate}}
+        </div>
+        <div ng-show="onSaveError" class="alert alert-danger alert-dismissable">
+          <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+            <span class="pficon pficon-close"></span>
+          </button>
+          <span class="pficon pficon-error-circle-o"></span>
+          <strong>{{'Password error' | translate}}</strong> {{'Administrator password update failed' | translate}}
+        </div>
+      </div>
+      <div class="col-lg-12 mb-30">
+        <h3 class="settings-h3 fz-19 fw-300">{{'Change Password' | translate}} ({{'optional' | translate}})</h3>
+        <form class="form-horizontal" ng-submit="create()">
+          <div class="form-group">
+            <label class="col-sm-3 control-label">{{'Password' | translate}}</label>
+            <div class="col-sm-9">
+              <input type="password" ng-model="admin.password" class="form-control" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label">{{'Confirm Password' | translate}}</label>
+            <div class="col-sm-9">
+              <input type="password" ng-model="admin.confirmPassword" class="form-control" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label"></label>
+            <div class="col-sm-9">
+              <button type="submit" class="btn btn-primary right-align">{{'Save Password' | translate}}</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <wizard-step ng-if="wizard.isWizard" id="wizardStepBase"></wizard-step>
+</div>
