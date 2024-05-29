@@ -30,7 +30,7 @@ $app->get('/mainextensions', function (Request $request, Response $response, $ar
     return $response->withJson($mainextensions, 200);
 });
 
-$app->get('/mainextensions/{extension}', function (Request $request, Response $response, $args) {
+$app->get('/mainextensions/{extension:[0-9]+}', function (Request $request, Response $response, $args) {
     $route = $request->getAttribute('route');
     $extension = $route->getArgument('extension');
     $mainextensions = FreePBX::create()->Core->getAllUsersByDeviceType('virtual');
