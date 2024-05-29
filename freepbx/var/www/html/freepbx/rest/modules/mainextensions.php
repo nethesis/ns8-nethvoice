@@ -83,12 +83,12 @@ $app->get('/mainextensions/userlimits', function (Request $request, Response $re
     if (empty($_ENV['SUBSCRIPTION_SYSTEMID']) || empty($_ENV['SUBSCRIPTION_SECRET'])) {
         # community version
         $limits['limit'] = communityUsersLimit();
-        $limits['configurable'] = configuredUsersCount()-communityUsersLimit();
+        $limits['configurable'] = communityUsersLimit()-configuredUsersCount();
     } else {
         # enterprise version
         $limits['limit'] = false;
         $limits['configurable'] = false;
     }
     $limits['limit'] = communityUsersLimit();
-    return $response->withJson(array("limit"=>communityUsersLimit()), 200);
+    return $response->withJson($limits, 200);
 });
