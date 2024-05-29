@@ -224,3 +224,11 @@ function getAllUsers() {
     }
     return $users;
 }
+
+function configuredUsersCount() {
+    return count(array_filter(getAllUsers(), function($user) {return $user['default_extension'] != "none";}));
+}
+
+function communityUsersLimit() {
+    return 8;
+}

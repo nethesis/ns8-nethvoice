@@ -50,7 +50,7 @@ $app->post('/mainextensions', function (Request $request, Response $response, $a
 
     if (checkUsermanIsUnlocked()) {
         if (
-            count(array_filter(getAllUsers(), function($user) {return $user['default_extension'] != "none";})) >= 8 && // there are 8 users configured
+            configuredUsersCount() >= communityUsersLimit() && // check if there are more configured users than the allowed limit
             (empty($_ENV['SUBSCRIPTION_SYSTEMID']) || empty($_ENV['SUBSCRIPTION_SECRET'])) && // it isn't registered as enterprise
             !empty($mainextension) // the user is trying to create a new extension
         ) {
@@ -69,3 +69,26 @@ $app->post('/mainextensions', function (Request $request, Response $response, $a
     return $response->withJson($ret[0],$ret[1]);
 });
 
+/**
+ * Retrieves configurable user limits.
+ *
+ * This endpoint returns the user limits for the main extensions in the system.
+ * It checks if the system is running the community version or the enterprise version
+ * and returns the appropriate limits and configurable counts accordingly.
+ */
+$app->get('/mainextensions/userlimits', function (Request $request, Response $response, $args) {
+    $limits = array(
+        'configured' => configuredUsersCount(),
+    );
+    if (empty($_ENV['SUBSCRIPTION_SYSTEMID']) || empty($_ENV['SUBSCRIPTION_SECRET'])) {
+        # community version
+        $limits['limit'] = communityUsersLimit();
+        $limits['configurable'] = configuredUsersCount()-communityUsersLimit();
+    } else {
+        # enterprise version
+        $limits['limit'] = false;
+        $limits['configurable'] = false;
+    }
+    $limits['limit'] = communityUsersLimit();
+    return $response->withJson(array("limit"=>communityUsersLimit()), 200);
+});
