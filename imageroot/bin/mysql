@@ -1,0 +1,3 @@
+#!/bin/bash
+
+podman exec -it mariadb mysql -u root -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$MARIADB_ROOT_PASSWORD $@
