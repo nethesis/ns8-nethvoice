@@ -535,6 +535,9 @@ RUN a2enmod rewrite proxy*
 # Clean apt files
 RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,dpkg,cache,log}/* && touch /var/lib/dpkg/status
 
+# Rotate logs hourly
+RUN mv /etc/cron.daily/logrotate /etc/cron.hourly/logrotate
+
 # Install centralized phonebook update script and CSV upload path
 RUN mkdir -p /usr/share/phonebooks/ /var/lib/nethvoice/phonebook/uploads && \
 	chown asterisk:asterisk /var/lib/nethvoice/phonebook/uploads && \
