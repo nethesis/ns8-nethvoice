@@ -1077,5 +1077,8 @@
   "Welcome": "Benvenuto",
   "Cannot login": "Impossibile accedere",
   "Incorrect username or password": "Nome utente o password errati",
-  "Sign in to Nethvoice": "Accedi a Nethvoice"
+  "Sign in to Nethvoice": "Accedi a Nethvoice",
+  "missing license error message": "Licenza non presente o non valida. Ottieni una licenza valida per aggiungere più interni",
+  "extensions left": "interni rimanenti",
+  "extension left": "interno rimanente"
 }

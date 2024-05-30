@@ -164,5 +164,8 @@
   "Welcome": "Welcome",
   "Cannot login": "Cannot login",
   "Incorrect username or password": "Incorrect username or password",
-  "Sign in to Nethvoice": "Sign in to Nethvoice"
+  "Sign in to Nethvoice": "Sign in to Nethvoice",
+  "missing license error message": "License not present or invalid. Obtain a valid license to add multiple extensions.",
+  "extensions left": "extensions left",
+  "extension left": "extension left"
 }

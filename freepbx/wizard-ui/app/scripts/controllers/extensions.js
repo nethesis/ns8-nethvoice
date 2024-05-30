@@ -22,6 +22,8 @@ angular.module('nethvoiceWizardUiApp')
     $scope.view.changeRoute = true;
     $scope.usersLimit = 20
     $scope.localDomain = "";
+    $scope.licenseMissing = false;
+    $scope.unitLeftInformation = {};
 
     $scope.error = {
       file: {
@@ -134,11 +136,17 @@ angular.module('nethvoiceWizardUiApp')
           user.default_extension = user.default_extension !== 'none' ? user.default_extension : user.temp_ext;
           $scope.wizard.nextState = true;
         }
+        $scope.getInformationLicense();
       }, function (err) {
         user.isInAction = false;
         if (err.status == 422) {
           user.alreadyExists = true;
         }
+        // if user has no license limit create extension to a maximum of 8
+        if (err.status == 403 ){
+          $scope.licenseMissing = true;
+        }
+        $scope.getInformationLicense();
         console.log(err);
       });
     }
@@ -232,4 +240,22 @@ angular.module('nethvoiceWizardUiApp')
     });
 
     $scope.getUserList();
+
+    $scope.resetLicenseErrorMessage = function () {
+      $scope.licenseMissing = false;
+    }
+
+    //Retrieve information about user status
+    $scope.getInformationLicense = function () {
+      UserService.statusLicense().then(function (res) {
+        $scope.unitLeftInformation = res.data
+      } , function (err) {
+        if (err.status != 404) {
+          console.log(err)
+        }
+      })
+    }
+
+    $scope.getInformationLicense();
+    
   });

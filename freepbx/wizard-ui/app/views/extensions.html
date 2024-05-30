@@ -25,15 +25,29 @@
         <span class="pficon pficon-error-circle-o"></span>
         <strong>{{error.file.title | translate}}.</strong> {{error.file.content | translate}}
       </div>
-      <div>
-        <div class="filter-label-user adjust-filter-label">{{'Filter' | translate}}:</div>
-        <select title="-" pf-select="{ width: '180px' }" ng-model="selectedUsersFilter" ng-options="uf as uf | translate for uf in availableUsersFilters">
-        </select>
-        <div class="filter-label-user-order">
-          <select title="-" pf-select="{ width: '180px' }" ng-model="usersFilterNumbers" ng-options="uf as uf | translate for uf in availableUserFiltersNumbers"></select>
-          <i ng-click="usersFilterNumbersOrd = !usersFilterNumbersOrd" class="fa fa-sort-alpha-{{usersFilterNumbersOrd ? 'asc' : 'desc'}} pointer"></i>
+
+     <!-- Filters section -->
+      <div class="flex justify-between items-center">
+        <div>
+          <div class="filter-label-user adjust-filter-label">{{'Filter' | translate}}:</div>
+          <select title="-" pf-select="{ width: '180px' }" ng-model="selectedUsersFilter" ng-options="uf as uf | translate for uf in availableUsersFilters">
+          </select>
+          <div class="filter-label-user-order">
+            <select title="-" pf-select="{ width: '180px' }" ng-model="usersFilterNumbers" ng-options="uf as uf | translate for uf in availableUserFiltersNumbers"></select>
+            <i ng-click="usersFilterNumbersOrd = !usersFilterNumbersOrd" class="fa fa-sort-alpha-{{usersFilterNumbersOrd ? 'asc' : 'desc'}} pointer"></i>
+          </div>
+        </div>
+        <!-- Loading bar ( only for community version) -->
+        <div ng-if="unitLeftInformation.limit !== false" class="ml-4 max-w-sm rounded overflow-hidden shadow-lg bg-transparent min-w-40 border border-gray-300">
+          <div class="px-6 py-4">
+            <div class="mb-1 text-lg font-medium text-gray-900">{{unitLeftInformation.configurable}} {{(unitLeftInformation.configurable === 1 ? 'extension left' : 'extensions left') | translate}}</div>
+            <div class="w-full h-4 mb-4 bg-gray-300 rounded-full">
+              <div class="h-4 {{unitLeftInformation.configurable === 0 ? 'bg-red-500' : 'bg-emerald-500'}} rounded-full" ng-style="{ width: unitLeftInformation.configured / unitLeftInformation.limit * 100 + '%' }"></div>
+            </div>
+          </div>
         </div>
       </div>
+
       <form role="form" class="search-pf has-button adjust-form" id="form-lg-domains-details">
         <div class="form-group has-clear">
           <div class="search-pf-input-group" id="filter-domains-details">
@@ -78,8 +92,12 @@
                   <form class="full-size" ng-submit="setMainExtension(user)">
                     <input ng-model="user.temp_ext" type="text" class="form-control" id="{{user.username}}_ExtInput_add" placeholder="{{'Insert extension' | translate}}">
                   </form>
-                  <div class="input-group-btn">
+                  <div class="input-group-btn" ng-if="unitLeftInformation.configurable !==0">
                     <button ng-click="setMainExtension(user)" type="button" class="btn btn-default" aria-haspopup="true" aria-expanded="false">{{'Add' | translate}}</button>
+                  </div>
+                  <!-- Tooltip to advert user that he can't add more extensions -->
+                  <div class="input-group-btn" ng-if="unitLeftInformation.configurable ===0">
+                    <button type="button" class="btn btn-default disabled" ng-attr-title="{{'missing license error message' | translate}}">{{'Add' | translate}}</button>
                   </div>
                 </div>
                 <div ng-if="user.default_extension !== 'none'" class="list-view-pf-additional-info-item">

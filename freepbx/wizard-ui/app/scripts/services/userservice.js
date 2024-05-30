@@ -259,4 +259,15 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
+       //retrieve user's license status and limits
+       this.statusLicense = function () {
+        return $q(function (resolve, reject) {
+          RestService.get('/mainextensions/userlimits').then(function (res) {
+            resolve(res);
+          }, function (err) {
+            reject(err);
+          });
+        });
+      }  
+
   });
