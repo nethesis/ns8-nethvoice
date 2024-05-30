@@ -67,11 +67,14 @@ angular.module('nethvoiceWizardUiApp')
 
     function gotNetworks(networks) {
       // assign network names
-      Object.keys(networks).forEach(function (networkName) {
-        var network = networks[networkName];
-        network.name = networkName;
-      });
-      $scope.networks = networks;
+      // Check if networks is defined and is an object
+      if (networks && typeof networks === 'object') {
+        Object.keys(networks).forEach(function (networkName) {
+          var network = networks[networkName];
+          network.name = networkName;
+        });
+        $scope.networks = networks;
+      } 
     }
 
     function gotDefaults(defaults) {
