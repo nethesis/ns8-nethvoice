@@ -130,7 +130,7 @@ class PortScanner(object):
         else:
             raise PortScannerError(
                 'nmap program was not found in path. PATH is : {0}'.format(
-                    os.getenv('PATH')
+                    os.$_ENV['PATH']
                 )
             )
 

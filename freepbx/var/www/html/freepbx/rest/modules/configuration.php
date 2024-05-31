@@ -34,7 +34,7 @@ function setLegacyMode($value) {
 
 $app->get('/configuration/userprovider', function (Request $request, Response $response, $args) {
     # Get domain
-    $provider_domain = strtolower(getenv('NETHVOICE_LDAP_BASE'));
+    $provider_domain = strtolower($_ENV['NETHVOICE_LDAP_BASE']);
 
     # Parse domain
     $dcs = explode("dc=", $provider_domain);

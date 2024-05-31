@@ -23,10 +23,10 @@
 require_once('/etc/freepbx.conf');
 
 function getUserPortalUrl() {
-    $host = getenv('NETHVOICE_HOST');
+    $host = $_ENV['NETHVOICE_HOST'];
 
     # get domain
-    $provider_domain = strtolower(getenv('NETHVOICE_LDAP_BASE'));
+    $provider_domain = strtolower($_ENV['NETHVOICE_LDAP_BASE']);
 
     # parse domain
     $dcs = explode("dc=", $provider_domain);
@@ -39,8 +39,8 @@ function getUserPortalUrl() {
 
 function getToken() {
     $post = [
-        "username" => getenv('NETHVOICE_USER_PORTAL_USERNAME'),
-        "password" => getenv('NETHVOICE_USER_PORTAL_PASSWORD'),
+        "username" => $_ENV['NETHVOICE_USER_PORTAL_USERNAME'],
+        "password" => $_ENV['NETHVOICE_USER_PORTAL_PASSWORD'],
     ];
 
     $ch = curl_init(getUserPortalUrl() . '/login');
@@ -175,7 +175,7 @@ function getUserID($username) {
 
 function getAllUsers() {
     global $astman;
-    $blacklist = ['admin', 'administrator', 'guest', 'krbtgt','ldapservice', getenv('NETHVOICE_USER_PORTAL_USERNAME')];
+    $blacklist = ['admin', 'administrator', 'guest', 'krbtgt','ldapservice', $_ENV['NETHVOICE_USER_PORTAL_USERNAME']];
     $users = FreePBX::create()->Userman->getAllUsers();
     $dbh = FreePBX::Database();
     $i = 0;
