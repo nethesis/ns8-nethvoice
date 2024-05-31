@@ -49,6 +49,15 @@ function createExtension($mainextensionnumber,$delete=false){
             }
         }
 
+        //get main extension details
+        $mainextensions = $fpbx->Core->getAllUsers();
+        foreach ($mainextensions as $ve) {
+            if ($ve['extension'] == $mainextensionnumber) {
+                $mainextension = $ve;
+                break;
+            }
+        }
+
         $stmt = $dbh->prepare("SELECT * FROM `rest_devices_phones` WHERE `extension` = ?");
         $stmt->execute(array($mainextensionnumber));
         $res = $stmt->fetchAll();
@@ -62,13 +71,6 @@ function createExtension($mainextensionnumber,$delete=false){
            $stmt->execute(array($extension));
         } else {
             //create new extension
-            $mainextensions = $fpbx->Core->getAllUsers();
-            foreach ($mainextensions as $ve) {
-                if ($ve['extension'] == $mainextensionnumber) {
-                    $mainextension = $ve;
-                    break;
-                }
-            }
             //get first free physical extension number for this main extension
             $extensions = $fpbx->Core->getAllUsersByDeviceType();
             for ($i=91; $i<=98; $i++) {
