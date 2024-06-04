@@ -1,3 +1,8 @@
 #!/bin/bash
 
-podman exec -it freepbx asterisk $@
+# Check if stdout is a TTY
+if [[ -t 1 ]] ; then
+    with_tty=1
+fi
+
+podman exec -i ${with_tty:+-t} freepbx asterisk $@
