@@ -1,3 +1,13 @@
 #!/bin/bash
 
-podman exec -it mariadb mysql -u root -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$MARIADB_ROOT_PASSWORD $@
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Check if stdout is a TTY
+if [[ -t 1 ]] ; then
+    with_tty=1
+fi
+
+podman exec -i ${with_tty:+-t} mariadb mysql -u root -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$MARIADB_ROOT_PASSWORD $@
