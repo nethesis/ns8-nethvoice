@@ -151,3 +151,24 @@ $sql = "DELETE FROM kvstore_FreePBX_modules_Userman WHERE `id` = ? ; INSERT INTO
 $stmt = $db->prepare($sql);
 $stmt->execute([$id, json_encode($ldap_settings), $id]);
 echo $ldap_settings['name'] . " userbase configuration: " . json_encode($ldap_settings) . "\n";
+
+// Check if domain changed and clean extensions
+$stmt = $db->prepare('SELECT `value` FROM `freepbx_settings` WHERE `keyword` = "NETHVOICE_LDAP_DOMAIN"');
+$stmt->execute();
+$old_domain = $stmt->fetchColumn();
+if (empty($old_domain)) {
+	$db->prepare('INSERT INTO `freepbx_settings` (`keyword`, `value`) VALUES ("NETHVOICE_LDAP_DOMAIN", ?)')->execute([$_ENV['NETHVOICE_LDAP_DOMAIN']]);
+} elseif (!empty($old_domain) && $old_domain !== $_ENV['NETHVOICE_LDAP_BASE']) {
+	$db->prepare('UPDATE `freepbx_settings` SET `value` = ? WHERE `keyword` = "NETHVOICE_LDAP_DOMAIN"')->execute([$_ENV['NETHVOICE_LDAP_DOMAIN']]);
+	// Clean extensions
+	$stmt = $db->prepare('SELECT `extension` FROM `users`');
+	$stmt->execute();
+	$extensions = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+	foreach ($extensions as $extension) {
+		$db->prepare('DELETE IGNORE FROM `users` WHERE `extension` = ?')->execute([$extension]);
+		$db->prepare('DELETE IGNORE FROM `sip` WHERE `id` = ?')->execute([$extension]);
+		$db->prepare('DELETE IGNORE FROM `rest_devices_phones` WHERE `extension` = ?')->execute([$extension]);
+		$db->prepare('DELETE IGNORE FROM `devices` WHERE `id` = ?')->execute([$extension]);
+	}
+	$db->prepare('DELETE IGNORE FROM `queues_details` WHERE `keyword` = "member"')->execute();
+}
