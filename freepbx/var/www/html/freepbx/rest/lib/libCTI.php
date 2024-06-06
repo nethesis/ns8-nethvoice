@@ -270,7 +270,7 @@ function getCTIPermissionProfiles($profileId=false, $minified=false, $printnull=
 
             // Remove Queue manager permissions if NethVoice is not registered
             if (empty($_ENV['SUBSCRIPTION_SYSTEMID']) || empty($_ENV['SUBSCRIPTION_SECRET'])) {
-                unset($results[$id]['macro_permissions']['qmanager']);
+                $results[$id]['macro_permissions']['qmanager']['value'] = false;
             }
 
             // Get all outbound routes with profile permission
