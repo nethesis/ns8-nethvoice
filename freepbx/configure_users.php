@@ -156,6 +156,24 @@ echo $ldap_settings['name'] . " userbase configuration: " . json_encode($ldap_se
 $stmt = $db->prepare('SELECT `value` FROM `freepbx_settings` WHERE `keyword` = "NETHVOICE_LDAP_DOMAIN"');
 $stmt->execute();
 $old_domain = $stmt->fetchColumn();
+
+// this array list all tables => [fields] that could contain an extension as destination
+$extensions_destinations_table_field = array(
+	'announcement' => ['post_dest'],
+	'daynight' => ['dest'],
+	'findmefollow' => ['postdest'],
+	'incoming' => ['destination'],
+	'ivr_details' => ['invalid_destination','timeout_destination'],
+	'ivr_entries' => ['dest'],
+	'nethcqr_details' => ['default_destination'],
+	'nethcqr_entries' => ['destination'],
+	'parkplus' => ['dest'],
+	'queueexit' => ['timeout_destination','full_destination','joinempty_destination','leaveempty_destination','joinunavail_destination','leavunavail_destination','continue_destination'],
+	'queues_config' => ['dest'],
+	'ringgroups' => ['postdest'],
+	'timeconditions' => ['truegoto','falsegoto'],
+);
+
 if (empty($old_domain)) {
 	$db->prepare('INSERT INTO `freepbx_settings` (`keyword`, `value`) VALUES ("NETHVOICE_LDAP_DOMAIN", ?)')->execute([$_ENV['NETHVOICE_LDAP_DOMAIN']]);
 } elseif (!empty($old_domain) && $old_domain !== $_ENV['NETHVOICE_LDAP_BASE']) {
@@ -169,6 +187,15 @@ if (empty($old_domain)) {
 		$db->prepare('DELETE IGNORE FROM `sip` WHERE `id` = ?')->execute([$extension]);
 		$db->prepare('DELETE IGNORE FROM `rest_devices_phones` WHERE `extension` = ?')->execute([$extension]);
 		$db->prepare('DELETE IGNORE FROM `devices` WHERE `id` = ?')->execute([$extension]);
+		// change destinations that has extensions to app-blackhole,hangup,1
+		foreach ($extensions_destinations_table_field as $table => $fields) {
+			foreach ($fields as $field) {
+				$db->prepare('UPDATE `' . $table . '` SET `' . $field . '` = "app-blackhole,hangup,1" WHERE `' . $field . '` = ? OR `' . $field . '` = ? OR `' . $field . '` = ?')->execute(['from-did-direct,'.$extension.',1','ext-local,'.$extension.',1', 'ext-local,vms'.$extension.',1']);
+			}
+		}
 	}
-	$db->prepare('DELETE IGNORE FROM `queues_details` WHERE `keyword` = "member"')->execute();
+	//remove all extensions from groups
+	$db->prepare('UPDATE `groups` SET `grplist` = ""')->execute();
+	//remove all extensions from queues members
+	$db->prepare('DELETE IGNORE FROM `queues_details` WHERE `keyword` = "member" AND `data` LIKE "Local/%@%"')->execute();
 }
