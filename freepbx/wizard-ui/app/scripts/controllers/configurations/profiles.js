@@ -108,7 +108,7 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.saveProfile = function (profile, obj_permissions, permission, macro) {
       // show queueManager missing license error
-      if ( profile.macro_permissions.qmanager.value){
+      if ( profile.macro_permissions.qmanager.value && !isLicenseActive){
         $scope.showLicenseError = true;
           $timeout(function() {
             profile.macro_permissions.qmanager.value = false;
