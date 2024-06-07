@@ -2396,6 +2396,9 @@ video {
 .z-50 {
   z-index: 50;
 }
+.z-1000 {
+  z-index: 1000;
+}
 .z-auto {
   z-index: auto;
 }
@@ -4907,6 +4910,9 @@ video {
 }
 .max-w-7xl {
   max-width: 80rem;
+}
+.max-w-8xl {
+  max-width: 125rem;
 }
 .max-w-full {
   max-width: 100%;

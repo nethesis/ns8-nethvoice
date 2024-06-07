@@ -107,6 +107,17 @@ angular.module('nethvoiceWizardUiApp')
     };
 
     $scope.saveProfile = function (profile, obj_permissions, permission, macro) {
+      // show queueManager missing license error
+      if ( profile.macro_permissions.qmanager.value){
+        $scope.showLicenseError = true;
+          $timeout(function() {
+            profile.macro_permissions.qmanager.value = false;
+        }, 1000); 
+      }
+      // show privacy warning message
+      if ((permission.name === 'recording' && permission.value) || (permission.name === 'spy' && permission.value) || (permission.name === 'intrude' && permission.value) || (permission.name === 'ad_recording' && permission.value)) {
+        $scope.showPrivacyWarning = true;
+      }
       //turn off all permissions in macro without the one selected
       if (macro == "operator_panel") {
         for (var p in obj_permissions.permissions) {
@@ -221,4 +232,31 @@ angular.module('nethvoiceWizardUiApp')
     };
 
     $scope.getAllProfiles(true);
+
+    //Retrieve information about user status
+    $scope.getInformationLicense = function () {
+      UserService.statusLicense().then(function (res) {
+        $scope.licenseInformation  = res.data
+        if($scope.licenseInformation.limit !== false) {
+          $scope.isLicenseActive = false;
+        } else {
+          $scope.isLicenseActive = true;
+        }
+      } , function (err) {
+        if (err.status != 404) {
+          console.log(err)
+        }
+      })
+    }
+
+    $scope.resetLicenseErrorMessageQueueManager = function () {
+      $scope.showLicenseError = false;
+    }
+
+    $scope.resetPrivacyMessage = function () {
+      $scope.showPrivacyWarning = false;
+    }
+
+
+    $scope.getInformationLicense();
   });

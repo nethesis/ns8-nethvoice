@@ -307,6 +307,20 @@
       <button data-toggle="modal" data-target="#newProfileModal" class="btn btn-primary btn-lg right-only">{{'Create new profile' | translate}}</button>
     </div>
   </div>
+  <div ng-if="showLicenseError" class="toast-pf alert alert-danger alert-dismissable generic-error">
+    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+      <span class="pficon pficon-close" ng-click="resetLicenseErrorMessageQueueManager()"></span>
+    </button>
+    <span class="pficon pficon-error-circle-o"></span>
+    <strong>{{'Error' | translate}}</strong>: {{'missing license error message qmanager' | translate}}
+  </div>
+  <div ng-if="showPrivacyWarning" class="toast-pf alert alert-warning alert-dismissable generic-error max-w-8xl z-1000">
+    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+      <span class="pficon pficon-close" ng-click="resetPrivacyMessage()"></span>
+    </button>
+    <span class="pficon pficon-warning-triangle-o"></span>
+    <strong>{{'Warning' | translate}}</strong>: {{'privacy message notification' | translate}}
+  </div>
   <div ng-if="allProfiles | isEmpty" class="blank-slate-pf ">
     <div class="blank-slate-pf-icon">
       <span class="pficon pficon-users"></span>

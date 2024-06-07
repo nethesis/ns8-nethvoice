@@ -166,6 +166,9 @@
   "Incorrect username or password": "Incorrect username or password",
   "Sign in to Nethvoice": "Sign in to Nethvoice",
   "missing license error message": "License not present or invalid. Obtain a valid license to add multiple extensions.",
+  "missing license error message qmanager": "License not present or invalid. Obtain a valid license to activate Queue Manager.",
   "extensions left": "extensions left",
-  "extension left": "extension left"
+  "extension left": "extension left",
+  "privacy message notification": "The recording, possession, reproduction, communication or dissemination of telephone conversations outside of the cases permitted by law represents an offense. It is advisable to check that all the protections provided for by the Workers' Statute and the Privacy Code and the relevant applicable regulations have been adopted before activating this functionality.",
+  "Warning": "Warning"
 }

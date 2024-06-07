@@ -82,11 +82,13 @@ angular.module('nethvoiceWizardUiApp')
         $scope.onSave = false;
         $scope.getOutbounds(false);
         $scope.wizard.nextState = true;
+        $scope.wizard.isNextDisabled = false
       }, function (err) {
         console.log(err);
         $scope.onSaveSuccess = false;
         $scope.onSaveError = true;
         $scope.onSave = false;
+        $scope.wizard.isNextDisabled = true
       });
     };
 
@@ -128,4 +130,10 @@ angular.module('nethvoiceWizardUiApp')
       console.log(err);
     });
 
+    // User must select a language before go on the next step
+    $scope.resetNextStep = function () {
+      $scope.wizard.isNextDisabled = true      
+    };
+
+    $scope.resetNextStep();
   });
