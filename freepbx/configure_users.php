@@ -176,7 +176,7 @@ $extensions_destinations_table_field = array(
 
 if (empty($old_domain)) {
 	$db->prepare('INSERT INTO `freepbx_settings` (`keyword`, `value`) VALUES ("NETHVOICE_LDAP_DOMAIN", ?)')->execute([$_ENV['NETHVOICE_LDAP_DOMAIN']]);
-} elseif (!empty($old_domain) && $old_domain !== $_ENV['NETHVOICE_LDAP_BASE']) {
+} elseif ($old_domain !== $_ENV['NETHVOICE_LDAP_BASE']) {
 	$db->prepare('UPDATE `freepbx_settings` SET `value` = ? WHERE `keyword` = "NETHVOICE_LDAP_DOMAIN"')->execute([$_ENV['NETHVOICE_LDAP_DOMAIN']]);
 	// Clean extensions
 	$stmt = $db->prepare('SELECT `extension` FROM `users`');
