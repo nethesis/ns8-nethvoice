@@ -66,6 +66,7 @@ ExecStart=/usr/bin/podman run \
     --env=PROXY_PORT \
     --env=NETHVOICE_USER_PORTAL_USERNAME \
     --env=NETHVOICE_USER_PORTAL_PASSWORD \
+    --env=USER_DOMAIN \
     --network=host \
     --tz=${TIMEZONE} \
     --hostname=${NETHVOICE_HOST} \

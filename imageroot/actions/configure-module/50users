@@ -29,7 +29,6 @@ if domparams['host'] != os.getenv('NETHVOICE_LDAP_HOST', '') or \
     services_to_restart.add('freepbx.service')
 agent.set_env('RESTART_SERVICES', ' '.join(services_to_restart))
 
-agent.set_env('NETHVOICE_LDAP_DOMAIN', domain)
 agent.set_env('NETHVOICE_LDAP_HOST', domparams['host'])
 agent.set_env('NETHVOICE_LDAP_PORT', domparams['port'])
 agent.set_env('NETHVOICE_LDAP_USER', domparams['bind_dn'])

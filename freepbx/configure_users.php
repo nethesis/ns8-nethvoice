@@ -153,7 +153,7 @@ $stmt->execute([$id, json_encode($ldap_settings), $id]);
 echo $ldap_settings['name'] . " userbase configuration: " . json_encode($ldap_settings) . "\n";
 
 // Check if domain changed and clean extensions
-$stmt = $db->prepare('SELECT `value` FROM `freepbx_settings` WHERE `keyword` = "NETHVOICE_LDAP_DOMAIN"');
+$stmt = $db->prepare('SELECT `value` FROM `freepbx_settings` WHERE `keyword` = "USER_DOMAIN"');
 $stmt->execute();
 $old_domain = $stmt->fetchColumn();
 
@@ -175,9 +175,9 @@ $extensions_destinations_table_field = array(
 );
 
 if (empty($old_domain) && !empty($_ENV['NETHVOICE_LDAP_BASE'])) {
-	$db->prepare('INSERT IGNORE INTO `freepbx_settings` (`keyword`, `value`, `name`, `level`, `description`, `type`, `options`, `defaultval`,`readonly`,`hidden`,`category`,`module`,`emptyok`,`sortorder`) VALUES ("NETHVOICE_LDAP_DOMAIN", ?, "Name of NethVoice user base domain", 0, "This is automatically configured at FreePBX container startup using environment NETHVOICE_LDAP_ variables", "text", "", "",1,1,"System Setup","",1,0)')->execute([$_ENV['NETHVOICE_LDAP_DOMAIN']]);
+	$db->prepare('INSERT IGNORE INTO `freepbx_settings` (`keyword`, `value`, `name`, `level`, `description`, `type`, `options`, `defaultval`,`readonly`,`hidden`,`category`,`module`,`emptyok`,`sortorder`) VALUES ("USER_DOMAIN", ?, "Name of NethVoice user base domain", 0, "This is automatically configured at FreePBX container startup using environment NETHVOICE_LDAP_ variables", "text", "", "",1,1,"System Setup","",1,0)')->execute([$_ENV['USER_DOMAIN']]);
 } elseif ($old_domain !== $_ENV['NETHVOICE_LDAP_BASE']) {
-	$db->prepare('UPDATE `freepbx_settings` SET `value` = ? WHERE `keyword` = "NETHVOICE_LDAP_DOMAIN"')->execute([$_ENV['NETHVOICE_LDAP_DOMAIN']]);
+	$db->prepare('UPDATE `freepbx_settings` SET `value` = ? WHERE `keyword` = "USER_DOMAIN"')->execute([$_ENV['USER_DOMAIN']]);
 	// Clean extensions
 	$stmt = $db->prepare('SELECT `extension` FROM `users`');
 	$stmt->execute();
