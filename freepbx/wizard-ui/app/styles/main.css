@@ -1,6 +1,7 @@
 body {
   font-family: "Open Sans", Helvetica, Arial, sans-serif;
-  background: url('../images/login.svg');
+  background: url('../images/login.svg') no-repeat center center;
+  background-size: cover;
   display: none;
   overflow: hidden;
 }

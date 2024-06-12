@@ -9563,7 +9563,7 @@ video {
 }
 .bg-gray-950 {
   --tw-bg-opacity: 1;
-  background-color: #030712
+  background-color: #030712;
 }
 .bg-rose-50 {
   --tw-bg-opacity: 1;
@@ -14942,14 +14942,14 @@ video {
 .focus-within\:ring-inset:focus-within {
   --tw-ring-inset: inset;
 }
-.focus\:ring-inset{
+.focus\:ring-inset {
   --tw-ring-inset: inset;
 }
 .focus\:ring-emerald-300:focus {
-  --tw-ring-color: #6EE7B7;
+  --tw-ring-color: #6ee7b7;
 }
 .focus\:ring-emerald-500:focus {
-  --tw-ring-color: #10B981;
+  --tw-ring-color: #10b981;
 }
 .focus\:ring-emerald-700:focus {
   --tw-ring-color: #047857;
@@ -27054,5 +27054,13 @@ video {
   }
   .lg\:pl-3\.5 {
     padding-left: 0.875rem;
+  }
+  .lg\:bg-gray-200 {
+    --tw-bg-opacity: 1;
+    background-color: rgba(229, 231, 235, var(--tw-bg-opacity));
+  }
+  .lg\:bg-gray-950 {
+    --tw-bg-opacity: 1;
+    background-color: #030712;
   }
 }
