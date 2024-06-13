@@ -1,0 +1,12 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Read the list of services to stop from the `./default-target.clone-module` file
+services=$(cat default-target.clone-module | sed -e 's/watcher.path//g' -e 's/agent.service//g')
+
+# Wait for the services to be stopped
+systemctl --user stop $services
