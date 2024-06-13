@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import agent
+import os
+
+
+# Cleanup the environment
+agent.unset_env('NETHVOICE_USER_PORTAL_PASSWORD')
+agent.unset_env('NETHVOICE_USER_PORTAL_USERNAME')
+agent.unset_env('RESTART_SERVICES')
