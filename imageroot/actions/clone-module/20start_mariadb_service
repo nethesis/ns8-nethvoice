@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import agent
+import os
+
+# Read the source environment file
+env_clone = agent.read_envfile('environment.clone-module')
+
+# Set the old asterisk database password in the environment file
+agent.set_env('AMPDBPASS', env_clone['AMPDBPASS'])
+
+# Start the MariaDB service
+agent.run_helper(*'systemctl --user start mariadb.service'.split()).check_returncode()
+
+# Restore asterisk database password in the environment file
+agent.set_env('AMPDBPASS', os.environ['AMPDBPASS'])
