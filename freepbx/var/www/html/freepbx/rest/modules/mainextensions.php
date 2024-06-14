@@ -89,6 +89,5 @@ $app->get('/mainextensions/userlimits', function (Request $request, Response $re
         $limits['limit'] = false;
         $limits['configurable'] = false;
     }
-    $limits['limit'] = communityUsersLimit();
     return $response->withJson($limits, 200);
 });
