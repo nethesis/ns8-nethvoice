@@ -44,14 +44,13 @@ RUN cd /usr/share/tancredi/ && \
 	apt-get clean autoclean && \
 	apt-get autoremove --yes && \
 	rm -rf /var/lib/dpkg/info/* /var/lib/cache/* /var/lib/log/* && \
-	touch /var/lib/dpkg/status && \
-	export PHP_INI_DIR=/usr/local/etc/php && \
-	cp -a "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" && \
-	sed -i 's/^;error_log = syslog/error_log = \/dev\/stderr/' $PHP_INI_DIR/php.ini
+	touch /var/lib/dpkg/status
 
 # Add NethPhones firmware
 ADD --chown=root:www-data --chmod=640 https://github.com/nethesis/nethserver-tancredi/releases/download/1.16.0/x3sg-5913-RECOVERY-P0.18.23.1.75-2.4.18.2-1217T2024-03-20-03.28.47.z /var/lib/tancredi/data/firmware/x3sg-5913-RECOVERY-P0.18.23.1.75-2.4.18.2-1217T2024-03-20-03.28.47.z
 ADD --chown=root:www-data --chmod=640 https://github.com/nethesis/nethserver-tancredi/releases/download/1.16.0/x5u-6906-P0.18.23.89-2.4.6.0.11-3610T2023-01-13-17.35.24.z /var/lib/tancredi/data/firmware/x5u-6906-P0.18.23.89-2.4.6.0.11-3610T2023-01-13-17.35.24.z
+
+COPY usr/local/etc/php/php.ini /usr/local/etc/php/php.ini
 
 # Overwrite Debian default vim mouse policy
 RUN echo "source \$VIMRUNTIME/defaults.vim\nset mouse-=a" >> /root/.vimrc
