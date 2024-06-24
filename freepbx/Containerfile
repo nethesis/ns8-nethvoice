@@ -232,7 +232,11 @@ RUN mkdir download \
     && wget -nv https://github.com/nethesis/ns8-nethvoice/releases/download/0.0.1-rc.2.0.2/asterisk-sounds-es.tar.gz \
     && wget -nv https://github.com/nethesis/ns8-nethvoice/releases/download/0.0.1-rc.2.0.2/asterisk-sounds-fr.tar.gz \
     && wget -nv https://github.com/nethesis/ns8-nethvoice/releases/download/0.0.1-rc.2.0.2/asterisk-sounds-it.tar.gz \
-    && tar xzvf asterisk-sounds-??.tar.gz -C /var/lib/asterisk/sounds
+    && tar xzvf asterisk-sounds-de.tar.gz -C /var/lib/asterisk/sounds \
+    && tar xzvf asterisk-sounds-en.tar.gz -C /var/lib/asterisk/sounds \
+    && tar xzvf asterisk-sounds-es.tar.gz -C /var/lib/asterisk/sounds \
+    && tar xzvf asterisk-sounds-fr.tar.gz -C /var/lib/asterisk/sounds \
+    && tar xzvf asterisk-sounds-it.tar.gz -C /var/lib/asterisk/sounds \
     && chown -R asterisk:asterisk /var/lib/asterisk/sounds \
     && cd .. && rm -rf download
 
