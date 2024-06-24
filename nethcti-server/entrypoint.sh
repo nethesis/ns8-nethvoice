@@ -331,7 +331,7 @@ cat > $FILE <<EOF
     "static": {
       "port": "${NETHCTI_INTERNAL_REST_PORT5}",
       "address": "localhost",
-      "webroot": "/usr/lib/node/nethcti-server/plugins/com_static_http/static",
+      "webroot": "/app/plugins/com_static_http/static",
       "customWebroot": "/var/lib/nethserver/nethcti/static"
     },
     "voicemail": {
