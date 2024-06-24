@@ -1,0 +1,61 @@
+
+FROM docker.io/library/php:7-apache
+
+COPY etc /etc
+COPY usr /usr
+COPY entrypoint.sh /
+
+RUN apt update && \
+	apt install -y libapache2-mod-xsendfile zip && \
+	ln -sf /etc/apache2/sites-available/tancredi.conf /etc/apache2/sites-enabled/tancredi.conf && \
+	sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:$\{TANCREDIPORT\}>/' /etc/apache2/sites-enabled/000-default.conf && \
+	sed -i 's/Listen 80/Listen $\{TANCREDIPORT\}/' /etc/apache2/ports.conf && \
+	sed -i 's/Listen 443/Listen $\{TANCREDI_SSL_PORT\}/' /etc/apache2/ports.conf && \
+	echo '\n: ${TANCREDIPORT:=80}\nexport TANCREDIPORT\n: ${TANCREDI_SSL_PORT:=443}\nexport TANCREDI_SSL_PORT\n' >> /etc/apache2/envvars && \
+	# Install Tancredi files
+	BRANCH=master && \
+	curl -L https://github.com/nethesis/tancredi/archive/refs/heads/${BRANCH}.tar.gz -o - | tar xzp --strip-component=1 -C /usr/share/tancredi/ tancredi-${BRANCH}/data/ tancredi-${BRANCH}/public/ tancredi-${BRANCH}/scripts/ tancredi-${BRANCH}/src/ tancredi-${BRANCH}/composer.json tancredi-${BRANCH}/composer.lock
+
+# Add Nethesis firmware template
+COPY usr/share/tancredi/data/templates/nethesis-firmware.tmpl /usr/share/tancredi/data/templates/nethesis-firmware.tmpl
+
+# Create Tancredi data directories
+RUN mkdir -m 775 -p /var/lib/tancredi/data/backgrounds \
+ /var/lib/tancredi/data/firmware \
+ /var/lib/tancredi/data/first_access_tokens \
+ /var/lib/tancredi/data/ringtones \
+ /var/lib/tancredi/data/scopes \
+ /var/lib/tancredi/data/screensavers \
+ /var/lib/tancredi/data/templates-custom \
+ /var/lib/tancredi/data/tokens
+
+# Install Tancredi dependencies
+RUN cd /usr/share/tancredi/ && \
+	curl -s https://getcomposer.org/installer | php && \
+	COMPOSER_ALLOW_SUPERUSER=1 php composer.phar install --no-dev && \
+	rm -fr /usr/share/tancredi/src/Entity/SampleFilter.php /usr/share/tancredi/composer.phar /usr/share/tancredi/composer.json /usr/share/tancredi/composer.lock && \
+	chgrp -R www-data /var/lib/tancredi/data/* && \
+	# install pdo_mysql
+	docker-php-source extract && \
+	docker-php-ext-configure pdo_mysql && \
+	docker-php-ext-install pdo_mysql && \
+	docker-php-source delete && \
+	# clean apt cache
+	apt-get clean autoclean && \
+	apt-get autoremove --yes && \
+	rm -rf /var/lib/dpkg/info/* /var/lib/cache/* /var/lib/log/* && \
+	touch /var/lib/dpkg/status && \
+	export PHP_INI_DIR=/usr/local/etc/php && \
+	cp -a "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" && \
+	sed -i 's/^;error_log = syslog/error_log = \/dev\/stderr/' $PHP_INI_DIR/php.ini
+
+# Add NethPhones firmware
+ADD --chown=root:www-data --chmod=640 https://github.com/nethesis/nethserver-tancredi/releases/download/1.16.0/x3sg-5913-RECOVERY-P0.18.23.1.75-2.4.18.2-1217T2024-03-20-03.28.47.z /var/lib/tancredi/data/firmware/x3sg-5913-RECOVERY-P0.18.23.1.75-2.4.18.2-1217T2024-03-20-03.28.47.z
+ADD --chown=root:www-data --chmod=640 https://github.com/nethesis/nethserver-tancredi/releases/download/1.16.0/x5u-6906-P0.18.23.89-2.4.6.0.11-3610T2023-01-13-17.35.24.z /var/lib/tancredi/data/firmware/x5u-6906-P0.18.23.89-2.4.6.0.11-3610T2023-01-13-17.35.24.z
+
+# Overwrite Debian default vim mouse policy
+RUN echo "source \$VIMRUNTIME/defaults.vim\nset mouse-=a" >> /root/.vimrc
+
+WORKDIR /var/lib/tancredi
+CMD ["apache2-foreground"]
+ENTRYPOINT ["/entrypoint.sh"]

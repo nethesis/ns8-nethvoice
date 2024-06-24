@@ -1,0 +1,49 @@
+<div class="wizard-pf">
+  <div class="wizard-pf-body clearfix">
+    <div ng-if="wizard.isWizard" class="wizard-pf-steps">
+      <ul class="wizard-pf-steps-indicator">
+        <li class="wizard-pf-step {{resolveActiveTab('report',2) ? 'active' : ''}}" data-tabgroup="1">
+          <a ng-click="goTo('admin/report')"><span class="wizard-pf-step-number">1</span><span class="wizard-pf-step-title">{{'Report' | translate}}</span></a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="wizard-pf-contents adjust-size">
+    <h1 class="control-label centered" for="textInput-markup">{{'Final report' | translate}}</h1>
+    <div class="container-fluid report-margin-top">
+      <button ng-click="generatePDF()" class="btn btn-primary btn-lg"> {{'Print PDF report' | translate}}</button>
+    </div>
+    <div class="list-group list-view-pf list-view-pf-view adjust-margin-extensions">
+      <div class="list-group-item" ng-repeat="user in users | filter:searchUsersString | limitTo: usersLimit">
+        <div popover-placement="top-right" popover-trigger="'mouseenter'" popover-animation="true" uib-popover="Password" ng-if="mode.isLdap" class="list-view-pf-actions">
+          <strong>{{user.password}}</strong>
+        </div>
+        <div class="list-view-pf-main-info">
+          <div class="list-view-pf-left">
+            <span class="fa fa-user list-view-pf-icon-sm"></span>
+          </div>
+          <div class="list-view-pf-body">
+            <div class="list-view-pf-description">
+              <div popover-placement="top-left" popover-trigger="'mouseenter'" popover-animation="true" uib-popover="{{'Extension' | translate}}" class="list-group-item-heading">
+                {{user.default_extension}}
+              </div>
+              <div popover-placement="top-left" popover-trigger="'mouseenter'" popover-animation="true" uib-popover="{{'Username' | translate}}" class="list-group-item-text">
+                <span>{{user.username}}</span>
+              </div>
+            </div>
+            <div popover-placement="top-left" popover-trigger="'mouseenter'" popover-animation="true" uib-popover="{{'Fullname' | translate}}" class="list-view-pf-additional-info">
+              <div class="list-view-pf-additional-info-item">
+                {{user.displayname}}
+              </div>
+            </div>
+            <div popover-placement="top-left" popover-trigger="'mouseenter'" popover-animation="true" uib-popover="{{'Voicemail Password' | translate}}" class="list-view-pf-additional-info">
+              <div class="list-view-pf-additional-info-item">
+                {{user.voicemailpwd}}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

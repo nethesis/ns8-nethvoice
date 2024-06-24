@@ -1,0 +1,150 @@
+<style>
+  body {
+    padding-top: 0px !important;
+  }
+</style>
+
+<div id="loginTpl">
+  <!-- login card -->
+  <div class="flex flex-1 h-screen" ng-controller="LoginCtrl">
+    <div
+      ng-class="!isDarkTheme ? 'lg:bg-gray-200' : 'lg:bg-gray-950'"
+      class="flex flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-24"
+    >
+      <div class="mx-auto lg:w-52-edited">
+        <div class="w-1/2 h-full" style="zoom: 1.47; -moz-transform: scale(1.5)">
+          <div
+            class="absolute top-1/2 left-1/2 lg:left-28-edited transform -translate-y-1/2 -translate-x-1/2 lg:-translate-x-0"
+          >
+            <div
+              ng-class="!isDarkTheme ? 'bg-gray-50 border-gray-200' : 'bg-gray-900 border-gray-700'"
+              class="border-b rounded-lg p-12"
+            >
+              <div class="max-w-sm sm:w-96">
+                <!-- card Description -->
+                <h1
+                  ng-class="!isDarkTheme ? 'text-gray-900' : 'text-gray-50'"
+                  class="text-xl-edited font-medium leading-5 mb-4"
+                >
+                  {{'Welcome' | translate}}
+                </h1>
+
+                <span
+                  ng-class="!isDarkTheme ? 'text-gray-700' : 'text-gray-200'"
+                  class="text-sm-edited font-medium leading-5"
+                  >{{'Sign in to Nethvoice' | translate}}</span
+                >
+                <!-- Error alert -->
+                <div
+                  ng-if="login.showError"
+                  ng-class="!isDarkTheme ? 'border-rose-500 bg-rose-100' : 'border-rose-300 bg-rose-900'"
+                  class="border-l-4 p-4 rounded-md mt-4"
+                >
+                  <div class="flex">
+                    <div class="flex-shrink-0">
+                      <svg
+                        class="h-5 w-5 text-red-400"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <div class="ml-3">
+                      <p
+                        ng-class="!isDarkTheme ? 'text-rose-800' : 'text-rose-100'"
+                        class="text-sm-edited font-medium"
+                      >
+                        {{'Cannot login' | translate}}
+                      </p>
+                      <div
+                        ng-class="!isDarkTheme ? 'text-rose-700' : 'text-rose-200'"
+                      >
+                        <p>{{'Incorrect username or password' | translate}}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="pt-6">
+                  <form role="form" ng-submit="doLogin()" class="space-y-8">
+                    <div>
+                      <label
+                        htmlFor="username"
+                        ng-class="!isDarkTheme ? 'text-gray-700' : 'text-gray-200'"
+                        class="block text-sm-edited font-medium leading-5"
+                      >
+                        {{'User' | translate}}
+                      </label>
+                      <div class="mt-2">
+                        <input
+                          required
+                          type="text"
+                          ng-class="login.showError && !isDarkTheme? 'text-red-600 border-red-500 focus:border-red-500 focus:ring-red-500 bg-white' : login.showError && isDarkTheme ? 'border-red-400 focus:border-red-400 focus:ring-red-400 text-red-400 bg-gray-950' : !login.showError && !isDarkTheme ? 'bg-white text-gray-900 border-gray-300 focus:border-emerald-500 placeholder:text-gray-400 focus:ring-emerald-500' : 'bg-gray-950 text-gray-100 border-gray-600 focus:border-emerald-500 focus:ring-emerald-700 placeholder:text-gray-500'"
+                          class="form-control block w-full relative focus:z-[8] px-3 py-2 text-sm-edited rounded-md"
+                          id="inputUsername"
+                          placeholder=""
+                          tabindex="1"
+                          ng-model="username"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="password"
+                        ng-class="!isDarkTheme ? 'text-gray-700' : 'text-gray-200'"
+                        class="block text-sm-edited font-medium leading-5"
+                      >
+                        {{'Password' | translate}}
+                      </label>
+                      <div class="relative mt-2">
+                        <input
+                          required
+                          type="{{showPassword ? 'text' : 'password'}}"
+                          ng-class="login.showError && !isDarkTheme? 'text-red-600 border-red-500 focus:border-red-500 focus:ring-red-500 bg-white' : login.showError && isDarkTheme ? 'border-red-400 focus:border-red-400 focus:ring-red-400 text-red-400 bg-gray-950' : !login.showError && !isDarkTheme ? 'bg-white text-gray-900 border-gray-300 focus:border-emerald-500 placeholder:text-gray-400 focus:ring-emerald-500' : 'bg-gray-950 text-gray-100 border-gray-600 focus:border-emerald-500 focus:ring-emerald-700 placeholder:text-gray-500'"
+                          class="form-control block w-full relative focus:z-[8] px-3 py-2 text-sm-edited rounded-md"
+                          id="inputPassword"
+                          placeholder=""
+                          tabindex="2"
+                          ng-model="password"
+                          style="padding-right: 40px"
+                        />
+                        <i
+                          ng-class="!isDarkTheme ? 'text-gray-500' : 'text-gray-400'"
+                          class="fa {{showPassword ? 'fa-eye-slash' : 'fa-eye'}} password-icon absolute top-1/2 right-3 transform -translate-y-1/2 cursor-pointer"
+                          ng-click="showPassword = !showPassword"
+                        ></i>
+                      </div>
+                    </div>
+                    <div class="submit">
+                      <button
+                        type="submit"
+                        ng-class="!isDarkTheme ? 'text-white bg-emerald-700 ring-offset-slate-50 focus:ring-emerald-500 hover:bg-emerald-800 ' : 'text-gray-950 bg-emerald-500 dark:ring-offset-slate-900 dark:focus:ring-emerald-200 dark:hover:bg-emerald-300'"
+                        class="inline-flex content-center items-center justify-center font-medium tracking-wide transition-colors duration-200 transform focus:outline-none border border-transparent focus:ring-2 ring-offset-2 px-4 py-2 text-sm-edited h-full w-full rounded-md font-semibold"
+                      >
+                        <span class="leading-5 text-sm-edited font-semibold"
+                          >{{'Sign in' | translate}}</span
+                        >
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="relative flex-1 hideBrand">
+      <img
+        class="absolute inset-0 mx-auto my-auto"
+        src="images/brand.svg"
+        alt=""
+      />
+    </div>
+  </div>
+</div>

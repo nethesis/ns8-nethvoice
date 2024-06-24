@@ -28,6 +28,7 @@ services = [
     "reports-api",
     "reports-ui",
     "users-admin",
+    "cti-server-api",
 ]
 
 # Remove traefik route
@@ -39,5 +40,3 @@ for service in services:
             'instance': f"{os.environ['MODULE_ID']}-{service}"
         },
     )
-    # Check if traefik configuration has been successfull
-    agent.assert_exp(response['exit_code'] == 0)

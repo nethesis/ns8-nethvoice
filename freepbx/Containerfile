@@ -2,7 +2,7 @@
 FROM docker.io/debian:11 as builder
 
 # Set fixed Asterisk version
-ARG ASTERISK_VERSION=18.21.0
+ARG ASTERISK_VERSION=18.22.0
 ARG PJSIP_VERSION=2.13.1
 ARG DEBIAN_FRONTEND=noninteractive
 ARG BUILDROOT=/usr/src/asterisk/build
@@ -62,7 +62,7 @@ RUN apt-get update && \
 		wget
 
 RUN cd /usr/src/asterisk && \
-	wget https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz && \
+	wget https://downloads.asterisk.org/pub/telephony/asterisk/old-releases/asterisk-${ASTERISK_VERSION}.tar.gz && \
 	tar xzf asterisk-${ASTERISK_VERSION}.tar.gz && \
 	rm -f asterisk-${ASTERISK_VERSION}.tar.gz && \
 	mkdir cache && \
@@ -101,7 +101,7 @@ RUN cd /usr/src/asterisk && \
 		${BUILDROOT}/var/spool/asterisk/outgoing \
 		${BUILDROOT}/var/spool/asterisk/uploads \
 		${BUILDROOT}/var/spool/asterisk/cache && \
-	./configure --without-imap --with-externals-cache=/usr/src/asterisk/cache --with-gsm=/usr --without-ilbc --with-libedit=yes --with-srtp --with-jansson-bundled --with-pjproject-bundled LDFLAGS="${LDFLAGS}" NOISY_BUILD=1 CPPFLAGS="-fPIC" && \
+	./configure --without-imap --with-externals-cache=/usr/src/asterisk/cache --with-gsm=/usr --without-ilbc --with-libedit=yes --with-srtp --with-jansson-bundled --with-pjproject-bundled --with-libjwt-bundled LDFLAGS="${LDFLAGS}" NOISY_BUILD=1 CPPFLAGS="-fPIC" && \
 	make menuselect-tree && \
 	perl -n -i -e 'print unless /openr2/i' menuselect-tree && \
 	make ${MAKEARGS} && \
@@ -169,11 +169,14 @@ RUN groupadd -g 991 -r asterisk && \
 	apt-get update && \
 	apt-get install -y \
 		cron \
+		tdsodbc \
 		gettext \
 		gnupg \
 		libldap2-dev \
 		libldap-2.4-2 \
 		libsodium-dev \
+		logrotate \
+		mpg123 \
 		mycli \
 		nodejs \
 		npm \
@@ -196,7 +199,9 @@ RUN groupadd -g 991 -r asterisk && \
 		libneon27 \
 		libspandsp2 \
 		libsnmp40 \
-		libical3
+		libical3 \
+		sqlite3 \
+		unixodbc-dev
 
 
 # Copy Asterisk files
@@ -247,6 +252,7 @@ RUN mkdir download \
 
 COPY --chown=asterisk:asterisk etc/asterisk /etc/asterisk
 COPY etc/odbc.ini /etc/odbc.ini
+COPY etc/odbcinst.ini /etc/odbcinst.ini
 COPY var/lib/asterisk /var/lib/asterisk
 COPY usr/bin/backup_astdb /usr/bin/backup_astdb
 COPY usr/bin/restore_astdb /usr/bin/restore_astdb
@@ -359,7 +365,7 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/announcement && \
 	mkdir -p /var/www/html/freepbx/admin/modules/timeconditions && \
 	curl -sL https://github.com/FreePBX/timeconditions/archive/refs/tags/release/16.0.10.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/timeconditions && \
 	mkdir -p /var/www/html/freepbx/admin/modules/userman && \
-	curl -sL https://github.com/FreePBX/userman/archive/refs/tags/release/16.0.39.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/userman && \
+	curl -sL https://github.com/FreePBX/userman/archive/refs/tags/release/16.0.44.9.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/userman && \
 	mkdir -p /var/www/html/freepbx/admin/modules/vmblast && \
 	curl -sL https://github.com/FreePBX/vmblast/archive/refs/tags/release/16.0.10.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/vmblast
 
@@ -377,10 +383,6 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 	curl -sL https://github.com/nethesis/freepbx-extraoptions/archive/master.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/extraoptions && \
 	mkdir -p /var/www/html/freepbx/admin/modules/googletts && \
 	curl -sL https://github.com/nethesis/googletts/archive/refs/tags/0.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/googletts && \
-	mkdir -p /var/www/html/freepbx/admin/modules/nethcqr && \
-	curl -sL https://github.com/nethesis/nethcqr/archive/2.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/nethcqr && \
-	mkdir -p /var/www/html/freepbx/admin/modules/nethcti3 && \
-	curl -sL https://github.com/nethesis/nethcti3freepbx/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/nethcti3 && \
 	mkdir -p /var/www/html/freepbx/admin/modules/nethdash && \
 	curl -sL https://github.com/nethesis/nethdash/archive/1.0.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/nethdash && \
 	mkdir -p /var/www/html/freepbx/admin/modules/paging && \
@@ -397,16 +399,19 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 	curl -sL https://github.com/nethesis/freepbx-queues/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queues && \
 	mkdir -p /var/www/html/freepbx/admin/modules/rapidcode && \
 	curl -sL https://github.com/nethesis/RapidCode/archive/refs/tags/1.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/rapidcode && \
-	mkdir -p /var/www/html/freepbx/admin/modules/recallonbusy && \
-	curl -sL https://github.com/nethesis/freepbx-module-recallonbusy/archive/refs/tags/1.0.3.tar.gz -o - | tar xzp --wildcards --strip-components=2 -C /var/www/html/freepbx/admin/modules/recallonbusy */module && \
 	mkdir -p /var/www/html/freepbx/admin/modules/recordings && \
 	curl -sL https://github.com/nethesis/freepbx-recordings/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/recordings && \
 	mkdir -p /var/www/html/freepbx/admin/modules/returnontransfer && \
 	curl -sL https://github.com/nethesis/returnontransfer/archive/refs/tags/1.1.10.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/returnontransfer && \
-	mkdir -p /var/www/html/freepbx/admin/modules/visualplan && \
-	curl -sL https://github.com/nethesis/freepbx-visualplan/archive/refs/tags/14.3.8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/visualplan && \
 	mkdir -p /var/www/html/freepbx/admin/modules/voicemail && \
 	curl -sL https://github.com/nethesis/freepbx-voicemail/archive/14.0.6.26.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/voicemail
+
+# Install Nethesis vendor modules
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcqr /var/www/html/freepbx/admin/modules/nethcqr
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcti3 /var/www/html/freepbx/admin/modules/nethcti3
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/recallonbusy /var/www/html/freepbx/admin/modules/recallonbusy
+COPY usr/sbin/recallonbusy /usr/sbin/recallonbusy
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/visualplan /var/www/html/freepbx/admin/modules/visualplan
 
 # Create directories
 RUN mkdir -p \
@@ -496,15 +501,11 @@ COPY var/www/html/freepbx/admin/brand/* /var/www/html/freepbx/admin/brand/
 
 RUN ln -sf /var/lib/asterisk/bin/fwconsole /usr/bin/fwconsole
 
-RUN pip install mysql.connector
+RUN pip install mysql.connector asterisk-ami configparser
+
 
 # Use PHP development ini configuration and enable logging on syslog
-RUN cp -a /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini && \
-	sed -i 's/^;error_log = syslog/error_log = \/dev\/stderr/' /usr/local/etc/php/php.ini && \
-	echo "error_log = /dev/stderr" >> /usr/local/etc/php/conf.d/freepbx.ini && \
-	echo "variables_order = \"EGPCS\"" >> /usr/local/etc/php/conf.d/freepbx.ini && \
-	echo "memory_limit = 512M" >> /usr/local/etc/php/conf.d/freepbx.ini && \
-	sed -i 's/^variables_order = "GPCS"/variables_order = "EGPCS"/' /usr/local/etc/php/php.ini
+COPY usr/local/etc/php/php.ini /usr/local/etc/php/php.ini
 
 # Install php additional modules
 RUN docker-php-source extract && \
@@ -512,16 +513,16 @@ RUN docker-php-source extract && \
 	docker-php-ext-configure gettext && docker-php-ext-install gettext && \
 	ln -s /usr/lib/x86_64-linux-gnu/libldap.so /usr/lib/libldap.so && docker-php-ext-configure ldap && docker-php-ext-install ldap && \
 	docker-php-ext-configure sysvsem && docker-php-ext-install sysvsem && \
+	docker-php-ext-configure pdo_odbc --with-pdo-odbc=unixODBC,/usr && docker-php-ext-install pdo_odbc && \
 	docker-php-source delete
 
 # Install nethvoice-wizard-restapi and nethvoice-wizard-ui
-RUN mkdir -p /var/www/html/freepbx/rest && \
-	curl -L https://github.com/nethesis/nethvoice-wizard-restapi/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=1 -C /var/www/html/freepbx/rest/ && \
-	cd /var/www/html/freepbx/rest/ && \
+COPY var/www/html/freepbx/rest /var/www/html/freepbx/rest
+COPY wizard-ui /tmp/wizard
+RUN cd /var/www/html/freepbx/rest/ && \
 	curl -s https://getcomposer.org/installer | php && \
 	COMPOSER_ALLOW_SUPERUSER=1 php composer.phar install --no-dev && \
 	rm -fr README.md composer.json composer.lock composer.phar test && \
-	curl -L https://github.com/nethesis/nethvoice-wizard-ui/archive/refs/heads/ns8.tar.gz  -o - | tar xzp --strip-component=1 -C /tmp && \
 	cd /tmp/wizard && \
 	npx -y -p npm@6 npm install yarn && node_modules/yarn/bin/yarn install && node_modules/grunt-cli/bin/grunt build && \
 	mkdir -p /var/www/html/freepbx/wizard && \
@@ -534,9 +535,16 @@ RUN a2enmod rewrite proxy*
 # Clean apt files
 RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,dpkg,cache,log}/* && touch /var/lib/dpkg/status
 
-# Install centralized phonebook update script
-RUN mkdir -p /usr/share/phonebooks/ && \
+# Rotate logs hourly
+RUN mv /etc/cron.daily/logrotate /etc/cron.hourly/logrotate
+
+# Install centralized phonebook update script and CSV upload path
+RUN mkdir -p /usr/share/phonebooks/ /var/lib/nethvoice/phonebook/uploads && \
+	chown asterisk:asterisk /var/lib/nethvoice/phonebook/uploads && \
 	curl -L https://github.com/nethesis/nethserver-phonebook-mysql/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=5 -C /usr/share/phonebooks/ nethserver-phonebook-mysql-ns8/root/usr/share/phonebooks
+
+# Overwrite Debian default vim mouse policy
+RUN echo "source \$VIMRUNTIME/defaults.vim\nset mouse-=a" >> /root/.vimrc
 
 COPY etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-default.conf
 COPY etc/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf

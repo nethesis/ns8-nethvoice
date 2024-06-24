@@ -1,0 +1,157 @@
+.offline-gray {
+  border-color: #8e8e8e !important;
+}
+
+.online-green {
+  border-color: #10b981 !important;
+}
+
+.online-red {
+  border-color: #DB2828 !important;
+}
+
+.text-online-green {
+  color: #10b981 !important;
+}
+
+.text-red {
+  color: red;
+}
+
+.dnd-color {
+  color: #DB2828!important;
+}
+
+.callforward-color {
+  color: #FBBD08!important;
+}
+
+.user-dashboard-icon {
+  font-size: 1.15em !important;
+  height: 26px !important;
+  line-height: 26px !important;
+  width: 26px !important;
+}
+
+.user-dashboard-icon::before {
+  line-height: 24px !important;
+}
+
+.icon-trunk-type {
+  margin-right: 7px;
+}
+
+.trunks-lg-cards {
+  max-width: 344px;
+  margin-right: 20px;
+  border-top: 1px solid #f3f4f3;
+}
+
+.valign-middle {
+  vertical-align: middle;
+}
+
+.exten-dashboard-label {
+  vertical-align: middle;
+  padding-bottom: 5px !important;
+  padding-top: 5px !important;
+  align-items: center;
+}
+
+.exten-dashboard-action {
+  margin-top: 6px !important;
+  margin-bottom: 6px !important;
+}
+
+.cursor-default {
+  cursor: default !important;
+}
+
+.max-containers-height {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.pannel-body-color {
+  background: #fafafa;
+}
+
+.dashboard-cards-margin-top {
+  margin-top: 23px;
+}
+
+.dashboard-trunks-margin {
+  margin-top: 18px;
+}
+
+.user-dashboard-card {
+  width: 245px;
+  margin-right: 21px;
+  display: inline-block;
+  padding: 2px 19px 0px 19px;
+  border-top: 1px solid #f3f4f3;
+  vertical-align: top;
+}
+
+.dashboard-cards-h2 {
+  font-size: 15px;
+  margin-top: 15px;
+}
+
+.dashboard-cards-icon {
+  margin-right: 4px !important;
+  font-size: 15px;
+}
+
+.dashboard-list-margin-top {
+  margin-top: -5px;
+}
+
+.dashboard-list-item {
+  border: 1px solid #f5f5f5 !important;
+  height: 38px;
+}
+
+.dashboard-info-fontsize {
+  font-size: 11.5px !important;
+}
+
+.dashboard-extenid-fontsize {
+  font-size: 13px !important;
+}
+
+.trunk-row-width {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.u-presence-row:hover {
+  background: #ededed;
+}
+
+.u-presence-row {
+  padding: 3px 5px 4px 5px;
+}
+
+.text-bold {
+  font-weight: bold;
+}
+
+.presence-reset-icon {
+  float: right;
+  padding-top: 6px;
+  cursor: pointer;
+}
+
+.label-presence-user {
+  margin-left: 5px;
+}
+
+.trunk-name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}

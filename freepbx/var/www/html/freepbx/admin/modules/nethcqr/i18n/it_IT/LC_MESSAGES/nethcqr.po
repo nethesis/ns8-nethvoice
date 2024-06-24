@@ -1,0 +1,200 @@
+# This file is distributed under the same license as the CQR package.
+# FIRST AUTHOR <stefano.fancello@nethesis.it>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 2.5\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-02-28 09:52+0000\n"
+"PO-Revision-Date: 2012-02-28 17:52+0100\n"
+"Last-Translator: Stefano Fancello<stefano.fancello@nethesis.it>\n"
+"Language-Team: Italian\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Italian\n"
+"X-Poedit-Country: ITALY\n"
+
+msgid "Add CQR"
+msgstr "Aggiungi CQR"
+
+msgid "Edit CQR: %s"
+msgstr "Modifica CQR: %s"
+
+msgid "Delete CQR: %s"
+msgstr "Elimina CQR: %s"
+
+msgid "CQR General Options"
+msgstr "Impostazioni Generali CQR"
+
+msgid "CQR Name"
+msgstr "Nome CQR"
+
+msgid "Name of this CQR."
+msgstr "Nom di questo CQR"
+
+msgid "CQR Description"
+msgstr "Descrizione CQR"
+
+msgid "Description of this cqr."
+msgstr "Descrizione di questo CQR"
+
+msgid "Use Customer Code"
+msgstr "Usa Codice Cliente"
+
+msgid "If checked, extract customer code from caller ID. If Manual Code is checked too, customer code can be dialed by caller if ID is not recognized. Customer code can be used in CQR query using %CUSTOMERCODE%"
+msgstr "Se selezionato, estrae il codice cliente con la query specificata sotto o richiede che venga inserito manualmente. Il codice cliente potrà essere utilizato nella query del CQR con %CUSTOMERCODE%"
+
+msgid "Manual Customer Code"
+msgstr "Richiesta Codice Cliente Manuale"
+
+msgid "If checked customer code can be dialed by caller if ID is not recognized"
+msgstr "Se selezionato, il codice cliente potrà essere inserito dal chiamante"
+
+msgid "Customer Code Length"
+msgstr "Lunghezza Codice Cliente"
+
+msgid "Length of customer code"
+msgstr "Lunghezza del codice cliente"
+
+msgid "Code Retry"
+msgstr "Numero Tentativi"
+
+msgid "Number of time code can be redialed"
+msgstr "Numero di tentativi effettuabili in caso di inserimento di un codice non valido"
+
+msgid "Customer Code Db Type"
+msgstr "Tipo Db Codice Cliente"
+
+msgid "Select one of supported database type for custome code query"
+msgstr "Selezionare uno dei tipi di database supportati per la query per il codice cliente"
+
+msgid "Customer Code Db URL"
+msgstr "URL db Codice Cliente"
+
+msgid "URL of database for custome code query"
+msgstr "URL del database per il codice cliente"
+
+msgid "Customer Code Db Name"
+msgstr "Nome db Codice Cliente"
+
+msgid "Name of database for custome code query"
+msgstr "Nome del database per il codice cliente"
+
+msgid "Customer Code Db Username"
+msgstr "Username db Codice Cliente"
+
+msgid "Username that will be used accessing database for custome code query"
+msgstr "Username che sarà usato per accedere al database per risolvere il codice cliente"
+
+msgid "Customer Code Db Password"
+msgstr "Password db Codice Cliente"
+
+msgid "Password for database for custome code query"
+msgstr "Password per il database del codice cliente"
+
+msgid "Customer Code Query"
+msgstr "Query Codice Cliente"
+
+msgid "Query for custome code. %CID% will be replaced with caller ID. Example: SELECT `customer_code` FROM `phonebook` WHERE `caller_id` = '%CID%'"
+msgstr "Query per estrarre il codice cliente. Si può utilizzare la variabile %CID% che verrà sostituita con l'ID del chiamante. Esempio: SELECT `customer_code` FROM `phonebook` WHERE `caller_id` = '%CID%'"
+
+msgid "CQR Options"
+msgstr "Opzioni CQR"
+
+msgid "None"
+msgstr "None"
+
+msgid "Announcement"
+msgstr "Annuncio"
+
+msgid "Greeting to be played on entry to the CQR."
+msgstr "Annuncio che viene riprodotto all'arrivo del CQR."
+
+msgid "Database Type"
+msgstr "Tipo di database"
+
+msgid "Select one of supported database type"
+msgstr "Selezionare uno dei database supportati"
+
+msgid "Database URL"
+msgstr "URL Datatbase"
+
+msgid "URL of database"
+msgstr "URL del database"
+
+msgid "Database Name"
+msgstr "Nome Database"
+
+msgid "Name of database"
+msgstr "Nome del database"
+
+msgid "Database Username"
+msgstr "Username"
+
+msgid "Username that will be used accessing database"
+msgstr "Username che sarà usato per accedere al database"
+
+msgid "Database Password"
+msgstr "Password"
+
+msgid "Password for database"
+msgstr "Password che sarà usata per accedere al database"
+
+msgid "Query"
+msgstr ""
+
+msgid "Query. %CID% will be replaced with caller ID, %CUSTOMERCODE% with customer code found by Customer code query. Example: SELECT `name` FROM `phonebook` WHERE `customer_code` = '%CUSTOMERCODE%'"
+msgstr "Query. %CID% sarà sostituito con l'ID chiamante, %CUSTOMERCODE% con il codice cliente. Esempio: SELECT `name` FROM `phonebook` WHERE `customer_code` = '%CUSTOMERCODE%'"
+
+msgid "Default Destination"
+msgstr "Destinazione di default"
+
+msgid "NethCQR Entries"
+msgstr "Voci NethCQR"
+
+msgid "Position"
+msgstr "Posizione"
+
+msgid "Condition"
+msgstr "Condizione"
+
+msgid "Destination"
+msgstr "Destinazione"
+
+msgid "Delete"
+msgstr "Elimina"
+
+msgid "CQR: %s / Option: %s"
+msgstr "CQR: %s / Option: %s"
+
+msgid "Customer Code Resolution"
+msgstr "Risoluzione Codice Cliente"
+
+msgid "Default destination of the call"
+msgstr "Destinazione di default della chiamata"
+
+msgid "Announcement Customer Code"
+msgstr "Annuncio Codice Cliente"
+
+msgid "Greeting to be played to ask Customer Code."
+msgstr "Annuncio che viene riprodotto per chiedere l'inserimento del Codice Cliente."
+
+msgid "Announcement Customer Code Error"
+msgstr "Annuncio Errore Codice Cliente"
+
+msgid "Greeting to be played when an error occur typing Customer Code."
+msgstr "Annuncio che viene riprodotto quando avviene un errore nell'inserimento del Codice Cliente."
+
+msgid "Customer Code Check Query"
+msgstr "Query Controllo Codice Cliente"
+
+msgid "Query for custome code checking. %CODCLI% will be replaced with the custome code. Example: SELECT `customer_code` FROM `phonebook` WHERE `customer_code` = '%CODCLI%'"
+msgstr "Query per controllare che il codice cliente inserito sia corretto. %CODCLI% verrà sostituito con il codice cliente immesso. Esempio: SELECT `customer_code` FROM `phonebook` WHERE `customer_code` = '%CODCLI%'"
+
+msgid "Use workphone for query"
+msgstr "Usa il telefono lavoro per le query"
+
+msgid "Use company workphone for query if available instead of callers."
+msgstr "Usa il telefono lavoro per le query se disponibile invece del numero chiamante reale."
+

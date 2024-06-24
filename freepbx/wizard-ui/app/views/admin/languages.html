@@ -1,0 +1,47 @@
+<div class="wizard-pf">
+  <div class="wizard-pf-body clearfix">
+    <div ng-if="wizard.isWizard" class="wizard-pf-steps">
+      <ul class="wizard-pf-steps-indicator">
+        <li class="wizard-pf-step {{resolveActiveTab('languages',2) ? 'active' : ''}}" data-tabgroup="1">
+          <a ng-click="goTo('admin/languages')"><span class="wizard-pf-step-number">1</span><span class="wizard-pf-step-title">{{'Languages' | translate}}</span></a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="wizard-pf-contents adjust-size">
+    <h1 class="control-label centered" for="textInput-markup">{{'Languages settings' | translate}}</h1>
+    <div class="container-fluid col-xs-12 col-sm-12 col-md-6 col-lg-6 adjust-voip" ng-init="init()">
+      <div ng-show="onSaveSuccess" class="alert alert-success alert-dismissable">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                  <span class="pficon pficon-close"></span>
+              </button>
+        <span class="pficon pficon-ok"></span>
+        <strong>{{'Language saved' | translate}}.</strong> {{'System language saved with success' | translate}}
+      </div>
+      <div ng-show="onSaveError" class="alert alert-danger alert-dismissable">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                  <span class="pficon pficon-close"></span>
+                </button>
+        <span class="pficon pficon-error-circle-o"></span>
+        <strong>{{'Language error' | translate}}</strong> {{'System language installation error' | translate}}
+      </div>
+      <h3>{{'Set system language' | translate}} <span ng-if="language" class="slim-weight">( {{'current' | translate}}: {{getLangName(currentLanguage)}} )</span></h3>
+      <form class="form-horizontal" ng-submit="setDefaultPBXLanguage(language)">
+        <div class="form-group">
+          <label class="col-sm-3 control-label">{{'Language' | translate}}</label>
+          <div class="col-sm-9">
+            <select title='-' pf-select="{ width: '180px' }" ng-model="language" ng-options="l as getLangName(l) for l in availableLangs track by l">
+                    </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="col-sm-3 control-label"></label>
+          <div class="col-sm-9">
+            <button ng-disabled="language == currentLanguage" type="submit" class="col-md-2 btn btn-primary right-align">{{'Set' | translate}}</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+  <wizard-step ng-if="wizard.isWizard" id="wizardStepBase"></wizard-step>
+</div>

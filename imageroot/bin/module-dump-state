@@ -10,7 +10,7 @@ set -e
 # clean container files on exit
 cleanup () {
     podman exec mariadb rm -rf /tmp/db_backup
-    podman exec asterisk rm -f /var/lib/asterisk/db/astdb.sqlite3.dump
+    podman exec freepbx rm -f /var/lib/asterisk/db/astdb.sqlite3.dump
 }
 
 trap cleanup EXIT
@@ -36,20 +36,21 @@ podman cp mariadb:/tmp/db_backup db_backup
 # /var/spool/asterisk/monitor
 
 # dump asterisk sqlite db
-podman exec asterisk backup_astdb
+podman exec freepbx backup_astdb
 # copy sqlite db to local filesystem
 mkdir -p asterisk_backup/var/lib/asterisk/db
-podman cp asterisk:/var/lib/asterisk/db/astdb.sqlite3.dump asterisk_backup/var/lib/asterisk/db/astdb.sqlite3.dump
+podman cp freepbx:/var/lib/asterisk/db/astdb.sqlite3.dump asterisk_backup/var/lib/asterisk/db/astdb.sqlite3.dump
 
 # copy only custom sounds
-sounds_dirs=$(podman exec asterisk find /var/lib/asterisk/sounds -type d -name custom)
+sounds_dirs=$(podman exec freepbx find /var/lib/asterisk/sounds -type d -name custom)
 for dir in $sounds_dirs; do
     mkdir -p "asterisk_backup$dir"
-    podman cp "asterisk:$dir/." "asterisk_backup$dir"
+    podman cp "freepbx:$dir/." "asterisk_backup$dir"
 done
 
 # copy nethcti sounds
-if podman exec asterisk ls -alh /var/lib/asterisk/sounds/nethcti >/dev/null 2>&1; then
+if podman exec freepbx ls -alh /var/lib/asterisk/sounds/nethcti >/dev/null 2>&1; then
     mkdir -p asterisk_backup/var/lib/asterisk/sounds/nethcti
-    podman cp asterisk:/var/lib/asterisk/sounds/nethcti/. asterisk_backup/var/lib/asterisk/sounds/nethcti
+    podman cp freepbx:/var/lib/asterisk/sounds/nethcti/. asterisk_backup/var/lib/asterisk/sounds/nethcti
 fi
+

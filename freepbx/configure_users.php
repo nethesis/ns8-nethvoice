@@ -147,7 +147,55 @@ if (empty($results)) {
 	$stmt->execute([$ldap_settings['name'], $driver, $id]);
 }
 
-$sql = "INSERT INTO kvstore_FreePBX_modules_Userman (`key`, `val`, `type`, `id`) VALUES ('auth-settings',?,'json-arr',?)";
+$sql = "DELETE FROM kvstore_FreePBX_modules_Userman WHERE `id` = ? ; INSERT INTO kvstore_FreePBX_modules_Userman (`key`, `val`, `type`, `id`) VALUES ('auth-settings',?,'json-arr',?)";
 $stmt = $db->prepare($sql);
-$stmt->execute([json_encode($ldap_settings), $id]);
+$stmt->execute([$id, json_encode($ldap_settings), $id]);
 echo $ldap_settings['name'] . " userbase configuration: " . json_encode($ldap_settings) . "\n";
+
+// Check if domain changed and clean extensions
+$stmt = $db->prepare('SELECT `value` FROM `freepbx_settings` WHERE `keyword` = "USER_DOMAIN"');
+$stmt->execute();
+$old_domain = $stmt->fetchColumn();
+
+// this array list all tables => [fields] that could contain an extension as destination
+$extensions_destinations_table_field = array(
+	'announcement' => ['post_dest'],
+	'daynight' => ['dest'],
+	'findmefollow' => ['postdest'],
+	'incoming' => ['destination'],
+	'ivr_details' => ['invalid_destination','timeout_destination'],
+	'ivr_entries' => ['dest'],
+	'nethcqr_details' => ['default_destination'],
+	'nethcqr_entries' => ['destination'],
+	'parkplus' => ['dest'],
+	'queueexit' => ['timeout_destination','full_destination','joinempty_destination','leaveempty_destination','joinunavail_destination','leavunavail_destination','continue_destination'],
+	'queues_config' => ['dest'],
+	'ringgroups' => ['postdest'],
+	'timeconditions' => ['truegoto','falsegoto'],
+);
+
+if (empty($old_domain) && !empty($_ENV['USER_DOMAIN'])) {
+	$db->prepare('INSERT IGNORE INTO `freepbx_settings` (`keyword`, `value`, `name`, `level`, `description`, `type`, `options`, `defaultval`,`readonly`,`hidden`,`category`,`module`,`emptyok`,`sortorder`) VALUES ("USER_DOMAIN", ?, "Name of NethVoice user base domain", 0, "This is automatically configured at FreePBX container startup using environment NETHVOICE_LDAP_ variables", "text", "", "",1,1,"System Setup","",1,0)')->execute([$_ENV['USER_DOMAIN']]);
+} elseif ($old_domain !== $_ENV['USER_DOMAIN']) {
+	$db->prepare('UPDATE `freepbx_settings` SET `value` = ? WHERE `keyword` = "USER_DOMAIN"')->execute([$_ENV['USER_DOMAIN']]);
+	// Clean extensions
+	$stmt = $db->prepare('SELECT `extension` FROM `users`');
+	$stmt->execute();
+	$extensions = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+	foreach ($extensions as $extension) {
+		$db->prepare('DELETE IGNORE FROM `users` WHERE `extension` = ?')->execute([$extension]);
+		$db->prepare('DELETE IGNORE FROM `sip` WHERE `id` = ?')->execute([$extension]);
+		$db->prepare('DELETE IGNORE FROM `rest_devices_phones` WHERE `extension` = ?')->execute([$extension]);
+		$db->prepare('DELETE IGNORE FROM `devices` WHERE `id` = ?')->execute([$extension]);
+		// change destinations that has extensions to app-blackhole,hangup,1
+		foreach ($extensions_destinations_table_field as $table => $fields) {
+			foreach ($fields as $field) {
+				$db->prepare('UPDATE `' . $table . '` SET `' . $field . '` = "app-blackhole,hangup,1" WHERE `' . $field . '` = ? OR `' . $field . '` = ? OR `' . $field . '` = ?')->execute(['from-did-direct,'.$extension.',1','ext-local,'.$extension.',1', 'ext-local,vms'.$extension.',1']);
+			}
+		}
+	}
+	//remove all extensions from groups
+	$db->prepare('UPDATE `groups` SET `grplist` = ""')->execute();
+	//remove all extensions from queues members
+	$db->prepare('DELETE IGNORE FROM `queues_details` WHERE `keyword` = "member" AND `data` LIKE "Local/%@%"')->execute();
+}

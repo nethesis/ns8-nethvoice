@@ -1,0 +1,552 @@
+<div class="wizard-pf">
+  <div class="wizard-pf-body clearfix">
+    <div ng-if="wizard.isWizard" class="wizard-pf-steps">
+      <ul class="wizard-pf-steps-indicator">
+        <li class="wizard-pf-step {{resolveActiveTab('cards',2) ? 'active' : ''}}" data-tabgroup="1">
+          <a ng-click="goTo('apps/cards')"><span class="wizard-pf-step-number">1</span><span class="wizard-pf-step-title">{{'Customer cards' | translate}}</span></a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="wizard-pf-contents adjust-size">
+    <h1 class="control-label centered" for="textInput-markup">{{'Customer cards configuration' | translate}}</h1>
+    <!-- WIZARD -->
+    <div ng-if="(allSources | isEmpty) && (allTemplates | isEmpty) && (allCards | isEmpty)" class="blank-slate-pf costumer-cards-margin-top">
+      <div class="blank-slate-pf-icon">
+        <span class="fa fa-calendar-o"></span>
+      </div>
+      <h1>
+        {{'No customer cards found' | translate}}
+      </h1>
+      <div class="blank-slate-pf-main-action">
+        <button data-toggle="modal" data-target="#newSourceModal" class="btn btn-primary btn-lg">{{'Create new card' | translate}}</button>
+      </div>
+    </div>
+    <!-- END WIZARD -->
+    <!-- SOURCES -->
+    <h3 ng-if="!(allSources | isEmpty)" class="costumer-cards-margin-top">{{'Sources' | translate}}</h3>
+    <div ng-if="onSaveSuccessSource" class="alert alert-success alert-dismissable">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+        <span class="pficon pficon-close"></span>
+        </button>
+      <span class="pficon pficon-ok"></span>
+      <strong>{{'Source saved' | translate}}.</strong> {{'Source saved with success' | translate}}
+    </div>
+    <div ng-if="onSaveErrorSource" class="alert alert-danger alert-dismissable">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+        <span class="pficon pficon-close"></span>
+        </button>
+      <span class="pficon pficon-error-circle-o"></span>
+      <strong>{{'Source not saved' | translate}}.</strong> {{'Source saving error' | translate}}
+    </div>
+    <div ng-if="!(allSources | isEmpty)" class="row row-cards-pf adjust-card">
+      <div ng-repeat="g in allSources track by $index | orderBy:'name'" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+        <div id="accordion-markup-{{g.id}}" class="card-pf">
+          <div data-toggle="collapse" data-parent="#accordion-markup-{{g.id}}" href="#collapse-{{g.id}}">
+            <h2 class="card-pf-title pointer">
+              <span class="pficon pficon-volume"></span> {{g.name}} <span class="right-only small-font">{{getDBName(g.type)}} <span class="fa fa-sort-desc"></span>              </span>
+            </h2>
+          </div>
+          <div class="card-pf-body card-body-small-bottom">
+            <div id="collapse-{{g.id}}" class="panel-collapse collapse">
+              <div class="progress-description full-size-max">
+                {{'Database address' | translate}} <span class="right-only"><strong>{{g.host}}</strong></span>
+              </div>
+              <div class="progress-description full-size-max">
+                {{'Database port' | translate}} <span class="right-only"><strong>{{g.port}}</strong></span>
+              </div>
+              <div class="progress-description full-size-max">
+                {{'Database user' | translate}} <span class="right-only"><strong>{{g.user}}</strong></span>
+              </div>
+              <div class="progress-description full-size-max">
+                {{'Database password' | translate}} <span class="right-only"><strong>{{g.showPass ? g.pass : '*****'}}</strong> <a ng-click="togglePass(g)">{{g.showPass ? 'Hide' : 'Show' | translate}}</a></span>
+              </div>
+            </div>
+            <div class="progress progress-xs progress-label-top-right">
+              <div class="progress-bar progress-bar-{{g.verified ? 'success' : 'danger'}}" role="progressbar" aria-valuenow="100" aria-valuemin="0"
+                aria-valuemax="100" style="width: 100%;" data-toggle="tooltip" title="100% Used">
+              </div>
+              <span>{{g.verified ? 'Connected' : 'Connection error' | translate}}</span>
+            </div>
+          </div>
+          <div class="card-pf-footer">
+            <div class="card-pf-time-frame-filter">
+              <div ng-show="g.onSave" class="spinner spinner-sm adjust-margin spinner-right"></div>
+            </div>
+            <p>
+              <button data-toggle="modal" data-target="#newSourceModal" ng-click="modifySource(g)" class="btn btn-primary" type="button">{{'Modify' | translate}}</button>
+              <button ng-click="checkSourceDeps(g)" class="btn btn-danger" type="button">{{'Delete' | translate}}</button>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button ng-click="cancelSource()" ng-if="!(allSources | isEmpty)" data-toggle="modal" data-target="#newSourceModal" class="btn btn-primary btn-lg right-only">{{'Create new source' | translate}}</button>
+    <div ng-if="(allSources | isEmpty) && !((allSources | isEmpty) && (allTemplates | isEmpty) && (allCards | isEmpty))" class="blank-slate-pf ">
+      <div class="blank-slate-pf-icon">
+        <span class="pficon pficon-volume"></span>
+      </div>
+      <h1>
+        {{'No sources found' | translate}}
+      </h1>
+      <div class="blank-slate-pf-main-action">
+        <button ng-click="cancelSource()" data-toggle="modal" data-target="#newSourceModal" class="btn btn-primary btn-lg">{{'Create new source' | translate}}</button>
+      </div>
+    </div>
+    <!-- END SOURCES -->
+    <div ng-if="!((allSources | isEmpty) && (allTemplates | isEmpty) && (allCards | isEmpty))" class="divider"></div>
+    <!-- TEMPLATES -->
+    <h3 ng-if="!(allTemplates | isEmpty)">{{'Templates' | translate}}</h3>
+    <div ng-if="onSaveSuccessTemplate" class="alert alert-success alert-dismissable">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+        <span class="pficon pficon-close"></span>
+        </button>
+      <span class="pficon pficon-ok"></span>
+      <strong>{{'Template saved' | translate}}.</strong> {{'Template saved with success' | translate}}
+    </div>
+    <div ng-if="onSaveErrorTemplate" class="alert alert-danger alert-dismissable">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+        <span class="pficon pficon-close"></span>
+        </button>
+      <span class="pficon pficon-error-circle-o"></span>
+      <strong>{{'Template not saved' | translate}}.</strong> {{'Template saving error' | translate}}
+    </div>
+    <div ng-if="!(allTemplates | isEmpty)" class="row row-cards-pf adjust-card">
+      <div ng-repeat="g in allTemplates track by $index | orderBy:'-name'" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+        <div id="accordion-template-{{$index}}" class="card-pf">
+          <h2 class="card-pf-title">
+            <span class="pficon pficon-blueprint"></span> {{g.name}}
+            <span ng-if="!g.custom" class="right-only small-font right">
+              <span class="pficon pficon-thumb-tack-o"></span> {{'default'}}
+            </span>
+          </h2>
+          <div class="card-pf-body">
+            <div ng-if="g.custom" class="progress-description full-size-max">
+              <div ng-click="setTemplatePreview(g)" class="pointer" data-toggle="collapse" data-parent="#accordion-template-{{$index}}"
+                href="#collapse-template-{{$index}}">
+                {{'Preview' | translate}}
+              </div>
+              <div id="collapse-template-{{$index}}" class="panel-collapse collapse">
+                <div>
+                  <iframe class="editor-preview-list" src="{{'data:text/html;base64,' + (g.html | ejsRender:g.objects:g.name | toBase64) | trustUrl}}"></iframe>
+                </div>
+              </div>
+              <!--<div readonly class="editor-template" ng-model="g.html" ui-ace="{theme:'twilight', mode: 'html'}"></div>-->
+            </div>
+            <div ng-if="!g.custom" class="progress-description full-size-max">
+              <span>{{'Color' | translate}}</span>
+              <span class="inline-color">
+                <span class="cube-color-{{g.color}}"></span>
+              </span>
+            </div>
+          </div>
+          <div class="card-pf-footer">
+            <div class="card-pf-time-frame-filter">
+              <div ng-show="g.onSave" class="spinner spinner-sm adjust-margin spinner-right"></div>
+            </div>
+            <p>
+              <button data-toggle="modal" data-target="#newTemplateModal" ng-click="modifyTemplate(g)" class="btn btn-primary" type="button">{{'Modify' | translate}}</button>
+              <button ng-if="g.custom" ng-click="checkTemplateDeps(g)" class="btn btn-danger" type="button">{{'Delete' | translate}}</button>
+              <button data-toggle="modal" data-target="#duplicateTemplateModal" ng-if="!g.custom" ng-click="setDuplicate(g)" class="btn btn-warning"
+                type="button">{{'Duplicate' | translate}}</button>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button ng-if="!(allTemplates | isEmpty)" ng-click="cancelTemplate()" data-toggle="modal" data-target="#newTemplateModal"
+      class="btn btn-primary btn-lg right-only">{{'Create new template' | translate}}</button>
+    <div ng-if="(allTemplates | isEmpty) && !((allSources | isEmpty) && (allTemplates | isEmpty) && (allCards | isEmpty))" class="blank-slate-pf ">
+      <div class="blank-slate-pf-icon">
+        <span class="pficon pficon-blueprint"></span>
+      </div>
+      <h1>
+        {{'No templates found' | translate}}
+      </h1>
+      <div class="blank-slate-pf-main-action">
+        <button ng-click="cancelTemplate()" data-toggle="modal" data-target="#newTemplateModal" class="btn btn-primary btn-lg">{{'Create new template' | translate}}</button>
+      </div>
+    </div>
+    <!-- END TEMPLATES -->
+    <div ng-if="!((allSources | isEmpty) && (allTemplates | isEmpty) && (allCards | isEmpty))" class="divider"></div>
+    <!-- CUSTOMER CARDS -->
+    <h3 ng-if="!(allCards | isEmpty)">{{'Customer cards' | translate}}</h3>
+    <div class="alert alert-info alert-dismissable">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+        <span class="pficon pficon-close"></span>
+      </button>
+      <span class="pficon pficon-info"></span>
+      <strong>{{'Set customer card profile' | translate}}.</strong> {{'Don\'t forget to set profile for the customer cards' | translate}}.
+    </div>
+    <div ng-if="onSaveSuccessCard" class="alert alert-success alert-dismissable">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+        <span class="pficon pficon-close"></span>
+        </button>
+      <span class="pficon pficon-ok"></span>
+      <strong>{{'Card saved' | translate}}.</strong> {{'Card saved with success' | translate}}
+    </div>
+    <div ng-if="onSaveErrorCard" class="alert alert-danger alert-dismissable">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+        <span class="pficon pficon-close"></span>
+        </button>
+      <span class="pficon pficon-error-circle-o"></span>
+      <strong>{{'Card not saved' | translate}}.</strong> {{'Card saving error' | translate}}
+    </div>
+    <div ng-if="!(allCards | isEmpty)" class="row row-cards-pf adjust-card">
+      <div ng-repeat="g in allCards track by $index | orderBy:'name'" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+        <div class="card-pf">
+          <h2 class="card-pf-title">
+            <span class="fa fa-calendar-o"></span> {{g.name}}
+            <span class="right-only small-font right">
+              <span class="pficon pficon-volume"></span> {{getSourceName(g.dbconn_id)}}
+            <div class="small-margin">
+              <span class="pficon pficon-blueprint"></span> {{g.template.replace('_custom','')}}
+            </div>
+            </span>
+          </h2>
+          <div class="card-pf-body">
+            <div class="progress-description full-size-max">
+              {{'Query' | translate}}
+              <div readonly class="editor" ng-model="g.query" ui-ace="{theme:'twilight', mode: 'sql'}"></div>
+            </div>
+          </div>
+          <div class="card-pf-footer">
+            <div class="card-pf-time-frame-filter">
+              <div ng-show="g.onSave" class="spinner spinner-sm adjust-margin spinner-right"></div>
+            </div>
+            <p>
+              <button data-toggle="modal" data-target="#newCardModal" ng-click="modifyCard(g)" class="btn btn-primary" type="button">{{'Modify' | translate}}</button>
+              <button ng-click="deleteCard(g)" class="btn btn-danger" type="button">{{'Delete' | translate}}</button>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button ng-if="!(allCards | isEmpty)" ng-click="cancelCard()" data-toggle="modal" data-target="#newCardModal" class="btn btn-primary btn-lg right-only">{{'Create new card' | translate}}</button>
+    <div ng-if="(allCards | isEmpty) && !((allSources | isEmpty) || (allTemplates | isEmpty))" class="blank-slate-pf ">
+      <div class="blank-slate-pf-icon">
+        <span class="fa fa-calendar-o"></span>
+      </div>
+      <h1>
+        {{'No cards found' | translate}}
+      </h1>
+      <div class="blank-slate-pf-main-action">
+        <button ng-click="cancelCard()" data-toggle="modal" data-target="#newCardModal" class="btn btn-primary btn-lg">{{'Create new card' | translate}}</button>
+      </div>
+    </div>
+  </div>
+  <!-- END CUSTOMER CARDS -->
+</div>
+</div>
+
+<!-- MODALS -->
+<div class="modal fade" id="newSourceModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">{{newSource.onMod ? 'Modify source' : 'New source' | translate}}</h4>
+      </div>
+      <form class="form-horizontal" ng-submit="newSource.verified ? saveSource(newSource) : undefined">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Database type' | translate}}</label>
+            <div class="col-sm-9">
+              <select ng-change="updatePort()" required title="-" pf-select="{ width: '180px' }" ng-model="newSource.type" ng-options="k as v for (k, v) in  allDBTypes">
+            </select></div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Database name' | translate}}</label>
+            <div class="col-sm-9">
+              <input required ng-model="newSource.name" type="text" class="form-control profile-new-name"></div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Database address' | translate}}</label>
+            <div class="col-sm-9">
+              <input required ng-model="newSource.host" type="text" class="form-control profile-new-name"></div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Database port' | translate}}</label>
+            <div class="col-sm-9">
+              <input required ng-model="newSource.port" type="text" class="form-control profile-new-name"></div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Database user' | translate}}</label>
+            <div class="col-sm-9">
+              <input required ng-model="newSource.user" type="text" class="form-control profile-new-name"></div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Database password' | translate}}</label>
+            <div class="col-sm-9">
+              <input required ng-model="newSource.pass" type="{{newSource.showPass ? 'text' : 'password'}}"
+                class="form-control profile-new-name">
+              <a ng-click="togglePass(newSource)">{{newSource.showPass ? 'Hide' : 'Show' | translate}}</a>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Connection' | translate}}</label>
+            <div class="col-sm-9">
+              <button ng-click="checkConnection(newSource)" ng-disabled="!newSource.type || !newSource.name || newSource.name.length < 1 || !newSource.port" class="btn btn-primary"
+                type="button">{{'Check' | translate}}</button>
+              <div ng-show="newSource.isChecking" class="spinner spinner-sm inline-display language-name check-connection"></div>
+              <span ng-show="!newSource.isChecking && newSource.checked && newSource.verified" class="pficon pficon-ok check-status"></span>
+              <span ng-show="!newSource.isChecking && newSource.checked && !newSource.verified" class="pficon pficon-error-circle-o check-status"></span>
+            </div>
+          </div>
+          <div ng-show="newSource.onSave" class="spinner spinner-sm adjust-margin loader-modal-profile"></div>
+          <div class="modal-footer submit">
+            <button type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
+            <button type="submit" class="btn btn-primary {{newSource.verified ? '' : 'disabled'}}">{{'Save' | translate}}</button>
+          </div>
+      </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="newTemplateModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">{{newTemplate.onMod ? 'Modify template' : 'New template' | translate}}</h4>
+      </div>
+      <form class="form-horizontal" ng-submit="newTemplate.html.length > 0 ? saveTemplate(newTemplate) : undefined">
+        <div class="modal-body">
+          <div ng-if="newTemplate.custom" class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Name' | translate}}</label>
+            <div class="col-sm-9">
+              <input ng-disabled="newTemplate.onMod" required ng-model="newTemplate.name" type="text" class="form-control profile-new-name"></div>
+          </div>
+          <div ng-if="newTemplate.custom" class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Real name' | translate}}</label>
+            <div class="col-sm-9">
+              <span class="gray-label">{{newTemplate.name | regexpParse}}</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Info' | translate}}
+                <a class="config-info" target="blank" href="https://github.com/tj/ejs">{{'Docs' | translate}}</a>
+            </label>
+            <div class="col-sm-9">
+              <pre class="editor-code"><code>results ({{'will contain the output of query' | translate}}) {{'in JSON format' | translate}}</code></pre>
+            </div>
+          </div>
+          <div ng-if="!newTemplate.custom" class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Color' | translate}}</label>
+            <div class="col-sm-9 color-padding">
+              <span ng-click="setColor(newTemplate, 'red')" class="cube-color-red {{newTemplate.color=='red' ? 'color-active' : ''}}"></span>
+              <span ng-click="setColor(newTemplate, 'orange')" class="cube-color-orange {{newTemplate.color=='orange' ? 'color-active' : ''}}"></span>
+              <span ng-click="setColor(newTemplate, 'yellow')" class="cube-color-yellow {{newTemplate.color=='yellow' ? 'color-active' : ''}}"></span>
+              <span ng-click="setColor(newTemplate, 'olive')" class="cube-color-light-olive {{newTemplate.color=='olive' ? 'color-active' : ''}}"></span>
+              <span ng-click="setColor(newTemplate, 'green')" class="cube-color-green {{newTemplate.color=='green' ? 'color-active' : ''}}"></span>
+              <span ng-click="setColor(newTemplate, 'teal')" class="cube-color-teal {{newTemplate.color=='teal' ? 'color-active' : ''}}"></span>
+              <span ng-click="setColor(newTemplate, 'blue')" class="cube-color-blue {{newTemplate.color=='blue' ? 'color-active' : ''}}"></span>
+              <span ng-click="setColor(newTemplate, 'violet')" class="cube-color-light-violet {{newTemplate.color=='violet' ? 'color-active' : ''}}"></span>
+              <span ng-click="setColor(newTemplate, 'purple')" class="cube-color-purple {{newTemplate.color=='purple' ? 'color-active' : ''}}"></span>
+              <span ng-click="setColor(newTemplate, 'pink')" class="cube-color-pink {{newTemplate.color=='pink' ? 'color-active' : ''}}"></span>
+              <span ng-click="setColor(newTemplate, 'brown')" class="cube-color-brown {{newTemplate.color=='brown' ? 'color-active' : ''}}"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Results'}}</label>
+            <div class="col-sm-9">
+              <pre required ng-model="newTemplate.objects" class="editor-form" ui-ace="{theme:'twilight',mode: 'json', onChange: editorOnChange}"></pre>
+            </div>
+          </div>
+          <div ng-if="newTemplate.custom" class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Code' | translate}} (ejs)</label>
+            <div class="col-sm-9">
+              <pre required ng-model="newTemplate.html" class="editor-form" ui-ace="{theme:'twilight',mode: 'ejs', onChange: editorOnChange}"></pre>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Preview' | translate}}</label>
+            <div class="col-sm-9">
+              <iframe class="editor-preview" src="{{'data:text/html;base64,' + (newTemplate.html | ejsRender:newTemplate.objects:newTemplate.name | toBase64) | trustUrl}}"></iframe>
+            </div>
+          </div>
+          <div ng-show="newTemplate.onSave" class="spinner spinner-sm adjust-margin loader-modal-profile"></div>
+          <div class="modal-footer submit">
+            <button type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
+            <button type="submit" class="btn btn-primary {{newTemplate.html.length > 0 ? '' : 'disabled'}}">{{'Save' | translate}}</button>
+          </div>
+      </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="newCardModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">{{newCard.onMod ? 'Modify card' : 'New card' | translate}}</h4>
+      </div>
+      <form class="form-horizontal" ng-submit="newCard.query.length > 0 ? saveCard(newCard) : undefined">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Name' | translate}}</label>
+            <div class="col-sm-9">
+              <input required ng-model="newCard.name" type="text" class="form-control profile-new-name"></div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Source' | translate}}</label>
+            <div class="col-sm-9">
+              <select required title="-" pf-select="{ width: '180px' }" ng-model="newCard.dbconn_id" ng-options="p.id as p.name for p in allSources">
+            </select></div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Template' | translate}}</label>
+            <div class="col-sm-9">
+              <select required title="-" pf-select="{ width: '180px' }" ng-model="newCard.template" ng-options="(p.custom ? p.name+'_custom' : p.name) as p.name for p in allTemplates">
+            </select></div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Profile' | translate}}</label>
+            <div class="col-sm-9">
+              <select multiple required title="-" pf-select="{ width: '180px' }" ng-model="newCard.profiles" ng-options="p.id as p.name for p in allProfiles">
+            </select></div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Query' | translate}}</label>
+            <div class="col-sm-9">
+              <div required ng-model="newCard.query" class="editor-form" ui-ace="{theme:'twilight',mode: 'sql', onChange: editorOnChange}"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Render' | translate}}</label>
+            <div class="col-sm-9">
+              <button ng-click="updatePreview(newCard)" class="btn btn-primary" type="button">{{'Refresh' | translate}}</button>
+              <div ng-show="newCard.isChecking" class="spinner spinner-sm inline-display language-name check-connection"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Preview' | translate}}</label>
+            <div class="col-sm-9">
+              <iframe class="editor-preview" src="{{'data:text/html;base64,' + (newCard.render_html | toBase64) | trustUrl}}"></iframe>
+            </div>
+          </div>
+          <div ng-show="newCard.onSave" class="spinner spinner-sm adjust-margin loader-modal-profile"></div>
+          <div class="modal-footer submit">
+            <button type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
+            <button type="submit" class="btn btn-primary {{newCard.query.length > 0 ? '' : 'disabled'}}">{{'Save' | translate}}</button>
+          </div>
+      </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="cardSourceDepsModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">{{'Card dependency' | translate}}</h4>
+      </div>
+      <form class="form-horizontal" ng-submit="cardDeps.dependencies.length == 0 ? deleteSource(cardDeps) : undefined">
+        <div class="modal-body">
+          <div ng-show="!cardDeps.loading && cardDeps.dependencies.length > 0" class="alert alert-warning alert-dismissable">
+            <span class="pficon pficon-warning-triangle-o"></span>
+            <strong>{{'Dependency problem' | translate}}.</strong> {{'This source is used by following cards' | translate}}:
+          </div>
+          <div ng-show="!cardDeps.loading && cardDeps.dependencies.length == 0" class="form-group medium-font col-md-4">
+            {{ "Are you sure" | translate }} ?
+          </div>
+          <div class="form-group">
+            <div ng-show="cardDeps.loading" class="spinner"></div>
+            <label ng-show="!cardDeps.loading && cardDeps.dependencies.length > 0" class="col-sm-3 control-label" for="textInput-modal-markup">{{'Cards list' | translate}}</label>
+            <div ng-show="!cardDeps.loading" class="col-sm-9">
+              <ul class="list-group">
+                <li ng-repeat="d in cardDeps.dependencies track by $index" class="list-group-item">{{d.name}}</li>
+              </ul>
+            </div>
+          </div>
+          <div ng-show="cardDeps.onSave" class="spinner spinner-sm adjust-margin loader-modal-profile"></div>
+          <div class="modal-footer submit">
+            <button type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
+            <button type="submit" class="btn btn-danger {{cardDeps.dependencies.length == 0 ? '' : 'disabled'}}">{{'Delete' | translate}}</button>
+          </div>
+      </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="cardTemplateDepsModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">{{'Card dependency' | translate}}</h4>
+      </div>
+      <form class="form-horizontal" ng-submit="cardDeps.dependencies.length == 0 ? deleteTemplate(cardDeps) : undefined">
+        <div class="modal-body">
+          <div ng-show="!cardDeps.loading && cardDeps.dependencies.length > 0" class="alert alert-warning alert-dismissable">
+            <span class="pficon pficon-warning-triangle-o"></span>
+            <strong>{{'Dependency problem' | translate}}.</strong> {{'This template is used by following cards' | translate}}:
+          </div>
+          <div ng-show="!cardDeps.loading && cardDeps.dependencies.length == 0" class="form-group medium-font col-md-4">
+            {{ "Are you sure" | translate }} ?
+          </div>
+          <div class="form-group">
+            <div ng-show="cardDeps.loading" class="spinner"></div>
+            <label ng-show="!cardDeps.loading && cardDeps.dependencies.length > 0" class="col-sm-3 control-label" for="textInput-modal-markup">{{'Cards list' | translate}}</label>
+            <div ng-show="!cardDeps.loading" class="col-sm-9">
+              <ul class="list-group">
+                <li ng-repeat="d in cardDeps.dependencies track by $index" class="list-group-item">{{d.name}}</li>
+              </ul>
+            </div>
+          </div>
+          <div ng-show="cardDeps.onSave" class="spinner spinner-sm adjust-margin loader-modal-profile"></div>
+          <div class="modal-footer submit">
+            <button type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
+            <button type="submit" class="btn btn-danger {{cardDeps.dependencies.length == 0 ? '' : 'disabled'}}">{{'Delete' | translate}}</button>
+          </div>
+      </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="duplicateTemplateModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">{{'Duplicate template' | translate}}</h4>
+      </div>
+      <form class="form-horizontal" ng-submit="duplicated.name == duplicated.old_name ? undefined : duplicateTemplate(duplicated)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Name' | translate}}</label>
+            <div class="col-sm-9">
+              <input required ng-model="duplicated.name" type="text" class="form-control profile-new-name"></div>
+          </div>
+          <div ng-show="duplicated.onSave" class="spinner spinner-sm adjust-margin loader-modal-profile"></div>
+          <div class="modal-footer submit">
+            <button type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
+            <button type="submit" class="btn btn-primary {{duplicated.name == duplicated.old_name ? 'disabled' : ''}}">{{'Save' | translate}}</button>
+          </div>
+      </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- END MODALS -->

@@ -86,7 +86,8 @@ Driver = MariaDB Unicode
 Description = ODBC on asteriskcdrdb
 EOF
 
-chown asterisk:asterisk /var/lib/asterisk/db
+mkdir -p /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads 
+chown asterisk:asterisk /var/lib/asterisk/db /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads
 
 # Customized wizard page
 cat > /etc/apache2/sites-available/wizard.conf <<EOF
@@ -188,15 +189,15 @@ while (\$row = \$sth->fetch(\PDO::FETCH_ASSOC)) {
 	\$cdr_db_user,
 	\$cdr_db_pass);
 
+\$nethcti3db = new \PDO('mysql:host='.\$amp_conf['AMPDBHOST'].';port='.\$amp_conf['AMPDBPORT'].';dbname=nethcti3; charset=utf8',
+  '${NETHCTI_DB_USER}',
+  '${NETHCTI_DB_PASSWORD}');
 EOF
 
-# Set proxy ip and port if not already set
-if [[ -z "${PROXY_IP}" ]]; then
-    export PROXY_IP=$(curl -s https://api.ipify.org || echo "127.0.0.1")
-fi
-if [[ -z "${PROXY_PORT}" ]]; then
-    export PROXY_PORT=5060
-fi
+# configure recallonbusy
+sed -i 's/^Port: .*/Port: '${ASTMANAGERPORT}'/' /etc/asterisk/recallonbusy.cfg
+sed -i 's/^Username: .*/Username: proxycti/' /etc/asterisk/recallonbusy.cfg
+sed -i 's/^Secret: .*/Secret: '${NETHCTI_AMI_PASSWORD}'/' /etc/asterisk/recallonbusy.cfg
 
 # migrate database
 php /initdb.d/migration.php
@@ -211,6 +212,10 @@ php /configure_users.php
 
 # Make sure config dir is writable from nethcti and freepbx containers
 chown -R asterisk:asterisk /etc/nethcti
+
+# make sure CSV uopload path exists if /var/lib/nethvoice isn't a volume or already initialized
+mkdir -p /var/lib/nethvoice/phonebook/uploads
+chown -R asterisk:asterisk /var/lib/nethvoice/phonebook/uploads
 
 # Change Apache httpd port
 sed -i "s/<VirtualHost \*:80>/<VirtualHost \*:${APACHE_PORT}>/" /etc/apache2/sites-enabled/000-default.conf

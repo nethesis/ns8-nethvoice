@@ -1,0 +1,721 @@
+<div ng-controller="ModelsUICtrl" class="panel-body profile-panel no-padding">
+  <div ng-show="!loadingModels[model.name] && !modelsInfoMsg" class="col-lg-12 mt-20">
+    <div class="alert alert-info alert-dismissable">
+      <button type="button" ng-click="hideModelsInfoMsg()" class="close" data-dismiss="alert" aria-label="Close">
+        <span class="pficon pficon-close"></span>
+      </button>
+      <span class="pficon pficon-info"></span>
+      <strong>{{"Modify the settings from the sections below" | translate}}</strong>
+    </div>
+  </div>
+  <div class="col-lg-12 profile-list-container mb-0 no-border-bottom">
+    <div ng-show="loadingModels[model.name]" class="spinner mt-14"></div>
+    <div ng-show="!loadingModels[model.name]">
+      <div ng-if="modelErrorsSingle.patchSingleVariables" class="alert alert-danger">
+        <span class="pficon pficon-error-circle-o"></span>
+        <strong>{{"Error saving variables" | translate}}</strong>.
+      </div>
+      <div ng-if="loadingActionSingle == 'ok'" class="alert alert-success">
+        <span class="pficon pficon-warning-triangle-o"></span>
+        <strong>{{"Success" | translate}}!</strong>
+        <p>
+          {{"Variables correctly saved" | translate}}.
+        </p>
+      </div>
+      <!-- start reusable parte of the ui -->
+      <form id="currentModelForm">
+        <!-- sections -->
+        <div ng-if="currentModel.ui.map[sectionkey] && currentModel.ui[sectionkey]"
+          ng-repeat="(sectionkey, section) in ::currentModel.ui track by sectionkey">
+          <!-- if it's a key section -->
+          <div class="mt-20" ng-if="isKeysSection(sectionkey)">
+            <h2 ng-click="openSection(sectionkey)"
+              class="adjust-header adjust-profile-header pl-20 ng-binding pointer">
+              {{::section.name | translate}}
+              <span class="fa fa-angle-down icon-med-reload profile-open-icon"></span>
+            </h2>
+            <div id="{{sectionkey}}"
+              class="panel-collapse model-container adjust-profile-body"
+              ng-if="currentModel.openedSection == sectionkey">
+              <div class="panel-body profile-panel no-pad">
+                <div class="col-lg-12 {{!isExpKeysSection(sectionkey) ? 'mt-20' : ''}} no-border-bottom">
+                  <div class="col-lg-12 no-lateral-padding {{isExpKeysSection(sectionkey) ? 'padding-lateral-null' : ''}}
+                      {{item.type == 'loop' ? 'mb-20' : ''}}"
+                    ng-repeat="item in ::currentModel.ui[sectionkey].items track by $index">
+                    <div ng-repeat="keys in item.data track by $index">
+                      <!-- if the item type is a loop -->
+                      <div ng-if="item.type == 'loop'">
+                        <!-- if exp keys -->
+                        <div class="mt-30 mb-10" ng-if="isExpKeysSection(sectionkey)">
+                          <div class="mt-20" ng-repeat="module in [] | range: item.keys.modules track by module">
+                            <h2 ng-click="openExpKeys('expkeys-' + (module + 1), sectionkey)"
+                              class="adjust-header adjust-profile-header pl-20 ng-binding pointer">
+                                {{"expkeys_module" | translate}} <spam class="weight">{{module + 1}}</spam>
+                              <span class="fa fa-angle-down icon-med-reload profile-open-icon"></span>
+                            </h2>
+                            <div id="collapse-expkey-{{module}}"
+                              class="panel-collapse model-container adjust-profile-body"
+                              ng-if="currentModel.openedExpKeys == ('expkeys-' + (module + 1))">
+                              <div class="panel-body profile-panel pb-30 no-pad">
+                                <div class="col-lg-12 mt-20 mb-8 no-border-bottom">
+                                  <div ng-if="(4 * (!currentModel.ui[sectionkey].showingExpKeys ? 1 : currentModel.ui[sectionkey].showingExpKeys)) > $index"
+                                    ng-repeat="keysIndex in ::item.keysIndexes track by $index">
+                                    <div class="no-lateral-padding col-lg-12">
+                                      <div class="loop-keys-index">
+                                        {{::item.description | translate}} {{keysIndex}}
+                                      </div>
+                                      <div class="col-lg-4" ng-repeat="key in ::keys" ng-if="!currentModel.ui.map[sectionkey].hidden_variables.includes(key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex))">
+                                        <div class="form-group">
+                                          <label class="mt-10 control-label {{currentModel.variables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] != currentModel.storedVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] && currentModel.variables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] != currentModel.globals[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] ? 'changed-color' : 'not-changed-color'}}">
+                                            {{::key.description | translate}}
+                                            {{currentModel.variables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] != currentModel.storedVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] && currentModel.variables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] != currentModel.globals[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] ? ('(' + ('changed' | translate) + ')') : ''}}
+                                          </label>
+                                          <!-- list -->
+                                          <div ng-if="key.type == 'list'" class="hidden">
+                                            <select
+                                              id="{{sectionkey}}-select-{{key.variable}}-{{keysIndex}}"
+                                              title="-"
+                                              ng-model="currentModel.variables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)]"
+                                              ng-change="onVariableChanged(key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex))"
+                                              class="{{key.options.length > 10 ? 'combobox' : 'selectpicker'}} form-control"
+                                              autocomplete="off">
+                                              <option value="" ng-disabled="true" ng-hide="true">-</option>
+                                              <option value="null">-</option>
+                                              <!-- combobox -->
+                                              <option
+                                                ng-selected="currentModel.variables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] == option.value"
+                                                ng-if="key.options.length > 10 && !currentModel.ui.map[sectionkey].hidden_types.includes(option.value)"
+                                                ng-repeat="option in ::key.options"
+                                                value="{{::option.value}}"
+                                                render-index="{{key.options.length - currentModel.ui.map[sectionkey].hidden_types.length}}"
+                                                on-finish-render="comboboxRepeatEnd"
+                                              >{{::option.text | translate}}{{currentModel.uiLocation == "configurations" && currentModel.modelVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] && !currentModel.singleVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] && currentModel.modelVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] == option.value ? ' (' + currentModel.display_name + ')' : ''}}</option>
+                                              <!-- selectpicker -->
+                                              <option
+                                                ng-selected="currentModel.variables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] == option.value"
+                                                ng-if="key.options.length <= 10 && !currentModel.ui.map[sectionkey].hidden_types.includes(option.value)"
+                                                ng-repeat="option in ::key.options"
+                                                value="{{::option.value}}"
+                                                render-index="{{key.options.length - currentModel.ui.map[sectionkey].hidden_types.length}}"
+                                                on-finish-render="selectpickerRepeatEnd"
+                                              >{{::option.text | translate}}{{currentModel.uiLocation == "configurations" && currentModel.modelVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] && !currentModel.singleVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] && currentModel.modelVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] == option.value ? ' (' + currentModel.display_name + ')' : ''}}</option>
+                                            </select>
+                                          </div>
+                                          <!-- dynamicsearch -->
+                                          <div ng-if="(key.variable.includes('value') && (currentModel.variables['expkey_type_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] == 'blf'))">
+                                            <input
+                                              ng-model="currentModel.inputs[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)]"
+                                              ng-change="onVariableChanged(key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex), key.type)"
+                                              ng-focus="openSearchList(key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex))"
+                                              placeholder="{{currentModel.uiLocation == 'configurations' && currentModel.modelVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] && !currentModel.singleVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] ? currentModel.modelVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] + ' (' + currentModel.display_name + ')' : currentModel.globals[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] ? currentModel.globals[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] + ' (default)' : 'Search' | translate}}"
+                                              type="text"
+                                              autocomplete="off"
+                                              class="form-control dynamicsearch">
+                                            </input>
+                                            <div
+                                              ng-if="shownDynamicList == (key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex))"
+                                              class="dynamicsearch-list">
+                                              <div class="infotip bottom-right">
+                                                <div class="arrow"></div>
+                                                <ul class="list-group dynamicsearch-list-group">
+                                                  <li
+                                                    ng-repeat="user in filteredUsers=(users | customFilterMultiple:'username,displayname,default_extension':currentModel.inputs[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)]) | limitTo: dynamicSearchLimit"
+                                                    class="list-group-item dynamicsearch-item"
+                                                    ng-click="applyDynamicSearch((key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)), user, true)">
+                                                    <span class="dynamicsearch-label">{{user.displayname}} - {{user.default_extension}}</span>
+                                                  </li>
+                                                  <li 
+                                                    class="list-group-item dynamicsearch-item"
+                                                    ng-if="isEmpty(filteredUsers)">
+                                                    <span class="dynamicsearch-label cursive">
+                                                      {{"No users found" | translate}}
+                                                    </span>
+                                                  </li>
+                                                  <li class="h-0">
+                                                    <scrolling-sentinel event="dynamicSearchScroll"></scrolling-sentinel>
+                                                  </li>
+                                                </ul>
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <!-- input -->
+                                          <input
+                                            ng-if="key.type == 'input' && !(key.variable.includes('value') && (currentModel.variables['expkey_type_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] == 'blf'))"
+                                            ng-model="currentModel.inputs[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)]"
+                                            ng-change="onVariableChanged(key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex), key.type)"
+                                            placeholder="{{currentModel.uiLocation == 'configurations' && currentModel.modelVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] && !currentModel.singleVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] ? currentModel.modelVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] + ' (' + currentModel.display_name + ')' : currentModel.globals[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] ? currentModel.globals[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] + ' (default)' : ''}}"
+                                            type="text"
+                                            autocomplete="off"
+                                            class="form-control">
+                                          </input>
+                                          <!-- time -->
+                                          <input
+                                            ng-if="key.type == 'time' && !(key.variable.includes('value') && (currentModel.variables['expkey_type_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] == 'blf'))"
+                                            ng-model="currentModel.inputs[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)]"
+                                            ng-change="onVariableChanged(key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex), key.type)"
+                                            placeholder="{{currentModel.uiLocation == 'configurations' && currentModel.modelVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] && !currentModel.singleVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] ? currentModel.modelVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] + ' (' + currentModel.display_name + ')' : currentModel.globals[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] ? currentModel.globals[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] + ' (default)' : 'HH:MM'}}"
+                                            type="text"
+                                            autocomplete="off"
+                                            class="form-control">
+                                          </input>
+                                          <!-- password -->
+                                          <div ng-if="item.type == 'password' && !(key.variable.includes('value') && (currentModel.variables['expkey_type_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] == 'blf'))" class="input-group">
+                                            <input
+                                              ng-model="currentModel.inputs[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)]"
+                                              ng-change="onVariableChanged(key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex), key.type)"
+                                              placeholder="{{currentModel.uiLocation == 'configurations' && currentModel.modelVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] && !currentModel.singleVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] ? currentModel.modelVariables[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] + ' (' + currentModel.display_name + ')' : currentModel.globals[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] ? currentModel.globals[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] + ' (default)' : ''}}"
+                                              type="password"
+                                              autocomplete="off"
+                                              show-password="currentModel.shownPasswords[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)]"
+                                              class="form-control display-flex">
+                                            </input>
+                                            <button
+                                              tabindex="-1"
+                                              type="button"
+                                              class="btn btn-default mln-1 zindex-2"
+                                              ng-click="toggleShowPassword(key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex))">
+                                              <span ng-class="currentModel.shownPasswords[key.variable + '_' + (module * currentModel.ui.map[sectionkey].module_keys_count + keysIndex)] ? 'fa fa-eye-slash' : 'fa fa-eye'"></span>
+                                            </button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <button 
+                                    ng-click="!currentModel.ui[sectionkey].showingExpKeys ? currentModel.ui[sectionkey].showingExpKeys = 2 :
+                                      currentModel.ui[sectionkey].showingExpKeys = currentModel.ui[sectionkey].showingExpKeys + 1"
+                                    class="btn btn-default btn-lg mt-30 ml-20"
+                                    ng-if="item.keysIndexes.length > (4 * (!currentModel.ui[sectionkey].showingExpKeys ? 1 :
+                                      currentModel.ui[sectionkey].showingExpKeys))">
+                                    {{"View more" | translate}}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <!-- if not exp keys -->
+                        <div ng-if="!isExpKeysSection(sectionkey)">
+                          <!-- line keys info message into Models page -->
+                          <div ng-if="sectionkey == 'lineKeys' && !lineKeysModelsInfoMsgHide && isConfigurations == false" class="alert alert-info alert-dismissable mb-10 mt-5">
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close" ng-click="hideLineKeysModelsInfoMsg()">
+                              <span class="pficon pficon-close"></span>
+                            </button>
+                            <span class="pficon pficon-info"></span>
+                            <strong>{{"Line keys settings can be overridden by the user from the CTI application, if permissions are granted in the Profile page" | translate}}.</strong>
+                          </div>
+                          <!-- end info message -->
+                          <!-- info message into Configurations page -->
+                          <div ng-if="isConfigurations == true && !lineKeysConfigurationsInfoMsgHide && sectionkey == 'lineKeys'" class="alert alert-info alert-dismissable mb-10 mt-5">
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close" ng-click="hideLineKeysConfigurationsInfoMsg()">
+                              <span class="pficon pficon-close"></span>
+                            </button>
+                            <span class="pficon pficon-info"></span>
+                            <strong>{{"Line keys settings can be modified by the user from the CTI application, if permissions are granted in the Profile page. Latest settings applied will take precedence" | translate}}.</strong>
+                          </div>
+                          <!-- end info message -->
+                          <div ng-if="(4 * (!currentModel.ui[sectionkey].showingKeys ? 1 :
+                            currentModel.ui[sectionkey].showingKeys)) > $index"
+                            ng-repeat="keysIndex in ::item.keysIndexes track by $index">
+                            <div class="no-lateral-padding col-lg-12">
+                              <div class="loop-keys-index">
+                                {{::item.description | translate}} {{keysIndex}}
+                              </div>
+                              <div class="col-lg-4" ng-repeat="key in ::keys" ng-if="!currentModel.ui.map[sectionkey].hidden.includes(key.variable + '_' + keysIndex)">
+                                <div class="form-group">
+                                  <label class="mt-10 control-label {{currentModel.variables[key.variable + '_' + keysIndex] != currentModel.storedVariables[key.variable + '_' + keysIndex] && currentModel.variables[key.variable + '_' + keysIndex] != currentModel.globals[key.variable + '_' + keysIndex] ? 'changed-color' : 'not-changed-color'}}">
+                                    {{::key.description | translate}}
+                                    {{currentModel.variables[key.variable + '_' + keysIndex] != currentModel.storedVariables[key.variable + '_' + keysIndex] && currentModel.variables[key.variable + '_' + keysIndex] != currentModel.globals[key.variable + '_' + keysIndex] ? ('(' + ('changed' | translate) + ')') : ''}}
+                                  </label>
+                                  <!-- list -->
+                                  <div ng-if="key.type == 'list'" class="hidden">
+                                    <select
+                                      id="{{sectionkey}}-select-{{key.variable}}-{{keysIndex}}"
+                                      title="-"
+                                      class="{{key.options.length > 10 ? 'combobox' : 'selectpicker'}} form-control"
+                                      ng-model="currentModel.variables[key.variable + '_' + keysIndex]"
+                                      ng-change="onVariableChanged(key.variable + '_' + keysIndex)"
+                                      autocomplete="off">
+                                      <option value="" ng-disabled="true" ng-hide="true">-</option>
+                                      <option value="null">-</option>
+                                      <!-- combobox -->
+                                      <option
+                                        ng-selected="currentModel.variables[key.variable + '_' + keysIndex] == option.value"
+                                        ng-if="key.options.length > 10 && !currentModel.ui.map[sectionkey].hidden_types.includes(option.value)"
+                                        ng-repeat="option in ::key.options"
+                                        value="{{::option.value}}"
+                                        render-index="{{key.options.length - currentModel.ui.map[sectionkey].hidden_types.length}}"
+                                        on-finish-render="comboboxRepeatEnd"
+                                      >{{::option.text | translate}}{{currentModel.uiLocation == "configurations" && currentModel.modelVariables[key.variable + '_' + keysIndex] && !currentModel.singleVariables[key.variable + '_' + keysIndex] && currentModel.modelVariables[key.variable + '_' + keysIndex] == option.value ? ' (' + currentModel.display_name + ')' : ''}}</option>
+                                      <!-- selectpicker -->
+                                      <option
+                                        ng-selected="currentModel.variables[key.variable + '_' + keysIndex] == option.value"
+                                        ng-if="key.options.length <= 10 && !currentModel.ui.map[sectionkey].hidden_types.includes(option.value)"
+                                        ng-repeat="option in ::key.options"
+                                        value="{{::option.value}}"
+                                        render-index="{{key.options.length - currentModel.ui.map[sectionkey].hidden_types.length}}"
+                                        on-finish-render="selectpickerRepeatEnd"
+                                      >{{::option.text | translate}}{{currentModel.uiLocation == "configurations" && currentModel.modelVariables[key.variable + '_' + keysIndex] && !currentModel.singleVariables[key.variable + '_' + keysIndex] && currentModel.modelVariables[key.variable + '_' + keysIndex] == option.value ? ' (' + currentModel.display_name + ')' : ''}}</option>
+                                    </select>
+                                  </div>
+                                  <!-- dynamicsearch -->
+                                  <div ng-if="(key.variable.includes('value') && (currentModel.variables['linekey_type_' + keysIndex] == 'blf' || currentModel.variables['softkey_type_' + keysIndex] == 'blf'))">
+                                    <input
+                                      ng-model="currentModel.inputs[key.variable + '_' + keysIndex]"
+                                      ng-change="onVariableChanged(key.variable + '_' + keysIndex, key.type)"
+                                      ng-focus="openSearchList(key.variable + '_' + keysIndex)"
+                                      placeholder="{{currentModel.uiLocation == 'configurations' && currentModel.modelVariables[key.variable + '_' + keysIndex] && !currentModel.singleVariables[key.variable + '_' + keysIndex] ? currentModel.modelVariables[key.variable + '_' + keysIndex] + ' (' + currentModel.display_name + ')' : currentModel.globals[key.variable + '_' + keysIndex] ? currentModel.globals[key.variable + '_' + keysIndex] + ' (default)' : 'Search' | translate}}"
+                                      type="text"
+                                      autocomplete="off"
+                                      class="form-control dynamicsearch">
+                                    </input>
+                                    <div
+                                      ng-if="shownDynamicList == (key.variable + '_' + keysIndex)"
+                                      class="dynamicsearch-list">
+                                      <div class="infotip bottom-right">
+                                        <div class="arrow"></div>
+                                        <ul class="list-group dynamicsearch-list-group">
+                                          <li
+                                            ng-repeat="user in filteredUsers=(users | customFilterMultiple:'username,displayname,default_extension':currentModel.inputs[key.variable + '_' + keysIndex]) | limitTo: dynamicSearchLimit"
+                                            class="list-group-item dynamicsearch-item"
+                                            ng-click="applyDynamicSearch((key.variable + '_' + keysIndex), user)">
+                                            <span class="dynamicsearch-label">{{user.displayname}} - {{user.default_extension}}</span>
+                                          </li>
+                                          <li 
+                                            class="list-group-item dynamicsearch-item"
+                                            ng-if="isEmpty(filteredUsers)">
+                                            <span class="dynamicsearch-label cursive">
+                                              {{"No users found" | translate}}
+                                            </span>
+                                          </li>
+                                          <li class="h-0">
+                                            <scrolling-sentinel event="dynamicSearchScroll"></scrolling-sentinel>
+                                          </li>
+                                        </ul>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <!-- input -->
+                                  <input
+                                    ng-if="key.type == 'input' && !(key.variable.includes('value') && (currentModel.variables['linekey_type_' + keysIndex] == 'blf' || currentModel.variables['softkey_type_' + keysIndex] == 'blf'))"
+                                    ng-model="currentModel.inputs[key.variable + '_' + keysIndex]"
+                                    ng-change="onVariableChanged(key.variable + '_' + keysIndex, key.type)"
+                                    placeholder="{{currentModel.uiLocation == 'configurations' && currentModel.modelVariables[key.variable + '_' + keysIndex] && !currentModel.singleVariables[key.variable + '_' + keysIndex] ? currentModel.modelVariables[key.variable + '_' + keysIndex] + ' (' + currentModel.display_name + ')' : currentModel.globals[key.variable + '_' + keysIndex] ? currentModel.globals[key.variable + '_' + keysIndex] + ' (default)' : '-'}}"
+                                    type="text"
+                                    autocomplete="off"
+                                    class="form-control">
+                                  </input>
+                                  <!-- time -->
+                                  <input
+                                    ng-if="key.type == 'time' && !(key.variable.includes('value') && (currentModel.variables['linekey_type_' + keysIndex] == 'blf' || currentModel.variables['softkey_type_' + keysIndex] == 'blf'))"
+                                    ng-model="currentModel.inputs[key.variable + '_' + keysIndex]"
+                                    ng-change="onVariableChanged(key.variable + '_' + keysIndex, key.type)"
+                                    placeholder="{{currentModel.uiLocation == 'configurations' && currentModel.modelVariables[key.variable + '_' + keysIndex] && !currentModel.singleVariables[key.variable + '_' + keysIndex] ? currentModel.modelVariables[key.variable + '_' + keysIndex] + ' (' + currentModel.display_name + ')' : currentModel.globals[key.variable + '_' + keysIndex] ? currentModel.globals[key.variable + '_' + keysIndex] + ' (default)' : 'HH:MM'}}"
+                                    type="text"
+                                    autocomplete="off"
+                                    class="form-control">
+                                  </input>
+                                  <!-- password -->
+                                  <div ng-if="item.type == 'password' && !(key.variable.includes('value') && (currentModel.variables['linekey_type_' + keysIndex] == 'blf' || currentModel.variables['softkey_type_' + keysIndex] == 'blf'))" class="input-group">
+                                    <input
+                                      ng-model="currentModel.inputs[key.variable + '_' + keysIndex]"
+                                      ng-change="onVariableChanged(key.variable + '_' + keysIndex, key.type)"
+                                      placeholder="{{currentModel.uiLocation == 'configurations' && currentModel.modelVariables[key.variable + '_' + keysIndex] && !currentModel.singleVariables[key.variable + '_' + keysIndex] ? currentModel.modelVariables[key.variable + '_' + keysIndex] + ' (' + currentModel.display_name + ')' : currentModel.globals[key.variable + '_' + keysIndex] ? currentModel.globals[key.variable + '_' + keysIndex] + ' (default)' : '-'}}"
+                                      type="password"
+                                      autocomplete="off"
+                                      show-password="currentModel.shownPasswords[key.variable + '_' + keysIndex]"
+                                      class="form-control display-flex">
+                                    </input>
+                                    <button
+                                      tabindex="-1"
+                                      type="button"
+                                      class="btn btn-default mln-1 zindex-2"
+                                      ng-click="toggleShowPassword(key.variable + '_' + keysIndex)">
+                                      <span ng-class="currentModel.shownPasswords[key.variable + '_' + keysIndex] ? 'fa fa-eye-slash' : 'fa fa-eye'"></span>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <button 
+                        ng-click="!currentModel.ui[sectionkey].showingKeys ? currentModel.ui[sectionkey].showingKeys = 2 :
+                          currentModel.ui[sectionkey].showingKeys = currentModel.ui[sectionkey].showingKeys + 1"
+                        ng-if="item.type == 'loop' && !isExpKeysSection(sectionkey) && item.keysIndexes.length >
+                          (4 * (!currentModel.ui[sectionkey].showingKeys ? 1 :
+                          currentModel.ui[sectionkey].showingKeys))"
+                        class="btn btn-default btn-lg mt-30 ml-20">
+                        {{"View more" | translate}}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- if isn't a key section -->
+          <div class="mt-20" ng-if="!isKeysSection(sectionkey) && ($index > 0)">
+            <h2 ng-click="openSection(sectionkey)"
+              class="adjust-header adjust-profile-header pl-20 ng-binding pointer">
+              {{::section.name | translate}}
+              <span class="fa fa-angle-down icon-med-reload profile-open-icon"></span>
+            </h2>
+            <div id="collapse-section-{{$index}}"
+              class="panel-collapse adjust-profile-body model-container"
+              ng-if="currentModel.openedSection == sectionkey">
+              <div class="panel-body">
+                <div ng-show="currentModel.loadingSections[sectionkey]" class="spinner mt-14 mb-10"></div>
+                <div ng-if="sectionkey == 'phonebook'" class="full-width mb-30 mt-25 pr-20 pl-20">
+                  <label class="control-label">{{"ldap_phonebook_type_label" | translate}}</label>
+                  <div class="form-group">
+                    <select
+                      id="modelPhonebookType"
+                      class="selectpicker form-control"
+                      ng-model="modelPhonebookType"
+                      ng-change="modelPhonebookTypeChange()"
+                      autocomplete="off">
+                      <option value="" ng-disabled="true" ng-hide="true">-</option>
+                      <option value="null">-</option>
+                      <option	value="ldaps" >{{"ldap_phonebook_type_ldaps" | translate}}</option>
+                      <option	value="externalldap"
+                        on-finish-render="selectpickerRepeatEnd">
+                        {{"ldap_phonebook_type_custom" | translate}}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+                <div ng-show="!currentModel.loadingSections[sectionkey]" class="mt-25 no-border-bottom bs-cssgrid">
+                  <!-- Variable input/select container -->
+                  <div 
+                    ng-if="!(currentModel.ui.map[sectionkey][item.variable].visible === false)"
+                    ng-repeat="item in ::currentModel.ui[sectionkey].items track by item.variable"
+                    class="col-bs-cssgrid mb-15">
+                    <div class="form-group">
+                      <label class="control-label {{currentModel.variables[item.variable] != currentModel.storedVariables[item.variable] && currentModel.variables[item.variable] != currentModel.globals[item.variable] ? 'changed-color' : 'not-changed-color'}}">
+                        {{::item.description | translate}}
+                        {{currentModel.variables[item.variable] != currentModel.storedVariables[item.variable] && currentModel.variables[item.variable] != currentModel.globals[item.variable] ? ('(' + ('changed' | translate) + ')') : ''}}
+                      </label>
+                      <!-- selectpicker -->
+                      <div ng-if="item.type == 'selectpicker'" class="hidden">
+                        <select
+                          id="{{sectionkey}}-{{item.variable}}"
+                          class="selectpicker form-control"
+                          title="-"
+                          ng-model="currentModel.variables[item.variable]"
+                          ng-change="onVariableChanged(item.variable, 'list')"
+                          ng-disabled="sectionkey == 'phonebook' && (modelPhonebookType == 'ldap' || modelPhonebookType == 'ldaps')"
+                          autocomplete="off">
+                          <option value="" ng-disabled="true" ng-hide="true">-</option>
+                          <option value="null">-</option>
+                          <option
+                            ng-selected="currentModel.variables[item.variable] == option.value"
+                            ng-repeat="option in ::item.options | blacklistFilterNoKey: currentModel.ui.map[sectionkey][item.variable].blacklist track by $index"
+                            value="{{::option.value}}"
+                            parentid="{{sectionkey}}-{{item.variable}}"
+                            on-finish-render-revised="selectpickerRepeatEndRevised">{{::option.text | translate}}{{currentModel.uiLocation == "configurations" && currentModel.modelVariables[item.variable] && !currentModel.singleVariables[item.variable] && currentModel.modelVariables[item.variable] == option.value ? ' (' + currentModel.display_name + ')' : currentModel.globals[item.variable] && !currentModel.storedVariables[item.variable] && currentModel.globals[item.variable] == option.value ? ' (default)' : ''}}</option>
+                        </select>
+                      </div>
+                      <!-- combobox -->
+                      <div ng-if="item.type == 'combobox'" class="hidden">
+                        <select
+                          id="{{sectionkey}}-{{item.variable}}"
+                          class="combobox form-control"
+                          title="-"
+                          ng-model="currentModel.variables[item.variable]"
+                          ng-change="onVariableChanged(item.variable, 'list')"
+                          ng-disabled="sectionkey == 'phonebook' && (modelPhonebookType == 'ldap' || modelPhonebookType == 'ldaps')"
+                          autocomplete="off">
+                          <option value="" ng-disabled="true" ng-hide="true">-</option>
+                          <option value="null">-</option>
+                          <option
+                            ng-selected="currentModel.variables[item.variable] == option.value"
+                            ng-repeat="option in ::item.options | blacklistFilterNoKey: currentModel.ui.map[sectionkey][item.variable].blacklist track by $index"
+                            value="{{::option.value}}"
+                            parentid="{{sectionkey}}-{{item.variable}}"
+                            on-finish-render-revised="comboboxRepeatEndRevised">{{::option.text | translate}}{{currentModel.uiLocation == "configurations" && currentModel.modelVariables[item.variable] && !currentModel.singleVariables[item.variable] && currentModel.modelVariables[item.variable] == option.value ? ' (' + currentModel.display_name + ')' : currentModel.globals[item.variable] && !currentModel.storedVariables[item.variable] && currentModel.globals[item.variable] == option.value ? ' (default)' : ''}}</option>
+                        </select>
+                      </div>
+                      <!-- bigcombobox -->
+                      <div ng-if="item.type == 'bigcombobox'" class="hidden">
+                        <select
+                          id="{{sectionkey}}-{{$index}}"
+                          class="combobox form-control"
+                          title="-"
+                          ng-model="currentModel.variables[item.variable]"
+                          ng-change="onVariableChanged(item.variable, 'list')"
+                          ng-disabled="sectionkey == 'phonebook' && (modelPhonebookType == 'ldap' || modelPhonebookType == 'ldaps')"
+                          autocomplete="off">
+                          <option value="" ng-disabled="true" ng-hide="true">-</option>
+                          <option value="null">-</option>
+                          <option
+                            ng-selected="currentModel.variables[item.variable] == option.value"
+                            ng-if="$index < selectOptionsLimit || option.value == currentModel.variables[item.variable]"
+                            ng-repeat="option in item.options track by $index"
+                            value="{{::option.value}}"
+                            render-index="{{$index}}"
+                            render-start="10"
+                            on-finish-render="comboboxRepeatEnd">{{::option.text | translate}}{{currentModel.uiLocation == "configurations" && currentModel.modelVariables[item.variable] && !currentModel.singleVariables[item.variable] && currentModel.modelVariables[item.variable] == option.value ? ' (' + currentModel.display_name + ')' : currentModel.globals[item.variable] && !currentModel.storedVariables[item.variable] && currentModel.globals[item.variable] == option.value ? ' (default)' : ''}}</option>
+                          <option ng-disabled="true" ng-if="item.variable == 'timezone' && selectOptionsLimit < item.options.length" value="loading">{{"Loading" | translate}}...</option>
+                        </select>
+                      </div>
+                      <!-- dynamicselectpicker -->
+                      <div ng-if="item.type == 'dynamicselectpicker'" class="hidden">
+                        <select
+                          id="{{sectionkey}}-{{item.variable}}"
+                          class="selectpicker form-control"
+                          title="-"
+                          ng-model="currentModel.variables[item.variable]"
+                          ng-change="onVariableChanged(item.variable, 'dynamicselectpicker')"
+                          ng-disabled="sectionkey == 'phonebook' && (modelPhonebookType == 'ldap' || modelPhonebookType == 'ldaps')"
+                          autocomplete="off">
+                          <option value="" ng-disabled="true" ng-hide="true">-</option>
+                          <option value="null">-</option>
+                          <!-- selectpicker -->
+                          <option
+                            ng-selected="currentModel.variables[item.variable] == ($index + currentModel.ui.map[sectionkey][item.variable].startfrom)"
+                            ng-repeat="option in ::[] | range: toInt(currentModel.ui.map[sectionkey][item.variable].count) | blacklistFilterNoKeyDsp: currentModel.ui.map[sectionkey][item.variable].blacklist track by $index"
+                            parentid="{{sectionkey}}-{{item.variable}}"
+                            value="{{$index + currentModel.ui.map[sectionkey][item.variable].startfrom}}"
+                            on-finish-render-revised="selectpickerRepeatEndRevised">
+                            {{($index + currentModel.ui.map[sectionkey][item.variable].startfrom) == -1 && (item.variable == "ringtone") ? "Custom" : ($index + currentModel.ui.map[sectionkey][item.variable].startfrom) == 0 && item.variable == "ringtone" ? "Silent" : ($index + currentModel.ui.map[sectionkey][item.variable].startfrom) | translate}} {{currentModel.uiLocation == "configurations" && currentModel.modelVariables[item.variable] && !currentModel.singleVariables[item.variable] && currentModel.modelVariables[item.variable] == ($index + currentModel.ui.map[sectionkey][item.variable].startfrom) ? ' (' + currentModel.display_name + ')' : currentModel.globals[item.variable] && !currentModel.storedVariables[item.variable] && currentModel.globals[item.variable] == ($index + currentModel.ui.map[sectionkey][item.variable].startfrom) ? ' (default)' : ''}}</option>
+                        </select>
+                      </div>
+                      <!-- upload -->
+                      <div ng-if="item.type == 'upload'" class="input-group display-flex rm-first-option hidden">
+                        <select
+                          id="{{sectionkey}}-{{item.variable}}"
+                          class="selectpicker {{item.variable}}-select"
+                          title="-"
+                          ng-model="currentModel.variables[item.variable]"
+                          ng-change="onVariableChanged(item.variable, item.type)"
+                          ng-disabled="item.variable == 'ringtone_file' && !(toInt(currentModel.variables['ringtone']) === -1)"
+                          autocomplete="off">
+                          <option
+                            ng-if="!isEmpty(uploads[item.variable])"
+                            value="null">-</option>
+                          <option
+                            value=""
+                            ng-if="isEmpty(uploads[item.variable])"
+                            ng-disabled="true"
+                            parentid="{{sectionkey}}-{{item.variable}}"
+                            forcerendering="true"
+                            on-finish-render-revised="selectpickerRepeatEndRevised">{{"No files found" | translate}}</option>
+                          <option
+                            ng-selected="currentModel.variables[item.variable] == option.name"
+                            ng-repeat="option in uploads[item.variable] track by $index"
+                            value="{{option.name}}"
+                            parentid="{{sectionkey}}-{{item.variable}}"
+                            on-finish-render-revised="selectpickerRepeatEndRevised">{{option.name}}{{currentModel.uiLocation == "configurations" && currentModel.modelVariables[item.variable] && !currentModel.singleVariables[item.variable] && currentModel.modelVariables[item.variable] == option.name ? ' (' + currentModel.display_name + ')' : currentModel.globals[item.variable] && !currentModel.storedVariables[item.variable] && currentModel.globals[item.variable] == option.name ? ' (default)' : ''}}</option>
+                        </select>
+                        <button
+                          tabindex="-1"
+                          type="button"
+                          class="btn btn-default mln-1 zindex-2"
+                          ng-disabled="item.variable == 'ringtone_file' && !(toInt(currentModel.variables['ringtone']) === -1)"
+                          ng-click="openFileUpload(item.variable)">
+                          <span class="fa fa-upload"></span>
+                        </button>
+                      </div>
+                      <!-- input -->
+                      <input
+                        ng-if="item.type == 'input'"
+                        id="{{sectionkey}}-input-{{$index}}"
+                        ng-model="currentModel.inputs[item.variable]"
+                        ng-change="onVariableChanged(item.variable, item.type)"
+                        ng-disabled="sectionkey == 'phonebook' && (modelPhonebookType == 'ldap' || modelPhonebookType == 'ldaps')"
+                        placeholder="{{currentModel.uiLocation == 'configurations' && currentModel.modelVariables[item.variable] && !currentModel.singleVariables[item.variable] ? currentModel.modelVariables[item.variable] + ' (' + currentModel.display_name + ')' : currentModel.globals[item.variable] ? currentModel.globals[item.variable] + ' (default)' : item.variable == 'ldap_server' && currentModel.globals[item.variable] == '' ? currentModel.globals['hostname'] : '-'}}"
+                        type="text"
+                        autocomplete="off"
+                        class="form-control">
+                      </input>
+                      <!-- time -->
+                      <input
+                        ng-if="item.type == 'time'"
+                        id="{{sectionkey}}-input-{{$index}}"
+                        ng-model="currentModel.inputs[item.variable]"
+                        ng-change="onVariableChanged(item.variable, item.type)"
+                        ng-disabled="sectionkey == 'phonebook' && (modelPhonebookType == 'ldap' || modelPhonebookType == 'ldaps')"
+                        placeholder="{{currentModel.uiLocation == 'configurations' && currentModel.modelVariables[item.variable] && !currentModel.singleVariables[item.variable] ? currentModel.modelVariables[item.variable] + ' (' + currentModel.display_name + ')' : currentModel.globals[item.variable] ? currentModel.globals[item.variable] + ' (default)' : 'HH:MM'}}"
+                        type="text"
+                        autocomplete="off"
+                        class="form-control">
+                      </input>
+                      <!-- password -->
+                      <div ng-if="item.type == 'password'" class="input-group display-flex">
+                        <input
+                          id="{{sectionkey}}-input-{{$index}}"
+                          ng-model="currentModel.inputs[item.variable]"
+                          ng-change="onVariableChanged(item.variable, item.type)"
+                          ng-disabled="sectionkey == 'phonebook' && (modelPhonebookType == 'ldap' || modelPhonebookType == 'ldaps')"
+                          placeholder="{{currentModel.uiLocation == 'configurations' && currentModel.modelVariables[item.variable] && !currentModel.singleVariables[item.variable] ? currentModel.modelVariables[item.variable] + ' (' + currentModel.display_name + ')' : currentModel.globals[item.variable] ? currentModel.globals[item.variable] + ' (default)' : '-'}}"
+                          type="password"
+                          autocomplete="off"
+                          show-password="currentModel.shownPasswords[item.variable]"
+                          class="form-control">
+                        </input>
+                        <button
+                          tabindex="-1"
+                          type="button"
+                          ng-disabled="sectionkey == 'phonebook' && (modelPhonebookType == 'ldap' || modelPhonebookType == 'ldaps')"
+                          class="btn btn-default mln-1 zindex-2"
+                          ng-click="toggleShowPassword(item.variable)">
+                          <span ng-class="currentModel.shownPasswords[item.variable] ? 'fa fa-eye-slash' : 'fa fa-eye'"></span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+  <button ng-show="!loadingModels[model.name]" ng-click="currentModel.uiLocation == 'configurations' ? saveCurrentModelSingle() : showModal('saveChangesConfirm')"
+    class="btn btn-primary btn-lg profile-button-save mb-10 mt-30" type="submit">
+    {{'Save' | translate}}
+  </button>
+  <div ng-show="!loadingModels[model.name] && !isConfigurations" class="dropdown profile-button-save mb-10 mt-30">
+    <button class="btn btn-default btn-lg dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown">
+      {{'Actions' | translate}}
+      <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu1">
+      <li role="presentation">
+        <a class="{{!currentModel.changed ? 'disabled' : ''}}" ng-click="currentModel.changed ? openActionModal('cancel') : ''" role="menuitem">
+          {{"Reset to saved settings" | translate}}
+        </a>
+      </li>
+      <li ng-if="currentModel.hasOriginals" role="presentation">
+        <a ng-click="openActionModal('reset')">
+          {{"Reset to original settings" | translate}}
+        </a>
+      </li>
+      <li ng-if="!currentModel.hasOriginals" role="presentation" class="red-colored">
+        <a ng-click="openActionModal('delete')" role="menuitem">
+          {{"Delete" | translate}}
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- save modal -->
+  <div class="modal fade" id="saveChangesConfirm" tabindex="-1" role="dialog" aria-labelledby="saveChangesConfirm"
+    aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            <span class="pficon pficon-close"></span>
+          </button>
+          <h4 class="modal-title" id="nModelMLabel">{{"Save changes" | translate}}</h4>
+        </div>
+        <form class="form-horizontal mt-10" ng-submit="saveCurrentModel()">
+          <div class="modal-body">
+            <div ng-if="modelErrors.updateReadOnlyAttribute" class="alert alert-danger">
+              <span class="pficon pficon-error-circle-o"></span>
+              <strong>{{modelErrors.updateReadOnlyAttribute | translate}}</strong>.
+            </div>
+            <div ng-if="loadingAction == 'ok'" class="alert alert-success">
+              <span class="pficon pficon-warning-triangle-o"></span>
+              <strong>{{"Success" | translate}}!</strong>
+              <p>
+                {{"Model saved" | translate}}.
+              </p>
+            </div>
+            <div ng-if="loadingAction != 'ok'" class="alert alert-warning">
+              <span class="pficon pficon-warning-triangle-o"></span>
+              <strong>
+                {{"Changes to model" | translate}} {{currentModel.display_name}} {{"will be saved" | translate}}.
+              </strong>
+              <p>
+                {{"Are you sure" | translate}}?
+              </p>
+            </div>
+          </div>
+          <div ng-if="loadingAction == true" class="spinner spinner-sm adjust-margin loader-modal fz-18"></div>
+          <span ng-if="loadingAction == 'ok'" class="pficon pficon-ok adjust-margin loader-modal fz-18"></span>
+          <span ng-if="loadingAction == 'err'" class="pficon pficon-error-circle-o adjust-margin loader-modal fz-18"></span>
+          <div class="modal-footer submit">
+            <button type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
+            <button type="submit" class="btn btn-primary" ng-disabled="loadingAction == true || loadingAction == 'ok'">
+              {{'Save' | translate}}
+          </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- actions modal cancel, restore, delete -->
+  <div class="modal fade" id="actionsModal" tabindex="-1" role="dialog" aria-labelledby="actionsModal"
+    aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            <span class="pficon pficon-close"></span>
+          </button>
+          <h4 ng-if="selectedAction == 'cancel'" class="modal-title" id="nModelMLabel">
+            {{"Cancel changes" | translate}}
+          </h4>
+          <h4 ng-if="selectedAction == 'reset'" class="modal-title" id="nModelMLabel">
+            {{"Reset settings" | translate}}
+          </h4>
+          <h4 ng-if="selectedAction == 'delete'" class="modal-title" id="nModelMLabel">
+            {{"Delete changes" | translate}}
+          </h4>
+        </div>
+        <form class="form-horizontal mt-10"
+          ng-submit="selectedAction == 'cancel' ? cancelChanges() :
+          selectedAction == 'reset' ? resetChanges() :
+          selectedAction == 'delete' ? deleteModel() : ''">
+          <div class="modal-body">
+            <div ng-if="(modelErrors.updateReadOnlyAttribute || modelErrors.resetChangesNotFound || modelErrors.deleteChangesNotFound)" class="alert alert-danger alert-dismissable">
+              <span class="pficon pficon-error-circle-o"></span>
+              <strong>{{modelErrors.updateReadOnlyAttribute || modelErrors.resetChangesNotFound || modelErrors.deleteChangesNotFound | translate}}</strong>.
+            </div>
+            <div ng-if="loadingAction == 'ok'" class="alert alert-success">
+              <span class="pficon pficon-warning-triangle-o"></span>
+              <strong>{{"Success" | translate}}!</strong>
+              <p ng-if="selectedAction == 'cancel'">
+                {{"Changes have been canceled" | translate}}.
+              </p>
+              <p ng-if="selectedAction == 'reset'">
+                {{"Changes have been reset to the original values" | translate}}.
+              </p>
+              <p ng-if="selectedAction == 'delete'">
+                {{"The model has been deleted" | translate}}.
+              </p>
+            </div>
+            <div ng-if="loadingAction != 'ok'" class="alert alert-warning alert-dismissable">
+              <span class="pficon pficon-warning-triangle-o"></span>
+              <strong ng-if="selectedAction == 'cancel'">
+                {{"Changes to the model" | translate}} {{currentModel.display_name}} {{"will be canceled" | translate}}.
+              </strong>
+              <strong ng-if="selectedAction == 'reset'">
+                {{"Setting of the model" | translate}} {{currentModel.display_name}} {{"will be reset to the original values" | translate}}.
+              </strong>
+              <strong ng-if="selectedAction == 'delete'">
+                {{"The model" | translate}} {{currentModel.display_name}} {{"will be deleted" | translate}}.
+              </strong>
+              <p>
+                {{"Are you sure" | translate}}?
+              </p>
+            </div>
+          </div>
+          <div ng-if="loadingAction == true" class="spinner spinner-sm adjust-margin loader-modal fz-18"></div>
+          <span ng-if="loadingAction == 'ok'" class="pficon pficon-ok adjust-margin loader-modal fz-18"></span>
+          <span ng-if="loadingAction == 'err'" class="pficon pficon-error-circle-o adjust-margin loader-modal fz-18"></span>
+          <div class="modal-footer submit">
+            <button type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
+            <button type="submit" ng-disabled="loadingAction == true || loadingAction == 'ok'" class="btn btn-primary">{{'Continue' | translate}}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,186 @@
+<div class="wizard-modal">
+	<div class="modal-dialog wizard-pf margin-10">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+					<span class="pficon pficon-close"></span>
+				</button>
+				<h4 class="modal-title" id="dfSettingsMLabel">{{'Default settings' | translate}}</h4>
+			</div>
+			<form class="form-horizontal" ng-submit="setDefaultSettings()">
+				<div ng-show="defaultsLoading" class="mt-30 mb-30">
+					<div class="spinner"></div>
+				</div>
+				<div ng-show="!defaultsLoading" class="modal-body inline-display full-width mb-20">
+					<div ng-show="true" class="col-lg-12 mt-30 pl-40 pr-40">
+						<div ng-if="!isModelsPage()" class="alert alert-info alert-dismissable">
+							<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+								<span class="pficon pficon-close"></span>
+							</button>
+							<span class="pficon pficon-info"></span>
+							<strong>{{"The following settings can be modified later from the Models page" | translate}}.</strong>
+						</div>
+						<div ng-if="connectivityCheckRes && connectivityCheckRes.valid_certificate === false" class="alert alert-warning alert-dismissable mb-10">
+							<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+								<span class="pficon pficon-close"></span>
+							</button>
+							<span class="pficon pficon-warning-triangle-o"></span>
+							<strong>{{"The PBX address certificate is invalid" | translate}}!</strong> {{"Configuring phones in remote networks with encryption is not possible, the phones will only be able to connect from trusted networks" | translate}}.
+						</div>
+						<div ng-if="connectivityCheckRes && connectivityCheckRes.is_reachable === false" class="alert alert-danger alert-dismissable">
+							<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+								<span class="pficon pficon-close"></span>
+							</button>
+							<span class="pficon pficon-error-circle-o"></span>
+							<strong>{{"The PBX address is not reachable" | translate}}!</strong> {{"Add an address reachable from localhost" | translate}}.
+						</div>
+						<div ng-if="adminPw.showAdminPwWarning === true" class="alert alert-warning alert-dismissable mb-10">
+							<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+								<span class="pficon pficon-close"></span>
+							</button>
+							<span class="pficon pficon-warning-triangle-o"></span>
+							<strong>{{"The admin password has been modified" | translate}}!</strong> {{"The automatic click2call function of the CTI application will not work until the next phones provisioning" | translate}}.
+						</div>
+					</div>
+					<div class="col-lg-12 mt-30">
+						<div ng-repeat="(sectionKey, section) in globalsUi">
+							<!-- if is pinned section -->
+							<div ng-if="sectionKey == 'pinned'" style="display: flow-root !important;">
+								<div ng-repeat="item in section.data track by $index" class="col-lg-6 mb-15">
+									<label class="control-label" ng-if="item.description === 'Admin password' || item.description === 'User password'">{{::item.description | translate}}</label>
+									<!-- password -->
+									<div ng-if="item.type == 'password'" class="input-group display-flex">
+										<input
+											id="{{sectionKey}}-input-{{$index}}"
+											ng-model="defaultSettings[item.variable]"
+											ng-change="pinnedChange(item.variable)"
+											type="password"
+											autocomplete="off"
+											show-password="shownPasswords[item.variable]"
+											class="form-control">
+										</input>
+										<button
+											tabindex="-1"
+											type="button"
+											class="btn btn-default mln-1 zindex-2"
+											ng-click="toggleShowPassword(item.variable)">
+											<span ng-class="shownPasswords[item.variable] ? 'fa fa-eye-slash' : 'fa fa-eye'"></span>
+										</button>
+									</div>
+								</div>
+							</div>
+							<!-- if is section -->
+							<div class="mt-20 globalsSectionContainer col-lg-12" ng-if="sectionKey != 'pinned' && sectionKey != 'phonebook'">
+								<h2 ng-click="openSection(sectionKey)"
+									class="adjust-header adjust-profile-header pl-20 ng-binding pointer">
+									{{::section.name | translate}}
+									<span class="fa fa-angle-down icon-med-reload profile-open-icon"></span>
+								</h2>
+								<div id="collapse-section-{{$index}}"
+									class="panel-collapse adjust-profile-body model-container"
+									ng-if="openedSection == sectionKey">
+									<div class="panel-body">
+										<div ng-show="loadingSections[sectionKey]" class="spinner mt-14 mb-10"></div>
+										<div ng-if="sectionKey == 'phonebook' && (ldapResDisabled && (phonebookType == 'ldap' || phonebookType == 'ldaps')) && !loadingSections[sectionKey]" class="alert alert-warning alert-dismissable mb-10 mt-5">
+											<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+												<span class="pficon pficon-close"></span>
+											</button>
+											<span class="pficon pficon-warning-triangle-o"></span>
+											<strong>{{"Phonebook service is disabled on this system" | translate}}!</strong> {{"Saving will start the system service corresponding to the selected type of the phonebook" | translate}}.
+										</div>
+										<div ng-if="sectionKey == 'phonebook'" class="full-width pl-20 pr-20 mb-20 mt-20">
+											<label class="control-label">{{"ldap_phonebook_type_label" | translate}}</label>
+											<div class="form-group pl-20 pr-20">
+												<select
+													id="phonebookType"
+													class="selectpicker form-control"
+													ng-model="phonebookType"
+													ng-change="phonebookTypeChange()"
+													autocomplete="off">
+													<option value="" ng-disabled="true" ng-hide="true">-</option>
+													<option	value="ldaps" >{{"ldap_phonebook_type_ldaps" | translate}}</option>
+													<option	value="externalldap"
+														on-finish-render="selectpickerRepeatEnd">
+														{{"ldap_phonebook_type_custom" | translate}}
+													</option>
+												</select>
+											</div>
+										</div>
+										<div ng-show="!loadingSections[sectionKey]" class="mt-25 no-border-bottom bs-cssgrid">
+											<div ng-repeat="item in section.data track by $index" class="col-bs-cssgrid mb-15">
+												<label class="control-label">{{::item.description | translate}}</label>
+												<div class="{{item.type != 'password' ? 'col-lg-12' : ''}}">
+													<!-- list -->
+													<div ng-if="item.type == 'list'" class="form-group">
+														<select
+															id="default-select-{{$index}}"
+															class="{{item.options.length > 10 ? 'combobox' : 'selectpicker'}} form-control"
+															ng-disabled="sectionKey == 'phonebook' && (phonebookType == 'ldap' || phonebookType == 'ldaps')"
+															ng-model="defaultSettings[item.variable]"
+															autocomplete="off">
+															<option value="" ng-disabled="true" ng-hide="true">-</option>
+                              <!-- combobox -->
+                              <option ng-selected="defaultSettings[item.variable] == option.value"
+                                ng-if="item.options.length > 10 && ($index < selectOptionsLimit || option.value == defaultSettings[item.variable])"
+                                ng-repeat="option in ::item.options track by $index"
+                                value="{{::option.value}}" render-index="{{$index}}" render-start="10" on-finish-render="comboboxRepeatEnd">{{::option.text | translate}}</option>
+                              <!-- selectpicker -->
+                              <option ng-selected="defaultSettings[item.variable] == option.value"
+                                ng-if="item.options.length <= 10"
+                                ng-repeat="option in ::item.options track by $index"
+                                value="{{::option.value}}" on-finish-render="selectpickerRepeatEnd">{{::option.text | translate}}</option>
+                              <option ng-disabled="true" ng-if="item.options.length > 10 && selectOptionsLimit < item.options.length" value="loading">{{"Loading" | translate}}...</option>
+														</select>
+													</div>
+													<!-- input -->
+													<div ng-if="item.type == 'input'" class="form-group">
+                            <input 
+                              type="text"
+															id="default-select-{{$index}}"
+															ng-disabled="sectionKey == 'phonebook' && (phonebookType == 'ldap' || phonebookType == 'ldaps')"
+															autocomplete="off"
+															placeholder="{{item.variable == 'ldap_server' && defaultSettings[item.variable] == '' ? defaultSettings['hostname'] : '-'}}"
+                              ng-model="defaultSettings[item.variable]"
+															class="form-control">
+														</input>
+													</div>
+													<!-- password -->
+													<div ng-if="item.type == 'password'" class="input-group display-flex">
+														<input
+															id="{{sectionKey}}-input-{{$index}}"
+															ng-model="defaultSettings[item.variable]"
+															ng-disabled="sectionKey == 'phonebook' && (phonebookType == 'ldap' || phonebookType == 'ldaps')"
+															type="password"
+															autocomplete="off"
+															show-password="shownPasswords[item.variable]"
+															class="form-control">
+														</input>
+														<button
+															tabindex="-1"
+															type="button"
+															ng-disabled="sectionKey == 'phonebook' && (phonebookType == 'ldap' || phonebookType == 'ldaps')"
+															class="btn btn-default mln-1 zindex-2"
+															ng-click="toggleShowPassword(item.variable)">
+															<span ng-class="shownPasswords[item.variable] ? 'fa fa-eye-slash' : 'fa fa-eye'"></span>
+														</button>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div ng-if="loadingActions == true" class="spinner spinner-sm adjust-margin loader-modal fz-18"></div>
+				<span ng-if="loadingActions == 'ok'" class="pficon pficon-ok adjust-margin loader-modal fz-18"></span>
+				<span ng-if="loadingActions == 'err'" class="pficon pficon-error-circle-o adjust-margin loader-modal fz-18"></span>
+				<div ng-if="!defaultsLoading" class="modal-footer submit">
+					<button type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
+					<button type="submit" ng-disabled="connectivityCheckRes.is_reachable === false" class="btn btn-primary">{{'Save' | translate}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>

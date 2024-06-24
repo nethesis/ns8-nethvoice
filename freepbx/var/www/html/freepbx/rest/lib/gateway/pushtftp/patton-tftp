@@ -1,0 +1,46 @@
+#!/usr/bin/expect
+
+#
+# Copyright (C) 2017 Nethesis S.r.l.
+# http://www.nethesis.it - nethserver@nethesis.it
+#
+# This script is part of NethServer.
+#
+# NethServer is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License,
+# or any later version.
+#
+# NethServer is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with NethServer.  If not, see COPYING.
+#
+
+# usage: ./patton-tftp <GATEWAY IP> <TFTP-IP> <CONFIGURATION FILENAME> <USERNAME> <PASSWORD>
+
+set gatewayip [lindex $argv 0]
+set tftpip [lindex $argv 1]
+set filename [lindex $argv 2]
+set username [lindex $argv 3]
+set password [lindex $argv 4]
+
+spawn /usr/bin/telnet $gatewayip
+expect "login:"
+send "$username\r"
+expect "Password:"
+send "$password\r"
+expect ">"
+send "enable\r"
+expect "#"
+send "copy tftp://$tftpip/$filename startup-config\r"
+expect "#"
+send "reload\r"
+expect ":"
+send "no\r"
+expect ":"
+send "yes\r"
+expect eof

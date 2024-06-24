@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import agent
+import os
+
+
+ksrv = agent.list_service_providers(agent.redis_connect(use_replica=True), "sip", "tcp", {"module_id": os.environ['AGENT_EVENT_SOURCE'].removeprefix("module/")})
+
+# Update the configuration
+agent.set_env('NETHVOICE_PROXY_FQDN', ksrv[0]["fqdn"])
+agent.set_env('PROXY_IP', ksrv[0]["host"])
+agent.set_env('PROXY_PORT', ksrv[0]["port"])
+
+# Configure nethvoice-proxy to route SIP traffic for Nethvoice
+response = agent.tasks.run(
+    agent_id=os.environ['AGENT_EVENT_SOURCE'],
+    action='add-route',
+    data={
+        'domain': os.environ['NETHVOICE_HOST'],
+        'address': [{"uri":"sip:"+ ksrv[0]["host"] +":"+os.environ["ASTERISK_SIP_PORT"],"description":os.environ["MODULE_ID"]}],
+    },
+)
+
+# Check if proxy configuration has been successfull
+agent.assert_exp(response['exit_code'] == 0)

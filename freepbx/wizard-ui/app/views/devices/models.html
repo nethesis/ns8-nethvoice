@@ -1,0 +1,195 @@
+<div class="wizard-pf">
+  <div class="wizard-pf-body clearfix">
+    <div ng-if="wizard.isWizard" class="wizard-pf-steps">
+      <ul class="wizard-pf-steps-indicator">
+        <li class="wizard-pf-step {{resolveActiveTab('inventory',2) ? 'active' : ''}}" data-tabgroup="1">
+          <a ng-click="goTo('devices/inventory')"><span class="wizard-pf-step-number">1</span><span
+            class="wizard-pf-step-title">{{'Phones' | translate}}</span></a>
+        </li>
+        <li class="wizard-pf-step {{resolveActiveTab('models',2) ? 'active' : ''}}" data-tabgroup="2">
+          <a ng-click="goTo('devices/models')"><span class="wizard-pf-step-number">2</span><span
+            class="wizard-pf-step-title">{{'Models' | translate}}</span></a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="wizard-pf-contents adjust-size">
+    <h1 class="control-label centered" for="textInput-markup">{{'Models' | translate}}</h1>
+    <div ng-if="!(inventoryModels | isEmpty)" class="mt-40 mb-10">
+      <button data-toggle="modal" data-target="#newModelModal"
+        class="btn btn-primary btn-lg">{{'Create new model' | translate}}
+      </button>
+      <button ng-click="openDefaultSettings()"
+        class="btn btn-default btn-lg right-align no-margin ng-binding ng-scope">
+        {{"Default settings" | translate}}
+      </button>
+    </div>
+    <div ng-if="!(inventoryModels | isEmpty)" class="container-fluid">
+      <div id="modelsContainer" class="list-group list-view-pf adjust-margin-extensions no-border">
+        <div ng-repeat="model in inventoryModels track by model.name" class="adjust-profile-margin">
+          <div id="accordion-models-{{$index}}">
+            <h1 ng-click="checkCurrentModelChanged(model.name)" class="adjust-header adjust-profile-header pointer">
+              <span class="fa fa-cube card-pf-icon-circle config-title-icon"></span>
+              <span class="weight">{{::model.display_name | translate}}</span>
+              <span class="fa fa-angle-down icon-med-reload profile-open-icon"></span>
+            </h1>
+            <div id="collapse-model-{{$index}}" ng-hide="currentModel.hidden" ng-if="currentModel.name == model.name"
+              class="panel-collapse adjust-profile-body model-container">
+
+              <!-- start models templates -->
+              <div id="modelsUIUrl" ng-include="modelsUIUrl"></div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- end -->
+    <div ng-if="inventoryModels | isEmpty" class="blank-slate-pf ">
+      <div class="blank-slate-pf-icon">
+        <span class="pficon pficon-add-circle-o"></span>
+      </div>
+      <h1 class="mb-25 mt-25">
+        {{'No model' | translate}}
+      </h1>
+      <div class="mb-25">
+        <p>
+          {{"Assign the models to the phones in the Phones section before editing the variables" | translate}}.
+        </p>
+        </p>
+      </div>
+      <div class="blank-slate-pf-main-action">
+        <button ng-click="openDefaultSettings()"
+          class="btn btn-default btn-lg ng-binding ng-scope">
+          {{"Default settings" | translate}}
+        </button>
+        <button ng-click="goTo('/devices/inventory')"
+          class="btn btn-primary btn-lg">
+          {{'Set models' | translate}}
+        </button>
+      </div>
+    </div>
+  </div>
+  <wizard-step ng-if="wizard.isWizard" id="wizardStepBase"></wizard-step>
+</div>
+
+<div class="modal fade" id="newModelModal" tabindex="-1" role="dialog" aria-labelledby="nModelMLabel"
+  aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+        <h4 class="modal-title" id="nModelMLabel">{{'New model' | translate}}</h4>
+      </div>
+      <form class="form-horizontal">
+        <div class="modal-body">
+          <div ng-if="newModelsErrors.apiError" class="alert alert-danger alert-dismissable">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span class="pficon pficon-close"></span>
+            </button>
+            <span class="pficon pficon-error-circle-o"></span>
+            <strong>{{newModelsErrors.apiError | translate}}</strong>.
+          </div>
+          <div class="form-group {{newModelsErrors.newModelSourceEmpty ? 'has-error' : ''}}">
+            <label class="col-sm-3 control-label" for="textInput2-modal-markup">{{'Duplicate from' | translate}}</label>
+            <div class="col-sm-9">
+              <select 
+                ng-model="newModelSourceName"
+                id="modelFromSelect"
+                class ="combobox form-control"
+                autocomplete="off">
+                <option value="">
+                  -
+                </option>
+                <option value="{{model.name}}" ng-repeat="model in inventoryModels track by model.name"
+                  on-finish-render="selectpickerRepeatEnd">{{model.display_name}}</option>
+              </select>
+              <div ng-show="newModelsErrors.newModelSourceEmpty" class="help-block mt-0">
+                {{"Select a source model" | translate}}
+              </div>
+            </div>
+          </div>
+          <div ng-show="newModelSourceName" class="form-group">
+            <label class="col-sm-3 control-label">{{'Name' | translate}} *</label>
+            <div class="col-sm-9">
+              <div class="input-group {{newModelsErrors.newModelCustomNameEmpty ? 'has-error' : ''}}">
+                <span class="input-group-addon" >
+                  <span ng-if="model.name == newModelSourceName" ng-repeat="model in inventoryModels">{{model.display_name}} - </span>
+                </span>
+                <input
+                  type="text"
+                  id="inputCustomName"
+                  ng-model="newModelCustomName"
+                  class="form-control">
+                <div ng-show="newModelsErrors.newModelCustomNameEmpty" class="help-block table-caption-bottom mt-0">
+                  {{"Enter the custom part of the name" | translate}}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div ng-if="loadingActions == true" class="spinner spinner-sm adjust-margin loader-modal fz-18"></div>
+        <span ng-if="loadingActions == 'ok'" class="pficon pficon-ok adjust-margin loader-modal fz-18"></span>
+        <span ng-if="loadingActions == 'err'" class="pficon pficon-error-circle-o adjust-margin loader-modal fz-18"></span>
+        <div class="modal-footer submit">
+          <button type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
+          <button ng-click="createNewModel()" type="button" class="btn btn-primary">{{'Save' | translate}}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modelChangeConfirm" tabindex="-1" role="dialog" aria-labelledby="modelChangeConfirm"
+  aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+        <h4 class="modal-title" id="nModelMLabel">{{"Settings not saved" | translate}}!</h4>
+      </div>
+      <form class="form-horizontal mt-10" ng-submit="onModelSetContinue()">
+        <div class="modal-body">
+          <div class="alert alert-warning">
+            <span class="pficon pficon-warning-triangle-o"></span>
+            <strong>
+              {{"The changes are not saved yet" | translate}}.
+            </strong>
+            <p>
+              {{"Cancel and save the changes or continue without saving" | translate}}!
+            </p>
+          </div>
+        </div>
+        <div class="modal-footer submit">
+          <button type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
+          <button type="submit" class="btn btn-primary">{{'Continue' | translate}}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div
+  class="modal fade"
+  id="defaultSettingsModal"
+  ng-controller="DefaultModalUICtrl"
+  tabindex="-1"
+  role="dialog"
+  aria-hidden="true"
+  data-backdrop="static"
+  ng-include="defaultsModalUrl"
+  ></div>
+
+<div
+  class="modal fade"
+  id="uploadFileModal"
+  ng-controller="FileUploadCtrl"
+  tabindex="-1"
+  role="dialog"
+  aria-hidden="true"
+  data-backdrop="static"
+  ng-include="fileUploadUIUrl"></div>

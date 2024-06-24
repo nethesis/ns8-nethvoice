@@ -1,0 +1,6 @@
+{
+    "require": {
+        "slim/slim": "^3.0",
+        "symfony/process": "^3.1"
+    }
+}

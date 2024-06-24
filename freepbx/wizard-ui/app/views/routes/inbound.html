@@ -1,0 +1,124 @@
+<div class="wizard-pf">
+  <div class="wizard-pf-body clearfix">
+    <div ng-if="wizard.isWizard" class="wizard-pf-steps">
+      <ul class="wizard-pf-steps-indicator">
+        <li class="wizard-pf-step {{resolveActiveTab('inbound',2) ? 'active' : ''}}" data-tabgroup="1">
+          <a ng-click="goTo('routes/inbound')"><span class="wizard-pf-step-number">1</span><span class="wizard-pf-step-title">{{'Inbound' | translate}}</span></a>
+        </li>
+        <li class="wizard-pf-step {{resolveActiveTab('outbound',2) ? 'active' : ''}}" data-tabgroup="2">
+          <a ng-click="goTo('routes/outbound')"><span class="wizard-pf-step-number">2</span><span class="wizard-pf-step-title">{{'Outbound' | translate}}</span></a>
+        </li>
+      </ul>
+    </div>
+    <div class="wizard-pf-contents adjust-size">
+      <h1 class="control-label centered" for="textInput-markup" class="control-label centered" for="textInput-markup">
+        {{'Inbound routes' | translate}}
+      </h1>
+      <div ng-if="routes.length > 0" class="container-fluid inbound-margin-top">
+        <div class="list-group list-view-pf list-view-pf-view list-header">
+          <div class="list-group-item list-item-header">
+            <div class="list-view-pf-actions">
+              <label>{{'Actions' | translate}}</label>
+            </div>
+            <div class="list-view-pf-main-info">
+              <div class="list-view-pf-left">
+                <span class="fa fa-usera list-view-pf-icon-sm adjust-line">{{routes.length}}</span>
+              </div>
+              <div class="list-view-pf-body">
+                <div class="list-view-pf-description adjust-list">
+                  <div class="list-group-item-heading">
+                    {{'Route' | translate}}
+                  </div>
+                  <div class="list-group-item-text">
+                    {{'Description' | translate}}
+                  </div>
+                </div>
+                <div class="list-view-pf-additional-info">
+                  <div class="list-view-pf-additional-info-item">
+                    <label>{{'Destination' | translate}}</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="list-group list-view-pf list-view-pf-view">
+          <div class="list-group-item" ng-repeat="route in routes | limitTo: inboundLimit">
+            <div class="list-view-pf-actions">
+              <div class="dropdown  dropdown-kebab-pf">
+                <a target="_blank" ng-href="{{customConfig.VPLAN_URL + '/?did=' + route.url}}" class="btn btn-default">{{'Modify' | translate}}</a>
+                <button class="btn btn-link dropdown-toggle" type="button" id="dropdownKebab" data-toggle="dropdown" aria-haspopup="true"
+                  aria-expanded="true">
+                    <span class="fa fa-ellipsis-v"></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownKebab">
+                  <li><a ng-click="setCurrentRoute(route)" data-toggle="modal" data-target="#confirmDeleteModal">{{'Delete' | translate}}</a></li>
+                </ul>
+              </div>
+            </div>
+            <div class="list-view-pf-main-info">
+              <div class="list-view-pf-left">
+                <span class="fa fa-long-arrow-down list-view-pf-icon-sm"></span>
+              </div>
+              <div class="list-view-pf-body">
+                <div class="list-view-pf-description adjust-list">
+                  <div class="list-group-item-heading">
+                    {{ route.extension }} / {{ route.cidnum }}
+                  </div>
+                  <div class="list-group-item-text">
+                    {{ route.description }}
+                  </div>
+                </div>
+                <div class="list-view-pf-additional-info">
+                  <div class="list-view-pf-additional-info-item">
+                    <span class="pficon pficon-export"></span> <span class="weight-dest">{{parseDestinations(route.destination).prefix | translate}}</span>{{parseDestinations(route.destination).prefix
+                    ? ':' : ''}} {{parseDestinations(route.destination).description | translate}}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button ng-click="newRoute()" class="btn btn-primary btn-lg right-button">{{'Create new route' | translate}}</button>
+        </div>
+      </div>
+      <div ng-if="routes.length == 0" class="blank-slate-pf ">
+        <div class="blank-slate-pf-icon">
+          <span class="fa fa-long-arrow-down"></span>
+        </div>
+        <h1>
+          {{'No inbound routes found' | translate}}
+        </h1>
+        <div class="blank-slate-pf-main-action">
+          <button ng-click="newRoute()" class="btn btn-primary btn-lg">{{'Create new route' | translate}}</button>
+        </div>
+      </div>
+    </div>
+    <wizard-step ng-if="wizard.isWizard" id="wizardStepBase"></wizard-step>
+  </div>
+</div>
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" role="dialog"
+  aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            <span class="pficon pficon-close"></span>
+          </button>
+        <h4 class="modal-title" id="myModalLabel">
+          {{"Delete route" | translate}} {{currentRoute.extension + (currentRoute.cidnum ? ' / ' + currentRoute.cidnum : '')}}
+        </h4>
+      </div>
+      <div class="modal-body">
+        <div class="form-group medium-font">
+          {{ "Are you sure" | translate }} ?
+        </div>
+      </div>
+      <div class="modal-footer submit">
+        <button type="button" class="btn btn-default" data-dismiss="modal">{{ "Cancel" | translate }}</button>
+        <button type="button" class="btn btn-danger" data-dismiss="modal" ng-click="deleteRoute(currentRoute.extension, currentRoute.cidnum)">
+          {{ "Delete" | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

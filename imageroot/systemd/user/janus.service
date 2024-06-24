@@ -32,7 +32,7 @@ ExecStart=/usr/bin/podman run \
     --interface=lo \
     --ice-ignore-list=${ICEIGNORE:=vmnet,tap,tun,virb,vb-} \
     --stun-server=${STUNSERVER}:${STUNPORT} \
-    --rtp-port-range=${JANUS_RTPSTART}:${JANUS_RTPEND} \
+    --rtp-port-range=${JANUS_RTPSTART}-${JANUS_RTPEND} \
     --cert-pem=/etc/certificates/NethServer.pem \
     --cert-key=/etc/certificates/NethServer.key \
     --debug-level=${JANUS_DEBUG_LEVEL}

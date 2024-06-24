@@ -1,0 +1,117 @@
+<div class="wizard-modal">
+	<div class="modal-dialog wizard-pf margin-10">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+					<span class="pficon pficon-close"></span>
+				</button>
+				<h4 class="modal-title" id="dfSettingsMLabel">{{uploadVariable == "firmware_file" ? "Firmware management" : uploadVariable == "ringtone_file" ? "Ringtones management" : uploadVariable == "background_file" ? "Background management" : uploadVariable == "screensaver_file" ? "Screensaver management" : "" | translate}}</h4>
+			</div>
+			<form class="form-horizontal" ng-submit="">
+				<div ng-show="defaultsLoading" class="mb-30">
+					<div class="spinner"></div>
+				</div>
+				<div ng-show="!defaultsLoading" class="modal-body inline-display full-width">
+          <div class="col-lg-12">
+            <h2>
+              {{uploadVariable == "firmware_file" ? "Upload a new firmware" : uploadVariable == "ringtone_file" ? "Upload a new ringtone" : uploadVariable == "background_file" ? "Upload a new background" : uploadVariable == "screensaver_file" ? "Upload a new screensaver" : "" | translate}}
+						</h2>
+						<div id="uploadErrorAlert" ng-if="uploadingError" class="alert alert-danger alert-dismissable mb-5 mt-20">
+							<button type="button" class="close" aria-label="Close" ng-click="hideAlertDanger()">
+								<span class="pficon pficon-close"></span>
+							</button>
+							<span class="pficon pficon-error-circle-o"></span>
+							<strong>{{"Error" | translate}}!</strong> {{uploadingErrorMsg ? uploadingErrorMsg : "Error loading file." | translate}}
+						</div>
+						<div id="uploadSuccessAlert" ng-if="uploadingSuccess" class="alert alert-success alert-dismissable mb-5 mt-20">
+							<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+								<span class="pficon pficon-close"></span>
+							</button>
+							<span class="pficon pficon-ok"></span>
+							<strong>{{"Success" | translate}}!</strong> {{"File correctly uploaded" | translate}}.
+						</div>
+						<div dropzone id="dragArea" class="dragArea {{evt.draghover ? 'dropping lh-61' : ''}}">
+							<input class="hide" type="file" id="fileInput">
+                {{evt.draghover ? "Drop Files here" : "Drag your file here" | translate}} <br>
+								{{evt.draghover ? "" : "or" | translate}} <a ng-click="fileSelection()">{{evt.draghover ? "" : "browse" | translate}}</a> {{evt.draghover ? "" : "to upload" | translate}}
+						</div>
+            <ul class="filesList">
+							<li class="fileUploading" ng-repeat="file in uploadingFiles track by $index">
+                <span class="ellipsis">
+                  {{file.name}}
+                </span>
+                <span class="fw-300">
+                  {{file.size}}
+								</span>
+							 	<span class="fw-600">
+									<div class="spinner spinner-sm"></div>
+							 	</span>
+							</li>
+							<!-- firmware list -->
+              <li ng-if="uploadVariable == 'firmware_file'" class="fileUploaded" ng-repeat="firmware in uploads.firmware_file track by $index">
+                <span class="ellipsis">
+                  {{firmware.name}}
+                </span>
+                <span class="fw-300">
+                  {{firmware.size}}
+								</span>
+							 	<span class="fw-600">
+									<a ng-click="fileDelete(firmware.name)">
+										{{"Remove" | translate}}
+									</a>
+							 	</span>
+							</li>
+							<!-- ringtones list -->
+							<li ng-if="uploadVariable == 'ringtone_file'" class="fileUploaded" ng-repeat="ringtone in uploads.ringtone_file track by $index">
+								<span class="ellipsis">
+									{{ringtone.name}}
+								</span>
+								<span class="fw-300">
+									{{ringtone.size}}
+								</span>
+									<span class="fw-600">
+									<a ng-click="fileDelete(ringtone.name)">
+										{{"Remove" | translate}}
+									</a>
+									</span>
+							</li>
+							<!-- backgrounds list -->
+							<li ng-if="uploadVariable == 'background_file'" class="fileUploaded" ng-repeat="background in uploads.background_file track by $index">
+								<span class="ellipsis">
+									{{background.name}}
+								</span>
+								<span class="fw-300">
+									{{background.size}}
+								</span>
+									<span class="fw-600">
+									<a ng-click="fileDelete(background.name)">
+										{{"Remove" | translate}}
+									</a>
+									</span>
+							</li>
+							<!-- backgrounds list -->
+							<li ng-if="uploadVariable == 'screensaver_file'" class="fileUploaded" ng-repeat="screensaver in uploads.screensaver_file track by $index">
+								<span class="ellipsis">
+									{{screensaver.name}}
+								</span>
+								<span class="fw-300">
+									{{screensaver.size}}
+								</span>
+									<span class="fw-600">
+									<a ng-click="fileDelete(screensaver.name)">
+										{{"Remove" | translate}}
+									</a>
+									</span>
+							</li>
+						</ul>
+				</div>
+				<div ng-if="loadingActions == true" class="spinner spinner-sm adjust-margin loader-modal fz-18"></div>
+				<span ng-if="loadingActions == 'ok'" class="pficon pficon-ok adjust-margin loader-modal fz-18"></span>
+				<span ng-if="loadingActions == 'err'" class="pficon pficon-error-circle-o adjust-margin loader-modal fz-18"></span>
+				<div ng-if="!defaultsLoading" class="modal-footer submit">
+					<button type="button" class="btn btn-default" data-dismiss="modal">{{'Close' | translate}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>

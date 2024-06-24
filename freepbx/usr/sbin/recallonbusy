@@ -1,0 +1,179 @@
+#!/usr/bin/python3
+
+#
+# Copyright (C) 2021 Nethesis S.r.l.
+# http://www.nethesis.it - nethserver@nethesis.it
+#
+# This script is part of NethVoice.
+#
+# NethVoice is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License,
+# or any later version.
+#
+# NethVoice is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with NethVoice.  If not, see COPYING.
+#
+
+import syslog
+import sys
+import time
+from asterisk.ami import AMIClient,SimpleAction,AutoReconnect
+import configparser
+#import threading
+import json
+import re
+
+DEFAULT_CONFIG = {
+    'Host': 'localhost',
+    'Port': 5038,
+    'Pidfile' : '/run/recallonbusy.pid',
+    'Username': 'recallonbusy',
+    'Secret': '',
+    'Debug' : True,
+    'CheckInterval': 60,
+}
+
+# read config file
+config = configparser.ConfigParser(DEFAULT_CONFIG)
+config.read('/etc/asterisk/recallonbusy.cfg')
+CONFIG = {}
+
+for key,value in DEFAULT_CONFIG.items():
+    try:
+        if key in ['Debug']:
+            CONFIG[key] = config.getboolean('recallonbusy',key)
+        elif key in ['Port','CheckInterval']:
+            CONFIG[key] = config.getint('recallonbusy',key)
+        else:
+            CONFIG[key] = config.get('recallonbusy',key)
+    except:
+        CONFIG[key] = DEFAULT_CONFIG[key]
+
+def log_debug(msg):
+    global CONFIG
+    if CONFIG['Debug'] == True:
+        syslog.syslog(syslog.LOG_INFO,'recallonbusy: %s' % msg)
+
+def get_extension_state(extension):
+    global device_state_map
+    # get all devices
+    if re.match(r'9[0-9][0-9]{2,}$',extension):
+        mainextension = re.sub(r'^9[0-9]([0-9]{2,})$', r'\1', extension)
+    else:
+        mainextension = extension
+
+    extensions_states = {}
+    for ext,state in device_state_map.items():
+        if ext == mainextension or re.match(r'9[0-9]'+mainextension+'$',ext):
+            extensions_states[ext] = state
+
+    res_state = 'UNKNOWN'
+    for ext,state in extensions_states.items():
+        if state == 'INUSE' or state == 'RINGING':
+            res_state = state
+            break;
+        elif state == 'NOT_INUSE' and (res_state == 'UNKNOWN' or res_state == 'UNAVAILABLE'):
+            res_state = state
+
+    log_debug('Final extension '+ extension + ' state: ' + res_state + ' ' + json.dumps(extensions_states))
+    return res_state
+    
+
+# This is called every time AMI event is emitted
+def event_listener(source, event):
+    global client
+    global device_state_map
+    if event.name == 'DeviceStateChange':
+        if re.match(r'PJSIP/([0-9]*)$', str(event['Device'])):
+            if 'State' in event:
+                extension = re.sub(r'PJSIP/([0-9]*)$', r'\1', str(event['Device']))
+                log_debug('DeviceStateChange '+ extension + ' -> '+ event['State'])
+                mainextension = re.sub(r'^9[0-9]([0-9]{2,})$', r'\1', extension)
+                device_state_map[extension] = event['State']
+                if get_extension_state(extension) == 'NOT_INUSE':
+                    # Ask for waiting ROB for this extension
+                    timeid = time.time()
+                    actionid='dbget'+str(timeid)
+                    action = SimpleAction(
+                        'DBGet',
+                        ActionID=actionid,
+                        Family='ROB',
+                        Key=mainextension
+                    )
+                    client.send_action(action)
+    elif event.name == 'DBGetResponse':
+        if 'dbget' in event['ActionID'] and event['Val'] != '':
+            waiting_extensions = event['Val'].split('&')
+            ext_to_call = event['Key']
+            log_debug('ext_to_call: '+ext_to_call+ '  waiting_extensions: '+ str(waiting_extensions))
+            if get_extension_state(ext_to_call) == 'NOT_INUSE':
+                for waiting_extension in waiting_extensions:
+                    if get_extension_state(waiting_extension) == 'NOT_INUSE':
+                        log_debug('waiting_extension '+ waiting_extension + 'is NOT_INUSE, generating the call...')
+                        # launch call
+                        action = SimpleAction(
+                            'Originate',
+                            Channel='Local/'+waiting_extension+'@from-internal',
+                            Timeout=150000,
+                            CallerID=ext_to_call,
+                            Context='from-internal',
+                            Priority=1,
+                            Exten=ext_to_call
+                        )
+                        client.send_action(action)
+                        waiting_extensions.remove(waiting_extension)
+                        break
+                new_waiting_extensions_string = '&'.join(waiting_extensions)
+                # Write new astdb string
+                timeid = time.time()
+                actionid='dbput'+str(timeid)
+                action = SimpleAction(
+                    'DBPut',
+                    ActionID=actionid,
+                    Family='ROB',
+                    Key=ext_to_call,
+                    Val=new_waiting_extensions_string
+                )
+                client.send_action(action)
+
+    else :
+        log_debug('Unknow event: '+ str(event))
+
+def ami_client_connect_and_login(address,port,username,secret):
+    global client
+    try:
+        client = AMIClient(address=CONFIG['Host'],port=CONFIG['Port'])
+        #AutoReconnect(client)
+        client.login(username=CONFIG['Username'],secret=CONFIG['Secret'])
+        client.add_event_listener(event_listener, white_list=['DeviceStateChange','DBGetResponse'])
+        log_debug('AMI client connected')
+        return True
+    except Exception as err:
+        syslog.syslog(syslog.LOG_ERR,'AMI client ERROR: %s' % str(err))
+        return False
+
+device_state_map = {}
+
+connected = False
+
+#MAIN LOOP
+while True:
+    try:
+        if not connected:
+            connected = ami_client_connect_and_login(address=CONFIG['Host'],port=CONFIG['Port'],username=CONFIG['Username'],secret=CONFIG['Secret'])
+        if connected:
+            # Ask for device state map updates
+            client.send_action(SimpleAction('DeviceStateList'))
+
+    except Exception as e:
+        syslog.syslog(syslog.LOG_ERR,"Error: " + str(e))
+        connected = False
+
+    time.sleep(CONFIG['CheckInterval'])
+

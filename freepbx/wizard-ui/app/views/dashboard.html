@@ -1,0 +1,275 @@
+<div class="wizard-pf">
+  <div class="wizard-pf-contents adjust-size">
+    <h1 class="control-label centered" for="textInput-markup">{{'Dashboard' | translate}}</h1>
+    <div class="container-fluid dashboard-margin-top">
+      <div class="list-group list-view-pf adjust-margin-extensions no-border">
+        <div class="adjust-profile-margin">
+          <!-- USERS -->
+          <div id="accordion-markup-0">
+            <h1 data-toggle="collapse" data-parent="#accordion-markup-0" href="#collapse-0" class="adjust-header adjust-profile-header ng-binding"
+              aria-expanded="true"> <span class="pficon pficon-users card-pf-icon-circle config-title-icon"></span>{{'Users' | translate}}
+              <span class="fa fa-angle-down icon-med-reload profile-open-icon"></span>
+              <div ng-show="profile.onSave" class="spinner spinner-sm profile-save-spinner ng-hide"></div>
+            </h1>
+            <div id="collapse-0" class="panel-collapse adjust-profile-body collapse in" aria-expanded="true">
+              <div class="panel-body profile-panel max-containers-height pannel-body-color" >
+                <!-- SEARCH -->
+                <form role="form" class="search-pf has-button adjust-form ng-pristine ng-valid" id="form-lg-domains-details">
+                  <div class="form-group has-clear">
+                    <div class="search-pf-input-group" id="filter-domains-details"> <input ng-model="searchUsersString"
+                        type="text" class="form-control input-lg ng-pristine ng-valid ng-touched" placeholder="{{'Search users' | translate}}...">
+                    </div>
+                  </div>
+                  <div class="form-group"> <button class="btn btn-default btn-lg adjust-search-button" type="submit"> <span class="fa fa-search"></span>
+                    </button> </div>
+                </form>
+                <div class="col-xs-12 dashboard-cards-margin-top resizeDashboard" when-scrolled="scrollingUsersContainer()">
+                  <!-- EMPTY USERS -->
+                  <div ng-if="data.users | isEmpty" class="blank-slate-pf empty-dashboard ng-scope">
+                    <div class="blank-slate-pf-icon">
+                      <span class="pficon pficon-users"></span>
+                    </div>
+                    <h1 class="ng-binding">
+                      {{'No users found' | translate}}
+                    </h1>
+                  </div>
+                  <!-- CARD -->
+                  <div ng-repeat="u in usersNumber | customFilterMultiple:'name,dashboardUsersSearch':searchUsersString | orderBy:'u.name' | limitTo: usersLimit"
+                    class="card-pf user-dashboard-card">
+                    <h2 class="card-pf-title ng-binding dashboard-cards-h2">
+                      <span class="pficon pficon-user dashboard-cards-icon"></span>{{u.name}}
+                    </h2>
+                    <div ng-if="u.presence === 'dnd'" class="u-presence-row">
+                      <span class="pficon-resources-full dnd-color valign-middle"></span>
+                      <span class="valign-middle label-presence-user">{{"Do Not Disturb" | translate}}</span>
+                      <span class="fa fa-eraser valign-middle presence-reset-icon" ng-click="showSetPresenceConfirmation(u)"
+                        popover-placement="left" popover-trigger="'mouseenter'" popover-animation="true" uib-popover="{{'Reset' | translate}}"></span>
+                    </div>
+                    <div ng-if="u.presence === 'callforward' || u.presence === 'cellphone' || u.presence === 'voicemail'" class="u-presence-row">
+                      <span class="pficon-resources-full callforward-color valign-middle"></span>
+                      <span class="valign-middle label-presence-user">{{"Call Forward" | translate}}</span>
+                      <span class="fa fa-eraser valign-middle presence-reset-icon" ng-click="showSetPresenceConfirmation(u)"
+                        popover-placement="left" popover-trigger="'mouseenter'" popover-animation="true" uib-popover="{{'Reset' | translate}}"></span>
+                    </div>
+                    <div class="card-pf-body">
+                      <div id="pf-list-standard" class="list-group list-view-pf list-view-pf-view dashboard-list-margin-top">
+                        <!-- EXTENSIONS -->
+                        <div ng-repeat="exten in u.endpoints.extension track by $index | orderBy:'exten.id'"
+                          class="list-group-item cursor-default dashboard-list-item">
+                          <div class="list-view-pf-actions exten-dashboard-action">
+                            <button class="btn btn-default dashboard-info-fontsize" ng-click="showExtenDetails(exten.id, u.username)">Info</button>
+                          </div>
+                          <div class="list-view-pf-main-info exten-dashboard-label">
+                            <div class="list-view-pf-left">
+                              <span class="fa {{(exten.type.indexOf('webrtc') === 0 || exten.type.indexOf('nethlink') === 0) ? 'fa-headphones' : 'fa-phone'}} {{data.extensions[exten.id].status === 'online' ? 'online-green' : data.extensions[exten.id].status === 'offline' ? 'offline-gray' : 'online-red'}} list-view-pf-icon-sm user-dashboard-icon"></span>
+                            </div>
+                            <div class="list-view-pf-body">
+                              <div class="list-view-pf-additional-info">
+                                <div class="list-view-pf-additional-info-item">
+                                  <strong class="dashboard-extenid-fontsize">{{exten.id}}</strong></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- TRUNKS -->
+          <div id="accordion-markup-1 box-dimension">
+            <h1 data-toggle="collapse" data-parent="#accordion-markup-1" href="#collapse-1"
+              class="adjust-header adjust-profile-header dashboard-trunks-margin" aria-expanded="true"> <span class="pficon pficon-topology card-pf-icon-circle config-title-icon"></span>{{"Trunks" | translate}}
+              <span class="fa fa-angle-down icon-med-reload profile-open-icon"></span>
+              <div ng-show="profile.onSave" class="spinner spinner-sm profile-save-spinner ng-hide"></div>
+            </h1>
+            <div id="collapse-1" class="panel-collapse adjust-profile-body collapse in" aria-expanded="true">
+              <div class="panel-body profile-panel max-containers-height pannel-body-color" >
+                <form role="form" class="search-pf has-button adjust-form ng-pristine ng-valid" id="form-lg-domains-details2">
+                  <div class="form-group has-clear">
+                    <div class="search-pf-input-group" id="filter-domains-details"> <input ng-model="searchTrunkString"
+                        type="text" class="form-control input-lg ng-pristine ng-valid ng-touched" placeholder="{{'Search trunks' | translate}}...">
+                    </div>
+                  </div>
+                  <div class="form-group"> <button class="btn btn-default btn-lg adjust-search-button" type="submit"> <span class="fa fa-search"></span>
+                    </button> </div>
+                </form>
+                <div class="col-xs-12 dashboard-cards-margin-top resizeDashboard" when-scrolled="scrollingTrunksContainer()">
+                  <!-- EMPTY TRUNKS -->
+                  <div ng-if="data.trunks | isEmpty" class="blank-slate-pf empty-dashboard ng-scope">
+                    <div class="blank-slate-pf-icon">
+                      <span class="pficon pficon-topology"></span>
+                    </div>
+                    <h1 class="ng-binding">
+                      {{'No trunks found' | translate}}
+                    </h1>
+                  </div>
+                  <!-- CARD -->
+                  <div ng-repeat="t in data.trunks | customFilterMultiple:'name,ip':searchTrunkString | orderBy:'t.name' | limitTo: trunksLimit"
+                    class="card-pf col-sm-12 col-md-6 col-lg-5 trunks-lg-cards trunks-lg-cards">
+                    <h2 class="card-pf-title dashboard-cards-h2">
+                      <span class="pficon pficon-container-node dashboard-cards-icon"></span>
+                      <span title="{{t.name}}" class="trunk-name">{{t.name}}</span>
+                      <span ng-if="!g.custom" class="right-only small-font right ng-scope">
+                        <span class="pficon pficon-service icon-trunk-type"></span>{{t.chanType}}
+                      </span>
+                    </h2>
+                    <div class="card-pf-body">
+                      <div id="pf-list-standard" class="list-group list-view-pf list-view-pf-view dashboard-list-margin-top">
+                        <div class="list-group-item cursor-default dashboard-list-item">
+                          <div class="list-view-pf-main-info">
+                            <div class="list-view-pf-body">
+                              <div class="list-view-pf-additional-info config-info">
+                                <div>IP: <b class="right-only">{{t.ip !== '' ? t.ip : '-'}}</b></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="list-group-item cursor-default dashboard-list-item">
+                          <div class="list-view-pf-main-info">
+                            <div class="list-view-pf-body">
+                              <div class="list-view-pf-additional-info config-info">
+                                <div>{{'Port' | translate}}: <b class="right-only">{{t.port !== '' ? t.port : '-'}}</b></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="list-group-item cursor-default dashboard-list-item">
+                          <div class="list-view-pf-main-info">
+                            <div class="list-view-pf-body">
+                              <div class="list-view-pf-additional-info config-info">
+                                <div>{{'Provider status' | translate}}: <b class="right-only {{t.status === 'online' ? 'text-online-green' : ''}}">{{t.status !== '' ? t.status : '-'}}</b></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="list-group-item cursor-default dashboard-list-item">
+                          <div class="list-view-pf-main-info">
+                            <div class="list-view-pf-body">
+                              <div class="list-view-pf-additional-info config-info">
+                                <div>{{'Registration' | translate}}: <b class="right-only {{t.registration === 'registered' ? 'text-online-green' : t.registration === 'unmonitored' ? 'text-orange' : 'text-red'}}"> {{t.registration !== '' ? t.registration : '-' | translate}} </b></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div ng-if="t.codecs.length > 0" class="list-group-item cursor-default dashboard-list-item trunk-row-width">
+                          <div class="list-view-pf-main-info">
+                            <div class="list-view-pf-body">
+                              <div class="list-view-pf-additional-info config-info">
+                                <div>{{'Codecs' | translate}}: <b title="{{t.codecs.toString()}}" class="right-only">{{t.codecs.toString()}}</b></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- MODAL FOR PRESENCE SETUP CONFIRMATION -->
+<div class="modal fade" id="presenceSetupConfirmation" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true" aria-label="Close">
+          <span class="pficon pficon-close"></span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">{{'Warning' | translate}}</h4>
+      </div>
+      <div class="modal-body">
+        <form class="form-horizontal">
+          <div class="form-group col-sm-12">
+            <label class="control-label">{{'You are going to change the presence of user' | translate}}</label>
+            <label class="control-label text-bold">{{data.userChangingPresenceName}}</label>
+            <label class="control-label">{{'to_m' | translate}}</label>
+            <label class="control-label text-online-green">{{'online' | translate}}</label>
+            <label class="control-label">{{'status: are you sure ?' | translate}}</label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
+        <button type="button" ng-click="setPresenceOnline(data.userChangingPresenceUsername)" class="btn btn-primary">{{'Continue' | translate}}</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- MODALS 4 EXTENSION DETAILS -->
+<div class="modal fade" id="extenDetailsModal" tabindex="-1" role="dialog" aria-labelledby="extenDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">{{'Extension' | translate}} {{data.selExten.exten}}</h4>
+      </div>
+      <div class="modal-body">
+        <form class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-4 control-label">{{'Name' | translate}}:</label>
+            <div class="col-sm-8">
+              <label class="control-label">{{data.selExten.name !== '' ? data.selExten.name : '-'}}</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-4 control-label">{{'User agent' | translate}}:</label>
+            <div class="col-sm-8">
+              <label class="control-label">{{data.selExten.sipuseragent !== '' ? data.selExten.sipuseragent : '-'}}</label>
+            </div>
+          </div>
+          <div ng-show="(data.selExten.type.indexOf('webrtc') === -1 && data.selExten.type.indexOf('nethlink') === -1)" class="form-group">
+            <label class="col-sm-4 control-label">{{'Type' | translate}}:</label>
+            <div class="col-sm-8">
+              <label class="control-label">{{data.selExten.chanType !== '' ? data.selExten.chanType : '-'}}</label>
+            </div>
+          </div>
+          <div ng-if="(data.selExten.type.indexOf('webrtc') === -1 && data.selExten.type.indexOf('nethlink') === -1)" class="form-group">
+            <label class="col-sm-4 control-label">{{'IP Address' | translate}}:</label>
+            <div class="col-sm-8">
+              <label class="control-label">
+                <a target="_blank" ng-href="http://{{data.selExten.ip}}">{{data.selExten.ip !== '' ? data.selExten.ip : '-'}}</a>
+              </label>
+            </div>
+          </div>
+          <div ng-if="(data.selExten.type.indexOf('webrtc') === -1) && data.selExten.type.indexOf('nethlink') === -1" class="form-group">
+            <label class="col-sm-4 control-label" for="textInput2-modal-markup">{{'Port' | translate}}:</label>
+            <div class="col-sm-8">
+              <label class="control-label">{{data.selExten.port !== '' ? data.selExten.port : '-'}}</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-4 control-label" for="textInput2-modal-markup">{{'Codecs' | translate}}:</label>
+            <div class="col-sm-8">
+              <label class="control-label">{{data.selExten.codecs !== '' ? data.selExten.codecs.toString() : '-'}}</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-4 control-label" for="textInput3-modal-markup">{{'DND' | translate}}:</label>
+            <div class="col-sm-8">
+              <label class="control-label {{data.selExten.dnd === true ? 'text-red': ''}}">{{data.selExten.dnd === true ? 'ON' : 'OFF'}}</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-4 control-label" for="textInput3-modal-markup">{{'Call Forward' | translate}}:</label>
+            <div class="col-sm-8">
+              <label class="control-label {{data.selExten.cf !== '' ? 'text-red': ''}}">{{data.selExten.cf !== '' ? 'ON - ' + data.selExten.cf : 'OFF'}}</label>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">{{"Cancel" | translate}}</button>
+      </div>
+    </div>
+  </div>
+</div>

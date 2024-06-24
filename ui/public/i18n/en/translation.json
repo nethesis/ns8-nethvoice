@@ -29,7 +29,8 @@
     "network_timeout": "Network timeout",
     "required": "Required",
     "same_host": "Cannot use the same host for NethVoice and NethVoice CTI",
-    "validation_error": "Validation error"
+    "validation_error": "Validation error",
+    "reports_prefix_invalid": "Invalid format"
   },
   "settings": {
     "configure_instance": "Configure {instance}",
@@ -51,7 +52,10 @@
     "timezone_tooltip": "Set the default timezone for current NethVoice installation",
     "create_nethvoice_adm": "Create NethVoice Administrator for users management",
     "remove_nethvoice_adm": "Remove NethVoice Administrator for users management",
-    "set_nethvoice_adm_password": "Set NethVoice Administrator password for users management"
+    "set_nethvoice_adm_password": "Set NethVoice Administrator password for users management",
+    "error_message_hostname": "By changing this field all user configurations will be reset.",
+    "nethvoice_host_format": "Must be a valid domain name be a valid domain name.",
+    "nethcti_ui_host_format": "Must be a valid domain name be a valid domain name."
   },
   "status": {
     "app_images": "App image | App images",

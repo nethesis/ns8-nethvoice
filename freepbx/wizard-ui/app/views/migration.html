@@ -1,0 +1,28 @@
+<div class="wizard-pf">
+  <div class="blank-slate-pf no-border">
+    <div class="blank-slate-pf-icon">
+      <span class="fa fa-rocket"></span>
+    </div>
+    <h1>
+      {{'Migration from NethVoice 11 to Nethvoice 14' | translate}} ({{"BETA"| translate}})
+    </h1>
+    <p>
+      {{'NethVoice 14 packages are ready to begin the migration' | translate}}.
+    </p>
+    <p>
+      {{'Users, configurations and CDR will be configured step by step' | translate}}.
+    </p>
+    <p>
+      {{'Starting the migration, users profiles will be automatically migrated' | translate}}.
+    </p>
+    <p>
+      {{'Learn more about this' | translate}} <a target="_blank" href="{{customConfig.BRAND_DOCS}}">{{'on the documentation' | translate}}</a>.
+    </p>
+    <div class="blank-slate-pf-main-action">
+      <button id="legacy-button" ng-click="startMigration()" class="btn btn-primary btn-lgg handle-margin">
+        {{'Start migration' | translate}} </button>
+      <button id="legacy-button" ng-click="skipMigration()" class="btn btn-primary btn-lgg handle-margin">
+        {{'Skip migration' | translate}} </button>
+    </div>
+  </div>
+</div>

@@ -3,8 +3,16 @@
 Phonebook container for NethServer 8
 This container connects to MariaDB phonebook database, read the phonebook and expose it using LDAPS
 
+## phonebookjs
 
-Phonebook code repository is https://github.com/nethesis/nethserver-phonebook-mysql/tree/ns8
+phonebookjs is a daemon written in nodejs.
+The deamon is a simple LDAP server serving all records from phonebook database in LDAP format.
+
+Features:
+
+- all records are stored in-memory after the startup: to refresh the cache, restart the server
+- SSL and authentication are not supported
+- all search are case insensitive
 
 ## Environment variables
 

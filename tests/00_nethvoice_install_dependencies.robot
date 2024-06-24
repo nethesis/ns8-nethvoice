@@ -20,7 +20,8 @@ Check if nethvoice-proxy is installed correctly
     Should Be Equal As Integers    ${rc}  0
     &{output} =    Evaluate    ${output}
     Set Global Variable    ${proxy_module_id}    ${output.module_id}
-    Run task    cluster/alter-repository    {"name": "default", "status": true, "testing": true}
+    Run task    cluster/alter-repository    {"name": "default", "status": true, "testing": false}
     ...    rc_expected=0
+    ${local_ip} =    Execute Command    ip -j addr show dev eth0 | jq -r '.[].addr_info[] | select(.family=="inet") | .local' | head -n 1
     Run task    module/${proxy_module_id}/configure-module
-    ...    {"addresses": {"address": "1.2.3.4"}}
+    ...    {"addresses": {"address": "${local_ip}"}}

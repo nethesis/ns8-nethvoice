@@ -1,0 +1,22 @@
+<div id="wizard-step-footer" class="modal-footer wizard-pf-footer">
+  <div class="row">
+    <div class="col-lg-8 col-md-6 col-sm-6 col-xs-12 no-padding">
+      <div class="progress">
+        <div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width: {{resolveProgress()}}%;">
+          <span>{{resolveProgress()}}%</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4 col-md-6 col-sm-6 col-xs-12 no-padding">
+      <button ng-click="wizard.prevState ? prevStep() : undefined" type="button" class="btn btn-default wizard-pf-back {{wizard.prevState ? '' : 'disabled'}}">
+          {{'Back' | translate}}
+        </button>
+      <button ng-if="!endWizard" ng-disabled="wizard.isNextDisabled" ng-click="wizard.nextState ? nextStep() : undefined" type="button" class="btn btn-primary wizard-pf-next {{wizard.nextState ? '' : 'disabled'}}">
+          {{'Next' | translate}}
+      </button>
+      <button ng-if="endWizard" ng-click="wizard.isEnd ? finalize() : undefined" type="button" class="btn btn-primary wizard-pf-next {{wizard.isEnd ? '' : 'disabled'}}">
+          {{'Finish' | translate}}
+      </button>
+    </div>
+  </div>
+</div>

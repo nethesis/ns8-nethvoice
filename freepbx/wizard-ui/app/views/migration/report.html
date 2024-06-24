@@ -1,0 +1,108 @@
+<div id="wizard-container" class="wizard-pf">
+  <div class="wizard-pf-body clearfix">
+    <div class="wizard-pf-steps">
+      <ul class="wizard-pf-steps-indicator">
+        <li class="wizard-pf-step {{resolveActiveTab('users',2) ? 'active' : ''}}" data-tabgroup="1">
+          <a><span class="wizard-pf-step-number">1</span><span class="wizard-pf-step-title">{{'Utenti' | translate}}</span></a>
+        </li>
+        <li class="wizard-pf-step {{resolveActiveTab('config',2) ? 'active' : ''}}" data-tabgroup="2">
+          <a><span class="wizard-pf-step-number">2</span><span class="wizard-pf-step-title">{{'Configurazioni' | translate}}</span></a>
+        </li>
+        <li class="wizard-pf-step {{resolveActiveTab('cdr',2) ? 'active' : ''}}" data-tabgroup="3">
+          <a><span class="wizard-pf-step-number">3</span><span class="wizard-pf-step-title">{{'CDR' | translate}}</span></a>
+        </li>
+        <li class="wizard-pf-step {{resolveActiveTab('report',2) ? 'active' : ''}}" data-tabgroup="4">
+          <a><span class="wizard-pf-step-number">4</span><span class="wizard-pf-step-title">{{'Report' | translate}}</span></a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="wizard-pf-contents migration-config-container adjust-size no-margin-bottom">
+    <h1 class="control-label centered" id="conf-migration-title" for="textInput-markup">{{'Migration report' | translate}}</h1>
+    <div class="container-fluid">
+      <button ng-click="generatePDF()" class="btn btn-primary btn-lg"> {{'Save PDF report' | translate}}</button>
+    </div>
+    <div ng-repeat="(elemKey, elem) in migration" class="list-group list-view-pf adjust-margin-extensions no-border margin-migration-users">
+      <div class="adjust-profile-margin">
+        <div>
+          <h1 ng-click="toggleMig('collapse-' + elemKey)" class="adjust-header adjust-profile-header">
+            <span ng-if="elemKey === 'profiles'" class="fa fa-user card-pf-icon-circle config-title-icon"></span>
+            <span ng-if="elemKey === 'users'" class="pficon pficon-users card-pf-icon-circle config-title-icon"></span>
+            <span ng-if="elemKey === 'vtrunks'" class="fa fa-cloud card-pf-icon-circle config-title-icon"></span>
+            <span ng-if="elemKey === 'gateptrunks'" class="pficon pficon-topology card-pf-icon-circle config-title-icon"></span>
+            <span ng-if="elemKey === 'iax'" class="pficon pficon-cloud-tenant card-pf-icon-circle config-title-icon"></span>
+            <span ng-if="elemKey === 'outroutes'" class="pficon pficon-trend-up card-pf-icon-circle config-title-icon"></span>
+            <span ng-if="elemKey === 'groups'" class="fa fa-object-group card-pf-icon-circle config-title-icon"></span>
+            <span ng-if="elemKey === 'queues'" class="fa fa-users card-pf-icon-circle config-title-icon"></span>
+            <span ng-if="elemKey === 'ivr'" class="fa fa-th card-pf-icon-circle config-title-icon"></span>
+            <span ng-if="elemKey === 'cqr'" class="fa fa-database card-pf-icon-circle config-title-icon"></span>
+            <span ng-if="elemKey === 'recordings'" class="fa fa-microphone card-pf-icon-circle config-title-icon"></span>
+            <span ng-if="elemKey === 'announcements'" class="fa fa-bullhorn card-pf-icon-circle config-title-icon"></span>
+            <span ng-if="elemKey === 'daynight'" class="pficon pficon-service card-pf-icon-circle config-title-icon"></span>
+            <span ng-if="elemKey === 'tgroupstcond'" class="fa fa-clock-o card-pf-icon-circle config-title-icon"></span>
+            <span ng-if="elemKey === 'iroutes'" class="pficon pficon-trend-down card-pf-icon-circle config-title-icon"></span>
+            <span ng-if="elemKey === 'cdr'" class="fa fa-file-text-o card-pf-icon-circle config-title-icon"></span>
+            <span ng-if="elemKey === 'postmig'" class="fa fa-cog card-pf-icon-circle config-title-icon"></span>
+            {{'Migration' | translate}}:
+            <span ng-if="elemKey === 'profiles'" class="weight">{{"users profiles" | translate}}</span>
+            <span ng-if="elemKey === 'users'" class="weight">{{"users and extensions" | translate}}</span>
+            <span ng-if="elemKey === 'iax'" class="weight">{{"iax" | translate}}</span>
+            <span ng-if="elemKey === 'vtrunks'" class="weight">{{"VOIP Trunks" | translate}}</span>
+            <span ng-if="elemKey === 'gateptrunks'" class="weight">{{"gateway and physical trunks" | translate}}</span>
+            <span ng-if="elemKey === 'outroutes'" class="weight">{{"outbound routes" | translate}}</span>
+            <span ng-if="elemKey === 'groups'" class="weight">{{"groups" | translate}}</span>
+            <span ng-if="elemKey === 'queues'" class="weight">{{"queues" | translate}}</span>
+            <span ng-if="elemKey === 'ivr'" class="weight">{{"ivr" | translate}}</span>
+            <span ng-if="elemKey === 'cqr'" class="weight">{{"cqr" | translate}}</span>
+            <span ng-if="elemKey === 'recordings'" class="weight">{{"recordings" | translate}}</span>
+            <span ng-if="elemKey === 'announcements'" class="weight">{{"announcements" | translate}}</span>
+            <span ng-if="elemKey === 'daynight'" class="weight">{{"daynight" | translate}}</span>
+            <span ng-if="elemKey === 'tgroupstcond'" class="weight">{{"temporal groups and temporal conditions" | translate}}</span>
+            <span ng-if="elemKey === 'iroutes'" class="weight">{{"inbound routes" | translate}}</span>
+            <span ng-if="elemKey === 'postmig'" class="weight">{{"postmig" | translate}}</span>
+            <span ng-if="elemKey === 'cdr'" class="weight">{{"CDR" | translate}}</span>
+            <span class="fa fa-angle-down toggle-icon-mig icon-med-reload profile-open-icon"></span>
+          </h1>
+          <div id="collapse-{{elemKey}}" class="panel-collapse collapse adjust-profile-body">
+            <div class="panel-body profile-panel">
+              <div ng-repeat="function in elem.functions" ng-if="report[function]">
+                <div ng-repeat="error in report[function].errors track by $index" class="alert alert-danger overflow-auto">
+                  <span class="pficon pficon-error-circle-o"></span>
+                  {{error | translate}}
+                </div>
+              </div>
+              <div ng-repeat="function in elem.functions" ng-if="report[function]">
+                <div ng-repeat="warning in report[function].warnings track by $index" class="alert alert-warning overflow-auto">
+                  <span class="pficon pficon-warning-triangle-o"></span>
+                  {{warning | translate}}
+                </div>
+              </div>
+              <div ng-repeat="function in elem.functions" ng-if="report[function]">
+                <div ng-repeat="info in report[function].infos track by $index" class="alert alert-info overflow-auto">
+                  <span class="pficon pficon-info"></span>
+                  {{info | translate}}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="wizardStepBase">
+    <div id="wizard-step-footer" class="modal-footer wizard-pf-footer">
+      <div class="row">
+        <div class="col-lg-8 col-md-6 col-sm-6 col-xs-12 no-padding">
+        </div>
+        <div class="col-lg-4 col-md-6 col-sm-6 col-xs-12 no-padding">
+          <button type="button" class="btn btn-default wizard-pf-back disabled">
+            {{'Back' | translate}}
+          </button>
+          <button ng-click="exitMigration()" type="button" class="btn btn-primary wizard-pf-next">
+            {{'Next' | translate}}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

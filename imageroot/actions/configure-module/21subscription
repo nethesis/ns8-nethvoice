@@ -12,9 +12,14 @@ rdb = agent.redis_connect(privileged=False)
 
 subscription = rdb.hgetall('cluster/subscription')
 
-# Check if the subscription hash table exists
-if subscription:
+# Check if the subscription hash table exists and if the provider is nsent
+if subscription and subscription['provider'] == "nsent":
     # Get the subscription secret
     agent.set_env("SUBSCRIPTION_SECRET", subscription['auth_token'])
     # Get subscription ID
     agent.set_env("SUBSCRIPTION_SYSTEMID", subscription['system_id'])
+else:
+    # Unset the subscription secret
+    agent.set_env("SUBSCRIPTION_SECRET" , "")
+    # Unset subscription ID
+    agent.set_env("SUBSCRIPTION_SYSTEMID", "")
