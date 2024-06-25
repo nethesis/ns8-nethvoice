@@ -64,6 +64,10 @@ If userbase is customized in FreePBX userman module, "Directory Name" in FreePBX
 - `ASTERISK_SIP_PORT` and `ASTERISK_SIPS_PORT` are the UDP and TCP ports for SIP transport
 - `ASTERISK_IAX_PORT` is the UDP port for IAX transport
 
+## Trunks without proxy
+
+By default, at container startup, trunks are configured to use the outbound proxy. But sometimes it's necessary to configure a different proxy or none. In this case, make sure that trunk name contains the string "custom". For instance, a trunk named "Foo", will have proxy overwritten at container startup, a trunk named "Foo_custom" will be left unchanged.
+
 
 Patches used after import:
 ```diff

@@ -79,7 +79,13 @@ $stmt = $db->prepare($sql);
 $stmt->execute(['sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'].';lr']);
 $sql = "UPDATE `asterisk`.`pjsip`
 	SET `pjsip`.`data` = ?
-	WHERE `pjsip`.`keyword` = 'outbound_proxy'";
+	WHERE `pjsip`.`keyword` = 'outbound_proxy'
+	AND `pjsip`.`id` IN (
+		SELECT `pjsip`.`id`
+		FROM `asterisk`.`pjsip` as pjsip_inner
+		WHERE `pjsip_inner`.`keyword` = 'trunk_name'
+		AND `pjsip_inner`.`data` NOT LIKE '%custom%'
+	)";
 
 $stmt = $db->prepare($sql);
 $stmt->execute(['sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'].';lr']);
