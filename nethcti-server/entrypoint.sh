@@ -270,7 +270,7 @@ cat > $FILE <<EOF
 	"hostname":"${NETHVOICE_HOST}",
 	"publichost":"",
 	"loglevel":"${NETHCTI_LOG_LEVEL}",
-	"privacy_numbers":"xxx",
+	"privacy_numbers":"xxx"
 }
 EOF
 
