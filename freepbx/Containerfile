@@ -200,6 +200,8 @@ RUN groupadd -g 991 -r asterisk && \
 		libspandsp2 \
 		libsnmp40 \
 		libical3 \
+		sendmail \
+		sendmail-bin \
 		sqlite3 \
 		unixodbc-dev
 
