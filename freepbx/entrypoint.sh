@@ -253,7 +253,7 @@ EOT
 	chmod 600 ${AUTHINFO_FILE} ${AUTHINFO_FILE}.db
 
 	# Configure TLS/SSL settings
-	if [[ "${SMTP_ENCRYPTION}" == "tls" || "${SMTP_ENCRYPTION}" == "ssl" ]]; then
+	if [[ "${SMTP_ENCRYPTION}" == "starttls" ]]; then
 		cat <<EOT >> ${SENDMAIL_CF}
 define(\`confCACERT_PATH', \`/etc/ssl/certs')dnl
 define(\`confCACERT', \`/etc/ssl/certs/ca-certificates.crt')dnl
