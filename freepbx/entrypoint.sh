@@ -227,4 +227,49 @@ source /etc/apache2/envvars
 # Install freepbx modules and apply changes after asterisk is started by supervisor
 /freepbx_init.sh &
 
+# Configure sendmail
+if [[ $SMTP_ENABLED ]]; then
+	SENDMAIL_CF_DIR="/etc/mail"
+	SENDMAIL_CF="${SENDMAIL_CF_DIR}/sendmail.cf"
+	AUTHINFO_FILE="${SENDMAIL_CF_DIR}/authinfo"
+
+	# Configure SmartHost
+	cat <<EOT >> ${SENDMAIL_CF}
+define(\`SMART_HOST', \`[${SMTP_HOST}]:${SMTP_PORT}')dnl
+define(\`RELAY_MAILER_ARGS', \`TCP \$h \$u')dnl
+define(\`ESMTP_MAILER_ARGS', \`TCP \$h \$u')dnl
+define(\`confAUTH_MECHANISMS', \`LOGIN PLAIN')dnl
+FEATURE(\`authinfo', \`${AUTHINFO_FILE}')dnl
+EOT
+
+	# Configure Authentication Info
+	mkdir -p "${SENDMAIL_CF_DIR}"
+	cat <<EOT > ${AUTHINFO_FILE}
+AuthInfo:${SMTP_HOST} "U:${SMTP_USERNAME}" "P:${SMTP_PASSWORD}" "M:${SMTP_ENCRYPTION}"
+EOT
+
+	# Adjust permissions for security
+	makemap hash ${AUTHINFO_FILE}.tmp < ${AUTHINFO_FILE} && mv ${AUTHINFO_FILE}.tmp ${AUTHINFO_FILE}
+	chmod 600 ${AUTHINFO_FILE} ${AUTHINFO_FILE}.db
+
+	# Configure TLS/SSL settings
+	if [[ "${SMTP_ENCRYPTION}" == "tls" || "${SMTP_ENCRYPTION}" == "ssl" ]]; then
+		cat <<EOT >> ${SENDMAIL_CF}
+define(\`confCACERT_PATH', \`/etc/ssl/certs')dnl
+define(\`confCACERT', \`/etc/ssl/certs/ca-certificates.crt')dnl
+define(\`confSERVER_CERT', \`/etc/ssl/certs/sendmail.pem')dnl
+define(\`confSERVER_KEY', \`/etc/ssl/private/sendmail.key')dnl
+EOT
+
+	    if [[ -z "${SMTP_TLSVERIFY}" ]]; then
+			cat <<EOT >> ${SENDMAIL_CF}
+define(\`confTLS_TRUST_CERTS', \`/etc/ssl/certs/ca-certificates.crt')dnl
+define(\`confTLS_SRV_OPTIONS', \`V')dnl
+EOT
+		fi
+	fi
+	# start sendmail "daemon"
+	supervisorctl start sendmail
+fi
+
 exec "$@"
