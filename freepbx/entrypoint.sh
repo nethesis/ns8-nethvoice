@@ -227,49 +227,37 @@ source /etc/apache2/envvars
 # Install freepbx modules and apply changes after asterisk is started by supervisor
 /freepbx_init.sh &
 
-# Configure sendmail
-if [[ $SMTP_ENABLED ]]; then
-	SENDMAIL_CF_DIR="/etc/mail"
-	SENDMAIL_CF="${SENDMAIL_CF_DIR}/sendmail.cf"
-	AUTHINFO_FILE="${SENDMAIL_CF_DIR}/authinfo"
+# Configure SMTP
+if [[ -n "$SMTP_ENABLED" ]]; then
+	MSMTP_CONFIG="/etc/msmtprc"
+	cat <<EOL > $MSMTP_CONFIG
+defaults
+auth           on
+logfile        /dev/stdout
 
-	# Configure SmartHost
-	cat <<EOT >> ${SENDMAIL_CF}
-define(\`SMART_HOST', \`[${SMTP_HOST}]:${SMTP_PORT}')dnl
-define(\`RELAY_MAILER_ARGS', \`TCP \$h \$u')dnl
-define(\`ESMTP_MAILER_ARGS', \`TCP \$h \$u')dnl
-define(\`confAUTH_MECHANISMS', \`LOGIN PLAIN')dnl
-FEATURE(\`authinfo', \`${AUTHINFO_FILE}')dnl
-EOT
+account        default
+host           ${SMTP_HOST}
+port           ${SMTP_PORT}
+from           ${BRAND_NAME}@${NETHVOICE_HOST}
+user           ${SMTP_USERNAME}
+password       ${SMTP_PASSWORD}
+EOL
 
-	# Configure Authentication Info
-	mkdir -p "${SENDMAIL_CF_DIR}"
-	cat <<EOT > ${AUTHINFO_FILE}
-AuthInfo:${SMTP_HOST} "U:${SMTP_USERNAME}" "P:${SMTP_PASSWORD}" "M:${SMTP_ENCRYPTION}"
-EOT
-
-	# Adjust permissions for security
-	makemap hash ${AUTHINFO_FILE}.tmp < ${AUTHINFO_FILE} && mv ${AUTHINFO_FILE}.tmp ${AUTHINFO_FILE}
-	chmod 600 ${AUTHINFO_FILE} ${AUTHINFO_FILE}.db
-
-	# Configure TLS/SSL settings
-	if [[ "${SMTP_ENCRYPTION}" == "starttls" ]]; then
-		cat <<EOT >> ${SENDMAIL_CF}
-define(\`confCACERT_PATH', \`/etc/ssl/certs')dnl
-define(\`confCACERT', \`/etc/ssl/certs/ca-certificates.crt')dnl
-define(\`confSERVER_CERT', \`/etc/ssl/certs/sendmail.pem')dnl
-define(\`confSERVER_KEY', \`/etc/ssl/private/sendmail.key')dnl
-EOT
-
-	    if [[ -z "${SMTP_TLSVERIFY}" ]]; then
-			cat <<EOT >> ${SENDMAIL_CF}
-define(\`confTLS_TRUST_CERTS', \`/etc/ssl/certs/ca-certificates.crt')dnl
-define(\`confTLS_SRV_OPTIONS', \`V')dnl
-EOT
-		fi
+	# Set encryption method
+	if [ "$SMTP_ENCRYPTION" == "tls" ]; then
+    	echo "tls            on" >> $MSMTP_CONFIG
+	elif [ "$SMTP_ENCRYPTION" == "starttls" ]; then
+    	echo "tls_starttls   on" >> $MSMTP_CONFIG
 	fi
-	# start sendmail "daemon"
-	supervisorctl start sendmail
-fi
 
+	# Handle TLS verification
+	if [ "$SMTP_TLSVERIFY" == "1" ]; then
+    	echo "tls_trust_file /etc/ssl/certs/ca-certificates.crt" >> $MSMTP_CONFIG
+	else
+    	echo "tls_certcheck off" >> $MSMTP_CONFIG
+	fi
+
+	# Set permissions for msmtprc
+	chmod 600 $MSMTP_CONFIG
+fi
 exec "$@"

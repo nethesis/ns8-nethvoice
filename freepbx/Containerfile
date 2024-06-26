@@ -168,6 +168,7 @@ RUN groupadd -g 991 -r asterisk && \
     useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk && \
 	apt-get update && \
 	apt-get install -y \
+		bsd-mailx \
 		cron \
 		tdsodbc \
 		gettext \
@@ -200,8 +201,7 @@ RUN groupadd -g 991 -r asterisk && \
 		libspandsp2 \
 		libsnmp40 \
 		libical3 \
-		sendmail \
-		sendmail-bin \
+		msmtp \
 		sqlite3 \
 		unixodbc-dev
 
@@ -536,6 +536,8 @@ RUN mkdir -p /usr/share/phonebooks/ /var/lib/nethvoice/phonebook/uploads && \
 
 # Overwrite Debian default vim mouse policy
 RUN echo "source \$VIMRUNTIME/defaults.vim\nset mouse-=a" >> /root/.vimrc
+
+RUN echo 'set sendmail="/usr/bin/msmtp"' >> /etc/mail.rc
 
 COPY etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-default.conf
 COPY etc/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
