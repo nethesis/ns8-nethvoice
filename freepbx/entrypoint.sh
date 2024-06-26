@@ -229,6 +229,8 @@ source /etc/apache2/envvars
 
 # Configure SMTP
 if [[ -n "$SMTP_ENABLED" ]]; then
+
+	# configure msmtp
 	MSMTP_CONFIG="/etc/msmtprc"
 	cat <<EOL > $MSMTP_CONFIG
 defaults
@@ -245,16 +247,16 @@ EOL
 
 	# Set encryption method
 	if [ "$SMTP_ENCRYPTION" == "tls" ]; then
-    	echo "tls            on" >> $MSMTP_CONFIG
+		echo "tls            on" >> $MSMTP_CONFIG
 	elif [ "$SMTP_ENCRYPTION" == "starttls" ]; then
-    	echo "tls_starttls   on" >> $MSMTP_CONFIG
+		echo "tls_starttls   on" >> $MSMTP_CONFIG
 	fi
 
 	# Handle TLS verification
 	if [ "$SMTP_TLSVERIFY" == "1" ]; then
-    	echo "tls_trust_file /etc/ssl/certs/ca-certificates.crt" >> $MSMTP_CONFIG
+		echo "tls_trust_file /etc/ssl/certs/ca-certificates.crt" >> $MSMTP_CONFIG
 	else
-    	echo "tls_certcheck off" >> $MSMTP_CONFIG
+		echo "tls_certcheck off" >> $MSMTP_CONFIG
 	fi
 
 	# Set permissions for msmtprc
