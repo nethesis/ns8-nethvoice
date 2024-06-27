@@ -228,38 +228,20 @@ source /etc/apache2/envvars
 /freepbx_init.sh &
 
 # Configure SMTP
-if [[ -n "$SMTP_ENABLED" ]]; then
+if [ "$SMTP_ENABLED" = "1" ]; then
+	cat <<EOF > /etc/s-nail.rc
+set smtp-auth=login
+set tls-verify=$(if [ "$SMTP_TLSVERIFY" = "1" ]; then echo "strict"; else echo "ignore"; fi)
+set v15-compat=yes
+EOF
 
-	# configure msmtp
-	MSMTP_CONFIG="/etc/msmtprc"
-	cat <<EOL > $MSMTP_CONFIG
-defaults
-auth           on
-logfile        /dev/stdout
-
-account        default
-host           ${SMTP_HOST}
-port           ${SMTP_PORT}
-from           ${BRAND_NAME}@${NETHVOICE_HOST}
-user           ${SMTP_USERNAME}
-password       ${SMTP_PASSWORD}
-EOL
-
-	# Set encryption method
-	if [ "$SMTP_ENCRYPTION" == "tls" ]; then
-		echo "tls            on" >> $MSMTP_CONFIG
-	elif [ "$SMTP_ENCRYPTION" == "starttls" ]; then
-		echo "tls_starttls   on" >> $MSMTP_CONFIG
+	# Check if encryption is specified and modify configuration accordingly
+	if [ "$SMTP_ENCRYPTION" = "starttls" ]; then
+		echo "set smtp-use-starttls" >> /etc/s-nail.rc
+		echo "set mta=smtp://$(urlencode "${SMTP_USERNAME}"):$(urlencode "${SMTP_PASSWORD}")@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
+	elif [ "$SMTP_ENCRYPTION" = "tls" ]; then
+		echo "set mta=smtps://$(urlencode "${SMTP_USERNAME}"):$(urlencode "${SMTP_PASSWORD}")@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
 	fi
-
-	# Handle TLS verification
-	if [ "$SMTP_TLSVERIFY" == "1" ]; then
-		echo "tls_trust_file /etc/ssl/certs/ca-certificates.crt" >> $MSMTP_CONFIG
-	else
-		echo "tls_certcheck off" >> $MSMTP_CONFIG
-	fi
-
-	# Set permissions for msmtprc
-	chmod 600 $MSMTP_CONFIG
 fi
+
 exec "$@"
