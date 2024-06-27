@@ -243,5 +243,8 @@ EOF
 		echo "set mta=smtps://$(urlencode "${SMTP_USERNAME}"):$(urlencode "${SMTP_PASSWORD}")@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
 	fi
 fi
+# customize voicemail branding
+sed 's/FreePBX/'"${BRAND_NAME}"'/' -i /etc/asterisk/voicemail.conf*
+sed 's/http:\/\/AMPWEBADDRESS\/ucp/https:\/\/'"${NETHCTI_UI_HOST}"'/' -i /etc/asterisk/voicemail.conf*
 
 exec "$@"
