@@ -146,6 +146,9 @@ $app->get('/configuration/suggestedip', function (Request $request, Response $re
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
     curl_setopt($ch, CURLOPT_TIMEOUT, 4);
     $curl_result = trim(curl_exec($ch));
+    if (curl_errno($ch)) {
+        error_log(__FILE__.':'.__LINE__.' curl error: '.curl_error($ch));
+    }
     curl_close($ch);
     $ip_regexp = '/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/';
     if (preg_match($ip_regexp, $curl_result) === 1) {

@@ -524,6 +524,9 @@ function setFalconieriRPS($mac, $provisioningUrl, $lk = null, $secret = null) {
     ));
 
     $response = curl_exec($ch);
+    if (curl_errno($ch)) {
+       error_log(__FILE__.':'.__LINE__.' curl error: '.curl_error($ch));
+    }
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     $result = array_merge(array('httpCode' => $httpCode), (array) json_decode($response, TRUE));

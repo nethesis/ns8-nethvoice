@@ -1214,6 +1214,9 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true );
         $ret_val = curl_exec($curl);
+        if (curl_errno($ch)) {
+            error_log(__FILE__.':'.__LINE__.' curl error: '.curl_error($ch));
+        }
 
         if (strpos($ret_val, '<!DOCTYPE html PUBLIC') !== false || $ret_val === false) {
             return $response->withStatus(500);

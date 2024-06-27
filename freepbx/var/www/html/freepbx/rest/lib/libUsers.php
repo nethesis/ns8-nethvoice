@@ -51,6 +51,9 @@ function getToken() {
 
     // execute!
     $response = curl_exec($ch);
+    if (curl_errno($ch)) {
+        error_log(__FILE__.':'.__LINE__.' curl error: '.curl_error($ch));
+    }
     $resJSON = json_decode($response);
 
     // close the connection, release resources used
@@ -82,6 +85,9 @@ function userExists($username) {
 
     // execute!
     $response = curl_exec($ch);
+    if (curl_errno($ch)) {
+        error_log(__FILE__.':'.__LINE__.' curl error: '.curl_error($ch));
+    }
     $resJson = json_decode($response);
 
     // close the connection, release resources used
