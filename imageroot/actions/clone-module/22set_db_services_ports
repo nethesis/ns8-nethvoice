@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import agent
+import os
+
+# Set new service ports
+
+# SQL query to update kvstore_Sipsettings
+SQL_QUERY = f"""
+UPDATE `kvstore_Sipsettings`
+SET `val` = CASE
+    WHEN `key` = 'udpport-0.0.0.0' THEN '{os.environ['ASTERISK_SIP_PORT']}'
+    WHEN `key` = 'tlsport-0.0.0.0' THEN '{os.environ['ASTERISK_SIPS_PORT']}'
+    WHEN `key` = 'tcpport-0.0.0.0' THEN '{os.environ['ASTERISK_SIP_PORT']}'
+END
+WHERE `key` IN ('udpport-0.0.0.0', 'tlsport-0.0.0.0', 'tcpport-0.0.0.0');
+"""
+agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{os.environ["MARIADB_ROOT_PASSWORD"]} -e'.split(), SQL_QUERY).check_returncode()
+
+# SQL query to update freepbx_settings
+SQL_QUERY = f"""
+UPDATE `freepbx_settings`
+SET `value` = '{os.environ['ASTMANAGERPORT']}',
+    `name` = 'Asterisk Manager Port',
+    `level` = 2,
+    `description` = 'Port for the Asterisk Manager',
+    `type` = 'int',
+    `options` = '1024,65535',
+    `defaultval` = '{os.environ['ASTMANAGERPORT']}',
+    `readonly` = 1,
+    `hidden` = 0,
+    `category` = 'Asterisk Manager',
+    `module` = '',
+    `emptyok` = 0,
+    `sortorder` = 0
+WHERE `keyword` = 'ASTMANAGERPORT'
+"""
+agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{os.environ["MARIADB_ROOT_PASSWORD"]} -e'.split(), SQL_QUERY).check_returncode()
+
+# SQL query to update kvstore_Sipsettings with bindport and tlsbindport
+SQL_QUERY = f"""
+UPDATE `kvstore_Sipsettings`
+SET `val` = CASE
+    WHEN `key` = 'bindport' THEN '{os.environ['ASTERISK_SIP_PORT']}'
+    WHEN `key` = 'tlsbindport' THEN '{os.environ['ASTERISK_SIPS_PORT']}'
+END
+WHERE `key` IN ('bindport', 'tlsbindport');
+"""
+agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{os.environ["MARIADB_ROOT_PASSWORD"]} -e'.split(), SQL_QUERY).check_returncode()
+
+# SQL query to update iaxsettings
+SQL_QUERY = f"""
+UPDATE `iaxsettings`
+SET `data` = '{os.environ['ASTERISK_IAX_PORT']}',
+    `seq` = 1,
+    `type` = 0
+WHERE `keyword` = 'bindport';
+"""
+agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{os.environ["MARIADB_ROOT_PASSWORD"]} -e'.split(), SQL_QUERY).check_returncode()
+
+# SQL query to update sipsettings
+SQL_QUERY = f"""
+UPDATE `sipsettings`
+SET `data` = '{os.environ['ASTERISK_SIP_PORT']}',
+    `seq` = 1,
+    `type` = 0
+WHERE `keyword` = 'bindport';
+"""
+agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{os.environ["MARIADB_ROOT_PASSWORD"]} -e'.split(), SQL_QUERY).check_returncode()
+
+# SQL query to update freepbx_settings for HTTPTLSENABLE
+SQL_QUERY = f"""
+UPDATE `freepbx_settings`
+SET `value` = '0',
+    `name` = 'Enable TLS for the mini-HTTP Server',
+    `level` = 3,
+    `description` = 'Enables listening for HTTPS connections. This is for Asterisk, it is not directly related for FreePBX usage and the value of this setting is irrelevant for accessing core FreePBX settings. Default is no.',
+    `type` = 'bool',
+    `options` = '',
+    `defaultval` = '0',
+    `readonly` = 0,
+    `hidden` = 0,
+    `category` = 'Asterisk Builtin mini-HTTP server',
+    `module` = '',
+    `emptyok` = 0,
+    `sortorder` = 0
+WHERE `keyword` = 'HTTPTLSENABLE';
+"""
+agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{os.environ["MARIADB_ROOT_PASSWORD"]} -e'.split(), SQL_QUERY).check_returncode()
