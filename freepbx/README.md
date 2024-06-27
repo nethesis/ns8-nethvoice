@@ -64,6 +64,18 @@ If userbase is customized in FreePBX userman module, "Directory Name" in FreePBX
 - `ASTERISK_SIP_PORT` and `ASTERISK_SIPS_PORT` are the UDP and TCP ports for SIP transport
 - `ASTERISK_IAX_PORT` is the UDP port for IAX transport
 
+## Voicemail SMTP smarthost
+
+NethVocie send voicemail emails using s-nail. Smarthost is configured with following environment variables:
+
+- `SMTP_ENABLED` Is SMTP smarthost enabled. If not, s-nail is left unconfigured: [1 | ""]
+- `SMTP_HOST` smarthost host "smtp.example.com"
+- `SMTP_PORT` smarthost port
+- `SMTP_USERNAME` smarthost username"foo@example.com"
+- `SMTP_PASSWORD` smarthost password "My43Cr3t"
+- `SMTP_ENCRYPTION` smarthost encryption type ["starttls"|"tls"]
+- `SMTP_TLSVERIFY` verify smarthost certificate: [1 | ""]
+
 ## Trunks without proxy
 
 By default, at container startup, trunks are configured to use the outbound proxy. But sometimes it's necessary to configure a different proxy or none. In this case, make sure that trunk name contains the string "custom". For instance, a trunk named "Foo", will have proxy overwritten at container startup, a trunk named "Foo_custom" will be left unchanged.

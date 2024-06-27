@@ -227,9 +227,9 @@ source /etc/apache2/envvars
 # Install freepbx modules and apply changes after asterisk is started by supervisor
 /freepbx_init.sh &
 
-# Configure SMTP
+# Configure SMTP for Voicemail
 if [ "$SMTP_ENABLED" = "1" ]; then
-	cat <<EOF > /etc/s-nail.rc
+	cat <<EOF >> /etc/s-nail.rc
 set smtp-auth=login
 set tls-verify=$(if [ "$SMTP_TLSVERIFY" = "1" ]; then echo "strict"; else echo "ignore"; fi)
 set v15-compat=yes
@@ -245,6 +245,6 @@ EOF
 fi
 # customize voicemail branding
 sed 's/FreePBX/'"${BRAND_NAME}"'/' -i /etc/asterisk/voicemail.conf*
-sed 's/http:\/\/AMPWEBADDRESS\/ucp/https:\/\/'"${NETHCTI_UI_HOST}"'/' -i /etc/asterisk/voicemail.conf*
+sed 's/http:\/\/AMPWEBADDRESS\/ucp/https:\/\/'"${NETHCTI_UI_HOST}"'\/history/' -i /etc/asterisk/voicemail.conf*
 
 exec "$@"
