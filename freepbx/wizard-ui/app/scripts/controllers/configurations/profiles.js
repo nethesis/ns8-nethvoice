@@ -109,14 +109,14 @@ angular.module('nethvoiceWizardUiApp')
     $scope.saveProfile = function (profile, obj_permissions, permission, macro) {
       // show queueManager missing license error
       // check if queue manager permission is active and license is not active
-      if (profile.macro_permissions.qmanager.value && !$scope.isLicenseActive) {
+      if (macro === 'qmanager' && !$scope.isLicenseActive) {
         $scope.showLicenseError = true;
           $timeout(function() {
             profile.macro_permissions.qmanager.value = false;
         }, 1000); 
       }
       // show privacy warning message
-      if ((permission.name === 'recording' && permission.value) || (permission.name === 'spy' && permission.value) || (permission.name === 'intrude' && permission.value) || (permission.name === 'ad_recording' && permission.value)) {
+      if ((permission !== undefined && permission.name === 'recording' && permission.value) || (permission !== undefined && permission.name === 'spy' && permission.value) || (permission !== undefined && permission.name === 'intrude' && permission.value) || (permission !== undefined && permission.name === 'ad_recording' && permission.value)) {
         $scope.showPrivacyWarning = true;
       }
       //turn off all permissions in macro without the one selected
@@ -246,9 +246,9 @@ angular.module('nethvoiceWizardUiApp')
         $scope.licenseInformation  = res.data
         //if limit is set to false it means that the license is active
         if ($scope.licenseInformation.limit === false) {
-          $scope.isLicenseActive = false;
-        } else {
           $scope.isLicenseActive = true;
+        } else {
+          $scope.isLicenseActive = false;
         }
       } , function (err) {
         if (err.status != 404) {
@@ -268,3 +268,4 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.getInformationLicense();
   });
+  
