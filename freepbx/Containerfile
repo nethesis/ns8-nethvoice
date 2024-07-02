@@ -172,6 +172,7 @@ RUN groupadd -g 991 -r asterisk && \
 		tdsodbc \
 		gettext \
 		gnupg \
+		gridsite-clients \
 		libldap2-dev \
 		libldap-2.4-2 \
 		libsodium-dev \
@@ -201,6 +202,7 @@ RUN groupadd -g 991 -r asterisk && \
 		libsnmp40 \
 		libical3 \
 		sqlite3 \
+		s-nail \
 		unixodbc-dev
 
 
@@ -533,6 +535,8 @@ RUN mkdir -p /usr/share/phonebooks/ /var/lib/nethvoice/phonebook/uploads && \
 
 # Overwrite Debian default vim mouse policy
 RUN echo "source \$VIMRUNTIME/defaults.vim\nset mouse-=a" >> /root/.vimrc
+
+RUN ln -sf /usr/bin/s-nail /usr/local/bin/sendmail
 
 COPY etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-default.conf
 COPY etc/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
