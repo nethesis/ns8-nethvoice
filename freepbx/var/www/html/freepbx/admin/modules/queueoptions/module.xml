@@ -1,0 +1,22 @@
+<module>
+  <rawname>queueoptions</rawname>
+  <repo>unsupported</repo>
+  <name>Queue Options</name>
+  <version>0.0.1</version>
+  <category>Applications</category>
+  <Publisher>Stefano Fancello</Publisher>
+  <info></info>
+  <licence>GPL</licence>
+  <licenselink>http://www.gnu.org/licenses/gpl-2.0.txt</licenselink>
+  <menuitems>
+    <queueoptions>Queue Options</queueoptions>
+</menuitems>
+<depends>
+  <version>14</version>
+</depends>
+<supported>14.0</supported>
+
+<description>Allows to configure additional options for queues and to overrides some other options</description>
+<changelog></changelog>
+
+</module>

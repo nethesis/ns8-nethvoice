@@ -382,8 +382,6 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 	curl -sL https://github.com/nethesis/queueexit/archive/0.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queueexit && \
 	mkdir -p /var/www/html/freepbx/admin/modules/queuemetrics && \
 	curl -sL https://github.com/nethesis/queuemetrics/archive/refs/tags/release/2.11.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queuemetrics && \
-	mkdir -p /var/www/html/freepbx/admin/modules/queueoptions && \
-	curl -sL https://github.com/nethesis/queueoptions/archive/0.0.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queueoptions && \
 	mkdir -p /var/www/html/freepbx/admin/modules/queues && \
 	curl -sL https://github.com/nethesis/freepbx-queues/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queues && \
 	mkdir -p /var/www/html/freepbx/admin/modules/rapidcode && \
@@ -398,6 +396,7 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 # Install Nethesis vendor modules
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcqr /var/www/html/freepbx/admin/modules/nethcqr
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcti3 /var/www/html/freepbx/admin/modules/nethcti3
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/queueoptions /var/www/html/freepbx/admin/modules/queueoptions
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/recallonbusy /var/www/html/freepbx/admin/modules/recallonbusy
 COPY usr/sbin/recallonbusy /usr/sbin/recallonbusy
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/visualplan /var/www/html/freepbx/admin/modules/visualplan
