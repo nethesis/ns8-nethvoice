@@ -271,6 +271,40 @@ try {
             error_log($error);
             $err .= $error;
         }
+        # add NethLink
+        try {
+            if (isset($row[9]) && !empty($row[9])) {
+                if (strtolower($row[9]) == 'true' || $row[9] == 1) {
+                    # enable NethLink
+                    $extension = createExtension($row[2],false);
+                    if ($extension === false ) {
+                        throw new Exception('Error creating extension');
+                    }
+
+                    if (useExtensionAsNethLink($extension) === false) {
+                        throw new Exception('Error associating nethlink extension');
+                    }
+
+                    $extensionm = createExtension($row[2],false);
+
+                    if ($extensionm === false ) {
+                        throw new Exception('Error creating nethlink mobile extension');
+                    }
+
+                } else {
+                    # disable NethLink
+                    $extension = getNethLinkExtension($row[2]);
+                    $mobile_extension = getNethLinkMobileExtension($mainextension);
+                    if (!deleteExtension($extension) || !deleteExtension($mobile_extension)) {
+                        throw new Exception('Error deleting extension');
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            $error = "Error setting NethLink to user {$username}: ".$e->getMessage();
+            error_log($error);
+            $err .= $error;
+        }
     }
 
     system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
