@@ -238,9 +238,9 @@ EOF
 	# Check if encryption is specified and modify configuration accordingly
 	if [ "$SMTP_ENCRYPTION" = "starttls" ]; then
 		echo "set smtp-use-starttls" >> /etc/s-nail.rc
-		echo "set mta=smtp://$(urlencode "${SMTP_USERNAME}"):$(urlencode "${SMTP_PASSWORD}")@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
+		echo "set mta=smtp://$(printf %s "${SMTP_USERNAME}"|jq -sRr @uri):$(printf %s "${SMTP_PASSWORD}"|jq -sRr @uri)@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
 	elif [ "$SMTP_ENCRYPTION" = "tls" ]; then
-		echo "set mta=smtps://$(urlencode "${SMTP_USERNAME}"):$(urlencode "${SMTP_PASSWORD}")@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
+		echo "set mta=smtps://$(printf %s "${SMTP_USERNAME}"|jq -sRr @uri):$(printf %s "${SMTP_PASSWORD}"|jq -sRr @uri)@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
 	fi
 fi
 # customize voicemail branding

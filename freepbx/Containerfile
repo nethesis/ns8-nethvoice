@@ -172,7 +172,7 @@ RUN groupadd -g 991 -r asterisk && \
 		tdsodbc \
 		gettext \
 		gnupg \
-		gridsite-clients \
+		jq \
 		libldap2-dev \
 		libldap-2.4-2 \
 		libsodium-dev \
