@@ -25,7 +25,7 @@ for module in \
     cdr \
     blacklist \
     bosssecretary \
-    bulkdids \
+    bulkhandler \
     calendar \
     callback \
     callforward \

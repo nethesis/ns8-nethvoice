@@ -279,8 +279,8 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/announcement && \
 	curl -sL https://github.com/FreePBX/backup/archive/refs/tags/release/16.0.62.8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/backup && \
 	mkdir -p /var/www/html/freepbx/admin/modules/blacklist && \
 	curl -sL https://github.com/FreePBX/blacklist/archive/refs/tags/release/16.0.20.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/blacklist && \
-	mkdir -p /var/www/html/freepbx/admin/modules/bulkdids && \
-	curl -sL https://github.com/FreePBX-ContributedModules/bulkdids/archive/refs/tags/release/13.0.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/bulkdids && \
+	mkdir -p /var/www/html/freepbx/admin/modules/bulkhandler && \
+	curl -sL https://github.com/FreePBX/bulkhandler/archive/refs/tags/release/16.0.16.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/bulkhandler && \
 	mkdir -p /var/www/html/freepbx/admin/modules/calendar && \
 	curl -sL https://github.com/FreePBX/calendar/archive/refs/tags/release/16.0.21.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/calendar && \
 	mkdir -p /var/www/html/freepbx/admin/modules/callback && \
