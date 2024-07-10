@@ -86,6 +86,7 @@ done
 
 # Remove obsolete modules if required
 for module in \
+    bulkdids \
     inboundlookup \
     outboundlookup
 do
