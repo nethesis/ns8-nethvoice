@@ -412,6 +412,7 @@ RUN mkdir -p \
 	/var/www/html/freepbx/admin/modules/asteriskinfo/assets/less/cache \
 	/var/www/html/freepbx/admin/modules/backup/assets/less/cache \
 	/var/www/html/freepbx/admin/modules/blacklist/assets/less/cache \
+	/var/www/html/freepbx/admin/modules/bulkhandler/assets/less/cache \
 	/var/www/html/freepbx/admin/modules/calendar/assets/less/cache \
 	/var/www/html/freepbx/admin/modules/cdr/assets/less/cache \
 	/var/www/html/freepbx/admin/modules/cdr/ucp/assets/less/cache \
