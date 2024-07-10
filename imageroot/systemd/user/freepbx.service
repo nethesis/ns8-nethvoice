@@ -25,6 +25,7 @@ ExecStart=/usr/bin/podman run \
     --volume=spool:/var/spool/asterisk:z \
     --volume=asterisk:/etc/asterisk:z \
     --volume=nethcti:/etc/nethcti:z \
+    --volume=customer_card:/var/lib/nethserver/nethcti/templates/customer_card/:z \
     --volume=sounds:/var/lib/asterisk/sounds:z \
     --volume=moh:/var/lib/asterisk/moh:z \
     --volume=agi-bin:/var/lib/asterisk/agi-bin:z \
