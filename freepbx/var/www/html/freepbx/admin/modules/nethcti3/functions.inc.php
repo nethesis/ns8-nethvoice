@@ -113,9 +113,6 @@ function nethcti3_get_config_late($engine) {
     global $db;
     switch($engine) {
         case "asterisk":
-            /* Add wakeup for App*/
-            $ext->splice('macro-dial-one', 's','setexttocall', new ext_agi('/var/lib/asterisk/agi-bin/app_wakeup.php'));
-            $ext->splice('macro-dial', 's', 'dial', new ext_agi('/var/lib/asterisk/agi-bin/app_wakeup.php'));
 	    /* Change CF for CTI voicemail status */
 	    $ext->replace('macro-dial-one', 'cf', '2', new ext_execif('$["${DB(AMPUSER/${DB_RESULT}/cidnum)}" == "" && "${DB_RESULT:0:2}" != "vm"]', 'Set','__REALCALLERIDNUM=${DEXTEN}'));
 
