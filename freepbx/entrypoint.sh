@@ -227,6 +227,20 @@ source /etc/apache2/envvars
 # Install freepbx modules and apply changes after asterisk is started by supervisor
 /freepbx_init.sh &
 
+# bash function to URL-encode a string
+url_encode() {
+    local input_string="$1"
+    local encoded_string
+
+    # URL-encode the input string using jq
+    encoded_string=$(printf %s "${input_string}" | jq -sRr @uri)
+
+    # Perform specific replacements for certain characters
+    encoded_string=$(echo "${encoded_string}" | sed 's/!/%21/g;s/*/%2A/g;s/(/%28/g;s/)/%29/g;s/'"'"'/%27/g')
+
+    echo "${encoded_string}"
+}
+
 # Configure SMTP for Voicemail
 if [ "$SMTP_ENABLED" = "1" ]; then
 	cat <<EOF >> /etc/s-nail.rc
@@ -236,13 +250,11 @@ set v15-compat=yes
 EOF
 
 	# Check if encryption is specified and modify configuration accordingly
-	USER_ENCODED_STRING=$(printf %s "${SMTP_USERNAME}"|jq -sRr @uri | sed 's/!/%21/g;s/*/%2A/g;s/(/%28/g;s/)/%29/g;s/'"'"'/%27/g')
-	PASSWORD_ENCODED_STRING=$(printf %s "${SMTP_PASSWORD}"|jq -sRr @uri | sed 's/!/%21/g;s/*/%2A/g;s/(/%28/g;s/)/%29/g;s/'"'"'/%27/g')
 	if [ "$SMTP_ENCRYPTION" = "starttls" ]; then
 		echo "set smtp-use-starttls" >> /etc/s-nail.rc
-		echo "set mta=smtp://${USER_ENCODED_STRING}:${PASSWORD_ENCODED_STRING}@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
+		echo "set mta=smtp://$(url_encode "${SMTP_USERNAME}"):$(url_encode "${SMTP_PASSWORD}")@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
 	elif [ "$SMTP_ENCRYPTION" = "tls" ]; then
-		echo "set mta=smtps://${USER_ENCODED_STRING}:${PASSWORD_ENCODED_STRING}@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
+		echo "set mta=smtps://$(url_encode "${SMTP_USERNAME}"):$(url_encode "${SMTP_PASSWORD}")@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
 	fi
 
 	# Set the mailcmd
