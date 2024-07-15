@@ -261,29 +261,28 @@ EOF
 	if ! grep -q '^mailcmd=' /etc/asterisk/voicemail.conf; then
 		# write mailcmd if it isn't already set
 		sed -i "s/^\[general\]$/[general]\nmailcmd=\/usr\/local\/bin\/sendmail -t/" /etc/asterisk/voicemail.conf
-	elif grep -q '^mailcmd=/usr/sbin/sendmail -t -f ' /etc/asterisk/voicemail.conf; then
-		# replace mailcmd if it is already set and is the old binary. Also save the from address
-		FROM_DOMAIN=$(grep '^mailcmd=/usr/sbin/sendmail -t -f ' /etc/asterisk/voicemail.conf | cut -d' ' -f4)
-		sed -i "s|^mailcmd=/usr/sbin/sendmail -t -f .*|mailcmd=/usr/local/bin/sendmail -t|" /etc/asterisk/voicemail.conf
 	elif grep -q '^mailcmd=/usr/sbin/sendmail' /etc/asterisk/voicemail.conf; then
 		# replace mailcmd if it is already set and is the old binary
-		sed -i "s|^mailcmd=/usr/sbin/sendmail.*|mailcmd=/usr/local/bin/sendmail|" /etc/asterisk/voicemail.conf
+		sed -i "s|^mailcmd=/usr/sbin/sendmail.*|mailcmd=/usr/local/bin/sendmail -t|" /etc/asterisk/voicemail.conf
 	fi
-	# set the from address if it isn't already set
-	if ! grep -q '^serveremail='; then
-		if [ -z "$FROM_DOMAIN" ]; then
-			if echo "$SMTP_USERNAME" | grep -q '@'; then
-				# get the from address from the smtp username
-				FROM_DOMAIN=$(echo "$SMTP_USERNAME" | cut -d'@' -f2)
-			else
-				# get the from address from the smtp host
-				FROM_DOMAIN=$(echo "$SMTP_HOST" | cut -d'.' -f2-)
-			fi
+	# set the from address
+	if [ -z "$SMTP_FROM_ADDRESS" ]; then
+		if echo "$SMTP_USERNAME" | grep -q '@'; then
+			# get the from address from the smtp username
+			FROM_DOMAIN=$(echo "$SMTP_USERNAME" | cut -d'@' -f2)
+		else
+			# get the from address from the smtp host
+			FROM_DOMAIN=$(echo "$SMTP_HOST" | cut -d'.' -f2-)
 		fi
 		FROM_NAME=$(echo "${BRAND_NAME}" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')
-		FROM_ADDRESS="${FROM_NAME}@${FROM_DOMAIN}"
-		sed -i "s/^\[general\]$/[general]\nserveremail=${FROM_ADDRESS}/" /etc/asterisk/voicemail.conf
+		SMTP_FROM_ADDRESS="${FROM_NAME}@${FROM_DOMAIN}"
 	fi
+	# set the email from address if it isn't already set
+	if ! grep -q '^serveremail *=' /etc/asterisk/voicemail.conf; then
+		sed -i "s/^\[general\]$/[general]\nserveremail=${SMTP_FROM_ADDRESS}/" /etc/asterisk/voicemail.conf
+	fi
+	# add the from address to the s-nail configuration
+	echo "set from=${SMTP_FROM_ADDRESS}" >> /etc/s-nail.rc
 fi
 # customize voicemail branding
 sed 's/FreePBX/'"${BRAND_NAME}"'/' -i /etc/asterisk/voicemail.conf*
