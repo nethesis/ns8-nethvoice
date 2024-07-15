@@ -242,7 +242,7 @@ EOF
 		echo "set smtp-use-starttls" >> /etc/s-nail.rc
 		echo "set mta=smtp://${USER_ENCODED_STRING}:${PASSWORD_ENCODED_STRING}@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
 	elif [ "$SMTP_ENCRYPTION" = "tls" ]; then
-		echo "set mta=smtps://$(printf %s "${SMTP_USERNAME}"|jq -sRr @uri):$(printf %s "${SMTP_PASSWORD}"|jq -sRr @uri)@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
+		echo "set mta=smtps://${USER_ENCODED_STRING}:${PASSWORD_ENCODED_STRING}@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
 	fi
 
 	# Set the mailcmd
