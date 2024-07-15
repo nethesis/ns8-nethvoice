@@ -236,8 +236,8 @@ set v15-compat=yes
 EOF
 
 	# Check if encryption is specified and modify configuration accordingly
-	USER_ENCODED_STRING=$(printf %s "${SMTP_USERNAME}"|jq -sRr @uri)
-	PASSWORD_ENCODED_STRING=$(printf %s "${SMTP_PASSWORD}"|jq -sRr @uri)
+	USER_ENCODED_STRING=$(printf %s "${SMTP_USERNAME}"|jq -sRr @uri | sed 's/!/%21/g;s/*/%2A/g;s/(/%28/g;s/)/%29/g;s/'"'"'/%27/g')
+	PASSWORD_ENCODED_STRING=$(printf %s "${SMTP_PASSWORD}"|jq -sRr @uri | sed 's/!/%21/g;s/*/%2A/g;s/(/%28/g;s/)/%29/g;s/'"'"'/%27/g')
 	if [ "$SMTP_ENCRYPTION" = "starttls" ]; then
 		echo "set smtp-use-starttls" >> /etc/s-nail.rc
 		echo "set mta=smtp://${USER_ENCODED_STRING}:${PASSWORD_ENCODED_STRING}@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
