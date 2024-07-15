@@ -262,10 +262,10 @@ EOF
 		if [ -z "$FROM_DOMAIN" ]; then
 			if echo "$SMTP_USERNAME" | grep -q '@'; then
 				# get the from address from the smtp username
-				FROM_DOMAIN=$(echo "$SMTP_USERNAME" | cut -d'@' -f1)
+				FROM_DOMAIN=$(echo "$SMTP_USERNAME" | cut -d'@' -f2)
 			else
 				# get the from address from the smtp host
-				FROM_DOMAIN=$(echo "$SMTP_HOST" | cut -d'.' -f1-)
+				FROM_DOMAIN=$(echo "$SMTP_HOST" | cut -d'.' -f2-)
 			fi
 		fi
 		FROM_NAME=$(echo "${BRAND_NAME}" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')
