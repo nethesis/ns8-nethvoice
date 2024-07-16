@@ -260,10 +260,10 @@ EOF
 	# Set the mailcmd
 	if ! grep -q '^mailcmd=' /etc/asterisk/voicemail.conf; then
 		# write mailcmd if it isn't already set
-		sed -i "s/^\[general\]$/[general]\nmailcmd=\/usr\/local\/bin\/sendmail -t/" /etc/asterisk/voicemail.conf
+		sed -i "s|^\[general\]$|[general]\nmailcmd=/var/lib/asterisk/bin/send_email|" /etc/asterisk/voicemail.conf
 	elif grep -q '^mailcmd=/usr/sbin/sendmail' /etc/asterisk/voicemail.conf; then
 		# replace mailcmd if it is already set and is the old binary
-		sed -i "s|^mailcmd=/usr/sbin/sendmail.*|mailcmd=/usr/local/bin/sendmail -t|" /etc/asterisk/voicemail.conf
+		sed -i "s|^mailcmd=/usr/sbin/sendmail.*|mailcmd=/var/lib/asterisk/bin/send_email|" /etc/asterisk/voicemail.conf
 	fi
 	# set the from address
 	if [ -z "$SMTP_FROM_ADDRESS" ]; then
