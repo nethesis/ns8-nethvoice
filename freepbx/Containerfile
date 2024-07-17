@@ -365,7 +365,7 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 	curl -sL https://github.com/nethesis/freepbx-bosssecretary/archive/master.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/bosssecretary && \
 	mkdir -p /var/www/html/freepbx/admin/modules/core && \
 	/bin/rm -fr /var/www/html/freepbx/admin/modules/core/* && \
-	curl -sL https://github.com/nethesis/freepbx-core/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/core && \
+	curl -sL https://github.com/nethesis/freepbx-core/archive/refs/tags/release/ns8/16.0.68.9-pl.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/core && \
 	mkdir -p /var/www/html/freepbx/admin/modules/customcontexts && \
 	curl -sL https://github.com/nethesis/freepbx-customcontexts/archive/refs/tags/release/13.0.3.4.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/customcontexts && \
 	mkdir -p /var/www/html/freepbx/admin/modules/directdid && \
