@@ -243,18 +243,38 @@ url_encode() {
 
 # Configure SMTP for Voicemail
 if [ "$SMTP_ENABLED" = "1" ]; then
-	cat <<EOF >> /etc/s-nail.rc
-set smtp-auth=login
-set tls-verify=$(if [ "$SMTP_TLSVERIFY" = "1" ]; then echo "strict"; else echo "ignore"; fi)
-set v15-compat=yes
-EOF
+	# Write s-nail configuration
 
-	# Check if encryption is specified and modify configuration accordingly
-	if [ "$SMTP_ENCRYPTION" = "starttls" ]; then
-		echo "set smtp-use-starttls" >> /etc/s-nail.rc
-		echo "set mta=smtp://$(url_encode "${SMTP_USERNAME}"):$(url_encode "${SMTP_PASSWORD}")@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
-	elif [ "$SMTP_ENCRYPTION" = "tls" ]; then
-		echo "set mta=smtps://$(url_encode "${SMTP_USERNAME}"):$(url_encode "${SMTP_PASSWORD}")@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
+	# Set the s-nail compatibility mode
+	echo "set v15-compat=yes" >> /etc/s-nail.rc
+
+	# Set the TLS verify policy
+	if [ "$SMTP_TLSVERIFY" = "1" ]; then
+		echo "set tls-verify=strict" >> /etc/s-nail.rc
+	else
+		echo "set tls-verify=ignore" >> /etc/s-nail.rc
+	fi
+
+	# Set the authentication method
+	if [ -z "$SMTP_PASSWORD" ]; then
+		echo "set smtp-auth=none" >> /etc/s-nail.rc
+		# Set the SMTP server URL without authentication
+		echo "set mta=smtp://${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
+	else
+		echo "set smtp-auth=login" >> /etc/s-nail.rc
+		# Set the SMTP server URL with authentication
+		# Check if encryption is specified and modify URL accordingly
+		if [ "$SMTP_ENCRYPTION" = "starttls" ]; then
+			# use starttls for STARTTLS encryption
+			echo "set smtp-use-starttls" >> /etc/s-nail.rc
+			echo "set mta=smtp://$(url_encode "${SMTP_USERNAME}"):$(url_encode "${SMTP_PASSWORD}")@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
+		elif [ "$SMTP_ENCRYPTION" = "tls" ]; then
+			# use smtps:// for TLS encryption
+			echo "set mta=smtps://$(url_encode "${SMTP_USERNAME}"):$(url_encode "${SMTP_PASSWORD}")@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
+		else
+			# default to no encryption
+			echo "set mta=smtp://${SMTP_USERNAME}:$(url_encode "${SMTP_PASSWORD}")@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
+		fi
 	fi
 
 	# Set the mailcmd
@@ -270,6 +290,9 @@ EOF
 		if echo "$SMTP_USERNAME" | grep -q '@'; then
 			# get the from address from the smtp username
 			FROM_DOMAIN=$(echo "$SMTP_USERNAME" | cut -d'@' -f2)
+		elif echo "$SMTP_HOST" | grep -q '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*'; then
+			# get the from address from NETHVOICE_HOST if smtp host is an IP address
+			FROM_DOMAIN=$(echo "$NETHVOICE_HOST" | cut -d'.' -f2-)
 		else
 			# get the from address from the smtp host
 			FROM_DOMAIN=$(echo "$SMTP_HOST" | cut -d'.' -f2-)
@@ -277,13 +300,16 @@ EOF
 		FROM_NAME=$(echo "${BRAND_NAME}" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')
 		SMTP_FROM_ADDRESS="${FROM_NAME}@${FROM_DOMAIN}"
 	fi
-	# set the email from address if it isn't already set
+
+	# add the from address to the s-nail configuration
+	echo "set from=${SMTP_FROM_ADDRESS}" >> /etc/s-nail.rc
+
+	# set the email from address in voicemail configuration if it isn't already set from FreePBX interface
 	if ! grep -q '^serveremail *=' /etc/asterisk/voicemail.conf; then
 		sed -i "s/^\[general\]$/[general]\nserveremail=${SMTP_FROM_ADDRESS}/" /etc/asterisk/voicemail.conf
 	fi
-	# add the from address to the s-nail configuration
-	echo "set from=${SMTP_FROM_ADDRESS}" >> /etc/s-nail.rc
 fi
+
 # customize voicemail branding
 sed 's/FreePBX/'"${BRAND_NAME}"'/' -i /etc/asterisk/voicemail.conf*
 sed 's/http:\/\/AMPWEBADDRESS\/ucp/https:\/\/'"${NETHCTI_UI_HOST}"'\/history/' -i /etc/asterisk/voicemail.conf*
