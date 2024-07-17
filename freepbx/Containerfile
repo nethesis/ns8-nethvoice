@@ -383,7 +383,7 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 	mkdir -p /var/www/html/freepbx/admin/modules/queuemetrics && \
 	curl -sL https://github.com/nethesis/queuemetrics/archive/refs/tags/release/2.11.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queuemetrics && \
 	mkdir -p /var/www/html/freepbx/admin/modules/queues && \
-	curl -sL https://github.com/nethesis/freepbx-queues/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queues && \
+	curl -sL https://github.com/nethesis/freepbx-queues/archive/refs/tags/release/ns8/16.0.24-pl.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queues && \
 	mkdir -p /var/www/html/freepbx/admin/modules/rapidcode && \
 	curl -sL https://github.com/nethesis/RapidCode/archive/refs/tags/1.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/rapidcode && \
 	mkdir -p /var/www/html/freepbx/admin/modules/recordings && \
