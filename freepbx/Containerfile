@@ -377,7 +377,7 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 	mkdir -p /var/www/html/freepbx/admin/modules/nethdash && \
 	curl -sL https://github.com/nethesis/nethdash/archive/1.0.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/nethdash && \
 	mkdir -p /var/www/html/freepbx/admin/modules/paging && \
-	curl -sL https://github.com/nethesis/freepbx-paging/archive/refs/heads/nethesis_nv8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/paging && \
+	curl -sL https://github.com/nethesis/freepbx-paging/archive/refs/tags/release/ns8/16.0.11-pl.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/paging && \
 	mkdir -p /var/www/html/freepbx/admin/modules/queueexit && \
 	curl -sL https://github.com/nethesis/queueexit/archive/0.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queueexit && \
 	mkdir -p /var/www/html/freepbx/admin/modules/queuemetrics && \
