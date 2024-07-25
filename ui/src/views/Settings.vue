@@ -56,7 +56,7 @@
               v-model="form.user_domain"
               ref="user_domain"
               :acceptUserInput="false"
-              @change="onSelectionChange"
+              @change="onSelectionChange($event)"
             />
             <NsComboBox
               v-model.trim="form.timezone"
@@ -291,7 +291,12 @@ export default {
       this.form.nethvoice_admin_password = "";
       this.form.lets_encrypt = config.lets_encrypt;
       this.form.user_domain = config.user_domain;
-      if(config.user_domain === "" || config.user_domain === undefined || config.user_domain === null){
+      this.obtainedUserDomain = config.user_domain;
+      if (
+        config.user_domain === "" ||
+        config.user_domain === undefined ||
+        config.user_domain === null
+      ) {
         this.initialUserDomainSet = true;
       } else {
         this.initialUserDomainSet = false;
@@ -721,8 +726,8 @@ export default {
       this.users[taskContext.data.domain] = taskResult.output.users;
       this.loading.getUsers = false;
     },
-    onSelectionChange() {
-      if (!this.initialUserDomainSet) {
+    onSelectionChange(newValue) {
+      if (!this.initialUserDomainSet && newValue !== this.obtainedUserDomain) {
         this.warningVisible = true;
       } else {
         this.warningVisible = false;
