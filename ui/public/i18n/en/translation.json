@@ -53,9 +53,12 @@
     "create_nethvoice_adm": "Create NethVoice Administrator for users management",
     "remove_nethvoice_adm": "Remove NethVoice Administrator for users management",
     "set_nethvoice_adm_password": "Set NethVoice Administrator password for users management",
-    "error_message_hostname": "By changing this field all user configurations will be reset.",
+    "error_message_hostname": "By changing the user provider of an already configured NethVoice, all the users and extensions configuration will be reset.",
     "nethvoice_host_format": "Must be a valid domain name be a valid domain name.",
     "nethcti_ui_host_format": "Must be a valid domain name be a valid domain name."
+  },
+  "warning": {
+    "warning_title_message": "Warning"
   },
   "status": {
     "app_images": "App image | App images",

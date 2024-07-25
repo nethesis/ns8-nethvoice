@@ -1,5 +1,5 @@
 <!--
-  Copyright (C) 2023 Nethesis S.r.l.
+  Copyright (C) 2024 Nethesis S.r.l.
   SPDX-License-Identifier: GPL-3.0-or-later
 -->
 <template>
@@ -39,6 +39,13 @@
               :invalid-message="error.nethcti_ui_host"
               ref="nethcti_ui_host"
             />
+            <NsInlineNotification
+              v-if="warningVisible"
+              kind="warning"
+              :title="$t('warning.warning_title_message')"
+              :description="$t('settings.error_message_hostname')"
+              :showCloseButton="false"
+            />
             <NsComboBox
               :title="$t('settings.user_domain')"
               :options="domainList"
@@ -46,9 +53,10 @@
               :label="$t('settings.user_domain_placeholder')"
               :disabled="loadingState"
               :invalid-message="error.user_domain"
-              :warnText="warning.user_domain"
               v-model="form.user_domain"
               ref="user_domain"
+              :acceptUserInput="false"
+              @change="onSelectionChange"
             />
             <NsComboBox
               v-model.trim="form.timezone"
@@ -154,6 +162,7 @@ export default {
         page: "settings",
       },
       urlCheckInterval: null,
+      warningVisible: false,
       form: {
         nethvoice_host: "",
         nethvoice_admin_password: "",
@@ -195,19 +204,6 @@ export default {
         user_domain: "",
       },
     };
-  },
-  mounted() {
-    this.previousUserDomain = this.form.user_domain;
-    this.$refs.user_domain.$el.addEventListener(
-      "input",
-      this.handleUserDomainInput
-    );
-  },
-  beforeDestroy() {
-    this.$refs.user_domain.$el.removeEventListener(
-      "input",
-      this.handleUserDomainInput
-    );
   },
   computed: {
     ...mapState(["instanceName", "core", "appName"]),
@@ -295,6 +291,11 @@ export default {
       this.form.nethvoice_admin_password = "";
       this.form.lets_encrypt = config.lets_encrypt;
       this.form.user_domain = config.user_domain;
+      if(config.user_domain === "" || config.user_domain === undefined || config.user_domain === null){
+        this.initialUserDomainSet = true;
+      } else {
+        this.initialUserDomainSet = false;
+      }
       if (config.reports_international_prefix !== "") {
         this.form.reports_international_prefix =
           config.reports_international_prefix;
@@ -720,18 +721,12 @@ export default {
       this.users[taskContext.data.domain] = taskResult.output.users;
       this.loading.getUsers = false;
     },
-    handleUserDomainInput(event) {
-      const newValue = event.target.value;
-      if (
-        this.previousUserDomain !== newValue &&
-        this.form.user_domain !== ""
-      ) {
-        this.warnUser();
+    onSelectionChange() {
+      if (!this.initialUserDomainSet) {
+        this.warningVisible = true;
+      } else {
+        this.warningVisible = false;
       }
-      this.previousUserDomain = newValue;
-    },
-    warnUser() {
-      this.warning.user_domain = this.$t("settings.error_message_hostname");
     },
   },
 };
