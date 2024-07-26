@@ -230,6 +230,7 @@ export default {
   },
   methods: {
     generatePassword() {
+      const forbiddenSpecialChars = "!#$&()*,-/;<=>[\\]`{|}~";
       const password = GeneratePassword({
         length: 16,
         symbols: true,
@@ -238,6 +239,7 @@ export default {
         minLengthUppercase: 1,
         minLengthNumbers: 1,
         minLengthSymbols: 1,
+        exclude: forbiddenSpecialChars,
       });
       return password;
     },
