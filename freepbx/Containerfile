@@ -336,7 +336,7 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/announcement && \
 	mkdir -p /var/www/html/freepbx/admin/modules/miscapps && \
 	curl -sL https://github.com/FreePBX/miscapps/archive/refs/tags/release/16.0.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/miscapps && \
 	mkdir -p /var/www/html/freepbx/admin/modules/music && \
-	curl -sL https://github.com/FreePBX/music/archive/refs/tags/release/16.0.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/music && \
+	curl -sL https://github.com/FreePBX/music/archive/refs/tags/release/16.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/music && \
 	mkdir -p /var/www/html/freepbx/admin/modules/outroutemsg && \
 	curl -sL https://github.com/FreePBX/outroutemsg/archive/refs/tags/release/16.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/outroutemsg && \
 	mkdir -p /var/www/html/freepbx/admin/modules/parking && \
