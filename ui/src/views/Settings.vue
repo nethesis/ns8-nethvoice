@@ -143,6 +143,7 @@ import {
   IconService,
   PageTitleService,
 } from "@nethserver/ns8-ui-lib";
+import { GeneratePassword } from "generate-password-lite";
 
 export default {
   name: "Settings",
@@ -229,14 +230,16 @@ export default {
   },
   methods: {
     generatePassword() {
-      var length = 16,
-        charset =
-          "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,£$%&",
-        retVal = "";
-      for (var i = 0, n = charset.length; i < length; ++i) {
-        retVal += charset.charAt(Math.floor(Math.random() * n));
-      }
-      return retVal;
+      const password = GeneratePassword({
+        length: 16,
+        symbols: true,
+        numbers: true,
+        uppercase: true,
+        minLengthUppercase: 1,
+        minLengthNumbers: 1,
+        minLengthSymbols: 1,
+      });
+      return password;
     },
     async getConfiguration() {
       this.loading.getConfiguration = true;

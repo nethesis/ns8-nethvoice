@@ -16,6 +16,7 @@
     "axios": "^0.21.2",
     "carbon-components": "^10.41.0",
     "core-js": "^3.6.5",
+    "generate-password-lite": "^1.0.0",
     "lottie-web-vue": "^1.2.0",
     "sass": "^1.34.1",
     "vue": "^2.6.11",

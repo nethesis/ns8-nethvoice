@@ -4372,6 +4372,11 @@ functional-red-black-tree@^1.0.1:
   resolved "https://registry.npmmirror.com/functional-red-black-tree/download/functional-red-black-tree-1.0.1.tgz#1b0ab3bd553b2a0d6399d29c0e3ea0b252078327"
   integrity sha1-GwqzvVU7Kg1jmdKcDj6gslIHgyc=
 
+generate-password-lite@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/generate-password-lite/-/generate-password-lite-1.0.0.tgz#7a400657b63931272ddcf23ad77cd1d1ac7f321e"
+  integrity sha512-Uzi5k8Rf7ljSUjSSiP+If5DTFWItCElSaSAHa4aGOa4au8jVTTTZf0IMIA5lB6GDRurli5ipf2X+7aSGLT1QBw==
+
 gensync@^1.0.0-beta.2:
   version "1.0.0-beta.2"
   resolved "https://registry.npmmirror.com/gensync/download/gensync-1.0.0-beta.2.tgz?cache=0&sync_timestamp=1603829621482&other_urls=https%3A%2F%2Fregistry.npm.taobao.org%2Fgensync%2Fdownload%2Fgensync-1.0.0-beta.2.tgz#32a6ee76c3d7f52d46b2b1ae5d93fea8580a25e0"
