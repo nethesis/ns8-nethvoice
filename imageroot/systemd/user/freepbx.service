@@ -20,7 +20,7 @@ ExecStart=/usr/bin/podman run \
     --conmon-pidfile=%t/freepbx.pid \
     --cidfile=%t/freepbx.ctr-id \
     --cgroups=no-conmon \
-    --log-opt=tag=%u \
+    --log-opt=tag=nethvoice \
     --replace --name=%N \
     --volume=spool:/var/spool/asterisk:z \
     --volume=asterisk:/etc/asterisk:z \
