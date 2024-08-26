@@ -522,6 +522,9 @@ RUN cd /var/www/html/freepbx/rest/ && \
 # enable apache rewrite module
 RUN a2enmod rewrite proxy*
 
+# disable server-status page
+RUN rm -f /etc/apache2/mods-enabled/status.conf
+
 # Clean apt files
 RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,dpkg,cache,log}/* && touch /var/lib/dpkg/status
 
