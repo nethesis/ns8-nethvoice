@@ -31,6 +31,9 @@ http_sql_hack='INSERT INTO `freepbx_settings` (`keyword`,`value`,`name`,`level`,
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e "$sip_sql_hack"
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e "$iax_sql_hack"
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e "$http_sql_hack"
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e 'UPDATE sipsettings SET data="" WHERE keyword="externip_val"'
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e 'UPDATE kvstore_Sipsettings SET val="" WHERE `key`="externip"'
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} asterisk -e 'DELETE FROM kvstore_Sipsettings WHERE `key`="localnets"'
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} nethcti3 -e 'INSERT INTO user_dbconn (`id`,`host`,`port`,`type`,`user`,`pass`,`name`,`creation`) VALUES (1,"127.0.0.1","'${NETHVOICE_MARIADB_PORT}'","mysql","'${NETHCTI_DB_USER}'","'${NETHCTI_DB_PASSWORD}'","phonebook",NOW())'
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} nethcti3 -e 'INSERT INTO user_dbconn (`id`,`host`,`port`,`type`,`user`,`pass`,`name`,`creation`) VALUES (2,"127.0.0.1","'${NETHVOICE_MARIADB_PORT}'","mysql","'${AMPDBUSER}'","'${AMPDBPASS}'","asteriskcdrdb",NOW())'
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -e "GRANT ALL on asterisk.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'"
