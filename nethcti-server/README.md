@@ -29,7 +29,7 @@ NethCTI Server container for NethServer 8
     - `NETHCTI_PREFIX` telephone prefix
     - `NETHCTI_SERVER_API_PORT` port of the server api
     - `NETHCTI_SERVER_WS_PORT` port of the server websocket
-    - `NETHCTI_TRUNKS_EVENTS` true|false enable or disable trunks events
+    - `NETHCTI_TRUNKS_EVENTS` enabled|disabled enable or disable trunks events
     - `NETHCTI_UNAUTHE_CALL` enabled|disabled enable or disable unauthenticated call. Default disabled
     - `NETHCTI_UNAUTHE_CALL_IP` ip of which unauthenticated call are allowed (if enabled)
 - `NETHVOICE*` 

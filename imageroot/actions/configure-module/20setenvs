@@ -24,7 +24,7 @@ getFromRequest(request, 'nethvoice_host_local_networks', 'NETHVOICE_HOST_LOCAL_N
 getFromRequest(request, 'nethvoice_host', 'NETHVOICE_HOST', '')
 getFromRequest(request, 'nethcti_prefix', 'NETHCTI_PREFIX', '')
 getFromRequest(request, 'nethcti_autoc2c', 'NETHCTI_AUTOC2C', 'enabled')
-getFromRequest(request, 'nethcti_trunks_events', 'NETHCTI_TRUNKS_EVENTS', 'enabled')
+getFromRequest(request, 'nethcti_trunks_events', 'NETHCTI_TRUNKS_EVENTS', 'disabled')
 getFromRequest(request, 'nethcti_alerts', 'NETHCTI_ALERTS', 'false')
 getFromRequest(request, 'nethcti_authentication_enabled', 'NETHCTI_AUTHENTICATION_ENABLED', 'true')
 getFromRequest(request, 'nethcti_unauthe_call', 'NETHCTI_UNAUTHE_CALL', 'disabled')
