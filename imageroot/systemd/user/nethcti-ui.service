@@ -29,6 +29,13 @@ ExecStart=/usr/bin/podman run \
     --env=PORT=${NETHCTI_UI_PORT} \
     --env=SIP_PORT=${ASTERISK_SIP_PORT} \
     --env=TIMEZONE=${TIMEZONE} \
+    --env=LOGIN_PEOPLE=${LOGIN_PEOPLE} \
+    --env=NAVBAR_LOGO_URL=${NAVBAR_LOGO_URL} \
+    --env=NAVBAR_LOGO_DARK_URL=${NAVBAR_LOGO_DARK_URL} \
+    --env=LOGIN_LOGO_URL=${LOGIN_LOGO_URL} \
+    --env=LOGIN_LOGO_DARK_URL=${LOGIN_LOGO_DARK_URL} \
+    --env=FAVICON_URL=${FAVICON_URL} \
+    --env=LOGIN_BACKGROUND_URL=${LOGIN_BACKGROUND_URL} \
     --tz=${TIMEZONE} \
     ${NETHVOICE_CTI_UI_IMAGE}
 

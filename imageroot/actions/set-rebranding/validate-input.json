@@ -1,0 +1,57 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "NethVoice rebranding",
+    "$id": "http://nethserver.org/json-schema/task/input/nethvoice/set-nethvoice-admin-password",
+    "description": "Set NethVoice rebranding",
+    "examples": [
+        {
+            "rebranding_login_people": "hide",
+            "rebranding_navbar_logo_url": "https://upload.example.org/images/navbar.svg",
+            "rebranding_navbar_logo_dark_url": "https://upload.example.org/images/navbar_dark.svg",
+            "rebranding_login_logo_url": "https://upload.example.org/images/logo.svg",
+            "rebranding_login_logo_dark_url": "https://upload.example.org/images/logo_dark.svg",
+            "rebranding_favicon_url": "https://upload.example.org/images/favicon.svg",
+            "rebranding_login_background_url": "https://upload.example.org/images/background.svg"
+        }
+    ],
+    "type": "object",
+    "required": [
+        "rebranding_login_people",
+        "rebranding_navbar_logo_url",
+        "rebranding_navbar_logo_dark_url",
+        "rebranding_login_logo_url",
+        "rebranding_login_logo_dark_url",
+        "rebranding_favicon_url",
+        "rebranding_login_background_url"
+    ],
+    "properties": {
+        "rebranding_login_people": {
+            "description": "NethVoice rebranding show/hide people on login",
+            "type": "string"
+        },
+        "rebranding_navbar_logo_url": {
+            "description": "NethVoice rebranding link to navbar logo",
+            "type": "string"
+        },
+        "rebranding_navbar_logo_dark_url": {
+            "description": "NethVoice rebranding link to navbar dark logo",
+            "type": "string"
+        },
+        "rebranding_login_logo_url": {
+            "description": "NethVoice rebranding link to login logo",
+            "type": "string"
+        },
+        "rebranding_login_logo_dark_url": {
+            "description": "NethVoice rebranding link to login dark logo",
+            "type": "string"
+        },
+        "rebranding_favicon_url": {
+            "description": "NethVoice rebranding link to favicon",
+            "type": "string"
+        },
+        "rebranding_login_background_url": {
+            "description": "NethVoice rebranding link to backround image",
+            "type": "string"
+        }
+    }
+}
