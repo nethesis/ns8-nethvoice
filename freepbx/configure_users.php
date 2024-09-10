@@ -32,15 +32,16 @@ if ($_ENV['NETHVOICE_LDAP_SCHEMA'] === 'ad') {
 	if (!preg_match('/DC=/i', $_ENV['NETHVOICE_LDAP_BASE'])) {
 		echo "Invalid DOMAIN format\n";
 		exit(1);
-	} elseif (preg_match('/^([^@]*)@([^@]*)$/', $_ENV['NETHVOICE_LDAP_USER'],$tmp)) {
+	}
+	if (preg_match('/^([^@]*)@([^@]*)$/', $_ENV['NETHVOICE_LDAP_USER'],$tmp)) {
 		# user: username@domain
 		$username = $tmp[1];
 	} elseif (preg_match('/^([^\\\\]*)\\\\([^\\\\]*)$/', $_ENV['NETHVOICE_LDAP_USER'],$tmp)) {
 		# user: domain\username
 		$username = $tmp[2];
-	} elseif (preg_match('/^([^@]*)$/', $_ENV['NETHVOICE_LDAP_USER'],$tmp)) {
+	} else {
 		# user: username
-		$username = $tmp[1];
+		$username = $_ENV['NETHVOICE_LDAP_USER'];
 	}
 	$ldap_settings = array(
 		"host" => $_ENV['NETHVOICE_LDAP_HOST'],
