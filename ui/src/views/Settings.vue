@@ -118,6 +118,166 @@
                 />
               </cv-column>
             </cv-row>
+            <NsCheckbox
+              :label="$t('settings.login_people_hide')"
+              v-model="form.login_people_hide"
+              :disabled="loadingState"
+              :invalid-message="error.login_people_hide"
+            >
+              <template slot="tooltip">
+                {{ $t("settings.login_people_hide_tooltip") }}
+              </template>
+            </NsCheckbox>
+            <cv-accordion
+              @change="actionChange"
+              ref="acc"
+              :align="align"
+              :size="size"
+            >
+              <cv-accordion-item :open="open[0]" class="test-card">
+                <template slot="title">Rebranding section</template>
+                <template slot="content">
+                  <!-- Inputs -->
+                  <NsTextInput
+                    :label="$t('settings.rebranding_navbar_light')"
+                    v-model="form.rebranding_navbar_light"
+                    placeholder="https://.."
+                    :disabled="loadingState"
+                    :invalid-message="error.rebranding_navbar_light"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.rebranding_navbar_light_tooltip") }}
+                    </template>
+                  </NsTextInput>
+
+                  <NsTextInput
+                    :label="$t('settings.rebranding_navbar_dark')"
+                    v-model="form.rebranding_navbar_dark"
+                    placeholder="https://.."
+                    :disabled="loadingState"
+                    :invalid-message="error.rebranding_navbar_dark"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.rebranding_navbar_dark_tooltip") }}
+                    </template>
+                  </NsTextInput>
+
+                  <NsTextInput
+                    :label="$t('settings.rebranding_background')"
+                    v-model="form.rebranding_background"
+                    placeholder="https://.."
+                    :disabled="loadingState"
+                    :invalid-message="error.rebranding_background"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.rebranding_background_tooltip") }}
+                    </template>
+                  </NsTextInput>
+
+                  <NsTextInput
+                    :label="$t('settings.rebranding_favicon')"
+                    v-model="form.rebranding_favicon"
+                    placeholder="https://.."
+                    :disabled="loadingState"
+                    :invalid-message="error.rebranding_favicon"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.rebranding_favicon_tooltip") }}
+                    </template>
+                  </NsTextInput>
+
+                  <NsTextInput
+                    :label="$t('settings.rebranding_logo_light')"
+                    v-model="form.rebranding_logo_light"
+                    placeholder="https://.."
+                    :disabled="loadingState"
+                    :invalid-message="error.rebranding_logo_light"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.rebranding_logo_light_tooltip") }}
+                    </template>
+                  </NsTextInput>
+
+                  <NsTextInput
+                    :label="$t('settings.rebranding_logo_dark')"
+                    v-model="form.rebranding_logo_dark"
+                    placeholder="https://.."
+                    :disabled="loadingState"
+                    :invalid-message="error.rebranding_logo_dark"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.rebranding_logo_dark_tooltip") }}
+                    </template>
+                  </NsTextInput>
+
+                  <!-- Dark mode switch toggle -->
+                  <div class="theme-toggle">
+                    <cv-toggle
+                      id="theme-toggle"
+                      v-model="isDarkMode"
+                      :label="$t('settings.dark_theme_label')"
+                      @change="toggleTheme"
+                    />
+                  </div>
+
+                  <!-- Login page preview -->
+                  <div class="login-preview">
+                    <div
+                      class="login-background"
+                      :style="{
+                        backgroundImage: `url(${form.rebranding_background})`,
+                      }"
+                    >
+                      <div class="login-container">
+                        <div class="login-card">
+                          <img
+                            :src="
+                              isDarkMode
+                                ? form.rebranding_logo_dark
+                                : form.rebranding_logo_light
+                            "
+                            :alt="isDarkMode ? 'Logo Dark' : 'Logo Light'"
+                            class="login-logo"
+                          />
+                          <div class="login-form">
+                            <label for="username" class="login-label"
+                              >Username</label
+                            >
+                            <input
+                              type="text"
+                              value="username"
+                              disabled
+                              class="login-input"
+                            />
+                            <label for="password" class="login-label"
+                              >Password</label
+                            >
+                            <input
+                              type="password"
+                              value="*********"
+                              disabled
+                              class="login-input"
+                            />
+                            <button disabled class="login-button">
+                              <span class="login-button-span">Sign in</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div class="login-svg" v-if="!form.login_people_hide">
+                          <img
+                            src="../assets/action_voice-cti.svg"
+                            alt="SVG Image"
+                            class="svg-image"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </cv-accordion-item>
+            </cv-accordion>
+
             <NsButton
               kind="primary"
               :icon="Save20"
@@ -164,6 +324,9 @@ export default {
       },
       urlCheckInterval: null,
       warningVisible: false,
+      open: [false, false],
+      align: "end",
+      size: "medium",
       form: {
         nethvoice_host: "",
         nethvoice_admin_password: "",
@@ -172,8 +335,16 @@ export default {
         user_domain: "",
         reports_international_prefix: "+39",
         timezone: "",
+        rebranding_navbar_light: "",
+        rebranding_navbar_dark: "",
+        rebranding_background: "",
+        rebranding_favicon: "",
+        rebranding_logo_light: "",
+        rebranding_logo_dark: "",
+        login_people_hide: false,
         nethvoice_adm: {},
       },
+      isDarkMode: false,
       config: {},
       loading: {
         getConfiguration: false,
@@ -200,6 +371,12 @@ export default {
         user_domain: "",
         reports_international_prefix: "",
         timezone: "",
+        rebranding_navbar_light: "",
+        rebranding_navbar_dark: "",
+        rebranding_background: "",
+        rebranding_favicon: "",
+        rebranding_logo_light: "",
+        rebranding_logo_dark: "",
       },
       warning: {
         user_domain: "",
@@ -738,10 +915,110 @@ export default {
         this.warningVisible = false;
       }
     },
+    toggleTheme() {},
   },
 };
 </script>
 
 <style scoped lang="scss">
 @import "../styles/carbon-utils";
+
+.test-card {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+  width: 620px;
+}
+
+.login-preview {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  border: 1px solid #ccc;
+}
+
+.login-background {
+  background-size: cover;
+  background-position: center;
+  width: 100%;
+  height: 100%;
+}
+
+.login-container {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  height: 100%;
+  margin-left: 2rem;
+}
+
+.login-card {
+  background-color: #111827;
+  padding: 20px;
+  width: 30%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  margin-right: 70px;
+  border-radius: 4px;
+}
+
+.login-svg {
+  width: 40%;
+}
+
+.svg-image {
+  width: 100%;
+  height: auto;
+}
+
+.login-logo {
+  width: 40%;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  margin-top: 24px;
+  width: 100%;
+  align-items: center;
+}
+
+.login-input {
+  width: 80%;
+  padding: 10px;
+  height: 10px;
+  margin-bottom: 15px;
+  background-color: #030712;
+  color: #fff;
+  border: none;
+  text-align: center;
+  border-radius: 4px;
+  border-color: #e5e7eb;
+  border-width: 2px;
+}
+
+.login-button {
+  width: 80%;
+  padding: 10px;
+  background-color: #15803d;
+  color: white;
+  border: none;
+  cursor: not-allowed;
+  text-align: center;
+  border-radius: 4px;
+  height: 10px;
+}
+
+.login-label {
+  margin-left: -32px;
+  margin-bottom: 4px;
+}
+
+.login-button-span {
+  position: absolute;
+  left: 96px;
+  top: 269px;
+}
 </style>
