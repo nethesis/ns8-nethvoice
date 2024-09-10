@@ -15,8 +15,6 @@ request = json.load(sys.stdin)
 domain = request.get('user_domain', '')
 domparams = Ldapproxy().get_domain(domain)
 agent.set_env('USER_DOMAIN', domain)
-if not domain or not domparams:
-    sys.exit(0)
 
 # Add freepbx.service to the list of services to restart if the user domain configuration has changed
 services_to_restart = set(os.getenv('SERVICES_TO_RESTART', '').split(' '))
