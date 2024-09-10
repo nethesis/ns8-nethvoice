@@ -118,97 +118,105 @@
                 />
               </cv-column>
             </cv-row>
-            <NsCheckbox
-              :label="$t('settings.login_people_hide')"
-              v-model="form.login_people_hide"
-              :disabled="loadingState"
-              :invalid-message="error.login_people_hide"
-            >
-              <template slot="tooltip">
-                {{ $t("settings.login_people_hide_tooltip") }}
-              </template>
-            </NsCheckbox>
+            <label for="username" class="">Rebranding section</label>
             <cv-accordion
               @change="actionChange"
               ref="acc"
               :align="align"
               :size="size"
+              v-if="form.rebranding_active"
             >
               <cv-accordion-item :open="open[0]" class="test-card">
-                <template slot="title">Rebranding section</template>
+                <template slot="title">NethVoice CTI</template>
                 <template slot="content">
                   <!-- Inputs -->
                   <NsTextInput
-                    :label="$t('settings.rebranding_navbar_light')"
-                    v-model="form.rebranding_navbar_light"
+                    :label="$t('settings.rebranding_navbar_logo_url')"
+                    v-model="form.rebranding_navbar_logo_url"
                     placeholder="https://.."
                     :disabled="loadingState"
-                    :invalid-message="error.rebranding_navbar_light"
+                    :invalid-message="error.rebranding_navbar_logo_url"
                   >
                     <template slot="tooltip">
-                      {{ $t("settings.rebranding_navbar_light_tooltip") }}
+                      {{ $t("settings.rebranding_navbar_logo_url_tooltip") }}
                     </template>
                   </NsTextInput>
 
                   <NsTextInput
-                    :label="$t('settings.rebranding_navbar_dark')"
-                    v-model="form.rebranding_navbar_dark"
+                    :label="$t('settings.rebranding_navbar_logo_dark_url')"
+                    v-model="form.rebranding_navbar_logo_dark_url"
                     placeholder="https://.."
                     :disabled="loadingState"
-                    :invalid-message="error.rebranding_navbar_dark"
+                    :invalid-message="error.rebranding_navbar_logo_dark_url"
                   >
                     <template slot="tooltip">
-                      {{ $t("settings.rebranding_navbar_dark_tooltip") }}
+                      {{
+                        $t("settings.rebranding_navbar_logo_dark_url_tooltip")
+                      }}
                     </template>
                   </NsTextInput>
 
                   <NsTextInput
-                    :label="$t('settings.rebranding_background')"
-                    v-model="form.rebranding_background"
+                    :label="$t('settings.rebranding_login_background_url')"
+                    v-model="form.rebranding_login_background_url"
                     placeholder="https://.."
                     :disabled="loadingState"
-                    :invalid-message="error.rebranding_background"
+                    :invalid-message="error.rebranding_login_background_url"
                   >
                     <template slot="tooltip">
-                      {{ $t("settings.rebranding_background_tooltip") }}
+                      {{
+                        $t("settings.rebranding_login_background_url_tooltip")
+                      }}
                     </template>
                   </NsTextInput>
 
                   <NsTextInput
-                    :label="$t('settings.rebranding_favicon')"
-                    v-model="form.rebranding_favicon"
+                    :label="$t('settings.rebranding_favicon_url')"
+                    v-model="form.rebranding_favicon_url"
                     placeholder="https://.."
                     :disabled="loadingState"
-                    :invalid-message="error.rebranding_favicon"
+                    :invalid-message="error.rebranding_favicon_url"
                   >
                     <template slot="tooltip">
-                      {{ $t("settings.rebranding_favicon_tooltip") }}
+                      {{ $t("settings.rebranding_favicon_url_tooltip") }}
                     </template>
                   </NsTextInput>
 
                   <NsTextInput
-                    :label="$t('settings.rebranding_logo_light')"
-                    v-model="form.rebranding_logo_light"
+                    :label="$t('settings.rebranding_login_logo_url')"
+                    v-model="form.rebranding_login_logo_url"
                     placeholder="https://.."
                     :disabled="loadingState"
-                    :invalid-message="error.rebranding_logo_light"
+                    :invalid-message="error.rebranding_login_logo_url"
                   >
                     <template slot="tooltip">
-                      {{ $t("settings.rebranding_logo_light_tooltip") }}
+                      {{ $t("settings.rebranding_login_logo_url_tooltip") }}
                     </template>
                   </NsTextInput>
 
                   <NsTextInput
-                    :label="$t('settings.rebranding_logo_dark')"
-                    v-model="form.rebranding_logo_dark"
+                    :label="$t('settings.rebranding_login_logo_dark_url')"
+                    v-model="form.rebranding_login_logo_dark_url"
                     placeholder="https://.."
                     :disabled="loadingState"
-                    :invalid-message="error.rebranding_logo_dark"
+                    :invalid-message="error.rebranding_login_logo_dark_url"
                   >
                     <template slot="tooltip">
-                      {{ $t("settings.rebranding_logo_dark_tooltip") }}
+                      {{
+                        $t("settings.rebranding_login_logo_dark_url_tooltip")
+                      }}
                     </template>
                   </NsTextInput>
+                  <NsCheckbox
+                    :label="$t('settings.rebranding_login_people')"
+                    v-model="form.rebranding_login_people"
+                    :disabled="loadingState"
+                    :invalid-message="error.rebranding_login_people"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.rebranding_login_people_tooltip") }}
+                    </template>
+                  </NsCheckbox>
 
                   <!-- Dark mode switch toggle -->
                   <div class="theme-toggle">
@@ -225,7 +233,7 @@
                     <div
                       class="login-background"
                       :style="{
-                        backgroundImage: `url(${form.rebranding_background})`,
+                        backgroundImage: `url(${form.rebranding_login_background_url})`,
                       }"
                     >
                       <div class="login-container">
@@ -233,8 +241,8 @@
                           <img
                             :src="
                               isDarkMode
-                                ? form.rebranding_logo_dark
-                                : form.rebranding_logo_light
+                                ? form.rebranding_login_logo_dark_url
+                                : form.rebranding_login_logo_url
                             "
                             :alt="isDarkMode ? 'Logo Dark' : 'Logo Light'"
                             class="login-logo"
@@ -264,7 +272,10 @@
                           </div>
                         </div>
 
-                        <div class="login-svg" v-if="!form.login_people_hide">
+                        <div
+                          class="login-svg"
+                          v-if="!form.rebranding_login_people"
+                        >
                           <img
                             src="../assets/action_voice-cti.svg"
                             alt="SVG Image"
@@ -335,13 +346,14 @@ export default {
         user_domain: "",
         reports_international_prefix: "+39",
         timezone: "",
-        rebranding_navbar_light: "",
-        rebranding_navbar_dark: "",
-        rebranding_background: "",
-        rebranding_favicon: "",
-        rebranding_logo_light: "",
-        rebranding_logo_dark: "",
-        login_people_hide: false,
+        rebranding_active: "",
+        rebranding_navbar_logo_url: "",
+        rebranding_navbar_logo_dark_url: "",
+        rebranding_login_background_url: "",
+        rebranding_favicon_url: "",
+        rebranding_login_logo_url: "",
+        rebranding_login_logo_dark_url: "",
+        rebranding_login_people: false,
         nethvoice_adm: {},
       },
       isDarkMode: false,
@@ -371,12 +383,12 @@ export default {
         user_domain: "",
         reports_international_prefix: "",
         timezone: "",
-        rebranding_navbar_light: "",
-        rebranding_navbar_dark: "",
-        rebranding_background: "",
-        rebranding_favicon: "",
-        rebranding_logo_light: "",
-        rebranding_logo_dark: "",
+        rebranding_navbar_logo_url: "",
+        rebranding_navbar_logo_dark_url: "",
+        rebranding_login_background_url: "",
+        rebranding_favicon_url: "",
+        rebranding_login_logo_url: "",
+        rebranding_login_logo_dark_url: "",
       },
       warning: {
         user_domain: "",
@@ -467,6 +479,8 @@ export default {
       const config = taskResult.output;
 
       this.config = taskResult.output;
+
+      this.form.rebranding_active = config.rebranding_active;
 
       this.form.nethvoice_host = config.nethvoice_host;
       this.form.nethcti_ui_host = config.nethcti_ui_host;
@@ -924,7 +938,7 @@ export default {
 @import "../styles/carbon-utils";
 
 .test-card {
-  padding-top: 2rem;
+  padding-top: 6px;
   padding-bottom: 2rem;
   width: 620px;
 }
@@ -1020,5 +1034,13 @@ export default {
   position: absolute;
   left: 96px;
   top: 269px;
+}
+
+.bx--accordion__item {
+  border-top: none !important;
+}
+
+.bx--accordion__item:last-child {
+  border-bottom: none !important;
 }
 </style>
