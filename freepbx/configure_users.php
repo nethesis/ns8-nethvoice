@@ -30,17 +30,14 @@ $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 if ($_ENV['NETHVOICE_LDAP_SCHEMA'] === 'ad') {
 	# extract username and domain
 	if (preg_match('/^([^@]*)@([^@]*)$/', $_ENV['NETHVOICE_LDAP_USER'],$tmp)) {
-		# user: username@domain -> username, domain
+		# user: username@domain
 		$username = $tmp[1];
-		$domain = $tmp[2];
 	} elseif (preg_match('/^([^\\\\]*)\\\\([^\\\\]*)$/', $_ENV['NETHVOICE_LDAP_USER'],$tmp) && preg_match('/DC=/', $_ENV['NETHVOICE_LDAP_BASE'])) {
-		# user: domain\username -> username, domain
+		# user: domain\username
 		$username = $tmp[2];
-		$domain = preg_replace(['/DC=/', '/,/'], ['', '.'],$_ENV['NETHVOICE_LDAP_BASE']);
 	} elseif (preg_match('/^([^@]*)$/', $_ENV['NETHVOICE_LDAP_USER'],$tmp) && preg_match('/DC=/', $_ENV['NETHVOICE_LDAP_BASE'])) {
-		# user: username -> username and extract domain from base
+		# user: username
 		$username = $tmp[1];
-		$domain = preg_replace(['/DC=/', '/,/'], ['', '.'],$_ENV['NETHVOICE_LDAP_BASE']);
 	} else {
 		echo "Invalid USERNAME and DOMAIN format\n";
 		exit(1);
@@ -51,7 +48,7 @@ if ($_ENV['NETHVOICE_LDAP_SCHEMA'] === 'ad') {
 		"dn" => $_ENV['NETHVOICE_LDAP_BASE'],
 		"username" => $username,
 		"password" => $_ENV['NETHVOICE_LDAP_PASS'],
-		"domain" => $domain,
+		"domain" => preg_replace(['/DC=/', '/,/'], ['', '.'],$_ENV['NETHVOICE_LDAP_BASE']),
 		"connection" => '',
 		"localgroups" => '0',
 		"createextensions" => '',
