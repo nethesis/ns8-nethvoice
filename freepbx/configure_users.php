@@ -45,7 +45,7 @@ if ($_ENV['NETHVOICE_LDAP_SCHEMA'] === 'ad') {
 		"dn" => $_ENV['NETHVOICE_LDAP_BASE'],
 		"username" => $username,
 		"password" => $_ENV['NETHVOICE_LDAP_PASS'],
-		"domain" => preg_replace(['/DC=/i', '/,/i'], ['', '.'],$_ENV['NETHVOICE_LDAP_BASE']),
+		"domain" => preg_replace(['/OU=[^,]*,/i', '/CN=[^,]*,/i', '/DC=/i', '/,/i'], ['', '', '', '.'],$_ENV['NETHVOICE_LDAP_BASE']),
 		"connection" => '',
 		"localgroups" => '0',
 		"createextensions" => '',
