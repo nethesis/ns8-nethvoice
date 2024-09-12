@@ -5,6 +5,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+# sourcing the file directly is broken with quotes
+MARIADB_ROOT_PASSWORD=$(grep '^MARIADB_ROOT_PASSWORD=' ./passwords.env) && export $MARIADB_ROOT_PASSWORD
+
 # Check if stdout is a TTY
 if [[ -t 1 ]] ; then
     with_tty=1

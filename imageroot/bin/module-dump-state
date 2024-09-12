@@ -7,6 +7,9 @@
 
 set -e
 
+# sourcing the file directly is broken with quotes
+MARIADB_ROOT_PASSWORD=$(grep '^MARIADB_ROOT_PASSWORD=' ./passwords.env) && export $MARIADB_ROOT_PASSWORD
+
 # clean container files on exit
 cleanup () {
     podman exec mariadb rm -rf /tmp/db_backup
