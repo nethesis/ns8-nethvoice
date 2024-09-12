@@ -70,7 +70,8 @@
     "set_nethvoice_adm_password": "Set NethVoice Administrator password for users management",
     "error_message_hostname": "By changing the user provider of an already configured NethVoice, all the users and extensions configuration will be reset.",
     "nethvoice_host_format": "Must be a valid domain name be a valid domain name.",
-    "nethcti_ui_host_format": "Must be a valid domain name be a valid domain name."
+    "nethcti_ui_host_format": "Must be a valid domain name be a valid domain name.",
+    "set_rebranding": "Rebranding editing"
   },
   "warning": {
     "warning_title_message": "Warning"

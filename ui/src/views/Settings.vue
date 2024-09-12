@@ -118,7 +118,12 @@
                 />
               </cv-column>
             </cv-row>
-            <label for="username" class="">Rebranding section</label>
+            <label
+              for="username"
+              v-if="form.rebranding_active"
+              class="rebranding_section_title_style"
+              >Rebranding section</label
+            >
             <cv-accordion
               @change="actionChange"
               ref="acc"
@@ -237,41 +242,42 @@
                       }"
                     >
                       <div class="login-container">
-                        <div class="login-card">
-                          <img
-                            :src="
-                              isDarkMode
-                                ? form.rebranding_login_logo_dark_url
-                                : form.rebranding_login_logo_url
-                            "
-                            :alt="isDarkMode ? 'Logo Dark' : 'Logo Light'"
-                            class="login-logo"
-                          />
-                          <div class="login-form">
-                            <label for="username" class="login-label"
-                              >Username</label
-                            >
-                            <input
-                              type="text"
-                              value="username"
-                              disabled
-                              class="login-input"
+                        <div :class="isDarkMode ? 'dark-theme' : 'light-theme'">
+                          <div class="login-card">
+                            <img
+                              :src="
+                                isDarkMode
+                                  ? form.rebranding_login_logo_dark_url
+                                  : form.rebranding_login_logo_url
+                              "
+                              :alt="isDarkMode ? 'Logo Dark' : 'Logo Light'"
+                              class="login-logo"
                             />
-                            <label for="password" class="login-label"
-                              >Password</label
-                            >
-                            <input
-                              type="password"
-                              value="*********"
-                              disabled
-                              class="login-input"
-                            />
-                            <button disabled class="login-button">
-                              <span class="login-button-span">Sign in</span>
-                            </button>
+                            <div class="login-form">
+                              <label for="username" class="login-label"
+                                >Username</label
+                              >
+                              <input
+                                type="text"
+                                value="username"
+                                disabled
+                                class="login-input"
+                              />
+                              <label for="password" class="login-label"
+                                >Password</label
+                              >
+                              <input
+                                type="password"
+                                value="*********"
+                                disabled
+                                class="login-input"
+                              />
+                              <button disabled class="login-button">
+                                <span>Sign in</span>
+                              </button>
+                            </div>
                           </div>
                         </div>
-
                         <div
                           class="login-svg"
                           v-if="!form.rebranding_login_people"
@@ -504,6 +510,23 @@ export default {
       this.form.timezone = config.timezone;
       this.form.nethvoice_adm.username = config.nethvoice_adm_username;
       this.form.nethvoice_adm.password = config.nethvoice_adm_password;
+
+      // rebranding section
+      this.form.rebranding_navbar_logo_url = config.rebranding_navbar_logo_url;
+      this.form.rebranding_navbar_logo_dark_url =
+        config.rebranding_navbar_logo_dark_url;
+      this.form.rebranding_login_background_url =
+        config.rebranding_login_background_url;
+      this.form.rebranding_favicon_url = config.rebranding_favicon_url;
+      this.form.rebranding_login_logo_url = config.rebranding_login_logo_url;
+      this.form.rebranding_login_logo_dark_url =
+        config.rebranding_login_logo_dark_url;
+      this.form.rebranding_login_people = config.rebranding_login_people;
+      if (this.form.rebranding_login_people === "hide") {
+        this.form.rebranding_login_people = true;
+      } else {
+        this.form.rebranding_login_people = false;
+      }
 
       this.focusElement("nethvoice_host");
     },
@@ -742,6 +765,69 @@ export default {
         this.loading.configureModule = false;
         return;
       }
+
+      if (this.form.rebranding_active) {
+        // execute set rebranding
+        const taskActionRebranding = "set-rebranding";
+        const eventIdRebranding = this.getUuid();
+
+        // register to task error
+        this.core.$root.$once(
+          `${taskActionRebranding}-aborted-${eventIdRebranding}`,
+          this.configureModuleAborted
+        );
+
+        // register to task validation
+        this.core.$root.$once(
+          `${taskActionRebranding}-validation-failed-${eventIdRebranding}`,
+          this.configureModuleValidationFailed
+        );
+
+        // register to task completion
+        this.core.$root.$once(
+          `${taskActionRebranding}-completed-${eventIdRebranding}`,
+          this.configureModuleCompleted
+        );
+
+        // Convert true/false to 'show'/'hide' for rebranding_login_people
+        let rebrandingLoginPeople = this.form.rebranding_login_people
+          ? "show"
+          : "hide";
+
+        const setRebranding = await to(
+          this.createModuleTaskForApp(this.instanceName, {
+            action: taskActionRebranding,
+            data: {
+              rebranding_login_people: rebrandingLoginPeople,
+              rebranding_navbar_logo_url: this.form.rebranding_navbar_logo_url,
+              rebranding_navbar_logo_dark_url:
+                this.form.rebranding_navbar_logo_dark_url,
+              rebranding_login_logo_url: this.form.rebranding_login_logo_url,
+              rebranding_login_logo_dark_url:
+                this.form.rebranding_login_logo_dark_url,
+              rebranding_favicon_url: this.form.rebranding_favicon_url,
+              rebranding_login_background_url:
+                this.form.rebranding_login_background_url,
+            },
+            extra: {
+              title: this.$t("settings.set_rebranding"),
+              description: this.$t("common.processing"),
+              eventId,
+            },
+          })
+        );
+        const errRebranding = setRebranding[0];
+
+        if (errRebranding) {
+          console.error(
+            `error creating task ${taskActionRebranding}`,
+            errRebranding
+          );
+          this.error.configureModule = this.getErrorMessage(errRebranding);
+          this.loading.configureModule = false;
+          return;
+        }
+      }
     },
     configureModuleAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
@@ -968,7 +1054,6 @@ export default {
 .login-card {
   background-color: #111827;
   padding: 20px;
-  width: 30%;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1020,13 +1105,21 @@ export default {
   color: white;
   border: none;
   cursor: not-allowed;
-  text-align: center;
   border-radius: 4px;
-  height: 10px;
+  height: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.login-button span {
+  margin: 0;
 }
 
 .login-label {
-  margin-left: -32px;
+  width: 80%;
+  text-align: left;
   margin-bottom: 4px;
 }
 
@@ -1042,5 +1135,44 @@ export default {
 
 .bx--accordion__item:last-child {
   border-bottom: none !important;
+}
+
+/* Light theme */
+.light-theme .login-card {
+  background-color: #f9fafb;
+  color: #111827;
+}
+
+.light-theme .login-input {
+  background-color: #ffffff;
+  color: #111827;
+  border-color: #e5e7eb;
+}
+
+.light-theme .login-button {
+  background-color: #34d399;
+  color: white;
+}
+
+/* Dark theme */
+.dark-theme .login-card {
+  background-color: #111827;
+  color: white;
+}
+
+.dark-theme .login-input {
+  background-color: #030712;
+  color: white;
+  border-color: #374151;
+}
+
+.dark-theme .login-button {
+  background-color: #15803d;
+  color: white;
+}
+
+.rebranding_section_title_style {
+  color: #525252;
+  font-size: 12px !important;
 }
 </style>
