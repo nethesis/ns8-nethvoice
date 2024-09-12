@@ -28,13 +28,29 @@ $stmt->execute();
 $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
 if ($_ENV['NETHVOICE_LDAP_SCHEMA'] === 'ad') {
+	# check if DOMAIN is in the right format
+	if (!preg_match('/DC=/i', $_ENV['NETHVOICE_LDAP_BASE'])) {
+		echo "Invalid DOMAIN format\n";
+		exit(1);
+	}
+	# extract username from LDAP user
+	if (preg_match('/^([^@]*)@([^@]*)$/', $_ENV['NETHVOICE_LDAP_USER'],$tmp)) {
+		# user: username@domain
+		$username = $tmp[1];
+	} elseif (preg_match('/^([^\\\\]*)\\\\([^\\\\]*)$/', $_ENV['NETHVOICE_LDAP_USER'],$tmp)) {
+		# user: domain\username
+		$username = $tmp[2];
+	} else {
+		# user: username
+		$username = $_ENV['NETHVOICE_LDAP_USER'];
+	}
 	$ldap_settings = array(
 		"host" => $_ENV['NETHVOICE_LDAP_HOST'],
 		"port" => $_ENV['NETHVOICE_LDAP_PORT'],
 		"dn" => $_ENV['NETHVOICE_LDAP_BASE'],
-		"username" => preg_replace('/^(.*)@([^@]*)$/','\1',$_ENV['NETHVOICE_LDAP_USER']),
+		"username" => $username,
 		"password" => $_ENV['NETHVOICE_LDAP_PASS'],
-		"domain" => preg_replace('/^(.*)@([^@]*)$/','\2',$_ENV['NETHVOICE_LDAP_USER']),
+		"domain" => preg_replace(['/DC=/i', '/,/i'], ['', '.'],$_ENV['NETHVOICE_LDAP_BASE']),
 		"connection" => '',
 		"localgroups" => '0',
 		"createextensions" => '',

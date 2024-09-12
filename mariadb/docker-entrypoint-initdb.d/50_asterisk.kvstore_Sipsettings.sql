@@ -84,4 +84,4 @@ INSERT INTO `kvstore_Sipsettings` (`key`,`val`,`type`,`id`) VALUES
 ("tlsdomain-0.0.0.0","",NULL,"noid"),
 ("tlsextip-0.0.0.0","",NULL,"noid"),
 ("tlslocalnet-0.0.0.0","",NULL,"noid"),
-("pjsip.identifers.order","[\"EI_ip\",\"EI_username\",\"EI_anonymous\",\"EI_header\",\"EI_auth_username\"]",NULL,"noid"),
+("pjsip.identifers.order","[\"EI_ip\",\"EI_username\",\"EI_anonymous\",\"EI_header\",\"EI_auth_username\"]",NULL,"noid");

@@ -9,14 +9,24 @@ import json
 import sys
 import agent
 import os
+from ldapproxy import Ldapproxy
 
 event = json.load(sys.stdin)
 
-if event.get('domain') != os.getenv('EJABBERD_LDAP_DOMAIN'):
+if event.get('domain') != os.getenv('USER_DOMAIN'):
     exit(0)
 
 if 'node' in event and str(event['node']) != os.getenv('NODE_ID'):
     exit(0) # ignore event if the source is not in our node
 
-agent.run_helper('systemctl', '--user', 'reload', 'asterisk.service').check_returncode()
+# Get domain parameters
+domparams = Ldapproxy().get_domain(event['domain'])
+agent.set_env('NETHVOICE_LDAP_HOST', domparams['host'])
+agent.set_env('NETHVOICE_LDAP_PORT', domparams['port'])
+agent.set_env('NETHVOICE_LDAP_USER', domparams['bind_dn'])
+agent.set_env('NETHVOICE_LDAP_PASS', domparams['bind_password'])
+agent.set_env('NETHVOICE_LDAP_SCHEMA', domparams['schema'])
+agent.set_env('NETHVOICE_LDAP_BASE', domparams['base_dn'])
+
+agent.run_helper('systemctl', '--user', 'reload', 'freepbx.service').check_returncode()
 agent.run_helper('systemctl', '--user', 'restart', 'phonebook.service').check_returncode()
