@@ -61,7 +61,6 @@ restore_envs = [
     'NETHVOICE_HOST_LOCAL_NETWORKS',
     'NETHVOICE_LDAP_BASE',
     'NETHVOICE_LDAP_HOST',
-    'NETHVOICE_LDAP_PASS',
     'NETHVOICE_LDAP_SCHEMA',
     'NETHVOICE_LDAP_USER',
     'NETHVOICE_PROXY_FQDN',
@@ -118,5 +117,3 @@ restore_envs = [
 for env in restore_envs:
     if env in old_envs:
         agent.set_env(env, old_envs[env])
-
-# remove old environment file

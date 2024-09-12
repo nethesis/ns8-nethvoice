@@ -36,7 +36,8 @@ if not os.path.exists("passwords.env") and os.getenv('MARIADB_ROOT_PASSWORD') is
         "REPORTS_API_KEY": os.environ['REPORTS_API_KEY'],
         "REPORTS_SECRET": os.environ['REPORTS_SECRET'],
         "NETHVOICE_USER_PORTAL_PASSWORD": os.environ['NETHVOICE_USER_PORTAL_PASSWORD'],
-        "SUBSCRIPTION_SECRET": os.environ['SUBSCRIPTION_SECRET']
+        "SUBSCRIPTION_SECRET": os.environ['SUBSCRIPTION_SECRET'],
+        "NETHVOICE_LDAP_PASS": os.environ['NETHVOICE_LDAP_PASS'],
     }
     agent.write_envfile("passwords.env", passwords)
 
@@ -57,3 +58,4 @@ if not os.path.exists("passwords.env") and os.getenv('MARIADB_ROOT_PASSWORD') is
     agent.unset_env('REPORTS_SECRET')
     agent.unset_env('NETHVOICE_USER_PORTAL_PASSWORD')
     agent.unset_env('SUBSCRIPTION_SECRET')
+    agent.unset_env('NETHVOICE_LDAP_PASS')
