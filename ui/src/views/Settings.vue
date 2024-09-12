@@ -791,8 +791,8 @@ export default {
 
         // Convert true/false to 'show'/'hide' for rebranding_login_people
         let rebrandingLoginPeople = this.form.rebranding_login_people
-          ? "show"
-          : "hide";
+          ? "hide"
+          : "show";
 
         const setRebranding = await to(
           this.createModuleTaskForApp(this.instanceName, {
