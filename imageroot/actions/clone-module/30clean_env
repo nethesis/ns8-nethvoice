@@ -10,6 +10,5 @@ import os
 
 
 # Cleanup the environment
-#agent.unset_env('NETHVOICE_USER_PORTAL_PASSWORD')
 agent.unset_env('NETHVOICE_USER_PORTAL_USERNAME')
 agent.unset_env('RESTART_SERVICES')
