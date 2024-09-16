@@ -119,7 +119,6 @@
               </cv-column>
             </cv-row>
             <label
-              for="username"
               v-if="form.rebranding_active"
               class="rebranding_section_title_style"
               >Rebranding section</label
@@ -129,6 +128,7 @@
               ref="acc"
               :align="align"
               :size="size"
+              :disabled="loadingState"
               v-if="form.rebranding_active"
             >
               <cv-accordion-item :open="open[0]" class="test-card">
@@ -223,33 +223,51 @@
                     </template>
                   </NsCheckbox>
 
-                  <!-- Dark mode switch toggle -->
-                  <div class="theme-toggle">
-                    <cv-toggle
-                      id="theme-toggle"
-                      v-model="isDarkMode"
-                      :label="$t('settings.dark_theme_label')"
-                      @change="toggleTheme"
-                    />
-                  </div>
-
+                  <label
+                    v-if="form.rebranding_active"
+                    class="rebranding_section_title_style"
+                    >Preview</label
+                  >
                   <!-- Login page preview -->
                   <div class="login-preview">
+                    <!-- Dark/Light theme buttons inside preview -->
+                    <div class="theme-buttons">
+                      <NsButton
+                        kind="secondary"
+                        @click="setLightTheme"
+                        :disabled="!isDarkMode"
+                        class="theme-button dark-theme-btn"
+                      >
+                        <Sun20 />
+                      </NsButton>
+                      <NsButton
+                        kind="secondary"
+                        @click="setDarkTheme"
+                        :disabled="isDarkMode"
+                        class="theme-button dark-theme-btn"
+                      >
+                        <Moon20 />
+                      </NsButton>
+                    </div>
+
+                    <NsButton
+                      kind="secondary"
+                      @click.prevent="setAllClear"
+                      class="clear-all-btn"
+                    >
+                      <TrashCan20 class="clear_all_icon" /> Clear rebranding
+                    </NsButton>
                     <div
                       class="login-background"
                       :style="{
-                        backgroundImage: `url(${form.rebranding_login_background_url})`,
+                        backgroundImage: `url(${validLoginBackgroundUrl})`,
                       }"
                     >
                       <div class="login-container">
                         <div :class="isDarkMode ? 'dark-theme' : 'light-theme'">
                           <div class="login-card">
                             <img
-                              :src="
-                                isDarkMode
-                                  ? form.rebranding_login_logo_dark_url
-                                  : form.rebranding_login_logo_url
-                              "
+                              :src="validLogoUrl"
                               :alt="isDarkMode ? 'Logo Dark' : 'Logo Light'"
                               class="login-logo"
                             />
@@ -313,6 +331,8 @@
 <script>
 import to from "await-to-js";
 import { mapState } from "vuex";
+import { Sun20, Moon20, TrashCan20 } from "@carbon/icons-vue";
+
 import {
   QueryParamService,
   UtilService,
@@ -408,6 +428,19 @@ export default {
         (loadingState) => loadingState === true
       );
     },
+    validLoginBackgroundUrl() {
+      return (
+        this.form.rebranding_login_background_url ||
+        require("../assets/sfondo_voice.svg")
+      );
+    },
+    validLogoUrl() {
+      return this.isDarkMode
+        ? this.form.rebranding_login_logo_dark_url ||
+            require("../assets/login_logo_dark.svg")
+        : this.form.rebranding_login_logo_url ||
+            require("../assets/login_logo.svg");
+    },
   },
   beforeRouteEnter(to, from, next) {
     next((vm) => {
@@ -422,6 +455,11 @@ export default {
   created() {
     this.getUserDomains();
     this.getDefaults();
+  },
+  components: {
+    Sun20,
+    Moon20,
+    TrashCan20,
   },
   methods: {
     generatePassword() {
@@ -1016,6 +1054,21 @@ export default {
       }
     },
     toggleTheme() {},
+    setLightTheme() {
+      this.isDarkMode = false;
+    },
+    setDarkTheme() {
+      this.isDarkMode = true;
+    },
+    setAllClear() {
+      this.form.rebranding_navbar_logo_url = "";
+      this.form.rebranding_navbar_logo_dark_url = "";
+      this.form.rebranding_login_background_url = "";
+      this.form.rebranding_favicon_url = "";
+      this.form.rebranding_login_logo_url = "";
+      this.form.rebranding_login_logo_dark_url = "";
+      this.form.rebranding_login_people = false;
+    },
   },
 };
 </script>
@@ -1034,6 +1087,7 @@ export default {
   width: 100%;
   height: 400px;
   border: 1px solid #ccc;
+  margin-top: 8px;
 }
 
 .login-background {
@@ -1070,10 +1124,11 @@ export default {
 .svg-image {
   width: 100%;
   height: auto;
+  margin-left: -24px;
 }
 
 .login-logo {
-  width: 40%;
+  height: 20px;
 }
 
 .login-form {
@@ -1174,5 +1229,27 @@ export default {
 .rebranding_section_title_style {
   color: #525252;
   font-size: 12px !important;
+}
+
+.theme-buttons {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.theme-button {
+  margin-left: 8px;
+  padding-right: 14px;
+}
+
+.clear-all-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  padding-right: 20px;
+}
+
+.clear_all_icon {
+  margin-right: 8px;
 }
 </style>

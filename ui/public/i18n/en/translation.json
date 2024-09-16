@@ -52,7 +52,7 @@
     "rebranding_login_background_url": "Login background image",
     "rebranding_login_background_url_tooltip": "Login background image",
     "rebranding_favicon_url": "Favicon",
-    "rebranding_favicon_tooltip": "Favicon",
+    "rebranding_favicon_url_tooltip": "Favicon",
     "rebranding_login_logo_url": "Logo in light theme",
     "rebranding_login_logo_url_tooltip": "Logo in light theme",
     "rebranding_login_logo_dark_url": "Logo in dark theme",
