@@ -15,16 +15,20 @@ import agent
 # get system id
 rdb = agent.redis_connect(privileged=False)
 subscription = rdb.hgetall('cluster/subscription')
-key = subscription['system_id']
 
-# call rebranding api
-url = f'https://my.nethesis.it/api/systems/rebranding/{key}'
-data = requests.get(url).json()
-
-# check if rebrand is active
+# set rebranding as inactive
 rebranding_active = False
-if 'brand' in data:
-    rebranding_active = True
+
+if 'system_id' in subscription:
+    key = subscription['system_id']
+
+    # call rebranding api
+    url = f'https://my.nethesis.it/api/systems/rebranding/{key}'
+    data = requests.get(url).json()
+
+    # check if rebrand is active
+    if 'brand' in data:
+        rebranding_active = True
 
 # compose config to return
 config = {
