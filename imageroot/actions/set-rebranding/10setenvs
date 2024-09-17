@@ -7,9 +7,10 @@
 
 import json
 import sys
+import os
+import requests
 
 import agent
-
 request = json.load(sys.stdin)
 
 def getFromRequest(request, var_name, env_name, default = ""):
@@ -18,16 +19,30 @@ def getFromRequest(request, var_name, env_name, default = ""):
     else:
         agent.set_env(env_name, default)
 
-getFromRequest(request, 'rebranding_login_people', 'LOGIN_PEOPLE', '')
+# get system id
+rdb = agent.redis_connect(privileged=False)
+subscription = rdb.hgetall('cluster/subscription')
 
-getFromRequest(request, 'rebranding_navbar_logo_url', 'NAVBAR_LOGO_URL', '')
-getFromRequest(request, 'rebranding_navbar_logo_dark_url', 'NAVBAR_LOGO_DARK_URL', '')
-getFromRequest(request, 'rebranding_login_logo_url', 'LOGIN_LOGO_URL', '')
-getFromRequest(request, 'rebranding_login_logo_dark_url', 'LOGIN_LOGO_DARK_URL', '')
+# check if system has a key
+if 'system_id' in subscription:
+    key = subscription['system_id']
 
-getFromRequest(request, 'rebranding_favicon_url', 'FAVICON_URL', '')
+    # call rebranding api
+    url = f'https://my.nethesis.it/api/systems/rebranding/{key}'
+    data = requests.get(url).json()
 
-getFromRequest(request, 'rebranding_login_background_url', 'LOGIN_BACKGROUND_URL', '')
+    # check if rebrand is active
+    if 'brand' in data:
+        getFromRequest(request, 'rebranding_login_people', 'LOGIN_PEOPLE', '')
 
-# try to restart the service if needed
-agent.run_helper(*'systemctl --user try-restart nethcti-ui.service'.split()).check_returncode()
+        getFromRequest(request, 'rebranding_navbar_logo_url', 'NAVBAR_LOGO_URL', '')
+        getFromRequest(request, 'rebranding_navbar_logo_dark_url', 'NAVBAR_LOGO_DARK_URL', '')
+        getFromRequest(request, 'rebranding_login_logo_url', 'LOGIN_LOGO_URL', '')
+        getFromRequest(request, 'rebranding_login_logo_dark_url', 'LOGIN_LOGO_DARK_URL', '')
+
+        getFromRequest(request, 'rebranding_favicon_url', 'FAVICON_URL', '')
+
+        getFromRequest(request, 'rebranding_login_background_url', 'LOGIN_BACKGROUND_URL', '')
+
+        # try to restart the service if needed
+        agent.run_helper(*'systemctl --user try-restart nethcti-ui.service'.split()).check_returncode()

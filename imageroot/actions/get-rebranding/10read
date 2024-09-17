@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2022 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import sys
+import os
+import requests
+
+import agent
+
+# get system id
+rdb = agent.redis_connect(privileged=False)
+subscription = rdb.hgetall('cluster/subscription')
+
+# set rebranding as inactive
+rebranding_active = False
+
+# check if system has a key
+if 'system_id' in subscription:
+    key = subscription['system_id']
+
+    # call rebranding api
+    url = f'https://my.nethesis.it/api/systems/rebranding/{key}'
+    data = requests.get(url).json()
+
+    # check if rebrand is active
+    if 'brand' in data:
+        rebranding_active = True
+
+# compose config to return
+config = {
+    'rebranding_active': rebranding_active,
+    'rebranding_login_people': os.getenv('LOGIN_PEOPLE', ''),
+    'rebranding_navbar_logo_url': os.getenv('NAVBAR_LOGO_URL', ''),
+    'rebranding_navbar_logo_dark_url': os.getenv('NAVBAR_LOGO_DARK_URL', ''),
+    'rebranding_login_logo_url': os.getenv('LOGIN_LOGO_URL', ''),
+    'rebranding_login_logo_dark_url': os.getenv('LOGIN_LOGO_DARK_URL', ''),
+    'rebranding_favicon_url': os.getenv('FAVICON_URL', ''),
+    'rebranding_login_background_url': os.getenv('LOGIN_BACKGROUND_URL', ''),
+}
+
+json.dump(config, fp=sys.stdout)

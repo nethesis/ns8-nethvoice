@@ -8,29 +8,9 @@
 import json
 import sys
 import os
-import requests
 
 import agent
 
-# get system id
-rdb = agent.redis_connect(privileged=False)
-subscription = rdb.hgetall('cluster/subscription')
-
-# set rebranding as inactive
-rebranding_active = False
-
-if 'system_id' in subscription:
-    key = subscription['system_id']
-
-    # call rebranding api
-    url = f'https://my.nethesis.it/api/systems/rebranding/{key}'
-    data = requests.get(url).json()
-
-    # check if rebrand is active
-    if 'brand' in data:
-        rebranding_active = True
-
-# compose config to return
 config = {
     'nethvoice_host': os.getenv('NETHVOICE_HOST', ''),
     'nethcti_ui_host': os.getenv('NETHCTI_UI_HOST', ''),
@@ -39,15 +19,7 @@ config = {
     'user_domain': os.getenv('USER_DOMAIN', ''),
     'reports_international_prefix': os.getenv('REPORTS_INTERNATIONAL_PREFIX', ''),
     'nethvoice_adm_username': os.getenv('NETHVOICE_USER_PORTAL_USERNAME', ''),
-    'nethvoice_adm_password': os.getenv('NETHVOICE_USER_PORTAL_PASSWORD', ''),
-    'rebranding_active': rebranding_active,
-    'rebranding_login_people': os.getenv('LOGIN_PEOPLE', ''),
-    'rebranding_navbar_logo_url': os.getenv('NAVBAR_LOGO_URL', ''),
-    'rebranding_navbar_logo_dark_url': os.getenv('NAVBAR_LOGO_DARK_URL', ''),
-    'rebranding_login_logo_url': os.getenv('LOGIN_LOGO_URL', ''),
-    'rebranding_login_logo_dark_url': os.getenv('LOGIN_LOGO_DARK_URL', ''),
-    'rebranding_favicon_url': os.getenv('FAVICON_URL', ''),
-    'rebranding_login_background_url': os.getenv('LOGIN_BACKGROUND_URL', ''),
+    'nethvoice_adm_password': os.getenv('NETHVOICE_USER_PORTAL_PASSWORD', '')
 }
 
 json.dump(config, fp=sys.stdout)
