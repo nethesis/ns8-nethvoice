@@ -8,7 +8,7 @@
     "properties": {
         "rebranding_active": {
             "description": "Show if rebranding is active or not",
-            "type": "string"
+            "type": "boolean"
         },
         "rebranding_login_people": {
             "description": "NethVoice rebranding show/hide people on login",
