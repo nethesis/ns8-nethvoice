@@ -386,6 +386,7 @@ export default {
       config: {},
       loading: {
         getConfiguration: false,
+        getRebranding: false,
         configureModule: false,
         userDomains: false,
         getDefaults: false,
@@ -431,7 +432,7 @@ export default {
     validLoginBackgroundUrl() {
       return (
         this.form.rebranding_login_background_url ||
-        require("../assets/sfondo_voice.svg")
+        require("../assets/background_voice.svg")
       );
     },
     validLogoUrl() {
@@ -455,6 +456,7 @@ export default {
   created() {
     this.getUserDomains();
     this.getDefaults();
+    this.getRebranding();
   },
   components: {
     Sun20,
@@ -524,8 +526,6 @@ export default {
 
       this.config = taskResult.output;
 
-      this.form.rebranding_active = config.rebranding_active;
-
       this.form.nethvoice_host = config.nethvoice_host;
       this.form.nethcti_ui_host = config.nethcti_ui_host;
       this.form.nethvoice_admin_password = "";
@@ -549,7 +549,55 @@ export default {
       this.form.nethvoice_adm.username = config.nethvoice_adm_username;
       this.form.nethvoice_adm.password = config.nethvoice_adm_password;
 
-      // rebranding section
+      this.focusElement("nethvoice_host");
+    },
+    async getRebranding() {
+      this.loading.getRebranding = true;
+
+      const taskAction = "get-rebranding";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.getRebrandingAborted
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.getRebrandingCompleted
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.getConfiguration = this.getErrorMessage(err);
+        this.loading.getRebranding = false;
+        return;
+      }
+    },
+    getRebrandingAborted(taskAction, taskContextGetRebranding) {
+      console.error(`${taskContextGetRebranding.action} aborted`, taskAction);
+      this.error.getConfiguration = this.$t("error.generic_error");
+      this.loading.getRebranding = false;
+      this.getConfiguration();
+    },
+    getRebrandingCompleted(taskContextGetRebranding, taskAction) {
+      const config = taskAction.output;
+
+      this.form.rebranding_active = config.rebranding_active;
       this.form.rebranding_navbar_logo_url = config.rebranding_navbar_logo_url;
       this.form.rebranding_navbar_logo_dark_url =
         config.rebranding_navbar_logo_dark_url;
@@ -565,8 +613,8 @@ export default {
       } else {
         this.form.rebranding_login_people = false;
       }
-
-      this.focusElement("nethvoice_host");
+      this.loading.getRebranding = false;
+      this.getConfiguration();
     },
     validateConfigureModule() {
       this.clearErrors(this);
@@ -878,6 +926,7 @@ export default {
       // reload configuration
       this.getConfiguration();
       this.getUserDomains();
+      this.getRebranding();
     },
     async getUserDomains() {
       this.loading.userDomains = true;
