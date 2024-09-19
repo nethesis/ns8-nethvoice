@@ -98,7 +98,7 @@ agent.set_env('AMPASTERISKWEBUSER', 'asterisk')
 agent.set_env('NETHCTI_AMI_PASSWORD', gen_password())
 
 agent.set_env('BRAND_NAME', 'NethVoice')
-agent.set_env('BRAND_SITE', 'http://www.nethvoice.it')
+agent.set_env('BRAND_SITE', 'https://www.nethesis.it/soluzioni/nethvoice')
 agent.set_env('BRAND_DOCS', 'https://docs.nethserver.org/projects/ns8/it/latest/nethvoice.html')
 
 agent.set_env('CDRDBHOST', '127.0.0.1')
