@@ -46,6 +46,7 @@ ExecStart=/usr/bin/podman run \
     --env=CDRDBPASS \
     --env=SUBSCRIPTION_SYSTEMID \
     --env=SUBSCRIPTION_SECRET \
+    --env=TIMEZONE=${TIMEZONE} \
     --network=host \
     --tz=${TIMEZONE} \
     ${NETHVOICE_CTI_SERVER_IMAGE}

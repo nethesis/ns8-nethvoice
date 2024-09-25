@@ -16,3 +16,7 @@ if os.getenv('PROXY_IP') is None or os.getenv('PROXY_PORT') is None:
         ksrv = agent.list_service_providers(agent.redis_connect(use_replica=True), "sip", "tcp", {"module_id": proxy_id.removeprefix("module/")})
         agent.set_env("PROXY_IP", ksrv[0]["host"])
         agent.set_env("PROXY_PORT", ksrv[0]["port"])
+
+# Set the brand site and docs static URLs
+agent.set_env('BRAND_SITE', 'https://www.nethesis.it/soluzioni/nethvoice')
+agent.set_env('BRAND_DOCS', 'https://docs.nethserver.org/projects/ns8/it/latest/nethvoice.html')

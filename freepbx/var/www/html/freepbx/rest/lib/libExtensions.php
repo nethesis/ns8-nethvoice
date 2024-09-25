@@ -730,10 +730,8 @@ function createMainExtensionForUser($username,$mainextension,$outboundcid='') {
 
     //Update user to add this extension as default extension
     //get uid
-    if (checkUsermanIsUnlocked()) {
-        $user = $fpbx->Userman->getUserByUsername($username);
-        $uid = $user['id'];
-    }
+    $user = $fpbx->Userman->getUserByUsername($username);
+    $uid = $user['id'];
     if (!isset($uid)) {
         return [array('message'=>'User not found' ), 404];
     }
@@ -780,9 +778,7 @@ function createMainExtensionForUser($username,$mainextension,$outboundcid='') {
         $stmt = $dbh->prepare($sql);
         $stmt->execute(array($uid));
 
-        if (checkUsermanIsUnlocked()) {
-            $fpbx->Userman->updateUser($uid, $username, $username);
-        }
+        $status = updateUsermanUser($username);
     }
 
     //exit if extension is empty
@@ -815,10 +811,7 @@ function createMainExtensionForUser($username,$mainextension,$outboundcid='') {
     $astman->database_del("CW",$mainextension);
 
     //update user with $extension as default extension
-    $res['status'] = false;
-    if (checkUsermanIsUnlocked()) {
-        $res = $fpbx->Userman->updateUser($uid, $username, $username, $mainextension);
-    }
+    $res = updateUsermanUser($username,$mainextension);
     if (!$res['status']) {
         //Can't assign extension to user, delete extension
         deleteExtension($mainextension);
@@ -829,25 +822,6 @@ function createMainExtensionForUser($username,$mainextension,$outboundcid='') {
         return [array('message'=>$res['message']), 500];
     }
     return true;
-}
-
-function checkUsermanIsUnlocked(){
-    // Check if user directory is locked, wait if it is and exit fail
-    $locked=1;
-    $dbh = FreePBX::Database();
-    for ($i=0; $i<30; $i++) {
-        $sql = 'SELECT `locked` FROM userman_directories WHERE `name` LIKE "NethServer %"';
-        $sth = $dbh->prepare($sql);
-        $sth->execute(array());
-        $locked = $sth->fetchAll()[0][0];
-        if ($locked == 0) {
-            return true;
-        }
-        sleep(1+0.2*$i);
-    }
-    if ($locked == 1) {
-        return false;
-    }
 }
 
 function checkTableExists($table) {
@@ -1009,4 +983,25 @@ function setExtensionCustomContextProfile($extension) {
 
 function getProvisioningEngine() {
     return 'tancredi';
+}
+
+function updateUsermanUser($username, $mainextension = 'none') {
+    global $amp_conf;
+    $fpbx = FreePBX::create();
+    $uid = $fpbx->Userman->getUserByUsername($username)['id'];
+    $u = $fpbx->Userman->getUserByID($uid);
+    foreach ($fpbx->Userman->getAllDirectories() as $directory) {
+        if ($directory['id'] == $u['auth']) {
+            $class = 'FreePBX\modules\Userman\Auth\\'.$directory['driver'];
+            if(!class_exists($class)) {
+                include($amp_conf['AMPWEBROOT']."/admin/modules/userman/functions.inc/auth/modules/".$directory['driver'].".php");
+            }
+            $d = new $class($fpbx->Userman, $fpbx, $directory['config']);
+            $status = $d->updateUser($uid, $username, $username, $mainextension, null, array(), null, false);
+            if ($status['status'] == false) {
+                error_log(__FUNCTION__ . 'ERROR: ' . $status['message']);
+            }
+            return $status;
+        }
+    }
 }

@@ -48,18 +48,14 @@ $app->post('/mainextensions', function (Request $request, Response $response, $a
     $mainextension = $params['extension'];
     $outboundcid = $params['outboundcid'];
 
-    if (checkUsermanIsUnlocked()) {
-        if (
-            configuredUsersCount() >= communityUsersLimit() && // check if there are more configured users than the allowed limit
-            (empty($_ENV['SUBSCRIPTION_SYSTEMID']) || empty($_ENV['SUBSCRIPTION_SECRET'])) && // it isn't registered as enterprise
-            !empty($mainextension) // the user is trying to create a new extension
-        ) {
-            return $response->withJson(array("status"=>'ERROR: community version is limited to 8 users'), 403);
-        }
-        $ret = createMainExtensionForUser($username,$mainextension,$outboundcid);
-    } else {
-        return $response->withJson(array("status"=>'ERROR: directory is locked'), 500);
+    if (
+        configuredUsersCount() >= communityUsersLimit() && // check if there are more configured users than the allowed limit
+        (empty($_ENV['SUBSCRIPTION_SYSTEMID']) || empty($_ENV['SUBSCRIPTION_SECRET'])) && // it isn't registered as enterprise
+        !empty($mainextension) // the user is trying to create a new extension
+    ) {
+        return $response->withJson(array("status"=>'ERROR: community version is limited to 8 users'), 403);
     }
+        $ret = createMainExtensionForUser($username,$mainextension,$outboundcid);
 
     system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
 
