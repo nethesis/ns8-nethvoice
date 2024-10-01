@@ -40,13 +40,10 @@ ExecStart=/usr/bin/podman run \
     --env=AMPDBUSER \
     --env=AMPDBHOST \
     --env=AMPDBNAME \
-    --env=AMPDBPASS \
     --env=CDRDBHOST \
     --env=CDRDBNAME \
     --env=CDRDBUSER \
-    --env=CDRDBPASS \
     --env=SUBSCRIPTION_SYSTEMID \
-    --env=SUBSCRIPTION_SECRET \
     --network=host \
     --tz=${TIMEZONE} \
     ${NETHVOICE_CTI_SERVER_IMAGE}
