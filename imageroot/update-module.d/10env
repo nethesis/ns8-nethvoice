@@ -17,8 +17,8 @@ if os.getenv('PROXY_IP') is None or os.getenv('PROXY_PORT') is None:
         agent.set_env("PROXY_IP", ksrv[0]["host"])
         agent.set_env("PROXY_PORT", ksrv[0]["port"])
 
-# test if the passwords.env is present and if 'MARIADB_ROOT_PASSWORD' is present
-if not os.path.exists("passwords.env") and os.getenv('MARIADB_ROOT_PASSWORD') is not None:
+# test if the passwords.env is present
+if not os.path.exists("passwords.env"):
     # if not present, create it
     passwords = {
         "MARIADB_ROOT_PASSWORD": os.environ['MARIADB_ROOT_PASSWORD'],
@@ -35,8 +35,8 @@ if not os.path.exists("passwords.env") and os.getenv('MARIADB_ROOT_PASSWORD') is
         "REPORTS_PASSWORD": os.environ['REPORTS_PASSWORD'],
         "REPORTS_API_KEY": os.environ['REPORTS_API_KEY'],
         "REPORTS_SECRET": os.environ['REPORTS_SECRET'],
-        "NETHVOICE_USER_PORTAL_PASSWORD": os.environ['NETHVOICE_USER_PORTAL_PASSWORD'],
-        "SUBSCRIPTION_SECRET": os.environ['SUBSCRIPTION_SECRET'],
+        "NETHVOICE_USER_PORTAL_PASSWORD": os.getenv('NETHVOICE_USER_PORTAL_PASSWORD', ''),
+        "SUBSCRIPTION_SECRET": os.getenv('SUBSCRIPTION_SECRET', ''),
         "NETHVOICE_LDAP_PASS": os.environ['NETHVOICE_LDAP_PASS'],
     }
     agent.write_envfile("passwords.env", passwords)
