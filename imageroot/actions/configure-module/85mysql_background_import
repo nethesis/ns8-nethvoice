@@ -21,7 +21,6 @@ podman run \
     --network=host \
     --volume=./restore_background:/restore_background:z \
     --env-file=./passwords.env \
-    --env=MARIADB_ROOT_PASSWORD \
     --env=NETHVOICE_MARIADB_PORT \
     "${NETHVOICE_MARIADB_IMAGE}" \
     bash -c 'for FILE in $(ls /restore_background/*.sql); do mysql -u root -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$MARIADB_ROOT_PASSWORD <  $FILE && rm $FILE; done'
