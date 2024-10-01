@@ -169,6 +169,18 @@ $app->post('/users/sync', function (Request $request, Response $response, $args)
 });
 
 
+
+#
+# check if userman is syncing
+#
+
+$app->get('/users/sync', function (Request $request, Response $response, $args) {
+    system('ps aux | grep -q [f]"wconsole userman.*syncall"', $out);
+    return $response->withJson(($out === 0), 200);
+});
+
+
+
 #
 # Import users from csv long running task
 #
