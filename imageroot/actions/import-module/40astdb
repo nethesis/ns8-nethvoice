@@ -14,7 +14,6 @@ podman run \
     --name=restore_astdb \
     --volume=astdb:/var/lib/asterisk/db:z \
     --volume=./restore:/backup:z \
-    --env-file=./passwords.env \
     "${NETHVOICE_FREEPBX_IMAGE}" \
     su -c "rm -fr /var/lib/asterisk/db/astdb.sqlite3; sqlite3 /var/lib/asterisk/db/astdb.sqlite3 < /backup/astdb.sqlite3.dump" -s /bin/bash asterisk
 

@@ -12,7 +12,6 @@ podman run \
     --rm \
     --name=prepare_db \
     --volume=./db_backup:/backup:z \
-    --env-file=./passwords.env \
     "${NETHVOICE_MARIADB_IMAGE}" \
     mariabackup --prepare --target-dir=/backup
 
@@ -22,7 +21,6 @@ podman run \
     --name=restore_backup \
     --volume=./db_backup:/backup:z \
     --volume=mariadb-data:/var/lib/mysql:z \
-    --env-file=./passwords.env \
     "${NETHVOICE_MARIADB_IMAGE}" \
     mariabackup --copy-back --target-dir=/backup
 

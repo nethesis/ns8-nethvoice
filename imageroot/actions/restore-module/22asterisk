@@ -14,7 +14,6 @@ podman run \
     --name asterisk_restore \
     --volume=sounds:/var/lib/asterisk/sounds:Z \
     --volume=astdb:/var/lib/asterisk/db:z \
-    --env-file=./passwords.env \
     "$NETHVOICE_FREEPBX_IMAGE" sleep infinity
 
 trap 'podman stop -t 0 asterisk_restore' EXIT
