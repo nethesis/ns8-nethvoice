@@ -156,16 +156,13 @@ function nethcti3_get_config_late($engine) {
                 $details = FreePBX::Core()->getTrunkDetails($trunk['trunkid']);
                 if (in_array($details['sip_server'], $voip_providers)) {
                     // Trunk needs needs media encryption disabled, set isTrunk header to 1
-                    $voip_trunk_if[] =  '"${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"';
+                    try {
+                        $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'isTrunk,1'));
+                    } Catch(Exception $e) {
+                        error_log('error adding isTrunk header setter to dialplan');
+                    }
                 }
             }
-	    if (!empty($voip_trunk_if)) {
-                try {
-                    $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$[' . implode (' | ', $voip_trunk_if) . ']', 'func-set-sipheader,s,1', false, 'isTrunk,1'));
-		    } Catch(Exception $e) {
-                error_log('error adding isTrunk header setter to dialplan');
-            }
-        }
         /* Add inboundlookup agi for each inbound routes*/
         $dids = FreePBX::Core()->getAllDIDs();
         if (!empty($dids)) {
