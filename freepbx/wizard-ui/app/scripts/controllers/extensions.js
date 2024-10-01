@@ -24,6 +24,9 @@ angular.module('nethvoiceWizardUiApp')
     $scope.localDomain = "";
     $scope.licenseMissing = false;
     $scope.unitLeftInformation = {};
+    $scope.userSyncronization = '';
+    $scope.userNotReadyFirstTime = false;
+    $scope.intervalId = '';
 
     $scope.error = {
       file: {
@@ -255,6 +258,27 @@ angular.module('nethvoiceWizardUiApp')
         }
       })
     }
+
+    $scope.getUserSyncronization = function () {
+      UserService.statusSynchronization().then(function (res) {
+        $scope.userSyncronization = res.data
+        if($scope.userSyncronization){
+          $scope.userNotReadyFirstTime = true;
+        } else {
+          $scope.userNotReadyFirstTime = false;
+          $scope.getUserList();
+          clearInterval($scope.intervalId);
+        }
+      } , function (err) {
+        console.log(err)
+      })
+    }
+
+    $scope.intervalId = setInterval(function(){
+      $scope.getUserSyncronization();
+    }, 5000);
+
+    $scope.getUserSyncronization();
 
     $scope.getInformationLicense();
     

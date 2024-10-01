@@ -48,6 +48,12 @@
         </div>
       </div>
 
+
+    <div ng-if="userNotReadyFirstTime" id='syncingAlert' class="alert alert-warning alert-dismissable">
+      <span class="pficon pficon-warning-triangle-o"></span>
+      <strong>{{'Warning' | translate}}!</strong> {{'Syncing message' | translate}}...
+    </div>
+
       <form role="form" class="search-pf has-button adjust-form" id="form-lg-domains-details">
         <div class="form-group has-clear">
           <div class="search-pf-input-group" id="filter-domains-details">
