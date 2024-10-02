@@ -11,6 +11,12 @@ import os
 
 import agent
 
+# try to read passwords.env, else initialize an empty string
+try:
+    password = agent.read_envfile("passwords.env").get('NETHVOICE_USER_PORTAL_PASSWORD',"")
+except FileNotFoundError:
+    password = ""
+
 config = {
     'nethvoice_host': os.getenv('NETHVOICE_HOST', ''),
     'nethcti_ui_host': os.getenv('NETHCTI_UI_HOST', ''),
@@ -19,7 +25,7 @@ config = {
     'user_domain': os.getenv('USER_DOMAIN', ''),
     'reports_international_prefix': os.getenv('REPORTS_INTERNATIONAL_PREFIX', ''),
     'nethvoice_adm_username': os.getenv('NETHVOICE_USER_PORTAL_USERNAME', ''),
-    'nethvoice_adm_password': agent.read_envfile("passwords.env").get('NETHVOICE_USER_PORTAL_PASSWORD',""),
+    'nethvoice_adm_password': password,
 }
 
 json.dump(config, fp=sys.stdout)
