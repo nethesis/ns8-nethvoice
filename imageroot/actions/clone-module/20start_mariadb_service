@@ -6,7 +6,6 @@
 #
 
 import agent
-import os
 
 # Start the MariaDB service
 agent.run_helper(*'systemctl --user start mariadb.service'.split()).check_returncode()

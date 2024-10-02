@@ -9,7 +9,7 @@ import agent
 import os
 
 # Set new service ports
-MARIADB_ROOT_PASSWORD = agent.read_envfile("passwords.env")['MARIADB_ROOT_PASSWORD']
+MARIADB_ROOT_PASSWORD = agent.read_envfile("passwords.new")['MARIADB_ROOT_PASSWORD']
 # SQL query to update kvstore_Sipsettings
 SQL_QUERY = f"""
 UPDATE `kvstore_Sipsettings`
