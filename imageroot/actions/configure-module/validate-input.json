@@ -174,7 +174,7 @@
         "reports_international_prefix": {
             "description": "International prefix for the reports.",
             "type": "string",
-            "pattern": "^(00\\d{2}|\\+\\d{2})$"
+            "pattern": "^(00\\d{1,4}|\\+\\d{1,4})$"
         },
         "reports_ui_app_name": {
             "description": "Name of the reports UI app.",
