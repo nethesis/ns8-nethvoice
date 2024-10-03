@@ -162,4 +162,4 @@ passwords = {
     "REPORTS_SECRET": gen_password()
 }
 
-agent.write_envfile("passwords.new", passwords)
+agent.write_envfile("passwords.env", passwords)
