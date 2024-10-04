@@ -37,7 +37,7 @@ FreePBX and nethvoice-wizard-ui files are imported from NethVoice14 for NS7, net
 - `APACHE_PORT` Port used for httpd
 - `TANCREDIPORT` Port used bt Tancredi
 - `BRAND_NAME` Name for branding (default: NethVoice)
-- `BRAND_SITE` Site or branding (default: www.nethesis.it)
+- `BRAND_SITE` Site or branding (default: https://www.nethesis.it/soluzioni/nethvoice)
 - `BRAND_DOCS` Site or documentation (default: ?)
 - `SUBSCRIPTION_SYSTEMID` my.nethesis.it server SystemID
 - `SUBSCRIPTION_SECRET` my.nethesis.it server secret

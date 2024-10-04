@@ -3735,3 +3735,8 @@ a.black:active {
 .adjust-container-height {
   min-height: 80px !important;
 }
+
+#syncingAlert {
+  margin-top: 8px !important;
+  margin-bottom: -4px !important;
+}

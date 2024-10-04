@@ -15,6 +15,9 @@ angular.module('nethvoiceWizardUiApp')
     $scope.customConfig = customConfig
     $scope.appConfig = appConfig
     $scope.macVendors = null
+    $scope.userSyncronization = '';
+    $scope.userNotReadyFirstTime = false;
+    $scope.intervalId = '';
 
     $scope.view = {
       changeRoute: true,

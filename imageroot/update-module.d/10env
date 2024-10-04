@@ -59,3 +59,7 @@ if not os.path.exists("passwords.env"):
     agent.unset_env('NETHVOICE_USER_PORTAL_PASSWORD')
     agent.unset_env('SUBSCRIPTION_SECRET')
     agent.unset_env('NETHVOICE_LDAP_PASS')
+
+# Set the brand site and docs static URLs
+agent.set_env('BRAND_SITE', 'https://www.nethesis.it/soluzioni/nethvoice')
+agent.set_env('BRAND_DOCS', 'https://docs.nethserver.org/projects/ns8/it/latest/nethvoice.html')
