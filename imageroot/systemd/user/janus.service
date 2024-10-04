@@ -30,7 +30,7 @@ ExecStart=/usr/bin/podman run \
     /usr/local/bin/janus \
     --configs-folder=/usr/local/etc/janus \
     --interface=lo \
-    --ice-ignore-list=${ICEIGNORE:=vmnet,tap,tun,virb,vb-} \
+    --ice-ignore-list=${ICEIGNORE} \
     --stun-server=${STUNSERVER}:${STUNPORT} \
     --rtp-port-range=${JANUS_RTPSTART}-${JANUS_RTPEND} \
     --cert-pem=/etc/certificates/NethServer.pem \

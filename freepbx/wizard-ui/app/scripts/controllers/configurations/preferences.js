@@ -718,6 +718,27 @@ angular.module('nethvoiceWizardUiApp')
       $scope.currentPhoneInfo = {}
     })
 
+    $scope.getUserSyncronization = function () {
+      UserService.statusSynchronization().then(function (res) {
+        $scope.userSyncronization = res.data
+        if($scope.userSyncronization){
+          $scope.userNotReadyFirstTime = true;
+        } else {
+          $scope.userNotReadyFirstTime = false;
+          getAllUsers();
+          clearInterval($scope.intervalId);
+        }
+      } , function (err) {
+        console.log(err)
+      })
+    }
+
+    $scope.intervalId = setInterval(function(){
+      $scope.getUserSyncronization();
+    }, 5000);
+
+    $scope.getUserSyncronization();
+    
     var init = function () {
       getAllModelsAndUsersAndDevices()
       getAllProfiles()

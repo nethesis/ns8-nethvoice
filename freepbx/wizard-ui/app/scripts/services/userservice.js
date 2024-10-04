@@ -270,4 +270,15 @@ angular.module('nethvoiceWizardUiApp')
         });
       }  
 
+      //retrieve user's synchronization status
+      this.statusSynchronization = function () {
+        return $q(function (resolve, reject) {
+          RestService.get('/users/sync').then(function (res) {
+            resolve(res);
+          }, function (err) {
+            reject(err);
+          });
+        });
+      }
+
   });
