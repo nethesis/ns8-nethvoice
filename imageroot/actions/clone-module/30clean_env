@@ -6,7 +6,6 @@
 #
 
 import agent
-import os
 
 
 # Cleanup the environment

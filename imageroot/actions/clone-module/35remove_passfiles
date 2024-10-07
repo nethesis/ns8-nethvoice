@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e 
+# redirect output to stder
+exec 1>&2
+
+# remove passwords.old
+/usr/bin/rm -vf ./passwords.old
