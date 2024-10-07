@@ -103,4 +103,4 @@ php -r 'include_once "/etc/freepbx_db.conf"; $db->query("UPDATE freepbx_settings
 fwconsole userman --syncall --force --verbose
 
 # Always apply changes on start
-su - asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload"
+su asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload"

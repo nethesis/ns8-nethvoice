@@ -103,7 +103,7 @@ fi
 cat > /var/www/html/freepbx/wizard/scripts/custom.js <<EOF
 var customConfig = {
   BRAND_NAME: '${BRAND_NAME:=NethVoice}',
-  BRAND_SITE: '${BRAND_SITE:=http://www.nethvoice.it}',
+  BRAND_SITE: '${BRAND_SITE:=https://www.nethesis.it/soluzioni/nethvoice}',
   BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethserver.org/projects/ns8/it/latest/nethvoice.html}',
   BASE_API_URL: '/freepbx/rest',
   BASE_API_URL_CTI: '/webrest',

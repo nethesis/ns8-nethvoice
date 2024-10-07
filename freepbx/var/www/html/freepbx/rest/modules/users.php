@@ -67,6 +67,13 @@ $app->get('/users/count', function (Request $request, Response $response, $args)
     return $response->withJson(count(array_values($users)),200);
 });
 
+# Check if userman is syncing
+
+$app->get('/users/sync', function (Request $request, Response $response, $args) {
+    system('ps aux | grep -q [f]"wconsole userman.*syncall"', $out);
+    return $response->withJson(($out === 0), 200);
+});
+
 # List all users
 
 $app->get('/users/{all}', function (Request $request, Response $response, $args) {

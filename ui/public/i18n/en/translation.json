@@ -45,6 +45,21 @@
     "user_domain_selector": "User Domain Source",
     "reports_international_prefix": "Reports Prefix",
     "reports_international_prefix_tooltip": "Format must be either \"00**\" or \"+**\"",
+    "rebranding_navbar_logo_url": "Navbar image in light theme",
+    "rebranding_navbar_logo_url_tooltip": "Navbar image in light theme",
+    "rebranding_navbar_logo_dark_url": "Navbar image in dark theme",
+    "rebranding_navbar_logo_dark_url_tooltip": "Navbar image in dark theme",
+    "rebranding_login_background_url": "Login background image",
+    "rebranding_login_background_url_tooltip": "Login background image",
+    "rebranding_favicon_url": "Favicon",
+    "rebranding_favicon_url_tooltip": "Favicon",
+    "rebranding_login_logo_url": "Logo in light theme",
+    "rebranding_login_logo_url_tooltip": "Logo in light theme",
+    "rebranding_login_logo_dark_url": "Logo in dark theme",
+    "rebranding_login_logo_dark_url_tooltip": "Logo in dark theme",
+    "rebranding_login_people": "Hide login people image",
+    "rebranding_login_people_tooltip": "Check to hide login people image",
+    "dark_theme_label": "Activate dark theme",
     "reports_prefix_invalid": "Invalid format",
     "set_password": "NethVoice admin password reset",
     "timezone": "Timezone",
@@ -55,7 +70,8 @@
     "set_nethvoice_adm_password": "Set NethVoice Administrator password for users management",
     "error_message_hostname": "By changing the user provider of an already configured NethVoice, all the users and extensions configuration will be reset.",
     "nethvoice_host_format": "Must be a valid domain name be a valid domain name.",
-    "nethcti_ui_host_format": "Must be a valid domain name be a valid domain name."
+    "nethcti_ui_host_format": "Must be a valid domain name be a valid domain name.",
+    "set_rebranding": "Rebranding setup"
   },
   "warning": {
     "warning_title_message": "Warning"

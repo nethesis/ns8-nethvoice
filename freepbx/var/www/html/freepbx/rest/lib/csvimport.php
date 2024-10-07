@@ -129,22 +129,17 @@ try {
 
         # create extension
         if (isset($row[2]) && preg_match('/^[0-9]+$/',$row[2])) {
-            if (checkUsermanIsUnlocked()) {
-                $create = createMainExtensionForUser($username,$row[2]);
-                if ($create !== true) {
-                    $result += 1;
-                    $err .= "Error adding main extension ".$row[2]." to user ".$username.": ".$create['message']."\n";
-                } else {
-                    // assign physical device to user if it is a migration
-                    if (function_exists('isMigration') && isMigration()) {
-                        $secret = getOldSecret($row[2]);
-                        $extension = createExtension($row[2],false);
-                        useExtensionAsCustomPhysical($extension,$secret,'temporaryphysical');
-                    }
-                }
+            $create = createMainExtensionForUser($username,$row[2]);
+            if ($create !== true) {
+                $result += 1;
+                $err .= "Error adding main extension ".$row[2]." to user ".$username.": ".$create['message']."\n";
             } else {
-                $err .= "Error adding main extension ".$row[2]." to user ".$username.": directory is locked";
-                continue;
+                // assign physical device to user if it is a migration
+                if (function_exists('isMigration') && isMigration()) {
+                    $secret = getOldSecret($row[2]);
+                    $extension = createExtension($row[2],false);
+                    useExtensionAsCustomPhysical($extension,$secret,'temporaryphysical');
+                }
             }
         }
 
