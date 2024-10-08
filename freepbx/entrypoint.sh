@@ -194,6 +194,18 @@ while (\$row = \$sth->fetch(\PDO::FETCH_ASSOC)) {
   '${NETHCTI_DB_PASSWORD}');
 EOF
 
+# create recallonbusy configuration file if it doesn't exist
+if [[ ! -f /etc/asterisk/recallonbusy.cfg ]]; then
+	cat > /etc/freepbx_db.conf <<EOF
+[recallonbusy]
+Host: 127.0.0.1
+Port: 5038
+Username: CHANGEME
+Secret: CHANGEME
+Debug : False
+CheckInterval: 20
+EOF
+fi
 # configure recallonbusy
 sed -i 's/^Port: .*/Port: '${ASTMANAGERPORT}'/' /etc/asterisk/recallonbusy.cfg
 sed -i 's/^Username: .*/Username: proxycti/' /etc/asterisk/recallonbusy.cfg
