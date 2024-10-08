@@ -1,74 +1,98 @@
 {
-  "about": {
-    "title": "Informazioni"
-  },
-  "action": {
-    "configure-module": "Configura modulo",
-    "get-configuration": "Visualizza configurazione",
-    "get-module-info": "Visualizza info modulo",
-    "get-name": "Visualizza nome",
-    "get-status": "Visualizza stato",
-    "list-backup-repositories": "Elenca repository di backup",
-    "list-backups": "Elenca backup",
-    "list-installed-modules": "Elenca moduli installati"
-  },
-  "common": {
-    "processing": "Elaborazione in corso...",
-    "required": "Obbligatorio",
-    "work_in_progress": "In lavorazione"
-  },
-  "error": {
-    "401": "Autenticazione non valida",
-    "403": "Operazione non autorizzata",
-    "404": "Risorsa non trovata",
-    "cannot_retrieve_installed_modules": "Impossibile elencare moduli installati",
-    "cannot_retrieve_module_info": "Impossibile recuperare info modulo",
-    "error": "Errore",
-    "generic_error": "Qualcosa è andato storto",
-    "network_error": "Errore di rete",
-    "network_timeout": "Timeout di rete",
-    "required": "Obbligatorio",
-    "same_host": "Non è possibile usare lo stesso dominio per NethVoice e NethVoice CTI",
-    "validation_error": "Errore di validazione",
-    "reports_prefix_invalid": "Formato errato"
-  },
-  "settings": {
-    "configure_instance": "Configura {instance}",
-    "lets_encrypt": "Richiedi certificato Let's Encrypt",
-    "nethcti_ui_host": "Host base di NethVoice CTI",
-    "nethvoice_host": "Host base di NethVoice",
-    "nethvoice_admin_password": "Reset della password di admin di NethVoice per accedere all'interfaccia (opzionale)",
-    "save": "Salva",
-    "title": "Impostazioni",
-    "user_domain": "Host Dominio Utenti",
-    "user_domain_placeholder": "Seleziona un dominio utenti all'interno del cluster.",
-    "user_domain_selector": "Sorgente Dominio Utenti",
-    "reports_international_prefix": "Prefisso Report",
-    "reports_international_prefix_tooltip": "Il formato del prefisso deve essere \"00**\" o \"+**\"",
-    "set_password": "Reset della password di admin di NethVoice",
-    "timezone": "Timezone",
-    "timezone_placeholder": "Scegli timezone",
-    "timezone_tooltip": "Imposta la timezone di default per questa installazione di NethVoice",
-    "create_nethvoice_adm": "Creazione NethVoice Administrator per gestione utenti",
-    "remove_nethvoice_adm": "Rimozione NethVoice Administrator per gestione utenti"
-  },
-  "status": {
-    "app_images": "Immagine app|Immagini app",
-    "app_instance": "Istanza app",
-    "app_volumes": "Volume app|Volumi app",
-    "created": "Creato",
-    "installation_node": "Nodo",
-    "mount": "Percorso di mount",
-    "name": "Nome",
-    "no_images": "Nessuna immagine",
-    "no_services": "Nessun servizio",
-    "no_volumes": "Nessun volume",
-    "node": "Nodo",
-    "services": "Servizio | Servizi",
-    "size": "Dimensione",
-    "title": "Stato"
-  },
-  "task": {
-    "cannot_create_task": "Impossibile eseguire task {action}"
-  }
+    "about": {
+        "title": "Informazioni"
+    },
+    "action": {
+        "configure-module": "Configura modulo",
+        "get-configuration": "Visualizza configurazione",
+        "get-module-info": "Visualizza info modulo",
+        "get-name": "Visualizza nome",
+        "get-status": "Visualizza stato",
+        "list-backup-repositories": "Elenca repository di backup",
+        "list-backups": "Elenca backup",
+        "list-installed-modules": "Elenca moduli installati"
+    },
+    "common": {
+        "processing": "Elaborazione in corso...",
+        "required": "Obbligatorio",
+        "work_in_progress": "In lavorazione"
+    },
+    "error": {
+        "401": "Autenticazione non valida",
+        "403": "Operazione non autorizzata",
+        "404": "Risorsa non trovata",
+        "cannot_retrieve_installed_modules": "Impossibile elencare moduli installati",
+        "cannot_retrieve_module_info": "Impossibile recuperare info modulo",
+        "error": "Errore",
+        "generic_error": "Qualcosa è andato storto",
+        "network_error": "Errore di rete",
+        "network_timeout": "Timeout di rete",
+        "required": "Obbligatorio",
+        "same_host": "Non è possibile usare lo stesso dominio per NethVoice e NethVoice CTI",
+        "validation_error": "Errore di validazione",
+        "reports_prefix_invalid": "Formato errato"
+    },
+    "settings": {
+        "configure_instance": "Configura {instance}",
+        "lets_encrypt": "Richiedi certificato Let's Encrypt",
+        "nethcti_ui_host": "Host base di NethVoice CTI",
+        "nethvoice_host": "Host base di NethVoice",
+        "nethvoice_admin_password": "Reset della password di admin di NethVoice per accedere all'interfaccia (opzionale)",
+        "save": "Salva",
+        "title": "Impostazioni",
+        "user_domain": "Host Dominio Utenti",
+        "user_domain_placeholder": "Seleziona un dominio utenti all'interno del cluster.",
+        "user_domain_selector": "Sorgente Dominio Utenti",
+        "reports_international_prefix": "Prefisso Report",
+        "reports_international_prefix_tooltip": "Il formato del prefisso deve essere \"00**\" o \"+**\"",
+        "set_password": "Reset della password di admin di NethVoice",
+        "timezone": "Timezone",
+        "timezone_placeholder": "Scegli timezone",
+        "timezone_tooltip": "Imposta la timezone di default per questa installazione di NethVoice",
+        "create_nethvoice_adm": "Creazione NethVoice Administrator per gestione utenti",
+        "remove_nethvoice_adm": "Rimozione NethVoice Administrator per gestione utenti",
+        "rebranding_navbar_logo_url": "Immagine della barra di navigazione in tema chiaro",
+        "rebranding_navbar_logo_url_tooltip": "Immagine della barra di navigazione in tema chiaro",
+        "rebranding_navbar_logo_dark_url": "Immagine della barra di navigazione in tema scuro",
+        "rebranding_navbar_logo_dark_url_tooltip": "Immagine della barra di navigazione in tema scuro",
+        "rebranding_login_background_url": "Immagine di sfondo per il Login",
+        "rebranding_login_background_url_tooltip": "Immagine di sfondo per il Login",
+        "rebranding_favicon_url": "Favicon",
+        "rebranding_favicon_url_tooltip": "Favicon",
+        "rebranding_login_logo_url": "Logo in tema chiaro",
+        "rebranding_login_logo_url_tooltip": "Logo in tema chiaro",
+        "rebranding_login_logo_dark_url": "Logo in tema scuro",
+        "rebranding_login_logo_dark_url_tooltip": "Logo in tema scuro",
+        "rebranding_login_people": "Nascondi immagine persone nel Login",
+        "rebranding_login_people_tooltip": "Selezione per nascondere l'immagine delle persone nel Login",
+        "dark_theme_label": "Attiva tema scuro",
+        "reports_prefix_invalid": "Formato invalido",
+        "set_nethvoice_adm_password": "Imposta la password dell'amministratore NethVoice per la gestione degli utenti",
+        "nethvoice_host_format": "Deve essere un nome di dominio valido.",
+        "nethcti_ui_host_format": "Deve essere un nome di dominio valido.",
+        "error_message_hostname": "Modificando il provider utente di un NethVoice già configurato, tutte le configurazioni degli utenti e delle estensioni verranno resettate.",
+        "set_rebranding": "Configurazione Rebranding"
+    },
+    "status": {
+        "app_images": "Immagine app|Immagini app",
+        "app_instance": "Istanza app",
+        "app_volumes": "Volume app|Volumi app",
+        "created": "Creato",
+        "installation_node": "Nodo",
+        "mount": "Percorso di mount",
+        "name": "Nome",
+        "no_images": "Nessuna immagine",
+        "no_services": "Nessun servizio",
+        "no_volumes": "Nessun volume",
+        "node": "Nodo",
+        "services": "Servizio | Servizi",
+        "size": "Dimensione",
+        "title": "Stato"
+    },
+    "task": {
+        "cannot_create_task": "Impossibile eseguire task {action}"
+    },
+    "warning": {
+        "warning_title_message": "Attenzione"
+    }
 }
