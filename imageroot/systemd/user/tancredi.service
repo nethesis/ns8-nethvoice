@@ -26,6 +26,7 @@ ExecStart=/usr/bin/podman run \
     --env-file=%S/state/passwords.env \
     --env=TANCREDIPORT \
     --env=AMPDBUSER \
+    --env=NETHVOICE_MARIADB_PORT \
     --env=NETHVOICE_HOST \
     --env=TIMEZONE \
     --env=NETHVOICE_PROXY_FQDN \
