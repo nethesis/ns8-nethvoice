@@ -2,7 +2,7 @@
 	<rawname>recallonbusy</rawname>
 	<repo>unsupported</repo>
 	<name>Recall On Busy</name>
-	<version>0.0.1</version>
+	<version>0.0.2</version>
 	<category>Applications</category>
   	<menuitems>
 		<recallonbusy>Recall On Busy</recallonbusy>

@@ -30,6 +30,7 @@ ExecStart=/usr/bin/podman run \
     --env=NETHVOICE_HOST \
     --env=TIMEZONE \
     --env=NETHVOICE_PROXY_FQDN \
+    --env=PHONEBOOK_LDAP* \
     --tz=${TIMEZONE} \
     --network=host \
     ${NETHVOICE_TANCREDI_IMAGE}
