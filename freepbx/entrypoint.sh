@@ -196,7 +196,7 @@ EOF
 
 # create recallonbusy configuration if it doesn't exist
 if [[ ! -f /etc/asterisk/recallonbusy.cfg ]]; then
-	cat > /etc/asterisk/recallonbusy.cfg <<EOF
+  cat > /etc/asterisk/recallonbusy.cfg <<EOF
 [recallonbusy]
 Host: 127.0.0.1
 Port: 5038
