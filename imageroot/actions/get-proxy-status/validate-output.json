@@ -14,5 +14,7 @@
       "description": "Test if the Nethvoice proxy is installed",
       "type": "boolean"
     }
-  }
+  },
+  "required": ["proxy_installed"],
+  "additionalProperties": false
 }
