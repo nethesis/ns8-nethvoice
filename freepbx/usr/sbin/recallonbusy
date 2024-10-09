@@ -197,7 +197,17 @@ if __name__ == '__main__':
 	client = AMIClient('/etc/asterisk/recallonbusy.cfg')
 	client.add_event_listener(device_state_change_event_listener)
 	client.add_event_listener(db_get_response_event_listener)
-	client.connect()
+	while True:
+		try:
+			client.connect()
+			break
+		except ConnectionRefusedError as e:
+			print(f"[recallonbusy] Connection to AMI refused, retrying in 5 seconds...", file=sys.stdout)
+			time.sleep(5)
+		except socket.error as e:
+			print(f"[recallonbusy] ERROR connecting to AMI: {e}", file=sys.stderr)
+			time.sleep(30)
+
 
 	while True:
 		try:
