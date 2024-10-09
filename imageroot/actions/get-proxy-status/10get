@@ -7,32 +7,14 @@
 
 import json
 import sys
-import os
 import agent
 
 rdb = agent.redis_connect(privileged=True)
-node_id = os.environ['NODE_ID']
-proxy_installed = False
 
-# find proxy
-with agent.redis_connect() as rdb:
-    for mkey in rdb.scan_iter("module/nethvoice-proxy*/environment"):
-        module_id = mkey.removeprefix("module/").removesuffix("/environment")
-        module_public_ip = rdb.hget(mkey, 'PUBLIC_IP')
-        if module_public_ip == "127.0.0.1":
-            # not configured
-            continue
-        module_node_id = rdb.hget(mkey, 'NODE_ID')
-        if module_node_id != node_id:
-            # not on this node
-            continue
-        else :
-            # finded
-            proxy_installed = True
-            break
-
+# Find default proxy  instance for current node
+proxy_id = agent.resolve_agent_id('nethvoice-proxy@node')
 config = {
-    "proxy_installed": proxy_installed,
+    "proxy_installed": True if proxy_id is not None else False,
 }
 
 json.dump(config, fp=sys.stdout)
