@@ -107,19 +107,12 @@ function gateway_generate_configuration_file($name,$mac = false){
         #Generate trunks config
         if (!empty($config['trunks_fxo'])){
             $i = 1;
-            $n_trunks = count($config['trunks_fxo']);
-            if ($n_trunks>0) {
-                $j = $n_trunks+1;
-            } else {
-                $j = 1;
-            }
             foreach ($config['trunks_fxo'] as $trunk){
                 $output = str_replace("LINENUMBER$i",$trunk['number'],$output);
-                $output = str_replace("TRUNKNUMBER$j",$trunk['trunknumber'],$output);
-                $output = str_replace("TRUNKUSERNAME$j",$trunk['username'],$output);
-                $output = str_replace("TRUNKSECRET$j",$trunk['secret'],$output);
+                $output = str_replace("TRUNKNUMBER$i",$trunk['trunknumber'],$output);
+                $output = str_replace("TRUNKUSERNAME$i",$trunk['username'],$output);
+                $output = str_replace("TRUNKSECRET$i",$trunk['secret'],$output);
                 $i++;
-                $j++;
             }
         }
         if (!empty($config['trunks_isdn'])){
