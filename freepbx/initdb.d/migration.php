@@ -182,6 +182,7 @@ if (count($res) == 0) {
 	$db->query("ALTER TABLE `asterisk`.`gateway_config` MODIFY COLUMN `ipv4_new` VARCHAR(255) DEFAULT NULL");
 	$db->query("ALTER TABLE `asterisk`.`gateway_config_isdn` MODIFY COLUMN `secret` VARCHAR(255) DEFAULT NULL");
 	$db->query("ALTER TABLE `asterisk`.`gateway_config_fxo` MODIFY COLUMN `secret` VARCHAR(255) DEFAULT NULL");
+	$db->query("ALTER TABLE `asterisk`.`gateway_config_pri` MODIFY COLUMN `secret` VARCHAR(255) DEFAULT NULL");
 
 	// remove all but old gateways from gateway_config
 	$db->query("DELETE FROM `asterisk`.`gateway_models`");
