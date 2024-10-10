@@ -19,6 +19,16 @@
         />
       </cv-column>
     </cv-row>
+    <cv-row v-if="!proxy_installed && !loadingState">
+      <cv-column>
+        <NsInlineNotification
+          kind="info"
+          :title="$t('settings.proxy_not_installed')"
+          :description="$t('settings.proxy_not_installed_description')"
+          :showCloseButton="false"
+        />
+      </cv-column>
+    </cv-row>
     <cv-row>
       <cv-column>
         <cv-tile light>
@@ -27,7 +37,7 @@
               :label="$t('settings.nethvoice_host')"
               v-model="form.nethvoice_host"
               placeholder="voice.example.com"
-              :disabled="loadingState"
+              :disabled="loadingState || !proxy_installed"
               :invalid-message="error.nethvoice_host"
               ref="nethvoice_host"
             />
@@ -35,7 +45,7 @@
               :label="$t('settings.nethcti_ui_host')"
               v-model="form.nethcti_ui_host"
               placeholder="cti.example.com"
-              :disabled="loadingState"
+              :disabled="loadingState || !proxy_installed"
               :invalid-message="error.nethcti_ui_host"
               ref="nethcti_ui_host"
             />
@@ -51,7 +61,7 @@
               :options="domainList"
               :auto-highlight="true"
               :label="$t('settings.user_domain_placeholder')"
-              :disabled="loadingState"
+              :disabled="loadingState || !proxy_installed"
               :invalid-message="error.user_domain"
               v-model="form.user_domain"
               ref="user_domain"
@@ -72,7 +82,8 @@
               :disabled="
                 loading.getConfiguration ||
                 loading.configureModule ||
-                loading.getDefaults
+                loading.getDefaults ||
+                !proxy_installed
               "
               tooltipAlignment="start"
               tooltipDirection="top"
@@ -85,14 +96,14 @@
             <cv-toggle
               :label="$t('settings.lets_encrypt')"
               value="lets_encrypt"
-              :disabled="loadingState"
+              :disabled="loadingState || !proxy_installed"
               v-model="form.lets_encrypt"
             />
             <NsTextInput
               :label="$t('settings.reports_international_prefix')"
               v-model="form.reports_international_prefix"
               placeholder="+39"
-              :disabled="loadingState"
+              :disabled="loadingState || !proxy_installed"
               :invalid-message="error.reports_international_prefix"
             >
               <template slot="tooltip">
@@ -103,7 +114,7 @@
               :label="$t('settings.nethvoice_admin_password')"
               v-model="form.nethvoice_admin_password"
               placeholder=""
-              :disabled="loadingState"
+              :disabled="loadingState || !proxy_installed"
               :invalid-message="error.nethvoice_admin_password"
               ref="nethvoice_admin_password"
               type="password"
@@ -128,7 +139,7 @@
               ref="acc"
               :align="align"
               :size="size"
-              :disabled="loadingState"
+              :disabled="loadingState || !proxy_installed"
               v-if="form.rebranding_active"
             >
               <cv-accordion-item :open="open[0]" class="test-card">
@@ -139,7 +150,7 @@
                     :label="$t('settings.rebranding_navbar_logo_url')"
                     v-model="form.rebranding_navbar_logo_url"
                     placeholder="https://.."
-                    :disabled="loadingState"
+                    :disabled="loadingState || !proxy_installed"
                     :invalid-message="error.rebranding_navbar_logo_url"
                   >
                     <template slot="tooltip">
@@ -151,7 +162,7 @@
                     :label="$t('settings.rebranding_navbar_logo_dark_url')"
                     v-model="form.rebranding_navbar_logo_dark_url"
                     placeholder="https://.."
-                    :disabled="loadingState"
+                    :disabled="loadingState || !proxy_installed"
                     :invalid-message="error.rebranding_navbar_logo_dark_url"
                   >
                     <template slot="tooltip">
@@ -165,7 +176,7 @@
                     :label="$t('settings.rebranding_login_background_url')"
                     v-model="form.rebranding_login_background_url"
                     placeholder="https://.."
-                    :disabled="loadingState"
+                    :disabled="loadingState || !proxy_installed"
                     :invalid-message="error.rebranding_login_background_url"
                   >
                     <template slot="tooltip">
@@ -179,7 +190,7 @@
                     :label="$t('settings.rebranding_favicon_url')"
                     v-model="form.rebranding_favicon_url"
                     placeholder="https://.."
-                    :disabled="loadingState"
+                    :disabled="loadingState || !proxy_installed"
                     :invalid-message="error.rebranding_favicon_url"
                   >
                     <template slot="tooltip">
@@ -191,7 +202,7 @@
                     :label="$t('settings.rebranding_login_logo_url')"
                     v-model="form.rebranding_login_logo_url"
                     placeholder="https://.."
-                    :disabled="loadingState"
+                    :disabled="loadingState || !proxy_installed"
                     :invalid-message="error.rebranding_login_logo_url"
                   >
                     <template slot="tooltip">
@@ -203,7 +214,7 @@
                     :label="$t('settings.rebranding_login_logo_dark_url')"
                     v-model="form.rebranding_login_logo_dark_url"
                     placeholder="https://.."
-                    :disabled="loadingState"
+                    :disabled="loadingState || !proxy_installed"
                     :invalid-message="error.rebranding_login_logo_dark_url"
                   >
                     <template slot="tooltip">
@@ -215,7 +226,7 @@
                   <NsCheckbox
                     :label="$t('settings.rebranding_login_people')"
                     v-model="form.rebranding_login_people"
-                    :disabled="loadingState"
+                    :disabled="loadingState || !proxy_installed"
                     :invalid-message="error.rebranding_login_people"
                   >
                     <template slot="tooltip">
@@ -317,7 +328,7 @@
               kind="primary"
               :icon="Save20"
               :loading="loading.configureModule"
-              :disabled="loadingState"
+              :disabled="loadingState || !proxy_installed"
             >
               {{ $t("settings.save") }}
             </NsButton>
@@ -383,6 +394,7 @@ export default {
         nethvoice_adm: {},
       },
       isDarkMode: false,
+      proxy_installed: false,
       config: {},
       loading: {
         getConfiguration: false,
@@ -391,6 +403,7 @@ export default {
         userDomains: false,
         getDefaults: false,
         getUsers: false,
+        getProxyStatus: false,
       },
       domainList: [],
       timezoneList: [],
@@ -1043,6 +1056,55 @@ export default {
         })
       );
       this.loading.getDefaults = false;
+      this.getProxyStatus();
+    },
+    async getProxyStatus() {
+      this.loading.getProxyStatus = true;
+
+      const taskAction = "get-proxy-status";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.getProxyStatusAborted
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.getProxyStatusCompleted
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.getConfiguration = this.getErrorMessage(err);
+        this.loading.getProxyStatus = false;
+        return;
+      }
+    },
+    getProxyStatusAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.getConfiguration = this.$t("error.generic_error");
+      this.loading.getProxyStatus = false;
+      this.getConfiguration();
+    },
+    getProxyStatusCompleted(taskContext, taskResult) {
+      const config = taskResult.output;
+      this.proxy_installed = config.proxy_installed;
+      this.loading.getProxyStatus = false;
       this.getConfiguration();
     },
     async getUsers(domain) {
