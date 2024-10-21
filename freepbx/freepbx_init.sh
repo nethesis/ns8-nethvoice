@@ -2,7 +2,7 @@
 
 # wait for asterisk to start
 while [[ $(/usr/sbin/asterisk -rx 'core show version' 2>/dev/null) != Asterisk* ]]; 
-    do ((++attempt<30)) || exit 2
+    do ((++attempt<300)) || exit 2
     sleep 1
 done
 
