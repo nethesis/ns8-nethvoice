@@ -10,10 +10,9 @@
 podman run \
     --rm \
     --replace \
-    --name=mariadb-import \
+    --name=mariadb-init \
     --volume=mariadb-data:/var/lib/mysql:Z \
     --env-file=./passwords.env \
-    --env-file=./environment \
     --env=NETHVOICE_MARIADB_PORT \
     --env=AMPDBUSER \
     --env=CDRDBUSER \
