@@ -1,0 +1,30 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Import MariaDB data
+
+podman run \
+    --rm \
+    --replace \
+    --name=mariadb-import \
+    --volume=mariadb-data:/var/lib/mysql:Z \
+    --env-file=./passwords.env \
+    --env-file=./environment \
+    --env=NETHVOICE_MARIADB_PORT \
+    --env=AMPDBUSER \
+    --env=CDRDBUSER \
+    --env=CDRDBHOST \
+    --env=CTIUSER \
+    --env=NETHCTI_DB_USER \
+    --env=PHONEBOOK* \
+    --env=ASTERISK_RTPSTART \
+    --env=ASTERISK_RTPEND \
+    --env=ASTERISK_SIP_PORT \
+    --env=ASTERISK_SIPS_PORT \
+    --env=ASTERISK_IAX_PORT \
+    --env=ASTMANAGERPORT \
+    ${NETHVOICE_MARIADB_IMAGE}
