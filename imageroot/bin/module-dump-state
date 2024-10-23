@@ -29,6 +29,10 @@ podman exec mariadb \
 # copy db_backup in local filesystem
 podman cp mariadb:/tmp/db_backup db_backup
 
+if [[ -f "$(podman volume inspect mariadb-data --format "{{.Mountpoint}}")/mariadb-init-done" ]] ; then
+    # copy the init-done file to avoid re-executing the backup
+    touch db_backup/mariadb-init-done
+fi
 
 ## Asterisk
 
