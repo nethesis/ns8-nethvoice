@@ -5,7 +5,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-# Import MariaDB data
+# Init MariaDB data if the volume does not exist and if the init file is not present
+if podman volume exists mariadb-data && [[ -f "$(podman volume inspect mariadb-data --format "{{.Mountpoint}}")/mariadb-init-done" ]] ; then
+    exit 0
+fi
 
 podman run \
     --rm \
