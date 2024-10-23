@@ -57,6 +57,7 @@ set -e
 mysql --version
 set -- true
 docker_temp_server_stop
+touch /var/lib/mysql/mariadb-init-done
 exit 0
 EOF
 

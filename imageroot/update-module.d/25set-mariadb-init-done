@@ -1,0 +1,20 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+exec 1>&2 # ensure any output is sent to stderr
+
+# do nothing if the volume exists and the init file is present
+if podman volume exists mariadb-data && [[ -f "$(podman volume inspect mariadb-data --format "{{.Mountpoint}}")/mariadb-init-done" ]] ; then
+    exit 0
+fi
+
+# prepare to set the missing mariadb-init-done file in the container
+if podman ps --format "{{.Names}}" | grep -q "^mariadb$"; then
+     podman exec mariadb touch /var/lib/mysql/mariadb-init-done
+else 
+    echo "MariaDB container not running, skipping"
+fi
