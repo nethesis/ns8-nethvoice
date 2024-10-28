@@ -7,6 +7,9 @@
 
 set -e
 
+# remove the mysql volume (done by create-module)
+podman volume rm -f  mariadb-data
+
 # Add users, fixes and permissions
 cat - > ./restore/99permissions.sh <<'EOF'
 #!/bin/bash
