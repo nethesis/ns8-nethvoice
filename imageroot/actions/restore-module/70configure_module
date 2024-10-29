@@ -24,7 +24,7 @@ response = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-mo
     "timezone": old_envs["TIMEZONE"],
     "user_domain": old_envs["USER_DOMAIN"],
     "nethvoice_adm_username": old_envs.get("NETHVOICE_USER_PORTAL_USERNAME", ''),
-    "nethvoice_adm_password": agent.read_envfile("passwords.env")['NETHVOICE_USER_PORTAL_PASSWORD'],
+    "nethvoice_adm_password": agent.read_envfile("passwords.env").get('NETHVOICE_USER_PORTAL_PASSWORD',""),
 })
 
 agent.assert_exp(response['exit_code'] == 0)
