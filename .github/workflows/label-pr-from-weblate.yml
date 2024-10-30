@@ -1,0 +1,25 @@
+name: "Label PR from Weblate"
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  label-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if PR is from Weblate
+        id: check_weblate
+        run: |
+          if [[ "${{ github.event.pull_request.user.login }}" == "weblate" ]]; then
+            echo "::set-output name=from_weblate::true"
+          else
+            echo "::set-output name=from_weblate::false"
+          fi
+
+      - name: Assign label
+        if: steps.check_weblate.outputs.from_weblate == 'true'
+        uses: actions/labeler@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          labels: 'translation'
