@@ -1,0 +1,23 @@
+name: NS8 Release on PR Merge to Main
+
+on:
+  pull_request:
+    types: [closed]
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  release-module:
+    if: >
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main' &&
+      !contains(github.event.pull_request.labels.*.name, 'translation')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install NS8 Release Module Extension
+        run: gh extension install NethServer/gh-ns8-release-module
+
+      - name: Create Testing Release
+        run: gh ns8-release-module create --repo ${{ github.repository }} --testing
