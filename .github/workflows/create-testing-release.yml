@@ -11,8 +11,7 @@ jobs:
   release-module:
     if: >
       github.event.pull_request.merged == true &&
-      github.event.pull_request.base.ref == 'main' &&
-      !contains(github.event.pull_request.labels.*.name, 'translation')
+      github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-latest
 
     steps:
