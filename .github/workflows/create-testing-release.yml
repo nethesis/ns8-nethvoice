@@ -3,6 +3,14 @@ name: NS8 Release on PR Merge to Main
 on:
   pull_request:
     types: [closed]
+    paths-ignore:
+      - '.github/**'
+      - 'tests/**'
+      - 'README.md'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'renovate.json'
+      - 'test-module.sh'
 
 env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
