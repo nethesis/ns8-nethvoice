@@ -410,5 +410,76 @@ if [ ! -f /etc/nethcti/users.json -o $auth_ok -gt 0 ]  && [ "$1 $2" == "npm star
     exit 0
 fi
 
+FILE=/etc/nethcti/phone_urls.json
+cat > $FILE <<EOF
+{
+    "^yealink\\\s.*T3.*\\\s.+\\\.70(\\\..+|$)": {
+        "urls": {
+            "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/cgiServer.exx?number=\$NUMBER&outgoing_uri=\$ACCOUNT@\$SERVER",
+            "answer": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/cgiServer.exx?key=OK",
+            "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/cgiServer.exx?key=F_HOLD",
+            "dtmf": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/cgiServer.exx?key=\$TONE"
+        }
+    },
+    "^yealink\\\s.*\\\s.+\\\.70(\\\..+|$)": {
+        "urls": {
+            "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?number=\$NUMBER&outgoing_uri=\$ACCOUNT@\$SERVER",
+            "answer": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=OK",
+            "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_HOLD",
+            "dtmf": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=\$TONE"
+        }
+    },
+    "^yealink\\\s.+\\\s.+": {
+        "urls": {
+            "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=number=\$NUMBER&outgoing_uri=\$ACCOUNT@\$SERVER",
+            "answer": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=OK",
+            "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=F_HOLD",
+            "dtmf": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=\$TONE",
+            "mute_unmute": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=MUTE"
+        }
+    },
+    "^snom.*": {
+        "urls": {
+            "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/command.htm?number=\$NUMBER",
+            "answer": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/command.htm?key=ENTER",
+            "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/command.htm?key=F_HOLD",
+            "dtmf": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/command.htm?key=\$TONE",
+            "mute_unmute": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/command.htm?key=MUTE"
+        }
+    },
+    "^sangoma\\\s.*": {
+        "urls": {
+            "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/Phone_ActionURL&Command=1&Number=\$NUMBER&Account=1",
+            "answer": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/Phone_ActionURL&key=OK",
+            "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/Phone_ActionURL&key=F_HOLD"
+        }
+    },
+    "^fanvil.*": {
+        "urls": {
+            "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=\$NUMBER;ENTER",
+            "answer": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=OK",
+            "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_HOLD",
+            "dtmf": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=\$TONE",
+            "mute_unmute": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_MUTE"
+        }
+    },
+    "^Nethesis\\\s*NP.*": {
+        "urls": {
+            "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=\$NUMBER;ENTER",
+            "answer": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=OK",
+            "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_HOLD",
+            "dtmf": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=\$TONE",
+            "mute_unmute": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_MUTE"
+        }
+    },
+    "^alcatel\\\s.*1G": {
+        "urls": {
+            "call": "http://user:nethvoice@\$PHONE_IP/activeuri.kl1?number=\$NUMBER&account=\$ACCOUNT",
+            "answer": "http://user:nethvoice@\$PHONE_IP/activeuri.kl1?command=OK"
+        }
+    }
+}
+EOF
+
 # Execute given CMD
 exec "$@"
