@@ -1,0 +1,23 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+exec 1>&2
+set -e
+
+# Parse JSON and set variables
+read -r support_user < <(jq -r '.support_user')
+
+# Check if support_user argument is provided
+if [ -z "$support_user" ]; then
+  echo "Error: missing support_user argument."
+  exit 1
+fi
+
+podman exec mariadb bash -c '
+	mysql -u root -p$MARIADB_ROOT_PASSWORD asterisk -e "
+	DELETE FROM ampusers WHERE username = \"'"$support_user"'\""'
+

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+exec 1>&2
+set -e
+
+read -r support_user session_id < <(jq -r '[.support_user, .session_id] | join("\t")')
+
+# Check if support_user and session_id arguments are provided
+if [ -z "$support_user" ] || [ -z "$session_id" ]; then
+	exit 1
+fi
+
+podman exec mariadb bash -c '
+	mysql -u root -p$MARIADB_ROOT_PASSWORD asterisk -e "
+	INSERT INTO ampusers (username, password_sha1, sections) 
+	VALUES (\"'"$support_user"'\", SHA1(\"'"$session_id"'\"), \"*\") 
+	ON DUPLICATE KEY UPDATE password_sha1=SHA1(\"'"$session_id"'\")
+	"'
