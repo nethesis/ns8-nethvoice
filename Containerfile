@@ -33,6 +33,6 @@ LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \
     ${REPOBASE}/nethvoice-tancredi:${IMAGETAG} \
     ${REPOBASE}/nethvoice-janus:${IMAGETAG} \
     ${REPOBASE}/nethvoice-phonebook:${IMAGETAG} \
-    docker.io/library/redis:7.0.10-alpine \
+    ${REPOBASE}/nethvoice-reports-redis:${IMAGETAG} \
     ${REPOBASE}/nethvoice-reports-ui:${IMAGETAG} \
     ${REPOBASE}/nethvoice-reports-api:${IMAGETAG}"

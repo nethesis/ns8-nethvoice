@@ -141,6 +141,17 @@ buildah build --force-rm --layers --jobs "$(nproc)" --target ui-production \
 images+=("${repobase}/${reponame}")
 popd
 
+#########################
+##      Redis	      ##
+#########################
+echo "[*] Build Reports Redis container"
+reponame="nethvoice-reports-redis"
+container=$(buildah from docker.io/library/redis:7.0.10-alpine)
+# Commit the image
+buildah commit "${container}" "${repobase}/${reponame}"
+buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
+# Append the image URL to the images array
+images+=("${repobase}/${reponame}")
 
 # Setup CI when pushing to Github.
 # Warning! docker::// protocol expects lowercase letters (,,)
