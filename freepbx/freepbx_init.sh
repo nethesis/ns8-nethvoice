@@ -80,7 +80,7 @@ for module in \
 do
     if ! test -s "$module_status" || grep -q "$module " "$module_status" && ! grep -q "$module Enabled" "$module_status" ; then
         echo Installing module $module
-        fwconsole moduleadmin install $module
+        su asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole moduleadmin install $module"
     fi
 done
 
