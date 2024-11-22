@@ -16,9 +16,6 @@ event = json.load(sys.stdin)
 if event.get('domain') != os.getenv('USER_DOMAIN'):
     exit(0)
 
-if 'node_id' in event and str(event['node_id']) != os.getenv('NODE_ID'):
-    exit(0) # ignore event if the source is not in our node
-
 # Get domain parameters
 domparams = Ldapproxy().get_domain(event['domain'])
 agent.set_env('NETHVOICE_LDAP_HOST', domparams['host'])
