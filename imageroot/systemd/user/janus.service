@@ -32,6 +32,7 @@ ExecStart=/usr/bin/podman run \
     --configs-folder=/usr/local/etc/janus \
     --interface=lo \
     --ice-ignore-list=${ICEIGNORE} \
+    --ice-enforce-list=${ICEENFORCE} \
     --stun-server=${STUNSERVER}:${STUNPORT} \
     --rtp-port-range=${JANUS_RTPSTART}-${JANUS_RTPEND} \
     --cert-pem=/etc/certificates/NethServer.pem \
