@@ -63,3 +63,6 @@ if not os.path.exists("passwords.env"):
 # Set the brand site and docs static URLs
 agent.set_env('BRAND_SITE', 'https://www.nethesis.it/soluzioni/nethvoice')
 agent.set_env('BRAND_DOCS', 'https://docs.nethserver.org/projects/ns8/it/latest/nethvoice.html')
+
+if os.getenv('ICEENFORCE') is None:
+    agent.set_env('ICEENFORCE', 'none')
