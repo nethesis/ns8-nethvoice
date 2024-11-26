@@ -6,6 +6,7 @@ Janus-gateway container for NethServer 8
 
 - `LOCAL_IP` local IP address to bind to for SIP stack and media
 - `JANUS_RTPSTART` and `JANUS_RTPEND` are the UDP port range for RTP packages
+- `ICEENFORCE` list of interfaces or ip addresses to enforce ICE candidates gathering. Default is 'none'
 - `ICEIGNORE` list of interfaces to ignore. Default is 'vmnet,tap,tun,virb,vb-' https://github.com/meetecho/janus-gateway#configure-and-start
 - `STUNSERVER` STUN server. Default is stun1.l.google.com
 - `STUNPORT` STUN port. Default is 19302
