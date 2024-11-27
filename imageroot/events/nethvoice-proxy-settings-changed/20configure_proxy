@@ -15,6 +15,7 @@ ksrv = agent.list_service_providers(agent.redis_connect(use_replica=True), "sip"
 agent.set_env('NETHVOICE_PROXY_FQDN', ksrv[0]["fqdn"])
 agent.set_env('PROXY_IP', ksrv[0]["host"])
 agent.set_env('PROXY_PORT', ksrv[0]["port"])
+agent.set_env("ICEENFORCE", ksrv[0]["address"])
 
 # Configure nethvoice-proxy to route SIP traffic for Nethvoice
 response = agent.tasks.run(

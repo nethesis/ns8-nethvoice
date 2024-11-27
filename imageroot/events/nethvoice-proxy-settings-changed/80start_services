@@ -10,4 +10,4 @@ exec 1>&2 # ensure any output is sent to stderr
 
 #restart services if they are already running
 
-systemctl --user try-restart freepbx tancredi
+systemctl --user try-restart freepbx tancredi janus
