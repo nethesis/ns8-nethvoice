@@ -21,7 +21,7 @@
 
 namespace FreePBX\modules;
 
-class Nethcti3 implements \BMO
+class Nethcti3 extends \FreePBX_Helpers implements \BMO
 {
     public function __construct($freepbx = null) {
         if ($freepbx == null)
@@ -38,8 +38,6 @@ class Nethcti3 implements \BMO
     public function backup() {
     }
     public function restore($backup) {
-    }
-    public function doConfigPageInit($page) {
     }
 
     /*Write a CTI configuration file in JSON format*/
@@ -243,4 +241,99 @@ class Nethcti3 implements \BMO
         }
         return $out;
     }
+
+	// Add custom headers for trunks to trunks module
+	public static function myGuiHooks() {
+		return array("core", "INTERCEPT" => array("modules/core/page.trunks.php"));
+	}
+
+	public function doGuiHook($filename, &$output){}
+
+	public function doGuiIntercept($filename, &$output) {
+		# Show the custom field in the trunks module
+		if ($filename == "modules/core/page.trunks.php" && $_REQUEST['display'] == "trunks" && strtolower($_REQUEST['tech']) == "pjsip") {
+			$trunkid = str_replace("OUT_", "", $_REQUEST['extdisplay']);
+			$disable_topos = $this->getConfig('disable_topos', $trunkid);
+			$topos_section = '
+				<!--DISABLE TOPOS-->
+				<div class="element-container">
+					<div class="row">
+						<div class="col-md-12">
+							<div class="row">
+								<div class="form-group">
+									<div class="col-md-3">
+										<label class="control-label" for="disable_topos">'._("Disable TOPOS").'</label>
+										<i class="fa fa-question-circle fpbx-help-icon" data-for="disable_topos"></i>
+									</div>
+									<div class="col-md-9 radioset">
+										<input type="radio" name="disable_topos" id="disable_toposyes" value="yes" '.($disable_topos == 1?"CHECKED":"").'>
+										<label for="disable_toposyes">'. _("Yes") .'</label>
+										<input type="radio" name="disable_topos" id="disable_toposno" value="no" '.($disable_topos == 0 || empty($disable_topos) ? "CHECKED" : "").'>
+										<label for="disable_toposno">'._("No").'</label>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-12">
+							<span id="disable_topos-help" class="help-block fpbx-help-block">'. _("If yes, send topos=0 header to nethvoice-proxy to disable TOPOS for this trunk").'</span>
+						</div>
+					</div>
+				</div>
+				<!--END DISABLE TOPOS-->';
+			$output = str_replace('<!--END OUTBOUND PROXY-->','<!--END OUTBOUND PROXY-->'.$topos_section,$output);
+		}
+	}
+
+	public static function myConfigPageInits() {
+		return array("extensions", "recallonbusy", "trunks");
+	
+	}
+
+	public function doConfigPageInit($display) {
+		global $astman;
+		if ($display == "extensions" && !empty($_REQUEST['recallonbusy'])) {
+				// Save Recall On Busy option for the extension
+				$astman->database_put("ROBconfig",$_REQUEST['extdisplay'],$_REQUEST['recallonbusy']);
+		} elseif ($display == "recallonbusy") {
+				if (!empty($_REQUEST['default'])) {
+						$this->setConfig('default',$_REQUEST['default']);
+				}
+				if (!empty($_REQUEST['digit'])) {
+						$this->setConfig('digit',$_REQUEST['digit']);
+				}
+				needreload();
+		} elseif ($display == "trunks") {
+			global $db;
+			if (!empty($_REQUEST['disable_topos']) && $_REQUEST['action'] == "edittrunk" && !empty($_REQUEST['extdisplay'])) {
+				// save topos configuratino for the trunk on trunk edit
+				$disable_topos = $_REQUEST['disable_topos'] == "yes" ? 1 : 0;
+				$trunkid = str_replace("OUT_", "", $_REQUEST['extdisplay']);
+				$this->setConfig('disable_topos', $disable_topos, $trunkid);
+			} elseif (!empty($_REQUEST['disable_topos']) && $_REQUEST['action'] == "addtrunk") {
+				// save topos configuration for the trunk on trunk add
+				$disable_topos = $_REQUEST['disable_topos'] == "yes" ? 1 : 0;
+				// Get the future trunk id
+				$sql = 'SELECT trunkid FROM trunks';
+				$sth = $db->prepare($sql);
+				$sth->execute();
+				$trunkid = 1;
+				while ($res = $sth->fetchColumn()) {
+					if ($res > $trunkid) {
+						break;
+					}
+					$trunkid++;
+				}
+				if ($res == $trunkid) {
+					$trunkid++;
+				}
+				$this->setConfig('disable_topos', $disable_topos, $trunkid);
+			} elseif ($_REQUEST['action'] == "deltrunk") {
+				// delete topos configuration for the trunk
+				$trunkid = str_replace("OUT_", "", $_REQUEST['extdisplay']);
+				$this->delConfig('disable_topos', $trunkid);
+			}
+		}
+}
 }

@@ -163,6 +163,15 @@ function nethcti3_get_config_late($engine) {
                     }
                 }
             }
+			/*Add topos=0 header to voip trunks with disabled TOPOS for compatibility*/
+			$nethcti3 = \FreePBX::Nethcti3();
+			$trunks = FreePBX::Core()->listTrunks();
+			foreach ($trunks as $trunk) {
+				$disable_topos = $nethcti3->getConfig('disable_topos', $trunk['trunkid']);
+				if ($disable_topos==1) {
+					$ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'topos,0'));
+				}
+			}
         /* Add inboundlookup agi for each inbound routes*/
         $dids = FreePBX::Core()->getAllDIDs();
         if (!empty($dids)) {
