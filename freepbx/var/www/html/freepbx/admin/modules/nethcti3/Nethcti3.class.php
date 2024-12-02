@@ -253,7 +253,8 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
 		# Show the custom field in the trunks module
 		if ($filename == "modules/core/page.trunks.php" && $_REQUEST['display'] == "trunks" && strtolower($_REQUEST['tech']) == "pjsip") {
 			$trunkid = str_replace("OUT_", "", $_REQUEST['extdisplay']);
-			$disable_topos = $this->getConfig('disable_topos', $trunkid);
+			$disable_topos_header = $this->getConfig('disable_topos_header', $trunkid);
+			$disable_srtp_header = $this->getConfig('disable_srtp_header', $trunkid);
 			$topos_section = '
 				<!--DISABLE TOPOS-->
 				<div class="element-container">
@@ -262,14 +263,14 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
 							<div class="row">
 								<div class="form-group">
 									<div class="col-md-3">
-										<label class="control-label" for="disable_topos">'._("Disable TOPOS").'</label>
-										<i class="fa fa-question-circle fpbx-help-icon" data-for="disable_topos"></i>
+										<label class="control-label" for="disable_topos_header">'._("Disable TOPOS proxy header").'</label>
+										<i class="fa fa-question-circle fpbx-help-icon" data-for="disable_topos_header"></i>
 									</div>
 									<div class="col-md-9 radioset">
-										<input type="radio" name="disable_topos" id="disable_toposyes" value="yes" '.($disable_topos == 1?"CHECKED":"").'>
-										<label for="disable_toposyes">'. _("Yes") .'</label>
-										<input type="radio" name="disable_topos" id="disable_toposno" value="no" '.($disable_topos == 0 || empty($disable_topos) ? "CHECKED" : "").'>
-										<label for="disable_toposno">'._("No").'</label>
+										<input type="radio" name="disable_topos_header" id="disable_topos_headeryes" value="yes" '.($disable_topos_header == 1?"CHECKED":"").'>
+										<label for="disable_topos_headeryes">'. _("Yes") .'</label>
+										<input type="radio" name="disable_topos_header" id="disable_topos_headerno" value="no" '.($disable_topos_header == 0 || empty($disable_topos_header) ? "CHECKED" : "").'>
+										<label for="disable_topos_headerno">'._("No").'</label>
 									</div>
 								</div>
 							</div>
@@ -277,11 +278,40 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
 					</div>
 					<div class="row">
 						<div class="col-md-12">
-							<span id="disable_topos-help" class="help-block fpbx-help-block">'. _("If yes, send topos=0 header to nethvoice-proxy to disable TOPOS for this trunk").'</span>
+							<span id="disable_topos_header-help" class="help-block fpbx-help-block">'. _("If yes, send topos=0 header to nethvoice-proxy to disable TOPOS for this trunk").'</span>
 						</div>
 					</div>
 				</div>
 				<!--END DISABLE TOPOS-->';
+			$disable_srtp_header_section = '
+				<!--DISABLE SRTP-->
+				<div class="element-container">
+					<div class="row">
+						<div class="col-md-12">
+							<div class="row">
+								<div class="form-group">
+									<div class="col-md-3">
+										<label class="control-label" for="disable_srtp_header">'._("Disable SRTP proxy header").'</label>
+										<i class="fa fa-question-circle fpbx-help-icon" data-for="disable_srtp_header"></i>
+									</div>
+									<div class="col-md-9 radioset">
+										<input type="radio" name="disable_srtp_header" id="disable_srtp_headeryes" value="yes" '.($disable_srtp_header == 1?"CHECKED":"").'>
+										<label for="disable_srtp_headeryes">'. _("Yes") .'</label>
+										<input type="radio" name="disable_srtp_header" id="disable_srtp_headerno" value="no" '.($disable_srtp_header == 0 || empty($disable_srtp_header) ? "CHECKED" : "").'>
+										<label for="disable_srtp_headerno">'._("No").'</label>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-12">
+							<span id="disable_srtp_header-help" class="help-block fpbx-help-block">'. _("If yes, send srtp=0 header to nethvoice-proxy to disable SRTP for this trunk").'</span>
+						</div>
+					</div>
+				</div>
+				<!--END DISABLE SRTP-->';
+
 			$output = str_replace('<!--END OUTBOUND PROXY-->','<!--END OUTBOUND PROXY-->'.$topos_section,$output);
 		}
 	}
@@ -306,14 +336,20 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
 				needreload();
 		} elseif ($display == "trunks") {
 			global $db;
-			if (!empty($_REQUEST['disable_topos']) && $_REQUEST['action'] == "edittrunk" && !empty($_REQUEST['extdisplay'])) {
-				// save topos configuratino for the trunk on trunk edit
-				$disable_topos = $_REQUEST['disable_topos'] == "yes" ? 1 : 0;
-				$trunkid = str_replace("OUT_", "", $_REQUEST['extdisplay']);
-				$this->setConfig('disable_topos', $disable_topos, $trunkid);
-			} elseif (!empty($_REQUEST['disable_topos']) && $_REQUEST['action'] == "addtrunk") {
-				// save topos configuration for the trunk on trunk add
-				$disable_topos = $_REQUEST['disable_topos'] == "yes" ? 1 : 0;
+			if ($_REQUEST['action'] == "edittrunk" && !empty($_REQUEST['extdisplay'])) {
+				if (!empty($_REQUEST['disable_topos_header'])) {
+					// save topos configuratino for the trunk on trunk edit
+					$disable_topos_header = $_REQUEST['disable_topos_header'] == "yes" ? 1 : 0;
+					$trunkid = str_replace("OUT_", "", $_REQUEST['extdisplay']);
+					$this->setConfig('disable_topos_header', $disable_topos_header, $trunkid);
+				}
+				if (!empty($_REQUEST['disable_srtp_header'])) {
+					// save srtp configuration for the trunk on trunk edit
+					$disable_srtp_header = $_REQUEST['disable_srtp_header'] == "yes" ? 1 : 0;
+					$trunkid = str_replace("OUT_", "", $_REQUEST['extdisplay']);
+					$this->setConfig('disable_srtp_header', $disable_srtp_header, $trunkid);
+				}
+			} elseif ($_REQUEST['action'] == "addtrunk") {
 				// Get the future trunk id
 				$sql = 'SELECT trunkid FROM trunks';
 				$sth = $db->prepare($sql);
@@ -328,11 +364,22 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
 				if ($res == $trunkid) {
 					$trunkid++;
 				}
-				$this->setConfig('disable_topos', $disable_topos, $trunkid);
+				if (!empty($_REQUEST['disable_topos_header'])){
+					// save topos configuration for the trunk on trunk add
+					$disable_topos_header = $_REQUEST['disable_topos_header'] == "yes" ? 1 : 0;
+					$this->setConfig('disable_topos_header', $disable_topos_header, $trunkid);
+				}
+				if (!empty($_REQUEST['disable_srtp_header'])){
+					// save srtp configuration for the trunk on trunk add
+					$disable_srtp_header = $_REQUEST['disable_srtp_header'] == "yes" ? 1 : 0;
+					$this->setConfig('disable_srtp_header', $disable_srtp_header, $trunkid);
+				}
 			} elseif ($_REQUEST['action'] == "deltrunk") {
-				// delete topos configuration for the trunk
 				$trunkid = str_replace("OUT_", "", $_REQUEST['extdisplay']);
-				$this->delConfig('disable_topos', $trunkid);
+				// delete topos configuration for the trunk
+				$this->delConfig('disable_topos_header', $trunkid);
+				// delete srtp configuration for the trunk
+				$this->delConfig('disable_srtp_header', $trunkid);
 			}
 		}
 }

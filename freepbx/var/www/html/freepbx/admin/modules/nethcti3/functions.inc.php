@@ -138,37 +138,17 @@ function nethcti3_get_config_late($engine) {
                 $ext->splice('macro-dial-one','s','dial', new ext_execif('$["${DB(AMPUSER/${ARG3}/cidname)}" != "" && "${DB(AMPUSER/${CALLERID(num)}/cidname)}" = "" && "${ATTENDEDTRANSFER}" != "" && "${DB(AMPUSER/${FROMEXTEN}/cidname)}" != ""]', 'Set', 'CALLERID(num)=${DB(AMPUSER/${FROMEXTEN}/cidnum)}'),'',-1);
                 $ext->splice('macro-dial-one','s','dial', new ext_execif('$["${DB(AMPUSER/${CALLERID(num)}/cidname)}" != "" && "${ATTENDEDTRANSFER}" != ""]', 'Set', 'CALLERID(name)=${DB(AMPUSER/${CALLERID(num)}/cidname)}'),'',-1);
             }
-            /*Add isTrunk = 1 header to VoIP trunks that doesn't require SRTP encryption*/
-            // Get all voip providers ip that doesn't need media encryption
-            $sql = "SELECT t1.data
-                FROM rest_pjsip_trunks_defaults AS t1
-                JOIN rest_pjsip_providers AS t2 ON t1.provider_id = t2.id
-                JOIN rest_pjsip_trunks_defaults AS t3 ON t2.id = t3.provider_id
-                WHERE t3.keyword = 'media_encryption' AND t3.data = 'no'
-                AND t1.keyword = 'sip_server'";
-            $stmt = $db->prepare($sql);
-            $stmt->execute();
-            $voip_providers = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            // Get all trunks
-            $trunks = FreePBX::Core()->listTrunks();
-            $voip_trunk_if = [];
-            foreach ($trunks as $trunk) {
-                $details = FreePBX::Core()->getTrunkDetails($trunk['trunkid']);
-                if (in_array($details['sip_server'], $voip_providers)) {
-                    // Trunk needs needs media encryption disabled, set isTrunk header to 1
-                    try {
-                        $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'isTrunk,1'));
-                    } Catch(Exception $e) {
-                        error_log('error adding isTrunk header setter to dialplan');
-                    }
-                }
-            }
-			/*Add topos=0 header to voip trunks with disabled TOPOS for compatibility*/
 			$nethcti3 = \FreePBX::Nethcti3();
-			$trunks = FreePBX::Core()->listTrunks();
+            $trunks = FreePBX::Core()->listTrunks();
 			foreach ($trunks as $trunk) {
-				$disable_topos = $nethcti3->getConfig('disable_topos', $trunk['trunkid']);
-				if ($disable_topos==1) {
+				/*Add isTrunk = 1 header to VoIP trunks that doesn't require SRTP encryption*/
+				$disable_srtp_header = $nethcti3->getConfig('disable_srtp_header', $trunk['trunkid']);
+				if ($disable_srtp_header==1) {
+					$ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'isTrunk,1'));
+				}
+				/*Add topos=0 header to voip trunks with disabled TOPOS for compatibility*/
+				$disable_topos_header = $nethcti3->getConfig('disable_topos_header', $trunk['trunkid']);
+				if ($disable_topos_header==1) {
 					$ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'topos,0'));
 				}
 			}
