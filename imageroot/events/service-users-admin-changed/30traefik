@@ -15,7 +15,7 @@ import agent.tasks
 data = json.load(sys.stdin)
 
 # Get proxy srv records
-ksrv = agent.list_service_providers(agent.redis_connect(use_replica=True), "users-admin", "http", {"domain": os.environ["USER_DOMAIN"]]})
+ksrv = agent.list_service_providers(agent.redis_connect(use_replica=True), "users-admin", "http", {"domain": os.environ["USER_DOMAIN"]})
 
 # Configure Traefik to route "/users-admin" path requests to the user portal service
 response = agent.tasks.run(
