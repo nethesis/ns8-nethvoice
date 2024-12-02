@@ -138,20 +138,20 @@ function nethcti3_get_config_late($engine) {
                 $ext->splice('macro-dial-one','s','dial', new ext_execif('$["${DB(AMPUSER/${ARG3}/cidname)}" != "" && "${DB(AMPUSER/${CALLERID(num)}/cidname)}" = "" && "${ATTENDEDTRANSFER}" != "" && "${DB(AMPUSER/${FROMEXTEN}/cidname)}" != ""]', 'Set', 'CALLERID(num)=${DB(AMPUSER/${FROMEXTEN}/cidnum)}'),'',-1);
                 $ext->splice('macro-dial-one','s','dial', new ext_execif('$["${DB(AMPUSER/${CALLERID(num)}/cidname)}" != "" && "${ATTENDEDTRANSFER}" != ""]', 'Set', 'CALLERID(name)=${DB(AMPUSER/${CALLERID(num)}/cidname)}'),'',-1);
             }
-			$nethcti3 = \FreePBX::Nethcti3();
+            $nethcti3 = \FreePBX::Nethcti3();
             $trunks = FreePBX::Core()->listTrunks();
-			foreach ($trunks as $trunk) {
-				/*Add isTrunk = 1 header to VoIP trunks that doesn't require SRTP encryption*/
-				$disable_srtp_header = $nethcti3->getConfig('disable_srtp_header', $trunk['trunkid']);
-				if ($disable_srtp_header==1) {
-					$ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'isTrunk,1'));
-				}
-				/*Add topos=0 header to voip trunks with disabled TOPOS for compatibility*/
-				$disable_topos_header = $nethcti3->getConfig('disable_topos_header', $trunk['trunkid']);
-				if ($disable_topos_header==1) {
-					$ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'topos,0'));
-				}
-			}
+            foreach ($trunks as $trunk) {
+                /*Add isTrunk = 1 header to VoIP trunks that doesn't require SRTP encryption*/
+                $disable_srtp_header = $nethcti3->getConfig('disable_srtp_header', $trunk['trunkid']);
+                if ($disable_srtp_header==1) {
+                    $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'isTrunk,1'));
+                }
+                /*Add topos=0 header to voip trunks with disabled TOPOS for compatibility*/
+                $disable_topos_header = $nethcti3->getConfig('disable_topos_header', $trunk['trunkid']);
+                if ($disable_topos_header==1) {
+                    $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'topos,0'));
+                }
+            }
         /* Add inboundlookup agi for each inbound routes*/
         $dids = FreePBX::Core()->getAllDIDs();
         if (!empty($dids)) {
