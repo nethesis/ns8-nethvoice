@@ -95,6 +95,8 @@ $app->delete('/trunks/{trunkid}', function (Request $request, Response $response
   $trunkid = $route->getArgument('trunkid');
   try {
     FreePBX::Core()->deleteTrunk($trunkid);
+	// Delete disable_topos configuration for this trunk
+	FreePBX::Nethcti3()->delConfig('disable_topos', $trunkid);
     system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
     return $response->withStatus(200);
   } catch (Exception $e) {
@@ -333,6 +335,13 @@ $app->post('/trunks', function (Request $request, Response $response, $args) {
     if (!$res) {
         return $response->withStatus(500);
     }
+	// Set topos flag if needed
+	$sql = "SELECT `value` FROM `rest_pjsip_trunks_custom_flags` WHERE `keyword` = 'disable_topos' AND `provider_id` IN (SELECT `id` FROM `rest_pjsip_providers` WHERE `provider` = ?)";
+	$sth = $dbh->prepare($sql);
+	$sth->execute([$params['provider']]);
+	$disable_topos = $sth->fetchColumn()[0];
+	Freepbx::Nethcti3()->setConfig('disable_topos', $disable_topos, $trunkid);
+
     system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
     return $response->withStatus(200);
 });

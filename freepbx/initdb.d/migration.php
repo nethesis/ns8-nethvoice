@@ -236,3 +236,47 @@ $sql = "UPDATE `asterisk`.`nethcqr_details` SET `cc_db_url` = ? WHERE `cc_db_url
 $stmt = $db->prepare($sql);
 $stmt->execute(['127.0.0.1:'.$_ENV['NETHVOICE_MARIADB_PORT']]);
 
+# Create pjsip trunks custom flags table if not exist
+# check if table exists
+$sql = "SELECT * FROM information_schema.tables WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'pjsip_trunks_custom_flags'";
+$stmt = $db->prepare($sql);
+$stmt->execute();
+$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+if (count($res) == 0) {
+	// Create table and add default values
+	$db->query("CREATE TABLE `rest_pjsip_trunks_custom_flags` (
+  		`provider_id` bigint(20) NOT NULL,
+		`keyword` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+		`value` TINYINT(1) NOT NULL DEFAULT 0,
+		PRIMARY KEY (`provider_id`,`keyword`)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"	);
+	$db->query("INSERT INTO `rest_pjsip_trunks_custom_flags` (`provider_id`, `keyword`, `value`) VALUES
+		(1,'disable_topos',0),
+		(2,'disable_topos',0),
+		(3,'disable_topos',0),
+		(4,'disable_topos',0),
+		(5,'disable_topos',0),
+		(6,'disable_topos',0),
+		(7,'disable_topos',0),
+		(8,'disable_topos',0),
+		(9,'disable_topos',0),
+		(10,'disable_topos',0),
+		(11,'disable_topos',0),
+		(12,'disable_topos',0),
+		(13,'disable_topos',0),
+		(14,'disable_topos',0),
+		(15,'disable_topos',0),
+		(16,'disable_topos',0),
+		(17,'disable_topos',0),
+		(18,'disable_topos',0),
+		(19,'disable_topos',0),
+		(20,'disable_topos',0),
+		(21,'disable_topos',0),
+		(22,'disable_topos',0),
+		(23,'disable_topos',0),
+		(24,'disable_topos',0),
+		(25,'disable_topos',0);
+	");
+}
+
+		
