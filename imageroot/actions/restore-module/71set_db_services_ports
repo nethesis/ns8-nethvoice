@@ -19,8 +19,10 @@ SET `val` = CASE
     WHEN `key` = 'udpport-0.0.0.0' THEN '{os.environ['ASTERISK_SIP_PORT']}'
     WHEN `key` = 'tlsport-0.0.0.0' THEN '{os.environ['ASTERISK_SIPS_PORT']}'
     WHEN `key` = 'tcpport-0.0.0.0' THEN '{os.environ['ASTERISK_SIP_PORT']}'
+    WHEN `key` = 'bindport' THEN '{os.environ['ASTERISK_SIP_PORT']}'
+    WHEN `key` = 'tlsbindport' THEN '{os.environ['ASTERISK_SIPS_PORT']}'
 END
-WHERE `key` IN ('udpport-0.0.0.0', 'tlsport-0.0.0.0', 'tcpport-0.0.0.0');
+WHERE `key` IN ('udpport-0.0.0.0', 'tlsport-0.0.0.0', 'tcpport-0.0.0.0', 'bindport', 'tlsbindport');
 """
 agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
 
