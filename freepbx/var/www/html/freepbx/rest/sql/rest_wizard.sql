@@ -1,5 +1,0 @@
-USE asterisk;
-CREATE TABLE IF NOT EXISTS `rest_wizard`(
-  `step` BIGINT(20) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `status` varchar(20)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
