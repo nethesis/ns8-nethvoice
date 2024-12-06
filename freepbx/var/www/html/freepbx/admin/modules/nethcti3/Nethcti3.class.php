@@ -311,8 +311,7 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
 					</div>
 				</div>
 				<!--END DISABLE SRTP-->';
-
-			$output = str_replace('<!--END OUTBOUND PROXY-->','<!--END OUTBOUND PROXY-->'.$topos_section,$output);
+			$output = str_replace('<!--END OUTBOUND PROXY-->','<!--END OUTBOUND PROXY-->'.$topos_section.$disable_srtp_header_section,$output);
 		}
 	}
 
