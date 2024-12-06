@@ -207,6 +207,16 @@ CheckInterval: 20
 EOF
 fi
 
+# create freepbx chown configuration if it doesn't exist
+if [[ ! -f /etc/asterisk/freepbx_chown.conf ]]; then
+  cat > /etc/asterisk/freepbx_chown.conf <<EOF
+[blacklist]
+directory = /var/www/html/freepbx/rest
+directory = /var/www/html/freepbx/visualplan
+directory = /var/www/html/freepbx/wizard
+EOF
+fi
+
 # configure recallonbusy
 sed -i 's/^Port: .*/Port: '${ASTMANAGERPORT}'/' /etc/asterisk/recallonbusy.cfg
 sed -i 's/^Username: .*/Username: proxycti/' /etc/asterisk/recallonbusy.cfg
