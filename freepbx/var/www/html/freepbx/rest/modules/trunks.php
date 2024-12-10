@@ -95,8 +95,10 @@ $app->delete('/trunks/{trunkid}', function (Request $request, Response $response
   $trunkid = $route->getArgument('trunkid');
   try {
     FreePBX::Core()->deleteTrunk($trunkid);
-	// Delete disable_topos_header configuration for this trunk
-	FreePBX::Nethcti3()->delConfig('disable_topos_header', $trunkid);
+    // Delete disable_topos_header configuration for this trunk
+    FreePBX::Nethcti3()->delConfig('disable_topos_header', $trunkid);
+	// Delete disable_srtp_header configuration for this trunk
+    FreePBX::Nethcti3()->delConfig('disable_srtp_header', $trunkid);
     system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
     return $response->withStatus(200);
   } catch (Exception $e) {
@@ -109,11 +111,11 @@ $app->delete('/trunks/{trunkid}', function (Request $request, Response $response
  * @api {patch} /trunks/{trunkid} Change trunk parameters
  * parameters:
  * {
- *    "username":"foobar",		# Trunk username
- *    "password":"53cr37",		# Trunk secret
- *    "phone":"0123456789",		# Phone number
- *    "codecs":["ulaw","g729"],		# Favourite codecs
- *    "forceCodec":true			# Boolean, if true allows only favourite codecs
+ *    "username":"foobar",        # Trunk username
+ *    "password":"53cr37",        # Trunk secret
+ *    "phone":"0123456789",        # Phone number
+ *    "codecs":["ulaw","g729"],        # Favourite codecs
+ *    "forceCodec":true            # Boolean, if true allows only favourite codecs
  * }
  */
 $app->patch('/trunks/{trunkid}', function (Request $request, Response $response, $args) {
@@ -207,13 +209,13 @@ $app->patch('/trunks/{trunkid}', function (Request $request, Response $response,
  * @api {post} /trunks Create a new trunks
  * parameters:
  * {
- *    "provider":"vivavox",		# provider name
- *    "name":"trunk name",		# User defined trunk name
- *    "username":"foobar",		# Trunk username
- *    "password":"53cr37",		# Trunk secret
- *    "phone":"0123456789",		# Phone number
- *    "codecs":["ulaw","g729"],		# Favourite codecs
- *    "forceCodec":true			# Boolean, if true allows only favourite codecs
+ *    "provider":"vivavox",        # provider name
+ *    "name":"trunk name",        # User defined trunk name
+ *    "username":"foobar",        # Trunk username
+ *    "password":"53cr37",        # Trunk secret
+ *    "phone":"0123456789",        # Phone number
+ *    "codecs":["ulaw","g729"],        # Favourite codecs
+ *    "forceCodec":true            # Boolean, if true allows only favourite codecs
  * }
  */
 $app->post('/trunks', function (Request $request, Response $response, $args) {
@@ -335,19 +337,19 @@ $app->post('/trunks', function (Request $request, Response $response, $args) {
     if (!$res) {
         return $response->withStatus(500);
     }
-	// Set topos flag if needed
-	$sql = "SELECT `value` FROM `rest_pjsip_trunks_custom_flags` WHERE `keyword` = 'disable_topos_header' AND `provider_id` IN (SELECT `id` FROM `rest_pjsip_providers` WHERE `provider` = ?)";
-	$sth = $dbh->prepare($sql);
-	$sth->execute([$params['provider']]);
-	$disable_topos_header = $sth->fetchColumn()[0];
-	Freepbx::Nethcti3()->setConfig('disable_topos_header', $disable_topos_header, $trunkid);
+    // Set topos flag if needed
+    $sql = "SELECT `value` FROM `rest_pjsip_trunks_custom_flags` WHERE `keyword` = 'disable_topos_header' AND `provider_id` IN (SELECT `id` FROM `rest_pjsip_providers` WHERE `provider` = ?)";
+    $sth = $dbh->prepare($sql);
+    $sth->execute([$params['provider']]);
+    $disable_topos_header = $sth->fetchColumn()[0];
+    Freepbx::Nethcti3()->setConfig('disable_topos_header', $disable_topos_header, $trunkid);
 
-	// Set disable srtp flag if needed
-	$sql = "SELECT `value` FROM `rest_pjsip_trunks_custom_flags` WHERE `keyword` = 'disable_srtp' AND `provider_id` IN (SELECT `id` FROM `rest_pjsip_providers` WHERE `provider` = ?)";
-	$sth = $dbh->prepare($sql);
-	$sth->execute([$params['provider']]);
-	$disable_srtp = $sth->fetchColumn()[0];
-	Freepbx::Nethcti3()->setConfig('disable_srtp_header', $disable_srtp, $trunkid);
+    // Set disable srtp flag if needed
+    $sql = "SELECT `value` FROM `rest_pjsip_trunks_custom_flags` WHERE `keyword` = 'disable_srtp_header' AND `provider_id` IN (SELECT `id` FROM `rest_pjsip_providers` WHERE `provider` = ?)";
+    $sth = $dbh->prepare($sql);
+    $sth->execute([$params['provider']]);
+    $disable_srtp = $sth->fetchColumn()[0];
+    Freepbx::Nethcti3()->setConfig('disable_srtp_header', $disable_srtp, $trunkid);
 
     system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
     return $response->withStatus(200);
