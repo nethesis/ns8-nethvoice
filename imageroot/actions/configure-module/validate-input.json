@@ -21,6 +21,7 @@
                 }
             ],
             "nethcti_log_level": "info",
+            "nethcti_privacy_numbers": "xxx",
             "user_domain": "domain.ns8.local",
             "app_brand_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
             "reports_international_prefix": "0039"
@@ -135,6 +136,10 @@
                 "info",
                 "warn"
             ]
+        },
+        "nethcti_privacy_numbers": {
+            "description": "Privacy number replace strings",
+            "type": "string"
         },
         "conference_jitsi_url": {
             "description": "Jitsi conference URL",

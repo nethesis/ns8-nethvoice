@@ -26,6 +26,7 @@ NethCTI Server container for NethServer 8
     - `NETHCTI_JABBER_DOMAIN` domain of the jabber server
     - `NETHCTI_JABBER_URL` url of the jabber server
     - `NETHCTI_LOG_LEVEL` log level of the server
+    - `NETHCTI_PRIVACY_NUMBERS` string replacement for server privacy numbers
     - `NETHCTI_PREFIX` telephone prefix
     - `NETHCTI_SERVER_API_PORT` port of the server api
     - `NETHCTI_SERVER_WS_PORT` port of the server websocket
