@@ -90,7 +90,7 @@ function nethcti3_get_config($engine) {
             if (isset($core_conf) && (method_exists($core_conf, 'addSipNotify'))) {
                 $core_conf->addSipNotify('generic-reload', array('Event' => 'check-sync\;reboot=false', 'Content-Length' => '0'));
             }
-	    /*Add contexts for gateway trunks identity*/
+        /*Add contexts for gateway trunks identity*/
             $context = 'from-pstn-identity';
             $ext->add($context, '_X!', '', new ext_noop('P-Preferred-Identity ${CUT(CUT(PJSIP_HEADER(read,P-Preferred-Identity),@,1),:,2)}'));
             $ext->add($context, '_X!', '', new ext_noop('P-Asserted-Identity ${CUT(CUT(PJSIP_HEADER(read,P-Asserted-Identity),@,1),:,2)}'));
@@ -113,8 +113,8 @@ function nethcti3_get_config_late($engine) {
     global $db;
     switch($engine) {
         case "asterisk":
-	    /* Change CF for CTI voicemail status */
-	    $ext->replace('macro-dial-one', 'cf', '2', new ext_execif('$["${DB(AMPUSER/${DB_RESULT}/cidnum)}" == "" && "${DB_RESULT:0:2}" != "vm"]', 'Set','__REALCALLERIDNUM=${DEXTEN}'));
+        /* Change CF for CTI voicemail status */
+        $ext->replace('macro-dial-one', 'cf', '2', new ext_execif('$["${DB(AMPUSER/${DB_RESULT}/cidnum)}" == "" && "${DB_RESULT:0:2}" != "vm"]', 'Set','__REALCALLERIDNUM=${DEXTEN}'));
 
             /* Use main extension on login/logout/pause*/
             if (!empty(\FreePBX::Queues()->listQueues())) {
@@ -141,15 +141,19 @@ function nethcti3_get_config_late($engine) {
             $nethcti3 = \FreePBX::Nethcti3();
             $trunks = FreePBX::Core()->listTrunks();
             foreach ($trunks as $trunk) {
-                /*Add isTrunk = 1 header to VoIP trunks that doesn't require SRTP encryption*/
-                $disable_srtp_header = $nethcti3->getConfig('disable_srtp_header', $trunk['trunkid']);
-                if ($disable_srtp_header==1) {
-                    $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'isTrunk,1'));
-                }
-                /*Add topos=0 header to voip trunks with disabled TOPOS for compatibility*/
-                $disable_topos_header = $nethcti3->getConfig('disable_topos_header', $trunk['trunkid']);
-                if ($disable_topos_header==1) {
-                    $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'topos,0'));
+                try {
+                    /*Add isTrunk = 1 header to VoIP trunks that doesn't require SRTP encryption*/
+                    $disable_srtp_header = $nethcti3->getConfig('disable_srtp_header', $trunk['trunkid']);
+                    if ($disable_srtp_header==1) {
+                        $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'isTrunk,1'));
+                    }
+                    /*Add topos=0 header to voip trunks with disabled TOPOS for compatibility*/
+                    $disable_topos_header = $nethcti3->getConfig('disable_topos_header', $trunk['trunkid']);
+                    if ($disable_topos_header==1) {
+                        $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'topos,0'));
+                    }
+                } catch (Exception $e) {
+                    error_log('Error adding additional headers to trunk: '.$e->getMessage());
                 }
             }
         /* Add inboundlookup agi for each inbound routes*/
@@ -447,10 +451,10 @@ function nethcti3_get_config_late($engine) {
         // Generate nethvoice report based on NethCTI configuration
         nethvoice_report_config();
 
-	// Convert /etc/asterisk symlinks to file copied
-	if (file_exists('/var/lib/asterisk/bin/symlink2copies.sh')) {
-	        system("/var/lib/asterisk/bin/symlink2copies.sh");
-	}
+    // Convert /etc/asterisk symlinks to file copied
+    if (file_exists('/var/lib/asterisk/bin/symlink2copies.sh')) {
+            system("/var/lib/asterisk/bin/symlink2copies.sh");
+    }
 
         //Reload CTI
         system("/var/www/html/freepbx/rest/lib/ctiReloadHelper.sh > /dev/null 2>&1 &");
