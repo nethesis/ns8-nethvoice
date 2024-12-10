@@ -20,6 +20,7 @@ config = {
     'reports_international_prefix': os.getenv('REPORTS_INTERNATIONAL_PREFIX', ''),
     'nethvoice_adm_username': os.getenv('NETHVOICE_USER_PORTAL_USERNAME', ''),
     'nethvoice_adm_password': agent.read_envfile("passwords.env").get('NETHVOICE_USER_PORTAL_PASSWORD',""),
+    'nethcti_privacy_numbers': os.getenv('NETHCTI_PRIVACY_NUMBERS', 'xxx'),
 }
 
 json.dump(config, fp=sys.stdout)

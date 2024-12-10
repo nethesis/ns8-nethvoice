@@ -381,6 +381,7 @@ export default {
         rebranding_login_logo_dark_url: "",
         rebranding_login_people: false,
         nethvoice_adm: {},
+        nethcti_privacy_numbers,
       },
       isDarkMode: false,
       config: {},
@@ -548,6 +549,7 @@ export default {
       this.form.timezone = config.timezone;
       this.form.nethvoice_adm.username = config.nethvoice_adm_username;
       this.form.nethvoice_adm.password = config.nethvoice_adm_password;
+      this.form.nethcti_privacy_numbers = config.nethcti_privacy_numbers;
 
       this.focusElement("nethvoice_host");
     },
@@ -789,6 +791,7 @@ export default {
             timezone: this.form.timezone,
             nethvoice_adm_username: this.form.nethvoice_adm.username,
             nethvoice_adm_password: this.form.nethvoice_adm.password,
+            nethcti_privacy_numbers: this.form.nethcti_privacy_numbers
           },
           extra: {
             title: this.$t("settings.configure_instance", {
