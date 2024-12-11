@@ -306,7 +306,7 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
 					</div>
 					<div class="row">
 						<div class="col-md-12">
-							<span id="disable_srtp_header-help" class="help-block fpbx-help-block">'. _("If yes, send srtp=0 header to nethvoice-proxy to disable SRTP for this trunk").'</span>
+							<span id="disable_srtp_header-help" class="help-block fpbx-help-block">'. _("If yes, send isTrunk=1 header to nethvoice-proxy to disable SRTP for this trunk").'</span>
 						</div>
 					</div>
 				</div>
