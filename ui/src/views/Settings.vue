@@ -430,6 +430,7 @@ export default {
         rebranding_favicon_url: "",
         rebranding_login_logo_url: "",
         rebranding_login_logo_dark_url: "",
+        nethcti_privacy_numbers: "",
       },
       warning: {
         user_domain: "",
