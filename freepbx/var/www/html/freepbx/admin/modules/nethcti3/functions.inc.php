@@ -145,16 +145,25 @@ function nethcti3_get_config_late($engine) {
                     /*Add isTrunk = 1 header to VoIP trunks that doesn't require SRTP encryption*/
                     $disable_srtp_header = $nethcti3->getConfig('disable_srtp_header', $trunk['trunkid']);
                     if ($disable_srtp_header==1) {
-                        $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'isTrunk,1'));
+                        $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'isTrunk,1'),'',6);
+                        $add_unset_istrunk = true;
                     }
                     /*Add topos=0 header to voip trunks with disabled TOPOS for compatibility*/
                     $disable_topos_header = $nethcti3->getConfig('disable_topos_header', $trunk['trunkid']);
                     if ($disable_topos_header==1) {
-                        $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'topos,0'));
+                        $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'topos,0'),'',6);
+                        $add_unset_topos = true;
                     }
                 } catch (Exception $e) {
                     error_log('Error adding additional headers to trunk: '.$e->getMessage());
                 }
+            }
+            /* unset topos and isTrunk headers for calls to local extensions */
+            if ($add_unset_istrunk) {
+                $ext->splice('macro-dial-one', 's', 'setexttocall', new ext_gosub(1,'s','func-set-sipheader', 'isTrunk,unset'), '', 1);
+            }
+            if ($add_unset_topos) {
+                $ext->splice('macro-dial-one', 's', 'setexttocall', new ext_gosub(1,'s','func-set-sipheader', 'topos,unset'), '', 1);
             }
         /* Add inboundlookup agi for each inbound routes*/
         $dids = FreePBX::Core()->getAllDIDs();
