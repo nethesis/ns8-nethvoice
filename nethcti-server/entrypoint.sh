@@ -436,7 +436,7 @@ cat > $FILE <<EOF
             "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=F_HOLD",
             "dtmf": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=\$TONE",
             "mute_unmute": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=MUTE",
-	    "hangup": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=CANCEL"
+	    "cancel": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=CANCEL"
         }
     },
     "^snom.*": {
@@ -446,7 +446,7 @@ cat > $FILE <<EOF
             "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/command.htm?key=F_HOLD",
             "dtmf": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/command.htm?key=\$TONE",
             "mute_unmute": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/command.htm?key=MUTE",
-	    "hangup": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/command.htm?key=CANCEL"
+	    "cancel": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/command.htm?key=CANCEL"
         }
     },
     "^sangoma\\\s.*": {
@@ -463,7 +463,7 @@ cat > $FILE <<EOF
             "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_HOLD",
             "dtmf": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=\$TONE",
             "mute_unmute": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_MUTE",
-	    "hangup": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_CANCEL"
+	    "cancel": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_CANCEL"
         }
     },
     "^Nethesis\\\s*NP.*": {
@@ -473,7 +473,7 @@ cat > $FILE <<EOF
             "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_HOLD",
             "dtmf": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=\$TONE",
             "mute_unmute": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_MUTE",
-	    "hangup": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_CANCEL"
+	    "cancel": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_CANCEL"
         }
     },
     "^alcatel\\\s.*1G": {
