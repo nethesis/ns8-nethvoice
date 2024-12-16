@@ -87,7 +87,7 @@ Description = ODBC on asteriskcdrdb
 EOF
 
 mkdir -p /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads 
-chown asterisk:asterisk /var/lib/asterisk/db /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads
+chown asterisk:asterisk /var/lib/asterisk/db /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads /var/lib/nethserver/nethcti/templates/customer_card
 
 # Customized wizard page
 cat > /etc/apache2/sites-available/wizard.conf <<EOF
