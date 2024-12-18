@@ -413,22 +413,6 @@ fi
 FILE=/etc/nethcti/phone_urls.json
 cat > $FILE <<EOF
 {
-    "^yealink\\\s.*T3.*\\\s.+\\\.70(\\\..+|$)": {
-        "urls": {
-            "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/cgiServer.exx?number=\$NUMBER&outgoing_uri=\$ACCOUNT@\$SERVER",
-            "answer": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/cgiServer.exx?key=OK",
-            "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/cgiServer.exx?key=F_HOLD",
-            "dtmf": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/cgiServer.exx?key=\$TONE"
-        }
-    },
-    "^yealink\\\s.*\\\s.+\\\.70(\\\..+|$)": {
-        "urls": {
-            "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?number=\$NUMBER&outgoing_uri=\$ACCOUNT@\$SERVER",
-            "answer": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=OK",
-            "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_HOLD",
-            "dtmf": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=\$TONE"
-        }
-    },
     "^yealink\\\s.+\\\s.+": {
         "urls": {
             "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=number=\$NUMBER&outgoing_uri=\$ACCOUNT@\$SERVER",
