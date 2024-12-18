@@ -416,7 +416,7 @@ cat > $FILE <<EOF
     "^yealink\\\s.+\\\s.+": {
         "urls": {
             "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=number=\$NUMBER&outgoing_uri=\$ACCOUNT@\$SERVER",
-            "answer": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=OK",
+            "answer": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=ANSWER",
             "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=F_HOLD",
             "dtmf": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=\$TONE",
             "mute_unmute": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=MUTE",
