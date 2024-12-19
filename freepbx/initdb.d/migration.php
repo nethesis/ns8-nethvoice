@@ -237,6 +237,18 @@ $stmt = $db->prepare($sql);
 $stmt->execute(['127.0.0.1:'.$_ENV['NETHVOICE_MARIADB_PORT']]);
 
 # Create pjsip trunks custom flags table if not exist
+# create NethCTI3 configuration table if not exist
+$sql = "CREATE TABLE IF NOT EXISTS `kvstore_FreePBX_modules_Nethcti3` (
+	`key` char(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+	`val` varchar(4096) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+	`type` char(16) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+	`id` char(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+	UNIQUE KEY `uniqueindex` (`key`(190),`id`(190)),
+	KEY `keyindex` (`key`(190)),
+	KEY `idindex` (`id`(190))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+$stmt = $db->prepare($sql);
+$stmt->execute();
 # check if table exists
 $sql = "SELECT * FROM information_schema.tables WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'pjsip_trunks_custom_flags'";
 $stmt = $db->prepare($sql);
