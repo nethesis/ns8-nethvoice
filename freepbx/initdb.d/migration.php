@@ -85,6 +85,7 @@ $sql = "UPDATE `asterisk`.`pjsip`
 		FROM `asterisk`.`pjsip` as pjsip_inner
 		WHERE `pjsip_inner`.`keyword` = 'trunk_name'
 		AND `pjsip_inner`.`data` NOT LIKE '%custom%'
+		AND `pjsip_inner`.`data` NOT LIKE '%identity0%'
 	)";
 
 $stmt = $db->prepare($sql);
