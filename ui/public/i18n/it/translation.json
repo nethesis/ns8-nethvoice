@@ -71,7 +71,9 @@
         "nethvoice_host_format": "Deve essere un nome di dominio valido.",
         "nethcti_ui_host_format": "Deve essere un nome di dominio valido.",
         "error_message_hostname": "Modificando il provider utente di un NethVoice già configurato, tutte le configurazioni degli utenti e delle estensioni verranno resettate.",
-        "set_rebranding": "Configurazione Rebranding"
+        "set_rebranding": "Configurazione Rebranding",
+        "proxy_not_installed": "Proxy di Nethvoice",
+        "proxy_not_installed_description": "Prima di configurare NethVoice è necessario installare il proxy."
     },
     "status": {
         "app_images": "Immagine app|Immagini app",
