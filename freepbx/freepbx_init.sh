@@ -96,6 +96,14 @@ do
     fi
 done
 
+# install custom freepbx modules
+for module_file in $(ls /freepbx_custom_modules); do
+	module=$(echo ${module_file} | sed 's/.tar.gz//')
+	mkdir -p /var/www/html/freepbx/admin/modules/${module}
+	tar xzpf /freepbx_custom_modules/${module_file} --strip-component=1 -C /var/www/html/freepbx/admin/modules/${module}
+	fwconsole moduleadmin install $module
+done
+
 # Fix permissions
 fwconsole chown
 

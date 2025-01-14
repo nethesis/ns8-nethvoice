@@ -76,6 +76,18 @@ NethVoice send voicemail emails using s-nail. Smarthost is configured with follo
 
 By default, at container startup, trunks are configured to use the outbound proxy. But sometimes it's necessary to configure a different proxy or none. In this case, make sure that trunk name contains the string "custom". For instance, a trunk named "Foo", will have proxy overwritten at container startup, a trunk named "Foo_custom" will be left unchanged.
 
+## FreePBX custom modules
+
+To install a FreePBX custom module, place it's .tar.gz in the folder `/home/nethvoiceX/.config/freepbx_custom_modules/` and restart FreePBX
+Its filename must be the name of the module .tar.gz. For instance, for installing the apicall module:
+
+```
+ runagent -m nethvoiceX
+ curl -L https://github.com/Stell0/apicall-freepbx/archive/refs/heads/main.tar.gz -o ../freepbx_custom_modules/apicall.tar.gz
+ systemctl --user restart freepbx
+ ```
+ The module will be reinstalled into container again at every restart of container
+
 # Asterisk
 
 Asterisk container merged with FreePBX

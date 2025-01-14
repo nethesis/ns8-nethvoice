@@ -39,6 +39,7 @@ ExecStart=/usr/bin/podman run \
     --volume=astdb:/var/lib/asterisk/db:z \
     --volume=phonebookcsv:/var/lib/nethvoice/phonebook/uploads/:z \
     --volume=/dev/log:/dev/log \
+    --volume=../freepbx_custom_modules:/freepbx_custom_modules:z \
     --env-file=%S/state/passwords.env \
     --env=NETHVOICE* \
     --env=ASTERISK_* \
