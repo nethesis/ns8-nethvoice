@@ -48,7 +48,7 @@ RUN cd /usr/share/tancredi/ && \
 
 # Add NethPhones firmware
 ADD --chown=root:www-data --chmod=640 https://github.com/nethesis/nethserver-tancredi/releases/download/1.16.0/x3sg-5913-RECOVERY-P0.18.23.1.75-2.4.18.2-1217T2024-03-20-03.28.47.z /var/lib/tancredi/data/firmware/x3sg-5913-RECOVERY-P0.18.23.1.75-2.4.18.2-1217T2024-03-20-03.28.47.z
-ADD --chown=root:www-data --chmod=640 https://github.com/nethesis/nethserver-tancredi/releases/download/1.16.0/x5u-6906-P0.18.23.89-2.4.6.0.11-3610T2023-01-13-17.35.24.z /var/lib/tancredi/data/firmware/x5u-6906-P0.18.23.89-2.4.6.0.11-3610T2023-01-13-17.35.24.z
+ADD --chown=root:www-data --chmod=640 //github.com/nethesis/nethserver-tancredi/releases/download/1.16.0/x5u-6906-P0.18.23.142-2.4.13.1-3681T2024-12-23-20.03.57.z /var/lib/tancredi/data/firmware/x5u-6906-P0.18.23.142-2.4.13.1-3681T2024-12-23-20.03.57.z
 
 COPY usr/local/etc/php/php.ini /usr/local/etc/php/php.ini
 
