@@ -41,7 +41,7 @@ $app->get('/voicemails/{extension}', function (Request $request, Response $respo
         $res = FreePBX::Voicemail()->getVoicemail();
 
         if (is_array($res['default']) && !array_key_exists($extension, $res['default'])) {
-          return $response->withStatus(404);
+          return $response->withJson(null,200);
         }
 
         return $response->withJson($res['default'][$extension], 200);

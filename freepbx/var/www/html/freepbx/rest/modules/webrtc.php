@@ -32,7 +32,7 @@ $app->get('/webrtc/{mainextension}', function (Request $request, Response $respo
     if (!empty($extension)) {
         return $response->withJson($extension, 200);
     } else {
-        return $response->withStatus(404);
+        return $response->withJson(null,200);
     }
 });
 

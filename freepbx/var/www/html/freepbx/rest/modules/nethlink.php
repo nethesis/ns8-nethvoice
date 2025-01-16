@@ -32,7 +32,7 @@ $app->get('/nethlink/{mainextension}', function (Request $request, Response $res
     if (!empty($extension)) {
         return $response->withJson($extension, 200);
     } else {
-        return $response->withStatus(404);
+        return $response->withJson(null,200);
     }
 });
 

@@ -49,7 +49,7 @@ $app->get('/mobiles/{username}', function (Request $request, Response $response,
           ' WHERE userman_users.username = \''. $username. '\'';
         $mobile = $dbh->sql($sql, 'getOne', \PDO::FETCH_ASSOC);
         if ($mobile == false) {
-            return $response->withStatus(404);
+            return $response->withJson(null,200);
         }
 
         return $response->withJson($mobile, 200);
