@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+
+import json
+import os
+import sys
+import agent
+import subprocess
+
+
+sftpgo_config_path = "sftpgo.conf.d/sftpgo.json"
+# Read the current configuration
+with open(sftpgo_config_path, 'r') as file:
+	config = json.load(file)
+
+#update sftp server bind address port
+config['server']['protocols']['sftp']['bind_arrd'] = "0.0.0.0:" + os.environ['ASTERISK_RECORDING_SFTP_PORT']
+
+# get NethVoice password from mariadb
+mariadb_root_passwd = agent.read_envfile("passwords.env")['MARIADB_ROOT_PASSWORD']
+command = [
+	"/usr/bin/podman", "exec", "-it", "mariadb",
+	"mysql", "-uroot", f"-p{mariadb_root_passwd}", "asterisk",
+	"-e",
+	"SELECT password_sha1 FROM ampusers WHERE username = 'admin';"
+]
+
+result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+if result.returncode != 0:
+	print(f"Failed to execute command: {result.stderr}")
+	sys.exit(1)
+
+# Update the password
+for user in config['users']:
+	if user['username'] == 'nethvoice':
+		user['password'] = '$pbkdf2-sha1$' + result.stdout.strip()
+
+
+# Write the updated configuration back to the file
+with open(sftpgo_config_path, 'w') as file:
+	json.dump(config, file, indent=4)

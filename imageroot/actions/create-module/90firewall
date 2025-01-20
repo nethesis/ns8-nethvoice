@@ -14,6 +14,7 @@ agent.add_public_service(os.environ['MODULE_ID'], [
     os.environ['JANUS_RTPSTART']+"-"+os.environ['JANUS_RTPEND']+"/udp", # Janus
     os.environ['ASTERISK_IAX_PORT']+"/udp", # Asterisk
     os.environ['PHONEBOOK_LDAP_PORT']+"/tcp", # Phonebook LDAPS
-])
+	os.environ['ASTERISK_RECORDING_SFTP_PORT']+"/tcp", # Asterisk recordings SFTP
+	])
 
 # Ignore exit code
