@@ -83,7 +83,7 @@ Its filename must be the name of the module .tar.gz. For instance, for installin
 
 ```
  runagent -m nethvoiceX
- curl -L https://github.com/Stell0/apicall-freepbx/archive/refs/heads/main.tar.gz -o ../freepbx_custom_modules/apicall.tar.gz
+ curl -L https://github.com/Stell0/apicall-freepbx/archive/refs/heads/main.tar.gz -o ./freepbx_custom_modules/apicall.tar.gz
  systemctl --user restart freepbx
  ```
  The module will be reinstalled into container again at every restart of container
