@@ -13,13 +13,13 @@ with open(sftpgo_config_path, 'r') as file:
 	config = json.load(file)
 
 #update sftp server bind address port
-config['server']['protocols']['sftp']['bind_arrd'] = "0.0.0.0:" + os.environ['ASTERISK_RECORDING_SFTP_PORT']
+config['server']['protocols']['sftp']['bind_addr'] = "0.0.0.0:" + os.environ['ASTERISK_RECORDING_SFTP_PORT']
 
 # get NethVoice password from mariadb
 mariadb_root_passwd = agent.read_envfile("passwords.env")['MARIADB_ROOT_PASSWORD']
 command = [
 	"/usr/bin/podman", "exec", "-it", "mariadb",
-	"mysql", "-uroot", f"-p{mariadb_root_passwd}", "asterisk",
+	"mysql", "-B", "--silent", "-uroot", f"-p{mariadb_root_passwd}", " ",
 	"-e",
 	"SELECT password_sha1 FROM ampusers WHERE username = 'admin';"
 ]

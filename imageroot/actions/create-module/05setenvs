@@ -79,8 +79,6 @@ agent.set_env('NETHCTI_TLS_PORT', port_list[23])
 agent.set_env('ASTERISK_SIP_PORT', port_list[24])
 agent.set_env('ASTERISK_SIPS_PORT', port_list[25])
 agent.set_env('ASTERISK_IAX_PORT', port_list[26])
-agent.set_env('ASTERISK_RECORDING_SFTP_PORT', port_list[27])
-
 
 # Set root password for MariaDB
 # MARIADB_ROOT_PASSWORD written to passwords.env
@@ -146,6 +144,7 @@ agent.set_env('REPORTS_API_PORT', port_list[28])
 # 'REPORTS_API_KEY' written to passwords.env
 # 'REPORTS_SECRET' written to passwords.env
 agent.set_env('REPORTS_UI_PORT', port_list[29])
+agent.set_env('ASTERISK_RECORDING_SFTP_PORT', port_list[30])
 
 # password file
 passwords = {

@@ -9,20 +9,16 @@ WorkingDirectory=%S/state
 Restart=always
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/sftpgo.pid %t/sftpgo.ctr-id
+ExecStartPre=runagent %S/bin/set-sftp-config
 ExecStart=/usr/bin/podman run --conmon-pidfile %t/sftpgo.pid \
     --cidfile %t/sftpgo.ctr-id --cgroups=no-conmon \
     --replace \
     --detach \
     --name sftpgo \
-    --volume moh:/srv/sftpgo/data:z \
+    --volume moh:/srv/sftpgo/moh:z \
     --volume sftpgo_config:/var/lib/sftpgo:Z \
-    --volume %S/state/sftpgo.conf.d/admin.json:/etc/sftpgo/admin.json:Z \
-    --env SFTPGO_LOADDATA_FROM=/etc/sftpgo/admin.json \
-    --env SFTPGO_HTTPD__WEB_ROOT=${TRAEFIK_PATH}\
-	--env-file=%S/state/passwords.env \
-    --user 0:0 \
+    --volume %S/state/sftpgo.conf.d/:/etc/sftpgo/:Z \
     ${SFTPGO_IMAGE}
-ExecStartPost=/usr/bin/bash -c "while [[ $(curl --request GET --url http://localhost:${SFTPGO_TCP_PORT}/healthz --header 'Accept: text/plain; charset=utf-8') != ok ]]; do sleep 3 ; done"
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/sftpgo.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/sftpgo.ctr-id
 PIDFile=%t/sftpgo.pid
