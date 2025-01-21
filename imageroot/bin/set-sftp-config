@@ -19,7 +19,7 @@ config['server']['protocols']['sftp']['bind_addr'] = "0.0.0.0:" + os.environ['AS
 mariadb_root_passwd = agent.read_envfile("passwords.env")['MARIADB_ROOT_PASSWORD']
 command = [
 	"/usr/bin/podman", "exec", "-it", "mariadb",
-	"mysql", "-B", "--silent", "-uroot", f"-p{mariadb_root_passwd}", " ",
+	"mysql", "-B", "--silent", "-uroot", f"-p{mariadb_root_passwd}", "asterisk",
 	"-e",
 	"SELECT password_sha1 FROM ampusers WHERE username = 'admin';"
 ]
