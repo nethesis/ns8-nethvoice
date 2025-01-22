@@ -15,7 +15,7 @@ Restart=always
 ExecStartPre=/bin/rm -f %t/freepbx.pid %t/freepbx.ctr-id
 ExecStartPre=-runagent install-certificate freepbx
 ExecStartPre=-runagent discover-smarthost
-ExecStart=/usr/bin/podman run \
+ExecStart=runagent /usr/bin/podman run \
     --detach \
     --conmon-pidfile=%t/freepbx.pid \
     --cidfile=%t/freepbx.ctr-id \
