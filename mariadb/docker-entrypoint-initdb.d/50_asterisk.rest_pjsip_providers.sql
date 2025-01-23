@@ -26,4 +26,6 @@ INSERT INTO `rest_pjsip_providers` (`id`,`provider`,`description`) VALUES
 (21,"wicity","WiCity"),
 (22,"wic","WiC"),
 (23,"xstream","XStream"),
-(24,"digitalia","Digitalia ICT");
+(24,"digitalia","Digitalia ICT"),
+(25,"voiptel2","VoipTel 2"),
+(26,"terrecablate","Terrecablate");
