@@ -78,7 +78,7 @@ By default, at container startup, trunks are configured to use the outbound prox
 
 ## FreePBX custom modules
 
-To install a FreePBX custom module, place it's .tar.gz in the folder `/home/nethvoiceX/.config/freepbx_custom_modules/` and restart FreePBX
+To install a FreePBX custom module, place it's .tar.gz in the folder `/home/nethvoiceX/.config/state/freepbx_custom_modules/` and restart FreePBX
 Its filename must be the name of the module .tar.gz. For instance, for installing the apicall module:
 
 ```
