@@ -12,9 +12,8 @@ RUN apk add --no-cache \
 
 # Create a user for SFTP access
 RUN addgroup -g 991 asterisk && \
-	adduser -u 990 -h /var/sftp -s /sbin/nologin -G asterisk asterisk && \
-	mkdir -p /var/sftp/files && \
-	chown asterisk:asterisk /var/sftp/files && \
+	adduser -D -u 990 -h /var/sftp -s /sbin/nologin -G asterisk asterisk && \
+	mkdir -p /var/sftp && \
 	chown root:root /var/sftp && \
 	chmod 755 /var/sftp
 
