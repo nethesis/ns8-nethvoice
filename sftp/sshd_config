@@ -1,40 +1,20 @@
-#	$OpenBSD: sshd_config,v 1.104 2021/07/02 05:11:21 dtucker Exp $
-
-# This is the sshd server system-wide configuration file.  See
-# sshd_config(5) for more information.
-
-# This sshd was compiled with PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-
-# The strategy used for options in the default sshd_config shipped with
-# OpenSSH is to specify options with their default value where
-# possible, but leave them commented.  Uncommented options override the
-# default value.
-
-# Include configuration snippets before processing this file to allow the
-# snippets to override directives set in this file.
-Include /etc/ssh/sshd_config.d/*.conf
-
-Port 22
+Port 20033
 AddressFamily any
 ListenAddress 0.0.0.0
 ListenAddress ::
 
 LoginGraceTime 2m
-#PermitRootLogin prohibit-password
-#StrictModes yes
+PermitRootLogin no
 MaxAuthTries 3
 MaxSessions 10
 
 PubkeyAuthentication yes
-AuthorizedKeysFile	/etc/ssh/authorized_keys
-
-PasswordAuthentication yes
-#PermitEmptyPasswords no
+AuthorizedKeysFile /etc/ssh/authorized_keys
+PasswordAuthentication no
 AllowTcpForwarding no
 GatewayPorts no
 X11Forwarding no
-
-Subsystem	sftp	internal-sftp
+UsePAM yes
 
 Subsystem sftp internal-sftp
 Match User asterisk

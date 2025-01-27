@@ -3,19 +3,20 @@ FROM alpine:latest
 
 # Install necessary packages
 RUN apk add --no-cache \
-    openssh-server \
-    openssh-sftp-server \
-    mariadb-connector-c \
-    linux-pam \
+	openssh-server \
+	openssh-sftp-server \
+	mariadb-client \
+	linux-pam \
+	openssh-server-pam \
 	bash
 
 # Create a user for SFTP access
 RUN addgroup -g 991 asterisk && \
-	adduser -D -u 990 -h /var/sftp -s /sbin/nologin -G asterisk asterisk && \
+	adduser -u 990 -h /var/sftp -s /sbin/nologin -G asterisk asterisk && \
 	mkdir -p /var/sftp/files && \
 	chown asterisk:asterisk /var/sftp/files && \
 	chown root:root /var/sftp && \
-    chmod 755 /var/sftp
+	chmod 755 /var/sftp
 
 # Copy configuration files
 COPY sshd_config /etc/ssh/sshd_config
@@ -24,4 +25,4 @@ COPY check_mysql_password.sh /usr/local/bin/check_mysql_password.sh
 COPY entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["/usr/sbin/sshd", "-D", "-e"]
+CMD ["/usr/sbin/sshd.pam", "-D", "-e"]

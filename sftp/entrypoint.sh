@@ -15,9 +15,10 @@ AMP_DB_USER="${AMPDBUSER:-freepbxuser}"
 AMP_DB_PASS="${AMPDBPASS}"
 AMP_DB_HOST="${AMPDBHOST:-127.0.0.1}"
 AMP_DB_NAME="${AMPDBNAME:-asterisk}"
+AMP_DB_PORT="${NETHVOICE_MARIADB_PORT:-3306}"
 EOF
 
 # Set proper permissions
 chmod 600 /etc/mysql-auth.conf
 
-/usr/sbin/sshd -D -e
+/usr/sbin/sshd.pam -D -e
