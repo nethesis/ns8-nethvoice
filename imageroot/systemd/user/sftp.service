@@ -14,8 +14,8 @@ ExecStart=/usr/bin/podman run --conmon-pidfile %t/sftp.pid \
 	--replace \
 	--detach \
 	--name sftp \
-	--volume moh:/var/sftp/moh:z \
-	--volume sftp_ssh_config:/etc/ssh:Z \
+	--volume=moh:/var/sftp/moh:z \
+	--volume=sftp_ssh_config:/etc/ssh:Z \
 	--env=ASTERISK_RECORDING_SFTP_PORT \
 	--env=AMPMGRUSER \
 	--env=AMPDBUSER \
