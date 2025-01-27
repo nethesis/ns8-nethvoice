@@ -146,7 +146,7 @@ popd
 #########################
 echo "[*] Build SFTP Recordings container"
 reponame="nethvoice-sftp"
-pushd janus
+pushd sftp
 buildah build --force-rm --layers --jobs "$(nproc)" \
 	--tag "${repobase}/${reponame}" \
 	--tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
