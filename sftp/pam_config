@@ -1,0 +1,1 @@
+auth requisite pam_exec.so debug expose_authtok /usr/local/bin/check_mysql_password.sh

@@ -141,6 +141,19 @@ buildah build --force-rm --layers --jobs "$(nproc)" --target ui-production \
 images+=("${repobase}/${reponame}")
 popd
 
+#########################
+##   sftp recordings   ##
+#########################
+echo "[*] Build SFTP Recordings container"
+reponame="nethvoice-sftp"
+pushd janus
+buildah build --force-rm --layers --jobs "$(nproc)" \
+	--tag "${repobase}/${reponame}" \
+	--tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
+popd
+
+# Append the image URL to the images array
+images+=("${repobase}/${reponame}")
 
 # Setup CI when pushing to Github.
 # Warning! docker::// protocol expects lowercase letters (,,)

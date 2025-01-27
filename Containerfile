@@ -36,4 +36,4 @@ LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \
     docker.io/library/redis:7.0.10-alpine \
     ${REPOBASE}/nethvoice-reports-ui:${IMAGETAG} \
     ${REPOBASE}/nethvoice-reports-api:${IMAGETAG} \
-    docker.io/drakkan/sftpgo:v2"
+    ${REPOBASE}/nethvoice-sftp:${IMAGETAG}"
