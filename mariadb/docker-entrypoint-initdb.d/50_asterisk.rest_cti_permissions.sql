@@ -25,6 +25,7 @@ INSERT INTO `rest_cti_permissions` (`id`,`name`,`displayname`,`description`) VAL
 (25,"advanced_off_hour","Advanced Off Hour","Allow to change user\'s incoming call path and generic inbound routes"),
 (26,"ad_phone","Advanced Phone","Use phone features (hangup, call, answer) on conversations not owned by the user"),
 (27,"ad_off_hour","Admin Off Hour","Allow to change all incoming call paths"),
+(28,"grp_all_permissions","Activate all group","All group will be visible"),
 (1000,"screen_sharing","Screen Sharing","Allow to share the desktop"),
 (2000,"phone_buttons","Phone buttons","Allow the user to customize functions of physical phone buttons. These values correspond to the Line Keys settings shown in Devices -> Models and Configurations pages"),
 (3000,"video_conference","Video Conference","Allow to start a video conference"),
