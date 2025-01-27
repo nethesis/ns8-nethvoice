@@ -10,11 +10,11 @@ Restart=always
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/sftp.pid %t/sftp.ctr-id
 ExecStart=/usr/bin/podman run --conmon-pidfile %t/sftp.pid \
-    --cidfile %t/sftp.ctr-id --cgroups=no-conmon \
-    --replace \
-    --detach \
-    --name sftp \
-    --volume moh:/var/sftp/moh:z \
+	--cidfile %t/sftp.ctr-id --cgroups=no-conmon \
+	--replace \
+	--detach \
+	--name sftp \
+	--volume moh:/var/sftp/moh:z \
 	--volume sftp_ssh_config:/etc/ssh:Z \
 	--env=ASTERISK_RECORDING_SFTP_PORT \
 	--env=AMPMGRUSER \
@@ -23,7 +23,10 @@ ExecStart=/usr/bin/podman run --conmon-pidfile %t/sftp.pid \
 	--env=AMPDBNAME \
 	--env=NETHVOICE_MARIADB_PORT \
 	--env-file=%S/state/passwords.env \
-    ${NETHVOICE_SFTP_IMAGE}
+	--network=host \
+	--tz=${TIMEZONE} \
+	--hostname=${NETHVOICE_HOST} \
+	${NETHVOICE_SFTP_IMAGE}
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/sftp.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/sftp.ctr-id
 PIDFile=%t/sftp.pid
