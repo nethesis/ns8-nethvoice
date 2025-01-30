@@ -1,6 +1,6 @@
 [Unit]
 Description=Podman sftp.service
-After=nginx.service
+After=mariadb.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
