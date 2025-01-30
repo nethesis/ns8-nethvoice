@@ -1,4 +1,4 @@
 #!/bin/bash
 
 # Read from standard input, remove "Date: " header, and pipe to s-nail
-sed '/^Date: /d' | s-nail -t
+sed '/^Date: \|Content-Type: /d' | s-nail -t
