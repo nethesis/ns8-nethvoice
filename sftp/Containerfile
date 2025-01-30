@@ -24,4 +24,3 @@ COPY check_mysql_password.sh /usr/local/bin/check_mysql_password.sh
 COPY entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["/usr/sbin/sshd.pam", "-D", "-e"]
