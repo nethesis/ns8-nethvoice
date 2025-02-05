@@ -2,7 +2,7 @@
 FROM docker.io/debian:11 as builder
 
 # Set fixed Asterisk version
-ARG ASTERISK_VERSION=18.25.0
+ARG ASTERISK_VERSION=18.26.1
 ARG PJSIP_VERSION=2.13.1
 ARG DEBIAN_FRONTEND=noninteractive
 ARG BUILDROOT=/usr/src/asterisk/build
