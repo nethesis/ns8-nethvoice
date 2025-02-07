@@ -106,7 +106,11 @@ angular.module('nethvoiceWizardUiApp')
           }
         });
         UserService.getWebRTCExtension($scope.currentUser.default_extension).then(function (res) {
-          $scope.currentUser.webRtcState = true
+          if (res.data === null) {
+            $scope.currentUser.webRtcState = false;
+          } else {
+            $scope.currentUser.webRtcState = true;
+          }
         }, function (err) {
           if (err.status != 404) {
             console.log(err)
@@ -114,7 +118,11 @@ angular.module('nethvoiceWizardUiApp')
           $scope.currentUser.webRtcState = false
         })
         UserService.getNethLinkExtension($scope.currentUser.default_extension).then(function (res) {
-          $scope.currentUser.nethLinkState = true
+          if (res.data === null) {
+            $scope.currentUser.nethLinkState = false;
+          } else {
+            $scope.currentUser.nethLinkState = true;
+          }
         }, function (err) {
           if (err.status != 404) {
             console.log(err)
@@ -122,7 +130,11 @@ angular.module('nethvoiceWizardUiApp')
           $scope.currentUser.nethLinkState = false
         })
         UserService.getMobileExtension($scope.currentUser.default_extension).then(function (res) {
-          $scope.currentUser.mobileAppState = true
+          if (res.data === null) {
+            $scope.currentUser.mobileAppState = false;
+          } else {
+            $scope.currentUser.mobileAppState = true;
+          }
         }, function (err) {
           if (err.status != 404) {
             console.log(err)
