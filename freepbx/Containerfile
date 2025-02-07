@@ -276,6 +276,8 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/announcement && \
 	curl -sL https://github.com/FreePBX/announcement/archive/refs/tags/release/16.0.6.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/announcement && \
 	mkdir -p /var/www/html/freepbx/admin/modules/arimanager && \
 	curl -sL https://github.com/FreePBX/arimanager/archive/refs/tags/release/16.0.12.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/arimanager && \
+	mkdir -p /var/www/html/freepbx/admin/modules/asterisk-cli && \
+	curl -sL https://github.com/FreePBX/asterisk-cli/archive/refs/tags/release/16.0.8.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/asterisk-cli && \
 	mkdir -p /var/www/html/freepbx/admin/modules/asteriskinfo && \
 	curl -sL https://github.com/FreePBX/asteriskinfo/archive/refs/tags/release/16.0.9.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/asteriskinfo && \
 	mkdir -p /var/www/html/freepbx/admin/modules/backup && \

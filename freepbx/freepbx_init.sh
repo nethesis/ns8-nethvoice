@@ -17,6 +17,7 @@ for module in \
     announcement \
     manager \
     arimanager \
+    asterisk-cli \
     asteriskinfo \
     filestore \
     backup \
