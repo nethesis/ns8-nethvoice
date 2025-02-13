@@ -1,4 +1,4 @@
-FROM docker.io/canyan/janus-gateway:master as production
+FROM docker.io/canyan/janus-gateway:sip-nosip-keyframe-0.x as production
 RUN mkdir -p /etc/certificates
 COPY usr/local/bin/import-certificate /usr/local/bin/import-certificate
 COPY usr/local/etc/janus/janus.plugin.sip.jcfg /usr/local/etc/janus/janus.plugin.sip.jcfg
