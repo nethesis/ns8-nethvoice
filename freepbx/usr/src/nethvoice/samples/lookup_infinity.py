@@ -55,7 +55,6 @@ try:
 	token_response = requests.post(token_url, auth=auth, data=token_body)
 	if token_response.status_code != 200:
 		raise Exception('Failed to get token from ' + token_url + ' with status code ' + str(token_response.status_code))
-	token = token_response.json()['access_token']
 	token = token_response.json().get("access_token")
 	if not token:
 		raise Exception('No token found in response from ' + url)
