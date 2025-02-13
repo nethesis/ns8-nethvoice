@@ -1,2 +1,2 @@
-auth requisite pam_exec.so expose_authtok debug log=/tmp/aa /usr/local/bin/check_mysql_password.sh
+auth requisite pam_exec.so expose_authtok /usr/local/bin/check_mysql_password.sh
 auth requisite pam_permit.so
