@@ -13,7 +13,7 @@ RUN apt update && \
 	sed -i 's/Listen 443/Listen $\{TANCREDI_SSL_PORT\}/' /etc/apache2/ports.conf && \
 	echo '\n: ${TANCREDIPORT:=80}\nexport TANCREDIPORT\n: ${TANCREDI_SSL_PORT:=443}\nexport TANCREDI_SSL_PORT\n' >> /etc/apache2/envvars && \
 	# Install Tancredi files
-	BRANCH=1.3.0 && \
+	BRANCH=1.3.1 && \
 	curl -L https://github.com/nethesis/tancredi/archive/refs/tags/${BRANCH}.tar.gz -o - | tar xzp --strip-component=1 -C /usr/share/tancredi/ tancredi-${BRANCH}/data/ tancredi-${BRANCH}/public/ tancredi-${BRANCH}/scripts/ tancredi-${BRANCH}/src/ tancredi-${BRANCH}/composer.json tancredi-${BRANCH}/composer.lock
 
 # Add Nethesis firmware template
