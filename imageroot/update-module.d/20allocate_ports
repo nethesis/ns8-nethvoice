@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2025 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Allocate new port for sftp service
+import sys
+import agent
+
+if not hasattr(agent, 'allocate_ports'):
+    print(f"Core version too old, not allocating sftp port. Try on next update", file=sys.stderr)
+    sys.exit(0)
+
+# Read the env file, do not use real environment because it could be not updated
+env = agent.read_envfile('environment')
+
+# Check:
+# skip allocation if the module has already allocated an extra port during an old update
+if 'ASTERISK_RECORDING_SFTP_PORT' in env:
+    sys.exit(0)
+
+# Allocate a new port
+allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
+sftp_port = allocated_ports[0]
+print(f"New port allocated for SFTP: {sftp_port}", file=sys.stderr)
+
+# Update the environment file: this will be used as flag to avoid re-allocating the port
+agent.set_env('ASTERISK_RECORDING_SFTP_PORT', sftp_port)
