@@ -13,7 +13,7 @@ ExecStart=/usr/bin/podman run --conmon-pidfile %t/sftp.pid \
 	--cidfile %t/sftp.ctr-id --cgroups=no-conmon \
 	--replace \
 	--detach \
-	--name=%N
+	--name=%N \
 	--volume=moh:/var/sftp/moh:z \
 	--volume=sftp_ssh_config:/etc/ssh:Z \
 	--env=ASTERISK_RECORDING_SFTP_PORT \
