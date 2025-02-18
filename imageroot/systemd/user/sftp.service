@@ -15,6 +15,7 @@ ExecStart=/usr/bin/podman run --conmon-pidfile %t/sftp.pid \
 	--detach \
 	--name=%N \
 	--volume=moh:/var/sftp/moh:z \
+	--volume=sounds:/var/sftp/sounds:z \
 	--volume=sftp_ssh_config:/etc/ssh:Z \
 	--env=ASTERISK_RECORDING_SFTP_PORT \
 	--env=AMPMGRUSER \
