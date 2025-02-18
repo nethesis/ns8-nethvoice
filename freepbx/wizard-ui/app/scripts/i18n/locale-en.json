@@ -171,5 +171,6 @@
   "extension left": "extension left",
   "privacy message notification": "The recording, possession, reproduction, communication or dissemination of telephone conversations outside of the cases permitted by law represents an offense. It is advisable to check that all the protections provided for by the Workers' Statute and the Privacy Code and the relevant applicable regulations have been adopted before activating this functionality.",
   "Warning": "Warning",
-  "Syncing message": "Users are syncing. Wait for the process to complete."
+  "Syncing message": "Users are syncing. Wait for the process to complete.",
+  "Reboot": "Reboot"
 }

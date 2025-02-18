@@ -106,6 +106,16 @@ angular.module('nethvoiceWizardUiApp')
       });
     }
 
+    this.setPhoneReconfigure = function (reconfiguretData) {
+      return $q(function (resolve, reject) {
+        RestService.post('/phones/reconfigure', reconfiguretData).then(function (res) {
+          resolve(res);
+        }, function (err) {
+          reject(err);
+        });
+      });
+    }
+
     this.deletePhoneDelayedReboot = function (rebootCancelMacs) {
       return $q(function (resolve, reject) {
         RestService.deleteWithContentTypeJson('/phones/reboot', rebootCancelMacs).then(function (res) {
