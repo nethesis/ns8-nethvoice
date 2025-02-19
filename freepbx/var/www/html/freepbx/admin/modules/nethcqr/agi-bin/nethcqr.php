@@ -141,6 +141,7 @@ if (empty($cqr_details['use_code'])) {
             $pinchr='';
             $codcli='';
             unset($pin);
+            $agi->answer();
             $agi->verbose("Getting manual customer code, try: $try");
             $pin = $agi->fastpass_stream_file($buf,$welcome_audio_file,'1234567890#');
             $agi->verbose($pin);
