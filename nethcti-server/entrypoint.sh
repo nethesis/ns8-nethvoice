@@ -27,7 +27,7 @@ cat > $FILE <<EOF
   "file": {
     "path": "/etc/nethcti/users.json"
   },
-  "expiration_timeout": "3600",
+  "expiration_timeout": "864000000",
   "unauthe_call": {
           "status": "${NETHCTI_UNAUTHE_CALL:-disabled}",
           "allowed_ip": "${NETHCTI_UNAUTHE_CALL_IP:-127.0.0.1}"
