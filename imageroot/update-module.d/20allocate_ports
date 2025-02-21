@@ -21,10 +21,16 @@ env = agent.read_envfile('environment')
 if 'ASTERISK_RECORDING_SFTP_PORT' in env:
     sys.exit(0)
 
-# Allocate a new port
-allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
-sftp_port = allocated_ports[0]
-print(f"New port allocated for SFTP: {sftp_port}", file=sys.stderr)
+# If there are still old FLEXYSIP ports allocated, use one of them (REDIS_FLEXISIP_PORT, FLEXISIP_PORT, FLEXISIP_SIP_PORT)
+if 'REDIS_FLEXISIP_PORT' in env:
+	sftp_port = env['REDIS_FLEXISIP_PORT']
+	agent.unset_env('REDIS_FLEXISIP_PORT')
+	print(f"Reusing old FLEXYSIP port for SFTP: {sftp_port}", file=sys.stderr)
+else:
+	# Allocate a new port
+	allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
+	sftp_port = allocated_ports[0]
+	print(f"New port allocated for SFTP: {sftp_port}", file=sys.stderr)
 
 # Update the environment file: this will be used as flag to avoid re-allocating the port
 agent.set_env('ASTERISK_RECORDING_SFTP_PORT', sftp_port)
