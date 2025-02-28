@@ -74,6 +74,9 @@ noload = res_http_media_cache.so
 noload = res_phoneprov.so
 EOF
 
+# Show Asterisk logfiles module on FreePBX interface
+sed -i '/^; Hide Asterisk logfile$/N;/\n\[logfiles\]$/N;/\nremove=Yes$/d' /etc/asterisk/freepbx_menu.conf
+
 chown -c asterisk:asterisk /etc/asterisk/*.conf
 
 # Configure ODBC for asteriskcdrdb
