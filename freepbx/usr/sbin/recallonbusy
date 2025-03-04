@@ -121,6 +121,19 @@ async def main():
 	device_state_map = {}
 	client = AMIClient('/etc/asterisk/recallonbusy.cfg')
 
+	async def connect():
+		"""Try to connect to the AMI."""
+		while True:
+			try:
+				await client.connect()
+				return True
+			except ConnectionRefusedError:
+				print("[recallonbusy] Connection to AMI refused, retrying in 5 seconds...")
+				await asyncio.sleep(5)
+			except Exception as e:
+				print(f"[recallonbusy] ERROR connecting to AMI: {e}")
+				await asyncio.sleep(30)
+
 	async def device_state_change_event_listener(event):
 		"""Handle DeviceStateChange AMI events."""
 		if 'Event' not in event or event['Event'] != 'DeviceStateChange':
@@ -186,26 +199,17 @@ async def main():
 	client.add_event_listener(device_state_change_event_listener)
 	client.add_event_listener(db_get_response_event_listener)
 
-	# Attempt to connect until successful
-	while True:
-		try:
-			await client.connect()
-			break
-		except ConnectionRefusedError:
-			print("[recallonbusy] Connection to AMI refused, retrying in 5 seconds...")
-			await asyncio.sleep(5)
-		except Exception as e:
-			print(f"[recallonbusy] ERROR connecting to AMI: {e}")
-			await asyncio.sleep(30)
+	# connect to AMI
+	await connect()
 
 	# Continuously send a DeviceStateList action at the configured interval
 	while True:
 		try:
 			await client.send_action({'Action': 'DeviceStateList'})
+			await asyncio.sleep(client.check_interval)
 		except Exception as e:
 			print(f"[recallonbusy] ERROR sending action: {e}")
-			await client.connect()  # Attempt reconnection on error
-		await asyncio.sleep(client.check_interval)
+			await connect()  # Attempt reconnection on error
 
 if __name__ == '__main__':
 	asyncio.run(main())
