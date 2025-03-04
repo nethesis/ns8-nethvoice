@@ -202,7 +202,7 @@ async def main():
 			logger.debug(f"Waiting extensions for {mainextension}: {waiting_extensions}")
 			for waiting_extension in waiting_extensions:
 				waiting_state = mainextensions_state.get(waiting_extension)
-				if waiting_state == 0:
+				if waiting_state == '0':
 					logger.info(f"Calling waiting extension {waiting_extension}")
 					await client.send_action({
 						'Action': 'Originate',
