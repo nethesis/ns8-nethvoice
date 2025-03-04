@@ -7,35 +7,36 @@ SPDX-License-Identifier: GPL-3.0-or-later
 """
 
 import asyncio
+import logging
 import configparser
 import os
 import re
 import sys
 
+# Set up the module logger
+logger = logging.getLogger("recallonbusy")
+logger.setLevel(logging.DEBUG)  # Default to DEBUG; will adjust based on config later
+handler = logging.StreamHandler(sys.stdout)
+formatter = logging.Formatter('[recallonbusy] %(levelname)s: %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
 class AMIClient:
-	def __init__(self, config_path='/etc/asterisk/recallonbusy.cfg'):
-		self.config_path = config_path
-		self._load_config()
+	def __init__(self, config):
 		self.reader = None
 		self.writer = None
 		self.event_listeners = []  # List of async event listener callbacks
-		self.debug = self.config.getboolean('recallonbusy', 'Debug', fallback=False)
-		self.check_interval = self.config.getint('recallonbusy', 'CheckInterval', fallback=20)
-
-	def _load_config(self):
-		"""Load configuration from the specified file."""
-		self.config = configparser.ConfigParser()
-		if not os.path.exists(self.config_path):
-			raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
-		self.config.read(self.config_path)
-		self.host = self.config.get('recallonbusy', 'Host', fallback='localhost')
-		self.port = self.config.getint('recallonbusy', 'Port', fallback=5038)
-		self.username = self.config.get('recallonbusy', 'Username', fallback='')
-		self.secret = self.config.get('recallonbusy', 'Secret', fallback='')
+		self.host = config['host']
+		self.port = config['port']
+		self.username = config['username']
+		self.secret = config['secret']
+		self.debug = config['debug']
+		self.check_interval = config['check_interval']
+		logger.setLevel(logging.DEBUG if self.debug else logging.INFO)
 
 	async def connect(self):
 		"""Establish a connection to the AMI."""
-		print(f"[recallonbusy] Connecting to {self.host}:{self.port}")
+		logger.info(f"Connecting to {self.host}:{self.port}")
 		self.reader, self.writer = await asyncio.open_connection(self.host, self.port)
 		await self._login()
 		# Start listening for events as a background task
@@ -50,13 +51,11 @@ class AMIClient:
 		)
 		self.writer.write(action.encode())
 		await self.writer.drain()
-		if self.debug:
-			print("[recallonbusy] DEBUG: Sent login action")
+		logger.debug("Sent login action")
 
 	async def _listen(self):
 		"""Continuously listen for incoming data from AMI."""
-		if self.debug:
-			print("[recallonbusy] DEBUG: Started listener task")
+		logger.debug("Started listener task")
 		buffer = ''
 		while True:
 			try:
@@ -70,7 +69,7 @@ class AMIClient:
 					event = self._parse_event(raw_event)
 					await self._handle_event(event)
 			except Exception as e:
-				print(f"[recallonbusy] ERROR in listener task: {e}", file=sys.stderr)
+				logger.error(f"in listener task: {e}", file=sys.stderr)
 				break
 
 	def _parse_event(self, data):
@@ -80,8 +79,7 @@ class AMIClient:
 			if ': ' in line:
 				key, value = line.split(': ', 1)
 				event[key.strip()] = value.strip()
-		if self.debug:
-			print(f"[recallonbusy] DEBUG: Parsed event: {event}")
+		logger.debug(f"Parsed event: {event}")
 		return event
 
 	async def _handle_event(self, event):
@@ -104,22 +102,37 @@ class AMIClient:
 		action += '\r\n'
 		self.writer.write(action.encode())
 		await self.writer.drain()
-		if self.debug:
-			print(f"[recallonbusy] DEBUG: Sent action: {action_dict}")
+		logger.debug(f"Sent action: {action_dict}")
 
 	async def close(self):
 		"""Close the connection to the AMI."""
 		if self.writer:
 			self.writer.close()
 			await self.writer.wait_closed()
-			if self.debug:
-				print("[recallonbusy] DEBUG: Closed connection to AMI")
+			logger.debug("Closed connection to AMI")
 
+
+def load_config(config_path):
+	"""Load configuration from the specified file."""
+	config = {}
+	parser = configparser.ConfigParser()
+	if not os.path.exists(config_path):
+		raise FileNotFoundError(f"Configuration file not found: {config_path}")
+	parser.read(config_path)
+	config['host'] = parser.get('recallonbusy', 'Host', fallback='localhost')
+	config['port'] = parser.getint('recallonbusy', 'Port', fallback=5038)
+	config['username'] = parser.get('recallonbusy', 'Username', fallback='')
+	config['secret'] = parser.get('recallonbusy', 'Secret', fallback='')
+	config['debug'] = parser.getboolean('recallonbusy', 'Debug', fallback=False)
+	config['check_interval'] = parser.getint('recallonbusy', 'CheckInterval', fallback=20)
+	logger.setLevel(logging.DEBUG if config['debug'] else logging.INFO)
+	return config
 
 async def main():
 	# Global device state mapping
 	device_state_map = {}
-	client = AMIClient('/etc/asterisk/recallonbusy.cfg')
+	config = load_config('/etc/asterisk/recallonbusy.cfg')
+	client = AMIClient(config)
 
 	async def connect():
 		"""Try to connect to the AMI."""
@@ -128,26 +141,24 @@ async def main():
 				await client.connect()
 				return True
 			except ConnectionRefusedError:
-				print("[recallonbusy] Connection to AMI refused, retrying in 5 seconds...")
+				logger.error("Connection to AMI refused, retrying in 5 seconds...")
 				await asyncio.sleep(5)
 			except Exception as e:
-				print(f"[recallonbusy] ERROR connecting to AMI: {e}")
+				logger.error(f"connecting to AMI: {e}")
 				await asyncio.sleep(30)
 
 	async def device_state_change_event_listener(event):
 		"""Handle DeviceStateChange AMI events."""
 		if 'Event' not in event or event['Event'] != 'DeviceStateChange':
 			return
-		if client.debug:
-			print(f"[recallonbusy] DEBUG: Handling event: {event}")
+		logger.debug(f"Handling event: {event}")
 
 		if 'State' in event and 'Device' in event and re.match(r'^PJSIP/[0-9]{2,}$', event['Device']):
 			# Extract the main extension from the device string
 			mainextension = re.sub(r'^PJSIP/9[0-9]([0-9]+)$|^PJSIP/([^9][0-9]+)$', r'\1\2', event['Device'])
 			device_state_map[mainextension] = event['State']
 			if event['State'] == 'NOT_INUSE':
-				if client.debug:
-					print(f"[recallonbusy] DEBUG: Device {mainextension} is NOT_INUSE, checking for waiting extensions")
+				logger.debug(f"Device {mainextension} is NOT_INUSE, checking for waiting extensions")
 				# Send DBGet to fetch waiting extensions
 				await client.send_action({
 					'Action': 'DBGet',
@@ -160,20 +171,18 @@ async def main():
 		"""Handle DBGetResponse AMI events."""
 		if 'Event' not in event or event['Event'] != 'DBGetResponse':
 			return
-		if client.debug:
-			print(f"[recallonbusy] DEBUG: Handling event: {event}")
+		logger.debug(f"Handling event: {event}")
 
 		if (event.get('Family') == 'ROB' and 'Key' in event and
 			'Val' in event and event['Val'] != '' and 
 			'ActionID' in event and re.match(r'^[0-9]+_get_waiting$', event['ActionID'])):
 			mainextension = re.sub(r'^([0-9]+)_get_waiting$', r'\1', event['ActionID'])
 			waiting_extensions = event['Val'].split('&')
-			if client.debug:
-				print(f"[recallonbusy] DEBUG: Waiting extensions for {mainextension}: {waiting_extensions}")
+			logger.debug(f"Waiting extensions for {mainextension}: {waiting_extensions}")
 			for waiting_extension in waiting_extensions:
 				waiting_state = device_state_map.get(waiting_extension)
 				if waiting_state in ['NOT_INUSE', 'UNKNOWN']:
-					print(f"[recallonbusy] Calling waiting extension {waiting_extension}")
+					logger.info(f"Calling waiting extension {waiting_extension}")
 					await client.send_action({
 						'Action': 'Originate',
 						'Channel': f'Local/{waiting_extension}@from-internal',
@@ -192,8 +201,7 @@ async def main():
 						'Val': '&'.join(waiting_extensions)
 					})
 					break
-				elif client.debug:
-					print(f"[recallonbusy] DEBUG: Skipping waiting extension {waiting_extension}: {waiting_state}")
+				logger.debug(f"Skipping waiting extension {waiting_extension}: {waiting_state}")
 
 	# Register the asynchronous event listeners
 	client.add_event_listener(device_state_change_event_listener)
@@ -208,7 +216,7 @@ async def main():
 			await client.send_action({'Action': 'DeviceStateList'})
 			await asyncio.sleep(client.check_interval)
 		except Exception as e:
-			print(f"[recallonbusy] ERROR sending action: {e}")
+			logger.error(f"sending action: {e}")
 			await connect()  # Attempt reconnection on error
 
 if __name__ == '__main__':
