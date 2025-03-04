@@ -21,6 +21,9 @@ formatter = logging.Formatter('[recallonbusy] %(levelname)s: %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+devices_status = {}
+mainextensions_state = {}
+
 class AMIClient:
 	def __init__(self, config):
 		self.reader = None
@@ -79,7 +82,7 @@ class AMIClient:
 			if ': ' in line:
 				key, value = line.split(': ', 1)
 				event[key.strip()] = value.strip()
-		logger.debug(f"Parsed event: {event}")
+		#logger.debug(f"Parsed event: {event}")
 		return event
 
 	async def _handle_event(self, event):
@@ -129,8 +132,6 @@ def load_config(config_path):
 	return config
 
 async def main():
-	# Global device state mapping
-	device_state_map = {}
 	config = load_config('/etc/asterisk/recallonbusy.cfg')
 	client = AMIClient(config)
 
@@ -154,18 +155,38 @@ async def main():
 		logger.debug(f"Handling event: {event}")
 
 		if 'State' in event and 'Device' in event and re.match(r'^PJSIP/[0-9]{2,}$', event['Device']):
-			# Extract the main extension from the device string
-			mainextension = re.sub(r'^PJSIP/9[0-9]([0-9]+)$|^PJSIP/([^9][0-9]+)$', r'\1\2', event['Device'])
-			device_state_map[mainextension] = event['State']
-			if event['State'] == 'NOT_INUSE':
-				logger.debug(f"Device {mainextension} is NOT_INUSE, checking for waiting extensions")
-				# Send DBGet to fetch waiting extensions
+			# check if state has changed
+			if event['Device'] not in devices_status or devices_status[event['Device']] != event['State']:
+				# save device state
+				devices_status[event['Device']] = event['State']
+				logger.debug(f"Device {event['Device']} changed state to {event['State']}")
+
+				# Extract the main extension from the device string
+				mainextension = re.sub(r'^PJSIP/9[0-9]([0-9]+)$|^PJSIP/([^9][0-9]+)$', r'\1\2', event['Device'])
+
+				# ask mainextension hint
 				await client.send_action({
-					'Action': 'DBGet',
-					'ActionID': f'{mainextension}_get_waiting',
-					'Family': 'ROB',
-					'Key': mainextension
+					'Action': 'ExtensionState',
+					'Exten': mainextension,
+					'Context': 'ext-local',
+					'ActionID': f'{mainextension}_hint'
 				})
+
+	async def hint_event_listener(event):
+		"""Handle Hint AMI events."""
+		if 'Response' not in event or event['Response'] != 'Success' or 'Message' not in event or event['Message'] != 'Extension Status' or 'Status' not in event or 'ActionID' not in event or not re.match(r'^[0-9]+_hint$', event['ActionID']):
+			return
+		logger.debug(f"Handling event: {event}")
+		mainextensions_state[event['Exten']] = event['Status']
+		if event['Status'] == '0':
+			logger.debug(f"Extension {event['Exten']} is available, checking for waiting extensions...")
+			# Send DBGet to fetch waiting extensions
+			await client.send_action({
+				'Action': 'DBGet',
+				'ActionID': f'{event["Exten"]}_get_waiting',
+				'Family': 'ROB',
+				'Key': event['Exten']
+			})
 
 	async def db_get_response_event_listener(event):
 		"""Handle DBGetResponse AMI events."""
@@ -180,8 +201,8 @@ async def main():
 			waiting_extensions = event['Val'].split('&')
 			logger.debug(f"Waiting extensions for {mainextension}: {waiting_extensions}")
 			for waiting_extension in waiting_extensions:
-				waiting_state = device_state_map.get(waiting_extension)
-				if waiting_state in ['NOT_INUSE', 'UNKNOWN']:
+				waiting_state = mainextensions_state.get(waiting_extension)
+				if waiting_state == 0:
 					logger.info(f"Calling waiting extension {waiting_extension}")
 					await client.send_action({
 						'Action': 'Originate',
@@ -206,6 +227,7 @@ async def main():
 	# Register the asynchronous event listeners
 	client.add_event_listener(device_state_change_event_listener)
 	client.add_event_listener(db_get_response_event_listener)
+	client.add_event_listener(hint_event_listener)
 
 	# connect to AMI
 	await connect()
