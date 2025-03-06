@@ -10,9 +10,5 @@ MARIADB_ROOT_PASSWORD=$(grep '^MARIADB_ROOT_PASSWORD=' ./passwords.env) && expor
 WIZARD_STEP=$(/usr/bin/podman exec mariadb mysql -u root -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$MARIADB_ROOT_PASSWORD asterisk -BNe "select step from rest_wizard" | tr -d -c '[:digit:]')
 if [[ $WIZARD_STEP -ge 10 ]]; then
     echo "Starting nethcti-server" >> /dev/stderr
-    /usr/bin/systemctl --user start nethcti-server
+    /usr/bin/systemctl --user restart nethcti-server
 fi
-
-# restart asterisk when convenient
-echo "Restarting asterisk when convenient" >> /dev/stderr
-/usr/bin/podman exec -d freepbx asterisk -rx "core restart when convenient"

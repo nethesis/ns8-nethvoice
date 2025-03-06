@@ -19,27 +19,10 @@ if proxy_id is None:
 # Get proxy srv records
 ksrv = agent.list_service_providers(agent.redis_connect(use_replica=True), "sip", "tcp", {"module_id": proxy_id.removeprefix("module/")})
 
-
-services_to_restart = set(os.environ['RESTART_SERVICES'].split())
-
-# Check if proxy srv records are present
-if os.getenv('NETHVOICE_PROXY_FQDN') != ksrv[0]["fqdn"]:
-    # Restart tancredi to apply new configuration
-    services_to_restart.add("tancredi.service")
-    agent.set_env("NETHVOICE_PROXY_FQDN", ksrv[0]["fqdn"])
-
-if os.getenv('PROXY_IP') != ksrv[0]["host"]:
-    # Restart services to apply new configuration
-    services_to_restart.add("freepbx.service")
-    agent.set_env("PROXY_IP", ksrv[0]["host"])
-
-if os.getenv('PROXY_PORT') != ksrv[0]["port"]:
-    # Restart services to apply new configuration
-    services_to_restart.add("freepbx.service")
-    agent.set_env("PROXY_PORT", ksrv[0]["port"])
-
-
-agent.set_env("RESTART_SERVICES", " ".join(services_to_restart))
+# Set environment variables for nethvoice-proxy
+agent.set_env("NETHVOICE_PROXY_FQDN", ksrv[0]["fqdn"])
+agent.set_env("PROXY_IP", ksrv[0]["host"])
+agent.set_env("PROXY_PORT", ksrv[0]["port"])
 
 # Configure nethvoice-proxy to route SIP traffic for Nethvoice
 response = agent.tasks.run(

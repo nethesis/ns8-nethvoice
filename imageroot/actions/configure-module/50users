@@ -18,19 +18,6 @@ agent.set_env('USER_DOMAIN', domain)
 
 # read from  the passwords.env file
 passwordsfile = agent.read_envfile("passwords.env")
-# read from passwords.env file
-bind_password = passwordsfile.get('NETHVOICE_LDAP_PASS','')
-
-# Add freepbx.service to the list of services to restart if the user domain configuration has changed
-services_to_restart = set(os.getenv('SERVICES_TO_RESTART', '').split(' '))
-if domparams['host'] != os.getenv('NETHVOICE_LDAP_HOST', '') or \
-   domparams['port'] != os.getenv('NETHVOICE_LDAP_PORT', '') or \
-   domparams['bind_dn'] != os.getenv('NETHVOICE_LDAP_USER', '') or \
-   domparams['bind_password'] != bind_password or \
-   domparams['schema'] != os.getenv('NETHVOICE_LDAP_SCHEMA', '') or \
-   domparams['base_dn'] != os.getenv('NETHVOICE_LDAP_BASE', ''):
-    services_to_restart.add('freepbx.service')
-agent.set_env('RESTART_SERVICES', ' '.join(services_to_restart))
 
 agent.set_env('NETHVOICE_LDAP_HOST', domparams['host'])
 agent.set_env('NETHVOICE_LDAP_PORT', domparams['port'])
