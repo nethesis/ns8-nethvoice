@@ -44,5 +44,5 @@ INSERT INTO `sipsettings` (`keyword`,`data`,`seq`,`type`) VALUES
 ("tlsclientmethod","tlsv1",10,0),
 ("tlsdontverifyserver","",10,0),
 ("tlsenable","no",10,0),
-("videocodecs","{\"h264\":1,\"mpeg4\":2,\"vp8\":3,\"vp9\":4}",0,0),
+("videocodecs","{\"vp8\":1,\"h264\":2}",0,0),
 ("videosupport","yes",10,0);
