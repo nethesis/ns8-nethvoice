@@ -65,12 +65,10 @@ if (count($res) > 0) {
 	$sql = "UPDATE `asterisk`.`sip` SET `data` = '0.0.0.0-udp' WHERE `keyword` = 'transport' AND `id` IN ($qm_string)";
 	$stmt = $db->prepare($sql);
 	$stmt->execute(array_column($res, 'extension'));
-
-	# set allowed video codecs in freepbx sip table
-	$sql = "UPDATE `asterisk`.`sip` SET `data` = 'ulaw,alaw,gsm,g726,vp8' WHERE `keyword` = 'allow' AND `id` IN ($qm_string)";
-	$stmt = $db->prepare($sql);
-	$stmt->execute(array_column($res, 'extension'));
 }
+
+# set allowed video codecs in freepbx sip table
+$db->query("UPDATE `asterisk`.`sip` SET `data` = 'ulaw,alaw,gsm,g726,vp8' WHERE `keyword` = 'allow'");
 
 /* Set outbound_proxy to all physical and mobile extensions to be used with proxy */
 $sql = "UPDATE `asterisk`.`sip`
