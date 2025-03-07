@@ -69,6 +69,10 @@ if (count($res) > 0) {
 
 # set allowed video codecs in freepbx sip table
 $db->query("UPDATE `asterisk`.`sip` SET `data` = 'ulaw,alaw,gsm,g726,vp8' WHERE `keyword` = 'allow'");
+$db->query("UPDATE `asterisk`.`sipsettings` SET `data` = '{\"h264\":1, \"vp8\":2}' WHERE `keyword` = 'videocodecs'");
+$db->query("UPDATE `asterisk`.`sipsettings` SET `data` = 'yes' WHERE `keyword` = 'videosupport'");
+$db->query("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = '{\"vp8\":1,\"h264\":2}' WHERE `key` = 'videocodecs'");
+$db->query("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = 'yes' WHERE `key` = 'videosupport'");
 
 /* Set outbound_proxy to all physical and mobile extensions to be used with proxy */
 $sql = "UPDATE `asterisk`.`sip`
