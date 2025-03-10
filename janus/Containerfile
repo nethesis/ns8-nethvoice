@@ -1,5 +1,7 @@
 FROM debian:bullseye-slim
 
+ARG JANUS_TAG=v1.3.1
+
 RUN apt-get -y update && \
 	apt-get install -y \
 		libavutil-dev \
@@ -30,7 +32,6 @@ RUN apt-get -y update && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
-
 RUN cd /tmp && \
 	wget https://github.com/cisco/libsrtp/archive/v2.3.0.tar.gz && \
 	tar xfv v2.3.0.tar.gz && \
@@ -49,7 +50,7 @@ RUN cd /tmp && \
 	make install
 
 RUN cd /tmp && \
-    git clone https://github.com/meetecho/janus-gateway.git && \
+    git clone --depth 1 --branch ${JANUS_TAG} https://github.com/meetecho/janus-gateway.git && \
     cd janus-gateway && \
     cp -r . /usr/local/src/janus-gateway
 
