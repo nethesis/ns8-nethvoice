@@ -77,7 +77,7 @@ if (count($res) > 0) {
 	foreach ($res as $row) {
 		$sql = "UPDATE `asterisk`.`sip` SET `data` = 'ulaw,alaw,gsm,g726,vp8' WHERE `keyword` = 'allow' AND `id` = ?";
 		$stmt = $db->prepare($sql);
-	    $stmt->execute([$row['extension']]);
+		$stmt->execute([$row['extension']]);
 	}
 }
 
