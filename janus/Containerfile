@@ -63,15 +63,6 @@ RUN cd /usr/local/src/janus-gateway && \
 
 FROM debian:bullseye-slim
 
-ARG BUILD_DATE="undefined"
-ARG GIT_BRANCH="undefined"
-ARG GIT_COMMIT="undefined"
-ARG VERSION="undefined"
-
-LABEL build_date=${BUILD_DATE}
-LABEL git_branch=${GIT_BRANCH}
-LABEL git_commit=${GIT_COMMIT}
-LABEL version=${VERSION}
 
 RUN apt-get -y update && \
 	apt-get install -y \
