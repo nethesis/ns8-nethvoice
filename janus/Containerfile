@@ -101,10 +101,6 @@ COPY --from=0 /usr/local/etc/janus /usr/local/etc/janus
 COPY --from=0 /usr/local/lib/janus /usr/local/lib/janus
 COPY --from=0 /usr/local/share/janus /usr/local/share/janus
 
-ENV BUILD_DATE=${BUILD_DATE}
-ENV GIT_BRANCH=${GIT_BRANCH}
-ENV GIT_COMMIT=${GIT_COMMIT}
-ENV VERSION=${VERSION}
 
 EXPOSE 10000-10200/udp
 EXPOSE 8188
