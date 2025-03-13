@@ -67,6 +67,26 @@ if (count($res) > 0) {
 	$stmt->execute(array_column($res, 'extension'));
 }
 
+# set allowed video codecs in freepbx sip table, only for configured pjsip extensions
+$sql = "SELECT extension FROM `asterisk`.`rest_devices_phones`";
+$stmt = $db->prepare($sql);
+$stmt->execute();
+$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+if (count($res) > 0) {
+	foreach ($res as $row) {
+		$sql = "UPDATE `asterisk`.`sip` SET `data` = 'ulaw,alaw,gsm,g726,vp8' WHERE `keyword` = 'allow' AND `id` = ?";
+		$stmt = $db->prepare($sql);
+		$stmt->execute([$row['extension']]);
+	}
+}
+
+# set allowed video codecs in freepbx sipsettings table
+$db->query("UPDATE `asterisk`.`sipsettings` SET `data` = '{\"vp8\":1, \"h264\":2}' WHERE `keyword` = 'videocodecs'");
+$db->query("UPDATE `asterisk`.`sipsettings` SET `data` = 'yes' WHERE `keyword` = 'videosupport'");
+$db->query("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = '{\"vp8\":1,\"h264\":2}' WHERE `key` = 'videocodecs'");
+$db->query("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = 'yes' WHERE `key` = 'videosupport'");
+
 /* Set outbound_proxy to all physical and mobile extensions to be used with proxy */
 $sql = "UPDATE `asterisk`.`sip`
 	JOIN `asterisk`.`rest_devices_phones`

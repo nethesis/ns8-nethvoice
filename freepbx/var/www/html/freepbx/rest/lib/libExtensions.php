@@ -69,6 +69,11 @@ function createExtension($mainextensionnumber,$delete=false){
            $sql = 'UPDATE IGNORE `sip` SET `data` = "1" WHERE `id` = ? AND (`keyword` = "namedcallgroup" OR `keyword` = "namedpickupgroup")';
            $stmt = $dbh->prepare($sql);
            $stmt->execute(array($extension));
+
+           // set default video codecs
+           $sql = 'UPDATE IGNORE `sip` SET `data` = ? WHERE `id` = ? AND `keyword` = "allow"';
+           $stmt = $dbh->prepare($sql);
+           $stmt->execute(['ulaw,alaw,gsm,g726,vp8',$extension]);
         } else {
             //create new extension
             //get first free physical extension number for this main extension
@@ -117,6 +122,10 @@ function createExtension($mainextensionnumber,$delete=false){
             $sql = 'UPDATE `sip` SET `data`= ? WHERE `id`=? AND `keyword`="namedpickupgroup"';
             $sth = $dbh->prepare($sql);
             $sth->execute([$mainpickupgroup,$extension]);
+            // set default video codecs
+            $sql = 'UPDATE `sip` SET `data`= ? WHERE `id`=? AND `keyword` = "allow"';
+            $stmt = $dbh->prepare($sql);
+            $stmt->execute(['ulaw,alaw,gsm,g726,vp8',$extension]);
 
             post_noanswerdest([$extension],get_noanswerdest($mainextensionnumber));
             post_busydest([$extension],get_busydest($mainextensionnumber));
@@ -172,7 +181,7 @@ function useExtensionAsWebRTC($extension) {
         //enable default codecs and video codecs
         $sql = 'UPDATE IGNORE `sip` SET `data` = ? WHERE `id` = ? AND `keyword` = ?';
         $stmt = $dbh->prepare($sql);
-        $stmt->execute(array('ulaw,alaw,gsm,g726,h264,vp8',$extension,'allow'));
+        $stmt->execute(array('ulaw,alaw,gsm,g726,vp8',$extension,'allow'));
 
         //Set SIP options
         // Set rewrite contact = no
@@ -230,7 +239,7 @@ function useExtensionAsNethLink($extension) {
         //enable default codecs and video codecs
         $sql = 'UPDATE IGNORE `sip` SET `data` = ? WHERE `id` = ? AND `keyword` = ?';
         $stmt = $dbh->prepare($sql);
-        $stmt->execute(array('ulaw,alaw,gsm,g726,h264,vp8',$extension,'allow'));
+        $stmt->execute(array('ulaw,alaw,gsm,g726,vp8',$extension,'allow'));
 
         //Set SIP options
         // Set rewrite contact = no
