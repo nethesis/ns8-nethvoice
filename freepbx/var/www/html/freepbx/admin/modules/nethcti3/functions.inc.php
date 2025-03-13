@@ -30,26 +30,26 @@ function nethcti3_get_config($engine) {
         case "asterisk":
             /*Configure conference*/
             $defaultVal = $amp_conf['ASTCONFAPP'];
-            $amp_conf['ASTCONFAPP'] = 'app_meetme';
-            $query='SELECT featurename,IF(customcode IS NULL OR customcode = "",defaultcode,customcode) as defaultcode FROM featurecodes WHERE ( modulename="nethcti3" OR modulename="donotdisturb" ) AND ( featurename="meetme_conf" OR featurename="incall_audio" OR featurename="dnd_on" OR featurename="dnd_off" OR featurename="dnd_toggle") AND enabled="1"';
+            $amp_conf['ASTCONFAPP'] = 'app_confbridge';
+            $query='SELECT featurename,IF(customcode IS NULL OR customcode = "",defaultcode,customcode) as defaultcode FROM featurecodes WHERE ( modulename="nethcti3" OR modulename="donotdisturb" ) AND ( featurename="confbridge_conf" OR featurename="incall_audio" OR featurename="dnd_on" OR featurename="dnd_off" OR featurename="dnd_toggle") AND enabled="1"';
             $codes = array();
             foreach ($db->getAll($query) as $feature) {
                 $codes[$feature[0]] = $feature[1];
             }
-            if (isset($codes['meetme_conf']) && $codes['meetme_conf'] != '') {
-                $exten='_'.$codes['meetme_conf'].'X.';
-                $exten2=$codes['meetme_conf'];
+            if (isset($codes['confbridge_conf']) && $codes['confbridge_conf'] != '') {
+                $exten='_'.$codes['confbridge_conf'].'X.';
+                $exten2=$codes['confbridge_conf'];
                 $context='cti-conference';
                 $ext->addInclude('from-internal-additional', $context);
                 $ext->add($context, $exten, '', new ext_noop('conference'));
                 $ext->splice($context, $exten, 'n', new ext_answer());
                 $ext->splice($context, $exten, 'n', new ext_playback('beep'));
-                $ext->splice($context, $exten, 'n', new ext_confbridge('${EXTEN}'));
+                $ext->splice($context, $exten, 'n', new ext_confbridge('${EXTEN}'),'default_bridge','default_user');
                 $ext->splice($context, $exten, 'n', new ext_hangup());
                 $ext->add($context, $exten2, '', new ext_noop('conference'));
                 $ext->splice($context, $exten2, 'n', new ext_answer());
                 $ext->splice($context, $exten2, 'n', new ext_playback('beep'));
-                $ext->splice($context, $exten2, 'n', new ext_confbridge('${EXTEN}${CALLERID(number)}'));
+                $ext->splice($context, $exten2, 'n', new ext_confbridge('${EXTEN}${CALLERID(number)}'),'admin_bridge','admin_user');
                 $ext->splice($context, $exten2, 'n', new ext_hangup());
                 $ext->add($context, 'h', '', new ext_hangup());
                 $amp_conf['ASTCONFAPP'] = $defaultVal;
