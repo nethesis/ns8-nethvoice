@@ -44,12 +44,12 @@ function nethcti3_get_config($engine) {
                 $ext->add($context, $exten, '', new ext_noop('conference'));
                 $ext->splice($context, $exten, 'n', new ext_answer());
                 $ext->splice($context, $exten, 'n', new ext_playback('beep'));
-                $ext->splice($context, $exten, 'n', new ext_confbridge('${EXTEN}'),'default_bridge','default_user');
+                $ext->splice($context, $exten, 'n', new ext_confbridge('${EXTEN}','default_bridge','default_user'));
                 $ext->splice($context, $exten, 'n', new ext_hangup());
                 $ext->add($context, $exten2, '', new ext_noop('conference'));
                 $ext->splice($context, $exten2, 'n', new ext_answer());
                 $ext->splice($context, $exten2, 'n', new ext_playback('beep'));
-                $ext->splice($context, $exten2, 'n', new ext_confbridge('${EXTEN}${CALLERID(number)}'),'admin_bridge','admin_user');
+                $ext->splice($context, $exten2, 'n', new ext_confbridge('${EXTEN}${CALLERID(number)}','admin_bridge','admin_user'));
                 $ext->splice($context, $exten2, 'n', new ext_hangup());
                 $ext->add($context, 'h', '', new ext_hangup());
                 $amp_conf['ASTCONFAPP'] = $defaultVal;
