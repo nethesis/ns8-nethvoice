@@ -38,18 +38,30 @@ $container['cron'] = function ($container) {
     return new CronHelper();
 };
 
-$app->post('/phones/reboot', function (Request $request, Response $response, $args) {
-	// DUMMY just return 200 since Cron is broken and will be probably removed
-	return $response->withStatus(200);
-});
-
-$app->get('/phones/reboot[/{mac}]', function (Request $request, Response $response, $args) {
-	// DUMMY just return 200 since Cron is broken and will be probably removed
-	return $response->withStatus(200);
-});
-
-$app->delete('/phones/reboot', function (Request $request, Response $response, $args) {
-	// DUMMY just return 200 since Cron is broken and will be probably removed
+/**
+ * Endpoint to reconfigure a phone extension.
+ *
+ * This endpoint accepts a POST request to reconfigure a phone extension by sending a PJSIP notify command.
+ *
+ * @param Request $request The HTTP request object.
+ * @param Response $response The HTTP response object.
+ * @param array $args The route's arguments.
+ *
+ * @return Response The HTTP response with status 200 on success, or 500 on failure.
+ *
+ * @throws Exception If there is an error reconfiguring the extension.
+ */
+$app->post('/phones/reconfigure', function (Request $request, Response $response, $args) {
+	try {
+		global $astman;
+		$extension = $request->getParsedBody()['extension'];
+		$res = $astman->send_request('Command',array('Command'=>"pjsip send notify generic-reload endpoint $extension"));
+		if ($res['Response'] !== 'Success' || preg_match('/failed.$/m', $res['data']) || preg_match('/^Unable/m', $res['data'])) {
+			throw new Exception('Error reconfiguring extension '.$extension.': '.$res['data']);
+		}
+	} catch (Exception $e) {
+		return $response->withStatus(500);
+	}
 	return $response->withStatus(200);
 });
 
