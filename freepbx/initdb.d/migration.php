@@ -131,6 +131,9 @@ $db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permiss
 $db->query("UPDATE `asterisk`.`nethcqr_details` SET `db_url` = '127.0.0.1:{$_ENV['NETHVOICE_MARIADB_PORT']}' WHERE `db_url` = 'localhost'");
 $db->query("UPDATE `asterisk`.`nethcqr_details` SET `cc_db_url` = '127.0.0.1:{$_ENV['NETHVOICE_MARIADB_PORT']}' WHERE `cc_db_url` = 'localhost'");
 
+# migrate MeetMe to ConfBridge
+$db->query("UPDATE `asterisk`.`featurecodes` SET `featurename` = 'confbridge_conf' WHERE `featurename` = 'meetme_conf'");
+
 # Migrate old mobile app extensions to new Acrobit mobile app
 $sip_options=[
 	'force_rport' => 'no',
