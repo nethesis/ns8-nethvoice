@@ -24,6 +24,7 @@ function nethcti3_get_config($engine) {
     global $amp_conf;
     global $db;
     global $core_conf;
+    global $conferences_conf;
 
     include_once('/var/www/html/freepbx/rest/lib/libCTI.php');
     switch($engine) {
@@ -44,12 +45,12 @@ function nethcti3_get_config($engine) {
                 $ext->add($context, $exten, '', new ext_noop('conference'));
                 $ext->splice($context, $exten, 'n', new ext_answer());
                 $ext->splice($context, $exten, 'n', new ext_playback('beep'));
-                $ext->splice($context, $exten, 'n', new ext_confbridge('${EXTEN}','default_bridge','default_user'));
+                $ext->splice($context, $exten, 'n', new ext_confbridge('${EXTEN}','default_bridge','cti_user_conf'));
                 $ext->splice($context, $exten, 'n', new ext_hangup());
                 $ext->add($context, $exten2, '', new ext_noop('conference'));
                 $ext->splice($context, $exten2, 'n', new ext_answer());
                 $ext->splice($context, $exten2, 'n', new ext_playback('beep'));
-                $ext->splice($context, $exten2, 'n', new ext_confbridge('${EXTEN}${CALLERID(number)}','admin_bridge','admin_user'));
+                $ext->splice($context, $exten2, 'n', new ext_confbridge('${EXTEN}${CALLERID(number)}','cti_admin_bridge_conf','cti_admin_user_conf'));
                 $ext->splice($context, $exten2, 'n', new ext_hangup());
                 $ext->add($context, 'h', '', new ext_hangup());
                 $amp_conf['ASTCONFAPP'] = $defaultVal;
@@ -69,6 +70,26 @@ function nethcti3_get_config($engine) {
                 $ext->add($context2, $exten2, '', new ext_playback('nethcti/incall_audio/file-${EXTEN}'));
                 $ext->add($context2, $exten2, '', new ext_hangup());
             }
+            /* add user and admin profile to confbridge_additional.conf */
+            if (isset($conferences_conf) && is_a($conferences_conf, "conferences_conf")) {
+                /* set admin bridge */
+                $conferences_conf->addConfBridge("cti_admin_bridge_conf", 'record_conference', 'yes');
+
+                /* set admin user conf*/
+                $conferences_conf->addConfUser("cti_admin_user_conf", 'marked', 'yes');
+                $conferences_conf->addConfUser("cti_admin_user_conf", 'denoise', 'yes');
+                $conferences_conf->addConfUser("cti_admin_user_conf", 'music_on_hold_when_empty', 'yes');
+                $conferences_conf->addConfUser("cti_admin_user_conf", 'music_on_hold_class', 'default');
+
+                /* set user conf*/
+                $conferences_conf->addConfUser("cti_user_conf", 'marked', 'no');
+                $conferences_conf->addConfUser("cti_user_conf", 'music_on_hold_when_empty', 'yes');
+                $conferences_conf->addConfUser("cti_user_conf", 'music_on_hold_class', 'default');
+                $conferences_conf->addConfUser("cti_user_conf", 'wait_marked', 'yes');
+                $conferences_conf->addConfUser("cti_user_conf", 'end_marked', 'no');
+                $conferences_conf->addConfUser("cti_user_conf", 'denoise', 'yes');
+            }
+
             /*Intra company routes context*/
             $context='from-intracompany';
             $ext->add($context, '_X.', '', new ext_noop('intracompany'));
