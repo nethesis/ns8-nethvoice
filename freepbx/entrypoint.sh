@@ -74,31 +74,6 @@ noload = res_http_media_cache.so
 noload = res_phoneprov.so
 EOF
 
-# create confbridge_custom.conf
-if [ ! -s /etc/asterisk/confbridge_custom.conf ]; then
-    cat > /etc/asterisk/confbridge_custom.conf <<EOF
-[admin_bridge]
-type = bridge
-record_conference = yes            ; If you want to record the conference
-
-[default_user]
-type = user
-marked = no
-music_on_hold_when_empty = yes     ; Music on hold until an admin joins (similar to 'M' in MeetMe)
-music_on_hold_class = default
-wait_marked = yes                  ; Announces the number of users (similar to 'w' in MeetMe)
-end_marked = no
-denoise = yes
-
-[admin_user]
-type = user
-marked = yes                       ; Administrator rights (similar to 'A' in MeetMe)
-denoise = yes                      ; Echo cancellation (similar to 'd' in MeetMe)
-music_on_hold_when_empty = yes     ; Music on hold until an admin joins (similar to 'M' in MeetMe)
-music_on_hold_class = default
-EOF
-fi
-
 # Show Asterisk logfiles module on FreePBX interface
 sed -i '/^; Hide Asterisk logfile$/N;/\n\[logfiles\]$/N;/\nremove=Yes$/d' /etc/asterisk/freepbx_menu.conf
 
