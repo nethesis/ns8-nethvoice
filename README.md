@@ -47,6 +47,24 @@ The file must be created inside the container. Example:
 touch /notify/restart_nethcti-server
 ```
 
+## Phonebook integration
+
+The module defines the `pbookreader` role that allows to call the following API:
+
+- `get-phonebook-credentials`: return the phonebook credentials, including the host, port, username and password
+
+This role can be used by other modules to access the phonebook.
+
+The module is a provider for the `<module_id>/srv/tcp/phonebook` service.
+It raises an event named `phonebook-settings-changed` with the following payload:
+
+- `module_id`: the module id
+- `node_id`: the node id
+- `module_uuid`: the module uuid
+- `reason`: the reason for the change
+
+Consumers of the events must then run the `get-phonebook-credentials` action on `module_id` to get the updated phonebook credentials.
+
 ## Uninstall
 
 To uninstall the instance:
