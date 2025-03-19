@@ -11,3 +11,20 @@ jobs:
   publish-images:
     if: github.run_number > 1
     uses: NethServer/ns8-github-actions/.github/workflows/publish-branch.yml@v1
+  module:
+    needs: publish-images
+    if: > 
+      github.event.workflow_run.conclusion == 'success' ||
+      github.event.workflow_run.conclusion == ''
+    uses: NethServer/ns8-github-actions/.github/workflows/module-info.yml@v1
+  comment-release:
+    needs: module
+    if: >
+      needs.module.outputs.release == 'stable' ||
+      needs.module.outputs.release == 'testing'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install NS8 Release Module Extension
+        run: gh extension install NethServer/gh-ns8-release-module
+      - name: Create Release Comment
+        run: gh ns8-release-module comment --repo ${{ github.repository }} --release-name ${{needs.module.outputs.tag}}
