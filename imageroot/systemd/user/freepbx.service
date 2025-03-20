@@ -5,7 +5,8 @@
 [Unit]
 Description=FreePBX
 Requires=mariadb.service
-After=mariadb.service
+Wants=get-certificate.service
+After=mariadb.service get-certificate.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
