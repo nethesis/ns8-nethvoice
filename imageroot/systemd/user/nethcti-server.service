@@ -4,8 +4,8 @@
 #
 [Unit]
 Description=NethCTI server daemon
-Wants=freepbx.service
-After=freepbx.service
+Wants=freepbx.service get-certificate.service
+After=freepbx.service get-certificate.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n

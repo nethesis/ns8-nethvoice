@@ -20,47 +20,7 @@ destinations=([janus]="/etc/certificates" [freepbx]="/etc/asterisk/keys" [phoneb
 service="${1:?}"
 service_image="${images[$service]:?Unknown service $service}"
 
-tmpdir=$(mktemp -d)
-trap 'rm -rf ${tmpdir}' EXIT
-
-if [[ -f dh.pem ]]; then
-    with_dh_group=1
-    cp -p dh.pem "${tmpdir}"/dh.pem
-fi
-
-cd "${tmpdir}"
-umask 077
-
-# Override redis-exec "privileged=True"
-export REDIS_USER=default
-
-mtraefik=$(redis-exec GET "node/${NODE_ID}/default_instance/traefik")
-
-redis-exec HGET "module/${mtraefik}/certificate/${NETHVOICE_HOST}" key | base64 -d > server.key
-redis-exec HGET "module/${mtraefik}/certificate/${NETHVOICE_HOST}" cert | base64 -d > server.pem
-
-if [[ $(head -c 5 server.key) != '-----' || $(head -c 5 server.pem) != '-----' ]]; then
-    echo "[WARNING] ${service_image} certificate for ${NETHVOICE_HOST} not found. Generating self signed certificate" 1>&2
-
-    # generate dhparam if needed
-    if [[ ! -f dh.pem ]]; then
-        openssl dhparam -dsaparam -out dh.pem 2048
-    fi
-
-    # request csr
-    openssl req -nodes -newkey rsa:2048 \
-        -keyout server.key \
-        -out server.csr -new  \
-        -subj "/C=IT/ST=Italy/L=Pesaro/O=Nethesis/OU=NethVoice/CN=${NETHVOICE_HOST}/subjectAltName=${CTI_HOST},${NETHVOICE_HOST}"
-
-    # selfsign the certificate
-    openssl x509 -req -sha256 -days 3650 \
-        -in server.csr \
-        -signkey server.key \
-        -out server.pem
-fi
-
-tar -c -O server.key server.pem ${with_dh_group:+dh.pem} | podman run \
+tar -c -O server.key server.pem | podman run \
     --interactive \
     --replace --rm --name "${service}-import-certificate" \
     --image-volume=tmpfs \
@@ -68,4 +28,3 @@ tar -c -O server.key server.pem ${with_dh_group:+dh.pem} | podman run \
     --entrypoint="" \
     "${service_image}" \
     import-certificate
-
