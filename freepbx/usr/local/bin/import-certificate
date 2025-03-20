@@ -13,10 +13,6 @@ trap 'rm -rf ${tmpdir}' EXIT
 cd "${tmpdir}"
 tar x -o -f -
 
-if [ -s dh.pem ]; then
-    install -o root -g root -m 644 dh.pem "${dest}"/dh.pem
-fi
-
 if [ ! -s server.pem ] || [ ! -s server.key ]; then
     # empty file: abort
     exit 3
