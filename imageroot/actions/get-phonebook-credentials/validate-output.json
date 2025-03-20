@@ -1,0 +1,57 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Get phonebook credentials",
+    "$id": "http://nethserver.org/json-schema/task/output/nethvoice/get-phoenbook-credentials",
+    "description": "Get phoenbook credentials",
+    "examples": [
+        { 
+            "host": "10.5.4.1",
+            "port": 3306,
+            "database": "phonebook",
+            "user": "phonebook",
+            "password": "password",
+            "instance_name": "my voice",
+            "nethvoice_host": "voice.nethserver.org"
+        }
+    ],
+    "type": "object",
+    "required": [
+        "host",
+        "port",
+        "database",
+        "user",
+        "password",
+        "instance_name",
+        "nethvoice_host"
+    ],
+    "properties": {
+        "host": {
+            "description": "Host where the phonebook database is stored",
+            "type": "string"
+        },
+        "port": {
+            "description": "Port where the phonebook database is stored",
+            "type": "integer"
+        },
+        "database": {
+            "description": "Name of the phonebook database",
+            "type": "string"
+        },
+        "user": {
+            "description": "User to access the phonebook database",
+            "type": "string"
+        },
+        "password": {
+            "description": "Password to access the phonebook database",
+            "type": "string"
+        },
+        "instance_name": {
+            "description": "Name of the Nethvoice instance",
+            "type": "string"
+        },
+        "nethvoice_host": {
+            "description": "Host where the Nethvoice instance is exposed to",
+            "type": "string"
+        }
+    }
+}

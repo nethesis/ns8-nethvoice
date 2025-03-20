@@ -389,7 +389,8 @@ $app->put('/cti/paramurl/{id}', function (Request $request, Response $response, 
       foreach ($data["profiles"] as $p) {
         $sql = 'INSERT INTO rest_cti_profiles_paramurl (profile_id, url, only_queues) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE profile_id=VALUES(profile_id), url=VALUES(url), only_queues=VALUES(only_queues)';
         $sth = $dbh->prepare($sql);
-        $res = $sth->execute(array($p, $data["url"], $data["only_queues"]));
+        $only_queues = ($data['only_queues']) ? 1 : 0;
+        $res = $sth->execute(array($p, $data["url"], $only_queues));
         if ($res === FALSE) {
           throw new Exception($sth->errorInfo()[2]);
         }
@@ -451,7 +452,7 @@ $app->post('/cti/paramurl', function (Request $request, Response $response, $arg
       $data = $request->getParsedBody();
       $url = $data['url'];
       $profiles = $data['profiles'];
-      $only_queues = $data['only_queues'];
+      $only_queues = ($data['only_queues']) ? 1 : 0;
       $dbi = FreePBX::Database();
       foreach ($profiles as $profileId) {
         $sql = 'INSERT INTO rest_cti_profiles_paramurl(profile_id, url, only_queues) VALUES (?, ?, ?)';
