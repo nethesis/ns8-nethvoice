@@ -4,6 +4,8 @@
 #
 [Unit]
 Description=phonebook server
+Wants=get-certificate.service
+After=get-certificate.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n

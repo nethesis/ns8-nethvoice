@@ -1,0 +1,14 @@
+[Unit]
+Description=Get TLS certificate from Traefik
+
+[Service]
+Type=oneshot
+# Automatically start once, at boot. Manual restart is still allowed.
+RemainAfterExit=true
+EnvironmentFile=%S/state/environment
+WorkingDirectory=%S/state
+SyslogIdentifier=%N
+ExecStart=-runagent get-certificate \
+    --cert-file=server.pem \
+    --key-file=server.key \
+    ${NETHVOICE_HOST}
