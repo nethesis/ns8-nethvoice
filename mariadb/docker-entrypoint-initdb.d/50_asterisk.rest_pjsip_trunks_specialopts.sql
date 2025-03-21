@@ -6,4 +6,8 @@ INSERT INTO `rest_pjsip_trunks_specialopts` (`provider_id`,`keyword`,`data`) VAL
 (6,"secret",""),
 (6,"username",""),
 (14,"client_uri","sip:$USERNAME@CHANGE_ME"),
-(23,"client_uri","sip:$USERNAME@nomecliente.site:5083");
+(23,"client_uri","sip:$USERNAME@nomecliente.site:5083"),
+(27,"username","$PHONE"),
+(27,"auth_username","$USERNAME"),
+(27,"contact_user","$PHONE"),
+(27,"from_user","$PHONE");
