@@ -173,5 +173,6 @@
   "Warning": "Warning",
   "Syncing message": "Users are syncing. Wait for the process to complete.",
   "All groups": "All groups",
-  "Allow to see all groups and operators": "Allow to see all groups and operators"
+  "Allow to see all groups and operators": "Allow to see all groups and operators",
+  "Reboot": "Reboot"
 }
