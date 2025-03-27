@@ -230,7 +230,7 @@
                   </div>
                   <div class="row {{obj_permissions.permissions.length > 0 ? 'profile-permission-container-child' : ''}}" ng-if="obj_permissions.value">
                     <div
-                      ng-hide="(permission.name == 'phone_buttons' && wizard.provisioning != 'tancredi') || isInBlacklist(permission.name)"
+                      ng-hide="(permission.name == 'phone_buttons' && wizard.provisioning != 'tancredi') || isInBlacklist(permission.name) || shouldHideGroupPermission(obj_permissions, permission.name)"
                       class="col-lg-12 col-md-12 col-sm-12 col-xs-12 profile-permission child-permission"
                       ng-repeat="permission in obj_permissions.permissions"
                     >
