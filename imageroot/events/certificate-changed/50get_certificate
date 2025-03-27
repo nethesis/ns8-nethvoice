@@ -27,7 +27,7 @@ get_proc = agent.run_helper(
 
 # Reload the running service if the certificate differs
 if get_proc.returncode == 0:
-    subprocess.run(['podman', 'exec', 'systemctl', '--user', '-T', 'try-reload-or-restart',
+    subprocess.run(['systemctl', '--user', '-T', 'try-reload-or-restart',
         'phonebook.service',
         'janus.service', # XXX: restart just to retain the historical behavior
         'nethcti-server.service', # XXX: restart just to retain the historical behavior
