@@ -106,9 +106,9 @@ angular.module('nethvoiceWizardUiApp')
       });
     }
 
-    this.setPhoneReconfigure = function (reconfiguretData) {
+    this.setPhoneReconfigure = function (reconfigureData) {
       return $q(function (resolve, reject) {
-        RestService.post('/phones/reconfigure', reconfiguretData).then(function (res) {
+        RestService.post('/phones/reconfigure', reconfigureData).then(function (res) {
           resolve(res);
         }, function (err) {
           reject(err);
