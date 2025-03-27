@@ -391,50 +391,56 @@ angular.module('nethvoiceWizardUiApp')
       }
     }
 
-    $scope.rebootDevice = function (device) {
-      var rebootData = {};
-      rebootData[device.mac] = {} // hours and minutes omitted -> reboot immediately
+    $scope.reconfigureDevice = function (device) {
+      var extensionToReconfigure = device.extension;
       device.rebootInAction = true;
-      PhoneService.setPhoneReboot(rebootData).then(function (success) {
-        var error = false;
-        Object.keys(success.data).forEach(function (mac) {
-          var rebootResult = success.data[mac];
-          if (rebootResult.code !== 204) {
-            // failure
-            error = true;
-          }
-        });
-        if (error) {
-          console.log("Error rebooting device");
-          device.rebootInAction = 'err';
-        } else {
-          // success
-          device.rebootInAction = 'ok';
-        }
+
+      if (!extensionToReconfigure) {
+        device.rebootInAction = 'err';
+        $timeout(function () {
+          device.rebootInAction = false;
+        }, 4000);
+        return;
+      }
+
+      PhoneService.setPhoneReconfigure({
+        extension: extensionToReconfigure
+      }).then(function (success) {
+        // success
+        device.rebootInAction = 'ok';
         $timeout(function () {
           device.rebootInAction = false;
         }, 4000);
       }, function (err) {
         console.log(err);
+        device.rebootInAction = 'err';
+        $timeout(function () {
+          device.rebootInAction = false;
+        }, 4000);
       });
     }
 
-    $scope.configureAndRebootPhone = function (device) {
+    $scope.configureAndReconfigure = function (device) {
       device.setPhysicalInAction = true
       DeviceService.generateDeviceConfig({
         mac: device.mac,
       }).then(function (res) {
-        DeviceService.rebootPhone({
-          mac: device.mac,
-          ip: device.ipv4
-        }).then(function (res1) {
-          device.setPhysicalInAction = false
-          device.inError = false
-        }, function (err1) {
-          console.log(err1)
+        var extensionToReconfigure = device.extension;
+        if (extensionToReconfigure) {
+          DeviceService.reconfigurePhone({
+            extension: extensionToReconfigure
+          }).then(function (res1) {
+            device.setPhysicalInAction = false
+            device.inError = false
+          }, function (err1) {
+            console.log(err1)
+            device.setPhysicalInAction = false
+            device.inError = true
+          });
+        } else {
           device.setPhysicalInAction = false
           device.inError = true
-        })
+        }
       }, function (err) {
         console.log(err)
         device.setPhysicalInAction = false
@@ -446,7 +452,7 @@ angular.module('nethvoiceWizardUiApp')
       var devices = $filter('filter')($scope.allDevices, str)
       for (var d in devices) {
         if ($scope.isConfigured(devices[d])) {
-          $scope.configureAndRebootPhone(devices[d])
+          $scope.configureAndReconfigure(devices[d])
           $('#bulkModal').modal('hide')
         }
       }
