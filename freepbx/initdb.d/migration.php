@@ -357,3 +357,21 @@ foreach ($trunk_ids as $trunk_id) {
 	$stmt = $db->prepare($sql);
 	$stmt->execute([$trunk_id]);
 }
+
+# Check if all_groups permission exists
+$sql = "SELECT * FROM `rest_cti_permissions` WHERE `id` = 3500";
+$stmt = $db->prepare($sql);
+$stmt->execute();
+$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+if (count($res) == 0) {
+	# Add all_groups permission
+	$db->query("INSERT INTO `rest_cti_permissions` VALUES (3500,'all_groups','All groups','Allow to see all groups and operators')");
+	# Place all_groups permission inside presence panel
+	$db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`,`permission_id`) VALUES (5,3500)");
+	# Add all_groups permission to all profiles for retrocompatibility: before the creation of the permission any user could see all groups
+	$db->query("INSERT INTO `rest_cti_profiles_permissions` (`profile_id`,`permission_id`) VALUES
+		(1,3500),
+		(2,3500),
+		(3,3500);
+	");
+}
