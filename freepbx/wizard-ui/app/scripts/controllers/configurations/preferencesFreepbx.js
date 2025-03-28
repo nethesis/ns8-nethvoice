@@ -184,10 +184,10 @@ angular.module('nethvoiceWizardUiApp')
       DeviceService.generateDeviceConfig({
         mac: device.mac,
       }).then(function (res) {
-        DeviceService.rebootPhone({
-          mac: device.mac,
-          ip: device.ipv4
-        }).then(function (res1) {
+        DeviceService.reconfigurePhone({
+          extension: device.extension
+        })
+        .then(function (res1) {
           console.log(res1);
           device.setPhysicalInAction = false;
           device.inError = false;

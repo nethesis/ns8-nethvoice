@@ -29,7 +29,6 @@ angular.module('nethvoiceWizardUiApp')
         UserService.list(true),
         PhoneService.getPhones(),
         ProfileService.allGroups(),
-        PhoneService.getDelayedReboot()
       ]).then(function (res) {
         gotModels(res[0].data);
         gotUsers(res[1].data);
@@ -48,7 +47,6 @@ angular.module('nethvoiceWizardUiApp')
       $scope.numSelected = 0;
       $scope.allSelectedSameVendor = null;
       $scope.allSelectedSameModel = "";
-      $scope.allSelectedSameReboot = undefined;
       $scope.somePhonesRegistered = false;
 
       // remove 'Choose' option from models
@@ -76,20 +74,6 @@ angular.module('nethvoiceWizardUiApp')
             $scope.allSelectedSameModel = phone.model;
           } else if (phone.model !== $scope.allSelectedSameModel) {
             $scope.allSelectedSameModel = false;
-          }
-
-          // check if all phones selected have the same reboot time
-          if ($scope.allSelectedSameReboot === undefined) {
-            $scope.allSelectedSameReboot = phone.delayedReboot;
-          } else if (
-              ($scope.allSelectedSameReboot &&
-              phone.delayedReboot &&
-              phone.delayedReboot.getTime() !== $scope.allSelectedSameReboot.getTime()
-              ||
-              $scope.allSelectedSameReboot && !phone.delayedReboot
-              ||
-              !$scope.allSelectedSameReboot && phone.delayedReboot)) {
-            $scope.allSelectedSameReboot = false;
           }
 
           // check if some of the phones selected are registered
@@ -145,15 +129,6 @@ angular.module('nethvoiceWizardUiApp')
           rebootTime.setMinutes(time.minutes);
           phone.delayedReboot = rebootTime;
         }
-      });
-    }
-
-    function getDelayedReboot() {
-      PhoneService.getDelayedReboot().then(function (success) {
-        gotDelayedReboot(success.data);
-      }, function (err) {
-        console.log(err);
-        addErrorNotification(err.data, "Error retrieving delayed reboot data");
       });
     }
 
@@ -350,117 +325,61 @@ angular.module('nethvoiceWizardUiApp')
       }
     }
 
-    function bulkDelayedRebootSet() {
-      var hours = zeroPad($scope.bulkDelayedReboot.getHours());
-      var minutes = zeroPad($scope.bulkDelayedReboot.getMinutes());
-      var rebootData = {};
-
-      $scope.phones.forEach(function (phone) {
-        if (phone.selected) {
-          rebootData[phone.mac] = {
-            "hours": hours,
-            "minutes": minutes
-          }
-        }
-      });
-      PhoneService.setPhoneReboot(rebootData).then(function (success) {
-        // check partial failure
-        var errors = [];
-        Object.keys(success.data).forEach(function (mac) {
-          var rebootResult = success.data[mac];
-          if (rebootResult.code !== 204) {
-            // failure
-            rebootResult['mac'] = mac;
-            errors.push(rebootResult);
-          }
-        });
-
-        if (errors.length) {
-          console.log(errors);
-          addErrorNotification(errors[0], "Error setting delayed reboot on some phones", true);
-        } else {
-          // success
-          getDelayedReboot();
-        }
-      }, function (err) {
-        console.log(err);
-        addErrorNotification(err.data, "Error setting delayed reboot");
-      });
-    }
-
-    function bulkDelayedRebootCancel() {
-      var rebootCancelMacs = [];
-
-      $scope.phones.forEach(function (phone) {
-        if (phone.selected) {
-          rebootCancelMacs.push(phone.mac);
-        }
-      });
-      PhoneService.deletePhoneDelayedReboot(rebootCancelMacs).then(function (success) {
-        // reload updated data
-        getDelayedReboot();
-      }, function (err) {
-        console.log(err);
-        addErrorNotification(err.data, "Error canceling delayed reboot");
-      });
-    }
-
-    $scope.bulkDelayedRebootSave = function () {
-      if (!$scope.bulkDelayedRebootSwitch) {
-        $scope.bulkDelayedReboot = null;
-      }
-
-      if ($scope.bulkDelayedReboot) {
-        bulkDelayedRebootSet();
-      } else {
-        bulkDelayedRebootCancel();
-      }
-      $('#bulkDelayedRebootModal').modal('hide');
-    }
-
     $scope.toggleShowPhonesNotRebooted = function () {
       $scope.showPhonesNotRebooted = !$scope.showPhonesNotRebooted;
     }
 
     $scope.bulkRebootNow = function () {
-      var rebootData = {};
       $scope.showPhonesNotRebooted = false;
       $scope.rebootNowInProgress = true;
-
+      $scope.phonesNotRebooted = [];
+      
+      var reconfigurePromises = [];
+      
       $scope.phones.forEach(function (phone) {
-        if (phone.selected) {
-          rebootData[phone.mac] = {} // hours and minutes omitted -> reboot immediately
+        if (phone.selected && phone.user) {
+          // Find an extension to reconfigure
+          var extensionToReconfigure = null;
+          phone.user.devices.forEach(function(device) {
+            if (device.mac === phone.mac && device.extension) {
+              extensionToReconfigure = device.extension;
+            }
+          });
+          
+          if (extensionToReconfigure) {
+            // Add the promise for reconfiguration
+            reconfigurePromises.push(
+              PhoneService.setPhoneReconfigure({
+                extension: extensionToReconfigure
+              }).then(function(success) {
+                return { mac: phone.mac, success: true };
+              }, function(error) {
+                $scope.phonesNotRebooted.push(phone);
+                return { mac: phone.mac, success: false };
+              })
+            );
+          } else {
+            // No extension found for this phone
+            $scope.phonesNotRebooted.push(phone);
+          }
         }
       });
-      PhoneService.setPhoneReboot(rebootData).then(function (success) {
-        // check partial failure
-        $scope.phonesNotRebooted = [];
-
-        Object.keys(success.data).forEach(function (mac) {
-          var rebootResult = success.data[mac];
-
-          if (rebootResult.code !== 204) {
-            // failure
-            console.log(rebootResult);
-            var phoneNotRebooted = $scope.phones.find(function (phone) {
-              return phone.mac === mac;
-            });
-            $scope.phonesNotRebooted.push(phoneNotRebooted);
-          }
-        });
+      
+      // Wait for all reconfigurations to complete
+      Promise.all(reconfigurePromises).then(function(results) {
         $scope.rebootNowInProgress = false;
         $scope.showResultsRebootNow = true;
-
+        
         if (!$scope.phonesNotRebooted.length) {
-          // success
+          // Complete success
           $scope.hideRebootNowModalTimeout = $timeout(function () {
             $('#reboot-now-modal').modal('hide');
           }, 2500);
         }
-      }, function (err) {
-        console.log(err);
+      }, function(error) {
+        console.log(error);
         $scope.rebootNowInProgress = false;
-        addErrorNotification(err.data, "Error rebooting phones");
+        addErrorNotification({ error: "General error during reconfiguration" }, "Error reconfiguring phones");
         $('#reboot-now-modal').modal('hide');
       });
     }
@@ -488,20 +407,6 @@ angular.module('nethvoiceWizardUiApp')
         $scope.filteredModels.push(chooseModel);
       }
       $('#bulkModelModal').modal('show');
-    }
-
-    $scope.showSetRebootModal = function () {
-      $scope.bulkDelayedReboot = $scope.allSelectedSameReboot;
-
-      if ($scope.bulkDelayedReboot) {
-        // phones selected have the same (non-null) reboot value
-        $scope.bulkDelayedRebootSwitch = true;
-      } else {
-        // phones selected have different or null reboot values
-        $scope.bulkDelayedRebootSwitch = false;
-        $scope.bulkDelayedReboot = defaultDelayedRebootValue();
-      }
-      $('#bulkDelayedRebootModal').modal('show');
     }
 
     $scope.selectAllOrNoneToggle = function () {

@@ -102,9 +102,11 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
-    this.rebootPhone = function(obj) {
+    this.reconfigurePhone = function(obj) {
       return $q(function (resolve, reject) {
-        RestService.post('/devices/phones/reboot', obj).then(function (res) {
+        RestService.post('/phones/reconfigure', {
+          extension: obj.extension
+        }).then(function (res) {
           resolve(res);
         }, function (err) {
           reject(err);
