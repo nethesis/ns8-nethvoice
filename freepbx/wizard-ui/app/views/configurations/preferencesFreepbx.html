@@ -257,7 +257,7 @@
                     : selectedUser.displayname}}</span>
                 </button>
                 <span ng-if="isConfigured(device) && device.model !== 'custom'" ng-click="configureAndRebootPhone(device)" popover-placement="left"
-                  popover-trigger="'mouseenter'" popover-animation="true" uib-popover="{{device.inError ? 'Provision error, try again' : 'Provision and reboot phone' | translate}}"
+                  popover-trigger="'mouseenter'" popover-animation="true" uib-popover="{{device.inError ? 'Provision error, try again' : 'Provision and reconfigure phone' | translate}}"
                   class="{{device.inError ? 'fa fa-times btn btn-danger' : 'fa fa-magic btn btn-warning'}} icon-med-reload {{device.lines.length == 1 ? '' : 'absolute-provision'}}"></span>
                 <span ng-if="device.lines && device.lines.length > 1" class="fa fa-angle-down icon-med-reload absolute-expand" data-toggle="collapse"
                   data-parent="#accordion-markup-{{$index}}" href="#collapseOne-{{$index}}"></span>
@@ -341,7 +341,7 @@
             <div class="modal-body">
               <div class="alert alert-warning alert-dismissable" style="margin-bottom: 0px;">
                 <span class="pficon pficon-warning-triangle-o"></span>
-                <strong>{{'Are you sure that you want to provision and restart the linked phones' | translate}}?</strong>
+                <strong>{{'Are you sure that you want to reconfigure the linked phones' | translate}}?</strong>
               </div>
             </div>
             <div class="modal-footer">
@@ -356,4 +356,3 @@
   
     <wizard-step ng-if="wizard.isWizard" id="wizardStepBase"></wizard-step>
   </div>
-  
