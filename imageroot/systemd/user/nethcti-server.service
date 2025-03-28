@@ -24,7 +24,6 @@ ExecStart=/usr/bin/podman run \
     --replace --name=%N \
     --volume=nethcti:/etc/nethcti:z \
     --volume=nethcti-server:/root:Z \
-    --volume=nethcti-server-code:/usr/lib/node/nethcti-server:Z \
     --volume=nethcti-server-cert:/etc/certificates:z \
     --volume=customer_card:/var/lib/nethserver/nethcti/templates/customer_card/:z \
     --volume=sounds:/var/lib/asterisk/sounds:z \

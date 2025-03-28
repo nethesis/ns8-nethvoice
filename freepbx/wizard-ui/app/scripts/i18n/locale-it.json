@@ -1084,5 +1084,7 @@
   "extensions left": "interni rimanenti",
   "extension left": "interno rimanente",
   "privacy message notification": "La registrazione, detenzione, riproduzione, comunicazione o diffusione di conversazioni telefoniche fuori dai casi consentiti dalla legge rappresenta un illecito. E' opportuno verificare che siano state adottate   tutte le tutele previste dallo Statuto dei lavoratori e dal Codice privacy e dalle relative norme applicabili prima di attivare questa funzionalità.",
-  "Syncing message": "Gli utenti si stanno sincronizzando. Attendi che il processo sia terminato."
+  "Syncing message": "Gli utenti si stanno sincronizzando. Attendi che il processo sia terminato.",
+  "All groups": "Tutti i gruppi",
+  "Allow to see all groups and operators": "Consente di vedere tutti i gruppi e gli operatori"
 }

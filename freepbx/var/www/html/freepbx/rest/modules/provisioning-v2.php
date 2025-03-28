@@ -115,6 +115,7 @@ $app->post('/extensions/{extension}/srtp/{enabled}', function (Request $request,
     $sql = 'UPDATE rest_devices_phones SET srtp = ? WHERE extension = ?';
     $stmt = $dbh->prepare($sql);
     $stmt->execute(array($media_encryption,$args['extension']));
+    system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
     return $response->withStatus(200);
 });
 

@@ -67,6 +67,26 @@ if (count($res) > 0) {
 	$stmt->execute(array_column($res, 'extension'));
 }
 
+# set allowed video codecs in freepbx sip table, only for configured pjsip extensions
+$sql = "SELECT extension FROM `asterisk`.`rest_devices_phones`";
+$stmt = $db->prepare($sql);
+$stmt->execute();
+$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+if (count($res) > 0) {
+	foreach ($res as $row) {
+		$sql = "UPDATE `asterisk`.`sip` SET `data` = 'ulaw,alaw,gsm,g726,vp8' WHERE `keyword` = 'allow' AND `id` = ?";
+		$stmt = $db->prepare($sql);
+		$stmt->execute([$row['extension']]);
+	}
+}
+
+# set allowed video codecs in freepbx sipsettings table
+$db->query("UPDATE `asterisk`.`sipsettings` SET `data` = '{\"vp8\":1, \"h264\":2}' WHERE `keyword` = 'videocodecs'");
+$db->query("UPDATE `asterisk`.`sipsettings` SET `data` = 'yes' WHERE `keyword` = 'videosupport'");
+$db->query("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = '{\"vp8\":1,\"h264\":2}' WHERE `key` = 'videocodecs'");
+$db->query("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = 'yes' WHERE `key` = 'videosupport'");
+
 /* Set outbound_proxy to all physical and mobile extensions to be used with proxy */
 $sql = "UPDATE `asterisk`.`sip`
 	JOIN `asterisk`.`rest_devices_phones`
@@ -336,4 +356,22 @@ foreach ($trunk_ids as $trunk_id) {
 	$sql = "INSERT IGNORE INTO `kvstore_FreePBX_modules_Nethcti3` (`key`, `val`,`id`) VALUES ('disable_srtp_header','1',?)";
 	$stmt = $db->prepare($sql);
 	$stmt->execute([$trunk_id]);
+}
+
+# Check if all_groups permission exists
+$sql = "SELECT * FROM `rest_cti_permissions` WHERE `id` = 3500";
+$stmt = $db->prepare($sql);
+$stmt->execute();
+$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+if (count($res) == 0) {
+	# Add all_groups permission
+	$db->query("INSERT INTO `rest_cti_permissions` VALUES (3500,'all_groups','All groups','Allow to see all groups and operators')");
+	# Place all_groups permission inside presence panel
+	$db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`,`permission_id`) VALUES (5,3500)");
+	# Add all_groups permission to all profiles for retrocompatibility: before the creation of the permission any user could see all groups
+	$db->query("INSERT INTO `rest_cti_profiles_permissions` (`profile_id`,`permission_id`) VALUES
+		(1,3500),
+		(2,3500),
+		(3,3500);
+	");
 }

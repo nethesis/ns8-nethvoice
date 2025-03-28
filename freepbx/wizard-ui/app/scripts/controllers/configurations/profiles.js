@@ -21,10 +21,20 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.initGraphics = function () {};
 
-    $scope.tempBlacklist = ["conference", "chat", "screen_sharing", "video_conference", "trunks"];
+    $scope.tempBlacklist = ["conference", "chat", "video_conference", "trunks"];
 
     $scope.isInBlacklist = function(perm) {
       return $scope.tempBlacklist.includes(perm);
+    }
+
+    $scope.shouldHideGroupPermission = function(obj_permissions, permName) {
+      // don't hide if it's not a group permission
+      if (!$scope.isGroupPermission(permName)) {
+        return false;
+      }
+      // hide group permission if all_groups permission is active
+      const allGroupsPerm = obj_permissions.permissions.find(p => p.name === 'all_groups');
+      return allGroupsPerm && allGroupsPerm.value;
     }
 
     $scope.isGroupPermission = function(p) {
