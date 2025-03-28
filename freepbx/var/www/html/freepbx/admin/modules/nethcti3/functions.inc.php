@@ -45,7 +45,7 @@ function nethcti3_get_config($engine) {
                 $ext->add($context, $exten, '', new ext_noop('conference'));
                 $ext->splice($context, $exten, 'n', new ext_answer());
                 $ext->splice($context, $exten, 'n', new ext_playback('beep'));
-                $ext->splice($context, $exten, 'n', new ext_confbridge('${EXTEN}','default_bridge','cti_user_conf'));
+                $ext->splice($context, $exten, 'n', new ext_confbridge('${EXTEN}','cti_bridge_conf','cti_user_conf'));
                 $ext->splice($context, $exten, 'n', new ext_hangup());
                 $ext->add($context, $exten2, '', new ext_noop('conference'));
                 $ext->splice($context, $exten2, 'n', new ext_answer());
@@ -72,8 +72,18 @@ function nethcti3_get_config($engine) {
             }
             /* add user and admin profile to confbridge_additional.conf */
             if (isset($conferences_conf) && is_a($conferences_conf, "conferences_conf")) {
+                /* get default language */
+                $dbh = \FreePBX::Database();
+                $stmt = $dbh->prepare('SELECT value FROM soundlang_settings WHERE keyword = "language"');
+                $stmt->execute();
+                $res = $stmt->fetch();
+
                 /* set admin bridge */
                 $conferences_conf->addConfBridge("cti_admin_bridge_conf", 'record_conference', 'yes');
+                $conferences_conf->addConfBridge("cti_admin_bridge_conf", 'language', $res['value']);
+
+                /* set admin bridge */
+                $conferences_conf->addConfBridge("cti_bridge_conf", 'language', $res['value']);
 
                 /* set admin user conf*/
                 $conferences_conf->addConfUser("cti_admin_user_conf", 'marked', 'yes');
