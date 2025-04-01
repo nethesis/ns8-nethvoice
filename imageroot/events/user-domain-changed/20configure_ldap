@@ -9,7 +9,7 @@ import json
 import sys
 import agent
 import os
-from ldapproxy import Ldapproxy
+from agent.ldapproxy import Ldapproxy
 
 event = json.load(sys.stdin)
 
@@ -25,5 +25,5 @@ agent.set_env('NETHVOICE_LDAP_PASS', domparams['bind_password'])
 agent.set_env('NETHVOICE_LDAP_SCHEMA', domparams['schema'])
 agent.set_env('NETHVOICE_LDAP_BASE', domparams['base_dn'])
 
-agent.run_helper('systemctl', '--user', 'reload', 'freepbx.service').check_returncode()
+agent.run_helper('systemctl', '--user', 'restart', 'freepbx.service').check_returncode()
 agent.run_helper('systemctl', '--user', 'restart', 'phonebook.service').check_returncode()

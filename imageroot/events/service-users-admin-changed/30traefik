@@ -25,7 +25,7 @@ response = agent.tasks.run(
         'instance': os.environ['MODULE_ID'] + '-users-admin',
         'url': ksrv[0]["url"],
         'http2https':  True,
-        'lets_encrypt': lets_encrypt,
+        'lets_encrypt': os.getenv('TRAEFIK_LETS_ENCRYPT') == 'True',
         'host': os.environ["NETHVOICE_HOST"],
         'path': '/users-admin/' + os.environ["USER_DOMAIN"],
         'strip_prefix': True,
