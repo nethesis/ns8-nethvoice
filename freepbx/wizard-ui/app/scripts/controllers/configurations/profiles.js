@@ -24,7 +24,7 @@ angular.module('nethvoiceWizardUiApp')
     $scope.tempBlacklist = ["chat", "video_conference", "trunks"];
 
     $scope.isInBlacklist = function(perm) {
-      return $scope.tempBlacklist.includes(perm);
+      return $scope.tempBlacklist.includes(perm) || perm.startsWith('in_queue_');
     }
 
     $scope.shouldHideGroupPermission = function(obj_permissions, permName) {
