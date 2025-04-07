@@ -24,7 +24,7 @@ angular.module('nethvoiceWizardUiApp')
     $scope.tempBlacklist = ["chat", "video_conference", "trunks"];
 
     $scope.isInBlacklist = function(perm) {
-      return $scope.tempBlacklist.includes(perm);
+      return $scope.tempBlacklist.includes(perm) || perm.startsWith('in_queue_');
     }
 
     $scope.shouldHideGroupPermission = function(obj_permissions, permName) {
@@ -123,7 +123,7 @@ angular.module('nethvoiceWizardUiApp')
         $scope.showLicenseError = true;
           $timeout(function() {
             profile.macro_permissions.qmanager.value = false;
-        }, 1000); 
+        }, 1000);
       }
       // show privacy warning message
       if ((permission !== undefined && permission.name === 'recording' && permission.value) || (permission !== undefined && permission.name === 'spy' && permission.value) || (permission !== undefined && permission.name === 'intrude' && permission.value) || (permission !== undefined && permission.name === 'ad_recording' && permission.value)) {
@@ -278,4 +278,3 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.getInformationLicense();
   });
-  

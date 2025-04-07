@@ -235,8 +235,8 @@
                       ng-repeat="permission in obj_permissions.permissions"
                     >
                       <span class="col-lg-3 col-md-4 col-sm-6 col-xs-6">
-                        <span 
-                          ng-if="!isGroupPermission(permission.name) && permission.description.indexOf('Manage Queue') !== 0 && permission.description.indexOf('Use this queue for Operator Panel incoming calls') !== 0"
+                        <span
+                          ng-if="!isGroupPermission(permission.name) && permission.description.indexOf('Manage Queue') !== 0"
                           popover-placement="top"
                           popover-trigger="'mouseenter'"
                           popover-animation="true"
@@ -249,21 +249,11 @@
                           ng-if="!isGroupPermission(permission.name) && permission.description.indexOf('Manage Queue') === 0"
                           popover-placement="top"
                           popover-trigger="'mouseenter'"
-                          popover-animation="true"             
+                          popover-animation="true"
                           uib-popover="{{'Manage Queue' | translate}} {{permission.description.substring('Manage Queue'.length, permission.description.length)}}"
                           class="config-span"
                         >
                           {{permission.displayname | translate}}
-                        </span>
-                        <span
-                          ng-if="!isGroupPermission(permission.name) && permission.description.indexOf('Use this queue for Operator Panel incoming calls') === 0" 
-                          popover-placement="top"
-                          popover-trigger="'mouseenter'"
-                          popover-animation="true"
-                          uib-popover="{{'Use this queue for Operator Panel incoming calls' | translate}}"
-                          class="config-span"
-                        >
-                          {{permission.displayname.substring('Queue '.length, permission.displayname.length)}}
                         </span>
                         <span
                           ng-if="isGroupPermission(permission.name)"
