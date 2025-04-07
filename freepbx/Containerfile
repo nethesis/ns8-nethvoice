@@ -494,7 +494,7 @@ COPY var/www/html/freepbx/admin/brand/* /var/www/html/freepbx/admin/brand/
 
 RUN ln -sf /var/lib/asterisk/bin/fwconsole /usr/bin/fwconsole
 
-RUN pip install mysql.connector configparser
+RUN pip install mysql-connector-python configparser
 
 
 # Use PHP development ini configuration and enable logging on syslog
