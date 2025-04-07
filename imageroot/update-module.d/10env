@@ -66,3 +66,6 @@ agent.set_env('BRAND_DOCS', 'https://docs.nethserver.org/projects/ns8/it/latest/
 
 if os.getenv('ICEENFORCE') is None:
     agent.set_env('ICEENFORCE', 'none')
+
+if os.getenv('NETHCTI_PRIVACY_NUMBERS') is None:
+    agent.set_env('NETHCTI_PRIVACY_NUMBERS', 'xxx')
