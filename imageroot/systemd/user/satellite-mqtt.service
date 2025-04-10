@@ -1,0 +1,31 @@
+[Unit]
+Description=Podman MQTT service for Satellite
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+WorkingDirectory=%S/state
+Restart=always
+TimeoutStopSec=70
+ExecStartPre=/bin/rm -f %t/satellite-mqtt.pid %t/satellite-mqtt.ctr-id
+# set password for MQTT
+ExecStartPre=-runagent satellite-mqtt-gen-config
+ExecStart=/usr/bin/podman run --conmon-pidfile %t/satellite-mqtt.pid \
+	--cidfile %t/satellite-mqtt.ctr-id --cgroups=no-conmon \
+	--replace \
+	--detach \
+	--name=%N \
+	--volume=./satellite/mosquitto_passwd:/mosquitto_passwd:Z \
+	--volume=./satellite/mosquitto.conf:/mosquitto/config/mosquitto.conf:Z \
+	--network=host \
+	--tz=${TIMEZONE} \
+	--hostname=${NETHVOICE_HOST} \
+	docker.io/library/eclipse-mosquitto
+
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/satellite-mqtt.ctr-id -t 10
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/satellite-mqtt.ctr-id
+PIDFile=%t/satellite-mqtt.pid
+Type=forking
+
+[Install]
+WantedBy=default.target

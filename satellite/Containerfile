@@ -1,5 +1,5 @@
 # Build stage
-FROM python:3-slim AS builder
+FROM python:slim AS builder
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # clone the repository
-RUN COMMIT="659142f6b20504c84d46c3883aa1f2090b7ecf44" \
+RUN COMMIT="d8709e10efad730ceaa09ed1468a082c6fbb7e18" \
     && curl -L https://github.com/nethesis/satellite/archive/${COMMIT}.tar.gz -o - | tar xzp --strip-component=1 -C /
 
 # Copy requirements
@@ -21,7 +21,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Final stage
-FROM python:3-slim
+FROM python:slim
 
 # Install runtime dependencies for PyAudio
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -46,7 +46,7 @@ ENV PATH=/root/.local/bin:$PATH \
 ENV ASTERISK_URL="http://127.0.0.1:8088" \
     ARI_APP="satellite" \
     ARI_USERNAME="satellite" \
-    ARI_PASSWORD="dummypassword" \
+    SATELLITE_ARI_PASSWORD="dummypassword" \
     ASTERISK_FORMAT="slin16" \
     RTP_HOST="0.0.0.0" \
     RTP_PORT="10000" \
@@ -55,7 +55,7 @@ ENV ASTERISK_URL="http://127.0.0.1:8088" \
     MQTT_URL="mqtt://127.0.0.1:1883" \
     MQTT_TOPIC_PREFIX="satellite" \
     MQTT_USERNAME="satellite" \
-    MQTT_PASSWORD="dummypassword" \
+    SATELLITE_MQTT_PASSWORD="dummypassword" \
     DEEPGRAM_API_KEY="" \
     LOG_LEVEL="INFO" \
     PYTHONUNBUFFERED="1"
