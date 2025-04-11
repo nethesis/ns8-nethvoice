@@ -151,6 +151,7 @@ buildah build --force-rm --layers --jobs "$(nproc)" \
 	--tag "${repobase}/${reponame}" \
 	--tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
 popd
+images+=("${repobase}/${reponame}")
 
 ##########################
 ##   Satellite AI STT   ##

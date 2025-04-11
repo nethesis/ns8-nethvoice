@@ -149,7 +149,7 @@ agent.set_env('ASTERISK_RECORDING_SFTP_PORT', port_list[30])
 # Satellite
 agent.set_env('ASTERISK_WS_PORT', port_list[31])
 agent.set_env('SATELLITE_MQTT_PORT', port_list[32])
-satellite_udp_port, = allocate_rtp_ports_range(1)
+satellite_udp_port = allocate_rtp_ports_range(1)[0]
 agent.set_env('SATELLITE_RTP_PORT', satellite_udp_port)
 agent.set_env('SATELLITE_ARI_APP', 'satellite')
 agent.set_env('SATELLITE_ARI_USERNAME', 'satellite')
