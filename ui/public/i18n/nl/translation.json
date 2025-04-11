@@ -1,0 +1,15 @@
+{
+    "settings": {
+        "title": "Instellingen"
+    },
+    "common": {
+        "required": "Vereist"
+    },
+    "error": {
+        "401": "Ongeldige authenticatie",
+        "403": "Opdracht niet goedgekeurd"
+    },
+    "about": {
+        "title": "Over"
+    }
+}
