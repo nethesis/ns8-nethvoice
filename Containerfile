@@ -38,4 +38,5 @@ LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \
     ${REPOBASE}/nethvoice-reports-ui:${IMAGETAG} \
     ${REPOBASE}/nethvoice-reports-api:${IMAGETAG} \
     ${REPOBASE}/nethvoice-sftp:${IMAGETAG} \
+    docker.io/library/eclipse-mosquitto:2 \
     ${REPOBASE}/nethvoice-satellite:${IMAGETAG}"

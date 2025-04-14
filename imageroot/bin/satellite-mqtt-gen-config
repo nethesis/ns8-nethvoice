@@ -11,11 +11,11 @@ set -e
 # sourcing the file directly is broken with quotes
 SATELLITE_MQTT_PASSWORD=$(grep '^SATELLITE_MQTT_PASSWORD=' ./passwords.env) && export "${SATELLITE_MQTT_PASSWORD?}"
 
-podman run -i --rm docker.io/library/eclipse-mosquitto sh << EOF > ./satellite/mosquitto_passwd
-    touch /mosquitto_passwd
-    chmod 0700 /mosquitto_passwd
-    mosquitto_passwd -b /mosquitto_passwd $SATELLITE_MQTT_USERNAME $SATELLITE_MQTT_PASSWORD
-    cat /mosquitto_passwd
+podman run -i --rm --cgroups=no-conmon --volume=./satellite:/pass_tmp_dir:Z "${ECLIPSE_MOSQUITTO_IMAGE}" sh << EOF
+    touch /pass_tmp_dir/mosquitto_passwd
+    chmod 0600 /pass_tmp_dir/mosquitto_passwd
+    chown mosquitto:mosquitto /pass_tmp_dir/mosquitto_passwd
+    mosquitto_passwd -b /pass_tmp_dir/mosquitto_passwd $SATELLITE_MQTT_USERNAME $SATELLITE_MQTT_PASSWORD
 EOF
 
 # Generate config
@@ -24,3 +24,4 @@ password_file /mosquitto_passwd
 allow_anonymous false
 listener $SATELLITE_MQTT_PORT
 EOF
+

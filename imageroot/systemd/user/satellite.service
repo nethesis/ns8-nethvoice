@@ -21,12 +21,13 @@ ExecStart=runagent /usr/bin/podman run \
     --env=ARI_USERNAME=${SATELLITE_ARI_USERNAME} \
     --env=RTP_PORT=${SATELLITE_RTP_PORT} \
     --env=MQTT_URL="mqtt://127.0.0.1:${SATELLITE_MQTT_PORT}" \
-    --env=MQTT_TOPIC_PREFIX=satellite
+    --env=MQTT_TOPIC_PREFIX=satellite \
     --env=MQTT_USERNAME=${SATELLITE_MQTT_USERNAME} \
     --env=DEEPGRAM_API_KEY \
     --env=OPENAI_API_KEY \
     --tz=${TIMEZONE} \
     --hostname=${NETHVOICE_HOST} \
+    --network=host \
     ${NETHVOICE_SATELLITE_IMAGE}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/satellite.ctr-id
