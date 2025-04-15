@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # clone the repository
-RUN COMMIT="d8709e10efad730ceaa09ed1468a082c6fbb7e18" \
+RUN COMMIT="60027bd9108fc2d501e7f10669adfdbb6d59b777" \
     && curl -L https://github.com/nethesis/satellite/archive/${COMMIT}.tar.gz -o - | tar xzp --strip-component=1 -C /app
 
 # Install dependencies
