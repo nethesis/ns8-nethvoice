@@ -1,0 +1,9 @@
+[Unit]
+Description=Make phone calls for NethVoice Hotel alarms
+Requires=freepbx.service
+After=freepbx.Service
+
+[Service]
+Type=oneshot
+ExecStart=podman exec freepbx php /var/lib/asterisk/bin/alarms.php
+

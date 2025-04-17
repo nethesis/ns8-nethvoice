@@ -1,0 +1,75 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2009-08-25 11:30+0200\n"
+"PO-Revision-Date: 2009-08-25 11:30+0200\n"
+"Last-Translator: Andrea Marchionni <andrea@nethesis.it>\n"
+"Language-Team: Nethesis <info@nethesis.it>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Italian\n"
+
+
+#: functions.inc.php:58 page.nethhotel.php:86
+msgid "Remove from rooms context"
+msgstr "Rimuovi dal contesto camere"
+
+#: functions.inc.php:64
+msgid "Add to rooms context"
+msgstr "Aggiungi al contesto camere"
+
+#: page.nethhotel.php:22
+msgid "Warning! Extension"
+msgstr "Attenzione! Interno"
+
+#: page.nethhotel.php:22
+msgid "is not allowed for your account."
+msgstr "non è consentito dal tuo account"
+
+#: page.nethhotel.php:52 page.nethhotel.php:95
+msgid "Add Room"
+msgstr "Aggiungi Camera"
+
+#: page.nethhotel.php:63
+msgid "Rooms Management"
+msgstr "Gestione Camere"
+
+#: page.nethhotel.php:66 page.nethhotel.php:68
+msgid "Room"
+msgstr "Camera"
+
+#: page.nethhotel.php:66
+msgid "deleted"
+msgstr "eliminata"
+
+#: page.nethhotel.php:68
+msgid "added"
+msgstr "aggiunta"
+
+#: page.nethhotel.php:71
+#, php-format
+msgid "Remove %s from rooms context?"
+msgstr "Rimuovere %s dal contesto camere?"
+
+#: page.nethhotel.php:75
+msgid "Cancel"
+msgstr "Annulla"
+
+#: page.nethhotel.php:80
+msgid "Ok"
+msgstr "Ok"
+
+#: page.nethhotel.php:97
+msgid "Extension:"
+msgstr "Interno:"
+
+#: page.nethhotel.php:108
+msgid "Add"
+msgstr "Aggiungi"
