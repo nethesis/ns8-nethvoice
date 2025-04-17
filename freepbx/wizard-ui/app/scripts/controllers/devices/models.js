@@ -26,6 +26,7 @@ angular.module('nethvoiceWizardUiApp')
     $scope.adminPw = {
       showAdminPwWarning: false
     }
+    $scope.customModelsBlacklist = ["fanvil-X3SG-PRO"];
 
     var modelNameChecking = ""
 
@@ -36,8 +37,10 @@ angular.module('nethvoiceWizardUiApp')
         $scope.view.changeRoute = false
         ModelService.getModels().then(function (res) {
           for (let model in res.data) {
+            // add custom models, but exclude models that have two dashes by mistake (e.g., fanvil-X3SG-PRO)
             if (res.data[model].name.split("-").length > 2
-                && !$scope.inventoryModels.find(function (el) { return el.name === res.data[model].name; })) {
+                && !$scope.inventoryModels.find(function (el) { return el.name === res.data[model].name; })
+                && !$scope.customModelsBlacklist.includes(res.data[model].name)) {
               $scope.inventoryModels.push(res.data[model])
             }
           }
