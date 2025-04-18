@@ -8,7 +8,8 @@
 set -e
 
 # exit if roomsdb already exists
-mysql --user=root --password="${MARIADB_ROOT_PASSWORD}" -e "SHOW DATABASES" | grep -q '^roomsdb$' && exit 0 
+MARIADB_ROOT_PASSWORD=$(grep '^MARIADB_ROOT_PASSWORD=' ./passwords.env) && export $MARIADB_ROOT_PASSWORD
+mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "SHOW DATABASES" | grep -q '^roomsdb$' && exit 0
 
 # Add hotel db, tables and permissions
 cat - > ./restore/99permissions.sh <<'EOF'
