@@ -399,6 +399,7 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 # Install Nethesis vendor modules
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcqr /var/www/html/freepbx/admin/modules/nethcqr
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcti3 /var/www/html/freepbx/admin/modules/nethcti3
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethhotel /var/www/html/freepbx/admin/modules/nethhotel
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/pin /var/www/html/freepbx/admin/modules/pin
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/queueoptions /var/www/html/freepbx/admin/modules/queueoptions
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/recallonbusy /var/www/html/freepbx/admin/modules/recallonbusy
