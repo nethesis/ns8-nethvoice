@@ -57,6 +57,7 @@ for module in \
     nethcqr \
     nethcti3 \
     nethdash \
+    nethhotel \
     outroutemsg \
     paging \
     parking \
