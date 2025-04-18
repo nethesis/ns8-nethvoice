@@ -478,8 +478,10 @@ RUN chown asterisk:asterisk \
 	/var/lib/asterisk/bin \
 	/var/www/html/freepbx/admin/assets/js/
 
-# Link visualplan directory to module
-RUN ln -s /var/www/html/freepbx/admin/modules/visualplan/htdocs /var/www/html/freepbx/visualplan
+# Direct links to modules
+RUN ln -s /var/www/html/freepbx/admin/modules/visualplan/htdocs /var/www/html/freepbx/visualplan \
+	&& ln -s /var/www/html/freepbx/admin/modules/nethhotel/htdocs /var/www/html/freepbx/hotel
+
 
 # Link all mudule assets directories
 RUN for asset in $(find /var/www/html/freepbx/admin/modules/ -type d -name assets); do \
