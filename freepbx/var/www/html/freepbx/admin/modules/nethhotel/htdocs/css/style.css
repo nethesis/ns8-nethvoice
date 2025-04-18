@@ -1,0 +1,406 @@
+* {
+	margin: 0;
+	padding: 0;
+}
+
+
+body {
+	font: 12px Verdana, Arial, sans-serif;
+	background: #fff url(../images/backi.jpg) repeat-x top;
+	color: #111;
+	margin: 0;
+	padding: 0;
+	line-height: 1.5em;
+}
+
+img {   border: none }
+ul {    padding: 0; margin: 0;}
+li {    list-style-type: none;}
+
+a {
+	color: #024294;
+	background-color: transparent;
+	text-decoration: none;
+}
+a:hover { color: #000; }
+
+#wrap {
+	margin: 0 auto;
+	width: 99%;
+}
+
+#header {
+	background: transparent;
+	height: 60px;
+	background-repeat: no-repeat;
+	background-position: top left;
+	margin-left: 20px;
+}
+#header h1 {
+	color: #fff;
+	font-size: 150%;
+	padding-top: 10px;
+	margin: 0;
+	font-weight: 100;
+}
+#header h1 a { font-weight: 100; text-decoration: none; color : #fff; }
+#header h2 {
+	color: #eee;
+	font-size: 120%;
+	margin: 0;
+	font-weight: 100;
+}
+
+#breadcrumbs {
+	background : #eee;
+	padding: 2px 5px 2px 5px;
+	font-size: 13px;
+}
+
+#right {
+	float: right;
+	width: 990px;
+	background: #fff;
+	border-top: 1px solid #CFCFCF;
+	padding: 10px;
+	margin-top: 10px;
+}
+#right h2 { font-size: 12px; margin: 5px 0 5px 0; }
+#right h2 a{ text-decoration: none; }
+
+#left {
+	width: 190px;
+	background: #fff;
+	border-top: 1px solid #CFCFCF;
+	margin-top: 10px;
+	padding: 10px;
+}
+#left h2 { font-size: 100%; margin: 10px 0 5px 5px; }
+#left ul { padding-left: 10px; }
+
+#footer { font-size: 11px; padding: 5px; border-top: 1px solid #a0a0a0; margin-top: 5px; text-align: center;}
+
+#clear { clear: both;  }
+
+/* Tables */
+table {
+	background: #fff;
+	border:1px solid #ccc;
+	border-right:0;
+	clear: both;
+	color: #333;
+	margin-bottom: 10px;
+	width: 100%;
+	border-spacing: 0;
+	padding: 0;
+}
+th {
+	background: #f2f2f2;
+	border:1px solid #bbb;
+	border-top: 1px solid #fff;
+	border-left: 1px solid #fff;
+	text-align: center;
+	vertical-align: center;
+}
+th a {
+	background:#f2f2f2;
+	display: block;
+	padding: 2px 4px;
+	text-decoration: none;
+}
+th a:hover {
+	background: #ccc;
+	color: #333;
+	text-decoration: none;
+}
+table tr td {
+	background: #fff;
+	border-right: 1px solid #ccc;
+	padding: 4px;
+	text-align: center;
+	vertical-align: center;
+}
+table tr.altrow td {
+	background: #f4f4f4;
+}
+td.actions {
+	text-align: center;
+	white-space: nowrap;
+}
+td.actions a {
+	margin: 0px 6px;
+}
+
+table tr.missing td {
+	color: #900;
+	font-weight: bold;
+}
+
+table.noborder {
+	border: 0px;
+	width: auto;
+	text-align: left;
+}
+
+.noborder td{
+	border: 0px;
+	text-align: left;
+}
+
+caption {
+	font-weight: bold;
+	font-size: 120%;
+	padding: 10px;
+	color: #00458A;
+	margin-bottom: 10px;
+}
+
+h3 {
+	color: #00458A;
+}
+
+fieldset {
+	padding: 5px;
+	margin-bottom: 10px;
+	text-align: center;
+}
+
+legend {
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+#table th{
+	padding: 5px;
+}
+
+.help {
+	background: #f4f4f4;
+	border: 1px solid #ccc;
+	font-size: 80%;
+}
+
+fieldset {
+	text-align: left;
+	border: 1px solid #ccc;
+	margin: 5px;
+	padding: 10px;
+	width: 200px;
+}
+
+.room {
+	width: 142px;
+	height: 170px;
+	border: 1px solid #ccc;
+	padding: 10px;
+	float: left;
+	margin: 5px;
+}
+
+.room h3 {
+	color: #fff;
+	text-align: center;
+	padding: 2px;
+	font-weight: bold;
+	font-size: 160%;
+}
+
+.free {
+	background-color: #78B753;
+}
+
+.occupied {
+	background-color: #BF0000;
+}
+
+.clean {
+	background-color: #FBB917;
+}
+
+.separator {
+	border-top: 1px solid black;
+}
+
+.name {
+	padding: 2px;
+	background-color: #fff;
+	position: relative;
+	vertical-align: bottom;
+	text-align: left;
+	font-size: 80%;
+	color: #fff;
+}
+
+.occupied  .name hr {
+	border: 1px solid #BF0000;
+	margin: 1px;
+}
+
+.occupied .name {
+	background-color: #BF4F4F;
+}
+
+img.actions {
+        cursor: pointer;
+}
+.actions {
+	padding: 2px;
+	background-color: #fff;
+	position: relative;
+	vertical-align: bottom;
+	text-align: right;
+	font-size: 80%;
+	color: #fff;
+}
+
+.alarms {
+	padding: 4px;
+	background-color: #fff;
+	vertical-align: top;
+	color: #000;
+}
+
+.occupied  .actions hr {
+	border: 1px solid #BF0000;
+	margin: 1px;
+}
+
+.free  .actions hr {
+	border: 1px solid #78B753;
+	margin: 1px;
+}
+
+.clean .actions hr {
+	border: 1px solid #FBB917;
+	margin: 1px;
+}
+
+.occupied .actions {
+	background-color: #BF4F4F;
+}
+
+.free .actions {
+	background-color: #B2D28F;
+}
+
+.clean .actions {
+	text-align: center;
+	background-color: #FAF8CC;
+}
+
+div.leftMenu {
+	float: left;
+	width: 11%;
+}
+
+div.leftMenu .option {
+	margin-bottom: 30px;
+	text-align: center;
+}
+
+div.leftMenu .label {
+	font-size: 90%;
+}
+
+#content {
+	margin-top: 20px;
+	float: left;
+	width: 85%;
+}
+
+#history {
+	margin-top: 20px;
+}
+
+#contentPane {
+	padding-top: 20px;
+}
+
+.ButtonClass {
+	padding: 4px;
+        font: Verdana;
+}
+
+.room-lang {
+    color: #fff;
+    font-weight: bold;
+    font-size: 1.3em;
+}
+
+#rooms_in_group_sortable, #rooms_not_in_any_group_sortable {
+    border: 1px solid #eee;
+    width: 100px;
+    min-height: 20px;
+    list-style-type: none;
+    margin: 0;
+    padding: 5px 0 0 0;
+    float: left;
+    margin-right: 10px;
+}
+
+#rooms_in_group_sortable li, #rooms_not_in_any_group_sortable li {
+    margin: 0 5px 5px 5px;
+    padding: 5px;
+    font-size: 1.2em;
+    width: 60px;
+}
+
+.group {
+        width: 142px;
+        height: 170px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        float: left;
+        margin: 5px;
+}
+
+.group h3 {
+        text-align: center;
+        padding: 2px;
+        font-weight: bold;
+        font-size: 160%;
+}
+
+.checkingroup {
+    background-color: #BF0000;
+}
+
+.checkoutgroup {
+    background-color: #78B753;
+}
+
+.needcleangroup {
+    background-color: #FBB917;
+}
+
+.mixedcheckingroup {
+background:
+    linear-gradient(135deg, #BF0000 25%, transparent 25%) -50px 0,
+    linear-gradient(225deg, #BF0000 25%, transparent 25%) -50px 0,
+    linear-gradient(315deg, #BF0000 25%, transparent 25%),
+    linear-gradient(45deg, #BF0000 25%, transparent 25%);
+    background-size: 100px 100px;
+    background-color: #78B753;
+}
+
+.groupactions {
+    background: rgba(254, 254, 254, 0.7);
+    text-align: right;
+    padding: 2px;
+}
+
+.multiselect {
+    width:20em;
+    height:15em;
+    border:solid 1px #c0c0c0;
+    overflow:auto;
+}
+
+.multiselect label {
+    display:block;
+}
+
+.multiselect-on {
+    color:#ffffff;
+    background-color:#000099;
+}
