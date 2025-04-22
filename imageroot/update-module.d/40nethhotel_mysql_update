@@ -7,51 +7,25 @@
 
 set -e
 
-# exit if roomsdb already exists
 MARIADB_ROOT_PASSWORD=$(grep '^MARIADB_ROOT_PASSWORD=' ./passwords.env) && export $MARIADB_ROOT_PASSWORD
-mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "SHOW DATABASES" | grep -q '^roomsdb$' && exit 0
 
-# Add hotel db, tables and permissions
-cat - > ./restore/99permissions.sh <<'EOF'
-#!/bin/bash
-# Create database
-/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} < docker-entrypoint-initdb.d/00_roomsdb-schema-create.sql
-# Create tables
-/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} < docker-entrypoint-initdb.d/40_roomsdb.alarmcalls-schema.sql
-/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} < docker-entrypoint-initdb.d/40_roomsdb.alarms_history-schema.sql
-/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} < docker-entrypoint-initdb.d/40_roomsdb.alarms-schema.sql
-/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} < docker-entrypoint-initdb.d/40_roomsdb.codes-schema.sql
-/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} < docker-entrypoint-initdb.d/40_roomsdb.extra_history-schema.sql
-/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} < docker-entrypoint-initdb.d/40_roomsdb.extras-schema.sql
-/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} < docker-entrypoint-initdb.d/40_roomsdb.groups_rooms-schema.sql
-/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} < docker-entrypoint-initdb.d/40_roomsdb.history-schema.sql
-/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} < docker-entrypoint-initdb.d/40_roomsdb.options-schema.sql
-/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} < docker-entrypoint-initdb.d/40_roomsdb.rates-schema.sql
-/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} < docker-entrypoint-initdb.d/40_roomsdb.room_groups-schema.sql
-/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} < docker-entrypoint-initdb.d/40_roomsdb.rooms-schema.sql
-# Add permissions
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on roomsdb.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'"
-EOF
+# Check if rooms db needs to be created, exit if already exists
+podman exec mariadb /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -BN -e "SHOW DATABASES" | grep -q '^roomsdb$' && exit 0
 
-# Add script that kill the temporary server
-cat - > ./restore/zz_restore.sh <<EOF
-#!/bin/bash
-set -e
-mysql --version
-set -- true
-docker_temp_server_stop
+podman exec -it mariadb bash <<'EOF'
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/00_roomsdb-schema-create.sql ;\
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_roomsdb.alarmcalls-schema.sql ;\
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_roomsdb.alarms_history-schema.sql ;\
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_roomsdb.alarms-schema.sql ;\
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_roomsdb.codes-schema.sql ;\
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_roomsdb.extra_history-schema.sql ;\
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_roomsdb.extra-schema.sql ;\
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_roomsdb.groups_rooms-schema.sql ;\
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_roomsdb.history-schema.sql ;\
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_roomsdb.options-schema.sql ;\
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_roomsdb.rates-schema.sql ;\
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_roomsdb.room_groups-schema.sql ;\
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_roomsdb.rooms-schema.sql ;\
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -e "GRANT ALL on roomsdb.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'" ;\
 exit 0
 EOF
-
-# launch a temporary server for restore the migration dumps
-podman run \
-    --rm \
-    --interactive \
-    --name=mariadb_update \
-    --network=none \
-    --volume=mariadb-data:/var/lib/mysql:Z \
-    --env-file=./passwords.env \
-    --env=NETHVOICE_MARIADB_PORT \
-    --env=AMPDBUSER \
-    --env=MARIADB_AUTO_UPGRADE=1 \
-    "${NETHVOICE_MARIADB_IMAGE}"
