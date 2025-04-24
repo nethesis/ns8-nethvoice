@@ -7,9 +7,6 @@ while [[ $(/usr/sbin/asterisk -rx 'core show version' 2>/dev/null) != Asterisk* 
 done
 
 # Install FreePBX modules if required
-module_status=$(mktemp)
-trap 'rm -f ${module_status}' EXIT
-fwconsole ma list | grep '^| ' | grep -v '^| Module'| awk '{print $2,$6}' > "$module_status"
 
 # Define arrays for module management
 modules_to_install=(
@@ -96,6 +93,11 @@ for module_file in $(ls /freepbx_custom_modules); do
 	tar xzpf /freepbx_custom_modules/"${module_file}" --strip-component=1 -C /var/www/html/freepbx/admin/modules/${module}
 	modules_to_install+=("$module")
 done
+
+# List installed modules ant their status
+module_status=$(mktemp)
+trap 'rm -f ${module_status}' EXIT
+fwconsole ma list | grep '^| ' | grep -v '^| Module'| awk '{print $2,$6}' > "$module_status"
 
 # Install required modules
 for module in "${modules_to_install[@]}"; do
