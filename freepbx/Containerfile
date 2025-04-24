@@ -244,6 +244,7 @@ RUN mkdir download \
     && cd .. && rm -rf download
 
 COPY --chown=asterisk:asterisk etc/asterisk /etc/asterisk
+COPY etc/fias.conf /etc/fias.conf
 COPY etc/odbc.ini /etc/odbc.ini
 COPY etc/odbcinst.ini /etc/odbcinst.ini
 COPY var/lib/asterisk /var/lib/asterisk

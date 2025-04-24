@@ -225,6 +225,37 @@ sed -i 's/^Port: .*/Port: '${ASTMANAGERPORT}'/' /etc/asterisk/recallonbusy.cfg
 sed -i 's/^Username: .*/Username: proxycti/' /etc/asterisk/recallonbusy.cfg
 sed -i 's/^Secret: .*/Secret: '${NETHCTI_AMI_PASSWORD}'/' /etc/asterisk/recallonbusy.cfg
 
+# configure fias
+if [[ -z "${NETHVOICE_HOTEL_FIAS_ADDRESS}" && -z "${NETHVOICE_HOTEL_FIAS_PORT}" ]]; then
+  sed -i 's/^user=.*/user='"${AMPDBUSER}"'/' /etc/fias.conf
+  sed -i 's/^pwd=.*/pwd='"${AMPDBPASS}"'/' /etc/fias.conf
+  sed -i 's/^address=.*/address='"${NETHVOICE_HOTEL_FIAS_ADDRESS}"'/' /etc/fias.conf
+  sed -i 's/^port=.*/port='"${NETHVOICE_HOTEL_FIAS_PORT}"'/' /etc/fias.conf
+  cat > /etc/supervisord.d/fias.conf <<EOF
+[program:fias]
+command=/usr/share/neth-hotel-fias/fiasd.php
+autostart=false
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stdout_logfile_backups=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+stderr_logfile_backups=0
+
+[program:fiasdispatcher]
+command=/usr/share/neth-hotel-fias/dispatcher.php
+autostart=false
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stdout_logfile_backups=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+stderr_logfile_backups=0
+EOF
+fi
+
 # migrate database
 php /initdb.d/migration.php
 
