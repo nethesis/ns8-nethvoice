@@ -5,10 +5,10 @@
 require_once("config.inc.php");
 require_once("utils.inc.php");
 
-function nethhotel_log($msg, $function='',$file='/var/log/asterisk/nethhotel.log'){
-    $openfile = fopen ($file,"a");
-    fwrite ($openfile,date('M d H:i:s')." $function ".print_r($msg,true)."\n");
-    fclose ($openfile);
+function nethhotel_log($msg, $function=''){
+    $out = fopen('php://stdout', 'w');
+    fputs ($out, date('M d H:i:s')."$function: ".print_r($msg,true));
+    fclose ($out);
 }
 
 function loadRates()

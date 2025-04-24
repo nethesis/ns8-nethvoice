@@ -13,15 +13,19 @@ $dbconfig = $ini_file["general"];
 
 function logMessage($message, $level=ERROR, $tag="") {
     global $config;
-    $logfile="/var/log/fias";
-    if ($level<=$config["DebugLevel"]) {
-        if (is_array($message)) {
-            $message = print_r($message,true);
-	}
-	$openfile = fopen ($logfile,"a");
-	fwrite ($openfile, Date("ymd H.i.s")." {$tag}[".getmypid()."]: ".$message."\n");
-	fclose ($openfile);
+    if ($level>$config["DebugLevel"]) {
+        return;
     }
+    if (is_array($message)) {
+        $message = print_r($message,true);
+    }
+    if ($level== ERROR) {
+        $out = fopen('php://stderr', 'w');
+    } else {
+        $out = fopen('php://stdout', 'w');
+    }
+    fputs($out, Date("ymd H.i.s")." {$tag}[".getmypid()."]: ".$message);
+    fclose($out);
 }
 
 function getSection($command_full_path) {
