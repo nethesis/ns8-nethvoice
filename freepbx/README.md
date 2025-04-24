@@ -88,9 +88,14 @@ Its filename must be the name of the module .tar.gz. For instance, for installin
  ```
  The module will be reinstalled into container again at every restart of container
 
+# Hotel
+
+NethVoice Hotel is installed and disabled by default. To enable it, set the following environment variables and restart FreePBX container:
+- `NETHVOICE_HOTEL` set to 1
+
 ## FIAS
 
-NethVoice Hotel FIAS is installed and disabled by default. To enable it set the environment variables:
+NethVoice Hotel FIAS is installed and disabled by default. To enable it, set the following environment variables and restart FreePBX container:
 
 - `NETHVOICE_HOTEL_FIAS_ADDRESS` the address of the hotel PMS FIAS server
 - `NETHVOICE_HOTEL_FIAS_PORT` the port of the hotel PMS FIAS server
