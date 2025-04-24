@@ -401,7 +401,7 @@ if (count($res) == 0 && !empty($_ENV['NETHVOICE_HOTEL'])) {
 	$stmt->execute([$hotel_profile_id, 9]);
 	$sql = 'INSERT IGNORE INTO `asterisk`.`rest_cti_profiles_macro_permissions` (profile_id, macro_permission_id) VALUES (?,?)';
 	$stmt = $db->prepare($sql);
-	foreach ([1, 2, 3, 4, 5, 6] as $macro_permission_id) {
+	foreach ([1, 2, 3, 4, 5, 6, 12] as $macro_permission_id) {
 		$stmt->execute([$hotel_profile_id, $macro_permission_id]);
 	}
 	# assign users in hotel context to hotel profile
