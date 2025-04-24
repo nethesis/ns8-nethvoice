@@ -105,3 +105,10 @@ if (!empty($_ENV['PROXY_IP']) && !empty($_ENV['PROXY_PORT'])) {
 	$stmt = $db->prepare($sql);
 	$stmt->execute(['sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'].';lr']);
 }
+
+// Set IAX2 Port
+$sql = "INSERT INTO `asterisk`.`iaxsettings` (`keyword`, `data`) 
+        VALUES ('bindport', ?) 
+        ON DUPLICATE KEY UPDATE `data` = ?";
+$stmt = $db->prepare($sql);
+$stmt->execute([$_ENV['ASTERISK_IAX_PORT'],$_ENV['ASTERISK_IAX_PORT']]);
