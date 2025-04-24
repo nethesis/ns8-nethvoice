@@ -10,75 +10,87 @@ done
 module_status=$(mktemp)
 trap 'rm -f ${module_status}' EXIT
 fwconsole ma list | grep '^| ' | grep -v '^| Module'| awk '{print $2,$6}' > "$module_status"
-for module in \
-    framework \
-    soundlang \
-    recordings \
-    announcement \
-    manager \
-    arimanager \
-    asterisk-cli \
-    asteriskinfo \
-    filestore \
-    backup \
-    pm2 \
-    core \
-    cdr \
-    blacklist \
-    bosssecretary \
-    bulkhandler \
-    calendar \
-    callback \
-    callforward \
-    callrecording \
-    callwaiting \
-    cel \
-    certman \
-    conferences \
-    customappsreg \
-    customcontexts \
-    dashboard \
-    daynight \
-    directdid \
-    disa \
-    donotdisturb \
-    extraoptions \
-    fax \
-    featurecodeadmin \
-    findmefollow \
-    googletts \
-    iaxsettings \
-    infoservices \
-    ivr \
-    languages \
-    logfiles \
-    miscapps \
-    music \
-    nethcqr \
-    nethcti3 \
-    nethdash \
-    outroutemsg \
-    paging \
-    parking \
-    pin \
-    pm2 \
-    queues \
-    queueexit \
-    queuemetrics \
-    queueoptions \
-    queueprio \
-    rapidcode \
-    recallonbusy \
-    returnontransfer \
-    ringgroups \
-    setcid \
-    sipsettings \
-    timeconditions \
-    userman \
-    visualplan \
-    voicemail \
+
+# Define arrays for module management
+modules_to_install=(
+    framework
+    soundlang
+    recordings
+    announcement
+    manager
+    arimanager
+    asterisk-cli
+    asteriskinfo
+    filestore
+    backup
+    pm2
+    core
+    cdr
+    blacklist
+    bosssecretary
+    bulkhandler
+    calendar
+    callback
+    callforward
+    callrecording
+    callwaiting
+    cel
+    certman
+    conferences
+    customappsreg
+    customcontexts
+    dashboard
+    daynight
+    directdid
+    disa
+    donotdisturb
+    extraoptions
+    fax
+    featurecodeadmin
+    findmefollow
+    googletts
+    iaxsettings
+    infoservices
+    ivr
+    languages
+    logfiles
+    miscapps
+    music
+    nethcqr
+    nethcti3
+    nethdash
+    nethhotel
+    outroutemsg
+    paging
+    parking
+    pin
+    pm2
+    queues
+    queueexit
+    queuemetrics
+    queueoptions
+    queueprio
+    rapidcode
+    recallonbusy
+    returnontransfer
+    ringgroups
+    setcid
+    sipsettings
+    timeconditions
+    userman
+    visualplan
+    voicemail
     vmblast
-do
+)
+
+obsolete_modules=(
+    bulkdids
+    inboundlookup
+    outboundlookup
+)
+
+# Install required modules
+for module in "${modules_to_install[@]}"; do
     if ! test -s "$module_status" || grep -q "$module " "$module_status" && ! grep -q "$module Enabled" "$module_status" ; then
         echo Installing module $module
         fwconsole moduleadmin install $module
@@ -86,11 +98,7 @@ do
 done
 
 # Remove obsolete modules if required
-for module in \
-    bulkdids \
-    inboundlookup \
-    outboundlookup
-do
+for module in "${obsolete_modules[@]}"; do
     if grep -q "$module" "$module_status" ; then
         echo Removing obsolete module $module
         fwconsole moduleadmin uninstall $module &>/dev/null || true # ignore errors, we know module files are missing
@@ -116,3 +124,4 @@ fwconsole userman --syncall --force --verbose
 
 # Always apply changes on start
 su asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload"
+
