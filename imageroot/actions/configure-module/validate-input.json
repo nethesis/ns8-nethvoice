@@ -204,6 +204,19 @@
         "nethvoice_adm_password": {
             "description": "NethVoice password for account provider",
             "type": "string"
+        },
+        "nethvoice_hotel": {
+            "description": "NethVoice hotel module enabled",
+            "type": "boolean"
+        },
+        "nethvoice_hotel_fias_address": {
+            "description": "FIAS server address",
+            "type": "string",
+            "format": "ipv4"
+        },
+        "nethvoice_hotel_fias_port": {
+            "description": "FIAS server port",
+            "type": "integer"
         }
     }
 }
