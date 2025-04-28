@@ -1989,10 +1989,10 @@ function printAlarms()
 }
 
 function fias($section,$arguments) {
-    if (!file_exists('/etc/fias.conf')) {
+    if (!file_exists('/etc/asterisk/fias.conf')) {
         return FALSE;
     }
-    $ini_file = parse_ini_file("/etc/fias.conf", true);
+    $ini_file = parse_ini_file("/etc/asterisk/fias.conf", true);
     if (isset($ini_file[$section]['command'])) {
         $command = $ini_file[$section]['command'];
     } else {

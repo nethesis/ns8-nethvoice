@@ -2,7 +2,7 @@
 
 date_default_timezone_set('Europe/Rome');
 
-$ini_file = parse_ini_file("/etc/fias.conf", true);
+$ini_file = parse_ini_file("/etc/asterisk/fias.conf", true);
 $config = $ini_file["fiasd"];
 $dbconfig = $ini_file["general"];
 

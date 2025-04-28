@@ -7,7 +7,7 @@ define( "INFO" , 1);
 define( "DEBUG" , 2);
 define( "DEBUGVERBOSE" , 3);
 
-$ini_file = parse_ini_file("/etc/fias.conf", true);
+$ini_file = parse_ini_file("/etc/asterisk/fias.conf", true);
 $config = $ini_file["fiasd"];
 $dbconfig = $ini_file["general"];
 

@@ -94,6 +94,13 @@ for module_file in $(ls /freepbx_custom_modules); do
 	modules_to_install+=("$module")
 done
 
+# Add or remove nethhotel
+if [[ -n $NETHVOICE_HOTEL ]]; then
+    modules_to_install+=("nethhotel")
+else
+    obsolete_modules+=("nethhotel")
+fi
+
 # List installed modules ant their status
 module_status=$(mktemp)
 trap 'rm -f ${module_status}' EXIT

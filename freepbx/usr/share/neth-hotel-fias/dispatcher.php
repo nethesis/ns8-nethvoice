@@ -3,7 +3,7 @@
 
 /******************************************************************************************
  * This program takes from database messages from PMS to PBX and their parameters
- * Then execute the command with parameters specified in /etc/fias.conf configuration file
+ * Then execute the command with parameters specified in /etc/asterisk/fias.conf configuration file
  **************************************************************************************** */
 
 require_once dirname(__FILE__) . '/functions.inc.php';
@@ -41,7 +41,7 @@ while (TRUE) {
     foreach ($messages as $id => $message){
         $section = $message['section'];
         if (!isset($ini_file[$section])) {
-            logMessage("Command section $section not defined in configuration file /etc/fias.conf", ERROR, "dispatcher");
+            logMessage("Command section $section not defined in configuration file /etc/asterisk/fias.conf", ERROR, "dispatcher");
             continue;
         }
         $command = $ini_file[$section]["command"];
