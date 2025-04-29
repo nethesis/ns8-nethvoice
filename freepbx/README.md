@@ -91,7 +91,7 @@ Its filename must be the name of the module .tar.gz. For instance, for installin
 # Hotel
 
 NethVoice Hotel is installed and disabled by default. To enable it, set the following environment variables and restart FreePBX container:
-- `NETHVOICE_HOTEL` set to 1
+- `NETHVOICE_HOTEL` set to `True`
 
 ## FIAS
 

@@ -212,11 +212,31 @@
         "nethvoice_hotel_fias_address": {
             "description": "FIAS server address",
             "type": "string",
-            "format": "ipv4"
+            "oneOf": [
+                {
+                    "format": "hostname"
+                },
+                {
+                    "format": "ipv4"
+                },
+                {
+                    "pattern": "^$"
+                }
+            ]
         },
         "nethvoice_hotel_fias_port": {
             "description": "FIAS server port",
-            "type": "integer"
+            "oneOf": [
+                {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                },
+                {
+                    "type": "string",
+                    "pattern": "^$"
+                }
+            ]
         }
     }
 }
