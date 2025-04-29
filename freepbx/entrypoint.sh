@@ -346,12 +346,12 @@ EOF
 fi
 
 # configure fias
-if [[ -z "${NETHVOICE_HOTEL_FIAS_ADDRESS}" && -z "${NETHVOICE_HOTEL_FIAS_PORT}" ]]; then
+if [[ -n "${NETHVOICE_HOTEL_FIAS_ADDRESS}" && -n "${NETHVOICE_HOTEL_FIAS_PORT}" ]]; then
   sed -i 's/^user=.*/user='"${AMPDBUSER}"'/' /etc/asterisk/fias.conf
   sed -i 's/^pwd=.*/pwd='"${AMPDBPASS}"'/' /etc/asterisk/fias.conf
   sed -i 's/^address=.*/address='"${NETHVOICE_HOTEL_FIAS_ADDRESS}"'/' /etc/asterisk/fias.conf
   sed -i 's/^port=.*/port='"${NETHVOICE_HOTEL_FIAS_PORT}"'/' /etc/asterisk/fias.conf
-  cat > /etc/supervisord.d/fias.conf <<EOF
+  cat > /etc/supervisor/conf.d/fias.conf <<EOF
 [program:fias]
 command=/usr/share/neth-hotel-fias/fiasd.php
 autostart=false
