@@ -157,8 +157,7 @@ RUN cd /usr/src/asterisk && \
 	wget http://downloads.digium.com/pub/telephony/codec_siren14/asterisk-18.0/x86-64/codec_siren14-18.0_current-x86_64.tar.gz && \
 	tar xzf codec_siren14-18.0_current-x86_64.tar.gz --strip-components=1 && \
 	cp *.so ${BUILDROOT}${LIBDIR}/asterisk/modules/ && \
-	cp codec_opus_config-en_US.xml ${BUILDROOT}${DATADIR}/asterisk/documentation/thirdparty/ && \
-	wget -nv http://asterisk.hosting.lv/bin/codec_g729-ast180-gcc4-glibc-x86_64-pentium4.so -O ${BUILDROOT}${LIBDIR}/asterisk/modules/codec_g729.so
+	cp codec_opus_config-en_US.xml ${BUILDROOT}${DATADIR}/asterisk/documentation/thirdparty/
 
 
 FROM docker.io/library/php:7.4-apache
