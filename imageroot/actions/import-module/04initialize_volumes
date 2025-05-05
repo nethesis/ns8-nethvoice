@@ -14,5 +14,7 @@ podman run \
     --volume=asterisk:/etc/asterisk:z \
     --volume=sounds:/var/lib/asterisk/sounds:z \
     --volume=agi-bin:/var/lib/asterisk/agi-bin:z \
+    --volume=nethcti:/etc/nethcti:z \
+    --volume=customer_card:/var/lib/nethserver/nethcti/templates/customer_card/:z \
     "${NETHVOICE_FREEPBX_IMAGE}" \
     echo "volumes initialized"
