@@ -554,5 +554,6 @@ COPY initdb.d/migration.php /initdb.d/
 COPY usr/src/nethvoice/samples/* /usr/src/nethvoice/samples/
 COPY configure_users.php /
 COPY entrypoint.sh /entrypoint
+COPY usr/share/neth-hotel-fias /usr/share/neth-hotel-fias
 CMD ["/usr/bin/supervisord"]
 ENTRYPOINT ["/entrypoint"]
