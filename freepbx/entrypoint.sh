@@ -354,7 +354,7 @@ if [[ -n "${NETHVOICE_HOTEL_FIAS_ADDRESS}" && -n "${NETHVOICE_HOTEL_FIAS_PORT}" 
   cat > /etc/supervisor/conf.d/fias.conf <<EOF
 [program:fias]
 command=/usr/share/neth-hotel-fias/fiasd.php
-autostart=false
+autostart=true
 autorestart=true
 stdout_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
@@ -365,7 +365,7 @@ stderr_logfile_backups=0
 
 [program:fiasdispatcher]
 command=/usr/share/neth-hotel-fias/dispatcher.php
-autostart=false
+autostart=true
 autorestart=true
 stdout_logfile=/dev/stdout
 stdout_logfile_maxbytes=0

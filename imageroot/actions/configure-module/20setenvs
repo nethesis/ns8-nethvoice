@@ -54,7 +54,7 @@ getFromRequest(request, 'nethvoice_adm_username', 'NETHVOICE_USER_PORTAL_USERNAM
 passwordsfile['NETHVOICE_USER_PORTAL_PASSWORD'] = request.get('nethvoice_adm_password', "")
 
 ## NethVoice Hotel
-getFromRequest(request, 'nethvoice_hotel', 'NETHVOICE_HOTEL', '')
+getFromRequest(request, 'nethvoice_hotel', 'NETHVOICE_HOTEL', 'False')
 getFromRequest(request, 'nethvoice_hotel_fias_address', 'NETHVOICE_HOTEL_FIAS_ADDRESS', '')
 getFromRequest(request, 'nethvoice_hotel_fias_port', 'NETHVOICE_HOTEL_FIAS_PORT', '')
 
