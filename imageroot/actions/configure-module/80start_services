@@ -9,10 +9,16 @@ set -e    # exit immediately if an error occurs
 exec 1>&2 # ensure any output is sent to stderr
 
 #restart services if they are already running
+RESTART_SERVICES="mariadb.service \
+                 freepbx.service \
+                 janus.service \
+                 nethcti-ui.service \
+                 tancredi.service \
+                 phonebook.service \
+                 reports-api.service \
+                 reports-ui.service"
 
-if [ -n "$RESTART_SERVICES" ]; then
-    systemctl --user try-restart $RESTART_SERVICES
-fi
+systemctl --user try-restart $RESTART_SERVICES
 
 # If the control reaches this step, the service can be enabled and started
 
