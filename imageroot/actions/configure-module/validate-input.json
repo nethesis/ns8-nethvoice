@@ -212,7 +212,7 @@
         "nethvoice_hotel_fias_address": {
             "description": "FIAS server address",
             "type": "string",
-            "oneOf": [
+            "anyOf": [
                 {
                     "format": "hostname"
                 },
@@ -226,7 +226,7 @@
         },
         "nethvoice_hotel_fias_port": {
             "description": "FIAS server port",
-            "oneOf": [
+            "anyOf": [
                 {
                     "type": "integer",
                     "minimum": 1,

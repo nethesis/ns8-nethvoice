@@ -36,15 +36,26 @@
         },
         "nethvoice_hotel_fias_address": {
             "description": "FIAS server address",
-            "type": "string"
+            "type": "string",
+            "anyOf": [
+                {
+                    "format": "hostname",
+                    "pattern": "\\."
+                },
+                {
+                    "format": "ipv4"
+                },
+                {
+                    "pattern": "^$"
+                }
+            ]
         },
         "nethvoice_hotel_fias_port": {
             "description": "FIAS server port",
-            "oneOf": [
+            "anyOf": [
                 {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 65535
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
                 },
                 {
                     "type": "string",
@@ -54,3 +65,4 @@
         }
     }
 }
+
