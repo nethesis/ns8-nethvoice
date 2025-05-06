@@ -92,6 +92,18 @@ EOF
 mkdir -p /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads 
 chown asterisk:asterisk /var/lib/asterisk/db /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads /var/lib/nethserver/nethcti/templates/customer_card
 
+# Make sure config dir is writable from nethcti and freepbx containers
+chown -R asterisk:asterisk /etc/nethcti
+
+# make sure CSV upload path exists if /var/lib/nethvoice isn't a volume or already initialized
+mkdir -p /var/lib/nethvoice/phonebook/uploads
+chown -R asterisk:asterisk /var/lib/nethvoice/phonebook/uploads
+
+# Don't continue with initialization if the database is not ready
+if [[ -z "${AMPDBUSER}" || -z "${AMPDBPASS}" ]]; then
+	exit 0
+fi
+
 # Customized wizard page
 cat > /etc/apache2/sites-available/wizard.conf <<EOF
 AliasMatch ^/(?!freepbx)(.+)$ /var/www/html/freepbx/wizard/\$1
@@ -386,13 +398,6 @@ fi
 
 # Configure users
 php /configure_users.php
-
-# Make sure config dir is writable from nethcti and freepbx containers
-chown -R asterisk:asterisk /etc/nethcti
-
-# make sure CSV uopload path exists if /var/lib/nethvoice isn't a volume or already initialized
-mkdir -p /var/lib/nethvoice/phonebook/uploads
-chown -R asterisk:asterisk /var/lib/nethvoice/phonebook/uploads
 
 # Change Apache httpd port
 sed -i "s/<VirtualHost \*:80>/<VirtualHost \*:${APACHE_PORT}>/" /etc/apache2/sites-enabled/000-default.conf
