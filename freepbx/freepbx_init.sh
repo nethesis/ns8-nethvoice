@@ -95,7 +95,7 @@ for module_file in $(ls /freepbx_custom_modules); do
 done
 
 # Add or remove nethhotel
-if [[ -n $NETHVOICE_HOTEL ]]; then
+if [[ -n $NETHVOICE_HOTEL && $NETHVOICE_HOTEL == 'True' ]]; then
     modules_to_install+=("nethhotel")
 else
     obsolete_modules+=("nethhotel")

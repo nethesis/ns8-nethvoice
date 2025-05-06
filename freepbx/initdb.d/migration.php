@@ -385,7 +385,7 @@ $sql = 'SELECT id FROM `asterisk`.`rest_cti_profiles` WHERE name = "Hotel"';
 $stmt = $db->prepare($sql);
 $stmt->execute();
 $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-if (count($res) == 0 && !empty($_ENV['NETHVOICE_HOTEL'])) {
+if (count($res) == 0 && !empty($_ENV['NETHVOICE_HOTEL']) && $_ENV['NETHVOICE_HOTEL'] == 'True') {
 	# Install hotel context
 	# create hotel profile
 	$db->query('INSERT IGNORE INTO `asterisk`.`rest_cti_profiles` SET name = "Hotel"');
@@ -409,7 +409,7 @@ if (count($res) == 0 && !empty($_ENV['NETHVOICE_HOTEL'])) {
 	$sql = 'UPDATE `rest_users` SET profile_id = ? WHERE user_id IN (SELECT DISTINCT user_id FROM rest_devices_phones WHERE extension IN ( SELECT `id` FROM sip WHERE `keyword`="context" AND `data` = "hotel"))';
 	$stmt = $db->prepare($sql);
 	$stmt->execute([$hotel_profile_id]);
-} elseif (count($res) > 0 && empty($_ENV['NETHVOICE_HOTEL'])) {
+} elseif (count($res) > 0 && (empty($_ENV['NETHVOICE_HOTEL']) || $_ENV['NETHVOICE_HOTEL'] != 'True')) {
 	# Remove hotel profile
 	$hotel_profile_id = $res[0]['id'];
 	# remove hotel profile permissions and macro permissions
