@@ -21,7 +21,7 @@ config = {
     'nethvoice_adm_username': os.getenv('NETHVOICE_USER_PORTAL_USERNAME', ''),
     'nethvoice_adm_password': agent.read_envfile("passwords.env").get('NETHVOICE_USER_PORTAL_PASSWORD',""),
     'nethcti_privacy_numbers': os.getenv('NETHCTI_PRIVACY_NUMBERS', 'xxx'),
-    'nethvoice_hotel': os.getenv('NETHVOICE_HOTEL', 'False') == 'True',
+    'nethvoice_hotel': os.getenv('NETHVOICE_HOTEL', 'False'),
     'nethvoice_hotel_fias_address': os.getenv('NETHVOICE_HOTEL_FIAS_ADDRESS', ''),
     'nethvoice_hotel_fias_port': os.getenv('NETHVOICE_HOTEL_FIAS_PORT', ''),
 }

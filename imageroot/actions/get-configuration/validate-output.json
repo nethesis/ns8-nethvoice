@@ -32,7 +32,7 @@
         },
         "nethvoice_hotel": {
             "description": "NethVoice hotel module enabled",
-            "type": "boolean"
+            "type": "string"
         },
         "nethvoice_hotel_fias_address": {
             "description": "FIAS server address",

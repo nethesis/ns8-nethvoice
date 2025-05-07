@@ -207,14 +207,15 @@
         },
         "nethvoice_hotel": {
             "description": "NethVoice hotel module enabled",
-            "type": "boolean"
+            "type": "string"
         },
         "nethvoice_hotel_fias_address": {
             "description": "FIAS server address",
             "type": "string",
             "anyOf": [
                 {
-                    "format": "hostname"
+                    "format": "hostname",
+                    "pattern": "\\."
                 },
                 {
                     "format": "ipv4"
@@ -228,9 +229,8 @@
             "description": "FIAS server port",
             "anyOf": [
                 {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 65535
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
                 },
                 {
                     "type": "string",
