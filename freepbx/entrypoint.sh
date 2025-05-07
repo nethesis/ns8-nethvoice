@@ -240,12 +240,6 @@ sed -i 's/^Secret: .*/Secret: '${NETHCTI_AMI_PASSWORD}'/' /etc/asterisk/recallon
 # Create fias configuration if it doesn't exist
 if [[ ! -f /etc/asterisk/fias.conf ]]; then
   cat > /etc/asterisk/fias.conf <<'EOF'
-[general]
-dbhost=127.0.0.1
-dbname=fias
-user=${AMPDBUSER}
-pwd=${AMPDBPASS}
-
 [fiasd]
 separator="|"
 record_start=2
@@ -359,8 +353,6 @@ fi
 
 # configure fias
 if [[ -n "${NETHVOICE_HOTEL_FIAS_ADDRESS}" && -n "${NETHVOICE_HOTEL_FIAS_PORT}" ]]; then
-  sed -i 's/^user=.*/user='"${AMPDBUSER}"'/' /etc/asterisk/fias.conf
-  sed -i 's/^pwd=.*/pwd='"${AMPDBPASS}"'/' /etc/asterisk/fias.conf
   sed -i 's/^address=.*/address='"${NETHVOICE_HOTEL_FIAS_ADDRESS}"'/' /etc/asterisk/fias.conf
   sed -i 's/^port=.*/port='"${NETHVOICE_HOTEL_FIAS_PORT}"'/' /etc/asterisk/fias.conf
   cat > /etc/supervisor/conf.d/fias.conf <<EOF

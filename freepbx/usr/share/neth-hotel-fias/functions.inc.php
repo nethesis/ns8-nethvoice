@@ -9,7 +9,6 @@ define( "DEBUGVERBOSE" , 3);
 
 $ini_file = parse_ini_file("/etc/asterisk/fias.conf", true);
 $config = $ini_file["fiasd"];
-$dbconfig = $ini_file["general"];
 
 function logMessage($message, $level=ERROR, $tag="") {
     global $config;
@@ -84,7 +83,11 @@ function insertMessageIntoDB($section,$parameters) {
     }
 }
 
-$fiasdb = new \PDO('mysql:host='.$dbconfig["dbhost"].';dbname='.$dbconfig["dbname"],$dbconfig["user"],$dbconfig["pwd"]);
+include_once('/etc/freepbx_db.conf');
+$fiasdb = new \PDO($amp_conf['AMPDBENGINE'].':host='.$amp_conf['AMPDBHOST'].';port='.$amp_conf['AMPDBPORT'].';dbname=fias',
+	$amp_conf['AMPDBUSER'],
+	$amp_conf['AMPDBPASS']);
+
 if ($fiasdb === false) {
     logMessage("Error connecting to database; ".mysql_error(), ERROR, __FILE__);
     exit(1);
