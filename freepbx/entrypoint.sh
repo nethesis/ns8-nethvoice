@@ -352,7 +352,7 @@ EOF
 fi
 
 # configure fias
-if [[ -n "${NETHVOICE_HOTEL_FIAS_ADDRESS}" && -n "${NETHVOICE_HOTEL_FIAS_PORT}" ]]; then
+if [[ "${NETHVOICE_HOTEL}" -eq True && -n "${NETHVOICE_HOTEL_FIAS_ADDRESS}" && -n "${NETHVOICE_HOTEL_FIAS_PORT}" ]]; then
   sed -i 's/^address=.*/address='"${NETHVOICE_HOTEL_FIAS_ADDRESS}"'/' /etc/asterisk/fias.conf
   sed -i 's/^port=.*/port='"${NETHVOICE_HOTEL_FIAS_PORT}"'/' /etc/asterisk/fias.conf
   cat > /etc/supervisor/conf.d/fias.conf <<EOF
