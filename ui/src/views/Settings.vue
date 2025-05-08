@@ -597,7 +597,11 @@ export default {
       this.form.nethcti_privacy_numbers = config.nethcti_privacy_numbers;
 
       // Hotel module settings
-      this.form.nethvoice_hotel = config.nethvoice_hotel || false;
+      if ( config.nethvoice_hotel == 'True' ) {
+        this.form.nethvoice_hotel = true;
+      } else {
+        this.form.nethvoice_hotel = false;
+      }
       this.form.nethvoice_hotel_fias_address = config.nethvoice_hotel_fias_address || "";
       this.form.nethvoice_hotel_fias_port = config.nethvoice_hotel_fias_port || "";
 
@@ -842,7 +846,7 @@ export default {
             nethvoice_adm_username: this.form.nethvoice_adm.username,
             nethvoice_adm_password: this.form.nethvoice_adm.password,
             nethcti_privacy_numbers: this.form.nethcti_privacy_numbers,
-            nethvoice_hotel: this.form.nethvoice_hotel,
+            nethvoice_hotel: this.form.nethvoice_hotel ? "True" : "False",
             nethvoice_hotel_fias_address: this.form.nethvoice_hotel ? this.form.nethvoice_hotel_fias_address : "",
             nethvoice_hotel_fias_port: this.form.nethvoice_hotel ? this.form.nethvoice_hotel_fias_port : ""
           },
