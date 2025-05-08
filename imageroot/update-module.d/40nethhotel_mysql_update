@@ -9,10 +9,9 @@ set -e
 
 MARIADB_ROOT_PASSWORD=$(grep '^MARIADB_ROOT_PASSWORD=' ./passwords.env) && export $MARIADB_ROOT_PASSWORD
 
-# Check if rooms db needs to be created, exit if already exists
-podman exec mariadb /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -BN -e "SHOW DATABASES" | grep -q '^roomsdb$' && exit 0
-
-podman exec -it mariadb bash <<'EOF'
+# Check if roomsdb needs to be created, exit if already exists
+if ! podman exec mariadb /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "$NETHVOICE_MARIADB_PORT" -BN -e "SHOW DATABASES" | grep -q '^roomsdb$'; then
+    podman exec -it mariadb bash <<'EOF'
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/00_roomsdb-schema-create.sql ;\
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_roomsdb.alarmcalls-schema.sql ;\
 /usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_roomsdb.alarms_history-schema.sql ;\
@@ -29,3 +28,16 @@ podman exec -it mariadb bash <<'EOF'
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -e "GRANT ALL on roomsdb.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'" ;\
 exit 0
 EOF
+fi
+
+# Check if fias db needs to be created, exit if already exists
+if ! podman exec mariadb /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "$NETHVOICE_MARIADB_PORT" -BN -e "SHOW DATABASES" | grep -q '^fias$'; then
+    podman exec -it mariadb bash <<'EOF'
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/00_fias-schema-create.sql ;\
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_fias.messages-schema.sql ;\
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_fias.messagesparameters-schema.sql ;\
+/usr/bin/mysql -uroot -p${MARIADB_ROOT_PASSWORD} -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT < /docker-entrypoint-initdb.d/40_fias.reservations-schema.sql ;\
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -e "GRANT ALL on fias.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'" ;\
+exit 0
+EOF
+fi
