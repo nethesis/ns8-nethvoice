@@ -3,6 +3,7 @@ Description=Run NethVoice hotel alarm calls every minute
 
 [Timer]
 OnCalendar=*-*-* *:*:00
+Unit=nethvoice-hotel-alarms.service
 
 [Install]
 WantedBy=timers.target
