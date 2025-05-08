@@ -1,7 +1,7 @@
 [Unit]
 Description=Make phone calls for NethVoice Hotel alarms
 Requisite=freepbx.service
-After=freepbx.Service
+After=freepbx.service
 
 [Service]
 Type=oneshot

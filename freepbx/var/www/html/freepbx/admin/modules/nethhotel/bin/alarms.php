@@ -24,8 +24,8 @@ include_once('/etc/freepbx.conf');
 global $amp_conf;
 
 $dbh = \FreePBX::Database();
-$tslow = mktime()-120;
-$tshigh = mktime()+30;
+$tslow = time()-120;
+$tshigh = time()+30;
 $sql = 'SELECT * FROM roomsdb.alarmcalls WHERE enabled = 1 AND timestamp > ? AND timestamp < ?';
 $sth = $dbh->prepare($sql);
 $sth->execute(array($tslow,$tshigh));
