@@ -1,6 +1,6 @@
 USE `roomsdb`;
 
-CREATE TABLE `extra` (
+CREATE TABLE IF NOT EXISTS `extra` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(50) NOT NULL,
   `price` float NOT NULL DEFAULT '0',

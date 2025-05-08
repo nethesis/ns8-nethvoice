@@ -1,6 +1,6 @@
 USE `roomsdb`;
 
-CREATE TABLE `extra_history` (
+CREATE TABLE IF NOT EXISTS `extra_history` (
   `extension` int(11) NOT NULL,
   `id` int(11) NOT NULL,
   `date` datetime DEFAULT NULL,

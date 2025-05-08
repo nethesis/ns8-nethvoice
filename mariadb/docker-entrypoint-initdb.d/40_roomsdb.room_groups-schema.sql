@@ -1,6 +1,6 @@
 USE `roomsdb`;
 
-CREATE TABLE `room_groups` (
+CREATE TABLE IF NOT EXISTS `room_groups` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL DEFAULT '',
   `note` varchar(255) NOT NULL DEFAULT '',

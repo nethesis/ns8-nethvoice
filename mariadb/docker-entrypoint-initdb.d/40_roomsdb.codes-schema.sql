@@ -1,6 +1,6 @@
 USE `roomsdb`;
 
-CREATE TABLE `codes` (
+CREATE TABLE IF NOT EXISTS `codes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `code` int(5) NOT NULL DEFAULT '0',
   `number` int(11) NOT NULL DEFAULT '0',

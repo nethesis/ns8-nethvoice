@@ -1,6 +1,6 @@
 USE `roomsdb`;
 
-CREATE TABLE `alarms_history` (
+CREATE TABLE IF NOT EXISTS `alarms_history` (
   `calldate` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
   `extension` int(11) NOT NULL DEFAULT '0',
   `alarm` varchar(20) NOT NULL DEFAULT '0000-00-00 00:00:00',

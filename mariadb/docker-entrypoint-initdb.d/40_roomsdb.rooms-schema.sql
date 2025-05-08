@@ -1,6 +1,6 @@
 USE `roomsdb`;
 
-CREATE TABLE `rooms` (
+CREATE TABLE IF NOT EXISTS `rooms` (
   `extension` int(11) NOT NULL DEFAULT '0',
   `start` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
   `group` int(11) DEFAULT NULL,

@@ -1,6 +1,6 @@
 USE `roomsdb`;
 
-CREATE TABLE `alarms` (
+CREATE TABLE IF NOT EXISTS `alarms` (
   `extension` int(11) NOT NULL DEFAULT '0',
   `hour` time NOT NULL DEFAULT '00:00:00',
   `start` date DEFAULT NULL,
