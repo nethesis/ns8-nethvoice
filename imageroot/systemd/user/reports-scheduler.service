@@ -1,6 +1,6 @@
 [Unit]
 Description=Generate reports
-Requires=freepbx.service reports-api.service
+Requisite=freepbx.service reports-api.service
 After=freepbx.service reports-api.service
 
 [Service]

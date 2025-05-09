@@ -1,0 +1,78 @@
+## How to test communication
+
+RN=201
+# Send check-in RE2PMS RN RS=4
+/usr/share/neth-hotel-fias/re2pms.php $RN 4
+
+# Send check-out RE2PMS RN RS=1
+/usr/share/neth-hotel-fias/re2pms.php $RN 1
+
+# Send checkout room cleaned RE2PMS RN RS=3
+/usr/share/neth-hotel-fias/re2pms.php $RN 3
+
+# Send checkin room cleaned RE2PMS RN RS=4
+/usr/share/neth-hotel-fias/re2pms.php $RN 4
+
+# Send guest information change RN_G#_GN_GL_GS_RO
+/usr/share/neth-hotel-fias/gc2pms.php $RN "" "Foo Bar 2" GE N
+
+# Send room move
+/usr/share/neth-hotel-fias/gc2pms.php $RN "" "Foo Bar" GE N 202
+
+# Send wakeup call WR2PMS DA TI RN 
+/usr/share/neth-hotel-fias/wr2pms.php 201029 073000 $RN
+
+# Send phone charge posting (by meter pulse)
+# args: SOURCE CHANNEL ENDTIME DURATION "" ID "" STARTTIME "" DESTINATION DISPOSITION "" BILLABLESEC
+SOURCE="$RN"
+CHANNEL="SIP/2001-00000023"
+ENDTIME=""
+DURATION="15"
+ID="1496752037.491"
+STARTTIME="2017-06-06 14:27:17"
+DESTINATION="3281231231"
+DISPOSITION="ANSWERED"
+BILLABLESEC="12"
+
+config setprop fias cdrMode T
+signal-event neth-hotel-fias update
+
+/usr/share/neth-hotel-fias/cdr.php "$SOURCE" "$CHANNEL" "$ENDTIME" "$DURATION" "$ID" "" "$STARTTIME" "" "$DESTINATION" "$DISPOSITION" "" "$BILLABLESEC"
+
+# Send phone charge posting (by duration)
+config setprop fias cdrMode C
+signal-event neth-hotel-fias update
+/usr/share/neth-hotel-fias/cdr.php "$SOURCE" "$CHANNEL" "$ENDTIME" "$DURATION" "$ID" "" "$STARTTIME" "" "$DESTINATION" "$DISPOSITION" "" "$BILLABLESEC"
+
+# Send minibar DA_TI_RN_MA_M#
+/usr/share/neth-hotel-fias/minibar.php 201029 113000 $RN 1234 1
+
+
+# Send charge posting (by total amount) DA_DD_DU_MA_M#_MP_PT_RN_TA_TI_P#
+/usr/share/neth-hotel-fias/ps2pms.php 201029 "" "" 1234 1 "" M $RN 5.55 113000 ""
+
+# send room status
+# 1	Dirty/Vacant
+# 2	Dirty/Occupied
+# 3	Clean/Vacant
+# 4	Clean/Occupied
+# 5	Inspected/Vacant
+# 6	Inspected/Occupied
+
+/usr/share/neth-hotel-fias/re2pms.php $RN 3
+
+# send dnd
+/usr/share/neth-hotel-fias/re2pms.php $RN "" Y
+# cos rights
+# TODO
+# user definable fields
+# TODO
+
+# minibar modalità articolo
+# format=DA_MA_M#_PT_RN_TI_P#
+/usr/share/neth-hotel-fias/ps2pms.php 191030 "01" "1" M $RN 131500 00000001
+
+# force database resinc
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/dr2pms.php
+
+

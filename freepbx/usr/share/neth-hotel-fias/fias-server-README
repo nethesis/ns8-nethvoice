@@ -1,0 +1,159 @@
+#############################
+# Test room check-in
+#############################
+#
+#  GI - Guest Check-in
+#
+# default format: GI | RN G# GN GL GS SF
+#
+#  G#          Reservation Number
+#  RN          Room Number
+#  GS          Share Flag
+#  A0 - A9     User Definable Fields
+#  CS          Class of Service
+#  DA          Date
+#  G+          Profile Number
+#  GA          Guest Arrival Date
+#  GD          Guest Departure Date
+#  GF          Guest First Name
+#  GG          Guest Group Number
+#  GL          Guest Language
+#  GN          Guest Name
+#  GT          Guest Title
+#  GV          Guest VIP Status
+#  MR          Minibar Rights
+#  NP          No Post Status
+#  SF          Swap Flag
+#  TI          Time
+#  TV          TV Rights
+#  VR          Video Rights
+#  WS          Workstation ID
+#
+
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-gi2pbx.php 201 123456 "Mr Foo Bar" "IT" "" ""
+
+#############################
+# Test Guest Data Change notification
+#############################
+#
+#  GC - Guest Data Change notification
+#
+# default format: GC | RN G# GN GL GS RO
+#
+#  G#          Reservation Number
+#  RN          Room Number
+#  G#          Reservation Number
+#  GN          Guest Name
+#  GL          Guest Language
+#  GS          Share Flag
+#  RO          Old Room Number
+#
+
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-gc2pbx.php 202 123456 "Mrs. Bar" EN "" 201
+
+#############################
+# Test room check-out
+#############################
+#
+#  GO - Guest Check-Out
+#
+# default format: GO | RN G# GS SF
+#
+#  G#          Reservation Number
+#  RN          Room Number
+#  GS          Share Flag
+#  DA          Date
+#  SF          Swap Flag
+#  TI          Time
+#  WS          Workstation ID
+#
+
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-go2pbx.php 202 123456 "" ""
+
+#############################
+# Test shared rooms
+#############################
+
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-gi2pbx.php 201 123456 "Mr Foo Bar" "IT" "Y" ""
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-gi2pbx.php 201 123457 "Mrs. Bar" "EN" "Y" ""
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-gi2pbx.php 201 123458 "Foo Bar Jr" "EN" "Y" ""
+# now we have 3 guests in room 201, you can check with mysql -e "select * from fias.reservations"
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-gc2pbx.php 202 123457 "Mrs. Bar" EN "" 201
+# one guest is moved to 202. Now both 201 and 202 are in checkin state
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-go2pbx.php 201 123456 "" ""
+# one guest checked out from 201, but another is still inside (room is in checkin state)
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-go2pbx.php 202 123457 "" ""
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-go2pbx.php 201 123458 "" ""
+# all room are now in check out state
+
+#############################
+# Test room move
+#############################
+
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-gi2pbx.php 201 123456 "Mr Foo Bar" "IT" "Y" ""
+# room 201 in check in
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-gc2pbx.php 202 123456 "Mr Foo Bar" "IT" "" 201
+# room 201 in check out, room 202 in check in
+
+#############################
+# Test Wakeup request (alarm)
+#############################
+#
+#  WR - Wakeup request
+#
+# default format: WA | DA RN TI
+#
+#  DA          Date
+#  RN          Room Number
+#  TI          Time
+#
+
+# set alarm today at 23:30:00
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-wr2pbx.php $(date +%y%m%d) 233000 201
+# check with mysql -e "select * from roomsdb.alarms where extension = 201"
+
+#############################
+# Test Wakeup clear
+#############################
+#
+#  WC - Wakeup clear
+#
+# default format: WC | DA RN TI
+#
+#  DA          Date
+#  TI          Time
+#  RN          Room Number
+#
+
+# delete previously created alarm
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-wc2pbx.php $(date +%y%m%d) 233000 201
+
+
+#############################
+# Test room status
+#############################
+#
+#  RE - Room equipment status
+#
+# default format: RE | RN RS ML CS
+#
+#  RN          Room Number
+#  RS          Room maid status
+#      1  Dirty/Vacant
+#      2  Dirty/Occupied
+#      3  Clean/Vacan
+#      4  Clean/Occupied
+#      5  Inspected/Vacant
+#      6  Inspected/Occupied
+#  ML          Message light status
+#  CS          Class of Service
+#
+
+# set room 202 as Dirty/Vacant
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-re2pbx.php 202 1 "" ""
+# set room 202 as Clean/Vacant
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-re2pbx.php 202 3 "" ""
+# set room 202 as Inspected/Vacant
+scl enable rh-php56 -- /usr/share/neth-hotel-fias/fias-server-re2pbx.php 202 4 "" ""
+
+
