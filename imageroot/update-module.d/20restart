@@ -1,7 +1,0 @@
-#!/bin/bash
-
-# reload systemd changes
-systemctl --user daemon-reload
-
-# try to restart all services if they are running
-systemctl --user try-restart freepbx janus mariadb nethcti-server nethcti-ui phonebook reports-api reports-redis reports-ui tancredi

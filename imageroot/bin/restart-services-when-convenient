@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Restart services passed as arguments when there are no active calls
+
+set -e
+
+TIMEOUT=86400 # 24h
+
+for SECONDS in $(seq 1 $TIMEOUT); do
+    # Check if there are any calls in progress
+    CALLS=$(podman exec freepbx asterisk -rx "core show channels" 2>/dev/null | grep "active calls" | cut -d" " -f1) || {
+        # If the command fails, assume there are no calls
+        CALLS=0
+    }
+    if [[ $CALLS -eq 0 ]]; then
+        break
+    fi
+    # Sleep for 1 second before checking again
+    sleep 1
+done
+
+# Restart FreePBX
+for service in "$@"; do
+    echo "Restarting $service service wich was postponed for $SECONDS seconds"
+    systemctl --user try-restart $service
+done
