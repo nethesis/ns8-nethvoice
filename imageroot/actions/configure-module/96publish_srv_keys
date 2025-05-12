@@ -34,5 +34,20 @@ with agent.redis_connect(privileged=True) as prdb:
         "module_uuid": module_uuid
     }))
 
+    service_key = agent_id + "/srv/udp/sip"
+    trx.delete(service_key).hset(service_key, mapping={
+        "node_address": node_address,
+        "node_id": str(node_id),
+        "port": os.environ["ASTERISK_SIP_PORT"],
+    })
+
+    # Publish change event
+    trx.publish(agent_id + "/event/pbx-settings-changed", json.dumps({
+        "reason": os.getenv("AGENT_TASK_ACTION", "unknown"),
+        "module_id": os.environ['MODULE_ID'],
+        "node_id": node_id,
+        "module_uuid": module_uuid
+    }))
+
     trx.execute()
 
