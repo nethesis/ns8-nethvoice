@@ -22,8 +22,8 @@ Arguments:
 15  destinationchannel
 16  accountcode
 17  caller name
-18  called number
-19  called name
+18  (empty)
+19  (empty)
 */
 
 
