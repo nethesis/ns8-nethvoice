@@ -9,7 +9,7 @@ import json
 import sys
 import os
 
-import agent  
+import agent
 
 config = {
     'nethvoice_host': os.getenv('NETHVOICE_HOST', ''),
