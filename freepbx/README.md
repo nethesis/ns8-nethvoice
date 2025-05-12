@@ -72,6 +72,16 @@ NethVoice send voicemail emails using s-nail. Smarthost is configured with follo
 - `SMTP_ENCRYPTION` smarthost encryption type ["starttls"|"tls"]
 - `SMTP_TLSVERIFY` verify smarthost certificate: [1 | ""]
 
+## Custom scripts launched when a call arrives and at hangup
+
+Is it possible to execute a custom script when a call arrives and at hangup. The script must be placed in a volume inside the freepbx container, for instance `/var/lib/asterisk/agi-bin/`. The script must be executable and must have the shebang line at the beginning. The script will be executed as an AGI.
+
+- `NETHCTI_CDR_SCRIPT` path of the script to execute on outgoing call end
+- `NETHCTI_CDR_SCRIPT_CALL_IN` path of the script to execute on incoming call end
+
+You can find a sample script `/var/lib/asterisk/agi-bin/cdrscript.sample.php` and `/var/lib/asterisk/agi-bin/cdrscript_call_in.sample.php`
+
+
 ## Trunks without proxy
 
 By default, at container startup, trunks are configured to use the outbound proxy. But sometimes it's necessary to configure a different proxy or none. In this case, make sure that trunk name contains the string "custom". For instance, a trunk named "Foo", will have proxy overwritten at container startup, a trunk named "Foo_custom" will be left unchanged.
