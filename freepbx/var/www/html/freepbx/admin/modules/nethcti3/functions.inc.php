@@ -277,6 +277,60 @@ function nethcti3_get_config_late($engine) {
             $context = ($pricid) ? "ext-did-0001":"ext-did-0002";
             $ext->splice($context, $exten, "did-cid-hook", new ext_userevent('CallIn', 'value: ${FROM_DID}'),'cti-event',2);
             $ext->splice($context, $exten, "did-cid-hook", new ext_agi('offhour.php,'.$did['cidnum'].','.$did['extension']),'offhour',3);
+            /*Execute custom agi when call arrives*/
+            if (!empty($_ENV['NETHCTI_CDR_SCRIPT_CALL_IN'])) {
+                # inser agi before exten => s,n(hangup),Hangup
+                $agi_cmd = [
+                    $_ENV['NETHCTI_CDR_SCRIPT_CALL_IN'],
+                    '${CDR(src)}', # source
+                    '${CDR(channel)}', # channel
+                    '', # endtime
+                    '', # duration
+                    '${CDR(amaflags)}', # amaflags
+                    '${CDR(uniqueid)}', # uniqueid
+                    '${CDR(cnum)}', # callerid
+                    '${CDR(uniqueid)}', # starttime
+                    '', # answertime
+                    '', # destination
+                    '', # disposition
+                    '${CDR(lastapp)}', # lastapplication
+                    '', # billableseconds
+                    '${CDR(dcontext)}', # destinationcontext
+                    '${CDR(dstchannel)}', # destinationchannel
+                    '${CDR(accountcode)}', # accountcode
+                    '${CDR(cnam)}', # caller name
+                    '${CDR(dst_cnum)}', # called number
+                    '${CDR(dst_cnam)}', # called name
+                ];
+                $ext->splice($context, $exten, "did-cid-hook", new ext_agi(join(',',$agi_cmd)),'nethcti-cdr-script-call-in',3);
+            }
+        }
+        /*Execute custom agi on call hangup*/
+        if (!empty($_ENV['NETHCTI_CDR_SCRIPT'])) {
+            # inser agi before exten => s,n(hangup),Hangup
+            $agi_cmd = [
+                $_ENV['NETHCTI_CDR_SCRIPT'],
+                '${CDR(src)}', # source
+                '${CDR(channel)}', # channel
+                '${EPOCH}', # endtime
+                '${CDR(duration)}', # duration
+                '${CDR(amaflags)}', # amaflags
+                '${CDR(uniqueid)}', # uniqueid
+                '${CDR(cnum)}', # callerid
+                '${CDR(uniqueid)}', # starttime
+                '$[${EPOCH} - ${CDR(billsec)}]', # answertime
+                '${CDR(dst)}', # destination
+                '${CDR(disposition)}', # disposition
+                '${CDR(lastapp)}', # lastapplication
+                '${CDR(billsec)}', # billableseconds
+                '${CDR(dcontext)}', # destinationcontext
+                '${CDR(dstchannel)}', # destinationchannel
+                '${CDR(accountcode)}', # accountcode
+                '${CDR(cnam)}', # caller name
+                '${CDR(dst_cnum)}', # called number
+                '${CDR(dst_cnam)}', # called name
+            ];
+            $ext->splice('macro-hangupcall', 's', 'hangup', new ext_agi(join(',',$agi_cmd)),'nethcti-cdr-script');
         }
         /* Satellite STT */
         // Replace Dial in macro-dial-one with a new one that call Satellite when call is answered

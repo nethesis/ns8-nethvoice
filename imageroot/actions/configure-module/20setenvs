@@ -59,38 +59,3 @@ getFromRequest(request, 'openai_api_key', 'OPENAI_API_KEY', '')
 
 # write the passwords.env file
 agent.write_envfile("passwords.env", passwordsfile)
-
-#Check if the services must be restarted
-agent.set_env('RESTART_SERVICES', '')
-services_to_restart = set()
-if 'nethvoice_host' in request and os.getenv('NETHVOICE_HOST') != request['nethvoice_host']:
-    services_to_restart.add('freepbx.service')
-    services_to_restart.add('nethcti-ui.service')
-    services_to_restart.add('reports-api.service')
-    services_to_restart.add('reports-ui.service')
-    services_to_restart.add('tancredi.service')
-
-if 'reports_international_prefix' in request and os.getenv('REPORTS_INTERNATIONAL_PREFIX') != request['reports_international_prefix']:
-    services_to_restart.add('reports-api.service')
-    services_to_restart.add('reports-ui.service')
-
-if 'timezone' in request and os.getenv('TIMEZONE') != request['timezone']:
-    services_to_restart.add('freepbx.service')
-    services_to_restart.add('janus.service')
-    services_to_restart.add('mariadb.service')
-    services_to_restart.add('nethcti-ui.service')
-    services_to_restart.add('phonebook.service')
-    services_to_restart.add('reports-api.service')
-    services_to_restart.add('reports-redis.service')
-    services_to_restart.add('reports-ui.service')
-    services_to_restart.add('tancredi.service')
-    services_to_restart.add('nethcti-server.service')
-
-# read from passwords.env file
-nethvoice_user_portal_password = passwordsfile['NETHVOICE_USER_PORTAL_PASSWORD']
-
-if (('nethvoice_adm_username' in request and os.getenv('NETHVOICE_USER_PORTAL_USERNAME') != request['nethvoice_adm_username']) or
-    ('nethvoice_adm_password' in request and nethvoice_user_portal_password != request['nethvoice_adm_password'])):
-    services_to_restart.add('freepbx.service')
-
-agent.set_env('RESTART_SERVICES', ' '.join(services_to_restart))

@@ -233,25 +233,6 @@ EOF
 
 FILE=/etc/nethcti/exec_script.json
 echo "{" > $FILE
-if [ -n "${NETHCTI_CDR_SCRIPT}" ] ; then
-	cat > $FILE <<EOF
-	"cdr": {
-		"script": "${NETHCTI_CDR_SCRIPT}",
-		"timeout": ${NETHCTI_CDR_SCRIPT_TIMEOUT},
-	}
-EOF
-	if [ -n "${NETHCTI_CDR_SCRIPT_CALL_IN}" ] ; then
-		echo "," >> $FILE
-	fi
-fi
-if [ -n "${NETHCTI_CDR_SCRIPT_CALL_IN}" ] ; then
-	cat > $FILE <<EOF
-	"callin": {
-		"script": "${NETHCTI_CDR_SCRIPT_CALL_IN}",
-		"timeout": ${NETHCTI_CDR_SCRIPT_TIMEOUT},
-	}
-EOF
-fi
 echo "}" >> $FILE
 
 FILE=/etc/nethcti/mailer.json

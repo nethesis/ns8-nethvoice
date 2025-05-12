@@ -134,3 +134,10 @@ if (!empty($_ENV['SATELLITE_ARI_PASSWORD'])) {
 	$stmt = $db->prepare($sql);
 	$stmt->execute([$hashedPassword]);
 }
+
+// Set IAX2 Port
+$sql = "INSERT INTO `asterisk`.`iaxsettings` (`keyword`, `data`) 
+        VALUES ('bindport', ?) 
+        ON DUPLICATE KEY UPDATE `data` = ?";
+$stmt = $db->prepare($sql);
+$stmt->execute([$_ENV['ASTERISK_IAX_PORT'],$_ENV['ASTERISK_IAX_PORT']]);
