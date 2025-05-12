@@ -297,9 +297,12 @@ function nethcti3_get_config_late($engine) {
                     '', # billableseconds
                     '${CDR(dcontext)}', # destinationcontext
                     '${CDR(dstchannel)}', # destinationchannel
-                    '${CDR(accountcode)}' # accountcode
+                    '${CDR(accountcode)}', # accountcode
+                    '${CDR(cnam)}', # caller name
+                    '${CDR(dst_cnum)}', # called number
+                    '${CDR(dst_cnam)}', # called name
                 ];
-                $ext->splice($context, $exten, "did-cid-hook", new ext_agi(join(',',$agi_cmd)),'',3);
+                $ext->splice($context, $exten, "did-cid-hook", new ext_agi(join(',',$agi_cmd)),'nethcti-cdr-script-call-in',3);
             }
         }
         /*Execute custom agi on call hangup*/
@@ -322,9 +325,12 @@ function nethcti3_get_config_late($engine) {
                 '${CDR(billsec)}', # billableseconds
                 '${CDR(dcontext)}', # destinationcontext
                 '${CDR(dstchannel)}', # destinationchannel
-                '${CDR(accountcode)}' # accountcode
+                '${CDR(accountcode)}', # accountcode
+                '${CDR(cnam)}', # caller name
+                '${CDR(dst_cnum)}', # called number
+                '${CDR(dst_cnam)}', # called name
             ];
-            $ext->splice('macro-hangupcall', 's', 'hangup', new ext_agi(join(',',$agi_cmd)) );
+            $ext->splice('macro-hangupcall', 's', 'hangup', new ext_agi(join(',',$agi_cmd)),'nethcti-cdr-script');
         }
         break;
     }

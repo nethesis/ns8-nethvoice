@@ -21,9 +21,15 @@ Arguments:
 14  destinationcontext
 15  destinationchannel
 16  accountcode
+17  caller name
+18  called number
+19  called name
 */
 
-
+//set_time_limit(10);
+//define("AGIBIN_DIR", "/var/lib/asterisk/agi-bin");
+//include(AGIBIN_DIR."/phpagi.php");
+//include_once('/etc/freepbx_db.conf')
 //$agi = new AGI();
-
+error_log($argv); // Log the arguments to the system log
 
