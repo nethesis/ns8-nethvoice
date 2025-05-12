@@ -37,7 +37,7 @@ dns-server
   shutdown
 
 dns-client
-  name-server 8.8.8.8
+  name-server DEFGATEWAY
 
 profile tls DEFAULT
   no authentication incoming
