@@ -119,6 +119,30 @@
               ref="nethvoice_admin_password"
               type="password"
             />
+            <!-- Satellite Settings -->
+            <cv-toggle
+              :label="$t('settings.satellite_call_transcription_enabled')"
+              value="satellite_call_transcription_enabled"
+              :disabled="loadingState || !proxy_installed"
+              v-model="form.satellite_call_transcription_enabled"
+            />
+            <cv-text-input
+              :label="$t('settings.deepgram_api_key')"
+              v-model="form.deepgram_api_key"
+              placeholder="g7id86rxn5cns0umkvx6klo9rm0b0vjzrljg064k"
+              :disabled="loadingState || !proxy_installed || !form.deepgram_api_key"
+              :invalid-message="error.deepgram_api_key"
+              ref="deepgram_api_key"
+            />
+            <cv-text-input
+              :label="$t('settings.openai_api_key')"
+              v-model="form.openai_api_key"
+              placeholder="sk-..."
+              :disabled="loadingState || !proxy_installed || !form.openai_api_key"
+              :invalid-message="error.openai_api_key"
+              ref="openai_api_key"
+            />
+            <!-- End Satellite Settings -->
             <cv-row v-if="error.configureModule">
               <cv-column>
                 <NsInlineNotification
@@ -393,6 +417,9 @@ export default {
         rebranding_login_people: false,
         nethvoice_adm: {},
         nethcti_privacy_numbers: "",
+        satellite_call_transcription_enabled: false,
+        deepgram_api_key: "",
+        openai_api_key: "",
       },
       isDarkMode: false,
       proxy_installed: false,
@@ -564,6 +591,15 @@ export default {
       this.form.nethvoice_adm.username = config.nethvoice_adm_username;
       this.form.nethvoice_adm.password = config.nethvoice_adm_password;
       this.form.nethcti_privacy_numbers = config.nethcti_privacy_numbers;
+
+      // Satellite settings
+      if ( config.satellite_call_transcription_enabled == 'True' ) {
+        this.form.satellite_call_transcription_enabled = true;
+      } else {
+        this.form.satellite_call_transcription_enabled = false;
+      }
+      this.form.deepgram_api_key = config.deepgram_api_key || "";
+      this.form.openai_api_key = config.openai_api_key || "";
 
       this.focusElement("nethvoice_host");
     },
@@ -805,7 +841,10 @@ export default {
             timezone: this.form.timezone,
             nethvoice_adm_username: this.form.nethvoice_adm.username,
             nethvoice_adm_password: this.form.nethvoice_adm.password,
-            nethcti_privacy_numbers: this.form.nethcti_privacy_numbers
+            nethcti_privacy_numbers: this.form.nethcti_privacy_numbers,
+            satellite_call_transcription_enabled: this.form.satellite_call_transcription_enabled ? "True" : "False",
+            deepgram_api_key: this.form.deepgram_api_key,
+            openai_api_key: this.form.openai_api_key,
           },
           extra: {
             title: this.$t("settings.configure_instance", {

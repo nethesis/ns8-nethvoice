@@ -35,3 +35,13 @@ systemctl --user enable --now watcher.path
 systemctl --user enable --now reports-api.service
 systemctl --user enable --now reports-scheduler.timer
 systemctl --user enable --now reports-ui.service
+# Satellite
+if [ "$SATELLITE_CALL_TRANSCRIPTION_ENABLED" = "True" ]; then
+    systemctl --user enable --now satellite.service
+    systemctl --user enable --now satellite-mqtt.service
+else
+    systemctl --user stop satellite.service
+    systemctl --user disable satellite.service
+    systemctl --user stop satellite-mqtt.service
+    systemctl --user disable satellite-mqtt.service
+fi

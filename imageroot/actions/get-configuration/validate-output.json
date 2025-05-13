@@ -29,6 +29,39 @@
         "reports_international_prefix": {
             "description": "International prefix for the reports app",
             "type": "string"
+        },
+        "satellite_call_transcription_enabled": {
+            "description": "Enable real-time call transcription",
+            "type": "string",
+            "enum": [
+                "True",
+                "False"
+            ]
+        },
+        "deepgram_api_key": {
+            "description": "Deepgram API key for real-time call and voicemail transcription",
+            "type": "string",
+            "anyOf": [
+                {
+                    "pattern": "^[a-zA-Z0-9]+$"
+                },
+                {
+                    "pattern": "^$"
+                }
+            ]
+        },
+        "openai_api_key": {
+            "description": "OpenAI API key for call and voicemail summarization",
+            "anyOf": [
+                {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9\\-_]+$"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^$"
+                }
+            ]
         }
     }
 }
