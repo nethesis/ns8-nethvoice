@@ -38,6 +38,14 @@
                 "False"
             ]
         },
+        "satellite_voicemail_transcription_enabled": {
+            "description": "Enable voicemail transcription",
+            "type": "string",
+            "enum": [
+                "True",
+                "False"
+            ]
+        },
         "deepgram_api_key": {
             "description": "Deepgram API key for real-time call and voicemail transcription",
             "type": "string",

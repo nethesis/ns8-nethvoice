@@ -25,9 +25,10 @@ response = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-mo
     "user_domain": old_envs["USER_DOMAIN"],
     "nethvoice_adm_username": old_envs.get("NETHVOICE_USER_PORTAL_USERNAME", ''),
     "nethvoice_adm_password": agent.read_envfile("passwords.env").get('NETHVOICE_USER_PORTAL_PASSWORD',""),
-    "satellite_call_transcription_enabled": old_envs["SATELLITE_CALL_TRANSCRIPTION_ENABLED"],
-    "deepgram_api_key": old_envs["DEEPGRAM_API_KEY"],
-    "openai_api_key": old_envs["OPENAI_API_KEY"],
+    "satellite_call_transcription_enabled": old_envs.get("SATELLITE_CALL_TRANSCRIPTION_ENABLED", 'False'),
+    "satellite_voicemail_transcription_enabled": old_envs.get("SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED", 'False'),
+    "deepgram_api_key": old_envs.get("DEEPGRAM_API_KEY", ''),
+    "openai_api_key": old_envs.get("OPENAI_API_KEY", ''),
 })
 
 agent.assert_exp(response['exit_code'] == 0)

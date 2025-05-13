@@ -126,6 +126,12 @@
               :disabled="loadingState || !proxy_installed"
               v-model="form.satellite_call_transcription_enabled"
             />
+            <cv-toggle
+              :label="$t('settings.satellite_voicemail_transcription_enabled')"
+              value="satellite_voicemail_transcription_enabled"
+              :disabled="loadingState || !proxy_installed"
+              v-model="form.satellite_voicemail_transcription_enabled"
+            />
             <cv-text-input
               :label="$t('settings.deepgram_api_key')"
               v-model="form.deepgram_api_key"
@@ -418,6 +424,7 @@ export default {
         nethvoice_adm: {},
         nethcti_privacy_numbers: "",
         satellite_call_transcription_enabled: false,
+        satellite_voicemail_transcription_enabled: false,
         deepgram_api_key: "",
         openai_api_key: "",
       },
@@ -597,6 +604,11 @@ export default {
         this.form.satellite_call_transcription_enabled = true;
       } else {
         this.form.satellite_call_transcription_enabled = false;
+      }
+      if ( config.satellite_voicemail_transcription_enabled == 'True' ) {
+        this.form.satellite_voicemail_transcription_enabled = true;
+      } else {
+        this.form.satellite_voicemail_transcription_enabled = false;
       }
       this.form.deepgram_api_key = config.deepgram_api_key || "";
       this.form.openai_api_key = config.openai_api_key || "";
@@ -843,6 +855,7 @@ export default {
             nethvoice_adm_password: this.form.nethvoice_adm.password,
             nethcti_privacy_numbers: this.form.nethcti_privacy_numbers,
             satellite_call_transcription_enabled: this.form.satellite_call_transcription_enabled ? "True" : "False",
+            satellite_voicemail_transcription_enabled: this.form.satellite_voicemail_transcription_enabled ? "True" : "False",
             deepgram_api_key: this.form.deepgram_api_key,
             openai_api_key: this.form.openai_api_key,
           },

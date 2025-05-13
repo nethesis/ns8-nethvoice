@@ -55,6 +55,7 @@ passwordsfile['NETHVOICE_USER_PORTAL_PASSWORD'] = request.get('nethvoice_adm_pas
 
 # Satellite Deepgram and OpenAI api keys
 getFromRequest(request, 'satellite_call_transcription_enabled', 'SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'False')
+getFromRequest(request, 'satellite_voicemail_transcription_enabled', 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED', 'False')
 getFromRequest(request, 'deepgram_api_key', 'DEEPGRAM_API_KEY', '')
 getFromRequest(request, 'openai_api_key', 'OPENAI_API_KEY', '')
 

@@ -36,7 +36,7 @@ systemctl --user enable --now reports-api.service
 systemctl --user enable --now reports-scheduler.timer
 systemctl --user enable --now reports-ui.service
 # Satellite
-if [ "$SATELLITE_CALL_TRANSCRIPTION_ENABLED" = "True" ]; then
+if [ "$SATELLITE_CALL_TRANSCRIPTION_ENABLED" = "True" ] || [ "$SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED" = "True" ]; then
     systemctl --user enable --now satellite.service
     systemctl --user enable --now satellite-mqtt.service
 else
