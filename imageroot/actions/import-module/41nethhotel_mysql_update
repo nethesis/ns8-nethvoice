@@ -5,6 +5,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+set -e
+
+# start mariadb container if not already running
+MARIADB_RUNNING=$(systemctl --user is-active mariadb)
+if [ "$MARIADB_RUNNING" != "active" ]; then
+    systemctl --user start mariadb
+fi
+
 # Create roomsdb and fias databases
 MARIADB_ROOT_PASSWORD=$(grep '^MARIADB_ROOT_PASSWORD=' ./passwords.env) && export "${MARIADB_ROOT_PASSWORD?}"
 
@@ -30,3 +38,8 @@ podman exec -it mariadb bash <<'EOF'
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" -e "GRANT ALL on fias.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'" ;\
 exit 0
 EOF
+
+# stop mariadb container if it wasn't running before
+if [ "$MARIADB_RUNNING" != "active" ]; then
+    systemctl --user stop mariadb
+fi
