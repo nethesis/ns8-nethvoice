@@ -83,6 +83,11 @@ if not recipient_emails:
 while 'Bcc' in message:
     del message['Bcc']
 
+# Extract from address from the message or use the SMTP_FROM_ADDRESS as fallback
+from_address = message.get('From')
+if not from_address:
+    from_address = SMTP_FROM_ADDRESS
+
 # Connect to SMTP server and send the email
 try:
     if SMTP_ENCRYPTION == 'tls':
@@ -93,7 +98,7 @@ try:
             smtp.starttls(context=context)
     if SMTP_USERNAME:
         smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
-    smtp.sendmail(SMTP_FROM_ADDRESS, recipient_emails, message.as_string())
+    smtp.sendmail(from_address, recipient_emails, message.as_string())
     smtp.quit()
 except Exception as e:
     print(f"Error: {e}", file=sys.stderr)
