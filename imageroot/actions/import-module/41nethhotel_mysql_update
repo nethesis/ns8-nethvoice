@@ -8,7 +8,7 @@
 set -e
 
 # start mariadb container if not already running
-MARIADB_RUNNING=$(systemctl --user is-active mariadb)
+MARIADB_RUNNING=$(systemctl --user is-active mariadb || true)
 if [ "$MARIADB_RUNNING" != "active" ]; then
     systemctl --user start mariadb
 fi
