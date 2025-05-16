@@ -4,7 +4,7 @@
 systemctl --user daemon-reload
 
 # try to restart all services if they are running
-systemctl --user try-restart mariadb nethcti-server nethcti-ui phonebook reports-api reports-redis reports-ui tancredi
+systemctl --user try-restart mariadb nethcti-ui phonebook reports-api reports-redis reports-ui tancredi
 
 # launch background tasks that restart freepbx only if there aren't any calls in progress
 echo "Restarting FreePBX, Janus and NethCTI server when there are no active calls"
