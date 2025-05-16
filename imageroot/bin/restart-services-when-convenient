@@ -4,7 +4,7 @@
 
 set -e
 
-TIMEOUT=86400 # 24h
+TIMEOUT=10800 # 3h
 
 for SECONDS in $(seq 1 $TIMEOUT); do
     # Check if there are any calls in progress
