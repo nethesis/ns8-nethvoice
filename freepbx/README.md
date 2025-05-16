@@ -119,6 +119,17 @@ Its filename must be the name of the module .tar.gz. For instance, for installin
  ```
  The module will be reinstalled into container again at every restart of container
 
-# Asterisk
+# Hotel
 
-Asterisk container merged with FreePBX
+NethVoice Hotel is installed and disabled by default. To enable it, set the following environment variables and restart FreePBX container:
+- `NETHVOICE_HOTEL` set to `True`
+
+## FIAS
+
+NethVoice Hotel FIAS is installed and disabled by default. To enable it, set the following environment variables and restart FreePBX container:
+
+- `NETHVOICE_HOTEL_FIAS_ADDRESS` the address of the hotel PMS FIAS server
+- `NETHVOICE_HOTEL_FIAS_PORT` the port of the hotel PMS FIAS server
+
+Other configuration and finetune can be found in the file `/etc/asterisk/fias.conf` configuration file.
+If you need to change the configuration, you can do it in the file `/etc/asterisk/fias.conf` and restart container mounting new version as volume. Database credentials and server configuration will be overwritten with environment variables.

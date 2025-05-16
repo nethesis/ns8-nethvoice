@@ -1,0 +1,25 @@
+<module>
+    <rawname>nethhotel</rawname>
+    <name>Hotel Management</name>
+    <version>3.6.2</version>
+    <publisher>Nethesis</publisher>
+    <type>setup</type>
+    <category>Applications</category>
+    <menuitems>
+        <nethhotel>Gestione Camere</nethhotel>
+        <hotel>Hotel</hotel>
+    </menuitems>
+    <description>
+      Manage extensions as hotel rooms
+    </description>
+    <location></location>
+    <info></info>
+    <changelog>
+      *2.0* Prima Release
+    </changelog>
+    <depends>
+        <module>customcontexts</module>
+    </depends>
+
+</module>
+

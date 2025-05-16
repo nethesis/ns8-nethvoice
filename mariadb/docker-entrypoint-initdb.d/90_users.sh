@@ -32,3 +32,6 @@
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on asterisk.* to 'nethvoice_report'@'localhost' identified by '${REPORTS_PASSWORD}';"
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT SELECT on phonebook.* to 'nethvoice_report'@'%' identified by '${REPORTS_PASSWORD}';"
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT SELECT on phonebook.* to 'nethvoice_report'@'localhost' identified by '${REPORTS_PASSWORD}';"
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on roomsdb.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'"
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on fias.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'"
+

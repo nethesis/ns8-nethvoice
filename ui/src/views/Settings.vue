@@ -119,6 +119,31 @@
               ref="nethvoice_admin_password"
               type="password"
             />
+            <!-- Hotel Module Settings -->
+            <cv-toggle
+              :label="$t('settings.nethvoice_hotel')"
+              value="nethvoice_hotel"
+              :disabled="loadingState || !proxy_installed"
+              v-model="form.nethvoice_hotel"
+            />
+            <cv-text-input
+              :label="$t('settings.nethvoice_hotel_fias_address')"
+              v-model="form.nethvoice_hotel_fias_address"
+              placeholder="192.168.1.100"
+              :disabled="loadingState || !proxy_installed || !form.nethvoice_hotel"
+              :invalid-message="error.nethvoice_hotel_fias_address"
+              ref="nethvoice_hotel_fias_address"
+            />
+            <cv-text-input
+              :label="$t('settings.nethvoice_hotel_fias_port')"
+              v-model="form.nethvoice_hotel_fias_port"
+              placeholder="1234"
+              type="number"
+              :disabled="loadingState || !proxy_installed || !form.nethvoice_hotel"
+              :invalid-message="error.nethvoice_hotel_fias_port"
+              ref="nethvoice_hotel_fias_port"
+            />
+            <!-- End Hotel Module Settings -->
             <cv-row v-if="error.configureModule">
               <cv-column>
                 <NsInlineNotification
@@ -393,6 +418,9 @@ export default {
         rebranding_login_people: false,
         nethvoice_adm: {},
         nethcti_privacy_numbers: "",
+        nethvoice_hotel: false,
+        nethvoice_hotel_fias_address: "",
+        nethvoice_hotel_fias_port: "",
       },
       isDarkMode: false,
       proxy_installed: false,
@@ -431,6 +459,9 @@ export default {
         rebranding_login_logo_url: "",
         rebranding_login_logo_dark_url: "",
         nethcti_privacy_numbers: "",
+        nethvoice_hotel: "",
+        nethvoice_hotel_fias_address: "",
+        nethvoice_hotel_fias_port: "",
       },
       warning: {
         user_domain: "",
@@ -564,6 +595,15 @@ export default {
       this.form.nethvoice_adm.username = config.nethvoice_adm_username;
       this.form.nethvoice_adm.password = config.nethvoice_adm_password;
       this.form.nethcti_privacy_numbers = config.nethcti_privacy_numbers;
+
+      // Hotel module settings
+      if ( config.nethvoice_hotel == 'True' ) {
+        this.form.nethvoice_hotel = true;
+      } else {
+        this.form.nethvoice_hotel = false;
+      }
+      this.form.nethvoice_hotel_fias_address = config.nethvoice_hotel_fias_address || "";
+      this.form.nethvoice_hotel_fias_port = config.nethvoice_hotel_fias_port || "";
 
       this.focusElement("nethvoice_host");
     },
@@ -805,7 +845,10 @@ export default {
             timezone: this.form.timezone,
             nethvoice_adm_username: this.form.nethvoice_adm.username,
             nethvoice_adm_password: this.form.nethvoice_adm.password,
-            nethcti_privacy_numbers: this.form.nethcti_privacy_numbers
+            nethcti_privacy_numbers: this.form.nethcti_privacy_numbers,
+            nethvoice_hotel: this.form.nethvoice_hotel ? "True" : "False",
+            nethvoice_hotel_fias_address: this.form.nethvoice_hotel ? this.form.nethvoice_hotel_fias_address : "",
+            nethvoice_hotel_fias_port: this.form.nethvoice_hotel ? this.form.nethvoice_hotel_fias_port : ""
           },
           extra: {
             title: this.$t("settings.configure_instance", {

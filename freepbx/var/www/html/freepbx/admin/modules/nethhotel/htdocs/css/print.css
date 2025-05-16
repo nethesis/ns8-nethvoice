@@ -1,0 +1,42 @@
+body {
+font: 12pt Arial sans-serif; 
+background: #fff; 
+color: black;
+margin: 0;
+padding: 0;
+line-height: 1.5em;
+}
+
+img { border: none }
+ul {  padding: 0; margin: 0;}
+li { list-style-type: none;}
+
+a {
+text-decoration: underline;
+}
+
+/* Tables */
+table {
+	background: #fff;
+	border:1px solid black;
+	border-spacing: 0;
+	padding: 0;
+}
+th {
+	background: #ccc;
+	border: 1px solid black
+	text-align: center;
+	font-weight: bold;
+	padding: 5px;
+}
+td {
+	padding: 4px;
+	border-top: 1px solid #ddd;
+	text-align: center;
+	vertical-align: top;
+        padding: 5px;
+}
+table tr.altrow td {
+	background: #ddd;
+}
+
