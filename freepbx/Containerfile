@@ -201,7 +201,6 @@ RUN groupadd -g 991 -r asterisk && \
 		libsnmp40 \
 		libical3 \
 		sqlite3 \
-		s-nail \
 		unixodbc-dev
 
 
