@@ -25,6 +25,9 @@ response = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-mo
     "user_domain": old_envs["USER_DOMAIN"],
     "nethvoice_adm_username": old_envs.get("NETHVOICE_USER_PORTAL_USERNAME", ''),
     "nethvoice_adm_password": agent.read_envfile("passwords.env").get('NETHVOICE_USER_PORTAL_PASSWORD',""),
+    "nethvoice_hotel": old_envs.get("NETHVOICE_HOTEL", "False"),
+    "nethvoice_hotel_fias_address": old_envs.get("NETHVOICE_HOTEL_FIAS_ADDRESS", ""),
+    "nethvoice_hotel_fias_port": old_envs.get("NETHVOICE_HOTEL_FIAS_PORT", ""),
 })
 
 agent.assert_exp(response['exit_code'] == 0)

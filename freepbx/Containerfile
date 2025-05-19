@@ -397,6 +397,7 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 # Install Nethesis vendor modules
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcqr /var/www/html/freepbx/admin/modules/nethcqr
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcti3 /var/www/html/freepbx/admin/modules/nethcti3
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethhotel /var/www/html/freepbx/admin/modules/nethhotel
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/pin /var/www/html/freepbx/admin/modules/pin
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/queueoptions /var/www/html/freepbx/admin/modules/queueoptions
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/recallonbusy /var/www/html/freepbx/admin/modules/recallonbusy
@@ -475,8 +476,10 @@ RUN chown asterisk:asterisk \
 	/var/lib/asterisk/bin \
 	/var/www/html/freepbx/admin/assets/js/
 
-# Link visualplan directory to module
-RUN ln -s /var/www/html/freepbx/admin/modules/visualplan/htdocs /var/www/html/freepbx/visualplan
+# Direct links to modules
+RUN ln -s /var/www/html/freepbx/admin/modules/visualplan/htdocs /var/www/html/freepbx/visualplan \
+	&& ln -s /var/www/html/freepbx/admin/modules/nethhotel/htdocs /var/www/html/freepbx/hotel
+
 
 # Link all mudule assets directories
 RUN for asset in $(find /var/www/html/freepbx/admin/modules/ -type d -name assets); do \
@@ -549,5 +552,6 @@ COPY initdb.d/migration.php /initdb.d/
 COPY usr/src/nethvoice/samples/* /usr/src/nethvoice/samples/
 COPY configure_users.php /
 COPY entrypoint.sh /entrypoint
+COPY usr/share/neth-hotel-fias /usr/share/neth-hotel-fias
 CMD ["/usr/bin/supervisord"]
 ENTRYPOINT ["/entrypoint"]

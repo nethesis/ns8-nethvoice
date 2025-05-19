@@ -35,3 +35,11 @@ systemctl --user enable --now watcher.path
 systemctl --user enable --now reports-api.service
 systemctl --user enable --now reports-scheduler.timer
 systemctl --user enable --now reports-ui.service
+
+# Start Hotel alarms if NETHVOICE_HOTEL is "True"
+if [ "$NETHVOICE_HOTEL" = "True" ]; then
+    systemctl --user enable --now nethvoice-hotel-alarms.timer
+else
+    systemctl --user stop nethvoice-hotel-alarms.timer
+    systemctl --user disable nethvoice-hotel-alarms.timer
+fi
