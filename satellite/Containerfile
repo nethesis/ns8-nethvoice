@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # clone the repository
-RUN COMMIT="60027bd9108fc2d501e7f10669adfdbb6d59b777" \
+RUN COMMIT="a61bc02fb9f49b69630906336f8264a0d349fb8f" \
     && curl -L https://github.com/nethesis/satellite/archive/${COMMIT}.tar.gz -o - | tar xzp --strip-component=1 -C /app
 
 # Install dependencies
@@ -54,6 +54,7 @@ ENV ASTERISK_URL="http://127.0.0.1:8088" \
     MQTT_TOPIC_PREFIX="satellite" \
     MQTT_USERNAME="satellite" \
     SATELLITE_MQTT_PASSWORD="dummypassword" \
+    HTTP_PORT="8000" \
     DEEPGRAM_API_KEY="" \
     LOG_LEVEL="INFO" \
     PYTHONUNBUFFERED="1"

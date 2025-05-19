@@ -18,44 +18,53 @@ env = agent.read_envfile('environment')
 
 # Check:
 # skip allocation if the module has already allocated an extra port during an old update
-if 'ASTERISK_RECORDING_SFTP_PORT' in env:
-    sys.exit(0)
-
-# If there are still old FLEXYSIP ports allocated, use one of them (REDIS_FLEXISIP_PORT, FLEXISIP_PORT, FLEXISIP_SIP_PORT)
-if 'REDIS_FLEXISIP_PORT' in env:
-	sftp_port = env['REDIS_FLEXISIP_PORT']
-	agent.unset_env('REDIS_FLEXISIP_PORT')
-	print(f"Reusing old FLEXYSIP port for SFTP: {sftp_port}", file=sys.stderr)
-else:
-	# Allocate a new port
-	allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
-	sftp_port = allocated_ports[0]
-	print(f"New port allocated for SFTP: {sftp_port}", file=sys.stderr)
-# Update the environment file: this will be used as flag to avoid re-allocating the port
-agent.set_env('ASTERISK_RECORDING_SFTP_PORT', sftp_port)
+if not 'ASTERISK_RECORDING_SFTP_PORT' in env:
+	# If there are still old FLEXYSIP ports allocated, use one of them (REDIS_FLEXISIP_PORT, FLEXISIP_PORT, FLEXISIP_SIP_PORT)
+	if 'REDIS_FLEXISIP_PORT' in env:
+		sftp_port = env['REDIS_FLEXISIP_PORT']
+		agent.unset_env('REDIS_FLEXISIP_PORT')
+		print(f"Reusing old FLEXYSIP port for SFTP: {sftp_port}", file=sys.stderr)
+	else:
+		# Allocate a new port
+		allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
+		sftp_port = allocated_ports[0]
+		print(f"New port allocated for SFTP: {sftp_port}", file=sys.stderr)
+	# Update the environment file: this will be used as flag to avoid re-allocating the port
+	agent.set_env('ASTERISK_RECORDING_SFTP_PORT', sftp_port)
 
 # add port for asterisk ws
-if 'FLEXYSIP_PORT' in env:
-	ws_port = env['FLEXYSIP_PORT']
-	agent.unset_env('FLEXYSIP_PORT')
-	print(f"Reusing old FLEXYSIP port for Asterisk WS: {ws_port}", file=sys.stderr)
-else:
-	# Allocate a new port
-	allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
-	ws_port = allocated_ports[0]
-	print(f"New port allocated for Asterisk WS: {ws_port}", file=sys.stderr)
-# Update the environment file
-agent.set_env('ASTERISK_WS_PORT', ws_port)
+if not 'ASTERISK_WS_PORT' in env:
+	if 'FLEXYSIP_PORT' in env:
+		ws_port = env['FLEXYSIP_PORT']
+		agent.unset_env('FLEXYSIP_PORT')
+		print(f"Reusing old FLEXYSIP port for Asterisk WS: {ws_port}", file=sys.stderr)
+	else:
+		# Allocate a new port
+		allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
+		ws_port = allocated_ports[0]
+		print(f"New port allocated for Asterisk WS: {ws_port}", file=sys.stderr)
+	# Update the environment file
+	agent.set_env('ASTERISK_WS_PORT', ws_port)
 
 # add port for SATELLITE MQTT
-if 'FLEXYSIP_SIP_PORT' in env:
-	mqtt_port = env['FLEXYSIP_SIP_PORT']
-	agent.unset_env('FLEXYSIP_SIP_PORT')
-	print(f"Reusing old FLEXYSIP port for SATELLITE MQTT: {mqtt_port}", file=sys.stderr)
-else:
+if not 'SATELLITE_MQTT_PORT' in env:
+	if 'FLEXYSIP_SIP_PORT' in env:
+		mqtt_port = env['FLEXYSIP_SIP_PORT']
+		agent.unset_env('FLEXYSIP_SIP_PORT')
+		print(f"Reusing old FLEXYSIP port for SATELLITE MQTT: {mqtt_port}", file=sys.stderr)
+	else:
+		# Allocate a new port
+		allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
+		mqtt_port = allocated_ports[0]
+		print(f"New port allocated for SATELLITE MQTT: {mqtt_port}", file=sys.stderr)
+	# Update the environment file
+	agent.set_env('SATELLITE_MQTT_PORT', mqtt_port)
+
+# add port for HTTP REST API
+if not 'SATELLITE_HTTP_PORT' in env:
 	# Allocate a new port
 	allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
-	mqtt_port = allocated_ports[0]
-	print(f"New port allocated for SATELLITE MQTT: {mqtt_port}", file=sys.stderr)
-# Update the environment file
-agent.set_env('SATELLITE_MQTT_USERNAME', mqtt_port)
+	http_port = allocated_ports[0]
+	print(f"New port allocated for SATELLITE HTTP: {http_port}", file=sys.stderr)
+	# Update the environment file
+	agent.set_env('SATELLITE_HTTP_PORT', http_port)
