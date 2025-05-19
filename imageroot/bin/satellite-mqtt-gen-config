@@ -11,17 +11,13 @@ set -e
 # sourcing the file directly is broken with quotes
 SATELLITE_MQTT_PASSWORD=$(grep '^SATELLITE_MQTT_PASSWORD=' ./passwords.env) && export "${SATELLITE_MQTT_PASSWORD?}"
 
-podman run -i --rm --cgroups=no-conmon --volume=./satellite:/pass_tmp_dir:Z "${ECLIPSE_MOSQUITTO_IMAGE}" sh << EOF
-    touch /pass_tmp_dir/mosquitto_passwd
-    chmod 0600 /pass_tmp_dir/mosquitto_passwd
-    chown mosquitto:mosquitto /pass_tmp_dir/mosquitto_passwd
-    mosquitto_passwd -b /pass_tmp_dir/mosquitto_passwd $SATELLITE_MQTT_USERNAME $SATELLITE_MQTT_PASSWORD
-EOF
-
-# Generate config
-cat << EOF > ./satellite/mosquitto.conf
-password_file /mosquitto_passwd
-allow_anonymous false
-listener $SATELLITE_MQTT_PORT
+podman run -i --rm --cgroups=no-conmon --volume=mqtt_conf:/mosquitto/tmp_config:Z "${ECLIPSE_MOSQUITTO_IMAGE}" sh << EOF
+    touch /mosquitto/tmp_config/mosquitto_passwd
+    chmod 0600 /mosquitto/tmp_config/mosquitto_passwd
+    chown mosquitto:mosquitto /mosquitto/tmp_config/mosquitto_passwd
+    mosquitto_passwd -b /mosquitto/tmp_config/mosquitto_passwd $SATELLITE_MQTT_USERNAME $SATELLITE_MQTT_PASSWORD
+    echo "password_file /mosquitto/config/mosquitto_passwd" > /mosquitto/tmp_config/mosquitto.conf
+    echo "allow_anonymous false" >> /mosquitto/tmp_config/mosquitto.conf
+    echo "listener $SATELLITE_MQTT_PORT" >> /mosquitto/tmp_config/mosquitto.conf
 EOF
 

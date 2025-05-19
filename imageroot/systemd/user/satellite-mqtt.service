@@ -15,8 +15,7 @@ ExecStart=/usr/bin/podman run --conmon-pidfile %t/satellite-mqtt.pid \
 	--replace \
 	--detach \
 	--name=%N \
-	--volume=./satellite/mosquitto_passwd:/mosquitto_passwd:Z \
-	--volume=./satellite/mosquitto.conf:/mosquitto/config/mosquitto.conf:Z \
+	--volume=mqtt_conf:/mosquitto/config:Z \
 	--network=host \
 	--tz=${TIMEZONE} \
 	--hostname=${NETHVOICE_HOST} \
