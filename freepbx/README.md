@@ -62,9 +62,9 @@ If userbase is customized in FreePBX userman module, "Directory Name" in FreePBX
 
 ## Voicemail SMTP smarthost
 
-NethVoice send voicemail emails using s-nail. Smarthost is configured with following environment variables:
+NethVoice send voicemail emails using smarthost. Smarthost is configured with following environment variables:
 
-- `SMTP_ENABLED` Is SMTP smarthost enabled. If not, s-nail is left unconfigured: [1 | ""]
+- `SMTP_ENABLED` Is SMTP smarthost enabled: [1 | ""]
 - `SMTP_HOST` smarthost host "smtp.example.com"
 - `SMTP_PORT` smarthost port
 - `SMTP_USERNAME` smarthost username"foo@example.com"
