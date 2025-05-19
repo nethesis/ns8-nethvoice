@@ -136,7 +136,7 @@
               :label="$t('settings.deepgram_api_key')"
               v-model="form.deepgram_api_key"
               placeholder="g7id86rxn5cns0umkvx6klo9rm0b0vjzrljg064k"
-              :disabled="loadingState || !proxy_installed || !form.deepgram_api_key"
+              :disabled="loadingState || !proxy_installed || ( !form.satellite_voicemail_transcription_enabled && !form.satellite_call_transcription_enabled )"
               :invalid-message="error.deepgram_api_key"
               ref="deepgram_api_key"
             />
@@ -144,7 +144,7 @@
               :label="$t('settings.openai_api_key')"
               v-model="form.openai_api_key"
               placeholder="sk-..."
-              :disabled="loadingState || !proxy_installed || !form.openai_api_key"
+              :disabled="loadingState || !proxy_installed || ( !form.satellite_voicemail_transcription_enabled && !form.satellite_call_transcription_enabled )"
               :invalid-message="error.openai_api_key"
               ref="openai_api_key"
             />
