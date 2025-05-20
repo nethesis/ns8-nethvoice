@@ -29,6 +29,9 @@ response = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-mo
     "satellite_voicemail_transcription_enabled": old_envs.get("SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED", 'False'),
     "deepgram_api_key": old_envs.get("DEEPGRAM_API_KEY", ''),
     "openai_api_key": old_envs.get("OPENAI_API_KEY", ''),
+    "nethvoice_hotel": old_envs.get("NETHVOICE_HOTEL", "False"),
+    "nethvoice_hotel_fias_address": old_envs.get("NETHVOICE_HOTEL_FIAS_ADDRESS", ""),
+    "nethvoice_hotel_fias_port": old_envs.get("NETHVOICE_HOTEL_FIAS_PORT", ""),
 })
 
 agent.assert_exp(response['exit_code'] == 0)

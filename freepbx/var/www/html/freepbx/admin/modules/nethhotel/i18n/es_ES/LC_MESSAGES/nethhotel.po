@@ -1,0 +1,541 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <stefano.fancello@nethesis.it>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 2.5\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-02-28 09:52+0000\n"
+"PO-Revision-Date: 2012-02-28 17:52+0100\n"
+"Last-Translator: Alejandro Moreno<alejandro.moreno199@gmail.com>\n"
+"Language-Team: Italian\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Italian\n"
+"X-Poedit-Country: ITALY\n"
+
+msgid "Short numbers used by rooms."
+msgstr "Números cortos utilizados por habitaciones." 
+
+msgid "Short number:"
+msgstr "Número corto:"
+
+msgid "Description:"
+msgstr "Descripción:"
+
+msgid "Description"
+msgstr "Descripción"
+
+msgid "Temporal group"
+msgstr "Grupo temporal"
+
+msgid "Details"
+msgstr "Detalles"
+
+msgid "Destination"
+msgstr "Destino"
+
+msgid "Otherwise"
+msgstr "Otra manera"
+
+msgid "Temporal group "
+msgstr "Grupo temporal "
+
+msgid "Details "
+msgstr "Detalles "
+
+msgid "Destination "
+msgstr "Destino "
+
+msgid "Otherwise "
+msgstr "Otra manera "
+
+msgid "All currencies are expressed in Euro format 00.00"
+msgstr "Todas las divisas están expresadas en formato Euro 00.00"
+
+msgid "The code is two-digit numbers."
+msgstr "El código es un número de dos dígitos."
+
+msgid "Cost: "
+msgstr "Coste: "
+
+msgid "Code: "
+msgstr "Código: "
+
+msgid "Qualified:"
+msgstr "Calificado:"
+
+msgid "None price configured"
+msgstr "Ningún precio configurado"
+
+msgid "Duration connection fee"
+msgstr "Duración tarifa de conexión"
+
+msgid "Cost connection fee"
+msgstr "Coste tarifa de conexión"
+
+msgid "Fee duration"
+msgstr "Duración tarifa"
+
+msgid "Enable caller"
+msgstr "Habilitar llamadas"
+
+msgid "No extra set"
+msgstr "Ningún extra configurado"
+
+msgid "Habilitation"
+msgstr "Habilitación"
+
+msgid "No Number Short configured"
+msgstr "Ningún número corto configurado"
+
+msgid "Number"
+msgstr "Número"
+
+msgid "Add Extra"
+msgstr "Añadir Extra"
+
+msgid "Save"
+msgstr "Guardar"
+
+msgid "Date and time"
+msgstr "Fecha y hora"
+
+msgid "Unit cost"
+msgstr "Coste unitario"
+
+msgid "Total cost"
+msgstr "Coste total"
+
+msgid "Delete"
+msgstr "Eliminar"
+
+msgid "None extra for this room."
+msgstr "Ningún extra para esta habitación."
+
+msgid "Duration (sec)"
+msgstr "Duración (seg)"
+
+msgid "Billable (sec)"
+msgstr "Facturable (seg)"
+
+msgid "Cost (€)"
+msgstr "Coste (€)"
+
+msgid "Total duration "
+msgstr "Duración total "
+
+msgid "seconds"
+msgstr "segundos"
+
+msgid "Total cost calls: "
+msgstr "Coste total llamadas: "
+
+msgid "No call for this room. "
+msgstr "Ninguna llamada para esta habitación. "
+
+msgid "Total cost extra: "
+msgstr "Coste total extra: "
+
+msgid "Total cost: "
+msgstr "Coste total: "
+
+msgid "Room"
+msgstr "Habitación"
+
+msgid "Actions"
+msgstr "Acciones"
+
+msgid "No historic present."
+msgstr "Ningún histórico presente."
+
+msgid "Generic"
+msgstr "Genérico"
+
+msgid "Floor "
+msgstr "Planta "
+
+msgid "Room: "
+msgstr "Habitación: "
+
+msgid " - Alarm Clock not answer - Alarm Time "
+msgstr " - Despertador no contesta - Hora de la alarma "
+
+msgid "Filter"
+msgstr "Filtro"
+
+msgid "From: "
+msgstr "Desde: "
+
+msgid "to: "
+msgstr "a: "
+
+msgid "Room:"
+msgstr "Habitación:"
+
+msgid "All"
+msgstr "Todo"
+
+msgid "Disable filter"
+msgstr "Desactivar filtro"
+
+msgid "Prefix "
+msgstr "Prefijo "
+
+msgid "(Return the same prefix in Routes in output)"
+msgstr "(Devolver el mismo prefijo en Rutas en salida)"
+
+msgid "Internal pattern "
+msgstr "Patrón interno "
+
+msgid "The internal pattern describes the format that identifies the interiors."
+msgstr "El patrón interno describe el formato que identifica los internos."
+
+msgid " corresponds to a number 0 to 9"
+msgstr " corresponde a un número de 0 a 9"
+
+msgid " corresponds to a number 2 to 9"
+msgstr " corresponde a un número de 2 a 9"
+
+msgid " corresponds to a number 1 to 9"
+msgstr " corresponde a un número de 1 a 9"
+
+msgid " corresponds to one or more numbers"
+msgstr " corresponde a uno o más números"
+
+msgid " corresponds to an interval of numbers between x e y"
+msgstr " corresponde a un intervalo de números entre x e y"
+
+msgid "Examples:"
+msgstr "Ejemplos:"
+
+msgid ": All three digit numbers starting with 1 or 2"
+msgstr ": Todos los números de tres dígitos comienzan con 1 o 2"
+
+msgid ": All two digit numbers starting with 5"
+msgstr ": Todos los números de dos dígitos comienzan con 5"
+
+msgid "Enable calls between rooms "
+msgstr "Habilitar llamadas entre habitaciones "
+
+msgid "Enable calls between rooms that have not performed the check-in "
+msgstr "Habilitar llamadas entre habitaciones que no han realizado el check-in "
+
+msgid "Internal to alarm clock doesn't answer "
+msgstr "Interno para el despertador no contesta "
+
+msgid "Enable code cleaning rooms"
+msgstr "Habilitar código limpieza habitaciones"
+
+msgid "All durations are expressed in seconds."
+msgstr "Todas las duraciones están expresadas en segundos."
+
+msgid "All currencies are expressed in Euro cents."
+msgstr "Todas las divisas están expresadas en céntimos de euro."
+
+msgid " Calls to numbers that do not fit any rate are automatically blocked."
+msgstr " Las llamadas a números que no se ajustan a cualquier tasa se bloquean automáticamente."
+
+msgid "Duration connection fee: "
+msgstr "Duración tarifa de conexión : "
+
+msgid " seconds"
+msgstr " segundos"
+
+msgid "Cost connection fee: "
+msgstr "Coste tarifa de conexión: "
+
+msgid " Euro cents"
+msgstr " céntimos de €"
+
+msgid "Fee duration: "
+msgstr "Duración tasa: "
+
+msgid "Fee cost: "
+msgstr "Coste tasa: "
+
+msgid "The pattern identifies the type of number called."
+msgstr "El patrón identifica el tipo de número llamado."
+
+msgid ": All three digit numbers starting with 1"
+msgstr ": Todos los números de tres dígitos empiezan por 1"
+
+msgid ": All the numbers of any length starting with 800"
+msgstr ": Todos los números de cualquier longitud comienzan con 800"
+
+msgid "Enable calls:"
+msgstr "Habilitar llamadas:"
+
+msgid "Enable alarm clock"
+msgstr "Habilitar despertador"
+
+msgid "Enter the time for the alarm in the format hh:mm."
+msgstr "Ingrese la hora para la alarma en el formato hh:mm."
+
+msgid "Hour "
+msgstr "Hora "
+
+msgid "Day "
+msgstr "Día "
+
+msgid "Repeat "
+msgstr "Repetir "
+
+msgid " for  "
+msgstr " desde "
+
+msgid " day "
+msgstr " día "
+
+msgid "Enable alarm for entire group "
+msgstr "Habilitar alarma para todo el grupo "
+
+msgid "Disable the alarm?"
+msgstr "Desactivar alarma?"
+
+msgid "Disable alarm for entire group "
+msgstr "Desactivar alarma para todo el grupo "
+
+msgid "To check-out?"
+msgstr "Realizar el check-out?"
+
+msgid "Room cleaning done?"
+msgstr "Realizar limpieza de habitación?"
+
+msgid "Name"
+msgstr "Nombre"
+
+msgid "The room belongs to the group:"
+msgstr "La habitación pertenece al grupo:"
+
+msgid "Group"
+msgstr "Grupo"
+
+msgid "None"
+msgstr "Ninguno"
+
+msgid "Enable Alarm Clock"
+msgstr "Habilitar Alarma"
+
+msgid "Edit Alarm"
+msgstr "Modificar Alarma"
+
+msgid "Disable Alarm"
+msgstr "Desactivar Alarma"
+
+msgid "Extra Management"
+msgstr "Gestionar Extra"
+
+msgid "Short Numbers"
+msgstr "Números Cortos"
+
+msgid "Add Short Number"
+msgstr "Añadir Número Corto"
+
+msgid "Deactivate alarm"
+msgstr "Desactivar alarma"
+
+msgid "Check-out room"
+msgstr "Check-out habitación"
+
+msgid "Room cleaning"
+msgstr "Limpieza de habitación"
+
+msgid "Report Costs"
+msgstr "Informe de costes"
+
+msgid "Rates"
+msgstr "Tarifas"
+
+msgid "Add rate"
+msgstr "Añadir tarifa"
+
+msgid "Rate"
+msgstr "Tarifa"
+
+msgid "Add extra"
+msgstr "Añadir extra"
+
+msgid "General Options"
+msgstr "Opciones Generales"
+
+msgid "Short Number"
+msgstr "Número Corto"
+
+msgid "Wake up"
+msgstr "Despertarse"
+
+msgid "Rooms"
+msgstr "Habitaciones"
+
+msgid "Options"
+msgstr "Opciones"
+
+msgid "History"
+msgstr "Histórico"
+
+msgid "The name can not be empty"
+msgstr "El nombre no puede estar vacío"
+
+msgid "The pattern can not be empty"
+msgstr "El patrón no puede estar vacío"
+
+msgid "Name: "
+msgstr "Nombre: "
+
+msgid "No Group"
+msgstr "Ningún Grupo"
+
+msgid "Name - Room: "
+msgstr "Name - Habitación: "
+
+msgid "Management rooms"
+msgstr "Gestionar habitaciones"
+
+msgid "Management extra"
+msgstr "Gestionar extra"
+
+msgid "Report costs"
+msgstr "Informe de costes"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Close"
+msgstr "Cerrar"
+
+msgid "Print"
+msgstr "Imprimir"
+
+msgid "Room Cleaning"
+msgstr "Limpieza de habitación"
+
+msgid "Done"
+msgstr "Hecho"
+
+msgid "The code can not be empty"
+msgstr "El código no puede estar vacío"
+
+msgid "Always"
+msgstr "Siempre"
+
+msgid "Minimal length short number: 1 "
+msgstr "Longitud mínima número corto: 1 "
+
+msgid "Short number already defined"
+msgstr "Número corto ya definido"
+
+msgid "The number can not be empty"
+msgstr "El número no puede estar vacío"
+
+msgid "Enable filter"
+msgstr "Habilita filtro"
+
+msgid "The time can not be empty"
+msgstr "La hora no puede estar vacío"
+
+msgid "The day can not be empty"
+msgstr "El día no puede estar vacío"
+
+msgid "WARNING costs to be paid"
+msgstr "ADVERTENCIA costes a pagar"
+
+msgid "Rules:"
+msgstr "Reglas:"
+
+msgid "Pattern: "
+msgstr "Patrón: "
+
+msgid "Cost"
+msgstr "Coste"
+
+msgid "Code"
+msgstr "Código"
+
+msgid "Modify rate"
+msgstr "Modificar tarifa"
+
+msgid "Delete rate"
+msgstr "Eliminar tarifa"
+
+msgid "Fee cost"
+msgstr "Coste tasa"
+
+msgid "Pattern"
+msgstr "Patrón"
+
+msgid "Enable rooms cleaning"
+msgstr "Habilitar la limpieza de habitaciones"
+
+msgid "Add a new group"
+msgstr "Añadir un grupo nuevo"
+
+msgid "Edit group %s"
+msgstr "Editar grupo %s"
+
+msgid "Delete group %s"
+msgstr "Eliminar %s"
+
+msgid "Group Name"
+msgstr "Nombre del grupo"
+
+msgid "Notes"
+msgstr "Notas"
+
+msgid "Edit group %s alarms"
+msgstr "Editar grupo %s alarmas"
+
+msgid "Delete group %s alarms"
+msgstr "Eliminar grupo %s alarmas"
+
+msgid "Delete all group alarms?"
+msgstr "¿Eliminar todas las alarmas de grupo?"
+
+msgid "Group Alarms"
+msgstr "Grupo alarmas"
+
+msgid "Group Check In"
+msgstr "Check-in Grupo"
+
+msgid "Group Check Out"
+msgstr "Check-out grupo"
+
+msgid "Do Check In for all rooms in group?"
+msgstr "¿Hacer Check In para todas las habitaciones en grupo?"
+
+msgid "Do Check Out for all rooms in group?"
+msgstr "¿Hacer Check In para todas las habitaciones en grupo?"
+
+msgid "Group Clean"
+msgstr "Limpieza de grupo"
+
+msgid "Clean all rooms?"
+msgstr "¿Limpiar todas las habitaciones?"
+
+msgid "Groups"
+msgstr "Grupos"
+
+msgid "Rooms in group"
+msgstr "Habitaciones en grupo"
+
+msgid "Enable calls between member of this group"
+msgstr "Habilitar llamadas entre miembros de este grupo"
+
+msgid "Enable calls between rooms"
+msgstr "Habilitar llamadas entre habitaciones"
+
+msgid "Enable external calls"
+msgstr "Habilitar llamadas externas"
+
+msgid "Enable calls between rooms of the same group"
+msgstr "Habilitar llamadas entre habitaciones del mismo grupo"
+
+msgid "Enable external call from rooms"
+msgstr "Habilitar llamada externa desde habitaciones"
+
+msgid "New Group"
+msgstr "Nuevo grupo"
+

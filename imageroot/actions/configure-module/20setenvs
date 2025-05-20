@@ -53,6 +53,11 @@ getFromRequest(request, 'nethcti_ui_company_url', 'NETHCTI_UI_COMPANY_URL', 'htt
 getFromRequest(request, 'nethvoice_adm_username', 'NETHVOICE_USER_PORTAL_USERNAME', '')
 passwordsfile['NETHVOICE_USER_PORTAL_PASSWORD'] = request.get('nethvoice_adm_password', "")
 
+## NethVoice Hotel
+getFromRequest(request, 'nethvoice_hotel', 'NETHVOICE_HOTEL', 'False')
+getFromRequest(request, 'nethvoice_hotel_fias_address', 'NETHVOICE_HOTEL_FIAS_ADDRESS', '')
+getFromRequest(request, 'nethvoice_hotel_fias_port', 'NETHVOICE_HOTEL_FIAS_PORT', '')
+
 # Satellite Deepgram and OpenAI api keys
 getFromRequest(request, 'satellite_call_transcription_enabled', 'SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'False')
 getFromRequest(request, 'satellite_voicemail_transcription_enabled', 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED', 'False')

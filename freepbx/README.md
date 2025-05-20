@@ -62,9 +62,9 @@ If userbase is customized in FreePBX userman module, "Directory Name" in FreePBX
 
 ## Voicemail SMTP smarthost
 
-NethVoice send voicemail emails using s-nail. Smarthost is configured with following environment variables:
+NethVoice send voicemail emails using smarthost. Smarthost is configured with following environment variables:
 
-- `SMTP_ENABLED` Is SMTP smarthost enabled. If not, s-nail is left unconfigured: [1 | ""]
+- `SMTP_ENABLED` Is SMTP smarthost enabled: [1 | ""]
 - `SMTP_HOST` smarthost host "smtp.example.com"
 - `SMTP_PORT` smarthost port
 - `SMTP_USERNAME` smarthost username"foo@example.com"
@@ -130,6 +130,16 @@ To enable call transcription, you need to set the following settings on nethserv
 - `OPENAI_API_KEY` OpenAI API key (Used for summarization, optional)
 - `SATELLITE_CALL_TRANSCRIPTION_ENABLED` Enable call transcription set to "True"
 
-# Asterisk
+# Hotel
+NethVoice Hotel is installed and disabled by default. To enable it, set the following environment variables and restart FreePBX container:
+- `NETHVOICE_HOTEL` set to `True`
 
-Asterisk container merged with FreePBX
+## FIAS
+
+NethVoice Hotel FIAS is installed and disabled by default. To enable it, set the following environment variables and restart FreePBX container:
+
+- `NETHVOICE_HOTEL_FIAS_ADDRESS` the address of the hotel PMS FIAS server
+- `NETHVOICE_HOTEL_FIAS_PORT` the port of the hotel PMS FIAS server
+
+Other configuration and finetune can be found in the file `/etc/asterisk/fias.conf` configuration file.
+If you need to change the configuration, you can do it in the file `/etc/asterisk/fias.conf` and restart container mounting new version as volume. Database credentials and server configuration will be overwritten with environment variables.

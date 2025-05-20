@@ -237,6 +237,149 @@ sed -i 's/^Port: .*/Port: '${ASTMANAGERPORT}'/' /etc/asterisk/recallonbusy.cfg
 sed -i 's/^Username: .*/Username: proxycti/' /etc/asterisk/recallonbusy.cfg
 sed -i 's/^Secret: .*/Secret: '${NETHCTI_AMI_PASSWORD}'/' /etc/asterisk/recallonbusy.cfg
 
+# Create fias configuration if it doesn't exist
+if [[ ! -f /etc/asterisk/fias.conf ]]; then
+  cat > /etc/asterisk/fias.conf <<'EOF'
+[fiasd]
+separator="|"
+record_start=2
+record_end=3
+remote_character_encoding="CP850"
+link_check_interval=300
+send_msdelay=500
+timeout=15
+TimeoutLE_msec=300
+DebugLevel=1
+address=${NETHVOICE_HOTEL_FIAS_ADDRESS}
+port=${NETHVOICE_HOTEL_FIAS_PORT}
+
+
+[cdr]
+cdrInternalExtensions=hang
+cdrExternalExtensions=anonymous
+cdrInternalPatterns=/FMPR-.*/
+cdrExternalPatterns=
+; cdrMode
+; C (Direct Charge)
+; T (Meter Pulse)
+cdrMode=C
+
+[minibar]
+; Favourite minibar mode
+; C (Direct Charge, only if item has a price)
+; M (Minibar)
+psmode=M
+
+[record_LDLR]
+0="LD|DA|TI|V#2.0.2|IFPB|"
+1="LR|RIGI|FLRNG#GNGLGSSFA0A1A2A3|"
+2="LR|RIGO|FLRNG#GSSF|"
+3="LR|RIGC|FLRNG#GNGLGSROA0A1A2A3|"
+4="LR|RIRE|FLRNRSMLCSDN|"
+5="LR|RIWR|FLDATIRN|"
+6="LR|RIWC|FLDATIRN|"
+7="LR|RIWA|FLDATIRNAS|"
+8="LR|RIPS|FLDATIRNPTDDDUTAMAM#P#MPSO|"
+9="LR|RIPA|FLASDAP#RNTI|"
+
+[WR2PMS]
+command=/usr/share/neth-hotel-fias/wr2pms.php
+format=DA_TI_RN
+
+[WC2PMS]
+command=/usr/share/neth-hotel-fias/wc2pms.php
+format=DA_TI_RN
+
+[WA2PMS]
+command=/usr/share/neth-hotel-fias/wa2pms.php
+format=DA_TI_RN_AS
+
+[RE2PMS]
+command=/usr/share/neth-hotel-fias/re2pms.php
+format=RN_RS
+
+[PS2PMS]
+command=/usr/share/neth-hotel-fias/ps2pms.php
+format=DA_DD_DU_MA_M#_MP_PT_RN_TA_TI_P#_G#_SO
+
+[LE2PMS]
+command=/usr/share/neth-hotel-fias/le2pms.php
+format=
+
+[WR2PBX]
+command=/usr/share/neth-hotel-fias/wr2pbx.php
+format=DA_TI_RN
+
+[WC2PBX]
+command=/usr/share/neth-hotel-fias/wc2pbx.php
+format=DA_TI_RN
+
+[GI2PBX]
+command=/usr/share/neth-hotel-fias/gi2pbx.php
+format=RN_G#_GN_GL_GS_SF_A0_A1_A2_A3
+
+[GO2PBX]
+command=/usr/share/neth-hotel-fias/go2pbx.php
+format=RN_G#_GS_SF
+
+[GC2PBX]
+command=/usr/share/neth-hotel-fias/gc2pbx.php
+format=RN_G#_GN_GL_GS_RO_A0_A1_A2_A3
+
+[PA2PBX]
+command=/usr/share/neth-hotel-fias/pa2pbx.php
+format=AS_DA_P#_RN_TI
+
+[RE2PBX]
+command=/usr/share/neth-hotel-fias/re2pbx.php
+format=RN_RS_ML_CS_DN
+
+[DR2PMS]
+command=/usr/share/neth-hotel-fias/dr2pms.php
+format=DA_TI
+
+[MINIBAR2PMS]
+command=/usr/share/neth-hotel-fias/minibar.php
+format=DA_TI_RN_MA_M#_TA
+
+[custom_fields]
+A0='logger -t fias "Check-in room %ROOM% #%RESERVATION% Guest: %GUESTNAME% %GUESTLANGUAGE%. Custom field A0: %ARG%"'
+A1=
+A2=
+A3=
+
+EOF
+fi
+
+# configure fias
+if [[ "${NETHVOICE_HOTEL}" -eq True && -n "${NETHVOICE_HOTEL_FIAS_ADDRESS}" && -n "${NETHVOICE_HOTEL_FIAS_PORT}" ]]; then
+  sed -i 's/^address=.*/address='"${NETHVOICE_HOTEL_FIAS_ADDRESS}"'/' /etc/asterisk/fias.conf
+  sed -i 's/^port=.*/port='"${NETHVOICE_HOTEL_FIAS_PORT}"'/' /etc/asterisk/fias.conf
+  cat > /etc/supervisor/conf.d/fias.conf <<EOF
+[program:fias]
+command=/usr/share/neth-hotel-fias/fiasd.php
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stdout_logfile_backups=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+stderr_logfile_backups=0
+
+[program:fiasdispatcher]
+command=/usr/share/neth-hotel-fias/dispatcher.php
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stdout_logfile_backups=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+stderr_logfile_backups=0
+EOF
+fi
+
 # migrate database
 php /initdb.d/migration.php
 
@@ -271,75 +414,6 @@ url_encode() {
 
     echo "${encoded_string}"
 }
-
-# Configure SMTP for Voicemail
-if [ "$SMTP_ENABLED" = "1" ]; then
-	# Write s-nail configuration
-
-	# Set the s-nail compatibility mode
-	echo "set v15-compat=yes" >> /etc/s-nail.rc
-
-	# Set the TLS verify policy
-	if [ "$SMTP_TLSVERIFY" = "1" ]; then
-		echo "set tls-verify=strict" >> /etc/s-nail.rc
-	else
-		echo "set tls-verify=ignore" >> /etc/s-nail.rc
-	fi
-
-	# Set the authentication method
-	if [ -z "$SMTP_PASSWORD" ]; then
-		echo "set smtp-auth=none" >> /etc/s-nail.rc
-		# Set the SMTP server URL without authentication
-		echo "set mta=smtp://${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
-	else
-		echo "set smtp-auth=login" >> /etc/s-nail.rc
-		# Set the SMTP server URL with authentication
-		# Check if encryption is specified and modify URL accordingly
-		if [ "$SMTP_ENCRYPTION" = "starttls" ]; then
-			# use starttls for STARTTLS encryption
-			echo "set smtp-use-starttls" >> /etc/s-nail.rc
-			echo "set mta=smtp://$(url_encode "${SMTP_USERNAME}"):$(url_encode "${SMTP_PASSWORD}")@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
-		elif [ "$SMTP_ENCRYPTION" = "tls" ]; then
-			# use smtps:// for TLS encryption
-			echo "set mta=smtps://$(url_encode "${SMTP_USERNAME}"):$(url_encode "${SMTP_PASSWORD}")@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
-		else
-			# default to no encryption
-			echo "set mta=smtp://${SMTP_USERNAME}:$(url_encode "${SMTP_PASSWORD}")@${SMTP_HOST}:${SMTP_PORT}" >> /etc/s-nail.rc
-		fi
-	fi
-
-	# Set the mailcmd
-	if ! grep -q '^mailcmd=' /etc/asterisk/voicemail.conf; then
-		# write mailcmd if it isn't already set
-		sed -i "s|^\[general\]$|[general]\nmailcmd=/var/lib/asterisk/bin/send_email|" /etc/asterisk/voicemail.conf
-	elif grep -q '^mailcmd=/usr/sbin/sendmail' /etc/asterisk/voicemail.conf; then
-		# replace mailcmd if it is already set and is the old binary
-		sed -i "s|^mailcmd=/usr/sbin/sendmail.*|mailcmd=/var/lib/asterisk/bin/send_email|" /etc/asterisk/voicemail.conf
-	fi
-	# set the from address
-	if [ -z "$SMTP_FROM_ADDRESS" ]; then
-		if echo "$SMTP_USERNAME" | grep -q '@'; then
-			# get the from address from the smtp username
-			FROM_DOMAIN=$(echo "$SMTP_USERNAME" | cut -d'@' -f2)
-		elif echo "$SMTP_HOST" | grep -q '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*'; then
-			# get the from address from NETHVOICE_HOST if smtp host is an IP address
-			FROM_DOMAIN=$(echo "$NETHVOICE_HOST" | cut -d'.' -f2-)
-		else
-			# get the from address from the smtp host
-			FROM_DOMAIN=$(echo "$SMTP_HOST" | cut -d'.' -f2-)
-		fi
-		FROM_NAME=$(echo "${BRAND_NAME}" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')
-		SMTP_FROM_ADDRESS="${FROM_NAME}@${FROM_DOMAIN}"
-	fi
-
-	# add the from address to the s-nail configuration
-	echo "set from=${SMTP_FROM_ADDRESS}" >> /etc/s-nail.rc
-
-	# set the email from address in voicemail configuration if it isn't already set from FreePBX interface
-	if ! grep -q '^serveremail *=' /etc/asterisk/voicemail.conf; then
-		sed -i "s/^\[general\]$/[general]\nserveremail=${SMTP_FROM_ADDRESS}/" /etc/asterisk/voicemail.conf
-	fi
-fi
 
 # customize voicemail branding
 sed 's/FreePBX/'"${BRAND_NAME}"'/' -i /etc/asterisk/voicemail.conf*

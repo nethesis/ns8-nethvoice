@@ -205,6 +205,39 @@
             "description": "NethVoice password for account provider",
             "type": "string"
         },
+        "nethvoice_hotel": {
+            "description": "NethVoice hotel module enabled",
+            "type": "string"
+        },
+        "nethvoice_hotel_fias_address": {
+            "description": "FIAS server address",
+            "type": "string",
+            "anyOf": [
+                {
+                    "format": "hostname",
+                    "pattern": "\\."
+                },
+                {
+                    "format": "ipv4"
+                },
+                {
+                    "pattern": "^$"
+                }
+            ]
+        },
+        "nethvoice_hotel_fias_port": {
+            "description": "FIAS server port",
+            "anyOf": [
+                {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^$"
+                }
+            ]
+        },
         "deepgram_api_key": {
             "description": "Deepgram API key for voice recognition",
             "type": "string"

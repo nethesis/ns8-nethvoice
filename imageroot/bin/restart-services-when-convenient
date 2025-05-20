@@ -4,11 +4,11 @@
 
 set -e
 
-TIMEOUT=86400 # 24h
+TIMEOUT=10800 # 3h
 
 for SECONDS in $(seq 1 $TIMEOUT); do
     # Check if there are any calls in progress
-    CALLS=$(podman exec freepbx asterisk -rx "core show channels" 2>/dev/null | grep "active calls" | cut -d" " -f1) || {
+    CALLS=$(podman exec freepbx asterisk -rx "core show channels" 2>/dev/null | grep "active call" | cut -d" " -f1) || {
         # If the command fails, assume there are no calls
         CALLS=0
     }
@@ -19,8 +19,6 @@ for SECONDS in $(seq 1 $TIMEOUT); do
     sleep 1
 done
 
-# Restart FreePBX
-for service in "$@"; do
-    echo "Restarting $service service wich was postponed for $SECONDS seconds"
-    systemctl --user try-restart $service
-done
+# Restart services
+echo "Restarting services $@ wich was postponed for $SECONDS seconds"
+systemctl --user try-restart $@
