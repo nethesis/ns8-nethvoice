@@ -21,16 +21,13 @@ config = {
     'nethvoice_adm_username': os.getenv('NETHVOICE_USER_PORTAL_USERNAME', ''),
     'nethvoice_adm_password': agent.read_envfile("passwords.env").get('NETHVOICE_USER_PORTAL_PASSWORD',""),
     'nethcti_privacy_numbers': os.getenv('NETHCTI_PRIVACY_NUMBERS', 'xxx'),
-<<<<<<< HEAD
     'satellite_call_transcription_enabled': os.getenv('SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'False'),
     'satellite_voicemail_transcription_enabled': os.getenv('SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED', 'False'),
     'deepgram_api_key': os.getenv('DEEPGRAM_API_KEY', ''),
     'openai_api_key': os.getenv('OPENAI_API_KEY', ''),
-=======
     'nethvoice_hotel': os.getenv('NETHVOICE_HOTEL', 'False'),
     'nethvoice_hotel_fias_address': os.getenv('NETHVOICE_HOTEL_FIAS_ADDRESS', ''),
     'nethvoice_hotel_fias_port': os.getenv('NETHVOICE_HOTEL_FIAS_PORT', ''),
->>>>>>> main
 }
 
 json.dump(config, fp=sys.stdout)
