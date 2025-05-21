@@ -223,3 +223,55 @@ $app->delete('/mobileapp/{extension}', function (Request $request, Response $res
         return $response->withStatus(500);
     }
 });
+
+/* Set displayname on main extension and all its devices (extensions)  */
+$app->post('/extension/{mainextension}', function (Request $request, Response $response, $args) {
+    try {
+        global $astman;
+        $route = $request->getAttribute('route');
+        $mainextension = $route->getArgument('mainextension');
+        $params = $request->getParsedBody();
+        $displayname = $params['displayname'];
+        //get extensions
+        $extensions = [$mainextension];
+        foreach (FreePBX::create()->Core->getAllUsers() as $ext) {
+            if (substr($ext['extension'], -strlen($mainextension)) === $mainextension) {
+                $extensions[] = $ext['extension'];
+            }
+        }
+        //set displayname
+        $dbh = FreePBX::Database();
+        foreach ($extensions as $extension) {
+            // set name in user table
+            $sql = 'UPDATE `users` SET `name` = ? WHERE `extension` = ?';
+            $stmt = $dbh->prepare($sql);
+            $stmt->execute(array($displayname, $extension));
+            // set name in sip table
+            $sql = 'UPDATE `sip` SET `data` = ? WHERE `id` = ? AND `keyword` = "cidname"';
+            $stmt = $dbh->prepare($sql);
+            $stmt->execute(array($displayname, $extension));
+            // set displayname in astdb
+            $astman->database_put("AMPUSER",$extension."/cidname",$displayname);
+        }
+        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        return $response->withStatus(204);
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return $response->withStatus(500);
+    }
+});
+
+/* get extension displayname */
+$app->get('/extension/{extension}/displayname', function (Request $request, Response $response, $args) {
+    try {
+        global $astman;
+        $route = $request->getAttribute('route');
+        $extension = $route->getArgument('extension');
+        //get displayname
+        $displayname = $astman->database_get("AMPUSER",$extension."/cidname");
+        return $response->withJson(array('displayname' => $displayname), 200);
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return $response->withStatus(500);
+    }
+});
