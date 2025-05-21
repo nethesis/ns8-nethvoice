@@ -1413,7 +1413,7 @@ INSERT INTO `rest_pjsip_trunks_defaults` (`provider_id`,`keyword`,`data`) VALUES
 (28,"sendrpid","no"),
 (28,"server_uri",""),
 (28,"sip_server","voipnet.netoip.com"),
-(28,"sip_server_port","5060"),
+(28,"sip_server_port","5062"),
 (28,"support_path","no"),
 (28,"sv_usercontext",""),
 (28,"t38_udptl","no"),
