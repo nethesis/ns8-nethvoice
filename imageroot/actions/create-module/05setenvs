@@ -156,6 +156,16 @@ agent.set_env('SATELLITE_ARI_APP', 'satellite')
 agent.set_env('SATELLITE_ARI_USERNAME', 'satellite')
 agent.set_env('SATELLITE_MQTT_USERNAME', 'satellite')
 
+# NethCTI Middleware
+agent.set_env('NETHVOICE_MIDDLEWARE_PORT', port_list[34])
+agent.set_env('NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS', '127.0.0.1:' + str(port_list[34]))
+agent.set_env('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT', '127.0.0.1:' + str(port_list[6]))
+agent.set_env('NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT', '127.0.0.1:' + str(port_list[7]))
+agent.set_env('NETHVOICE_MIDDLEWARE_V1_API_PATH', '')
+agent.set_env('NETHVOICE_MIDDLEWARE_V1_WS_PATH', '/socket.io')
+agent.set_env('NETHVOICE_MIDDLEWARE_V1_PROTOCOL', 'http')
+agent.set_env('NETHVOICE_MIDDLEWARE_SECRETS_DIR', '/tmp/secrets/nethvoice')
+
 # password file
 passwords = {
     "MARIADB_ROOT_PASSWORD": gen_password(),

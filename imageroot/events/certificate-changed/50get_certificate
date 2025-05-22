@@ -31,5 +31,6 @@ if get_proc.returncode == 0:
         'phonebook.service',
         'janus.service', # XXX: restart just to retain the historical behavior
         'nethcti-server.service', # XXX: restart just to retain the historical behavior
+        'nethcti-middleware.service', # XXX: restart just to retain the historical behavior
         # XXX: freepbx.service ignore to retain historical behavior
     ])
