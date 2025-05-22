@@ -16,7 +16,8 @@ RESTART_SERVICES="mariadb.service \
                  tancredi.service \
                  phonebook.service \
                  reports-api.service \
-                 reports-ui.service"
+                 reports-ui.service \
+                 nethcti-middleware.service"
 
 systemctl --user try-restart $RESTART_SERVICES
 
