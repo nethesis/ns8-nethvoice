@@ -84,6 +84,19 @@ images+=("${repobase}/${reponame}")
 
 
 #############################
+##    NethCTI Middleware   ##
+#############################
+reponame="nethcti-server-middleware"
+container=$(buildah from ghcr.io/nethesis/nethcti-middleware:v0.0.1)
+
+# Commit the image
+buildah commit "${container}" "${repobase}/${reponame}"
+buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
+# Append the image URL to the images array
+images+=("${repobase}/${reponame}")
+
+
+#############################
 ##      NethCTI Client     ##
 #############################
 reponame="nethvoice-cti-ui"
