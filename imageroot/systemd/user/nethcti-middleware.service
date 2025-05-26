@@ -29,7 +29,7 @@ ExecStart=/usr/bin/podman run \
     --env=NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT \
     --network=host \
     --tz=${TIMEZONE} \
-    ${NETHCTI_SERVER_MIDDLEWARE_IMAGE}
+    ${NETHVOICE_CTI_MIDDLEWARE_IMAGE}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/nethcti-middleware.ctr-id
 ExecReload=/usr/bin/podman exec nethcti-middleware node /app/nethcti-cli reload

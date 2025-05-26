@@ -86,7 +86,7 @@ images+=("${repobase}/${reponame}")
 #############################
 ##    NethCTI Middleware   ##
 #############################
-reponame="nethcti-server-middleware"
+reponame="nethvoice-cti-middleware"
 container=$(buildah from ghcr.io/nethesis/nethcti-middleware:v0.0.1)
 
 # Commit the image
