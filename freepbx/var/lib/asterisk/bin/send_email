@@ -50,15 +50,15 @@ else:
     SMTP_FROM_ADDRESS = os.environ['SMTP_FROM_ADDRESS']
 
 # Validate SMTP_ENCRYPTION and SMTP_TLSVERIFY
-if SMTP_ENCRYPTION not in ['startls', 'tls', 'none']:
+if SMTP_ENCRYPTION not in ['startls', 'tls', 'none','']:
     print("Invalid SMTP_ENCRYPTION value.", file=sys.stderr)
     sys.exit(1)
-if SMTP_TLSVERIFY not in ['0', '1']:
+if SMTP_TLSVERIFY not in ['0', '1','']:
     print("Invalid SMTP_TLSVERIFY value.", file=sys.stderr)
     sys.exit(1)
 
 # Create SSL context if TLS verification is disabled
-if SMTP_TLSVERIFY == '0':
+if SMTP_TLSVERIFY == '0' or SMTP_TLSVERIFY == '':
     context = ssl.create_default_context()
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
