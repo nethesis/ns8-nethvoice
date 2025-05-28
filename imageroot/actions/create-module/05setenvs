@@ -79,12 +79,6 @@ agent.set_env('NETHCTI_TLS_PORT', port_list[23])
 agent.set_env('ASTERISK_SIP_PORT', port_list[24])
 agent.set_env('ASTERISK_SIPS_PORT', port_list[25])
 agent.set_env('ASTERISK_IAX_PORT', port_list[26])
-agent.set_env('NETHVOICE_MIDDLEWARE_PORT', port_list[27])
-
-# NethCTI Middleware
-agent.set_env('NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS', '127.0.0.1:' + str(port_list[27]))
-agent.set_env('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT', '127.0.0.1:' + str(port_list[6]))
-agent.set_env('NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT', '127.0.0.1:' + str(port_list[7]))
 
 # Set root password for MariaDB
 # MARIADB_ROOT_PASSWORD written to passwords.env
@@ -151,6 +145,12 @@ agent.set_env('REPORTS_API_PORT', port_list[28])
 # 'REPORTS_SECRET' written to passwords.env
 agent.set_env('REPORTS_UI_PORT', port_list[29])
 agent.set_env('ASTERISK_RECORDING_SFTP_PORT', port_list[30])
+
+# NethCTI Middleware
+agent.set_env('NETHVOICE_MIDDLEWARE_PORT', port_list[31])
+agent.set_env('NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS', '127.0.0.1:' + str(port_list[31]))
+agent.set_env('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT', '127.0.0.1:' + str(port_list[6]))
+agent.set_env('NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT', '127.0.0.1:' + str(port_list[7]))
 
 # password file
 passwords = {
