@@ -87,6 +87,7 @@ while 'Bcc' in message:
 from_address = message.get('From')
 if not from_address:
     from_address = SMTP_FROM_ADDRESS
+    message['From'] = from_address
 
 # Connect to SMTP server and send the email
 try:
