@@ -77,7 +77,7 @@ response = agent.tasks.run(
     action='set-route',
     data={
         'instance': os.environ['MODULE_ID'] + '-ui',
-        'url':  'http://127.0.0.1:' + os.environ["NETHCTI_UI_PORT"],
+        'url':  'http://127.0.0.1:' + os.environ["NETHVOICE_MIDDLEWARE_PORT"],
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
         'lets_encrypt': lets_encrypt,
         'host': os.environ["NETHCTI_UI_HOST"],
@@ -93,7 +93,7 @@ response = agent.tasks.run(
     action='set-route',
     data={
         'instance': os.environ['MODULE_ID'] + '-server-api',
-        'url':  'http://127.0.0.1:' + os.environ["NETHCTI_SERVER_API_PORT"],
+        'url':  'http://127.0.0.1:' + os.environ["NETHVOICE_MIDDLEWARE_PORT"],
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
         'lets_encrypt': lets_encrypt,
         'host': os.environ["NETHVOICE_HOST"],
@@ -115,7 +115,7 @@ response = agent.tasks.run(
     action='set-route',
     data={
         'instance': os.environ['MODULE_ID'] + '-cti-server-api',
-        'url':  'http://127.0.0.1:' + os.environ["NETHCTI_SERVER_API_PORT"],
+        'url':  'http://127.0.0.1:' + os.environ["NETHVOICE_MIDDLEWARE_PORT"],
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
         'lets_encrypt': lets_encrypt,
         'host': os.environ["NETHCTI_UI_HOST"],
@@ -139,7 +139,7 @@ response = agent.tasks.run(
     action='set-route',
     data={
         'instance': os.environ['MODULE_ID'] + '-server-websocket',
-        'url':  'http://127.0.0.1:' + os.environ["NETHCTI_SERVER_WS_PORT"] + '/socket.io',
+        'url':  'http://127.0.0.1:' + os.environ["NETHVOICE_MIDDLEWARE_PORT"] + '/socket.io',
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
         'lets_encrypt': lets_encrypt,
         'host': os.environ["NETHCTI_UI_HOST"],
