@@ -138,10 +138,7 @@ RUN cd /usr/src/asterisk && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/pbx_lua.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_adsi.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_config_pgsql.so && \
-	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_hep.so && \
-	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_hep_rtcp.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_http_post.so && \
-	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_hep_pjsip.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_mwi_external.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_mwi_external_ami.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_pjsip_transport_websocket.so && \
