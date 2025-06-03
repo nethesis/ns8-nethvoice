@@ -128,7 +128,9 @@ To enable call transcription, you need to set the following settings on nethserv
 
 - `DEEPGRAM_API_KEY` Deepgram API key
 - `OPENAI_API_KEY` OpenAI API key (Used for summarization, optional)
-- `SATELLITE_CALL_TRANSCRIPTION_ENABLED` Enable call transcription set to "True"
+- `SATELLITE_CALL_TRANSCRIPTION_ENABLED` to enable call transcription set to "True"
+- `SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED` to enable voicemail transcription set to "True"
+
 
 # Hotel
 NethVoice Hotel is installed and disabled by default. To enable it, set the following environment variables and restart FreePBX container:

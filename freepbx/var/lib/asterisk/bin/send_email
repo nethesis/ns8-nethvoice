@@ -5,6 +5,8 @@ import sys
 import smtplib
 import ssl
 import re
+import requests
+import json
 from email.parser import Parser
 from email.utils import getaddresses
 
@@ -88,6 +90,46 @@ from_address = message.get('From')
 if not from_address:
     from_address = SMTP_FROM_ADDRESS
     message['From'] = from_address
+
+# if there is a wav attachment and the SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED are enabled, query satellite api for transcription
+if 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED' in os.environ and os.environ['SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED'] == '1':
+    if 'Content-Type' in message and 'audio/wav' in message['Content-Type']:
+        # Extract the audio data from the wav attachment
+        audio_data = None
+        for part in message.walk():
+            if part.get_content_type() == 'audio/wav':
+                audio_data = part.get_payload(decode=True)
+                break
+        if audio_data:
+            try:
+                # Get satellite HTTP port from environment
+                satellite_port = os.environ.get('SATELLITE_HTTP_PORT', '8080')
+                satellite_url = f"http://127.0.0.1:{satellite_port}/api/get_transcription"
+
+                # Prepare the file for upload
+                files = {'file': ('voicemail.wav', audio_data, 'audio/wav')}
+
+                # Make the API call to satellite
+                response = requests.post(satellite_url, files=files, timeout=30)
+                response.raise_for_status()
+
+                # Parse JSON response and extract transcript
+                response_data = response.json()
+                transcription_result = response_data.get('transcript', '').strip()
+
+                if transcription_result:
+                    # Add transcription to email body
+                    current_body = message.get_payload()
+                    if isinstance(current_body, str):
+                        new_body = f"{current_body}\n\n--- Transcription ---\n{transcription_result}\n"
+                        message.set_payload(new_body)
+
+            except requests.exceptions.RequestException as e:
+                print(f"Error transcribing audio: {e}", file=sys.stderr)
+            except json.JSONDecodeError as e:
+                print(f"Error parsing transcription response: {e}", file=sys.stderr)
+            except Exception as e:
+                print(f"Unexpected error during transcription: {e}", file=sys.stderr)
 
 # Connect to SMTP server and send the email
 try:
