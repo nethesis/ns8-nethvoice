@@ -92,12 +92,12 @@ if not from_address:
     message['From'] = from_address
 
 # if there is a wav attachment and the SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED are enabled, query satellite api for transcription
-if 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED' in os.environ and os.environ['SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED'] == '1':
-    if 'Content-Type' in message and 'audio/wav' in message['Content-Type']:
+if 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED' in os.environ and os.environ['SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED'] == 'True':
+    if 'Content-Type' in message and 'audio/x-wav' in message['Content-Type']:
         # Extract the audio data from the wav attachment
         audio_data = None
         for part in message.walk():
-            if part.get_content_type() == 'audio/wav':
+            if part.get_content_type() == 'audio/x-wav':
                 audio_data = part.get_payload(decode=True)
                 break
         if audio_data:
@@ -107,7 +107,7 @@ if 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED' in os.environ and os.environ['SAT
                 satellite_url = f"http://127.0.0.1:{satellite_port}/api/get_transcription"
 
                 # Prepare the file for upload
-                files = {'file': ('voicemail.wav', audio_data, 'audio/wav')}
+                files = {'file': ('voicemail.wav', audio_data, 'audio/x-wav')}
 
                 # Make the API call to satellite
                 response = requests.post(satellite_url, files=files, timeout=30)
