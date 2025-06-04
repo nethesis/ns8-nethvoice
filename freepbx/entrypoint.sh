@@ -152,6 +152,15 @@ if [[ ! -f /etc/asterisk/voicemail.conf ]]; then
 	touch /etc/asterisk/voicemail.conf
 fi
 
+# Set the mailcmd
+if ! grep -q '^mailcmd=' /etc/asterisk/voicemail.conf; then
+	# write mailcmd if it isn't already set
+	sed -i "s|^\[general\]$|[general]\nmailcmd=/var/lib/asterisk/bin/send_email|" /etc/asterisk/voicemail.conf
+elif grep -q '^mailcmd=/usr/sbin/sendmail' /etc/asterisk/voicemail.conf; then
+	# replace mailcmd if it is already set and is the old binary
+	sed -i "s|^mailcmd=/usr/sbin/sendmail.*|mailcmd=/var/lib/asterisk/bin/send_email|" /etc/asterisk/voicemail.conf
+fi
+
 # Configure mysql
 php /initdb.d/initdb.php
 
