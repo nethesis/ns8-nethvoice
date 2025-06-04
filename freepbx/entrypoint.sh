@@ -44,6 +44,7 @@ execincludes=yes
 dontwarn=yes
 runuser=asterisk
 rungroup=asterisk
+nocolor=yes
 
 [files]
 astctlpermissions=775
