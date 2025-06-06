@@ -348,6 +348,11 @@ function nethcti3_get_config_late($engine) {
             // Return to the dialplan
             $ext->add('satellite', 's', 'end', new \ext_return());
         }
+        /* Change SIP response for unregistered extensions #7321*/
+        $ext->replace('macro-exten-vm', '_s-!', '4', new extension('HangUp(20)'));
+        /* Add Answer() and Ringing() to macro-dial-one on call forwarding #7321*/
+        $ext->splice('macro-dial-one', 'cf', '', new ext_answer(), '', 7);
+        $ext->splice('macro-dial-one', 'cf', '', new ext_ringing(), '', 8);
         break;
     }
 
