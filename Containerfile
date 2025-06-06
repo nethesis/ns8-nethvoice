@@ -22,7 +22,7 @@ COPY imageroot /imageroot
 COPY --from=ui_builder /app/dist /ui
 ENTRYPOINT [ "/" ]
 LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm,portsadm nethvoice-proxy@any:routeadm"
-LABEL org.nethserver.tcp-ports-demand="31"
+LABEL org.nethserver.tcp-ports-demand="34"
 LABEL org.nethserver.rootfull="0"
 LABEL org.nethserver.min-core="3.6.2-0"
 ARG REPOBASE=ghcr.io/nethserver
@@ -37,4 +37,6 @@ LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \
     docker.io/library/redis:7.0.10-alpine \
     ${REPOBASE}/nethvoice-reports-ui:${IMAGETAG} \
     ${REPOBASE}/nethvoice-reports-api:${IMAGETAG} \
-    ${REPOBASE}/nethvoice-sftp:${IMAGETAG}"
+    ${REPOBASE}/nethvoice-sftp:${IMAGETAG} \
+    docker.io/library/eclipse-mosquitto:2 \
+    ${REPOBASE}/nethvoice-satellite:${IMAGETAG}"
