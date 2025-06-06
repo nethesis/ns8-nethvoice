@@ -332,6 +332,11 @@ function nethcti3_get_config_late($engine) {
             ];
             $ext->splice('macro-hangupcall', 's', 'hangup', new ext_agi(join(',',$agi_cmd)),'nethcti-cdr-script');
         }
+        /* Change SIP response for unregistered extensions #7321*/
+        $ext->replace('macro-exten-vm', '_s-!', '4', new extension('HangUp(20)'));
+        /* Add Answer() and Ringing() to macro-dial-one on call forwarding #7321*/
+        $ext->splice('macro-dial-one', 'cf', '', new ext_answer(), '', 7);
+        $ext->splice('macro-dial-one', 'cf', '', new ext_ringing(), '', 8);
         break;
     }
 
