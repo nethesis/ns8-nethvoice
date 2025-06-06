@@ -40,7 +40,7 @@ class Nethhotel implements \BMO
         }
 
         if ($new_context_admin_exists) {
-            exit(0);
+            return True;
         } elseif ($old_context_admin_exists) {
             // Old context admin exists, cleanup contexts
             customcontexts_customcontextsadmin_del('hotel');
