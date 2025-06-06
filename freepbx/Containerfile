@@ -303,7 +303,7 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/announcement && \
 	mkdir -p /var/www/html/freepbx/admin/modules/conferences && \
 	curl -sL https://github.com/FreePBX/conferences/archive/refs/tags/release/16.0.9.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/conferences && \
 	mkdir -p /var/www/html/freepbx/admin/modules/customappsreg && \
-	curl -sL https://github.com/FreePBX/customappsreg/archive/refs/tags/release/16.0.9.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/customappsreg && \
+	curl -sL https://github.com/FreePBX/customappsreg/archive/refs/tags/release/16.0.5.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/customappsreg && \
 	mkdir -p /var/www/html/freepbx/admin/modules/daynight && \
 	curl -sL https://github.com/FreePBX/daynight/archive/refs/tags/release/16.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/daynight && \
 	mkdir -p /var/www/html/freepbx/admin/modules/dashboard && \
