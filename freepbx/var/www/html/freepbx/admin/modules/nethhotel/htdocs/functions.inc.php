@@ -73,7 +73,7 @@ function loadExtra()
 	    <td style='text-align: center'><a href='#ajax-editExtra-{$extra['id']}'><img src='images/edit.png' title=". _('Modify rate')." label='Modifica tariffa'/></a>
 	    <a href='#ajax-deleteExtra-{$extra['id']}'><img src='images/disable.png' title=". _('Delete rate')." label='Elimina tariffa'/></a>
 	    </td></tr>";
-            $i++;OOB;
+            $i++;
           }
   echo '</table>';
 }
