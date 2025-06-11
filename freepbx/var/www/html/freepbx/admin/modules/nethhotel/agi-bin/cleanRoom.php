@@ -3,7 +3,6 @@
 //PHPLICENSE 
 
 define("AGIBIN_DIR", "/var/lib/asterisk/agi-bin");
-define("AMPORTAL_CONF", "/etc/amportal.conf");
 define("MAX_TRIES",3);
 define("TODAY",'1');
 define("TOMORROW",'2');
@@ -11,6 +10,8 @@ define("TOMORROW",'2');
 
 require_once('/var/www/html/freepbx/hotel/functions.inc.php');
 include_once(AGIBIN_DIR."/phpagi.php");
+include_once('/etc/freepbx_db.conf');
+$agi = new AGI();
 
 $debug=false;
 
@@ -39,46 +40,27 @@ function exitError()
 
 /******************************************************/
 
-global $amp_conf;
-$agi = new AGI();
 
-$target = $argv[1];
-
-//Setup database connection:
-$db_user = $amp_conf["AMPDBUSER"];
-$db_pass = $amp_conf["AMPDBPASS"];
-$db_host = 'localhost';
-$db_name = 'asterisk';
-$db_engine = 'mysql';
-$datasource = $db_engine.'://'.$db_user.':'.$db_pass.'@'.$db_host.'/'.$db_name;
-$db = @DB::connect($datasource); // attempt connection
-
-
-if(@DB::isError($db)) {
-        @$agi->verbose("Error conecting to asterisk database, skipped");
-        @$agi->stream_file("alarm/arrivederci-errore");
+$cdidsql="SELECT * FROM roomsdb.rooms WHERE extension=?";
+$stmt = $db->prepare($cdidsql);
+$stmt->execute([$target]);
+$res = $stmt->fetchAll();
+neth_debug($cdidsql);
+if(count($res))
+{
+		cleanRoom($target);
+	@$agi->stream_file("ascending-2tone");
+	@$agi->stream_file("activated");
 } else {
-	$cdidsql="SELECT * FROM roomsdb.rooms WHERE  extension=$target";
-	$res=@$db->getAll($cdidsql);
-	neth_debug($cdidsql);
-	if(count($res))
-	{
-          cleanRoom($target);
-	  @$agi->stream_file("ascending-2tone");
-	  @$agi->stream_file("activated");
-	} else {
-	    // Room wasn't in dirty state, just send FIAS Clean/Vacant
-            fias('RE2PMS', array(
-                'RN' => $target,
-                'RS' => 3
-                )
-	    );
+	// Room wasn't in dirty state, just send FIAS Clean/Vacant
+		fias('RE2PMS', array(
+			'RN' => $target,
+			'RS' => 3
+			)
+	);
 
-	  @$agi->stream_file("ascending-2tone");
-	  @$agi->stream_file("activated");
-  	}
-	  neth_debug("PULIZIA: $target");
-	}
+	@$agi->stream_file("ascending-2tone");
+	@$agi->stream_file("activated");
+}
 
-exit(0);
-
+neth_debug("PULIZIA: $target");
