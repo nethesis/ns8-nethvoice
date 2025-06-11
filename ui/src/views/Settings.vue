@@ -120,28 +120,32 @@
               type="password"
             />
             <!-- Hotel Module Settings -->
-            <cv-toggle
-              :label="$t('settings.nethvoice_hotel')"
-              value="nethvoice_hotel"
-              :disabled="loadingState || !proxy_installed"
-              v-model="form.nethvoice_hotel"
-            />
+            <div :title="!isSubscriptionValid ? $t('settings.nethvoice_hotel_subscription_required') : ''">
+              <cv-toggle
+                :label="$t('settings.nethvoice_hotel')"
+                value="nethvoice_hotel"
+                :disabled="isHotelDisabled"
+                v-model="form.nethvoice_hotel"
+              />
+            </div>
             <cv-text-input
               :label="$t('settings.nethvoice_hotel_fias_address')"
               v-model="form.nethvoice_hotel_fias_address"
               placeholder="192.168.1.100"
-              :disabled="loadingState || !proxy_installed || !form.nethvoice_hotel"
+              :disabled="isHotelDisabled || !form.nethvoice_hotel"
               :invalid-message="error.nethvoice_hotel_fias_address"
               ref="nethvoice_hotel_fias_address"
+              :title="!isSubscriptionValid ? $t('settings.nethvoice_hotel_subscription_required') : ''"
             />
             <cv-text-input
               :label="$t('settings.nethvoice_hotel_fias_port')"
               v-model="form.nethvoice_hotel_fias_port"
               placeholder="1234"
               type="number"
-              :disabled="loadingState || !proxy_installed || !form.nethvoice_hotel"
+              :disabled="isHotelDisabled || !form.nethvoice_hotel"
               :invalid-message="error.nethvoice_hotel_fias_port"
               ref="nethvoice_hotel_fias_port"
+              :title="!isSubscriptionValid ? $t('settings.nethvoice_hotel_subscription_required') : ''"
             />
             <!-- End Hotel Module Settings -->
             <cv-row v-if="error.configureModule">
@@ -425,6 +429,7 @@ export default {
       isDarkMode: false,
       proxy_installed: false,
       config: {},
+      subscription_systemid: "",
       loading: {
         getConfiguration: false,
         getRebranding: false,
@@ -487,6 +492,12 @@ export default {
             require("../assets/login_logo_dark.svg")
         : this.form.rebranding_login_logo_url ||
             require("../assets/login_logo.svg");
+    },
+    isSubscriptionValid() {
+      return this.subscription_systemid && this.subscription_systemid.trim() !== "";
+    },
+    isHotelDisabled() {
+      return this.loadingState || !this.proxy_installed || !this.isSubscriptionValid;
     },
   },
   beforeRouteEnter(to, from, next) {
@@ -571,6 +582,7 @@ export default {
       const config = taskResult.output;
 
       this.config = taskResult.output;
+      this.subscription_systemid = config.subscription_systemid || "";
 
       this.form.nethvoice_host = config.nethvoice_host;
       this.form.nethcti_ui_host = config.nethcti_ui_host;

@@ -41,6 +41,7 @@
     "nethvoice_hotel": "Enable Hotel module",
     "nethvoice_hotel_fias_address": "Hotel FIAS server host (Optional)",
     "nethvoice_hotel_fias_port": "Hotel FIAS server port (Optional)",
+    "nethvoice_hotel_subscription_required": "Hotel requires subscription",
     "save": "Save",
     "title": "Settings",
     "user_domain": "User Domain",
