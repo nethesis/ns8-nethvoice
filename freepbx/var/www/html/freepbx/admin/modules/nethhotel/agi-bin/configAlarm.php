@@ -3,7 +3,6 @@
 //PHPLICENSE 
 
 define("AGIBIN_DIR", "/var/lib/asterisk/agi-bin");
-define("AMPORTAL_CONF", "/etc/amportal.conf");
 define("MAX_TRIES",3);
 define("TODAY",'1');
 define("TOMORROW",'2');
@@ -11,6 +10,8 @@ define("TOMORROW",'2');
 
 require_once('/var/www/html/freepbx/hotel/functions.inc.php');
 include_once(AGIBIN_DIR."/phpagi.php");
+include_once('/etc/freepbx_db.conf');
+$agi = new AGI();
 
 $debug=false;
 
@@ -165,10 +166,10 @@ function disable($ext)
     deleteCallFile($ext);
     
     global $db;
-    $update="UPDATE roomsdb.alarms set enabled=0 WHERE extension=$ext";
+    $update="UPDATE roomsdb.alarms set enabled=0 WHERE extension=?";
     neth_debug($update);
-    $sth = $db->prepare($update);
-    $res=$db->execute($sth);
+    $sth=$db->prepare($update);
+    $res=$sth->execute([$ext]);
 }
 
 function enable($ext,$hour,$start)
@@ -192,10 +193,10 @@ function enable($ext,$hour,$start)
     
     $end = $start;
     
-    $update="UPDATE roomsdb.alarms set enabled=1,hour='$hour:00',start='$start',end='$end' WHERE extension=$ext";
+    $update="UPDATE roomsdb.alarms set enabled=1,hour=?,start=?,end=? WHERE extension=?";
     neth_debug($update);
     $sth = $db->prepare($update);
-    $res=$db->execute($sth);
+    $res = $sth->execute(["$hour:00", $start, $end, $ext]);
 
     
     createCallFile($ext,$tstamp);
@@ -250,22 +251,6 @@ function exitError()
 
 /******************************************************/
 
-global $amp_conf;
-$agi = new AGI();
-
-$target = $argv[1];
-$mode = $argv[2]; //0 configura l'interno chiamante, 1 modalita' operatore
-
-//Setup database connection:
-$db_user = $amp_conf["AMPDBUSER"];
-$db_pass = $amp_conf["AMPDBPASS"];
-$db_host = 'localhost';
-$db_name = 'asterisk';
-$db_engine = 'mysql';
-$datasource = $db_engine.'://'.$db_user.':'.$db_pass.'@'.$db_host.'/'.$db_name;
-$db = @DB::connect($datasource); // attempt connection
-
-
 if($mode == 1)
 {
   $target=requestTarget(MAX_TRIES); //chiedo il centralino da modificare
@@ -273,33 +258,28 @@ if($mode == 1)
 //   neth_debug("TARGET: $target"); 
 }
 
+$cdidsql="SELECT roomsdb.alarms.extension,hour, roomsdb.alarms.start,end,roomsdb.alarms.enabled  FROM roomsdb.alarms WHERE  roomsdb.alarms.extension=?";
+$stmt = $db->prepare($cdidsql);
+$stmt->execute([$target]);
+$cdidresult = $stmt->fetchAll();
+neth_debug($cdidsql);
 
-
-if(@DB::isError($db)) {
-        @$agi->verbose("Error conecting to asterisk database, skipped");
+if(!$cdidresult[0][0]) {
+						$insert="INSERT into roomsdb.alarms set extension=?, enabled='0'";
+						neth_debug($insert);
+						$sth = $db->prepare($insert);
+						$res = $sth->execute([$target]);
+						$ext=$target;
+						$hour= null;
+						$start=null;
+						$end=null;
+						$enabled='0';
 } else {
-	$cdidsql="SELECT roomsdb.alarms.extension,hour, roomsdb.alarms.start,end,roomsdb.alarms.enabled  FROM roomsdb.alarms WHERE  roomsdb.alarms.extension=$target";
-	$cdidresult=@$db->getAll($cdidsql);
-	neth_debug($cdidsql);
-
-       if(!$cdidresult[0][0]) {
-                                $insert="INSERT into roomsdb.alarms set extension=$target, enabled='0'";
-                                neth_debug($update);
-                                $sth = $db->prepare($insert);
-                                $res=$db->execute($sth);
-                                $ext=$target;
-                                $hour= null;
-                                $start=null;
-                                $end=null;
-                                $enabled='0';
-        } else {
-                $ext=$cdidresult[0][0];
-                $hour=$cdidresult[0][1];
-                $start=$cdidresult[0][2];
-                $end=$cdidresult[0][3];
-                $enabled=(int)$cdidresult[0][4];
-        }
-
+		$ext=$cdidresult[0][0];
+		$hour=$cdidresult[0][1];
+		$start=$cdidresult[0][2];
+		$end=$cdidresult[0][3];
+		$enabled=(int)$cdidresult[0][4];
 }
 
 //comunichiamo l'impostazione attuale
@@ -372,7 +352,4 @@ while (true) {
     sleep(4);
 }
 
-
 exit(1);
-
-?>
