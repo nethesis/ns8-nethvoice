@@ -41,7 +41,7 @@
         "nethvoice_hotel": "Abilita modulo Hotel",
         "nethvoice_hotel_fias_address": "Host server FIAS (Opzionale)",
         "nethvoice_hotel_fias_port": "Porta server FIAS (Opzionale)",
-        "nethvoice_hotel_subscription_required": "Il modulo hotel richiede una subscription",
+        "nethvoice_hotel_subscription_required": "Il modulo Hotel richiede una subscription attiva",
         "save": "Salva",
         "title": "Impostazioni",
         "user_domain": "Host Dominio Utenti",
