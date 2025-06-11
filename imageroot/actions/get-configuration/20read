@@ -24,7 +24,7 @@ config = {
     'nethvoice_hotel': os.getenv('NETHVOICE_HOTEL', 'False'),
     'nethvoice_hotel_fias_address': os.getenv('NETHVOICE_HOTEL_FIAS_ADDRESS', ''),
     'nethvoice_hotel_fias_port': os.getenv('NETHVOICE_HOTEL_FIAS_PORT', ''),
-	'subscription_systemid': os.getenv('SUBSCRIPTION_SYSTEMID', ''),
+    'subscription_systemid': os.getenv('SUBSCRIPTION_SYSTEMID', ''),
 }
 
 json.dump(config, fp=sys.stdout)

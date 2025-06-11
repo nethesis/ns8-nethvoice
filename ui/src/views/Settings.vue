@@ -98,7 +98,14 @@
               value="lets_encrypt"
               :disabled="loadingState || !proxy_installed"
               v-model="form.lets_encrypt"
-            />
+            >
+              <template slot="text-left">
+                {{ $t("common.disabled") }}
+              </template>
+              <template slot="text-right">
+                {{ $t("common.enabled") }}
+              </template>
+            </cv-toggle>
             <NsTextInput
               :label="$t('settings.reports_international_prefix')"
               v-model="form.reports_international_prefix"
@@ -131,7 +138,14 @@
               value="nethvoice_hotel"
               :disabled="isHotelDisabled"
               v-model="form.nethvoice_hotel"
-            />
+            >
+              <template slot="text-left">
+                {{ $t("common.disabled") }}
+              </template>
+              <template slot="text-right">
+                {{ $t("common.enabled") }}
+              </template>
+            </cv-toggle>
             <cv-text-input
               :label="$t('settings.nethvoice_hotel_fias_address')"
               v-model="form.nethvoice_hotel_fias_address"

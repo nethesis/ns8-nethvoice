@@ -15,7 +15,9 @@
     "common": {
         "processing": "Elaborazione in corso...",
         "required": "Obbligatorio",
-        "work_in_progress": "In lavorazione"
+        "work_in_progress": "In lavorazione",
+        "enabled": "Abilitato",
+        "disabled": "Disabilitato"
     },
     "error": {
         "401": "Autenticazione non valida",
