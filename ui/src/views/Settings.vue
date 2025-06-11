@@ -120,14 +120,18 @@
               type="password"
             />
             <!-- Hotel Module Settings -->
-            <div :title="!isSubscriptionValid ? $t('settings.nethvoice_hotel_subscription_required') : ''">
-              <cv-toggle
-                :label="$t('settings.nethvoice_hotel')"
-                value="nethvoice_hotel"
-                :disabled="isHotelDisabled"
-                v-model="form.nethvoice_hotel"
-              />
-            </div>
+            <NsInlineNotification
+              v-if="!isSubscriptionValid"
+              kind="info"
+              :title="$t('settings.nethvoice_hotel_subscription_required')"
+              :showCloseButton="false"
+            />
+            <cv-toggle
+              :label="$t('settings.nethvoice_hotel')"
+              value="nethvoice_hotel"
+              :disabled="isHotelDisabled"
+              v-model="form.nethvoice_hotel"
+            />
             <cv-text-input
               :label="$t('settings.nethvoice_hotel_fias_address')"
               v-model="form.nethvoice_hotel_fias_address"
