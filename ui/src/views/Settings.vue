@@ -608,8 +608,8 @@ export default {
       this.form.nethvoice_adm.password = config.nethvoice_adm_password;
       this.form.nethcti_privacy_numbers = config.nethcti_privacy_numbers;
 
-      // Hotel module settings
-      if ( config.nethvoice_hotel == 'True' ) {
+      // Hotel module settings - disable if subscription not valid
+      if ( config.nethvoice_hotel == 'True' && this.isSubscriptionValid ) {
         this.form.nethvoice_hotel = true;
       } else {
         this.form.nethvoice_hotel = false;
