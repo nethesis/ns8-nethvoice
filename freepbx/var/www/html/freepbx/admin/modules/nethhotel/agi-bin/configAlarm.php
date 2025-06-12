@@ -249,6 +249,7 @@ function exitError()
 }
 
 /******************************************************/
+$target = $argv[1];
 
 if($mode == 1)
 {
@@ -256,8 +257,6 @@ if($mode == 1)
   @$agi->say_number($target);
 //   neth_debug("TARGET: $target"); 
 }
-
-$target = $argv[1];
 
 $cdidsql="SELECT roomsdb.alarms.extension,hour, roomsdb.alarms.start,end,roomsdb.alarms.enabled FROM roomsdb.alarms WHERE roomsdb.alarms.extension=?";
 $stmt = $db->prepare($cdidsql);
