@@ -1,4 +1,4 @@
-FROM docker.io/library/node:18.15.0 as ui_builder
+FROM docker.io/library/node:22.16.0-slim as ui_builder
 WORKDIR /app
 # install deps
 COPY ui/package.json .
