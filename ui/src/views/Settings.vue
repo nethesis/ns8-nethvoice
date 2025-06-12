@@ -162,7 +162,6 @@
               :disabled="isHotelDisabled || !form.nethvoice_hotel"
               :invalid-message="error.nethvoice_hotel_fias_port"
               ref="nethvoice_hotel_fias_port"
-              :title="!isSubscriptionValid ? $t('settings.nethvoice_hotel_subscription_required') : ''"
             />
             <!-- End Hotel Module Settings -->
             <cv-row v-if="error.configureModule">
