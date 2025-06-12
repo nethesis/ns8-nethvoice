@@ -153,7 +153,6 @@
               :disabled="isHotelDisabled || !form.nethvoice_hotel"
               :invalid-message="error.nethvoice_hotel_fias_address"
               ref="nethvoice_hotel_fias_address"
-              :title="!isSubscriptionValid ? $t('settings.nethvoice_hotel_subscription_required') : ''"
             />
             <cv-text-input
               :label="$t('settings.nethvoice_hotel_fias_port')"
