@@ -67,7 +67,10 @@
         "nethvoice_host": {
             "description": "Host where NethVoice instance should be exposed to",
             "type": "string",
-            "format": "hostname"
+            "format": "hostname",
+            "not": {
+                "format": "ipv4"
+            }
         },
         "nethcti_prefix": {
             "description": "NethCTI Prefix",
@@ -149,7 +152,10 @@
         "nethcti_ui_host": {
             "description": "CTI host, must be different than nethvoice_host",
             "type": "string",
-            "format": "hostname"
+            "format": "hostname",
+            "not": {
+                "format": "ipv4"
+            }
         },
         "nethcti_ui_product_name": {
             "description": "NethCTI UI product name for branding",
