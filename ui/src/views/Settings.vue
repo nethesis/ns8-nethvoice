@@ -98,7 +98,14 @@
               value="lets_encrypt"
               :disabled="loadingState || !proxy_installed"
               v-model="form.lets_encrypt"
-            />
+            >
+              <template slot="text-left">
+                {{ $t("common.disabled") }}
+              </template>
+              <template slot="text-right">
+                {{ $t("common.enabled") }}
+              </template>
+            </cv-toggle>
             <NsTextInput
               :label="$t('settings.reports_international_prefix')"
               v-model="form.reports_international_prefix"
@@ -120,17 +127,30 @@
               type="password"
             />
             <!-- Hotel Module Settings -->
+            <NsInlineNotification
+              v-if="!isSubscriptionValid"
+              kind="info"
+              :title="$t('settings.nethvoice_hotel_subscription_required')"
+              :showCloseButton="false"
+            />
             <cv-toggle
               :label="$t('settings.nethvoice_hotel')"
               value="nethvoice_hotel"
-              :disabled="loadingState || !proxy_installed"
+              :disabled="isHotelDisabled"
               v-model="form.nethvoice_hotel"
-            />
+            >
+              <template slot="text-left">
+                {{ $t("common.disabled") }}
+              </template>
+              <template slot="text-right">
+                {{ $t("common.enabled") }}
+              </template>
+            </cv-toggle>
             <cv-text-input
               :label="$t('settings.nethvoice_hotel_fias_address')"
               v-model="form.nethvoice_hotel_fias_address"
               placeholder="192.168.1.100"
-              :disabled="loadingState || !proxy_installed || !form.nethvoice_hotel"
+              :disabled="isHotelDisabled || !form.nethvoice_hotel"
               :invalid-message="error.nethvoice_hotel_fias_address"
               ref="nethvoice_hotel_fias_address"
             />
@@ -139,7 +159,7 @@
               v-model="form.nethvoice_hotel_fias_port"
               placeholder="1234"
               type="number"
-              :disabled="loadingState || !proxy_installed || !form.nethvoice_hotel"
+              :disabled="isHotelDisabled || !form.nethvoice_hotel"
               :invalid-message="error.nethvoice_hotel_fias_port"
               ref="nethvoice_hotel_fias_port"
             />
@@ -425,6 +445,7 @@ export default {
       isDarkMode: false,
       proxy_installed: false,
       config: {},
+      subscription_systemid: "",
       loading: {
         getConfiguration: false,
         getRebranding: false,
@@ -487,6 +508,12 @@ export default {
             require("../assets/login_logo_dark.svg")
         : this.form.rebranding_login_logo_url ||
             require("../assets/login_logo.svg");
+    },
+    isSubscriptionValid() {
+      return this.subscription_systemid && this.subscription_systemid.trim() !== "";
+    },
+    isHotelDisabled() {
+      return this.loadingState || !this.proxy_installed || !this.isSubscriptionValid;
     },
   },
   beforeRouteEnter(to, from, next) {
@@ -571,6 +598,7 @@ export default {
       const config = taskResult.output;
 
       this.config = taskResult.output;
+      this.subscription_systemid = config.subscription_systemid || "";
 
       this.form.nethvoice_host = config.nethvoice_host;
       this.form.nethcti_ui_host = config.nethcti_ui_host;
@@ -596,8 +624,8 @@ export default {
       this.form.nethvoice_adm.password = config.nethvoice_adm_password;
       this.form.nethcti_privacy_numbers = config.nethcti_privacy_numbers;
 
-      // Hotel module settings
-      if ( config.nethvoice_hotel == 'True' ) {
+      // Hotel module settings - disable if subscription not valid
+      if (config.nethvoice_hotel == 'True' && this.isSubscriptionValid) {
         this.form.nethvoice_hotel = true;
       } else {
         this.form.nethvoice_hotel = false;
