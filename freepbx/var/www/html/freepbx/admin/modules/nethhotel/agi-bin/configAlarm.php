@@ -250,7 +250,7 @@ function exitError()
 
 /******************************************************/
 $target = $argv[1];
-
+$mode = $argv[2];
 if($mode == 1)
 {
   $target=requestTarget(MAX_TRIES); //chiedo il centralino da modificare
