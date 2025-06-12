@@ -625,7 +625,7 @@ export default {
       this.form.nethcti_privacy_numbers = config.nethcti_privacy_numbers;
 
       // Hotel module settings - disable if subscription not valid
-      if ( config.nethvoice_hotel == 'True' && this.isSubscriptionValid ) {
+      if (config.nethvoice_hotel == 'True' && this.isSubscriptionValid) {
         this.form.nethvoice_hotel = true;
       } else {
         this.form.nethvoice_hotel = false;
