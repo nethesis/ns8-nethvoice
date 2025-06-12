@@ -44,6 +44,7 @@
         "nethvoice_hotel_fias_address": "Host server FIAS (Opzionale)",
         "nethvoice_hotel_fias_port": "Porta server FIAS (Opzionale)",
         "nethvoice_hotel_subscription_required": "Il modulo Hotel richiede una subscription attiva",
+        "nethvoice_host_number_not": "L'host di NethVoice deve essere un nome di dominio, non un indirizzo IP",
         "save": "Salva",
         "title": "Impostazioni",
         "user_domain": "Host Dominio Utenti",

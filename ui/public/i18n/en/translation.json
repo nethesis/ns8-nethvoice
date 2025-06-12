@@ -44,6 +44,7 @@
     "nethvoice_hotel_fias_address": "Hotel FIAS server host (Optional)",
     "nethvoice_hotel_fias_port": "Hotel FIAS server port (Optional)",
     "nethvoice_hotel_subscription_required": "Hotel module requires an active subscription",
+    "nethvoice_host_number_not": "NethVoice host must be an fqdn, not an IP address",
     "save": "Save",
     "title": "Settings",
     "user_domain": "User Domain",
