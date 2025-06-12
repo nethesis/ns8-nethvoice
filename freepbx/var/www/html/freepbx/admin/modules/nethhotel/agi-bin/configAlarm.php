@@ -257,28 +257,30 @@ if($mode == 1)
 //   neth_debug("TARGET: $target"); 
 }
 
-$cdidsql="SELECT roomsdb.alarms.extension,hour, roomsdb.alarms.start,end,roomsdb.alarms.enabled  FROM roomsdb.alarms WHERE  roomsdb.alarms.extension=?";
+$target = $argv[1];
+
+$cdidsql="SELECT roomsdb.alarms.extension,hour, roomsdb.alarms.start,end,roomsdb.alarms.enabled FROM roomsdb.alarms WHERE roomsdb.alarms.extension=?";
 $stmt = $db->prepare($cdidsql);
 $stmt->execute([$target]);
 $cdidresult = $stmt->fetchAll();
 neth_debug($cdidsql);
 
 if(!$cdidresult[0][0]) {
-						$insert="INSERT into roomsdb.alarms set extension=?, enabled='0'";
-						neth_debug($insert);
-						$sth = $db->prepare($insert);
-						$res = $sth->execute([$target]);
-						$ext=$target;
-						$hour= null;
-						$start=null;
-						$end=null;
-						$enabled='0';
+        $insert="INSERT into roomsdb.alarms set extension=?, enabled='0'";
+        neth_debug($insert);
+        $sth = $db->prepare($insert);
+        $res = $sth->execute([$target]);
+        $ext=$target;
+        $hour= null;
+        $start=null;
+        $end=null;
+        $enabled='0';
 } else {
-		$ext=$cdidresult[0][0];
-		$hour=$cdidresult[0][1];
-		$start=$cdidresult[0][2];
-		$end=$cdidresult[0][3];
-		$enabled=(int)$cdidresult[0][4];
+        $ext=$cdidresult[0][0];
+        $hour=$cdidresult[0][1];
+        $start=$cdidresult[0][2];
+        $end=$cdidresult[0][3];
+        $enabled=(int)$cdidresult[0][4];
 }
 
 //comunichiamo l'impostazione attuale

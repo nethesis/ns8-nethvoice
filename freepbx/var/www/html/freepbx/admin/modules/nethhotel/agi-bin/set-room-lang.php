@@ -15,14 +15,14 @@ $agi = new AGI();
 
 $target = $argv[1]; // extension room
 
-$langsql = "SELECT lang FROM rooms WHERE extension=?";
+$langsql = "SELECT lang FROM roomsdb.rooms WHERE extension=?";
 $stmt = $db->prepare($langsql);
 $stmt->execute([$target]);
 $res = $stmt->fetchAll();
 $dblang = $res[0][0] ?? null;
 
 if (!isset($dblang)){
-	$langsql = "SELECT value FROM options WHERE variable=?";
+	$langsql = "SELECT value FROM roomsdb.options WHERE variable=?";
 	$stmt = $db->prepare($langsql);
 	$stmt->execute(["reception_lang"]);
 	$res = $stmt->fetchAll();
