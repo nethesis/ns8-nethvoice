@@ -8,10 +8,9 @@ define("MAX_TRIES",3);
 define("TODAY",'1');
 define("TOMORROW",'2');
 
-
+include_once('/etc/freepbx_db.conf');
 require_once('/var/www/html/freepbx/hotel/functions.inc.php');
 include_once(AGIBIN_DIR."/phpagi.php");
-include_once('/etc/freepbx_db.conf');
 
 $debug=false;
 

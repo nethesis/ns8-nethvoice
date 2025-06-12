@@ -7,10 +7,9 @@ define("MAX_TRIES",3);
 define("TODAY",'1');
 define("TOMORROW",'2');
 
-
+include_once('/etc/freepbx_db.conf');
 require_once('/var/www/html/freepbx/hotel/functions.inc.php');
 include_once(AGIBIN_DIR."/phpagi.php");
-include_once('/etc/freepbx_db.conf');
 $agi = new AGI();
 
 $debug=false;
@@ -39,7 +38,7 @@ function exitError()
 
 
 /******************************************************/
-
+$target = $argv[1];
 
 $cdidsql="SELECT * FROM roomsdb.rooms WHERE extension=?";
 $stmt = $db->prepare($cdidsql);
@@ -48,7 +47,7 @@ $res = $stmt->fetchAll();
 neth_debug($cdidsql);
 if(count($res))
 {
-		cleanRoom($target);
+	cleanRoom($target);
 	@$agi->stream_file("ascending-2tone");
 	@$agi->stream_file("activated");
 } else {

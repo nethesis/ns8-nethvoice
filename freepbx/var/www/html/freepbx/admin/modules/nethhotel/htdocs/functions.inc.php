@@ -6,7 +6,7 @@ require_once("config.inc.php");
 require_once("utils.inc.php");
 
 function nethhotel_log($msg, $function=''){
-    $out = fopen('php://stdout', 'w');
+    $out = fopen('php://stderr', 'w');
     fputs ($out, date('M d H:i:s')."$function: ".print_r($msg,true));
     fclose ($out);
 }

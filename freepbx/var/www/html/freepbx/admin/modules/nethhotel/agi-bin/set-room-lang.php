@@ -6,10 +6,9 @@
 define("AGIBIN_DIR", "/var/lib/asterisk/agi-bin");
 define("AMPORTAL_CONF", "/etc/amportal.conf");
 
-
+include_once('/etc/freepbx_db.conf');
 require_once('/var/www/html/freepbx/hotel/functions.inc.php');
 include_once(AGIBIN_DIR."/phpagi.php");
-include_once('/etc/freepbx_db.conf');
 
 /******************************************************/
 $agi = new AGI();

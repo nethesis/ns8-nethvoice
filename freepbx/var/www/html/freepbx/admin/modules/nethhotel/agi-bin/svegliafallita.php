@@ -28,7 +28,6 @@ define("AGIBIN_DIR", "/var/lib/asterisk/agi-bin");
 
 require_once('/var/www/html/freepbx/hotel/functions.inc.php');
 include_once(AGIBIN_DIR."/phpagi.php");
-include_once('/etc/freepbx_db.conf');
 
 $debug=true;
 
