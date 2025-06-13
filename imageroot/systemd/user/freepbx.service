@@ -66,6 +66,7 @@ ExecStart=runagent /usr/bin/podman run \
     --env=PROXY_PORT \
     --env=NETHVOICE_USER_PORTAL_USERNAME \
     --env=USER_DOMAIN \
+    --env=SATELLITE* \
     --env-file=%S/state/smarthost.env \
     --network=host \
     --tz=${TIMEZONE} \
