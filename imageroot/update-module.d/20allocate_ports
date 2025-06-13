@@ -7,6 +7,7 @@
 
 # Allocate new port for sftp service
 import sys
+import os
 import agent
 
 if not hasattr(agent, 'allocate_ports'):
@@ -68,3 +69,10 @@ if not 'SATELLITE_HTTP_PORT' in env:
 	print(f"New port allocated for SATELLITE HTTP: {http_port}", file=sys.stderr)
 	# Update the environment file
 	agent.set_env('SATELLITE_HTTP_PORT', http_port)
+
+# Get RTP UDP port for SATELLITE
+if os.getenv('SATELLITE_RTP_PORT') is None:
+	allocated_ports = agent.allocate_ports(1, "udp", keep_existing=True)
+	satellite_rtp_port = allocated_ports[0]
+	print(f"New port allocated for SATELLITE RTP: {satellite_rtp_port}", file=sys.stderr)
+	agent.set_env('SATELLITE_RTP_PORT', satellite_rtp_port)
