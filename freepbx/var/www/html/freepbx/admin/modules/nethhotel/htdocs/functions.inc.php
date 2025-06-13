@@ -6,7 +6,7 @@ require_once("config.inc.php");
 require_once("utils.inc.php");
 
 function nethhotel_log($msg, $function=''){
-    $out = fopen('php://stdout', 'w');
+    $out = fopen('php://stderr', 'w');
     fputs ($out, date('M d H:i:s')."$function: ".print_r($msg,true));
     fclose ($out);
 }
@@ -73,7 +73,7 @@ function loadExtra()
 	    <td style='text-align: center'><a href='#ajax-editExtra-{$extra['id']}'><img src='images/edit.png' title=". _('Modify rate')." label='Modifica tariffa'/></a>
 	    <a href='#ajax-deleteExtra-{$extra['id']}'><img src='images/disable.png' title=". _('Delete rate')." label='Elimina tariffa'/></a>
 	    </td></tr>";
-            $i++;OOB;
+            $i++;
           }
   echo '</table>';
 }

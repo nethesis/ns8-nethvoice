@@ -5,16 +5,13 @@
 //
 
 define("AGIBIN_DIR", "/var/lib/asterisk/agi-bin");
-define("AMPORTAL_CONF", "/etc/amportal.conf");
 define("MAX_TRIES",3);
 define("TODAY",'1');
 define("TOMORROW",'2');
 
-
+include_once('/etc/freepbx_db.conf');
 require_once('/var/www/html/freepbx/hotel/functions.inc.php');
 include_once(AGIBIN_DIR."/phpagi.php");
-
-$debug=true;
 
 function neth_debug($text) {
     global $agi;
@@ -22,7 +19,6 @@ function neth_debug($text) {
     if ($debug)
     	@$agi->verbose($text);
 }
-
 
 function exitError()
 {
@@ -36,31 +32,17 @@ function exitError()
 
 /******************************************************/
 
-global $amp_conf;
 $agi = new AGI();
 
 $target = $argv[1];
 $numtocall = $argv[2];
-
-//Setup database connection:
-$db_user = $amp_conf["AMPDBUSER"];
-$db_pass = $amp_conf["AMPDBPASS"];
-$db_host = 'localhost';
-$db_name = 'asterisk';
-$db_engine = 'mysql';
-$datasource = $db_engine.'://'.$db_user.':'.$db_pass.'@'.$db_host.'/'.$db_name;
-$db = @DB::connect($datasource); // attempt connection
 $registerd=false;
+$sql="SELECT COUNT(*) FROM roomsdb.rooms WHERE extension=? and clean !='1';";
+$stmt = $db->prepare($sql);
+$stmt->execute([$target]);
+$res = $stmt->fetchAll();
+$registered = $res[0][0];
 
-
-if(@DB::isError($db)) {
-        @$agi->verbose("Error conecting to asterisk database, skipped");
-        exitError();
-} else {
-        $cdidsql="SELECT COUNT(*) FROM roomsdb.rooms WHERE extension=$target and clean !='1';";
-	$cdidresult=@$db->getRow($cdidsql);
-	$registered=$cdidresult[0][0];
-}
 neth_debug("registered=$registered");
 $options = getOptions();
 $rates = getAllRates();
@@ -221,7 +203,3 @@ if($numtocall[0] == $options['prefix']) //check if call is internal or external
         }
     }
 }
-
-exit(0);
-
-?>

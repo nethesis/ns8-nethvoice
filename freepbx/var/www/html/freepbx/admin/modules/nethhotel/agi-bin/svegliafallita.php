@@ -60,9 +60,12 @@ $extension = $argv[1];
 $alarm = $argv[2];
 $reception = $argv[3];
 
-$sql = "SELECT max(retry) FROM roomsdb.alarms_history WHERE extension='$extension' and alarm='$alarm'";
-$cdidresult=@$db->getRow($sql);
-neth_debug("$qrymaxretry Retry=$cdidresult[0]");
+$sql = "SELECT max(retry) FROM roomsdb.alarms_history WHERE extension=? and alarm=?";
+$stmt = $db->prepare($sql);
+$stmt->execute([$extension, $alarm]);
+$res = $stmt->fetchAll();
+$cdidresult = $res[0] ?? [];
+neth_debug("$qrymaxretry Retry=" . ($cdidresult[0] ?? ''));
 
 if (empty($cdidresult[0])) {
     $retry=0; # array vuoto, allora è la prima chiamata
@@ -79,14 +82,16 @@ if ($retry == 2) {
     $retry++;
 }
 
-$sql="INSERT INTO roomsdb.alarms_history (calldate,extension,alarm,retry) values ('$calldate','$extension','$alarm','$retry')";
+$sql="INSERT INTO roomsdb.alarms_history (calldate,extension,alarm,retry) values (?,?,?,?)";
 neth_debug($sql);
-$db->query($sql);
+$stmt = $db->prepare($sql);
+$stmt->execute([$calldate, $extension, $alarm, $retry]);
 
 if ($allarme) {
     $time = mktime()+30;
-    $sql = "INSERT INTO roomsdb.alarmcalls SET timestamp = $time, extension = $extension ,enabled = 1, alarmtype = 1";
-    $db->query($sql);
+    $sql = "INSERT INTO roomsdb.alarmcalls SET timestamp = ?, extension = ?, enabled = 1, alarmtype = 1";
+    $stmt = $db->prepare($sql);
+    $stmt->execute([$time, $extension]);
     neth_debug($sql);
     fias('WA2PMS', array(
         'RN' => $extension,

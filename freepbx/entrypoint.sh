@@ -53,6 +53,11 @@ astctlpermissions=775
 autoload=yes
 EOF
 
+# Remove cdr.conf if it's empty. CDR module will create it at install.
+if [ ! -s /etc/asterisk/cdr.conf ]; then
+	rm /etc/asterisk/cdr.conf
+fi
+
 # create modules.conf
 cat > /etc/asterisk/modules.conf <<EOF
 [modules]

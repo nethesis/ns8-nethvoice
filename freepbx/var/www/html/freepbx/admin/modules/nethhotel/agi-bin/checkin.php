@@ -3,12 +3,11 @@
 //PHPLICENSE 
 
 define("AGIBIN_DIR", "/var/lib/asterisk/agi-bin");
-define("AMPORTAL_CONF", "/etc/amportal.conf");
 define("MAX_TRIES",3);
 define("TODAY",'1');
 define("TOMORROW",'2');
 
-
+include_once('/etc/freepbx_db.conf');
 require_once('/var/www/html/freepbx/hotel/functions.inc.php');
 include_once(AGIBIN_DIR."/phpagi.php");
 
@@ -98,92 +97,76 @@ function exitError()
 
 /******************************************************/
 
-global $amp_conf;
 $agi = new AGI();
 
 $target = $argv[1];
 
-//Setup database connection:
-$db_user = $amp_conf["AMPDBUSER"];
-$db_pass = $amp_conf["AMPDBPASS"];
-$db_host = 'localhost';
-$db_name = 'asterisk';
-$db_engine = 'mysql';
-$datasource = $db_engine.'://'.$db_user.':'.$db_pass.'@'.$db_host.'/'.$db_name;
-$db = @DB::connect($datasource); // attempt connection
+$sql = "SELECT * FROM roomsdb.rooms WHERE extension=?";
+$stmt = $db->prepare($sql);
+$stmt->execute([$target]);
+$res = $stmt->fetchAll();
+neth_debug($res);
+$sql2 = "SELECT value FROM roomsdb.options WHERE variable='clean'";
+$stmt = $db->prepare($sql2);
+$stmt->execute();
+$res2 = $stmt->fetchAll();
+neth_debug($sql2);
+if(count($res))
+{
+		$tot = getTotalCost($target);
+		if ($tot!= 0) { # se ci sono extra chiedo conferma del checkout
 
+			$num = explode('.', $tot);
+			$i= true;
 
-if(@DB::isError($db)) {
-        @$agi->verbose("Error conecting to asterisk database, skipped");
-} else {
-	$cdidsql="SELECT * FROM roomsdb.rooms WHERE  extension=$target";
-	$res=@$db->getAll($cdidsql);
-	neth_debug($cdidsql);
-	$cdidsql2="SELECT value FROM roomsdb.options WHERE variable='clean'";
-	$res2=@$db->getAll($cdidsql2);
-	neth_debug($cdidsql2);
-	if(count($res))
-	{
-          $tot = getTotalCost($target);
-          if ($tot!= 0) { # se ci sono extra chiedo conferma del checkout
+			while ($i == true)
+			{
+				@$agi->stream_file("alarm/attenzione_checkout");
+				if($num[0]) @$agi->say_number("$num[0]");
+				else @$agi->say_number("0");
+				@$agi->stream_file("alarm/euro");
+				@$agi->stream_file("alarm/e");
+				if($num[1]) @$agi->say_number("$num[1]");
+				else  @$agi->say_number("0");
+				@$agi->stream_file("alarm/centesimi");
+				$choice=neth_menu("alarm/ivr_checkout",4);# 1 per confermare 2 per annullare 3 per addebitare ad altra camera 4 ripete       
 
-                $num = explode('.', $tot);
-                $i= true;
+				if ($choice==1) {    $i= false; }
+				if ($choice==2) {
+									neth_debug("Addebito trovato. chiudo");
+									exit(0);
+								}
+				if ($choice==3) {
+									$room=requestTarget(MAX_TRIES);
+									$result=assignExtra($tot,$room);
+									if ($result==true) {
+											@$agi->stream_file("alarm/assign_extra_ok");
+											$i= false;  }
+									else {
+											@$agi->stream_file("alarm/assign_extra_ko");
+											}
 
-                while ($i == true)
-                {
-                   @$agi->stream_file("alarm/attenzione_checkout");
-                   if($num[0]) @$agi->say_number("$num[0]");
-                   else @$agi->say_number("0");
-                   @$agi->stream_file("alarm/euro");
-                   @$agi->stream_file("alarm/e");
-                   if($num[1]) @$agi->say_number("$num[1]");
-                   else  @$agi->say_number("0");
-                   @$agi->stream_file("alarm/centesimi");
-                   $choice=neth_menu("alarm/ivr_checkout",4);# 1 per confermare 2 per annullare 3 per addebitare ad altra camera 4 ripete       
+								}
+			}
+		}
 
-                   if ($choice==1) {    $i= false; }
-                   if ($choice==2) {
-                                        neth_debug("Addebito trovato. chiudo");
-                                        exit(0);
-                                   }
-                   if ($choice==3) {
-                                        $room=requestTarget(MAX_TRIES);
-                                        $result=assignExtra($tot,$room);
-                                        if ($result==true) {
-                                                @$agi->stream_file("alarm/assign_extra_ok");
-                                                $i= false;  }
-                                        else {
-                                                @$agi->stream_file("alarm/assign_extra_ko");
-                                             }
-
-                                   }
-                }
-          }
-
-	  checkOut($target);
-          if($res2[0][0]!="1") { # se non gestisco il clean faccio automaticamente il clean
-			neth_debug("Clean != 1 ".$res2[0]);
-          	cleanRoom($target);
-          } 
-	  set_lamp('off',$target);
-	  @$agi->stream_file("alarm/camera");
-	  @$agi->say_digits("$target");
-	  @$agi->stream_file("alarm/checkout_ok");
-	  neth_debug("CHECK-OUT: $target");
-	}
-	else 
-	{
-	  checkIn($target);
-	  set_lamp('on',$target);
-	  @$agi->stream_file("alarm/camera");
-	  @$agi->say_digits("$target");
-	  @$agi->stream_file("alarm/checkin_ok");
-	  neth_debug("CHECK-IN: $target");
-	}
+	checkOut($target);
+		if($res2[0][0]!="1") { # se non gestisco il clean faccio automaticamente il clean
+		neth_debug("Clean != 1 ".$res2[0]);
+		cleanRoom($target);
+		} 
+	set_lamp('off',$target);
+	@$agi->stream_file("alarm/camera");
+	@$agi->say_digits("$target");
+	@$agi->stream_file("alarm/checkout_ok");
+	neth_debug("CHECK-OUT: $target");
 }
-
-
-exit(0);
-
-?>
+else 
+{
+	checkIn($target);
+	set_lamp('on',$target);
+	@$agi->stream_file("alarm/camera");
+	@$agi->say_digits("$target");
+	@$agi->stream_file("alarm/checkin_ok");
+	neth_debug("CHECK-IN: $target");
+}

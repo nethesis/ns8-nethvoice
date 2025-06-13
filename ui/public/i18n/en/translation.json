@@ -15,7 +15,9 @@
   "common": {
     "processing": "Processing...",
     "required": "Required",
-    "work_in_progress": "Work in progress"
+    "work_in_progress": "Work in progress",
+    "enabled": "Enabled",
+    "disabled": "Disabled"
   },
   "error": {
     "401": "Invalid authentication",
@@ -41,6 +43,8 @@
     "nethvoice_hotel": "Enable Hotel module",
     "nethvoice_hotel_fias_address": "Hotel FIAS server host (Optional)",
     "nethvoice_hotel_fias_port": "Hotel FIAS server port (Optional)",
+    "nethvoice_hotel_subscription_required": "Hotel module requires an active subscription",
+    "nethvoice_host_number_not": "NethVoice host must be an fqdn, not an IP address",
     "save": "Save",
     "title": "Settings",
     "user_domain": "User Domain",
