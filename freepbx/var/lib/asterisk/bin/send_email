@@ -136,7 +136,7 @@ if 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED' in os.environ and os.environ['SAT
 
                 # Parse JSON response and extract transcript
                 response_data = response.json()
-                transcription_result = response_data.get('transcript', '').strip()
+                transcription_result = response_data.get('transcript', '').strip().encode('utf-8').decode('utf-8')
 
                 if transcription_result:
                     # Add transcription to email body
