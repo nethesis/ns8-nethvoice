@@ -4,7 +4,7 @@ Requisite=freepbx.service
 
 [Service]
 Type=oneshot
-ExecStart=podman exec freepbx php /var/lib/asterisk/bin/alarms.php
+ExecStart=podman exec --user asterisk freepbx php /var/lib/asterisk/bin/alarms.php
 
 [Install]
 WantedBy=default.target
