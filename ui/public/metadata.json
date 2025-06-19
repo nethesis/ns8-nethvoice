@@ -1,8 +1,8 @@
 {
   "name": "NethVoice",
   "description": {
-    "en": "NethVoice Module",
-    "it": "Modulo NethVoice"
+    "en": "VoIP switchboard integrating voice, video, mobile, and enterprise information systems",
+    "it": "Centralino VoIP che integra voce, video, mobile e sistemi informativi aziendali"
   },
   "categories": ["communication"],
   "authors": [
@@ -12,7 +12,7 @@
     }
   ],
   "docs": {
-    "documentation_url": "https://github.com/nethesis/ns8-nethvoice",
+    "documentation_url": "https://docs.nethserver.org/projects/ns8/en/latest/nethvoice.html",
     "bug_url": "https://github.com/NethServer/dev",
     "code_url": "https://github.com/nethesis/ns8-nethvoice"
   },
