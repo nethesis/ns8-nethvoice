@@ -109,7 +109,13 @@ chown -R asterisk:asterisk /var/lib/nethvoice/phonebook/uploads
 
 # Don't continue with initialization if the database is not ready
 if [[ -z "${AMPDBUSER}" || -z "${AMPDBPASS}" ]]; then
-	exit 0
+
+	if [ "$@" == "/usr/bin/supervisord" ]; then
+		echo "AMPDBUSER and AMPDBPASS are not set, exiting."
+		exit 0
+	fi
+
+	exec "$@"
 fi
 
 # Customized wizard page
