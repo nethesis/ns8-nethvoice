@@ -95,10 +95,12 @@ Driver = MariaDB Unicode
 Description = ODBC on asteriskcdrdb
 EOF
 
-mkdir -p /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads 
+mkdir -p /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads /var/lib/nethserver/nethcti/templates/customer_card
 chown asterisk:asterisk /var/lib/asterisk/db /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads /var/lib/nethserver/nethcti/templates/customer_card
 
-# Make sure config dir is writable from nethcti and freepbx containers
+# Make sure /etc/nethcti exists and is writable and the config directory is
+# writable from nethcti and freepbx containers
+mkdir -p /etc/nethcti
 chown -R asterisk:asterisk /etc/nethcti
 
 # make sure CSV upload path exists if /var/lib/nethvoice isn't a volume or already initialized
