@@ -29,4 +29,5 @@ INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`,`per
 (12,9),
 (12,1000),
 (12,2000),
-(12,3000);
+(12,3000),
+(12,5000);
