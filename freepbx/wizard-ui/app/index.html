@@ -258,6 +258,9 @@
           <div ng-if="!wizard.isWizard" class="panel-body adjust-panel-body list-group-item collapse-menu {{resolveActiveTab('cards',2) ? 'active' : ''}}">
             <div ng-click="goTo('apps/cards')" class="list-group-item-value menu-item-left no-opacity full-width">{{'Customer cards' | translate | ellipsis:'1200'}}</div>
           </div>
+          <div ng-if="!wizard.isWizard" class="panel-body adjust-panel-body list-group-item collapse-menu {{resolveActiveTab('streaming',2) ? 'active' : ''}}">
+            <div ng-click="goTo('apps/streaming')" class="list-group-item-value menu-item-left no-opacity full-width">{{'Video sources' | translate | ellipsis:'1200'}}</div>
+          </div>
           <div ng-if="!wizard.isWizard" class="panel-body adjust-panel-body list-group-item collapse-menu {{resolveActiveTab('phonebook',2) ? 'active' : ''}}">
             <div ng-click="goTo('apps/phonebook')" class="list-group-item-value menu-item-left no-opacity full-width">{{'Phonebook sources' | translate | ellipsis:'1200'}}</div>
           </div>
