@@ -48,6 +48,8 @@ podman exec -it mariadb bash <<'EOF'
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/50_asterisk.rest_pjsip_trunks_custom_flags.sql
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/50_asterisk.rest_pjsip_trunks_defaults.sql
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/50_asterisk.rest_pjsip_trunks_specialopts.sql
+# NethCTI Server
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" nethcti3 -e 'DELETE FROM `auth` WHERE user LIKE "%_phone-island"'
 exit 0
 EOF
 
