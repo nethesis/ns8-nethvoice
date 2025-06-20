@@ -136,7 +136,8 @@ if 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED' in os.environ and os.environ['SAT
 
                 # Parse JSON response and extract transcript
                 response_data = response.json()
-                transcription_result = response_data.get('transcript', '').strip().encode('utf-8').decode('utf-8')
+                transcription_result = response_data.get('transcript', '').strip()
+                detected_language = response_data.get('detected_language', None)
 
                 if transcription_result:
                     # Add transcription to email body
@@ -144,9 +145,14 @@ if 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED' in os.environ and os.environ['SAT
                         if (part.get_content_type() == "text/plain" and
                                 part.get_content_disposition() in (None, "inline")):
                             body = part.get_payload(decode=True).decode(part.get_content_charset() or "utf-8")
-                            body += f"\n\n--- Transcription ---\n{transcription_result}\n"
+                            body += "\n\n--- "
+                            if detected_language == 'it':
+                                body += "Trascrizione"
+                            else:
+                                body += "Transcription"
+                            body += f" ---\n{transcription_result}\n"
                             part.set_payload(body)
-                            part.set_charset("utf-8")
+                            part.set_charset("UTF-8")
                             break
 
                     # extract the message id
@@ -187,7 +193,13 @@ try:
             smtp.starttls(context=context)
     if SMTP_USERNAME:
         smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
-    smtp.sendmail(from_address, recipient_emails, message.as_string())
+    
+    smtp.sendmail(
+        from_address,
+        recipient_emails,
+        message.as_string().encode('utf-8')
+    )
+
     smtp.quit()
 except Exception as e:
     print(f"Error: {e}", file=sys.stderr)

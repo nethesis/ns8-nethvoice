@@ -10,4 +10,4 @@ CREATE TABLE IF NOT EXISTS `voicemessages_transcriptions` (
   PRIMARY KEY (`id`),
   KEY `fk_voicemessage_id` (`voicemessage_id`),
   CONSTRAINT `fk_voicemessages_transcriptions_voicemessage_id` FOREIGN KEY (`voicemessage_id`) REFERENCES `voicemessages` (`id`) ON DELETE CASCADE
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
