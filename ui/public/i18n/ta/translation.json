@@ -1,8 +1,50 @@
 {
     "error": {
-        "network_timeout": "பிணைய நேரம் முடிந்தது"
+        "network_timeout": "Network timeout",
+        "error": "Error",
+        "network_error": "Network error",
+        "validation_error": "Validation error",
+        "403": "Operation not authorized",
+        "cannot_retrieve_module_info": "Cannot retrieve module info",
+        "cannot_retrieve_installed_modules": "Cannot retrieve installed modules",
+        "generic_error": "Something went wrong",
+        "404": "Resource not found",
+        "401": "Invalid authentication"
     },
     "settings": {
-        "save": "Save"
+        "save": "Save",
+        "title": "Settings"
+    },
+    "action": {
+        "get-status": "Get status",
+        "get-configuration": "Get configuration",
+        "configure-module": "Configure module",
+        "get-module-info": "Get module info"
+    },
+    "common": {
+        "required": "Required",
+        "work_in_progress": "Work in progress"
+    },
+    "status": {
+        "app_instance": "App instance",
+        "app_images": "App image | App images",
+        "title": "Status",
+        "services": "Service | Services",
+        "mount": "Mount",
+        "node": "Node",
+        "no_services": "No services",
+        "app_volumes": "App volume | App volumes",
+        "name": "Name",
+        "size": "Size",
+        "installation_node": "Installation node",
+        "created": "Created",
+        "no_images": "No images",
+        "no_volumes": "No volumes"
+    },
+    "about": {
+        "title": "About"
+    },
+    "task": {
+        "cannot_create_task": "Cannot create task {action}"
     }
 }
