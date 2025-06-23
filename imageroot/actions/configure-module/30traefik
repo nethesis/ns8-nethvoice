@@ -77,7 +77,7 @@ response = agent.tasks.run(
     action='set-route',
     data={
         'instance': os.environ['MODULE_ID'] + '-ui',
-        'url':  'http://127.0.0.1:' + os.environ["NETHVOICE_MIDDLEWARE_PORT"],
+        'url':  'http://127.0.0.1:' + os.environ["NETHCTI_UI_PORT"],
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
         'lets_encrypt': lets_encrypt,
         'host': os.environ["NETHCTI_UI_HOST"],
@@ -139,7 +139,7 @@ response = agent.tasks.run(
     action='set-route',
     data={
         'instance': os.environ['MODULE_ID'] + '-server-websocket',
-        'url':  'http://127.0.0.1:' + os.environ["NETHVOICE_MIDDLEWARE_PORT"] + '/socket.io',
+        'url':  'http://127.0.0.1:' + os.environ["NETHVOICE_MIDDLEWARE_PORT"] + os.environ["NETHVOICE_MIDDLEWARE_V1_WS_PATH"],
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
         'lets_encrypt': lets_encrypt,
         'host': os.environ["NETHCTI_UI_HOST"],
