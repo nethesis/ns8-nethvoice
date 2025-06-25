@@ -144,8 +144,8 @@ function nethcti3_get_config_late($engine) {
     global $db;
     switch($engine) {
         case "asterisk":
-        /* Change CF for CTI voicemail status */
-        $ext->replace('macro-dial-one', 'cf', '2', new ext_execif('$["${DB(AMPUSER/${DB_RESULT}/cidnum)}" == "" && "${DB_RESULT:0:2}" != "vm"]', 'Set','__REALCALLERIDNUM=${DEXTEN}'));
+            /* Change CF for CTI voicemail status */
+            $ext->replace('macro-dial-one', 'cf', '2', new ext_execif('$["${DB(AMPUSER/${DB_RESULT}/cidnum)}" == "" && "${DB_RESULT:0:2}" != "vm"]', 'Set','__REALCALLERIDNUM=${DEXTEN}'));
 
             /* Use main extension on login/logout/pause*/
             if (!empty(\FreePBX::Queues()->listQueues())) {
