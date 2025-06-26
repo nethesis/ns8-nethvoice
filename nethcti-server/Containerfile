@@ -2,7 +2,7 @@
 FROM docker.io/library/alpine:3.17.2 as repofetcher
 WORKDIR /app
 RUN apk add --no-cache git
-ARG NETHCTI_SERVER_COMMIT=ns8
+ARG NETHCTI_SERVER_COMMIT=fix-7527-clean-dbconn-logs
 RUN git clone https://github.com/nethesis/nethcti-server.git . \
     && git checkout "${NETHCTI_SERVER_COMMIT}"
 
