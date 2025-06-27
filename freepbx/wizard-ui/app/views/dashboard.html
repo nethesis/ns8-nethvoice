@@ -61,12 +61,18 @@
                           </div>
                           <div class="list-view-pf-main-info exten-dashboard-label">
                             <div class="list-view-pf-left">
-                              <span class="fa {{(exten.type.indexOf('webrtc') === 0 || exten.type.indexOf('nethlink') === 0) ? 'fa-headphones' : 'fa-phone'}} {{data.extensions[exten.id].status === 'online' ? 'online-green' : data.extensions[exten.id].status === 'offline' ? 'offline-gray' : 'online-red'}} list-view-pf-icon-sm user-dashboard-icon"></span>
+                              <span class="fa {{exten.type.indexOf('webrtc') === 0 ? 'fa-headphones' : exten.type.indexOf('nethlink') === 0 ? 'fa-desktop' : exten.type.indexOf('physical') === 0 ? 'fa-fax' : exten.type.indexOf('mobile') === 0 ? 'fa-mobile' : 'fa-phone'}} {{data.extensions[exten.id].status === 'online' ? 'online-green' : data.extensions[exten.id].status === 'offline' ? 'offline-gray' : data.extensions[exten.id].status === 'dnd' ? 'dnd-gray' : data.extensions[exten.id].status === 'busy' ? 'busy-red' : 'offline-gray'}} list-view-pf-icon-sm user-dashboard-icon" 
+                                   title="{{exten.type.indexOf('webrtc') === 0 ? 'WebRTC Device' : exten.type.indexOf('nethlink') === 0 ? 'NethLink Device' : exten.type.indexOf('physical') === 0 ? 'Physical Device' : exten.type.indexOf('mobile') === 0 ? 'Mobile Device' : 'Phone Device'}}"></span>
                             </div>
                             <div class="list-view-pf-body">
                               <div class="list-view-pf-additional-info">
-                                <div class="list-view-pf-additional-info-item">
-                                  <strong class="dashboard-extenid-fontsize">{{exten.id}}</strong></div>
+                                <div class="list-view-pf-additional-info-item" style="display: flex; flex-direction: column; align-items: center;">
+                                  <strong class="dashboard-extenid-fontsize">{{exten.id}}</strong>
+                                  <div class="status-dot-container">
+                                    <div class="status-dot {{data.extensions[exten.id].status === 'online' ? 'online-dot' : data.extensions[exten.id].status === 'offline' ? 'offline-dot' : data.extensions[exten.id].status === 'dnd' ? 'dnd-dot' : data.extensions[exten.id].status === 'busy' ? 'busy-dot' : 'offline-dot'}}"></div>
+                                    <span class="status-text">{{data.extensions[exten.id].status}}</span>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>

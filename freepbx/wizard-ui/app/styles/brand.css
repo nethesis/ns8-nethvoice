@@ -50,6 +50,10 @@ html {
   border: 2px solid #10b981;
 }
 
+.no-border {
+  border: none !important;
+}
+
 .card-pf-view .card-pf-top-element .card-pf-icon-circle {
   border: 2px solid #10b981;
 }
