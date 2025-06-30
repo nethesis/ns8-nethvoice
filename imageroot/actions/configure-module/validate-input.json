@@ -243,6 +243,14 @@
                     "pattern": "^$"
                 }
             ]
+        },
+        "deepgram_api_key": {
+            "description": "Deepgram API key for voice recognition",
+            "type": "string"
+        },
+        "openai_api_key": {
+            "description": "OpenAI API key for call summarization",
+            "type": "string"
         }
     }
 }

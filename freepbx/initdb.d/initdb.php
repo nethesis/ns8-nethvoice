@@ -106,6 +106,35 @@ if (!empty($_ENV['PROXY_IP']) && !empty($_ENV['PROXY_PORT'])) {
 	$stmt->execute(['sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'].';lr']);
 }
 
+// Set port for Asterisk http server from environment
+if (!empty($_ENV['ASTERISK_WS_PORT'])) {
+	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPBINDPORT"';
+	$stmt = $db->prepare($sql);
+	$stmt->execute([$_ENV['ASTERISK_WS_PORT']]);
+}
+
+// Create/update ARI account for Satellite
+if (!empty($_ENV['SATELLITE_ARI_PASSWORD'])) {
+	// Hash the password using crypt
+	$salt = '$6$' . bin2hex(random_bytes(8)) . '$'; // $6$ for SHA-512
+	$hashedPassword = crypt($_ENV['SATELLITE_ARI_PASSWORD'], $salt);
+
+	// Check if the entry already exists
+	$sql = 'SELECT `password` FROM `asterisk`.`arimanager` WHERE `name` = "satellite"';
+	$stmt = $db->prepare($sql);
+	$stmt->execute();
+	$res = $stmt->fetchAll();
+	if (empty($res)) {
+		// Entry doesn't exist, create it
+		$sql = "INSERT INTO `asterisk`.`arimanager` (`name`, `password`, `password_format`, `read_only`) VALUES ('satellite', ?, 'crypt', 0)";
+	} else {
+		// Entry exists, update it
+		$sql = "UPDATE `asterisk`.`arimanager` SET `password` = ?, `password_format` = 'crypt' WHERE `name` = 'satellite'";
+	}
+	$stmt = $db->prepare($sql);
+	$stmt->execute([$hashedPassword]);
+}
+
 // Set IAX2 Port
 $sql = "INSERT INTO `asterisk`.`iaxsettings` (`keyword`, `data`) 
         VALUES ('bindport', ?) 
