@@ -50,7 +50,7 @@ else:
     SMTP_FROM_ADDRESS = os.environ['SMTP_FROM_ADDRESS']
 
 # Validate SMTP_ENCRYPTION and SMTP_TLSVERIFY
-if SMTP_ENCRYPTION not in ['startls', 'tls', 'none','']:
+if SMTP_ENCRYPTION not in ['starttls', 'tls', 'none','']:
     print("Invalid SMTP_ENCRYPTION value.", file=sys.stderr)
     sys.exit(1)
 if SMTP_TLSVERIFY not in ['0', '1','']:
@@ -95,7 +95,7 @@ try:
         smtp = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=context)
     else:
         smtp = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-        if SMTP_ENCRYPTION == 'startls':
+        if SMTP_ENCRYPTION == 'starttls':
             smtp.starttls(context=context)
     if SMTP_USERNAME:
         smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
