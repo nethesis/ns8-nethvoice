@@ -38,6 +38,8 @@ ExecStart=/usr/bin/podman run \
     --env=FAVICON_URL=${FAVICON_URL} \
     --env=LOGIN_BACKGROUND_URL=${LOGIN_BACKGROUND_URL} \
     --tz=${TIMEZONE} \
+    --health-cmd='curl --silent --fail http://localhost:${NETHCTI_UI_PORT}/health' \
+    --health-on-failure=kill \
     ${NETHVOICE_CTI_UI_IMAGE}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/nethcti-ui.ctr-id
