@@ -24,13 +24,13 @@ ExecStart=/usr/bin/podman run \
     --replace \
     --name=%N \
     --volume=nethcti-middleware-audit:/var/log \
+    --volume=nethcti-middleware-secrets:/var/lib/whale/secrets \
     --env=NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS \
     --env=NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT \
     --env=NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT \
     --env=NETHVOICE_MIDDLEWARE_V1_API_PATH \
     --env=NETHVOICE_MIDDLEWARE_V1_WS_PATH \
     --env=NETHVOICE_MIDDLEWARE_V1_PROTOCOL \
-    --env=NETHVOICE_MIDDLEWARE_SECRETS_DIR \
     --network=host \
     --tz=${TIMEZONE} \
     ${NETHVOICE_CTI_MIDDLEWARE_IMAGE}

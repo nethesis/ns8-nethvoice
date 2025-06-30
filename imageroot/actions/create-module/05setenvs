@@ -164,7 +164,6 @@ agent.set_env('NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT', '127.0.0.1:' + str(port_lis
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_API_PATH', '')
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_WS_PATH', '/socket.io')
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_PROTOCOL', 'http')
-agent.set_env('NETHVOICE_MIDDLEWARE_SECRETS_DIR', '/tmp/secrets/nethvoice')
 
 # password file
 passwords = {
