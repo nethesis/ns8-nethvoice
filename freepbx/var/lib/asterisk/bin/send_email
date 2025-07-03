@@ -5,8 +5,31 @@ import sys
 import smtplib
 import ssl
 import re
+import requests
+import json
+import mysql.connector
 from email.parser import Parser
 from email.utils import getaddresses
+from email.mime.text import MIMEText
+
+def get_db_connection():
+    """Get database connection using environment variables similar to PHP amp_conf"""
+    cdr_db_host = os.environ.get('CDRDBHOST', os.environ.get('AMPDBHOST', '127.0.0.1'))
+    cdr_db_port = int(os.environ.get('NETHVOICE_MARIADB_PORT', '3306'))
+    cdr_db_name = os.environ.get('CDRDBNAME', 'asteriskcdrdb')
+    cdr_db_user = os.environ.get('CDRDBUSER', os.environ.get('AMPDBUSER', ''))
+    cdr_db_pass = os.environ.get('CDRDBPASS', os.environ.get('AMPDBPASS', ''))
+
+    return mysql.connector.connect(
+        host=cdr_db_host,
+        port=cdr_db_port,
+        database=cdr_db_name,
+        user=cdr_db_user,
+        password=cdr_db_pass,
+        charset='utf8',
+        ssl_disabled=True,
+        autocommit=True
+    )
 
 # Check if SMTP is enabled
 if os.environ.get('SMTP_ENABLED', '0') != '1':
@@ -89,6 +112,77 @@ if not from_address:
     from_address = SMTP_FROM_ADDRESS
     message['From'] = from_address
 
+# if there is a wav attachment and the SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED are enabled, query satellite api for transcription
+if 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED' in os.environ and os.environ['SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED'] == 'True':
+    if 'Content-Type' in message and 'multipart/mixed' in message['Content-Type']:
+        # Extract the audio data from the wav attachment
+        audio_data = None
+        for part in message.walk():
+            if part.get_content_type() == 'audio/x-wav':
+                audio_data = part.get_payload(decode=True)
+                break
+        if audio_data:
+            try:
+                # Get satellite HTTP port from environment
+                satellite_port = os.environ.get('SATELLITE_HTTP_PORT', '8080')
+                satellite_url = f"http://127.0.0.1:{satellite_port}/api/get_transcription"
+
+                # Prepare the file for upload
+                files = {'file': ('voicemail.wav', audio_data, 'audio/wav')}
+
+                # Make the API call to satellite
+                response = requests.post(satellite_url, files=files, timeout=30)
+                response.raise_for_status()
+
+                # Parse JSON response and extract transcript
+                response_data = response.json()
+                transcription_result = response_data.get('transcript', '').strip()
+                detected_language = response_data.get('detected_language', None)
+
+                if transcription_result:
+                    # Add transcription to email body
+                    for part in message.walk():
+                        if (part.get_content_type() == "text/plain" and
+                                part.get_content_disposition() in (None, "inline")):
+                            body = part.get_payload(decode=True).decode(part.get_content_charset() or "utf-8")
+                            body += "\n\n--- "
+                            if detected_language == 'it':
+                                body += "Trascrizione"
+                            else:
+                                body += "Transcription"
+                            body += f" ---\n{transcription_result}\n"
+                            part.set_payload(body)
+                            part.set_charset("UTF-8")
+                            break
+
+                    # extract the message id
+                    message_id = message.get('Message-ID', '')
+                    if message_id:
+                        # Extract the voicemail ID from the Message-ID
+                        voicemessage_id = message_id.split('-')[1]
+                        # Update the voicemessage table in the database with the transcription
+                        try:
+                            conn = get_db_connection()
+                            cursor = conn.cursor()
+                            cursor.execute(
+                                "INSERT IGNORE INTO voicemessages_transcriptions (voicemessage_id,transcription) VALUES (%s, %s)",
+                                (voicemessage_id,transcription_result)
+                            )
+                            conn.commit()
+                            cursor.close()
+                            conn.close()
+                        except mysql.connector.Error as db_error:
+                            print(f"Database error updating transcription: {db_error}", file=sys.stderr)
+                        except Exception as db_error:
+                            print(f"Unexpected database error: {db_error}", file=sys.stderr)
+
+            except requests.exceptions.RequestException as e:
+                print(f"Error transcribing audio: {e}", file=sys.stderr)
+            except json.JSONDecodeError as e:
+                print(f"Error parsing transcription response: {e}", file=sys.stderr)
+            except Exception as e:
+                print(f"Unexpected error during transcription: {e}", file=sys.stderr)
+
 # Connect to SMTP server and send the email
 try:
     if SMTP_ENCRYPTION == 'tls':
@@ -99,7 +193,13 @@ try:
             smtp.starttls(context=context)
     if SMTP_USERNAME:
         smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
-    smtp.sendmail(from_address, recipient_emails, message.as_string())
+    
+    smtp.sendmail(
+        from_address,
+        recipient_emails,
+        message.as_string().encode('utf-8')
+    )
+
     smtp.quit()
 except Exception as e:
     print(f"Error: {e}", file=sys.stderr)

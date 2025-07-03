@@ -62,6 +62,46 @@
                     "pattern": "^$"
                 }
             ]
+        },
+        "satellite_call_transcription_enabled": {
+            "description": "Enable real-time call transcription",
+            "type": "string",
+            "enum": [
+                "True",
+                "False"
+            ]
+        },
+        "satellite_voicemail_transcription_enabled": {
+            "description": "Enable voicemail transcription",
+            "type": "string",
+            "enum": [
+                "True",
+                "False"
+            ]
+        },
+        "deepgram_api_key": {
+            "description": "Deepgram API key for real-time call and voicemail transcription",
+            "type": "string",
+            "anyOf": [
+                {
+                    "pattern": "^[a-zA-Z0-9]+$"
+                },
+                {
+                    "pattern": "^$"
+                }
+            ]
+        },
+        "openai_api_key": {
+            "description": "OpenAI API key for call and voicemail summarization",
+            "type": "string",
+            "anyOf": [
+                {
+                    "pattern": "^[a-zA-Z0-9\\-_]+$"
+                },
+                {
+                    "pattern": "^$"
+                }
+            ]
         }
     }
 }
