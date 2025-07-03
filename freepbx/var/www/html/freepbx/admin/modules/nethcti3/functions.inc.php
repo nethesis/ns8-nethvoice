@@ -198,7 +198,7 @@ function nethcti3_get_config_late($engine) {
             }
         /* Add isTrunk for non encrypted extensions */
         // extensions with encryption disabled on wizard
-        $sql = "SELECT extension FROM rest_devices_phones WHERE srtp = 0";
+        $sql = "SELECT extension FROM rest_devices_phones WHERE srtp = 0 AND type = 'physical'";
         $stmt = $db->prepare($sql);
         $stmt->execute();
         $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
