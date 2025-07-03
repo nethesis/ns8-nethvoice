@@ -57,6 +57,7 @@ angular.module('nethvoiceWizardUiApp')
       $scope.editedSelectedTrunk = angular.copy($scope.selectedTrunk)
       $scope.editedSelectedTrunk.forceCodec = angular.copy($scope.trunk.forceCodec)
       $scope.editedSelectedTrunk.info = angular.copy($scope.trunksInfo)
+      $scope.editedSelectedTrunk.codecs = angular.copy($scope.selectedTrunk).details.codecs.split(",")
     }
 
     var getProvidersList = function () {
@@ -83,7 +84,7 @@ angular.module('nethvoiceWizardUiApp')
     var getVoipTrunksList = function (selectId) {
       TrunkService.getAllTrunks().then(function (res) {
         // filter data
-        let filteredData = res.data.filter((trunk) => {  
+        let filteredData = res.data.filter((trunk) => {
           return (trunk.tech === "sip" || trunk.tech === "pjsip")
         })
         // order data
@@ -178,7 +179,7 @@ angular.module('nethvoiceWizardUiApp')
         "username": trunk.username,
         "password": $scope.newPwd,
         "phone": trunk.outcid,
-        "codecs": trunk.info[trunk.name].codecs,
+        "codecs": trunk.codecs,
         "forceCodec": trunk.forceCodec
       }).then(function () {
         $scope.onChangeSuccess = true
@@ -189,6 +190,7 @@ angular.module('nethvoiceWizardUiApp')
           $scope.newPwd = "",
           $scope.onChangeSuccess = false
           $scope.onChangeError = false
+          getVoipTrunksList();
         }, 1000)
       }, function (err) {
         $scope.onChange = false
@@ -200,7 +202,7 @@ angular.module('nethvoiceWizardUiApp')
     //Update the data
     $scope.updateData = function(trunk){
       $scope.selectedTrunk = trunk;
-      $scope.trunksInfo[$scope.selectedTrunk.name].codecs = trunk.info[trunk.name].codecs;
+      $scope.trunksInfo[$scope.selectedTrunk.name].codecs = trunk.codecs;
     }
 
     angular.element(document).ready(function () {
