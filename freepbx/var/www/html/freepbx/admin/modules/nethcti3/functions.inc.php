@@ -205,7 +205,7 @@ function nethcti3_get_config_late($engine) {
         $no_srtp_extensions = array_column($res, 'extension');
         if (!empty($no_srtp_extensions)) {
             // add isTrunk header before the Dial() in macro-dial-one
-            $ext->splice('macro-dial-one', 's', 'dial', new ext_gosubif('$["${REGEX}(,${DEXTEN},=,' . implode(',', $no_srtp_extensions) . ',)"]', 'func-set-sipheader,s,1', false, 'isTrunk,1'), 'extdisablesrtp',0);
+            $ext->splice('macro-dial-one', 's', 'dial', new ext_gosubif('$[${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${DEXTEN})}]', 'func-set-sipheader,s,1', false, 'isTrunk,1'), 'extdisablesrtp',0);
         }
 
         /* Add inboundlookup agi for each inbound routes*/
