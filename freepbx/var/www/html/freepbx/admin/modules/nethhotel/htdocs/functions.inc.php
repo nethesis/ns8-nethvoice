@@ -1148,6 +1148,9 @@ function _checkIn($room,$reservation='', $name='',$language='')
 
 function checkIn($room,$reservation='', $name='',$language='')
 {
+    if (empty($room)) {
+       return false;
+    }
     if (_checkIn($room,$reservation, $name,$language)){
         //fias feedback
         fias('RE2PMS', array(
