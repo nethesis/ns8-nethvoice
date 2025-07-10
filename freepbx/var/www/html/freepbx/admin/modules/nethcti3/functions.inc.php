@@ -333,9 +333,11 @@ function nethcti3_get_config_late($engine) {
             $ext->splice('macro-hangupcall', 's', 'hangup', new ext_agi(join(',',$agi_cmd)),'nethcti-cdr-script');
         }
         /* Satellite STT real time Transcriptions*/
-        // Replace Dial in macro-dial-one with a new one that call Satellite when call is answered
         if (!empty($_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED']) && $_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED'] == 'True') {
-            $ext->replace('macro-dial-one','s','dial', new \ext_dial('${DSTRING}', '${ARG1},${D_OPTIONS}${CWRING}U(satellite^s^1)b(func-apply-sipheaders^s^1)'));
+            // Add a call Satellite when call is answered in macro-dial-one adding it in D_OPTIONS variable
+            $ext->splice('macro-dial-one','s','dial', new \ext_setvar('D_OPTIONS', '${D_OPTIONS}U(satellite^s^1)'),'', -1);
+            // Add call to Satellite macro in macro-dialout-trunk
+            $ext->splice('macro-dialout-trunk', 's', '', new \ext_setvar('DIAL_TRUNK_OPTIONS', '${DIAL_TRUNK_OPTIONS}U(satellite^s^1)'),'', 28);
             // Create the Satellite context
             $ext->add('satellite', 's', '', new \ext_noop('Satellite STT'));
             // TODO: add a check to see if the user is allowed to use the STT
