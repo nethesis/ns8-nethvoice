@@ -1,0 +1,35 @@
+#!/bin/sh
+
+# Publish all configured phonebook into one phonebook
+
+# empty phonebook table
+/usr/share/phonebooks/clean.php
+
+# Export nethcti phonebook if requested
+/usr/share/phonebooks/nethcti_export.php
+
+# Export nethvoice speeddial if requested
+/usr/share/phonebooks/speeddial_and_rapidcode_export.php
+
+# Export nethvoice extensions
+/usr/share/phonebooks/nethvoice_extensions_export.php
+
+# Load custom phonebooks
+for CUSTOM in $(find /etc/phonebook/sources.d/ -type f -name *.json); do
+        /usr/share/phonebooks/phonebook-import ${CUSTOM}
+done
+
+# Execute all custom scripts
+for i in $(find /usr/share/phonebooks/scripts/); do
+        if [ -f $i ] && [ -x $i ]; then
+                $i
+        fi
+done
+
+# Execute all custom post scripts
+for i in $(find /usr/share/phonebooks/post_scripts/); do
+        if [ -f $i ] && [ -x $i ]; then
+                $i
+        fi
+done
+
