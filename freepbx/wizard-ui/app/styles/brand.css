@@ -50,6 +50,21 @@ html {
   border: 2px solid #10b981;
 }
 
+.no-border {
+  border: none !important;
+}
+
+.mobile-icon-md {
+  background-color: transparent !important;
+  height: 30px !important;
+  line-height: 30px !important;
+  width: 30px !important;
+}
+
+.mobile-icon-md-with-border {
+  font-size: 18px !important;
+}
+
 .card-pf-view .card-pf-top-element .card-pf-icon-circle {
   border: 2px solid #10b981;
 }

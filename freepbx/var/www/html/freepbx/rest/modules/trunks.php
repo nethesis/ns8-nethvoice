@@ -51,6 +51,7 @@ $app->get('/trunks', function (Request $request, Response $response, $args) {
             // Get trunk username
             $details = FreePBX::Core()->getTrunkDetails($trunk['trunkid']);
             $trunk['username'] = $details['username'];
+            $trunk['details'] = $details;
             array_push($result, $trunk);
         }
         return $response->withJson($result,200);

@@ -144,8 +144,8 @@ function nethcti3_get_config_late($engine) {
     global $db;
     switch($engine) {
         case "asterisk":
-        /* Change CF for CTI voicemail status */
-        $ext->replace('macro-dial-one', 'cf', '2', new ext_execif('$["${DB(AMPUSER/${DB_RESULT}/cidnum)}" == "" && "${DB_RESULT:0:2}" != "vm"]', 'Set','__REALCALLERIDNUM=${DEXTEN}'));
+            /* Change CF for CTI voicemail status */
+            $ext->replace('macro-dial-one', 'cf', '2', new ext_execif('$["${DB(AMPUSER/${DB_RESULT}/cidnum)}" == "" && "${DB_RESULT:0:2}" != "vm"]', 'Set','__REALCALLERIDNUM=${DEXTEN}'));
 
             /* Use main extension on login/logout/pause*/
             if (!empty(\FreePBX::Queues()->listQueues())) {
@@ -196,6 +196,18 @@ function nethcti3_get_config_late($engine) {
             if ($add_unset_topos) {
                 $ext->splice('macro-dial-one', 's', 'setexttocall', new ext_gosub(1,'s','func-set-sipheader', 'topos,unset'), '', 1);
             }
+        /* Add isTrunk for non encrypted extensions */
+        // extensions with encryption disabled on wizard
+        $sql = "SELECT extension FROM rest_devices_phones WHERE srtp = 0 AND type = 'physical'";
+        $stmt = $db->prepare($sql);
+        $stmt->execute();
+        $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $no_srtp_extensions = array_column($res, 'extension');
+        if (!empty($no_srtp_extensions)) {
+            // add isTrunk header before the Dial() in macro-dial-one
+            $ext->splice('macro-dial-one', 's', 'dial', new ext_gosubif('$[${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${DEXTEN})}]', 'func-set-sipheader,s,1', false, 'isTrunk,1'), 'extdisablesrtp',0);
+        }
+
         /* Add inboundlookup agi for each inbound routes*/
         $dids = FreePBX::Core()->getAllDIDs();
         if (!empty($dids)) {
