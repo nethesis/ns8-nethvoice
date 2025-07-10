@@ -158,11 +158,10 @@ images+=("${repobase}/${reponame}")
 ##########################
 echo "[*] Build Satellite container"
 reponame="nethvoice-satellite"
-pushd satellite
-buildah build --force-rm --layers --jobs "$(nproc)" \
-	--tag "${repobase}/${reponame}" \
-	--tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
-popd
+container=$(buildah from ghcr.io/nethesis/satellite:v0.0.1)
+# Commit the image
+buildah commit "${container}" "${repobase}/${reponame}"
+buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
 # Append the image URL to the images array
 images+=("${repobase}/${reponame}")
 
