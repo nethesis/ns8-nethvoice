@@ -537,9 +537,8 @@ RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,
 RUN mv /etc/cron.daily/logrotate /etc/cron.hourly/logrotate
 
 # Install centralized phonebook update script and CSV upload path
-RUN mkdir -p /usr/share/phonebooks/ /var/lib/nethvoice/phonebook/uploads && \
-	chown asterisk:asterisk /var/lib/nethvoice/phonebook/uploads && \
-	curl -L https://github.com/nethesis/nethserver-phonebook-mysql/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=5 -C /usr/share/phonebooks/ nethserver-phonebook-mysql-ns8/root/usr/share/phonebooks
+COPY usr/share/phonebooks/ /usr/share/
+RUN mkdir -p /var/lib/nethvoice/phonebook/uploads && chown asterisk:asterisk /var/lib/nethvoice/phonebook/uploads
 
 # Overwrite Debian default vim mouse policy
 RUN echo "source \$VIMRUNTIME/defaults.vim\nset mouse-=a" >> /root/.vimrc
