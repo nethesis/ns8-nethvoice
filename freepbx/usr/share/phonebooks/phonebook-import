@@ -1,0 +1,447 @@
+#!/usr/bin/env python3
+import os, glob, sys, json, signal, logging, logging.handlers, mysql.connector, argparse, datetime
+import pyodbc
+import pycurl
+import csv
+import io
+import requests
+
+
+def signalHandler(sig, frame):
+  logger.critical('interrupted by SIGINT')
+  sys.exit(0)
+
+signal.signal(signal.SIGINT, signalHandler)
+
+def getDbConn(config):
+  if config['dbtype'] == 'mysql':
+    port = unixSocket = None
+    try:
+      port = int(config['port'])
+    except:
+      port = None
+      unixSocket = config['port']
+    try:
+      return mysql.connector.connect(host=config['host'], port=port, user=config['user'], password=config['password'], database=config['dbname'],charset='utf8')
+    except Exception as err:
+      logger.error(str(err))
+      return None
+  elif(config['dbtype'] == 'mssql'):
+    try:
+      port = int(config['port'])
+      return pyodbc.connect(driver=config['driver'], server=config['host'], port=port, uid=config['user'], pwd=config['password'], database=config['dbname'])
+    except Exception as err:
+      logger.error(str(err))
+      return None
+
+def syncSourceDB(path, output, deleteonly):
+  with open(path, 'r') as sourceFile:
+    sConfig = json.load(sourceFile)
+  sid = next(iter(sConfig))
+  dbSource = getDbConn(sConfig[sid])
+  if dbSource != None:
+    logger.debug('source "' + sid + '" connection (' + sConfig[sid]['dbname'] + '): ok')
+  else:
+    logger.error('source "' + sid + '" connection (' + sConfig[sid]['dbname'] + '): failed')
+    sys.exit(1)
+  curSource = dbSource.cursor()
+  if output == True:
+    curSource.execute(sConfig[sid]['query'])
+    rows = curSource.fetchall()
+    cols = tuple([i[0] for i in curSource.description])
+    res = []
+    for row in rows:
+      temp = {}
+      for i, el in enumerate(row):
+        temp[cols[i]] = el
+      res.append(temp)
+    if len(res) == 0:
+      temp = {}
+      for x in cols:
+        temp[x] = ''
+      res.append(temp)
+    json.dump(res, sys.stdout)
+    logger.info('write ' + str(len(rows)) + ' entries to std output')
+    logger.info('end ' + ('check of' if output == True else '') + ' source import of ' + path + ' into phonebook.phonebook')
+    curSource.close()
+    dbSource.close()
+    return
+  try:
+      dConfig = {
+                "dbtype": "mysql",
+                "host": os.environ['PHONEBOOK_DB_HOST'],
+                "port": os.environ['PHONEBOOK_DB_PORT'],
+                "user": os.environ['PHONEBOOK_DB_USER'],
+                "password": os.environ['PHONEBOOK_DB_PASS'],
+                "dbname": os.environ['PHONEBOOK_DB_NAME'],
+                "dbtable": 'phonebook'
+                }
+  except Exception as err:
+    logger.error(str(err))
+    sys.exit(1)
+  dbDest = getDbConn(dConfig)
+  if dbDest != None:
+    logger.debug('destination db connection ("phonebook"): ok')
+  else:
+    logger.error('destination db connection ("phonebook"): failed')
+    sys.exit(1)
+  curDest = dbDest.cursor()
+  try:
+    delcount = curDest.execute('DELETE FROM ' + dConfig['dbtable'] + ' WHERE sid_imported="{}"'.format(sid))
+    logger.info('clean destination: removed ' + str(delcount) + ' entries from ' + dConfig['dbname'] + '.' + dConfig['dbtable'] + ' with sid_imported="' + sid + '"')
+    if deleteonly == True:
+      return
+  except Exception as err:
+    logger.error('cleaning destination: removing entries from ' + dConfig['dbname'] + '.' + dConfig['dbtable'] + ' with sid_imported="' + sid + '"')
+    logger.error(str(err))
+  curSource.execute(sConfig[sid]['query'])
+  toTransfer = curSource.rowcount
+  curSource.fetchall()
+
+  curSource.close()
+  logger.debug('synchronizing source "' + sid + '" (' + str(toTransfer) + ' entries)...')
+  start = datetime.datetime.now().replace(microsecond=0)
+  sourceCols = list(sConfig[sid]['mapping'].keys())
+  destCols = list(sConfig[sid]['mapping'].values())
+  destCols.append('sid_imported')
+
+  curSource = dbSource.cursor()
+  curSource.execute(sConfig[sid]['query'])
+  row=curSource.fetchone()
+  importedCount=0
+  errCount=0
+
+  if sConfig[sid]['type'] != None:
+    destCols.append('type')
+  percents = ('%s, ' * len(destCols))[:-2]
+
+  # Since now row isn't a dict, save columns name to convert it into a dict if it is needed in the while loop
+  if(sConfig[sid]['dbtype'] == 'mysql'):
+    columns = [col[0] for col in curSource.description]
+
+  while row is not None:
+    values = []
+    # convert row from tuple to dict if type is mysql
+    if(sConfig[sid]['dbtype'] == 'mysql'):
+      row = {columns[i]: row[i] for i in range(len(columns))}
+
+    for el in sourceCols:
+      if(sConfig[sid]['dbtype'] == 'mysql'):
+        values.append(row[el])
+      elif(sConfig[sid]['dbtype'] == 'mssql'):
+        values.append(row.__getattribute__(el))
+
+    # Append sid_imported
+    values.append(str(sid))
+
+    # Append type
+    if sConfig[sid]['type'] != None:
+      values.append(str(sConfig[sid]['type']))
+    else:
+      values.append('custom')
+
+    sql = 'INSERT INTO ' + dConfig['dbtable'] + ' (' + ','.join(destCols) + ') VALUES (' + percents + ')'
+
+    try:
+      curDest.execute(sql, tuple(values))
+      importedCount += 1
+    except Exception as err:
+      errCount += 1
+      logger.error('copying entry "' + str(row) + '"')
+      logger.error(str(err))
+    dbDest.commit()
+    row = curSource.fetchone()
+  end = datetime.datetime.now().replace(microsecond=0)
+  percent = str(importedCount*100/toTransfer) if toTransfer > 0 else '0'
+  logger.info('source "' + sid + '" imported ' + percent + '%: ' + str(importedCount) + ' imported - ' + str(errCount) + ' errors - ' + str(toTransfer) + ' tot - duration ' + str(end-start))
+  curSource.close()
+  curDest.close()
+  dbSource.close()
+  dbDest.close()
+  logger.info('end source import of ' + path + ' into phonebook.phonebook')
+
+def extractArgsDbParams(data):
+  result = {}
+  for arg in data:
+    result[arg.split('=')[0]] = arg.split('=')[1]
+  return result
+
+def syncSourceCsv(path, output, deleteonly):
+  with open(path, 'r') as sourceFile:
+    sConfig = json.load(sourceFile)
+
+  sid = next(iter(sConfig))
+  crl = pycurl.Curl()
+
+  crl.setopt(crl.URL, str(sConfig[sid]['url']))
+
+  b_obj = io.BytesIO()
+  crl.setopt(crl.WRITEFUNCTION, b_obj.write)
+
+  crl.setopt(crl.FAILONERROR, 1)
+  crl.setopt(crl.FOLLOWLOCATION, 1)
+  crl.setopt(crl.MAXREDIRS, 5)
+
+  try:
+    crl.perform()
+    s_obj = io.StringIO(b_obj.getvalue().decode('utf-8'))
+    logger.debug('source "' + sid + '" connection (' + sConfig[sid]['url'] + '): ok')
+  except Exception as err:
+    logger.error('source "' + sid + '" connection (' + sConfig[sid]['url'] + '): failed')
+    logger.error(str(err))
+    sys.exit(1)
+  finally:
+    crl.close()
+
+  s_obj.seek(0)
+
+  df = []
+  sample = s_obj.readline()
+  s_obj.seek(0)
+  dialect = csv.Sniffer().sniff(sample)
+  if (not csv.Sniffer().has_header(sample)):
+    logger.warn('CSV doesn\'t have a valid header!')
+  csvr = csv.reader(s_obj, dialect=dialect)
+  header = next(csvr, None)
+  for row in csvr:
+    r = {}
+    for idx,item in enumerate(row):
+        r[header[idx]] = item
+    df.append(r)
+
+  if output == True:
+    json.dump(df, sys.stdout)
+    logger.info('end ' + ('check of' if output == True else '') + ' source import of ' + path + ' into phonebook.phonebook')
+    return
+
+  try:
+      dConfig = {
+                "dbtype": "mysql",
+                "host": os.environ['PHONEBOOK_DB_HOST'],
+                "port": os.environ['PHONEBOOK_DB_PORT'],
+                "user": os.environ['PHONEBOOK_DB_USER'],
+                "password": os.environ['PHONEBOOK_DB_PASS'],
+                "dbname": os.environ['PHONEBOOK_DB_NAME'],
+                "dbtable": 'phonebook'
+                }
+  except Exception as err:
+    logger.error(str(err))
+    sys.exit(1)
+
+  dbDest = getDbConn(dConfig)
+  if dbDest != None:
+    logger.debug('destination db connection ("phonebook"): ok')
+  else:
+    logger.error('destination db connection ("phonebook"): failed')
+    sys.exit(1)
+
+  curDest = dbDest.cursor()
+
+  try:
+    delcount = curDest.execute('DELETE FROM ' + dConfig['dbtable'] + ' WHERE sid_imported="{}"'.format(sid))
+    logger.info('clean destination: removed ' + str(delcount) + ' entries from ' + dConfig['dbname'] + '.' + dConfig['dbtable'] + ' with sid_imported="' + sid + '"')
+    if deleteonly == True:
+      return
+  except Exception as err:
+    logger.error('cleaning destination: removing entries from ' + dConfig['dbname'] + '.' + dConfig['dbtable'] + ' with sid_imported="' + sid + '"')
+    logger.error(str(err))
+
+  toTransfer = len(df)
+
+  logger.debug('synchronizing source "' + sid + '" (' + str(toTransfer) + ' entries)...')
+
+  start = datetime.datetime.now().replace(microsecond=0)
+
+  sourceCols = sConfig[sid]['mapping'].keys()
+  destCols = list(sConfig[sid]['mapping'].values())
+  destCols.append('sid_imported')
+
+  if sConfig[sid]['type'] != None:
+    destCols.append('type')
+
+  importedCount = 0
+  errCount = 0
+
+  percents = ('%s, ' * len(destCols))[:-2]
+  for row in df:
+    values = []
+    for el in sourceCols:
+      if el in row:
+        values.append(row[el])
+      else:
+        values.append('')
+    values.append(str(sid))
+    if sConfig[sid]['type'] != None:
+      values.append(str(sConfig[sid]['type']))
+    sql = 'INSERT INTO ' + dConfig['dbtable'] + ' (' + ','.join(destCols) + ') VALUES (' + percents + ')'
+    try:
+      curDest.execute(sql, tuple(values))
+      importedCount += 1
+    except Exception as err:
+      errCount += 1
+      logger.error('copying entry "' + str(row) + '"')
+      logger.error(str(err))
+    dbDest.commit()
+  end = datetime.datetime.now().replace(microsecond=0)
+  percent = str(importedCount*100/toTransfer) if toTransfer > 0 else '0'
+  logger.info('source "' + sid + '" imported ' + percent + '%: ' + str(importedCount) + ' imported - ' + str(errCount) + ' errors - ' + str(toTransfer) + ' tot - duration ' + str(end-start))
+  curDest.close()
+  dbDest.close()
+  logger.info('end source import of ' + path + ' into phonebook.phonebook')
+
+# Sync contacts using infinity API
+def syncSourceInfinity(url, username, password, deleteonly):
+	# Get authentication token
+	token_url = f"{url}/servlet/oauth/token"
+	auth = (username, password)
+	token_body = {
+		"scope": "logintoken"
+	}
+	try:
+		token_response = requests.post(token_url, auth=auth, data=token_body)
+		if token_response.status_code != 200:
+			raise Exception('Failed to get token from ' + token_url + ' with status code ' + str(token_response.status_code))
+		token = token_response.json()['access_token']
+		token = token_response.json().get("access_token")
+		if not token:
+			raise Exception('No token found in response from ' + url)
+		logger.debug('Got bearer token from ' + url)
+		# Get contacts using token
+		contact_url = f"{url}/servlet/api/v1/gsfr_fgetaddress_wsapi/"
+		headers = {
+			"Authorization": f"Bearer {token}"
+		}
+		contact_response = requests.get(contact_url, headers=headers)
+		if contact_response.status_code != 200:
+			raise Exception('Failed to get contacts from ' + url + ' with status code ' + str(contact_response.status_code))
+		contacts = contact_response.json()['data']
+		logger.debug(f'Got {len(contacts)} contacts from {url}')
+		dConfig = {
+                "dbtype": "mysql",
+                "host": os.environ['PHONEBOOK_DB_HOST'],
+                "port": os.environ['PHONEBOOK_DB_PORT'],
+                "user": os.environ['PHONEBOOK_DB_USER'],
+                "password": os.environ['PHONEBOOK_DB_PASS'],
+                "dbname": os.environ['PHONEBOOK_DB_NAME'],
+                "dbtable": 'phonebook'
+                }
+		dbDest = getDbConn(dConfig)
+		if dbDest != None:
+			logger.debug('destination db connection ("phonebook"): ok')
+		else:
+			raise Exception('destination db connection ("phonebook"): failed')
+		curDest = dbDest.cursor()
+		sid = 'infinity'
+		delcount = curDest.execute('DELETE FROM ' + dConfig['dbtable'] + ' WHERE sid_imported="{}"'.format(sid))
+		logger.info('clean destination: removed ' + str(delcount) + ' entries from ' + dConfig['dbname'] + '.' + dConfig['dbtable'] + ' with sid_imported="' + sid + '"')
+		if deleteonly == True:
+			return
+		toTransfer = len(contacts)
+		logger.debug('synchronizing source "' + sid + '" (' + str(toTransfer) + ' entries)...')
+		start = datetime.datetime.now().replace(microsecond=0)
+		pb_contacts = []
+		for contact in contacts:
+			pb_contact = {}
+			if 'name' in contact:
+				pb_contact['name'] = contact['name']
+			if 'company' in contact:
+				pb_contact['company'] = contact['company']
+			if 'tel' in contact:
+				for tel in contact['tel']:
+					if 'type' in tel and tel['type'] == 'Cellulare' and not 'cellphone' in pb_contact:
+						pb_contact['cellphone'] = tel['number']
+					elif not 'workphone' in pb_contact:
+						pb_contact['workphone'] = tel['number']
+					else:
+						pb_contact['homephone'] = tel['number']
+			if 'mail' in contact:
+				for mail in contact['mail']:
+					if not 'workemail' in pb_contact:
+						pb_contact['workemail'] = mail['mail']
+					else:
+						pb_contact['homeemail'] = mail['mail']
+			if 'address' in contact:
+				pb_contact['workstreet'] = contact['address']
+			if 'office' in contact and contact['office'] != '':
+				pb_contact['notes'] = f'Office: {contact["office"]}'
+			if 'status' in contact and 'status' != '':
+				if not 'notes' in pb_contact:
+					pb_contact['notes'] = ''
+				if pb_contact['notes'] != '':
+					pb_contact['notes'] += ', '
+				pb_contact['notes'] += f'Status: {contact["status"]}'
+			pb_contact['sid_imported'] = sid
+			pb_contact['type'] = 'infinity'
+			pb_contacts.append(pb_contact)
+
+		importedCount = 0
+		errCount = 0
+		for pb_contact in pb_contacts:
+			values = []
+			insert_placeholder_format = ('%s, ' * len(pb_contact.keys()))[:-2]
+			for pb_contact_key in pb_contact.keys():
+				values.append(pb_contact[pb_contact_key])
+			sql = 'INSERT INTO ' + dConfig['dbtable'] + ' (' + ','.join(pb_contact.keys()) + ') VALUES (' + insert_placeholder_format + ')'
+			try:
+				curDest.execute(sql, tuple(values))
+				importedCount += 1
+			except Exception as err:
+				errCount += 1
+				logger.error('copying entry "' + str(pb_contact) + '"')
+				logger.error(str(err))
+			dbDest.commit()
+		curDest.close()
+		dbDest.close()
+		end = datetime.datetime.now().replace(microsecond=0)
+		percent = str(importedCount*100/toTransfer) if toTransfer > 0 else '0'
+		logger.info('source "' + sid + '" imported ' + percent + '%: ' + str(importedCount) + ' imported - ' + str(errCount) + ' errors - ' + str(toTransfer) + ' tot - duration ' + str(end-start))
+		logger.info('end source import of ' + url + ' into phonebook.phonebook')
+	except Exception as err:
+		logger.error(str(err))
+		sys.exit(1)
+
+if __name__ == '__main__':
+  descr = 'MySQL and CSV Phonebook importer. Imports contacts from a MySQL database (or CSV) source into phonebook.phonebook database. Destination log is syslog.'
+  parser = argparse.ArgumentParser(description=descr)
+  parser.add_argument('source_path', help='absolute path of the source json configuration file')
+  parser.add_argument('-lw', '--log_warning', action='store_true', help='enable only warning log messages in syslog')
+  parser.add_argument('-lv', '--log_verbose', action='store_true', help='enable debug log level in syslog')
+  parser.add_argument('-v', '--verbose', action='store_true', help='enable console debug')
+  parser.add_argument('-c', '--check', action='store_true', help='it causes the writing of query results to standard output in JSON format instead of executing the database synchronization. Has more priority than deleteonly')
+  parser.add_argument('-d', '--deleteonly', action='store_true', help='just delete entries from this configuration')
+  args = parser.parse_args()
+  logger = logging.getLogger(__name__)
+  logger.setLevel(logging.DEBUG)
+  cHandler = logging.StreamHandler()
+  syslogHandler = logging.handlers.SysLogHandler(address = '/dev/log')
+  cHandler.setLevel(logging.DEBUG if args.verbose == True else logging.NOTSET)
+  syslogHandler.setLevel(logging.INFO if args.log_warning == False else logging.WARNING)
+  logFormat = logging.Formatter('[%(process)s] %(levelname)s: %(message)s', datefmt='%d-%b-%y %H:%M:%S')
+  cHandler.setFormatter(logFormat)
+  syslogHandler.setFormatter(logFormat)
+  if args.verbose == True:
+    logger.addHandler(cHandler)
+  logger.addHandler(syslogHandler)
+  if args.source_path:
+    logger.info('start ' + ('check of' if args.check == True else '') + ' source import of ' + args.source_path + ' into phonebook.phonebook')
+    try:
+      logger.debug('reading ' + args.source_path)
+      with open(args.source_path, 'r') as sourceFile:
+        sConfig = json.load(sourceFile)
+    except Exception as err:
+      logger.error('reading ' + args.source_path)
+      logger.error(str(err))
+      sys.exit(1)
+    sid = next(iter(sConfig))
+    logger.debug(args.source_path + ' has "' + sid + '" source')
+    if not sConfig[sid]['enabled']:
+      logger.info(sid + ' is disabled')
+      sys.exit(0)
+    if sConfig[sid]['dbtype'] == 'mysql' or sConfig[sid]['dbtype'] == 'mssql':
+      syncSourceDB(args.source_path, args.check, args.deleteonly)
+    elif sConfig[sid]['dbtype'] == 'csv':
+      syncSourceCsv(args.source_path, args.check, args.deleteonly)
+    elif sConfig[sid]['dbtype'] == 'infinity':
+        syncSourceInfinity(sConfig[sid]['url'], sConfig[sid]['username'], sConfig[sid]['password'], args.deleteonly)
+  else:
+    parser.print_help()
