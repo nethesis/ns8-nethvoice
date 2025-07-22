@@ -1,4 +1,4 @@
-#!/usr/bin/php -q
+#!/usr/bin/env php
 <?php
 
 #
@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-$DEBUG = isset(getenv('DEBUG')) ? getenv('DEBUG') : false;
+$DEBUG = null !== getenv('DEBUG') ? getenv('DEBUG') : false;
 $source_name = 'vtiger';
 
 $sourcedb = new PDO(

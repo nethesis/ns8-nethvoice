@@ -3,9 +3,9 @@
 /****************************
 *  Business DB credentials  *
 *****************************/
-$dsn="dblib:host=192.168.100.1\SQLEXPRESS;port=1433;dbname=TDS;version=7.4;charset=UTF-8";
-$user="sa";
-$pass="nts";
+$dsn="dblib:host=192.168.1.100\SQLEXPRESS;port=1433;dbname=TDS;version=7.4;charset=UTF-8";
+$user="USER";
+$pass="PASSWORD";
 /****************************/
 
 $phonebookDB = new PDO(
@@ -18,6 +18,8 @@ $mssqlDB = new PDO($dsn, $user, $pass, [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
+
+$code = 0;
 
 // Remove Business contacts from centralized phonebook
 try {

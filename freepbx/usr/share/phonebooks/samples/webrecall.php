@@ -1,4 +1,4 @@
-#!/usr/bin/php -q
+#!/usr/bin/env php
 <?php
 
 #
@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-$DEBUG = isset(getenv('DEBUG')) ? getenv('DEBUG') : false;
+$DEBUG = null !== getenv('DEBUG') ? getenv('DEBUG') : false;
 $source_name = 'webrecall';
 
 $sourcedb = new PDO(
@@ -69,12 +69,12 @@ while($row = $sth->fetch(\PDO::FETCH_ASSOC)) {
 		'',			#workemail
                 '',			#homephone
 		preg_replace("/^00/","+",preg_replace("/[^0-9+]/","",$row['tel'])),		#workphone
-		preg_replace("/^00/","+",preg_replace("/[^0-9+]/","",$row['cell'])),            #cellphone
+		'',                      #cellphone
 		preg_replace("/^00/","+",preg_replace("/[^0-9+]/","",$row['fax'])),     	#fax,
                 '',             	#title
                 $row['azienda'],        #company
                 '',             	#notes
-                $row['cognome']." ".$row['nome'],		#name
+                '',		        #name
                 '',             	#homestreet
                 '',             	#homepob
                 '',             	#homecity            
