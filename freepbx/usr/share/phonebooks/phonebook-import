@@ -364,7 +364,7 @@ def syncSourceInfinity(url, username, password, deleteonly):
 				pb_contact['workstreet'] = contact['address']
 			if 'office' in contact and contact['office'] != '':
 				pb_contact['notes'] = f'Office: {contact["office"]}'
-			if 'status' in contact and 'status' != '':
+			if 'status' in contact and contact['status'] != '':
 				if not 'notes' in pb_contact:
 					pb_contact['notes'] = ''
 				if pb_contact['notes'] != '':
