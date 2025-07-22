@@ -201,7 +201,9 @@ RUN groupadd -g 991 -r asterisk && \
 		libsnmp40 \
 		libical3 \
 		sqlite3 \
-		unixodbc-dev
+		unixodbc-dev \
+		freetds-dev \
+		freetds-bin
 
 
 # Copy Asterisk files
@@ -501,6 +503,9 @@ RUN pip install mysql-connector-python configparser
 # Use PHP development ini configuration and enable logging on syslog
 COPY usr/local/etc/php/php.ini /usr/local/etc/php/php.ini
 
+# create link to library for building php pdo_dblib
+ln -s /usr/lib/x86_64-linux-gnu/libsybdb.so /usr/lib/libsybdb.so
+
 # Install php additional modules
 RUN docker-php-source extract && \
 	docker-php-ext-configure pdo_mysql && docker-php-ext-install pdo_mysql && \
@@ -509,6 +514,7 @@ RUN docker-php-source extract && \
 	docker-php-ext-configure sysvsem && docker-php-ext-install sysvsem && \
 	docker-php-ext-configure pdo_odbc --with-pdo-odbc=unixODBC,/usr && docker-php-ext-install pdo_odbc && \
 	docker-php-ext-configure sockets && docker-php-ext-install sockets && \
+	docker-php-ext-configure pdo_dblib && docker-php-ext-install pdo_dblib && \
 	docker-php-source delete
 
 # Install nethvoice-wizard-restapi and nethvoice-wizard-ui
