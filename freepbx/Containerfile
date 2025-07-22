@@ -504,7 +504,7 @@ RUN pip install mysql-connector-python configparser
 COPY usr/local/etc/php/php.ini /usr/local/etc/php/php.ini
 
 # create link to library for building php pdo_dblib
-ln -s /usr/lib/x86_64-linux-gnu/libsybdb.so /usr/lib/libsybdb.so
+RUN ln -s /usr/lib/x86_64-linux-gnu/libsybdb.so /usr/lib/libsybdb.so
 
 # Install php additional modules
 RUN docker-php-source extract && \
