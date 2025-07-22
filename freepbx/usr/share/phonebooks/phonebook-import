@@ -200,7 +200,7 @@ def syncSourceCsv(path, output, deleteonly):
   s_obj.seek(0)
   dialect = csv.Sniffer().sniff(sample)
   if (not csv.Sniffer().has_header(sample)):
-    logger.warn('CSV doesn\'t have a valid header!')
+    logger.warning('CSV doesn\'t have a valid header!')
   csvr = csv.reader(s_obj, dialect=dialect)
   header = next(csvr, None)
   for row in csvr:
