@@ -1,30 +1,23 @@
-#!/usr/bin/php -q
+#!/usr/bin/env php
 <?php
 /****************************
 *  Business DB credentials  *
 *****************************/
-$dsn="business";
+$dsn="dblib:host=192.168.100.1\SQLEXPRESS;port=1433;dbname=TDS;version=7.4;charset=UTF-8";
 $user="sa";
 $pass="nts";
 /****************************/
 
-$code = 0;
-
-// Get NethServer phonebook database credentials
-exec('perl -e \'use NethServer::Password; my $password = NethServer::Password::store(\'PhonebookDBPasswd\')  ; printf $password;\'',$out);
-$pbookpass = $out[0];
-
-// Connect to NethServer phonebook database
 $phonebookDB = new PDO(
-    'mysql:host=localhost;dbname=phonebook;charset=utf8',
-    'pbookuser',
-    $pbookpass);
+    'mysql:host='.getenv('PHONEBOOK_DB_HOST').';port='.getenv('PHONEBOOK_DB_PORT').';dbname='.getenv('PHONEBOOK_DB_NAME'),
+    getenv('PHONEBOOK_DB_USER'),
+    getenv('PHONEBOOK_DB_PASS'));
 
 // Connect to MSSQL using PDO odbc driver
-$mssqlDB = new PDO(
-    'odbc:'.$dsn,
-    $user,
-    $pass);
+$mssqlDB = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ]);
 
 // Remove Business contacts from centralized phonebook
 try {
@@ -99,4 +92,3 @@ while ($record = $sth->fetch(PDO::FETCH_ASSOC,PDO::FETCH_ORI_NEXT)) {
 }
 
 exit($code);
-
