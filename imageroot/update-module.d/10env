@@ -69,3 +69,24 @@ if os.getenv('ICEENFORCE') is None:
 
 if os.getenv('NETHCTI_PRIVACY_NUMBERS') is None:
     agent.set_env('NETHCTI_PRIVACY_NUMBERS', 'xxx')
+
+# Set middleware environment variables if not already set (for updates from versions without middleware)
+if os.getenv('NETHVOICE_MIDDLEWARE_PORT') is None:
+    # Allocate a new port for middleware if not set
+    allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
+    agent.set_env('NETHVOICE_MIDDLEWARE_PORT', str(allocated_ports[0]))
+    agent.set_env('NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS', '127.0.0.1:' + str(allocated_ports[0]))
+
+if os.getenv('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT') is None:
+    # Use existing NETHCTI_SERVER_API_PORT for API endpoint
+    agent.set_env('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT', '127.0.0.1:' + os.environ['NETHCTI_SERVER_API_PORT'])
+
+if os.getenv('NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT') is None:
+    # Use existing NETHCTI_SERVER_WS_PORT for WS endpoint
+    agent.set_env('NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT', '127.0.0.1:' + os.environ['NETHCTI_SERVER_WS_PORT'])
+
+if os.getenv('NETHVOICE_MIDDLEWARE_V1_PROTOCOL') is None:
+    agent.set_env('NETHVOICE_MIDDLEWARE_V1_PROTOCOL', 'http')
+
+if os.getenv('NETHVOICE_MIDDLEWARE_V1_WS_PATH') is None:
+    agent.set_env('NETHVOICE_MIDDLEWARE_V1_WS_PATH', '/socket.io')
