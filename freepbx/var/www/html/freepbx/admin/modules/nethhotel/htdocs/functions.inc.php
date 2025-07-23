@@ -901,7 +901,7 @@ function getDisabledRoomList()
 
 function getHotelCodes()
 {
-  $ret = sql("SELECT if(customcode='',defaultcode,customcode) as code, featurename as name from featurecodes where (modulename='nethhotel' or modulename='donotdisturb') and featurename in ('extra','configalarm','cleanroom','dnd_on','dnd_off','dnd_toggle','inspected_occupied','inspected_vacant')","getAll",DB_FETCHMODE_ASSOC);
+  $ret = sql("SELECT if(customcode='',defaultcode,customcode) as code, featurename as name from featurecodes where (modulename='nethhotel' or modulename='donotdisturb') and featurename in ('extra','configalarm','cleanroom','dnd_on','dnd_off','dnd_toggle','inspected_occupied','inspected_vacant','dirty_occupied')","getAll",DB_FETCHMODE_ASSOC);
 
   if(count($ret))
     return $ret;
