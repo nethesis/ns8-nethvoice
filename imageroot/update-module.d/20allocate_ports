@@ -17,6 +17,13 @@ if not hasattr(agent, 'allocate_ports'):
 # Read the env file, do not use real environment because it could be not updated
 env = agent.read_envfile('environment')
 
+# Set middleware environment variables if not already set (for updates from versions without middleware)
+if 'NETHVOICE_MIDDLEWARE_PORT' not in env:
+    # Allocate a new port for middleware if not set
+    allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
+    agent.set_env('NETHVOICE_MIDDLEWARE_PORT', str(allocated_ports[0]))
+    agent.set_env('NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS', '127.0.0.1:' + str(allocated_ports[0]))
+
 # Check:
 # skip allocation if the module has already allocated an extra port during an old update
 if not 'ASTERISK_RECORDING_SFTP_PORT' in env:

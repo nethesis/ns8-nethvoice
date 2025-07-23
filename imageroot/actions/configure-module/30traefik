@@ -93,11 +93,11 @@ response = agent.tasks.run(
     action='set-route',
     data={
         'instance': os.environ['MODULE_ID'] + '-server-api',
-        'url':  'http://127.0.0.1:' + os.environ["NETHVOICE_MIDDLEWARE_PORT"],
+        'url':  'http://127.0.0.1:' + os.environ["NETHCTI_SERVER_API_PORT"],
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
         'lets_encrypt': lets_encrypt,
         'host': os.environ["NETHVOICE_HOST"],
-        'path': '/api',
+        'path': '/webrest',
         'strip_prefix': True,
         'headers': {
             'response': {
@@ -115,11 +115,11 @@ response = agent.tasks.run(
     action='set-route',
     data={
         'instance': os.environ['MODULE_ID'] + '-cti-server-api',
-        'url':  'http://127.0.0.1:' + os.environ["NETHVOICE_MIDDLEWARE_PORT"],
+        'url':  'http://127.0.0.1:' + os.environ["NETHCTI_SERVER_API_PORT"],
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
         'lets_encrypt': lets_encrypt,
         'host': os.environ["NETHCTI_UI_HOST"],
-        'path': '/api',
+        'path': '/webrest',
         'strip_prefix': True,
         'headers': {
             'response': {
@@ -139,7 +139,7 @@ response = agent.tasks.run(
     action='set-route',
     data={
         'instance': os.environ['MODULE_ID'] + '-server-websocket',
-        'url':  'http://127.0.0.1:' + os.environ["NETHVOICE_MIDDLEWARE_PORT"] + os.environ["NETHVOICE_MIDDLEWARE_V1_WS_PATH"],
+        'url':  'http://127.0.0.1:' + os.environ["NETHCTI_SERVER_WS_PORT"] + '/socket.io',
         'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
         'lets_encrypt': lets_encrypt,
         'host': os.environ["NETHCTI_UI_HOST"],
@@ -166,6 +166,54 @@ response = agent.tasks.run(
         'lets_encrypt': lets_encrypt,
         'host': os.environ["NETHCTI_UI_HOST"],
         'path': '/janus',
+        'headers': {
+            'response': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': "true",
+                'Access-Control-Allow-Headers': '*'
+            }
+        }
+    },
+)
+agent.assert_exp(response['exit_code'] == 0)
+
+# CTI Wizard
+# Configure middleware API route on NETHVOICE_HOST
+response = agent.tasks.run(
+    agent_id=default_traefik_id,
+    action='set-route',
+    data={
+        'instance': os.environ['MODULE_ID'] + '-middleware-server-api',
+        'url':  'http://127.0.0.1:' + os.environ["NETHVOICE_MIDDLEWARE_PORT"],
+        'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
+        'lets_encrypt': lets_encrypt == 'True',
+        'host': os.environ["NETHVOICE_HOST"],
+        'path': '/api',
+        'strip_prefix': True,
+        'headers': {
+            'response': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': "true",
+                'Access-Control-Allow-Headers': '*'
+            }
+        }
+    },
+)
+agent.assert_exp(response['exit_code'] == 0)
+
+# CTI client
+# Configure middleware API route on NETHCTI_UI_HOST 
+response = agent.tasks.run(
+    agent_id=default_traefik_id,
+    action='set-route',
+    data={
+        'instance': os.environ['MODULE_ID'] + '-middleware-cti-server-api',
+        'url':  'http://127.0.0.1:' + os.environ["NETHVOICE_MIDDLEWARE_PORT"],
+        'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
+        'lets_encrypt': lets_encrypt == 'True',
+        'host': os.environ["NETHCTI_UI_HOST"],
+        'path': '/api',
+        'strip_prefix': True,
         'headers': {
             'response': {
                 'Access-Control-Allow-Origin': '*',
