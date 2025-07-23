@@ -334,7 +334,7 @@ function nethcti3_get_config_late($engine) {
                 '${CDR(cnum)}', # callerid
                 '${CDR(uniqueid)}', # starttime
                 '$[${EPOCH} - ${CDR(billsec)}]', # answertime
-                '${CDR(dst)}', # destination
+                '${CONNECTEDLINE(num)}', # destination
                 '${CDR(disposition)}', # disposition
                 '${CDR(lastapp)}', # lastapplication
                 '${CDR(billsec)}', # billableseconds
