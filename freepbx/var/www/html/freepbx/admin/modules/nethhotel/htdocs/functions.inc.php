@@ -692,7 +692,7 @@ function getReport($ext,$start="",$end="")
       if($i%2)
         $altrow=' class="altrow" ';
 
-      $dst_n= substr($result[1],count($options['prefix']));
+      $dst_n= substr($result[1],strlen($options['prefix']));
       $dst = $result[1];
       if(strlen($dst)>5) $dst=substr($dst, 0, -4)."XXXX";
       if(!isInternalCall($result[1]))
