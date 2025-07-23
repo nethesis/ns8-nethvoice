@@ -114,7 +114,7 @@ try {
 /*Remove prefix from dst*/
 $options = getOptions();
 if (isset($options['prefix'])&& $options['prefix']!='') {
-    $dst = substr($dst,count($options['prefix']));
+    $dst = substr($dst,strlen($options['prefix']));
 }
 
 $rate = findRate($dst, getAllRates());
