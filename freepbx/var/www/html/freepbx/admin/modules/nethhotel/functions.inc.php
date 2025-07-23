@@ -102,10 +102,10 @@ function nethhotel_get_config($engine) {
 	$fcc9->setDescription('Assegna alla camera, solo su FIAS, lo stato di ispezionata/occupata');
 	$fcc9->setDefault('971');
 	$fcc9->update();
-        $fcc10 = new featurecode('nethhotel', 'dirty_occupied');
-        $fcc10->setDescription('Assegna alla camera, solo su FIAS, lo stato di sporco/occupata');
-        $fcc10->setDefault('972');
-        $fcc10->update();
+	$fcc10 = new featurecode('nethhotel', 'dirty_occupied');
+	$fcc10->setDescription('Assegna alla camera, solo su FIAS, lo stato di sporco/occupata');
+	$fcc10->setDefault('972');
+	$fcc10->update();
 
         switch($engine) {
                 case "asterisk":
