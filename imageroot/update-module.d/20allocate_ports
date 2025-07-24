@@ -7,6 +7,7 @@
 
 # Allocate new port for sftp service
 import sys
+import os
 import agent
 
 if not hasattr(agent, 'allocate_ports'):
@@ -18,19 +19,78 @@ env = agent.read_envfile('environment')
 
 # Check:
 # skip allocation if the module has already allocated an extra port during an old update
-if 'ASTERISK_RECORDING_SFTP_PORT' in env:
-    sys.exit(0)
+if not 'ASTERISK_RECORDING_SFTP_PORT' in env:
+	# If there are still old FLEXYSIP ports allocated, use one of them (REDIS_FLEXISIP_PORT, FLEXISIP_PORT, FLEXISIP_SIP_PORT)
+	if 'REDIS_FLEXISIP_PORT' in env:
+		sftp_port = env['REDIS_FLEXISIP_PORT']
+		agent.unset_env('REDIS_FLEXISIP_PORT')
+		print(f"Reusing old FLEXYSIP port for SFTP: {sftp_port}", file=sys.stderr)
+	else:
+		# Allocate a new port
+		allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
+		sftp_port = allocated_ports[0]
+		print(f"New port allocated for SFTP: {sftp_port}", file=sys.stderr)
+	# Update the environment file: this will be used as flag to avoid re-allocating the port
+	agent.set_env('ASTERISK_RECORDING_SFTP_PORT', sftp_port)
 
-# If there are still old FLEXYSIP ports allocated, use one of them (REDIS_FLEXISIP_PORT, FLEXISIP_PORT, FLEXISIP_SIP_PORT)
-if 'REDIS_FLEXISIP_PORT' in env:
-	sftp_port = env['REDIS_FLEXISIP_PORT']
-	agent.unset_env('REDIS_FLEXISIP_PORT')
-	print(f"Reusing old FLEXYSIP port for SFTP: {sftp_port}", file=sys.stderr)
-else:
+# add port for asterisk ws
+if not 'ASTERISK_WS_PORT' in env:
+	if 'FLEXYSIP_PORT' in env:
+		ws_port = env['FLEXYSIP_PORT']
+		agent.unset_env('FLEXYSIP_PORT')
+		print(f"Reusing old FLEXYSIP port for Asterisk WS: {ws_port}", file=sys.stderr)
+	else:
+		# Allocate a new port
+		allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
+		ws_port = allocated_ports[0]
+		print(f"New port allocated for Asterisk WS: {ws_port}", file=sys.stderr)
+	# Update the environment file
+	agent.set_env('ASTERISK_WS_PORT', ws_port)
+
+# add port for SATELLITE MQTT
+if not 'SATELLITE_MQTT_PORT' in env:
+	if 'FLEXYSIP_SIP_PORT' in env:
+		mqtt_port = env['FLEXYSIP_SIP_PORT']
+		agent.unset_env('FLEXYSIP_SIP_PORT')
+		print(f"Reusing old FLEXYSIP port for SATELLITE MQTT: {mqtt_port}", file=sys.stderr)
+	else:
+		# Allocate a new port
+		allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
+		mqtt_port = allocated_ports[0]
+		print(f"New port allocated for SATELLITE MQTT: {mqtt_port}", file=sys.stderr)
+	# Update the environment file
+	agent.set_env('SATELLITE_MQTT_PORT', mqtt_port)
+
+# add port for HTTP REST API
+if not 'SATELLITE_HTTP_PORT' in env:
 	# Allocate a new port
 	allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
-	sftp_port = allocated_ports[0]
-	print(f"New port allocated for SFTP: {sftp_port}", file=sys.stderr)
+	http_port = allocated_ports[0]
+	print(f"New port allocated for SATELLITE HTTP: {http_port}", file=sys.stderr)
+	# Update the environment file
+	agent.set_env('SATELLITE_HTTP_PORT', http_port)
 
-# Update the environment file: this will be used as flag to avoid re-allocating the port
-agent.set_env('ASTERISK_RECORDING_SFTP_PORT', sftp_port)
+# Get RTP UDP port for SATELLITE
+# Since udp ports are not allocated by the core for historical reasons, we need to allocate them manually
+def allocate_rtp_ports_range(size):
+    """Allocate in "node_id" a RTP port range of the given "size" for
+        "module_id" RTP range goes from 10000 to 20000.
+    """
+    key_path = f'module/{os.environ["MODULE_ID"]}/rtp_ports_sequence'
+    prdb = agent.redis_connect(privileged=True)
+    # Setup lower limit to 20002
+    if not prdb.get(key_path):
+        prdb.set(key_path, '20002')
+    # Check overflow
+    if (size + int(prdb.get(key_path))) > 60002:
+        print(agent.SD_ERROR + "RTP range exhausted", file=sys.stderr)
+        sys.exit(3)
+    # Allocate RTP ports
+    seq = prdb.incrby(key_path, size)
+    agent.assert_exp(int(seq) > 0)
+    return (seq - size, seq - 1)
+
+if os.getenv('SATELLITE_RTP_PORT') is None:
+	satellite_rtp_port = allocate_rtp_ports_range(1)[0]
+	print(f"New port allocated for SATELLITE RTP: {satellite_rtp_port}", file=sys.stderr)
+	agent.set_env('SATELLITE_RTP_PORT', satellite_rtp_port)

@@ -82,7 +82,11 @@
     "nethcti_ui_host_format": "Must be a valid domain name be a valid domain name.",
     "set_rebranding": "Rebranding setup",
     "proxy_not_installed": "Nethvoice Proxy",
-    "proxy_not_installed_description": "The proxy needs to be installed before configuring NethVoice."
+    "proxy_not_installed_description": "The proxy needs to be installed before configuring NethVoice.",
+    "satellite_call_transcription_enabled": "Enable call transcription (Beta)",
+    "satellite_voicemail_transcription_enabled": "Enable voicemail transcription",
+    "deepgram_api_key": "Deepgram API Key",
+    "openai_api_key": "OpenAI API Key"
   },
   "warning": {
     "warning_title_message": "Warning"

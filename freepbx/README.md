@@ -103,6 +103,7 @@ Scripts are launched with the following arguments:
 18  called number (only available in the hangup script)
 19  called name (only available in the hangup script)
 
+
 ## Trunks without proxy
 
 By default, at container startup, trunks are configured to use the outbound proxy. But sometimes it's necessary to configure a different proxy or none. In this case, make sure that trunk name contains the string "custom". For instance, a trunk named "Foo", will have proxy overwritten at container startup, a trunk named "Foo_custom" will be left unchanged.
@@ -119,8 +120,19 @@ Its filename must be the name of the module .tar.gz. For instance, for installin
  ```
  The module will be reinstalled into container again at every restart of container
 
-# Hotel
+## Call transcription
 
+Call transcriptio uses https://github.com/nethesis/satellite to transcribe and summarize calls in real time using Deepgram and OpenAI APIs.
+
+To enable call transcription, you need to set the following settings on nethserver UI:
+
+- `DEEPGRAM_API_KEY` Deepgram API key
+- `OPENAI_API_KEY` OpenAI API key (Used for summarization, optional)
+- `SATELLITE_CALL_TRANSCRIPTION_ENABLED` to enable call transcription set to "True"
+- `SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED` to enable voicemail transcription set to "True"
+
+
+# Hotel
 NethVoice Hotel is installed and disabled by default. To enable it, set the following environment variables and restart FreePBX container:
 - `NETHVOICE_HOTEL` set to `True`
 
