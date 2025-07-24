@@ -21,6 +21,7 @@ ExecStart=/usr/bin/podman run \
     --volume=/dev/log:/dev/log \
     --network=host \
     --env-file=%S/state/passwords.env \
+    --env=BRAND_NAME=${BRAND_NAME} \
     --env=PRODUCT_NAME=${NETHCTI_PRODUCT_NAME} \
     --env=COMPANY_NAME=${NETHCTI_COMPANY_NAME} \
     --env=COMPANY_URL=${NETHCTI_COMPANY_URL} \

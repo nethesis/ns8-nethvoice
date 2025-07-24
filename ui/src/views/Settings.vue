@@ -192,6 +192,17 @@
                 <template slot="content">
                   <!-- Inputs -->
                   <NsTextInput
+                    :label="$t('settings.rebranding_brand_name')"
+                    v-model="form.rebranding_brand_name"
+                    placeholder="NethVoice"
+                    :disabled="loadingState || !proxy_installed"
+                    :invalid-message="error.rebranding_brand_name"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.rebranding_brand_name_tooltip") }}
+                    </template>
+                  </NsTextInput>
+                  <NsTextInput
                     :label="$t('settings.rebranding_navbar_logo_url')"
                     v-model="form.rebranding_navbar_logo_url"
                     placeholder="https://.."
@@ -429,6 +440,7 @@ export default {
         reports_international_prefix: "+39",
         timezone: "",
         rebranding_active: "",
+        rebranding_brand_name: "",
         rebranding_navbar_logo_url: "",
         rebranding_navbar_logo_dark_url: "",
         rebranding_login_background_url: "",
@@ -473,6 +485,7 @@ export default {
         user_domain: "",
         reports_international_prefix: "",
         timezone: "",
+        rebranding_brand_name: "",
         rebranding_navbar_logo_url: "",
         rebranding_navbar_logo_dark_url: "",
         rebranding_login_background_url: "",
@@ -682,6 +695,7 @@ export default {
       const config = taskAction.output;
 
       this.form.rebranding_active = config.rebranding_active;
+      this.form.rebranding_brand_name = config.rebranding_brand_name;
       this.form.rebranding_navbar_logo_url = config.rebranding_navbar_logo_url;
       this.form.rebranding_navbar_logo_dark_url =
         config.rebranding_navbar_logo_dark_url;
@@ -973,6 +987,7 @@ export default {
             action: taskActionRebranding,
             data: {
               rebranding_login_people: rebrandingLoginPeople,
+              rebranding_brand_name: this.form.rebranding_brand_name,
               rebranding_navbar_logo_url: this.form.rebranding_navbar_logo_url,
               rebranding_navbar_logo_dark_url:
                 this.form.rebranding_navbar_logo_dark_url,
@@ -1247,6 +1262,7 @@ export default {
       this.isDarkMode = true;
     },
     setAllClear() {
+      this.form.rebranding_brand_name = "";
       this.form.rebranding_navbar_logo_url = "";
       this.form.rebranding_navbar_logo_dark_url = "";
       this.form.rebranding_login_background_url = "";

@@ -5,6 +5,7 @@
     "description": "Set NethVoice rebranding",
     "examples": [
         {
+            "rebranding_brand_name": "NethVoice",
             "rebranding_login_people": "hide",
             "rebranding_navbar_logo_url": "https://upload.example.org/images/navbar.svg",
             "rebranding_navbar_logo_dark_url": "https://upload.example.org/images/navbar_dark.svg",
@@ -16,6 +17,7 @@
     ],
     "type": "object",
     "required": [
+        "rebranding_brand_name",
         "rebranding_login_people",
         "rebranding_navbar_logo_url",
         "rebranding_navbar_logo_dark_url",
@@ -25,6 +27,10 @@
         "rebranding_login_background_url"
     ],
     "properties": {
+        "rebranding_brand_name": {
+            "description": "NethVoice brand name",
+            "type": "string"
+        },
         "rebranding_login_people": {
             "description": "NethVoice rebranding show/hide people on login",
             "type": "string"

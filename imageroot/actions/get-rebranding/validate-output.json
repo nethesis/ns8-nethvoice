@@ -10,6 +10,10 @@
             "description": "Show if rebranding is active or not",
             "type": "boolean"
         },
+        "rebranding_brand_name": {
+            "description": "NethVoice brand name",
+            "type": "string"
+        },
         "rebranding_login_people": {
             "description": "NethVoice rebranding show/hide people on login",
             "type": "string"
