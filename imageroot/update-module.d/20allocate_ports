@@ -71,8 +71,26 @@ if not 'SATELLITE_HTTP_PORT' in env:
 	agent.set_env('SATELLITE_HTTP_PORT', http_port)
 
 # Get RTP UDP port for SATELLITE
+# Since udp ports are not allocated by the core for historical reasons, we need to allocate them manually
+def allocate_rtp_ports_range(size):
+    """Allocate in "node_id" a RTP port range of the given "size" for
+        "module_id" RTP range goes from 10000 to 20000.
+    """
+    key_path = f'module/{os.environ["MODULE_ID"]}/rtp_ports_sequence'
+    prdb = agent.redis_connect(privileged=True)
+    # Setup lower limit to 20002
+    if not prdb.get(key_path):
+        prdb.set(key_path, '20002')
+    # Check overflow
+    if (size + int(prdb.get(key_path))) > 60002:
+        print(agent.SD_ERROR + "RTP range exhausted", file=sys.stderr)
+        sys.exit(3)
+    # Allocate RTP ports
+    seq = prdb.incrby(key_path, size)
+    agent.assert_exp(int(seq) > 0)
+    return (seq - size, seq - 1)
+
 if os.getenv('SATELLITE_RTP_PORT') is None:
-	allocated_ports = agent.allocate_ports(1, "udp", keep_existing=True)
-	satellite_rtp_port = allocated_ports[0]
+	satellite_rtp_port = allocate_rtp_ports_range(1)[0]
 	print(f"New port allocated for SATELLITE RTP: {satellite_rtp_port}", file=sys.stderr)
 	agent.set_env('SATELLITE_RTP_PORT', satellite_rtp_port)
