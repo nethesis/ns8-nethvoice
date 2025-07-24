@@ -34,6 +34,7 @@ if 'system_id' in subscription:
 # compose config to return
 config = {
     'rebranding_active': rebranding_active,
+    'rebranding_brand_name': os.getenv('BRAND_NAME', ''),
     'rebranding_login_people': os.getenv('LOGIN_PEOPLE', ''),
     'rebranding_navbar_logo_url': os.getenv('NAVBAR_LOGO_URL', ''),
     'rebranding_navbar_logo_dark_url': os.getenv('NAVBAR_LOGO_DARK_URL', ''),

@@ -52,6 +52,8 @@
     "user_domain_selector": "User Domain Source",
     "reports_international_prefix": "Reports Prefix",
     "reports_international_prefix_tooltip": "Format must be either \"00**\" or \"+**\"",
+    "rebranding_brand_name": "Product name",
+    "rebranding_brand_name_tooltip": "Product name to replace instead of NethVoice",
     "rebranding_navbar_logo_url": "Navbar image in light theme",
     "rebranding_navbar_logo_url_tooltip": "Navbar image in light theme",
     "rebranding_navbar_logo_dark_url": "Navbar image in dark theme",

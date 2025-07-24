@@ -33,6 +33,8 @@ if 'system_id' in subscription:
 
     # check if rebrand is active
     if 'brand' in data:
+        getFromRequest(request, 'rebranding_brand_name', 'BRAND_NAME', '')
+
         getFromRequest(request, 'rebranding_login_people', 'LOGIN_PEOPLE', '')
 
         getFromRequest(request, 'rebranding_navbar_logo_url', 'NAVBAR_LOGO_URL', '')
