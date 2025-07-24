@@ -64,5 +64,9 @@ getFromRequest(request, 'satellite_voicemail_transcription_enabled', 'SATELLITE_
 getFromRequest(request, 'deepgram_api_key', 'DEEPGRAM_API_KEY', '')
 getFromRequest(request, 'openai_api_key', 'OPENAI_API_KEY', '')
 
+# set NETHCTI_CDR_SCRIPT to /usr/share/neth-hotel-fias/cdr.php if nethvoice_hotel_fias_address is set
+if request.get('nethvoice_hotel_fias_address', '') != '' and request.get('nethcti_cdr_script', '') == '':
+    agent.set_env('NETHCTI_CDR_SCRIPT', '/usr/share/neth-hotel-fias/cdr.php')
+
 # write the passwords.env file
 agent.write_envfile("passwords.env", passwordsfile)

@@ -201,7 +201,9 @@ RUN groupadd -g 991 -r asterisk && \
 		libsnmp40 \
 		libical3 \
 		sqlite3 \
-		unixodbc-dev
+		unixodbc-dev \
+		freetds-dev \
+		freetds-bin
 
 
 # Copy Asterisk files
@@ -384,7 +386,7 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 	mkdir -p /var/www/html/freepbx/admin/modules/queuemetrics && \
 	curl -sL https://github.com/nethesis/queuemetrics/archive/refs/tags/release/2.11.0.3.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queuemetrics && \
 	mkdir -p /var/www/html/freepbx/admin/modules/queues && \
-	curl -sL https://github.com/nethesis/freepbx-queues/archive/refs/tags/release/ns8/16.0.24-pl.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queues && \
+	curl -sL https://github.com/nethesis/freepbx-queues/archive/refs/tags/release/16.0.28.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/queues && \
 	mkdir -p /var/www/html/freepbx/admin/modules/rapidcode && \
 	curl -sL https://github.com/nethesis/RapidCode/archive/refs/tags/1.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/rapidcode && \
 	mkdir -p /var/www/html/freepbx/admin/modules/recordings && \
@@ -502,6 +504,9 @@ RUN pip install mysql-connector-python configparser
 # Use PHP development ini configuration and enable logging on syslog
 COPY usr/local/etc/php/php.ini /usr/local/etc/php/php.ini
 
+# create link to library for building php pdo_dblib
+RUN ln -s /usr/lib/x86_64-linux-gnu/libsybdb.so /usr/lib/libsybdb.so
+
 # Install php additional modules
 RUN docker-php-source extract && \
 	docker-php-ext-configure pdo_mysql && docker-php-ext-install pdo_mysql && \
@@ -509,6 +514,8 @@ RUN docker-php-source extract && \
 	ln -s /usr/lib/x86_64-linux-gnu/libldap.so /usr/lib/libldap.so && docker-php-ext-configure ldap && docker-php-ext-install ldap && \
 	docker-php-ext-configure sysvsem && docker-php-ext-install sysvsem && \
 	docker-php-ext-configure pdo_odbc --with-pdo-odbc=unixODBC,/usr && docker-php-ext-install pdo_odbc && \
+	docker-php-ext-configure sockets && docker-php-ext-install sockets && \
+	docker-php-ext-configure pdo_dblib && docker-php-ext-install pdo_dblib && \
 	docker-php-source delete
 
 # Install nethvoice-wizard-restapi and nethvoice-wizard-ui
@@ -537,9 +544,8 @@ RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,
 RUN mv /etc/cron.daily/logrotate /etc/cron.hourly/logrotate
 
 # Install centralized phonebook update script and CSV upload path
-RUN mkdir -p /usr/share/phonebooks/ /var/lib/nethvoice/phonebook/uploads && \
-	chown asterisk:asterisk /var/lib/nethvoice/phonebook/uploads && \
-	curl -L https://github.com/nethesis/nethserver-phonebook-mysql/archive/refs/heads/ns8.tar.gz -o - | tar xzp --strip-component=5 -C /usr/share/phonebooks/ nethserver-phonebook-mysql-ns8/root/usr/share/phonebooks
+COPY usr/share/phonebooks/ /usr/share/
+RUN mkdir -p /var/lib/nethvoice/phonebook/uploads && chown asterisk:asterisk /var/lib/nethvoice/phonebook/uploads
 
 # Overwrite Debian default vim mouse policy
 RUN echo "source \$VIMRUNTIME/defaults.vim\nset mouse-=a" >> /root/.vimrc

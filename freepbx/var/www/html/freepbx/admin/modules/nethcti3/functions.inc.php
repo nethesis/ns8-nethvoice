@@ -203,9 +203,12 @@ function nethcti3_get_config_late($engine) {
         $stmt->execute();
         $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         $no_srtp_extensions = array_column($res, 'extension');
+        // add FROMMACRODIALONE variable before the Dial() in macro-dial-one
+        $ext->splice('macro-dial-one', 's', 'dial', new ext_setvar('__FROMMACRODIALONE','1'), '',0);
         if (!empty($no_srtp_extensions)) {
-            // add isTrunk header before the Dial() in macro-dial-one
-            $ext->splice('macro-dial-one', 's', 'dial', new ext_gosubif('$[${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${DEXTEN})}]', 'func-set-sipheader,s,1', false, 'isTrunk,1'), 'extdisablesrtp',0);
+            // add isTrunk header to calls to extensions with encryption disabled
+            $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & x${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${CALLERID(num)})}x = x1x]', 'func-set-sipheader,s,1', false, 'isTrunk,1'), '',2);
+            $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & x${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${CALLERID(num)})}x = x0x]', 'func-set-sipheader,s,1', false, 'isTrunk,unset'), '',3);
         }
 
         /* Add inboundlookup agi for each inbound routes*/
@@ -331,7 +334,7 @@ function nethcti3_get_config_late($engine) {
                 '${CDR(cnum)}', # callerid
                 '${CDR(uniqueid)}', # starttime
                 '$[${EPOCH} - ${CDR(billsec)}]', # answertime
-                '${CDR(dst)}', # destination
+                '${CONNECTEDLINE(num)}', # destination
                 '${CDR(disposition)}', # disposition
                 '${CDR(lastapp)}', # lastapplication
                 '${CDR(billsec)}', # billableseconds

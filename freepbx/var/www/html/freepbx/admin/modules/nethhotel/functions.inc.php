@@ -102,6 +102,10 @@ function nethhotel_get_config($engine) {
 	$fcc9->setDescription('Assegna alla camera, solo su FIAS, lo stato di ispezionata/occupata');
 	$fcc9->setDefault('971');
 	$fcc9->update();
+	$fcc10 = new featurecode('nethhotel', 'dirty_occupied');
+	$fcc10->setDescription('Assegna alla camera, solo su FIAS, lo stato di sporco/occupata');
+	$fcc10->setDefault('972');
+	$fcc10->update();
         switch($engine) {
                 case "asterisk":
 			$configalarm2 = $fcc2->getCodeActive();
@@ -173,6 +177,14 @@ function nethhotel_get_config($engine) {
                             $ext->add($context, $inspected_occupied,'', new ext_noop('Room ${CALLERID(number):-3} status is now Inspected/Occupied'));
                             $ext->add($context, $inspected_occupied,'', new ext_playback('activated'));
                             $ext->add($context, $inspected_occupied,'', new ext_hangup());
+                        }
+                        $dirty_occupied = $fcc10->getCodeActive();
+                        if($dirty_occupied) {
+                            $context = 'camere';
+                            $ext->add($context, $dirty_occupied,'', new ext_system('/usr/share/neth-hotel-fias/re2pms.php ${CALLERID(number):-3} 2'));
+                            $ext->add($context, $dirty_occupied,'', new ext_noop('Room ${CALLERID(number):-3} status is now Dirty/Occupied'));
+                            $ext->add($context, $dirty_occupied,'', new ext_playback('activated'));
+                            $ext->add($context, $dirty_occupied,'', new ext_hangup());
                         }
                         $context = 'sveglia';
                         $ext->add($context, 's', '', new  ext_noop('Sveglia'));

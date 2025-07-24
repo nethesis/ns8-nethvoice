@@ -692,7 +692,7 @@ function getReport($ext,$start="",$end="")
       if($i%2)
         $altrow=' class="altrow" ';
 
-      $dst_n= substr($result[1],count($options['prefix']));
+      $dst_n= substr($result[1],strlen($options['prefix']));
       $dst = $result[1];
       if(strlen($dst)>5) $dst=substr($dst, 0, -4)."XXXX";
       if(!isInternalCall($result[1]))
@@ -901,7 +901,7 @@ function getDisabledRoomList()
 
 function getHotelCodes()
 {
-  $ret = sql("SELECT if(customcode='',defaultcode,customcode) as code, featurename as name from featurecodes where (modulename='nethhotel' or modulename='donotdisturb') and featurename in ('extra','configalarm','cleanroom','dnd_on','dnd_off','dnd_toggle','inspected_occupied','inspected_vacant')","getAll",DB_FETCHMODE_ASSOC);
+  $ret = sql("SELECT if(customcode='',defaultcode,customcode) as code, featurename as name from featurecodes where (modulename='nethhotel' or modulename='donotdisturb') and featurename in ('extra','configalarm','cleanroom','dnd_on','dnd_off','dnd_toggle','inspected_occupied','inspected_vacant','dirty_occupied')","getAll",DB_FETCHMODE_ASSOC);
 
   if(count($ret))
     return $ret;
@@ -1148,6 +1148,9 @@ function _checkIn($room,$reservation='', $name='',$language='')
 
 function checkIn($room,$reservation='', $name='',$language='')
 {
+    if (empty($room)) {
+       return false;
+    }
     if (_checkIn($room,$reservation, $name,$language)){
         //fias feedback
         fias('RE2PMS', array(
