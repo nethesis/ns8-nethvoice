@@ -18,7 +18,6 @@ ExecStart=/usr/bin/podman run --conmon-pidfile %t/satellite-mqtt.pid \
 	--volume=mqtt_conf:/mosquitto/config:Z \
 	--network=host \
 	--tz=${TIMEZONE} \
-	--hostname=${NETHVOICE_HOST} \
 	${ECLIPSE_MOSQUITTO_IMAGE}
 
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/satellite-mqtt.ctr-id -t 10
