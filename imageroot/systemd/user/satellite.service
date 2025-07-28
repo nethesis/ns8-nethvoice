@@ -1,7 +1,7 @@
 [Unit]
 Description=Satellite call transcription for NethVoice
 Requires=satellite-mqtt.service
-After=satellite-mqtt.service get-certificate.service
+After=satellite-mqtt.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -27,7 +27,6 @@ ExecStart=runagent /usr/bin/podman run \
     --env=OPENAI_API_KEY \
     --env=HTTP_PORT=${SATELLITE_HTTP_PORT} \
     --tz=${TIMEZONE} \
-    --hostname=${NETHVOICE_HOST} \
     --network=host \
     ${NETHVOICE_SATELLITE_IMAGE}
 

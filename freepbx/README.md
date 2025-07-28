@@ -103,7 +103,6 @@ Scripts are launched with the following arguments:
 18  called number (only available in the hangup script)
 19  called name (only available in the hangup script)
 
-
 ## Trunks without proxy
 
 By default, at container startup, trunks are configured to use the outbound proxy. But sometimes it's necessary to configure a different proxy or none. In this case, make sure that trunk name contains the string "custom". For instance, a trunk named "Foo", will have proxy overwritten at container startup, a trunk named "Foo_custom" will be left unchanged.
