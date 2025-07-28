@@ -85,11 +85,9 @@ if os.getenv('SATELLITE_MQTT_USERNAME') is None:
     agent.set_env('SATELLITE_MQTT_USERNAME', 'satellite')
 
 # Add satellite password for updates in passwords.env if not already set
+passwordsfile = agent.read_envfile("passwords.env")
 if not 'SATELLITE_MQTT_PASSWORD' in agent.read_envfile('passwords.env'):
-    agent.write_envfile('passwords.env', {
-        'SATELLITE_MQTT_PASSWORD': gen_password()
-    })
+    passwordsfile['SATELLITE_MQTT_PASSWORD'] = gen_password()
 if not 'SATELLITE_ARI_PASSWORD' in agent.read_envfile('passwords.env'):
-    agent.write_envfile('passwords.env', {
-        'SATELLITE_ARI_PASSWORD': gen_password()
-    })
+    passwordsfile['SATELLITE_ARI_PASSWORD'] = gen_password()
+agent.write_envfile('passwords.env', passwordsfile)
