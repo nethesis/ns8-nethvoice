@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import agent
+
+
+rdb = agent.redis_connect(privileged=False)
+
+subscription = rdb.hgetall('cluster/subscription')
+
+passwordsfile = agent.read_envfile("passwords.env")
+
+# Check if the subscription hash table exists and if the provider is nsent
+if subscription and subscription['provider'] == "nsent":
+    # Get the subscription secret
+    # "SUBSCRIPTION_SECRET" written to passwords.env
+    passwordsfile["SUBSCRIPTION_SECRET"] = subscription['auth_token']
+    # Get subscription ID
+    agent.set_env("SUBSCRIPTION_SYSTEMID", subscription['system_id'])
+else:
+    # Unset the subscription secret
+    # "SUBSCRIPTION_SECRET"  written to passwords.env
+    passwordsfile["SUBSCRIPTION_SECRET"] = ""
+    # Unset subscription ID
+    agent.set_env("SUBSCRIPTION_SYSTEMID", "")
+
+agent.write_envfile("passwords.env", passwordsfile)
