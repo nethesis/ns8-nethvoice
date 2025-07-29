@@ -1574,6 +1574,7 @@ INSERT INTO `rest_pjsip_trunks_defaults` (`provider_id`,`keyword`,`data`) VALUES
 (29,"aor_contact",""),
 (29,"aors",""),
 (29,"auth_rejection_permanent","off"),
+(29,"auth_username",""),
 (29,"authentication","outbound"),
 (29,"client_uri",""),
 (29,"codecs","g729,ulaw,alaw"),
@@ -1603,6 +1604,7 @@ INSERT INTO `rest_pjsip_trunks_defaults` (`provider_id`,`keyword`,`data`) VALUES
 (29,"npanxx",""),
 (29,"outbound_proxy","sip:127.0.0.1:5060"),
 (29,"peerdetails",""),
+(29,"pjsip_line",'true'),
 (29,"qualify_frequency","60"),
 (29,"register",""),
 (29,"registration","send"),
@@ -1620,5 +1622,7 @@ INSERT INTO `rest_pjsip_trunks_defaults` (`provider_id`,`keyword`,`data`) VALUES
 (29,"t38_udptl_maxdatagram",""),
 (29,"t38_udptl_nat","no"),
 (29,"transport","0.0.0.0-udp"),
+(29,"trust_id_outbound","no"),
 (29,"trust_rpid","no"),
+(29,"user_eq_phone","no"),
 (29,"userconfig","");
