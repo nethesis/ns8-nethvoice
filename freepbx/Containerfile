@@ -543,7 +543,7 @@ RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,
 RUN mv /etc/cron.daily/logrotate /etc/cron.hourly/logrotate
 
 # Install centralized phonebook update script and CSV upload path
-COPY usr/share/phonebooks/ /usr/share/
+COPY usr/share/phonebooks /usr/share/phonebooks
 RUN mkdir -p /var/lib/nethvoice/phonebook/uploads && chown asterisk:asterisk /var/lib/nethvoice/phonebook/uploads
 
 # Overwrite Debian default vim mouse policy
