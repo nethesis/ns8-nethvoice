@@ -428,3 +428,13 @@ if (count($res) == 0 && !empty($_ENV['NETHVOICE_HOTEL']) && $_ENV['NETHVOICE_HOT
 	$stmt = $db->prepare($sql);
 	$stmt->execute([$hotel_profile_id]);
 }
+
+# Set default for extra_history
+$roomsdb = new \PDO('mysql:host=127.0.0.1;port='.$_ENV['NETHVOICE_MARIADB_PORT'].';dbname=roomsdb', $_ENV['AMPDBUSER'], $_ENV['AMPDBPASS']);
+$sql = 'ALTER TABLE `asterisk`.`extra_history` MODIFY COLUMN `number` int(3) NOT NULL DEFAULT 1';
+$stmt = $roomsdb->prepare($sql);
+$stmt->execute();
+
+$sql = 'ALTER TABLE `asterisk`.`extra_history` MODIFY COLUMN `checkout` tinyint(1) NOT NULL DEFAULT 0';
+$stmt = $roomsdb->prepare($sql);
+$stmt->execute();
