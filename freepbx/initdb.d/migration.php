@@ -379,6 +379,19 @@ if (count($res) == 0) {
 	");
 }
 
+// Update Nethvoice CTI permission for Satellite
+// Check if permission already exists
+$sql = "SELECT * FROM `rest_cti_permissions` WHERE `id` = 5000";
+$stmt = $db->prepare($sql);
+$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+// Add permission if not exists
+if (count($res) == 0) {
+	# Add permission
+	$db->query("INSERT INTO `rest_cti_permissions` VALUES (5000,'satellite_stt','Speech-To-Text','Calls transcription using Speech-To-Text')");
+	# Add permission to nethvoice cti macro permission
+	$db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`,`permission_id`) VALUES (12,5000)");
+}
+
 # Create hotel cti context if not exist and NETHVOICE_HOTEL environment variable is set
 # check if hotel profile exists
 $sql = 'SELECT id FROM `asterisk`.`rest_cti_profiles` WHERE name = "Hotel"';
