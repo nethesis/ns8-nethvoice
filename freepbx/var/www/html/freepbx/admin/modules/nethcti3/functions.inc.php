@@ -351,8 +351,16 @@ function nethcti3_get_config_late($engine) {
         if (!empty($_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED']) && $_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED'] == 'True') {
             // Add a call Satellite when call is answered in macro-dial-one adding it in D_OPTIONS variable
             $ext->splice('macro-dial-one','s','dial', new \ext_setvar('D_OPTIONS', '${D_OPTIONS}U(satellite^s^1)'),'', -1);
-            // Add call to Satellite macro in macro-dialout-trunk
-            $ext->splice('macro-dialout-trunk', 's', '', new \ext_setvar('DIAL_TRUNK_OPTIONS', '${DIAL_TRUNK_OPTIONS}U(satellite^s^1)'),'', 28);
+            // Add call to Satellite macro in macro-dialout-trunk if there is at least one route with at least one trunk
+            $routes = core_routing_list();
+            if (!empty($routes)) {
+                foreach (core_routing_list() as $route) {
+                    $routetrunks = core_routing_getroutetrunksbyid($route['route_id']);
+                    if (!empty($routetrunks)) {
+                        $ext->splice('macro-dialout-trunk', 's', '', new \ext_setvar('DIAL_TRUNK_OPTIONS', '${DIAL_TRUNK_OPTIONS}U(satellite^s^1)'),'', 28);
+                    }
+                }
+            }
             // Create the Satellite context
             $ext->add('satellite', 's', '', new \ext_noop('Satellite STT'));
             // TODO: add a check to see if the user is allowed to use the STT
