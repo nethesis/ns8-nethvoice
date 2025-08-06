@@ -465,7 +465,7 @@ export default {
         nethvoice_host: "",
         nethvoice_admin_password: "",
         nethcti_ui_host: "",
-        lets_encrypt: false,
+        lets_encrypt: true,
         user_domain: "",
         reports_international_prefix: "+39",
         timezone: "",
