@@ -643,7 +643,7 @@ function addExtra($ext,$id,$number,$less)
        $extras = sql ("SELECT name,price,code from roomsdb.extra where id='$id'","getAll");
        foreach($extras as $extra)
        {
-        $res = $db->query("INSERT INTO roomsdb.extra_history (extension,id,date,name,price,number) VALUES ('$ext','$id',now(),'$extra[0]','$extra[1]','$number')");
+        $res = $db->query("INSERT INTO roomsdb.extra_history (extension,id,date,name,price,number,checkout) VALUES ('$ext','$id',now(),'$extra[0]','$extra[1]','$number',0)");
         fias('MINIBAR2PMS', array(
             'DA' => date('ymd'),
             'TI' => date('His'),
@@ -872,7 +872,7 @@ function getTotalCost($ext)
 function assignExtra($tot,$ext)
 {
   global $db;
-      $res = $db->query("INSERT INTO roomsdb.extra_history (extension,id,date,name,price,number) VALUES ('$ext','9999',now(),'Cabina','$tot','1')");
+      $res = $db->query("INSERT INTO roomsdb.extra_history (extension,id,date,name,price,number,checkout) VALUES ('$ext','9999',now(),'Cabina','$tot','1',0)");
 
       if (@DB::isError($res))
       return false;
