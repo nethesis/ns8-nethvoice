@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Enable middleware service if it exists
+# This is needed when updating from a version without middleware to one with middleware
+# If the service doesn't exist, this command will simply fail without causing issues
+
+echo "Enabling nethcti-middleware service for middleware support"
+systemctl --user enable --now nethcti-middleware.service

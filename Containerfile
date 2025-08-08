@@ -22,7 +22,7 @@ COPY imageroot /imageroot
 COPY --from=ui_builder /app/dist /ui
 ENTRYPOINT [ "/" ]
 LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm,portsadm nethvoice-proxy@any:routeadm"
-LABEL org.nethserver.tcp-ports-demand="34"
+LABEL org.nethserver.tcp-ports-demand="35"
 LABEL org.nethserver.rootfull="0"
 LABEL org.nethserver.min-core="3.6.2-0"
 ARG REPOBASE=ghcr.io/nethserver
@@ -30,6 +30,7 @@ ARG IMAGETAG=latest
 LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \
     ${REPOBASE}/nethvoice-freepbx:${IMAGETAG} \
     ${REPOBASE}/nethvoice-cti-server:${IMAGETAG} \
+    ${REPOBASE}/nethvoice-cti-middleware:${IMAGETAG} \
     ${REPOBASE}/nethvoice-cti-ui:${IMAGETAG} \
     ${REPOBASE}/nethvoice-tancredi:${IMAGETAG} \
     ${REPOBASE}/nethvoice-janus:${IMAGETAG} \
