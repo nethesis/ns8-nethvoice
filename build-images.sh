@@ -87,7 +87,7 @@ images+=("${repobase}/${reponame}")
 ##    NethCTI Middleware   ##
 #############################
 reponame="nethvoice-cti-middleware"
-container=$(buildah from ghcr.io/nethesis/nethcti-middleware:v0.1.4)
+container=$(buildah from ghcr.io/nethesis/nethcti-middleware:latest)
 
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
