@@ -4,7 +4,7 @@
 #
 [Unit]
 Description=tancredi server
-Require=freepbx.service
+Requires=freepbx.service
 After=freepbx.service
 
 [Service]

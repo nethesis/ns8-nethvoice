@@ -1,0 +1,38 @@
+[Unit]
+Description=Satellite call transcription for NethVoice
+Requires=satellite-mqtt.service
+After=satellite-mqtt.service
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+WorkingDirectory=%S/state
+Restart=always
+ExecStartPre=/bin/rm -f %t/satellite.pid %t/satellite.ctr-id
+ExecStart=runagent /usr/bin/podman run \
+    --detach \
+    --conmon-pidfile=%t/satellite.pid \
+    --cidfile=%t/satellite.ctr-id \
+    --cgroups=no-conmon \
+    --replace --name=%N \
+    --env-file=%S/state/passwords.env \
+    --env=ASTERISK_URL="http://127.0.1:${ASTERISK_WS_PORT}" \
+    --env=ARI_APP=${SATELLITE_ARI_APP} \
+    --env=ARI_USERNAME=${SATELLITE_ARI_USERNAME} \
+    --env=RTP_PORT=${SATELLITE_RTP_PORT} \
+    --env=MQTT_URL="mqtt://127.0.0.1:${SATELLITE_MQTT_PORT}" \
+    --env=MQTT_TOPIC_PREFIX=satellite \
+    --env=MQTT_USERNAME=${SATELLITE_MQTT_USERNAME} \
+    --env=DEEPGRAM_API_KEY \
+    --env=OPENAI_API_KEY \
+    --env=HTTP_PORT=${SATELLITE_HTTP_PORT} \
+    --tz=${TIMEZONE} \
+    --network=host \
+    ${NETHVOICE_SATELLITE_IMAGE}
+
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/satellite.ctr-id
+PIDFile=%t/satellite.pid
+Type=forking
+
+[Install]
+WantedBy=default.target

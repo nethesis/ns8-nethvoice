@@ -347,6 +347,29 @@ function nethcti3_get_config_late($engine) {
             ];
             $ext->splice('macro-hangupcall', 's', 'hangup', new ext_agi(join(',',$agi_cmd)),'nethcti-cdr-script');
         }
+        /* Satellite STT real time Transcriptions*/
+        if (!empty($_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED']) && $_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED'] == 'True') {
+            // Add a call Satellite when call is answered in macro-dial-one adding it in D_OPTIONS variable
+            $ext->splice('macro-dial-one','s','dial', new \ext_setvar('D_OPTIONS', '${D_OPTIONS}U(satellite^s^1)'),'', -1);
+            // Add call to Satellite macro in macro-dialout-trunk if there is at least one route with at least one trunk
+            $routes = core_routing_list();
+            if (!empty($routes)) {
+                foreach (core_routing_list() as $route) {
+                    $routetrunks = core_routing_getroutetrunksbyid($route['route_id']);
+                    if (!empty($routetrunks)) {
+                        $ext->splice('macro-dialout-trunk', 's', '', new \ext_setvar('DIAL_TRUNK_OPTIONS', '${DIAL_TRUNK_OPTIONS}U(satellite^s^1)'),'', 28);
+                    }
+                }
+            }
+            // Create the Satellite context
+            $ext->add('satellite', 's', '', new \ext_noop('Satellite STT'));
+            // TODO: add a check to see if the user is allowed to use the STT
+            // Start Stasis
+            $ext->add('satellite', 's', '', new \ext_stasis('satellite'));
+            $ext->add('satellite', 's', '', new \ext_noop('Stasis satellite end'));
+            // Return to the dialplan
+            $ext->add('satellite', 's', '', new \ext_return());
+        }
         /* Change SIP response for unregistered extensions #7321*/
         $ext->replace('macro-exten-vm', '_s-!', '4', new extension('HangUp(20)'));
         /* Add Answer() and Ringing() to macro-dial-one on call forwarding #7321*/

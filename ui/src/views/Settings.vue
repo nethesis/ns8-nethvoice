@@ -164,6 +164,36 @@
               ref="nethvoice_hotel_fias_port"
             />
             <!-- End Hotel Module Settings -->
+            <!-- Satellite Settings -->
+            <cv-toggle
+              :label="$t('settings.satellite_call_transcription_enabled')"
+              value="satellite_call_transcription_enabled"
+              :disabled="loadingState || !proxy_installed"
+              v-model="form.satellite_call_transcription_enabled"
+            />
+            <cv-toggle
+              :label="$t('settings.satellite_voicemail_transcription_enabled')"
+              value="satellite_voicemail_transcription_enabled"
+              :disabled="loadingState || !proxy_installed"
+              v-model="form.satellite_voicemail_transcription_enabled"
+            />
+            <cv-text-input
+              :label="$t('settings.deepgram_api_key')"
+              v-model="form.deepgram_api_key"
+              placeholder="g7id86rxn5cns0umkvx6klo9rm0b0vjzrljg064k"
+              :disabled="loadingState || !proxy_installed || ( !form.satellite_voicemail_transcription_enabled && !form.satellite_call_transcription_enabled )"
+              :invalid-message="error.deepgram_api_key"
+              ref="deepgram_api_key"
+            />
+            <cv-text-input
+              :label="$t('settings.openai_api_key')"
+              v-model="form.openai_api_key"
+              placeholder="sk-..."
+              :disabled="loadingState || !proxy_installed || ( !form.satellite_voicemail_transcription_enabled && !form.satellite_call_transcription_enabled )"
+              :invalid-message="error.openai_api_key"
+              ref="openai_api_key"
+            />
+            <!-- End Satellite Settings -->
             <cv-row v-if="error.configureModule">
               <cv-column>
                 <NsInlineNotification
@@ -435,7 +465,7 @@ export default {
         nethvoice_host: "",
         nethvoice_admin_password: "",
         nethcti_ui_host: "",
-        lets_encrypt: false,
+        lets_encrypt: true,
         user_domain: "",
         reports_international_prefix: "+39",
         timezone: "",
@@ -453,6 +483,10 @@ export default {
         nethvoice_hotel: false,
         nethvoice_hotel_fias_address: "",
         nethvoice_hotel_fias_port: "",
+        satellite_call_transcription_enabled: false,
+        satellite_voicemail_transcription_enabled: false,
+        deepgram_api_key: "",
+        openai_api_key: "",
       },
       isDarkMode: false,
       proxy_installed: false,
@@ -645,6 +679,20 @@ export default {
       }
       this.form.nethvoice_hotel_fias_address = config.nethvoice_hotel_fias_address || "";
       this.form.nethvoice_hotel_fias_port = config.nethvoice_hotel_fias_port || "";
+
+      // Satellite settings
+      if ( config.satellite_call_transcription_enabled == 'True' ) {
+        this.form.satellite_call_transcription_enabled = true;
+      } else {
+        this.form.satellite_call_transcription_enabled = false;
+      }
+      if ( config.satellite_voicemail_transcription_enabled == 'True' ) {
+        this.form.satellite_voicemail_transcription_enabled = true;
+      } else {
+        this.form.satellite_voicemail_transcription_enabled = false;
+      }
+      this.form.deepgram_api_key = config.deepgram_api_key || "";
+      this.form.openai_api_key = config.openai_api_key || "";
 
       this.focusElement("nethvoice_host");
     },
@@ -890,7 +938,11 @@ export default {
             nethcti_privacy_numbers: this.form.nethcti_privacy_numbers,
             nethvoice_hotel: this.form.nethvoice_hotel ? "True" : "False",
             nethvoice_hotel_fias_address: this.form.nethvoice_hotel ? this.form.nethvoice_hotel_fias_address : "",
-            nethvoice_hotel_fias_port: this.form.nethvoice_hotel ? this.form.nethvoice_hotel_fias_port : ""
+            nethvoice_hotel_fias_port: this.form.nethvoice_hotel ? this.form.nethvoice_hotel_fias_port : "",
+            satellite_call_transcription_enabled: this.form.satellite_call_transcription_enabled ? "True" : "False",
+            satellite_voicemail_transcription_enabled: this.form.satellite_voicemail_transcription_enabled ? "True" : "False",
+            deepgram_api_key: this.form.deepgram_api_key,
+            openai_api_key: this.form.openai_api_key,
           },
           extra: {
             title: this.$t("settings.configure_instance", {

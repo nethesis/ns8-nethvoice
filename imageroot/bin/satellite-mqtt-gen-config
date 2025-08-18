@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+
+#
+# Copyright (C) 2025 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+
+# Generate password file
+# sourcing the file directly is broken with quotes
+SATELLITE_MQTT_PASSWORD=$(grep '^SATELLITE_MQTT_PASSWORD=' ./passwords.env) && export "${SATELLITE_MQTT_PASSWORD?}"
+
+podman run -i --rm --cgroups=no-conmon --volume=mqtt_conf:/mosquitto/tmp_config:Z "${ECLIPSE_MOSQUITTO_IMAGE}" sh << EOF
+    touch /mosquitto/tmp_config/mosquitto_passwd
+    chmod 0600 /mosquitto/tmp_config/mosquitto_passwd
+    chown mosquitto:mosquitto /mosquitto/tmp_config/mosquitto_passwd
+    mosquitto_passwd -b /mosquitto/tmp_config/mosquitto_passwd $SATELLITE_MQTT_USERNAME $SATELLITE_MQTT_PASSWORD
+    echo "password_file /mosquitto/config/mosquitto_passwd" > /mosquitto/tmp_config/mosquitto.conf
+    echo "allow_anonymous false" >> /mosquitto/tmp_config/mosquitto.conf
+    echo "listener $SATELLITE_MQTT_PORT" >> /mosquitto/tmp_config/mosquitto.conf
+EOF
+

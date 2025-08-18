@@ -7,7 +7,13 @@
 
 import agent
 import os
+import random
+import string
 
+def gen_password(length=32):
+    """Generates a random password of specified length."""
+    choice_pool = string.ascii_letters+string.digits
+    return ''.join(random.choice(choice_pool) for _ in range(length))
 
 # Set the proxy IP and port if not already set and the proxy is installed
 if os.getenv('PROXY_IP') is None or os.getenv('PROXY_PORT') is None:
@@ -69,3 +75,19 @@ if os.getenv('ICEENFORCE') is None:
 
 if os.getenv('NETHCTI_PRIVACY_NUMBERS') is None:
     agent.set_env('NETHCTI_PRIVACY_NUMBERS', 'xxx')
+
+# Add satellite environment for updates
+if os.getenv('SATELLITE_ARI_APP') is None:
+    agent.set_env('SATELLITE_ARI_APP', 'satellite')
+if os.getenv('SATELLITE_ARI_USERNAME') is None:
+    agent.set_env('SATELLITE_ARI_USERNAME', 'satellite')
+if os.getenv('SATELLITE_MQTT_USERNAME') is None:
+    agent.set_env('SATELLITE_MQTT_USERNAME', 'satellite')
+
+# Add satellite password for updates in passwords.env if not already set
+passwordsfile = agent.read_envfile("passwords.env")
+if not 'SATELLITE_MQTT_PASSWORD' in agent.read_envfile('passwords.env'):
+    passwordsfile['SATELLITE_MQTT_PASSWORD'] = gen_password()
+if not 'SATELLITE_ARI_PASSWORD' in agent.read_envfile('passwords.env'):
+    passwordsfile['SATELLITE_ARI_PASSWORD'] = gen_password()
+agent.write_envfile('passwords.env', passwordsfile)
