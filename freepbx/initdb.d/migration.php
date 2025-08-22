@@ -7,10 +7,10 @@
 include_once '/etc/freepbx_db.conf';
 
 # check if migration is needed. Exit 0 if not
-$stmt = $db->prepare("SELECT `data` FROM `asterisk`.`freepbx_settings` WHERE `keyword` = 'MIGRATED'");
+$stmt = $db->prepare("SELECT `value` FROM `asterisk`.`freepbx_settings` WHERE `keyword` = 'MIGRATION_SCRIPT_LAUNCHED'");
 $stmt->execute();
 $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-if (count($res) > 0 && $res[0]['data'] > 0) {
+if (count($res) > 0) {
 	echo "Migration already done\n";
 	exit(0);
 }
@@ -397,5 +397,5 @@ if (count($res) == 0) {
 	$db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`,`permission_id`) VALUES (12,5000)");
 }
 
-$stmt = $db->prepare("INSERT IGNORE INTO `asterisk`.`freepbx_settings` (`keyword`, `data`) VALUES ('MIGRATED',?)");
+$stmt = $db->prepare("INSERT IGNORE INTO `asterisk`.`freepbx_settings` (`keyword`, `value`) VALUES ('MIGRATION_SCRIPT_LAUNCHED',?)");
 $stmt->execute([1]);
