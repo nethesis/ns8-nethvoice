@@ -121,7 +121,7 @@ if (!empty($_ENV['ASTERISK_WSS_PORT'])) {
 	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPTLSBINDPORT"';
 	$stmt = $db->prepare($sql);
 	$stmt->execute([$_ENV['ASTERISK_WSS_PORT']]);
-	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPTLSENABLED"';
+	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPTLSENABLE"';
 	$stmt = $db->prepare($sql);
 	$stmt->execute([1]);
 	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPTLSCERTFILE"';
