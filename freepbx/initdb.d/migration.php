@@ -6,12 +6,17 @@
 
 include_once '/etc/freepbx_db.conf';
 
-# TODO check if migration is needed. Exit 0 if not
+# check if migration is needed. Exit 0 if not
+$stmt = $db->prepare("SELECT `value` FROM `asterisk`.`freepbx_settings` WHERE `keyword` = 'MIGRATION_SCRIPT_LAUNCHED'");
+$stmt->execute();
+$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+if (count($res) > 0) {
+	echo "Migration already done\n";
+	exit(0);
+}
 
 # Add srtp column to rest_devices_phones
 $db->query("ALTER TABLE `asterisk`.`rest_devices_phones` ADD COLUMN `srtp` BOOLEAN DEFAULT NULL AFTER `type`");
-
-
 
 /* Convert existing srtp physical and mobile extensions to be used with proxy */
 # get all NethVoice extensions with srtp enabled
@@ -392,52 +397,5 @@ if (count($res) == 0) {
 	$db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`,`permission_id`) VALUES (12,5000)");
 }
 
-# Create hotel cti context if not exist and NETHVOICE_HOTEL environment variable is set
-# check if hotel profile exists
-$sql = 'SELECT id FROM `asterisk`.`rest_cti_profiles` WHERE name = "Hotel"';
-$stmt = $db->prepare($sql);
-$stmt->execute();
-$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-if (count($res) == 0 && !empty($_ENV['NETHVOICE_HOTEL']) && $_ENV['NETHVOICE_HOTEL'] == 'True') {
-	# Install hotel context
-	# create hotel profile
-	$db->query('INSERT IGNORE INTO `asterisk`.`rest_cti_profiles` SET name = "Hotel"');
-	# get hotel profile id;
-	$stmt = $db->prepare('SELECT id FROM `asterisk`.`rest_cti_profiles` WHERE name = "Hotel"');
-	$stmt->execute();
-	$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-	$hotel_profile_id = $res[0]['id'];
-	# add profile permissions and macro permissions to hotel profile
-	$sql = 'INSERT IGNORE INTO `asterisk`.`rest_cti_profiles_permissions` (profile_id, permission_id) VALUES (?,?)';
-	$stmt = $db->prepare($sql);
-	$stmt->execute([$hotel_profile_id, 2]);
-	$stmt->execute([$hotel_profile_id, 9]);
-	$sql = 'INSERT IGNORE INTO `asterisk`.`rest_cti_profiles_macro_permissions` (profile_id, macro_permission_id) VALUES (?,?)';
-	$stmt = $db->prepare($sql);
-	foreach ([1, 2, 3, 4, 5, 6, 12] as $macro_permission_id) {
-		$stmt->execute([$hotel_profile_id, $macro_permission_id]);
-	}
-	# assign users in hotel context to hotel profile
-	#UPDATE rest_users SET profile_id = $PROFILE_ID WHERE user_id IN (SELECT DISTINCT user_id FROM rest_devices_phones WHERE extension IN ( SELECT \`id\` FROM sip WHERE \`keyword\`='context' AND \`data\` = 'hotel'))
-	$sql = 'UPDATE `rest_users` SET profile_id = ? WHERE user_id IN (SELECT DISTINCT user_id FROM rest_devices_phones WHERE extension IN ( SELECT `id` FROM sip WHERE `keyword`="context" AND `data` = "hotel"))';
-	$stmt = $db->prepare($sql);
-	$stmt->execute([$hotel_profile_id]);
-} elseif (count($res) > 0 && (empty($_ENV['NETHVOICE_HOTEL']) || $_ENV['NETHVOICE_HOTEL'] != 'True')) {
-	# Remove hotel profile
-	$hotel_profile_id = $res[0]['id'];
-	# remove hotel profile permissions and macro permissions
-	$sql = 'DELETE FROM `asterisk`.`rest_cti_profiles_permissions` WHERE profile_id = ?';
-	$stmt = $db->prepare($sql);
-	$stmt->execute([$hotel_profile_id]);
-	$sql = 'DELETE FROM `asterisk`.`rest_cti_profiles_macro_permissions` WHERE profile_id = ?';
-	$stmt = $db->prepare($sql);
-	$stmt->execute([$hotel_profile_id]);
-	# remove hotel profile
-	$sql = 'DELETE FROM `asterisk`.`rest_cti_profiles` WHERE id = ?';
-	$stmt = $db->prepare($sql);
-	$stmt->execute([$hotel_profile_id]);
-	# set 'Base' profile to all users with hotel profile
-	$sql = 'UPDATE `asterisk`.`rest_users` SET profile_id = 1 WHERE profile_id = ?';
-	$stmt = $db->prepare($sql);
-	$stmt->execute([$hotel_profile_id]);
-}
+$stmt = $db->prepare("INSERT IGNORE INTO `asterisk`.`freepbx_settings` (`keyword`, `value`) VALUES ('MIGRATION_SCRIPT_LAUNCHED',?)");
+$stmt->execute([1]);

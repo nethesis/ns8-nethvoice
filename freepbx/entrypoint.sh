@@ -405,6 +405,8 @@ fi
 
 # migrate database
 php /initdb.d/migration.php
+# update database
+php /initdb.d/update.php
 
 if [[ ! -f /etc/asterisk/extensions_additional.conf ]]; then
 	# First install, set needreload to true
