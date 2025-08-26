@@ -91,3 +91,14 @@ if not 'SATELLITE_MQTT_PASSWORD' in agent.read_envfile('passwords.env'):
 if not 'SATELLITE_ARI_PASSWORD' in agent.read_envfile('passwords.env'):
     passwordsfile['SATELLITE_ARI_PASSWORD'] = gen_password()
 agent.write_envfile('passwords.env', passwordsfile)
+
+if os.getenv('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT') is None:
+    # Use existing NETHCTI_SERVER_API_PORT for API endpoint
+    agent.set_env('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT', '127.0.0.1:' + os.environ['NETHCTI_SERVER_API_PORT'])
+
+if os.getenv('NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT') is None:
+    # Use existing NETHCTI_SERVER_WS_PORT for WS endpoint
+    agent.set_env('NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT', '127.0.0.1:' + os.environ['NETHCTI_SERVER_WS_PORT'])
+
+if os.getenv('NETHVOICE_MIDDLEWARE_V1_PROTOCOL') is None:
+    agent.set_env('NETHVOICE_MIDDLEWARE_V1_PROTOCOL', 'http')
