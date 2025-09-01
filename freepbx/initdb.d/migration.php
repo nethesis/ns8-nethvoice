@@ -341,7 +341,7 @@ if (count($res) == 0) {
 		(22,'disable_srtp_header',1),
 		(23,'disable_srtp_header',1),
 		(24,'disable_srtp_header',1);
-	");keyword
+	");
 }
 // Add disable_srtp_header configuration for existing trunks that doesn't have media encription enabled and proxy configured
 $sql = "SELECT DISTINCT id
