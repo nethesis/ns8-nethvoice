@@ -7,7 +7,7 @@
 include_once '/etc/freepbx_db.conf';
 
 # check if migration is needed. Exit 0 if not
-$stmt = $db->prepare("SELECT `value` FROM `asterisk`.`freepbx_settings` WHERE `keyword` = 'MIGRATION_SCRIPT_LAUNCHED'");
+$stmt = $db->prepare("SELECT `value` FROM `asterisk`.`admin` WHERE `variable` = 'MIGRATION_SCRIPT_LAUNCHED'");
 $stmt->execute();
 $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 if (count($res) > 0) {
@@ -341,7 +341,7 @@ if (count($res) == 0) {
 		(22,'disable_srtp_header',1),
 		(23,'disable_srtp_header',1),
 		(24,'disable_srtp_header',1);
-	");
+	");keyword
 }
 // Add disable_srtp_header configuration for existing trunks that doesn't have media encription enabled and proxy configured
 $sql = "SELECT DISTINCT id
@@ -397,5 +397,5 @@ if (count($res) == 0) {
 	$db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`,`permission_id`) VALUES (12,5000)");
 }
 
-$stmt = $db->prepare("INSERT IGNORE INTO `asterisk`.`freepbx_settings` (`keyword`, `value`) VALUES ('MIGRATION_SCRIPT_LAUNCHED',?)");
+$stmt = $db->prepare("INSERT IGNORE INTO `asterisk`.`admin` (`variable`, `value`) VALUES ('MIGRATION_SCRIPT_LAUNCHED',?)");
 $stmt->execute([1]);
