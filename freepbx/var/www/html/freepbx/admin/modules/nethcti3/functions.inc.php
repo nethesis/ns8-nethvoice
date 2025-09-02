@@ -358,6 +358,7 @@ function nethcti3_get_config_late($engine) {
                     $routetrunks = core_routing_getroutetrunksbyid($route['route_id']);
                     if (!empty($routetrunks)) {
                         $ext->splice('macro-dialout-trunk', 's', '', new \ext_setvar('DIAL_TRUNK_OPTIONS', '${DIAL_TRUNK_OPTIONS}U(satellite^s^1)'),'', 28);
+                        break;
                     }
                 }
             }
