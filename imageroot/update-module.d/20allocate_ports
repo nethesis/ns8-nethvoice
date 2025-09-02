@@ -32,6 +32,8 @@ if not 'ASTERISK_RECORDING_SFTP_PORT' in env:
 		print(f"New port allocated for SFTP: {sftp_port}", file=sys.stderr)
 	# Update the environment file: this will be used as flag to avoid re-allocating the port
 	agent.set_env('ASTERISK_RECORDING_SFTP_PORT', sftp_port)
+	# Open the port in the firewall
+	agent.add_public_service(os.environ['MODULE_ID'], [sftp_port+"/tcp"])
 
 # add port for asterisk ws
 if not 'ASTERISK_WS_PORT' in env:
@@ -94,3 +96,12 @@ if os.getenv('SATELLITE_RTP_PORT') is None:
 	satellite_rtp_port = allocate_rtp_ports_range(1)[0]
 	print(f"New port allocated for SATELLITE RTP: {satellite_rtp_port}", file=sys.stderr)
 	agent.set_env('SATELLITE_RTP_PORT', satellite_rtp_port)
+
+# add port for Asterisk WSS
+if not 'ASTERISK_WSS_PORT' in env:
+	allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
+	wss_port = allocated_ports[0]
+	print(f"New port allocated for Asterisk WSS: {wss_port}", file=sys.stderr)
+	agent.set_env('ASTERISK_WSS_PORT', wss_port)
+	# Open the port in the firewall
+	agent.add_public_service(os.environ['MODULE_ID'], [wss_port+"/tcp"])

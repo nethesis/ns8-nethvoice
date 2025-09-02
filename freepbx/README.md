@@ -59,6 +59,8 @@ If userbase is customized in FreePBX userman module, "Directory Name" in FreePBX
 - `ASTERISK_RTPSTART` and `ASTERISK_RTPEND` are the UDP port range for RTP packages
 - `ASTERISK_SIP_PORT` and `ASTERISK_SIPS_PORT` are the UDP and TCP ports for SIP transport
 - `ASTERISK_IAX_PORT` is the UDP port for IAX transport
+- `ASTERISK_WS_PORT` Asterisk port for Websocket server
+- `ASTERISK_WSS_PORT` Asterisk TLS port for Websocket server
 
 ## Voicemail SMTP smarthost
 
