@@ -23,8 +23,6 @@ ExecStart=runagent /usr/bin/podman run \
     --env=MQTT_URL="mqtt://127.0.0.1:${SATELLITE_MQTT_PORT}" \
     --env=MQTT_TOPIC_PREFIX=satellite \
     --env=MQTT_USERNAME=${SATELLITE_MQTT_USERNAME} \
-    --env=DEEPGRAM_API_KEY \
-    --env=OPENAI_API_KEY \
     --env=HTTP_PORT=${SATELLITE_HTTP_PORT} \
     --tz=${TIMEZONE} \
     --network=host \
