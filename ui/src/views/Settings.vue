@@ -165,7 +165,9 @@
             />
             <!-- End Hotel Module Settings -->
             <!-- Satellite Settings -->
+            <!-- HIDDEN: Remove v-if="false" to restore visibility -->
             <cv-toggle
+              v-if="false"
               :label="$t('settings.satellite_call_transcription_enabled')"
               value="satellite_call_transcription_enabled"
               :disabled="loadingState || !proxy_installed"
@@ -185,7 +187,9 @@
               :invalid-message="error.deepgram_api_key"
               ref="deepgram_api_key"
             />
+            <!-- HIDDEN: Remove v-if="false" to restore visibility -->
             <cv-text-input
+              v-if="false"
               :label="$t('settings.openai_api_key')"
               v-model="form.openai_api_key"
               placeholder="sk-..."
