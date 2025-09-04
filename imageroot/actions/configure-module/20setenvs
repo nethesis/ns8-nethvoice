@@ -61,8 +61,8 @@ getFromRequest(request, 'nethvoice_hotel_fias_port', 'NETHVOICE_HOTEL_FIAS_PORT'
 # Satellite Deepgram and OpenAI api keys
 getFromRequest(request, 'satellite_call_transcription_enabled', 'SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'False')
 getFromRequest(request, 'satellite_voicemail_transcription_enabled', 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED', 'False')
-getFromRequest(request, 'deepgram_api_key', 'DEEPGRAM_API_KEY', '')
-getFromRequest(request, 'openai_api_key', 'OPENAI_API_KEY', '')
+passwordsfile['DEEPGRAM_API_KEY'] = request.get('deepgram_api_key', '')
+passwordsfile['OPENAI_API_KEY'] = request.get('openai_api_key', '')
 
 # set NETHCTI_CDR_SCRIPT to /usr/share/neth-hotel-fias/cdr.php if nethvoice_hotel_fias_address is set
 if request.get('nethvoice_hotel_fias_address', '') != '' and request.get('nethcti_cdr_script', '') == '':
