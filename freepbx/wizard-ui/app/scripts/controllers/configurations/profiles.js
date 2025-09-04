@@ -225,6 +225,25 @@ angular.module('nethvoiceWizardUiApp')
     }
 
     $scope.checkAllGroups = function () {
+      var allGroupsPermissionActive = false;
+      for (var profileIdx in $scope.allProfiles) {
+        var profile = $scope.allProfiles[profileIdx];
+        if (profile.macro_permissions && profile.macro_permissions.presence_panel) {
+          var permissions = profile.macro_permissions.presence_panel.permissions;
+          for (var permIdx in permissions) {
+            var permission = permissions[permIdx];
+            if (permission.name === "all_groups" && permission.value === true) {
+              allGroupsPermissionActive = true;
+              break;
+            }
+          }
+        }
+        if (allGroupsPermissionActive) break;
+      }
+      if (allGroupsPermissionActive) {
+        $scope.gruopsDisabled = false;
+        return;
+      }
       $scope.gruopsDisabled = false;
       for (var group in $scope.allGroups) {
         if ($scope.checkDisabledGruops($scope.allGroups[group].name) != true) {
