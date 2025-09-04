@@ -58,9 +58,7 @@ agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_P
 # SQL query to update iaxsettings
 SQL_QUERY = f"""
 UPDATE `iaxsettings`
-SET `data` = '{os.environ['ASTERISK_IAX_PORT']}',
-    `seq` = 1,
-    `type` = 0
+SET `data` = '{os.environ['ASTERISK_IAX_PORT']}'
 WHERE `keyword` = 'bindport';
 """
 agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
