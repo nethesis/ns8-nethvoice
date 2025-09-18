@@ -147,8 +147,14 @@ function nethcti3_get_config_late($engine) {
             /* Change CF for CTI voicemail status */
             $ext->replace('macro-dial-one', 'cf', '2', new ext_execif('$["${DB(AMPUSER/${DB_RESULT}/cidnum)}" == "" && "${DB_RESULT:0:2}" != "vm"]', 'Set','__REALCALLERIDNUM=${DEXTEN}'));
 
-            /* Use main extension on login/logout/pause*/
-            if (!empty(\FreePBX::Queues()->listQueues())) {
+            /* get featurecodes */
+            $query='SELECT featurename,IF(customcode IS NULL OR customcode = "",defaultcode,customcode) as defaultcode FROM featurecodes WHERE ( modulename="nethcti3" OR modulename="donotdisturb" ) AND ( featurename="que_toggle") AND enabled="1"';
+            $featurecodes = array();
+            foreach ($db->getAll($query) as $feature) {
+                $featurecodes[$feature[0]] = $feature[1];
+            }
+            /* Use main extension on login/logout/pause if que_toggle is enabled */
+            if (!empty(\FreePBX::Queues()->listQueues()) && isset($featurecodes['que_toggle']) && $featurecodes['que_toggle'] != '') {
                 $ext->splice('app-queue-toggle', 's', 'start', new ext_setvar('QUEUEUSER', '${IF($[${LEN(${DB(AMPUSER/${AMPUSER}/accountcode)})}>0]?${DB(AMPUSER/${AMPUSER}/accountcode)}:${QUEUEUSER})}'),'mainext',4);
 
                 $ext->replace('app-all-queue-toggle', 's', '4', new ext_agi('queue_devstate.agi,getall,${QUEUEUSER}'));
