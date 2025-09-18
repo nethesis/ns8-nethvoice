@@ -4,6 +4,8 @@ Description=Timer for phonebook source update
 [Timer]
 OnCalendar=hourly
 Persistent=true
+RandomizedDelaySec=30m
+FixedRandomDelay=true
 Unit=phonebook-update.service
 
 [Install]
