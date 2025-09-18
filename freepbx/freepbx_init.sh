@@ -86,14 +86,6 @@ obsolete_modules=(
     outboundlookup
 )
 
-# Add custom freepbx modules
-for module_file in $(ls /freepbx_custom_modules); do
-	module=$(echo "${module_file}" | sed 's/.tar.gz//')
-	mkdir -p /var/www/html/freepbx/admin/modules/"${module}"
-	tar xzpf /freepbx_custom_modules/"${module_file}" --strip-component=1 -C /var/www/html/freepbx/admin/modules/${module}
-	modules_to_install+=("$module")
-done
-
 # Add or remove nethhotel
 if [[ -n $NETHVOICE_HOTEL && $NETHVOICE_HOTEL == 'True' ]]; then
     modules_to_install+=("nethhotel")
@@ -112,6 +104,15 @@ for module in "${modules_to_install[@]}"; do
         echo Installing module "$module"
         fwconsole moduleadmin install "$module"
     fi
+done
+
+# Add custom freepbx modules
+for module_file in $(ls /freepbx_custom_modules); do
+	module=$(echo "${module_file}" | sed 's/.tar.gz//')
+	mkdir -p /var/www/html/freepbx/admin/modules/"${module}"
+	tar xzpf /freepbx_custom_modules/"${module_file}" --strip-component=1 -C /var/www/html/freepbx/admin/modules/${module}
+	echo Installing custom module "$module"
+    fwconsole moduleadmin install "$module"
 done
 
 # Remove obsolete modules if required
