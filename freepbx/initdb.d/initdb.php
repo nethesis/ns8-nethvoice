@@ -111,6 +111,25 @@ if (!empty($_ENV['ASTERISK_WS_PORT'])) {
 	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPBINDPORT"';
 	$stmt = $db->prepare($sql);
 	$stmt->execute([$_ENV['ASTERISK_WS_PORT']]);
+	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPENABLED"';
+	$stmt = $db->prepare($sql);
+	$stmt->execute([1]);
+}
+
+// Set port for Asterisk WSS from environment
+if (!empty($_ENV['ASTERISK_WSS_PORT'])) {
+	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPTLSBINDPORT"';
+	$stmt = $db->prepare($sql);
+	$stmt->execute([$_ENV['ASTERISK_WSS_PORT']]);
+	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPTLSENABLE"';
+	$stmt = $db->prepare($sql);
+	$stmt->execute([1]);
+	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPTLSCERTFILE"';
+	$stmt = $db->prepare($sql);
+	$stmt->execute(['/etc/asterisk/keys/NethServer.crt']);
+	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPTLSPRIVATEKEY"';
+	$stmt = $db->prepare($sql);
+	$stmt->execute(['/etc/asterisk/keys/NethServer.key']);
 }
 
 // Create/update ARI account for Satellite

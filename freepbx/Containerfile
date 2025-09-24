@@ -130,6 +130,7 @@ RUN cd /usr/src/asterisk && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/chan_console.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/chan_mgcp.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/chan_oss.so && \
+	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/chan_sip.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/chan_unistim.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/cdr_pgsql.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/cel_pgsql.so && \
@@ -144,7 +145,6 @@ RUN cd /usr/src/asterisk && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_hep_pjsip.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_mwi_external.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_mwi_external_ami.so && \
-	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_pjsip_transport_websocket.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_pktccops.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_stasis_mailbox.so && \
 	cp -a contrib/ast-db-manage ${BUILDROOT}${DATADIR}/asterisk/ast-db-manage && \
