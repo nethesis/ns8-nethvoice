@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2025 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import agent
+import os
+
+# Update user_dbconn table
+
+passwords = agent.read_envfile("passwords.env")
+MARIADB_ROOT_PASSWORD = passwords["MARIADB_ROOT_PASSWORD"]
+NETHCTI_DB_PASSWORD = passwords["NETHCTI_DB_PASSWORD"]
+AMPDBPASS = passwords["AMPDBPASS"]
+
+# SQL query to insert or update user_dbconn for phonebook
+SQL_QUERY = f"""
+INSERT INTO user_dbconn (`id`,`host`,`port`,`type`,`user`,`pass`,`name`,`creation`)
+VALUES (1,"127.0.0.1","{os.environ['NETHVOICE_MARIADB_PORT']}","mysql","{os.environ['NETHCTI_DB_USER']}","{NETHCTI_DB_PASSWORD}","phonebook",NOW())
+ON DUPLICATE KEY UPDATE
+    `host` = VALUES(`host`),
+    `port` = VALUES(`port`),
+    `type` = VALUES(`type`),
+    `user` = VALUES(`user`),
+    `pass` = VALUES(`pass`),
+    `name` = VALUES(`name`),
+    `creation` = VALUES(`creation`)
+"""
+agent.run_helper(*f'podman exec mariadb mysql nethcti3 -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
+
+# SQL query to insert or update user_dbconn for asteriskcdrdb
+SQL_QUERY = f"""
+INSERT INTO user_dbconn (`id`,`host`,`port`,`type`,`user`,`pass`,`name`,`creation`)
+VALUES (2,"127.0.0.1","{os.environ['NETHVOICE_MARIADB_PORT']}","mysql","{os.environ['AMPDBUSER']}","{AMPDBPASS}","asteriskcdrdb",NOW())
+ON DUPLICATE KEY UPDATE
+    `host` = VALUES(`host`),
+    `port` = VALUES(`port`),
+    `type` = VALUES(`type`),
+    `user` = VALUES(`user`),
+    `pass` = VALUES(`pass`),
+    `name` = VALUES(`name`),
+    `creation` = VALUES(`creation`)
+"""
+agent.run_helper(*f'podman exec mariadb mysql nethcti3 -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
