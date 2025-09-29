@@ -25,10 +25,15 @@ ExecStart=/usr/bin/podman run \
     --name=%N \
     --volume=nethcti-middleware-audit:/var/log \
     --volume=nethcti-middleware-secrets:/var/lib/whale/secrets \
+    --env-file=%S/state/passwords.env \
     --env=NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS \
     --env=NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT \
     --env=NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT \
     --env=NETHVOICE_MIDDLEWARE_V1_PROTOCOL \
+    --env=SATELLITE_MQTT_HOST \
+    --env=SATELLITE_MQTT_PORT \
+    --env=SATELLITE_MQTT_USERNAME \
+    --env=SATELLITE_MQTT_PASSWORD \
     --network=host \
     --tz=${TIMEZONE} \
     ${NETHVOICE_CTI_MIDDLEWARE_IMAGE}
