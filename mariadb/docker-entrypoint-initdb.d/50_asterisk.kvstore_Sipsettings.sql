@@ -9,7 +9,7 @@ INSERT INTO `kvstore_Sipsettings` (`key`,`val`,`type`,`id`) VALUES
 ("tcpdomain-0.0.0.0","",NULL,"noid"),
 ("tcpextip-0.0.0.0","",NULL,"noid"),
 ("tcplocalnet-0.0.0.0","none",NULL,"noid"),
-("binds","{\"wss\":{\"0.0.0.0\":\"off\"},\"udp\":{\"0.0.0.0\":\"on\"},\"tcp\":{\"0.0.0.0\":\"on\"},\"ws\":{\"0.0.0.0\":\"off\"},\"tls\":{\"0.0.0.0\":\"on\"}}","json-arr","noid"),
+("binds","{\"wss\":{\"0.0.0.0\":\"on\"},\"udp\":{\"0.0.0.0\":\"on\"},\"tcp\":{\"0.0.0.0\":\"on\"},\"ws\":{\"0.0.0.0\":\"on\"},\"tls\":{\"0.0.0.0\":\"on\"}}","json-arr","noid"),
 ("videocodecs","{\"vp8\":1,\"h264\":2}","json-arr","noid"),
 ("ice-blacklist","[]","json-arr","noid"),
 ("ice-host-candidates","[]","json-arr","noid"),
