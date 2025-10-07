@@ -60,7 +60,7 @@
     "bootstrap-combobox": "danielfarrell/bootstrap-combobox#~1.1.7",
     "bootstrap-datepicker": "eternicode/bootstrap-datepicker#~1.6.4",
     "bootstrap-select": "silviomoreto/bootstrap-select#~1.10.0",
-    "bootstrap-switch": "nostalgiaz/bootstrap-switch#3.3.2",
+    "bootstrap-switch": "nostalgiaz/bootstrap-switch#v3.3.4",
     "bootstrap-touchspin": "istvan-ujjmeszaros/bootstrap-touchspin#~3.1.1",
     "bower-away": "^1.1.2",
     "c3": "masayuki0812/c3#~0.4.11",
