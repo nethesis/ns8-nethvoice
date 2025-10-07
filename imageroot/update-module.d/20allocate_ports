@@ -38,7 +38,7 @@ if not 'ASTERISK_RECORDING_SFTP_PORT' in env:
 		sftp_port = allocated_ports[0]
 		print(f"New port allocated for SFTP: {sftp_port}", file=sys.stderr)
 		# Open the port in the firewall
-		agent.add_public_service(os.environ['MODULE_ID'], [sftp_port+"/tcp"])
+		agent.add_public_service(os.environ['MODULE_ID'], [str(sftp_port)+"/tcp"])
 	# Update the environment file: this will be used as flag to avoid re-allocating the port
 	agent.set_env('ASTERISK_RECORDING_SFTP_PORT', sftp_port)
 
@@ -111,4 +111,4 @@ if not 'ASTERISK_WSS_PORT' in env:
 	print(f"New port allocated for Asterisk WSS: {wss_port}", file=sys.stderr)
 	agent.set_env('ASTERISK_WSS_PORT', wss_port)
 	# Open the port in the firewall
-	agent.add_public_service(os.environ['MODULE_ID'], [wss_port+"/tcp"])
+	agent.add_public_service(os.environ['MODULE_ID'], [str(wss_port)+"/tcp"])
