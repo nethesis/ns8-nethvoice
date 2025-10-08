@@ -91,6 +91,7 @@ $db->query("UPDATE `asterisk`.`sipsettings` SET `data` = '{\"vp8\":1, \"h264\":2
 $db->query("UPDATE `asterisk`.`sipsettings` SET `data` = 'yes' WHERE `keyword` = 'videosupport'");
 $db->query("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = '{\"vp8\":1,\"h264\":2}' WHERE `key` = 'videocodecs'");
 $db->query("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = 'yes' WHERE `key` = 'videosupport'");
+$db->query("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = '{\"udp\":{\"0.0.0.0\":\"on\"},\"tcp\":{\"0.0.0.0\":\"on\"},\"tls\":{\"0.0.0.0\":\"on\"},\"ws\":{\"0.0.0.0\":\"on\"},\"wss\":{\"0.0.0.0\":\"on\"}}' WHERE `key` = 'binds'");
 
 /* Set outbound_proxy to all physical and mobile extensions to be used with proxy */
 $sql = "UPDATE `asterisk`.`sip`
