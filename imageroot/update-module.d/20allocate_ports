@@ -112,3 +112,6 @@ if not 'ASTERISK_WSS_PORT' in env:
 	agent.set_env('ASTERISK_WSS_PORT', wss_port)
 	# Open the port in the firewall
 	agent.add_public_service(os.environ['MODULE_ID'], [str(wss_port)+"/tcp"])
+	# Add Asterisk RTP port range for WSS
+	agent.add_public_service(os.environ['MODULE_ID'], [str(os.environ['ASTERISK_RTPSTART'])+"-"+str(os.environ['ASTERISK_RTPEND'])+"/udp"])
+

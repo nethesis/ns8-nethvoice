@@ -16,6 +16,7 @@ agent.add_public_service(os.environ['MODULE_ID'], [
     os.environ['PHONEBOOK_LDAP_PORT']+"/tcp", # Phonebook LDAPS
     os.environ['ASTERISK_RECORDING_SFTP_PORT']+"/tcp", # Asterisk recordings SFTP
     os.environ['ASTERISK_WSS_PORT']+"/tcp", # Asterisk WSS
+    os.environ['ASTERISK_RTPSTART']+"-"+os.environ['ASTERISK_RTPEND']+"/udp", # Asterisk RTP for WSS
 ])
 
 # Ignore exit code
