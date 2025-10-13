@@ -165,28 +165,47 @@
             />
             <!-- End Hotel Module Settings -->
             <!-- Satellite Settings -->
-            <!-- HIDDEN: Remove v-if="false" to restore visibility -->
+             <cv-text-input
+              :label="$t('settings.deepgram_api_key')"
+              v-model.trim="form.deepgram_api_key"
+              placeholder="g7id86rxn5cns0umkvx6klo9rm0b0vjzrljg064k"
+              :disabled="loadingState || !proxy_installed"
+              :invalid-message="error.deepgram_api_key"
+              ref="deepgram_api_key"
+            />
             <cv-toggle
-              v-if="false"
               :label="$t('settings.satellite_call_transcription_enabled')"
               value="satellite_call_transcription_enabled"
-              :disabled="loadingState || !proxy_installed"
+              :disabled="form.deepgram_api_key.length == 0 || loadingState || !proxy_installed"
               v-model="form.satellite_call_transcription_enabled"
+            >
+              <template slot="text-left">
+                {{ $t("common.disabled") }}
+              </template>
+              <template slot="text-right">
+                {{ $t("common.enabled") }}
+              </template>
+            </cv-toggle>
+            <NsInlineNotification
+              v-if="form.satellite_call_transcription_enabled"
+              kind="warning"
+              :title="$t('settings.satellite_call_transcription_enabled_warning_title')"
+              :description="$t('settings.satellite_call_transcription_enabled_warning_description')"
+              :showCloseButton="false"
             />
             <cv-toggle
               :label="$t('settings.satellite_voicemail_transcription_enabled')"
               value="satellite_voicemail_transcription_enabled"
-              :disabled="loadingState || !proxy_installed"
+              :disabled="form.deepgram_api_key.length == 0 || loadingState || !proxy_installed"
               v-model="form.satellite_voicemail_transcription_enabled"
-            />
-            <cv-text-input
-              :label="$t('settings.deepgram_api_key')"
-              v-model="form.deepgram_api_key"
-              placeholder="g7id86rxn5cns0umkvx6klo9rm0b0vjzrljg064k"
-              :disabled="loadingState || !proxy_installed || ( !form.satellite_voicemail_transcription_enabled && !form.satellite_call_transcription_enabled )"
-              :invalid-message="error.deepgram_api_key"
-              ref="deepgram_api_key"
-            />
+            >
+              <template slot="text-left">
+                {{ $t("common.disabled") }}
+              </template>
+              <template slot="text-right">
+                {{ $t("common.enabled") }}
+              </template>
+            </cv-toggle>
             <!-- HIDDEN: Remove v-if="false" to restore visibility -->
             <cv-text-input
               v-if="false"
