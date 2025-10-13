@@ -83,8 +83,10 @@
     "set_rebranding": "Rebranding setup",
     "proxy_not_installed": "Nethvoice Proxy",
     "proxy_not_installed_description": "The proxy needs to be installed before configuring NethVoice.",
-    "satellite_call_transcription_enabled": "Enable call transcription (Beta)",
+    "satellite_call_transcription_enabled": "Enable call transcription (Preview)",
     "satellite_voicemail_transcription_enabled": "Enable voicemail transcription",
+    "satellite_call_transcription_enabled_warning_title": "Potential high credit usage",
+"satellite_call_transcription_enabled_warning_description": "Transcriptions are enabled for every call. Your Deepgram credits may run out quickly if you have many calls.",
     "deepgram_api_key": "Deepgram API Key",
     "openai_api_key": "OpenAI API Key"
   },
