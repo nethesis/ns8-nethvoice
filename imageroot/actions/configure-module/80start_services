@@ -32,6 +32,7 @@ systemctl --user enable --now nethcti-ui.service
 systemctl --user enable --now tancredi.service
 systemctl --user enable --now phonebook.service
 systemctl --user enable --now phonebook-update.timer
+systemctl --user enable --now nethvoice-cdr-cleanup.timer
 systemctl --user enable --now watcher.path
 # Reports
 systemctl --user enable --now reports-api.service
