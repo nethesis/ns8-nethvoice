@@ -13,4 +13,4 @@ if [[ -t 1 ]] ; then
     with_tty=1
 fi
 
-podman exec -i ${with_tty:+-t} mariadb mysql -u root -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$MARIADB_ROOT_PASSWORD $@
+podman exec -i ${with_tty:+-t} mariadb mysql -u root -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$MARIADB_ROOT_PASSWORD "$@"
