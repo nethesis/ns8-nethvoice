@@ -1,6 +1,6 @@
 ### REPOFETCHER ###
 # Multi-stage that installs git and fetches the repo from given version
-FROM docker.io/library/alpine:3.17.3 as repofetcher
+FROM docker.io/library/alpine:3.22.2 as repofetcher
 WORKDIR /app
 RUN apk add --no-cache git
 ARG NETHVOICE_REPORT_COMMIT=0039ad69027b216d54ece03eb1acba81289d1189
@@ -67,7 +67,7 @@ COPY --from=repofetcher /app/nethvoice-report/tasks/ /app/tasks
 RUN go build
 
 # Using alpine as runtime
-FROM docker.io/library/alpine:3.17.3 as api-production
+FROM docker.io/library/alpine:3.22.2 as api-production
 # Installing runtime dependencies
 RUN apk add --no-cache \
         jq \
