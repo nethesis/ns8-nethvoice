@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily CDR cleanup timer
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=30m
+FixedRandomDelay=true
+
+[Install]
+WantedBy=timers.target

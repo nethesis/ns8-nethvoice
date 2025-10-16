@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily CDR cleanup service
+
+[Service]
+Type=simple
+ExecCondition=systemctl --user -q is-active mariadb.service
+ExecStart=runagent mysql asteriskcdrdb -e "DELETE FROM daily_cdr WHERE calldate < DATE_SUB(NOW(), INTERVAL 24 HOUR)"
+SyslogIdentifier=%u/%N
+
+[Install]
+WantedBy=multi-user.target

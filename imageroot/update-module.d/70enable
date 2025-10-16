@@ -11,3 +11,7 @@
 
 echo "Enabling nethcti-middleware service for middleware support"
 systemctl --user enable --now nethcti-middleware.service
+
+# Enable NethVocice CDR cleanup timer
+echo "Enabling nethvoice-cdr-cleanup timer"
+systemctl --user enable --now nethvoice-cdr-cleanup.timer
