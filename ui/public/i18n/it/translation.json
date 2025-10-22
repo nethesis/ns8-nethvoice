@@ -83,8 +83,10 @@
         "set_rebranding": "Configurazione Rebranding",
         "proxy_not_installed": "Proxy di Nethvoice",
         "proxy_not_installed_description": "Prima di configurare NethVoice è necessario installare il proxy.",
-        "satellite_call_transcription_enabled": "Abilita la trascrizione delle chiamate (Beta)",
+        "satellite_call_transcription_enabled": "Abilita la trascrizione delle chiamate (Anteprima)",
         "satellite_voicemail_transcription_enabled": "Abilita la trascrizione delle voicemail",
+        "satellite_call_transcription_enabled_warning_title": "Potenziale utilizzo elevato del credito",
+        "satellite_call_transcription_enabled_warning_description": "Le trascrizioni sono attive per ogni chiamata. Il credito su Deepgram può finire velocemente con molte chiamate",
         "deepgram_api_key": "API Key Deepgram",
         "openai_api_key": "API Key OpenAI"
     },
