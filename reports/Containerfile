@@ -27,7 +27,7 @@ RUN rm public/config/config.production.js \
     && npm run build
 
 # From build, copy content in nginx container
-FROM docker.io/library/nginx:1.24.0-alpine as ui-production
+FROM docker.io/library/nginx:1.29.3-alpine as ui-production
 COPY --from=node_build /app/dist /var/www/html/pbx-report
 # Adding production scripts
 COPY ui/config-gen.sh /docker-entrypoint.d/99-config-gen.sh
