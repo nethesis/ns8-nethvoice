@@ -24,17 +24,12 @@ agent.set_env('REPORTS_INTERNATIONAL_PREFIX', request['reports_international_pre
 
 # Setup traefik routes
 # api endpoint
-response = agent.tasks.run(
-    agent_id=agent.resolve_agent_id('traefik@node'),
-    action='set-route',
-    data={
-        'instance': os.environ['MODULE_ID'] + '-reports-api',
-        'url': 'http://127.0.0.1:' + os.environ["REPORTS_API_PORT"],
-        'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
-        'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
-        'host': os.environ["NETHVOICE_HOST"],
-        'path': '/pbx-report-api',
-        'strip_prefix': True
-    },
-)
-agent.assert_exp(response['exit_code'] == 0)
+agent.set_route({
+    'instance': os.environ['MODULE_ID'] + '-reports-api',
+    'url': 'http://127.0.0.1:' + os.environ["REPORTS_API_PORT"],
+    'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
+    'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
+    'host': os.environ["NETHVOICE_HOST"],
+    'path': '/pbx-report-api',
+    'strip_prefix': True
+})
