@@ -17,22 +17,12 @@ import json
 import agent
 
 data = json.load(sys.stdin)
-lets_encrypt = data.get("lets_encrypt", 'false')
-
-agent.set_env('TRAEFIK_LETS_ENCRYPT', lets_encrypt)
-
-# Find default traefik instance for current node
-default_traefik_id = agent.resolve_agent_id('traefik@node')
-if default_traefik_id is None:
-    sys.exit(2)
-
 
 # Configure Traefik to route "/tancredi" path requests to the webapp service
 agent.set_route({
     'instance': os.environ['MODULE_ID'] + '-tancredi',
     'url':  'http://127.0.0.1:' + os.environ["TANCREDIPORT"] + '/tancredi',
     'http2https':  False,
-    'lets_encrypt': lets_encrypt,
     'host': os.environ["NETHVOICE_HOST"],
     'path': '/tancredi',
 })
@@ -42,7 +32,6 @@ agent.set_route({
     'instance': os.environ['MODULE_ID'] + '-provisioning',
     'url':  'http://127.0.0.1:' + os.environ["TANCREDIPORT"] + '/provisioning',
     'http2https':  False,
-    'lets_encrypt': lets_encrypt,
     'host': os.environ["NETHVOICE_HOST"],
     'path': '/provisioning',
 })
@@ -52,7 +41,6 @@ agent.set_route({
     'instance': os.environ['MODULE_ID'] + '-server-api',
     'url':  'http://127.0.0.1:' + os.environ["NETHCTI_SERVER_API_PORT"],
     'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
-    'lets_encrypt': lets_encrypt,
     'host': os.environ["NETHVOICE_HOST"],
     'path': '/webrest',
     'strip_prefix': True,
@@ -69,7 +57,6 @@ agent.set_route({
     'instance': os.environ['MODULE_ID'] + '-cti-server-api',
     'url':  'http://127.0.0.1:' + os.environ["NETHCTI_SERVER_API_PORT"],
     'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
-    'lets_encrypt': lets_encrypt,
     'host': os.environ["NETHCTI_UI_HOST"],
     'path': '/webrest',
     'strip_prefix': True,
@@ -88,7 +75,6 @@ agent.set_route({
     'instance': os.environ['MODULE_ID'] + '-server-websocket',
     'url':  'http://127.0.0.1:' + os.environ["NETHCTI_SERVER_WS_PORT"] + '/socket.io',
     'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
-    'lets_encrypt': lets_encrypt,
     'host': os.environ["NETHCTI_UI_HOST"],
     'path': '/socket.io',
     'headers': {
@@ -105,7 +91,6 @@ agent.set_route({
     'instance': os.environ['MODULE_ID'] + '-janus',
     'url':  'http://127.0.0.1:' + os.environ["JANUS_TRANSPORT_PORT"],
     'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
-    'lets_encrypt': lets_encrypt,
     'host': os.environ["NETHCTI_UI_HOST"],
     'path': '/janus',
     'headers': {
@@ -123,7 +108,6 @@ agent.set_route({
     'instance': os.environ['MODULE_ID'] + '-middleware-server-api',
     'url':  'http://127.0.0.1:' + os.environ["NETHVOICE_MIDDLEWARE_PORT"],
     'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
-    'lets_encrypt': lets_encrypt == 'True',
     'host': os.environ["NETHVOICE_HOST"],
     'path': '/api',
     'strip_prefix': True,
@@ -142,7 +126,6 @@ agent.set_route({
     'instance': os.environ['MODULE_ID'] + '-middleware-cti-server-api',
     'url':  'http://127.0.0.1:' + os.environ["NETHVOICE_MIDDLEWARE_PORT"],
     'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
-    'lets_encrypt': lets_encrypt == 'True',
     'host': os.environ["NETHCTI_UI_HOST"],
     'path': '/api',
     'strip_prefix': True,
@@ -166,7 +149,6 @@ if len(ksrv) > 0:
         'instance': os.environ['MODULE_ID'] + '-users-admin',
         'url': ksrv[0]["url"],
         'http2https':  True,
-        'lets_encrypt': lets_encrypt,
         'host': os.environ["NETHVOICE_HOST"],
         'path': '/users-admin/' + data["user_domain"],
         'strip_prefix': True,
