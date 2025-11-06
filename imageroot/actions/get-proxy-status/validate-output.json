@@ -5,14 +5,22 @@
   "description": "Get the status of nethvoice proxy",
   "examples": [
     {
-      "proxy_installed": true
+      "proxy_installed": true,
+      "module_id": "nethvoice-proxy1"
+    },
+    {
+      "proxy_installed": false
     }
   ],
   "type": "object",
   "properties": {
     "proxy_installed": {
-      "description": "Test if the Nethvoice proxy is installed",
+      "description": "True if the NethVoice proxy is installed, false otherwise",
       "type": "boolean"
+    },
+    "module_id": {
+      "description": "The module ID of the NethVoice proxy",
+      "type": "string"
     }
   },
   "required": ["proxy_installed"],
