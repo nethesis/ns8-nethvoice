@@ -18,7 +18,7 @@ import json
 import agent
 
 data = json.load(sys.stdin)
-lets_encrypt = data.get("lets_encrypt", 'false')
+lets_encrypt = data.get("lets_encrypt", False)
 
 
 # Routes for NETHVOICE_HOST (main PBX host)
