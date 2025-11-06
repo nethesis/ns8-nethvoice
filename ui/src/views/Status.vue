@@ -77,7 +77,9 @@
           :totalFileCountLabel="core.$t('backup.total_file_count')"
           :backupDisabledLabel="core.$t('common.disabled')"
           :showMoreLabel="core.$t('common.show_more')"
-          :multipleUncertainStatusLabel="core.$t('backup.some_backups_failed_or_are_pending')"
+          :multipleUncertainStatusLabel="
+            core.$t('backup.some_backups_failed_or_are_pending')
+          "
           :moduleId="instanceName"
           :moduleUiName="instanceLabel"
           :repositories="backupRepositories"
@@ -254,7 +256,7 @@
 
 <script>
 import to from "await-to-js";
-import { mapState } from "vuex";
+import { mapState, mapActions } from "vuex";
 import {
   QueryParamService,
   TaskService,
@@ -304,7 +306,13 @@ export default {
     };
   },
   computed: {
-    ...mapState(["instanceName", "instanceLabel", "core", "appName"]),
+    ...mapState([
+      "instanceName",
+      "instanceLabel",
+      "core",
+      "appName",
+      "configuration",
+    ]),
     installationNodeTitle() {
       if (this.status && this.status.node) {
         if (this.status.node_ui_name) {
@@ -348,6 +356,7 @@ export default {
     this.listBackupRepositories();
   },
   methods: {
+    ...mapActions(["setInstanceStatusInStore"]),
     async getStatus() {
       this.loading.getStatus = true;
       this.error.getStatus = "";
@@ -392,6 +401,11 @@ export default {
     },
     getStatusCompleted(taskContext, taskResult) {
       this.status = taskResult.output;
+      // save status to vuex store: useful for first configuration modal
+      this.setInstanceStatusInStore(this.status);
+
+      console.log("setInstanceStatusInStore", this.status); ////
+
       this.loading.getStatus = false;
     },
     async listBackupRepositories() {

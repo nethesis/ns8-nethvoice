@@ -86,7 +86,7 @@
     "satellite_call_transcription_enabled": "Enable call transcription (Preview)",
     "satellite_voicemail_transcription_enabled": "Enable voicemail transcription",
     "satellite_call_transcription_enabled_warning_title": "Potential high credit usage",
-"satellite_call_transcription_enabled_warning_description": "Transcriptions are enabled for every call. Your Deepgram credits may run out quickly if you have many calls.",
+    "satellite_call_transcription_enabled_warning_description": "Transcriptions are enabled for every call. Your Deepgram credits may run out quickly if you have many calls.",
     "deepgram_api_key": "Deepgram API Key",
     "openai_api_key": "OpenAI API Key"
   },
@@ -108,6 +108,24 @@
     "services": "Service | Services",
     "size": "Size",
     "title": "Status"
+  },
+  "welcome": {
+    "configure_nethvoice": "Configure NethVoice",
+    "no_domain_configured": "No account provider configured",
+    "no_domain_configured_description": "You can create an internal OpenLDAP provider now, or set up a provider manually in {domainsAndUsers}.",
+    "go_to_domains_and_users": "Go to Domains and users",
+    "account_provider_step_description": "Use an existing account provider or create a new internal OpenLDAP on {node}. You can add or configure providers anytime in {domainsAndUsers}.",
+    "account_provider_type": "Account provider type",
+    "account_provider": "Account provider",
+    "use_existing_provider": "Use an existing account provider",
+    "create_openldap_provider": "Create an OpenLDAP account provider on node {node}",
+    "nethvoice_proxy": "NethVoice proxy",
+    "nethvoice_application": "NethVoice application",
+    "install_openldap": "Install OpenLDAP",
+    "openldap_step_description": "Configure OpenLDAP provider.",
+    "internal_openldap": "Internal OpenLDAP",
+    "internal_samba": "Internal Samba",
+    "external_ldap": "External LDAP"
   },
   "task": {
     "cannot_create_task": "Cannot create task {action}"

@@ -13,6 +13,9 @@ export default new Vuex.Store({
     instanceName: "",
     instanceLabel: "",
     core: null,
+    isAppConfigured: true,
+    configuration: null,
+    instanceStatus: null,
   },
   mutations: {
     setInstanceName(state, instanceName) {
@@ -27,6 +30,15 @@ export default new Vuex.Store({
     setAppName(state, appName) {
       state.appName = appName;
     },
+    setAppConfigured(state, value) {
+      state.isAppConfigured = value;
+    },
+    setConfiguration(state, configuration) {
+      state.configuration = configuration;
+    },
+    setInstanceStatus(state, status) {
+      state.instanceStatus = status;
+    },
   },
   actions: {
     setInstanceNameInStore(context, instanceName) {
@@ -40,6 +52,15 @@ export default new Vuex.Store({
     },
     setAppNameInStore(context, appName) {
       context.commit("setAppName", appName);
+    },
+    setAppConfiguredInStore(context, value) {
+      context.commit("setAppConfigured", value);
+    },
+    setConfigurationInStore(context, configuration) {
+      context.commit("setConfiguration", configuration);
+    },
+    setInstanceStatusInStore(context, status) {
+      context.commit("setInstanceStatus", status);
     },
   },
   modules: {},
