@@ -140,7 +140,7 @@ agent.set_route({
     'instance': os.environ['MODULE_ID'] + '-middleware-cti-server-api',
     'url':  'http://127.0.0.1:' + os.environ["NETHVOICE_MIDDLEWARE_PORT"],
     'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
-    'lets_encrypt': lets_encrypt == 'True',
+    'lets_encrypt': lets_encrypt,
     'host': os.environ["NETHCTI_UI_HOST"],
     'path': '/api',
     'strip_prefix': True,
