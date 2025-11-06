@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+import os
 import sys
 import agent
 import agent.tasks
@@ -23,7 +24,7 @@ if (env.get('NETHVOICE_MIDDLEWARE_PORT') and
         print("Warning: Traefik not found, skipping middleware route configuration", file=sys.stderr)
         sys.exit(0)
 
-    lets_encrypt = agent.get_route(os.environ['MODULE_ID'] + '-wizard') or {}).get('lets_encrypt', False)
+    lets_encrypt = (agent.get_route(os.environ['MODULE_ID'] + '-wizard') or {}).get('lets_encrypt', False)
 
     # CTI Wizard
     # Configure middleware API route on NETHVOICE_HOST
