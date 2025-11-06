@@ -23,7 +23,7 @@ if (env.get('NETHVOICE_MIDDLEWARE_PORT') and
         print("Warning: Traefik not found, skipping middleware route configuration", file=sys.stderr)
         sys.exit(0)
 
-    lets_encrypt = env.get('TRAEFIK_LETS_ENCRYPT', 'false')
+    lets_encrypt = agent.get_route(os.environ['MODULE_ID'] + '-wizard') or {}).get('lets_encrypt', False)
 
     # CTI Wizard
     # Configure middleware API route on NETHVOICE_HOST
@@ -34,7 +34,7 @@ if (env.get('NETHVOICE_MIDDLEWARE_PORT') and
             'instance': env['MODULE_ID'] + '-middleware-server-api',
             'url':  'http://127.0.0.1:' + env["NETHVOICE_MIDDLEWARE_PORT"],
             'http2https':  env["TRAEFIK_HTTP2HTTPS"] == "true",
-            'lets_encrypt': lets_encrypt == 'True',
+            'lets_encrypt': lets_encrypt,
             'host': env["NETHVOICE_HOST"],
             'path': '/api',
             'strip_prefix': True,
@@ -59,7 +59,7 @@ if (env.get('NETHVOICE_MIDDLEWARE_PORT') and
             'instance': env['MODULE_ID'] + '-middleware-cti-server-api',
             'url':  'http://127.0.0.1:' + env["NETHVOICE_MIDDLEWARE_PORT"],
             'http2https':  env["TRAEFIK_HTTP2HTTPS"] == "true",
-            'lets_encrypt': lets_encrypt == 'True',
+            'lets_encrypt': lets_encrypt,
             'host': env["NETHCTI_UI_HOST"],
             'path': '/api',
             'strip_prefix': True,
