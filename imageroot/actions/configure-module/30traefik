@@ -17,9 +17,7 @@ import json
 import agent
 
 data = json.load(sys.stdin)
-lets_encrypt = data.get("lets_encrypt", 'false')
-
-agent.set_env('TRAEFIK_LETS_ENCRYPT', lets_encrypt)
+lets_encrypt = data.get("lets_encrypt", False)
 
 # Find default traefik instance for current node
 default_traefik_id = agent.resolve_agent_id('traefik@node')
@@ -123,7 +121,7 @@ agent.set_route({
     'instance': os.environ['MODULE_ID'] + '-middleware-server-api',
     'url':  'http://127.0.0.1:' + os.environ["NETHVOICE_MIDDLEWARE_PORT"],
     'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
-    'lets_encrypt': lets_encrypt == 'True',
+    'lets_encrypt': lets_encrypt,
     'host': os.environ["NETHVOICE_HOST"],
     'path': '/api',
     'strip_prefix': True,
