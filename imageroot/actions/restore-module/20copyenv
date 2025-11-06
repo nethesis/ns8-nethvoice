@@ -112,7 +112,6 @@ restore_envs = [
     'SUBSCRIPTION_SYSTEMID',
     'TIMEZONE',
     'TRAEFIK_HTTP2HTTPS',
-    'TRAEFIK_LETS_ENCRYPT',
     'USER_DOMAIN',
 ]
 
