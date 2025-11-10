@@ -197,6 +197,7 @@ RUN groupadd -g 991 -r asterisk && \
 		libspeex1 \
 		libspeexdsp1 \
 		libneon27 \
+        libpq-dev \
 		libspandsp2 \
 		libsnmp40 \
 		libical3 \
@@ -515,6 +516,7 @@ RUN docker-php-source extract && \
 	docker-php-ext-configure pdo_odbc --with-pdo-odbc=unixODBC,/usr && docker-php-ext-install pdo_odbc && \
 	docker-php-ext-configure sockets && docker-php-ext-install sockets && \
 	docker-php-ext-configure pdo_dblib && docker-php-ext-install pdo_dblib && \
+    docker-php-ext-configure pdo_pgsql && docker-php-ext-install pdo_pgsql && \
 	docker-php-source delete
 
 # Install nethvoice-wizard-restapi and nethvoice-wizard-ui
