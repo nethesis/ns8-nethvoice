@@ -11,6 +11,7 @@
         "Europe/Brussels",
         "Europe/London"
       ],
+      "local_timezone": "Europe/Rome",
       "proxy_status": {
         "proxy_installed": true,
         "module_id": "nethvoice-proxy1"
@@ -21,6 +22,7 @@
         "Europe/Amsterdam",
         "Europe/Berlin"
       ],
+      "local_timezone": "UTC",
       "proxy_status": {
         "proxy_installed": false
       }
@@ -28,7 +30,7 @@
   ],
   "type": "object",
   "additionalProperties": false,
-  "required": ["accepted_timezone_list", "proxy_status"],
+  "required": ["accepted_timezone_list", "local_timezone", "proxy_status"],
   "properties": {
     "accepted_timezone_list": {
       "description": "List of accepted timezones",
@@ -36,6 +38,10 @@
       "items": {
         "type": "string"
       }
+    },
+    "local_timezone": {
+      "description": "The current system timezone",
+      "type": "string"
     },
     "proxy_status": {
       "description": "Status of the NethVoice proxy",
