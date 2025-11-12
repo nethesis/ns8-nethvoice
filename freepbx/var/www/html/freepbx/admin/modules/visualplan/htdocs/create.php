@@ -302,6 +302,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                 $_REQUEST['strategy'] = $strategy;
                 $_REQUEST['timeout'] = $timeout;
                 $_REQUEST['answered_elsewhere'] = "1";
+                $_REQUEST['music'] = 'inherit';
                 queues_add(
                     $extension,
                     $name,
@@ -331,7 +332,6 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                     "",             //rvolume
                     ""              //rvol_mode
                 );
-                    
             } else {
                 queues_del($extension);
                 $_REQUEST['maxlen'] = $exists['maxlen'];
@@ -354,7 +354,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                 $_REQUEST['monitor-join'] = $exists['monitor-join'];
                 $_REQUEST['eventwhencalled'] = $exists['eventwhencalled'];
                 $_REQUEST['eventmemberstatus'] = $exists['eventmemberstatus'];
-                $_REQUEST['music'] = $exists['music'];
+                $_REQUEST['music'] = (isset($exists['music'])) ? $exists['music'] : 'inherit';
                 $_REQUEST['weight'] = $exists['weight'];
                 $_REQUEST['autofill'] = ($exists['autofill']==='yes')?$exists['autofill']:'';
                 $_REQUEST['ringinuse'] = $exists['ringinuse'];
