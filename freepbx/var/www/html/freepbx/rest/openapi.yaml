@@ -428,7 +428,7 @@ paths:
     get:
       summary: List CTI permission profiles with macro permissions attached.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -440,7 +440,7 @@ paths:
     post:
       summary: Create a new CTI profile.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -459,7 +459,7 @@ paths:
     get:
       summary: Retrieve a single CTI profile by identifier.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -477,7 +477,7 @@ paths:
     post:
       summary: Update an existing CTI profile definition.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -501,7 +501,7 @@ paths:
     delete:
       summary: Delete a CTI profile and clean up related permissions.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -520,7 +520,7 @@ paths:
     get:
       summary: Enumerate all available CTI permissions grouped by macro category.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -533,7 +533,7 @@ paths:
     get:
       summary: Return the CTI profile currently assigned to a given user id.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -551,7 +551,7 @@ paths:
     post:
       summary: Assign a CTI profile to a user.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -576,7 +576,7 @@ paths:
     get:
       summary: List CTI groups available for agent assignment.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -588,7 +588,7 @@ paths:
     post:
       summary: Create a new CTI group.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -607,7 +607,7 @@ paths:
     get:
       summary: Return the set of group ids linked to a given user id.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -625,7 +625,7 @@ paths:
     post:
       summary: Replace the groups assigned to a user.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -650,7 +650,7 @@ paths:
     get:
       summary: List users bound to a specific CTI group.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -669,7 +669,7 @@ paths:
     delete:
       summary: Remove a CTI group and its dynamic permission artifacts.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -688,7 +688,7 @@ paths:
     post:
       summary: Create an external database connection profile for CTI.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -707,7 +707,7 @@ paths:
     get:
       summary: List saved CTI external database connections.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -720,7 +720,7 @@ paths:
     put:
       summary: Update the profile assignments for an existing parameterized URL.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -746,7 +746,7 @@ paths:
     put:
       summary: Modify properties of an external database connection profile.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -769,7 +769,7 @@ paths:
     delete:
       summary: Delete an external database connection definition.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -788,7 +788,7 @@ paths:
     post:
       summary: Create a new parameterized URL mapping bound to CTI profiles.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -806,7 +806,7 @@ paths:
     post:
       summary: Remove specific profile associations from a parameterized URL.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -824,7 +824,7 @@ paths:
     get:
       summary: Expose the supported database adapter identifiers.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -837,7 +837,7 @@ paths:
     get:
       summary: List available customer card templates (built-in and custom).
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -849,7 +849,7 @@ paths:
     post:
       summary: Create or overwrite a customer card template file.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -868,7 +868,7 @@ paths:
     put:
       summary: Update an existing customer card template by name.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -891,7 +891,7 @@ paths:
     delete:
       summary: Delete a customer card template, preferring the custom override if present.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -910,7 +910,7 @@ paths:
     get:
       summary: List customer card configurations including linked profiles and templates.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -922,7 +922,7 @@ paths:
     post:
       summary: Create a customer card definition backed by an external query.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -942,7 +942,7 @@ paths:
     put:
       summary: Update an existing customer card configuration.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -965,7 +965,7 @@ paths:
     delete:
       summary: Delete a customer card definition and its permission binding.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -984,7 +984,7 @@ paths:
     get:
       summary: List configured CTI video streaming sources with profile bindings.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -996,7 +996,7 @@ paths:
     post:
       summary: Create a new CTI streaming source and permission entry.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -1014,7 +1014,7 @@ paths:
     get:
       summary: Return the current parameterized URL mappings grouped by URL.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -1027,7 +1027,7 @@ paths:
     put:
       summary: Update a streaming source metadata and profile assignments.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -1051,7 +1051,7 @@ paths:
     post:
       summary: Test reachability of a video source by fetching a still frame.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -1070,7 +1070,7 @@ paths:
     delete:
       summary: Delete a streaming source and related permission record.
       tags:
-      - Cti
+      - CTI
       responses:
         '200':
           description: Successful response
@@ -3234,7 +3234,7 @@ tags:
   description: Static list of codecs supported by the provisioning workflow.
 - name: Configuration
   description: System-level configuration helpers for SIP, wizard state and auxiliary services.
-- name: Cti
+- name: CTI
   description: 'Computer-telephony integration (CTI) configuration: permission profiles, groups, customer cards, streaming
     widgets and external data sources.'
 - name: Devices
