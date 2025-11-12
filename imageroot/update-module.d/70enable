@@ -15,3 +15,7 @@ systemctl --user enable --now nethcti-middleware.service
 # Enable NethVocice CDR cleanup timer
 echo "Enabling nethvoice-cdr-cleanup timer"
 systemctl --user enable --now nethvoice-cdr-cleanup.timer
+
+# Enable NethCTI UI weekly restart timer for timezone updates
+echo "Enabling nethcti-ui-restart timer"
+systemctl --user enable --now nethcti-ui-restart.timer

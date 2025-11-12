@@ -29,6 +29,7 @@ systemctl --user enable --now janus.service
 systemctl --user enable nethcti-server.service # cti server will be started later
 systemctl --user enable --now nethcti-middleware.service
 systemctl --user enable --now nethcti-ui.service
+systemctl --user enable --now nethcti-ui-restart.timer
 systemctl --user enable --now tancredi.service
 systemctl --user enable --now phonebook.service
 systemctl --user enable --now phonebook-update.timer
