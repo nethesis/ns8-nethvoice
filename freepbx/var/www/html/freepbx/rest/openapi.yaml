@@ -11,12 +11,15 @@ info:
 
     - `User`: must be a valid FreePBX administrator (ampusers table)
 
-    - `Secretkey`: must be a valid hash calculated from user + password (SHA1) + shared secret
+    - `Secretkey`: must be a valid hash calculated from user + password (SHA1) + shared
+    secret
 
 
-    Authentication endpoints (`/login`, `/logout`, `/testauth`) do not require these headers.
-    
-    Shared secrets is saved inside the `passwords.env` file, under the `NETHVOICESECRETKEY` variable.
+    Authentication endpoints (`/login`, `/logout`, `/testauth`) do not require these
+    headers.
+
+    Shared secrets is saved inside the `passwords.env` file, under the `NETHVOICESECRETKEY`
+    variable. '
   contact:
     name: Nethesis
     url: https://www.nethesis.it
@@ -45,7 +48,10 @@ paths:
             application/json:
               schema:
                 type: object
-      description: 'Returns `{ "success": true }` after seeding the AMP session as the `admin` user.'
+              example:
+                success: true
+      description: 'Returns `{ "success": true }` after seeding the AMP session as
+        the `admin` user.'
       operationId: get_login
       security: []
   /logout:
@@ -60,7 +66,10 @@ paths:
             application/json:
               schema:
                 type: object
-      description: 'Clears the `AMP_user` session entry and returns `{ "success": true }`.'
+              example:
+                success: true
+      description: 'Clears the `AMP_user` session entry and returns `{ "success":
+        true }`.'
       operationId: get_logout
       security: []
   /testauth:
@@ -75,8 +84,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: 'Body: `{ "username": "", "password": "" }`. On success returns `{ "result": "<secret>" }` with status
-        200; otherwise 401.'
+      description: 'Body: `{ "username": "", "password": "" }`. On success returns
+        `{ "result": "<secret>" }` with status 200; otherwise 401.'
       operationId: post_testauth
       security: []
       requestBody:
@@ -96,6 +105,9 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                from-internal: Standard
+                cti-profile-3: CTI Profile Advanced
       description: Returns a JSON object keyed by context name with a human description.
       operationId: get_contexts
   /bulk/{mainextensions}:
@@ -110,8 +122,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Segment expects a comma separated extension list. Returns only values that are identical across the group;
-        divergent keys are `null`.
+      description: Segment expects a comma separated extension list. Returns only
+        values that are identical across the group; divergent keys are `null`.
       operationId: get_bulk_mainextensions
       parameters:
       - name: mainextensions
@@ -130,8 +142,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: 'Body: JSON object with keys such as `displayname`, `callwaiting`, `outboundcid_*`, etc. Triggers `retrieveHelper.sh`
-        on success.'
+      description: 'Body: JSON object with keys such as `displayname`, `callwaiting`,
+        `outboundcid_*`, etc. Triggers `retrieveHelper.sh` on success.'
       operationId: post_bulk_mainextensions
       parameters:
       - name: mainextensions
@@ -156,7 +168,21 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Wraps the FreePBX destination helper and returns raw data for UI selection.
+              example:
+                Announcements:
+                  '99999':
+                    destination: popover
+                    description: Add new Announcements &#133
+                    category: announcement
+                    selected: false
+                Callback:
+                  '99999':
+                    destination: popover
+                    description: Add new Callback &#133
+                    category: callback
+                    selected: false
+      description: Wraps the FreePBX destination helper and returns raw data for UI
+        selection.
       operationId: get_destinations
   /codecs/voip:
     get:
@@ -170,6 +196,11 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+              - codec: alaw
+                enabled: true
+              - codec: ulaw
+                enabled: true
       description: 'Currently returns alaw, ulaw and g729 with `enabled: true`.'
       operationId: get_codecs_voip
   /configuration/userprovider:
@@ -184,7 +215,11 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Derives the LDAP domain from `NETHVOICE_LDAP_BASE` and reports the provider as configured.
+              example:
+                configured: 1
+                type: ldap
+      description: Derives the LDAP domain from `NETHVOICE_LDAP_BASE` and reports
+        the provider as configured.
       operationId: get_configuration_userprovider
   /configuration/mode:
     get:
@@ -198,7 +233,10 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Evaluates the `LegacyMode` prop and presence of `nethserver-directory` to return `legacy`, `uc` or `unknown`.
+              example:
+                result: unknown
+      description: Evaluates the `LegacyMode` prop and presence of `nethserver-directory`
+        to return `legacy`, `uc` or `unknown`.
       operationId: get_configuration_mode
   /configuration/networks:
     get:
@@ -212,7 +250,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Returns the decoded `NETHVOICE_HOST_LOCAL_NETWORKS` value or an empty array.
+      description: Returns the decoded `NETHVOICE_HOST_LOCAL_NETWORKS` value or an
+        empty array.
       operationId: get_configuration_networks
   /configuration/wizard:
     get:
@@ -226,7 +265,11 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Returns the rows in `rest_wizard`, providing the last completed step and status.
+              example:
+              - step: '1'
+                status: null
+      description: Returns the rows in `rest_wizard`, providing the last completed
+        step and status.
       operationId: get_configuration_wizard
     post:
       summary: Persist the current wizard step and optionally trigger service restarts.
@@ -239,7 +282,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: 'Body: `{ "step": <int>, "status": <bool> }`. Step 13 restarts Asterisk and signals the CTI service.'
+      description: 'Body: `{ "step": <int>, "status": <bool> }`. Step 13 restarts
+        Asterisk and signals the CTI service.'
       operationId: post_configuration_wizard
       requestBody:
         content:
@@ -258,6 +302,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: 127.0.0.1
       operationId: get_configuration_externalip
   /configuration/externalip/{ip}:
     post:
@@ -271,7 +316,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Path parameter `ip` must be a valid IPv4 address. Invokes `retrieveHelper.sh` on success.
+      description: Path parameter `ip` must be a valid IPv4 address. Invokes `retrieveHelper.sh`
+        on success.
       operationId: post_configuration_externalip_ip
       parameters:
       - name: ip
@@ -296,6 +342,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: 146.190.28.17
       description: Returns the IP string on success or HTTP 500 on lookup failure.
       operationId: get_configuration_suggestedip
   /configuration/allowexternalsips:
@@ -310,7 +357,9 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Endpoint kept for backward compatibility; always returns the string `"enabled"`.
+              example: enabled
+      description: Endpoint kept for backward compatibility; always returns the string
+        `"enabled"`.
       operationId: get_configuration_allowexternalsips
   /configuration/allowexternalsips/{status}:
     post:
@@ -324,7 +373,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Currently a no-op that still returns HTTP 200. Accepts only `enabled` or `disabled` in the path.
+      description: Currently a no-op that still returns HTTP 200. Accepts only `enabled`
+        or `disabled` in the path.
       operationId: post_configuration_allowexternalsips_status
       parameters:
       - name: status
@@ -332,7 +382,9 @@ paths:
         required: true
         schema:
           type: string
-          enum: ["enabled", "disabled"]
+          enum:
+          - enabled
+          - disabled
       requestBody:
         content:
           application/json:
@@ -350,6 +402,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: false
       operationId: get_configuration_localnetworks
     post:
       summary: Request an Asterisk restart after out-of-band local network changes.
@@ -362,7 +415,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Does not accept a body; it simply issues `core restart when convenient` through AMI.
+      description: Does not accept a body; it simply issues `core restart when convenient`
+        through AMI.
       operationId: post_configuration_localnetworks
       requestBody:
         content:
@@ -381,7 +435,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: When enabling, requires `google-auth.json` to already exist; otherwise responds 412.
+      description: When enabling, requires `google-auth.json` to already exist; otherwise
+        responds 412.
       operationId: post_configuration_voicemailgooglestt_status
       parameters:
       - name: status
@@ -389,7 +444,9 @@ paths:
         required: true
         schema:
           type: string
-          enum: ["enabled", "disabled"]
+          enum:
+          - enabled
+          - disabled
       requestBody:
         content:
           application/json:
@@ -407,6 +464,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: disabled
       operationId: get_configuration_voicemailgooglestt
   /configuration/googleauth:
     post:
@@ -420,8 +478,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: 'Body: `{ "file": "<base64>" }`. The file is decoded to `/home/asterisk/google-auth.json`, replacing any
-        existing version.'
+      description: 'Body: `{ "file": "<base64>" }`. The file is decoded to `/home/asterisk/google-auth.json`,
+        replacing any existing version.'
       operationId: post_configuration_googleauth
       requestBody:
         content:
@@ -440,6 +498,429 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+              - id: '2'
+                name: Standard
+                macro_permissions:
+                  settings:
+                    value: true
+                    displayname: Settings
+                    description: General and notifications settings
+                    permissions:
+                    - id: '2'
+                      name: dnd
+                      displayname: DND
+                      description: Configure do Not Disturb
+                      value: true
+                    - id: '3'
+                      name: call_forward
+                      displayname: Call Forward
+                      description: Configure Call Forward
+                      value: true
+                    - id: '4'
+                      name: recording
+                      displayname: Recording
+                      description: Record own conversations. View/listen/delete own
+                        recording
+                      value: true
+                    - id: '5'
+                      name: conference
+                      displayname: Conference
+                      description: Make a conference call
+                      value: true
+                    - id: '6'
+                      name: parkings
+                      displayname: Parkings
+                      description: View parkings state and pickup parked calls
+                      value: false
+                    - id: '15'
+                      name: spy
+                      displayname: Spy
+                      description: Hear other extensions calls
+                      value: false
+                    - id: '16'
+                      name: intrude
+                      displayname: Intrude
+                      description: Intrude in calls
+                      value: false
+                    - id: '18'
+                      name: pickup
+                      displayname: Pickup
+                      description: Pick-up any call
+                      value: false
+                  phonebook:
+                    value: true
+                    displayname: Phonebook
+                    description: View Phonebook, add contacts, modify and delete own
+                      contacts
+                    permissions:
+                    - id: '12'
+                      name: ad_phonebook
+                      displayname: Advanced Phonebook
+                      description: Modify and delete all contacts
+                      value: false
+                  cdr:
+                    value: true
+                    displayname: CDR
+                    description: View own call history
+                    permissions:
+                    - id: '13'
+                      name: ad_cdr
+                      displayname: PBX CDR
+                      description: View all users call history
+                      value: false
+                    - id: '4000'
+                      name: group_cdr
+                      displayname: Group CDR
+                      description: Allow to see call history of members of user groups
+                      value: false
+                  customer_card:
+                    value: true
+                    displayname: Customer Card
+                    description: Allow to view Customer Cards
+                    permissions: []
+                  presence_panel:
+                    value: true
+                    displayname: Presence Panel
+                    description: Allow to view Presence Panel
+                    permissions:
+                    - id: '17'
+                      name: ad_recording
+                      displayname: Advanced Recording
+                      description: Record anyone call
+                      value: false
+                    - id: '19'
+                      name: transfer
+                      displayname: Transfer
+                      description: Transfer everyone call
+                      value: false
+                    - id: '20'
+                      name: ad_parking
+                      displayname: Advanced Parking
+                      description: Allow to park any call and to pickup them using
+                        any extension
+                      value: false
+                    - id: '21'
+                      name: hangup
+                      displayname: Hangup
+                      description: Hangup everyone call
+                      value: false
+                    - id: '22'
+                      name: trunks
+                      displayname: PBX lines
+                      description: View PBX lines
+                      value: false
+                    - id: '26'
+                      name: ad_phone
+                      displayname: Advanced Phone
+                      description: Use phone features (hangup, call, answer) on conversations
+                        not owned by the user
+                      value: false
+                    - id: '3500'
+                      name: all_groups
+                      displayname: All groups
+                      description: Allow to see all groups and operators
+                      value: false
+                  queue_agent:
+                    value: true
+                    displayname: Use queue agent panel
+                    description: View Queues and queues info of the user, login/logout
+                      from queues, enable or disable pause state
+                    permissions:
+                    - id: '23'
+                      name: ad_queue_agent
+                      displayname: Advanced queue agent panel
+                      description: View more queue information
+                      value: true
+                    - id: '24'
+                      name: lost_queue_call
+                      displayname: Lost Queue Calls
+                      description: Allow to view Queue Recall panel
+                      value: false
+                  streaming:
+                    value: false
+                    displayname: Streaming
+                    description: Allow to view Streaming Panel
+                    permissions: []
+                  off_hour:
+                    value: true
+                    displayname: Off Hour
+                    description: Allow to change of his incoming call paths
+                    permissions:
+                    - id: '25'
+                      name: advanced_off_hour
+                      displayname: Advanced Off Hour
+                      description: Allow to change user's incoming call path and generic
+                        inbound routes
+                      value: false
+                    - id: '27'
+                      name: ad_off_hour
+                      displayname: Admin Off Hour
+                      description: Allow to change all incoming call paths
+                      value: false
+                  remote_sites:
+                    value: false
+                    displayname: Remote Sites
+                    description: Allow to view Remote Sites information
+                    permissions: []
+                  qmanager:
+                    value: false
+                    displayname: Queue Manager
+                    description: Allow to view and manage queues in real time
+                    permissions: []
+                  operator_panel:
+                    value: false
+                    displayname: Operator Panel
+                    description: Enables Operator Panel interface for operators
+                    permissions: []
+                  nethvoice_cti:
+                    value: true
+                    displayname: NethVoice CTI
+                    description: Enables access to NethVoice CTI application
+                    permissions:
+                    - id: '8'
+                      name: chat
+                      displayname: Chat
+                      description: Use chat service
+                      value: true
+                    - id: '9'
+                      name: privacy
+                      displayname: Privacy
+                      description: Obfuscate called and caller numbers for other users
+                      value: true
+                    - id: '1000'
+                      name: screen_sharing
+                      displayname: Screen Sharing
+                      description: Allow to share the desktop
+                      value: false
+                    - id: '2000'
+                      name: phone_buttons
+                      displayname: Phone buttons
+                      description: Allow the user to customize functions of physical
+                        phone buttons. These values correspond to the Line Keys settings
+                        shown in Devices -> Models and Configurations pages
+                      value: false
+                    - id: '3000'
+                      name: video_conference
+                      displayname: Video Conference
+                      description: Allow to start a video conference
+                      value: false
+                    - id: '5000'
+                      name: satellite_stt
+                      displayname: Speech-To-Text
+                      description: Calls transcription using Speech-To-Text
+                      value: false
+              - id: '3'
+                name: Advanced
+                macro_permissions:
+                  settings:
+                    value: true
+                    displayname: Settings
+                    description: General and notifications settings
+                    permissions:
+                    - id: '2'
+                      name: dnd
+                      displayname: DND
+                      description: Configure do Not Disturb
+                      value: true
+                    - id: '3'
+                      name: call_forward
+                      displayname: Call Forward
+                      description: Configure Call Forward
+                      value: true
+                    - id: '4'
+                      name: recording
+                      displayname: Recording
+                      description: Record own conversations. View/listen/delete own
+                        recording
+                      value: true
+                    - id: '5'
+                      name: conference
+                      displayname: Conference
+                      description: Make a conference call
+                      value: true
+                    - id: '6'
+                      name: parkings
+                      displayname: Parkings
+                      description: View parkings state and pickup parked calls
+                      value: true
+                    - id: '15'
+                      name: spy
+                      displayname: Spy
+                      description: Hear other extensions calls
+                      value: false
+                    - id: '16'
+                      name: intrude
+                      displayname: Intrude
+                      description: Intrude in calls
+                      value: false
+                    - id: '18'
+                      name: pickup
+                      displayname: Pickup
+                      description: Pick-up any call
+                      value: false
+                  phonebook:
+                    value: true
+                    displayname: Phonebook
+                    description: View Phonebook, add contacts, modify and delete own
+                      contacts
+                    permissions:
+                    - id: '12'
+                      name: ad_phonebook
+                      displayname: Advanced Phonebook
+                      description: Modify and delete all contacts
+                      value: true
+                  cdr:
+                    value: true
+                    displayname: CDR
+                    description: View own call history
+                    permissions:
+                    - id: '13'
+                      name: ad_cdr
+                      displayname: PBX CDR
+                      description: View all users call history
+                      value: true
+                    - id: '4000'
+                      name: group_cdr
+                      displayname: Group CDR
+                      description: Allow to see call history of members of user groups
+                      value: false
+                  customer_card:
+                    value: true
+                    displayname: Customer Card
+                    description: Allow to view Customer Cards
+                    permissions: []
+                  presence_panel:
+                    value: true
+                    displayname: Presence Panel
+                    description: Allow to view Presence Panel
+                    permissions:
+                    - id: '17'
+                      name: ad_recording
+                      displayname: Advanced Recording
+                      description: Record anyone call
+                      value: false
+                    - id: '19'
+                      name: transfer
+                      displayname: Transfer
+                      description: Transfer everyone call
+                      value: false
+                    - id: '20'
+                      name: ad_parking
+                      displayname: Advanced Parking
+                      description: Allow to park any call and to pickup them using
+                        any extension
+                      value: false
+                    - id: '21'
+                      name: hangup
+                      displayname: Hangup
+                      description: Hangup everyone call
+                      value: false
+                    - id: '22'
+                      name: trunks
+                      displayname: PBX lines
+                      description: View PBX lines
+                      value: true
+                    - id: '26'
+                      name: ad_phone
+                      displayname: Advanced Phone
+                      description: Use phone features (hangup, call, answer) on conversations
+                        not owned by the user
+                      value: false
+                    - id: '3500'
+                      name: all_groups
+                      displayname: All groups
+                      description: Allow to see all groups and operators
+                      value: false
+                  queue_agent:
+                    value: true
+                    displayname: Use queue agent panel
+                    description: View Queues and queues info of the user, login/logout
+                      from queues, enable or disable pause state
+                    permissions:
+                    - id: '23'
+                      name: ad_queue_agent
+                      displayname: Advanced queue agent panel
+                      description: View more queue information
+                      value: true
+                    - id: '24'
+                      name: lost_queue_call
+                      displayname: Lost Queue Calls
+                      description: Allow to view Queue Recall panel
+                      value: true
+                  streaming:
+                    value: true
+                    displayname: Streaming
+                    description: Allow to view Streaming Panel
+                    permissions: []
+                  off_hour:
+                    value: true
+                    displayname: Off Hour
+                    description: Allow to change of his incoming call paths
+                    permissions:
+                    - id: '25'
+                      name: advanced_off_hour
+                      displayname: Advanced Off Hour
+                      description: Allow to change user's incoming call path and generic
+                        inbound routes
+                      value: true
+                    - id: '27'
+                      name: ad_off_hour
+                      displayname: Admin Off Hour
+                      description: Allow to change all incoming call paths
+                      value: false
+                  remote_sites:
+                    value: true
+                    displayname: Remote Sites
+                    description: Allow to view Remote Sites information
+                    permissions: []
+                  qmanager:
+                    value: false
+                    displayname: Queue Manager
+                    description: Allow to view and manage queues in real time
+                    permissions: []
+                  operator_panel:
+                    value: false
+                    displayname: Operator Panel
+                    description: Enables Operator Panel interface for operators
+                    permissions: []
+                  nethvoice_cti:
+                    value: true
+                    displayname: NethVoice CTI
+                    description: Enables access to NethVoice CTI application
+                    permissions:
+                    - id: '8'
+                      name: chat
+                      displayname: Chat
+                      description: Use chat service
+                      value: true
+                    - id: '9'
+                      name: privacy
+                      displayname: Privacy
+                      description: Obfuscate called and caller numbers for other users
+                      value: false
+                    - id: '1000'
+                      name: screen_sharing
+                      displayname: Screen Sharing
+                      description: Allow to share the desktop
+                      value: false
+                    - id: '2000'
+                      name: phone_buttons
+                      displayname: Phone buttons
+                      description: Allow the user to customize functions of physical
+                        phone buttons. These values correspond to the Line Keys settings
+                        shown in Devices -> Models and Configurations pages
+                      value: false
+                    - id: '3000'
+                      name: video_conference
+                      displayname: Video Conference
+                      description: Allow to start a video conference
+                      value: false
+                    - id: '5000'
+                      name: satellite_stt
+                      displayname: Speech-To-Text
+                      description: Calls transcription using Speech-To-Text
+                      value: false
       operationId: get_cti_profiles
     post:
       summary: Create a new CTI profile.
@@ -452,7 +933,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Body mirrors the profile schema used by the UI. Response returns the generated profile id.
+      description: Body mirrors the profile schema used by the UI. Response returns
+        the generated profile id.
       operationId: post_cti_profiles
       requestBody:
         content:
@@ -489,7 +971,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: 'Body: serialized profile as produced by the UI; updates macro permissions and triggers a dialplan reload.'
+      description: 'Body: serialized profile as produced by the UI; updates macro
+        permissions and triggers a dialplan reload.'
       operationId: post_cti_profiles_id
       parameters:
       - name: id
@@ -532,6 +1015,59 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                settings:
+                  value: false
+                  permissions:
+                  - id: '2'
+                    name: dnd
+                    displayname: DND
+                    description: Configure do Not Disturb
+                    value: false
+                  - id: '3'
+                    name: call_forward
+                    displayname: Call Forward
+                    description: Configure Call Forward
+                    value: false
+                  - id: '4'
+                    name: recording
+                    displayname: Recording
+                    description: Record own conversations. View/listen/delete own
+                      recording
+                    value: false
+                  - id: '5'
+                    name: conference
+                    displayname: Conference
+                    description: Make a conference call
+                    value: false
+                  - id: '6'
+                    name: parkings
+                    displayname: Parkings
+                    description: View parkings state and pickup parked calls
+                    value: false
+                  - id: '15'
+                    name: spy
+                    displayname: Spy
+                    description: Hear other extensions calls
+                    value: false
+                  - id: '16'
+                    name: intrude
+                    displayname: Intrude
+                    description: Intrude in calls
+                    value: false
+                  - id: '18'
+                    name: pickup
+                    displayname: Pickup
+                    description: Pick-up any call
+                    value: false
+                phonebook:
+                  value: false
+                  permissions:
+                  - id: '12'
+                    name: ad_phonebook
+                    displayname: Advanced Phonebook
+                    description: Modify and delete all contacts
+                    value: false
       operationId: get_cti_permissions
   /cti/profiles/users/{user_id}:
     get:
@@ -588,6 +1124,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: []
       operationId: get_cti_groups
     post:
       summary: Create a new CTI group.
@@ -600,7 +1137,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: 'Body: `{ "name": "<group name>" }`. Returns the created group id.'
+      description: 'Body: `{ "name": "<group name>" }`. Returns the created group
+        id.'
       operationId: post_cti_groups
       requestBody:
         content:
@@ -637,7 +1175,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: 'Body: `{ "groups": [<ids>] }`. Existing links are cleared before inserting the new list.'
+      description: 'Body: `{ "groups": [<ids>] }`. Existing links are cleared before
+        inserting the new list.'
       operationId: post_cti_groups_users_id
       parameters:
       - name: id
@@ -700,8 +1239,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Body includes host, port, type, credentials and database name; credentials are stored for later use by
-        customer cards.
+      description: Body includes host, port, type, credentials and database name;
+        credentials are stored for later use by customer cards.
       operationId: post_cti_dbconn
       requestBody:
         content:
@@ -719,6 +1258,15 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+              - id: '2'
+                host: 127.0.0.1
+                port: '20006'
+                type: mysql
+                user: freepbxuser
+                pass: U1rLnxT1imgRWCZKVaPhlTbMYspQ2WEh
+                name: asteriskcdrdb
+                creation: '2025-11-13 07:50:15'
       operationId: get_cti_dbconn
   /cti/paramurl/{id}:
     put:
@@ -732,8 +1280,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: 'Body: `{ "url": "...", "profiles": [ids], "only_queues": <bool> }`. Synchronizes the profile list for
-        the URL.'
+      description: 'Body: `{ "url": "...", "profiles": [ids], "only_queues": <bool>
+        }`. Synchronizes the profile list for the URL.'
       operationId: put_cti_paramurl_id
       parameters:
       - name: id
@@ -836,6 +1384,9 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                mysql: MySQL
+                postgres: PostgreSQL
       operationId: get_cti_dbconn_type
   /cti/customer_card/template:
     get:
@@ -849,6 +1400,15 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+              - name: statistics
+                custom: false
+                html: PCEtLSBjb2xvcjogcmVkIC0tPgo8JSBpZihyZXN1bHRzLmxlbmd0aD09MCl7ICU+CiAgPGRpdiBjbGFzcz0idGV4dC1jZW50ZXIiPgogICAgPHN2ZyBjbGFzcz0ibXgtYXV0byBoLTEyIHctMTIgdGV4dC1ncmF5LTQwMCIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCA0OCA0OCIgYXJpYS1oaWRkZW49InRydWUiPgogICAgICA8cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTggMTR2MjBjMCA0LjQxOCA3LjE2MyA4IDE2IDggMS4zODEgMCAyLjcyMS0uMDg3IDQtLjI1Mk04IDE0YzAgNC40MTggNy4xNjMgOCAxNiA4czE2LTMuNTgyIDE2LThNOCAxNGMwLTQuNDE4IDcuMTYzLTggMTYtOHMxNiAzLjU4MiAxNiA4bTAgMHYxNG0wLTRjMCA0LjQxOC03LjE2MyA4LTE2IDhTOCAyOC40MTggOCAyNG0zMiAxMHY2bTAgMHY2bTAtNmg2bS02IDBoLTYiIC8+CiAgICA8L3N2Zz4KICAgIDxoMyBjbGFzcz0ibXQtMiB0ZXh0LXNtIGZvbnQtc2VtaWJvbGQgdGV4dC1ncmF5LTkwMCI+Tm8gcmVzdWx0czwvaDM+CiAgPC9kaXY+CiAgPCUgfSBlbHNlIHsgJT4KICAgIDxkaXYgY2xhc3M9ImZsZXggZmxleC1jb2wgZ2FwLXktMyBwbC02Ij4KICAgICAgPGR0IGNsYXNzPSJ0ZXh0LXNtIGxlYWRpbmctNiB0ZXh0LWdyYXktNjAwIj5DcmVhdG9ycyBvbiB0aGUgcGxhdGZvcm08L2R0PgogICAgICA8ZGQgY2xhc3M9Im9yZGVyLWZpcnN0IHRleHQtM3hsIGZvbnQtc2VtaWJvbGQgdHJhY2tpbmctdGlnaHQgdGV4dC1ncmF5LTkwMCI+PCU9IHJlc3VsdHMubGVuZ3RoICU+PC9kZD4KICAgIDwvZGl2PgogIDwlIH0gJT4K
+                color: red
+              - name: table
+                custom: false
+                html: PCEtLSBjb2xvcjogcmVkIC0tPgo8JSBpZihyZXN1bHRzLmxlbmd0aD09MCl7ICU+CiAgPGRpdiBjbGFzcz0idGV4dC1jZW50ZXIiPgogICAgPHN2ZyBjbGFzcz0ibXgtYXV0byBoLTEyIHctMTIgdGV4dC1ncmF5LTQwMCIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCA0OCA0OCIgYXJpYS1oaWRkZW49InRydWUiPgogICAgICA8cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTggMTR2MjBjMCA0LjQxOCA3LjE2MyA4IDE2IDggMS4zODEgMCAyLjcyMS0uMDg3IDQtLjI1Mk04IDE0YzAgNC40MTggNy4xNjMgOCAxNiA4czE2LTMuNTgyIDE2LThNOCAxNGMwLTQuNDE4IDcuMTYzLTggMTYtOHMxNiAzLjU4MiAxNiA4bTAgMHYxNG0wLTRjMCA0LjQxOC03LjE2MyA4LTE2IDhTOCAyOC40MTggOCAyNG0zMiAxMHY2bTAgMHY2bTAtNmg2bS02IDBoLTYiIC8+CiAgICA8L3N2Zz4KICAgIDxoMyBjbGFzcz0ibXQtMiB0ZXh0LXNtIGZvbnQtc2VtaWJvbGQgdGV4dC1ncmF5LTkwMCI+Tm8gcmVzdWx0czwvaDM+CiAgPC9kaXY+CjwlIH0gZWxzZSB7ICU+CiAgPGRpdiBjbGFzcz0iIj4KICAgIDxkaXYgY2xhc3M9Im92ZXJmbG93LWhpZGRlbiBzaGFkb3cgcmluZy0xIHJpbmctYmxhY2sgcmluZy1vcGFjaXR5LTUgcm91bmRlZC1sZyI+CiAgICAgIDx0YWJsZSBjbGFzcz0ibWluLXctZnVsbCBkaXZpZGUteSBkaXZpZGUtZ3JheS0zMDAiPgogICAgICAgIDx0aGVhZCBjbGFzcz0iYmctcmVkLTYwMCI+CiAgICAgICAgICA8dHI+CiAgICAgICAgICAgIDwlIGZvciAocHJvcCBpbiByZXN1bHRzWzBdKSB7ICU+CiAgICAgICAgICAgICAgPHRoIHNjb3BlPSJjb2wiIGNsYXNzPSJweS0zLjUgcHgtMyB0ZXh0LWxlZnQgdGV4dC1zbSBmb250LXNlbWlib2xkIHRleHQtZ3JheS05MDAiPgogICAgICAgICAgICAgICAgPCU9IHByb3AgJT4KICAgICAgICAgICAgICA8L3RoPgogICAgICAgICAgICA8JSAgfSAlPgogICAgICAgICAgPC90cj4KICAgICAgICA8L3RoZWFkPgogICAgICAgIDx0Ym9keSBjbGFzcz0iZGl2aWRlLXkgZGl2aWRlLWdyYXktMjAwIj4KICAgICAgICAgIDwlIGZvcih2YXIgaT0wOyBpPHJlc3VsdHMubGVuZ3RoOyBpKyspeyAlPgogICAgICAgICAgICA8dHI+CiAgICAgICAgICAgICAgPCUgZm9yIChwcm9wIGluIHJlc3VsdHNbaV0pIHsgJT4KICAgICAgICAgICAgICAgIDx0ZCBjbGFzcz0id2hpdGVzcGFjZS1ub3dyYXAgcHktNCBweC0zIHRleHQtc20gdGV4dC1ncmF5LTUwMCI+CiAgICAgICAgICAgICAgICAgIDwlPSByZXN1bHRzW2ldW3Byb3BdICU+CiAgICAgICAgICAgICAgICA8L3RkPgogICAgICAgICAgICAgICAgPCUgIH0gJT4KICAgICAgICAgICAgPC90cj4KICAgICAgICAgIDwlIH0gJT4KICAgICAgICA8L3Rib2R5PgogICAgICA8L3RhYmxlPgogICAgPC9kaXY+CiAgPC9kaXY+CjwlIH0gJT4=
+                color: red
       operationId: get_cti_customer_card_template
     post:
       summary: Create or overwrite a customer card template file.
@@ -893,7 +1453,8 @@ paths:
             schema:
               type: object
     delete:
-      summary: Delete a customer card template, preferring the custom override if present.
+      summary: Delete a customer card template, preferring the custom override if
+        present.
       tags:
       - CTI
       responses:
@@ -922,6 +1483,17 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+              - id: '2'
+                name: Last calls
+                creation: '2021-03-30 17:39:34'
+                query: c2VsZWN0IERBVEVfRk9STUFUKGNhbGxkYXRlLCclZC8lbS8lWScpIGFzIGRhdGUsIERBVEVfRk9STUFUKGNhbGxkYXRlLCclSDolaTolUycpIGFzIHRpbWUsIGNsaWQsIHNyYywgZHN0LCB1bmlxdWVpZCxkdXJhdGlvbiwgdGltZV9mb3JtYXQoYmlsbHNlYywgJyVIOiVpOiVTJykgYXMgYmlsbHNlYywgZGlzcG9zaXRpb24saWYoc3JjPSckTlVNQkVSJywnaW4nLCdvdXQnKSBhcyBkaXJlY3Rpb24gZnJvbSBjZHIgd2hlcmUgKHNyYyBMSUtFICclJE5VTUJFUicgb3IgZHN0IExJS0UgJyUkTlVNQkVSJykgYW5kIGRpc3Bvc2l0aW9uID0gJ0FOU1dFUkVEJyBvcmRlciBieSBjYWxsZGF0ZSBkZXNjIGxpbWl0IDAsMTA=
+                template:
+                  name: lastcalls
+                  custom: false
+                dbconn_id: '2'
+                permission_id: null
+                profiles: []
       operationId: get_cti_customer_card
     post:
       summary: Create a customer card definition backed by an external query.
@@ -934,8 +1506,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Body includes name, Base64 encoded query, template name, DB connection id and profile ids. Generates a
-        permission entry automatically.
+      description: Body includes name, Base64 encoded query, template name, DB connection
+        id and profile ids. Generates a permission entry automatically.
       operationId: post_cti_customer_card
       requestBody:
         content:
@@ -996,6 +1568,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: []
       operationId: get_cti_streaming
     post:
       summary: Create a new CTI streaming source and permission entry.
@@ -1064,7 +1637,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: 'Body: `{ "url": "http(s)://..." }`. Returns the content encoded in Base64 or HTTP 500 on failure.'
+      description: 'Body: `{ "url": "http(s)://..." }`. Returns the content encoded
+        in Base64 or HTTP 500 on failure.'
       operationId: post_cti_sources_test
       requestBody:
         content:
@@ -1102,7 +1676,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Currently returns HTTP 500 and is kept only for compatibility with older clients.
+      description: Currently returns HTTP 500 and is kept only for compatibility with
+        older clients.
       operationId: post_devices_scan
       requestBody:
         content:
@@ -1141,7 +1716,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Response annotates model guesses, DHCP hostnames and provisioning flags when available.
+      description: Response annotates model guesses, DHCP hostnames and provisioning
+        flags when available.
       operationId: get_devices_phones_list_id
       parameters:
       - name: id
@@ -1170,7 +1746,8 @@ paths:
           type: string
   /devices/phones/list:
     get:
-      summary: Return the consolidated phone inventory, combining scans and configured devices.
+      summary: Return the consolidated phone inventory, combining scans and configured
+        devices.
       tags:
       - Devices
       responses:
@@ -1198,7 +1775,8 @@ paths:
       operationId: get_devices_gateways_list
   /devices/phones/manufacturers:
     get:
-      summary: Expose the provisioning models supported by Endpoint Manager grouped by brand.
+      summary: Expose the provisioning models supported by Endpoint Manager grouped
+        by brand.
       tags:
       - Devices
       responses:
@@ -1208,7 +1786,12 @@ paths:
             application/json:
               schema:
                 type: object
-              example: {}
+              example:
+                Aastra:
+                - 9112i
+                - 9133i
+                Alcatel Temporis:
+                - IP150
       operationId: get_devices_phones_manufacturers
   /devices/gateways/manufacturers:
     get:
@@ -1222,7 +1805,63 @@ paths:
             application/json:
               schema:
                 type: object
-              example: {}
+              example:
+                Patton:
+                - id: '11'
+                  model: TRI_FXO_2
+                  manufacturer: Patton
+                  tech: fxo
+                  n_pri_trunks: '0'
+                  n_isdn_trunks: '0'
+                  n_fxo_trunks: '2'
+                  n_fxs_ext: '0'
+                  description: TRINITY Analogico 2 Porte FXO
+                  proxy: sip:10.5.4.1:5060;lr
+                  ipv4_green: voice.gs.nethserver.net
+                - id: '12'
+                  model: TRI_FXO_4
+                  manufacturer: Patton
+                  tech: fxo
+                  n_pri_trunks: '0'
+                  n_isdn_trunks: '0'
+                  n_fxo_trunks: '4'
+                  n_fxs_ext: '0'
+                  description: TRINITY Analogico 4 Porte FXO
+                  proxy: sip:10.5.4.1:5060;lr
+                  ipv4_green: voice.gs.nethserver.net
+                - id: '13'
+                  model: TRI_FXO_8
+                  manufacturer: Patton
+                  tech: fxo
+                  n_pri_trunks: '0'
+                  n_isdn_trunks: '0'
+                  n_fxo_trunks: '8'
+                  n_fxs_ext: '0'
+                  description: TRINITY Analogico 8 Porte FXO
+                  proxy: sip:10.5.4.1:5060;lr
+                  ipv4_green: voice.gs.nethserver.net
+                - id: '16'
+                  model: TRI_ISDN_1
+                  manufacturer: Patton
+                  tech: isdn
+                  n_pri_trunks: '0'
+                  n_isdn_trunks: '1'
+                  n_fxo_trunks: '0'
+                  n_fxs_ext: '0'
+                  description: TRINITY ISDN 1 Porta
+                  proxy: sip:10.5.4.1:5060;lr
+                  ipv4_green: voice.gs.nethserver.net
+                - id: '17'
+                  model: TRI_ISDN_2
+                  manufacturer: Patton
+                  tech: isdn
+                  n_pri_trunks: '0'
+                  n_isdn_trunks: '2'
+                  n_fxo_trunks: '0'
+                  n_fxs_ext: '0'
+                  description: TRINITY ISDN 2 Porte
+                  proxy: sip:10.5.4.1:5060;lr
+                  ipv4_green: voice.gs.nethserver.net
       operationId: get_devices_gateways_manufacturers
   /devices/phones/reload/{extension}:
     post:
@@ -1236,8 +1875,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Only available when the provisioning engine is Tancredi; returns 202 on success, 403 when the phone is
-        not provisioned.
+      description: Only available when the provisioning engine is Tancredi; returns
+        202 on success, 403 when the phone is not provisioned.
       operationId: post_devices_phones_reload_extension
       parameters:
       - name: extension
@@ -1245,7 +1884,7 @@ paths:
         required: true
         schema:
           type: string
-          pattern: '^[0-9]+$'
+          pattern: ^[0-9]+$
       requestBody:
         content:
           application/json:
@@ -1263,7 +1902,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: 'Body: `{ "mac": "", "vendor": "", "model": "" }`. Inserts or replaces the association.'
+      description: 'Body: `{ "mac": "", "vendor": "", "model": "" }`. Inserts or replaces
+        the association.'
       operationId: post_devices_phones_model
       requestBody:
         content:
@@ -1342,7 +1982,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Optional `mac` path segment refines the generated file when multiple MACs exist.
+      description: Optional `mac` path segment refines the generated file when multiple
+        MACs exist.
       operationId: get_devices_gateways_download_name[_mac]
       parameters:
       - name: name
@@ -1367,7 +2008,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: 'Body: `{ "mac": "" }`. Also relocates the resulting files for TFTP serving.'
+      description: 'Body: `{ "mac": "" }`. Also relocates the resulting files for
+        TFTP serving.'
       operationId: post_devices_phones_provision
       requestBody:
         content:
@@ -1376,7 +2018,8 @@ paths:
               type: object
   /devices/phones/reboot:
     post:
-      summary: Request an immediate reboot of a provisioned phone through Endpoint Manager.
+      summary: Request an immediate reboot of a provisioned phone through Endpoint
+        Manager.
       tags:
       - Devices
       responses:
@@ -1386,7 +2029,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Body includes the device `mac` and its IP address; vendor driver handles the reboot logic.
+      description: Body includes the device `mac` and its IP address; vendor driver
+        handles the reboot logic.
       operationId: post_devices_phones_reboot
       requestBody:
         content:
@@ -1405,6 +2049,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: []
       operationId: get_mainextensions
     post:
       summary: Create or map a main extension to a user.
@@ -1417,8 +2062,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: 'Body: `{ "username": "", "extension": "", "outboundcid": "" }`. Enforces community license user limits
-        and triggers a reload.'
+      description: 'Body: `{ "username": "", "extension": "", "outboundcid": "" }`.
+        Enforces community license user limits and triggers a reload.'
       operationId: post_mainextensions
       requestBody:
         content:
@@ -1444,7 +2089,7 @@ paths:
         required: true
         schema:
           type: string
-          pattern: '^[0-9]+$'
+          pattern: ^[0-9]+$
   /mainextensions/userlimits:
     get:
       summary: Report configured users count and limit information.
@@ -1457,6 +2102,9 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                configured: 1
+                limit: 8
       operationId: get_mainextensions_userlimits
   /migration/ismigration:
     get:
@@ -1487,9 +2135,6 @@ paths:
               example:
                 status: true
                 errors: []
-                infos:
-                  - migration_status changed
-                warnings: []
       operationId: post_migration_endmigration
       requestBody:
         content:
@@ -1511,9 +2156,6 @@ paths:
               example:
                 status: true
                 errors: []
-                infos:
-                  - migration_status changed
-                warnings: []
       description: 'Body: `{ "status": "..." }`.'
       operationId: post_migration_migrationstatus
       requestBody:
@@ -1532,7 +2174,7 @@ paths:
             application/json:
               schema:
                 type: object
-              example: "ready"
+              example: ready
       operationId: get_migration_migrationstatus
   /migration/oldusers:
     get:
@@ -1546,6 +2188,9 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                error: true
+                error_message: SQLSTATE[HY000] [2002] No such file or directory
       operationId: get_migration_oldusers
   /migration/report:
     get:
@@ -1939,6 +2584,9 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+              - mobile: null
+                username: administrator
       operationId: get_mobiles
     post:
       summary: Create or update a user mobile number.
@@ -2025,6 +2673,9 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                extension: false
+                mobile_extension: null
       operationId: post_nethlink
       requestBody:
         content:
@@ -2043,6 +2694,9 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+              - cellphone
+              - company
       operationId: get_phonebook_fields
   /phonebook/config:
     get:
@@ -2056,6 +2710,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: []
       operationId: get_phonebook_config
   /phonebook/config[/{id}]:
     post:
@@ -2155,7 +2810,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Returns the `file://` URI to reference in subsequent configuration calls.
+      description: Returns the `file://` URI to reference in subsequent configuration
+        calls.
       operationId: post_phonebook_uploadfile
       requestBody:
         content:
@@ -2174,6 +2830,21 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                ldaps:
+                  enabled: true
+                  port: '20014'
+                  user: cn=ldapuser,dc=phonebook,dc=nh
+                  password: UWaCaIHbpkWsuZpIUzWOVvkuO6G7FpWp
+                  tls: ldaps
+                  base: dc=phonebook,dc=nh
+                  name_display: '%cn %o'
+                  mainphone_number_attr: telephoneNumber
+                  mobilephone_number_attr: mobile
+                  otherphone_number_attr: homePhone
+                  name_attr: cn o
+                  number_filter: (|(telephoneNumber=%)(mobile=%)(homePhone=%))
+                  name_filter: (|(cn=%)(o=%))
       operationId: get_phonebook_ldap
   /phonebook/sources:
     get:
@@ -2187,6 +2858,9 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                extensions: true
+                nethcti: true
       operationId: get_phonebook_sources
   /phonebook/sources/{prop}/{status}:
     post:
@@ -2207,13 +2881,18 @@ paths:
         required: true
         schema:
           type: string
-          enum: ["speeddial", "extensions", "nethcti"]
+          enum:
+          - speeddial
+          - extensions
+          - nethcti
       - name: status
         in: path
         required: true
         schema:
           type: string
-          enum: ["enabled", "disabled"]
+          enum:
+          - enabled
+          - disabled
       requestBody:
         content:
           application/json:
@@ -2232,14 +2911,39 @@ paths:
               schema:
                 type: array
               example:
-                - extension: "201"
-                  password: ""
-                  name: null
-                  voicemail: "novm"
-                  id: "201"
-                  tech: "pjsip"
-                  dial: "PJSIP/201"
-                  description: "Sample User"
+              - extension: '201'
+                password: ''
+                name: null
+                voicemail: novm
+                ringtimer: '0'
+                noanswer: ''
+                recording: ''
+                outboundcid: ''
+                sipname: ''
+                noanswer_cid: ''
+                busy_cid: ''
+                chanunavail_cid: ''
+                noanswer_dest: ''
+                busy_dest: ''
+                chanunavail_dest: ''
+                mohclass: default
+                id: '201'
+                tech: pjsip
+                dial: PJSIP/201
+                devicetype: fixed
+                user: '201'
+                description: Sample User
+                emergency_cid: ''
+                hint_override: null
+                cwtone: disabled
+                recording_in_external: dontcare
+                recording_out_external: dontcare
+                recording_in_internal: dontcare
+                recording_out_internal: dontcare
+                recording_ondemand: disabled
+                recording_priority: 10
+                answermode: disabled
+                intercom: enabled
       operationId: get_physicalextensions
     post:
       summary: Create or associate a physical extension with a main extension.
@@ -2252,7 +2956,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: Body supports keys like `mainextension`, `mac`, `model`, `line`, `web_user`, `web_password` and `clear_temporary`.
+      description: Body supports keys like `mainextension`, `mac`, `model`, `line`,
+        `web_user`, `web_password` and `clear_temporary`.
       operationId: post_physicalextensions
       requestBody:
         content:
@@ -2412,7 +3117,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: 'Body: `{ "displayname": "John Doe" }`. Updates users table, SIP table and AstDB.'
+      description: 'Body: `{ "displayname": "John Doe" }`. Updates users table, SIP
+        table and AstDB.'
       operationId: post_extension_mainextension
       parameters:
       - name: mainextension
@@ -2458,7 +3164,13 @@ paths:
             application/json:
               schema:
                 type: array
-              example: []
+              example:
+              - id: '1'
+                provider: activenetwork
+                description: Active Network
+              - id: '2'
+                provider: clouditalia
+                description: Clouditalia
       operationId: get_providers
   /phones/reconfigure:
     post:
@@ -2536,7 +3248,7 @@ paths:
             application/json:
               schema:
                 type: string
-              example: "tancredi"
+              example: tancredi
       operationId: get_provisioning_engine
   /phones/state:
     get:
@@ -2551,14 +3263,14 @@ paths:
               schema:
                 type: object
               example:
-                "201":
-                  Response: "Success"
-                  Message: "Extension Status"
-                  Exten: "201"
-                  Context: "default"
+                '201':
+                  Response: Success
+                  Message: Extension Status
+                  Exten: '201'
+                  Context: default
                   Hint: false
-                  Status: "-1"
-                  StatusText: "Unknown"
+                  Status: '-1'
+                  StatusText: Unknown
       operationId: get_phones_state
   /extensions/{extension}/srtp:
     get:
@@ -2611,7 +3323,8 @@ paths:
               type: object
   /provisioning/connectivitycheck:
     post:
-      summary: Legacy placeholder that always reports provisioning connectivity as healthy.
+      summary: Legacy placeholder that always reports provisioning connectivity as
+        healthy.
       tags:
       - Provisioning V2
       responses:
@@ -2623,8 +3336,7 @@ paths:
                 type: object
               example:
                 valid_certificate: true
-                host_type: "FQDN"
-                is_reachable: true
+                host_type: FQDN
       operationId: post_provisioning_connectivitycheck
       requestBody:
         content:
@@ -2658,8 +3370,61 @@ paths:
               schema:
                 type: object
               example:
-                destinations: {}
-                routes: []
+                destinations:
+                  app-blackhole,hangup,1:
+                    destination: app-blackhole,hangup,1
+                    description: Hangup
+                    category: Terminate Call
+                    id: blackhole
+                    module: core
+                    name: Terminate Call
+                    edit_url: ''
+                  app-blackhole,congestion,1:
+                    destination: app-blackhole,congestion,1
+                    description: Congestion
+                    category: Terminate Call
+                    id: blackhole
+                    module: core
+                    name: Terminate Call
+                    edit_url: ''
+                  app-blackhole,busy,1:
+                    destination: app-blackhole,busy,1
+                    description: Busy
+                    category: Terminate Call
+                    id: blackhole
+                    module: core
+                    name: Terminate Call
+                    edit_url: ''
+                  from-internal,${EXTEN},1:
+                    destination: from-internal,${EXTEN},1
+                    description: Full Internal Access
+                    module: customcontexts
+                    name: Custom Contexts
+                    edit_url: ''
+                  cti-profile-3,${EXTEN},1:
+                    destination: cti-profile-3,${EXTEN},1
+                    description: CTI Profile Advanced
+                    module: customcontexts
+                    name: Custom Contexts
+                    edit_url: ''
+                routes:
+                - cidnum: ''
+                  extension: ''
+                  destination: null
+                  privacyman: '0'
+                  alertinfo: ''
+                  ringing: ''
+                  fanswer: ''
+                  mohclass: default
+                  description: ''
+                  grppre: ''
+                  delay_answer: '0'
+                  pricid: ''
+                  pmmaxretries: '3'
+                  pmminlength: '10'
+                  reversal: ''
+                  rvolume: '0'
+                  indication_zone: default
       operationId: get_inboundroutes
     post:
       summary: Create a new inbound route.
@@ -2722,6 +3487,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: []
       operationId: get_outboundroutes
     post:
       summary: Create or reorder outbound routes and trunk bindings.
@@ -2752,7 +3518,25 @@ paths:
             application/json:
               schema:
                 type: object
-              example: {}
+              example:
+                de:
+                - name: national_de
+                  trunks: []
+                - name: cellphone_de
+                  trunks: []
+                - name: international_de
+                  trunks: []
+                - name: toll_de
+                  trunks: []
+                en:
+                - name: national_en
+                  trunks: []
+                - name: cellphone_en
+                  trunks: []
+                - name: international_en
+                  trunks: []
+                - name: toll_en
+                  trunks: []
       operationId: get_outboundroutes_defaults
   /outboundroutes/{route_id}/trunks/{id}:
     delete:
@@ -2790,6 +3574,9 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+              - de
+              - en
       operationId: get_outboundroutes_supportedLocales
   /settings/language:
     post:
@@ -2964,7 +3751,8 @@ paths:
         schema:
           type: string
     patch:
-      summary: Update selected trunk parameters such as username, secret, caller ID and codecs.
+      summary: Update selected trunk parameters such as username, secret, caller ID
+        and codecs.
       tags:
       - Trunks
       responses:
@@ -3077,7 +3865,8 @@ paths:
             application/json:
               schema:
                 type: object
-      description: 'Body: `{ "username": "", "fullname": "" }`. Rejects usernames starting with a digit.'
+      description: 'Body: `{ "username": "", "fullname": "" }`. Rejects usernames
+        starting with a digit.'
       operationId: post_users
       requestBody:
         content:
@@ -3168,7 +3957,7 @@ paths:
             application/json:
               schema:
                 type: string
-              example: "ImdpYWNvbW8iLCJHaWFjb21vIFJvc3NpIiwibm9uZSIsIiIsIiIsIkZBTFNFIiwiRkFMU0UiLCIiLCIiDQoic2FtcGxlIiwiU2FtcGxlIFVzZXIiLCIyMDEiLCIiLCIiLCJGQUxTRSIsIlRSVUUiLCIiLCIiDQo="
+              example: ImdpYWNvbW8iLCJHaWFjb21vIFJvc3NpIiwibm9uZSIsIiIsIiIsIkZBTFNFIiwiRkFMU0UiLCIiLCIiDQoic2FtcGxlIiwiU2FtcGxlIFVzZXIiLCIyMDEiLCIiLCIiLCJGQUxTRSIsIlRSVUUiLCIiLCIiDQo=
       operationId: get_csv_csvexport
   /voicemails:
     get:
@@ -3241,7 +4030,8 @@ paths:
         schema:
           type: string
     delete:
-      summary: Remove the WebRTC extension bound to the main extension (and companion mobile extension if present).
+      summary: Remove the WebRTC extension bound to the main extension (and companion
+        mobile extension if present).
       tags:
       - Webrtc
       responses:
@@ -3319,22 +4109,27 @@ components:
             $ref: '#/components/schemas/Error'
 tags:
 - name: Authentication
-  description: Endpoints that bootstrap or tear down the FreePBX session used by the REST layer.
+  description: Endpoints that bootstrap or tear down the FreePBX session used by the
+    REST layer.
 - name: Bulk
-  description: Shared tooling for reading and applying batch configuration across multiple main extensions.
+  description: Shared tooling for reading and applying batch configuration across
+    multiple main extensions.
 - name: Codecs
   description: Static list of codecs supported by the provisioning workflow.
 - name: Configuration
-  description: System-level configuration helpers for SIP, wizard state and auxiliary services.
+  description: System-level configuration helpers for SIP, wizard state and auxiliary
+    services.
 - name: CTI
-  description: 'Computer-telephony integration (CTI) configuration: permission profiles, groups, customer cards, streaming
-    widgets and external data sources.'
+  description: 'Computer-telephony integration (CTI) configuration: permission profiles,
+    groups, customer cards, streaming widgets and external data sources.'
 - name: Devices
-  description: Inventory and provisioning helpers for phones and gateways discovered by NethVoice.
+  description: Inventory and provisioning helpers for phones and gateways discovered
+    by NethVoice.
 - name: Mainextensions
   description: CRUD helpers for FreePBX virtual (main) extensions used as user anchors.
 - name: Migration
-  description: Automation used when importing configuration from legacy NethVoice / FreePBX installations.
+  description: Automation used when importing configuration from legacy NethVoice
+    / FreePBX installations.
 - name: Mobiles
   description: Manage mobile phone numbers associated with PBX users.
 - name: Nethlink
@@ -3342,7 +4137,8 @@ tags:
 - name: Phonebook
   description: APIs for managing external phonebook sources and LDAP exposure.
 - name: Physicalextensions
-  description: Provision and maintain PJSIP physical, mobile app and custom extensions tied to a main extension.
+  description: Provision and maintain PJSIP physical, mobile app and custom extensions
+    tied to a main extension.
 - name: Providers
   description: Catalog of SIP provider templates shipped with the REST layer.
 - name: Provisioning V2
