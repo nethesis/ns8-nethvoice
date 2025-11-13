@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2025 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+"""
+Configure main routes by hostname.
+This step runs before 20setenvs to ensure DNS is properly configured
+before requesting Let's Encrypt certificates.
+"""
+
+import os
+import sys
+import json
+
+import agent
+
+data = json.load(sys.stdin)
+
+# Build route parameters, only including lets_encrypt if present in data
+route_params_base = {}
+if "lets_encrypt" in data:
+    route_params_base['lets_encrypt'] = data["lets_encrypt"]
+
+
+# Routes for NETHVOICE_HOST (main PBX host)
+nethvoice_host = data.get("nethvoice_host", "")
+if nethvoice_host:
+    # Configure Traefik to route "/" - Wizard/FreePBX main interface
+    agent.set_route({
+        'instance': os.environ['MODULE_ID'] + '-wizard',
+        'url':  'http://127.0.0.1:' + os.environ["APACHE_PORT"] + '/',
+        'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
+        'host': nethvoice_host,
+        **route_params_base
+    })
+
+# Routes for NETHCTI_UI_HOST (CTI interface)
+nethcti_ui_host = data.get("nethcti_ui_host", "")
+if nethcti_ui_host:
+    agent.set_route({
+        'instance': os.environ['MODULE_ID'] + '-ui',
+        'url':  'http://127.0.0.1:' + os.environ["NETHCTI_UI_PORT"],
+        'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
+        'host': nethcti_ui_host,
+        **route_params_base
+    })
