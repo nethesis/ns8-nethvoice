@@ -1258,57 +1258,58 @@ export default {
         })
       );
       this.loading.getDefaults = false;
-      this.getProxyStatus();
+      //// todo: read proxy status from get defaults output
+      // this.getProxyStatus(); ////
     },
-    async getProxyStatus() {
-      this.loading.getProxyStatus = true;
+    // async getProxyStatus() {
+    //   this.loading.getProxyStatus = true;
 
-      const taskAction = "get-proxy-status";
-      const eventId = this.getUuid();
+    //   const taskAction = "get-proxy-status";
+    //   const eventId = this.getUuid();
 
-      // register to task error
-      this.core.$root.$once(
-        `${taskAction}-aborted-${eventId}`,
-        this.getProxyStatusAborted
-      );
+    //   // register to task error
+    //   this.core.$root.$once(
+    //     `${taskAction}-aborted-${eventId}`,
+    //     this.getProxyStatusAborted
+    //   );
 
-      // register to task completion
-      this.core.$root.$once(
-        `${taskAction}-completed-${eventId}`,
-        this.getProxyStatusCompleted
-      );
+    //   // register to task completion
+    //   this.core.$root.$once(
+    //     `${taskAction}-completed-${eventId}`,
+    //     this.getProxyStatusCompleted
+    //   );
 
-      const res = await to(
-        this.createModuleTaskForApp(this.instanceName, {
-          action: taskAction,
-          extra: {
-            title: this.$t("action." + taskAction),
-            isNotificationHidden: true,
-            eventId,
-          },
-        })
-      );
-      const err = res[0];
+    //   const res = await to(
+    //     this.createModuleTaskForApp(this.instanceName, {
+    //       action: taskAction,
+    //       extra: {
+    //         title: this.$t("action." + taskAction),
+    //         isNotificationHidden: true,
+    //         eventId,
+    //       },
+    //     })
+    //   );
+    //   const err = res[0];
 
-      if (err) {
-        console.error(`error creating task ${taskAction}`, err);
-        this.error.getConfiguration = this.getErrorMessage(err);
-        this.loading.getProxyStatus = false;
-        return;
-      }
-    },
-    getProxyStatusAborted(taskResult, taskContext) {
-      console.error(`${taskContext.action} aborted`, taskResult);
-      this.error.getConfiguration = this.$t("error.generic_error");
-      this.loading.getProxyStatus = false;
-      this.getConfiguration();
-    },
-    getProxyStatusCompleted(taskContext, taskResult) {
-      const config = taskResult.output;
-      this.proxy_installed = config.proxy_installed;
-      this.loading.getProxyStatus = false;
-      this.getConfiguration();
-    },
+    //   if (err) {
+    //     console.error(`error creating task ${taskAction}`, err);
+    //     this.error.getConfiguration = this.getErrorMessage(err);
+    //     this.loading.getProxyStatus = false;
+    //     return;
+    //   }
+    // },
+    // getProxyStatusAborted(taskResult, taskContext) {
+    //   console.error(`${taskContext.action} aborted`, taskResult);
+    //   this.error.getConfiguration = this.$t("error.generic_error");
+    //   this.loading.getProxyStatus = false;
+    //   this.getConfiguration();
+    // },
+    // getProxyStatusCompleted(taskContext, taskResult) {
+    //   const config = taskResult.output;
+    //   this.proxy_installed = config.proxy_installed;
+    //   this.loading.getProxyStatus = false;
+    //   this.getConfiguration();
+    // },
     async getUsers(domain) {
       this.loading.getUsers = true;
 

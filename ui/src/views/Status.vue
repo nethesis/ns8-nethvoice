@@ -403,9 +403,6 @@ export default {
       this.status = taskResult.output;
       // save status to vuex store: useful for first configuration modal
       this.setInstanceStatusInStore(this.status);
-
-      console.log("setInstanceStatusInStore", this.status); ////
-
       this.loading.getStatus = false;
     },
     async listBackupRepositories() {

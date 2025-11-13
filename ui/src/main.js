@@ -30,6 +30,9 @@ for (const f in Filters) {
   Vue.filter(f, Filters[f]);
 }
 
+// import vueDebounce from "vue2-debounce"; ////
+// Vue.use(vueDebounce);
+
 // i18n
 import VueI18n from "vue-i18n";
 import { loadLanguage } from "./i18n";

@@ -9,11 +9,12 @@
     :cancelLabel="core.$t('common.cancel')"
     :previousLabel="core.$t('common.previous')"
     :nextLabel="nextButtonLabel"
-    :isPreviousDisabled="true"
-    :isNextDisabled="isNextButtonDisabled"
-    :isNextLoading="loading.configureModule"
+    :isPreviousDisabled="isPreviousButtonDisabled"
+    :isNextDisabled="isLoadingData || isSavingData"
+    :isNextLoading="isSavingData"
     @modal-hidden="$emit('hide')"
     @cancel="$emit('hide')"
+    @previousStep="previousStep"
     @nextStep="nextStep"
   >
     <template slot="title">{{ $t("welcome.configure_nethvoice") }}</template>
@@ -95,15 +96,23 @@
             <NsComboBox
               v-if="accountProviderType == 'use_existing_provider'"
               v-model="accountProviderId"
-              :label="core.$t('common.choose')"
+              :invalid-message="error.accountProvider"
+              :label="$t('welcome.account_provider_placeholder')"
               :title="$t('welcome.account_provider')"
               :auto-filter="true"
               :auto-highlight="true"
               :options="accountProviderOptions"
               show-item-description
+              ref="accountProvider"
             />
+            <cv-inline-loading
+              v-if="isLoadingData"
+              :loading-text="$t('welcome.loading_data_next_steps')"
+              state="loading"
+            />
+            <div v-else>&nbsp;</div>
+            <div class="mb-10rem"></div>
           </template>
-          domains {{ domains }} ////
         </template>
         <!-- step: installing openldap -->
         <template v-else-if="step == 'installingOpenldap'">
@@ -129,7 +138,7 @@
         <!-- step: input openldap configuration -->
         <template v-else-if="step == 'inputOpenldapConfig'">
           <div class="mg-bottom-lg">
-            {{ $t("welcome.openldap_step_description") }}
+            {{ $t("welcome.configure_openldap_provider") }}
           </div>
           <NsInlineNotification
             v-if="error.openldap.getDefaults"
@@ -143,9 +152,7 @@
               :label="core.$t('openldap.domain')"
               v-model.trim="openldap.domain"
               :invalid-message="core.$t(error.openldap.domain)"
-              :disabled="
-                loading.openldap.configureModule || loading.openldap.getDefaults
-              "
+              :disabled="loading.openldap.configureModule"
               ref="domain"
             >
             </cv-text-input>
@@ -153,9 +160,7 @@
               :label="core.$t('openldap.admuser')"
               v-model.trim="openldap.admuser"
               :invalid-message="core.$t(error.openldap.admuser)"
-              :disabled="
-                loading.openldap.configureModule || loading.openldap.getDefaults
-              "
+              :disabled="loading.openldap.configureModule"
               ref="admuser"
             >
             </cv-text-input>
@@ -180,9 +185,7 @@
               :symbolLabel="core.$t('password.symbol')"
               :equalLabel="core.$t('password.equal')"
               :focus="openldap.focusPasswordField"
-              :disabled="
-                loading.openldap.configureModule || loading.openldap.getDefaults
-              "
+              :disabled="loading.openldap.configureModule"
               light
               class="new-provider-password"
             />
@@ -209,18 +212,115 @@
             class="mg-bottom-md"
           />
         </template>
-        <!-- step: check proxy -->
-        <template v-else-if="step == 'checkProxy'">
-          proxy status {{ proxyStatus }} ////
+        <!-- step: need to install proxy -->
+        <template v-else-if="step == 'needToInstallProxy'">
+          <div>isProxyInstalled {{ isProxyInstalled }}////</div>
+          <template v-if="!isProxyInstalled">
+            <!-- proxy not installed -->
+            <NsEmptyState :title="$t('welcome.proxy_missing_on_node')">
+              <template #description>
+                {{ $t("welcome.proxy_missing_on_node_description") }}
+              </template>
+              <template #pictogram>
+                <!-- <GroupPictogram /> //// -->
+              </template>
+            </NsEmptyState>
+          </template>
+          <template v-else-if="!isProxyConfigured">
+            <!-- proxy installed but not configured -->
+            <div>proxy installed but not configured ////</div>
+            <ProxyConfigurationForm
+              :config="proxyConfig"
+              :disabled="isProxyConfigured"
+              :proxyModuleId="proxyModuleId"
+              ref="proxyConfigForm"
+            />
+          </template>
+          <template v-else>
+            <!-- proxy installed and configured -->
+            <div>proxy installed and configured ////</div>
+          </template>
         </template>
         <!-- step: installing proxy -->
         <template v-else-if="step == 'installingProxy'"> //// </template>
         <!-- step: input proxy configuration -->
-        <template v-else-if="step == 'inputProxyConfig'"> //// </template>
+        <template v-else-if="step == 'inputProxyConfig'">
+          <ProxyConfigurationForm
+            :config="proxyConfig"
+            :disabled="isProxyConfigured"
+            :proxyModuleId="proxyModuleId"
+            ref="proxyConfigForm"
+          />
+        </template>
         <!-- step: configuring proxy -->
         <template v-else-if="step == 'configuringProxy'"> //// </template>
         <!-- step: input nethvoice configuration -->
-        <template v-else-if="step == 'inputNethvoiceConfig'"> //// </template>
+        <template v-else-if="step == 'inputNethvoiceConfig'">
+          <div class="mg-bottom-lg">
+            {{ $t("welcome.configure_nethvoice_application") }}
+          </div>
+          <cv-form @submit.prevent="nextStep">
+            <cv-text-input
+              :label="$t('settings.nethvoice_host')"
+              v-model="form.nethvoice_host"
+              placeholder="voice.example.com"
+              :disabled="loadingState || !proxy_installed"
+              :invalid-message="error.nethvoice_host"
+              ref="nethvoice_host"
+            />
+            <cv-text-input
+              :label="$t('settings.nethcti_ui_host')"
+              v-model="form.nethcti_ui_host"
+              placeholder="cti.example.com"
+              :disabled="loadingState || !proxy_installed"
+              :invalid-message="error.nethcti_ui_host"
+              ref="nethcti_ui_host"
+            />
+            <cv-toggle
+              :label="$t('settings.lets_encrypt')"
+              value="lets_encrypt"
+              :disabled="loadingState || !proxy_installed"
+              v-model="form.lets_encrypt"
+            >
+              <template slot="text-left">
+                {{ $t("common.disabled") }}
+              </template>
+              <template slot="text-right">
+                {{ $t("common.enabled") }}
+              </template>
+            </cv-toggle>
+            <NsComboBox
+              v-model.trim="form.timezone"
+              :autoFilter="true"
+              :autoHighlight="true"
+              :title="$t('settings.timezone')"
+              :label="$t('settings.timezone_placeholder')"
+              :options="timezoneList"
+              :userInputLabel="core.$t('settings.choose_timezone')"
+              :acceptUserInput="false"
+              :showItemType="true"
+              :invalid-message="$t(error.timezone)"
+              :disabled="loading.nethvoice.configureModule"
+              tooltipAlignment="start"
+              tooltipDirection="top"
+              ref="timezone"
+            >
+              <template slot="tooltip">
+                {{ $t("settings.timezone_tooltip") }}
+              </template>
+            </NsComboBox>
+            <cv-text-input
+              :label="$t('settings.nethvoice_admin_password')"
+              v-model="form.nethvoice_admin_password"
+              placeholder=""
+              :disabled="loadingState || !proxy_installed"
+              :invalid-message="error.nethvoice_admin_password"
+              ref="nethvoice_admin_password"
+              type="password"
+            />
+            <!-- //// todo confirm password field -->
+          </cv-form>
+        </template>
         <!-- step: configuring nethvoice -->
         <template v-else-if="step == 'configuringNethvoice'"> //// </template>
       </cv-form>
@@ -237,10 +337,12 @@ import {
 } from "@nethserver/ns8-ui-lib";
 import to from "await-to-js";
 import { mapState, mapActions } from "vuex";
+import ProxyConfigurationForm from "./ProxyConfigurationForm.vue";
 
 //// review
 
 export default {
+  components: { ProxyConfigurationForm },
   name: "FirstConfigurationModal",
   mixins: [UtilService, TaskService, IconService, LottieService],
   props: {
@@ -254,10 +356,13 @@ export default {
       step: "",
       accountProviderType: "",
       domains: [],
+      createdOpenLdapId: "",
       accountProviderId: "",
+      proxyModuleId: "",
+      isProxyInstalled: false,
       installProviderProgress: 0,
       configureProviderProgress: 0,
-      proxyStatus: null,
+      installingProxyProgress: 0,
       openldap: {
         domain: "",
         admuser: "",
@@ -265,43 +370,68 @@ export default {
         passwordValidation: null,
         focusPasswordField: { element: "" },
       },
-      //   domains: [ //// remove mock
-      //     {
-      //       name: "first",
-      //       schema: "rfc2307",
-      //       location: "location",
-      //     },
-      //     {
-      //       name: "second",
-      //       schema: "ad",
-      //       location: "location",
-      //     },
-      //   ],
+      // proxyStatus: { ////
+      //   module_id: "",
+      //   proxy_installed: false,
+      // },
+      proxyConfig: {},
+      nethvoice: {
+        nethvoice_host: "",
+        nethcti_ui_host: "",
+        lets_encrypt: true,
+        timezone: "",
+        timezoneList: [],
+        nethvoice_admin_password: "",
+        reports_international_prefix: "+39",
+      },
       loading: {
-        configureModule: false,
         listUserDomains: false,
-        getConfiguration: false,
+        listModules: false,
         addInternalProvider: false,
         getStatus: false,
-        getProxyStatus: false,
+        getProxyConfig: false,
+        installProxy: false,
         openldap: {
+          getDefaults: false,
+          configureModule: false,
+        },
+        proxy: {
+          configureModule: false,
+        },
+        nethvoice: {
           getDefaults: false,
           configureModule: false,
         },
       },
       error: {
+        accountProvider: "",
         configureModule: "",
+        listModules: "",
         listUserDomains: "",
         getConfiguration: "",
         addInternalProvider: "",
         getStatus: "",
-        getProxyStatus: "",
+        getProxyConfig: "",
+        installProxy: false,
         openldap: {
           getDefaults: "",
           domain: "",
           admuser: "",
           admpass: "",
           confirmPassword: "",
+          configureModule: "",
+        },
+        proxy: {
+          configureModule: "",
+        },
+        nethvoice: {
+          nethvoice_host: "",
+          nethcti_ui_host: "",
+          timezone: "",
+          nethvoice_admin_password: "",
+          reports_international_prefix: "+39",
+          getDefaults: "",
+          configureModule: "",
         },
       },
     };
@@ -320,13 +450,38 @@ export default {
     // selectedUserDomain() { ////
     //   return this.userDomains.find((domain) => domain.selected);
     // },
-    isNextButtonDisabled() {
+    isPreviousButtonDisabled() {
+      return [
+        "selectAccountProvider",
+        "installingOpenldap",
+        "configuringOpenldap",
+        "installingProxy",
+        "configuringProxy",
+        "configuringNethvoice",
+      ].includes(this.step);
+    },
+    isLoadingData() {
       return (
         this.loading.listUserDomains ||
         this.loading.getStatus ||
-        this.loading.configureModule ||
-        this.step == "installingOpenldap" ||
-        this.step == "installingProxy"
+        this.loading.openldap.getDefaults ||
+        this.loading.nethvoice.getDefaults ||
+        this.loading.getProxyConfig
+      );
+    },
+    isSavingData() {
+      // return ( ////
+      //   this.step == "installingOpenldap" ||
+      //   this.step == "configuringOpenldap" ||
+      //   this.step == "installingProxy" ||
+      //   this.step == "configuringProxy" ||
+      //   this.step == "configuringNethvoice"
+      // );
+      return (
+        this.addInternalProvider ||
+        this.loading.openldap.configureModule ||
+        this.loading.proxy.configureModule ||
+        this.loading.nethvoice.configureModule
       );
     },
     nextButtonLabel() {
@@ -348,15 +503,17 @@ export default {
         };
       });
     },
-    // steps() { ////
-    //   if (this.accountProviderType == "create_openldap") {
-    //     return [
-    //     ];
-    //   } else {
-    //     return [
-    //     ];
-    //   }
-    // },
+    isProxyConfigured() {
+      if (
+        this.proxy &&
+        this.proxy.fqdn &&
+        !this.proxy.fqdn.endsWith(".invalid")
+      ) {
+        return true;
+      } else {
+        return false;
+      }
+    },
   },
   watch: {
     isShown: function () {
@@ -368,24 +525,31 @@ export default {
     step: function () {
       if (this.step == "selectAccountProvider") {
         this.listUserDomains();
+        this.getDefaults();
       } else if (this.step == "installingOpenldap") {
         if (!this.instanceStatus) {
           // retrieve installation node and then install openldap
           this.getStatus();
         } else {
-          this.openldapInstallationProvider();
+          this.installOpenldapProvider();
         }
       } else if (this.step == "inputOpenldapConfig") {
         this.getOpenLdapDefaults();
       } else if (this.step == "configuringOpenldap") {
-        //// load openldap defaults?
-      } else if (this.step == "checkProxy") {
-        this.getProxyStatus();
+        // no action needed, wait for configuration to complete
+      } else if (this.step == "needToInstallProxy") {
+        // if (this.isProxyInstalled) { ////
+        //   this.getProxyConfig();
+        // }
       } else if (this.step == "installingProxy") {
-        //// install proxy
+        this.installProxy();
       } else if (this.step == "inputProxyConfig") {
         //// load proxy defaults?
       } else if (this.step == "configuringProxy") {
+        ////
+      } else if (this.step == "inputNethvoiceConfig") {
+        // this.getDefaults(); ////
+      } else if (this.step == "configuringNethvoice") {
         ////
       }
     },
@@ -401,6 +565,27 @@ export default {
   //   },
   methods: {
     ...mapActions(["setAppConfiguredInStore", "setInstanceStatusInStore"]),
+    previousStep() {
+      switch (this.step) {
+        case "inputOpenldapConfig":
+        case "configuringOpenldap":
+        case "needToInstallProxy":
+        case "proxyAlreadyConfigured":
+        case "installingProxy":
+        case "inputProxyConfig":
+        case "configuringProxy":
+          this.step = "selectAccountProvider";
+          break;
+        case "inputNethvoiceConfig":
+          if (!this.isProxyInstalled) {
+            this.step = "needToInstallProxy";
+          } else if (!this.isProxyConfigured) {
+            this.step = "inputProxyConfig";
+          } else {
+            this.step = "proxyAlreadyConfigured";
+          }
+      }
+    },
     nextStep() {
       if (this.isNextButtonDisabled) {
         return;
@@ -412,7 +597,8 @@ export default {
       // "installingOpenldap",
       // "inputOpenldapConfig",
       // "configuringOpenldap",
-      // "checkProxy"
+      // "needToInstallProxy"
+      // "proxyAlreadyConfigured"
       // "installingProxy",
       // "inputProxyConfig",
       // "configuringProxy",
@@ -421,45 +607,43 @@ export default {
 
       switch (this.step) {
         case "selectAccountProvider":
+          if (!this.validateSelectAccountProvider()) {
+            return;
+          }
+
           if (this.accountProviderType == "create_openldap") {
             this.step = "installingOpenldap";
           } else {
-            this.step = "checkProxy";
+            // go to proxy step
+            if (!this.isProxyInstalled) {
+              this.step = "needToInstallProxy";
+            } else if (!this.isProxyConfigured) {
+              this.step = "inputProxyConfig";
+            } else {
+              this.step = "proxyAlreadyConfigured";
+            }
           }
           break;
         case "inputOpenldapConfig":
-          this.configureOpenLdapModule();
-          //   this.step = "configuringOpenldap"; ////
+          // validate and configure openldap
+          this.configureOpenLdap();
           break;
-        case "checkProxy":
-          //// todo check proxy installation and configuration
+        case "needToInstallProxy": {
           this.step = "installingProxy";
           break;
+        }
         case "inputProxyConfig":
-          this.step = "configuringProxy";
+          //// call child method to validate and configure proxy
+          this.$refs.proxyConfigForm.configureModule();
           break;
+        case "proxyAlreadyConfigured":
         case "inputNethvoiceConfig":
-          this.step = "configuringNethvoice";
+          //// call child method to validate and configure proxy
+          this.$refs.nethvoiceConfigForm.configureModule();
+          // this.step = "configuringNethvoice"; ////
           break;
       }
-
-      //   if (this.isLastStep) {
-      //     this.configureModule();
-      //   } else {
-
-      //   this.step = this.steps[this.stepIndex + 1]; ////
     },
-    // previousStep() { ////
-    //   if (!this.isFirstStep) {
-    //     if (this.step == "inputOpenldapConfig") {
-    //       this.step = "selectAccountProvider";
-    //     } else if (this.step == "inputProxyConfig") {
-    //       this.step = "";
-    //     } else {
-    //       this.step = this.steps[this.stepIndex - 1];
-    //     }
-    //   }
-    // },
     getDomainType(domain) {
       if (domain.location == "internal") {
         if (domain.schema == "rfc2307") {
@@ -519,6 +703,13 @@ export default {
 
       if (this.domains.length) {
         this.accountProviderType = "use_existing_provider";
+
+        if (this.domains.length == 1) {
+          // auto select the only available domain
+          this.$nextTick(() => {
+            this.accountProviderId = this.accountProviderOptions[0].value;
+          });
+        }
       } else {
         this.accountProviderType = "create_openldap";
       }
@@ -632,7 +823,7 @@ export default {
     goToDomainsAndUsers() {
       this.core.$router.push("/domains");
     },
-    async openldapInstallationProvider() {
+    async installOpenldapProvider() {
       this.error.addInternalProvider = "";
       const taskAction = "add-internal-provider";
       const eventId = this.getUuid();
@@ -699,14 +890,12 @@ export default {
       this.$emit("hide");
     },
     addInternalProviderCompleted(taskContext, taskResult) {
-      console.log("@@@ addInternalProviderCompleted"); ////
-
       // unregister to task progress
       this.core.$root.$off(
         `${taskContext.action}-progress-${taskContext.extra.eventId}`
       );
 
-      this.accountProviderId = taskResult.output.module_id;
+      this.createdOpenLdapId = taskResult.output.module_id;
       this.step = "inputOpenldapConfig";
     },
     addInternalProviderProgress(progress) {
@@ -756,11 +945,14 @@ export default {
     },
     getStatusCompleted(taskContext, taskResult) {
       this.status = taskResult.output;
+
+      console.log("@@ status", this.status); ////
+
       // save status to vuex store
       this.setInstanceStatusInStore(this.status);
       this.loading.getStatus = false;
       // install openldap provider
-      this.openldapInstallationProvider();
+      this.installOpenldapProvider();
     },
     async getOpenLdapDefaults() {
       this.loading.openldap.getDefaults = true;
@@ -781,7 +973,7 @@ export default {
       );
 
       const res = await to(
-        this.createModuleTaskForApp(this.accountProviderId, {
+        this.createModuleTaskForApp(this.createdOpenLdapId, {
           action: taskAction,
           data: {
             provision: "new-domain",
@@ -832,7 +1024,7 @@ export default {
       this.error.openldap.confirmPassword = "";
       this.error.openldap.getDefaults = "";
     },
-    validateConfigureOpenLdapModule() {
+    validateConfigureOpenLdap() {
       this.clearOpenLdapErrors();
       let isValidationOk = true;
 
@@ -903,8 +1095,8 @@ export default {
       }
       return isValidationOk;
     },
-    async configureOpenLdapModule() {
-      const isValidationOk = this.validateConfigureOpenLdapModule();
+    async configureOpenLdap() {
+      const isValidationOk = this.validateConfigureOpenLdap();
       if (!isValidationOk) {
         return;
       }
@@ -917,33 +1109,33 @@ export default {
       // register to task error
       this.core.$root.$once(
         `${taskAction}-aborted-${eventId}`,
-        this.configureOpenLdapModuleAborted
+        this.configureOpenLdapAborted
       );
 
       // register to task validation
       this.core.$root.$once(
         `${taskAction}-validation-failed-${eventId}`,
-        this.configureOpenLdapModuleValidationFailed
+        this.configureOpenLdapValidationFailed
       );
       this.core.$root.$once(
         `${taskAction}-validation-ok-${eventId}`,
-        this.configureOpenLdapModuleValidationOk
+        this.configureOpenLdapValidationOk
       );
 
       // register to task progress to update progress bar
       this.core.$root.$on(
         `${taskAction}-progress-${eventId}`,
-        this.configureOpenLdapModuleProgress
+        this.configureOpenLdapProgress
       );
 
       // register to task completion
       this.core.$root.$once(
         `${taskAction}-completed-${eventId}`,
-        this.configureOpenLdapModuleCompleted
+        this.configureOpenLdapCompleted
       );
 
       const res = await to(
-        this.createModuleTaskForApp(this.accountProviderId, {
+        this.createModuleTaskForApp(this.createdOpenLdapId, {
           action: taskAction,
           data: {
             domain: this.openldap.domain,
@@ -968,10 +1160,10 @@ export default {
         return;
       }
     },
-    configureOpenLdapModuleValidationOk() {
-      this.step = "configuringProvider";
+    configureOpenLdapValidationOk() {
+      this.step = "configuringOpenldap";
     },
-    configureOpenLdapModuleValidationFailed(validationErrors, taskContext) {
+    configureOpenLdapValidationFailed(validationErrors, taskContext) {
       this.loading.openldap.configureModule = false;
 
       // unregister to task progress
@@ -992,34 +1184,111 @@ export default {
         }
       }
     },
-    configureOpenLdapModuleProgress(progress) {
+    configureOpenLdapProgress(progress) {
       this.configureProviderProgress = progress;
     },
-    configureOpenLdapModuleCompleted(taskContext) {
+    configureOpenLdapCompleted(taskContext) {
       this.loading.openldap.configureModule = false;
-      this.step = "checkProxy";
+      this.accountProviderId = this.createdOpenLdapId;
 
       // unregister to task progress
       this.core.$root.$off(
         `${taskContext.action}-progress-${taskContext.extra.eventId}`
       );
-    },
-    async getProxyStatus() {
-      this.loading.getProxyStatus = true;
 
-      const taskAction = "get-proxy-status";
+      // go to proxy step
+      if (!this.isProxyInstalled) {
+        this.step = "needToInstallProxy";
+      } else if (!this.isProxyConfigured) {
+        this.step = "inputProxyConfig";
+      } else {
+        this.step = "proxyAlreadyConfigured";
+      }
+    },
+    // async getProxyStatus() { ////
+    //   this.loading.getProxyStatus = true;
+
+    //   const taskAction = "get-proxy-status";
+    //   const eventId = this.getUuid();
+
+    //   // register to task error
+    //   this.core.$root.$once(
+    //     `${taskAction}-aborted-${eventId}`,
+    //     this.getProxyStatusAborted
+    //   );
+
+    //   // register to task completion
+    //   this.core.$root.$once(
+    //     `${taskAction}-completed-${eventId}`,
+    //     this.getProxyStatusCompleted
+    //   );
+
+    //   const res = await to(
+    //     this.createModuleTaskForApp(this.instanceName, {
+    //       action: taskAction,
+    //       extra: {
+    //         title: this.$t("action." + taskAction),
+    //         isNotificationHidden: true,
+    //         eventId,
+    //       },
+    //     })
+    //   );
+    //   const err = res[0];
+
+    //   if (err) {
+    //     console.error(`error creating task ${taskAction}`, err);
+    //     this.error.getProxyStatus = this.getErrorMessage(err);
+    //     this.loading.getProxyStatus = false;
+    //     return;
+    //   }
+    // },
+    // getProxyStatusAborted(taskResult, taskContext) {
+    //   console.error(`${taskContext.action} aborted`, taskResult);
+    //   this.error.getProxyStatus = this.$t("error.generic_error");
+    //   this.loading.getProxyStatus = false;
+    // },
+    // getProxyStatusCompleted(taskContext, taskResult) {
+    //   //// remove mock
+    //   taskResult.output.proxy_configured = true; ////
+    //   // taskResult.output.proxy_installed = false; ////
+
+    //   this.proxyStatus = taskResult.output;
+
+    //   console.log("proxyStatus", this.proxyStatus); ////
+    //   console.log("module_id", this.proxyStatus.module_id); ////
+    //   console.log("proxy_installed", this.proxyStatus.proxy_installed); ////
+
+    //   this.loading.getProxyStatus = false;
+    // },
+    validateSelectAccountProvider() {
+      this.error.accountProvider = "";
+      let isValidationOk = true;
+
+      if (
+        this.accountProviderType == "use_existing_provider" &&
+        !this.accountProviderId
+      ) {
+        this.error.accountProvider = this.$t("common.required");
+        isValidationOk = false;
+        // this.focusElement("accountProvider"); ////
+      }
+      return isValidationOk;
+    },
+    async getDefaults() {
+      this.loading.getDefaults = true;
+      const taskAction = "get-defaults";
       const eventId = this.getUuid();
 
       // register to task error
       this.core.$root.$once(
         `${taskAction}-aborted-${eventId}`,
-        this.getProxyStatusAborted
+        this.getDefaultsAborted
       );
 
       // register to task completion
       this.core.$root.$once(
         `${taskAction}-completed-${eventId}`,
-        this.getProxyStatusCompleted
+        this.getDefaultsCompleted
       );
 
       const res = await to(
@@ -1036,22 +1305,230 @@ export default {
 
       if (err) {
         console.error(`error creating task ${taskAction}`, err);
-        this.error.getProxyStatus = this.getErrorMessage(err);
-        this.loading.getProxyStatus = false;
+        this.error.getDefaults = this.getErrorMessage(err);
+        this.loading.getDefaults = false;
         return;
       }
     },
-    getProxyStatusAborted(taskResult, taskContext) {
+    getDefaultsAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
-      this.error.getProxyStatus = this.$t("error.generic_error");
-      this.loading.getProxyStatus = false;
+      this.error.getDefaults = this.$t("error.generic_error");
+      this.loading.getDefaults = false;
     },
-    getProxyStatusCompleted(taskContext, taskResult) {
-      this.proxyStatus = taskResult.output;
+    getDefaultsCompleted(taskContext, taskResult) {
+      const defaults = taskResult.output;
+      this.isProxyInstalled = defaults.proxy_status.proxy_installed;
 
-      console.log("proxyStatus", this.proxyStatus); ////
+      if (this.isProxyInstalled) {
+        this.proxyModuleId = defaults.proxy_status.module_id;
 
-      this.loading.getProxyStatus = false;
+        // retrieve proxy configuration
+        this.getProxyConfig();
+      }
+
+      this.timezoneList = [];
+      defaults.accepted_timezone_list.forEach((value) =>
+        this.timezoneList.push({
+          name: value,
+          label: value,
+          value: value,
+        })
+      );
+
+      //// todo: set default timezone
+      this.loading.getDefaults = false;
+    },
+    async getProxyConfig() {
+      this.loading.getProxyConfig = true;
+      const taskAction = "get-configuration";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.getProxyConfigAborted
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.getProxyConfigCompleted
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.proxyModuleId, {
+          action: taskAction,
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.getProxyConfig = this.getErrorMessage(err);
+        this.loading.getProxyConfig = false;
+        return;
+      }
+    },
+    getProxyConfigAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.getProxyConfig = this.$t("error.generic_error");
+      this.loading.getProxyConfig = false;
+    },
+    getProxyConfigCompleted(taskContext, taskResult) {
+      console.log("@@ getProxyConfigCompleted", taskResult.output); ////
+
+      this.proxyConfig = taskResult.output;
+      this.loading.getProxyConfig = false;
+    },
+    async installProxy() {
+      this.error.installProxy = "";
+      const taskAction = "add-module";
+      const eventId = this.getUuid();
+      this.installingProxyProgress = 0;
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.installProxyAborted
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.installProxyCompleted
+      );
+
+      // register to task progress to update progress bar
+      this.core.$root.$on(
+        `${taskAction}-progress-${eventId}`,
+        this.installProxyProgress
+      );
+
+      console.log("@@ this.instanceStatus", this.instanceStatus); ////
+      console.log("@@ this.instanceStatus.node", this.instanceStatus.node); ////
+
+      const nodeId = parseInt(this.instanceStatus.node);
+
+      console.log("nodeId", nodeId); ////
+
+      const res = await to(
+        this.createClusterTaskForApp({
+          action: taskAction,
+          data: {
+            image: "todo",
+            node: nodeId,
+          },
+          extra: {
+            title: this.core.$t("action." + taskAction),
+            node: nodeId,
+            isNotificationHidden: true,
+            isProgressNotified: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.installProxy = this.getErrorMessage(err);
+        return;
+      }
+    },
+    installProxyAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+
+      // unregister to task progress
+      this.core.$root.$off(
+        `${taskContext.action}-progress-${taskContext.extra.eventId}`
+      );
+
+      // hide modal so that user can see error notification
+      this.$emit("hide");
+    },
+    installProxyCompleted(taskContext, taskResult) {
+      // unregister to task progress
+      this.core.$root.$off(
+        `${taskContext.action}-progress-${taskContext.extra.eventId}`
+      );
+
+      this.proxyModuleId = taskResult.output.module_id;
+
+      console.log("@@ proxyModuleId", this.proxyModuleId); ////
+      this.step = "inputProxyConfig";
+    },
+    installProxyProgress(progress) {
+      this.installingProxyProgress = progress;
+    },
+    async listModules() {
+      this.loading.listModules = true;
+      this.error.listModules = "";
+      const taskAction = "list-modules";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.listModulesAborted
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.listModulesCompleted
+      );
+
+      const res = await to(
+        this.createClusterTaskForApp({
+          action: taskAction,
+          extra: {
+            title: this.core.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.listModules = this.getErrorMessage(err);
+        this.loading.listModules = false;
+        return;
+      }
+    },
+    listModulesAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.listModules = this.$t("error.generic_error");
+      this.loading.listModules = false;
+    },
+    listModulesCompleted(taskContext, taskResult) {
+      let apps = taskResult.output;
+      apps.sort(this.sortByProperty("name"));
+
+      // let updates = []; ////
+
+      // for (const app of apps) {
+      //   const hasStableUpdate = app.updates.some((update) => update.update);
+
+      //   if (hasStableUpdate) {
+      //     updates.push(app);
+      //   }
+
+      //   // sort installed instances
+      //   app.installed.sort(this.sortModuleInstances());
+      // }
+      // this.updates = updates;
+
+      this.apps = apps;
+      this.loading.listModules = false;
+
+      console.log("@@ apps", this.apps); ////
     },
   },
 };

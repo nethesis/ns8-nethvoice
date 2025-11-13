@@ -9,8 +9,9 @@
       <AppMobileSideMenu />
       <router-view />
       <FirstConfigurationModal
-        :isShown="!isAppConfigured"
+        :isShown="!isAppConfigured && canOpenFirstConfigurationModal"
         @configured="getConfiguration"
+        @hide="setCanOpenFirstConfigurationModalInStore(false)"
       />
     </cv-content>
   </div>
@@ -33,7 +34,13 @@ export default {
   components: { AppSideMenu, AppMobileSideMenu, FirstConfigurationModal },
   mixins: [QueryParamService, TaskService, UtilService],
   computed: {
-    ...mapState(["instanceName", "instanceLabel", "core", "isAppConfigured"]),
+    ...mapState([
+      "instanceName",
+      "instanceLabel",
+      "core",
+      "isAppConfigured",
+      "canOpenFirstConfigurationModal",
+    ]),
   },
   created() {
     const core = window.parent.core;
@@ -76,6 +83,7 @@ export default {
       "setCoreInStore",
       "setAppNameInStore",
       "setAppConfiguredInStore",
+      "setCanOpenFirstConfigurationModalInStore",
       "setConfigurationInStore",
     ]),
     async getInstanceLabel() {
@@ -184,4 +192,24 @@ export default {
 
 <style lang="scss">
 @import "styles/carbon-utils";
+
+.mb-0 {
+  margin-bottom: 0 !important;
+}
+
+.mb-8rem {
+  margin-bottom: 8rem !important;
+}
+
+.mb-10rem {
+  margin-bottom: 10rem !important;
+}
+
+.top-0\.5 {
+  top: 2px;
+}
+
+.relative {
+  position: relative;
+}
 </style>
