@@ -73,6 +73,8 @@ The canonical endpoint catalog lives in `openapi.yaml`.
 
 A browsable version is available at https://bump.sh/nethvoice/hub/nethvoice/doc/wizard/
 
+To test the API endpoints, see the `tools/test_openapi_endpoints.py` script documented in `tools/README.md`.
+
 ### Authentication
 
 Each request must include two HTTP headers:

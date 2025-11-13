@@ -14,7 +14,9 @@ info:
     - `Secretkey`: must be a valid hash calculated from user + password (SHA1) + shared secret
 
 
-    Authentication endpoints (`/login`, `/logout`, `/testauth`) do not require these headers.'
+    Authentication endpoints (`/login`, `/logout`, `/testauth`) do not require these headers.
+    
+    Shared secrets is saved inside the `passwords.env` file, under the `NETHVOICESECRETKEY` variable.
   contact:
     name: Nethesis
     url: https://www.nethesis.it
@@ -1024,6 +1026,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: []
       operationId: get_cti_paramurls
   /cti/streaming/{descr}:
     put:
@@ -1118,6 +1121,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: null
       operationId: get_devices_mac_brand
       parameters:
       - name: mac
@@ -1176,6 +1180,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: []
       operationId: get_devices_phones_list
   /devices/gateways/list:
     get:
@@ -1189,6 +1194,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: []
       operationId: get_devices_gateways_list
   /devices/phones/manufacturers:
     get:
@@ -1202,6 +1208,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: {}
       operationId: get_devices_phones_manufacturers
   /devices/gateways/manufacturers:
     get:
@@ -1215,6 +1222,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: {}
       operationId: get_devices_gateways_manufacturers
   /devices/phones/reload/{extension}:
     post:
@@ -1292,6 +1300,8 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                status: true
       description: Body requires at least `name` and `mac`. Launches `/lib/tftpPushConfig.php`.
       operationId: post_devices_gateways_push
       requestBody:
@@ -1311,6 +1321,8 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                status: true
       operationId: delete_devices_gateways_id
       parameters:
       - name: id
@@ -1458,6 +1470,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: false
       operationId: get_migration_ismigration
   /migration/endmigration:
     post:
@@ -1471,6 +1484,12 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                status: true
+                errors: []
+                infos:
+                  - migration_status changed
+                warnings: []
       operationId: post_migration_endmigration
       requestBody:
         content:
@@ -1489,6 +1508,12 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                status: true
+                errors: []
+                infos:
+                  - migration_status changed
+                warnings: []
       description: 'Body: `{ "status": "..." }`.'
       operationId: post_migration_migrationstatus
       requestBody:
@@ -1507,6 +1532,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: "ready"
       operationId: get_migration_migrationstatus
   /migration/oldusers:
     get:
@@ -2204,7 +2230,16 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: array
+              example:
+                - extension: "201"
+                  password: ""
+                  name: null
+                  voicemail: "novm"
+                  id: "201"
+                  tech: "pjsip"
+                  dial: "PJSIP/201"
+                  description: "Sample User"
       operationId: get_physicalextensions
     post:
       summary: Create or associate a physical extension with a main extension.
@@ -2236,6 +2271,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: {}
       operationId: get_physicalextensions_extension
       parameters:
       - name: extension
@@ -2255,6 +2291,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: {}
       operationId: delete_physicalextensions_id
       parameters:
       - name: id
@@ -2334,6 +2371,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: null
       operationId: get_mobileapp_mainextension
       parameters:
       - name: mainextension
@@ -2347,6 +2385,8 @@ paths:
       tags:
       - Physicalextensions
       responses:
+        '204':
+          description: No content (deleted)
         '200':
           description: Successful response
           content:
@@ -2397,6 +2437,8 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                displayname: false
       operationId: get_extension_extension_displayname
       parameters:
       - name: extension
@@ -2415,7 +2457,8 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: array
+              example: []
       operationId: get_providers
   /phones/reconfigure:
     post:
@@ -2472,6 +2515,8 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                scalar: false
       operationId: get_phones_account_mac
       parameters:
       - name: mac
@@ -2490,7 +2535,8 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: string
+              example: "tancredi"
       operationId: get_provisioning_engine
   /phones/state:
     get:
@@ -2504,6 +2550,15 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                "201":
+                  Response: "Success"
+                  Message: "Extension Status"
+                  Exten: "201"
+                  Context: "default"
+                  Hint: false
+                  Status: "-1"
+                  StatusText: "Unknown"
       operationId: get_phones_state
   /extensions/{extension}/srtp:
     get:
@@ -2516,7 +2571,8 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: boolean
+              example: false
       operationId: get_extensions_extension_srtp
       parameters:
       - name: extension
@@ -2565,6 +2621,10 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                valid_certificate: true
+                host_type: "FQDN"
+                is_reachable: true
       operationId: post_provisioning_connectivitycheck
       requestBody:
         content:
@@ -2582,7 +2642,8 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: integer
+              example: 1
       operationId: get_inboundroutes_count
   /inboundroutes:
     get:
@@ -2596,6 +2657,9 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                destinations: {}
+                routes: []
       operationId: get_inboundroutes
     post:
       summary: Create a new inbound route.
@@ -2643,7 +2707,8 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: integer
+              example: 0
       operationId: get_outboundroutes_count
   /outboundroutes:
     get:
@@ -2687,6 +2752,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: {}
       operationId: get_outboundroutes_defaults
   /outboundroutes/{route_id}/trunks/{id}:
     delete:
@@ -2768,11 +2834,16 @@ paths:
       - Settings
       responses:
         '200':
-          description: Successful response
+          description: Successful rqesponse
           content:
             application/json:
               schema:
                 type: object
+              example:
+                it:
+                  default: false
+                en:
+                  default: true
       operationId: get_settings_languages
   /settings/conferenceurl:
     get:
@@ -2786,6 +2857,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: null
       operationId: get_settings_conferenceurl
   /tasks/{task}:
     get:
@@ -2799,6 +2871,8 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                progress: 100
       operationId: get_tasks_task
       parameters:
       - name: task
@@ -2817,7 +2891,8 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: integer
+              example: 0
       operationId: get_trunks_count
   /trunks:
     get:
@@ -2830,7 +2905,8 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: array
+              example: []
       operationId: get_trunks
     post:
       summary: Create a new PJSIP trunk from a provider template.
@@ -2921,7 +2997,8 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: array
+              example: []
       operationId: get_final
   /users/count:
     get:
@@ -2934,7 +3011,8 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: integer
+              example: 3
       operationId: get_users_count
   /users/sync:
     get:
@@ -2947,7 +3025,8 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: boolean
+              example: false
       operationId: get_users_sync
     post:
       summary: Trigger a background user synchronization from the provider.
@@ -2977,7 +3056,8 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: array
+              example: []
       operationId: get_users_all
       parameters:
       - name: all
@@ -3087,7 +3167,8 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: string
+              example: "ImdpYWNvbW8iLCJHaWFjb21vIFJvc3NpIiwibm9uZSIsIiIsIiIsIkZBTFNFIiwiRkFMU0UiLCIiLCIiDQoic2FtcGxlIiwiU2FtcGxlIFVzZXIiLCIyMDEiLCIiLCIiLCJGQUxTRSIsIlRSVUUiLCIiLCIiDQo="
       operationId: get_csv_csvexport
   /voicemails:
     get:
@@ -3100,7 +3181,8 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: array
+              example: []
       operationId: get_voicemails
     post:
       summary: Enable or disable voicemail for an extension.
@@ -3150,6 +3232,7 @@ paths:
             application/json:
               schema:
                 type: object
+              example: null
       operationId: get_webrtc_mainextension
       parameters:
       - name: mainextension
@@ -3187,6 +3270,9 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                extension: false
+                mobile_extension: null
       operationId: post_webrtc
       requestBody:
         content:
