@@ -330,6 +330,7 @@ paths:
         required: true
         schema:
           type: string
+          enum: ["enabled", "disabled"]
       requestBody:
         content:
           application/json:
@@ -386,6 +387,7 @@ paths:
         required: true
         schema:
           type: string
+          enum: ["enabled", "disabled"]
       requestBody:
         content:
           application/json:
@@ -1235,6 +1237,7 @@ paths:
         required: true
         schema:
           type: string
+          pattern: '^[0-9]+$'
       requestBody:
         content:
           application/json:
@@ -1429,6 +1432,7 @@ paths:
         required: true
         schema:
           type: string
+          pattern: '^[0-9]+$'
   /mainextensions/userlimits:
     get:
       summary: Report configured users count and limit information.
@@ -2177,11 +2181,13 @@ paths:
         required: true
         schema:
           type: string
+          enum: ["speeddial", "extensions", "nethcti"]
       - name: status
         in: path
         required: true
         schema:
           type: string
+          enum: ["enabled", "disabled"]
       requestBody:
         content:
           application/json:
