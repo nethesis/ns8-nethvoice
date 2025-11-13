@@ -31,7 +31,7 @@ servers:
   description: NethVoice REST API server
   variables:
     host:
-      default: localhost
+      default: voice.nethserver.org
       description: Your NethVoice server hostname or IP
 security:
 - FreePBXAuth: []
