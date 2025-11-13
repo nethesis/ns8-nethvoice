@@ -55,3 +55,14 @@ if (count($res) == 0 && !empty($_ENV['NETHVOICE_HOTEL']) && $_ENV['NETHVOICE_HOT
 	$stmt = $db->prepare($sql);
 	$stmt->execute([$hotel_profile_id]);
 }
+
+// Check if NETHVOICE_HOST changed and reset phones RPS if it has
+$stmt = $db->prepare("SELECT `value` FROM `asterisk`.`admin` WHERE `variable` = 'NETHVOICE_HOST'");
+$stmt->execute();
+$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+if (count($res) > 0 && $res[0]['value'] != $_ENV['NETHVOICE_HOST']) {
+	// value exists and differ from current value, update phones RPS
+	exec("/var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --all");
+}
+$stmt = $db->prepare("DELETE IGNORE FROM `asterisk`.`admin` WHERE `variable` = 'NETHVOICE_HOST'; INSERT IGNORE INTO `asterisk`.`admin` (`variable`, `value`) VALUES ('NETHVOICE_HOST',?)");
+$stmt->execute([$_ENV['NETHVOICE_HOST']]);
