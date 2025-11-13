@@ -1,0 +1,4159 @@
+openapi: 3.0.3
+info:
+  title: NethVoice FreePBX REST API
+  version: 1.0.0
+  description: 'Simple REST API framework for NethVoice based on Slim framework.
+
+
+    ## Authentication
+
+    Each request must include two HTTP headers:
+
+    - `User`: must be a valid FreePBX administrator (ampusers table)
+
+    - `Secretkey`: must be a valid hash calculated from user + password (SHA1) + shared
+    secret
+
+
+    Authentication endpoints (`/login`, `/logout`, `/testauth`) do not require these
+    headers.
+
+    Shared secrets is saved inside the `passwords.env` file, under the `NETHVOICESECRETKEY`
+    variable. '
+  contact:
+    name: Nethesis
+    url: https://www.nethesis.it
+  license:
+    name: GPL-3.0
+    url: https://www.gnu.org/licenses/gpl-3.0.html
+servers:
+- url: https://{host}/freepbx/rest
+  description: NethVoice REST API server
+  variables:
+    host:
+      default: voice.nethserver.org
+      description: Your NethVoice server hostname or IP
+security:
+- FreePBXAuth: []
+paths:
+  /login:
+    get:
+      summary: Create a FreePBX admin session cookie.
+      tags:
+      - Authentication
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                success: true
+      description: 'Returns `{ "success": true }` after seeding the AMP session as
+        the `admin` user.'
+      operationId: get_login
+      security: []
+  /logout:
+    get:
+      summary: Invalidate the current FreePBX admin session.
+      tags:
+      - Authentication
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                success: true
+      description: 'Clears the `AMP_user` session entry and returns `{ "success":
+        true }`.'
+      operationId: get_logout
+      security: []
+  /testauth:
+    post:
+      summary: Validate FreePBX credentials and disclose the shared secret.
+      tags:
+      - Authentication
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: 'Body: `{ "username": "", "password": "" }`. On success returns
+        `{ "result": "<secret>" }` with status 200; otherwise 401.'
+      operationId: post_testauth
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /contexts:
+    get:
+      summary: List dialplan contexts available for assignment.
+      tags:
+      - Bulk
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                from-internal: Standard
+                cti-profile-3: CTI Profile Advanced
+      description: Returns a JSON object keyed by context name with a human description.
+      operationId: get_contexts
+  /bulk/{mainextensions}:
+    get:
+      summary: Inspect common settings across a set of main extensions.
+      tags:
+      - Bulk
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: Segment expects a comma separated extension list. Returns only
+        values that are identical across the group; divergent keys are `null`.
+      operationId: get_bulk_mainextensions
+      parameters:
+      - name: mainextensions
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Apply bulk profile changes to one or more main extensions.
+      tags:
+      - Bulk
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: 'Body: JSON object with keys such as `displayname`, `callwaiting`,
+        `outboundcid_*`, etc. Triggers `retrieveHelper.sh` on success.'
+      operationId: post_bulk_mainextensions
+      parameters:
+      - name: mainextensions
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /destinations:
+    get:
+      summary: Enumerate FreePBX destinations for call routing.
+      tags:
+      - Bulk
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                Announcements:
+                  '99999':
+                    destination: popover
+                    description: Add new Announcements &#133
+                    category: announcement
+                    selected: false
+                Callback:
+                  '99999':
+                    destination: popover
+                    description: Add new Callback &#133
+                    category: callback
+                    selected: false
+      description: Wraps the FreePBX destination helper and returns raw data for UI
+        selection.
+      operationId: get_destinations
+  /codecs/voip:
+    get:
+      summary: Return the ordered list of VoIP trunk codecs.
+      tags:
+      - Codecs
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+              - codec: alaw
+                enabled: true
+              - codec: ulaw
+                enabled: true
+      description: 'Currently returns alaw, ulaw and g729 with `enabled: true`.'
+      operationId: get_codecs_voip
+  /configuration/userprovider:
+    get:
+      summary: Report the configured directory provider.
+      tags:
+      - Configuration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                configured: 1
+                type: ldap
+      description: Derives the LDAP domain from `NETHVOICE_LDAP_BASE` and reports
+        the provider as configured.
+      operationId: get_configuration_userprovider
+  /configuration/mode:
+    get:
+      summary: Indicate whether the system is in legacy or UC mode.
+      tags:
+      - Configuration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                result: unknown
+      description: Evaluates the `LegacyMode` prop and presence of `nethserver-directory`
+        to return `legacy`, `uc` or `unknown`.
+      operationId: get_configuration_mode
+  /configuration/networks:
+    get:
+      summary: Expose host local network metadata from the environment.
+      tags:
+      - Configuration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: Returns the decoded `NETHVOICE_HOST_LOCAL_NETWORKS` value or an
+        empty array.
+      operationId: get_configuration_networks
+  /configuration/wizard:
+    get:
+      summary: Read the installation wizard progress state.
+      tags:
+      - Configuration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+              - step: '1'
+                status: null
+      description: Returns the rows in `rest_wizard`, providing the last completed
+        step and status.
+      operationId: get_configuration_wizard
+    post:
+      summary: Persist the current wizard step and optionally trigger service restarts.
+      tags:
+      - Configuration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: 'Body: `{ "step": <int>, "status": <bool> }`. Step 13 restarts
+        Asterisk and signals the CTI service.'
+      operationId: post_configuration_wizard
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /configuration/externalip:
+    get:
+      summary: Return the SIP external IP configured in FreePBX.
+      tags:
+      - Configuration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: 127.0.0.1
+      operationId: get_configuration_externalip
+  /configuration/externalip/{ip}:
+    post:
+      summary: Update the SIP external IP and queue a dialplan reload.
+      tags:
+      - Configuration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: Path parameter `ip` must be a valid IPv4 address. Invokes `retrieveHelper.sh`
+        on success.
+      operationId: post_configuration_externalip_ip
+      parameters:
+      - name: ip
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /configuration/suggestedip:
+    get:
+      summary: Discover the public IP as seen from ifconfig.io.
+      tags:
+      - Configuration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: 146.190.28.17
+      description: Returns the IP string on success or HTTP 500 on lookup failure.
+      operationId: get_configuration_suggestedip
+  /configuration/allowexternalsips:
+    get:
+      summary: Legacy stub that always reports external SIP access as enabled.
+      tags:
+      - Configuration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: enabled
+      description: Endpoint kept for backward compatibility; always returns the string
+        `"enabled"`.
+      operationId: get_configuration_allowexternalsips
+  /configuration/allowexternalsips/{status}:
+    post:
+      summary: Legacy stub used by historical UIs to toggle external SIP access.
+      tags:
+      - Configuration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: Currently a no-op that still returns HTTP 200. Accepts only `enabled`
+        or `disabled` in the path.
+      operationId: post_configuration_allowexternalsips_status
+      parameters:
+      - name: status
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - enabled
+          - disabled
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /configuration/localnetworks:
+    get:
+      summary: Retrieve the SIP local network list from FreePBX.
+      tags:
+      - Configuration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: false
+      operationId: get_configuration_localnetworks
+    post:
+      summary: Request an Asterisk restart after out-of-band local network changes.
+      tags:
+      - Configuration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: Does not accept a body; it simply issues `core restart when convenient`
+        through AMI.
+      operationId: post_configuration_localnetworks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /configuration/voicemailgooglestt/{status}:
+    post:
+      summary: Toggle Google Speech-to-Text processing for voicemail attachments.
+      tags:
+      - Configuration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: When enabling, requires `google-auth.json` to already exist; otherwise
+        responds 412.
+      operationId: post_configuration_voicemailgooglestt_status
+      parameters:
+      - name: status
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - enabled
+          - disabled
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /configuration/voicemailgooglestt:
+    get:
+      summary: Report whether voicemail transcription via Google STT is active.
+      tags:
+      - Configuration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: disabled
+      operationId: get_configuration_voicemailgooglestt
+  /configuration/googleauth:
+    post:
+      summary: Upload the Google Cloud authentication file used for voicemail transcription.
+      tags:
+      - Configuration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: 'Body: `{ "file": "<base64>" }`. The file is decoded to `/home/asterisk/google-auth.json`,
+        replacing any existing version.'
+      operationId: post_configuration_googleauth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /cti/profiles:
+    get:
+      summary: List CTI permission profiles with macro permissions attached.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+              - id: '2'
+                name: Standard
+                macro_permissions:
+                  settings:
+                    value: true
+                    displayname: Settings
+                    description: General and notifications settings
+                    permissions:
+                    - id: '2'
+                      name: dnd
+                      displayname: DND
+                      description: Configure do Not Disturb
+                      value: true
+                    - id: '3'
+                      name: call_forward
+                      displayname: Call Forward
+                      description: Configure Call Forward
+                      value: true
+                    - id: '4'
+                      name: recording
+                      displayname: Recording
+                      description: Record own conversations. View/listen/delete own
+                        recording
+                      value: true
+                    - id: '5'
+                      name: conference
+                      displayname: Conference
+                      description: Make a conference call
+                      value: true
+                    - id: '6'
+                      name: parkings
+                      displayname: Parkings
+                      description: View parkings state and pickup parked calls
+                      value: false
+                    - id: '15'
+                      name: spy
+                      displayname: Spy
+                      description: Hear other extensions calls
+                      value: false
+                    - id: '16'
+                      name: intrude
+                      displayname: Intrude
+                      description: Intrude in calls
+                      value: false
+                    - id: '18'
+                      name: pickup
+                      displayname: Pickup
+                      description: Pick-up any call
+                      value: false
+                  phonebook:
+                    value: true
+                    displayname: Phonebook
+                    description: View Phonebook, add contacts, modify and delete own
+                      contacts
+                    permissions:
+                    - id: '12'
+                      name: ad_phonebook
+                      displayname: Advanced Phonebook
+                      description: Modify and delete all contacts
+                      value: false
+                  cdr:
+                    value: true
+                    displayname: CDR
+                    description: View own call history
+                    permissions:
+                    - id: '13'
+                      name: ad_cdr
+                      displayname: PBX CDR
+                      description: View all users call history
+                      value: false
+                    - id: '4000'
+                      name: group_cdr
+                      displayname: Group CDR
+                      description: Allow to see call history of members of user groups
+                      value: false
+                  customer_card:
+                    value: true
+                    displayname: Customer Card
+                    description: Allow to view Customer Cards
+                    permissions: []
+                  presence_panel:
+                    value: true
+                    displayname: Presence Panel
+                    description: Allow to view Presence Panel
+                    permissions:
+                    - id: '17'
+                      name: ad_recording
+                      displayname: Advanced Recording
+                      description: Record anyone call
+                      value: false
+                    - id: '19'
+                      name: transfer
+                      displayname: Transfer
+                      description: Transfer everyone call
+                      value: false
+                    - id: '20'
+                      name: ad_parking
+                      displayname: Advanced Parking
+                      description: Allow to park any call and to pickup them using
+                        any extension
+                      value: false
+                    - id: '21'
+                      name: hangup
+                      displayname: Hangup
+                      description: Hangup everyone call
+                      value: false
+                    - id: '22'
+                      name: trunks
+                      displayname: PBX lines
+                      description: View PBX lines
+                      value: false
+                    - id: '26'
+                      name: ad_phone
+                      displayname: Advanced Phone
+                      description: Use phone features (hangup, call, answer) on conversations
+                        not owned by the user
+                      value: false
+                    - id: '3500'
+                      name: all_groups
+                      displayname: All groups
+                      description: Allow to see all groups and operators
+                      value: false
+                  queue_agent:
+                    value: true
+                    displayname: Use queue agent panel
+                    description: View Queues and queues info of the user, login/logout
+                      from queues, enable or disable pause state
+                    permissions:
+                    - id: '23'
+                      name: ad_queue_agent
+                      displayname: Advanced queue agent panel
+                      description: View more queue information
+                      value: true
+                    - id: '24'
+                      name: lost_queue_call
+                      displayname: Lost Queue Calls
+                      description: Allow to view Queue Recall panel
+                      value: false
+                  streaming:
+                    value: false
+                    displayname: Streaming
+                    description: Allow to view Streaming Panel
+                    permissions: []
+                  off_hour:
+                    value: true
+                    displayname: Off Hour
+                    description: Allow to change of his incoming call paths
+                    permissions:
+                    - id: '25'
+                      name: advanced_off_hour
+                      displayname: Advanced Off Hour
+                      description: Allow to change user's incoming call path and generic
+                        inbound routes
+                      value: false
+                    - id: '27'
+                      name: ad_off_hour
+                      displayname: Admin Off Hour
+                      description: Allow to change all incoming call paths
+                      value: false
+                  remote_sites:
+                    value: false
+                    displayname: Remote Sites
+                    description: Allow to view Remote Sites information
+                    permissions: []
+                  qmanager:
+                    value: false
+                    displayname: Queue Manager
+                    description: Allow to view and manage queues in real time
+                    permissions: []
+                  operator_panel:
+                    value: false
+                    displayname: Operator Panel
+                    description: Enables Operator Panel interface for operators
+                    permissions: []
+                  nethvoice_cti:
+                    value: true
+                    displayname: NethVoice CTI
+                    description: Enables access to NethVoice CTI application
+                    permissions:
+                    - id: '8'
+                      name: chat
+                      displayname: Chat
+                      description: Use chat service
+                      value: true
+                    - id: '9'
+                      name: privacy
+                      displayname: Privacy
+                      description: Obfuscate called and caller numbers for other users
+                      value: true
+                    - id: '1000'
+                      name: screen_sharing
+                      displayname: Screen Sharing
+                      description: Allow to share the desktop
+                      value: false
+                    - id: '2000'
+                      name: phone_buttons
+                      displayname: Phone buttons
+                      description: Allow the user to customize functions of physical
+                        phone buttons. These values correspond to the Line Keys settings
+                        shown in Devices -> Models and Configurations pages
+                      value: false
+                    - id: '3000'
+                      name: video_conference
+                      displayname: Video Conference
+                      description: Allow to start a video conference
+                      value: false
+                    - id: '5000'
+                      name: satellite_stt
+                      displayname: Speech-To-Text
+                      description: Calls transcription using Speech-To-Text
+                      value: false
+              - id: '3'
+                name: Advanced
+                macro_permissions:
+                  settings:
+                    value: true
+                    displayname: Settings
+                    description: General and notifications settings
+                    permissions:
+                    - id: '2'
+                      name: dnd
+                      displayname: DND
+                      description: Configure do Not Disturb
+                      value: true
+                    - id: '3'
+                      name: call_forward
+                      displayname: Call Forward
+                      description: Configure Call Forward
+                      value: true
+                    - id: '4'
+                      name: recording
+                      displayname: Recording
+                      description: Record own conversations. View/listen/delete own
+                        recording
+                      value: true
+                    - id: '5'
+                      name: conference
+                      displayname: Conference
+                      description: Make a conference call
+                      value: true
+                    - id: '6'
+                      name: parkings
+                      displayname: Parkings
+                      description: View parkings state and pickup parked calls
+                      value: true
+                    - id: '15'
+                      name: spy
+                      displayname: Spy
+                      description: Hear other extensions calls
+                      value: false
+                    - id: '16'
+                      name: intrude
+                      displayname: Intrude
+                      description: Intrude in calls
+                      value: false
+                    - id: '18'
+                      name: pickup
+                      displayname: Pickup
+                      description: Pick-up any call
+                      value: false
+                  phonebook:
+                    value: true
+                    displayname: Phonebook
+                    description: View Phonebook, add contacts, modify and delete own
+                      contacts
+                    permissions:
+                    - id: '12'
+                      name: ad_phonebook
+                      displayname: Advanced Phonebook
+                      description: Modify and delete all contacts
+                      value: true
+                  cdr:
+                    value: true
+                    displayname: CDR
+                    description: View own call history
+                    permissions:
+                    - id: '13'
+                      name: ad_cdr
+                      displayname: PBX CDR
+                      description: View all users call history
+                      value: true
+                    - id: '4000'
+                      name: group_cdr
+                      displayname: Group CDR
+                      description: Allow to see call history of members of user groups
+                      value: false
+                  customer_card:
+                    value: true
+                    displayname: Customer Card
+                    description: Allow to view Customer Cards
+                    permissions: []
+                  presence_panel:
+                    value: true
+                    displayname: Presence Panel
+                    description: Allow to view Presence Panel
+                    permissions:
+                    - id: '17'
+                      name: ad_recording
+                      displayname: Advanced Recording
+                      description: Record anyone call
+                      value: false
+                    - id: '19'
+                      name: transfer
+                      displayname: Transfer
+                      description: Transfer everyone call
+                      value: false
+                    - id: '20'
+                      name: ad_parking
+                      displayname: Advanced Parking
+                      description: Allow to park any call and to pickup them using
+                        any extension
+                      value: false
+                    - id: '21'
+                      name: hangup
+                      displayname: Hangup
+                      description: Hangup everyone call
+                      value: false
+                    - id: '22'
+                      name: trunks
+                      displayname: PBX lines
+                      description: View PBX lines
+                      value: true
+                    - id: '26'
+                      name: ad_phone
+                      displayname: Advanced Phone
+                      description: Use phone features (hangup, call, answer) on conversations
+                        not owned by the user
+                      value: false
+                    - id: '3500'
+                      name: all_groups
+                      displayname: All groups
+                      description: Allow to see all groups and operators
+                      value: false
+                  queue_agent:
+                    value: true
+                    displayname: Use queue agent panel
+                    description: View Queues and queues info of the user, login/logout
+                      from queues, enable or disable pause state
+                    permissions:
+                    - id: '23'
+                      name: ad_queue_agent
+                      displayname: Advanced queue agent panel
+                      description: View more queue information
+                      value: true
+                    - id: '24'
+                      name: lost_queue_call
+                      displayname: Lost Queue Calls
+                      description: Allow to view Queue Recall panel
+                      value: true
+                  streaming:
+                    value: true
+                    displayname: Streaming
+                    description: Allow to view Streaming Panel
+                    permissions: []
+                  off_hour:
+                    value: true
+                    displayname: Off Hour
+                    description: Allow to change of his incoming call paths
+                    permissions:
+                    - id: '25'
+                      name: advanced_off_hour
+                      displayname: Advanced Off Hour
+                      description: Allow to change user's incoming call path and generic
+                        inbound routes
+                      value: true
+                    - id: '27'
+                      name: ad_off_hour
+                      displayname: Admin Off Hour
+                      description: Allow to change all incoming call paths
+                      value: false
+                  remote_sites:
+                    value: true
+                    displayname: Remote Sites
+                    description: Allow to view Remote Sites information
+                    permissions: []
+                  qmanager:
+                    value: false
+                    displayname: Queue Manager
+                    description: Allow to view and manage queues in real time
+                    permissions: []
+                  operator_panel:
+                    value: false
+                    displayname: Operator Panel
+                    description: Enables Operator Panel interface for operators
+                    permissions: []
+                  nethvoice_cti:
+                    value: true
+                    displayname: NethVoice CTI
+                    description: Enables access to NethVoice CTI application
+                    permissions:
+                    - id: '8'
+                      name: chat
+                      displayname: Chat
+                      description: Use chat service
+                      value: true
+                    - id: '9'
+                      name: privacy
+                      displayname: Privacy
+                      description: Obfuscate called and caller numbers for other users
+                      value: false
+                    - id: '1000'
+                      name: screen_sharing
+                      displayname: Screen Sharing
+                      description: Allow to share the desktop
+                      value: false
+                    - id: '2000'
+                      name: phone_buttons
+                      displayname: Phone buttons
+                      description: Allow the user to customize functions of physical
+                        phone buttons. These values correspond to the Line Keys settings
+                        shown in Devices -> Models and Configurations pages
+                      value: false
+                    - id: '3000'
+                      name: video_conference
+                      displayname: Video Conference
+                      description: Allow to start a video conference
+                      value: false
+                    - id: '5000'
+                      name: satellite_stt
+                      displayname: Speech-To-Text
+                      description: Calls transcription using Speech-To-Text
+                      value: false
+      operationId: get_cti_profiles
+    post:
+      summary: Create a new CTI profile.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: Body mirrors the profile schema used by the UI. Response returns
+        the generated profile id.
+      operationId: post_cti_profiles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /cti/profiles/{id}:
+    get:
+      summary: Retrieve a single CTI profile by identifier.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: get_cti_profiles_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Update an existing CTI profile definition.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: 'Body: serialized profile as produced by the UI; updates macro
+        permissions and triggers a dialplan reload.'
+      operationId: post_cti_profiles_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+    delete:
+      summary: Delete a CTI profile and clean up related permissions.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: delete_cti_profiles_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+  /cti/permissions:
+    get:
+      summary: Enumerate all available CTI permissions grouped by macro category.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                settings:
+                  value: false
+                  permissions:
+                  - id: '2'
+                    name: dnd
+                    displayname: DND
+                    description: Configure do Not Disturb
+                    value: false
+                  - id: '3'
+                    name: call_forward
+                    displayname: Call Forward
+                    description: Configure Call Forward
+                    value: false
+                  - id: '4'
+                    name: recording
+                    displayname: Recording
+                    description: Record own conversations. View/listen/delete own
+                      recording
+                    value: false
+                  - id: '5'
+                    name: conference
+                    displayname: Conference
+                    description: Make a conference call
+                    value: false
+                  - id: '6'
+                    name: parkings
+                    displayname: Parkings
+                    description: View parkings state and pickup parked calls
+                    value: false
+                  - id: '15'
+                    name: spy
+                    displayname: Spy
+                    description: Hear other extensions calls
+                    value: false
+                  - id: '16'
+                    name: intrude
+                    displayname: Intrude
+                    description: Intrude in calls
+                    value: false
+                  - id: '18'
+                    name: pickup
+                    displayname: Pickup
+                    description: Pick-up any call
+                    value: false
+                phonebook:
+                  value: false
+                  permissions:
+                  - id: '12'
+                    name: ad_phonebook
+                    displayname: Advanced Phonebook
+                    description: Modify and delete all contacts
+                    value: false
+      operationId: get_cti_permissions
+  /cti/profiles/users/{user_id}:
+    get:
+      summary: Return the CTI profile currently assigned to a given user id.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: get_cti_profiles_users_user_id
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Assign a CTI profile to a user.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: 'Body: `{ "profile_id": <int> }`. Replaces any previous association.'
+      operationId: post_cti_profiles_users_user_id
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /cti/groups:
+    get:
+      summary: List CTI groups available for agent assignment.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: []
+      operationId: get_cti_groups
+    post:
+      summary: Create a new CTI group.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: 'Body: `{ "name": "<group name>" }`. Returns the created group
+        id.'
+      operationId: post_cti_groups
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /cti/groups/users/{id}:
+    get:
+      summary: Return the set of group ids linked to a given user id.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: get_cti_groups_users_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Replace the groups assigned to a user.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: 'Body: `{ "groups": [<ids>] }`. Existing links are cleared before
+        inserting the new list.'
+      operationId: post_cti_groups_users_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /cti/users/groups/{id}:
+    get:
+      summary: List users bound to a specific CTI group.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: get_cti_users_groups_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+  /cti/groups/{id}:
+    delete:
+      summary: Remove a CTI group and its dynamic permission artifacts.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: delete_cti_groups_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+  /cti/dbconn:
+    post:
+      summary: Create an external database connection profile for CTI.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: Body includes host, port, type, credentials and database name;
+        credentials are stored for later use by customer cards.
+      operationId: post_cti_dbconn
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+    get:
+      summary: List saved CTI external database connections.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+              - id: '2'
+                host: 127.0.0.1
+                port: '20006'
+                type: mysql
+                user: freepbxuser
+                pass: U1rLnxT1imgRWCZKVaPhlTbMYspQ2WEh
+                name: asteriskcdrdb
+                creation: '2025-11-13 07:50:15'
+      operationId: get_cti_dbconn
+  /cti/paramurl/{id}:
+    put:
+      summary: Update the profile assignments for an existing parameterized URL.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: 'Body: `{ "url": "...", "profiles": [ids], "only_queues": <bool>
+        }`. Synchronizes the profile list for the URL.'
+      operationId: put_cti_paramurl_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /cti/dbconn/{id}:
+    put:
+      summary: Modify properties of an external database connection profile.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: put_cti_dbconn_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+    delete:
+      summary: Delete an external database connection definition.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: delete_cti_dbconn_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+  /cti/paramurl:
+    post:
+      summary: Create a new parameterized URL mapping bound to CTI profiles.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_cti_paramurl
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /cti/paramurl/delete:
+    post:
+      summary: Remove specific profile associations from a parameterized URL.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_cti_paramurl_delete
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /cti/dbconn/type:
+    get:
+      summary: Expose the supported database adapter identifiers.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                mysql: MySQL
+                postgres: PostgreSQL
+      operationId: get_cti_dbconn_type
+  /cti/customer_card/template:
+    get:
+      summary: List available customer card templates (built-in and custom).
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+              - name: statistics
+                custom: false
+                html: PCEtLSBjb2xvcjogcmVkIC0tPgo8JSBpZihyZXN1bHRzLmxlbmd0aD09MCl7ICU+CiAgPGRpdiBjbGFzcz0idGV4dC1jZW50ZXIiPgogICAgPHN2ZyBjbGFzcz0ibXgtYXV0byBoLTEyIHctMTIgdGV4dC1ncmF5LTQwMCIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCA0OCA0OCIgYXJpYS1oaWRkZW49InRydWUiPgogICAgICA8cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTggMTR2MjBjMCA0LjQxOCA3LjE2MyA4IDE2IDggMS4zODEgMCAyLjcyMS0uMDg3IDQtLjI1Mk04IDE0YzAgNC40MTggNy4xNjMgOCAxNiA4czE2LTMuNTgyIDE2LThNOCAxNGMwLTQuNDE4IDcuMTYzLTggMTYtOHMxNiAzLjU4MiAxNiA4bTAgMHYxNG0wLTRjMCA0LjQxOC03LjE2MyA4LTE2IDhTOCAyOC40MTggOCAyNG0zMiAxMHY2bTAgMHY2bTAtNmg2bS02IDBoLTYiIC8+CiAgICA8L3N2Zz4KICAgIDxoMyBjbGFzcz0ibXQtMiB0ZXh0LXNtIGZvbnQtc2VtaWJvbGQgdGV4dC1ncmF5LTkwMCI+Tm8gcmVzdWx0czwvaDM+CiAgPC9kaXY+CiAgPCUgfSBlbHNlIHsgJT4KICAgIDxkaXYgY2xhc3M9ImZsZXggZmxleC1jb2wgZ2FwLXktMyBwbC02Ij4KICAgICAgPGR0IGNsYXNzPSJ0ZXh0LXNtIGxlYWRpbmctNiB0ZXh0LWdyYXktNjAwIj5DcmVhdG9ycyBvbiB0aGUgcGxhdGZvcm08L2R0PgogICAgICA8ZGQgY2xhc3M9Im9yZGVyLWZpcnN0IHRleHQtM3hsIGZvbnQtc2VtaWJvbGQgdHJhY2tpbmctdGlnaHQgdGV4dC1ncmF5LTkwMCI+PCU9IHJlc3VsdHMubGVuZ3RoICU+PC9kZD4KICAgIDwvZGl2PgogIDwlIH0gJT4K
+                color: red
+              - name: table
+                custom: false
+                html: PCEtLSBjb2xvcjogcmVkIC0tPgo8JSBpZihyZXN1bHRzLmxlbmd0aD09MCl7ICU+CiAgPGRpdiBjbGFzcz0idGV4dC1jZW50ZXIiPgogICAgPHN2ZyBjbGFzcz0ibXgtYXV0byBoLTEyIHctMTIgdGV4dC1ncmF5LTQwMCIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCA0OCA0OCIgYXJpYS1oaWRkZW49InRydWUiPgogICAgICA8cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTggMTR2MjBjMCA0LjQxOCA3LjE2MyA4IDE2IDggMS4zODEgMCAyLjcyMS0uMDg3IDQtLjI1Mk04IDE0YzAgNC40MTggNy4xNjMgOCAxNiA4czE2LTMuNTgyIDE2LThNOCAxNGMwLTQuNDE4IDcuMTYzLTggMTYtOHMxNiAzLjU4MiAxNiA4bTAgMHYxNG0wLTRjMCA0LjQxOC03LjE2MyA4LTE2IDhTOCAyOC40MTggOCAyNG0zMiAxMHY2bTAgMHY2bTAtNmg2bS02IDBoLTYiIC8+CiAgICA8L3N2Zz4KICAgIDxoMyBjbGFzcz0ibXQtMiB0ZXh0LXNtIGZvbnQtc2VtaWJvbGQgdGV4dC1ncmF5LTkwMCI+Tm8gcmVzdWx0czwvaDM+CiAgPC9kaXY+CjwlIH0gZWxzZSB7ICU+CiAgPGRpdiBjbGFzcz0iIj4KICAgIDxkaXYgY2xhc3M9Im92ZXJmbG93LWhpZGRlbiBzaGFkb3cgcmluZy0xIHJpbmctYmxhY2sgcmluZy1vcGFjaXR5LTUgcm91bmRlZC1sZyI+CiAgICAgIDx0YWJsZSBjbGFzcz0ibWluLXctZnVsbCBkaXZpZGUteSBkaXZpZGUtZ3JheS0zMDAiPgogICAgICAgIDx0aGVhZCBjbGFzcz0iYmctcmVkLTYwMCI+CiAgICAgICAgICA8dHI+CiAgICAgICAgICAgIDwlIGZvciAocHJvcCBpbiByZXN1bHRzWzBdKSB7ICU+CiAgICAgICAgICAgICAgPHRoIHNjb3BlPSJjb2wiIGNsYXNzPSJweS0zLjUgcHgtMyB0ZXh0LWxlZnQgdGV4dC1zbSBmb250LXNlbWlib2xkIHRleHQtZ3JheS05MDAiPgogICAgICAgICAgICAgICAgPCU9IHByb3AgJT4KICAgICAgICAgICAgICA8L3RoPgogICAgICAgICAgICA8JSAgfSAlPgogICAgICAgICAgPC90cj4KICAgICAgICA8L3RoZWFkPgogICAgICAgIDx0Ym9keSBjbGFzcz0iZGl2aWRlLXkgZGl2aWRlLWdyYXktMjAwIj4KICAgICAgICAgIDwlIGZvcih2YXIgaT0wOyBpPHJlc3VsdHMubGVuZ3RoOyBpKyspeyAlPgogICAgICAgICAgICA8dHI+CiAgICAgICAgICAgICAgPCUgZm9yIChwcm9wIGluIHJlc3VsdHNbaV0pIHsgJT4KICAgICAgICAgICAgICAgIDx0ZCBjbGFzcz0id2hpdGVzcGFjZS1ub3dyYXAgcHktNCBweC0zIHRleHQtc20gdGV4dC1ncmF5LTUwMCI+CiAgICAgICAgICAgICAgICAgIDwlPSByZXN1bHRzW2ldW3Byb3BdICU+CiAgICAgICAgICAgICAgICA8L3RkPgogICAgICAgICAgICAgICAgPCUgIH0gJT4KICAgICAgICAgICAgPC90cj4KICAgICAgICAgIDwlIH0gJT4KICAgICAgICA8L3Rib2R5PgogICAgICA8L3RhYmxlPgogICAgPC9kaXY+CiAgPC9kaXY+CjwlIH0gJT4=
+                color: red
+      operationId: get_cti_customer_card_template
+    post:
+      summary: Create or overwrite a customer card template file.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: Body contains `name`, `custom` flag and base64 `html` content.
+      operationId: post_cti_customer_card_template
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /cti/customer_card/template/{name}:
+    put:
+      summary: Update an existing customer card template by name.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: put_cti_customer_card_template_name
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+    delete:
+      summary: Delete a customer card template, preferring the custom override if
+        present.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: delete_cti_customer_card_template_name
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+  /cti/customer_card:
+    get:
+      summary: List customer card configurations including linked profiles and templates.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+              - id: '2'
+                name: Last calls
+                creation: '2021-03-30 17:39:34'
+                query: c2VsZWN0IERBVEVfRk9STUFUKGNhbGxkYXRlLCclZC8lbS8lWScpIGFzIGRhdGUsIERBVEVfRk9STUFUKGNhbGxkYXRlLCclSDolaTolUycpIGFzIHRpbWUsIGNsaWQsIHNyYywgZHN0LCB1bmlxdWVpZCxkdXJhdGlvbiwgdGltZV9mb3JtYXQoYmlsbHNlYywgJyVIOiVpOiVTJykgYXMgYmlsbHNlYywgZGlzcG9zaXRpb24saWYoc3JjPSckTlVNQkVSJywnaW4nLCdvdXQnKSBhcyBkaXJlY3Rpb24gZnJvbSBjZHIgd2hlcmUgKHNyYyBMSUtFICclJE5VTUJFUicgb3IgZHN0IExJS0UgJyUkTlVNQkVSJykgYW5kIGRpc3Bvc2l0aW9uID0gJ0FOU1dFUkVEJyBvcmRlciBieSBjYWxsZGF0ZSBkZXNjIGxpbWl0IDAsMTA=
+                template:
+                  name: lastcalls
+                  custom: false
+                dbconn_id: '2'
+                permission_id: null
+                profiles: []
+      operationId: get_cti_customer_card
+    post:
+      summary: Create a customer card definition backed by an external query.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: Body includes name, Base64 encoded query, template name, DB connection
+        id and profile ids. Generates a permission entry automatically.
+      operationId: post_cti_customer_card
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /cti/customer_card/{id}:
+    put:
+      summary: Update an existing customer card configuration.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: put_cti_customer_card_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+    delete:
+      summary: Delete a customer card definition and its permission binding.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: delete_cti_customer_card_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+  /cti/streaming:
+    get:
+      summary: List configured CTI video streaming sources with profile bindings.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: []
+      operationId: get_cti_streaming
+    post:
+      summary: Create a new CTI streaming source and permission entry.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_cti_streaming
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /cti/paramurls:
+    get:
+      summary: Return the current parameterized URL mappings grouped by URL.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: []
+      operationId: get_cti_paramurls
+  /cti/streaming/{descr}:
+    put:
+      summary: Update a streaming source metadata and profile assignments.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: put_cti_streaming_descr
+      parameters:
+      - name: descr
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /cti/sources/test:
+    post:
+      summary: Test reachability of a video source by fetching a still frame.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: 'Body: `{ "url": "http(s)://..." }`. Returns the content encoded
+        in Base64 or HTTP 500 on failure.'
+      operationId: post_cti_sources_test
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /cti/streaming/{name}:
+    delete:
+      summary: Delete a streaming source and related permission record.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: delete_cti_streaming_name
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+  /devices/scan:
+    post:
+      summary: Placeholder for network scan trigger (not yet implemented).
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: Currently returns HTTP 500 and is kept only for compatibility with
+        older clients.
+      operationId: post_devices_scan
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /devices/{mac}/brand:
+    get:
+      summary: Resolve the vendor brand for a given MAC address.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: null
+      operationId: get_devices_mac_brand
+      parameters:
+      - name: mac
+        in: path
+        required: true
+        schema:
+          type: string
+  /devices/phones/list/{id}:
+    get:
+      summary: List scanned phones belonging to the network identified by `md5(cidr)`.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: Response annotates model guesses, DHCP hostnames and provisioning
+        flags when available.
+      operationId: get_devices_phones_list_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+  /devices/gateways/list/{id}:
+    get:
+      summary: List scanned and configured gateways for a specific network hash.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: get_devices_gateways_list_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+  /devices/phones/list:
+    get:
+      summary: Return the consolidated phone inventory, combining scans and configured
+        devices.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: []
+      operationId: get_devices_phones_list
+  /devices/gateways/list:
+    get:
+      summary: Return the union of all scanned gateway entries across networks.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: []
+      operationId: get_devices_gateways_list
+  /devices/phones/manufacturers:
+    get:
+      summary: Expose the provisioning models supported by Endpoint Manager grouped
+        by brand.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                Aastra:
+                - 9112i
+                - 9133i
+                Alcatel Temporis:
+                - IP150
+      operationId: get_devices_phones_manufacturers
+  /devices/gateways/manufacturers:
+    get:
+      summary: List supported gateway models enriched with proxy defaults.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                Patton:
+                - id: '11'
+                  model: TRI_FXO_2
+                  manufacturer: Patton
+                  tech: fxo
+                  n_pri_trunks: '0'
+                  n_isdn_trunks: '0'
+                  n_fxo_trunks: '2'
+                  n_fxs_ext: '0'
+                  description: TRINITY Analogico 2 Porte FXO
+                  proxy: sip:10.5.4.1:5060;lr
+                  ipv4_green: voice.gs.nethserver.net
+                - id: '12'
+                  model: TRI_FXO_4
+                  manufacturer: Patton
+                  tech: fxo
+                  n_pri_trunks: '0'
+                  n_isdn_trunks: '0'
+                  n_fxo_trunks: '4'
+                  n_fxs_ext: '0'
+                  description: TRINITY Analogico 4 Porte FXO
+                  proxy: sip:10.5.4.1:5060;lr
+                  ipv4_green: voice.gs.nethserver.net
+                - id: '13'
+                  model: TRI_FXO_8
+                  manufacturer: Patton
+                  tech: fxo
+                  n_pri_trunks: '0'
+                  n_isdn_trunks: '0'
+                  n_fxo_trunks: '8'
+                  n_fxs_ext: '0'
+                  description: TRINITY Analogico 8 Porte FXO
+                  proxy: sip:10.5.4.1:5060;lr
+                  ipv4_green: voice.gs.nethserver.net
+                - id: '16'
+                  model: TRI_ISDN_1
+                  manufacturer: Patton
+                  tech: isdn
+                  n_pri_trunks: '0'
+                  n_isdn_trunks: '1'
+                  n_fxo_trunks: '0'
+                  n_fxs_ext: '0'
+                  description: TRINITY ISDN 1 Porta
+                  proxy: sip:10.5.4.1:5060;lr
+                  ipv4_green: voice.gs.nethserver.net
+                - id: '17'
+                  model: TRI_ISDN_2
+                  manufacturer: Patton
+                  tech: isdn
+                  n_pri_trunks: '0'
+                  n_isdn_trunks: '2'
+                  n_fxo_trunks: '0'
+                  n_fxs_ext: '0'
+                  description: TRINITY ISDN 2 Porte
+                  proxy: sip:10.5.4.1:5060;lr
+                  ipv4_green: voice.gs.nethserver.net
+      operationId: get_devices_gateways_manufacturers
+  /devices/phones/reload/{extension}:
+    post:
+      summary: Send a PJSIP notify to force a phone to reload its configuration.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: Only available when the provisioning engine is Tancredi; returns
+        202 on success, 403 when the phone is not provisioned.
+      operationId: post_devices_phones_reload_extension
+      parameters:
+      - name: extension
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[0-9]+$
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /devices/phones/model:
+    post:
+      summary: Bind a scanned MAC address to a specific vendor and model.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: 'Body: `{ "mac": "", "vendor": "", "model": "" }`. Inserts or replaces
+        the association.'
+      operationId: post_devices_phones_model
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /devices/gateways:
+    post:
+      summary: Create or update a gateway configuration and related trunks.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_devices_gateways
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /devices/gateways/push:
+    post:
+      summary: Generate configuration files for a gateway and push them via TFTP helper.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: true
+      description: Body requires at least `name` and `mac`. Launches `/lib/tftpPushConfig.php`.
+      operationId: post_devices_gateways_push
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /devices/gateways/{id}:
+    delete:
+      summary: Remove a gateway configuration, including trunks and provisioning artifacts.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: true
+      operationId: delete_devices_gateways_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+  /devices/gateways/download/{name}[/{mac}]:
+    get:
+      summary: Generate the gateway configuration file and return it Base64 encoded.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: Optional `mac` path segment refines the generated file when multiple
+        MACs exist.
+      operationId: get_devices_gateways_download_name[_mac]
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: mac
+        in: path
+        required: true
+        schema:
+          type: string
+  /devices/phones/provision:
+    post:
+      summary: Run Endpoint Manager to generate provisioning files for a phone.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: 'Body: `{ "mac": "" }`. Also relocates the resulting files for
+        TFTP serving.'
+      operationId: post_devices_phones_provision
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /devices/phones/reboot:
+    post:
+      summary: Request an immediate reboot of a provisioned phone through Endpoint
+        Manager.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: Body includes the device `mac` and its IP address; vendor driver
+        handles the reboot logic.
+      operationId: post_devices_phones_reboot
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /mainextensions:
+    get:
+      summary: List all virtual extensions considered main extensions.
+      tags:
+      - Mainextensions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: []
+      operationId: get_mainextensions
+    post:
+      summary: Create or map a main extension to a user.
+      tags:
+      - Mainextensions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: 'Body: `{ "username": "", "extension": "", "outboundcid": "" }`.
+        Enforces community license user limits and triggers a reload.'
+      operationId: post_mainextensions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /mainextensions/{extension}:
+    get:
+      summary: Retrieve a single main extension by number.
+      tags:
+      - Mainextensions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: get_mainextensions_extension
+      parameters:
+      - name: extension
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[0-9]+$
+  /mainextensions/userlimits:
+    get:
+      summary: Report configured users count and limit information.
+      tags:
+      - Mainextensions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                configured: 1
+                limit: 8
+      operationId: get_mainextensions_userlimits
+  /migration/ismigration:
+    get:
+      summary: Tell whether the migration flag is currently active.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: false
+      operationId: get_migration_ismigration
+  /migration/endmigration:
+    post:
+      summary: Clear the migration flag once the process is complete.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: true
+                errors: []
+      operationId: post_migration_endmigration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/migrationstatus:
+    post:
+      summary: Update the migration status marker with a custom string.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                status: true
+                errors: []
+      description: 'Body: `{ "status": "..." }`.'
+      operationId: post_migration_migrationstatus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+    get:
+      summary: Read the current migration status marker.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: ready
+      operationId: get_migration_migrationstatus
+  /migration/oldusers:
+    get:
+      summary: List legacy users discovered in the source system.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                error: true
+                error_message: SQLSTATE[HY000] [2002] No such file or directory
+      operationId: get_migration_oldusers
+  /migration/report:
+    get:
+      summary: Return the collected migration report with warnings and notes.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: get_migration_report
+  /migration/importusers:
+    post:
+      summary: Import users from the legacy system via background CSV conversion.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_importusers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/importprofiles:
+    post:
+      summary: Clone legacy CTI profiles into the new system.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_importprofiles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/importoldvoiptrunks:
+    post:
+      summary: Copy historical VoIP trunk definitions.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_importoldvoiptrunks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/gateways:
+    post:
+      summary: Import gateway configurations from the legacy system.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_gateways
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/importoutboundroutes:
+    post:
+      summary: Bring over outbound route definitions.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_importoutboundroutes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/trunksroutesassignements:
+    post:
+      summary: Recreate associations between trunks and outbound routes.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_trunksroutesassignements
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/groups:
+    post:
+      summary: Migrate user groups.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_groups
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/queues:
+    post:
+      summary: Migrate queue configurations.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_queues
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/ivr:
+    post:
+      summary: Migrate IVR trees.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_ivr
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/cqr:
+    post:
+      summary: Migrate call queue reports configuration.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_cqr
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/recordings:
+    post:
+      summary: Bring over system recordings.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_recordings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/announcements:
+    post:
+      summary: Copy announcement resources.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_announcements
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/timegroups:
+    post:
+      summary: Migrate time groups.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_timegroups
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/timeconditions:
+    post:
+      summary: Migrate time condition rules and mark progress.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_timeconditions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/inboundroutes:
+    post:
+      summary: Migrate inbound route definitions.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_inboundroutes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/cdrrowcount:
+    get:
+      summary: Report the number of CDR rows present in the legacy database.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: get_migration_cdrrowcount
+  /migration/cdr:
+    post:
+      summary: Kick off the background CDR migration task.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_cdr
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+    get:
+      summary: Poll the status of the background CDR migration.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: get_migration_cdr
+  /migration/iax:
+    post:
+      summary: Migrate IAX trunks.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_iax
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/daynight:
+    post:
+      summary: Migrate day/night mode settings.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_daynight
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /migration/postmigration:
+    post:
+      summary: Execute post-migration clean-up tasks.
+      tags:
+      - Migration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_migration_postmigration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /mobiles:
+    get:
+      summary: List all stored mobile numbers with usernames.
+      tags:
+      - Mobiles
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+              - mobile: null
+                username: administrator
+      operationId: get_mobiles
+    post:
+      summary: Create or update a user mobile number.
+      tags:
+      - Mobiles
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_mobiles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /mobiles/{username}:
+    get:
+      summary: Fetch the mobile number tied to the given username.
+      tags:
+      - Mobiles
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: get_mobiles_username
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+  /nethlink/{mainextension}:
+    get:
+      summary: Retrieve the NethLink extension linked to a main extension.
+      tags:
+      - Nethlink
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: get_nethlink_mainextension
+      parameters:
+      - name: mainextension
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Remove the NethLink extension (and companion mobile extension if present).
+      tags:
+      - Nethlink
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: delete_nethlink_mainextension
+      parameters:
+      - name: mainextension
+        in: path
+        required: true
+        schema:
+          type: string
+  /nethlink:
+    post:
+      summary: Create a new extension and mark it as the NethLink endpoint.
+      tags:
+      - Nethlink
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                extension: false
+                mobile_extension: null
+      operationId: post_nethlink
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /phonebook/fields:
+    get:
+      summary: Return the allowed field names for phonebook sources.
+      tags:
+      - Phonebook
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+              - cellphone
+              - company
+      operationId: get_phonebook_fields
+  /phonebook/config:
+    get:
+      summary: List configured phonebook sources from `/etc/phonebook/sources.d`.
+      tags:
+      - Phonebook
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: []
+      operationId: get_phonebook_config
+  /phonebook/config[/{id}]:
+    post:
+      summary: Create or update a phonebook source definition.
+      tags:
+      - Phonebook
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: If `id` is omitted a `custom_<n>` identifier is generated automatically.
+      operationId: post_phonebook_config[_id]
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /phonebook/config/{id}:
+    delete:
+      summary: Delete a phonebook source and purge imported contacts.
+      tags:
+      - Phonebook
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: delete_phonebook_config_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+  /phonebook/test:
+    post:
+      summary: Validate a phonebook source configuration and preview sample data.
+      tags:
+      - Phonebook
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_phonebook_test
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /phonebook/syncnow/{id}:
+    post:
+      summary: Trigger an immediate synchronization of a specific source.
+      tags:
+      - Phonebook
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_phonebook_syncnow_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /phonebook/uploadfile:
+    post:
+      summary: Upload a CSV file for use as a local phonebook source.
+      tags:
+      - Phonebook
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: Returns the `file://` URI to reference in subsequent configuration
+        calls.
+      operationId: post_phonebook_uploadfile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /phonebook/ldap:
+    get:
+      summary: Return system LDAP phonebook connection details for clients.
+      tags:
+      - Phonebook
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                ldaps:
+                  enabled: true
+                  port: '20014'
+                  user: cn=ldapuser,dc=phonebook,dc=nh
+                  password: UWaCaIHbpkWsuZpIUzWOVvkuO6G7FpWp
+                  tls: ldaps
+                  base: dc=phonebook,dc=nh
+                  name_display: '%cn %o'
+                  mainphone_number_attr: telephoneNumber
+                  mobilephone_number_attr: mobile
+                  otherphone_number_attr: homePhone
+                  name_attr: cn o
+                  number_filter: (|(telephoneNumber=%)(mobile=%)(homePhone=%))
+                  name_filter: (|(cn=%)(o=%))
+      operationId: get_phonebook_ldap
+  /phonebook/sources:
+    get:
+      summary: Legacy endpoint reporting which built-in phonebook sources are enabled.
+      tags:
+      - Phonebook
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                extensions: true
+                nethcti: true
+      operationId: get_phonebook_sources
+  /phonebook/sources/{prop}/{status}:
+    post:
+      summary: Legacy toggle for built-in phonebook sources (no longer used).
+      tags:
+      - Phonebook
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_phonebook_sources_prop_status
+      parameters:
+      - name: prop
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - speeddial
+          - extensions
+          - nethcti
+      - name: status
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - enabled
+          - disabled
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /physicalextensions:
+    get:
+      summary: List all PJSIP (physical) extensions known to FreePBX.
+      tags:
+      - Physicalextensions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+              example:
+              - extension: '201'
+                password: ''
+                name: null
+                voicemail: novm
+                ringtimer: '0'
+                noanswer: ''
+                recording: ''
+                outboundcid: ''
+                sipname: ''
+                noanswer_cid: ''
+                busy_cid: ''
+                chanunavail_cid: ''
+                noanswer_dest: ''
+                busy_dest: ''
+                chanunavail_dest: ''
+                mohclass: default
+                id: '201'
+                tech: pjsip
+                dial: PJSIP/201
+                devicetype: fixed
+                user: '201'
+                description: Sample User
+                emergency_cid: ''
+                hint_override: null
+                cwtone: disabled
+                recording_in_external: dontcare
+                recording_out_external: dontcare
+                recording_in_internal: dontcare
+                recording_out_internal: dontcare
+                recording_ondemand: disabled
+                recording_priority: 10
+                answermode: disabled
+                intercom: enabled
+      operationId: get_physicalextensions
+    post:
+      summary: Create or associate a physical extension with a main extension.
+      tags:
+      - Physicalextensions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: Body supports keys like `mainextension`, `mac`, `model`, `line`,
+        `web_user`, `web_password` and `clear_temporary`.
+      operationId: post_physicalextensions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /physicalextensions/{extension}:
+    get:
+      summary: Return details for a specific physical extension.
+      tags:
+      - Physicalextensions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: {}
+      operationId: get_physicalextensions_extension
+      parameters:
+      - name: extension
+        in: path
+        required: true
+        schema:
+          type: string
+  /physicalextensions/{id}:
+    delete:
+      summary: Delete a physical extension by extension number or MAC address.
+      tags:
+      - Physicalextensions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: {}
+      operationId: delete_physicalextensions_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+  /physicalextensions/adminpw:
+    post:
+      summary: Set the web UI admin credentials for all provisioned phones.
+      tags:
+      - Physicalextensions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_physicalextensions_adminpw
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /physicalextensions/{mac}:
+    patch:
+      summary: Update the stored model for a provisioned MAC address.
+      tags:
+      - Physicalextensions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: patch_physicalextensions_mac
+      parameters:
+      - name: mac
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /mobileapp:
+    post:
+      summary: Create a mobile app companion extension for a main extension.
+      tags:
+      - Physicalextensions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_mobileapp
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /mobileapp/{mainextension}:
+    get:
+      summary: Retrieve the mobile app extension bound to a main extension.
+      tags:
+      - Physicalextensions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: null
+      operationId: get_mobileapp_mainextension
+      parameters:
+      - name: mainextension
+        in: path
+        required: true
+        schema:
+          type: string
+  /mobileapp/{extension}:
+    delete:
+      summary: Delete a mobile app extension.
+      tags:
+      - Physicalextensions
+      responses:
+        '204':
+          description: No content (deleted)
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: delete_mobileapp_extension
+      parameters:
+      - name: extension
+        in: path
+        required: true
+        schema:
+          type: string
+  /extension/{mainextension}:
+    post:
+      summary: Apply a display name to the main extension and all of its devices.
+      tags:
+      - Physicalextensions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: 'Body: `{ "displayname": "John Doe" }`. Updates users table, SIP
+        table and AstDB.'
+      operationId: post_extension_mainextension
+      parameters:
+      - name: mainextension
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /extension/{extension}/displayname:
+    get:
+      summary: Read the current display name stored in AstDB for an extension.
+      tags:
+      - Physicalextensions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                displayname: false
+      operationId: get_extension_extension_displayname
+      parameters:
+      - name: extension
+        in: path
+        required: true
+        schema:
+          type: string
+  /providers:
+    get:
+      summary: Return the list of PJSIP provider templates with defaults.
+      tags:
+      - Providers
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+              example:
+              - id: '1'
+                provider: activenetwork
+                description: Active Network
+              - id: '2'
+                provider: clouditalia
+                description: Clouditalia
+      operationId: get_providers
+  /phones/reconfigure:
+    post:
+      summary: Issue a PJSIP notify to reload a phone configuration immediately.
+      tags:
+      - Provisioning V2
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_phones_reconfigure
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /phones/rps/{mac}:
+    post:
+      summary: Register a phone MAC against the Falconieri remote provisioning service.
+      tags:
+      - Provisioning V2
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: 'Body: `{ "url": "https://.../{mac}.cfg" }`.'
+      operationId: post_phones_rps_mac
+      parameters:
+      - name: mac
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /phones/account/{mac}:
+    get:
+      summary: Return the extension and secret associated with a provisioned MAC.
+      tags:
+      - Provisioning V2
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                scalar: false
+      operationId: get_phones_account_mac
+      parameters:
+      - name: mac
+        in: path
+        required: true
+        schema:
+          type: string
+  /provisioning/engine:
+    get:
+      summary: Report the active provisioning engine (freepbx or tancredi).
+      tags:
+      - Provisioning V2
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+              example: tancredi
+      operationId: get_provisioning_engine
+  /phones/state:
+    get:
+      summary: Dump the real-time status of all devices according to Asterisk.
+      tags:
+      - Provisioning V2
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                '201':
+                  Response: Success
+                  Message: Extension Status
+                  Exten: '201'
+                  Context: default
+                  Hint: false
+                  Status: '-1'
+                  StatusText: Unknown
+      operationId: get_phones_state
+  /extensions/{extension}/srtp:
+    get:
+      summary: Check whether SRTP is enforced for a given extension.
+      tags:
+      - Provisioning V2
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: boolean
+              example: false
+      operationId: get_extensions_extension_srtp
+      parameters:
+      - name: extension
+        in: path
+        required: true
+        schema:
+          type: string
+  /extensions/{extension}/srtp/{enabled}:
+    post:
+      summary: Enable or disable SRTP on a specific extension.
+      tags:
+      - Provisioning V2
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_extensions_extension_srtp_enabled
+      parameters:
+      - name: extension
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: enabled
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /provisioning/connectivitycheck:
+    post:
+      summary: Legacy placeholder that always reports provisioning connectivity as
+        healthy.
+      tags:
+      - Provisioning V2
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                valid_certificate: true
+                host_type: FQDN
+      operationId: post_provisioning_connectivitycheck
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /inboundroutes/count:
+    get:
+      summary: Return the number of configured inbound routes.
+      tags:
+      - Routes
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: integer
+              example: 1
+      operationId: get_inboundroutes_count
+  /inboundroutes:
+    get:
+      summary: List all inbound routes alongside available destinations.
+      tags:
+      - Routes
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                destinations:
+                  app-blackhole,hangup,1:
+                    destination: app-blackhole,hangup,1
+                    description: Hangup
+                    category: Terminate Call
+                    id: blackhole
+                    module: core
+                    name: Terminate Call
+                    edit_url: ''
+                  app-blackhole,congestion,1:
+                    destination: app-blackhole,congestion,1
+                    description: Congestion
+                    category: Terminate Call
+                    id: blackhole
+                    module: core
+                    name: Terminate Call
+                    edit_url: ''
+                  app-blackhole,busy,1:
+                    destination: app-blackhole,busy,1
+                    description: Busy
+                    category: Terminate Call
+                    id: blackhole
+                    module: core
+                    name: Terminate Call
+                    edit_url: ''
+                  from-internal,${EXTEN},1:
+                    destination: from-internal,${EXTEN},1
+                    description: Full Internal Access
+                    module: customcontexts
+                    name: Custom Contexts
+                    edit_url: ''
+                  cti-profile-3,${EXTEN},1:
+                    destination: cti-profile-3,${EXTEN},1
+                    description: CTI Profile Advanced
+                    module: customcontexts
+                    name: Custom Contexts
+                    edit_url: ''
+                routes:
+                - cidnum: ''
+                  extension: ''
+                  destination: null
+                  privacyman: '0'
+                  alertinfo: ''
+                  ringing: ''
+                  fanswer: ''
+                  mohclass: default
+                  description: ''
+                  grppre: ''
+                  delay_answer: '0'
+                  pricid: ''
+                  pmmaxretries: '3'
+                  pmminlength: '10'
+                  reversal: ''
+                  rvolume: '0'
+                  indication_zone: default
+      operationId: get_inboundroutes
+    post:
+      summary: Create a new inbound route.
+      tags:
+      - Routes
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_inboundroutes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /inboundroutes/delete:
+    post:
+      summary: Delete an inbound route using extension and CID.
+      tags:
+      - Routes
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_inboundroutes_delete
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /outboundroutes/count:
+    get:
+      summary: Return the number of outbound routes.
+      tags:
+      - Routes
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: integer
+              example: 0
+      operationId: get_outboundroutes_count
+  /outboundroutes:
+    get:
+      summary: List outbound routes with resolved trunk associations.
+      tags:
+      - Routes
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: []
+      operationId: get_outboundroutes
+    post:
+      summary: Create or reorder outbound routes and trunk bindings.
+      tags:
+      - Routes
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_outboundroutes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /outboundroutes/defaults:
+    get:
+      summary: Provide locale-specific template routes and trunk suggestions.
+      tags:
+      - Routes
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                de:
+                - name: national_de
+                  trunks: []
+                - name: cellphone_de
+                  trunks: []
+                - name: international_de
+                  trunks: []
+                - name: toll_de
+                  trunks: []
+                en:
+                - name: national_en
+                  trunks: []
+                - name: cellphone_en
+                  trunks: []
+                - name: international_en
+                  trunks: []
+                - name: toll_en
+                  trunks: []
+      operationId: get_outboundroutes_defaults
+  /outboundroutes/{route_id}/trunks/{id}:
+    delete:
+      summary: Detach a trunk from an outbound route.
+      tags:
+      - Routes
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: delete_outboundroutes_route_id_trunks_id
+      parameters:
+      - name: route_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+  /outboundroutes/supportedLocales:
+    get:
+      summary: List locales for which default outbound routes are defined.
+      tags:
+      - Routes
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+              - de
+              - en
+      operationId: get_outboundroutes_supportedLocales
+  /settings/language:
+    post:
+      summary: Legacy placeholder retained for backward compatibility (no-op).
+      tags:
+      - Settings
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_settings_language
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /settings/defaultlanguage:
+    post:
+      summary: Set the default system language and tone zone.
+      tags:
+      - Settings
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_settings_defaultlanguage
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /settings/languages:
+    get:
+      summary: Report installed languages and which one is default.
+      tags:
+      - Settings
+      responses:
+        '200':
+          description: Successful rqesponse
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                it:
+                  default: false
+                en:
+                  default: true
+      operationId: get_settings_languages
+  /settings/conferenceurl:
+    get:
+      summary: Return the configured video conference URL.
+      tags:
+      - Settings
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: null
+      operationId: get_settings_conferenceurl
+  /tasks/{task}:
+    get:
+      summary: Return a dummy 100% progress payload for any task id.
+      tags:
+      - Tasks
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                progress: 100
+      operationId: get_tasks_task
+      parameters:
+      - name: task
+        in: path
+        required: true
+        schema:
+          type: string
+  /trunks/count:
+    get:
+      summary: Return the number of trunks defined in FreePBX.
+      tags:
+      - Trunks
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: integer
+              example: 0
+      operationId: get_trunks_count
+  /trunks:
+    get:
+      summary: List all trunks with details such as username and technology.
+      tags:
+      - Trunks
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+              example: []
+      operationId: get_trunks
+    post:
+      summary: Create a new PJSIP trunk from a provider template.
+      tags:
+      - Trunks
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_trunks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /trunks/{tech}:
+    get:
+      summary: Filter trunks by technology (e.g., pjsip, dahdi).
+      tags:
+      - Trunks
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: get_trunks_tech
+      parameters:
+      - name: tech
+        in: path
+        required: true
+        schema:
+          type: string
+  /trunks/{trunkid}:
+    delete:
+      summary: Delete a trunk and related CTI overrides.
+      tags:
+      - Trunks
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: delete_trunks_trunkid
+      parameters:
+      - name: trunkid
+        in: path
+        required: true
+        schema:
+          type: string
+    patch:
+      summary: Update selected trunk parameters such as username, secret, caller ID
+        and codecs.
+      tags:
+      - Trunks
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: patch_trunks_trunkid
+      parameters:
+      - name: trunkid
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /final:
+    get:
+      summary: Return the final wizard report with generated user credentials.
+      tags:
+      - Users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+              example: []
+      operationId: get_final
+  /users/count:
+    get:
+      summary: Count non-system users present in Userman.
+      tags:
+      - Users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: integer
+              example: 3
+      operationId: get_users_count
+  /users/sync:
+    get:
+      summary: Report whether a user synchronization job is currently running.
+      tags:
+      - Users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: boolean
+              example: false
+      operationId: get_users_sync
+    post:
+      summary: Trigger a background user synchronization from the provider.
+      tags:
+      - Users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_users_sync
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /users/{all}:
+    get:
+      summary: List all users and optionally force a sync when `{all}` equals `true`.
+      tags:
+      - Users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+              example: []
+      operationId: get_users_all
+      parameters:
+      - name: all
+        in: path
+        required: true
+        schema:
+          type: string
+  /users:
+    post:
+      summary: Create or update an LDAP user (legacy mode).
+      tags:
+      - Users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      description: 'Body: `{ "username": "", "fullname": "" }`. Rejects usernames
+        starting with a digit.'
+      operationId: post_users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /users/{username}/password:
+    post:
+      summary: Set the password for a user (or FreePBX admin).
+      tags:
+      - Users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_users_username_password
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+    get:
+      summary: Return the stored clear-text password for a user when available.
+      tags:
+      - Users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: get_users_username_password
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+  /csv/csvimport:
+    post:
+      summary: Start the asynchronous CSV import job for users.
+      tags:
+      - Users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_csv_csvimport
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+    get:
+      summary: Poll the status of the ongoing CSV import.
+      tags:
+      - Users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: get_csv_csvimport
+  /csv/csvexport:
+    get:
+      summary: Export current users to CSV (Base64 encoded string).
+      tags:
+      - Users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ImdpYWNvbW8iLCJHaWFjb21vIFJvc3NpIiwibm9uZSIsIiIsIiIsIkZBTFNFIiwiRkFMU0UiLCIiLCIiDQoic2FtcGxlIiwiU2FtcGxlIFVzZXIiLCIyMDEiLCIiLCIiLCJGQUxTRSIsIlRSVUUiLCIiLCIiDQo=
+      operationId: get_csv_csvexport
+  /voicemails:
+    get:
+      summary: List all voicemail boxes defined in the default context.
+      tags:
+      - Voicemails
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+              example: []
+      operationId: get_voicemails
+    post:
+      summary: Enable or disable voicemail for an extension.
+      tags:
+      - Voicemails
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: post_voicemails
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+  /voicemails/{extension}:
+    get:
+      summary: Return the voicemail configuration for a specific extension.
+      tags:
+      - Voicemails
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: get_voicemails_extension
+      parameters:
+      - name: extension
+        in: path
+        required: true
+        schema:
+          type: string
+  /webrtc/{mainextension}:
+    get:
+      summary: Return the WebRTC extension linked to the given main extension.
+      tags:
+      - Webrtc
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: null
+      operationId: get_webrtc_mainextension
+      parameters:
+      - name: mainextension
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Remove the WebRTC extension bound to the main extension (and companion
+        mobile extension if present).
+      tags:
+      - Webrtc
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      operationId: delete_webrtc_mainextension
+      parameters:
+      - name: mainextension
+        in: path
+        required: true
+        schema:
+          type: string
+  /webrtc:
+    post:
+      summary: Create a WebRTC extension and associate it with the provided main extension.
+      tags:
+      - Webrtc
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                extension: false
+                mobile_extension: null
+      operationId: post_webrtc
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+components:
+  securitySchemes:
+    FreePBXAuth:
+      type: apiKey
+      in: header
+      name: User
+      description: 'FreePBX authentication requires two headers:
+
+        - `User`: FreePBX administrator username
+
+        - `Secretkey`: SHA1 hash of (user + SHA1(password) + secret)'
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+  responses:
+    UnauthorizedError:
+      description: Authentication information is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFoundError:
+      description: The specified resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+tags:
+- name: Authentication
+  description: Endpoints that bootstrap or tear down the FreePBX session used by the
+    REST layer.
+- name: Bulk
+  description: Shared tooling for reading and applying batch configuration across
+    multiple main extensions.
+- name: Codecs
+  description: Static list of codecs supported by the provisioning workflow.
+- name: Configuration
+  description: System-level configuration helpers for SIP, wizard state and auxiliary
+    services.
+- name: CTI
+  description: 'Computer-telephony integration (CTI) configuration: permission profiles,
+    groups, customer cards, streaming widgets and external data sources.'
+- name: Devices
+  description: Inventory and provisioning helpers for phones and gateways discovered
+    by NethVoice.
+- name: Mainextensions
+  description: CRUD helpers for FreePBX virtual (main) extensions used as user anchors.
+- name: Migration
+  description: Automation used when importing configuration from legacy NethVoice
+    / FreePBX installations.
+- name: Mobiles
+  description: Manage mobile phone numbers associated with PBX users.
+- name: Nethlink
+  description: Provision auxiliary extensions used by the NethLink integration.
+- name: Phonebook
+  description: APIs for managing external phonebook sources and LDAP exposure.
+- name: Physicalextensions
+  description: Provision and maintain PJSIP physical, mobile app and custom extensions
+    tied to a main extension.
+- name: Providers
+  description: Catalog of SIP provider templates shipped with the REST layer.
+- name: Provisioning V2
+  description: Provisioning engine control endpoints (Tancredi and companion services).
+- name: Routes
+  description: Inbound and outbound routing management utilities.
+- name: Settings
+  description: FreePBX language and conferencing related helpers exposed via REST.
+- name: Tasks
+  description: Temporary task API stub kept for backward compatibility.
+- name: Trunks
+  description: Manage SIP trunks and their credentials.
+- name: Users
+  description: User provisioning helpers backed by the legacy FreePBX userman integration.
+- name: Voicemails
+  description: Enable or query voicemail mailboxes linked to extensions.
+- name: Webrtc
+  description: Manage WebRTC softphone extensions paired with main extensions.
