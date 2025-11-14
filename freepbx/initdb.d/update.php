@@ -62,7 +62,12 @@ $stmt->execute();
 $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 if (count($res) > 0 && $res[0]['value'] != $_ENV['NETHVOICE_HOST']) {
 	// value exists and differ from current value, update phones RPS
-	exec("/var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --all");
+	$output = [];
+	$return_var = 0;
+	exec("/var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --all", $output, $return_var);
+	if ($return_var !== 0) {
+		error_log("Failed to reset phones RPS: " . implode("\n", $output));
+	}
 }
 $stmt = $db->prepare("DELETE IGNORE FROM `asterisk`.`admin` WHERE `variable` = 'NETHVOICE_HOST'");
 $stmt->execute();
