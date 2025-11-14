@@ -47,7 +47,7 @@ if ($argv[1] == "--all") {
     $mac_addresses = array($argv[1]);
 }
 
-// get FreePBX admin passord ash
+// get FreePBX admin password hash
 $sql = "SELECT `password_sha1` FROM `ampusers` WHERE `username` = 'admin'";
 $sth = $db->prepare($sql);
 $sth->execute();
