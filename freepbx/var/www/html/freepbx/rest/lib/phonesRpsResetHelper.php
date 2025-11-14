@@ -83,7 +83,7 @@ foreach ($mac_addresses as $mac_address) {
         continue;
     }
 
-    // Call Tancredi API toget provisioning url for the phone
+    // Call Tancredi API to get provisioning url for the phone
     $queryUrl = "http://{$_ENV['NETHVOICE_HOST']}/tancredi/api/v1/phones/{$mac_address}";
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $queryUrl);
