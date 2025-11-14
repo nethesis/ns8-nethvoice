@@ -112,6 +112,10 @@ foreach ($mac_addresses as $mac_address) {
     $provisioningUrl = $response['provisioning_url1'];
 
     // Call Falconieri to set new provisioning url for phone
-    setFalconieriRPS($mac_address, $provisioningUrl);
+    $result = setFalconieriRPS($mac_address, $provisioningUrl);
+    if ($result['httpCode'] != 200) {
+        error_log(__FILE__.':'.__LINE__." Failed to set RPS for $mac_address. HTTP code: {$result['httpCode']}");
+        continue;
+    }
     echo "Configured new provisioning url for $mac_address";
 }
