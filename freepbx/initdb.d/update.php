@@ -64,5 +64,7 @@ if (count($res) > 0 && $res[0]['value'] != $_ENV['NETHVOICE_HOST']) {
 	// value exists and differ from current value, update phones RPS
 	exec("/var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --all");
 }
-$stmt = $db->prepare("DELETE IGNORE FROM `asterisk`.`admin` WHERE `variable` = 'NETHVOICE_HOST'; INSERT IGNORE INTO `asterisk`.`admin` (`variable`, `value`) VALUES ('NETHVOICE_HOST',?)");
+$stmt = $db->prepare("DELETE IGNORE FROM `asterisk`.`admin` WHERE `variable` = 'NETHVOICE_HOST'");
+$stmt->execute();
+$stmt = $db->prepare("INSERT IGNORE INTO `asterisk`.`admin` (`variable`, `value`) VALUES ('NETHVOICE_HOST',?)");
 $stmt->execute([$_ENV['NETHVOICE_HOST']]);
