@@ -121,5 +121,5 @@ foreach ($mac_addresses as $mac_address) {
         error_log(__FILE__.':'.__LINE__." Failed to set RPS for $mac_address. HTTP code: {$result['httpCode']}");
         continue;
     }
-    echo "Configured new provisioning url for $mac_address";
+    echo "Configured new provisioning url for $mac_address\n";
 }
