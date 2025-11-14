@@ -123,3 +123,4 @@ foreach ($mac_addresses as $mac_address) {
     }
     echo "Configured new provisioning url for $mac_address\n";
 }
+

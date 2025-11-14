@@ -73,3 +73,4 @@ $stmt = $db->prepare("DELETE IGNORE FROM `asterisk`.`admin` WHERE `variable` = '
 $stmt->execute();
 $stmt = $db->prepare("INSERT IGNORE INTO `asterisk`.`admin` (`variable`, `value`) VALUES ('NETHVOICE_HOST',?)");
 $stmt->execute([$_ENV['NETHVOICE_HOST']]);
+
