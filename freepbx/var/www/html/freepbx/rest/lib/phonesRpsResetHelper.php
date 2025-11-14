@@ -109,6 +109,10 @@ foreach ($mac_addresses as $mac_address) {
     }
 
     $response = (array) json_decode($response, TRUE);
+    if (!isset($response['provisioning_url1'])) {
+        error_log(__FILE__.':'.__LINE__." Missing provisioning_url1 in response for $mac_address");
+        continue;
+    }
     $provisioningUrl = $response['provisioning_url1'];
 
     // Call Falconieri to set new provisioning url for phone
