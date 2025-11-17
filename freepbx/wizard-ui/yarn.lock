@@ -4441,9 +4441,10 @@ ng-annotate@~0.15.1:
     stringset "~0.2.1"
     tryor "~0.1.2"
 
-ng-sortable@a5hik/ng-sortable#1.3.7:
-  version "1.3.7"
-  resolved "https://codeload.github.com/a5hik/ng-sortable/tar.gz/181cec2fa1aa624266358a3a0d17dd5f6d165a0e"
+ng-sortable@a5hik/ng-sortable#1.3.8:
+  version "1.3.8"
+  uid "9cd8eb4d44f13e16c3801f2cb3f3c8792f3b0ad7"
+  resolved "https://codeload.github.com/a5hik/ng-sortable/tar.gz/9cd8eb4d44f13e16c3801f2cb3f3c8792f3b0ad7"
 
 node-status-codes@^1.0.0:
   version "1.0.0"
