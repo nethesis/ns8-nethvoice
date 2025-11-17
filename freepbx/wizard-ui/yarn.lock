@@ -526,18 +526,10 @@ bootstrap-select@~1.10.0:
   dependencies:
     jquery ">=1.8"
 
-bootstrap-switch@3.3.2:
-  version "3.3.2"
-  resolved "https://registry.yarnpkg.com/bootstrap-switch/-/bootstrap-switch-3.3.2.tgz#79ddb49fadc308fb731e257f95957af48996eea7"
-  integrity sha512-9ntjMDMeawsUAxp15DiO1po3kf1J8xSSENesgTLJc0j/HoB4wZ8ap8bk8LlazywDHh05E8740nue0LX2A98ZPw==
-  dependencies:
-    jquery ">=1.9.0"
-
-bootstrap-switch@nostalgiaz/bootstrap-switch#3.3.2:
-  version "3.3.2"
-  resolved "https://codeload.github.com/nostalgiaz/bootstrap-switch/tar.gz/ec69b5dd914dacb19cf1fa8e1be7eea6bcc7b083"
-  dependencies:
-    jquery ">=1.9.0"
+bootstrap-switch@nostalgiaz/bootstrap-switch#v3.3.4:
+  version "3.3.4"
+  uid "02721b769a6ac83eabe733fd9f08a2ddc7320756"
+  resolved "https://codeload.github.com/nostalgiaz/bootstrap-switch/tar.gz/02721b769a6ac83eabe733fd9f08a2ddc7320756"
 
 bootstrap-switch@~3.3.2:
   version "3.3.5"
@@ -3618,7 +3610,7 @@ jquery-ui@components/jqueryui#>=1.12.x:
   version "1.12.1"
   resolved "https://codeload.github.com/components/jqueryui/tar.gz/44ecf3794cc56b65954cc19737234a3119d036cc"
 
-jquery@>=1.7, jquery@>=1.7.0, jquery@>=1.7.1, jquery@>=1.8, jquery@>=1.9.0, "jquery@^1.8.3 || ^2.0 || ^3.0", jquery@^3.4.1:
+jquery@>=1.7, jquery@>=1.7.0, jquery@>=1.7.1, jquery@>=1.8, "jquery@^1.8.3 || ^2.0 || ^3.0", jquery@^3.4.1:
   version "3.4.1"
   resolved "https://registry.yarnpkg.com/jquery/-/jquery-3.4.1.tgz#714f1f8d9dde4bdfa55764ba37ef214630d80ef2"
   integrity sha512-36+AdBzCL+y6qjw5Tx7HgzeGCzC81MDDgaUP8ld2zhx58HdqXGoBd+tHdrBMiyjGQs0Hxs/MLZTu/eHNJJuWPw==
