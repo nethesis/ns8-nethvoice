@@ -142,9 +142,9 @@ $app->patch('/trunks/{trunkid}', function (Request $request, Response $response,
 
         // Change username
         if (isset($params['username'])) {
-            $sql = 'UPDATE `pjsip` SET `data` = ? WHERE `id` = ? AND `keyword` = ?';
+            $sql = 'UPDATE `pjsip` SET `data` = ? WHERE `id` = ? AND `keyword` IN (?,?,?)';
             $sth = $dbh->prepare($sql);
-            $res = $sth->execute([$params['username'],$trunkid,'username']);
+            $res = $sth->execute([$params['username'],$trunkid,'username','contact_user','from_user']);
             if (!$res) {
                 throw new Exception("Error updating username for $trunkid");
             }
@@ -162,11 +162,13 @@ $app->patch('/trunks/{trunkid}', function (Request $request, Response $response,
 
         // Set Outbound CallerID
         if (isset($params['phone'])) {
-            $sql = 'UPDATE `pjsip` SET `data` = ? WHERE `id` = ? AND ( `keyword` = ? OR `keyword` = ? )';
-            $sth = $dbh->prepare($sql);
-            $res = $sth->execute([$params['phone'],$trunkid,'contact_user','from_user']);
-            if (!$res) {
-                throw new Exception("Error updating contact_user and from_user for $trunkid");
+            if (!isset($params['username'])) {
+                $sql = 'UPDATE `pjsip` SET `data` = ? WHERE `id` = ? AND `keyword` IN (?,?)';
+                $sth = $dbh->prepare($sql);
+                $res = $sth->execute([$params['phone'],$trunkid,'contact_user','from_user']);
+                if (!$res) {
+                    throw new Exception("Error updating contact_user and from_user with phone for $trunkid");
+                }
             }
             $sql = 'UPDATE `trunks` SET `outcid` = ? WHERE `trunkid` = ?';
             $sth = $dbh->prepare($sql);

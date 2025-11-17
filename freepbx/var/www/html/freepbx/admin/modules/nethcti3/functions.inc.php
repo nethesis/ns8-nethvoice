@@ -195,10 +195,7 @@ function nethcti3_get_config_late($engine) {
                     error_log('Error adding additional headers to trunk: '.$e->getMessage());
                 }
             }
-            /* unset topos and isTrunk headers for calls to local extensions */
-            if ($add_unset_istrunk) {
-                $ext->splice('macro-dial-one', 's', 'setexttocall', new ext_gosub(1,'s','func-set-sipheader', 'isTrunk,unset'), '', 1);
-            }
+            /* unset topos header for calls to local extensions */
             if ($add_unset_topos) {
                 $ext->splice('macro-dial-one', 's', 'setexttocall', new ext_gosub(1,'s','func-set-sipheader', 'topos,unset'), '', 1);
             }

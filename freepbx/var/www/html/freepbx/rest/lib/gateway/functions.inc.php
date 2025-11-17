@@ -383,6 +383,12 @@ function addEditGateway($params){
                         if (useExtensionAsCustomPhysical($extension,false,'physical',$web_user,$web_password) === false) {
                             $response->withJson(array("status"=>"Error creating custom extension"), 500);
                         }
+                        // enable SRTP for the extension if gateway description contains " TLS "
+                        if (strpos($params['name'], ' TLS ') !== false) {
+                            $sql = 'UPDATE `rest_devices_phones` SET `srtp` = 1 WHERE `extension` = ?';
+                            $stmt = $dbh->prepare($sql);
+                            $stmt->execute([$extension]);
+                        }
                         /* Add fxs extension to fxo AOR */
                         $trunk_number = (strtolower($res['manufacturer']) === 'patton' ? 0 : 2);
                         $trunk_name = $vendor. '_'. $uid. '_fxo_'. $trunk_number;
