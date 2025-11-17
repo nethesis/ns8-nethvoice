@@ -45,7 +45,7 @@
     "angular": "angular/bower-angular#1.4.0",
     "angular-animate": "angular/bower-angular-animate#1.3.0 - 1.5.*",
     "angular-bootstrap": "angular-ui/bootstrap-bower#2.2.0",
-    "angular-bootstrap-switch": "frapontillo/angular-bootstrap-switch#0.5.1",
+    "angular-bootstrap-switch": "frapontillo/angular-bootstrap-switch#0.5.2",
     "angular-cookies": "angular/bower-angular-cookies#1.4.0",
     "angular-mocks": "angular/bower-angular-mocks#1.4.0",
     "angular-patternfly": "patternfly/angular-patternfly#3.15.0",
