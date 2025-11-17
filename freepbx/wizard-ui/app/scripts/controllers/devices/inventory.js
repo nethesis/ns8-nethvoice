@@ -763,12 +763,6 @@ angular.module('nethvoiceWizardUiApp')
         $scope.getPhones();
         // delete phone on Corbera
         UserService.deletePhysicalExtension($scope.phoneToDelete.mac).then(function (res) {
-          // delete delayed reboot (if present)
-          PhoneService.deletePhoneDelayedReboot([$scope.phoneToDelete.mac]).then(function (res) {
-          }, function (err) {
-            console.log(err);
-            addErrorNotification(err.data, "Error canceling delayed reboot");
-          });
         }, function (errorCorbera) {
           console.log(errorCorbera);
           addErrorNotification(errorCorbera.data, "Error deleting phone");
@@ -829,12 +823,6 @@ angular.module('nethvoiceWizardUiApp')
       PhoneService.deletePhone(phone.mac).then(function (res) {
         // delete phone on Corbera
         UserService.deletePhysicalExtension(phone.mac).then(function (res) {
-          // delete delayed reboot (if present)
-          PhoneService.deletePhoneDelayedReboot([phone.mac]).then(function (res) {
-          }, function (err) {
-            console.log(err);
-            addErrorNotification(err.data, "Error canceling delayed reboot");
-          });
         }, function (errorCorbera) {
           console.log(errorCorbera);
           addErrorNotification(errorCorbera.data, "Error deleting phone");
