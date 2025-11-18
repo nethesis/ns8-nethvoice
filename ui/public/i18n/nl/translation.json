@@ -40,12 +40,16 @@
         "nethvoice_admin_password": "Reset NethVoice administratie wachtwoord om toegang te krijgen tot gebruiker interface (optional)",
         "nethvoice_host_format": "Moet een geldige domeinnaam zijn.",
         "reports_international_prefix": "Prefix rapporten",
-        "timezone_tooltip": "Zet de tijdzone voor de huidige NethVoice installatie"
+        "timezone_tooltip": "Zet de tijdzone voor de huidige NethVoice installatie",
+        "nethvoice_hotel": "Hotelmodule inschakelen",
+        "nethvoice_hotel_fias_address": "Hotel FIAS-serverhost (Optioneel)"
     },
     "common": {
         "required": "Vereist",
         "processing": "Verwerken...",
-        "work_in_progress": "Werk in uitvoering"
+        "work_in_progress": "Werk in uitvoering",
+        "enabled": "Ingeschakeld",
+        "disabled": "Uitgeschakeld"
     },
     "error": {
         "401": "Ongeldige authenticatie",

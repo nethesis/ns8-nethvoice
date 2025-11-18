@@ -53,7 +53,7 @@
         "reports_international_prefix": "Prefisso Report",
         "reports_international_prefix_tooltip": "Il formato del prefisso deve essere \"00**\" o \"+**\"",
         "set_password": "Reset della password di admin di NethVoice",
-        "timezone": "Timezone",
+        "timezone": "Fuso orario",
         "timezone_placeholder": "Scegli timezone",
         "timezone_tooltip": "Imposta la timezone di default per questa installazione di NethVoice",
         "create_nethvoice_adm": "Creazione NethVoice Administrator per gestione utenti",
