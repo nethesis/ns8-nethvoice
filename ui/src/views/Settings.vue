@@ -93,7 +93,7 @@
                 {{ $t("settings.timezone_tooltip") }}
               </template>
             </NsComboBox>
-            <cv-toggle
+            <NsToggle
               :label="$t('settings.lets_encrypt')"
               value="lets_encrypt"
               :disabled="loadingState || !proxy_installed"
@@ -105,7 +105,44 @@
               <template slot="text-right">
                 {{ $t("common.enabled") }}
               </template>
-            </cv-toggle>
+              <template slot="tooltip">
+                {{ $t("settings.lets_encrypt_tooltip") }}
+              </template>
+            </NsToggle>
+            <!-- Let's Encrypt Notifications -->
+            <cv-row v-if="form.lets_encrypt && !loadingState">
+              <cv-column>
+                <NsInlineNotification
+                  kind="info"
+                  :title="$t('settings.lets_encrypt_tips_title')"
+                  :description="$t('settings.lets_encrypt_tips')"
+                  :showCloseButton="false"
+                />
+              </cv-column>
+            </cv-row>
+            <cv-row
+              v-if="
+                validationErrorDetails.length > 0 &&
+                form.lets_encrypt &&
+                isLetsEncryptCurrentlyEnabled &&
+                !loadingState
+              "
+            >
+              <cv-column>
+                <NsInlineNotification
+                  kind="error"
+                  :title="$t('settings.lets_encrypt_error_title')"
+                  :description="
+                    $t('settings.lets_encrypt_error_description', {
+                      host: form.nethvoice_host,
+                      error: validationErrorDetails.join(', '),
+                    })
+                  "
+                  :showCloseButton="false"
+                />
+              </cv-column>
+            </cv-row>
+            <!-- End Let's Encrypt Notifications -->
             <NsTextInput
               :label="$t('settings.reports_international_prefix')"
               v-model="form.reports_international_prefix"
@@ -536,6 +573,9 @@ export default {
       proxy_installed: false,
       config: {},
       subscription_systemid: "",
+      isLetsEncryptCurrentlyEnabled: false,
+      validationErrorDetails: [],
+      status: {},
       loading: {
         getConfiguration: false,
         getRebranding: false,
@@ -699,6 +739,7 @@ export default {
       this.form.nethcti_ui_host = config.nethcti_ui_host;
       this.form.nethvoice_admin_password = "";
       this.form.lets_encrypt = config.lets_encrypt;
+      this.isLetsEncryptCurrentlyEnabled = config.lets_encrypt;
       this.form.user_domain = config.user_domain;
       this.obtainedUserDomain = config.user_domain;
       if (
@@ -857,12 +898,23 @@ export default {
     },
     configureModuleValidationFailed(validationErrors) {
       this.loading.configureModule = false;
+      this.validationErrorDetails = [];
 
       for (const validationError of validationErrors) {
         const param = validationError.parameter;
 
-        // set i18n error message
-        this.error[param] = this.$t("settings." + validationError.error);
+        // Check if this is a Let's Encrypt certificate error
+        if (
+          param === "lets_encrypt" &&
+          validationError.error &&
+          validationError.value
+        ) {
+          // Extract ACME error details
+          this.validationErrorDetails.push(validationError.value);
+        } else {
+          // set i18n error message for regular validation errors
+          this.error[param] = this.$t("settings." + validationError.error);
+        }
       }
     },
     async configureModule() {
@@ -1137,6 +1189,7 @@ export default {
     },
     configureModuleCompleted() {
       this.loading.configureModule = false;
+      this.validationErrorDetails = [];
 
       // reload configuration
       this.getConfiguration();
@@ -1306,6 +1359,10 @@ export default {
     getProxyStatusCompleted(taskContext, taskResult) {
       const config = taskResult.output;
       this.proxy_installed = config.proxy_installed;
+      this.status = {
+        node: config.node,
+        node_ui_name: config.node_ui_name,
+      };
       this.loading.getProxyStatus = false;
       this.getConfiguration();
     },

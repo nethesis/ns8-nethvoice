@@ -5,6 +5,7 @@
   "action": {
     "configure-module": "Configure module",
     "get-configuration": "Get configuration",
+    "get-defaults": "Get defaults",
     "get-module-info": "Get module info",
     "get-name": "Get name",
     "get-status": "Get status",
@@ -37,6 +38,11 @@
   "settings": {
     "configure_instance": "Configure {instance}",
     "lets_encrypt": "Request Let's Encrypt certificate",
+    "lets_encrypt_tooltip": "Enable automatic HTTPS certificate from Let's Encrypt. The certificate will be automatically renewed before expiration.",
+    "lets_encrypt_tips_title": "Let's Encrypt certificate requirements",
+    "lets_encrypt_tips": "To successfully obtain a Let's Encrypt certificate, ensure the following requirements are met:\n- The domain must be correctly registered and publicly accessible.\n- DNS must correctly resolve to the server's public IP address.\n- Port 80 (HTTP) must be reachable from the internet to complete the ACME challenge.\n- No firewall or network restrictions should block incoming requests on port 80.",
+    "lets_encrypt_error_title": "Let's Encrypt certificate error",
+    "lets_encrypt_error_description": "The certificate request for '{host}' failed. Check that:\n- The domain is registered and reachable\n- DNS resolves to the correct IP address\n- Port 80 is open and accessible from the internet\n\nDetailed error: {error}",
     "nethcti_ui_host": "NethVoice CTI base host",
     "nethvoice_host": "NethVoice base host",
     "nethvoice_admin_password": "Reset NethVoice admin password to access user interface (optional)",
