@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import sys
+import os
+import agent
+
+request = json.load(sys.stdin)
+
+# set NETHCTI_CDR_SCRIPT to /usr/share/neth-hotel-fias/cdr.php if nethvoice_hotel_fias_address is set
+# Only set if FIAS address is configured and CDR script is not already set
+if request.get('nethvoice_hotel_fias_address', '') != '':
+    # Read current CDR script setting
+    current_cdr_script = os.getenv('NETHCTI_CDR_SCRIPT', '')
+    
+    # Only set hotel CDR script if no custom script is configured
+    if current_cdr_script == '':
+        agent.set_env('NETHCTI_CDR_SCRIPT', '/usr/share/neth-hotel-fias/cdr.php')

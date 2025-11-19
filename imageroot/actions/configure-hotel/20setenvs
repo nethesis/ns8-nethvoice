@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import sys
+import agent
+
+request = json.load(sys.stdin)
+
+# read from the passwords.env file
+passwordsfile = agent.read_envfile("passwords.env")
+
+def getFromRequest(request, var_name, env_name, default = ""):
+    if var_name in request:
+        agent.set_env(env_name, request[var_name])
+    else:
+        agent.set_env(env_name, default)
+
+## NethVoice Hotel
+getFromRequest(request, 'nethvoice_hotel', 'NETHVOICE_HOTEL', 'False')
+getFromRequest(request, 'nethvoice_hotel_fias_address', 'NETHVOICE_HOTEL_FIAS_ADDRESS', '')
+getFromRequest(request, 'nethvoice_hotel_fias_port', 'NETHVOICE_HOTEL_FIAS_PORT', '')
+
+# write the passwords.env file
+agent.write_envfile("passwords.env", passwordsfile)

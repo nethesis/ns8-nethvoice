@@ -1,0 +1,12 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+
+# Restart integrations service to apply configuration changes
+# Use try-restart to avoid errors if service is not running
+systemctl --user try-restart satellite.service || true

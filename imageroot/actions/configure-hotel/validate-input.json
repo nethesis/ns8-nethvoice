@@ -1,0 +1,59 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Configure NethVoice Hotel Module",
+    "$id": "http://nethserver.org/json-schema/task/input/nethvoice/configure-hotel",
+    "description": "Configure NethHotel module settings (requires valid subscription)",
+    "examples": [
+        {
+            "nethvoice_hotel": "True",
+            "nethvoice_hotel_fias_address": "192.168.1.100",
+            "nethvoice_hotel_fias_port": "1234"
+        },
+        {
+            "nethvoice_hotel": "False"
+        }
+    ],
+    "type": "object",
+    "required": [
+        "nethvoice_hotel"
+    ],
+    "properties": {
+        "nethvoice_hotel": {
+            "description": "NethVoice hotel module enabled",
+            "type": "string",
+            "enum": [
+                "True",
+                "False"
+            ]
+        },
+        "nethvoice_hotel_fias_address": {
+            "description": "FIAS server address",
+            "type": "string",
+            "anyOf": [
+                {
+                    "format": "hostname",
+                    "pattern": "\\."
+                },
+                {
+                    "format": "ipv4"
+                },
+                {
+                    "pattern": "^$"
+                }
+            ]
+        },
+        "nethvoice_hotel_fias_port": {
+            "description": "FIAS server port",
+            "anyOf": [
+                {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^$"
+                }
+            ]
+        }
+    }
+}

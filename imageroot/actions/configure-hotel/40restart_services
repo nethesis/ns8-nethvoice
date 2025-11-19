@@ -1,0 +1,11 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+
+# Restart nethcti-server to apply hotel configuration changes
+systemctl --user try-restart nethcti-server.service
