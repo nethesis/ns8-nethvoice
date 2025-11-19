@@ -43,6 +43,9 @@
       />
       <ProxyStep
         v-if="step == PROXY_STEP"
+        :isProxyInstalled="isProxyInstalled"
+        :proxyModuleId="proxyModuleId"
+        :loadingNethvoiceDefaults="loading.getDefaults"
         ref="proxyStep"
         @set-step="step = $event"
       />
@@ -349,6 +352,7 @@ export default {
     },
   },
   data() {
+    //// remove unnecessary variables
     return {
       step: "", //// ?
       // accountProviderType: "", //// remove unused variables
@@ -380,7 +384,7 @@ export default {
       //   module_id: "",
       //   proxy_installed: false,
       // },
-      proxyConfig: {},
+      // proxyConfig: null, ////
       nethvoice: {
         nethvoice_host: "",
         nethcti_ui_host: "",
@@ -391,11 +395,13 @@ export default {
         reports_international_prefix: "+39",
       },
       loading: {
-        listUserDomains: false,
-        listModules: false,
-        addInternalProvider: false,
+        getDefaults: false,
+        // getProxyConfig: false, ////
         getStatus: false,
-        getProxyConfig: false,
+        ////
+        listUserDomains: false, //// remove
+        listModules: false, ////
+        addInternalProvider: false, ////
         installProxy: false,
         openldap: {
           getDefaults: false,
@@ -410,14 +416,16 @@ export default {
         },
       },
       error: {
+        getDefaults: "",
+        getStatus: "",
+        // getProxyConfig: "", ////
+        ////
         accountProvider: "",
         configureModule: "",
         listModules: "",
         listUserDomains: "",
         getConfiguration: "",
         addInternalProvider: "",
-        getStatus: "",
-        getProxyConfig: "",
         installProxy: false,
         openldap: {
           getDefaults: "",
@@ -516,17 +524,17 @@ export default {
     //     };
     //   });
     // },
-    isProxyConfigured() {
-      if (
-        this.proxy &&
-        this.proxy.fqdn &&
-        !this.proxy.fqdn.endsWith(".invalid")
-      ) {
-        return true;
-      } else {
-        return false;
-      }
-    },
+    // isProxyConfigured() { ////
+    //   if (
+    //     this.proxy &&
+    //     this.proxy.fqdn &&
+    //     !this.proxy.fqdn.endsWith(".invalid")
+    //   ) {
+    //     return true;
+    //   } else {
+    //     return false;
+    //   }
+    // },
   },
   watch: {
     isShown: function () {
@@ -550,6 +558,11 @@ export default {
         // }
 
         this.getDefaults();
+
+        if (!this.instanceStatus) {
+          // retrieve installation node, needed for openldap and proxy installation
+          this.getStatus();
+        }
 
         // show first step
         this.step = ACCOUNT_PROVIDER_STEP;
@@ -654,7 +667,10 @@ export default {
           this.$refs.openldapStep.next();
           break;
         case PROXY_STEP:
-          ////
+          this.$refs.proxyStep.next();
+          break;
+        case NETHVOICE_STEP:
+          // this.$refs.nethvoiceStep.next(); ////
           break;
       }
 
@@ -840,59 +856,55 @@ export default {
     // addInternalProviderProgress(progress) {
     //   this.installProviderProgress = progress;
     // },
-    // async getStatus() {
-    //   this.loading.getStatus = true;
-    //   this.error.getStatus = "";
-    //   const taskAction = "get-status";
-    //   const eventId = this.getUuid();
+    async getStatus() {
+      this.loading.getStatus = true;
+      this.error.getStatus = "";
+      const taskAction = "get-status";
+      const eventId = this.getUuid();
 
-    //   // register to task error
-    //   this.core.$root.$once(
-    //     `${taskAction}-aborted-${eventId}`,
-    //     this.getStatusAborted
-    //   );
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.getStatusAborted
+      );
 
-    //   // register to task completion
-    //   this.core.$root.$once(
-    //     `${taskAction}-completed-${eventId}`,
-    //     this.getStatusCompleted
-    //   );
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.getStatusCompleted
+      );
 
-    //   const res = await to(
-    //     this.createModuleTaskForApp(this.instanceName, {
-    //       action: taskAction,
-    //       extra: {
-    //         title: this.$t("action." + taskAction),
-    //         isNotificationHidden: true,
-    //         eventId,
-    //       },
-    //     })
-    //   );
-    //   const err = res[0];
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
 
-    //   if (err) {
-    //     console.error(`error creating task ${taskAction}`, err);
-    //     this.error.getStatus = this.getErrorMessage(err);
-    //     this.loading.getStatus = false;
-    //     return;
-    //   }
-    // },
-    // getStatusAborted(taskResult, taskContext) {
-    //   console.error(`${taskContext.action} aborted`, taskResult);
-    //   this.error.getStatus = this.$t("error.generic_error");
-    //   this.loading.getStatus = false;
-    // },
-    // getStatusCompleted(taskContext, taskResult) {
-    //   this.status = taskResult.output;
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.getStatus = this.getErrorMessage(err);
+        this.loading.getStatus = false;
+        return;
+      }
+    },
+    getStatusAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.getStatus = this.$t("error.generic_error");
+      this.loading.getStatus = false;
+    },
+    getStatusCompleted(taskContext, taskResult) {
+      this.status = taskResult.output;
 
-    //   console.log("@@ status", this.status); ////
-
-    //   // save status to vuex store
-    //   this.setInstanceStatusInStore(this.status);
-    //   this.loading.getStatus = false;
-    //   // install openldap provider
-    //   this.installOpenldapProvider();
-    // },
+      // save status to vuex store
+      this.setInstanceStatusInStore(this.status);
+      this.loading.getStatus = false;
+    },
     // async getOpenLdapDefaults() {
     //   this.loading.openldap.getDefaults = true;
     //   this.error.openldap.getDefaults = "";
@@ -1263,8 +1275,9 @@ export default {
       if (this.isProxyInstalled) {
         this.proxyModuleId = defaults.proxy_status.module_id;
 
+        //// remove
         // retrieve proxy configuration
-        this.getProxyConfig();
+        // this.getProxyConfig(); ////
       }
 
       this.timezoneList = [];
@@ -1278,53 +1291,6 @@ export default {
 
       //// todo: set default timezone
       this.loading.getDefaults = false;
-    },
-    async getProxyConfig() {
-      this.loading.getProxyConfig = true;
-      const taskAction = "get-configuration";
-      const eventId = this.getUuid();
-
-      // register to task error
-      this.core.$root.$once(
-        `${taskAction}-aborted-${eventId}`,
-        this.getProxyConfigAborted
-      );
-
-      // register to task completion
-      this.core.$root.$once(
-        `${taskAction}-completed-${eventId}`,
-        this.getProxyConfigCompleted
-      );
-
-      const res = await to(
-        this.createModuleTaskForApp(this.proxyModuleId, {
-          action: taskAction,
-          extra: {
-            title: this.$t("action." + taskAction),
-            isNotificationHidden: true,
-            eventId,
-          },
-        })
-      );
-      const err = res[0];
-
-      if (err) {
-        console.error(`error creating task ${taskAction}`, err);
-        this.error.getProxyConfig = this.getErrorMessage(err);
-        this.loading.getProxyConfig = false;
-        return;
-      }
-    },
-    getProxyConfigAborted(taskResult, taskContext) {
-      console.error(`${taskContext.action} aborted`, taskResult);
-      this.error.getProxyConfig = this.$t("error.generic_error");
-      this.loading.getProxyConfig = false;
-    },
-    getProxyConfigCompleted(taskContext, taskResult) {
-      console.log("@@ getProxyConfigCompleted", taskResult.output); ////
-
-      this.proxyConfig = taskResult.output;
-      this.loading.getProxyConfig = false;
     },
     async installProxy() {
       this.error.installProxy = "";

@@ -11,91 +11,98 @@
       :description="error.addInternalProvider"
       :showCloseButton="false"
     />
-    <template v-if="!createdOpenLdapId">
-      <NsEmptyState
-        :title="core.$t('domains.installing_account_provider')"
-        :animationData="GearsLottie"
-        animationTitle="gears"
-        :loop="true"
-      />
-      <NsProgressBar
-        :value="installingProviderProgress"
-        :indeterminate="!installingProviderProgress"
-        class="mg-bottom-md"
-      />
-    </template>
-    <template v-else-if="!isValidationCompleted">
-      <div class="mg-bottom-lg">
-        {{ $t("welcome.configure_openldap_provider") }}
-      </div>
-      <NsInlineNotification
-        v-if="error.getOpenLdapDefaults"
-        kind="error"
-        :title="$t('action.get-defaults')"
-        :description="error.getOpenLdapDefaults"
-        :showCloseButton="false"
-      />
-      <cv-form>
-        <cv-text-input
-          :label="core.$t('openldap.domain')"
-          v-model.trim="domain"
-          :invalid-message="core.$t(error.domain)"
-          :disabled="loading.getOpenLdapDefaults || loading.configureModule"
-          ref="domain"
-        >
-        </cv-text-input>
-        <cv-text-input
-          :label="core.$t('openldap.admuser')"
-          v-model.trim="admuser"
-          :invalid-message="core.$t(error.admuser)"
-          :disabled="loading.getOpenLdapDefaults || loading.configureModule"
-          ref="admuser"
-        >
-        </cv-text-input>
-        <NsPasswordInput
-          :newPasswordLabel="core.$t('openldap.admpass')"
-          :confirmPasswordLabel="core.$t('openldap.admpass_confirm')"
-          v-model="admpass"
-          @passwordValidation="onNewOpenLdapPasswordValidation"
-          :newPaswordHelperText="
-            core.$t('openldap.choose_openldap_admin_password')
-          "
-          :newPasswordInvalidMessage="core.$t(error.admpass)"
-          :confirmPasswordInvalidMessage="core.$t(error.confirmPassword)"
-          :passwordHideLabel="core.$t('password.hide_password')"
-          :passwordShowLabel="core.$t('password.show_password')"
-          :lengthLabel="core.$t('password.long_enough')"
-          :lowercaseLabel="core.$t('password.lowercase_letter')"
-          :uppercaseLabel="core.$t('password.uppercase_letter')"
-          :numberLabel="core.$t('password.number')"
-          :symbolLabel="core.$t('password.symbol')"
-          :equalLabel="core.$t('password.equal')"
-          :focus="focusPasswordField"
-          :disabled="loading.getOpenLdapDefaults || loading.configureModule"
-          light
-          class="new-provider-password"
-        />
-      </cv-form>
-      <NsInlineNotification
-        v-if="error.configureModule"
-        kind="error"
-        :title="core.$t('action.configure-module')"
-        :description="error.configureModule"
-        :showCloseButton="false"
-      />
-    </template>
+    <cv-skeleton-text
+      v-if="!instanceStatus"
+      :paragraph="true"
+      :line-count="6"
+    ></cv-skeleton-text>
     <template v-else>
-      <NsEmptyState
-        :title="core.$t('domains.configuring_account_provider')"
-        :animationData="GearsLottie"
-        animationTitle="gears"
-        :loop="true"
-      />
-      <NsProgressBar
-        :value="configuringProviderProgress"
-        :indeterminate="!configuringProviderProgress"
-        class="mg-bottom-md"
-      />
+      <template v-if="!createdOpenLdapId">
+        <NsEmptyState
+          :title="core.$t('domains.installing_account_provider')"
+          :animationData="GearsLottie"
+          animationTitle="gears"
+          :loop="true"
+        />
+        <NsProgressBar
+          :value="installingProviderProgress"
+          :indeterminate="!installingProviderProgress"
+          class="mg-bottom-md"
+        />
+      </template>
+      <template v-else-if="!isValidationCompleted">
+        <div class="mg-bottom-lg">
+          {{ $t("welcome.configure_openldap_provider") }}
+        </div>
+        <NsInlineNotification
+          v-if="error.getOpenLdapDefaults"
+          kind="error"
+          :title="$t('action.get-defaults')"
+          :description="error.getOpenLdapDefaults"
+          :showCloseButton="false"
+        />
+        <cv-form>
+          <cv-text-input
+            :label="core.$t('openldap.domain')"
+            v-model.trim="domain"
+            :invalid-message="core.$t(error.domain)"
+            :disabled="loading.getOpenLdapDefaults || loading.configureModule"
+            ref="domain"
+          >
+          </cv-text-input>
+          <cv-text-input
+            :label="core.$t('openldap.admuser')"
+            v-model.trim="admuser"
+            :invalid-message="core.$t(error.admuser)"
+            :disabled="loading.getOpenLdapDefaults || loading.configureModule"
+            ref="admuser"
+          >
+          </cv-text-input>
+          <NsPasswordInput
+            :newPasswordLabel="core.$t('openldap.admpass')"
+            :confirmPasswordLabel="core.$t('openldap.admpass_confirm')"
+            v-model="admpass"
+            @passwordValidation="onNewOpenLdapPasswordValidation"
+            :newPaswordHelperText="
+              core.$t('openldap.choose_openldap_admin_password')
+            "
+            :newPasswordInvalidMessage="core.$t(error.admpass)"
+            :confirmPasswordInvalidMessage="core.$t(error.confirmPassword)"
+            :passwordHideLabel="core.$t('password.hide_password')"
+            :passwordShowLabel="core.$t('password.show_password')"
+            :lengthLabel="core.$t('password.long_enough')"
+            :lowercaseLabel="core.$t('password.lowercase_letter')"
+            :uppercaseLabel="core.$t('password.uppercase_letter')"
+            :numberLabel="core.$t('password.number')"
+            :symbolLabel="core.$t('password.symbol')"
+            :equalLabel="core.$t('password.equal')"
+            :focus="focusPasswordField"
+            :disabled="loading.getOpenLdapDefaults || loading.configureModule"
+            light
+            class="new-provider-password"
+          />
+        </cv-form>
+        <NsInlineNotification
+          v-if="error.configureModule"
+          kind="error"
+          :title="core.$t('action.configure-module')"
+          :description="error.configureModule"
+          :showCloseButton="false"
+        />
+      </template>
+      <template v-else>
+        <NsEmptyState
+          :title="core.$t('domains.configuring_account_provider')"
+          :animationData="GearsLottie"
+          animationTitle="gears"
+          :loop="true"
+        />
+        <NsProgressBar
+          :value="configuringProviderProgress"
+          :indeterminate="!configuringProviderProgress"
+          class="mg-bottom-md"
+        />
+      </template>
     </template>
   </div>
 </template>
@@ -146,21 +153,34 @@ export default {
     };
   },
   computed: {
-    ...mapState(["core", "instanceName", "instanceStatus"]),
+    ...mapState(["core", "instanceStatus"]),
   },
   watch: {
-    ////
-  },
-  created() {
-    console.log("created OpenldapStep"); ////
+    instanceStatus: {
+      //// test!
+      immediate: true,
+      handler(newVal) {
+        console.log(
+          "@@ openldap step, watch instanceStatus",
+          this.instanceStatus
+        ); ////
 
-    if (!this.instanceStatus) {
-      // retrieve installation node and then install openldap
-      this.getStatus();
-    } else {
-      this.installOpenldapProvider();
-    }
+        if (newVal) {
+          this.installOpenldapProvider();
+        }
+      },
+    },
   },
+  // created() { ////
+  //   console.log("created OpenldapStep"); ////
+
+  //   if (!this.instanceStatus) {
+  //     // retrieve installation node and then install openldap
+  //     this.getStatus();
+  //   } else {
+  //     this.installOpenldapProvider();
+  //   }
+  // },
   methods: {
     ...mapActions(["setInstanceStatusInStore"]),
     next() {
@@ -245,59 +265,59 @@ export default {
     addInternalProviderProgress(progress) {
       this.installingProviderProgress = progress;
     },
-    async getStatus() {
-      this.loading.getStatus = true;
-      this.error.getStatus = "";
-      const taskAction = "get-status";
-      const eventId = this.getUuid();
+    // async getStatus() { ////
+    //   this.loading.getStatus = true;
+    //   this.error.getStatus = "";
+    //   const taskAction = "get-status";
+    //   const eventId = this.getUuid();
 
-      // register to task error
-      this.core.$root.$once(
-        `${taskAction}-aborted-${eventId}`,
-        this.getStatusAborted
-      );
+    //   // register to task error
+    //   this.core.$root.$once(
+    //     `${taskAction}-aborted-${eventId}`,
+    //     this.getStatusAborted
+    //   );
 
-      // register to task completion
-      this.core.$root.$once(
-        `${taskAction}-completed-${eventId}`,
-        this.getStatusCompleted
-      );
+    //   // register to task completion
+    //   this.core.$root.$once(
+    //     `${taskAction}-completed-${eventId}`,
+    //     this.getStatusCompleted
+    //   );
 
-      const res = await to(
-        this.createModuleTaskForApp(this.instanceName, {
-          action: taskAction,
-          extra: {
-            title: this.$t("action." + taskAction),
-            isNotificationHidden: true,
-            eventId,
-          },
-        })
-      );
-      const err = res[0];
+    //   const res = await to(
+    //     this.createModuleTaskForApp(this.instanceName, {
+    //       action: taskAction,
+    //       extra: {
+    //         title: this.$t("action." + taskAction),
+    //         isNotificationHidden: true,
+    //         eventId,
+    //       },
+    //     })
+    //   );
+    //   const err = res[0];
 
-      if (err) {
-        console.error(`error creating task ${taskAction}`, err);
-        this.error.getStatus = this.getErrorMessage(err);
-        this.loading.getStatus = false;
-        return;
-      }
-    },
-    getStatusAborted(taskResult, taskContext) {
-      console.error(`${taskContext.action} aborted`, taskResult);
-      this.error.getStatus = this.$t("error.generic_error");
-      this.loading.getStatus = false;
-    },
-    getStatusCompleted(taskContext, taskResult) {
-      this.status = taskResult.output;
+    //   if (err) {
+    //     console.error(`error creating task ${taskAction}`, err);
+    //     this.error.getStatus = this.getErrorMessage(err);
+    //     this.loading.getStatus = false;
+    //     return;
+    //   }
+    // },
+    // getStatusAborted(taskResult, taskContext) {
+    //   console.error(`${taskContext.action} aborted`, taskResult);
+    //   this.error.getStatus = this.$t("error.generic_error");
+    //   this.loading.getStatus = false;
+    // },
+    // getStatusCompleted(taskContext, taskResult) {
+    //   this.status = taskResult.output;
 
-      console.log("@@ status", this.status); ////
+    //   console.log("@@ status", this.status); ////
 
-      // save status to vuex store
-      this.setInstanceStatusInStore(this.status);
-      this.loading.getStatus = false;
-      // install openldap provider
-      this.installOpenldapProvider();
-    },
+    //   // save status to vuex store
+    //   this.setInstanceStatusInStore(this.status);
+    //   this.loading.getStatus = false;
+    //   // install openldap provider
+    //   this.installOpenldapProvider();
+    // },
     async getOpenLdapDefaults() {
       this.loading.getOpenLdapDefaults = true;
       this.error.getOpenLdapDefaults = "";
