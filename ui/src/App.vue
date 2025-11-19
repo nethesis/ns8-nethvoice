@@ -83,8 +83,10 @@ export default {
       "setCoreInStore",
       "setAppNameInStore",
       "setAppConfiguredInStore",
-      "setCanOpenFirstConfigurationModalInStore",
       "setConfigurationInStore",
+    ]),
+    ...mapActions("firstConfiguration", [
+      "setCanOpenFirstConfigurationModalInStore",
     ]),
     async getInstanceLabel() {
       const taskAction = "get-name";
@@ -201,8 +203,8 @@ export default {
   margin-bottom: 8rem !important;
 }
 
-.mb-10rem {
-  margin-bottom: 10rem !important;
+.mb-12rem {
+  margin-bottom: 12rem !important;
 }
 
 .top-0\.5 {
@@ -211,5 +213,10 @@ export default {
 
 .relative {
   position: relative;
+}
+
+//// remove when NsTextInput handles light propr correctly
+.bx--modal .input-with-gray-bg .bx--text-input {
+  background-color: #f4f4f4;
 }
 </style>

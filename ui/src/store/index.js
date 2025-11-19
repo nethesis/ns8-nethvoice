@@ -4,17 +4,20 @@
 //
 import Vue from "vue";
 import Vuex from "vuex";
+import firstConfiguration from "./modules/firstConfiguration";
 
 Vue.use(Vuex);
 
 export default new Vuex.Store({
+  modules: {
+    firstConfiguration,
+  },
   state: {
     appName: "",
     instanceName: "",
     instanceLabel: "",
     core: null,
     isAppConfigured: true,
-    canOpenFirstConfigurationModal: true,
     configuration: null,
     instanceStatus: null,
   },
@@ -33,9 +36,6 @@ export default new Vuex.Store({
     },
     setAppConfigured(state, value) {
       state.isAppConfigured = value;
-    },
-    setCanOpenFirstConfigurationModal(state, value) {
-      state.canOpenFirstConfigurationModal = value;
     },
     setConfiguration(state, configuration) {
       state.configuration = configuration;
@@ -60,9 +60,6 @@ export default new Vuex.Store({
     setAppConfiguredInStore(context, value) {
       context.commit("setAppConfigured", value);
     },
-    setCanOpenFirstConfigurationModalInStore(context, value) {
-      context.commit("setCanOpenFirstConfigurationModal", value);
-    },
     setConfigurationInStore(context, configuration) {
       context.commit("setConfiguration", configuration);
     },
@@ -70,5 +67,4 @@ export default new Vuex.Store({
       context.commit("setInstanceStatus", status);
     },
   },
-  modules: {},
 });

@@ -19,7 +19,8 @@
     "work_in_progress": "Work in progress",
     "enabled": "Enabled",
     "disabled": "Disabled",
-    "eg_value": "E.g. {value}"
+    "eg_value": "E.g. {value}",
+    "loading": "Loading"
   },
   "error": {
     "401": "Invalid authentication",
@@ -132,8 +133,9 @@
     "proxy_missing_on_node": "NethVoice Proxy is not installed on this node",
     "proxy_missing_on_node_description": "NethVoice requires a proxy on the same node.",
     "configure_nethvoice_application": "Configure NethVoice application",
+    "loading_data_next_steps": "Loading data needed for the next steps...",
     "proxy": {
-      "address_and_iface_dont_match": "@:welcome.proxy.address and @:welcome.proxy.network_interface do not match",
+      "address_and_iface_dont_match": "@:welcome.proxy.network_interface and @:welcome.proxy.address do not match",
       "address_and_iface_dont_match_message": "For the devices in the PBX local network to work correctly, the 'Hairpin NAT' feature — also known as 'NAT reflection', 'NAT hairpinning', 'NAT on a stick' or 'Loopback NAT' — must be enabled on the firewall (specifically, on the device that manages the NAT of the public IP).",
       "addresses_format": "Must be in IPv4 address format",
       "domain": "Proxy domain",
@@ -142,10 +144,12 @@
       "address_helper": "IPv4 address expected to receive VoIP traffic",
       "public_address": "Public IP address",
       "public_address_helper": "Public IPV4 address expected to receive VoIP traffic, in case of NAT",
-      "address_tooltip": "This address is filled from the resolved FQDN above. You can change it if needed.",
+      "address_tooltip": "This is required only if it differs from @:welcome.proxy.network_interface address. The address is filled automatically based on the resolved FQDN above, but you can change it if needed.",
       "network_interface": "Network interface",
       "network_interface_placeholder": "Choose network interface",
-      "loading_data_next_steps": "Loading data needed for the next steps..."
+      "invalid_fqdn": "FQDN cannot end with .invalid",
+      "installing_nethvoice_proxy": "Installing NethVoice Proxy",
+      "configuring_nethvoice_proxy": "Configuring NethVoice Proxy"
     }
   },
   "task": {
