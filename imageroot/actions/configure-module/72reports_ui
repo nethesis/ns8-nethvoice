@@ -31,16 +31,10 @@ reports_ui_help_url = set_from_request('REPORTS_UI_HELP_URL', 'reports_ui_help_u
 reports_ui_company_name = set_from_request('REPORTS_UI_COMPANY_NAME', 'reports_ui_company_name', 'Nethesis')
 
 # Traefik endpoint
-response = agent.tasks.run(
-    agent_id=agent.resolve_agent_id('traefik@node'),
-    action='set-route',
-    data={
-        'instance': os.environ['MODULE_ID'] + '-reports-ui',
-        'url': 'http://127.0.0.1:' + os.environ["REPORTS_UI_PORT"],
-        'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
-        'lets_encrypt': os.environ["TRAEFIK_LETS_ENCRYPT"] == "True",
-        'host': os.environ["NETHVOICE_HOST"],
-        'path': '/pbx-report'
-    },
-)
-agent.assert_exp(response['exit_code'] == 0)
+agent.set_route({
+    'instance': os.environ['MODULE_ID'] + '-reports-ui',
+    'url': 'http://127.0.0.1:' + os.environ["REPORTS_UI_PORT"],
+    'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
+    'host': os.environ["NETHVOICE_HOST"],
+    'path': '/pbx-report'
+})
