@@ -5,7 +5,8 @@
 <template>
   <div>
     <div>//// internalIsProxyInstalled {{ internalIsProxyInstalled }}</div>
-    <div>//// createdProxyModuleId {{ createdProxyModuleId }}</div>
+    <div>//// internalProxyModuleId {{ internalProxyModuleId }}</div>
+    <!-- <div>//// createdProxyModuleId {{ createdProxyModuleId }}</div> -->
     <cv-skeleton-text
       v-if="
         !instanceStatus || loadingNethvoiceDefaults || loading.getProxyConfig
@@ -208,7 +209,9 @@ export default {
   data() {
     return {
       // isProxyConfigured: false, ////
-      createdProxyModuleId: "",
+      // createdProxyModuleId: "", //// remove?
+      internalProxyModuleId: false,
+      internalIsProxyInstalled: false,
       fqdn: "",
       address: "",
       resolvedIp: "",
@@ -270,9 +273,18 @@ export default {
     proxyModuleId: {
       immediate: true,
       handler() {
-        console.log("@@ watch proxyModuleId", this.proxyModuleId); ////
+        this.internalProxyModuleId = this.proxyModuleId;
+      },
+    },
+    internalProxyModuleId: {
+      immediate: true,
+      handler() {
+        console.log(
+          "@@ watch internalProxyModuleId",
+          this.internalProxyModuleId
+        ); ////
 
-        if (this.proxyModuleId) {
+        if (this.internalProxyModuleId) {
           this.getProxyConfig();
           // this.getAvailableInterfaces(); ////
         }
@@ -378,12 +390,12 @@ export default {
         this.getAvailableInterfacesCompleted
       );
 
-      const proxyId = this.createdProxyModuleId
-        ? this.createdProxyModuleId
-        : this.proxyModuleId;
+      // const proxyId = this.createdProxyModuleId ////
+      //   ? this.createdProxyModuleId
+      //   : this.proxyModuleId;
 
       const res = await to(
-        this.createModuleTaskForApp(proxyId, {
+        this.createModuleTaskForApp(this.internalProxyModuleId, {
           action: taskAction,
           data: {
             excluded_interfaces: ["lo", "wg0"],
@@ -515,17 +527,17 @@ export default {
         dataPayload.addresses.public_address = this.address;
       }
 
-      const proxyId = this.createdProxyModuleId
-        ? this.createdProxyModuleId
-        : this.proxyModuleId;
+      // const proxyId = this.createdProxyModuleId ////
+      //   ? this.createdProxyModuleId
+      //   : this.proxyModuleId;
 
       const res = await to(
-        this.createModuleTaskForApp(proxyId, {
+        this.createModuleTaskForApp(this.internalProxyModuleId, {
           action: taskAction,
           data: dataPayload,
           extra: {
             title: this.$t("settings.configure_instance", {
-              instance: this.proxyModuleId,
+              instance: this.internalProxyModuleId,
             }),
             isNotificationHidden: true,
             isProgressNotified: true,
@@ -676,10 +688,12 @@ export default {
         `${taskContext.action}-progress-${taskContext.extra.eventId}`
       );
 
-      this.createdProxyModuleId = taskResult.output.module_id;
+      // this.createdProxyModuleId = taskResult.output.module_id; ////
+
+      this.internalProxyModuleId = taskResult.output.module_id;
       this.internalIsProxyInstalled = true;
 
-      console.log("@@ createdProxyModuleId", this.createdProxyModuleId); ////
+      console.log("@@ internalProxyModuleId", this.internalProxyModuleId); ////
 
       // this.setFirstConfigurationStepInStore(CONFIGURE_OR_SHOW_PROXY); ////
     },
@@ -687,7 +701,7 @@ export default {
       this.installingProxyProgress = progress;
     },
     goToProxySettings() {
-      this.goToAppPage(this.proxyModuleId, "settings");
+      this.goToAppPage(this.internalProxyModuleId, "settings");
     },
     async getProxyConfig() {
       console.log("@@@@ getProxyConfig"); ////
@@ -708,12 +722,12 @@ export default {
         this.getProxyConfigCompleted
       );
 
-      const proxyId = this.createdProxyModuleId
-        ? this.createdProxyModuleId
-        : this.proxyModuleId;
+      // const proxyId = this.createdProxyModuleId ////
+      //   ? this.createdProxyModuleId
+      //   : this.proxyModuleId;
 
       const res = await to(
-        this.createModuleTaskForApp(proxyId, {
+        this.createModuleTaskForApp(this.internalProxyModuleId, {
           action: taskAction,
           extra: {
             title: this.$t("action." + taskAction),
