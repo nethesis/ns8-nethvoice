@@ -32,7 +32,7 @@ function nethcti3_get_config($engine) {
             /*Configure conference*/
             $defaultVal = $amp_conf['ASTCONFAPP'];
             $amp_conf['ASTCONFAPP'] = 'app_confbridge';
-            $query='SELECT featurename,IF(customcode IS NULL OR customcode = "",defaultcode,customcode) as defaultcode FROM featurecodes WHERE ( modulename="nethcti3" OR modulename="donotdisturb" ) AND ( featurename="confbridge_conf" OR featurename="incall_audio" OR featurename="dnd_on" OR featurename="dnd_off" OR featurename="dnd_toggle") AND enabled="1"';
+            $query='SELECT featurename,IF(customcode IS NULL OR customcode = "",defaultcode,customcode) as defaultcode FROM featurecodes WHERE ( modulename="nethcti3" OR modulename="donotdisturb" ) AND ( featurename="confbridge_conf" OR featurename="incall_audio" OR featurename="audio_test" OR featurename="dnd_on" OR featurename="dnd_off" OR featurename="dnd_toggle") AND enabled="1"';
             $codes = array();
             foreach ($db->getAll($query) as $feature) {
                 $codes[$feature[0]] = $feature[1];
@@ -69,6 +69,18 @@ function nethcti3_get_config($engine) {
                 $ext->add($context2, $exten2, '', new ext_playback('beep'));
                 $ext->add($context2, $exten2, '', new ext_playback('nethcti/incall_audio/file-${EXTEN}'));
                 $ext->add($context2, $exten2, '', new ext_hangup());
+            }
+            if (isset($codes['audio_test']) && $codes['audio_test'] != '') {
+                $exten=$codes['audio_test'];
+                $context='audio-test';
+                $ext->addInclude('ext-test', $context);
+                $ext->add($context, $exten, '', new ext_noop('Audio Test'));
+                $ext->add($context, $exten, '', new ext_set('CONNECTEDLINE(name-charset,i)','utf8'));
+                $ext->add($context, $exten, '', new ext_set('CONNECTEDLINE(name,i)',_("Audio Test")));
+                $ext->add($context, $exten, '', new ext_set('CONNECTEDLINE(num,i)',$exten));
+                $ext->add($context, $exten, '', new ext_answer());
+                $ext->add($context, $exten, '', new ext_playback('silence/2'));
+                $ext->add($context, $exten, '', new ext_hangup());
             }
             /* add user and admin profile to confbridge_additional.conf */
             if (isset($conferences_conf) && is_a($conferences_conf, "conferences_conf")) {
