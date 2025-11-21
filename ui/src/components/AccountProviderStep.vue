@@ -14,7 +14,8 @@
     <cv-skeleton-text
       v-if="loading.listUserDomains"
       :paragraph="true"
-      :line-count="6"
+      heading
+      :line-count="5"
     ></cv-skeleton-text>
     <template v-else-if="!domains.length">
       <!-- no user domain configured -->

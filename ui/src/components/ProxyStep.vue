@@ -12,7 +12,8 @@
         !instanceStatus || loadingNethvoiceDefaults || loading.getProxyConfig
       "
       :paragraph="true"
-      :line-count="6"
+      heading
+      :line-count="5"
     ></cv-skeleton-text>
     <template v-else>
       <template v-if="!internalIsProxyInstalled">
@@ -73,8 +74,10 @@
               ref="fqdn"
               @input="onFqdnChange"
               :disabled="loading.configureModule"
+              :readonly="isProxyConfigured"
               :class="{ 'input-with-gray-bg': isProxyConfigured }"
             />
+            <!-- //// let's encrypt toggle -->
             <NsComboBox
               v-model="iface"
               :title="$t('welcome.proxy.network_interface')"
@@ -146,7 +149,6 @@
               "
               :showCloseButton="false"
             />
-            <div v-else-if="!isProxyConfigured" class="mb-12rem"></div>
           </cv-form>
         </template>
         <template v-else>
