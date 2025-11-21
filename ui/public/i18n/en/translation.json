@@ -20,7 +20,7 @@
     "work_in_progress": "Work in progress",
     "enabled": "Enabled",
     "disabled": "Disabled",
-    "eg_value": "E.g. {value}",
+    "eg_value": "e.g. {value}",
     "loading": "Loading"
   },
   "error": {
@@ -77,7 +77,7 @@
     "set_password": "NethVoice admin password reset",
     "timezone": "Timezone",
     "timezone_placeholder": "Choose timezone",
-    "timezone_tooltip": "Set the default timezone for current NethVoice installation",
+    "timezone_tooltip": "Timezone for this NethVoice application",
     "create_nethvoice_adm": "Create NethVoice Administrator for users management",
     "remove_nethvoice_adm": "Remove NethVoice Administrator for users management",
     "set_nethvoice_adm_password": "Set NethVoice Administrator password for users management",
@@ -92,7 +92,9 @@
     "satellite_call_transcription_enabled_warning_title": "Potential high credit usage",
     "satellite_call_transcription_enabled_warning_description": "Transcriptions are enabled for every call. Your Deepgram credits may run out quickly if you have many calls.",
     "deepgram_api_key": "Deepgram API Key",
-    "openai_api_key": "OpenAI API Key"
+    "openai_api_key": "OpenAI API Key",
+    "admin_password": "Admin password to access user interface",
+    "confirm_admin_password": "Confirm admin password"
   },
   "warning": {
     "warning_title_message": "Warning"

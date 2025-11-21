@@ -49,6 +49,7 @@
         ref="proxyStep"
         @set-step="step = $event"
       />
+      <NethvoiceStep v-if="step == NETHVOICE_STEP" ref="nethvoiceStep" />
       <!-- <cv-form> //// 
         <template v-if="firstConfigurationStep == SELECT_ACCOUNT_PROVIDER">
         </template>
@@ -332,6 +333,7 @@ import { mapState, mapActions } from "vuex";
 import AccountProviderStep from "./AccountProviderStep.vue";
 import OpenldapStep from "./OpenldapStep.vue";
 import ProxyStep from "./ProxyStep.vue";
+import NethvoiceStep from "./NethvoiceStep.vue";
 
 //// review
 
@@ -342,7 +344,7 @@ export const PROXY_STEP = "proxy";
 export const NETHVOICE_STEP = "nethvoice";
 
 export default {
-  components: { AccountProviderStep, OpenldapStep, ProxyStep },
+  components: { AccountProviderStep, OpenldapStep, ProxyStep, NethvoiceStep },
   name: "FirstConfigurationModal",
   mixins: [UtilService, TaskService, IconService, LottieService],
   props: {
@@ -670,7 +672,7 @@ export default {
           this.$refs.proxyStep.next();
           break;
         case NETHVOICE_STEP:
-          // this.$refs.nethvoiceStep.next(); ////
+          this.$refs.nethvoiceStep.next();
           break;
       }
 

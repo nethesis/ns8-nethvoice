@@ -99,14 +99,6 @@
               <template slot="text-left">{{ $t("common.disabled") }}</template>
               <template slot="text-right">{{ $t("common.enabled") }}</template>
             </NsToggle>
-            <div>
-              isLetsEncryptCurrentlyEnabled
-              {{ isLetsEncryptCurrentlyEnabled }} ////
-            </div>
-            <div>
-              isLetsEncryptEnabled
-              {{ isLetsEncryptEnabled }} ////
-            </div>
             <!-- disabling let's encrypt warning -->
             <NsInlineNotification
               v-if="isLetsEncryptCurrentlyEnabled && !isLetsEncryptEnabled"
