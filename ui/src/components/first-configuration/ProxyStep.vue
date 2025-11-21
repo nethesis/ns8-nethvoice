@@ -62,6 +62,7 @@
             @action="goToProxySettings"
           />
           <cv-form>
+            <!-- fqdn -->
             <NsTextInput
               v-model="fqdn"
               :label="$t('welcome.proxy.domain')"
@@ -77,7 +78,55 @@
               :readonly="isProxyConfigured"
               :class="{ 'input-with-gray-bg': isProxyConfigured }"
             />
-            <!-- //// let's encrypt toggle -->
+            <!-- let's encrypt toggle -->
+            <NsToggle
+              value="letsEncrypt"
+              :label="core.$t('apps_lets_encrypt.request_https_certificate')"
+              v-model="isLetsEncryptEnabled"
+              :disabled="loading.configureModule"
+              :readonly="isProxyConfigured"
+            >
+              <template #tooltip>
+                <div class="mg-bottom-sm">
+                  {{ core.$t("apps_lets_encrypt.lets_encrypt_tips") }}
+                </div>
+                <div class="mg-bottom-sm">
+                  <cv-link @click="goToCertificates">
+                    {{ core.$t("apps_lets_encrypt.go_to_tls_certificates") }}
+                  </cv-link>
+                </div>
+              </template>
+              <template slot="text-left">{{ $t("common.disabled") }}</template>
+              <template slot="text-right">{{ $t("common.enabled") }}</template>
+            </NsToggle>
+            <div>
+              isLetsEncryptCurrentlyEnabled
+              {{ isLetsEncryptCurrentlyEnabled }} ////
+            </div>
+            <div>
+              isLetsEncryptEnabled
+              {{ isLetsEncryptEnabled }} ////
+            </div>
+            <!-- disabling let's encrypt warning -->
+            <NsInlineNotification
+              v-if="isLetsEncryptCurrentlyEnabled && !isLetsEncryptEnabled"
+              kind="warning"
+              :title="
+                core.$t('apps_lets_encrypt.lets_encrypt_disabled_warning')
+              "
+              :description="
+                core.$t(
+                  'apps_lets_encrypt.lets_encrypt_disabled_warning_description',
+                  {
+                    node: this.instanceStatus.node_ui_name
+                      ? this.instanceStatus.node_ui_name
+                      : this.instanceStatus.node,
+                  }
+                )
+              "
+              :showCloseButton="false"
+            />
+            <!-- network interface -->
             <NsComboBox
               v-model="iface"
               :title="$t('welcome.proxy.network_interface')"
@@ -98,6 +147,7 @@
               :light="!isProxyConfigured"
               ref="iface"
             />
+            <!-- public address -->
             <div class="flex flex-col">
               <div class="flex">
                 <div class="bx--label mb-0">
@@ -134,19 +184,36 @@
               />
             </div>
             <NsInlineNotification
-              v-if="error.configureModule"
-              kind="error"
-              :title="$t('action.configure-module')"
-              :description="error.configureModule"
-              :showCloseButton="false"
-            />
-            <NsInlineNotification
               v-if="addressAndInterfaceDontMatch"
               kind="warning"
               :title="$t('welcome.proxy.address_and_iface_dont_match')"
               :description="
                 $t('welcome.proxy.address_and_iface_dont_match_message')
               "
+              :showCloseButton="false"
+            />
+            <NsInlineNotification
+              v-if="validationErrorDetails.length"
+              kind="error"
+              :title="core.$t('apps_lets_encrypt.cannot_obtain_certificate')"
+              :showCloseButton="false"
+            >
+              <template #description>
+                <div class="flex flex-col gap-2">
+                  <div
+                    v-for="(detail, index) in validationErrorDetails"
+                    :key="index"
+                  >
+                    {{ detail }}
+                  </div>
+                </div>
+              </template>
+            </NsInlineNotification>
+            <NsInlineNotification
+              v-if="error.configureModule"
+              kind="error"
+              :title="$t('action.configure-module')"
+              :description="error.configureModule"
               :showCloseButton="false"
             />
           </cv-form>
@@ -215,6 +282,9 @@ export default {
       internalProxyModuleId: false,
       internalIsProxyInstalled: false,
       fqdn: "",
+      isLetsEncryptEnabled: false,
+      isLetsEncryptCurrentlyEnabled: false,
+      validationErrorDetails: [],
       address: "",
       resolvedIp: "",
       public_address: "",
@@ -446,6 +516,7 @@ export default {
     },
     validateConfigureModule() {
       this.clearErrors();
+      this.validationErrorDetails = [];
       let isValidationOk = true;
 
       if (!this.fqdn) {
@@ -519,6 +590,7 @@ export default {
       // build data payload
       let dataPayload = {
         fqdn: this.fqdn,
+        lets_encrypt: this.isLetsEncryptEnabled,
         addresses: {
           address: this.iface,
         },
@@ -579,9 +651,18 @@ export default {
       for (const validationError of validationErrors) {
         let field = this.getValidationErrorField(validationError);
 
-        if (field !== "(root)") {
-          // set i18n error message
-          this.error[field] = this.$t("welcome.proxy." + validationError.error);
+        if (validationError.details) {
+          // show inline error notification with details
+          this.validationErrorDetails = validationError.details
+            .split("\n")
+            .filter((detail) => detail.trim() !== "");
+        } else {
+          if (field !== "(root)") {
+            // set i18n error message
+            this.error[field] = this.$t(
+              "welcome.proxy." + validationError.error
+            );
+          }
         }
       }
     },
@@ -758,6 +839,9 @@ export default {
       this.proxyConfig = taskResult.output;
       this.fqdn = this.proxyConfig.fqdn || "";
 
+      this.isLetsEncryptEnabled = this.proxyConfig.lets_encrypt;
+      this.isLetsEncryptCurrentlyEnabled = this.proxyConfig.lets_encrypt;
+
       // this.iface is set on get-available-interfaces completion
 
       if (this.proxyConfig.addresses.public_address) {
@@ -769,10 +853,13 @@ export default {
       this.loading.getProxyConfig = false;
       this.getAvailableInterfaces();
     },
+    goToCertificates() {
+      this.core.$router.push("/settings/tls-certificates");
+    },
   },
 };
 </script>
 
 <style scoped lang="scss">
-@import "../styles/carbon-utils";
+@import "../../styles/carbon-utils";
 </style>

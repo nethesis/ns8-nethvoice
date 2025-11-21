@@ -20,6 +20,7 @@ export default new Vuex.Store({
     isAppConfigured: true,
     configuration: null,
     instanceStatus: null,
+    defaults: null,
   },
   mutations: {
     setInstanceName(state, instanceName) {
@@ -43,6 +44,9 @@ export default new Vuex.Store({
     setInstanceStatus(state, status) {
       state.instanceStatus = status;
     },
+    setDefaults(state, defaults) {
+      state.defaults = defaults;
+    },
   },
   actions: {
     setInstanceNameInStore(context, instanceName) {
@@ -65,6 +69,9 @@ export default new Vuex.Store({
     },
     setInstanceStatusInStore(context, status) {
       context.commit("setInstanceStatus", status);
+    },
+    setDefaultsInStore(context, defaults) {
+      context.commit("setDefaults", defaults);
     },
   },
 });

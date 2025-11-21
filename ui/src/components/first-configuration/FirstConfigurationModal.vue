@@ -603,7 +603,7 @@ export default {
   //     }
   //   },
   methods: {
-    ...mapActions(["setInstanceStatusInStore"]),
+    ...mapActions(["setInstanceStatusInStore", "setDefaultsInStore"]),
     ...mapActions("firstConfiguration", ["setFirstConfigurationStepInStore"]),
     previousStep() {
       switch (this.step) {
@@ -1270,6 +1270,10 @@ export default {
     },
     getDefaultsCompleted(taskContext, taskResult) {
       const defaults = taskResult.output;
+
+      // save defaults to vuex store
+      this.setDefaultsInStore(defaults);
+
       this.isProxyInstalled = defaults.proxy_status.proxy_installed;
 
       if (this.isProxyInstalled) {
@@ -1460,5 +1464,5 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "../styles/carbon-utils";
+@import "../../styles/carbon-utils";
 </style>

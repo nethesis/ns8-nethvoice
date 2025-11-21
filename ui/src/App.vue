@@ -27,7 +27,7 @@ import {
   UtilService,
 } from "@nethserver/ns8-ui-lib";
 import to from "await-to-js";
-import FirstConfigurationModal from "./components/FirstConfigurationModal";
+import FirstConfigurationModal from "./components/first-configuration/FirstConfigurationModal";
 
 export default {
   name: "App",
