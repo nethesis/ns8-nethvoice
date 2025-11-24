@@ -76,7 +76,7 @@ function nethcti3_get_config($engine) {
                 $ext->addInclude('ext-test', $context);
                 $ext->add($context, $exten, '', new ext_noop('Audio Test'));
                 $ext->add($context, $exten, '', new ext_set('CONNECTEDLINE(name-charset,i)','utf8'));
-                $ext->add($context, $exten, '', new ext_set('CONNECTEDLINE(name,i)',_("Audio Test")));
+                $ext->add($context, $exten, '', new ext_set('CONNECTEDLINE(name,i)',_("Audio Sync")));
                 $ext->add($context, $exten, '', new ext_set('CONNECTEDLINE(num,i)',$exten));
                 $ext->add($context, $exten, '', new ext_answer());
                 $ext->add($context, $exten, '', new ext_playback('silence/2'));
