@@ -10,7 +10,7 @@
       <router-view />
       <FirstConfigurationModal
         :isShown="!isAppConfigured && canOpenFirstConfigurationModal"
-        @configured="getConfiguration"
+        @configured="onConfigured"
         @hide="setCanOpenFirstConfigurationModalInStore(false)"
       />
     </cv-content>
@@ -187,6 +187,10 @@ export default {
       } else {
         this.setAppConfiguredInStore(false);
       }
+    },
+    onConfigured() {
+      this.setAppConfiguredInStore(true);
+      this.getConfiguration();
     },
   },
 };

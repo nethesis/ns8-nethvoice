@@ -32,14 +32,14 @@
         v-if="step == ACCOUNT_PROVIDER_STEP"
         ref="accountProviderStep"
         @set-step="step = $event"
-        @set-account-provider="accountProviderId = $event"
+        @set-account-provider="accountProvider = $event"
         @set-next-enabled="isNextEnabled = $event"
       />
       <OpenldapStep
         v-if="step == OPENLDAP_STEP"
         ref="openldapStep"
         @set-step="step = $event"
-        @set-account-provider="accountProviderId = $event"
+        @set-account-provider="accountProvider = $event"
       />
       <ProxyStep
         v-if="step == PROXY_STEP"
@@ -49,7 +49,12 @@
         ref="proxyStep"
         @set-step="step = $event"
       />
-      <NethvoiceStep v-if="step == NETHVOICE_STEP" ref="nethvoiceStep" />
+      <NethvoiceStep
+        v-if="step == NETHVOICE_STEP"
+        :accountProvider="accountProvider"
+        ref="nethvoiceStep"
+        @finish="$emit('configured')"
+      />
       <!-- <cv-form> //// 
         <template v-if="firstConfigurationStep == SELECT_ACCOUNT_PROVIDER">
         </template>
@@ -360,7 +365,7 @@ export default {
       // accountProviderType: "", //// remove unused variables
       // domains: [],
       // createdOpenLdapId: "",
-      // accountProviderId: "",
+      accountProvider: "",
       proxyModuleId: "",
       isProxyInstalled: false,
       // installProviderProgress: 0, //// use infinite?

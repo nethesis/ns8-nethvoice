@@ -561,7 +561,10 @@ export default {
         `${taskContext.action}-progress-${taskContext.extra.eventId}`
       );
 
-      this.$emit("set-account-provider", this.createdOpenLdapId);
+      this.$emit("set-account-provider", {
+        id: this.createdOpenLdapId,
+        internal: true,
+      });
 
       // go to proxy step
       this.$emit("set-step", PROXY_STEP);

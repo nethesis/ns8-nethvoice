@@ -632,6 +632,7 @@ export default {
     TrashCan20,
   },
   methods: {
+    //// remove and use mixin instead
     generatePassword() {
       const forbiddenSpecialChars = "!#$&()*,-/;<=>[\\]`{|}~";
       const password = GeneratePassword({
@@ -1258,6 +1259,10 @@ export default {
         })
       );
       this.loading.getDefaults = false;
+      this.proxy_installed = taskResult.output.proxy_status.proxy_installed;
+
+      console.log("@@ proxy_installed", this.proxy_installed); ////
+
       //// todo: read proxy status from get defaults output
       // this.getProxyStatus(); ////
     },

@@ -85,6 +85,9 @@
           state="loading"
         />
         <div v-else>&nbsp;</div> -->
+
+        <!-- selectedAccountProvider:
+        {{ JSON.stringify(selectedAccountProvider) }} //// -->
       </div>
       <div class="mb-12rem"></div>
     </template>
@@ -135,6 +138,11 @@ export default {
     },
     isLoadingData() {
       return this.loading.listUserDomains;
+    },
+    selectedAccountProvider() {
+      return this.domains.find(
+        (domain) => domain.name === this.accountProviderId
+      );
     },
   },
   watch: {
@@ -234,7 +242,10 @@ export default {
       if (this.accountProviderType == "create_openldap") {
         this.$emit("set-step", OPENLDAP_STEP);
       } else {
-        this.$emit("set-account-provider", this.accountProviderId);
+        this.$emit("set-account-provider", {
+          id: this.accountProviderId,
+          internal: this.selectedAccountProvider.location === "internal",
+        });
         this.$emit("set-step", PROXY_STEP);
 
         // if (!this.isProxyInstalled) { ////
