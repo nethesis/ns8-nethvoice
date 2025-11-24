@@ -7,7 +7,6 @@
 
 import sys
 import agent
-import agent.tasks
 
 # Read the env file to get updated environment variables
 env = agent.read_envfile('environment')
@@ -17,63 +16,45 @@ if (env.get('NETHVOICE_MIDDLEWARE_PORT') and
     env.get('NETHVOICE_HOST') and 
     env.get('NETHCTI_UI_HOST')):
 
-    # Find default traefik instance for current node
-    default_traefik_id = agent.resolve_agent_id('traefik@node')
-    if default_traefik_id is None:
-        print("Warning: Traefik not found, skipping middleware route configuration", file=sys.stderr)
-        sys.exit(0)
-
-    lets_encrypt = env.get('TRAEFIK_LETS_ENCRYPT', 'false')
-
     # CTI Wizard
     # Configure middleware API route on NETHVOICE_HOST
-    response = agent.tasks.run(
-        agent_id=default_traefik_id,
-        action='set-route',
-        data={
-            'instance': env['MODULE_ID'] + '-middleware-server-api',
-            'url':  'http://127.0.0.1:' + env["NETHVOICE_MIDDLEWARE_PORT"],
-            'http2https':  env["TRAEFIK_HTTP2HTTPS"] == "true",
-            'lets_encrypt': lets_encrypt == 'True',
-            'host': env["NETHVOICE_HOST"],
-            'path': '/api',
-            'strip_prefix': True,
-            'headers': {
-                'response': {
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Credentials': "true",
-                    'Access-Control-Allow-Headers': '*'
-                }
+    agent.set_route({
+        'instance': env['MODULE_ID'] + '-middleware-server-api',
+        'url':  'http://127.0.0.1:' + env["NETHVOICE_MIDDLEWARE_PORT"],
+        'http2https':  env["TRAEFIK_HTTP2HTTPS"] == "true",
+        'host': env["NETHVOICE_HOST"],
+        'path': '/api',
+        'strip_prefix': True,
+        'headers': {
+            'response': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': "true",
+                'Access-Control-Allow-Headers': '*'
             }
-        },
+        }
+    },
+    error_passthrough=False
     )
-    if response['exit_code'] != 0:
-        print(f"Warning: Failed to configure middleware API route on {env['NETHVOICE_HOST']}", file=sys.stderr)
 
     # CTI client
     # Configure middleware API route on NETHCTI_UI_HOST 
-    response = agent.tasks.run(
-        agent_id=default_traefik_id,
-        action='set-route',
-        data={
-            'instance': env['MODULE_ID'] + '-middleware-cti-server-api',
-            'url':  'http://127.0.0.1:' + env["NETHVOICE_MIDDLEWARE_PORT"],
-            'http2https':  env["TRAEFIK_HTTP2HTTPS"] == "true",
-            'lets_encrypt': lets_encrypt == 'True',
-            'host': env["NETHCTI_UI_HOST"],
-            'path': '/api',
-            'strip_prefix': True,
-            'headers': {
-                'response': {
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Credentials': "true",
-                    'Access-Control-Allow-Headers': '*'
-                }
+    agent.set_route({
+        'instance': env['MODULE_ID'] + '-middleware-cti-server-api',
+        'url':  'http://127.0.0.1:' + env["NETHVOICE_MIDDLEWARE_PORT"],
+        'http2https':  env["TRAEFIK_HTTP2HTTPS"] == "true",
+        'host': env["NETHCTI_UI_HOST"],
+        'path': '/api',
+        'strip_prefix': True,
+        'headers': {
+            'response': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': "true",
+                'Access-Control-Allow-Headers': '*'
             }
-        },
+        }
+    },
+    error_passthrough=False
     )
-    if response['exit_code'] != 0:
-        print(f"Warning: Failed to configure middleware API route on {env['NETHCTI_UI_HOST']}", file=sys.stderr)
 
     print("Middleware routes configured successfully", file=sys.stderr)
 else:

@@ -180,7 +180,7 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
     public function getFeaturecodesConfiguration() {
     try {
         $result = array();
-        $codes_to_pick = array("pickup","confbridge_conf","que_toggle","dnd_toggle","incall_audio"); //Add here more codes
+        $codes_to_pick = array("pickup","confbridge_conf","que_toggle","dnd_toggle","incall_audio","audio_test"); //Add here more codes
         $featurecodes = featurecodes_getAllFeaturesDetailed();
         foreach ($featurecodes as $featurcode) {
             if (in_array($featurcode['featurename'],$codes_to_pick)) {
