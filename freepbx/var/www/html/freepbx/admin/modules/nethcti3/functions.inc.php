@@ -380,6 +380,8 @@ function nethcti3_get_config_late($engine) {
             // Create the Satellite context
             $ext->add('satellite', 's', '', new \ext_noop('Satellite STT'));
             // TODO: add a check to see if the user is allowed to use the STT
+            // Add mixmonitor to record the call
+            $ext->add('satellite', 's', '', new \ext_mixmonitor('','br(/tmp/satellite-r-${UNIQUEID}.wav)t(/tmp/satellite-t-${UNIQUEID}.wav)','/var/lib/asterisk/bin/satellite_transcription -u ${UNIQUEID} -l ${CHANNEL(language)}'));
             // Start Stasis
             $ext->add('satellite', 's', '', new \ext_stasis('satellite'));
             $ext->add('satellite', 's', '', new \ext_noop('Stasis satellite end'));
