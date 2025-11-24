@@ -1,0 +1,102 @@
+#!/bin/bash
+
+# Exit immediately if a command exits with a non-zero status.
+set -e
+# Treat unset variables as an error when substituting.
+set -u
+# Pipes fail on the first error.
+set -o pipefail
+
+# Function to display usage information
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") -u <uniqueid> [-l <language>]
+
+This script calls the get_transcription API with the specified WAV file.
+
+ARGUMENTS:
+  -u, --uniqueid    (Required) The unique ID for the WAV file located at /tmp/satellite-\${UNIQUEID}.wav
+  -l, --language    (Optional) The language code (e.g., en, it). If not provided, the API will auto-detect the language.
+
+ENVIRONMENT VARIABLES:
+  SATELLITE_HTTP_PORT   (Required) The port on which the API is listening.
+EOF
+    exit 1
+}
+
+# Parse Command-Line Arguments
+UNIQUEID=""
+LANGUAGE=""
+
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        -u|--uniqueid)
+            UNIQUEID="$2"
+            shift 2
+            ;;
+        -l|--language)
+            LANGUAGE="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown option: $1"
+            usage
+            ;;
+    esac
+done
+
+# Validate Inputs
+if [ -z "${UNIQUEID}" ]; then
+    echo "Error: --uniqueid is a required argument." >&2
+    usage
+fi
+
+if [ -z "${SATELLITE_HTTP_PORT-}" ]; then
+    echo "Error: SATELLITE_HTTP_PORT environment variables must be set." >&2
+    exit 1
+fi
+
+if [ ! -f "/tmp/satellite-${UNIQUEID}.wav" ]; then
+    if [ ! -f "/tmp/satellite-r-${UNIQUEID}.wav" ] || [ ! -f "/tmp/satellite-t-${UNIQUEID}.wav" ]; then
+	echo "Error: Audio file not found at /tmp/satellite-${UNIQUEID}.wav or /tmp/satellite-r-${UNIQUEID}.wav & /tmp/satellite-t-${UNIQUEID}.wav" >&2
+	exit 1
+    fi
+    sox -M /tmp/satellite-t-${UNIQUEID}.wav /tmp/satellite-r-${UNIQUEID}.wav /tmp/satellite-${UNIQUEID}.wav
+fi
+
+# Remove call recordings on exit
+#trap "{ rm -f /tmp/satellite-${UNIQUEID}.wav /tmp/satellite-t-${UNIQUEID}.wav /tmp/satellite-r-${UNIQUEID}.wav 2>/dev/null}" INT TERM EXIT
+
+# Build and Execute API Call
+API_URL="http://127.0.0.1:${SATELLITE_HTTP_PORT}/api/get_transcription"
+
+# Build the curl command arguments in an array for safety and clarity
+CURL_ARGS=(
+    --silent
+    --show-error
+    --request POST
+    --form "multichannel=true"
+    --form "encoding=linear16"
+    --form "sample_rate=8000"
+    --form "channels=2"
+    --form "detect_language=true"
+    --form "smart_format=true"
+    --form "numerals=true"
+    --form "paragraphs=true"
+    --form "punctuate=true"
+    --form "sentiment=true"
+    --form "file=@/tmp/satellite-${UNIQUEID}.wav;type=audio/wav"
+)
+
+# Add the optional language parameter only if it was provided
+if [ -n "${LANGUAGE}" ]; then
+    CURL_ARGS+=( --form "language=${LANGUAGE}" )
+    echo "Using specified language: ${LANGUAGE}"
+fi
+
+# Execute the curl command
+echo "Sending POST request to ${API_URL}"
+echo curl "${API_URL}" "${CURL_ARGS[@]}"
+curl "${API_URL}" "${CURL_ARGS[@]}" | jq | tee /tmp/satellite_transcription_logs
+
+
