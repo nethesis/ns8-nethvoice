@@ -222,7 +222,30 @@ export default {
     },
   },
   watch: {
-    ////
+    "loading.addUser": {
+      immediate: true,
+      handler(newVal) {
+        this.$emit("set-next-loading", newVal);
+        this.$emit("set-next-enabled", !newVal);
+        this.$emit("set-previous-enabled", !newVal);
+      },
+    },
+    "loading.configureModule": {
+      immediate: true,
+      handler(newVal) {
+        this.$emit("set-next-loading", newVal);
+        this.$emit("set-next-enabled", !newVal);
+        this.$emit("set-previous-enabled", !newVal);
+      },
+    },
+    "loading.setAdminPassword": {
+      immediate: true,
+      handler(newVal) {
+        this.$emit("set-next-loading", newVal);
+        this.$emit("set-next-enabled", !newVal);
+        this.$emit("set-previous-enabled", !newVal);
+      },
+    },
   },
   created() {
     this.timezoneOptions = this.defaults.accepted_timezone_list.map((tz) => {
@@ -239,6 +262,8 @@ export default {
 
     // load domain users to check if nethvoice-adm user exists
     this.getUsers();
+
+    this.$emit("set-next-label", this.$t("welcome.configure"));
   },
   methods: {
     validateConfigureModule() {
@@ -416,11 +441,18 @@ export default {
         return;
       }
 
+      //// concurrent tasks?
+      // if (this.accountProvider.internal && !this.admUserExists) {
+      //   this.addAdmUser();
+      // }
+      // this.configureModule();
+      // this.setAdminPassword();
+
       if (this.accountProvider.internal && !this.admUserExists) {
         this.addAdmUser();
+      } else {
+        this.configureModule();
       }
-      this.configureModule();
-      this.setAdminPassword();
     },
     async addAdmUser() {
       this.error.addUser = "";
@@ -435,16 +467,16 @@ export default {
       );
 
       // register to task completion
-      // this.core.$root.$once( ////
-      //   `${taskAction}-completed-${eventId}`,
-      //   this.addAdmUserCompleted
-      // );
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.addAdmUserCompleted
+      );
 
       const admDisplayName = `${this.instanceName} Administrator`;
       this.admUserPassword = this.generateAdmPassword();
 
       const res = await to(
-        this.createClusterTaskForApp(this.instanceName, {
+        this.createClusterTaskForApp({
           action: taskAction,
           data: {
             user: this.admUsername,
@@ -474,6 +506,10 @@ export default {
       this.error.addUser = this.$t("error.generic_error");
       this.loading.addUser = false;
     },
+    addAdmUserCompleted() {
+      this.loading.addUser = false;
+      this.configureModule(); //// start configuration after adm user is created
+    },
     async setAdminPassword() {
       this.error.setAdminPassword = "";
       this.loading.setAdminPassword = true;
@@ -485,6 +521,14 @@ export default {
         `${taskAction}-aborted-${eventId}`,
         this.setAdminPasswordAborted
       );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.setAdminPasswordCompleted
+      );
+
+      console.log("@@ password", this.nethvoice_admin_password); ////
 
       const res = await to(
         this.createModuleTaskForApp(this.instanceName, {
@@ -512,6 +556,12 @@ export default {
       console.error(`${taskContext.action} aborted`, taskResult);
       this.error.setAdminPassword = this.$t("error.generic_error");
       this.loading.setAdminPassword = false;
+    },
+    setAdminPasswordCompleted() {
+      this.loading.setAdminPassword = false;
+
+      // emit to parent that configuration is finished
+      this.$emit("finish"); ////
     },
     async configureModule() {
       this.error.configureModule = "";
@@ -603,8 +653,13 @@ export default {
     configureModuleCompleted(taskContext) {
       console.log("@@ configureModuleCompleted"); ////
 
+      this.loading.configureModule = false;
+
+      //// set admin password only after configuration is completed
+      this.setAdminPassword();
+
       // emit to parent that configuration is finished
-      this.$emit("finish");
+      // this.$emit("finish");  ////
 
       // unregister to task progress
       this.core.$root.$off(

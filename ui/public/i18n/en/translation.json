@@ -12,7 +12,8 @@
     "list-backups": "List backups",
     "list-installed-modules": "List installed modules",
     "get-defaults": "Get defaults",
-    "get-available-interfaces": "Get available interfaces"
+    "get-available-interfaces": "Get available interfaces",
+    "list-domain-users": "List domain users"
   },
   "common": {
     "processing": "Processing...",
@@ -141,6 +142,7 @@
     "configuration_incomplete": "Configuration incomplete",
     "configuration_incomplete_description": "Resume the setup wizard to start using NethVoice.",
     "resume": "Resume",
+    "configure": "Configure",
     "proxy": {
       "address_and_iface_dont_match": "@:welcome.proxy.network_interface and @:welcome.proxy.address do not match",
       "address_and_iface_dont_match_message": "For the devices in the PBX local network to work correctly, the 'Hairpin NAT' feature — also known as 'NAT reflection', 'NAT hairpinning', 'NAT on a stick' or 'Loopback NAT' — must be enabled on the firewall (specifically, on the device that manages the NAT of the public IP).",
@@ -159,7 +161,8 @@
       "proxy_already_configured": "Proxy already configured on {node}",
       "proxy_already_configured_description": "You can change these settings on the Settings page of {proxyModule}.",
       "go_to_proxy_settings": "Go to proxy settings",
-      "configuring_nethvoice_proxy": "Configuring NethVoice Proxy"
+      "configuring_nethvoice_proxy": "Configuring NethVoice Proxy",
+      "install_proxy": "Install Proxy"
     }
   },
   "task": {

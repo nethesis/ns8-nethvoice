@@ -310,6 +310,7 @@ export default {
         installProxy: false,
         configureModule: false,
         resolveFqdn: false,
+        listModules: false,
       },
       error: {
         fqdn: "",
@@ -393,12 +394,41 @@ export default {
     isProxyInstalled: {
       immediate: true,
       handler(newVal) {
+        console.log("### watch isProxyInstalled", this.isProxyInstalled); ////
+
         this.internalIsProxyInstalled = newVal;
 
         if (!newVal) {
           // if proxy is not installed, retrieve modules to obtain proxy version
           this.listModules();
+          this.$emit("set-next-label", this.$t("welcome.proxy.install_proxy"));
+        } else {
+          this.$emit("set-next-label", this.core.$t("common.next"));
         }
+      },
+    },
+    "loading.installProxy": {
+      immediate: true,
+      handler(newVal) {
+        this.$emit("set-next-loading", newVal);
+        this.$emit("set-next-enabled", !newVal);
+        this.$emit("set-previous-enabled", !newVal);
+      },
+    },
+    "loading.configureModule": {
+      immediate: true,
+      handler(newVal) {
+        this.$emit("set-next-loading", newVal);
+        this.$emit("set-next-enabled", !newVal);
+        this.$emit("set-previous-enabled", !newVal);
+      },
+    },
+    "loading.listModules": {
+      immediate: true,
+      handler(newVal) {
+        this.$emit("set-next-enabled", !newVal);
+
+        console.log("## watch loading.listModules", newVal); ////
       },
     },
   },
@@ -730,6 +760,7 @@ export default {
     },
     async installProxy() {
       this.error.installProxy = "";
+      this.loading.installProxy = true;
       const taskAction = "add-module";
       const eventId = this.getUuid();
       this.installingProxyProgress = 0;
@@ -789,11 +820,13 @@ export default {
       if (err) {
         console.error(`error creating task ${taskAction}`, err);
         this.error.installProxy = this.getErrorMessage(err);
+        this.loading.installProxy = false;
         return;
       }
     },
     installProxyAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
+      this.loading.installProxy = false;
 
       // unregister to task progress
       this.core.$root.$off(
@@ -815,6 +848,8 @@ export default {
       this.internalIsProxyInstalled = true;
 
       console.log("@@ internalProxyModuleId", this.internalProxyModuleId); ////
+
+      this.loading.installProxy = false;
 
       // this.setFirstConfigurationStepInStore(CONFIGURE_OR_SHOW_PROXY); ////
     },
@@ -896,6 +931,9 @@ export default {
     },
     async listModules() {
       this.loading.listModules = true;
+
+      console.log("## loading.listModules is now", this.loading.listModules); ////
+
       this.error.listModules = "";
       const taskAction = "list-modules";
       const eventId = this.getUuid();

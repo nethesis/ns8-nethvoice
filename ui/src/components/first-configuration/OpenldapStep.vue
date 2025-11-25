@@ -171,6 +171,47 @@ export default {
         }
       },
     },
+    "loading.addInternalProvider": {
+      immediate: true,
+      handler() {
+        console.log(
+          "@@# watch loading.addInternalProvider",
+          this.loading.addInternalProvider
+        ); ////
+
+        if (this.loading.addInternalProvider || this.loading.configureModule) {
+          this.$emit("set-next-loading", true);
+          this.$emit("set-next-enabled", false);
+          this.$emit("set-previous-enabled", false);
+        } else {
+          this.$emit("set-next-loading", false);
+          this.$emit("set-next-enabled", true);
+          this.$emit("set-previous-enabled", true);
+        }
+      },
+    },
+    "loading.configureModule": {
+      immediate: true,
+      handler() {
+        console.log(
+          "@@# watch loading.configureModule",
+          this.loading.configureModule
+        ); ////
+
+        if (this.loading.addInternalProvider || this.loading.configureModule) {
+          this.$emit("set-next-loading", true);
+          this.$emit("set-next-enabled", false);
+          this.$emit("set-previous-enabled", false);
+        } else {
+          this.$emit("set-next-loading", false);
+          this.$emit("set-next-enabled", true);
+          this.$emit("set-previous-enabled", true);
+        }
+      },
+    },
+  },
+  created() {
+    this.$emit("set-next-label", this.core.$t("common.next"));
   },
   // created() { ////
   //   console.log("created OpenldapStep"); ////
@@ -193,6 +234,7 @@ export default {
     },
     async installOpenldapProvider() {
       this.error.addInternalProvider = "";
+      this.loading.addInternalProvider = true;
       const taskAction = "add-internal-provider";
       const eventId = this.getUuid();
       this.installingProviderProgress = 0;
@@ -243,11 +285,14 @@ export default {
       if (err) {
         console.error(`error creating task ${taskAction}`, err);
         this.error.addInternalProvider = this.getErrorMessage(err);
+        this.loading.addInternalProvider = false;
         return;
       }
     },
     addInternalProviderAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.addInternalProvider = this.$t("error.generic_error");
+      this.loading.addInternalProvider = false;
 
       // unregister to task progress
       this.core.$root.$off(
@@ -262,63 +307,11 @@ export default {
 
       this.createdOpenLdapId = taskResult.output.module_id;
       this.getOpenLdapDefaults();
+      this.loading.addInternalProvider = false;
     },
     addInternalProviderProgress(progress) {
       this.installingProviderProgress = progress;
     },
-    // async getStatus() { ////
-    //   this.loading.getStatus = true;
-    //   this.error.getStatus = "";
-    //   const taskAction = "get-status";
-    //   const eventId = this.getUuid();
-
-    //   // register to task error
-    //   this.core.$root.$once(
-    //     `${taskAction}-aborted-${eventId}`,
-    //     this.getStatusAborted
-    //   );
-
-    //   // register to task completion
-    //   this.core.$root.$once(
-    //     `${taskAction}-completed-${eventId}`,
-    //     this.getStatusCompleted
-    //   );
-
-    //   const res = await to(
-    //     this.createModuleTaskForApp(this.instanceName, {
-    //       action: taskAction,
-    //       extra: {
-    //         title: this.$t("action." + taskAction),
-    //         isNotificationHidden: true,
-    //         eventId,
-    //       },
-    //     })
-    //   );
-    //   const err = res[0];
-
-    //   if (err) {
-    //     console.error(`error creating task ${taskAction}`, err);
-    //     this.error.getStatus = this.getErrorMessage(err);
-    //     this.loading.getStatus = false;
-    //     return;
-    //   }
-    // },
-    // getStatusAborted(taskResult, taskContext) {
-    //   console.error(`${taskContext.action} aborted`, taskResult);
-    //   this.error.getStatus = this.$t("error.generic_error");
-    //   this.loading.getStatus = false;
-    // },
-    // getStatusCompleted(taskContext, taskResult) {
-    //   this.status = taskResult.output;
-
-    //   console.log("@@ status", this.status); ////
-
-    //   // save status to vuex store
-    //   this.setInstanceStatusInStore(this.status);
-    //   this.loading.getStatus = false;
-    //   // install openldap provider
-    //   this.installOpenldapProvider();
-    // },
     async getOpenLdapDefaults() {
       this.loading.getOpenLdapDefaults = true;
       this.error.getOpenLdapDefaults = "";

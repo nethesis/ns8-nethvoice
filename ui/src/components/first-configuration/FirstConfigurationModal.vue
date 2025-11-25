@@ -8,8 +8,8 @@
     :visible="isShown"
     :cancelLabel="core.$t('common.cancel')"
     :previousLabel="core.$t('common.previous')"
-    :nextLabel="nextButtonLabel"
-    :isPreviousDisabled="isPreviousButtonDisabled"
+    :nextLabel="nextButtonLabel || core.$t('common.next')"
+    :isPreviousDisabled="!isPreviousEnabled"
     :isNextDisabled="!isNextEnabled"
     :isNextLoading="isNextLoading"
     @modal-hidden="$emit('hide')"
@@ -19,7 +19,14 @@
   >
     <template slot="title">{{ $t("welcome.configure_nethvoice") }}</template>
     <template slot="content">
-      <!-- firstConfigurationStep {{ firstConfigurationStep }} //// -->
+      <!-- <cv-progress //// 
+        :initialStep="1"
+        :steps="[
+          $t('welcome.account_provider'),
+          $t('welcome.nethvoice_proxy'),
+          $t('welcome.nethvoice_application'),
+        ]"
+      /> -->
       <div class="mb-6">step {{ step }} ////</div>
       <NsInlineNotification
         v-if="error.getDefaults"
@@ -33,13 +40,20 @@
         :nodeLabel="nodeLabel"
         @set-step="step = $event"
         @set-account-provider="accountProvider = $event"
+        @set-previous-enabled="isPreviousEnabled = $event"
         @set-next-enabled="isNextEnabled = $event"
+        @set-next-loading="isNextLoading = $event"
+        @set-next-label="nextButtonLabel = $event"
         ref="accountProviderStep"
       />
       <OpenldapStep
         v-if="step == OPENLDAP_STEP"
         @set-step="step = $event"
         @set-account-provider="accountProvider = $event"
+        @set-previous-enabled="isPreviousEnabled = $event"
+        @set-next-enabled="isNextEnabled = $event"
+        @set-next-loading="isNextLoading = $event"
+        @set-next-label="nextButtonLabel = $event"
         ref="openldapStep"
       />
       <ProxyStep
@@ -49,12 +63,20 @@
         :loadingNethvoiceDefaults="loading.getDefaults"
         :nodeLabel="nodeLabel"
         @set-step="step = $event"
+        @set-previous-enabled="isPreviousEnabled = $event"
+        @set-next-enabled="isNextEnabled = $event"
+        @set-next-loading="isNextLoading = $event"
+        @set-next-label="nextButtonLabel = $event"
         ref="proxyStep"
       />
       <NethvoiceStep
         v-if="step == NETHVOICE_STEP"
         :accountProvider="accountProvider"
         ref="nethvoiceStep"
+        @set-previous-enabled="isPreviousEnabled = $event"
+        @set-next-enabled="isNextEnabled = $event"
+        @set-next-loading="isNextLoading = $event"
+        @set-next-label="nextButtonLabel = $event"
         @finish="$emit('configured')"
       />
     </template>
@@ -102,8 +124,10 @@ export default {
       isProxyInstalled: false,
       installingProxyProgress: 0,
       configuringProxyProgress: 0,
+      isPreviousEnabled: false,
       isNextEnabled: false,
       isNextLoading: false,
+      nextButtonLabel: "",
       // Expose constants for template use
       ACCOUNT_PROVIDER_STEP,
       OPENLDAP_STEP,
@@ -185,29 +209,28 @@ export default {
         return "";
       }
     },
-    isPreviousButtonDisabled() {
-      //// todo
-      return false;
-      // return [ ////
-      //   "selectAccountProvider",
-      //   "installingOpenldap",
-      //   "configuringOpenldap",
-      //   "installingProxy",
-      //   "configuringProxy",
-      //   "configuringNethvoice",
-      // ].includes(this.firstConfigurationStep);
-    },
-    nextButtonLabel() {
-      // if (this.firstConfigurationStep == "selectAccountProvider") {
-      //   if (!this.domains.length && !this.loading.listUserDomains) {
-      //     return this.$t("welcome.install_openldap");
-      //   }
-      //   //// todo
-      // }
+    // isPreviousButtonDisabled() { ////
+    //   return this.step == ACCOUNT_PROVIDER_STEP;
+    //   // return [  ////
+    //   //   ACCOUNT_PROVIDER_STEP,
+    //   //   "installingOpenldap",
+    //   //   "configuringOpenldap",
+    //   //   "installingProxy",
+    //   //   "configuringProxy",
+    //   //   "configuringNethvoice",
+    //   // ].includes(this.step);
+    // },
+    // nextButtonLabel() { ////
+    //   // if (this.firstConfigurationStep == "selectAccountProvider") {
+    //   //   if (!this.domains.length && !this.loading.listUserDomains) {
+    //   //     return this.$t("welcome.install_openldap");
+    //   //   }
+    //   //   //// todo
+    //   // }
 
-      //// user children event
-      return this.core.$t("common.next");
-    },
+    //   //// user children event
+    //   return this.core.$t("common.next");
+    // },
   },
   watch: {
     isShown: function () {

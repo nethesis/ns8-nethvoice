@@ -162,13 +162,34 @@ export default {
         this.$emit("set-next-enabled", !newVal);
       },
     },
+    domains: {
+      immediate: true,
+      handler() {
+        this.updateNextButtonLabel();
+      },
+    },
+    accountProviderType: {
+      immediate: true,
+      handler() {
+        this.updateNextButtonLabel();
+      },
+    },
   },
   created() {
-    console.log("created AccountProviderStep"); ////
-
     this.listUserDomains();
+    this.$emit("set-previous-enabled", false);
   },
   methods: {
+    updateNextButtonLabel() {
+      if (
+        !this.domains.length ||
+        this.accountProviderType == "create_openldap"
+      ) {
+        this.$emit("set-next-label", this.$t("welcome.install_openldap"));
+      } else {
+        this.$emit("set-next-label", this.core.$t("common.next"));
+      }
+    },
     goToDomainsAndUsers() {
       this.core.$router.push("/domains");
     },
@@ -243,13 +264,14 @@ export default {
       }
     },
     next() {
-      console.log("next!"); ////
-
       if (!this.validateSelectAccountProvider()) {
         return;
       }
 
-      if (this.accountProviderType == "create_openldap") {
+      if (
+        !this.domains.length ||
+        this.accountProviderType == "create_openldap"
+      ) {
         this.$emit("set-step", OPENLDAP_STEP);
       } else {
         this.$emit("set-account-provider", {
