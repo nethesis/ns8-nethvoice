@@ -9,9 +9,9 @@
       <AppMobileSideMenu />
       <router-view />
       <FirstConfigurationModal
-        :isShown="!isAppConfigured && canOpenFirstConfigurationModal"
+        :isShown="isShownFirstConfigurationModal"
         @configured="onConfigured"
-        @hide="setCanOpenFirstConfigurationModalInStore(false)"
+        @hide="setShownFirstConfigurationModalInStore(false)"
       />
     </cv-content>
   </div>
@@ -39,7 +39,7 @@ export default {
       "instanceLabel",
       "core",
       "isAppConfigured",
-      "canOpenFirstConfigurationModal",
+      "isShownFirstConfigurationModal",
     ]),
   },
   created() {
@@ -84,10 +84,11 @@ export default {
       "setAppNameInStore",
       "setAppConfiguredInStore",
       "setConfigurationInStore",
+      "setShownFirstConfigurationModalInStore",
     ]),
-    ...mapActions("firstConfiguration", [
-      "setCanOpenFirstConfigurationModalInStore",
-    ]),
+    // ...mapActions("firstConfiguration", [ ////
+    //   "setCanOpenFirstConfigurationModalInStore",
+    // ]),
     async getInstanceLabel() {
       const taskAction = "get-name";
       const eventId = this.getUuid();
@@ -186,10 +187,12 @@ export default {
         this.setAppConfiguredInStore(true);
       } else {
         this.setAppConfiguredInStore(false);
+        this.setShownFirstConfigurationModalInStore(true);
       }
     },
     onConfigured() {
       this.setAppConfiguredInStore(true);
+      this.setShownFirstConfigurationModalInStore(false);
       this.getConfiguration();
     },
   },

@@ -9,6 +9,13 @@
         <h2>{{ $t("status.title") }}</h2>
       </cv-column>
     </cv-row>
+    <cv-row>
+      <cv-column>
+        <ResumeConfigNotification
+          v-if="!isAppConfigured && !isShownFirstConfigurationModal"
+        />
+      </cv-column>
+    </cv-row>
     <cv-row v-if="error.getStatus">
       <cv-column>
         <NsInlineNotification
@@ -264,9 +271,11 @@ import {
   UtilService,
   PageTitleService,
 } from "@nethserver/ns8-ui-lib";
+import ResumeConfigNotification from "@/components/first-configuration/ResumeConfigNotification.vue";
 
 export default {
   name: "Status",
+  components: { ResumeConfigNotification },
   mixins: [
     TaskService,
     QueryParamService,
@@ -312,6 +321,8 @@ export default {
       "core",
       "appName",
       "configuration",
+      "isAppConfigured",
+      "isShownFirstConfigurationModal",
     ]),
     installationNodeTitle() {
       if (this.status && this.status.node) {

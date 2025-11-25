@@ -9,6 +9,13 @@
         <h2>{{ $t("settings.title") }}</h2>
       </cv-column>
     </cv-row>
+    <cv-row>
+      <cv-column>
+        <ResumeConfigNotification
+          v-if="!isAppConfigured && !isShownFirstConfigurationModal"
+        />
+      </cv-column>
+    </cv-row>
     <cv-row v-if="error.getConfiguration">
       <cv-column>
         <NsInlineNotification
@@ -49,6 +56,19 @@
               :invalid-message="error.nethcti_ui_host"
               ref="nethcti_ui_host"
             />
+            <cv-toggle
+              :label="$t('settings.lets_encrypt')"
+              value="lets_encrypt"
+              :disabled="loadingState || !proxy_installed"
+              v-model="form.lets_encrypt"
+            >
+              <template slot="text-left">
+                {{ $t("common.disabled") }}
+              </template>
+              <template slot="text-right">
+                {{ $t("common.enabled") }}
+              </template>
+            </cv-toggle>
             <NsInlineNotification
               v-if="warningVisible"
               kind="warning"
@@ -75,7 +95,7 @@
               :title="$t('settings.timezone')"
               :label="$t('settings.timezone_placeholder')"
               :options="timezoneList"
-              :userInputLabel="core.$t('settings.choose_timezone')"
+              :userInputLabel="core.$t('common.user_input_l')"
               :acceptUserInput="false"
               :showItemType="true"
               :invalid-message="$t(error.timezone)"
@@ -93,19 +113,6 @@
                 {{ $t("settings.timezone_tooltip") }}
               </template>
             </NsComboBox>
-            <cv-toggle
-              :label="$t('settings.lets_encrypt')"
-              value="lets_encrypt"
-              :disabled="loadingState || !proxy_installed"
-              v-model="form.lets_encrypt"
-            >
-              <template slot="text-left">
-                {{ $t("common.disabled") }}
-              </template>
-              <template slot="text-right">
-                {{ $t("common.enabled") }}
-              </template>
-            </cv-toggle>
             <NsTextInput
               :label="$t('settings.reports_international_prefix')"
               v-model="form.reports_international_prefix"
@@ -238,16 +245,6 @@
               ref="openai_api_key"
             />
             <!-- End Satellite Settings -->
-            <cv-row v-if="error.configureModule">
-              <cv-column>
-                <NsInlineNotification
-                  kind="error"
-                  :title="$t('action.configure-module')"
-                  :description="error.configureModule"
-                  :showCloseButton="false"
-                />
-              </cv-column>
-            </cv-row>
             <label
               v-if="form.rebranding_active"
               class="rebranding_section_title_style"
@@ -453,7 +450,30 @@
                 </template>
               </cv-accordion-item>
             </cv-accordion>
-
+            <NsInlineNotification
+              v-if="validationErrorDetails.length"
+              kind="error"
+              :title="core.$t('apps_lets_encrypt.cannot_obtain_certificate')"
+              :showCloseButton="false"
+            >
+              <template #description>
+                <div class="flex flex-col gap-2">
+                  <div
+                    v-for="(detail, index) in validationErrorDetails"
+                    :key="index"
+                  >
+                    {{ detail }}
+                  </div>
+                </div>
+              </template>
+            </NsInlineNotification>
+            <NsInlineNotification
+              v-if="error.configureModule"
+              kind="error"
+              :title="$t('action.configure-module')"
+              :description="error.configureModule"
+              :showCloseButton="false"
+            />
             <NsButton
               kind="primary"
               :icon="Save20"
@@ -473,7 +493,6 @@
 import to from "await-to-js";
 import { mapState } from "vuex";
 import { Sun20, Moon20, TrashCan20 } from "@carbon/icons-vue";
-
 import {
   QueryParamService,
   UtilService,
@@ -482,9 +501,11 @@ import {
   PageTitleService,
 } from "@nethserver/ns8-ui-lib";
 import { GeneratePassword } from "generate-password-lite";
+import ResumeConfigNotification from "@/components/first-configuration/ResumeConfigNotification.vue";
 
 export default {
   name: "Settings",
+  components: { Sun20, Moon20, TrashCan20, ResumeConfigNotification },
   mixins: [
     TaskService,
     IconService,
@@ -505,6 +526,7 @@ export default {
       open: [false, false],
       align: "end",
       size: "medium",
+      validationErrorDetails: [],
       form: {
         nethvoice_host: "",
         nethvoice_admin_password: "",
@@ -581,7 +603,13 @@ export default {
     };
   },
   computed: {
-    ...mapState(["instanceName", "core", "appName"]),
+    ...mapState([
+      "instanceName",
+      "core",
+      "appName",
+      "isAppConfigured",
+      "isShownFirstConfigurationModal",
+    ]),
     loadingState() {
       return Object.values(this.loading).some(
         (loadingState) => loadingState === true
@@ -625,11 +653,6 @@ export default {
     this.getUserDomains();
     this.getDefaults();
     this.getRebranding();
-  },
-  components: {
-    Sun20,
-    Moon20,
-    TrashCan20,
   },
   methods: {
     //// remove and use mixin instead
@@ -815,12 +838,14 @@ export default {
     },
     validateConfigureModule() {
       this.clearErrors(this);
+      this.validationErrorDetails = [];
       let isValidationOk = true;
 
-      if (!this.form.nethvoice_host) {
-        this.error.nethvoice_host = this.$t("error.required");
-        isValidationOk = false;
-      }
+      //// uncomment
+      // if (!this.form.nethvoice_host) {
+      //   this.error.nethvoice_host = this.$t("error.required");
+      //   isValidationOk = false;
+      // }
 
       if (!this.form.nethcti_ui_host) {
         this.error.nethcti_ui_host = this.$t("error.required");
@@ -860,10 +885,17 @@ export default {
       this.loading.configureModule = false;
 
       for (const validationError of validationErrors) {
-        const param = validationError.parameter;
+        if (validationError.details) {
+          // show inline error notification with details
+          this.validationErrorDetails = validationError.details
+            .split("\n")
+            .filter((detail) => detail.trim() !== "");
+        } else {
+          const param = validationError.parameter;
 
-        // set i18n error message
-        this.error[param] = this.$t("settings." + validationError.error);
+          // set i18n error message
+          this.error[param] = this.$t("settings." + validationError.error);
+        }
       }
     },
     async configureModule() {
@@ -905,6 +937,7 @@ export default {
                 title: this.$t("settings.create_nethvoice_adm"),
                 description: this.$t("common.processing"),
                 eventId,
+                isNotificationHidden: true,
               },
             })
           );
@@ -934,6 +967,7 @@ export default {
                     title: this.$t("settings.set_nethvoice_adm_password"),
                     description: this.$t("common.processing"),
                     eventId,
+                    isNotificationHidden: true,
                   },
                 }
               )

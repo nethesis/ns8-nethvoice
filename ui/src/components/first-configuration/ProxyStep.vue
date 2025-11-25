@@ -6,6 +6,7 @@
   <div>
     <div>//// internalIsProxyInstalled {{ internalIsProxyInstalled }}</div>
     <div>//// internalProxyModuleId {{ internalProxyModuleId }}</div>
+    <div>//// proxyVersion {{ proxyVersion }}</div>
     <!-- <div>//// createdProxyModuleId {{ createdProxyModuleId }}</div> -->
     <cv-skeleton-text
       v-if="
@@ -19,7 +20,11 @@
       <template v-if="!internalIsProxyInstalled">
         <!-- proxy not installed -->
         <template v-if="!isInstallProxyValidationCompleted">
-          <NsEmptyState :title="$t('welcome.proxy_missing_on_node')">
+          <NsEmptyState
+            :title="
+              $t('welcome.proxy_missing_on_node', { node: this.nodeLabel })
+            "
+          >
             <template #description>
               {{ $t("welcome.proxy_missing_on_node_description") }}
             </template>
@@ -53,9 +58,15 @@
           <NsInlineNotification
             v-if="isProxyConfigured"
             kind="info"
-            :title="$t('welcome.proxy.proxy_already_configured')"
+            :title="
+              $t('welcome.proxy.proxy_already_configured', {
+                node: this.nodeLabel,
+              })
+            "
             :description="
-              $t('welcome.proxy.proxy_already_configured_description')
+              $t('welcome.proxy.proxy_already_configured_description', {
+                proxyModule: this.internalProxyModuleId,
+              })
             "
             :showCloseButton="false"
             :actionLabel="$t('welcome.proxy.go_to_proxy_settings')"
@@ -262,6 +273,10 @@ export default {
       type: String,
       required: true,
     },
+    nodeLabel: {
+      type: String,
+      required: true,
+    },
     // proxyConfig: { ////
     //   type: [Object, null],
     //   default: null,
@@ -288,6 +303,7 @@ export default {
       configuringProxyProgress: 0,
       isInstallProxyValidationCompleted: false,
       isConfigureProxyValidationCompleted: false,
+      apps: [],
       loading: {
         getProxyConfig: false,
         getAvailableInterfaces: false,
@@ -320,6 +336,26 @@ export default {
         return true;
       } else {
         return false;
+      }
+    },
+    proxyVersion() {
+      if (!this.apps) {
+        return "";
+      }
+
+      const proxyApp = this.apps.find((app) => app.id === "nethvoice-proxy");
+
+      console.log("proxyApp", proxyApp); ////
+
+      if (
+        proxyApp &&
+        proxyApp.versions &&
+        proxyApp.versions.length > 0 &&
+        proxyApp.versions[0].tag
+      ) {
+        return proxyApp.versions[0].tag;
+      } else {
+        return "";
       }
     },
   },
@@ -358,13 +394,17 @@ export default {
       immediate: true,
       handler(newVal) {
         this.internalIsProxyInstalled = newVal;
+
+        if (!newVal) {
+          // if proxy is not installed, retrieve modules to obtain proxy version
+          this.listModules();
+        }
       },
     },
   },
-  // created() { ////
-  //   // this.updateData(); ////
-  //   this.getAvailableInterfaces();
-  // },
+  created() {
+    this.listModules();
+  },
   methods: {
     // updateData() { ////
     //   console.log("updateData"); ////
@@ -496,10 +536,10 @@ export default {
       this.interfaces = interfaces;
       this.loading.getAvailableInterfaces = false;
 
-      // set interface from config in combobox
-      this.$nextTick(() => {
-        this.iface = this.proxyConfig.addresses.address;
-      });
+      // set interface from config in combobox //// remove
+      // this.$nextTick(() => {
+      //   this.iface = this.proxyConfig.addresses.address;
+      // }); ////
     },
     getAvailableInterfacesAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
@@ -527,7 +567,11 @@ export default {
         }
       }
 
+      console.log("@ iface", this.iface); ////
+
       if (!this.iface) {
+        console.log("@@ ok"); ////
+
         this.error.iface = this.$t("common.required");
         isValidationOk = false;
       }
@@ -721,12 +765,14 @@ export default {
 
       console.log("nodeId", nodeId); ////
 
+      console.log("@@ proxyVersion", this.proxyVersion); ////
+
       const res = await to(
         this.createClusterTaskForApp({
           action: taskAction,
           data: {
-            //// todo fix version
-            image: "ghcr.io/nethesis/nethvoice-proxy:latest",
+            // image: `ghcr.io/nethesis/nethvoice-proxy:${this.proxyVersion}`, //// uncomment
+            image: "ghcr.io/nethesis/nethvoice-proxy:latest", //// remove
             node: nodeId,
           },
           extra: {
@@ -847,6 +893,56 @@ export default {
     },
     goToCertificates() {
       this.core.$router.push("/settings/tls-certificates");
+    },
+    async listModules() {
+      this.loading.listModules = true;
+      this.error.listModules = "";
+      const taskAction = "list-modules";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.listModulesAborted
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.listModulesCompleted
+      );
+
+      const res = await to(
+        this.createClusterTaskForApp({
+          action: taskAction,
+          extra: {
+            title: this.core.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.listModules = this.getErrorMessage(err);
+        this.loading.listModules = false;
+        return;
+      }
+    },
+    listModulesAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.listModules = this.$t("error.generic_error");
+      this.loading.listModules = false;
+    },
+    listModulesCompleted(taskContext, taskResult) {
+      let apps = taskResult.output;
+      apps.sort(this.sortByProperty("name"));
+      this.apps = apps;
+      this.loading.listModules = false;
+
+      console.log("@@ apps", this.apps); ////
     },
   },
 };

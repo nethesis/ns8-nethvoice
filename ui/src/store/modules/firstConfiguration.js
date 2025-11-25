@@ -17,35 +17,33 @@ export const CONFIGURE_NETHVOICE = "configureNethvoice";
 export default {
   namespaced: true,
   state: {
-    firstConfigurationStep: SELECT_ACCOUNT_PROVIDER,
-    canOpenFirstConfigurationModal: true,
+    // firstConfigurationStep: SELECT_ACCOUNT_PROVIDER, ////
+    // canOpenFirstConfigurationModal: true,
   },
   mutations: {
-    setFirstConfigurationStep(state, step) {
-      state.firstConfigurationStep = step;
-    },
-    setCanOpenFirstConfigurationModal(state, value) {
-      state.canOpenFirstConfigurationModal = value;
-    },
+    // setFirstConfigurationStep(state, step) { ////
+    //   state.firstConfigurationStep = step;
+    // },
+    // setCanOpenFirstConfigurationModal(state, value) {
+    //   state.canOpenFirstConfigurationModal = value;
+    // },
   },
   actions: {
-    setFirstConfigurationStepInStore(context, step) {
-      context.commit("setFirstConfigurationStep", step);
-    },
-    setCanOpenFirstConfigurationModalInStore(context, value) {
-      context.commit("setCanOpenFirstConfigurationModal", value);
-    },
+    // setFirstConfigurationStepInStore(context, step) { ////
+    //   context.commit("setFirstConfigurationStep", step);
+    // },
+    // setCanOpenFirstConfigurationModalInStore(context, value) {
+    //   context.commit("setCanOpenFirstConfigurationModal", value);
+    // },
     // goToNextStep(context) { //// remove
     //   const currentStep = context.state.firstConfigurationStep;
     //   let nextStep = null;
-
     //   switch (currentStep) {
     //     case SELECT_ACCOUNT_PROVIDER:
     //          //// todo perform validation!
     //     //   if (!this.validateSelectAccountProvider()) {
     //     //     return;
     //     //   }
-
     //       if (this.accountProviderType == "create_openldap") {
     //         this.step = "installingOpenldap";
     //       } else {

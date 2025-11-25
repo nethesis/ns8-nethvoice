@@ -40,7 +40,16 @@
       <!-- there are user domains configured -->
       <div class="flex flex-col gap-4">
         <div>
-          {{ $t("welcome.account_provider_step_description") }}
+          <i18n path="welcome.account_provider_step_description" tag="span">
+            <template v-slot:domainsAndUsers>
+              <cv-link @click="goToDomainsAndUsers">
+                {{ core.$t("domains.title") }}
+              </cv-link>
+            </template>
+            <template v-slot:node>
+              {{ nodeLabel }}
+            </template>
+          </i18n>
         </div>
         <div>
           <label class="bx--label">
@@ -55,7 +64,9 @@
             />
             <cv-radio-button
               ref="radioVal"
-              :label="$t('welcome.create_openldap_provider')"
+              :label="
+                $t('welcome.create_openldap_provider', { node: this.nodeLabel })
+              "
               value="create_openldap"
               v-model="accountProviderType"
             />
@@ -79,13 +90,6 @@
           light
           ref="accountProvider"
         />
-        <!-- <cv-inline-loading //// 
-          v-if="isLoadingData"
-          :loading-text="$t('welcome.loading_data_next_steps')"
-          state="loading"
-        />
-        <div v-else>&nbsp;</div> -->
-
         <!-- selectedAccountProvider:
         {{ JSON.stringify(selectedAccountProvider) }} //// -->
       </div>
@@ -110,6 +114,12 @@ import { OPENLDAP_STEP, PROXY_STEP } from "./FirstConfigurationModal.vue";
 export default {
   name: "AccountProviderStep",
   mixins: [UtilService, TaskService, IconService, LottieService],
+  props: {
+    nodeLabel: {
+      type: String,
+      required: true,
+    },
+  },
   data() {
     return {
       domains: [],

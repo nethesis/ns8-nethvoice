@@ -16,6 +16,7 @@
           :disabled="loading.configureModule"
           :invalid-message="error.nethvoice_host"
           ref="nethvoice_host"
+          data-modal-primary-focus
         />
         <NsTextInput
           :label="$t('settings.nethcti_ui_host')"
@@ -134,7 +135,7 @@
     <template v-else>
       <!-- configuring nethvoice -->
       <NsEmptyState
-        :title="$t('welcome.proxy.configuring_nethvoice')"
+        :title="$t('welcome.configuring_nethvoice')"
         :animationData="GearsLottie"
         animationTitle="gears"
         :loop="true"
@@ -456,6 +457,7 @@ export default {
             title: this.$t("settings.create_nethvoice_adm"),
             description: this.$t("common.processing"),
             eventId,
+            isNotificationHidden: true,
           },
         })
       );
@@ -494,6 +496,7 @@ export default {
             title: this.$t("settings.set_password"),
             description: this.$t("common.processing"),
             eventId,
+            isNotificationHidden: true,
           },
         })
       );
@@ -515,6 +518,7 @@ export default {
       this.loading.configureModule = true;
       const taskAction = "configure-module";
       const eventId = this.getUuid();
+      this.configuringNethvoiceProgress = 0;
 
       // register to task error
       this.core.$root.$once(
@@ -538,6 +542,12 @@ export default {
         this.configureModuleCompleted
       );
 
+      // register to task progress to update progress bar
+      this.core.$root.$on(
+        `${taskAction}-progress-${eventId}`,
+        this.configureModuleProgress
+      );
+
       const res = await to(
         this.createModuleTaskForApp(this.instanceName, {
           action: taskAction,
@@ -550,25 +560,6 @@ export default {
             timezone: this.timezone,
             nethvoice_adm_username: this.admUsername,
             nethvoice_adm_password: this.admUserPassword,
-            ////
-            // nethcti_privacy_numbers: this.form.nethcti_privacy_numbers,
-            // nethvoice_hotel: this.form.nethvoice_hotel ? "True" : "False",
-            // nethvoice_hotel_fias_address: this.form.nethvoice_hotel
-            //   ? this.form.nethvoice_hotel_fias_address
-            //   : "",
-            // nethvoice_hotel_fias_port: this.form.nethvoice_hotel
-            //   ? this.form.nethvoice_hotel_fias_port
-            //   : "",
-            // satellite_call_transcription_enabled: this.form
-            //   .satellite_call_transcription_enabled
-            //   ? "True"
-            //   : "False",
-            // satellite_voicemail_transcription_enabled: this.form
-            //   .satellite_voicemail_transcription_enabled
-            //   ? "True"
-            //   : "False",
-            // deepgram_api_key: this.form.deepgram_api_key,
-            // openai_api_key: this.form.openai_api_key,
           },
           extra: {
             title: this.$t("settings.configure_instance", {
@@ -576,6 +567,7 @@ export default {
             }),
             description: this.$t("common.processing"),
             eventId,
+            isProgressNotified: true,
           },
         })
       );
@@ -592,6 +584,11 @@ export default {
       console.error(`${taskContext.action} aborted`, taskResult);
       this.error.configureModule = this.$t("error.generic_error");
       this.loading.configureModule = false;
+
+      // unregister to task progress
+      this.core.$root.$off(
+        `${taskContext.action}-progress-${taskContext.extra.eventId}`
+      );
     },
     configureModuleValidationOk() {
       // show progress animation
@@ -600,11 +597,19 @@ export default {
       // emit to parent that validation is ok ////
       // this.$emit("configureModuleValidationOk"); //// remove
     },
-    configureModuleCompleted() {
+    configureModuleProgress(progress) {
+      this.configuringNethvoiceProgress = progress;
+    },
+    configureModuleCompleted(taskContext) {
       console.log("@@ configureModuleCompleted"); ////
 
       // emit to parent that configuration is finished
       this.$emit("finish");
+
+      // unregister to task progress
+      this.core.$root.$off(
+        `${taskContext.action}-progress-${taskContext.extra.eventId}`
+      );
     },
   },
 };

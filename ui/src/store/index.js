@@ -18,6 +18,7 @@ export default new Vuex.Store({
     instanceLabel: "",
     core: null,
     isAppConfigured: true,
+    isShownFirstConfigurationModal: false,
     configuration: null,
     instanceStatus: null,
     defaults: null,
@@ -47,6 +48,9 @@ export default new Vuex.Store({
     setDefaults(state, defaults) {
       state.defaults = defaults;
     },
+    setShownFirstConfigurationModal(state, value) {
+      state.isShownFirstConfigurationModal = value;
+    },
   },
   actions: {
     setInstanceNameInStore(context, instanceName) {
@@ -72,6 +76,9 @@ export default new Vuex.Store({
     },
     setDefaultsInStore(context, defaults) {
       context.commit("setDefaults", defaults);
+    },
+    setShownFirstConfigurationModalInStore(context, value) {
+      context.commit("setShownFirstConfigurationModal", value);
     },
   },
 });
