@@ -1,0 +1,425 @@
+#!/usr/bin/env python3
+"""
+ctictl - CLI to call middleware /admin/* APIs
+
+Supports:
+  - Fetching OpenAPI spec from local file or URL
+  - Listing admin endpoints with summaries and descriptions
+  - Inferring HTTP methods from OpenAPI
+  - Making authenticated requests with super-admin token
+"""
+
+import sys
+import os
+import argparse
+import json
+import logging
+import http.client
+from pathlib import Path
+from typing import Optional, Dict, Any
+
+import yaml
+import requests
+
+
+def load_openapi_spec(download_url: str, root_dir: str = ".") -> Dict[str, Any]:
+    """
+    Load OpenAPI specification from URL or local file.
+    
+    Args:
+        openapi_url: URL to fetch spec from
+        root_dir: Root directory to look for local spec
+    
+    Returns:
+        Parsed OpenAPI dict
+    
+    Raises:
+        FileNotFoundError or requests.RequestException if spec cannot be loaded
+    """
+    local_spec = Path(root_dir) / "openapi.yaml"
+
+    # If local file exists, load it directly
+    if local_spec.exists():
+        with open(local_spec) as f:
+            return yaml.safe_load(f)
+
+    # Otherwise, attempt to download (either explicit URL or default)
+    print(f"Fetching OpenAPI from {download_url} ...", file=sys.stderr)
+    try:
+        resp = requests.get(download_url, timeout=10)
+        resp.raise_for_status()
+    except requests.RequestException as e:
+        raise RuntimeError(f"Failed to download OpenAPI from {download_url}: {e}")
+
+    # Attempt to parse to validate
+    spec = yaml.safe_load(resp.text)
+
+    # Ensure doc directory exists and write atomically
+    local_spec.parent.mkdir(parents=True, exist_ok=True)
+    tmp = local_spec.with_suffix(".yaml.tmp")
+    with open(tmp, "w") as f:
+        f.write(resp.text)
+    tmp.replace(local_spec)
+
+    return spec
+
+
+def get_admin_endpoints(spec: Dict[str, Any], verbose: bool = False) -> list:
+    """
+    Extract admin endpoints from OpenAPI spec.
+    
+    Args:
+        spec: Parsed OpenAPI spec
+        verbose: If True, include full description
+    
+    Returns:
+        List of dicts with 'method', 'path', 'summary', 'description'
+    """
+    endpoints = []
+    paths = spec.get("paths", {})
+    
+    for path, path_obj in paths.items():
+        if not path.startswith("/admin"):
+            continue
+        
+        for http_method, operation in path_obj.items():
+            if http_method.startswith("x-"):
+                continue
+            
+            summary = operation.get("summary", "")
+            description = operation.get("description", "") if verbose else ""
+            
+            endpoints.append({
+                "method": http_method.upper(),
+                "path": path,
+                "summary": summary,
+                "description": description,
+            })
+    
+    return sorted(endpoints, key=lambda e: e["path"])
+
+
+def infer_method(spec: Dict[str, Any], path: str) -> Optional[str]:
+    """
+    Infer HTTP method for a given path from OpenAPI spec.
+    
+    Args:
+        spec: Parsed OpenAPI spec
+        path: API path (e.g., /admin/reload/profiles)
+    
+    Returns:
+        HTTP method (POST, GET, etc.) or None
+    """
+    paths = spec.get("paths", {})
+    
+    if path not in paths:
+        return None
+    
+    path_obj = paths[path]
+    
+    for http_method in path_obj:
+        if not http_method.startswith("x-"):
+            return http_method.upper()
+    
+    return None
+
+
+def make_request(
+    method: str,
+    url: str,
+    host: str,
+    token: str,
+    file: Optional[str] = None,
+    data: Optional[str] = None,
+    verbose: bool = False,
+    form: Optional[list] = None,
+) -> requests.Response:
+    """
+    Make HTTP request with super-admin token.
+    
+    Args:
+        method: HTTP method (POST, GET, etc.)
+        url: API path (e.g., /admin/reload/profiles)
+        host: Host URL (e.g., http://127.0.0.1:8080)
+        token: Super-admin bearer token
+        file: Path to file to upload (multipart)
+        data: JSON data to send
+    
+    Returns:
+        Response object
+    """
+    full_url = host.rstrip("/") + url
+    headers = {"Authorization": f"Bearer {token}"}
+
+    if verbose:
+        print(f"Calling {method} {full_url}", file=sys.stderr)
+
+    if file:
+        if not os.path.exists(file):
+            raise FileNotFoundError(f"File not found: {file}")
+        size = os.path.getsize(file)
+        if verbose:
+            print(f"Uploading file: {file} ({size} bytes)", file=sys.stderr)
+
+        with open(file, "rb") as f:
+            files = {"file": f}
+            payload = {}
+
+            # Include form fields provided via --form-parameter
+            if form:
+                for item in form:
+                    if '=' in item:
+                        k, v = item.split('=', 1)
+                        payload[k] = v
+
+            # If --data (JSON) provided and we have multipart, include it as a form field
+            if data:
+                try:
+                    # try parse to ensure valid JSON
+                    _ = json.loads(data)
+                    payload["payload"] = data
+                except Exception:
+                    payload["payload"] = data
+                if verbose:
+                    print("JSON payload included as form field 'payload'", file=sys.stderr)
+            return requests.request(
+                method,
+                full_url,
+                headers=headers,
+                files=files,
+                data=payload,
+                timeout=30,
+            )
+    elif data:
+        headers["Content-Type"] = "application/json"
+        if verbose:
+            # Print a short preview of the JSON payload
+            preview = data
+            try:
+                parsed = json.loads(data)
+                preview = json.dumps(parsed, indent=2)
+            except Exception:
+                pass
+            if verbose:
+                print("JSON payload:", file=sys.stderr)
+                for line in preview.splitlines()[:50]:
+                    print(f"  {line}", file=sys.stderr)
+
+        return requests.request(
+            method,
+            full_url,
+            headers=headers,
+            data=data,
+            timeout=30,
+        )
+    else:
+        return requests.request(
+            method,
+            full_url,
+            headers=headers,
+            timeout=30,
+        )
+
+
+def cmd_list(args, spec: Dict[str, Any]) -> int:
+    """List admin endpoints."""
+    endpoints = get_admin_endpoints(spec, verbose=args.verbose)
+    
+    if not endpoints:
+        print("No admin endpoints found")
+        return 0
+    
+    for ep in endpoints:
+        line = f"{ep['method']} {ep['path']} - {ep['summary']}"
+        print(line)
+        
+        if args.verbose and ep["description"]:
+            print()
+            # Indent description
+            for desc_line in ep["description"].strip().split("\n"):
+                print(f"    {desc_line}")
+            print()
+    
+    return 0
+
+
+def cmd_call(args, spec: Dict[str, Any]) -> int:
+    """Call an admin endpoint."""
+
+
+    # Get super-admin token from env or fallback to passwords.env
+    token = os.environ.get("NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN")
+    if not token:
+        # Attempt to read passwords.env in repo root
+        pwfile = Path.home() / ".config" / "state" / "passwords.env"
+        if args.verbose:
+            print(f"Looking for super-admin token in {pwfile} ...", file=sys.stderr)
+        if pwfile.exists():
+            try:
+                with open(pwfile) as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith('#'):
+                            continue
+                        if '=' not in line:
+                            continue
+                        k, v = line.split('=', 1)
+                        if k.strip() == 'NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN':
+                            token = v.strip().strip('"')
+                            break
+            except Exception:
+                pass
+
+    if not token:
+        print("Error: NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN environment variable not set",
+              file=sys.stderr)
+        return 1
+    
+    # Infer method if not provided
+    method = args.method
+    if not method:
+        method = infer_method(spec, args.path)
+        if method and args.verbose:
+            print(f"Inferred HTTP method {method} for path {args.path}", file=sys.stderr)
+        else:
+            method = "POST"
+            if args.verbose:
+                print(f"No operation found for {args.path}; defaulting to POST", file=sys.stderr)
+    
+    # Validate --data and --file mutually exclusive
+    if args.data and args.file:
+        print("Error: cannot use both --data and --file", file=sys.stderr)
+        return 1
+    
+    # Make request
+    try:
+        resp = make_request(
+            method,
+            args.path,
+            args.host,
+            token,
+            file=args.file,
+            data=args.data,
+            verbose=args.verbose,
+            form=args.form_parameter,
+        )
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except requests.RequestException as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+    if resp.status_code >= 400:
+        print(f"Error: HTTP {resp.status_code}", file=sys.stderr)
+    
+    # Try to parse as JSON
+    try:
+        resp_json = resp.json()
+        if args.verbose:
+            print("JSON response:", file=sys.stderr)
+            print(json.dumps(resp_json, indent=2), file=sys.stderr)
+    except ValueError:
+        if args.verbose:
+            print("Response is not valid JSON", file=sys.stderr)
+            # Not JSON, print raw text
+            print(resp.text, file=sys.stderr)
+
+    return 0 if resp.status_code < 400 else 1
+
+
+def main():
+    root_dir = Path(__file__).parent
+    
+    parser = argparse.ArgumentParser(
+        description="CLI to call middleware /admin/* APIs",
+        prog="ctictl",
+    )
+    
+    parser.add_argument(
+        "--list", "-l",
+        action="store_true",
+        help="List available admin APIs",
+    )
+    
+    parser.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Show full descriptions for --list and request/response details",
+    )
+    
+    parser.add_argument(
+        "path",
+        nargs="?",
+        help="API path (e.g., /admin/reload/profiles)",
+    )
+    
+    parser.add_argument(
+        "--method", "-m",
+        help="HTTP method (POST, GET, etc.). If omitted, inferred from OpenAPI",
+    )
+    
+    parser.add_argument(
+        "--host",
+        default=f"http://127.0.0.1:{os.environ.get('NETHVOICE_MIDDLEWARE_PORT', '8080')}",
+        help="Host URL",
+    )
+    
+    parser.add_argument(
+        "--file", "-f",
+        help="File to upload (multipart form-data)",
+    )
+    
+    parser.add_argument(
+        "--data", "-d",
+        help="JSON data to send",
+    )
+
+    parser.add_argument(
+        "--form-parameter", "-P",
+        action="append",
+        help="Form field key=value to include in multipart requests (can repeat)",
+    )
+    
+    parser.add_argument(
+        "--openapi-url",
+        default="https://raw.githubusercontent.com/nethesis/nethcti-middleware/refs/heads/user_profile/doc/openapi.yaml",
+        help="URL to fetch OpenAPI spec from",
+    )
+    
+    args = parser.parse_args()
+    
+    # Load OpenAPI spec
+    try:
+        spec = load_openapi_spec(args.openapi_url, str(root_dir))
+    except Exception as e:
+        print(f"Error loading OpenAPI spec: {e}", file=sys.stderr)
+        return 1
+    
+    # Handle listing
+    if args.list:
+        return cmd_list(args, spec)
+    
+    # Handle API call
+    if not args.path:
+        parser.print_help()
+        return 1
+    
+    # Ignore root path '/'
+    if args.path == "/":
+        return 0
+    
+    if args.verbose:
+        http.client.HTTPConnection.debuglevel = 1
+        logging.basicConfig(stream=sys.stderr, level=logging.DEBUG,
+                            format="[%(levelname)s]%(name)s: %(message)s")
+        logging.getLogger().setLevel(logging.DEBUG)
+        requests_log = logging.getLogger("requests.packages.urllib3")
+        requests_log.setLevel(logging.DEBUG)
+        requests_log.propagate = True
+    
+    return cmd_call(args, spec)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

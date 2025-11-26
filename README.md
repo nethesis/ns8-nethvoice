@@ -65,6 +65,35 @@ It raises an event named `phonebook-settings-changed` with the following payload
 
 Consumers of the events must then run the `get-phonebook-credentials` action on `module_id` to get the updated phonebook credentials.
 
+## NethCTI Middleware management
+
+The module includes a small CLI helper named `ctictl` to call administrative middleware endpoints defined under `/admin/*`.
+
+
+- **List available admin APIs**:
+
+```bash
+ctictl --list
+```
+
+- **Import a CSV into a user's phonebook**:
+
+```bash
+ctictl /admin/phonebook/import --file contacts.csv -P username=giacomo
+```
+
+- **Trigger a profiles reload (super-admin required)**:
+
+```bash
+ctictl /admin/reload/profiles
+```
+
+Notes:
+
+- `ctictl` reads the super-admin token from the `NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN` environment variable, or falls back to a `passwords.env` file if present.
+- Use `-v` / `--verbose` to see request/response details and headers.
+
+
 ## Uninstall
 
 To uninstall the instance:
