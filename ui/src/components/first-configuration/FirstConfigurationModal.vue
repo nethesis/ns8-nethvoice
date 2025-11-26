@@ -204,7 +204,7 @@ export default {
       if (this.instanceStatus && this.instanceStatus.node_ui_name) {
         return this.instanceStatus.node_ui_name;
       } else if (this.instanceStatus) {
-        return `${this.$t("status.node", { node: this.instanceStatus.node })}`;
+        return `${this.$t("common.node_id", { id: this.instanceStatus.node })}`;
       } else {
         return "";
       }

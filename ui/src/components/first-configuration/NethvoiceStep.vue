@@ -476,7 +476,7 @@ export default {
       this.admUserPassword = this.generateAdmPassword();
 
       const res = await to(
-        this.createClusterTaskForApp({
+        this.createModuleTaskForApp(this.accountProvider.id, {
           action: taskAction,
           data: {
             user: this.admUsername,

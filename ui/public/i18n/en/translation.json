@@ -22,7 +22,8 @@
     "enabled": "Enabled",
     "disabled": "Disabled",
     "eg_value": "e.g. {value}",
-    "loading": "Loading"
+    "loading": "Loading",
+    "node_id": "Node {id}"
   },
   "error": {
     "401": "Invalid authentication",

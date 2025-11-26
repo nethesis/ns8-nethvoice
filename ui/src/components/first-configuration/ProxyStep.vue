@@ -846,6 +846,7 @@ export default {
 
       this.internalProxyModuleId = taskResult.output.module_id;
       this.internalIsProxyInstalled = true;
+      this.$emit("set-next-label", this.core.$t("common.next"));
 
       console.log("@@ internalProxyModuleId", this.internalProxyModuleId); ////
 
