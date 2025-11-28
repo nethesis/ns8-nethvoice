@@ -19,15 +19,6 @@
   >
     <template slot="title">{{ $t("welcome.configure_nethvoice") }}</template>
     <template slot="content">
-      <!-- <cv-progress //// 
-        :initialStep="1"
-        :steps="[
-          $t('welcome.account_provider'),
-          $t('welcome.nethvoice_proxy'),
-          $t('welcome.nethvoice_application'),
-        ]"
-      /> -->
-      <div class="mb-6">step {{ step }} ////</div>
       <NsInlineNotification
         v-if="error.getDefaults"
         kind="error"
@@ -35,9 +26,17 @@
         :description="error.getDefaults"
         :showCloseButton="false"
       />
+      <NsInlineNotification
+        v-if="error.getStatus"
+        kind="error"
+        :title="$t('action.get-status')"
+        :description="error.getStatus"
+        :showCloseButton="false"
+      />
       <AccountProviderStep
         v-if="step == ACCOUNT_PROVIDER_STEP"
         :nodeLabel="nodeLabel"
+        :accountProvider="accountProvider"
         @set-step="step = $event"
         @set-account-provider="accountProvider = $event"
         @set-previous-enabled="isPreviousEnabled = $event"
@@ -119,7 +118,7 @@ export default {
     //// remove unnecessary variables
     return {
       step: "", //// ?
-      accountProvider: "",
+      accountProvider: null,
       proxyModuleId: "",
       isProxyInstalled: false,
       installingProxyProgress: 0,
@@ -209,28 +208,6 @@ export default {
         return "";
       }
     },
-    // isPreviousButtonDisabled() { ////
-    //   return this.step == ACCOUNT_PROVIDER_STEP;
-    //   // return [  ////
-    //   //   ACCOUNT_PROVIDER_STEP,
-    //   //   "installingOpenldap",
-    //   //   "configuringOpenldap",
-    //   //   "installingProxy",
-    //   //   "configuringProxy",
-    //   //   "configuringNethvoice",
-    //   // ].includes(this.step);
-    // },
-    // nextButtonLabel() { ////
-    //   // if (this.firstConfigurationStep == "selectAccountProvider") {
-    //   //   if (!this.domains.length && !this.loading.listUserDomains) {
-    //   //     return this.$t("welcome.install_openldap");
-    //   //   }
-    //   //   //// todo
-    //   // }
-
-    //   //// user children event
-    //   return this.core.$t("common.next");
-    // },
   },
   watch: {
     isShown: function () {
@@ -408,87 +385,87 @@ export default {
       //// todo: set default timezone
       this.loading.getDefaults = false;
     },
-    async installProxy() {
-      this.error.installProxy = "";
-      const taskAction = "add-module";
-      const eventId = this.getUuid();
-      this.installingProxyProgress = 0;
+    // async installProxy() { ////
+    //   this.error.installProxy = "";
+    //   const taskAction = "add-module";
+    //   const eventId = this.getUuid();
+    //   this.installingProxyProgress = 0;
 
-      // register to task error
-      this.core.$root.$once(
-        `${taskAction}-aborted-${eventId}`,
-        this.installProxyAborted
-      );
+    //   // register to task error
+    //   this.core.$root.$once(
+    //     `${taskAction}-aborted-${eventId}`,
+    //     this.installProxyAborted
+    //   );
 
-      // register to task completion
-      this.core.$root.$once(
-        `${taskAction}-completed-${eventId}`,
-        this.installProxyCompleted
-      );
+    //   // register to task completion
+    //   this.core.$root.$once(
+    //     `${taskAction}-completed-${eventId}`,
+    //     this.installProxyCompleted
+    //   );
 
-      // register to task progress to update progress bar
-      this.core.$root.$on(
-        `${taskAction}-progress-${eventId}`,
-        this.installProxyProgress
-      );
+    //   // register to task progress to update progress bar
+    //   this.core.$root.$on(
+    //     `${taskAction}-progress-${eventId}`,
+    //     this.installProxyProgress
+    //   );
 
-      console.log("@@ this.instanceStatus", this.instanceStatus); ////
-      console.log("@@ this.instanceStatus.node", this.instanceStatus.node); ////
+    //   console.log("@@ this.instanceStatus", this.instanceStatus); ////
+    //   console.log("@@ this.instanceStatus.node", this.instanceStatus.node); ////
 
-      const nodeId = parseInt(this.instanceStatus.node);
+    //   const nodeId = parseInt(this.instanceStatus.node);
 
-      console.log("nodeId", nodeId); ////
+    //   console.log("nodeId", nodeId); ////
 
-      const res = await to(
-        this.createClusterTaskForApp({
-          action: taskAction,
-          data: {
-            image: "todo",
-            node: nodeId,
-          },
-          extra: {
-            title: this.core.$t("action." + taskAction),
-            node: nodeId,
-            isNotificationHidden: true,
-            isProgressNotified: true,
-            eventId,
-          },
-        })
-      );
-      const err = res[0];
+    //   const res = await to(
+    //     this.createClusterTaskForApp({
+    //       action: taskAction,
+    //       data: {
+    //         image: "todo",
+    //         node: nodeId,
+    //       },
+    //       extra: {
+    //         title: this.core.$t("action." + taskAction),
+    //         node: nodeId,
+    //         isNotificationHidden: true,
+    //         isProgressNotified: true,
+    //         eventId,
+    //       },
+    //     })
+    //   );
+    //   const err = res[0];
 
-      if (err) {
-        console.error(`error creating task ${taskAction}`, err);
-        this.error.installProxy = this.getErrorMessage(err);
-        return;
-      }
-    },
-    installProxyAborted(taskResult, taskContext) {
-      console.error(`${taskContext.action} aborted`, taskResult);
+    //   if (err) {
+    //     console.error(`error creating task ${taskAction}`, err);
+    //     this.error.installProxy = this.getErrorMessage(err);
+    //     return;
+    //   }
+    // },
+    // installProxyAborted(taskResult, taskContext) {
+    //   console.error(`${taskContext.action} aborted`, taskResult);
 
-      // unregister to task progress
-      this.core.$root.$off(
-        `${taskContext.action}-progress-${taskContext.extra.eventId}`
-      );
+    //   // unregister to task progress
+    //   this.core.$root.$off(
+    //     `${taskContext.action}-progress-${taskContext.extra.eventId}`
+    //   );
 
-      // hide modal so that user can see error notification
-      this.$emit("hide");
-    },
-    installProxyCompleted(taskContext, taskResult) {
-      // unregister to task progress
-      this.core.$root.$off(
-        `${taskContext.action}-progress-${taskContext.extra.eventId}`
-      );
+    //   // hide modal so that user can see error notification
+    //   this.$emit("hide");
+    // },
+    // installProxyCompleted(taskContext, taskResult) {
+    //   // unregister to task progress
+    //   this.core.$root.$off(
+    //     `${taskContext.action}-progress-${taskContext.extra.eventId}`
+    //   );
 
-      this.proxyModuleId = taskResult.output.module_id;
+    //   this.proxyModuleId = taskResult.output.module_id;
 
-      console.log("@@ proxyModuleId", this.proxyModuleId); ////
+    //   console.log("@@ proxyModuleId", this.proxyModuleId); ////
 
-      // this.setFirstConfigurationStepInStore(CONFIGURE_OR_SHOW_PROXY); ////
-    },
-    installProxyProgress(progress) {
-      this.installingProxyProgress = progress;
-    },
+    //   // this.setFirstConfigurationStepInStore(CONFIGURE_OR_SHOW_PROXY); ////
+    // },
+    // installProxyProgress(progress) {
+    //   this.installingProxyProgress = progress;
+    // },
   },
 };
 </script>

@@ -13,7 +13,8 @@
     "list-installed-modules": "List installed modules",
     "get-defaults": "Get defaults",
     "get-available-interfaces": "Get available interfaces",
-    "list-domain-users": "List domain users"
+    "list-domain-users": "List domain users",
+    "add-module": "Add module"
   },
   "common": {
     "processing": "Processing...",
@@ -83,7 +84,7 @@
     "create_nethvoice_adm": "Create NethVoice Administrator for users management",
     "remove_nethvoice_adm": "Remove NethVoice Administrator for users management",
     "set_nethvoice_adm_password": "Set NethVoice Administrator password for users management",
-    "error_message_hostname": "By changing the user provider of an already configured NethVoice, all the users and extensions configuration will be reset.",
+    "change_domain_provider_warning": "By changing the user provider of an already configured NethVoice, all the users and extensions configuration will be reset.",
     "nethvoice_host_format": "Must be a valid domain name be a valid domain name.",
     "nethcti_ui_host_format": "Must be a valid domain name be a valid domain name.",
     "set_rebranding": "Rebranding setup",
@@ -144,6 +145,8 @@
     "configuration_incomplete_description": "Resume the setup wizard to start using NethVoice.",
     "resume": "Resume",
     "configure": "Configure",
+    "installing_openldap_provider": "Installing OpenLDAP provider",
+    "configuring_openldap_provider": "Configuring OpenLDAP provider",
     "proxy": {
       "address_and_iface_dont_match": "@:welcome.proxy.network_interface and @:welcome.proxy.address do not match",
       "address_and_iface_dont_match_message": "For the devices in the PBX local network to work correctly, the 'Hairpin NAT' feature — also known as 'NAT reflection', 'NAT hairpinning', 'NAT on a stick' or 'Loopback NAT' — must be enabled on the firewall (specifically, on the device that manages the NAT of the public IP).",

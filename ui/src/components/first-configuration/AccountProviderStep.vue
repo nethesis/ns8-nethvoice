@@ -15,7 +15,7 @@
       v-if="loading.listUserDomains"
       :paragraph="true"
       heading
-      :line-count="5"
+      :line-count="7"
     ></cv-skeleton-text>
     <template v-else-if="!domains.length">
       <!-- no user domain configured -->
@@ -74,7 +74,7 @@
         </div>
         <NsComboBox
           v-if="accountProviderType == 'use_existing_provider'"
-          v-model="accountProviderId"
+          v-model="domainName"
           :invalid-message="error.accountProvider"
           :label="
             loading.listUserDomains
@@ -90,8 +90,6 @@
           light
           ref="accountProvider"
         />
-        <!-- selectedAccountProvider:
-        {{ JSON.stringify(selectedAccountProvider) }} //// -->
       </div>
       <div class="mb-12rem"></div>
     </template>
@@ -119,12 +117,17 @@ export default {
       type: String,
       required: true,
     },
+    // this prop has a value only when coming back from ProxyStep
+    accountProvider: {
+      type: Object,
+      default: null,
+    },
   },
   data() {
     return {
       domains: [],
       accountProviderType: "",
-      accountProviderId: "",
+      domainName: "",
       loading: {
         listUserDomains: false,
       },
@@ -150,9 +153,7 @@ export default {
       return this.loading.listUserDomains;
     },
     selectedAccountProvider() {
-      return this.domains.find(
-        (domain) => domain.name === this.accountProviderId
-      );
+      return this.domains.find((domain) => domain.name === this.domainName);
     },
   },
   watch: {
@@ -178,6 +179,7 @@ export default {
   created() {
     this.listUserDomains();
     this.$emit("set-previous-enabled", false);
+    this.$emit("set-next-loading", false);
   },
   methods: {
     updateNextButtonLabel() {
@@ -245,8 +247,11 @@ export default {
         if (this.domains.length == 1) {
           // auto select the only available domain
           this.$nextTick(() => {
-            this.accountProviderId = this.accountProviderOptions[0].value;
+            this.domainName = this.accountProviderOptions[0].value;
           });
+        } else if (this.accountProvider) {
+          // coming back from ProxyStep, restore previous selection
+          this.domainName = this.accountProvider.domain;
         }
       } else {
         this.accountProviderType = "create_openldap";
@@ -275,7 +280,8 @@ export default {
         this.$emit("set-step", OPENLDAP_STEP);
       } else {
         this.$emit("set-account-provider", {
-          id: this.accountProviderId,
+          id: this.selectedAccountProvider.providers[0].id,
+          domain: this.domainName,
           internal: this.selectedAccountProvider.location === "internal",
         });
         this.$emit("set-step", PROXY_STEP);
@@ -297,7 +303,7 @@ export default {
 
       if (
         this.accountProviderType == "use_existing_provider" &&
-        !this.accountProviderId
+        !this.domainName
       ) {
         this.error.accountProvider = this.$t("common.required");
         isValidationOk = false;

@@ -73,7 +73,7 @@
               v-if="warningVisible"
               kind="warning"
               :title="$t('warning.warning_title_message')"
-              :description="$t('settings.error_message_hostname')"
+              :description="$t('settings.change_domain_provider_warning')"
               :showCloseButton="false"
             />
             <NsComboBox
@@ -653,6 +653,13 @@ export default {
     this.getUserDomains();
     this.getDefaults();
     this.getRebranding();
+
+    // register to events
+    this.$root.$on("reloadConfig", this.getConfiguration);
+  },
+  beforeDestroy() {
+    // remove all event listeners
+    this.$root.$off();
   },
   methods: {
     //// remove and use mixin instead
@@ -671,6 +678,8 @@ export default {
       return password;
     },
     async getConfiguration() {
+      console.log("### getConfiguration!"); ////
+
       this.loading.getConfiguration = true;
       this.error.getConfiguration = "";
       const taskAction = "get-configuration";
@@ -903,6 +912,7 @@ export default {
       if (!isValidationOk) {
         return;
       }
+      this.warningVisible = false;
 
       // check if nethvoice adm exists
       var exists = this.users[this.form.user_domain].filter((user) => {

@@ -8,13 +8,34 @@
     <div>//// internalProxyModuleId {{ internalProxyModuleId }}</div>
     <div>//// proxyVersion {{ proxyVersion }}</div>
     <!-- <div>//// createdProxyModuleId {{ createdProxyModuleId }}</div> -->
+    <NsInlineNotification
+      v-if="error.getProxyConfig"
+      kind="error"
+      :title="$t('action.get-configuration')"
+      :description="error.getProxyConfig"
+      :showCloseButton="false"
+    />
+    <NsInlineNotification
+      v-if="error.getAvailableInterfaces"
+      kind="error"
+      :title="$t('action.get-available-interfaces')"
+      :description="error.getAvailableInterfaces"
+      :showCloseButton="false"
+    />
+    <NsInlineNotification
+      v-if="error.listModules"
+      kind="error"
+      :title="core.$t('action.list-modules')"
+      :description="error.listModules"
+      :showCloseButton="false"
+    />
     <cv-skeleton-text
       v-if="
         !instanceStatus || loadingNethvoiceDefaults || loading.getProxyConfig
       "
       :paragraph="true"
       heading
-      :line-count="5"
+      :line-count="7"
     ></cv-skeleton-text>
     <template v-else>
       <template v-if="!internalIsProxyInstalled">
@@ -212,13 +233,6 @@
                 </div>
               </template>
             </NsInlineNotification>
-            <NsInlineNotification
-              v-if="error.configureModule"
-              kind="error"
-              :title="$t('action.configure-module')"
-              :description="error.configureModule"
-              :showCloseButton="false"
-            />
           </cv-form>
         </template>
         <template v-else>
@@ -237,6 +251,20 @@
         </template>
       </template>
     </template>
+    <NsInlineNotification
+      v-if="error.installProxy"
+      kind="error"
+      :title="$t('action.add-module')"
+      :description="error.installProxy"
+      :showCloseButton="false"
+    />
+    <NsInlineNotification
+      v-if="error.configureModule"
+      kind="error"
+      :title="$t('action.configure-module')"
+      :description="error.configureModule"
+      :showCloseButton="false"
+    />
   </div>
 </template>
 
@@ -277,10 +305,6 @@ export default {
       type: String,
       required: true,
     },
-    // proxyConfig: { ////
-    //   type: [Object, null],
-    //   default: null,
-    // },
   },
   data() {
     return {
@@ -309,8 +333,8 @@ export default {
         getAvailableInterfaces: false,
         installProxy: false,
         configureModule: false,
-        resolveFqdn: false,
         listModules: false,
+        resolveFqdn: false,
       },
       error: {
         fqdn: "",
@@ -320,6 +344,7 @@ export default {
         getAvailableInterfaces: "",
         installProxy: "",
         configureModule: "",
+        listModules: false,
       },
     };
   },
@@ -507,6 +532,7 @@ export default {
         });
     },
     async getAvailableInterfaces() {
+      this.error.getAvailableInterfaces = "";
       this.loading.getAvailableInterfaces = true;
 
       const taskAction = "get-available-interfaces";
@@ -566,10 +592,10 @@ export default {
       this.interfaces = interfaces;
       this.loading.getAvailableInterfaces = false;
 
-      // set interface from config in combobox //// remove
-      // this.$nextTick(() => {
-      //   this.iface = this.proxyConfig.addresses.address;
-      // }); ////
+      // set interface from config in combobox
+      this.$nextTick(() => {
+        this.iface = this.proxyConfig.addresses.address;
+      });
     },
     getAvailableInterfacesAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
@@ -615,11 +641,8 @@ export default {
     async configureModule() {
       const isValidationOk = this.validateConfigureModule();
       if (!isValidationOk) {
-        console.log("validation failed"); ////
-
         return;
       }
-
       this.loading.configureModule = true;
       const taskAction = "configure-module";
       const eventId = this.getUuid();
@@ -827,6 +850,7 @@ export default {
     installProxyAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
       this.loading.installProxy = false;
+      this.error.installProxy = this.$t("error.generic_error");
 
       // unregister to task progress
       this.core.$root.$off(
@@ -861,8 +885,7 @@ export default {
       this.goToAppPage(this.internalProxyModuleId, "settings");
     },
     async getProxyConfig() {
-      console.log("@@@@ getProxyConfig"); ////
-
+      this.error.getProxyConfig = "";
       this.loading.getProxyConfig = true;
       const taskAction = "get-configuration";
       const eventId = this.getUuid();
@@ -932,9 +955,6 @@ export default {
     },
     async listModules() {
       this.loading.listModules = true;
-
-      console.log("## loading.listModules is now", this.loading.listModules); ////
-
       this.error.listModules = "";
       const taskAction = "list-modules";
       const eventId = this.getUuid();

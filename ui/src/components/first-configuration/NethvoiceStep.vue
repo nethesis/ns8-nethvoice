@@ -4,6 +4,13 @@
 -->
 <template>
   <div>
+    <NsInlineNotification
+      v-if="error.getUsers"
+      kind="error"
+      :title="$t('action.list-domain-users')"
+      :description="error.getUsers"
+      :showCloseButton="false"
+    />
     <div class="mg-bottom-lg">
       {{ $t("welcome.configure_nethvoice_application") }}
     </div>
@@ -123,13 +130,6 @@
             </div>
           </template>
         </NsInlineNotification>
-        <NsInlineNotification
-          v-if="error.configureModule"
-          kind="error"
-          :title="$t('action.configure-module')"
-          :description="error.configureModule"
-          :showCloseButton="false"
-        />
       </cv-form>
     </template>
     <template v-else>
@@ -146,6 +146,31 @@
         class="mg-bottom-md"
       />
     </template>
+    <NsInlineNotification
+      v-if="error.addUser"
+      kind="error"
+      :title="$t('settings.create_nethvoice_adm')"
+      :description="error.addUser"
+      :showCloseButton="false"
+    />
+    <NsInlineNotification
+      v-if="error.setAdminPassword"
+      kind="error"
+      :title="$t('settings.set_password')"
+      :description="error.setAdminPassword"
+      :showCloseButton="false"
+    />
+    <NsInlineNotification
+      v-if="error.configureModule"
+      kind="error"
+      :title="
+        $t('settings.configure_instance', {
+          instance: this.instanceName,
+        })
+      "
+      :description="error.configureModule"
+      :showCloseButton="false"
+    />
   </div>
 </template>
 
@@ -173,8 +198,8 @@ export default {
   ],
   props: {
     accountProvider: {
-      type: [Object, null],
-      required: true,
+      type: Object,
+      default: null,
     },
   },
   data() {
@@ -222,14 +247,14 @@ export default {
     },
   },
   watch: {
-    "loading.addUser": {
-      immediate: true,
-      handler(newVal) {
-        this.$emit("set-next-loading", newVal);
-        this.$emit("set-next-enabled", !newVal);
-        this.$emit("set-previous-enabled", !newVal);
-      },
-    },
+    // "loading.addUser": { ////
+    //   immediate: true,
+    //   handler(newVal) {
+    //     this.$emit("set-next-loading", newVal);
+    //     this.$emit("set-next-enabled", !newVal);
+    //     this.$emit("set-previous-enabled", !newVal);
+    //   },
+    // },
     "loading.configureModule": {
       immediate: true,
       handler(newVal) {
@@ -238,14 +263,14 @@ export default {
         this.$emit("set-previous-enabled", !newVal);
       },
     },
-    "loading.setAdminPassword": {
-      immediate: true,
-      handler(newVal) {
-        this.$emit("set-next-loading", newVal);
-        this.$emit("set-next-enabled", !newVal);
-        this.$emit("set-previous-enabled", !newVal);
-      },
-    },
+    // "loading.setAdminPassword": { ////
+    //   immediate: true,
+    //   handler(newVal) {
+    //     this.$emit("set-next-loading", newVal);
+    //     this.$emit("set-next-enabled", !newVal);
+    //     this.$emit("set-previous-enabled", !newVal);
+    //   },
+    // },
   },
   created() {
     this.timezoneOptions = this.defaults.accepted_timezone_list.map((tz) => {
@@ -388,6 +413,7 @@ export default {
       this.startConfiguration();
     },
     async getUsers() {
+      this.error.getUsers = "";
       this.loading.getUsers = true;
       const taskAction = "list-domain-users";
       const eventId = this.getUuid();
@@ -408,7 +434,7 @@ export default {
         this.createClusterTaskForApp({
           action: taskAction,
           data: {
-            domain: this.accountProvider.id,
+            domain: this.accountProvider.domain,
           },
           extra: {
             title: this.$t("action." + taskAction),
@@ -441,18 +467,11 @@ export default {
         return;
       }
 
-      //// concurrent tasks?
-      // if (this.accountProvider.internal && !this.admUserExists) {
-      //   this.addAdmUser();
-      // }
-      // this.configureModule();
-      // this.setAdminPassword();
-
       if (this.accountProvider.internal && !this.admUserExists) {
         this.addAdmUser();
-      } else {
-        this.configureModule();
       }
+      this.configureModule();
+      this.setAdminPassword();
     },
     async addAdmUser() {
       this.error.addUser = "";
@@ -498,6 +517,7 @@ export default {
       if (err) {
         console.error(`error creating task ${taskAction}`, err);
         this.error.addUser = this.getErrorMessage(err);
+        this.loading.addUser = false;
         return;
       }
     },
@@ -508,7 +528,8 @@ export default {
     },
     addAdmUserCompleted() {
       this.loading.addUser = false;
-      this.configureModule(); //// start configuration after adm user is created
+
+      // this.configureModule(); //// start configuration after adm user is created
     },
     async setAdminPassword() {
       this.error.setAdminPassword = "";
@@ -527,8 +548,6 @@ export default {
         `${taskAction}-completed-${eventId}`,
         this.setAdminPasswordCompleted
       );
-
-      console.log("@@ password", this.nethvoice_admin_password); ////
 
       const res = await to(
         this.createModuleTaskForApp(this.instanceName, {
@@ -549,6 +568,7 @@ export default {
       if (err) {
         console.error(`error creating task ${taskAction}`, err);
         this.error.setAdminPassword = this.getErrorMessage(err);
+        this.loading.setAdminPassword = false;
         return;
       }
     },
@@ -559,9 +579,6 @@ export default {
     },
     setAdminPasswordCompleted() {
       this.loading.setAdminPassword = false;
-
-      // emit to parent that configuration is finished
-      this.$emit("finish"); ////
     },
     async configureModule() {
       this.error.configureModule = "";
@@ -605,7 +622,7 @@ export default {
             nethvoice_host: this.nethvoice_host,
             nethcti_ui_host: this.nethcti_ui_host,
             lets_encrypt: this.isLetsEncryptEnabled,
-            user_domain: this.accountProvider.id,
+            user_domain: this.accountProvider.domain,
             reports_international_prefix: "+39",
             timezone: this.timezone,
             nethvoice_adm_username: this.admUsername,
@@ -656,15 +673,18 @@ export default {
       this.loading.configureModule = false;
 
       //// set admin password only after configuration is completed
-      this.setAdminPassword();
+      // this.setAdminPassword(); ////
 
       // emit to parent that configuration is finished
-      // this.$emit("finish");  ////
+      this.$emit("finish");
 
       // unregister to task progress
       this.core.$root.$off(
         `${taskContext.action}-progress-${taskContext.extra.eventId}`
       );
+
+      // reload config in Settings view
+      this.$root.$emit("reloadConfig");
     },
   },
 };

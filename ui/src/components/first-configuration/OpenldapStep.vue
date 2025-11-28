@@ -5,22 +5,22 @@
 <template>
   <div>
     <NsInlineNotification
-      v-if="error.addInternalProvider"
+      v-if="error.getOpenLdapDefaults"
       kind="error"
-      :title="core.$t('action.add-internal-provider')"
-      :description="error.addInternalProvider"
+      :title="$t('action.get-defaults')"
+      :description="error.getOpenLdapDefaults"
       :showCloseButton="false"
     />
     <cv-skeleton-text
-      v-if="!instanceStatus"
+      v-if="!instanceStatus || loading.getOpenLdapDefaults"
       :paragraph="true"
       heading
-      :line-count="5"
+      :line-count="7"
     ></cv-skeleton-text>
     <template v-else>
       <template v-if="!createdOpenLdapId">
         <NsEmptyState
-          :title="core.$t('domains.installing_account_provider')"
+          :title="$t('welcome.installing_openldap_provider')"
           :animationData="GearsLottie"
           animationTitle="gears"
           :loop="true"
@@ -35,13 +35,6 @@
         <div class="mg-bottom-lg">
           {{ $t("welcome.configure_openldap_provider") }}
         </div>
-        <NsInlineNotification
-          v-if="error.getOpenLdapDefaults"
-          kind="error"
-          :title="$t('action.get-defaults')"
-          :description="error.getOpenLdapDefaults"
-          :showCloseButton="false"
-        />
         <cv-form>
           <cv-text-input
             :label="core.$t('openldap.domain')"
@@ -83,17 +76,10 @@
             class="new-provider-password"
           />
         </cv-form>
-        <NsInlineNotification
-          v-if="error.configureModule"
-          kind="error"
-          :title="core.$t('action.configure-module')"
-          :description="error.configureModule"
-          :showCloseButton="false"
-        />
       </template>
       <template v-else>
         <NsEmptyState
-          :title="core.$t('domains.configuring_account_provider')"
+          :title="$t('welcome.configuring_openldap_provider')"
           :animationData="GearsLottie"
           animationTitle="gears"
           :loop="true"
@@ -105,6 +91,20 @@
         />
       </template>
     </template>
+    <NsInlineNotification
+      v-if="error.addInternalProvider"
+      kind="error"
+      :title="core.$t('action.add-internal-provider')"
+      :description="error.addInternalProvider"
+      :showCloseButton="false"
+    />
+    <NsInlineNotification
+      v-if="error.configureModule"
+      kind="error"
+      :title="$t('action.configure-module')"
+      :description="error.configureModule"
+      :showCloseButton="false"
+    />
   </div>
 </template>
 
@@ -556,6 +556,7 @@ export default {
 
       this.$emit("set-account-provider", {
         id: this.createdOpenLdapId,
+        domain: this.domain,
         internal: true,
       });
 
