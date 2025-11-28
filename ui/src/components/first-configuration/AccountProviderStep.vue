@@ -280,16 +280,6 @@ export default {
           internal: this.selectedAccountProvider.location === "internal",
         });
         this.$emit("set-step", PROXY_STEP);
-
-        // if (!this.isProxyInstalled) { ////
-        //   this.$emit("set-step", INSTALL_PROXY_STEP);
-
-        //   console.log("emitted set-step", INSTALL_PROXY_STEP); ////
-        // } else {
-        //   this.$emit("set-step", CONFIGURE_OR_SHOW_PROXY);
-
-        //   console.log("emitted set-step", CONFIGURE_OR_SHOW_PROXY); ////
-        // }
       }
     },
     validateSelectAccountProvider() {
@@ -302,7 +292,6 @@ export default {
       ) {
         this.error.accountProvider = this.$t("common.required");
         isValidationOk = false;
-        // this.focusElement("accountProvider"); ////
       }
       return isValidationOk;
     },

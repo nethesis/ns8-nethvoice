@@ -61,6 +61,7 @@
         :proxyModuleId="proxyModuleId"
         :loadingNethvoiceDefaults="loading.getDefaults"
         :nodeLabel="nodeLabel"
+        @set-proxy-module-id="proxyModuleId = $event"
         @set-proxy-installed="isProxyInstalled = $event"
         @set-step="step = $event"
         @set-previous-enabled="isPreviousEnabled = $event"
@@ -195,9 +196,6 @@ export default {
           break;
       }
     },
-    // goToDomainsAndUsers() { ////
-    //   this.core.$router.push("/domains");
-    // },
     async getStatus() {
       this.loading.getStatus = true;
       this.error.getStatus = "";
@@ -298,10 +296,6 @@ export default {
 
       if (this.isProxyInstalled) {
         this.proxyModuleId = defaults.proxy_status.module_id;
-
-        //// remove
-        // retrieve proxy configuration
-        // this.getProxyConfig(); ////
       }
 
       this.timezoneList = [];

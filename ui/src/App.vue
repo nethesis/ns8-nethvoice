@@ -86,9 +86,6 @@ export default {
       "setConfigurationInStore",
       "setShownFirstConfigurationModalInStore",
     ]),
-    // ...mapActions("firstConfiguration", [ ////
-    //   "setCanOpenFirstConfigurationModalInStore",
-    // ]),
     async getInstanceLabel() {
       const taskAction = "get-name";
       const eventId = this.getUuid();
@@ -178,9 +175,6 @@ export default {
     },
     getConfigurationCompleted(taskContext, taskResult) {
       const config = taskResult.output;
-
-      console.log("config", config); ////
-
       this.setConfigurationInStore(config);
 
       if (config.nethvoice_host) {

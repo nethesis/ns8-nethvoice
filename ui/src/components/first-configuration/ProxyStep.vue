@@ -4,6 +4,8 @@
 -->
 <template>
   <div>
+    <div>iface {{ iface }} ////</div>
+    <div>internalProxyModuleId {{ internalProxyModuleId }} ////</div>
     <NsInlineNotification
       v-if="error.getProxyConfig"
       kind="error"
@@ -194,9 +196,9 @@
                 :readonly="isProxyConfigured"
                 :disabled="loading.configureModule"
                 :class="{ 'input-with-gray-bg': isProxyConfigured }"
-                :invalid-message="error.address"
+                :invalid-message="error.public_address"
                 :helperText="$t('welcome.proxy.address_helper')"
-                ref="address"
+                ref="public_address"
               />
             </div>
             <NsInlineNotification
@@ -323,7 +325,7 @@ export default {
       error: {
         fqdn: "",
         iface: "",
-        address: "",
+        public_address: "",
         getProxyConfig: "",
         getAvailableInterfaces: "",
         installProxy: "",
@@ -377,8 +379,6 @@ export default {
     internalProxyModuleId: {
       immediate: true,
       handler() {
-        console.log("watch internalProxyModuleId", this.internalProxyModuleId); ////
-
         if (this.internalProxyModuleId) {
           this.getProxyConfig();
         }
@@ -532,7 +532,10 @@ export default {
 
       // set interface from config in combobox
       this.$nextTick(() => {
-        this.iface = this.proxyConfig.addresses.address;
+        //// is this if correct?
+        if (this.proxyConfig.addresses.address != "127.0.0.1") {
+          this.iface = this.proxyConfig.addresses.address;
+        }
       });
     },
     getAvailableInterfacesAborted(taskResult, taskContext) {
@@ -665,7 +668,11 @@ export default {
       );
 
       for (const validationError of validationErrors) {
+        console.log("## validationError", validationError); ////
+
         let field = this.getValidationErrorField(validationError);
+
+        console.log("field", field); ////
 
         if (validationError.details) {
           // show inline error notification with details
@@ -692,8 +699,6 @@ export default {
       this.core.$root.$off(
         `${taskContext.action}-progress-${taskContext.extra.eventId}`
       );
-
-      // this.getProxyConfig(); //// can be removed?
 
       // go to nethvoice step
       this.$emit("set-step", NETHVOICE_STEP);
@@ -776,8 +781,8 @@ export default {
         `${taskContext.action}-progress-${taskContext.extra.eventId}`
       );
 
-      this.internalProxyModuleId = taskResult.output.module_id;
-      // this.internalIsProxyInstalled = true; ////
+      // this.internalProxyModuleId = taskResult.output.module_id; ////
+      this.$emit("set-proxy-module-id", taskResult.output.module_id);
       this.$emit("set-proxy-installed", true);
       this.$emit("set-next-label", this.core.$t("common.next"));
       this.loading.installProxy = false;

@@ -678,8 +678,6 @@ export default {
       return password;
     },
     async getConfiguration() {
-      console.log("### getConfiguration!"); ////
-
       this.loading.getConfiguration = true;
       this.error.getConfiguration = "";
       const taskAction = "get-configuration";
@@ -850,11 +848,10 @@ export default {
       this.validationErrorDetails = [];
       let isValidationOk = true;
 
-      //// uncomment
-      // if (!this.form.nethvoice_host) {
-      //   this.error.nethvoice_host = this.$t("error.required");
-      //   isValidationOk = false;
-      // }
+      if (!this.form.nethvoice_host) {
+        this.error.nethvoice_host = this.$t("error.required");
+        isValidationOk = false;
+      }
 
       if (!this.form.nethcti_ui_host) {
         this.error.nethcti_ui_host = this.$t("error.required");
@@ -1304,61 +1301,7 @@ export default {
       );
       this.loading.getDefaults = false;
       this.proxy_installed = taskResult.output.proxy_status.proxy_installed;
-
-      console.log("@@ proxy_installed", this.proxy_installed); ////
-
-      //// todo: read proxy status from get defaults output
-      // this.getProxyStatus(); ////
     },
-    // async getProxyStatus() {
-    //   this.loading.getProxyStatus = true;
-
-    //   const taskAction = "get-proxy-status";
-    //   const eventId = this.getUuid();
-
-    //   // register to task error
-    //   this.core.$root.$once(
-    //     `${taskAction}-aborted-${eventId}`,
-    //     this.getProxyStatusAborted
-    //   );
-
-    //   // register to task completion
-    //   this.core.$root.$once(
-    //     `${taskAction}-completed-${eventId}`,
-    //     this.getProxyStatusCompleted
-    //   );
-
-    //   const res = await to(
-    //     this.createModuleTaskForApp(this.instanceName, {
-    //       action: taskAction,
-    //       extra: {
-    //         title: this.$t("action." + taskAction),
-    //         isNotificationHidden: true,
-    //         eventId,
-    //       },
-    //     })
-    //   );
-    //   const err = res[0];
-
-    //   if (err) {
-    //     console.error(`error creating task ${taskAction}`, err);
-    //     this.error.getConfiguration = this.getErrorMessage(err);
-    //     this.loading.getProxyStatus = false;
-    //     return;
-    //   }
-    // },
-    // getProxyStatusAborted(taskResult, taskContext) {
-    //   console.error(`${taskContext.action} aborted`, taskResult);
-    //   this.error.getConfiguration = this.$t("error.generic_error");
-    //   this.loading.getProxyStatus = false;
-    //   this.getConfiguration();
-    // },
-    // getProxyStatusCompleted(taskContext, taskResult) {
-    //   const config = taskResult.output;
-    //   this.proxy_installed = config.proxy_installed;
-    //   this.loading.getProxyStatus = false;
-    //   this.getConfiguration();
-    // },
     async getUsers(domain) {
       this.loading.getUsers = true;
 

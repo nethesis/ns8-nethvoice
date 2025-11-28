@@ -119,8 +119,6 @@ import { mapState, mapActions } from "vuex";
 import to from "await-to-js";
 import { PROXY_STEP } from "./FirstConfigurationModal.vue";
 
-//// review
-
 export default {
   name: "OpenldapStep",
   mixins: [UtilService, TaskService, IconService, LottieService],
@@ -137,7 +135,6 @@ export default {
       focusPasswordField: { element: "" },
       loading: {
         addInternalProvider: false,
-        // getStatus: false, ////
         getOpenLdapDefaults: false,
         configureModule: false,
       },
@@ -147,7 +144,6 @@ export default {
         admpass: "",
         confirmPassword: "",
         addInternalProvider: "",
-        // getStatus: "", ////
         getOpenLdapDefaults: "",
         configureModule: "",
       },
@@ -483,8 +479,6 @@ export default {
       }
     },
     configureOpenLdapValidationOk() {
-      // this.step = "configuringOpenldap"; ////
-
       this.isValidationCompleted = true;
     },
     configureOpenLdapValidationFailed(validationErrors, taskContext) {
@@ -513,8 +507,6 @@ export default {
     },
     configureOpenLdapCompleted(taskContext) {
       this.loading.configureModule = false;
-
-      // this.accountProviderId = this.createdOpenLdapId; ////
 
       // unregister to task progress
       this.core.$root.$off(

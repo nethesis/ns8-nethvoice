@@ -4,14 +4,10 @@
 //
 import Vue from "vue";
 import Vuex from "vuex";
-import firstConfiguration from "./modules/firstConfiguration";
 
 Vue.use(Vuex);
 
 export default new Vuex.Store({
-  modules: {
-    firstConfiguration,
-  },
   state: {
     appName: "",
     instanceName: "",
