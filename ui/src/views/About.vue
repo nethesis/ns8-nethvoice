@@ -11,6 +11,13 @@
     </cv-row>
     <cv-row>
       <cv-column>
+        <ResumeConfigNotification
+          v-if="!isAppConfigured && !isShownFirstConfigurationModal"
+        />
+      </cv-column>
+    </cv-row>
+    <cv-row>
+      <cv-column>
         <NsInlineNotification
           v-if="error.version"
           kind="error"
@@ -159,10 +166,11 @@ import {
   UtilService,
   PageTitleService,
 } from "@nethserver/ns8-ui-lib";
+import ResumeConfigNotification from "@/components/first-configuration/ResumeConfigNotification.vue";
 
 export default {
   name: "About",
-  components: {},
+  components: { ResumeConfigNotification },
   mixins: [TaskService, QueryParamService, UtilService, PageTitleService],
   pageTitle() {
     return this.$t("about.title") + " - " + this.appName;
@@ -186,7 +194,13 @@ export default {
     };
   },
   computed: {
-    ...mapState(["core", "appName", "instanceName"]),
+    ...mapState([
+      "core",
+      "appName",
+      "instanceName",
+      "isAppConfigured",
+      "isShownFirstConfigurationModal",
+    ]),
   },
   created() {
     this.getModuleInfo();
