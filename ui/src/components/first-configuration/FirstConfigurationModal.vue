@@ -61,6 +61,7 @@
         :proxyModuleId="proxyModuleId"
         :loadingNethvoiceDefaults="loading.getDefaults"
         :nodeLabel="nodeLabel"
+        @set-proxy-installed="isProxyInstalled = $event"
         @set-step="step = $event"
         @set-previous-enabled="isPreviousEnabled = $event"
         @set-next-enabled="isNextEnabled = $event"
@@ -83,20 +84,13 @@
 </template>
 
 <script>
-import {
-  UtilService,
-  TaskService,
-  IconService,
-  LottieService,
-} from "@nethserver/ns8-ui-lib";
+import { UtilService, TaskService, IconService } from "@nethserver/ns8-ui-lib";
 import to from "await-to-js";
 import { mapState, mapActions } from "vuex";
 import AccountProviderStep from "./AccountProviderStep.vue";
 import OpenldapStep from "./OpenldapStep.vue";
 import ProxyStep from "./ProxyStep.vue";
 import NethvoiceStep from "./NethvoiceStep.vue";
-
-//// review
 
 // steps:
 export const ACCOUNT_PROVIDER_STEP = "accountProvider";
@@ -107,7 +101,7 @@ export const NETHVOICE_STEP = "nethvoice";
 export default {
   components: { AccountProviderStep, OpenldapStep, ProxyStep, NethvoiceStep },
   name: "FirstConfigurationModal",
-  mixins: [UtilService, TaskService, IconService, LottieService],
+  mixins: [UtilService, TaskService, IconService],
   props: {
     isShown: {
       type: Boolean,
@@ -115,9 +109,8 @@ export default {
     },
   },
   data() {
-    //// remove unnecessary variables
     return {
-      step: "", //// ?
+      step: "",
       accountProvider: null,
       proxyModuleId: "",
       isProxyInstalled: false,
@@ -132,73 +125,18 @@ export default {
       OPENLDAP_STEP,
       PROXY_STEP,
       NETHVOICE_STEP,
-      nethvoice: {
-        nethvoice_host: "",
-        nethcti_ui_host: "",
-        lets_encrypt: true,
-        timezone: "",
-        timezoneList: [],
-        nethvoice_admin_password: "",
-        reports_international_prefix: "+39",
-      },
       loading: {
         getDefaults: false,
         getStatus: false,
-        ////
-        listUserDomains: false, //// remove
-        listModules: false, ////
-        addInternalProvider: false, ////
-        installProxy: false,
-        openldap: {
-          getDefaults: false,
-          configureModule: false,
-        },
-        proxy: {
-          configureModule: false,
-        },
-        nethvoice: {
-          getDefaults: false,
-          configureModule: false,
-        },
       },
       error: {
         getDefaults: "",
         getStatus: "",
-        // getProxyConfig: "", ////
-        ////
-        accountProvider: "",
-        configureModule: "",
-        listModules: "",
-        listUserDomains: "",
-        getConfiguration: "",
-        addInternalProvider: "",
-        installProxy: false,
-        openldap: {
-          getDefaults: "",
-          domain: "",
-          admuser: "",
-          admpass: "",
-          confirmPassword: "",
-          configureModule: "",
-        },
-        proxy: {
-          configureModule: "",
-        },
-        nethvoice: {
-          nethvoice_host: "",
-          nethcti_ui_host: "",
-          timezone: "",
-          nethvoice_admin_password: "",
-          reports_international_prefix: "+39",
-          getDefaults: "",
-          configureModule: "",
-        },
       },
     };
   },
   computed: {
     ...mapState(["core", "instanceName", "instanceStatus"]),
-    // ...mapState("firstConfiguration", ["firstConfigurationStep"]), ////
     nodeLabel() {
       if (this.instanceStatus && this.instanceStatus.node_ui_name) {
         return this.instanceStatus.node_ui_name;
@@ -212,8 +150,6 @@ export default {
   watch: {
     isShown: function () {
       if (this.isShown) {
-        console.log("watch isShown"); ////
-
         this.getDefaults();
 
         if (!this.instanceStatus) {
@@ -223,14 +159,11 @@ export default {
 
         // show first step
         this.step = ACCOUNT_PROVIDER_STEP;
-
-        // this.setFirstConfigurationStepInStore(SELECT_ACCOUNT_PROVIDER); ////
       }
     },
   },
   methods: {
     ...mapActions(["setInstanceStatusInStore", "setDefaultsInStore"]),
-    // ...mapActions("firstConfiguration", ["setFirstConfigurationStepInStore"]), ////
     previousStep() {
       switch (this.step) {
         case OPENLDAP_STEP:
@@ -247,8 +180,6 @@ export default {
         return;
       }
 
-      console.log("next"); ////
-
       switch (this.step) {
         case ACCOUNT_PROVIDER_STEP:
           this.$refs.accountProviderStep.next();
@@ -264,9 +195,9 @@ export default {
           break;
       }
     },
-    goToDomainsAndUsers() {
-      this.core.$router.push("/domains");
-    },
+    // goToDomainsAndUsers() { ////
+    //   this.core.$router.push("/domains");
+    // },
     async getStatus() {
       this.loading.getStatus = true;
       this.error.getStatus = "";
@@ -381,91 +312,8 @@ export default {
           value: value,
         })
       );
-
-      //// todo: set default timezone
       this.loading.getDefaults = false;
     },
-    // async installProxy() { ////
-    //   this.error.installProxy = "";
-    //   const taskAction = "add-module";
-    //   const eventId = this.getUuid();
-    //   this.installingProxyProgress = 0;
-
-    //   // register to task error
-    //   this.core.$root.$once(
-    //     `${taskAction}-aborted-${eventId}`,
-    //     this.installProxyAborted
-    //   );
-
-    //   // register to task completion
-    //   this.core.$root.$once(
-    //     `${taskAction}-completed-${eventId}`,
-    //     this.installProxyCompleted
-    //   );
-
-    //   // register to task progress to update progress bar
-    //   this.core.$root.$on(
-    //     `${taskAction}-progress-${eventId}`,
-    //     this.installProxyProgress
-    //   );
-
-    //   console.log("@@ this.instanceStatus", this.instanceStatus); ////
-    //   console.log("@@ this.instanceStatus.node", this.instanceStatus.node); ////
-
-    //   const nodeId = parseInt(this.instanceStatus.node);
-
-    //   console.log("nodeId", nodeId); ////
-
-    //   const res = await to(
-    //     this.createClusterTaskForApp({
-    //       action: taskAction,
-    //       data: {
-    //         image: "todo",
-    //         node: nodeId,
-    //       },
-    //       extra: {
-    //         title: this.core.$t("action." + taskAction),
-    //         node: nodeId,
-    //         isNotificationHidden: true,
-    //         isProgressNotified: true,
-    //         eventId,
-    //       },
-    //     })
-    //   );
-    //   const err = res[0];
-
-    //   if (err) {
-    //     console.error(`error creating task ${taskAction}`, err);
-    //     this.error.installProxy = this.getErrorMessage(err);
-    //     return;
-    //   }
-    // },
-    // installProxyAborted(taskResult, taskContext) {
-    //   console.error(`${taskContext.action} aborted`, taskResult);
-
-    //   // unregister to task progress
-    //   this.core.$root.$off(
-    //     `${taskContext.action}-progress-${taskContext.extra.eventId}`
-    //   );
-
-    //   // hide modal so that user can see error notification
-    //   this.$emit("hide");
-    // },
-    // installProxyCompleted(taskContext, taskResult) {
-    //   // unregister to task progress
-    //   this.core.$root.$off(
-    //     `${taskContext.action}-progress-${taskContext.extra.eventId}`
-    //   );
-
-    //   this.proxyModuleId = taskResult.output.module_id;
-
-    //   console.log("@@ proxyModuleId", this.proxyModuleId); ////
-
-    //   // this.setFirstConfigurationStepInStore(CONFIGURE_OR_SHOW_PROXY); ////
-    // },
-    // installProxyProgress(progress) {
-    //   this.installingProxyProgress = progress;
-    // },
   },
 };
 </script>

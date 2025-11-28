@@ -137,7 +137,7 @@ export default {
       focusPasswordField: { element: "" },
       loading: {
         addInternalProvider: false,
-        getStatus: false,
+        // getStatus: false, ////
         getOpenLdapDefaults: false,
         configureModule: false,
       },
@@ -147,7 +147,7 @@ export default {
         admpass: "",
         confirmPassword: "",
         addInternalProvider: "",
-        getStatus: "",
+        // getStatus: "", ////
         getOpenLdapDefaults: "",
         configureModule: "",
       },
@@ -158,14 +158,8 @@ export default {
   },
   watch: {
     instanceStatus: {
-      //// test!
       immediate: true,
       handler(newVal) {
-        console.log(
-          "@@ openldap step, watch instanceStatus",
-          this.instanceStatus
-        ); ////
-
         if (newVal) {
           this.installOpenldapProvider();
         }
@@ -174,11 +168,6 @@ export default {
     "loading.addInternalProvider": {
       immediate: true,
       handler() {
-        console.log(
-          "@@# watch loading.addInternalProvider",
-          this.loading.addInternalProvider
-        ); ////
-
         if (this.loading.addInternalProvider || this.loading.configureModule) {
           this.$emit("set-next-loading", true);
           this.$emit("set-next-enabled", false);
@@ -193,11 +182,6 @@ export default {
     "loading.configureModule": {
       immediate: true,
       handler() {
-        console.log(
-          "@@# watch loading.configureModule",
-          this.loading.configureModule
-        ); ////
-
         if (this.loading.addInternalProvider || this.loading.configureModule) {
           this.$emit("set-next-loading", true);
           this.$emit("set-next-enabled", false);
@@ -213,21 +197,9 @@ export default {
   created() {
     this.$emit("set-next-label", this.core.$t("common.next"));
   },
-  // created() { ////
-  //   console.log("created OpenldapStep"); ////
-
-  //   if (!this.instanceStatus) {
-  //     // retrieve installation node and then install openldap
-  //     this.getStatus();
-  //   } else {
-  //     this.installOpenldapProvider();
-  //   }
-  // },
   methods: {
     ...mapActions(["setInstanceStatusInStore"]),
     next() {
-      console.log("next, openldap step"); ////
-
       if (this.createdOpenLdapId) {
         this.configureOpenLdap();
       }
@@ -257,12 +229,7 @@ export default {
         this.addInternalProviderProgress
       );
 
-      console.log("this.instanceStatus", this.instanceStatus); ////
-      console.log("this.instanceStatus.node", this.instanceStatus.node); ////
-
       const nodeId = parseInt(this.instanceStatus.node);
-
-      console.log("nodeId", nodeId); ////
 
       const res = await to(
         this.createClusterTaskForApp({

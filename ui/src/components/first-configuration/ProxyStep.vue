@@ -4,10 +4,6 @@
 -->
 <template>
   <div>
-    <div>//// internalIsProxyInstalled {{ internalIsProxyInstalled }}</div>
-    <div>//// internalProxyModuleId {{ internalProxyModuleId }}</div>
-    <div>//// proxyVersion {{ proxyVersion }}</div>
-    <!-- <div>//// createdProxyModuleId {{ createdProxyModuleId }}</div> -->
     <NsInlineNotification
       v-if="error.getProxyConfig"
       kind="error"
@@ -70,10 +66,7 @@
       <template v-else>
         <!-- proxy is installed -->
         <template v-if="!isConfigureProxyValidationCompleted">
-          <div v-if="!isProxyConfigured">
-            proxy installed but not configured ////
-          </div>
-          <div>
+          <div class="mg-bottom-lg">
             {{ $t("welcome.configure_nethvoice_proxy") }}
           </div>
           <NsInlineNotification
@@ -101,7 +94,6 @@
               :placeholder="
                 $t('common.eg_value', { value: 'proxy.example.org' })
               "
-              :isProxyConfigured="isProxyConfigured || loading.configureModule"
               :invalid-message="error.fqdn"
               :helperText="$t('welcome.proxy.domain_helper')"
               ref="fqdn"
@@ -279,8 +271,6 @@ import { mapState } from "vuex";
 import to from "await-to-js";
 import { NETHVOICE_STEP } from "./FirstConfigurationModal.vue";
 
-//// review
-
 export default {
   name: "ProxyStep",
   mixins: [UtilService, TaskService, IconService, LottieService],
@@ -289,10 +279,6 @@ export default {
       type: Boolean,
       required: true,
     },
-    // loadingProxyConfig: { ////
-    //   type: Boolean,
-    //   required: true,
-    // },
     isProxyInstalled: {
       type: Boolean,
       required: true,
@@ -308,8 +294,6 @@ export default {
   },
   data() {
     return {
-      // isProxyConfigured: false, ////
-      // createdProxyModuleId: "", //// remove?
       internalProxyModuleId: false,
       internalIsProxyInstalled: false,
       fqdn: "",
@@ -371,8 +355,6 @@ export default {
 
       const proxyApp = this.apps.find((app) => app.id === "nethvoice-proxy");
 
-      console.log("proxyApp", proxyApp); ////
-
       if (
         proxyApp &&
         proxyApp.versions &&
@@ -386,16 +368,6 @@ export default {
     },
   },
   watch: {
-    // proxyConfig: { ////
-    //   immediate: true,
-    //   handler() {
-    //     console.log("@@ watch proxyConfig", this.proxyConfig); ////
-
-    //     if (this.proxyConfig) {
-    //       this.updateData();
-    //     }
-    //   },
-    // },
     proxyModuleId: {
       immediate: true,
       handler() {
@@ -405,22 +377,16 @@ export default {
     internalProxyModuleId: {
       immediate: true,
       handler() {
-        console.log(
-          "@@ watch internalProxyModuleId",
-          this.internalProxyModuleId
-        ); ////
+        console.log("watch internalProxyModuleId", this.internalProxyModuleId); ////
 
         if (this.internalProxyModuleId) {
           this.getProxyConfig();
-          // this.getAvailableInterfaces(); ////
         }
       },
     },
     isProxyInstalled: {
       immediate: true,
       handler(newVal) {
-        console.log("### watch isProxyInstalled", this.isProxyInstalled); ////
-
         this.internalIsProxyInstalled = newVal;
 
         if (!newVal) {
@@ -452,8 +418,6 @@ export default {
       immediate: true,
       handler(newVal) {
         this.$emit("set-next-enabled", !newVal);
-
-        console.log("## watch loading.listModules", newVal); ////
       },
     },
   },
@@ -461,27 +425,10 @@ export default {
     this.listModules();
   },
   methods: {
-    // updateData() { ////
-    //   console.log("updateData"); ////
-
-    //   console.log("this.proxyConfig", this.proxyConfig); ////
-
-    //   //// switch back to computed?
-    //   this.isProxyConfigured =
-    //     this.proxyConfig &&
-    //     this.proxyConfig.fqdn &&
-    //     !this.proxyConfig.fqdn.endsWith(".invalid");
-
-    //   console.log("this.isProxyConfigured", this.isProxyConfigured); ////
-    // },
     next() {
-      console.log("next, proxy step"); ////
-
       if (!this.internalIsProxyInstalled) {
         this.installProxy();
       } else if (!this.isProxyConfigured) {
-        console.log("configureModule"); ////
-
         this.configureModule();
       } else {
         // go to nethvoice step
@@ -504,8 +451,6 @@ export default {
       }
     },
     resolveFqdn() {
-      console.log("fetching!"); ////
-
       fetch(`https://dns.google/resolve?name=${this.fqdn}`)
         .then((response) => response.json())
         .then((data) => {
@@ -516,10 +461,7 @@ export default {
                 break;
               }
             }
-            //// always set address
-            // if (this.resolvedIp && !this.address) { ////
             this.address = this.resolvedIp;
-            // } ////
           } else {
             this.resolvedIp = "";
           }
@@ -549,10 +491,6 @@ export default {
         `${taskAction}-completed-${eventId}`,
         this.getAvailableInterfacesCompleted
       );
-
-      // const proxyId = this.createdProxyModuleId ////
-      //   ? this.createdProxyModuleId
-      //   : this.proxyModuleId;
 
       const res = await to(
         this.createModuleTaskForApp(this.internalProxyModuleId, {
@@ -623,11 +561,7 @@ export default {
         }
       }
 
-      console.log("@ iface", this.iface); ////
-
       if (!this.iface) {
-        console.log("@@ ok"); ////
-
         this.error.iface = this.$t("common.required");
         isValidationOk = false;
       }
@@ -690,10 +624,6 @@ export default {
         dataPayload.addresses.public_address = this.address;
       }
 
-      // const proxyId = this.createdProxyModuleId ////
-      //   ? this.createdProxyModuleId
-      //   : this.proxyModuleId;
-
       const res = await to(
         this.createModuleTaskForApp(this.internalProxyModuleId, {
           action: taskAction,
@@ -725,9 +655,6 @@ export default {
     configureModuleValidationOk() {
       // show progress animation
       this.isConfigureProxyValidationCompleted = true;
-
-      // emit to parent that validation is ok ////
-      // this.$emit("configureModuleValidationOk"); //// remove
     },
     configureModuleValidationFailed(validationErrors, taskContext) {
       this.loading.configureModule = false;
@@ -756,16 +683,9 @@ export default {
       }
     },
     configureModuleProgress(progress) {
-      console.log("@@ configureModuleProgress", progress); ////
-
       this.configuringProxyProgress = progress;
-
-      // emit progress to parent
-      // this.$emit("configureModuleProgress", progress); //// remove, assign variable
     },
     configureModuleCompleted(taskContext) {
-      console.log("@@ configureModuleCompleted"); ////
-
       this.loading.configureModule = false;
 
       // unregister to task progress
@@ -773,10 +693,7 @@ export default {
         `${taskContext.action}-progress-${taskContext.extra.eventId}`
       );
 
-      // emit to parent that proxy is configured
-      // this.$emit("proxy-configured"); ////
-
-      this.getProxyConfig();
+      // this.getProxyConfig(); //// can be removed?
 
       // go to nethvoice step
       this.$emit("set-step", NETHVOICE_STEP);
@@ -812,21 +729,14 @@ export default {
         this.installProxyProgress
       );
 
-      console.log("@@ this.instanceStatus", this.instanceStatus); ////
-      console.log("@@ this.instanceStatus.node", this.instanceStatus.node); ////
-
       const nodeId = parseInt(this.instanceStatus.node);
-
-      console.log("nodeId", nodeId); ////
-
-      console.log("@@ proxyVersion", this.proxyVersion); ////
 
       const res = await to(
         this.createClusterTaskForApp({
           action: taskAction,
           data: {
+            image: `ghcr.io/nethesis/nethvoice-proxy:latest`, //// remove
             // image: `ghcr.io/nethesis/nethvoice-proxy:${this.proxyVersion}`, //// uncomment
-            image: "ghcr.io/nethesis/nethvoice-proxy:latest", //// remove
             node: nodeId,
           },
           extra: {
@@ -866,17 +776,11 @@ export default {
         `${taskContext.action}-progress-${taskContext.extra.eventId}`
       );
 
-      // this.createdProxyModuleId = taskResult.output.module_id; ////
-
       this.internalProxyModuleId = taskResult.output.module_id;
-      this.internalIsProxyInstalled = true;
+      // this.internalIsProxyInstalled = true; ////
+      this.$emit("set-proxy-installed", true);
       this.$emit("set-next-label", this.core.$t("common.next"));
-
-      console.log("@@ internalProxyModuleId", this.internalProxyModuleId); ////
-
       this.loading.installProxy = false;
-
-      // this.setFirstConfigurationStepInStore(CONFIGURE_OR_SHOW_PROXY); ////
     },
     installProxyProgress(progress) {
       this.installingProxyProgress = progress;
@@ -901,10 +805,6 @@ export default {
         `${taskAction}-completed-${eventId}`,
         this.getProxyConfigCompleted
       );
-
-      // const proxyId = this.createdProxyModuleId ////
-      //   ? this.createdProxyModuleId
-      //   : this.proxyModuleId;
 
       const res = await to(
         this.createModuleTaskForApp(this.internalProxyModuleId, {
@@ -931,8 +831,6 @@ export default {
       this.loading.getProxyConfig = false;
     },
     getProxyConfigCompleted(taskContext, taskResult) {
-      console.log("@@ getProxyConfigCompleted", taskResult.output); ////
-
       this.proxyConfig = taskResult.output;
       this.fqdn = this.proxyConfig.fqdn || "";
 
@@ -949,6 +847,10 @@ export default {
 
       this.loading.getProxyConfig = false;
       this.getAvailableInterfaces();
+
+      if (!this.isProxyConfigured) {
+        this.focusElement("fqdn");
+      }
     },
     goToCertificates() {
       this.core.$router.push("/settings/tls-certificates");
@@ -1000,8 +902,6 @@ export default {
       apps.sort(this.sortByProperty("name"));
       this.apps = apps;
       this.loading.listModules = false;
-
-      console.log("@@ apps", this.apps); ////
     },
   },
 };

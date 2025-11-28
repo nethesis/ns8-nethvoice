@@ -11,10 +11,10 @@
       :description="error.getUsers"
       :showCloseButton="false"
     />
-    <div class="mg-bottom-lg">
-      {{ $t("welcome.configure_nethvoice_application") }}
-    </div>
     <template v-if="!isConfigureModuleValidationCompleted">
+      <div class="mg-bottom-lg">
+        {{ $t("welcome.configure_nethvoice_application") }}
+      </div>
       <cv-form>
         <NsTextInput
           :label="$t('settings.nethvoice_host')"
@@ -23,7 +23,6 @@
           :disabled="loading.configureModule"
           :invalid-message="error.nethvoice_host"
           ref="nethvoice_host"
-          data-modal-primary-focus
         />
         <NsTextInput
           :label="$t('settings.nethcti_ui_host')"
@@ -110,9 +109,6 @@
           :disabled="loading.configureModule"
           light
         />
-        <div>admUserExists {{ admUserExists }} ////</div>
-        <div>accountProvider {{ accountProvider }} ////</div>
-        <!-- ////  -->
         <NsInlineNotification
           v-if="validationErrorDetails.length"
           kind="error"
@@ -185,8 +181,6 @@ import { mapState } from "vuex";
 import to from "await-to-js";
 import { PasswordGeneratorService } from "@/mixins/passwordGenerator";
 
-//// review
-
 export default {
   name: "NethvoiceStep",
   mixins: [
@@ -247,14 +241,6 @@ export default {
     },
   },
   watch: {
-    // "loading.addUser": { ////
-    //   immediate: true,
-    //   handler(newVal) {
-    //     this.$emit("set-next-loading", newVal);
-    //     this.$emit("set-next-enabled", !newVal);
-    //     this.$emit("set-previous-enabled", !newVal);
-    //   },
-    // },
     "loading.configureModule": {
       immediate: true,
       handler(newVal) {
@@ -263,14 +249,6 @@ export default {
         this.$emit("set-previous-enabled", !newVal);
       },
     },
-    // "loading.setAdminPassword": { ////
-    //   immediate: true,
-    //   handler(newVal) {
-    //     this.$emit("set-next-loading", newVal);
-    //     this.$emit("set-next-enabled", !newVal);
-    //     this.$emit("set-previous-enabled", !newVal);
-    //   },
-    // },
   },
   created() {
     this.timezoneOptions = this.defaults.accepted_timezone_list.map((tz) => {
@@ -281,6 +259,7 @@ export default {
       };
     });
 
+    // set timezone
     this.$nextTick(() => {
       this.timezone = this.defaults.local_timezone;
     });
@@ -289,6 +268,7 @@ export default {
     this.getUsers();
 
     this.$emit("set-next-label", this.$t("welcome.configure"));
+    this.focusElement("nethvoice_host");
   },
   methods: {
     validateConfigureModule() {
@@ -408,8 +388,6 @@ export default {
       this.passwordValidation = passwordValidation;
     },
     next() {
-      console.log("next, nvoice step"); ////
-
       this.startConfiguration();
     },
     async getUsers() {
@@ -528,8 +506,6 @@ export default {
     },
     addAdmUserCompleted() {
       this.loading.addUser = false;
-
-      // this.configureModule(); //// start configuration after adm user is created
     },
     async setAdminPassword() {
       this.error.setAdminPassword = "";
@@ -660,20 +636,12 @@ export default {
     configureModuleValidationOk() {
       // show progress animation
       this.isConfigureModuleValidationCompleted = true;
-
-      // emit to parent that validation is ok ////
-      // this.$emit("configureModuleValidationOk"); //// remove
     },
     configureModuleProgress(progress) {
       this.configuringNethvoiceProgress = progress;
     },
     configureModuleCompleted(taskContext) {
-      console.log("@@ configureModuleCompleted"); ////
-
       this.loading.configureModule = false;
-
-      //// set admin password only after configuration is completed
-      // this.setAdminPassword(); ////
 
       // emit to parent that configuration is finished
       this.$emit("finish");

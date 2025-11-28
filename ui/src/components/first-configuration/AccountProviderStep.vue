@@ -107,8 +107,6 @@ import { mapState } from "vuex";
 import to from "await-to-js";
 import { OPENLDAP_STEP, PROXY_STEP } from "./FirstConfigurationModal.vue";
 
-//// review
-
 export default {
   name: "AccountProviderStep",
   mixins: [UtilService, TaskService, IconService, LottieService],
@@ -148,9 +146,6 @@ export default {
           description: this.getDomainType(domain),
         };
       });
-    },
-    isLoadingData() {
-      return this.loading.listUserDomains;
     },
     selectedAccountProvider() {
       return this.domains.find((domain) => domain.name === this.domainName);
