@@ -111,14 +111,20 @@
               :class="{ 'input-with-gray-bg': isProxyConfigured }"
             />
             <!-- let's encrypt toggle -->
+            <label class="bx--label mb-0" v-if="isProxyConfigured">
+              {{ core.$t("apps_lets_encrypt.request_https_certificate") }}
+            </label>
             <NsToggle
               value="letsEncrypt"
-              :label="core.$t('apps_lets_encrypt.request_https_certificate')"
+              :label="
+                isProxyConfigured
+                  ? undefined
+                  : core.$t('apps_lets_encrypt.request_https_certificate')
+              "
               v-model="isLetsEncryptEnabled"
-              :disabled="loading.configureModule"
-              :readonly="isProxyConfigured"
+              :disabled="loading.configureModule || isProxyConfigured"
             >
-              <template #tooltip>
+              <template v-if="!isProxyConfigured" #tooltip>
                 <div class="mg-bottom-sm">
                   {{ core.$t("apps_lets_encrypt.lets_encrypt_tips") }}
                 </div>
@@ -174,7 +180,7 @@
             <!-- public address -->
             <div class="flex flex-col">
               <div class="flex">
-                <div class="bx--label mb-0">
+                <label class="bx--label mb-0">
                   {{
                     `${$t("welcome.proxy.address")} (${core.$t(
                       "common.optional"
@@ -190,7 +196,7 @@
                       {{ $t("welcome.proxy.address_tooltip") }}
                     </template>
                   </cv-interactive-tooltip>
-                </div>
+                </label>
                 <cv-loading
                   v-if="loading.resolveFqdn"
                   small
