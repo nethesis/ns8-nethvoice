@@ -142,8 +142,7 @@ export default {
         return {
           name: domain.name,
           value: domain.name,
-          label: domain.name,
-          description: this.getDomainType(domain),
+          label: `${domain.name} - ${this.getDomainType(domain)}`,
         };
       });
     },

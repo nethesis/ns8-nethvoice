@@ -523,12 +523,13 @@ export default {
     },
     getAvailableInterfacesCompleted(taskContext, taskResult) {
       const interfaces = [];
-      for (const test of taskResult.output.data) {
-        const interfaceAddress = test.addresses[0].address;
-        const label = `${test.name} - ${interfaceAddress}`;
+
+      for (const iface of taskResult.output.data) {
+        const interfaceAddress = iface.addresses[0].address;
+        const label = `${iface.name} - ${interfaceAddress}`;
 
         interfaces.push({
-          name: test.name,
+          name: iface.name,
           label: label,
           value: interfaceAddress,
         });
@@ -538,7 +539,6 @@ export default {
 
       // set interface from config in combobox
       this.$nextTick(() => {
-        //// is this if correct?
         if (this.proxyConfig.addresses.address != "127.0.0.1") {
           this.iface = this.proxyConfig.addresses.address;
         }
@@ -839,7 +839,6 @@ export default {
     getProxyConfigCompleted(taskContext, taskResult) {
       this.proxyConfig = taskResult.output;
       this.fqdn = this.proxyConfig.fqdn || "";
-
       this.isLetsEncryptEnabled = this.proxyConfig.lets_encrypt;
       this.isLetsEncryptCurrentlyEnabled = this.proxyConfig.lets_encrypt;
 

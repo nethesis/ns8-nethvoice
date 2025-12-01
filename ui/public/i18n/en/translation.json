@@ -155,8 +155,6 @@
       "domain_helper": "FQDN of the proxy. Must be a valid domain name",
       "address": "Public IP address",
       "address_helper": "IPv4 address expected to receive VoIP traffic",
-      "public_address": "Public IP address",
-      "public_address_helper": "Public IPV4 address expected to receive VoIP traffic, in case of NAT",
       "address_tooltip": "This is required only if it differs from @:welcome.proxy.network_interface address. The address is filled automatically based on the resolved FQDN above, but you can change it if needed.",
       "network_interface": "Network interface",
       "network_interface_placeholder": "Choose network interface",
