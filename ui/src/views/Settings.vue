@@ -500,8 +500,8 @@ import {
   IconService,
   PageTitleService,
 } from "@nethserver/ns8-ui-lib";
-import { GeneratePassword } from "generate-password-lite";
 import ResumeConfigNotification from "@/components/first-configuration/ResumeConfigNotification.vue";
+import { PasswordGeneratorService } from "@/mixins/passwordGenerator";
 
 export default {
   name: "Settings",
@@ -512,6 +512,7 @@ export default {
     UtilService,
     QueryParamService,
     PageTitleService,
+    PasswordGeneratorService,
   ],
   pageTitle() {
     return this.$t("settings.title") + " - " + this.appName;
@@ -662,21 +663,6 @@ export default {
     this.$root.$off();
   },
   methods: {
-    //// remove and use mixin instead
-    generatePassword() {
-      const forbiddenSpecialChars = "!#$&()*,-/;<=>[\\]`{|}~";
-      const password = GeneratePassword({
-        length: 16,
-        symbols: true,
-        numbers: true,
-        uppercase: true,
-        minLengthUppercase: 1,
-        minLengthNumbers: 1,
-        minLengthSymbols: 1,
-        exclude: forbiddenSpecialChars,
-      });
-      return password;
-    },
     async getConfiguration() {
       this.loading.getConfiguration = true;
       this.error.getConfiguration = "";
@@ -927,7 +913,7 @@ export default {
         if (exists.length == 0) {
           // compose credentials
           this.form.nethvoice_adm.username = this.instanceName + "-adm";
-          this.form.nethvoice_adm.password = this.generatePassword();
+          this.form.nethvoice_adm.password = this.generateAdmPassword();
 
           // execute task
           const resAdm = await to(

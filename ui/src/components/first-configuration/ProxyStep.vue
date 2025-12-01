@@ -4,8 +4,6 @@
 -->
 <template>
   <div>
-    <div>iface {{ iface }} ////</div>
-    <div>internalProxyModuleId {{ internalProxyModuleId }} ////</div>
     <NsInlineNotification
       v-if="error.getProxyConfig"
       kind="error"
@@ -49,6 +47,14 @@
             </template>
             <template #pictogram> </template>
           </NsEmptyState>
+          <div class="h-3rem">
+            <cv-inline-loading
+              v-if="loading.listModules"
+              state="loading"
+              :loadingText="$t('common.loading')"
+              class="items-start"
+            />
+          </div>
         </template>
         <template v-else>
           <!-- installing proxy -->
@@ -668,11 +674,7 @@ export default {
       );
 
       for (const validationError of validationErrors) {
-        console.log("## validationError", validationError); ////
-
         let field = this.getValidationErrorField(validationError);
-
-        console.log("field", field); ////
 
         if (validationError.details) {
           // show inline error notification with details
@@ -781,7 +783,6 @@ export default {
         `${taskContext.action}-progress-${taskContext.extra.eventId}`
       );
 
-      // this.internalProxyModuleId = taskResult.output.module_id; ////
       this.$emit("set-proxy-module-id", taskResult.output.module_id);
       this.$emit("set-proxy-installed", true);
       this.$emit("set-next-label", this.core.$t("common.next"));
@@ -914,4 +915,8 @@ export default {
 
 <style scoped lang="scss">
 @import "../../styles/carbon-utils";
+
+.h-3rem {
+  height: 3rem;
+}
 </style>
