@@ -472,7 +472,11 @@ export default {
                 break;
               }
             }
-            this.address = this.resolvedIp;
+
+            // set public address only if different from selected interface
+            if (this.resolvedIp !== this.iface) {
+              this.address = this.resolvedIp;
+            }
           } else {
             this.resolvedIp = "";
           }
