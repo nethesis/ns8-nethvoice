@@ -830,7 +830,7 @@ export default {
       this.getConfiguration();
     },
     validateConfigureModule() {
-      this.clearErrors(this);
+      this.clearErrors();
       this.validationErrorDetails = [];
       let isValidationOk = true;
 

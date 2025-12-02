@@ -218,7 +218,7 @@ export default {
   position: relative;
 }
 
-//// remove when NsTextInput handles light propr correctly
+//// remove when NsTextInput handles light prop correctly
 .bx--modal .input-with-gray-bg .bx--text-input {
   background-color: #f4f4f4;
 }

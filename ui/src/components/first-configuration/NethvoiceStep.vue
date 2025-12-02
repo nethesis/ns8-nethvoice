@@ -448,7 +448,6 @@ export default {
       if (this.accountProvider.internal && !this.admUserExists) {
         this.addAdmUser();
       }
-      this.configureModule();
       this.setAdminPassword();
     },
     async addAdmUser() {
@@ -506,6 +505,7 @@ export default {
     },
     addAdmUserCompleted() {
       this.loading.addUser = false;
+      this.configureModule();
     },
     async setAdminPassword() {
       this.error.setAdminPassword = "";
