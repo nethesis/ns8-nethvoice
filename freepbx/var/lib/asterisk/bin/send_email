@@ -86,14 +86,18 @@ while 'Bcc' in message:
     del message['Bcc']
 
 # Generate from address
+del message['From']
+from_address = None
 if 'SMTP_FROM_ADDRESS' in os.environ and os.environ['SMTP_FROM_ADDRESS']:
-    from_address = os.environ['SMTP_FROM_ADDRESS']
+    from_address = re.sub(r'^.*<|>.*$', '', os.environ['SMTP_FROM_ADDRESS'])
+    message['From'] = os.environ['SMTP_FROM_ADDRESS']
 else:
     # check if the from address is set from the command line with -f
     argv = sys.argv[1:]
     for idx, arg in enumerate(argv):
         if arg == '-f' and idx + 1 < len(argv):
-            from_address = argv[idx + 1]
+            message['From'] = argv[idx + 1]
+            from_address = re.sub(r'^.*<|>.*$', '', argv[idx + 1])
             break
     # Generate from_address using SMTP_USERNAME, SMTP_HOST and BRAND_NAME if not set from the command line
     if not from_address:
@@ -112,9 +116,7 @@ else:
                 from_domain = '.'.join(SMTP_HOST.split('.')[1:])
         from_name = os.environ.get('BRAND_NAME', 'nethvoice').lower().replace(' ', '_')
         from_address = f"{from_name}@{from_domain}"
-
-del message['From']
-message['From'] = from_address
+        message['From'] = f"{os.environ.get('BRAND_NAME', 'NethVoice')} <{from_address}>"
 
 # if there is a wav attachment and the SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED are enabled, query satellite api for transcription
 if 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED' in os.environ and os.environ['SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED'] == 'True':

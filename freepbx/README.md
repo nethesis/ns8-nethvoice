@@ -73,7 +73,7 @@ NethVoice send voicemail emails using smarthost. Smarthost is configured with fo
 - `SMTP_PASSWORD` smarthost password "My43Cr3t"
 - `SMTP_ENCRYPTION` smarthost encryption type ["starttls"|"tls"]
 - `SMTP_TLSVERIFY` verify smarthost certificate: [1 | ""]
-- `SMTP_FROM_ADDRESS` from address for voicemail emails "nethvoice@example.com". If not set, the -f option can be used to set the from address from the voicemail command in FreePBX. Otherwise it will be generated from `BRAND_NAME` and `SMTP_USERNAME` (if it contains an @) or `SMTP_HOST`.
+- `SMTP_FROM_ADDRESS` from address for voicemail emails "nethvoice@example.com" or "NethVoice <foo@example.com>". If not set, the -f option can be used to set the from address from the voicemail command in FreePBX. Otherwise it will be generated from `BRAND_NAME` and `SMTP_USERNAME` (if it contains an @) or `SMTP_HOST`.
 
 ## Custom scripts launched when a call arrives and at hangup
 
