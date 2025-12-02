@@ -659,8 +659,8 @@ export default {
     this.$root.$on("reloadConfig", this.getConfiguration);
   },
   beforeDestroy() {
-    // remove all event listeners
-    this.$root.$off();
+    // remove only the specific event listener registered by this component
+    this.$root.$off("reloadConfig", this.getConfiguration);
   },
   methods: {
     async getConfiguration() {
