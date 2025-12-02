@@ -51,27 +51,6 @@ SMTP_TLSVERIFY = os.environ.get('SMTP_TLSVERIFY', '1')
 SMTP_USERNAME = os.environ.get('SMTP_USERNAME', '')
 SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')
 
-# Generate SMTP_FROM_ADDRESS if not set
-if 'SMTP_FROM_ADDRESS' not in os.environ or not os.environ['SMTP_FROM_ADDRESS']:
-    from_domain = ""
-    if '@' in SMTP_USERNAME:
-        # Get the from address from the smtp username
-        from_domain = SMTP_USERNAME.split('@')[1]
-    elif re.match(r'^(\d{1,3}\.){3}\d{1,3}$', SMTP_HOST):
-        # Get the from address from NETHVOICE_HOST if smtp host is an IP address
-        nethvoice_host = os.environ.get('NETHVOICE_HOST', '')
-        if '.' in nethvoice_host:
-            from_domain = '.'.join(nethvoice_host.split('.')[1:])
-    else:
-        # Get the from address from the smtp host
-        if '.' in SMTP_HOST:
-            from_domain = '.'.join(SMTP_HOST.split('.')[1:])
-    
-    from_name = os.environ.get('BRAND_NAME', 'nethvoice').lower().replace(' ', '_')
-    SMTP_FROM_ADDRESS = f"{from_name}@{from_domain}"
-else:
-    SMTP_FROM_ADDRESS = os.environ['SMTP_FROM_ADDRESS']
-
 # Validate SMTP_ENCRYPTION and SMTP_TLSVERIFY
 if SMTP_ENCRYPTION not in ['starttls', 'tls', 'none','']:
     print("Invalid SMTP_ENCRYPTION value.", file=sys.stderr)
@@ -106,11 +85,35 @@ if not recipient_emails:
 while 'Bcc' in message:
     del message['Bcc']
 
-# Extract from address from the message or use the SMTP_FROM_ADDRESS as fallback
-from_address = message.get('From')
-if not from_address:
-    from_address = SMTP_FROM_ADDRESS
-    message['From'] = from_address
+# Generate from address
+if 'SMTP_FROM_ADDRESS' in os.environ and os.environ['SMTP_FROM_ADDRESS']:
+    from_address = os.environ['SMTP_FROM_ADDRESS']
+else:
+    # check if the from address is set from the command line with -f
+    argv = sys.argv[1:]
+    for idx, arg in enumerate(argv):
+        if arg == '-f' and idx + 1 < len(argv):
+            from_address = argv[idx + 1]
+            break
+    # Generate from_address using SMTP_USERNAME, SMTP_HOST and BRAND_NAME if not set from the command line
+    if not from_address:
+        from_domain = ""
+        if '@' in SMTP_USERNAME:
+            # Get the from address from the smtp username
+            from_domain = SMTP_USERNAME.split('@')[1]
+        elif re.match(r'^(\d{1,3}\.){3}\d{1,3}$', SMTP_HOST):
+            # Get the from address from NETHVOICE_HOST if smtp host is an IP address
+            nethvoice_host = os.environ.get('NETHVOICE_HOST', '')
+            if '.' in nethvoice_host:
+                from_domain = '.'.join(nethvoice_host.split('.')[1:])
+        else:
+            # Get the from address from the smtp host
+            if '.' in SMTP_HOST:
+                from_domain = '.'.join(SMTP_HOST.split('.')[1:])
+        from_name = os.environ.get('BRAND_NAME', 'nethvoice').lower().replace(' ', '_')
+        from_address = f"{from_name}@{from_domain}"
+
+message['From'] = from_address
 
 # if there is a wav attachment and the SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED are enabled, query satellite api for transcription
 if 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED' in os.environ and os.environ['SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED'] == 'True':
