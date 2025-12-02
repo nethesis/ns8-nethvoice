@@ -45,7 +45,9 @@
             <template #description>
               {{ $t("welcome.proxy_missing_on_node_description") }}
             </template>
-            <template #pictogram> </template>
+            <template #pictogram>
+              <ServerRackPictogram />
+            </template>
           </NsEmptyState>
           <div class="h-3rem">
             <cv-inline-loading
