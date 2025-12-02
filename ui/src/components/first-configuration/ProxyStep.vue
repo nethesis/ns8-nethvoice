@@ -724,7 +724,7 @@ export default {
         this.installProxyAborted
       );
 
-      //   // register to task validation
+      // register to task validation
       this.core.$root.$once(
         `${taskAction}-validation-ok-${eventId}`,
         this.installProxyValidationOk
