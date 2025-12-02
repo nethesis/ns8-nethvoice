@@ -113,6 +113,7 @@ else:
         from_name = os.environ.get('BRAND_NAME', 'nethvoice').lower().replace(' ', '_')
         from_address = f"{from_name}@{from_domain}"
 
+del message['From']
 message['From'] = from_address
 
 # if there is a wav attachment and the SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED are enabled, query satellite api for transcription
