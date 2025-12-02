@@ -316,7 +316,6 @@ export default {
       validationErrorDetails: [],
       address: "",
       resolvedIp: "",
-      public_address: "",
       iface: "",
       interfaces: [],
       warningVisible: false,
@@ -580,6 +579,17 @@ export default {
         this.error.iface = this.$t("common.required");
         isValidationOk = false;
       }
+
+      if (this.address && this.address === this.iface) {
+        this.error.public_address = this.$t(
+          "welcome.proxy.address_cannot_be_same_as_iface"
+        );
+
+        if (isValidationOk) {
+          this.focusElement("public_address");
+          isValidationOk = false;
+        }
+      }
       return isValidationOk;
     },
     getValidationErrorField(validationError) {
@@ -748,8 +758,7 @@ export default {
         this.createClusterTaskForApp({
           action: taskAction,
           data: {
-            image: `ghcr.io/nethesis/nethvoice-proxy:latest`, //// remove
-            // image: `ghcr.io/nethesis/nethvoice-proxy:${this.proxyVersion}`, //// uncomment
+            image: `ghcr.io/nethesis/nethvoice-proxy:${this.proxyVersion}`,
             node: nodeId,
           },
           extra: {

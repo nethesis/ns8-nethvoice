@@ -164,7 +164,8 @@
       "proxy_already_configured_description": "You can change these settings on the Settings page of {proxyModule}.",
       "go_to_proxy_settings": "Go to proxy settings",
       "configuring_nethvoice_proxy": "Configuring NethVoice Proxy",
-      "install_proxy": "Install Proxy"
+      "install_proxy": "Install Proxy",
+      "address_cannot_be_same_as_iface": "Enter the public IP address only if it differs from the network interface IP address"
     }
   },
   "task": {

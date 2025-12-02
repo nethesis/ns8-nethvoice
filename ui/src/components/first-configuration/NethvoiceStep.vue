@@ -213,6 +213,7 @@ export default {
       configuringNethvoiceProgress: 0,
       focusPasswordField: { element: "" },
       isConfigureModuleValidationCompleted: false,
+      admUserCreated: false,
       loading: {
         getUsers: false,
         addUser: false,
@@ -237,7 +238,10 @@ export default {
       return `${this.instanceName}-adm`;
     },
     admUserExists() {
-      return this.domainUsers.some((user) => user.user === this.admUsername);
+      return (
+        this.domainUsers.some((user) => user.user === this.admUsername) ||
+        this.admUserCreated
+      );
     },
   },
   watch: {
@@ -509,6 +513,7 @@ export default {
     },
     addAdmUserCompleted() {
       this.loading.addUser = false;
+      this.admUserCreated = true;
       this.configureModule();
     },
     async setAdminPassword() {
