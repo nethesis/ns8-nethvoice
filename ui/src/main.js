@@ -34,6 +34,7 @@ for (const f in Filters) {
 import VueI18n from "vue-i18n";
 import { loadLanguage } from "./i18n";
 
+Vue.config.productionTip = false;
 loadI18n();
 
 async function loadI18n() {
