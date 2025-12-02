@@ -8,14 +8,54 @@
 import json
 import sys
 import subprocess
+import os
+import agent
 
 timezones_directory = "/usr/share/zoneinfo/posix/"
 command = "find *  -type f -or -type l"
 # Get the list of timezones
 accepted_timezone_list = subprocess.check_output(command, cwd=timezones_directory, text=True, shell=True).splitlines()
 
+# Get local timezone
+# Works for both Rocky Linux and Debian systems
+local_timezone = ""
+try:
+    # Method 1: Read from /etc/timezone (Debian/Ubuntu)
+    if os.path.exists("/etc/timezone"):
+        with open("/etc/timezone", "r") as f:
+            local_timezone = f.read().strip()
+    # Method 2: Read symlink from /etc/localtime (Rocky Linux/RHEL)
+    elif os.path.islink("/etc/localtime"):
+        localtime_path = os.path.realpath("/etc/localtime")
+        # Extract timezone from path like /usr/share/zoneinfo/Europe/Rome
+        if "/zoneinfo/" in localtime_path:
+            local_timezone = localtime_path.split("/zoneinfo/")[1]
+    # Method 3: Use timedatectl as fallback
+    if not local_timezone:
+        result = subprocess.run(["timedatectl", "show", "-p", "Timezone", "--value"],
+                              capture_output=True, text=True)
+        if result.returncode == 0:
+            local_timezone = result.stdout.strip()
+except Exception as e:
+    print(f"Warning: Could not determine timezone: {e}", file=sys.stderr)
+    # If all methods fail, use UTC as default
+    local_timezone = "UTC"
+
+# Get proxy status
+rdb = agent.redis_connect(privileged=True)
+proxy_id = agent.resolve_agent_id('nethvoice-proxy@node')
+proxy_status = {
+    "proxy_installed": True if proxy_id is not None else False,
+}
+
+if (proxy_id is not None):
+    proxy_id = proxy_id.split("module/")[1]
+    proxy_status["module_id"] = proxy_id
+
 config={
         "accepted_timezone_list": accepted_timezone_list,
+        "local_timezone": local_timezone,
+        "proxy_status": proxy_status,
         }
 
 json.dump(config, fp=sys.stdout)

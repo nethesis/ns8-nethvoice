@@ -8,6 +8,11 @@
       <AppSideMenu />
       <AppMobileSideMenu />
       <router-view />
+      <FirstConfigurationModal
+        :isShown="isShownFirstConfigurationModal"
+        @configured="onConfigured"
+        @hide="setShownFirstConfigurationModalInStore(false)"
+      />
     </cv-content>
   </div>
 </template>
@@ -22,13 +27,20 @@ import {
   UtilService,
 } from "@nethserver/ns8-ui-lib";
 import to from "await-to-js";
+import FirstConfigurationModal from "./components/first-configuration/FirstConfigurationModal";
 
 export default {
   name: "App",
-  components: { AppSideMenu, AppMobileSideMenu },
+  components: { AppSideMenu, AppMobileSideMenu, FirstConfigurationModal },
   mixins: [QueryParamService, TaskService, UtilService],
   computed: {
-    ...mapState(["instanceName", "instanceLabel", "core"]),
+    ...mapState([
+      "instanceName",
+      "instanceLabel",
+      "core",
+      "isAppConfigured",
+      "isShownFirstConfigurationModal",
+    ]),
   },
   created() {
     const core = window.parent.core;
@@ -60,6 +72,9 @@ export default {
     if (requestedPage != "status") {
       this.$router.replace(requestedPage);
     }
+
+    // check if module has been configured
+    this.getConfiguration();
   },
   methods: {
     ...mapActions([
@@ -67,6 +82,9 @@ export default {
       "setInstanceLabelInStore",
       "setCoreInStore",
       "setAppNameInStore",
+      "setAppConfiguredInStore",
+      "setConfigurationInStore",
+      "setShownFirstConfigurationModalInStore",
     ]),
     async getInstanceLabel() {
       const taskAction = "get-name";
@@ -116,10 +134,90 @@ export default {
       const appName = metadata.name;
       this.setAppNameInStore(appName);
     },
+    async getConfiguration() {
+      const taskAction = "get-configuration";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.getConfigurationAborted
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.getConfigurationCompleted
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        this.createErrorNotificationForApp(
+          `error creating task ${taskAction}`,
+          this.$t("task.cannot_create_task", { action: taskAction })
+        );
+        return;
+      }
+    },
+    getConfigurationAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+    },
+    getConfigurationCompleted(taskContext, taskResult) {
+      const config = taskResult.output;
+      this.setConfigurationInStore(config);
+
+      if (config.nethvoice_host) {
+        this.setAppConfiguredInStore(true);
+      } else {
+        this.setAppConfiguredInStore(false);
+        this.setShownFirstConfigurationModalInStore(true);
+      }
+    },
+    onConfigured() {
+      this.setAppConfiguredInStore(true);
+      this.setShownFirstConfigurationModalInStore(false);
+      this.getConfiguration();
+    },
   },
 };
 </script>
 
 <style lang="scss">
 @import "styles/carbon-utils";
+
+.mb-0 {
+  margin-bottom: 0 !important;
+}
+
+.mb-8rem {
+  margin-bottom: 8rem !important;
+}
+
+.mb-12rem {
+  margin-bottom: 12rem !important;
+}
+
+.top-0\.5 {
+  top: 2px;
+}
+
+.relative {
+  position: relative;
+}
+
+//// remove when NsTextInput handles light prop correctly
+.bx--modal .input-with-gray-bg .bx--text-input {
+  background-color: #f4f4f4;
+}
 </style>
