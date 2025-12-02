@@ -67,6 +67,7 @@ ExecStart=runagent /usr/bin/podman run \
     --env=NETHVOICE_USER_PORTAL_USERNAME \
     --env=USER_DOMAIN \
     --env=SATELLITE* \
+    --env=SMTP_FROM_ADDRESS \
     --env-file=%S/state/smarthost.env \
     --network=host \
     --tz=${TIMEZONE} \
