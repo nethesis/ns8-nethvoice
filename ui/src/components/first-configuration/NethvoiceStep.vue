@@ -446,8 +446,12 @@ export default {
       }
 
       if (this.accountProvider.internal && !this.admUserExists) {
+        // configureModule() is called at the end of addAdmUserCompleted()
         this.addAdmUser();
+      } else {
+        this.configureModule();
       }
+      // can be called concurrently
       this.setAdminPassword();
     },
     async addAdmUser() {
