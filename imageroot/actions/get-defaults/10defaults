@@ -36,7 +36,8 @@ try:
                               capture_output=True, text=True)
         if result.returncode == 0:
             local_timezone = result.stdout.strip()
-except Exception:
+except Exception as e:
+    print(f"Warning: Could not determine timezone: {e}", file=sys.stderr)
     # If all methods fail, use UTC as default
     local_timezone = "UTC"
 
