@@ -308,7 +308,7 @@ export default {
   },
   data() {
     return {
-      internalProxyModuleId: false,
+      internalProxyModuleId: "",
       internalIsProxyInstalled: false,
       fqdn: "",
       isLetsEncryptEnabled: false,
