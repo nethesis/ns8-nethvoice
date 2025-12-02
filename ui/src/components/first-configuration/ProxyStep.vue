@@ -97,7 +97,7 @@
           <cv-form>
             <!-- fqdn -->
             <NsTextInput
-              v-model="fqdn"
+              v-model.trim="fqdn"
               :label="$t('welcome.proxy.domain')"
               :placeholder="
                 $t('common.eg_value', { value: 'proxy.example.org' })
@@ -452,7 +452,7 @@ export default {
         clearTimeout(this.fqdnTimeout);
       }
 
-      if (this.fqdn.trim() !== "") {
+      if (this.fqdn) {
         this.loading.resolveFqdn = true;
 
         this.fqdnTimeout = setTimeout(() => {
@@ -463,7 +463,7 @@ export default {
       }
     },
     resolveFqdn() {
-      fetch(`https://dns.google/resolve?name=${this.fqdn}`)
+      fetch(`https://dns.google/resolve?name=${encodeURIComponent(this.fqdn)}`)
         .then((response) => response.json())
         .then((data) => {
           if (data.Answer && data.Answer.length > 0) {
