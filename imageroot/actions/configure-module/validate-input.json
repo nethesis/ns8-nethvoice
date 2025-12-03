@@ -13,17 +13,8 @@
         {
             "nethvoice_host": "voice.ns8.local",
             "nethcti_ui_host": "cti.ns8.local",
-            "nethvoice_host_local_networks": [
-                {
-                    "network": "192.168.122.0",
-                    "netmask": "255.255.255.0",
-                    "gateway": "192.168.122.1"
-                }
-            ],
-            "nethcti_log_level": "info",
             "nethcti_privacy_numbers": "xxx",
             "user_domain": "domain.ns8.local",
-            "app_brand_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
             "reports_international_prefix": "0039"
         }
     ],
@@ -34,36 +25,6 @@
         "reports_international_prefix"
     ],
     "properties": {
-        "nethvoice_host_local_networks": {
-            "description": "Local networks where NethVoice instance should be exposed to",
-            "type": "array",
-            "minItems": 1,
-            "items": {
-                "type": "object",
-                "required": [
-                    "network",
-                    "netmask",
-                    "gateway"
-                ],
-                "properties": {
-                    "network": {
-                        "description": "Network address",
-                        "type": "string",
-                        "format": "ipv4"
-                    },
-                    "netmask": {
-                        "description": "Network mask",
-                        "type": "string",
-                        "format": "ipv4"
-                    },
-                    "gateway": {
-                        "description": "Network gateway",
-                        "type": "string",
-                        "format": "ipv4"
-                    }
-                }
-            }
-        },
         "nethvoice_host": {
             "description": "Host where NethVoice instance should be exposed to",
             "type": "string",
@@ -71,54 +32,6 @@
             "not": {
                 "format": "ipv4"
             }
-        },
-        "nethcti_prefix": {
-            "description": "NethCTI Prefix",
-            "type": "string"
-        },
-        "nethcti_autoc2c": {
-            "description": "Enable click 2 call",
-            "enum": [
-                "enabled",
-                "disabled"
-            ]
-        },
-        "nethcti_trunks_events": {
-            "description": "Enable or disable trunks events",
-            "enum": [
-                "enabled",
-                "disabled"
-            ]
-        },
-        "nethcti_alerts": {
-            "description": "Enable or disable queue alerts",
-            "type": "boolean"
-        },
-        "nethcti_authentication_enabled": {
-            "description": "Enable or disable authentication",
-            "type": "boolean"
-        },
-        "nethcti_unauthe_call": {
-            "description": "Enable or disable unauthenticated call",
-            "enum": [
-                "enabled",
-                "disabled"
-            ]
-        },
-        "nethcti_unauthe_call_ip": {
-            "description": "",
-            "type": "string",
-            "format": "ipv4"
-        },
-        "nethcti_jabber_url": {
-            "description": "Jabber chat URL",
-            "type": "string",
-            "format": "uri"
-        },
-        "nethcti_jabber_domain": {
-            "description": "Jabber chat domain",
-            "type": "string",
-            "format": "hostname"
         },
         "nethcti_cdr_script": {
             "description": "Path of the script to execute on outgoing call end",
@@ -132,22 +45,9 @@
             "description": "Path of the script to execute on incoming call",
             "type": "string"
         },
-        "nethcti_log_level": {
-            "description": "Log level of nethcti-server",
-            "type": "string",
-            "enum": [
-                "info",
-                "warn"
-            ]
-        },
         "nethcti_privacy_numbers": {
             "description": "Privacy number replace strings",
             "type": "string"
-        },
-        "conference_jitsi_url": {
-            "description": "Jitsi conference URL",
-            "type": "string",
-            "format": "uri"
         },
         "nethcti_ui_host": {
             "description": "CTI host, must be different than nethvoice_host",
@@ -157,19 +57,6 @@
                 "format": "ipv4"
             }
         },
-        "nethcti_ui_product_name": {
-            "description": "NethCTI UI product name for branding",
-            "type": "string"
-        },
-        "nethcti_ui_company_name": {
-            "description": "NethCTI UI company name for branding",
-            "type": "string"
-        },
-        "nethcti_ui_company_url": {
-            "description": "NethCTI UI company url for branding",
-            "type": "string",
-            "format": "uri"
-        },
         "lets_encrypt": {
             "description": "Enable Let's Encrypt certificate",
             "type": "boolean"
@@ -178,26 +65,10 @@
             "description": "Domain where the user accessing NethVoice are stored",
             "type": "string"
         },
-        "app_brand_id": {
-            "description": "Mobile app brand ID used for push proxy",
-            "type": "string"
-        },
         "reports_international_prefix": {
             "description": "International prefix for the reports.",
             "type": "string",
             "pattern": "^(00\\d{1,4}|\\+\\d{1,4})$"
-        },
-        "reports_ui_app_name": {
-            "description": "Name of the reports UI app.",
-            "type": "string"
-        },
-        "reports_ui_help_url": {
-            "description": "Help URL of the reports UI app.",
-            "type": "string"
-        },
-        "reports_ui_company_name": {
-            "description": "Company name of the reports UI app.",
-            "type": "string"
         },
         "timezone": {
             "description": "Asterisk Timezone for timeconditions",
