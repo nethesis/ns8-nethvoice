@@ -12,7 +12,7 @@
     }
   ],
   "docs": {
-    "documentation_url": "https://docs.nethserver.org/projects/ns8/en/latest/nethvoice.html",
+    "documentation_url": "https://docs.nethvoice.com",
     "bug_url": "https://github.com/NethServer/dev",
     "code_url": "https://github.com/nethesis/ns8-nethvoice"
   },
