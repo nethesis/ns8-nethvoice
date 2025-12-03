@@ -25,11 +25,6 @@ def set_from_request(env_name, var_name, default=""):
     agent.set_env(env_name, value)
     return value
 
-
-reports_ui_app_name = set_from_request('REPORTS_UI_APP_NAME', 'reports_ui_app_name', 'NethVoice Reports')
-reports_ui_help_url = set_from_request('REPORTS_UI_HELP_URL', 'reports_ui_help_url', 'https://docs.nethserver.org/projects/ns8/en/latest/nethvoice.html')
-reports_ui_company_name = set_from_request('REPORTS_UI_COMPANY_NAME', 'reports_ui_company_name', 'Nethesis')
-
 # Traefik endpoint
 agent.set_route({
     'instance': os.environ['MODULE_ID'] + '-reports-ui',

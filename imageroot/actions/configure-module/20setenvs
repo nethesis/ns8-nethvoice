@@ -22,32 +22,15 @@ def getFromRequest(request, var_name, env_name, default = ""):
     else:
         agent.set_env(env_name, default)
 
-# NETHVOICE_HOST_LOCAL_NETWORKS should be a jason containing local networks [{"network":"192.168.5.0","netmask":"255.255.255.0","gateway":"192.168.5.1"}]
-getFromRequest(request, 'nethvoice_host_local_networks', 'NETHVOICE_HOST_LOCAL_NETWORKS', '{[]}')
 getFromRequest(request, 'nethvoice_host', 'NETHVOICE_HOST', '')
-getFromRequest(request, 'nethcti_prefix', 'NETHCTI_PREFIX', '')
-getFromRequest(request, 'nethcti_autoc2c', 'NETHCTI_AUTOC2C', 'enabled')
-getFromRequest(request, 'nethcti_trunks_events', 'NETHCTI_TRUNKS_EVENTS', 'disabled')
-getFromRequest(request, 'nethcti_alerts', 'NETHCTI_ALERTS', 'false')
-getFromRequest(request, 'nethcti_authentication_enabled', 'NETHCTI_AUTHENTICATION_ENABLED', 'true')
-getFromRequest(request, 'nethcti_unauthe_call', 'NETHCTI_UNAUTHE_CALL', 'disabled')
-getFromRequest(request, 'nethcti_unauthe_call_ip', 'NETHCTI_UNAUTHE_CALL_IP', '')
-getFromRequest(request, 'nethcti_jabber_url', 'NETHCTI_JABBER_URL', '')
-getFromRequest(request, 'nethcti_jabber_domain', 'NETHCTI_JABBER_DOMAIN', '')
 getFromRequest(request, 'nethcti_cdr_script', 'NETHCTI_CDR_SCRIPT', '')
 getFromRequest(request, 'nethcti_cdr_script_timeout', 'NETHCTI_CDR_SCRIPT_TIMEOUT', '')
 getFromRequest(request, 'nethcti_cdr_script_call_in', 'NETHCTI_CDR_SCRIPT_CALL_IN', '')
-getFromRequest(request, 'nethcti_log_level', 'NETHCTI_LOG_LEVEL', 'warn')
 getFromRequest(request, 'nethcti_privacy_numbers', 'NETHCTI_PRIVACY_NUMBERS', 'xxx')
-getFromRequest(request, 'conference_jitsi_url', 'CONFERENCE_JITSI_URL', 'https://jitsi.nethserver.net')
-getFromRequest(request, 'app_brand_id', 'BRAND_APPID', '')
 getFromRequest(request, 'timezone', 'TIMEZONE', 'UTC')
 
 ## NethCTI UI
 getFromRequest(request, 'nethcti_ui_host', 'NETHCTI_UI_HOST', '')
-getFromRequest(request, 'nethcti_ui_product_name', 'NETHCTI_UI_PRODUCT_NAME', 'NethVoice CTI')
-getFromRequest(request, 'nethcti_ui_company_name', 'NETHCTI_UI_COMPANY_NAME', 'Nethesis')
-getFromRequest(request, 'nethcti_ui_company_url', 'NETHCTI_UI_COMPANY_URL', 'https://www.nethesis.it/')
 
 ## NethVoice adm account for users management
 getFromRequest(request, 'nethvoice_adm_username', 'NETHVOICE_USER_PORTAL_USERNAME', '')
