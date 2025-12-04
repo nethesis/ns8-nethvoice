@@ -23,9 +23,6 @@ def getFromRequest(request, var_name, env_name, default = ""):
         agent.set_env(env_name, default)
 
 getFromRequest(request, 'nethvoice_host', 'NETHVOICE_HOST', '')
-getFromRequest(request, 'nethcti_cdr_script', 'NETHCTI_CDR_SCRIPT', '')
-getFromRequest(request, 'nethcti_cdr_script_timeout', 'NETHCTI_CDR_SCRIPT_TIMEOUT', '')
-getFromRequest(request, 'nethcti_cdr_script_call_in', 'NETHCTI_CDR_SCRIPT_CALL_IN', '')
 getFromRequest(request, 'timezone', 'TIMEZONE', 'UTC')
 
 ## NethCTI UI
@@ -46,8 +43,11 @@ getFromRequest(request, 'satellite_voicemail_transcription_enabled', 'SATELLITE_
 passwordsfile['DEEPGRAM_API_KEY'] = request.get('deepgram_api_key', '')
 passwordsfile['OPENAI_API_KEY'] = request.get('openai_api_key', '')
 
-# set NETHCTI_CDR_SCRIPT to /usr/share/neth-hotel-fias/cdr.php if nethvoice_hotel_fias_address is set
-if request.get('nethvoice_hotel_fias_address', '') != '' and request.get('nethcti_cdr_script', '') == '':
+# set NETHCTI_CDR_SCRIPT to /usr/share/neth-hotel-fias/cdr.php if
+# nethvoice_hotel_fias_address is set and NETHCTI_CDR_SCRIPT is empty or not
+# set.
+# Otherwise, a custom CDR script set by the user would be overridden.
+if request.get('nethvoice_hotel_fias_address', '') != '' and os.environ.get('NETHCTI_CDR_SCRIPT', '') == '':
     agent.set_env('NETHCTI_CDR_SCRIPT', '/usr/share/neth-hotel-fias/cdr.php')
 
 # write the passwords.env file
