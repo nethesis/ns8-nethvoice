@@ -26,7 +26,6 @@ getFromRequest(request, 'nethvoice_host', 'NETHVOICE_HOST', '')
 getFromRequest(request, 'nethcti_cdr_script', 'NETHCTI_CDR_SCRIPT', '')
 getFromRequest(request, 'nethcti_cdr_script_timeout', 'NETHCTI_CDR_SCRIPT_TIMEOUT', '')
 getFromRequest(request, 'nethcti_cdr_script_call_in', 'NETHCTI_CDR_SCRIPT_CALL_IN', '')
-getFromRequest(request, 'nethcti_privacy_numbers', 'NETHCTI_PRIVACY_NUMBERS', 'xxx')
 getFromRequest(request, 'timezone', 'TIMEZONE', 'UTC')
 
 ## NethCTI UI
