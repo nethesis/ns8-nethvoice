@@ -1,0 +1,22 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2025 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e    # exit immediately if an error occurs
+exec 1>&2 # ensure any output is sent to stderr
+
+# Start Hotel alarms if NETHVOICE_HOTEL is "True"
+if [ "$NETHVOICE_HOTEL" = "True" ]; then
+    systemctl --user enable --now nethvoice-hotel-alarms.timer
+else
+    systemctl --user stop nethvoice-hotel-alarms.timer
+    systemctl --user disable nethvoice-hotel-alarms.timer
+fi
+
+# Restart nethcti-server if running, to pick up NETHCTI_CDR_SCRIPT changes
+# Restart if running FreePBX to pick up any changes
+systemctl --user try-restart nethcti-server.service
+systemctl --user try-restart freepbx.service
