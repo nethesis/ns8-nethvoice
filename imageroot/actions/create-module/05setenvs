@@ -190,6 +190,9 @@ agent.set_env('NETHVOICE_HOST_LOCAL_NETWORKS', '{[]}')
 agent.set_env('REPORTS_UI_APP_NAME', 'NethVoice Reports')
 agent.set_env('REPORTS_UI_COMPANY_NAME', 'Nethesis')
 agent.set_env('REPORTS_UI_HELP_URL', 'https://docs.nethserver.org/projects/ns8/en/latest/nethvoice.html')
+agent.set_env('NETHCTI_CDR_SCRIPT', '')
+agent.set_env('NETHCTI_CDR_SCRIPT_TIMEOUT', '')
+agent.set_env('NETHCTI_CDR_SCRIPT_CALL_IN', '')
 
 # password file
 passwords = {

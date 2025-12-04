@@ -32,18 +32,6 @@
                 "format": "ipv4"
             }
         },
-        "nethcti_cdr_script": {
-            "description": "Path of the script to execute on outgoing call end",
-            "type": "string"
-        },
-        "nethcti_cdr_script_timeout": {
-            "description": "Timeout of the script to execute on outgoing call end (in milliseconds)",
-            "type": "integer"
-        },
-        "nethcti_cdr_script_call_in": {
-            "description": "Path of the script to execute on incoming call",
-            "type": "string"
-        },
         "nethcti_ui_host": {
             "description": "CTI host, must be different than nethvoice_host",
             "type": "string",
