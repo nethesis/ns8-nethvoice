@@ -546,7 +546,6 @@ export default {
         rebranding_login_logo_dark_url: "",
         rebranding_login_people: false,
         nethvoice_adm: {},
-        nethcti_privacy_numbers: "",
         nethvoice_hotel: false,
         nethvoice_hotel_fias_address: "",
         nethvoice_hotel_fias_port: "",
@@ -593,7 +592,6 @@ export default {
         rebranding_favicon_url: "",
         rebranding_login_logo_url: "",
         rebranding_login_logo_dark_url: "",
-        nethcti_privacy_numbers: "",
         nethvoice_hotel: "",
         nethvoice_hotel_fias_address: "",
         nethvoice_hotel_fias_port: "",
@@ -734,7 +732,6 @@ export default {
       this.form.timezone = config.timezone;
       this.form.nethvoice_adm.username = config.nethvoice_adm_username;
       this.form.nethvoice_adm.password = config.nethvoice_adm_password;
-      this.form.nethcti_privacy_numbers = config.nethcti_privacy_numbers;
 
       // Hotel module settings - disable if subscription not valid
       if (config.nethvoice_hotel == "True" && this.isSubscriptionValid) {
@@ -1013,7 +1010,6 @@ export default {
             timezone: this.form.timezone,
             nethvoice_adm_username: this.form.nethvoice_adm.username,
             nethvoice_adm_password: this.form.nethvoice_adm.password,
-            nethcti_privacy_numbers: this.form.nethcti_privacy_numbers,
             nethvoice_hotel: this.form.nethvoice_hotel ? "True" : "False",
             nethvoice_hotel_fias_address: this.form.nethvoice_hotel
               ? this.form.nethvoice_hotel_fias_address
