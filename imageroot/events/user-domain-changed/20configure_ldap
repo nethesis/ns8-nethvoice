@@ -13,11 +13,12 @@ from agent.ldapproxy import Ldapproxy
 
 event = json.load(sys.stdin)
 
-if event.get('domain') != os.getenv('USER_DOMAIN'):
+mydomain = os.environ['USER_DOMAIN']
+if mydomain not in event.get('domains', []):
     exit(0)
 
 # Get domain parameters
-domparams = Ldapproxy().get_domain(event['domain'])
+domparams = Ldapproxy().get_domain(mydomain)
 agent.set_env('NETHVOICE_LDAP_HOST', domparams['host'])
 agent.set_env('NETHVOICE_LDAP_PORT', domparams['port'])
 agent.set_env('NETHVOICE_LDAP_USER', domparams['bind_dn'])
