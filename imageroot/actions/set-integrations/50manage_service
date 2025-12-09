@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2025 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import os
+import subprocess
+
+call_enabled = os.getenv('SATELLITE_CALL_TRANSCRIPTION_ENABLED', False)
+vm_enabled = os.getenv('SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED', False)
+
+if call_enabled == 'True' or vm_enabled == 'True':
+    # Enable and restart services
+    subprocess.run(["systemctl", "--user", "enable", "satellite-mqtt.service"], check=True)
+    subprocess.run(["systemctl", "--user", "restart", "satellite-mqtt.service"], check=True)
+
+    subprocess.run(["systemctl", "--user", "enable", "satellite.service"], check=True)
+    subprocess.run(["systemctl", "--user", "restart", "satellite.service"], check=True)
+elif call_enabled == 'False' and vm_enabled == 'False':
+    # Stop and disable services
+    subprocess.run(["systemctl", "--user", "stop", "satellite.service"], check=False)
+    subprocess.run(["systemctl", "--user", "disable", "satellite.service"], check=False)
+
+    subprocess.run(["systemctl", "--user", "stop", "satellite-mqtt.service"], check=False)
+    subprocess.run(["systemctl", "--user", "disable", "satellite-mqtt.service"], check=False)
