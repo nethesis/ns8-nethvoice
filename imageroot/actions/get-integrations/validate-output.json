@@ -1,0 +1,46 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Get nethvoice integrations",
+    "$id": "http://nethserver.org/json-schema/task/output/nethvoice/get-integrations",
+    "description": "Get nethvoice integrations",
+    "examples": [
+        {
+            "satellite_call_transcription_enabled": true,
+            "satellite_voicemail_transcription_enabled": false,
+            "deepgram_api_key": "your_deepgram_api_key",
+            "openai_api_key": "your_openai_api_key"
+        },
+        {
+            "satellite_call_transcription_enabled": false,
+            "satellite_voicemail_transcription_enabled": false,
+            "deepgram_api_key": "",
+            "openai_api_key": ""
+        }
+    ],
+    "type": "object",
+    "required": [
+        "satellite_call_transcription_enabled",
+        "satellite_voicemail_transcription_enabled",
+        "deepgram_api_key",
+        "openai_api_key"
+    ],
+    "properties": {
+        "satellite_call_transcription_enabled": {
+            "description": "Enable real-time call transcription",
+            "type": "boolean"
+        },
+        "satellite_voicemail_transcription_enabled": {
+            "description": "Enable voicemail transcription",
+            "type": "boolean"
+        },
+        "deepgram_api_key": {
+            "description": "Deepgram API key for real-time call and voicemail transcription",
+            "type": "string"
+        },
+        "openai_api_key": {
+            "description": "OpenAI API key for call and voicemail summarization",
+            "type": "string"
+        }
+    },
+    "additionalProperties": false
+}

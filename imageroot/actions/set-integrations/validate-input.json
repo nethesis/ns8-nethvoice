@@ -1,0 +1,42 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Set nethvoice integrations",
+    "$id": "http://nethserver.org/json-schema/task/input/nethvoice/set-integrations",
+    "description": "Set nethvoice integrations",
+    "type": "object",
+    "properties": {
+        "satellite_call_transcription_enabled": {
+            "description": "Enable real-time call transcription",
+            "type": "boolean"
+        },
+        "satellite_voicemail_transcription_enabled": {
+            "description": "Enable voicemail transcription",
+            "type": "boolean"
+        },
+        "deepgram_api_key": {
+            "description": "Deepgram API key for real-time call and voicemail transcription",
+            "type": "string",
+            "anyOf": [
+                {
+                    "pattern": "^[a-zA-Z0-9]+$"
+                },
+                {
+                    "pattern": "^$"
+                }
+            ]
+        },
+        "openai_api_key": {
+            "description": "OpenAI API key for call and voicemail summarization",
+            "type": "string",
+            "anyOf": [
+                {
+                    "pattern": "^[a-zA-Z0-9\\-_]+$"
+                },
+                {
+                    "pattern": "^$"
+                }
+            ]
+        }
+    },
+    "additionalProperties": false
+}
