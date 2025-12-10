@@ -81,6 +81,7 @@ Is it possible to execute a custom script when a call arrives and at hangup. The
 
 - `NETHCTI_CDR_SCRIPT` path of the script to execute on outgoing call end
 - `NETHCTI_CDR_SCRIPT_CALL_IN` path of the script to execute on incoming call end
+- `NETHCTI_CDR_SCRIPT_EXTENSION_RING` path of the script to execute when extension rings
 
 You can find a sample script `/var/lib/asterisk/agi-bin/cdrscript.sample.php` and `/var/lib/asterisk/agi-bin/cdrscript_call_in.sample.php`
 
@@ -105,6 +106,7 @@ Scripts are launched with the following arguments:
 17.  caller name
 18.  called number (only available in the hangup script)
 19.  called name (only available in the hangup script)
+20.  called extension (only available in extension rings script)
 
 ## Trunks without proxy
 
