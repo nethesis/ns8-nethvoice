@@ -9,6 +9,13 @@
         <h2>{{ $t("status.title") }}</h2>
       </cv-column>
     </cv-row>
+    <cv-row>
+      <cv-column>
+        <ResumeConfigNotification
+          v-if="!isAppConfigured && !isShownFirstConfigurationModal"
+        />
+      </cv-column>
+    </cv-row>
     <cv-row v-if="error.getStatus">
       <cv-column>
         <NsInlineNotification
@@ -77,7 +84,9 @@
           :totalFileCountLabel="core.$t('backup.total_file_count')"
           :backupDisabledLabel="core.$t('common.disabled')"
           :showMoreLabel="core.$t('common.show_more')"
-          :multipleUncertainStatusLabel="core.$t('backup.some_backups_failed_or_are_pending')"
+          :multipleUncertainStatusLabel="
+            core.$t('backup.some_backups_failed_or_are_pending')
+          "
           :moduleId="instanceName"
           :moduleUiName="instanceLabel"
           :repositories="backupRepositories"
@@ -254,7 +263,7 @@
 
 <script>
 import to from "await-to-js";
-import { mapState } from "vuex";
+import { mapState, mapActions } from "vuex";
 import {
   QueryParamService,
   TaskService,
@@ -262,9 +271,11 @@ import {
   UtilService,
   PageTitleService,
 } from "@nethserver/ns8-ui-lib";
+import ResumeConfigNotification from "@/components/first-configuration/ResumeConfigNotification.vue";
 
 export default {
   name: "Status",
+  components: { ResumeConfigNotification },
   mixins: [
     TaskService,
     QueryParamService,
@@ -304,7 +315,15 @@ export default {
     };
   },
   computed: {
-    ...mapState(["instanceName", "instanceLabel", "core", "appName"]),
+    ...mapState([
+      "instanceName",
+      "instanceLabel",
+      "core",
+      "appName",
+      "configuration",
+      "isAppConfigured",
+      "isShownFirstConfigurationModal",
+    ]),
     installationNodeTitle() {
       if (this.status && this.status.node) {
         if (this.status.node_ui_name) {
@@ -348,6 +367,7 @@ export default {
     this.listBackupRepositories();
   },
   methods: {
+    ...mapActions(["setInstanceStatusInStore"]),
     async getStatus() {
       this.loading.getStatus = true;
       this.error.getStatus = "";
@@ -392,6 +412,8 @@ export default {
     },
     getStatusCompleted(taskContext, taskResult) {
       this.status = taskResult.output;
+      // save status to vuex store: useful for first configuration modal
+      this.setInstanceStatusInStore(this.status);
       this.loading.getStatus = false;
     },
     async listBackupRepositories() {

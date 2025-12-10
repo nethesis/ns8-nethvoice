@@ -10,18 +10,53 @@
         "Europe/Berlin",
         "Europe/Brussels",
         "Europe/London"
-      ]
+      ],
+      "local_timezone": "Europe/Rome",
+      "proxy_status": {
+        "proxy_installed": true,
+        "module_id": "nethvoice-proxy1"
+      }
+    },
+    {
+      "accepted_timezone_list": [
+        "Europe/Amsterdam",
+        "Europe/Berlin"
+      ],
+      "local_timezone": "UTC",
+      "proxy_status": {
+        "proxy_installed": false
+      }
     }
   ],
   "type": "object",
   "additionalProperties": false,
-  "required": ["accepted_timezone_list"],
+  "required": ["accepted_timezone_list", "local_timezone", "proxy_status"],
   "properties": {
     "accepted_timezone_list": {
       "description": "List of accepted timezones",
       "type": "array",
       "items": {
         "type": "string"
+      }
+    },
+    "local_timezone": {
+      "description": "The current system timezone",
+      "type": "string"
+    },
+    "proxy_status": {
+      "description": "Status of the NethVoice proxy",
+      "type": "object",
+      "required": ["proxy_installed"],
+      "additionalProperties": false,
+      "properties": {
+        "proxy_installed": {
+          "description": "True if the NethVoice proxy is installed, false otherwise",
+          "type": "boolean"
+        },
+        "module_id": {
+          "description": "The module ID of the NethVoice proxy",
+          "type": "string"
+        }
       }
     }
   }

@@ -22,7 +22,7 @@
         "set_password": "NethVoice administratie wachtwoord",
         "timezone": "Tijdzone",
         "create_nethvoice_adm": "Creëer NethVoice Administrateur voor gebruikerbeheer",
-        "error_message_hostname": "Wanneer u de gebruikersprovider van een reeds geconfigureerde NethVoice wijzigt, worden alle gebruikers- en extensieconfiguraties opnieuw ingesteld.",
+        "change_domain_provider_warning": "Wanneer u de gebruikersprovider van een reeds geconfigureerde NethVoice wijzigt, worden alle gebruikers- en extensieconfiguraties opnieuw ingesteld.",
         "nethcti_ui_host_format": "Moet een geldige domeinnaam zijn.",
         "set_rebranding": "Rebranding-instelling",
         "proxy_not_installed": "Nethvoice Proxy",

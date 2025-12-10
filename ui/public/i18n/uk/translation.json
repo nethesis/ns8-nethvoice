@@ -23,7 +23,7 @@
         "timezone_placeholder": "Виберіть часовий пояс",
         "timezone_tooltip": "Встановіть часовий пояс за умовчанням для поточної інсталяції NethVoice",
         "remove_nethvoice_adm": "Видаліть адміністратора NethVoice для керування користувачами",
-        "error_message_hostname": "Якщо змінити постачальника послуг уже налаштованого NethVoice, усі налаштування користувачів і розширень буде скинуто.",
+        "change_domain_provider_warning": "Якщо змінити постачальника послуг уже налаштованого NethVoice, усі налаштування користувачів і розширень буде скинуто.",
         "set_rebranding": "Налаштування ребрендингу",
         "proxy_not_installed": "Проксі Nethvoice",
         "proxy_not_installed_description": "Перед налаштуванням NethVoice потрібно встановити проксі.",
