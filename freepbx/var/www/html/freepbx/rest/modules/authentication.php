@@ -68,4 +68,3 @@ $app->post('/testauth', function (Request $request, Response $response, $args) {
     $no_auth = true;
     return $response->withStatus(401);
 });
-

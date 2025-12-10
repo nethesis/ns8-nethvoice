@@ -93,6 +93,54 @@ paths:
           application/json:
             schema:
               type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+              required:
+                - username
+                - password
+  /testextauth:
+    post:
+      summary: Validate an extension's secret and return associated user info.
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                extension:
+                  type: string
+                secret:
+                  type: string
+              required:
+                - extension
+                - secret
+      responses:
+        '200':
+          description: Extension authenticated; returns mapping list of all users (each item contains main_extension, sub_extensions and user_name).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    user_name:
+                      type: string
+                    main_extension:
+                      type: string
+                    sub_extensions:
+                      type: array
+                      items:
+                        type: string
+        '401':
+          description: Authentication failed
+      operationId: post_testextauth
+      security: []
   /contexts:
     get:
       summary: List dialplan contexts available for assignment.
