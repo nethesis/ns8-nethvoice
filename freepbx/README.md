@@ -86,25 +86,25 @@ You can find a sample script `/var/lib/asterisk/agi-bin/cdrscript.sample.php` an
 
 Scripts are launched with the following arguments:
 
-1   source
-2   channel
-3   endtime (only available in the hangup script)
-4   duration (only available in the hangup script)
-5   amaflags
-6   uniqueid
-7   callerid
-8   starttime
-9   answertime (only available in the hangup script)
-10  destination (only available in the hangup script)
-11  disposition (only available in the hangup script)
-12  lastapplication
-13  billableseconds (only available in the hangup script)
-14  destinationcontext
-15  destinationchannel
-16  accountcode
-17  caller name
-18  called number (only available in the hangup script)
-19  called name (only available in the hangup script)
+1.   source
+2.   channel
+3.   endtime (only available in the hangup script)
+4.   duration (only available in the hangup script)
+5.   amaflags
+6.   uniqueid
+7.   callerid
+8.   starttime
+9.   answertime (only available in the hangup script)
+10.  destination (only available in the hangup script)
+11.  disposition (only available in the hangup script)
+12.  lastapplication
+13.  billableseconds (only available in the hangup script)
+14.  destinationcontext
+15.  destinationchannel
+16.  accountcode
+17.  caller name
+18.  called number (only available in the hangup script)
+19.  called name (only available in the hangup script)
 
 ## Trunks without proxy
 
