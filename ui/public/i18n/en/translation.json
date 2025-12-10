@@ -14,7 +14,13 @@
     "get-defaults": "Get defaults",
     "get-available-interfaces": "Get available interfaces",
     "list-domain-users": "List domain users",
-    "add-module": "Add module"
+    "add-module": "Add module",
+    "get-integrations": "Get integrations",
+    "set-integrations": "Set integrations",
+    "get-hotel": "Get hotel settings",
+    "set-hotel": "Set hotel settings",
+    "get-rebranding": "Get rebranding settings",
+    "set-rebranding": "Configure rebranding"
   },
   "common": {
     "processing": "Processing...",
@@ -24,7 +30,10 @@
     "disabled": "Disabled",
     "eg_value": "e.g. {value}",
     "loading": "Loading",
-    "node_id": "Node {id}"
+    "node_id": "Node {id}",
+    "warning": "Warning",
+    "save": "Save",
+    "optional": "optional"
   },
   "error": {
     "401": "Invalid authentication",
@@ -59,22 +68,6 @@
     "user_domain_selector": "User domain source",
     "reports_international_prefix": "Reports prefix",
     "reports_international_prefix_tooltip": "Format must be either \"00**\" or \"+**\"",
-    "rebranding_brand_name": "Product name",
-    "rebranding_brand_name_tooltip": "Product name to replace instead of NethVoice",
-    "rebranding_navbar_logo_url": "Navbar image in light theme",
-    "rebranding_navbar_logo_url_tooltip": "Navbar image in light theme",
-    "rebranding_navbar_logo_dark_url": "Navbar image in dark theme",
-    "rebranding_navbar_logo_dark_url_tooltip": "Navbar image in dark theme",
-    "rebranding_login_background_url": "Login background image",
-    "rebranding_login_background_url_tooltip": "Login background image",
-    "rebranding_favicon_url": "Favicon",
-    "rebranding_favicon_url_tooltip": "Favicon",
-    "rebranding_login_logo_url": "Logo in light theme",
-    "rebranding_login_logo_url_tooltip": "Logo in light theme",
-    "rebranding_login_logo_dark_url": "Logo in dark theme",
-    "rebranding_login_logo_dark_url_tooltip": "Logo in dark theme",
-    "rebranding_login_people": "Hide login people image",
-    "rebranding_login_people_tooltip": "Check to hide login people image",
     "dark_theme_label": "Activate dark theme",
     "reports_prefix_invalid": "Invalid format",
     "set_password": "NethVoice admin password reset",
@@ -90,17 +83,9 @@
     "set_rebranding": "Rebranding setup",
     "proxy_not_installed": "Nethvoice Proxy",
     "proxy_not_installed_description": "The proxy needs to be installed before configuring NethVoice.",
-    "satellite_call_transcription_enabled": "Enable call transcription (Preview)",
-    "satellite_voicemail_transcription_enabled": "Enable voicemail transcription",
-    "satellite_call_transcription_enabled_warning_title": "Potential high credit usage",
-    "satellite_call_transcription_enabled_warning_description": "Transcriptions are enabled for every call. Your Deepgram credits may run out quickly if you have many calls.",
-    "deepgram_api_key": "Deepgram API Key",
     "openai_api_key": "OpenAI API Key",
     "admin_password": "Admin password to access user interface",
     "confirm_admin_password": "Confirm admin password"
-  },
-  "warning": {
-    "warning_title_message": "Warning"
   },
   "status": {
     "app_images": "App image | App images",
@@ -169,5 +154,36 @@
   },
   "task": {
     "cannot_create_task": "Cannot create task {action}"
+  },
+  "integrations": {
+    "title": "Integrations",
+    "deepgram_api_key": "Deepgram API Key",
+    "satellite_call_transcription_enabled": "Enable call transcription (Preview)",
+    "satellite_voicemail_transcription_enabled": "Enable voicemail transcription",
+    "satellite_call_transcription_enabled_warning_title": "Potential high credit usage",
+    "satellite_call_transcription_enabled_warning_description": "Transcriptions are enabled for every call. Your Deepgram credits may run out quickly if you have many calls."
+  },
+  "rebranding": {
+    "title": "Rebranding",
+    "rebranding_tooltip": "Customize NethVoice with your own brand identity: change the product name, logos, and login background to match your company style.",
+    "rebranding_brand_name": "Product name",
+    "name_to_replace_nethvoice": "Name to replace NethVoice",
+    "rebranding_navbar_logo_url": "Light theme square logo",
+    "rebranding_navbar_logo_dark_url": "Dark theme square logo",
+    "rebranding_login_background_url": "Login background image",
+    "rebranding_favicon_url": "Favicon",
+    "rebranding_favicon_url_tooltip": "Displayed in the browser tab. Recommended size: 32x32 px",
+    "rebranding_login_logo_url": "Light theme logo",
+    "rebranding_login_logo_dark_url": "Dark theme logo",
+    "login_page_preview": "Preview",
+    "public_url_image_helper": "Public URL of the image, recommended .svg format",
+    "login_illustration": "Login illustration",
+    "login_illustration_tooltip": "Show or hide the illustration over the login page background",
+    "username": "Username",
+    "password": "Password",
+    "sign_in": "Sign in"
+  },
+  "hotel": {
+    "title": "Hotel"
   }
 }

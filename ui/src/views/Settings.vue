@@ -72,7 +72,7 @@
             <NsInlineNotification
               v-if="warningVisible"
               kind="warning"
-              :title="$t('warning.warning_title_message')"
+              :title="$t('common.warning')"
               :description="$t('settings.change_domain_provider_warning')"
               :showCloseButton="false"
             />
@@ -245,16 +245,15 @@
               ref="openai_api_key"
             />
             <!-- End Satellite Settings -->
+            <div>rebranding_active {{ form.rebranding_active }} ////</div>
             <label
               v-if="form.rebranding_active"
               class="rebranding_section_title_style"
               >Rebranding section</label
             >
             <cv-accordion
-              @change="actionChange"
               ref="acc"
               :align="align"
-              :size="size"
               :disabled="loadingState || !proxy_installed"
               v-if="form.rebranding_active"
             >
@@ -480,7 +479,7 @@
               :loading="loading.configureModule"
               :disabled="loadingState || !proxy_installed"
             >
-              {{ $t("settings.save") }}
+              {{ $t("common.save") }}
             </NsButton>
           </cv-form>
         </cv-tile>
@@ -555,7 +554,7 @@ export default {
         deepgram_api_key: "",
         openai_api_key: "",
       },
-      isDarkMode: false,
+      isDarkMode: false, //// remove
       proxy_installed: false,
       config: {},
       subscription_systemid: "",
@@ -616,12 +615,14 @@ export default {
         (loadingState) => loadingState === true
       );
     },
+    ////
     validLoginBackgroundUrl() {
       return (
         this.form.rebranding_login_background_url ||
         require("../assets/background_voice.svg")
       );
     },
+    ////
     validLogoUrl() {
       return this.isDarkMode
         ? this.form.rebranding_login_logo_dark_url ||
@@ -1345,10 +1346,12 @@ export default {
         this.warningVisible = false;
       }
     },
-    toggleTheme() {},
+    toggleTheme() {}, ////
+    ////
     setLightTheme() {
       this.isDarkMode = false;
     },
+    ////
     setDarkTheme() {
       this.isDarkMode = true;
     },
