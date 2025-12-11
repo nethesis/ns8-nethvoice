@@ -3,7 +3,7 @@
 FROM docker.io/library/alpine:3.17.3 as repofetcher
 WORKDIR /app
 RUN apk add --no-cache git
-ARG NETHVOICE_REPORT_COMMIT=0e66e253bce9cb23bab188cbb91fe16dfa995ab0
+ARG NETHVOICE_REPORT_COMMIT=401e4d8a504b3f1f3b10f57ba7be90868df9e447
 RUN git clone https://github.com/nethesis/nethvoice-report \
     && cd nethvoice-report \
     && git checkout $NETHVOICE_REPORT_COMMIT
