@@ -9,482 +9,488 @@
         <h2>{{ $t("settings.title") }}</h2>
       </cv-column>
     </cv-row>
-    <cv-row>
-      <cv-column>
-        <ResumeConfigNotification
-          v-if="!isAppConfigured && !isShownFirstConfigurationModal"
-        />
-      </cv-column>
-    </cv-row>
-    <cv-row v-if="error.getConfiguration">
-      <cv-column>
-        <NsInlineNotification
-          kind="error"
-          :title="$t('action.get-configuration')"
-          :description="error.getConfiguration"
-          :showCloseButton="false"
-        />
-      </cv-column>
-    </cv-row>
-    <cv-row v-if="!proxy_installed && !loadingState">
-      <cv-column>
-        <NsInlineNotification
-          kind="info"
-          :title="$t('settings.proxy_not_installed')"
-          :description="$t('settings.proxy_not_installed_description')"
-          :showCloseButton="false"
-        />
-      </cv-column>
-    </cv-row>
-    <cv-row>
-      <cv-column>
-        <cv-tile light>
-          <cv-form @submit.prevent="configureModule">
-            <cv-text-input
-              :label="$t('settings.nethvoice_host')"
-              v-model="form.nethvoice_host"
-              placeholder="voice.example.com"
-              :disabled="loadingState || !proxy_installed"
-              :invalid-message="error.nethvoice_host"
-              ref="nethvoice_host"
-            />
-            <cv-text-input
-              :label="$t('settings.nethcti_ui_host')"
-              v-model="form.nethcti_ui_host"
-              placeholder="cti.example.com"
-              :disabled="loadingState || !proxy_installed"
-              :invalid-message="error.nethcti_ui_host"
-              ref="nethcti_ui_host"
-            />
-            <cv-toggle
-              :label="$t('settings.lets_encrypt')"
-              value="lets_encrypt"
-              :disabled="loadingState || !proxy_installed"
-              v-model="form.lets_encrypt"
-            >
-              <template slot="text-left">
-                {{ $t("common.disabled") }}
-              </template>
-              <template slot="text-right">
-                {{ $t("common.enabled") }}
-              </template>
-            </cv-toggle>
-            <NsInlineNotification
-              v-if="warningVisible"
-              kind="warning"
-              :title="$t('common.warning')"
-              :description="$t('settings.change_domain_provider_warning')"
-              :showCloseButton="false"
-            />
-            <NsComboBox
-              :title="$t('settings.user_domain')"
-              :options="domainList"
-              :auto-highlight="true"
-              :label="$t('settings.user_domain_placeholder')"
-              :disabled="loadingState || !proxy_installed"
-              :invalid-message="error.user_domain"
-              v-model="form.user_domain"
-              ref="user_domain"
-              :acceptUserInput="false"
-              @change="onSelectionChange($event)"
-            />
-            <NsComboBox
-              v-model.trim="form.timezone"
-              :autoFilter="true"
-              :autoHighlight="true"
-              :title="$t('settings.timezone')"
-              :label="$t('settings.timezone_placeholder')"
-              :options="timezoneList"
-              :userInputLabel="core.$t('common.user_input_l')"
-              :acceptUserInput="false"
-              :showItemType="true"
-              :invalid-message="$t(error.timezone)"
-              :disabled="
-                loading.getConfiguration ||
-                loading.configureModule ||
-                loading.getDefaults ||
-                !proxy_installed
-              "
-              tooltipAlignment="start"
-              tooltipDirection="top"
-              ref="timezone"
-            >
-              <template slot="tooltip">
-                {{ $t("settings.timezone_tooltip") }}
-              </template>
-            </NsComboBox>
-            <NsTextInput
-              :label="$t('settings.reports_international_prefix')"
-              v-model="form.reports_international_prefix"
-              placeholder="+39"
-              :disabled="loadingState || !proxy_installed"
-              :invalid-message="error.reports_international_prefix"
-            >
-              <template slot="tooltip">
-                {{ $t("settings.reports_international_prefix_tooltip") }}
-              </template>
-            </NsTextInput>
-            <cv-text-input
-              :label="$t('settings.nethvoice_admin_password')"
-              v-model="form.nethvoice_admin_password"
-              placeholder=""
-              :disabled="loadingState || !proxy_installed"
-              :invalid-message="error.nethvoice_admin_password"
-              ref="nethvoice_admin_password"
-              type="password"
-            />
-            <!-- Hotel Module Settings -->
-            <NsInlineNotification
-              v-if="!isSubscriptionValid"
-              kind="info"
-              :title="$t('settings.nethvoice_hotel_subscription_required')"
-              :showCloseButton="false"
-            />
-            <cv-toggle
-              :label="$t('settings.nethvoice_hotel')"
-              value="nethvoice_hotel"
-              :disabled="isHotelDisabled"
-              v-model="form.nethvoice_hotel"
-            >
-              <template slot="text-left">
-                {{ $t("common.disabled") }}
-              </template>
-              <template slot="text-right">
-                {{ $t("common.enabled") }}
-              </template>
-            </cv-toggle>
-            <cv-text-input
-              :label="$t('settings.nethvoice_hotel_fias_address')"
-              v-model="form.nethvoice_hotel_fias_address"
-              placeholder="192.168.1.100"
-              :disabled="isHotelDisabled || !form.nethvoice_hotel"
-              :invalid-message="error.nethvoice_hotel_fias_address"
-              ref="nethvoice_hotel_fias_address"
-            />
-            <cv-text-input
-              :label="$t('settings.nethvoice_hotel_fias_port')"
-              v-model="form.nethvoice_hotel_fias_port"
-              placeholder="1234"
-              type="number"
-              :disabled="isHotelDisabled || !form.nethvoice_hotel"
-              :invalid-message="error.nethvoice_hotel_fias_port"
-              ref="nethvoice_hotel_fias_port"
-            />
-            <!-- End Hotel Module Settings -->
-            <!-- Satellite Settings -->
-            <cv-text-input
-              :label="$t('settings.deepgram_api_key')"
-              v-model.trim="form.deepgram_api_key"
-              placeholder="g7id86rxn5cns0umkvx6klo9rm0b0vjzrljg064k"
-              :disabled="loadingState || !proxy_installed"
-              :invalid-message="error.deepgram_api_key"
-              ref="deepgram_api_key"
-            />
-            <cv-toggle
-              :label="$t('settings.satellite_call_transcription_enabled')"
-              value="satellite_call_transcription_enabled"
-              :disabled="
-                form.deepgram_api_key.length == 0 ||
-                loadingState ||
-                !proxy_installed
-              "
-              v-model="form.satellite_call_transcription_enabled"
-            >
-              <template slot="text-left">
-                {{ $t("common.disabled") }}
-              </template>
-              <template slot="text-right">
-                {{ $t("common.enabled") }}
-              </template>
-            </cv-toggle>
-            <NsInlineNotification
-              v-if="form.satellite_call_transcription_enabled"
-              kind="warning"
-              :title="
-                $t(
-                  'settings.satellite_call_transcription_enabled_warning_title'
-                )
-              "
-              :description="
-                $t(
-                  'settings.satellite_call_transcription_enabled_warning_description'
-                )
-              "
-              :showCloseButton="false"
-            />
-            <cv-toggle
-              :label="$t('settings.satellite_voicemail_transcription_enabled')"
-              value="satellite_voicemail_transcription_enabled"
-              :disabled="
-                form.deepgram_api_key.length == 0 ||
-                loadingState ||
-                !proxy_installed
-              "
-              v-model="form.satellite_voicemail_transcription_enabled"
-            >
-              <template slot="text-left">
-                {{ $t("common.disabled") }}
-              </template>
-              <template slot="text-right">
-                {{ $t("common.enabled") }}
-              </template>
-            </cv-toggle>
-            <!-- HIDDEN: Remove v-if="false" to restore visibility -->
-            <cv-text-input
-              v-if="false"
-              :label="$t('settings.openai_api_key')"
-              v-model="form.openai_api_key"
-              placeholder="sk-..."
-              :disabled="
-                loadingState ||
-                !proxy_installed ||
-                (!form.satellite_voicemail_transcription_enabled &&
-                  !form.satellite_call_transcription_enabled)
-              "
-              :invalid-message="error.openai_api_key"
-              ref="openai_api_key"
-            />
-            <!-- End Satellite Settings -->
-            <div>rebranding_active {{ form.rebranding_active }} ////</div>
-            <label
-              v-if="form.rebranding_active"
-              class="rebranding_section_title_style"
-              >Rebranding section</label
-            >
-            <cv-accordion
-              ref="acc"
-              :align="align"
-              :disabled="loadingState || !proxy_installed"
-              v-if="form.rebranding_active"
-            >
-              <cv-accordion-item :open="open[0]" class="test-card">
-                <template slot="title">NethVoice CTI</template>
-                <template slot="content">
-                  <!-- Inputs -->
-                  <NsTextInput
-                    :label="$t('settings.rebranding_brand_name')"
-                    v-model="form.rebranding_brand_name"
-                    placeholder="NethVoice"
-                    :disabled="loadingState || !proxy_installed"
-                    :invalid-message="error.rebranding_brand_name"
-                  >
-                    <template slot="tooltip">
-                      {{ $t("settings.rebranding_brand_name_tooltip") }}
-                    </template>
-                  </NsTextInput>
-                  <NsTextInput
-                    :label="$t('settings.rebranding_navbar_logo_url')"
-                    v-model="form.rebranding_navbar_logo_url"
-                    placeholder="https://.."
-                    :disabled="loadingState || !proxy_installed"
-                    :invalid-message="error.rebranding_navbar_logo_url"
-                  >
-                    <template slot="tooltip">
-                      {{ $t("settings.rebranding_navbar_logo_url_tooltip") }}
-                    </template>
-                  </NsTextInput>
+    <template v-if="!isAppConfigured">
+      <cv-row>
+        <cv-column>
+          <ResumeConfigNotification />
+        </cv-column>
+      </cv-row>
+    </template>
+    <template v-else>
+      <cv-row v-if="error.getConfiguration">
+        <cv-column>
+          <NsInlineNotification
+            kind="error"
+            :title="$t('action.get-configuration')"
+            :description="error.getConfiguration"
+            :showCloseButton="false"
+          />
+        </cv-column>
+      </cv-row>
+      <cv-row v-if="!proxy_installed && !loadingState">
+        <cv-column>
+          <NsInlineNotification
+            kind="info"
+            :title="$t('settings.proxy_not_installed')"
+            :description="$t('settings.proxy_not_installed_description')"
+            :showCloseButton="false"
+          />
+        </cv-column>
+      </cv-row>
+      <cv-row>
+        <cv-column>
+          <cv-tile light>
+            <cv-form @submit.prevent="configureModule">
+              <cv-text-input
+                :label="$t('settings.nethvoice_host')"
+                v-model="form.nethvoice_host"
+                placeholder="voice.example.com"
+                :disabled="loadingState || !proxy_installed"
+                :invalid-message="error.nethvoice_host"
+                ref="nethvoice_host"
+              />
+              <cv-text-input
+                :label="$t('settings.nethcti_ui_host')"
+                v-model="form.nethcti_ui_host"
+                placeholder="cti.example.com"
+                :disabled="loadingState || !proxy_installed"
+                :invalid-message="error.nethcti_ui_host"
+                ref="nethcti_ui_host"
+              />
+              <cv-toggle
+                :label="$t('settings.lets_encrypt')"
+                value="lets_encrypt"
+                :disabled="loadingState || !proxy_installed"
+                v-model="form.lets_encrypt"
+              >
+                <template slot="text-left">
+                  {{ $t("common.disabled") }}
+                </template>
+                <template slot="text-right">
+                  {{ $t("common.enabled") }}
+                </template>
+              </cv-toggle>
+              <NsInlineNotification
+                v-if="warningVisible"
+                kind="warning"
+                :title="$t('common.warning')"
+                :description="$t('settings.change_domain_provider_warning')"
+                :showCloseButton="false"
+              />
+              <NsComboBox
+                :title="$t('settings.user_domain')"
+                :options="domainList"
+                :auto-highlight="true"
+                :label="$t('settings.user_domain_placeholder')"
+                :disabled="loadingState || !proxy_installed"
+                :invalid-message="error.user_domain"
+                v-model="form.user_domain"
+                ref="user_domain"
+                :acceptUserInput="false"
+                @change="onSelectionChange($event)"
+              />
+              <NsComboBox
+                v-model.trim="form.timezone"
+                :autoFilter="true"
+                :autoHighlight="true"
+                :title="$t('settings.timezone')"
+                :label="$t('settings.timezone_placeholder')"
+                :options="timezoneList"
+                :userInputLabel="core.$t('common.user_input_l')"
+                :acceptUserInput="false"
+                :showItemType="true"
+                :invalid-message="$t(error.timezone)"
+                :disabled="
+                  loading.getConfiguration ||
+                  loading.configureModule ||
+                  loading.getDefaults ||
+                  !proxy_installed
+                "
+                tooltipAlignment="start"
+                tooltipDirection="top"
+                ref="timezone"
+              >
+                <template slot="tooltip">
+                  {{ $t("settings.timezone_tooltip") }}
+                </template>
+              </NsComboBox>
+              <NsTextInput
+                :label="$t('settings.reports_international_prefix')"
+                v-model="form.reports_international_prefix"
+                placeholder="+39"
+                :disabled="loadingState || !proxy_installed"
+                :invalid-message="error.reports_international_prefix"
+              >
+                <template slot="tooltip">
+                  {{ $t("settings.reports_international_prefix_tooltip") }}
+                </template>
+              </NsTextInput>
+              <cv-text-input
+                :label="$t('settings.nethvoice_admin_password')"
+                v-model="form.nethvoice_admin_password"
+                placeholder=""
+                :disabled="loadingState || !proxy_installed"
+                :invalid-message="error.nethvoice_admin_password"
+                ref="nethvoice_admin_password"
+                type="password"
+              />
+              <!-- Hotel Module Settings -->
+              <NsInlineNotification
+                v-if="!isSubscriptionValid"
+                kind="info"
+                :title="$t('settings.nethvoice_hotel_subscription_required')"
+                :showCloseButton="false"
+              />
+              <cv-toggle
+                :label="$t('settings.nethvoice_hotel')"
+                value="nethvoice_hotel"
+                :disabled="isHotelDisabled"
+                v-model="form.nethvoice_hotel"
+              >
+                <template slot="text-left">
+                  {{ $t("common.disabled") }}
+                </template>
+                <template slot="text-right">
+                  {{ $t("common.enabled") }}
+                </template>
+              </cv-toggle>
+              <cv-text-input
+                :label="$t('settings.nethvoice_hotel_fias_address')"
+                v-model="form.nethvoice_hotel_fias_address"
+                placeholder="192.168.1.100"
+                :disabled="isHotelDisabled || !form.nethvoice_hotel"
+                :invalid-message="error.nethvoice_hotel_fias_address"
+                ref="nethvoice_hotel_fias_address"
+              />
+              <cv-text-input
+                :label="$t('settings.nethvoice_hotel_fias_port')"
+                v-model="form.nethvoice_hotel_fias_port"
+                placeholder="1234"
+                type="number"
+                :disabled="isHotelDisabled || !form.nethvoice_hotel"
+                :invalid-message="error.nethvoice_hotel_fias_port"
+                ref="nethvoice_hotel_fias_port"
+              />
+              <!-- End Hotel Module Settings -->
+              <!-- Satellite Settings -->
+              <cv-text-input
+                :label="$t('settings.deepgram_api_key')"
+                v-model.trim="form.deepgram_api_key"
+                placeholder="g7id86rxn5cns0umkvx6klo9rm0b0vjzrljg064k"
+                :disabled="loadingState || !proxy_installed"
+                :invalid-message="error.deepgram_api_key"
+                ref="deepgram_api_key"
+              />
+              <cv-toggle
+                :label="$t('settings.satellite_call_transcription_enabled')"
+                value="satellite_call_transcription_enabled"
+                :disabled="
+                  form.deepgram_api_key.length == 0 ||
+                  loadingState ||
+                  !proxy_installed
+                "
+                v-model="form.satellite_call_transcription_enabled"
+              >
+                <template slot="text-left">
+                  {{ $t("common.disabled") }}
+                </template>
+                <template slot="text-right">
+                  {{ $t("common.enabled") }}
+                </template>
+              </cv-toggle>
+              <NsInlineNotification
+                v-if="form.satellite_call_transcription_enabled"
+                kind="warning"
+                :title="
+                  $t(
+                    'settings.satellite_call_transcription_enabled_warning_title'
+                  )
+                "
+                :description="
+                  $t(
+                    'settings.satellite_call_transcription_enabled_warning_description'
+                  )
+                "
+                :showCloseButton="false"
+              />
+              <cv-toggle
+                :label="
+                  $t('settings.satellite_voicemail_transcription_enabled')
+                "
+                value="satellite_voicemail_transcription_enabled"
+                :disabled="
+                  form.deepgram_api_key.length == 0 ||
+                  loadingState ||
+                  !proxy_installed
+                "
+                v-model="form.satellite_voicemail_transcription_enabled"
+              >
+                <template slot="text-left">
+                  {{ $t("common.disabled") }}
+                </template>
+                <template slot="text-right">
+                  {{ $t("common.enabled") }}
+                </template>
+              </cv-toggle>
+              <!-- HIDDEN: Remove v-if="false" to restore visibility -->
+              <cv-text-input
+                v-if="false"
+                :label="$t('settings.openai_api_key')"
+                v-model="form.openai_api_key"
+                placeholder="sk-..."
+                :disabled="
+                  loadingState ||
+                  !proxy_installed ||
+                  (!form.satellite_voicemail_transcription_enabled &&
+                    !form.satellite_call_transcription_enabled)
+                "
+                :invalid-message="error.openai_api_key"
+                ref="openai_api_key"
+              />
+              <!-- End Satellite Settings -->
+              <div>rebranding_active {{ form.rebranding_active }} ////</div>
+              <label
+                v-if="form.rebranding_active"
+                class="rebranding_section_title_style"
+                >Rebranding section</label
+              >
+              <cv-accordion
+                ref="acc"
+                :align="align"
+                :disabled="loadingState || !proxy_installed"
+                v-if="form.rebranding_active"
+              >
+                <cv-accordion-item :open="open[0]" class="test-card">
+                  <template slot="title">NethVoice CTI</template>
+                  <template slot="content">
+                    <!-- Inputs -->
+                    <NsTextInput
+                      :label="$t('settings.rebranding_brand_name')"
+                      v-model="form.rebranding_brand_name"
+                      placeholder="NethVoice"
+                      :disabled="loadingState || !proxy_installed"
+                      :invalid-message="error.rebranding_brand_name"
+                    >
+                      <template slot="tooltip">
+                        {{ $t("settings.rebranding_brand_name_tooltip") }}
+                      </template>
+                    </NsTextInput>
+                    <NsTextInput
+                      :label="$t('settings.rebranding_navbar_logo_url')"
+                      v-model="form.rebranding_navbar_logo_url"
+                      placeholder="https://.."
+                      :disabled="loadingState || !proxy_installed"
+                      :invalid-message="error.rebranding_navbar_logo_url"
+                    >
+                      <template slot="tooltip">
+                        {{ $t("settings.rebranding_navbar_logo_url_tooltip") }}
+                      </template>
+                    </NsTextInput>
 
-                  <NsTextInput
-                    :label="$t('settings.rebranding_navbar_logo_dark_url')"
-                    v-model="form.rebranding_navbar_logo_dark_url"
-                    placeholder="https://.."
-                    :disabled="loadingState || !proxy_installed"
-                    :invalid-message="error.rebranding_navbar_logo_dark_url"
-                  >
-                    <template slot="tooltip">
-                      {{
-                        $t("settings.rebranding_navbar_logo_dark_url_tooltip")
-                      }}
-                    </template>
-                  </NsTextInput>
+                    <NsTextInput
+                      :label="$t('settings.rebranding_navbar_logo_dark_url')"
+                      v-model="form.rebranding_navbar_logo_dark_url"
+                      placeholder="https://.."
+                      :disabled="loadingState || !proxy_installed"
+                      :invalid-message="error.rebranding_navbar_logo_dark_url"
+                    >
+                      <template slot="tooltip">
+                        {{
+                          $t("settings.rebranding_navbar_logo_dark_url_tooltip")
+                        }}
+                      </template>
+                    </NsTextInput>
 
-                  <NsTextInput
-                    :label="$t('settings.rebranding_login_background_url')"
-                    v-model="form.rebranding_login_background_url"
-                    placeholder="https://.."
-                    :disabled="loadingState || !proxy_installed"
-                    :invalid-message="error.rebranding_login_background_url"
-                  >
-                    <template slot="tooltip">
-                      {{
-                        $t("settings.rebranding_login_background_url_tooltip")
-                      }}
-                    </template>
-                  </NsTextInput>
+                    <NsTextInput
+                      :label="$t('settings.rebranding_login_background_url')"
+                      v-model="form.rebranding_login_background_url"
+                      placeholder="https://.."
+                      :disabled="loadingState || !proxy_installed"
+                      :invalid-message="error.rebranding_login_background_url"
+                    >
+                      <template slot="tooltip">
+                        {{
+                          $t("settings.rebranding_login_background_url_tooltip")
+                        }}
+                      </template>
+                    </NsTextInput>
 
-                  <NsTextInput
-                    :label="$t('settings.rebranding_favicon_url')"
-                    v-model="form.rebranding_favicon_url"
-                    placeholder="https://.."
-                    :disabled="loadingState || !proxy_installed"
-                    :invalid-message="error.rebranding_favicon_url"
-                  >
-                    <template slot="tooltip">
-                      {{ $t("settings.rebranding_favicon_url_tooltip") }}
-                    </template>
-                  </NsTextInput>
+                    <NsTextInput
+                      :label="$t('settings.rebranding_favicon_url')"
+                      v-model="form.rebranding_favicon_url"
+                      placeholder="https://.."
+                      :disabled="loadingState || !proxy_installed"
+                      :invalid-message="error.rebranding_favicon_url"
+                    >
+                      <template slot="tooltip">
+                        {{ $t("settings.rebranding_favicon_url_tooltip") }}
+                      </template>
+                    </NsTextInput>
 
-                  <NsTextInput
-                    :label="$t('settings.rebranding_login_logo_url')"
-                    v-model="form.rebranding_login_logo_url"
-                    placeholder="https://.."
-                    :disabled="loadingState || !proxy_installed"
-                    :invalid-message="error.rebranding_login_logo_url"
-                  >
-                    <template slot="tooltip">
-                      {{ $t("settings.rebranding_login_logo_url_tooltip") }}
-                    </template>
-                  </NsTextInput>
+                    <NsTextInput
+                      :label="$t('settings.rebranding_login_logo_url')"
+                      v-model="form.rebranding_login_logo_url"
+                      placeholder="https://.."
+                      :disabled="loadingState || !proxy_installed"
+                      :invalid-message="error.rebranding_login_logo_url"
+                    >
+                      <template slot="tooltip">
+                        {{ $t("settings.rebranding_login_logo_url_tooltip") }}
+                      </template>
+                    </NsTextInput>
 
-                  <NsTextInput
-                    :label="$t('settings.rebranding_login_logo_dark_url')"
-                    v-model="form.rebranding_login_logo_dark_url"
-                    placeholder="https://.."
-                    :disabled="loadingState || !proxy_installed"
-                    :invalid-message="error.rebranding_login_logo_dark_url"
-                  >
-                    <template slot="tooltip">
-                      {{
-                        $t("settings.rebranding_login_logo_dark_url_tooltip")
-                      }}
-                    </template>
-                  </NsTextInput>
-                  <NsCheckbox
-                    :label="$t('settings.rebranding_login_people')"
-                    v-model="form.rebranding_login_people"
-                    :disabled="loadingState || !proxy_installed"
-                    :invalid-message="error.rebranding_login_people"
-                  >
-                    <template slot="tooltip">
-                      {{ $t("settings.rebranding_login_people_tooltip") }}
-                    </template>
-                  </NsCheckbox>
+                    <NsTextInput
+                      :label="$t('settings.rebranding_login_logo_dark_url')"
+                      v-model="form.rebranding_login_logo_dark_url"
+                      placeholder="https://.."
+                      :disabled="loadingState || !proxy_installed"
+                      :invalid-message="error.rebranding_login_logo_dark_url"
+                    >
+                      <template slot="tooltip">
+                        {{
+                          $t("settings.rebranding_login_logo_dark_url_tooltip")
+                        }}
+                      </template>
+                    </NsTextInput>
+                    <NsCheckbox
+                      :label="$t('settings.rebranding_login_people')"
+                      v-model="form.rebranding_login_people"
+                      :disabled="loadingState || !proxy_installed"
+                      :invalid-message="error.rebranding_login_people"
+                    >
+                      <template slot="tooltip">
+                        {{ $t("settings.rebranding_login_people_tooltip") }}
+                      </template>
+                    </NsCheckbox>
 
-                  <label
-                    v-if="form.rebranding_active"
-                    class="rebranding_section_title_style"
-                    >Preview</label
-                  >
-                  <!-- Login page preview -->
-                  <div class="login-preview">
-                    <!-- Dark/Light theme buttons inside preview -->
-                    <div class="theme-buttons">
+                    <label
+                      v-if="form.rebranding_active"
+                      class="rebranding_section_title_style"
+                      >Preview</label
+                    >
+                    <!-- Login page preview -->
+                    <div class="login-preview">
+                      <!-- Dark/Light theme buttons inside preview -->
+                      <div class="theme-buttons">
+                        <NsButton
+                          kind="secondary"
+                          @click="setLightTheme"
+                          :disabled="!isDarkMode"
+                          class="theme-button dark-theme-btn"
+                        >
+                          <Sun20 />
+                        </NsButton>
+                        <NsButton
+                          kind="secondary"
+                          @click="setDarkTheme"
+                          :disabled="isDarkMode"
+                          class="theme-button dark-theme-btn"
+                        >
+                          <Moon20 />
+                        </NsButton>
+                      </div>
+
                       <NsButton
                         kind="secondary"
-                        @click="setLightTheme"
-                        :disabled="!isDarkMode"
-                        class="theme-button dark-theme-btn"
+                        @click.prevent="setAllClear"
+                        class="clear-all-btn"
                       >
-                        <Sun20 />
+                        <TrashCan20 class="clear_all_icon" /> Clear rebranding
                       </NsButton>
-                      <NsButton
-                        kind="secondary"
-                        @click="setDarkTheme"
-                        :disabled="isDarkMode"
-                        class="theme-button dark-theme-btn"
+                      <div
+                        class="login-background"
+                        :style="{
+                          backgroundImage: `url(${validLoginBackgroundUrl})`,
+                        }"
                       >
-                        <Moon20 />
-                      </NsButton>
-                    </div>
-
-                    <NsButton
-                      kind="secondary"
-                      @click.prevent="setAllClear"
-                      class="clear-all-btn"
-                    >
-                      <TrashCan20 class="clear_all_icon" /> Clear rebranding
-                    </NsButton>
-                    <div
-                      class="login-background"
-                      :style="{
-                        backgroundImage: `url(${validLoginBackgroundUrl})`,
-                      }"
-                    >
-                      <div class="login-container">
-                        <div :class="isDarkMode ? 'dark-theme' : 'light-theme'">
-                          <div class="login-card">
-                            <img
-                              :src="validLogoUrl"
-                              :alt="isDarkMode ? 'Logo Dark' : 'Logo Light'"
-                              class="login-logo"
-                            />
-                            <div class="login-form">
-                              <label for="username" class="login-label"
-                                >Username</label
-                              >
-                              <input
-                                type="text"
-                                value="username"
-                                disabled
-                                class="login-input"
+                        <div class="login-container">
+                          <div
+                            :class="isDarkMode ? 'dark-theme' : 'light-theme'"
+                          >
+                            <div class="login-card">
+                              <img
+                                :src="validLogoUrl"
+                                :alt="isDarkMode ? 'Logo Dark' : 'Logo Light'"
+                                class="login-logo"
                               />
-                              <label for="password" class="login-label"
-                                >Password</label
-                              >
-                              <input
-                                type="password"
-                                value="*********"
-                                disabled
-                                class="login-input"
-                              />
-                              <button disabled class="login-button">
-                                <span>Sign in</span>
-                              </button>
+                              <div class="login-form">
+                                <label for="username" class="login-label"
+                                  >Username</label
+                                >
+                                <input
+                                  type="text"
+                                  value="username"
+                                  disabled
+                                  class="login-input"
+                                />
+                                <label for="password" class="login-label"
+                                  >Password</label
+                                >
+                                <input
+                                  type="password"
+                                  value="*********"
+                                  disabled
+                                  class="login-input"
+                                />
+                                <button disabled class="login-button">
+                                  <span>Sign in</span>
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div
-                          class="login-svg"
-                          v-if="!form.rebranding_login_people"
-                        >
-                          <img
-                            src="../assets/action_voice-cti.svg"
-                            alt="SVG Image"
-                            class="svg-image"
-                          />
+                          <div
+                            class="login-svg"
+                            v-if="!form.rebranding_login_people"
+                          >
+                            <img
+                              src="../assets/action_voice-cti.svg"
+                              alt="SVG Image"
+                              class="svg-image"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
+                  </template>
+                </cv-accordion-item>
+              </cv-accordion>
+              <NsInlineNotification
+                v-if="validationErrorDetails.length"
+                kind="error"
+                :title="core.$t('apps_lets_encrypt.cannot_obtain_certificate')"
+                :showCloseButton="false"
+              >
+                <template #description>
+                  <div class="flex flex-col gap-2">
+                    <div
+                      v-for="(detail, index) in validationErrorDetails"
+                      :key="index"
+                    >
+                      {{ detail }}
+                    </div>
                   </div>
                 </template>
-              </cv-accordion-item>
-            </cv-accordion>
-            <NsInlineNotification
-              v-if="validationErrorDetails.length"
-              kind="error"
-              :title="core.$t('apps_lets_encrypt.cannot_obtain_certificate')"
-              :showCloseButton="false"
-            >
-              <template #description>
-                <div class="flex flex-col gap-2">
-                  <div
-                    v-for="(detail, index) in validationErrorDetails"
-                    :key="index"
-                  >
-                    {{ detail }}
-                  </div>
-                </div>
-              </template>
-            </NsInlineNotification>
-            <NsInlineNotification
-              v-if="error.configureModule"
-              kind="error"
-              :title="$t('action.configure-module')"
-              :description="error.configureModule"
-              :showCloseButton="false"
-            />
-            <NsButton
-              kind="primary"
-              :icon="Save20"
-              :loading="loading.configureModule"
-              :disabled="loadingState || !proxy_installed"
-            >
-              {{ $t("common.save") }}
-            </NsButton>
-          </cv-form>
-        </cv-tile>
-      </cv-column>
-    </cv-row>
+              </NsInlineNotification>
+              <NsInlineNotification
+                v-if="error.configureModule"
+                kind="error"
+                :title="$t('action.configure-module')"
+                :description="error.configureModule"
+                :showCloseButton="false"
+              />
+              <NsButton
+                kind="primary"
+                :icon="Save20"
+                :loading="loading.configureModule"
+                :disabled="loadingState || !proxy_installed"
+              >
+                {{ $t("common.save") }}
+              </NsButton>
+            </cv-form>
+          </cv-tile>
+        </cv-column>
+      </cv-row>
+    </template>
   </cv-grid>
 </template>
 

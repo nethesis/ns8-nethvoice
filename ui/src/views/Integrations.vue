@@ -9,115 +9,117 @@
         <h2>{{ $t("integrations.title") }}</h2>
       </cv-column>
     </cv-row>
-    <cv-row>
-      <cv-column>
-        <ResumeConfigNotification
-          v-if="!isAppConfigured && !isShownFirstConfigurationModal"
-        />
-      </cv-column>
-    </cv-row>
-    <cv-row v-if="error.getIntegrations">
-      <cv-column>
-        <NsInlineNotification
-          kind="error"
-          :title="$t('action.get-integrations')"
-          :description="error.getIntegrations"
-          :showCloseButton="false"
-        />
-      </cv-column>
-    </cv-row>
-    <cv-row>
-      <cv-column>
-        <cv-tile light>
-          <cv-skeleton-text
-            v-if="loading.getIntegrations"
-            :paragraph="true"
-            heading
-            :line-count="5"
-          ></cv-skeleton-text>
-          <cv-form v-else @submit.prevent="setIntegrations">
-            <NsTextInput
-              :label="$t('integrations.deepgram_api_key')"
-              v-model.trim="deepgramApiKey"
-              :placeholder="
-                $t('common.eg_value', {
-                  value: 'g7id86rxn5cns0umkvx6klo9rm0b0vjzrljg064k',
-                })
-              "
-              :disabled="loading.setIntegrations"
-              :invalid-message="error.deepgram_api_key"
-              tooltipAlignment="end"
-              tooltipDirection="right"
-              ref="deepgram_api_key"
-            >
-              <template slot="tooltip">
-                <i18n path="integrations.deepgram_api_key_tooltip" tag="span">
-                  <template #deepgramLink>
-                    <cv-link
-                      href="https://deepgram.com/"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      deepgram.com
-                    </cv-link>
-                  </template>
-                </i18n>
-              </template>
-            </NsTextInput>
-            <NsToggle
-              :label="$t('integrations.voicemail_transcription_enabled')"
-              value="isCallTranscriptionEnabled"
-              :disabled="!deepgramApiKey || loading.setIntegrations"
-              v-model="isCallTranscriptionEnabled"
-            >
-              <template slot="text-left">
-                {{ $t("common.disabled") }}
-              </template>
-              <template slot="text-right">
-                {{ $t("common.enabled") }}
-              </template>
-            </NsToggle>
-            <NsInlineNotification
-              v-if="isCallTranscriptionEnabled"
-              kind="warning"
-              :title="$t('integrations.call_transcription_warning_title')"
-              :description="
-                $t('integrations.call_transcription_warning_description')
-              "
-              :showCloseButton="false"
-            />
-            <NsToggle
-              :label="$t('integrations.voicemail_transcription_enabled')"
-              value="isVoicemailTranscriptionEnabled"
-              :disabled="!deepgramApiKey || loading.setIntegrations"
-              v-model="isVoicemailTranscriptionEnabled"
-            >
-              <template slot="text-left">
-                {{ $t("common.disabled") }}
-              </template>
-              <template slot="text-right">
-                {{ $t("common.enabled") }}
-              </template>
-            </NsToggle>
-            <NsInlineNotification
-              v-if="error.setIntegrations"
-              kind="error"
-              :title="$t('action.set-integrations')"
-              :description="error.setIntegrations"
-              :showCloseButton="false"
-            />
-            <NsButton
-              kind="primary"
-              :icon="Save20"
-              :loading="loading.setIntegrations"
-              :disabled="loading.setIntegrations"
-            >
-              {{ $t("common.save") }}
-            </NsButton>
-          </cv-form>
-        </cv-tile>
-      </cv-column>
-    </cv-row>
+    <template v-if="!isAppConfigured">
+      <cv-row>
+        <cv-column>
+          <ResumeConfigNotification />
+        </cv-column>
+      </cv-row>
+    </template>
+    <template v-else>
+      <cv-row v-if="error.getIntegrations">
+        <cv-column>
+          <NsInlineNotification
+            kind="error"
+            :title="$t('action.get-integrations')"
+            :description="error.getIntegrations"
+            :showCloseButton="false"
+          />
+        </cv-column>
+      </cv-row>
+      <cv-row>
+        <cv-column>
+          <cv-tile light>
+            <cv-skeleton-text
+              v-if="loading.getIntegrations"
+              :paragraph="true"
+              heading
+              :line-count="9"
+            ></cv-skeleton-text>
+            <cv-form v-else @submit.prevent="setIntegrations">
+              <NsTextInput
+                :label="$t('integrations.deepgram_api_key')"
+                v-model.trim="deepgramApiKey"
+                :placeholder="
+                  $t('common.eg_value', {
+                    value: 'g7id86rxn5cns0umkvx6klo9rm0b0vjzrljg064k',
+                  })
+                "
+                :disabled="loading.setIntegrations"
+                :invalid-message="error.deepgram_api_key"
+                tooltipAlignment="end"
+                tooltipDirection="right"
+                ref="deepgram_api_key"
+              >
+                <template slot="tooltip">
+                  <i18n path="integrations.deepgram_api_key_tooltip" tag="span">
+                    <template #deepgramLink>
+                      <cv-link
+                        href="https://deepgram.com/"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        deepgram.com
+                      </cv-link>
+                    </template>
+                  </i18n>
+                </template>
+              </NsTextInput>
+              <NsToggle
+                :label="$t('integrations.voicemail_transcription_enabled')"
+                value="isCallTranscriptionEnabled"
+                :disabled="!deepgramApiKey || loading.setIntegrations"
+                v-model="isCallTranscriptionEnabled"
+              >
+                <template slot="text-left">
+                  {{ $t("common.disabled") }}
+                </template>
+                <template slot="text-right">
+                  {{ $t("common.enabled") }}
+                </template>
+              </NsToggle>
+              <NsInlineNotification
+                v-if="isCallTranscriptionEnabled"
+                kind="warning"
+                :title="$t('integrations.call_transcription_warning_title')"
+                :description="
+                  $t('integrations.call_transcription_warning_description')
+                "
+                :showCloseButton="false"
+              />
+              <NsToggle
+                :label="$t('integrations.voicemail_transcription_enabled')"
+                value="isVoicemailTranscriptionEnabled"
+                :disabled="!deepgramApiKey || loading.setIntegrations"
+                v-model="isVoicemailTranscriptionEnabled"
+              >
+                <template slot="text-left">
+                  {{ $t("common.disabled") }}
+                </template>
+                <template slot="text-right">
+                  {{ $t("common.enabled") }}
+                </template>
+              </NsToggle>
+              <NsInlineNotification
+                v-if="error.setIntegrations"
+                kind="error"
+                :title="$t('action.set-integrations')"
+                :description="error.setIntegrations"
+                :showCloseButton="false"
+              />
+              <NsButton
+                kind="primary"
+                :icon="Save20"
+                :loading="loading.setIntegrations"
+                :disabled="loading.setIntegrations"
+              >
+                {{ $t("common.save") }}
+              </NsButton>
+            </cv-form>
+          </cv-tile>
+        </cv-column>
+      </cv-row>
+    </template>
   </cv-grid>
 </template>
 

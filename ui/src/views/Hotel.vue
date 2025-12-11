@@ -9,104 +9,106 @@
         <h2>{{ $t("hotel.title") }}</h2>
       </cv-column>
     </cv-row>
-    <cv-row>
-      <cv-column>
-        <ResumeConfigNotification
-          v-if="!isAppConfigured && !isShownFirstConfigurationModal"
-        />
-      </cv-column>
-    </cv-row>
-    <cv-row v-if="error.getHotel">
-      <cv-column>
-        <NsInlineNotification
-          kind="error"
-          :title="$t('action.get-hotel')"
-          :description="error.getHotel"
-          :showCloseButton="false"
-        />
-      </cv-column>
-    </cv-row>
-    <cv-row
-      v-if="!isSubscriptionEnabled && !loading.getHotel && !!configuration"
-    >
-      <cv-column>
-        <NsInlineNotification
-          kind="info"
-          :title="$t('hotel.hotel_is_disabled')"
-          :description="$t('hotel.subscription_required')"
-          :showCloseButton="false"
-          :actionLabel="$t('hotel.go_to_subscription')"
-          @action="goToSubscription"
-        />
-      </cv-column>
-    </cv-row>
-    <cv-row v-else>
-      <cv-column>
-        <cv-tile light>
-          <cv-skeleton-text
-            v-if="loading.getHotel || !configuration"
-            :paragraph="true"
-            heading
-            :line-count="8"
-          ></cv-skeleton-text>
-          <cv-form v-else @submit.prevent="setHotel">
-            <!-- status -->
-            <NsToggle
-              :label="$t('common.status')"
-              value="isHotelEnabled"
-              v-model="isHotelEnabled"
-              :disabled="loading.setHotel"
-            >
-              <template slot="text-left">
-                {{ $t("common.disabled") }}
-              </template>
-              <template slot="text-right">
-                {{ $t("common.enabled") }}
-              </template>
-            </NsToggle>
-            <!-- fias host -->
-            <NsTextInput
-              v-if="isHotelEnabled"
-              :label="
-                $t('hotel.fias_host') + ' (' + $t('common.optional') + ')'
-              "
-              v-model.trim="fiasHost"
-              :helper-text="$t('hotel.fias_host_helper')"
-              :invalid-message="error.nethvoice_hotel_fias_address"
-              :disabled="loading.setHotel"
-              ref="nethvoice_hotel_fias_address"
-            />
-            <!-- fias port -->
-            <NsTextInput
-              v-if="isHotelEnabled"
-              :label="
-                $t('hotel.fias_port') + ' (' + $t('common.optional') + ')'
-              "
-              v-model="fiasPort"
-              type="number"
-              :invalid-message="error.nethvoice_hotel_fias_port"
-              :disabled="loading.setHotel"
-              ref="nethvoice_hotel_fias_port"
-            />
-            <NsInlineNotification
-              v-if="error.setHotel"
-              kind="error"
-              :title="$t('action.set-hotel')"
-              :description="error.setHotel"
-              :showCloseButton="false"
-            />
-            <NsButton
-              kind="primary"
-              :icon="Save20"
-              :loading="loading.setHotel"
-              :disabled="loading.setHotel"
-            >
-              {{ $t("common.save") }}
-            </NsButton>
-          </cv-form>
-        </cv-tile>
-      </cv-column>
-    </cv-row>
+    <template v-if="!isAppConfigured">
+      <cv-row>
+        <cv-column>
+          <ResumeConfigNotification />
+        </cv-column>
+      </cv-row>
+    </template>
+    <template v-else>
+      <cv-row v-if="error.getHotel">
+        <cv-column>
+          <NsInlineNotification
+            kind="error"
+            :title="$t('action.get-nethvoice-hotel')"
+            :description="error.getHotel"
+            :showCloseButton="false"
+          />
+        </cv-column>
+      </cv-row>
+      <cv-row
+        v-if="!isSubscriptionEnabled && !loading.getHotel && !!configuration"
+      >
+        <cv-column>
+          <NsInlineNotification
+            kind="info"
+            :title="$t('hotel.hotel_is_disabled')"
+            :description="$t('hotel.subscription_required')"
+            :showCloseButton="false"
+            :actionLabel="$t('hotel.go_to_subscription')"
+            @action="goToSubscription"
+          />
+        </cv-column>
+      </cv-row>
+      <cv-row v-else>
+        <cv-column>
+          <cv-tile light>
+            <cv-skeleton-text
+              v-if="loading.getHotel || !configuration"
+              :paragraph="true"
+              heading
+              :line-count="8"
+            ></cv-skeleton-text>
+            <cv-form v-else @submit.prevent="setHotel">
+              <!-- status -->
+              <NsToggle
+                :label="$t('common.status')"
+                value="isHotelEnabled"
+                v-model="isHotelEnabled"
+                :disabled="loading.setHotel"
+              >
+                <template slot="text-left">
+                  {{ $t("common.disabled") }}
+                </template>
+                <template slot="text-right">
+                  {{ $t("common.enabled") }}
+                </template>
+              </NsToggle>
+              <!-- fias host -->
+              <NsTextInput
+                v-if="isHotelEnabled"
+                :label="
+                  $t('hotel.fias_host') + ' (' + $t('common.optional') + ')'
+                "
+                v-model.trim="fiasHost"
+                :helper-text="$t('hotel.fias_host_helper')"
+                :invalid-message="error.nethvoice_hotel_fias_address"
+                :disabled="loading.setHotel"
+                ref="nethvoice_hotel_fias_address"
+              />
+              <!-- fias port -->
+              <NsTextInput
+                v-if="isHotelEnabled"
+                :label="
+                  $t('hotel.fias_port') + ' (' + $t('common.optional') + ')'
+                "
+                v-model="fiasPort"
+                type="number"
+                :invalid-message="error.nethvoice_hotel_fias_port"
+                :disabled="loading.setHotel"
+                ref="nethvoice_hotel_fias_port"
+              />
+              <NsInlineNotification
+                v-if="error.setHotel"
+                kind="error"
+                :title="$t('action.set-nethvoice-hotel')"
+                :description="error.setHotel"
+                :showCloseButton="false"
+              />
+              <NsButton
+                kind="primary"
+                :icon="Save20"
+                :loading="loading.setHotel"
+                :disabled="loading.setHotel"
+              >
+                {{ $t("common.save") }}
+              </NsButton>
+            </cv-form>
+          </cv-tile>
+        </cv-column>
+      </cv-row>
+    </template>
   </cv-grid>
 </template>
 
@@ -267,10 +269,13 @@ export default {
           action: taskAction,
           data: {
             nethvoice_hotel: this.isHotelEnabled,
-            nethvoice_hotel_fias_address: this.fiasHost,
-            nethvoice_hotel_fias_port: this.fiasPort
-              ? parseInt(this.fiasPort)
+            nethvoice_hotel_fias_address: this.isHotelEnabled
+              ? this.fiasHost
               : "",
+            nethvoice_hotel_fias_port:
+              this.isHotelEnabled && this.fiasPort
+                ? parseInt(this.fiasPort)
+                : "",
           },
           extra: {
             title: this.$t("action." + taskAction),

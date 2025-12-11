@@ -9,11 +9,9 @@
         <h2>{{ $t("status.title") }}</h2>
       </cv-column>
     </cv-row>
-    <cv-row>
+    <cv-row v-if="!isAppConfigured">
       <cv-column>
-        <ResumeConfigNotification
-          v-if="!isAppConfigured && !isShownFirstConfigurationModal"
-        />
+        <ResumeConfigNotification />
       </cv-column>
     </cv-row>
     <cv-row v-if="error.getStatus">
