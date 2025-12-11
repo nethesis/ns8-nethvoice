@@ -230,11 +230,11 @@ RUN chown asterisk:asterisk \
 RUN mkdir download \
     && cd download \
     && mkdir -p /var/lib/asterisk/sounds/nethcti \
-    && wget -nv https://github.com/nethesis/ns8-nethvoice/releases/download/0.0.1-rc.2.0.2/asterisk-sounds-de.tar.gz \
-    && wget -nv https://github.com/nethesis/ns8-nethvoice/releases/download/0.0.1-rc.2.0.2/asterisk-sounds-en.tar.gz \
-    && wget -nv https://github.com/nethesis/ns8-nethvoice/releases/download/0.0.1-rc.2.0.2/asterisk-sounds-es.tar.gz \
-    && wget -nv https://github.com/nethesis/ns8-nethvoice/releases/download/0.0.1-rc.2.0.2/asterisk-sounds-fr.tar.gz \
-    && wget -nv https://github.com/nethesis/ns8-nethvoice/releases/download/0.0.1-rc.2.0.2/asterisk-sounds-it.tar.gz \
+    && wget -nv https://ns8.ams3.cdn.digitaloceanspaces.com/nethvoice/asterisk-sounds/asterisk-sounds-de.tar.gz \
+    && wget -nv https://ns8.ams3.cdn.digitaloceanspaces.com/nethvoice/asterisk-sounds/asterisk-sounds-en.tar.gz \
+    && wget -nv https://ns8.ams3.cdn.digitaloceanspaces.com/nethvoice/asterisk-sounds/asterisk-sounds-es.tar.gz \
+    && wget -nv https://ns8.ams3.cdn.digitaloceanspaces.com/nethvoice/asterisk-sounds/asterisk-sounds-fr.tar.gz \
+    && wget -nv https://ns8.ams3.cdn.digitaloceanspaces.com/nethvoice/asterisk-sounds/asterisk-sounds-it.tar.gz \
     && tar xzvf asterisk-sounds-de.tar.gz -C /var/lib/asterisk/sounds \
     && tar xzvf asterisk-sounds-en.tar.gz -C /var/lib/asterisk/sounds \
     && tar xzvf asterisk-sounds-es.tar.gz -C /var/lib/asterisk/sounds \
