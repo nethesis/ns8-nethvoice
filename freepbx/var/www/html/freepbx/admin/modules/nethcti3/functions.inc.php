@@ -286,6 +286,35 @@ function nethcti3_get_config_late($engine) {
                 $ext->splice("from-queue-exten-only", '_'.str_repeat('X',$row['len']), 'checkrecord', new ext_set('CDR(ccompany)','${REAL_CCOMPANY}'),"ccompany");
             }
         }
+        /*Execute custom agi when extension rings*/
+        if (!empty($_ENV['NETHCTI_CDR_SCRIPT_EXTENSION_RING'])) {
+            $context = 'macro-dial-one';
+            $exten = 's';
+            $agi_cmd = [
+                $_ENV['NETHCTI_CDR_SCRIPT_EXTENSION_RING'],
+                '${CDR(src)}', # source
+                '${CDR(channel)}', # channel
+                '', # endtime
+                '', # duration
+                '${CDR(amaflags)}', # amaflags
+                '${CDR(uniqueid)}', # uniqueid
+                '${CDR(cnum)}', # callerid
+                '${CDR(uniqueid)}', # starttime
+                '', # answertime
+                '', # destination
+                '', # disposition
+                '${CDR(lastapp)}', # lastapplication
+                '', # billableseconds
+                '${CDR(dcontext)}', # destinationcontext
+                '${CDR(dstchannel)}', # destinationchannel
+                '${CDR(accountcode)}', # accountcode
+                '${CDR(cnam)}', # caller name
+                '${CDR(dst_cnum)}', # called number
+                '${CDR(dst_cnam)}', # called name
+                '${EXTTOCALL}' # extension to call
+            ];
+            $ext->splice($context, $exten, "dial", new ext_agi(join(',',$agi_cmd)),'nethcti-cdr-script-extension-ring',0);
+        }
         /*Off-Hour*/
         $routes = FreePBX::Core()->getAllDIDs();
         foreach ($routes as $did) {
