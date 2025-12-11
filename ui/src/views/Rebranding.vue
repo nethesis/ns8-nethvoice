@@ -40,18 +40,35 @@
         />
       </cv-column>
     </cv-row>
-    <cv-row>
+    <cv-row v-if="!rebranding_active && !loading.getRebranding">
+      <cv-column>
+        <NsInlineNotification
+          kind="info"
+          :title="$t('rebranding.rebranding_not_activated_yet')"
+          :description="
+            $t('rebranding.rebranding_not_activated_yet_description')
+          "
+          :actionLabel="$t('rebranding.contact_sales')"
+          @action="openMailtoLink()"
+        />
+      </cv-column>
+    </cv-row>
+    <cv-row v-if="loading.getRebranding">
       <cv-column>
         <cv-tile light>
           <cv-skeleton-text
-            v-if="loading.getRebranding"
             :paragraph="true"
             heading
             :line-count="10"
           ></cv-skeleton-text>
-          <!-- //// notification for rebranding not available -->
-          <cv-form v-else @submit.prevent="setRebranding">
-            <!-- //// global toggle? -->
+        </cv-tile>
+      </cv-column>
+    </cv-row>
+    <cv-row v-if="rebranding_active && !loading.getRebranding">
+      <cv-column>
+        <cv-tile light>
+          <cv-form @submit.prevent="setRebranding">
+            <!-- product name -->
             <NsTextInput
               :label="
                 $t('rebranding.rebranding_brand_name') +
@@ -65,6 +82,43 @@
               :invalid-message="error.rebranding_brand_name"
               :helper-text="$t('rebranding.name_to_replace_nethvoice')"
             />
+            <!-- light theme logo -->
+            <NsTextInput
+              :label="
+                $t('rebranding.rebranding_login_logo_url') +
+                ' (' +
+                $t('common.optional') +
+                ')'
+              "
+              v-model="rebranding_login_logo_url"
+              :placeholder="
+                $t('common.eg_value', {
+                  value: 'https://mydomain.com/path/to/image.svg',
+                })
+              "
+              :disabled="loading.setRebranding"
+              :invalid-message="error.rebranding_login_logo_url"
+              :helper-text="$t('rebranding.public_url_image_helper')"
+            />
+            <!-- dark theme logo -->
+            <NsTextInput
+              :label="
+                $t('rebranding.rebranding_login_logo_dark_url') +
+                ' (' +
+                $t('common.optional') +
+                ')'
+              "
+              v-model="rebranding_login_logo_dark_url"
+              :placeholder="
+                $t('common.eg_value', {
+                  value: 'https://mydomain.com/path/to/image.svg',
+                })
+              "
+              :disabled="loading.setRebranding"
+              :invalid-message="error.rebranding_login_logo_dark_url"
+              :helper-text="$t('rebranding.public_url_image_helper')"
+            />
+            <!-- light theme square logo -->
             <NsTextInput
               :label="
                 $t('rebranding.rebranding_navbar_logo_url') +
@@ -82,7 +136,7 @@
               :invalid-message="error.rebranding_navbar_logo_url"
               :helper-text="$t('rebranding.public_url_image_helper')"
             />
-
+            <!-- dark theme square logo -->
             <NsTextInput
               :label="
                 $t('rebranding.rebranding_navbar_logo_dark_url') +
@@ -100,25 +154,7 @@
               :invalid-message="error.rebranding_navbar_logo_dark_url"
               :helper-text="$t('rebranding.public_url_image_helper')"
             />
-
-            <NsTextInput
-              :label="
-                $t('rebranding.rebranding_login_background_url') +
-                ' (' +
-                $t('common.optional') +
-                ')'
-              "
-              v-model="rebranding_login_background_url"
-              :placeholder="
-                $t('common.eg_value', {
-                  value: 'https://mydomain.com/path/to/image.svg',
-                })
-              "
-              :disabled="loading.setRebranding"
-              :invalid-message="error.rebranding_login_background_url"
-              :helper-text="$t('rebranding.public_url_image_helper')"
-            />
-
+            <!-- favicon -->
             <NsTextInput
               :label="
                 $t('rebranding.rebranding_favicon_url') +
@@ -140,43 +176,25 @@
                 {{ $t("rebranding.rebranding_favicon_url_tooltip") }}
               </template></NsTextInput
             >
-
+            <!-- login background image -->
             <NsTextInput
               :label="
-                $t('rebranding.rebranding_login_logo_url') +
+                $t('rebranding.rebranding_login_background_url') +
                 ' (' +
                 $t('common.optional') +
                 ')'
               "
-              v-model="rebranding_login_logo_url"
+              v-model="rebranding_login_background_url"
               :placeholder="
                 $t('common.eg_value', {
                   value: 'https://mydomain.com/path/to/image.svg',
                 })
               "
               :disabled="loading.setRebranding"
-              :invalid-message="error.rebranding_login_logo_url"
+              :invalid-message="error.rebranding_login_background_url"
               :helper-text="$t('rebranding.public_url_image_helper')"
             />
-
-            <NsTextInput
-              :label="
-                $t('rebranding.rebranding_login_logo_dark_url') +
-                ' (' +
-                $t('common.optional') +
-                ')'
-              "
-              v-model="rebranding_login_logo_dark_url"
-              :placeholder="
-                $t('common.eg_value', {
-                  value: 'https://mydomain.com/path/to/image.svg',
-                })
-              "
-              :disabled="loading.setRebranding"
-              :invalid-message="error.rebranding_login_logo_dark_url"
-              :helper-text="$t('rebranding.public_url_image_helper')"
-            />
-
+            <!-- login illustration -->
             <NsToggle
               :label="$t('rebranding.login_illustration')"
               value="loginIllustration"
@@ -190,14 +208,13 @@
               <template slot="text-left">{{ $t("common.disabled") }}</template>
               <template slot="text-right">{{ $t("common.enabled") }}</template>
             </NsToggle>
-
-            <!-- Login page preview -->
+            <!-- login page preview -->
             <div class="mb-6">
               <label class="bx--label mb-0">{{
                 $t("rebranding.login_page_preview")
               }}</label>
               <div class="login-preview">
-                <!-- Dark/Light theme buttons inside preview -->
+                <!-- dark/light theme buttons inside preview -->
                 <div class="theme-buttons">
                   <NsButton
                     kind="secondary"
@@ -266,7 +283,6 @@
                 </div>
               </div>
             </div>
-
             <NsInlineNotification
               v-if="error.setRebranding"
               kind="error"
@@ -419,6 +435,7 @@ export default {
     },
     getRebrandingCompleted(taskContext, taskAction) {
       const config = taskAction.output;
+      // this.rebranding_active = false; //// remove mock
       this.rebranding_active = config.rebranding_active;
       this.rebranding_brand_name = config.rebranding_brand_name;
       this.rebranding_navbar_logo_url = config.rebranding_navbar_logo_url;
@@ -519,6 +536,28 @@ export default {
     setRebrandingCompleted() {
       this.getRebranding();
       this.loading.setRebranding = false;
+    },
+    openMailtoLink() {
+      const encodedSubject = encodeURIComponent(
+        this.$t("rebranding.mailto_sales_subject")
+      );
+      const encodedBody = encodeURIComponent(
+        this.$t("rebranding.mailto_sales_body")
+      );
+      const recipient = "sales@nethesis.it";
+      let mailtoUrl = `mailto:${recipient}`;
+      const params = [];
+      params.push(`subject=${encodedSubject}`);
+      params.push(`body=${encodedBody}`);
+      mailtoUrl += `?${params.join("&")}`;
+
+      console.log("mailtoUrl", mailtoUrl); ////
+
+      const link = document.createElement("a");
+      link.href = mailtoUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     },
   },
 };
@@ -636,7 +675,7 @@ export default {
 }
 
 .light-theme .login-button {
-  background-color: #34d399;
+  background-color: #047857;
   color: white;
 }
 
@@ -653,8 +692,8 @@ export default {
 }
 
 .dark-theme .login-button {
-  background-color: #15803d;
-  color: white;
+  background-color: #10b981;
+  color: #111827;
 }
 
 .theme-buttons {

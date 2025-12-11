@@ -181,7 +181,12 @@
     "login_illustration_tooltip": "Show or hide the illustration over the login page background",
     "username": "Username",
     "password": "Password",
-    "sign_in": "Sign in"
+    "sign_in": "Sign in",
+    "rebranding_not_activated_yet": "Rebranding not activated yet",
+    "rebranding_not_activated_yet_description": "This feature allows you to customize the NethVoice interface with your own brand identity — including product name, logos, and background images. To enable it, contact our sales team.",
+    "contact_sales": "Contact sales",
+    "mailto_sales_subject": "Rebranding activation",
+    "mailto_sales_body": "Hello,\n\nI would like to activate the rebranding feature for my NethVoice installation. Please provide me with the necessary information and steps to proceed.\n\nThank you."
   },
   "hotel": {
     "title": "Hotel"
