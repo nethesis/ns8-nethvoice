@@ -134,44 +134,6 @@
                 ref="nethvoice_admin_password"
                 type="password"
               />
-              <!-- Hotel Module Settings -->
-              <NsInlineNotification
-                v-if="!isSubscriptionValid"
-                kind="info"
-                :title="$t('settings.nethvoice_hotel_subscription_required')"
-                :showCloseButton="false"
-              />
-              <cv-toggle
-                :label="$t('settings.nethvoice_hotel')"
-                value="nethvoice_hotel"
-                :disabled="isHotelDisabled"
-                v-model="form.nethvoice_hotel"
-              >
-                <template slot="text-left">
-                  {{ $t("common.disabled") }}
-                </template>
-                <template slot="text-right">
-                  {{ $t("common.enabled") }}
-                </template>
-              </cv-toggle>
-              <cv-text-input
-                :label="$t('settings.nethvoice_hotel_fias_address')"
-                v-model="form.nethvoice_hotel_fias_address"
-                placeholder="192.168.1.100"
-                :disabled="isHotelDisabled || !form.nethvoice_hotel"
-                :invalid-message="error.nethvoice_hotel_fias_address"
-                ref="nethvoice_hotel_fias_address"
-              />
-              <cv-text-input
-                :label="$t('settings.nethvoice_hotel_fias_port')"
-                v-model="form.nethvoice_hotel_fias_port"
-                placeholder="1234"
-                type="number"
-                :disabled="isHotelDisabled || !form.nethvoice_hotel"
-                :invalid-message="error.nethvoice_hotel_fias_port"
-                ref="nethvoice_hotel_fias_port"
-              />
-              <!-- End Hotel Module Settings -->
               <!-- Satellite Settings -->
               <cv-text-input
                 :label="$t('settings.deepgram_api_key')"
@@ -335,10 +297,6 @@ export default {
         reports_international_prefix: "+39",
         timezone: "",
         nethvoice_adm: {},
-        nethcti_privacy_numbers: "",
-        nethvoice_hotel: false,
-        nethvoice_hotel_fias_address: "",
-        nethvoice_hotel_fias_port: "",
         satellite_call_transcription_enabled: false,
         satellite_voicemail_transcription_enabled: false,
         deepgram_api_key: "",
@@ -374,10 +332,6 @@ export default {
         user_domain: "",
         reports_international_prefix: "",
         timezone: "",
-        nethcti_privacy_numbers: "",
-        nethvoice_hotel: "",
-        nethvoice_hotel_fias_address: "",
-        nethvoice_hotel_fias_port: "",
       },
       warning: {
         user_domain: "",
@@ -400,11 +354,6 @@ export default {
     isSubscriptionValid() {
       return (
         this.subscription_systemid && this.subscription_systemid.trim() !== ""
-      );
-    },
-    isHotelDisabled() {
-      return (
-        this.loadingState || !this.proxy_installed || !this.isSubscriptionValid
       );
     },
   },
@@ -501,18 +450,6 @@ export default {
       this.form.timezone = config.timezone;
       this.form.nethvoice_adm.username = config.nethvoice_adm_username;
       this.form.nethvoice_adm.password = config.nethvoice_adm_password;
-      this.form.nethcti_privacy_numbers = config.nethcti_privacy_numbers;
-
-      // Hotel module settings - disable if subscription not valid
-      if (config.nethvoice_hotel == "True" && this.isSubscriptionValid) {
-        this.form.nethvoice_hotel = true;
-      } else {
-        this.form.nethvoice_hotel = false;
-      }
-      this.form.nethvoice_hotel_fias_address =
-        config.nethvoice_hotel_fias_address || "";
-      this.form.nethvoice_hotel_fias_port =
-        config.nethvoice_hotel_fias_port || "";
 
       // Satellite settings
       if (config.satellite_call_transcription_enabled == "True") {
@@ -714,14 +651,6 @@ export default {
             timezone: this.form.timezone,
             nethvoice_adm_username: this.form.nethvoice_adm.username,
             nethvoice_adm_password: this.form.nethvoice_adm.password,
-            nethcti_privacy_numbers: this.form.nethcti_privacy_numbers,
-            nethvoice_hotel: this.form.nethvoice_hotel ? "True" : "False",
-            nethvoice_hotel_fias_address: this.form.nethvoice_hotel
-              ? this.form.nethvoice_hotel_fias_address
-              : "",
-            nethvoice_hotel_fias_port: this.form.nethvoice_hotel
-              ? this.form.nethvoice_hotel_fias_port
-              : "",
             satellite_call_transcription_enabled: this.form
               .satellite_call_transcription_enabled
               ? "True"
