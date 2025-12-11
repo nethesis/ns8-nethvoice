@@ -38,7 +38,7 @@
           <cv-form v-else @submit.prevent="setIntegrations">
             <NsTextInput
               :label="$t('integrations.deepgram_api_key')"
-              v-model.trim="deepgram_api_key"
+              v-model.trim="deepgramApiKey"
               :placeholder="
                 $t('common.eg_value', {
                   value: 'g7id86rxn5cns0umkvx6klo9rm0b0vjzrljg064k',
@@ -46,14 +46,29 @@
               "
               :disabled="loading.setIntegrations"
               :invalid-message="error.deepgram_api_key"
+              tooltipAlignment="end"
+              tooltipDirection="right"
               ref="deepgram_api_key"
-            />
-            <!-- //// check disabled condition -->
+            >
+              <template slot="tooltip">
+                <i18n path="integrations.deepgram_api_key_tooltip" tag="span">
+                  <template #deepgramLink>
+                    <cv-link
+                      href="https://deepgram.com/"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      deepgram.com
+                    </cv-link>
+                  </template>
+                </i18n>
+              </template>
+            </NsTextInput>
             <NsToggle
-              :label="$t('integrations.satellite_call_transcription_enabled')"
-              value="satellite_call_transcription_enabled"
-              :disabled="!deepgram_api_key || loading.setIntegrations"
-              v-model="satellite_call_transcription_enabled"
+              :label="$t('integrations.voicemail_transcription_enabled')"
+              value="isCallTranscriptionEnabled"
+              :disabled="!deepgramApiKey || loading.setIntegrations"
+              v-model="isCallTranscriptionEnabled"
             >
               <template slot="text-left">
                 {{ $t("common.disabled") }}
@@ -63,27 +78,19 @@
               </template>
             </NsToggle>
             <NsInlineNotification
-              v-if="satellite_call_transcription_enabled"
+              v-if="isCallTranscriptionEnabled"
               kind="warning"
-              :title="
-                $t(
-                  'integrations.satellite_call_transcription_enabled_warning_title'
-                )
-              "
+              :title="$t('integrations.call_transcription_warning_title')"
               :description="
-                $t(
-                  'integrations.satellite_call_transcription_enabled_warning_description'
-                )
+                $t('integrations.call_transcription_warning_description')
               "
               :showCloseButton="false"
             />
             <NsToggle
-              :label="
-                $t('integrations.satellite_voicemail_transcription_enabled')
-              "
-              value="satellite_voicemail_transcription_enabled"
-              :disabled="!deepgram_api_key || loading.setIntegrations"
-              v-model="satellite_voicemail_transcription_enabled"
+              :label="$t('integrations.voicemail_transcription_enabled')"
+              value="isVoicemailTranscriptionEnabled"
+              :disabled="!deepgramApiKey || loading.setIntegrations"
+              v-model="isVoicemailTranscriptionEnabled"
             >
               <template slot="text-left">
                 {{ $t("common.disabled") }}
@@ -115,7 +122,7 @@
 </template>
 
 <script>
-// import to from "await-to-js"; ////
+import to from "await-to-js";
 import { mapState } from "vuex";
 import {
   QueryParamService,
@@ -146,9 +153,10 @@ export default {
       q: {
         page: "integrations",
       },
-      satellite_call_transcription_enabled: false,
-      satellite_voicemail_transcription_enabled: false,
-      deepgram_api_key: "",
+      urlCheckInterval: null,
+      deepgramApiKey: "",
+      isCallTranscriptionEnabled: false,
+      isVoicemailTranscriptionEnabled: false,
       loading: {
         getIntegrations: false,
         setIntegrations: false,
@@ -156,6 +164,7 @@ export default {
       error: {
         getIntegrations: "",
         setIntegrations: "",
+        deepgram_api_key: "",
       },
     };
   },
@@ -179,11 +188,133 @@ export default {
     next();
   },
   created() {
-    ////
+    this.getIntegrations();
   },
   methods: {
-    setIntegrations() {
-      ////
+    async getIntegrations() {
+      this.loading.getIntegrations = true;
+      this.error.getIntegrations = "";
+      const taskAction = "get-integrations";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.getIntegrationsAborted
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.getIntegrationsCompleted
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.getIntegrations = this.getErrorMessage(err);
+        this.loading.getIntegrations = false;
+        return;
+      }
+    },
+    getIntegrationsAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.getIntegrations = this.$t("error.generic_error");
+      this.loading.getIntegrations = false;
+    },
+    getIntegrationsCompleted(taskContext, taskResult) {
+      const integrations = taskResult.output;
+
+      console.log("integrations", integrations); ////
+
+      this.deepgramApiKey = integrations.deepgram_api_key || "";
+      this.isCallTranscriptionEnabled =
+        integrations.satellite_call_transcription_enabled || false;
+      this.isVoicemailTranscriptionEnabled =
+        integrations.satellite_voicemail_transcription_enabled || false;
+      this.loading.getIntegrations = false;
+    },
+    async setIntegrations() {
+      this.error.setIntegrations = "";
+      this.loading.setIntegrations = true;
+      const taskAction = "set-integrations";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.setIntegrationsAborted
+      );
+
+      // register to task validation
+      this.core.$root.$once(
+        `${taskAction}-validation-failed-${eventId}`,
+        this.setIntegrationsValidationFailed
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.setIntegrationsCompleted
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          data: {
+            deepgram_api_key: this.deepgramApiKey,
+            satellite_call_transcription_enabled: this.deepgramApiKey
+              ? this.isCallTranscriptionEnabled
+              : false,
+            satellite_voicemail_transcription_enabled: this.deepgramApiKey
+              ? this.isVoicemailTranscriptionEnabled
+              : false,
+          },
+          extra: {
+            title: this.$t("action." + taskAction),
+            description: this.$t("common.processing"),
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.setIntegrations = this.getErrorMessage(err);
+        this.loading.setIntegrations = false;
+        return;
+      }
+    },
+    setIntegrationsAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.setIntegrations = this.$t("error.generic_error");
+      this.loading.setIntegrations = false;
+    },
+    setIntegrationsValidationFailed(validationErrors) {
+      this.loading.setIntegrations = false;
+
+      for (const validationError of validationErrors) {
+        const param = validationError.parameter;
+
+        // set i18n error message
+        this.error[param] = this.$t("settings." + validationError.error);
+      }
+    },
+    setIntegrationsCompleted() {
+      this.getIntegrations();
+      this.loading.setIntegrations = false;
     },
   },
 };

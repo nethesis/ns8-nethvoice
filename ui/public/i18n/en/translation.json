@@ -16,10 +16,10 @@
     "list-domain-users": "List domain users",
     "add-module": "Add module",
     "get-integrations": "Get integrations",
-    "set-integrations": "Set integrations",
-    "get-hotel": "Get hotel settings",
-    "set-hotel": "Set hotel settings",
-    "get-rebranding": "Get rebranding settings",
+    "set-integrations": "Configure integrations",
+    "get-nethvoice-hotel": "Get hotel settings",
+    "set-nethvoice-hotel": "Configure hotel settings",
+    "get-rebranding": "Get rebranding",
     "set-rebranding": "Configure rebranding"
   },
   "common": {
@@ -33,7 +33,8 @@
     "node_id": "Node {id}",
     "warning": "Warning",
     "save": "Save",
-    "optional": "optional"
+    "optional": "optional",
+    "status": "Status"
   },
   "error": {
     "401": "Invalid authentication",
@@ -56,10 +57,6 @@
     "nethcti_ui_host": "NethVoice CTI base host",
     "nethvoice_host": "NethVoice base host",
     "nethvoice_admin_password": "Reset NethVoice admin password to access user interface (optional)",
-    "nethvoice_hotel": "Enable Hotel module",
-    "nethvoice_hotel_fias_address": "Hotel FIAS server host (Optional)",
-    "nethvoice_hotel_fias_port": "Hotel FIAS server port (Optional)",
-    "nethvoice_hotel_subscription_required": "Hotel module requires an active subscription",
     "nethvoice_host_number_not": "NethVoice host must be an FQDN, not an IP address",
     "save": "Save",
     "title": "Settings",
@@ -85,7 +82,8 @@
     "proxy_not_installed_description": "The proxy needs to be installed before configuring NethVoice.",
     "openai_api_key": "OpenAI API Key",
     "admin_password": "Admin password to access user interface",
-    "confirm_admin_password": "Confirm admin password"
+    "confirm_admin_password": "Confirm admin password",
+    "deepgram_api_key_pattern": "Invalid API Key format"
   },
   "status": {
     "app_images": "App image | App images",
@@ -158,10 +156,11 @@
   "integrations": {
     "title": "Integrations",
     "deepgram_api_key": "Deepgram API Key",
-    "satellite_call_transcription_enabled": "Enable call transcription (Preview)",
-    "satellite_voicemail_transcription_enabled": "Enable voicemail transcription",
-    "satellite_call_transcription_enabled_warning_title": "Potential high credit usage",
-    "satellite_call_transcription_enabled_warning_description": "Transcriptions are enabled for every call. Your Deepgram credits may run out quickly if you have many calls."
+    "call_transcription": "Call transcription (Preview)",
+    "voicemail_transcription_enabled": "Voicemail transcription",
+    "call_transcription_warning_title": "Potential high credit usage",
+    "call_transcription_warning_description": "Transcriptions are enabled for every call. Your Deepgram credits may run out quickly if you have many calls.",
+    "deepgram_api_key_tooltip": "To use call and voicemail transcription, you need a Deepgram API key. You can get one by signing up at {deepgramLink}."
   },
   "rebranding": {
     "title": "Rebranding",
@@ -189,6 +188,12 @@
     "mailto_sales_body": "Hello,\n\nI would like to activate the rebranding feature for my NethVoice installation. Please provide me with the necessary information and steps to proceed.\n\nThank you."
   },
   "hotel": {
-    "title": "Hotel"
+    "title": "Hotel",
+    "hotel_is_disabled": "Hotel configuration is disabled",
+    "subscription_required": "Hotel module requires an active subscription",
+    "fias_host": "Hotel FIAS server host",
+    "fias_host_helper": "Hostname or IPv4 address of the FIAS server",
+    "fias_port": "Hotel FIAS server port",
+    "go_to_subscription": "Go to Subscription"
   }
 }

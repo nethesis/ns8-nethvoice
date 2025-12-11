@@ -49,7 +49,7 @@
             $t('rebranding.rebranding_not_activated_yet_description')
           "
           :actionLabel="$t('rebranding.contact_sales')"
-          @action="openMailtoLink()"
+          @action="openMailtoLink"
         />
       </cv-column>
     </cv-row>
@@ -337,6 +337,7 @@ export default {
       q: {
         page: "rebranding",
       },
+      urlCheckInterval: null,
       rebranding_active: false,
       rebranding_brand_name: "",
       rebranding_navbar_logo_url: "",
@@ -457,65 +458,62 @@ export default {
       this.isDarkMode = true;
     },
     async setRebranding() {
-      if (this.rebranding_active) {
-        this.loading.setRebranding = true;
-        const taskAction = "set-rebranding";
-        const eventId = this.getUuid();
+      this.loading.setRebranding = true;
+      const taskAction = "set-rebranding";
+      const eventId = this.getUuid();
 
-        // register to task error
-        this.core.$root.$once(
-          `${taskAction}-aborted-${eventId}`,
-          this.setRebrandingAborted
-        );
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.setRebrandingAborted
+      );
 
-        // register to task validation
-        this.core.$root.$once(
-          `${taskAction}-validation-failed-${eventId}`,
-          this.setRebrandingValidationFailed
-        );
+      // register to task validation
+      this.core.$root.$once(
+        `${taskAction}-validation-failed-${eventId}`,
+        this.setRebrandingValidationFailed
+      );
 
-        // register to task completion
-        this.core.$root.$once(
-          `${taskAction}-completed-${eventId}`,
-          this.setRebrandingCompleted
-        );
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.setRebrandingCompleted
+      );
 
-        // Convert true/false to 'show'/'hide' for rebranding_login_people
-        let rebrandingLoginPeople = this.rebranding_login_people
-          ? "show"
-          : "hide";
+      // Convert true/false to 'show'/'hide' for rebranding_login_people
+      let rebrandingLoginPeople = this.rebranding_login_people
+        ? "show"
+        : "hide";
 
-        const res = await to(
-          this.createModuleTaskForApp(this.instanceName, {
-            action: taskAction,
-            data: {
-              rebranding_login_people: rebrandingLoginPeople,
-              rebranding_brand_name: this.rebranding_brand_name,
-              rebranding_navbar_logo_url: this.rebranding_navbar_logo_url,
-              rebranding_navbar_logo_dark_url:
-                this.rebranding_navbar_logo_dark_url,
-              rebranding_login_logo_url: this.rebranding_login_logo_url,
-              rebranding_login_logo_dark_url:
-                this.rebranding_login_logo_dark_url,
-              rebranding_favicon_url: this.rebranding_favicon_url,
-              rebranding_login_background_url:
-                this.rebranding_login_background_url,
-            },
-            extra: {
-              title: this.$t("action." + taskAction),
-              description: this.$t("common.processing"),
-              eventId,
-            },
-          })
-        );
-        const err = res[0];
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          data: {
+            rebranding_login_people: rebrandingLoginPeople,
+            rebranding_brand_name: this.rebranding_brand_name,
+            rebranding_navbar_logo_url: this.rebranding_navbar_logo_url,
+            rebranding_navbar_logo_dark_url:
+              this.rebranding_navbar_logo_dark_url,
+            rebranding_login_logo_url: this.rebranding_login_logo_url,
+            rebranding_login_logo_dark_url: this.rebranding_login_logo_dark_url,
+            rebranding_favicon_url: this.rebranding_favicon_url,
+            rebranding_login_background_url:
+              this.rebranding_login_background_url,
+          },
+          extra: {
+            title: this.$t("action." + taskAction),
+            description: this.$t("common.processing"),
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
 
-        if (err) {
-          console.error(`error creating task ${taskAction}`, err);
-          this.error.setRebranding = this.getErrorMessage(err);
-          this.loading.setRebranding = false;
-          return;
-        }
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.setRebranding = this.getErrorMessage(err);
+        this.loading.setRebranding = false;
+        return;
       }
     },
     setRebrandingAborted(taskAction, taskContext) {
