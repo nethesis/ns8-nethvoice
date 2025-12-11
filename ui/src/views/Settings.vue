@@ -248,212 +248,6 @@
                 ref="openai_api_key"
               />
               <!-- End Satellite Settings -->
-              <div>rebranding_active {{ form.rebranding_active }} ////</div>
-              <label
-                v-if="form.rebranding_active"
-                class="rebranding_section_title_style"
-                >Rebranding section</label
-              >
-              <cv-accordion
-                ref="acc"
-                :align="align"
-                :disabled="loadingState || !proxy_installed"
-                v-if="form.rebranding_active"
-              >
-                <cv-accordion-item :open="open[0]" class="test-card">
-                  <template slot="title">NethVoice CTI</template>
-                  <template slot="content">
-                    <!-- Inputs -->
-                    <NsTextInput
-                      :label="$t('settings.rebranding_brand_name')"
-                      v-model="form.rebranding_brand_name"
-                      placeholder="NethVoice"
-                      :disabled="loadingState || !proxy_installed"
-                      :invalid-message="error.rebranding_brand_name"
-                    >
-                      <template slot="tooltip">
-                        {{ $t("settings.rebranding_brand_name_tooltip") }}
-                      </template>
-                    </NsTextInput>
-                    <NsTextInput
-                      :label="$t('settings.rebranding_navbar_logo_url')"
-                      v-model="form.rebranding_navbar_logo_url"
-                      placeholder="https://.."
-                      :disabled="loadingState || !proxy_installed"
-                      :invalid-message="error.rebranding_navbar_logo_url"
-                    >
-                      <template slot="tooltip">
-                        {{ $t("settings.rebranding_navbar_logo_url_tooltip") }}
-                      </template>
-                    </NsTextInput>
-
-                    <NsTextInput
-                      :label="$t('settings.rebranding_navbar_logo_dark_url')"
-                      v-model="form.rebranding_navbar_logo_dark_url"
-                      placeholder="https://.."
-                      :disabled="loadingState || !proxy_installed"
-                      :invalid-message="error.rebranding_navbar_logo_dark_url"
-                    >
-                      <template slot="tooltip">
-                        {{
-                          $t("settings.rebranding_navbar_logo_dark_url_tooltip")
-                        }}
-                      </template>
-                    </NsTextInput>
-
-                    <NsTextInput
-                      :label="$t('settings.rebranding_login_background_url')"
-                      v-model="form.rebranding_login_background_url"
-                      placeholder="https://.."
-                      :disabled="loadingState || !proxy_installed"
-                      :invalid-message="error.rebranding_login_background_url"
-                    >
-                      <template slot="tooltip">
-                        {{
-                          $t("settings.rebranding_login_background_url_tooltip")
-                        }}
-                      </template>
-                    </NsTextInput>
-
-                    <NsTextInput
-                      :label="$t('settings.rebranding_favicon_url')"
-                      v-model="form.rebranding_favicon_url"
-                      placeholder="https://.."
-                      :disabled="loadingState || !proxy_installed"
-                      :invalid-message="error.rebranding_favicon_url"
-                    >
-                      <template slot="tooltip">
-                        {{ $t("settings.rebranding_favicon_url_tooltip") }}
-                      </template>
-                    </NsTextInput>
-
-                    <NsTextInput
-                      :label="$t('settings.rebranding_login_logo_url')"
-                      v-model="form.rebranding_login_logo_url"
-                      placeholder="https://.."
-                      :disabled="loadingState || !proxy_installed"
-                      :invalid-message="error.rebranding_login_logo_url"
-                    >
-                      <template slot="tooltip">
-                        {{ $t("settings.rebranding_login_logo_url_tooltip") }}
-                      </template>
-                    </NsTextInput>
-
-                    <NsTextInput
-                      :label="$t('settings.rebranding_login_logo_dark_url')"
-                      v-model="form.rebranding_login_logo_dark_url"
-                      placeholder="https://.."
-                      :disabled="loadingState || !proxy_installed"
-                      :invalid-message="error.rebranding_login_logo_dark_url"
-                    >
-                      <template slot="tooltip">
-                        {{
-                          $t("settings.rebranding_login_logo_dark_url_tooltip")
-                        }}
-                      </template>
-                    </NsTextInput>
-                    <NsCheckbox
-                      :label="$t('settings.rebranding_login_people')"
-                      v-model="form.rebranding_login_people"
-                      :disabled="loadingState || !proxy_installed"
-                      :invalid-message="error.rebranding_login_people"
-                    >
-                      <template slot="tooltip">
-                        {{ $t("settings.rebranding_login_people_tooltip") }}
-                      </template>
-                    </NsCheckbox>
-
-                    <label
-                      v-if="form.rebranding_active"
-                      class="rebranding_section_title_style"
-                      >Preview</label
-                    >
-                    <!-- Login page preview -->
-                    <div class="login-preview">
-                      <!-- Dark/Light theme buttons inside preview -->
-                      <div class="theme-buttons">
-                        <NsButton
-                          kind="secondary"
-                          @click="setLightTheme"
-                          :disabled="!isDarkMode"
-                          class="theme-button dark-theme-btn"
-                        >
-                          <Sun20 />
-                        </NsButton>
-                        <NsButton
-                          kind="secondary"
-                          @click="setDarkTheme"
-                          :disabled="isDarkMode"
-                          class="theme-button dark-theme-btn"
-                        >
-                          <Moon20 />
-                        </NsButton>
-                      </div>
-
-                      <NsButton
-                        kind="secondary"
-                        @click.prevent="setAllClear"
-                        class="clear-all-btn"
-                      >
-                        <TrashCan20 class="clear_all_icon" /> Clear rebranding
-                      </NsButton>
-                      <div
-                        class="login-background"
-                        :style="{
-                          backgroundImage: `url(${validLoginBackgroundUrl})`,
-                        }"
-                      >
-                        <div class="login-container">
-                          <div
-                            :class="isDarkMode ? 'dark-theme' : 'light-theme'"
-                          >
-                            <div class="login-card">
-                              <img
-                                :src="validLogoUrl"
-                                :alt="isDarkMode ? 'Logo Dark' : 'Logo Light'"
-                                class="login-logo"
-                              />
-                              <div class="login-form">
-                                <label for="username" class="login-label"
-                                  >Username</label
-                                >
-                                <input
-                                  type="text"
-                                  value="username"
-                                  disabled
-                                  class="login-input"
-                                />
-                                <label for="password" class="login-label"
-                                  >Password</label
-                                >
-                                <input
-                                  type="password"
-                                  value="*********"
-                                  disabled
-                                  class="login-input"
-                                />
-                                <button disabled class="login-button">
-                                  <span>Sign in</span>
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                          <div
-                            class="login-svg"
-                            v-if="!form.rebranding_login_people"
-                          >
-                            <img
-                              src="../assets/action_voice-cti.svg"
-                              alt="SVG Image"
-                              class="svg-image"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </template>
-                </cv-accordion-item>
-              </cv-accordion>
               <NsInlineNotification
                 v-if="validationErrorDetails.length"
                 kind="error"
@@ -497,7 +291,6 @@
 <script>
 import to from "await-to-js";
 import { mapState } from "vuex";
-import { Sun20, Moon20, TrashCan20 } from "@carbon/icons-vue";
 import {
   QueryParamService,
   UtilService,
@@ -510,7 +303,7 @@ import { PasswordGeneratorService } from "@/mixins/passwordGenerator";
 
 export default {
   name: "Settings",
-  components: { Sun20, Moon20, TrashCan20, ResumeConfigNotification },
+  components: { ResumeConfigNotification },
   mixins: [
     TaskService,
     IconService,
@@ -541,15 +334,6 @@ export default {
         user_domain: "",
         reports_international_prefix: "+39",
         timezone: "",
-        rebranding_active: "",
-        rebranding_brand_name: "",
-        rebranding_navbar_logo_url: "",
-        rebranding_navbar_logo_dark_url: "",
-        rebranding_login_background_url: "",
-        rebranding_favicon_url: "",
-        rebranding_login_logo_url: "",
-        rebranding_login_logo_dark_url: "",
-        rebranding_login_people: false,
         nethvoice_adm: {},
         nethcti_privacy_numbers: "",
         nethvoice_hotel: false,
@@ -566,7 +350,6 @@ export default {
       subscription_systemid: "",
       loading: {
         getConfiguration: false,
-        getRebranding: false,
         configureModule: false,
         userDomains: false,
         getDefaults: false,
@@ -591,13 +374,6 @@ export default {
         user_domain: "",
         reports_international_prefix: "",
         timezone: "",
-        rebranding_brand_name: "",
-        rebranding_navbar_logo_url: "",
-        rebranding_navbar_logo_dark_url: "",
-        rebranding_login_background_url: "",
-        rebranding_favicon_url: "",
-        rebranding_login_logo_url: "",
-        rebranding_login_logo_dark_url: "",
         nethcti_privacy_numbers: "",
         nethvoice_hotel: "",
         nethvoice_hotel_fias_address: "",
@@ -620,21 +396,6 @@ export default {
       return Object.values(this.loading).some(
         (loadingState) => loadingState === true
       );
-    },
-    ////
-    validLoginBackgroundUrl() {
-      return (
-        this.form.rebranding_login_background_url ||
-        require("../assets/background_voice.svg")
-      );
-    },
-    ////
-    validLogoUrl() {
-      return this.isDarkMode
-        ? this.form.rebranding_login_logo_dark_url ||
-            require("../assets/login_logo_dark.svg")
-        : this.form.rebranding_login_logo_url ||
-            require("../assets/login_logo.svg");
     },
     isSubscriptionValid() {
       return (
@@ -660,7 +421,6 @@ export default {
   created() {
     this.getUserDomains();
     this.getDefaults();
-    this.getRebranding();
 
     // register to events
     this.$root.$on("reloadConfig", this.getConfiguration);
@@ -769,72 +529,6 @@ export default {
       this.form.openai_api_key = config.openai_api_key || "";
 
       this.focusElement("nethvoice_host");
-    },
-    async getRebranding() {
-      this.loading.getRebranding = true;
-
-      const taskAction = "get-rebranding";
-      const eventId = this.getUuid();
-
-      // register to task error
-      this.core.$root.$once(
-        `${taskAction}-aborted-${eventId}`,
-        this.getRebrandingAborted
-      );
-
-      // register to task completion
-      this.core.$root.$once(
-        `${taskAction}-completed-${eventId}`,
-        this.getRebrandingCompleted
-      );
-
-      const res = await to(
-        this.createModuleTaskForApp(this.instanceName, {
-          action: taskAction,
-          extra: {
-            title: this.$t("action." + taskAction),
-            isNotificationHidden: true,
-            eventId,
-          },
-        })
-      );
-      const err = res[0];
-
-      if (err) {
-        console.error(`error creating task ${taskAction}`, err);
-        this.error.getConfiguration = this.getErrorMessage(err);
-        this.loading.getRebranding = false;
-        return;
-      }
-    },
-    getRebrandingAborted(taskAction, taskContextGetRebranding) {
-      console.error(`${taskContextGetRebranding.action} aborted`, taskAction);
-      this.error.getConfiguration = this.$t("error.generic_error");
-      this.loading.getRebranding = false;
-      this.getConfiguration();
-    },
-    getRebrandingCompleted(taskContextGetRebranding, taskAction) {
-      const config = taskAction.output;
-
-      this.form.rebranding_active = config.rebranding_active;
-      this.form.rebranding_brand_name = config.rebranding_brand_name;
-      this.form.rebranding_navbar_logo_url = config.rebranding_navbar_logo_url;
-      this.form.rebranding_navbar_logo_dark_url =
-        config.rebranding_navbar_logo_dark_url;
-      this.form.rebranding_login_background_url =
-        config.rebranding_login_background_url;
-      this.form.rebranding_favicon_url = config.rebranding_favicon_url;
-      this.form.rebranding_login_logo_url = config.rebranding_login_logo_url;
-      this.form.rebranding_login_logo_dark_url =
-        config.rebranding_login_logo_dark_url;
-      this.form.rebranding_login_people = config.rebranding_login_people;
-      if (this.form.rebranding_login_people === "hide") {
-        this.form.rebranding_login_people = true;
-      } else {
-        this.form.rebranding_login_people = false;
-      }
-      this.loading.getRebranding = false;
-      this.getConfiguration();
     },
     validateConfigureModule() {
       this.clearErrors();
@@ -1100,70 +794,6 @@ export default {
         this.loading.configureModule = false;
         return;
       }
-
-      if (this.form.rebranding_active) {
-        // execute set rebranding
-        const taskActionRebranding = "set-rebranding";
-        const eventIdRebranding = this.getUuid();
-
-        // register to task error
-        this.core.$root.$once(
-          `${taskActionRebranding}-aborted-${eventIdRebranding}`,
-          this.configureModuleAborted
-        );
-
-        // register to task validation
-        this.core.$root.$once(
-          `${taskActionRebranding}-validation-failed-${eventIdRebranding}`,
-          this.configureModuleValidationFailed
-        );
-
-        // register to task completion
-        this.core.$root.$once(
-          `${taskActionRebranding}-completed-${eventIdRebranding}`,
-          this.configureModuleCompleted
-        );
-
-        // Convert true/false to 'show'/'hide' for rebranding_login_people
-        let rebrandingLoginPeople = this.form.rebranding_login_people
-          ? "hide"
-          : "show";
-
-        const setRebranding = await to(
-          this.createModuleTaskForApp(this.instanceName, {
-            action: taskActionRebranding,
-            data: {
-              rebranding_login_people: rebrandingLoginPeople,
-              rebranding_brand_name: this.form.rebranding_brand_name,
-              rebranding_navbar_logo_url: this.form.rebranding_navbar_logo_url,
-              rebranding_navbar_logo_dark_url:
-                this.form.rebranding_navbar_logo_dark_url,
-              rebranding_login_logo_url: this.form.rebranding_login_logo_url,
-              rebranding_login_logo_dark_url:
-                this.form.rebranding_login_logo_dark_url,
-              rebranding_favicon_url: this.form.rebranding_favicon_url,
-              rebranding_login_background_url:
-                this.form.rebranding_login_background_url,
-            },
-            extra: {
-              title: this.$t("settings.set_rebranding"),
-              description: this.$t("common.processing"),
-              eventId,
-            },
-          })
-        );
-        const errRebranding = setRebranding[0];
-
-        if (errRebranding) {
-          console.error(
-            `error creating task ${taskActionRebranding}`,
-            errRebranding
-          );
-          this.error.configureModule = this.getErrorMessage(errRebranding);
-          this.loading.configureModule = false;
-          return;
-        }
-      }
     },
     configureModuleAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
@@ -1176,7 +806,6 @@ export default {
       // reload configuration
       this.getConfiguration();
       this.getUserDomains();
-      this.getRebranding();
     },
     async getUserDomains() {
       this.loading.userDomains = true;
@@ -1296,6 +925,8 @@ export default {
       this.proxy_installed = taskResult.output.proxy_status.proxy_installed;
     },
     async getUsers(domain) {
+      console.log("@@@ getUsers for", domain); ////
+
       this.loading.getUsers = true;
 
       const taskAction = "list-domain-users";
@@ -1361,197 +992,10 @@ export default {
     setDarkTheme() {
       this.isDarkMode = true;
     },
-    setAllClear() {
-      this.form.rebranding_brand_name = "";
-      this.form.rebranding_navbar_logo_url = "";
-      this.form.rebranding_navbar_logo_dark_url = "";
-      this.form.rebranding_login_background_url = "";
-      this.form.rebranding_favicon_url = "";
-      this.form.rebranding_login_logo_url = "";
-      this.form.rebranding_login_logo_dark_url = "";
-      this.form.rebranding_login_people = false;
-    },
   },
 };
 </script>
 
 <style scoped lang="scss">
 @import "../styles/carbon-utils";
-
-.test-card {
-  padding-top: 6px;
-  padding-bottom: 2rem;
-  width: 620px;
-}
-
-.login-preview {
-  position: relative;
-  width: 100%;
-  height: 400px;
-  border: 1px solid #ccc;
-  margin-top: 8px;
-}
-
-.login-background {
-  background-size: cover;
-  background-position: center;
-  width: 100%;
-  height: 100%;
-}
-
-.login-container {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  height: 100%;
-  margin-left: 2rem;
-}
-
-.login-card {
-  background-color: #111827;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  color: white;
-  margin-right: 70px;
-  border-radius: 4px;
-}
-
-.login-svg {
-  width: 40%;
-}
-
-.svg-image {
-  width: 100%;
-  height: auto;
-  margin-left: -24px;
-}
-
-.login-logo {
-  height: 20px;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  margin-top: 24px;
-  width: 100%;
-  align-items: center;
-}
-
-.login-input {
-  width: 80%;
-  padding: 10px;
-  height: 10px;
-  margin-bottom: 15px;
-  background-color: #030712;
-  color: #fff;
-  border: none;
-  text-align: center;
-  border-radius: 4px;
-  border-color: #e5e7eb;
-  border-width: 2px;
-}
-
-.login-button {
-  width: 80%;
-  padding: 10px;
-  background-color: #15803d;
-  color: white;
-  border: none;
-  cursor: not-allowed;
-  border-radius: 4px;
-  height: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-}
-
-.login-button span {
-  margin: 0;
-}
-
-.login-label {
-  width: 80%;
-  text-align: left;
-  margin-bottom: 4px;
-}
-
-.login-button-span {
-  position: absolute;
-  left: 96px;
-  top: 269px;
-}
-
-.bx--accordion__item {
-  border-top: none !important;
-}
-
-.bx--accordion__item:last-child {
-  border-bottom: none !important;
-}
-
-/* Light theme */
-.light-theme .login-card {
-  background-color: #f9fafb;
-  color: #111827;
-}
-
-.light-theme .login-input {
-  background-color: #ffffff;
-  color: #111827;
-  border-color: #e5e7eb;
-}
-
-.light-theme .login-button {
-  background-color: #34d399;
-  color: white;
-}
-
-/* Dark theme */
-.dark-theme .login-card {
-  background-color: #111827;
-  color: white;
-}
-
-.dark-theme .login-input {
-  background-color: #030712;
-  color: white;
-  border-color: #374151;
-}
-
-.dark-theme .login-button {
-  background-color: #15803d;
-  color: white;
-}
-
-.rebranding_section_title_style {
-  color: #525252;
-  font-size: 12px !important;
-}
-
-.theme-buttons {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-}
-
-.theme-button {
-  margin-left: 8px;
-  padding-right: 14px;
-}
-
-.clear-all-btn {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  padding-right: 20px;
-}
-
-.clear_all_icon {
-  margin-right: 8px;
-}
 </style>
