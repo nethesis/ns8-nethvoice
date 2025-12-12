@@ -39,7 +39,7 @@ class AuthMiddleware
      */
     public function __invoke($request, $response, $next)
     {
-        if ($request->isOptions()) {
+        if ($request->isOptions() || $request->getUri()->getPath() == 'testextauth') {
             $response = $next($request, $response);
         }
         else if ($request->getUri()->getPath() != 'testauth' && (!$request->hasHeader('Secretkey') || !$request->hasHeader('User'))) {
