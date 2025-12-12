@@ -14,24 +14,46 @@
         <ResumeConfigNotification />
       </cv-column>
     </cv-row>
-    <cv-row v-else-if="!isProxyInstalled && !isLoading">
+    <cv-row v-else-if="!isProxyInstalled && !isLoading && !isErrorState">
       <cv-column>
         <NsInlineNotification
           kind="warning"
           :title="$t('settings.proxy_not_installed')"
           :description="$t('settings.proxy_not_installed_description')"
           :showCloseButton="false"
+          :actionLabel="$t('settings.go_to_software_center')"
+          @action="goToSoftwareCenter"
         />
       </cv-column>
     </cv-row>
     <template v-else>
       <!-- show settings page -->
+      <cv-row v-if="error.userDomains">
+        <cv-column>
+          <NsInlineNotification
+            kind="error"
+            :title="core.$t('action.list-user-domains')"
+            :description="error.userDomains"
+            :showCloseButton="false"
+          />
+        </cv-column>
+      </cv-row>
       <cv-row v-if="error.getConfiguration">
         <cv-column>
           <NsInlineNotification
             kind="error"
             :title="$t('action.get-configuration')"
             :description="error.getConfiguration"
+            :showCloseButton="false"
+          />
+        </cv-column>
+      </cv-row>
+      <cv-row v-if="error.getDefaults">
+        <cv-column>
+          <NsInlineNotification
+            kind="error"
+            :title="$t('action.get-defaults')"
+            :description="error.getDefaults"
             :showCloseButton="false"
           />
         </cv-column>
@@ -182,6 +204,27 @@
                   </template>
                 </NsInlineNotification>
                 <NsInlineNotification
+                  v-if="error.getUsers"
+                  kind="error"
+                  :title="$t('action.list-domain-users')"
+                  :description="error.getUsers"
+                  :showCloseButton="false"
+                />
+                <NsInlineNotification
+                  v-if="error.addUser"
+                  kind="error"
+                  :title="core.$t('action.add-user')"
+                  :description="error.addUser"
+                  :showCloseButton="false"
+                />
+                <NsInlineNotification
+                  v-if="error.alterUser"
+                  kind="error"
+                  :title="core.$t('action.alter-user')"
+                  :description="error.alterUser"
+                  :showCloseButton="false"
+                />
+                <NsInlineNotification
                   v-if="error.configureModule"
                   kind="error"
                   :title="$t('action.configure-module')"
@@ -192,7 +235,7 @@
                   kind="primary"
                   :icon="Save20"
                   :loading="loading.configureModule"
-                  :disabled="isFormDisabled || !isProxyInstalled"
+                  :disabled="isFormDisabled || isErrorState"
                 >
                   {{ $t("common.save") }}
                 </NsButton>
@@ -231,20 +274,18 @@
                   :clearConfirmPasswordCommand="clearConfirmPasswordCommand"
                   :disabled="isFormDisabled"
                 />
-                <!-- <NsTextInput //// 
-                  :label="$t('settings.nethvoice_admin_password')"
-                  v-model="nethvoice_admin_password"
-                  :disabled="loading.setAdminPassword"
-                  :invalid-message="error.nethvoice_admin_password"
-                  ref="nethvoice_admin_password"
-                  type="password"
+                <NsInlineNotification
+                  v-if="error.setAdminPassword"
+                  kind="error"
+                  :title="$t('action.set-nethvoice-admin-password')"
+                  :description="error.setAdminPassword"
+                  :showCloseButton="false"
                 />
-                set-nethvoice-admin-password //// -->
                 <NsButton
                   kind="secondary"
                   :icon="Password20"
                   :loading="loading.setAdminPassword"
-                  :disabled="isFormDisabled"
+                  :disabled="isFormDisabled || isErrorState"
                 >
                   {{ $t("settings.change_password") }}
                 </NsButton>
@@ -312,7 +353,6 @@ export default {
         userDomains: false,
         getDefaults: false,
         getUsers: false,
-        getProxyStatus: false,
         setAdminPassword: false,
         addUser: false,
         alterUser: false,
@@ -329,7 +369,6 @@ export default {
         userDomains: "",
         getDefaults: "",
         getUsers: "",
-        getProxyStatus: "",
         setAdminPassword: "",
         addUser: "",
         alterUser: "",
@@ -361,7 +400,6 @@ export default {
         this.loading.userDomains ||
         this.loading.getDefaults ||
         this.loading.getUsers ||
-        this.loading.getProxyStatus ||
         this.loading.setAdminPassword ||
         this.loading.addUser ||
         this.loading.alterUser
@@ -371,8 +409,7 @@ export default {
       return (
         this.loading.getConfiguration ||
         this.loading.userDomains ||
-        this.loading.getDefaults ||
-        this.loading.getProxyStatus
+        this.loading.getDefaults
       );
     },
     isSubscriptionValid() {
@@ -385,6 +422,18 @@ export default {
         (domain) => domain.name === this.user_domain
       );
       return !!selectedDomain && selectedDomain.location === "internal";
+    },
+    isErrorState() {
+      return !!(
+        this.error.getConfiguration ||
+        this.error.configureModule ||
+        this.error.userDomains ||
+        this.error.getDefaults ||
+        this.error.getUsers ||
+        this.error.setAdminPassword ||
+        this.error.addUser ||
+        this.error.alterUser
+      );
     },
   },
   beforeRouteEnter(to, from, next) {
@@ -479,7 +528,10 @@ export default {
       this.timezone = config.timezone;
       this.nethvoice_adm.username = config.nethvoice_adm_username;
       this.nethvoice_adm.password = config.nethvoice_adm_password;
-      this.focusElement("nethvoice_host");
+
+      if (this.isProxyInstalled) {
+        this.focusElement("nethvoice_host");
+      }
     },
     validateConfigureModule() {
       this.clearErrors();
@@ -1200,6 +1252,9 @@ export default {
     },
     onPasswordValidation(passwordValidation) {
       this.passwordValidation = passwordValidation;
+    },
+    goToSoftwareCenter() {
+      this.core.$router.push("/software-center");
     },
   },
 };

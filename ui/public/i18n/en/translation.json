@@ -85,7 +85,8 @@
     "change_nethvoice_admin_password": "Change NethVoice admin password",
     "new_admin_password": "New admin password",
     "confirm_new_admin_password": "Confirm new admin password",
-    "change_password": "Change password"
+    "change_password": "Change password",
+    "go_to_software_center": "Go to Software center"
   },
   "status": {
     "app_images": "App image | App images",
