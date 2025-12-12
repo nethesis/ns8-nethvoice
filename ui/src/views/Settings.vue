@@ -9,14 +9,23 @@
         <h2>{{ $t("settings.title") }}</h2>
       </cv-column>
     </cv-row>
-    <template v-if="!isAppConfigured">
-      <cv-row>
-        <cv-column>
-          <ResumeConfigNotification />
-        </cv-column>
-      </cv-row>
-    </template>
+    <cv-row v-if="!isAppConfigured">
+      <cv-column>
+        <ResumeConfigNotification />
+      </cv-column>
+    </cv-row>
+    <cv-row v-else-if="!isProxyInstalled && !isLoading">
+      <cv-column>
+        <NsInlineNotification
+          kind="warning"
+          :title="$t('settings.proxy_not_installed')"
+          :description="$t('settings.proxy_not_installed_description')"
+          :showCloseButton="false"
+        />
+      </cv-column>
+    </cv-row>
     <template v-else>
+      <!-- show settings page -->
       <cv-row v-if="error.getConfiguration">
         <cv-column>
           <NsInlineNotification
@@ -27,149 +36,223 @@
           />
         </cv-column>
       </cv-row>
-      <cv-row v-if="!proxy_installed && !loadingState">
-        <cv-column>
-          <NsInlineNotification
-            kind="info"
-            :title="$t('settings.proxy_not_installed')"
-            :description="$t('settings.proxy_not_installed_description')"
-            :showCloseButton="false"
-          />
-        </cv-column>
-      </cv-row>
-      <cv-row>
-        <cv-column>
-          <cv-tile light>
-            <cv-form @submit.prevent="configureModule">
-              <cv-text-input
-                :label="$t('settings.nethvoice_host')"
-                v-model="form.nethvoice_host"
-                placeholder="voice.example.com"
-                :disabled="loadingState || !proxy_installed"
-                :invalid-message="error.nethvoice_host"
-                ref="nethvoice_host"
-              />
-              <cv-text-input
-                :label="$t('settings.nethcti_ui_host')"
-                v-model="form.nethcti_ui_host"
-                placeholder="cti.example.com"
-                :disabled="loadingState || !proxy_installed"
-                :invalid-message="error.nethcti_ui_host"
-                ref="nethcti_ui_host"
-              />
-              <cv-toggle
-                :label="$t('settings.lets_encrypt')"
-                value="lets_encrypt"
-                :disabled="loadingState || !proxy_installed"
-                v-model="form.lets_encrypt"
-              >
-                <template slot="text-left">
-                  {{ $t("common.disabled") }}
-                </template>
-                <template slot="text-right">
-                  {{ $t("common.enabled") }}
-                </template>
-              </cv-toggle>
-              <NsInlineNotification
-                v-if="warningVisible"
-                kind="warning"
-                :title="$t('common.warning')"
-                :description="$t('settings.change_domain_provider_warning')"
-                :showCloseButton="false"
-              />
-              <NsComboBox
-                :title="$t('settings.user_domain')"
-                :options="domainList"
-                :auto-highlight="true"
-                :label="$t('settings.user_domain_placeholder')"
-                :disabled="loadingState || !proxy_installed"
-                :invalid-message="error.user_domain"
-                v-model="form.user_domain"
-                ref="user_domain"
-                :acceptUserInput="false"
-                @change="onSelectionChange($event)"
-              />
-              <NsComboBox
-                v-model.trim="form.timezone"
-                :autoFilter="true"
-                :autoHighlight="true"
-                :title="$t('settings.timezone')"
-                :label="$t('settings.timezone_placeholder')"
-                :options="timezoneList"
-                :userInputLabel="core.$t('common.user_input_l')"
-                :acceptUserInput="false"
-                :showItemType="true"
-                :invalid-message="$t(error.timezone)"
-                :disabled="
-                  loading.getConfiguration ||
-                  loading.configureModule ||
-                  loading.getDefaults ||
-                  !proxy_installed
-                "
-                tooltipAlignment="start"
-                tooltipDirection="top"
-                ref="timezone"
-              >
-                <template slot="tooltip">
-                  {{ $t("settings.timezone_tooltip") }}
-                </template>
-              </NsComboBox>
-              <NsTextInput
-                :label="$t('settings.reports_international_prefix')"
-                v-model="form.reports_international_prefix"
-                placeholder="+39"
-                :disabled="loadingState || !proxy_installed"
-                :invalid-message="error.reports_international_prefix"
-              >
-                <template slot="tooltip">
-                  {{ $t("settings.reports_international_prefix_tooltip") }}
-                </template>
-              </NsTextInput>
-              <cv-text-input
-                :label="$t('settings.nethvoice_admin_password')"
-                v-model="form.nethvoice_admin_password"
-                placeholder=""
-                :disabled="loadingState || !proxy_installed"
-                :invalid-message="error.nethvoice_admin_password"
-                ref="nethvoice_admin_password"
-                type="password"
-              />
-              <NsInlineNotification
-                v-if="validationErrorDetails.length"
-                kind="error"
-                :title="core.$t('apps_lets_encrypt.cannot_obtain_certificate')"
-                :showCloseButton="false"
-              >
-                <template #description>
-                  <div class="flex flex-col gap-2">
-                    <div
-                      v-for="(detail, index) in validationErrorDetails"
-                      :key="index"
-                    >
-                      {{ detail }}
+      <!-- skeleton -->
+      <template v-if="isLoading">
+        <cv-row>
+          <cv-column>
+            <cv-tile light>
+              <cv-skeleton-text
+                :paragraph="true"
+                heading
+                :line-count="10"
+              ></cv-skeleton-text>
+            </cv-tile>
+          </cv-column>
+        </cv-row>
+        <cv-row>
+          <cv-column>
+            <cv-tile light>
+              <cv-skeleton-text
+                :paragraph="true"
+                heading
+                :line-count="5"
+              ></cv-skeleton-text>
+            </cv-tile>
+          </cv-column>
+        </cv-row>
+      </template>
+      <template v-else>
+        <!-- settings form -->
+        <cv-row>
+          <cv-column>
+            <cv-tile light>
+              <h4 class="mb-4">{{ $t("settings.general") }}</h4>
+              <cv-form @submit.prevent="startConfiguration">
+                <cv-text-input
+                  :label="$t('settings.nethvoice_host')"
+                  v-model="nethvoice_host"
+                  placeholder="voice.example.com"
+                  :disabled="isFormDisabled"
+                  :invalid-message="error.nethvoice_host"
+                  ref="nethvoice_host"
+                />
+                <cv-text-input
+                  :label="$t('settings.nethcti_ui_host')"
+                  v-model="nethcti_ui_host"
+                  placeholder="cti.example.com"
+                  :disabled="isFormDisabled"
+                  :invalid-message="error.nethcti_ui_host"
+                  ref="nethcti_ui_host"
+                />
+                <!-- let's encrypt toggle -->
+                <NsToggle
+                  value="letsEncrypt"
+                  :label="$t('settings.request_le_certificates')"
+                  v-model="lets_encrypt"
+                  :disabled="isFormDisabled"
+                >
+                  <template #tooltip>
+                    <div class="mg-bottom-sm">
+                      {{ $t("settings.request_le_certificates_tooltip") }}
                     </div>
-                  </div>
-                </template>
-              </NsInlineNotification>
-              <NsInlineNotification
-                v-if="error.configureModule"
-                kind="error"
-                :title="$t('action.configure-module')"
-                :description="error.configureModule"
-                :showCloseButton="false"
-              />
-              <NsButton
-                kind="primary"
-                :icon="Save20"
-                :loading="loading.configureModule"
-                :disabled="loadingState || !proxy_installed"
-              >
-                {{ $t("common.save") }}
-              </NsButton>
-            </cv-form>
-          </cv-tile>
-        </cv-column>
-      </cv-row>
+                    <div class="mg-bottom-sm">
+                      <cv-link @click="goToCertificates">
+                        {{
+                          core.$t("apps_lets_encrypt.go_to_tls_certificates")
+                        }}
+                      </cv-link>
+                    </div>
+                  </template>
+                  <template slot="text-left">{{
+                    $t("common.disabled")
+                  }}</template>
+                  <template slot="text-right">{{
+                    $t("common.enabled")
+                  }}</template>
+                </NsToggle>
+                <NsComboBox
+                  :title="$t('settings.user_domain')"
+                  :options="domainList"
+                  :auto-highlight="true"
+                  :label="core.$t('common.choose')"
+                  :disabled="isFormDisabled"
+                  :invalid-message="error.user_domain"
+                  v-model="user_domain"
+                  ref="user_domain"
+                  :acceptUserInput="false"
+                  @change="onSelectionChange($event)"
+                />
+                <NsInlineNotification
+                  v-if="changeProviderWarning"
+                  kind="warning"
+                  :title="$t('settings.change_domain_provider_warning_title')"
+                  :description="
+                    $t('settings.change_domain_provider_warning_description')
+                  "
+                  :showCloseButton="false"
+                />
+                <NsComboBox
+                  v-model.trim="timezone"
+                  :autoFilter="true"
+                  :autoHighlight="true"
+                  :title="$t('settings.timezone')"
+                  :label="$t('settings.timezone_placeholder')"
+                  :options="timezoneList"
+                  :userInputLabel="core.$t('common.user_input_l')"
+                  :acceptUserInput="false"
+                  :showItemType="true"
+                  :invalid-message="$t(error.timezone)"
+                  :disabled="isFormDisabled"
+                  tooltipAlignment="start"
+                  tooltipDirection="top"
+                  ref="timezone"
+                >
+                  <template slot="tooltip">
+                    {{ $t("settings.timezone_tooltip") }}
+                  </template>
+                </NsComboBox>
+                <NsTextInput
+                  :label="$t('settings.reports_international_prefix')"
+                  v-model="reports_international_prefix"
+                  placeholder="+39"
+                  :disabled="isFormDisabled"
+                  :invalid-message="error.reports_international_prefix"
+                >
+                  <template slot="tooltip">
+                    {{ $t("settings.reports_international_prefix_tooltip") }}
+                  </template>
+                </NsTextInput>
+                <NsInlineNotification
+                  v-if="validationErrorDetails.length"
+                  kind="error"
+                  :title="
+                    core.$t('apps_lets_encrypt.cannot_obtain_certificate')
+                  "
+                  :showCloseButton="false"
+                >
+                  <template #description>
+                    <div class="flex flex-col gap-2">
+                      <div
+                        v-for="(detail, index) in validationErrorDetails"
+                        :key="index"
+                      >
+                        {{ detail }}
+                      </div>
+                    </div>
+                  </template>
+                </NsInlineNotification>
+                <NsInlineNotification
+                  v-if="error.configureModule"
+                  kind="error"
+                  :title="$t('action.configure-module')"
+                  :description="error.configureModule"
+                  :showCloseButton="false"
+                />
+                <NsButton
+                  kind="primary"
+                  :icon="Save20"
+                  :loading="loading.configureModule"
+                  :disabled="isFormDisabled || !isProxyInstalled"
+                >
+                  {{ $t("common.save") }}
+                </NsButton>
+              </cv-form>
+            </cv-tile>
+          </cv-column>
+        </cv-row>
+        <!-- change admin password form -->
+        <cv-row>
+          <cv-column>
+            <cv-tile light>
+              <h4 class="mb-4">
+                {{ $t("settings.change_nethvoice_admin_password") }}
+              </h4>
+              <cv-form @submit.prevent="changeAdminPassword">
+                <NsPasswordInput
+                  :newPasswordLabel="$t('settings.new_admin_password')"
+                  :confirmPasswordLabel="
+                    $t('settings.confirm_new_admin_password')
+                  "
+                  v-model="nethvoice_admin_password"
+                  @passwordValidation="onPasswordValidation"
+                  :newPasswordInvalidMessage="
+                    $t(error.nethvoice_admin_password)
+                  "
+                  :confirmPasswordInvalidMessage="$t(error.confirmPassword)"
+                  :passwordHideLabel="core.$t('password.hide_password')"
+                  :passwordShowLabel="core.$t('password.show_password')"
+                  :lengthLabel="core.$t('password.long_enough')"
+                  :lowercaseLabel="core.$t('password.lowercase_letter')"
+                  :uppercaseLabel="core.$t('password.uppercase_letter')"
+                  :numberLabel="core.$t('password.number')"
+                  :symbolLabel="core.$t('password.symbol')"
+                  :equalLabel="core.$t('password.equal')"
+                  :focus="focusPasswordField"
+                  :clearConfirmPasswordCommand="clearConfirmPasswordCommand"
+                  :disabled="isFormDisabled"
+                />
+                <!-- <NsTextInput //// 
+                  :label="$t('settings.nethvoice_admin_password')"
+                  v-model="nethvoice_admin_password"
+                  :disabled="loading.setAdminPassword"
+                  :invalid-message="error.nethvoice_admin_password"
+                  ref="nethvoice_admin_password"
+                  type="password"
+                />
+                set-nethvoice-admin-password //// -->
+                <NsButton
+                  kind="secondary"
+                  :icon="Password20"
+                  :loading="loading.setAdminPassword"
+                  :disabled="isFormDisabled"
+                >
+                  {{ $t("settings.change_password") }}
+                </NsButton>
+              </cv-form>
+            </cv-tile>
+          </cv-column>
+        </cv-row>
+      </template>
     </template>
   </cv-grid>
 </template>
@@ -207,25 +290,22 @@ export default {
         page: "settings",
       },
       urlCheckInterval: null,
-      warningVisible: false,
-      open: [false, false],
-      align: "end",
-      size: "medium",
+      changeProviderWarning: false,
       validationErrorDetails: [],
-      form: {
-        nethvoice_host: "",
-        nethvoice_admin_password: "",
-        nethcti_ui_host: "",
-        lets_encrypt: true,
-        user_domain: "",
-        reports_international_prefix: "+39",
-        timezone: "",
-        nethvoice_adm: {},
-      },
-      isDarkMode: false, //// remove
-      proxy_installed: false,
+      nethvoice_host: "",
+      nethvoice_admin_password: "",
+      nethcti_ui_host: "",
+      lets_encrypt: false,
+      user_domain: "",
+      reports_international_prefix: "+39",
+      timezone: "",
+      nethvoice_adm: {},
+      isProxyInstalled: false,
       config: {},
       subscription_systemid: "",
+      passwordValidation: null,
+      focusPasswordField: { element: "" },
+      clearConfirmPasswordCommand: 0,
       loading: {
         getConfiguration: false,
         configureModule: false,
@@ -233,18 +313,26 @@ export default {
         getDefaults: false,
         getUsers: false,
         getProxyStatus: false,
+        setAdminPassword: false,
+        addUser: false,
+        alterUser: false,
       },
       domainList: [],
       timezoneList: [],
       providers: {},
-      initialUserDomainSet: false,
-      passwordFieldType: "password",
-      users: {},
+      initialUserDomainSet: false, //// ?
+      // users: {}, //// remove?
+      domainUsers: [],
       error: {
         getConfiguration: "",
+        configureModule: "",
+        userDomains: "",
         getDefaults: "",
         getUsers: "",
-        configureModule: "",
+        getProxyStatus: "",
+        setAdminPassword: "",
+        addUser: "",
+        alterUser: "",
         nethvoice_host: "",
         nethvoice_admin_password: "",
         nethcti_ui_host: "",
@@ -253,9 +341,9 @@ export default {
         reports_international_prefix: "",
         timezone: "",
       },
-      warning: {
-        user_domain: "",
-      },
+      // warning: { ////
+      //   user_domain: "",
+      // },
     };
   },
   computed: {
@@ -266,15 +354,37 @@ export default {
       "isAppConfigured",
       "isShownFirstConfigurationModal",
     ]),
-    loadingState() {
-      return Object.values(this.loading).some(
-        (loadingState) => loadingState === true
+    isFormDisabled() {
+      return (
+        this.loading.getConfiguration ||
+        this.loading.configureModule ||
+        this.loading.userDomains ||
+        this.loading.getDefaults ||
+        this.loading.getUsers ||
+        this.loading.getProxyStatus ||
+        this.loading.setAdminPassword ||
+        this.loading.addUser ||
+        this.loading.alterUser
+      );
+    },
+    isLoading() {
+      return (
+        this.loading.getConfiguration ||
+        this.loading.userDomains ||
+        this.loading.getDefaults ||
+        this.loading.getProxyStatus
       );
     },
     isSubscriptionValid() {
       return (
         this.subscription_systemid && this.subscription_systemid.trim() !== ""
       );
+    },
+    isSelectedDomainInternal() {
+      const selectedDomain = this.domainList.find(
+        (domain) => domain.name === this.user_domain
+      );
+      return !!selectedDomain && selectedDomain.location === "internal";
     },
   },
   beforeRouteEnter(to, from, next) {
@@ -348,11 +458,11 @@ export default {
       this.config = taskResult.output;
       this.subscription_systemid = config.subscription_systemid || "";
 
-      this.form.nethvoice_host = config.nethvoice_host;
-      this.form.nethcti_ui_host = config.nethcti_ui_host;
-      this.form.nethvoice_admin_password = "";
-      this.form.lets_encrypt = config.lets_encrypt;
-      this.form.user_domain = config.user_domain;
+      this.nethvoice_host = config.nethvoice_host;
+      this.nethcti_ui_host = config.nethcti_ui_host;
+      this.nethvoice_admin_password = "";
+      this.lets_encrypt = config.lets_encrypt;
+      this.user_domain = config.user_domain;
       this.obtainedUserDomain = config.user_domain;
       if (
         config.user_domain === "" ||
@@ -364,12 +474,11 @@ export default {
         this.initialUserDomainSet = false;
       }
       if (config.reports_international_prefix !== "") {
-        this.form.reports_international_prefix =
-          config.reports_international_prefix;
+        this.reports_international_prefix = config.reports_international_prefix;
       }
-      this.form.timezone = config.timezone;
-      this.form.nethvoice_adm.username = config.nethvoice_adm_username;
-      this.form.nethvoice_adm.password = config.nethvoice_adm_password;
+      this.timezone = config.timezone;
+      this.nethvoice_adm.username = config.nethvoice_adm_username;
+      this.nethvoice_adm.password = config.nethvoice_adm_password;
       this.focusElement("nethvoice_host");
     },
     validateConfigureModule() {
@@ -377,28 +486,28 @@ export default {
       this.validationErrorDetails = [];
       let isValidationOk = true;
 
-      if (!this.form.nethvoice_host) {
+      if (!this.nethvoice_host) {
         this.error.nethvoice_host = this.$t("error.required");
         isValidationOk = false;
       }
 
-      if (!this.form.nethcti_ui_host) {
+      if (!this.nethcti_ui_host) {
         this.error.nethcti_ui_host = this.$t("error.required");
         isValidationOk = false;
       }
 
-      if (!this.form.user_domain) {
+      if (!this.user_domain) {
         this.error.user_domain = this.$t("error.required");
         isValidationOk = false;
       }
 
-      if (!this.form.timezone) {
+      if (!this.timezone) {
         this.error.timezone = this.$t("error.required");
         isValidationOk = false;
       }
 
       const reportsPrefixRegex = /^(00\d{1,4}|\+\d{1,4})$/;
-      if (!reportsPrefixRegex.test(this.form.reports_international_prefix)) {
+      if (!reportsPrefixRegex.test(this.reports_international_prefix)) {
         this.error.reports_international_prefix = this.$t(
           "error.reports_prefix_invalid"
         );
@@ -406,14 +515,13 @@ export default {
       }
 
       if (
-        this.form.nethvoice_host === this.form.nethcti_ui_host &&
-        this.form.nethvoice_host !== ""
+        this.nethvoice_host === this.nethcti_ui_host &&
+        this.nethvoice_host !== ""
       ) {
         this.error.nethvoice_host = this.$t("error.same_host");
         this.error.nethcti_ui_host = this.$t("error.same_host");
         isValidationOk = false;
       }
-
       return isValidationOk;
     },
     configureModuleValidationFailed(validationErrors) {
@@ -433,94 +541,222 @@ export default {
         }
       }
     },
-    async configureModule() {
+    startConfiguration() {
       const isValidationOk = this.validateConfigureModule();
       if (!isValidationOk) {
         return;
       }
-      this.warningVisible = false;
 
-      // check if nethvoice adm exists
-      var exists = this.users[this.form.user_domain].filter((user) => {
-        return user.user === this.instanceName + "-adm";
-      });
+      console.log("@@ validation ok"); ////
 
-      // check if domain is internal
-      var internal =
-        this.domainList.filter((domain) => {
-          return domain.name == this.form.user_domain;
-        })[0].location == "internal";
+      this.getUsers();
+    },
+    async addAdmUser() {
+      console.log("@@ addAdmUser"); ////
+
+      this.error.addUser = "";
+      this.loading.addUser = true;
+      const taskAction = "add-user";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.addAdmUserAborted
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.addAdmUserCompleted
+      );
+
+      this.nethvoice_adm.username = this.instanceName + "-adm";
+      this.nethvoice_adm.password = this.generateAdmPassword();
+
+      const res = await to(
+        this.createModuleTaskForApp(this.providers[this.user_domain], {
+          action: taskAction,
+          data: {
+            user: this.nethvoice_adm.username,
+            display_name: `${this.instanceName} Administrator`,
+            password: this.nethvoice_adm.password,
+            locked: false,
+            groups: ["domain admins"],
+          },
+          extra: {
+            title: this.$t("settings.create_nethvoice_adm"),
+            description: this.$t("common.processing"),
+            eventId,
+            isNotificationHidden: true,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.addUser = this.getErrorMessage(err);
+        this.loading.addUser = false;
+        return;
+      }
+    },
+    addAdmUserAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.addUser = this.$t("error.generic_error");
+      this.loading.addUser = false;
+    },
+    addAdmUserCompleted() {
+      this.loading.addUser = false;
+
+      // proceed with module configuration
+      this.configureModule();
+    },
+    async changeAdmUserPassword() {
+      console.log("@@ changeAdmUserPassword"); ////
+
+      this.error.alterUser = "";
+      this.loading.alterUser = true;
+      const taskAction = "alter-user";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.changeAdmUserPasswordAborted
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.changeAdmUserPasswordCompleted
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.providers[this.user_domain], {
+          action: "alter-user",
+          data: {
+            user: this.nethvoice_adm.username,
+            password: this.nethvoice_adm.password,
+          },
+          extra: {
+            title: this.$t("settings.set_nethvoice_adm_password"),
+            description: this.$t("common.processing"),
+            eventId,
+            isNotificationHidden: true,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.alterUser = this.getErrorMessage(err);
+        this.loading.alterUser = false;
+        return;
+      }
+    },
+    changeAdmUserPasswordAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.alterUser = this.$t("error.generic_error");
+      this.loading.alterUser = false;
+    },
+    changeAdmUserPasswordCompleted() {
+      this.loading.alterUser = false;
+
+      // proceed with module configuration
+      this.configureModule();
+    },
+    async configureModule() {
+      console.log("@@ configureModule"); ////
+
+      ////
+      // const isValidationOk = this.validateConfigureModule();
+      // if (!isValidationOk) {
+      //   return;
+      // }
+
+      //// remove stuff
+
+      // check if nethvoice adm exists ////
+      // var exists = this.users[this.user_domain].filter((user) => { ////
+      //   return user.user === this.instanceName + "-adm";
+      // });
+
+      // check if domain is internal ////
+      // var internal = ////
+      //   this.domainList.filter((domain) => {
+      //     return domain.name == this.user_domain;
+      //   })[0].location == "internal";
 
       // create nethvoice adm user, if not exists and if domain is internal
-      if (internal) {
-        if (exists.length == 0) {
-          // compose credentials
-          this.form.nethvoice_adm.username = this.instanceName + "-adm";
-          this.form.nethvoice_adm.password = this.generateAdmPassword();
+      // if (internal) { ////
+      //   if (exists.length == 0) {
+      //     // compose credentials
+      //     this.nethvoice_adm.username = this.instanceName + "-adm";
+      //     this.nethvoice_adm.password = this.generateAdmPassword();
 
-          // execute task
-          const resAdm = await to(
-            this.createModuleTaskForApp(this.providers[this.form.user_domain], {
-              action: "add-user",
-              data: {
-                user: this.form.nethvoice_adm.username,
-                display_name: this.instanceName + " Administrator",
-                password: this.form.nethvoice_adm.password,
-                locked: false,
-                groups: ["domain admins"],
-              },
-              extra: {
-                title: this.$t("settings.create_nethvoice_adm"),
-                description: this.$t("common.processing"),
-                eventId,
-                isNotificationHidden: true,
-              },
-            })
-          );
-          const errAdm = resAdm[0];
+      //     // execute task
+      //     const resAdm = await to(
+      //       this.createModuleTaskForApp(this.providers[this.user_domain], {
+      //         action: "add-user",
+      //         data: {
+      //           user: this.nethvoice_adm.username,
+      //           display_name: this.instanceName + " Administrator",
+      //           password: this.nethvoice_adm.password,
+      //           locked: false,
+      //           groups: ["domain admins"],
+      //         },
+      //         extra: {
+      //           title: this.$t("settings.create_nethvoice_adm"),
+      //           description: this.$t("common.processing"),
+      //           eventId,
+      //           isNotificationHidden: true,
+      //         },
+      //       })
+      //     );
+      //     const errAdm = resAdm[0];
 
-          // check error
-          if (errAdm) {
-            console.error(`error creating task ${taskAction}`, errAdm);
-            this.error.configureModule = this.getErrorMessage(errAdm);
-            this.loading.configureModule = false;
-            return;
-          }
-        } else {
-          // if domain changed
-          if (this.config.user_domain != this.form.user_domain) {
-            // change password
-            const resAdm = await to(
-              this.createModuleTaskForApp(
-                this.providers[this.form.user_domain],
-                {
-                  action: "alter-user",
-                  data: {
-                    user: this.form.nethvoice_adm.username,
-                    password: this.form.nethvoice_adm.password,
-                  },
-                  extra: {
-                    title: this.$t("settings.set_nethvoice_adm_password"),
-                    description: this.$t("common.processing"),
-                    eventId,
-                    isNotificationHidden: true,
-                  },
-                }
-              )
-            );
-            const errAdm = resAdm[0];
+      //     // check error
+      //     if (errAdm) {
+      //       console.error(`error creating task ${taskAction}`, errAdm);
+      //       this.error.configureModule = this.getErrorMessage(errAdm);
+      //       this.loading.configureModule = false;
+      //       return;
+      //     }
+      //   } else {
+      //     // if domain changed
+      //     if (this.config.user_domain != this.user_domain) {
+      //       // change password
+      //       const resAdm = await to(
+      //         this.createModuleTaskForApp(this.providers[this.user_domain], {
+      //           action: "alter-user",
+      //           data: {
+      //             user: this.nethvoice_adm.username,
+      //             password: this.nethvoice_adm.password,
+      //           },
+      //           extra: {
+      //             title: this.$t("settings.set_nethvoice_adm_password"),
+      //             description: this.$t("common.processing"),
+      //             eventId,
+      //             isNotificationHidden: true,
+      //           },
+      //         })
+      //       );
+      //       const errAdm = resAdm[0];
 
-            // check error
-            if (errAdm) {
-              console.error(`error creating task ${taskAction}`, errAdm);
-              this.error.configureModule = this.getErrorMessage(errAdm);
-              this.loading.configureModule = false;
-              return;
-            }
-          }
-        }
-      }
+      //       // check error
+      //       if (errAdm) {
+      //         console.error(`error creating task ${taskAction}`, errAdm);
+      //         this.error.configureModule = this.getErrorMessage(errAdm);
+      //         this.loading.configureModule = false;
+      //         return;
+      //       }
+      //     }
+      //   }
+      // }
 
+      this.changeProviderWarning = false;
       this.loading.configureModule = true;
       const taskAction = "configure-module";
       const eventId = this.getUuid();
@@ -547,15 +783,14 @@ export default {
         this.createModuleTaskForApp(this.instanceName, {
           action: taskAction,
           data: {
-            nethvoice_host: this.form.nethvoice_host,
-            nethcti_ui_host: this.form.nethcti_ui_host,
-            lets_encrypt: this.form.lets_encrypt,
-            user_domain: this.form.user_domain,
-            reports_international_prefix:
-              this.form.reports_international_prefix,
-            timezone: this.form.timezone,
-            nethvoice_adm_username: this.form.nethvoice_adm.username,
-            nethvoice_adm_password: this.form.nethvoice_adm.password,
+            nethvoice_host: this.nethvoice_host,
+            nethcti_ui_host: this.nethcti_ui_host,
+            lets_encrypt: this.lets_encrypt,
+            user_domain: this.user_domain,
+            reports_international_prefix: this.reports_international_prefix,
+            timezone: this.timezone,
+            nethvoice_adm_username: this.nethvoice_adm.username,
+            nethvoice_adm_password: this.nethvoice_adm.password,
           },
           extra: {
             title: this.$t("settings.configure_instance", {
@@ -575,49 +810,51 @@ export default {
         return;
       }
 
-      // execute set password
-      const taskActionPass = "set-nethvoice-admin-password";
-      const eventIdPass = this.getUuid();
+      //// remove:
 
-      // register to task error
-      this.core.$root.$once(
-        `${taskActionPass}-aborted-${eventIdPass}`,
-        this.configureModuleAborted
-      );
+      // execute set password ////
+      // const taskActionPass = "set-nethvoice-admin-password";
+      // const eventIdPass = this.getUuid();
 
-      // register to task validation
-      this.core.$root.$once(
-        `${taskActionPass}-validation-failed-${eventIdPass}`,
-        this.configureModuleValidationFailed
-      );
+      // // register to task error
+      // this.core.$root.$once(
+      //   `${taskActionPass}-aborted-${eventIdPass}`,
+      //   this.configureModuleAborted
+      // );
 
-      // register to task completion
-      this.core.$root.$once(
-        `${taskActionPass}-completed-${eventIdPass}`,
-        this.configureModuleCompleted
-      );
+      // // register to task validation
+      // this.core.$root.$once(
+      //   `${taskActionPass}-validation-failed-${eventIdPass}`,
+      //   this.configureModuleValidationFailed
+      // );
 
-      const resPass = await to(
-        this.createModuleTaskForApp(this.instanceName, {
-          action: taskActionPass,
-          data: {
-            nethvoice_admin_password: this.form.nethvoice_admin_password,
-          },
-          extra: {
-            title: this.$t("settings.set_password"),
-            description: this.$t("common.processing"),
-            eventId,
-          },
-        })
-      );
-      const errPass = resPass[0];
+      // // register to task completion
+      // this.core.$root.$once(
+      //   `${taskActionPass}-completed-${eventIdPass}`,
+      //   this.configureModuleCompleted
+      // );
 
-      if (errPass) {
-        console.error(`error creating task ${taskAction}`, errPass);
-        this.error.configureModule = this.getErrorMessage(errPass);
-        this.loading.configureModule = false;
-        return;
-      }
+      // const resPass = await to(
+      //   this.createModuleTaskForApp(this.instanceName, {
+      //     action: taskActionPass,
+      //     data: {
+      //       nethvoice_admin_password: this.nethvoice_admin_password,
+      //     },
+      //     extra: {
+      //       title: this.$t("action." + taskAction),
+      //       description: this.$t("common.processing"),
+      //       eventId,
+      //     },
+      //   })
+      // );
+      // const errPass = resPass[0];
+
+      // if (errPass) {
+      //   console.error(`error creating task ${taskAction}`, errPass);
+      //   this.error.configureModule = this.getErrorMessage(errPass);
+      //   this.loading.configureModule = false;
+      //   return;
+      // }
     },
     configureModuleAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
@@ -629,7 +866,7 @@ export default {
 
       // reload configuration
       this.getConfiguration();
-      this.getUserDomains();
+      // this.getUserDomains(); ////
     },
     async getUserDomains() {
       this.loading.userDomains = true;
@@ -663,16 +900,16 @@ export default {
 
       if (err) {
         console.error(`error creating task ${taskAction}`, err);
-        this.error.getConfiguration = this.getErrorMessage(err);
+        this.error.userDomains = this.getErrorMessage(err);
         this.loading.userDomains = false;
         return;
       }
     },
     getUserDomainsAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
-      this.error.getConfiguration = this.$t("error.generic_error");
+      this.error.userDomains = this.$t("error.generic_error");
       this.loading.userDomains = false;
-      this.getConfiguration();
+      // this.getConfiguration(); ////
     },
     getUserDomainsCompleted(taskContext, taskResult) {
       this.domainList = [];
@@ -687,8 +924,8 @@ export default {
         });
         this.providers[domain.name] = domain.providers[0].id;
 
-        // get users for this domain
-        this.getUsers(domain.name);
+        // get users for this domain ////
+        // this.getUsers(domain.name); ////
       }
       this.loading.userDomains = false;
       this.getConfiguration();
@@ -725,16 +962,15 @@ export default {
 
       if (err) {
         console.error(`error creating task ${taskAction}`, err);
-        this.error.getConfiguration = this.getErrorMessage(err);
+        this.error.getDefaults = this.getErrorMessage(err);
         this.loading.getDefaults = false;
         return;
       }
     },
     getDefaultsAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
-      this.error.getConfiguration = this.$t("error.generic_error");
+      this.error.getDefaults = this.$t("error.generic_error");
       this.loading.getDefaults = false;
-      this.getConfiguration();
     },
     getDefaultsCompleted(taskContext, taskResult) {
       this.timezoneList = [];
@@ -746,13 +982,12 @@ export default {
         })
       );
       this.loading.getDefaults = false;
-      this.proxy_installed = taskResult.output.proxy_status.proxy_installed;
+      this.isProxyInstalled = taskResult.output.proxy_status.proxy_installed;
     },
-    async getUsers(domain) {
-      console.log("@@@ getUsers for", domain); ////
-
+    async getUsers() {
+      // console.log("@@@ getUsers for", domain); ////
+      this.error.getUsers = "";
       this.loading.getUsers = true;
-
       const taskAction = "list-domain-users";
       const eventId = this.getUuid();
 
@@ -772,7 +1007,7 @@ export default {
         this.createClusterTaskForApp({
           action: taskAction,
           data: {
-            domain: domain,
+            domain: this.user_domain,
           },
           extra: {
             title: this.$t("action." + taskAction),
@@ -785,36 +1020,186 @@ export default {
 
       if (err) {
         console.error(`error creating task ${taskAction}`, err);
-        this.error.getConfiguration = this.getErrorMessage(err);
+        this.error.getUsers = this.getErrorMessage(err);
         this.loading.getUsers = false;
         return;
       }
     },
     getUsersAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
-      this.error.getConfiguration = this.$t("error.generic_error");
+      this.error.getUsers = this.$t("error.generic_error");
       this.loading.getUsers = false;
-      this.getConfiguration();
+      // this.getConfiguration(); ////
     },
     getUsersCompleted(taskContext, taskResult) {
-      this.users[taskContext.data.domain] = taskResult.output.users;
+      // this.users[taskContext.data.domain] = taskResult.output.users; ////
+      this.domainUsers = taskResult.output.users;
       this.loading.getUsers = false;
+
+      if (!this.isSelectedDomainInternal) {
+        // if selected domain is not internal, proceed with configuration
+        this.configureModule();
+      } else {
+        // check if nethvoice-adm user exists in the domain
+        const admUserExists = this.domainUsers.some((user) => {
+          return user.user === `${this.instanceName}-adm`;
+        });
+
+        if (admUserExists) {
+          // check if domain changed
+          if (this.config.user_domain != this.user_domain) {
+            // change adm user password, then proceed with configuration
+            this.changeAdmUserPassword();
+          } else {
+            // if exists and domain not changed, proceed with configuration
+            this.configureModule();
+          }
+        } else {
+          // if not exists, create nethvoice-adm user in the domain, then proceed with configuration
+          this.addAdmUser();
+        }
+      }
     },
     onSelectionChange(newValue) {
       if (!this.initialUserDomainSet && newValue !== this.obtainedUserDomain) {
-        this.warningVisible = true;
+        this.changeProviderWarning = true;
       } else {
-        this.warningVisible = false;
+        this.changeProviderWarning = false;
       }
     },
-    toggleTheme() {}, ////
-    ////
-    setLightTheme() {
-      this.isDarkMode = false;
+    goToCertificates() {
+      this.core.$router.push("/settings/tls-certificates");
     },
-    ////
-    setDarkTheme() {
-      this.isDarkMode = true;
+    validateChangeAdminPassword() {
+      this.clearErrors();
+      let isValidationOk = true;
+
+      // password validation
+
+      if (!this.nethvoice_admin_password) {
+        this.error.nethvoice_admin_password = this.$t("common.required");
+
+        if (isValidationOk) {
+          this.focusPasswordField = { element: "newPassword" };
+          isValidationOk = false;
+        }
+      } else {
+        if (
+          !this.passwordValidation.isLengthOk ||
+          !this.passwordValidation.isLowercaseOk ||
+          !this.passwordValidation.isUppercaseOk ||
+          !this.passwordValidation.isNumberOk ||
+          !this.passwordValidation.isSymbolOk
+        ) {
+          if (!this.error.nethvoice_admin_password) {
+            this.error.nethvoice_admin_password = this.core.$t(
+              "password.password_not_secure"
+            );
+          }
+
+          if (isValidationOk) {
+            this.focusPasswordField = { element: "newPassword" };
+            isValidationOk = false;
+          }
+        }
+
+        if (!this.passwordValidation.isEqualOk) {
+          if (!this.error.nethvoice_admin_password) {
+            this.error.nethvoice_admin_password = this.core.$t(
+              "password.passwords_do_not_match"
+            );
+          }
+
+          if (!this.error.confirmPassword) {
+            this.error.confirmPassword = this.core.$t(
+              "password.passwords_do_not_match"
+            );
+          }
+
+          if (isValidationOk) {
+            this.focusPasswordField = { element: "confirmPassword" };
+            isValidationOk = false;
+          }
+        }
+      }
+      return isValidationOk;
+    },
+    async changeAdminPassword() {
+      console.log("@@ changeAdminPassword"); ////
+
+      const isValidationOk = this.validateChangeAdminPassword();
+
+      console.log("isValidationOk", isValidationOk); ////
+
+      if (!isValidationOk) {
+        return;
+      }
+      this.loading.setAdminPassword = true;
+      const taskAction = "set-nethvoice-admin-password";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.setAdminPasswordAborted
+      );
+
+      // register to task validation
+      this.core.$root.$once(
+        `${taskAction}-validation-failed-${eventId}`,
+        this.setAdminPasswordValidationFailed
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.setAdminPasswordCompleted
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          data: {
+            nethvoice_admin_password: this.nethvoice_admin_password,
+          },
+          extra: {
+            title: this.$t("action." + taskAction),
+            description: this.$t("common.processing"),
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.setAdminPassword = this.getErrorMessage(err);
+        this.loading.setAdminPassword = false;
+        return;
+      }
+    },
+    setAdminPasswordValidationFailed(validationErrors) {
+      this.loading.setAdminPassword = false;
+
+      for (const validationError of validationErrors) {
+        const param = validationError.parameter;
+
+        // set i18n error message
+        this.error[param] = this.$t("settings." + validationError.error);
+      }
+    },
+    setAdminPasswordAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.setAdminPassword = this.$t("error.generic_error");
+      this.loading.setAdminPassword = false;
+    },
+    setAdminPasswordCompleted() {
+      this.nethvoice_admin_password = "";
+      this.clearConfirmPasswordCommand++;
+      this.loading.setAdminPassword = false;
+    },
+    onPasswordValidation(passwordValidation) {
+      this.passwordValidation = passwordValidation;
     },
   },
 };
