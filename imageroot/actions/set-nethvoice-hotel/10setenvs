@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2025 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import sys
+import os
+
+import agent
+
+request = json.load(sys.stdin)
+
+## NethVoice Hotel
+agent.set_env('NETHVOICE_HOTEL', request.get('nethvoice_hotel'))
+agent.set_env('NETHVOICE_HOTEL_FIAS_ADDRESS', request.get('nethvoice_hotel_fias_address', ''))
+agent.set_env('NETHVOICE_HOTEL_FIAS_PORT', request.get('nethvoice_hotel_fias_port', ''))
+
+# set NETHCTI_CDR_SCRIPT to /usr/share/neth-hotel-fias/cdr.php if
+# nethvoice_hotel_fias_address is set and NETHCTI_CDR_SCRIPT is empty or not
+# set.
+# Otherwise, a custom CDR script set by the user would be overridden.
+if request.get('nethvoice_hotel_fias_address', '' ) != '' and os.environ.get('NETHCTI_CDR_SCRIPT', '') == '':
+    agent.set_env('NETHCTI_CDR_SCRIPT', '/usr/share/neth-hotel-fias/cdr.php')
+
+# unset NETHCTI_CDR_SCRIPT if nethvoice_hotel is not enabled and
+# NETHCTI_CDR_SCRIPT is set to /usr/share/neth-hotel-fias/cdr.php
+if request.get('nethvoice_hotel') != True:
+    if os.environ.get('NETHCTI_CDR_SCRIPT', '') == '/usr/share/neth-hotel-fias/cdr.php':
+        agent.set_env('NETHCTI_CDR_SCRIPT', '')
