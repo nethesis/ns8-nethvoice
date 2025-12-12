@@ -134,82 +134,6 @@
                 ref="nethvoice_admin_password"
                 type="password"
               />
-              <!-- Satellite Settings -->
-              <cv-text-input
-                :label="$t('settings.deepgram_api_key')"
-                v-model.trim="form.deepgram_api_key"
-                placeholder="g7id86rxn5cns0umkvx6klo9rm0b0vjzrljg064k"
-                :disabled="loadingState || !proxy_installed"
-                :invalid-message="error.deepgram_api_key"
-                ref="deepgram_api_key"
-              />
-              <cv-toggle
-                :label="$t('settings.satellite_call_transcription_enabled')"
-                value="satellite_call_transcription_enabled"
-                :disabled="
-                  form.deepgram_api_key.length == 0 ||
-                  loadingState ||
-                  !proxy_installed
-                "
-                v-model="form.satellite_call_transcription_enabled"
-              >
-                <template slot="text-left">
-                  {{ $t("common.disabled") }}
-                </template>
-                <template slot="text-right">
-                  {{ $t("common.enabled") }}
-                </template>
-              </cv-toggle>
-              <NsInlineNotification
-                v-if="form.satellite_call_transcription_enabled"
-                kind="warning"
-                :title="
-                  $t(
-                    'settings.satellite_call_transcription_enabled_warning_title'
-                  )
-                "
-                :description="
-                  $t(
-                    'settings.satellite_call_transcription_enabled_warning_description'
-                  )
-                "
-                :showCloseButton="false"
-              />
-              <cv-toggle
-                :label="
-                  $t('settings.satellite_voicemail_transcription_enabled')
-                "
-                value="satellite_voicemail_transcription_enabled"
-                :disabled="
-                  form.deepgram_api_key.length == 0 ||
-                  loadingState ||
-                  !proxy_installed
-                "
-                v-model="form.satellite_voicemail_transcription_enabled"
-              >
-                <template slot="text-left">
-                  {{ $t("common.disabled") }}
-                </template>
-                <template slot="text-right">
-                  {{ $t("common.enabled") }}
-                </template>
-              </cv-toggle>
-              <!-- HIDDEN: Remove v-if="false" to restore visibility -->
-              <cv-text-input
-                v-if="false"
-                :label="$t('settings.openai_api_key')"
-                v-model="form.openai_api_key"
-                placeholder="sk-..."
-                :disabled="
-                  loadingState ||
-                  !proxy_installed ||
-                  (!form.satellite_voicemail_transcription_enabled &&
-                    !form.satellite_call_transcription_enabled)
-                "
-                :invalid-message="error.openai_api_key"
-                ref="openai_api_key"
-              />
-              <!-- End Satellite Settings -->
               <NsInlineNotification
                 v-if="validationErrorDetails.length"
                 kind="error"
@@ -297,10 +221,6 @@ export default {
         reports_international_prefix: "+39",
         timezone: "",
         nethvoice_adm: {},
-        satellite_call_transcription_enabled: false,
-        satellite_voicemail_transcription_enabled: false,
-        deepgram_api_key: "",
-        openai_api_key: "",
       },
       isDarkMode: false, //// remove
       proxy_installed: false,
@@ -450,21 +370,6 @@ export default {
       this.form.timezone = config.timezone;
       this.form.nethvoice_adm.username = config.nethvoice_adm_username;
       this.form.nethvoice_adm.password = config.nethvoice_adm_password;
-
-      // Satellite settings
-      if (config.satellite_call_transcription_enabled == "True") {
-        this.form.satellite_call_transcription_enabled = true;
-      } else {
-        this.form.satellite_call_transcription_enabled = false;
-      }
-      if (config.satellite_voicemail_transcription_enabled == "True") {
-        this.form.satellite_voicemail_transcription_enabled = true;
-      } else {
-        this.form.satellite_voicemail_transcription_enabled = false;
-      }
-      this.form.deepgram_api_key = config.deepgram_api_key || "";
-      this.form.openai_api_key = config.openai_api_key || "";
-
       this.focusElement("nethvoice_host");
     },
     validateConfigureModule() {
@@ -651,16 +556,6 @@ export default {
             timezone: this.form.timezone,
             nethvoice_adm_username: this.form.nethvoice_adm.username,
             nethvoice_adm_password: this.form.nethvoice_adm.password,
-            satellite_call_transcription_enabled: this.form
-              .satellite_call_transcription_enabled
-              ? "True"
-              : "False",
-            satellite_voicemail_transcription_enabled: this.form
-              .satellite_voicemail_transcription_enabled
-              ? "True"
-              : "False",
-            deepgram_api_key: this.form.deepgram_api_key,
-            openai_api_key: this.form.openai_api_key,
           },
           extra: {
             title: this.$t("settings.configure_instance", {
