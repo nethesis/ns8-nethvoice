@@ -302,35 +302,51 @@
               :title="$t('status.no_images')"
             >
             </NsEmptyState>
-            <cv-structured-list v-else>
-              <template slot="headings">
-                <cv-structured-list-heading>{{
-                  $t("status.name")
-                }}</cv-structured-list-heading>
-                <cv-structured-list-heading>{{
-                  $t("status.size")
-                }}</cv-structured-list-heading>
-                <cv-structured-list-heading>{{
-                  $t("status.created")
-                }}</cv-structured-list-heading>
-              </template>
-              <template slot="items">
-                <cv-structured-list-item
-                  v-for="(image, index) in status.images"
-                  :key="index"
+            <NsDataTable
+              v-else
+              :allRows="status.images"
+              :columns="i18nImagesTableColumns"
+              :rawColumns="imagesTableColumns"
+              :sortable="true"
+              :pageSizes="[5, 10, 25, 50, 100]"
+              :overflow-menu="false"
+              isSearchable
+              :searchPlaceholder="$t('status.search_images')"
+              :searchClearLabel="core.$t('common.clear_search')"
+              :noSearchResultsLabel="core.$t('common.no_search_results')"
+              :noSearchResultsDescription="
+                core.$t('common.no_search_results_description')
+              "
+              :itemsPerPageLabel="core.$t('pagination.items_per_page')"
+              :rangeOfTotalItemsLabel="
+                core.$t('pagination.range_of_total_items')
+              "
+              :ofTotalPagesLabel="core.$t('pagination.of_total_pages')"
+              :backwardText="core.$t('pagination.previous_page')"
+              :forwardText="core.$t('pagination.next_page')"
+              :pageNumberLabel="core.$t('pagination.page_number')"
+              @updatePage="imagesTablePage = $event"
+            >
+              <template slot="data">
+                <cv-data-table-row
+                  v-for="(row, rowIndex) in imagesTablePage"
+                  :key="`${rowIndex}`"
+                  :value="`${rowIndex}`"
                 >
-                  <cv-structured-list-data class="break-word">{{
-                    image.name
-                  }}</cv-structured-list-data>
-                  <cv-structured-list-data>{{
-                    image.size
-                  }}</cv-structured-list-data>
-                  <cv-structured-list-data class="break-word">{{
-                    image.created
-                  }}</cv-structured-list-data>
-                </cv-structured-list-item>
+                  <cv-data-table-cell>
+                    <span>
+                      {{ row.name }}
+                    </span>
+                  </cv-data-table-cell>
+                  <cv-data-table-cell>
+                    <span>{{ row.size }}</span>
+                  </cv-data-table-cell>
+                  <cv-data-table-cell>
+                    <span>{{ row.created }}</span>
+                  </cv-data-table-cell>
+                </cv-data-table-row>
               </template>
-            </cv-structured-list>
+            </NsDataTable>
           </div>
           <cv-skeleton-text
             v-else
@@ -355,40 +371,56 @@
               :title="$t('status.no_volumes')"
             >
             </NsEmptyState>
-            <cv-structured-list v-else>
-              <template slot="headings">
-                <cv-structured-list-heading>{{
-                  $t("status.name")
-                }}</cv-structured-list-heading>
-                <cv-structured-list-heading>{{
-                  $t("status.mount")
-                }}</cv-structured-list-heading>
-                <cv-structured-list-heading>{{
-                  $t("status.created")
-                }}</cv-structured-list-heading>
-              </template>
-              <template slot="items">
-                <cv-structured-list-item
-                  v-for="(volume, index) in status.volumes"
-                  :key="index"
+            <NsDataTable
+              v-else
+              :allRows="status.volumes"
+              :columns="i18nVolumesTableColumns"
+              :rawColumns="volumesTableColumns"
+              :sortable="true"
+              :pageSizes="[5, 10, 25, 50, 100]"
+              :overflow-menu="false"
+              isSearchable
+              :searchPlaceholder="$t('status.search_volumes')"
+              :searchClearLabel="core.$t('common.clear_search')"
+              :noSearchResultsLabel="core.$t('common.no_search_results')"
+              :noSearchResultsDescription="
+                core.$t('common.no_search_results_description')
+              "
+              :itemsPerPageLabel="core.$t('pagination.items_per_page')"
+              :rangeOfTotalItemsLabel="
+                core.$t('pagination.range_of_total_items')
+              "
+              :ofTotalPagesLabel="core.$t('pagination.of_total_pages')"
+              :backwardText="core.$t('pagination.previous_page')"
+              :forwardText="core.$t('pagination.next_page')"
+              :pageNumberLabel="core.$t('pagination.page_number')"
+              @updatePage="volumesTablePage = $event"
+            >
+              <template slot="data">
+                <cv-data-table-row
+                  v-for="(row, rowIndex) in volumesTablePage"
+                  :key="`${rowIndex}`"
+                  :value="`${rowIndex}`"
                 >
-                  <cv-structured-list-data class="break-word">{{
-                    volume.name
-                  }}</cv-structured-list-data>
-                  <cv-structured-list-data class="break-word">{{
-                    volume.mount
-                  }}</cv-structured-list-data>
-                  <cv-structured-list-data>{{
-                    volume.created
-                  }}</cv-structured-list-data>
-                </cv-structured-list-item>
+                  <cv-data-table-cell>
+                    <span>
+                      {{ row.name }}
+                    </span>
+                  </cv-data-table-cell>
+                  <cv-data-table-cell>
+                    <span>{{ row.mount }}</span>
+                  </cv-data-table-cell>
+                  <cv-data-table-cell>
+                    <span>{{ row.created }}</span>
+                  </cv-data-table-cell>
+                </cv-data-table-row>
               </template>
-            </cv-structured-list>
+            </NsDataTable>
           </div>
           <cv-skeleton-text
             v-else
             :paragraph="true"
-            :line-count="5"
+            :line-count="10"
           ></cv-skeleton-text>
         </cv-tile>
       </cv-column>
@@ -440,6 +472,10 @@ export default {
       backups: [],
       Restart20,
       proxyModuleId: "",
+      imagesTablePage: [],
+      imagesTableColumns: ["name", "size", "created"],
+      volumesTablePage: [],
+      volumesTableColumns: ["name", "mount", "created"],
       loading: {
         getStatus: false,
         listBackupRepositories: false,
@@ -483,6 +519,16 @@ export default {
       } else {
         return "";
       }
+    },
+    i18nImagesTableColumns() {
+      return this.imagesTableColumns.map((col) => {
+        return this.$t(`status.${col}`);
+      });
+    },
+    i18nVolumesTableColumns() {
+      return this.volumesTableColumns.map((col) => {
+        return this.$t(`status.${col}`);
+      });
     },
   },
   beforeRouteEnter(to, from, next) {

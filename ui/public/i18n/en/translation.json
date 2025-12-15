@@ -113,7 +113,9 @@
     "open_nethvoice_cti": "Open NethVoice CTI",
     "go_to_nethvoice_proxy": "Go to NethVoice Proxy",
     "go_to_domains_and_users": "Go to Domains and users",
-    "go_to_node_details": "Go to node details"
+    "go_to_node_details": "Go to node details",
+    "search_images": "Search images",
+    "search_volumes": "Search volumes"
   },
   "welcome": {
     "configure_nethvoice": "Configure NethVoice",
