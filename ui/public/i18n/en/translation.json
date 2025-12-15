@@ -34,7 +34,8 @@
     "node_id": "Node {id}",
     "save": "Save",
     "optional": "optional",
-    "status": "Status"
+    "status": "Status",
+    "nethvoice_proxy": "NethVoice Proxy"
   },
   "error": {
     "401": "Invalid authentication",
@@ -109,7 +110,10 @@
     "nethvoice_host": "NethVoice host",
     "nethvoice_cti_host": "NethVoice CTI host",
     "open_nethvoice": "Open NethVoice",
-    "open_nethvoice_cti": "Open NethVoice CTI"
+    "open_nethvoice_cti": "Open NethVoice CTI",
+    "go_to_nethvoice_proxy": "Go to NethVoice Proxy",
+    "go_to_domains_and_users": "Go to Domains and users",
+    "go_to_node_details": "Go to node details"
   },
   "welcome": {
     "configure_nethvoice": "Configure NethVoice",
@@ -122,7 +126,6 @@
     "account_provider_placeholder": "Choose account provider",
     "use_existing_provider": "Use an existing account provider",
     "create_openldap_provider": "Create an OpenLDAP account provider on {node}",
-    "nethvoice_proxy": "NethVoice Proxy",
     "install_openldap": "Install OpenLDAP",
     "configure_openldap_provider": "Configure OpenLDAP provider",
     "internal_openldap": "Internal OpenLDAP",

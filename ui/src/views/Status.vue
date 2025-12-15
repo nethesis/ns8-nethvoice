@@ -79,15 +79,6 @@
               >
                 {{ $t("status.open_nethvoice") }}
               </NsButton>
-              <NsButton
-                v-else
-                kind="ghost"
-                :disabled="loading.getConfiguration"
-                :icon="ArrowRight20"
-                @click="goToAppPage(instanceName, 'settings')"
-              >
-                {{ $t("status.configure") }}
-              </NsButton>
             </template>
           </NsInfoCard>
           <!-- nethcti host -->
@@ -112,15 +103,6 @@
                 @click="goToCtiWebapp"
               >
                 {{ $t("status.open_nethvoice_cti") }}
-              </NsButton>
-              <NsButton
-                v-else
-                kind="ghost"
-                :disabled="loading.getConfiguration"
-                :icon="ArrowRight20"
-                @click="goToAppPage(instanceName, 'settings')"
-              >
-                {{ $t("status.configure") }}
               </NsButton>
             </template>
           </NsInfoCard>
@@ -147,6 +129,56 @@
               </div>
             </template>
           </NsInfoCard>
+          <!-- nethvoice proxy -->
+          <NsInfoCard
+            light
+            :title="proxyModuleId || $t('status.not_configured')"
+            :description="$t('common.nethvoice_proxy')"
+            :icon="Application32"
+            :loading="loading.getDefaults"
+            class="min-height-card"
+          >
+            <template slot="content">
+              <div class="card-rows">
+                <div class="card-row">
+                  <NsButton
+                    kind="ghost"
+                    :icon="ArrowRight20"
+                    @click="goToAppPage(proxyModuleId, 'status')"
+                  >
+                    {{ $t("status.go_to_nethvoice_proxy") }}
+                  </NsButton>
+                </div>
+              </div>
+            </template>
+          </NsInfoCard>
+          <!-- account provider -->
+          <NsInfoCard
+            light
+            :title="
+              configuration && configuration.user_domain
+                ? configuration.user_domain
+                : $t('status.not_configured')
+            "
+            :description="$t('settings.user_domain')"
+            :icon="Events32"
+            :loading="!configuration"
+            class="min-height-card"
+          >
+            <template slot="content">
+              <div class="card-rows">
+                <div class="card-row">
+                  <NsButton
+                    kind="ghost"
+                    :icon="ArrowRight20"
+                    @click="goToDomainsAndUsers"
+                  >
+                    {{ $t("status.go_to_domains_and_users") }}
+                  </NsButton>
+                </div>
+              </div>
+            </template>
+          </NsInfoCard>
           <!-- installation node -->
           <NsInfoCard
             light
@@ -156,7 +188,21 @@
             :icon="Chip32"
             :loading="loading.getStatus"
             class="min-height-card"
-          />
+          >
+            <template slot="content">
+              <div class="card-rows">
+                <div class="card-row">
+                  <NsButton
+                    kind="ghost"
+                    :icon="ArrowRight20"
+                    @click="goToNodeDetails()"
+                  >
+                    {{ $t("status.go_to_node_details") }}
+                  </NsButton>
+                </div>
+              </div>
+            </template>
+          </NsInfoCard>
           <!-- backup -->
           <NsBackupCard
             :title="core.$t('backup.title')"
@@ -326,7 +372,7 @@
                   v-for="(volume, index) in status.volumes"
                   :key="index"
                 >
-                  <cv-structured-list-data>{{
+                  <cv-structured-list-data class="break-word">{{
                     volume.name
                   }}</cv-structured-list-data>
                   <cv-structured-list-data class="break-word">{{
@@ -393,17 +439,20 @@ export default {
       backupRepositories: [],
       backups: [],
       Restart20,
+      proxyModuleId: "",
       loading: {
         getStatus: false,
         listBackupRepositories: false,
         listBackups: false,
         restartModule: false,
+        getDefaults: false,
       },
       error: {
         getStatus: "",
         listBackupRepositories: "",
         listBackups: "",
         restartModule: "",
+        getDefaults: "",
       },
     };
   },
@@ -458,9 +507,10 @@ export default {
   created() {
     this.getStatus();
     this.listBackupRepositories();
+    this.getDefaults();
   },
   methods: {
-    ...mapActions(["setInstanceStatusInStore"]),
+    ...mapActions(["setInstanceStatusInStore", "setDefaultsInStore"]),
     async getStatus() {
       this.loading.getStatus = true;
       this.error.getStatus = "";
@@ -675,6 +725,66 @@ export default {
     },
     goToCtiWebapp() {
       window.open(`https://${this.configuration.nethcti_ui_host}`, "_blank");
+    },
+    async getDefaults() {
+      this.loading.getDefaults = true;
+      const taskAction = "get-defaults";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.getDefaultsAborted
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.getDefaultsCompleted
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.getDefaults = this.getErrorMessage(err);
+        this.loading.getDefaults = false;
+        return;
+      }
+    },
+    getDefaultsAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.getDefaults = this.$t("error.generic_error");
+      this.loading.getDefaults = false;
+    },
+    getDefaultsCompleted(taskContext, taskResult) {
+      const defaults = taskResult.output;
+
+      // save defaults to vuex store
+      this.setDefaultsInStore(defaults);
+
+      if (defaults.proxy_status.proxy_installed) {
+        this.proxyModuleId = defaults.proxy_status.module_id;
+      }
+      this.loading.getDefaults = false;
+    },
+    goToDomainsAndUsers() {
+      this.core.$router.push("/domains");
+    },
+    goToNodeDetails() {
+      if (this.status && this.status.node) {
+        this.core.$router.push(`/nodes/${this.status.node}`);
+      }
     },
   },
 };
