@@ -132,6 +132,29 @@
                     $t("common.enabled")
                   }}</template>
                 </NsToggle>
+                <!-- disabling let's encrypt warning -->
+                <NsInlineNotification
+                  v-if="
+                    isLetsEncryptCurrentlyEnabled &&
+                    !lets_encrypt &&
+                    instanceStatus
+                  "
+                  kind="warning"
+                  :title="
+                    core.$t('apps_lets_encrypt.lets_encrypt_disabled_warning')
+                  "
+                  :description="
+                    core.$t(
+                      'apps_lets_encrypt.lets_encrypt_disabled_warning_description',
+                      {
+                        node: instanceStatus.node_ui_name
+                          ? instanceStatus.node_ui_name
+                          : instanceStatus.node,
+                      }
+                    )
+                  "
+                  :showCloseButton="false"
+                />
                 <NsComboBox
                   :title="$t('settings.user_domain')"
                   :options="domainList"
@@ -300,7 +323,7 @@
 
 <script>
 import to from "await-to-js";
-import { mapState } from "vuex";
+import { mapState, mapActions } from "vuex";
 import {
   QueryParamService,
   UtilService,
@@ -337,6 +360,7 @@ export default {
       nethvoice_admin_password: "",
       nethcti_ui_host: "",
       lets_encrypt: false,
+      isLetsEncryptCurrentlyEnabled: false,
       user_domain: "",
       reports_international_prefix: "+39",
       timezone: "",
@@ -356,6 +380,7 @@ export default {
         setAdminPassword: false,
         addUser: false,
         alterUser: false,
+        getStatus: false,
       },
       domainList: [],
       timezoneList: [],
@@ -372,6 +397,7 @@ export default {
         setAdminPassword: "",
         addUser: "",
         alterUser: "",
+        getStatus: "",
         nethvoice_host: "",
         nethvoice_admin_password: "",
         nethcti_ui_host: "",
@@ -392,6 +418,7 @@ export default {
       "appName",
       "isAppConfigured",
       "isShownFirstConfigurationModal",
+      "instanceStatus",
     ]),
     isFormDisabled() {
       return (
@@ -450,6 +477,11 @@ export default {
     this.getUserDomains();
     this.getDefaults();
 
+    if (!this.instanceStatus) {
+      // retrieve installation node, needed for traefik certificate warning
+      this.getStatus();
+    }
+
     // register to events
     this.$root.$on("reloadConfig", this.getConfiguration);
   },
@@ -458,6 +490,7 @@ export default {
     this.$root.$off("reloadConfig", this.getConfiguration);
   },
   methods: {
+    ...mapActions(["setInstanceStatusInStore"]),
     async getConfiguration() {
       this.loading.getConfiguration = true;
       this.error.getConfiguration = "";
@@ -511,6 +544,8 @@ export default {
       this.nethcti_ui_host = config.nethcti_ui_host;
       this.nethvoice_admin_password = "";
       this.lets_encrypt = config.lets_encrypt;
+      this.isLetsEncryptCurrentlyEnabled = config.lets_encrypt;
+
       this.user_domain = config.user_domain;
       this.obtainedUserDomain = config.user_domain;
       if (
@@ -1255,6 +1290,57 @@ export default {
     },
     goToSoftwareCenter() {
       this.core.$router.push("/software-center");
+    },
+    async getStatus() {
+      console.log("@@ getStatus"); ////
+
+      this.loading.getStatus = true;
+      this.error.getStatus = "";
+      const taskAction = "get-status";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.getStatusAborted
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.getStatusCompleted
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.getStatus = this.getErrorMessage(err);
+        this.loading.getStatus = false;
+        return;
+      }
+    },
+    getStatusAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.getStatus = this.$t("error.generic_error");
+      this.loading.getStatus = false;
+    },
+    getStatusCompleted(taskContext, taskResult) {
+      this.status = taskResult.output;
+
+      // save status to vuex store
+      this.setInstanceStatusInStore(this.status);
+      this.loading.getStatus = false;
     },
   },
 };
