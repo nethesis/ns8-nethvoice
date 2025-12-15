@@ -90,7 +90,7 @@
   },
   "status": {
     "app_images": "App image | App images",
-    "app_instance": "App instance",
+    "application": "Application",
     "app_volumes": "App volume | App volumes",
     "created": "Created",
     "installation_node": "Installation node",
@@ -102,7 +102,14 @@
     "node": "Node",
     "services": "Service | Services",
     "size": "Size",
-    "title": "Status"
+    "title": "Status",
+    "restart_application": "Restart application",
+    "cti_webapp": "NethVoice CTI webapp",
+    "not_configured": "Not configured",
+    "nethvoice_host": "NethVoice host",
+    "nethvoice_cti_host": "NethVoice CTI host",
+    "open_nethvoice": "Open NethVoice",
+    "open_nethvoice_cti": "Open NethVoice CTI"
   },
   "welcome": {
     "configure_nethvoice": "Configure NethVoice",

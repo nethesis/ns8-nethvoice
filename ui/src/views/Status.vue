@@ -45,69 +45,160 @@
       </cv-column>
     </cv-row>
     <cv-row>
-      <cv-column :md="4" :max="4">
-        <NsInfoCard
-          light
-          :title="status.instance || '-'"
-          :description="$t('status.app_instance')"
-          :icon="Application32"
-          :loading="loading.getStatus"
-          class="min-height-card"
-        />
-      </cv-column>
-      <cv-column :md="4" :max="4">
-        <NsInfoCard
-          light
-          :title="installationNodeTitle"
-          :titleTooltip="installationNodeTitleTooltip"
-          :description="$t('status.installation_node')"
-          :icon="Chip32"
-          :loading="loading.getStatus"
-          class="min-height-card"
-        />
-      </cv-column>
-      <cv-column :md="4" :max="4">
-        <NsBackupCard
-          :title="core.$t('backup.title')"
-          :noBackupMessage="core.$t('backup.no_backup_configured')"
-          :goToBackupLabel="core.$t('backup.go_to_backup')"
-          :repositoryLabel="core.$t('backup.repository')"
-          :statusLabel="core.$t('common.status')"
-          :statusSuccessLabel="core.$t('common.success')"
-          :statusNotRunLabel="core.$t('backup.backup_has_not_run_yet')"
-          :statusErrorLabel="core.$t('error.error')"
-          :completedLabel="core.$t('backup.completed')"
-          :durationLabel="core.$t('backup.duration')"
-          :totalSizeLabel="core.$t('backup.total_size')"
-          :totalFileCountLabel="core.$t('backup.total_file_count')"
-          :backupDisabledLabel="core.$t('common.disabled')"
-          :showMoreLabel="core.$t('common.show_more')"
-          :multipleUncertainStatusLabel="
-            core.$t('backup.some_backups_failed_or_are_pending')
+      <cv-column>
+        <!-- card grid -->
+        <div
+          class="
+            card-grid
+            grid-cols-1
+            md:grid-cols-2
+            xl:grid-cols-3
+            3xl:grid-cols-4
           "
-          :moduleId="instanceName"
-          :moduleUiName="instanceLabel"
-          :repositories="backupRepositories"
-          :backups="backups"
-          :loading="loading.listBackupRepositories || loading.listBackups"
-          :coreContext="core"
-          light
-        />
-      </cv-column>
-      <cv-column :md="4" :max="4">
-        <NsSystemLogsCard
-          :title="core.$t('system_logs.card_title')"
-          :description="
-            core.$t('system_logs.card_description', {
-              name: instanceLabel || instanceName,
-            })
-          "
-          :buttonLabel="core.$t('system_logs.card_button_label')"
-          :router="core.$router"
-          context="module"
-          :moduleId="instanceName"
-          light
-        />
+        >
+          <!-- nethvoice host -->
+          <NsInfoCard
+            light
+            :title="$t('status.nethvoice_host')"
+            :description="
+              configuration && configuration.nethvoice_host
+                ? configuration.nethvoice_host
+                : $t('status.not_configured')
+            "
+            :icon="Wikis32"
+            :loading="!configuration || !configuration.nethvoice_host"
+            class="min-height-card"
+          >
+            <template slot="content">
+              <NsButton
+                v-if="configuration && configuration.nethvoice_host"
+                kind="ghost"
+                :icon="Launch20"
+                :disabled="!configuration || !configuration.nethvoice_host"
+                @click="goToNethvoiceWebapp"
+              >
+                {{ $t("status.open_nethvoice") }}
+              </NsButton>
+              <NsButton
+                v-else
+                kind="ghost"
+                :disabled="loading.getConfiguration"
+                :icon="ArrowRight20"
+                @click="goToAppPage(instanceName, 'settings')"
+              >
+                {{ $t("status.configure") }}
+              </NsButton>
+            </template>
+          </NsInfoCard>
+          <!-- nethcti host -->
+          <NsInfoCard
+            light
+            :title="$t('status.nethvoice_cti_host')"
+            :description="
+              configuration && configuration.nethcti_ui_host
+                ? configuration.nethcti_ui_host
+                : $t('status.not_configured')
+            "
+            :icon="Wikis32"
+            :loading="!configuration || !configuration.nethcti_ui_host"
+            class="min-height-card"
+          >
+            <template slot="content">
+              <NsButton
+                v-if="configuration && configuration.nethcti_ui_host"
+                kind="ghost"
+                :icon="Launch20"
+                :disabled="!configuration || !configuration.nethcti_ui_host"
+                @click="goToCtiWebapp"
+              >
+                {{ $t("status.open_nethvoice_cti") }}
+              </NsButton>
+              <NsButton
+                v-else
+                kind="ghost"
+                :disabled="loading.getConfiguration"
+                :icon="ArrowRight20"
+                @click="goToAppPage(instanceName, 'settings')"
+              >
+                {{ $t("status.configure") }}
+              </NsButton>
+            </template>
+          </NsInfoCard>
+          <!-- application -->
+          <NsInfoCard
+            light
+            :title="status.instance || '-'"
+            :description="$t('status.application')"
+            :icon="Application32"
+            :loading="loading.getStatus"
+            class="min-height-card"
+          >
+            <template slot="content">
+              <div class="card-rows">
+                <div class="card-row">
+                  <NsButton
+                    kind="ghost"
+                    :icon="Restart20"
+                    @click="restartModule"
+                  >
+                    {{ $t("status.restart_application") }}
+                  </NsButton>
+                </div>
+              </div>
+            </template>
+          </NsInfoCard>
+          <!-- installation node -->
+          <NsInfoCard
+            light
+            :title="installationNodeTitle"
+            :titleTooltip="installationNodeTitleTooltip"
+            :description="$t('status.installation_node')"
+            :icon="Chip32"
+            :loading="loading.getStatus"
+            class="min-height-card"
+          />
+          <!-- backup -->
+          <NsBackupCard
+            :title="core.$t('backup.title')"
+            :noBackupMessage="core.$t('backup.no_backup_configured')"
+            :goToBackupLabel="core.$t('backup.go_to_backup')"
+            :repositoryLabel="core.$t('backup.repository')"
+            :statusLabel="core.$t('common.status')"
+            :statusSuccessLabel="core.$t('common.success')"
+            :statusNotRunLabel="core.$t('backup.backup_has_not_run_yet')"
+            :statusErrorLabel="core.$t('error.error')"
+            :completedLabel="core.$t('backup.completed')"
+            :durationLabel="core.$t('backup.duration')"
+            :totalSizeLabel="core.$t('backup.total_size')"
+            :totalFileCountLabel="core.$t('backup.total_file_count')"
+            :backupDisabledLabel="core.$t('common.disabled')"
+            :showMoreLabel="core.$t('common.show_more')"
+            :multipleUncertainStatusLabel="
+              core.$t('backup.some_backups_failed_or_are_pending')
+            "
+            :moduleId="instanceName"
+            :moduleUiName="instanceLabel"
+            :repositories="backupRepositories"
+            :backups="backups"
+            :loading="loading.listBackupRepositories || loading.listBackups"
+            :coreContext="core"
+            light
+          />
+          <!-- system logs -->
+          <NsSystemLogsCard
+            :title="core.$t('system_logs.card_title')"
+            :description="
+              core.$t('system_logs.card_description', {
+                name: instanceLabel || instanceName,
+              })
+            "
+            :buttonLabel="core.$t('system_logs.card_button_label')"
+            :router="core.$router"
+            context="module"
+            :moduleId="instanceName"
+            light
+          />
+        </div>
       </cv-column>
     </cv-row>
     <!-- services -->
@@ -270,6 +361,7 @@ import {
   PageTitleService,
 } from "@nethserver/ns8-ui-lib";
 import ResumeConfigNotification from "@/components/first-configuration/ResumeConfigNotification.vue";
+import Restart20 from "@carbon/icons-vue/es/restart/20";
 
 export default {
   name: "Status",
@@ -300,15 +392,18 @@ export default {
       },
       backupRepositories: [],
       backups: [],
+      Restart20,
       loading: {
         getStatus: false,
         listBackupRepositories: false,
         listBackups: false,
+        restartModule: false,
       },
       error: {
         getStatus: "",
         listBackupRepositories: "",
         listBackups: "",
+        restartModule: "",
       },
     };
   },
@@ -522,6 +617,64 @@ export default {
       }
       this.backups = backups;
       this.loading.listBackups = false;
+    },
+    async restartModule() {
+      this.error.restartModule = "";
+      this.loading.restartModule = true;
+      const taskAction = "restart-module";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.restartModuleAborted
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.restartModuleCompleted
+      );
+
+      const res = await to(
+        this.createNodeTaskForApp(this.status.node, {
+          action: taskAction,
+          data: {
+            module_id: this.instanceName,
+          },
+          extra: {
+            title: this.core.$t("applications.restart_instance_name", {
+              instance: this.instanceLabel
+                ? this.instanceLabel
+                : this.instanceName,
+            }),
+            description: this.core.$t("applications.restarting"),
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.restartModule = this.getErrorMessage(err);
+        this.loading.restartModule = false;
+        return;
+      }
+    },
+    restartModuleAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.restartModule = this.$t("error.generic_error");
+      this.loading.restartModule = false;
+    },
+    restartModuleCompleted() {
+      this.loading.restartModule = false;
+    },
+    goToNethvoiceWebapp() {
+      window.open(`https://${this.configuration.nethvoice_host}`, "_blank");
+    },
+    goToCtiWebapp() {
+      window.open(`https://${this.configuration.nethcti_ui_host}`, "_blank");
     },
   },
 };
