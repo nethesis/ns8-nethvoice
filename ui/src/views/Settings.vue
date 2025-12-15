@@ -529,7 +529,7 @@ export default {
       this.nethvoice_adm.username = config.nethvoice_adm_username;
       this.nethvoice_adm.password = config.nethvoice_adm_password;
 
-      if (this.isProxyInstalled) {
+      if (this.isAppConfigured) {
         this.focusElement("nethvoice_host");
       }
     },

@@ -80,7 +80,7 @@
     "confirm_admin_password": "Confirm admin password",
     "deepgram_api_key_pattern": "Invalid API Key format",
     "request_le_certificates": "Request Let's Encrypt certificates",
-    "request_le_certificates_tooltip": "Requests Let's Encrypt TLS certificates automatically for @:settings.nethvoice_host and @:settings.nethcti_ui_host . Disabling this option deletes the existing certificates (if any). You can also view or delete them in Cluster settings > TLS certificates.",
+    "request_le_certificates_tooltip": "Requests Let's Encrypt TLS certificates automatically for @:settings.nethvoice_host and @:(settings.nethcti_ui_host). Disabling this option deletes the existing certificates (if any). You can also view or delete them in Cluster settings > TLS certificates.",
     "general": "General",
     "change_nethvoice_admin_password": "Change NethVoice admin password",
     "new_admin_password": "New admin password",
