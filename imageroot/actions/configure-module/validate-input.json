@@ -48,6 +48,10 @@
             "description": "Domain where the user accessing NethVoice are stored",
             "type": "string"
         },
+        "app_brand_id": {
+            "description": "Mobile app brand ID used for push proxy",
+            "type": "string"
+        },
         "reports_international_prefix": {
             "description": "International prefix for the reports.",
             "type": "string",
