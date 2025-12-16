@@ -113,6 +113,7 @@ restore_envs = [
     'TIMEZONE',
     'TRAEFIK_HTTP2HTTPS',
     'USER_DOMAIN',
+    'NETHVOICE_MATRIX_UUID'
 ]
 
 for env in restore_envs:
