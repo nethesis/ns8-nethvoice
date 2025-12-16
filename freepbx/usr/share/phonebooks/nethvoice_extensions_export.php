@@ -28,7 +28,7 @@ $phonebookdb = new PDO(
 $sth = $phonebookdb->prepare('DELETE FROM phonebook WHERE sid_imported = "nethvoice extensions"');
 $sth->execute([]);
 
-$sth = $nethvoicedb->prepare('SELECT default_extension as extension,displayname as name,mobile FROM userman_users JOIN rest_users ON rest_users.user_id = userman_users.id WHERE default_extension != "none"');
+$sth = $nethvoicedb->prepare('SELECT default_extension as extension,displayname as name,mobile FROM userman_users JOIN rest_users ON rest_users.user_id = userman_users.id WHERE default_extension != "none" AND default_extension NOT IN (SELECT id FROM sip WHERE keyword="context" and data = "hotel")');
 $sth->execute([]);
 
 $query = 'INSERT INTO phonebook (

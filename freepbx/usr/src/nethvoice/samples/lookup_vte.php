@@ -2,23 +2,8 @@
 <?php
 
 #
-# Copyright (C) 2022 Nethesis S.r.l.
-# http://www.nethesis.it - nethserver@nethesis.it
-#
-# This script is part of NethServer.
-#
-# NethServer is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License,
-# or any later version.
-#
-# NethServer is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with NethServer.  If not, see COPYING.
+# Copyright (C) 2025 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 
 
@@ -27,62 +12,115 @@
  *   Use VTE REST API to resolve call numbers
  *   HOW TO USE:
  *   - copy this script in /usr/src/nethvoice/lookup.d/ directory
- *   - Change $url with your API URL
- *   - Put your authorization token into $authorization_token
+ *   - Change $base_url with your vte API base URL
+ *   - Put your authorization info into $username and $accesskey
+ *     variables
  *
  * *************************************************/
 
 // URL of the API
-$url = 'https://trial01.vtecrm.net/40182/restapi/v1/vtews/get_caller_info';
+$base_url = 'https://vtecrm.example.com/restapi/v1/vtews/';
+
+$username  = '';
+$accesskey = '';
+
 
 // Authorization token used for authentication
-$authorization_token = '';
+$authorization_token = base64_encode($username.':'.$accesskey);
 
+$name    = '';
+$company = '';
+$number  = $argv[1] ?? 'NONUMBER';
 
-$number = $argv[1];
-
-$data = ['callerNumber'=>$number];
+// Lookup number passed as argument
+$curl_data = ['query'=>'SELECT * FROM Contacts WHERE phone = \''.$number.'\' OR homephone = \''.$number.'\' OR otherphone = \''.$number.'\' OR mobile = \''.$number.'\' LIMIT 1;'];
 
 $ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_URL, $base_url.'query');
 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_HEADER, false);
 curl_setopt($ch, CURLOPT_TIMEOUT, 4);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($curl_data));
 curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-	"Content-Type: application/json;charset=utf-8",
-	"Accept: application/json;charset=utf-8",
+	"Content-Type: application/json",
 	"Authorization: Basic ".$authorization_token,
 ));
 
-$res = json_decode(curl_exec($ch),TRUE);
+$response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
+$data = json_decode($response, true);
 
-if ($res['status'] != 200 || $httpCode != 200) {
-	error_log("Error resolving name for $number: ".$res['status']);
+if ($response === false) {
+	error_log("cURL error while resolving phone number ".$number.": (".curl_errno($ch).") ".curl_error($ch));
 	exit(1);
 }
-
-if ($res['data'] != false && !empty($res['data']['name'])) {
-	// Try to extract company name from received string
-	$pattern = '/^(.*) \(([^)]*)\)$/';
-	preg_match($pattern,$res['data']['name'],$matches);
-
-	if (empty($matches)) {
-		$name = $res['data']['name'];
-		$company = "";
-	} else {
-		$name = $matches[1];
-		$company = $matches[2];
-	}
-
-	echo json_encode(
-		[
-			"company" => $company,
-			"name" => $name,
-			"number" => $number,
-		]
-	);
+elseif ($httpCode != 200) {
+	error_log("Error while resolving phone number ".$number.": (HTTP ".$httpCode.") ".($data['message'] ?? ''));
+	exit(1);
 }
+elseif ($data === null) {
+	error_log("Error while decoding phone lookup response: (".json_last_error().") ".json_last_error_msg());
+	exit(1);
+}
+curl_close($ch);
+
+// Get name and company
+if (!empty($data['data'][0]['firstname']))
+{
+	$name = $data['data'][0]['firstname'];
+}
+if (!empty($data['data'][0]['lastname']))
+{
+	$name .= ($name ? ' ' : '').$data['data'][0]['lastname'];
+}
+if (!empty($data['data'][0]['account_id']))
+{
+	$company_id = $data['data'][0]['account_id'];
+
+	// Get company info
+	$curl_data = [ 'query' => 'SELECT * FROM Accounts WHERE id=\''.$company_id.'\' LIMIT 1;' ];
+
+	$ch = curl_init();
+	curl_setopt($ch, CURLOPT_URL, $base_url.'query');
+	curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($ch, CURLOPT_HEADER, false);
+	curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+	curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($curl_data));
+	curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+		"Content-Type: application/json",
+		"Authorization: Basic ".$authorization_token,
+	));
+
+	$response = curl_exec($ch);
+	$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+	$data = json_decode($response, true);
+
+	if ($response === false) {
+		error_log("cURL error while looking up company info: (".curl_errno($ch).") ".curl_error($ch));
+		exit(1);
+	}
+	elseif ($httpCode != 200) {
+		error_log("Error while looking up company info: (HTTP ".$httpCode.") ".($data['message'] ?? ''));
+		exit(1);
+	}
+	elseif ($data === null) {
+		error_log("Error while decoding company lookup response: (".json_last_error().") ".json_last_error_msg());
+		exit(1);
+	}
+	curl_close($ch);
+
+	if (!empty($data['data'][0]['accountname'])) {
+		$company = $data['data'][0]['accountname'];
+	}
+}
+
+
+echo json_encode(
+	[
+		"company" => $company,
+		"name"    => $name,
+		"number"  => $number,
+	]
+);
