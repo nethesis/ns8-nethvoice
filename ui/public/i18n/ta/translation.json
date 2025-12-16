@@ -9,12 +9,65 @@
         "cannot_retrieve_installed_modules": "நிறுவப்பட்ட தொகுதிகளை மீட்டெடுக்க முடியாது",
         "generic_error": "ஏதோ தவறு நடந்தது",
         "404": "சான்று கிடைக்கவில்லை",
-        "401": "தவறான ஏற்பு"
+        "401": "தவறான ஏற்பு",
+        "required": "",
+        "reports_prefix_invalid": "",
+        "same_host": ""
     },
     "settings": {
         "save": "சேமி",
         "title": "அமைப்புகள்",
-        "configure_instance": "{நிகழ்வை) உள்ளமை"
+        "configure_instance": "{நிகழ்வை) உள்ளமை",
+        "reports_international_prefix": "",
+        "satellite_call_transcription_enabled_warning_description": "",
+        "rebranding_navbar_logo_url": "",
+        "openai_api_key": "",
+        "proxy_not_installed": "",
+        "nethcti_ui_host": "",
+        "rebranding_login_people": "",
+        "dark_theme_label": "",
+        "rebranding_login_logo_url_tooltip": "",
+        "timezone": "",
+        "rebranding_login_background_url": "",
+        "rebranding_login_logo_dark_url": "",
+        "rebranding_favicon_url_tooltip": "",
+        "satellite_voicemail_transcription_enabled": "",
+        "nethvoice_hotel_fias_port": "",
+        "nethvoice_host_number_not": "",
+        "rebranding_brand_name": "",
+        "reports_prefix_invalid": "",
+        "reports_international_prefix_tooltip": "",
+        "remove_nethvoice_adm": "",
+        "satellite_call_transcription_enabled": "",
+        "user_domain": "",
+        "set_password": "",
+        "satellite_call_transcription_enabled_warning_title": "",
+        "timezone_placeholder": "",
+        "nethvoice_hotel": "",
+        "create_nethvoice_adm": "",
+        "lets_encrypt": "",
+        "nethvoice_host": "",
+        "user_domain_placeholder": "",
+        "rebranding_login_background_url_tooltip": "",
+        "rebranding_login_logo_dark_url_tooltip": "",
+        "proxy_not_installed_description": "",
+        "user_domain_selector": "",
+        "deepgram_api_key": "",
+        "nethvoice_hotel_subscription_required": "",
+        "rebranding_navbar_logo_dark_url_tooltip": "",
+        "set_nethvoice_adm_password": "",
+        "rebranding_favicon_url": "",
+        "rebranding_navbar_logo_url_tooltip": "",
+        "rebranding_navbar_logo_dark_url": "",
+        "timezone_tooltip": "",
+        "rebranding_brand_name_tooltip": "",
+        "nethvoice_admin_password": "",
+        "nethvoice_hotel_fias_address": "",
+        "rebranding_login_people_tooltip": "",
+        "rebranding_login_logo_url": "",
+        "set_rebranding": "",
+        "nethcti_ui_host_format": "",
+        "nethvoice_host_format": ""
     },
     "action": {
         "get-status": "அந்தச்தைப் பெறுங்கள்",
@@ -29,7 +82,9 @@
     "common": {
         "required": "தேவை",
         "work_in_progress": "வேலை முன்னேற்றத்தில் உள்ளது",
-        "processing": "செயலாக்கம் ..."
+        "processing": "செயலாக்கம் ...",
+        "disabled": "",
+        "enabled": ""
     },
     "status": {
         "app_instance": "பயன்பாட்டு நிகழ்வு",
@@ -52,5 +107,8 @@
     },
     "task": {
         "cannot_create_task": "பணியை உருவாக்க முடியாது {action}"
+    },
+    "warning": {
+        "warning_title_message": ""
     }
 }

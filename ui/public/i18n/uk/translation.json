@@ -2,7 +2,17 @@
     "error": {
         "required": "Обов'язковий",
         "same_host": "Не можна використовувати той самий хост для NethVoice і NethVoice CTI",
-        "reports_prefix_invalid": "Недійсний формат"
+        "reports_prefix_invalid": "Недійсний формат",
+        "403": "",
+        "cannot_retrieve_installed_modules": "",
+        "401": "",
+        "cannot_retrieve_module_info": "",
+        "generic_error": "",
+        "error": "",
+        "network_timeout": "",
+        "404": "",
+        "network_error": "",
+        "validation_error": ""
     },
     "settings": {
         "lets_encrypt": "Запит на сертифікат Let's Encrypt",
@@ -42,9 +52,64 @@
         "user_domain_placeholder": "Виберіть доступний домен у кластері.",
         "create_nethvoice_adm": "Створіть NethVoice Administrator для керування користувачами",
         "set_nethvoice_adm_password": "Установіть пароль адміністратора NethVoice для керування користувачами",
-        "nethcti_ui_host_format": "Має бути дійсне доменне ім’я бути дійсним доменним ім’ям."
+        "nethcti_ui_host_format": "Має бути дійсне доменне ім’я бути дійсним доменним ім’ям.",
+        "configure_instance": "",
+        "save": "",
+        "title": "",
+        "satellite_call_transcription_enabled_warning_description": "",
+        "openai_api_key": "",
+        "satellite_voicemail_transcription_enabled": "",
+        "nethvoice_hotel_fias_port": "",
+        "nethvoice_host_number_not": "",
+        "rebranding_brand_name": "",
+        "satellite_call_transcription_enabled": "",
+        "satellite_call_transcription_enabled_warning_title": "",
+        "nethvoice_hotel": "",
+        "deepgram_api_key": "",
+        "nethvoice_hotel_subscription_required": "",
+        "rebranding_brand_name_tooltip": "",
+        "nethvoice_hotel_fias_address": ""
     },
     "warning": {
         "warning_title_message": "УВАГА"
+    },
+    "common": {
+        "required": "",
+        "work_in_progress": "",
+        "processing": "",
+        "disabled": "",
+        "enabled": ""
+    },
+    "status": {
+        "created": "",
+        "size": "",
+        "name": "",
+        "no_images": "",
+        "app_volumes": "",
+        "services": "",
+        "app_images": "",
+        "no_services": "",
+        "app_instance": "",
+        "mount": "",
+        "title": "",
+        "installation_node": "",
+        "node": "",
+        "no_volumes": ""
+    },
+    "about": {
+        "title": ""
+    },
+    "action": {
+        "list-backup-repositories": "",
+        "get-module-info": "",
+        "list-installed-modules": "",
+        "list-backups": "",
+        "get-status": "",
+        "configure-module": "",
+        "get-configuration": "",
+        "get-name": ""
+    },
+    "task": {
+        "cannot_create_task": ""
     }
 }

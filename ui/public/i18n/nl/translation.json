@@ -42,7 +42,18 @@
         "reports_international_prefix": "Prefix rapporten",
         "timezone_tooltip": "Zet de tijdzone voor de huidige NethVoice installatie",
         "nethvoice_hotel": "Hotelmodule inschakelen",
-        "nethvoice_hotel_fias_address": "Hotel FIAS-serverhost (Optioneel)"
+        "nethvoice_hotel_fias_address": "Hotel FIAS-serverhost (Optioneel)",
+        "satellite_call_transcription_enabled_warning_description": "",
+        "openai_api_key": "",
+        "satellite_voicemail_transcription_enabled": "",
+        "nethvoice_hotel_fias_port": "",
+        "nethvoice_host_number_not": "",
+        "rebranding_brand_name": "",
+        "satellite_call_transcription_enabled": "",
+        "satellite_call_transcription_enabled_warning_title": "",
+        "deepgram_api_key": "",
+        "nethvoice_hotel_subscription_required": "",
+        "rebranding_brand_name_tooltip": ""
     },
     "common": {
         "required": "Vereist",
