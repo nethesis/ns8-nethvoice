@@ -204,7 +204,33 @@ RUN groupadd -g 991 -r asterisk && \
 		sqlite3 \
 		unixodbc-dev \
 		freetds-dev \
-		freetds-bin
+		freetds-bin \
+		locales \
+		libicu-dev
+
+# Enable languages for FreePBX UI (all languages from the dropdown menu)
+RUN sed -i 's/^# *bg_BG.UTF-8 UTF-8/bg_BG.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *cs_CZ.UTF-8 UTF-8/cs_CZ.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *de_DE.UTF-8 UTF-8/de_DE.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *en_GB.UTF-8 UTF-8/en_GB.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *es_ES.UTF-8 UTF-8/es_ES.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *fa_IR.UTF-8 UTF-8/fa_IR.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *fr_FR.UTF-8 UTF-8/fr_FR.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *he_IL.UTF-8 UTF-8/he_IL.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *hu_HU.UTF-8 UTF-8/hu_HU.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *it_IT.UTF-8 UTF-8/it_IT.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *ja_JP.UTF-8 UTF-8/ja_JP.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *nl_NL.UTF-8 UTF-8/nl_NL.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *pt_BR.UTF-8 UTF-8/pt_BR.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *pt_PT.UTF-8 UTF-8/pt_PT.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *ro_RO.UTF-8 UTF-8/ro_RO.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *ru_RU.UTF-8 UTF-8/ru_RU.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *sv_SE.UTF-8 UTF-8/sv_SE.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *uk_UA.UTF-8 UTF-8/uk_UA.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *vi_VN.UTF-8 UTF-8/vi_VN.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/^# *zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen && \
+    locale-gen
 
 
 # Copy Asterisk files
@@ -517,6 +543,7 @@ RUN docker-php-source extract && \
 	docker-php-ext-configure sockets && docker-php-ext-install sockets && \
 	docker-php-ext-configure pdo_dblib && docker-php-ext-install pdo_dblib && \
     docker-php-ext-configure pdo_pgsql && docker-php-ext-install pdo_pgsql && \
+	docker-php-ext-configure intl && docker-php-ext-install intl && \
 	docker-php-source delete
 
 # Install nethvoice-wizard-restapi and nethvoice-wizard-ui
@@ -531,6 +558,10 @@ RUN cd /var/www/html/freepbx/rest/ && \
 	mkdir -p /var/www/html/freepbx/wizard && \
 	cp -r dist/* /var/www/html/freepbx/wizard/ && \
 	rm -fr /tmp/wizard
+
+# Compile FreePBX module translation files (.po to .mo)
+# Only compile files in proper i18n/LC_MESSAGES directories, skip vendor/test directories
+RUN find /var/www/html/freepbx/admin -path "*/i18n/*/LC_MESSAGES/*.po" -exec sh -c 'msgfmt -o "${1%.po}.mo" "$1" 2>/dev/null || true' _ {} \;
 
 # enable apache rewrite module
 RUN a2enmod rewrite proxy*
