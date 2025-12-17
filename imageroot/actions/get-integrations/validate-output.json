@@ -42,11 +42,5 @@
             "type": "string"
         }
     },
-    "required": [
-        "satellite_call_transcription_enabled",
-        "satellite_voicemail_transcription_enabled",
-        "deepgram_api_key",
-        "openai_api_key"
-    ],
     "additionalProperties": false
 }
