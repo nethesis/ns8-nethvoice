@@ -178,8 +178,7 @@ export default {
       this.setConfigurationInStore(config);
 
       if (config.nethvoice_host) {
-        this.setAppConfiguredInStore(true); //// uncomment
-        // this.setAppConfiguredInStore(false); //// remove mock
+        this.setAppConfiguredInStore(true);
       } else {
         this.setAppConfiguredInStore(false);
         this.setShownFirstConfigurationModalInStore(true);

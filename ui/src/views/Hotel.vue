@@ -229,9 +229,6 @@ export default {
     },
     getHotelCompleted(taskContext, taskResult) {
       const hotelConfig = taskResult.output;
-
-      console.log("hotel", hotelConfig); ////
-
       this.isHotelEnabled = hotelConfig.nethvoice_hotel;
       this.fiasHost = hotelConfig.nethvoice_hotel_fias_address;
       this.fiasPort = hotelConfig.nethvoice_hotel_fias_port.toString();

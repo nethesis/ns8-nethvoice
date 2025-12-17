@@ -135,8 +135,6 @@ import {
 } from "@nethserver/ns8-ui-lib";
 import ResumeConfigNotification from "@/components/first-configuration/ResumeConfigNotification.vue";
 
-//// review
-
 export default {
   name: "Integrations",
   components: { ResumeConfigNotification },
@@ -237,9 +235,6 @@ export default {
     },
     getIntegrationsCompleted(taskContext, taskResult) {
       const integrations = taskResult.output;
-
-      console.log("integrations", integrations); ////
-
       this.deepgramApiKey = integrations.deepgram_api_key || "";
       this.isCallTranscriptionEnabled =
         integrations.satellite_call_transcription_enabled || false;

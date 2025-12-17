@@ -104,7 +104,7 @@
         "no_volumes": "Nessun volume",
         "node": "Nodo",
         "services": "Servizio | Servizi",
-        "failed_services": "Services falliti",
+        "failed_services": "Servizi falliti",
         "all_services_running": "Tutti i servizi sono in esecuzione, tutto ok",
         "size": "Dimensione",
         "title": "Stato",

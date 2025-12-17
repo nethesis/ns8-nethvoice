@@ -553,9 +553,6 @@ export default {
       params.push(`subject=${encodedSubject}`);
       params.push(`body=${encodedBody}`);
       mailtoUrl += `?${params.join("&")}`;
-
-      console.log("mailtoUrl", mailtoUrl); ////
-
       const link = document.createElement("a");
       link.href = mailtoUrl;
       document.body.appendChild(link);
@@ -634,7 +631,6 @@ export default {
   background-color: #030712;
   color: #fff;
   border: none;
-  // text-align: center; ////
   border-radius: 4px;
   border-color: #e5e7eb;
   border-width: 2px;

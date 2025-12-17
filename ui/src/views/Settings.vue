@@ -152,10 +152,9 @@
                   v-model="user_domain"
                   ref="user_domain"
                   :acceptUserInput="false"
-                  @change="onSelectionChange($event)"
                 />
                 <NsInlineNotification
-                  v-if="changeProviderWarning"
+                  v-if="showChangeProviderWarning"
                   kind="warning"
                   :title="$t('settings.change_domain_provider_warning_title')"
                   :description="
@@ -341,7 +340,6 @@ export default {
         page: "settings",
       },
       urlCheckInterval: null,
-      changeProviderWarning: false,
       validationErrorDetails: [],
       nethvoice_host: "",
       nethvoice_admin_password: "",
@@ -349,6 +347,7 @@ export default {
       lets_encrypt: false,
       isLetsEncryptCurrentlyEnabled: false,
       user_domain: "",
+      currentUserDomain: "",
       reports_international_prefix: "+39",
       timezone: "",
       nethvoice_adm: {},
@@ -372,8 +371,6 @@ export default {
       domainList: [],
       timezoneList: [],
       providers: {},
-      initialUserDomainSet: false, //// ?
-      // users: {}, //// remove?
       domainUsers: [],
       error: {
         getConfiguration: "",
@@ -393,9 +390,6 @@ export default {
         reports_international_prefix: "",
         timezone: "",
       },
-      // warning: { ////
-      //   user_domain: "",
-      // },
     };
   },
   computed: {
@@ -447,6 +441,11 @@ export default {
         this.error.setAdminPassword ||
         this.error.addUser ||
         this.error.alterUser
+      );
+    },
+    showChangeProviderWarning() {
+      return (
+        this.currentUserDomain && this.user_domain !== this.currentUserDomain
       );
     },
   },
@@ -534,16 +533,7 @@ export default {
       this.isLetsEncryptCurrentlyEnabled = config.lets_encrypt;
 
       this.user_domain = config.user_domain;
-      this.obtainedUserDomain = config.user_domain;
-      if (
-        config.user_domain === "" ||
-        config.user_domain === undefined ||
-        config.user_domain === null
-      ) {
-        this.initialUserDomainSet = true;
-      } else {
-        this.initialUserDomainSet = false;
-      }
+      this.currentUserDomain = config.user_domain;
       if (config.reports_international_prefix !== "") {
         this.reports_international_prefix = config.reports_international_prefix;
       }
@@ -620,14 +610,9 @@ export default {
       if (!isValidationOk) {
         return;
       }
-
-      console.log("@@ validation ok"); ////
-
       this.getUsers();
     },
     async addAdmUser() {
-      console.log("@@ addAdmUser"); ////
-
       this.error.addUser = "";
       this.loading.addUser = true;
       const taskAction = "add-user";
@@ -687,8 +672,6 @@ export default {
       this.configureModule();
     },
     async changeAdmUserPassword() {
-      console.log("@@ changeAdmUserPassword"); ////
-
       this.error.alterUser = "";
       this.loading.alterUser = true;
       const taskAction = "alter-user";
@@ -742,95 +725,6 @@ export default {
       this.configureModule();
     },
     async configureModule() {
-      console.log("@@ configureModule"); ////
-
-      ////
-      // const isValidationOk = this.validateConfigureModule();
-      // if (!isValidationOk) {
-      //   return;
-      // }
-
-      //// remove stuff
-
-      // check if nethvoice adm exists ////
-      // var exists = this.users[this.user_domain].filter((user) => { ////
-      //   return user.user === this.instanceName + "-adm";
-      // });
-
-      // check if domain is internal ////
-      // var internal = ////
-      //   this.domainList.filter((domain) => {
-      //     return domain.name == this.user_domain;
-      //   })[0].location == "internal";
-
-      // create nethvoice adm user, if not exists and if domain is internal
-      // if (internal) { ////
-      //   if (exists.length == 0) {
-      //     // compose credentials
-      //     this.nethvoice_adm.username = this.instanceName + "-adm";
-      //     this.nethvoice_adm.password = this.generateAdmPassword();
-
-      //     // execute task
-      //     const resAdm = await to(
-      //       this.createModuleTaskForApp(this.providers[this.user_domain], {
-      //         action: "add-user",
-      //         data: {
-      //           user: this.nethvoice_adm.username,
-      //           display_name: this.instanceName + " Administrator",
-      //           password: this.nethvoice_adm.password,
-      //           locked: false,
-      //           groups: ["domain admins"],
-      //         },
-      //         extra: {
-      //           title: this.$t("settings.create_nethvoice_adm"),
-      //           description: this.$t("common.processing"),
-      //           eventId,
-      //           isNotificationHidden: true,
-      //         },
-      //       })
-      //     );
-      //     const errAdm = resAdm[0];
-
-      //     // check error
-      //     if (errAdm) {
-      //       console.error(`error creating task ${taskAction}`, errAdm);
-      //       this.error.configureModule = this.getErrorMessage(errAdm);
-      //       this.loading.configureModule = false;
-      //       return;
-      //     }
-      //   } else {
-      //     // if domain changed
-      //     if (this.config.user_domain != this.user_domain) {
-      //       // change password
-      //       const resAdm = await to(
-      //         this.createModuleTaskForApp(this.providers[this.user_domain], {
-      //           action: "alter-user",
-      //           data: {
-      //             user: this.nethvoice_adm.username,
-      //             password: this.nethvoice_adm.password,
-      //           },
-      //           extra: {
-      //             title: this.$t("settings.set_nethvoice_adm_password"),
-      //             description: this.$t("common.processing"),
-      //             eventId,
-      //             isNotificationHidden: true,
-      //           },
-      //         })
-      //       );
-      //       const errAdm = resAdm[0];
-
-      //       // check error
-      //       if (errAdm) {
-      //         console.error(`error creating task ${taskAction}`, errAdm);
-      //         this.error.configureModule = this.getErrorMessage(errAdm);
-      //         this.loading.configureModule = false;
-      //         return;
-      //       }
-      //     }
-      //   }
-      // }
-
-      this.changeProviderWarning = false;
       this.loading.configureModule = true;
       const taskAction = "configure-module";
       const eventId = this.getUuid();
@@ -883,52 +777,6 @@ export default {
         this.loading.configureModule = false;
         return;
       }
-
-      //// remove:
-
-      // execute set password ////
-      // const taskActionPass = "set-nethvoice-admin-password";
-      // const eventIdPass = this.getUuid();
-
-      // // register to task error
-      // this.core.$root.$once(
-      //   `${taskActionPass}-aborted-${eventIdPass}`,
-      //   this.configureModuleAborted
-      // );
-
-      // // register to task validation
-      // this.core.$root.$once(
-      //   `${taskActionPass}-validation-failed-${eventIdPass}`,
-      //   this.configureModuleValidationFailed
-      // );
-
-      // // register to task completion
-      // this.core.$root.$once(
-      //   `${taskActionPass}-completed-${eventIdPass}`,
-      //   this.configureModuleCompleted
-      // );
-
-      // const resPass = await to(
-      //   this.createModuleTaskForApp(this.instanceName, {
-      //     action: taskActionPass,
-      //     data: {
-      //       nethvoice_admin_password: this.nethvoice_admin_password,
-      //     },
-      //     extra: {
-      //       title: this.$t("action." + taskAction),
-      //       description: this.$t("common.processing"),
-      //       eventId,
-      //     },
-      //   })
-      // );
-      // const errPass = resPass[0];
-
-      // if (errPass) {
-      //   console.error(`error creating task ${taskAction}`, errPass);
-      //   this.error.configureModule = this.getErrorMessage(errPass);
-      //   this.loading.configureModule = false;
-      //   return;
-      // }
     },
     configureModuleAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
@@ -940,7 +788,6 @@ export default {
 
       // reload configuration
       this.getConfiguration();
-      // this.getUserDomains(); ////
     },
     async getUserDomains() {
       this.loading.userDomains = true;
@@ -983,7 +830,6 @@ export default {
       console.error(`${taskContext.action} aborted`, taskResult);
       this.error.userDomains = this.$t("error.generic_error");
       this.loading.userDomains = false;
-      // this.getConfiguration(); ////
     },
     getUserDomainsCompleted(taskContext, taskResult) {
       this.domainList = [];
@@ -997,9 +843,6 @@ export default {
           location: domain.location,
         });
         this.providers[domain.name] = domain.providers[0].id;
-
-        // get users for this domain ////
-        // this.getUsers(domain.name); ////
       }
       this.loading.userDomains = false;
       this.getConfiguration();
@@ -1059,7 +902,6 @@ export default {
       this.isProxyInstalled = taskResult.output.proxy_status.proxy_installed;
     },
     async getUsers() {
-      // console.log("@@@ getUsers for", domain); ////
       this.error.getUsers = "";
       this.loading.getUsers = true;
       const taskAction = "list-domain-users";
@@ -1103,10 +945,8 @@ export default {
       console.error(`${taskContext.action} aborted`, taskResult);
       this.error.getUsers = this.$t("error.generic_error");
       this.loading.getUsers = false;
-      // this.getConfiguration(); ////
     },
     getUsersCompleted(taskContext, taskResult) {
-      // this.users[taskContext.data.domain] = taskResult.output.users; ////
       this.domainUsers = taskResult.output.users;
       this.loading.getUsers = false;
 
@@ -1132,13 +972,6 @@ export default {
           // if not exists, create nethvoice-adm user in the domain, then proceed with configuration
           this.addAdmUser();
         }
-      }
-    },
-    onSelectionChange(newValue) {
-      if (!this.initialUserDomainSet && newValue !== this.obtainedUserDomain) {
-        this.changeProviderWarning = true;
-      } else {
-        this.changeProviderWarning = false;
       }
     },
     goToCertificates() {
@@ -1199,11 +1032,7 @@ export default {
       return isValidationOk;
     },
     async changeAdminPassword() {
-      console.log("@@ changeAdminPassword"); ////
-
       const isValidationOk = this.validateChangeAdminPassword();
-
-      console.log("isValidationOk", isValidationOk); ////
 
       if (!isValidationOk) {
         return;
@@ -1279,8 +1108,6 @@ export default {
       this.core.$router.push("/software-center");
     },
     async getStatus() {
-      console.log("@@ getStatus"); ////
-
       this.loading.getStatus = true;
       this.error.getStatus = "";
       const taskAction = "get-status";
