@@ -54,11 +54,11 @@ getFromRequest(request, 'nethvoice_adm_username', 'NETHVOICE_USER_PORTAL_USERNAM
 passwordsfile['NETHVOICE_USER_PORTAL_PASSWORD'] = request.get('nethvoice_adm_password', "")
 
 ## NethVoice Hotel
-if "nethvoice_hotel" in request :
+if "nethvoice_hotel" in request:
     agent.set_env('NETHVOICE_HOTEL', request['nethvoice_hotel'])
-if "nethvoice_hotel_fias_address" in request :
+if "nethvoice_hotel_fias_address" in request:
     agent.set_env('NETHVOICE_HOTEL_FIAS_ADDRESS', request['nethvoice_hotel_fias_address'])
-if "nethvoice_hotel_fias_port" in request :
+if "nethvoice_hotel_fias_port" in request:
     agent.set_env('NETHVOICE_HOTEL_FIAS_PORT', request['nethvoice_hotel_fias_port'])
 
 # Satellite Deepgram and OpenAI api keys
