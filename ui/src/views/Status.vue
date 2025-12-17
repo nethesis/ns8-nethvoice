@@ -70,15 +70,19 @@
             class="min-height-card"
           >
             <template slot="content">
-              <NsButton
-                v-if="configuration && configuration.nethvoice_host"
-                kind="ghost"
-                :icon="Launch20"
-                :disabled="!configuration || !configuration.nethvoice_host"
-                @click="goToNethvoiceWebapp"
-              >
-                {{ $t("status.open_nethvoice") }}
-              </NsButton>
+              <div class="card-rows">
+                <div class="card-row">
+                  <NsButton
+                    v-if="configuration && configuration.nethvoice_host"
+                    kind="ghost"
+                    :icon="Launch20"
+                    :disabled="!configuration || !configuration.nethvoice_host"
+                    @click="goToNethvoiceWebapp"
+                  >
+                    {{ $t("status.open_nethvoice") }}
+                  </NsButton>
+                </div>
+              </div>
             </template>
           </NsInfoCard>
           <!-- nethcti host -->
@@ -95,15 +99,19 @@
             class="min-height-card"
           >
             <template slot="content">
-              <NsButton
-                v-if="configuration && configuration.nethcti_ui_host"
-                kind="ghost"
-                :icon="Launch20"
-                :disabled="!configuration || !configuration.nethcti_ui_host"
-                @click="goToCtiWebapp"
-              >
-                {{ $t("status.open_nethvoice_cti") }}
-              </NsButton>
+              <div class="card-rows">
+                <div class="card-row">
+                  <NsButton
+                    v-if="configuration && configuration.nethcti_ui_host"
+                    kind="ghost"
+                    :icon="Launch20"
+                    :disabled="!configuration || !configuration.nethcti_ui_host"
+                    @click="goToCtiWebapp"
+                  >
+                    {{ $t("status.open_nethvoice_cti") }}
+                  </NsButton>
+                </div>
+              </div>
             </template>
           </NsInfoCard>
           <!-- application -->
@@ -122,6 +130,8 @@
                     kind="ghost"
                     :icon="Restart20"
                     @click="restartModule"
+                    :loading="loading.restartModule"
+                    :disabled="loading.restartModule"
                   >
                     {{ $t("status.restart_application") }}
                   </NsButton>
@@ -133,7 +143,7 @@
           <NsInfoCard
             light
             :title="proxyModuleId || $t('status.not_configured')"
-            :description="$t('common.nethvoice_proxy')"
+            description="NethVoice Proxy"
             :icon="Application32"
             :loading="loading.getDefaults"
             class="min-height-card"
@@ -163,6 +173,7 @@
             :description="$t('settings.user_domain')"
             :icon="Events32"
             :loading="!configuration"
+            :wrapTitle="true"
             class="min-height-card"
           >
             <template slot="content">
@@ -250,7 +261,7 @@
     <!-- services -->
     <cv-row>
       <cv-column class="page-subtitle">
-        <h4>{{ $tc("status.services", 2) }}</h4>
+        <h4>{{ $t("status.failed_services") }}</h4>
       </cv-column>
     </cv-row>
     <cv-row v-if="!loading.getStatus">
@@ -259,22 +270,37 @@
           <NsEmptyState :title="$t('status.no_services')"> </NsEmptyState>
         </cv-tile>
       </cv-column>
-      <cv-column
-        v-else
-        v-for="(service, index) in status.services"
-        :key="index"
-        :md="4"
-        :max="4"
-      >
-        <NsSystemdServiceCard
-          light
-          class="min-height-card"
-          :serviceName="service.name"
-          :active="service.active"
-          :failed="service.failed"
-          :enabled="service.enabled"
-          :icon="Cube32"
-        />
+      <cv-column v-else-if="!failedServices.length">
+        <cv-tile light>
+          <NsEmptyState :title="$t('status.all_services_running')">
+            <template #pictogram>
+              <CircleCheckPictogram />
+            </template>
+          </NsEmptyState>
+        </cv-tile>
+      </cv-column>
+      <cv-column v-else>
+        <div
+          class="
+            card-grid
+            grid-cols-1
+            md:grid-cols-2
+            xl:grid-cols-3
+            3xl:grid-cols-4
+          "
+        >
+          <NsSystemdServiceCard
+            v-for="service in failedServices"
+            :key="service.name"
+            light
+            class="min-height-card"
+            :serviceName="service.name"
+            :active="service.active"
+            :failed="service.failed"
+            :enabled="service.enabled"
+            :icon="Cube32"
+          />
+        </div>
       </cv-column>
     </cv-row>
     <cv-row v-else>
@@ -529,6 +555,9 @@ export default {
       return this.volumesTableColumns.map((col) => {
         return this.$t(`status.${col}`);
       });
+    },
+    failedServices() {
+      return this.status.services.filter((service) => service.failed);
     },
   },
   beforeRouteEnter(to, from, next) {

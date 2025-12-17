@@ -442,7 +442,6 @@ export default {
     },
     getRebrandingCompleted(taskContext, taskAction) {
       const config = taskAction.output;
-      // this.rebranding_active = false; //// remove mock
       this.rebranding_active = config.rebranding_active;
       this.rebranding_brand_name = config.rebranding_brand_name;
       this.rebranding_navbar_logo_url = config.rebranding_navbar_logo_url;

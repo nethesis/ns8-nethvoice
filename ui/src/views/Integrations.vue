@@ -34,7 +34,7 @@
               v-if="loading.getIntegrations"
               :paragraph="true"
               heading
-              :line-count="9"
+              :line-count="8"
             ></cv-skeleton-text>
             <cv-form v-else @submit.prevent="setIntegrations">
               <NsTextInput
@@ -42,7 +42,7 @@
                 v-model.trim="deepgramApiKey"
                 :placeholder="
                   $t('common.eg_value', {
-                    value: 'g7id86rxn5cns0umkvx6klo9rm0b0vjzrljg064k',
+                    value: 'g8id86rxn5cns0umkvx6klo9rm0b0vjzrljg064k',
                   })
                 "
                 :disabled="loading.setIntegrations"

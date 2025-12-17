@@ -59,30 +59,17 @@
         </cv-column>
       </cv-row>
       <!-- skeleton -->
-      <template v-if="isLoading">
-        <cv-row>
-          <cv-column>
-            <cv-tile light>
-              <cv-skeleton-text
-                :paragraph="true"
-                heading
-                :line-count="10"
-              ></cv-skeleton-text>
-            </cv-tile>
-          </cv-column>
-        </cv-row>
-        <cv-row>
-          <cv-column>
-            <cv-tile light>
-              <cv-skeleton-text
-                :paragraph="true"
-                heading
-                :line-count="5"
-              ></cv-skeleton-text>
-            </cv-tile>
-          </cv-column>
-        </cv-row>
-      </template>
+      <cv-row v-if="isLoading">
+        <cv-column>
+          <cv-tile light>
+            <cv-skeleton-text
+              :paragraph="true"
+              heading
+              :line-count="10"
+            ></cv-skeleton-text>
+          </cv-tile>
+        </cv-column>
+      </cv-row>
       <template v-else>
         <!-- settings form -->
         <cv-row>
