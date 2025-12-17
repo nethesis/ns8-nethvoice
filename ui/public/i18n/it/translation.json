@@ -66,7 +66,7 @@
         "timezone_tooltip": "Timezone per questa applicazione NethVoice",
         "create_nethvoice_adm": "Creazione utente nethvoice-adm",
         "reports_prefix_invalid": "Formato invalido",
-        "set_nethvoice_adm_password": "Imposta la password per l'tente nethvoice-adm",
+        "set_nethvoice_adm_password": "Imposta la password per l'utente nethvoice-adm",
         "nethvoice_host_format": "Deve essere un nome di dominio valido.",
         "nethcti_ui_host_format": "Deve essere un nome di dominio valido.",
         "change_domain_provider_warning_title": "Utenti e interni verranno resettati",
@@ -126,8 +126,8 @@
     "integrations": {
         "title": "Integrazioni",
         "deepgram_api_key": "API Key di Deepgram",
-        "call_transcription": "Trascrizione chiamate (Anteprima)",
-        "voicemail_transcription_enabled": "Trascrizione messaggi dei messaggi vocali",
+        "call_transcription": "Trascrizione delle chiamate (Anteprima)",
+        "voicemail_transcription_enabled": "Trascrizione dei messaggi voicemail",
         "call_transcription_warning_title": "Possibile consumo elevato di crediti",
         "call_transcription_warning_description": "Le trascrizioni sono abilitate per ogni chiamata. I tuoi crediti Deepgram potrebbero esaurirsi rapidamente se effettui o ricevi molte chiamate.",
         "deepgram_api_key_tooltip": "Per utilizzare la trascrizione delle chiamate e dei messaggi vocali, è necessaria una API Key Deepgram. Puoi ottenerne una registrandoti su {deepgramLink}."

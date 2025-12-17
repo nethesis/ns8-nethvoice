@@ -557,6 +557,9 @@ export default {
       });
     },
     failedServices() {
+      if (!this.status || !this.status.services) {
+        return [];
+      }
       return this.status.services.filter((service) => service.failed);
     },
   },

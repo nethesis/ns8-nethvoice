@@ -66,7 +66,7 @@
                 </template>
               </NsTextInput>
               <NsToggle
-                :label="$t('integrations.voicemail_transcription_enabled')"
+                :label="$t('integrations.call_transcription')"
                 value="isCallTranscriptionEnabled"
                 :disabled="!deepgramApiKey || loading.setIntegrations"
                 v-model="isCallTranscriptionEnabled"
