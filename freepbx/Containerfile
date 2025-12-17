@@ -561,8 +561,7 @@ RUN cd /var/www/html/freepbx/rest/ && \
 
 # Compile FreePBX module translation files (.po to .mo)
 # Only compile files in proper i18n/LC_MESSAGES directories, skip vendor/test directories
-RUN find /var/www/html/freepbx/admin/modules/*/i18n -path "*/LC_MESSAGES/*.po" -exec sh -c 'msgfmt -o "${1%.po}.mo" "$1" 2>/dev/null || true' _ {} \; && \
-    find /var/www/html/freepbx/admin/i18n -path "*/LC_MESSAGES/*.po" -exec sh -c 'msgfmt -o "${1%.po}.mo" "$1" 2>/dev/null || true' _ {} \;
+RUN find /var/www/html/freepbx/admin -path "*/i18n/*/LC_MESSAGES/*.po" -exec sh -c 'msgfmt -o "${1%.po}.mo" "$1" 2>/dev/null || true' _ {} \;
 
 # enable apache rewrite module
 RUN a2enmod rewrite proxy*
