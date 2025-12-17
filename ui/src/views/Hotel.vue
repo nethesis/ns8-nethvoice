@@ -231,7 +231,9 @@ export default {
       const hotelConfig = taskResult.output;
       this.isHotelEnabled = hotelConfig.nethvoice_hotel;
       this.fiasHost = hotelConfig.nethvoice_hotel_fias_address;
-      this.fiasPort = hotelConfig.nethvoice_hotel_fias_port.toString();
+      this.fiasPort = hotelConfig.nethvoice_hotel_fias_port
+        ? hotelConfig.nethvoice_hotel_fias_port.toString()
+        : "";
       this.loading.getHotel = false;
     },
 
