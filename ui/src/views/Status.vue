@@ -66,14 +66,13 @@
                 : $t('status.not_configured')
             "
             :icon="Wikis32"
-            :loading="!configuration || !configuration.nethvoice_host"
+            :loading="!configuration"
             class="min-height-card"
           >
             <template slot="content">
               <div class="card-rows">
                 <div class="card-row">
                   <NsButton
-                    v-if="configuration && configuration.nethvoice_host"
                     kind="ghost"
                     :icon="Launch20"
                     :disabled="!configuration || !configuration.nethvoice_host"
@@ -95,14 +94,13 @@
                 : $t('status.not_configured')
             "
             :icon="Wikis32"
-            :loading="!configuration || !configuration.nethcti_ui_host"
+            :loading="!configuration"
             class="min-height-card"
           >
             <template slot="content">
               <div class="card-rows">
                 <div class="card-row">
                   <NsButton
-                    v-if="configuration && configuration.nethcti_ui_host"
                     kind="ghost"
                     :icon="Launch20"
                     :disabled="!configuration || !configuration.nethcti_ui_host"
@@ -154,6 +152,7 @@
                   <NsButton
                     kind="ghost"
                     :icon="ArrowRight20"
+                    :disabled="!proxyModuleId"
                     @click="goToAppPage(proxyModuleId, 'status')"
                   >
                     {{ $t("status.go_to_nethvoice_proxy") }}
