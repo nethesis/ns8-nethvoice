@@ -25,6 +25,7 @@ response = agent.tasks.run(
         'domain': os.environ['NETHVOICE_HOST'],
         'address': [{"uri":"sip:"+ ksrv[0]["host"] +":"+os.environ["ASTERISK_SIP_PORT"],"description":os.environ["MODULE_ID"]}],
     },
+    extra={'isNotificationHidden': True},
 )
 
 # Check if proxy configuration has been successfull
