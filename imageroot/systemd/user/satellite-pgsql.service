@@ -1,0 +1,35 @@
+[Unit]
+Description=Podman PostgreSQL service for Satellite
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+EnvironmentFile=%S/state/passwords.env
+WorkingDirectory=%S/state
+Restart=always
+TimeoutStopSec=70
+ExecStartPre=/bin/rm -f %t/satellite-pgsql.pid %t/satellite-pgsql.ctr-id
+# set password for PostgreSQL
+ExecStartPre=-runagent satellite-pgsql-gen-config
+ExecStart=/usr/bin/podman run --conmon-pidfile %t/satellite-pgsql.pid \
+	--cidfile %t/satellite-pgsql.ctr-id --cgroups=no-conmon \
+	--replace \
+	--detach \
+	--name=%N \
+	--volume=satellite_pgdata:/var/lib/postgresql/data:Z \
+	--network=host \
+	--env POSTGRES_PASSWORD=${SATELLITE_PGSQL_PASSWORD} \
+	--env POSTGRES_USER=${SATELLITE_PGSQL_USER} \
+	--env POSTGRES_DB=${SATELLITE_PGSQL_DB} \
+	--env PGPORT=${SATELLITE_PGSQL_PORT} \
+	--tz=${TIMEZONE} \
+	--network=host \
+	${PGVECTOR_IMAGE}
+
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/satellite-pgsql.ctr-id -t 10
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/satellite-pgsql.ctr-id
+PIDFile=%t/satellite-pgsql.pid
+Type=forking
+
+[Install]
+WantedBy=default.target

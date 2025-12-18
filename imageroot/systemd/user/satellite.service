@@ -1,11 +1,12 @@
 [Unit]
 Description=Satellite call transcription for NethVoice
-Requires=satellite-mqtt.service
-After=satellite-mqtt.service
+Requires=satellite-mqtt.service, satellite-pgsql.service
+After=satellite-mqtt.service, satellite-pgsql.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%S/state/environment
+EnvironmentFile=%S/state/passwords.env
 WorkingDirectory=%S/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/satellite.pid %t/satellite.ctr-id
@@ -24,6 +25,13 @@ ExecStart=runagent /usr/bin/podman run \
     --env=MQTT_TOPIC_PREFIX=satellite \
     --env=MQTT_USERNAME=${SATELLITE_MQTT_USERNAME} \
     --env=HTTP_PORT=${SATELLITE_HTTP_PORT} \
+    --env=SATELLITE_ARI_PASSWORD=${SATELLITE_ARI_PASSWORD} \
+    --env=SATELLITE_MQTT_PASSWORD=${SATELLITE_MQTT_PASSWORD} \
+    --env=PGVECTOR_HOST=127.0.0.1 \
+    --env=PGVECTOR_PORT=${SATELLITE_PGSQL_PORT} \
+    --env=PGVECTOR_DB=${SATELLITE_PGSQL_DB} \
+    --env=PGVECTOR_USER=${SATELLITE_PGSQL_USER} \
+    --env=PGVECTOR_PASSWORD=${SATELLITE_PGSQL_PASSWORD} \
     --tz=${TIMEZONE} \
     --network=host \
     ${NETHVOICE_SATELLITE_IMAGE}
