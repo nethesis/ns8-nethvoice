@@ -85,8 +85,6 @@ if os.getenv('SATELLITE_MQTT_USERNAME') is None:
     agent.set_env('SATELLITE_MQTT_USERNAME', 'satellite')
 
 # Add Satellite PostgreSQL environment variables for updates
-if os.getenv('SATELLITE_PGSQL_PORT') is None:
-    agent.set_env('SATELLITE_PGSQL_PORT', os.environ['SATELLITE_PGSQL_PORT'])
 if os.getenv('SATELLITE_PGSQL_DB') is None:
     agent.set_env('SATELLITE_PGSQL_DB', 'satellite')
 if os.getenv('SATELLITE_PGSQL_USER') is None:
