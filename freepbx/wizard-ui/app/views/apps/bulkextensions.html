@@ -290,7 +290,7 @@
                 <label class="col-sm-3 control-label" for="textInput-didnumber-bulk">{{'CID Root' | translate}}</label>
                 <div class="col-sm-9">
                   <div class="input-group imp-full-size-max right-padding">
-                    <input pattern="^(\d+)$" type="text" ng-model="bulkEdit.outboundcid_fixed" id="textInput-didnumber-bulk" class="form-control">
+                    <input pattern="^(&quot;.*&quot;\s*&lt;\d+&gt;|\d+)$" type="text" ng-model="bulkEdit.outboundcid_fixed" id="textInput-didnumber-bulk" class="form-control">
                   </div>
                 </div>
               </div>
