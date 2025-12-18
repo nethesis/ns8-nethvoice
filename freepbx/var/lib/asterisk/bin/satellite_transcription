@@ -85,6 +85,7 @@ CURL_ARGS=(
     --form "paragraphs=true"
     --form "punctuate=true"
     --form "sentiment=true"
+    --form "uniqueid=${UNIQUEID}"
     --form "file=@/tmp/satellite-${UNIQUEID}.wav;type=audio/wav"
 )
 

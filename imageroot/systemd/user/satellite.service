@@ -1,7 +1,7 @@
 [Unit]
 Description=Satellite call transcription for NethVoice
-Requires=satellite-mqtt.service, satellite-pgsql.service
-After=satellite-mqtt.service, satellite-pgsql.service
+Requires=satellite-mqtt.service satellite-pgsql.service
+After=satellite-mqtt.service satellite-pgsql.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -29,7 +29,7 @@ ExecStart=runagent /usr/bin/podman run \
     --env=SATELLITE_MQTT_PASSWORD=${SATELLITE_MQTT_PASSWORD} \
     --env=PGVECTOR_HOST=127.0.0.1 \
     --env=PGVECTOR_PORT=${SATELLITE_PGSQL_PORT} \
-    --env=PGVECTOR_DB=${SATELLITE_PGSQL_DB} \
+    --env=PGVECTOR_DATABASE=${SATELLITE_PGSQL_DB} \
     --env=PGVECTOR_USER=${SATELLITE_PGSQL_USER} \
     --env=PGVECTOR_PASSWORD=${SATELLITE_PGSQL_PASSWORD} \
     --tz=${TIMEZONE} \
