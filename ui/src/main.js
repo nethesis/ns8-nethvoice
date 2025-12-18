@@ -24,6 +24,9 @@ Vue.use(VueDateFns);
 import LottieAnimation from "lottie-web-vue";
 Vue.use(LottieAnimation);
 
+import vueDebounce from "vue2-debounce";
+Vue.use(vueDebounce);
+
 // filters
 import { Filters } from "@nethserver/ns8-ui-lib";
 for (const f in Filters) {

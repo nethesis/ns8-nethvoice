@@ -1012,10 +1012,10 @@
     call-me-maybe "^1.0.1"
     glob-to-regexp "^0.3.0"
 
-"@nethserver/ns8-ui-lib@^1.7.0":
-  version "1.7.0"
-  resolved "https://registry.yarnpkg.com/@nethserver/ns8-ui-lib/-/ns8-ui-lib-1.7.0.tgz#a7fccab4f9996ea5c73a213c72db1c82718f2fc4"
-  integrity sha512-epBeALnftM9IALFH5f6Fbkm+94eN8g/v7uazPP63t3aUmrUm8npxx7gfcjMX89HZ98ZEY6HKfFgb22dv3aqKdg==
+"@nethserver/ns8-ui-lib@^1.9.0":
+  version "1.9.0"
+  resolved "https://registry.yarnpkg.com/@nethserver/ns8-ui-lib/-/ns8-ui-lib-1.9.0.tgz#fcd63ca01b8ba67527c0c78627fb5351b6ea506c"
+  integrity sha512-2AO7JyOZjkTJ7PF3B3JkSN0KpPazyf3bS3nuqdiQLezeE97yFdpPg4BVb4HGO05jJMa0M05FNqFWxvy3cDQL8w==
   dependencies:
     "@rollup/plugin-json" "^4.1.0"
     core-js "^3.15.2"
@@ -2516,9 +2516,9 @@ caniuse-api@^3.0.0:
     lodash.uniq "^4.5.0"
 
 caniuse-lite@^1.0.0, caniuse-lite@^1.0.30001109, caniuse-lite@^1.0.30001219:
-  version "1.0.30001245"
-  resolved "https://registry.npmmirror.com/caniuse-lite/download/caniuse-lite-1.0.30001245.tgz?cache=0&sync_timestamp=1626238653626&other_urls=https%3A%2F%2Fregistry.nlark.com%2Fcaniuse-lite%2Fdownload%2Fcaniuse-lite-1.0.30001245.tgz#45b941bbd833cb0fa53861ff2bae746b3c6ca5d4"
-  integrity sha1-RblBu9gzyw+lOGH/K650azxspdQ=
+  version "1.0.30001760"
+  resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001760.tgz"
+  integrity sha512-7AAMPcueWELt1p3mi13HR/LHH0TJLT11cnwDJEs3xA4+CK/PLKeO9Kl1oru24htkyUKtkGCvAx4ohB0Ttry8Dw==
 
 carbon-components@10.30.0:
   version "10.30.0"
@@ -9045,6 +9045,11 @@ vue-template-es2015-compiler@^1.9.0:
   version "1.9.1"
   resolved "https://registry.npmmirror.com/vue-template-es2015-compiler/download/vue-template-es2015-compiler-1.9.1.tgz#1ee3bc9a16ecbf5118be334bb15f9c46f82f5825"
   integrity sha1-HuO8mhbsv1EYvjNLsV+cRvgvWCU=
+
+vue2-debounce@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/vue2-debounce/-/vue2-debounce-1.0.1.tgz#2b4da2fe9d34f9c8be08ead9e8e68b988fd15f98"
+  integrity sha512-tZX6QltRUuGn9WUUVJDTWUmAqGugIUKcQN4praNAW4ZQPtBIyyZfvCLq7hKOOSdFhVRloXeFnCZvETibEgKNOw==
 
 vue@^2.6.11, vue@^2.6.12:
   version "2.6.14"
