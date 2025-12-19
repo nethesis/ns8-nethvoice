@@ -171,8 +171,7 @@ images+=("${repobase}/${reponame}")
 ##########################
 echo "[*] Build Satellite container"
 reponame="nethvoice-satellite"
-#container=$(buildah from ghcr.io/nethesis/satellite:0.0.5)
-container=$(buildah from ghcr.io/nethesis/satellite:statictrans)
+container=$(buildah from ghcr.io/nethesis/satellite:0.0.5)
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
 buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
