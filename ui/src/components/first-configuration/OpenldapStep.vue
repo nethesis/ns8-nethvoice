@@ -57,7 +57,7 @@
             :confirmPasswordLabel="core.$t('openldap.admpass_confirm')"
             v-model="admpass"
             @passwordValidation="onNewOpenLdapPasswordValidation"
-            :newPaswordHelperText="
+            :newPasswordHelperText="
               core.$t('openldap.choose_openldap_admin_password')
             "
             :newPasswordInvalidMessage="core.$t(error.admpass)"
