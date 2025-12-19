@@ -38,6 +38,14 @@ while [[ "$#" -gt 0 ]]; do
             LANGUAGE="$2"
             shift 2
             ;;
+        -c0|--channel0_name)
+            CHANNEL0_NAME="$2"
+            shift 2
+            ;;
+        -c1|--channel1_name)
+            CHANNEL1_NAME="$2"
+            shift 2
+            ;;
         *)
             echo "Unknown option: $1"
             usage
@@ -84,7 +92,9 @@ CURL_ARGS=(
     --form "numerals=true"
     --form "paragraphs=true"
     --form "punctuate=true"
-    --form "sentiment=true"
+    --form "sentiment=false"
+    --form "channel0_name=${CHANNEL0_NAME:-'Channel 0'}"
+    --form "channel1_name=${CHANNEL1_NAME:-'Channel 1'}"
     --form "uniqueid=${UNIQUEID}"
     --form "file=@/tmp/satellite-${UNIQUEID}.wav;type=audio/wav"
 )
