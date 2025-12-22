@@ -368,11 +368,18 @@ function post_outboundcid($mainextensions,$data) {
     if (is_null($data)) {
         return true;
     }
-    // Remove outer <> if present to avoid double wrapping
-    $data = preg_replace('/^<(.*)>$/', '$1', $data);
+    // Only wrap with <> if the value doesn't already contain <>
+    // "3333" <0721405516> -> stays as is
+    // <0721405516> -> stays as is
+    // 0721405516 -> becomes <0721405516>
+    if (strpos($data, '<') === false) {
+        $outboundcid = '<'.$data.'>';
+    } else {
+        $outboundcid = $data;
+    }
     foreach ($mainextensions as $mainextension) {
         foreach (getAllExtensions($mainextension) as $extension) {
-            $res = writeUserTableData($extension,'outboundcid','<'.$data.'>');
+            $res = writeUserTableData($extension,'outboundcid',$outboundcid);
             if ($res !== true) {
                 $err .= __FUNCTION__." ".$res."\n";
             }
