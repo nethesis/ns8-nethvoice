@@ -368,6 +368,8 @@ function post_outboundcid($mainextensions,$data) {
     if (is_null($data)) {
         return true;
     }
+    // Remove outer <> if present to avoid double wrapping
+    $data = preg_replace('/^<(.*)>$/', '$1', $data);
     foreach ($mainextensions as $mainextension) {
         foreach (getAllExtensions($mainextension) as $extension) {
             $res = writeUserTableData($extension,'outboundcid','<'.$data.'>');
