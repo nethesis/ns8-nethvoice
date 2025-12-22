@@ -155,7 +155,12 @@ function get_outboundcid($mainextension) {
     $sth = $dbh->prepare($sql);
     $sth->execute(array($mainextension));
     $data = $sth->fetchAll()[0][0];
-    return preg_replace('/^<|>$/','',$data);
+    // Only remove outer <> if format is simple <number>
+    // For alphanumeric format "name" <number>, return as is
+    if (preg_match('/^<\d+>$/', $data)) {
+        return preg_replace('/^<|>$/', '', $data);
+    }
+    return $data;
 }
 
 function post_displayname($mainextensions,$data) {
