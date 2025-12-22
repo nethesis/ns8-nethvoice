@@ -14,7 +14,7 @@ The extension should have:
 - voicemail email configured
 - voicemail email attachment enabled
 
-The voicemail transcription is added to the voicemail message body and saved in the voicemessages_transcriptions table.
+The voicemail transcription is added to the voicemail message body and saved by Satellite in its transcription database
 
 ## Call transcription
 

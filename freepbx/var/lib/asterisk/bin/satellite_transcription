@@ -7,16 +7,25 @@ set -u
 # Pipes fail on the first error.
 set -o pipefail
 
+require_cmd() {
+    command -v "$1" >/dev/null 2>&1 || {
+        echo "Error: Required command not found: $1" >&2
+        exit 127
+    }
+}
+
 # Function to display usage information
 usage() {
     cat <<EOF
-Usage: $(basename "$0") -u <uniqueid> [-l <language>]
+Usage: $(basename "$0") -u <uniqueid> [-l <language>] [-c0 <name>] [-c1 <name>]
 
 This script calls the get_transcription API with the specified WAV file.
 
 ARGUMENTS:
-  -u, --uniqueid    (Required) The unique ID for the WAV file located at /tmp/satellite-\${UNIQUEID}.wav
-  -l, --language    (Optional) The language code (e.g., en, it). If not provided, the API will auto-detect the language.
+    -u, --uniqueid    (Required) The unique ID for the WAV file located at /tmp/satellite-\${UNIQUEID}.wav
+    -c0, --channel0_name (Optional) Speaker label for channel 0.
+    -c1, --channel1_name (Optional) Speaker label for channel 1.
+    -h, --help        Show this help.
 
 ENVIRONMENT VARIABLES:
   SATELLITE_HTTP_PORT   (Required) The port on which the API is listening.
@@ -26,23 +35,35 @@ EOF
 
 # Parse Command-Line Arguments
 UNIQUEID=""
-LANGUAGE=""
+CHANNEL0_NAME=""
+CHANNEL1_NAME=""
 
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
+        -h|--help)
+            usage
+            ;;
         -u|--uniqueid)
+            if [[ "$#" -lt 2 ]]; then
+                echo "Error: --uniqueid requires a value." >&2
+                usage
+            fi
             UNIQUEID="$2"
             shift 2
             ;;
-        -l|--language)
-            LANGUAGE="$2"
-            shift 2
-            ;;
         -c0|--channel0_name)
+            if [[ "$#" -lt 2 ]]; then
+                echo "Error: --channel0_name requires a value." >&2
+                usage
+            fi
             CHANNEL0_NAME="$2"
             shift 2
             ;;
         -c1|--channel1_name)
+            if [[ "$#" -lt 2 ]]; then
+                echo "Error: --channel1_name requires a value." >&2
+                usage
+            fi
             CHANNEL1_NAME="$2"
             shift 2
             ;;
@@ -64,16 +85,31 @@ if [ -z "${SATELLITE_HTTP_PORT-}" ]; then
     exit 1
 fi
 
-if [ ! -f "/tmp/satellite-${UNIQUEID}.wav" ]; then
-    if [ ! -f "/tmp/satellite-r-${UNIQUEID}.wav" ] || [ ! -f "/tmp/satellite-t-${UNIQUEID}.wav" ]; then
-	echo "Error: Audio file not found at /tmp/satellite-${UNIQUEID}.wav or /tmp/satellite-r-${UNIQUEID}.wav & /tmp/satellite-t-${UNIQUEID}.wav" >&2
-	exit 1
+if ! [[ "${SATELLITE_HTTP_PORT}" =~ ^[0-9]+$ ]] || (( SATELLITE_HTTP_PORT < 1 || SATELLITE_HTTP_PORT > 65535 )); then
+    echo "Error: SATELLITE_HTTP_PORT must be an integer between 1 and 65535." >&2
+    exit 1
+fi
+
+require_cmd curl
+
+MAIN_WAV="/tmp/satellite-${UNIQUEID}.wav"
+WAV_R="/tmp/satellite-r-${UNIQUEID}.wav"
+WAV_T="/tmp/satellite-t-${UNIQUEID}.wav"
+
+if [ ! -f "${MAIN_WAV}" ]; then
+    if [ ! -f "${WAV_R}" ] || [ ! -f "${WAV_T}" ]; then
+        echo "Error: Audio file not found at ${MAIN_WAV} and missing one/both legs (${WAV_R}, ${WAV_T})." >&2
+        exit 1
     fi
-    sox -M /tmp/satellite-t-${UNIQUEID}.wav /tmp/satellite-r-${UNIQUEID}.wav /tmp/satellite-${UNIQUEID}.wav
+    require_cmd sox
+    sox -M "${WAV_T}" "${WAV_R}" "${MAIN_WAV}"
 fi
 
 # Remove call recordings on exit
-#trap "{ rm -f /tmp/satellite-${UNIQUEID}.wav /tmp/satellite-t-${UNIQUEID}.wav /tmp/satellite-r-${UNIQUEID}.wav 2>/dev/null}" INT TERM EXIT
+cleanup() {
+    rm -f -- "${MAIN_WAV}" "${WAV_T}" "${WAV_R}" 2>/dev/null || true
+}
+trap cleanup INT TERM EXIT
 
 # Build and Execute API Call
 API_URL="http://127.0.0.1:${SATELLITE_HTTP_PORT}/api/get_transcription"
@@ -82,32 +118,24 @@ API_URL="http://127.0.0.1:${SATELLITE_HTTP_PORT}/api/get_transcription"
 CURL_ARGS=(
     --silent
     --show-error
+    --fail
     --request POST
     --form "multichannel=true"
     --form "encoding=linear16"
     --form "sample_rate=8000"
     --form "channels=2"
-    --form "detect_language=true"
-    --form "smart_format=true"
-    --form "numerals=true"
-    --form "paragraphs=true"
-    --form "punctuate=true"
-    --form "sentiment=false"
-    --form "channel0_name=${CHANNEL0_NAME:-'Channel 0'}"
-    --form "channel1_name=${CHANNEL1_NAME:-'Channel 1'}"
+    --form "channel0_name=${CHANNEL0_NAME:-Channel 0}"
+    --form "channel1_name=${CHANNEL1_NAME:-Channel 1}"
+    --form "persist=true"
+    --form "summarize=true"
     --form "uniqueid=${UNIQUEID}"
-    --form "file=@/tmp/satellite-${UNIQUEID}.wav;type=audio/wav"
+    --form "file=@${MAIN_WAV};type=audio/wav"
 )
-
-# Add the optional language parameter only if it was provided
-if [ -n "${LANGUAGE}" ]; then
-    CURL_ARGS+=( --form "language=${LANGUAGE}" )
-    echo "Using specified language: ${LANGUAGE}"
-fi
 
 # Execute the curl command
 echo "Sending POST request to ${API_URL}"
-echo curl "${API_URL}" "${CURL_ARGS[@]}"
-curl "${API_URL}" "${CURL_ARGS[@]}" | jq | tee /tmp/satellite_transcription_logs
-
+curl "${API_URL}" "${CURL_ARGS[@]}" || {
+    echo "Error: Failed to get transcription from the API." >&2
+    exit 1
+}
 
