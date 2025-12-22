@@ -52,9 +52,12 @@ fi
 if [ "$SATELLITE_CALL_TRANSCRIPTION_ENABLED" = "True" ] || [ "$SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED" = "True" ]; then
     systemctl --user enable --now satellite.service
     systemctl --user enable --now satellite-mqtt.service
+    systemctl --user enable --now satellite-pgsql.service
 else
     systemctl --user stop satellite.service
     systemctl --user disable satellite.service
     systemctl --user stop satellite-mqtt.service
     systemctl --user disable satellite-mqtt.service
+    systemctl --user stop satellite-pgsql.service
+    systemctl --user disable satellite-pgsql.service
 fi
