@@ -127,7 +127,7 @@ CURL_ARGS=(
     --form "channel0_name=${CHANNEL0_NAME:-Channel 0}"
     --form "channel1_name=${CHANNEL1_NAME:-Channel 1}"
     --form "persist=true"
-    --form "summarize=true"
+    --form "summary=true"
     --form "uniqueid=${UNIQUEID}"
     --form "file=@${MAIN_WAV};type=audio/wav"
 )
