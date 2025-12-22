@@ -74,7 +74,7 @@
             <div class="card-pf-time-frame-filter">
               <div ng-show="g.onSave" class="spinner spinner-sm adjust-margin spinner-right"></div>
             </div>
-            <p>
+            <p ng-if="sourceFooterBlacklist.indexOf(g.name) === -1">
               <button data-toggle="modal" data-target="#newSourceModal" ng-click="modifySource(g)" class="btn btn-primary" type="button">{{'Modify' | translate}}</button>
               <button ng-click="checkSourceDeps(g)" class="btn btn-danger" type="button">{{'Delete' | translate}}</button>
             </p>

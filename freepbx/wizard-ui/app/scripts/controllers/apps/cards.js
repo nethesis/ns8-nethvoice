@@ -14,6 +14,7 @@ angular.module('nethvoiceWizardUiApp')
     $scope.allTemplates = [];
     $scope.allCards = [];
     $scope.allDBTypes = [];
+    $scope.sourceFooterBlacklist = ['phonebook', 'asteriskcdrdb'];
     $scope.supportedColors = {
       'red': '#db2828',
       'orange': '#f2711c',
