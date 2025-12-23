@@ -162,8 +162,11 @@ if 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED' in os.environ and os.environ['SAT
 
                 # If uniqueid exists, enable persistence on satellite
                 if uniqueid:
-                    data['persist'] = 'true'
                     data['uniqueid'] = str(uniqueid)
+                    # Save transcription in satellite database
+                    data['persist'] = 'true'
+                    # Store summary in satellite database if OpenAI key is configured
+                    data['summary'] = 'true'
                     # If cnam is available, set channel0_name
                     if cnam:
                         data['channel0_name'] = cnam
