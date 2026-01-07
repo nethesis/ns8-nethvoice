@@ -35,13 +35,13 @@
         <!-- let's encrypt toggle -->
         <NsToggle
           value="letsEncrypt"
-          :label="core.$t('apps_lets_encrypt.request_https_certificate')"
+          :label="$t('settings.request_le_certificates')"
           v-model="isLetsEncryptEnabled"
           :disabled="loading.configureModule"
         >
           <template #tooltip>
             <div class="mg-bottom-sm">
-              {{ core.$t("apps_lets_encrypt.lets_encrypt_tips") }}
+              {{ $t("settings.request_le_certificates_tooltip") }}
             </div>
             <div class="mg-bottom-sm">
               <cv-link @click="goToCertificates">

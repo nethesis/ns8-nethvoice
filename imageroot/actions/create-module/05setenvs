@@ -170,6 +170,34 @@ agent.set_env('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT', '127.0.0.1:' + str(port_li
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT', '127.0.0.1:' + str(port_list[7]))
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_PROTOCOL', 'http')
 
+# Default values for NETHCTI_* and other variables. These variables are not yet
+# exposed in the UI. Edit the environment file manually if you need to change
+# them.
+agent.set_env('BRAND_APPID', '')
+agent.set_env('CONFERENCE_JITSI_URL', 'https://jitsi.nethserver.net')
+agent.set_env('NETHCTI_ALERTS', 'false')
+agent.set_env('NETHCTI_AUTHENTICATION_ENABLED', 'true')
+agent.set_env('NETHCTI_AUTOC2C', 'enabled')
+agent.set_env('NETHCTI_JABBER_DOMAIN', '')
+agent.set_env('NETHCTI_JABBER_URL', '')
+agent.set_env('NETHCTI_LOG_LEVEL', 'warn')
+agent.set_env('NETHCTI_PREFIX', '')
+agent.set_env('NETHCTI_PRIVACY_NUMBERS', 'xxx')
+agent.set_env('NETHCTI_TRUNKS_EVENTS', 'disabled')
+agent.set_env('NETHCTI_UI_COMPANY_NAME', 'Nethesis')
+agent.set_env('NETHCTI_UI_COMPANY_URL', 'https://www.nethesis.it/')
+agent.set_env('NETHCTI_UI_PRODUCT_NAME', 'NethVoice CTI')
+agent.set_env('NETHCTI_UNAUTHE_CALL', 'disabled')
+agent.set_env('NETHCTI_UNAUTHE_CALL_IP', '')
+agent.set_env('NETHVOICE_HOST_LOCAL_NETWORKS', '{[]}')
+agent.set_env('REPORTS_UI_APP_NAME', 'NethVoice Reports')
+agent.set_env('REPORTS_UI_COMPANY_NAME', 'Nethesis')
+agent.set_env('REPORTS_UI_HELP_URL', 'https://docs.nethserver.org/projects/ns8/en/latest/nethvoice.html')
+agent.set_env('NETHCTI_CDR_SCRIPT', '')
+agent.set_env('NETHCTI_CDR_SCRIPT_TIMEOUT', '')
+agent.set_env('NETHCTI_CDR_SCRIPT_CALL_IN', '')
+agent.set_env('NETHCTI_CDR_SCRIPT_EXTENSION_RING', '')
+
 # password file
 passwords = {
     "MARIADB_ROOT_PASSWORD": gen_password(),

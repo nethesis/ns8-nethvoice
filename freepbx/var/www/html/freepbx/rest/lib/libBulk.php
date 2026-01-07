@@ -155,7 +155,12 @@ function get_outboundcid($mainextension) {
     $sth = $dbh->prepare($sql);
     $sth->execute(array($mainextension));
     $data = $sth->fetchAll()[0][0];
-    return preg_replace('/^<|>$/','',$data);
+    // Only remove outer <> if format is simple <number>
+    // For alphanumeric format "name" <number>, return as is
+    if (preg_match('/^<\d+>$/', $data)) {
+        return preg_replace('/^<|>$/', '', $data);
+    }
+    return $data;
 }
 
 function post_displayname($mainextensions,$data) {
@@ -368,9 +373,18 @@ function post_outboundcid($mainextensions,$data) {
     if (is_null($data)) {
         return true;
     }
+    // Only wrap with <> if the value doesn't already contain <>
+    // "3333" <0721405516> -> stays as is
+    // <0721405516> -> stays as is
+    // 0721405516 -> becomes <0721405516>
+    if (strpos($data, '<') === false) {
+        $outboundcid = '<'.$data.'>';
+    } else {
+        $outboundcid = $data;
+    }
     foreach ($mainextensions as $mainextension) {
         foreach (getAllExtensions($mainextension) as $extension) {
-            $res = writeUserTableData($extension,'outboundcid','<'.$data.'>');
+            $res = writeUserTableData($extension,'outboundcid',$outboundcid);
             if ($res !== true) {
                 $err .= __FUNCTION__." ".$res."\n";
             }

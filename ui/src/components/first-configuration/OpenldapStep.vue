@@ -57,7 +57,7 @@
             :confirmPasswordLabel="core.$t('openldap.admpass_confirm')"
             v-model="admpass"
             @passwordValidation="onNewOpenLdapPasswordValidation"
-            :newPaswordHelperText="
+            :newPasswordHelperText="
               core.$t('openldap.choose_openldap_admin_password')
             "
             :newPasswordInvalidMessage="core.$t(error.admpass)"
@@ -115,7 +115,7 @@ import {
   IconService,
   LottieService,
 } from "@nethserver/ns8-ui-lib";
-import { mapState, mapActions } from "vuex";
+import { mapState } from "vuex";
 import to from "await-to-js";
 import { PROXY_STEP } from "./FirstConfigurationModal.vue";
 
@@ -194,7 +194,6 @@ export default {
     this.$emit("set-next-label", this.core.$t("common.next"));
   },
   methods: {
-    ...mapActions(["setInstanceStatusInStore"]),
     next() {
       if (this.createdOpenLdapId) {
         this.configureOpenLdap();

@@ -167,6 +167,7 @@ export default {
       immediate: true,
       handler() {
         this.updateNextButtonLabel();
+        this.$emit("change-account-provider-type", this.accountProviderType);
       },
     },
   },

@@ -33,6 +33,7 @@
         :description="error.getStatus"
         :showCloseButton="false"
       />
+      <NsProgress :stepId="step" :steps="progressSteps" class="progress" />
       <AccountProviderStep
         v-if="step == ACCOUNT_PROVIDER_STEP"
         :nodeLabel="nodeLabel"
@@ -43,6 +44,7 @@
         @set-next-enabled="isNextEnabled = $event"
         @set-next-loading="isNextLoading = $event"
         @set-next-label="nextButtonLabel = $event"
+        @change-account-provider-type="accountProviderType = $event"
         ref="accountProviderStep"
       />
       <OpenldapStep
@@ -100,7 +102,12 @@ export const PROXY_STEP = "proxy";
 export const NETHVOICE_STEP = "nethvoice";
 
 export default {
-  components: { AccountProviderStep, OpenldapStep, ProxyStep, NethvoiceStep },
+  components: {
+    AccountProviderStep,
+    OpenldapStep,
+    ProxyStep,
+    NethvoiceStep,
+  },
   name: "FirstConfigurationModal",
   mixins: [UtilService, TaskService, IconService],
   props: {
@@ -121,6 +128,7 @@ export default {
       isNextEnabled: false,
       isNextLoading: false,
       nextButtonLabel: "",
+      accountProviderType: "",
       // Expose constants for template use
       ACCOUNT_PROVIDER_STEP,
       OPENLDAP_STEP,
@@ -145,6 +153,42 @@ export default {
         return `${this.$t("common.node_id", { id: this.instanceStatus.node })}`;
       } else {
         return "";
+      }
+    },
+    progressSteps() {
+      const accountProviderProgressStep = {
+        id: ACCOUNT_PROVIDER_STEP,
+        label: this.$t("welcome.account_provider"),
+      };
+
+      const openldapProgressStep = {
+        id: OPENLDAP_STEP,
+        label: this.$t("welcome.openldap"),
+      };
+
+      const proxyProgressStep = {
+        id: PROXY_STEP,
+        label: "NethVoice Proxy",
+      };
+
+      const nethvoiceProgressStep = {
+        id: NETHVOICE_STEP,
+        label: this.$t("welcome.nethvoice_application"),
+      };
+
+      if (this.accountProviderType === "create_openldap") {
+        return [
+          accountProviderProgressStep,
+          openldapProgressStep,
+          proxyProgressStep,
+          nethvoiceProgressStep,
+        ];
+      } else {
+        return [
+          accountProviderProgressStep,
+          proxyProgressStep,
+          nethvoiceProgressStep,
+        ];
       }
     },
   },
@@ -314,4 +358,9 @@ export default {
 
 <style scoped lang="scss">
 @import "../../styles/carbon-utils";
+
+.progress {
+  margin-top: 1rem;
+  margin-bottom: 3rem;
+}
 </style>
