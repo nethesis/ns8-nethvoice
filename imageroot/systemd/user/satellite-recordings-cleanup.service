@@ -1,0 +1,21 @@
+[Unit]
+Description=Retry and delete failed satellite transcriptions recording
+
+[Service]
+Type=simple
+ExecCondition=systemctl --user -q is-active mariadb.service && systemctl --user -q is-active freepbx.service 
+ExecStart=podman exec freepbx sh -c '\
+for file in $(find /tmp -name "satellite-[0-9]*.[0-9]*.wav" -cmin +10) ;\
+    do uniqueid=$(basename $file | cut -d- -f2 | sed "s/.wav$//g") ;\
+    dst_cnam=$(mycli -u $CDRDBUSER -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$CDRDBPASS asteriskcdrdb -e "select dst_cnam from cdr where uniqueid=$uniqueid limit 1" | tail -n1) ;\
+    cnam=$(mycli -u $CDRDBUSER -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$CDRDBPASS asteriskcdrdb -e "select cnam from cdr where uniqueid=$uniqueid limit 1" | tail -n1) ;\
+    echo launching transcription for call $uniqueid ;\
+    /var/lib/asterisk/bin/satellite_transcription -u $uniqueid -c0 "$dst_cnam" -c1 "$cnam" ;\
+done ;\
+find /tmp -name "satellite-[0-9]*.[0-9]*.wav" -ctime +1 -exec rm -f {} + ;\
+'
+
+SyslogIdentifier=%u/%N
+
+[Install]
+WantedBy=multi-user.target

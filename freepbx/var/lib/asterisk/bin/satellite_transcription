@@ -105,12 +105,6 @@ if [ ! -f "${MAIN_WAV}" ]; then
     sox -M "${WAV_T}" "${WAV_R}" "${MAIN_WAV}"
 fi
 
-# Remove call recordings on exit
-cleanup() {
-    rm -f -- "${MAIN_WAV}" "${WAV_T}" "${WAV_R}" 2>/dev/null || true
-}
-trap cleanup INT TERM EXIT
-
 # Build and Execute API Call
 API_URL="http://127.0.0.1:${SATELLITE_HTTP_PORT}/api/get_transcription"
 
@@ -134,8 +128,10 @@ CURL_ARGS=(
 
 # Execute the curl command
 echo "Sending POST request to ${API_URL}"
-curl "${API_URL}" "${CURL_ARGS[@]}" || {
+if curl "${API_URL}" "${CURL_ARGS[@]}"; then
+    rm -f -- "${MAIN_WAV}" "${WAV_T}" "${WAV_R}" 2>/dev/null || true
+else
     echo "Error: Failed to get transcription from the API." >&2
     exit 1
-}
+fi
 

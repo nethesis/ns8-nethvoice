@@ -53,6 +53,7 @@ if [ "$SATELLITE_CALL_TRANSCRIPTION_ENABLED" = "True" ] || [ "$SATELLITE_VOICEMA
     systemctl --user enable --now satellite.service
     systemctl --user enable --now satellite-mqtt.service
     systemctl --user enable --now satellite-pgsql.service
+    systemctl --user enable --now satellite-recordings-cleanup
 else
     systemctl --user stop satellite.service
     systemctl --user disable satellite.service
@@ -60,4 +61,6 @@ else
     systemctl --user disable satellite-mqtt.service
     systemctl --user stop satellite-pgsql.service
     systemctl --user disable satellite-pgsql.service
+    systemctl --user stop satellite-recordings-cleanup
+    systemctl --user disable satellite-recordings-cleanup
 fi
