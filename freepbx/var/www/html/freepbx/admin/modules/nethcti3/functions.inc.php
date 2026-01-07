@@ -395,6 +395,8 @@ function nethcti3_get_config_late($engine) {
         if (!empty($_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED']) && $_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED'] == 'True') {
             // Add a call Satellite when call is answered in macro-dial-one adding it in D_OPTIONS variable
             $ext->splice('macro-dial-one','s','dial', new \ext_setvar('D_OPTIONS', '${D_OPTIONS}U(satellite^s^1)'),'', -1);
+            // Add mixmonitor to record the call
+            $ext->splice('macro-dial-one', 's', 'dial', new \ext_mixmonitor('','br(/tmp/satellite-r-${UNIQUEID}.wav)t(/tmp/satellite-t-${UNIQUEID}.wav)','/var/lib/asterisk/bin/satellite_transcription -u ${UNIQUEID} -c0 "${CDR(dst_cnam)}" -c1 "${CDR(cnam)}"'),'', -1);
             // Add call to Satellite macro in macro-dialout-trunk if there is at least one route with at least one trunk
             $routes = core_routing_list();
             if (!empty($routes)) {
@@ -402,6 +404,8 @@ function nethcti3_get_config_late($engine) {
                     $routetrunks = core_routing_getroutetrunksbyid($route['route_id']);
                     if (!empty($routetrunks)) {
                         $ext->splice('macro-dialout-trunk', 's', '', new \ext_setvar('DIAL_TRUNK_OPTIONS', '${DIAL_TRUNK_OPTIONS}U(satellite^s^1)'),'', 28);
+                        // Add mixmonitor to record the call
+                        $ext->splice('macro-dialout-trunk', 's', '', new \ext_mixmonitor('','br(/tmp/satellite-r-${UNIQUEID}.wav)t(/tmp/satellite-t-${UNIQUEID}.wav)','/var/lib/asterisk/bin/satellite_transcription -u ${UNIQUEID} -c0 "${CDR(dst_cnam)}" -c1 "${CDR(cnam)}"'),'', 28);
                         break;
                     }
                 }
@@ -409,8 +413,6 @@ function nethcti3_get_config_late($engine) {
             // Create the Satellite context
             $ext->add('satellite', 's', '', new \ext_noop('Satellite STT'));
             // TODO: add a check to see if the user is allowed to use the STT
-            // Add mixmonitor to record the call
-            $ext->add('satellite', 's', '', new \ext_mixmonitor('','br(/tmp/satellite-r-${UNIQUEID}.wav)t(/tmp/satellite-t-${UNIQUEID}.wav)','/var/lib/asterisk/bin/satellite_transcription -u ${UNIQUEID} -c0 "${CONNECTEDLINE(name)}"'));
             // Start Stasis
             $ext->add('satellite', 's', '', new \ext_stasis('satellite'));
             $ext->add('satellite', 's', '', new \ext_noop('Stasis satellite end'));
