@@ -1088,5 +1088,10 @@
   "Some phones could not be reconfigured": "Alcuni telefoni non possono essere riconfigurati",
   "Are you sure that you want to reconfigure the linked phones": "Sei sicuro di voler riconfigurare i telefoni collegati",
   "Provision and reconfigure phone": "Provisioning e riconfigurazione del telefono",
-  "Configure the listed phones": "Configura i telefoni elencati"
+  "Configure the listed phones": "Configura i telefoni elencati",
+  "Indirizzo Centralino": "Indirizzo Centralino",
+  "Proxy URL": "URL Proxy",
+  "Configurare porta 5060": "Configurare porta 5060",
+  "Configurare porta": "Configurare porta",
+  "Configure port": "Configurare porta"
 }
