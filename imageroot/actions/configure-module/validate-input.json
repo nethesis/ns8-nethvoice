@@ -28,6 +28,7 @@
             "description": "Host where NethVoice instance should be exposed to",
             "type": "string",
             "format": "hostname",
+            "pattern": "\\.",
             "not": {
                 "format": "ipv4"
             }
@@ -36,6 +37,7 @@
             "description": "CTI host, must be different than nethvoice_host",
             "type": "string",
             "format": "hostname",
+            "pattern": "\\.",
             "not": {
                 "format": "ipv4"
             }
