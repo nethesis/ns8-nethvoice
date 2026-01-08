@@ -313,7 +313,8 @@
                                   <div class="modal-body">
                                     <ul class="modalListConfiguration">
                                       <li class="listConfiguration"><b>{{"PBX address" | translate}}:</b> {{hostname}}</li>
-                                      <li class="listConfiguration"><b>{{"Configure port 5061" | translate}}</b> </li>
+                                      <li class="listConfiguration"><b>{{"Proxy URL" | translate}}:</b> {{proxyUrl}}</li>
+                                      <li class="listConfiguration"><b>{{"Configure port" | translate}}:</b> 5061</li>
                                       <li class="listConfiguration"><b>{{"Enable TLS transport" | translate}}</b></li>
                                       <li class="listConfiguration"><b>{{"Configure SRTP Secure Audio" | translate}}</b></li>
                                       <li class="listConfiguration"><b>{{"default_extension" | translate}}:</b> {{deviceExtension}}</li>
@@ -345,10 +346,11 @@
                                   </div>
                                   <div class="modal-body" >
                                     <ul class="modalListConfiguration">
-                                      <li class="listConfiguration"><b>{{"Indirizzo Centralino" | translate}}: </b>{{hostname}}</li>
-                                      <li class="listConfiguration"><b>{{"Configurare porta 5060" | translate}} </b></li>
-                                      <li class="listConfiguration"><b>{{"Abilitare trasporto UDP" | translate}} </b></li>
-                                      <li class="listConfiguration"><b>{{"Configurare audio non criptato" | translate}}</b></li>
+                                      <li class="listConfiguration"><b>{{"PBX address" | translate}}:</b> {{hostname}}</li>
+                                      <li class="listConfiguration"><b>{{"Proxy URL" | translate}}:</b> {{proxyUrl}}</li>
+                                      <li class="listConfiguration"><b>{{"Configure port" | translate}}:</b> 5060</li>
+                                      <li class="listConfiguration"><b>{{"Enable UDP transport" | translate}} </b></li>
+                                      <li class="listConfiguration"><b>{{"Configure unencrypted audio" | translate}}</b></li>
                                       <li class="listConfiguration"><b>{{"default_extension" | translate}}:</b> {{deviceExtension}}</li>
                                       <li class="listConfiguration" id="showPassword" data-content="{{passwordExtension}}"><b>{{"Password" | translate}}: </b>{{passwordExtension}}
                                         <clipboard-copy class="pficon-blueprint" value="{{passwordExtension}}" ng-click="copyPassword()"

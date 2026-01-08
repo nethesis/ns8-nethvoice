@@ -768,6 +768,13 @@ angular.module('nethvoiceWizardUiApp')
       $scope.hostname = window.location.hostname;
       $scope.deviceExtension = device.extension;
       $scope.passwordExtension = device.secret;
+      // Recupera NETHVOICE_PROXY_FQDN
+      ModelService.getDefaults().then(function (res) {
+        $scope.proxyUrl = res.data.outbound_proxy_1 || '';
+      }, function (err) {
+        console.log(err);
+        $scope.proxyUrl = '';
+      });
     }
 
     angular.element(document).ready(function () {

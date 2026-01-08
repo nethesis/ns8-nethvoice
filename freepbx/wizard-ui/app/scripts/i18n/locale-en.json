@@ -183,5 +183,12 @@
   "Some phones could not be reconfigured": "Some phones could not be reconfigured",
   "Are you sure that you want to reconfigure the linked phones": "Are you sure that you want to reconfigure the linked phones",
   "Provision and reconfigure phone": "Provision and reconfigure phone",
-  "Configure the listed phones": "Configure the listed phones"
+  "Configure the listed phones": "Configure the listed phones",
+  "Indirizzo Centralino": "PBX Address",
+  "Proxy URL": "Proxy URL",
+  "Configurare porta 5060": "Configure port 5060",
+  "Configurare porta": "Configure port",
+  "Configure port": "Configure port",
+  "Enable UDP transport": "Enable UDP transport",
+  "Configure unencrypted audio": "Configure unencrypted audio"
 }
