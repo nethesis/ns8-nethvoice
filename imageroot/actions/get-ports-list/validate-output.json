@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Get ports list",
+  "$id": "http://nethserver.org/json-schema/task/output/nethvoice/get-ports-list",
+  "description": "List environment variables containing '_PORT' and their values.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["name", "port"],
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Lowercase prefix of the environment variable name before '_PORT'."
+      },
+      "port": {
+        "description": "Port value (numeric).",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 65535
+      }
+    }
+  }
+}
