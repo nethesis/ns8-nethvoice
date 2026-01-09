@@ -885,7 +885,8 @@ function nethvoice_report_config() {
             "groups" => array(),
             "agents" => array(),
             "users" => array(),
-            "cdr" => ""
+            "cdr" => "",
+            "privacy" => false
         );
         // Get user permission profile
         $stmt = $dbh->prepare('SELECT profile_id FROM rest_users WHERE user_id = ?');
@@ -899,6 +900,19 @@ function nethvoice_report_config() {
             if ($p['id'] === $profileRes['profile_id']) {
                 $profile = $p;
                 break;
+            }
+        }
+
+        // Check if user has privacy permission enabled
+        if (isset($profile['macro_permissions']['nethvoice_cti'])
+            && $profile['macro_permissions']['nethvoice_cti']['value'] == 1
+            && !empty($profile['macro_permissions']['nethvoice_cti']['permissions']))
+        {
+            foreach ($profile['macro_permissions']['nethvoice_cti']['permissions'] as $perm) {
+                if ($perm['name'] == 'privacy' && $perm['value'] == 1) {
+                    $user['privacy'] = true;
+                    break;
+                }
             }
         }
 
