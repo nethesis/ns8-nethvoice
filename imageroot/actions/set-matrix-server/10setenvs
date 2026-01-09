@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2025 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import sys
+import os
+import agent
+
+request = json.load(sys.stdin)
+
+def resolve_module_id_from_uuid(uuid):
+    # Redis stores module info under module/{id}/uuid -> value
+    # We need to search for the module id that has this uuid
+    with agent.redis_connect() as rdb:
+        # Only method: check environment hashes where MODULE_UUID is stored (user-provided format)
+        for key in rdb.scan_iter(match='module/*/environment'):
+            module_uuid_val = rdb.hget(key, 'MODULE_UUID')
+            if module_uuid_val and module_uuid_val == uuid:
+                parts = key.split('/')
+                if len(parts) >= 2:
+                    return parts[1]
+    return None
+
+def get_configuration(module_id):
+    matrix_agent_id = f'module/{module_id}'
+    response = agent.tasks.run(agent_id=matrix_agent_id, action='get-configuration', data={})
+    agent.assert_exp(response['exit_code'] == 0)
+    return response.get('output')
+
+def set_configuration(module_id, config):
+    matrix_agent_id = f'module/{module_id}'
+    response = agent.tasks.run(agent_id=matrix_agent_id, action='configure-module', data=config)
+    agent.assert_exp(response['exit_code'] == 0)
+    agent.set_env('NETHVOICE_MATRIX_UUID',config.get('nethvoice_auth_url'))
+    if config.get('nethvoice_auth_url'):
+        agent.set_env('NETHVOICE_MATRIX_BASE_URL',f'https://{config.get("synapse_domain_name")}')
+    else:
+        agent.set_env('NETHVOICE_MATRIX_BASE_URL','')
+
+
+module_uuid = request.get('module_uuid')
+current_module_uuid = os.getenv('NETHVOICE_MATRIX_UUID', '')
+
+if current_module_uuid == module_uuid:
+    # No change, nothing to do
+    sys.exit(0)
+
+if current_module_uuid != '' and module_uuid == '':
+    # Disable integration on old module
+    module_id = resolve_module_id_from_uuid(current_module_uuid)
+    if module_id is not None:
+        config = get_configuration(module_id)
+        config['nethvoice_auth_url'] = ''
+        set_configuration(module_id, config)
+    else:
+        print(agent.SD_WARNING + f"Module UUID {current_module_uuid} not found: cannot disable Matrix integration")
+if current_module_uuid == '' and module_uuid != '':
+    # Enable integration on new module
+    module_id = resolve_module_id_from_uuid(module_uuid)
+    if module_id is not None:
+        nethvoice_host = os.environ.get('NETHVOICE_HOST', '')
+        if nethvoice_host:
+            config = get_configuration(module_id)
+            config['nethvoice_auth_url'] = f'https://{nethvoice_host}'
+            set_configuration(module_id, config)
+        else:
+            print(agent.SD_WARNING + "NETHVOICE_HOST is not set, cannot enable Matrix integration")
+    else:
+        print(agent.SD_WARNING + f"Module UUID {module_uuid} not found: cannot enable Matrix integration")

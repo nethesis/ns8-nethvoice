@@ -1,0 +1,14 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Set Matrix server integration",
+    "$id": "http://nethserver.org/json-schema/task/input/nethvoice/set-matrix-server",
+    "description": "Enable or disable NethVoice integration on Matrix server",
+    "type": "object",
+    "required": ["module_uuid"],
+    "properties": {
+        "module_uuid": {
+            "description": "Module UUID of the Matrix module to configure",
+            "type": "string"
+        }
+    }
+}
