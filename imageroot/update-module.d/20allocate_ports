@@ -130,3 +130,8 @@ if not 'ASTERISK_WSS_PORT' in env:
 	# Add Asterisk RTP port range for WSS
 	agent.add_public_service(os.environ['MODULE_ID'], [str(os.environ['ASTERISK_RTPSTART'])+"-"+str(os.environ['ASTERISK_RTPEND'])+"/udp"])
 
+if not 'SATELLITE_PGSQL_PORT' in env:
+	allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
+	pgsql_port = allocated_ports[0]
+	print(f"New port allocated for SATELLITE PGSQL: {pgsql_port}", file=sys.stderr)
+	agent.set_env('SATELLITE_PGSQL_PORT', pgsql_port)
