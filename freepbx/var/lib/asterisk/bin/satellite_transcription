@@ -92,9 +92,20 @@ fi
 
 require_cmd curl
 
-MAIN_WAV="/tmp/satellite-${UNIQUEID}.wav"
-WAV_R="/tmp/satellite-r-${UNIQUEID}.wav"
-WAV_T="/tmp/satellite-t-${UNIQUEID}.wav"
+MAIN_WAV="/var/run/nethvoice/satellite-${UNIQUEID}.wav"
+WAV_R="/var/run/nethvoice/satellite-r-${UNIQUEID}.wav"
+WAV_T="/var/run/nethvoice/satellite-t-${UNIQUEID}.wav"
+LOCK_FILE="/var/run/nethvoice/satellite-transcription-${UNIQUEID}.lock"
+
+# Check for Existing Lock File to Prevent Concurrent Executions or create it using flock
+exec 200>"${LOCK_FILE}"
+flock -n 200 || {
+    echo "Error: Another instance of the script is already running for UNIQUEID=${UNIQUEID}." >&2
+    exit 1
+}
+
+# Ensure Cleanup of Lock File on Exit
+trap 'rm -f "${LOCK_FILE}"' EXIT TERM INT
 
 if [ ! -f "${MAIN_WAV}" ]; then
     if [ ! -f "${WAV_R}" ] || [ ! -f "${WAV_T}" ]; then

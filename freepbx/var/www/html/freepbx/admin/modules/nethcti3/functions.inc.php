@@ -396,7 +396,7 @@ function nethcti3_get_config_late($engine) {
             // Add a call Satellite when call is answered in macro-dial-one adding it in D_OPTIONS variable
             $ext->splice('macro-dial-one','s','dial', new \ext_setvar('D_OPTIONS', '${D_OPTIONS}U(satellite^s^1)'),'', -1);
             // Add mixmonitor to record the call
-            $ext->splice('macro-dial-one', 's', 'dial', new \ext_mixmonitor('','br(/tmp/satellite-r-${UNIQUEID}.wav)t(/tmp/satellite-t-${UNIQUEID}.wav)','/var/lib/asterisk/bin/satellite_transcription -u ${UNIQUEID} -c0 "${CDR(dst_cnam)}" -c1 "${CDR(cnam)}"'),'', -1);
+            $ext->splice('macro-dial-one', 's', 'dial', new \ext_mixmonitor('','br(/var/run/nethvoice/satellite-r-${UNIQUEID}.wav)t(/var/run/nethvoice/satellite-t-${UNIQUEID}.wav)','/var/lib/asterisk/bin/satellite_transcription -u ${UNIQUEID} -c0 "${CDR(dst_cnam)}" -c1 "${CDR(cnam)}"'),'', -1);
             // Add call to Satellite macro in macro-dialout-trunk if there is at least one route with at least one trunk
             $routes = core_routing_list();
             if (!empty($routes)) {
@@ -405,7 +405,7 @@ function nethcti3_get_config_late($engine) {
                     if (!empty($routetrunks)) {
                         $ext->splice('macro-dialout-trunk', 's', '', new \ext_setvar('DIAL_TRUNK_OPTIONS', '${DIAL_TRUNK_OPTIONS}U(satellite^s^1)'),'', 28);
                         // Add mixmonitor to record the call
-                        $ext->splice('macro-dialout-trunk', 's', '', new \ext_mixmonitor('','br(/tmp/satellite-r-${UNIQUEID}.wav)t(/tmp/satellite-t-${UNIQUEID}.wav)','/var/lib/asterisk/bin/satellite_transcription -u ${UNIQUEID} -c0 "${CDR(dst_cnam)}" -c1 "${CDR(cnam)}"'),'', 28);
+                        $ext->splice('macro-dialout-trunk', 's', '', new \ext_mixmonitor('','br(/var/run/nethvoice/satellite-r-${UNIQUEID}.wav)t(/var/run/nethvoice/satellite-t-${UNIQUEID}.wav)','/var/lib/asterisk/bin/satellite_transcription -u ${UNIQUEID} -c0 "${CDR(dst_cnam)}" -c1 "${CDR(cnam)}"'),'', 28);
                         break;
                     }
                 }

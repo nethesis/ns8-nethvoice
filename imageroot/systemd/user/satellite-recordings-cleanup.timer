@@ -2,9 +2,9 @@
 Description=Retry and delete failed satellite transcriptions recording
 
 [Timer]
-OnCalendar=hourly
+OnCalendar=*:0/10
 Persistent=true
-RandomizedDelaySec=10m
+RandomizedDelaySec=5m
 FixedRandomDelay=true
 
 [Install]
