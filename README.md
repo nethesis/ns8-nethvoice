@@ -65,6 +65,40 @@ It raises an event named `phonebook-settings-changed` with the following payload
 
 Consumers of the events must then run the `get-phonebook-credentials` action on `module_id` to get the updated phonebook credentials.
 
+## Matrix integration
+
+Provides optional integration with a Matrix server module (e.g. `matrix5`). Use the included helper action `set-matrix-server` to enable or disable the NethVoice authentication endpoint on a Matrix instance.
+The integrations introduces 2 environment variables:
+- `NETHVOICE_MATRIX_UUID`: used only inside NS8 module system to track the Matrix module instance UUID
+- `NETHVOICE_MATRIX_BASE_URL`: used by containers to access the Matrix server base URL
+
+The action sets or clears the `nethvoice_auth_url` used by the Matrix module to call FreePBX for external authentication.
+
+Parameters:
+  - `module_uuid`: string, required - the UUID of the Matrix module instance to update, find it using `redis-cli hget module/matrix1/environment MODULE_UUID`
+
+Configuration example:
+
+1. Get the Matrix module UUID:
+
+   ```
+   redis-cli hget module/matrix1/environment MODULE_UUID
+   ```
+
+2. Call the action to enable or disable NethVoice integration:
+
+   ```
+   api-cli run module/nethvoice1/set-matrix-server --data '{"module_uuid": "cf50b191-95d5-435b-bf34-0905bf7dba55"}'
+   ```
+
+To disable the integation, just set `module_uuid` to empty string:
+```
+api-cli run module/nethvoice1/set-matrix-server --data '{"module_uuid": ""}'
+```
+
+When enabling integration the `nethvoice_auth_url` is set to `https://<nethvoice_host>` (using the configured NethVoice host); disabling the integration clears the field.
+
+
 ## Uninstall
 
 To uninstall the instance:
