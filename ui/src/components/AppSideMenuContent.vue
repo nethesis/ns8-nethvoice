@@ -22,6 +22,27 @@
         <span>{{ $t("status.title") }}</span>
       </cv-side-nav-link>
       <cv-side-nav-link
+        @click="goToAppPage(instanceName, 'integrations')"
+        :class="{ 'current-page': isLinkActive('integrations') }"
+      >
+        <template v-slot:nav-icon><Integration20 /></template>
+        <span>{{ $t("integrations.title") }}</span>
+      </cv-side-nav-link>
+      <cv-side-nav-link
+        @click="goToAppPage(instanceName, 'rebranding')"
+        :class="{ 'current-page': isLinkActive('rebranding') }"
+      >
+        <template v-slot:nav-icon><TagEdit20 /></template>
+        <span>{{ $t("rebranding.title") }}</span>
+      </cv-side-nav-link>
+      <cv-side-nav-link
+        @click="goToAppPage(instanceName, 'hotel')"
+        :class="{ 'current-page': isLinkActive('hotel') }"
+      >
+        <template v-slot:nav-icon><Hotel20 /></template>
+        <span>{{ $t("hotel.title") }}</span>
+      </cv-side-nav-link>
+      <cv-side-nav-link
         @click="goToAppPage(instanceName, 'settings')"
         :class="{ 'current-page': isLinkActive('settings') }"
       >
@@ -43,6 +64,9 @@
 import Settings20 from "@carbon/icons-vue/es/settings/20";
 import Information20 from "@carbon/icons-vue/es/information/20";
 import Activity20 from "@carbon/icons-vue/es/activity/20";
+import Integration20 from "@carbon/icons-vue/es/integration/20";
+import TagEdit20 from "@carbon/icons-vue/es/tag--edit/20";
+import Hotel20 from "@carbon/icons-vue/es/hotel/20";
 import { mapState } from "vuex";
 import { QueryParamService, UtilService } from "@nethserver/ns8-ui-lib";
 
@@ -52,6 +76,9 @@ export default {
     Settings20,
     Information20,
     Activity20,
+    Integration20,
+    TagEdit20,
+    Hotel20,
   },
   mixins: [QueryParamService, UtilService],
   data() {

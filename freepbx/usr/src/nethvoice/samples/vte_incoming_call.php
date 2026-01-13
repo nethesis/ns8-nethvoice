@@ -13,7 +13,7 @@
  *   - Change $base_url with your vte API base URL 
  *   - Put your authorization info into $username and $accesskey variables
  *   - Copy this script in /var/lib/asterisk/agi-bin/ directory and set proper ownership and permissions
- *   - Set in environment NETHCTI_CDR_SCRIPT_CALL_IN=/var/lib/asterisk/agi-bin/vte_incoming_call.php
+ *   - Set in environment NETHCTI_CDR_SCRIPT_EXTENSION_RING=/var/lib/asterisk/agi-bin/vte_incoming_call.php
  *   - Restart freepbx
  * 
  *  Test:

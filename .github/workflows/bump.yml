@@ -7,10 +7,14 @@ on:
     branches:
       - main
       - master
+    paths:
+      - freepbx/var/www/html/freepbx/rest/openapi.yaml
   pull_request:
     branches:
       - main
       - master
+    paths:
+      - freepbx/var/www/html/freepbx/rest/openapi.yaml
   workflow_dispatch:
 jobs:
   deploy-doc:

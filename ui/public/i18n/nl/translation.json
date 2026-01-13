@@ -3,46 +3,22 @@
         "title": "Instellingen",
         "configure_instance": "Configureer {instance}",
         "save": "Opslaan",
-        "lets_encrypt": "Verzoek een Let's Encrypt certificaat",
         "nethvoice_host": "NethVoice basis",
         "user_domain": "Gebruiker domein",
-        "user_domain_placeholder": "Selecteer een beschikbaar domein in de cluster.",
-        "user_domain_selector": "Bron van gebruikersdomein",
         "reports_international_prefix_tooltip": "Formaat moet \"00**\" of \"+**\" zijn",
-        "rebranding_navbar_logo_url_tooltip": "Navbar beeld van licht thema",
-        "rebranding_navbar_logo_dark_url": "Navbar beeld in het donkere thema",
-        "rebranding_login_background_url": "Achtergrondafbeelding voor inloggen",
-        "rebranding_login_background_url_tooltip": "Achtergrondafbeelding voor inloggen",
-        "rebranding_favicon_url": "Favicon",
-        "rebranding_login_logo_url": "Licht thema logo",
-        "rebranding_login_logo_url_tooltip": "Licht thema logo",
-        "rebranding_login_people": "Afbeelding van inloggegevens verbergen",
-        "rebranding_login_people_tooltip": "Selecteer om de afbeelding van inlogpersonen te verbergen",
-        "dark_theme_label": "Activeer donker thema",
         "set_password": "NethVoice administratie wachtwoord",
         "timezone": "Tijdzone",
         "create_nethvoice_adm": "Creëer NethVoice Administrateur voor gebruikerbeheer",
-        "change_domain_provider_warning": "Wanneer u de gebruikersprovider van een reeds geconfigureerde NethVoice wijzigt, worden alle gebruikers- en extensieconfiguraties opnieuw ingesteld.",
         "nethcti_ui_host_format": "Moet een geldige domeinnaam zijn.",
-        "set_rebranding": "Rebranding-instelling",
         "proxy_not_installed": "Nethvoice Proxy",
-        "rebranding_favicon_url_tooltip": "Favicon",
         "timezone_placeholder": "Kies de tijdzone",
-        "rebranding_navbar_logo_url": "Navbar beeld van licht thema",
-        "rebranding_navbar_logo_dark_url_tooltip": "Navbar beeld in het donkere thema",
-        "rebranding_login_logo_dark_url": "Donkere thema logo",
-        "remove_nethvoice_adm": "Verwijder NethVoice Administrateur voor gebruikerbeheer",
         "set_nethvoice_adm_password": "Zet NethVoice Administrateur wachtwoord voor gebruikersbeheer",
         "proxy_not_installed_description": "De proxy moet worden geïnstalleerd voordat NethVoice wordt geconfigureerd.",
         "nethcti_ui_host": "NethVoice CTI basis",
-        "rebranding_login_logo_dark_url_tooltip": "Donkere thema logo",
         "reports_prefix_invalid": "Ongeldige opmaak",
-        "nethvoice_admin_password": "Reset NethVoice administratie wachtwoord om toegang te krijgen tot gebruiker interface (optional)",
         "nethvoice_host_format": "Moet een geldige domeinnaam zijn.",
         "reports_international_prefix": "Prefix rapporten",
-        "timezone_tooltip": "Zet de tijdzone voor de huidige NethVoice installatie",
-        "nethvoice_hotel": "Hotelmodule inschakelen",
-        "nethvoice_hotel_fias_address": "Hotel FIAS-serverhost (Optioneel)"
+        "timezone_tooltip": "Zet de tijdzone voor de huidige NethVoice installatie"
     },
     "common": {
         "required": "Vereist",
@@ -80,7 +56,6 @@
         "list-backups": "Backups weergeven"
     },
     "status": {
-        "app_instance": "App-instantie",
         "app_images": "App kopie | App kopieën",
         "created": "Gemaakt",
         "name": "Naam",
@@ -97,8 +72,5 @@
     },
     "task": {
         "cannot_create_task": "Kan taak {actie} niet aanmaken"
-    },
-    "warning": {
-        "warning_title_message": "Waarschuwing"
     }
 }

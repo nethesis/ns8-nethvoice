@@ -22,50 +22,45 @@ def getFromRequest(request, var_name, env_name, default = ""):
     else:
         agent.set_env(env_name, default)
 
-# NETHVOICE_HOST_LOCAL_NETWORKS should be a jason containing local networks [{"network":"192.168.5.0","netmask":"255.255.255.0","gateway":"192.168.5.1"}]
-getFromRequest(request, 'nethvoice_host_local_networks', 'NETHVOICE_HOST_LOCAL_NETWORKS', '{[]}')
 getFromRequest(request, 'nethvoice_host', 'NETHVOICE_HOST', '')
-getFromRequest(request, 'nethcti_prefix', 'NETHCTI_PREFIX', '')
-getFromRequest(request, 'nethcti_autoc2c', 'NETHCTI_AUTOC2C', 'enabled')
-getFromRequest(request, 'nethcti_trunks_events', 'NETHCTI_TRUNKS_EVENTS', 'disabled')
-getFromRequest(request, 'nethcti_alerts', 'NETHCTI_ALERTS', 'false')
-getFromRequest(request, 'nethcti_authentication_enabled', 'NETHCTI_AUTHENTICATION_ENABLED', 'true')
-getFromRequest(request, 'nethcti_unauthe_call', 'NETHCTI_UNAUTHE_CALL', 'disabled')
-getFromRequest(request, 'nethcti_unauthe_call_ip', 'NETHCTI_UNAUTHE_CALL_IP', '')
-getFromRequest(request, 'nethcti_jabber_url', 'NETHCTI_JABBER_URL', '')
-getFromRequest(request, 'nethcti_jabber_domain', 'NETHCTI_JABBER_DOMAIN', '')
-getFromRequest(request, 'nethcti_cdr_script', 'NETHCTI_CDR_SCRIPT', '')
-getFromRequest(request, 'nethcti_cdr_script_timeout', 'NETHCTI_CDR_SCRIPT_TIMEOUT', '')
-getFromRequest(request, 'nethcti_cdr_script_call_in', 'NETHCTI_CDR_SCRIPT_CALL_IN', '')
-getFromRequest(request, 'nethcti_log_level', 'NETHCTI_LOG_LEVEL', 'warn')
-getFromRequest(request, 'nethcti_privacy_numbers', 'NETHCTI_PRIVACY_NUMBERS', 'xxx')
-getFromRequest(request, 'conference_jitsi_url', 'CONFERENCE_JITSI_URL', 'https://jitsi.nethserver.net')
-getFromRequest(request, 'app_brand_id', 'BRAND_APPID', '')
 getFromRequest(request, 'timezone', 'TIMEZONE', 'UTC')
 
 ## NethCTI UI
 getFromRequest(request, 'nethcti_ui_host', 'NETHCTI_UI_HOST', '')
-getFromRequest(request, 'nethcti_ui_product_name', 'NETHCTI_UI_PRODUCT_NAME', 'NethVoice CTI')
-getFromRequest(request, 'nethcti_ui_company_name', 'NETHCTI_UI_COMPANY_NAME', 'Nethesis')
-getFromRequest(request, 'nethcti_ui_company_url', 'NETHCTI_UI_COMPANY_URL', 'https://www.nethesis.it/')
 
 ## NethVoice adm account for users management
 getFromRequest(request, 'nethvoice_adm_username', 'NETHVOICE_USER_PORTAL_USERNAME', '')
 passwordsfile['NETHVOICE_USER_PORTAL_PASSWORD'] = request.get('nethvoice_adm_password', "")
 
 ## NethVoice Hotel
-getFromRequest(request, 'nethvoice_hotel', 'NETHVOICE_HOTEL', 'False')
-getFromRequest(request, 'nethvoice_hotel_fias_address', 'NETHVOICE_HOTEL_FIAS_ADDRESS', '')
-getFromRequest(request, 'nethvoice_hotel_fias_port', 'NETHVOICE_HOTEL_FIAS_PORT', '')
+if "nethvoice_hotel" in request :
+    agent.set_env('NETHVOICE_HOTEL', request['nethvoice_hotel'])
+if "nethvoice_hotel_fias_address" in request :
+    agent.set_env('NETHVOICE_HOTEL_FIAS_ADDRESS', request['nethvoice_hotel_fias_address'])
+if "nethvoice_hotel_fias_port" in request :
+    agent.set_env('NETHVOICE_HOTEL_FIAS_PORT', request['nethvoice_hotel_fias_port'])
 
 # Satellite Deepgram and OpenAI api keys
-getFromRequest(request, 'satellite_call_transcription_enabled', 'SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'False')
-getFromRequest(request, 'satellite_voicemail_transcription_enabled', 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED', 'False')
-passwordsfile['DEEPGRAM_API_KEY'] = request.get('deepgram_api_key', '')
-passwordsfile['OPENAI_API_KEY'] = request.get('openai_api_key', '')
+if "satellite_call_transcription_enabled" in request:
+    agent.set_env('SATELLITE_CALL_TRANSCRIPTION_ENABLED', request['satellite_call_transcription_enabled'])
+if "satellite_voicemail_transcription_enabled" in request:
+    agent.set_env('SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED', request['satellite_voicemail_transcription_enabled'])
+if "deepgram_api_key" in request:
+    passwordsfile['DEEPGRAM_API_KEY'] = request.get('deepgram_api_key')
+if "openai_api_key" in request:
+    passwordsfile['OPENAI_API_KEY'] = request.get('openai_api_key')
 
-# set NETHCTI_CDR_SCRIPT to /usr/share/neth-hotel-fias/cdr.php if nethvoice_hotel_fias_address is set
-if request.get('nethvoice_hotel_fias_address', '') != '' and request.get('nethcti_cdr_script', '') == '':
+# Set APP Brand ID if present in the request, this attribute is only used
+# by the migration tool procedure.
+# Deprecated, will be removed in future releases.
+if "app_brand_id" in request:
+    agent.set_env('BRAND_APPID', request['app_brand_id'])
+
+# set NETHCTI_CDR_SCRIPT to /usr/share/neth-hotel-fias/cdr.php if
+# nethvoice_hotel_fias_address is set and NETHCTI_CDR_SCRIPT is empty or not
+# set.
+# Otherwise, a custom CDR script set by the user would be overridden.
+if request.get('nethvoice_hotel_fias_address', '') != '' and os.environ.get('NETHCTI_CDR_SCRIPT', '') == '':
     agent.set_env('NETHCTI_CDR_SCRIPT', '/usr/share/neth-hotel-fias/cdr.php')
 
 # write the passwords.env file

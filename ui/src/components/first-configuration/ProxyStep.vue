@@ -18,13 +18,6 @@
       :description="error.getAvailableInterfaces"
       :showCloseButton="false"
     />
-    <NsInlineNotification
-      v-if="error.listModules"
-      kind="error"
-      :title="core.$t('action.list-modules')"
-      :description="error.listModules"
-      :showCloseButton="false"
-    />
     <cv-skeleton-text
       v-if="
         !instanceStatus || loadingNethvoiceDefaults || loading.getProxyConfig
@@ -49,14 +42,6 @@
               <ServerRackPictogram />
             </template>
           </NsEmptyState>
-          <div class="h-3rem">
-            <cv-inline-loading
-              v-if="loading.listModules"
-              state="loading"
-              :loadingText="$t('common.loading')"
-              class="items-start"
-            />
-          </div>
         </template>
         <template v-else>
           <!-- installing proxy -->
@@ -326,13 +311,11 @@ export default {
       configuringProxyProgress: 0,
       isInstallProxyValidationCompleted: false,
       isConfigureProxyValidationCompleted: false,
-      apps: [],
       loading: {
         getProxyConfig: false,
         getAvailableInterfaces: false,
         installProxy: false,
         configureModule: false,
-        listModules: false,
         resolveFqdn: false,
       },
       error: {
@@ -343,7 +326,6 @@ export default {
         getAvailableInterfaces: "",
         installProxy: "",
         configureModule: "",
-        listModules: false,
       },
     };
   },
@@ -361,24 +343,6 @@ export default {
         return true;
       } else {
         return false;
-      }
-    },
-    proxyVersion() {
-      if (!this.apps) {
-        return "";
-      }
-
-      const proxyApp = this.apps.find((app) => app.id === "nethvoice-proxy");
-
-      if (
-        proxyApp &&
-        proxyApp.versions &&
-        proxyApp.versions.length > 0 &&
-        proxyApp.versions[0].tag
-      ) {
-        return proxyApp.versions[0].tag;
-      } else {
-        return "";
       }
     },
   },
@@ -403,8 +367,6 @@ export default {
         this.internalIsProxyInstalled = newVal;
 
         if (!newVal) {
-          // if proxy is not installed, retrieve modules to obtain proxy version
-          this.listModules();
           this.$emit("set-next-label", this.$t("welcome.proxy.install_proxy"));
         } else {
           this.$emit("set-next-label", this.core.$t("common.next"));
@@ -433,9 +395,6 @@ export default {
         this.$emit("set-next-enabled", !newVal);
       },
     },
-  },
-  created() {
-    this.listModules();
   },
   methods: {
     next() {
@@ -764,7 +723,7 @@ export default {
         this.createClusterTaskForApp({
           action: taskAction,
           data: {
-            image: `ghcr.io/nethesis/nethvoice-proxy:${this.proxyVersion}`,
+            image: "nethvoice-proxy",
             node: nodeId,
           },
           extra: {
@@ -881,62 +840,10 @@ export default {
     goToCertificates() {
       this.core.$router.push("/settings/tls-certificates");
     },
-    async listModules() {
-      this.loading.listModules = true;
-      this.error.listModules = "";
-      const taskAction = "list-modules";
-      const eventId = this.getUuid();
-
-      // register to task error
-      this.core.$root.$once(
-        `${taskAction}-aborted-${eventId}`,
-        this.listModulesAborted
-      );
-
-      // register to task completion
-      this.core.$root.$once(
-        `${taskAction}-completed-${eventId}`,
-        this.listModulesCompleted
-      );
-
-      const res = await to(
-        this.createClusterTaskForApp({
-          action: taskAction,
-          extra: {
-            title: this.core.$t("action." + taskAction),
-            isNotificationHidden: true,
-            eventId,
-          },
-        })
-      );
-      const err = res[0];
-
-      if (err) {
-        console.error(`error creating task ${taskAction}`, err);
-        this.error.listModules = this.getErrorMessage(err);
-        this.loading.listModules = false;
-        return;
-      }
-    },
-    listModulesAborted(taskResult, taskContext) {
-      console.error(`${taskContext.action} aborted`, taskResult);
-      this.error.listModules = this.$t("error.generic_error");
-      this.loading.listModules = false;
-    },
-    listModulesCompleted(taskContext, taskResult) {
-      let apps = taskResult.output;
-      apps.sort(this.sortByProperty("name"));
-      this.apps = apps;
-      this.loading.listModules = false;
-    },
   },
 };
 </script>
 
 <style scoped lang="scss">
 @import "../../styles/carbon-utils";
-
-.h-3rem {
-  height: 3rem;
-}
 </style>

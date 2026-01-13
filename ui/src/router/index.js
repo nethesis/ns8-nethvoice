@@ -5,6 +5,9 @@
 import Vue from "vue";
 import VueRouter from "vue-router";
 import Status from "../views/Status.vue";
+import Integrations from "../views/Integrations.vue";
+import Rebranding from "../views/Rebranding.vue";
+import Hotel from "../views/Hotel.vue";
 import Settings from "../views/Settings.vue";
 
 Vue.use(VueRouter);
@@ -15,6 +18,21 @@ const routes = [
     name: "Status",
     component: Status,
     alias: "/status", // important
+  },
+  {
+    path: "/integrations",
+    name: "Integrations",
+    component: Integrations,
+  },
+  {
+    path: "/rebranding",
+    name: "Rebranding",
+    component: Rebranding,
+  },
+  {
+    path: "/hotel",
+    name: "Hotel",
+    component: Hotel,
   },
   {
     path: "/settings",
