@@ -20,7 +20,13 @@
  * along with NethServer.  If not, see COPYING.
  */
 
-class NethVoiceAuth
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+use Slim\Psr7\Response;
+
+class NethVoiceAuth implements MiddlewareInterface
 {
     private $config;
 
@@ -38,25 +44,18 @@ class NethVoiceAuth
         $this->config = $config;
     }
 
-    public function __invoke($request, $response, $next)
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        if ($request->isOptions()) {
-            $response = $next($request, $response);
+        if ($request->getMethod() === 'OPTIONS') {
+            return $handler->handle($request);
         } elseif ($request->hasHeader('Authentication')) {
             if($request->getHeaderLine('Authentication') === ('static ' . $this->config['static_token'])
                 && ($request->getHeaderLine('HTTP_HOST') === '127.0.0.1' || $request->getHeaderLine('HTTP_HOST') === 'localhost')
             ) {
                 // Local autentication for NethCTI success
-                $response = $next($request, $response);
+                return $handler->handle($request);
             } else {
-                $results = array(
-                    'type' => 'https://nethesis.github.io/tancredi/problems#forbidden',
-                    'title' => 'Access to resource is forbidden with current client privileges',
-                    'detail' => 'Invalid client credentials'
-                );
-                $response = $response->withJson($results, 403);
-                $response = $response->withHeader('Content-Type', 'application/problem+json');
-                $response = $response->withHeader('Content-Language', 'en');
+                return $this->createForbiddenResponse();
             }
         } elseif ($request->hasHeader('Secretkey') && $request->hasHeader('User')) {
             $dbh = new \PDO(
@@ -67,35 +66,39 @@ class NethVoiceAuth
             $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE sections LIKE '%*%' AND username = ?");
             $stmt->execute(array($request->getHeaderLine('User')));
             $user = $stmt->fetchAll();
-            $password_sha1 = $user[0]['password_sha1'];
-            $username = $user[0]['username'];
 
-            // check the user is valid and is an admin (sections = *)
-            if (isset($username, $password_sha1) && $request->getHeaderLine('Secretkey') === sha1($username . $password_sha1 . $this->config['secret'])) {
-                $response = $next($request, $response);
-            } else {
-                $results = array(
-                    'type' => 'https://nethesis.github.io/tancredi/problems#forbidden',
-                    'title' => 'Access to resource is forbidden with current client privileges',
-                    'detail' => 'Invalid client credentials'
-                );
-                $response = $response->withJson($results, 403);
-                $response = $response->withHeader('Content-Type', 'application/problem+json');
-                $response = $response->withHeader('Content-Language', 'en');
+            if (!empty($user)) {
+                $password_sha1 = $user[0]['password_sha1'];
+                $username = $user[0]['username'];
+
+                // check the user is valid and is an admin (sections = *)
+                if (isset($username, $password_sha1) && $request->getHeaderLine('Secretkey') === sha1($username . $password_sha1 . $this->config['secret'])) {
+                    return $handler->handle($request);
+                }
             }
+
+            return $this->createForbiddenResponse();
         } elseif ($request->getUri()->getPath() === 'macvendors') {
-            $response = $next($request, $response);
+            return $handler->handle($request);
         } else {
-            $results = array(
-                'type' => 'https://nethesis.github.io/tancredi/problems#forbidden',
-                'title' => 'Access to resource is forbidden with current client privileges',
-                'detail' => 'Invalid NethVoiceAuth authentication headers',
-            );
-            $response = $response->withJson($results, 403);
-            $response = $response->withHeader('Content-Type', 'application/problem+json');
-            $response = $response->withHeader('Content-Language', 'en');
+            return $this->createForbiddenResponse('Invalid NethVoiceAuth authentication headers');
         }
-        return $response;
+    }
+
+    private function createForbiddenResponse($detail = 'Invalid client credentials'): ResponseInterface
+    {
+        $results = array(
+            'type' => 'https://nethesis.github.io/tancredi/problems#forbidden',
+            'title' => 'Access to resource is forbidden with current client privileges',
+            'detail' => $detail
+        );
+
+        $response = new Response();
+        $response->getBody()->write(json_encode($results));
+        return $response
+            ->withStatus(403)
+            ->withHeader('Content-Type', 'application/problem+json')
+            ->withHeader('Content-Language', 'en');
     }
 }
 
