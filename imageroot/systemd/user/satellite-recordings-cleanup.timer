@@ -1,0 +1,11 @@
+[Unit]
+Description=Retry and delete failed satellite transcriptions recording
+
+[Timer]
+OnCalendar=*:0/10
+Persistent=true
+RandomizedDelaySec=5m
+FixedRandomDelay=true
+
+[Install]
+WantedBy=timers.target

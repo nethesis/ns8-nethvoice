@@ -14,7 +14,7 @@ The extension should have:
 - voicemail email configured
 - voicemail email attachment enabled
 
-The voicemail transcription is added to the voicemail message body and saved in the voicemessages_transcriptions table.
+The voicemail transcription is added to the voicemail message body and saved by Satellite in its transcription database
 
 ## Call transcription
 
@@ -41,8 +41,6 @@ satellite/final {"uniqueid": "1750153516.571", "summary": "- Foo 1: \"Prova\"\n-
 ```
 
 
-
-
 ## Environment variables
 
 `ASTERISK_URL`: http://127.0.1:${ASTERISK_WS_PORT}
@@ -55,6 +53,11 @@ satellite/final {"uniqueid": "1750153516.571", "summary": "- Foo 1: \"Prova\"\n-
 `DEEPGRAM_API_KEY`: ${SATELLITE_DEEPGRAM_API_KEY}
 `OPENAI_API_KEY`: ${SATELLITE_OPENAI_API_KEY}
 `HTTP_PORT`: ${SATELLITE_HTTP_PORT}
+`PGVECTOR_HOST`: 127.0.0.1
+`PGVECTOR_PORT`: ${SATELLITE_PGSQL_PORT}
+`PGVECTOR_DATABASE`: ${SATELLITE_PGSQL_DB}
+`PGVECTOR_USER`: ${SATELLITE_PGSQL_USER}
+`PGVECTOR_PASSWORD`: ${SATELLITE_PGSQL_PASSWORD}
 
 ## NethServer 8 variables
 `SATELLITE_RTP_PORT`: 
@@ -66,6 +69,9 @@ satellite/final {"uniqueid": "1750153516.571", "summary": "- Foo 1: \"Prova\"\n-
 `SATELLITE_ARI_APP`: satellite
 `NETHVOICE_SATELLITE_IMAGE`:
 `SATELLITE_CALL_TRANSCRIPTION_ENABLED`:
+`SATELLITE_PGSQL_PORT`: 
+`SATELLITE_PGSQL_DB`: satellite
+`SATELLITE_PGSQL_USER`: satellite
 
 
 ## Testing real time call transcription

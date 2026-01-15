@@ -1,0 +1,148 @@
+#!/bin/bash
+
+# Exit immediately if a command exits with a non-zero status.
+set -e
+# Treat unset variables as an error when substituting.
+set -u
+# Pipes fail on the first error.
+set -o pipefail
+
+require_cmd() {
+    command -v "$1" >/dev/null 2>&1 || {
+        echo "Error: Required command not found: $1" >&2
+        exit 127
+    }
+}
+
+# Function to display usage information
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") -u <uniqueid> [-l <language>] [-c0 <name>] [-c1 <name>]
+
+This script calls the get_transcription API with the specified WAV file.
+
+ARGUMENTS:
+    -u, --uniqueid    (Required) The unique ID for the WAV file located at /tmp/satellite-\${UNIQUEID}.wav
+    -c0, --channel0_name (Optional) Speaker label for channel 0.
+    -c1, --channel1_name (Optional) Speaker label for channel 1.
+    -h, --help        Show this help.
+
+ENVIRONMENT VARIABLES:
+  SATELLITE_HTTP_PORT   (Required) The port on which the API is listening.
+EOF
+    exit 1
+}
+
+# Parse Command-Line Arguments
+UNIQUEID=""
+CHANNEL0_NAME=""
+CHANNEL1_NAME=""
+
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            usage
+            ;;
+        -u|--uniqueid)
+            if [[ "$#" -lt 2 ]]; then
+                echo "Error: --uniqueid requires a value." >&2
+                usage
+            fi
+            UNIQUEID="$2"
+            shift 2
+            ;;
+        -c0|--channel0_name)
+            if [[ "$#" -lt 2 ]]; then
+                echo "Error: --channel0_name requires a value." >&2
+                usage
+            fi
+            CHANNEL0_NAME="$2"
+            shift 2
+            ;;
+        -c1|--channel1_name)
+            if [[ "$#" -lt 2 ]]; then
+                echo "Error: --channel1_name requires a value." >&2
+                usage
+            fi
+            CHANNEL1_NAME="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown option: $1"
+            usage
+            ;;
+    esac
+done
+
+# Validate Inputs
+if [ -z "${UNIQUEID}" ]; then
+    echo "Error: --uniqueid is a required argument." >&2
+    usage
+fi
+
+if [ -z "${SATELLITE_HTTP_PORT-}" ]; then
+    echo "Error: SATELLITE_HTTP_PORT environment variables must be set." >&2
+    exit 1
+fi
+
+if ! [[ "${SATELLITE_HTTP_PORT}" =~ ^[0-9]+$ ]] || (( SATELLITE_HTTP_PORT < 1 || SATELLITE_HTTP_PORT > 65535 )); then
+    echo "Error: SATELLITE_HTTP_PORT must be an integer between 1 and 65535." >&2
+    exit 1
+fi
+
+require_cmd curl
+
+MAIN_WAV="/var/run/nethvoice/satellite-${UNIQUEID}.wav"
+WAV_R="/var/run/nethvoice/satellite-r-${UNIQUEID}.wav"
+WAV_T="/var/run/nethvoice/satellite-t-${UNIQUEID}.wav"
+LOCK_FILE="/var/run/nethvoice/satellite-transcription-${UNIQUEID}.lock"
+
+# Check for Existing Lock File to Prevent Concurrent Executions or create it using flock
+exec 200>"${LOCK_FILE}"
+flock -n 200 || {
+    echo "Error: Another instance of the script is already running for UNIQUEID=${UNIQUEID}." >&2
+    exit 1
+}
+
+# Ensure Cleanup of Lock File on Exit
+trap 'rm -f "${LOCK_FILE}"' EXIT TERM INT
+
+if [ ! -f "${MAIN_WAV}" ]; then
+    if [ ! -f "${WAV_R}" ] || [ ! -f "${WAV_T}" ]; then
+        echo "Error: Audio file not found at ${MAIN_WAV} and missing one/both legs (${WAV_R}, ${WAV_T})." >&2
+        exit 1
+    fi
+    require_cmd sox
+    sox -M "${WAV_T}" "${WAV_R}" "${MAIN_WAV}"
+fi
+
+# Build and Execute API Call
+API_URL="http://127.0.0.1:${SATELLITE_HTTP_PORT}/api/get_transcription"
+
+# Build the curl command arguments in an array for safety and clarity
+CURL_ARGS=(
+    --silent
+    --show-error
+    --fail
+    --request POST
+    --form "multichannel=true"
+    --form "encoding=linear16"
+    --form "sample_rate=8000"
+    --form "channels=2"
+    --form "channel0_name=${CHANNEL0_NAME:-Channel 0}"
+    --form "channel1_name=${CHANNEL1_NAME:-Channel 1}"
+    --form "persist=true"
+    --form "summary=true"
+    --form "uniqueid=${UNIQUEID}"
+    --form "file=@${MAIN_WAV};type=audio/wav"
+)
+
+# Execute the curl command
+echo "Sending POST request to ${API_URL}"
+if curl "${API_URL}" "${CURL_ARGS[@]}"; then
+    rm -f -- "${MAIN_WAV}" "${WAV_T}" "${WAV_R}" 2>/dev/null || true
+else
+    echo "Error: Failed to get transcription from the API." >&2
+    exit 1
+fi
+
