@@ -165,24 +165,24 @@ function nethhotel_get_config($engine) {
                         $inspected_vacant = $fcc8->getCodeActive();
                         if($inspected_vacant) {
                             $context = 'camere';
-                            $ext->add($context, $inspected_vacant,'', new ext_system('/usr/share/neth-hotel-fias/re2pms.php ${CALLERID(number):-3} 5'));
-                            $ext->add($context, $inspected_vacant,'', new ext_noop('Room ${CALLERID(number):-3} status is now Inspected/Vacant'));
+                            $ext->add($context, $inspected_vacant,'', new ext_system('/usr/share/neth-hotel-fias/re2pms.php ${CALLERID(number)} 5'));
+                            $ext->add($context, $inspected_vacant,'', new ext_noop('Room ${CALLERID(number)} status is now Inspected/Vacant'));
                             $ext->add($context, $inspected_vacant,'', new ext_playback('activated'));
                             $ext->add($context, $inspected_vacant,'', new ext_hangup());
                         }
                         $inspected_occupied = $fcc9->getCodeActive();
                         if($inspected_occupied) {
                             $context = 'camere';
-                            $ext->add($context, $inspected_occupied,'', new ext_system('/usr/share/neth-hotel-fias/re2pms.php ${CALLERID(number):-3} 6'));
-                            $ext->add($context, $inspected_occupied,'', new ext_noop('Room ${CALLERID(number):-3} status is now Inspected/Occupied'));
+                            $ext->add($context, $inspected_occupied,'', new ext_system('/usr/share/neth-hotel-fias/re2pms.php ${CALLERID(number)} 6'));
+                            $ext->add($context, $inspected_occupied,'', new ext_noop('Room ${CALLERID(number)} status is now Inspected/Occupied'));
                             $ext->add($context, $inspected_occupied,'', new ext_playback('activated'));
                             $ext->add($context, $inspected_occupied,'', new ext_hangup());
                         }
                         $dirty_occupied = $fcc10->getCodeActive();
                         if($dirty_occupied) {
                             $context = 'camere';
-                            $ext->add($context, $dirty_occupied,'', new ext_system('/usr/share/neth-hotel-fias/re2pms.php ${CALLERID(number):-3} 2'));
-                            $ext->add($context, $dirty_occupied,'', new ext_noop('Room ${CALLERID(number):-3} status is now Dirty/Occupied'));
+                            $ext->add($context, $dirty_occupied,'', new ext_system('/usr/share/neth-hotel-fias/re2pms.php ${CALLERID(number)} 2'));
+                            $ext->add($context, $dirty_occupied,'', new ext_noop('Room ${CALLERID(number)} status is now Dirty/Occupied'));
                             $ext->add($context, $dirty_occupied,'', new ext_playback('activated'));
                             $ext->add($context, $dirty_occupied,'', new ext_hangup());
                         }
