@@ -166,12 +166,6 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                     $name,
                     ""
                 );
-            } else {
-                $exists["dialopts"] = isset($exists["dialopts"]) ? $exists["dialopts"] : false;
-                if ($exists["dialopts"] === false) {
-                    unset($exists["dialopts"]);
-                }
-                core_users_edit($extension, $exists);
             }
         break;
 
