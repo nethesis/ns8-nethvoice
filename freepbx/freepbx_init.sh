@@ -124,7 +124,7 @@ for module in "${obsolete_modules[@]}"; do
 done
 
 # Fix permissions
-fwconsole chown
+ionice -c2 -n7 nice -n 10 fwconsole chown
 
 # Disable signature check
 php -r 'include_once "/etc/freepbx_db.conf"; $db->query("UPDATE freepbx_settings SET value = 0 WHERE keyword = \"SIGNATURECHECK\"");'
