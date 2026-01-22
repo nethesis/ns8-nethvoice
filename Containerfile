@@ -21,7 +21,7 @@ COPY imageroot /imageroot
 # copy ui from ui_builder
 COPY --from=ui_builder /app/dist /ui
 ENTRYPOINT [ "/" ]
-LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm,portsadm nethvoice-proxy@any:routeadm"
+LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm,portsadm nethvoice-proxy@any:routeadm matrix@any:matrixadm"
 LABEL org.nethserver.tcp-ports-demand="36"
 LABEL org.nethserver.rootfull="0"
 LABEL org.nethserver.min-core="3.6.2-0"
