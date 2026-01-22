@@ -35,7 +35,7 @@ ExecStart=/usr/bin/podman run \
         --detach \
         --name %N \
         ${NETHVOICE_REPORTS_API_IMAGE}
-ExecStartPost=/bin/bash -c "while ! /usr/bin/podman exec reports-redis redis-cli ping 2>/dev/null >/dev/null; do sleep 1; done && /usr/bin/podman exec %N tasks values"
+ExecStartPost=/bin/bash -c 'for i in {1..60}; do /usr/bin/podman exec reports-redis redis-cli ping >/dev/null 2>&1 && break; sleep 1; done && /usr/bin/podman exec %N tasks values'
 ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
