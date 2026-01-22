@@ -136,8 +136,16 @@ if 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED' in os.environ and os.environ['SAT
                 # Prepare the file for upload
                 files = {'file': ('voicemail.wav', audio_data, 'audio/wav')}
 
+                # Get API token from environment
+                api_token = os.environ.get('SATELLITE_API_TOKEN', '')
+                if api_token:
+                    # add api token to headers
+                    headers = {'Authorization': f'Bearer {api_token}'}
+                else:
+                    headers = {}
+
                 # Make the API call to satellite
-                response = requests.post(satellite_url, files=files, timeout=30)
+                response = requests.post(satellite_url, files=files, headers=headers, timeout=30)
                 response.raise_for_status()
 
                 # Parse JSON response and extract transcript
