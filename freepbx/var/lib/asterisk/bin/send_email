@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import time
 import os
 import sys
 import smtplib
@@ -124,7 +125,7 @@ if 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED' in os.environ and os.environ['SAT
         # Extract the audio data from the wav attachment
         audio_data = None
         for part in message.walk():
-            if part.get_content_type() == 'audio/x-wav':
+            if part.get_content_type() in ('audio/x-wav', 'audio/wav'):
                 audio_data = part.get_payload(decode=True)
                 break
         if audio_data:
@@ -136,8 +137,45 @@ if 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED' in os.environ and os.environ['SAT
                 # Prepare the file for upload
                 files = {'file': ('voicemail.wav', audio_data, 'audio/wav')}
 
+                # Optional form fields
+                data = {}
+
+                # Query cdrdb to get the call uniqueid
+                uniqueid = None
+                try:
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    now = int(time.time())
+                    cursor.execute(
+                        "SELECT uniqueid,cnam,dst_cnam FROM cdr WHERE src = %s AND lastapp = 'VoiceMail' AND uniqueid BETWEEN %s AND %s ORDER BY calldate DESC LIMIT 1",
+                        (message.get('X-Asterisk-CallerID', ''), now - 600, now) # last 10 minutes
+                    )
+                    result = cursor.fetchone()
+                    if result:
+                        uniqueid = result[0]
+                        cnam = result[1]
+                        dst_cnam = result[2]
+                    cursor.close()
+                    conn.close()
+                except Exception as e:
+                    print(f"Error querying database for uniqueid: {e}", file=sys.stderr)
+
+                # If uniqueid exists, enable persistence on satellite
+                if uniqueid:
+                    data['uniqueid'] = str(uniqueid)
+                    # Save transcription in satellite database
+                    data['persist'] = 'true'
+                    # Store summary in satellite database if OpenAI key is configured
+                    data['summary'] = 'true'
+                    # If cnam is available, set channel0_name
+                    if cnam:
+                        data['channel0_name'] = cnam
+                    # If dst_cnam is available, set channel1_name
+                    if dst_cnam:
+                        data['channel1_name'] = dst_cnam
+
                 # Make the API call to satellite
-                response = requests.post(satellite_url, files=files, timeout=30)
+                response = requests.post(satellite_url, files=files, data=data, timeout=60)
                 response.raise_for_status()
 
                 # Parse JSON response and extract transcript
@@ -160,27 +198,6 @@ if 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED' in os.environ and os.environ['SAT
                             part.set_payload(body)
                             part.set_charset("UTF-8")
                             break
-
-                    # extract the message id
-                    message_id = message.get('Message-ID', '')
-                    if message_id:
-                        # Extract the voicemail ID from the Message-ID
-                        voicemessage_id = message_id.split('-')[1]
-                        # Update the voicemessage table in the database with the transcription
-                        try:
-                            conn = get_db_connection()
-                            cursor = conn.cursor()
-                            cursor.execute(
-                                "INSERT IGNORE INTO voicemessages_transcriptions (voicemessage_id,transcription) VALUES (%s, %s)",
-                                (voicemessage_id,transcription_result)
-                            )
-                            conn.commit()
-                            cursor.close()
-                            conn.close()
-                        except mysql.connector.Error as db_error:
-                            print(f"Database error updating transcription: {db_error}", file=sys.stderr)
-                        except Exception as db_error:
-                            print(f"Unexpected database error: {db_error}", file=sys.stderr)
 
             except requests.exceptions.RequestException as e:
                 print(f"Error transcribing audio: {e}", file=sys.stderr)

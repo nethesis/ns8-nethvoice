@@ -18,6 +18,12 @@ if call_enabled == 'True' or vm_enabled == 'True':
 
     subprocess.run(["systemctl", "--user", "enable", "satellite.service"], check=True)
     subprocess.run(["systemctl", "--user", "restart", "satellite.service"], check=True)
+
+    subprocess.run(["systemctl", "--user", "enable", "satellite-pgsql.service"], check=True)
+    subprocess.run(["systemctl", "--user", "restart", "satellite-pgsql.service"], check=True)
+
+    subprocess.run(["systemctl", "--user", "enable", "satellite-recordings-cleanup.service"], check=True)
+    subprocess.run(["systemctl", "--user", "restart", "satellite-recordings-cleanup.service"], check=True)
 elif call_enabled == 'False' and vm_enabled == 'False':
     # Stop and disable services
     subprocess.run(["systemctl", "--user", "stop", "satellite.service"], check=False)
@@ -25,3 +31,9 @@ elif call_enabled == 'False' and vm_enabled == 'False':
 
     subprocess.run(["systemctl", "--user", "stop", "satellite-mqtt.service"], check=False)
     subprocess.run(["systemctl", "--user", "disable", "satellite-mqtt.service"], check=False)
+
+    subprocess.run(["systemctl", "--user", "stop", "satellite-pgsql.service"], check=False)
+    subprocess.run(["systemctl", "--user", "disable", "satellite-pgsql.service"], check=False)
+
+    subprocess.run(["systemctl", "--user", "stop", "satellite-recordings-cleanup.service"], check=False)
+    subprocess.run(["systemctl", "--user", "disable", "satellite-recordings-cleanup.service"], check=False)
