@@ -24,6 +24,7 @@ ExecStart=runagent /usr/bin/podman run \
     --env=MQTT_TOPIC_PREFIX=satellite \
     --env=MQTT_USERNAME=${SATELLITE_MQTT_USERNAME} \
     --env=HTTP_PORT=${SATELLITE_HTTP_PORT} \
+    --env=API_TOKEN=${SATELLITE_API_TOKEN} \
     --tz=${TIMEZONE} \
     --network=host \
     ${NETHVOICE_SATELLITE_IMAGE}

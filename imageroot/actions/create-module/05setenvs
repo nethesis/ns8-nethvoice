@@ -212,7 +212,8 @@ passwords = {
     "REPORTS_API_KEY": gen_password(),
     "REPORTS_SECRET": gen_password(),
     "SATELLITE_MQTT_PASSWORD": gen_password(),
-    "SATELLITE_ARI_PASSWORD": gen_password()
+    "SATELLITE_ARI_PASSWORD": gen_password(),
+    "SATELLITE_API_TOKEN": gen_password()
 }
 
 agent.write_envfile("passwords.env", passwords)
