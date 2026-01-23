@@ -100,9 +100,10 @@ angular-patternfly@patternfly/angular-patternfly#3.15.0:
     lodash "3.x"
     patternfly "~3.15.0"
 
-angular-resource@angular/bower-angular-resource#1.4.0:
-  version "1.4.0"
-  resolved "https://codeload.github.com/angular/bower-angular-resource/tar.gz/51fac1b7d12c0a4f1a730f9edb33a7d23add7e89"
+angular-resource@angular/bower-angular-resource#v1.8.3:
+  version "1.8.3"
+  uid c0217706b83e628301fb90bc8d7fbeff4540a20a
+  resolved "https://codeload.github.com/angular/bower-angular-resource/tar.gz/c0217706b83e628301fb90bc8d7fbeff4540a20a"
 
 angular-route@angular/bower-angular-route#1.4.0:
   version "1.4.0"
@@ -525,6 +526,13 @@ bootstrap-select@~1.10.0:
   integrity sha1-lJlnnnAATbwAhyUiMi07k6DxMuQ=
   dependencies:
     jquery ">=1.8"
+
+bootstrap-switch@3.3.2:
+  version "3.3.2"
+  resolved "https://registry.yarnpkg.com/bootstrap-switch/-/bootstrap-switch-3.3.2.tgz#79ddb49fadc308fb731e257f95957af48996eea7"
+  integrity sha512-9ntjMDMeawsUAxp15DiO1po3kf1J8xSSENesgTLJc0j/HoB4wZ8ap8bk8LlazywDHh05E8740nue0LX2A98ZPw==
+  dependencies:
+    jquery ">=1.9.0"
 
 bootstrap-switch@nostalgiaz/bootstrap-switch#v3.3.4:
   version "3.3.4"
@@ -3619,6 +3627,11 @@ jquery@>=1.7, jquery@>=1.7.0, jquery@>=1.7.1, jquery@>=1.8, "jquery@^1.8.3 || ^2
   version "2.1.4"
   resolved "https://registry.yarnpkg.com/jquery/-/jquery-2.1.4.tgz#228bde698a0c61431dc2630a6a154f15890d2317"
   integrity sha1-IoveaYoMYUMdwmMKahVPFYkNIxc=
+
+jquery@>=1.9.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/jquery/-/jquery-4.0.0.tgz#95c33ac29005ff72ec444c5ba1cf457e61404fbb"
+  integrity sha512-TXCHVR3Lb6TZdtw1l3RTLf8RBWVGexdxL6AC8/e0xZKEpBflBsjh9/8LXw+dkNFuOyW9B7iB3O1sP7hS0Kiacg==
 
 jquery@jquery/jquery-dist#~2.1.4:
   version "2.1.4"
