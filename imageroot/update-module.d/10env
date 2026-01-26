@@ -98,6 +98,8 @@ if not 'SATELLITE_ARI_PASSWORD' in agent.read_envfile('passwords.env'):
     passwordsfile['SATELLITE_ARI_PASSWORD'] = gen_password()
 if not 'SATELLITE_PGSQL_PASSWORD' in agent.read_envfile('passwords.env'):
     passwordsfile['SATELLITE_PGSQL_PASSWORD'] = gen_password()
+if not 'SATELLITE_API_TOKEN' in agent.read_envfile('passwords.env'):
+    passwordsfile['SATELLITE_API_TOKEN'] = gen_password()
 agent.write_envfile('passwords.env', passwordsfile)
 
 if os.getenv('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT') is None:

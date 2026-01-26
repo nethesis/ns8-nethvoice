@@ -40,37 +40,63 @@ satellite/final {"uniqueid": "1750153516.571", "clean_transcription": "Foo 1: Pr
 satellite/final {"uniqueid": "1750153516.571", "summary": "- Foo 1: \"Prova\"\n- \"prova prova\"\n- \"funzioni allora\""}
 ```
 
-
 ## Environment variables
 
 `ASTERISK_URL`: http://127.0.1:${ASTERISK_WS_PORT}
+
 `ARI_APP`: ${SATELLITE_ARI_APP}
+
 `ARI_USERNAME`: ${SATELLITE_ARI_USERNAME}
+
 `RTP_PORT`: ${SATELLITE_RTP_PORT}
+
 `MQTT_URL`: mqtt://127.0.0.1:${SATELLITE_MQTT_PORT}
+
 `MQTT_TOPIC_PREFIX`: satellite
+
 `MQTT_USERNAME`: ${SATELLITE_MQTT_USERNAME}
+
 `DEEPGRAM_API_KEY`: ${SATELLITE_DEEPGRAM_API_KEY}
+
 `OPENAI_API_KEY`: ${SATELLITE_OPENAI_API_KEY}
+
 `HTTP_PORT`: ${SATELLITE_HTTP_PORT}
+
 `PGVECTOR_HOST`: 127.0.0.1
+
 `PGVECTOR_PORT`: ${SATELLITE_PGSQL_PORT}
+
 `PGVECTOR_DATABASE`: ${SATELLITE_PGSQL_DB}
+
 `PGVECTOR_USER`: ${SATELLITE_PGSQL_USER}
+
 `PGVECTOR_PASSWORD`: ${SATELLITE_PGSQL_PASSWORD}
 
+
 ## NethServer 8 variables
+
 `SATELLITE_RTP_PORT`: 
+
 `SATELLITE_ARI_USERNAME`: satellite
+
 `SATELLITE_HTTP_PORT`:
+
 `SATELLITE_MQTT_PORT`:
+
 `SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED`:
+
 `SATELLITE_MQTT_USERNAME`: satellite
+
 `SATELLITE_ARI_APP`: satellite
+
 `NETHVOICE_SATELLITE_IMAGE`:
+
 `SATELLITE_CALL_TRANSCRIPTION_ENABLED`:
+
 `SATELLITE_PGSQL_PORT`: 
+
 `SATELLITE_PGSQL_DB`: satellite
+
 `SATELLITE_PGSQL_USER`: satellite
 
 
@@ -80,3 +106,8 @@ satellite/final {"uniqueid": "1750153516.571", "summary": "- Foo 1: \"Prova\"\n-
 export $(grep SATELLITE_MQTT_PASSWORD passwords.env); podman exec -it satellite-mqtt mosquitto_sub -h 127.0.0.1 -p "${SATELLITE_MQTT_PORT:-1883}" -u "$SATELLITE_MQTT_USERNAME" -P "$SATELLITE_MQTT_PASSWORD" -t "#" -v
 ```
 
+## Testing /api/get_transcription endpoint
+
+```
+export $(grep SATELLITE_API_TOKEN passwords.env);curl "http://127.0.0.1:${SATELLITE_HTTP_PORT}/api/get_transcription" --show-error --request POST --form "multichannel=false" --form "encoding=linear16" --form "sample_rate=8000" --form "channels=1" --form "persist=false" --form "summary=false" --header "Authorization: Bearer ${SATELLITE_API_TOKEN}" --form "file=@test.wav;type=audio/wav"
+```
