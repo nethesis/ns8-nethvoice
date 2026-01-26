@@ -90,6 +90,10 @@ if ! [[ "${SATELLITE_HTTP_PORT}" =~ ^[0-9]+$ ]] || (( SATELLITE_HTTP_PORT < 1 ||
     exit 1
 fi
 
+if [ -z "${SATELLITE_API_TOKEN-}" ]; then
+    echo "Warning: SATELLITE_API_TOKEN environment variable not set." >&2
+fi
+
 require_cmd curl
 
 MAIN_WAV="/var/run/nethvoice/satellite-${UNIQUEID}.wav"
@@ -136,6 +140,13 @@ CURL_ARGS=(
     --form "uniqueid=${UNIQUEID}"
     --form "file=@${MAIN_WAV};type=audio/wav"
 )
+
+# Add Authorization header if SATELLITE_API_TOKEN is set
+if [ -n "${SATELLITE_API_TOKEN-}" ]; then
+    CURL_ARGS+=(
+        --header "Authorization: Bearer ${SATELLITE_API_TOKEN}"
+    )
+fi
 
 # Execute the curl command
 echo "Sending POST request to ${API_URL}"
