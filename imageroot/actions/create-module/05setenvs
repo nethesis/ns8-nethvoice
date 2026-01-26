@@ -150,6 +150,9 @@ agent.set_env('ASTERISK_RECORDING_SFTP_PORT', port_list[30])
 agent.set_env('ASTERISK_WS_PORT', port_list[31])
 agent.set_env('SATELLITE_MQTT_PORT', port_list[32])
 agent.set_env('SATELLITE_HTTP_PORT', port_list[33])
+agent.set_env('SATELLITE_PGSQL_USER', 'satellite')
+agent.set_env('SATELLITE_PGSQL_DB', 'satellite')
+agent.set_env('SATELLITE_PGSQL_PORT', str(port_list[36]))
 
 # Asterisk WSS
 agent.set_env('ASTERISK_WSS_PORT', port_list[34])
@@ -213,6 +216,7 @@ passwords = {
     "REPORTS_SECRET": gen_password(),
     "SATELLITE_MQTT_PASSWORD": gen_password(),
     "SATELLITE_ARI_PASSWORD": gen_password(),
+    "SATELLITE_PGSQL_PASSWORD": gen_password(),
     "SATELLITE_API_TOKEN": gen_password()
 }
 

@@ -57,3 +57,6 @@ if podman exec freepbx ls -alh /var/lib/asterisk/sounds/nethcti >/dev/null 2>&1;
     podman cp freepbx:/var/lib/asterisk/sounds/nethcti/. asterisk_backup/var/lib/asterisk/sounds/nethcti
 fi
 
+# satellite postgresql dump
+echo "Dumping Satellite PostgreSQL database"
+podman exec satellite-pgsql pg_dumpall -U satellite > satellite_postgresql.pg_dump
