@@ -58,8 +58,7 @@ $app->post('/physicalextensions', function (Request $request, Response $response
         }
 
         if (empty($params['mainextension'])) {
-            $vendors = json_decode(file_get_contents(__DIR__. '/../lib/macAddressMap.json'), true);
-            $vendor = $vendors[substr($mac,0,8)];
+            $vendor = getVendorFromMac($mac);
             if (!empty($mac) && addPhone($mac, $vendor, $model)) {
                 return $response->withStatus(200);
             } else {
