@@ -244,7 +244,7 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
 
     // Add custom headers for trunks to trunks module
     public static function myGuiHooks() {
-        return array("core", "INTERCEPT" => array("modules/core/page.trunks.php"));
+        return array("core", "INTERCEPT" => array("modules/core/page.trunks.php","modules/core/page.routing.php"));
     }
 
     public function doGuiHook($filename, &$output){}
@@ -312,6 +312,14 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
                 </div>
                 <!--END DISABLE SRTP-->';
             $output = str_replace('<!--END OUTBOUND PROXY-->','<!--END OUTBOUND PROXY-->'.$topos_section.$disable_srtp_header_section,$output);
+        } elseif ($filename == "modules/core/page.routing.php" && $_REQUEST['display'] == "routing") {
+            // always show the Outbound Routes notification on pattern and disable radio button #7795
+            $string_to_find = '<input type="radio" name="notification_on" id="call" value="call"';
+            $string_to_replace = '<input type="radio" name="notification_on" id="call" value="call" disabled>';
+            $output = preg_replace('/'.$string_to_find.'.*/', $string_to_replace, $output);
+            $string_to_find = '<input type="radio" name="notification_on" id="pattern" value="pattern"';
+            $string_to_replace = '<input type="radio" name="notification_on" id="pattern" value="pattern" checked>';
+            $output = preg_replace('/'.$string_to_find.'.*/', $string_to_replace, $output);
         }
     }
 
