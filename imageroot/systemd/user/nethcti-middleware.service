@@ -5,8 +5,7 @@
 [Unit]
 Description=NethCTI middleware daemon
 Wants=nethcti-server.service
-After=nethcti-server.service
-After=mariadb.service
+After=nethcti-server.service mariadb.service
 Requires=mariadb.service
 
 [Service]
@@ -36,6 +35,8 @@ ExecStart=/usr/bin/podman run \
     --env=NETHVOICE_MIDDLEWARE_V1_PROTOCOL \
     --env=SATELLITE_MQTT_HOST \
     --env=SATELLITE_MQTT_PORT \
+    --env=SATELLITE_PGSQL_HOST \
+    --env=SATELLITE_PGSQL_PORT \
     --env=NETHVOICE_MIDDLEWARE_MARIADB_PASSWORD=${MARIADB_ROOT_PASSWORD} \
     --env=NETHVOICE_MIDDLEWARE_MARIADB_PORT=${NETHVOICE_MARIADB_PORT} \
     --network=host \
