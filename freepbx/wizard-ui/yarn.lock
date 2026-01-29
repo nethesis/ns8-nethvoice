@@ -157,14 +157,10 @@ angular-ui-sortable@angular-ui/ui-sortable#0.16.1:
   resolved "https://registry.yarnpkg.com/angular/-/angular-1.6.10.tgz#eed3080a34d29d0f681ff119b18ce294e3f74826"
   integrity sha512-PCZ5/hVdvPQiYyH0VwsPjrErPHRcITnaXxhksceOXgtJeesKHLA7KDu4X/yvcAi+1zdGgGF+9pDxkJvghXI9Wg==
 
-angular@>=1.4.0:
+angular@>=1.4.0, angular@angular/bower-angular#v1.8.3:
   version "1.8.3"
-  resolved "https://registry.yarnpkg.com/angular/-/angular-1.8.3.tgz#851ad75d5163c105a7e329555ef70c90aa706894"
-  integrity sha512-5qjkWIQQVsHj4Sb5TcEs4WZWpFeVFHXwxEBHUhrny41D8UrBAd6T/6nPPAsLngJCReIOqi95W3mxdveveutpZw==
-
-angular@angular/bower-angular#1.4.0:
-  version "1.4.0"
-  resolved "https://codeload.github.com/angular/bower-angular/tar.gz/e2f2cf7dc4a3ef1859ab28e657eca0e9edb588ba"
+  uid "142f3c4bc7d43b6de39581a0d886bbf97f8b62ef"
+  resolved "https://codeload.github.com/angular/bower-angular/tar.gz/142f3c4bc7d43b6de39581a0d886bbf97f8b62ef"
 
 ansi-align@^2.0.0:
   version "2.0.0"
@@ -525,6 +521,13 @@ bootstrap-select@~1.10.0:
   integrity sha1-lJlnnnAATbwAhyUiMi07k6DxMuQ=
   dependencies:
     jquery ">=1.8"
+
+bootstrap-switch@3.3.2:
+  version "3.3.2"
+  resolved "https://registry.yarnpkg.com/bootstrap-switch/-/bootstrap-switch-3.3.2.tgz#79ddb49fadc308fb731e257f95957af48996eea7"
+  integrity sha512-9ntjMDMeawsUAxp15DiO1po3kf1J8xSSENesgTLJc0j/HoB4wZ8ap8bk8LlazywDHh05E8740nue0LX2A98ZPw==
+  dependencies:
+    jquery ">=1.9.0"
 
 bootstrap-switch@nostalgiaz/bootstrap-switch#v3.3.4:
   version "3.3.4"
@@ -3619,6 +3622,11 @@ jquery@>=1.7, jquery@>=1.7.0, jquery@>=1.7.1, jquery@>=1.8, "jquery@^1.8.3 || ^2
   version "2.1.4"
   resolved "https://registry.yarnpkg.com/jquery/-/jquery-2.1.4.tgz#228bde698a0c61431dc2630a6a154f15890d2317"
   integrity sha1-IoveaYoMYUMdwmMKahVPFYkNIxc=
+
+jquery@>=1.9.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/jquery/-/jquery-4.0.0.tgz#95c33ac29005ff72ec444c5ba1cf457e61404fbb"
+  integrity sha512-TXCHVR3Lb6TZdtw1l3RTLf8RBWVGexdxL6AC8/e0xZKEpBflBsjh9/8LXw+dkNFuOyW9B7iB3O1sP7hS0Kiacg==
 
 jquery@jquery/jquery-dist#~2.1.4:
   version "2.1.4"
