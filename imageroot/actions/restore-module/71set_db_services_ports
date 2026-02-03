@@ -95,4 +95,18 @@ SET `value` = '0',
     `sortorder` = 0
 WHERE `keyword` = 'HTTPTLSENABLE';
 """
+
+# Update the proxy value for extensions
+SQL_QUERY += f"""
+UPDATE `asterisk`.`sip`
+SET `data` = 'sip:{os.environ['PROXY_IP']}:{os.environ['PROXY_PORT']};lr'
+WHERE `keyword` = 'outbound_proxy' AND `data` LIKE 'sip:%;lr';
+"""
+# Update the proxy value for trunks
+SQL_QUERY += f"""
+UPDATE `asterisk`.`pjsip`
+SET `data` = 'sip:{os.environ['PROXY_IP']}:{os.environ['PROXY_PORT']};lr'
+WHERE `keyword` = 'outbound_proxy' AND `data` LIKE 'sip:%;lr';
+"""
+
 agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
