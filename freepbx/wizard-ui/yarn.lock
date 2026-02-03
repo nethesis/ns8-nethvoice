@@ -3731,19 +3731,6 @@ jsonfile@^2.1.0:
   optionalDependencies:
     graceful-fs "^4.1.6"
 
-jspdf-autotable@^3.7.1:
-  version "3.7.1"
-  resolved "https://registry.yarnpkg.com/jspdf-autotable/-/jspdf-autotable-3.7.1.tgz#9fdf74963a86c36e101beed5950186316d4f44ae"
-  integrity sha512-5fgjqE8nIwUoNz5l/i/aD/uONKofE4yp/kJ097EKBllPVTPGnGV5OWHld30db3+CvNrgzrRl8gmTnKF6vag05g==
-
-jspdf@MrRio/jsPDF#1.3.3:
-  version "1.3.3"
-  resolved "https://codeload.github.com/MrRio/jsPDF/tar.gz/ac12a246456496d509be585d0fa504da55aef96e"
-  dependencies:
-    adler32cs "github:chick307/adler32cs.js"
-    cf-blob.js "0.0.1"
-    filesaver.js "github:andyinabox/FileSaver.js"
-
 jsprim@^1.2.2:
   version "1.4.1"
   resolved "https://registry.yarnpkg.com/jsprim/-/jsprim-1.4.1.tgz#313e66bc1e5cc06e438bc1b7499c2e5c56acb6a2"
