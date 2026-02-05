@@ -396,8 +396,7 @@ function legacy_useExtensionAsPhysical($extension,$mac,$model,$line=false, $web_
         // insert created physical extension in password table
         $extension_secret = sql('SELECT data FROM `sip` WHERE id = "' . $extension . '" AND keyword="secret"', "getOne");
         $dbh = FreePBX::Database();
-        $vendors = json_decode(file_get_contents(__DIR__. '/../lib/macAddressMap.json'), true);
-        $vendor = $vendors[substr($mac,0,8)];
+        $vendor = getVendorFromMac($mac);
         $stmt = $dbh->prepare('SELECT COUNT(*) AS num FROM `rest_devices_phones` WHERE mac = ?');
         $stmt->execute(array($mac));
         $res = $stmt->fetchAll()[0]['num'];
@@ -461,8 +460,7 @@ function tancredi_useExtensionAsPhysical($extension,$mac,$model,$line=false,$web
     // insert created physical extension in password table
     $extension_secret = sql('SELECT data FROM `sip` WHERE id = "' . $extension . '" AND keyword="secret"', "getOne");
     $dbh = FreePBX::Database();
-    $vendors = json_decode(file_get_contents(__DIR__. '/../lib/macAddressMap.json'), true);
-    $vendor = $vendors[substr($mac,0,8)];
+    $vendor = getVendorFromMac($mac);
     $stmt = $dbh->prepare('SELECT COUNT(*) AS num FROM `rest_devices_phones` WHERE mac = ?');
     $stmt->execute(array($mac));
     $res = $stmt->fetchAll()[0]['num'];
@@ -493,11 +491,27 @@ function tancredi_useExtensionAsPhysical($extension,$mac,$model,$line=false,$web
     return false;
 }
 
-function setFalconieriRPS($mac, $provisioningUrl, $lk = null, $secret = null) {
-    $mac = strtr(strtoupper($mac), ':', '-'); // MAC format sanitization
-    $vendors = json_decode(file_get_contents(__DIR__. '/../lib/macAddressMap.json'), true);
-    $vendor = $vendors[substr(str_replace('-',':',"$mac"),0,8)];
+/*
+* Get vendor from MAC address
+*/
+function getVendorFromMac($mac) {
+    $mac = strtoupper(str_replace([':', '-'], '', $mac)); // MAC format sanitization
+    $vendors_ranges = json_decode(file_get_contents(__DIR__. '/../lib/macAddressMap.json'), true);
+    foreach ($vendors_ranges as $vendor => $ranges) {
+        foreach ($ranges as $range) {
+            if (strcmp($mac, strtoupper(str_replace([':', '-'], '', $range["start"]))) >= 0 && strcmp($mac, strtoupper(str_replace([':', '-'], '', $range["end"]))) <= 0) {
+                return $vendor;
+            }
+        }
+    }
+    return null;
+}
 
+/*
+* Register device with Falconieri RPS
+*/
+function setFalconieriRPS($mac, $provisioningUrl, $lk = null, $secret = null) {
+    $vendor = getVendorFromMac($mac);
     if($vendor == 'Snom') {
         $provider = 'snom';
     } elseif($vendor == 'Gigaset') {
@@ -516,6 +530,7 @@ function setFalconieriRPS($mac, $provisioningUrl, $lk = null, $secret = null) {
     //get secret
     $secret = $_ENV['SUBSCRIPTION_SECRET'];
 
+    $mac = strtr(strtoupper($mac), ':', '-'); // MAC format sanitization
     $queryUrl = "https://rps.nethesis.it/providers/${provider}/${mac}";
     $data = json_encode(array("url" => $provisioningUrl), JSON_UNESCAPED_SLASHES);
 

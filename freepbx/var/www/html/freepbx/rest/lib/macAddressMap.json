@@ -1,78 +1,414 @@
 {
-"7C:1E:B3":"2N",
-"00:08:5D":"Aastra",
-"00:10:BC":"Aastra",
-"00:90:33":"AG",
-"0C:11:05":"Akuvox",
-"9C:75:14":"Akuvox",
-"74:65:D1":"Alcatel Temporis",
-"00:00:0C":"Cisco/Linksys",
-"00:01:42":"Cisco/Linksys",
-"00:01:43":"Cisco/Linksys",
-"00:01:63":"Cisco/Linksys",
-"00:01:64":"Cisco/Linksys",
-"00:01:96":"Cisco/Linksys",
-"00:01:97":"Cisco/Linksys",
-"00:01:C7":"Cisco/Linksys",
-"00:01:C9":"Cisco/Linksys",
-"00:03:6B":"Cisco/Linksys",
-"00:07:0E":"Cisco/Linksys",
-"00:0E:38":"Cisco/Linksys",
-"00:0E:84":"Cisco/Linksys",
-"00:0F:23":"Cisco/Linksys",
-"00:13:C4":"Cisco/Linksys",
-"00:16:C8":"Cisco/Linksys",
-"00:17:5A":"Cisco/Linksys",
-"00:17:95":"Cisco/Linksys",
-"00:18:18":"Cisco/Linksys",
-"00:19:30":"Cisco/Linksys",
-"00:19:AA":"Cisco/Linksys",
-"00:1A:2F":"Cisco/Linksys",
-"00:1B:D4":"Cisco/Linksys",
-"00:1C:58":"Cisco/Linksys",
-"00:1D:45":"Cisco/Linksys",
-"00:1D:A2":"Cisco/Linksys",
-"00:1E:F7":"Cisco/Linksys",
-"00:21:55":"Cisco/Linksys",
-"1C:DF:0F":"Cisco/Linksys",
-"30:E4:DB":"Cisco/Linksys",
-"3C:CE:73":"Cisco/Linksys",
-"54:75:D0":"Cisco/Linksys",
-"54:7C:69":"Cisco/Linksys",
-"58:BF:EA":"Cisco/Linksys",
-"64:9E:F3":"Cisco/Linksys",
-"A4:4C:11":"Cisco/Linksys",
-"C4:64:13":"Cisco/Linksys",
-"C8:9C:1D":"Cisco/Linksys",
-"E0:2F:6D":"Cisco/Linksys",
-"E0:5F:B9":"Cisco/Linksys",
-"00:00:00":"CloudTC",
-"00:0F:D3":"Digium",
-"00:A8:59":"Fanvil",
-"00:A8:5A":"Fanvil",
-"0C:38:3E":"Fanvil",
-"58:9E:C6":"Gigaset",
-"7C:2F:80":"Gigaset",
-"00:0B:82":"Grandstream",
-"00:90:F8":"Mediatrix",
-"08:00:0F":"Mitel",
-"E0:E6:56":"Nethesis",
-"00:50:C2":"Norphonic",
-"10:45:BE":"Norphonic",
-"BC:C3:42":"Panasonic",
-"00:A0:BA":"Patton",
-"00:04:F2":"Polycom",
-"00:90:7A":"Polycom",
-"00:50:58":"Sangoma",
-"00:0E:08":"Sipura",
-"00:04:13":"Snom",
-"00:14:7F":"Thomson",
-"00:1F:9F":"Thomson",
-"64:24:00":"Xorcom",
-"00:15:65":"Yealink/Dreamwave",
-"24:9A:D8":"Yealink/Dreamwave",
-"44:DB:D2":"Yealink/Dreamwave",
-"80:5E:0C":"Yealink/Dreamwave",
-"80:5E:C0":"Yealink/Dreamwave",
-"C4:FC:22":"Yealink/Dreamwave"
+    "2N": [
+        {
+            "start": "7C-1E-B3-00-00-00",
+             "end": "7C-1E-B3-FF-FF-FF"
+        }
+    ],
+    "Aastra": [
+        {
+            "start": "00-08-5D-00-00-00",
+             "end": "00-08-5D-FF-FF-FF"
+        },
+        {
+            "start": "00-10-BC-00-00-00",
+             "end": "00-10-BC-FF-FF-FF"
+        }
+    ],
+    "AG": [
+        {
+            "start": "00-90-33-00-00-00",
+             "end": "00-90-33-FF-FF-FF"
+        }
+    ],
+    "Akuvox": [
+        {
+            "start": "0C-11-05-00-00-00",
+             "end": "0C-11-05-FF-FF-FF"
+        },
+        {
+            "start": "9C-75-14-00-00-00",
+             "end": "9C-75-14-FF-FF-FF"
+        }
+    ],
+    "Alcatel Temporis": [
+        {
+            "start": "74-65-D1-00-00-00",
+             "end": "74-65-D1-FF-FF-FF"
+        }
+    ],
+    "Cisco/Linksys": [
+        {
+            "start": "00-00-0C-00-00-00",
+             "end": "00-00-0C-FF-FF-FF"
+        },
+        {
+            "start": "00-01-42-00-00-00",
+             "end": "00-01-43-FF-FF-FF"
+        },
+        {
+            "start": "00-01-63-00-00-00",
+             "end": "00-01-64-FF-FF-FF"
+        },
+        {
+            "start": "00-01-96-00-00-00",
+             "end": "00-01-97-FF-FF-FF"
+        },
+        {
+            "start": "00-01-C7-00-00-00",
+             "end": "00-01-C7-FF-FF-FF"
+        },
+        {
+            "start": "00-01-C9-00-00-00",
+             "end": "00-01-C9-FF-FF-FF"
+        },
+        {
+            "start": "00-03-6B-00-00-00",
+             "end": "00-03-6B-FF-FF-FF"
+        },
+        {
+            "start": "00-07-0E-00-00-00",
+             "end": "00-07-0E-FF-FF-FF"
+        },
+        {
+            "start": "00-0E-38-00-00-00",
+             "end": "00-0E-38-FF-FF-FF"
+        },
+        {
+            "start": "00-0E-84-00-00-00",
+             "end": "00-0E-84-FF-FF-FF"
+        },
+        {
+            "start": "00-0F-23-00-00-00",
+             "end": "00-0F-23-FF-FF-FF"
+        },
+        {
+            "start": "00-13-C4-00-00-00",
+             "end": "00-13-C4-FF-FF-FF"
+        },
+        {
+            "start": "00-16-C8-00-00-00",
+             "end": "00-16-C8-FF-FF-FF"
+        },
+        {
+            "start": "00-17-5A-00-00-00",
+             "end": "00-17-5A-FF-FF-FF"
+        },
+        {
+            "start": "00-17-95-00-00-00",
+             "end": "00-17-95-FF-FF-FF"
+        },
+        {
+            "start": "00-18-18-00-00-00",
+             "end": "00-18-18-FF-FF-FF"
+        },
+        {
+            "start": "00-19-30-00-00-00",
+             "end": "00-19-30-FF-FF-FF"
+        },
+        {
+            "start": "00-19-AA-00-00-00",
+             "end": "00-19-AA-FF-FF-FF"
+        },
+        {
+            "start": "00-1A-2F-00-00-00",
+             "end": "00-1A-2F-FF-FF-FF"
+        },
+        {
+            "start": "00-1B-D4-00-00-00",
+             "end": "00-1B-D4-FF-FF-FF"
+        },
+        {
+            "start": "00-1C-58-00-00-00",
+             "end": "00-1C-58-FF-FF-FF"
+        },
+        {
+            "start": "00-1D-45-00-00-00",
+             "end": "00-1D-45-FF-FF-FF"
+        },
+        {
+            "start": "00-1D-A2-00-00-00",
+             "end": "00-1D-A2-FF-FF-FF"
+        },
+        {
+            "start": "00-1E-F7-00-00-00",
+             "end": "00-1E-F7-FF-FF-FF"
+        },
+        {
+            "start": "00-21-55-00-00-00",
+             "end": "00-21-55-FF-FF-FF"
+        },
+        {
+            "start": "1C-DF-0F-00-00-00",
+             "end": "1C-DF-0F-FF-FF-FF"
+        },
+        {
+            "start": "30-E4-DB-00-00-00",
+             "end": "30-E4-DB-FF-FF-FF"
+        },
+        {
+            "start": "3C-CE-73-00-00-00",
+             "end": "3C-CE-73-FF-FF-FF"
+        },
+        {
+            "start": "54-75-D0-00-00-00",
+             "end": "54-75-D0-FF-FF-FF"
+        },
+        {
+            "start": "54-7C-69-00-00-00",
+             "end": "54-7C-69-FF-FF-FF"
+        },
+        {
+            "start": "58-BF-EA-00-00-00",
+             "end": "58-BF-EA-FF-FF-FF"
+        },
+        {
+            "start": "64-9E-F3-00-00-00",
+             "end": "64-9E-F3-FF-FF-FF"
+        },
+        {
+            "start": "A4-4C-11-00-00-00",
+             "end": "A4-4C-11-FF-FF-FF"
+        },
+        {
+            "start": "C4-64-13-00-00-00",
+             "end": "C4-64-13-FF-FF-FF"
+        },
+        {
+            "start": "C8-9C-1D-00-00-00",
+             "end": "C8-9C-1D-FF-FF-FF"
+        },
+        {
+            "start": "E0-2F-6D-00-00-00",
+             "end": "E0-2F-6D-FF-FF-FF"
+        },
+        {
+            "start": "E0-5F-B9-00-00-00",
+             "end": "E0-5F-B9-FF-FF-FF"
+        }
+    ],
+    "CloudTC": [
+        {
+            "start": "00-00-00-00-00-00",
+             "end": "00-00-00-FF-FF-FF"
+        }
+    ],
+    "Digium": [
+        {
+            "start": "00-0F-D3-00-00-00",
+             "end": "00-0F-D3-FF-FF-FF"
+        }
+    ],
+    "Fanvil": [
+        {
+            "start": "00-A8-59-00-00-00",
+             "end": "00-A8-5A-FF-FF-FF"
+        },
+        {
+            "start": "0C-38-3E-00-00-00",
+             "end": "0C-38-3E-FF-FF-FF"
+        }
+    ],
+    "Gigaset": [
+        {
+            "start": "58-9E-C6-00-00-00",
+            "end": "58-9E-C6-FF-FF-FF"
+        },
+        {
+            "start": "7C-2F-80-00-00-00",
+            "end": "7C-2F-80-FF-FF-FF"
+        },
+        {
+            "start": "00-04-13-E5-00-00",
+            "end": "00-04-13-E5-FF-FF"
+        },
+        {
+            "start": "00-04-13-80-00-00",
+            "end": "00-04-13-80-9E-B2"
+        },
+        {
+            "start": "00-04-13-80-A2-2D",
+            "end": "00-04-13-80-F5-FA"
+        },
+        {
+            "start": "00-04-13-80-F8-E1",
+            "end": "00-04-13-80-FF-FF"
+        },
+        {
+            "start": "00-04-13-D8-4F-3E",
+            "end": "00-04-13-D8-52-7B"
+        },
+        {
+            "start": "00-04-13-D8-6E-EC",
+            "end": "00-04-13-D8-71-95"
+        },
+        {
+            "start": "00-04-13-E7-00-00",
+            "end": "00-04-13-E7-FF-FF"
+        },
+        {
+            "start": "00-04-13-E2-00-00",
+            "end": "00-04-13-E2-FF-FF"
+        },
+        {
+            "start": "00-04-13-E3-00-00",
+            "end": "00-04-13-E3-FF-FF"
+        },
+        {
+            "start": "00-AC-DC-E3-00-00",
+            "end": "00-AC-DC-E4-FF-FF"
+        }
+    ],
+    "Grandstream": [
+        {
+            "start": "00-0B-82-00-00-00",
+             "end": "00-0B-82-FF-FF-FF"
+        }
+    ],
+    "Mediatrix": [
+        {
+            "start": "00-90-F8-00-00-00",
+             "end": "00-90-F8-FF-FF-FF"
+        }
+    ],
+    "Mitel": [
+        {
+            "start": "08-00-0F-00-00-00",
+             "end": "08-00-0F-FF-FF-FF"
+        }
+    ],
+    "Nethesis": [
+        {
+            "start": "E0-E6-56-00-00-00",
+             "end": "E0-E6-56-FF-FF-FF"
+        }
+    ],
+    "Norphonic": [
+        {
+            "start": "00-50-C2-00-00-00",
+             "end": "00-50-C2-FF-FF-FF"
+        },
+        {
+            "start": "10-45-BE-00-00-00",
+             "end": "10-45-BE-FF-FF-FF"
+        }
+    ],
+    "Panasonic": [
+        {
+            "start": "BC-C3-42-00-00-00",
+             "end": "BC-C3-42-FF-FF-FF"
+        }
+    ],
+    "Patton": [
+        {
+            "start": "00-A0-BA-00-00-00",
+             "end": "00-A0-BA-FF-FF-FF"
+        }
+    ],
+    "Polycom": [
+        {
+            "start": "00-04-F2-00-00-00",
+             "end": "00-04-F2-FF-FF-FF"
+        },
+        {
+            "start": "00-90-7A-00-00-00",
+             "end": "00-90-7A-FF-FF-FF"
+        }
+    ],
+    "Sangoma": [
+        {
+            "start": "00-50-58-00-00-00",
+             "end": "00-50-58-FF-FF-FF"
+        }
+    ],
+    "Sipura": [
+        {
+            "start": "00-0E-08-00-00-00",
+             "end": "00-0E-08-FF-FF-FF"
+        }
+    ],
+    "Snom": [
+        {
+            "start": "00-04-13-00-00-00",
+            "end": "00-04-13-7F-FF-FF"
+        },
+        {
+            "start": "00-04-13-80-9E-B3",
+            "end": "00-04-13-80-A2-2C"
+        },
+        {
+            "start": "00-04-13-80-F5-FB",
+            "end": "00-04-13-80-F8-E0"
+        },
+        {
+            "start": "00-04-13-81-00-00",
+            "end": "00-04-13-D8-4F-3D"
+        },
+        {
+            "start": "00-04-13-D8-52-7C",
+            "end": "00-04-13-D8-6E-EB"
+        },
+        {
+            "start": "00-04-13-D8-71-96",
+            "end": "00-04-13-D8-FF-FF"
+        },
+        {
+            "start": "00-04-13-D9-00-00",
+            "end": "00-04-13-E1-FF-FF"
+        },
+        {
+            "start": "00-04-13-E4-00-00",
+            "end": "00-04-13-E4-FF-FF"
+        },
+        {
+            "start": "00-04-13-E6-00-00",
+            "end": "00-04-13-E6-FF-FF"
+        },
+        {
+            "start": "00-04-13-E8-00-00",
+            "end": "00-04-13-FF-FF-FF"
+        }
+    ],
+    "Thomson": [
+        {
+            "start": "00-14-7F-00-00-00",
+             "end": "00-14-7F-FF-FF-FF"
+        },
+        {
+            "start": "00-1F-9F-00-00-00",
+             "end": "00-1F-9F-FF-FF-FF"
+        }
+    ],
+    "Xorcom": [
+        {
+            "start": "64-24-00-00-00-00",
+             "end": "64-24-00-FF-FF-FF"
+        }
+    ],
+    "Yealink/Dreamwave": [
+        {
+            "start": "00-15-65-00-00-00",
+             "end": "00-15-65-FF-FF-FF"
+        },
+        {
+            "start": "24-9A-D8-00-00-00",
+             "end": "24-9A-D8-FF-FF-FF"
+        },
+        {
+            "start": "44-DB-D2-00-00-00",
+             "end": "44-DB-D2-FF-FF-FF"
+        },
+        {
+            "start": "80-5E-0C-00-00-00",
+             "end": "80-5E-0C-FF-FF-FF"
+        },
+        {
+            "start": "80-5E-C0-00-00-00",
+             "end": "80-5E-C0-FF-FF-FF"
+        },
+        {
+            "start": "C4-FC-22-00-00-00",
+             "end": "C4-FC-22-FF-FF-FF"
+        }
+    ]
 }
