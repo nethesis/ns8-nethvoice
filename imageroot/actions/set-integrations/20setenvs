@@ -28,5 +28,9 @@ if 'deepgram_api_key' in request:
 if 'openai_api_key' in request:
     passwordsfile['OPENAI_API_KEY'] = request['openai_api_key']
 
+# set OPENAI_KEY_PRESENT for UI (do not expose the key)
+openai_key = passwordsfile.get('OPENAI_API_KEY', '')
+agent.set_env('OPENAI_KEY_PRESENT', 'true' if openai_key else 'false')
+
 # write the passwords.env file
 agent.write_envfile("passwords.env", passwordsfile)
