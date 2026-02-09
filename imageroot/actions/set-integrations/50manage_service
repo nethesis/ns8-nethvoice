@@ -27,6 +27,7 @@ if call_enabled == 'True' or vm_enabled == 'True':
 
     subprocess.run(["systemctl", "--user", "try-restart", "freepbx.service"], check=True)
     subprocess.run(["systemctl", "--user", "try-restart", "nethcti-server.service"], check=True)
+    subprocess.run(["systemctl", "--user", "try-restart", "nethcti-ui.service"], check=True)
 elif call_enabled == 'False' and vm_enabled == 'False':
     # Stop and disable services
     subprocess.run(["systemctl", "--user", "stop", "satellite.service"], check=False)
@@ -43,3 +44,4 @@ elif call_enabled == 'False' and vm_enabled == 'False':
 
     subprocess.run(["systemctl", "--user", "try-restart", "freepbx.service"], check=True)
     subprocess.run(["systemctl", "--user", "try-restart", "nethcti-server.service"], check=True)
+    subprocess.run(["systemctl", "--user", "try-restart", "nethcti-ui.service"], check=True)
