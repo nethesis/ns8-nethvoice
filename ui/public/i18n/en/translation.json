@@ -172,11 +172,13 @@
   "integrations": {
     "title": "Integrations",
     "deepgram_api_key": "Deepgram API Key",
+    "openai_api_key": "OpenAI API Key",
     "call_transcription": "Call transcription (Preview)",
     "voicemail_transcription_enabled": "Voicemail transcription",
     "call_transcription_warning_title": "Potential high credit usage",
     "call_transcription_warning_description": "Transcriptions are enabled for every call. Your Deepgram credits may run out quickly if you have many calls.",
-    "deepgram_api_key_tooltip": "To use call and voicemail transcription, you need a Deepgram API key. You can get one by signing up at {deepgramLink}."
+    "deepgram_api_key_tooltip": "To use call and voicemail transcription, you need a Deepgram API key. You can get one by signing up at {deepgramLink}.",
+    "openai_api_key_tooltip": "To generate call summaries, configure an OpenAI API key. You can create one at {openaiLink}."
   },
   "rebranding": {
     "title": "Rebranding",

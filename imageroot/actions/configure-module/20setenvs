@@ -50,6 +50,10 @@ if "deepgram_api_key" in request:
 if "openai_api_key" in request:
     passwordsfile['OPENAI_API_KEY'] = request.get('openai_api_key')
 
+# set OPENAI_KEY_PRESENT for UI (do not expose the key)
+openai_key = passwordsfile.get('OPENAI_API_KEY', '')
+agent.set_env('OPENAI_KEY_PRESENT', 'true' if openai_key else 'false')
+
 # Set APP Brand ID if present in the request, this attribute is only used
 # by the migration tool procedure.
 # Deprecated, will be removed in future releases.

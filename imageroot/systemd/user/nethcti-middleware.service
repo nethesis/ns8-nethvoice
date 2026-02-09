@@ -5,11 +5,13 @@
 [Unit]
 Description=NethCTI middleware daemon
 Wants=nethcti-server.service
-After=nethcti-server.service
+Requires=mariadb.service
+After=nethcti-server.service mariadb.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%S/state/environment
+EnvironmentFile=%S/state/passwords.env
 WorkingDirectory=%S/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/nethcti-middleware.pid %t/nethcti-middleware.ctr-id
@@ -25,6 +27,7 @@ ExecStart=/usr/bin/podman run \
     --name=%N \
     --volume=nethcti-middleware-audit:/var/log \
     --volume=nethcti-middleware-secrets:/var/lib/whale/secrets \
+    --volume=nethcti:/etc/nethcti:z \
     --env-file=%S/state/passwords.env \
     --env=NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS \
     --env=NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT \
@@ -32,6 +35,10 @@ ExecStart=/usr/bin/podman run \
     --env=NETHVOICE_MIDDLEWARE_V1_PROTOCOL \
     --env=SATELLITE_MQTT_HOST \
     --env=SATELLITE_MQTT_PORT \
+    --env=SATELLITE_PGSQL_HOST \
+    --env=SATELLITE_PGSQL_PORT \
+    --env=NETHVOICE_MIDDLEWARE_MARIADB_PASSWORD=${MARIADB_ROOT_PASSWORD} \
+    --env=NETHVOICE_MIDDLEWARE_MARIADB_PORT=${NETHVOICE_MARIADB_PORT} \
     --network=host \
     --tz=${TIMEZONE} \
     ${NETHVOICE_CTI_MIDDLEWARE_IMAGE}

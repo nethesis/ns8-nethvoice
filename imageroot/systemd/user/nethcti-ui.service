@@ -32,6 +32,7 @@ ExecStart=/usr/bin/podman run \
     --env=SIP_PORT=${ASTERISK_SIP_PORT} \
     --env=TIMEZONE=${TIMEZONE} \
     --env=LOGIN_PEOPLE=${LOGIN_PEOPLE} \
+    --env=OPENAI_KEY_PRESENT=${OPENAI_KEY_PRESENT} \
     --env=NAVBAR_LOGO_URL=${NAVBAR_LOGO_URL} \
     --env=NAVBAR_LOGO_DARK_URL=${NAVBAR_LOGO_DARK_URL} \
     --env=LOGIN_LOGO_URL=${LOGIN_LOGO_URL} \
