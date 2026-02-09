@@ -121,11 +121,13 @@
     "integrations": {
         "title": "Integrazioni",
         "deepgram_api_key": "API Key di Deepgram",
+        "openai_api_key": "API Key OpenAI",
         "call_transcription": "Trascrizione delle chiamate (Anteprima)",
         "voicemail_transcription_enabled": "Trascrizione dei messaggi voicemail",
         "call_transcription_warning_title": "Possibile consumo elevato di crediti",
         "call_transcription_warning_description": "Le trascrizioni sono abilitate per ogni chiamata. I tuoi crediti Deepgram potrebbero esaurirsi rapidamente se effettui o ricevi molte chiamate.",
-        "deepgram_api_key_tooltip": "Per utilizzare la trascrizione delle chiamate e dei messaggi vocali, è necessaria una API Key Deepgram. Puoi ottenerne una registrandoti su {deepgramLink}."
+        "deepgram_api_key_tooltip": "Per utilizzare la trascrizione delle chiamate e dei messaggi vocali, è necessaria una API Key Deepgram. Puoi ottenerne una registrandoti su {deepgramLink}.",
+        "openai_api_key_tooltip": "Per generare i riassunti delle chiamate, configura una API Key OpenAI. Puoi crearla su {openaiLink}."
     },
     "rebranding": {
         "title": "Rebranding",
