@@ -282,14 +282,16 @@ foreach ($_GET as $key => $value) {
 
             foreach ($pieces as $d) {
                 $cDest = explode("%", $dest);
-                $connection = nethvplan_bindConnection($data, $cDest[0], $cDest[1]);
+                if (nethvplan_hasDestinationData($data, $cDest[0], $cDest[1])) {
+                    $connection = nethvplan_bindConnection($data, $cDest[0], $cDest[1]);
 
-                if (is_array($connection[0])) {
-                    foreach ($connection as $arr) {
-                        array_push($connections, $arr);
+                    if (isset($connection[0]) && is_array($connection[0])) {
+                        foreach ($connection as $arr) {
+                            array_push($connections, $arr);
+                        }
+                    } else if (!empty($connection['id'])) {
+                        array_push($connections, $connection);
                     }
-                } else {
-                    array_push($connections, $connection);
                 }
 
                 nethvplan_explore($data, $d, $tmpDestArray);
@@ -331,8 +333,10 @@ foreach ($_GET as $key => $value) {
                     "decoration"=> "draw2d.decoration.connection.ArrowDecorator"
                 );
 
-                // add connection
-                array_push($connections, $connection);
+                if (nethvplan_hasDestinationData($data, $dest, $idDest)) {
+                    // add connection only if destination exists
+                    array_push($connections, $connection);
+                }
 
                 // start exploring of connections
                 nethvplan_explore($data, $destination, $destArray);
@@ -403,6 +407,21 @@ function nethvplan_getDestination($destination)
     }
 
     return array($dest, $id);
+}
+
+// Check whether destination data exists before trying to bind widgets/connections.
+function nethvplan_hasDestinationData($data, $dest, $id)
+{
+    if ($dest === "app-blackhole") {
+        return true;
+    }
+
+    if ($dest === "ext-local") {
+        $idUsers = substr($id, 3);
+        return isset($data['from-did-direct'][$idUsers]) && is_array($data['from-did-direct'][$idUsers]);
+    }
+
+    return isset($data[$dest][$id]) && is_array($data[$dest][$id]);
 }
 
 function nethvplan_timeZoneOffset()
@@ -725,7 +744,7 @@ function nethvplan_bindData($data, $dest, $id)
               "description"=> html_entity_decode($data[$dest][$id]['description']),
               "announcement"=> html_entity_decode($data[$dest][$id]['announcement'])
             );
-            if (array_key_exists('selections', $data[$dest][$id])) {
+            if (!empty($data[$dest][$id]['selections']) && is_array($data[$dest][$id]['selections'])) {
                 foreach ($data[$dest][$id]['selections'] as $value) {
                     $widget['entities'][] = array(
                         "text"=> $value['selection'],
@@ -779,7 +798,7 @@ function nethvplan_bindData($data, $dest, $id)
                 "description"=> html_entity_decode($data[$dest][$id]['description']),
                 "announcement"=> html_entity_decode($data[$dest][$id]['announcement'])
             );
-            if (array_key_exists('selections', $data[$dest][$id])) {
+            if (!empty($data[$dest][$id]['selections']) && is_array($data[$dest][$id]['selections'])) {
                 foreach ($data[$dest][$id]['selections'] as $value) {
                     $widget['entities'][] = array(
                         "text"=> $value['condition'],
@@ -1098,7 +1117,7 @@ function nethvplan_bindConnection($data, $dest, $id)
 
             array_push($arrayTmp, $con2);
 
-            if (array_key_exists('selections', $data[$dest][$id])) {
+            if (!empty($data[$dest][$id]['selections']) && is_array($data[$dest][$id]['selections'])) {
                 foreach ($data[$dest][$id]['selections'] as $value) {
                     $res = nethvplan_getDestination($value['dest']);
                     $destNew = $res[0];
@@ -1142,7 +1161,7 @@ function nethvplan_bindConnection($data, $dest, $id)
 
             array_push($arrayTmp, $con1);
 
-            if (array_key_exists('selections', $data[$dest][$id])) {
+            if (!empty($data[$dest][$id]['selections']) && is_array($data[$dest][$id]['selections'])) {
                 foreach ($data[$dest][$id]['selections'] as $value) {
                     $res = nethvplan_getDestination($value['dest']);
                     $destNew = $res[0];
@@ -1237,6 +1256,11 @@ function nethvplan_explore($data, $destination, $destArray)
         $dest = $res[0];
         $id = $res[1];
 
+        if (!nethvplan_hasDestinationData($data, $dest, $id)) {
+            // Stale destination to avoid 500.
+            return;
+        }
+
         // choose correct destination and
         // add widget and connections
         switch ($dest) {
@@ -1318,7 +1342,7 @@ function nethvplan_explore($data, $destination, $destArray)
 
                 nethvplan_explore($data, $data[$dest][$id]['invalid_destination'], $destArray);
                 nethvplan_explore($data, $data[$dest][$id]['timeout_destination'], $destArray);
-                if (array_key_exists('selections', $data[$dest][$id])) {
+                if (!empty($data[$dest][$id]['selections']) && is_array($data[$dest][$id]['selections'])) {
                     foreach ($data[$dest][$id]['selections'] as $value) {
                         nethvplan_explore($data, $value['dest'], $destArray);
                     }
@@ -1337,7 +1361,7 @@ function nethvplan_explore($data, $destination, $destArray)
                 }
 
                 nethvplan_explore($data, $data[$dest][$id]['default_destination'], $destArray);
-                if (array_key_exists('selections', $data[$dest][$id])) {
+                if (!empty($data[$dest][$id]['selections']) && is_array($data[$dest][$id]['selections'])) {
                     foreach ($data[$dest][$id]['selections'] as $value) {
                         nethvplan_explore($data, $value['dest'], $destArray);
                     }
