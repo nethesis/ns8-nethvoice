@@ -49,7 +49,7 @@
     "angular-cookies": "angular/bower-angular-cookies#1.4.0",
     "angular-mocks": "angular/bower-angular-mocks#1.4.0",
     "angular-patternfly": "patternfly/angular-patternfly#3.15.0",
-    "angular-resource": "angular/bower-angular-resource#1.4.0",
+    "angular-resource": "angular/bower-angular-resource#v1.8.3",
     "angular-route": "angular/bower-angular-route#1.4.0",
     "angular-sanitize": "angular/bower-angular-sanitize#1.4.0",
     "angular-translate": "PascalPrecht/bower-angular-translate#2.13.0",
