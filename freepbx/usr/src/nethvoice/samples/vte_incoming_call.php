@@ -34,7 +34,7 @@ $authorization_token = base64_encode($username.':'.$accesskey);
 
 $uid     = $argv[6];
 $time    = $argv[8];
-$cidnum  = $argv[16];
+$cidnum  = $argv[7];
 $cidname = $argv[17];
 $extnum  = $argv[20];
 
