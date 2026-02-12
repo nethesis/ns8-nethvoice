@@ -81,14 +81,25 @@ Published container images associated with this repo include (non-exhaustive): `
 
 ## 2) `nethvoice-proxy` (external NS8 module)
 **What it does**
-- Handles SIP and RTP connections for the suite; implemented as a SIP proxy stack (Kamailio-based per project description). :contentReference[oaicite:34]{index=34}
+- SIP and RTP edge proxy for the NethVoice suite. Implements a Kamailio + RTPengine stack and provides service discovery/route management so multiple NethVoice instances can share a single host network. (Source: upstream ns8-nethvoice-proxy README)
 
 **Who uses it**
-- SIP endpoints at the edge (phones, softphones).
-- NethVoice module as the PBX/application side. :contentReference[oaicite:35]{index=35}
+- SIP endpoints (phones, softphones) and public SIP peers.
+- The `nethvoice` NS8 module and its helper scripts/tasks which register routes and read proxy SRV records.
 
-**Why it exists**
-- Separates signaling/media edge concerns from the PBX application services. :contentReference[oaicite:36]{index=36}
+**Used by (concrete file references)**
+- [imageroot/actions/configure-module/60sip_proxy](imageroot/actions/configure-module/60sip_proxy) — discovers proxy instance, sets `NETHVOICE_PROXY_FQDN`, `PROXY_IP`, `PROXY_PORT` and calls proxy `add-route` task.
+- [imageroot/actions/destroy-module/60sip_proxy](imageroot/actions/destroy-module/60sip_proxy) — removes proxy route on module destroy.
+- [imageroot/update-module.d/10env](imageroot/update-module.d/10env) — populates `PROXY_IP`/`PROXY_PORT` env vars when a proxy is installed.
+- [imageroot/events/nethvoice-proxy-settings-changed/20configure_proxy](imageroot/events/nethvoice-proxy-settings-changed/20configure_proxy) — event handler that (re)configures proxy routes and envs when proxy settings change.
+- [imageroot/actions/configure-module/61ice_enforce](imageroot/actions/configure-module/61ice_enforce) — reads proxy SRV records to set `ICEENFORCE`/ICE-related settings.
+- [imageroot/actions/get-defaults/10defaults](imageroot/actions/get-defaults/10defaults) and [imageroot/actions/get-defaults/validate-output.json](imageroot/actions/get-defaults/validate-output.json) — surface proxy install/status in module defaults.
+- [ui/src/components/first-configuration/ProxyStep.vue](ui/src/components/first-configuration/ProxyStep.vue) — wizard step that can instantiate a `nethvoice-proxy` module on a selected node.
+- [freepbx/var/www/html/freepbx/admin/modules/nethcti3/Nethcti3.class.php](freepbx/var/www/html/freepbx/admin/modules/nethcti3/Nethcti3.class.php) — UI/help text references headers sent to `nethvoice-proxy` (TOPOS, SRTP control) for trunk behavior.
+- [tests/00_nethvoice_install_dependencies.robot](tests/00_nethvoice_install_dependencies.robot) and [tests/99_nethvoice_remove-modules.robot](tests/99_nethvoice_remove-modules.robot) — CI/robot tests that install and remove the `nethvoice-proxy` module.
+
+**Why (sourced)**
+- From the upstream `ns8-nethvoice-proxy` README: "NS8 NethVoice proxy module, a SIP and RTP proxy allows multiple instances of NethVoice to be hosted on the same Node. The proxy uses Kamailio and rtpengine as core components." This documents the module's intent (edge SIP/RTP proxy, route management, shared-host multi-instance support).
 
 ---
 
