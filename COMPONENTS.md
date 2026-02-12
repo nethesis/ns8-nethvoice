@@ -1,332 +1,504 @@
 # Components — ns8-nethvoice
 
-## Overview
+<!-- SCHEMA: Every component entry under "## Components" MUST use this template.
+     Fields appear in this exact order. Required fields are always present.
+     Optional fields are omitted entirely when not applicable (never write "None" for optional fields).
 
-This repository packages **NethVoice** for **NethServer 8 (NS8)**. In the NS8 suite, NethVoice is the application providing VoIP telephony services, while **NethVoice Proxy** manages SIP and RTP connections. :contentReference[oaicite:0]{index=0}
+### component-id
+- **Type**: service | ns8-module | ui | integration | db | test-suite | external-module
+- **Path**: `repo/relative/dir/` | `(pulled-only)` | `(external)`
+- **Image**: `ghcr.io/nethesis/...`                         [optional]
+- **Base image**: `docker.io/library/...:tag`                [optional]
+- **Upstream repo**: https://github.com/...                  [optional]
+- **Docs**: https://...                                      [optional]
+- **Purpose**: One sentence.
+- **Why**: Documented intent (cite source). Or "Why (inferred): ..." with evidence.
+- **Used by**:
+  - `path/to/file` — one-line description
+- **External references**:
+  - https://... — context
+-->
 
-Key repo entrypoints (top-level dirs): `freepbx/`, `janus/`, `mariadb/`, `nethcti-server/`, `phonebook/`, `reports/`, `satellite/`, `sftp/`, `tancredi/`, `ui/`. :contentReference[oaicite:1]{index=1}
+## Quick Reference
 
-Published container images associated with this repo include (non-exhaustive): `nethvoice`, `nethvoice-asterisk`, `nethvoice-freepbx`, `nethvoice-mariadb`, `nethvoice-janus`, `nethvoice-phonebook`, `nethvoice-cti-server`, `nethvoice-cti-ui`, `nethvoice-cti-middleware`, `nethvoice-tancredi`, `nethvoice-reports-api`, `nethvoice-reports-ui`, `nethvoice-flexisip`, `nethvoice-sftp`, `nethvoice-satellite`. :contentReference[oaicite:2]{index=2}
-
----
-
-## Component index
-
-| Component ID | Type | Repo path | Primary purpose | Main consumers (“who uses it”) |
+| ID | Type | Path | Image | Upstream Repo |
 |---|---|---|---|---|
-| `nethvoice` | NS8 module | (root) | Orchestrates the NethVoice stack on NS8 | NS8 admins (cluster-admin), SIP endpoints, related NS8 modules :contentReference[oaicite:3]{index=3} |
-| `nethvoice-proxy` | NS8 module (external) | (separate repo) | SIP/RTP edge proxy for NethVoice | SIP endpoints, NethVoice module :contentReference[oaicite:4]{index=4} |
-| `asterisk` | Service | `imageroot/` (and image `nethvoice-asterisk`) | PBX/telephony engine | FreePBX, CTI server, SIP stack :contentReference[oaicite:5]{index=5} |
-| `freepbx` | Service | `freepbx/` | Web-based PBX management layer for Asterisk | Admins (PBX config), provisioning workflows :contentReference[oaicite:6]{index=6} |
-| `mariadb` | Service | `mariadb/` | Database backend for stack components | FreePBX, CTI, phonebook, reports (depending on deployment) :contentReference[oaicite:7]{index=7} |
-| `janus` | Service | `janus/` | WebRTC server/gateway used to establish WebRTC media sessions | Web clients / CTI UI (WebRTC softphone), stack media path :contentReference[oaicite:8]{index=8} |
-| `phonebook` | Service + NS8 API surface | `phonebook/` | Central phonebook service; exposes credentials via role/action; emits change event | Other NS8 modules, CTI UI, admins :contentReference[oaicite:9]{index=9} |
-| `nethcti-server` | Service | `nethcti-server/` | Switchboard APIs + WebSocket event stream (Asterisk-focused) | CTI UI, operators, integrations :contentReference[oaicite:10]{index=10} |
-| `cti-ui` | Service/UI | `ui/` (and image `nethvoice-cti-ui`) | Web client for CTI / WebRTC calling / phonebook/queues | End users (operators), supervisors :contentReference[oaicite:11]{index=11} |
-| `cti-middleware` | Service | (repo path not confirmed; image exists) | Middleware layer for CTI (auth/bridge patterns) | CTI UI / integrations :contentReference[oaicite:12]{index=12} |
-| `tancredi` | Service | `tancredi/` | Phone provisioning engine for SIP devices | Admins (provisioning), phones/gateways :contentReference[oaicite:13]{index=13} |
-| `reports-api` | Service | `reports/` (and image `nethvoice-reports-api`) | Queue/CDR/cost reporting backend | Admins, supervisors, reports UI :contentReference[oaicite:14]{index=14} |
-| `reports-ui` | Service/UI | `reports/` (and image `nethvoice-reports-ui`) | Frontend for reporting | Admins, supervisors :contentReference[oaicite:15]{index=15} |
-| `flexisip` | Service | (repo path not confirmed; image exists) | SIP server components (proxy/presence/conference/push patterns) | Softphone/mobile-related scenarios (when enabled) :contentReference[oaicite:16]{index=16} |
-| `sftp` | Service | `sftp/` | SFTP-based file access channel (purpose depends on deployment) | Admins, integrations (file exchange) :contentReference[oaicite:17]{index=17} |
-| `satellite` | Service | `satellite/` | Realtime speech-to-text bridge: connects Asterisk ARI -> RTP -> Deepgram, publishes transcriptions to MQTT; optional Postgres persistence and OpenAI enrichment. | Stack services and integrations; see "Used by" paths below. |
-| `nethhotel` | Service / FreePBX module | `freepbx/` + `mariadb/docker-entrypoint-initdb.d/` | Hotel management for PBX: guest check-in/out, wake-up calls, billing, FIAS (PMS) integration, minibar/extras, reports. | FreePBX UI, FIAS bridge, database schemas and migration scripts (see "Used by" below). |
-| `notify` | Integration mechanism | `notify/` (runtime dir) | File-based signaling to restart/reload services after config apply | Containers within stack (producer), watcher unit (consumer) :contentReference[oaicite:19]{index=19} |
-| `tests` | Test suite | `tests/` + `test-module.sh` | Robot Framework-based module tests | CI, maintainers :contentReference[oaicite:20]{index=20} |
+| `nethvoice` | ns8-module | `imageroot/`, `ui/` | `ghcr.io/nethesis/nethvoice` | — |
+| `nethvoice-proxy` | external-module | `(external)` | — | https://github.com/NethServer/ns8-nethvoice-proxy |
+| `asterisk` | service | `freepbx/` (embedded) | `ghcr.io/nethesis/nethvoice-freepbx` | https://github.com/asterisk/asterisk |
+| `freepbx` | service | `freepbx/` | `ghcr.io/nethesis/nethvoice-freepbx` | https://github.com/FreePBX |
+| `mariadb` | db | `mariadb/` | `ghcr.io/nethesis/nethvoice-mariadb` | — |
+| `janus` | service | `janus/` | `ghcr.io/nethesis/nethvoice-janus` | https://github.com/meetecho/janus-gateway |
+| `phonebook` | service | `phonebook/` | `ghcr.io/nethesis/nethvoice-phonebook` | — |
+| `nethcti-server` | service | `nethcti-server/` | `ghcr.io/nethesis/nethvoice-cti-server` | https://github.com/nethesis/nethcti-server |
+| `cti-ui` | ui | `(pulled-only)` | `ghcr.io/nethesis/nethvoice-cti-ui` | https://github.com/nethesis/nethvoice-cti |
+| `cti-middleware` | service | `(pulled-only)` | `ghcr.io/nethesis/nethvoice-cti-middleware` | https://github.com/nethesis/nethcti-middleware |
+| `tancredi` | service | `tancredi/` | `ghcr.io/nethesis/nethvoice-tancredi` | https://github.com/nethesis/tancredi |
+| `reports-api` | service | `reports/` | `ghcr.io/nethesis/nethvoice-reports-api` | https://github.com/nethesis/nethvoice-report |
+| `reports-ui` | ui | `reports/` | `ghcr.io/nethesis/nethvoice-reports-ui` | https://github.com/nethesis/nethvoice-report |
+| `satellite` | service | `satellite/` | `ghcr.io/nethesis/nethvoice-satellite` | https://github.com/nethesis/satellite |
+| `nethhotel` | service | `freepbx/` (submodule) | — | — |
+| `sftp` | service | `sftp/` | `ghcr.io/nethesis/nethvoice-sftp` | — |
+| `notify` | integration | `imageroot/` (runtime) | — | — |
+| `tests` | test-suite | `tests/` | — | — |
 
 ---
 
-## Runtime orchestration and interfaces
+## Components
 
-### Installation / lifecycle (NS8)
-- Install via: `add-module ghcr.io/nethesis/nethvoice:latest 1` and uninstall via `remove-module --no-preserve <instance>`. :contentReference[oaicite:21]{index=21}
-- Designed to be paired with **ns8-nethvoice-proxy** as SIP proxy. :contentReference[oaicite:22]{index=22}
-
-### Configuration surfaces
-- Configured from **cluster-admin** (NS8 UI). :contentReference[oaicite:23]{index=23}
-- README mentions manual environment settings to make provisioning/RPS work with “Falconieri”: set `SUBSCRIPTION_SECRET` and `SUBSCRIPTION_SYSTEMID` in `~/.config/state/environment` and restart the `freepbx` container; also configure `PUBLIC_IP`. :contentReference[oaicite:24]{index=24}
-- Wizard entrypoint referenced by README: `https://makako.nethesis.it/nethvoice/`. :contentReference[oaicite:25]{index=25}
-
-### Notify/reload mechanism (file-based)
-- After FreePBX applies configuration, some containers must be restarted/reloaded.
-- `watcher.path` looks for files named `<action>_<service>` inside a shared `notify` directory. Containers mount it (e.g., `--volume=./notify:/notify`) and create marker files like `restart_nethcti-server`. :contentReference[oaicite:26]{index=26}
-
-### Phonebook service contract (NS8 module-to-module)
-- Defines role `pbookreader` exposing action `get-phonebook-credentials` (host/port/user/pass).
-- Provides service `<module_id>/srv/tcp/phonebook`.
-- Emits event `phonebook-settings-changed` with payload `{module_id,node_id,module_uuid,reason}`; consumers re-fetch credentials via the action. :contentReference[oaicite:27]{index=27}
-
----
-
-## Component details
-
-## 1) `nethvoice` (NS8 module orchestrator)
-**What it does**
-- Packages and orchestrates the NethVoice application stack on NS8. :contentReference[oaicite:28]{index=28}
-
-**Who uses it**
-- NS8 administrators via cluster-admin.
-- SIP endpoints and users indirectly through the telephony service.
-- Other NS8 modules via exposed services/roles (e.g., phonebook). :contentReference[oaicite:29]{index=29}
-
-**Why it exists**
-- Delivers the “telephony services” half of the NS8 NethVoice suite (paired with NethVoice Proxy). :contentReference[oaicite:30]{index=30}
-
-**Key interfaces**
-- NS8 module lifecycle (`add-module`, `remove-module`). :contentReference[oaicite:31]{index=31}
-- Phonebook service/event contract. :contentReference[oaicite:32]{index=32}
-- Notify/reload mechanism. :contentReference[oaicite:33]{index=33}
+### nethvoice
+- **Type**: ns8-module
+- **Path**: `imageroot/`, `ui/`
+- **Image**: `ghcr.io/nethesis/nethvoice`
+- **Base image**: `docker.io/library/node:24.11.0-slim` (build) → `scratch` (dist)
+- **Purpose**: Orchestrates the NethVoice telephony stack on NethServer 8.
+- **Why**: Delivers the telephony-services application for the NS8 suite, paired with NethVoice Proxy. (Source: README.md)
+- **Used by**:
+  - `imageroot/actions/create-module/` — module creation lifecycle
+  - `imageroot/actions/configure-module/` — module configuration lifecycle
+  - `imageroot/actions/destroy-module/` — module teardown lifecycle
+  - `imageroot/actions/restore-module/` — backup restore lifecycle
+  - `imageroot/actions/clone-module/` — module clone lifecycle
+  - `imageroot/actions/import-module/` — NS7→NS8 migration import
+  - `imageroot/actions/transfer-state/` — live state transfer between nodes
+  - `imageroot/update-module.d/` — update scripts
+  - `Containerfile` — image build definition
+  - `build-images.sh` — builds all container images
+  - `ui/src/` — Vue.js admin wizard UI
+- **External references**:
+  - https://makako.nethesis.it/nethvoice/ — wizard entrypoint
 
 ---
 
-## 2) `nethvoice-proxy` (external NS8 module)
-**What it does**
-- SIP and RTP edge proxy for the NethVoice suite. Implements a Kamailio + RTPengine stack and provides service discovery/route management so multiple NethVoice instances can share a single host network. (Source: upstream ns8-nethvoice-proxy README)
-
-**Who uses it**
-- SIP endpoints (phones, softphones) and public SIP peers.
-- The `nethvoice` NS8 module and its helper scripts/tasks which register routes and read proxy SRV records.
-
-**Used by (concrete file references)**
-- [imageroot/actions/configure-module/60sip_proxy](imageroot/actions/configure-module/60sip_proxy) — discovers proxy instance, sets `NETHVOICE_PROXY_FQDN`, `PROXY_IP`, `PROXY_PORT` and calls proxy `add-route` task.
-- [imageroot/actions/destroy-module/60sip_proxy](imageroot/actions/destroy-module/60sip_proxy) — removes proxy route on module destroy.
-- [imageroot/update-module.d/10env](imageroot/update-module.d/10env) — populates `PROXY_IP`/`PROXY_PORT` env vars when a proxy is installed.
-- [imageroot/events/nethvoice-proxy-settings-changed/20configure_proxy](imageroot/events/nethvoice-proxy-settings-changed/20configure_proxy) — event handler that (re)configures proxy routes and envs when proxy settings change.
-- [imageroot/actions/configure-module/61ice_enforce](imageroot/actions/configure-module/61ice_enforce) — reads proxy SRV records to set `ICEENFORCE`/ICE-related settings.
-- [imageroot/actions/get-defaults/10defaults](imageroot/actions/get-defaults/10defaults) and [imageroot/actions/get-defaults/validate-output.json](imageroot/actions/get-defaults/validate-output.json) — surface proxy install/status in module defaults.
-- [ui/src/components/first-configuration/ProxyStep.vue](ui/src/components/first-configuration/ProxyStep.vue) — wizard step that can instantiate a `nethvoice-proxy` module on a selected node.
-- [freepbx/var/www/html/freepbx/admin/modules/nethcti3/Nethcti3.class.php](freepbx/var/www/html/freepbx/admin/modules/nethcti3/Nethcti3.class.php) — UI/help text references headers sent to `nethvoice-proxy` (TOPOS, SRTP control) for trunk behavior.
-- [tests/00_nethvoice_install_dependencies.robot](tests/00_nethvoice_install_dependencies.robot) and [tests/99_nethvoice_remove-modules.robot](tests/99_nethvoice_remove-modules.robot) — CI/robot tests that install and remove the `nethvoice-proxy` module.
-
-**Why (sourced)**
-- From the upstream `ns8-nethvoice-proxy` README: "NS8 NethVoice proxy module, a SIP and RTP proxy allows multiple instances of NethVoice to be hosted on the same Node. The proxy uses Kamailio and rtpengine as core components." This documents the module's intent (edge SIP/RTP proxy, route management, shared-host multi-instance support).
-
----
-
-## 3) `asterisk` (PBX engine)
-**What it does**
-- Core telephony framework/engine (PBX toolkit). :contentReference[oaicite:37]{index=37}
-
-**Who uses it**
-- Controlled/configured by FreePBX.
-- Used by CTI server for switchboard operations/events. :contentReference[oaicite:38]{index=38}
-
-**Why it exists**
-- Provides call processing, extensions, trunks, IVR, etc., as the foundational PBX layer. :contentReference[oaicite:39]{index=39}
+### nethvoice-proxy
+- **Type**: external-module
+- **Path**: `(external)`
+- **Upstream repo**: https://github.com/NethServer/ns8-nethvoice-proxy
+- **Purpose**: SIP/RTP edge proxy (Kamailio + RTPengine) enabling multiple NethVoice instances on a single host.
+- **Why**: "NS8 NethVoice proxy module, a SIP and RTP proxy allows multiple instances of NethVoice to be hosted on the same Node." (Source: ns8-nethvoice-proxy README)
+- **Used by**:
+  - `imageroot/actions/configure-module/60sip_proxy` — discovers proxy, sets NETHVOICE_PROXY_FQDN/PROXY_IP/PROXY_PORT, calls add-route
+  - `imageroot/actions/configure-module/61ice_enforce` — reads proxy SRV records for ICE settings
+  - `imageroot/actions/destroy-module/60sip_proxy` — removes proxy route on destroy
+  - `imageroot/actions/get-defaults/10defaults` — surfaces proxy install/status in module defaults
+  - `imageroot/update-module.d/10env` — populates PROXY_IP/PROXY_PORT env vars
+  - `imageroot/events/nethvoice-proxy-settings-changed/20configure_proxy` — reconfigures proxy routes on settings change
+  - `imageroot/events/nethvoice-proxy-settings-changed/80start_services` — restarts services after proxy change
+  - `ui/src/components/first-configuration/ProxyStep.vue` — wizard step to instantiate proxy
+  - `freepbx/var/www/html/freepbx/admin/modules/nethcti3/Nethcti3.class.php` — TOPOS/SRTP header references
+  - `tests/00_nethvoice_install_dependencies.robot` — installs proxy in CI
+  - `tests/99_nethvoice_remove-modules.robot` — removes proxy in CI
+- **External references**:
+  - https://github.com/NethServer/ns8-nethvoice-proxy — upstream module repo
 
 ---
 
-## 4) `freepbx` (PBX management)
-**What it does**
-- Web-based GUI that controls and manages Asterisk. :contentReference[oaicite:40]{index=40}
-
-**Who uses it**
-- Admins (PBX configuration).
-- Triggers downstream service reloads via the notify mechanism after applying configs. :contentReference[oaicite:41]{index=41}
-
-**Why it exists**
-- Provides a mature admin interface and configuration system for the Asterisk PBX. :contentReference[oaicite:42]{index=42}
-
----
-
-## 5) `mariadb` (database)
-**What it does**
-- Database backend image used by the stack. :contentReference[oaicite:43]{index=43}
-
-**Who uses it**
-- Stack components that persist configuration/data (commonly FreePBX, phonebook, CTI, reports depending on deployment). :contentReference[oaicite:44]{index=44}
-
-**Why it exists**
-- Central persistence layer for application state.
-
----
-
-## 6) `janus` (WebRTC server/gateway)
-**What it does**
-- General-purpose WebRTC server enabling media communication setup with browsers/apps. :contentReference[oaicite:45]{index=45}
-
-**Who uses it**
-- Web clients (typically via CTI/webphone) to establish WebRTC media sessions.
-- Media plane components in the voice/video calling path. :contentReference[oaicite:46]{index=46}
-
-**Why it exists**
-- Enables browser-based calling (WebRTC) in the overall communication suite. :contentReference[oaicite:47]{index=47}
+### asterisk
+- **Type**: service
+- **Path**: `freepbx/` (embedded inside freepbx container)
+- **Image**: `ghcr.io/nethesis/nethvoice-freepbx` (Asterisk runs inside this image)
+- **Base image**: `docker.io/library/php:7.4-apache` (runtime stage of freepbx/Containerfile)
+- **Upstream repo**: https://github.com/asterisk/asterisk
+- **Purpose**: Core PBX/telephony engine providing call processing, extensions, trunks, IVR, queues.
+- **Why**: Foundational open-source PBX layer that FreePBX manages. (Source: freepbx/Containerfile — downloads Asterisk 18.x)
+- **Used by**:
+  - `imageroot/bin/asterisk` — helper: podman exec freepbx asterisk $@
+  - `imageroot/bin/fwconsole` — helper: podman exec freepbx fwconsole $@
+  - `imageroot/systemd/user/freepbx.service` — ExecStartPost waits for core show version
+  - `imageroot/actions/create-module/05setenvs` — allocates ASTERISK_RTPSTART/RTPEND, ASTERISK_SIP_PORT
+  - `imageroot/actions/create-module/90firewall` — opens SIP/IAX/RTP UDP ports
+  - `imageroot/actions/clone-module/22set_db_services_ports` — updates asterisk DB tables with new ports
+  - `imageroot/actions/restore-module/71set_db_services_ports` — same for restore
+  - `imageroot/actions/import-module/40mysql` — inserts Asterisk Manager port into freepbx_settings
+  - `imageroot/bin/module-dump-state` — backs up astdb and custom sounds
+  - `imageroot/etc/state-include.conf` — includes volumes/ dirs for asterisk data
+  - `freepbx/Containerfile` — builds Asterisk from source (v18.x with PJSIP)
+- **External references**:
+  - https://downloads.asterisk.org/pub/telephony/asterisk/ — Asterisk source tarball
+  - http://downloads.digium.com/pub/telephony/ — Digium codec binaries (opus, silk, siren7, siren14)
 
 ---
 
-## 7) `phonebook` (service + NS8 integration contract)
-**What it does**
-- Exposes a phonebook service to other modules via NS8 service discovery and a role/action to fetch credentials.
-- Emits an event when phonebook settings change. :contentReference[oaicite:48]{index=48}
-
-**Who uses it**
-- Other NS8 modules needing phonebook access.
-- CTI UI and users via the centralized phonebook. :contentReference[oaicite:49]{index=49}
-
-**Why it exists**
-- Provides a centralized, shareable phonebook contract for the NS8 ecosystem. :contentReference[oaicite:50]{index=50}
-
-**Interfaces**
-- Role: `pbookreader`
-- Action: `get-phonebook-credentials`
-- Service: `<module_id>/srv/tcp/phonebook`
-- Event: `phonebook-settings-changed` (+ payload) :contentReference[oaicite:51]{index=51}
-
----
-
-## 8) `nethcti-server` (CTI backend)
-**What it does**
-- Daemon providing APIs for switchboard operations + a WebSocket streaming channel for events; supports Asterisk PBX. :contentReference[oaicite:52]{index=52}
-
-**Who uses it**
-- CTI UI (operators/switchboard users).
-- Integrations that need real-time call events. :contentReference[oaicite:53]{index=53}
-
-**Why it exists**
-- Decouples real-time telephony control/events from the PBX admin layer and exposes them to clients. :contentReference[oaicite:54]{index=54}
-
----
-
-## 9) `cti-ui` (CTI frontend)
-**What it does**
-- Web application for CTI: web phone, call management, phonebook, queues, etc. :contentReference[oaicite:55]{index=55}
-
-**Who uses it**
-- End users (operators), supervisors, call-center users.
-
-**Why it exists**
-- Provides user-facing telephony UX (including WebRTC softphone patterns). :contentReference[oaicite:56]{index=56}
+### freepbx
+- **Type**: service
+- **Path**: `freepbx/`
+- **Image**: `ghcr.io/nethesis/nethvoice-freepbx`
+- **Base image**: `docker.io/library/php:7.4-apache`
+- **Docs**: https://www.nethesis.it/soluzioni/nethvoice
+- **Purpose**: Web-based PBX management layer that configures and controls Asterisk.
+- **Why**: Provides mature admin interface and configuration system for the Asterisk PBX. (Source: freepbx/README.md)
+- **Used by**:
+  - `imageroot/systemd/user/freepbx.service` — systemd unit running the container
+  - `build-images.sh` — builds nethvoice-freepbx image from freepbx/ directory
+  - `Containerfile` — listed in org.nethserver.images label
+  - `imageroot/actions/configure-module/80start_services` — enables and starts freepbx.service
+  - `imageroot/actions/configure-module/90wait_freepbx` — waits for FreePBX HTTP readiness
+  - `imageroot/actions/set-nethvoice-hotel/20apply` — try-restart freepbx.service
+  - `imageroot/actions/set-integrations/50manage_service` — try-restart freepbx.service
+  - `imageroot/actions/restore-module/72reload_services` — restarts freepbx after restore
+  - `imageroot/actions/import-module/04initialize_volumes` — uses NETHVOICE_FREEPBX_IMAGE for volume init
+  - `imageroot/actions/destroy-module/20destroy` — removes freepbx traefik route
+  - `imageroot/update-module.d/80restart` — restarts freepbx when convenient
+  - `imageroot/bin/module-dump-state` — podman exec freepbx backup_astdb; copies sounds
+  - `imageroot/bin/install-certificate` — installs TLS cert into freepbx volume
+  - `imageroot/events/user-domain-changed/20configure_ldap` — restarts freepbx.service
+  - `imageroot/events/smarthost-changed/10reload_services` — try-reload-or-restart freepbx.service
+  - `imageroot/events/subscription-changed/80sevice_restart` — try-restart freepbx.service
+  - `imageroot/events/nethvoice-proxy-settings-changed/80start_services` — try-restart freepbx
+- **External references**:
+  - https://github.com/FreePBX — upstream FreePBX module repos (~30 modules pulled in Containerfile)
+  - https://github.com/nethesis/freepbx-core — Nethesis fork of FreePBX core
+  - https://www.nethesis.it/soluzioni/nethvoice — brand default site
 
 ---
 
-## 10) `cti-middleware` (CTI middleware layer)
-**What it does**
-- Container image exists in this repo’s package set. :contentReference[oaicite:57]{index=57}
-
-**Who uses it**
-- CTI UI and/or CTI backend integrations (exact wiring depends on deployment).
-
-**Why it exists**
-- Middleware typically centralizes auth/session/bridging concerns between UI and backend.
-
----
-
-## 11) `tancredi` (provisioning)
-**What it does**
-- Phone provisioning engine (Tancredi). :contentReference[oaicite:58]{index=58}
-
-**Who uses it**
-- Admins provisioning phones/gateways.
-- SIP endpoints consuming provisioning profiles.
-
-**Why it exists**
-- Supports modern provisioning workflows; NethVoice documentation explicitly references migration to a Tancredi-based provisioning approach. :contentReference[oaicite:59]{index=59}
-
----
-
-## 12) `reports-api` and `reports-ui` (reporting)
-**What they do**
-- Reporting backend and UI containers exist in this repo’s package set. :contentReference[oaicite:60]{index=60}
-- NethVoice reporting scope includes queue and CDR/costs reports (from the reporting project description). :contentReference[oaicite:61]{index=61}
-
-**Who uses them**
-- Admins and supervisors (monitoring KPIs, queues, call detail records).
-
-**Why they exist**
-- Provide operational visibility and historical reporting for PBX/call-center usage. :contentReference[oaicite:62]{index=62}
+### mariadb
+- **Type**: db
+- **Path**: `mariadb/`
+- **Image**: `ghcr.io/nethesis/nethvoice-mariadb`
+- **Base image**: `docker.io/library/mariadb:10.11.15`
+- **Purpose**: Database backend for stack components (FreePBX, phonebook, CTI, reports, hotel).
+- **Why (inferred)**: Central persistence layer for application state and configuration. (Evidence: mariadb/docker-entrypoint-initdb.d/ contains schema scripts for asterisk, cdr, phonebook, fias DBs)
+- **Used by**:
+  - `imageroot/systemd/user/mariadb.service` — systemd unit running the container
+  - `build-images.sh` — assembles nethvoice-mariadb from mariadb/ dir on base image
+  - `Containerfile` — listed in org.nethserver.images label
+  - `imageroot/actions/create-module/05setenvs` — sets NETHVOICE_MARIADB_PORT, generates MARIADB_ROOT_PASSWORD
+  - `imageroot/actions/create-module/50mariadb-init` — one-shot init of mariadb container
+  - `imageroot/actions/configure-module/80start_services` — enables and starts mariadb.service
+  - `imageroot/actions/configure-module/85mysql_background_import` — background SQL restore
+  - `imageroot/actions/configure-module/95service_adjust` — queries mariadb for wizard step
+  - `imageroot/actions/clone-module/22set_db_services_ports` — executes SQL via podman exec mariadb
+  - `imageroot/actions/restore-module/71set_db_services_ports` — port updates during restore
+  - `imageroot/actions/restore-module/71update_user_dbconn` — updates DB connection records
+  - `imageroot/actions/import-module/40mysql` — DB grants and inserts during import
+  - `imageroot/actions/get-facts/10get_facts` — reads MARIADB_ROOT_PASSWORD
+  - `imageroot/update-module.d/10env` — migrates MARIADB_ROOT_PASSWORD to passwords.env
+  - `imageroot/update-module.d/80restart` — restarts mariadb when convenient
+  - `imageroot/update-module.d/85mysql_update` — runs schema updates (roomsdb, fias, providers)
+  - `imageroot/bin/mysql` — helper: podman exec mariadb mysql
+  - `imageroot/bin/module-dump-state` — dumps all DBs via podman exec mariadb
+  - `imageroot/events/support-session-started/10add_support_user` — adds support user
+  - `imageroot/events/support-session-stopped/10remove_support_user` — removes support user
+  - `imageroot/systemd/user/reports-api.service` — Requires=mariadb.service
 
 ---
 
-## 13) `flexisip` (SIP server components)
-**What it does**
-- Flexisip is described as a complete SIP server for real-time communications (calling/chat/video) and supports large deployments. :contentReference[oaicite:63]{index=63}
-- Container image exists in this repo’s package set. :contentReference[oaicite:64]{index=64}
-
-**Who uses it**
-- Deployments that need additional SIP server functions (presence/push/conference patterns) beyond basic PBX signaling.
-
-**Why it exists**
-- Extends SIP-side capabilities in scenarios where such features are required. :contentReference[oaicite:65]{index=65}
-
----
-
-## 14) `sftp` (file transfer)
-**What it does**
-- Container image exists in this repo’s package set. :contentReference[oaicite:66]{index=66}
-
-**Who uses it**
-- Admins/integrations needing file exchange (exact purpose depends on deployment).
-
-**Why it exists**
-- Provides a standard SFTP channel for data exchange in the stack.
-
----
-
-## 15) `satellite` (integration)
-**What it does**
-- Realtime speech-to-text (STT) bridge for NethVoice. Connects to Asterisk ARI, creates snoop channels and external-media RTP endpoints, streams audio to Deepgram for transcription, and publishes interim/final transcriptions to an MQTT broker. Optionally persists transcripts + embeddings to Postgres (pgvector) and runs OpenAI-based enrichment/summaries. Source: `satellite/README.md` (upstream nethesis/satellite). 
-
-**Who uses it (Used by — concrete file paths)**
-- Image build and packaging: `build-images.sh` (builds `nethvoice-satellite` from ghcr.io/nethesis/satellite). 
-- Module/service orchestration and restarts: `imageroot/update-module.d/80restart` (restart list includes `satellite`).
-- Environment and port allocation: `imageroot/update-module.d/20allocate_ports`, `imageroot/update-module.d/10env`, `imageroot/actions/create-module/05setenvs` (sets `SATELLITE_*` env vars and allocates RTP/HTTP/MQTT ports).
-- Integration config surface: `imageroot/actions/get-integrations/20read` (reads SATELLITE integration flags and keys).
-- Service management actions: `imageroot/actions/configure-module/80start_services`, `imageroot/actions/set-integrations/50manage_service` (enable/disable/restart satellite and satellite-mqtt systemd user services).
-- MQTT password/config generator: `imageroot/bin/satellite-mqtt-gen-config` (creates mosquitto password/config for satellite MQTT).
-- Database permissions / feature flags: `mariadb/docker-entrypoint-initdb.d/50_asterisk.rest_cti_permissions.sql` (adds `satellite_stt` permission).
-
-**Why it exists**
-- Provide realtime and voicemail transcription capabilities for calls handled by the PBX, expose transcriptions to other components via MQTT and (optionally) persist them for enrichment/search. Source: `satellite/README.md` (https://github.com/nethesis/satellite/).
-
-## 16) `nethhotel` (hotel management)
-**What it does**
-- Manages hotel-style extensions and guest workflows inside the PBX: check-in/check-out, wake-up calls, room groups, billing (call rates, extras/minibar), reporting and integration with Property Management Systems via the FIAS protocol. See the NethVoice docs: https://docs.nethvoice.com/docs/administrator-manual/nethhotel
-
-**Who uses it (Used by — concrete file paths)**
-- FreePBX module code and UI: `freepbx/var/www/html/freepbx/admin/modules/nethhotel/` (Nethhotel.class.php, page.nethhotel.php, functions.inc.php, module.xml, i18n, htdocs/*).
-- FIAS bridge and helper scripts: `freepbx/usr/share/neth-hotel-fias/` (dispatcher.php, gi2pbx.php, gc2pbx.php, re2pms.php, minibar.php, functions.inc.php, fias-client-README).
-- Database schema and grants: `mariadb/docker-entrypoint-initdb.d/00_fias-schema-create.sql`, `mariadb/docker-entrypoint-initdb.d/40_fias.*.sql`, and related `90_users.sh` for granting permissions.
-- Module lifecycle / DB updates: `imageroot/update-module.d/85mysql_update` (creates/updates `fias` DB and rooms db during update/install).
-- Runtime/config flags and docs: `freepbx/README.md` (documents `NETHVOICE_HOTEL` and `NETHVOICE_HOTEL_FIAS_*` env vars and FIAS configuration file `/etc/asterisk/fias.conf`).
-
-**Why it exists**
-- Provide hotel-specific telephony features and PMS integration for hospitality deployments: automated guest lifecycle, billing integration, and operational features (wake-up, room status) that integrate with the PBX. Primary documentation: NethVoice Administrator manual — NethHotel (https://docs.nethvoice.com/docs/administrator-manual/nethhotel).
-
-**Relevant upstream work / references**
-- Porting effort and merge: `nethesis/ns8-nethvoice` PR #436 (feat: Port NethHotel from NethVoice14) — adds module files, DB migration and configuration. https://github.com/nethesis/ns8-nethvoice/pull/436
-- Migration support for NS8 upgrades: `NethServer/nethserver-ns8-migration` PR #115 (migrate NethHotel database on upgrade). https://github.com/NethServer/nethserver-ns8-migration/pull/115
-- Issue tracking porting work and test cases: `NethServer/dev` issue #7425 (NethHotel: port old NethHotel from NethVoice14). https://github.com/NethServer/dev/issues/7425
+### janus
+- **Type**: service
+- **Path**: `janus/`
+- **Image**: `ghcr.io/nethesis/nethvoice-janus`
+- **Base image**: `debian:bullseye-slim`
+- **Upstream repo**: https://github.com/meetecho/janus-gateway
+- **Purpose**: WebRTC server/gateway enabling browser-based audio/video media sessions.
+- **Why**: Enables browser-based calling (WebRTC softphone) in the communication suite. (Source: janus/README.md)
+- **Used by**:
+  - `imageroot/systemd/user/janus.service` — systemd unit running the container
+  - `build-images.sh` — builds nethvoice-janus from janus/ directory
+  - `Containerfile` — listed in org.nethserver.images label
+  - `imageroot/actions/create-module/05setenvs` — allocates Janus RTP ports, sets JANUS_TRANSPORT_PORT, generates JANUS_ADMIN_SECRET
+  - `imageroot/actions/create-module/90firewall` — opens Janus RTP UDP ports
+  - `imageroot/actions/configure-module/80start_services` — enables and starts janus.service
+  - `imageroot/actions/configure-module/30traefik` — configures Traefik route for /janus
+  - `imageroot/actions/destroy-module/20destroy` — removes janus traefik route
+  - `imageroot/actions/restore-module/20copyenv` — carries over Janus env vars during restore
+  - `imageroot/update-module.d/10env` — migrates JANUS_ADMIN_SECRET to passwords.env
+  - `imageroot/update-module.d/80restart` — restarts janus when convenient
+  - `imageroot/bin/install-certificate` — installs TLS cert into janus volume
+  - `imageroot/events/nethvoice-proxy-settings-changed/80start_services` — try-restart janus
+  - `imageroot/events/certificate-changed/50get_certificate` — restarts janus.service on cert change
+- **External references**:
+  - https://github.com/meetecho/janus-gateway — Janus Gateway source (tag v1.3.1)
+  - https://github.com/cisco/libsrtp — libsrtp dependency (v2.3.0)
+  - https://gitlab.freedesktop.org/libnice/libnice — libnice dependency (0.1.17)
 
 ---
 
-## 16) `notify` (reload signaling)
-**What it does**
-- Implements a file-based signaling convention (`<action>_<service>`) monitored by `watcher.path` units to restart/reload services after configuration changes. :contentReference[oaicite:68]{index=68}
-
-**Who uses it**
-- Producer: containers that need other services restarted/reloaded.
-- Consumer: host-level watcher units and the targeted services. :contentReference[oaicite:69]{index=69}
-
-**Why it exists**
-- Makes post-configuration synchronization explicit and container-friendly.
+### phonebook
+- **Type**: service
+- **Path**: `phonebook/`
+- **Image**: `ghcr.io/nethesis/nethvoice-phonebook`
+- **Base image**: `docker.io/library/alpine:latest`
+- **Purpose**: Central phonebook service exposing LDAP interface and NS8 service-discovery credentials.
+- **Why**: Provides a centralized, shareable phonebook contract for the NS8 ecosystem. (Source: imageroot/update-module.d/96publish_srv_keys — publishes srv/tcp/phonebook and phonebook-settings-changed event)
+- **Used by**:
+  - `imageroot/systemd/user/phonebook.service` — systemd unit running the container
+  - `imageroot/systemd/user/phonebook-update.service` — runs phonebook source sync via podman exec freepbx
+  - `imageroot/systemd/user/phonebook-update.timer` — periodic timer triggering sync
+  - `build-images.sh` — builds nethvoice-phonebook from phonebook/ directory
+  - `Containerfile` — listed in org.nethserver.images label
+  - `imageroot/actions/create-module/05setenvs` — generates PHONEBOOK_DB_PASS, PHONEBOOK_LDAP_PASS
+  - `imageroot/actions/configure-module/80start_services` — enables phonebook.service and phonebook-update.timer
+  - `imageroot/actions/get-phonebook-credentials/` — returns phonebook DB credentials (RBAC-gated)
+  - `imageroot/actions/import-module/40mysql` — grants DB access for phonebook user
+  - `imageroot/actions/import-module/10setenvs` — imports phonebook_db_password
+  - `imageroot/update-module.d/10env` — migrates PHONEBOOK_DB_PASS/PHONEBOOK_LDAP_PASS to passwords.env
+  - `imageroot/update-module.d/30grants` — grants get-phonebook-credentials role for pbookreader
+  - `imageroot/update-module.d/80restart` — restarts phonebook when convenient
+  - `imageroot/update-module.d/96publish_srv_keys` — publishes srv/tcp/phonebook service key and phonebook-settings-changed event
+  - `imageroot/bin/install-certificate` — installs TLS cert for phonebook
+  - `imageroot/etc/state-include.conf` — includes volumes/phonebookcsv in backup state
+  - `imageroot/events/user-domain-changed/20configure_ldap` — restarts phonebook.service
+  - `imageroot/events/certificate-changed/50get_certificate` — restarts phonebook.service on cert change
 
 ---
 
-## 17) `tests` (Robot Framework)
-**What it does**
-- Provides module tests driven by `test-module.sh`, using Robot Framework. :contentReference[oaicite:70]{index=70}
-
-**Who uses it**
-- Maintainers/CI to validate module behavior. :contentReference[oaicite:71]{index=71}
-
-**Why it exists**
-- Regression coverage for install/config/runtime flows.
+### nethcti-server
+- **Type**: service
+- **Path**: `nethcti-server/`
+- **Image**: `ghcr.io/nethesis/nethvoice-cti-server`
+- **Base image**: `docker.io/library/node:14.21.1-alpine`
+- **Upstream repo**: https://github.com/nethesis/nethcti-server
+- **Purpose**: Switchboard APIs and WebSocket event stream for real-time telephony control.
+- **Why**: Decouples real-time telephony control/events from the PBX admin layer and exposes them to clients. (Source: nethcti-server/Containerfile — clones nethcti-server branch ns8)
+- **Used by**:
+  - `imageroot/systemd/user/nethcti-server.service` — systemd unit; Wants=freepbx.service
+  - `build-images.sh` — builds nethvoice-cti-server from nethcti-server/ dir (target production)
+  - `Containerfile` — listed in org.nethserver.images label
+  - `imageroot/actions/configure-module/80start_services` — enables nethcti-server.service
+  - `imageroot/actions/configure-module/95service_adjust` — restarts nethcti-server if wizard step completed
+  - `imageroot/actions/configure-module/30traefik` — Traefik routes for CTI server API + WebSocket
+  - `imageroot/actions/set-integrations/50manage_service` — try-restart nethcti-server.service
+  - `imageroot/actions/set-nethvoice-hotel/20apply` — try-restart nethcti-server.service
+  - `imageroot/actions/restore-module/72reload_services` — restarts nethcti-server after restore
+  - `imageroot/update-module.d/10env` — migrates NETHCTI_AMI_PASSWORD, NETHCTI_DB_PASSWORD
+  - `imageroot/update-module.d/80restart` — restarts nethcti-server when convenient
+  - `imageroot/update-module.d/85mysql_update` — cleans up nethcti3 auth records
+  - `imageroot/bin/install-certificate` — installs TLS cert for nethcti-server
+  - `imageroot/events/subscription-changed/80sevice_restart` — try-restart nethcti-server.service
+  - `imageroot/events/certificate-changed/50get_certificate` — restarts nethcti-server.service
+- **External references**:
+  - https://github.com/nethesis/nethcti-server — upstream source (branch ns8)
 
 ---
 
-## Update workflow for this file
+### cti-ui
+- **Type**: ui
+- **Path**: `(pulled-only)`
+- **Image**: `ghcr.io/nethesis/nethvoice-cti-ui`
+- **Upstream repo**: https://github.com/nethesis/nethvoice-cti
+- **Purpose**: Web client for CTI — web phone, call management, phonebook, queues.
+- **Why (inferred)**: Provides user-facing telephony UX including WebRTC softphone. (Evidence: systemd unit and traefik routes serve it as the main operator UI)
+- **Used by**:
+  - `imageroot/systemd/user/nethcti-ui.service` — systemd unit running the container
+  - `imageroot/systemd/user/nethcti-ui-restart.service` — oneshot: try-restart for timezone updates
+  - `imageroot/systemd/user/nethcti-ui-restart.timer` — weekly timer for UI restart
+  - `build-images.sh` — pulls ghcr.io/nethesis/nethvoice-cti → commits as nethvoice-cti-ui
+  - `Containerfile` — listed in org.nethserver.images label
+  - `imageroot/actions/configure-module/80start_services` — enables nethcti-ui.service and nethcti-ui-restart.timer
+  - `imageroot/actions/configure-module/15configure_main_routes` — Traefik route on NETHCTI_UI_HOST
+  - `imageroot/actions/set-rebranding/10setenvs` — try-restart nethcti-ui.service after branding change
+  - `imageroot/update-module.d/70enable` — enables nethcti-ui-restart.timer
+  - `imageroot/update-module.d/80restart` — restarts nethcti-ui when convenient
+  - `imageroot/update-module.d/60traefik` — reconfigures routes using NETHCTI_UI_HOST
+- **External references**:
+  - https://github.com/nethesis/nethvoice-cti — upstream UI source
 
-1. Inventory components (name + paths).
-2. For each component, collect consumers ("Used by") via workspace search.
-3. Extract "Why" from docs/ADRs/README/comments; otherwise infer and mark
-4. Update this file.
+---
+
+### cti-middleware
+- **Type**: service
+- **Path**: `(pulled-only)`
+- **Image**: `ghcr.io/nethesis/nethvoice-cti-middleware`
+- **Upstream repo**: https://github.com/nethesis/nethcti-middleware
+- **Purpose**: Middleware layer bridging CTI UI to backend services (auth/session/API proxy).
+- **Why (inferred)**: Centralizes auth/session/bridging concerns between CTI UI and CTI server. (Evidence: systemd unit has Wants=nethcti-server.service; traefik routes proxy middleware API paths)
+- **Used by**:
+  - `imageroot/systemd/user/nethcti-middleware.service` — systemd unit; Wants=nethcti-server.service
+  - `build-images.sh` — pulls ghcr.io/nethesis/nethcti-middleware → commits as nethvoice-cti-middleware
+  - `Containerfile` — listed in org.nethserver.images label
+  - `imageroot/actions/configure-module/80start_services` — enables nethcti-middleware.service
+  - `imageroot/actions/configure-module/30traefik` — configures middleware API route on NETHCTI_UI_HOST
+  - `imageroot/actions/destroy-module/20destroy` — removes middleware-cti-server-api traefik route
+  - `imageroot/actions/restore-module/72reload_services` — restarts nethcti-middleware
+  - `imageroot/update-module.d/70enable` — enable --now nethcti-middleware.service
+  - `imageroot/update-module.d/80restart` — restarts when convenient
+  - `imageroot/update-module.d/10env` — sets NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT / _WS_ENDPOINT
+  - `imageroot/bin/install-certificate` — installs TLS cert for nethcti-middleware
+  - `imageroot/events/subscription-changed/80sevice_restart` — try-restart nethcti-middleware.service
+  - `imageroot/events/certificate-changed/50get_certificate` — restarts nethcti-middleware.service
+- **External references**:
+  - https://github.com/nethesis/nethcti-middleware — upstream source
+
+---
+
+### tancredi
+- **Type**: service
+- **Path**: `tancredi/`
+- **Image**: `ghcr.io/nethesis/nethvoice-tancredi`
+- **Base image**: `docker.io/library/php:8-apache`
+- **Upstream repo**: https://github.com/nethesis/tancredi
+- **Purpose**: Phone provisioning engine for SIP devices (phones, gateways).
+- **Why**: Supports modern provisioning workflows; NethVoice documentation references migration to Tancredi-based provisioning. (Source: tancredi/README.md)
+- **Used by**:
+  - `imageroot/systemd/user/tancredi.service` — systemd unit running the container
+  - `build-images.sh` — builds nethvoice-tancredi from tancredi/ directory
+  - `Containerfile` — listed in org.nethserver.images label
+  - `imageroot/actions/create-module/05setenvs` — sets TANCREDIPORT, generates TANCREDI_STATIC_TOKEN
+  - `imageroot/actions/configure-module/80start_services` — enables tancredi.service
+  - `imageroot/actions/configure-module/30traefik` — Traefik routes for /tancredi and /provisioning
+  - `imageroot/actions/destroy-module/20destroy` — removes tancredi traefik route
+  - `imageroot/update-module.d/10env` — migrates TANCREDI_STATIC_TOKEN to passwords.env
+  - `imageroot/update-module.d/80restart` — restarts tancredi when convenient
+  - `imageroot/etc/state-include.conf` — includes volumes/tancredi in backup state
+  - `imageroot/events/nethvoice-proxy-settings-changed/80start_services` — try-restart tancredi
+  - `imageroot/systemd/user/freepbx.service` — mounts tancredi volume into freepbx container
+  - `imageroot/systemd/user/phonebook.service` — mounts tancredi volume into phonebook container
+- **External references**:
+  - https://github.com/nethesis/tancredi — Tancredi source (tag 1.5.0)
+  - https://github.com/nethesis/nethserver-tancredi/ — NethServer Tancredi integration (firmware files)
+
+---
+
+### reports-api
+- **Type**: service
+- **Path**: `reports/`
+- **Image**: `ghcr.io/nethesis/nethvoice-reports-api`
+- **Base image**: `docker.io/library/golang:1.19.9-alpine` (build) → `docker.io/library/alpine:3.17.3` (runtime)
+- **Upstream repo**: https://github.com/nethesis/nethvoice-report
+- **Purpose**: Queue/CDR/cost reporting backend API.
+- **Why**: Provides operational visibility and historical reporting for PBX/call-center usage. (Source: reports/README.md)
+- **Used by**:
+  - `imageroot/systemd/user/reports-api.service` — systemd unit; Requires=mariadb.service reports-redis.service
+  - `imageroot/systemd/user/reports-redis.service` — Redis cache for reports (redis:7.0.10-alpine)
+  - `imageroot/systemd/user/reports-scheduler.service` — oneshot: runs cdr/cost/views/queries tasks
+  - `imageroot/systemd/user/reports-scheduler.timer` — timer triggering the scheduler
+  - `build-images.sh` — builds nethvoice-reports-api (target api-production) from reports/
+  - `Containerfile` — listed in org.nethserver.images label
+  - `imageroot/actions/create-module/05setenvs` — sets REPORTS_REDIS_PORT, REPORTS_API_PORT, generates REPORTS_PASSWORD/API_KEY/SECRET
+  - `imageroot/actions/configure-module/71reports_api` — sets REPORTS_INTERNATIONAL_PREFIX, Traefik route
+  - `imageroot/actions/configure-module/80start_services` — enables reports-api.service, reports-scheduler.timer
+  - `imageroot/actions/destroy-module/20destroy` — removes reports-api traefik route
+  - `imageroot/actions/restore-module/70configure_module` — carries over REPORTS_INTERNATIONAL_PREFIX
+  - `imageroot/actions/get-configuration/20read` — returns reports prefix
+  - `imageroot/update-module.d/80restart` — restarts reports-api, reports-redis when convenient
+  - `imageroot/events/subscription-changed/80sevice_restart` — try-restart reports-api.service
+- **External references**:
+  - https://github.com/nethesis/nethvoice-report — upstream report project
+  - https://github.com/h5bp/server-configs-nginx — Nginx config templates (used by reports-ui)
+
+---
+
+### reports-ui
+- **Type**: ui
+- **Path**: `reports/`
+- **Image**: `ghcr.io/nethesis/nethvoice-reports-ui`
+- **Base image**: `docker.io/library/node:14.21.2-alpine` (build) → `docker.io/library/nginx:1.29.3-alpine` (runtime)
+- **Upstream repo**: https://github.com/nethesis/nethvoice-report
+- **Purpose**: Frontend for queue/CDR/cost reporting.
+- **Why**: Provides visual reporting interface for admins and supervisors. (Source: reports/README.md)
+- **Used by**:
+  - `imageroot/systemd/user/reports-ui.service` — systemd unit; Requires=reports-api.service
+  - `build-images.sh` — builds nethvoice-reports-ui (target ui-production) from reports/
+  - `Containerfile` — listed in org.nethserver.images label
+  - `imageroot/actions/configure-module/72reports_ui` — Traefik route for reports-ui
+  - `imageroot/actions/configure-module/80start_services` — enables reports-ui.service
+  - `imageroot/actions/destroy-module/20destroy` — removes reports-ui traefik route
+  - `imageroot/update-module.d/80restart` — restarts reports-ui when convenient
+- **External references**:
+  - https://github.com/nethesis/nethvoice-report — upstream report project
+
+---
+
+### satellite
+- **Type**: service
+- **Path**: `satellite/`
+- **Image**: `ghcr.io/nethesis/nethvoice-satellite`
+- **Base image**: `ghcr.io/nethesis/satellite:0.0.8` (pulled directly)
+- **Upstream repo**: https://github.com/nethesis/satellite
+- **Purpose**: Realtime speech-to-text bridge: connects Asterisk ARI → RTP → Deepgram, publishes transcriptions to MQTT.
+- **Why**: Provide realtime and voicemail transcription capabilities for calls handled by the PBX. (Source: satellite/README.md)
+- **Used by**:
+  - `imageroot/systemd/user/satellite.service` — systemd unit running the STT bridge
+  - `imageroot/systemd/user/satellite-mqtt.service` — MQTT broker (mosquitto) for satellite
+  - `imageroot/systemd/user/satellite-pgsql.service` — PostgreSQL with pgvector for transcript persistence
+  - `imageroot/systemd/user/satellite-recordings-cleanup.service` — cleans up recordings via podman exec freepbx
+  - `imageroot/systemd/user/satellite-recordings-cleanup.timer` — timer for cleanup
+  - `build-images.sh` — builds nethvoice-satellite from ghcr.io/nethesis/satellite base
+  - `imageroot/actions/create-module/05setenvs` — sets SATELLITE_* env vars, allocates RTP/HTTP/MQTT ports
+  - `imageroot/actions/configure-module/80start_services` — enables satellite services (conditional)
+  - `imageroot/actions/get-integrations/20read` — reads SATELLITE integration flags and keys
+  - `imageroot/actions/set-integrations/50manage_service` — enable/disable/restart satellite and satellite-mqtt
+  - `imageroot/update-module.d/20allocate_ports` — allocates satellite ports
+  - `imageroot/update-module.d/10env` — sets satellite env vars
+  - `imageroot/update-module.d/80restart` — restarts satellite when convenient
+  - `imageroot/bin/satellite-mqtt-gen-config` — creates mosquitto password/config for satellite MQTT
+  - `mariadb/docker-entrypoint-initdb.d/50_asterisk.rest_cti_permissions.sql` — adds satellite_stt permission
+- **External references**:
+  - https://github.com/nethesis/satellite — upstream satellite repo
+
+---
+
+### nethhotel
+- **Type**: service
+- **Path**: `freepbx/` (submodule within FreePBX)
+- **Docs**: https://docs.nethvoice.com/docs/administrator-manual/nethhotel
+- **Purpose**: Hotel management for PBX: guest check-in/out, wake-up calls, billing, FIAS (PMS) integration.
+- **Why**: Provide hotel-specific telephony features and PMS integration for hospitality deployments. (Source: NethVoice Administrator manual — NethHotel)
+- **Used by**:
+  - `freepbx/var/www/html/freepbx/admin/modules/nethhotel/` — FreePBX module code and UI (Nethhotel.class.php, page.nethhotel.php, functions.inc.php, module.xml)
+  - `freepbx/usr/share/neth-hotel-fias/` — FIAS bridge scripts (dispatcher.php, gi2pbx.php, gc2pbx.php, re2pms.php, minibar.php)
+  - `mariadb/docker-entrypoint-initdb.d/00_fias-schema-create.sql` — FIAS database schema
+  - `mariadb/docker-entrypoint-initdb.d/40_fias.*.sql` — FIAS seed data
+  - `mariadb/docker-entrypoint-initdb.d/90_users.sh` — grants DB permissions for FIAS
+  - `imageroot/update-module.d/85mysql_update` — creates/updates fias DB and rooms db during update
+  - `imageroot/systemd/user/nethvoice-hotel-alarms.service` — wake-up call alarm service
+  - `imageroot/systemd/user/nethvoice-hotel-alarms.timer` — timer for alarm checks
+  - `imageroot/actions/get-nethvoice-hotel/20read` — reads hotel configuration
+  - `imageroot/actions/set-nethvoice-hotel/20apply` — applies hotel configuration, restarts services
+  - `freepbx/README.md` — documents NETHVOICE_HOTEL and NETHVOICE_HOTEL_FIAS_* env vars
+- **External references**:
+  - https://docs.nethvoice.com/docs/administrator-manual/nethhotel — NethHotel admin docs
+  - https://github.com/nethesis/ns8-nethvoice/pull/436 — feat: Port NethHotel from NethVoice14
+  - https://github.com/NethServer/nethserver-ns8-migration/pull/115 — migrate NethHotel database on upgrade
+  - https://github.com/NethServer/dev/issues/7425 — NethHotel porting tracking issue
+
+---
+
+### sftp
+- **Type**: service
+- **Path**: `sftp/`
+- **Image**: `ghcr.io/nethesis/nethvoice-sftp`
+- **Base image**: `alpine:latest`
+- **Purpose**: SFTP server for accessing call recordings and audio files.
+- **Why (inferred)**: Provides standard SFTP-based file access to PBX audio assets (recordings, MoH, sounds). (Evidence: sftp.service mounts moh, sounds, spool volumes from asterisk)
+- **Used by**:
+  - `imageroot/systemd/user/sftp.service` — systemd unit; mounts moh, sounds, spool volumes
+  - `build-images.sh` — builds nethvoice-sftp from sftp/ directory
+  - `Containerfile` — listed in org.nethserver.images label
+  - `imageroot/actions/create-module/05setenvs` — sets ASTERISK_RECORDING_SFTP_PORT
+  - `imageroot/actions/create-module/90firewall` — opens SFTP TCP port in firewall
+  - `imageroot/update-module.d/20allocate_ports` — allocates/migrates SFTP port during updates
+
+---
+
+### notify
+- **Type**: integration
+- **Path**: `imageroot/` (runtime mechanism)
+- **Purpose**: File-based signaling to restart/reload services after FreePBX applies configuration.
+- **Why (inferred)**: Makes post-configuration service synchronization explicit and container-friendly. (Evidence: watcher.path monitors notify/ directory; adjust-services processes action files)
+- **Used by**:
+  - `imageroot/systemd/user/watcher.path` — systemd path unit watching %S/state/notify/*_*
+  - `imageroot/systemd/user/watcher.service` — triggered by watcher.path; runs runagent adjust-services
+  - `imageroot/bin/adjust-services` — reads files named action_service from notify/ and runs systemctl --user action service
+  - `imageroot/actions/create-module/80process_notifier` — creates notify/ directory
+  - `imageroot/actions/configure-module/80start_services` — enable --now watcher.path
+  - `imageroot/actions/transfer-state/49stop_services` — strips watcher.path from service list during transfer
+  - `imageroot/systemd/user/freepbx.service` — mounts ./notify:/notify:z into freepbx container
+
+---
+
+### tests
+- **Type**: test-suite
+- **Path**: `tests/`
+- **Purpose**: Robot Framework-based module tests for install/config/runtime validation.
+- **Why**: Regression coverage for module lifecycle flows. (Source: test-module.sh — entry point running Robot Framework)
+- **Used by**:
+  - `test-module.sh` — entry point: runs Robot Framework in a Playwright container
+  - `tests/pythonreq.txt` — declares robotframework and robotframework-sshlibrary dependencies
+  - `tests/__init__.robot` — suite init file
+  - `tests/00_nethvoice_install_dependencies.robot` — installs test dependencies (nethvoice-proxy)
+  - `tests/01_nethvoice_add-module.robot` — tests module installation
+  - `tests/99_nethvoice_remove-modules.robot` — tests module removal
+  - `tests/api.resource` — shared Robot Framework resource file
+  - `tests/10_nethvoice_actions/` — action-level integration tests
