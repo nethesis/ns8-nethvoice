@@ -36,7 +36,7 @@ RUN chmod +x /docker-entrypoint.d/99-config-gen.sh
 
 ### API ###
 # Init go builder, installing needed dev packages
-FROM docker.io/library/golang:1.19.9-alpine as gobuilder
+FROM docker.io/library/golang:1.26.0-alpine as gobuilder
 WORKDIR /app
 RUN apk add --no-cache \
         build-base \
