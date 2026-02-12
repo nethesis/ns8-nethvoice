@@ -30,6 +30,7 @@ Published container images associated with this repo include (non-exhaustive): `
 | `flexisip` | Service | (repo path not confirmed; image exists) | SIP server components (proxy/presence/conference/push patterns) | Softphone/mobile-related scenarios (when enabled) :contentReference[oaicite:16]{index=16} |
 | `sftp` | Service | `sftp/` | SFTP-based file access channel (purpose depends on deployment) | Admins, integrations (file exchange) :contentReference[oaicite:17]{index=17} |
 | `satellite` | Service | `satellite/` | Realtime speech-to-text bridge: connects Asterisk ARI -> RTP -> Deepgram, publishes transcriptions to MQTT; optional Postgres persistence and OpenAI enrichment. | Stack services and integrations; see "Used by" paths below. |
+| `nethhotel` | Service / FreePBX module | `freepbx/` + `mariadb/docker-entrypoint-initdb.d/` | Hotel management for PBX: guest check-in/out, wake-up calls, billing, FIAS (PMS) integration, minibar/extras, reports. | FreePBX UI, FIAS bridge, database schemas and migration scripts (see "Used by" below). |
 | `notify` | Integration mechanism | `notify/` (runtime dir) | File-based signaling to restart/reload services after config apply | Containers within stack (producer), watcher unit (consumer) :contentReference[oaicite:19]{index=19} |
 | `tests` | Test suite | `tests/` + `test-module.sh` | Robot Framework-based module tests | CI, maintainers :contentReference[oaicite:20]{index=20} |
 
@@ -265,6 +266,25 @@ Published container images associated with this repo include (non-exhaustive): `
 
 **Why it exists**
 - Provide realtime and voicemail transcription capabilities for calls handled by the PBX, expose transcriptions to other components via MQTT and (optionally) persist them for enrichment/search. Source: `satellite/README.md` (https://github.com/nethesis/satellite/).
+
+## 16) `nethhotel` (hotel management)
+**What it does**
+- Manages hotel-style extensions and guest workflows inside the PBX: check-in/check-out, wake-up calls, room groups, billing (call rates, extras/minibar), reporting and integration with Property Management Systems via the FIAS protocol. See the NethVoice docs: https://docs.nethvoice.com/docs/administrator-manual/nethhotel
+
+**Who uses it (Used by — concrete file paths)**
+- FreePBX module code and UI: `freepbx/var/www/html/freepbx/admin/modules/nethhotel/` (Nethhotel.class.php, page.nethhotel.php, functions.inc.php, module.xml, i18n, htdocs/*).
+- FIAS bridge and helper scripts: `freepbx/usr/share/neth-hotel-fias/` (dispatcher.php, gi2pbx.php, gc2pbx.php, re2pms.php, minibar.php, functions.inc.php, fias-client-README).
+- Database schema and grants: `mariadb/docker-entrypoint-initdb.d/00_fias-schema-create.sql`, `mariadb/docker-entrypoint-initdb.d/40_fias.*.sql`, and related `90_users.sh` for granting permissions.
+- Module lifecycle / DB updates: `imageroot/update-module.d/85mysql_update` (creates/updates `fias` DB and rooms db during update/install).
+- Runtime/config flags and docs: `freepbx/README.md` (documents `NETHVOICE_HOTEL` and `NETHVOICE_HOTEL_FIAS_*` env vars and FIAS configuration file `/etc/asterisk/fias.conf`).
+
+**Why it exists**
+- Provide hotel-specific telephony features and PMS integration for hospitality deployments: automated guest lifecycle, billing integration, and operational features (wake-up, room status) that integrate with the PBX. Primary documentation: NethVoice Administrator manual — NethHotel (https://docs.nethvoice.com/docs/administrator-manual/nethhotel).
+
+**Relevant upstream work / references**
+- Porting effort and merge: `nethesis/ns8-nethvoice` PR #436 (feat: Port NethHotel from NethVoice14) — adds module files, DB migration and configuration. https://github.com/nethesis/ns8-nethvoice/pull/436
+- Migration support for NS8 upgrades: `NethServer/nethserver-ns8-migration` PR #115 (migrate NethHotel database on upgrade). https://github.com/NethServer/nethserver-ns8-migration/pull/115
+- Issue tracking porting work and test cases: `NethServer/dev` issue #7425 (NethHotel: port old NethHotel from NethVoice14). https://github.com/NethServer/dev/issues/7425
 
 ---
 
