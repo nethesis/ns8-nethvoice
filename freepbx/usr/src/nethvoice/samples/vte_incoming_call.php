@@ -18,7 +18,7 @@
  *   - Restart freepbx
  * 
  *  Test:
- *  /var/lib/asterisk/agi-bin/vte_incoming_call.php dummy1 dummy2 dummy3 dummy4 dummy5 1234567 dummy7 $(date +%s) dummy9 dummy10 dummy11 dummy12 dummy13 dummy14 dummy15 '+391234567890' 'Stefano Fancello (Nethesis)' dummy18 dummy19 300
+ *  /var/lib/asterisk/agi-bin/vte_incoming_call.php dummy1 dummy2 dummy3 dummy4 dummy5 1234567 '+391234567890' $(date +%s) dummy9 dummy10 dummy11 dummy12 dummy13 dummy14 dummy15 dummy16 'Stefano Fancello (Nethesis)' dummy18 dummy19 300
  *
  * *************************************************/
 
@@ -34,7 +34,7 @@ $authorization_token = base64_encode($username.':'.$accesskey);
 
 $uid     = $argv[6];
 $time    = $argv[8];
-$cidnum  = $argv[16];
+$cidnum  = $argv[7];
 $cidname = $argv[17];
 $extnum  = $argv[20];
 
