@@ -58,5 +58,6 @@ if podman exec freepbx ls -alh /var/lib/asterisk/sounds/nethcti >/dev/null 2>&1;
 fi
 
 # satellite postgresql dump
-echo "Dumping Satellite PostgreSQL database"
-podman exec satellite-pgsql pg_dumpall -U satellite > satellite_postgresql.pg_dump
+if systemctl --user --quiet is-active satellite-pgsql.service; then
+    podman exec satellite-pgsql pg_dumpall -U satellite > satellite_postgresql.pg_dump
+fi
