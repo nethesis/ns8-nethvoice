@@ -28,6 +28,7 @@ podman exec -it mariadb bash <<'EOF'
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.history-schema.sql ;\
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.options-schema.sql ;\
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.rates-schema.sql ;\
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/45_roomsdb.defaults.sql ;\
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.room_groups-schema.sql ;\
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.rooms-schema.sql ;\
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" -e "GRANT ALL on roomsdb.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'" ;\
