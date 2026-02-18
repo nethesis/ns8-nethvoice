@@ -257,7 +257,7 @@
         </div>
       </cv-column>
     </cv-row>
-    <!-- services -->
+     <!-- services -->
     <cv-row>
       <cv-column class="page-subtitle">
         <h4>{{ $t("status.failed_services") }}</h4>
@@ -309,6 +309,68 @@
             :paragraph="true"
             :line-count="4"
           ></cv-skeleton-text>
+        </cv-tile>
+      </cv-column>
+    </cv-row>
+    <!-- internal service details -->
+    <cv-row>
+      <cv-column class="page-subtitle">
+        <h4>{{ $t("status.internal_service_details") }}</h4>
+      </cv-column>
+    </cv-row>
+    <cv-row v-if="error.getPortsList">
+      <cv-column>
+        <NsInlineNotification
+          kind="error"
+          :title="$t('action.get-ports-list')"
+          :description="error.getPortsList"
+          :showCloseButton="false"
+        />
+      </cv-column>
+    </cv-row>
+    <cv-row>
+      <cv-column>
+        <cv-tile light>
+          <NsDataTable
+            :allRows="ports"
+            :columns="i18nPortsTableColumns"
+            :rawColumns="portsTableColumns"
+            :sortable="true"
+            :pageSizes="[10, 25, 50]"
+            :overflow-menu="false"
+            isSearchable
+            :searchPlaceholder="$t('status.search_service_details')"
+            :searchClearLabel="core.$t('common.clear_search')"
+            :noSearchResultsLabel="core.$t('common.no_search_results')"
+            :noSearchResultsDescription="
+              core.$t('common.no_search_results_description')
+            "
+            :itemsPerPageLabel="core.$t('pagination.items_per_page')"
+            :rangeOfTotalItemsLabel="
+              core.$t('pagination.range_of_total_items')
+            "
+            :ofTotalPagesLabel="core.$t('pagination.of_total_pages')"
+            :backwardText="core.$t('pagination.previous_page')"
+            :forwardText="core.$t('pagination.next_page')"
+            :pageNumberLabel="core.$t('pagination.page_number')"
+            :isLoading="loading.getPortsList"
+            @updatePage="portsTablePage = $event"
+          >
+            <template slot="data">
+              <cv-data-table-row
+                v-for="(row, rowIndex) in portsTablePage"
+                :key="`${rowIndex}`"
+                :value="`${rowIndex}`"
+              >
+                <cv-data-table-cell>{{ row.name }}</cv-data-table-cell>
+                <cv-data-table-cell>{{ row.port }}</cv-data-table-cell>
+                <cv-data-table-cell>{{ row.protocol }}</cv-data-table-cell>
+              </cv-data-table-row>
+            </template>
+            <template slot="empty-state">
+              <NsEmptyState :title="$t('status.no_service_details')" />
+            </template>
+          </NsDataTable>
         </cv-tile>
       </cv-column>
     </cv-row>
@@ -495,18 +557,22 @@ export default {
       },
       backupRepositories: [],
       backups: [],
+      ports: [],
       Restart20,
       proxyModuleId: "",
       imagesTablePage: [],
       imagesTableColumns: ["name", "size", "created"],
       volumesTablePage: [],
       volumesTableColumns: ["name", "mount", "created"],
+      portsTablePage: [],
+      portsTableColumns: ["name", "port", "protocol"],
       loading: {
         getStatus: false,
         listBackupRepositories: false,
         listBackups: false,
         restartModule: false,
         getDefaults: false,
+        getPortsList: false,
       },
       error: {
         getStatus: "",
@@ -514,6 +580,7 @@ export default {
         listBackups: "",
         restartModule: "",
         getDefaults: "",
+        getPortsList: "",
       },
     };
   },
@@ -544,6 +611,11 @@ export default {
       } else {
         return "";
       }
+    },
+    i18nPortsTableColumns() {
+      return this.portsTableColumns.map((col) => {
+        return this.$t(`status.${col}`);
+      });
     },
     i18nImagesTableColumns() {
       return this.imagesTableColumns.map((col) => {
@@ -585,6 +657,7 @@ export default {
     this.getStatus();
     this.listBackupRepositories();
     this.getDefaults();
+    this.getPortsList();
   },
   methods: {
     ...mapActions(["setInstanceStatusInStore", "setDefaultsInStore"]),
@@ -854,6 +927,49 @@ export default {
         this.proxyModuleId = defaults.proxy_status.module_id;
       }
       this.loading.getDefaults = false;
+    },
+    async getPortsList() {
+      this.loading.getPortsList = true;
+      this.error.getPortsList = "";
+      const taskAction = "get-ports-list";
+      const eventId = this.getUuid();
+
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.getPortsListAborted
+      );
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.getPortsListCompleted
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.getPortsList = this.getErrorMessage(err);
+        this.loading.getPortsList = false;
+        return;
+      }
+    },
+    getPortsListAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.getPortsList = this.$t("error.generic_error");
+      this.loading.getPortsList = false;
+    },
+    getPortsListCompleted(taskContext, taskResult) {
+      this.ports = taskResult.output;
+      this.loading.getPortsList = false;
     },
     goToDomainsAndUsers() {
       this.core.$router.push("/domains");
