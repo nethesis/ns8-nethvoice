@@ -164,17 +164,22 @@ example.View = draw2d.Canvas.extend({
                                         height: 200
                                     });
                                 }
-
-                                if (jsonMarshal[i].type === "MyConnection") {
-                                    g.setEdge(jsonMarshal[i].source.node, jsonMarshal[i].target.node);
+                            };
+                            for (var j in jsonMarshal) {
+                                if (jsonMarshal[j].type === "MyConnection" &&
+                                    g.hasNode(jsonMarshal[j].source.node) &&
+                                    g.hasNode(jsonMarshal[j].target.node)) {
+                                    g.setEdge(jsonMarshal[j].source.node, jsonMarshal[j].target.node);
                                 }
                             };
 
                             dagre.layout(g);
 
                             g.nodes().forEach(function (v) {
-                                jsonMarshal[v].x = event.x + g.node(v).x;
-                                jsonMarshal[v].y = event.y + g.node(v).y;
+                                if (jsonMarshal[v] && g.node(v)) {
+                                    jsonMarshal[v].x = event.x + g.node(v).x;
+                                    jsonMarshal[v].y = event.y + g.node(v).y;
+                                }
                             });
 
                             var reader = new draw2d.io.json.Reader();
