@@ -22,7 +22,8 @@
     "get-rebranding": "Get rebranding",
     "set-rebranding": "Configure rebranding",
     "set-nethvoice-admin-password": "Change NethVoice admin password",
-    "get-ports-list": "Get ports list"
+    "get-ports-list": "Get ports list",
+    "restart-module": "Restart module"
   },
   "common": {
     "processing": "Processing...",
@@ -120,7 +121,8 @@
     "no_service_details": "No service details available",
     "protocol": "Protocol",
     "port": "Port",
-    "search_service_details": "Search service details"
+    "search_service_details": "Search service details",
+    "restart_module_warning": "Restarting the application {name} will interrupt its operation and may cause downtime. Proceed only if maintenance is needed and users are aware."
   },
   "welcome": {
     "configure_nethvoice": "Configure NethVoice",
