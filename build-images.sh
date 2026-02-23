@@ -87,7 +87,7 @@ images+=("${repobase}/${reponame}")
 ##    NethCTI Middleware   ##
 #############################
 reponame="nethvoice-cti-middleware"
-container=$(buildah from ghcr.io/nethesis/nethcti-middleware:v0.4.4)
+container=$(buildah from ghcr.io/nethesis/nethcti-middleware:v0.4.5)
 
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
@@ -100,7 +100,7 @@ images+=("${repobase}/${reponame}")
 ##      NethCTI Client     ##
 #############################
 reponame="nethvoice-cti-ui"
-container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v0.15.5)
+container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v0.15.6)
 
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
