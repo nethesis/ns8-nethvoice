@@ -2,39 +2,39 @@
     "2N": [
         {
             "start": "7C-1E-B3-00-00-00",
-             "end": "7C-1E-B3-FF-FF-FF"
+            "end": "7C-1E-B3-FF-FF-FF"
         }
     ],
     "Aastra": [
         {
             "start": "00-08-5D-00-00-00",
-             "end": "00-08-5D-FF-FF-FF"
+            "end": "00-08-5D-FF-FF-FF"
         },
         {
             "start": "00-10-BC-00-00-00",
-             "end": "00-10-BC-FF-FF-FF"
+            "end": "00-10-BC-FF-FF-FF"
         }
     ],
     "AG": [
         {
             "start": "00-90-33-00-00-00",
-             "end": "00-90-33-FF-FF-FF"
+            "end": "00-90-33-FF-FF-FF"
         }
     ],
     "Akuvox": [
         {
             "start": "0C-11-05-00-00-00",
-             "end": "0C-11-05-FF-FF-FF"
+            "end": "0C-11-05-FF-FF-FF"
         },
         {
             "start": "9C-75-14-00-00-00",
-             "end": "9C-75-14-FF-FF-FF"
+            "end": "9C-75-14-FF-FF-FF"
         }
     ],
     "Alcatel Temporis": [
         {
             "start": "74-65-D1-00-00-00",
-             "end": "74-65-D1-FF-FF-FF"
+            "end": "74-65-D1-FF-FF-FF"
         }
     ],
     "Cisco/Linksys": [
