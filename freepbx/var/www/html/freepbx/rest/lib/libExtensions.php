@@ -499,7 +499,12 @@ function getVendorFromMac($mac) {
     $vendors_ranges = json_decode(file_get_contents(__DIR__. '/../lib/macAddressMap.json'), true);
     foreach ($vendors_ranges as $vendor => $ranges) {
         foreach ($ranges as $range) {
-            if (strcmp($mac, strtoupper(str_replace([':', '-'], '', $range["start"]))) >= 0 && strcmp($mac, strtoupper(str_replace([':', '-'], '', $range["end"]))) <= 0) {
+            $startMac = strtoupper(str_replace([':', '-'], '', $range["start"]));
+            $endMac   = strtoupper(str_replace([':', '-'], '', $range["end"]));
+            $macVal   = hexdec($mac);
+            $startVal = hexdec($startMac);
+            $endVal   = hexdec($endMac);
+            if ($macVal >= $startVal && $macVal <= $endVal) {
                 return $vendor;
             }
         }
