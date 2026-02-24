@@ -217,7 +217,8 @@ passwords = {
     "SATELLITE_MQTT_PASSWORD": gen_password(),
     "SATELLITE_ARI_PASSWORD": gen_password(),
     "SATELLITE_PGSQL_PASSWORD": gen_password(),
-    "SATELLITE_API_TOKEN": gen_password()
+    "SATELLITE_API_TOKEN": gen_password(),
+    "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN": gen_password()
 }
 
 agent.write_envfile("passwords.env", passwords)
