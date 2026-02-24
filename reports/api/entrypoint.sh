@@ -66,7 +66,7 @@ if [ "$1" = "api" ]; then
         "agent": "",
         "geoGroup": "regione"
     },
-    "api_endpoint": "https://${NETHVOICE_HOST}/pbx-report-api",
+    "api_endpoint": "http://${NETHVOICE_HOST}/pbx-report-api",
     "api_key": "${REPORTS_API_KEY}",
     "settings": {
         "start_hour": "09:00",
