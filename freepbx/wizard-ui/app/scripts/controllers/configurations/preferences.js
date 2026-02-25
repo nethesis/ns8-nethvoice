@@ -42,6 +42,25 @@ angular.module('nethvoiceWizardUiApp')
     $scope.usersFilter = $scope.availableUserFilters[0]
     $scope.usersFilterNumbers = $scope.availableUserFiltersNumbers[0]
 
+
+    $scope.$watch('usersFilter', function(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        $scope.usersLimit = 20
+      }
+    })
+
+    $scope.$watch('usersFilterNumbers', function(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        $scope.usersLimit = 20
+      }
+    })
+
+    $scope.$watch('usersFilterNumbersOrd', function(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        $scope.usersLimit = 20
+      }
+    })
+
     $scope.usersIsEmpty = function() {
       for(var u in $scope.allUsers) {
         var user = $scope.allUsers[u];

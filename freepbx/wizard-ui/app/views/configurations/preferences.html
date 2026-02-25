@@ -58,7 +58,7 @@
     <div class="list-group list-view-pf list-view-pf-view mt-20">
       <!-- repeat -->
       <div
-        ng-repeat="user in allUsers | customFilterMultiple:'displayname,username,default_extension,configurationsUsersSearch':searchUser | withExtension | limitTo: usersLimit | orderBy:usersFilterNumbers:usersFilterNumbersOrd"
+        ng-repeat="user in allUsers | customFilterMultiple:'displayname,username,default_extension,configurationsUsersSearch':searchUser | withExtension | orderBy:usersFilterNumbers:usersFilterNumbersOrd | limitTo: usersLimit"
         ng-show="usersFilter == 'configured' ? user.devices.length > 0 : (usersFilter == 'unconfigured' ? user.devices.length == 0 : true)"
         class="list-group-item {{user.username == currentUser.username ? 'list-view-pf-expand-active' : ''}}">
         <div class="list-group-item-header">
