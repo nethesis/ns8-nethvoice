@@ -282,14 +282,16 @@ foreach ($_GET as $key => $value) {
 
             foreach ($pieces as $d) {
                 $cDest = explode("%", $dest);
-                $connection = nethvplan_bindConnection($data, $cDest[0], $cDest[1]);
+                if (nethvplan_hasDestinationData($data, $cDest[0], $cDest[1])) {
+                    $connection = nethvplan_bindConnection($data, $cDest[0], $cDest[1]);
 
-                if (is_array($connection[0])) {
-                    foreach ($connection as $arr) {
-                        array_push($connections, $arr);
+                    if (isset($connection[0]) && is_array($connection[0])) {
+                        foreach ($connection as $arr) {
+                            array_push($connections, $arr);
+                        }
+                    } else if (!empty($connection['id'])) {
+                        array_push($connections, $connection);
                     }
-                } else {
-                    array_push($connections, $connection);
                 }
 
                 nethvplan_explore($data, $d, $tmpDestArray);
@@ -310,6 +312,11 @@ foreach ($_GET as $key => $value) {
         case "id":
             // start elaboration
             $id = $_GET["id"];
+            $id = nethvplan_resolveIncomingId($data['incoming'], $id);
+            if ($id === null) {
+                print_r(json_encode(array(), true));
+                break;
+            }
             $destination = $data['incoming'][$id]['destination'];
             $description = $data['incoming'][$id]['description'];
 
@@ -331,8 +338,10 @@ foreach ($_GET as $key => $value) {
                     "decoration"=> "draw2d.decoration.connection.ArrowDecorator"
                 );
 
-                // add connection
-                array_push($connections, $connection);
+                if (nethvplan_hasDestinationData($data, $dest, $idDest)) {
+                    // add connection only if destination exists
+                    array_push($connections, $connection);
+                }
 
                 // start exploring of connections
                 nethvplan_explore($data, $destination, $destArray);
@@ -358,6 +367,32 @@ foreach ($_GET as $key => $value) {
             print_r(/*nethvplan_json_pretty(*/json_encode($merged, true));
         break;
     }
+}
+
+function nethvplan_splitIncomingId($id)
+{
+    $parts = explode("/", (string) $id, 2);
+    $extension = isset($parts[0]) ? trim($parts[0]) : "";
+    $cid = isset($parts[1]) ? trim($parts[1]) : "";
+
+    return array($extension, $cid);
+}
+
+function nethvplan_resolveIncomingId($incoming, $requestedId)
+{
+    if (isset($incoming[$requestedId])) {
+        return $requestedId;
+    }
+
+    list($requestedExt, $requestedCid) = nethvplan_splitIncomingId($requestedId);
+    foreach ($incoming as $key => $value) {
+        list($ext, $cid) = nethvplan_splitIncomingId($key);
+        if ($ext === $requestedExt && $cid === $requestedCid) {
+            return $key;
+        }
+    }
+
+    return null;
 }
 
 function nethvplan_cmpAnnun($a, $b)
@@ -403,6 +438,21 @@ function nethvplan_getDestination($destination)
     }
 
     return array($dest, $id);
+}
+
+// Check whether destination data exists before trying to bind widgets/connections.
+function nethvplan_hasDestinationData($data, $dest, $id)
+{
+    if ($dest === "app-blackhole") {
+        return true;
+    }
+
+    if ($dest === "ext-local") {
+        $idUsers = substr($id, 3);
+        return isset($data['from-did-direct'][$idUsers]) && is_array($data['from-did-direct'][$idUsers]);
+    }
+
+    return isset($data[$dest][$id]) && is_array($data[$dest][$id]);
 }
 
 function nethvplan_timeZoneOffset()
@@ -725,7 +775,7 @@ function nethvplan_bindData($data, $dest, $id)
               "description"=> html_entity_decode($data[$dest][$id]['description']),
               "announcement"=> html_entity_decode($data[$dest][$id]['announcement'])
             );
-            if (array_key_exists('selections', $data[$dest][$id])) {
+            if (!empty($data[$dest][$id]['selections']) && is_array($data[$dest][$id]['selections'])) {
                 foreach ($data[$dest][$id]['selections'] as $value) {
                     $widget['entities'][] = array(
                         "text"=> $value['selection'],
@@ -779,7 +829,7 @@ function nethvplan_bindData($data, $dest, $id)
                 "description"=> html_entity_decode($data[$dest][$id]['description']),
                 "announcement"=> html_entity_decode($data[$dest][$id]['announcement'])
             );
-            if (array_key_exists('selections', $data[$dest][$id])) {
+            if (!empty($data[$dest][$id]['selections']) && is_array($data[$dest][$id]['selections'])) {
                 foreach ($data[$dest][$id]['selections'] as $value) {
                     $widget['entities'][] = array(
                         "text"=> $value['condition'],
@@ -976,6 +1026,9 @@ function nethvplan_bindConnection($data, $dest, $id)
                 "port"=> "input_".$destNew."%".$idDest,
                 "decoration"=> "draw2d.decoration.connection.ArrowDecorator"
             );
+            if (!nethvplan_hasDestinationData($data, $destNew, $idDest)) {
+                return array();
+            }
         break;
 
         case "app-daynight":
@@ -996,7 +1049,9 @@ function nethvplan_bindConnection($data, $dest, $id)
                 "decoration"=> "draw2d.decoration.connection.ArrowDecorator"
             );
 
-            array_push($arrayTmp, $con1);
+            if (nethvplan_hasDestinationData($data, $destNew, $idDest)) {
+                array_push($arrayTmp, $con1);
+            }
 
             $res = nethvplan_getDestination($data[$dest][$id]['red_flow']);
             $destNew = $res[0];
@@ -1014,7 +1069,9 @@ function nethvplan_bindConnection($data, $dest, $id)
                 "decoration"=> "draw2d.decoration.connection.ArrowDecorator"
             );
 
-            array_push($arrayTmp, $con2);
+            if (nethvplan_hasDestinationData($data, $destNew, $idDest)) {
+                array_push($arrayTmp, $con2);
+            }
 
             $connection = $arrayTmp;
         break;
@@ -1037,7 +1094,9 @@ function nethvplan_bindConnection($data, $dest, $id)
                     "decoration"=> "draw2d.decoration.connection.ArrowDecorator"
                 );
 
-                array_push($arrayTmp, $con1);
+                if (nethvplan_hasDestinationData($data, $destNew, $idDest)) {
+                    array_push($arrayTmp, $con1);
+                }
 
                 $res = nethvplan_getDestination($data[$dest][$id]['falsegoto']);
                 $destNew = $res[0];
@@ -1055,7 +1114,9 @@ function nethvplan_bindConnection($data, $dest, $id)
                     "decoration"=> "draw2d.decoration.connection.ArrowDecorator"
                 );
 
-                array_push($arrayTmp, $con2);
+                if (nethvplan_hasDestinationData($data, $destNew, $idDest)) {
+                    array_push($arrayTmp, $con2);
+                }
 
                 $connection = $arrayTmp;
         break;
@@ -1078,7 +1139,9 @@ function nethvplan_bindConnection($data, $dest, $id)
                 "decoration"=> "draw2d.decoration.connection.ArrowDecorator"
             );
 
-            array_push($arrayTmp, $con1);
+            if (nethvplan_hasDestinationData($data, $destNew, $idDest)) {
+                array_push($arrayTmp, $con1);
+            }
 
             $res = nethvplan_getDestination($data[$dest][$id]['timeout_destination']);
             $destNew = $res[0];
@@ -1096,9 +1159,11 @@ function nethvplan_bindConnection($data, $dest, $id)
                 "decoration"=> "draw2d.decoration.connection.ArrowDecorator"
             );
 
-            array_push($arrayTmp, $con2);
+            if (nethvplan_hasDestinationData($data, $destNew, $idDest)) {
+                array_push($arrayTmp, $con2);
+            }
 
-            if (array_key_exists('selections', $data[$dest][$id])) {
+            if (!empty($data[$dest][$id]['selections']) && is_array($data[$dest][$id]['selections'])) {
                 foreach ($data[$dest][$id]['selections'] as $value) {
                     $res = nethvplan_getDestination($value['dest']);
                     $destNew = $res[0];
@@ -1116,7 +1181,9 @@ function nethvplan_bindConnection($data, $dest, $id)
                         "decoration"=> "draw2d.decoration.connection.ArrowDecorator"
                     );
 
-                    array_push($arrayTmp, $con3);
+                    if (nethvplan_hasDestinationData($data, $destNew, $idDest)) {
+                        array_push($arrayTmp, $con3);
+                    }
                 }
             }
             $connection = $arrayTmp;
@@ -1140,9 +1207,11 @@ function nethvplan_bindConnection($data, $dest, $id)
                 "decoration"=> "draw2d.decoration.connection.ArrowDecorator"
             );
 
-            array_push($arrayTmp, $con1);
+            if (nethvplan_hasDestinationData($data, $destNew, $idDest)) {
+                array_push($arrayTmp, $con1);
+            }
 
-            if (array_key_exists('selections', $data[$dest][$id])) {
+            if (!empty($data[$dest][$id]['selections']) && is_array($data[$dest][$id]['selections'])) {
                 foreach ($data[$dest][$id]['selections'] as $value) {
                     $res = nethvplan_getDestination($value['dest']);
                     $destNew = $res[0];
@@ -1160,7 +1229,9 @@ function nethvplan_bindConnection($data, $dest, $id)
                         "decoration"=> "draw2d.decoration.connection.ArrowDecorator"
                     );
 
-                    array_push($arrayTmp, $con2);
+                    if (nethvplan_hasDestinationData($data, $destNew, $idDest)) {
+                        array_push($arrayTmp, $con2);
+                    }
                 }
             }
             $connection = $arrayTmp;
@@ -1181,6 +1252,9 @@ function nethvplan_bindConnection($data, $dest, $id)
                 "port"=> "input_".$destNew."%".$idDest,
                 "decoration"=> "draw2d.decoration.connection.ArrowDecorator"
             );
+            if (!nethvplan_hasDestinationData($data, $destNew, $idDest)) {
+                return array();
+            }
         break;
         
         case "ext-group":
@@ -1198,6 +1272,9 @@ function nethvplan_bindConnection($data, $dest, $id)
                 "port"=> "input_".$destNew."%".$idDest,
                 "decoration"=> "draw2d.decoration.connection.ArrowDecorator"
             );
+            if (!nethvplan_hasDestinationData($data, $destNew, $idDest)) {
+                return array();
+            }
         break;
     }
 
@@ -1237,6 +1314,11 @@ function nethvplan_explore($data, $destination, $destArray)
         $dest = $res[0];
         $id = $res[1];
 
+        if (!nethvplan_hasDestinationData($data, $dest, $id)) {
+            // Stale destination to avoid 500.
+            return;
+        }
+
         // choose correct destination and
         // add widget and connections
         switch ($dest) {
@@ -1270,7 +1352,9 @@ function nethvplan_explore($data, $destination, $destArray)
                 array_push($widgets, $widget);
 
                 $connection = nethvplan_bindConnection($data, $dest, $id);
-                array_push($connections, $connection);
+                if (!empty($connection['id'])) {
+                    array_push($connections, $connection);
+                }
 
                 nethvplan_explore($data, $data[$dest][$id]['postdest'], $destArray);
             break;
@@ -1318,7 +1402,7 @@ function nethvplan_explore($data, $destination, $destArray)
 
                 nethvplan_explore($data, $data[$dest][$id]['invalid_destination'], $destArray);
                 nethvplan_explore($data, $data[$dest][$id]['timeout_destination'], $destArray);
-                if (array_key_exists('selections', $data[$dest][$id])) {
+                if (!empty($data[$dest][$id]['selections']) && is_array($data[$dest][$id]['selections'])) {
                     foreach ($data[$dest][$id]['selections'] as $value) {
                         nethvplan_explore($data, $value['dest'], $destArray);
                     }
@@ -1337,7 +1421,7 @@ function nethvplan_explore($data, $destination, $destArray)
                 }
 
                 nethvplan_explore($data, $data[$dest][$id]['default_destination'], $destArray);
-                if (array_key_exists('selections', $data[$dest][$id])) {
+                if (!empty($data[$dest][$id]['selections']) && is_array($data[$dest][$id]['selections'])) {
                     foreach ($data[$dest][$id]['selections'] as $value) {
                         nethvplan_explore($data, $value['dest'], $destArray);
                     }
@@ -1350,7 +1434,9 @@ function nethvplan_explore($data, $destination, $destArray)
                 array_push($widgets, $widget);
 
                 $connection = nethvplan_bindConnection($data, $dest, $id);
-                array_push($connections, $connection);
+                if (!empty($connection['id'])) {
+                    array_push($connections, $connection);
+                }
 
                 nethvplan_explore($data, $data[$dest][$id]['dest'], $destArray);
             break;
@@ -1361,7 +1447,9 @@ function nethvplan_explore($data, $destination, $destArray)
                 array_push($widgets, $widget);
 
                 $connection = nethvplan_bindConnection($data, $dest, $id);
-                array_push($connections, $connection);
+                if (!empty($connection['id'])) {
+                    array_push($connections, $connection);
+                }
 
                 nethvplan_explore($data, $data[$dest][$id]['postdest'], $destArray);
             break;

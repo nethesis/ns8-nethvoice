@@ -93,6 +93,8 @@ restore_envs = [
     'TIMEZONE',
     'TRAEFIK_HTTP2HTTPS',
     'USER_DOMAIN',
+    'SATELLITE_CALL_TRANSCRIPTION_ENABLED',
+    'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED',
 ]
 
 for env in restore_envs:

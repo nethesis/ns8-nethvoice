@@ -7,4 +7,4 @@
 
 set -e
 
-rm -rf db_backup asterisk_backup
+rm -rf db_backup asterisk_backup satellite_postgresql.pg_dump

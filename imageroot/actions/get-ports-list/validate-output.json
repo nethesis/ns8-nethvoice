@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Get ports list",
+  "$id": "http://nethserver.org/json-schema/task/output/nethvoice/get-ports-list",
+  "description": "Internal service details.",
+  "examples": [
+    [
+      {"name": "Asterisk SIP",             "port": "5060",        "protocol": "udp/tcp"},
+      {"name": "Asterisk SIPS (TLS)",      "port": "5061",        "protocol": "tcp"},
+      {"name": "Asterisk IAX",             "port": "4569",        "protocol": "udp"},
+      {"name": "Asterisk WSS (WebRTC)",    "port": "8089",        "protocol": "tcp"},
+      {"name": "Asterisk recordings SFTP", "port": "2022",        "protocol": "tcp"},
+      {"name": "Asterisk RTP (WSS)",       "port": "20000-20100", "protocol": "udp"},
+      {"name": "NethCTI TLS (Nethifier)",  "port": "9001",        "protocol": "tcp"},
+      {"name": "Phonebook LDAPS",          "port": "636",         "protocol": "tcp"},
+      {"name": "Janus WebRTC RTP",         "port": "10000-10200", "protocol": "udp"}
+    ]
+  ],
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["name", "port", "protocol"],
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Human-readable service label."
+      },
+      "port": {
+        "description": "Port number or range (e.g. '5060' or '20000-20100').",
+        "type": "string"
+      },
+      "protocol": {
+        "description": "Transport protocol.",
+        "type": "string",
+        "enum": ["tcp", "udp", "udp/tcp"]
+      }
+    }
+  }
+}

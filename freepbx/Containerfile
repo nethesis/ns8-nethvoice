@@ -392,7 +392,7 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/announcement && \
 
 # Download and install Nethesis modules
 RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
-	curl -sL https://github.com/nethesis/freepbx-bosssecretary/archive/refs/tags/1.0-pl.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/bosssecretary && \
+	curl -sL https://github.com/nethesis/freepbx-bosssecretary/archive/refs/tags/1.0.1.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/bosssecretary && \
 	mkdir -p /var/www/html/freepbx/admin/modules/core && \
 	/bin/rm -fr /var/www/html/freepbx/admin/modules/core/* && \
 	curl -sL https://github.com/nethesis/freepbx-core/archive/refs/tags/release/ns8/16.0.68.9-pl.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/core && \
