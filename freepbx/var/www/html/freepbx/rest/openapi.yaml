@@ -1704,27 +1704,6 @@ paths:
         required: true
         schema:
           type: string
-  /devices/phones/list/{id}:
-    get:
-      summary: List scanned phones belonging to the network identified by `md5(cidr)`.
-      tags:
-      - Devices
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-      description: Response annotates model guesses, DHCP hostnames and provisioning
-        flags when available.
-      operationId: get_devices_phones_list_id
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
   /devices/gateways/list/{id}:
     get:
       summary: List scanned and configured gateways for a specific network hash.
