@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import os
+import sys
+
+# Curated list of public-facing service ports.
+# Each entry: (label, env_var_or_tuple, protocol)
+# For port ranges, provide a tuple of (start_env_var, end_env_var).
+SERVICES = [
+    ("Asterisk SIP",              "ASTERISK_SIP_PORT",                          "udp/tcp"),
+    ("Asterisk SIPS (TLS)",       "ASTERISK_SIPS_PORT",                         "tcp"),
+    ("Asterisk IAX",              "ASTERISK_IAX_PORT",                           "udp"),
+    ("Asterisk WSS (WebRTC)",     "ASTERISK_WSS_PORT",                           "tcp"),
+    ("Asterisk recordings SFTP",  "ASTERISK_RECORDING_SFTP_PORT",                "tcp"),
+    ("Asterisk RTP (WSS)",        ("ASTERISK_RTPSTART", "ASTERISK_RTPEND"),      "udp"),
+    ("NethCTI TLS (Nethifier)",   "NETHCTI_TLS_PORT",                            "tcp"),
+    ("Phonebook LDAPS",           "PHONEBOOK_LDAP_PORT",                         "tcp"),
+    ("Janus WebRTC RTP",          ("JANUS_RTPSTART",    "JANUS_RTPEND"),         "udp"),
+]
+
+ports = []
+for label, env, protocol in SERVICES:
+    if isinstance(env, tuple):
+        start = os.environ.get(env[0], "")
+        end = os.environ.get(env[1], "")
+        if start and end:
+            ports.append({"name": label, "port": f"{start}-{end}", "protocol": protocol})
+    else:
+        value = os.environ.get(env, "")
+        if value:
+            ports.append({"name": label, "port": value, "protocol": protocol})
+
+json.dump(ports, fp=sys.stdout)

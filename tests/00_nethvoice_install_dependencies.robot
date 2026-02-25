@@ -20,4 +20,4 @@ Check if nethvoice-proxy is installed correctly
     Set Global Variable    ${proxy_module_id}    ${output.module_id}
     ${local_ip} =    Execute Command    ip -j addr show dev eth0 | jq -r '.[].addr_info[] | select(.family=="inet") | .local' | head -n 1
     Run task    module/${proxy_module_id}/configure-module
-    ...    {"addresses": {"address": "${local_ip}"}}
+    ...    {"addresses": {"address": "${local_ip}"}, "fqdn": "proxy.ns8.local","lets_encrypt": false}

@@ -76,3 +76,22 @@ $stmt->execute([$_ENV['NETHVOICE_HOST']]);
 // Add Audio Test feature code
 $stmt = $db->prepare("INSERT IGNORE INTO `featurecodes` (`modulename`,`featurename`,`description`,`helptext`,`defaultcode`,`customcode`,`enabled`,`providedest`) VALUES ('nethcti3','audio_test','Audio Test','NethVoice CTI Audio Test','*41',NULL,1,0)");
 $stmt->execute();
+
+// Update outbound routes notification_on field
+// If is set to "call" and there is an email address configured for that route,
+// set it to "pattern", if no email is configured set it to empty.
+// "call" option doesn't even works and breaks satellite real time transcription #7795
+$sql = "UPDATE `asterisk`.`outbound_routes` 
+		SET `notification_on` = 'pattern' 
+		WHERE `notification_on` = 'call' AND `route_id` IN (
+			SELECT `route_id` 
+			FROM `asterisk`.`outbound_route_email` 
+			WHERE `emailto` LIKE '%@%');
+		UPDATE `asterisk`.`outbound_routes` 
+		SET `notification_on` = ''
+		WHERE `route_id` NOT IN (
+			SELECT `route_id` 
+			FROM `asterisk`.`outbound_route_email` 
+			WHERE `emailto` LIKE '%@%')";
+$stmt = $db->prepare($sql);
+$stmt->execute();

@@ -239,7 +239,7 @@ FILE=/etc/nethcti/mailer.json
 cat > $FILE <<EOF
 {
 	"port":    "25",
-	"address": "localhost",
+	"address": "127.0.0.1",
 	"sender":  "noreply@${NETHVOICE_HOST}"
 }
 EOF
@@ -294,59 +294,59 @@ cat > $FILE <<EOF
   "rest": {
     "user": {
       "port": "${NETHCTI_INTERNAL_REST_PORT1}",
-      "address": "localhost"
+      "address": "127.0.0.1"
     },
     "phonebook": {
       "port":    "${NETHCTI_INTERNAL_REST_PORT2}",
-      "address": "localhost"
+      "address": "127.0.0.1"
     },
     "astproxy": {
       "port": "${NETHCTI_INTERNAL_REST_PORT3}",
-      "address": "localhost"
+      "address": "127.0.0.1"
     },
     "history": {
       "port": "${NETHCTI_INTERNAL_REST_PORT4}",
-      "address": "localhost"
+      "address": "127.0.0.1"
     },
     "static": {
       "port": "${NETHCTI_INTERNAL_REST_PORT5}",
-      "address": "localhost",
+      "address": "127.0.0.1",
       "webroot": "/app/plugins/com_static_http/static",
       "customWebroot": "/var/lib/nethserver/nethcti/static"
     },
     "voicemail": {
       "port": "${NETHCTI_INTERNAL_REST_PORT6}",
-      "address": "localhost"
+      "address": "127.0.0.1"
     },
     "dbconn": {
       "port": "${NETHCTI_INTERNAL_REST_PORT7}",
-      "address": "localhost"
+      "address": "127.0.0.1"
     },
     "customer_card": {
       "port": "${NETHCTI_INTERNAL_REST_PORT8}",
-      "address": "localhost",
+      "address": "127.0.0.1",
       "templates_customercards": "/var/lib/nethserver/nethcti/templates/customer_card"
     },
     "streaming": {
       "port": "${NETHCTI_INTERNAL_REST_PORT9}",
-      "address": "localhost"
+      "address": "127.0.0.1"
     },
     "offhour": {
       "port": "${NETHCTI_INTERNAL_REST_PORT10}",
-      "address": "localhost"
+      "address": "127.0.0.1"
     },
     "profiling": {
       "port": "${NETHCTI_INTERNAL_REST_PORT11}",
-      "address": "localhost"
+      "address": "127.0.0.1"
     },
     "videoconf": {
       "port": "${NETHCTI_INTERNAL_REST_PORT12}",
-      "address": "localhost"
+      "address": "127.0.0.1"
     },
     "authentication": {
       "port": "${NETHCTI_INTERNAL_REST_PORT13}",
       "proto": "http",
-      "address": "localhost"
+      "address": "127.0.0.1"
     }
   }
 }

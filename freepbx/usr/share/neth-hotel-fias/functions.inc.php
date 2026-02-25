@@ -23,7 +23,7 @@ function logMessage($message, $level=ERROR, $tag="") {
     } else {
         $out = fopen('php://stdout', 'w');
     }
-    fputs($out, Date("ymd H.i.s")." {$tag}[".getmypid()."]: ".$message);
+    fputs($out, Date("ymd H.i.s")." {$tag}[".getmypid()."]: ".$message."\n");
     fclose($out);
 }
 

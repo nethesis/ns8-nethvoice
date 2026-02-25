@@ -44,6 +44,7 @@ if not os.path.exists("passwords.env"):
         "NETHVOICE_USER_PORTAL_PASSWORD": os.getenv('NETHVOICE_USER_PORTAL_PASSWORD', ''),
         "SUBSCRIPTION_SECRET": os.getenv('SUBSCRIPTION_SECRET', ''),
         "NETHVOICE_LDAP_PASS": os.environ['NETHVOICE_LDAP_PASS'],
+        "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN":gen_password()
     }
     agent.write_envfile("passwords.env", passwords)
 
@@ -65,6 +66,12 @@ if not os.path.exists("passwords.env"):
     agent.unset_env('NETHVOICE_USER_PORTAL_PASSWORD')
     agent.unset_env('SUBSCRIPTION_SECRET')
     agent.unset_env('NETHVOICE_LDAP_PASS')
+else:
+    # load existing passwords.env and ensure NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN is present
+    passwords = agent.read_envfile("passwords.env")
+    if 'NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN' not in passwords:
+        passwords['NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN'] = gen_password()
+        agent.write_envfile("passwords.env", passwords)
 
 # Set the brand site and docs static URLs
 agent.set_env('BRAND_SITE', 'https://www.nethesis.it/soluzioni/nethvoice')
@@ -84,12 +91,22 @@ if os.getenv('SATELLITE_ARI_USERNAME') is None:
 if os.getenv('SATELLITE_MQTT_USERNAME') is None:
     agent.set_env('SATELLITE_MQTT_USERNAME', 'satellite')
 
+# Add Satellite PostgreSQL environment variables for updates
+if os.getenv('SATELLITE_PGSQL_DB') is None:
+    agent.set_env('SATELLITE_PGSQL_DB', 'satellite')
+if os.getenv('SATELLITE_PGSQL_USER') is None:
+    agent.set_env('SATELLITE_PGSQL_USER', 'satellite')
+
 # Add satellite password for updates in passwords.env if not already set
 passwordsfile = agent.read_envfile("passwords.env")
 if not 'SATELLITE_MQTT_PASSWORD' in agent.read_envfile('passwords.env'):
     passwordsfile['SATELLITE_MQTT_PASSWORD'] = gen_password()
 if not 'SATELLITE_ARI_PASSWORD' in agent.read_envfile('passwords.env'):
     passwordsfile['SATELLITE_ARI_PASSWORD'] = gen_password()
+if not 'SATELLITE_PGSQL_PASSWORD' in agent.read_envfile('passwords.env'):
+    passwordsfile['SATELLITE_PGSQL_PASSWORD'] = gen_password()
+if not 'SATELLITE_API_TOKEN' in agent.read_envfile('passwords.env'):
+    passwordsfile['SATELLITE_API_TOKEN'] = gen_password()
 agent.write_envfile('passwords.env', passwordsfile)
 
 if os.getenv('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT') is None:

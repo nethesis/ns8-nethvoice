@@ -21,7 +21,8 @@
     "set-nethvoice-hotel": "Configure hotel settings",
     "get-rebranding": "Get rebranding",
     "set-rebranding": "Configure rebranding",
-    "set-nethvoice-admin-password": "Change NethVoice admin password"
+    "set-nethvoice-admin-password": "Change NethVoice admin password",
+    "get-ports-list": "Get ports list"
   },
   "common": {
     "processing": "Processing...",
@@ -114,7 +115,12 @@
     "go_to_domains_and_users": "Go to Domains and users",
     "go_to_node_details": "Go to node details",
     "search_images": "Search images",
-    "search_volumes": "Search volumes"
+    "search_volumes": "Search volumes",
+    "internal_service_details": "Internal service details",
+    "no_service_details": "No service details available",
+    "protocol": "Protocol",
+    "port": "Port",
+    "search_service_details": "Search service details"
   },
   "welcome": {
     "configure_nethvoice": "Configure NethVoice",

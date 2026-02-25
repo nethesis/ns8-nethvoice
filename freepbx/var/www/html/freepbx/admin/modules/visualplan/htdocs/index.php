@@ -119,11 +119,12 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
 			$('#app-blackhole').text(languages[browserLang]["base_hangup_string"]);
 
 			app = new example.Application();
-			var id = window.location.search.replace("?", "").split("=")[1];
+			var searchParams = new URLSearchParams(window.location.search);
+			var id = searchParams.get("did");
 
-			if (id != "new_route") {
+			if (id && id !== "new_route") {
 				$.ajax({
-					url: "./visualize.php?id=" + id,
+					url: "./visualize.php?id=" + encodeURIComponent(id),
 					context: document.body,
 					beforeSend: function (xhr) {
 						$('#loader').show();
@@ -145,17 +146,22 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
 									height: 200
 								});
 							}
-
-							if (jsonDocument[i].type === "MyConnection") {
-								g.setEdge(jsonDocument[i].source.node, jsonDocument[i].target.node);
+						};
+						for (var j in jsonDocument) {
+							if (jsonDocument[j].type === "MyConnection" &&
+								g.hasNode(jsonDocument[j].source.node) &&
+								g.hasNode(jsonDocument[j].target.node)) {
+								g.setEdge(jsonDocument[j].source.node, jsonDocument[j].target.node);
 							}
 						};
 
 						dagre.layout(g);
 
 						g.nodes().forEach(function (v) {
-							jsonDocument[v].x = g.node(v).x;
-							jsonDocument[v].y = g.node(v).y;
+							if (jsonDocument[v] && g.node(v)) {
+								jsonDocument[v].x = g.node(v).x;
+								jsonDocument[v].y = g.node(v).y;
+							}
 						});
 
 						var reader = new draw2d.io.json.Reader();
