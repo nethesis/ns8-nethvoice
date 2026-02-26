@@ -140,6 +140,7 @@ agent.set_env('PHONEBOOK_LDAP_LIMIT', '500')
 # Reports
 agent.set_env('REPORTS_REDIS_PORT', port_list[27])
 agent.set_env('REPORTS_API_PORT', port_list[28])
+agent.set_env('REPORTS_DB_TIMEOUT', '300s')
 # 'REPORTS_PASSWORD' written to passwords.env
 # 'REPORTS_API_KEY' written to passwords.env
 # 'REPORTS_SECRET' written to passwords.env

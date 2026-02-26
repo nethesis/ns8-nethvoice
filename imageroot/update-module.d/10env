@@ -83,6 +83,9 @@ if os.getenv('ICEENFORCE') is None:
 if os.getenv('NETHCTI_PRIVACY_NUMBERS') is None:
     agent.set_env('NETHCTI_PRIVACY_NUMBERS', 'xxx')
 
+if os.getenv('REPORTS_DB_TIMEOUT') is None:
+    agent.set_env('REPORTS_DB_TIMEOUT', '300s')
+
 # Add satellite environment for updates
 if os.getenv('SATELLITE_ARI_APP') is None:
     agent.set_env('SATELLITE_ARI_APP', 'satellite')

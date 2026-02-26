@@ -36,7 +36,8 @@ NS8 provides to the containers the necessary configurations to run, divided by c
    - env - `NETHVOICE_LDAP_USER`: bind used to query authentications.
    - env - `NETHVOICE_LDAP_HOST`: LDAP host.
    - env - `NETHVOICE_LDAP_PORT`: LDAP port.
- - `ui`
+   - env - `REPORTS_DB_TIMEOUT`: MySQL timeout used by reports API/tasks (`300s` default).
+  - `ui`
    - file - `~/.config/state/report/ui-config.json`: configures env variables for ui application, for more info refer to [project repo](https://github.com/nethesis/nethvoice-report/blob/master/ui/public/config/config.production.js).
    - env - `APP_HOST`: due to lack of healthcheck from api, this host is used to TCP check if it's on before starting.
    - env - `APP_PORT`: same thing, but for the port of the service.

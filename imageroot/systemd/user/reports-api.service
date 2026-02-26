@@ -28,6 +28,7 @@ ExecStart=/usr/bin/podman run \
         --env NETHVOICE_LDAP_HOST \
         --env NETHVOICE_LDAP_PORT \
         --env REPORTS_API_PORT \
+        --env REPORTS_DB_TIMEOUT \
         --env REPORTS_REDIS_PORT \
         --env NETHVOICE_MARIADB_PORT \
         --env SUBSCRIPTION_SYSTEMID \
