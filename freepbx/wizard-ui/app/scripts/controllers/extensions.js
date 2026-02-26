@@ -25,6 +25,24 @@ angular.module('nethvoiceWizardUiApp')
     $scope.licenseMissing = false;
     $scope.unitLeftInformation = {};
 
+     $scope.$watch('usersFilter', function(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        $scope.usersLimit = 20
+      }
+    })
+
+    $scope.$watch('usersFilterNumbers', function(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        $scope.usersLimit = 20
+      }
+    })
+
+    $scope.$watch('usersFilterNumbersOrd', function(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        $scope.usersLimit = 20
+      }
+    })
+
     $scope.error = {
       file: {
         status: false,
