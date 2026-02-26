@@ -10,7 +10,7 @@
     @modal-hidden="onModalHidden"
     @primary-click="restartModule"
     kind="danger"
-    :primary-button-disabled="loading.restartModule || !isNodeValid"
+    :primary-button-disabled="loading.restartModule"
   >
     <template slot="title">
       {{ $t("status.restart_application") }}
@@ -49,7 +49,7 @@ export default {
       required: true,
     },
     node: {
-      type: [String, Number],
+      type: String,
       default: "",
     },
   },
@@ -61,9 +61,6 @@ export default {
   },
   computed: {
     ...mapState(["instanceName", "instanceLabel", "core"]),
-    isNodeValid() {
-      return this.node !== undefined && this.node !== null && this.node !== "";
-    },
     appName() {
       return this.instanceLabel
         ? this.instanceLabel + " (" + this.instanceName + ")"
@@ -73,10 +70,6 @@ export default {
   methods: {
     async restartModule() {
       this.error.restartModule = "";
-      if (!this.isNodeValid) {
-        this.error.restartModule = this.$t("error.generic_error");
-        return;
-      }
       this.loading.restartModule = true;
       const taskAction = "restart-module";
       const eventId = this.getUuid();
