@@ -21,16 +21,16 @@
 
 require_once __DIR__ . '/SatelliteTts.class.php';
 
-function nethcti3_tts($text, $model, $language) {
-    return Nethcti3SatelliteTts()->tts($text, $model);
+function nethcti3_tts($text, $model = '', $language = 'en', $force = false) {
+    return Nethcti3SatelliteTts()->tts($text, $model, $language, $force);
 }
 
-function nethcti3_get_unsaved_audio($checksum) {
+function nethcti3_get_unsaved_audio($checksum = '') {
     return Nethcti3SatelliteTts()->get_unsaved_audio($checksum);
 }
 
-function nethcti3_save_recording($filename, $langdir, $name, $description) {
-    return Nethcti3SatelliteTts()->save_recording($filename, $langdir, $name, $description);
+function nethcti3_save_recording($filename = '', $language = 'en', $name = '', $description = '', $text = '', $model = '') {
+    return Nethcti3SatelliteTts()->save_recording($filename, $language, $name, $description, $text, $model);
 }
 
 function nethcti3_get_config($engine) {

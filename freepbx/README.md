@@ -151,18 +151,18 @@ The TTS request is sent to:
 
 ### Public wrapper functions (`admin/modules/nethcti3/functions.inc.php`)
 
-- `nethcti3_tts($text, $model, $language)`
+- `nethcti3_tts($text, $model = '', $language = 'en', $force = false)`
     - Generates speech audio from text and returns a checksum identifier.
-    - Note: in current implementation, `$language` is accepted by the wrapper signature but not forwarded to the class method.
+    - Forwards all parameters to class method, including `$language` and `$force`.
     - Uses cache in `/tmp/<checksum>.mp3` unless forced regeneration is requested at class level.
 
-- `nethcti3_get_unsaved_audio($checksum)`
+- `nethcti3_get_unsaved_audio($checksum = '')`
     - Reads `/tmp/<checksum>.mp3` and returns base64-encoded audio content.
     - Returns `false` if checksum is empty or file is not found.
 
-- `nethcti3_save_recording($filename, $langdir, $name, $description)`
+- `nethcti3_save_recording($filename = '', $language = 'en', $name = '', $description = '', $text = '', $model = '')`
     - Saves a generated audio file as a FreePBX recording.
-    - Converts `/tmp/<filename>.mp3` to `${ASTVARLIBDIR}/sounds/<langdir>/custom/<filename>.wav`.
+    - Converts `/tmp/<filename>.mp3` to `${ASTVARLIBDIR}/sounds/<language>/custom/<filename>.wav`.
     - Registers the recording as `custom/<filename>` in FreePBX and returns recording id.
 
 ### Core class methods (`admin/modules/nethcti3/SatelliteTts.class.php`)
@@ -191,7 +191,7 @@ $checksum = nethcti3_tts('Ciao, questo è un messaggio di prova', 'aura-2-melia-
 ```
 or
 ```php
-$checksum = nethcti3_tts('Hello, this is a test message', $language = 'en');
+$checksum = nethcti3_tts('Hello, this is a test message', '', 'en');
 ```
 
 Read temporary audio (base64):
