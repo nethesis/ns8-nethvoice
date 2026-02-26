@@ -21,15 +21,20 @@
 
 class Nethcti3SatelliteTts
 {
-    public function tts($text, $model = '') {
+    public function tts($text, $model = '', $language = 'en', $force = false) {
         $text = trim((string) $text);
         $model = trim((string) $model);
+        $language = trim((string) $language);
 
         if ($text === '') {
             throw new \Exception('Missing required field: text');
         }
 
-        $checksum = md5($text . '|' . $model);
+        $checksum = md5($text . '|' . $model . '|' . $language);
+        if (!$force && file_exists('/tmp/' . $checksum . '.mp3')) {
+            return $checksum;
+        }
+
         $tmpfilepath = '/tmp/' . $checksum . '.mp3';
 
         $satellitePort = getenv('SATELLITE_HTTP_PORT') ?: '8080';
@@ -39,6 +44,9 @@ class Nethcti3SatelliteTts
         $payload = array('text' => $text);
         if ($model !== '') {
             $payload['model'] = $model;
+        }
+        if ($language !== '') {
+            $payload['language'] = $language;
         }
 
         $headers = array(
@@ -92,25 +100,33 @@ class Nethcti3SatelliteTts
         return base64_encode(file_get_contents($tmpfilepath));
     }
 
-    public function save_recording($filename, $langdir, $name, $description) {
+    public function save_recording($filename='', $language = 'en', $name = '', $description = '', $text = '', $model = '') {
         global $amp_conf;
 
         $filename = trim((string) $filename);
-        if ($filename === '') {
-            return false;
-        }
-
         $tmpfilepath = '/tmp/' . $filename . '.mp3';
-        if (!file_exists($tmpfilepath)) {
-            $defaultModel = getenv('SATELLITE_TTS_MODEL') ?: '';
-            $filename = $this->tts($filename, $defaultModel);
-            if ($filename === false) {
-                return false;
+
+        if ($filename === '' || !file_exists($tmpfilepath)) {
+            if ($text === '') {
+                throw new \Exception('Missing required field: filename or text');
+            } else {
+                $checksum = $this->tts($text, $model, $language);
+                $tmpfilepath = '/tmp/' . $checksum . '.mp3';
+                if (!file_exists($tmpfilepath)) {
+                    throw new \Exception('Generated TTS audio file not found');
+                }
+                $filename = $checksum;
             }
-            $tmpfilepath = '/tmp/' . $filename . '.mp3';
         }
 
-        $dstfilepath = $amp_conf['ASTVARLIBDIR'] . '/sounds/' . $langdir . '/custom/' . $filename . '.wav';
+        if ($name === '') {
+            $name = 'TTS Recording ' . date('Y-m-d H:i:s') . ' ' . $filename;
+        }
+        if ($description === '') {
+            $description = 'TTS recording ' . date('Y-m-d H:i:s');
+        }
+
+        $dstfilepath = $amp_conf['ASTVARLIBDIR'] . '/sounds/' . $language . '/custom/' . $filename . '.wav';
         $dstdir = dirname($dstfilepath);
         if (!is_dir($dstdir)) {
             mkdir($dstdir, 0755, true);
@@ -129,4 +145,6 @@ class Nethcti3SatelliteTts
 
         return false;
     }
+
+
 }

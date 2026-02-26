@@ -21,7 +21,7 @@
 
 require_once __DIR__ . '/SatelliteTts.class.php';
 
-function nethcti3_tts($text, $model) {
+function nethcti3_tts($text, $model, $language) {
     return Nethcti3SatelliteTts()->tts($text, $model);
 }
 
