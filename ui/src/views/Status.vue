@@ -127,9 +127,8 @@
                   <NsButton
                     kind="ghost"
                     :icon="Restart20"
-                    @click="restartModule"
-                    :loading="loading.restartModule"
-                    :disabled="loading.restartModule"
+                    :disabled="loading.getStatus || !status.node"
+                    @click="isShownRestartModuleModal = true"
                   >
                     {{ $t("status.restart_application") }}
                   </NsButton>
@@ -512,6 +511,11 @@
         </cv-tile>
       </cv-column>
     </cv-row>
+    <RestartModuleModal
+      :visible="isShownRestartModuleModal"
+      :node="status.node"
+      @hide="isShownRestartModuleModal = false"
+    />
   </cv-grid>
 </template>
 
@@ -526,11 +530,12 @@ import {
   PageTitleService,
 } from "@nethserver/ns8-ui-lib";
 import ResumeConfigNotification from "@/components/first-configuration/ResumeConfigNotification.vue";
+import RestartModuleModal from "@/components/RestartModuleModal.vue";
 import Restart20 from "@carbon/icons-vue/es/restart/20";
 
 export default {
   name: "Status",
-  components: { ResumeConfigNotification },
+  components: { ResumeConfigNotification, RestartModuleModal },
   mixins: [
     TaskService,
     QueryParamService,
@@ -559,6 +564,7 @@ export default {
       backups: [],
       ports: [],
       Restart20,
+      isShownRestartModuleModal: false,
       proxyModuleId: "",
       imagesTablePage: [],
       imagesTableColumns: ["name", "size", "created"],
@@ -570,7 +576,6 @@ export default {
         getStatus: false,
         listBackupRepositories: false,
         listBackups: false,
-        restartModule: false,
         getDefaults: false,
         getPortsList: false,
       },
@@ -578,7 +583,6 @@ export default {
         getStatus: "",
         listBackupRepositories: "",
         listBackups: "",
-        restartModule: "",
         getDefaults: "",
         getPortsList: "",
       },
@@ -817,58 +821,6 @@ export default {
       }
       this.backups = backups;
       this.loading.listBackups = false;
-    },
-    async restartModule() {
-      this.error.restartModule = "";
-      this.loading.restartModule = true;
-      const taskAction = "restart-module";
-      const eventId = this.getUuid();
-
-      // register to task error
-      this.core.$root.$once(
-        `${taskAction}-aborted-${eventId}`,
-        this.restartModuleAborted
-      );
-
-      // register to task completion
-      this.core.$root.$once(
-        `${taskAction}-completed-${eventId}`,
-        this.restartModuleCompleted
-      );
-
-      const res = await to(
-        this.createNodeTaskForApp(this.status.node, {
-          action: taskAction,
-          data: {
-            module_id: this.instanceName,
-          },
-          extra: {
-            title: this.core.$t("applications.restart_instance_name", {
-              instance: this.instanceLabel
-                ? this.instanceLabel
-                : this.instanceName,
-            }),
-            description: this.core.$t("applications.restarting"),
-            eventId,
-          },
-        })
-      );
-      const err = res[0];
-
-      if (err) {
-        console.error(`error creating task ${taskAction}`, err);
-        this.error.restartModule = this.getErrorMessage(err);
-        this.loading.restartModule = false;
-        return;
-      }
-    },
-    restartModuleAborted(taskResult, taskContext) {
-      console.error(`${taskContext.action} aborted`, taskResult);
-      this.error.restartModule = this.$t("error.generic_error");
-      this.loading.restartModule = false;
-    },
-    restartModuleCompleted() {
-      this.loading.restartModule = false;
     },
     goToNethvoiceWebapp() {
       window.open(`https://${this.configuration.nethvoice_host}`, "_blank");
