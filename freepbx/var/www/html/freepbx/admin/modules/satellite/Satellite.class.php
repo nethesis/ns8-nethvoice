@@ -38,6 +38,73 @@ class Satellite extends \FreePBX_Helpers implements \BMO
     public function restore($backup) {
     }
 
+    public function get_available_voices() {
+        $satellitePort = getenv('SATELLITE_HTTP_PORT') ?: '8080';
+        $satelliteToken = getenv('SATELLITE_API_TOKEN') ?: '';
+        $url = 'http://127.0.0.1:' . $satellitePort . '/api/get_models';
+
+        $headers = array('Accept: application/json');
+        if ($satelliteToken !== '') {
+            $headers[] = 'Authorization: Bearer ' . $satelliteToken;
+        }
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_HEADER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPGET, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $errmsg = curl_error($ch);
+        curl_close($ch);
+
+        if ($errmsg) {
+            throw new \Exception($errmsg);
+        }
+
+        if ($httpCode !== 200 || $response === false || $response === '') {
+            throw new \Exception(is_string($response) ? $response : 'Satellite get_models request failed');
+        }
+
+        $payload = json_decode($response, true);
+        if (!is_array($payload) || !isset($payload['models']) || !is_array($payload['models'])) {
+            throw new \Exception('Invalid response from Satellite get_models API');
+        }
+
+        $voicesByLanguage = array();
+        foreach ($payload['models'] as $model) {
+            if (!is_string($model) || trim($model) === '') {
+                continue;
+            }
+
+            $model = trim($model);
+            $parts = explode('-', $model);
+            $language = strtolower(end($parts));
+
+            if ($language === '') {
+                continue;
+            }
+
+            if (!isset($voicesByLanguage[$language])) {
+                $voicesByLanguage[$language] = array();
+            }
+            $voicesByLanguage[$language][] = $model;
+        }
+
+        foreach ($voicesByLanguage as $language => $voices) {
+            $voices = array_values(array_unique($voices));
+            sort($voices);
+            $voicesByLanguage[$language] = $voices;
+        }
+
+        ksort($voicesByLanguage);
+
+        return $voicesByLanguage;
+    }
+
     public function tts($text, $model = '', $language = 'en', $force = false) {
         $text = trim((string) $text);
         $model = trim((string) $model);
