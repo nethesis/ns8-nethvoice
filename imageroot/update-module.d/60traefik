@@ -11,6 +11,17 @@ import agent
 # Read the env file to get updated environment variables
 env = agent.read_envfile('environment')
 
+# Allow reports API to be accessed also via HTTP
+if env.get('NETHVOICE_HOST'):
+    agent.set_route({
+        'instance': env['MODULE_ID'] + '-reports-api',
+        'url': 'http://127.0.0.1:' + env["REPORTS_API_PORT"],
+        'http2https': False,
+        'host': env["NETHVOICE_HOST"],
+        'path': '/pbx-report-api',
+        'strip_prefix': True
+    })
+
 # Configure middleware routes if middleware environment variables are set
 if (env.get('NETHVOICE_MIDDLEWARE_PORT') and 
     env.get('NETHVOICE_HOST') and 

@@ -27,7 +27,7 @@ agent.set_env('REPORTS_INTERNATIONAL_PREFIX', request['reports_international_pre
 agent.set_route({
     'instance': os.environ['MODULE_ID'] + '-reports-api',
     'url': 'http://127.0.0.1:' + os.environ["REPORTS_API_PORT"],
-    'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
+    'http2https': False,
     'host': os.environ["NETHVOICE_HOST"],
     'path': '/pbx-report-api',
     'strip_prefix': True
