@@ -19,20 +19,6 @@
 # along with NethServer.  If not, see COPYING.
 #
 
-require_once __DIR__ . '/SatelliteTts.class.php';
-
-function nethcti3_tts($text, $model = '', $language = 'en', $force = false) {
-    return Nethcti3SatelliteTts()->tts($text, $model, $language, $force);
-}
-
-function nethcti3_get_unsaved_audio($checksum = '') {
-    return Nethcti3SatelliteTts()->get_unsaved_audio($checksum);
-}
-
-function nethcti3_save_recording($filename = '', $language = 'en', $name = '', $description = '', $text = '', $model = '') {
-    return Nethcti3SatelliteTts()->save_recording($filename, $language, $name, $description, $text, $model);
-}
-
 function nethcti3_get_config($engine) {
     global $ext;
     global $amp_conf;
@@ -404,34 +390,6 @@ function nethcti3_get_config_late($engine) {
                 '${CDR(dst_cnam)}', # called name
             ];
             $ext->splice('macro-hangupcall', 's', 'hangup', new ext_agi(join(',',$agi_cmd)),'nethcti-cdr-script');
-        }
-        /* Satellite STT real time Transcriptions*/
-        if (!empty($_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED']) && $_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED'] == 'True') {
-            // Add a call Satellite when call is answered in macro-dial-one adding it in D_OPTIONS variable
-            $ext->splice('macro-dial-one','s','dial', new \ext_setvar('D_OPTIONS', '${D_OPTIONS}U(satellite^s^1)'),'', -1);
-            // Add mixmonitor to record the call
-            $ext->splice('macro-dial-one', 's', 'dial', new \ext_mixmonitor('','br(/var/run/nethvoice/satellite-r-${UNIQUEID}.wav)t(/var/run/nethvoice/satellite-t-${UNIQUEID}.wav)','/var/lib/asterisk/bin/satellite_transcription -u ${UNIQUEID} -c0 "${CDR(dst_cnam)}" -c1 "${CDR(cnam)}"'),'', -1);
-            // Add call to Satellite macro in macro-dialout-trunk if there is at least one route with at least one trunk
-            $routes = core_routing_list();
-            if (!empty($routes)) {
-                foreach (core_routing_list() as $route) {
-                    $routetrunks = core_routing_getroutetrunksbyid($route['route_id']);
-                    if (!empty($routetrunks)) {
-                        $ext->splice('macro-dialout-trunk', 's', '', new \ext_setvar('DIAL_TRUNK_OPTIONS', '${DIAL_TRUNK_OPTIONS}U(satellite^s^1)'),'', 28);
-                        // Add mixmonitor to record the call
-                        $ext->splice('macro-dialout-trunk', 's', '', new \ext_mixmonitor('','br(/var/run/nethvoice/satellite-r-${UNIQUEID}.wav)t(/var/run/nethvoice/satellite-t-${UNIQUEID}.wav)','/var/lib/asterisk/bin/satellite_transcription -u ${UNIQUEID} -c0 "${CDR(dst_cnam)}" -c1 "${CDR(cnam)}"'),'', 28);
-                        break;
-                    }
-                }
-            }
-            // Create the Satellite context
-            $ext->add('satellite', 's', '', new \ext_noop('Satellite STT'));
-            // TODO: add a check to see if the user is allowed to use the STT
-            // Start Stasis
-            $ext->add('satellite', 's', '', new \ext_stasis('satellite'));
-            $ext->add('satellite', 's', '', new \ext_noop('Stasis satellite end'));
-            // Return to the dialplan
-            $ext->add('satellite', 's', '', new \ext_return());
         }
         /* Change SIP response for unregistered extensions #7321*/
         $ext->replace('macro-exten-vm', '_s-!', '4', new extension('HangUp(20)'));
