@@ -794,6 +794,7 @@ export default {
     },
     async getUserDomains() {
       this.loading.userDomains = true;
+      this.error.userDomains = "";
 
       const taskAction = "list-user-domains";
       const eventId = this.getUuid();
@@ -852,7 +853,7 @@ export default {
     },
     async getDefaults() {
       this.loading.getDefaults = true;
-
+      this.error.getDefaults = "";
       const taskAction = "get-defaults";
       const eventId = this.getUuid();
 
