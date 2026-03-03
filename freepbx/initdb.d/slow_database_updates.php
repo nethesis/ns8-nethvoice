@@ -16,27 +16,38 @@ function indexExists($db, $schema, $table, $indexName) {
 	return $exists !== false;
 }
 
-$indexes = [
-	'idx_cdr_cnum_calldate' => 'ALTER TABLE `asteriskcdrdb`.`cdr` ADD INDEX `idx_cdr_cnum_calldate` (`cnum`, `calldate`)',
-	'idx_cdr_dst_calldate' => 'ALTER TABLE `asteriskcdrdb`.`cdr` ADD INDEX `idx_cdr_dst_calldate` (`dst`, `calldate`)',
-	'idx_cdr_uniqueid_disposition_linkedid' => 'ALTER TABLE `asteriskcdrdb`.`cdr` ADD INDEX `idx_cdr_uniqueid_disposition_linkedid` (`uniqueid`, `disposition`, `linkedid`)',
-	'idx_cdr_uniqueid_linkedid_disposition_channel_dstchannel' => 'ALTER TABLE `asteriskcdrdb`.`cdr` ADD INDEX `idx_cdr_uniqueid_linkedid_disposition_channel_dstchannel` (`uniqueid`, `linkedid`, `disposition`, `channel`, `dstchannel`)',
-	'idx_cdr_uniqueid_lastapp_dst' => 'ALTER TABLE `asteriskcdrdb`.`cdr` ADD INDEX `idx_cdr_uniqueid_lastapp_dst` (`uniqueid`, `lastapp`, `dst`)',
-	'idx_cdr_uid_lastapp' => 'ALTER TABLE `asteriskcdrdb`.`cdr` ADD INDEX `idx_cdr_uid_lastapp` (`uniqueid`, `lastapp`)',
-	'idx_cdr_linkedid' => 'ALTER TABLE `asteriskcdrdb`.`cdr` ADD INDEX `idx_cdr_linkedid` (`linkedid`)',
-	'idx_cdr_dst_disp_uid_cnam' => 'ALTER TABLE `asteriskcdrdb`.`cdr` ADD INDEX `idx_cdr_dst_disp_uid_cnam` (`dst`, `disposition`, `uniqueid`, `cnam`)',
-	'idx_cdr_linkedid_disp_calldate' => 'ALTER TABLE `asteriskcdrdb`.`cdr` ADD INDEX `idx_cdr_linkedid_disp_calldate` (`linkedid`, `disposition`, `calldate`)',
-	'idx_cdr_src' => 'ALTER TABLE `asteriskcdrdb`.`cdr` ADD INDEX `idx_cdr_src` (`src`)',
-];
-
-foreach ($indexes as $indexName => $sql) {
-	if (indexExists($db, 'asteriskcdrdb', 'cdr', $indexName)) {
-		continue;
+function ensureIndex($db, $schema, $table, $indexName, $columns) {
+	if (indexExists($db, $schema, $table, $indexName)) {
+		return;
 	}
+
+	$sql = "ALTER TABLE `{$schema}`.`{$table}` ADD INDEX `{$indexName}` ({$columns})";
 
 	try {
 		$db->exec($sql);
 	} catch (\Throwable $e) {
-		error_log('slow_database_updates: failed to create '.$indexName.': '.$e->getMessage());
+		error_log('slow_database_updates: failed to create '.$indexName.' on '.$schema.'.'.$table.': '.$e->getMessage());
 	}
 }
+
+ensureIndex($db, 'asteriskcdrdb', 'cdr', 'idx_cdr_cnum_calldate', '`cnum`, `calldate`');
+ensureIndex($db, 'asteriskcdrdb', 'cdr', 'idx_cdr_dst_calldate', '`dst`, `calldate`');
+ensureIndex($db, 'asteriskcdrdb', 'cdr', 'idx_cdr_uniqueid_disposition_linkedid', '`uniqueid`, `disposition`, `linkedid`');
+ensureIndex($db, 'asteriskcdrdb', 'cdr', 'idx_cdr_uniqueid_linkedid_disposition_channel_dstchannel', '`uniqueid`, `linkedid`, `disposition`, `channel`, `dstchannel`');
+ensureIndex($db, 'asteriskcdrdb', 'cdr', 'idx_cdr_uniqueid_lastapp_dst', '`uniqueid`, `lastapp`, `dst`');
+ensureIndex($db, 'asteriskcdrdb', 'cdr', 'idx_cdr_uid_lastapp', '`uniqueid`, `lastapp`');
+ensureIndex($db, 'asteriskcdrdb', 'cdr', 'idx_cdr_linkedid', '`linkedid`');
+ensureIndex($db, 'asteriskcdrdb', 'cdr', 'idx_cdr_dst_disp_uid_cnam', '`dst`, `disposition`, `uniqueid`, `cnam`');
+ensureIndex($db, 'asteriskcdrdb', 'cdr', 'idx_cdr_linkedid_disp_calldate', '`linkedid`, `disposition`, `calldate`');
+ensureIndex($db, 'asteriskcdrdb', 'cdr', 'idx_cdr_src', '`src`');
+
+ensureIndex($db, 'asteriskcdrdb', 'queue_log', 'idx_queue_log_time', '`time`');
+
+ensureIndex($db, 'asteriskcdrdb', 'queue_log_history', 'idx_qlh_event_time_queue_callid', '`event`, `time`, `queuename`, `callid`');
+ensureIndex($db, 'asteriskcdrdb', 'queue_log_history', 'idx_qlh_agent_queue_time_event', '`agent`, `queuename`, `time`, `event`');
+ensureIndex($db, 'asteriskcdrdb', 'queue_log_history', 'idx_qlh_event_data1_queue_agent_time', '`event`, `data1`, `queuename`, `agent`, `time`');
+
+ensureIndex($db, 'asteriskcdrdb', 'report_queue', 'idx_rq_action_timestampin_qname', '`action`, `timestamp_in`, `qname`');
+ensureIndex($db, 'asteriskcdrdb', 'report_queue', 'idx_rq_timestamp_in', '`timestamp_in`');
+ensureIndex($db, 'asteriskcdrdb', 'report_queue', 'idx_rq_timestamp_out', '`timestamp_out`');
+ensureIndex($db, 'asteriskcdrdb', 'report_queue', 'idx_rq_cid_timestampin', '`cid`, `timestamp_in`');
