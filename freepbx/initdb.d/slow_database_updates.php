@@ -21,10 +21,23 @@ function ensureIndex($db, $schema, $table, $indexName, $columns) {
 		return;
 	}
 
+	$filesystemPath = '/';
+	$totalSpace = disk_total_space($filesystemPath);
+	$freeSpace = disk_free_space($filesystemPath);
+
+	if ($totalSpace !== false && $totalSpace > 0 && $freeSpace !== false) {
+		$freePercent = ($freeSpace / $totalSpace) * 100;
+		if ($freePercent < 20) {
+			error_log('slow_database_updates: skipping index '.$indexName.' on '.$schema.'.'.$table.' due to low disk space ('.round($freePercent, 2).'%)');
+			return;
+		}
+	}
+
 	$sql = "ALTER TABLE `{$schema}`.`{$table}` ADD INDEX `{$indexName}` ({$columns})";
 
 	try {
 		$db->exec($sql);
+		error_log('slow_database_updates: created index '.$indexName.' on '.$schema.'.'.$table);
 	} catch (\Throwable $e) {
 		error_log('slow_database_updates: failed to create '.$indexName.' on '.$schema.'.'.$table.': '.$e->getMessage());
 	}
