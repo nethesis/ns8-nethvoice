@@ -135,3 +135,6 @@ fwconsole userman --syncall --force --verbose
 # Always apply changes on start
 su asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload"
 
+# Apply low-priority background DB updates
+ionice -c3 nice -n 19 php /initdb.d/slow_database_updates.php >/dev/null 2>&1 &
+
