@@ -47,6 +47,10 @@ function triggerMiddlewareProfilesReload() {
 
     $url = 'http://127.0.0.1:' . $port . '/admin/reload/profiles';
     $ch = curl_init($url);
+    if ($ch === false) {
+        error_log('middleware profiles reload failed: unable to initialize cURL for URL '.$url);
+        return;
+    }
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 1);
