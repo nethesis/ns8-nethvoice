@@ -26,14 +26,26 @@ include_once('lib/libCTI.php');
 
 function triggerMiddlewareProfilesReload() {
     $token = getenv('NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN');
-    $port = getenv('NETHVOICE_MIDDLEWARE_PORT');
+    $portEnv = getenv('NETHVOICE_MIDDLEWARE_PORT');
 
-    if (!$token || !$port) {
+    if (!$token || $portEnv === false || $portEnv === '') {
         error_log('middleware profiles reload skipped: missing NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN or NETHVOICE_MIDDLEWARE_PORT');
         return;
     }
 
-    $url = 'http://127.0.0.1:'.$port.'/admin/reload/profiles';
+    // Validate that the port consists only of digits and is within the valid TCP port range.
+    if (!ctype_digit($portEnv)) {
+        error_log('middleware profiles reload skipped: invalid NETHVOICE_MIDDLEWARE_PORT (non-numeric value)');
+        return;
+    }
+
+    $port = (int)$portEnv;
+    if ($port < 1 || $port > 65535) {
+        error_log('middleware profiles reload skipped: invalid NETHVOICE_MIDDLEWARE_PORT (out of range 1-65535)');
+        return;
+    }
+
+    $url = 'http://127.0.0.1:' . $port . '/admin/reload/profiles';
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
