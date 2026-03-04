@@ -41,16 +41,22 @@ $reqPost = $_POST['getType'];
 if ($reqGet && ($reqGet === "tools")) {
     switch ($_GET['rest']) {
         case 'getvoices':
-            $lang = strtolower(trim((string)($_GET['lang'] ?? '')));
-            $availableVoices = FreePBX::Satellite()->get_available_voices();
-            $res = array();
+            try {
+                $lang = strtolower(trim((string)($_GET['lang'] ?? '')));
+                $availableVoices = FreePBX::Satellite()->get_available_voices();
+                $res = array();
 
-            if ($lang !== '' && isset($availableVoices[$lang]) && is_array($availableVoices[$lang])) {
-                foreach ($availableVoices[$lang] as $voice) {
-                    $res[] = array($lang, $voice);
+                if ($lang !== '' && isset($availableVoices[$lang]) && is_array($availableVoices[$lang])) {
+                    foreach ($availableVoices[$lang] as $voice) {
+                        $res[] = array($lang, $voice);
+                    }
                 }
+                echo json_encode($res);
+            } catch (\Exception $e) {
+                http_response_code(500);
+                error_log("Error retrieving available voices: " . $e->getMessage());
+                echo json_encode(['error' => $e->getMessage()]);
             }
-            echo json_encode($res);
             break;
 
         case 'getaudio':
