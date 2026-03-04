@@ -168,8 +168,8 @@ The TTS request is sent to:
 
 - `Satellite::delete_temp_audio($checksum)`
     - Validates checksum format (32-char hex string).
-    - Deletes `/tmp/satellite-<checksum>.mp3` when it exists and returns `true`.
-    - Returns `false` if the file was already missing.
+    - Deletes `/tmp/satellite-<checksum>.mp3` when it exists and returns `true` on success.
+    - Throws an exception if the file does not exist or cannot be deleted, as per the current implementation.
 
 - `Satellite::save_recording($filename = '', $language = 'en', $name = '', $description = '', $text = '', $model = '')`
     - Saves existing generated MP3 (`$filename`, typically the checksum returned by `tts()`) or generates one from `$text` if missing.
