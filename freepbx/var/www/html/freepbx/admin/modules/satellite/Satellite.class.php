@@ -257,7 +257,9 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         $dstfilepath = $amp_conf['ASTVARLIBDIR'] . '/sounds/' . $language . '/custom/' . $filename . '.wav';
         $dstdir = dirname($dstfilepath);
         if (!is_dir($dstdir)) {
-            mkdir($dstdir, 0755, true);
+            if (!mkdir($dstdir, 0755, true) && !is_dir($dstdir)) {
+                throw new \Exception("Failed to create directory '{$dstdir}' for recording file");
+            }
         }
 
         $media = FreePBX::Media();
