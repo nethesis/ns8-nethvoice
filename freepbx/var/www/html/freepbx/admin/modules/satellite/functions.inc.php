@@ -23,7 +23,7 @@ function satellite_get_config_late($engine) {
             // Add call to Satellite macro in macro-dialout-trunk if there is at least one route with at least one trunk
             $routes = core_routing_list();
             if (!empty($routes)) {
-                foreach (core_routing_list() as $route) {
+                foreach ($routes as $route) {
                     $routetrunks = core_routing_getroutetrunksbyid($route['route_id']);
                     if (!empty($routetrunks)) {
                         $ext->splice('macro-dialout-trunk', 's', '', new \ext_setvar('DIAL_TRUNK_OPTIONS', '${DIAL_TRUNK_OPTIONS}U(satellite^s^1)'),'', 28);
