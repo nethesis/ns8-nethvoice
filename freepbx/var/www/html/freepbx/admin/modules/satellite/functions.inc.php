@@ -1,17 +1,7 @@
 <?php
 
 function satellite_get_config($engine) {
-    global $ext;
-    global $amp_conf;
-    global $db;
-    global $core_conf;
-    global $conferences_conf;
-
-    include_once('/var/www/html/freepbx/rest/lib/libCTI.php');
-    switch($engine) {
-        case "asterisk":
-        break;
-    }
+    // Intentionally left as a no-op. Configuration handling is done in satellite_get_config_late().
 }
 
 function satellite_get_config_late($engine) {
