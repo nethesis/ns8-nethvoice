@@ -63,13 +63,25 @@ if ($reqGet && ($reqGet === "tools")) {
 } else if ($reqPost && ($reqPost === "tools")) {
     switch ($_POST['rest']) {
         case 'ttstext':
-            $res = FreePBX::Satellite()->tts($_POST['text'], $_POST['voice'], $_POST['lang']);
-            echo json_encode($res);
+            try {
+                $res = FreePBX::Satellite()->tts($_POST['text'], $_POST['voice'], $_POST['lang']);
+                echo json_encode($res);
+            } catch (\Exception $e) {
+                http_response_code(500);
+                error_log("Error generating TTS audio: " . $e->getMessage());
+                echo json_encode(['error' => $e->getMessage()]);
+            }
             break;
 
         case 'savetts':
-            $res = FreePBX::Satellite()->save_recording($_POST['token'], $_POST['lang'], $_POST['name'], $_POST['desc']);
-            echo $res;
+            try {
+                $res = FreePBX::Satellite()->save_recording($_POST['token'], $_POST['lang'], $_POST['name'], $_POST['desc']);
+                echo $res;
+            } catch (\Exception $e) {
+                http_response_code(500);
+                error_log("Error saving TTS recording: " . $e->getMessage());
+                echo json_encode(['error' => $e->getMessage()]);
+            }
             break;
         default:
             break;
