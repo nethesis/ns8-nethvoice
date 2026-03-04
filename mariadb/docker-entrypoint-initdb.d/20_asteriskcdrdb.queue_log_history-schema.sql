@@ -18,9 +18,6 @@ CREATE TABLE `queue_log_history` (
   `data5` varchar(100) NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   KEY `event` (`event`),
-  KEY `idx_qlh_event_time_queue_callid` (`event`,`time`,`queuename`,`callid`),
-  KEY `idx_qlh_agent_queue_time_event` (`agent`,`queuename`,`time`,`event`),
-  KEY `idx_qlh_event_data1_queue_agent_time` (`event`,`data1`,`queuename`,`agent`,`time`),
   KEY `ib1` (`agent`,`queuename`),
   KEY `callid_idx` (`callid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=70 DEFAULT CHARSET=utf8;

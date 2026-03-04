@@ -17,9 +17,5 @@ CREATE TABLE `report_queue` (
   `qdescr` varchar(35) NOT NULL,
   `data4` bigint(21) unsigned NOT NULL DEFAULT '0',
   `agents` varchar(100) NOT NULL DEFAULT '',
-  KEY `idx_rq_action_timestampin_qname` (`action`,`timestamp_in`,`qname`),
-  KEY `idx_rq_timestamp_in` (`timestamp_in`),
-  KEY `idx_rq_timestamp_out` (`timestamp_out`),
-  KEY `idx_rq_cid_timestampin` (`cid`,`timestamp_in`),
   UNIQUE KEY `uid` (`id`,`timestamp_in`,`action`,`agent`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
