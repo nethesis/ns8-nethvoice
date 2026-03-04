@@ -11,7 +11,7 @@
         "list-backup-repositories": "Elenca repository di backup",
         "list-backups": "Elenca backup",
         "list-installed-modules": "Elenca moduli installati",
-        "get-defaults": "Visualizza default",
+        "get-defaults": "Ottieni default",
         "get-available-interfaces": "Visualizza interfacce disponibili",
         "list-domain-users": "Elenca utenti del dominio",
         "add-module": "Installa applicazione",
