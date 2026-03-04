@@ -25,10 +25,10 @@ use \Psr\Http\Message\ResponseInterface as Response;
 include_once('lib/libCTI.php');
 
 function triggerMiddlewareProfilesReload() {
-    $token = getenv('NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN');
-    $portEnv = getenv('NETHVOICE_MIDDLEWARE_PORT');
+    $token = isset($_ENV['NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN']) ? $_ENV['NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN'] : null;
+    $portEnv = isset($_ENV['NETHVOICE_MIDDLEWARE_PORT']) ? $_ENV['NETHVOICE_MIDDLEWARE_PORT'] : null;
 
-    if (!$token || $portEnv === false || $portEnv === '') {
+    if (!$token || $portEnv === null || $portEnv === '') {
         error_log('middleware profiles reload skipped: missing NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN or NETHVOICE_MIDDLEWARE_PORT');
         return;
     }
