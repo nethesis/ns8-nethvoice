@@ -115,11 +115,11 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         }
 
         $checksum = md5($text . '|' . $model . '|' . $language);
-        if (!$force && file_exists('/tmp/' . $checksum . '.mp3')) {
+        if (!$force && file_exists('/tmp/satellite-' . $checksum . '.mp3')) {
             return $checksum;
         }
 
-        $tmpfilepath = '/tmp/' . $checksum . '.mp3';
+        $tmpfilepath = '/tmp/satellite-' . $checksum . '.mp3';
 
         $satellitePort = getenv('SATELLITE_HTTP_PORT') ?: '8080';
         $satelliteToken = getenv('SATELLITE_API_TOKEN') ?: '';
@@ -164,7 +164,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         }
 
         if (file_put_contents($tmpfilepath, $audio) === false) {
-            return false;
+            throw new \Exception('Failed to save TTS audio file to ' . $tmpfilepath);
         }
 
         return $checksum;
@@ -173,12 +173,16 @@ class Satellite extends \FreePBX_Helpers implements \BMO
     public function get_unsaved_audio($checksum) {
         $checksum = trim((string) $checksum);
         if ($checksum === '') {
-            return false;
+            throw new \Exception('Missing required field: checksum');
         }
 
-        $tmpfilepath = '/tmp/' . $checksum . '.mp3';
+        if (!preg_match('/^[a-f0-9]{32}$/', $checksum)) {
+            throw new \Exception('Invalid checksum format');
+        }
+
+        $tmpfilepath = '/tmp/satellite-' . $checksum . '.mp3';
         if (!file_exists($tmpfilepath)) {
-            return false;
+            throw new \Exception('TTS audio file not found: ' . $tmpfilepath);
         }
 
         return base64_encode(file_get_contents($tmpfilepath));
@@ -188,14 +192,27 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         global $amp_conf;
 
         $filename = trim((string) $filename);
-        $tmpfilepath = '/tmp/' . $filename . '.mp3';
+        if (!preg_match('/^[a-zA-Z0-9._-]+$/', $filename)) {
+            throw new \Exception('Invalid filename format');
+        }
+
+        if ($language === '') {
+            $language = 'en';
+        } else {
+            $language = trim((string) $language);
+            if (!preg_match('/^[a-z]{2}$/', $language)) {
+                throw new \Exception('Invalid language format');
+            }
+        }
+
+        $tmpfilepath = '/tmp/satellite-' . $filename . '.mp3';
 
         if ($filename === '' || !file_exists($tmpfilepath)) {
             if ($text === '') {
                 throw new \Exception('Missing required field: filename or text');
             } else {
                 $checksum = $this->tts($text, $model, $language);
-                $tmpfilepath = '/tmp/' . $checksum . '.mp3';
+                $tmpfilepath = '/tmp/satellite-' . $checksum . '.mp3';
                 if (!file_exists($tmpfilepath)) {
                     throw new \Exception('Generated TTS audio file not found');
                 }
