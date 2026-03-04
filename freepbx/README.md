@@ -172,9 +172,9 @@ The TTS request is sent to:
     - Returns `false` if the file was already missing.
 
 - `Satellite::save_recording($filename = '', $language = 'en', $name = '', $description = '', $text = '', $model = '')`
-    - Saves existing generated MP3 (`$filename`) or generates one from `$text` if missing.
+    - Saves existing generated MP3 (`$filename`, typically the checksum returned by `tts()`) or generates one from `$text` if missing.
     - Converts audio with FreePBX Media and creates a Recording entry.
-    - Converts `/tmp/<filename>.mp3` to `${ASTVARLIBDIR}/sounds/<language>/custom/<filename>.wav`.
+    - Converts `/tmp/satellite-<filename>.mp3` to `${ASTVARLIBDIR}/sounds/<language>/custom/<filename>.wav`.
     - Returns recording id on success, `false` on failure.
 
 ### Dialplan hooks (`admin/modules/satellite/functions.inc.php`)
