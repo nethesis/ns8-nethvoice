@@ -192,7 +192,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         global $amp_conf;
 
         $filename = trim((string) $filename);
-        if (!preg_match('/^[a-zA-Z0-9._-]+$/', $filename)) {
+        if ($filename !== '' && !preg_match('/^[a-zA-Z0-9._-]+$/', $filename)) {
             throw new \Exception('Invalid filename format');
         }
 
