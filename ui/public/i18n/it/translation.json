@@ -84,7 +84,8 @@
         "new_admin_password": "Nuova password admin",
         "confirm_new_admin_password": "Conferma nuova password admin",
         "change_password": "Cambia password",
-        "go_to_software_center": "Vai al Software center"
+        "go_to_software_center": "Vai al Software center",
+        "user_domain": "Account provider"
     },
     "status": {
         "app_images": "Immagine dell'applicazione | Immagini dell'applicazione",
