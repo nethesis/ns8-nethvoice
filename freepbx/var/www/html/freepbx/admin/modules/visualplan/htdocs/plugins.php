@@ -60,8 +60,14 @@ if ($reqGet && ($reqGet === "tools")) {
             break;
 
         case 'getaudio':
-            $res = FreePBX::Satellite()->get_unsaved_audio($_GET['token']);
-            echo $res;
+            try {
+                $res = FreePBX::Satellite()->get_unsaved_audio($_GET['token']);
+                echo $res;
+            } catch (\Exception $e) {
+                http_response_code(400);
+                error_log("Error retrieving unsaved audio: " . $e->getMessage());
+                echo json_encode(['error' => $e->getMessage()]);
+            }
             break;
         default:
             break;
