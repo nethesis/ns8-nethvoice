@@ -167,11 +167,11 @@ popd
 images+=("${repobase}/${reponame}")
 
 ##########################
-##   Satellite AI STT   ##
+## Satellite AI STT/TTS ##
 ##########################
 echo "[*] Build Satellite container"
 reponame="nethvoice-satellite"
-container=$(buildah from ghcr.io/nethesis/satellite:tts)
+container=$(buildah from ghcr.io/nethesis/satellite:0.1.0)
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
 buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
