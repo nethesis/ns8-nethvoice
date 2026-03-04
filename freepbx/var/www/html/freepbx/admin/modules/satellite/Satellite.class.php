@@ -185,7 +185,12 @@ class Satellite extends \FreePBX_Helpers implements \BMO
             throw new \Exception('TTS audio file not found: ' . $tmpfilepath);
         }
 
-        return base64_encode(file_get_contents($tmpfilepath));
+        $contents = file_get_contents($tmpfilepath);
+        if ($contents === false) {
+            throw new \Exception('Failed to read TTS audio file: ' . $tmpfilepath);
+        }
+
+        return base64_encode($contents);
     }
 
     public function delete_temp_audio($checksum) {
