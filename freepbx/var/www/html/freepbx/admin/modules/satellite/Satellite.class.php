@@ -188,6 +188,28 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         return base64_encode(file_get_contents($tmpfilepath));
     }
 
+    public function delete_temp_audio($checksum) {
+        $checksum = trim((string) $checksum);
+        if ($checksum === '') {
+            throw new \Exception('Missing required field: checksum');
+        }
+
+        if (!preg_match('/^[a-f0-9]{32}$/', $checksum)) {
+            throw new \Exception('Invalid checksum format');
+        }
+
+        $tmpfilepath = '/tmp/satellite-' . $checksum . '.mp3';
+        if (!file_exists($tmpfilepath)) {
+            throw new \Exception('TTS audio file not found: ' . $tmpfilepath);
+        }
+
+        if (!@unlink($tmpfilepath)) {
+            throw new \Exception('Failed to delete TTS audio file: ' . $tmpfilepath);
+        }
+
+        return true;
+    }
+
     public function save_recording($filename='', $language = 'en', $name = '', $description = '', $text = '', $model = '') {
         global $amp_conf;
 
