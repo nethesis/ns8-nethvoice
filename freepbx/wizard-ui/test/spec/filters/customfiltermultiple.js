@@ -20,14 +20,14 @@ describe('Filter: customFilterMultiple', function () {
       displayname: 'John Doe',
       default_extension: '200',
       devices: [{
-        mac: '0C-38-3E-32-A7-CB-AA',
+        mac: '0C-38-3E-32-A7-CB',
         extension: '200'
       }]
     }];
 
-    expect(getResultCount(customFilterMultiple(users, 'configurationsUsersSearch', '0C-38-3E-32-A7-CB-AA'))).toBe(1);
-    expect(getResultCount(customFilterMultiple(users, 'configurationsUsersSearch', '0C:38:3E:32:A7:CB:AA'))).toBe(1);
-    expect(getResultCount(customFilterMultiple(users, 'configurationsUsersSearch', '0C383E32A7CBAA'))).toBe(1);
+    expect(getResultCount(customFilterMultiple(users, 'configurationsUsersSearch', '0C-38-3E-32-A7-CB'))).toBe(1);
+    expect(getResultCount(customFilterMultiple(users, 'configurationsUsersSearch', '0C:38:3E:32:A7:CB'))).toBe(1);
+    expect(getResultCount(customFilterMultiple(users, 'configurationsUsersSearch', '0C383E32A7CB'))).toBe(1);
   });
 
   it('should keep extension matching unchanged', function () {
@@ -36,7 +36,7 @@ describe('Filter: customFilterMultiple', function () {
       displayname: 'John Doe',
       default_extension: '200',
       devices: [{
-        mac: '0C-38-3E-32-A7-CB-AA',
+        mac: '0C-38-3E-32-A7-CB',
         extension: '200'
       }]
     }];
