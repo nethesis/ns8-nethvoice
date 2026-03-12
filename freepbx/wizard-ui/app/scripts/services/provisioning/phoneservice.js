@@ -170,9 +170,17 @@ angular.module('nethvoiceWizardUiApp')
 
         for (var rangeIndex = 0; rangeIndex < macVendors[vendor].length; rangeIndex++) {
           var range = macVendors[vendor][rangeIndex];
-          var startValue = this.macAddressToDecimal(range.start);
-          var endValue = this.macAddressToDecimal(range.end);
 
+          // Lazily cache numeric start/end values on the range object
+          if (typeof range.startValue !== 'number') {
+            range.startValue = this.macAddressToDecimal(range.start);
+          }
+          if (typeof range.endValue !== 'number') {
+            range.endValue = this.macAddressToDecimal(range.end);
+          }
+
+          var startValue = range.startValue;
+          var endValue = range.endValue;
           if (macValue >= startValue && macValue <= endValue) {
             return UtilService.capitalize(vendor);
           }
