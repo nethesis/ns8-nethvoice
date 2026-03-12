@@ -10,12 +10,12 @@
  */
 angular.module('nethvoiceWizardUiApp')
   .filter('customFilterMultiple', function () {
+    var normalizeMac = function (value) {
+      return ('' + (value || '')).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    };
     return function (input, prop, search) {
       if (!input) return input;
       if (!search) return input;
-      var normalizeMac = function (value) {
-        return ('' + (value || '')).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-      };
       let expected = ('' + search).toLowerCase();
       let normalizedExpected = normalizeMac(search);
       let result = {};
