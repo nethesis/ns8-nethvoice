@@ -51,4 +51,29 @@ describe('Service: PhoneService', function () {
 
     expect(PhoneService.getVendor('AA-BB-CC-00-00-01', macVendors)).toBeUndefined();
   });
+
+  it('should match MAC addresses at the exact range boundaries', function () {
+    var macVendors = {
+      Snom: [{ start: '00-04-13-00-00-00', end: '00-04-13-FF-FF-FF' }]
+    };
+
+    expect(PhoneService.getVendor('00-04-13-00-00-00', macVendors)).toBe('Snom');
+    expect(PhoneService.getVendor('00-04-13-FF-FF-FF', macVendors)).toBe('Snom');
+  });
+
+  it('should match a MAC in the second range of a multi-range vendor', function () {
+    var macVendors = {
+      Gigaset: [
+        { start: '7C-2F-80-00-00-00', end: '7C-2F-80-FF-FF-FF' },
+        { start: 'AC-37-43-00-00-00', end: 'AC-37-43-FF-FF-FF' }
+      ]
+    };
+
+    expect(PhoneService.getVendor('AC-37-43-12-34-56', macVendors)).toBe('Gigaset');
+  });
+
+  it('should return undefined for null or undefined MAC', function () {
+    expect(PhoneService.getVendor(null, {})).toBeUndefined();
+    expect(PhoneService.getVendor(undefined, {})).toBeUndefined();
+  });
 });
