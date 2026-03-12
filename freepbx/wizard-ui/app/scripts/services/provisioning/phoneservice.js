@@ -10,6 +10,8 @@
 angular.module('nethvoiceWizardUiApp')
   .service('PhoneService', function ($q, RestService, UtilService) {
 
+    var macAddressMapUrl = '/freepbx/rest/lib/macAddressMap.json';
+
     // Retrieve the complete phone inventory
     this.getPhones = function () {
       return $q(function (resolve, reject) {
@@ -119,7 +121,7 @@ angular.module('nethvoiceWizardUiApp')
 
     this.getMacVendors = function () {
       return $q(function (resolve, reject) {
-        RestService.tget('/tancredi/api/v1/macvendors').then(function (res) {
+        RestService.tget(macAddressMapUrl).then(function (res) {
           resolve(res)
         }, function (err) {
           reject(err)
@@ -133,12 +135,16 @@ angular.module('nethvoiceWizardUiApp')
 
     this.getAllVendors = function (macVendors) {
       var vendorSet = new Set();
-      Object.keys(macVendors).forEach(function (macPrefix) {
-        var vendor = macVendors[macPrefix];
+      Object.keys(macVendors).forEach(function (vendor) {
         vendor = UtilService.capitalize(vendor);
         vendorSet.add(vendor);
       });
       return Array.from(vendorSet);
+    }
+
+    this.macAddressToDecimal = function (macAddress) {
+      if (!macAddress) return NaN;
+      return parseInt(this.removeMacSeparators(macAddress).toUpperCase(), 16);
     }
                               
     this.toRps = function (mac, obj) {
@@ -152,13 +158,37 @@ angular.module('nethvoiceWizardUiApp')
     }
 
     this.getVendor = function (macAddress, macVendors) {
-      // remove separators
-      macAddress = this.removeMacSeparators(macAddress).toUpperCase();
-      var vendor = macVendors[macAddress.substring(0, 6)];
-      if (vendor) {
-        vendor = UtilService.capitalize(vendor);
+      var macValue = this.macAddressToDecimal(macAddress);
+      var vendors = Object.keys(macVendors || {});
+      var vendor;
+
+      if (isNaN(macValue)) {
+        return undefined;
       }
-      return vendor;
+
+      for (var vendorIndex = 0; vendorIndex < vendors.length; vendorIndex++) {
+        vendor = vendors[vendorIndex];
+
+        for (var rangeIndex = 0; rangeIndex < macVendors[vendor].length; rangeIndex++) {
+          var range = macVendors[vendor][rangeIndex];
+
+          // Lazily cache numeric start/end values on the range object
+          if (typeof range.startValue !== 'number') {
+            range.startValue = this.macAddressToDecimal(range.start);
+          }
+          if (typeof range.endValue !== 'number') {
+            range.endValue = this.macAddressToDecimal(range.end);
+          }
+
+          var startValue = range.startValue;
+          var endValue = range.endValue;
+          if (macValue >= startValue && macValue <= endValue) {
+            return UtilService.capitalize(vendor);
+          }
+        }
+      }
+
+      return undefined;
     };
 
     this.checkMacAddress = function (macAddress) {
