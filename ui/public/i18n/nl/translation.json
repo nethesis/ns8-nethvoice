@@ -1,76 +1,76 @@
 {
-    "settings": {
-        "title": "Instellingen",
-        "configure_instance": "Configureer {instance}",
-        "save": "Opslaan",
-        "nethvoice_host": "NethVoice basis",
-        "user_domain": "Gebruiker domein",
-        "reports_international_prefix_tooltip": "Formaat moet \"00**\" of \"+**\" zijn",
-        "set_password": "NethVoice administratie wachtwoord",
-        "timezone": "Tijdzone",
-        "create_nethvoice_adm": "Creëer NethVoice Administrateur voor gebruikerbeheer",
-        "nethcti_ui_host_format": "Moet een geldige domeinnaam zijn.",
-        "proxy_not_installed": "Nethvoice Proxy",
-        "timezone_placeholder": "Kies de tijdzone",
-        "set_nethvoice_adm_password": "Zet NethVoice Administrateur wachtwoord voor gebruikersbeheer",
-        "proxy_not_installed_description": "De proxy moet worden geïnstalleerd voordat NethVoice wordt geconfigureerd.",
-        "nethcti_ui_host": "NethVoice CTI basis",
-        "reports_prefix_invalid": "Ongeldige opmaak",
-        "nethvoice_host_format": "Moet een geldige domeinnaam zijn.",
-        "reports_international_prefix": "Prefix rapporten",
-        "timezone_tooltip": "Zet de tijdzone voor de huidige NethVoice installatie"
-    },
-    "common": {
-        "required": "Vereist",
-        "processing": "Verwerken...",
-        "work_in_progress": "Werk in uitvoering",
-        "enabled": "Ingeschakeld",
-        "disabled": "Uitgeschakeld"
-    },
-    "error": {
-        "401": "Ongeldige authenticatie",
-        "403": "Opdracht niet toegestaan",
-        "cannot_retrieve_installed_modules": "Kan geïnstalleerde modules niet ophalen",
-        "cannot_retrieve_module_info": "Module-info kan niet worden opgehaald",
-        "404": "Bron niet gevonden",
-        "error": "Fout",
-        "network_error": "Netwerkfout",
-        "network_timeout": "Netwerktime-out",
-        "validation_error": "Validatiefout",
-        "generic_error": "Er ging iets mis",
-        "required": "Vereist",
-        "same_host": "Kan niet dezelfde gastheer gebruiken voor NethVoice en NethVoice CTI",
-        "reports_prefix_invalid": "Ongeldig formaat"
-    },
-    "about": {
-        "title": "Over"
-    },
-    "action": {
-        "get-configuration": "Configuratie ophalen",
-        "configure-module": "Module configureren",
-        "get-status": "Status ophalen",
-        "get-name": "Naam ophalen",
-        "list-installed-modules": "Geïnstalleerde modules weergeven",
-        "get-module-info": "Module-info ophalen",
-        "list-backup-repositories": "Backup repositories weergeven",
-        "list-backups": "Backups weergeven"
-    },
-    "status": {
-        "app_images": "App kopie | App kopieën",
-        "created": "Gemaakt",
-        "name": "Naam",
-        "mount": "Koppelen",
-        "services": "Dienst | Diensten",
-        "node": "Node",
-        "no_services": "Geen services",
-        "no_images": "Geen images",
-        "no_volumes": "Geen volumes",
-        "title": "Status",
-        "size": "Grootte",
-        "app_volumes": "App volume | App volumen",
-        "installation_node": "Installatie node"
-    },
-    "task": {
-        "cannot_create_task": "Kan taak {actie} niet aanmaken"
-    }
+  "settings": {
+    "title": "Instellingen",
+    "configure_instance": "Configureer {instance}",
+    "save": "Opslaan",
+    "nethvoice_host": "NethVoice basis",
+    "user_domain": "Gebruiker domein",
+    "reports_international_prefix_tooltip": "Formaat moet \"00**\" of \"+**\" zijn",
+    "set_password": "NethVoice administratie wachtwoord",
+    "timezone": "Tijdzone",
+    "create_nethvoice_adm": "Creëer NethVoice Administrateur voor gebruikerbeheer",
+    "nethcti_ui_host_format": "Moet een geldige domeinnaam zijn.",
+    "proxy_not_installed": "Nethvoice Proxy",
+    "timezone_placeholder": "Kies de tijdzone",
+    "set_nethvoice_adm_password": "Zet NethVoice Administrateur wachtwoord voor gebruikersbeheer",
+    "proxy_not_installed_description": "De proxy moet worden geïnstalleerd voordat NethVoice wordt geconfigureerd.",
+    "nethcti_ui_host": "NethVoice CTI basis",
+    "reports_prefix_invalid": "Ongeldige opmaak",
+    "nethvoice_host_format": "Moet een geldige domeinnaam zijn.",
+    "reports_international_prefix": "Prefix rapporten",
+    "timezone_tooltip": "Zet de tijdzone voor de huidige NethVoice installatie"
+  },
+  "common": {
+    "required": "Vereist",
+    "processing": "Verwerken...",
+    "work_in_progress": "Werk in uitvoering",
+    "enabled": "Ingeschakeld",
+    "disabled": "Uitgeschakeld"
+  },
+  "error": {
+    "401": "Ongeldige authenticatie",
+    "403": "Opdracht niet toegestaan",
+    "cannot_retrieve_installed_modules": "Kan geïnstalleerde modules niet ophalen",
+    "cannot_retrieve_module_info": "Module-info kan niet worden opgehaald",
+    "404": "Bron niet gevonden",
+    "error": "Fout",
+    "network_error": "Netwerkfout",
+    "network_timeout": "Netwerktime-out",
+    "validation_error": "Validatiefout",
+    "generic_error": "Er ging iets mis",
+    "required": "Vereist",
+    "same_host": "Kan niet dezelfde gastheer gebruiken voor NethVoice en NethVoice CTI",
+    "reports_prefix_invalid": "Ongeldig formaat"
+  },
+  "about": {
+    "title": "Over"
+  },
+  "action": {
+    "get-configuration": "Configuratie ophalen",
+    "configure-module": "Module configureren",
+    "get-status": "Status ophalen",
+    "get-name": "Naam ophalen",
+    "list-installed-modules": "Geïnstalleerde modules weergeven",
+    "get-module-info": "Module-info ophalen",
+    "list-backup-repositories": "Backup repositories weergeven",
+    "list-backups": "Backups weergeven"
+  },
+  "status": {
+    "app_images": "App kopie | App kopieën",
+    "created": "Gemaakt",
+    "name": "Naam",
+    "mount": "Koppelen",
+    "services": "Dienst | Diensten",
+    "node": "Node",
+    "no_services": "Geen services",
+    "no_images": "Geen images",
+    "no_volumes": "Geen volumes",
+    "title": "Status",
+    "size": "Grootte",
+    "app_volumes": "App volume | App volumen",
+    "installation_node": "Installatie node"
+  },
+  "task": {
+    "cannot_create_task": "Kan taak {actie} niet aanmaken"
+  }
 }
