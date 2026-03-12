@@ -143,6 +143,7 @@ angular.module('nethvoiceWizardUiApp')
     }
 
     this.macAddressToDecimal = function (macAddress) {
+      if (!macAddress) return NaN;
       return parseInt(this.removeMacSeparators(macAddress).toUpperCase(), 16);
     }
                               
