@@ -37,10 +37,6 @@ acorn@~0.11.0:
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-0.11.0.tgz#6e95f0253ad161ff0127db32983e5e2e5352d59a"
   integrity sha1-bpXwJTrRYf8BJ9symD5eLlNS1Zo=
 
-"adler32cs@github:chick307/adler32cs.js":
-  version "0.0.2"
-  resolved "https://codeload.github.com/chick307/adler32cs.js/tar.gz/7fd00ffa24bf173a1eeb987ce7a21ae214eff658"
-
 ajv@^6.5.5:
   version "6.10.2"
   resolved "https://registry.yarnpkg.com/ajv/-/ajv-6.10.2.tgz#d3cea04d6b017b2894ad69040fec8b623eb4bd52"
@@ -85,9 +81,10 @@ angular-cookies@angular/bower-angular-cookies#1.4.0:
   version "1.4.0"
   resolved "https://codeload.github.com/angular/bower-angular-cookies/tar.gz/9ec982254197161e1c39cce899c9c97e6d033010"
 
-angular-mocks@angular/bower-angular-mocks#1.4.0:
-  version "1.4.0"
-  resolved "https://codeload.github.com/angular/bower-angular-mocks/tar.gz/5a7f9f0bad5da4314df7f638fcaf330ff864cae2"
+angular-mocks@angular/bower-angular-mocks#v1.8.3:
+  version "1.8.3"
+  uid "3e622cd9a90cb953c5d877e2efe3504ac98b6c74"
+  resolved "https://codeload.github.com/angular/bower-angular-mocks/tar.gz/3e622cd9a90cb953c5d877e2efe3504ac98b6c74"
 
 angular-patternfly@patternfly/angular-patternfly#3.15.0:
   version "3.15.0"
@@ -526,6 +523,13 @@ bootstrap-select@~1.10.0:
   dependencies:
     jquery ">=1.8"
 
+bootstrap-switch@3.3.2:
+  version "3.3.2"
+  resolved "https://registry.yarnpkg.com/bootstrap-switch/-/bootstrap-switch-3.3.2.tgz#79ddb49fadc308fb731e257f95957af48996eea7"
+  integrity sha512-9ntjMDMeawsUAxp15DiO1po3kf1J8xSSENesgTLJc0j/HoB4wZ8ap8bk8LlazywDHh05E8740nue0LX2A98ZPw==
+  dependencies:
+    jquery ">=1.9.0"
+
 bootstrap-switch@nostalgiaz/bootstrap-switch#v3.3.4:
   version "3.3.4"
   uid "02721b769a6ac83eabe733fd9f08a2ddc7320756"
@@ -804,11 +808,6 @@ caw@^1.0.1:
     is-obj "^1.0.0"
     object-assign "^3.0.0"
     tunnel-agent "^0.4.0"
-
-cf-blob.js@0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/cf-blob.js/-/cf-blob.js-0.0.1.tgz#f5ab7e12e798caf08ccf828c69aba0f063d83f99"
-  integrity sha1-9at+EueYyvCMz4KMaaug8GPYP5k=
 
 chalk@^0.5.1, chalk@~0.5.1:
   version "0.5.1"
@@ -2141,10 +2140,6 @@ filenamify@^1.0.1:
     filename-reserved-regex "^1.0.0"
     strip-outer "^1.0.0"
     trim-repeated "^1.0.0"
-
-"filesaver.js@github:andyinabox/FileSaver.js":
-  version "1.0.0"
-  resolved "https://codeload.github.com/andyinabox/FileSaver.js/tar.gz/973b433b8fbaee9a11d53b9ae423b046742cfe32"
 
 fill-range@^2.1.0:
   version "2.2.4"
@@ -3619,6 +3614,11 @@ jquery@>=1.7, jquery@>=1.7.0, jquery@>=1.7.1, jquery@>=1.8, "jquery@^1.8.3 || ^2
   version "2.1.4"
   resolved "https://registry.yarnpkg.com/jquery/-/jquery-2.1.4.tgz#228bde698a0c61431dc2630a6a154f15890d2317"
   integrity sha1-IoveaYoMYUMdwmMKahVPFYkNIxc=
+
+jquery@>=1.9.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/jquery/-/jquery-4.0.0.tgz#95c33ac29005ff72ec444c5ba1cf457e61404fbb"
+  integrity sha512-TXCHVR3Lb6TZdtw1l3RTLf8RBWVGexdxL6AC8/e0xZKEpBflBsjh9/8LXw+dkNFuOyW9B7iB3O1sP7hS0Kiacg==
 
 jquery@jquery/jquery-dist#~2.1.4:
   version "2.1.4"
