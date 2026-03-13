@@ -14,7 +14,7 @@
     "get-defaults": "Get defaults",
     "get-available-interfaces": "Get available interfaces",
     "list-domain-users": "List domain users",
-    "add-module": "Add module",
+    "add-module": "Install application",
     "get-integrations": "Get integrations",
     "set-integrations": "Configure integrations",
     "get-nethvoice-hotel": "Get hotel settings",
@@ -23,10 +23,10 @@
     "set-rebranding": "Configure rebranding",
     "set-nethvoice-admin-password": "Change NethVoice admin password",
     "get-ports-list": "Get ports list",
-    "restart-module": "Restart module"
+    "restart-module": "Restart application"
   },
   "common": {
-    "processing": "Processing...",
+    "processing": "Processing…",
     "required": "Required",
     "work_in_progress": "Work in progress",
     "enabled": "Enabled",
