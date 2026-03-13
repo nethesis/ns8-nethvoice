@@ -28,6 +28,7 @@ describe('Filter: customFilterMultiple', function () {
     expect(getResultCount(customFilterMultiple(users, 'configurationsUsersSearch', '0C-38-3E-32-A7-CB'))).toBe(1);
     expect(getResultCount(customFilterMultiple(users, 'configurationsUsersSearch', '0C:38:3E:32:A7:CB'))).toBe(1);
     expect(getResultCount(customFilterMultiple(users, 'configurationsUsersSearch', '0C383E32A7CB'))).toBe(1);
+    expect(getResultCount(customFilterMultiple(users, 'configurationsUsersSearch', '0c383e32a7cb'))).toBe(1);
   });
 
   it('should keep extension matching unchanged', function () {
