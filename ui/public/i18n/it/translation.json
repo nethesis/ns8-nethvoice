@@ -21,10 +21,12 @@
     "set-nethvoice-hotel": "Configura impostazioni hotel",
     "get-rebranding": "Visualizza rebranding",
     "set-rebranding": "Configura rebranding",
-    "set-nethvoice-admin-password": "Modifica password admin di NethVoice"
+    "set-nethvoice-admin-password": "Modifica password admin di NethVoice",
+    "restart-module": "Riavvia applicazione",
+    "get-ports-list": "Ottieni lista porte"
   },
   "common": {
-    "processing": "Elaborazione in corso...",
+    "processing": "Elaborazione in corso…",
     "required": "Obbligatorio",
     "work_in_progress": "In lavorazione",
     "enabled": "Abilitato",
@@ -86,7 +88,8 @@
     "change_password": "Cambia password",
     "go_to_software_center": "Vai al Software center",
     "nethvoice_host_pattern": "Deve essere un nome di dominio valido",
-    "nethcti_ui_host_pattern": "Deve essere un nome di dominio valido"
+    "nethcti_ui_host_pattern": "Deve essere un nome di dominio valido",
+    "user_domain": "Account provider"
   },
   "status": {
     "app_images": "Immagine dell'applicazione | Immagini dell'applicazione",
@@ -115,7 +118,13 @@
     "go_to_domains_and_users": "Vai a Domini e utenti",
     "go_to_node_details": "Vai ai dettagli del nodo",
     "search_images": "Cerca immagini",
-    "search_volumes": "Cerca volumi"
+    "search_volumes": "Cerca volumi",
+    "protocol": "Protocollo",
+    "port": "Porta",
+    "restart_module_warning": "Il riavvio dell'applicazione {nome} interromperà il suo funzionamento e può causare disservizio. Continuare solo se la manutenzione è necessaria e gli utenti sono stati avvisati.",
+    "internal_service_details": "Elenco servizi interni",
+    "no_service_details": "Elenco servizi interni non disponibile",
+    "search_service_details": "Cerca sevizio interno"
   },
   "task": {
     "cannot_create_task": "Impossibile eseguire task {action}"
