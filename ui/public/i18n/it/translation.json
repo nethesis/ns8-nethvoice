@@ -90,7 +90,6 @@
     "nethvoice_host_pattern": "Deve essere un nome di dominio valido",
     "nethcti_ui_host_pattern": "Deve essere un nome di dominio valido",
     "user_domain": "Account provider"
-
   },
   "status": {
     "app_images": "Immagine dell'applicazione | Immagini dell'applicazione",
