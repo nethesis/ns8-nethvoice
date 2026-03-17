@@ -592,6 +592,7 @@ COPY initdb.d/initdb.php /initdb.d/
 COPY initdb.d/migration.php /initdb.d/
 COPY etc/logrotate.d/asterisk /etc/logrotate.d/asterisk
 COPY initdb.d/update.php /initdb.d/
+COPY initdb.d/slow_database_updates.php /initdb.d/
 COPY usr/src/nethvoice/samples/* /usr/src/nethvoice/samples/
 COPY configure_users.php /
 COPY entrypoint.sh /entrypoint

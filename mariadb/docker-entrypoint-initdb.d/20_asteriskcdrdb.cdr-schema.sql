@@ -39,5 +39,15 @@ CREATE TABLE `cdr` (
   KEY `did` (`did`),
   KEY `recordingfile` (`recordingfile`(191)),
   KEY `clid` (`clid`),
-  KEY `cnum` (`cnum`)
+  KEY `cnum` (`cnum`),
+  KEY `idx_cdr_cnum_calldate` (`cnum`,`calldate`),
+  KEY `idx_cdr_dst_calldate` (`dst`,`calldate`),
+  KEY `idx_cdr_uniqueid_disposition_linkedid` (`uniqueid`,`disposition`,`linkedid`),
+  KEY `idx_cdr_uniqueid_linkedid_disposition_channel_dstchannel` (`uniqueid`,`linkedid`,`disposition`,`channel`,`dstchannel`),
+  KEY `idx_cdr_uniqueid_lastapp_dst` (`uniqueid`,`lastapp`,`dst`),
+  KEY `idx_cdr_uid_lastapp` (`uniqueid`,`lastapp`),
+  KEY `idx_cdr_linkedid` (`linkedid`),
+  KEY `idx_cdr_dst_disp_uid_cnam` (`dst`,`disposition`,`uniqueid`,`cnam`),
+  KEY `idx_cdr_linkedid_disp_calldate` (`linkedid`,`disposition`,`calldate`),
+  KEY `idx_cdr_src` (`src`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
