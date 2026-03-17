@@ -11,6 +11,9 @@ angular.module('nethvoiceWizardUiApp')
   .service('PhoneService', function ($q, RestService, UtilService) {
 
     var macAddressMapUrl = '/freepbx/rest/lib/macAddressMap.json';
+    var vendorModelPrefixMap = {
+      'Yealink/Dreamwave': 'Yealink'
+    };
 
     // Retrieve the complete phone inventory
     this.getPhones = function () {
@@ -191,6 +194,29 @@ angular.module('nethvoiceWizardUiApp')
       return undefined;
     };
 
+    this.getVendorModelPrefix = function (vendor) {
+      return vendorModelPrefixMap[vendor] || vendor;
+    };
+
+    this.modelMatchesVendor = function (model, vendor) {
+      if (!model || !model.name || !vendor) {
+        return false;
+      }
+
+      var vendorModelPrefix = this.getVendorModelPrefix(vendor);
+      return model.name.toLowerCase().startsWith(vendorModelPrefix.toLowerCase());
+    };
+
+    this.getFilteredModelsByVendor = function (vendor, models) {
+      if (!vendor) {
+        return angular.copy(models);
+      }
+
+      return models.filter(function (model) {
+        return this.modelMatchesVendor(model, vendor);
+      }, this);
+    };
+
     this.checkMacAddress = function (macAddress) {
       // remove separators
       var macAddressNoSep = this.removeMacSeparators(macAddress);
@@ -218,10 +244,7 @@ angular.module('nethvoiceWizardUiApp')
     this.getFilteredModels = function (mac, models, macVendors) {
       var vendor = this.getVendor(mac, macVendors);
       if (vendor) {
-        var filteredModels = models.filter(function (model) {
-          return model.name.toLowerCase().startsWith(vendor.toLowerCase());
-        });
-        return filteredModels;
+        return this.getFilteredModelsByVendor(vendor, models);
       } else {
         return angular.copy(models);
       }

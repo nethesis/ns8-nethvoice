@@ -214,6 +214,7 @@ angular.module('nethvoiceWizardUiApp')
 
       $scope.manualMac = "";
       $scope.manualModel = null;
+      $scope.manualVendor = null;
       $scope.manualFilteredModels = [];
       $('#manual-mac').focus();
     }
@@ -231,9 +232,8 @@ angular.module('nethvoiceWizardUiApp')
       var vendor = PhoneService.getVendor($scope.manualMac, $scope.macVendors);
 
       if (vendor) {
-        $scope.manualFilteredModels = $scope.models.filter(function (model) {
-          return model.name.toLowerCase().startsWith(vendor.toLowerCase());
-        });
+        $scope.manualVendor = vendor;
+        $scope.manualFilteredModels = PhoneService.getFilteredModelsByVendor(vendor, $scope.models);
 
         // force phone model when vendor is Nethesis
         if (vendor === nethesisVendor && $scope.manualMac && ($scope.manualFilteredModels.length > 0)) {
@@ -551,6 +551,8 @@ angular.module('nethvoiceWizardUiApp')
 
         if (!vendor) {
           $scope.manualMacUnknownVendor = true;
+        } else {
+          $scope.manualVendor = vendor;
         }
       }
 
@@ -620,9 +622,7 @@ angular.module('nethvoiceWizardUiApp')
         return;
       }
 
-      $scope.modelApplyToAllList = $scope.models.filter(function (model) {
-        return model.name.toLowerCase().startsWith($scope.vendorApplyToAll.toLowerCase());
-      });
+      $scope.modelApplyToAllList = PhoneService.getFilteredModelsByVendor($scope.vendorApplyToAll, $scope.models);
     }
 
     $scope.setVendorApplyToAllList = function () {
@@ -655,7 +655,7 @@ angular.module('nethvoiceWizardUiApp')
           phone.vendor = vendor;
         }
 
-        if ((vendor && $scope.modelApplyToAll.name.toLowerCase().startsWith(vendor.toLowerCase())) || !vendor) {
+        if ((vendor && PhoneService.modelMatchesVendor($scope.modelApplyToAll, vendor)) || !vendor) {
           var model = phone.filteredModels.find(function (m) {
             return m.name === $scope.modelApplyToAll.name;
           })
@@ -689,9 +689,7 @@ angular.module('nethvoiceWizardUiApp')
 
       if (vendor) {
         phone.vendor = vendor;
-        phone.filteredModels = $scope.models.filter(function (model) {
-          return model.name.toLowerCase().startsWith(vendor.toLowerCase());
-        });
+        phone.filteredModels = PhoneService.getFilteredModelsByVendor(vendor, $scope.models);
 
         // force phone model when vendor is Nethesis
         if (phone.vendor === nethesisVendor && phone.mac && (phone.filteredModels.length > 0)) {

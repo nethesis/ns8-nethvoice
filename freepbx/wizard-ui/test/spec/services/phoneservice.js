@@ -15,6 +15,9 @@ describe('Service: PhoneService', function () {
       'Yealink/Dreamwave': [{
         start: '80-5E-0C-00-00-00',
         end: '80-5E-0C-FF-FF-FF'
+      }, {
+        start: 'C4-FC-22-00-00-00',
+        end: 'C4-FC-22-FF-FF-FF'
       }],
       Fanvil: [{
         start: '0C-38-3E-10-00-00',
@@ -23,7 +26,25 @@ describe('Service: PhoneService', function () {
     };
 
     expect(PhoneService.getVendor('80:5e:0c:12:34:56', macVendors)).toBe('Yealink/Dreamwave');
+    expect(PhoneService.getVendor('C4-FC-22-0D-06-04', macVendors)).toBe('Yealink/Dreamwave');
     expect(PhoneService.getVendor('0c-38-3e-1a-00-01', macVendors)).toBe('Fanvil');
+  });
+
+  it('should match Yealink models for Yealink/Dreamwave vendors', function () {
+    var macVendors = {
+      'Yealink/Dreamwave': [{
+        start: 'C4-FC-22-00-00-00',
+        end: 'C4-FC-22-FF-FF-FF'
+      }]
+    };
+    var models = [
+      { name: 'yealink-T46S' },
+      { name: 'fanvil-X3S' }
+    ];
+
+    expect(PhoneService.getFilteredModels('C4-FC-22-0D-06-04', models, macVendors)).toEqual([
+      { name: 'yealink-T46S' }
+    ]);
   });
 
   it('should return all vendors from the range map keys', function () {
