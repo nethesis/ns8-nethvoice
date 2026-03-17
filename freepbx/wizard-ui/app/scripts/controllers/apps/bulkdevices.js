@@ -392,9 +392,7 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.showSetModelModal = function () {
       if ($scope.allSelectedSameVendor) {
-        $scope.filteredModels = $scope.models.filter(function (model) {
-          return model.name.toLowerCase().startsWith($scope.allSelectedSameVendor.toLowerCase());
-        });
+        $scope.filteredModels = PhoneService.getFilteredModelsByVendor($scope.allSelectedSameVendor, $scope.models);
       } else {
         // show all models
         $scope.filteredModels = angular.copy($scope.models);
