@@ -165,19 +165,11 @@ angular.module('nethvoiceWizardUiApp')
       }
     }
 
-    var filterModels = function (modelName, deviceMac) {
-      return modelName.toLowerCase().startsWith(PhoneService.getVendor(deviceMac, $scope.macVendors).toLowerCase())
-    }
-
     var getAvailableModels = function (devices) {
       for (let device in devices) {
         if (devices[device].mac) {
-          $scope.currentUser.devices[device].availableModels = []
-          for (let model in $scope.allModels) {
-            if (filterModels($scope.allModels[model].name, devices[device].mac)) {
-              $scope.currentUser.devices[device].availableModels.push($scope.allModels[model])
-            }
-          }
+          var vendor = PhoneService.getVendor(devices[device].mac, $scope.macVendors)
+          $scope.currentUser.devices[device].availableModels = PhoneService.getFilteredModelsByVendor(vendor, $scope.allModels)
         }
       }
     }
