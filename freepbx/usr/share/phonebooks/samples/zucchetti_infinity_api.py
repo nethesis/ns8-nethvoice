@@ -345,12 +345,14 @@ def main():
     finally:
         try:
             cursor.close()
-        except Exception:
-            pass
+        except Exception as err:
+            # Log and ignore errors when closing the cursor to avoid masking previous exceptions
+            log("Failed to close database cursor", {"error": str(err)})
         try:
             db.close()
-        except Exception:
-            pass
+        except Exception as err:
+            # Log and ignore errors when closing the database connection to avoid masking previous exceptions
+            log("Failed to close database connection", {"error": str(err)})
 
 
 if __name__ == '__main__':
