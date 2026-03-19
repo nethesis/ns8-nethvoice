@@ -122,9 +122,9 @@
     "protocol": "Protocollo",
     "port": "Porta",
     "restart_module_warning": "Il riavvio dell'applicazione {nome} interromperà il suo funzionamento e può causare disservizio. Continuare solo se la manutenzione è necessaria e gli utenti sono stati avvisati.",
-    "internal_service_details": "Elenco servizi interni",
+    "internal_service_details": "Servizi interni",
     "no_service_details": "Elenco servizi interni non disponibile",
-    "search_service_details": "Cerca sevizio interno"
+    "search_service_details": "Cerca sevizi interni"
   },
   "task": {
     "cannot_create_task": "Impossibile eseguire task {action}"
