@@ -18,6 +18,7 @@ RUN apt update && \
 
 # Add Nethesis firmware template
 COPY usr/share/tancredi/data/templates/nethesis-firmware.tmpl /usr/share/tancredi/data/templates/nethesis-firmware.tmpl
+COPY usr/share/tancredi/data/templates/nethesis-firmware-v2.tmpl /usr/share/tancredi/data/templates/nethesis-firmware-v2.tmpl
 
 # Create Tancredi data directories
 RUN mkdir -m 775 -p /var/lib/tancredi/data/backgrounds \
