@@ -42,8 +42,8 @@ $models = [
     'snom-D785'
 ];
 
-// Get al custom scopes derived from scopes that needs to be fixed
-$scopes = $container['storage']->listScopes();
+// Get all custom scopes derived from scopes that needs to be fixed
+$scopes = $container->get('storage')->listScopes();
 $custom_scopes = array();
 foreach ($models as $model ) {
     foreach ($scopes as $scope_name) {
@@ -54,7 +54,7 @@ foreach ($models as $model ) {
 }
 
 foreach ($custom_scopes as $custom_scope_name) {
-    $scope = new \Tancredi\Entity\Scope($custom_scope_name, $container['storage'], $container['logger']);
+    $scope = new \Tancredi\Entity\Scope($custom_scope_name, $container->get('storage'), $container->get('logger'));
     if(isset($scope->metadata['version']) && $scope->metadata['version'] >= 12) {
         continue;
     }
@@ -67,5 +67,5 @@ foreach ($custom_scopes as $custom_scope_name) {
     if ($scope_data['ldap_name_filter'] === '(|(cn=%)(o=%))') {
         $scope->setVariables(['ldap_name_filter' => '(|(cn=%*)(o=%*))']);
     }
-    $container['logger']->info("Fix ".basename(__FILE__)." applied to scope $custom_scope_name");
+    $container->get('logger')->info("Fix ".basename(__FILE__)." applied to scope $custom_scope_name");
 }
