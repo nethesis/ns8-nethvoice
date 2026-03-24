@@ -116,15 +116,15 @@ context cs SWITCH
   interface sip IF_VOIP_ASTERISK_00
     bind context sip-gateway ASTERISK_00
     route call dest-table to_isdn
-    remote PROXY 5060
+    remote PROXY 5061
     early-disconnect
     privacy
     uri-scheme sip
     call-transfer uri-scheme original
-    address-translation outgoing-call from-header user-part fix TRUNKUSERNAME1 host-part fix ASTERISKIP 5060
-    address-translation outgoing-call to-header user-part call host-part fix ASTERISKIP 5060
-    address-translation outgoing-call request-uri user-part to-header host-part fix ASTERISKIP 5060 target-param none
-    address-translation outgoing-call identity-header user-part call e164 single-primary host-part fix ASTERISKIP 5060
+    address-translation outgoing-call from-header user-part fix TRUNKUSERNAME1 host-part fix ASTERISKIP 5061
+    address-translation outgoing-call to-header user-part call host-part fix ASTERISKIP 5061
+    address-translation outgoing-call request-uri user-part to-header host-part fix ASTERISKIP 5061 target-param none
+    address-translation outgoing-call identity-header user-part call e164 single-primary host-part fix ASTERISKIP 5061
     trust remote
 
   service hunt-group BOUND_ISDN_00
@@ -145,7 +145,7 @@ authentication-service AUTH_SRV_0
   username TRUNKUSERNAME1 password TRUNKSECRET1
 
 location-service SER_LOC_00
-  domain 1 ASTERISKIP 5060
+  domain 1 ASTERISKIP 5061
 
   identity TRUNKUSERNAME1
 
@@ -153,9 +153,9 @@ location-service SER_LOC_00
       authenticate 1 authentication-service AUTH_SRV_0 username TRUNKUSERNAME1
 
     registration outbound
-      registrar ASTERISKIP 5060
-      force-destination manual PROXY 5060
-      proxy 1 PROXY 5060
+      registrar ASTERISKIP 5061
+      force-destination manual PROXY 5061
+      proxy 1 PROXY 5061
       lifetime 3600
       register auto
       keep-alive options 60
@@ -174,8 +174,8 @@ context sip-gateway ASTERISK_00
   bind location-service SER_LOC_00
 
   interface IF_GW_SIP_TRAIN_00
-    transport-protocol udp+tcp 5060
-    no transport-protocol tls
+    no transport-protocol udp+tcp
+    transport-protocol tls 5061
     bind ipaddress ROUTER WAN WAN
 
 context sip-gateway ASTERISK_00
