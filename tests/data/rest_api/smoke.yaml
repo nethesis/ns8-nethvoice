@@ -1,0 +1,25 @@
+defaults:
+  auth:
+    user: admin
+    password: Nethesis,1234
+  expected_status: 200
+  post_wait_seconds: 20
+
+operations:
+  - name: settings-defaultlanguage-en
+    enabled: true
+    phase: smoke
+    method: POST
+    path: /settings/defaultlanguage
+    payload:
+      lang: en
+    expected_fixture: tests/fixtures/rest_api/settings-defaultlanguage/en
+    fixture_profile:
+      entries:
+        - path: /etc/amportal.conf
+          include_lines:
+            - ^TONEZONE=
+    notes: >-
+      Phase 1 pilot for deterministic REST auth, mutation, wait window and
+      fixture comparison. The first fixture is intentionally narrow and
+      extracts only the config fragment updated by the endpoint.
