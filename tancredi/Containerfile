@@ -7,6 +7,7 @@ COPY entrypoint.sh /
 
 RUN apt update && \
 	apt install -y libapache2-mod-xsendfile zip && \
+	a2enmod headers && \
 	ln -sf /etc/apache2/sites-available/tancredi.conf /etc/apache2/sites-enabled/tancredi.conf && \
 	sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:$\{TANCREDIPORT\}>/' /etc/apache2/sites-enabled/000-default.conf && \
 	sed -i 's/Listen 80/Listen $\{TANCREDIPORT\}/' /etc/apache2/ports.conf && \
