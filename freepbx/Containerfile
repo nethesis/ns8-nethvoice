@@ -569,6 +569,9 @@ RUN a2enmod rewrite proxy*
 # disable server-status page
 RUN a2dismod status
 
+# Upgrade Apache to latest version to get security fixes
+RUN apt-get update && apt-get install -y --only-upgrade apache2 && rm -rf /var/lib/apt/lists/*
+
 # Clean apt files
 RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,dpkg,cache,log}/* && touch /var/lib/dpkg/status
 
