@@ -564,7 +564,7 @@ RUN cd /var/www/html/freepbx/rest/ && \
 RUN find /var/www/html/freepbx/admin -path "*/i18n/*/LC_MESSAGES/*.po" -exec sh -c 'msgfmt -o "${1%.po}.mo" "$1" 2>/dev/null || true' _ {} \;
 
 # enable apache rewrite module
-RUN a2enmod rewrite proxy*
+RUN a2enmod rewrite proxy* headers
 
 # disable server-status page
 RUN a2dismod status
