@@ -3,6 +3,7 @@ Library    Collections
 Library    OperatingSystem
 Library    Process
 Library    SSHLibrary
+Resource   ./api.resource
 
 *** Variables ***
 ${REST_API_SCRIPTS_DIR}    ${CURDIR}/scripts
@@ -13,19 +14,28 @@ Read REST Manifest Operation
     [Arguments]    ${manifest_path}    ${operation_name}
     ${result} =    Run Process    python3    ${REST_API_SCRIPTS_DIR}/rest_api_runner.py    operation    --manifest    ${manifest_path}    --operation    ${operation_name}
     Should Be Equal As Integers    ${result.rc}    0    Failed to read REST manifest operation ${operation_name}!${\n}${result.stderr}
-    ${operation} =    Evaluate    json.loads('''${result.stdout}''')    modules=json
+    ${operation} =    Evaluate    json.loads($result.stdout)    modules=json
     [Return]    ${operation}
 
 Ensure REST Smoke Prerequisites
     ${stdout}    ${stderr}    ${rc} =    Execute Command    runagent -m ${module_id} podman exec freepbx test -f /etc/amportal.conf    return_stdout=True    return_stderr=True    return_rc=True
     Should Be Equal As Integers    ${rc}    0    FreePBX container is not ready for REST smoke tests!${\n}${stderr}
 
+Get REST Public Host
+    ${response} =    Run task    module/${module_id}/get-configuration    {}
+    ${public_host} =    Set Variable    ${response['nethvoice_host']}
+    Should Not Be Empty    ${public_host}    NethVoice host is not configured.
+    [Return]    ${public_host}
+
 Compute REST Auth Headers
-    [Arguments]    ${user}    ${password}    ${artifact_dir}
+    [Arguments]    ${user}    ${password}    ${artifact_dir}    ${host_header}=${EMPTY}
     Create Directory    ${artifact_dir}
     ${result} =    Run Process    python3    ${REST_API_SCRIPTS_DIR}/rest_api_runner.py    headers    --node-addr    ${NODE_ADDR}    --ssh-key    ${SSH_KEYFILE}    --module-id    ${module_id}    --auth-user    ${user}    --auth-password    ${password}    --output-dir    ${artifact_dir}
     Should Be Equal As Integers    ${result.rc}    0    Failed to compute REST auth headers!${\n}${result.stderr}
-    ${headers} =    Evaluate    json.loads('''${result.stdout}''')    modules=json
+    ${headers} =    Evaluate    json.loads($result.stdout)    modules=json
+    IF    '${host_header}' != ''
+        Set To Dictionary    ${headers}    Host    ${host_header}
+    END
     [Return]    ${headers}
 
 Call REST Endpoint
@@ -40,7 +50,7 @@ Call REST Endpoint
     END
     ${result} =    Run Process    @{args}
     Should Be Equal As Integers    ${result.rc}    0    REST call ${method} ${path} failed!${\n}${result.stderr}
-    ${report} =    Evaluate    json.loads('''${result.stdout}''')    modules=json
+    ${report} =    Evaluate    json.loads($result.stdout)    modules=json
     [Return]    ${report}
 
 Wait For FreePBX Regeneration
@@ -52,7 +62,7 @@ Capture Asterisk Files
     Create Directory    ${output_dir}
     ${result} =    Run Process    python3    ${REST_API_SCRIPTS_DIR}/capture_asterisk_fixture.py    --manifest    ${manifest_path}    --operation    ${operation_name}    --node-addr    ${NODE_ADDR}    --ssh-key    ${SSH_KEYFILE}    --module-id    ${module_id}    --output-dir    ${output_dir}
     Should Be Equal As Integers    ${result.rc}    0    Failed to capture fixture files for ${operation_name}!${\n}${result.stderr}
-    ${capture_report} =    Evaluate    json.loads('''${result.stdout}''')    modules=json
+    ${capture_report} =    Evaluate    json.loads($result.stdout)    modules=json
     [Return]    ${capture_report}
 
 Compare Asterisk Fixture

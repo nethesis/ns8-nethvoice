@@ -6,20 +6,13 @@ defaults:
   post_wait_seconds: 20
 
 operations:
-  - name: settings-defaultlanguage-en
+  - name: configuration-allowexternalsips-enabled
     enabled: true
     phase: smoke
     method: POST
-    path: /settings/defaultlanguage
-    payload:
-      lang: en
-    expected_fixture: tests/fixtures/rest_api/settings-defaultlanguage/en
-    fixture_profile:
-      entries:
-        - path: /etc/amportal.conf
-          include_lines:
-            - ^TONEZONE=
+    path_prefix: /configuration/allowexternalsips
+    verify_path: /configuration/allowexternalsips
+    target_value: enabled
     notes: >-
-      Phase 1 pilot for deterministic REST auth, mutation, wait window and
-      fixture comparison. The first fixture is intentionally narrow and
-      extracts only the config fragment updated by the endpoint.
+      Smoke pilot for deterministic REST auth and a stable mutating
+      configuration compatibility endpoint.
