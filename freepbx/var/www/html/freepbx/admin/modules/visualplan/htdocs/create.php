@@ -420,17 +420,19 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
             $id = $value['userData']['id'];
             $name = $value['userData']['description'];
             $rec_id = $value['userData']['announcement'];
-            $destinations = nethvplan_getDestination($value, $connectionArray);
-            $destination = trim($destinations["output_".$value['entities'][2]['id']]);
 
             if (!array_key_exists($value['id'], $currentCreated)) {
                 if (empty($id)) {
-                    $idAnn = announcement_add($name, $rec_id, "", $destination, 0, 0, "");
+                    $idAnn = announcement_add($name, $rec_id, "", "", 0, 0, "");
                     $idReturn = $idAnn;
                     $currentCreated[$value['id']] = $idReturn;
+                    $destinations = nethvplan_getDestination($value, $connectionArray);
+                    $destination = trim($destinations["output_".$value['entities'][2]['id']]);
                     announcement_edit($idReturn, $name, $rec_id, "", $destination, 0, 0, "");
                 } else {
                     $currentCreated[$value['id']] = $id;
+                    $destinations = nethvplan_getDestination($value, $connectionArray);
+                    $destination = trim($destinations["output_".$value['entities'][2]['id']]);
                     $exists = announcement_get($id);
                     announcement_edit($id, $name, $rec_id, $exists['allow_skip'], $destination, $exists['return_ivr'], $exists['noanswer'], $exists['repeat_msg']);
                     $idReturn = $id;
