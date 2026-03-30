@@ -1,0 +1,119 @@
+defaults:
+  auth:
+    user: admin
+    password: Nethesis,1234
+  expected_status: 200
+  post_wait_seconds: 10
+
+seeds:
+  - name: user_bundle
+    helper: create_user_bundle
+    params:
+      username: "${runtime.username}"
+      fullname: "${runtime.fullname}"
+      password: "${runtime.user_password}"
+      extension: "${runtime.mainextension}"
+      wizard_step: 2
+
+operations:
+  - name: get-seeded-mainextension
+    enabled: true
+    classification: read-only
+    tags:
+      - mainextensions
+    requires:
+      - user_bundle
+    method: GET
+    path: "/mainextensions/${seed.user_bundle.extension}"
+    assertions:
+      json_path_equals:
+        - path: extension
+          value: "${seed.user_bundle.extension}"
+
+  - name: create-cti-group
+    enabled: true
+    classification: mutating-no-fixture
+    tags:
+      - cti
+    requires:
+      - user_bundle
+    method: POST
+    path: /cti/groups
+    payload:
+      name: "${runtime.cti_group_name}"
+    exports:
+      - name: cti_group_id
+        from: response.json
+    assertions:
+      json_type: integer
+
+  - name: assign-cti-group
+    enabled: true
+    classification: mutating-no-fixture
+    tags:
+      - cti
+    requires:
+      - user_bundle
+    method: POST
+    path: "/cti/groups/users/${seed.user_bundle.extension}"
+    payload:
+      groups:
+        - "${vars.cti_group_id}"
+
+  - name: verify-cti-group
+    enabled: true
+    classification: read-only
+    tags:
+      - cti
+    requires:
+      - user_bundle
+    method: GET
+    path: "/cti/groups/users/${seed.user_bundle.extension}"
+    assertions:
+      list_contains:
+        item: "${vars.cti_group_id}"
+
+  - name: create-webrtc
+    enabled: true
+    classification: mutating-no-fixture
+    tags:
+      - webrtc
+    requires:
+      - user_bundle
+    method: POST
+    path: /webrtc
+    payload:
+      extension: "${seed.user_bundle.extension}"
+    exports:
+      - name: webrtc_extension
+        from: response.json.extension
+    assertions:
+      json_path_exists:
+        - extension
+
+  - name: verify-webrtc
+    enabled: true
+    classification: read-only
+    tags:
+      - webrtc
+    requires:
+      - user_bundle
+    method: GET
+    path: "/webrtc/${seed.user_bundle.extension}"
+    assertions:
+      json_equals: "${vars.webrtc_extension}"
+
+cleanup:
+  - name: delete-webrtc
+    helper: delete_webrtc
+    when_defined:
+      - vars.webrtc_extension
+    params:
+      mainextension: "${seed.user_bundle.extension}"
+
+  - name: delete-cti-group
+    helper: delete_cti_group
+    when_defined:
+      - vars.cti_group_id
+    params:
+      group_id: "${vars.cti_group_id}"

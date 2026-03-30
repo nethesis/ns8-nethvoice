@@ -1,0 +1,66 @@
+defaults:
+  auth:
+    user: admin
+    password: Nethesis,1234
+  expected_status: 200
+  post_wait_seconds: 10
+
+seeds:
+  - name: user_bundle
+    helper: create_user_bundle
+    params:
+      username: "${runtime.username}"
+      fullname: "${runtime.fullname}"
+      password: "${runtime.user_password}"
+      extension: "${runtime.mainextension}"
+      wizard_step: 2
+
+operations:
+  - name: create-custom-physical-extension
+    enabled: true
+    classification: destructive/isolated
+    tags:
+      - physicalextensions
+      - devices
+    requires:
+      - user_bundle
+    method: POST
+    path: /physicalextensions
+    payload:
+      line: null
+      mac: null
+      mainextension: "${seed.user_bundle.extension}"
+      model: null
+      web_user: admin
+      web_password: admin
+    exports:
+      - name: physical_extension
+        from: response.json.extension
+    assertions:
+      json_path_exists:
+        - extension
+
+  - name: verify-custom-physical-extension
+    enabled: true
+    classification: destructive/isolated
+    tags:
+      - devices
+    requires:
+      - user_bundle
+    method: GET
+    path: /devices/phones/list
+    assertions:
+      list_contains:
+        item:
+          model: custom
+          lines:
+            - extension: "${vars.physical_extension}"
+              mainextension: "${seed.user_bundle.extension}"
+
+cleanup:
+  - name: delete-physical-extension
+    helper: delete_physical_extension
+    when_defined:
+      - vars.physical_extension
+    params:
+      extension: "${vars.physical_extension}"

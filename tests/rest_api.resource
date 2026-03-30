@@ -81,3 +81,23 @@ Compare Asterisk Fixture
     ${diff_path} =    Normalize Path    ${comparison_dir}/fixture.diff
     Create File    ${diff_path}    ${diff_result.stdout}
     Should Be Equal As Integers    ${diff_result.rc}    0    Fixture mismatch for ${operation_name}. Diff: ${diff_path}
+
+Execute REST Manifest
+    [Arguments]    ${manifest_path}    ${artifact_dir}    ${host_header}=${EMPTY}
+    Create Directory    ${artifact_dir}
+    @{args} =    Create List    python3    ${REST_API_SCRIPTS_DIR}/rest_api_runner.py    execute-manifest    --manifest    ${manifest_path}    --node-addr    ${NODE_ADDR}    --ssh-key    ${SSH_KEYFILE}    --module-id    ${module_id}    --base-url    https://${NODE_ADDR}/freepbx/rest    --output-dir    ${artifact_dir}
+    IF    '${host_header}' != ''
+        Append To List    ${args}    --host-header
+        Append To List    ${args}    ${host_header}
+    END
+    ${result} =    Run Process    @{args}
+    Should Be Equal As Integers    ${result.rc}    0    REST manifest execution failed for ${manifest_path}!${\n}${result.stderr}${\n}Artifacts: ${artifact_dir}
+    ${report} =    Evaluate    json.loads($result.stdout)    modules=json
+    ${manifest_report_path} =    Normalize Path    ${artifact_dir}/manifest-report.json
+    OperatingSystem.File Should Exist    ${manifest_report_path}
+    ${manifest_artifact_dir} =    Normalize Path    ${OUTPUT DIR}/rest_api_manifests
+    Create Directory    ${manifest_artifact_dir}
+    ${manifest_file_name} =    Evaluate    pathlib.Path($manifest_path).stem + '.json'    modules=pathlib
+    ${manifest_artifact_path} =    Normalize Path    ${manifest_artifact_dir}/${manifest_file_name}
+    Copy File    ${manifest_report_path}    ${manifest_artifact_path}
+    [Return]    ${report}
