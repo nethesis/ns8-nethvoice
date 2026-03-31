@@ -1,0 +1,276 @@
+{
+  "name": "default",
+  "description": "Migrated local REST smoke sequence for FreePBX and Tancredi",
+  "operations": [
+    {
+      "name": "Create Alice main extension",
+      "method": "POST",
+      "path": "/freepbx/rest/mainextensions",
+      "payload": {"username": "alice", "extension": "201"},
+      "expected_status": [201]
+    },
+    {
+      "name": "Create Bob main extension",
+      "method": "POST",
+      "path": "/freepbx/rest/mainextensions",
+      "payload": {"username": "bob", "extension": "202"},
+      "expected_status": [201]
+    },
+    {
+      "name": "Read main extension limits after Bob",
+      "method": "GET",
+      "path": "/freepbx/rest/mainextensions/userlimits",
+      "expected_status": [200]
+    },
+    {
+      "name": "Create Foo main extension",
+      "method": "POST",
+      "path": "/freepbx/rest/mainextensions",
+      "payload": {"username": "foo", "extension": "203"},
+      "expected_status": [201]
+    },
+    {
+      "name": "Read main extension limits after Foo",
+      "method": "GET",
+      "path": "/freepbx/rest/mainextensions/userlimits",
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 2",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 2},
+      "expected_status": [200]
+    },
+    {
+      "name": "Read gateway list",
+      "method": "GET",
+      "path": "/freepbx/rest/devices/gateways/list/e2fa272b0b69291f2916ccf63f55d0e8",
+      "expected_status": [200]
+    },
+    {
+      "name": "List users",
+      "method": "GET",
+      "path": "/freepbx/rest/users/false",
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 3",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 3},
+      "expected_status": [200]
+    },
+    {
+      "name": "List providers",
+      "method": "GET",
+      "path": "/freepbx/rest/providers",
+      "expected_status": [200]
+    },
+    {
+      "name": "List trunks before gateway creation",
+      "method": "GET",
+      "path": "/freepbx/rest/trunks",
+      "expected_status": [200]
+    },
+    {
+      "name": "List VoIP codecs",
+      "method": "GET",
+      "path": "/freepbx/rest/codecs/voip",
+      "expected_status": [200]
+    },
+    {
+      "name": "Reset wizard to step 2",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 2},
+      "expected_status": [200]
+    },
+    {
+      "name": "Read gateway list again",
+      "method": "GET",
+      "path": "/freepbx/rest/devices/gateways/list/e2fa272b0b69291f2916ccf63f55d0e8",
+      "expected_status": [200]
+    },
+    {
+      "name": "List gateway manufacturers",
+      "method": "GET",
+      "path": "/freepbx/rest/devices/gateways/manufacturers",
+      "expected_status": [200]
+    },
+    {
+      "name": "List users again",
+      "method": "GET",
+      "path": "/freepbx/rest/users/false",
+      "expected_status": [200]
+    },
+    {
+      "name": "Create Patton gateway",
+      "method": "POST",
+      "path": "/freepbx/rest/devices/gateways",
+      "payload": {
+        "proxy": "sip::;lr",
+        "ipv4_green": "192.168.12.32",
+        "manufacturer": "Patton",
+        "name": "Patton-TRINITY ISDN 2 Porte",
+        "model": "17",
+        "trunks_isdn": [
+          {"name": 0, "type": "pp"},
+          {"name": 1, "type": "pmp"}
+        ],
+        "trunks_pri": [],
+        "trunks_fxo": [],
+        "trunks_fxs": [],
+        "ipv4_new": "192.168.12.34",
+        "mac": "00:AA:BB:CC:DD:EE",
+        "netmask_green": "255.255.255.248",
+        "gateway": "192.168.12.33",
+        "onSave": true,
+        "onSaveSuccess": false,
+        "onError": false,
+        "onDeleteSuccess": false,
+        "onPushSuccess": false,
+        "ipv4": ""
+      },
+      "expected_status": [200]
+    },
+    {
+      "name": "Read gateway list after create",
+      "method": "GET",
+      "path": "/freepbx/rest/devices/gateways/list/e2fa272b0b69291f2916ccf63f55d0e8",
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 3 again",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 3},
+      "expected_status": [200]
+    },
+    {
+      "name": "List providers after gateway",
+      "method": "GET",
+      "path": "/freepbx/rest/providers",
+      "expected_status": [200]
+    },
+    {
+      "name": "List trunks after gateway",
+      "method": "GET",
+      "path": "/freepbx/rest/trunks",
+      "expected_status": [200]
+    },
+    {
+      "name": "List VoIP codecs again",
+      "method": "GET",
+      "path": "/freepbx/rest/codecs/voip",
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 4",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 4},
+      "expected_status": [200]
+    },
+    {
+      "name": "List inbound routes",
+      "method": "GET",
+      "path": "/freepbx/rest/inboundroutes",
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 5",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 5},
+      "expected_status": [200]
+    },
+    {
+      "name": "List trunks before outbound routes",
+      "method": "GET",
+      "path": "/freepbx/rest/trunks",
+      "expected_status": [200]
+    },
+    {
+      "name": "List outbound routes",
+      "method": "GET",
+      "path": "/freepbx/rest/outboundroutes",
+      "expected_status": [200]
+    },
+    {
+      "name": "Read outbound route defaults",
+      "method": "GET",
+      "path": "/freepbx/rest/outboundroutes/defaults",
+      "expected_status": [200]
+    },
+    {
+      "name": "Create outbound routes",
+      "method": "POST",
+      "path": "/freepbx/rest/outboundroutes",
+      "payload": {
+        "it": [
+          {
+            "name": "national_it",
+            "trunks": [
+              {"name": "Patton_ccddee_isdn_0", "trunkid": "1"},
+              {"name": "Patton_ccddee_isdn_1", "trunkid": "2"}
+            ]
+          },
+          {
+            "name": "cellphone_it",
+            "trunks": [
+              {"name": "Patton_ccddee_isdn_0", "trunkid": "1"},
+              {"name": "Patton_ccddee_isdn_1", "trunkid": "2"}
+            ]
+          },
+          {
+            "name": "international_it",
+            "trunks": [
+              {"name": "Patton_ccddee_isdn_0", "trunkid": "1"},
+              {"name": "Patton_ccddee_isdn_1", "trunkid": "2"}
+            ]
+          },
+          {
+            "name": "toll_it",
+            "trunks": [
+              {"name": "Patton_ccddee_isdn_0", "trunkid": "1"},
+              {"name": "Patton_ccddee_isdn_1", "trunkid": "2"}
+            ]
+          }
+        ]
+      },
+      "expected_status": [200]
+    },
+    {
+      "name": "List outbound routes after create",
+      "method": "GET",
+      "path": "/freepbx/rest/outboundroutes",
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 6",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 6},
+      "expected_status": [200]
+    },
+    {
+      "name": "Fetch MAC address map",
+      "method": "GET",
+      "path": "/freepbx/rest/lib/macAddressMap.json",
+      "expected_status": [200]
+    },
+    {
+      "name": "List Tancredi phones",
+      "method": "GET",
+      "path": "/tancredi/api/v1/phones",
+      "expected_status": [200]
+    },
+    {
+      "name": "Read configuration networks",
+      "method": "GET",
+      "path": "/freepbx/rest/configuration/networks",
+      "expected_status": [200]
+    }
+  ]
+}
