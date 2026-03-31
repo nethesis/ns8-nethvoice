@@ -271,6 +271,13 @@
       "method": "GET",
       "path": "/freepbx/rest/configuration/networks",
       "expected_status": [200]
+    },
+    {
+      "name": "Skip to step 8 to avoid being blocked by network configuration",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": { "status": "true", "step": 8 },
+      "expected_status": [200]
     }
   ]
 }
