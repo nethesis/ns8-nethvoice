@@ -95,9 +95,10 @@ angular-patternfly@patternfly/angular-patternfly#3.15.0:
     lodash "3.x"
     patternfly "~3.15.0"
 
-angular-resource@angular/bower-angular-resource#1.4.0:
-  version "1.4.0"
-  resolved "https://codeload.github.com/angular/bower-angular-resource/tar.gz/51fac1b7d12c0a4f1a730f9edb33a7d23add7e89"
+angular-resource@angular/bower-angular-resource#v1.8.3:
+  version "1.8.3"
+  uid c0217706b83e628301fb90bc8d7fbeff4540a20a
+  resolved "https://codeload.github.com/angular/bower-angular-resource/tar.gz/c0217706b83e628301fb90bc8d7fbeff4540a20a"
 
 angular-route@angular/bower-angular-route#1.4.0:
   version "1.4.0"
