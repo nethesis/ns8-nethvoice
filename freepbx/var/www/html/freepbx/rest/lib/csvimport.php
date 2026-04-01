@@ -23,6 +23,7 @@
 include_once('/var/www/html/freepbx/rest/lib/libUsers.php');
 include_once('/var/www/html/freepbx/rest/lib/libExtensions.php');
 include_once('/var/www/html/freepbx/rest/lib/libCTI.php');
+include_once('/var/www/html/freepbx/rest/lib/libMiddleware.php');
 if (file_exists('/var/www/html/freepbx/rest/lib/libMigration.php')) {
     include_once('/var/www/html/freepbx/rest/lib/libMigration.php');
 }
@@ -118,6 +119,7 @@ try {
 
     # sync users
     system("/usr/bin/fwconsole userman --syncall --force &> /dev/null");
+    triggerMiddlewareProfilesReload();
 
     foreach ($csv as $k => $row) {
         $progress += $step;
@@ -314,4 +316,3 @@ try {
     file_put_contents($statusfile,json_encode(array('exitcode'=>1,'errors'=>$err,'progress'=>-1)));
     exit (1);
 }
-
