@@ -21,6 +21,52 @@ UPDATE admin
 SQL
 }
 
+lt_export_asterisk_dump() {
+  local output_path="$1"
+
+  mkdir -p "$(dirname "${output_path}")"
+
+  lt_section 'Exporting Asterisk MariaDB dump'
+  podman exec "${MARIADB_CONTAINER}" sh -lc \
+    "mysqldump -uroot -p\"${MARIADB_ROOT_PASSWORD}\" --single-transaction --routines --triggers --events --add-drop-database --databases asterisk --skip-comments --skip-dump-date" \
+    > "${output_path}"
+}
+
+lt_reset_asterisk_database() {
+  lt_section 'Resetting Asterisk MariaDB database'
+  podman exec -i "${MARIADB_CONTAINER}" sh -lc \
+    "mysql -uroot -p\"${MARIADB_ROOT_PASSWORD}\"" >/dev/null <<SQL
+DROP DATABASE IF EXISTS \`${AMPDBNAME}\`;
+CREATE DATABASE \`${AMPDBNAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+SQL
+}
+
+lt_import_asterisk_dump() {
+  local input_path="$1"
+
+  [[ -f "${input_path}" ]] || lt_die "Asterisk dump not found: ${input_path}"
+
+  lt_reset_asterisk_database
+
+  lt_section 'Importing Asterisk MariaDB dump'
+  podman exec -i "${MARIADB_CONTAINER}" sh -lc \
+    "mysql -uroot -p\"${MARIADB_ROOT_PASSWORD}\" \"${AMPDBNAME}\"" < "${input_path}"
+
+  lt_sync_imported_dump_with_environment
+  lt_set_need_reload
+}
+
+lt_sync_imported_dump_with_environment() {
+  lt_section 'Syncing imported dump with current environment'
+
+  podman exec "${FREEPBX_CONTAINER}" php /initdb.d/initdb.php
+  podman exec "${FREEPBX_CONTAINER}" php /initdb.d/migration.php
+  podman exec "${FREEPBX_CONTAINER}" php /initdb.d/update.php
+
+  lt_seed_freepbx_admin
+  lt_seed_local_rest_users
+}
+
 lt_seed_local_rest_users() {
   local i
   local username
