@@ -3,15 +3,26 @@
 # shellcheck disable=SC2034
 
 LOCAL_TESTING_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="${REPO_ROOT:-$(cd "${LOCAL_TESTING_DIR}/.." && pwd)}"
+
+CURRENT_GIT_BRANCH="$(git -C "${REPO_ROOT}" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+DEFAULT_IMAGE_TAG="${IMAGETAG:-}"
+if [[ -z "${DEFAULT_IMAGE_TAG}" ]]; then
+  if [[ -n "${CURRENT_GIT_BRANCH}" && "${CURRENT_GIT_BRANCH}" != 'HEAD' ]]; then
+    DEFAULT_IMAGE_TAG="${CURRENT_GIT_BRANCH//[^[:alnum:]_.-]/-}"
+  else
+    DEFAULT_IMAGE_TAG='latest'
+  fi
+fi
 
 POD_NAME="${POD_NAME:-nethvoice-local-test}"
 MARIADB_CONTAINER="${MARIADB_CONTAINER:-nethvoice-mariadb}"
 FREEPBX_CONTAINER="${FREEPBX_CONTAINER:-nethvoice-freepbx}"
 TANCREDI_CONTAINER="${TANCREDI_CONTAINER:-nethvoice-tancredi}"
 
-NETHVOICE_MARIADB_IMAGE="${NETHVOICE_MARIADB_IMAGE:-ghcr.io/nethesis/nethvoice-mariadb:latest}"
-NETHVOICE_FREEPBX_IMAGE="${NETHVOICE_FREEPBX_IMAGE:-ghcr.io/nethesis/nethvoice-freepbx:latest}"
-NETHVOICE_TANCREDI_IMAGE="${NETHVOICE_TANCREDI_IMAGE:-ghcr.io/nethesis/nethvoice-tancredi:latest}"
+NETHVOICE_MARIADB_IMAGE="${NETHVOICE_MARIADB_IMAGE:-ghcr.io/nethesis/nethvoice-mariadb:${DEFAULT_IMAGE_TAG}}"
+NETHVOICE_FREEPBX_IMAGE="${NETHVOICE_FREEPBX_IMAGE:-ghcr.io/nethesis/nethvoice-freepbx:${DEFAULT_IMAGE_TAG}}"
+NETHVOICE_TANCREDI_IMAGE="${NETHVOICE_TANCREDI_IMAGE:-ghcr.io/nethesis/nethvoice-tancredi:${DEFAULT_IMAGE_TAG}}"
 
 APACHE_PORT="${APACHE_PORT:-8080}"
 TANCREDIPORT="${TANCREDIPORT:-8081}"
@@ -33,7 +44,7 @@ PHONEBOOK_DB_PASS="${PHONEBOOK_DB_PASS:-phonebookpass}"
 REPORTS_PASSWORD="${REPORTS_PASSWORD:-reportspass}"
 
 ASTMANAGERPORT="${ASTMANAGERPORT:-5038}"
-AMPMGRUSER="${AMPMGRUSER:-admin}"
+AMPMGRUSER="${AMPMGRUSER:-asterisk}"
 AMPMGRPASS="${AMPMGRPASS:-ampmanagerpass}"
 NETHCTI_AMI_PASSWORD="${NETHCTI_AMI_PASSWORD:-proxyctipass}"
 NETHVOICESECRETKEY="${NETHVOICESECRETKEY:-local-test-secret}"
@@ -54,6 +65,7 @@ REST_API_SECRETKEY="${REST_API_SECRETKEY:-}"
 MARIADB_VOLUME="${MARIADB_VOLUME:-mariadb-data}"
 TANCREDI_VOLUME="${TANCREDI_VOLUME:-tancredi}"
 ASTDB_VOLUME="${ASTDB_VOLUME:-astdb}"
+FIXTURES_DIR="${FIXTURES_DIR:-${LOCAL_TESTING_DIR}/fixtures}"
 
 LOCAL_SEED_USERS=(alice bob foo)
 LOCAL_SEED_USER_DESCRIPTIONS=(Alice Bob Foo)
