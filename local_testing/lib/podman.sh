@@ -209,7 +209,7 @@ lt_wait_for_retrieve_conf() {
 lt_run_fwconsole_reload() {
   lt_section 'Running FreePBX reload'
   podman exec "${FREEPBX_CONTAINER}" \
-    su asterisk -s /bin/sh -c '/var/lib/asterisk/bin/fwconsole reload'
+    su asterisk -s /bin/sh -c '/var/lib/asterisk/bin/fwconsole reload' >/dev/null  2>&1
   lt_wait_for_retrieve_conf
 }
 

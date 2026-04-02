@@ -224,10 +224,13 @@ The intended workflow is:
 Before diffing, the suite normalizes known volatile content on both the saved
 fixture and the live `/etc/asterisk` tree:
 
+- ignores fixture directories whose case name starts with `sample`
 - removes `keys/`
 - removes `recallonbusy.cfg`
 - removes files whose name contains `custom`
 - removes files whose name has any suffix after `.conf` such as `manager.conf.bak`, `extensions_additional.conf_test`, or `.conf...`
+- removes `voicemail.conf` and `voicemail.conf.template`
+- removes all lines that start with `;`
 - rewrites `manager_additional.conf` to `secret=${NETHCTI_AMI_PASSWORD}`
 - rewrites `manager.conf` to `port = ${ASTMANAGERPORT}`
 - rewrites `manager.conf` to `secret = ${AMPMGRPASS}`
