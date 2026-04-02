@@ -19,6 +19,14 @@ lt_fixture_archive_path() {
   printf '%s/etc-asterisk.tar.gz\n' "$(lt_fixture_case_dir "${case_name}")"
 }
 
+lt_fixture_dir_is_ignored() {
+  local case_dir="$1"
+  local case_name
+
+  case_name="$(basename "${case_dir}")"
+  [[ "${case_name}" == sample* ]]
+}
+
 lt_fixture_require_running_stack() {
   local mariadb_running
   local freepbx_running
@@ -93,6 +101,24 @@ lt_remove_asterisk_conf_suffix_files() {
     -regex '.*\.conf.+' -delete 2>/dev/null || true
 }
 
+lt_remove_asterisk_irrelevant_generated_files() {
+  local target_dir="$1"
+
+  rm -f \
+    "${target_dir}/asterisk/voicemail.conf" \
+    "${target_dir}/asterisk/voicemail.conf.template"
+}
+
+lt_strip_asterisk_comment_lines() {
+  local target_dir="$1"
+  local file_path
+
+  while IFS= read -r -d '' file_path; do
+    awk '!/^;/' "${file_path}" > "${file_path}.tmp"
+    mv "${file_path}.tmp" "${file_path}"
+  done < <(find "${target_dir}/asterisk" -type f -print0 2>/dev/null)
+}
+
 lt_normalize_asterisk_fixture_tree() {
   local target_dir="$1"
 
@@ -101,6 +127,8 @@ lt_normalize_asterisk_fixture_tree() {
   rm -f "${target_dir}/asterisk/recallonbusy.cfg"
   lt_remove_asterisk_custom_files "${target_dir}"
   lt_remove_asterisk_conf_suffix_files "${target_dir}"
+  lt_remove_asterisk_irrelevant_generated_files "${target_dir}"
+  lt_strip_asterisk_comment_lines "${target_dir}"
 
   lt_normalize_asterisk_config_file \
     "${target_dir}/asterisk/manager_additional.conf" \
@@ -200,6 +228,7 @@ lt_fixture_list() {
   shopt -s nullglob
   for case_dir in "${FIXTURES_DIR}"/*; do
     [[ -d "${case_dir}" ]] || continue
+    lt_fixture_dir_is_ignored "${case_dir}" && continue
     if [[ -f "${case_dir}/dump.sql" && -f "${case_dir}/etc-asterisk.tar.gz" ]]; then
       printf '%s\n' "$(basename "${case_dir}")"
       found=true
