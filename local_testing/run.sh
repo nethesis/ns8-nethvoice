@@ -7,6 +7,7 @@ source "${SCRIPT_DIR}/lib/env.sh"
 source "${SCRIPT_DIR}/lib/log.sh"
 source "${SCRIPT_DIR}/lib/podman.sh"
 source "${SCRIPT_DIR}/lib/database.sh"
+source "${SCRIPT_DIR}/lib/fixtures.sh"
 source "${SCRIPT_DIR}/lib/http.sh"
 
 usage() {
@@ -18,6 +19,11 @@ Commands:
   start                         Start the local stack and seed the baseline data
   seed                          Seed FreePBX and local REST users into a running stack
   run-manifest [manifest]       Execute a REST manifest against the running stack
+  create-fixture CASE [manifest]
+                                Start a clean stack, optionally run a manifest, and save dump.sql plus etc-asterisk.tar.gz
+  diff-fixture CASE             Diff the running FreePBX /etc/asterisk tree against a saved fixture
+  test-fixture CASE             Start a clean stack, import the saved dump, regenerate config, and diff against the fixture
+  list-fixtures                 List saved fixture cases
   request METHOD PATH [BODY] [EXPECTED]
                                 Execute a single authenticated REST request
   cleanup                       Remove the local pod and test volumes
@@ -49,6 +55,28 @@ run_manifest_command() {
   lt_run_manifest "${manifest}"
 }
 
+create_fixture_command() {
+  local case_name="$1"
+  local manifest="${2-}"
+
+  [[ -n "${case_name}" ]] || lt_die 'Fixture case name is required'
+
+  start_stack
+  if [[ -n "${manifest}" ]]; then
+    run_manifest_command "${manifest}"
+    lt_wait_for_retrieve_conf
+  fi
+  lt_fixture_create "${case_name}"
+}
+
+test_fixture_command() {
+  local case_name="$1"
+
+  [[ -n "${case_name}" ]] || lt_die 'Fixture case name is required'
+
+  lt_fixture_test_case "${case_name}"
+}
+
 command="${1:-run}"
 if [[ $# -gt 0 ]]; then
   shift
@@ -67,6 +95,30 @@ case "${command}" in
     ;;
   run-manifest)
     run_manifest_command "$@"
+    ;;
+  create-fixture)
+    if [[ $# -lt 1 ]]; then
+      usage >&2
+      exit 1
+    fi
+    create_fixture_command "$@"
+    ;;
+  diff-fixture)
+    if [[ $# -ne 1 ]]; then
+      usage >&2
+      exit 1
+    fi
+    lt_fixture_diff_live "$1"
+    ;;
+  test-fixture)
+    if [[ $# -ne 1 ]]; then
+      usage >&2
+      exit 1
+    fi
+    test_fixture_command "$1"
+    ;;
+  list-fixtures)
+    lt_fixture_list
     ;;
   request)
     if [[ $# -lt 2 ]]; then

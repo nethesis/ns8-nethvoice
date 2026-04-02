@@ -98,6 +98,7 @@ lt_start_freepbx() {
     --name "${FREEPBX_CONTAINER}" \
     --pod "${POD_NAME}" \
     --cgroups=no-conmon \
+    --security-opt label=disable \
     -e TZ=UTC \
     -e TIMEZONE="${TIMEZONE}" \
     -e APACHE_PORT="${APACHE_PORT}" \
@@ -203,6 +204,13 @@ lt_wait_for_retrieve_conf() {
   lt_error 'FreePBX did not initialize in time'
   podman logs "${FREEPBX_CONTAINER}" || true
   return 1
+}
+
+lt_run_fwconsole_reload() {
+  lt_section 'Running FreePBX reload'
+  podman exec "${FREEPBX_CONTAINER}" \
+    su asterisk -s /bin/sh -c '/var/lib/asterisk/bin/fwconsole reload'
+  lt_wait_for_retrieve_conf
 }
 
 lt_show_access_info() {
