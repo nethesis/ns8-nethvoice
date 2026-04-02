@@ -49,9 +49,9 @@ RUN cd /usr/share/tancredi/ && \
 	touch /var/lib/dpkg/status
 
 # Add NethPhones firmware
-ADD --chown=root:www-data --chmod=640 https://github.com/nethesis/nethserver-tancredi/releases/download/1.16.0/x3sg-5913-RECOVERY-P0.18.23.1.75-2.4.18.2-1217T2024-03-20-03.28.47.z /var/lib/tancredi/data/firmware/x3sg-5913-RECOVERY-P0.18.23.1.75-2.4.18.2-1217T2024-03-20-03.28.47.z
-ADD --chown=root:www-data --chmod=640 https://github.com/nethesis/nethserver-tancredi/releases/download/1.16.0/x5u-6906-P0.18.23.142-2.4.13.1-3681T2024-12-23-20.03.57.z /var/lib/tancredi/data/firmware/x5u-6906-P0.18.23.142-2.4.13.1-3681T2024-12-23-20.03.57.z
-ADD --chown=root:www-data --chmod=640 https://github.com/nethesis/nethserver-tancredi/releases/download/1.16.0/NP-X5-voip-release-ff01-6907-2.12.23.0.1-krnlvUT2025-03-27-14.13.11.z /var/lib/tancredi/data/firmware/NP-X5-voip-release-ff01-6907-2.12.23.0.1-krnlvUT2025-03-27-14.13.11.z
+ADD --chown=root:www-data --chmod=640 https://github.com/nethesis/nethserver-tancredi/releases/download/1.16.0/x3sg-5913-RECOVERY-P0.18.23.1.75-2.4.18.2-1217T2024-03-20-03.28.47.z /usr/share/tancredi/data/firmware/x3sg-5913-RECOVERY-P0.18.23.1.75-2.4.18.2-1217T2024-03-20-03.28.47.z
+ADD --chown=root:www-data --chmod=640 https://github.com/nethesis/nethserver-tancredi/releases/download/1.16.0/x5u-6906-P0.18.23.142-2.4.13.1-3681T2024-12-23-20.03.57.z /usr/share/tancredi/data/firmware/x5u-6906-P0.18.23.142-2.4.13.1-3681T2024-12-23-20.03.57.z
+ADD --chown=root:www-data --chmod=640 https://github.com/nethesis/nethserver-tancredi/releases/download/1.16.0/NP-X5-voip-release-ff01-6907-2.12.23.0.1-krnlvUT2025-03-27-14.13.11.z /usr/share/tancredi/data/firmware/NP-X5-voip-release-ff01-6907-2.12.23.0.1-krnlvUT2025-03-27-14.13.11.z
 
 COPY usr/local/etc/php/php.ini /usr/local/etc/php/php.ini
 
