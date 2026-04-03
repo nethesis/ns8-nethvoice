@@ -284,6 +284,17 @@ function nethcti3_get_config_late($engine) {
                 $ext->splice("from-queue-exten-only", '_'.str_repeat('X',$row['len']), 'checkrecord', new ext_set('CDR(cnum)','${CALLERID(num)}'),"cnum");
                 $ext->splice("from-queue-exten-only", '_'.str_repeat('X',$row['len']), 'checkrecord', new ext_set('CDR(cnam)','${REAL_CNAM}'),"cnam");
                 $ext->splice("from-queue-exten-only", '_'.str_repeat('X',$row['len']), 'checkrecord', new ext_set('CDR(ccompany)','${REAL_CCOMPANY}'),"ccompany");
+                $ext->splice(
+                    "from-queue-exten-only",
+                    '_'.str_repeat('X',$row['len']),
+                    'hangup',
+                    new ext_execif(
+                        '$["${DIALSTATUS}" != "ANSWER" & ${REGEX("^(26|ANSWERED_ELSEWHERE)$" ${HANGUPCAUSE(${DIALEDPEERNAME},ast)})} = 1]',
+                        'Set',
+                        'CDR(disposition)=ANSWERED_ELSEWHERE'
+                    ),
+                    "answered-elsewhere"
+                );
             }
         }
         /*Execute custom agi when extension rings*/
@@ -364,6 +375,15 @@ function nethcti3_get_config_late($engine) {
                 $ext->splice($context, $exten, "did-cid-hook", new ext_agi(join(',',$agi_cmd)),'nethcti-cdr-script-call-in',3);
             }
         }
+        $ext->splice(
+            'macro-hangupcall',
+            's',
+            'hangup',
+            new ext_agi(
+                '/var/lib/asterisk/agi-bin/nethcti_answered_elsewhere.php,${CDR(uniqueid)},${CDR(linkedid)},${CDR(dst)},${CDR(lastapp)}'
+            ),
+            'nethcti-answered-elsewhere'
+        );
         /*Execute custom agi on call hangup*/
         if (!empty($_ENV['NETHCTI_CDR_SCRIPT'])) {
             # inser agi before exten => s,n(hangup),Hangup
