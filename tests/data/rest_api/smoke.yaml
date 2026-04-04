@@ -1,0 +1,18 @@
+defaults:
+  auth:
+    user: admin
+    password: Nethesis,1234
+  expected_status: 200
+  post_wait_seconds: 20
+
+operations:
+  - name: configuration-allowexternalsips-enabled
+    enabled: true
+    phase: smoke
+    method: POST
+    path_prefix: /configuration/allowexternalsips
+    verify_path: /configuration/allowexternalsips
+    target_value: enabled
+    notes: >-
+      Smoke pilot for deterministic REST auth and a stable mutating
+      configuration compatibility endpoint.
