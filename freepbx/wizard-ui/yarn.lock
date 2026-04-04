@@ -76,9 +76,10 @@ angular-bootstrap@angular-ui/bootstrap-bower#2.2.0:
   version "2.2.0"
   resolved "https://codeload.github.com/angular-ui/bootstrap-bower/tar.gz/9992f420b3a4655f7a7074bcbb21f0c7202f411f"
 
-angular-cookies@angular/bower-angular-cookies#1.4.0:
-  version "1.4.0"
-  resolved "https://codeload.github.com/angular/bower-angular-cookies/tar.gz/9ec982254197161e1c39cce899c9c97e6d033010"
+angular-cookies@angular/bower-angular-cookies#v1.8.3:
+  version "1.8.3"
+  uid ddcb7e93b89ebf146cf3f1b4f130dccc378bc871
+  resolved "https://codeload.github.com/angular/bower-angular-cookies/tar.gz/ddcb7e93b89ebf146cf3f1b4f130dccc378bc871"
 
 angular-mocks@angular/bower-angular-mocks#1.4.0:
   version "1.4.0"
