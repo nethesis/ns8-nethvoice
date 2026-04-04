@@ -80,9 +80,10 @@ angular-cookies@angular/bower-angular-cookies#1.4.0:
   version "1.4.0"
   resolved "https://codeload.github.com/angular/bower-angular-cookies/tar.gz/9ec982254197161e1c39cce899c9c97e6d033010"
 
-angular-mocks@angular/bower-angular-mocks#1.4.0:
-  version "1.4.0"
-  resolved "https://codeload.github.com/angular/bower-angular-mocks/tar.gz/5a7f9f0bad5da4314df7f638fcaf330ff864cae2"
+angular-mocks@angular/bower-angular-mocks#v1.8.3:
+  version "1.8.3"
+  uid "3e622cd9a90cb953c5d877e2efe3504ac98b6c74"
+  resolved "https://codeload.github.com/angular/bower-angular-mocks/tar.gz/3e622cd9a90cb953c5d877e2efe3504ac98b6c74"
 
 angular-patternfly@patternfly/angular-patternfly#3.15.0:
   version "3.15.0"
