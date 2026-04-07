@@ -452,7 +452,29 @@ function nethvplan_hasDestinationData($data, $dest, $id)
         return isset($data['from-did-direct'][$idUsers]) && is_array($data['from-did-direct'][$idUsers]);
     }
 
+    if (!nethvplan_isKnownDestinationType($dest)) {
+        return true;
+    }
+
     return isset($data[$dest][$id]) && is_array($data[$dest][$id]);
+}
+
+function nethvplan_isKnownDestinationType($dest)
+{
+    $knownDestinations = array(
+        "from-did-direct",
+        "ext-meetme",
+        "ext-local",
+        "app-announcement",
+        "app-daynight",
+        "timeconditions",
+        "ivr",
+        "cqr",
+        "ext-queues",
+        "ext-group"
+    );
+
+    return in_array($dest, $knownDestinations);
 }
 
 function nethvplan_timeZoneOffset()
