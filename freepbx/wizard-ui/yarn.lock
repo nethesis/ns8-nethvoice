@@ -59,9 +59,13 @@ amdefine@>=0.0.4:
   resolved "https://registry.yarnpkg.com/amdefine/-/amdefine-1.0.1.tgz#4a5282ac164729e93619bcfd3ad151f817ce91f5"
   integrity sha1-SlKCrBZHKek2Gbz9OtFR+BfOkfU=
 
-"angular-animate@1.3.0 - 1.5.*", "angular-animate@angular/bower-angular-animate#1.3.0 - 1.5.*":
+"angular-animate@1.3.0 - 1.5.*":
   version "1.5.11"
   resolved "https://codeload.github.com/angular/bower-angular-animate/tar.gz/ac17971fdc62d7ea816a079401084e6da2af3e3e"
+
+angular-animate@angular/bower-angular-animate#v1.8.3:
+  version "1.8.3"
+  resolved "https://codeload.github.com/angular/bower-angular-animate/tar.gz/aef66379ae252a73f001f30c8eab25d68c30c6bd"
 
 angular-bootstrap-switch@frapontillo/angular-bootstrap-switch#0.5.2:
   version "0.5.2"
@@ -77,13 +81,13 @@ angular-bootstrap@angular-ui/bootstrap-bower#2.5.0:
   uid "752d6a79f500391a7efb06d80f37405c920a6f2b"
   resolved "https://codeload.github.com/angular-ui/bootstrap-bower/tar.gz/752d6a79f500391a7efb06d80f37405c920a6f2b"
 
-angular-cookies@angular/bower-angular-cookies#1.4.0:
-  version "1.4.0"
-  resolved "https://codeload.github.com/angular/bower-angular-cookies/tar.gz/9ec982254197161e1c39cce899c9c97e6d033010"
+angular-cookies@angular/bower-angular-cookies#v1.8.3:
+  version "1.8.3"
+  resolved "https://codeload.github.com/angular/bower-angular-cookies/tar.gz/ddcb7e93b89ebf146cf3f1b4f130dccc378bc871"
 
-angular-mocks@angular/bower-angular-mocks#1.4.0:
-  version "1.4.0"
-  resolved "https://codeload.github.com/angular/bower-angular-mocks/tar.gz/5a7f9f0bad5da4314df7f638fcaf330ff864cae2"
+angular-mocks@angular/bower-angular-mocks#v1.8.3:
+  version "1.8.3"
+  resolved "https://codeload.github.com/angular/bower-angular-mocks/tar.gz/3e622cd9a90cb953c5d877e2efe3504ac98b6c74"
 
 angular-patternfly@patternfly/angular-patternfly#3.15.0:
   version "3.15.0"
@@ -96,22 +100,22 @@ angular-patternfly@patternfly/angular-patternfly#3.15.0:
     lodash "3.x"
     patternfly "~3.15.0"
 
-angular-resource@angular/bower-angular-resource#1.4.0:
-  version "1.4.0"
-  resolved "https://codeload.github.com/angular/bower-angular-resource/tar.gz/51fac1b7d12c0a4f1a730f9edb33a7d23add7e89"
+angular-resource@angular/bower-angular-resource#v1.8.3:
+  version "1.8.3"
+  resolved "https://codeload.github.com/angular/bower-angular-resource/tar.gz/c0217706b83e628301fb90bc8d7fbeff4540a20a"
 
-angular-route@angular/bower-angular-route#1.4.0:
-  version "1.4.0"
-  resolved "https://codeload.github.com/angular/bower-angular-route/tar.gz/af773f99661df8a9ca9275d123a1daf6cc0bf778"
+angular-route@angular/bower-angular-route#v1.8.3:
+  version "1.8.3"
+  resolved "https://codeload.github.com/angular/bower-angular-route/tar.gz/01f39b724c144ffc556bef7f3bca43b1b5662fe7"
 
 "angular-sanitize@1.3.0 - 1.5.*":
   version "1.5.11"
   resolved "https://registry.yarnpkg.com/angular-sanitize/-/angular-sanitize-1.5.11.tgz#ebfb3f343e543f9b2ef050fb4c2e9ee048d1772f"
   integrity sha1-6/s/ND5UP5su8FD7TC6e4EjRdy8=
 
-angular-sanitize@angular/bower-angular-sanitize#1.4.0:
-  version "1.4.0"
-  resolved "https://codeload.github.com/angular/bower-angular-sanitize/tar.gz/a64d96eff0b9f15db70322e77bc20c2e64bd8e07"
+angular-sanitize@angular/bower-angular-sanitize#v1.8.3:
+  version "1.8.3"
+  resolved "https://codeload.github.com/angular/bower-angular-sanitize/tar.gz/7d2d056aee4b69046a55ba57cc2808e5e58aab65"
 
 angular-translate-loader-static-files@PascalPrecht/bower-angular-translate-loader-static-files#2.13.0:
   version "2.13.0"
@@ -153,14 +157,9 @@ angular-ui-sortable@angular-ui/ui-sortable#0.16.1:
   resolved "https://registry.yarnpkg.com/angular/-/angular-1.6.10.tgz#eed3080a34d29d0f681ff119b18ce294e3f74826"
   integrity sha512-PCZ5/hVdvPQiYyH0VwsPjrErPHRcITnaXxhksceOXgtJeesKHLA7KDu4X/yvcAi+1zdGgGF+9pDxkJvghXI9Wg==
 
-angular@>=1.4.0:
+angular@>=1.4.0, angular@angular/bower-angular#v1.8.3:
   version "1.8.3"
-  resolved "https://registry.yarnpkg.com/angular/-/angular-1.8.3.tgz#851ad75d5163c105a7e329555ef70c90aa706894"
-  integrity sha512-5qjkWIQQVsHj4Sb5TcEs4WZWpFeVFHXwxEBHUhrny41D8UrBAd6T/6nPPAsLngJCReIOqi95W3mxdveveutpZw==
-
-angular@angular/bower-angular#1.4.0:
-  version "1.4.0"
-  resolved "https://codeload.github.com/angular/bower-angular/tar.gz/e2f2cf7dc4a3ef1859ab28e657eca0e9edb588ba"
+  resolved "https://codeload.github.com/angular/bower-angular/tar.gz/142f3c4bc7d43b6de39581a0d886bbf97f8b62ef"
 
 ansi-align@^2.0.0:
   version "2.0.0"
