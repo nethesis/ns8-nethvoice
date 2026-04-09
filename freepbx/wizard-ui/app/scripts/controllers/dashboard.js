@@ -46,6 +46,17 @@ angular.module('nethvoiceWizardUiApp')
       $scope.getExtensions();
       $scope.getTrunks();
     };
+
+    var startAutoUpdate = function () {
+      if ($scope.data.updateInterval) {
+        return;
+      }
+
+      $scope.update();
+      $scope.data.updateInterval = $interval(function () {
+        $scope.update();
+      }, 15000);
+    };
     $scope.getUsers = function (s) {
       DashboardService.getUsers().then(function (res) {
         $scope.data.users = res.data;
@@ -102,16 +113,14 @@ angular.module('nethvoiceWizardUiApp')
     };
     $scope.$on('$routeChangeStart', function() {
       $interval.cancel($scope.data.updateInterval);
+      $scope.data.updateInterval = undefined;
     });
     $rootScope.$on('loginCompleted', function (event, args) {
-      $scope.update();
+      startAutoUpdate();
     });
-    $scope.data.updateInterval = $interval(function () {
-      $scope.update();
-    }, 15000);
 
-    if ($scope.login) {
-      $scope.update();
+    if ($scope.login && $scope.login.isLogged) {
+      startAutoUpdate();
     }
     $scope.redirectOnMigrationStatus();
   });
