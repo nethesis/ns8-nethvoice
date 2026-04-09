@@ -11,9 +11,19 @@ import os
 
 import agent
 
+
+def env_to_bool(value):
+    return str(value).lower() == "true"
+
+
+def env_to_int_or_empty(value):
+    return int(value) if str(value).isdigit() else ""
+
+
 # get old environment from action
 request = json.load(sys.stdin)
 old_envs = request['environment']
+passwordsfile = agent.read_envfile("passwords.env")
 
 # call configure module
 response = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-module', data={
@@ -23,15 +33,20 @@ response = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-mo
     "timezone": old_envs["TIMEZONE"],
     "user_domain": old_envs["USER_DOMAIN"],
     "nethvoice_adm_username": old_envs.get("NETHVOICE_USER_PORTAL_USERNAME", ''),
-    "nethvoice_adm_password": agent.read_envfile("passwords.env").get('NETHVOICE_USER_PORTAL_PASSWORD',""),
+    "nethvoice_adm_password": passwordsfile.get('NETHVOICE_USER_PORTAL_PASSWORD', ""),
     "satellite_call_transcription_enabled": old_envs.get("SATELLITE_CALL_TRANSCRIPTION_ENABLED", 'False'),
     "satellite_voicemail_transcription_enabled": old_envs.get("SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED", 'False'),
     "satellite_call_summary_enabled": old_envs.get("SATELLITE_CALL_SUMMARY_ENABLED", 'False'),
-    "deepgram_api_key": agent.read_envfile("passwords.env").get('DEEPGRAM_API_KEY', ''),
-    "openai_api_key": agent.read_envfile("passwords.env").get('OPENAI_API_KEY', ''),
-    "nethvoice_hotel": old_envs.get("NETHVOICE_HOTEL", "False"),
+    "deepgram_api_key": passwordsfile.get('DEEPGRAM_API_KEY', ''),
+    "openai_api_key": passwordsfile.get('OPENAI_API_KEY', ''),
+})
+
+agent.assert_exp(response['exit_code'] == 0)
+
+response = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='set-nethvoice-hotel', data={
+    "nethvoice_hotel": env_to_bool(old_envs.get("NETHVOICE_HOTEL", "False")),
     "nethvoice_hotel_fias_address": old_envs.get("NETHVOICE_HOTEL_FIAS_ADDRESS", ""),
-    "nethvoice_hotel_fias_port": old_envs.get("NETHVOICE_HOTEL_FIAS_PORT", ""),
+    "nethvoice_hotel_fias_port": env_to_int_or_empty(old_envs.get("NETHVOICE_HOTEL_FIAS_PORT", "")),
 })
 
 agent.assert_exp(response['exit_code'] == 0)
