@@ -44,7 +44,7 @@
     "ace-builds": "ajaxorg/ace-builds#^1",
     "angular": "angular/bower-angular#v1.8.3",
     "angular-animate": "angular/bower-angular-animate#v1.8.3",
-    "angular-bootstrap": "angular-ui/bootstrap-bower#2.2.0",
+    "angular-bootstrap": "angular-ui/bootstrap-bower#2.5.0",
     "angular-bootstrap-switch": "frapontillo/angular-bootstrap-switch#0.5.2",
     "angular-cookies": "angular/bower-angular-cookies#v1.8.3",
     "angular-mocks": "angular/bower-angular-mocks#v1.8.3",

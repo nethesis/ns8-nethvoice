@@ -76,9 +76,10 @@ angular-bootstrap-switch@frapontillo/angular-bootstrap-switch#0.5.2:
     bootstrap-switch "3.3.2"
     jquery ">=1.9.0"
 
-angular-bootstrap@angular-ui/bootstrap-bower#2.2.0:
-  version "2.2.0"
-  resolved "https://codeload.github.com/angular-ui/bootstrap-bower/tar.gz/9992f420b3a4655f7a7074bcbb21f0c7202f411f"
+angular-bootstrap@angular-ui/bootstrap-bower#2.5.0:
+  version "2.5.0"
+  uid "752d6a79f500391a7efb06d80f37405c920a6f2b"
+  resolved "https://codeload.github.com/angular-ui/bootstrap-bower/tar.gz/752d6a79f500391a7efb06d80f37405c920a6f2b"
 
 angular-cookies@angular/bower-angular-cookies#v1.8.3:
   version "1.8.3"
