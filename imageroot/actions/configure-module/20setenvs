@@ -40,18 +40,6 @@ if "nethvoice_hotel_fias_address" in request :
 if "nethvoice_hotel_fias_port" in request :
     agent.set_env('NETHVOICE_HOTEL_FIAS_PORT', request['nethvoice_hotel_fias_port'])
 
-# Satellite Deepgram and OpenAI api keys
-if "satellite_call_transcription_enabled" in request:
-    agent.set_env('SATELLITE_CALL_TRANSCRIPTION_ENABLED', request['satellite_call_transcription_enabled'])
-if "satellite_voicemail_transcription_enabled" in request:
-    agent.set_env('SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED', request['satellite_voicemail_transcription_enabled'])
-if "satellite_call_summary_enabled" in request:
-    agent.set_env('SATELLITE_CALL_SUMMARY_ENABLED', request['satellite_call_summary_enabled'])
-if "deepgram_api_key" in request:
-    passwordsfile['DEEPGRAM_API_KEY'] = request.get('deepgram_api_key')
-if "openai_api_key" in request:
-    passwordsfile['OPENAI_API_KEY'] = request.get('openai_api_key')
-
 # Set APP Brand ID if present in the request, this attribute is only used
 # by the migration tool procedure.
 # Deprecated, will be removed in future releases.
