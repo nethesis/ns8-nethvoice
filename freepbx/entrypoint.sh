@@ -98,6 +98,11 @@ EOF
 mkdir -p /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads /var/lib/nethserver/nethcti/templates/customer_card
 chown asterisk:asterisk /var/lib/asterisk/db /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads /var/lib/nethserver/nethcti/templates/customer_card
 
+# Ensure custom AGI scripts are present in the persistent agi-bin volume.
+install -D -o asterisk -g asterisk -m 0755 \
+	/usr/src/nethvoice/agi-bin/nethcti_answered_elsewhere.php \
+	/var/lib/asterisk/agi-bin/nethcti_answered_elsewhere.php
+
 # Make sure /etc/nethcti exists and is writable and the config directory is
 # writable from nethcti and freepbx containers
 mkdir -p /etc/nethcti
