@@ -871,6 +871,11 @@
   dependencies:
     regenerator-runtime "^0.13.4"
 
+"@babel/runtime@^7.21.0":
+  version "7.29.2"
+  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.29.2.tgz#9a6e2d05f4b6692e1801cd4fb176ad823930ed5e"
+  integrity sha512-JiDShH45zKHWyGe4ZNVRrCjBz8Nh9TMmZG1kh4QTK8hCBTWBi8Da+i7s1fJw7/lYpM4ccepSNfqzZ/QvABBi5g==
+
 "@babel/template@^7.0.0", "@babel/template@^7.14.5":
   version "7.14.5"
   resolved "https://registry.npmmirror.com/@babel/template/download/@babel/template-7.14.5.tgz?cache=0&sync_timestamp=1623280496540&other_urls=https%3A%2F%2Fregistry.nlark.com%2F%40babel%2Ftemplate%2Fdownload%2F%40babel%2Ftemplate-7.14.5.tgz#a9bc9d8b33354ff6e55a9c60d1109200a68974f4"
@@ -3396,9 +3401,11 @@ date-fns-tz@^1.1.6:
   integrity sha512-nyy+URfFI3KUY7udEJozcoftju+KduaqkVfwyTIE0traBiVye09QnyWKLZK7drRr5h9B7sPJITmQnS3U6YOdQg==
 
 date-fns@^2.0.0:
-  version "2.28.0"
-  resolved "https://registry.yarnpkg.com/date-fns/-/date-fns-2.28.0.tgz#9570d656f5fc13143e50c975a3b6bbeb46cd08b2"
-  integrity sha512-8d35hViGYx/QH0icHYCeLmsLmMUheMmTyV9Fcm6gvNwdw31yXXH+O85sOBJ+OLnLQMKZowvpKb6FgMIQjcpvQw==
+  version "2.30.0"
+  resolved "https://registry.yarnpkg.com/date-fns/-/date-fns-2.30.0.tgz#f367e644839ff57894ec6ac480de40cae4b0f4d0"
+  integrity sha512-fnULvOpxnC5/Vg3NCiWelDsLiUc9bRwAPs/+LfTLNvetFCtCTN+yQz15C/fs4AwX1R9K5GLtLfn8QW+dWisaAw==
+  dependencies:
+    "@babel/runtime" "^7.21.0"
 
 date-fns@^2.23.0:
   version "2.23.0"
@@ -9129,9 +9136,9 @@ vue-axios@^3.2.4:
   integrity sha512-GP+dct7UlAWkl1qoP3ppw0z6jcSua5/IrMpjB5O8bh089iIiJ+hdxPYH2NPEpajlYgkW5EVMP95ttXWdas1O0g==
 
 vue-date-fns@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/vue-date-fns/-/vue-date-fns-2.0.1.tgz#a2a0d42552badd57f9ffd9a7a09d75331933495a"
-  integrity sha512-j2G97bVOKO0mVfFEnzCu5dQU0dgD8jLAAVU0dGRDqxZzzNXqep7d3WEGuuJ6mNOP5PM7GE+UqpKYfkL/LNmDKQ==
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/vue-date-fns/-/vue-date-fns-2.0.2.tgz#dc548041e85e49582ac429df1a44834bfa29ba55"
+  integrity sha512-XHd2oYZY0AfWJohCwREhvfziJdiUHit6HYKUPTyvx5wDUaFA4TWDdkFp78IIrn0nl86oTGM1/5yXtNvqYXL5ew==
   dependencies:
     date-fns "^2.0.0"
 
