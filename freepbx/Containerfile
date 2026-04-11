@@ -1,5 +1,5 @@
 # Stage 1: Build Asterisk
-FROM docker.io/debian:11 as builder
+FROM docker.io/debian:bullseye-20260406 as builder
 
 # Set fixed Asterisk version
 ARG ASTERISK_VERSION=18.26.3
