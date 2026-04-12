@@ -30,7 +30,7 @@ images+=("${repobase}/${reponame}")
 #######################
 echo "[*] Build mariadb container"
 reponame="nethvoice-mariadb"
-container=$(buildah from docker.io/library/mariadb:10.11.15)
+container=$(buildah from docker.io/library/mariadb:10.11.16)
 buildah add "${container}" mariadb/ /
 
 # Commit the image
