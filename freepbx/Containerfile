@@ -297,6 +297,10 @@ RUN curl -L https://github.com/FreePBX/framework/archive/refs/tags/release/16.0.
 	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/agi-bin /var/lib/asterisk/ && \
 	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/bin /var/lib/asterisk/
 
+COPY --chown=asterisk:asterisk var/lib/asterisk/agi-bin/nethcti_answered_elsewhere.php /var/lib/asterisk/agi-bin/nethcti_answered_elsewhere.php
+COPY --chown=asterisk:asterisk var/lib/asterisk/agi-bin/nethcti_answered_elsewhere.php /usr/src/nethvoice/agi-bin/nethcti_answered_elsewhere.php
+RUN chmod 0755 /var/lib/asterisk/agi-bin/nethcti_answered_elsewhere.php /usr/src/nethvoice/agi-bin/nethcti_answered_elsewhere.php
+
 # Download other modules
 # for baseurl in $(grep wget retrieve_modules.sh | awk '{print $2}' | sed 's/archive.*/tags/'); do pkgurl=https://github.com$(curl $baseurl 2>/dev/null | grep '\.tar\.gz' | head -n1 | cut -d\" -f4) ; pkgname=$(echo $pkgurl | cut -d/ -f5 | tr '[:upper:]' '[:lower:]'); echo -e "RUN mkdir -p /var/www/html/freepbx/admin/modules/$pkgname && \\\n\t/bin/rm -fr /var/www/html/freepbx/admin/modules/$pkgname/* && \\\n\tcurl -sL $pkgurl -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/$pkgname"; done
 RUN mkdir -p /var/www/html/freepbx/admin/modules/announcement && \
