@@ -60,7 +60,10 @@ foreach ($storage->listScopes() as $scope_id) {
         $scope_updates[] = sprintf('%s set to %s', $template_key, $template_value);
     }
 
-    $scope->metadata['version'] = 15;
+    $current_version = $scope->metadata['version'] ?? null;
+    if ($current_version === null || $current_version < 15) {
+        $scope->metadata['version'] = 15;
+    }
     $scope->setVariables();
     $logger->info(sprintf(
         'Fix %s applied to scope %s: %s',
