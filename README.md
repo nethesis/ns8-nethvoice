@@ -102,6 +102,44 @@ To uninstall the instance:
 
 ## Testing
 
+This repository now has two testing paths:
+
+- `test-module.sh` for the full Robot Framework integration suite against a
+    real NS8 node
+- `local_testing/run.sh` for fast, local REST API validation with Podman
+
+### Local REST API testing
+
+Use the local suite when you need a quick feedback loop for FreePBX and
+Tancredi REST endpoints without provisioning a full NS8 environment.
+
+Prerequisites:
+
+- `podman`
+- `python3`
+- network access to pull the published test images, unless you override them
+    with locally built tags
+
+Run the default local REST suite:
+
+        ./local_testing/run.sh
+
+Useful local commands:
+
+        ./local_testing/run.sh start
+        ./local_testing/run.sh run-manifest ./local_testing/manifests/default.json
+        ./local_testing/run.sh request GET /freepbx/rest/trunks
+        ./local_testing/run.sh cleanup
+
+The local suite starts MariaDB, FreePBX, and Tancredi in a disposable Podman
+pod, seeds a known baseline of local REST users, computes the REST auth headers,
+and executes a declarative manifest of API calls.
+
+For the local suite structure, manifest format, extension workflow, and
+debugging tips, see `local_testing/LOCAL_TESTING.md`.
+
+### Full NS8 integration testing
+
 Test the module using the `test-module.sh` script:
 
 
