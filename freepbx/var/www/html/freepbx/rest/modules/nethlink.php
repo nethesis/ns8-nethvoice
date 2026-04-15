@@ -23,6 +23,7 @@ use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
 include_once('lib/libExtensions.php');
+include_once('lib/libMiddleware.php');
 
 $app->get('/nethlink/{mainextension}', function (Request $request, Response $response, $args) {
     $route = $request->getAttribute('route');
@@ -53,6 +54,7 @@ $app->post('/nethlink', function (Request $request, Response $response, $args) {
         }
 
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        triggerMiddlewareProfilesReload();
         return $response->withJson(array('extension'=>$extension,'mobile_extension'=>$extensionm), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
@@ -68,6 +70,7 @@ $app->delete('/nethlink/{mainextension}', function (Request $request, Response $
         $mobile_extension = getNethLinkMobileExtension($mainextension);
         if (deleteExtension($extension) && (empty($mobile_extension) || deleteExtension($mobile_extension))) {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+            triggerMiddlewareProfilesReload();
             return $response->withStatus(200);
         } else {
             throw new Exception ("Error deleting extension");
