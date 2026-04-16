@@ -107,7 +107,7 @@
         </li>
 
         <!-- USERS -->
-        <li ng-click="goTo('/extensions')"
+        <li ng-click="goTo('/extensions', wizard.isWizard)"
         ng-if="!wizard.isMigrationView"
         class="list-group-item collapse-menu {{resolveActiveTab('extensions',1) ? 'active' : ''}}"
         id="users-item-menu" ng-if="!wizard.isMigrationView">
