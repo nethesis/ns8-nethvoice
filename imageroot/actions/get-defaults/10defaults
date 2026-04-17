@@ -9,12 +9,36 @@ import json
 import sys
 import subprocess
 import os
+from pathlib import Path
 import agent
 
-timezones_directory = "/usr/share/zoneinfo/posix/"
-command = "find *  -type f -or -type l"
-# Get the list of timezones
-accepted_timezone_list = subprocess.check_output(command, cwd=timezones_directory, text=True, shell=True).splitlines()
+# Enumerate timezones from the portable zoneinfo root, excluding metadata
+# entries that are not valid timezone identifiers.  This avoids the
+# '/usr/share/zoneinfo/posix/' path that is absent on Debian 13 hosts.
+_ZONEINFO_DIR = Path("/usr/share/zoneinfo")
+_EXCLUDED_PREFIXES = ("posix/", "right/", "SystemV/")
+_EXCLUDED_NAMES = {
+    "localtime",
+    "posixrules",
+    "leapseconds",
+    "tzdata.zi",
+    "zone.tab",
+    "zone1970.tab",
+    "iso3166.tab",
+}
+
+accepted_timezone_list = []
+if _ZONEINFO_DIR.is_dir():
+    for _path in _ZONEINFO_DIR.rglob("*"):
+        if not (_path.is_file() or _path.is_symlink()):
+            continue
+        _rel = _path.relative_to(_ZONEINFO_DIR).as_posix()
+        if any(_rel.startswith(p) for p in _EXCLUDED_PREFIXES):
+            continue
+        if _rel in _EXCLUDED_NAMES:
+            continue
+        accepted_timezone_list.append(_rel)
+accepted_timezone_list.sort()
 
 # Get local timezone
 # Works for both Rocky Linux and Debian systems

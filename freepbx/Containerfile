@@ -1,5 +1,5 @@
 # Stage 1: Build Asterisk
-FROM docker.io/debian:11 as builder
+FROM docker.io/debian:bullseye-20260406 as builder
 
 # Set fixed Asterisk version
 ARG ASTERISK_VERSION=18.26.3
@@ -419,7 +419,7 @@ RUN mkdir -p /var/www/html/freepbx/admin/modules/bosssecretary && \
 	mkdir -p /var/www/html/freepbx/admin/modules/recordings && \
 	curl -sL https://github.com/nethesis/freepbx-recordings/archive/refs/tags/release/ns8/16.0.14-pl.2.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/recordings && \
 	mkdir -p /var/www/html/freepbx/admin/modules/returnontransfer && \
-	curl -sL https://github.com/nethesis/returnontransfer/archive/refs/tags/1.1.10.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/returnontransfer && \
+	curl -sL https://github.com/nethesis/returnontransfer/archive/refs/tags/1.1.11.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/returnontransfer && \
 	mkdir -p /var/www/html/freepbx/admin/modules/voicemail && \
 	curl -sL https://github.com/nethesis/freepbx-voicemail/archive/14.0.6.26.tar.gz -o - | tar xzp --strip-components=1 -C /var/www/html/freepbx/admin/modules/voicemail
 
@@ -565,10 +565,13 @@ RUN cd /var/www/html/freepbx/rest/ && \
 RUN find /var/www/html/freepbx/admin -path "*/i18n/*/LC_MESSAGES/*.po" -exec sh -c 'msgfmt -o "${1%.po}.mo" "$1" 2>/dev/null || true' _ {} \;
 
 # enable apache rewrite module
-RUN a2enmod rewrite proxy*
+RUN a2enmod rewrite proxy* headers
 
 # disable server-status page
 RUN a2dismod status
+
+# Upgrade Apache to latest version to get security fixes
+RUN apt-get update && apt-get install -y --only-upgrade apache2 && rm -rf /var/lib/apt/lists/*
 
 # Clean apt files
 RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,dpkg,cache,log}/* && touch /var/lib/dpkg/status
@@ -578,7 +581,9 @@ RUN mv /etc/cron.daily/logrotate /etc/cron.hourly/logrotate
 
 # Install centralized phonebook update script and CSV upload path
 COPY usr/share/phonebooks /usr/share/phonebooks
-RUN mkdir -p /var/lib/nethvoice/phonebook/uploads && chown asterisk:asterisk /var/lib/nethvoice/phonebook/uploads
+RUN mkdir -p /var/lib/nethvoice/phonebook/uploads \
+	&& touch /var/lib/nethvoice/phonebook/uploads/.nethvoice-volume-guard \
+	&& chown -R asterisk:asterisk /var/lib/nethvoice/phonebook/uploads
 
 # Overwrite Debian default vim mouse policy
 RUN echo "source \$VIMRUNTIME/defaults.vim\nset mouse-=a" >> /root/.vimrc
@@ -591,6 +596,7 @@ COPY initdb.d/initdb.php /initdb.d/
 COPY initdb.d/migration.php /initdb.d/
 COPY etc/logrotate.d/asterisk /etc/logrotate.d/asterisk
 COPY initdb.d/update.php /initdb.d/
+COPY initdb.d/slow_database_updates.php /initdb.d/
 COPY usr/src/nethvoice/samples/* /usr/src/nethvoice/samples/
 COPY configure_users.php /
 COPY entrypoint.sh /entrypoint

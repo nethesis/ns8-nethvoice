@@ -21,6 +21,7 @@
 
 include_once('lib/libUsers.php');
 include_once('lib/libExtensions.php');
+include_once('lib/libMiddleware.php');
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
@@ -80,6 +81,7 @@ $app->get('/users/{all}', function (Request $request, Response $response, $args)
     $all = $request->getAttribute('all');
     if($all == "true") {
         system('fwconsole userman --syncall --force > /dev/null &'); // force FreePBX user sync
+        triggerMiddlewareProfilesReloadAfterUserSync();
     }
     return $response->withJson(array_values(getAllUsers()),200);
 });
@@ -108,6 +110,7 @@ $app->post('/users', function (Request $request, Response $response, $args) {
     }
     if ( $ret === 0 ) {
         system('fwconsole userman --syncall --force > /dev/null &');
+        triggerMiddlewareProfilesReloadAfterUserSync();
         return $response->withStatus(201);
     } else {
         return $response->withStatus(422);
@@ -172,6 +175,7 @@ $app->get('/users/{username}/password', function (Request $request, Response $re
 
 $app->post('/users/sync', function (Request $request, Response $response, $args) {
     system('fwconsole userman --syncall --force > /dev/null &');
+    triggerMiddlewareProfilesReloadAfterUserSync();
     return $response->withStatus(200);
 });
 

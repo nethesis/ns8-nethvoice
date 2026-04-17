@@ -75,7 +75,7 @@
       </div>
       <div class="list-group list-view-pf list-view-pf-view adjust-margin-extensions margin-bottom-lg">
         <div ng-show="selectedUsersFilter == 'configured' ? user.default_extension !== 'none' : (selectedUsersFilter == 'unconfigured' ? user.default_extension == 'none' : true)"
-          class="list-group-item" ng-repeat="user in users | customFilterMultiple:'displayname,username,default_extension':searchUsersString | limitTo: usersLimit | orderBy:usersFilterNumbers:usersFilterNumbersOrd">
+          class="list-group-item" ng-repeat="user in users | customFilterMultiple:'displayname,username,default_extension':searchUsersString |  orderBy:usersFilterNumbers:usersFilterNumbersOrd | limitTo: usersLimit">
           <div class="list-view-pf-actions {{user.alreadyExists ? 'has-error' : ''}}">
             <div ng-show="user.isInAction" class="spinner spinner-sm adjust-margin"></div>
             <span ng-show="!user.isInAction" popover-placement="top-right" popover-trigger="'mouseenter'" popover-animation="true" uib-popover="{{user.default_extension === 'none' ? 'Not configured' : 'Configured' | translate}}"

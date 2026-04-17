@@ -19,7 +19,7 @@ jobs:
 
       - name: Assign label
         if: steps.check_weblate.outputs.from_weblate == 'true'
-        uses: actions/labeler@v2
+        uses: actions/labeler@v6
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           labels: 'translation'

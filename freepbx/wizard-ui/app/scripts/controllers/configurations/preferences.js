@@ -42,6 +42,25 @@ angular.module('nethvoiceWizardUiApp')
     $scope.usersFilter = $scope.availableUserFilters[0]
     $scope.usersFilterNumbers = $scope.availableUserFiltersNumbers[0]
 
+
+    $scope.$watch('usersFilter', function(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        $scope.usersLimit = 20
+      }
+    })
+
+    $scope.$watch('usersFilterNumbers', function(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        $scope.usersLimit = 20
+      }
+    })
+
+    $scope.$watch('usersFilterNumbersOrd', function(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        $scope.usersLimit = 20
+      }
+    })
+
     $scope.usersIsEmpty = function() {
       for(var u in $scope.allUsers) {
         var user = $scope.allUsers[u];
@@ -146,19 +165,11 @@ angular.module('nethvoiceWizardUiApp')
       }
     }
 
-    var filterModels = function (modelName, deviceMac) {
-      return modelName.toLowerCase().startsWith(PhoneService.getVendor(deviceMac, $scope.macVendors).toLowerCase())
-    }
-
     var getAvailableModels = function (devices) {
       for (let device in devices) {
         if (devices[device].mac) {
-          $scope.currentUser.devices[device].availableModels = []
-          for (let model in $scope.allModels) {
-            if (filterModels($scope.allModels[model].name, devices[device].mac)) {
-              $scope.currentUser.devices[device].availableModels.push($scope.allModels[model])
-            }
-          }
+          var vendor = PhoneService.getVendor(devices[device].mac, $scope.macVendors)
+          $scope.currentUser.devices[device].availableModels = PhoneService.getFilteredModelsByVendor(vendor, $scope.allModels)
         }
       }
     }

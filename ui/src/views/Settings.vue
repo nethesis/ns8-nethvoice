@@ -460,8 +460,7 @@ export default {
     next();
   },
   created() {
-    this.getUserDomains();
-    this.getDefaults();
+    this.loadConfig();
 
     if (!this.instanceStatus) {
       // retrieve installation node, needed for traefik certificate warning
@@ -469,14 +468,18 @@ export default {
     }
 
     // register to events
-    this.$root.$on("reloadConfig", this.getConfiguration);
+    this.$root.$on("reloadConfig", this.loadConfig);
   },
   beforeDestroy() {
     // remove only the specific event listener registered by this component
-    this.$root.$off("reloadConfig", this.getConfiguration);
+    this.$root.$off("reloadConfig", this.loadConfig);
   },
   methods: {
     ...mapActions(["setInstanceStatusInStore"]),
+    loadConfig() {
+      this.getUserDomains();
+      this.getDefaults();
+    },
     async getConfiguration() {
       this.loading.getConfiguration = true;
       this.error.getConfiguration = "";
@@ -791,6 +794,7 @@ export default {
     },
     async getUserDomains() {
       this.loading.userDomains = true;
+      this.error.userDomains = "";
 
       const taskAction = "list-user-domains";
       const eventId = this.getUuid();
@@ -849,7 +853,7 @@ export default {
     },
     async getDefaults() {
       this.loading.getDefaults = true;
-
+      this.error.getDefaults = "";
       const taskAction = "get-defaults";
       const eventId = this.getUuid();
 

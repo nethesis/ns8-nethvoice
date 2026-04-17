@@ -73,5 +73,8 @@ if ($httpCode == 200) {
 // Reaplace "$CUSTOMER_CODE" in final_url URL with the customer code retrieved from the API or ''
 $final_url= str_replace('$CUSTOMER_CODE',$customer_code,$final_url);
 
+// Sanitize URL to prevent HTTP header injection
+$final_url = str_replace(["\r", "\n"], '', $final_url);
+
 // Redirect to the final_url
 header("Location: $final_url");

@@ -18,6 +18,7 @@ CREATE TABLE `queue_log` (
   `data5` varchar(100) NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   KEY `event` (`event`),
+  KEY `idx_queue_log_time` (`time`),
   KEY `ib1` (`agent`,`queuename`),
   KEY `callid_idx` (`callid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=64 DEFAULT CHARSET=utf8;

@@ -23,6 +23,7 @@ use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
 include_once('lib/libCTI.php');
+include_once('lib/libMiddleware.php');
 
 /* GET /cti/profiles
 Return: [{id:1, name: admin, macro_permissions [ oppanel: {value: true, permissions [ {name: "foo", description: "descrizione...", value: false},{..} ]}
@@ -99,6 +100,7 @@ $app->post('/cti/profiles/{id}', function (Request $request, Response $response,
 
         if ($res) {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+            triggerMiddlewareProfilesReload();
             return $response->withJson(array('status' => true), 200);
         } else {
             throw new Exception('Error editing profile');
@@ -117,6 +119,7 @@ $app->post('/cti/profiles', function (Request $request, Response $response, $arg
         $id = postCTIProfile($profile);
         if ($id) {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+            triggerMiddlewareProfilesReload();
 
             return $response->withJson(array('id' => $id ), 200);
         } else {
@@ -164,6 +167,7 @@ $app->post('/cti/profiles/users/{user_id}', function (Request $request, Response
         }
 
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        triggerMiddlewareProfilesReload();
 
         return $response->withJson(array('status' => true), 200);
     } catch (Exception $e) {
@@ -178,6 +182,7 @@ $app->delete('/cti/profiles/{id}', function (Request $request, Response $respons
     $id = $route->getArgument('id');
     if (deleteCTIProfile($id)) {
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        triggerMiddlewareProfilesReload();
         return $response->withJson(array('status' => true), 200);
     } else {
         return $response->withStatus(500);
@@ -274,6 +279,7 @@ $app->post('/cti/groups', function (Request $request, Response $response, $args)
         $group_id = $res;
 
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        triggerMiddlewareProfilesReload();
 
         return $response->withJson($group_id, 200);
     } catch (Exception $e) {
@@ -302,6 +308,7 @@ $app->delete('/cti/groups/{id}', function (Request $request, Response $response,
         $sth = $dbh->prepare($sql);
         $sth->execute(array("grp_".trim(strtolower(preg_replace('/[^a-zA-Z0-9]/','',$group_name->name)))));
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        triggerMiddlewareProfilesReload();
 
         return $response->withJson(array('status' => true), 200);
     } catch (Exception $e) {
@@ -332,6 +339,7 @@ $app->post('/cti/groups/users/{id}', function (Request $request, Response $respo
             $sth->execute(array($user_id, $group_id));
         }
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        triggerMiddlewareProfilesReload();
 
         return $response->withStatus(200);
     } catch (Exception $e) {
@@ -1264,4 +1272,3 @@ $app->delete('/cti/streaming/{name}', function (Request $request, Response $resp
         return $response->withStatus(500);
     }
 });
-

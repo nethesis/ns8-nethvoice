@@ -1,4 +1,4 @@
-FROM docker.io/library/node:24.11.0-slim as ui_builder
+FROM docker.io/library/node:24.11.1-slim as ui_builder
 WORKDIR /app
 # install deps
 COPY ui/package.json .
@@ -23,8 +23,9 @@ COPY --from=ui_builder /app/dist /ui
 ENTRYPOINT [ "/" ]
 LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm,portsadm nethvoice-proxy@any:routeadm"
 LABEL org.nethserver.tcp-ports-demand="37"
+LABEL org.nethserver.udp-ports-demand="2001"
 LABEL org.nethserver.rootfull="0"
-LABEL org.nethserver.min-core="3.6.2-0"
+LABEL org.nethserver.min-core="3.16.0-0"
 ARG REPOBASE=ghcr.io/nethserver
 ARG IMAGETAG=latest
 LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \

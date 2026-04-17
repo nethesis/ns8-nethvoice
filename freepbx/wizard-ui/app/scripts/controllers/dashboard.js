@@ -8,7 +8,16 @@
  * Controller of the nethvoiceWizardUiApp
  */
 angular.module('nethvoiceWizardUiApp')
-  .controller('DashboardCtrl', function ($rootScope, $scope, $interval, DashboardService) {
+  .controller('DashboardCtrl', function ($rootScope, $scope, $interval, $location, DashboardService) {
+    if ($scope.wizard.isWizard) {
+      if (typeof $scope.redirectToCurrentWizardStep === 'function') {
+        $scope.redirectToCurrentWizardStep();
+      } else {
+        $location.path('/extensions');
+      }
+      return;
+    }
+
     $scope.data = {
       users: {},
       extensions: {},
@@ -45,6 +54,17 @@ angular.module('nethvoiceWizardUiApp')
       $scope.getUsers();
       $scope.getExtensions();
       $scope.getTrunks();
+    };
+
+    var startAutoUpdate = function () {
+      if ($scope.data.updateInterval) {
+        return;
+      }
+
+      $scope.update();
+      $scope.data.updateInterval = $interval(function () {
+        $scope.update();
+      }, 15000);
     };
     $scope.getUsers = function (s) {
       DashboardService.getUsers().then(function (res) {
@@ -102,16 +122,14 @@ angular.module('nethvoiceWizardUiApp')
     };
     $scope.$on('$routeChangeStart', function() {
       $interval.cancel($scope.data.updateInterval);
+      $scope.data.updateInterval = undefined;
     });
     $rootScope.$on('loginCompleted', function (event, args) {
-      $scope.update();
+      startAutoUpdate();
     });
-    $scope.data.updateInterval = $interval(function () {
-      $scope.update();
-    }, 15000);
 
-    if ($scope.login) {
-      $scope.update();
+    if ($scope.login && $scope.login.isLogged) {
+      startAutoUpdate();
     }
     $scope.redirectOnMigrationStatus();
   });

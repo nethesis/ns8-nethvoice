@@ -1,0 +1,5 @@
+{% if provisioning_user_agent matches '/^Nethesis NP-X5/' %}
+Version=2.12.23.0.1
+Firmware={{ "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/firmware/NP-X5-voip-release-ff01-6907-2.12.23.0.1-krnlvUT2025-03-27-14.13.11.z" }}
+BuildTime=2025.03.27 14:13
+{% endif %}

@@ -41,7 +41,7 @@
     </div>
   </div>
   <!-- end login -->
-  <div ng-show="login.isLogged" class="full-height">
+  <div ng-if="login.isLogged" class="full-height">
     <!-- navbar-->
     <nav class="navbar navbar-pf-alt">
       <div class="navbar-header">
@@ -107,7 +107,7 @@
         </li>
 
         <!-- USERS -->
-        <li ng-click="goTo('/extensions')"
+        <li ng-click="goTo('/extensions', wizard.isWizard)"
         ng-if="!wizard.isMigrationView"
         class="list-group-item collapse-menu {{resolveActiveTab('extensions',1) ? 'active' : ''}}"
         id="users-item-menu" ng-if="!wizard.isMigrationView">
@@ -357,6 +357,7 @@
   <script src="node_modules/angular-bootstrap/ui-bootstrap-tpls.js"></script>
   <script src="node_modules/angular-animate/angular-animate.js"></script>
   <script src="node_modules/lodash/lodash.js"></script>
+  <script src="node_modules/angular-drag-and-drop-lists/angular-drag-and-drop-lists.js"></script>
   <script src="node_modules/angular-patternfly/dist/angular-patternfly.js"></script>
   <script src="node_modules/jquery-ui/jquery-ui.js"></script>
   <script src="node_modules/angular-ui-sortable/sortable.js"></script>
