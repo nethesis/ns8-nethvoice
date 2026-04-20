@@ -17,12 +17,13 @@ require_cmd() {
 # Function to display usage information
 usage() {
     cat <<EOF
-Usage: $(basename "$0") -u <uniqueid> [-l <language>] [-c0 <name>] [-c1 <name>]
+Usage: $(basename "$0") -u <uniqueid> [-l <linkedid>] [-c0 <name>] [-c1 <name>]
 
 This script calls the get_transcription API with the specified WAV file.
 
 ARGUMENTS:
     -u, --uniqueid    (Required) The unique ID for the WAV file located at /tmp/satellite-\${UNIQUEID}.wav
+    -l, --linkedid    (Optional) The linked ID of the call chain (Asterisk LINKEDID).
     -c0, --channel0_name (Optional) Speaker label for channel 0.
     -c1, --channel1_name (Optional) Speaker label for channel 1.
     -h, --help        Show this help.
@@ -35,6 +36,7 @@ EOF
 
 # Parse Command-Line Arguments
 UNIQUEID=""
+LINKEDID=""
 CHANNEL0_NAME=""
 CHANNEL1_NAME=""
 
@@ -49,6 +51,14 @@ while [[ "$#" -gt 0 ]]; do
                 usage
             fi
             UNIQUEID="$2"
+            shift 2
+            ;;
+        -l|--linkedid)
+            if [[ "$#" -lt 2 ]]; then
+                echo "Error: --linkedid requires a value." >&2
+                usage
+            fi
+            LINKEDID="$2"
             shift 2
             ;;
         -c0|--channel0_name)
@@ -139,6 +149,10 @@ CURL_ARGS=(
     --form "uniqueid=${UNIQUEID}"
     --form "file=@${MAIN_WAV};type=audio/wav"
 )
+
+if [ -n "${LINKEDID}" ]; then
+    CURL_ARGS+=(--form "linkedid=${LINKEDID}")
+fi
 
 if [ "${SATELLITE_CALL_SUMMARY_ENABLED-}" = "True" ]; then
     CURL_ARGS+=(
