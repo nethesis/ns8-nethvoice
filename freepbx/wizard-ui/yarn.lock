@@ -2606,10 +2606,10 @@ graceful-fs@~2.0.0:
   resolved "https://registry.yarnpkg.com/graceful-readlink/-/graceful-readlink-1.0.1.tgz#4cafad76bc62f02fa039b2f94e9a3dd3a391a725"
   integrity sha1-TK+tdrxi8C+gObL5Tpo906ORpyU=
 
-grunt-angular-templates@^0.5.7:
-  version "0.5.9"
-  resolved "https://registry.yarnpkg.com/grunt-angular-templates/-/grunt-angular-templates-0.5.9.tgz#2899be20d9438ad19b0d0a806aa8ec7a23b25b2a"
-  integrity sha1-KJm+INlDitGbDQqAaqjseiOyWyo=
+grunt-angular-templates@^0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/grunt-angular-templates/-/grunt-angular-templates-0.6.0.tgz#0053356d93b3fc903f632ce993e47db5e037967e"
+  integrity sha512-IP9GUqZmi46aETpmFBITqosFHVE+xKyH7xBHqNZd0qRfVOedqxGcTB/pbmxe16DcLbIapVkBLkHFMGVeEzd/pA==
   dependencies:
     html-minifier "~0.6.3"
 
