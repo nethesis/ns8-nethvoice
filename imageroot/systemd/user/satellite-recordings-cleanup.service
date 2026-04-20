@@ -9,8 +9,9 @@ for file in $(find /var/run/nethvoice -name "satellite-[0-9]*.[0-9]*.wav" -cmin 
     do uniqueid=$(basename $file | cut -d- -f2 | sed "s/.wav$//g") ;\
     dst_cnam=$(mycli -u $CDRDBUSER -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$CDRDBPASS asteriskcdrdb -e "select dst_cnam from cdr where uniqueid=$uniqueid limit 1" | tail -n1) ;\
     cnam=$(mycli -u $CDRDBUSER -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$CDRDBPASS asteriskcdrdb -e "select cnam from cdr where uniqueid=$uniqueid limit 1" | tail -n1) ;\
+    linkedid=$(mycli -u $CDRDBUSER -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$CDRDBPASS asteriskcdrdb -e "select linkedid from cdr where uniqueid=$uniqueid limit 1" | tail -n1) ;\
     echo launching transcription for call $uniqueid ;\
-    /var/lib/asterisk/bin/satellite_transcription -u $uniqueid -c0 "$dst_cnam" -c1 "$cnam" ;\
+    /var/lib/asterisk/bin/satellite_transcription -u $uniqueid -l "$linkedid" -c0 "$dst_cnam" -c1 "$cnam" ;\
 done ;\
 find /var/run/nethvoice -name "satellite-[0-9]*.[0-9]*.wav" -cmin +60 -exec rm -f {} + ;\
 '
