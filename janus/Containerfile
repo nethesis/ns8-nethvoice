@@ -1,6 +1,6 @@
 FROM debian:bullseye-slim
 
-ARG JANUS_TAG=fix-sip-hold-unhold-rtp
+ARG JANUS_TAG=fix-sip-hold-unhold-rtp-clean
 ARG JANUS_REPO=https://github.com/nethesis/janus-gateway.git
 
 RUN apt-get -y update && \
