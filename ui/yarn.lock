@@ -4609,9 +4609,9 @@ functional-red-black-tree@^1.0.1:
   integrity sha1-GwqzvVU7Kg1jmdKcDj6gslIHgyc=
 
 generate-password-lite@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/generate-password-lite/-/generate-password-lite-1.0.0.tgz#7a400657b63931272ddcf23ad77cd1d1ac7f321e"
-  integrity sha512-Uzi5k8Rf7ljSUjSSiP+If5DTFWItCElSaSAHa4aGOa4au8jVTTTZf0IMIA5lB6GDRurli5ipf2X+7aSGLT1QBw==
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/generate-password-lite/-/generate-password-lite-1.0.2.tgz#66c9d5564b6c844dba811fab536da960c919f330"
+  integrity sha512-p8RsmPIoEELpUPoaHS1DUHDHJWf+CM84mXzX8gtt3bLtuObD5OQJxhhtyb/svlB7vTFFMM//As4SKA0SCovfXQ==
 
 gensync@^1.0.0-beta.2:
   version "1.0.0-beta.2"
