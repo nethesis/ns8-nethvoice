@@ -8,7 +8,7 @@
     "get-module-info": "Visualizza info modulo",
     "get-name": "Visualizza nome",
     "get-status": "Visualizza stato",
-    "list-backup-repositories": "Elenca repository di backup",
+    "list-backup-repositories": "Elenca i repository di backup",
     "list-backups": "Elenca backup",
     "list-installed-modules": "Elenca moduli installati",
     "get-defaults": "Visualizza default",
