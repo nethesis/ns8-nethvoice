@@ -1,0 +1,30 @@
+defaults:
+  auth:
+    user: admin
+    password: Nethesis,1234
+  expected_status: 200
+  post_wait_seconds: 0
+
+operations:
+  - name: login
+    enabled: true
+    classification: read-only
+    tags:
+      - authentication
+    method: GET
+    path: /login
+    assertions:
+      json_path_equals:
+        - path: success
+          value: true
+
+  - name: allow-externalsips
+    enabled: true
+    classification: read-only
+    tags:
+      - configuration
+      - compatibility
+    method: GET
+    path: /configuration/allowexternalsips
+    assertions:
+      json_equals: enabled
