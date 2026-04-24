@@ -10,6 +10,11 @@ repobase="${REPOBASE:-ghcr.io/nethesis}"
 # Configure the image name
 reponame="nethvoice"
 
+# Sanitize the image tag by replacing slashes with dashes to avoid issues with buildah tagging
+if [[ -n "${IMAGETAG}" ]]; then
+    IMAGETAG=$(printf '%s' "${IMAGETAG}" | tr '/' '-')
+fi
+
 # Build NS8 Module image
 buildah build \
 	--force-rm \
