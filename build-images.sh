@@ -92,7 +92,7 @@ images+=("${repobase}/${reponame}")
 ##    NethCTI Middleware   ##
 #############################
 reponame="nethvoice-cti-middleware"
-container=$(buildah from ghcr.io/nethesis/nethcti-middleware:v0.5.0)
+container=$(buildah from ghcr.io/nethesis/nethcti-middleware:fix_transcriptions)
 
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
@@ -105,7 +105,7 @@ images+=("${repobase}/${reponame}")
 ##      NethCTI Client     ##
 #############################
 reponame="nethvoice-cti-ui"
-container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v0.15.14)
+container=$(buildah from ghcr.io/nethesis/nethvoice-cti:fix_transcriptions)
 
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
@@ -176,7 +176,7 @@ images+=("${repobase}/${reponame}")
 ##########################
 echo "[*] Build Satellite container"
 reponame="nethvoice-satellite"
-container=$(buildah from ghcr.io/nethesis/satellite:0.2.1)
+container=$(buildah from ghcr.io/nethesis/satellite:fix_transcriptions)
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
 buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"

@@ -15,7 +15,7 @@ function satellite_get_config_late($engine) {
             // Add a call Satellite when call is answered in macro-dial-one adding it in D_OPTIONS variable
             $ext->splice('macro-dial-one','s','dial', new \ext_setvar('D_OPTIONS', '${D_OPTIONS}U(satellite^s^1)'),'', -1);
             // Add mixmonitor to record the call
-            $ext->splice('macro-dial-one', 's', 'dial', new \ext_mixmonitor('','br(/var/run/nethvoice/satellite-r-${UNIQUEID}.wav)t(/var/run/nethvoice/satellite-t-${UNIQUEID}.wav)','/var/lib/asterisk/bin/satellite_transcription -u ${UNIQUEID} -c0 "${FILTER(A-Za-z0-9 ._\-\(\),${CDR(dst_cnam)})}" -c1 "${FILTER(A-Za-z0-9 ._\-\(\),${CDR(cnam)})}"'),'', -1);
+            $ext->splice('macro-dial-one', 's', 'dial', new \ext_mixmonitor('','br(/var/run/nethvoice/satellite-r-${UNIQUEID}.wav)t(/var/run/nethvoice/satellite-t-${UNIQUEID}.wav)','/var/lib/asterisk/bin/satellite_transcription -u ${UNIQUEID} -l ${CHANNEL(linkedid)} -c0 "${IF($["${CDR(dst_cnam)}" = ""]?${CDR(dst)}:${FILTER(A-Za-z0-9 ._\-\(\),${CDR(dst_cnam)})})}" -c1 "${IF($["${CDR(cnam)}" = ""]?${CDR(src)}:${FILTER(A-Za-z0-9 ._\-\(\),${CDR(cnam)})})}"'),'', -1);
             // Add call to Satellite macro in macro-dialout-trunk if there is at least one route with at least one trunk
             $routes = core_routing_list();
             if (!empty($routes)) {
@@ -24,7 +24,11 @@ function satellite_get_config_late($engine) {
                     if (!empty($routetrunks)) {
                         $ext->splice('macro-dialout-trunk', 's', '', new \ext_setvar('DIAL_TRUNK_OPTIONS', '${DIAL_TRUNK_OPTIONS}U(satellite^s^1)'),'', 28);
                         // Add mixmonitor to record the call
-                        $ext->splice('macro-dialout-trunk', 's', '', new \ext_mixmonitor('','br(/var/run/nethvoice/satellite-r-${UNIQUEID}.wav)t(/var/run/nethvoice/satellite-t-${UNIQUEID}.wav)','/var/lib/asterisk/bin/satellite_transcription -u ${UNIQUEID} -c0 "${FILTER(A-Za-z0-9 ._\-\(\),${CDR(dst_cnam)})}" -c1 "${FILTER(A-Za-z0-9 ._\-\(\),${CDR(cnam)})}"'),'', 28);
+                        // NOTE: in macro-dialout-trunk CDR(dst) is not yet populated at MixMonitor
+                        // call time (it is written by CDR hooks after the call ends). Use OUTNUM
+                        // instead — it is explicitly set two steps earlier in the same macro and
+                        // always contains the actual outbound number being dialled.
+                        $ext->splice('macro-dialout-trunk', 's', '', new \ext_mixmonitor('','br(/var/run/nethvoice/satellite-r-${UNIQUEID}.wav)t(/var/run/nethvoice/satellite-t-${UNIQUEID}.wav)','/var/lib/asterisk/bin/satellite_transcription -u ${UNIQUEID} -l ${CHANNEL(linkedid)} -c0 "${IF($["${CDR(dst_cnam)}" = ""]?${OUTNUM}:${FILTER(A-Za-z0-9 ._\-\(\),${CDR(dst_cnam)})})}" -c1 "${IF($["${CDR(cnam)}" = ""]?${CDR(src)}:${FILTER(A-Za-z0-9 ._\-\(\),${CDR(cnam)})})}"'),'', 28);
                         break;
                     }
                 }
