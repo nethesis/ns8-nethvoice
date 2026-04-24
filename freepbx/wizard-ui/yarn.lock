@@ -950,10 +950,10 @@ clean-css@3.1.x:
     commander "2.6.x"
     source-map ">=0.1.43 <0.2"
 
-clean-css@^3.1.0:
+clean-css@~3.4.2:
   version "3.4.28"
   resolved "https://registry.yarnpkg.com/clean-css/-/clean-css-3.4.28.tgz#bf1945e82fc808f55695e6ddeaec01400efd03ff"
-  integrity sha1-vxlF6C/ICPVWlebd6uwBQA79A/8=
+  integrity sha512-aTWyttSdI2mYi07kWqHi24NUU9YlELFKGOAgFzZjDN1064DMAOy2FBuoyGmkKRlXkbpXd0EVHmiVkbKhKoirTw==
   dependencies:
     commander "2.8.x"
     source-map "0.4.x"
@@ -2675,13 +2675,13 @@ grunt-contrib-copy@^0.7.0:
   dependencies:
     chalk "~0.5.1"
 
-grunt-contrib-cssmin@^0.12.0:
-  version "0.12.3"
-  resolved "https://registry.yarnpkg.com/grunt-contrib-cssmin/-/grunt-contrib-cssmin-0.12.3.tgz#4157596096fb7656fc464b4cc7b0746de1f39014"
-  integrity sha1-QVdZYJb7dlb8RktMx7B0beHzkBQ=
+grunt-contrib-cssmin@^0.14.0:
+  version "0.14.0"
+  resolved "https://registry.yarnpkg.com/grunt-contrib-cssmin/-/grunt-contrib-cssmin-0.14.0.tgz#88b0a92536969bb566281c5c61ec5062d833f3b7"
+  integrity sha512-2OQwVyfGg2tU2yWgwVMwm2n3Rz+filmfEu7+fspIe80nNIz0lCCql3ryzKYj2yoLAk3gp5W72D14RNCu/NZBUA==
   dependencies:
     chalk "^1.0.0"
-    clean-css "^3.1.0"
+    clean-css "~3.4.2"
     maxmin "^1.1.0"
 
 grunt-contrib-htmlmin@^0.4.0:
