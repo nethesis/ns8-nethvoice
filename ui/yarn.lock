@@ -933,14 +933,7 @@
     "@babel/helper-string-parser" "^7.27.1"
     "@babel/helper-validator-identifier" "^7.28.5"
 
-"@carbon/icon-helpers@^10.53.1":
-  version "10.74.0"
-  resolved "https://registry.yarnpkg.com/@carbon/icon-helpers/-/icon-helpers-10.74.0.tgz#212deff9469a50f993deaa72691cc31454e07dbd"
-  integrity sha512-3i498EDg7fG8uLTd38gXckKUiPOSpOLKuSvdvedZs5TCIAc9HLpsx3aQithvZ3zhggKeMFFX/k6aBemZb6i7vA==
-  dependencies:
-    "@ibm/telemetry-js" "^1.5.0"
-
-"@carbon/icon-helpers@^10.37.0":
+"@carbon/icon-helpers@^10.37.0", "@carbon/icon-helpers@^10.53.1":
   version "10.74.0"
   resolved "https://registry.yarnpkg.com/@carbon/icon-helpers/-/icon-helpers-10.74.0.tgz#212deff9469a50f993deaa72691cc31454e07dbd"
   integrity sha512-3i498EDg7fG8uLTd38gXckKUiPOSpOLKuSvdvedZs5TCIAc9HLpsx3aQithvZ3zhggKeMFFX/k6aBemZb6i7vA==
@@ -3158,15 +3151,10 @@ core-js-compat@^3.14.0, core-js-compat@^3.15.0, core-js-compat@^3.6.5:
     browserslist "^4.16.6"
     semver "7.0.0"
 
-core-js@^3.15.2:
+core-js@^3.15.2, core-js@^3.6.5:
   version "3.49.0"
   resolved "https://registry.yarnpkg.com/core-js/-/core-js-3.49.0.tgz#8b4d520ac034311fa21aa616f017ada0e0dbbddd"
   integrity sha512-es1U2+YTtzpwkxVLwAFdSpaIMyQaq0PBgm3YD1W3Qpsn1NAmO3KSgZfu+oGSWVu6NvLHoHCV/aYcsE5wiB7ALg==
-
-core-js@^3.6.5:
-  version "3.15.2"
-  resolved "https://registry.npmmirror.com/core-js/download/core-js-3.15.2.tgz?cache=0&sync_timestamp=1624966050136&other_urls=https%3A%2F%2Fregistry.nlark.com%2Fcore-js%2Fdownload%2Fcore-js-3.15.2.tgz#740660d2ff55ef34ce664d7e2455119c5bdd3d61"
-  integrity sha1-dAZg0v9V7zTOZk1+JFURnFvdPWE=
 
 core-util-is@1.0.2, core-util-is@~1.0.0:
   version "1.0.2"
