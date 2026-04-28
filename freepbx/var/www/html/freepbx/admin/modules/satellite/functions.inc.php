@@ -76,7 +76,6 @@ function satellite_get_config_late($engine) {
             */
             $context = 'sub-satellite-record-check';
             $exten = 's';
-            $ext->add($context, $exten, '', new ext_dumpchan());
 
             $ext->add($context, $exten, '', new ext_gotoif('${ARG3} = "yes"', 'startrec'));
             $ext->add($context, $exten, '', new ext_return(''));
