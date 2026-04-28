@@ -1,0 +1,1507 @@
+#!/usr/bin/env php
+<?php
+
+// /var/lib/asterisk/bin/satellite_transcript -u ${UNIQUEID} -l ${CHANNEL(linkedid)}
+
+if (is_satellite_transcription_entrypoint(__FILE__)) {
+    // This file provides $db and $cdrdb database connections.
+    include_once('/etc/freepbx_db.conf');
+
+    global $db;
+    global $cdrdb;
+
+    try {
+        main($argv);
+    } catch (Throwable $e) {
+        log_exception($e, __FILE__, __LINE__, __FUNCTION__);
+        exit(1);
+    }
+}
+
+function main($argv) {
+    global $cdrdb;
+
+    $options = parse_args($argv);
+    if (isset($options['help'])) {
+        usage(0);
+    }
+
+    if (empty($options['uniqueid']) || empty($options['linkedid'])) {
+        log_message('Missing required arguments', __FILE__, __LINE__, __FUNCTION__);
+        usage(1);
+    }
+
+    $uniqueid = $options['uniqueid'];
+    $linkedid = $options['linkedid'];
+    $fallbackChannel0Name = isset($options['channel0_name']) ? trim((string) $options['channel0_name']) : '';
+    $fallbackChannel1Name = isset($options['channel1_name']) ? trim((string) $options['channel1_name']) : '';
+
+    $lockPath = '/var/run/nethvoice/satellite-transcription-' . safe_file_part($uniqueid . '-' . $linkedid) . '.lock';
+    $lockHandle = fopen($lockPath, 'c');
+    if (!$lockHandle) {
+        fail("Failed to create lock file $lockPath");
+    }
+    if (!flock($lockHandle, LOCK_EX | LOCK_NB)) {
+        fail("Another transcription process is already running for uniqueid $uniqueid and linkedid $linkedid");
+    }
+
+    $tmpFiles = array();
+    $exitCode = 0;
+
+    try {
+        require_command('sox');
+
+        $receivedRecordingFile = "/var/run/nethvoice/satellite-r-$uniqueid-$linkedid.wav";
+        $transmittedRecordingFile = "/var/run/nethvoice/satellite-t-$uniqueid-$linkedid.wav";
+        assert_file_exists($receivedRecordingFile, 'Received recording file');
+        assert_file_exists($transmittedRecordingFile, 'Transmitted recording file');
+
+        $celRows = fetch_cel_rows($cdrdb, $linkedid);
+        if (empty($celRows)) {
+            fail("No CEL rows found for linkedid $linkedid");
+        }
+
+        $recordingContext = resolve_recording_context($celRows, $uniqueid, $linkedid);
+        $recordingStart = $recordingContext['start'];
+        $recordingEnd = $recordingContext['end'];
+        $primaryChannel = $recordingContext['primary_channel'];
+
+        $cdrRows = fetch_cdr_rows($cdrdb, $linkedid);
+        $usersByExtension = fetch_users_by_extension();
+        $channelFacts = build_channel_facts($celRows, $cdrRows);
+
+        // First derive wall-clock segments from bridge activity, then rewrite
+        // Local channels to the real peer leg before resolving caller/callee data.
+        $rawSegments = build_bridge_segments($celRows, $primaryChannel, $recordingStart, $recordingEnd);
+        $rawSegments = normalize_local_channel_segments($rawSegments, $celRows, $recordingStart, $recordingEnd);
+        if (empty($rawSegments)) {
+            $rawSegments = build_cdr_fallback_segments($cdrRows, $primaryChannel, $uniqueid, $recordingStart, $recordingEnd);
+        }
+
+        $segments = enrich_segments(
+            $rawSegments,
+            $cdrRows,
+            $channelFacts,
+            $usersByExtension,
+            $primaryChannel,
+            $uniqueid,
+            $fallbackChannel0Name,
+            $fallbackChannel1Name
+        );
+        $segments = coalesce_adjacent_segments($segments);
+
+        debug_log(
+            'Prepared transcription segments',
+            __FILE__,
+            __LINE__,
+            __FUNCTION__,
+            array(
+                'uniqueid' => $uniqueid,
+                'linkedid' => $linkedid,
+                'count' => count($segments),
+                'segments' => array_map('format_segment_row', $segments),
+            )
+        );
+
+        if (empty($segments)) {
+            fail("No usable transcription segments found for uniqueid $uniqueid and linkedid $linkedid");
+        }
+
+        $apiUrl = get_satellite_api_url();
+        foreach ($segments as $index => $segment) {
+            $segmentNumber = $index + 1;
+            $segmentUniqueid = $uniqueid;
+            debug_log(
+                'Preparing segment audio',
+                __FILE__,
+                __LINE__,
+                __FUNCTION__,
+                array(
+                    'segment_uniqueid' => $segmentUniqueid,
+                    'segment' => format_segment_row($segment),
+                )
+            );
+            $audioFile = create_segment_audio(
+                $segment,
+                $segmentNumber,
+                $uniqueid,
+                $linkedid,
+                $recordingStart,
+                $transmittedRecordingFile,
+                $receivedRecordingFile,
+                $tmpFiles
+            );
+
+            $segment['audio_data'] = $audioFile;
+            debug_log(
+                'Segment audio ready',
+                __FILE__,
+                __LINE__,
+                __FUNCTION__,
+                array(
+                    'segment_uniqueid' => $segmentUniqueid,
+                    'audio_file' => $audioFile,
+                    'size_bytes' => @filesize($audioFile),
+                )
+            );
+            post_segment_to_satellite($apiUrl, $segmentUniqueid, $linkedid, $segment);
+        }
+
+        @unlink($receivedRecordingFile);
+        @unlink($transmittedRecordingFile);
+    } catch (Throwable $e) {
+        log_exception($e, __FILE__, __LINE__, __FUNCTION__);
+        $exitCode = 1;
+    }
+
+    cleanup_tmp_files($tmpFiles);
+    release_lock($lockHandle, $lockPath);
+
+    if ($exitCode !== 0) {
+        exit($exitCode);
+    }
+}
+
+function usage($exitCode) {
+    $script = basename($_SERVER['argv'][0]);
+    fwrite(STDERR, "Usage: $script -u <uniqueid> -l <linkedid> [-c0 <name>] [-c1 <name>]\n");
+    exit($exitCode);
+}
+
+function parse_args($argv) {
+    $options = array();
+    for ($i = 1; $i < count($argv); $i++) {
+        $arg = $argv[$i];
+        switch ($arg) {
+            case '-h':
+            case '--help':
+                $options['help'] = true;
+                break;
+            case '-u':
+            case '--uniqueid':
+                $options['uniqueid'] = require_next_arg($argv, $i, $arg);
+                $i++;
+                break;
+            case '-l':
+            case '--linkedid':
+                $options['linkedid'] = require_next_arg($argv, $i, $arg);
+                $i++;
+                break;
+            case '-c0':
+            case '--channel0_name':
+            case '--channel0-name':
+                $options['channel0_name'] = require_next_arg($argv, $i, $arg);
+                $i++;
+                break;
+            case '-c1':
+            case '--channel1_name':
+            case '--channel1-name':
+                $options['channel1_name'] = require_next_arg($argv, $i, $arg);
+                $i++;
+                break;
+            default:
+                if (strpos($arg, '--uniqueid=') === 0) {
+                    $options['uniqueid'] = substr($arg, strlen('--uniqueid='));
+                } elseif (strpos($arg, '--linkedid=') === 0) {
+                    $options['linkedid'] = substr($arg, strlen('--linkedid='));
+                } elseif (strpos($arg, '--channel0_name=') === 0) {
+                    $options['channel0_name'] = substr($arg, strlen('--channel0_name='));
+                } elseif (strpos($arg, '--channel0-name=') === 0) {
+                    $options['channel0_name'] = substr($arg, strlen('--channel0-name='));
+                } elseif (strpos($arg, '--channel1_name=') === 0) {
+                    $options['channel1_name'] = substr($arg, strlen('--channel1_name='));
+                } elseif (strpos($arg, '--channel1-name=') === 0) {
+                    $options['channel1_name'] = substr($arg, strlen('--channel1-name='));
+                } else {
+                    fail("Unknown argument $arg");
+                }
+        }
+    }
+    return $options;
+}
+
+function require_next_arg($argv, $index, $option) {
+    if (!isset($argv[$index + 1]) || substr($argv[$index + 1], 0, 1) === '-') {
+        fail("$option requires a value");
+    }
+    return $argv[$index + 1];
+}
+
+function fetch_cel_rows($cdrdb, $linkedid) {
+    $sql = "SELECT * FROM cel WHERE linkedid = :linkedid ORDER BY eventtime ASC, id ASC";
+    $stmt = $cdrdb->prepare($sql);
+    $stmt->execute(array(':linkedid' => $linkedid));
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function fetch_cdr_rows($cdrdb, $linkedid) {
+    $sql = "SELECT * FROM cdr WHERE linkedid = :linkedid ORDER BY calldate ASC, sequence ASC";
+    $stmt = $cdrdb->prepare($sql);
+    $stmt->execute(array(':linkedid' => $linkedid));
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function resolve_recording_context($celRows, $uniqueid, $linkedid) {
+    $recordingEvent = null;
+
+    foreach ($celRows as $row) {
+        if ($row['uniqueid'] !== $uniqueid || $row['linkedid'] !== $linkedid) {
+            continue;
+        }
+        if (trim((string) $row['channame']) === '') {
+            continue;
+        }
+        if ($row['eventtype'] === 'CHAN_START') {
+            $recordingEvent = $row;
+            break;
+        }
+    }
+
+    if ($recordingEvent === null) {
+        foreach ($celRows as $row) {
+            if ($row['uniqueid'] !== $uniqueid || $row['linkedid'] !== $linkedid) {
+                continue;
+            }
+            if (trim((string) $row['channame']) !== '') {
+                $recordingEvent = $row;
+                break;
+            }
+        }
+    }
+
+    if ($recordingEvent === null) {
+        fail("No recording anchor event found for uniqueid $uniqueid and linkedid $linkedid");
+    }
+
+    debug_log(
+        'Using recording fallback anchor',
+        __FILE__,
+        __LINE__,
+        __FUNCTION__,
+        array(
+            'uniqueid' => $uniqueid,
+            'linkedid' => $linkedid,
+            'anchor' => format_event_row($recordingEvent),
+        )
+    );
+
+    // Transfers can start MixMonitor on Local legs before the final bridged peer
+    // is visible, so the safest anchor is the channel lifetime, not app events.
+    return array(
+        'event' => $recordingEvent,
+        'start' => parse_time($recordingEvent['eventtime']),
+        'end' => find_recording_end_time($celRows, $recordingEvent),
+        'primary_channel' => $recordingEvent['channame'],
+        'is_fallback' => true,
+    );
+}
+
+function find_recording_end_time($celRows, $recordingEvent) {
+    $endTime = null;
+    $fallbackEndTime = null;
+    foreach ($celRows as $row) {
+        if ($row['linkedid'] === $recordingEvent['linkedid']) {
+            $fallbackEndTime = parse_time($row['eventtime']);
+        }
+        if ($row['uniqueid'] === $recordingEvent['uniqueid']
+            && ($row['eventtype'] === 'HANGUP' || $row['eventtype'] === 'CHAN_END')
+            && $row['channame'] === $recordingEvent['channame']) {
+            $endTime = parse_time($row['eventtime']);
+        }
+    }
+    return $endTime !== null ? $endTime : $fallbackEndTime;
+}
+
+function build_bridge_segments($celRows, $primaryChannel, $recordingStart, $recordingEnd) {
+    $bridgeMembers = array();
+    $channelBridge = array();
+    $currentSegment = null;
+    $segments = array();
+    $lastEventTime = $recordingStart;
+    // These offsets map wall-clock bridge intervals back to the mono recordings,
+    // which only advance while the primary channel is actually bridged.
+    $recordedAudioSeconds = 0.0;
+
+    foreach ($celRows as $row) {
+        $eventTime = parse_time($row['eventtime']);
+        if ($eventTime < $recordingStart) {
+            continue;
+        }
+        if ($recordingEnd !== null && $eventTime > $recordingEnd) {
+            if (is_primary_bridged($bridgeMembers, $primaryChannel) && $recordingEnd > $lastEventTime) {
+                $recordedAudioSeconds += $recordingEnd - $lastEventTime;
+            }
+            break;
+        }
+        if (is_primary_bridged($bridgeMembers, $primaryChannel) && $eventTime > $lastEventTime) {
+            $recordedAudioSeconds += $eventTime - $lastEventTime;
+        }
+        $lastEventTime = $eventTime;
+
+        $eventType = $row['eventtype'];
+        $channel = $row['channame'];
+
+        if ($eventType === 'BRIDGE_ENTER') {
+            $bridgeId = get_bridge_id($row);
+            if ($bridgeId === '') {
+                continue;
+            }
+            if (!isset($bridgeMembers[$bridgeId])) {
+                $bridgeMembers[$bridgeId] = array();
+            }
+            $bridgeMembers[$bridgeId][$channel] = true;
+            $channelBridge[$channel] = $bridgeId;
+            if (!empty($row['peer'])) {
+                $bridgeMembers[$bridgeId][$row['peer']] = true;
+                $channelBridge[$row['peer']] = $bridgeId;
+            }
+        } elseif ($eventType === 'BRIDGE_EXIT') {
+            close_segment_if_channel_matches($segments, $currentSegment, $channel, $eventTime, $recordedAudioSeconds, $row, 'bridge exit');
+            remove_channel_from_bridge($bridgeMembers, $channelBridge, $channel);
+        } elseif ($eventType === 'HANGUP' || $eventType === 'CHAN_END') {
+            close_segment_if_channel_matches($segments, $currentSegment, $channel, $eventTime, $recordedAudioSeconds, $row, 'channel end');
+            remove_channel_from_bridge($bridgeMembers, $channelBridge, $channel);
+        } else {
+            continue;
+        }
+
+        $activePeer = find_active_peer($bridgeMembers, $primaryChannel);
+        update_current_segment($segments, $currentSegment, $primaryChannel, $activePeer, $eventTime, $recordedAudioSeconds, $row);
+    }
+
+    if ($currentSegment !== null && $recordingEnd !== null) {
+        if (is_primary_bridged($bridgeMembers, $primaryChannel) && $recordingEnd > $lastEventTime) {
+            $recordedAudioSeconds += $recordingEnd - $lastEventTime;
+        }
+        $currentSegment['end'] = $recordingEnd;
+        $currentSegment['audio_end_offset'] = $recordedAudioSeconds;
+        debug_log(
+            'Segment ended at recording boundary: ' . describe_segment($currentSegment),
+            __FILE__,
+            __LINE__,
+            __FUNCTION__,
+            array(
+                'recording_end' => format_time($recordingEnd),
+            )
+        );
+        add_segment_if_valid($segments, $currentSegment);
+    }
+
+    return $segments;
+}
+
+function normalize_local_channel_segments($rawSegments, $celRows, $recordingStart, $recordingEnd) {
+    $normalizedSegments = array();
+    $peerIntervalsCache = array();
+
+    foreach ($rawSegments as $segment) {
+        $resolvedSegments = resolve_local_channel_segment(
+            $segment,
+            $celRows,
+            $recordingStart,
+            $recordingEnd,
+            $peerIntervalsCache
+        );
+
+        foreach ($resolvedSegments as $resolvedSegment) {
+            add_segment_if_valid($normalizedSegments, $resolvedSegment);
+        }
+    }
+
+    return $normalizedSegments;
+}
+
+function resolve_local_channel_segment($segment, $celRows, $recordingStart, $recordingEnd, &$peerIntervalsCache) {
+    if (!is_local_channel($segment['primary_channel']) || is_local_channel($segment['peer_channel'])) {
+        return array($segment);
+    }
+
+    $replaceField = 'primary_channel';
+    $localChannel = $segment['primary_channel'];
+
+    $siblingChannel = get_local_channel_sibling($localChannel);
+    if ($siblingChannel === '') {
+        return array($segment);
+    }
+
+    $cacheKey = $siblingChannel . '|' . $recordingStart . '|' . (string) $recordingEnd;
+    if (!isset($peerIntervalsCache[$cacheKey])) {
+        $peerIntervalsCache[$cacheKey] = build_channel_peer_intervals(
+            $celRows,
+            $siblingChannel,
+            $recordingStart,
+            $recordingEnd
+        );
+    }
+
+    $resolvedSegments = array();
+    foreach ($peerIntervalsCache[$cacheKey] as $interval) {
+        if ($interval['peer_channel'] === '' || $interval['peer_channel'] === $localChannel) {
+            continue;
+        }
+
+        $slice = slice_segment_to_interval(
+            $segment,
+            max($segment['start'], $interval['start']),
+            min($segment['end'], $interval['end'])
+        );
+        if ($slice === null) {
+            continue;
+        }
+
+        $slice[$replaceField] = $interval['peer_channel'];
+        debug_log(
+            'Resolved Local channel segment: ' . describe_segment($slice),
+            __FILE__,
+            __LINE__,
+            __FUNCTION__,
+            array(
+                'source_segment' => describe_segment($segment),
+                'local_channel' => $localChannel,
+                'sibling_channel' => $siblingChannel,
+                'replacement_channel' => $interval['peer_channel'],
+            )
+        );
+        $resolvedSegments[] = $slice;
+    }
+
+    if (empty($resolvedSegments)) {
+        return array($segment);
+    }
+
+    return $resolvedSegments;
+}
+
+function build_channel_peer_intervals($celRows, $targetChannel, $windowStart, $windowEnd) {
+    $bridgeMembers = array();
+    $channelBridge = array();
+
+    foreach ($celRows as $row) {
+        $eventTime = parse_time($row['eventtime']);
+        if ($eventTime >= $windowStart) {
+            break;
+        }
+        apply_bridge_event($bridgeMembers, $channelBridge, $row);
+    }
+
+    $intervals = array();
+    $currentPeer = find_active_peer($bridgeMembers, $targetChannel);
+    $currentPeer = is_string($currentPeer) && $currentPeer !== '' ? $currentPeer : null;
+    $currentStart = $currentPeer !== null ? $windowStart : null;
+
+    foreach ($celRows as $row) {
+        $eventTime = parse_time($row['eventtime']);
+        if ($eventTime < $windowStart) {
+            continue;
+        }
+        if ($windowEnd !== null && $eventTime > $windowEnd) {
+            break;
+        }
+        if (!apply_bridge_event($bridgeMembers, $channelBridge, $row)) {
+            continue;
+        }
+
+        $nextPeer = find_active_peer($bridgeMembers, $targetChannel);
+        $nextPeer = is_string($nextPeer) && $nextPeer !== '' ? $nextPeer : null;
+        if ($nextPeer === $currentPeer) {
+            continue;
+        }
+
+        if ($currentPeer !== null && $currentStart !== null && $eventTime > $currentStart) {
+            $intervals[] = array(
+                'start' => $currentStart,
+                'end' => $eventTime,
+                'peer_channel' => $currentPeer,
+            );
+        }
+
+        $currentPeer = $nextPeer;
+        $currentStart = $nextPeer !== null ? $eventTime : null;
+    }
+
+    if ($currentPeer !== null && $currentStart !== null && $windowEnd !== null && $windowEnd > $currentStart) {
+        $intervals[] = array(
+            'start' => $currentStart,
+            'end' => $windowEnd,
+            'peer_channel' => $currentPeer,
+        );
+    }
+
+    return $intervals;
+}
+
+function apply_bridge_event(&$bridgeMembers, &$channelBridge, $row) {
+    $eventType = $row['eventtype'];
+    $channel = $row['channame'];
+
+    if ($eventType === 'BRIDGE_ENTER') {
+        $bridgeId = get_bridge_id($row);
+        if ($bridgeId === '') {
+            return false;
+        }
+        if (!isset($bridgeMembers[$bridgeId])) {
+            $bridgeMembers[$bridgeId] = array();
+        }
+        $bridgeMembers[$bridgeId][$channel] = true;
+        $channelBridge[$channel] = $bridgeId;
+        if (!empty($row['peer'])) {
+            $bridgeMembers[$bridgeId][$row['peer']] = true;
+            $channelBridge[$row['peer']] = $bridgeId;
+        }
+        return true;
+    }
+
+    if ($eventType === 'BRIDGE_EXIT' || $eventType === 'HANGUP' || $eventType === 'CHAN_END') {
+        remove_channel_from_bridge($bridgeMembers, $channelBridge, $channel);
+        return true;
+    }
+
+    return false;
+}
+function slice_segment_to_interval($segment, $start, $end) {
+    if ($end <= $start) {
+        return null;
+    }
+
+    $slice = $segment;
+    $slice['start'] = $start;
+    $slice['end'] = $end;
+
+    if (isset($slice['audio_start_offset'], $slice['audio_end_offset'])
+        && $slice['audio_start_offset'] !== null
+        && $slice['audio_end_offset'] !== null) {
+        $slice['audio_start_offset'] += max(0, $start - $segment['start']);
+        $slice['audio_end_offset'] -= max(0, $segment['end'] - $end);
+    }
+
+    return $slice;
+}
+
+function is_local_channel($channel) {
+    return get_local_channel_sibling($channel) !== '';
+}
+
+function get_local_channel_sibling($channel) {
+    if (!preg_match('#^(Local/[^;]+);([12])$#', trim((string) $channel), $matches)) {
+        return '';
+    }
+
+    return $matches[1] . ';' . ($matches[2] === '1' ? '2' : '1');
+}
+
+function close_segment_if_channel_matches(&$segments, &$currentSegment, $channel, $eventTime, $recordedAudioSeconds, $eventRow = null, $reason = '') {
+    if ($currentSegment === null) {
+        return;
+    }
+    if ($channel !== $currentSegment['primary_channel'] && $channel !== $currentSegment['peer_channel']) {
+        return;
+    }
+    $currentSegment['end'] = $eventTime;
+    $currentSegment['audio_end_offset'] = $recordedAudioSeconds;
+    debug_log(
+        'Segment ended' . ($reason !== '' ? " ($reason)" : '') . ': ' . describe_segment($currentSegment),
+        __FILE__,
+        __LINE__,
+        __FUNCTION__,
+        array(
+            'event' => format_event_row($eventRow),
+        )
+    );
+    add_segment_if_valid($segments, $currentSegment);
+    $currentSegment = null;
+}
+
+function update_current_segment(&$segments, &$currentSegment, $primaryChannel, $activePeer, $eventTime, $recordedAudioSeconds, $eventRow = null) {
+    if ($activePeer === null) {
+        if ($currentSegment !== null) {
+            $currentSegment['end'] = $eventTime;
+            $currentSegment['audio_end_offset'] = $recordedAudioSeconds;
+            debug_log(
+                'Segment ended (bridge inactive): ' . describe_segment($currentSegment),
+                __FILE__,
+                __LINE__,
+                __FUNCTION__,
+                array(
+                    'event' => format_event_row($eventRow),
+                )
+            );
+            add_segment_if_valid($segments, $currentSegment);
+            $currentSegment = null;
+        }
+        return;
+    }
+
+    if ($activePeer === false) {
+        if ($currentSegment !== null) {
+            $currentSegment['end'] = $eventTime;
+            $currentSegment['audio_end_offset'] = $recordedAudioSeconds;
+            debug_log(
+                'Segment ended (multi-peer bridge): ' . describe_segment($currentSegment),
+                __FILE__,
+                __LINE__,
+                __FUNCTION__,
+                array(
+                    'event' => format_event_row($eventRow),
+                )
+            );
+            add_segment_if_valid($segments, $currentSegment);
+            $currentSegment = null;
+        }
+        log_message("Skipping multi-peer bridge interval at " . format_time($eventTime), __FILE__, __LINE__, __FUNCTION__);
+        return;
+    }
+
+    if ($currentSegment !== null && $currentSegment['peer_channel'] === $activePeer) {
+        return;
+    }
+
+    if ($currentSegment !== null) {
+        $currentSegment['end'] = $eventTime;
+        $currentSegment['audio_end_offset'] = $recordedAudioSeconds;
+        debug_log(
+            'Segment ended (peer changed): ' . describe_segment($currentSegment),
+            __FILE__,
+            __LINE__,
+            __FUNCTION__,
+            array(
+                'event' => format_event_row($eventRow),
+            )
+        );
+        add_segment_if_valid($segments, $currentSegment);
+    }
+
+    $currentSegment = array(
+        'start' => $eventTime,
+        'end' => null,
+        'primary_channel' => $primaryChannel,
+        'peer_channel' => $activePeer,
+        'audio_start_offset' => $recordedAudioSeconds,
+        'audio_end_offset' => null,
+    );
+    debug_log(
+        'Segment started: ' . describe_segment($currentSegment),
+        __FILE__,
+        __LINE__,
+        __FUNCTION__,
+        array(
+            'event' => format_event_row($eventRow),
+        )
+    );
+}
+
+function is_primary_bridged($bridgeMembers, $primaryChannel) {
+    foreach ($bridgeMembers as $members) {
+        if (isset($members[$primaryChannel]) && count($members) > 1) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function find_active_peer($bridgeMembers, $primaryChannel) {
+    foreach ($bridgeMembers as $members) {
+        if (!isset($members[$primaryChannel])) {
+            continue;
+        }
+        $peers = array();
+        foreach (array_keys($members) as $channel) {
+            if ($channel !== $primaryChannel) {
+                $peers[] = $channel;
+            }
+        }
+        if (count($peers) === 1) {
+            return $peers[0];
+        }
+        if (count($peers) > 1) {
+            return false;
+        }
+    }
+    return null;
+}
+
+function remove_channel_from_bridge(&$bridgeMembers, &$channelBridge, $channel) {
+    if (!isset($channelBridge[$channel])) {
+        return;
+    }
+    $bridgeId = $channelBridge[$channel];
+    unset($channelBridge[$channel]);
+    if (isset($bridgeMembers[$bridgeId][$channel])) {
+        unset($bridgeMembers[$bridgeId][$channel]);
+    }
+    if (isset($bridgeMembers[$bridgeId]) && empty($bridgeMembers[$bridgeId])) {
+        unset($bridgeMembers[$bridgeId]);
+    }
+}
+
+function get_bridge_id($row) {
+    $extra = json_decode((string) $row['extra'], true);
+    if (is_array($extra) && !empty($extra['bridge_id'])) {
+        return (string) $extra['bridge_id'];
+    }
+    return '';
+}
+
+function add_segment_if_valid(&$segments, $segment) {
+    if ($segment['end'] === null) {
+        return;
+    }
+    if ($segment['end'] <= $segment['start']) {
+        log_message('Skipping zero or negative duration segment', __FILE__, __LINE__, __FUNCTION__);
+        return;
+    }
+    if (isset($segment['audio_start_offset'], $segment['audio_end_offset'])
+        && $segment['audio_end_offset'] !== null
+        && $segment['audio_end_offset'] <= $segment['audio_start_offset']) {
+        log_message('Skipping segment with zero recorded audio duration', __FILE__, __LINE__, __FUNCTION__);
+        return;
+    }
+    $segments[] = $segment;
+}
+
+function build_cdr_fallback_segments($cdrRows, $primaryChannel, $uniqueid, $recordingStart, $recordingEnd) {
+    $segments = array();
+    foreach ($cdrRows as $cdr) {
+        if ($cdr['disposition'] !== 'ANSWERED' || (int) $cdr['billsec'] <= 0) {
+            continue;
+        }
+        if ($cdr['uniqueid'] !== $uniqueid && $cdr['channel'] !== $primaryChannel) {
+            continue;
+        }
+        $start = parse_time($cdr['calldate']) + max(0, ((int) $cdr['duration'] - (int) $cdr['billsec']));
+        $end = parse_time($cdr['calldate']) + (int) $cdr['duration'];
+        if ($start < $recordingStart) {
+            $start = $recordingStart;
+        }
+        if ($recordingEnd !== null && $end > $recordingEnd) {
+            $end = $recordingEnd;
+        }
+        if ($end <= $start) {
+            continue;
+        }
+        $segments[] = array(
+            'start' => $start,
+            'end' => $end,
+            'primary_channel' => $primaryChannel,
+            'peer_channel' => $cdr['dstchannel'],
+        );
+        debug_log(
+            'Segment created from CDR fallback: ' . describe_segment(end($segments)),
+            __FILE__,
+            __LINE__,
+            __FUNCTION__,
+            array(
+                'cdr' => format_cdr_row($cdr),
+            )
+        );
+    }
+    return $segments;
+}
+
+function enrich_segments($rawSegments, $cdrRows, $channelFacts, $usersByExtension, $primaryChannel, $uniqueid, $fallbackChannel0Name, $fallbackChannel1Name) {
+    $segments = array();
+    foreach ($rawSegments as $rawSegment) {
+        $cdr = find_best_cdr_for_segment($cdrRows, $rawSegment, $primaryChannel, $uniqueid);
+        if ($cdr === null) {
+            debug_log(
+                'No matching CDR found for segment',
+                __FILE__,
+                __LINE__,
+                __FUNCTION__,
+                array(
+                    'primary_channel' => $primaryChannel,
+                    'uniqueid' => $uniqueid,
+                    'segment' => format_segment_row($rawSegment),
+                )
+            );
+        }
+        $segment = clamp_segment_to_cdr($rawSegment, $cdr);
+        if ($segment === null) {
+            debug_log(
+                'Dropping segment after CDR clamp',
+                __FILE__,
+                __LINE__,
+                __FUNCTION__,
+                array(
+                    'primary_channel' => $primaryChannel,
+                    'uniqueid' => $uniqueid,
+                    'segment' => format_segment_row($rawSegment),
+                    'cdr' => format_cdr_row($cdr),
+                )
+            );
+            continue;
+        }
+
+        $caller = resolve_party($segment['primary_channel'], $channelFacts, $usersByExtension, $cdr, 'caller');
+        $callee = resolve_party($segment['peer_channel'], $channelFacts, $usersByExtension, $cdr, 'callee');
+
+        if ($caller['name'] === '' && $fallbackChannel1Name !== '') {
+            $caller['name'] = $fallbackChannel1Name;
+        }
+        if ($callee['name'] === '' && $fallbackChannel0Name !== '') {
+            $callee['name'] = $fallbackChannel0Name;
+        }
+        if ($caller['name'] === '') {
+            $caller['name'] = $caller['num'];
+        }
+        if ($callee['name'] === '') {
+            $callee['name'] = $callee['num'];
+        }
+
+        $segments[] = array(
+            'start' => $segment['start'],
+            'end' => $segment['end'],
+            'primary_channel' => $segment['primary_channel'],
+            'peer_channel' => $segment['peer_channel'],
+            'audio_start_offset' => isset($segment['audio_start_offset']) ? $segment['audio_start_offset'] : null,
+            'audio_end_offset' => isset($segment['audio_end_offset']) ? $segment['audio_end_offset'] : null,
+            'caller_num' => $caller['num'],
+            'caller_name' => $caller['name'],
+            'callee_num' => $callee['num'],
+            'callee_name' => $callee['name'],
+        );
+
+        debug_log(
+            'Enriched segment ready for upload',
+            __FILE__,
+            __LINE__,
+            __FUNCTION__,
+            array(
+                'primary_channel' => $primaryChannel,
+                'uniqueid' => $uniqueid,
+                'segment' => format_segment_row(end($segments)),
+                'cdr' => format_cdr_row($cdr),
+            )
+        );
+    }
+    return $segments;
+}
+
+function coalesce_adjacent_segments($segments) {
+    $coalescedSegments = array();
+
+    foreach ($segments as $segment) {
+        $lastIndex = count($coalescedSegments) - 1;
+        if ($lastIndex < 0) {
+            $coalescedSegments[] = $segment;
+            continue;
+        }
+
+        $previousSegment = $coalescedSegments[$lastIndex];
+        $previousHasAudioOffsets = isset($previousSegment['audio_start_offset'], $previousSegment['audio_end_offset'])
+            && $previousSegment['audio_start_offset'] !== null
+            && $previousSegment['audio_end_offset'] !== null;
+        $currentHasAudioOffsets = isset($segment['audio_start_offset'], $segment['audio_end_offset'])
+            && $segment['audio_start_offset'] !== null
+            && $segment['audio_end_offset'] !== null;
+        $sameParties = true;
+
+        foreach (array('caller', 'callee') as $role) {
+            $numberKey = $role . '_num';
+            $nameKey = $role . '_name';
+            $previousNumber = trim((string) $previousSegment[$numberKey]);
+            $currentNumber = trim((string) $segment[$numberKey]);
+            $previousName = trim((string) $previousSegment[$nameKey]);
+            $currentName = trim((string) $segment[$nameKey]);
+
+            if ($previousNumber !== '' && $currentNumber !== '') {
+                if ($previousNumber !== $currentNumber) {
+                    $sameParties = false;
+                    break;
+                }
+                continue;
+            }
+
+            if ($previousName !== '' && $currentName !== '') {
+                if ($previousName !== $currentName) {
+                    $sameParties = false;
+                    break;
+                }
+                continue;
+            }
+
+            if ($previousNumber !== $currentNumber || $previousName !== $currentName) {
+                $sameParties = false;
+                break;
+            }
+        }
+
+        // Attended transfers can briefly swap a Local leg for the final PJSIP
+        // leg without changing who is speaking, so merge back-to-back slices
+        // when both the participant labels and audio timeline line up.
+        $sameConversation = $sameParties
+            && abs((float) $previousSegment['end'] - (float) $segment['start']) < 0.001
+            && $previousHasAudioOffsets === $currentHasAudioOffsets
+            && (!$previousHasAudioOffsets
+                || abs((float) $previousSegment['audio_end_offset'] - (float) $segment['audio_start_offset']) < 0.001);
+
+        if (!$sameConversation) {
+            $coalescedSegments[] = $segment;
+            continue;
+        }
+
+        $mergedSegment = $previousSegment;
+        $mergedSegment['end'] = $segment['end'];
+        $mergedSegment['audio_end_offset'] = isset($segment['audio_end_offset']) ? $segment['audio_end_offset'] : null;
+
+        foreach (array('caller_num', 'caller_name', 'callee_num', 'callee_name') as $field) {
+            if (trim((string) $mergedSegment[$field]) === '' && trim((string) $segment[$field]) !== '') {
+                $mergedSegment[$field] = $segment[$field];
+            }
+        }
+
+        if (is_local_channel($mergedSegment['peer_channel']) && !is_local_channel($segment['peer_channel'])) {
+            $mergedSegment['peer_channel'] = $segment['peer_channel'];
+        }
+
+        if (is_local_channel($mergedSegment['primary_channel']) && !is_local_channel($segment['primary_channel'])) {
+            $mergedSegment['primary_channel'] = $segment['primary_channel'];
+        }
+
+        debug_log(
+            'Coalesced adjacent transcription segments',
+            __FILE__,
+            __LINE__,
+            __FUNCTION__,
+            array(
+                'previous_segment' => format_segment_row($previousSegment),
+                'current_segment' => format_segment_row($segment),
+                'merged_segment' => format_segment_row($mergedSegment),
+            )
+        );
+
+        $coalescedSegments[$lastIndex] = $mergedSegment;
+    }
+
+    return $coalescedSegments;
+}
+
+function find_best_cdr_for_segment($cdrRows, $segment, $primaryChannel, $uniqueid) {
+    $best = null;
+    $bestOverlap = 0;
+    foreach ($cdrRows as $cdr) {
+        if ($cdr['disposition'] !== 'ANSWERED' || (int) $cdr['billsec'] <= 0) {
+            continue;
+        }
+        if ($cdr['channel'] !== $primaryChannel && $cdr['uniqueid'] !== $uniqueid) {
+            continue;
+        }
+
+        $cdrStart = parse_time($cdr['calldate']) + max(0, ((int) $cdr['duration'] - (int) $cdr['billsec']));
+        $cdrEnd = parse_time($cdr['calldate']) + (int) $cdr['duration'];
+        $overlap = min($segment['end'], $cdrEnd) - max($segment['start'], $cdrStart);
+        if ($overlap > $bestOverlap) {
+            $best = $cdr;
+            $bestOverlap = $overlap;
+        }
+    }
+    return $best;
+}
+
+function clamp_segment_to_cdr($segment, $cdr) {
+    if (!$cdr) {
+        return $segment;
+    }
+    $cdrStart = parse_time($cdr['calldate']) + max(0, ((int) $cdr['duration'] - (int) $cdr['billsec']));
+    $cdrEnd = parse_time($cdr['calldate']) + (int) $cdr['duration'];
+
+    $oldStart = $segment['start'];
+    $oldEnd = $segment['end'];
+    $segment['start'] = max($oldStart, $cdrStart);
+    $segment['end'] = min($oldEnd, $cdrEnd);
+    if ($segment['end'] <= $segment['start']) {
+        log_message('Skipping segment after CDR clamp removed its duration', __FILE__, __LINE__, __FUNCTION__);
+        return null;
+    }
+    if (isset($segment['audio_start_offset'], $segment['audio_end_offset'])
+        && $segment['audio_start_offset'] !== null
+        && $segment['audio_end_offset'] !== null) {
+        $segment['audio_start_offset'] += max(0, $segment['start'] - $oldStart);
+        $segment['audio_end_offset'] -= max(0, $oldEnd - $segment['end']);
+        if ($segment['audio_end_offset'] <= $segment['audio_start_offset']) {
+            log_message('Skipping segment after CDR clamp removed its recorded audio', __FILE__, __LINE__, __FUNCTION__);
+            return null;
+        }
+    }
+    return $segment;
+}
+
+function build_channel_facts($celRows, $cdrRows) {
+    $facts = array();
+
+    foreach ($celRows as $row) {
+        $channel = $row['channame'];
+        if ($channel === '') {
+            continue;
+        }
+        if (!isset($facts[$channel])) {
+            $facts[$channel] = array();
+        }
+        merge_fact($facts[$channel], 'accountcode', $row['accountcode']);
+        merge_fact($facts[$channel], 'cid_num', $row['cid_num']);
+        merge_fact($facts[$channel], 'cid_name', $row['cid_name']);
+        merge_fact($facts[$channel], 'exten', $row['exten']);
+    }
+
+    foreach ($cdrRows as $cdr) {
+        foreach (array('channel' => 'caller', 'dstchannel' => 'callee') as $field => $role) {
+            $channel = $cdr[$field];
+            if ($channel === '') {
+                continue;
+            }
+            if (!isset($facts[$channel])) {
+                $facts[$channel] = array();
+            }
+            if ($role === 'caller') {
+                merge_fact($facts[$channel], 'cdr_num', first_non_empty(array($cdr['cnum'], $cdr['src'], $cdr['accountcode'])));
+                merge_fact($facts[$channel], 'cdr_name', $cdr['cnam']);
+            } else {
+                merge_fact($facts[$channel], 'cdr_num', first_non_empty(array(parse_extension_from_channel($channel), $cdr['dst'])));
+                merge_fact($facts[$channel], 'cdr_name', $cdr['dst_cnam']);
+            }
+        }
+    }
+
+    return $facts;
+}
+
+function merge_fact(&$facts, $key, $value) {
+    $value = trim((string) $value);
+    if ($value === '') {
+        return;
+    }
+    if (!isset($facts[$key]) || $facts[$key] === '') {
+        $facts[$key] = $value;
+    }
+}
+
+function resolve_party($channel, $channelFacts, $usersByExtension, $cdr, $role) {
+    $facts = isset($channelFacts[$channel]) ? $channelFacts[$channel] : array();
+    $parsedExtension = parse_extension_from_channel($channel);
+
+    $numCandidates = array($parsedExtension);
+    if ($role === 'caller' && $cdr) {
+        $numCandidates[] = $cdr['cnum'];
+        $numCandidates[] = $cdr['src'];
+        $numCandidates[] = $cdr['accountcode'];
+    } elseif ($role === 'callee' && $cdr) {
+        $numCandidates[] = parse_extension_from_channel($cdr['dstchannel']);
+        $numCandidates[] = $cdr['dst'];
+    }
+    $numCandidates[] = isset($facts['accountcode']) ? $facts['accountcode'] : '';
+    $numCandidates[] = isset($facts['cid_num']) ? $facts['cid_num'] : '';
+    $numCandidates[] = isset($facts['exten']) ? $facts['exten'] : '';
+    $numCandidates[] = isset($facts['cdr_num']) ? $facts['cdr_num'] : '';
+
+    $num = first_extension_candidate($numCandidates);
+    if ($num === '') {
+        $num = first_non_empty($numCandidates);
+    }
+
+    $nameCandidates = array();
+    if ($num !== '' && isset($usersByExtension[$num])) {
+        $nameCandidates[] = $usersByExtension[$num];
+    }
+    if (isset($facts['cid_name'])) {
+        $nameCandidates[] = $facts['cid_name'];
+    }
+    if (isset($facts['cdr_name'])) {
+        $nameCandidates[] = $facts['cdr_name'];
+    }
+    if ($cdr) {
+        $nameCandidates[] = $role === 'caller' ? $cdr['cnam'] : $cdr['dst_cnam'];
+    }
+    $name = first_non_empty($nameCandidates);
+
+    return array('num' => $num, 'name' => $name);
+}
+
+function parse_extension_from_channel($channel) {
+    $channel = trim((string) $channel);
+    if ($channel === '') {
+        return '';
+    }
+    if (preg_match('#^(?:PJSIP|SIP|IAX2|DAHDI)/([^/@;-]+)#', $channel, $matches)) {
+        return $matches[1];
+    }
+    if (preg_match('#^Local/([^/@;]+)@#', $channel, $matches)) {
+        return $matches[1];
+    }
+    return '';
+}
+
+function first_extension_candidate($candidates) {
+    foreach ($candidates as $candidate) {
+        $candidate = trim((string) $candidate);
+        if ($candidate !== '' && preg_match('/^[0-9*#+]+$/', $candidate)) {
+            return $candidate;
+        }
+    }
+    return '';
+}
+
+function first_non_empty($values) {
+    foreach ($values as $value) {
+        $value = trim((string) $value);
+        if ($value !== '') {
+            return $value;
+        }
+    }
+    return '';
+}
+
+function fetch_users_by_extension() {
+    global $db;
+
+    $users = array();
+    try {
+        $stmt = $db->prepare("SELECT extension, name FROM users");
+        $stmt->execute();
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            if ($row['extension'] !== '') {
+                $users[$row['extension']] = $row['name'];
+            }
+        }
+    } catch (Throwable $e) {
+        log_exception($e, __FILE__, __LINE__, __FUNCTION__, 'Unable to read FreePBX users table');
+    }
+    return $users;
+}
+
+function create_segment_audio($segment, $segmentNumber, $uniqueid, $linkedid, $recordingStart, $transmittedRecordingFile, $receivedRecordingFile, &$tmpFiles) {
+    if ($segment['audio_start_offset'] !== null && $segment['audio_end_offset'] !== null) {
+        $offset = max(0, $segment['audio_start_offset']);
+        $duration = $segment['audio_end_offset'] - $segment['audio_start_offset'];
+    } else {
+        $offset = max(0, $segment['start'] - $recordingStart);
+        $duration = $segment['end'] - $segment['start'];
+    }
+    if ($duration <= 0) {
+        fail('Cannot create audio for zero duration segment');
+    }
+
+    $base = '/var/run/nethvoice/satellite-' . safe_file_part($uniqueid . '-' . $linkedid . '-s' . str_pad((string) $segmentNumber, 3, '0', STR_PAD_LEFT));
+    $tmpT = $base . '-t.wav';
+    $tmpR = $base . '-r.wav';
+    $tmpStereo = $base . '.wav';
+    $tmpFiles[] = $tmpT;
+    $tmpFiles[] = $tmpR;
+    $tmpFiles[] = $tmpStereo;
+
+    // Satellite expects a stereo clip for each slice, built from the already
+    // recorded transmit and receive legs of the call. Keep the merged clip on
+    // disk after upload so it can be inspected during debugging.
+    run_command(array('sox', $transmittedRecordingFile, $tmpT, 'trim', format_seconds($offset), format_seconds($duration)));
+    run_command(array('sox', $receivedRecordingFile, $tmpR, 'trim', format_seconds($offset), format_seconds($duration)));
+    run_command(array('sox', '-M', $tmpT, $tmpR, $tmpStereo));
+
+    return $tmpStereo;
+}
+
+function post_segment_to_satellite($apiUrl, $segmentUniqueid, $linkedid, $segment) {
+    $channel0Name = party_label($segment['callee_name'], $segment['callee_num'], 'Channel 0');
+    $channel1Name = party_label($segment['caller_name'], $segment['caller_num'], 'Channel 1');
+
+    $postFields = array(
+        'multichannel' => 'true',
+        'encoding' => 'linear16',
+        'sample_rate' => '8000',
+        'channels' => '2',
+        'channel0_name' => $channel0Name,
+        'channel1_name' => $channel1Name,
+        'persist' => 'true',
+        'uniqueid' => $segmentUniqueid,
+        'linkedid' => $linkedid,
+        'file' => new CURLFile($segment['audio_data'], 'audio/wav', basename($segment['audio_data'])),
+    );
+
+    if (getenv('SATELLITE_CALL_SUMMARY_ENABLED') === 'True') {
+        $postFields['summary'] = 'true';
+    }
+
+    $headers = array();
+    $token = getenv('SATELLITE_API_TOKEN');
+    if ($token !== false && trim($token) !== '') {
+        $headers[] = 'Authorization: Bearer ' . trim($token);
+    }
+
+    $ch = curl_init();
+    if (!$ch) {
+        fail('Failed to initialize cURL');
+    }
+
+    curl_setopt($ch, CURLOPT_URL, $apiUrl);
+    curl_setopt($ch, CURLOPT_HEADER, false);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+    if (!empty($headers)) {
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    }
+
+    log_message("Sending segment $segmentUniqueid to $apiUrl ($channel1Name -> $channel0Name)", __FILE__, __LINE__, __FUNCTION__);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    curl_close($ch);
+
+    if ($error !== '') {
+        fail("Satellite API request failed for $segmentUniqueid: $error");
+    }
+    if ($httpCode < 200 || $httpCode >= 300 || $response === false) {
+        fail("Satellite API returned HTTP $httpCode for $segmentUniqueid: " . substr((string) $response, 0, 500));
+    }
+
+    debug_log(
+        'Segment upload completed',
+        __FILE__,
+        __LINE__,
+        __FUNCTION__,
+        array(
+            'segment_uniqueid' => $segmentUniqueid,
+            'http_code' => $httpCode,
+            'response_length' => is_string($response) ? strlen($response) : null,
+        )
+    );
+}
+
+function get_satellite_api_url() {
+    $port = getenv('SATELLITE_HTTP_PORT');
+    if ($port === false || trim($port) === '') {
+        fail('SATELLITE_HTTP_PORT environment variable is not set');
+    }
+    if (!preg_match('/^[0-9]+$/', $port) || (int) $port < 1 || (int) $port > 65535) {
+        fail('SATELLITE_HTTP_PORT must be an integer between 1 and 65535');
+    }
+    return 'http://127.0.0.1:' . $port . '/api/get_transcription';
+}
+
+function party_label($name, $number, $fallback) {
+    $name = trim((string) $name);
+    $number = trim((string) $number);
+    if ($name !== '' && $number !== '' && $name !== $number) {
+        return $name . ' (' . $number . ')';
+    }
+    if ($name !== '') {
+        return $name;
+    }
+    if ($number !== '') {
+        return $number;
+    }
+    return $fallback;
+}
+
+function assert_file_exists($path, $description) {
+    if (!file_exists($path)) {
+        fail("$description not found: $path");
+    }
+}
+
+function require_command($command) {
+    $result = run_command(array('command', '-v', $command), false);
+    if ($result['exit_code'] !== 0) {
+        fail("Required command not found: $command");
+    }
+}
+
+function run_command($args, $failOnError = true) {
+    $cmd = implode(' ', array_map('escapeshellarg', $args));
+    $descriptors = array(
+        0 => array('pipe', 'r'),
+        1 => array('pipe', 'w'),
+        2 => array('pipe', 'w'),
+    );
+    $process = proc_open($cmd, $descriptors, $pipes);
+    if (!is_resource($process)) {
+        fail("Failed to execute command: $cmd");
+    }
+    fclose($pipes[0]);
+    $stdout = stream_get_contents($pipes[1]);
+    fclose($pipes[1]);
+    $stderr = stream_get_contents($pipes[2]);
+    fclose($pipes[2]);
+    $exitCode = proc_close($process);
+
+    if ($failOnError && $exitCode !== 0) {
+        fail("Command failed ($exitCode): $cmd " . trim($stderr));
+    }
+
+    return array('exit_code' => $exitCode, 'stdout' => $stdout, 'stderr' => $stderr);
+}
+
+function parse_time($value) {
+    $timestamp = strtotime($value);
+    if ($timestamp === false) {
+        fail("Invalid timestamp: $value");
+    }
+    return $timestamp;
+}
+
+function format_time($timestamp) {
+    return date('Y-m-d H:i:s', $timestamp);
+}
+
+function format_seconds($seconds) {
+    return sprintf('%.3f', $seconds);
+}
+
+function safe_file_part($value) {
+    return preg_replace('/[^A-Za-z0-9_.-]/', '_', (string) $value);
+}
+
+function cleanup_tmp_files($files) {
+    foreach ($files as $file) {
+        if ($file !== '') {
+            @unlink($file);
+        }
+    }
+}
+
+function release_lock($lockHandle, $lockPath) {
+    if ($lockHandle) {
+        flock($lockHandle, LOCK_UN);
+        fclose($lockHandle);
+    }
+    @unlink($lockPath);
+}
+
+function log_message($message, $file = null, $line = null, $function = null) {
+    $location = '';
+    if ($file !== null || $line !== null || $function !== null) {
+        $location = ' [' . ($file !== null ? basename((string) $file) : '?')
+            . ':' . ($line !== null ? (string) $line : '?')
+            . ' ' . ($function !== null && $function !== '' ? (string) $function : '{main}')
+            . '()]';
+    }
+    $line = date('Y-m-d H:i:s') . ' satellite_transcript' . $location . ': ' . $message . PHP_EOL;
+    if (defined('STDOUT')) {
+        fwrite(STDOUT, $line);
+    } else {
+        echo $line;
+    }
+}
+
+function debug_log($message, $file = null, $line = null, $function = null, $context = array()) {
+    if (!is_debug_enabled()) {
+        return;
+    }
+
+    if (!empty($context)) {
+        $message .= ' | ' . json_encode($context, JSON_UNESCAPED_SLASHES);
+    }
+
+    log_message('[DEBUG] ' . $message, $file, $line, $function);
+}
+
+function is_debug_enabled() {
+    $debug = getenv('DEBUG');
+    if ($debug === false || trim((string) $debug) === '') {
+        return true;
+    }
+
+    return !in_array(strtolower(trim((string) $debug)), array('0', 'false', 'no', 'off'), true);
+}
+
+function describe_segment($segment) {
+    $parts = array(
+        'primary=' . (isset($segment['primary_channel']) ? $segment['primary_channel'] : ''),
+        'peer=' . (isset($segment['peer_channel']) ? $segment['peer_channel'] : ''),
+        'start=' . (isset($segment['start']) && $segment['start'] !== null ? format_time($segment['start']) : 'null'),
+        'end=' . (isset($segment['end']) && $segment['end'] !== null ? format_time($segment['end']) : 'null'),
+    );
+
+    if (isset($segment['audio_start_offset']) && $segment['audio_start_offset'] !== null) {
+        $parts[] = 'audio_start=' . format_seconds($segment['audio_start_offset']);
+    }
+    if (isset($segment['audio_end_offset']) && $segment['audio_end_offset'] !== null) {
+        $parts[] = 'audio_end=' . format_seconds($segment['audio_end_offset']);
+    }
+
+    return implode(', ', $parts);
+}
+
+function format_segment_row($segment) {
+    if (!is_array($segment) || empty($segment)) {
+        return null;
+    }
+
+    return array(
+        'start' => isset($segment['start']) && $segment['start'] !== null ? format_time($segment['start']) : null,
+        'end' => isset($segment['end']) && $segment['end'] !== null ? format_time($segment['end']) : null,
+        'primary_channel' => isset($segment['primary_channel']) ? $segment['primary_channel'] : null,
+        'peer_channel' => isset($segment['peer_channel']) ? $segment['peer_channel'] : null,
+        'audio_start_offset' => isset($segment['audio_start_offset']) ? $segment['audio_start_offset'] : null,
+        'audio_end_offset' => isset($segment['audio_end_offset']) ? $segment['audio_end_offset'] : null,
+        'caller_num' => isset($segment['caller_num']) ? $segment['caller_num'] : null,
+        'caller_name' => isset($segment['caller_name']) ? $segment['caller_name'] : null,
+        'callee_num' => isset($segment['callee_num']) ? $segment['callee_num'] : null,
+        'callee_name' => isset($segment['callee_name']) ? $segment['callee_name'] : null,
+    );
+}
+
+function format_event_row($row) {
+    if (!is_array($row) || empty($row)) {
+        return null;
+    }
+
+    return array(
+        'eventtime' => isset($row['eventtime']) ? $row['eventtime'] : null,
+        'eventtype' => isset($row['eventtype']) ? $row['eventtype'] : null,
+        'channame' => isset($row['channame']) ? $row['channame'] : null,
+        'peer' => isset($row['peer']) ? $row['peer'] : null,
+        'uniqueid' => isset($row['uniqueid']) ? $row['uniqueid'] : null,
+        'linkedid' => isset($row['linkedid']) ? $row['linkedid'] : null,
+        'appname' => isset($row['appname']) ? $row['appname'] : null,
+    );
+}
+
+function format_cdr_row($row) {
+    if (!is_array($row) || empty($row)) {
+        return null;
+    }
+
+    return array(
+        'calldate' => isset($row['calldate']) ? $row['calldate'] : null,
+        'channel' => isset($row['channel']) ? $row['channel'] : null,
+        'dstchannel' => isset($row['dstchannel']) ? $row['dstchannel'] : null,
+        'uniqueid' => isset($row['uniqueid']) ? $row['uniqueid'] : null,
+        'linkedid' => isset($row['linkedid']) ? $row['linkedid'] : null,
+        'duration' => isset($row['duration']) ? $row['duration'] : null,
+        'billsec' => isset($row['billsec']) ? $row['billsec'] : null,
+        'disposition' => isset($row['disposition']) ? $row['disposition'] : null,
+    );
+}
+
+function log_exception($exception, $file = null, $line = null, $function = null, $prefix = '') {
+    $originFunction = '{main}';
+    $trace = $exception->getTrace();
+    if (!empty($trace[0]['function'])) {
+        $originFunction = $trace[0]['function'];
+    }
+
+    $message = basename((string) $exception->getFile())
+        . ':' . $exception->getLine()
+        . ' ' . $originFunction . '(): '
+        . $exception->getMessage();
+
+    if ($prefix !== '') {
+        $message = $prefix . ': ' . $message;
+    }
+
+    log_message($message, $file, $line, $function);
+}
+
+function fail($message) {
+    throw new RuntimeException($message);
+}
+
+function is_satellite_transcription_entrypoint($filePath) {
+    if (defined('SATELLITE_TRANSCRIPTION_LIBRARY_MODE') && SATELLITE_TRANSCRIPTION_LIBRARY_MODE) {
+        return false;
+    }
+
+    $scriptPath = isset($_SERVER['SCRIPT_FILENAME']) ? realpath((string) $_SERVER['SCRIPT_FILENAME']) : false;
+    $filePath = realpath($filePath);
+
+    return $scriptPath !== false && $filePath !== false && $scriptPath === $filePath;
+}
