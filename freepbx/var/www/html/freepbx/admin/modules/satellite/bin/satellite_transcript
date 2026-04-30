@@ -1198,25 +1198,10 @@ function create_segment_audio($segment, $segmentNumber, $uniqueid, $linkedid, $r
 }
 
 function post_segment_to_satellite($apiUrl, $segmentUniqueid, $linkedid, $segment) {
-    $channel0Name = party_label($segment['callee_name'], $segment['callee_num'], 'Channel 0');
-    $channel1Name = party_label($segment['caller_name'], $segment['caller_num'], 'Channel 1');
-
-    $postFields = array(
-        'multichannel' => 'true',
-        'encoding' => 'linear16',
-        'sample_rate' => '8000',
-        'channels' => '2',
-        'channel0_name' => $channel0Name,
-        'channel1_name' => $channel1Name,
-        'persist' => 'true',
-        'uniqueid' => $segmentUniqueid,
-        'linkedid' => $linkedid,
-        'file' => new CURLFile($segment['audio_data'], 'audio/wav', basename($segment['audio_data'])),
-    );
-
-    if (getenv('SATELLITE_CALL_SUMMARY_ENABLED') === 'True') {
-        $postFields['summary'] = 'true';
-    }
+    $postFields = build_satellite_upload_fields($segmentUniqueid, $linkedid, $segment);
+    $channel0Name = $postFields['channel0_name'];
+    $channel1Name = $postFields['channel1_name'];
+    $postFields['file'] = new CURLFile($segment['audio_data'], 'audio/wav', basename($segment['audio_data']));
 
     $headers = array();
     $token = getenv('SATELLITE_API_TOKEN');
@@ -1239,6 +1224,15 @@ function post_segment_to_satellite($apiUrl, $segmentUniqueid, $linkedid, $segmen
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     }
 
+    debug_log(
+        'Sending segment to Satellite',
+        __FILE__,
+        __LINE__,
+        __FUNCTION__,
+        array(
+            'payload' => format_satellite_upload_fields($postFields),
+        )
+    );
     log_message("Sending segment $segmentUniqueid to $apiUrl ($channel1Name -> $channel0Name)", __FILE__, __LINE__, __FUNCTION__);
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -1262,6 +1256,61 @@ function post_segment_to_satellite($apiUrl, $segmentUniqueid, $linkedid, $segmen
             'http_code' => $httpCode,
             'response_length' => is_string($response) ? strlen($response) : null,
         )
+    );
+}
+
+function build_satellite_upload_fields($segmentUniqueid, $linkedid, $segment) {
+    $segmentUniqueid = trim((string) $segmentUniqueid);
+    $linkedid = trim((string) $linkedid);
+
+    if ($segmentUniqueid === '') {
+        fail('Satellite upload requires a non-empty uniqueid');
+    }
+    if ($linkedid === '') {
+        fail('Satellite upload requires a non-empty linkedid');
+    }
+
+    $channel0Name = party_label($segment['callee_name'], $segment['callee_num'], 'Channel 0');
+    $channel1Name = party_label($segment['caller_name'], $segment['caller_num'], 'Channel 1');
+    $postFields = array(
+        'multichannel' => 'true',
+        'encoding' => 'linear16',
+        'sample_rate' => '8000',
+        'channels' => '2',
+        'channel0_name' => $channel0Name,
+        'channel1_name' => $channel1Name,
+        'persist' => 'true',
+        'uniqueid' => $segmentUniqueid,
+        'linkedid' => $linkedid,
+        'src_number' => isset($segment['caller_num']) ? trim((string) $segment['caller_num']) : '',
+        'dst_number' => isset($segment['callee_num']) ? trim((string) $segment['callee_num']) : '',
+    );
+
+    if (getenv('SATELLITE_CALL_SUMMARY_ENABLED') === 'True') {
+        $postFields['summary'] = 'true';
+    }
+
+    return $postFields;
+}
+
+function format_satellite_upload_fields($postFields) {
+    if (!is_array($postFields) || empty($postFields)) {
+        return null;
+    }
+
+    return array(
+        'multichannel' => isset($postFields['multichannel']) ? $postFields['multichannel'] : null,
+        'encoding' => isset($postFields['encoding']) ? $postFields['encoding'] : null,
+        'sample_rate' => isset($postFields['sample_rate']) ? $postFields['sample_rate'] : null,
+        'channels' => isset($postFields['channels']) ? $postFields['channels'] : null,
+        'channel0_name' => isset($postFields['channel0_name']) ? $postFields['channel0_name'] : null,
+        'channel1_name' => isset($postFields['channel1_name']) ? $postFields['channel1_name'] : null,
+        'persist' => isset($postFields['persist']) ? $postFields['persist'] : null,
+        'summary' => isset($postFields['summary']) ? $postFields['summary'] : null,
+        'uniqueid' => isset($postFields['uniqueid']) ? $postFields['uniqueid'] : null,
+        'linkedid' => isset($postFields['linkedid']) ? $postFields['linkedid'] : null,
+        'src_number' => isset($postFields['src_number']) ? $postFields['src_number'] : null,
+        'dst_number' => isset($postFields['dst_number']) ? $postFields['dst_number'] : null,
     );
 }
 
