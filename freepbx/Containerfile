@@ -434,6 +434,11 @@ COPY usr/sbin/recallonbusy /usr/sbin/recallonbusy
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/satellite /var/www/html/freepbx/admin/modules/satellite
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/visualplan /var/www/html/freepbx/admin/modules/visualplan
 
+# Remove tests and development files
+RUN rm -rf /var/www/html/freepbx/admin/modules/satellite/tests && \
+	rm -rf /var/www/html/freepbx/admin/modules/satellite/AGENTS.md
+
+
 # Create directories
 RUN mkdir -p \
 	/var/lib/asterisk/bin/backup \
