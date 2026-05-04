@@ -395,7 +395,7 @@ function normalize_local_channel_segments($rawSegments, $celRows, $recordingStar
     $peerIntervalsCache = array();
 
     foreach ($rawSegments as $segment) {
-        $resolvedSegments = resolve_local_channel_segment(
+        $resolvedSegments = normalize_local_primary_channel_segment(
             $segment,
             $celRows,
             $recordingStart,
@@ -406,6 +406,50 @@ function normalize_local_channel_segments($rawSegments, $celRows, $recordingStar
         foreach ($resolvedSegments as $resolvedSegment) {
             add_segment_if_valid($normalizedSegments, $resolvedSegment);
         }
+    }
+
+    return $normalizedSegments;
+}
+
+function normalize_local_primary_channel_segment($segment, $celRows, $recordingStart, $recordingEnd, &$peerIntervalsCache, $visitedLocalChannels = array()) {
+    if (!is_local_channel($segment['primary_channel']) || is_local_channel($segment['peer_channel'])) {
+        return array($segment);
+    }
+
+    if (in_array($segment['primary_channel'], $visitedLocalChannels, true)) {
+        return array($segment);
+    }
+
+    $visitedLocalChannels[] = $segment['primary_channel'];
+    $resolvedSegments = resolve_local_channel_segment(
+        $segment,
+        $celRows,
+        $recordingStart,
+        $recordingEnd,
+        $peerIntervalsCache
+    );
+
+    if (count($resolvedSegments) === 1 && raw_segments_match($resolvedSegments[0], $segment)) {
+        return $resolvedSegments;
+    }
+
+    $normalizedSegments = array();
+    foreach ($resolvedSegments as $resolvedSegment) {
+        if (is_local_channel($resolvedSegment['primary_channel']) && !is_local_channel($resolvedSegment['peer_channel'])) {
+            foreach (normalize_local_primary_channel_segment(
+                $resolvedSegment,
+                $celRows,
+                $recordingStart,
+                $recordingEnd,
+                $peerIntervalsCache,
+                $visitedLocalChannels
+            ) as $normalizedSegment) {
+                $normalizedSegments[] = $normalizedSegment;
+            }
+            continue;
+        }
+
+        $normalizedSegments[] = $resolvedSegment;
     }
 
     return $normalizedSegments;
@@ -470,6 +514,18 @@ function resolve_local_channel_segment($segment, $celRows, $recordingStart, $rec
     }
 
     return $resolvedSegments;
+}
+
+function raw_segments_match($leftSegment, $rightSegment) {
+    foreach (array('start', 'end', 'primary_channel', 'peer_channel', 'audio_start_offset', 'audio_end_offset') as $field) {
+        $leftValue = array_key_exists($field, $leftSegment) ? $leftSegment[$field] : null;
+        $rightValue = array_key_exists($field, $rightSegment) ? $rightSegment[$field] : null;
+        if ($leftValue !== $rightValue) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 function build_channel_peer_intervals($celRows, $targetChannel, $windowStart, $windowEnd) {
