@@ -15,6 +15,9 @@ function satellite_get_config_late($engine) {
             $satellite_mixmonitor_options = 'br(/var/run/nethvoice/satellite-r-${UNIQUEID}-${CHANNEL(linkedid)}.wav)t(/var/run/nethvoice/satellite-t-${UNIQUEID}-${CHANNEL(linkedid)}.wav)i(${SATELLITE_LOCAL_MIXMON_ID})';
             $satellite_transcription_command = '/var/lib/asterisk/bin/satellite_transcript -u ${UNIQUEID} -l ${CHANNEL(linkedid)}';
 
+            // Add a call Satellite when call is answered in macro-dial-one adding it in D_OPTIONS variable
+            $ext->splice('macro-dial-one','s','dial', new \ext_setvar('D_OPTIONS', '${D_OPTIONS}U(satellite^s^1)'),'', -1);
+
             // extension-to-extension and trunk-to-extension delivery.
             $ext->splice('macro-exten-vm', 's', 'checkrecord', new ext_gosub('1', 's', 'sub-satellite-record-check', 'exten,${EXTTOCALL},yes'), 'satellite-check', 0);
 
@@ -43,14 +46,15 @@ function satellite_get_config_late($engine) {
                 }
             }
 
-            // Cover calls an extension makes to an external trunk.
-            if (function_exists('outbound_routes_list') && count(outbound_routes_list(true)) > 0) {
-                foreach (\FreePBX::OutboundRoutes()->listOutboundRoutes() as $route) {
-                    if (!isset($route[0]) || $route[0] === '') {
-                        continue;
+            $routes = core_routing_list();
+            if (!empty($routes)) {
+                foreach ($routes as $route) {
+                    $routetrunks = core_routing_getroutetrunksbyid($route['route_id']);
+                    if (!empty($routetrunks)) {
+                        $ext->splice('macro-dialout-trunk', 's', '', new \ext_setvar('DIAL_TRUNK_OPTIONS', '${DIAL_TRUNK_OPTIONS}U(satellite^s^1)'),'', 28);
+                        $ext->splice('macro-dialout-trunk', 's', '', new \ext_gosub('1', 's', 'sub-satellite-record-check', 'out,${DIAL_NUMBER},yes'),'', 28);
+                        break;
                     }
-
-                    $ext->splice('macro-dialout-trunk', 's', 'checkrecord', new ext_gosub('1', 's', 'sub-satellite-record-check', 'out,${DIAL_NUMBER},yes'), 'satellite-check', 0, $route[0]);
                 }
             }
 
