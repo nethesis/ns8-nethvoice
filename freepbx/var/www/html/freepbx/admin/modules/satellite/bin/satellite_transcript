@@ -70,81 +70,87 @@ function main($argv) {
         $usersByExtension = fetch_users_by_extension();
         $channelFacts = build_channel_facts($celRows, $cdrRows);
 
-        // First derive wall-clock segments from bridge activity, then rewrite
-        // Local channels to the real peer leg before resolving caller/callee data.
-        $rawSegments = build_bridge_segments($celRows, $primaryChannel, $recordingStart, $recordingEnd);
-        $rawSegments = normalize_local_channel_segments($rawSegments, $celRows, $recordingStart, $recordingEnd);
-        if (empty($rawSegments)) {
-            $rawSegments = build_cdr_fallback_segments($cdrRows, $primaryChannel, $uniqueid, $recordingStart, $recordingEnd);
-        }
+        // First derive wall-clock segments from bridge activity, drop broad
+        // queue/transfer container recordings already covered by a Local leg
+        // MixMonitor, then rewrite Local channels to the real peer leg.
+        $bridgeSegments = build_bridge_segments($celRows, $primaryChannel, $recordingStart, $recordingEnd);
+        $rawSegments = filter_superseded_segments($bridgeSegments, $celRows, $uniqueid);
+        if (!empty($bridgeSegments) && empty($rawSegments)) {
+            log_message("Skipping superseded transcription recording for uniqueid $uniqueid and linkedid $linkedid", __FILE__, __LINE__, __FUNCTION__);
+        } else {
+            $rawSegments = normalize_local_channel_segments($rawSegments, $celRows, $recordingStart, $recordingEnd);
+            if (empty($rawSegments)) {
+                $rawSegments = build_cdr_fallback_segments($cdrRows, $primaryChannel, $uniqueid, $recordingStart, $recordingEnd);
+            }
 
-        $segments = enrich_segments(
-            $rawSegments,
-            $cdrRows,
-            $channelFacts,
-            $usersByExtension,
-            $primaryChannel,
-            $uniqueid,
-            $fallbackChannel0Name,
-            $fallbackChannel1Name
-        );
-        $segments = coalesce_adjacent_segments($segments);
-
-        debug_log(
-            'Prepared transcription segments',
-            __FILE__,
-            __LINE__,
-            __FUNCTION__,
-            array(
-                'uniqueid' => $uniqueid,
-                'linkedid' => $linkedid,
-                'count' => count($segments),
-                'segments' => array_map('format_segment_row', $segments),
-            )
-        );
-
-        if (empty($segments)) {
-            fail("No usable transcription segments found for uniqueid $uniqueid and linkedid $linkedid");
-        }
-
-        $apiUrl = get_satellite_api_url();
-        foreach ($segments as $index => $segment) {
-            $segmentNumber = $index + 1;
-            $segmentUniqueid = $uniqueid;
-            debug_log(
-                'Preparing segment audio',
-                __FILE__,
-                __LINE__,
-                __FUNCTION__,
-                array(
-                    'segment_uniqueid' => $segmentUniqueid,
-                    'segment' => format_segment_row($segment),
-                )
-            );
-            $audioFile = create_segment_audio(
-                $segment,
-                $segmentNumber,
+            $segments = enrich_segments(
+                $rawSegments,
+                $cdrRows,
+                $channelFacts,
+                $usersByExtension,
+                $primaryChannel,
                 $uniqueid,
-                $linkedid,
-                $recordingStart,
-                $transmittedRecordingFile,
-                $receivedRecordingFile,
-                $tmpFiles
+                $fallbackChannel0Name,
+                $fallbackChannel1Name
             );
+            $segments = coalesce_adjacent_segments($segments);
 
-            $segment['audio_data'] = $audioFile;
             debug_log(
-                'Segment audio ready',
+                'Prepared transcription segments',
                 __FILE__,
                 __LINE__,
                 __FUNCTION__,
                 array(
-                    'segment_uniqueid' => $segmentUniqueid,
-                    'audio_file' => $audioFile,
-                    'size_bytes' => @filesize($audioFile),
+                    'uniqueid' => $uniqueid,
+                    'linkedid' => $linkedid,
+                    'count' => count($segments),
+                    'segments' => array_map('format_segment_row', $segments),
                 )
             );
-            post_segment_to_satellite($apiUrl, $segmentUniqueid, $linkedid, $segment);
+
+            if (empty($segments)) {
+                fail("No usable transcription segments found for uniqueid $uniqueid and linkedid $linkedid");
+            }
+
+            $apiUrl = get_satellite_api_url();
+            foreach ($segments as $index => $segment) {
+                $segmentNumber = $index + 1;
+                $segmentUniqueid = $uniqueid;
+                debug_log(
+                    'Preparing segment audio',
+                    __FILE__,
+                    __LINE__,
+                    __FUNCTION__,
+                    array(
+                        'segment_uniqueid' => $segmentUniqueid,
+                        'segment' => format_segment_row($segment),
+                    )
+                );
+                $audioFile = create_segment_audio(
+                    $segment,
+                    $segmentNumber,
+                    $uniqueid,
+                    $linkedid,
+                    $recordingStart,
+                    $transmittedRecordingFile,
+                    $receivedRecordingFile,
+                    $tmpFiles
+                );
+
+                $segment['audio_data'] = $audioFile;
+                debug_log(
+                    'Segment audio ready',
+                    __FILE__,
+                    __LINE__,
+                    __FUNCTION__,
+                    array(
+                        'segment_uniqueid' => $segmentUniqueid,
+                        'audio_file' => $audioFile,
+                        'size_bytes' => @filesize($audioFile),
+                    )
+                );
+                post_segment_to_satellite($apiUrl, $segmentUniqueid, $linkedid, $segment);
+            }
         }
 
         @unlink($receivedRecordingFile);
@@ -388,6 +394,61 @@ function build_bridge_segments($celRows, $primaryChannel, $recordingStart, $reco
     }
 
     return $segments;
+}
+
+function filter_superseded_segments($rawSegments, $celRows, $recordingUniqueid) {
+    $filteredSegments = array();
+
+    foreach ($rawSegments as $segment) {
+        if (is_segment_superseded_by_local_recording($segment, $celRows, $recordingUniqueid)) {
+            debug_log(
+                'Skipping segment superseded by Local leg recording: ' . describe_segment($segment),
+                __FILE__,
+                __LINE__,
+                __FUNCTION__,
+                array(
+                    'recording_uniqueid' => $recordingUniqueid,
+                )
+            );
+            continue;
+        }
+
+        $filteredSegments[] = $segment;
+    }
+
+    return $filteredSegments;
+}
+
+function is_segment_superseded_by_local_recording($segment, $celRows, $recordingUniqueid) {
+    foreach (array('peer_channel', 'primary_channel') as $field) {
+        if (empty($segment[$field]) || !is_local_channel($segment[$field])) {
+            continue;
+        }
+
+        if (local_channel_sibling_has_other_recording($celRows, $segment[$field], $recordingUniqueid)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function local_channel_sibling_has_other_recording($celRows, $localChannel, $recordingUniqueid) {
+    $siblingChannel = get_local_channel_sibling($localChannel);
+    if ($siblingChannel === '') {
+        return false;
+    }
+
+    foreach ($celRows as $row) {
+        if ($row['channame'] !== $siblingChannel || $row['uniqueid'] === $recordingUniqueid) {
+            continue;
+        }
+        if ($row['eventtype'] === 'APP_START' && $row['appname'] === 'MixMonitor') {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function normalize_local_channel_segments($rawSegments, $celRows, $recordingStart, $recordingEnd) {
@@ -1038,7 +1099,10 @@ function find_best_cdr_for_segment($cdrRows, $segment, $primaryChannel, $uniquei
         if ($cdr['disposition'] !== 'ANSWERED' || (int) $cdr['billsec'] <= 0) {
             continue;
         }
-        if ($cdr['channel'] !== $primaryChannel && $cdr['uniqueid'] !== $uniqueid) {
+
+        $matchesRecordingAnchor = ($segment['primary_channel'] === $primaryChannel || $segment['peer_channel'] === $primaryChannel)
+            && ($cdr['channel'] === $primaryChannel || $cdr['uniqueid'] === $uniqueid);
+        if (!cdr_matches_segment_channels($cdr, $segment) && !$matchesRecordingAnchor) {
             continue;
         }
 
@@ -1051,6 +1115,11 @@ function find_best_cdr_for_segment($cdrRows, $segment, $primaryChannel, $uniquei
         }
     }
     return $best;
+}
+
+function cdr_matches_segment_channels($cdr, $segment) {
+    return $cdr['channel'] === $segment['primary_channel']
+        && $cdr['dstchannel'] === $segment['peer_channel'];
 }
 
 function clamp_segment_to_cdr($segment, $cdr) {
