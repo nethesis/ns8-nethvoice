@@ -18,10 +18,9 @@
  * segment builder relies on it to track bridge membership.
  */
 
-define('SATELLITE_TRANSCRIPTION_LIBRARY_MODE', true);
-putenv('DEBUG=0');
+require_once __DIR__ . '/bootstrap.php';
 
-require_once dirname(__DIR__) . '/bin/satellite_transcript';
+satellite_test_bootstrap();
 
 $celRows = attended_transfer_cel_rows();
 $cdrRows = array();
@@ -170,28 +169,4 @@ function attended_transfer_cel_rows() {
         array('uniqueid' => '1777277927.999', 'linkedid' => '1777277927.999', 'eventtype' => 'CHAN_END', 'eventtime' => '2026-04-27 10:19:17', 'cid_name' => 'Foo One', 'cid_num' => '201', 'cid_ani' => '201', 'cid_dnid' => '202', 'channame' => 'PJSIP/201-0000003b', 'peer' => '', 'appname' => '', 'appdata' => '', 'accountcode' => '', 'exten' => ''),
         array('uniqueid' => '1777277927.999', 'linkedid' => '1777277927.999', 'eventtype' => 'LINKEDID_END', 'eventtime' => '2026-04-27 10:19:17', 'cid_name' => 'Foo One', 'cid_num' => '201', 'cid_ani' => '201', 'cid_dnid' => '202', 'channame' => 'PJSIP/201-0000003b', 'peer' => '', 'appname' => '', 'appdata' => '', 'accountcode' => '', 'exten' => ''),
     );
-}
-
-function assert_segment_labels($expectedLabels, $segments, $message) {
-    $actualLabels = array();
-    foreach ($segments as $segment) {
-        $actualLabels[] = party_label($segment['caller_name'], $segment['caller_num'], 'caller')
-            . ' -> '
-            . party_label($segment['callee_name'], $segment['callee_num'], 'callee');
-    }
-
-    assert_same($expectedLabels, $actualLabels, $message);
-}
-
-function assert_same($expected, $actual, $message) {
-    if ($expected !== $actual) {
-        fwrite(STDERR, "not ok - $message\n");
-        fwrite(STDERR, 'expected: ' . var_export($expected, true) . PHP_EOL);
-        fwrite(STDERR, 'actual:   ' . var_export($actual, true) . PHP_EOL);
-        exit(1);
-    }
-}
-
-function assert_true($value, $message) {
-    assert_same(true, $value, $message);
 }
