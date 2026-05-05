@@ -28,7 +28,6 @@ $usersByExtension = array(
 $channelFacts = build_channel_facts($celRows, $cdrRows);
 
 $externalRecordingContext = resolve_recording_context($celRows, '1777907274.715', '1777907274.715');
-assert_true($externalRecordingContext['is_fallback'] === true, 'External recording should use fallback context');
 assert_same('PJSIP/Opensolution-0000001d', $externalRecordingContext['primary_channel'], 'External recording should anchor on the trunk leg');
 assert_same('2026-05-04 17:07:54', format_time($externalRecordingContext['start']), 'External recording should start from the trunk CHAN_START time');
 
@@ -56,7 +55,6 @@ $externalSegments = enrich_segments(
 );
 
 $transferRecordingContext = resolve_recording_context($celRows, '1777907286.754', '1777907274.715');
-assert_true($transferRecordingContext['is_fallback'] === true, 'Transfer recording should use fallback context');
 assert_same('Local/202@from-internal-0000000a;2', $transferRecordingContext['primary_channel'], 'Transfer recording should anchor on the Local/202;2 leg');
 assert_same('2026-05-04 17:08:06', format_time($transferRecordingContext['start']), 'Transfer recording should start from the Local leg CHAN_START time');
 

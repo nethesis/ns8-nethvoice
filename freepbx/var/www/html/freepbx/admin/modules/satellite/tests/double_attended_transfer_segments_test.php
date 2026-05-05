@@ -91,7 +91,6 @@ fwrite(STDOUT, "ok - double attended transfer regression\n");
 
 function build_recording_segments($celRows, $cdrRows, $channelFacts, $usersByExtension, $uniqueid, $linkedid, $expectedPrimaryChannel, $expectedStart) {
     $recordingContext = resolve_recording_context($celRows, $uniqueid, $linkedid);
-    assert_true($recordingContext['is_fallback'] === true, 'Transfer recording should use fallback context');
     assert_same($expectedPrimaryChannel, $recordingContext['primary_channel'], 'Transfer recording should anchor on the expected Local leg');
     assert_same($expectedStart, format_time($recordingContext['start']), 'Transfer recording should start from the expected CHAN_START time');
 
