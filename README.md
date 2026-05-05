@@ -21,6 +21,19 @@ This module is intended to be used with the ns8-nethvoice-proxy module as SIP pr
 
 Module can be configured from cluster-admin NethServer 8 interface.
 
+### Reports rebranding
+
+Reports UI rebranding is managed from the cluster-admin `Rebranding` page. The selected values are propagated through the `get-rebranding` and `set-rebranding` tasks into the `REPORTS_UI_*` environment variables, then exposed to the `reports-ui` container and finally rendered into runtime configuration by `reports/ui/config-gen.sh`.
+
+The current report branding fields are:
+
+- `REPORTS_UI_BRAND_NAME`
+- `REPORTS_UI_LOGIN_PEOPLE`
+- `REPORTS_UI_LOGIN_LOGO_URL`
+- `REPORTS_UI_FAVICON_URL`
+- `REPORTS_UI_LOGIN_BACKGROUND_URL`
+- `REPORTS_UI_LOGIN_BACKGROUND_COLOR`
+
 To make also provisioniong RPS work with Falconieri, you need to manualy set `SUBSCRIPTION_SECRET` and `SUBSCRIPTION_SYSTEMID` into `~/.config/state/environment` 
 file and restart freepbx container with `systemctl --user restart freepbx`
 

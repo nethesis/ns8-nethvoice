@@ -41,6 +41,26 @@
         "rebranding_login_background_url": {
             "description": "NethVoice rebranding link to backround image",
             "type": "string"
+        },
+        "rebranding_reports_brand_name": {
+            "description": "NethVoice Reports brand name",
+            "type": "string"
+        },
+        "rebranding_reports_login_people": {
+            "description": "NethVoice Reports rebranding show/hide people on login",
+            "type": "string"
+        },
+        "rebranding_reports_login_logo_url": {
+            "description": "NethVoice Reports rebranding link to login logo",
+            "type": "string"
+        },
+        "rebranding_reports_favicon_url": {
+            "description": "NethVoice Reports rebranding link to favicon",
+            "type": "string"
+        },
+        "rebranding_reports_login_background_url": {
+            "description": "NethVoice Reports rebranding link to background image",
+            "type": "string"
         }
     }
 }

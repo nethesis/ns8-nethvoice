@@ -150,6 +150,8 @@
     "rebranding_favicon_url_tooltip": "Visualizzata nella scheda del browser. Dimensione consigliata: 32x32 px",
     "rebranding_login_logo_url": "Logo per il tema chiaro",
     "rebranding_login_logo_dark_url": "Logo per il tema scuro",
+    "cti_section": "Login CTI",
+    "reports_section": "Login Report",
     "login_page_preview": "Anteprima",
     "public_url_image_helper": "URL pubblico dell'immagine, consigliato formato SVG",
     "login_illustration": "Illustrazione nella pagina di login",

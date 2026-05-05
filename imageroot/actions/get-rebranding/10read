@@ -42,6 +42,11 @@ config = {
     'rebranding_login_logo_dark_url': os.getenv('LOGIN_LOGO_DARK_URL', ''),
     'rebranding_favicon_url': os.getenv('FAVICON_URL', ''),
     'rebranding_login_background_url': os.getenv('LOGIN_BACKGROUND_URL', ''),
+    'rebranding_reports_brand_name': os.getenv('REPORTS_UI_BRAND_NAME', 'NethVoice'),
+    'rebranding_reports_login_people': os.getenv('REPORTS_UI_LOGIN_PEOPLE', ''),
+    'rebranding_reports_login_logo_url': os.getenv('REPORTS_UI_LOGIN_LOGO_URL', ''),
+    'rebranding_reports_favicon_url': os.getenv('REPORTS_UI_FAVICON_URL', ''),
+    'rebranding_reports_login_background_url': os.getenv('REPORTS_UI_LOGIN_BACKGROUND_URL', ''),
 }
 
 json.dump(config, fp=sys.stdout)

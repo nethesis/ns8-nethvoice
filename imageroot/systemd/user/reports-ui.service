@@ -21,8 +21,14 @@ ExecStart=/usr/bin/podman run \
         --env APP_PORT=${REPORTS_API_PORT} \
         --env NETHVOICE_HOST \
         --env REPORTS_UI_APP_NAME \
+        --env REPORTS_UI_BRAND_NAME \
         --env REPORTS_UI_HELP_URL \
         --env REPORTS_UI_COMPANY_NAME \
+        --env REPORTS_UI_LOGIN_PEOPLE \
+        --env REPORTS_UI_LOGIN_LOGO_URL \
+        --env REPORTS_UI_FAVICON_URL \
+        --env REPORTS_UI_LOGIN_BACKGROUND_URL \
+        --env REPORTS_UI_LOGIN_BACKGROUND_COLOR \
         --network slirp4netns:allow_host_loopback=true \
         --publish 127.0.0.1:${REPORTS_UI_PORT}:80 \
         --name %N \

@@ -5,3 +5,6 @@ AGENTS.md
 NS8-MODULE.md
 .github/agents/
 COMPONENTS.md
+Containerfile
+deploys.sh
+DEVELOPMENT.md

@@ -12,7 +12,12 @@
             "rebranding_login_logo_url": "https://upload.example.org/images/logo.svg",
             "rebranding_login_logo_dark_url": "https://upload.example.org/images/logo_dark.svg",
             "rebranding_favicon_url": "https://upload.example.org/images/favicon.svg",
-            "rebranding_login_background_url": "https://upload.example.org/images/background.svg"
+            "rebranding_login_background_url": "https://upload.example.org/images/background.svg",
+            "rebranding_reports_brand_name": "NethVoice",
+            "rebranding_reports_login_people": "show",
+            "rebranding_reports_login_logo_url": "https://upload.example.org/images/reports-logo.svg",
+            "rebranding_reports_favicon_url": "https://upload.example.org/images/reports-favicon.svg",
+            "rebranding_reports_login_background_url": "https://upload.example.org/images/reports-background.svg"
         }
     ],
     "type": "object",
@@ -57,6 +62,26 @@
         },
         "rebranding_login_background_url": {
             "description": "NethVoice rebranding link to backround image",
+            "type": "string"
+        },
+        "rebranding_reports_brand_name": {
+            "description": "NethVoice Reports brand name",
+            "type": "string"
+        },
+        "rebranding_reports_login_people": {
+            "description": "NethVoice Reports rebranding show/hide people on login",
+            "type": "string"
+        },
+        "rebranding_reports_login_logo_url": {
+            "description": "NethVoice Reports rebranding link to login logo",
+            "type": "string"
+        },
+        "rebranding_reports_favicon_url": {
+            "description": "NethVoice Reports rebranding link to favicon",
+            "type": "string"
+        },
+        "rebranding_reports_login_background_url": {
+            "description": "NethVoice Reports rebranding link to background image",
             "type": "string"
         }
     }
