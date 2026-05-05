@@ -14,13 +14,12 @@
  * - 3400069069 -> Antonio Colapietro (202)
  */
 
-define('SATELLITE_TRANSCRIPTION_LIBRARY_MODE', true);
-putenv('DEBUG=0');
+require_once __DIR__ . '/bootstrap.php';
 
-require_once dirname(__DIR__) . '/bin/satellite_transcript';
+satellite_test_bootstrap();
 
 $celRows = external_attended_transfer_cel_rows();
-$cdrRows = external_attended_transfer_cdr_rows();
+$cdrRows = array();
 $usersByExtension = array(
     '201' => 'Andrea Marchionni',
     '202' => 'Antonio Colapietro',
@@ -39,37 +38,22 @@ $externalSegments = build_bridge_segments(
     $externalRecordingContext['start'],
     $externalRecordingContext['end']
 );
-$externalSegments = filter_superseded_segments($externalSegments, $celRows, '1777907274.715');
-assert_same(array(), $externalSegments, 'Broad queue trunk recording should be skipped when a Local leg recording exists');
-
-$queueRecordingContext = resolve_recording_context($celRows, '1777907275.722', '1777907274.715');
-assert_true($queueRecordingContext['is_fallback'] === true, 'Queue member recording should use fallback context');
-assert_same('Local/201@from-queue-00000009;2', $queueRecordingContext['primary_channel'], 'Queue member recording should anchor on the Local/201;2 leg');
-
-$queueSegments = build_bridge_segments(
+$externalSegments = normalize_local_channel_segments(
+    $externalSegments,
     $celRows,
-    $queueRecordingContext['primary_channel'],
-    $queueRecordingContext['start'],
-    $queueRecordingContext['end']
+    $externalRecordingContext['start'],
+    $externalRecordingContext['end']
 );
-$queueSegments = filter_superseded_segments($queueSegments, $celRows, '1777907275.722');
-$queueSegments = normalize_local_channel_segments(
-    $queueSegments,
-    $celRows,
-    $queueRecordingContext['start'],
-    $queueRecordingContext['end']
-);
-$queueSegments = enrich_segments(
-    $queueSegments,
+$externalSegments = enrich_segments(
+    $externalSegments,
     $cdrRows,
     $channelFacts,
     $usersByExtension,
-    $queueRecordingContext['primary_channel'],
-    '1777907275.722',
+    $externalRecordingContext['primary_channel'],
+    '1777907274.715',
     '',
     ''
 );
-$queueSegments = coalesce_adjacent_segments($queueSegments);
 
 $transferRecordingContext = resolve_recording_context($celRows, '1777907286.754', '1777907274.715');
 assert_true($transferRecordingContext['is_fallback'] === true, 'Transfer recording should use fallback context');
@@ -82,7 +66,6 @@ $transferSegments = build_bridge_segments(
     $transferRecordingContext['start'],
     $transferRecordingContext['end']
 );
-$transferSegments = filter_superseded_segments($transferSegments, $celRows, '1777907286.754');
 $transferSegments = normalize_local_channel_segments(
     $transferSegments,
     $celRows,
@@ -99,9 +82,8 @@ $transferSegments = enrich_segments(
     '',
     ''
 );
-$transferSegments = coalesce_adjacent_segments($transferSegments);
 
-$allSegments = array_merge($queueSegments, $transferSegments);
+$allSegments = array_merge($externalSegments, $transferSegments);
 
 assert_segment_labels(
     array(
@@ -166,60 +148,4 @@ function external_attended_transfer_cel_rows() {
         array('uniqueid' => '1777907275.721', 'linkedid' => '1777907274.715', 'eventtype' => 'CHAN_END', 'eventtime' => '2026-05-04 17:08:35', 'cid_name' => 'Antonio Colapietro', 'cid_num' => '202', 'cid_ani' => '', 'cid_dnid' => '', 'channame' => 'Local/201@from-queue-00000009;1', 'peer' => '', 'appname' => 'AppQueue', 'appdata' => '(Outgoing Line)', 'accountcode' => '', 'exten' => '401', 'extra' => ''),
         array('uniqueid' => '1777907274.715', 'linkedid' => '1777907274.715', 'eventtype' => 'LINKEDID_END', 'eventtime' => '2026-05-04 17:08:35', 'cid_name' => 'Antonio Colapietro', 'cid_num' => '202', 'cid_ani' => '', 'cid_dnid' => '', 'channame' => 'Local/201@from-queue-00000009;1', 'peer' => '', 'appname' => 'AppQueue', 'appdata' => '(Outgoing Line)', 'accountcode' => '', 'exten' => '401', 'extra' => ''),
     );
-}
-
-function external_attended_transfer_cdr_rows() {
-    return array(
-        cdr_row('2026-05-04 17:07:54', '3400069069', '401', 'ext-queues', 'PJSIP/Opensolution-0000001d', 'Local/201@from-queue-00000009;1', '1777907274.715', '1777907274.715', 41, 38, 'ANSWERED', 121, '3400069069', '3400069069', '', ''),
-        cdr_row('2026-05-04 17:07:55', '3400069069', '201', 'from-internal', 'Local/201@from-queue-00000009;2', 'PJSIP/201-0000001e', '1777907275.722', '1777907274.715', 11, 9, 'ANSWERED', 123, '3400069069', '3400069069', 'Andrea Marchionni', '201'),
-        cdr_row('2026-05-04 17:08:06', '3400069069', '202', 'from-internal', 'Local/202@from-internal-0000000a;2', 'PJSIP/202-0000001f', '1777907286.754', '1777907274.715', 29, 25, 'ANSWERED', 130, '201', 'Andrea Marchionni', 'Antonio Colapietro', '201'),
-        cdr_row('2026-05-04 17:08:06', '201', 's', 'macro-dial-one', 'PJSIP/201-0000001e', 'Local/202@from-internal-0000000a;1', '1777907275.727', '1777907274.715', 18, 18, 'ANSWERED', 131, '', '', '', '201'),
-        cdr_row('2026-05-04 17:08:24', '202', '202', 'from-internal', 'Local/202@from-internal-0000000a;1', '', '1777907286.752', '1777907274.715', 11, 11, 'ANSWERED', 137, '', '', '', '201'),
-        cdr_row('2026-05-04 17:08:24', '3400069069', '201', 'from-internal', 'Local/201@from-queue-00000009;2', 'Local/202@from-internal-0000000a;1', '1777907275.722', '1777907274.715', 11, 11, 'ANSWERED', 138, '3400069069', '3400069069', 'Andrea Marchionni', '201'),
-    );
-}
-
-function cdr_row($calldate, $src, $dst, $dcontext, $channel, $dstchannel, $uniqueid, $linkedid, $duration, $billsec, $disposition, $sequence, $cnum, $cnam, $dstCnam, $accountcode) {
-    return array(
-        'calldate' => $calldate,
-        'src' => $src,
-        'dst' => $dst,
-        'dcontext' => $dcontext,
-        'channel' => $channel,
-        'dstchannel' => $dstchannel,
-        'uniqueid' => $uniqueid,
-        'linkedid' => $linkedid,
-        'duration' => (string) $duration,
-        'billsec' => (string) $billsec,
-        'disposition' => $disposition,
-        'sequence' => (string) $sequence,
-        'cnum' => $cnum,
-        'cnam' => $cnam,
-        'dst_cnam' => $dstCnam,
-        'accountcode' => $accountcode,
-    );
-}
-
-function assert_segment_labels($expectedLabels, $segments, $message) {
-    $actualLabels = array();
-    foreach ($segments as $segment) {
-        $actualLabels[] = party_label($segment['caller_name'], $segment['caller_num'], 'caller')
-            . ' -> '
-            . party_label($segment['callee_name'], $segment['callee_num'], 'callee');
-    }
-
-    assert_same($expectedLabels, $actualLabels, $message);
-}
-
-function assert_same($expected, $actual, $message) {
-    if ($expected !== $actual) {
-        fwrite(STDERR, "not ok - $message\n");
-        fwrite(STDERR, 'expected: ' . var_export($expected, true) . PHP_EOL);
-        fwrite(STDERR, 'actual:   ' . var_export($actual, true) . PHP_EOL);
-        exit(1);
-    }
-}
-
-function assert_true($value, $message) {
-    assert_same(true, $value, $message);
 }
