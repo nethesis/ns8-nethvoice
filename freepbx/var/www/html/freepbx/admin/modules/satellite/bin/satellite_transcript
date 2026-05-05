@@ -862,6 +862,12 @@ function find_active_peer($bridgeMembers, $primaryChannel) {
             return $peers[0];
         }
         if (count($peers) > 1) {
+            $nonLocalPeers = array_values(array_filter($peers, function ($channel) {
+                return !is_local_channel($channel);
+            }));
+            if (count($nonLocalPeers) === 1) {
+                return $nonLocalPeers[0];
+            }
             return false;
         }
     }
