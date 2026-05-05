@@ -92,6 +92,7 @@ upstream `nethesis/satellite` API implementation too.
   `tests/attended_transfer_segments_test.php`,
   `tests/external_attended_transfer_segments_test.php`,
   `tests/double_attended_transfer_segments_test.php`, and
+  `tests/four_way_two_transfers_test.php`, and
   `tests/upload_fields_test.php`.
 - These are pure PHP library tests, not end-to-end telephony or HTTP tests.
 - Shared setup and assertions now live in `tests/bootstrap.php`; new tests
@@ -99,6 +100,7 @@ upstream `nethesis/satellite` API implementation too.
   duplicating the helper load and assertion functions.
 - Coverage now includes fallback recording anchors, Local-channel
   normalization, chained attended transfers, external-call transfers,
+  four-way/two-transfer handoffs with stale Local hold legs,
   adjacent-segment merge across Local-to-PJSIP handoff, and upload field
   validation.
 - Pattern: build minimal inline CEL/CDR fixtures, include `extra.bridge_id` on
