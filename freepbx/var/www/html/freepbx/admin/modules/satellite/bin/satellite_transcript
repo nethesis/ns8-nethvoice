@@ -175,62 +175,47 @@ function usage($exitCode) {
 }
 
 function parse_args($argv) {
+    // Maps every accepted alias (short, long-snake, long-kebab) to its option key.
+    $aliases = array(
+        '-h' => 'help', '--help' => 'help',
+        '-u' => 'uniqueid', '--uniqueid' => 'uniqueid',
+        '-l' => 'linkedid', '--linkedid' => 'linkedid',
+        '-c0' => 'channel0_name', '--channel0_name' => 'channel0_name', '--channel0-name' => 'channel0_name',
+        '-c1' => 'channel1_name', '--channel1_name' => 'channel1_name', '--channel1-name' => 'channel1_name',
+    );
+    $valuelessOptions = array('help' => true);
+
     $options = array();
-    for ($i = 1; $i < count($argv); $i++) {
+    $count = count($argv);
+    for ($i = 1; $i < $count; $i++) {
         $arg = $argv[$i];
-        switch ($arg) {
-            case '-h':
-            case '--help':
-                $options['help'] = true;
-                break;
-            case '-u':
-            case '--uniqueid':
-                $options['uniqueid'] = require_next_arg($argv, $i, $arg);
-                $i++;
-                break;
-            case '-l':
-            case '--linkedid':
-                $options['linkedid'] = require_next_arg($argv, $i, $arg);
-                $i++;
-                break;
-            case '-c0':
-            case '--channel0_name':
-            case '--channel0-name':
-                $options['channel0_name'] = require_next_arg($argv, $i, $arg);
-                $i++;
-                break;
-            case '-c1':
-            case '--channel1_name':
-            case '--channel1-name':
-                $options['channel1_name'] = require_next_arg($argv, $i, $arg);
-                $i++;
-                break;
-            default:
-                if (strpos($arg, '--uniqueid=') === 0) {
-                    $options['uniqueid'] = substr($arg, strlen('--uniqueid='));
-                } elseif (strpos($arg, '--linkedid=') === 0) {
-                    $options['linkedid'] = substr($arg, strlen('--linkedid='));
-                } elseif (strpos($arg, '--channel0_name=') === 0) {
-                    $options['channel0_name'] = substr($arg, strlen('--channel0_name='));
-                } elseif (strpos($arg, '--channel0-name=') === 0) {
-                    $options['channel0_name'] = substr($arg, strlen('--channel0-name='));
-                } elseif (strpos($arg, '--channel1_name=') === 0) {
-                    $options['channel1_name'] = substr($arg, strlen('--channel1_name='));
-                } elseif (strpos($arg, '--channel1-name=') === 0) {
-                    $options['channel1_name'] = substr($arg, strlen('--channel1-name='));
-                } else {
-                    fail("Unknown argument $arg");
-                }
+
+        // Support `--name=value` form by splitting on the first '='.
+        $value = null;
+        if (strpos($arg, '--') === 0 && ($eq = strpos($arg, '=')) !== false) {
+            $value = substr($arg, $eq + 1);
+            $arg = substr($arg, 0, $eq);
         }
+
+        if (!isset($aliases[$arg])) {
+            fail("Unknown argument $arg");
+        }
+        $key = $aliases[$arg];
+
+        if (isset($valuelessOptions[$key])) {
+            $options[$key] = true;
+            continue;
+        }
+
+        if ($value === null) {
+            if (!isset($argv[$i + 1]) || substr($argv[$i + 1], 0, 1) === '-') {
+                fail("$arg requires a value");
+            }
+            $value = $argv[++$i];
+        }
+        $options[$key] = $value;
     }
     return $options;
-}
-
-function require_next_arg($argv, $index, $option) {
-    if (!isset($argv[$index + 1]) || substr($argv[$index + 1], 0, 1) === '-') {
-        fail("$option requires a value");
-    }
-    return $argv[$index + 1];
 }
 
 function fetch_cel_rows($cdrdb, $linkedid) {
@@ -248,32 +233,10 @@ function fetch_cdr_rows($cdrdb, $linkedid) {
 }
 
 function resolve_recording_context($celRows, $uniqueid, $linkedid) {
-    $recordingEvent = null;
-
-    foreach ($celRows as $row) {
-        if ($row['uniqueid'] !== $uniqueid || $row['linkedid'] !== $linkedid) {
-            continue;
-        }
-        if (trim((string) $row['channame']) === '') {
-            continue;
-        }
-        if ($row['eventtype'] === 'CHAN_START') {
-            $recordingEvent = $row;
-            break;
-        }
-    }
-
-    if ($recordingEvent === null) {
-        foreach ($celRows as $row) {
-            if ($row['uniqueid'] !== $uniqueid || $row['linkedid'] !== $linkedid) {
-                continue;
-            }
-            if (trim((string) $row['channame']) !== '') {
-                $recordingEvent = $row;
-                break;
-            }
-        }
-    }
+    // Transfers can start MixMonitor on Local legs before the final bridged
+    // peer is visible, so the safest anchor is the channel lifetime (CHAN_START
+    // -> HANGUP/CHAN_END), not the MixMonitor APP_START event.
+    $recordingEvent = find_recording_anchor($celRows, $uniqueid, $linkedid);
 
     if ($recordingEvent === null) {
         fail("No recording anchor event found for uniqueid $uniqueid and linkedid $linkedid");
@@ -291,15 +254,31 @@ function resolve_recording_context($celRows, $uniqueid, $linkedid) {
         )
     );
 
-    // Transfers can start MixMonitor on Local legs before the final bridged peer
-    // is visible, so the safest anchor is the channel lifetime, not app events.
     return array(
         'event' => $recordingEvent,
         'start' => parse_time($recordingEvent['eventtime']),
         'end' => find_recording_end_time($celRows, $recordingEvent),
         'primary_channel' => $recordingEvent['channame'],
-        'is_fallback' => true,
     );
+}
+
+function find_recording_anchor($celRows, $uniqueid, $linkedid) {
+    $firstWithChannel = null;
+    foreach ($celRows as $row) {
+        if ($row['uniqueid'] !== $uniqueid || $row['linkedid'] !== $linkedid) {
+            continue;
+        }
+        if (trim((string) $row['channame']) === '') {
+            continue;
+        }
+        if ($row['eventtype'] === 'CHAN_START') {
+            return $row;
+        }
+        if ($firstWithChannel === null) {
+            $firstWithChannel = $row;
+        }
+    }
+    return $firstWithChannel;
 }
 
 function find_recording_end_time($celRows, $recordingEvent) {
@@ -1032,6 +1011,9 @@ function enrich_segments($rawSegments, $cdrRows, $channelFacts, $usersByExtensio
 }
 
 function coalesce_adjacent_segments($segments) {
+    // Attended transfers can briefly swap a Local leg for the final PJSIP leg
+    // without changing who is speaking, so we merge back-to-back slices when
+    // both the participant labels and the audio timeline line up.
     $coalescedSegments = array();
 
     foreach ($segments as $segment) {
@@ -1042,76 +1024,12 @@ function coalesce_adjacent_segments($segments) {
         }
 
         $previousSegment = $coalescedSegments[$lastIndex];
-        $previousHasAudioOffsets = isset($previousSegment['audio_start_offset'], $previousSegment['audio_end_offset'])
-            && $previousSegment['audio_start_offset'] !== null
-            && $previousSegment['audio_end_offset'] !== null;
-        $currentHasAudioOffsets = isset($segment['audio_start_offset'], $segment['audio_end_offset'])
-            && $segment['audio_start_offset'] !== null
-            && $segment['audio_end_offset'] !== null;
-        $sameParties = true;
-
-        foreach (array('caller', 'callee') as $role) {
-            $numberKey = $role . '_num';
-            $nameKey = $role . '_name';
-            $previousNumber = trim((string) $previousSegment[$numberKey]);
-            $currentNumber = trim((string) $segment[$numberKey]);
-            $previousName = trim((string) $previousSegment[$nameKey]);
-            $currentName = trim((string) $segment[$nameKey]);
-
-            if ($previousNumber !== '' && $currentNumber !== '') {
-                if ($previousNumber !== $currentNumber) {
-                    $sameParties = false;
-                    break;
-                }
-                continue;
-            }
-
-            if ($previousName !== '' && $currentName !== '') {
-                if ($previousName !== $currentName) {
-                    $sameParties = false;
-                    break;
-                }
-                continue;
-            }
-
-            if ($previousNumber !== $currentNumber || $previousName !== $currentName) {
-                $sameParties = false;
-                break;
-            }
-        }
-
-        // Attended transfers can briefly swap a Local leg for the final PJSIP
-        // leg without changing who is speaking, so merge back-to-back slices
-        // when both the participant labels and audio timeline line up.
-        $sameConversation = $sameParties
-            && abs((float) $previousSegment['end'] - (float) $segment['start']) < 0.001
-            && $previousHasAudioOffsets === $currentHasAudioOffsets
-            && (!$previousHasAudioOffsets
-                || abs((float) $previousSegment['audio_end_offset'] - (float) $segment['audio_start_offset']) < 0.001);
-
-        if (!$sameConversation) {
+        if (!segments_are_continuation($previousSegment, $segment)) {
             $coalescedSegments[] = $segment;
             continue;
         }
 
-        $mergedSegment = $previousSegment;
-        $mergedSegment['end'] = $segment['end'];
-        $mergedSegment['audio_end_offset'] = isset($segment['audio_end_offset']) ? $segment['audio_end_offset'] : null;
-
-        foreach (array('caller_num', 'caller_name', 'callee_num', 'callee_name') as $field) {
-            if (trim((string) $mergedSegment[$field]) === '' && trim((string) $segment[$field]) !== '') {
-                $mergedSegment[$field] = $segment[$field];
-            }
-        }
-
-        if (is_local_channel($mergedSegment['peer_channel']) && !is_local_channel($segment['peer_channel'])) {
-            $mergedSegment['peer_channel'] = $segment['peer_channel'];
-        }
-
-        if (is_local_channel($mergedSegment['primary_channel']) && !is_local_channel($segment['primary_channel'])) {
-            $mergedSegment['primary_channel'] = $segment['primary_channel'];
-        }
-
+        $mergedSegment = merge_segment_pair($previousSegment, $segment);
         debug_log(
             'Coalesced adjacent transcription segments',
             __FILE__,
@@ -1123,11 +1041,83 @@ function coalesce_adjacent_segments($segments) {
                 'merged_segment' => format_segment_row($mergedSegment),
             )
         );
-
         $coalescedSegments[$lastIndex] = $mergedSegment;
     }
 
     return $coalescedSegments;
+}
+
+function segments_are_continuation($previousSegment, $segment) {
+    if (!segments_have_same_parties($previousSegment, $segment)) {
+        return false;
+    }
+    if (abs((float) $previousSegment['end'] - (float) $segment['start']) >= 0.001) {
+        return false;
+    }
+    $previousHasAudio = has_audio_offsets($previousSegment);
+    $currentHasAudio = has_audio_offsets($segment);
+    if ($previousHasAudio !== $currentHasAudio) {
+        return false;
+    }
+    if (!$previousHasAudio) {
+        return true;
+    }
+    return abs((float) $previousSegment['audio_end_offset'] - (float) $segment['audio_start_offset']) < 0.001;
+}
+
+function segments_have_same_parties($previousSegment, $segment) {
+    foreach (array('caller', 'callee') as $role) {
+        $previousNumber = trim((string) $previousSegment[$role . '_num']);
+        $currentNumber = trim((string) $segment[$role . '_num']);
+        $previousName = trim((string) $previousSegment[$role . '_name']);
+        $currentName = trim((string) $segment[$role . '_name']);
+
+        // Prefer numbers when both sides have one; otherwise fall back to names.
+        if ($previousNumber !== '' && $currentNumber !== '') {
+            if ($previousNumber !== $currentNumber) {
+                return false;
+            }
+            continue;
+        }
+        if ($previousName !== '' && $currentName !== '') {
+            if ($previousName !== $currentName) {
+                return false;
+            }
+            continue;
+        }
+        if ($previousNumber !== $currentNumber || $previousName !== $currentName) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function has_audio_offsets($segment) {
+    return isset($segment['audio_start_offset'], $segment['audio_end_offset'])
+        && $segment['audio_start_offset'] !== null
+        && $segment['audio_end_offset'] !== null;
+}
+
+function merge_segment_pair($previousSegment, $segment) {
+    $merged = $previousSegment;
+    $merged['end'] = $segment['end'];
+    $merged['audio_end_offset'] = isset($segment['audio_end_offset']) ? $segment['audio_end_offset'] : null;
+
+    foreach (array('caller_num', 'caller_name', 'callee_num', 'callee_name') as $field) {
+        if (trim((string) $merged[$field]) === '' && trim((string) $segment[$field]) !== '') {
+            $merged[$field] = $segment[$field];
+        }
+    }
+
+    // Prefer the real PJSIP/SIP/DAHDI channel name once a Local leg has been
+    // collapsed by the consult-finalized handoff.
+    foreach (array('primary_channel', 'peer_channel') as $field) {
+        if (is_local_channel($merged[$field]) && !is_local_channel($segment[$field])) {
+            $merged[$field] = $segment[$field];
+        }
+    }
+
+    return $merged;
 }
 
 function find_best_cdr_for_segment($cdrRows, $segment, $primaryChannel, $uniqueid) {
@@ -1350,9 +1340,9 @@ function create_segment_audio($segment, $segmentNumber, $uniqueid, $linkedid, $r
     $tmpFiles[] = $tmpR;
     $tmpFiles[] = $tmpStereo;
 
-    // Satellite expects a stereo clip for each slice, built from the already
-    // recorded transmit and receive legs of the call. Keep the merged clip on
-    // disk after upload so it can be inspected during debugging.
+    // Satellite expects a stereo clip for each slice, built by stitching the
+    // already recorded transmit and receive legs together with sox. The slice
+    // files are deleted by `cleanup_tmp_files()` once the upload completes.
     run_command(array('sox', $transmittedRecordingFile, $tmpT, 'trim', format_seconds($offset), format_seconds($duration)));
     run_command(array('sox', $receivedRecordingFile, $tmpR, 'trim', format_seconds($offset), format_seconds($duration)));
     run_command(array('sox', '-M', $tmpT, $tmpR, $tmpStereo));

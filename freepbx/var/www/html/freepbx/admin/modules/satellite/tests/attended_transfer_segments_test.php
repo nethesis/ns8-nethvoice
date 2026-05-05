@@ -82,7 +82,6 @@ $firstLegSegments = enrich_segments(
 );
 
 $transferRecordingContext = resolve_recording_context($celRows, '1777277942.1012', '1777277927.999');
-assert_true($transferRecordingContext['is_fallback'] === true, 'Transfer recording should use fallback context even when MixMonitor APP_START exists');
 assert_same('Local/203@from-internal-00000013;2', $transferRecordingContext['primary_channel'], 'Fallback context should anchor on the Local/203;2 recording leg');
 assert_same('2026-04-27 10:19:02', format_time($transferRecordingContext['start']), 'Fallback context should start from the Local leg CHAN_START time');
 
