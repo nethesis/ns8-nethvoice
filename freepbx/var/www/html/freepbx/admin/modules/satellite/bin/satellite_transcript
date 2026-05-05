@@ -305,17 +305,41 @@ function resolve_recording_context($celRows, $uniqueid, $linkedid) {
 function find_recording_end_time($celRows, $recordingEvent) {
     $endTime = null;
     $fallbackEndTime = null;
+    $nextRecordingStartTime = null;
+    $recordingStartTime = parse_time($recordingEvent['eventtime']);
+    $recordingChannel = trim((string) $recordingEvent['channame']);
+    $truncateAtNextLocalRecording = is_local_recording_channel($recordingChannel);
+
     foreach ($celRows as $row) {
+        $rowTime = parse_time($row['eventtime']);
         if ($row['linkedid'] === $recordingEvent['linkedid']) {
-            $fallbackEndTime = parse_time($row['eventtime']);
+            $fallbackEndTime = $rowTime;
         }
         if ($row['uniqueid'] === $recordingEvent['uniqueid']
             && ($row['eventtype'] === 'HANGUP' || $row['eventtype'] === 'CHAN_END')
             && $row['channame'] === $recordingEvent['channame']) {
-            $endTime = parse_time($row['eventtime']);
+            $endTime = $rowTime;
+        }
+        if ($truncateAtNextLocalRecording
+            && $row['linkedid'] === $recordingEvent['linkedid']
+            && $row['eventtype'] === 'CHAN_START'
+            && $rowTime > $recordingStartTime
+            && trim((string) $row['channame']) !== $recordingChannel
+            && is_local_recording_channel($row['channame'])) {
+            $nextRecordingStartTime = $rowTime;
+            break;
         }
     }
+
+    if ($nextRecordingStartTime !== null && ($endTime === null || $nextRecordingStartTime < $endTime)) {
+        return $nextRecordingStartTime;
+    }
+
     return $endTime !== null ? $endTime : $fallbackEndTime;
+}
+
+function is_local_recording_channel($channel) {
+    return preg_match('#^Local/[^;]+;2$#', trim((string) $channel)) === 1;
 }
 
 function build_bridge_segments($celRows, $primaryChannel, $recordingStart, $recordingEnd) {
@@ -352,14 +376,9 @@ function build_bridge_segments($celRows, $primaryChannel, $recordingStart, $reco
             if ($bridgeId === '') {
                 continue;
             }
-            if (!isset($bridgeMembers[$bridgeId])) {
-                $bridgeMembers[$bridgeId] = array();
-            }
-            $bridgeMembers[$bridgeId][$channel] = true;
-            $channelBridge[$channel] = $bridgeId;
+            set_channel_bridge_membership($bridgeMembers, $channelBridge, $bridgeId, $channel);
             if (!empty($row['peer'])) {
-                $bridgeMembers[$bridgeId][$row['peer']] = true;
-                $channelBridge[$row['peer']] = $bridgeId;
+                set_channel_bridge_membership($bridgeMembers, $channelBridge, $bridgeId, $row['peer']);
             }
         } elseif ($eventType === 'BRIDGE_EXIT') {
             close_segment_if_channel_matches($segments, $currentSegment, $channel, $eventTime, $recordedAudioSeconds, $row, 'bridge exit');
@@ -656,14 +675,9 @@ function apply_bridge_event(&$bridgeMembers, &$channelBridge, $row) {
         if ($bridgeId === '') {
             return false;
         }
-        if (!isset($bridgeMembers[$bridgeId])) {
-            $bridgeMembers[$bridgeId] = array();
-        }
-        $bridgeMembers[$bridgeId][$channel] = true;
-        $channelBridge[$channel] = $bridgeId;
+        set_channel_bridge_membership($bridgeMembers, $channelBridge, $bridgeId, $channel);
         if (!empty($row['peer'])) {
-            $bridgeMembers[$bridgeId][$row['peer']] = true;
-            $channelBridge[$row['peer']] = $bridgeId;
+            set_channel_bridge_membership($bridgeMembers, $channelBridge, $bridgeId, $row['peer']);
         }
         return true;
     }
@@ -726,6 +740,24 @@ function close_segment_if_channel_matches(&$segments, &$currentSegment, $channel
     );
     add_segment_if_valid($segments, $currentSegment);
     $currentSegment = null;
+}
+
+function set_channel_bridge_membership(&$bridgeMembers, &$channelBridge, $bridgeId, $channel) {
+    $channel = trim((string) $channel);
+    if ($channel === '') {
+        return;
+    }
+
+    if (isset($channelBridge[$channel]) && $channelBridge[$channel] !== $bridgeId) {
+        remove_channel_from_bridge($bridgeMembers, $channelBridge, $channel);
+    }
+
+    if (!isset($bridgeMembers[$bridgeId])) {
+        $bridgeMembers[$bridgeId] = array();
+    }
+
+    $bridgeMembers[$bridgeId][$channel] = true;
+    $channelBridge[$channel] = $bridgeId;
 }
 
 function update_current_segment(&$segments, &$currentSegment, $primaryChannel, $activePeer, $eventTime, $recordedAudioSeconds, $eventRow = null) {

@@ -86,13 +86,22 @@ upstream `nethesis/satellite` API implementation too.
 
 ## Tests
 
-- Only in-tree regression test today: `tests/attended_transfer_segments_test.php`.
-- It is a pure PHP library test, not an end-to-end telephony or HTTP test.
-- It covers fallback recording anchors, Local-channel normalization,
-  participant labels after transfer, and adjacent-segment merge across a
-  Local-to-PJSIP handoff.
-- Pattern: set `SATELLITE_TRANSCRIPTION_LIBRARY_MODE`, `require_once` the
-  helper, build minimal inline CEL/CDR fixtures, include `extra.bridge_id` on
+- Use `tests/run_transcription_tests.php` as the single entrypoint for the
+  in-tree Satellite transcription regressions.
+- Current regression files are:
+  `tests/attended_transfer_segments_test.php`,
+  `tests/external_attended_transfer_segments_test.php`,
+  `tests/double_attended_transfer_segments_test.php`, and
+  `tests/upload_fields_test.php`.
+- These are pure PHP library tests, not end-to-end telephony or HTTP tests.
+- Shared setup and assertions now live in `tests/bootstrap.php`; new tests
+  should `require_once` it and call `satellite_test_bootstrap(...)` instead of
+  duplicating the helper load and assertion functions.
+- Coverage now includes fallback recording anchors, Local-channel
+  normalization, chained attended transfers, external-call transfers,
+  adjacent-segment merge across Local-to-PJSIP handoff, and upload field
+  validation.
+- Pattern: build minimal inline CEL/CDR fixtures, include `extra.bridge_id` on
   bridge events, add `HANGUP` / `CHAN_END` when end-time behavior matters, and
   add CDR rows only when the scenario needs clamp or fallback.
 
