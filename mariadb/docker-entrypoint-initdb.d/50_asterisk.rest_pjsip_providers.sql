@@ -32,5 +32,4 @@ INSERT INTO `rest_pjsip_providers` (`id`,`provider`,`description`) VALUES
 (27,"wic-voip","WiC VoIP"),
 (28,"netoip","NetoIP"),
 (29,"mynet","MyNet (cloud1b.voicer.it)"),
-(30,"oval","OVAL"),
-(31,"enegan","Enegan");
+(30,"oval","OVAL");
