@@ -65,88 +65,41 @@
                   </i18n>
                 </template>
               </NsTextInput>
-              <template v-if="hasDeepgramApiKey">
-                <NsToggle
-                  :label="$t('integrations.call_transcription')"
-                  value="isCallTranscriptionEnabled"
-                  :disabled="loading.setIntegrations"
-                  v-model="isCallTranscriptionEnabled"
-                >
-                  <template slot="text-left">
-                    {{ $t("common.disabled") }}
-                  </template>
-                  <template slot="text-right">
-                    {{ $t("common.enabled") }}
-                  </template>
-                </NsToggle>
-                <NsInlineNotification
-                  v-if="isCallTranscriptionEnabled"
-                  kind="warning"
-                  :title="$t('integrations.call_transcription_warning_title')"
-                  :description="
-                    $t('integrations.call_transcription_warning_description')
-                  "
-                  :showCloseButton="false"
-                />
-                <NsToggle
-                  :label="$t('integrations.voicemail_transcription_enabled')"
-                  value="isVoicemailTranscriptionEnabled"
-                  :disabled="loading.setIntegrations"
-                  v-model="isVoicemailTranscriptionEnabled"
-                >
-                  <template slot="text-left">
-                    {{ $t("common.disabled") }}
-                  </template>
-                  <template slot="text-right">
-                    {{ $t("common.enabled") }}
-                  </template>
-                </NsToggle>
-                <NsTextInput
-                  :label="$t('integrations.openai_api_key')"
-                  v-model.trim="openaiApiKey"
-                  :placeholder="
-                    $t('common.eg_value', {
-                      value: 'sk-proj-1234567890abcdef',
-                    })
-                  "
-                  :disabled="loading.setIntegrations"
-                  :invalid-message="error.openai_api_key"
-                  tooltipAlignment="end"
-                  tooltipDirection="right"
-                  ref="openai_api_key"
-                >
-                  <template slot="tooltip">
-                    <i18n path="integrations.openai_api_key_tooltip" tag="span">
-                      <template #openaiLink>
-                        <cv-link
-                          href="https://platform.openai.com/api-keys"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          platform.openai.com
-                        </cv-link>
-                      </template>
-                    </i18n>
-                  </template>
-                </NsTextInput>
-                <NsToggle
-                  :label="$t('integrations.call_summary')"
-                  value="isCallSummaryEnabled"
-                  :disabled="
-                    !hasOpenaiApiKey ||
-                    !isCallTranscriptionEnabled ||
-                    loading.setIntegrations
-                  "
-                  v-model="isCallSummaryEnabled"
-                >
-                  <template slot="text-left">
-                    {{ $t("common.disabled") }}
-                  </template>
-                  <template slot="text-right">
-                    {{ $t("common.enabled") }}
-                  </template>
-                </NsToggle>
-              </template>
+              <NsToggle
+                :label="$t('integrations.call_transcription')"
+                value="isCallTranscriptionEnabled"
+                :disabled="!deepgramApiKey || loading.setIntegrations"
+                v-model="isCallTranscriptionEnabled"
+              >
+                <template slot="text-left">
+                  {{ $t("common.disabled") }}
+                </template>
+                <template slot="text-right">
+                  {{ $t("common.enabled") }}
+                </template>
+              </NsToggle>
+              <NsInlineNotification
+                v-if="isCallTranscriptionEnabled"
+                kind="warning"
+                :title="$t('integrations.call_transcription_warning_title')"
+                :description="
+                  $t('integrations.call_transcription_warning_description')
+                "
+                :showCloseButton="false"
+              />
+              <NsToggle
+                :label="$t('integrations.voicemail_transcription_enabled')"
+                value="isVoicemailTranscriptionEnabled"
+                :disabled="!deepgramApiKey || loading.setIntegrations"
+                v-model="isVoicemailTranscriptionEnabled"
+              >
+                <template slot="text-left">
+                  {{ $t("common.disabled") }}
+                </template>
+                <template slot="text-right">
+                  {{ $t("common.enabled") }}
+                </template>
+              </NsToggle>
               <NsInlineNotification
                 v-if="error.setIntegrations"
                 kind="error"
@@ -202,10 +155,8 @@ export default {
       },
       urlCheckInterval: null,
       deepgramApiKey: "",
-      openaiApiKey: "",
       isCallTranscriptionEnabled: false,
       isVoicemailTranscriptionEnabled: false,
-      isCallSummaryEnabled: false,
       loading: {
         getIntegrations: false,
         setIntegrations: false,
@@ -214,7 +165,6 @@ export default {
         getIntegrations: "",
         setIntegrations: "",
         deepgram_api_key: "",
-        openai_api_key: "",
       },
     };
   },
@@ -226,12 +176,6 @@ export default {
       "isAppConfigured",
       "isShownFirstConfigurationModal",
     ]),
-    hasDeepgramApiKey() {
-      return !!this.deepgramApiKey;
-    },
-    hasOpenaiApiKey() {
-      return this.hasDeepgramApiKey && !!this.openaiApiKey;
-    },
   },
   beforeRouteEnter(to, from, next) {
     next((vm) => {
@@ -292,19 +236,13 @@ export default {
     getIntegrationsCompleted(taskContext, taskResult) {
       const integrations = taskResult.output;
       this.deepgramApiKey = integrations.deepgram_api_key || "";
-      this.openaiApiKey = integrations.openai_api_key || "";
       this.isCallTranscriptionEnabled =
         integrations.satellite_call_transcription_enabled || false;
       this.isVoicemailTranscriptionEnabled =
         integrations.satellite_voicemail_transcription_enabled || false;
-      this.isCallSummaryEnabled =
-        integrations.satellite_call_summary_enabled || false;
       this.loading.getIntegrations = false;
     },
     async setIntegrations() {
-      const hasDeepgramApiKey = this.hasDeepgramApiKey;
-      const hasOpenaiApiKey =
-        this.hasOpenaiApiKey && this.isCallTranscriptionEnabled;
       this.error.setIntegrations = "";
       this.loading.setIntegrations = true;
       const taskAction = "set-integrations";
@@ -333,15 +271,11 @@ export default {
           action: taskAction,
           data: {
             deepgram_api_key: this.deepgramApiKey,
-            openai_api_key: hasDeepgramApiKey ? this.openaiApiKey : "",
-            satellite_call_transcription_enabled: hasDeepgramApiKey
+            satellite_call_transcription_enabled: this.deepgramApiKey
               ? this.isCallTranscriptionEnabled
               : false,
-            satellite_voicemail_transcription_enabled: hasDeepgramApiKey
+            satellite_voicemail_transcription_enabled: this.deepgramApiKey
               ? this.isVoicemailTranscriptionEnabled
-              : false,
-            satellite_call_summary_enabled: hasOpenaiApiKey
-              ? this.isCallSummaryEnabled
               : false,
           },
           extra: {
@@ -378,29 +312,6 @@ export default {
     setIntegrationsCompleted() {
       this.getIntegrations();
       this.loading.setIntegrations = false;
-    },
-  },
-  watch: {
-    deepgramApiKey(value) {
-      if (value) {
-        return;
-      }
-      this.openaiApiKey = "";
-      this.isCallTranscriptionEnabled = false;
-      this.isVoicemailTranscriptionEnabled = false;
-      this.isCallSummaryEnabled = false;
-    },
-    openaiApiKey(value) {
-      if (value) {
-        return;
-      }
-      this.isCallSummaryEnabled = false;
-    },
-    isCallTranscriptionEnabled(value) {
-      if (value) {
-        return;
-      }
-      this.isCallSummaryEnabled = false;
     },
   },
 };
