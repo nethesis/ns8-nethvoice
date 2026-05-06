@@ -1393,6 +1393,61 @@ function fetch_users_by_extension() {
     return $users;
 }
 
+/**
+ * If $number is a secondary/device extension, return its main extension.
+ * Secondary extensions follow the convention of a 2-digit prefix in front of
+ * the main extension (e.g. main 200 -> 91200, 92200, ...). A main extension is
+ * any number listed as userman_users.default_extension; non-extension numbers
+ * (external callers, trunks, etc.) are returned unchanged.
+ */
+function to_main_extension($number) {
+    static $mainExtensions = null;
+    static $allExtensions = null;
+
+    $number = trim((string) $number);
+    if ($number === '' || !ctype_digit($number)) {
+        return $number;
+    }
+
+    if ($mainExtensions === null) {
+        global $db;
+        $mainExtensions = array();
+        $allExtensions = array();
+        try {
+            $stmt = $db->prepare("SELECT default_extension FROM userman_users WHERE default_extension IS NOT NULL AND default_extension <> '' AND default_extension <> 'none'");
+            $stmt->execute();
+            foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $ext) {
+                $mainExtensions[(string) $ext] = true;
+            }
+            $stmt = $db->prepare("SELECT extension FROM users");
+            $stmt->execute();
+            foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $ext) {
+                if ((string) $ext !== '') {
+                    $allExtensions[(string) $ext] = true;
+                }
+            }
+        } catch (Throwable $e) {
+            log_exception($e, __FILE__, __LINE__, __FUNCTION__, 'Unable to read FreePBX extension tables');
+        }
+    }
+
+    if (isset($mainExtensions[$number])) {
+        return $number;
+    }
+    if (!isset($allExtensions[$number])) {
+        // Not an internal extension at all (external caller, trunk, etc.).
+        return $number;
+    }
+    if (strlen($number) <= 2) {
+        return $number;
+    }
+    $candidate = substr($number, 2);
+    if (isset($mainExtensions[$candidate])) {
+        return $candidate;
+    }
+    return $number;
+}
+
 function create_segment_audio($segment, $segmentNumber, $uniqueid, $linkedid, $recordingStart, $transmittedRecordingFile, $receivedRecordingFile, &$tmpFiles) {
     if ($segment['audio_start_offset'] !== null && $segment['audio_end_offset'] !== null) {
         $offset = max(0, $segment['audio_start_offset']);
@@ -1508,8 +1563,8 @@ function build_satellite_upload_fields($segmentUniqueid, $linkedid, $segment) {
         'persist' => 'true',
         'uniqueid' => $segmentUniqueid,
         'linkedid' => $linkedid,
-        'src_number' => isset($segment['caller_num']) ? trim((string) $segment['caller_num']) : '',
-        'dst_number' => isset($segment['callee_num']) ? trim((string) $segment['callee_num']) : '',
+        'src_number' => to_main_extension(isset($segment['caller_num']) ? trim((string) $segment['caller_num']) : ''),
+        'dst_number' => to_main_extension(isset($segment['callee_num']) ? trim((string) $segment['callee_num']) : ''),
     );
 
     if (getenv('SATELLITE_CALL_SUMMARY_ENABLED') === 'True') {
