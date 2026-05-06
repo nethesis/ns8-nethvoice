@@ -71,7 +71,6 @@ modules_to_install=(
     recallonbusy
     returnontransfer
     ringgroups
-    satellite
     setcid
     sipsettings
     timeconditions
