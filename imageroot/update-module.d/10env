@@ -85,6 +85,16 @@ if os.getenv('FAVICON_URL') is None:
     agent.set_env('FAVICON_URL', '')
 if os.getenv('LOGIN_BACKGROUND_URL') is None:
     agent.set_env('LOGIN_BACKGROUND_URL', '')
+if os.getenv('WIZARD_BRAND_NAME') is None:
+    agent.set_env('WIZARD_BRAND_NAME', os.getenv('BRAND_NAME', 'NethVoice'))
+if os.getenv('WIZARD_LOGIN_PEOPLE') is None:
+    agent.set_env('WIZARD_LOGIN_PEOPLE', os.getenv('LOGIN_PEOPLE', 'show'))
+if os.getenv('WIZARD_LOGIN_LOGO_URL') is None:
+    agent.set_env('WIZARD_LOGIN_LOGO_URL', os.getenv('LOGIN_LOGO_URL', ''))
+if os.getenv('WIZARD_FAVICON_URL') is None:
+    agent.set_env('WIZARD_FAVICON_URL', os.getenv('FAVICON_URL', ''))
+if os.getenv('WIZARD_LOGIN_BACKGROUND_URL') is None:
+    agent.set_env('WIZARD_LOGIN_BACKGROUND_URL', os.getenv('LOGIN_BACKGROUND_URL', ''))
 
 if os.getenv('ICEENFORCE') is None:
     agent.set_env('ICEENFORCE', 'none')

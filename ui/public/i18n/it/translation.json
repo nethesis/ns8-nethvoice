@@ -152,6 +152,7 @@
     "rebranding_login_logo_dark_url": "Logo per il tema scuro",
     "cti_section": "Login CTI",
     "reports_section": "Login Report",
+    "wizard_section": "Login Wizard",
     "login_page_preview": "Anteprima",
     "public_url_image_helper": "URL pubblico dell'immagine, consigliato formato SVG",
     "login_illustration": "Illustrazione nella pagina di login",

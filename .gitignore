@@ -8,3 +8,5 @@ COMPONENTS.md
 Containerfile
 deploys.sh
 DEVELOPMENT.md
+__pycache__/
+*.pyc

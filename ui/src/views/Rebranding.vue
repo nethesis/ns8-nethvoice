@@ -450,6 +450,159 @@
                   </div>
                 </div>
               </div>
+              <hr class="section-separator" />
+              <h3 class="section-title">{{ $t("rebranding.wizard_section") }}</h3>
+              <NsTextInput
+                :label="
+                  $t('rebranding.rebranding_brand_name') +
+                  ' (' +
+                  $t('common.optional') +
+                  ')'
+                "
+                v-model="rebranding_wizard_brand_name"
+                placeholder="NethVoice"
+                :disabled="loading.setRebranding"
+                :invalid-message="error.rebranding_wizard_brand_name"
+                :helper-text="$t('rebranding.name_to_replace_nethvoice')"
+              />
+              <NsTextInput
+                :label="
+                  $t('rebranding.rebranding_login_logo_url') +
+                  ' (' +
+                  $t('common.optional') +
+                  ')'
+                "
+                v-model="rebranding_wizard_login_logo_url"
+                :placeholder="
+                  $t('common.eg_value', {
+                    value: 'https://mydomain.com/path/to/image.svg',
+                  })
+                "
+                :disabled="loading.setRebranding"
+                :invalid-message="error.rebranding_wizard_login_logo_url"
+                :helper-text="$t('rebranding.public_url_image_helper')"
+              />
+              <NsTextInput
+                :label="
+                  $t('rebranding.rebranding_favicon_url') +
+                  ' (' +
+                  $t('common.optional') +
+                  ')'
+                "
+                v-model="rebranding_wizard_favicon_url"
+                :placeholder="
+                  $t('common.eg_value', {
+                    value: 'https://mydomain.com/favicon.ico',
+                  })
+                "
+                :disabled="loading.setRebranding"
+                :invalid-message="error.rebranding_wizard_favicon_url"
+                :helper-text="$t('rebranding.public_url_image_helper')"
+              >
+                <template slot="tooltip">
+                  {{ $t("rebranding.rebranding_favicon_url_tooltip") }}
+                </template></NsTextInput
+              >
+              <NsTextInput
+                :label="
+                  $t('rebranding.rebranding_login_background_url') +
+                  ' (' +
+                  $t('common.optional') +
+                  ')'
+                "
+                v-model="rebranding_wizard_login_background_url"
+                :placeholder="
+                  $t('common.eg_value', {
+                    value: 'https://mydomain.com/path/to/image.svg',
+                  })
+                "
+                :disabled="loading.setRebranding"
+                :invalid-message="error.rebranding_wizard_login_background_url"
+                :helper-text="$t('rebranding.public_url_image_helper')"
+              />
+              <NsToggle
+                :label="$t('rebranding.login_illustration')"
+                value="wizardLoginIllustration"
+                :form-item="true"
+                v-model="rebranding_wizard_login_people"
+                :disabled="loading.setRebranding"
+              >
+                <template slot="tooltip">
+                  {{ $t("rebranding.login_illustration_tooltip") }}
+                </template>
+                <template slot="text-left">{{
+                  $t("common.disabled")
+                }}</template>
+                <template slot="text-right">{{
+                  $t("common.enabled")
+                }}</template>
+              </NsToggle>
+              <div class="mb-6">
+                <label class="bx--label mb-0">{{
+                  $t("rebranding.login_page_preview")
+                }}</label>
+                <div class="wizard-login-preview">
+                  <div class="reports-preview-browser-bar wizard-preview-browser-bar">
+                    <div class="reports-preview-dots">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                    <div class="reports-preview-tab wizard-preview-tab">
+                      <img
+                        v-if="wizardFaviconUrl"
+                        :src="wizardFaviconUrl"
+                        alt="Wizard favicon"
+                        class="reports-preview-favicon"
+                      />
+                      <div
+                        v-else
+                        class="reports-preview-favicon reports-preview-favicon-fallback"
+                      >
+                        {{ wizardBrandInitial }}
+                      </div>
+                      <span class="reports-preview-tab-label">
+                        {{ wizardPreviewTitle }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="wizard-login-shell" :style="wizardBackgroundStyle">
+                    <div class="wizard-login-panel">
+                      <div class="wizard-login-card-preview">
+                        <img
+                          :src="wizardLogoUrl"
+                          alt="Wizard logo"
+                          class="wizard-login-preview-logo"
+                        />
+                        <div class="wizard-login-brand-title">
+                          {{ wizardBrandName }}
+                        </div>
+                        <div class="wizard-login-form-preview">
+                          <label class="reports-login-label">
+                            {{ $t("rebranding.username") }}
+                          </label>
+                          <div class="wizard-login-input"></div>
+                          <label class="reports-login-label">
+                            {{ $t("rebranding.password") }}
+                          </label>
+                          <div class="wizard-login-input"></div>
+                          <div class="reports-login-button wizard-login-button-preview">
+                            {{ $t("rebranding.sign_in") }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      v-if="rebranding_wizard_login_people"
+                      class="wizard-login-side-preview"
+                    >
+                      <div class="wizard-login-illustration-preview">
+                        {{ wizardPreviewTitle }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <NsInlineNotification
                 v-if="error.setRebranding"
                 kind="error"
@@ -520,6 +673,11 @@ export default {
       rebranding_reports_favicon_url: "",
       rebranding_reports_login_logo_url: "",
       rebranding_reports_login_people: true,
+      rebranding_wizard_brand_name: "",
+      rebranding_wizard_login_background_url: "",
+      rebranding_wizard_favicon_url: "",
+      rebranding_wizard_login_logo_url: "",
+      rebranding_wizard_login_people: true,
       isDarkMode: false,
       loading: {
         getRebranding: false,
@@ -578,6 +736,36 @@ export default {
       return {
         background:
           "linear-gradient(135deg, rgba(229, 247, 239, 1) 0%, rgba(209, 250, 229, 1) 45%, rgba(243, 244, 246, 1) 100%)",
+      };
+    },
+    wizardLogoUrl() {
+      return this.rebranding_wizard_login_logo_url || require("../assets/login_logo.svg");
+    },
+    wizardFaviconUrl() {
+      return this.rebranding_wizard_favicon_url || "";
+    },
+    wizardBrandName() {
+      return this.rebranding_wizard_brand_name || "NethVoice";
+    },
+    wizardBrandInitial() {
+      return this.wizardBrandName.charAt(0).toUpperCase();
+    },
+    wizardPreviewTitle() {
+      return `${this.wizardBrandName} Wizard`;
+    },
+    wizardBackgroundStyle() {
+      if (this.rebranding_wizard_login_background_url) {
+        return {
+          backgroundImage: `url(${this.rebranding_wizard_login_background_url})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        };
+      }
+
+      return {
+        backgroundImage: `url(${require("../assets/background_voice.svg")})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
       };
     },
   },
@@ -659,6 +847,15 @@ export default {
         config.rebranding_reports_login_logo_url;
       this.rebranding_reports_login_people =
         config.rebranding_reports_login_people !== "hide";
+      this.rebranding_wizard_brand_name = config.rebranding_wizard_brand_name;
+      this.rebranding_wizard_login_background_url =
+        config.rebranding_wizard_login_background_url;
+      this.rebranding_wizard_favicon_url =
+        config.rebranding_wizard_favicon_url;
+      this.rebranding_wizard_login_logo_url =
+        config.rebranding_wizard_login_logo_url;
+      this.rebranding_wizard_login_people =
+        config.rebranding_wizard_login_people !== "hide";
       this.loading.getRebranding = false;
     },
     setLightTheme() {
@@ -697,6 +894,9 @@ export default {
       let rebrandingReportsLoginPeople = this.rebranding_reports_login_people
         ? "show"
         : "hide";
+      let rebrandingWizardLoginPeople = this.rebranding_wizard_login_people
+        ? "show"
+        : "hide";
 
       const res = await to(
         this.createModuleTaskForApp(this.instanceName, {
@@ -720,6 +920,14 @@ export default {
               this.rebranding_reports_favicon_url,
             rebranding_reports_login_background_url:
               this.rebranding_reports_login_background_url,
+            rebranding_wizard_brand_name: this.rebranding_wizard_brand_name,
+            rebranding_wizard_login_people: rebrandingWizardLoginPeople,
+            rebranding_wizard_login_logo_url:
+              this.rebranding_wizard_login_logo_url,
+            rebranding_wizard_favicon_url:
+              this.rebranding_wizard_favicon_url,
+            rebranding_wizard_login_background_url:
+              this.rebranding_wizard_login_background_url,
           },
           extra: {
             title: this.$t("action." + taskAction),
@@ -1087,6 +1295,94 @@ export default {
   font-size: 0.875rem;
 }
 
+.wizard-login-preview {
+  margin-top: 0.5rem;
+  border: 1px solid #d5dbe1;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f3f4f6;
+}
+
+.wizard-preview-browser-bar {
+  background: #e5e7eb;
+}
+
+.wizard-preview-tab {
+  background: rgba(255, 255, 255, 0.75);
+  color: #111827;
+}
+
+.wizard-login-shell {
+  min-height: 320px;
+  display: flex;
+  align-items: stretch;
+}
+
+.wizard-login-panel {
+  width: 420px;
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wizard-login-card-preview {
+  width: 100%;
+  max-width: 280px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 1.75rem;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+}
+
+.wizard-login-preview-logo {
+  display: block;
+  max-width: 180px;
+  max-height: 42px;
+  margin: 0 auto 1rem;
+}
+
+.wizard-login-brand-title {
+  text-align: center;
+  color: #111827;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.wizard-login-form-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.wizard-login-input {
+  height: 2.5rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #d1d5db;
+}
+
+.wizard-login-button-preview {
+  margin-top: 0.75rem;
+}
+
+.wizard-login-side-preview {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.wizard-login-illustration-preview {
+  padding: 1rem 1.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #0f172a;
+  font-weight: 600;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+}
+
 @media (max-width: 960px) {
   .reports-login-shell {
     flex-direction: column;
@@ -1098,6 +1394,14 @@ export default {
 
   .reports-login-side {
     min-height: 180px;
+  }
+
+  .wizard-login-shell {
+    flex-direction: column;
+  }
+
+  .wizard-login-panel {
+    width: 100%;
   }
 }
 </style>

@@ -42,6 +42,26 @@
             "description": "NethVoice rebranding link to backround image",
             "type": "string"
         },
+        "rebranding_wizard_brand_name": {
+            "description": "NethVoice Wizard brand name",
+            "type": "string"
+        },
+        "rebranding_wizard_login_people": {
+            "description": "NethVoice Wizard rebranding show/hide people on login",
+            "type": "string"
+        },
+        "rebranding_wizard_login_logo_url": {
+            "description": "NethVoice Wizard rebranding link to login logo",
+            "type": "string"
+        },
+        "rebranding_wizard_favicon_url": {
+            "description": "NethVoice Wizard rebranding link to favicon",
+            "type": "string"
+        },
+        "rebranding_wizard_login_background_url": {
+            "description": "NethVoice Wizard rebranding link to background image",
+            "type": "string"
+        },
         "rebranding_reports_brand_name": {
             "description": "NethVoice Reports brand name",
             "type": "string"

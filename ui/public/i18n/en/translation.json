@@ -202,6 +202,7 @@
     "rebranding_login_logo_dark_url": "Dark theme logo",
     "cti_section": "CTI login",
     "reports_section": "Reports login",
+    "wizard_section": "Wizard login",
     "login_page_preview": "Preview",
     "public_url_image_helper": "Public URL of the image, recommended SVG format",
     "login_illustration": "Login illustration",
