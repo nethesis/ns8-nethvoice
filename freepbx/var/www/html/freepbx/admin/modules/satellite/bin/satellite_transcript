@@ -1322,6 +1322,7 @@ function resolve_party($channel, $channelFacts, $usersByExtension, $cdr, $role) 
     if ($num === '') {
         $num = first_non_empty($numCandidates);
     }
+    $num = to_main_extension($num);
 
     $nameCandidates = array();
     if ($num !== '' && isset($usersByExtension[$num])) {
