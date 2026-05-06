@@ -10,6 +10,40 @@
 
 angular.module('nethvoiceWizardUiApp')
   .controller('LoginCtrl', function ($rootScope, $scope, $location, ConfigService, LoginService, LocalStorageService, MigrationService) {
+    $scope.customConfig = customConfig;
+
+    $scope.loginLogoUrl = function () {
+      return customConfig.LOGIN_LOGO_URL || 'images/brand.svg';
+    };
+
+    $scope.loginBackgroundStyle = function () {
+      if (customConfig.LOGIN_BACKGROUND_URL) {
+        return {
+          'background-image': 'url(' + customConfig.LOGIN_BACKGROUND_URL + ')'
+        };
+      }
+
+      return {};
+    };
+
+    $scope.showLoginPeople = function () {
+      return customConfig.LOGIN_PEOPLE !== 'hide';
+    };
+
+    $scope.applyFavicon = function () {
+      var faviconUrl = customConfig.FAVICON_URL;
+      if (!faviconUrl) {
+        return;
+      }
+
+      var favicon = document.querySelector("link[rel='icon']") || document.querySelector("link[rel='shortcut icon']");
+      if (favicon) {
+        favicon.setAttribute('href', faviconUrl);
+      }
+    };
+
+    $scope.applyFavicon();
+
     $scope.doLogin = function (secret) {
       LoginService.login($scope.username, $scope.password, secret).then(function (res) {
         ConfigService.getWizard().then(function (res) {

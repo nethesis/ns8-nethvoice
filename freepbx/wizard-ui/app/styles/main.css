@@ -6,6 +6,25 @@ body {
   overflow: hidden;
 }
 
+.wizard-login {
+  background: url('../images/login.svg') no-repeat center center;
+  background-size: cover;
+}
+
+.wizard-login-logo {
+  display: block;
+  max-width: 14rem;
+  max-height: 3rem;
+  margin: 0 0 1.5rem;
+  object-fit: contain;
+}
+
+.wizard-login-illustration {
+  max-width: min(28rem, 70%);
+  max-height: 70%;
+  object-fit: contain;
+}
+
 span a {
   font-family: "Open Sans", Helvetica, Arial, sans-serif;
 }
