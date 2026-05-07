@@ -219,71 +219,96 @@
                 <label class="bx--label mb-0">{{
                   $t("rebranding.login_page_preview")
                 }}</label>
-                <div class="login-preview">
-                  <!-- dark/light theme buttons inside preview -->
-                  <div class="theme-buttons">
-                    <NsButton
-                      kind="secondary"
-                      @click="setLightTheme"
-                      :disabled="!isDarkMode"
-                      class="theme-button dark-theme-btn"
-                    >
-                      <Sun20 />
-                    </NsButton>
-                    <NsButton
-                      kind="secondary"
-                      @click="setDarkTheme"
-                      :disabled="isDarkMode"
-                      class="theme-button dark-theme-btn"
-                    >
-                      <Moon20 />
-                    </NsButton>
+                <div class="preview-frame cti-preview-frame">
+                  <div class="preview-browser-bar preview-browser-bar-light">
+                    <div class="preview-dots">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                    <div class="preview-tab preview-tab-light">
+                      <img
+                        v-if="ctiFaviconUrl"
+                        :src="ctiFaviconUrl"
+                        alt="CTI favicon"
+                        class="preview-favicon"
+                      />
+                      <div
+                        v-else
+                        class="preview-favicon preview-favicon-fallback"
+                      >
+                        {{ ctiBrandInitial }}
+                      </div>
+                      <span class="preview-tab-label">
+                        {{ ctiPreviewTitle }}
+                      </span>
+                    </div>
+                    <div class="preview-theme-buttons">
+                      <NsButton
+                        kind="secondary"
+                        @click="setLightTheme"
+                        :disabled="!isDarkMode"
+                        class="theme-button dark-theme-btn preview-theme-button"
+                      >
+                        <Sun20 />
+                      </NsButton>
+                      <NsButton
+                        kind="secondary"
+                        @click="setDarkTheme"
+                        :disabled="isDarkMode"
+                        class="theme-button dark-theme-btn preview-theme-button"
+                      >
+                        <Moon20 />
+                      </NsButton>
+                    </div>
                   </div>
-                  <div
-                    class="login-background"
-                    :style="{
-                      backgroundImage: `url(${loginBackgroundUrl})`,
-                    }"
-                  >
-                    <div class="login-container">
-                      <div :class="isDarkMode ? 'dark-theme' : 'light-theme'">
-                        <div class="login-card">
-                          <img
-                            :src="logoUrl"
-                            :alt="isDarkMode ? 'Logo Dark' : 'Logo Light'"
-                            class="login-logo"
-                          />
-                          <div class="login-form">
-                            <label for="username" class="login-label">
-                              {{ $t("rebranding.username") }}
-                            </label>
-                            <input
-                              type="text"
-                              value="username"
-                              disabled
-                              class="login-input"
+                  <div class="login-preview">
+                    <div
+                      class="login-background"
+                      :style="{
+                        backgroundImage: `url(${loginBackgroundUrl})`,
+                      }"
+                    >
+                      <div class="login-container">
+                        <div :class="isDarkMode ? 'dark-theme' : 'light-theme'">
+                          <div class="login-card">
+                            <img
+                              :src="logoUrl"
+                              :alt="isDarkMode ? 'Logo Dark' : 'Logo Light'"
+                              class="login-logo"
                             />
-                            <label for="password" class="login-label">
-                              {{ $t("rebranding.password") }}
-                            </label>
-                            <input
-                              type="password"
-                              value="*********"
-                              disabled
-                              class="login-input"
-                            />
-                            <button disabled class="login-button">
-                              <span>{{ $t("rebranding.sign_in") }}</span>
-                            </button>
+                            <div class="login-form">
+                              <label for="username" class="login-label">
+                                {{ $t("rebranding.username") }}
+                              </label>
+                              <input
+                                type="text"
+                                value="username"
+                                disabled
+                                class="login-input"
+                              />
+                              <label for="password" class="login-label">
+                                {{ $t("rebranding.password") }}
+                              </label>
+                              <input
+                                type="password"
+                                value="*********"
+                                disabled
+                                class="login-input"
+                              />
+                              <button disabled class="login-button">
+                                <span>{{ $t("rebranding.sign_in") }}</span>
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div class="login-svg" v-if="rebranding_login_people">
-                        <img
-                          src="../assets/action_voice-cti.svg"
-                          alt="Login illustration"
-                          class="svg-image"
-                        />
+                        <div class="login-svg" v-if="rebranding_login_people">
+                          <img
+                            src="../assets/action_voice-cti.svg"
+                            alt="Login illustration"
+                            class="svg-image"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -380,27 +405,27 @@
                 <label class="bx--label mb-0">{{
                   $t("rebranding.login_page_preview")
                 }}</label>
-                <div class="reports-login-preview">
-                  <div class="reports-preview-browser-bar">
-                    <div class="reports-preview-dots">
+                <div class="preview-frame reports-login-preview">
+                  <div class="preview-browser-bar preview-browser-bar-dark">
+                    <div class="preview-dots">
                       <span></span>
                       <span></span>
                       <span></span>
                     </div>
-                    <div class="reports-preview-tab">
+                    <div class="preview-tab preview-tab-dark">
                       <img
                         v-if="reportsFaviconUrl"
                         :src="reportsFaviconUrl"
                         alt="Reports favicon"
-                        class="reports-preview-favicon"
+                        class="preview-favicon"
                       />
                       <div
                         v-else
-                        class="reports-preview-favicon reports-preview-favicon-fallback"
+                        class="preview-favicon preview-favicon-fallback"
                       >
                         {{ reportsBrandInitial }}
                       </div>
-                      <span class="reports-preview-tab-label">
+                      <span class="preview-tab-label">
                         {{ reportsPreviewTitle }}
                       </span>
                     </div>
@@ -541,63 +566,68 @@
                 <label class="bx--label mb-0">{{
                   $t("rebranding.login_page_preview")
                 }}</label>
-                <div class="wizard-login-preview">
-                  <div class="reports-preview-browser-bar wizard-preview-browser-bar">
-                    <div class="reports-preview-dots">
+                <div class="preview-frame wizard-login-preview">
+                  <div class="preview-browser-bar preview-browser-bar-light">
+                    <div class="preview-dots">
                       <span></span>
                       <span></span>
                       <span></span>
                     </div>
-                    <div class="reports-preview-tab wizard-preview-tab">
+                    <div class="preview-tab preview-tab-light">
                       <img
                         v-if="wizardFaviconUrl"
                         :src="wizardFaviconUrl"
                         alt="Wizard favicon"
-                        class="reports-preview-favicon"
+                        class="preview-favicon"
                       />
                       <div
                         v-else
-                        class="reports-preview-favicon reports-preview-favicon-fallback"
+                        class="preview-favicon preview-favicon-fallback"
                       >
                         {{ wizardBrandInitial }}
                       </div>
-                      <span class="reports-preview-tab-label">
+                      <span class="preview-tab-label">
                         {{ wizardPreviewTitle }}
                       </span>
                     </div>
                   </div>
-                  <div class="wizard-login-shell" :style="wizardBackgroundStyle">
+                  <div class="wizard-login-shell">
                     <div class="wizard-login-panel">
                       <div class="wizard-login-card-preview">
                         <img
-                          :src="wizardLogoUrl"
+                          :src="wizardPanelLogoUrl"
                           alt="Wizard logo"
                           class="wizard-login-preview-logo"
                         />
-                        <div class="wizard-login-brand-title">
-                          {{ wizardBrandName }}
+                        <div class="wizard-login-welcome">Welcome</div>
+                        <div class="wizard-login-subtitle">
+                          Sign In to {{ wizardBrandName }}
                         </div>
                         <div class="wizard-login-form-preview">
-                          <label class="reports-login-label">
-                            {{ $t("rebranding.username") }}
-                          </label>
+                          <label class="wizard-login-label">User</label>
                           <div class="wizard-login-input"></div>
-                          <label class="reports-login-label">
+                          <label class="wizard-login-label">
                             {{ $t("rebranding.password") }}
                           </label>
-                          <div class="wizard-login-input"></div>
-                          <div class="reports-login-button wizard-login-button-preview">
+                          <div class="wizard-login-input wizard-login-input-with-icon">
+                            <span class="wizard-login-input-eye"></span>
+                          </div>
+                          <div class="wizard-login-button-preview">
                             {{ $t("rebranding.sign_in") }}
                           </div>
                         </div>
                       </div>
                     </div>
-                    <div
-                      v-if="rebranding_wizard_login_people"
-                      class="wizard-login-side-preview"
-                    >
-                      <div class="wizard-login-illustration-preview">
-                        {{ wizardPreviewTitle }}
+                    <div class="wizard-login-stage" :style="wizardBackgroundStyle">
+                      <div
+                        v-if="rebranding_wizard_login_people"
+                        class="wizard-login-stage-logo-wrap"
+                      >
+                        <img
+                          :src="wizardStageLogoUrl"
+                          alt="Wizard stage logo"
+                          class="wizard-login-stage-logo"
+                        />
                       </div>
                     </div>
                   </div>
@@ -709,6 +739,18 @@ export default {
         require("../assets/background_voice.svg")
       );
     },
+    ctiFaviconUrl() {
+      return this.rebranding_favicon_url || "";
+    },
+    ctiBrandName() {
+      return this.rebranding_brand_name || "NethVoice";
+    },
+    ctiBrandInitial() {
+      return this.ctiBrandName.charAt(0).toUpperCase();
+    },
+    ctiPreviewTitle() {
+      return `${this.ctiBrandName} CTI`;
+    },
     reportsLogoUrl() {
       return this.rebranding_reports_login_logo_url || "";
     },
@@ -739,7 +781,13 @@ export default {
       };
     },
     wizardLogoUrl() {
-      return this.rebranding_wizard_login_logo_url || require("../assets/login_logo.svg");
+      return (
+        this.rebranding_wizard_login_logo_url ||
+        require("../assets/login_logo_dark.svg")
+      );
+    },
+    wizardPanelLogoUrl() {
+      return this.wizardLogoUrl;
     },
     wizardFaviconUrl() {
       return this.rebranding_wizard_favicon_url || "";
@@ -753,6 +801,12 @@ export default {
     wizardPreviewTitle() {
       return `${this.wizardBrandName} Wizard`;
     },
+    wizardStageLogoUrl() {
+      return (
+        this.rebranding_wizard_login_logo_url ||
+        require("../assets/login_logo_dark.svg")
+      );
+    },
     wizardBackgroundStyle() {
       if (this.rebranding_wizard_login_background_url) {
         return {
@@ -763,9 +817,8 @@ export default {
       }
 
       return {
-        backgroundImage: `url(${require("../assets/background_voice.svg")})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
+        background:
+          "linear-gradient(135deg, #045944 0%, #05644c 55%, #06715a 100%)",
       };
     },
   },
@@ -990,12 +1043,116 @@ export default {
 <style scoped lang="scss">
 @import "../styles/carbon-utils";
 
-.login-preview {
-  position: relative;
+.preview-frame {
   max-width: 38rem;
   height: 400px;
-  border: 1px solid #ccc;
-  margin-top: 8px;
+  margin-top: 0.5rem;
+  border: 1px solid #d5dbe1;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.preview-browser-bar-light {
+  background: #e5e7eb;
+  border-bottom: 1px solid #d1d5db;
+}
+
+.preview-browser-bar-dark {
+  background: #0f172a;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.preview-dots {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.preview-dots span {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+}
+
+.preview-dots span:nth-child(1) {
+  background: #ff5f57;
+}
+
+.preview-dots span:nth-child(2) {
+  background: #febc2e;
+}
+
+.preview-dots span:nth-child(3) {
+  background: #28c840;
+}
+
+.preview-tab {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+}
+
+.preview-tab-light {
+  background: rgba(255, 255, 255, 0.78);
+  color: #111827;
+}
+
+.preview-tab-dark {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+}
+
+.preview-favicon {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+
+.preview-favicon-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #059669;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.preview-tab-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+}
+
+.preview-theme-buttons {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.login-preview {
+  position: relative;
+  flex: 1;
+  border: 0;
+  margin-top: 0;
+  max-width: none;
+  height: auto;
 }
 
 .login-background {
@@ -1007,10 +1164,11 @@ export default {
 
 .login-container {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
   height: 100%;
-  margin-left: 2rem;
+  padding: 1.5rem 2rem;
+  gap: 1.5rem;
 }
 
 .login-card {
@@ -1021,18 +1179,21 @@ export default {
   justify-content: center;
   align-items: center;
   color: white;
-  margin-right: 70px;
+  margin-right: 0;
   border-radius: 4px;
+  width: 100%;
+  max-width: 220px;
 }
 
 .login-svg {
   width: 40%;
+  min-width: 160px;
 }
 
 .svg-image {
   width: 100%;
   height: auto;
-  margin-left: -24px;
+  margin-left: 0;
 }
 
 .login-logo {
@@ -1119,14 +1280,8 @@ export default {
   color: #111827;
 }
 
-.theme-buttons {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-}
-
 .theme-button {
-  margin-left: 8px;
+  margin-left: 0;
   padding-right: 14px;
 }
 
@@ -1139,84 +1294,24 @@ export default {
 }
 
 .reports-login-preview {
-  margin-top: 0.5rem;
-  border: 1px solid #d5dbe1;
-  border-radius: 4px;
-  overflow: hidden;
   background: #111827;
-}
-
-.reports-preview-browser-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: #0f172a;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-}
-
-.reports-preview-dots {
-  display: flex;
-  gap: 0.35rem;
-}
-
-.reports-preview-dots span {
-  width: 0.65rem;
-  height: 0.65rem;
-  border-radius: 999px;
-  background: rgba(248, 250, 252, 0.35);
-}
-
-.reports-preview-tab {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.7rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #e5e7eb;
-}
-
-.reports-preview-favicon {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  object-fit: cover;
-  flex: 0 0 auto;
-}
-
-.reports-preview-favicon-fallback {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #059669;
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.reports-preview-tab-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.875rem;
 }
 
 .reports-login-shell {
   display: flex;
-  min-height: 320px;
+  flex: 1;
+  min-height: 0;
 }
 
 .reports-login-panel {
-  width: 360px;
-  padding: 2rem;
+  width: 320px;
+  padding: 1.75rem;
   background: #111827;
   color: #f9fafb;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .reports-login-brand {
@@ -1274,7 +1369,7 @@ export default {
 
 .reports-login-side {
   flex: 1;
-  min-width: 240px;
+  min-width: 0;
 }
 
 .reports-login-side-overlay {
@@ -1296,96 +1391,151 @@ export default {
 }
 
 .wizard-login-preview {
-  margin-top: 0.5rem;
-  border: 1px solid #d5dbe1;
-  border-radius: 4px;
-  overflow: hidden;
-  background: #f3f4f6;
-}
-
-.wizard-preview-browser-bar {
-  background: #e5e7eb;
-}
-
-.wizard-preview-tab {
-  background: rgba(255, 255, 255, 0.75);
-  color: #111827;
+  background: #dfe4ea;
 }
 
 .wizard-login-shell {
-  min-height: 320px;
   display: flex;
-  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  background: #0b1020;
 }
 
 .wizard-login-panel {
-  width: 420px;
-  padding: 2rem;
+  width: 240px;
+  padding: 1rem;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #090d1a;
 }
 
 .wizard-login-card-preview {
   width: 100%;
-  max-width: 280px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.88);
-  padding: 1.75rem;
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+  max-width: 188px;
+  border-radius: 6px;
+  background: #171b34;
+  padding: 1.25rem 1rem;
+  color: #f9fafb;
 }
 
 .wizard-login-preview-logo {
   display: block;
-  max-width: 180px;
-  max-height: 42px;
-  margin: 0 auto 1rem;
+  max-width: 132px;
+  max-height: 24px;
+  margin: 0 0 1rem;
 }
 
-.wizard-login-brand-title {
-  text-align: center;
-  color: #111827;
+.wizard-login-welcome {
+  color: #f9fafb;
   font-weight: 600;
+  font-size: 1.05rem;
+  margin-bottom: 0.35rem;
+}
+
+.wizard-login-subtitle {
+  color: rgba(229, 231, 235, 0.8);
+  font-size: 0.78rem;
   margin-bottom: 1rem;
 }
 
 .wizard-login-form-preview {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.45rem;
+}
+
+.wizard-login-label {
+  text-align: left;
+  font-size: 0.78rem;
+  color: #e5e7eb;
 }
 
 .wizard-login-input {
-  height: 2.5rem;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid #d1d5db;
+  height: 1.9rem;
+  border-radius: 4px;
+  background: #050816;
+  border: 1px solid #0ea5a6;
+}
+
+.wizard-login-input-with-icon {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 0.55rem;
+}
+
+.wizard-login-input-eye {
+  position: relative;
+  width: 0.8rem;
+  height: 0.46rem;
+  border: 1px solid #94a3b8;
+  border-radius: 999px;
+}
+
+.wizard-login-input-eye::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.18rem;
+  height: 0.18rem;
+  border-radius: 999px;
+  background: #94a3b8;
+  transform: translate(-50%, -50%);
 }
 
 .wizard-login-button-preview {
   margin-top: 0.75rem;
+  border-radius: 4px;
+  background: #10b981;
+  color: #09121a;
+  text-align: center;
+  padding: 0.7rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
-.wizard-login-side-preview {
+.wizard-login-stage {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem;
+  position: relative;
+  overflow: hidden;
 }
 
-.wizard-login-illustration-preview {
-  padding: 1rem 1.4rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.78);
-  color: #0f172a;
-  font-weight: 600;
-  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+.wizard-login-stage-logo-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wizard-login-stage-logo {
+  width: 72%;
+  max-width: 220px;
 }
 
 @media (max-width: 960px) {
+  .preview-frame {
+    height: auto;
+  }
+
+  .login-preview {
+    min-height: 360px;
+  }
+
+  .login-container {
+    padding: 1.5rem;
+  }
+
   .reports-login-shell {
     flex-direction: column;
+    min-height: 360px;
   }
 
   .reports-login-panel {
@@ -1398,10 +1548,15 @@ export default {
 
   .wizard-login-shell {
     flex-direction: column;
+    min-height: 360px;
   }
 
   .wizard-login-panel {
     width: 100%;
+  }
+
+  .wizard-login-stage {
+    min-height: 180px;
   }
 }
 </style>
