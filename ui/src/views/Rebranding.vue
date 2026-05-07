@@ -550,16 +550,12 @@
                           <div class="reports-login-panel">
                             <div class="reports-login-brand">
                               <img
-                                v-if="reportsLogoUrl"
                                 :src="reportsLogoUrl"
                                 alt="Reports logo"
                                 class="reports-login-logo"
                               />
-                              <div v-else class="reports-login-logo-fallback">
-                                {{ reportsBrandName }}
-                              </div>
                               <div class="reports-login-subtitle">
-                                {{ reportsPreviewTitle }}
+                                {{ reportsSubtitle }}
                               </div>
                             </div>
                             <div class="reports-login-form">
@@ -700,7 +696,10 @@ export default {
       return this.ctiBrandName;
     },
     reportsLogoUrl() {
-      return this.rebranding_reports_login_logo_url || "";
+      return (
+        this.rebranding_reports_login_logo_url ||
+        require("../assets/login_logo_dark.svg")
+      );
     },
     reportsFaviconUrl() {
       return this.rebranding_reports_favicon_url || "";
@@ -713,6 +712,11 @@ export default {
     },
     reportsPreviewTitle() {
       return this.reportsBrandName;
+    },
+    reportsSubtitle() {
+      return this.rebranding_reports_brand_name === "NethVoice Reports"
+        ? "Report"
+        : this.rebranding_reports_brand_name || "Report";
     },
     reportsBackgroundStyle() {
       if (this.rebranding_reports_login_background_url) {
@@ -1274,11 +1278,6 @@ export default {
 .reports-login-logo {
   max-width: 220px;
   max-height: 48px;
-}
-
-.reports-login-logo-fallback {
-  font-size: 1.5rem;
-  font-weight: 600;
 }
 
 .reports-login-subtitle {
