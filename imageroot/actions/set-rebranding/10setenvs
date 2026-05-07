@@ -34,6 +34,7 @@ if 'system_id' in subscription:
     # check if rebrand is active
     if 'brand' in data:
         getFromRequest(request, 'rebranding_brand_name', 'BRAND_NAME', '')
+        getFromRequest(request, 'rebranding_brand_name', 'NETHCTI_UI_PRODUCT_NAME', '')
 
         getFromRequest(request, 'rebranding_login_people', 'LOGIN_PEOPLE', '')
 
@@ -46,11 +47,12 @@ if 'system_id' in subscription:
 
         getFromRequest(request, 'rebranding_login_background_url', 'LOGIN_BACKGROUND_URL', '')
 
-        getFromRequest(request, 'rebranding_wizard_brand_name', 'WIZARD_BRAND_NAME', os.getenv('BRAND_NAME', 'NethVoice'))
-        getFromRequest(request, 'rebranding_wizard_login_logo_url', 'WIZARD_LOGIN_LOGO_URL', os.getenv('LOGIN_LOGO_URL', ''))
-        getFromRequest(request, 'rebranding_wizard_favicon_url', 'WIZARD_FAVICON_URL', os.getenv('FAVICON_URL', ''))
-        getFromRequest(request, 'rebranding_wizard_login_background_url', 'WIZARD_LOGIN_BACKGROUND_URL', os.getenv('LOGIN_BACKGROUND_URL', ''))
+        getFromRequest(request, 'rebranding_wizard_brand_name', 'WIZARD_BRAND_NAME', os.getenv('WIZARD_BRAND_NAME', ''))
+        getFromRequest(request, 'rebranding_wizard_login_logo_url', 'WIZARD_LOGIN_LOGO_URL', os.getenv('WIZARD_LOGIN_LOGO_URL', ''))
+        getFromRequest(request, 'rebranding_wizard_favicon_url', 'WIZARD_FAVICON_URL', os.getenv('WIZARD_FAVICON_URL', ''))
+        getFromRequest(request, 'rebranding_wizard_login_background_url', 'WIZARD_LOGIN_BACKGROUND_URL', os.getenv('WIZARD_LOGIN_BACKGROUND_URL', ''))
 
+        getFromRequest(request, 'rebranding_reports_brand_name', 'REPORTS_UI_APP_NAME', 'NethVoice Reports')
         getFromRequest(request, 'rebranding_reports_brand_name', 'REPORTS_UI_BRAND_NAME', 'NethVoice')
         getFromRequest(request, 'rebranding_reports_login_logo_url', 'REPORTS_UI_LOGIN_LOGO_URL', '')
         getFromRequest(request, 'rebranding_reports_favicon_url', 'REPORTS_UI_FAVICON_URL', '')

@@ -270,6 +270,9 @@
                                     :alt="isDarkMode ? 'Logo Dark' : 'Logo Light'"
                                     class="login-logo"
                                   />
+                                  <div class="login-brand-name">
+                                    {{ ctiPreviewTitle }}
+                                  </div>
                                   <div class="login-form">
                                     <label for="username" class="login-label">
                                       {{ $t("rebranding.username") }}
@@ -556,7 +559,6 @@
                                 {{ reportsBrandName }}
                               </div>
                               <div class="reports-login-subtitle">
-                                <i class="bar chart icon"></i>
                                 {{ reportsPreviewTitle }}
                               </div>
                             </div>
@@ -574,13 +576,7 @@
                               </div>
                             </div>
                           </div>
-                          <div class="reports-login-side" :style="reportsBackgroundStyle">
-                            <div class="reports-login-side-overlay">
-                              <div class="reports-login-side-chip">
-                                {{ reportsPreviewTitle }}
-                              </div>
-                            </div>
-                          </div>
+                          <div class="reports-login-side" :style="reportsBackgroundStyle"></div>
                         </div>
                       </div>
                     </div>
@@ -695,13 +691,13 @@ export default {
       return this.rebranding_favicon_url || "";
     },
     ctiBrandName() {
-      return this.rebranding_brand_name || "NethVoice";
+      return this.rebranding_brand_name || "NethVoice CTI";
     },
     ctiBrandInitial() {
       return this.ctiBrandName.charAt(0).toUpperCase();
     },
     ctiPreviewTitle() {
-      return `${this.ctiBrandName} CTI`;
+      return this.ctiBrandName;
     },
     reportsLogoUrl() {
       return this.rebranding_reports_login_logo_url || "";
@@ -710,13 +706,13 @@ export default {
       return this.rebranding_reports_favicon_url || "";
     },
     reportsBrandName() {
-      return this.rebranding_reports_brand_name || "NethVoice";
+      return this.rebranding_reports_brand_name || "NethVoice Reports";
     },
     reportsBrandInitial() {
       return this.reportsBrandName.charAt(0).toUpperCase();
     },
     reportsPreviewTitle() {
-      return `${this.reportsBrandName} Reports`;
+      return this.reportsBrandName;
     },
     reportsBackgroundStyle() {
       if (this.rebranding_reports_login_background_url) {
@@ -728,8 +724,9 @@ export default {
       }
 
       return {
-        background:
-          "linear-gradient(135deg, rgba(229, 247, 239, 1) 0%, rgba(209, 250, 229, 1) 45%, rgba(243, 244, 246, 1) 100%)",
+        backgroundImage: `url(${require("../assets/reports_login_background.png")})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
       };
     },
     wizardLogoUrl() {
@@ -766,8 +763,9 @@ export default {
       }
 
       return {
-        background:
-          "linear-gradient(135deg, #045944 0%, #05644c 55%, #06715a 100%)",
+        backgroundImage: `url(${require("../assets/wizard_login.svg")})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
       };
     },
   },
@@ -1145,6 +1143,13 @@ export default {
   height: 20px;
 }
 
+.login-brand-name {
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: center;
+}
+
 .login-form {
   display: flex;
   flex-direction: column;
@@ -1278,9 +1283,7 @@ export default {
 
 .reports-login-subtitle {
   color: #10b981;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  text-align: center;
 }
 
 .reports-login-form {
@@ -1315,24 +1318,6 @@ export default {
 .reports-login-side {
   flex: 1;
   min-width: 0;
-}
-
-.reports-login-side-overlay {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  padding: 1.5rem;
-  background: linear-gradient(180deg, rgba(17, 24, 39, 0.05) 0%, rgba(17, 24, 39, 0.2) 100%);
-}
-
-.reports-login-side-chip {
-  background: rgba(17, 24, 39, 0.8);
-  color: #f9fafb;
-  border-radius: 999px;
-  padding: 0.5rem 0.9rem;
-  font-size: 0.875rem;
 }
 
 .wizard-login-preview {
@@ -1454,9 +1439,9 @@ export default {
 }
 
 .wizard-login-stage-logo {
-  width: 62%;
-  max-width: 184px;
-  max-height: 24px;
+  width: auto;
+  max-width: 14rem;
+  max-height: 3rem;
 }
 
 @media (max-width: 960px) {

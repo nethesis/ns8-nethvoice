@@ -11,22 +11,6 @@ body {
   background-size: cover;
 }
 
-.wizard-login-logo {
-  display: block;
-  max-width: 14rem;
-  max-height: 3rem;
-  margin: 0 0 1.5rem;
-  object-fit: contain;
-}
-
-.wizard-login-stage-logo {
-  display: block;
-  max-width: 14rem;
-  max-height: 3rem;
-  margin: 0;
-  object-fit: contain;
-}
-
 span a {
   font-family: "Open Sans", Helvetica, Arial, sans-serif;
 }

@@ -5,8 +5,8 @@ set -e
 mkdir -p /var/www/html/pbx-report/config
 cat > /var/www/html/pbx-report/config/config.production.js <<EOF
 window.CONFIG = {
-  APP_NAME: "${REPORTS_UI_APP_NAME}",
-  BRAND_NAME: "${REPORTS_UI_BRAND_NAME}",
+  APP_NAME: "${REPORTS_UI_APP_NAME:-NethVoice Reports}",
+  BRAND_NAME: "${REPORTS_UI_BRAND_NAME:-NethVoice Reports}",
   HELP_URL: "${REPORTS_UI_HELP_URL}",
   COMPANY_NAME: "${REPORTS_UI_COMPANY_NAME}",
   LOGIN_LOGO_URL: "${REPORTS_UI_LOGIN_LOGO_URL}",

@@ -77,6 +77,9 @@ else:
 agent.set_env('BRAND_SITE', 'https://www.nethesis.it/soluzioni/nethvoice')
 agent.set_env('BRAND_DOCS', 'https://docs.nethserver.org/projects/ns8/it/latest/nethvoice.html')
 
+if os.getenv('NETHCTI_UI_PRODUCT_NAME') is None:
+    agent.set_env('NETHCTI_UI_PRODUCT_NAME', os.getenv('BRAND_NAME', 'NethVoice CTI'))
+
 if os.getenv('LOGIN_PEOPLE') is None:
     agent.set_env('LOGIN_PEOPLE', 'show')
 if os.getenv('LOGIN_LOGO_URL') is None:
@@ -97,7 +100,7 @@ if os.getenv('WIZARD_LOGIN_BACKGROUND_URL') is None:
 if os.getenv('REPORTS_UI_APP_NAME') is None:
     agent.set_env('REPORTS_UI_APP_NAME', 'NethVoice Reports')
 if os.getenv('REPORTS_UI_BRAND_NAME') is None:
-    agent.set_env('REPORTS_UI_BRAND_NAME', 'NethVoice')
+    agent.set_env('REPORTS_UI_BRAND_NAME', os.getenv('REPORTS_UI_APP_NAME', 'NethVoice Reports'))
 if os.getenv('REPORTS_UI_COMPANY_NAME') is None:
     agent.set_env('REPORTS_UI_COMPANY_NAME', 'Nethesis')
 if os.getenv('REPORTS_UI_HELP_URL') is None:

@@ -34,7 +34,7 @@ if 'system_id' in subscription:
 # compose config to return
 config = {
     'rebranding_active': rebranding_active,
-    'rebranding_brand_name': os.getenv('BRAND_NAME', 'NethVoice'),
+    'rebranding_brand_name': os.getenv('NETHCTI_UI_PRODUCT_NAME', os.getenv('BRAND_NAME', 'NethVoice CTI')),
     'rebranding_login_people': os.getenv('LOGIN_PEOPLE', ''),
     'rebranding_navbar_logo_url': os.getenv('NAVBAR_LOGO_URL', ''),
     'rebranding_navbar_logo_dark_url': os.getenv('NAVBAR_LOGO_DARK_URL', ''),
@@ -46,7 +46,7 @@ config = {
     'rebranding_wizard_login_logo_url': os.getenv('WIZARD_LOGIN_LOGO_URL', os.getenv('LOGIN_LOGO_URL', '')),
     'rebranding_wizard_favicon_url': os.getenv('WIZARD_FAVICON_URL', os.getenv('FAVICON_URL', '')),
     'rebranding_wizard_login_background_url': os.getenv('WIZARD_LOGIN_BACKGROUND_URL', os.getenv('LOGIN_BACKGROUND_URL', '')),
-    'rebranding_reports_brand_name': os.getenv('REPORTS_UI_BRAND_NAME', 'NethVoice'),
+    'rebranding_reports_brand_name': os.getenv('REPORTS_UI_APP_NAME', os.getenv('REPORTS_UI_BRAND_NAME', 'NethVoice Reports')),
     'rebranding_reports_login_logo_url': os.getenv('REPORTS_UI_LOGIN_LOGO_URL', ''),
     'rebranding_reports_favicon_url': os.getenv('REPORTS_UI_FAVICON_URL', ''),
     'rebranding_reports_login_background_url': os.getenv('REPORTS_UI_LOGIN_BACKGROUND_URL', ''),
