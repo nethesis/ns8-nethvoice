@@ -21,11 +21,6 @@
               class="border-b rounded-lg p-12"
             >
               <div class="max-w-sm sm:w-96">
-                <img
-                  ng-src="{{loginLogoUrl()}}"
-                  alt=""
-                  class="wizard-login-logo"
-                />
                 <!-- card Description -->
                 <h1
                   ng-class="!isDarkTheme ? 'text-gray-900' : 'text-gray-50'"
@@ -37,7 +32,7 @@
                 <span
                   ng-class="!isDarkTheme ? 'text-gray-700' : 'text-gray-200'"
                   class="text-sm-edited font-medium leading-5"
-                  >{{'Sign in to Nethvoice' | translate}}</span
+                  >{{'Sign in to' | translate}} {{brandName()}}</span
                 >
                 <!-- Error alert -->
                 <div
@@ -144,12 +139,11 @@
         </div>
       </div>
     </div>
-    <div class="relative flex-1 hideBrand">
+    <div class="relative flex-1 hideBrand flex flex-col items-center justify-center">
       <img
-        ng-if="showLoginPeople()"
-        class="absolute inset-0 mx-auto my-auto wizard-login-illustration"
-        src="images/brand.svg"
+        ng-src="{{loginLogoUrl()}}"
         alt=""
+        class="wizard-login-stage-logo"
       />
     </div>
   </div>

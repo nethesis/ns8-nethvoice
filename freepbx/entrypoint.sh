@@ -137,7 +137,6 @@ var customConfig = {
   BRAND_NAME: '${WIZARD_BRAND_NAME:=${BRAND_NAME:=NethVoice}}',
   BRAND_SITE: '${BRAND_SITE:=https://www.nethesis.it/soluzioni/nethvoice}',
   BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethserver.org/projects/ns8/it/latest/nethvoice.html}',
-  LOGIN_PEOPLE: '${WIZARD_LOGIN_PEOPLE:=${LOGIN_PEOPLE:=show}}',
   LOGIN_LOGO_URL: '${WIZARD_LOGIN_LOGO_URL:=${LOGIN_LOGO_URL:=}}',
   FAVICON_URL: '${WIZARD_FAVICON_URL:=${FAVICON_URL:=}}',
   LOGIN_BACKGROUND_URL: '${WIZARD_LOGIN_BACKGROUND_URL:=${LOGIN_BACKGROUND_URL:=}}',

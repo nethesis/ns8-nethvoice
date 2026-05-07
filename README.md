@@ -28,7 +28,6 @@ Reports UI rebranding is managed from the cluster-admin `Rebranding` page. The s
 The current report branding fields are:
 
 - `REPORTS_UI_BRAND_NAME`
-- `REPORTS_UI_LOGIN_PEOPLE`
 - `REPORTS_UI_LOGIN_LOGO_URL`
 - `REPORTS_UI_FAVICON_URL`
 - `REPORTS_UI_LOGIN_BACKGROUND_URL`

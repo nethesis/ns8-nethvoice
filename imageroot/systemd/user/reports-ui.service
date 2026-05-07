@@ -24,7 +24,6 @@ ExecStart=/usr/bin/podman run \
         --env REPORTS_UI_BRAND_NAME \
         --env REPORTS_UI_HELP_URL \
         --env REPORTS_UI_COMPANY_NAME \
-        --env REPORTS_UI_LOGIN_PEOPLE \
         --env REPORTS_UI_LOGIN_LOGO_URL \
         --env REPORTS_UI_FAVICON_URL \
         --env REPORTS_UI_LOGIN_BACKGROUND_URL \

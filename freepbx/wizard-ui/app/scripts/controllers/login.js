@@ -12,6 +12,10 @@ angular.module('nethvoiceWizardUiApp')
   .controller('LoginCtrl', function ($rootScope, $scope, $location, ConfigService, LoginService, LocalStorageService, MigrationService) {
     $scope.customConfig = customConfig;
 
+    $scope.brandName = function () {
+      return customConfig.BRAND_NAME || 'NethVoice';
+    };
+
     $scope.loginLogoUrl = function () {
       return customConfig.LOGIN_LOGO_URL || 'images/brand.svg';
     };
@@ -24,10 +28,6 @@ angular.module('nethvoiceWizardUiApp')
       }
 
       return {};
-    };
-
-    $scope.showLoginPeople = function () {
-      return customConfig.LOGIN_PEOPLE !== 'hide';
     };
 
     $scope.applyFavicon = function () {

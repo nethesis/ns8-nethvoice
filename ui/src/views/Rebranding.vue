@@ -384,23 +384,6 @@
                 :invalid-message="error.rebranding_reports_login_background_url"
                 :helper-text="$t('rebranding.public_url_image_helper')"
               />
-              <NsToggle
-                :label="$t('rebranding.login_illustration')"
-                value="reportsLoginIllustration"
-                :form-item="true"
-                v-model="rebranding_reports_login_people"
-                :disabled="loading.setRebranding"
-              >
-                <template slot="tooltip">
-                  {{ $t("rebranding.login_illustration_tooltip") }}
-                </template>
-                <template slot="text-left">{{
-                  $t("common.disabled")
-                }}</template>
-                <template slot="text-right">{{
-                  $t("common.enabled")
-                }}</template>
-              </NsToggle>
               <div class="mb-6">
                 <label class="bx--label mb-0">{{
                   $t("rebranding.login_page_preview")
@@ -461,11 +444,7 @@
                         </div>
                       </div>
                     </div>
-                    <div
-                      v-if="rebranding_reports_login_people"
-                      class="reports-login-side"
-                      :style="reportsBackgroundStyle"
-                    >
+                    <div class="reports-login-side" :style="reportsBackgroundStyle">
                       <div class="reports-login-side-overlay">
                         <div class="reports-login-side-chip">
                           {{ reportsPreviewTitle }}
@@ -545,23 +524,6 @@
                 :invalid-message="error.rebranding_wizard_login_background_url"
                 :helper-text="$t('rebranding.public_url_image_helper')"
               />
-              <NsToggle
-                :label="$t('rebranding.login_illustration')"
-                value="wizardLoginIllustration"
-                :form-item="true"
-                v-model="rebranding_wizard_login_people"
-                :disabled="loading.setRebranding"
-              >
-                <template slot="tooltip">
-                  {{ $t("rebranding.login_illustration_tooltip") }}
-                </template>
-                <template slot="text-left">{{
-                  $t("common.disabled")
-                }}</template>
-                <template slot="text-right">{{
-                  $t("common.enabled")
-                }}</template>
-              </NsToggle>
               <div class="mb-6">
                 <label class="bx--label mb-0">{{
                   $t("rebranding.login_page_preview")
@@ -594,11 +556,6 @@
                   <div class="wizard-login-shell">
                     <div class="wizard-login-panel">
                       <div class="wizard-login-card-preview">
-                        <img
-                          :src="wizardPanelLogoUrl"
-                          alt="Wizard logo"
-                          class="wizard-login-preview-logo"
-                        />
                         <div class="wizard-login-welcome">Welcome</div>
                         <div class="wizard-login-subtitle">
                           Sign In to {{ wizardBrandName }}
@@ -619,13 +576,10 @@
                       </div>
                     </div>
                     <div class="wizard-login-stage" :style="wizardBackgroundStyle">
-                      <div
-                        v-if="rebranding_wizard_login_people"
-                        class="wizard-login-stage-logo-wrap"
-                      >
+                      <div class="wizard-login-stage-logo-wrap">
                         <img
                           :src="wizardStageLogoUrl"
-                          alt="Wizard stage logo"
+                          alt="Wizard logo"
                           class="wizard-login-stage-logo"
                         />
                       </div>
@@ -702,12 +656,10 @@ export default {
       rebranding_reports_login_background_url: "",
       rebranding_reports_favicon_url: "",
       rebranding_reports_login_logo_url: "",
-      rebranding_reports_login_people: true,
       rebranding_wizard_brand_name: "",
       rebranding_wizard_login_background_url: "",
       rebranding_wizard_favicon_url: "",
       rebranding_wizard_login_logo_url: "",
-      rebranding_wizard_login_people: true,
       isDarkMode: false,
       loading: {
         getRebranding: false,
@@ -785,9 +737,6 @@ export default {
         this.rebranding_wizard_login_logo_url ||
         require("../assets/login_logo_dark.svg")
       );
-    },
-    wizardPanelLogoUrl() {
-      return this.wizardLogoUrl;
     },
     wizardFaviconUrl() {
       return this.rebranding_wizard_favicon_url || "";
@@ -898,8 +847,6 @@ export default {
         config.rebranding_reports_favicon_url;
       this.rebranding_reports_login_logo_url =
         config.rebranding_reports_login_logo_url;
-      this.rebranding_reports_login_people =
-        config.rebranding_reports_login_people !== "hide";
       this.rebranding_wizard_brand_name = config.rebranding_wizard_brand_name;
       this.rebranding_wizard_login_background_url =
         config.rebranding_wizard_login_background_url;
@@ -907,8 +854,6 @@ export default {
         config.rebranding_wizard_favicon_url;
       this.rebranding_wizard_login_logo_url =
         config.rebranding_wizard_login_logo_url;
-      this.rebranding_wizard_login_people =
-        config.rebranding_wizard_login_people !== "hide";
       this.loading.getRebranding = false;
     },
     setLightTheme() {
@@ -944,12 +889,6 @@ export default {
       let rebrandingLoginPeople = this.rebranding_login_people
         ? "show"
         : "hide";
-      let rebrandingReportsLoginPeople = this.rebranding_reports_login_people
-        ? "show"
-        : "hide";
-      let rebrandingWizardLoginPeople = this.rebranding_wizard_login_people
-        ? "show"
-        : "hide";
 
       const res = await to(
         this.createModuleTaskForApp(this.instanceName, {
@@ -966,7 +905,6 @@ export default {
             rebranding_login_background_url:
               this.rebranding_login_background_url,
             rebranding_reports_brand_name: this.rebranding_reports_brand_name,
-            rebranding_reports_login_people: rebrandingReportsLoginPeople,
             rebranding_reports_login_logo_url:
               this.rebranding_reports_login_logo_url,
             rebranding_reports_favicon_url:
@@ -974,7 +912,6 @@ export default {
             rebranding_reports_login_background_url:
               this.rebranding_reports_login_background_url,
             rebranding_wizard_brand_name: this.rebranding_wizard_brand_name,
-            rebranding_wizard_login_people: rebrandingWizardLoginPeople,
             rebranding_wizard_login_logo_url:
               this.rebranding_wizard_login_logo_url,
             rebranding_wizard_favicon_url:
@@ -1420,13 +1357,6 @@ export default {
   color: #f9fafb;
 }
 
-.wizard-login-preview-logo {
-  display: block;
-  max-width: 132px;
-  max-height: 24px;
-  margin: 0 0 1rem;
-}
-
 .wizard-login-welcome {
   color: #f9fafb;
   font-weight: 600;
@@ -1516,8 +1446,9 @@ export default {
 }
 
 .wizard-login-stage-logo {
-  width: 72%;
-  max-width: 220px;
+  width: 62%;
+  max-width: 184px;
+  max-height: 24px;
 }
 
 @media (max-width: 960px) {

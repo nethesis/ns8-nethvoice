@@ -19,9 +19,11 @@ body {
   object-fit: contain;
 }
 
-.wizard-login-illustration {
-  max-width: min(28rem, 70%);
-  max-height: 70%;
+.wizard-login-stage-logo {
+  display: block;
+  max-width: 14rem;
+  max-height: 3rem;
+  margin: 0;
   object-fit: contain;
 }
 
