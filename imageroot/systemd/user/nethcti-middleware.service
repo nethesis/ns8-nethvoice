@@ -43,7 +43,7 @@ ExecStart=/usr/bin/podman run \
     ${NETHVOICE_CTI_MIDDLEWARE_IMAGE}
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/nethcti-middleware.ctr-id
-ExecReload=/usr/bin/podman exec nethcti-middleware node /app/nethcti-cli reload
+ExecReload=/usr/bin/curl -fsS --connect-timeout 1 --max-time 2 -X POST -H "Authorization: Bearer ${NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN}" -H "Content-Type: application/json" http://127.0.0.1:${NETHVOICE_MIDDLEWARE_PORT}/admin/reload/profiles
 PIDFile=%t/nethcti-middleware.pid
 Type=forking
 

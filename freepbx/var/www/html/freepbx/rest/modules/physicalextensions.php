@@ -23,7 +23,6 @@ use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
 include_once('lib/libExtensions.php');
-include_once('lib/libMiddleware.php');
 
 $app->get('/physicalextensions', function (Request $request, Response $response, $args) {
     $physicalextensions = FreePBX::create()->Core->getAllUsersByDeviceType('pjsip');
@@ -189,7 +188,6 @@ $app->post('/mobileapp', function (Request $request, Response $response, $args) 
         }
 
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-        triggerMiddlewareProfilesReload();
         return $response->withJson(array('extension'=>$extension), 201);
     } catch (Exception $e) {
         error_log($e->getMessage());
@@ -215,7 +213,6 @@ $app->delete('/mobileapp/{extension}', function (Request $request, Response $res
         $extension = $route->getArgument('extension');
         if (deleteExtension($extension)) {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-            triggerMiddlewareProfilesReload();
             return $response->withStatus(204);
         } else {
             throw new Exception ("Error deleting extension");
