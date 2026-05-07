@@ -94,6 +94,23 @@ if os.getenv('WIZARD_FAVICON_URL') is None:
 if os.getenv('WIZARD_LOGIN_BACKGROUND_URL') is None:
     agent.set_env('WIZARD_LOGIN_BACKGROUND_URL', os.getenv('LOGIN_BACKGROUND_URL', ''))
 
+if os.getenv('REPORTS_UI_APP_NAME') is None:
+    agent.set_env('REPORTS_UI_APP_NAME', 'NethVoice Reports')
+if os.getenv('REPORTS_UI_BRAND_NAME') is None:
+    agent.set_env('REPORTS_UI_BRAND_NAME', 'NethVoice')
+if os.getenv('REPORTS_UI_COMPANY_NAME') is None:
+    agent.set_env('REPORTS_UI_COMPANY_NAME', 'Nethesis')
+if os.getenv('REPORTS_UI_HELP_URL') is None:
+    agent.set_env('REPORTS_UI_HELP_URL', 'https://docs.nethserver.org/projects/ns8/en/latest/nethvoice.html')
+if os.getenv('REPORTS_UI_LOGIN_LOGO_URL') is None:
+    agent.set_env('REPORTS_UI_LOGIN_LOGO_URL', '')
+if os.getenv('REPORTS_UI_FAVICON_URL') is None:
+    agent.set_env('REPORTS_UI_FAVICON_URL', '')
+if os.getenv('REPORTS_UI_LOGIN_BACKGROUND_URL') is None:
+    agent.set_env('REPORTS_UI_LOGIN_BACKGROUND_URL', '')
+if os.getenv('REPORTS_UI_LOGIN_BACKGROUND_COLOR') is None:
+    agent.set_env('REPORTS_UI_LOGIN_BACKGROUND_COLOR', '')
+
 if os.getenv('ICEENFORCE') is None:
     agent.set_env('ICEENFORCE', 'none')
 
