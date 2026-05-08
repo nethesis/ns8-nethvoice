@@ -1447,22 +1447,6 @@ function getHtmlRecordings(elemId, voices) {
     html += '<p id="errorMsgApy" class="error-message bottom-small simplehide">' + languages[browserLang]["view_tts_error_1"] + '.</p>';
     html += '<p id="errorMsgListen" class="error-message bottom-small simplehide">' + languages[browserLang]["view_tts_error_2"] + '.</p>';
     html += '</div>';
-    html += '<div id="ttsKeyContainer">';
-    html += '<form class="form-horizontal">';
-    html += '<div class="form-group">';
-    html += '<label id="labelApiKey" class="col-sm-4 control-label label-creation">' + languages[browserLang]["view_name_googlekey_label"] + ': </label>';
-    html += '<div class="col-sm-7">';
-    html += '<input class="form-control input-creation" id="googleApiKey" type="text">';
-    html += '</div>';
-    html += '</div>';
-    html += '<div class="form-group">';
-    html += '<label class="col-sm-4 control-label label-creation"></label>';
-    html += '<div class="col-sm-7">';
-    html += '<button type="button" id="setKeyTtsButton" title="' + languages[browserLang]["view_tts_button_set_key"] + '" class="btn btn-default">' + languages[browserLang]["view_tts_save_key"] + '</button>';
-    html += '</div>';
-    html += '</div>';
-    html += '</form>';
-    html += '</div>';
     html += '<div id="ttsFormContainer">';
     html += '<form class="form-horizontal">';
     html += '<div class="form-group">';
@@ -1757,38 +1741,6 @@ function refreshDialog(elemId, newRecName) {
 }
 
 function initRecordingListeners() {
-    $.ajax({
-        url: "./plugins.php?getType=tools&rest=getkey",
-        context: document.body
-    }).done(function(res) {
-        res = JSON.parse(res);
-        if (res["API_KEY"]) {
-            $("#ttsKeyContainer").hide();
-        } else {
-            $("#ttsFormContainer").hide();
-        }
-    });
-
-    $("#setKeyTtsButton").click(function () {
-        var key = $("#googleApiKey").val();
-        if (key != "") {
-            $.ajax({
-                url: "./plugins.php",
-                type: "post",
-                data: {
-                    "getType": "tools",
-                    "rest": "savekey",
-                    "key": key
-                }
-            }).done(function(res) {
-                $("#errorMsgApy").hide();
-                $("#newRecordTTStext").removeClass("error-border");
-                $("#ttsKeyContainer").hide();
-                $("#ttsFormContainer").show();
-            });
-        }
-    });
-
     $('#checkRecordingBtn').click(function (e) {
         if (!recording) {
             $('#checkRecordingBtn').removeClass('fa-circle').addClass('fa-square blink').attr('title', languages[browserLang]["view_stop_recording_string"]);
@@ -1993,14 +1945,6 @@ function initRecordingListeners() {
             var ttsGetFail = function () {
                 $("#errorMsgApy").show();
                 $("#newRecordTTStext").addClass("error-border");
-                $("#ttsKeyContainer").show();
-                $.ajax({
-                    url: "./plugins.php?getType=tools&rest=getkey",
-                    context: document.body
-                }).done(function(res) {
-                    res = JSON.parse(res);
-                    $("#googleApiKey").val(res["API_KEY"]);
-                });
             }
             $.ajax({
                 url: "./plugins.php",

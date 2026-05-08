@@ -172,7 +172,7 @@ popd
 images+=("${repobase}/${reponame}")
 
 ##########################
-##   Satellite AI STT   ##
+## Satellite AI STT/TTS ##
 ##########################
 echo "[*] Build Satellite container"
 reponame="nethvoice-satellite"

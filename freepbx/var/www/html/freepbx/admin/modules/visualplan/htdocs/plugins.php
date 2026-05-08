@@ -41,36 +41,60 @@ $reqPost = $_POST['getType'];
 if ($reqGet && ($reqGet === "tools")) {
     switch ($_GET['rest']) {
         case 'getvoices':
-            $res = googletts_getAvailableVoices($_GET['lang']);
-            echo json_encode($res);
+            try {
+                $lang = strtolower(trim((string)($_GET['lang'] ?? '')));
+                $availableVoices = FreePBX::Satellite()->get_available_voices();
+                $res = array();
+
+                if ($lang !== '' && isset($availableVoices[$lang]) && is_array($availableVoices[$lang])) {
+                    foreach ($availableVoices[$lang] as $voice) {
+                        $res[] = array($lang, $voice);
+                    }
+                }
+                echo json_encode($res);
+            } catch (\Exception $e) {
+                http_response_code(500);
+                error_log("Error retrieving available voices: " . $e->getMessage());
+                echo json_encode(['error' => $e->getMessage()]);
+            }
             break;
 
         case 'getaudio':
-            $res = googletts_get_unsaved_audio($_GET['token']);
-            echo $res;
+            try {
+                $res = FreePBX::Satellite()->get_unsaved_audio($_GET['token']);
+                echo $res;
+            } catch (\Exception $e) {
+                http_response_code(400);
+                error_log("Error retrieving unsaved audio: " . $e->getMessage());
+                echo json_encode(['error' => $e->getMessage()]);
+            }
             break;
-        
-        case 'getkey':
-            $res = googletts_get_options();
-            echo json_encode($res);
         default:
             break;
     }    
 } else if ($reqPost && ($reqPost === "tools")) {
     switch ($_POST['rest']) {
         case 'ttstext':
-            $res = googletts_tts($_POST['text'], $_POST['lang'], $_POST['voice']);
-            echo json_encode($res);
+            try {
+                $res = FreePBX::Satellite()->tts($_POST['text'], $_POST['voice'], $_POST['lang']);
+                echo json_encode($res);
+            } catch (\Exception $e) {
+                http_response_code(500);
+                error_log("Error generating TTS audio: " . $e->getMessage());
+                echo json_encode(['error' => $e->getMessage()]);
+            }
             break;
 
         case 'savetts':
-            $res = googletts_save_recording($_POST['token'], $_POST['lang'], $_POST['name'], $_POST['desc']);
-            echo $res;
+            try {
+                $res = FreePBX::Satellite()->save_recording($_POST['token'], $_POST['lang'], $_POST['name'], $_POST['desc']);
+                echo $res;
+            } catch (\Exception $e) {
+                http_response_code(500);
+                error_log("Error saving TTS recording: " . $e->getMessage());
+                echo json_encode(['error' => $e->getMessage()]);
+            }
             break;
-
-        case 'savekey':
-            $res = googletts_set_option("API_KEY", $_POST['key']);
-            echo $res;
         default:
             break;
     }    
