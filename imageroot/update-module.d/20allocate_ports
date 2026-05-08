@@ -8,6 +8,7 @@
 # Allocate new port for sftp service
 import sys
 import os
+import subprocess
 import agent
 
 if not hasattr(agent, 'allocate_ports'):
@@ -94,9 +95,10 @@ if not 'SATELLITE_HTTP_PORT' in env:
 	# Update the environment file
 	agent.set_env('SATELLITE_HTTP_PORT', http_port)
 
-# Get RTP UDP port for SATELLITE
-# Since udp ports are not allocated by the core for historical reasons, we need to allocate them manually
-if any(os.getenv(env_name) is None for env_name in (
+# Allocate RTP/UDP ports via ns8-core if:
+# - UDP_PORTS_RANGE is absent (old instances that used the fake Redis-based allocation), OR
+# - any of the five RTP env vars is missing
+if 'UDP_PORTS_RANGE' not in env or any(os.getenv(env_name) is None for env_name in (
     'ASTERISK_RTPSTART',
     'ASTERISK_RTPEND',
     'JANUS_RTPSTART',
@@ -106,10 +108,13 @@ if any(os.getenv(env_name) is None for env_name in (
 	asterisk_rtp_ports = 1000
 	janus_rtp_ports = 1000
 	satellite_rtp_ports = 1
-	rtp_start, _ = agent.allocate_ports(
+	rtp_start, rtp_end = agent.allocate_ports(
 		asterisk_rtp_ports + janus_rtp_ports + satellite_rtp_ports,
 		"udp",
 	)
+	# Set UDP_PORTS_RANGE so this migration block is not triggered again on
+	# subsequent updates (ns8-core only sets this at install time, not here).
+	agent.set_env('UDP_PORTS_RANGE', f'{rtp_start}-{rtp_end}')
 	asterisk_rtp_start = rtp_start
 	asterisk_rtp_end = asterisk_rtp_start + asterisk_rtp_ports - 1
 	janus_rtp_start = asterisk_rtp_end + 1
@@ -124,6 +129,42 @@ if any(os.getenv(env_name) is None for env_name in (
 	agent.set_env('JANUS_RTPSTART', janus_rtp_start)
 	agent.set_env('JANUS_RTPEND', janus_rtp_end)
 	agent.set_env('SATELLITE_RTP_PORT', satellite_rtp_port)
+
+	# Open the new RTP ranges in the firewall (replaces old entries for these ranges)
+	agent.add_public_service(os.environ['MODULE_ID'], [
+		str(asterisk_rtp_start)+"-"+str(asterisk_rtp_end)+"/udp",
+		str(janus_rtp_start)+"-"+str(janus_rtp_end)+"/udp",
+	])
+
+	# Update Asterisk RTP settings in MariaDB so they match the new port range.
+	# This is needed because docker-entrypoint-initdb.d only runs on fresh DB init.
+	# MariaDB is guaranteed to be running at this point (before 80restart).
+	mariadb_check = subprocess.run(
+		['systemctl', '--user', 'is-active', 'mariadb'],
+		capture_output=True, text=True,
+	)
+	if mariadb_check.returncode == 0:
+		passwords = agent.read_envfile('passwords.env')
+		mariadb_root_password = passwords.get('MARIADB_ROOT_PASSWORD', '')
+		mariadb_port = os.environ.get('NETHVOICE_MARIADB_PORT', '3306')
+		rtp_sql = (
+			f"UPDATE sipsettings SET data='{asterisk_rtp_start}' WHERE keyword='rtpstart';"
+			f"UPDATE sipsettings SET data='{asterisk_rtp_end}' WHERE keyword='rtpend';"
+			f"UPDATE kvstore_Sipsettings SET val='{asterisk_rtp_start}' WHERE `key`='rtpstart';"
+			f"UPDATE kvstore_Sipsettings SET val='{asterisk_rtp_end}' WHERE `key`='rtpend';"
+		)
+		proc = subprocess.run(
+			['podman', 'exec', '-i', 'mariadb',
+			 'mysql', '-uroot', f'-p{mariadb_root_password}',
+			 '-h', '127.0.0.1', '-P', mariadb_port, 'asterisk'],
+			input=rtp_sql, text=True, capture_output=True,
+		)
+		if proc.returncode == 0:
+			print(f"Updated Asterisk RTP range in MariaDB: {asterisk_rtp_start}-{asterisk_rtp_end}", file=sys.stderr)
+		else:
+			print(f"Warning: failed to update Asterisk RTP in MariaDB: {proc.stderr}", file=sys.stderr)
+	else:
+		print("Warning: MariaDB not running, Asterisk RTP range in DB was not updated", file=sys.stderr)
 
 # add port for Asterisk WSS
 if not 'ASTERISK_WSS_PORT' in env:
