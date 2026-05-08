@@ -6,7 +6,7 @@
 
 <div id="loginTpl">
   <!-- login card -->
-  <div class="flex flex-1 h-screen wizard-login" ng-controller="LoginCtrl" ng-style="loginBackgroundStyle()">
+  <div class="flex flex-1 h-screen wizard-login" ng-controller="LoginCtrl">
     <div
       ng-class="!isDarkTheme ? 'lg:bg-gray-200' : 'lg:bg-gray-950'"
       class="flex flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-24"
@@ -139,11 +139,16 @@
         </div>
       </div>
     </div>
-    <div class="relative flex-1 hideBrand">
+    <div class="relative flex-1 hideBrand wizard-login-stage">
+      <img
+        ng-src="{{loginBackgroundUrl()}}"
+        alt=""
+        class="wizard-login-stage-background"
+      />
       <img
         ng-src="{{loginLogoUrl()}}"
         alt=""
-        class="absolute inset-0 mx-auto my-auto"
+        class="wizard-login-stage-logo"
       />
     </div>
   </div>

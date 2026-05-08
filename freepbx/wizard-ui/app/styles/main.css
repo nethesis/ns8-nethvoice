@@ -1,14 +1,44 @@
 body {
   font-family: "Open Sans", Helvetica, Arial, sans-serif;
-  background: url('../images/login.svg') no-repeat center center;
-  background-size: cover;
+  background-color: #020617;
   display: none;
   overflow: hidden;
 }
 
 .wizard-login {
-  background: url('../images/login.svg') no-repeat center center;
-  background-size: cover;
+  background-color: #020617;
+}
+
+.wizard-login-stage {
+  display: block;
+  overflow: hidden;
+}
+
+.wizard-login-stage-background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wizard-login-stage-logo {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  display: block;
+  width: 326px;
+  max-width: 85%;
+  height: auto;
+  max-height: none;
+  object-fit: contain;
+  z-index: 1;
+}
+
+@media screen and (max-width: 1024px) {
+  .wizard-login-stage {
+    display: none;
+  }
 }
 
 span a {

@@ -329,7 +329,7 @@
                     />
                     <NsTextInput
                       :label="
-                        $t('rebranding.rebranding_login_logo_url') +
+                        $t('rebranding.rebranding_wizard_login_logo_url_label') +
                         ' (' +
                         $t('common.optional') +
                         ')'
@@ -464,7 +464,7 @@
                     />
                     <NsTextInput
                       :label="
-                        $t('rebranding.rebranding_login_logo_url') +
+                        $t('rebranding.rebranding_reports_login_logo_url_label') +
                         ' (' +
                         $t('common.optional') +
                         ')'

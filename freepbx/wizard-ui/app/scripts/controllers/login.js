@@ -20,14 +20,8 @@ angular.module('nethvoiceWizardUiApp')
       return customConfig.LOGIN_LOGO_URL || 'images/brand.svg';
     };
 
-    $scope.loginBackgroundStyle = function () {
-      if (customConfig.LOGIN_BACKGROUND_URL) {
-        return {
-          'background-image': 'url(' + customConfig.LOGIN_BACKGROUND_URL + ')'
-        };
-      }
-
-      return {};
+    $scope.loginBackgroundUrl = function () {
+      return customConfig.LOGIN_BACKGROUND_URL || 'images/login.svg';
     };
 
     $scope.applyFavicon = function () {
