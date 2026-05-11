@@ -67,152 +67,195 @@
       </cv-row>
       <cv-row v-if="rebranding_active && !loading.getRebranding">
         <cv-column>
+          <cv-tile light class="rebranding-product-tile">
+            <cv-form @submit.prevent="setBrandName">
+              <div class="rebranding-product-grid">
+                <div>
+                  <h3 class="section-title">
+                    {{ $t("rebranding.rebranding_brand_name") }}
+                  </h3>
+                  <p class="section-description">
+                    {{ $t("rebranding.product_name_description") }}
+                  </p>
+                </div>
+                <div>
+                  <NsTextInput
+                    :label="
+                      $t('rebranding.rebranding_brand_name') +
+                      ' (' +
+                      $t('common.optional') +
+                      ')'
+                    "
+                    v-model="rebranding_brand_name"
+                    placeholder="NethVoice"
+                    :disabled="loading.setRebranding"
+                    :invalid-message="error.rebranding_brand_name"
+                    :helper-text="$t('rebranding.name_to_replace_nethvoice')"
+                    class="mb-4"
+                  />
+                  <NsInlineNotification
+                    v-if="error.setRebranding"
+                    kind="error"
+                    :title="$t('action.set-rebranding')"
+                    :description="error.setRebranding"
+                    :showCloseButton="false"
+                    class="mb-4"
+                  />
+                  <NsButton
+                    kind="primary"
+                    :icon="Save20"
+                    :loading="loading.setRebranding"
+                    :disabled="loading.setRebranding"
+                  >
+                    {{ $t("common.save") }}
+                  </NsButton>
+                </div>
+              </div>
+            </cv-form>
+          </cv-tile>
+        </cv-column>
+      </cv-row>
+      <cv-row v-if="rebranding_active && !loading.getRebranding">
+        <cv-column>
           <cv-tile light>
             <cv-form @submit.prevent="setRebranding">
               <cv-tabs class="rebranding-tabs" container>
                 <cv-tab :label="$t('rebranding.cti_tab_label')" selected>
                   <div class="rebranding-tab-content">
-                    <NsTextInput
-                      :label="
-                        $t('rebranding.rebranding_brand_name') +
-                        ' (' +
-                        $t('common.optional') +
-                        ')'
-                      "
-                      v-model="rebranding_brand_name"
-                      placeholder="NethVoice"
-                      :disabled="loading.setRebranding"
-                      :invalid-message="error.rebranding_brand_name"
-                      :helper-text="$t('rebranding.name_to_replace_nethvoice')"
-                    />
-                    <NsTextInput
-                      :label="
-                        $t('rebranding.rebranding_login_logo_url') +
-                        ' (' +
-                        $t('common.optional') +
-                        ')'
-                      "
-                      v-model="rebranding_login_logo_url"
-                      :placeholder="
-                        $t('common.eg_value', {
-                          value: 'https://mydomain.com/path/to/image.svg',
-                        })
-                      "
-                      :disabled="loading.setRebranding"
-                      :invalid-message="error.rebranding_login_logo_url"
-                      :helper-text="$t('rebranding.public_url_image_helper')"
-                    />
-                    <NsTextInput
-                      :label="
-                        $t('rebranding.rebranding_login_logo_dark_url') +
-                        ' (' +
-                        $t('common.optional') +
-                        ')'
-                      "
-                      v-model="rebranding_login_logo_dark_url"
-                      :placeholder="
-                        $t('common.eg_value', {
-                          value: 'https://mydomain.com/path/to/image.svg',
-                        })
-                      "
-                      :disabled="loading.setRebranding"
-                      :invalid-message="error.rebranding_login_logo_dark_url"
-                      :helper-text="$t('rebranding.public_url_image_helper')"
-                    />
-                    <NsTextInput
-                      :label="
-                        $t('rebranding.rebranding_navbar_logo_url') +
-                        ' (' +
-                        $t('common.optional') +
-                        ')'
-                      "
-                      v-model="rebranding_navbar_logo_url"
-                      :placeholder="
-                        $t('common.eg_value', {
-                          value: 'https://mydomain.com/path/to/image.svg',
-                        })
-                      "
-                      :disabled="loading.setRebranding"
-                      :invalid-message="error.rebranding_navbar_logo_url"
-                      :helper-text="$t('rebranding.public_url_image_helper')"
-                    />
-                    <NsTextInput
-                      :label="
-                        $t('rebranding.rebranding_navbar_logo_dark_url') +
-                        ' (' +
-                        $t('common.optional') +
-                        ')'
-                      "
-                      v-model="rebranding_navbar_logo_dark_url"
-                      :placeholder="
-                        $t('common.eg_value', {
-                          value: 'https://mydomain.com/path/to/image.svg',
-                        })
-                      "
-                      :disabled="loading.setRebranding"
-                      :invalid-message="error.rebranding_navbar_logo_dark_url"
-                      :helper-text="$t('rebranding.public_url_image_helper')"
-                    />
-                    <NsTextInput
-                      :label="
-                        $t('rebranding.rebranding_favicon_url') +
-                        ' (' +
-                        $t('common.optional') +
-                        ')'
-                      "
-                      v-model="rebranding_favicon_url"
-                      :placeholder="
-                        $t('common.eg_value', {
-                          value: 'https://mydomain.com/favicon.ico',
-                        })
-                      "
-                      :disabled="loading.setRebranding"
-                      :invalid-message="error.rebranding_favicon_url"
-                      :helper-text="$t('rebranding.public_url_image_helper')"
-                    >
-                      <template slot="tooltip">
-                        {{ $t("rebranding.rebranding_favicon_url_tooltip") }}
-                      </template></NsTextInput
-                    >
-                    <NsTextInput
-                      :label="
-                        $t('rebranding.rebranding_login_background_url') +
-                        ' (' +
-                        $t('common.optional') +
-                        ')'
-                      "
-                      v-model="rebranding_login_background_url"
-                      :placeholder="
-                        $t('common.eg_value', {
-                          value: 'https://mydomain.com/path/to/image.svg',
-                        })
-                      "
-                      :disabled="loading.setRebranding"
-                      :invalid-message="error.rebranding_login_background_url"
-                      :helper-text="$t('rebranding.public_url_image_helper')"
-                    />
-                    <NsToggle
-                      :label="$t('rebranding.login_illustration')"
-                      value="loginIllustration"
-                      :form-item="true"
-                      v-model="rebranding_login_people"
-                      :disabled="loading.setRebranding"
-                    >
-                      <template slot="tooltip">
-                        {{ $t("rebranding.login_illustration_tooltip") }}
-                      </template>
-                      <template slot="text-left">{{
-                        $t("common.disabled")
-                      }}</template>
-                      <template slot="text-right">{{
-                        $t("common.enabled")
-                      }}</template>
-                    </NsToggle>
-                    <div class="mb-6">
-                      <label class="bx--label mb-0">{{
-                        $t("rebranding.login_page_preview")
-                      }}</label>
-                      <div class="preview-frame cti-preview-frame">
+                    <div class="rebranding-tab-grid">
+                      <div class="rebranding-tab-fields">
+                        <h3 class="section-title">
+                          {{ $t("rebranding.appearance_settings") }}
+                        </h3>
+                        <NsTextInput
+                          :label="
+                            $t('rebranding.rebranding_login_logo_url') +
+                            ' (' +
+                            $t('common.optional') +
+                            ')'
+                          "
+                          v-model="rebranding_login_logo_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://mydomain.com/path/to/image.svg',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="error.rebranding_login_logo_url"
+                          :helper-text="$t('rebranding.public_url_image_helper')"
+                        />
+                        <NsTextInput
+                          :label="
+                            $t('rebranding.rebranding_login_logo_dark_url') +
+                            ' (' +
+                            $t('common.optional') +
+                            ')'
+                          "
+                          v-model="rebranding_login_logo_dark_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://mydomain.com/path/to/image.svg',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="error.rebranding_login_logo_dark_url"
+                          :helper-text="$t('rebranding.public_url_image_helper')"
+                        />
+                        <NsTextInput
+                          :label="
+                            $t('rebranding.rebranding_navbar_logo_url') +
+                            ' (' +
+                            $t('common.optional') +
+                            ')'
+                          "
+                          v-model="rebranding_navbar_logo_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://mydomain.com/path/to/image.svg',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="error.rebranding_navbar_logo_url"
+                          :helper-text="$t('rebranding.public_url_image_helper')"
+                        />
+                        <NsTextInput
+                          :label="
+                            $t('rebranding.rebranding_navbar_logo_dark_url') +
+                            ' (' +
+                            $t('common.optional') +
+                            ')'
+                          "
+                          v-model="rebranding_navbar_logo_dark_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://mydomain.com/path/to/image.svg',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="error.rebranding_navbar_logo_dark_url"
+                          :helper-text="$t('rebranding.public_url_image_helper')"
+                        />
+                        <NsTextInput
+                          :label="
+                            $t('rebranding.rebranding_favicon_url') +
+                            ' (' +
+                            $t('common.optional') +
+                            ')'
+                          "
+                          v-model="rebranding_favicon_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://mydomain.com/favicon.ico',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="error.rebranding_favicon_url"
+                          :helper-text="$t('rebranding.public_url_image_helper')"
+                        >
+                          <template slot="tooltip">
+                            {{ $t("rebranding.rebranding_favicon_url_tooltip") }}
+                          </template></NsTextInput
+                        >
+                        <NsTextInput
+                          :label="
+                            $t('rebranding.rebranding_login_background_url') +
+                            ' (' +
+                            $t('common.optional') +
+                            ')'
+                          "
+                          v-model="rebranding_login_background_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://mydomain.com/path/to/image.svg',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="error.rebranding_login_background_url"
+                          :helper-text="$t('rebranding.public_url_image_helper')"
+                        />
+                        <NsToggle
+                          :label="$t('rebranding.login_illustration')"
+                          value="loginIllustration"
+                          :form-item="true"
+                          v-model="rebranding_login_people"
+                          :disabled="loading.setRebranding"
+                        >
+                          <template slot="tooltip">
+                            {{ $t("rebranding.login_illustration_tooltip") }}
+                          </template>
+                          <template slot="text-left">{{
+                            $t("common.disabled")
+                          }}</template>
+                          <template slot="text-right">{{
+                            $t("common.enabled")
+                          }}</template>
+                        </NsToggle>
+                      </div>
+                      <div class="rebranding-tab-preview-column">
+                        <label class="bx--label mb-0">{{
+                          $t("rebranding.login_page_preview")
+                        }}</label>
+                        <div class="preview-frame cti-preview-frame">
                         <div class="preview-browser-bar preview-browser-bar-light">
                           <div class="preview-dots">
                             <span></span>
@@ -310,83 +353,94 @@
                         </div>
                       </div>
                     </div>
+                    <div class="rebranding-save-actions">
+                      <NsButton
+                        kind="ghost"
+                        :icon="Restart20"
+                        :disabled="loading.setRebranding"
+                        @click.prevent="resetTab('cti')"
+                      >
+                        {{ $t("rebranding.reset") }}
+                      </NsButton>
+                      <NsButton
+                        kind="primary"
+                        :icon="Save20"
+                        :loading="loading.setRebranding"
+                        :disabled="loading.setRebranding"
+                      >
+                        {{ $t("common.save") }}
+                      </NsButton>
+                    </div>
                   </div>
                 </cv-tab>
                 <cv-tab :label="$t('rebranding.admin_tab_label')">
                   <div class="rebranding-tab-content">
-                    <NsTextInput
-                      :label="
-                        $t('rebranding.rebranding_brand_name') +
-                        ' (' +
-                        $t('common.optional') +
-                        ')'
-                      "
-                      v-model="rebranding_wizard_brand_name"
-                      placeholder="NethVoice"
-                      :disabled="loading.setRebranding"
-                      :invalid-message="error.rebranding_wizard_brand_name"
-                      :helper-text="$t('rebranding.name_to_replace_nethvoice')"
-                    />
-                    <NsTextInput
-                      :label="
-                        $t('rebranding.rebranding_wizard_login_logo_url_label') +
-                        ' (' +
-                        $t('common.optional') +
-                        ')'
-                      "
-                      v-model="rebranding_wizard_login_logo_url"
-                      :placeholder="
-                        $t('common.eg_value', {
-                          value: 'https://mydomain.com/path/to/image.svg',
-                        })
-                      "
-                      :disabled="loading.setRebranding"
-                      :invalid-message="error.rebranding_wizard_login_logo_url"
-                      :helper-text="$t('rebranding.public_url_image_helper')"
-                    />
-                    <NsTextInput
-                      :label="
-                        $t('rebranding.rebranding_favicon_url') +
-                        ' (' +
-                        $t('common.optional') +
-                        ')'
-                      "
-                      v-model="rebranding_wizard_favicon_url"
-                      :placeholder="
-                        $t('common.eg_value', {
-                          value: 'https://mydomain.com/favicon.ico',
-                        })
-                      "
-                      :disabled="loading.setRebranding"
-                      :invalid-message="error.rebranding_wizard_favicon_url"
-                      :helper-text="$t('rebranding.public_url_image_helper')"
-                    >
-                      <template slot="tooltip">
-                        {{ $t("rebranding.rebranding_favicon_url_tooltip") }}
-                      </template></NsTextInput
-                    >
-                    <NsTextInput
-                      :label="
-                        $t('rebranding.rebranding_login_background_url') +
-                        ' (' +
-                        $t('common.optional') +
-                        ')'
-                      "
-                      v-model="rebranding_wizard_login_background_url"
-                      :placeholder="
-                        $t('common.eg_value', {
-                          value: 'https://mydomain.com/path/to/image.svg',
-                        })
-                      "
-                      :disabled="loading.setRebranding"
-                      :invalid-message="error.rebranding_wizard_login_background_url"
-                      :helper-text="$t('rebranding.public_url_image_helper')"
-                    />
-                    <div class="mb-6">
-                      <label class="bx--label mb-0">{{
-                        $t("rebranding.login_page_preview")
-                      }}</label>
-                      <div class="preview-frame wizard-login-preview">
+                    <div class="rebranding-tab-grid">
+                      <div class="rebranding-tab-fields">
+                        <h3 class="section-title">
+                          {{ $t("rebranding.appearance_settings") }}
+                        </h3>
+                        <NsTextInput
+                          :label="
+                            $t('rebranding.rebranding_wizard_login_logo_url_label') +
+                            ' (' +
+                            $t('common.optional') +
+                            ')'
+                          "
+                          v-model="rebranding_wizard_login_logo_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://mydomain.com/path/to/image.svg',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="error.rebranding_wizard_login_logo_url"
+                          :helper-text="$t('rebranding.public_url_image_helper')"
+                        />
+                        <NsTextInput
+                          :label="
+                            $t('rebranding.rebranding_favicon_url') +
+                            ' (' +
+                            $t('common.optional') +
+                            ')'
+                          "
+                          v-model="rebranding_wizard_favicon_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://mydomain.com/favicon.ico',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="error.rebranding_wizard_favicon_url"
+                          :helper-text="$t('rebranding.public_url_image_helper')"
+                        >
+                          <template slot="tooltip">
+                            {{ $t("rebranding.rebranding_favicon_url_tooltip") }}
+                          </template></NsTextInput
+                        >
+                        <NsTextInput
+                          :label="
+                            $t('rebranding.rebranding_login_background_url') +
+                            ' (' +
+                            $t('common.optional') +
+                            ')'
+                          "
+                          v-model="rebranding_wizard_login_background_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://mydomain.com/path/to/image.svg',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="error.rebranding_wizard_login_background_url"
+                          :helper-text="$t('rebranding.public_url_image_helper')"
+                        />
+                      </div>
+                      <div class="rebranding-tab-preview-column">
+                        <label class="bx--label mb-0">{{
+                          $t("rebranding.login_page_preview")
+                        }}</label>
+                        <div class="preview-frame wizard-login-preview">
                         <div class="preview-browser-bar preview-browser-bar-light">
                           <div class="preview-dots">
                             <span></span>
@@ -416,7 +470,7 @@
                             <div class="wizard-login-card-preview">
                               <div class="wizard-login-welcome">Welcome</div>
                               <div class="wizard-login-subtitle">
-                                Sign In to {{ wizardBrandName }}
+                                Sign in to Admin
                               </div>
                               <div class="wizard-login-form-preview">
                                 <label class="wizard-login-label">User</label>
@@ -445,83 +499,94 @@
                         </div>
                       </div>
                     </div>
+                    <div class="rebranding-save-actions">
+                      <NsButton
+                        kind="ghost"
+                        :icon="Restart20"
+                        :disabled="loading.setRebranding"
+                        @click.prevent="resetTab('wizard')"
+                      >
+                        {{ $t("rebranding.reset") }}
+                      </NsButton>
+                      <NsButton
+                        kind="primary"
+                        :icon="Save20"
+                        :loading="loading.setRebranding"
+                        :disabled="loading.setRebranding"
+                      >
+                        {{ $t("common.save") }}
+                      </NsButton>
+                    </div>
                   </div>
                 </cv-tab>
                 <cv-tab :label="$t('rebranding.report_tab_label')">
                   <div class="rebranding-tab-content">
-                    <NsTextInput
-                      :label="
-                        $t('rebranding.rebranding_brand_name') +
-                        ' (' +
-                        $t('common.optional') +
-                        ')'
-                      "
-                      v-model="rebranding_reports_brand_name"
-                      placeholder="NethVoice"
-                      :disabled="loading.setRebranding"
-                      :invalid-message="error.rebranding_reports_brand_name"
-                      :helper-text="$t('rebranding.name_to_replace_nethvoice')"
-                    />
-                    <NsTextInput
-                      :label="
-                        $t('rebranding.rebranding_reports_login_logo_url_label') +
-                        ' (' +
-                        $t('common.optional') +
-                        ')'
-                      "
-                      v-model="rebranding_reports_login_logo_url"
-                      :placeholder="
-                        $t('common.eg_value', {
-                          value: 'https://mydomain.com/path/to/image.svg',
-                        })
-                      "
-                      :disabled="loading.setRebranding"
-                      :invalid-message="error.rebranding_reports_login_logo_url"
-                      :helper-text="$t('rebranding.public_url_image_helper')"
-                    />
-                    <NsTextInput
-                      :label="
-                        $t('rebranding.rebranding_favicon_url') +
-                        ' (' +
-                        $t('common.optional') +
-                        ')'
-                      "
-                      v-model="rebranding_reports_favicon_url"
-                      :placeholder="
-                        $t('common.eg_value', {
-                          value: 'https://mydomain.com/favicon.ico',
-                        })
-                      "
-                      :disabled="loading.setRebranding"
-                      :invalid-message="error.rebranding_reports_favicon_url"
-                      :helper-text="$t('rebranding.public_url_image_helper')"
-                    >
-                      <template slot="tooltip">
-                        {{ $t("rebranding.rebranding_favicon_url_tooltip") }}
-                      </template></NsTextInput
-                    >
-                    <NsTextInput
-                      :label="
-                        $t('rebranding.rebranding_login_background_url') +
-                        ' (' +
-                        $t('common.optional') +
-                        ')'
-                      "
-                      v-model="rebranding_reports_login_background_url"
-                      :placeholder="
-                        $t('common.eg_value', {
-                          value: 'https://mydomain.com/path/to/image.svg',
-                        })
-                      "
-                      :disabled="loading.setRebranding"
-                      :invalid-message="error.rebranding_reports_login_background_url"
-                      :helper-text="$t('rebranding.public_url_image_helper')"
-                    />
-                    <div class="mb-6">
-                      <label class="bx--label mb-0">{{
-                        $t("rebranding.login_page_preview")
-                      }}</label>
-                      <div class="preview-frame reports-login-preview">
+                    <div class="rebranding-tab-grid">
+                      <div class="rebranding-tab-fields">
+                        <h3 class="section-title">
+                          {{ $t("rebranding.appearance_settings") }}
+                        </h3>
+                        <NsTextInput
+                          :label="
+                            $t('rebranding.rebranding_reports_login_logo_url_label') +
+                            ' (' +
+                            $t('common.optional') +
+                            ')'
+                          "
+                          v-model="rebranding_reports_login_logo_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://mydomain.com/path/to/image.svg',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="error.rebranding_reports_login_logo_url"
+                          :helper-text="$t('rebranding.public_url_image_helper')"
+                        />
+                        <NsTextInput
+                          :label="
+                            $t('rebranding.rebranding_favicon_url') +
+                            ' (' +
+                            $t('common.optional') +
+                            ')'
+                          "
+                          v-model="rebranding_reports_favicon_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://mydomain.com/favicon.ico',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="error.rebranding_reports_favicon_url"
+                          :helper-text="$t('rebranding.public_url_image_helper')"
+                        >
+                          <template slot="tooltip">
+                            {{ $t("rebranding.rebranding_favicon_url_tooltip") }}
+                          </template></NsTextInput
+                        >
+                        <NsTextInput
+                          :label="
+                            $t('rebranding.rebranding_login_background_url') +
+                            ' (' +
+                            $t('common.optional') +
+                            ')'
+                          "
+                          v-model="rebranding_reports_login_background_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://mydomain.com/path/to/image.svg',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="error.rebranding_reports_login_background_url"
+                          :helper-text="$t('rebranding.public_url_image_helper')"
+                        />
+                      </div>
+                      <div class="rebranding-tab-preview-column">
+                        <label class="bx--label mb-0">{{
+                          $t("rebranding.login_page_preview")
+                        }}</label>
+                        <div class="preview-frame reports-login-preview">
                         <div class="preview-browser-bar preview-browser-bar-dark">
                           <div class="preview-dots">
                             <span></span>
@@ -576,6 +641,101 @@
                         </div>
                       </div>
                     </div>
+                    <div class="rebranding-save-actions">
+                      <NsButton
+                        kind="ghost"
+                        :icon="Restart20"
+                        :disabled="loading.setRebranding"
+                        @click.prevent="resetTab('reports')"
+                      >
+                        {{ $t("rebranding.reset") }}
+                      </NsButton>
+                      <NsButton
+                        kind="primary"
+                        :icon="Save20"
+                        :loading="loading.setRebranding"
+                        :disabled="loading.setRebranding"
+                      >
+                        {{ $t("common.save") }}
+                      </NsButton>
+                    </div>
+                  </div>
+                </cv-tab>
+                <cv-tab :label="$t('rebranding.nethlink_tab_label')">
+                  <div class="rebranding-tab-content">
+                    <div class="rebranding-tab-grid">
+                      <div class="rebranding-tab-fields">
+                        <h3 class="section-title">
+                          {{ $t("rebranding.appearance_settings") }}
+                        </h3>
+                        <NsTextInput
+                          :label="$t('rebranding.rebranding_company_name')"
+                          v-model="rebranding_nethlink_company_name"
+                          placeholder="Nethesis"
+                          :disabled="loading.setRebranding"
+                          :invalid-message="error.rebranding_nethlink_company_name"
+                        />
+                        <NsTextInput
+                          :label="$t('rebranding.rebranding_company_url')"
+                          v-model="rebranding_nethlink_company_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://www.nethesis.it/',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="error.rebranding_nethlink_company_url"
+                        />
+                      </div>
+                      <div class="rebranding-tab-preview-column">
+                        <label class="bx--label mb-0">{{
+                          $t("rebranding.nethlink_preview_title")
+                        }}</label>
+                        <div class="preview-frame nethlink-preview-frame">
+                          <div class="preview-browser-bar preview-browser-bar-light">
+                            <div class="preview-dots">
+                              <span></span>
+                              <span></span>
+                              <span></span>
+                            </div>
+                            <div class="preview-tab preview-tab-light">
+                              <span class="preview-tab-label">NethLink</span>
+                            </div>
+                          </div>
+                          <div class="nethlink-preview-shell">
+                            <div class="nethlink-preview-window">
+                              <div class="nethlink-about-card">
+                                <div class="nethlink-about-app">NethLink</div>
+                                <div class="nethlink-about-company">
+                                  {{ nethlinkCompanyNamePreview }}
+                                </div>
+                                <div class="nethlink-about-url">
+                                  {{ nethlinkCompanyUrlPreview }}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="rebranding-save-actions">
+                      <NsButton
+                        kind="ghost"
+                        :icon="Restart20"
+                        :disabled="loading.setRebranding"
+                        @click.prevent="resetTab('nethlink')"
+                      >
+                        {{ $t("rebranding.reset") }}
+                      </NsButton>
+                      <NsButton
+                        kind="primary"
+                        :icon="Save20"
+                        :loading="loading.setRebranding"
+                        :disabled="loading.setRebranding"
+                      >
+                        {{ $t("common.save") }}
+                      </NsButton>
+                    </div>
                   </div>
                 </cv-tab>
               </cv-tabs>
@@ -586,14 +746,6 @@
                 :description="error.setRebranding"
                 :showCloseButton="false"
               />
-              <NsButton
-                kind="primary"
-                :icon="Save20"
-                :loading="loading.setRebranding"
-                :disabled="loading.setRebranding"
-              >
-                {{ $t("common.save") }}
-              </NsButton>
             </cv-form>
           </cv-tile>
         </cv-column>
@@ -614,11 +766,18 @@ import {
 } from "@nethserver/ns8-ui-lib";
 import ResumeConfigNotification from "@/components/first-configuration/ResumeConfigNotification.vue";
 import { Sun20, Moon20 } from "@carbon/icons-vue";
+import Save20 from "@carbon/icons-vue/es/save/20";
+import Restart20 from "@carbon/icons-vue/es/restart/20";
 import Information16 from "@carbon/icons-vue/es/information/16";
 
 export default {
   name: "Rebranding",
-  components: { Sun20, Moon20, ResumeConfigNotification, Information16 },
+  components: {
+    Sun20,
+    Moon20,
+    ResumeConfigNotification,
+    Information16,
+  },
   mixins: [
     TaskService,
     IconService,
@@ -635,6 +794,8 @@ export default {
         page: "rebranding",
       },
       urlCheckInterval: null,
+      Restart20,
+      Save20,
       rebranding_active: false,
       rebranding_brand_name: "",
       rebranding_navbar_logo_url: "",
@@ -652,6 +813,10 @@ export default {
       rebranding_wizard_login_background_url: "",
       rebranding_wizard_favicon_url: "",
       rebranding_wizard_login_logo_url: "",
+      rebranding_nethlink_company_name: "",
+      rebranding_nethlink_company_url: "",
+      lastSubmittedRebrandingPayload: null,
+      savedRebrandingConfig: {},
       isDarkMode: false,
       loading: {
         getRebranding: false,
@@ -687,13 +852,13 @@ export default {
       return this.rebranding_favicon_url || "";
     },
     ctiBrandName() {
-      return this.rebranding_brand_name || "NethVoice CTI";
+      return this.rebranding_brand_name || "";
     },
     ctiBrandInitial() {
-      return this.ctiBrandName.charAt(0).toUpperCase();
+      return this.ctiPreviewTitle.charAt(0).toUpperCase();
     },
     ctiPreviewTitle() {
-      return this.ctiBrandName;
+      return this.composePreviewTitle("NethVoice CTI", ["NethVoice"]);
     },
     reportsLogoUrl() {
       return (
@@ -705,18 +870,16 @@ export default {
       return this.rebranding_reports_favicon_url || "";
     },
     reportsBrandName() {
-      return this.rebranding_reports_brand_name || "NethVoice Reports";
+      return this.rebranding_brand_name || "";
     },
     reportsBrandInitial() {
-      return this.reportsBrandName.charAt(0).toUpperCase();
+      return this.reportsPreviewTitle.charAt(0).toUpperCase();
     },
     reportsPreviewTitle() {
-      return this.reportsBrandName;
+      return this.composePreviewTitle("Report", ["NethVoice", "NethVoice Reports"]);
     },
     reportsSubtitle() {
-      return this.rebranding_reports_brand_name === "NethVoice Reports"
-        ? "Report"
-        : this.rebranding_reports_brand_name || "Report";
+      return "Report";
     },
     reportsBackgroundStyle() {
       if (this.rebranding_reports_login_background_url) {
@@ -743,13 +906,13 @@ export default {
       return this.rebranding_wizard_favicon_url || "";
     },
     wizardBrandName() {
-      return this.rebranding_wizard_brand_name || "NethVoice";
+      return this.rebranding_brand_name || "";
     },
     wizardBrandInitial() {
-      return this.wizardBrandName.charAt(0).toUpperCase();
+      return this.wizardPreviewTitle.charAt(0).toUpperCase();
     },
     wizardPreviewTitle() {
-      return `${this.wizardBrandName} Wizard`;
+      return this.composePreviewTitle("Admin", ["NethVoice"]);
     },
     wizardStageLogoUrl() {
       return (
@@ -771,6 +934,12 @@ export default {
         backgroundSize: "cover",
         backgroundPosition: "center",
       };
+    },
+    nethlinkCompanyNamePreview() {
+      return this.rebranding_nethlink_company_name || "Nethesis";
+    },
+    nethlinkCompanyUrlPreview() {
+      return this.rebranding_nethlink_company_url || "https://www.nethesis.it/";
     },
   },
   beforeRouteEnter(to, from, next) {
@@ -831,7 +1000,11 @@ export default {
     getRebrandingCompleted(taskContext, taskAction) {
       const config = taskAction.output;
       this.rebranding_active = config.rebranding_active;
-      this.rebranding_brand_name = config.rebranding_brand_name;
+      const sharedBrandName =
+        this.normalizeBrandName(config.rebranding_brand_name) ||
+        this.normalizeBrandName(config.rebranding_wizard_brand_name) ||
+        this.normalizeBrandName(config.rebranding_reports_brand_name);
+      this.rebranding_brand_name = sharedBrandName;
       this.rebranding_navbar_logo_url = config.rebranding_navbar_logo_url;
       this.rebranding_navbar_logo_dark_url =
         config.rebranding_navbar_logo_dark_url;
@@ -842,20 +1015,54 @@ export default {
       this.rebranding_login_logo_dark_url =
         config.rebranding_login_logo_dark_url;
       this.rebranding_login_people = config.rebranding_login_people !== "hide";
-      this.rebranding_reports_brand_name = config.rebranding_reports_brand_name;
+      this.rebranding_reports_brand_name = sharedBrandName;
       this.rebranding_reports_login_background_url =
         config.rebranding_reports_login_background_url;
       this.rebranding_reports_favicon_url =
         config.rebranding_reports_favicon_url;
       this.rebranding_reports_login_logo_url =
         config.rebranding_reports_login_logo_url;
-      this.rebranding_wizard_brand_name = config.rebranding_wizard_brand_name;
+      this.rebranding_wizard_brand_name = sharedBrandName;
       this.rebranding_wizard_login_background_url =
         config.rebranding_wizard_login_background_url;
       this.rebranding_wizard_favicon_url =
         config.rebranding_wizard_favicon_url;
       this.rebranding_wizard_login_logo_url =
         config.rebranding_wizard_login_logo_url;
+      this.rebranding_nethlink_company_name =
+        config.rebranding_nethlink_company_name;
+      this.rebranding_nethlink_company_url =
+        config.rebranding_nethlink_company_url;
+      this.savedRebrandingConfig = this.getPayloadDefaults({
+        rebranding_login_people: config.rebranding_login_people,
+        rebranding_brand_name: sharedBrandName,
+        rebranding_navbar_logo_url: config.rebranding_navbar_logo_url,
+        rebranding_navbar_logo_dark_url:
+          config.rebranding_navbar_logo_dark_url,
+        rebranding_login_logo_url: config.rebranding_login_logo_url,
+        rebranding_login_logo_dark_url:
+          config.rebranding_login_logo_dark_url,
+        rebranding_favicon_url: config.rebranding_favicon_url,
+        rebranding_login_background_url:
+          config.rebranding_login_background_url,
+        rebranding_reports_brand_name: sharedBrandName,
+        rebranding_reports_login_logo_url:
+          config.rebranding_reports_login_logo_url,
+        rebranding_reports_favicon_url:
+          config.rebranding_reports_favicon_url,
+        rebranding_reports_login_background_url:
+          config.rebranding_reports_login_background_url,
+        rebranding_wizard_brand_name: sharedBrandName,
+        rebranding_wizard_login_logo_url:
+          config.rebranding_wizard_login_logo_url,
+        rebranding_wizard_favicon_url:
+          config.rebranding_wizard_favicon_url,
+        rebranding_wizard_login_background_url:
+          config.rebranding_wizard_login_background_url,
+        rebranding_nethlink_company_name:
+          config.rebranding_nethlink_company_name,
+        rebranding_nethlink_company_url: config.rebranding_nethlink_company_url,
+      });
       this.loading.getRebranding = false;
     },
     setLightTheme() {
@@ -864,10 +1071,118 @@ export default {
     setDarkTheme() {
       this.isDarkMode = true;
     },
-    async setRebranding() {
+    normalizeBrandName(value) {
+      if (!value) {
+        return "";
+      }
+
+      return ["NethVoice", "NethVoice CTI", "NethVoice Reports"].includes(
+        value
+      )
+        ? ""
+        : value;
+    },
+    composePreviewTitle(productLabel, unbrandedValues = ["NethVoice"]) {
+      const brandName = this.rebranding_brand_name?.trim();
+
+      if (!brandName || unbrandedValues.includes(brandName)) {
+        return productLabel;
+      }
+
+      return `${brandName} | ${productLabel}`;
+    },
+    getPayloadDefaults(overrides = {}) {
+      return {
+        rebranding_login_people: "show",
+        rebranding_brand_name: "",
+        rebranding_navbar_logo_url: "",
+        rebranding_navbar_logo_dark_url: "",
+        rebranding_login_logo_url: "",
+        rebranding_login_logo_dark_url: "",
+        rebranding_favicon_url: "",
+        rebranding_login_background_url: "",
+        rebranding_reports_brand_name: "",
+        rebranding_reports_login_logo_url: "",
+        rebranding_reports_favicon_url: "",
+        rebranding_reports_login_background_url: "",
+        rebranding_wizard_brand_name: "",
+        rebranding_wizard_login_logo_url: "",
+        rebranding_wizard_favicon_url: "",
+        rebranding_wizard_login_background_url: "",
+        rebranding_nethlink_company_name: "Nethesis",
+        rebranding_nethlink_company_url: "https://www.nethesis.it/",
+        ...overrides,
+      };
+    },
+    clearValidationErrors() {
+      this.error.setRebranding = "";
+      Object.keys(this.error).forEach((key) => {
+        if (key.startsWith("rebranding_")) {
+          this.error[key] = "";
+        }
+      });
+    },
+    clearTabErrors(fields) {
+      fields.forEach((field) => {
+        this.error[field] = "";
+      });
+      this.error.setRebranding = "";
+    },
+    resetTab(tabName) {
+      switch (tabName) {
+        case "cti":
+          this.rebranding_login_logo_url = "";
+          this.rebranding_login_logo_dark_url = "";
+          this.rebranding_navbar_logo_url = "";
+          this.rebranding_navbar_logo_dark_url = "";
+          this.rebranding_favicon_url = "";
+          this.rebranding_login_background_url = "";
+          this.rebranding_login_people = false;
+          this.clearTabErrors([
+            "rebranding_login_logo_url",
+            "rebranding_login_logo_dark_url",
+            "rebranding_navbar_logo_url",
+            "rebranding_navbar_logo_dark_url",
+            "rebranding_favicon_url",
+            "rebranding_login_background_url",
+          ]);
+          break;
+        case "wizard":
+          this.rebranding_wizard_login_logo_url = "";
+          this.rebranding_wizard_favicon_url = "";
+          this.rebranding_wizard_login_background_url = "";
+          this.clearTabErrors([
+            "rebranding_wizard_login_logo_url",
+            "rebranding_wizard_favicon_url",
+            "rebranding_wizard_login_background_url",
+          ]);
+          break;
+        case "reports":
+          this.rebranding_reports_login_logo_url = "";
+          this.rebranding_reports_favicon_url = "";
+          this.rebranding_reports_login_background_url = "";
+          this.clearTabErrors([
+            "rebranding_reports_login_logo_url",
+            "rebranding_reports_favicon_url",
+            "rebranding_reports_login_background_url",
+          ]);
+          break;
+        case "nethlink":
+          this.rebranding_nethlink_company_name = "";
+          this.rebranding_nethlink_company_url = "";
+          this.clearTabErrors([
+            "rebranding_nethlink_company_name",
+            "rebranding_nethlink_company_url",
+          ]);
+          break;
+      }
+    },
+    async submitRebranding(payload) {
       this.loading.setRebranding = true;
+      this.clearValidationErrors();
       const taskAction = "set-rebranding";
       const eventId = this.getUuid();
+      this.lastSubmittedRebrandingPayload = payload;
 
       // register to task error
       this.core.$root.$once(
@@ -887,40 +1202,10 @@ export default {
         this.setRebrandingCompleted
       );
 
-      // Convert true/false to 'show'/'hide' for rebranding_login_people
-      let rebrandingLoginPeople = this.rebranding_login_people
-        ? "show"
-        : "hide";
-
       const res = await to(
         this.createModuleTaskForApp(this.instanceName, {
           action: taskAction,
-          data: {
-            rebranding_login_people: rebrandingLoginPeople,
-            rebranding_brand_name: this.rebranding_brand_name,
-            rebranding_navbar_logo_url: this.rebranding_navbar_logo_url,
-            rebranding_navbar_logo_dark_url:
-              this.rebranding_navbar_logo_dark_url,
-            rebranding_login_logo_url: this.rebranding_login_logo_url,
-            rebranding_login_logo_dark_url: this.rebranding_login_logo_dark_url,
-            rebranding_favicon_url: this.rebranding_favicon_url,
-            rebranding_login_background_url:
-              this.rebranding_login_background_url,
-            rebranding_reports_brand_name: this.rebranding_reports_brand_name,
-            rebranding_reports_login_logo_url:
-              this.rebranding_reports_login_logo_url,
-            rebranding_reports_favicon_url:
-              this.rebranding_reports_favicon_url,
-            rebranding_reports_login_background_url:
-              this.rebranding_reports_login_background_url,
-            rebranding_wizard_brand_name: this.rebranding_wizard_brand_name,
-            rebranding_wizard_login_logo_url:
-              this.rebranding_wizard_login_logo_url,
-            rebranding_wizard_favicon_url:
-              this.rebranding_wizard_favicon_url,
-            rebranding_wizard_login_background_url:
-              this.rebranding_wizard_login_background_url,
-          },
+          data: payload,
           extra: {
             title: this.$t("action." + taskAction),
             description: this.$t("common.processing"),
@@ -936,6 +1221,43 @@ export default {
         this.loading.setRebranding = false;
         return;
       }
+    },
+    async setBrandName() {
+      const snapshot = this.getPayloadDefaults(this.savedRebrandingConfig);
+
+      await this.submitRebranding({
+        ...snapshot,
+        rebranding_brand_name: this.rebranding_brand_name,
+        rebranding_reports_brand_name: this.rebranding_brand_name,
+        rebranding_wizard_brand_name: this.rebranding_brand_name,
+      });
+    },
+    async setRebranding() {
+      const snapshot = this.getPayloadDefaults(this.savedRebrandingConfig);
+
+      await this.submitRebranding({
+        ...snapshot,
+        rebranding_login_people: this.rebranding_login_people ? "show" : "hide",
+        rebranding_navbar_logo_url: this.rebranding_navbar_logo_url,
+        rebranding_navbar_logo_dark_url: this.rebranding_navbar_logo_dark_url,
+        rebranding_login_logo_url: this.rebranding_login_logo_url,
+        rebranding_login_logo_dark_url: this.rebranding_login_logo_dark_url,
+        rebranding_favicon_url: this.rebranding_favicon_url,
+        rebranding_login_background_url: this.rebranding_login_background_url,
+        rebranding_reports_login_logo_url:
+          this.rebranding_reports_login_logo_url,
+        rebranding_reports_favicon_url: this.rebranding_reports_favicon_url,
+        rebranding_reports_login_background_url:
+          this.rebranding_reports_login_background_url,
+        rebranding_wizard_login_logo_url:
+          this.rebranding_wizard_login_logo_url,
+        rebranding_wizard_favicon_url: this.rebranding_wizard_favicon_url,
+        rebranding_wizard_login_background_url:
+          this.rebranding_wizard_login_background_url,
+        rebranding_nethlink_company_name:
+          this.rebranding_nethlink_company_name,
+        rebranding_nethlink_company_url: this.rebranding_nethlink_company_url,
+      });
     },
     setRebrandingAborted(taskAction, taskContext) {
       console.error(`${taskContext.action} aborted`, taskAction);
@@ -953,7 +1275,9 @@ export default {
       }
     },
     setRebrandingCompleted() {
-      this.getRebranding();
+      this.savedRebrandingConfig = this.getPayloadDefaults(
+        this.lastSubmittedRebrandingPayload || this.savedRebrandingConfig
+      );
       this.loading.setRebranding = false;
     },
     openMailtoLink() {
@@ -995,6 +1319,26 @@ export default {
 
 .rebranding-tabs {
   margin-bottom: 1.5rem;
+}
+
+.rebranding-product-tile {
+  margin-bottom: 1.5rem;
+}
+
+.rebranding-product-grid,
+.rebranding-tab-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 38rem);
+  gap: 2rem;
+  align-items: start;
+}
+
+.rebranding-tab-fields {
+  min-width: 0;
+}
+
+.rebranding-tab-preview-column {
+  min-width: 0;
 }
 
 .rebranding-tab-content {
@@ -1243,8 +1587,21 @@ export default {
   margin-bottom: 1rem;
 }
 
+.section-description {
+  color: #525252;
+  max-width: 42rem;
+  margin: 0;
+}
+
 .section-separator {
   margin: 2rem 0;
+}
+
+.rebranding-save-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
 }
 
 .reports-login-preview {
@@ -1443,7 +1800,60 @@ export default {
   max-height: 3rem;
 }
 
+.nethlink-preview-frame {
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.nethlink-preview-shell {
+  flex: 1;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nethlink-preview-window {
+  width: 100%;
+  max-width: 20rem;
+  border-radius: 0.9rem;
+  background: #ffffff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+  padding: 1.5rem;
+}
+
+.nethlink-about-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: #f8fafc;
+}
+
+.nethlink-about-app {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 1rem;
+}
+
+.nethlink-about-company {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.nethlink-about-url {
+  font-size: 0.875rem;
+  color: #2563eb;
+  word-break: break-word;
+}
+
 @media (max-width: 960px) {
+  .rebranding-product-grid,
+  .rebranding-tab-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .preview-frame {
     height: auto;
   }

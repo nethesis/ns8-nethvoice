@@ -20,7 +20,9 @@
             "rebranding_reports_brand_name": "NethVoice",
             "rebranding_reports_login_logo_url": "https://upload.example.org/images/reports-logo.svg",
             "rebranding_reports_favicon_url": "https://upload.example.org/images/reports-favicon.svg",
-            "rebranding_reports_login_background_url": "https://upload.example.org/images/reports-background.svg"
+            "rebranding_reports_login_background_url": "https://upload.example.org/images/reports-background.svg",
+            "rebranding_nethlink_company_name": "Nethesis",
+            "rebranding_nethlink_company_url": "https://www.nethesis.it/"
         }
     ],
     "type": "object",
@@ -32,7 +34,9 @@
         "rebranding_login_logo_url",
         "rebranding_login_logo_dark_url",
         "rebranding_favicon_url",
-        "rebranding_login_background_url"
+        "rebranding_login_background_url",
+        "rebranding_nethlink_company_name",
+        "rebranding_nethlink_company_url"
     ],
     "properties": {
         "rebranding_brand_name": {
@@ -97,6 +101,14 @@
         },
         "rebranding_reports_login_background_url": {
             "description": "NethVoice Reports rebranding link to background image",
+            "type": "string"
+        },
+        "rebranding_nethlink_company_name": {
+            "description": "NethLink company name",
+            "type": "string"
+        },
+        "rebranding_nethlink_company_url": {
+            "description": "NethLink company URL",
             "type": "string"
         }
     }

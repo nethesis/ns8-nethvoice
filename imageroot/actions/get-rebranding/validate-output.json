@@ -73,6 +73,14 @@
         "rebranding_reports_login_background_url": {
             "description": "NethVoice Reports rebranding link to background image",
             "type": "string"
+        },
+        "rebranding_nethlink_company_name": {
+            "description": "NethLink company name",
+            "type": "string"
+        },
+        "rebranding_nethlink_company_url": {
+            "description": "NethLink company URL",
+            "type": "string"
         }
     }
 }

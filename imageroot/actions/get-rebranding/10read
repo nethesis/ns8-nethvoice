@@ -50,6 +50,8 @@ config = {
     'rebranding_reports_login_logo_url': os.getenv('REPORTS_UI_LOGIN_LOGO_URL', ''),
     'rebranding_reports_favicon_url': os.getenv('REPORTS_UI_FAVICON_URL', ''),
     'rebranding_reports_login_background_url': os.getenv('REPORTS_UI_LOGIN_BACKGROUND_URL', ''),
+    'rebranding_nethlink_company_name': os.getenv('NETHCTI_UI_COMPANY_NAME', os.getenv('NETHCTI_COMPANY_NAME', 'Nethesis')),
+    'rebranding_nethlink_company_url': os.getenv('NETHCTI_UI_COMPANY_URL', os.getenv('NETHCTI_COMPANY_URL', 'https://www.nethesis.it/')),
 }
 
 json.dump(config, fp=sys.stdout)
