@@ -18,15 +18,12 @@ def gen_password(length=32):
     return ''.join(random.choice(choice_pool) for _ in range(length))
 
 
-# RTP/UDP ports are allocated globally by ns8-core to avoid collisions
-# between different module instances on the same node.
+# RTP/UDP ports are pre-allocated by ns8-core via the udp-ports-demand label
+# and exposed as UDP_PORTS_RANGE — no extra allocation needed here.
 asterisk_rtp_ports = 1000
 janus_rtp_ports = 1000
-satellite_rtp_ports = 1
-rtp_start, _ = agent.allocate_ports(
-    asterisk_rtp_ports + janus_rtp_ports + satellite_rtp_ports,
-    "udp",
-)
+udp_range = os.environ['UDP_PORTS_RANGE'].split("-")
+rtp_start = int(udp_range[0])
 sip_start = rtp_start
 sip_end = sip_start + asterisk_rtp_ports - 1
 janus_start = sip_end + 1

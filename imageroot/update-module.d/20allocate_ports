@@ -98,7 +98,7 @@ if not 'SATELLITE_HTTP_PORT' in env:
 # Allocate RTP/UDP ports via ns8-core if:
 # - UDP_PORTS_RANGE is absent (old instances that used the fake Redis-based allocation), OR
 # - any of the five RTP env vars is missing
-if 'UDP_PORTS_RANGE' not in env or any(os.getenv(env_name) is None for env_name in (
+if 'UDP_PORTS_RANGE' not in env or any(env_name not in env for env_name in (
     'ASTERISK_RTPSTART',
     'ASTERISK_RTPEND',
     'JANUS_RTPSTART',
@@ -143,28 +143,31 @@ if 'UDP_PORTS_RANGE' not in env or any(os.getenv(env_name) is None for env_name 
 		['systemctl', '--user', 'is-active', 'mariadb'],
 		capture_output=True, text=True,
 	)
-	if mariadb_check.returncode == 0:
-		passwords = agent.read_envfile('passwords.env')
-		mariadb_root_password = passwords.get('MARIADB_ROOT_PASSWORD', '')
-		mariadb_port = os.environ.get('NETHVOICE_MARIADB_PORT', '3306')
-		rtp_sql = (
-			f"UPDATE sipsettings SET data='{asterisk_rtp_start}' WHERE keyword='rtpstart';"
-			f"UPDATE sipsettings SET data='{asterisk_rtp_end}' WHERE keyword='rtpend';"
-			f"UPDATE kvstore_Sipsettings SET val='{asterisk_rtp_start}' WHERE `key`='rtpstart';"
-			f"UPDATE kvstore_Sipsettings SET val='{asterisk_rtp_end}' WHERE `key`='rtpend';"
-		)
-		proc = subprocess.run(
-			['podman', 'exec', '-i', 'mariadb',
-			 'mysql', '-uroot', f'-p{mariadb_root_password}',
-			 '-h', '127.0.0.1', '-P', mariadb_port, 'asterisk'],
-			input=rtp_sql, text=True, capture_output=True,
-		)
-		if proc.returncode == 0:
-			print(f"Updated Asterisk RTP range in MariaDB: {asterisk_rtp_start}-{asterisk_rtp_end}", file=sys.stderr)
-		else:
-			print(f"Warning: failed to update Asterisk RTP in MariaDB: {proc.stderr}", file=sys.stderr)
+	if mariadb_check.returncode != 0:
+		print("Error: MariaDB is not running, cannot update Asterisk RTP range in DB. Aborting migration.", file=sys.stderr)
+		sys.exit(1)
+	passwords = agent.read_envfile('passwords.env')
+	mariadb_root_password = passwords.get('MARIADB_ROOT_PASSWORD', '')
+	if not mariadb_root_password:
+		print("Error: MARIADB_ROOT_PASSWORD is empty, cannot update Asterisk RTP in MariaDB. Aborting migration.", file=sys.stderr)
+		sys.exit(1)
+	mariadb_port = os.environ.get('NETHVOICE_MARIADB_PORT', '3306')
+	rtp_sql = (
+		f"UPDATE sipsettings SET data='{asterisk_rtp_start}' WHERE keyword='rtpstart';"
+		f"UPDATE sipsettings SET data='{asterisk_rtp_end}' WHERE keyword='rtpend';"
+		f"UPDATE kvstore_Sipsettings SET val='{asterisk_rtp_start}' WHERE `key`='rtpstart';"
+		f"UPDATE kvstore_Sipsettings SET val='{asterisk_rtp_end}' WHERE `key`='rtpend';"
+	)
+	proc = subprocess.run(
+		['podman', 'exec', '-i', 'mariadb',
+		 'mysql', '-uroot', f'-p{mariadb_root_password}',
+		 '-h', '127.0.0.1', '-P', mariadb_port, 'asterisk'],
+		input=rtp_sql, text=True, capture_output=True,
+	)
+	if proc.returncode == 0:
+		print(f"Updated Asterisk RTP range in MariaDB: {asterisk_rtp_start}-{asterisk_rtp_end}", file=sys.stderr)
 	else:
-		print("Warning: MariaDB not running, Asterisk RTP range in DB was not updated", file=sys.stderr)
+		print(f"Warning: failed to update Asterisk RTP in MariaDB: {proc.stderr}", file=sys.stderr)
 
 # add port for Asterisk WSS
 if not 'ASTERISK_WSS_PORT' in env:
