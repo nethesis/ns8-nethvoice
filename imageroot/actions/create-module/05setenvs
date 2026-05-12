@@ -64,7 +64,6 @@ agent.set_env('NETHCTI_TCP_PORT', port_list[22])
 agent.set_env('NETHCTI_TLS_PORT', port_list[23])
 agent.set_env('ASTERISK_SIP_PORT', port_list[24])
 agent.set_env('ASTERISK_SIPS_PORT', port_list[25])
-agent.set_env('ASTERISK_IAX_PORT', port_list[26])
 
 # Set root password for MariaDB
 # MARIADB_ROOT_PASSWORD written to passwords.env
@@ -124,24 +123,24 @@ agent.set_env('PHONEBOOK_LDAP_USER', 'ldapuser')
 agent.set_env('PHONEBOOK_LDAP_LIMIT', '500')
 
 # Reports
-agent.set_env('REPORTS_REDIS_PORT', port_list[27])
-agent.set_env('REPORTS_API_PORT', port_list[28])
+agent.set_env('REPORTS_REDIS_PORT', port_list[26])
+agent.set_env('REPORTS_API_PORT', port_list[27])
 # 'REPORTS_PASSWORD' written to passwords.env
 # 'REPORTS_API_KEY' written to passwords.env
 # 'REPORTS_SECRET' written to passwords.env
-agent.set_env('REPORTS_UI_PORT', port_list[29])
-agent.set_env('ASTERISK_RECORDING_SFTP_PORT', port_list[30])
+agent.set_env('REPORTS_UI_PORT', port_list[28])
+agent.set_env('ASTERISK_RECORDING_SFTP_PORT', port_list[29])
 
 # Satellite
-agent.set_env('ASTERISK_WS_PORT', port_list[31])
-agent.set_env('SATELLITE_MQTT_PORT', port_list[32])
-agent.set_env('SATELLITE_HTTP_PORT', port_list[33])
+agent.set_env('ASTERISK_WS_PORT', port_list[30])
+agent.set_env('SATELLITE_MQTT_PORT', port_list[31])
+agent.set_env('SATELLITE_HTTP_PORT', port_list[32])
 agent.set_env('SATELLITE_PGSQL_USER', 'satellite')
 agent.set_env('SATELLITE_PGSQL_DB', 'satellite')
-agent.set_env('SATELLITE_PGSQL_PORT', str(port_list[36]))
+agent.set_env('SATELLITE_PGSQL_PORT', str(port_list[35]))
 
 # Asterisk WSS
-agent.set_env('ASTERISK_WSS_PORT', port_list[34])
+agent.set_env('ASTERISK_WSS_PORT', port_list[33])
 
 agent.set_env('SATELLITE_RTP_PORT', satellite_udp_port)
 agent.set_env('SATELLITE_ARI_APP', 'satellite')
@@ -149,8 +148,16 @@ agent.set_env('SATELLITE_ARI_USERNAME', 'satellite')
 agent.set_env('SATELLITE_MQTT_USERNAME', 'satellite')
 
 # NethCTI Middleware
-agent.set_env('NETHVOICE_MIDDLEWARE_PORT', port_list[35])
-agent.set_env('NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS', '127.0.0.1:' + str(port_list[35]))
+agent.set_env('NETHVOICE_MIDDLEWARE_PORT', port_list[34])
+agent.set_env('NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS', '127.0.0.1:' + str(port_list[34]))
+
+# IAX2 is UDP-only — allocate a dedicated UDP port
+iax_port = agent.allocate_ports(1, "udp", keep_existing=True)
+agent.set_env('ASTERISK_IAX_PORT', iax_port[0])
+
+# SIP UDP port is separate from TCP SIP port
+sip_udp_port = agent.allocate_ports(1, "udp", keep_existing=True)
+agent.set_env('ASTERISK_SIP_UDP_PORT', sip_udp_port[0])
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT', '127.0.0.1:' + str(port_list[6]))
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT', '127.0.0.1:' + str(port_list[7]))
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_PROTOCOL', 'http')

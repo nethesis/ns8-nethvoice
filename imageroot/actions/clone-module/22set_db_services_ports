@@ -14,13 +14,15 @@ MARIADB_ROOT_PASSWORD = agent.read_envfile("passwords.env")['MARIADB_ROOT_PASSWO
 SQL_QUERY = f"""
 UPDATE `kvstore_Sipsettings`
 SET `val` = CASE
-    WHEN `key` = 'udpport-0.0.0.0' THEN '{os.environ['ASTERISK_SIP_PORT']}'
+    WHEN `key` = 'udpport-0.0.0.0' THEN '{os.environ['ASTERISK_SIP_UDP_PORT']}'
     WHEN `key` = 'tlsport-0.0.0.0' THEN '{os.environ['ASTERISK_SIPS_PORT']}'
     WHEN `key` = 'tcpport-0.0.0.0' THEN '{os.environ['ASTERISK_SIP_PORT']}'
     WHEN `key` = 'bindport' THEN '{os.environ['ASTERISK_SIP_PORT']}'
     WHEN `key` = 'tlsbindport' THEN '{os.environ['ASTERISK_SIPS_PORT']}'
+    WHEN `key` = 'rtpstart' THEN '{os.environ['ASTERISK_RTPSTART']}'
+    WHEN `key` = 'rtpend' THEN '{os.environ['ASTERISK_RTPEND']}'
 END
-WHERE `key` IN ('udpport-0.0.0.0', 'tlsport-0.0.0.0', 'tcpport-0.0.0.0', 'bindport', 'tlsbindport');
+WHERE `key` IN ('udpport-0.0.0.0', 'tlsport-0.0.0.0', 'tcpport-0.0.0.0', 'bindport', 'tlsbindport', 'rtpstart', 'rtpend');
 """
 agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
 

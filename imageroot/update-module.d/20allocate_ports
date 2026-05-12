@@ -185,3 +185,10 @@ if not 'SATELLITE_PGSQL_PORT' in env:
 	pgsql_port = allocated_ports[0]
 	print(f"New port allocated for SATELLITE PGSQL: {pgsql_port}", file=sys.stderr)
 	agent.set_env('SATELLITE_PGSQL_PORT', pgsql_port)
+
+# Allocate dedicated UDP port for SIP UDP binding if not already set
+if 'ASTERISK_SIP_UDP_PORT' not in env:
+	sip_udp = agent.allocate_ports(1, "udp", keep_existing=True)
+	sip_udp_port = sip_udp[0]
+	print(f"New UDP port allocated for Asterisk SIP UDP: {sip_udp_port}", file=sys.stderr)
+	agent.set_env('ASTERISK_SIP_UDP_PORT', sip_udp_port)
