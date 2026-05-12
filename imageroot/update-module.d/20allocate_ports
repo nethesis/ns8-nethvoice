@@ -107,9 +107,9 @@ if 'UDP_PORTS_RANGE' not in env or any(env_name not in env for env_name in (
 )):
 	asterisk_rtp_ports = 1000
 	janus_rtp_ports = 1000
-	satellite_rtp_ports = 1
+	# 2003 total: 1000 Asterisk RTP + 1000 Janus RTP + 1 Satellite + 1 IAX + 1 SIP UDP
 	rtp_start, rtp_end = agent.allocate_ports(
-		asterisk_rtp_ports + janus_rtp_ports + satellite_rtp_ports,
+		asterisk_rtp_ports + janus_rtp_ports + 3,
 		"udp",
 	)
 	# Set UDP_PORTS_RANGE so this migration block is not triggered again on
@@ -120,15 +120,21 @@ if 'UDP_PORTS_RANGE' not in env or any(env_name not in env for env_name in (
 	janus_rtp_start = asterisk_rtp_end + 1
 	janus_rtp_end = janus_rtp_start + janus_rtp_ports - 1
 	satellite_rtp_port = janus_rtp_end + 1
+	iax_udp_port = satellite_rtp_port + 1
+	sip_udp_port = iax_udp_port + 1
 
 	print(f"New Asterisk RTP range allocated: {asterisk_rtp_start}-{asterisk_rtp_end}", file=sys.stderr)
 	print(f"New Janus RTP range allocated: {janus_rtp_start}-{janus_rtp_end}", file=sys.stderr)
 	print(f"New port allocated for SATELLITE RTP: {satellite_rtp_port}", file=sys.stderr)
+	print(f"New UDP port allocated for Asterisk IAX: {iax_udp_port}", file=sys.stderr)
+	print(f"New UDP port allocated for Asterisk SIP UDP: {sip_udp_port}", file=sys.stderr)
 	agent.set_env('ASTERISK_RTPSTART', asterisk_rtp_start)
 	agent.set_env('ASTERISK_RTPEND', asterisk_rtp_end)
 	agent.set_env('JANUS_RTPSTART', janus_rtp_start)
 	agent.set_env('JANUS_RTPEND', janus_rtp_end)
 	agent.set_env('SATELLITE_RTP_PORT', satellite_rtp_port)
+	agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)
+	agent.set_env('ASTERISK_SIP_UDP_PORT', sip_udp_port)
 
 	# Open the new RTP ranges in the firewall (replaces old entries for these ranges)
 	agent.add_public_service(os.environ['MODULE_ID'], [
@@ -186,8 +192,14 @@ if not 'SATELLITE_PGSQL_PORT' in env:
 	print(f"New port allocated for SATELLITE PGSQL: {pgsql_port}", file=sys.stderr)
 	agent.set_env('SATELLITE_PGSQL_PORT', pgsql_port)
 
-# Allocate dedicated UDP port for SIP UDP binding if not already set
+# Migrate IAX to UDP and allocate SIP UDP port for instances that already have
+# UDP_PORTS_RANGE set (migration block above did not run).
 if 'ASTERISK_SIP_UDP_PORT' not in env:
+	iax_udp = agent.allocate_ports(1, "udp", keep_existing=True)
+	iax_udp_port = iax_udp[0]
+	print(f"New UDP port allocated for Asterisk IAX: {iax_udp_port}", file=sys.stderr)
+	agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)
+
 	sip_udp = agent.allocate_ports(1, "udp", keep_existing=True)
 	sip_udp_port = sip_udp[0]
 	print(f"New UDP port allocated for Asterisk SIP UDP: {sip_udp_port}", file=sys.stderr)

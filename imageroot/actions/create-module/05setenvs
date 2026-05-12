@@ -20,6 +20,12 @@ def gen_password(length=32):
 
 # RTP/UDP ports are pre-allocated by ns8-core via the udp-ports-demand label
 # and exposed as UDP_PORTS_RANGE — no extra allocation needed here.
+# Layout (2003 ports total):
+#   [0..999]   Asterisk RTP
+#   [1000..1999] Janus RTP
+#   [2000]     Satellite RTP
+#   [2001]     Asterisk IAX (UDP-only protocol)
+#   [2002]     Asterisk SIP UDP (separate from TCP SIP port)
 asterisk_rtp_ports = 1000
 janus_rtp_ports = 1000
 udp_range = os.environ['UDP_PORTS_RANGE'].split("-")
@@ -29,6 +35,8 @@ sip_end = sip_start + asterisk_rtp_ports - 1
 janus_start = sip_end + 1
 janus_end = janus_start + janus_rtp_ports - 1
 satellite_udp_port = janus_end + 1
+iax_udp_port = satellite_udp_port + 1
+sip_udp_port = iax_udp_port + 1
 
 # comma separated TCP port list
 port_list = []
@@ -151,13 +159,11 @@ agent.set_env('SATELLITE_MQTT_USERNAME', 'satellite')
 agent.set_env('NETHVOICE_MIDDLEWARE_PORT', port_list[34])
 agent.set_env('NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS', '127.0.0.1:' + str(port_list[34]))
 
-# IAX2 is UDP-only — allocate a dedicated UDP port
-iax_port = agent.allocate_ports(1, "udp", keep_existing=True)
-agent.set_env('ASTERISK_IAX_PORT', iax_port[0])
+# IAX2 is UDP-only — port derived from UDP_PORTS_RANGE offset 2001
+agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)
 
-# SIP UDP port is separate from TCP SIP port
-sip_udp_port = agent.allocate_ports(1, "udp", keep_existing=True)
-agent.set_env('ASTERISK_SIP_UDP_PORT', sip_udp_port[0])
+# SIP UDP port is separate from TCP SIP port — offset 2002
+agent.set_env('ASTERISK_SIP_UDP_PORT', sip_udp_port)
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT', '127.0.0.1:' + str(port_list[6]))
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT', '127.0.0.1:' + str(port_list[7]))
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_PROTOCOL', 'http')
