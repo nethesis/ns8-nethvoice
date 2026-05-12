@@ -2,11 +2,13 @@
 
 date_default_timezone_set('Europe/Rome');
 
-$ini_file = parse_ini_file("/etc/asterisk/fias.conf", true);
-$config = $ini_file["fiasd"];
 $dbconfig = $ini_file["general"];
 
-$fiasserverdb = new \PDO('mysql:host='.$dbconfig["dbhost"].';dbname=fias_server',$dbconfig["user"],$dbconfig["pwd"]);
+$fiasserverdb = new \PDO(
+    buildMysqlDsn($dbconfig["dbhost"], getFiasServerDatabaseName()),
+    $dbconfig["user"],
+    $dbconfig["pwd"]
+);
 if ($fiasserverdb === false) {
     logMessage("Error connecting to database; ".mysql_error(), ERROR, __FILE__);
     exit(1);

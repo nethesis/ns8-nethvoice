@@ -8,7 +8,44 @@ define( "WARNING" , 1);
 define( "DEBUG" , 2);
 define( "DEBUGVERBOSE" , 3);
 
-$ini_file = parse_ini_file("/etc/asterisk/fias.conf", true);
+function getEnvOrDefault($name, $default) {
+    $value = getenv($name);
+    if ($value === false || $value === '') {
+        return $default;
+    }
+    return $value;
+}
+
+function getFiasConfigPath() {
+    return getEnvOrDefault('FIAS_CONFIG_PATH', '/etc/asterisk/fias.conf');
+}
+
+function getFreepbxDbConfigPath() {
+    return getEnvOrDefault('FREEPBX_DB_CONF_PATH', '/etc/freepbx_db.conf');
+}
+
+function getFiasDatabaseName() {
+    return getEnvOrDefault('FIAS_DB_NAME', 'fias');
+}
+
+function getFiasServerDatabaseName() {
+    return getEnvOrDefault('FIAS_SERVER_DB_NAME', 'fias_server');
+}
+
+function buildMysqlDsn($host, $databaseName, $port = '') {
+    $dsn = 'mysql:host='.$host.';';
+    if ($port !== '' && $port !== null) {
+        $dsn .= 'port='.$port.';';
+    }
+    return $dsn.'dbname='.$databaseName;
+}
+
+$ini_file = parse_ini_file(getFiasConfigPath(), true);
+if ($ini_file === false || !isset($ini_file['fiasd'])) {
+    fwrite(STDERR, "Unable to load FIAS configuration from ".getFiasConfigPath().PHP_EOL);
+    exit(1);
+}
+
 $config = $ini_file["fiasd"];
 
 function getLogTag($tag = "") {
@@ -149,8 +186,8 @@ function insertMessageIntoDB($section,$parameters) {
     }
 }
 
-include_once('/etc/freepbx_db.conf');
-$fiasdb = new \PDO($amp_conf['AMPDBENGINE'].':host='.$amp_conf['AMPDBHOST'].';port='.$amp_conf['AMPDBPORT'].';dbname=fias',
+include_once(getFreepbxDbConfigPath());
+$fiasdb = new \PDO(buildMysqlDsn($amp_conf['AMPDBHOST'], getFiasDatabaseName(), $amp_conf['AMPDBPORT']),
 	$amp_conf['AMPDBUSER'],
 	$amp_conf['AMPDBPASS']);
 
