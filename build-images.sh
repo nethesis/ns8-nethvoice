@@ -313,6 +313,7 @@ fi
 ## Satellite AI STT/TTS ##
 ##########################
 reponame="nethvoice-satellite"
+
 if should_build "${reponame}"; then
     start_timing "${reponame}"
     container=$(buildah from ghcr.io/nethesis/satellite:fix_transcriptions)
