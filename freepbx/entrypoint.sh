@@ -151,7 +151,7 @@ if [[ -z "${WIZARD_LOGIN_BACKGROUND_URL+x}" ]]; then
 	wizard_login_background_url="${LOGIN_BACKGROUND_URL:-}"
 fi
 
-wizard_navbar_logo_url="${NAVBAR_LOGO_URL:-}"
+wizard_navbar_logo_url="${wizard_login_logo_url}"
 
 # Write wizard and restapi configuration
 cat > /var/www/html/freepbx/wizard/scripts/custom.js <<EOF

@@ -367,6 +367,13 @@
   <script src="node_modules/ng-sortable/dist/ng-sortable.js"></script>
   <script src="node_modules/angular-bootstrap-switch/dist/angular-bootstrap-switch.js"></script>
   <script src="node_modules/ace-builds/src-min/ace.js"></script>
+  <script>
+    ace.config.set("basePath", "node_modules/ace-builds/src-min");
+    ace.config.setModuleUrl(
+      "ace/mode/json_worker",
+      "node_modules/ace-builds/src-min/worker-json.js"
+    );
+  </script>
   <script src="node_modules/ace-builds/src-min/mode-json.js"></script>
   <script src="node_modules/ace-builds/src-min/mode-sql.js"></script>
   <script src="node_modules/ace-builds/src-min/mode-ejs.js"></script>

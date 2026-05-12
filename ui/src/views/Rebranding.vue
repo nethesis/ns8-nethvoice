@@ -69,7 +69,7 @@
         <cv-column>
           <cv-tile light class="rebranding-product-tile">
             <cv-form @submit.prevent="setBrandName">
-              <div class="rebranding-product-grid">
+              <div class="rebranding-product-stack">
                 <div>
                   <h3 class="section-title">
                     {{ $t("rebranding.rebranding_brand_name") }}
@@ -78,29 +78,24 @@
                     {{ $t("rebranding.product_name_description") }}
                   </p>
                 </div>
-                <div>
-                  <NsTextInput
-                    :label="
-                      $t('rebranding.rebranding_brand_name') +
-                      ' (' +
-                      $t('common.optional') +
-                      ')'
-                    "
-                    v-model="rebranding_brand_name"
-                    placeholder="NethVoice"
-                    :disabled="loading.setRebranding"
-                    :invalid-message="error.rebranding_brand_name"
-                    :helper-text="$t('rebranding.name_to_replace_nethvoice')"
-                    class="mb-4"
-                  />
-                  <NsInlineNotification
-                    v-if="error.setRebranding"
-                    kind="error"
-                    :title="$t('action.set-rebranding')"
-                    :description="error.setRebranding"
-                    :showCloseButton="false"
-                    class="mb-4"
-                  />
+                <NsTextInput
+                  :label="''"
+                  v-model="rebranding_brand_name"
+                  placeholder="NethVoice"
+                  :disabled="loading.setRebranding"
+                  :invalid-message="error.rebranding_brand_name"
+                  :helper-text="$t('rebranding.name_to_replace_nethvoice')"
+                  class="mb-4"
+                />
+                <NsInlineNotification
+                  v-if="error.setRebranding"
+                  kind="error"
+                  :title="$t('action.set-rebranding')"
+                  :description="error.setRebranding"
+                  :showCloseButton="false"
+                  class="mb-4"
+                />
+                <div class="rebranding-product-actions">
                   <NsButton
                     kind="primary"
                     :icon="Save20"
@@ -355,20 +350,20 @@
                     </div>
                     <div class="rebranding-save-actions">
                       <NsButton
-                        kind="ghost"
-                        :icon="Restart20"
-                        :disabled="loading.setRebranding"
-                        @click.prevent="resetTab('cti')"
-                      >
-                        {{ $t("rebranding.reset") }}
-                      </NsButton>
-                      <NsButton
                         kind="primary"
                         :icon="Save20"
                         :loading="loading.setRebranding"
                         :disabled="loading.setRebranding"
                       >
                         {{ $t("common.save") }}
+                      </NsButton>
+                      <NsButton
+                        kind="ghost"
+                        :icon="Restart20"
+                        :disabled="loading.setRebranding"
+                        @click.prevent="resetTab('cti')"
+                      >
+                        {{ $t("rebranding.reset") }}
                       </NsButton>
                     </div>
                   </div>
@@ -501,20 +496,20 @@
                     </div>
                     <div class="rebranding-save-actions">
                       <NsButton
-                        kind="ghost"
-                        :icon="Restart20"
-                        :disabled="loading.setRebranding"
-                        @click.prevent="resetTab('wizard')"
-                      >
-                        {{ $t("rebranding.reset") }}
-                      </NsButton>
-                      <NsButton
                         kind="primary"
                         :icon="Save20"
                         :loading="loading.setRebranding"
                         :disabled="loading.setRebranding"
                       >
                         {{ $t("common.save") }}
+                      </NsButton>
+                      <NsButton
+                        kind="ghost"
+                        :icon="Restart20"
+                        :disabled="loading.setRebranding"
+                        @click.prevent="resetTab('wizard')"
+                      >
+                        {{ $t("rebranding.reset") }}
                       </NsButton>
                     </div>
                   </div>
@@ -643,20 +638,20 @@
                     </div>
                     <div class="rebranding-save-actions">
                       <NsButton
-                        kind="ghost"
-                        :icon="Restart20"
-                        :disabled="loading.setRebranding"
-                        @click.prevent="resetTab('reports')"
-                      >
-                        {{ $t("rebranding.reset") }}
-                      </NsButton>
-                      <NsButton
                         kind="primary"
                         :icon="Save20"
                         :loading="loading.setRebranding"
                         :disabled="loading.setRebranding"
                       >
                         {{ $t("common.save") }}
+                      </NsButton>
+                      <NsButton
+                        kind="ghost"
+                        :icon="Restart20"
+                        :disabled="loading.setRebranding"
+                        @click.prevent="resetTab('reports')"
+                      >
+                        {{ $t("rebranding.reset") }}
                       </NsButton>
                     </div>
                   </div>
@@ -704,13 +699,26 @@
                           </div>
                           <div class="nethlink-preview-shell">
                             <div class="nethlink-preview-window">
-                              <div class="nethlink-about-card">
-                                <div class="nethlink-about-app">NethLink</div>
-                                <div class="nethlink-about-company">
-                                  {{ nethlinkCompanyNamePreview }}
+                              <div class="nethlink-preview-body">
+                                <div class="nethlink-about-title">
+                                  {{ $t("rebranding.nethlink_about_title") }}
                                 </div>
-                                <div class="nethlink-about-url">
-                                  {{ nethlinkCompanyUrlPreview }}
+                                <div class="nethlink-about-card">
+                                  <div class="nethlink-about-header">
+                                    <div class="nethlink-about-logo">N</div>
+                                    <div class="nethlink-about-brand-block">
+                                      <div class="nethlink-about-app">NethLink</div>
+                                      <div class="nethlink-about-brand-line">
+                                        NethLink by
+                                        <span class="nethlink-about-company-link">
+                                          {{ nethlinkCompanyNamePreview }}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div class="nethlink-about-version">
+                                    {{ $t("rebranding.nethlink_current_version_preview") }}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -720,20 +728,20 @@
                     </div>
                     <div class="rebranding-save-actions">
                       <NsButton
-                        kind="ghost"
-                        :icon="Restart20"
-                        :disabled="loading.setRebranding"
-                        @click.prevent="resetTab('nethlink')"
-                      >
-                        {{ $t("rebranding.reset") }}
-                      </NsButton>
-                      <NsButton
                         kind="primary"
                         :icon="Save20"
                         :loading="loading.setRebranding"
                         :disabled="loading.setRebranding"
                       >
                         {{ $t("common.save") }}
+                      </NsButton>
+                      <NsButton
+                        kind="ghost"
+                        :icon="Restart20"
+                        :disabled="loading.setRebranding"
+                        @click.prevent="resetTab('nethlink')"
+                      >
+                        {{ $t("rebranding.reset") }}
                       </NsButton>
                     </div>
                   </div>
@@ -1325,12 +1333,23 @@ export default {
   margin-bottom: 1.5rem;
 }
 
-.rebranding-product-grid,
 .rebranding-tab-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(20rem, 38rem);
   gap: 2rem;
   align-items: start;
+}
+
+.rebranding-product-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 42rem;
+}
+
+.rebranding-product-actions {
+  display: flex;
+  justify-content: flex-start;
 }
 
 .rebranding-tab-fields {
@@ -1814,42 +1833,82 @@ export default {
 
 .nethlink-preview-window {
   width: 100%;
-  max-width: 20rem;
+  max-width: 22rem;
   border-radius: 0.9rem;
   background: #ffffff;
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
-  padding: 1.5rem;
+  padding: 1.25rem;
+}
+
+.nethlink-preview-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.nethlink-about-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
 }
 
 .nethlink-about-card {
   border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
-  padding: 1rem;
+  border-radius: 1rem;
+  padding: 1.25rem;
   background: #f8fafc;
+}
+
+.nethlink-about-header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.nethlink-about-logo {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, #0f766e 0%, #2563eb 100%);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.nethlink-about-brand-block {
+  min-width: 0;
 }
 
 .nethlink-about-app {
   font-size: 1rem;
   font-weight: 600;
   color: #0f172a;
-  margin-bottom: 1rem;
+  margin-bottom: 0.35rem;
 }
 
-.nethlink-about-company {
-  font-size: 1rem;
+.nethlink-about-brand-line {
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.nethlink-about-company-link {
+  margin-left: 0.2rem;
   font-weight: 600;
-  color: #111827;
-  margin-bottom: 0.5rem;
-}
-
-.nethlink-about-url {
   font-size: 0.875rem;
   color: #2563eb;
-  word-break: break-word;
+}
+
+.nethlink-about-version {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #9ca3af;
 }
 
 @media (max-width: 960px) {
-  .rebranding-product-grid,
   .rebranding-tab-grid {
     grid-template-columns: minmax(0, 1fr);
   }

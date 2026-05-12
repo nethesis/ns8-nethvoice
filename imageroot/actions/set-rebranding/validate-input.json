@@ -34,9 +34,7 @@
         "rebranding_login_logo_url",
         "rebranding_login_logo_dark_url",
         "rebranding_favicon_url",
-        "rebranding_login_background_url",
-        "rebranding_nethlink_company_name",
-        "rebranding_nethlink_company_url"
+        "rebranding_login_background_url"
     ],
     "properties": {
         "rebranding_brand_name": {
@@ -104,11 +102,11 @@
             "type": "string"
         },
         "rebranding_nethlink_company_name": {
-            "description": "NethLink company name",
+            "description": "NethLink About company name",
             "type": "string"
         },
         "rebranding_nethlink_company_url": {
-            "description": "NethLink company URL",
+            "description": "NethLink About company URL",
             "type": "string"
         }
     }
