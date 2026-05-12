@@ -3,9 +3,15 @@
 date_default_timezone_set('Europe/Rome');
 
 $dbconfig = $ini_file["general"];
+$dbport = '';
+if (isset($dbconfig['dbport']) && $dbconfig['dbport'] !== '') {
+    $dbport = $dbconfig['dbport'];
+} elseif (isset($amp_conf['AMPDBPORT']) && $amp_conf['AMPDBPORT'] !== '') {
+    $dbport = $amp_conf['AMPDBPORT'];
+}
 
 $fiasserverdb = new \PDO(
-    buildMysqlDsn($dbconfig["dbhost"], getFiasServerDatabaseName()),
+    buildMysqlDsn($dbconfig["dbhost"], getFiasServerDatabaseName(), $dbport),
     $dbconfig["user"],
     $dbconfig["pwd"]
 );

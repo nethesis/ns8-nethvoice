@@ -6,10 +6,24 @@ const STEP_TIMEOUT = 30;
 const POLL_INTERVAL_USEC = 250000;
 const MOVE_ROOM_OFFSET = 1000;
 
+function getEnvOrDefault($name, $default = '') {
+    $value = getenv($name);
+    if ($value === false || $value === '') {
+        return $default;
+    }
+
+    return $value;
+}
+
+function isTruthyEnv($name) {
+    return in_array(strtolower((string) getEnvOrDefault($name, '')), array('1', 'true', 'yes', 'on'), true);
+}
+
 function usage() {
     $script = basename(__FILE__);
     fwrite(STDERR, "Usage: {$script} <room-number>\n");
     fwrite(STDERR, "Run inside a FreePBX container or host with access to /etc/freepbx_db.conf and /var/www/html/freepbx/hotel/functions.inc.php.\n");
+    fwrite(STDERR, "For isolated temporary databases, also provide MariaDB admin credentials with FIAS_E2E_ADMIN_DB_USER/FIAS_E2E_ADMIN_DB_PASS or export MARIADB_ROOT_PASSWORD.\n");
     exit(1);
 }
 
@@ -20,10 +34,10 @@ function quoteIdentifier($identifier) {
     return '`'.$identifier.'`';
 }
 
-function connectMysql($ampConf, $databaseName = '') {
-    $dsn = $ampConf['AMPDBENGINE'].':host='.$ampConf['AMPDBHOST'];
-    if (!empty($ampConf['AMPDBPORT'])) {
-        $dsn .= ';port='.$ampConf['AMPDBPORT'];
+function connectMysqlWithCredentials($engine, $host, $port, $user, $password, $databaseName = '') {
+    $dsn = $engine.':host='.$host;
+    if (!empty($port)) {
+        $dsn .= ';port='.$port;
     }
     if ($databaseName !== '') {
         $dsn .= ';dbname='.$databaseName;
@@ -31,13 +45,70 @@ function connectMysql($ampConf, $databaseName = '') {
 
     return new PDO(
         $dsn,
-        $ampConf['AMPDBUSER'],
-        $ampConf['AMPDBPASS'],
+        $user,
+        $password,
         array(
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         )
     );
+}
+
+function getAmpDbSettings($ampConf) {
+    return array(
+        'AMPDBENGINE' => $ampConf['AMPDBENGINE'],
+        'AMPDBHOST' => $ampConf['AMPDBHOST'],
+        'AMPDBPORT' => isset($ampConf['AMPDBPORT']) ? $ampConf['AMPDBPORT'] : '',
+        'AMPDBUSER' => $ampConf['AMPDBUSER'],
+        'AMPDBPASS' => $ampConf['AMPDBPASS'],
+        'AMPDBNAME' => isset($ampConf['AMPDBNAME']) ? $ampConf['AMPDBNAME'] : '',
+        'datasource' => isset($ampConf['datasource']) ? $ampConf['datasource'] : '',
+    );
+}
+
+function connectMysqlFromSettings($dbSettings, $databaseName = '') {
+    return connectMysqlWithCredentials(
+        $dbSettings['AMPDBENGINE'],
+        $dbSettings['AMPDBHOST'],
+        isset($dbSettings['AMPDBPORT']) ? $dbSettings['AMPDBPORT'] : '',
+        $dbSettings['AMPDBUSER'],
+        $dbSettings['AMPDBPASS'],
+        $databaseName
+    );
+}
+
+function connectMysql($ampConf, $databaseName = '') {
+    return connectMysqlFromSettings(
+        getAmpDbSettings($ampConf),
+        $databaseName
+    );
+}
+
+function getAdminDbSettings($ampConf) {
+    $adminPassword = getEnvOrDefault('FIAS_E2E_ADMIN_DB_PASS', getEnvOrDefault('MARIADB_ROOT_PASSWORD', ''));
+    $adminUser = getEnvOrDefault('FIAS_E2E_ADMIN_DB_USER', $adminPassword !== '' ? 'root' : '');
+    if ($adminUser === '') {
+        return null;
+    }
+
+    return array(
+        'AMPDBENGINE' => $ampConf['AMPDBENGINE'],
+        'AMPDBHOST' => getEnvOrDefault('FIAS_E2E_ADMIN_DB_HOST', $ampConf['AMPDBHOST']),
+        'AMPDBPORT' => getEnvOrDefault('FIAS_E2E_ADMIN_DB_PORT', isset($ampConf['AMPDBPORT']) ? $ampConf['AMPDBPORT'] : ''),
+        'AMPDBUSER' => $adminUser,
+        'AMPDBPASS' => $adminPassword,
+        'AMPDBNAME' => isset($ampConf['AMPDBNAME']) ? $ampConf['AMPDBNAME'] : '',
+        'datasource' => isset($ampConf['datasource']) ? $ampConf['datasource'] : '',
+    );
+}
+
+function connectMysqlAdmin($ampConf) {
+    $adminDbSettings = getAdminDbSettings($ampConf);
+    if ($adminDbSettings === null) {
+        return null;
+    }
+
+    return connectMysqlFromSettings($adminDbSettings);
 }
 
 function loadAmpConf($configPath) {
@@ -82,16 +153,33 @@ function buildProcessEnvironment($overrides) {
     return $environment;
 }
 
-function writeTestConfig($sourcePath, $targetPath, $port) {
+function quoteIniValue($value) {
+    return '"'.addcslashes((string) $value, "\\\"").'"';
+}
+
+function writeTransportConfig($sourcePath, $targetPath, $port, $dbSettings = null) {
     $config = file_get_contents($sourcePath);
     if ($config === false) {
         throw new RuntimeException("Unable to read {$sourcePath}");
     }
 
-    $config = preg_replace('/^address=.*$/m', 'address=127.0.0.1', $config, 1);
-    $config = preg_replace('/^port=.*$/m', 'port='.$port, $config, 1);
-    if ($config === null) {
-        throw new RuntimeException('Unable to build temporary FIAS configuration');
+    $replacements = array(
+        '/^address=.*$/m' => 'address=127.0.0.1',
+        '/^port=.*$/m' => 'port='.$port,
+    );
+
+    if ($dbSettings !== null) {
+        $replacements['/^dbhost=.*$/m'] = 'dbhost='.quoteIniValue($dbSettings['AMPDBHOST']);
+        $replacements['/^dbport=.*$/m'] = 'dbport='.quoteIniValue(isset($dbSettings['AMPDBPORT']) ? $dbSettings['AMPDBPORT'] : '');
+        $replacements['/^user=.*$/m'] = 'user='.quoteIniValue($dbSettings['AMPDBUSER']);
+        $replacements['/^pwd=.*$/m'] = 'pwd='.quoteIniValue($dbSettings['AMPDBPASS']);
+    }
+
+    foreach ($replacements as $pattern => $replacement) {
+        $config = preg_replace($pattern, $replacement, $config, 1);
+        if ($config === null) {
+            throw new RuntimeException('Unable to build temporary FIAS configuration');
+        }
     }
 
     if (file_put_contents($targetPath, $config) === false) {
@@ -99,12 +187,28 @@ function writeTestConfig($sourcePath, $targetPath, $port) {
     }
 }
 
-function createTransportDatabase($adminPdo, $ampConf, $databaseName) {
-    $quotedDatabase = quoteIdentifier($databaseName);
-    $adminPdo->exec('DROP DATABASE IF EXISTS '.$quotedDatabase);
-    $adminPdo->exec('CREATE DATABASE '.$quotedDatabase.' DEFAULT CHARACTER SET latin1 COLLATE latin1_general_ci');
+function writeFreepbxDbConfig($targetPath, $dbSettings) {
+    $content = "<?php\n\n";
+    $content .= '$amp_conf[\'AMPDBUSER\'] = '.var_export($dbSettings['AMPDBUSER'], true).";\n";
+    $content .= '$amp_conf[\'AMPDBPASS\'] = '.var_export($dbSettings['AMPDBPASS'], true).";\n";
+    $content .= '$amp_conf[\'AMPDBHOST\'] = '.var_export($dbSettings['AMPDBHOST'], true).";\n";
+    $content .= '$amp_conf[\'AMPDBPORT\'] = '.var_export(isset($dbSettings['AMPDBPORT']) ? $dbSettings['AMPDBPORT'] : '', true).";\n";
+    $content .= '$amp_conf[\'AMPDBNAME\'] = '.var_export(isset($dbSettings['AMPDBNAME']) ? $dbSettings['AMPDBNAME'] : '', true).";\n";
+    $content .= '$amp_conf[\'AMPDBENGINE\'] = '.var_export($dbSettings['AMPDBENGINE'], true).";\n";
+    $content .= '$amp_conf[\'datasource\'] = '.var_export(isset($dbSettings['datasource']) ? $dbSettings['datasource'] : '', true).";\n";
 
-    $databasePdo = connectMysql($ampConf, $databaseName);
+    if (file_put_contents($targetPath, $content) === false) {
+        throw new RuntimeException("Unable to write {$targetPath}");
+    }
+}
+
+function clearTransportTables($databasePdo) {
+    $databasePdo->exec('TRUNCATE TABLE `messagesparameters`');
+    $databasePdo->exec('TRUNCATE TABLE `messages`');
+    $databasePdo->exec('TRUNCATE TABLE `reservations`');
+}
+
+function ensureTransportSchema($databasePdo) {
     $databasePdo->exec(
         'CREATE TABLE IF NOT EXISTS `messages` ('
         .' `id` int(11) NOT NULL auto_increment,'
@@ -137,6 +241,45 @@ function createTransportDatabase($adminPdo, $ampConf, $databaseName) {
         .' `checkoutdate` timestamp NULL'
         .') ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci'
     );
+
+    clearTransportTables($databasePdo);
+}
+
+function grantDatabasePrivileges($adminPdo, $ampConf, $databaseName) {
+    $databasePattern = quoteIdentifier($databaseName).'.*';
+    $quotedUser = $adminPdo->quote($ampConf['AMPDBUSER']);
+    $quotedPassword = $adminPdo->quote($ampConf['AMPDBPASS']);
+    foreach (array('127.0.0.1', 'localhost') as $host) {
+        $quotedHost = $adminPdo->quote($host);
+        $adminPdo->exec("GRANT ALL ON {$databasePattern} TO {$quotedUser}@{$quotedHost} IDENTIFIED BY {$quotedPassword}");
+    }
+    $adminPdo->exec('FLUSH PRIVILEGES');
+}
+
+function createTransportDatabase($adminPdo, $ampConf, $databaseSettings, $databaseName) {
+    if ($adminPdo === null) {
+        throw new RuntimeException(
+            'Creating isolated transport databases requires MariaDB admin credentials. '
+            .'Set FIAS_E2E_ADMIN_DB_USER and FIAS_E2E_ADMIN_DB_PASS, or export MARIADB_ROOT_PASSWORD if root access is available. '
+            .'Alternatively, pre-create two dedicated databases, grant '.$ampConf['AMPDBUSER'].' access, and rerun with '
+            .'FIAS_DB_NAME, FIAS_SERVER_DB_NAME, and FIAS_E2E_SKIP_DB_CREATE=1.'
+        );
+    }
+
+    $quotedDatabase = quoteIdentifier($databaseName);
+    $adminPdo->exec('DROP DATABASE IF EXISTS '.$quotedDatabase);
+    $adminPdo->exec('CREATE DATABASE '.$quotedDatabase.' DEFAULT CHARACTER SET latin1 COLLATE latin1_general_ci');
+    grantDatabasePrivileges($adminPdo, $ampConf, $databaseName);
+
+    $databasePdo = connectMysqlFromSettings($databaseSettings, $databaseName);
+    ensureTransportSchema($databasePdo);
+
+    return $databasePdo;
+}
+
+function useExistingTransportDatabase($databaseSettings, $databaseName) {
+    $databasePdo = connectMysqlFromSettings($databaseSettings, $databaseName);
+    ensureTransportSchema($databasePdo);
 
     return $databasePdo;
 }
@@ -334,13 +477,17 @@ $guestName = 'E2E Guest';
 $freepbxDbConfigPath = '/etc/freepbx_db.conf';
 $baseConfigPath = '/etc/asterisk/fias.conf';
 $hotelFunctionsPath = '/var/www/html/freepbx/hotel/functions.inc.php';
+$skipDatabaseCreate = isTruthyEnv('FIAS_E2E_SKIP_DB_CREATE');
 
 if (!file_exists($baseConfigPath) || !file_exists($hotelFunctionsPath)) {
     usage();
 }
 
 $ampConf = loadAmpConf($freepbxDbConfigPath);
-$adminPdo = connectMysql($ampConf);
+$ampDbSettings = getAmpDbSettings($ampConf);
+$adminDbSettings = getAdminDbSettings($ampConf);
+$transportDbSettings = $adminDbSettings !== null ? $adminDbSettings : $ampDbSettings;
+$adminPdo = connectMysqlAdmin($ampConf);
 $roomsPdo = connectMysql($ampConf, 'roomsdb');
 
 $tempId = getmypid();
@@ -352,33 +499,58 @@ if (!mkdir($tempDir, 0700, true) && !is_dir($tempDir)) {
 $artifacts = array(
     'temp_dir' => $tempDir,
     'config' => $tempDir.'/fias.conf',
+    'freepbx_db_conf' => $tempDir.'/freepbx_db.conf',
     'server_log' => $tempDir.'/fias-server.log',
     'client_log' => $tempDir.'/fiasd.log',
     'dispatcher_log' => $tempDir.'/dispatcher.log',
 );
 
+$transportFreepbxDbConfigPath = $freepbxDbConfigPath;
+if ($adminDbSettings !== null) {
+    $transportFreepbxDbConfigPath = $artifacts['freepbx_db_conf'];
+}
+
 $databaseNames = array(
-    'fias' => 'fias_e2e_'.$tempId,
-    'server' => 'fias_server_e2e_'.$tempId,
+    'fias' => getEnvOrDefault('FIAS_DB_NAME', 'fias_e2e_'.$tempId),
+    'server' => getEnvOrDefault('FIAS_SERVER_DB_NAME', 'fias_server_e2e_'.$tempId),
 );
+
+if ($databaseNames['fias'] === $databaseNames['server']) {
+    throw new RuntimeException('FIAS_DB_NAME and FIAS_SERVER_DB_NAME must be different');
+}
+
+if ($skipDatabaseCreate && (getEnvOrDefault('FIAS_DB_NAME', '') === '' || getEnvOrDefault('FIAS_SERVER_DB_NAME', '') === '')) {
+    throw new RuntimeException('FIAS_E2E_SKIP_DB_CREATE=1 requires pre-created FIAS_DB_NAME and FIAS_SERVER_DB_NAME values');
+}
 
 $environment = buildProcessEnvironment(array(
     'FIAS_CONFIG_PATH' => $artifacts['config'],
     'FIAS_DB_NAME' => $databaseNames['fias'],
     'FIAS_SERVER_DB_NAME' => $databaseNames['server'],
-    'FREEPBX_DB_CONF_PATH' => $freepbxDbConfigPath,
+    'FREEPBX_DB_CONF_PATH' => $transportFreepbxDbConfigPath,
+    'FIAS_SERVER_LOCK_PATH' => $artifacts['temp_dir'].'/fias-server.lock',
 ));
 
 $processes = array();
 $keepArtifacts = false;
 $exitCode = 0;
+$fiasPdo = null;
+$serverPdo = null;
 
 try {
     $port = allocatePort();
-    writeTestConfig($baseConfigPath, $artifacts['config'], $port);
+    writeTransportConfig($baseConfigPath, $artifacts['config'], $port, $adminDbSettings);
+    if ($adminDbSettings !== null) {
+        writeFreepbxDbConfig($artifacts['freepbx_db_conf'], $adminDbSettings);
+    }
 
-    $fiasPdo = createTransportDatabase($adminPdo, $ampConf, $databaseNames['fias']);
-    $serverPdo = createTransportDatabase($adminPdo, $ampConf, $databaseNames['server']);
+    if ($skipDatabaseCreate) {
+        $fiasPdo = useExistingTransportDatabase($transportDbSettings, $databaseNames['fias']);
+        $serverPdo = useExistingTransportDatabase($transportDbSettings, $databaseNames['server']);
+    } else {
+        $fiasPdo = createTransportDatabase($adminPdo, $ampConf, $transportDbSettings, $databaseNames['fias']);
+        $serverPdo = createTransportDatabase($adminPdo, $ampConf, $transportDbSettings, $databaseNames['server']);
+    }
 
     resetRoomState($roomsPdo, array($primaryRoom, $secondaryRoom));
 
@@ -481,8 +653,17 @@ try {
     resetRoomState($roomsPdo, array($primaryRoom, $secondaryRoom));
 
     if (!$keepArtifacts) {
-        dropDatabase($adminPdo, $databaseNames['fias']);
-        dropDatabase($adminPdo, $databaseNames['server']);
+        if ($skipDatabaseCreate) {
+            if ($fiasPdo instanceof PDO) {
+                clearTransportTables($fiasPdo);
+            }
+            if ($serverPdo instanceof PDO) {
+                clearTransportTables($serverPdo);
+            }
+        } else {
+            dropDatabase($adminPdo, $databaseNames['fias']);
+            dropDatabase($adminPdo, $databaseNames['server']);
+        }
         removeDirectory($artifacts['temp_dir']);
     }
 }

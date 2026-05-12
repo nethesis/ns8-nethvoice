@@ -5,8 +5,18 @@ require_once 'fias-server-functions.inc.php';
 $config["record_start"] = chr($config["record_start"]);
 $config["record_end"] = chr($config["record_end"]);
 $config["record_LDLR"] = $ini_file["record_LDLR"];
+
+function getLockFilePath() {
+    $lockPath = getenv('FIAS_SERVER_LOCK_PATH');
+    if ($lockPath !== false && $lockPath !== '') {
+        return $lockPath;
+    }
+
+    return "/var/run/" . basename($_SERVER['argv'][0]);
+}
+
 # Test lock
-$fp = fopen("/var/run/" . basename($argv[0]), "a");
+$fp = fopen(getLockFilePath(), "a");
 if (!$fp || !flock($fp, LOCK_EX | LOCK_NB, $eWouldBlock) || $eWouldBlock) {
     if ($eWouldBlock) {
         logMessage("Daemon already running", DEBUGVERBOSE, "fias-server");

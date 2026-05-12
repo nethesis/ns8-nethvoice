@@ -98,12 +98,14 @@ The helper layer also supports test-only environment overrides:
 - `FIAS_DB_NAME`: alternate transport database name for the client side
 - `FIAS_SERVER_DB_NAME`: alternate transport database name for the test server
 - `FREEPBX_DB_CONF_PATH`: alternate path for `freepbx_db.conf`
+- `FIAS_SERVER_LOCK_PATH`: alternate lock file path for `fias-server.php`
 
 ### `[general]`
 
 | Key | Meaning |
 | --- | --- |
 | `dbhost` | MySQL host used by the standalone test server database connection. |
+| `dbport` | MySQL port used by the standalone test server database connection. If omitted, the helper falls back to the FreePBX DB port from `freepbx_db.conf`. |
 | `dbname` | Legacy logical name kept in the config template. The current helper code uses `FIAS_DB_NAME` / `FIAS_SERVER_DB_NAME` instead of this key for database selection. |
 | `user` | MySQL username used by the standalone test server. |
 | `pwd` | MySQL password used by the standalone test server. |
@@ -270,6 +272,8 @@ server.
 
 1. creates a temporary `fias.conf` with a free TCP port
 2. creates temporary transport databases for `fias` and `fias_server`
+  - this requires MariaDB admin credentials because the normal FreePBX
+    application user only has grants on the existing service databases
 3. launches:
    - `fias-server.php`
    - `dispatcher.php`
@@ -291,10 +295,27 @@ Run it inside a FreePBX environment where these paths exist:
 - `/etc/freepbx_db.conf`
 - `/etc/asterisk/fias.conf`
 - `/var/www/html/freepbx/hotel/functions.inc.php`
+- MariaDB admin credentials for isolated temp DB creation, provided through:
+  - `FIAS_E2E_ADMIN_DB_USER` and `FIAS_E2E_ADMIN_DB_PASS`, or
+  - `MARIADB_ROOT_PASSWORD` with the default admin user `root`
+
+When admin credentials are provided, the harness writes temporary overrides for
+both `fias.conf` and `freepbx_db.conf` so the spawned FIAS processes use those
+credentials for the isolated transport databases too.
 
 ### Command
 
 ```sh
+php /usr/share/neth-hotel-fias/fias-server-e2e.php <room-number>
+```
+
+If you already created two dedicated databases and granted `AMPDBUSER` access,
+you can skip the admin-only create/drop step:
+
+```sh
+FIAS_DB_NAME=my_fias_e2e \
+FIAS_SERVER_DB_NAME=my_fias_server_e2e \
+FIAS_E2E_SKIP_DB_CREATE=1 \
 php /usr/share/neth-hotel-fias/fias-server-e2e.php <room-number>
 ```
 
@@ -303,6 +324,8 @@ Notes:
 - the script also uses `<room-number> + 1000` as the move target room
 - it cleans the tested rows in `roomsdb` on success and drops the temporary
   transport databases
+- when `FIAS_E2E_SKIP_DB_CREATE=1` is used, the script truncates the provided
+  transport databases on success instead of dropping them
 - on failure it keeps the temporary databases and log files under
   `$(mktempdir)/fias-e2e-<pid>` so the failure can be inspected
 
