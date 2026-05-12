@@ -46,6 +46,7 @@ function insertMessageIntoServerDB($section,$parameters) {
                 }
             }
 	}
+        logMessage("Queued {$section} server message {$msgid}", INFO, 'insertMessageIntoServerDB');
         return TRUE;
     } catch (Exception $e) {
         logMessage("Error: ".$e->getMessage(),ERROR,'insertMessageIntoDB');

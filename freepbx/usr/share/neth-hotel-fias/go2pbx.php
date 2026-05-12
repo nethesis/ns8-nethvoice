@@ -33,30 +33,52 @@ if (!empty($arguments['G#'])) {
 # Allow shared rooms
 try {
     if (!empty($reservation_number)) {
+        $reservation_deleted = false;
         # Check if room is shared and there are other reservation for this room
         $query = "SELECT * FROM `reservations` WHERE `room_number`= ?";
         $sth = $fiasdb->prepare($query);
         $sth->execute(array($room_number));
-	$res = $sth->fetchAll();
+	    $res = $sth->fetchAll();
         if (count($res) <= 1) {
             # There is only one guest with this reservation
             if (!externalCheckOut($room_number)) {
                 throw new Exception("Error checking out room $room_number");
             }
+            logMessage($section ." Room $room_number checked out successfully.",INFO,str_replace('.php','',basename($argv[0])));
         } else {
-            # Shared room. Remove guest name from room
-            $query = 'UPDATE roomsdb.rooms SET text = TRIM(REPLACE(text,(SELECT guest_name FROM fias.reservations WHERE room_number = ?), "")) WHERE extension = ?';
+            $query = "DELETE FROM `reservations` WHERE `reservation_number`= ?";
             $sth = $fiasdb->prepare($query);
-            $sth->execute(array($room_number,$room_number));
+            $sth->execute(array($reservation_number));
+            $reservation_deleted = true;
+
+            $query = "SELECT guest_name FROM `reservations` WHERE `room_number`= ? ORDER BY `reservation_number`";
+            $sth = $fiasdb->prepare($query);
+            $sth->execute(array($room_number));
+            $remaining_reservations = $sth->fetchAll(PDO::FETCH_ASSOC);
+
+            $remaining_guests = array();
+            foreach ($remaining_reservations as $reservation) {
+                if (!empty($reservation['guest_name'])) {
+                    $remaining_guests[] = trim($reservation['guest_name']);
+                }
+            }
+
+            $query = 'UPDATE roomsdb.rooms SET text = ? WHERE extension = ?';
+            $sth = $fiasdb->prepare($query);
+            $sth->execute(array(implode(' - ', $remaining_guests), $room_number));
+            logMessage($section ." Room $room_number is shared. Reservation $reservation_number removed from room.",INFO,str_replace('.php','',basename($argv[0])));
         }
         # Delete reservation
-        $query = "DELETE FROM `reservations` WHERE `reservation_number`= ?";
-        $sth = $fiasdb->prepare($query);
-	$sth->execute(array($reservation_number));
+        if (!$reservation_deleted) {
+            $query = "DELETE FROM `reservations` WHERE `reservation_number`= ?";
+            $sth = $fiasdb->prepare($query);
+	        $sth->execute(array($reservation_number));
+        }
     } else {
         if (!externalCheckOut($room_number)) {
             throw new Exception("Error checking out room $room_number");
         }
+        logMessage($section ." Room $room_number checked out successfully.",INFO,str_replace('.php','',basename($argv[0])));
     }
 } catch (Exception $e){
     logMessage($section ." ERROR ". $e->getMessage(),ERROR,str_replace('.php','',basename($argv[0])));
