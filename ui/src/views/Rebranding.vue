@@ -703,18 +703,17 @@
                                 <div class="nethlink-about-title">
                                   {{ $t("rebranding.nethlink_about_title") }}
                                 </div>
-                                <div class="nethlink-about-card">
-                                  <div class="nethlink-about-header">
-                                    <div class="nethlink-about-logo">N</div>
-                                    <div class="nethlink-about-brand-block">
-                                      <div class="nethlink-about-app">NethLink</div>
-                                      <div class="nethlink-about-brand-line">
-                                        NethLink by
-                                        <span class="nethlink-about-company-link">
-                                          {{ nethlinkCompanyNamePreview }}
-                                        </span>
-                                      </div>
-                                    </div>
+                                <div class="nethlink-about-content">
+                                  <div class="nethlink-about-brand-line">
+                                    NethLink by
+                                    <a
+                                      class="nethlink-about-company-link"
+                                      :href="nethlinkCompanyUrlPreviewHref"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      {{ nethlinkCompanyNamePreview }}
+                                    </a>
                                   </div>
                                   <div class="nethlink-about-version">
                                     {{ $t("rebranding.nethlink_current_version_preview") }}
@@ -724,25 +723,25 @@
                             </div>
                           </div>
                         </div>
+                        <div class="rebranding-save-actions nethlink-save-actions">
+                          <NsButton
+                            kind="primary"
+                            :icon="Save20"
+                            :loading="loading.setRebranding"
+                            :disabled="loading.setRebranding"
+                          >
+                            {{ $t("common.save") }}
+                          </NsButton>
+                          <NsButton
+                            kind="ghost"
+                            :icon="Restart20"
+                            :disabled="loading.setRebranding"
+                            @click.prevent="resetTab('nethlink')"
+                          >
+                            {{ $t("rebranding.reset") }}
+                          </NsButton>
+                        </div>
                       </div>
-                    </div>
-                    <div class="rebranding-save-actions">
-                      <NsButton
-                        kind="primary"
-                        :icon="Save20"
-                        :loading="loading.setRebranding"
-                        :disabled="loading.setRebranding"
-                      >
-                        {{ $t("common.save") }}
-                      </NsButton>
-                      <NsButton
-                        kind="ghost"
-                        :icon="Restart20"
-                        :disabled="loading.setRebranding"
-                        @click.prevent="resetTab('nethlink')"
-                      >
-                        {{ $t("rebranding.reset") }}
-                      </NsButton>
                     </div>
                   </div>
                 </cv-tab>
@@ -948,6 +947,9 @@ export default {
     },
     nethlinkCompanyUrlPreview() {
       return this.rebranding_nethlink_company_url || "https://www.nethesis.it/";
+    },
+    nethlinkCompanyUrlPreviewHref() {
+      return this.normalizeExternalUrl(this.nethlinkCompanyUrlPreview);
     },
   },
   beforeRouteEnter(to, from, next) {
@@ -1306,6 +1308,19 @@ export default {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    },
+    normalizeExternalUrl(url) {
+      const trimmedUrl = (url || "").trim();
+
+      if (!trimmedUrl) {
+        return "https://www.nethesis.it/";
+      }
+
+      if (/^[a-z]+:\/\//i.test(trimmedUrl)) {
+        return trimmedUrl;
+      }
+
+      return `https://${trimmedUrl}`;
     },
   },
 };
@@ -1838,12 +1853,13 @@ export default {
   background: #ffffff;
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
   padding: 1.25rem;
+  min-height: 16rem;
 }
 
 .nethlink-preview-body {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  min-height: 100%;
 }
 
 .nethlink-about-title {
@@ -1852,60 +1868,41 @@ export default {
   color: #0f172a;
 }
 
-.nethlink-about-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 1rem;
-  padding: 1.25rem;
-  background: #f8fafc;
-}
-
-.nethlink-about-header {
+.nethlink-about-content {
   display: flex;
-  align-items: center;
-  gap: 0.9rem;
-}
-
-.nethlink-about-logo {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.75rem;
-  background: linear-gradient(135deg, #0f766e 0%, #2563eb 100%);
-  color: #ffffff;
-  display: inline-flex;
+  flex: 1;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
-  font-weight: 700;
-  flex: 0 0 auto;
-}
-
-.nethlink-about-brand-block {
-  min-width: 0;
-}
-
-.nethlink-about-app {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #0f172a;
-  margin-bottom: 0.35rem;
+  text-align: center;
 }
 
 .nethlink-about-brand-line {
-  font-size: 0.9rem;
+  font-size: 1rem;
+  font-weight: 500;
   color: #374151;
 }
 
 .nethlink-about-company-link {
   margin-left: 0.2rem;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: #2563eb;
+  text-decoration: none;
+}
+
+.nethlink-about-company-link:hover {
+  text-decoration: underline;
 }
 
 .nethlink-about-version {
-  margin-top: 1rem;
+  margin-top: 0.75rem;
   font-size: 0.85rem;
   color: #9ca3af;
+}
+
+.nethlink-save-actions {
+  justify-content: center;
 }
 
 @media (max-width: 960px) {
