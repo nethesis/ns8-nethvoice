@@ -6,9 +6,20 @@ require_once("config.inc.php");
 require_once("utils.inc.php");
 
 function nethhotel_log($msg, $function=''){
+  if (is_array($msg) || is_object($msg)) {
+    $msg = print_r($msg, true);
+  }
+
+  $prefix = $function !== '' ? "$function: " : '';
+  $line = date('M d H:i:s')." nethhotel[".getmypid()."]: ".$prefix.rtrim((string) $msg);
+
+  if (!error_log($line)) {
     $out = fopen('php://stderr', 'w');
-    fputs ($out, date('M d H:i:s')."$function: ".print_r($msg,true));
-    fclose ($out);
+    if ($out) {
+      fputs($out, $line.PHP_EOL);
+      fclose($out);
+    }
+  }
 }
 
 function loadRates()
