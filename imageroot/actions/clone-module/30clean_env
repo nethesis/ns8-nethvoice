@@ -11,3 +11,8 @@ import agent
 # Cleanup the environment
 agent.unset_env('NETHVOICE_USER_PORTAL_USERNAME')
 agent.unset_env('RESTART_SERVICES')
+agent.unset_env('ASTERISK_RTPSTART')
+agent.unset_env('ASTERISK_RTPEND')
+agent.unset_env('JANUS_RTPSTART')
+agent.unset_env('JANUS_RTPEND')
+agent.unset_env('SATELLITE_RTP_PORT')

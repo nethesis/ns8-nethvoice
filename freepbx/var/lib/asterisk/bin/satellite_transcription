@@ -136,10 +136,15 @@ CURL_ARGS=(
     --form "channel0_name=${CHANNEL0_NAME:-Channel 0}"
     --form "channel1_name=${CHANNEL1_NAME:-Channel 1}"
     --form "persist=true"
-    --form "summary=true"
     --form "uniqueid=${UNIQUEID}"
     --form "file=@${MAIN_WAV};type=audio/wav"
 )
+
+if [ "${SATELLITE_CALL_SUMMARY_ENABLED-}" = "True" ]; then
+    CURL_ARGS+=(
+        --form "summary=true"
+    )
+fi
 
 # Add Authorization header if SATELLITE_API_TOKEN is set
 if [ -n "${SATELLITE_API_TOKEN-}" ]; then
@@ -156,4 +161,3 @@ else
     echo "Error: Failed to get transcription from the API." >&2
     exit 1
 fi
-

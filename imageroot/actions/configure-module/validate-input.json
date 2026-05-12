@@ -120,6 +120,14 @@
                 "False"
             ]
         },
+        "satellite_call_summary_enabled": {
+            "description": "Enable call summary generation",
+            "type": "string",
+            "enum": [
+                "True",
+                "False"
+            ]
+        },
         "deepgram_api_key": {
             "description": "Deepgram API key for real-time call and voicemail transcription",
             "type": "string",

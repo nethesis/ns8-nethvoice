@@ -96,27 +96,33 @@ if not 'SATELLITE_HTTP_PORT' in env:
 
 # Get RTP UDP port for SATELLITE
 # Since udp ports are not allocated by the core for historical reasons, we need to allocate them manually
-def allocate_rtp_ports_range(size):
-    """Allocate in "node_id" a RTP port range of the given "size" for
-        "module_id" RTP range goes from 10000 to 20000.
-    """
-    key_path = f'module/{os.environ["MODULE_ID"]}/rtp_ports_sequence'
-    prdb = agent.redis_connect(privileged=True)
-    # Setup lower limit to 20002
-    if not prdb.get(key_path):
-        prdb.set(key_path, '20002')
-    # Check overflow
-    if (size + int(prdb.get(key_path))) > 60002:
-        print(agent.SD_ERROR + "RTP range exhausted", file=sys.stderr)
-        sys.exit(3)
-    # Allocate RTP ports
-    seq = prdb.incrby(key_path, size)
-    agent.assert_exp(int(seq) > 0)
-    return (seq - size, seq - 1)
+if any(os.getenv(env_name) is None for env_name in (
+    'ASTERISK_RTPSTART',
+    'ASTERISK_RTPEND',
+    'JANUS_RTPSTART',
+    'JANUS_RTPEND',
+    'SATELLITE_RTP_PORT',
+)):
+	asterisk_rtp_ports = 1000
+	janus_rtp_ports = 1000
+	satellite_rtp_ports = 1
+	rtp_start, _ = agent.allocate_ports(
+		asterisk_rtp_ports + janus_rtp_ports + satellite_rtp_ports,
+		"udp",
+	)
+	asterisk_rtp_start = rtp_start
+	asterisk_rtp_end = asterisk_rtp_start + asterisk_rtp_ports - 1
+	janus_rtp_start = asterisk_rtp_end + 1
+	janus_rtp_end = janus_rtp_start + janus_rtp_ports - 1
+	satellite_rtp_port = janus_rtp_end + 1
 
-if os.getenv('SATELLITE_RTP_PORT') is None:
-	satellite_rtp_port = allocate_rtp_ports_range(1)[0]
+	print(f"New Asterisk RTP range allocated: {asterisk_rtp_start}-{asterisk_rtp_end}", file=sys.stderr)
+	print(f"New Janus RTP range allocated: {janus_rtp_start}-{janus_rtp_end}", file=sys.stderr)
 	print(f"New port allocated for SATELLITE RTP: {satellite_rtp_port}", file=sys.stderr)
+	agent.set_env('ASTERISK_RTPSTART', asterisk_rtp_start)
+	agent.set_env('ASTERISK_RTPEND', asterisk_rtp_end)
+	agent.set_env('JANUS_RTPSTART', janus_rtp_start)
+	agent.set_env('JANUS_RTPEND', janus_rtp_end)
 	agent.set_env('SATELLITE_RTP_PORT', satellite_rtp_port)
 
 # add port for Asterisk WSS
