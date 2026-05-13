@@ -15,7 +15,7 @@
     <p>
       {{'Starting the migration, users profiles will be automatically migrated' | translate}}.
     </p>
-    <p>
+    <p ng-if="!customConfig.BRAND_NAME || customConfig.BRAND_NAME === 'NethVoice'">
       {{'Learn more about this' | translate}} <a target="_blank" href="{{customConfig.BRAND_DOCS}}">{{'on the documentation' | translate}}</a>.
     </p>
     <div class="blank-slate-pf-main-action">
