@@ -79,19 +79,19 @@
                   </p>
                 </div>
                 <NsTextInput
-                  :label="''"
+                  :label="$t('common.name')"
                   v-model="rebranding_brand_name"
                   placeholder="NethVoice"
-                  :disabled="loading.setRebranding"
+                  :disabled="loading.setBrandName"
                   :invalid-message="error.rebranding_brand_name"
                   :helper-text="$t('rebranding.name_to_replace_nethvoice')"
                   class="mb-4"
                 />
                 <NsInlineNotification
-                  v-if="error.setRebranding"
+                  v-if="error.setBrandName"
                   kind="error"
                   :title="$t('action.set-rebranding')"
-                  :description="error.setRebranding"
+                  :description="error.setBrandName"
                   :showCloseButton="false"
                   class="mb-4"
                 />
@@ -99,8 +99,8 @@
                   <NsButton
                     kind="primary"
                     :icon="Save20"
-                    :loading="loading.setRebranding"
-                    :disabled="loading.setRebranding"
+                    :loading="loading.setBrandName"
+                    :disabled="loading.setBrandName"
                   >
                     {{ $t("common.save") }}
                   </NsButton>
@@ -114,7 +114,7 @@
         <cv-column>
           <cv-tile light>
             <cv-form @submit.prevent="setRebranding">
-              <cv-tabs class="rebranding-tabs" container>
+              <cv-tabs class="rebranding-tabs">
                 <cv-tab :label="$t('rebranding.cti_tab_label')" selected>
                   <div class="rebranding-tab-content">
                     <div class="rebranding-tab-grid">
@@ -245,6 +245,24 @@
                             $t("common.enabled")
                           }}</template>
                         </NsToggle>
+                        <div class="rebranding-save-actions">
+                          <NsButton
+                            kind="primary"
+                            :icon="Save20"
+                            :loading="loading.setRebranding"
+                            :disabled="loading.setRebranding"
+                          >
+                            {{ $t("common.save") }}
+                          </NsButton>
+                          <NsButton
+                            kind="ghost"
+                            :icon="Reset20"
+                            :disabled="loading.setRebranding"
+                            @click.prevent="resetTab('cti')"
+                          >
+                            {{ $t("rebranding.reset") }}
+                          </NsButton>
+                        </div>
                       </div>
                       <div class="rebranding-tab-preview-column">
                         <label class="bx--label mb-0">{{
@@ -309,7 +327,7 @@
                                     class="login-logo"
                                   />
                                   <div class="login-brand-name">
-                                    {{ ctiPreviewTitle }}
+                                    {{ ctiProductLabel }}
                                   </div>
                                   <div class="login-form">
                                     <label for="username" class="login-label">
@@ -347,24 +365,6 @@
                           </div>
                         </div>
                       </div>
-                    </div>
-                    <div class="rebranding-save-actions">
-                      <NsButton
-                        kind="primary"
-                        :icon="Save20"
-                        :loading="loading.setRebranding"
-                        :disabled="loading.setRebranding"
-                      >
-                        {{ $t("common.save") }}
-                      </NsButton>
-                      <NsButton
-                        kind="ghost"
-                        :icon="Restart20"
-                        :disabled="loading.setRebranding"
-                        @click.prevent="resetTab('cti')"
-                      >
-                        {{ $t("rebranding.reset") }}
-                      </NsButton>
                     </div>
                   </div>
                 </cv-tab>
@@ -430,6 +430,24 @@
                           :invalid-message="error.rebranding_wizard_login_background_url"
                           :helper-text="$t('rebranding.public_url_image_helper')"
                         />
+                        <div class="rebranding-save-actions">
+                          <NsButton
+                            kind="primary"
+                            :icon="Save20"
+                            :loading="loading.setRebranding"
+                            :disabled="loading.setRebranding"
+                          >
+                            {{ $t("common.save") }}
+                          </NsButton>
+                          <NsButton
+                            kind="ghost"
+                            :icon="Reset20"
+                            :disabled="loading.setRebranding"
+                            @click.prevent="resetTab('wizard')"
+                          >
+                            {{ $t("rebranding.reset") }}
+                          </NsButton>
+                        </div>
                       </div>
                       <div class="rebranding-tab-preview-column">
                         <label class="bx--label mb-0">{{
@@ -493,24 +511,6 @@
                           </div>
                         </div>
                       </div>
-                    </div>
-                    <div class="rebranding-save-actions">
-                      <NsButton
-                        kind="primary"
-                        :icon="Save20"
-                        :loading="loading.setRebranding"
-                        :disabled="loading.setRebranding"
-                      >
-                        {{ $t("common.save") }}
-                      </NsButton>
-                      <NsButton
-                        kind="ghost"
-                        :icon="Restart20"
-                        :disabled="loading.setRebranding"
-                        @click.prevent="resetTab('wizard')"
-                      >
-                        {{ $t("rebranding.reset") }}
-                      </NsButton>
                     </div>
                   </div>
                 </cv-tab>
@@ -576,6 +576,24 @@
                           :invalid-message="error.rebranding_reports_login_background_url"
                           :helper-text="$t('rebranding.public_url_image_helper')"
                         />
+                        <div class="rebranding-save-actions">
+                          <NsButton
+                            kind="primary"
+                            :icon="Save20"
+                            :loading="loading.setRebranding"
+                            :disabled="loading.setRebranding"
+                          >
+                            {{ $t("common.save") }}
+                          </NsButton>
+                          <NsButton
+                            kind="ghost"
+                            :icon="Reset20"
+                            :disabled="loading.setRebranding"
+                            @click.prevent="resetTab('reports')"
+                          >
+                            {{ $t("rebranding.reset") }}
+                          </NsButton>
+                        </div>
                       </div>
                       <div class="rebranding-tab-preview-column">
                         <label class="bx--label mb-0">{{
@@ -636,24 +654,6 @@
                         </div>
                       </div>
                     </div>
-                    <div class="rebranding-save-actions">
-                      <NsButton
-                        kind="primary"
-                        :icon="Save20"
-                        :loading="loading.setRebranding"
-                        :disabled="loading.setRebranding"
-                      >
-                        {{ $t("common.save") }}
-                      </NsButton>
-                      <NsButton
-                        kind="ghost"
-                        :icon="Restart20"
-                        :disabled="loading.setRebranding"
-                        @click.prevent="resetTab('reports')"
-                      >
-                        {{ $t("rebranding.reset") }}
-                      </NsButton>
-                    </div>
                   </div>
                 </cv-tab>
                 <cv-tab :label="$t('rebranding.nethlink_tab_label')">
@@ -681,6 +681,24 @@
                           :disabled="loading.setRebranding"
                           :invalid-message="error.rebranding_nethlink_company_url"
                         />
+                        <div class="rebranding-save-actions">
+                          <NsButton
+                            kind="primary"
+                            :icon="Save20"
+                            :loading="loading.setRebranding"
+                            :disabled="loading.setRebranding"
+                          >
+                            {{ $t("common.save") }}
+                          </NsButton>
+                          <NsButton
+                            kind="ghost"
+                            :icon="Reset20"
+                            :disabled="loading.setRebranding"
+                            @click.prevent="resetTab('nethlink')"
+                          >
+                            {{ $t("rebranding.reset") }}
+                          </NsButton>
+                        </div>
                       </div>
                       <div class="rebranding-tab-preview-column">
                         <label class="bx--label mb-0">{{
@@ -723,24 +741,6 @@
                             </div>
                           </div>
                         </div>
-                        <div class="rebranding-save-actions nethlink-save-actions">
-                          <NsButton
-                            kind="primary"
-                            :icon="Save20"
-                            :loading="loading.setRebranding"
-                            :disabled="loading.setRebranding"
-                          >
-                            {{ $t("common.save") }}
-                          </NsButton>
-                          <NsButton
-                            kind="ghost"
-                            :icon="Restart20"
-                            :disabled="loading.setRebranding"
-                            @click.prevent="resetTab('nethlink')"
-                          >
-                            {{ $t("rebranding.reset") }}
-                          </NsButton>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -774,7 +774,7 @@ import {
 import ResumeConfigNotification from "@/components/first-configuration/ResumeConfigNotification.vue";
 import { Sun20, Moon20 } from "@carbon/icons-vue";
 import Save20 from "@carbon/icons-vue/es/save/20";
-import Restart20 from "@carbon/icons-vue/es/restart/20";
+import Reset20 from "@carbon/icons-vue/es/reset/20";
 import Information16 from "@carbon/icons-vue/es/information/16";
 
 export default {
@@ -801,7 +801,7 @@ export default {
         page: "rebranding",
       },
       urlCheckInterval: null,
-      Restart20,
+      Reset20,
       Save20,
       rebranding_active: false,
       rebranding_brand_name: "",
@@ -822,15 +822,20 @@ export default {
       rebranding_wizard_login_logo_url: "",
       rebranding_nethlink_company_name: "",
       rebranding_nethlink_company_url: "",
-      lastSubmittedRebrandingPayload: null,
+      lastSubmittedRebrandingPayloads: {
+        setBrandName: null,
+        setRebranding: null,
+      },
       savedRebrandingConfig: {},
       isDarkMode: false,
       loading: {
         getRebranding: false,
+        setBrandName: false,
         setRebranding: false,
       },
       error: {
         getRebranding: "",
+        setBrandName: "",
         setRebranding: "",
       },
     };
@@ -864,8 +869,11 @@ export default {
     ctiBrandInitial() {
       return this.ctiPreviewTitle.charAt(0).toUpperCase();
     },
+    ctiProductLabel() {
+      return "CTI";
+    },
     ctiPreviewTitle() {
-      return this.composePreviewTitle("NethVoice CTI", ["NethVoice"]);
+      return this.composePreviewTitle("CTI", ["NethVoice"]);
     },
     reportsLogoUrl() {
       return (
@@ -1124,8 +1132,14 @@ export default {
         ...overrides,
       };
     },
-    clearValidationErrors() {
-      this.error.setRebranding = "";
+    clearValidationErrors(submissionKey = "setRebranding") {
+      this.error[submissionKey] = "";
+
+      if (submissionKey === "setBrandName") {
+        this.error.rebranding_brand_name = "";
+        return;
+      }
+
       Object.keys(this.error).forEach((key) => {
         if (key.startsWith("rebranding_")) {
           this.error[key] = "";
@@ -1187,29 +1201,31 @@ export default {
           break;
       }
     },
-    async submitRebranding(payload) {
-      this.loading.setRebranding = true;
-      this.clearValidationErrors();
+    async submitRebranding(payload, submissionKey = "setRebranding") {
+      this.loading[submissionKey] = true;
+      this.clearValidationErrors(submissionKey);
       const taskAction = "set-rebranding";
       const eventId = this.getUuid();
-      this.lastSubmittedRebrandingPayload = payload;
+      this.lastSubmittedRebrandingPayloads[submissionKey] = payload;
 
       // register to task error
       this.core.$root.$once(
         `${taskAction}-aborted-${eventId}`,
-        this.setRebrandingAborted
+        (taskAction, taskContext) =>
+          this.setRebrandingAborted(taskAction, taskContext, submissionKey)
       );
 
       // register to task validation
       this.core.$root.$once(
         `${taskAction}-validation-failed-${eventId}`,
-        this.setRebrandingValidationFailed
+        (validationErrors) =>
+          this.setRebrandingValidationFailed(validationErrors, submissionKey)
       );
 
       // register to task completion
       this.core.$root.$once(
         `${taskAction}-completed-${eventId}`,
-        this.setRebrandingCompleted
+        () => this.setRebrandingCompleted(submissionKey)
       );
 
       const res = await to(
@@ -1227,8 +1243,8 @@ export default {
 
       if (err) {
         console.error(`error creating task ${taskAction}`, err);
-        this.error.setRebranding = this.getErrorMessage(err);
-        this.loading.setRebranding = false;
+        this.error[submissionKey] = this.getErrorMessage(err);
+        this.loading[submissionKey] = false;
         return;
       }
     },
@@ -1240,7 +1256,7 @@ export default {
         rebranding_brand_name: this.rebranding_brand_name,
         rebranding_reports_brand_name: this.rebranding_brand_name,
         rebranding_wizard_brand_name: this.rebranding_brand_name,
-      });
+      }, "setBrandName");
     },
     async setRebranding() {
       const snapshot = this.getPayloadDefaults(this.savedRebrandingConfig);
@@ -1267,15 +1283,22 @@ export default {
         rebranding_nethlink_company_name:
           this.rebranding_nethlink_company_name,
         rebranding_nethlink_company_url: this.rebranding_nethlink_company_url,
-      });
+      }, "setRebranding");
     },
-    setRebrandingAborted(taskAction, taskContext) {
+    setRebrandingAborted(
+      taskAction,
+      taskContext,
+      submissionKey = "setRebranding"
+    ) {
       console.error(`${taskContext.action} aborted`, taskAction);
-      this.error.setRebranding = this.$t("error.generic_error");
-      this.loading.setRebranding = false;
+      this.error[submissionKey] = this.$t("error.generic_error");
+      this.loading[submissionKey] = false;
     },
-    setRebrandingValidationFailed(validationErrors) {
-      this.loading.setRebranding = false;
+    setRebrandingValidationFailed(
+      validationErrors,
+      submissionKey = "setRebranding"
+    ) {
+      this.loading[submissionKey] = false;
 
       for (const validationError of validationErrors) {
         const param = validationError.parameter;
@@ -1284,11 +1307,12 @@ export default {
         this.error[param] = this.$t("settings." + validationError.error);
       }
     },
-    setRebrandingCompleted() {
+    setRebrandingCompleted(submissionKey = "setRebranding") {
       this.savedRebrandingConfig = this.getPayloadDefaults(
-        this.lastSubmittedRebrandingPayload || this.savedRebrandingConfig
+        this.lastSubmittedRebrandingPayloads[submissionKey] ||
+          this.savedRebrandingConfig
       );
-      this.loading.setRebranding = false;
+      this.loading[submissionKey] = false;
     },
     openMailtoLink() {
       const encodedSubject = encodeURIComponent(
@@ -1344,6 +1368,11 @@ export default {
   margin-bottom: 1.5rem;
 }
 
+.rebranding-tabs :deep(.bx--tabs__nav),
+.rebranding-tabs :deep(.bx--tabs-trigger) {
+  background: transparent;
+}
+
 .rebranding-product-tile {
   margin-bottom: 1.5rem;
 }
@@ -1369,6 +1398,10 @@ export default {
 
 .rebranding-tab-fields {
   min-width: 0;
+}
+
+.rebranding-tab-fields :deep(.bx--form-item) {
+  margin-bottom: 2rem;
 }
 
 .rebranding-tab-preview-column {
@@ -1633,7 +1666,7 @@ export default {
 
 .rebranding-save-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 0.75rem;
   margin-top: 1rem;
 }
