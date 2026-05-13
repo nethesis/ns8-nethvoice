@@ -326,7 +326,12 @@
     <!-- end content -->
     <!-- footer -->
     <footer class="container-fluid footer-pf-alt">
-      <p class="footer-opt"><a target="-blank" href="{{customConfig.BRAND_SITE}}">Copyright &copy; {{currentYear()}} {{customConfig.BRAND_NAME}}</a></p>
+      <p class="footer-opt" ng-if="customConfig.BRAND_NAME && customConfig.BRAND_NAME !== 'NethVoice'">
+        Copyright &copy; {{currentYear()}} {{customConfig.BRAND_NAME}}
+      </p>
+      <p class="footer-opt" ng-if="!customConfig.BRAND_NAME || customConfig.BRAND_NAME === 'NethVoice'">
+        <a target="-blank" href="{{customConfig.BRAND_SITE}}">Copyright &copy; {{currentYear()}} {{customConfig.BRAND_NAME}}</a>
+      </p>
       <p class="footer-opt-right" ng-if="!customConfig.BRAND_NAME || customConfig.BRAND_NAME === 'NethVoice'">
         <a target="-blank" href="{{customConfig.BRAND_DOCS}}">{{'Docs' | translate}}</a>
       </p>
