@@ -705,37 +705,54 @@
                           $t("rebranding.nethlink_preview_title")
                         }}</label>
                         <div class="preview-frame nethlink-preview-frame">
-                          <div class="preview-browser-bar preview-browser-bar-light">
-                            <div class="preview-dots">
-                              <span></span>
-                              <span></span>
-                              <span></span>
-                            </div>
-                            <div class="preview-tab preview-tab-light">
-                              <span class="preview-tab-label">NethLink</span>
-                            </div>
-                          </div>
                           <div class="nethlink-preview-shell">
-                            <div class="nethlink-preview-window">
-                              <div class="nethlink-preview-body">
-                                <div class="nethlink-about-title">
-                                  {{ $t("rebranding.nethlink_about_title") }}
-                                </div>
-                                <div class="nethlink-about-content">
-                                  <div class="nethlink-about-brand-line">
-                                    NethLink by
-                                    <a
-                                      class="nethlink-about-company-link"
-                                      :href="nethlinkCompanyUrlPreviewHref"
-                                      target="_blank"
-                                      rel="noopener noreferrer"
+                            <div class="nethlink-desktop-stage">
+                              <div class="nethlink-preview-window">
+                                <div class="nethlink-preview-body">
+                                  <div class="nethlink-window-titlebar">
+                                    <span class="nethlink-window-title-text"
+                                      >NethLink</span
                                     >
-                                      {{ nethlinkCompanyNamePreview }}
-                                    </a>
                                   </div>
-                                  <div class="nethlink-about-version">
-                                    {{ $t("rebranding.nethlink_current_version_preview") }}
+                                  <div class="nethlink-about-title">
+                                    {{ $t("rebranding.nethlink_about_title") }}
                                   </div>
+                                  <div class="nethlink-about-content">
+                                    <div class="nethlink-about-app-icon">
+                                      <img
+                                        :src="nethlinkDockIconUrl"
+                                        alt="NethLink icon"
+                                        class="nethlink-about-app-icon-image"
+                                      />
+                                    </div>
+                                    <div class="nethlink-about-brand-line">
+                                      NethLink by
+                                      <a
+                                        class="nethlink-about-company-link"
+                                        :href="nethlinkCompanyUrlPreviewHref"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      >
+                                        {{ nethlinkCompanyNamePreview }}
+                                      </a>
+                                    </div>
+                                    <div class="nethlink-about-version">
+                                      {{
+                                        $t(
+                                          "rebranding.nethlink_current_version_preview"
+                                        )
+                                      }}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              <div class="nethlink-preview-dock" aria-hidden="true">
+                                <div class="nethlink-preview-dock-item is-active">
+                                  <img
+                                    :src="nethlinkDockIconUrl"
+                                    alt="NethLink dock icon"
+                                    class="nethlink-preview-dock-icon"
+                                  />
                                 </div>
                               </div>
                             </div>
@@ -873,7 +890,13 @@ export default {
       return "CTI";
     },
     ctiPreviewTitle() {
-      return this.composePreviewTitle("CTI", ["NethVoice"]);
+      const brandName = this.rebranding_brand_name?.trim();
+
+      if (!brandName || ["NethVoice"].includes(brandName)) {
+        return "NethVoice CTI";
+      }
+
+      return `${brandName} | CTI`;
     },
     reportsLogoUrl() {
       return (
@@ -958,6 +981,9 @@ export default {
     },
     nethlinkCompanyUrlPreviewHref() {
       return this.normalizeExternalUrl(this.nethlinkCompanyUrlPreview);
+    },
+    nethlinkDockIconUrl() {
+      return require("../assets/nethlink_dock_icon.svg");
     },
   },
   beforeRouteEnter(to, from, next) {
@@ -1868,25 +1894,38 @@ export default {
 }
 
 .nethlink-preview-frame {
-  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.75), transparent 34%),
+    linear-gradient(180deg, #dbe4f4 0%, #bccadd 42%, #8b97ab 100%);
 }
 
 .nethlink-preview-shell {
   flex: 1;
-  padding: 1.5rem;
+  padding: 1.25rem 1.25rem 0.9rem;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
+}
+
+.nethlink-desktop-stage {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .nethlink-preview-window {
   width: 100%;
   max-width: 22rem;
-  border-radius: 0.9rem;
-  background: #ffffff;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
-  padding: 1.25rem;
+  align-self: center;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
+  padding: 0.8rem 1.25rem 1.25rem;
   min-height: 16rem;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(14px);
 }
 
 .nethlink-preview-body {
@@ -1895,10 +1934,25 @@ export default {
   min-height: 100%;
 }
 
+.nethlink-window-titlebar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 1.8rem;
+  margin-bottom: 0.8rem;
+  color: #475569;
+}
+
+.nethlink-window-title-text {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
 .nethlink-about-title {
   font-size: 0.95rem;
   font-weight: 600;
   color: #0f172a;
+  text-align: center;
 }
 
 .nethlink-about-content {
@@ -1908,6 +1962,20 @@ export default {
   align-items: center;
   justify-content: center;
   text-align: center;
+  gap: 0.65rem;
+}
+
+.nethlink-about-app-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nethlink-about-app-icon-image {
+  width: 2.9rem;
+  height: 2.9rem;
+  border-radius: 0.8rem;
+  box-shadow: 0 10px 20px rgba(59, 130, 246, 0.18);
 }
 
 .nethlink-about-brand-line {
@@ -1929,9 +1997,48 @@ export default {
 }
 
 .nethlink-about-version {
-  margin-top: 0.75rem;
   font-size: 0.85rem;
   color: #9ca3af;
+}
+
+.nethlink-preview-dock {
+  align-self: center;
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.7rem 0.55rem;
+  border-radius: 1.1rem;
+  background: rgba(15, 23, 42, 0.18);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(16px);
+}
+
+.nethlink-preview-dock-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.nethlink-preview-dock-item::after {
+  content: "";
+  margin-top: 0.28rem;
+  width: 0.32rem;
+  height: 0.32rem;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.nethlink-preview-dock-item.is-active::after {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.nethlink-preview-dock-icon {
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: 0.9rem;
+  box-shadow: 0 12px 20px rgba(15, 23, 42, 0.18);
 }
 
 .nethlink-save-actions {
