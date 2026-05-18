@@ -139,8 +139,29 @@ if 'UDP_PORTS_RANGE' not in env or any(env_name not in env for env_name in (
 	agent.add_public_service(os.environ['MODULE_ID'], [
 		str(asterisk_rtp_start)+"-"+str(asterisk_rtp_end)+"/udp",
 		str(janus_rtp_start)+"-"+str(janus_rtp_end)+"/udp",
+		str(iax_udp_port)+"/udp",
+		str(sip_udp_port)+"/udp",
 	])
 	# MariaDB will be updated with the new RTP/IAX/SIP UDP ports at step 85mysql_update.
+
+else:
+	# For instances that already have UDP_PORTS_RANGE and all RTP vars set
+	# (block above did not run): migrate IAX to UDP and allocate SIP UDP port.
+	if 'ASTERISK_SIP_UDP_PORT' not in env:
+		iax_udp = agent.allocate_ports(1, "udp", keep_existing=True)
+		iax_udp_port = iax_udp[0]
+		print(f"New UDP port allocated for Asterisk IAX: {iax_udp_port}", file=sys.stderr)
+		agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)
+
+		sip_udp = agent.allocate_ports(1, "udp", keep_existing=True)
+		sip_udp_port = sip_udp[0]
+		print(f"New UDP port allocated for Asterisk SIP UDP: {sip_udp_port}", file=sys.stderr)
+		agent.set_env('ASTERISK_SIP_UDP_PORT', sip_udp_port)
+
+		agent.add_public_service(os.environ['MODULE_ID'], [
+			str(iax_udp_port)+"/udp",
+			str(sip_udp_port)+"/udp",
+		])
 
 # add port for Asterisk WSS
 if not 'ASTERISK_WSS_PORT' in env:
@@ -158,16 +179,3 @@ if not 'SATELLITE_PGSQL_PORT' in env:
 	pgsql_port = allocated_ports[0]
 	print(f"New port allocated for SATELLITE PGSQL: {pgsql_port}", file=sys.stderr)
 	agent.set_env('SATELLITE_PGSQL_PORT', pgsql_port)
-
-# Migrate IAX to UDP and allocate SIP UDP port for instances that already have
-# UDP_PORTS_RANGE set (migration block above did not run).
-if 'ASTERISK_SIP_UDP_PORT' not in env:
-	iax_udp = agent.allocate_ports(1, "udp", keep_existing=True)
-	iax_udp_port = iax_udp[0]
-	print(f"New UDP port allocated for Asterisk IAX: {iax_udp_port}", file=sys.stderr)
-	agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)
-
-	sip_udp = agent.allocate_ports(1, "udp", keep_existing=True)
-	sip_udp_port = sip_udp[0]
-	print(f"New UDP port allocated for Asterisk SIP UDP: {sip_udp_port}", file=sys.stderr)
-	agent.set_env('ASTERISK_SIP_UDP_PORT', sip_udp_port)

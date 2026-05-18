@@ -26,6 +26,17 @@ WHERE `key` IN ('udpport-0.0.0.0', 'tlsport-0.0.0.0', 'tcpport-0.0.0.0', 'bindpo
 """
 agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
 
+# SQL query to update sipsettings RTP range
+SQL_QUERY = f"""
+UPDATE `sipsettings`
+SET `data` = CASE
+    WHEN `keyword` = 'rtpstart' THEN '{os.environ['ASTERISK_RTPSTART']}'
+    WHEN `keyword` = 'rtpend' THEN '{os.environ['ASTERISK_RTPEND']}'
+END
+WHERE `keyword` IN ('rtpstart', 'rtpend');
+"""
+agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
+
 # SQL query to update freepbx_settings
 SQL_QUERY = f"""
 UPDATE `freepbx_settings`
