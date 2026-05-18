@@ -13,7 +13,8 @@ import sys
 # Each entry: (label, env_var_or_tuple, protocol)
 # For port ranges, provide a tuple of (start_env_var, end_env_var).
 SERVICES = [
-    ("Asterisk SIP",              "ASTERISK_SIP_PORT",                          "udp/tcp"),
+    ("Asterisk SIP TCP",          "ASTERISK_SIP_PORT",                          "tcp"),
+    ("Asterisk SIP UDP",          "ASTERISK_SIP_UDP_PORT",                      "udp"),
     ("Asterisk SIPS (TLS)",       "ASTERISK_SIPS_PORT",                         "tcp"),
     ("Asterisk IAX",              "ASTERISK_IAX_PORT",                           "udp"),
     ("Asterisk WSS (WebRTC)",     "ASTERISK_WSS_PORT",                           "tcp"),

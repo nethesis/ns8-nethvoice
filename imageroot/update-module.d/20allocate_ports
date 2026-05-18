@@ -8,7 +8,6 @@
 # Allocate new port for sftp service
 import sys
 import os
-import subprocess
 import agent
 
 if not hasattr(agent, 'allocate_ports'):
@@ -141,39 +140,7 @@ if 'UDP_PORTS_RANGE' not in env or any(env_name not in env for env_name in (
 		str(asterisk_rtp_start)+"-"+str(asterisk_rtp_end)+"/udp",
 		str(janus_rtp_start)+"-"+str(janus_rtp_end)+"/udp",
 	])
-
-	# Update Asterisk RTP settings in MariaDB so they match the new port range.
-	# This is needed because docker-entrypoint-initdb.d only runs on fresh DB init.
-	# MariaDB is guaranteed to be running at this point (before 80restart).
-	mariadb_check = subprocess.run(
-		['systemctl', '--user', 'is-active', 'mariadb'],
-		capture_output=True, text=True,
-	)
-	if mariadb_check.returncode != 0:
-		print("Error: MariaDB is not running, cannot update Asterisk RTP range in DB. Aborting migration.", file=sys.stderr)
-		sys.exit(1)
-	passwords = agent.read_envfile('passwords.env')
-	mariadb_root_password = passwords.get('MARIADB_ROOT_PASSWORD', '')
-	if not mariadb_root_password:
-		print("Error: MARIADB_ROOT_PASSWORD is empty, cannot update Asterisk RTP in MariaDB. Aborting migration.", file=sys.stderr)
-		sys.exit(1)
-	mariadb_port = os.environ.get('NETHVOICE_MARIADB_PORT', '3306')
-	rtp_sql = (
-		f"UPDATE sipsettings SET data='{asterisk_rtp_start}' WHERE keyword='rtpstart';"
-		f"UPDATE sipsettings SET data='{asterisk_rtp_end}' WHERE keyword='rtpend';"
-		f"UPDATE kvstore_Sipsettings SET val='{asterisk_rtp_start}' WHERE `key`='rtpstart';"
-		f"UPDATE kvstore_Sipsettings SET val='{asterisk_rtp_end}' WHERE `key`='rtpend';"
-	)
-	proc = subprocess.run(
-		['podman', 'exec', '-i', 'mariadb',
-		 'mysql', '-uroot', f'-p{mariadb_root_password}',
-		 '-h', '127.0.0.1', '-P', mariadb_port, 'asterisk'],
-		input=rtp_sql, text=True, capture_output=True,
-	)
-	if proc.returncode == 0:
-		print(f"Updated Asterisk RTP range in MariaDB: {asterisk_rtp_start}-{asterisk_rtp_end}", file=sys.stderr)
-	else:
-		print(f"Warning: failed to update Asterisk RTP in MariaDB: {proc.stderr}", file=sys.stderr)
+	# MariaDB will be updated with the new RTP/IAX/SIP UDP ports at step 85mysql_update.
 
 # add port for Asterisk WSS
 if not 'ASTERISK_WSS_PORT' in env:

@@ -35,6 +35,7 @@ ExecStart=/usr/bin/podman run \
 	--env=ASTERISK_RTPEND \
 	--env=ASTERISK_SIP_PORT \
 	--env=ASTERISK_SIPS_PORT \
+	--env=ASTERISK_SIP_UDP_PORT \
 	--env=ASTERISK_IAX_PORT \
 	--env=ASTMANAGERPORT \
 	--network=host \
