@@ -83,7 +83,7 @@ agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_P
 # SQL query to update sipsettings
 SQL_QUERY = f"""
 UPDATE `sipsettings`
-SET `data` = '{os.environ['ASTERISK_SIP_PORT']}',
+SET `data` = '{os.environ['ASTERISK_SIP_UDP_PORT']}',
     `seq` = 1,
     `type` = 0
 WHERE `keyword` = 'bindport';

@@ -60,6 +60,7 @@ fi
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e "
 UPDATE sipsettings SET data='${ASTERISK_RTPSTART}' WHERE keyword='rtpstart';
 UPDATE sipsettings SET data='${ASTERISK_RTPEND}' WHERE keyword='rtpend';
+UPDATE sipsettings SET data='${ASTERISK_SIP_UDP_PORT}' WHERE keyword='bindport';
 UPDATE kvstore_Sipsettings SET val='${ASTERISK_RTPSTART}' WHERE \`key\`='rtpstart';
 UPDATE kvstore_Sipsettings SET val='${ASTERISK_RTPEND}' WHERE \`key\`='rtpend';
 UPDATE kvstore_Sipsettings SET val='${ASTERISK_SIP_UDP_PORT}' WHERE \`key\`='udpport-0.0.0.0';
