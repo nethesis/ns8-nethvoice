@@ -62,6 +62,18 @@ there is no current `satellite-recordcheck`, `stoprec`, or broader
   labels, coalesce adjacent transfer slices, render stereo WAVs, upload.
 - Transfer-sensitive logic lives mainly in `resolve_recording_context()`,
   `normalize_local_channel_segments()`, and `coalesce_adjacent_segments()`.
+- **Multi-party calls are silently skipped.** Before running the segmentation
+  pipeline the helper calls `detect_multiparty_call($celRows, $cdrRows)`. The
+  call is treated as multi-party (and no upload happens) when:
+  - any CDR row for the linkedid has `lastapp = 'ConfBridge'` (conference), or
+  - any CEL row for the linkedid has
+    `eventtype IN ('BLINDTRANSFER', 'ATTENDEDTRANSFER')` (transfer).
+  In that case the helper just logs the skip reason and falls through to the
+  normal cleanup branch, so the leg WAVs are deleted and the satellite API is
+  never called. Queue calls (even with several agents tried) do not match
+  either marker, so they are still transcribed normally. This is a deliberate
+  release-time cap: until segmentation is fully reliable for all
+  transfer/conference topologies, we prefer no transcript over a wrong one.
 - On success the helper deletes the original leg files and temporary segment
   files.
 - Debug logging is on by default unless `DEBUG` is `0`, `false`, `no`, or
@@ -92,7 +104,8 @@ upstream `nethesis/satellite` API implementation too.
   `tests/attended_transfer_segments_test.php`,
   `tests/external_attended_transfer_segments_test.php`,
   `tests/double_attended_transfer_segments_test.php`, and
-  `tests/four_way_two_transfers_test.php`, and
+  `tests/four_way_two_transfers_test.php`,
+  `tests/multiparty_skip_test.php`, and
   `tests/upload_fields_test.php`.
 - These are pure PHP library tests, not end-to-end telephony or HTTP tests.
 - Shared setup and assertions now live in `tests/bootstrap.php`; new tests
