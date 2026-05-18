@@ -1644,6 +1644,7 @@ function log_message($message, $file = null, $line = null, $function = null) {
     } else {
         echo $line;
     }
+    @file_put_contents('/var/log/asterisk/satellite_transcript.log', $line, FILE_APPEND | LOCK_EX);
 }
 
 function debug_log($message, $file = null, $line = null, $function = null, $context = array()) {
