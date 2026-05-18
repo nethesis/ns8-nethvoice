@@ -247,14 +247,6 @@
                         </NsToggle>
                         <div class="rebranding-save-actions">
                           <NsButton
-                            kind="primary"
-                            :icon="Save20"
-                            :loading="loading.setRebranding"
-                            :disabled="loading.setRebranding"
-                          >
-                            {{ $t("common.save") }}
-                          </NsButton>
-                          <NsButton
                             kind="ghost"
                             :icon="Reset20"
                             :disabled="loading.setRebranding"
@@ -432,14 +424,6 @@
                         />
                         <div class="rebranding-save-actions">
                           <NsButton
-                            kind="primary"
-                            :icon="Save20"
-                            :loading="loading.setRebranding"
-                            :disabled="loading.setRebranding"
-                          >
-                            {{ $t("common.save") }}
-                          </NsButton>
-                          <NsButton
                             kind="ghost"
                             :icon="Reset20"
                             :disabled="loading.setRebranding"
@@ -578,14 +562,6 @@
                         />
                         <div class="rebranding-save-actions">
                           <NsButton
-                            kind="primary"
-                            :icon="Save20"
-                            :loading="loading.setRebranding"
-                            :disabled="loading.setRebranding"
-                          >
-                            {{ $t("common.save") }}
-                          </NsButton>
-                          <NsButton
                             kind="ghost"
                             :icon="Reset20"
                             :disabled="loading.setRebranding"
@@ -680,16 +656,9 @@
                           "
                           :disabled="loading.setRebranding"
                           :invalid-message="error.rebranding_nethlink_company_url"
+                          :helper-text="$t('rebranding.rebranding_company_url_helper')"
                         />
                         <div class="rebranding-save-actions">
-                          <NsButton
-                            kind="primary"
-                            :icon="Save20"
-                            :loading="loading.setRebranding"
-                            :disabled="loading.setRebranding"
-                          >
-                            {{ $t("common.save") }}
-                          </NsButton>
                           <NsButton
                             kind="ghost"
                             :icon="Reset20"
@@ -763,6 +732,23 @@
                   </div>
                 </cv-tab>
               </cv-tabs>
+              <div class="rebranding-shared-save section-separator">
+                <div class="rebranding-shared-save-content">
+                  <p class="rebranding-shared-save-description">
+                    {{ $t("rebranding.shared_save_notice") }}
+                  </p>
+                  <div class="rebranding-shared-save-actions">
+                    <NsButton
+                      kind="primary"
+                      :icon="Save20"
+                      :loading="loading.setRebranding"
+                      :disabled="loading.setRebranding || !!error.rebranding_nethlink_company_url"
+                    >
+                      {{ $t("common.save") }}
+                    </NsButton>
+                  </div>
+                </div>
+              </div>
               <NsInlineNotification
                 v-if="error.setRebranding"
                 kind="error"
@@ -998,6 +984,22 @@ export default {
   },
   created() {
     this.getRebranding();
+  },
+  watch: {
+    rebranding_nethlink_company_url() {
+      const url = this.rebranding_nethlink_company_url;
+      const isValid = this.isValidNethlinkCompanyUrl(url);
+
+      if (!isValid && url) {
+        // URL non è vuoto ma invalido: setta l'errore
+        this.error.rebranding_nethlink_company_url = this.$t(
+          "rebranding.rebranding_company_url_invalid"
+        );
+      } else {
+        // URL è valido o vuoto: pulisce l'errore
+        this.error.rebranding_nethlink_company_url = "";
+      }
+    },
   },
   methods: {
     async getRebranding() {
@@ -1285,6 +1287,15 @@ export default {
       }, "setBrandName");
     },
     async setRebranding() {
+      if (
+        !this.isValidNethlinkCompanyUrl(this.rebranding_nethlink_company_url)
+      ) {
+        this.error.rebranding_nethlink_company_url = this.$t(
+          "rebranding.rebranding_company_url_invalid"
+        );
+        return;
+      }
+
       const snapshot = this.getPayloadDefaults(this.savedRebrandingConfig);
 
       await this.submitRebranding({
@@ -1358,6 +1369,15 @@ export default {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    },
+    isValidNethlinkCompanyUrl(url) {
+      const trimmedUrl = (url || "").trim();
+
+      if (!trimmedUrl) {
+        return true;
+      }
+
+      return /^https?:\/\/.+/.test(trimmedUrl);
     },
     normalizeExternalUrl(url) {
       const trimmedUrl = (url || "").trim();
@@ -1695,6 +1715,28 @@ export default {
   justify-content: flex-start;
   gap: 0.75rem;
   margin-top: 1rem;
+}
+
+.rebranding-shared-save {
+  border-top: 1px solid #d5dbe1;
+  padding-top: 1.5rem;
+}
+
+.rebranding-shared-save-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rebranding-shared-save-description {
+  margin: 0;
+  color: #525252;
+  max-width: 42rem;
+}
+
+.rebranding-shared-save-actions {
+  display: flex;
+  justify-content: flex-start;
 }
 
 .reports-login-preview {
@@ -2065,6 +2107,10 @@ export default {
   .reports-login-shell {
     flex-direction: column;
     min-height: 360px;
+  }
+
+  .rebranding-shared-save-content {
+    align-items: flex-start;
   }
 
   .reports-login-panel {
