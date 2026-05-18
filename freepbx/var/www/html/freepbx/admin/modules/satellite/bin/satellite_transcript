@@ -61,95 +61,112 @@ function main($argv) {
             fail("No CEL rows found for linkedid $linkedid");
         }
 
-        $recordingContext = resolve_recording_context($celRows, $uniqueid, $linkedid);
-        $recordingStart = $recordingContext['start'];
-        $recordingEnd = $recordingContext['end'];
-        $primaryChannel = $recordingContext['primary_channel'];
-
         $cdrRows = fetch_cdr_rows($cdrdb, $linkedid);
-        $usersByExtension = fetch_users_by_extension();
-        $channelFacts = build_channel_facts($celRows, $cdrRows);
 
-        // First derive wall-clock segments from bridge activity, drop broad
-        // queue/transfer container recordings already covered by a Local leg
-        // MixMonitor, then rewrite Local channels to the real peer leg.
-        $bridgeSegments = build_bridge_segments($celRows, $primaryChannel, $recordingStart, $recordingEnd);
-        $rawSegments = filter_superseded_segments($bridgeSegments, $celRows, $uniqueid);
-        if (!empty($bridgeSegments) && empty($rawSegments)) {
-            log_message("Skipping superseded transcription recording for uniqueid $uniqueid and linkedid $linkedid", __FILE__, __LINE__, __FUNCTION__);
-        } else {
-            $rawSegments = normalize_local_channel_segments($rawSegments, $celRows, $recordingStart, $recordingEnd);
-            if (empty($rawSegments)) {
-                $rawSegments = build_cdr_fallback_segments($cdrRows, $primaryChannel, $uniqueid, $recordingStart, $recordingEnd);
-            }
-
-            $segments = enrich_segments(
-                $rawSegments,
-                $cdrRows,
-                $channelFacts,
-                $usersByExtension,
-                $primaryChannel,
-                $uniqueid,
-                $fallbackChannel0Name,
-                $fallbackChannel1Name
-            );
-            $segments = coalesce_adjacent_segments($segments);
-
-            debug_log(
-                'Prepared transcription segments',
+        // Skip transcription for multi-party calls (transfer / conference).
+        // Such calls produce mixed audio across multiple participants on the
+        // single MixMonitor leg, which breaks both raw transcription and AI
+        // summary. Until the segmentation pipeline is robust for all
+        // transfer/conference topologies, we abort early and let the leg
+        // recordings be removed without ever calling the satellite API.
+        $multipartyReason = detect_multiparty_call($celRows, $cdrRows);
+        if ($multipartyReason !== null) {
+            log_message(
+                "Skipping transcription for multi-party call ($multipartyReason) for uniqueid $uniqueid and linkedid $linkedid",
                 __FILE__,
                 __LINE__,
-                __FUNCTION__,
-                array(
-                    'uniqueid' => $uniqueid,
-                    'linkedid' => $linkedid,
-                    'count' => count($segments),
-                    'segments' => array_map('format_segment_row', $segments),
-                )
+                __FUNCTION__
             );
+        } else {
+            $recordingContext = resolve_recording_context($celRows, $uniqueid, $linkedid);
+            $recordingStart = $recordingContext['start'];
+            $recordingEnd = $recordingContext['end'];
+            $primaryChannel = $recordingContext['primary_channel'];
 
-            if (empty($segments)) {
-                fail("No usable transcription segments found for uniqueid $uniqueid and linkedid $linkedid");
-            }
+            $usersByExtension = fetch_users_by_extension();
+            $channelFacts = build_channel_facts($celRows, $cdrRows);
 
-            $apiUrl = get_satellite_api_url();
-            foreach ($segments as $index => $segment) {
-                $segmentNumber = $index + 1;
-                $segmentUniqueid = $uniqueid;
-                debug_log(
-                    'Preparing segment audio',
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__,
-                    array(
-                        'segment_uniqueid' => $segmentUniqueid,
-                        'segment' => format_segment_row($segment),
-                    )
-                );
-                $audioFile = create_segment_audio(
-                    $segment,
-                    $segmentNumber,
+            // First derive wall-clock segments from bridge activity, drop broad
+            // queue/transfer container recordings already covered by a Local leg
+            // MixMonitor, then rewrite Local channels to the real peer leg.
+            $bridgeSegments = build_bridge_segments($celRows, $primaryChannel, $recordingStart, $recordingEnd);
+            $rawSegments = filter_superseded_segments($bridgeSegments, $celRows, $uniqueid);
+            if (!empty($bridgeSegments) && empty($rawSegments)) {
+                log_message("Skipping superseded transcription recording for uniqueid $uniqueid and linkedid $linkedid", __FILE__, __LINE__, __FUNCTION__);
+            } else {
+                $rawSegments = normalize_local_channel_segments($rawSegments, $celRows, $recordingStart, $recordingEnd);
+                if (empty($rawSegments)) {
+                    $rawSegments = build_cdr_fallback_segments($cdrRows, $primaryChannel, $uniqueid, $recordingStart, $recordingEnd);
+                }
+
+                $segments = enrich_segments(
+                    $rawSegments,
+                    $cdrRows,
+                    $channelFacts,
+                    $usersByExtension,
+                    $primaryChannel,
                     $uniqueid,
-                    $linkedid,
-                    $recordingStart,
-                    $transmittedRecordingFile,
-                    $receivedRecordingFile,
-                    $tmpFiles
+                    $fallbackChannel0Name,
+                    $fallbackChannel1Name
                 );
+                $segments = coalesce_adjacent_segments($segments);
 
-                $segment['audio_data'] = $audioFile;
                 debug_log(
-                    'Segment audio ready',
+                    'Prepared transcription segments',
                     __FILE__,
                     __LINE__,
                     __FUNCTION__,
                     array(
-                        'segment_uniqueid' => $segmentUniqueid,
-                        'audio_file' => $audioFile,
-                        'size_bytes' => @filesize($audioFile),
+                        'uniqueid' => $uniqueid,
+                        'linkedid' => $linkedid,
+                        'count' => count($segments),
+                        'segments' => array_map('format_segment_row', $segments),
                     )
                 );
-                post_segment_to_satellite($apiUrl, $segmentUniqueid, $linkedid, $segment);
+
+                if (empty($segments)) {
+                    fail("No usable transcription segments found for uniqueid $uniqueid and linkedid $linkedid");
+                }
+
+                $apiUrl = get_satellite_api_url();
+                foreach ($segments as $index => $segment) {
+                    $segmentNumber = $index + 1;
+                    $segmentUniqueid = $uniqueid;
+                    debug_log(
+                        'Preparing segment audio',
+                        __FILE__,
+                        __LINE__,
+                        __FUNCTION__,
+                        array(
+                            'segment_uniqueid' => $segmentUniqueid,
+                            'segment' => format_segment_row($segment),
+                        )
+                    );
+                    $audioFile = create_segment_audio(
+                        $segment,
+                        $segmentNumber,
+                        $uniqueid,
+                        $linkedid,
+                        $recordingStart,
+                        $transmittedRecordingFile,
+                        $receivedRecordingFile,
+                        $tmpFiles
+                    );
+
+                    $segment['audio_data'] = $audioFile;
+                    debug_log(
+                        'Segment audio ready',
+                        __FILE__,
+                        __LINE__,
+                        __FUNCTION__,
+                        array(
+                            'segment_uniqueid' => $segmentUniqueid,
+                            'audio_file' => $audioFile,
+                            'size_bytes' => @filesize($audioFile),
+                        )
+                    );
+                    post_segment_to_satellite($apiUrl, $segmentUniqueid, $linkedid, $segment);
+                }
             }
         }
 
@@ -230,6 +247,52 @@ function fetch_cdr_rows($cdrdb, $linkedid) {
     $stmt = $cdrdb->prepare($sql);
     $stmt->execute(array(':linkedid' => $linkedid));
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Detect whether the call associated with the given CEL/CDR rows is a
+ * multi-party call (transfer or conference) that we want to skip.
+ *
+ * Returns:
+ *  - null when the call is safe to transcribe (direct 2P call, or queue call
+ *    that ends with a single answering agent — both have no transfer/conf
+ *    markers).
+ *  - a short human-readable reason string ('conference' or 'transfer') when
+ *    the call must be skipped.
+ *
+ * Detection rules:
+ *  - Conference: any CDR row for this linkedid has lastapp = 'ConfBridge'.
+ *  - Transfer:   any CEL row for this linkedid has eventtype in
+ *                ('BLINDTRANSFER', 'ATTENDEDTRANSFER'). Asterisk emits these
+ *                CEL events whenever a blind or attended transfer completes,
+ *                so they are the most reliable indicators.
+ *
+ * Queue calls — even those where the queue tries several agents before one
+ * picks up — do not produce ConfBridge in CDR nor BLIND/ATTENDED transfer
+ * CEL events, so they are correctly classified as safe-to-transcribe.
+ */
+function detect_multiparty_call($celRows, $cdrRows) {
+    if (is_array($cdrRows)) {
+        foreach ($cdrRows as $cdrRow) {
+            if (isset($cdrRow['lastapp']) && strcasecmp((string) $cdrRow['lastapp'], 'ConfBridge') === 0) {
+                return 'conference';
+            }
+        }
+    }
+
+    if (is_array($celRows)) {
+        foreach ($celRows as $celRow) {
+            if (!isset($celRow['eventtype'])) {
+                continue;
+            }
+            $eventType = (string) $celRow['eventtype'];
+            if ($eventType === 'BLINDTRANSFER' || $eventType === 'ATTENDEDTRANSFER') {
+                return 'transfer';
+            }
+        }
+    }
+
+    return null;
 }
 
 function resolve_recording_context($celRows, $uniqueid, $linkedid) {
