@@ -94,6 +94,11 @@ if not 'SATELLITE_HTTP_PORT' in env:
 	# Update the environment file
 	agent.set_env('SATELLITE_HTTP_PORT', http_port)
 
+# Keep track of Asterisk RTP range with values from the current env file;
+# block below will override these if a migration is performed.
+asterisk_rtp_start = int(env.get('ASTERISK_RTPSTART', 0))
+asterisk_rtp_end = int(env.get('ASTERISK_RTPEND', 0))
+
 # Allocate RTP/UDP ports via ns8-core if:
 # - UDP_PORTS_RANGE is absent (old instances that used the fake Redis-based allocation), OR
 # - any of the five RTP env vars is missing
@@ -146,22 +151,21 @@ if 'UDP_PORTS_RANGE' not in env or any(env_name not in env for env_name in (
 
 else:
 	# For instances that already have UDP_PORTS_RANGE and all RTP vars set
-	# (block above did not run): migrate IAX to UDP and allocate SIP UDP port.
-	if 'ASTERISK_SIP_UDP_PORT' not in env:
+	# (block above did not run): migrate each port independently so that a
+	# partially-migrated instance (only one var missing) is handled correctly.
+	if 'ASTERISK_IAX_PORT' not in env:
 		iax_udp = agent.allocate_ports(1, "udp", keep_existing=True)
 		iax_udp_port = iax_udp[0]
 		print(f"New UDP port allocated for Asterisk IAX: {iax_udp_port}", file=sys.stderr)
 		agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)
+		agent.add_public_service(os.environ['MODULE_ID'], [str(iax_udp_port)+"/udp"])
 
+	if 'ASTERISK_SIP_UDP_PORT' not in env:
 		sip_udp = agent.allocate_ports(1, "udp", keep_existing=True)
 		sip_udp_port = sip_udp[0]
 		print(f"New UDP port allocated for Asterisk SIP UDP: {sip_udp_port}", file=sys.stderr)
 		agent.set_env('ASTERISK_SIP_UDP_PORT', sip_udp_port)
-
-		agent.add_public_service(os.environ['MODULE_ID'], [
-			str(iax_udp_port)+"/udp",
-			str(sip_udp_port)+"/udp",
-		])
+		agent.add_public_service(os.environ['MODULE_ID'], [str(sip_udp_port)+"/udp"])
 
 # add port for Asterisk WSS
 if not 'ASTERISK_WSS_PORT' in env:
@@ -171,8 +175,9 @@ if not 'ASTERISK_WSS_PORT' in env:
 	agent.set_env('ASTERISK_WSS_PORT', wss_port)
 	# Open the port in the firewall
 	agent.add_public_service(os.environ['MODULE_ID'], [str(wss_port)+"/tcp"])
-	# Add Asterisk RTP port range for WSS
-	agent.add_public_service(os.environ['MODULE_ID'], [str(os.environ['ASTERISK_RTPSTART'])+"-"+str(os.environ['ASTERISK_RTPEND'])+"/udp"])
+	# Add Asterisk RTP port range for WSS — use local vars (env file may have
+	# been updated by the migration block above, os.environ is not refreshed)
+	agent.add_public_service(os.environ['MODULE_ID'], [f"{asterisk_rtp_start}-{asterisk_rtp_end}/udp"])
 
 if not 'SATELLITE_PGSQL_PORT' in env:
 	allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)

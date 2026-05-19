@@ -5,9 +5,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-set -e
-
 # Reload FreePBX/Asterisk configuration so that the port values written to
 # MariaDB at step 85mysql_update are applied without waiting for the next
 # full service restart.
-podman exec freepbx fwconsole reload --no-interaction
+# Skip gracefully if FreePBX is not running (reload is an optimisation, not
+# a hard requirement — the config will be correct on the next start).
+
+if ! systemctl --user is-active --quiet freepbx; then
+    echo "FreePBX is not running, skipping reload" >&2
+    exit 0
+fi
+
+podman exec --user asterisk freepbx fwconsole reload --no-interaction
