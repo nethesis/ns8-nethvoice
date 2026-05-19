@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2025 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+
+# Reload FreePBX/Asterisk configuration so that the port values written to
+# MariaDB at step 85mysql_update are applied without waiting for the next
+# full service restart.
+podman exec freepbx fwconsole reload --no-interaction
