@@ -155,4 +155,35 @@ assert_same(
     'When both markers are present, conference takes precedence'
 );
 
+// --- Voicemail leg: MUST be skipped when uniqueid matches -----------------
+// Scenario: blind transfer to 202, 202 does not answer → goes to VoiceMail.
+// The Local/202 leg CDR row has lastapp=VoiceMail and its own uniqueid.
+
+$vmCdr = array(
+    make_cdr_row('Dial',      array('uniqueid' => '1779181281.146', 'linkedid' => '1779181281.146')),
+    make_cdr_row('VoiceMail', array('uniqueid' => '1779181293.173', 'linkedid' => '1779181281.146')),
+);
+$vmCel = array(make_cel_row('CHAN_START'));
+
+// The voicemail leg uniqueid → must be skipped
+assert_same(
+    'voicemail',
+    detect_multiparty_call($vmCel, $vmCdr, '1779181293.173'),
+    'VoiceMail leg must be flagged and skipped'
+);
+
+// The main call uniqueid for the same linkedid → must NOT be skipped
+assert_same(
+    null,
+    detect_multiparty_call($vmCel, $vmCdr, '1779181281.146'),
+    'Main call must NOT be skipped because a sibling leg went to voicemail'
+);
+
+// Without uniqueid the voicemail check is inactive → no skip
+assert_same(
+    null,
+    detect_multiparty_call($vmCel, $vmCdr),
+    'Voicemail skip must be inactive when no uniqueid is passed'
+);
+
 fwrite(STDOUT, "ok - multi-party skip detection regression\n");

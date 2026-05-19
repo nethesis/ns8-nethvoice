@@ -69,7 +69,7 @@ function main($argv) {
         // summary. Until the segmentation pipeline is robust for all
         // transfer/conference topologies, we abort early and let the leg
         // recordings be removed without ever calling the satellite API.
-        $multipartyReason = detect_multiparty_call($celRows, $cdrRows);
+        $multipartyReason = detect_multiparty_call($celRows, $cdrRows, $uniqueid);
         if ($multipartyReason !== null) {
             log_message(
                 "Skipping transcription for multi-party call ($multipartyReason) for uniqueid $uniqueid and linkedid $linkedid",
@@ -271,11 +271,21 @@ function fetch_cdr_rows($cdrdb, $linkedid) {
  * picks up — do not produce ConfBridge in CDR nor BLIND/ATTENDED transfer
  * CEL events, so they are correctly classified as safe-to-transcribe.
  */
-function detect_multiparty_call($celRows, $cdrRows) {
+function detect_multiparty_call($celRows, $cdrRows, $uniqueid = null) {
     if (is_array($cdrRows)) {
         foreach ($cdrRows as $cdrRow) {
             if (isset($cdrRow['lastapp']) && strcasecmp((string) $cdrRow['lastapp'], 'ConfBridge') === 0) {
                 return 'conference';
+            }
+            // Skip legs that ended in voicemail — they produce near-empty audio
+            // and no useful transcript. Only check the CDR row matching the
+            // current uniqueid to avoid skipping the main call when a sibling
+            // transfer leg went to voicemail.
+            if ($uniqueid !== null
+                && isset($cdrRow['uniqueid']) && (string) $cdrRow['uniqueid'] === (string) $uniqueid
+                && isset($cdrRow['lastapp']) && strcasecmp((string) $cdrRow['lastapp'], 'VoiceMail') === 0
+            ) {
+                return 'voicemail';
             }
         }
     }
