@@ -186,28 +186,4 @@ assert_same(
     'Voicemail skip must be inactive when no uniqueid is passed'
 );
 
-// --- CTI conference: ConfBridge in CEL (APP_START), CDR lastapp=Dial ------
-// This is the CTI-initiated conference pattern: 201 calls 202 via Dial, then
-// Asterisk moves 202 into ConfBridge. The main-leg CDR shows lastapp=Dial.
-// ConfBridge is only visible in CEL as APP_START on a sub-channel.
-
-$ctiConfCel = array(
-    make_cel_row('CHAN_START',  array('channame' => 'PJSIP/201-0000001f', 'uniqueid' => '1779283850.838')),
-    make_cel_row('APP_START',   array('channame' => 'PJSIP/201-0000001f', 'appname' => 'MixMonitor', 'uniqueid' => '1779283850.838')),
-    make_cel_row('ANSWER',      array('channame' => 'PJSIP/201-0000001f', 'uniqueid' => '1779283850.838')),
-    make_cel_row('BRIDGE_ENTER',array('channame' => 'PJSIP/201-0000001f', 'uniqueid' => '1779283850.838')),
-    make_cel_row('BRIDGE_EXIT', array('channame' => 'PJSIP/201-0000001f', 'uniqueid' => '1779283850.838')),
-    make_cel_row('HANGUP',      array('channame' => 'PJSIP/201-0000001f', 'uniqueid' => '1779283850.838')),
-    // sub-channel of 202 enters ConfBridge
-    make_cel_row('APP_START',   array('channame' => 'PJSIP/202-00000020', 'appname' => 'ConfBridge', 'uniqueid' => '1779283851.842', 'linkedid' => '1779283850.838')),
-);
-$ctiConfCdr = array(
-    make_cdr_row('Dial', array('uniqueid' => '1779283850.838', 'linkedid' => '1779283850.838')),
-);
-assert_same(
-    'conference',
-    detect_multiparty_call($ctiConfCel, $ctiConfCdr, '1779283850.838'),
-    'CTI conference: APP_START ConfBridge in CEL must trigger skip even when CDR lastapp=Dial'
-);
-
 fwrite(STDOUT, "ok - multi-party skip detection regression\n");

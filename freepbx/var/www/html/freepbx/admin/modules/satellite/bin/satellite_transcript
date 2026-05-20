@@ -261,11 +261,7 @@ function fetch_cdr_rows($cdrdb, $linkedid) {
  *    the call must be skipped.
  *
  * Detection rules:
- *  - Conference: any CDR row for this linkedid has lastapp = 'ConfBridge'
- *                (FreePBX ConfBridge dialplan), OR any CEL row has
- *                eventtype='APP_START' and appname='ConfBridge' (CTI-initiated
- *                conferences where the main leg CDR shows lastapp=Dial and
- *                ConfBridge only appears on sub-channels in CEL).
+ *  - Conference: any CDR row for this linkedid has lastapp = 'ConfBridge'.
  *  - Transfer:   any CEL row for this linkedid has eventtype in
  *                ('BLINDTRANSFER', 'ATTENDEDTRANSFER'). Asterisk emits these
  *                CEL events whenever a blind or attended transfer completes,
@@ -302,14 +298,6 @@ function detect_multiparty_call($celRows, $cdrRows, $uniqueid = null) {
             $eventType = (string) $celRow['eventtype'];
             if ($eventType === 'BLINDTRANSFER' || $eventType === 'ATTENDEDTRANSFER') {
                 return 'transfer';
-            }
-            // CTI conferences: the main leg CDR shows lastapp=Dial; ConfBridge
-            // only appears in CEL as APP_START on the participant's sub-channel.
-            if ($eventType === 'APP_START'
-                && isset($celRow['appname'])
-                && strcasecmp((string) $celRow['appname'], 'ConfBridge') === 0
-            ) {
-                return 'conference';
             }
         }
     }
