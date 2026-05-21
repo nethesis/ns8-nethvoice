@@ -78,14 +78,55 @@ skip_build() {
     printf "[*] Skip %s (not selected by BUILD_IMAGES=%s)\n" "$1" "${BUILD_IMAGES}"
 }
 
+cache_repository() {
+    local cache_template image_name
+
+    cache_template="$1"
+    image_name="$2"
+    # Cache variables are repository prefixes unless they include {image}.
+    if [[ "${cache_template}" == *"{image}"* ]]; then
+        printf "%s" "${cache_template//\{image\}/${image_name}}"
+    else
+        printf "%s/%s" "${cache_template%/}" "${image_name}"
+    fi
+}
+
+set_buildah_cache_args() {
+    local image_name cache_repo
+
+    image_name="$1"
+    buildah_cache_args=()
+
+    if [[ -n "${BUILDAH_CACHE_FROM:-}" ]]; then
+        cache_repo="$(cache_repository "${BUILDAH_CACHE_FROM}" "${image_name}")"
+        buildah_cache_args+=(--cache-from "${cache_repo}")
+    fi
+    if [[ -n "${BUILDAH_CACHE_TO:-}" ]]; then
+        cache_repo="$(cache_repository "${BUILDAH_CACHE_TO}" "${image_name}")"
+        buildah_cache_args+=(--cache-to "${cache_repo}")
+    fi
+    if [[ -n "${BUILDAH_CACHE_TTL:-}" ]]; then
+        buildah_cache_args+=(--cache-ttl "${BUILDAH_CACHE_TTL}")
+    fi
+}
+
 build_image() {
+    local image_name
+
+    image_name="$1"
     shift
-    buildah build "$@"
+    set_buildah_cache_args "${image_name}"
+    buildah build "${buildah_cache_args[@]}" "$@"
 }
 
 # Sanitize the image tag by replacing slashes with dashes to avoid issues with buildah tagging
 if [[ -n "${IMAGETAG}" ]]; then
     IMAGETAG=$(printf '%s' "${IMAGETAG}" | tr '/' '-')
+fi
+
+if [[ -n "${BUILDAH_CACHE_TTL:-}" && -z "${BUILDAH_CACHE_FROM:-}" ]]; then
+    printf "BUILDAH_CACHE_TTL requires BUILDAH_CACHE_FROM\n" >&2
+    exit 1
 fi
 
 # Build NS8 Module image

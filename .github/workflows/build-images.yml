@@ -18,6 +18,16 @@ on:
         required: false
         type: string
         default: ""
+      buildah-cache-ttl:
+        description: "Maximum age for registry cache images used during the build"
+        required: false
+        type: string
+        default: "168h"
+      buildah-cache:
+        description: "Enable Buildah registry cache"
+        required: false
+        type: boolean
+        default: true
     outputs:
       images:
         description: "Built image names without tags"
@@ -40,6 +50,7 @@ jobs:
     env:
       IMAGETAG: ${{ inputs.imagetag }}
       BUILD_IMAGES: ${{ inputs.build-images }}
+      BUILDAH_CACHE: ${{ inputs.buildah-cache }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -53,6 +64,8 @@ jobs:
       - name: Prepare image environment
         run: |
           repository_owner="${GITHUB_REPOSITORY_OWNER,,}"
+          repository_name="${GITHUB_REPOSITORY#*/}"
+          repository_name="${repository_name,,}"
           imagetag="${IMAGETAG:-${GITHUB_REF_NAME}}"
           imagetag="${imagetag:?}"
           imagetag="${imagetag//\//-}"
@@ -60,6 +73,15 @@ jobs:
             echo "REPOBASE=ghcr.io/${repository_owner}"
             echo "IMAGETAG=${imagetag}"
           } >> "$GITHUB_ENV"
+
+          if [[ "${BUILDAH_CACHE}" == "true" ]]; then
+            cache_repository="ghcr.io/${repository_owner}/${repository_name}-cache-{image}"
+            {
+              echo "BUILDAH_CACHE_FROM=${cache_repository}"
+              echo "BUILDAH_CACHE_TO=${cache_repository}"
+              echo "BUILDAH_CACHE_TTL=${{ inputs.buildah-cache-ttl }}"
+            } >> "$GITHUB_ENV"
+          fi
 
       - name: Log in to container registry
         env:
