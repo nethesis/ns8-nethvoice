@@ -140,8 +140,19 @@ path with `BUILD_TIMING_FILE` when comparing repeated runs.
 | `BUILD_TIMING_FILE` | `build-timings.tsv` | Output file written at the end of the run with one timing row per image. |
 
 Package-manager cache mounts are enabled inside the Containerfiles where they
-already exist. The consolidated branch does not use Buildah registry layer cache
-in either local builds or GitHub Actions.
+already exist. Buildah registry layer cache is optional and can be enabled for
+manual builds with per-image cache repositories:
+
+```bash
+buildah login ghcr.io
+BUILDAH_CACHE_FROM='ghcr.io/nethesis/ns8-nethvoice-cache-{image}' \
+BUILDAH_CACHE_TO='ghcr.io/nethesis/ns8-nethvoice-cache-{image}' \
+BUILDAH_CACHE_TTL=168h \
+BUILD_IMAGES=freepbx bash build-images.sh
+```
+
+Cache repository values are treated as prefixes and the image name is appended.
+Use a `{image}` placeholder to place the image name explicitly.
 
 ### Rebuilding selected images
 
@@ -184,11 +195,14 @@ The reusable workflow accepts:
 | `imagetag` | Tag to publish, normalized before use |
 | `build-images` | Comma-separated image list for the selected matrix group |
 | `runner-version` | Runner label, defaults to `ubuntu-latest` |
+| `buildah-cache` | Enables Buildah registry cache, enabled by default |
+| `buildah-cache-ttl` | Maximum age for pulled registry cache entries |
 | `secrets.netrcb64` | Optional Base64-encoded `.netrc` used for authenticated downloads |
 
 GitHub Actions also keeps `ui/node_modules` in `actions/cache`, keyed by
 `ui/yarn.lock`. When a UI dependency changes, commit the updated lockfile so the
-workflow cache key changes with it.
+workflow cache key changes with it. When Buildah cache is enabled, the reusable
+workflow logs in to GHCR first and sets per-image cache repositories automatically.
 
 ### Adding or updating an external resource
 
