@@ -77,3 +77,5 @@ while [[ -f $LOCKFILE2 ]]; do
     fwconsole reload | /usr/bin/logger -t FreePBX
     sleep 10
 done
+
+/bin/bash /var/www/html/freepbx/rest/lib/middlewareProfilesReloadHelper.sh > /dev/null 2>&1 &
