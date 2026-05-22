@@ -36,8 +36,9 @@ restore_envs = [
     'FLEXISIP_LOG_LEVEL',
     'ICEIGNORE',
     'JANUS_DEBUG_LEVEL',
-    'JANUS_RTPEND',
-    'JANUS_RTPSTART',
+    # JANUS_RTPSTART and JANUS_RTPEND are NOT restored: they are port
+    # allocations tied to the new instance's UDP_PORTS_RANGE and must not
+    # be overwritten with values from the backup.
     'NETHCTI_ALERTS',
     'NETHCTI_AUTHENTICATION_ENABLED',
     'NETHCTI_AUTOC2C',

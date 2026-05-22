@@ -144,6 +144,7 @@ if 'UDP_PORTS_RANGE' not in env or any(env_name not in env for env_name in (
 	agent.add_public_service(os.environ['MODULE_ID'], [
 		str(asterisk_rtp_start)+"-"+str(asterisk_rtp_end)+"/udp",
 		str(janus_rtp_start)+"-"+str(janus_rtp_end)+"/udp",
+		str(satellite_rtp_port)+"/udp",
 		str(iax_udp_port)+"/udp",
 		str(sip_udp_port)+"/udp",
 	])
