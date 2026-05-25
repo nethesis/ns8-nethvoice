@@ -64,7 +64,15 @@ jobs:
       imagetag: ${{ needs.tagname.outputs.imagetag }}
       build-images: ${{ matrix.images }}
     secrets: inherit
+  build-status:
+    name: Build status
+    needs: create-testing-pr-image
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+        - run: ${{!contains(needs.*.result, 'failure')}}
   comment-pr:
+    name: Comment PR with testing image URL
     needs: [tagname, create-testing-pr-image]
     runs-on: ubuntu-latest
     permissions:
