@@ -105,7 +105,7 @@ images+=("${repobase}/${reponame}")
 ##      NethCTI Client     ##
 #############################
 reponame="nethvoice-cti-ui"
-container=$(buildah from ghcr.io/nethesis/nethvoice-cti:issue_8009)
+container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v0.15.16)
 
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"
