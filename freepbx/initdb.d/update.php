@@ -77,6 +77,12 @@ $stmt->execute([$_ENV['NETHVOICE_HOST']]);
 $stmt = $db->prepare("INSERT IGNORE INTO `featurecodes` (`modulename`,`featurename`,`description`,`helptext`,`defaultcode`,`customcode`,`enabled`,`providedest`) VALUES ('nethcti3','audio_test','Audio Test','NethVoice CTI Audio Test','*41',NULL,1,0)");
 $stmt->execute();
 
+// Prefer header matching before IP so proxied static PJSIP trunks are identified
+// from X-Forwarded-* headers.
+$pjsip_identifier_order = json_encode(['header', 'ip', 'username', 'anonymous', 'auth_username']);
+$stmt = $db->prepare("UPDATE `asterisk`.`sip` SET `data` = ? WHERE `keyword` = 'identifyorder' AND `data` = 'ip,username,anonymous,auth_username'");
+$stmt->execute([$pjsip_identifier_order]);
+
 // Update outbound routes notification_on field
 // If is set to "call" and there is an email address configured for that route,
 // set it to "pattern", if no email is configured set it to empty.
