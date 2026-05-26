@@ -157,8 +157,8 @@ agent.set_env('SATELLITE_PGSQL_PORT', str(port_list[36]))
 # Asterisk WSS
 agent.set_env('ASTERISK_WSS_PORT', port_list[34])
 
-satellite_udp_port = allocate_rtp_ports_range(1)[0]
-agent.set_env('SATELLITE_RTP_PORT', satellite_udp_port)
+# Satellite RTP reuses SATELLITE_HTTP_PORT (same port number, UDP protocol).
+# No dedicated UDP port allocation needed.
 agent.set_env('SATELLITE_ARI_APP', 'satellite')
 agent.set_env('SATELLITE_ARI_USERNAME', 'satellite')
 agent.set_env('SATELLITE_MQTT_USERNAME', 'satellite')
