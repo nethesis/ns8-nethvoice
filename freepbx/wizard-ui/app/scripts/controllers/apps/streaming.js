@@ -118,12 +118,13 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.getSourceList = function () {
       ApplicationService.allVideoSources().then(function (res) {
-        $scope.allSources = res.data;
+        $scope.allSources = angular.isArray(res.data) ? res.data : [];
         $scope.view.changeRoute = false;
         for (var s in $scope.allSources) {
           $scope.checkConnection($scope.allSources[s]);
         }
       }, function (err) {
+        $scope.allSources = [];
         $scope.view.changeRoute = false;
         console.log(err);
       });
@@ -145,19 +146,27 @@ angular.module('nethvoiceWizardUiApp')
       ProfileService.allProfiles().then(function (res) {
         $scope.allProfiles = res.data;
       }, function (err) {
+        $scope.view.changeRoute = false;
         console.log(err);
       });
     };
 
+    var initializePage = function () {
+      $scope.getUserList();
+      $scope.getAllProfiles();
+    };
+
     $scope.$on( "$routeChangeSuccess", function(event, next, current) {
       if (next.templateUrl === 'views/apps/streaming.html') {
-        $scope.getUserList();
-        $scope.getAllProfiles();
+        initializePage();
       }
     });
 
     $scope.$on('loginCompleted', function (event, args) {
-      $scope.getUserList();
-      $scope.getAllProfiles();
+      initializePage();
     });
+
+    if ($scope.login && $scope.login.isLogged) {
+      initializePage();
+    }
   });
