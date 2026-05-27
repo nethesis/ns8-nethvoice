@@ -90,8 +90,8 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.getParamUrls = function () {
       ApplicationService.getParamUrls().then(function (res) {
-        $scope.allUrls = angular.isArray(res.data) ? res.data : [];
-        $scope.allUrlProfiles = {}
+        $scope.allUrls = res.data;
+        $scope.allUrlProfiles = {};
         $scope.view.changeRoute = false;
         $scope.tdata.busyProfiles = [];
         for (var i = 0; i < $scope.allUrls.length; i++) {
@@ -121,7 +121,13 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
+    var pageInitialized = false;
+
     var initializePage = function () {
+      if (pageInitialized) {
+        return;
+      }
+      pageInitialized = true;
       $scope.getAllProfiles();
       $scope.getParamUrls();
       if (!$scope.tdata.clipInit) {

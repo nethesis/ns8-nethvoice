@@ -41,7 +41,7 @@
       <strong>{{'Source not saved' | translate}}.</strong> {{'Source saving error' | translate}}
     </div>
     <div ng-if="!(allSources | isEmpty)" class="row row-cards-pf adjust-card">
-      <div ng-repeat="g in (allSources | orderBy:'name') track by $index" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+      <div ng-repeat="g in (allSources | orderBy:'descr') track by $index" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
         <div id="accordion-markup-{{$index}}" class="card-pf">
           <div data-toggle="collapse" data-parent="#accordion-markup-{{$index}}" href="#collapse-{{$index}}">
             <h2 class="card-pf-title pointer">

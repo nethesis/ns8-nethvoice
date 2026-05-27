@@ -118,7 +118,7 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.getSourceList = function () {
       ApplicationService.allVideoSources().then(function (res) {
-        $scope.allSources = angular.isArray(res.data) ? res.data : [];
+        $scope.allSources = res.data;
         $scope.view.changeRoute = false;
         for (var s in $scope.allSources) {
           $scope.checkConnection($scope.allSources[s]);
@@ -151,7 +151,13 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
+    var pageInitialized = false;
+
     var initializePage = function () {
+      if (pageInitialized) {
+        return;
+      }
+      pageInitialized = true;
       $scope.getUserList();
       $scope.getAllProfiles();
     };
