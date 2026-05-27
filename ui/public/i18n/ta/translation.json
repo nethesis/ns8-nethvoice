@@ -1,11 +1,11 @@
 {
   "error": {
-    "network_timeout": "பிணையம் நேரம் முடிந்தது",
+    "network_timeout": "பிணைய நேரம் முடிந்தது",
     "error": "பிழை",
-    "network_error": "பிணையம் பிழை",
+    "network_error": "பிணையப் பிழை",
     "validation_error": "சரிபார்ப்பு பிழை",
     "403": "செயல்பாடு அங்கீகரிக்கப்படவில்லை",
-    "cannot_retrieve_module_info": "தொகுதி தகவலை மீட்டெடுக்க முடியவில்லை",
+    "cannot_retrieve_module_info": "தொகுதி தகவலை மீட்டெடுக்க முடியாது",
     "cannot_retrieve_installed_modules": "நிறுவப்பட்ட தொகுதிகளை மீட்டெடுக்க முடியாது",
     "generic_error": "ஏதோ தவறாகிவிட்டது",
     "404": "சான்று கிடைக்கவில்லை",
@@ -22,8 +22,8 @@
     "get-configuration": "உள்ளமைவைப் பெறுங்கள்",
     "configure-module": "தொகுதியை உள்ளமைக்கவும்",
     "get-module-info": "தொகுதி தகவலைப் பெறுங்கள்",
-    "get-name": "பெயர் பெறவும்",
-    "list-backup-repositories": "காப்புப் பிரதி களஞ்சியங்களைப் பட்டியலிடுங்கள்",
+    "get-name": "பெயரைப் பெறு",
+    "list-backup-repositories": "காப்புப் பிரதி களஞ்சியங்களைப் பட்டியலிடு",
     "list-backups": "காப்புப்பிரதிகளை பட்டியலிடுங்கள்",
     "list-installed-modules": "நிறுவப்பட்ட தொகுதிகளை பட்டியலிடுங்கள்",
     "get-defaults": "இயல்புநிலைகளைப் பெறுங்கள்"

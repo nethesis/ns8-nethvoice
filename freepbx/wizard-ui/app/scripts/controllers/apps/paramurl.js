@@ -91,7 +91,7 @@ angular.module('nethvoiceWizardUiApp')
     $scope.getParamUrls = function () {
       ApplicationService.getParamUrls().then(function (res) {
         $scope.allUrls = res.data;
-        $scope.allUrlProfiles = {}
+        $scope.allUrlProfiles = {};
         $scope.view.changeRoute = false;
         $scope.tdata.busyProfiles = [];
         for (var i = 0; i < $scope.allUrls.length; i++) {
@@ -105,6 +105,7 @@ angular.module('nethvoiceWizardUiApp')
         }
         $scope.view.changeRoute = false;
       }, function (err) {
+        $scope.allUrls = [];
         $scope.view.changeRoute = false;
         console.log(err);
       });
@@ -115,8 +116,24 @@ angular.module('nethvoiceWizardUiApp')
       ProfileService.allProfiles().then(function (res) {
         $scope.tdata.allProfiles = res.data;
       }, function (err) {
+        $scope.view.changeRoute = false;
         console.log(err);
       });
+    };
+
+    var pageInitialized = false;
+
+    var initializePage = function () {
+      if (pageInitialized) {
+        return;
+      }
+      pageInitialized = true;
+      $scope.getAllProfiles();
+      $scope.getParamUrls();
+      if (!$scope.tdata.clipInit) {
+        new ClipboardJS('.copy-clipboard-btn');
+        $scope.tdata.clipInit = true;
+      }
     };
 
     $scope.openModal = function() {
@@ -145,21 +162,15 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.$on( "$routeChangeSuccess", function(event, next, current) {
       if (next.templateUrl === 'views/apps/paramurl.html') {
-        $scope.getAllProfiles();
-        $scope.getParamUrls();
-        if (!$scope.tdata.clipInit) {
-          new ClipboardJS('.copy-clipboard-btn');
-          $scope.tdata.clipInit = true;
-        }
+        initializePage();
       }
     });
 
     $scope.$on('loginCompleted', function (event, args) {
-      $scope.getAllProfiles();
-      $scope.getParamUrls();
-      if (!$scope.tdata.clipInit) {
-        new ClipboardJS('.copy-clipboard-btn');
-        $scope.tdata.clipInit = true;
-      }
+      initializePage();
     });
+
+    if ($scope.login && $scope.login.isLogged) {
+      initializePage();
+    }
   });

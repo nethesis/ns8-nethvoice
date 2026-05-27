@@ -10,6 +10,11 @@
 angular.module('nethvoiceWizardUiApp')
   .service('ApplicationService', function ($q, $http, RestService, RestServiceCTI) {
 
+    var normalizeListResponse = function (res) {
+      res.data = angular.isArray(res.data) ? res.data : [];
+      return res;
+    };
+
     this.allExtensions = function () {
       return $q(function (resolve, reject) {
         RestService.get('/physicalextensions').then(function (res) {
@@ -33,7 +38,7 @@ angular.module('nethvoiceWizardUiApp')
     this.allVideoSources = function () {
       return $q(function (resolve, reject) {
         RestService.get('/cti/streaming').then(function (res) {
-          resolve(res);
+          resolve(normalizeListResponse(res));
         }, function (err) {
           reject(err);
         });
@@ -43,7 +48,7 @@ angular.module('nethvoiceWizardUiApp')
     this.getParamUrls = function () {
       return $q(function (resolve, reject) {
         RestService.get('/cti/paramurls').then(function (res) {
-          resolve(res);
+          resolve(normalizeListResponse(res));
         }, function (err) {
           reject(err);
         });
