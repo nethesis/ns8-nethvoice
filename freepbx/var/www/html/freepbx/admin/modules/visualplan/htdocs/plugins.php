@@ -53,9 +53,9 @@ if ($reqGet && ($reqGet === "tools")) {
                 }
                 echo json_encode($res);
             } catch (\Exception $e) {
-                http_response_code(500);
-                error_log("Error retrieving available voices: " . $e->getMessage());
-                echo json_encode(['error' => $e->getMessage()]);
+                // Satellite unavailable: return empty voices so the dialog still opens
+                error_log("Satellite not available for getvoices: " . $e->getMessage());
+                echo json_encode([]);
             }
             break;
 
