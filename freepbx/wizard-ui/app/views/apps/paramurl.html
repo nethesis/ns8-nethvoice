@@ -40,7 +40,7 @@
       <strong>{{'URL not saved' | translate}}.</strong> {{'URL saving error' | translate}}
     </div>
     <div ng-if="!(allUrls | isEmpty)" class="row row-cards-pf adjust-card">
-      <div ng-repeat="g in allUrls track by $index | orderBy:'name'" class="col-xs-12 col-sm-6">
+      <div ng-repeat="g in (allUrls | orderBy:'url') track by $index" class="col-xs-12 col-sm-6">
         <div id="accordion-markup-{{$index}}" class="card-pf">
           <div data-toggle="collapse" data-parent="#accordion-markup-{{$index}}" href="#collapse-{{$index}}">
             <h2 class="card-pf-title pointer">
