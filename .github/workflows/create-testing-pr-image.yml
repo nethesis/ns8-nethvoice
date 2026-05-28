@@ -15,6 +15,10 @@ permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   tagname:
     name: Compute image tag
@@ -35,12 +39,40 @@ jobs:
           short_sha="${MERGE_SHA::7}"
           echo "imagetag=pr-${PR_NUMBER}.${RUN_NUMBER}-${RUN_ATTEMPT}.${short_sha}" >> "$GITHUB_OUTPUT"
   create-testing-pr-image:
-    name: Create testing PR image
+    name: Create testing PR ${{ matrix.group }} images
     needs: tagname
-    uses: NethServer/ns8-github-actions/.github/workflows/publish-branch.yml@v1
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - group: freepbx
+            images: freepbx
+          - group: app-support
+            images: tancredi,cti-server,phonebook,sftp
+          - group: reports
+            images: reports-api,reports-ui
+          - group: wrappers
+            images: mariadb,cti-middleware,cti-ui,satellite
+          - group: janus
+            images: janus
+          - group: module
+            images: nethvoice
+    uses: ./.github/workflows/build-images.yml
     with:
       imagetag: ${{ needs.tagname.outputs.imagetag }}
+      build-images: ${{ matrix.images }}
+    secrets: inherit
+  build-status:
+    name: Build status
+    needs: create-testing-pr-image
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+        - run: ${{!contains(needs.*.result, 'failure')}}
   comment-pr:
+    name: Comment PR with testing image URL
     needs: [tagname, create-testing-pr-image]
     runs-on: ubuntu-latest
     permissions:

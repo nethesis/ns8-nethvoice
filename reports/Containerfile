@@ -14,7 +14,8 @@ WORKDIR /app
 # Install npm dependencies
 COPY --from=repofetcher /app/nethvoice-report/ui/package.json .
 COPY --from=repofetcher /app/nethvoice-report/ui/package-lock.json .
-RUN npm ci
+RUN --mount=type=cache,id=nethvoice-reports-ui-npm,target=/root/.npm \
+    npm ci --cache /root/.npm
 # Copy application, clean up and build
 COPY --from=repofetcher /app/nethvoice-report/ui/public public
 COPY --from=repofetcher /app/nethvoice-report/ui/src src
@@ -50,10 +51,13 @@ WORKDIR /app/api
 # Download go mod dependencies
 COPY --from=repofetcher /app/nethvoice-report/api/go.mod .
 COPY --from=repofetcher /app/nethvoice-report/api/go.sum .
-RUN go mod download
+RUN --mount=type=cache,id=nethvoice-reports-api-gomod,target=/go/pkg/mod \
+    go mod download
 # Build executable
 COPY --from=repofetcher /app/nethvoice-report/api/ /app/api
-RUN go build
+RUN --mount=type=cache,id=nethvoice-reports-api-gomod,target=/go/pkg/mod \
+    --mount=type=cache,id=nethvoice-reports-api-gobuild,target=/root/.cache/go-build \
+    go build
 
 # Use gobuilder stage to build tasks
 FROM apibuilder as taskbuilder
@@ -61,10 +65,13 @@ WORKDIR /app/tasks
 # Download go mod dependencies
 COPY --from=repofetcher /app/nethvoice-report/tasks/go.mod .
 COPY --from=repofetcher /app/nethvoice-report/tasks/go.sum .
-RUN go mod download
+RUN --mount=type=cache,id=nethvoice-reports-tasks-gomod,target=/go/pkg/mod \
+    go mod download
 # Build executable
 COPY --from=repofetcher /app/nethvoice-report/tasks/ /app/tasks
-RUN go build
+RUN --mount=type=cache,id=nethvoice-reports-tasks-gomod,target=/go/pkg/mod \
+    --mount=type=cache,id=nethvoice-reports-tasks-gobuild,target=/root/.cache/go-build \
+    go build
 
 # Using alpine as runtime
 FROM docker.io/library/alpine:3.17.10 as api-production
@@ -78,9 +85,12 @@ RUN apk add --no-cache \
     && addgroup -g 991 asterisk \
     && adduser -u 990 -G asterisk -s /bin/false -D asterisk
 # Adding production scripts
+COPY remote-artifacts.sha256 /tmp/remote-artifacts.sha256
 ADD https://raw.githubusercontent.com/eficode/wait-for/d48601a8a90c3d22fade68d09b4240739fb44a46/wait-for /usr/bin/wait-for
 COPY api/entrypoint.sh /entrypoint
-RUN chmod +x /usr/bin/wait-for \
+RUN artifact_checksum=$(grep "  /usr/bin/wait-for$" /tmp/remote-artifacts.sha256) \
+    && printf "%s\n" "${artifact_checksum}" | sha256sum -c - \
+    && chmod +x /usr/bin/wait-for \
     && chmod +x /entrypoint
 # Copying executables and setting release environment
 ENV GIN_MODE=release
