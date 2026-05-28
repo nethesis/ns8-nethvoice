@@ -386,6 +386,26 @@ RUN install_module() { \
 	install_module recordings https://github.com/FreePBX/recordings/archive/refs/tags/release/17.0.6.tar.gz && \
 	install_module voicemail https://github.com/FreePBX/voicemail/archive/refs/tags/release/17.0.5.35.tar.gz
 
+# PHP 8.x compatibility: harden customcontexts against empty dialpattern array entries
+# (PHP 8 throws "Undefined array key 0" when indexing into an empty string).
+RUN sed -i 's|if (\$dialpattern\[\$key\]\[0\] == "_")|if (isset(\$dialpattern[\$key][0]) \&\& \$dialpattern[\$key][0] == "_")|g' \
+	/var/www/html/freepbx/admin/modules/customcontexts/functions.inc.php
+
+# PHP 8.x compatibility: customcontexts uses undefined $results in DB::IsError() check
+# (was a notice in PHP 7, fatal under Whoops in PHP 8).  $sections is the actual return value.
+RUN sed -i 's|if(DB::IsError(\$results)) {|if(DB::IsError(\$sections)) {|g; s|\$results = null;|\$sections = array();|' \
+	/var/www/html/freepbx/admin/modules/customcontexts/functions.inc.php
+
+# PHP 8.x compatibility: customcontexts has many DB::IsError($sections) calls where
+# $sections is never assigned (only $results is). Make the check tolerate undefined var.
+RUN sed -i 's|DB::IsError(\$sections)|DB::IsError(\$sections ?? null)|g' \
+	/var/www/html/freepbx/admin/modules/customcontexts/functions.inc.php
+
+# PHP 8.x compatibility: FreePBX framework DialplanHooks reads 'license' key
+# without isset() guard on non-commercial modules. Guard with ?? '' fallback.
+RUN sed -i 's|\$x\[\$funcarr\[0\]\]\[.license.\] == "Commercial"|(\$x[\$funcarr[0]]["license"] ?? "") == "Commercial"|' \
+	/var/www/html/freepbx/admin/libraries/BMO/DialplanHooks.class.php
+
 # Install Nethesis vendor modules
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/bosssecretary /var/www/html/freepbx/admin/modules/bosssecretary
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/directdid /var/www/html/freepbx/admin/modules/directdid
@@ -495,6 +515,15 @@ done
 
 # Replace FreepBX cron implementation with noop
 COPY var/www/html/freepbx/admin/libraries/BMO/Cron.class.php /var/www/html/freepbx/admin/libraries/BMO/Cron.class.php
+
+# PHP 8.2 compatibility: suppress Cron dynamic property deprecation in both
+# the framework source tree and the final admin library copy.
+RUN for cron_file in \
+	/var/www/html/freepbx/admin/modules/framework/amp_conf/htdocs/admin/libraries/BMO/Cron.class.php \
+	/var/www/html/freepbx/admin/libraries/BMO/Cron.class.php; do \
+	[ -f "${cron_file}" ] || continue; \
+	sed -i 's|\$this->freepbx = \$var1;|@\$this->freepbx = \$var1;|' "${cron_file}"; \
+done
 
 # Add branding
 COPY var/www/html/freepbx/admin/brand/* /var/www/html/freepbx/admin/brand/
