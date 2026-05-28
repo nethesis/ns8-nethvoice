@@ -413,8 +413,9 @@ function nethcti3_get_config_late($engine) {
         $users = \FreePBX::create()->Userman->getAllUsers();
         $dbh = \FreePBX::Database();
         $freepbxVoicemails = \FreePBX::Voicemail()->getVoicemail();
-        $enabledVoicemails = ($freepbxVoicemails['default'] != null) ? array_keys($freepbxVoicemails['default']) : array();
-        $domainName = end(explode('.', gethostname(), 2));
+        $enabledVoicemails = !empty($freepbxVoicemails['default']) ? array_keys($freepbxVoicemails['default']) : array();
+        $hostnameParts = explode('.', gethostname(), 2);
+        $domainName = end($hostnameParts);
         $enableJanus = false;
 
         foreach ($users as $user) {
@@ -515,9 +516,11 @@ function nethcti3_get_config_late($engine) {
         }
 
         // Write operator.json configuration file
+        $out = [];
         $results = getCTIGroups();
         if (!$results) {
             error_log('Empty operator config');
+            $results = [];
         }
         foreach ($results as $r) {
             $out[$r['name']][] = $r['username'];
@@ -536,6 +539,7 @@ function nethcti3_get_config_late($engine) {
         $results = getCTIPermissionProfiles(false,true,false);
         if (!$results) {
             error_log('Empty profile config');
+            $results = [];
         }
         foreach ($results as $r) {
             // Add oppanel waiting queue
@@ -575,6 +579,7 @@ function nethcti3_get_config_late($engine) {
 
         if (!$results) {
             error_log('Empty profile config');
+            $results = [];
         }
         foreach ($results as $r) {
             $pername = 'vs_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$r['descr'])));

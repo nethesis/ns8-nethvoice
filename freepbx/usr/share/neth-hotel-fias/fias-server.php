@@ -153,7 +153,7 @@ function sendLDLRLA($socket) {
     global $config;
     logMessage("Send LDLR", DEBUGVERBOSE, "fias-server");
     $sent = false;
-    while (list($key, $val) = each($config["record_LDLR"])) {
+    foreach ($config["record_LDLR"] as $key => $val) {
         if (getOperationCommand($val) == "LD") {
             $val = str_replace("DA", "DA" . date("ymd"), $val);
             $val = str_replace("TI", "TI" . date("His"), $val);

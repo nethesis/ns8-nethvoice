@@ -389,6 +389,21 @@ RUN install_module() { \
 RUN sed -i 's|if (\$dialpattern\[\$key\]\[0\] == "_")|if (isset(\$dialpattern[\$key][0]) \&\& \$dialpattern[\$key][0] == "_")|g' \
 	/var/www/html/freepbx/admin/modules/customcontexts/functions.inc.php
 
+# PHP 8.x compatibility: customcontexts uses undefined $results in DB::IsError() check
+# (was a notice in PHP 7, fatal under Whoops in PHP 8).  $sections is the actual return value.
+RUN sed -i 's|if(DB::IsError(\$results)) {|if(DB::IsError(\$sections)) {|g; s|\$results = null;|\$sections = array();|' \
+	/var/www/html/freepbx/admin/modules/customcontexts/functions.inc.php
+
+# PHP 8.x compatibility: customcontexts has many DB::IsError($sections) calls where
+# $sections is never assigned (only $results is). Make the check tolerate undefined var.
+RUN sed -i 's|DB::IsError(\$sections)|DB::IsError(\$sections ?? null)|g' \
+	/var/www/html/freepbx/admin/modules/customcontexts/functions.inc.php
+
+# PHP 8.x compatibility: FreePBX framework DialplanHooks reads 'license' key
+# without isset() guard on non-commercial modules. Guard with ?? '' fallback.
+RUN sed -i 's|\$x\[\$funcarr\[0\]\]\[.license.\] == "Commercial"|(\$x[\$funcarr[0]]["license"] ?? "") == "Commercial"|' \
+	/var/www/html/freepbx/admin/libraries/BMO/DialplanHooks.class.php
+
 # Install Nethesis vendor modules
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcqr /var/www/html/freepbx/admin/modules/nethcqr
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcti3 /var/www/html/freepbx/admin/modules/nethcti3
