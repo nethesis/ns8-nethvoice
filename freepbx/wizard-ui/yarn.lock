@@ -988,9 +988,10 @@ cli@0.6.x:
     exit "0.1.2"
     glob "~ 3.2.1"
 
-clipboard@zenorocha/clipboard.js#2.0.1:
-  version "2.0.1"
-  resolved "https://codeload.github.com/zenorocha/clipboard.js/tar.gz/3382ea3d14a6c46d274df6147c73a83ef47e41b3"
+clipboard@zenorocha/clipboard.js#v2.0.11:
+  version "2.0.11"
+  uid "2b2f9eef6fd1cf951612740e16e422db2848c00a"
+  resolved "https://codeload.github.com/zenorocha/clipboard.js/tar.gz/2b2f9eef6fd1cf951612740e16e422db2848c00a"
   dependencies:
     good-listener "^1.2.2"
     select "^1.1.2"

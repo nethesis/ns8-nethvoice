@@ -65,7 +65,7 @@
     "bootstrap-touchspin": "istvan-ujjmeszaros/bootstrap-touchspin#~3.1.1",
     "bower-away": "^1.1.2",
     "c3": "masayuki0812/c3#~0.4.11",
-    "clipboard": "zenorocha/clipboard.js#2.0.1",
+    "clipboard": "zenorocha/clipboard.js#v2.0.11",
     "d3": "mbostock-bower/d3-bower#~3.5.17",
     "datatables": "DataTables/DataTables#~1.10.12",
     "datatables-colreorder": "DataTables/ColReorder#~1.3.2",
