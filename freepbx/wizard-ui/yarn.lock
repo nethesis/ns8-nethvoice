@@ -134,20 +134,21 @@ angular-sanitize@angular/bower-angular-sanitize#v1.8.3:
   version "1.8.3"
   resolved "https://codeload.github.com/angular/bower-angular-sanitize/tar.gz/7d2d056aee4b69046a55ba57cc2808e5e58aab65"
 
-angular-translate-loader-static-files@PascalPrecht/bower-angular-translate-loader-static-files#2.13.0:
-  version "2.13.0"
-  resolved "https://codeload.github.com/PascalPrecht/bower-angular-translate-loader-static-files/tar.gz/cdf309251cae5c671940784e432fc514fc477fe3"
+angular-translate-loader-static-files@PascalPrecht/bower-angular-translate-loader-static-files#2.13.1:
+  version "2.13.1"
+  uid "59c5996893978339fb7455cde14f1b9854a42b07"
+  resolved "https://codeload.github.com/PascalPrecht/bower-angular-translate-loader-static-files/tar.gz/59c5996893978339fb7455cde14f1b9854a42b07"
   dependencies:
-    angular-translate "~2.13.0"
+    angular-translate "~2.13.1"
 
 angular-translate@PascalPrecht/bower-angular-translate#2.13.0:
   version "0.0.0"
   resolved "https://codeload.github.com/PascalPrecht/bower-angular-translate/tar.gz/ba9c58adb6519b44d5975a397a3eeda0c650fbd8"
 
-angular-translate@~2.13.0:
+angular-translate@~2.13.1:
   version "2.13.1"
   resolved "https://registry.yarnpkg.com/angular-translate/-/angular-translate-2.13.1.tgz#05673eb371986fc11edc151f590299d7e0c46228"
-  integrity sha1-BWc+s3GYb8Ee3BUfWQKZ1+DEYig=
+  integrity sha512-BmphYJPq1ptro51ru2r87neQft6USk3jr3dxeWO55fQqr2jjE9sX+PitW2EZc4F0BzN2fL1F305t39qWPx4kXA==
   dependencies:
     angular ">=1.2.26 <=1.6"
 
