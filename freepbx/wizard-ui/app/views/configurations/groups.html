@@ -89,7 +89,8 @@
           <div class="form-group">
             <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Name' | translate}}</label>
             <div class="col-sm-9">
-              <input required ng-model="newGroup.name" type="text" class="form-control profile-new-name"></div>
+              <input required ng-model="newGroup.name" ng-change="sanitizeGroupName(newGroup)" type="text" class="form-control profile-new-name">
+              <p class="help-block">{{'Only letters and numbers allowed' | translate}}</p></div>
           </div>
           <div ng-show="newGroup.onSave" class="spinner spinner-sm adjust-margin loader-modal-profile"></div>
           <div class="modal-footer submit">

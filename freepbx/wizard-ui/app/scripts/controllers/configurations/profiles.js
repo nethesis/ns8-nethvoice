@@ -18,8 +18,269 @@ angular.module('nethvoiceWizardUiApp')
     $scope.gruopsDisabled = false;
     $scope.permissionsStatus = {};
     $scope.outboundStatus = {};
+    $scope.phonebookPermissionsStatus = {};
+
+    $scope.phonebookPermissionLevels = [
+      {
+        value: 1,
+        permissionName: 'phonebook_level_1',
+        label: 'Manage private contacts',
+        description: 'Allow editing and deleting private contacts in the company phonebook'
+      },
+      {
+        value: 2,
+        permissionName: 'ad_phonebook',
+        label: 'Manage public and shared contacts',
+        description: 'Allow editing and deleting public and shared contacts in the company phonebook'
+      }
+    ];
+
+    var phonebookLevelPermissions = {
+      0: 'phonebook_level_0',
+      1: 'phonebook_level_1',
+      2: 'phonebook_level_2',
+      3: 'ad_phonebook'
+    };
+    var phonebookLevelPermissionNames = [
+      phonebookLevelPermissions[0],
+      phonebookLevelPermissions[1],
+      phonebookLevelPermissions[2],
+      phonebookLevelPermissions[3]
+    ];
 
     $scope.initGraphics = function () {};
+
+    $scope.isPhonebookAdvancedPermission = function(macro, permission) {
+      return macro === 'phonebook' && permission && permission.name === 'ad_phonebook';
+    };
+
+    $scope.isPhonebookLevelPermission = function(macro, permission) {
+      return macro === 'phonebook' && permission &&
+        phonebookLevelPermissionNames.indexOf(permission.name) !== -1;
+    };
+
+    $scope.isPhonebookLevelStoragePermission = function(macro, permission) {
+      return macro === 'phonebook' && permission && [
+        phonebookLevelPermissions[0],
+        phonebookLevelPermissions[1],
+        phonebookLevelPermissions[2]
+      ].indexOf(permission.name) !== -1;
+    };
+
+    $scope.getPhonebookPermissionLevel = function(permissions) {
+      for (var i = 0; i < permissions.length; i++) {
+        if ((permissions[i].name === phonebookLevelPermissions[3] || permissions[i].name === phonebookLevelPermissions[2]) &&
+          permissions[i].value === true) {
+          return 2;
+        }
+      }
+
+      for (var j = 0; j < permissions.length; j++) {
+        if (permissions[j].name === phonebookLevelPermissions[1] && permissions[j].value === true) {
+          return 1;
+        }
+      }
+
+      for (var k = 0; k < permissions.length; k++) {
+        if (permissions[k].name === phonebookLevelPermissions[0] && permissions[k].value === true) {
+          return 0;
+        }
+      }
+
+      return 0;
+    };
+
+    $scope.getPhonebookLevelDefinition = function(permissionName) {
+      for (var i = 0; i < $scope.phonebookPermissionLevels.length; i++) {
+        if ($scope.phonebookPermissionLevels[i].permissionName === permissionName) {
+          return $scope.phonebookPermissionLevels[i];
+        }
+      }
+
+      return null;
+    };
+
+    $scope.getPhonebookPermissionDisplayname = function(permission) {
+      var definition = $scope.getPhonebookLevelDefinition(permission && permission.name);
+
+      if (definition && definition.label) {
+        return definition.label;
+      }
+
+      return permission && permission.displayname ? permission.displayname : '';
+    };
+
+    $scope.getPhonebookPermissionDescription = function(permission) {
+      var definition = $scope.getPhonebookLevelDefinition(permission && permission.name);
+
+      if (definition && definition.description) {
+        return definition.description;
+      }
+
+      return permission && permission.description ? permission.description : '';
+    };
+
+    $scope.getMacroPermissionDescription = function(macro, objPermissions) {
+      if (macro === 'phonebook') {
+        return 'Allow access to the phonebook. When enabled without the permissions below, users can only search and view contacts in read-only mode';
+      }
+
+      return objPermissions && objPermissions.description ? objPermissions.description : '';
+    };
+
+    $scope.getPhonebookVisiblePermissions = function(obj_permissions) {
+      var permissions = obj_permissions && obj_permissions.permissions;
+      var visiblePermissions = [];
+
+      if (!Array.isArray(permissions)) {
+        permissions = [];
+        if (obj_permissions) {
+          obj_permissions.permissions = permissions;
+        }
+      }
+
+      $scope.ensurePhonebookLevelPermissions(permissions);
+      for (var levelIdx = 0; levelIdx < $scope.phonebookPermissionLevels.length; levelIdx++) {
+        for (var permissionIdx = 0; permissionIdx < permissions.length; permissionIdx++) {
+          if (permissions[permissionIdx].name === $scope.phonebookPermissionLevels[levelIdx].permissionName) {
+            visiblePermissions.push(permissions[permissionIdx]);
+            break;
+          }
+        }
+      }
+
+      return visiblePermissions;
+    };
+
+    $scope.ensurePhonebookLevelPermissions = function(permissions) {
+      for (var permissionLevel in phonebookLevelPermissions) {
+        var permissionName = phonebookLevelPermissions[permissionLevel];
+        var exists = permissions.some(function(permission) {
+          return permission.name === permissionName;
+        });
+
+        if (!exists) {
+          permissions.push({
+            id: null,
+            name: permissionName,
+            displayname: 'Phonebook level ' + permissionLevel,
+            description: 'Phonebook level ' + permissionLevel,
+            value: false
+          });
+        }
+      }
+    };
+
+    $scope.normalizePhonebookPermission = function(permission) {
+      if (!permission) {
+        return;
+      }
+
+      var level = parseInt(permission.level, 10);
+      permission.level = isNaN(level) ? 2 : level;
+    };
+
+    $scope.normalizeProfilePhonebookPermissions = function(profile) {
+      if (!profile || !profile.macro_permissions || !profile.macro_permissions.phonebook) {
+        return;
+      }
+
+      var permissions = profile.macro_permissions.phonebook.permissions || [];
+      profile.macro_permissions.phonebook.permissions = permissions;
+      $scope.ensurePhonebookLevelPermissions(permissions);
+      var level = $scope.getPhonebookPermissionLevel(permissions);
+      for (var permissionIdx = 0; permissionIdx < permissions.length; permissionIdx++) {
+        if ($scope.isPhonebookLevelPermission('phonebook', permissions[permissionIdx])) {
+          permissions[permissionIdx].level = level;
+          permissions[permissionIdx].value =
+            (level === 1 && permissions[permissionIdx].name === phonebookLevelPermissions[1]) ||
+            (level === 2 && permissions[permissionIdx].name === phonebookLevelPermissions[3]);
+        }
+      }
+    };
+
+    $scope.savePhonebookPermissionLevel = function(profile, obj_permissions, permission, macro) {
+      var permissions = obj_permissions.permissions || [];
+      var backupPermissions = angular.copy(permissions);
+      var selectedDefinition = $scope.getPhonebookLevelDefinition(permission.name);
+      var statusKey = permission.name;
+
+      obj_permissions.permissions = permissions;
+      $scope.ensurePhonebookLevelPermissions(permissions);
+
+      if (!selectedDefinition) {
+        return;
+      }
+
+      var nextLevel = permission.value === true ? selectedDefinition.value : 0;
+
+      for (var permissionIdx = 0; permissionIdx < permissions.length; permissionIdx++) {
+        if ($scope.isPhonebookLevelPermission('phonebook', permissions[permissionIdx])) {
+          permissions[permissionIdx].value =
+            (nextLevel === 1 && permissions[permissionIdx].name === phonebookLevelPermissions[1]) ||
+            (nextLevel === 2 && permissions[permissionIdx].name === phonebookLevelPermissions[3]);
+          permissions[permissionIdx].level = nextLevel;
+        }
+      }
+
+      profile.onSave = true;
+      $scope.phonebookPermissionsStatus[statusKey] = 'loading';
+
+      var onSuccess = function () {
+        $scope.normalizeProfilePhonebookPermissions(profile);
+        $scope.checkAllGroups();
+        profile.onSave = false;
+        $scope.onSaveSuccess = true;
+        $scope.onSaveError = false;
+        $scope.phonebookPermissionsStatus[statusKey] = 'success';
+        $timeout(function () {
+          delete $scope.phonebookPermissionsStatus[statusKey];
+        }, 5000);
+      };
+
+      var onError = function () {
+        obj_permissions.permissions = backupPermissions;
+        if (profile.macro_permissions && profile.macro_permissions.phonebook) {
+          profile.macro_permissions.phonebook.permissions = backupPermissions;
+        }
+        $scope.normalizeProfilePhonebookPermissions(profile);
+        profile.onSave = false;
+        $scope.onSaveSuccess = false;
+        $scope.onSaveError = true;
+        $scope.phonebookPermissionsStatus[statusKey] = 'error';
+        if(!$scope.$$phase) {
+          $scope.$apply();
+        }
+      };
+
+      if (profile.id) {
+        ProfileService.update(profile.id, profile).then(function () {
+          onSuccess();
+        }, function () {
+          onError();
+        });
+        return;
+      }
+
+      ProfileService.create(profile).then(function (res) {
+        profile.id = res.id;
+        onSuccess();
+      }, function () {
+        onError();
+      });
+    };
+
+    $scope.isPhonebookPermissionSaving = function(permission) {
+      return $scope.phonebookPermissionsStatus[permission.name] === 'loading';
+    };
+
+    $scope.isPhonebookPermissionError = function(permission) {
+      return $scope.phonebookPermissionsStatus[permission.name] === 'error';
+    };
+
+    $scope.isPhonebookPermissionSuccess = function(permission) {
+      return $scope.phonebookPermissionsStatus[permission.name] === 'success';
+    };
 
     $scope.tempBlacklist = ["chat", "video_conference", "trunks"];
 
@@ -53,6 +314,9 @@ angular.module('nethvoiceWizardUiApp')
       $scope.view.changeRoute = reload;
       ProfileService.allProfiles().then(function (res) {
         $scope.allProfiles = res.data;
+        for (var profileIdx = 0; profileIdx < $scope.allProfiles.length; profileIdx++) {
+          $scope.normalizeProfilePhonebookPermissions($scope.allProfiles[profileIdx]);
+        }
         $scope.getAllGroups();
         $scope.view.changeRoute = false;
       }, function (err) {

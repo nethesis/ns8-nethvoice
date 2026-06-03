@@ -11,6 +11,15 @@ angular.module('nethvoiceWizardUiApp')
   .controller('UsersGroupsCtrl', function ($scope, ProfileService) {
     $scope.allGroups = [];
 
+    $scope.sanitizeGroupName = function (group) {
+      if (!group || typeof group.name !== 'string') {
+        return group;
+      }
+
+      group.name = group.name.replace(/[^a-zA-Z0-9]/g, '');
+      return group;
+    };
+
     $scope.getAllGroups = function (reload) {
       $scope.view.changeRoute = reload;
       ProfileService.allGroups().then(function (res) {
@@ -23,6 +32,7 @@ angular.module('nethvoiceWizardUiApp')
     };
 
     $scope.saveGroup = function (group) {
+      group = $scope.sanitizeGroupName(group);
       group.onSave = true;
       ProfileService.createGroup(group).then(function (res) {
         group.onSave = false;

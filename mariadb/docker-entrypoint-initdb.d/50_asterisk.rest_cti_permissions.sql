@@ -10,7 +10,7 @@ INSERT INTO `rest_cti_permissions` (`id`,`name`,`displayname`,`description`) VAL
 (6,"parkings","Parkings","View parkings state and pickup parked calls"),
 (8,"chat","Chat","Use chat service"),
 (9,"privacy","Privacy","Obfuscate called and caller numbers for other users"),
-(12,"ad_phonebook","Advanced Phonebook","Modify and delete all contacts"),
+(12,"ad_phonebook","Advanced Phonebook","Read and write all contacts"),
 (13,"ad_cdr","PBX CDR","View all users call history"),
 (15,"spy","Spy","Hear other extensions calls"),
 (16,"intrude","Intrude","Intrude in calls"),

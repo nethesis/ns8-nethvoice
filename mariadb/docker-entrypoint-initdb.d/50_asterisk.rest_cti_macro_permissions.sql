@@ -4,7 +4,7 @@
 USE `asterisk`;
 INSERT INTO `rest_cti_macro_permissions` (`id`,`name`,`displayname`,`description`) VALUES
 (1,"settings","Settings","General and notifications settings"),
-(2,"phonebook","Phonebook","View Phonebook, add contacts, modify and delete own contacts"),
+(2,"phonebook","Phonebook","View Phonebook (read only)"),
 (3,"cdr","CDR","View own call history"),
 (4,"customer_card","Customer Card","Allow to view Customer Cards"),
 (5,"presence_panel","Presence Panel","Allow to view Presence Panel"),

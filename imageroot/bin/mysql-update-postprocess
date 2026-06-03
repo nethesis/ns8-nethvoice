@@ -41,6 +41,7 @@ fi
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_fias.messagesparameters-schema.sql
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_fias.reservations-schema.sql
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" -e "GRANT ALL on fias.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'"
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" phonebook -e 'CREATE TABLE IF NOT EXISTS `sync_metadata` (`scope` varchar(255) NOT NULL, `last_sync_at` datetime DEFAULT NULL, PRIMARY KEY (`scope`)) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" -e "INSERT IGNORE INTO \`asterisk\`.\`admin\` (\`variable\`, \`value\`) VALUES ('NETHVOICE_HOST','')"
 # VoIP Providers
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'TRUNCATE TABLE `providers`'

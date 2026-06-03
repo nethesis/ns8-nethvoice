@@ -1,5 +1,46 @@
 #!/bin/sh
 
+set -e
+
+update_last_sync_at() {
+        python3 <<'PY'
+import os
+
+import mysql.connector
+
+
+connection = mysql.connector.connect(
+        host=os.environ["PHONEBOOK_DB_HOST"],
+        port=int(os.environ["PHONEBOOK_DB_PORT"]),
+        user=os.environ["PHONEBOOK_DB_USER"],
+        password=os.environ["PHONEBOOK_DB_PASS"],
+        database=os.environ["PHONEBOOK_DB_NAME"],
+)
+
+cursor = connection.cursor()
+cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS sync_metadata (
+                scope varchar(255) NOT NULL,
+                last_sync_at datetime DEFAULT NULL,
+                PRIMARY KEY (scope)
+        ) ENGINE=MyISAM DEFAULT CHARSET=utf8
+        """
+)
+cursor.execute(
+        """
+        INSERT INTO sync_metadata (scope, last_sync_at)
+        VALUES (%s, UTC_TIMESTAMP())
+        ON DUPLICATE KEY UPDATE last_sync_at = UTC_TIMESTAMP()
+        """,
+        ("centralized_phonebook",),
+)
+connection.commit()
+cursor.close()
+connection.close()
+PY
+}
+
 # Publish all configured phonebook into one phonebook
 
 # empty phonebook table
@@ -15,21 +56,29 @@
 /usr/share/phonebooks/nethvoice_extensions_export.php
 
 # Load custom phonebooks
-for CUSTOM in $(find /etc/phonebook/sources.d/ -type f -name *.json); do
-        /usr/share/phonebooks/phonebook-import ${CUSTOM}
-done
+if [ -d /etc/phonebook/sources.d ]; then
+        for CUSTOM in $(find /etc/phonebook/sources.d/ -type f -name '*.json'); do
+                /usr/share/phonebooks/phonebook-import --skip-sync-metadata-update ${CUSTOM}
+        done
+fi
 
 # Execute all custom scripts
-for i in $(find /usr/share/phonebooks/scripts/); do
-        if [ -f $i ] && [ -x $i ]; then
-                $i
-        fi
-done
+if [ -d /usr/share/phonebooks/scripts ]; then
+        for i in $(find /usr/share/phonebooks/scripts/); do
+                if [ -f "$i" ] && [ -x "$i" ]; then
+                        "$i"
+                fi
+        done
+fi
 
 # Execute all custom post scripts
-for i in $(find /usr/share/phonebooks/post_scripts/); do
-        if [ -f $i ] && [ -x $i ]; then
-                $i
-        fi
-done
+if [ -d /usr/share/phonebooks/post_scripts ]; then
+        for i in $(find /usr/share/phonebooks/post_scripts/); do
+                if [ -f "$i" ] && [ -x "$i" ]; then
+                        "$i"
+                fi
+        done
+fi
+
+update_last_sync_at
 
