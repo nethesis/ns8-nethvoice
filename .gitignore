@@ -6,3 +6,8 @@ NS8-MODULE.md
 .github/agents/
 COMPONENTS.md
 freepbx/usr/share/phonebooks/__pycache__/
+Containerfile
+deploys.sh
+DEVELOPMENT.md
+__pycache__/
+*.pyc
