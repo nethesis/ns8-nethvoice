@@ -1,1 +1,9 @@
-{}
+{
+	"settings": {
+		"openai_api_key_pattern": "Format de clé API non valide"
+	},
+	"integrations": {
+		"openai_api_key": "Clé API OpenAI",
+		"openai_api_key_tooltip": "Pour utiliser les résumés des appels et des messages vocaux, vous avez besoin d'une clé API OpenAI. Vous pouvez en obtenir une depuis {openaiLink}."
+	}
+}
