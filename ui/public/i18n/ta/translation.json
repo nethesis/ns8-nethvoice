@@ -15,7 +15,8 @@
   "settings": {
     "save": "சேமி",
     "title": "அமைப்புகள்",
-    "configure_instance": "{instance} ஐ உள்ளமை"
+    "configure_instance": "{instance} ஐ உள்ளமை",
+    "openai_api_key_pattern": "தவறான API விசை வடிவம்"
   },
   "action": {
     "get-status": "அந்தச்தைப் பெறுங்கள்",
@@ -60,5 +61,9 @@
   },
   "task": {
     "cannot_create_task": "பணி {action} ஐ உருவாக்க முடியாது"
+  },
+  "integrations": {
+    "openai_api_key": "OpenAI API விசை",
+    "openai_api_key_tooltip": "அழைப்பு மற்றும் குரல் அஞ்சல் சுருக்கங்களை பயன்படுத்த, OpenAI API விசை தேவை. அதை {openaiLink} இல் பெறலாம்."
   }
 }

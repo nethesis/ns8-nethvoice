@@ -18,7 +18,8 @@
     "reports_prefix_invalid": "Ongeldige opmaak",
     "nethvoice_host_format": "Moet een geldige domeinnaam zijn.",
     "reports_international_prefix": "Prefix rapporten",
-    "timezone_tooltip": "Zet de tijdzone voor de huidige NethVoice installatie"
+    "timezone_tooltip": "Zet de tijdzone voor de huidige NethVoice installatie",
+    "openai_api_key_pattern": "Ongeldig API-sleutelformaat"
   },
   "common": {
     "required": "Vereist",
@@ -72,5 +73,9 @@
   },
   "task": {
     "cannot_create_task": "Kan taak {actie} niet aanmaken"
+  },
+  "integrations": {
+    "openai_api_key": "OpenAI API-sleutel",
+    "openai_api_key_tooltip": "Om gespreks- en voicemailsamenvattingen te gebruiken, heb je een OpenAI API-sleutel nodig. Je kunt die verkrijgen via {openaiLink}."
   }
 }

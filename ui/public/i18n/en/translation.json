@@ -80,6 +80,7 @@
     "admin_password": "Admin password to access user interface",
     "confirm_admin_password": "Confirm admin password",
     "deepgram_api_key_pattern": "Invalid API Key format",
+    "openai_api_key_pattern": "Invalid API Key format",
     "request_le_certificates": "Request Let's Encrypt certificates",
     "request_le_certificates_tooltip": "Requests Let's Encrypt TLS certificates automatically for @:settings.nethvoice_host and @:(settings.nethcti_ui_host). Disabling this option deletes the existing certificates (if any). You can also view or delete them in Cluster settings > TLS certificates.",
     "general": "General",
@@ -182,11 +183,13 @@
   "integrations": {
     "title": "Integrations",
     "deepgram_api_key": "Deepgram API Key",
+    "openai_api_key": "OpenAI API Key",
     "call_transcription": "Call transcription (Preview)",
     "voicemail_transcription_enabled": "Voicemail transcription",
     "call_transcription_warning_title": "Potential high credit usage",
     "call_transcription_warning_description": "Transcriptions are enabled for every call. Your Deepgram credits may run out quickly if you have many calls.",
-    "deepgram_api_key_tooltip": "To use call and voicemail transcription, you need a Deepgram API key. You can get one by signing up at {deepgramLink}."
+    "deepgram_api_key_tooltip": "To use call and voicemail transcription, you need a Deepgram API key. You can get one by signing up at {deepgramLink}.",
+    "openai_api_key_tooltip": "To use call and voicemail summaries, you need an OpenAI API key. You can get one from {openaiLink}."
   },
   "rebranding": {
     "title": "Rebranding",

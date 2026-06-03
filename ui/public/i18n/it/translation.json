@@ -79,6 +79,7 @@
     "admin_password": "Password di amministrazione per accedere all'interfaccia utente",
     "confirm_admin_password": "Conferma la password di amministrazione",
     "deepgram_api_key_pattern": "Formato API Key non valido",
+    "openai_api_key_pattern": "Formato API Key non valido",
     "request_le_certificates": "Richiedi certificati Let's Encrypt",
     "request_le_certificates_tooltip": "Richiede automaticamente i certificati TLS Let's Encrypt per @:settings.nethvoice_host e @:(settings.nethcti_ui_host). Disabilitando questa opzione i certificati esistenti (se presenti) verranno eliminati. Puoi anche visualizzarli o eliminarli in Impostazioni cluster > Certificati TLS.",
     "general": "Generale",
@@ -132,11 +133,13 @@
   "integrations": {
     "title": "Integrazioni",
     "deepgram_api_key": "API Key di Deepgram",
+    "openai_api_key": "API Key OpenAI",
     "call_transcription": "Trascrizione delle chiamate (Anteprima)",
     "voicemail_transcription_enabled": "Trascrizione dei messaggi voicemail",
     "call_transcription_warning_title": "Possibile consumo elevato di crediti",
     "call_transcription_warning_description": "Le trascrizioni sono abilitate per ogni chiamata. I tuoi crediti Deepgram potrebbero esaurirsi rapidamente se effettui o ricevi molte chiamate.",
-    "deepgram_api_key_tooltip": "Per utilizzare la trascrizione delle chiamate e dei messaggi vocali, è necessaria una API Key Deepgram. Puoi ottenerne una registrandoti su {deepgramLink}."
+    "deepgram_api_key_tooltip": "Per utilizzare la trascrizione delle chiamate e dei messaggi vocali, è necessaria una API Key Deepgram. Puoi ottenerne una registrandoti su {deepgramLink}.",
+    "openai_api_key_tooltip": "Per utilizzare i riassunti delle chiamate e dei messaggi vocali, è necessaria una API Key OpenAI. Puoi ottenerla da {openaiLink}."
   },
   "rebranding": {
     "title": "Rebranding",
