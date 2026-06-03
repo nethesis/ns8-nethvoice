@@ -5,3 +5,4 @@ AGENTS.md
 NS8-MODULE.md
 .github/agents/
 COMPONENTS.md
+freepbx/usr/share/phonebooks/__pycache__/
