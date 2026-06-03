@@ -6,7 +6,7 @@
 
 <div id="loginTpl">
   <!-- login card -->
-  <div class="flex flex-1 h-screen" ng-controller="LoginCtrl">
+  <div class="flex flex-1 h-screen wizard-login" ng-controller="LoginCtrl">
     <div
       ng-class="!isDarkTheme ? 'lg:bg-gray-200' : 'lg:bg-gray-950'"
       class="flex flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-24"
@@ -28,11 +28,10 @@
                 >
                   {{'Welcome' | translate}}
                 </h1>
-
                 <span
                   ng-class="!isDarkTheme ? 'text-gray-700' : 'text-gray-200'"
                   class="text-sm-edited font-medium leading-5"
-                  >{{'Sign in to Nethvoice' | translate}}</span
+                  >{{'Sign in to' | translate}} Admin</span
                 >
                 <!-- Error alert -->
                 <div
@@ -139,11 +138,16 @@
         </div>
       </div>
     </div>
-    <div class="relative flex-1 hideBrand">
+    <div class="relative flex-1 hideBrand wizard-login-stage">
       <img
-        class="absolute inset-0 mx-auto my-auto"
-        src="images/brand.svg"
+        ng-src="{{loginBackgroundUrl()}}"
         alt=""
+        class="wizard-login-stage-background"
+      />
+      <img
+        ng-src="{{loginLogoUrl()}}"
+        alt=""
+        class="wizard-login-stage-logo"
       />
     </div>
   </div>
