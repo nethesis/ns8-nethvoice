@@ -3,7 +3,7 @@
 FROM docker.io/library/alpine:3.17.10 as repofetcher
 WORKDIR /app
 RUN apk add --no-cache git
-ARG NETHVOICE_REPORT_COMMIT=937040750d7df43a4719fe09a917e940b6cb15bf
+ARG NETHVOICE_REPORT_COMMIT=918bcb41439ec44daa70473b75aacf2ec70bb7c0
 RUN git clone https://github.com/nethesis/nethvoice-report \
     && cd nethvoice-report \
     && git checkout $NETHVOICE_REPORT_COMMIT
@@ -28,7 +28,7 @@ RUN rm public/config/config.production.js \
     && npm run build
 
 # From build, copy content in nginx container
-FROM docker.io/library/nginx:1.29.8-alpine as ui-production
+FROM docker.io/library/nginx:1.30.1-alpine as ui-production
 COPY --from=node_build /app/dist /var/www/html/pbx-report
 # Adding production scripts
 COPY ui/config-gen.sh /docker-entrypoint.d/99-config-gen.sh

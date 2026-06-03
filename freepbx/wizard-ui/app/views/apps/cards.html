@@ -41,7 +41,7 @@
       <strong>{{'Source not saved' | translate}}.</strong> {{'Source saving error' | translate}}
     </div>
     <div ng-if="!(allSources | isEmpty)" class="row row-cards-pf adjust-card">
-      <div ng-repeat="g in (allSources | orderBy:'name') track by $index" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+      <div ng-repeat="g in allSources track by $index | orderBy:'name'" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
         <div id="accordion-markup-{{g.id}}" class="card-pf">
           <div data-toggle="collapse" data-parent="#accordion-markup-{{g.id}}" href="#collapse-{{g.id}}">
             <h2 class="card-pf-title pointer">
@@ -113,7 +113,7 @@
       <strong>{{'Template not saved' | translate}}.</strong> {{'Template saving error' | translate}}
     </div>
     <div ng-if="!(allTemplates | isEmpty)" class="row row-cards-pf adjust-card">
-      <div ng-repeat="g in (allTemplates | orderBy:'-name') track by $index" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+      <div ng-repeat="g in allTemplates track by $index | orderBy:'-name'" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
         <div id="accordion-template-{{$index}}" class="card-pf">
           <h2 class="card-pf-title">
             <span class="pficon pficon-blueprint"></span> {{g.name}}
@@ -194,7 +194,7 @@
       <strong>{{'Card not saved' | translate}}.</strong> {{'Card saving error' | translate}}
     </div>
     <div ng-if="!(allCards | isEmpty)" class="row row-cards-pf adjust-card">
-      <div ng-repeat="g in (allCards | orderBy:'name') track by $index" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+      <div ng-repeat="g in allCards track by $index | orderBy:'name'" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
         <div class="card-pf">
           <h2 class="card-pf-title">
             <span class="fa fa-calendar-o"></span> {{g.name}}
