@@ -328,6 +328,20 @@ class SatelliteAgent
     }
 
     public function renderDialplan($ext) {
+        $context = 'satellite-agent';
+        $sql = 'SELECT `w`.`uuid` FROM `satellite_agent_workflows` `w` INNER JOIN `satellite_agent_destinations` `d` ON `d`.`workflow_uuid` = `w`.`uuid` WHERE `w`.`enabled` = 1 AND `d`.`enabled` = 1 ORDER BY `d`.`description`, `d`.`id`';
+        $rows = $this->fetchAll($sql);
+        foreach ($rows as $row) {
+            $workflowUuid = $this->validateUuid($row['uuid'], 'workflow_uuid');
+            $ext->add($context, $workflowUuid, '', new \ext_noop('Satellite Agent workflow ' . $workflowUuid));
+            $ext->add($context, $workflowUuid, '', new \ext_set('__SATELLITE_AGENT_WORKFLOW', $workflowUuid));
+            $ext->add($context, $workflowUuid, '', new \ext_set('PJSIP_HEADER(add,X-NethVoice-Agent-Workflow)', $workflowUuid));
+            $ext->add($context, $workflowUuid, '', new \ext_set('PJSIP_HEADER(add,X-NethVoice-Uniqueid)', '${UNIQUEID}'));
+            $ext->add($context, $workflowUuid, '', new \ext_set('PJSIP_HEADER(add,X-NethVoice-Linkedid)', '${CHANNEL(linkedid)}'));
+            $ext->add($context, $workflowUuid, '', new \ext_set('PJSIP_HEADER(add,X-NethVoice-Caller)', '${CALLERID(num)}'));
+            $ext->add($context, $workflowUuid, '', new \ext_dial('PJSIP/${OPENAI_PROJECT_ID}@openai-realtime', '60'));
+            $ext->add($context, $workflowUuid, '', new \ext_hangup());
+        }
     }
 
     public function exportRuntimeWorkflow($workflowUuid) {

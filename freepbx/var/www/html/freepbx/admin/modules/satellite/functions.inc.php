@@ -10,6 +10,9 @@ function satellite_get_config_late($engine) {
     global $db;
     switch($engine) {
         case "asterisk":
+        $agent = \FreePBX::Satellite()->agent();
+        $agent->renderDialplan($ext);
+
         /* satellite STT real time Transcriptions*/
         if (!empty($_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED']) && $_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED'] == 'True') {
             $satellite_mixmonitor_options = 'br(/var/run/nethvoice/satellite-r-${UNIQUEID}-${CHANNEL(linkedid)}.wav)t(/var/run/nethvoice/satellite-t-${UNIQUEID}-${CHANNEL(linkedid)}.wav)i(${SATELLITE_LOCAL_MIXMON_ID})';
