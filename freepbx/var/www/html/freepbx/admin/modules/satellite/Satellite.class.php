@@ -19,6 +19,8 @@
 # along with NethServer.  If not, see COPYING.
 #
 
+require_once __DIR__ . '/SatelliteAgent.class.php';
+
 class Satellite extends \FreePBX_Helpers implements \BMO
 {
     public function __construct($freepbx = null) {
@@ -27,15 +29,26 @@ class Satellite extends \FreePBX_Helpers implements \BMO
 
         $this->FreePBX = $freepbx;
         $this->db = $freepbx->Database;
+        $this->Agent = new SatelliteAgent($freepbx);
     }
 
     public function install() {
+        $this->Agent->install();
     }
     public function uninstall() {
+        $this->Agent->uninstall();
     }
     public function backup() {
+        return array('agent' => $this->Agent->backup());
     }
     public function restore($backup) {
+        if (is_array($backup) && isset($backup['agent'])) {
+            $this->Agent->restore($backup['agent']);
+        }
+    }
+
+    public function agent() {
+        return $this->Agent;
     }
 
     public function get_available_voices() {
