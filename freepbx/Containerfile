@@ -365,7 +365,7 @@ RUN install_module() { \
 	install_module sipsettings https://github.com/FreePBX/sipsettings/archive/refs/tags/release/16.0.27.tar.gz && \
 	install_module soundlang https://github.com/FreePBX/soundlang/archive/refs/tags/release/16.0.9.tar.gz && \
 	install_module timeconditions https://github.com/FreePBX/timeconditions/archive/refs/tags/release/16.0.11.tar.gz && \
-	install_module userman https://github.com/FreePBX/userman/archive/refs/tags/release/16.0.44.20.tar.gz && \
+	install_module userman https://github.com/FreePBX/userman/archive/refs/tags/release/16.0.45.tar.gz && \
 	install_module vmblast https://github.com/FreePBX/vmblast/archive/refs/tags/release/16.0.11.tar.gz && \
 	install_module bosssecretary https://github.com/nethesis/freepbx-bosssecretary/archive/refs/tags/1.0.1.tar.gz && \
 	mkdir -p /var/www/html/freepbx/admin/modules/core && \
