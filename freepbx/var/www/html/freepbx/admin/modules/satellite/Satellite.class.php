@@ -51,6 +51,10 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         return $this->Agent;
     }
 
+    public function destinations() {
+        return $this->Agent->destinations();
+    }
+
     public function get_available_voices() {
         $satellitePort = getenv('SATELLITE_HTTP_PORT') ?: '8080';
         $satelliteToken = getenv('SATELLITE_API_TOKEN') ?: '';
