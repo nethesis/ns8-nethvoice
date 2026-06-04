@@ -59,6 +59,33 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         return $this->Agent->exportRuntimeWorkflow($workflowUuid);
     }
 
+    public function ajaxRequest($req, &$setting) {
+        switch ($req) {
+            case 'agent':
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    public function ajaxHandler() {
+        if (!isset($_REQUEST['command']) || $_REQUEST['command'] !== 'agent') {
+            return false;
+        }
+
+        try {
+            return array(
+                'status' => true,
+                'data' => $this->handleAgentAjax($this->agentAjaxPayload()),
+            );
+        } catch (\Exception $exception) {
+            return array(
+                'status' => false,
+                'error' => $exception->getMessage(),
+            );
+        }
+    }
+
     public function get_available_voices() {
         $satellitePort = getenv('SATELLITE_HTTP_PORT') ?: '8080';
         $satelliteToken = getenv('SATELLITE_API_TOKEN') ?: '';
@@ -295,6 +322,228 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         }
 
         return false;
+    }
+
+    private function handleAgentAjax(array $payload) {
+        $action = $this->agentAjaxString($payload, 'action');
+        switch ($action) {
+            case 'node-list':
+                return $this->Agent->listNodes(
+                    $this->agentAjaxOptionalString($payload, 'type'),
+                    $this->agentAjaxOptionalEnabled($payload)
+                );
+            case 'node-get':
+                return $this->agentAjaxFound($this->Agent->getNode($this->agentAjaxString($payload, 'uuid')), 'Satellite Agent node not found');
+            case 'node-create':
+                return $this->Agent->createNode(
+                    $this->agentAjaxString($payload, 'name'),
+                    $this->agentAjaxString($payload, 'type'),
+                    $this->agentAjaxArray($payload, 'json')
+                );
+            case 'node-update':
+                return $this->Agent->updateNode(
+                    $this->agentAjaxString($payload, 'uuid'),
+                    $this->agentAjaxArray($payload, 'json')
+                );
+            case 'node-delete':
+                $this->Agent->deleteNode($this->agentAjaxString($payload, 'uuid'));
+                return true;
+            case 'workflow-list':
+                return $this->Agent->listWorkflows($this->agentAjaxOptionalEnabled($payload));
+            case 'workflow-get':
+                return $this->agentAjaxFound(
+                    $this->Agent->getWorkflow($this->agentAjaxWorkflowUuid($payload), $this->agentAjaxBool($payload, 'expand_nodes', false, array('expandNodes'))),
+                    'Satellite Agent workflow not found'
+                );
+            case 'workflow-create':
+                $graph = $this->agentAjaxArray($payload, 'graph_json', array('graphJson', 'graph'));
+                return $this->Agent->createWorkflow(
+                    $this->agentAjaxString($payload, 'name'),
+                    $this->agentAjaxWorkflowEntryNode($payload, $graph),
+                    $graph,
+                    $this->agentAjaxOptionalString($payload, 'description', '')
+                );
+            case 'workflow-update':
+                return $this->Agent->updateWorkflow(
+                    $this->agentAjaxWorkflowUuid($payload),
+                    $this->agentAjaxArray($payload, 'graph_json', array('graphJson', 'graph'))
+                );
+            case 'workflow-delete':
+                $this->Agent->deleteWorkflow($this->agentAjaxWorkflowUuid($payload));
+                return true;
+            case 'destination-list':
+                return $this->Agent->listDestinations($this->agentAjaxOptionalEnabled($payload));
+            case 'destination-create':
+                return $this->Agent->createDestination(
+                    $this->agentAjaxWorkflowUuid($payload),
+                    $this->agentAjaxString($payload, 'description')
+                );
+            case 'destination-update':
+                return $this->Agent->updateDestination(
+                    $this->agentAjaxWorkflowUuid($payload),
+                    $this->agentAjaxString($payload, 'description'),
+                    $this->agentAjaxBool($payload, 'enabled', true)
+                );
+            case 'destination-enable':
+                return $this->setAgentDestinationEnabled($payload, true);
+            case 'destination-disable':
+                return $this->setAgentDestinationEnabled($payload, false);
+            case 'destination-delete':
+                $this->Agent->deleteDestination($this->agentAjaxWorkflowUuid($payload));
+                return true;
+            case 'destinations':
+                return $this->Agent->destinations();
+            case 'runtime-export':
+                return $this->Agent->exportRuntimeWorkflow($this->agentAjaxWorkflowUuid($payload));
+            default:
+                throw new \Exception('Invalid Satellite Agent action');
+        }
+    }
+
+    private function agentAjaxPayload() {
+        $payload = $_REQUEST;
+        $rawPayload = file_get_contents('php://input');
+        if (is_string($rawPayload) && trim($rawPayload) !== '') {
+            $decodedPayload = json_decode($rawPayload, true);
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($decodedPayload)) {
+                throw new \Exception('Invalid JSON request body: ' . json_last_error_msg());
+            }
+            $payload = array_merge($payload, $decodedPayload);
+        }
+        if (isset($payload['payload'])) {
+            if (is_string($payload['payload'])) {
+                $decodedPayload = json_decode($payload['payload'], true);
+                if (json_last_error() !== JSON_ERROR_NONE || !is_array($decodedPayload)) {
+                    throw new \Exception('Invalid JSON payload: ' . json_last_error_msg());
+                }
+                $payload = array_merge($payload, $decodedPayload);
+            } elseif (is_array($payload['payload'])) {
+                $payload = array_merge($payload, $payload['payload']);
+            } else {
+                throw new \Exception('Invalid payload');
+            }
+        }
+
+        return $payload;
+    }
+
+    private function agentAjaxValue(array $payload, $field, array $aliases = array()) {
+        $fields = array_merge(array($field), $aliases);
+        foreach ($fields as $candidate) {
+            if (array_key_exists($candidate, $payload)) {
+                return $payload[$candidate];
+            }
+        }
+
+        return null;
+    }
+
+    private function agentAjaxString(array $payload, $field, array $aliases = array()) {
+        $value = $this->agentAjaxValue($payload, $field, $aliases);
+        if (!is_string($value)) {
+            throw new \Exception('Missing or invalid field: ' . $field);
+        }
+        $value = trim($value);
+        if ($value === '') {
+            throw new \Exception('Missing or invalid field: ' . $field);
+        }
+
+        return $value;
+    }
+
+    private function agentAjaxOptionalString(array $payload, $field, $default = null, array $aliases = array()) {
+        $value = $this->agentAjaxValue($payload, $field, $aliases);
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        if (!is_string($value)) {
+            throw new \Exception('Invalid field: ' . $field);
+        }
+
+        return trim($value);
+    }
+
+    private function agentAjaxArray(array $payload, $field, array $aliases = array()) {
+        $value = $this->agentAjaxValue($payload, $field, $aliases);
+        if (is_array($value)) {
+            return $value;
+        }
+        if (is_string($value) && trim($value) !== '') {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+            throw new \Exception('Invalid JSON field: ' . $field . ' (' . json_last_error_msg() . ')');
+        }
+
+        throw new \Exception('Missing or invalid JSON field: ' . $field);
+    }
+
+    private function agentAjaxBool(array $payload, $field, $default = false, array $aliases = array()) {
+        $value = $this->agentAjaxValue($payload, $field, $aliases);
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        if (is_bool($value)) {
+            return $value;
+        }
+        if ($value === 0 || $value === 1 || $value === '0' || $value === '1') {
+            return (bool) $value;
+        }
+        if (is_string($value)) {
+            $value = strtolower(trim($value));
+            if ($value === 'true') {
+                return true;
+            }
+            if ($value === 'false') {
+                return false;
+            }
+        }
+
+        throw new \Exception('Invalid boolean field: ' . $field);
+    }
+
+    private function agentAjaxOptionalEnabled(array $payload) {
+        if ($this->agentAjaxValue($payload, 'enabled') === null) {
+            return null;
+        }
+
+        return $this->agentAjaxBool($payload, 'enabled');
+    }
+
+    private function agentAjaxWorkflowUuid(array $payload) {
+        return $this->agentAjaxString($payload, 'workflow_uuid', array('workflowUuid', 'uuid'));
+    }
+
+    private function agentAjaxWorkflowEntryNode(array $payload, array $graph) {
+        $entryNodeUuid = $this->agentAjaxOptionalString($payload, 'entry_node_uuid', null, array('entryNodeUuid'));
+        if ($entryNodeUuid !== null) {
+            return $entryNodeUuid;
+        }
+        if (isset($graph['entry']) && is_string($graph['entry']) && trim($graph['entry']) !== '') {
+            return trim($graph['entry']);
+        }
+
+        throw new \Exception('Missing or invalid field: entry_node_uuid');
+    }
+
+    private function agentAjaxFound($value, $message) {
+        if ($value === null) {
+            throw new \Exception($message);
+        }
+
+        return $value;
+    }
+
+    private function setAgentDestinationEnabled(array $payload, $enabled) {
+        $workflowUuid = $this->agentAjaxWorkflowUuid($payload);
+        foreach ($this->Agent->listDestinations() as $destination) {
+            if (isset($destination['workflow_uuid']) && $destination['workflow_uuid'] === $workflowUuid) {
+                return $this->Agent->updateDestination($workflowUuid, $destination['description'], $enabled);
+            }
+        }
+
+        throw new \Exception('Satellite Agent destination not found');
     }
 
 
