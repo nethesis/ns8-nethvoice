@@ -346,14 +346,17 @@ class SatelliteAgent
 
     public function exportRuntimeWorkflow($workflowUuid) {
         $workflowUuid = $this->validateUuid($workflowUuid, 'workflow_uuid');
-        $workflow = $this->getWorkflow($workflowUuid, true);
+        $workflow = $this->getWorkflow($workflowUuid);
         if ($workflow === null || (int) $workflow['enabled'] !== 1) {
             throw new \Exception('Satellite Agent workflow is not enabled');
         }
-        $this->validatedWorkflowGraph($workflow['graph_json']);
+        $graph = $this->validatedWorkflowGraph($workflow['graph_json']);
+        if ($workflow['entry_node_uuid'] !== $graph['entry']) {
+            throw new \Exception('Workflow entry node does not match graph entry');
+        }
 
         $nodes = array();
-        foreach ($workflow['nodes'] as $nodeUuid => $node) {
+        foreach ($this->expandWorkflowNodes($graph) as $nodeUuid => $node) {
             if ((int) $node['enabled'] !== 1) {
                 throw new \Exception('Satellite Agent workflow references a disabled node');
             }
@@ -370,7 +373,7 @@ class SatelliteAgent
             'workflow_uuid' => $workflow['uuid'],
             'name' => $workflow['name'],
             'entry_node_uuid' => $workflow['entry_node_uuid'],
-            'graph' => $workflow['graph_json'],
+            'graph' => $graph,
             'nodes' => $nodes,
         );
     }
