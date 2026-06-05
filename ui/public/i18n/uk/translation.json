@@ -20,7 +20,7 @@
     "user_domain": "Домен користувача",
     "create_nethvoice_adm": "Створіть NethVoice Administrator для керування користувачами",
     "set_nethvoice_adm_password": "Установіть пароль адміністратора NethVoice для керування користувачами",
-    "nethcti_ui_host_format": "Має бути дійсне доменне ім’я бути дійсним доменним ім’ям.",
+    "nethcti_ui_host_format": "Має бути дійсним доменним ім’ям.",
     "openai_api_key_pattern": "Недійсний формат ключа API"
   },
   "integrations": {
