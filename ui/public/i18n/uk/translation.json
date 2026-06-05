@@ -25,6 +25,6 @@
   },
   "integrations": {
     "openai_api_key": "Ключ API OpenAI",
-    "openai_api_key_tooltip": "Щоб використовувати підсумки дзвінків і голосової пошти, потрібен ключ API OpenAI. Ви можете отримати його на {openaiLink}."
+    "openai_api_key_tooltip": "Щоб використовувати підсумки дзвінків, потрібен ключ API OpenAI. Ви можете отримати його на {openaiLink}."
   }
 }
