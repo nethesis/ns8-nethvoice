@@ -64,6 +64,6 @@
   },
   "integrations": {
     "openai_api_key": "OpenAI API விசை",
-    "openai_api_key_tooltip": "அழைப்பு மற்றும் குரல் அஞ்சல் சுருக்கங்களை பயன்படுத்த, OpenAI API விசை தேவை. அதை {openaiLink} இல் பெறலாம்."
+    "openai_api_key_tooltip": "அழைப்பு சுருக்கங்களை பயன்படுத்த, OpenAI API விசை தேவை. அதை {openaiLink} இல் பெறலாம்."
   }
 }
