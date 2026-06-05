@@ -76,6 +76,6 @@
   },
   "integrations": {
     "openai_api_key": "OpenAI API-sleutel",
-    "openai_api_key_tooltip": "Om gespreks- en voicemailsamenvattingen te gebruiken, heb je een OpenAI API-sleutel nodig. Je kunt die verkrijgen via {openaiLink}."
+    "openai_api_key_tooltip": "Om gespreksamenvattingen te gebruiken, heb je een OpenAI API-sleutel nodig. Je kunt die verkrijgen via {openaiLink}."
   }
 }
