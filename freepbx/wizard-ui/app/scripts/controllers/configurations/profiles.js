@@ -194,6 +194,7 @@ angular.module('nethvoiceWizardUiApp')
           permissions[permissionIdx].level = level;
           permissions[permissionIdx].value =
             (level === 1 && permissions[permissionIdx].name === phonebookLevelPermissions[1]) ||
+            (level === 2 && permissions[permissionIdx].name === phonebookLevelPermissions[2]) ||
             (level === 2 && permissions[permissionIdx].name === phonebookLevelPermissions[3]);
         }
       }
@@ -218,6 +219,7 @@ angular.module('nethvoiceWizardUiApp')
         if ($scope.isPhonebookLevelPermission('phonebook', permissions[permissionIdx])) {
           permissions[permissionIdx].value =
             (nextLevel === 1 && permissions[permissionIdx].name === phonebookLevelPermissions[1]) ||
+            (nextLevel === 2 && permissions[permissionIdx].name === phonebookLevelPermissions[2]) ||
             (nextLevel === 2 && permissions[permissionIdx].name === phonebookLevelPermissions[3]);
           permissions[permissionIdx].level = nextLevel;
         }

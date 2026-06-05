@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 update_last_sync_at() {
         python3 <<'PY'
 import os
@@ -41,41 +39,47 @@ connection.close()
 PY
 }
 
+run_phonebook_step() {
+        if ! "$@"; then
+                logger -t phonebook "warning: step failed, continuing: $*"
+        fi
+}
+
 # Publish all configured phonebook into one phonebook
 
 # empty phonebook table
-/usr/share/phonebooks/clean.php
+run_phonebook_step /usr/share/phonebooks/clean.php
 
 # Export nethcti phonebook if requested
-/usr/share/phonebooks/nethcti_export.php
+run_phonebook_step /usr/share/phonebooks/nethcti_export.php
 
 # Export nethvoice speeddial if requested
-/usr/share/phonebooks/speeddial_and_rapidcode_export.php
+run_phonebook_step /usr/share/phonebooks/speeddial_and_rapidcode_export.php
 
 # Export nethvoice extensions
-/usr/share/phonebooks/nethvoice_extensions_export.php
+run_phonebook_step /usr/share/phonebooks/nethvoice_extensions_export.php
 
 # Load custom phonebooks
 if [ -d /etc/phonebook/sources.d ]; then
-        for CUSTOM in $(find /etc/phonebook/sources.d/ -type f -name '*.json'); do
-                /usr/share/phonebooks/phonebook-import --skip-sync-metadata-update ${CUSTOM}
+        find /etc/phonebook/sources.d/ -type f -name '*.json' | while IFS= read -r CUSTOM; do
+                run_phonebook_step /usr/share/phonebooks/phonebook-import --skip-sync-metadata-update "${CUSTOM}"
         done
 fi
 
 # Execute all custom scripts
 if [ -d /usr/share/phonebooks/scripts ]; then
-        for i in $(find /usr/share/phonebooks/scripts/); do
+        find /usr/share/phonebooks/scripts/ | while IFS= read -r i; do
                 if [ -f "$i" ] && [ -x "$i" ]; then
-                        "$i"
+                        run_phonebook_step "$i"
                 fi
         done
 fi
 
 # Execute all custom post scripts
 if [ -d /usr/share/phonebooks/post_scripts ]; then
-        for i in $(find /usr/share/phonebooks/post_scripts/); do
+        find /usr/share/phonebooks/post_scripts/ | while IFS= read -r i; do
                 if [ -f "$i" ] && [ -x "$i" ]; then
-                        "$i"
+                        run_phonebook_step "$i"
                 fi
         done
 fi
