@@ -83,7 +83,7 @@ function satellite_get_config_late($engine) {
 
             $ext->add($context, $exten, '', new ext_gotoif('$["${ARG3}" != "yes"]', 'return'));
             // check if there is a recording for this call already
-            $ext->add($context, $exten, '', new ext_gotoif('HASH(SATELLITE_ACTIVE_RECORDINGS,${UNIQUEID})!=""', 'return'));
+            $ext->add($context, $exten, '', new ext_gotoif('$["${HASH(SATELLITE_ACTIVE_RECORDINGS,${UNIQUEID})}" != ""]', 'return'));
 
             // start recording
             $ext->add($context, $exten, 'startrec', new ext_noop('satellite starting recording'));
