@@ -63,16 +63,13 @@ function main($argv) {
 
         $cdrRows = fetch_cdr_rows($cdrdb, $linkedid);
 
-        // Skip transcription for multi-party calls (transfer / conference).
-        // Such calls produce mixed audio across multiple participants on the
-        // single MixMonitor leg, which breaks both raw transcription and AI
-        // summary. Until the segmentation pipeline is robust for all
-        // transfer/conference topologies, we abort early and let the leg
-        // recordings be removed without ever calling the satellite API.
-        $multipartyReason = detect_multiparty_call($celRows, $cdrRows, $uniqueid);
-        if ($multipartyReason !== null) {
+        // Skip transcription for legs that ended in voicemail — they produce
+        // near-empty audio and no useful transcript. Transfers and conferences
+        // are transcribed via the segmentation pipeline below.
+        $voicemailReason = detect_voicemail_leg($cdrRows, $uniqueid);
+        if ($voicemailReason !== null) {
             log_message(
-                "Skipping transcription for multi-party call ($multipartyReason) for uniqueid $uniqueid and linkedid $linkedid",
+                "Skipping transcription for voicemail leg for uniqueid $uniqueid and linkedid $linkedid",
                 __FILE__,
                 __LINE__,
                 __FUNCTION__
@@ -250,54 +247,25 @@ function fetch_cdr_rows($cdrdb, $linkedid) {
 }
 
 /**
- * Detect whether the call associated with the given CEL/CDR rows is a
- * multi-party call (transfer or conference) that we want to skip.
+ * Detect whether the leg associated with the given CDR rows ended in
+ * voicemail, in which case we skip transcription.
  *
  * Returns:
- *  - null when the call is safe to transcribe (direct 2P call, or queue call
- *    that ends with a single answering agent — both have no transfer/conf
- *    markers).
- *  - a short human-readable reason string ('conference' or 'transfer') when
- *    the call must be skipped.
+ *  - 'voicemail' when the CDR row matching the current uniqueid has
+ *    lastapp = 'VoiceMail' (near-empty audio, no useful transcript).
+ *  - null otherwise (safe to transcribe).
  *
- * Detection rules:
- *  - Conference: any CDR row for this linkedid has lastapp = 'ConfBridge'.
- *  - Transfer:   any CEL row for this linkedid has eventtype in
- *                ('BLINDTRANSFER', 'ATTENDEDTRANSFER'). Asterisk emits these
- *                CEL events whenever a blind or attended transfer completes,
- *                so they are the most reliable indicators.
- *
- * Queue calls — even those where the queue tries several agents before one
- * picks up — do not produce ConfBridge in CDR nor BLIND/ATTENDED transfer
- * CEL events, so they are correctly classified as safe-to-transcribe.
+ * Only the CDR row matching the current uniqueid is checked, to avoid
+ * skipping the main call when a sibling transfer leg went to voicemail.
  */
-function detect_multiparty_call($celRows, $cdrRows, $uniqueid = null) {
+function detect_voicemail_leg($cdrRows, $uniqueid = null) {
     if (is_array($cdrRows)) {
         foreach ($cdrRows as $cdrRow) {
-            if (isset($cdrRow['lastapp']) && strcasecmp((string) $cdrRow['lastapp'], 'ConfBridge') === 0) {
-                return 'conference';
-            }
-            // Skip legs that ended in voicemail — they produce near-empty audio
-            // and no useful transcript. Only check the CDR row matching the
-            // current uniqueid to avoid skipping the main call when a sibling
-            // transfer leg went to voicemail.
             if ($uniqueid !== null
                 && isset($cdrRow['uniqueid']) && (string) $cdrRow['uniqueid'] === (string) $uniqueid
                 && isset($cdrRow['lastapp']) && strcasecmp((string) $cdrRow['lastapp'], 'VoiceMail') === 0
             ) {
                 return 'voicemail';
-            }
-        }
-    }
-
-    if (is_array($celRows)) {
-        foreach ($celRows as $celRow) {
-            if (!isset($celRow['eventtype'])) {
-                continue;
-            }
-            $eventType = (string) $celRow['eventtype'];
-            if ($eventType === 'BLINDTRANSFER' || $eventType === 'ATTENDEDTRANSFER') {
-                return 'transfer';
             }
         }
     }

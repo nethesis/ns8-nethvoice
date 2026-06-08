@@ -62,18 +62,17 @@ there is no current `satellite-recordcheck`, `stoprec`, or broader
   labels, coalesce adjacent transfer slices, render stereo WAVs, upload.
 - Transfer-sensitive logic lives mainly in `resolve_recording_context()`,
   `normalize_local_channel_segments()`, and `coalesce_adjacent_segments()`.
-- **Multi-party calls are silently skipped.** Before running the segmentation
-  pipeline the helper calls `detect_multiparty_call($celRows, $cdrRows)`. The
-  call is treated as multi-party (and no upload happens) when:
-  - any CDR row for the linkedid has `lastapp = 'ConfBridge'` (conference), or
-  - any CEL row for the linkedid has
-    `eventtype IN ('BLINDTRANSFER', 'ATTENDEDTRANSFER')` (transfer).
+- **Voicemail legs are silently skipped.** Before running the segmentation
+  pipeline the helper calls `detect_voicemail_leg($cdrRows, $uniqueid)`. The
+  leg is skipped (and no upload happens) when the CDR row matching the current
+  `uniqueid` has `lastapp = 'VoiceMail'` — voicemail audio is near-empty and
+  yields no useful transcript. Only the row matching the current uniqueid is
+  checked, so a sibling leg going to voicemail does not skip the main call.
   In that case the helper just logs the skip reason and falls through to the
   normal cleanup branch, so the leg WAVs are deleted and the satellite API is
-  never called. Queue calls (even with several agents tried) do not match
-  either marker, so they are still transcribed normally. This is a deliberate
-  release-time cap: until segmentation is fully reliable for all
-  transfer/conference topologies, we prefer no transcript over a wrong one.
+  never called. Transfers and conferences are transcribed via the segmentation
+  pipeline (transfer-segment handling lives in `resolve_recording_context()`,
+  `normalize_local_channel_segments()`, and `coalesce_adjacent_segments()`).
 - On success the helper deletes the original leg files and temporary segment
   files.
 - Debug logging is on by default unless `DEBUG` is `0`, `false`, `no`, or
