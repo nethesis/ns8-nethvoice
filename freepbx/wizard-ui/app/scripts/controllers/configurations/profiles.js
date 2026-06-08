@@ -171,15 +171,6 @@ angular.module('nethvoiceWizardUiApp')
       }
     };
 
-    $scope.normalizePhonebookPermission = function(permission) {
-      if (!permission) {
-        return;
-      }
-
-      var level = parseInt(permission.level, 10);
-      permission.level = isNaN(level) ? 2 : level;
-    };
-
     $scope.normalizeProfilePhonebookPermissions = function(profile) {
       if (!profile || !profile.macro_permissions || !profile.macro_permissions.phonebook) {
         return;
@@ -188,11 +179,13 @@ angular.module('nethvoiceWizardUiApp')
       var permissions = profile.macro_permissions.phonebook.permissions || [];
       profile.macro_permissions.phonebook.permissions = permissions;
       $scope.ensurePhonebookLevelPermissions(permissions);
+      var macroEnabled = profile.macro_permissions.phonebook.value === true;
       var level = $scope.getPhonebookPermissionLevel(permissions);
       for (var permissionIdx = 0; permissionIdx < permissions.length; permissionIdx++) {
         if ($scope.isPhonebookLevelPermission('phonebook', permissions[permissionIdx])) {
           permissions[permissionIdx].level = level;
           permissions[permissionIdx].value =
+            (macroEnabled && permissions[permissionIdx].name === phonebookLevelPermissions[0]) ||
             (level === 1 && permissions[permissionIdx].name === phonebookLevelPermissions[1]) ||
             (level === 2 && permissions[permissionIdx].name === phonebookLevelPermissions[2]) ||
             (level === 2 && permissions[permissionIdx].name === phonebookLevelPermissions[3]);
@@ -214,10 +207,13 @@ angular.module('nethvoiceWizardUiApp')
       }
 
       var nextLevel = permission.value === true ? selectedDefinition.value : 0;
+      var macroEnabled = !!(profile && profile.macro_permissions && profile.macro_permissions.phonebook &&
+        profile.macro_permissions.phonebook.value === true);
 
       for (var permissionIdx = 0; permissionIdx < permissions.length; permissionIdx++) {
         if ($scope.isPhonebookLevelPermission('phonebook', permissions[permissionIdx])) {
           permissions[permissionIdx].value =
+            (macroEnabled && permissions[permissionIdx].name === phonebookLevelPermissions[0]) ||
             (nextLevel === 1 && permissions[permissionIdx].name === phonebookLevelPermissions[1]) ||
             (nextLevel === 2 && permissions[permissionIdx].name === phonebookLevelPermissions[2]) ||
             (nextLevel === 2 && permissions[permissionIdx].name === phonebookLevelPermissions[3]);
