@@ -65,34 +65,6 @@
                   </i18n>
                 </template>
               </NsTextInput>
-              <NsTextInput
-                :label="$t('integrations.openai_api_key')"
-                v-model.trim="openaiApiKey"
-                :placeholder="
-                  $t('common.eg_value', {
-                    value: 'sk-proj-1234567890abcdef',
-                  })
-                "
-                :disabled="loading.setIntegrations"
-                :invalid-message="error.openai_api_key"
-                tooltipAlignment="end"
-                tooltipDirection="right"
-                ref="openai_api_key"
-              >
-                <template slot="tooltip">
-                  <i18n path="integrations.openai_api_key_tooltip" tag="span">
-                    <template #openaiLink>
-                      <cv-link
-                        href="https://platform.openai.com/api-keys"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        platform.openai.com
-                      </cv-link>
-                    </template>
-                  </i18n>
-                </template>
-              </NsTextInput>
               <template v-if="hasDeepgramApiKey">
                 <NsToggle
                   :label="$t('integrations.call_transcription')"
@@ -129,6 +101,34 @@
                     {{ $t("common.enabled") }}
                   </template>
                 </NsToggle>
+                <NsTextInput
+                  :label="$t('integrations.openai_api_key')"
+                  v-model.trim="openaiApiKey"
+                  :placeholder="
+                    $t('common.eg_value', {
+                      value: 'sk-proj-1234567890abcdef',
+                    })
+                  "
+                  :disabled="loading.setIntegrations"
+                  :invalid-message="error.openai_api_key"
+                  tooltipAlignment="end"
+                  tooltipDirection="right"
+                  ref="openai_api_key"
+                >
+                  <template slot="tooltip">
+                    <i18n path="integrations.openai_api_key_tooltip" tag="span">
+                      <template #openaiLink>
+                        <cv-link
+                          href="https://platform.openai.com/api-keys"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          platform.openai.com
+                        </cv-link>
+                      </template>
+                    </i18n>
+                  </template>
+                </NsTextInput>
                 <NsToggle
                   :label="$t('integrations.call_summary')"
                   value="isCallSummaryEnabled"
