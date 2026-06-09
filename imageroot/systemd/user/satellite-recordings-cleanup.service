@@ -2,7 +2,7 @@
 Description=Retry and delete failed satellite transcriptions recording
 
 [Service]
-Type=simple
+Type=oneshot
 ExecCondition=systemctl --user -q is-active mariadb.service && systemctl --user -q is-active freepbx.service 
 ExecStart=podman exec freepbx sh -c '\
 for file in $(find /var/run/nethvoice -name "satellite-r-*-*.wav" -cmin +10) ;\
@@ -15,6 +15,3 @@ find /var/run/nethvoice \( -name "satellite-r-*-*.wav" -o -name "satellite-t-*-*
 '
 
 SyslogIdentifier=%u/%N
-
-[Install]
-WantedBy=multi-user.target
