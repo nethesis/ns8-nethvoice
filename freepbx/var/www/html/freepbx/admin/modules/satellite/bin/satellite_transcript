@@ -1281,8 +1281,13 @@ function resolve_party($channel, $channelFacts, $usersByExtension, $cdr, $role) 
         $numCandidates[] = parse_extension_from_channel($cdr['dstchannel']);
         $numCandidates[] = $cdr['dst'];
     }
-    $numCandidates[] = isset($facts['accountcode']) ? $facts['accountcode'] : '';
+    // Prefer the channel's real caller-id number over the accountcode: on a
+    // trunk/external channel the accountcode is the originating extension (e.g.
+    // the transferor) while cid_num is the actual external party. For internal
+    // channels the parsed extension already wins, so this only affects the
+    // trunk fallback case.
     $numCandidates[] = isset($facts['cid_num']) ? $facts['cid_num'] : '';
+    $numCandidates[] = isset($facts['accountcode']) ? $facts['accountcode'] : '';
     $numCandidates[] = isset($facts['exten']) ? $facts['exten'] : '';
     $numCandidates[] = isset($facts['cdr_num']) ? $facts['cdr_num'] : '';
 
