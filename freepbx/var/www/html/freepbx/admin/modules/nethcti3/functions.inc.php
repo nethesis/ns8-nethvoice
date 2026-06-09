@@ -639,6 +639,7 @@ function nethcti3_get_config_early($engine) {
                 && !empty($pjsip_trunk['trunk_name'])
                 && !empty($pjsip_trunk['sip_server'])
                 && !empty($pjsip_trunk['outbound_proxy'])
+                && ($pjsip_trunk['authentication'] === 'none' || $pjsip_trunk['authentication'] === 'outbound')
                 && preg_match('/^sip:'. preg_quote($_ENV['PROXY_IP'], '/') .':'. preg_quote($_ENV['PROXY_PORT'], '/') .';lr$/', $pjsip_trunk['outbound_proxy'])) {
                 // if sip_server is a hostname, resolve it to an IP address
                 $sip_server_ip = gethostbyname($pjsip_trunk['sip_server']);
