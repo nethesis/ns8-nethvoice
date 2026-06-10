@@ -83,6 +83,11 @@ EOF
 # Show Asterisk logfiles module on FreePBX interface
 sed -i '/^; Hide Asterisk logfile$/N;/\n\[logfiles\]$/N;/\nremove=Yes$/d' /etc/asterisk/freepbx_menu.conf
 
+# logrotate runs as root inside the container and refuses world- or group-
+# writable parent directories. Re-apply safe modes on each start because the
+# packaged defaults are too permissive for both Asterisk and Apache logs.
+install -d -o asterisk -g asterisk -m 0755 /var/log/asterisk /var/log/apache2
+
 chown -c asterisk:asterisk /etc/asterisk/*.conf
 
 # Configure ODBC for asteriskcdrdb
