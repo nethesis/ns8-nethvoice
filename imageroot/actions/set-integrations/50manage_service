@@ -8,11 +8,11 @@
 import os
 import subprocess
 
-call_enabled = os.getenv('SATELLITE_CALL_TRANSCRIPTION_ENABLED', False)
-vm_enabled = os.getenv('SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED', False)
+call_enabled = os.getenv('SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'False')
+vm_enabled = os.getenv('SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED', 'False')
 
 if call_enabled == 'True' or vm_enabled == 'True':
-    # Enable and restart services
+    # Enable and restart satellite services
     subprocess.run(["systemctl", "--user", "enable", "satellite-mqtt.service"], check=True)
     subprocess.run(["systemctl", "--user", "restart", "satellite-mqtt.service"], check=True)
 
@@ -22,11 +22,14 @@ if call_enabled == 'True' or vm_enabled == 'True':
     subprocess.run(["systemctl", "--user", "enable", "satellite-pgsql.service"], check=True)
     subprocess.run(["systemctl", "--user", "restart", "satellite-pgsql.service"], check=True)
 
-    subprocess.run(["systemctl", "--user", "enable", "satellite-recordings-cleanup.service"], check=True)
-    subprocess.run(["systemctl", "--user", "restart", "satellite-recordings-cleanup.service"], check=True)
+    subprocess.run(["systemctl", "--user", "disable", "satellite-recordings-cleanup.service"], check=False)
+    subprocess.run(["systemctl", "--user", "enable", "satellite-recordings-cleanup.timer"], check=True)
+    subprocess.run(["systemctl", "--user", "start", "satellite-recordings-cleanup.service"], check=True)
 
     subprocess.run(["systemctl", "--user", "try-restart", "freepbx.service"], check=True)
     subprocess.run(["systemctl", "--user", "try-restart", "nethcti-server.service"], check=True)
+    subprocess.run(["systemctl", "--user", "try-restart", "nethcti-ui.service"], check=True)
+
 elif call_enabled == 'False' and vm_enabled == 'False':
     # Stop and disable services
     subprocess.run(["systemctl", "--user", "stop", "satellite.service"], check=False)
@@ -38,8 +41,11 @@ elif call_enabled == 'False' and vm_enabled == 'False':
     subprocess.run(["systemctl", "--user", "stop", "satellite-pgsql.service"], check=False)
     subprocess.run(["systemctl", "--user", "disable", "satellite-pgsql.service"], check=False)
 
+    subprocess.run(["systemctl", "--user", "stop", "satellite-recordings-cleanup.timer"], check=False)
+    subprocess.run(["systemctl", "--user", "disable", "satellite-recordings-cleanup.timer"], check=False)
     subprocess.run(["systemctl", "--user", "stop", "satellite-recordings-cleanup.service"], check=False)
     subprocess.run(["systemctl", "--user", "disable", "satellite-recordings-cleanup.service"], check=False)
 
     subprocess.run(["systemctl", "--user", "try-restart", "freepbx.service"], check=True)
     subprocess.run(["systemctl", "--user", "try-restart", "nethcti-server.service"], check=True)
+    subprocess.run(["systemctl", "--user", "try-restart", "nethcti-ui.service"], check=True)
