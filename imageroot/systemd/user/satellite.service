@@ -17,7 +17,7 @@ ExecStart=runagent /usr/bin/podman run \
     --cgroups=no-conmon \
     --replace --name=%N \
     --env-file=%S/state/passwords.env \
-    --env=ASTERISK_URL="http://127.0.1:${ASTERISK_WS_PORT}" \
+    --env=ASTERISK_URL="http://127.0.0.1:${ASTERISK_WS_PORT}" \
     --env=ARI_APP=${SATELLITE_ARI_APP} \
     --env=ARI_USERNAME=${SATELLITE_ARI_USERNAME} \
     --env=RTP_PORT=${SATELLITE_HTTP_PORT} \
