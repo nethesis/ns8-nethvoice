@@ -128,7 +128,11 @@ function main($argv) {
                 $apiUrl = get_satellite_api_url();
                 foreach ($segments as $index => $segment) {
                     $segmentNumber = $index + 1;
-                    $segmentUniqueid = $uniqueid;
+                    // Persist each segment under its own leg's uniqueid (resolved
+                    // from the matched answered CDR row in enrich_segments). Fall
+                    // back to the invocation uniqueid when the segment has no
+                    // matched leg, preserving the previous behaviour.
+                    $segmentUniqueid = (!empty($segment['uniqueid'])) ? $segment['uniqueid'] : $uniqueid;
                     debug_log(
                         'Preparing segment audio',
                         __FILE__,
@@ -1033,6 +1037,11 @@ function enrich_segments($rawSegments, $cdrRows, $channelFacts, $usersByExtensio
             'caller_name' => $caller['name'],
             'callee_num' => $callee['num'],
             'callee_name' => $callee['name'],
+            // uniqueid of the answered (billsec > 0) CDR leg this segment belongs
+            // to, so each transfer leg is persisted under its own uniqueid instead
+            // of the recording's invocation uniqueid. Empty when no CDR matched;
+            // the caller then falls back to the invocation uniqueid.
+            'uniqueid' => ($cdr !== null && isset($cdr['uniqueid'])) ? (string) $cdr['uniqueid'] : '',
         );
 
         debug_log(
@@ -1151,11 +1160,18 @@ function merge_segment_pair($previousSegment, $segment) {
     }
 
     // Prefer the real PJSIP/SIP/DAHDI channel name once a Local leg has been
-    // collapsed by the consult-finalized handoff.
+    // collapsed by the consult-finalized handoff. The real leg also owns the
+    // canonical uniqueid for the merged conversation.
     foreach (array('primary_channel', 'peer_channel') as $field) {
         if (is_local_channel($merged[$field]) && !is_local_channel($segment[$field])) {
             $merged[$field] = $segment[$field];
+            if (!empty($segment['uniqueid'])) {
+                $merged['uniqueid'] = $segment['uniqueid'];
+            }
         }
+    }
+    if (empty($merged['uniqueid']) && !empty($segment['uniqueid'])) {
+        $merged['uniqueid'] = $segment['uniqueid'];
     }
 
     return $merged;
