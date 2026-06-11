@@ -942,10 +942,17 @@
     "@babel/helper-string-parser" "^7.27.1"
     "@babel/helper-validator-identifier" "^7.28.5"
 
-"@carbon/icon-helpers@^10.37.0", "@carbon/icon-helpers@^10.53.1":
+"@carbon/icon-helpers@^10.37.0":
   version "10.74.0"
   resolved "https://registry.yarnpkg.com/@carbon/icon-helpers/-/icon-helpers-10.74.0.tgz#212deff9469a50f993deaa72691cc31454e07dbd"
   integrity sha512-3i498EDg7fG8uLTd38gXckKUiPOSpOLKuSvdvedZs5TCIAc9HLpsx3aQithvZ3zhggKeMFFX/k6aBemZb6i7vA==
+  dependencies:
+    "@ibm/telemetry-js" "^1.5.0"
+
+"@carbon/icon-helpers@^10.76.0":
+  version "10.76.0"
+  resolved "https://registry.yarnpkg.com/@carbon/icon-helpers/-/icon-helpers-10.76.0.tgz#d8955743f64927a045774f8c839a2ed62e1808ab"
+  integrity sha512-DLxVV/NtEFauMbmKFW53cGKMs84RRdIp9AzHbasIxlCBjO0P4eZbPdO3gTzYxn02jDMo++2m3MsEAwNydzrzmQ==
   dependencies:
     "@ibm/telemetry-js" "^1.5.0"
 
@@ -957,11 +964,11 @@
     "@carbon/icon-helpers" "^10.37.0"
 
 "@carbon/icons-vue@^10.37.0":
-  version "10.99.1"
-  resolved "https://registry.yarnpkg.com/@carbon/icons-vue/-/icons-vue-10.99.1.tgz#32ce73c6271e23226b1dc092b541f6ee269c1be0"
-  integrity sha512-VC0mRjGri+Ghv8Zkk3iUoaVYUTHLstXj5sB+qYnqPi1sKlE8lUOokgO+r8ReipFUq3um8xze/BXzEjWJQtYC6A==
+  version "10.130.0"
+  resolved "https://registry.yarnpkg.com/@carbon/icons-vue/-/icons-vue-10.130.0.tgz#2b0bd8c7c9d864a29699e3fc92fc8f189cf9ca3e"
+  integrity sha512-GRo6tthRp3itB0bm5unG2i1tpWH+hlmFA1Sbu9k0GP1oYro58TGboYQbQEopLaADKaPewDLhbjG2I4ejWbRZBw==
   dependencies:
-    "@carbon/icon-helpers" "^10.53.1"
+    "@carbon/icon-helpers" "^10.76.0"
     "@ibm/telemetry-js" "^1.5.0"
 
 "@carbon/telemetry@0.1.0", "@carbon/telemetry@^0.1.0":
