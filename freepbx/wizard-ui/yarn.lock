@@ -2834,13 +2834,13 @@ grunt-newer@^1.1.0:
     async "^1.5.2"
     rimraf "^2.5.2"
 
-grunt-ng-annotate@^0.9.2:
-  version "0.9.2"
-  resolved "https://registry.yarnpkg.com/grunt-ng-annotate/-/grunt-ng-annotate-0.9.2.tgz#72ed8e45db38715adb35b8f9622715f49715f7de"
-  integrity sha1-cu2ORds4cVrbNbj5YicV9JcV994=
+grunt-ng-annotate@^0.10.0:
+  version "0.10.0"
+  resolved "https://registry.yarnpkg.com/grunt-ng-annotate/-/grunt-ng-annotate-0.10.0.tgz#f5dc3b4c33a566582413310b78985566e0a84b6e"
+  integrity sha512-E9YTkRKYoz4zOPdPYX1QfeRiymBjJlUt0Ks7XcfGJTocg/fB+AwMWZ1Gm8d4q20BLKFDhiu5x/RXZalktT20XA==
   dependencies:
-    lodash "~2.4.1"
-    ng-annotate "~0.15.1"
+    lodash.clonedeep "~3.0.0"
+    ng-annotate "~0.15.4"
 
 grunt-postcss@^0.5.5:
   version "0.5.5"
@@ -3920,6 +3920,16 @@ load-json-file@^1.0.0:
     pinkie-promise "^2.0.0"
     strip-bom "^2.0.0"
 
+lodash._arraycopy@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/lodash._arraycopy/-/lodash._arraycopy-3.0.0.tgz#76e7b7c1f1fb92547374878a562ed06a3e50f6e1"
+  integrity sha512-RHShTDnPKP7aWxlvXKiDT6IX2jCs6YZLCtNhOru/OX2Q/tzX295vVBK5oX1ECtN+2r86S0Ogy8ykP1sgCZAN0A==
+
+lodash._arrayeach@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/lodash._arrayeach/-/lodash._arrayeach-3.0.0.tgz#bab156b2a90d3f1bbd5c653403349e5e5933ef9e"
+  integrity sha512-Mn7HidOVcl3mkQtbPsuKR0Fj0N6Q6DQB77CtYncZcJc0bx5qv2q4Gl6a0LC1AN+GSxpnBDNnK3CKEm9XNA4zqQ==
+
 lodash._baseassign@^3.0.0:
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/lodash._baseassign/-/lodash._baseassign-3.2.0.tgz#8c38a099500f215ad09e59f1722fd0c52bfe0a4e"
@@ -3928,10 +3938,27 @@ lodash._baseassign@^3.0.0:
     lodash._basecopy "^3.0.0"
     lodash.keys "^3.0.0"
 
+lodash._baseclone@^3.0.0:
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/lodash._baseclone/-/lodash._baseclone-3.3.0.tgz#303519bf6393fe7e42f34d8b630ef7794e3542b7"
+  integrity sha512-1K0dntf2dFQ5my0WoGKkduewR6+pTNaqX03kvs45y7G5bzl4B3kTR4hDfJIc2aCQDeLyQHhS280tc814m1QC1Q==
+  dependencies:
+    lodash._arraycopy "^3.0.0"
+    lodash._arrayeach "^3.0.0"
+    lodash._baseassign "^3.0.0"
+    lodash._basefor "^3.0.0"
+    lodash.isarray "^3.0.0"
+    lodash.keys "^3.0.0"
+
 lodash._basecopy@^3.0.0:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/lodash._basecopy/-/lodash._basecopy-3.0.1.tgz#8da0e6a876cf344c0ad8a54882111dd3c5c7ca36"
   integrity sha1-jaDmqHbPNEwK2KVIghEd08XHyjY=
+
+lodash._basefor@^3.0.0:
+  version "3.0.3"
+  resolved "https://registry.yarnpkg.com/lodash._basefor/-/lodash._basefor-3.0.3.tgz#7550b4e9218ef09fad24343b612021c79b4c20c2"
+  integrity sha512-6bc3b8grkpMgDcVJv9JYZAk/mHgcqMljzm7OsbmcE2FGUMmmLQTPHlh/dFqR8LA0GQ7z4K67JSotVKu5058v1A==
 
 lodash._basetostring@^3.0.0:
   version "3.0.1"
@@ -3994,6 +4021,14 @@ lodash.assign@~3.0.0:
   dependencies:
     lodash._baseassign "^3.0.0"
     lodash._createassigner "^3.0.0"
+
+lodash.clonedeep@~3.0.0:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/lodash.clonedeep/-/lodash.clonedeep-3.0.2.tgz#a0a1e40d82a5ea89ff5b147b8444ed63d92827db"
+  integrity sha512-I8MpGh5z+6OixDAAb21teLSZDmqVPjlq02Q7ZFrbn2xnQHYYuJf6on/94SWpF/p0s3p/cEv/53ro4AhDOfCR0g==
+  dependencies:
+    lodash._baseclone "^3.0.0"
+    lodash._bindcallback "^3.0.0"
 
 lodash.escape@^3.0.0:
   version "3.2.0"
@@ -4493,10 +4528,10 @@ negotiator@0.6.2:
   resolved "https://registry.yarnpkg.com/negotiator/-/negotiator-0.6.2.tgz#feacf7ccf525a77ae9634436a64883ffeca346fb"
   integrity sha512-hZXc7K2e+PgeI1eDBe/10Ard4ekbfrrqG8Ep+8Jmf4JID2bNg7NvCPOZN+kfF574pFQI7mum2AUqDidoKqcTOw==
 
-ng-annotate@~0.15.1:
+ng-annotate@~0.15.4:
   version "0.15.4"
   resolved "https://registry.yarnpkg.com/ng-annotate/-/ng-annotate-0.15.4.tgz#6507525c8f2f28f8787bcdb898f56d9b31066e93"
-  integrity sha1-ZQdSXI8vKPh4e824mPVtmzEGbpM=
+  integrity sha512-EXRB9YJMG1HX3GpgvnGiTfEB2U4hDwqNzU0Jh1TUrdgOt2YrxNmort39nt0TvbMq7wopQpU55ohlnOSZivu4EA==
   dependencies:
     acorn "~0.11.0"
     alter "~0.2.0"
