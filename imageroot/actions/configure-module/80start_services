@@ -52,9 +52,16 @@ fi
 if [ "$SATELLITE_CALL_TRANSCRIPTION_ENABLED" = "True" ] || [ "$SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED" = "True" ]; then
     systemctl --user enable --now satellite.service
     systemctl --user enable --now satellite-mqtt.service
+    systemctl --user disable satellite-recordings-cleanup.service >/dev/null 2>&1 || true
+    systemctl --user enable --now satellite-recordings-cleanup.timer
+    systemctl --user start satellite-recordings-cleanup.service
 else
     systemctl --user stop satellite.service
     systemctl --user disable satellite.service
     systemctl --user stop satellite-mqtt.service
     systemctl --user disable satellite-mqtt.service
+    systemctl --user stop satellite-recordings-cleanup.timer
+    systemctl --user disable satellite-recordings-cleanup.timer
+    systemctl --user stop satellite-recordings-cleanup.service
+    systemctl --user disable satellite-recordings-cleanup.service >/dev/null 2>&1 || true
 fi
