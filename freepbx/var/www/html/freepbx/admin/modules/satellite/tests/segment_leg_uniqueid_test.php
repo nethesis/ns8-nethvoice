@@ -120,4 +120,44 @@ $realLeg = array(
 $merged = merge_segment_pair($localLeg, $realLeg);
 assert_same('U-B', $merged['uniqueid'], 'Merged segment should adopt the real leg uniqueid');
 
+// Attended-transfer consultation leg recorded over a Local channel (NethServer/dev#8040
+// scenario B): the consultation segment 202<->201 and the post-transfer segment
+// 203<->201 are both produced from the 201-side recording (invocation uniqueid =
+// the post-transfer leg). The consultation must be reattached to 202's own CDR leg;
+// the post-transfer must keep the invocation uniqueid.
+$consultCdrs = array(
+    array(
+        'uniqueid' => 'CONSULT-202', 'linkedid' => 'L-9',
+        'src' => '202', 'dst' => '', 'cnum' => '',
+        'channel' => 'PJSIP/202-bbb', 'dstchannel' => 'Local/201@from-internal-00000001;1',
+        'disposition' => 'ANSWERED', 'billsec' => 20, 'duration' => 20,
+        'calldate' => '2026-05-05 11:00:00', 'accountcode' => '', 'cnam' => '', 'dst_cnam' => '',
+    ),
+    array(
+        'uniqueid' => 'POSTXFER-201', 'linkedid' => 'L-9',
+        'src' => '203', 'dst' => '201', 'cnum' => '202',
+        'channel' => 'Local/201@from-internal-00000001;2', 'dstchannel' => 'PJSIP/201-ccc',
+        'disposition' => 'ANSWERED', 'billsec' => 55, 'duration' => 58,
+        'calldate' => '2026-05-05 11:00:00', 'accountcode' => '', 'cnam' => '', 'dst_cnam' => '',
+    ),
+);
+$recordingPrimary = 'Local/201@from-internal-00000001;2'; // 201-side recording channel
+
+$consultSeg = array(
+    'start' => parse_time('2026-05-05 11:00:03'), 'end' => parse_time('2026-05-05 11:00:20'),
+    'primary_channel' => 'PJSIP/202-bbb', 'peer_channel' => 'PJSIP/201-ccc',
+    'audio_start_offset' => 0, 'audio_end_offset' => 17,
+);
+$consultCdr = find_best_cdr_for_segment($consultCdrs, $consultSeg, $recordingPrimary, 'POSTXFER-201');
+assert_true($consultCdr !== null, 'Consultation segment should match a CDR leg');
+assert_same('CONSULT-202', $consultCdr['uniqueid'], 'Consultation leg must attach to 202 own CDR, not the invocation leg');
+
+$postSeg = array(
+    'start' => parse_time('2026-05-05 11:00:20'), 'end' => parse_time('2026-05-05 11:00:58'),
+    'primary_channel' => 'PJSIP/203-aaa', 'peer_channel' => 'PJSIP/201-ccc',
+    'audio_start_offset' => 17, 'audio_end_offset' => 55,
+);
+$postCdr = find_best_cdr_for_segment($consultCdrs, $postSeg, $recordingPrimary, 'POSTXFER-201');
+assert_true($postCdr === null, 'Post-transfer leg must keep the invocation uniqueid (no reattach)');
+
 fwrite(STDOUT, "ok - per-leg segment uniqueid regression\n");
