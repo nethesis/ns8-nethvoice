@@ -20,6 +20,7 @@ SERVICES = [
     ("Asterisk WSS (WebRTC)",     "ASTERISK_WSS_PORT",                           "tcp"),
     ("Asterisk recordings SFTP",  "ASTERISK_RECORDING_SFTP_PORT",                "tcp"),
     ("Asterisk RTP (WSS)",        ("ASTERISK_RTPSTART", "ASTERISK_RTPEND"),      "udp"),
+    ("Satellite RTP",             "SATELLITE_RTP_PORT",                          "udp"),
     ("NethCTI TLS (Nethifier)",   "NETHCTI_TLS_PORT",                            "tcp"),
     ("Phonebook LDAPS",           "PHONEBOOK_LDAP_PORT",                         "tcp"),
     ("Janus WebRTC RTP",          ("JANUS_RTPSTART",    "JANUS_RTPEND"),         "udp"),
