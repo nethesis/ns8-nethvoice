@@ -1199,6 +1199,52 @@ function find_best_cdr_for_segment($cdrRows, $segment, $primaryChannel, $uniquei
             $bestOverlap = $overlap;
         }
     }
+
+    // Fallback for the consultation leg of an attended transfer: its audio rode a
+    // Local channel, so the segment's real channels (e.g. PJSIP/202 <-> PJSIP/201)
+    // never match a single CDR row's channel/dstchannel pair, and the segment gets
+    // no uniqueid -> the caller collapses it onto the recording's invocation
+    // uniqueid, which belongs to a DIFFERENT conversation (the post-transfer leg).
+    // That is the consultation duplicate / 00:00:00 bug.
+    //
+    // Only reattach when the segment's primary party is absent from the invocation
+    // CDR: if the invocation CDR already involves the primary party (e.g. the
+    // post-transfer leg), the existing invocation-uniqueid fallback is correct and
+    // must be left untouched. When reattaching, pick the answered CDR leg the
+    // primary party originated (src), best time overlap.
+    if ($best === null) {
+        $segPrimaryExt = parse_extension_from_channel($segment['primary_channel']);
+        if ($segPrimaryExt !== '') {
+            $invocationHasPrimary = false;
+            foreach ($cdrRows as $cdr) {
+                if ((string) $cdr['uniqueid'] !== (string) $uniqueid) {
+                    continue;
+                }
+                if ((string) $cdr['src'] === $segPrimaryExt || (string) $cdr['dst'] === $segPrimaryExt) {
+                    $invocationHasPrimary = true;
+                }
+                break;
+            }
+            if (!$invocationHasPrimary) {
+                foreach ($cdrRows as $cdr) {
+                    if ($cdr['disposition'] !== 'ANSWERED' || (int) $cdr['billsec'] <= 0) {
+                        continue;
+                    }
+                    if ((string) $cdr['src'] !== $segPrimaryExt) {
+                        continue;
+                    }
+                    $cdrStart = parse_time($cdr['calldate']) + max(0, ((int) $cdr['duration'] - (int) $cdr['billsec']));
+                    $cdrEnd = parse_time($cdr['calldate']) + (int) $cdr['duration'];
+                    $overlap = min($segment['end'], $cdrEnd) - max($segment['start'], $cdrStart);
+                    if ($overlap > $bestOverlap) {
+                        $best = $cdr;
+                        $bestOverlap = $overlap;
+                    }
+                }
+            }
+        }
+    }
+
     return $best;
 }
 
