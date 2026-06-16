@@ -1589,6 +1589,13 @@ function build_satellite_upload_fields($segmentUniqueid, $linkedid, $segment) {
 
     $channel0Name = party_label($segment['callee_name'], $segment['callee_num'], 'Channel 0');
     $channel1Name = party_label($segment['caller_name'], $segment['caller_num'], 'Channel 1');
+    // Wall-clock span of this conversation segment, persisted so the UI can show
+    // transfer sub-legs (consultation / post-transfer) with their real duration
+    // instead of 00:00:00 (they have no CDR row of their own for every party).
+    $durationSeconds = 0;
+    if (isset($segment['start'], $segment['end'])) {
+        $durationSeconds = max(0, (int) round($segment['end'] - $segment['start']));
+    }
     $postFields = array(
         'multichannel' => 'true',
         'encoding' => 'linear16',
@@ -1599,6 +1606,7 @@ function build_satellite_upload_fields($segmentUniqueid, $linkedid, $segment) {
         'persist' => 'true',
         'uniqueid' => $segmentUniqueid,
         'linkedid' => $linkedid,
+        'duration' => (string) $durationSeconds,
         'src_number' => to_main_extension(isset($segment['caller_num']) ? trim((string) $segment['caller_num']) : ''),
         'dst_number' => to_main_extension(isset($segment['callee_num']) ? trim((string) $segment['callee_num']) : ''),
     );
