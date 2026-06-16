@@ -127,12 +127,32 @@ function main($argv) {
 
                 // Permission checks must use the normalized caller/callee
                 // extensions so Local legs and transfers resolve to the real
-                // party profile before we decide whether to upload.
+                // party profile before we decide whether to upload each slice.
                 $partyExtensions = collect_segment_party_extensions($segments);
-                $extensionsWithSatelliteStt = fetch_satellite_stt_extensions($partyExtensions);
-                $allowedPartyExtensions = filter_extensions_with_satellite_stt_permission($partyExtensions, $extensionsWithSatelliteStt);
+                $registeredPartyExtensions = filter_registered_user_extensions($partyExtensions, $usersByExtension);
+                $extensionsWithSatelliteStt = fetch_satellite_stt_extensions($registeredPartyExtensions);
+                $allowedPartyExtensions = filter_extensions_with_satellite_stt_permission($registeredPartyExtensions, $extensionsWithSatelliteStt);
+                $segments = filter_segments_with_satellite_stt_permission($segments, $extensionsWithSatelliteStt);
 
-                if (empty($allowedPartyExtensions)) {
+                if (empty($registeredPartyExtensions)) {
+                    log_message(
+                        "Skipping transcription for uniqueid $uniqueid and linkedid $linkedid because no call party is a registered user extension",
+                        __FILE__,
+                        __LINE__,
+                        __FUNCTION__
+                    );
+                    debug_log(
+                        'Transcription skipped because no segment party maps to a registered user extension',
+                        __FILE__,
+                        __LINE__,
+                        __FUNCTION__,
+                        array(
+                            'uniqueid' => $uniqueid,
+                            'linkedid' => $linkedid,
+                            'party_extensions' => $partyExtensions,
+                        )
+                    );
+                } elseif (empty($allowedPartyExtensions)) {
                     log_message(
                         "Skipping transcription for uniqueid $uniqueid and linkedid $linkedid because no call party has satellite_stt permission",
                         __FILE__,
@@ -148,6 +168,7 @@ function main($argv) {
                             'uniqueid' => $uniqueid,
                             'linkedid' => $linkedid,
                             'party_extensions' => $partyExtensions,
+                            'registered_party_extensions' => $registeredPartyExtensions,
                         )
                     );
                 } else {
@@ -160,7 +181,9 @@ function main($argv) {
                             'uniqueid' => $uniqueid,
                             'linkedid' => $linkedid,
                             'party_extensions' => $partyExtensions,
+                            'registered_party_extensions' => $registeredPartyExtensions,
                             'allowed_extensions' => $allowedPartyExtensions,
+                            'upload_segment_count' => count($segments),
                         )
                     );
 
@@ -1402,7 +1425,7 @@ function fetch_users_by_extension() {
             }
         }
     } catch (Throwable $e) {
-        log_exception($e, __FILE__, __LINE__, __FUNCTION__, 'Unable to read FreePBX users table');
+        fail('Unable to read FreePBX users table: ' . $e->getMessage());
     }
     return $users;
 }
@@ -1424,17 +1447,15 @@ function collect_segment_party_extensions($segments) {
     return $extensions;
 }
 
+function filter_registered_user_extensions($partyExtensions, $usersByExtension) {
+    return array_values(array_filter($partyExtensions, function ($extension) use ($usersByExtension) {
+        return isset($usersByExtension[$extension]);
+    }));
+}
+
+// Callers pass unique, trimmed extension values from collect_segment_party_extensions().
 function fetch_satellite_stt_extensions($extensions) {
     global $db;
-
-    $normalizedExtensions = array();
-    foreach ($extensions as $extension) {
-        $extension = trim((string) $extension);
-        if ($extension !== '') {
-            $normalizedExtensions[$extension] = true;
-        }
-    }
-    $extensions = array_keys($normalizedExtensions);
 
     if (empty($extensions)) {
         return array();
@@ -1465,22 +1486,32 @@ function fetch_satellite_stt_extensions($extensions) {
             }
         }
     } catch (Throwable $e) {
-        log_exception($e, __FILE__, __LINE__, __FUNCTION__, 'Unable to read satellite_stt CTI permissions');
+        fail('Unable to read satellite_stt CTI permissions: ' . $e->getMessage());
     }
 
     return $allowedExtensions;
 }
 
 function filter_extensions_with_satellite_stt_permission($partyExtensions, $extensionsWithPermission) {
-    $allowedExtensions = array();
+    return array_values(array_filter($partyExtensions, function ($extension) use ($extensionsWithPermission) {
+        return isset($extensionsWithPermission[$extension]);
+    }));
+}
 
-    foreach ($partyExtensions as $extension) {
-        if (isset($extensionsWithPermission[$extension])) {
-            $allowedExtensions[] = $extension;
+function filter_segments_with_satellite_stt_permission($segments, $extensionsWithPermission) {
+    $allowedSegments = array();
+
+    foreach ($segments as $segment) {
+        foreach (array('caller_num', 'callee_num') as $field) {
+            $extension = isset($segment[$field]) ? trim((string) $segment[$field]) : '';
+            if ($extension !== '' && isset($extensionsWithPermission[$extension])) {
+                $allowedSegments[] = $segment;
+                continue 2;
+            }
         }
     }
 
-    return $allowedExtensions;
+    return $allowedSegments;
 }
 
 /**
