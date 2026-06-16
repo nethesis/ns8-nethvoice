@@ -624,6 +624,30 @@ function nethcti3_get_config_late($engine) {
 function nethcti3_get_config_early($engine) {
     include_once('/var/www/html/freepbx/rest/lib/libCTI.php');
     global $amp_conf;
+    global $db;
+
+    $pjsip = \FreePBX::Core()->getDriver('pjsip');
+    $trunks = FreePBX::Core()->listTrunks();
+    foreach ($trunks as $trunk) {
+        $pjsip_trunk_stmt = $pjsip
+            ? $db->prepare('SELECT keyword, data FROM pjsip WHERE id = ? AND keyword IN ("registration", "sip_server", "trunk_name", "outbound_proxy")')
+            : null;
+        if ($pjsip_trunk_stmt && $trunk['tech'] === 'pjsip') {
+            $pjsip_trunk_stmt->execute([$trunk['trunkid']]);
+            $pjsip_trunk = array_column($pjsip_trunk_stmt->fetchAll(\PDO::FETCH_ASSOC), 'data', 'keyword');
+            if (($pjsip_trunk['registration'] ?? '') === 'none'
+                && !empty($pjsip_trunk['trunk_name'])
+                && !empty($pjsip_trunk['sip_server'])
+                && !empty($pjsip_trunk['outbound_proxy'])
+                && ($pjsip_trunk['authentication'] === 'none' || $pjsip_trunk['authentication'] === 'outbound')
+                && preg_match('/^sip:'. preg_quote($_ENV['PROXY_IP'], '/') .':'. preg_quote($_ENV['PROXY_PORT'], '/') .';lr$/', $pjsip_trunk['outbound_proxy'])) {
+                // if sip_server is a hostname, resolve it to an IP address
+                $sip_server_ip = gethostbyname($pjsip_trunk['sip_server']);
+                $pjsip->addIdentify($pjsip_trunk['trunk_name'], 'match_header', 'X-Forwarded-For: /' . preg_quote($sip_server_ip, '/') . '$/');
+            }
+        }
+    }
+
     // Call Tancredi API to set variables that needs to be set on FreePBX retrieve conf
     // get featurecodes
     $dbh = FreePBX::Database();
