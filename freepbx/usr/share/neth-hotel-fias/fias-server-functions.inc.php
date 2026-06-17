@@ -2,11 +2,19 @@
 
 date_default_timezone_set('Europe/Rome');
 
-$ini_file = parse_ini_file("/etc/asterisk/fias.conf", true);
-$config = $ini_file["fiasd"];
 $dbconfig = $ini_file["general"];
+$dbport = '';
+if (isset($dbconfig['dbport']) && $dbconfig['dbport'] !== '') {
+    $dbport = $dbconfig['dbport'];
+} elseif (isset($amp_conf['AMPDBPORT']) && $amp_conf['AMPDBPORT'] !== '') {
+    $dbport = $amp_conf['AMPDBPORT'];
+}
 
-$fiasserverdb = new \PDO('mysql:host='.$dbconfig["dbhost"].';dbname=fias_server',$dbconfig["user"],$dbconfig["pwd"]);
+$fiasserverdb = new \PDO(
+    buildMysqlDsn($dbconfig["dbhost"], getFiasServerDatabaseName(), $dbport),
+    $dbconfig["user"],
+    $dbconfig["pwd"]
+);
 if ($fiasserverdb === false) {
     logMessage("Error connecting to database; ".mysql_error(), ERROR, __FILE__);
     exit(1);
@@ -46,6 +54,7 @@ function insertMessageIntoServerDB($section,$parameters) {
                 }
             }
 	}
+        logMessage("Queued {$section} server message {$msgid}", INFO, 'insertMessageIntoServerDB');
         return TRUE;
     } catch (Exception $e) {
         logMessage("Error: ".$e->getMessage(),ERROR,'insertMessageIntoDB');
