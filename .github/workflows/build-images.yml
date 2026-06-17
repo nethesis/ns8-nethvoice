@@ -51,6 +51,8 @@ jobs:
       IMAGETAG: ${{ inputs.imagetag }}
       BUILD_IMAGES: ${{ inputs.build-images }}
       BUILDAH_CACHE: ${{ inputs.buildah-cache }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -63,6 +65,19 @@ jobs:
 
       - name: Prepare image environment
         run: |
+          sanitize_cache_scope() {
+            local value slug hash
+
+            value="$1"
+            slug=$(printf "%s" "${value}" \
+              | tr "[:upper:]" "[:lower:]" \
+              | sed -E "s/[^a-z0-9._-]+/-/g; s/^-+//; s/-+$//; s/-+/-/g")
+            slug="${slug:-ref}"
+            slug="${slug:0:64}"
+            hash=$(printf "%s" "${value}" | sha256sum | awk "{ print substr(\$1, 1, 12) }")
+            printf "%s-%s" "${slug}" "${hash}"
+          }
+
           repository_owner="${GITHUB_REPOSITORY_OWNER,,}"
           repository_name="${GITHUB_REPOSITORY#*/}"
           repository_name="${repository_name,,}"
@@ -75,12 +90,39 @@ jobs:
           } >> "$GITHUB_ENV"
 
           if [[ "${BUILDAH_CACHE}" == "true" ]]; then
-            cache_repository="ghcr.io/${repository_owner}/${repository_name}-cache-{image}"
+            cache_base="ghcr.io/${repository_owner}/${repository_name}-cache"
+            main_cache_repository="${cache_base}-{image}"
+            cache_from=()
+            cache_to=""
+
+            if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+              pr_cache_repository="${cache_base}-pr-${PR_NUMBER:?}-{image}"
+              cache_from=("${pr_cache_repository}" "${main_cache_repository}")
+              if [[ "${PR_HEAD_REPOSITORY}" == "${GITHUB_REPOSITORY}" ]]; then
+                cache_to="${pr_cache_repository}"
+              fi
+            elif [[ "${GITHUB_REF_TYPE}" == "tag" ||
+                    "${GITHUB_REF_NAME}" == "main" ||
+                    "${GITHUB_REF_NAME}" == "master" ]]; then
+              cache_from=("${main_cache_repository}")
+              cache_to="${main_cache_repository}"
+            else
+              cache_scope=$(sanitize_cache_scope "${GITHUB_REF_NAME}")
+              branch_cache_repository="${cache_base}-branch-${cache_scope}-{image}"
+              cache_from=("${branch_cache_repository}" "${main_cache_repository}")
+              cache_to="${branch_cache_repository}"
+            fi
+
             {
-              echo "BUILDAH_CACHE_FROM=${cache_repository}"
-              echo "BUILDAH_CACHE_TO=${cache_repository}"
+              echo "BUILDAH_CACHE_FROM=$(IFS=,; printf "%s" "${cache_from[*]}")"
               echo "BUILDAH_CACHE_TTL=${{ inputs.buildah-cache-ttl }}"
             } >> "$GITHUB_ENV"
+            if [[ -n "${cache_to}" ]]; then
+              echo "BUILDAH_CACHE_TO=${cache_to}" >> "$GITHUB_ENV"
+            fi
+
+            printf "Buildah cache-from: %s\n" "$(IFS=,; printf "%s" "${cache_from[*]}")"
+            printf "Buildah cache-to: %s\n" "${cache_to:-disabled}"
           fi
 
       - name: Log in to container registry

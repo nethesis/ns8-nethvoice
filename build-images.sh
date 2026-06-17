@@ -92,19 +92,36 @@ cache_repository() {
 }
 
 set_buildah_cache_args() {
-    local image_name cache_repo
+    local image_name cache_repo cache_template cache_templates
+    local -a cache_from_templates cache_to_templates
 
     image_name="$1"
     buildah_cache_args=()
 
     if [[ -n "${BUILDAH_CACHE_FROM:-}" ]]; then
-        cache_repo="$(cache_repository "${BUILDAH_CACHE_FROM}" "${image_name}")"
-        buildah_cache_args+=(--cache-from "${cache_repo}")
+        cache_templates="${BUILDAH_CACHE_FROM//$'\n'/,}"
+        IFS=',' read -ra cache_from_templates <<< "${cache_templates}"
+        for cache_template in "${cache_from_templates[@]}"; do
+            cache_template="${cache_template//[[:space:]]/}"
+            if [[ -n "${cache_template}" ]]; then
+                cache_repo="$(cache_repository "${cache_template}" "${image_name}")"
+                buildah_cache_args+=(--cache-from "${cache_repo}")
+            fi
+        done
     fi
+
     if [[ -n "${BUILDAH_CACHE_TO:-}" ]]; then
-        cache_repo="$(cache_repository "${BUILDAH_CACHE_TO}" "${image_name}")"
-        buildah_cache_args+=(--cache-to "${cache_repo}")
+        cache_templates="${BUILDAH_CACHE_TO//$'\n'/,}"
+        IFS=',' read -ra cache_to_templates <<< "${cache_templates}"
+        for cache_template in "${cache_to_templates[@]}"; do
+            cache_template="${cache_template//[[:space:]]/}"
+            if [[ -n "${cache_template}" ]]; then
+                cache_repo="$(cache_repository "${cache_template}" "${image_name}")"
+                buildah_cache_args+=(--cache-to "${cache_repo}")
+            fi
+        done
     fi
+
     if [[ -n "${BUILDAH_CACHE_TTL:-}" ]]; then
         buildah_cache_args+=(--cache-ttl "${BUILDAH_CACHE_TTL}")
     fi

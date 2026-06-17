@@ -141,18 +141,22 @@ path with `BUILD_TIMING_FILE` when comparing repeated runs.
 
 Package-manager cache mounts are enabled inside the Containerfiles where they
 already exist. Buildah registry layer cache is optional and can be enabled for
-manual builds with per-image cache repositories:
+manual builds with per-image cache repositories. `BUILDAH_CACHE_FROM` accepts
+one or more comma-separated cache repositories, ordered from the most specific
+cache to the shared warm cache:
 
 ```bash
 buildah login ghcr.io
-BUILDAH_CACHE_FROM='ghcr.io/nethesis/ns8-nethvoice-cache-{image}' \
-BUILDAH_CACHE_TO='ghcr.io/nethesis/ns8-nethvoice-cache-{image}' \
+BUILDAH_CACHE_FROM='ghcr.io/nethesis/ns8-nethvoice-cache-branch-my-branch-{image},ghcr.io/nethesis/ns8-nethvoice-cache-{image}' \
+BUILDAH_CACHE_TO='ghcr.io/nethesis/ns8-nethvoice-cache-branch-my-branch-{image}' \
 BUILDAH_CACHE_TTL=168h \
 BUILD_IMAGES=freepbx bash build-images.sh
 ```
 
 Cache repository values are treated as prefixes and the image name is appended.
-Use a `{image}` placeholder to place the image name explicitly.
+Use a `{image}` placeholder to place the image name explicitly. Buildah ignores
+missing cache sources, so new branch and PR caches can warm up from the shared
+main cache on their first run.
 
 ### Rebuilding selected images
 
@@ -202,7 +206,17 @@ The reusable workflow accepts:
 GitHub Actions also keeps `ui/node_modules` in `actions/cache`, keyed by
 `ui/yarn.lock`. When a UI dependency changes, commit the updated lockfile so the
 workflow cache key changes with it. When Buildah cache is enabled, the reusable
-workflow logs in to GHCR first and sets per-image cache repositories automatically.
+workflow logs in to GHCR first and scopes per-image cache repositories by trust
+level:
+
+| Trigger | Cache read order | Cache write target |
+| --- | --- | --- |
+| `main`, `master`, tags | main cache | main cache |
+| branches | branch cache, then main cache | branch cache |
+| same-repository PRs | PR cache, then main cache | PR cache |
+
+Branch cache names include a sanitized branch slug plus a short hash of the raw
+branch name, avoiding collisions between names that normalize to the same slug.
 
 ### Adding or updating an external resource
 
