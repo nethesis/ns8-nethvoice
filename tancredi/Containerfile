@@ -32,9 +32,10 @@ RUN mkdir -m 775 -p /var/lib/tancredi/data/backgrounds \
  /var/lib/tancredi/data/tokens
 
 # Install Tancredi dependencies
-RUN cd /usr/share/tancredi/ && \
+RUN --mount=type=cache,id=nethvoice-tancredi-composer,target=/var/cache/composer \
+	cd /usr/share/tancredi/ && \
 	curl -s https://getcomposer.org/installer | php && \
-	COMPOSER_ALLOW_SUPERUSER=1 php composer.phar install --no-dev && \
+	COMPOSER_CACHE_DIR=/var/cache/composer COMPOSER_ALLOW_SUPERUSER=1 php composer.phar install --no-dev && \
 	rm -fr /usr/share/tancredi/src/Entity/SampleFilter.php /usr/share/tancredi/composer.phar /usr/share/tancredi/composer.json /usr/share/tancredi/composer.lock && \
 	chgrp -R www-data /var/lib/tancredi/data/* && \
 	# install pdo_mysql

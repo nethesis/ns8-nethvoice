@@ -21,6 +21,18 @@ This module is intended to be used with the ns8-nethvoice-proxy module as SIP pr
 
 Module can be configured from cluster-admin NethServer 8 interface.
 
+### Reports rebranding
+
+Reports UI rebranding is managed from the cluster-admin `Rebranding` page. The selected values are propagated through the `get-rebranding` and `set-rebranding` tasks into the `REPORTS_UI_*` environment variables, then exposed to the `reports-ui` container and finally rendered into runtime configuration by `reports/ui/config-gen.sh`.
+
+The current report branding fields are:
+
+- `REPORTS_UI_BRAND_NAME`
+- `REPORTS_UI_LOGIN_LOGO_URL`
+- `REPORTS_UI_FAVICON_URL`
+- `REPORTS_UI_LOGIN_BACKGROUND_URL`
+- `REPORTS_UI_LOGIN_BACKGROUND_COLOR`
+
 To make also provisioniong RPS work with Falconieri, you need to manualy set `SUBSCRIPTION_SECRET` and `SUBSCRIPTION_SYSTEMID` into `~/.config/state/environment` 
 file and restart freepbx container with `systemctl --user restart freepbx`
 
@@ -99,6 +111,140 @@ Notes:
 To uninstall the instance:
 
     remove-module --no-preserve nethvoice1
+
+## Building images locally
+
+Use `build-images.sh` to build the module images with Buildah:
+
+```bash
+bash build-images.sh
+```
+
+To rebuild only selected images during development, set `BUILD_IMAGES` to a
+comma-separated list of full image names or short names:
+
+```bash
+BUILD_IMAGES=freepbx,janus REPOBASE=localhost/ns8-nethvoice bash build-images.sh
+```
+
+The script writes build timings to `build-timings.tsv` by default. Override the
+path with `BUILD_TIMING_FILE` when comparing repeated runs.
+
+### Local build variables
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `REPOBASE` | `ghcr.io/nethesis` | Registry/repository prefix used for the built images. Use a local prefix such as `localhost/ns8-nethvoice` when testing locally. |
+| `IMAGETAG` | `latest` locally, current ref name in workflows | Tag applied to the built images. Slashes are normalized to dashes. |
+| `BUILD_IMAGES` | empty | Comma-separated list of image names to build. Both full names (`nethvoice-freepbx`) and short names (`freepbx`) are accepted. Empty means build everything. |
+| `BUILD_TIMING_FILE` | `build-timings.tsv` | Output file written at the end of the run with one timing row per image. |
+
+Package-manager cache mounts are enabled inside the Containerfiles where they
+already exist. The consolidated branch does not use Buildah registry layer cache
+in either local builds or GitHub Actions.
+
+### Rebuilding selected images
+
+Use `BUILD_IMAGES` to limit a local iteration to the image you are changing:
+
+```bash
+BUILD_IMAGES=freepbx,janus \
+REPOBASE=localhost/ns8-nethvoice \
+IMAGETAG=dev-test \
+bash build-images.sh
+```
+
+Local builds stay serial by default to avoid Buildah containers-storage
+contention when multiple builds share the same storage root. Fast feedback comes
+from building only the affected images, from the existing dependency/layer reuse
+inside each Containerfile, and from the remote matrix workflow described below.
+
+### Remote workflow layout
+
+The repository uses one reusable workflow, `.github/workflows/build-images.yml`,
+and two callers:
+
+- `.github/workflows/publish-images.yml` for branch pushes and manual dispatches
+- `.github/workflows/create-testing-pr-image.yml` for same-repository pull
+  requests
+
+Both callers build the same ordered matrix groups with `max-parallel: 3`:
+
+1. `freepbx`
+2. `app-support` (`tancredi,cti-server,phonebook,sftp`)
+3. `reports` (`reports-api,reports-ui`)
+4. `wrappers` (`mariadb,cti-middleware,cti-ui,satellite`)
+5. `janus`
+6. `module` (`nethvoice`)
+
+The reusable workflow accepts:
+
+| Input/secret | Meaning |
+| --- | --- |
+| `imagetag` | Tag to publish, normalized before use |
+| `build-images` | Comma-separated image list for the selected matrix group |
+| `runner-version` | Runner label, defaults to `ubuntu-latest` |
+| `secrets.netrcb64` | Optional Base64-encoded `.netrc` used for authenticated downloads |
+
+GitHub Actions also keeps `ui/node_modules` in `actions/cache`, keyed by
+`ui/yarn.lock`. When a UI dependency changes, commit the updated lockfile so the
+workflow cache key changes with it.
+
+### Adding or updating an external resource
+
+When a build depends on an external resource such as a wrapper image, Git
+checkout, tarball, or installer:
+
+1. Prefer immutable references: a version tag, commit SHA, or checksum-verified
+   URL.
+2. Avoid committing `latest`, branch names, or temporary development tags as the
+   default source.
+3. If the resource is downloaded through a checksum helper, update both the URL
+   and the checksum source together.
+4. If the resource is a wrapper/base image assembled in `build-images.sh`, keep
+   the stable tag change in the script and test only the affected image group.
+5. If the resource affects a specific Containerfile stage, rebuild only that
+   image locally first, then let the GitHub Actions matrix rebuild the matching
+   group.
+
+### Adding a new build dependency
+
+For system packages, language packages, or tools downloaded during the build:
+
+1. Add the dependency in the narrowest relevant Containerfile stage.
+2. Keep manifest files (`package.json`, `package-lock.json`, `yarn.lock`, and
+   similar files) copied before the application source when possible, so
+   dependency installation can still reuse unchanged layers.
+3. Use the existing package-manager command style already present in that image
+   (`npm ci`, distro package manager, Composer, and so on).
+4. Rebuild the affected image locally with `BUILD_IMAGES=...`.
+5. If the dependency affects the UI workflow cache, update and commit the
+   matching lockfile so the remote cache key changes too.
+6. After pushing, verify the corresponding GitHub Actions matrix group still
+   succeeds.
+
+### Working temporarily with a development tag
+
+If you must test a branch-like or temporary development tag for an external
+component, keep it out of mergeable defaults:
+
+1. Make the change only in a disposable local checkout or a dedicated temporary
+   branch.
+2. For wrapper images, refresh the local source image first so Buildah does not
+   reuse an older local copy:
+
+   ```bash
+   buildah pull ghcr.io/nethesis/nethvoice-cti:issue_8009
+   ```
+
+   If you need a complete reset, remove the affected local image from
+   containers-storage and rebuild only the impacted image group.
+3. Use a temporary `IMAGETAG` for the produced test images.
+4. Before opening or updating a reviewable PR, replace the temporary reference
+   with a stable version tag or SHA, or revert the change entirely.
+5. Remember that GitHub-hosted runners start from clean storage, so stale
+   branch-like image tags are primarily a local-development concern on the
+   consolidated branch.
 
 ## Running tests locally
 

@@ -10,10 +10,36 @@ permissions:
   contents: write
   security-events: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   publish-images:
     if: github.run_number > 1
-    uses: NethServer/ns8-github-actions/.github/workflows/publish-branch.yml@v1
+    name: Publish ${{ matrix.group }} images
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - group: freepbx
+            images: freepbx
+          - group: app-support
+            images: tancredi,cti-server,phonebook,sftp
+          - group: reports
+            images: reports-api,reports-ui
+          - group: wrappers
+            images: mariadb,cti-middleware,cti-ui,satellite
+          - group: janus
+            images: janus
+          - group: module
+            images: nethvoice
+    uses: ./.github/workflows/build-images.yml
+    with:
+      imagetag: ${{ github.ref_name }}
+      build-images: ${{ matrix.images }}
+    secrets: inherit
   module:
     needs: publish-images
     uses: NethServer/ns8-github-actions/.github/workflows/module-info.yml@v1

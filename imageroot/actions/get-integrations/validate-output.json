@@ -7,12 +7,14 @@
         {
             "satellite_call_transcription_enabled": true,
             "satellite_voicemail_transcription_enabled": false,
+            "satellite_call_summary_enabled": true,
             "deepgram_api_key": "your_deepgram_api_key",
             "openai_api_key": "your_openai_api_key"
         },
         {
             "satellite_call_transcription_enabled": false,
             "satellite_voicemail_transcription_enabled": false,
+            "satellite_call_summary_enabled": false,
             "deepgram_api_key": "",
             "openai_api_key": ""
         }
@@ -21,6 +23,7 @@
     "required": [
         "satellite_call_transcription_enabled",
         "satellite_voicemail_transcription_enabled",
+        "satellite_call_summary_enabled",
         "deepgram_api_key",
         "openai_api_key"
     ],
@@ -31,6 +34,10 @@
         },
         "satellite_voicemail_transcription_enabled": {
             "description": "Enable voicemail transcription",
+            "type": "boolean"
+        },
+        "satellite_call_summary_enabled": {
+            "description": "Enable call summary generation",
             "type": "boolean"
         },
         "deepgram_api_key": {
