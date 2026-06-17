@@ -1,0 +1,169 @@
+name: "Clean build cache"
+
+on:
+  delete:
+  pull_request:
+    types: [closed]
+  schedule:
+    - cron: "37 3 * * 0"
+  workflow_dispatch:
+    inputs:
+      retention_days:
+        description: "Delete branch and PR cache packages not updated for this many days"
+        required: false
+        type: string
+        default: "30"
+      dry_run:
+        description: "Print packages and versions that would be deleted"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  clean-build-cache:
+    name: "Clean Buildah cache packages"
+    if: github.event_name != 'delete' || github.event.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    environment: Registry
+    env:
+      GH_TOKEN: ${{ secrets.IMAGES_CLEANUP_TOKEN || github.token }}
+      RETENTION_DAYS_INPUT: ${{ inputs.retention_days }}
+      DRY_RUN_INPUT: ${{ inputs.dry_run }}
+      DELETE_REF: ${{ github.event.ref }}
+      DELETE_REF_TYPE: ${{ github.event.ref_type }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Delete stale cache packages
+        run: |
+          set -euo pipefail
+
+          images=(
+            nethvoice
+            nethvoice-mariadb
+            nethvoice-freepbx
+            nethvoice-tancredi
+            nethvoice-cti-server
+            nethvoice-cti-middleware
+            nethvoice-cti-ui
+            nethvoice-janus
+            nethvoice-phonebook
+            nethvoice-reports-api
+            nethvoice-reports-ui
+            nethvoice-sftp
+            nethvoice-satellite
+          )
+
+          repository_owner="${GITHUB_REPOSITORY_OWNER,,}"
+          repository_name="${GITHUB_REPOSITORY#*/}"
+          repository_name="${repository_name,,}"
+          if gh api "/orgs/${repository_owner}" >/dev/null 2>&1; then
+            package_owner_path="orgs/${repository_owner}"
+          else
+            package_owner_path="users/${repository_owner}"
+          fi
+          package_prefix="${repository_name}-cache"
+          retention_days="${RETENTION_DAYS_INPUT:-30}"
+          dry_run="${DRY_RUN_INPUT:-false}"
+
+          sanitize_cache_scope() {
+            local value slug hash
+
+            value="$1"
+            slug=$(printf "%s" "${value}" \
+              | tr "[:upper:]" "[:lower:]" \
+              | sed -E "s/[^a-z0-9._-]+/-/g; s/^-+//; s/-+$//; s/-+/-/g")
+            slug="${slug:-ref}"
+            slug="${slug:0:64}"
+            hash=$(printf "%s" "${value}" | sha256sum | awk "{ print substr(\$1, 1, 12) }")
+            printf "%s-%s" "${slug}" "${hash}"
+          }
+
+          delete_package_versions() {
+            local package_name version_ids version_id error_file
+
+            package_name="$1"
+            error_file=$(mktemp)
+            if ! version_ids=$(gh api --paginate \
+                "/${package_owner_path}/packages/container/${package_name}/versions?per_page=100" \
+                --jq ".[].id" 2>"${error_file}"); then
+              if grep -q "HTTP 404" "${error_file}"; then
+                printf "Skip missing cache package %s\n" "${package_name}"
+                rm -f "${error_file}"
+                return 0
+              fi
+              cat "${error_file}" >&2
+              rm -f "${error_file}"
+              return 1
+            fi
+            rm -f "${error_file}"
+
+            if [[ -z "${version_ids}" ]]; then
+              printf "Skip empty cache package %s\n" "${package_name}"
+              return 0
+            fi
+
+            while IFS= read -r version_id; do
+              if [[ -z "${version_id}" ]]; then
+                continue
+              fi
+              if [[ "${dry_run}" == "true" ]]; then
+                printf "Would delete %s version %s\n" "${package_name}" "${version_id}"
+              else
+                printf "Delete %s version %s\n" "${package_name}" "${version_id}"
+                gh api --method DELETE \
+                  "/${package_owner_path}/packages/container/${package_name}/versions/${version_id}" \
+                  >/dev/null
+              fi
+            done <<< "${version_ids}"
+          }
+
+          delete_scope_packages() {
+            local scope image
+
+            scope="$1"
+            for image in "${images[@]}"; do
+              delete_package_versions "${package_prefix}-${scope}-${image}"
+            done
+          }
+
+          clean_stale_scoped_packages() {
+            local cutoff package_name updated_at updated_epoch
+
+            cutoff=$(date -u -d "${retention_days} days ago" +%s)
+            gh api --paginate \
+              "/${package_owner_path}/packages?package_type=container&per_page=100" \
+              --jq ".[] | [.name, .updated_at] | @tsv" \
+              | while IFS=$'\t' read -r package_name updated_at; do
+                  if [[ "${package_name}" != "${package_prefix}-branch-"* &&
+                        "${package_name}" != "${package_prefix}-pr-"* ]]; then
+                    continue
+                  fi
+
+                  updated_epoch=$(date -u -d "${updated_at}" +%s)
+                  if ((updated_epoch < cutoff)); then
+                    delete_package_versions "${package_name}"
+                  else
+                    printf "Keep %s, updated at %s\n" "${package_name}" "${updated_at}"
+                  fi
+                done
+          }
+
+          case "${GITHUB_EVENT_NAME}" in
+            delete)
+              delete_scope_packages "branch-$(sanitize_cache_scope "${DELETE_REF}")"
+              ;;
+            pull_request)
+              delete_scope_packages "pr-${PR_NUMBER:?}"
+              ;;
+            schedule|workflow_dispatch)
+              clean_stale_scoped_packages
+              ;;
+            *)
+              printf "Unsupported event %s\n" "${GITHUB_EVENT_NAME}" >&2
+              exit 1
+              ;;
+          esac

@@ -217,6 +217,20 @@ level:
 
 Branch cache names include a sanitized branch slug plus a short hash of the raw
 branch name, avoiding collisions between names that normalize to the same slug.
+`BUILDAH_CACHE_TTL` limits which remote cache entries Buildah reads, but it does
+not delete old GHCR packages.
+
+The `.github/workflows/clean-build-cache.yml` workflow controls cache storage
+growth:
+
+- branch deletion removes that branch's per-image cache packages
+- PR close removes that PR's per-image cache packages
+- a weekly scheduled run removes branch and PR cache packages not updated for
+  30 days
+- manual dispatch can override `retention_days` or run with `dry_run`
+
+The main cache is intentionally not removed by the scheduled cleanup because it
+is the warm cache used by new branches and PRs.
 
 ### Adding or updating an external resource
 
