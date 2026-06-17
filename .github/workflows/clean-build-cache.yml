@@ -31,6 +31,7 @@ jobs:
     environment: Registry
     env:
       GH_TOKEN: ${{ secrets.IMAGES_CLEANUP_TOKEN || github.token }}
+      HAS_IMAGES_CLEANUP_TOKEN: ${{ secrets.IMAGES_CLEANUP_TOKEN != '' }}
       RETENTION_DAYS_INPUT: ${{ inputs.retention_days }}
       DRY_RUN_INPUT: ${{ inputs.dry_run }}
       DELETE_REF: ${{ github.event.ref }}
@@ -65,6 +66,11 @@ jobs:
           else
             package_owner_path="users/${repository_owner}"
           fi
+          if [[ "${package_owner_path}" == users/* &&
+                "${HAS_IMAGES_CLEANUP_TOKEN}" != "true" ]]; then
+            printf "::notice::Skip user-owned package cleanup because IMAGES_CLEANUP_TOKEN is not available\n"
+            exit 0
+          fi
           package_prefix="${repository_name}-cache"
           retention_days="${RETENTION_DAYS_INPUT:-30}"
           dry_run="${DRY_RUN_INPUT:-false}"
@@ -83,7 +89,7 @@ jobs:
           }
 
           delete_package_versions() {
-            local package_name version_ids version_id error_file
+            local package_name version_ids version_id error_file delete_error_file
 
             package_name="$1"
             error_file=$(mktemp)
@@ -114,9 +120,21 @@ jobs:
                 printf "Would delete %s version %s\n" "${package_name}" "${version_id}"
               else
                 printf "Delete %s version %s\n" "${package_name}" "${version_id}"
-                gh api --method DELETE \
-                  "/${package_owner_path}/packages/container/${package_name}/versions/${version_id}" \
-                  >/dev/null
+                delete_error_file=$(mktemp)
+                if ! gh api --method DELETE \
+                    "/${package_owner_path}/packages/container/${package_name}/versions/${version_id}" \
+                    >/dev/null 2>"${delete_error_file}"; then
+                  if grep -q "more than 5000 downloads" "${delete_error_file}"; then
+                    printf "::warning title=Cache package not deleted::%s version %s cannot be deleted by GitHub because it has more than 5000 downloads\n" \
+                      "${package_name}" "${version_id}"
+                    rm -f "${delete_error_file}"
+                    continue
+                  fi
+                  cat "${delete_error_file}" >&2
+                  rm -f "${delete_error_file}"
+                  return 1
+                fi
+                rm -f "${delete_error_file}"
               fi
             done <<< "${version_ids}"
           }

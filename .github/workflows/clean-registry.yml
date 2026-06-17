@@ -4,13 +4,25 @@ on:
   delete:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   delete_images:
     name: "Delete ghcr.io images ${{ github.event.ref }}"
     runs-on: ubuntu-latest
     environment: Registry
+    env:
+      IMAGES_CLEANUP_TOKEN: ${{ secrets.IMAGES_CLEANUP_TOKEN }}
     steps:
+      - name: Skip registry cleanup without token
+        if: env.IMAGES_CLEANUP_TOKEN == ''
+        run: |
+          echo "::notice::Skip registry cleanup because IMAGES_CLEANUP_TOKEN is not available"
+
       - uses: NethServer/ns8-github-actions/.github/actions/delete-image@v1
+        if: env.IMAGES_CLEANUP_TOKEN != ''
         with:
           images: "kickstart"
-          delete_image_token: ${{ secrets.IMAGES_CLEANUP_TOKEN }}
+          delete_image_token: ${{ env.IMAGES_CLEANUP_TOKEN }}
