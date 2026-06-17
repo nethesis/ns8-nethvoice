@@ -630,7 +630,7 @@ function nethcti3_get_config_early($engine) {
     $trunks = FreePBX::Core()->listTrunks();
     foreach ($trunks as $trunk) {
         $pjsip_trunk_stmt = $pjsip
-            ? $db->prepare('SELECT keyword, data FROM pjsip WHERE id = ? AND keyword IN ("registration", "sip_server", "trunk_name", "outbound_proxy")')
+            ? $db->prepare('SELECT keyword, data FROM pjsip WHERE id = ? AND keyword IN ("registration", "sip_server", "trunk_name", "outbound_proxy", "authentication")')
             : null;
         if ($pjsip_trunk_stmt && $trunk['tech'] === 'pjsip') {
             $pjsip_trunk_stmt->execute([$trunk['trunkid']]);
@@ -639,7 +639,7 @@ function nethcti3_get_config_early($engine) {
                 && !empty($pjsip_trunk['trunk_name'])
                 && !empty($pjsip_trunk['sip_server'])
                 && !empty($pjsip_trunk['outbound_proxy'])
-                && ($pjsip_trunk['authentication'] === 'none' || $pjsip_trunk['authentication'] === 'outbound')
+                && ($pjsip_trunk['authentication'] === 'none' || $pjsip_trunk['authentication'] === 'outbound' || $pjsip_trunk['authentication'] === 'off')
                 && preg_match('/^sip:'. preg_quote($_ENV['PROXY_IP'], '/') .':'. preg_quote($_ENV['PROXY_PORT'], '/') .';lr$/', $pjsip_trunk['outbound_proxy'])) {
                 // if sip_server is a hostname, resolve it to an IP address
                 $sip_server_ip = gethostbyname($pjsip_trunk['sip_server']);
