@@ -17,6 +17,8 @@ if "satellite_call_transcription_enabled" in request:
     agent.set_env("SATELLITE_CALL_TRANSCRIPTION_ENABLED", request["satellite_call_transcription_enabled"])
 if "satellite_voicemail_transcription_enabled" in request:
     agent.set_env("SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED", request["satellite_voicemail_transcription_enabled"])
+if "satellite_call_summary_enabled" in request:
+    agent.set_env("SATELLITE_CALL_SUMMARY_ENABLED", request["satellite_call_summary_enabled"])
 
 # read from  the passwords.env file
 passwordsfile = agent.read_envfile("passwords.env")

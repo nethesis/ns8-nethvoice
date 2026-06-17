@@ -83,6 +83,11 @@ EOF
 # Show Asterisk logfiles module on FreePBX interface
 sed -i '/^; Hide Asterisk logfile$/N;/\n\[logfiles\]$/N;/\nremove=Yes$/d' /etc/asterisk/freepbx_menu.conf
 
+# logrotate runs as root inside the container and refuses world- or group-
+# writable parent directories. Re-apply safe modes on each start because the
+# packaged defaults are too permissive for both Asterisk and Apache logs.
+install -d -o asterisk -g asterisk -m 0755 /var/log/asterisk /var/log/apache2
+
 chown -c asterisk:asterisk /etc/asterisk/*.conf
 
 # Configure ODBC for asteriskcdrdb
@@ -131,12 +136,38 @@ if [[ ! -f /etc/apache2/sites-enabled/wizard.conf ]] ; then
 	ln -sf /etc/apache2/sites-available/wizard.conf /etc/apache2/sites-enabled/wizard.conf
 fi
 
+wizard_brand_name="${WIZARD_BRAND_NAME-}"
+if [[ -z "${WIZARD_BRAND_NAME+x}" ]]; then
+	wizard_brand_name="${BRAND_NAME:-NethVoice}"
+fi
+
+wizard_login_logo_url="${WIZARD_LOGIN_LOGO_URL-}"
+if [[ -z "${WIZARD_LOGIN_LOGO_URL+x}" ]]; then
+	wizard_login_logo_url="${LOGIN_LOGO_URL:-}"
+fi
+
+wizard_favicon_url="${WIZARD_FAVICON_URL-}"
+if [[ -z "${WIZARD_FAVICON_URL+x}" ]]; then
+	wizard_favicon_url="${FAVICON_URL:-}"
+fi
+
+wizard_login_background_url="${WIZARD_LOGIN_BACKGROUND_URL-}"
+if [[ -z "${WIZARD_LOGIN_BACKGROUND_URL+x}" ]]; then
+	wizard_login_background_url="${LOGIN_BACKGROUND_URL:-}"
+fi
+
+wizard_navbar_logo_url="${wizard_login_logo_url}"
+
 # Write wizard and restapi configuration
 cat > /var/www/html/freepbx/wizard/scripts/custom.js <<EOF
 var customConfig = {
-  BRAND_NAME: '${BRAND_NAME:=NethVoice}',
+  BRAND_NAME: '${wizard_brand_name}',
   BRAND_SITE: '${BRAND_SITE:=https://www.nethesis.it/soluzioni/nethvoice}',
   BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethserver.org/projects/ns8/it/latest/nethvoice.html}',
+  NAVBAR_LOGO_URL: '${wizard_navbar_logo_url}',
+  LOGIN_LOGO_URL: '${wizard_login_logo_url}',
+  FAVICON_URL: '${wizard_favicon_url}',
+  LOGIN_BACKGROUND_URL: '${wizard_login_background_url}',
   BASE_API_URL: '/freepbx/rest',
   BASE_API_URL_CTI: '/api',
   VPLAN_URL: '/freepbx/visualplan',

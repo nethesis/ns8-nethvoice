@@ -12,11 +12,16 @@ SATELLITE_PGSQL_PASSWORD=$(grep '^SATELLITE_PGSQL_PASSWORD=' ./passwords.env) &&
 
 mkdir -vp restore
 cat - >restore/satellite_postgresql_restore.sh <<'EOS'
-# Read dump file from standard input and restore all databases:
-psql -U postgres -f /tmp/satellite_postgresql.pg_dump
-ec=$?
-docker_temp_server_stop
-exit $ec
+# Restore all databases from the compressed dump file:
+set -e -o pipefail
+cleanup() {
+    ec=$?
+    trap - EXIT
+    docker_temp_server_stop
+    exit "$ec"
+}
+trap cleanup EXIT
+gunzip -c /tmp/satellite_postgresql.pg_dump.gz | psql -U postgres
 EOS
 
 # Override the image /docker-entrypoint-initdb.d contents, to restore the
@@ -27,7 +32,7 @@ podman run \
     --network=none \
     --volume=./restore:/docker-entrypoint-initdb.d/:Z \
     --volume=satellite_pgdata:/var/lib/postgresql/data:Z \
-    --volume=./satellite_postgresql.pg_dump:/tmp/satellite_postgresql.pg_dump:Z \
+    --volume=./satellite_postgresql.pg_dump.gz:/tmp/satellite_postgresql.pg_dump.gz:Z \
     --replace --name=restore_db \
     --env POSTGRES_USER=${SATELLITE_PGSQL_USER} \
     --env POSTGRES_PASSWORD=${SATELLITE_PGSQL_PASSWORD} \
@@ -36,4 +41,4 @@ podman run \
 
 
 # If the restore is successful, clean up:
-rm -rfv restore/ postgresql.pg_dump
+rm -rfv restore/ satellite_postgresql.pg_dump.gz
