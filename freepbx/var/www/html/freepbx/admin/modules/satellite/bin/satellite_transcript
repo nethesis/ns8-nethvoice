@@ -125,48 +125,111 @@ function main($argv) {
                     fail("No usable transcription segments found for uniqueid $uniqueid and linkedid $linkedid");
                 }
 
-                $apiUrl = get_satellite_api_url();
-                foreach ($segments as $index => $segment) {
-                    $segmentNumber = $index + 1;
-                    // Persist each segment under its own leg's uniqueid (resolved
-                    // from the matched answered CDR row in enrich_segments). Fall
-                    // back to the invocation uniqueid when the segment has no
-                    // matched leg, preserving the previous behaviour.
-                    $segmentUniqueid = (!empty($segment['uniqueid'])) ? $segment['uniqueid'] : $uniqueid;
+                // Permission checks must use the normalized caller/callee
+                // extensions so Local legs and transfers resolve to the real
+                // party profile before we decide whether to upload each slice.
+                $partyExtensions = collect_segment_party_extensions($segments);
+                $registeredPartyExtensions = filter_registered_user_extensions($partyExtensions, $usersByExtension);
+                $extensionsWithSatelliteStt = fetch_satellite_stt_extensions($registeredPartyExtensions);
+                $allowedPartyExtensions = filter_extensions_with_satellite_stt_permission($registeredPartyExtensions, $extensionsWithSatelliteStt);
+                $segments = filter_segments_with_satellite_stt_permission($segments, $extensionsWithSatelliteStt);
+
+                if (empty($registeredPartyExtensions)) {
+                    log_message(
+                        "Skipping transcription for uniqueid $uniqueid and linkedid $linkedid because no call party is a registered user extension",
+                        __FILE__,
+                        __LINE__,
+                        __FUNCTION__
+                    );
                     debug_log(
-                        'Preparing segment audio',
+                        'Transcription skipped because no segment party maps to a registered user extension',
                         __FILE__,
                         __LINE__,
                         __FUNCTION__,
                         array(
-                            'segment_uniqueid' => $segmentUniqueid,
-                            'segment' => format_segment_row($segment),
+                            'uniqueid' => $uniqueid,
+                            'linkedid' => $linkedid,
+                            'party_extensions' => $partyExtensions,
                         )
                     );
-                    $audioFile = create_segment_audio(
-                        $segment,
-                        $segmentNumber,
-                        $uniqueid,
-                        $linkedid,
-                        $recordingStart,
-                        $transmittedRecordingFile,
-                        $receivedRecordingFile,
-                        $tmpFiles
+                } elseif (empty($allowedPartyExtensions)) {
+                    log_message(
+                        "Skipping transcription for uniqueid $uniqueid and linkedid $linkedid because no call party has satellite_stt permission",
+                        __FILE__,
+                        __LINE__,
+                        __FUNCTION__
+                    );
+                    debug_log(
+                        'Transcription skipped for missing satellite_stt permission',
+                        __FILE__,
+                        __LINE__,
+                        __FUNCTION__,
+                        array(
+                            'uniqueid' => $uniqueid,
+                            'linkedid' => $linkedid,
+                            'party_extensions' => $partyExtensions,
+                            'registered_party_extensions' => $registeredPartyExtensions,
+                        )
+                    );
+                } else {
+                    debug_log(
+                        'Transcription allowed by satellite_stt permission',
+                        __FILE__,
+                        __LINE__,
+                        __FUNCTION__,
+                        array(
+                            'uniqueid' => $uniqueid,
+                            'linkedid' => $linkedid,
+                            'party_extensions' => $partyExtensions,
+                            'registered_party_extensions' => $registeredPartyExtensions,
+                            'allowed_extensions' => $allowedPartyExtensions,
+                            'upload_segment_count' => count($segments),
+                        )
                     );
 
-                    $segment['audio_data'] = $audioFile;
-                    debug_log(
-                        'Segment audio ready',
-                        __FILE__,
-                        __LINE__,
-                        __FUNCTION__,
-                        array(
-                            'segment_uniqueid' => $segmentUniqueid,
-                            'audio_file' => $audioFile,
-                            'size_bytes' => @filesize($audioFile),
-                        )
-                    );
-                    post_segment_to_satellite($apiUrl, $segmentUniqueid, $linkedid, $segment);
+                    $apiUrl = get_satellite_api_url();
+                    foreach ($segments as $index => $segment) {
+                        $segmentNumber = $index + 1;
+                        // Persist each segment under its own leg's uniqueid
+                        // when enrich_segments matched an answered CDR row.
+                        // Fall back to the invocation uniqueid to preserve
+                        // legacy behaviour for unmatched segments.
+                        $segmentUniqueid = (!empty($segment['uniqueid'])) ? $segment['uniqueid'] : $uniqueid;
+                        debug_log(
+                            'Preparing segment audio',
+                            __FILE__,
+                            __LINE__,
+                            __FUNCTION__,
+                            array(
+                                'segment_uniqueid' => $segmentUniqueid,
+                                'segment' => format_segment_row($segment),
+                            )
+                        );
+                        $audioFile = create_segment_audio(
+                            $segment,
+                            $segmentNumber,
+                            $uniqueid,
+                            $linkedid,
+                            $recordingStart,
+                            $transmittedRecordingFile,
+                            $receivedRecordingFile,
+                            $tmpFiles
+                        );
+
+                        $segment['audio_data'] = $audioFile;
+                        debug_log(
+                            'Segment audio ready',
+                            __FILE__,
+                            __LINE__,
+                            __FUNCTION__,
+                            array(
+                                'segment_uniqueid' => $segmentUniqueid,
+                                'audio_file' => $audioFile,
+                                'size_bytes' => @filesize($audioFile),
+                            )
+                        );
+                        post_segment_to_satellite($apiUrl, $segmentUniqueid, $linkedid, $segment);
+                    }
                 }
             }
         }
@@ -1424,9 +1487,93 @@ function fetch_users_by_extension() {
             }
         }
     } catch (Throwable $e) {
-        log_exception($e, __FILE__, __LINE__, __FUNCTION__, 'Unable to read FreePBX users table');
+        fail('Unable to read FreePBX users table: ' . $e->getMessage());
     }
     return $users;
+}
+
+function collect_segment_party_extensions($segments) {
+    $extensions = array();
+    $seenExtensions = array();
+
+    foreach ($segments as $segment) {
+        foreach (array('caller_num', 'callee_num') as $field) {
+            $extension = isset($segment[$field]) ? trim((string) $segment[$field]) : '';
+            if ($extension !== '' && !isset($seenExtensions[$extension])) {
+                $extensions[] = $extension;
+                $seenExtensions[$extension] = true;
+            }
+        }
+    }
+
+    return $extensions;
+}
+
+function filter_registered_user_extensions($partyExtensions, $usersByExtension) {
+    return array_values(array_filter($partyExtensions, function ($extension) use ($usersByExtension) {
+        return isset($usersByExtension[$extension]);
+    }));
+}
+
+// Callers pass unique, trimmed extension values from collect_segment_party_extensions().
+function fetch_satellite_stt_extensions($extensions) {
+    global $db;
+
+    if (empty($extensions)) {
+        return array();
+    }
+
+    $allowedExtensions = array();
+    try {
+        $sql = "SELECT DISTINCT uu.default_extension
+            FROM userman_users uu
+            JOIN rest_users ru ON ru.user_id = uu.id
+            JOIN rest_cti_profiles_macro_permissions profile_macro ON profile_macro.profile_id = ru.profile_id
+            JOIN rest_cti_macro_permissions macro_permission ON macro_permission.id = profile_macro.macro_permission_id
+            JOIN rest_cti_profiles_permissions profile_permission ON profile_permission.profile_id = ru.profile_id
+            JOIN rest_cti_permissions permission ON permission.id = profile_permission.permission_id
+            WHERE macro_permission.name = ?
+              AND permission.name = ?
+              AND uu.default_extension IN (" . implode(', ', array_fill(0, count($extensions), '?')) . ")
+              AND uu.default_extension IS NOT NULL
+              AND uu.default_extension <> ''
+              AND uu.default_extension <> 'none'";
+        $stmt = $db->prepare($sql);
+        $stmt->execute(array_merge(array('nethvoice_cti', 'satellite_stt'), $extensions));
+
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $extension) {
+            $extension = trim((string) $extension);
+            if ($extension !== '') {
+                $allowedExtensions[$extension] = true;
+            }
+        }
+    } catch (Throwable $e) {
+        fail('Unable to read satellite_stt CTI permissions: ' . $e->getMessage());
+    }
+
+    return $allowedExtensions;
+}
+
+function filter_extensions_with_satellite_stt_permission($partyExtensions, $extensionsWithPermission) {
+    return array_values(array_filter($partyExtensions, function ($extension) use ($extensionsWithPermission) {
+        return isset($extensionsWithPermission[$extension]);
+    }));
+}
+
+function filter_segments_with_satellite_stt_permission($segments, $extensionsWithPermission) {
+    $allowedSegments = array();
+
+    foreach ($segments as $segment) {
+        foreach (array('caller_num', 'callee_num') as $field) {
+            $extension = isset($segment[$field]) ? trim((string) $segment[$field]) : '';
+            if ($extension !== '' && isset($extensionsWithPermission[$extension])) {
+                $allowedSegments[] = $segment;
+                continue 2;
+            }
+        }
+    }
+
+    return $allowedSegments;
 }
 
 /**
