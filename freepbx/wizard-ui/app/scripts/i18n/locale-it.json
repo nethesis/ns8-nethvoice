@@ -1082,6 +1082,8 @@
   "Syncing message": "Gli utenti si stanno sincronizzando. Attendi che il processo sia terminato.",
   "All groups": "Tutti i gruppi",
   "Allow to see all groups and operators": "Consente di vedere tutti i gruppi e gli operatori",
+  "Transcription and Summary": "Trascrizioni e Riassunti",
+  "Calls transcription and summary": "Trascrizioni e riassunti delle chiamate",
   "Reconfiguration": "Riconfigurazione",
   "Reconfiguration command was sent successfully": "Il comando di riconfigurazione è stato inviato con successo",
   "You are about to reconfigure": "Stai per riconfigurare",
