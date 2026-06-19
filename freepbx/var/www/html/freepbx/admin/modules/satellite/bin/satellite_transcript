@@ -190,7 +190,11 @@ function main($argv) {
                     $apiUrl = get_satellite_api_url();
                     foreach ($segments as $index => $segment) {
                         $segmentNumber = $index + 1;
-                        $segmentUniqueid = $uniqueid;
+                        // Persist each segment under its own leg's uniqueid
+                        // when enrich_segments matched an answered CDR row.
+                        // Fall back to the invocation uniqueid to preserve
+                        // legacy behaviour for unmatched segments.
+                        $segmentUniqueid = (!empty($segment['uniqueid'])) ? $segment['uniqueid'] : $uniqueid;
                         debug_log(
                             'Preparing segment audio',
                             __FILE__,
@@ -1096,6 +1100,11 @@ function enrich_segments($rawSegments, $cdrRows, $channelFacts, $usersByExtensio
             'caller_name' => $caller['name'],
             'callee_num' => $callee['num'],
             'callee_name' => $callee['name'],
+            // uniqueid of the answered (billsec > 0) CDR leg this segment belongs
+            // to, so each transfer leg is persisted under its own uniqueid instead
+            // of the recording's invocation uniqueid. Empty when no CDR matched;
+            // the caller then falls back to the invocation uniqueid.
+            'uniqueid' => ($cdr !== null && isset($cdr['uniqueid'])) ? (string) $cdr['uniqueid'] : '',
         );
 
         debug_log(
@@ -1214,11 +1223,18 @@ function merge_segment_pair($previousSegment, $segment) {
     }
 
     // Prefer the real PJSIP/SIP/DAHDI channel name once a Local leg has been
-    // collapsed by the consult-finalized handoff.
+    // collapsed by the consult-finalized handoff. The real leg also owns the
+    // canonical uniqueid for the merged conversation.
     foreach (array('primary_channel', 'peer_channel') as $field) {
         if (is_local_channel($merged[$field]) && !is_local_channel($segment[$field])) {
             $merged[$field] = $segment[$field];
+            if (!empty($segment['uniqueid'])) {
+                $merged['uniqueid'] = $segment['uniqueid'];
+            }
         }
+    }
+    if (empty($merged['uniqueid']) && !empty($segment['uniqueid'])) {
+        $merged['uniqueid'] = $segment['uniqueid'];
     }
 
     return $merged;
@@ -1246,6 +1262,52 @@ function find_best_cdr_for_segment($cdrRows, $segment, $primaryChannel, $uniquei
             $bestOverlap = $overlap;
         }
     }
+
+    // Fallback for the consultation leg of an attended transfer: its audio rode a
+    // Local channel, so the segment's real channels (e.g. PJSIP/202 <-> PJSIP/201)
+    // never match a single CDR row's channel/dstchannel pair, and the segment gets
+    // no uniqueid -> the caller collapses it onto the recording's invocation
+    // uniqueid, which belongs to a DIFFERENT conversation (the post-transfer leg).
+    // That is the consultation duplicate / 00:00:00 bug.
+    //
+    // Only reattach when the segment's primary party is absent from the invocation
+    // CDR: if the invocation CDR already involves the primary party (e.g. the
+    // post-transfer leg), the existing invocation-uniqueid fallback is correct and
+    // must be left untouched. When reattaching, pick the answered CDR leg the
+    // primary party originated (src), best time overlap.
+    if ($best === null) {
+        $segPrimaryExt = parse_extension_from_channel($segment['primary_channel']);
+        if ($segPrimaryExt !== '') {
+            $invocationHasPrimary = false;
+            foreach ($cdrRows as $cdr) {
+                if ((string) $cdr['uniqueid'] !== (string) $uniqueid) {
+                    continue;
+                }
+                if ((string) $cdr['src'] === $segPrimaryExt || (string) $cdr['dst'] === $segPrimaryExt) {
+                    $invocationHasPrimary = true;
+                }
+                break;
+            }
+            if (!$invocationHasPrimary) {
+                foreach ($cdrRows as $cdr) {
+                    if ($cdr['disposition'] !== 'ANSWERED' || (int) $cdr['billsec'] <= 0) {
+                        continue;
+                    }
+                    if ((string) $cdr['src'] !== $segPrimaryExt) {
+                        continue;
+                    }
+                    $cdrStart = parse_time($cdr['calldate']) + max(0, ((int) $cdr['duration'] - (int) $cdr['billsec']));
+                    $cdrEnd = parse_time($cdr['calldate']) + (int) $cdr['duration'];
+                    $overlap = min($segment['end'], $cdrEnd) - max($segment['start'], $cdrStart);
+                    if ($overlap > $bestOverlap) {
+                        $best = $cdr;
+                        $bestOverlap = $overlap;
+                    }
+                }
+            }
+        }
+    }
+
     return $best;
 }
 
@@ -1674,6 +1736,13 @@ function build_satellite_upload_fields($segmentUniqueid, $linkedid, $segment) {
 
     $channel0Name = party_label($segment['callee_name'], $segment['callee_num'], 'Channel 0');
     $channel1Name = party_label($segment['caller_name'], $segment['caller_num'], 'Channel 1');
+    // Wall-clock span of this conversation segment, persisted so the UI can show
+    // transfer sub-legs (consultation / post-transfer) with their real duration
+    // instead of 00:00:00 (they have no CDR row of their own for every party).
+    $durationSeconds = 0;
+    if (isset($segment['start'], $segment['end'])) {
+        $durationSeconds = max(0, (int) round($segment['end'] - $segment['start']));
+    }
     $postFields = array(
         'multichannel' => 'true',
         'encoding' => 'linear16',
@@ -1684,6 +1753,7 @@ function build_satellite_upload_fields($segmentUniqueid, $linkedid, $segment) {
         'persist' => 'true',
         'uniqueid' => $segmentUniqueid,
         'linkedid' => $linkedid,
+        'duration' => (string) $durationSeconds,
         'src_number' => to_main_extension(isset($segment['caller_num']) ? trim((string) $segment['caller_num']) : ''),
         'dst_number' => to_main_extension(isset($segment['callee_num']) ? trim((string) $segment['callee_num']) : ''),
     );
