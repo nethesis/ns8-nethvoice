@@ -13,7 +13,7 @@ INSERT INTO `kvstore_Sipsettings` (`key`,`val`,`type`,`id`) VALUES
 ("videocodecs","{\"vp8\":1,\"h264\":2}","json-arr","noid"),
 ("ice-blacklist","[]","json-arr","noid"),
 ("ice-host-candidates","[]","json-arr","noid"),
-("pjsip_identifers_order","[\"ip\",\"username\",\"anonymous\",\"header\",\"auth_username\"]",NULL,"noid"),
+("pjsip_identifers_order","[\"header\",\"ip\",\"username\",\"auth_username\",\"anonymous\"]",NULL,"noid"),
 ("pjsipcertid","1",NULL,"noid"),
 ("method","tlsv1_2",NULL,"noid"),
 ("verify_client","no",NULL,"noid"),
@@ -83,5 +83,4 @@ INSERT INTO `kvstore_Sipsettings` (`key`,`val`,`type`,`id`) VALUES
 ("udplocalnet-0.0.0.0","",NULL,"noid"),
 ("tlsdomain-0.0.0.0","",NULL,"noid"),
 ("tlsextip-0.0.0.0","",NULL,"noid"),
-("tlslocalnet-0.0.0.0","",NULL,"noid"),
-("pjsip.identifers.order","[\"EI_ip\",\"EI_username\",\"EI_anonymous\",\"EI_header\",\"EI_auth_username\"]",NULL,"noid");
+("tlslocalnet-0.0.0.0","",NULL,"noid");
