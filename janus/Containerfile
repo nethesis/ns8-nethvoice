@@ -1,7 +1,7 @@
 FROM debian:bullseye-slim
 
-ARG JANUS_TAG=fix-sip-hold-unhold-rtp-clean
-ARG JANUS_REPO=https://github.com/nethesis/janus-gateway.git
+ARG JANUS_COMMIT=94408ffccbc1a7c39dac82d55e5dd475c807e770
+ARG JANUS_REPO=https://github.com/meetecho/janus-gateway.git
 
 RUN apt-get -y update && \
 	apt-get install -y \
@@ -51,8 +51,12 @@ RUN cd /tmp && \
 	make install
 
 RUN cd /tmp && \
-    git clone --depth 1 --branch ${JANUS_TAG} ${JANUS_REPO} && \
+    mkdir janus-gateway && \
     cd janus-gateway && \
+    git init -q && \
+    git remote add origin ${JANUS_REPO} && \
+    git fetch --depth 1 origin ${JANUS_COMMIT} && \
+    git checkout -q FETCH_HEAD && \
     cp -r . /usr/local/src/janus-gateway
 
 RUN cd /usr/local/src/janus-gateway && \
