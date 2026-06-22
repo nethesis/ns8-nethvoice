@@ -65,88 +65,87 @@
                   </i18n>
                 </template>
               </NsTextInput>
-              <template v-if="hasDeepgramApiKey">
-                <NsToggle
-                  :label="$t('integrations.call_transcription')"
-                  value="isCallTranscriptionEnabled"
-                  :disabled="loading.setIntegrations"
-                  v-model="isCallTranscriptionEnabled"
-                >
-                  <template slot="text-left">
-                    {{ $t("common.disabled") }}
-                  </template>
-                  <template slot="text-right">
-                    {{ $t("common.enabled") }}
-                  </template>
-                </NsToggle>
-                <NsInlineNotification
-                  v-if="isCallTranscriptionEnabled"
-                  kind="warning"
-                  :title="$t('integrations.call_transcription_warning_title')"
-                  :description="
-                    $t('integrations.call_transcription_warning_description')
-                  "
-                  :showCloseButton="false"
-                />
-                <NsToggle
-                  :label="$t('integrations.voicemail_transcription_enabled')"
-                  value="isVoicemailTranscriptionEnabled"
-                  :disabled="loading.setIntegrations"
-                  v-model="isVoicemailTranscriptionEnabled"
-                >
-                  <template slot="text-left">
-                    {{ $t("common.disabled") }}
-                  </template>
-                  <template slot="text-right">
-                    {{ $t("common.enabled") }}
-                  </template>
-                </NsToggle>
-                <NsTextInput
-                  :label="$t('integrations.openai_api_key')"
-                  v-model.trim="openaiApiKey"
-                  :placeholder="
-                    $t('common.eg_value', {
-                      value: 'sk-proj-1234567890abcdef',
-                    })
-                  "
-                  :disabled="loading.setIntegrations"
-                  :invalid-message="error.openai_api_key"
-                  tooltipAlignment="end"
-                  tooltipDirection="right"
-                  ref="openai_api_key"
-                >
-                  <template slot="tooltip">
-                    <i18n path="integrations.openai_api_key_tooltip" tag="span">
-                      <template #openaiLink>
-                        <cv-link
-                          href="https://platform.openai.com/api-keys"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          platform.openai.com
-                        </cv-link>
-                      </template>
-                    </i18n>
-                  </template>
-                </NsTextInput>
-                <NsToggle
-                  :label="$t('integrations.call_summary')"
-                  value="isCallSummaryEnabled"
-                  :disabled="
-                    !hasOpenaiApiKey ||
-                    !isCallTranscriptionEnabled ||
-                    loading.setIntegrations
-                  "
-                  v-model="isCallSummaryEnabled"
-                >
-                  <template slot="text-left">
-                    {{ $t("common.disabled") }}
-                  </template>
-                  <template slot="text-right">
-                    {{ $t("common.enabled") }}
-                  </template>
-                </NsToggle>
-              </template>
+              <NsToggle
+                :label="$t('integrations.call_transcription')"
+                value="isCallTranscriptionEnabled"
+                :disabled="!hasDeepgramApiKey || loading.setIntegrations"
+                v-model="isCallTranscriptionEnabled"
+              >
+                <template slot="text-left">
+                  {{ $t("common.disabled") }}
+                </template>
+                <template slot="text-right">
+                  {{ $t("common.enabled") }}
+                </template>
+              </NsToggle>
+              <NsInlineNotification
+                v-if="isCallTranscriptionEnabled"
+                kind="info"
+                class="call-transcription-notification"
+                :title="$t('integrations.call_transcription_warning_title')"
+                :description="
+                  $t('integrations.call_transcription_warning_description')
+                "
+                :showCloseButton="false"
+              />
+              <NsToggle
+                :label="$t('integrations.voicemail_transcription_enabled')"
+                value="isVoicemailTranscriptionEnabled"
+                :disabled="!hasDeepgramApiKey || loading.setIntegrations"
+                v-model="isVoicemailTranscriptionEnabled"
+              >
+                <template slot="text-left">
+                  {{ $t("common.disabled") }}
+                </template>
+                <template slot="text-right">
+                  {{ $t("common.enabled") }}
+                </template>
+              </NsToggle>
+              <NsTextInput
+                :label="$t('integrations.openai_api_key')"
+                v-model.trim="openaiApiKey"
+                :placeholder="
+                  $t('common.eg_value', {
+                    value: 'sk-proj-1234567890abcdef',
+                  })
+                "
+                :disabled="!hasDeepgramApiKey || loading.setIntegrations"
+                :invalid-message="error.openai_api_key"
+                tooltipAlignment="end"
+                tooltipDirection="right"
+                ref="openai_api_key"
+              >
+                <template slot="tooltip">
+                  <i18n path="integrations.openai_api_key_tooltip" tag="span">
+                    <template #openaiLink>
+                      <cv-link
+                        href="https://platform.openai.com/api-keys"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        platform.openai.com
+                      </cv-link>
+                    </template>
+                  </i18n>
+                </template>
+              </NsTextInput>
+              <NsToggle
+                :label="$t('integrations.call_summary')"
+                value="isCallSummaryEnabled"
+                :disabled="
+                  !hasOpenaiApiKey ||
+                  !isCallTranscriptionEnabled ||
+                  loading.setIntegrations
+                "
+                v-model="isCallSummaryEnabled"
+              >
+                <template slot="text-left">
+                  {{ $t("common.disabled") }}
+                </template>
+                <template slot="text-right">
+                  {{ $t("common.enabled") }}
+                </template>
+              </NsToggle>
               <NsInlineNotification
                 v-if="error.setIntegrations"
                 kind="error"
@@ -410,4 +409,9 @@ export default {
 
 <style scoped lang="scss">
 @import "../styles/carbon-utils";
+
+// align the notification width to the text inputs above/below it
+.call-transcription-notification {
+  max-width: 38rem;
+}
 </style>
