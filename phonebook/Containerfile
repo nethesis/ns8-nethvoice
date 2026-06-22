@@ -7,11 +7,13 @@ RUN apk add --no-cache \
 	curl
 
 RUN mkdir -p /usr/share/phonebookjs
-COPY package.json package-lock.json phonebook.js /usr/share/phonebookjs/
-RUN cd /usr/share/phonebookjs && \
-	npm install && \
+COPY package.json package-lock.json /usr/share/phonebookjs/
+RUN --mount=type=cache,id=nethvoice-phonebook-npm,target=/root/.npm \
+	cd /usr/share/phonebookjs && \
+	npm ci --cache /root/.npm && \
 	mkdir -p /etc/certificates
 
+COPY phonebook.js /usr/share/phonebookjs/
 COPY usr/local/bin/import-certificate /usr/local/bin/import-certificate
 COPY entrypoint.sh /entrypoint
 ENTRYPOINT ["/entrypoint"]

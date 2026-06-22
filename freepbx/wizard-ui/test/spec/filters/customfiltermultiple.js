@@ -11,8 +11,37 @@ describe('Filter: customFilterMultiple', function () {
   }));
 
   var getResultCount = function (result) {
-    return Object.keys(result).length;
+    return angular.isArray(result) ? result.length : Object.keys(result).length;
   };
+
+  it('should preserve array results for orderBy consumers', function () {
+    var users = [{
+      username: 'jdoe',
+      displayname: 'John Doe',
+      default_extension: '200'
+    }];
+
+    var result = customFilterMultiple(users, 'displayname,username,default_extension', 'john');
+
+    expect(angular.isArray(result)).toBe(true);
+    expect(result.length).toBe(1);
+  });
+
+  it('should convert object inputs to arrays when search is empty', function () {
+    var users = {
+      jdoe: {
+        username: 'jdoe',
+        displayname: 'John Doe',
+        default_extension: '200'
+      }
+    };
+
+    var result = customFilterMultiple(users, 'displayname,username,default_extension', '');
+
+    expect(angular.isArray(result)).toBe(true);
+    expect(result.length).toBe(1);
+    expect(result[0].username).toBe('jdoe');
+  });
 
   it('should match configuration devices by MAC regardless of separators', function () {
     var users = [{

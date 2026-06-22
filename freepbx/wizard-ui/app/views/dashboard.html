@@ -34,7 +34,7 @@
                     </h1>
                   </div>
                   <!-- CARD -->
-                  <div ng-repeat="u in usersNumber | customFilterMultiple:'name,dashboardUsersSearch':searchUsersString | orderBy:'u.name' | limitTo: usersLimit"
+                  <div ng-repeat="u in usersNumber | customFilterMultiple:'name,dashboardUsersSearch':searchUsersString | orderBy:'name' | limitTo: usersLimit"
                     class="card-pf user-dashboard-card">
                     <h2 class="card-pf-title ng-binding dashboard-cards-h2">
                       <span class="pficon pficon-user dashboard-cards-icon"></span>{{u.name}}
@@ -54,7 +54,7 @@
                     <div class="card-pf-body">
                       <div id="pf-list-standard" class="list-group list-view-pf list-view-pf-view dashboard-list-margin-top">
                         <!-- EXTENSIONS -->
-                        <div ng-repeat="exten in u.endpoints.extension track by $index | orderBy:'exten.id'"
+                        <div ng-repeat="exten in u.endpoints.extension | orderBy:'id' track by $index"
                           class="list-group-item cursor-default dashboard-list-item">
                           <div class="list-view-pf-actions exten-dashboard-action">
                             <button class="btn btn-default dashboard-info-fontsize" ng-click="showExtenDetails(exten.id, u.username)">Info</button>
@@ -113,7 +113,7 @@
                     </h1>
                   </div>
                   <!-- CARD -->
-                  <div ng-repeat="t in data.trunks | customFilterMultiple:'name,ip':searchTrunkString | orderBy:'t.name' | limitTo: trunksLimit"
+                  <div ng-repeat="t in trunksNumber | customFilterMultiple:'name,ip':searchTrunkString | orderBy:'name' | limitTo: trunksLimit"
                     class="card-pf col-sm-12 col-md-6 col-lg-5 trunks-lg-cards trunks-lg-cards">
                     <h2 class="card-pf-title dashboard-cards-h2">
                       <span class="pficon pficon-container-node dashboard-cards-icon"></span>

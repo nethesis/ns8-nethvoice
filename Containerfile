@@ -1,9 +1,10 @@
-FROM docker.io/library/node:24.11.0-slim as ui_builder
+FROM docker.io/library/node:24.11.1-slim as ui_builder
 WORKDIR /app
 # install deps
 COPY ui/package.json .
 COPY ui/yarn.lock .
-RUN yarn install --frozen-lockfile
+RUN --mount=type=cache,id=nethvoice-module-ui-yarn,target=/var/cache/yarn \
+    yarn install --frozen-lockfile --cache-folder /var/cache/yarn
 # copy application
 COPY ui/public public
 COPY ui/src src

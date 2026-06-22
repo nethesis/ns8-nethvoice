@@ -19,15 +19,13 @@ cleanup () {
 trap cleanup EXIT
 
 ## MariaDB
-# exec mariabackup to save database in /tmp/db_backup
+# stream a compressed xbstream backup to the host filesystem
 podman exec mariadb \
     mariabackup \
         --backup \
-        --target-dir=/tmp/db_backup \
         --user=root \
-        --password="${MARIADB_ROOT_PASSWORD}"
-# copy db_backup in local filesystem
-podman cp mariadb:/tmp/db_backup db_backup
+        --password="${MARIADB_ROOT_PASSWORD#*=}" \
+        --stream=xbstream | gzip > db_backup.xb.gz
 
 
 ## Asterisk
@@ -59,5 +57,5 @@ fi
 
 # satellite postgresql dump
 if systemctl --user --quiet is-active satellite-pgsql.service; then
-    podman exec satellite-pgsql pg_dumpall -U satellite > satellite_postgresql.pg_dump
+    podman exec satellite-pgsql pg_dumpall -U satellite | gzip > satellite_postgresql.pg_dump.gz
 fi

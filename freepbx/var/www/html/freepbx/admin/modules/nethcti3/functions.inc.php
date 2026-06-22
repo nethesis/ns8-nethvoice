@@ -391,34 +391,6 @@ function nethcti3_get_config_late($engine) {
             ];
             $ext->splice('macro-hangupcall', 's', 'hangup', new ext_agi(join(',',$agi_cmd)),'nethcti-cdr-script');
         }
-        /* Satellite STT real time Transcriptions*/
-        if (!empty($_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED']) && $_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED'] == 'True') {
-            // Add a call Satellite when call is answered in macro-dial-one adding it in D_OPTIONS variable
-            $ext->splice('macro-dial-one','s','dial', new \ext_setvar('D_OPTIONS', '${D_OPTIONS}U(satellite^s^1)'),'', -1);
-            // Add mixmonitor to record the call
-            $ext->splice('macro-dial-one', 's', 'dial', new \ext_mixmonitor('','br(/var/run/nethvoice/satellite-r-${UNIQUEID}.wav)t(/var/run/nethvoice/satellite-t-${UNIQUEID}.wav)','/var/lib/asterisk/bin/satellite_transcription -u ${UNIQUEID} -c0 "${CDR(dst_cnam)}" -c1 "${CDR(cnam)}"'),'', -1);
-            // Add call to Satellite macro in macro-dialout-trunk if there is at least one route with at least one trunk
-            $routes = core_routing_list();
-            if (!empty($routes)) {
-                foreach (core_routing_list() as $route) {
-                    $routetrunks = core_routing_getroutetrunksbyid($route['route_id']);
-                    if (!empty($routetrunks)) {
-                        $ext->splice('macro-dialout-trunk', 's', '', new \ext_setvar('DIAL_TRUNK_OPTIONS', '${DIAL_TRUNK_OPTIONS}U(satellite^s^1)'),'', 28);
-                        // Add mixmonitor to record the call
-                        $ext->splice('macro-dialout-trunk', 's', '', new \ext_mixmonitor('','br(/var/run/nethvoice/satellite-r-${UNIQUEID}.wav)t(/var/run/nethvoice/satellite-t-${UNIQUEID}.wav)','/var/lib/asterisk/bin/satellite_transcription -u ${UNIQUEID} -c0 "${CDR(dst_cnam)}" -c1 "${CDR(cnam)}"'),'', 28);
-                        break;
-                    }
-                }
-            }
-            // Create the Satellite context
-            $ext->add('satellite', 's', '', new \ext_noop('Satellite STT'));
-            // TODO: add a check to see if the user is allowed to use the STT
-            // Start Stasis
-            $ext->add('satellite', 's', '', new \ext_stasis('satellite'));
-            $ext->add('satellite', 's', '', new \ext_noop('Stasis satellite end'));
-            // Return to the dialplan
-            $ext->add('satellite', 's', '', new \ext_return());
-        }
         /* Change SIP response for unregistered extensions #7321*/
         $ext->replace('macro-exten-vm', '_s-!', '4', new extension('HangUp(20)'));
         /* Add Answer() and Ringing() to macro-dial-one on call forwarding #7321*/
@@ -652,6 +624,30 @@ function nethcti3_get_config_late($engine) {
 function nethcti3_get_config_early($engine) {
     include_once('/var/www/html/freepbx/rest/lib/libCTI.php');
     global $amp_conf;
+    global $db;
+
+    $pjsip = \FreePBX::Core()->getDriver('pjsip');
+    $trunks = FreePBX::Core()->listTrunks();
+    foreach ($trunks as $trunk) {
+        $pjsip_trunk_stmt = $pjsip
+            ? $db->prepare('SELECT keyword, data FROM pjsip WHERE id = ? AND keyword IN ("registration", "sip_server", "trunk_name", "outbound_proxy", "authentication")')
+            : null;
+        if ($pjsip_trunk_stmt && $trunk['tech'] === 'pjsip') {
+            $pjsip_trunk_stmt->execute([$trunk['trunkid']]);
+            $pjsip_trunk = array_column($pjsip_trunk_stmt->fetchAll(\PDO::FETCH_ASSOC), 'data', 'keyword');
+            if (($pjsip_trunk['registration'] ?? '') === 'none'
+                && !empty($pjsip_trunk['trunk_name'])
+                && !empty($pjsip_trunk['sip_server'])
+                && !empty($pjsip_trunk['outbound_proxy'])
+                && ($pjsip_trunk['authentication'] === 'none' || $pjsip_trunk['authentication'] === 'outbound' || $pjsip_trunk['authentication'] === 'off')
+                && preg_match('/^sip:'. preg_quote($_ENV['PROXY_IP'], '/') .':'. preg_quote($_ENV['PROXY_PORT'], '/') .';lr$/', $pjsip_trunk['outbound_proxy'])) {
+                // if sip_server is a hostname, resolve it to an IP address
+                $sip_server_ip = gethostbyname($pjsip_trunk['sip_server']);
+                $pjsip->addIdentify($pjsip_trunk['trunk_name'], 'match_header', 'X-Forwarded-For: /' . preg_quote($sip_server_ip, '/') . '$/');
+            }
+        }
+    }
+
     // Call Tancredi API to set variables that needs to be set on FreePBX retrieve conf
     // get featurecodes
     $dbh = FreePBX::Database();

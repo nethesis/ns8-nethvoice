@@ -4,7 +4,7 @@
 
 <head>
   <meta charset="utf-8">
-  <title ng-bind="customConfig.BRAND_NAME"></title>
+  <title ng-bind="customConfig.BRAND_NAME && customConfig.BRAND_NAME !== 'NethVoice' ? customConfig.BRAND_NAME + ' | Admin' : 'Admin'"></title>
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width">
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
@@ -41,7 +41,7 @@
     </div>
   </div>
   <!-- end login -->
-  <div ng-show="login.isLogged" class="full-height">
+  <div ng-if="login.isLogged" class="full-height">
     <!-- navbar-->
     <nav class="navbar navbar-pf-alt">
       <div class="navbar-header">
@@ -52,7 +52,11 @@
           <span class="icon-bar"></span>
         </button>
         <a ng-click="wizard.isMigration ? '' : goTo('/')" class="navbar-brand">
-          <img class="navbar-brand-icon" src="images/brandDark.svg" alt="" />
+          <img
+            class="navbar-brand-icon"
+            ng-src="{{customConfig.NAVBAR_LOGO_URL || 'images/brandDark.svg'}}"
+            alt=""
+          />
         </a>
       </div>
       <nav class="collapse navbar-collapse">
@@ -107,7 +111,7 @@
         </li>
 
         <!-- USERS -->
-        <li ng-click="goTo('/extensions')"
+        <li ng-click="goTo('/extensions', wizard.isWizard)"
         ng-if="!wizard.isMigrationView"
         class="list-group-item collapse-menu {{resolveActiveTab('extensions',1) ? 'active' : ''}}"
         id="users-item-menu" ng-if="!wizard.isMigrationView">
@@ -322,8 +326,15 @@
     <!-- end content -->
     <!-- footer -->
     <footer class="container-fluid footer-pf-alt">
-      <p class="footer-opt"><a target="-blank" href="{{customConfig.BRAND_SITE}}">Copyright &copy; {{currentYear()}} {{customConfig.BRAND_NAME}}</a></p>
-      <p class="footer-opt-right"><a target="_blank" href="{{customConfig.BRAND_DOCS}}">{{'Docs' | translate}}</a></p>
+      <p class="footer-opt" ng-if="customConfig.BRAND_NAME && customConfig.BRAND_NAME !== 'NethVoice'">
+        Copyright &copy; {{currentYear()}} {{customConfig.BRAND_NAME}}
+      </p>
+      <p class="footer-opt" ng-if="!customConfig.BRAND_NAME || customConfig.BRAND_NAME === 'NethVoice'">
+        <a target="-blank" href="{{customConfig.BRAND_SITE}}">Copyright &copy; {{currentYear()}} {{customConfig.BRAND_NAME}}</a>
+      </p>
+      <p class="footer-opt-right" ng-if="!customConfig.BRAND_NAME || customConfig.BRAND_NAME === 'NethVoice'">
+        <a target="-blank" href="{{customConfig.BRAND_DOCS}}">{{'Docs' | translate}}</a>
+      </p>
     </footer>
     <!-- end footer -->
   </div>
@@ -357,12 +368,20 @@
   <script src="node_modules/angular-bootstrap/ui-bootstrap-tpls.js"></script>
   <script src="node_modules/angular-animate/angular-animate.js"></script>
   <script src="node_modules/lodash/lodash.js"></script>
+  <script src="node_modules/angular-drag-and-drop-lists/angular-drag-and-drop-lists.js"></script>
   <script src="node_modules/angular-patternfly/dist/angular-patternfly.js"></script>
   <script src="node_modules/jquery-ui/jquery-ui.js"></script>
   <script src="node_modules/angular-ui-sortable/sortable.js"></script>
   <script src="node_modules/ng-sortable/dist/ng-sortable.js"></script>
   <script src="node_modules/angular-bootstrap-switch/dist/angular-bootstrap-switch.js"></script>
   <script src="node_modules/ace-builds/src-min/ace.js"></script>
+  <script>
+    ace.config.set("basePath", "node_modules/ace-builds/src-min");
+    ace.config.setModuleUrl(
+      "ace/mode/json_worker",
+      "node_modules/ace-builds/src-min/worker-json.js"
+    );
+  </script>
   <script src="node_modules/ace-builds/src-min/mode-json.js"></script>
   <script src="node_modules/ace-builds/src-min/mode-sql.js"></script>
   <script src="node_modules/ace-builds/src-min/mode-ejs.js"></script>

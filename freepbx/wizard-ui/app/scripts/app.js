@@ -1,5 +1,17 @@
 'use strict';
 
+if (typeof angular.lowercase !== 'function') {
+  angular.lowercase = function (value) {
+    return typeof value === 'string' ? value.toLowerCase() : value;
+  };
+}
+
+if (typeof angular.uppercase !== 'function') {
+  angular.uppercase = function (value) {
+    return typeof value === 'string' ? value.toUpperCase() : value;
+  };
+}
+
 /**
  * @ngdoc overview
  * @name nethvoiceWizardUiApp

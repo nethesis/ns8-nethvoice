@@ -34,6 +34,7 @@ if 'system_id' in subscription:
     # check if rebrand is active
     if 'brand' in data:
         getFromRequest(request, 'rebranding_brand_name', 'BRAND_NAME', '')
+        getFromRequest(request, 'rebranding_brand_name', 'NETHCTI_UI_PRODUCT_NAME', '')
 
         getFromRequest(request, 'rebranding_login_people', 'LOGIN_PEOPLE', '')
 
@@ -46,5 +47,23 @@ if 'system_id' in subscription:
 
         getFromRequest(request, 'rebranding_login_background_url', 'LOGIN_BACKGROUND_URL', '')
 
+        getFromRequest(request, 'rebranding_wizard_brand_name', 'WIZARD_BRAND_NAME', os.getenv('WIZARD_BRAND_NAME', ''))
+        getFromRequest(request, 'rebranding_wizard_login_logo_url', 'WIZARD_LOGIN_LOGO_URL', os.getenv('WIZARD_LOGIN_LOGO_URL', ''))
+        getFromRequest(request, 'rebranding_wizard_favicon_url', 'WIZARD_FAVICON_URL', os.getenv('WIZARD_FAVICON_URL', ''))
+        getFromRequest(request, 'rebranding_wizard_login_background_url', 'WIZARD_LOGIN_BACKGROUND_URL', os.getenv('WIZARD_LOGIN_BACKGROUND_URL', ''))
+
+        getFromRequest(request, 'rebranding_reports_brand_name', 'REPORTS_UI_APP_NAME', 'NethVoice Reports')
+        getFromRequest(request, 'rebranding_reports_brand_name', 'REPORTS_UI_BRAND_NAME', 'NethVoice')
+        getFromRequest(request, 'rebranding_reports_login_logo_url', 'REPORTS_UI_LOGIN_LOGO_URL', '')
+        getFromRequest(request, 'rebranding_reports_favicon_url', 'REPORTS_UI_FAVICON_URL', '')
+        getFromRequest(request, 'rebranding_reports_login_background_url', 'REPORTS_UI_LOGIN_BACKGROUND_URL', '')
+
+        getFromRequest(request, 'rebranding_nethlink_company_name', 'NETHCTI_UI_COMPANY_NAME', 'Nethesis')
+        getFromRequest(request, 'rebranding_nethlink_company_name', 'NETHCTI_COMPANY_NAME', 'Nethesis')
+        getFromRequest(request, 'rebranding_nethlink_company_url', 'NETHCTI_UI_COMPANY_URL', 'https://www.nethesis.it/')
+        getFromRequest(request, 'rebranding_nethlink_company_url', 'NETHCTI_COMPANY_URL', 'https://www.nethesis.it/')
+
         # try to restart the service if needed
         agent.run_helper(*'systemctl --user try-restart nethcti-ui.service'.split()).check_returncode()
+        agent.run_helper(*'systemctl --user try-restart reports-ui.service'.split()).check_returncode()
+        agent.run_helper(*'systemctl --user try-restart freepbx.service'.split()).check_returncode()
