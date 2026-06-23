@@ -80,7 +80,7 @@ $stmt->execute();
 // Prefer header matching before IP so proxied static PJSIP trunks are identified
 // from X-Forwarded-* headers.
 $pjsip_identifiers_order = json_encode(['header', 'ip', 'username', 'auth_username', 'anonymous']);
-$stmt = $db->prepare("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = ? WHERE `key` = 'pjsip_identifers_order' AND `data` = 'ip,username,anonymous,auth_username'");
+$stmt = $db->prepare("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = ? WHERE `key` = 'pjsip_identifers_order' AND `val` = 'ip,username,anonymous,auth_username'");
 $stmt->execute([$pjsip_identifiers_order]);
 
 // Update outbound routes notification_on field
