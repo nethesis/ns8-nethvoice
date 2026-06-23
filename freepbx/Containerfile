@@ -2,7 +2,7 @@
 FROM docker.io/debian:trixie as builder
 
 # Set fixed Asterisk version
-ARG ASTERISK_VERSION=22.10.0
+ARG ASTERISK_VERSION=22.9.0
 ARG PJSIP_VERSION=2.16
 ARG DEBIAN_FRONTEND=noninteractive
 ARG BUILDROOT=/usr/src/asterisk/build
@@ -62,7 +62,7 @@ RUN apt-get update && \
 		wget
 
 RUN cd /usr/src/asterisk && \
-	wget -O asterisk-${ASTERISK_VERSION}.tar.gz https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz && \
+	wget -O asterisk-${ASTERISK_VERSION}.tar.gz https://downloads.asterisk.org/pub/telephony/asterisk/old-releases/asterisk-${ASTERISK_VERSION}.tar.gz && \
 	artifact_checksum=$(grep "  asterisk-${ASTERISK_VERSION}.tar.gz$" remote-artifacts.sha256) && \
 	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
 	tar xzf asterisk-${ASTERISK_VERSION}.tar.gz && \
