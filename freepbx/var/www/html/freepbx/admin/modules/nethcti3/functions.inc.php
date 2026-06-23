@@ -731,6 +731,11 @@ function nethcti3_get_config_early($engine) {
         $extension = $ext['extension'];
         $mainextension = $ext['mainextension'];
 
+        $deviceMac = $ext['mac'] ?? '';
+        if ($deviceMac === '') {
+            continue;
+        }
+
         // Get extension sip parameters
         $sql = 'SELECT keyword,data FROM sip WHERE id = ?';
         $stmt = $dbh->prepare($sql);
@@ -789,7 +794,7 @@ function nethcti3_get_config_early($engine) {
             elseif ($sip['dtmfmode'] == 'rfc4733') $user_variables['account_dtmf_type_1'] = 'rfc4733';
         }
         $user_variables['account_voicemail_1'] = $featurecodes['voicemailmyvoicemail'];
-        $res = nethcti_tancredi_patch($tancrediUrl . 'phones/' . str_replace(':','-',$ext['mac']), $username, $secretkey, array("variables" => $user_variables));
+        $res = nethcti_tancredi_patch($tancrediUrl . 'phones/' . str_replace(':','-',$deviceMac), $username, $secretkey, array("variables" => $user_variables));
     }
     /***********************************
     * call Tancredi /defaults REST API *
