@@ -47,7 +47,7 @@
                 "
                 :disabled="loading.setIntegrations"
                 :invalid-message="error.deepgram_api_key"
-                isPassword
+                type="password"
                 :passwordHideLabel="core.$t('password.hide_password')"
                 :passwordShowLabel="core.$t('password.show_password')"
                 tooltipAlignment="end"
@@ -114,7 +114,7 @@
                 "
                 :disabled="!hasDeepgramApiKey || loading.setIntegrations"
                 :invalid-message="error.openai_api_key"
-                isPassword
+                type="password"
                 :passwordHideLabel="core.$t('password.hide_password')"
                 :passwordShowLabel="core.$t('password.show_password')"
                 tooltipAlignment="end"
