@@ -189,6 +189,8 @@ function nethcti3_get_config_late($engine) {
             }
             $nethcti3 = \FreePBX::Nethcti3();
             $trunks = FreePBX::Core()->listTrunks();
+            $add_unset_topos = false;
+            $add_unset_istrunk = false;
             foreach ($trunks as $trunk) {
                 try {
                     /*Add isTrunk = 1 header to VoIP trunks that doesn't require SRTP encryption*/
@@ -741,11 +743,11 @@ function nethcti3_get_config_early($engine) {
         $user_variables['account_dnd_allow_1'] = '1';
         $user_variables['account_fwd_allow_1'] = '1';
         if (array_key_exists('profile_id',$ext)
-            && is_array($permission)
-            && array_key_exists($ext['profile_id'],$permission)
+            && is_array($permissions)
+            && array_key_exists($ext['profile_id'],$permissions)
             && array_key_exists('macro_permissions',$permissions[$ext['profile_id']])
             && array_key_exists('settings',$permissions[$ext['profile_id']]['macro_permissions'])
-            && array_key_exists('permissions',$$permissions[$ext['profile_id']]['macro_permissions']['settings']))
+            && array_key_exists('permissions',$permissions[$ext['profile_id']]['macro_permissions']['settings']))
         {
             foreach ($permissions[$ext['profile_id']]['macro_permissions']['settings']['permissions'] as $permission) {
                 if ($permission['name'] == 'dnd') {
