@@ -10,6 +10,9 @@ ARG LIBDIR=/usr/lib
 ARG DATADIR=/var/lib
 ARG MAKEARGS="DEBUG= OPTIMIZE= DESTDIR=${BUILDROOT} ASTVARRUNDIR=/var/run/asterisk ASTDATADIR=${DATADIR}/asterisk ASTVARLIBDIR=${DATADIR}/asterisk ASTDBDIR=${DATADIR}/asterisk/db NOISY_BUILD=1"
 COPY usr/src/asterisk /usr/src/asterisk
+# libcap can still arrive transitively from other build dependencies, so
+# disable Asterisk's CAP probe below. Rootless Podman cannot retain
+# CAP_NET_ADMIN after dropping to runuser=asterisk in this image.
 RUN apt-get update && \
 	apt-get install -y \
 		automake \
@@ -17,7 +20,6 @@ RUN apt-get update && \
 		doxygen \
 		graphviz \
 		libasound2-dev \
-		libcap-dev \
 		libcurl4-openssl-dev \
 		libedit-dev \
 		libgcrypt20-dev \
@@ -81,6 +83,7 @@ RUN cd /usr/src/asterisk && \
 	touch -r main/fskmodem.c.old main/fskmodem.c && \
 	rm main/fskmodem.c.old && \
 	chmod -x contrib/scripts/dbsep.cgi && \
+	sed -i '/AST_EXT_LIB_CHECK(\[CAP\], \[cap\], \[cap_from_text\], \[sys\/capability.h\])/d' configure.ac && \
 	export CFLAGS=" -Werror-implicit-function-declaration -DLUA_COMPAT_MODULE -fPIC" && \
 	export CXXFLAGS="-Werror-implicit-function-declaration -DLUA_COMPAT_MODULE -fPIC" && \
 	export FFLAGS="-Werror-implicit-function-declaration -DLUA_COMPAT_MODULE -fPIC" && \
