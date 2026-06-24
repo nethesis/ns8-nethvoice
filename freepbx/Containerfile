@@ -483,6 +483,7 @@ RUN chown -R asterisk:asterisk \
 	/var/www/html/freepbx/admin/assets/less/cache \
 	/var/www/html/freepbx/admin/images/ \
 	/var/www/html/freepbx/admin/modules/core/logs \
+	/var/www/html/freepbx/admin/modules/pm2/node \
 	/var/www/html/freepbx/admin/modules/pm2/node/logs \
 	/var/www/html/freepbx/admin/modules/pm2/node/node_modules \
 	/var/www/html/freepbx/admin/modules/*/assets/less/cache \
