@@ -95,10 +95,14 @@ $app->post('/configuration/wizard', function (Request $request, Response $respon
         // Restart nethcti-server if wizard is completed
         if ($step == 13) {
             // Restart Asterisk
-            system("/usr/sbin/asterisk -rx 'core restart when convenient' &> /dev/null");
+            system("/usr/sbin/asterisk -rx 'core restart when convenient' >/dev/null 2>&1");
             // Notify nethcti-server restart
-            $file = fopen("/notify/restart_nethcti-server", 'w');
-            fclose($file);
+            if (is_dir('/notify') || @mkdir('/notify', 0775, true)) {
+                $file = @fopen('/notify/restart_nethcti-server', 'w');
+                if ($file !== false) {
+                    fclose($file);
+                }
+            }
         }
         // clean table
         sql('TRUNCATE `rest_wizard`');
