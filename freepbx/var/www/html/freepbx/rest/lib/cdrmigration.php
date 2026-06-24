@@ -23,9 +23,11 @@
 include_once ("/etc/freepbx.conf");
 include_once ("/var/www/html/freepbx/rest/lib/libMigration.php");
 
+$statusfile = '/var/run/nethvoice/cdrmigration';
+$progress = 0;
+
 try {
     $oldCDRDB = OldCDRDB::Database();
-    $statusfile = '/var/run/nethvoice/cdrmigration';
 
     if (file_exists($statusfile)) {
         unlink($statusfile);
@@ -35,7 +37,7 @@ try {
     $sql = 'SELECT COUNT(*) FROM cdr';
     $sth = $oldCDRDB->prepare($sql);
     $sth->execute(array());
-    $count = $sth->fetchAll()[0][0];
+    $count = (int) $sth->fetchColumn();
 
     $newCDRDB = NewCDRDB::Database();
     $offset = 0;
@@ -97,10 +99,9 @@ try {
             $offset += 1;
         }
     }
+    $progress = 100;
     file_put_contents($statusfile,json_encode(array('status' => true, 'progress' => $progress)));
-} catch (Exception $e) {
+} catch (Throwable $e) {
     error_log($e->getMessage());
     file_put_contents($statusfile,json_encode(array('status' => false, 'progress' => $progress, 'errors' => $e->getMessage())));
 }
-
-
