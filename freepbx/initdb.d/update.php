@@ -101,3 +101,10 @@ $sql = "UPDATE `asterisk`.`outbound_routes`
 			WHERE `emailto` LIKE '%@%')";
 $stmt = $db->prepare($sql);
 $stmt->execute();
+
+// Rename the Satellite CTI permission displayname/description on existing
+// installations. The migration.php script exits early once it has already run,
+// so its UPDATE branch never reaches already-migrated installs; doing it here
+// (update.php runs on every start and is idempotent) ensures the rename is
+// applied everywhere.
+$db->query("UPDATE `asterisk`.`rest_cti_permissions` SET `displayname` = 'Transcription and Summary', `description` = 'Calls transcription and summary' WHERE `id` = 5000 AND `displayname` = 'Speech-To-Text'");
