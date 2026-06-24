@@ -254,6 +254,10 @@ function addEditGateway($params){
         $errors = array(); $warnings = array(); $infos = array();
         $fpbx = FreePBX::create();
         $dbh = FreePBX::Database();
+        $gatewayIpv4 = $params['ipv4'] ?? '';
+        $proxyFqdn = $_ENV['NETHVOICE_PROXY_FQDN'] ?? ($params['proxy'] ?? '');
+        $proxyIp = $_ENV['PROXY_IP'] ?? '';
+        $proxyPort = $_ENV['PROXY_PORT'] ?? '';
         /*Check if config exists*/
         $sql = "SELECT `id` FROM `gateway_config` WHERE `name` = ?";
         $prep = array($params['name']);
@@ -277,7 +281,7 @@ function addEditGateway($params){
         /*Create configuration*/
         $sql = "INSERT INTO `gateway_config` (`model_id`,`name`,`ipv4`,`ipv4_new`,`gateway`,`ipv4_green`,`netmask_green`,`mac`,`proxy`) VALUES (?,?,?,?,?,?,?,?,?)";
         $sth = FreePBX::Database()->prepare($sql);
-        $sth->execute(array($params['model'],$params['name'],$params['ipv4'],$params['ipv4_new'],$params['gateway'],$params['ipv4_green'],$params['netmask_green'],strtoupper($params['mac']),$_ENV['NETHVOICE_PROXY_FQDN']));
+        $sth->execute(array($params['model'],$params['name'],$gatewayIpv4,$params['ipv4_new'],$params['gateway'],$params['ipv4_green'],$params['netmask_green'],strtoupper($params['mac']),$proxyFqdn));
         /*get id*/
         $sql = "SELECT `id` FROM `gateway_config` WHERE `name` = ? ORDER BY `id` DESC LIMIT 1";
         $sth = FreePBX::Database()->prepare($sql);
@@ -323,7 +327,7 @@ function addEditGateway($params){
                         $defaults['aors'] = $trunkName;
                         $defaults['dialoutprefix'] = $trunk['trunknumber'];
                         $defaults['extdisplay'] = 'OUT_'.$nextTrunkId;
-                        $defaults['outbound_proxy'] = 'sip:' . $_ENV['PROXY_IP'] . ':' . $_ENV['PROXY_PORT'] . ';lr';
+                        $defaults['outbound_proxy'] = 'sip:' . $proxyIp . ':' . $proxyPort . ';lr';
                         $defaults['secret'] = $secret;
                         $defaults['sip_server'] = $params['ipv4_new'];
                         $defaults['sv_channelid'] = $trunkName;
@@ -356,8 +360,8 @@ function addEditGateway($params){
                             false   // dialopts
                         );
 
-                        $dialpattern_insert = array('prepend_digits'=>'','match_pattern_prefix'=>'','match_pattern_pass'=>'','match_cid'=>'');
-                        core_trunks_update_dialrules($trunkId, $dialpattern_insert);
+                        $dialpatternInsert = array();
+                        core_trunks_update_dialrules($trunkId, $dialpatternInsert);
                         $port++;
                     }
 
