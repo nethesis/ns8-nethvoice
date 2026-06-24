@@ -129,9 +129,14 @@ def collect_physical_devices_by_model(facts):
     facts['nethvoice_physical_devices_by_model'] = by_model
 
 def collect_trunks_by_provider(facts):
-    # SELECT prov.provider AS provider_name,  COUNT(DISTINCT p.id) AS count FROM rest_pjsip_providers prov INNER JOIN pjsip p ON prov.id = p.id GROUP BY prov.id, prov.provider HAVING count >= 1;
     rows = sql_rows(AMPDBNAME,
-        "SELECT prov.provider AS provider_name,  COUNT(DISTINCT p.id) AS count FROM rest_pjsip_providers prov INNER JOIN pjsip p ON prov.id = p.id GROUP BY prov.id, prov.provider HAVING count >= 1;")
+        "SELECT rp.provider AS provider_name, COUNT(DISTINCT t.trunkid) AS count "
+        "FROM trunks t "
+        "JOIN pjsip s ON s.id = t.trunkid AND s.keyword = 'sip_server' "
+        "JOIN rest_pjsip_trunks_defaults d ON d.keyword = 'sip_server' AND d.data = s.data "
+        "JOIN rest_pjsip_providers rp ON rp.id = d.provider_id "
+        "WHERE t.tech = 'pjsip' "
+        "GROUP BY rp.provider;")
     by_provider = {}
     for row in rows:
         parts = row.split('\t')
