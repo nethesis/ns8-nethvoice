@@ -82,6 +82,7 @@ modules_to_install=(
 
 obsolete_modules=(
     bulkdids
+    googletts
     inboundlookup
     outboundlookup
 )
