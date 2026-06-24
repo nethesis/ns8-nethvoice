@@ -101,7 +101,7 @@ function isMigration(){
     $sql = 'SELECT `value` FROM `admin` WHERE `variable`="migration_status"';
     $sth = $dbh->prepare($sql);
     $sth->execute(array());
-    $res = $sth->fetchAll()[0][0];
+    $res = $sth->fetchColumn();
     if ($res === 'done') {
         return false;
     }
@@ -127,7 +127,7 @@ function getMigrationStatus() {
         $sql = 'SELECT `value` FROM `admin` WHERE `variable`="migration_status"';
         $sth = $dbh->prepare($sql);
         $sth->execute(array());
-        $res = $sth->fetchAll()[0][0];
+        $res = $sth->fetchColumn();
         if (empty($res)) {
             return 'ready';
         }
@@ -144,8 +144,7 @@ function getOldSecret($extension){
         $sql = 'SELECT `data` FROM `sip` WHERE `id` = ? AND `keyword` = "secret"';
         $sth = $oldDb->prepare($sql);
         $sth->execute(array($extension));
-        $res = $sth->fetchAll()[0][0];
-        return $res;
+        return $sth->fetchColumn();
     } catch (Exception $e) {
         error_log($e->getMessage());
         return false;
@@ -294,11 +293,12 @@ function cloneOldCTIProfile($name) {
     $sth = $dbh->prepare($sql);
     try {
         $sth->execute(array($name));
-        $num = $sth->fetchAll()[0][0];
+        $num = (int) $sth->fetchColumn();
     } catch (Exception $e) {
         error_log($sql . ' ERROR: ' . $e->getMessage());
         storeMigrationReport(__FUNCTION__,$e->getMessage(),'errors');
         $errors[] = $sql . ' ERROR: ' . $e->getMessage();
+        return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
     }
     if ($num >= 1) {
         $warnings[] = "Profile \"$name\" already migrated";
@@ -316,6 +316,7 @@ function cloneOldCTIProfile($name) {
         storeMigrationReport(__FUNCTION__,$e->getMessage(),'errors');
         error_log($sql . ' ERROR: ' . $e->getMessage());
         $errors[] = $sql . ' ERROR: ' . $e->getMessage();
+        return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
     }
 
     $oldpermissions = array();
@@ -396,8 +397,10 @@ function cloneOldCTIProfile($name) {
                 $profile['macro_permissions'][$macro_permission['name']]['permissions'] = array();
             }
             $permission = getPermissionByName($permission_name);
-            $permission['value'] = true;
-            $profile['macro_permissions'][$macro_permission['name']]['permissions'][] = $permission;;
+            if ($permission !== false) {
+                $permission['value'] = true;
+                $profile['macro_permissions'][$macro_permission['name']]['permissions'][] = $permission;
+            }
         }
     }
 
@@ -412,8 +415,10 @@ function cloneOldCTIProfile($name) {
                     $profile['macro_permissions'][$macro_permission['name']]['permissions'] = array();
                 }
                 $permission = getPermissionByName($permission_name);
-                $permission['value'] = true;
-                $profile['macro_permissions'][$macro_permission['name']]['permissions'][] = $permission;
+                if ($permission !== false) {
+                    $permission['value'] = true;
+                    $profile['macro_permissions'][$macro_permission['name']]['permissions'][] = $permission;
+                }
             }
         }
     }
@@ -424,8 +429,10 @@ function cloneOldCTIProfile($name) {
         foreach (array('conference','oppanel') as $permission_name) {
             $macro_permission = getMacroPermissionFromPermissionName($permission_name);
             $permission = getPermissionByName($permission_name);
-            $permission['value'] = true;
-            $profile['macro_permissions'][$macro_permission['name']]['permissions'][] = $permission;
+            if ($macro_permission !== false && $permission !== false) {
+                $permission['value'] = true;
+                $profile['macro_permissions'][$macro_permission['name']]['permissions'][] = $permission;
+            }
         }
     }  
     $res = postCTIProfile($profile);
@@ -445,9 +452,10 @@ function getMacroPermissionFromPermissionName($permission_name) {
         $query = 'SELECT rest_cti_macro_permissions.name,rest_cti_macro_permissions.id FROM rest_cti_macro_permissions_permissions JOIN rest_cti_permissions ON rest_cti_macro_permissions_permissions.permission_id = rest_cti_permissions.id JOIN rest_cti_macro_permissions ON rest_cti_macro_permissions.id = rest_cti_macro_permissions_permissions.macro_permission_id WHERE rest_cti_permissions.name = ?';
         $sth = $dbh->prepare($query);
         $sth->execute(array($permission_name));
-        return $sth->fetchAll(\PDO::FETCH_ASSOC)[0];
+        return $sth->fetch(\PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         error_log(__FUNCTION__ . ' : ' .$e->getMessage());
+        return false;
     }
 }
 
@@ -457,18 +465,19 @@ function getPermissionByName($permission_name) {
         $query = 'SELECT * FROM rest_cti_permissions WHERE `name` = ?';
         $sth = $dbh->prepare($query);
         $sth->execute(array($permission_name));
-        return $sth->fetchAll(\PDO::FETCH_ASSOC)[0];
+        return $sth->fetch(\PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         error_log(__FUNCTION__ . ' : ' .$e->getMessage());
+        return false;
     }
 }
 
 function copyOldTrunks() {
+    $errors = array(); $warnings = array(); $infos = array();
     try {
         // get old trunks
         $dbh = FreePBX::Database();
         $oldDb = OldDB::Database();
-        $errors = array(); $warnings = array(); $infos = array();
 
         $sql = 'SELECT * FROM `sip` WHERE `id` LIKE "tr-peer-%"';
         $sth = $oldDb->prepare($sql);
@@ -481,21 +490,32 @@ function copyOldTrunks() {
 
         $trunkIdToCopy = array();
         foreach ($trunks as $identifier => $trunk) {
-            if ($trunk['host'] == 'dynamic') continue;
-            if (preg_match('/^[2-9]0[0-9][0-9]$/',$trunk['username'])) continue;
+            if (isset($trunk['host']) && $trunk['host'] == 'dynamic') continue;
+            if (isset($trunk['username']) && preg_match('/^[2-9]0[0-9][0-9]$/',$trunk['username'])) continue;
             $trunkIdToCopy[] = preg_replace('/^tr-peer-([0-9]*)$/','$1',$identifier);
         }
 
+        $migrated = array();
         foreach ($trunkIdToCopy as $oldid) {
+            // Read the trunk first to avoid creating orphan SIP rows.
+            $sql = 'SELECT * FROM `trunks` WHERE `trunkid` = ?';
+            $sth = $oldDb->prepare($sql);
+            $sth->execute(array($oldid));
+            $trunk = $sth->fetch(\PDO::FETCH_ASSOC);
+            if ($trunk === false) {
+                $message = 'Trunk ID '.$oldid.' has no matching metadata and was not migrated';
+                $warnings[] = $message;
+                storeMigrationReport(__FUNCTION__,$message,'warnings');
+                continue;
+            }
+
             //Get new id for the trunk
             $sql = 'SELECT max(trunkid) FROM `trunks`';
             $sth = $dbh->prepare($sql);
             $sth->execute(array());
-            $res = $sth->fetchAll()[0];
-            $lastid = $res[0];
-            if (is_null($lastid)) {
+            $lastid = $sth->fetchColumn();
+            if ($lastid === false || is_null($lastid)) {
                 $newid = 1;
-                $lastid = 1;
             } else {
                 $newid = $lastid+1;
             }
@@ -511,11 +531,6 @@ function copyOldTrunks() {
                 $sth->execute(array_values($row));
             }
             // migrate trunks table data
-            $migrated = array();
-            $sql = 'SELECT * FROM `trunks` WHERE `trunkid` = ?';
-            $sth = $oldDb->prepare($sql);
-            $sth->execute(array($oldid));
-            $trunk = $sth->fetchAll(\PDO::FETCH_ASSOC)[0];
             $sql = 'INSERT INTO `trunks` (`trunkid`,`tech`,`channelid`,`name`,`outcid`,`keepcid`,`maxchans`,`failscript`,`dialoutprefix`,`usercontext`,`provider`,`disabled`,`continue`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)';
             try {
                 $sth = $dbh->prepare($sql);
@@ -541,7 +556,7 @@ function copyOldTrunks() {
                 $errors[] = $sql . ' ERROR: ' . $e->getMessage();
             }
         }
-        return array('status' => true, 'trunks' => $migrated, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
+        return array('status' => empty($errors), 'trunks' => $migrated, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
     } catch (Exception $e) {
         error_log($e->getMessage());
         storeMigrationReport(__FUNCTION__,$e->getMessage(),'errors');
@@ -554,7 +569,6 @@ function getOldGateways() {
     try{
         $db = FreePBX::Database();
         $oldDb = OldDB::Database();
-        $errors = array(); $warnings = array(); $infos = array();
 
         $query = 'SELECT id,manufacturer,model FROM gateway_models';
         $sth = $db->prepare($query);
@@ -570,11 +584,15 @@ function getOldGateways() {
         $query = 'SELECT value FROM endpointman_global_vars WHERE var_name = "srvip"';
         $sth = $db->prepare($query);
         $sth->execute(array());
-        $green_ip = $sth->fetchAll()[0][0];
+        $green_ip = $sth->fetchColumn();
 
         if ($res) {
             foreach ($res as $gateway) {
                 $gateway['isConfigured'] = true;
+                $gateway['trunks_fxo'] = array();
+                $gateway['trunks_fxs'] = array();
+                $gateway['trunks_isdn'] = array();
+                $gateway['trunks_pri'] = array();
 
                 // Add trunks info
                 $trunksMeta = array(
@@ -631,8 +649,7 @@ function getOldGateways() {
     } catch (Exception $e) {
         error_log($e->getMessage());
         storeMigrationReport(__FUNCTION__,$e->getMessage(),'errors');
-        $errors[] = $e->getMessage();
-        return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
+        throw $e;
     }
 }
 
@@ -1256,13 +1273,13 @@ function migrateInboundRoutes() {
 }
 
 function getCdrRowCount(){
+    $errors = array(); $warnings = array(); $infos = array();
     try {
-        $errors = array(); $warnings = array(); $infos = array();
         $oldCDRDB = OldCDRDB::Database();
         $sql = 'SELECT COUNT(*) FROM cdr';
         $sth = $oldCDRDB->prepare($sql);
         $sth->execute(array());
-        $count = $sth->fetchAll()[0][0];
+        $count = (int) $sth->fetchColumn();
         return array('count' => $count, 'status' => true, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
     } catch (Exception $e) {
         error_log($e->getMessage());
@@ -1272,10 +1289,10 @@ function getCdrRowCount(){
 }
 
 function migrateIAX(){
+    $errors = array(); $warnings = array(); $infos = array();
     try {
         $db = FreePBX::Database();
         $oldDb = OldDB::Database();
-        $errors = array(); $warnings = array(); $infos = array();
 
         // Get old IAX extensions
         $sql = 'SELECT `id`,`keyword`,`data`,`flags` FROM `iax`';
@@ -1312,25 +1329,26 @@ function migrateIAX(){
         $sql = 'SELECT MAX(`trunkid`) FROM `trunks`';
         $sth = $db->prepare($sql);
         $sth->execute(array());
-        $maxId = $sth->fetchAll(\PDO::FETCH_NUM)[0][0];
-        if (!isset($maxId)) {
-            $maxId = 0;
-        }
+        $maxId = (int) $sth->fetchColumn();
         foreach ($oldids as $oldid) {
             $maxId += 1;
             $newID = $maxId;
 
             // Update iax details
-            $sql = 'UPDATE iax SET `id` = ? WHERE `id` = ? ; UPDATE iax SET `id` = ? WHERE `id` = ?';
+            $sql = 'UPDATE iax SET `id` = ? WHERE `id` = ?';
             $sth = $db->prepare($sql);
-            $sth->execute(array('tr-peer-'.$newID,'tr-peer-'.$oldid,'tr-user-'.$newID,'tr-user-'.$oldid));
+            $sth->execute(array('tr-peer-'.$newID,'tr-peer-'.$oldid));
+            $sth->execute(array('tr-user-'.$newID,'tr-user-'.$oldid));
 
             // Copy trunks table content
-            $migrated = array();
             $sql = 'SELECT * FROM `trunks` WHERE `trunkid` = ?';
             $sth = $oldDb->prepare($sql);
             $sth->execute(array($oldid));
-            $trunk = $sth->fetchAll(\PDO::FETCH_ASSOC)[0];
+            $trunk = $sth->fetch(\PDO::FETCH_ASSOC);
+            if ($trunk === false) {
+                $warnings[] = 'IAX trunk ID '.$oldid.' has no matching metadata';
+                continue;
+            }
             $sql = 'INSERT INTO `trunks` (`trunkid`,`tech`,`channelid`,`name`,`outcid`,`keepcid`,`maxchans`,`failscript`,`dialoutprefix`,`usercontext`,`provider`,`disabled`,`continue`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)';
             try {
                 $sth = $db->prepare($sql);
@@ -1360,10 +1378,10 @@ function migrateIAX(){
         $sql = 'SELECT COUNT(DISTINCT(`id`)) FROM iax WHERE `id` NOT LIKE "tr-%-%"';
         $sth = $db->prepare($sql);
         $sth->execute(array());
-        $res = $sth->fetchAll(\PDO::FETCH_NUM)[0][0];
+        $res = (int) $sth->fetchColumn();
         $infos[] = $res.' IAX extensions migrated';
 
-        return array('status' => true, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
+        return array('status' => empty($errors), 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
     } catch (Exception $e) {
         error_log($e->getMessage());
         $errors[] = $e->getMessage();
@@ -1372,8 +1390,8 @@ function migrateIAX(){
 }
 
 function migrateOldTable($table,$fields,$destinationtocheck = false){
+    $errors = array(); $warnings = array(); $infos = array();
     try {
-        $errors = array(); $warnings = array(); $infos = array();
         $db = FreePBX::Database();
         $oldDb = OldDB::Database();
 
@@ -1388,7 +1406,7 @@ function migrateOldTable($table,$fields,$destinationtocheck = false){
         $sql = 'SELECT COUNT(*) FROM '.$table;
         $sth = $db->prepare($sql);
         $sth->execute(array());
-        $count = $sth->fetchAll(\PDO::FETCH_NUM)[0][0];
+        $count = (int) $sth->fetchColumn();
         if ($count > 0) {
             $warnings[] = 'Table "' . $table . '" not migrated: it already contains some data';
             return array('status' => true, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
@@ -1504,5 +1522,3 @@ function postMigration(){
         return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
     }
 }
-
-
