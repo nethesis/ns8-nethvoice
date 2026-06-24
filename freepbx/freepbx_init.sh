@@ -45,7 +45,6 @@ modules_to_install=(
     fax
     featurecodeadmin
     findmefollow
-    googletts
     iaxsettings
     infoservices
     ivr
