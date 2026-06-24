@@ -366,22 +366,21 @@ RUN install_module() { \
 	install_module timeconditions https://github.com/FreePBX/timeconditions/archive/refs/tags/release/17.0.1.18.tar.gz && \
 	install_module userman https://github.com/FreePBX/userman/archive/refs/tags/release/17.0.7.tar.gz && \
 	install_module vmblast https://github.com/FreePBX/vmblast/archive/refs/tags/release/17.0.2.tar.gz && \
-	install_module bosssecretary https://github.com/nethesis/freepbx-bosssecretary/archive/refs/tags/1.0.1.tar.gz && \
+	install_module bosssecretary https://github.com/nethesis/freepbx-bosssecretary/archive/refs/tags/1.0.2.tar.gz && \
 	mkdir -p /var/www/html/freepbx/admin/modules/core && \
 	rm -fr /var/www/html/freepbx/admin/modules/core/* && \
 	install_module core https://github.com/FreePBX/core/archive/refs/tags/release/17.0.18.48.tar.gz && \
 	install_module customcontexts https://github.com/nethesis/freepbx-customcontexts/archive/refs/tags/release/13.0.3.4.tar.gz && \
-	install_module directdid https://github.com/nethesis/directdid/archive/refs/tags/1.1.8.tar.gz && \
-	install_module extraoptions https://github.com/nethesis/freepbx-extraoptions/archive/refs/tags/1.0.0.tar.gz && \
-	install_module googletts https://github.com/nethesis/googletts/archive/refs/tags/0.0.3.tar.gz && \
-	install_module nethdash https://github.com/nethesis/nethdash/archive/refs/tags/1.0.tar.gz && \
+	install_module directdid https://github.com/nethesis/directdid/archive/refs/tags/1.1.9.tar.gz && \
+	install_module extraoptions https://github.com/nethesis/freepbx-extraoptions/archive/refs/tags/1.0.1.tar.gz && \
+	install_module nethdash https://github.com/nethesis/nethdash/archive/refs/tags/1.0.1.tar.gz && \
 	install_module paging https://github.com/FreePBX/paging/archive/refs/tags/release/17.0.3.tar.gz && \
-	install_module queueexit https://github.com/nethesis/queueexit/archive/refs/tags/0.0.3.tar.gz && \
+	install_module queueexit https://github.com/nethesis/queueexit/archive/refs/tags/0.0.5.tar.gz && \
 	install_module queuemetrics https://github.com/nethesis/queuemetrics/archive/refs/tags/release/2.11.0.3.tar.gz && \
 	install_module queues https://github.com/FreePBX/queues/archive/refs/tags/release/17.0.4.tar.gz && \
-	install_module rapidcode https://github.com/nethesis/RapidCode/archive/refs/tags/1.0.1.tar.gz && \
+	install_module rapidcode https://github.com/nethesis/RapidCode/archive/refs/tags/1.0.2.tar.gz && \
 	install_module recordings https://github.com/FreePBX/recordings/archive/refs/tags/release/17.0.5.tar.gz && \
-	install_module returnontransfer https://github.com/nethesis/returnontransfer/archive/refs/tags/1.1.11.tar.gz && \
+	install_module returnontransfer https://github.com/nethesis/returnontransfer/archive/refs/tags/1.2.0.tar.gz && \
 	install_module voicemail https://github.com/FreePBX/voicemail/archive/refs/tags/release/17.0.5.34.tar.gz
 
 # PHP 8.x compatibility: harden customcontexts against empty dialpattern array entries
