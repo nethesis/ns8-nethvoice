@@ -31,12 +31,24 @@ function nethvoice_handler($exception) {
 
 set_exception_handler('nethvoice_handler');
 
-require 'vendor/autoload.php';
+/** @var \Composer\Autoload\ClassLoader $restAutoloader */
+$restAutoloader = require 'vendor/autoload.php';
+
+// FreePBX later registers a global Composer autoloader that ships Slim 4.
+// Preload the REST app's own Slim 3 App class so this entrypoint keeps using
+// the constructor and middleware model expected by the legacy REST modules.
+class_exists(\Slim\App::class);
 
 # Initialize FreePBX environment
 $bootstrap_settings['freepbx_error_handler'] = false;
 define('FREEPBX_IS_AUTH',1);
 require_once '/etc/freepbx.conf';
+
+// FreePBX registers its own Composer loader while bootstrapping. Re-prepend the
+// REST loader so the entire Slim 3 namespace resolves from this app's vendor
+// tree instead of mixing in FreePBX's Slim 4 classes.
+$restAutoloader->unregister();
+$restAutoloader->register(true);
 
 # Load middleware classess
 require('lib/AuthMiddleware.php');
