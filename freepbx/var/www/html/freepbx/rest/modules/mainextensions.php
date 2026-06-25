@@ -27,7 +27,7 @@ use \Psr\Http\Message\ResponseInterface as Response;
 
 $app->get('/mainextensions', function (Request $request, Response $response, $args) {
     $mainextensions = FreePBX::create()->Core->getAllUsersByDeviceType('virtual');
-    return $response->withJson($mainextensions, 200);
+    return jsonResponse($response, $mainextensions, 200);
 });
 
 $app->get('/mainextensions/{extension:[0-9]+}', function (Request $request, Response $response, $args) {
@@ -36,7 +36,7 @@ $app->get('/mainextensions/{extension:[0-9]+}', function (Request $request, Resp
     $mainextensions = FreePBX::create()->Core->getAllUsersByDeviceType('virtual');
     foreach ($mainextensions as $e) {
         if ($e['extension'] == $extension) {
-            return $response->withJson($e, 200);
+            return jsonResponse($response, $e, 200);
         }
     }
     return $response->withStatus(404);
@@ -53,7 +53,7 @@ $app->post('/mainextensions', function (Request $request, Response $response, $a
         (empty($_ENV['SUBSCRIPTION_SYSTEMID']) || empty($_ENV['SUBSCRIPTION_SECRET'])) && // it isn't registered as enterprise
         !empty($mainextension) // the user is trying to create a new extension
     ) {
-        return $response->withJson(array("status"=>'ERROR: community version is limited to 8 users'), 403);
+        return jsonResponse($response, array("status"=>'ERROR: community version is limited to 8 users'), 403);
     }
         $ret = createMainExtensionForUser($username,$mainextension,$outboundcid);
 
@@ -62,7 +62,7 @@ $app->post('/mainextensions', function (Request $request, Response $response, $a
     if ($ret === true) {
         return $response->withStatus(201);
     }
-    return $response->withJson($ret[0],$ret[1]);
+    return jsonResponse($response, $ret[0],$ret[1]);
 });
 
 /**
@@ -85,5 +85,5 @@ $app->get('/mainextensions/userlimits', function (Request $request, Response $re
         $limits['limit'] = false;
         $limits['configurable'] = false;
     }
-    return $response->withJson($limits, 200);
+    return jsonResponse($response, $limits, 200);
 });

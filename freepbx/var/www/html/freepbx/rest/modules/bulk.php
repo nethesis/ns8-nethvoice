@@ -39,7 +39,7 @@ $app->get('/contexts', function (Request $request, Response $response, $args) {
     if (!$results) {
         return $response->withStatus(500);
     }
-    return $response->withJson($results,200);
+    return jsonResponse($response, $results,200);
 });
 
 $blkfunc = array('displayname',
@@ -93,7 +93,7 @@ $app->get('/bulk/{mainextensions}', function (Request $request, Response $respon
             $r[$action] = $oldValue;
         }
     }
-    return $response->withJson($r,200);
+    return jsonResponse($response, $r,200);
 });
 
 /*GET /destinations  - return FreePBX available destinations*/
@@ -106,7 +106,7 @@ $app->get('/destinations', function (Request $request, Response $response, $args
     include_once('/var/www/html/freepbx/admin/modules/timeconditions/functions.inc.php');
     include_once('/var/www/html/freepbx/admin/modules/voicemail/functions.inc.php');
     $destinations = drawselects('app-blackhole,hangup,1','unavailable_destination',false,false,'',false,true,true);
-    return $response->withJson($destinations,200);
+    return jsonResponse($response, $destinations,200);
 });
 
 /* POST /bulk/200,201,202,... 
@@ -153,10 +153,10 @@ $app->post('/bulk/{mainextensions}', function (Request $request, Response $respo
         if (isset($err)) {
             throw new Exception($err);
         }
-        return $response->withJson(array('status' => true), 200);
+        return jsonResponse($response, array('status' => true), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array("status"=>$e->getMessage()), 500);
+        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
     }
 });
 

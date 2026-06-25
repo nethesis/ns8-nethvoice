@@ -33,7 +33,7 @@ $app->get('/cti/profiles', function (Request $request, Response $response, $args
     if (!$results) {
         return $response->withStatus(500);
     }
-    return $response->withJson($results,200);
+    return jsonResponse($response, $results,200);
 });
 
 
@@ -48,7 +48,7 @@ $app->get('/cti/profiles/{id}', function (Request $request, Response $response, 
         if (!$results) {
             return $response->withStatus(500);
         }
-        return $response->withJson($results,200);
+        return jsonResponse($response, $results,200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -65,7 +65,7 @@ $app->get('/cti/permissions', function (Request $request, Response $response, $a
         if (!$results) {
             return $response->withStatus(500);
         }
-        return $response->withJson($results,200);
+        return jsonResponse($response, $results,200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -101,7 +101,7 @@ $app->post('/cti/profiles/{id}', function (Request $request, Response $response,
         if ($res) {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
             triggerMiddlewareProfilesReload();
-            return $response->withJson(array('status' => true), 200);
+            return jsonResponse($response, array('status' => true), 200);
         } else {
             throw new Exception('Error editing profile');
         }
@@ -121,7 +121,7 @@ $app->post('/cti/profiles', function (Request $request, Response $response, $arg
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
             triggerMiddlewareProfilesReload();
 
-            return $response->withJson(array('id' => $id ), 200);
+            return jsonResponse($response, array('id' => $id ), 200);
         } else {
             throw new Exception('Error creating new profile');
         }
@@ -144,7 +144,7 @@ $app->get('/cti/profiles/users/{user_id}', function (Request $request, Response 
         if (!$profile_id) {
             return $response->withStatus(404);
         }
-        return $response->withJson(array('id' => $profile_id),200);
+        return jsonResponse($response, array('id' => $profile_id),200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -169,7 +169,7 @@ $app->post('/cti/profiles/users/{user_id}', function (Request $request, Response
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         triggerMiddlewareProfilesReload();
 
-        return $response->withJson(array('status' => true), 200);
+        return jsonResponse($response, array('status' => true), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -183,7 +183,7 @@ $app->delete('/cti/profiles/{id}', function (Request $request, Response $respons
     if (deleteCTIProfile($id)) {
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         triggerMiddlewareProfilesReload();
-        return $response->withJson(array('status' => true), 200);
+        return jsonResponse($response, array('status' => true), 200);
     } else {
         return $response->withStatus(500);
     }
@@ -198,7 +198,7 @@ $app->get('/cti/groups', function (Request $request, Response $response, $args) 
         $sql = 'SELECT id, name FROM `rest_cti_groups`';
         $res = $dbh->sql($sql, 'getAll', \PDO::FETCH_ASSOC);
 
-        return $response->withJson($res, 200);
+        return jsonResponse($response, $res, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -227,7 +227,7 @@ $app->get('/cti/groups/users/{id}', function (Request $request, Response $respon
             $data[] = $res->id;
         }
 
-        return $response->withJson($data, 200);
+        return jsonResponse($response, $data, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -259,7 +259,7 @@ $app->get('/cti/users/groups/{id}', function (Request $request, Response $respon
             $data[] = $res;
         }
 
-        return $response->withJson($data, 200);
+        return jsonResponse($response, $data, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -281,7 +281,7 @@ $app->post('/cti/groups', function (Request $request, Response $response, $args)
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         triggerMiddlewareProfilesReload();
 
-        return $response->withJson($group_id, 200);
+        return jsonResponse($response, $group_id, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -310,7 +310,7 @@ $app->delete('/cti/groups/{id}', function (Request $request, Response $response,
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         triggerMiddlewareProfilesReload();
 
-        return $response->withJson(array('status' => true), 200);
+        return jsonResponse($response, array('status' => true), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -520,7 +520,7 @@ $app->get('/cti/dbconn', function (Request $request, Response $response, $args) 
 
         $res = $sth->fetchAll(PDO::FETCH_ASSOC);
 
-        return $response->withJson($res);
+        return jsonResponse($response, $res);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -546,7 +546,7 @@ $app->delete('/cti/dbconn/{id}', function (Request $request, Response $response,
             throw new Exception($sth->errorInfo()[2]);
         }
 
-        return $response->withJson($res);
+        return jsonResponse($response, $res);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -561,7 +561,7 @@ $app->get('/cti/dbconn/type', function (Request $request, Response $response, $a
         $route = $request->getAttribute('route');
         $data = $request->getParsedBody();
 
-        return $response->withJson(array(
+        return jsonResponse($response, array(
             'mysql' => 'MySQL',
             'postgres' => 'PostgreSQL',
             'mssql:7_4' => 'SQL Server 2012/2014',
@@ -606,7 +606,7 @@ $app->get('/cti/customer_card/template', function (Request $request, Response $r
             closedir($handle);
         }
 
-        return $response->withJson($templates);
+        return jsonResponse($response, $templates);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -743,7 +743,7 @@ $app->get('/cti/customer_card', function (Request $request, Response $response, 
             $res[] = $r;
         }
 
-        return $response->withJson($res);
+        return jsonResponse($response, $res);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -1019,7 +1019,7 @@ $app->get('/cti/streaming', function (Request $request, Response $response, $arg
                 }
             }
         }
-        return $response->withJson($res);
+        return jsonResponse($response, $res);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -1037,7 +1037,7 @@ $app->get('/cti/paramurls', function (Request $request, Response $response, $arg
       $sth->execute();
       $res = $sth->fetchAll(PDO::FETCH_ASSOC);
       if (sizeof($res) == 0) {
-        return $response->withJson($res);
+        return jsonResponse($response, $res);
       }
       $sql = 'SELECT id, url, group_concat(profile_id) AS profiles, only_queues FROM rest_cti_profiles_paramurl GROUP BY url';
       $sth = $dbh->prepare($sql);
@@ -1050,7 +1050,7 @@ $app->get('/cti/paramurls', function (Request $request, Response $response, $arg
           $res[$i]["only_queues"] = false;
         }
       }
-      return $response->withJson($res);
+      return jsonResponse($response, $res);
   } catch (Exception $e) {
       error_log($e->getMessage());
       return $response->withStatus(500);
@@ -1232,7 +1232,7 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
         } else {
             $b64_image_data =  chunk_split(base64_encode($ret_val));
             curl_close($curl);
-            return $response->withJson($b64_image_data);
+            return jsonResponse($response, $b64_image_data);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
