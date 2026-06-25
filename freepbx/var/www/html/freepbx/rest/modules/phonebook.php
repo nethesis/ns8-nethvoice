@@ -160,7 +160,7 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
         // in the phonebook `type` column, kept free for the customer import scripts).
         $sourceName = isset($data['type']) ? trim($data['type']) : '';
         if ($sourceName === '') {
-            return $response->withJson(array("status"=>"Missing value: type"), 400);
+            return jsonResponse($response, array("status"=>"Missing value: type"), 400);
         }
         $newsource['type'] = $sourceName;
         // Sharing goes in the dedicated `access` field: 'public' or
@@ -169,10 +169,10 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
         try {
             $newsource['access'] = validatePhonebookSharing(isset($data['access']) ? $data['access'] : '');
         } catch (\InvalidArgumentException $e) {
-            return $response->withJson(array("status"=>"None of the selected sharing groups exist"), 400);
+            return jsonResponse($response, array("status"=>"None of the selected sharing groups exist"), 400);
         } catch (Exception $e) {
             error_log($e->getMessage());
-            return $response->withJson(array("status"=>"Cannot validate sharing groups"), 500);
+            return jsonResponse($response, array("status"=>"Cannot validate sharing groups"), 500);
         }
         $newsource['enabled'] = empty($data['enabled']) ? false : $data['enabled'];
 
@@ -263,7 +263,10 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
             unlink_local_csv($newsource[$id]);
             return jsonResponse($response, array("status"=>false),200);
         }
-        $res = json_decode($output[0]);
+        $res = isset($output[0]) ? json_decode($output[0]) : null;
+        if (!is_array($res)) {
+            return jsonResponse($response, array("status"=>false),200);
+        }
         return jsonResponse($response, array_slice($res, 0, 3),200);
     } catch (Exception $e) {
         error_log($e->getMessage());
@@ -330,27 +333,27 @@ $app->post('/phonebook/import-cti', function (Request $request, Response $respon
         // Owner is mandatory and must be an existing user (fail closed).
         $owner = isset($data['owner']) ? trim($data['owner']) : '';
         if ($owner === '' || !userExists($owner)) {
-            return $response->withJson(array("status"=>"Invalid or missing owner"), 400);
+            return jsonResponse($response, array("status"=>"Invalid or missing owner"), 400);
         }
 
         // Sharing value applied to every imported contact.
         try {
             $sharing = validatePhonebookSharing(isset($data['type']) ? $data['type'] : '');
         } catch (\InvalidArgumentException $e) {
-            return $response->withJson(array("status"=>"None of the selected sharing groups exist"), 400);
+            return jsonResponse($response, array("status"=>"None of the selected sharing groups exist"), 400);
         } catch (Exception $e) {
             error_log($e->getMessage());
-            return $response->withJson(array("status"=>"Cannot validate sharing groups"), 500);
+            return jsonResponse($response, array("status"=>"Cannot validate sharing groups"), 500);
         }
 
         // Column mapping source->destination; must map to at least 'name', otherwise
         // the middleware skips every row (nameless rows are discarded).
         $mapping = isset($data['mapping']) ? (array)$data['mapping'] : array();
         if (empty($mapping)) {
-            return $response->withJson(array("status"=>"Missing value: mapping"), 400);
+            return jsonResponse($response, array("status"=>"Missing value: mapping"), 400);
         }
         if (!in_array('name', array_values($mapping), true)) {
-            return $response->withJson(array("status"=>"Mapping must include the 'name' destination"), 400);
+            return jsonResponse($response, array("status"=>"Mapping must include the 'name' destination"), 400);
         }
 
         // Resolve the uploaded CSV path from its file:// URL, constrained to the
@@ -358,21 +361,21 @@ $app->post('/phonebook/import-cti', function (Request $request, Response $respon
         $url = isset($data['url']) ? $data['url'] : '';
         $baseDir = '/var/lib/nethvoice/phonebook/uploads/';
         if (strpos($url, 'file://' . $baseDir) !== 0) {
-            return $response->withJson(array("status"=>"Invalid CSV url"), 400);
+            return jsonResponse($response, array("status"=>"Invalid CSV url"), 400);
         }
         $srcPath = realpath(substr($url, strlen('file://')));
         if ($srcPath === false || strpos($srcPath, $baseDir) !== 0 || !is_file($srcPath)) {
-            return $response->withJson(array("status"=>"CSV file not found"), 400);
+            return jsonResponse($response, array("status"=>"CSV file not found"), 400);
         }
 
         $in = fopen($srcPath, 'r');
         if ($in === false) {
-            return $response->withJson(array("status"=>"Cannot read CSV file"), 500);
+            return jsonResponse($response, array("status"=>"Cannot read CSV file"), 500);
         }
         $header = fgetcsv($in);
         if ($header === false) {
             fclose($in);
-            return $response->withJson(array("status"=>"Empty CSV file"), 400);
+            return jsonResponse($response, array("status"=>"Empty CSV file"), 400);
         }
 
         // Map each source column index to its destination name; unmapped columns are
@@ -386,7 +389,7 @@ $app->post('/phonebook/import-cti', function (Request $request, Response $respon
         }
         if (empty($destForIndex)) {
             fclose($in);
-            return $response->withJson(array("status"=>"No mapped columns found in CSV"), 400);
+            return jsonResponse($response, array("status"=>"No mapped columns found in CSV"), 400);
         }
         $destHeader = array_values($destForIndex);
         $destHeader[] = 'type';
@@ -408,14 +411,14 @@ $app->post('/phonebook/import-cti', function (Request $request, Response $respon
         $res = importCtiPhonebookCsv($owner, $tmp);
         unlink($tmp);
         if ($res === false) {
-            return $response->withJson(array("status"=>"Middleware not reachable"), 502);
+            return jsonResponse($response, array("status"=>"Middleware not reachable"), 502);
         }
         $decoded = json_decode($res['body'], true);
         $status = $res['httpCode'] ? $res['httpCode'] : 500;
-        return $response->withJson($decoded !== null ? $decoded : array("status"=>$res['body']), $status);
+        return jsonResponse($response, $decoded !== null ? $decoded : array("status"=>$res['body']), $status);
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array("status"=>$e->getMessage()), 500);
+        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
     }
 });
 
