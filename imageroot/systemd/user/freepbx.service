@@ -10,6 +10,7 @@ After=mariadb.service get-certificate.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/agent.env
 EnvironmentFile=%S/state/environment
 WorkingDirectory=%S/state
 Restart=always
@@ -71,7 +72,8 @@ ExecStart=runagent /usr/bin/podman run \
     --env=SUBSCRIPTION_SYSTEMID \
     --env=PROXY_IP \
     --env=PROXY_PORT \
-    --env=NETHVOICE_USER_PORTAL_USERNAME \
+    --env=REDIS_USER \
+    --env=REDIS_PASSWORD \
     --env=USER_DOMAIN \
     --env=SATELLITE* \
     --env=SMTP_FROM_ADDRESS \

@@ -92,11 +92,8 @@ try {
             ];
 
             $ch = curl_init(getUserPortalUrl() . '/add-user');
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            setUserPortalCurlDefaults($ch, $header);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($post));
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
             // execute!
             $response = curl_exec($ch);
@@ -108,8 +105,12 @@ try {
             // close the connection, release resources used
             curl_close($ch);
 
-            if ($resJSON->status == "failure") {
-                $err .= "Error creating user ".$row[0].": ".$resJSON->error[0]->error."\n";
+            if (!is_object($resJSON) || $resJSON->status == "failure") {
+                $error = 'unknown error';
+                if (is_object($resJSON) && !empty($resJSON->error[0]->error)) {
+                    $error = $resJSON->error[0]->error;
+                }
+                $err .= "Error creating user ".$row[0].": ".$error."\n";
                 unset($csv[$k]);
                 continue;
             }

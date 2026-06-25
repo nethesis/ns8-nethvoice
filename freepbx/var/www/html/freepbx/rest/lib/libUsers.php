@@ -37,17 +37,28 @@ function getUserPortalUrl() {
     return 'https://'. $host .'/users-admin/' . $domain . '/api';
 }
 
+function setUserPortalCurlDefaults($ch, $headers = array()) {
+    if (!empty($headers)) {
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    }
+    if (!empty($_ENV['NETHVOICE_HOST'])) {
+        curl_setopt($ch, CURLOPT_RESOLVE, array($_ENV['NETHVOICE_HOST'] . ':443:127.0.0.1'));
+    }
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+}
+
 function getToken() {
     $post = [
-        "username" => $_ENV['NETHVOICE_USER_PORTAL_USERNAME'],
-        "password" => $_ENV['NETHVOICE_USER_PORTAL_PASSWORD'],
+        "username" => $_ENV['REDIS_USER'],
+        "password" => $_ENV['REDIS_PASSWORD'],
+        "auth_backend" => "api-server",
     ];
 
     $ch = curl_init(getUserPortalUrl() . '/login');
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    setUserPortalCurlDefaults($ch, ['Content-Type: application/json']);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($post));
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
     // execute!
     $response = curl_exec($ch);
@@ -58,6 +69,11 @@ function getToken() {
 
     // close the connection, release resources used
     curl_close($ch);
+
+    if (!is_object($resJSON) || empty($resJSON->token)) {
+        error_log(__FILE__.':'.__LINE__.' users-admin login failed: '. $response);
+        return '';
+    }
 
     // return token
     return $resJSON->token;
@@ -77,11 +93,8 @@ function userExists($username) {
     $header[] = 'Authorization: Bearer '. getToken();
 
     $ch = curl_init(getUserPortalUrl() . '/list-users');
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    setUserPortalCurlDefaults($ch, $header);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array()));
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
     // execute!
     $response = curl_exec($ch);
@@ -181,7 +194,7 @@ function getUserID($username) {
 
 function getAllUsers() {
     global $astman;
-    $blacklist = ['admin', 'administrator', 'guest', 'krbtgt','ldapservice', $_ENV['NETHVOICE_USER_PORTAL_USERNAME']];
+    $blacklist = ['admin', 'administrator', 'guest', 'krbtgt','ldapservice'];
     $users = FreePBX::create()->Userman->getAllUsers();
     $dbh = FreePBX::Database();
     $i = 0;

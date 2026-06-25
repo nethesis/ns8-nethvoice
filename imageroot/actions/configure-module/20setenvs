@@ -12,9 +12,6 @@ import agent
 
 request = json.load(sys.stdin)
 
-# read from  the passwords.env file
-passwordsfile = agent.read_envfile("passwords.env")
-
 def getFromRequest(request, var_name, env_name, default = ""):
     if var_name in request:
         agent.set_env(env_name, request[var_name])
@@ -27,15 +24,8 @@ getFromRequest(request, 'timezone', 'TIMEZONE', 'UTC')
 ## NethCTI UI
 getFromRequest(request, 'nethcti_ui_host', 'NETHCTI_UI_HOST', '')
 
-## NethVoice adm account for users management
-getFromRequest(request, 'nethvoice_adm_username', 'NETHVOICE_USER_PORTAL_USERNAME', '')
-passwordsfile['NETHVOICE_USER_PORTAL_PASSWORD'] = request.get('nethvoice_adm_password', "")
-
 # Set APP Brand ID if present in the request, this attribute is only used
 # by the migration tool procedure.
 # Deprecated, will be removed in future releases.
 if "app_brand_id" in request:
     agent.set_env('BRAND_APPID', request['app_brand_id'])
-
-# write the passwords.env file
-agent.write_envfile("passwords.env", passwordsfile)
