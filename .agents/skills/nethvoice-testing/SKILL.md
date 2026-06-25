@@ -3,7 +3,7 @@ name: nethvoice-testing
 description: Use when an agent must test a NethVoice instance through SSH, SIP, CTI API, Wizard REST API, MariaDB, Satellite PostgreSQL, or browser/web access.
 version: 0.1.0
 author: Stefano Fancello
-license: MIT
+license: GPLv3
 metadata:
     tags: [nethvoice, ns8, voip, sip, pjsua, pjsip, asterisk, freepbx, nethcti, cti-api, wizard-api, mariadb, satellite, postgres, testing]
 ---
