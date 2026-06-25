@@ -110,3 +110,4 @@ if ((int) ($res['required_tables'] ?? 0) === 2) {
 	$stmt = $db->prepare($sql);
 	$stmt->execute();
 }
+
