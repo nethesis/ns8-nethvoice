@@ -385,7 +385,8 @@ function addEditGateway($params){
                         $mainextensionnumber = $trunk['linked_extension'];
                         $extension = createExtension($mainextensionnumber,true);
                         if (useExtensionAsCustomPhysical($extension,false,'physical',$web_user,$web_password) === false) {
-                            $response->withJson(array("status"=>"Error creating custom extension"), 500);
+                            $errors[] = 'Error creating custom extension';
+                            return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
                         }
                         // enable/disable SRTP for the extension if gateway description contains " TLS "
                         if (strpos($params['name'], ' TLS ') !== false) {

@@ -32,12 +32,6 @@ include_once 'lib/CronHelper.php';
 include_once 'lib/libExtensions.php';
 include_once 'lib/libCTI.php';
 
-//$app = new \Slim\App;
-$container = $app->getContainer();
-$container['cron'] = function ($container) {
-    return new CronHelper();
-};
-
 /**
  * Endpoint to reconfigure a phone extension.
  *
@@ -79,11 +73,11 @@ $app->get('/phones/account/{mac}', function (Request $request, Response $respons
     $stmt = $dbh->prepare('SELECT `extension`,`secret` FROM `rest_devices_phones` WHERE `mac` = ?');
     $stmt->execute(array(str_replace('-',':',$args['mac'])));
     $res = $stmt->fetch(\PDO::FETCH_ASSOC);
-    return $response->withJson((object) $res , 200, JSON_FLAGS);
+    return jsonResponse($response, (object) $res , 200, JSON_FLAGS);
 });
 
 $app->get('/provisioning/engine', function (Request $request, Response $response, $args) {
-    return $response->withJson(getProvisioningEngine(), 200, JSON_FLAGS);
+    return jsonResponse($response, getProvisioningEngine(), 200, JSON_FLAGS);
 });
 
 $app->get('/phones/state', function (Request $request, Response $response, $args) {
@@ -94,7 +88,7 @@ $app->get('/phones/state', function (Request $request, Response $response, $args
         $state = $astman->ExtensionState($ext,'');
         $res[$ext] = $state;
     }
-    return $response->withJson($res, 200, JSON_FLAGS);
+    return jsonResponse($response, $res, 200, JSON_FLAGS);
 });
 
 $app->get('/extensions/{extension}/srtp', function (Request $request, Response $response, $args) {
@@ -104,9 +98,9 @@ $app->get('/extensions/{extension}/srtp', function (Request $request, Response $
     $stmt->execute(array($args['extension']));
     $res = $stmt->fetch(\PDO::FETCH_ASSOC);
     if ($res['srtp'] == '1') {
-        return $response->withJson(TRUE, 200, JSON_FLAGS);
+        return jsonResponse($response, TRUE, 200, JSON_FLAGS);
     }
-    return $response->withJson(FALSE, 200, JSON_FLAGS);
+    return jsonResponse($response, FALSE, 200, JSON_FLAGS);
 });
 
 $app->post('/extensions/{extension}/srtp/{enabled}', function (Request $request, Response $response, $args) {
@@ -121,7 +115,7 @@ $app->post('/extensions/{extension}/srtp/{enabled}', function (Request $request,
 
 $app->post('/provisioning/connectivitycheck', function (Request $request, Response $response, $args) {
     // TODO remove
-    return $response->withJson(["valid_certificate"=>TRUE,"host_type"=>"FQDN","is_reachable"=>TRUE],200);
+    return jsonResponse($response, ["valid_certificate"=>TRUE,"host_type"=>"FQDN","is_reachable"=>TRUE],200);
 });
 
 function getFeaturcodes(){

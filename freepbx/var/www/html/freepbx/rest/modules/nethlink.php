@@ -30,9 +30,9 @@ $app->get('/nethlink/{mainextension}', function (Request $request, Response $res
 
     $extension = getNethLinkExtension($mainextension);
     if (!empty($extension)) {
-        return $response->withJson($extension, 200);
+        return jsonResponse($response, $extension, 200);
     } else {
-        return $response->withJson(null,200);
+        return jsonResponse($response, null,200);
     }
 });
 
@@ -45,15 +45,15 @@ $app->post('/nethlink', function (Request $request, Response $response, $args) {
         $extension = createExtension($extensionnumber,false);
 
         if ($extension === false ) {
-            $response->withJson(array("status"=>"Error creating extension"), 500);
+            return jsonResponse($response, array("status"=>"Error creating extension"), 500);
         }
 
         if (useExtensionAsNethLink($extension) === false) {
-            $response->withJson(array("status"=>"Error associating nethlink extension"), 500);
+            return jsonResponse($response, array("status"=>"Error associating nethlink extension"), 500);
         }
 
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-        return $response->withJson(array('extension'=>$extension,'mobile_extension'=>$extensionm), 200);
+        return jsonResponse($response, array('extension'=>$extension,'mobile_extension'=>$extensionm), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);

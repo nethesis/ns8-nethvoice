@@ -41,7 +41,7 @@ $app->get('/devices/{mac}/brand', function (Request $request, Response $response
     try {
         $route = $request->getAttribute('route');
         $mac = $route->getArgument('mac');
-        return $response->withJson(getVendorFromMac($mac), 200);
+        return jsonResponse($response, getVendorFromMac($mac), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -95,7 +95,7 @@ $app->get('/devices/gateways/list/{id}', function (Request $request, Response $r
             }
         }
 
-        return $response->withJson(array_values($gateways), 200);
+        return jsonResponse($response, array_values($gateways), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -206,7 +206,7 @@ $app->get('/devices/phones/list', function (Request $request, Response $response
             );
             $res[] = $phone;
         }
-        return $response->withJson($res,200);
+        return jsonResponse($response, $res,200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -228,7 +228,7 @@ $app->get('/devices/gateways/list', function (Request $request, Response $respon
                 }
             }
         }
-        return $response->withJson(array_unique($res, SORT_REGULAR), 200);
+        return jsonResponse($response, array_unique($res, SORT_REGULAR), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -246,7 +246,7 @@ $app->get('/devices/phones/manufacturers', function (Request $request, Response 
         }
         array_push($res[$model['name']], $model['model']);
     }
-    return $response->withJson($res, 200);
+    return jsonResponse($response, $res, 200);
 });
 
 $app->get('/devices/gateways/manufacturers', function (Request $request, Response $response, $args) {
@@ -262,7 +262,7 @@ $app->get('/devices/gateways/manufacturers', function (Request $request, Respons
         $model['ipv4_green'] = $_ENV['NETHVOICE_HOST'];
         array_push($res[$model['manufacturer']], $model);
     }
-    return $response->withJson($res, 200);
+    return jsonResponse($response, $res, 200);
 });
 
 $app->post('/devices/phones/reload/{extension:[0-9]+}', function (Request $request, Response $response, $args) {
@@ -318,12 +318,12 @@ $app->post('/devices/gateways', function (Request $request, Response $response, 
         $params = $request->getParsedBody();
         $result = addEditGateway($params);
         if ($result['status']) {
-            return $response->withJson($result,200);
+            return jsonResponse($response, $result,200);
         }
-        return $response->withJson($result,500);
+        return jsonResponse($response, $result,500);
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson($result,500);
+        return jsonResponse($response, $result,500);
     }
 });
 
@@ -339,10 +339,10 @@ $app->post('/devices/gateways/push', function (Request $request, Response $respo
 
         #Launch configuration push
         system("php /var/www/html/freepbx/rest/lib/tftpPushConfig.php ".escapeshellarg($name)." ".escapeshellarg(strtoupper($mac)));
-        return $response->withJson(array('status'=>true), 200);
+        return jsonResponse($response, array('status'=>true), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array("status"=>$e->getMessage()), 500);
+        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
     }
 });
 
@@ -378,10 +378,10 @@ $app->delete('/devices/gateways/{id}', function (Request $request, Response $res
         $sth = FreePBX::Database()->prepare($sql);
         $sth->execute(array($id));
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-        return $response->withJson(array('status' => true), 200);
+        return jsonResponse($response, array('status' => true), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array("status"=>$e->getMessage()), 500);
+        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
     }
 });
 
@@ -399,7 +399,7 @@ $app->delete('/devices/gateways/{id}', function (Request $request, Response $res
              $mac = false;
          }
          $config = gateway_generate_configuration_file($name,$mac);
-         return $response->withJson(base64_encode($config),200);
+         return jsonResponse($response, base64_encode($config),200);
      } catch (Exception $e) {
          error_log($e->getMessage());
          return $response->withStatus(500);
@@ -431,7 +431,7 @@ $app->post('/devices/phones/provision', function (Request $request, Response $re
         return $response->withStatus(200);
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('message' => $e->getMessage()), 500);
+        return jsonResponse($response, array('message' => $e->getMessage()), 500);
     }
 });
 
@@ -483,6 +483,6 @@ $app->post('/devices/phones/reboot', function (Request $request, Response $respo
         return $response->withStatus(200);
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('message' => $e->getMessage()), 500);
+        return jsonResponse($response, array('message' => $e->getMessage()), 500);
     }
 });
