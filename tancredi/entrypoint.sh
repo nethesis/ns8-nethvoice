@@ -42,6 +42,10 @@ C4FC22 = yealink
 E0E656 = nethesis
 0C1105 = akuvox
 9C7514 = akuvox
+000B82 = grandstream
+C074AD = grandstream
+EC74D7 = grandstream
+144CFF = grandstream
 EOF
 
 # Set defaults into an array

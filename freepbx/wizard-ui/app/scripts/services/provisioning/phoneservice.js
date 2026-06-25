@@ -136,6 +136,14 @@ angular.module('nethvoiceWizardUiApp')
       return macAddress.replace(/:|-/g, "");
     }
 
+    this.normalizeMacAddressHex = function (macAddress) {
+      if (!macAddress) {
+        return "";
+      }
+
+      return this.removeMacSeparators(macAddress).toUpperCase();
+    }
+
     this.getAllVendors = function (macVendors) {
       var vendorSet = new Set();
       Object.keys(macVendors).forEach(function (vendor) {
@@ -145,11 +153,6 @@ angular.module('nethvoiceWizardUiApp')
       return Array.from(vendorSet);
     }
 
-    this.macAddressToDecimal = function (macAddress) {
-      if (!macAddress) return NaN;
-      return parseInt(this.removeMacSeparators(macAddress).toUpperCase(), 16);
-    }
-                              
     this.toRps = function (mac, obj) {
       return $q(function (resolve, reject) {
         RestService.post('/phones/rps/' + mac, obj).then(function (res) {
@@ -161,11 +164,11 @@ angular.module('nethvoiceWizardUiApp')
     }
 
     this.getVendor = function (macAddress, macVendors) {
-      var macValue = this.macAddressToDecimal(macAddress);
+      var normalizedMac = this.normalizeMacAddressHex(macAddress);
       var vendors = Object.keys(macVendors || {});
       var vendor;
 
-      if (isNaN(macValue)) {
+      if (!/^[0-9A-F]{12}$/.test(normalizedMac)) {
         return undefined;
       }
 
@@ -175,17 +178,18 @@ angular.module('nethvoiceWizardUiApp')
         for (var rangeIndex = 0; rangeIndex < macVendors[vendor].length; rangeIndex++) {
           var range = macVendors[vendor][rangeIndex];
 
-          // Lazily cache numeric start/end values on the range object
-          if (typeof range.startValue !== 'number') {
-            range.startValue = this.macAddressToDecimal(range.start);
+          if (!range.startHex) {
+            range.startHex = this.normalizeMacAddressHex(range.start);
           }
-          if (typeof range.endValue !== 'number') {
-            range.endValue = this.macAddressToDecimal(range.end);
+          if (!range.endHex) {
+            range.endHex = this.normalizeMacAddressHex(range.end);
           }
 
-          var startValue = range.startValue;
-          var endValue = range.endValue;
-          if (macValue >= startValue && macValue <= endValue) {
+          if (!/^[0-9A-F]{12}$/.test(range.startHex) || !/^[0-9A-F]{12}$/.test(range.endHex)) {
+            continue;
+          }
+
+          if (normalizedMac >= range.startHex && normalizedMac <= range.endHex) {
             return UtilService.capitalize(vendor);
           }
         }
