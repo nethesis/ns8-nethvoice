@@ -28,11 +28,15 @@ astdb = "/var/lib/asterisk/db/astdb.sqlite3"
 file_reader = "apache"
 [macvendors]
 00A859 = fanvil
+00A85A = fanvil
 0C383E = fanvil
-7C2F80 = gigaset
+002104 = gigaset
+14B370 = gigaset
 589EC6 = gigaset
+7C2F80 = gigaset
 005058 = sangoma
 000413 = snom
+1C7126 = snom
 001565 = yealink
 249AD8 = yealink
 44DBD2 = yealink
