@@ -707,8 +707,8 @@ paths:
                       value: false
                     - id: '5000'
                       name: satellite_stt
-                      displayname: Speech-To-Text
-                      description: Calls transcription using Speech-To-Text
+                      displayname: Transcription and Summary
+                      description: Calls transcription and summary
                       value: false
               - id: '3'
                 name: Advanced
@@ -918,8 +918,8 @@ paths:
                       value: false
                     - id: '5000'
                       name: satellite_stt
-                      displayname: Speech-To-Text
-                      description: Calls transcription using Speech-To-Text
+                      displayname: Transcription and Summary
+                      description: Calls transcription and summary
                       value: false
       operationId: get_cti_profiles
     post:

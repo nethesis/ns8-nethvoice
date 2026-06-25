@@ -47,6 +47,10 @@ fi
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'INSERT INTO `rest_cti_profiles_permissions` (`profile_id`,`permission_id`) SELECT `profile_id`, 10 FROM `rest_cti_profiles_macro_permissions` WHERE `macro_permission_id` = 2 ON DUPLICATE KEY UPDATE `permission_id`=VALUES(`permission_id`)'
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'INSERT INTO `rest_cti_profiles_permissions` (`profile_id`,`permission_id`) SELECT `profile_id`, 14 FROM `rest_cti_profiles_permissions` WHERE `permission_id` = 12 ON DUPLICATE KEY UPDATE `permission_id`=VALUES(`permission_id`)'
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" -e "INSERT IGNORE INTO \`asterisk\`.\`admin\` (\`variable\`, \`value\`) VALUES ('NETHVOICE_HOST','')"
+VM_CALLERID_LENGTH=$(/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" -N -B -e "SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'asteriskcdrdb' AND TABLE_NAME = 'voicemessages' AND COLUMN_NAME = 'callerid'")
+if [ -n "${VM_CALLERID_LENGTH}" ] && [ "${VM_CALLERID_LENGTH}" -lt 255 ]; then
+    /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" -e "ALTER TABLE \`asteriskcdrdb\`.\`voicemessages\` MODIFY \`callerid\` varchar(255) DEFAULT ''"
+fi
 # VoIP Providers
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'TRUNCATE TABLE `providers`'
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'TRUNCATE TABLE `rest_pjsip_providers`'
@@ -69,3 +73,4 @@ EOF
 if [ "$MARIADB_RUNNING" != "active" ]; then
     systemctl --user stop mariadb
 fi
+

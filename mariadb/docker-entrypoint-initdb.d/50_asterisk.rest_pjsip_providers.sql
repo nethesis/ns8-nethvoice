@@ -33,4 +33,5 @@ INSERT INTO `rest_pjsip_providers` (`id`,`provider`,`description`) VALUES
 (28,"netoip","NetoIP"),
 (29,"mynet","MyNet (cloud1b.voicer.it)"),
 (30,"oval","OVAL"),
-(31,"enegan","Enegan");
+(31,"enegan","Enegan"),
+(32,"elevenlabs","ElevenLabs");

@@ -315,7 +315,7 @@ fi
 reponame="nethvoice-satellite"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/satellite:0.2.2)
+    container=$(buildah from ghcr.io/nethesis/satellite:0.2.3)
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
     buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"

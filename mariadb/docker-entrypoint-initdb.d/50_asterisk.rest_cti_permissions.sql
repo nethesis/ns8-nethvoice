@@ -33,5 +33,5 @@ INSERT INTO `rest_cti_permissions` (`id`,`name`,`displayname`,`description`) VAL
 (3000,"video_conference","Video Conference","Allow to start a video conference"),
 (3500,"all_groups","All groups","Allow to see all groups and operators"),
 (4000,"group_cdr","Group CDR","Allow to see call history of members of user groups"),
-(5000,"satellite_stt","Speech-To-Text","Calls transcription using Speech-To-Text");
+(5000,"satellite_stt","Transcription and Summary","Calls transcription and summary");
 
