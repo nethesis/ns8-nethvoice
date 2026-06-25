@@ -4,6 +4,7 @@
 USE `asterisk`;
 INSERT INTO `rest_cti_profiles_permissions` (`profile_id`,`permission_id`) VALUES
 (1,2),
+(1,10),
 (1,9),
 (2,2),
 (2,3),
@@ -11,6 +12,7 @@ INSERT INTO `rest_cti_profiles_permissions` (`profile_id`,`permission_id`) VALUE
 (2,5),
 (2,8),
 (2,9),
+(2,10),
 (2,23),
 (3,2),
 (3,3),
@@ -19,6 +21,7 @@ INSERT INTO `rest_cti_profiles_permissions` (`profile_id`,`permission_id`) VALUE
 (3,6),
 (3,8),
 (3,12),
+(3,14),
 (3,13),
 (3,22),
 (3,23),
