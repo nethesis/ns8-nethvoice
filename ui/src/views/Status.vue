@@ -635,7 +635,9 @@ export default {
       if (!this.status || !this.status.services) {
         return [];
       }
-      return this.status.services.filter((service) => service.failed);
+      return this.status.services.filter(
+        (service) => service.failed || !service.active
+      );
     },
   },
   beforeRouteEnter(to, from, next) {
