@@ -230,7 +230,19 @@
     "Grandstream": [
         {
             "start": "00-0B-82-00-00-00",
-             "end": "00-0B-82-FF-FF-FF"
+            "end": "00-0B-82-FF-FF-FF"
+        },
+        {
+            "start": "C0-74-AD-00-00-00",
+            "end": "C0-74-AD-FF-FF-FF"
+        },
+        {
+            "start": "EC-74-D7-00-00-00",
+            "end": "EC-74-D7-FF-FF-FF"
+        },
+        {
+            "start": "14-4C-FF-00-00-00",
+            "end": "14-4C-FF-FF-FF-FF"
         }
     ],
     "Mediatrix": [
