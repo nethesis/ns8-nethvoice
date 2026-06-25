@@ -32,6 +32,6 @@ $app->get('/codecs/voip', function (Request $request, Response $response, $args)
         array ('codec' => 'ulaw', 'enabled' => true),
         array ('codec' => 'g729', 'enabled' => true)
     );
-    return $response->withJson($codecs, 200);
+    return jsonResponse($response, $codecs, 200);
 });
 

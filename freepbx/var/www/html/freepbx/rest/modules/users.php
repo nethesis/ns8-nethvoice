@@ -45,7 +45,7 @@ $app->get('/final', function (Request $request, Response $response, $args) {
                 $final[$key]['voicemailpwd'] = '';
             }
         }
-        return $response->withJson($final, 200);
+        return jsonResponse($response, $final, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -65,14 +65,14 @@ $app->get('/users/count', function (Request $request, Response $response, $args)
         }
         $i++;
     }
-    return $response->withJson(count(array_values($users)),200);
+    return jsonResponse($response, count(array_values($users)),200);
 });
 
 # Check if userman is syncing
 
 $app->get('/users/sync', function (Request $request, Response $response, $args) {
     system('ps aux | grep -q [f]"wconsole userman.*syncall"', $out);
-    return $response->withJson(($out === 0), 200);
+    return jsonResponse($response, ($out === 0), 200);
 });
 
 # List all users
@@ -83,7 +83,7 @@ $app->get('/users/{all}', function (Request $request, Response $response, $args)
         system('fwconsole userman --syncall --force > /dev/null &'); // force FreePBX user sync
         triggerMiddlewareProfilesReloadAfterUserSync();
     }
-    return $response->withJson(array_values(getAllUsers()),200);
+    return jsonResponse($response, array_values(getAllUsers()),200);
 });
 
 
@@ -100,7 +100,7 @@ $app->post('/users', function (Request $request, Response $response, $args) {
     $username = $params['username'];
     $fullname = $params['fullname'];
     if ( ! $username || ! $fullname || preg_match('/^[0-9]/',$username)) {
-        return $response->withJson(['result' => 'User name or full name invalid'], 422);
+        return jsonResponse($response, ['result' => 'User name or full name invalid'], 422);
     }
     $username = strtolower($username);
     if ( userExists($username) ) {
@@ -137,7 +137,7 @@ $app->post('/users/{username}/password', function (Request $request, Response $r
         $stmt->execute(array($password));
     } else {
         if ( ! userExists($username) ) {
-            return $response->withJson(['result' => "$username user doesn't exist"], 422);
+            return jsonResponse($response, ['result' => "$username user doesn't exist"], 422);
         } else {
             $tmp = tempnam("/tmp","ASTPWD");
             file_put_contents($tmp, $password);
@@ -162,7 +162,7 @@ $app->get('/users/{username}/password', function (Request $request, Response $re
     $username = strtolower($request->getAttribute('username'));
     $password = getPassword($username);
     if ($password) {
-        return $response->withJson(['result' => $password]);
+        return jsonResponse($response, ['result' => $password]);
     } else {
         return $response->withStatus(404);
     }
@@ -206,14 +206,14 @@ $app->get('/csv/csvimport', function (Request $request, Response $response, $arg
             $status = json_decode(file_get_contents($statusfile));
             if (isset($status->exitcode) && $status->exitcode != 0) {
                 unlink($statusfile);
-                return $response->withJson(['status' => $status->errors],500);
+                return jsonResponse($response, ['status' => $status->errors],500);
             } elseif (isset($status->exitcode) && $status->exitcode == 0) {
                 unlink($statusfile);
-                return $response->withJson(['result' => $status->progress],200);
+                return jsonResponse($response, ['result' => $status->progress],200);
             }
-            return $response->withJson(['result' => $status->progress],200);
+            return jsonResponse($response, ['result' => $status->progress],200);
         } else {
-            return $response->withJson(['status' => 'No csv import active'],422);
+            return jsonResponse($response, ['status' => 'No csv import active'],422);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
@@ -320,7 +320,7 @@ $app->get('/csv/csvexport', function (Request $request, Response $response, $arg
             $csvstring .= "\r\n";
         }
         error_log($csvstring);
-        return $response->withJson(base64_encode($csvstring),200);
+        return jsonResponse($response, base64_encode($csvstring),200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);

@@ -22,6 +22,9 @@
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
+use \Psr\Http\Server\RequestHandlerInterface;
+use \Slim\Factory\AppFactory;
+use \Slim\Routing\RouteContext;
 
 function nethvoice_handler($exception) {
   header('Content-type: application/json');
@@ -34,21 +37,19 @@ set_exception_handler('nethvoice_handler');
 /** @var \Composer\Autoload\ClassLoader $restAutoloader */
 $restAutoloader = require 'vendor/autoload.php';
 
-// FreePBX later registers a global Composer autoloader that ships Slim 4.
-// Preload the REST app's own Slim 3 App class so this entrypoint keeps using
-// the constructor and middleware model expected by the legacy REST modules.
-class_exists(\Slim\App::class);
-
 # Initialize FreePBX environment
 $bootstrap_settings['freepbx_error_handler'] = false;
 define('FREEPBX_IS_AUTH',1);
 require_once '/etc/freepbx.conf';
 
 // FreePBX registers its own Composer loader while bootstrapping. Re-prepend the
-// REST loader so the entire Slim 3 namespace resolves from this app's vendor
-// tree instead of mixing in FreePBX's Slim 4 classes.
+// REST loader so the REST app's Slim 4 stack resolves from this vendor tree
+// instead of mixing with FreePBX's global Composer dependencies.
 $restAutoloader->unregister();
 $restAutoloader->register(true);
+
+# Load response helpers and middleware classes
+require('lib/JsonResponse.php');
 
 # Load middleware classess
 require('lib/AuthMiddleware.php');
@@ -56,10 +57,46 @@ require('lib/AuthMiddleware.php');
 # Load configuration
 require_once('config.inc.php');
 
-$app = new \Slim\App($config);
+$app = AppFactory::create();
+$app->setBasePath('/freepbx/rest');
+$app->addBodyParsingMiddleware();
 
 # Add authentication
-$app->add(new AuthMiddleware($config['settings']['secretkey']));
+$app->add(new AuthMiddleware($config['settings']['secretkey'], $app->getResponseFactory()));
+
+$app->add(function (Request $request, RequestHandlerInterface $handler): Response {
+  $route = $request->getAttribute(RouteContext::ROUTE);
+  if ($route !== null && $request->getAttribute('route') === null) {
+    $request = $request->withAttribute('route', $route);
+  }
+
+  return $handler->handle($request);
+});
+
+$app->addRoutingMiddleware();
+
+$errorMiddleware = $app->addErrorMiddleware(true, true, true);
+$errorMiddleware->setDefaultErrorHandler(
+  function (
+    Request $request,
+    Throwable $exception,
+    bool $displayErrorDetails,
+    bool $logErrors,
+    bool $logErrorDetails
+  ) use ($app): Response {
+    $status = 500;
+    if (method_exists($exception, 'getStatusCode')) {
+      $status = $exception->getStatusCode();
+    } elseif ($exception->getCode() >= 400 && $exception->getCode() < 600) {
+      $status = $exception->getCode();
+    }
+
+    /** @var Response $response */
+    $response = $app->getResponseFactory()->createResponse();
+
+    return jsonResponse($response, ['error' => $exception->getMessage()], $status);
+  }
+);
 
 foreach (glob("modules/*.php") as $filename)
 {

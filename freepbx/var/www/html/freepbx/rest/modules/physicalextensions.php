@@ -26,7 +26,7 @@ include_once('lib/libExtensions.php');
 
 $app->get('/physicalextensions', function (Request $request, Response $response, $args) {
     $physicalextensions = FreePBX::create()->Core->getAllUsersByDeviceType('pjsip');
-    return $response->withJson($physicalextensions, 200);
+    return jsonResponse($response, $physicalextensions, 200);
 });
 
 $app->get('/physicalextensions/{extension}', function (Request $request, Response $response, $args) {
@@ -35,7 +35,7 @@ $app->get('/physicalextensions/{extension}', function (Request $request, Respons
     $physicalextensions = FreePBX::create()->Core->getAllUsersByDeviceType('pjsip');
     foreach ($physicalextensions as $e) {
         if ($e['extension'] == $extension) {
-            return $response->withJson($e, 200);
+            return jsonResponse($response, $e, 200);
         }
     }
     return $response->withStatus(404);
@@ -62,39 +62,39 @@ $app->post('/physicalextensions', function (Request $request, Response $response
             if (!empty($mac) && addPhone($mac, $vendor, $model)) {
                 return $response->withStatus(200);
             } else {
-                return $response->withJson(array("status"=>"Error adding phone"), 500);
+                return jsonResponse($response, array("status"=>"Error adding phone"), 500);
             }
         }
 
         $extension = createExtension($params['mainextension'],$delete);
         if ($extension === false ) {
-            return $response->withJson(array("status"=>"Error creating extension"), 500);
+            return jsonResponse($response, array("status"=>"Error creating extension"), 500);
         }
 
         if (!empty($mac) && !empty($model)) {
             if ($model === 'GS Wave') {
                 if (useExtensionAsGSWaveApp($extension,$mac,$model) === false) {
-                    return $response->withJson(array("status"=>"Error associating app extension"), 500);
+                    return jsonResponse($response, array("status"=>"Error associating app extension"), 500);
                 }
             } else {
                 if (useExtensionAsPhysical($extension,$mac,$model,$line,$web_user,$web_password) === false) {
-                    return $response->withJson(array("status"=>"Error associating physical extension"), 500);
+                    return jsonResponse($response, array("status"=>"Error associating physical extension"), 500);
                 }
             }
         } else {
             if (!empty($mac) && getProvisioningEngine() === 'tancredi') {
                 if (useExtensionAsPhysical($extension,$mac,$model,$line) === false) {
-                    return $response->withJson(array("status"=>"Error associating physical extension without model"), 500);
+                    return jsonResponse($response, array("status"=>"Error associating physical extension without model"), 500);
                 }
             } elseif (useExtensionAsCustomPhysical($extension,false,'physical',$web_user,$web_password) === false) {
-                return $response->withJson(array("status"=>"Error creating custom extension"), 500);
+                return jsonResponse($response, array("status"=>"Error creating custom extension"), 500);
             }
         }
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-        return $response->withJson(array('extension' => $extension), 200);
+        return jsonResponse($response, array('extension' => $extension), 200);
    } catch (Exception $e) {
        error_log($e->getMessage());
-       return $response->withJson(array("status"=>$e->getMessage()), 500);
+       return jsonResponse($response, array("status"=>$e->getMessage()), 500);
    }
 });
 
@@ -152,7 +152,7 @@ $app->patch('/physicalextensions/{mac}', function (Request $request, Response $r
         $model = $params['model'];
 
         if (preg_match('/[A-F0-9]{2}-[A-F0-9]{2}-[A-F0-9]{2}-[A-F0-9]{2}-[A-F0-9]{2}-[A-F0-9]{2}/', $mac) !== 1) {
-            return $response->withJson(array("status"=>"Invalid MAC address"), 500);
+            return jsonResponse($response, array("status"=>"Invalid MAC address"), 500);
         }
 
         if (empty($model)) {
@@ -167,7 +167,7 @@ $app->patch('/physicalextensions/{mac}', function (Request $request, Response $r
         return $response->withStatus(200);
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array("status"=>$e->getMessage()), 500);
+        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
     }
 });
 
@@ -180,15 +180,15 @@ $app->post('/mobileapp', function (Request $request, Response $response, $args) 
         $extension = createExtension($mainextension,false);
 
         if ($extension === false ) {
-            return $response->withJson(array("status"=>"Error creating extension"), 500);
+            return jsonResponse($response, array("status"=>"Error creating extension"), 500);
         }
 
         if (useExtensionAsMobileApp($extension) === false) {
-            return $response->withJson(array("status"=>"Error associating mobile app extension"), 500);
+            return jsonResponse($response, array("status"=>"Error associating mobile app extension"), 500);
         }
 
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-        return $response->withJson(array('extension'=>$extension), 201);
+        return jsonResponse($response, array('extension'=>$extension), 201);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -201,9 +201,9 @@ $app->get('/mobileapp/{mainextension}', function (Request $request, Response $re
 
     $extension = getMobileAppExtension($mainextension);
     if (!empty($extension)) {
-        return $response->withJson($extension, 200);
+        return jsonResponse($response, $extension, 200);
     } else {
-        return $response->withJson(null,200);
+        return jsonResponse($response, null,200);
     }
 });
 
@@ -268,7 +268,7 @@ $app->get('/extension/{extension}/displayname', function (Request $request, Resp
         $extension = $route->getArgument('extension');
         //get displayname
         $displayname = $astman->database_get("AMPUSER",$extension."/cidname");
-        return $response->withJson(array('displayname' => $displayname), 200);
+        return jsonResponse($response, array('displayname' => $displayname), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);

@@ -34,10 +34,10 @@ $app->get('/providers', function (Request $request, Response $response, $args) {
         if(DB::IsError($results)) {
             throw new Exception($results->getMessage());
         }
-        return $response->withJson($results, 200);
+        return jsonResponse($response, $results, 200);
     }
     catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson('An error occurred', 500);
+        return jsonResponse($response, 'An error occurred', 500);
     }
 });
