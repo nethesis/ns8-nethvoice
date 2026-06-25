@@ -26,7 +26,7 @@ $app->get('/voicemails', function (Request $request, Response $response, $args) 
     try {
         $res = FreePBX::Voicemail()->getVoicemail();
 
-        return $response->withJson($res['default'] ? $res['default'] : array(), 200);
+        return jsonResponse($response, $res['default'] ? $res['default'] : array(), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
 
@@ -41,10 +41,10 @@ $app->get('/voicemails/{extension}', function (Request $request, Response $respo
         $res = FreePBX::Voicemail()->getVoicemail();
 
         if (is_array($res['default']) && !array_key_exists($extension, $res['default'])) {
-          return $response->withJson(null,200);
+          return jsonResponse($response, null,200);
         }
 
-        return $response->withJson($res['default'][$extension], 200);
+        return jsonResponse($response, $res['default'][$extension], 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
 
@@ -65,7 +65,7 @@ $app->post('/voicemails', function (Request $request, Response $response, $args)
         }
 
         if (!isset($extension)) {
-            return $response->withJson(array('status' => 'Extension '.$params['extension']." doesn't exist"), 400);
+            return jsonResponse($response, array('status' => 'Extension '.$params['extension']." doesn't exist"), 400);
         }
 
         if($params['state'] == 'yes') {
@@ -88,7 +88,7 @@ $app->post('/voicemails', function (Request $request, Response $response, $args)
 
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
 
-        return $response->withJson(array('status' => true), 200);
+        return jsonResponse($response, array('status' => true), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
 

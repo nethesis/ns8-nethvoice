@@ -27,17 +27,17 @@ include_once('lib/gateway/functions.inc.php');
 
 $app->get('/migration/ismigration', function (Request $request, Response $response, $args) {
     if (isMigration()) {
-        return $response->withJson(true, 200);
+        return jsonResponse($response, true, 200);
     }
-    return $response->withJson(false, 200);
+    return jsonResponse($response, false, 200);
 });
 
 $app->post('/migration/endmigration', function (Request $request, Response $response, $args) {
     $res = setMigration();
     if ($res['status']) {
-        return $response->withJson($res,200);
+        return jsonResponse($response, $res,200);
     } else {
-        return $response->withJson($res,500);
+        return jsonResponse($response, $res,500);
     }
 });
 
@@ -46,30 +46,30 @@ $app->post('/migration/migrationstatus', function (Request $request, Response $r
     $status = $params['status'];
     $res = setMigration($status);
     if ($res['status']) {
-        return $response->withJson($res,200);
+        return jsonResponse($response, $res,200);
     } else {
-        return $response->withJson($res,500);
+        return jsonResponse($response, $res,500);
     }
 });
 
 $app->get('/migration/migrationstatus', function (Request $request, Response $response, $args) {
     $res = getMigrationStatus();
     if ($res !== false) {
-        return $response->withJson($res, 200);
+        return jsonResponse($response, $res, 200);
     } else {
-        return $response->withJson($res,500);
+        return jsonResponse($response, $res,500);
     }
 
 });
 
 $app->get('/migration/oldusers', function (Request $request, Response $response, $args) {
     $res = getOldUsers();
-    return $response->withJson($res, 200);
+    return jsonResponse($response, $res, 200);
 });
 
 $app->get('/migration/report', function (Request $request, Response $response, $args) {
     $res = getMigrationReport();
-    return $response->withJson($res, 200);
+    return jsonResponse($response, $res, 200);
 });
 
 $app->post('/migration/importusers', function (Request $request, Response $response, $args) {
@@ -148,11 +148,11 @@ $app->post('/migration/importprofiles', function (Request $request, Response $re
             }
         }
         setMigration('profiles');
-        return $response->withJson(array('status' => $return, 'errors' => $errors, 'infos' => $infos, 'warnings' => $warnings), 200);
+        return jsonResponse($response, array('status' => $return, 'errors' => $errors, 'infos' => $infos, 'warnings' => $warnings), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         $errors[] = $e->getMessage();
-        return $response->withJson(array('status' => false, 'errors' => $errors, 'infos' => $infos), 500);
+        return jsonResponse($response, array('status' => false, 'errors' => $errors, 'infos' => $infos), 500);
     }
 });
 
@@ -161,13 +161,13 @@ $app->post('/migration/importoldvoiptrunks', function (Request $request, Respons
         $res = copyOldTrunks();
         setMigration('vtrunk');
         if ($res['status']) {
-            return $response->withJson($res, 200);
+            return jsonResponse($response, $res, 200);
         } else {
-            return $response->withJson($res, 500);
+            return jsonResponse($response, $res, 500);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('status' => false, 'errors' => array($e->getMessage())),500);
+        return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
 
@@ -193,13 +193,13 @@ $app->post('/migration/gateways', function (Request $request, Response $response
         }
         setMigration('gateptrunks');
         if ($status) {
-            return $response->withJson(array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos),200);
+            return jsonResponse($response, array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos),200);
         }
-        return $response->withJson(array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos),500);
+        return jsonResponse($response, array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos),500);
     } catch (Exception $e) {
         error_log($e->getMessage());
         $errors[] = $e->getMessage();
-        return $response->withJson(array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos),500);
+        return jsonResponse($response, array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos),500);
     }
 });
 
@@ -208,13 +208,13 @@ $app->post('/migration/importoutboundroutes', function (Request $request, Respon
     try {
         $res = copyOldOutboundRoutes();
         if ($res['status']) {
-            return $response->withJson($res, 200);
+            return jsonResponse($response, $res, 200);
         } else {
-            return $response->withJson($res, 500);
+            return jsonResponse($response, $res, 500);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('status' => false, 'errors' => array($e->getMessage())),500);
+        return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
 
@@ -223,13 +223,13 @@ $app->post('/migration/trunksroutesassignements', function (Request $request, Re
         $res = migrateRoutesTrunksAssignements();
         setMigration('outroutes');
         if ($res['status']) {
-            return $response->withJson($res, 200);
+            return jsonResponse($response, $res, 200);
         } else {
-            return $response->withJson($res, 500);
+            return jsonResponse($response, $res, 500);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('status' => false, 'errors' => array($e->getMessage())),500);
+        return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
 
@@ -238,13 +238,13 @@ $app->post('/migration/groups', function (Request $request, Response $response, 
         $res = migrateGroups();
         setMigration('groups');
         if ($res['status']) {
-            return $response->withJson($res, 200);
+            return jsonResponse($response, $res, 200);
         } else {
-            return $response->withJson($res, 500);
+            return jsonResponse($response, $res, 500);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('status' => false, 'errors' => array($e->getMessage())),500);
+        return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
 
@@ -253,13 +253,13 @@ $app->post('/migration/queues', function (Request $request, Response $response, 
         $res = migrateQueues();
         setMigration('queues');
         if ($res['status']) {
-            return $response->withJson($res, 200);
+            return jsonResponse($response, $res, 200);
         } else {
-            return $response->withJson($res, 500);
+            return jsonResponse($response, $res, 500);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('status' => false, 'errors' => array($e->getMessage())),500);
+        return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
 
@@ -268,13 +268,13 @@ $app->post('/migration/ivr', function (Request $request, Response $response, $ar
         $res = migrateIVRs();
         setMigration('ivr');
         if ($res['status']) {
-            return $response->withJson($res, 200);
+            return jsonResponse($response, $res, 200);
         } else {
-            return $response->withJson($res, 500);
+            return jsonResponse($response, $res, 500);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('status' => false, 'errors' => array($e->getMessage())),500);
+        return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
 
@@ -283,13 +283,13 @@ $app->post('/migration/cqr', function (Request $request, Response $response, $ar
         $res = migrateCQRs();
         setMigration('cqr');
         if ($res['status']) {
-            return $response->withJson($res, 200);
+            return jsonResponse($response, $res, 200);
         } else {
-            return $response->withJson($res, 500);
+            return jsonResponse($response, $res, 500);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('status' => false, 'errors' => array($e->getMessage())),500);
+        return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
 
@@ -298,13 +298,13 @@ $app->post('/migration/recordings', function (Request $request, Response $respon
         $res = migrateRecordings();
         setMigration('recordings');
         if ($res['status']) {
-            return $response->withJson($res, 200);
+            return jsonResponse($response, $res, 200);
         } else {
-            return $response->withJson($res, 500);
+            return jsonResponse($response, $res, 500);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('status' => false, 'errors' => array($e->getMessage())),500);
+        return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
 
@@ -313,13 +313,13 @@ $app->post('/migration/announcements', function (Request $request, Response $res
         $res = migrateAnnouncements();
         setMigration('announcements');
         if ($res['status']) {
-            return $response->withJson($res, 200);
+            return jsonResponse($response, $res, 200);
         } else {
-            return $response->withJson($res, 500);
+            return jsonResponse($response, $res, 500);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('status' => false, 'errors' => array($e->getMessage())),500);
+        return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
 
@@ -327,13 +327,13 @@ $app->post('/migration/timegroups', function (Request $request, Response $respon
     try {
         $res = migrateTimegroups();
         if ($res['status']) {
-            return $response->withJson($res, 200);
+            return jsonResponse($response, $res, 200);
         } else {
-            return $response->withJson($res, 500);
+            return jsonResponse($response, $res, 500);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('status' => false, 'errors' => array($e->getMessage())),500);
+        return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
 
@@ -342,13 +342,13 @@ $app->post('/migration/timeconditions', function (Request $request, Response $re
         $res = migrateTimeconditions();
         setMigration('tgroupstcond');
         if ($res['status']) {
-            return $response->withJson($res, 200);
+            return jsonResponse($response, $res, 200);
         } else {
-            return $response->withJson($res, 500);
+            return jsonResponse($response, $res, 500);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('status' => false, 'errors' => array($e->getMessage())),500);
+        return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
 
@@ -357,13 +357,13 @@ $app->post('/migration/inboundroutes', function (Request $request, Response $res
         $res = migrateInboundRoutes();
         setMigration('iroutes');
         if ($res['status']) {
-            return $response->withJson($res, 200);
+            return jsonResponse($response, $res, 200);
         } else {
-            return $response->withJson($res, 500);
+            return jsonResponse($response, $res, 500);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('status' => false, 'errors' => array($e->getMessage())),500);
+        return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
 
@@ -371,13 +371,13 @@ $app->get('/migration/cdrrowcount', function (Request $request, Response $respon
     try {
         $res = getCdrRowCount();
         if ($res['status']) {
-            return $response->withJson($res, 200);
+            return jsonResponse($response, $res, 200);
         } else {
-            return $response->withJson($res, 500);
+            return jsonResponse($response, $res, 500);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('status' => false, 'errors' => array($e->getMessage())),500);
+        return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
 
@@ -401,18 +401,18 @@ $app->get('/migration/cdr', function (Request $request, Response $response, $arg
             $status = json_decode(file_get_contents($statusfile));
             if (isset($status->status) && $status->status == false) {
                 unlink($statusfile);
-                return $response->withJson($status,500);
+                return jsonResponse($response, $status,500);
             } elseif (isset($status->status) && $status->status == true) {
                 unlink($statusfile);
-                return $response->withJson($status,200);
+                return jsonResponse($response, $status,200);
             }
-            return $response->withJson($status,200);
+            return jsonResponse($response, $status,200);
         } else {
-            return $response->withJson(['status' => 'false', 'warnings' => array('No cdr migration active')],422);
+            return jsonResponse($response, ['status' => 'false', 'warnings' => array('No cdr migration active')],422);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson($status,500);
+        return jsonResponse($response, $status,500);
     }
 });
 
@@ -421,13 +421,13 @@ $app->post('/migration/iax', function (Request $request, Response $response, $ar
         $res = migrateIAX();
         setMigration('iax');
         if ($res['status']) {
-            return $response->withJson($res, 200);
+            return jsonResponse($response, $res, 200);
         } else {
-            return $response->withJson($res, 500);
+            return jsonResponse($response, $res, 500);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('status' => false, 'errors' => array($e->getMessage())),500);
+        return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
 
@@ -444,7 +444,7 @@ $app->post('/migration/daynight', function (Request $request, Response $response
 
         if (count($rows) === 0 ) {
             $infos[] = 'DayNight empty';
-            return $response->withJson(array('status' => true, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos),200);
+            return jsonResponse($response, array('status' => true, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos),200);
         }
 
         // fill question marks string
@@ -463,10 +463,10 @@ $app->post('/migration/daynight', function (Request $request, Response $response
         $sth->execute(array_merge(... $rows));
         $infos[] = 'DayNight migrated';
         setMigration('daynight');
-        return $response->withJson(array('status' => true, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos),200);
+        return jsonResponse($response, array('status' => true, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos),200);
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('status' => false, 'errors' => array($e->getMessage())),500);
+        return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
 
@@ -475,13 +475,13 @@ $app->post('/migration/postmigration', function (Request $request, Response $res
         $res = postMigration();
         setMigration('postmig');
         if ($res['status']) {
-            return $response->withJson($res, 200);
+            return jsonResponse($response, $res, 200);
         } else {
-            return $response->withJson($res, 500);
+            return jsonResponse($response, $res, 500);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('status' => false, 'errors' => array($e->getMessage())),500);
+        return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
 

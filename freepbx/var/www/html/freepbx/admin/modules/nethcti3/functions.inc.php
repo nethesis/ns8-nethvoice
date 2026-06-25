@@ -189,6 +189,8 @@ function nethcti3_get_config_late($engine) {
             }
             $nethcti3 = \FreePBX::Nethcti3();
             $trunks = FreePBX::Core()->listTrunks();
+            $add_unset_topos = false;
+            $add_unset_istrunk = false;
             foreach ($trunks as $trunk) {
                 try {
                     /*Add isTrunk = 1 header to VoIP trunks that doesn't require SRTP encryption*/
@@ -411,8 +413,9 @@ function nethcti3_get_config_late($engine) {
         $users = \FreePBX::create()->Userman->getAllUsers();
         $dbh = \FreePBX::Database();
         $freepbxVoicemails = \FreePBX::Voicemail()->getVoicemail();
-        $enabledVoicemails = ($freepbxVoicemails['default'] != null) ? array_keys($freepbxVoicemails['default']) : array();
-        $domainName = end(explode('.', gethostname(), 2));
+        $enabledVoicemails = !empty($freepbxVoicemails['default']) ? array_keys($freepbxVoicemails['default']) : array();
+        $hostnameParts = explode('.', gethostname(), 2);
+        $domainName = end($hostnameParts);
         $enableJanus = false;
 
         foreach ($users as $user) {
@@ -513,9 +516,11 @@ function nethcti3_get_config_late($engine) {
         }
 
         // Write operator.json configuration file
+        $out = [];
         $results = getCTIGroups();
         if (!$results) {
             error_log('Empty operator config');
+            $results = [];
         }
         foreach ($results as $r) {
             $out[$r['name']][] = $r['username'];
@@ -534,6 +539,7 @@ function nethcti3_get_config_late($engine) {
         $results = getCTIPermissionProfiles(false,true,false);
         if (!$results) {
             error_log('Empty profile config');
+            $results = [];
         }
         foreach ($results as $r) {
             // Add oppanel waiting queue
@@ -573,6 +579,7 @@ function nethcti3_get_config_late($engine) {
 
         if (!$results) {
             error_log('Empty profile config');
+            $results = [];
         }
         foreach ($results as $r) {
             $pername = 'vs_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$r['descr'])));
@@ -724,6 +731,11 @@ function nethcti3_get_config_early($engine) {
         $extension = $ext['extension'];
         $mainextension = $ext['mainextension'];
 
+        $deviceMac = $ext['mac'] ?? '';
+        if ($deviceMac === '') {
+            continue;
+        }
+
         // Get extension sip parameters
         $sql = 'SELECT keyword,data FROM sip WHERE id = ?';
         $stmt = $dbh->prepare($sql);
@@ -741,11 +753,11 @@ function nethcti3_get_config_early($engine) {
         $user_variables['account_dnd_allow_1'] = '1';
         $user_variables['account_fwd_allow_1'] = '1';
         if (array_key_exists('profile_id',$ext)
-            && is_array($permission)
-            && array_key_exists($ext['profile_id'],$permission)
+            && is_array($permissions)
+            && array_key_exists($ext['profile_id'],$permissions)
             && array_key_exists('macro_permissions',$permissions[$ext['profile_id']])
             && array_key_exists('settings',$permissions[$ext['profile_id']]['macro_permissions'])
-            && array_key_exists('permissions',$$permissions[$ext['profile_id']]['macro_permissions']['settings']))
+            && array_key_exists('permissions',$permissions[$ext['profile_id']]['macro_permissions']['settings']))
         {
             foreach ($permissions[$ext['profile_id']]['macro_permissions']['settings']['permissions'] as $permission) {
                 if ($permission['name'] == 'dnd') {
@@ -782,7 +794,7 @@ function nethcti3_get_config_early($engine) {
             elseif ($sip['dtmfmode'] == 'rfc4733') $user_variables['account_dtmf_type_1'] = 'rfc4733';
         }
         $user_variables['account_voicemail_1'] = $featurecodes['voicemailmyvoicemail'];
-        $res = nethcti_tancredi_patch($tancrediUrl . 'phones/' . str_replace(':','-',$ext['mac']), $username, $secretkey, array("variables" => $user_variables));
+        $res = nethcti_tancredi_patch($tancrediUrl . 'phones/' . str_replace(':','-',$deviceMac), $username, $secretkey, array("variables" => $user_variables));
     }
     /***********************************
     * call Tancredi /defaults REST API *

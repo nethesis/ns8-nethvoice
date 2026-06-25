@@ -45,7 +45,6 @@ modules_to_install=(
     fax
     featurecodeadmin
     findmefollow
-    googletts
     iaxsettings
     infoservices
     ivr
@@ -83,6 +82,7 @@ modules_to_install=(
 
 obsolete_modules=(
     bulkdids
+    googletts
     inboundlookup
     outboundlookup
 )

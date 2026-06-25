@@ -30,7 +30,7 @@ $app->get('/mobiles', function (Request $request, Response $response, $args) {
           ' JOIN userman_users ON userman_users.id = rest_users.user_id';
         $mobiles = $dbh->sql($sql, 'getAll', \PDO::FETCH_ASSOC);
 
-        return $response->withJson($mobiles, 200);
+        return jsonResponse($response, $mobiles, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
 
@@ -49,10 +49,10 @@ $app->get('/mobiles/{username}', function (Request $request, Response $response,
           ' WHERE userman_users.username = \''. $username. '\'';
         $mobile = $dbh->sql($sql, 'getOne', \PDO::FETCH_ASSOC);
         if ($mobile == false) {
-            return $response->withJson(null,200);
+            return jsonResponse($response, null,200);
         }
 
-        return $response->withJson($mobile, 200);
+        return jsonResponse($response, $mobile, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
 

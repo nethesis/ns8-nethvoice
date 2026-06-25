@@ -20,7 +20,9 @@
 #
 
 include_once '/etc/freepbx.conf';
-define('FREEPBX_IS_AUTH',False);
+if (!defined('FREEPBX_IS_AUTH')) {
+    define('FREEPBX_IS_AUTH',False);
+}
 include_once '/var/www/html/freepbx/admin/modules/customcontexts/functions.inc.php';
 include_once '/var/www/html/freepbx/rest/config.inc.php';
 if (file_exists('/var/www/html/freepbx/rest/lib/libQueueManager.php')) {
@@ -276,7 +278,7 @@ function getCTIPermissionProfiles($profileId=false, $minified=false, $printnull=
             // Get all outbound routes with profile permission
             $sql = 'SELECT outbound_routes.route_id AS route_id,outbound_routes.name AS name FROM outbound_routes';
             $sth = $dbh->prepare($sql);
-            $sth->execute(array($id));
+            $sth->execute();
             $all_outbound_routes = $sth->fetchAll(\PDO::FETCH_ASSOC);
 
             // Get context name for this profile

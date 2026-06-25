@@ -6,8 +6,8 @@
   <category>Applications</category>
   <Publisher>Nethesis</Publisher>
   <info></info>
-  <licence>GPL</licence>
-  <licenselink>http://www.gnu.org/licenses/gpl-2.0.txt</licenselink>
+  <license>GPLv3+</license>
+  <licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
 <depends>
   <version>14</version>
 </depends>

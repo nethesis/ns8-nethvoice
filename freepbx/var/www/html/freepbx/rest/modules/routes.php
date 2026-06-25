@@ -33,10 +33,10 @@ $app->get('/inboundroutes/count', function (Request $request, Response $response
       $destinations = FreePBX::Modules()->getDestinations();
     } catch (Exception $e) {
       error_log($e->getMessage());
-      return $response->withJson('An error occurred', 500);
+      return jsonResponse($response, 'An error occurred', 500);
     }
 
-    return $response->withJson(count($routes), 200);
+    return jsonResponse($response, count($routes), 200);
 });
 
 /**
@@ -48,10 +48,10 @@ $app->get('/inboundroutes', function (Request $request, Response $response, $arg
       $destinations = FreePBX::Modules()->getDestinations();
     } catch (Exception $e) {
       error_log($e->getMessage());
-      return $response->withJson('An error occurred', 500);
+      return jsonResponse($response, 'An error occurred', 500);
     }
 
-    return $response->withJson(array("destinations" => $destinations, "routes" => $routes), 200);
+    return jsonResponse($response, array("destinations" => $destinations, "routes" => $routes), 200);
 });
 
 /**
@@ -64,7 +64,7 @@ $app->post('/inboundroutes', function (Request $request, Response $response, $ar
       $res = FreePBX::Core()->addDID($params);
     } catch (Exception $e) {
       error_log($e->getMessage());
-      return $response->withJson('An error occurred', 500);
+      return jsonResponse($response, 'An error occurred', 500);
     }
 
     system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
@@ -88,7 +88,7 @@ $app->post('/inboundroutes/delete', function (Request $request, Response $respon
     FreePBX::Core()->delDID($extension, $cidnum ? $cidnum : '');
   } catch (Exception $e) {
     error_log($e->getMessage());
-    return $response->withJson('An error occurred', 500);
+    return jsonResponse($response, 'An error occurred', 500);
   }
 
   system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
@@ -103,10 +103,10 @@ $app->get('/outboundroutes/count', function (Request $request, Response $respons
       $routes = FreePBX::Core()->getAllRoutes();
     } catch (Exception $e) {
       error_log($e->getMessage());
-      return $response->withJson('An error occurred', 500);
+      return jsonResponse($response, 'An error occurred', 500);
     }
 
-    return $response->withJson(count($routes), 200);
+    return jsonResponse($response, count($routes), 200);
 });
 
 /**
@@ -128,9 +128,9 @@ $app->get('/outboundroutes/count', function (Request $request, Response $respons
        }
      } catch (Exception $e) {
        error_log($e->getMessage());
-       return $response->withJson('An error occurred', 500);
+       return jsonResponse($response, 'An error occurred', 500);
      }
-     return $response->withJson($routes, 200);
+     return jsonResponse($response, $routes, 200);
  });
 
 /**
@@ -167,11 +167,11 @@ $app->get('/outboundroutes/count', function (Request $request, Response $respons
                 );
             }
         }
-        return $response->withJson($res,200);
+        return jsonResponse($response, $res,200);
 
      } catch (Exception $e) {
        error_log($e->getMessage());
-       return $response->withJson('An error occurred', 500);
+       return jsonResponse($response, 'An error occurred', 500);
      }
  });
 
@@ -250,7 +250,7 @@ $app->get('/outboundroutes/count', function (Request $request, Response $respons
         return $response->withStatus(200);
     } catch (Exception $e) {
       error_log($e->getMessage());
-      return $response->withJson('An error occurred', 500);
+      return jsonResponse($response, 'An error occurred', 500);
     }
 });
 
@@ -267,7 +267,7 @@ $app->get('/outboundroutes/count', function (Request $request, Response $respons
         $res = $sth->execute();
    } catch (Exception $e) {
      error_log($e->getMessage());
-     return $response->withJson('An error occurred', 500);
+     return jsonResponse($response, 'An error occurred', 500);
    }
 
    system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
@@ -285,10 +285,10 @@ $app->get('/outboundroutes/supportedLocales', function (Request $request, Respon
         foreach ($res as $lang){
             $langs[]=$lang[0];
         }
-        return $response->withJson(array_values($langs),200);
+        return jsonResponse($response, array_values($langs),200);
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson('An error occurred', 500);
+        return jsonResponse($response, 'An error occurred', 500);
     }
 });
 

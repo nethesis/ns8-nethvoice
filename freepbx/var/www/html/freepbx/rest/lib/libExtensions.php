@@ -536,7 +536,7 @@ function setFalconieriRPS($mac, $provisioningUrl, $lk = null, $secret = null) {
     $secret = $_ENV['SUBSCRIPTION_SECRET'];
 
     $mac = strtr(strtoupper($mac), ':', '-'); // MAC format sanitization
-    $queryUrl = "https://rps.nethesis.it/providers/${provider}/${mac}";
+    $queryUrl = "https://rps.nethesis.it/providers/{$provider}/{$mac}";
     $data = json_encode(array("url" => $provisioningUrl), JSON_UNESCAPED_SLASHES);
 
     $ch = curl_init();

@@ -32,11 +32,11 @@ $app->get('/trunks/count', function (Request $request, Response $response, $args
         foreach($trunks as $trunk) {
             array_push($result, $trunk);
         }
-        return $response->withJson(count($result),200);
+        return jsonResponse($response, count($result),200);
     }
     catch (Exception $e) {
       error_log($e->getMessage());
-      return $response->withJson('An error occurred', 500);
+      return jsonResponse($response, 'An error occurred', 500);
     }
 });
 
@@ -54,11 +54,11 @@ $app->get('/trunks', function (Request $request, Response $response, $args) {
             $trunk['details'] = $details;
             array_push($result, $trunk);
         }
-        return $response->withJson($result,200);
+        return jsonResponse($response, $result,200);
     }
     catch (Exception $e) {
       error_log($e->getMessage());
-      return $response->withJson('An error occurred', 500);
+      return jsonResponse($response, 'An error occurred', 500);
     }
 });
 
@@ -80,11 +80,11 @@ $app->get('/trunks/{tech}', function (Request $request, Response $response, $arg
                 array_push($result, $trunk);
             }
         }
-        return $response->withJson($result,200);
+        return jsonResponse($response, $result,200);
     }
     catch (Exception $e) {
       error_log($e->getMessage());
-      return $response->withJson('An error occurred', 500);
+      return jsonResponse($response, 'An error occurred', 500);
     }
 });
 
@@ -127,7 +127,7 @@ $app->patch('/trunks/{trunkid}', function (Request $request, Response $response,
 
         if (empty($trunkid)) {
             error_log("missing argument $trunkid");
-            return $response->withJson(['error'=>"missing argument $trunkid"],400);
+            return jsonResponse($response, ['error'=>"missing argument $trunkid"],400);
         }
 
         // Make sure that trunk to patch is a pjsip trunk
@@ -204,7 +204,7 @@ $app->patch('/trunks/{trunkid}', function (Request $request, Response $response,
         return $response->withStatus(204);
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(['error'=>$e->getMessage()],500);
+        return jsonResponse($response, ['error'=>$e->getMessage()],500);
     }
 });
 

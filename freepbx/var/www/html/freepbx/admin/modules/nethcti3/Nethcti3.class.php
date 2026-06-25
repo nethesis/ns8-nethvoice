@@ -231,7 +231,7 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
 
     // Generate configuration for Operator Panel waiting queues
     public function genConfig() {
-        $out = array();
+        $out = array('queues_nethcti.conf' => '');
         include_once('/var/www/html/freepbx/rest/lib/libCTI.php');
         foreach (getCTIPermissionProfiles(false,false,false) as $profile){
             if (isset($profile['macro_permissions']['operator_panel']) && $profile['macro_permissions']['operator_panel']['value'] == true) {
