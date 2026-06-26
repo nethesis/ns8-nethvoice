@@ -1,5 +1,6 @@
 *** Settings ***
 Library    SSHLibrary
+Library    Collections
 Resource  ../api.resource
 
 *** Test Cases ***
@@ -16,10 +17,8 @@ Check if nethvoice is configured as expected
     Should Be Equal As Strings    ${response['reports_international_prefix']}    +39
     Should Be Equal As Strings    ${response['lets_encrypt']}    False
 
-    ${has_legacy_username} =    Evaluate    'nethvoice_adm_username' in $response
-    ${has_legacy_password} =    Evaluate    'nethvoice_adm_password' in $response
-    Should Be Equal    ${has_legacy_username}    ${FALSE}
-    Should Be Equal    ${has_legacy_password}    ${FALSE}
+    Dictionary Should Not Contain Key    ${response}    nethvoice_adm_username
+    Dictionary Should Not Contain Key    ${response}    nethvoice_adm_password
 
 Check if the password can be changed
     ${response} =  Run task    module/${module_id}/set-nethvoice-admin-password   

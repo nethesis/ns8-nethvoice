@@ -3,37 +3,16 @@ Library    SSHLibrary
 Library    ./UsersAdminAgentCredentials.py
 Resource   ../api.resource
 
-Suite Setup    Prepare Runtime Test Environment
-Suite Teardown    Cleanup Runtime Test Environment
+Suite Setup    Load Module Runtime Variables
 
 *** Variables ***
 ${NETHVOICE_HOST}       ${EMPTY}
 ${USER_DOMAIN}          ${EMPTY}
 ${REDIS_USER}           ${EMPTY}
 ${REDIS_PASSWORD}       ${EMPTY}
-${SSH_KEYFILE}          %{HOME}/.ssh/id_ecdsa
 ${USERS_ADMIN_TOKEN}    ${EMPTY}
-${OWNS_CONNECTION}      ${FALSE}
 
 *** Keywords ***
-Prepare Runtime Test Environment
-    ${status}    ${message} =    Run Keyword And Ignore Error    Execute Command    true
-    IF    '${status}' == 'FAIL'
-        Open Connection    ${NODE_ADDR}
-        Login With Public Key    root    ${SSH_KEYFILE}
-        Set Suite Variable    ${OWNS_CONNECTION}    ${TRUE}
-    ELSE
-        Set Suite Variable    ${OWNS_CONNECTION}    ${FALSE}
-    END
-    ${output} =    Execute Command    systemctl is-system-running --wait
-    Should Be True    '${output}' == 'running' or '${output}' == 'degraded'
-    Load Module Runtime Variables
-
-Cleanup Runtime Test Environment
-    IF    ${OWNS_CONNECTION}
-        Close Connection
-    END
-
 Load Module Runtime Variables
     ${environment} =    Read Remote File    /home/${module_id}/.config/state/environment
     ${agent_env} =    Read Remote File    /home/${module_id}/.config/state/agent.env
