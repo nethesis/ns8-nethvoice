@@ -374,16 +374,10 @@ RUN install_module() { \
 	rm -fr /var/www/html/freepbx/admin/modules/core/* && \
 	install_module core https://github.com/FreePBX/core/archive/refs/tags/release/17.0.18.49.tar.gz && \
 	install_module customcontexts https://github.com/FreePBX-ContributedModules/customcontexts/archive/refs/tags/release/17.0.1.3.tar.gz && \
-	install_module directdid https://github.com/nethesis/directdid/archive/refs/tags/1.1.9.tar.gz && \
-	install_module extraoptions https://github.com/nethesis/freepbx-extraoptions/archive/refs/tags/1.0.1.tar.gz && \
-	install_module nethdash https://github.com/nethesis/nethdash/archive/refs/tags/1.0.1.tar.gz && \
 	install_module paging https://github.com/FreePBX/paging/archive/refs/tags/release/17.0.4.tar.gz && \
-	install_module queueexit https://github.com/nethesis/queueexit/archive/refs/tags/0.0.5.tar.gz && \
 	install_module queuemetrics https://github.com/nethesis/queuemetrics/archive/refs/tags/release/2.11.0.3.tar.gz && \
 	install_module queues https://github.com/FreePBX/queues/archive/refs/tags/release/17.0.4.tar.gz && \
-	install_module rapidcode https://github.com/nethesis/RapidCode/archive/refs/tags/1.0.2.tar.gz && \
 	install_module recordings https://github.com/FreePBX/recordings/archive/refs/tags/release/17.0.5.tar.gz && \
-	install_module returnontransfer https://github.com/nethesis/returnontransfer/archive/refs/tags/1.2.0.tar.gz && \
 	install_module voicemail https://github.com/FreePBX/voicemail/archive/refs/tags/release/17.0.5.34.tar.gz
 
 # PHP 8.x compatibility: harden customcontexts against empty dialpattern array entries
@@ -407,12 +401,18 @@ RUN sed -i 's|\$x\[\$funcarr\[0\]\]\[.license.\] == "Commercial"|(\$x[\$funcarr[
 	/var/www/html/freepbx/admin/libraries/BMO/DialplanHooks.class.php
 
 # Install Nethesis vendor modules
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/directdid /var/www/html/freepbx/admin/modules/directdid
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/extraoptions /var/www/html/freepbx/admin/modules/extraoptions
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcqr /var/www/html/freepbx/admin/modules/nethcqr
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcti3 /var/www/html/freepbx/admin/modules/nethcti3
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethdash /var/www/html/freepbx/admin/modules/nethdash
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethhotel /var/www/html/freepbx/admin/modules/nethhotel
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/pin /var/www/html/freepbx/admin/modules/pin
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/queueexit /var/www/html/freepbx/admin/modules/queueexit
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/queueoptions /var/www/html/freepbx/admin/modules/queueoptions
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/rapidcode /var/www/html/freepbx/admin/modules/rapidcode
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/recallonbusy /var/www/html/freepbx/admin/modules/recallonbusy
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/returnontransfer /var/www/html/freepbx/admin/modules/returnontransfer
 COPY usr/sbin/recallonbusy /usr/sbin/recallonbusy
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/satellite /var/www/html/freepbx/admin/modules/satellite
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/visualplan /var/www/html/freepbx/admin/modules/visualplan
