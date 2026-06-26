@@ -1,35 +1,88 @@
 #!/bin/sh
 
+update_last_sync_at() {
+        python3 <<'PY'
+import os
+
+import mysql.connector
+
+
+connection = mysql.connector.connect(
+        host=os.environ["PHONEBOOK_DB_HOST"],
+        port=int(os.environ["PHONEBOOK_DB_PORT"]),
+        user=os.environ["PHONEBOOK_DB_USER"],
+        password=os.environ["PHONEBOOK_DB_PASS"],
+        database=os.environ["PHONEBOOK_DB_NAME"],
+)
+
+cursor = connection.cursor()
+cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS sync_metadata (
+                scope varchar(255) NOT NULL,
+                last_sync_at datetime DEFAULT NULL,
+                PRIMARY KEY (scope)
+        ) ENGINE=MyISAM DEFAULT CHARSET=utf8
+        """
+)
+cursor.execute(
+        """
+        INSERT INTO sync_metadata (scope, last_sync_at)
+        VALUES (%s, UTC_TIMESTAMP())
+        ON DUPLICATE KEY UPDATE last_sync_at = UTC_TIMESTAMP()
+        """,
+        ("centralized_phonebook",),
+)
+connection.commit()
+cursor.close()
+connection.close()
+PY
+}
+
+run_phonebook_step() {
+        if ! "$@"; then
+                logger -t phonebook "warning: step failed, continuing: $*"
+        fi
+}
+
 # Publish all configured phonebook into one phonebook
 
 # empty phonebook table
-/usr/share/phonebooks/clean.php
+run_phonebook_step /usr/share/phonebooks/clean.php
 
 # Export nethcti phonebook if requested
-/usr/share/phonebooks/nethcti_export.php
+run_phonebook_step /usr/share/phonebooks/nethcti_export.php
 
 # Export nethvoice speeddial if requested
-/usr/share/phonebooks/speeddial_and_rapidcode_export.php
+run_phonebook_step /usr/share/phonebooks/speeddial_and_rapidcode_export.php
 
 # Export nethvoice extensions
-/usr/share/phonebooks/nethvoice_extensions_export.php
+run_phonebook_step /usr/share/phonebooks/nethvoice_extensions_export.php
 
 # Load custom phonebooks
-for CUSTOM in $(find /etc/phonebook/sources.d/ -type f -name *.json); do
-        /usr/share/phonebooks/phonebook-import ${CUSTOM}
-done
+if [ -d /etc/phonebook/sources.d ]; then
+        find /etc/phonebook/sources.d/ -type f -name '*.json' | while IFS= read -r CUSTOM; do
+                run_phonebook_step /usr/share/phonebooks/phonebook-import --skip-sync-metadata-update "${CUSTOM}"
+        done
+fi
 
 # Execute all custom scripts
-for i in $(find /usr/share/phonebooks/scripts/); do
-        if [ -f $i ] && [ -x $i ]; then
-                $i
-        fi
-done
+if [ -d /usr/share/phonebooks/scripts ]; then
+        find /usr/share/phonebooks/scripts/ | while IFS= read -r i; do
+                if [ -f "$i" ] && [ -x "$i" ]; then
+                        run_phonebook_step "$i"
+                fi
+        done
+fi
 
 # Execute all custom post scripts
-for i in $(find /usr/share/phonebooks/post_scripts/); do
-        if [ -f $i ] && [ -x $i ]; then
-                $i
-        fi
-done
+if [ -d /usr/share/phonebooks/post_scripts ]; then
+        find /usr/share/phonebooks/post_scripts/ | while IFS= read -r i; do
+                if [ -f "$i" ] && [ -x "$i" ]; then
+                        run_phonebook_step "$i"
+                fi
+        done
+fi
+
+update_last_sync_at
 
