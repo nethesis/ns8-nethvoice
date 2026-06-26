@@ -4,13 +4,6 @@
 -->
 <template>
   <div>
-    <NsInlineNotification
-      v-if="error.getUsers"
-      kind="error"
-      :title="$t('action.list-domain-users')"
-      :description="error.getUsers"
-      :showCloseButton="false"
-    />
     <template v-if="!isConfigureModuleValidationCompleted">
       <div class="mg-bottom-lg">
         {{ $t("welcome.configure_nethvoice_application") }}
@@ -143,13 +136,6 @@
       />
     </template>
     <NsInlineNotification
-      v-if="error.addUser"
-      kind="error"
-      :title="$t('settings.create_nethvoice_adm')"
-      :description="error.addUser"
-      :showCloseButton="false"
-    />
-    <NsInlineNotification
       v-if="error.setAdminPassword"
       kind="error"
       :title="$t('settings.set_password')"
@@ -179,17 +165,10 @@ import {
 } from "@nethserver/ns8-ui-lib";
 import { mapState } from "vuex";
 import to from "await-to-js";
-import { PasswordGeneratorService } from "@/mixins/passwordGenerator";
 
 export default {
   name: "NethvoiceStep",
-  mixins: [
-    UtilService,
-    TaskService,
-    IconService,
-    LottieService,
-    PasswordGeneratorService,
-  ],
+  mixins: [UtilService, TaskService, IconService, LottieService],
   props: {
     accountProvider: {
       type: Object,
@@ -206,17 +185,11 @@ export default {
       timezone: "",
       timezoneOptions: [],
       nethvoice_admin_password: "",
-      // randomly generated password for nethvoice-adm user
-      admUserPassword: "",
-      domainUsers: [],
       passwordValidation: null,
       configuringNethvoiceProgress: 0,
       focusPasswordField: { element: "" },
       isConfigureModuleValidationCompleted: false,
-      admUserCreated: false,
       loading: {
-        getUsers: false,
-        addUser: false,
         configureModule: false,
         setAdminPassword: false,
       },
@@ -225,8 +198,6 @@ export default {
         nethcti_ui_host: "",
         timezone: "",
         nethvoice_admin_password: "",
-        getUsers: "",
-        addUser: "",
         configureModule: "",
         setAdminPassword: "",
       },
@@ -234,15 +205,6 @@ export default {
   },
   computed: {
     ...mapState(["core", "instanceName", "instanceStatus", "defaults"]),
-    admUsername() {
-      return `${this.instanceName}-adm`;
-    },
-    admUserExists() {
-      return (
-        this.domainUsers.some((user) => user.user === this.admUsername) ||
-        this.admUserCreated
-      );
-    },
   },
   watch: {
     "loading.configureModule": {
@@ -267,9 +229,6 @@ export default {
     this.$nextTick(() => {
       this.timezone = this.defaults.local_timezone;
     });
-
-    // load domain users to check if nethvoice-adm user exists
-    this.getUsers();
 
     this.$emit("set-next-label", this.$t("welcome.configure"));
     this.focusElement("nethvoice_host");
@@ -394,127 +353,14 @@ export default {
     next() {
       this.startConfiguration();
     },
-    async getUsers() {
-      this.error.getUsers = "";
-      this.loading.getUsers = true;
-      const taskAction = "list-domain-users";
-      const eventId = this.getUuid();
-
-      // register to task error
-      this.core.$root.$once(
-        `${taskAction}-aborted-${eventId}`,
-        this.getUsersAborted
-      );
-
-      // register to task completion
-      this.core.$root.$once(
-        `${taskAction}-completed-${eventId}`,
-        this.getUsersCompleted
-      );
-
-      const res = await to(
-        this.createClusterTaskForApp({
-          action: taskAction,
-          data: {
-            domain: this.accountProvider.domain,
-          },
-          extra: {
-            title: this.$t("action." + taskAction),
-            isNotificationHidden: true,
-            eventId,
-          },
-        })
-      );
-      const err = res[0];
-
-      if (err) {
-        console.error(`error creating task ${taskAction}`, err);
-        this.error.getUsers = this.getErrorMessage(err);
-        this.loading.getUsers = false;
-        return;
-      }
-    },
-    getUsersAborted(taskResult, taskContext) {
-      console.error(`${taskContext.action} aborted`, taskResult);
-      this.error.getUsers = this.$t("error.generic_error");
-      this.loading.getUsers = false;
-    },
-    getUsersCompleted(taskContext, taskResult) {
-      this.domainUsers = taskResult.output.users;
-      this.loading.getUsers = false;
-    },
     startConfiguration() {
       const isValidationOk = this.validateConfigureModule();
       if (!isValidationOk) {
         return;
       }
-
-      if (this.accountProvider.internal && !this.admUserExists) {
-        // configureModule() is called at the end of addAdmUserCompleted()
-        this.addAdmUser();
-      } else {
-        this.configureModule();
-      }
+      this.configureModule();
       // can be called concurrently
       this.setAdminPassword();
-    },
-    async addAdmUser() {
-      this.error.addUser = "";
-      this.loading.addUser = true;
-      const taskAction = "add-user";
-      const eventId = this.getUuid();
-
-      // register to task error
-      this.core.$root.$once(
-        `${taskAction}-aborted-${eventId}`,
-        this.addAdmUserAborted
-      );
-
-      // register to task completion
-      this.core.$root.$once(
-        `${taskAction}-completed-${eventId}`,
-        this.addAdmUserCompleted
-      );
-
-      const admDisplayName = `${this.instanceName} Administrator`;
-      this.admUserPassword = this.generateAdmPassword();
-
-      const res = await to(
-        this.createModuleTaskForApp(this.accountProvider.id, {
-          action: taskAction,
-          data: {
-            user: this.admUsername,
-            display_name: admDisplayName,
-            password: this.admUserPassword,
-            locked: false,
-            groups: ["domain admins"],
-          },
-          extra: {
-            title: this.$t("settings.create_nethvoice_adm"),
-            description: this.$t("common.processing"),
-            eventId,
-            isNotificationHidden: true,
-          },
-        })
-      );
-      const err = res[0];
-
-      if (err) {
-        console.error(`error creating task ${taskAction}`, err);
-        this.error.addUser = this.getErrorMessage(err);
-        this.loading.addUser = false;
-        return;
-      }
-    },
-    addAdmUserAborted(taskResult, taskContext) {
-      console.error(`${taskContext.action} aborted`, taskResult);
-      this.error.addUser = this.$t("error.generic_error");
-      this.loading.addUser = false;
-    },
-    addAdmUserCompleted() {
-      this.loading.addUser = false;
-      this.admUserCreated = true;
-      this.configureModule();
     },
     async setAdminPassword() {
       this.error.setAdminPassword = "";
@@ -610,8 +456,6 @@ export default {
             user_domain: this.accountProvider.domain,
             reports_international_prefix: "+39",
             timezone: this.timezone,
-            nethvoice_adm_username: this.admUsername,
-            nethvoice_adm_password: this.admUserPassword,
           },
           extra: {
             title: this.$t("settings.configure_instance", {

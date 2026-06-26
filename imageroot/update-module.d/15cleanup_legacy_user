@@ -1,0 +1,37 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+exec 1>&2
+
+user_to_remove=${MODULE_ID:+${MODULE_ID}-adm}
+
+if [ -z "${user_to_remove}" ] || [ -z "${USER_DOMAIN}" ] || [ -z "${REDIS_USER}" ] || [ -z "${REDIS_PASSWORD}" ]; then
+    exit 0
+fi
+
+users_admin_host=${NETHVOICE_HOST:-$(hostname -f)}
+resolve_args=()
+if [ -n "${NETHVOICE_HOST}" ]; then
+    resolve_args+=(--resolve "${NETHVOICE_HOST}:443:127.0.0.1")
+fi
+
+token=$(
+    curl -k -s "${resolve_args[@]}" "https://${users_admin_host}/users-admin/${USER_DOMAIN}/api/login" \
+        -H "Content-Type: application/json" \
+        --data-raw "{\"username\":\"${REDIS_USER}\",\"password\":\"${REDIS_PASSWORD}\",\"auth_backend\":\"api-server\"}" |
+        jq -r '.token // empty' 2>/dev/null || true
+)
+
+if [ -z "${token}" ]; then
+    exit 0
+fi
+
+curl -s -k "${resolve_args[@]}" "https://${users_admin_host}/users-admin/${USER_DOMAIN}/api/remove-user" \
+    -H "Content-Type: application/json" \
+    -H "authorization: Bearer ${token}" \
+    --data "{\"user\":\"${user_to_remove}\"}" >/dev/null || :
