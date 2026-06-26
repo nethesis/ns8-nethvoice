@@ -4,5 +4,7 @@
 USE `asterisk`;
 INSERT INTO `kvstore_FreePBX` (`key`,`val`,`type`,`id`) VALUES
 ("system_ident","NethVoice",NULL,"updates"),
-("auto_module_updates","emailonly",NULL,"updates"),
+("auto_module_updates","disabled",NULL,"updates"),
+("auto_module_security_updates","emailonly",NULL,"updates"),
+("unsigned_module_emails","disabled",NULL,"updates"),
 ("auto_system_updates","disabled",NULL,"updates");

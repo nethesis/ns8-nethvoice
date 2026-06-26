@@ -83,6 +83,19 @@ $pjsip_identifiers_order = json_encode(['header', 'ip', 'username', 'auth_userna
 $stmt = $db->prepare("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = ? WHERE `key` = 'pjsip_identifers_order' AND `val` = 'ip,username,anonymous,auth_username'");
 $stmt->execute([$pjsip_identifiers_order]);
 
+// Disable automatic module updates and keep security updates in email-only mode.
+$stmt = $db->prepare(
+	"INSERT INTO `asterisk`.`kvstore_FreePBX` (`key`, `val`, `type`, `id`) VALUES (?, ?, NULL, 'updates')
+	ON DUPLICATE KEY UPDATE `val` = VALUES(`val`), `type` = VALUES(`type`)"
+);
+foreach ([
+	['auto_module_updates', 'disabled'],
+	['auto_module_security_updates', 'emailonly'],
+	['unsigned_module_emails', 'disabled'],
+] as [$key, $value]) {
+	$stmt->execute([$key, $value]);
+}
+
 // Update outbound routes notification_on field
 // If is set to "call" and there is an email address configured for that route,
 // set it to "pattern", if no email is configured set it to empty.
