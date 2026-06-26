@@ -40,7 +40,7 @@ class Nethdash implements \BMO
 	// http://wiki.freepbx.org/display/FOP/HTML+Output+from+BMO
 	public function showPage()
 	{
-		echo load_view(__DIR__.'/views/default.php', array('subhead' => $subhead, 'content' => $content));
+		echo load_view(__DIR__.'/views/default.php', array('subhead' => isset($subhead) ? $subhead : null, 'content' => isset($content) ? $content : null));
 	}
 
 }
