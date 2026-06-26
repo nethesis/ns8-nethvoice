@@ -235,7 +235,8 @@ def syncSourceCsv(path, output, deleteonly):
   for row in csvr:
     r = {}
     for idx,item in enumerate(row):
-        r[header[idx]] = item
+        if idx < len(header):
+            r[header[idx]] = item
     df.append(r)
 
   if output == True:
