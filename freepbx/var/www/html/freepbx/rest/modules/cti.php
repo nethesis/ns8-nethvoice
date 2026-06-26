@@ -144,7 +144,7 @@ $app->get('/cti/profiles/users/{user_id}', function (Request $request, Response 
         if (!$profile_id) {
             return $response->withStatus(404);
         }
-        return jsonResponse($response, array('id' => $profile_id),200);
+        return jsonResponse($response, array('id' => (string) $profile_id),200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -1014,7 +1014,7 @@ $app->get('/cti/streaming', function (Request $request, Response $response, $arg
                 $restemp = $sth->fetchAll(PDO::FETCH_ASSOC);
                 if ($restemp) {
                     foreach($restemp as $pid) {
-                        array_push($res[$i]['profiles'], $pid['profile_id']);
+                        array_push($res[$i]['profiles'], (string) $pid['profile_id']);
                     }
                 }
             }

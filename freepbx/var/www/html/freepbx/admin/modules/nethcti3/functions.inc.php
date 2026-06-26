@@ -497,7 +497,7 @@ function nethcti3_get_config_late($engine) {
                     $userJson = array(
                         'name' => $user['displayname'],
                         'endpoints' => $endpoints,
-                        'profile_id' => $profileRes['profile_id']
+                        'profile_id' => (string) $profileRes['profile_id']
                     );
 
                     $json[preg_replace('/@[\.a-zA-Z0-9]*/','',$user['username'])] = $userJson;
