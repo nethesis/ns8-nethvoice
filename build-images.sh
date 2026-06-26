@@ -193,7 +193,7 @@ fi
 reponame="nethvoice-cti-middleware"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/nethcti-middleware:v0.5.9)
+    container=$(buildah from ghcr.io/nethesis/nethcti-middleware:issue_7124)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
@@ -212,7 +212,7 @@ fi
 reponame="nethvoice-cti-ui"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v0.15.23)
+    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:issue_7124)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
