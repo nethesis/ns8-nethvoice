@@ -2,6 +2,20 @@
 
 FreePBX container for NethServer 8
 
+## Vendored FreePBX modules
+
+Boss Secretary and QueueMetrics are stored in `var/www/html/freepbx/admin/modules/`
+and copied into the image at build time. Their sources, translations, and upstream
+license declarations are preserved from the following release archives:
+
+| Module | Source archive | Archive SHA-256 |
+| --- | --- | --- |
+| Boss Secretary | [nethesis/freepbx-bosssecretary 1.0.3](https://github.com/nethesis/freepbx-bosssecretary/archive/refs/tags/1.0.3.tar.gz) | `d59e31be47bfd36834e5003f976eb4ee9ab6f4e00394c279992d73bac32a7cde` |
+| QueueMetrics | [nethesis/queuemetrics 2.11.0.4](https://github.com/nethesis/queuemetrics/archive/refs/tags/2.11.0.4.tar.gz) | `c2e353cac1d695d0ff9ec5e788db472431d8e1491f2eeceee3fb99aa317833fa` |
+
+QueueMetrics retains the upstream `module.xml` version `2.11.0.1`, even though
+its source archive is tagged `2.11.0.4`.
+
 ## Environment variables
 
 - `APACHE_RUN_USER` user Apache is run with (Asterisk)
