@@ -114,9 +114,6 @@ To uninstall the instance:
 
 ## Building images locally
 
-<<<<<<< HEAD
-Use `build-images.sh` to build the module images with Buildah:
-=======
 This repository now has two testing paths:
 
 - `test-module.sh` for the full Robot Framework integration suite against a
@@ -156,7 +153,6 @@ debugging tips, see `local_testing/LOCAL_TESTING.md`.
 ### Full NS8 integration testing
 
 Test the module using the `test-module.sh` script:
->>>>>>> 31231c7 (better structure to local testing)
 
 ```bash
 bash build-images.sh
