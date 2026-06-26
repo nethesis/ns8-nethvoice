@@ -509,6 +509,15 @@ done
 # Replace FreepBX cron implementation with noop
 COPY var/www/html/freepbx/admin/libraries/BMO/Cron.class.php /var/www/html/freepbx/admin/libraries/BMO/Cron.class.php
 
+# PHP 8.2 compatibility: suppress Cron dynamic property deprecation in both
+# the framework source tree and the final admin library copy.
+RUN for cron_file in \
+	/var/www/html/freepbx/admin/modules/framework/amp_conf/htdocs/admin/libraries/BMO/Cron.class.php \
+	/var/www/html/freepbx/admin/libraries/BMO/Cron.class.php; do \
+	[ -f "${cron_file}" ] || continue; \
+	sed -i 's|\$this->freepbx = \$var1;|@\$this->freepbx = \$var1;|' "${cron_file}"; \
+done
+
 # Add branding
 COPY var/www/html/freepbx/admin/brand/* /var/www/html/freepbx/admin/brand/
 
