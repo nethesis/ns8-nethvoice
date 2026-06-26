@@ -42,3 +42,9 @@ CREATE TABLE `phonebook` (
   KEY fax_idx (fax),
   KEY company_idx (company)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `sync_metadata` (
+  `scope` varchar(255) NOT NULL,
+  `last_sync_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`scope`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
