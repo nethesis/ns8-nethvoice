@@ -68,6 +68,13 @@ lt_extract_live_asterisk_tree() {
     tar --exclude='asterisk/backup' -C /etc -cf - asterisk | tar -C "${target_dir}" -xf -
 }
 
+lt_capture_normalized_live_asterisk_tree() {
+  local target_dir="$1"
+
+  lt_extract_live_asterisk_tree "${target_dir}"
+  lt_normalize_asterisk_fixture_tree "${target_dir}"
+}
+
 lt_normalize_asterisk_config_file() {
   local file_path="$1"
   local pattern="$2"
@@ -149,6 +156,43 @@ lt_normalize_asterisk_fixture_tree() {
   lt_normalize_proxycti_file "${target_dir}/asterisk/proxycti"
 }
 
+lt_diff_asterisk_trees() {
+  local expected_dir="$1"
+  local actual_dir="$2"
+  local expected_label="$3"
+  local actual_label="$4"
+  local diff_rc=0
+
+  lt_section "Diffing ${actual_label} against ${expected_label}"
+  if diff -ruN "${expected_dir}/asterisk" "${actual_dir}/asterisk"; then
+    diff_rc=0
+  else
+    diff_rc=$?
+  fi
+
+  if [[ "${diff_rc}" -eq 0 ]]; then
+    lt_info "No differences found between ${expected_label} and ${actual_label}"
+    return 0
+  fi
+
+  if [[ "${diff_rc}" -eq 1 ]]; then
+    lt_error "${actual_label} differs from ${expected_label}"
+    return 1
+  fi
+
+  return "${diff_rc}"
+}
+
+lt_fixture_generate_live_tree_from_dump() {
+  local dump_path="$1"
+  local output_dir="$2"
+
+  lt_fixture_require_running_stack
+  lt_import_asterisk_dump "${dump_path}"
+  lt_run_fwconsole_reload
+  lt_capture_normalized_live_asterisk_tree "${output_dir}"
+}
+
 lt_fixture_create() {
   local case_name="$1"
   local case_dir
@@ -184,39 +228,37 @@ lt_fixture_diff_live() {
 
   tar -xzf "${archive_path}" -C "${tmpdir}"
   lt_normalize_asterisk_fixture_tree "${tmpdir}"
-  lt_extract_live_asterisk_tree "${tmpdir}/current"
-  lt_normalize_asterisk_fixture_tree "${tmpdir}/current"
+  lt_capture_normalized_live_asterisk_tree "${tmpdir}/current"
 
-  lt_section "Diffing /etc/asterisk against fixture ${case_name}"
-  if diff -ruN "${tmpdir}/asterisk" "${tmpdir}/current/asterisk"; then
-    diff_rc=0
-  else
-    diff_rc=$?
-  fi
-
-  if [[ "${diff_rc}" -eq 0 ]]; then
-    lt_info "No differences found for fixture ${case_name}"
-    return 0
-  fi
-
-  if [[ "${diff_rc}" -eq 1 ]]; then
-    lt_error "Fixture ${case_name} differs from the current /etc/asterisk tree"
-    return 1
-  fi
-
-  return "${diff_rc}"
+  lt_diff_asterisk_trees \
+    "${tmpdir}" \
+    "${tmpdir}/current" \
+    "fixture ${case_name}" \
+    'current /etc/asterisk tree'
 }
 
 lt_fixture_test_case() {
   local case_name="$1"
   local dump_path
+  local archive_path
+  local tmpdir
 
+  lt_fixture_require_running_stack
   lt_fixture_require_case "${case_name}"
   dump_path="$(lt_fixture_dump_path "${case_name}")"
+  archive_path="$(lt_fixture_archive_path "${case_name}")"
+  tmpdir="$(mktemp -d)"
+  trap 'rm -rf "${tmpdir}"' RETURN
 
-  lt_import_asterisk_dump "${dump_path}"
-  lt_run_fwconsole_reload
-  lt_fixture_diff_live "${case_name}"
+  tar -xzf "${archive_path}" -C "${tmpdir}"
+  lt_normalize_asterisk_fixture_tree "${tmpdir}"
+  lt_fixture_generate_live_tree_from_dump "${dump_path}" "${tmpdir}/current"
+
+  lt_diff_asterisk_trees \
+    "${tmpdir}" \
+    "${tmpdir}/current" \
+    "fixture ${case_name}" \
+    'current /etc/asterisk tree'
 }
 
 lt_fixture_list() {

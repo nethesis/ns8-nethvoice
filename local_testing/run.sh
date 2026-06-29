@@ -23,6 +23,7 @@ Commands:
                                 Start a clean stack, optionally run a manifest, and save dump.sql plus etc-asterisk.tar.gz
   diff-fixture CASE             Diff the running FreePBX /etc/asterisk tree against a saved fixture
   test-fixture CASE             Start a clean stack, import the saved dump, regenerate config, and diff against the fixture
+  compare-freepbx-images DUMP   Start clean stacks for the released and local FreePBX images, generate fixtures from dump.sql, and diff them
   list-fixtures                 List saved fixture cases
   request METHOD PATH [BODY] [EXPECTED]
                                 Execute a single authenticated REST request
@@ -74,7 +75,64 @@ test_fixture_command() {
 
   [[ -n "${case_name}" ]] || lt_die 'Fixture case name is required'
 
+  start_stack
   lt_fixture_test_case "${case_name}"
+}
+
+with_freepbx_image() {
+  local image_ref="$1"
+  local pull_policy="$2"
+  shift 2
+
+  (
+    NETHVOICE_FREEPBX_IMAGE="${image_ref}"
+    LOCAL_TESTING_IMAGE_PULL_POLICY="${pull_policy}"
+    "$@"
+  )
+}
+
+generate_live_fixture_tree_command() {
+  local dump_path="$1"
+  local output_dir="$2"
+
+  [[ -f "${dump_path}" ]] || lt_die "Asterisk dump not found: ${dump_path}"
+
+  start_stack
+  lt_fixture_generate_live_tree_from_dump "${dump_path}" "${output_dir}"
+}
+
+compare_freepbx_images_command() {
+  local dump_path="$1"
+  local local_image="${NETHVOICE_FREEPBX_IMAGE}"
+  local released_image="${NETHVOICE_RELEASED_FREEPBX_IMAGE}"
+  local tmpdir
+
+  [[ -f "${dump_path}" ]] || lt_die "Asterisk dump not found: ${dump_path}"
+
+  tmpdir="$(mktemp -d)"
+  trap 'lt_cleanup_old; rm -rf "${tmpdir}"' RETURN
+
+  lt_section "Generating fixture with released FreePBX image ${released_image}"
+  with_freepbx_image \
+    "${released_image}" \
+    always \
+    generate_live_fixture_tree_command \
+    "${dump_path}" \
+    "${tmpdir}/released"
+
+  lt_section "Generating fixture with local FreePBX image ${local_image}"
+  with_freepbx_image \
+    "${local_image}" \
+    never \
+    generate_live_fixture_tree_command \
+    "${dump_path}" \
+    "${tmpdir}/local"
+
+  lt_diff_asterisk_trees \
+    "${tmpdir}/released" \
+    "${tmpdir}/local" \
+    "released FreePBX image ${released_image}" \
+    "local FreePBX image ${local_image}"
 }
 
 command="${1:-run}"
@@ -116,6 +174,13 @@ case "${command}" in
       exit 1
     fi
     test_fixture_command "$1"
+    ;;
+  compare-freepbx-images)
+    if [[ $# -ne 1 ]]; then
+      usage >&2
+      exit 1
+    fi
+    compare_freepbx_images_command "$1"
     ;;
   list-fixtures)
     lt_fixture_list

@@ -126,6 +126,12 @@ Rebuild a clean stack from a saved dump, regenerate config, and diff it against 
 ./local_testing/run.sh test-fixture trunks
 ```
 
+Compare the generated `/etc/asterisk` tree for the same `dump.sql` between the latest released FreePBX image from GHCR and your local build image:
+
+```bash
+./local_testing/run.sh compare-freepbx-images ./local_testing/fixtures/trunks/dump.sql
+```
+
 List available fixture cases:
 
 ```bash
@@ -166,10 +172,24 @@ APACHE_PORT=9080 ./local_testing/run.sh
 IMAGETAG=mybranch ./local_testing/run.sh
 NETHVOICE_FREEPBX_IMAGE=ghcr.io/nethesis/nethvoice-freepbx:mytag ./local_testing/run.sh
 FREEPBX_ADMIN_PASSWORD=changeme ./local_testing/run.sh start
+LOCAL_TESTING_IMAGE_PULL_POLICY=never ./local_testing/run.sh start
+NETHVOICE_RELEASED_FREEPBX_IMAGE=ghcr.io/nethesis/nethvoice-freepbx:latest ./local_testing/run.sh compare-freepbx-images ./local_testing/fixtures/trunks/dump.sql
 ```
 
 The defaults live in `local_testing/lib/env.sh`. Update that file only when the
 baseline local test topology changes for everyone.
+
+`LOCAL_TESTING_IMAGE_PULL_POLICY` controls how `start`-style flows resolve
+container images:
+
+- `missing`: use a local image when present, otherwise pull it
+- `always`: always pull before running
+- `never`: require a local image and fail if it is missing
+
+The new `compare-freepbx-images` command always forces a pull for
+`NETHVOICE_RELEASED_FREEPBX_IMAGE` so the released-side comparison uses the
+latest remote image, and it always requires `NETHVOICE_FREEPBX_IMAGE` to already
+exist locally so the other side of the diff is your local build.
 
 Set a custom fixture library location:
 
@@ -218,6 +238,7 @@ The intended workflow is:
 3. Wait for `need_reload=false` so the generated config is stable.
 4. Save the matching `dump.sql` and `etc-asterisk.tar.gz` pair with `create-fixture`.
 5. Re-run the same case later with `test-fixture`, which restores the dump into MariaDB, reapplies the current local-testing environment values to the imported database, runs `fwconsole reload`, and diffs the generated `/etc/asterisk` tree against the saved fixture without calling the API.
+6. When you need a release-vs-local regression check without a saved archive, run `compare-freepbx-images` against a `dump.sql` file. It starts two clean stacks, generates normalized `/etc/asterisk` trees for the released and local FreePBX images, and prints the diff.
 
 `diff-fixture` is the lighter check for an already running stack. It compares the live container tree against the saved tarball and prints a recursive unified diff when files differ.
 

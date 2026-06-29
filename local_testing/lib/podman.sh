@@ -8,11 +8,41 @@ lt_cleanup_old() {
   podman volume rm "${ASTDB_VOLUME}" -f >/dev/null 2>&1 || true
 }
 
+lt_prepare_image() {
+  local image_ref="$1"
+  local pull_policy="${2:-${LOCAL_TESTING_IMAGE_PULL_POLICY}}"
+
+  case "${pull_policy}" in
+    always)
+      lt_info "Pulling image ${image_ref}"
+      podman pull "${image_ref}"
+      ;;
+    missing)
+      if podman image exists "${image_ref}"; then
+        lt_info "Using local image ${image_ref}"
+      else
+        lt_info "Pulling missing image ${image_ref}"
+        podman pull "${image_ref}"
+      fi
+      ;;
+    never)
+      if podman image exists "${image_ref}"; then
+        lt_info "Using local image ${image_ref}"
+      else
+        lt_die "Image not found locally with LOCAL_TESTING_IMAGE_PULL_POLICY=never: ${image_ref}"
+      fi
+      ;;
+    *)
+      lt_die "Unsupported LOCAL_TESTING_IMAGE_PULL_POLICY: ${pull_policy}. Use always, missing, or never."
+      ;;
+  esac
+}
+
 lt_pull_images() {
-  lt_section 'Pulling local test images'
-  podman pull "${NETHVOICE_MARIADB_IMAGE}"
-  podman pull "${NETHVOICE_FREEPBX_IMAGE}"
-  podman pull "${NETHVOICE_TANCREDI_IMAGE}"
+  lt_section 'Preparing local test images'
+  lt_prepare_image "${NETHVOICE_MARIADB_IMAGE}"
+  lt_prepare_image "${NETHVOICE_FREEPBX_IMAGE}"
+  lt_prepare_image "${NETHVOICE_TANCREDI_IMAGE}"
   lt_warn 'Under rootless Podman, MariaDB can warn about memory.pressure not being writable. This does not block local testing.'
 }
 
