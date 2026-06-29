@@ -153,6 +153,13 @@
     border: none;
     color: #fff;
   }
+  .freepbx-navbar .navbar .navbar-nav > li > a:focus, .freepbx-navbar .navbar .navbar-nav > li > a:active {
+    background-color: transparent;
+    border: none;
+    color: #fff;
+    box-shadow: none;
+    outline: none;
+  }
   .freepbx-navbar .navbar .navbar-header .navbar-toggle:active, .freepbx-navbar .navbar .navbar-header .navbar-toggle:hover, .freepbx-navbar .navbar .navbar-toggler:active, .freepbx-navbar .navbar .navbar-toggler:hover {
     background-color: #000;
     border: none;
@@ -268,22 +275,25 @@
   .navbar-nav .dropdown-menu>li {
     margin: 5px 0 5px 16px;
   }
-  .navbar-nav .dropdown-menu>li>a {
+  .navbar-nav .dropdown-menu>li>a, .freepbx-navbar .dropdown-menu > li > a.dropdown-item {
     padding: 7px 20px;
     font-weight: 400;
-    color: rgba(255, 255, 255, .6);
+    color: rgba(255, 255, 255, .6) !important;
+    background-color: transparent;
+    box-shadow: none;
+    outline: none;
     text-decoration: none;
   }
-  .navbar-nav .dropdown-menu>li:hover > a {
+  .navbar-nav .dropdown-menu>li:hover > a, .freepbx-navbar .dropdown-menu > li > a.dropdown-item:hover, .freepbx-navbar .dropdown-menu > li > a.dropdown-item:focus, .freepbx-navbar .dropdown-menu > li > a.dropdown-item:active {
     font-weight: 600;
     background-color: #6b6969 !important;
-    color: #fff;
+    color: #fff !important;
     text-decoration: underline;
   }
-  .freepbx-navbar .dropdown-menu > li > a.active {
+  .freepbx-navbar .dropdown-menu > li > a.active, .freepbx-navbar .dropdown-menu > li > a.dropdown-item.active {
     font-weight: 600;
     background-color: #6b6969 !important;
-    color: #fff;
+    color: #fff !important;
     text-decoration: underline;
   }
   /*only mobile landscape*/
