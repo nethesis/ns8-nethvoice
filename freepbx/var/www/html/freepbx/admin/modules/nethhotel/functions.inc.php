@@ -192,11 +192,11 @@ function nethhotel_get_config($engine) {
                         }
                         $dirty_vacant = $fcc11->getCodeActive();
                         if($dirty_vacant) {
-                                $context = 'camere';
-                                $ext->add($context, $dirty_vacant,'', new ext_system('/usr/share/neth-hotel-fias/re2pms.php ${CALLERID(number)} 1'));
-                                $ext->add($context, $dirty_vacant,'', new ext_noop('Room ${CALLERID(number)} status is now Dirty/Vacant'));
-                                $ext->add($context, $dirty_vacant,'', new ext_playback('activated'));
-                                $ext->add($context, $dirty_vacant,'', new ext_hangup());
+                            $context = 'camere';
+                            $ext->add($context, $dirty_vacant,'', new ext_system('/usr/share/neth-hotel-fias/re2pms.php ${CALLERID(number)} 1'));
+                            $ext->add($context, $dirty_vacant,'', new ext_noop('Room ${CALLERID(number)} status is now Dirty/Vacant'));
+                            $ext->add($context, $dirty_vacant,'', new ext_playback('activated'));
+                            $ext->add($context, $dirty_vacant,'', new ext_hangup());
                         }
                         $context = 'sveglia';
                         $ext->add($context, 's', '', new  ext_noop('Sveglia'));
