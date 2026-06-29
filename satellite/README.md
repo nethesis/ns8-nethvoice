@@ -42,7 +42,7 @@ satellite/final {"uniqueid": "1750153516.571", "summary": "- Foo 1: \"Prova\"\n-
 
 ## Environment variables
 
-`ASTERISK_URL`: http://127.0.1:${ASTERISK_WS_PORT}
+`ASTERISK_URL`: http://127.0.0.1:${ASTERISK_WS_PORT}
 
 `ARI_APP`: ${SATELLITE_ARI_APP}
 

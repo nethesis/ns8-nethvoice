@@ -77,6 +77,47 @@ else:
 agent.set_env('BRAND_SITE', 'https://www.nethesis.it/soluzioni/nethvoice')
 agent.set_env('BRAND_DOCS', 'https://docs.nethserver.org/projects/ns8/it/latest/nethvoice.html')
 
+if os.getenv('NETHCTI_UI_PRODUCT_NAME') is None:
+    agent.set_env('NETHCTI_UI_PRODUCT_NAME', os.getenv('BRAND_NAME', 'NethVoice CTI'))
+
+if os.getenv('LOGIN_PEOPLE') is None:
+    agent.set_env('LOGIN_PEOPLE', 'show')
+if os.getenv('NAVBAR_LOGO_URL') is None:
+    agent.set_env('NAVBAR_LOGO_URL', '')
+if os.getenv('NAVBAR_LOGO_DARK_URL') is None:
+    agent.set_env('NAVBAR_LOGO_DARK_URL', '')
+if os.getenv('LOGIN_LOGO_URL') is None:
+    agent.set_env('LOGIN_LOGO_URL', '')
+if os.getenv('FAVICON_URL') is None:
+    agent.set_env('FAVICON_URL', '')
+if os.getenv('LOGIN_BACKGROUND_URL') is None:
+    agent.set_env('LOGIN_BACKGROUND_URL', '')
+if os.getenv('WIZARD_BRAND_NAME') is None:
+    agent.set_env('WIZARD_BRAND_NAME', os.getenv('BRAND_NAME', 'NethVoice'))
+if os.getenv('WIZARD_LOGIN_LOGO_URL') is None:
+    agent.set_env('WIZARD_LOGIN_LOGO_URL', os.getenv('LOGIN_LOGO_URL', ''))
+if os.getenv('WIZARD_FAVICON_URL') is None:
+    agent.set_env('WIZARD_FAVICON_URL', os.getenv('FAVICON_URL', ''))
+if os.getenv('WIZARD_LOGIN_BACKGROUND_URL') is None:
+    agent.set_env('WIZARD_LOGIN_BACKGROUND_URL', os.getenv('LOGIN_BACKGROUND_URL', ''))
+
+if os.getenv('REPORTS_UI_APP_NAME') is None:
+    agent.set_env('REPORTS_UI_APP_NAME', 'NethVoice Reports')
+if os.getenv('REPORTS_UI_BRAND_NAME') is None:
+    agent.set_env('REPORTS_UI_BRAND_NAME', os.getenv('REPORTS_UI_APP_NAME', 'NethVoice Reports'))
+if os.getenv('REPORTS_UI_COMPANY_NAME') is None:
+    agent.set_env('REPORTS_UI_COMPANY_NAME', 'Nethesis')
+if os.getenv('REPORTS_UI_HELP_URL') is None:
+    agent.set_env('REPORTS_UI_HELP_URL', 'https://docs.nethserver.org/projects/ns8/en/latest/nethvoice.html')
+if os.getenv('REPORTS_UI_LOGIN_LOGO_URL') is None:
+    agent.set_env('REPORTS_UI_LOGIN_LOGO_URL', '')
+if os.getenv('REPORTS_UI_FAVICON_URL') is None:
+    agent.set_env('REPORTS_UI_FAVICON_URL', '')
+if os.getenv('REPORTS_UI_LOGIN_BACKGROUND_URL') is None:
+    agent.set_env('REPORTS_UI_LOGIN_BACKGROUND_URL', '')
+if os.getenv('REPORTS_UI_LOGIN_BACKGROUND_COLOR') is None:
+    agent.set_env('REPORTS_UI_LOGIN_BACKGROUND_COLOR', '')
+
 if os.getenv('ICEENFORCE') is None:
     agent.set_env('ICEENFORCE', 'none')
 

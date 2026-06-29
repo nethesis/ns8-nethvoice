@@ -1,6 +1,10 @@
-# Tests output
 tests/outputs/
+build-timings.tsv
 AGENTS.md
 NS8-MODULE.md
 .github/agents/
 COMPONENTS.md
+deploys.sh
+DEVELOPMENT.md
+__pycache__/
+*.pyc

@@ -105,6 +105,8 @@ angular.module('nethvoiceWizardUiApp')
       mapping: {}
     };
 
+    $scope.allSources = {};
+    $scope.allSourcesList = [];
     $scope.colsSources = {};
     $scope.colsDestinations = {};
 
@@ -118,10 +120,19 @@ angular.module('nethvoiceWizardUiApp')
       return $scope.allDBTypes[pbo.dbtype] ? $scope.allDBTypes[pbo.dbtype] : defval;
     };
 
+    $scope.normalizeSources = function (sources) {
+      $scope.allSources = angular.isObject(sources) ? sources : {};
+      $scope.allSourcesList = Object.keys($scope.allSources).map(function (key) {
+        var source = $scope.allSources[key] || {};
+        source._sourceKey = key;
+        return source;
+      });
+    };
+
     // rest api functions
     $scope.getAllSources = function () {
       PhonebookService.readConfig().then(function (res) {
-        $scope.allSources = res.data;
+        $scope.normalizeSources(res.data);
         $scope.view.changeRoute = false;
       }, function (err) {
         console.log(err);

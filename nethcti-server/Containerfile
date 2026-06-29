@@ -18,7 +18,8 @@ RUN apk add --no-cache \
 # download node_modules
 COPY --from=repofetcher /app/root/usr/lib/node/nethcti-server/package.json .
 COPY --from=repofetcher /app/root/usr/lib/node/nethcti-server/package-lock.json .
-RUN npm ci
+RUN --mount=type=cache,id=nethvoice-cti-server-npm,target=/root/.npm \
+    npm ci --cache /root/.npm
 
 FROM base as production
 # install production packages, add astersik as user

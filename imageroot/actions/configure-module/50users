@@ -7,7 +7,6 @@
 
 import json
 import sys
-import os
 import agent
 from agent.ldapproxy import Ldapproxy
 
@@ -28,3 +27,6 @@ agent.set_env('NETHVOICE_LDAP_BASE', domparams['base_dn'])
 # set the password
 passwordsfile['NETHVOICE_LDAP_PASS'] = domparams['bind_password']
 agent.write_envfile("passwords.env", passwordsfile)
+
+# Bind the user domain
+agent.bind_user_domains([domain])

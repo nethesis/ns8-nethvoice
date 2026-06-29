@@ -1,0 +1,91 @@
+name: Build and publish images
+
+on:
+  workflow_call:
+    inputs:
+      imagetag:
+        description: "The image tag to use when publishing. Defaults to the branch or tag name that triggered the workflow."
+        required: false
+        type: string
+        default: ""
+      runner-version:
+        description: "The version of the runner"
+        required: false
+        type: string
+        default: "ubuntu-latest"
+      build-images:
+        description: "Comma-separated image names to build. Builds all images when empty."
+        required: false
+        type: string
+        default: ""
+    outputs:
+      images:
+        description: "Built image names without tags"
+        value: ${{ jobs.build-images.outputs.images }}
+    secrets:
+      netrcb64:
+        description: "Netrc Base64-encoded file content for authenticated downloads"
+        required: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-images:
+    name: Build and publish images
+    runs-on: ${{ inputs.runner-version }}
+    outputs:
+      images: ${{ steps.build.outputs.images }}
+    env:
+      IMAGETAG: ${{ inputs.imagetag }}
+      BUILD_IMAGES: ${{ inputs.build-images }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          lfs: true
+
+      - uses: actions/cache@v5
+        with:
+          path: ui/node_modules
+          key: "yarn-${{ hashFiles('ui/yarn.lock') }}"
+
+      - name: Prepare image environment
+        run: |
+          repository_owner="${GITHUB_REPOSITORY_OWNER,,}"
+          imagetag="${IMAGETAG:-${GITHUB_REF_NAME}}"
+          imagetag="${imagetag:?}"
+          imagetag="${imagetag//\//-}"
+          {
+            echo "REPOBASE=ghcr.io/${repository_owner}"
+            echo "IMAGETAG=${imagetag}"
+          } >> "$GITHUB_ENV"
+
+      - name: Log in to container registry
+        env:
+          REGISTRY_TOKEN: ${{ github.token }}
+        run: buildah login -u "${GITHUB_ACTOR}" --password-stdin ghcr.io <<<"${REGISTRY_TOKEN}"
+
+      - name: Build module images
+        id: build
+        env:
+          NETRC_B64: ${{ secrets.netrcb64 }}
+        run: |
+          if [[ -n "${NETRC_B64}" ]]; then
+            ( umask 077; base64 -d <<<"${NETRC_B64}" > ~/.netrc )
+          fi
+          bash build-images.sh
+
+      - name: Publish module images
+        run: |
+          trap 'buildah logout ghcr.io' EXIT
+          images=(${{ steps.build.outputs.images }})
+          urls=""
+          for image in "${images[@]}" ; do
+            buildah push "${image}" "docker://${image}:${IMAGETAG}"
+            if [[ "${IMAGETAG}" == "main" || "${IMAGETAG}" == "master" ]]; then
+              buildah push "${image}" "docker://${image}:latest"
+            fi
+            urls="${image}:${IMAGETAG} "$'\n'"${urls}"
+          done
+          echo "::notice title=Image URLs::${urls}"

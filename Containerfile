@@ -3,7 +3,8 @@ WORKDIR /app
 # install deps
 COPY ui/package.json .
 COPY ui/yarn.lock .
-RUN yarn install --frozen-lockfile
+RUN --mount=type=cache,id=nethvoice-module-ui-yarn,target=/var/cache/yarn \
+    yarn install --frozen-lockfile --cache-folder /var/cache/yarn
 # copy application
 COPY ui/public public
 COPY ui/src src
@@ -21,7 +22,7 @@ COPY imageroot /imageroot
 # copy ui from ui_builder
 COPY --from=ui_builder /app/dist /ui
 ENTRYPOINT [ "/" ]
-LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm,portsadm nethvoice-proxy@any:routeadm"
+LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm,portsadm nethvoice-proxy@any:routeadm cluster:accountconsumer"
 LABEL org.nethserver.tcp-ports-demand="37"
 LABEL org.nethserver.rootfull="0"
 LABEL org.nethserver.min-core="3.16.0-0"

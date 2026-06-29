@@ -6,6 +6,8 @@ import csv
 import io
 import requests
 
+SYNC_METADATA_SCOPE = 'centralized_phonebook'
+
 
 def signalHandler(sig, frame):
   logger.critical('interrupted by SIGINT')
@@ -34,12 +36,51 @@ def getDbConn(config):
       logger.error(str(err))
       return None
 
+def getPhonebookDestConfig():
+  try:
+      return {
+                "dbtype": "mysql",
+                "host": os.environ['PHONEBOOK_DB_HOST'],
+                "port": os.environ['PHONEBOOK_DB_PORT'],
+                "user": os.environ['PHONEBOOK_DB_USER'],
+                "password": os.environ['PHONEBOOK_DB_PASS'],
+                "dbname": os.environ['PHONEBOOK_DB_NAME'],
+                "dbtable": 'phonebook'
+                }
+  except Exception as err:
+    logger.error(str(err))
+    sys.exit(1)
+
+def updateSyncMetadata():
+  dConfig = getPhonebookDestConfig()
+  dbDest = getDbConn(dConfig)
+  if dbDest is None:
+    logger.error('destination db connection ("phonebook"): failed while updating sync metadata')
+    sys.exit(1)
+
+  curDest = dbDest.cursor()
+  try:
+    curDest.execute('CREATE TABLE IF NOT EXISTS sync_metadata (scope varchar(255) NOT NULL, last_sync_at datetime DEFAULT NULL, PRIMARY KEY (scope)) ENGINE=MyISAM DEFAULT CHARSET=utf8')
+    curDest.execute(
+      'INSERT INTO sync_metadata (scope, last_sync_at) VALUES (%s, UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE last_sync_at = UTC_TIMESTAMP()',
+      (SYNC_METADATA_SCOPE,)
+    )
+    dbDest.commit()
+    logger.info('updated centralized phonebook sync metadata')
+  except Exception as err:
+    logger.error('updating centralized phonebook sync metadata failed')
+    logger.error(str(err))
+    sys.exit(1)
+  finally:
+    curDest.close()
+    dbDest.close()
+
 def syncSourceDB(path, output, deleteonly):
   with open(path, 'r') as sourceFile:
     sConfig = json.load(sourceFile)
   sid = next(iter(sConfig))
   dbSource = getDbConn(sConfig[sid])
-  if dbSource != None:
+  if dbSource is not None:
     logger.debug('source "' + sid + '" connection (' + sConfig[sid]['dbname'] + '): ok')
   else:
     logger.error('source "' + sid + '" connection (' + sConfig[sid]['dbname'] + '): failed')
@@ -66,21 +107,9 @@ def syncSourceDB(path, output, deleteonly):
     curSource.close()
     dbSource.close()
     return
-  try:
-      dConfig = {
-                "dbtype": "mysql",
-                "host": os.environ['PHONEBOOK_DB_HOST'],
-                "port": os.environ['PHONEBOOK_DB_PORT'],
-                "user": os.environ['PHONEBOOK_DB_USER'],
-                "password": os.environ['PHONEBOOK_DB_PASS'],
-                "dbname": os.environ['PHONEBOOK_DB_NAME'],
-                "dbtable": 'phonebook'
-                }
-  except Exception as err:
-    logger.error(str(err))
-    sys.exit(1)
+  dConfig = getPhonebookDestConfig()
   dbDest = getDbConn(dConfig)
-  if dbDest != None:
+  if dbDest is not None:
     logger.debug('destination db connection ("phonebook"): ok')
   else:
     logger.error('destination db connection ("phonebook"): failed')
@@ -111,7 +140,7 @@ def syncSourceDB(path, output, deleteonly):
   importedCount=0
   errCount=0
 
-  if sConfig[sid]['type'] != None:
+  if sConfig[sid]['type'] is not None:
     destCols.append('type')
   percents = ('%s, ' * len(destCols))[:-2]
 
@@ -135,7 +164,7 @@ def syncSourceDB(path, output, deleteonly):
     values.append(str(sid))
 
     # Append type
-    if sConfig[sid]['type'] != None:
+    if sConfig[sid]['type'] is not None:
       values.append(str(sConfig[sid]['type']))
     else:
       values.append('custom')
@@ -206,7 +235,8 @@ def syncSourceCsv(path, output, deleteonly):
   for row in csvr:
     r = {}
     for idx,item in enumerate(row):
-        r[header[idx]] = item
+        if idx < len(header):
+            r[header[idx]] = item
     df.append(r)
 
   if output == True:
@@ -214,22 +244,10 @@ def syncSourceCsv(path, output, deleteonly):
     logger.info('end ' + ('check of' if output == True else '') + ' source import of ' + path + ' into phonebook.phonebook')
     return
 
-  try:
-      dConfig = {
-                "dbtype": "mysql",
-                "host": os.environ['PHONEBOOK_DB_HOST'],
-                "port": os.environ['PHONEBOOK_DB_PORT'],
-                "user": os.environ['PHONEBOOK_DB_USER'],
-                "password": os.environ['PHONEBOOK_DB_PASS'],
-                "dbname": os.environ['PHONEBOOK_DB_NAME'],
-                "dbtable": 'phonebook'
-                }
-  except Exception as err:
-    logger.error(str(err))
-    sys.exit(1)
+  dConfig = getPhonebookDestConfig()
 
   dbDest = getDbConn(dConfig)
-  if dbDest != None:
+  if dbDest is not None:
     logger.debug('destination db connection ("phonebook"): ok')
   else:
     logger.error('destination db connection ("phonebook"): failed')
@@ -256,7 +274,7 @@ def syncSourceCsv(path, output, deleteonly):
   destCols = list(sConfig[sid]['mapping'].values())
   destCols.append('sid_imported')
 
-  if sConfig[sid]['type'] != None:
+  if sConfig[sid]['type'] is not None:
     destCols.append('type')
 
   importedCount = 0
@@ -271,7 +289,7 @@ def syncSourceCsv(path, output, deleteonly):
       else:
         values.append('')
     values.append(str(sid))
-    if sConfig[sid]['type'] != None:
+    if sConfig[sid]['type'] is not None:
       values.append(str(sConfig[sid]['type']))
     sql = 'INSERT INTO ' + dConfig['dbtable'] + ' (' + ','.join(destCols) + ') VALUES (' + percents + ')'
     try:
@@ -316,17 +334,9 @@ def syncSourceInfinity(url, username, password, deleteonly):
 			raise Exception('Failed to get contacts from ' + url + ' with status code ' + str(contact_response.status_code))
 		contacts = contact_response.json()['data']
 		logger.debug(f'Got {len(contacts)} contacts from {url}')
-		dConfig = {
-                "dbtype": "mysql",
-                "host": os.environ['PHONEBOOK_DB_HOST'],
-                "port": os.environ['PHONEBOOK_DB_PORT'],
-                "user": os.environ['PHONEBOOK_DB_USER'],
-                "password": os.environ['PHONEBOOK_DB_PASS'],
-                "dbname": os.environ['PHONEBOOK_DB_NAME'],
-                "dbtable": 'phonebook'
-                }
+		dConfig = getPhonebookDestConfig()
 		dbDest = getDbConn(dConfig)
-		if dbDest != None:
+		if dbDest is not None:
 			logger.debug('destination db connection ("phonebook"): ok')
 		else:
 			raise Exception('destination db connection ("phonebook"): failed')
@@ -409,6 +419,7 @@ if __name__ == '__main__':
   parser.add_argument('-v', '--verbose', action='store_true', help='enable console debug')
   parser.add_argument('-c', '--check', action='store_true', help='it causes the writing of query results to standard output in JSON format instead of executing the database synchronization. Has more priority than deleteonly')
   parser.add_argument('-d', '--deleteonly', action='store_true', help='just delete entries from this configuration')
+  parser.add_argument('--skip-sync-metadata-update', action='store_true', help='skip centralized phonebook sync metadata update after a successful import')
   args = parser.parse_args()
   logger = logging.getLogger(__name__)
   logger.setLevel(logging.DEBUG)
@@ -443,5 +454,7 @@ if __name__ == '__main__':
       syncSourceCsv(args.source_path, args.check, args.deleteonly)
     elif sConfig[sid]['dbtype'] == 'infinity':
         syncSourceInfinity(sConfig[sid]['url'], sConfig[sid]['username'], sConfig[sid]['password'], args.deleteonly)
+    if not args.check and not args.deleteonly and not args.skip_sync_metadata_update:
+      updateSyncMetadata()
   else:
     parser.print_help()

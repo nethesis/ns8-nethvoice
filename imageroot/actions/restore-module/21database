@@ -1,31 +1,50 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 #
 # Copyright (C) 2023 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-set -e
+set -eo pipefail
 
-# remove the mysql volume (done by create-module)
-podman volume rm -f  mariadb-data
+restore_volume=mariadb-restore
 
-# prepare restore
+cleanup() {
+    podman volume rm -f "${restore_volume}" >/dev/null 2>&1 || true
+}
+
+trap cleanup EXIT
+
+# remove restore leftovers and the mysql volume created by create-module
+podman volume rm -f mariadb-data >/dev/null 2>&1 || true
+podman volume rm -f "${restore_volume}" >/dev/null 2>&1 || true
+podman volume create "${restore_volume}" >/dev/null
+
+# extract the streamed backup into a temporary volume
+gunzip -c ./db_backup.xb.gz | podman run \
+    --rm \
+    --interactive \
+    --name=extract_db_backup \
+    --volume="${restore_volume}:/backup:z" \
+    "${NETHVOICE_MARIADB_IMAGE}" \
+    mbstream -x -C /backup
+
+# prepare the extracted backup
 podman run \
     --rm \
     --name=prepare_db \
-    --volume=./db_backup:/backup:z \
+    --volume="${restore_volume}:/backup:z" \
     "${NETHVOICE_MARIADB_IMAGE}" \
     mariabackup --prepare --target-dir=/backup
 
-# execute restore in mariadb-data volume
+# move the prepared backup into the mariadb-data volume
 podman run \
     --rm \
     --name=restore_backup \
-    --volume=./db_backup:/backup:z \
+    --volume="${restore_volume}:/backup:z" \
     --volume=mariadb-data:/var/lib/mysql:z \
     "${NETHVOICE_MARIADB_IMAGE}" \
-    mariabackup --copy-back --target-dir=/backup
+    mariabackup --move-back --target-dir=/backup
 
-# remove backup folder
-rm -rf db_backup
+# remove the compressed backup artifact
+rm -f db_backup.xb.gz
