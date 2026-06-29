@@ -79,7 +79,7 @@
     -webkit-transition: opacity .1s ease, background-color .1s ease, color .1s ease, box-shadow .1s ease, background .1s ease;
     transition: opacity .1s ease, background-color .1s ease, color .1s ease, box-shadow .1s ease, background .1s ease;
   }
-  .freepbx-navbar .navbar .navbar-header .navbar-toggle {
+  .freepbx-navbar .navbar .navbar-header .navbar-toggle, .freepbx-navbar .navbar .navbar-toggler {
     border: none;
     margin: 4px 8px 4px 15px;
     height: 50px;
@@ -87,17 +87,23 @@
     background-color: transparent;
     padding: 0;
   }
-  .freepbx-navbar .navbar .navbar-header .navbar-toggle.collapsed {
+  .freepbx-navbar .navbar .navbar-header .navbar-toggle.collapsed, .freepbx-navbar .navbar .navbar-toggler.collapsed {
     background-color: transparent;
   }
   .freepbx-navbar .navbar .navbar-collapse {
     border-top: none;
     box-shadow: none;
   }
-  .freepbx-navbar .navbar .navbar-header .navbar-toggle.collapsed .icon-bar {
+  .freepbx-navbar .navbar .navbar-header .navbar-toggle.collapsed .icon-bar, .freepbx-navbar .navbar .navbar-toggler .icon-bar {
     background-color: #d1d1d1;
   }
-  .navbar-toggle .icon-bar+.icon-bar {
+  .navbar-toggler .icon-bar {
+    display: block;
+    width: 22px;
+    height: 2px;
+    border-radius: 1px;
+  }
+  .navbar-toggle .icon-bar+.icon-bar, .navbar-toggler .icon-bar+.icon-bar {
     margin-top: 3px;
   }
   .freepbx-navbar .navbar .navbar-nav > li {
@@ -119,11 +125,11 @@
     width: max-content;
     text-decoration: none;
   }
-  .freepbx-navbar .navbar .navbar-nav > li.open {
+  .freepbx-navbar .navbar .navbar-nav > li.open, .freepbx-navbar .navbar .navbar-nav > li.show {
     border-left: 5px solid;
     background-color: #404040;
   }
-  .freepbx-navbar .navbar .navbar-nav > li.open > a {
+  .freepbx-navbar .navbar .navbar-nav > li.open > a, .freepbx-navbar .navbar .navbar-nav > li.show > a {
     border: none;
     background: transparent;
     font-weight: 700;
@@ -147,15 +153,15 @@
     border: none;
     color: #fff;
   }
-  .freepbx-navbar .navbar .navbar-header .navbar-toggle:active, .freepbx-navbar .navbar .navbar-header .navbar-toggle:hover {
+  .freepbx-navbar .navbar .navbar-header .navbar-toggle:active, .freepbx-navbar .navbar .navbar-header .navbar-toggle:hover, .freepbx-navbar .navbar .navbar-toggler:active, .freepbx-navbar .navbar .navbar-toggler:hover {
     background-color: #000;
     border: none;
     box-shadow: 0 0 0 2px rgba(34, 36, 38, .15) inset;
   }
-  .freepbx-navbar .navbar .navbar-header .navbar-toggle:hover .icon-bar {
+  .freepbx-navbar .navbar .navbar-header .navbar-toggle:hover .icon-bar, .freepbx-navbar .navbar .navbar-toggler:hover .icon-bar {
     background-color: #fff;
   }
-  .navbar-fixed-top .navbar-collapse {
+  .navbar-fixed-top .navbar-collapse, .fixed-top .navbar-collapse {
     max-height: 900px;
   }
   /* mobile & tablet  */
@@ -206,13 +212,39 @@
       height: 100%;
       width: 185px;
     }
+    .freepbx-navbar .navbar.navbar-expand-lg > .navbar-collapse {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      display: block !important;
+      background: #282828;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 185px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 1029;
+    }
+    .freepbx-navbar .navbar.navbar-expand-lg > .navbar-collapse > .navbar-nav {
+      display: flex;
+      flex-direction: column;
+      flex-wrap: nowrap;
+      width: 100%;
+      margin: 0;
+      padding-left: 0;
+    }
+    .freepbx-navbar .navbar.navbar-expand-lg > .navbar-collapse > .navbar-nav > li {
+      float: none;
+      width: 100%;
+    }
     .navbar-nav>li {
       float: none;
     }
   }
   /*-------------------------------- submenu --------------------------------*/
 
-  .navbar-nav>li>.dropdown-menu {
+  .navbar-nav>li>.dropdown-menu, .freepbx-navbar .navbar.navbar-expand-lg > .navbar-collapse > .navbar-nav > li > .dropdown-menu {
     margin-top: 0;
     position: fixed;
     left: 180px;
@@ -227,7 +259,10 @@
     border-right: 1px solid #000;
     border-bottom: 1px solid #000;
     width: 300px;
+    max-width: none;
     overflow: auto;
+    transform: none !important;
+    will-change: auto;
     height: calc(100% - 105px) !important;
   }
   .navbar-nav .dropdown-menu>li {
