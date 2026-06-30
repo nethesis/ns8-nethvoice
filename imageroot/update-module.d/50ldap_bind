@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Bind the user domain if not already bound, otherwise do nothing
+# Issue #7652
+
+import os
+import agent
+
+rdb = agent.redis_connect(use_replica=True)
+domlist = agent.get_bound_domain_list(rdb)
+if not domlist:
+    domain = os.getenv('USER_DOMAIN', '')
+    agent.bind_user_domains([domain])

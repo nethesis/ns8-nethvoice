@@ -382,7 +382,7 @@ RUN install_module() { \
 	install_module queues https://github.com/nethesis/freepbx-queues/archive/refs/tags/release/16.0.28.tar.gz && \
 	install_module rapidcode https://github.com/nethesis/RapidCode/archive/refs/tags/1.0.1.tar.gz && \
 	install_module recordings https://github.com/nethesis/freepbx-recordings/archive/refs/tags/release/ns8/16.0.14-pl.2.tar.gz && \
-	install_module returnontransfer https://github.com/nethesis/returnontransfer/archive/refs/tags/1.1.11.tar.gz && \
+	install_module returnontransfer https://github.com/nethesis/returnontransfer/archive/refs/tags/1.2.0.tar.gz && \
 	install_module voicemail https://github.com/nethesis/freepbx-voicemail/archive/14.0.6.26.tar.gz
 
 # Install Nethesis vendor modules

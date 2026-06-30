@@ -10,23 +10,171 @@ import subprocess
 import os
 import sys
 import agent
+from agent.ldapproxy import Ldapproxy
 
-# retrieve the root password from the passwords.env file
 MARIADB_ROOT_PASSWORD = agent.read_envfile("passwords.env")['MARIADB_ROOT_PASSWORD']
+AMPDBNAME = os.environ['AMPDBNAME']
+CDRDBNAME = os.environ['CDRDBNAME']
 
-counter_script=f"""
-podman exec mariadb mariadb {os.environ['AMPDBNAME']}  -uroot  -p{MARIADB_ROOT_PASSWORD} -BN \
-  -e "SELECT COUNT(*) FROM userman_users WHERE default_extension != 'none' UNION ALL SELECT COUNT(*) FROM rest_devices_phones WHERE type = 'mobile';"
-"""
+def sql_rows(db, query):
+    """Run a -BN SQL query inside the mariadb container and return a list of row strings."""
+    result = subprocess.run(
+        ["podman", "exec", "mariadb", "mariadb", db,
+         "-uroot", f"-p{MARIADB_ROOT_PASSWORD}", "-BN", "-e", query],
+        capture_output=True, text=True, check=True,
+    )
+    return [line for line in result.stdout.splitlines() if line != '']
 
-nethvoice_users = {}
-try:
-    with subprocess.Popen(counter_script, stdout=subprocess.PIPE, shell=True, text=True) as fcounter:
-        res = fcounter.stdout.read().split('\n')
-        nethvoice_users['nethvoice_users_count'] = int(res[0])
-        nethvoice_users['nethvoice_mobile_users_count'] = int(res[1])
+def safe(label, fn, facts):
+    """Call fn(facts), catching any exception and logging it without aborting."""
+    try:
+        fn(facts)
+    except Exception as ex:
+        print(agent.SD_ERR, f"get-facts [{label}]:", ex, file=sys.stderr)
 
-except Exception as ex:
-    print(agent.SD_ERR, ex, file=sys.stderr)
+def collect_users(facts):
+    rows = sql_rows(AMPDBNAME,
+        "SELECT COUNT(*) FROM userman_users WHERE default_extension != 'none';")
+    facts['nethvoice_users_count'] = int(rows[0])
 
-json.dump(nethvoice_users, fp=sys.stdout)
+def collect_telephony(facts):
+    rows = sql_rows(AMPDBNAME,
+        "SELECT COUNT(*) FROM trunks "
+        "UNION ALL SELECT COUNT(*) FROM incoming "
+        "UNION ALL SELECT COUNT(*) FROM outbound_routes "
+        "UNION ALL SELECT COUNT(*) FROM ivr_details "
+        "UNION ALL SELECT COUNT(*) FROM queues_config "
+        "UNION ALL SELECT COUNT(*) FROM ringgroups "
+        "UNION ALL SELECT COUNT(*) FROM nethcqr_details;")
+    facts['nethvoice_trunks_count'] = int(rows[0])
+    facts['nethvoice_inbound_routes_count'] = int(rows[1])
+    facts['nethvoice_outbound_routes_count'] = int(rows[2])
+    facts['nethvoice_ivr_count'] = int(rows[3])
+    facts['nethvoice_queues_count'] = int(rows[4])
+    facts['nethvoice_ringgroups_count'] = int(rows[5])
+    facts['nethvoice_cqr_count'] = int(rows[6])
+
+def collect_trunks_by_tech(facts):
+    rows = sql_rows(AMPDBNAME, "SELECT tech, COUNT(*) FROM trunks GROUP BY tech;")
+    by_tech = {}
+    for row in rows:
+        parts = row.split('\t')
+        if len(parts) == 2:
+            by_tech[parts[0]] = int(parts[1])
+    facts['nethvoice_trunks_by_tech'] = by_tech
+
+
+def collect_cdr(facts):
+    rows = sql_rows(CDRDBNAME,
+        "SELECT COUNT(*) FROM cdr WHERE calldate >= NOW() - INTERVAL 1 DAY "
+        "UNION ALL SELECT COUNT(*) FROM cdr;")
+    facts['nethvoice_calls_last_24h'] = int(rows[0])
+    facts['nethvoice_total_calls'] = int(rows[1])
+
+def collect_cti(facts):
+    rows = sql_rows(AMPDBNAME,
+        "SELECT COUNT(*) FROM rest_cti_profiles "
+        "UNION ALL SELECT COUNT(*) FROM rest_cti_groups "
+        "UNION ALL SELECT COUNT(DISTINCT user_id) FROM rest_users "
+        "UNION ALL SELECT COUNT(*) FROM rest_cti_streaming "
+        "UNION ALL SELECT COUNT(*) FROM rest_cti_profiles_paramurl "
+        "UNION ALL SELECT COUNT(*) FROM announcement "
+        "UNION ALL SELECT COUNT(*) FROM offhour;")
+    facts['nethvoice_cti_profiles_count'] = int(rows[0])
+    facts['nethvoice_cti_groups_count'] = int(rows[1])
+    facts['nethvoice_cti_users_count'] = int(rows[2])
+    facts['nethvoice_streaming_count'] = int(rows[3])
+    facts['nethvoice_paramurl_count'] = int(rows[4])
+    facts['nethvoice_announcements_count'] = int(rows[5])
+    facts['nethvoice_offhour_count'] = int(rows[6])
+
+def collect_nethcti3(facts):
+    rows = sql_rows("nethcti3",
+        "SELECT COUNT(*) FROM customer_card "
+        "UNION ALL SELECT COUNT(*) FROM user_nethlink WHERE timestamp >= NOW() - INTERVAL 14 DAY;")
+    facts['nethvoice_customer_cards_count'] = int(rows[0])
+    facts['nethvoice_nethlink_active_count'] = int(rows[1])
+
+def collect_devices(facts):
+    rows = sql_rows(AMPDBNAME,
+        "SELECT type, COUNT(*) FROM rest_devices_phones WHERE user_id IS NOT NULL GROUP BY type;")
+    by_type = {}
+    total = 0
+    for row in rows:
+        parts = row.split('\t')
+        if len(parts) == 2:
+            by_type[parts[0]] = int(parts[1])
+            total += int(parts[1])
+    facts['nethvoice_devices_count'] = total
+    facts['nethvoice_devices_by_type'] = by_type
+
+def collect_physical_devices_by_vendor(facts):
+    rows = sql_rows(AMPDBNAME,
+        "SELECT vendor, COUNT(*) FROM rest_devices_phones WHERE user_id IS NOT NULL AND type = 'physical' AND mac IS NOT NULL GROUP BY vendor;")
+    by_vendor = {}
+    for row in rows:
+        parts = row.split('\t')
+        if len(parts) == 2:
+            by_vendor[parts[0]] = int(parts[1])
+    facts['nethvoice_physical_devices_by_vendor'] = by_vendor
+
+def collect_physical_devices_by_model(facts):
+    rows = sql_rows(AMPDBNAME,
+        "SELECT model, COUNT(*) FROM rest_devices_phones WHERE user_id IS NOT NULL AND type = 'physical' AND mac IS NOT NULL GROUP BY model;")
+    by_model = {}
+    for row in rows:
+        parts = row.split('\t')
+        if len(parts) == 2:
+            by_model[parts[0]] = int(parts[1])
+    facts['nethvoice_physical_devices_by_model'] = by_model
+
+def collect_trunks_by_provider(facts):
+    rows = sql_rows(AMPDBNAME,
+        "SELECT rp.provider AS provider_name, COUNT(DISTINCT t.trunkid) AS count "
+        "FROM trunks t "
+        "JOIN pjsip s ON s.id = t.trunkid AND s.keyword = 'sip_server' "
+        "JOIN rest_pjsip_trunks_defaults d ON d.keyword = 'sip_server' AND d.data = s.data "
+        "JOIN rest_pjsip_providers rp ON rp.id = d.provider_id "
+        "WHERE t.tech = 'pjsip' "
+        "GROUP BY rp.provider;")
+    by_provider = {}
+    for row in rows:
+        parts = row.split('\t')
+        if len(parts) == 2:
+            by_provider[parts[0]] = int(parts[1])
+    facts['nethvoice_trunks_by_provider'] = by_provider
+
+
+def collect_env_features(facts):
+    facts['nethvoice_hotel_enabled'] = os.getenv('NETHVOICE_HOTEL', 'False') == 'True'
+    facts['nethvoice_ai_call_summary_enabled'] = os.getenv('SATELLITE_CALL_SUMMARY_ENABLED', 'False') == 'True'
+    facts['nethvoice_ai_call_transcription_enabled'] = os.getenv('SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'False') == 'True'
+    facts['nethvoice_ai_voicemail_transcription_enabled'] = os.getenv('SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED', 'False') == 'True'
+    # SUBSCRIPTION_SYSTEMID= if empty is community edition, otherwise the system has a subscription
+    facts['nethvoice_subscription_enabled'] = os.getenv('SUBSCRIPTION_SYSTEMID', '') != ''
+
+
+def collect_user_domain(facts):
+    facts['nethvoice_user_domain_type'] = os.getenv('NETHVOICE_LDAP_SCHEMA', '')
+    lp = Ldapproxy()
+    domain = lp.get_domain(os.getenv("USER_DOMAIN"))
+    facts['nethvoice_user_domain_location'] = domain['location'] if domain else ''
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+facts = {}
+
+safe("users", collect_users, facts)
+safe("telephony-counts", collect_telephony, facts)
+safe("trunks-by-tech", collect_trunks_by_tech, facts)
+safe("cdr", collect_cdr, facts)
+safe("cti", collect_cti, facts)
+safe("nethcti3", collect_nethcti3, facts)
+safe("devices", collect_devices, facts)
+safe("physical-devices-by-vendor", collect_physical_devices_by_vendor, facts)
+safe("physical-devices-by-model", collect_physical_devices_by_model, facts)
+safe("env-features", collect_env_features, facts)
+safe("user-domain", collect_user_domain, facts)
+safe("trunks-by-provider", collect_trunks_by_provider, facts)
+json.dump(facts, fp=sys.stdout)
