@@ -32,14 +32,25 @@ lt_export_asterisk_dump() {
     > "${output_path}"
 }
 
+lt_reset_asterisk_database() {
+  lt_section 'Resetting Asterisk MariaDB database'
+  podman exec -i "${MARIADB_CONTAINER}" sh -lc \
+    "mysql -uroot -p\"${MARIADB_ROOT_PASSWORD}\"" >/dev/null <<SQL
+DROP DATABASE IF EXISTS \`${AMPDBNAME}\`;
+CREATE DATABASE \`${AMPDBNAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+SQL
+}
+
 lt_import_asterisk_dump() {
   local input_path="$1"
 
   [[ -f "${input_path}" ]] || lt_die "Asterisk dump not found: ${input_path}"
 
+  lt_reset_asterisk_database
+
   lt_section 'Importing Asterisk MariaDB dump'
   podman exec -i "${MARIADB_CONTAINER}" sh -lc \
-    "mysql -uroot -p\"${MARIADB_ROOT_PASSWORD}\"" < "${input_path}"
+    "mysql -uroot -p\"${MARIADB_ROOT_PASSWORD}\" \"${AMPDBNAME}\"" < "${input_path}"
 
   lt_sync_imported_dump_with_environment
   lt_set_need_reload

@@ -23,7 +23,7 @@ Commands:
                                 Start a clean stack, optionally run a manifest, and save dump.sql plus etc-asterisk.tar.gz
   diff-fixture CASE             Diff the running FreePBX /etc/asterisk tree against a saved fixture
   test-fixture CASE             Start a clean stack, import the saved dump, regenerate config, and diff against the fixture
-  compare-freepbx-images DUMP   Start clean stacks for the released and local FreePBX images, generate fixtures from dump.sql, and diff them
+  compare-freepbx-images DUMP   Generate /etc/asterisk with the released image, upgrade that dump with the local image, and diff the two trees
   list-fixtures                 List saved fixture cases
   request METHOD PATH [BODY] [EXPECTED]
                                 Execute a single authenticated REST request
@@ -85,8 +85,8 @@ with_freepbx_image() {
   shift 2
 
   (
-    NETHVOICE_FREEPBX_IMAGE="${image_ref}"
-    LOCAL_TESTING_IMAGE_PULL_POLICY="${pull_policy}"
+    export NETHVOICE_FREEPBX_IMAGE="${image_ref}"
+    export LOCAL_TESTING_IMAGE_PULL_POLICY="${pull_policy}"
     "$@"
   )
 }
@@ -106,13 +106,15 @@ compare_freepbx_images_command() {
   local local_image="${NETHVOICE_FREEPBX_IMAGE}"
   local released_image="${NETHVOICE_RELEASED_FREEPBX_IMAGE}"
   local tmpdir
+  local upgraded_dump_path
 
   [[ -f "${dump_path}" ]] || lt_die "Asterisk dump not found: ${dump_path}"
 
   tmpdir="$(mktemp -d)"
+  upgraded_dump_path="${tmpdir}/released-upgraded.sql"
   trap 'lt_cleanup_old; rm -rf "${tmpdir}"' RETURN
 
-  lt_section "Generating fixture with released FreePBX image ${released_image}"
+  lt_section "Generating /etc/asterisk with released FreePBX image ${released_image}"
   with_freepbx_image \
     "${released_image}" \
     always \
@@ -120,19 +122,22 @@ compare_freepbx_images_command() {
     "${dump_path}" \
     "${tmpdir}/released"
 
-  lt_section "Generating fixture with local FreePBX image ${local_image}"
+  lt_section "Exporting upgraded dump from released FreePBX image ${released_image}"
+  lt_export_asterisk_dump "${upgraded_dump_path}"
+
+  lt_section "Generating /etc/asterisk with upgraded local FreePBX image ${local_image}"
   with_freepbx_image \
     "${local_image}" \
     never \
     generate_live_fixture_tree_command \
-    "${dump_path}" \
-    "${tmpdir}/local"
+    "${upgraded_dump_path}" \
+    "${tmpdir}/upgraded"
 
   lt_diff_asterisk_trees \
     "${tmpdir}/released" \
-    "${tmpdir}/local" \
+    "${tmpdir}/upgraded" \
     "released FreePBX image ${released_image}" \
-    "local FreePBX image ${local_image}"
+    "upgraded local FreePBX image ${local_image}"
 }
 
 command="${1:-run}"

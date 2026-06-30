@@ -126,7 +126,7 @@ Rebuild a clean stack from a saved dump, regenerate config, and diff it against 
 ./local_testing/run.sh test-fixture trunks
 ```
 
-Compare the generated `/etc/asterisk` tree for the same `dump.sql` between the latest released FreePBX image from GHCR and your local build image:
+Compare the generated `/etc/asterisk` tree between the first released FreePBX image run and the upgraded local build:
 
 ```bash
 ./local_testing/run.sh compare-freepbx-images ./local_testing/fixtures/trunks/dump.sql
@@ -187,9 +187,16 @@ container images:
 - `never`: require a local image and fail if it is missing
 
 The new `compare-freepbx-images` command always forces a pull for
-`NETHVOICE_RELEASED_FREEPBX_IMAGE` so the released-side comparison uses the
-latest remote image, and it always requires `NETHVOICE_FREEPBX_IMAGE` to already
-exist locally so the other side of the diff is your local build.
+`NETHVOICE_RELEASED_FREEPBX_IMAGE` so the first-side comparison uses the latest
+remote image, and it always requires `NETHVOICE_FREEPBX_IMAGE` to already exist
+locally so the second-side comparison is your upgraded local build. The command
+workflow is:
+
+- import the input dump into the released FreePBX image
+- generate and capture that image's normalized `/etc/asterisk`
+- export the resulting upgraded MariaDB dump from the released image
+- import that upgraded dump into the local FreePBX image
+- generate and diff the upgraded local `/etc/asterisk` tree against the first one
 
 Set a custom fixture library location:
 
@@ -231,6 +238,11 @@ Each case contains:
 - `dump.sql`: a `mysqldump` export of the `asterisk` database
 - `etc-asterisk.tar.gz`: a tarball of the generated `/etc/asterisk` tree, excluding the volatile `backup/` subdirectory
 
+`dump.sql` can be either a plain dump of the `asterisk` schema or a full
+`--databases asterisk` export. The import path targets the `asterisk` database
+explicitly and recreates it before loading the file, so both forms work and the
+baseline schema created during stack startup does not collide with the import.
+
 The intended workflow is:
 
 1. Start from a clean local stack.
@@ -238,7 +250,7 @@ The intended workflow is:
 3. Wait for `need_reload=false` so the generated config is stable.
 4. Save the matching `dump.sql` and `etc-asterisk.tar.gz` pair with `create-fixture`.
 5. Re-run the same case later with `test-fixture`, which restores the dump into MariaDB, reapplies the current local-testing environment values to the imported database, runs `fwconsole reload`, and diffs the generated `/etc/asterisk` tree against the saved fixture without calling the API.
-6. When you need a release-vs-local regression check without a saved archive, run `compare-freepbx-images` against a `dump.sql` file. It starts two clean stacks, generates normalized `/etc/asterisk` trees for the released and local FreePBX images, and prints the diff.
+6. When you need a release-vs-local upgrade regression check without a saved archive, run `compare-freepbx-images` against a `dump.sql` file. It boots the released image first, captures its normalized `/etc/asterisk`, exports the resulting upgraded dump, boots the local image from that upgraded dump, and prints the diff between the two generated trees.
 
 `diff-fixture` is the lighter check for an already running stack. It compares the live container tree against the saved tarball and prints a recursive unified diff when files differ.
 
