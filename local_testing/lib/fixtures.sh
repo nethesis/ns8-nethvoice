@@ -161,13 +161,23 @@ lt_diff_asterisk_trees() {
   local actual_dir="$2"
   local expected_label="$3"
   local actual_label="$4"
+  local diff_output_path="${5:-}"
   local diff_rc=0
 
   lt_section "Diffing ${actual_label} against ${expected_label}"
-  if diff -ruN "${expected_dir}/asterisk" "${actual_dir}/asterisk"; then
-    diff_rc=0
+  if [[ -n "${diff_output_path}" ]]; then
+    mkdir -p "$(dirname "${diff_output_path}")"
+    if diff -ruN "${expected_dir}/asterisk" "${actual_dir}/asterisk" | tee "${diff_output_path}"; then
+      diff_rc=0
+    else
+      diff_rc=${PIPESTATUS[0]}
+    fi
   else
-    diff_rc=$?
+    if diff -ruN "${expected_dir}/asterisk" "${actual_dir}/asterisk"; then
+      diff_rc=0
+    else
+      diff_rc=$?
+    fi
   fi
 
   if [[ "${diff_rc}" -eq 0 ]]; then

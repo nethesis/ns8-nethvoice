@@ -23,7 +23,8 @@ Commands:
                                 Start a clean stack, optionally run a manifest, and save dump.sql plus etc-asterisk.tar.gz
   diff-fixture CASE             Diff the running FreePBX /etc/asterisk tree against a saved fixture
   test-fixture CASE             Start a clean stack, import the saved dump, regenerate config, and diff against the fixture
-  compare-freepbx-images DUMP   Generate /etc/asterisk with the released image, upgrade that dump with the local image, and diff the two trees
+  compare-freepbx-images [--keep-artifacts [DIR]] DUMP
+                                Generate /etc/asterisk with the released image, upgrade that dump with the local image, and diff the two trees
   list-fixtures                 List saved fixture cases
   request METHOD PATH [BODY] [EXPECTED]
                                 Execute a single authenticated REST request
@@ -37,8 +38,12 @@ EOF
 }
 
 start_stack() {
+  local mariadb_policy="${1:-${LOCAL_TESTING_IMAGE_PULL_POLICY}}"
+  local freepbx_policy="${2:-${LOCAL_TESTING_IMAGE_PULL_POLICY}}"
+  local tancredi_policy="${3:-${LOCAL_TESTING_IMAGE_PULL_POLICY}}"
+
   lt_cleanup_old
-  lt_pull_images
+  lt_pull_images "${mariadb_policy}" "${freepbx_policy}" "${tancredi_policy}"
   lt_create_pod
   lt_initialize_mariadb_volume
   lt_start_mariadb
@@ -81,12 +86,10 @@ test_fixture_command() {
 
 with_freepbx_image() {
   local image_ref="$1"
-  local pull_policy="$2"
-  shift 2
+  shift
 
   (
     export NETHVOICE_FREEPBX_IMAGE="${image_ref}"
-    export LOCAL_TESTING_IMAGE_PULL_POLICY="${pull_policy}"
     "$@"
   )
 }
@@ -94,33 +97,83 @@ with_freepbx_image() {
 generate_live_fixture_tree_command() {
   local dump_path="$1"
   local output_dir="$2"
+  local freepbx_policy="${3:-${LOCAL_TESTING_IMAGE_PULL_POLICY}}"
 
   [[ -f "${dump_path}" ]] || lt_die "Asterisk dump not found: ${dump_path}"
 
-  start_stack
+  start_stack "${LOCAL_TESTING_IMAGE_PULL_POLICY}" "${freepbx_policy}" "${LOCAL_TESTING_IMAGE_PULL_POLICY}"
   lt_fixture_generate_live_tree_from_dump "${dump_path}" "${output_dir}"
 }
 
+create_compare_artifacts_dir() {
+  local requested_dir="${1:-}"
+
+  if [[ -n "${requested_dir}" ]]; then
+    mkdir -p "${requested_dir}"
+    printf '%s\n' "${requested_dir}"
+    return 0
+  fi
+
+  mkdir -p "${LOCAL_TESTING_DIR}/artifacts"
+  mktemp -d "${LOCAL_TESTING_DIR}/artifacts/compare-freepbx-images.XXXXXX"
+}
+
 compare_freepbx_images_command() {
-  local dump_path="$1"
+  local dump_path=''
   local local_image="${NETHVOICE_FREEPBX_IMAGE}"
   local released_image="${NETHVOICE_RELEASED_FREEPBX_IMAGE}"
   local tmpdir
   local upgraded_dump_path
+  local keep_artifacts=false
+  local artifacts_dir=''
+  local diff_output_path=''
 
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --keep-artifacts)
+        keep_artifacts=true
+        if [[ $# -gt 1 && "$2" != -* ]]; then
+          artifacts_dir="$2"
+          shift 2
+        else
+          shift
+        fi
+        ;;
+      -*)
+        lt_die "Unknown option for compare-freepbx-images: $1"
+        ;;
+      *)
+        if [[ -n "${dump_path}" ]]; then
+          lt_die 'compare-freepbx-images accepts a single dump path'
+        fi
+        dump_path="$1"
+        shift
+        ;;
+    esac
+  done
+
+  [[ -n "${dump_path}" ]] || lt_die 'Asterisk dump path is required'
   [[ -f "${dump_path}" ]] || lt_die "Asterisk dump not found: ${dump_path}"
 
-  tmpdir="$(mktemp -d)"
+  if [[ "${keep_artifacts}" == true ]]; then
+    tmpdir="$(create_compare_artifacts_dir "${artifacts_dir}")"
+    diff_output_path="${tmpdir}/compare.diff"
+    cp "${dump_path}" "${tmpdir}/input-dump.sql"
+    lt_info "Keeping compare artifacts at ${tmpdir}"
+  else
+    tmpdir="$(mktemp -d)"
+  fi
+
   upgraded_dump_path="${tmpdir}/released-upgraded.sql"
-  trap 'lt_cleanup_old; rm -rf "${tmpdir}"' RETURN
+  trap 'lt_cleanup_old; [[ "${keep_artifacts}" == true ]] || rm -rf "${tmpdir}"' RETURN
 
   lt_section "Generating /etc/asterisk with released FreePBX image ${released_image}"
   with_freepbx_image \
     "${released_image}" \
-    always \
     generate_live_fixture_tree_command \
     "${dump_path}" \
-    "${tmpdir}/released"
+    "${tmpdir}/released" \
+    always
 
   lt_section "Exporting upgraded dump from released FreePBX image ${released_image}"
   lt_export_asterisk_dump "${upgraded_dump_path}"
@@ -128,16 +181,25 @@ compare_freepbx_images_command() {
   lt_section "Generating /etc/asterisk with upgraded local FreePBX image ${local_image}"
   with_freepbx_image \
     "${local_image}" \
-    never \
     generate_live_fixture_tree_command \
     "${upgraded_dump_path}" \
-    "${tmpdir}/upgraded"
-
-  lt_diff_asterisk_trees \
-    "${tmpdir}/released" \
     "${tmpdir}/upgraded" \
-    "released FreePBX image ${released_image}" \
-    "upgraded local FreePBX image ${local_image}"
+    rebuild
+
+  if [[ -n "${diff_output_path}" ]]; then
+    lt_diff_asterisk_trees \
+      "${tmpdir}/released" \
+      "${tmpdir}/upgraded" \
+      "released FreePBX image ${released_image}" \
+      "upgraded local FreePBX image ${local_image}" \
+      "${diff_output_path}"
+  else
+    lt_diff_asterisk_trees \
+      "${tmpdir}/released" \
+      "${tmpdir}/upgraded" \
+      "released FreePBX image ${released_image}" \
+      "upgraded local FreePBX image ${local_image}"
+  fi
 }
 
 command="${1:-run}"
@@ -181,11 +243,11 @@ case "${command}" in
     test_fixture_command "$1"
     ;;
   compare-freepbx-images)
-    if [[ $# -ne 1 ]]; then
+    if [[ $# -lt 1 ]]; then
       usage >&2
       exit 1
     fi
-    compare_freepbx_images_command "$1"
+    compare_freepbx_images_command "$@"
     ;;
   list-fixtures)
     lt_fixture_list

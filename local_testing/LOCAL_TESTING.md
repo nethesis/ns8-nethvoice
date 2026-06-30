@@ -132,6 +132,13 @@ Compare the generated `/etc/asterisk` tree between the first released FreePBX im
 ./local_testing/run.sh compare-freepbx-images ./local_testing/fixtures/trunks/dump.sql
 ```
 
+Keep the generated trees, the intermediate upgraded dump, and the diff on disk:
+
+```bash
+./local_testing/run.sh compare-freepbx-images --keep-artifacts ./local_testing/fixtures/trunks/dump.sql
+./local_testing/run.sh compare-freepbx-images --keep-artifacts /tmp/nethvoice-compare ./local_testing/fixtures/trunks/dump.sql
+```
+
 List available fixture cases:
 
 ```bash
@@ -185,18 +192,30 @@ container images:
 - `missing`: use a local image when present, otherwise pull it
 - `always`: always pull before running
 - `never`: require a local image and fail if it is missing
+- `rebuild`: rebuild workspace images from the current checkout before running
 
 The new `compare-freepbx-images` command always forces a pull for
 `NETHVOICE_RELEASED_FREEPBX_IMAGE` so the first-side comparison uses the latest
-remote image, and it always requires `NETHVOICE_FREEPBX_IMAGE` to already exist
-locally so the second-side comparison is your upgraded local build. The command
+remote stable image, and it always rebuilds `NETHVOICE_FREEPBX_IMAGE` from the
+current workspace so the second-side comparison is your upgraded local build.
+Other service images still follow `LOCAL_TESTING_IMAGE_PULL_POLICY`. The command
 workflow is:
 
 - import the input dump into the released FreePBX image
+- rerun `initdb.php`, `migration.php`, and `update.php` after importing the dump so the local suite matches the container startup path
 - generate and capture that image's normalized `/etc/asterisk`
 - export the resulting upgraded MariaDB dump from the released image
 - import that upgraded dump into the local FreePBX image
 - generate and diff the upgraded local `/etc/asterisk` tree against the first one
+
+When `--keep-artifacts` is enabled, the command keeps these files under the
+generated or requested directory:
+
+- `input-dump.sql`
+- `released/asterisk/`
+- `released-upgraded.sql`
+- `upgraded/asterisk/`
+- `compare.diff`
 
 Set a custom fixture library location:
 

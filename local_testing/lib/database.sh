@@ -60,6 +60,8 @@ lt_sync_imported_dump_with_environment() {
   lt_section 'Syncing imported dump with current environment'
 
   podman exec "${FREEPBX_CONTAINER}" php /initdb.d/initdb.php
+  podman exec "${FREEPBX_CONTAINER}" php /initdb.d/migration.php
+  podman exec "${FREEPBX_CONTAINER}" php /initdb.d/update.php
 
   lt_seed_freepbx_admin
   lt_seed_local_rest_users

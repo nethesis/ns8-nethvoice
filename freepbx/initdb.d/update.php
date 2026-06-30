@@ -92,10 +92,6 @@ $stmt = $db->prepare(
 	AND LOWER(TRIM(`val`)) = 'none'"
 );
 $stmt->execute();
-if ($stmt->rowCount() > 0) {
-	$stmt = $db->prepare("UPDATE `asterisk`.`admin` SET `value` = 'true' WHERE `variable` = 'need_reload'");
-	$stmt->execute();
-}
 
 // Disable automatic module updates and keep security updates in email-only mode.
 $stmt = $db->prepare(

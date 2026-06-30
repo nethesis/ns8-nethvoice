@@ -8,6 +8,31 @@ lt_cleanup_old() {
   podman volume rm "${ASTDB_VOLUME}" -f >/dev/null 2>&1 || true
 }
 
+lt_rebuild_workspace_image() {
+  local image_ref="$1"
+  local image_name_and_tag image_name image_tag image_repo image_short_name
+
+  image_name_and_tag="${image_ref##*/}"
+  image_name="${image_name_and_tag%%:*}"
+  image_tag='latest'
+  if [[ "${image_name_and_tag}" == *:* ]]; then
+    image_tag="${image_name_and_tag#*:}"
+  fi
+  image_repo="${image_ref%/${image_name_and_tag}}"
+
+  if [[ "${image_name}" != nethvoice-* ]]; then
+    lt_die "Cannot rebuild non-workspace image with LOCAL_TESTING_IMAGE_PULL_POLICY=rebuild: ${image_ref}"
+  fi
+
+  image_short_name="${image_name#nethvoice-}"
+
+  lt_info "Rebuilding local image ${image_ref} from workspace"
+  REPOBASE="${image_repo}" \
+    IMAGETAG="${image_tag}" \
+    BUILD_IMAGES="${image_short_name}" \
+    bash "${REPO_ROOT}/build-images.sh"
+}
+
 lt_prepare_image() {
   local image_ref="$1"
   local pull_policy="${2:-${LOCAL_TESTING_IMAGE_PULL_POLICY}}"
@@ -32,17 +57,24 @@ lt_prepare_image() {
         lt_die "Image not found locally with LOCAL_TESTING_IMAGE_PULL_POLICY=never: ${image_ref}"
       fi
       ;;
+    rebuild)
+      lt_rebuild_workspace_image "${image_ref}"
+      ;;
     *)
-      lt_die "Unsupported LOCAL_TESTING_IMAGE_PULL_POLICY: ${pull_policy}. Use always, missing, or never."
+      lt_die "Unsupported LOCAL_TESTING_IMAGE_PULL_POLICY: ${pull_policy}. Use always, missing, never, or rebuild."
       ;;
   esac
 }
 
 lt_pull_images() {
+  local mariadb_policy="${1:-${LOCAL_TESTING_IMAGE_PULL_POLICY}}"
+  local freepbx_policy="${2:-${LOCAL_TESTING_IMAGE_PULL_POLICY}}"
+  local tancredi_policy="${3:-${LOCAL_TESTING_IMAGE_PULL_POLICY}}"
+
   lt_section 'Preparing local test images'
-  lt_prepare_image "${NETHVOICE_MARIADB_IMAGE}"
-  lt_prepare_image "${NETHVOICE_FREEPBX_IMAGE}"
-  lt_prepare_image "${NETHVOICE_TANCREDI_IMAGE}"
+  lt_prepare_image "${NETHVOICE_MARIADB_IMAGE}" "${mariadb_policy}"
+  lt_prepare_image "${NETHVOICE_FREEPBX_IMAGE}" "${freepbx_policy}"
+  lt_prepare_image "${NETHVOICE_TANCREDI_IMAGE}" "${tancredi_policy}"
   lt_warn 'Under rootless Podman, MariaDB can warn about memory.pressure not being writable. This does not block local testing.'
 }
 
