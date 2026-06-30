@@ -369,7 +369,7 @@ RUN install_module() { \
 	install_module timeconditions https://github.com/FreePBX/timeconditions/archive/refs/tags/release/17.0.1.18.tar.gz && \
 	install_module userman https://github.com/FreePBX/userman/archive/refs/tags/release/17.0.7.1.tar.gz && \
 	install_module vmblast https://github.com/FreePBX/vmblast/archive/refs/tags/release/17.0.2.tar.gz && \
-	install_module bosssecretary https://github.com/nethesis/freepbx-bosssecretary/archive/refs/tags/1.0.2.tar.gz && \
+	install_module bosssecretary https://github.com/nethesis/freepbx-bosssecretary/archive/refs/tags/1.0.3.tar.gz && \
 	mkdir -p /var/www/html/freepbx/admin/modules/core && \
 	rm -fr /var/www/html/freepbx/admin/modules/core/* && \
 	install_module core https://github.com/FreePBX/core/archive/refs/tags/release/17.0.18.49.tar.gz && \
