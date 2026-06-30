@@ -518,8 +518,8 @@ function nethcti3_get_config_late($engine) {
         // Write operator.json configuration file
         $out = [];
         $results = getCTIGroups();
-        if (!$results) {
-            error_log('Empty operator config');
+        if ($results === false) {
+            error_log('Failed to load CTI groups for operator config');
             $results = [];
         }
         foreach ($results as $r) {
@@ -537,8 +537,8 @@ function nethcti3_get_config_late($engine) {
         */
         $out = [];
         $results = getCTIPermissionProfiles(false,true,false);
-        if (!$results) {
-            error_log('Empty profile config');
+        if ($results === false) {
+            error_log('Failed to load CTI profiles for profiles config');
             $results = [];
         }
         foreach ($results as $r) {
@@ -577,8 +577,8 @@ function nethcti3_get_config_late($engine) {
         $sth->execute();
         $results = $sth->fetchAll(PDO::FETCH_ASSOC);
 
-        if (!$results) {
-            error_log('Empty profile config');
+        if ($results === false) {
+            error_log('Failed to load CTI streaming config');
             $results = [];
         }
         foreach ($results as $r) {
@@ -838,7 +838,15 @@ function nethvoice_report_config() {
     $users = array();
     $queues = array();
     $groups = getCTIGroups();
+    if ($groups === false) {
+        error_log('Failed to load CTI groups for nethvoice report');
+        $groups = array();
+    }
     $profiles = getCTIPermissionProfiles();
+    if ($profiles === false) {
+        error_log('Failed to load CTI profiles for nethvoice report');
+        $profiles = array();
+    }
 
     // Add special X and admin users for API access
     $config = array(
@@ -908,11 +916,15 @@ function nethvoice_report_config() {
         if ($profileRes['profile_id'] == null) {
             continue;
         }
+        $profile = null;
         foreach ($profiles as $p) {
             if ($p['id'] === $profileRes['profile_id']) {
                 $profile = $p;
                 break;
             }
+        }
+        if ($profile === null) {
+            continue;
         }
 
         // Check if user has privacy permission enabled

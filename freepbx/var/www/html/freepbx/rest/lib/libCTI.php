@@ -251,20 +251,28 @@ function getCTIPermissionProfiles($profileId=false, $minified=false, $printnull=
                 }
             }
 
-            // Sort operator panel queues
-            usort($results[$id]['macro_permissions']['operator_panel']['permissions'], function($a, $b) {
-                return strcmp($a['displayname'], $b['displayname']);
-            });
+            // Sort queue permissions, even when minified rows do not include displayname.
+            if (!empty($results[$id]['macro_permissions']['operator_panel']['permissions'])) {
+                usort($results[$id]['macro_permissions']['operator_panel']['permissions'], function($a, $b) {
+                    $left = isset($a['displayname']) ? $a['displayname'] : $a['name'];
+                    $right = isset($b['displayname']) ? $b['displayname'] : $b['name'];
+                    return strcmp($left, $right);
+                });
+            }
 
             // add Queue manager disabled queue
             if (function_exists('addQueueManagerDisabledQueues')) {
                 if ($printnull) {
                     $results[$id] = addQueueManagerDisabledQueues($results[$id]);
 
-                    // Sort Queue manager queues
-                    usort($results[$id]['macro_permissions']['qmanager']['permissions'], function($a, $b) {
-                        return strcmp($a['displayname'], $b['displayname']);
-                    });
+                    // Sort queue permissions, even when minified rows do not include displayname.
+                    if (!empty($results[$id]['macro_permissions']['qmanager']['permissions'])) {
+                        usort($results[$id]['macro_permissions']['qmanager']['permissions'], function($a, $b) {
+                            $left = isset($a['displayname']) ? $a['displayname'] : $a['name'];
+                            $right = isset($b['displayname']) ? $b['displayname'] : $b['name'];
+                            return strcmp($left, $right);
+                        });
+                    }
                 }
             } else {
                 unset($results[$id]['macro_permissions']['qmanager']);
