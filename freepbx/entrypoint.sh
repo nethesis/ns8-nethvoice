@@ -279,7 +279,7 @@ CheckInterval: 20
 EOF
 fi
 
-# create freepbx chown configuration if it doesn't exist
+# create freepbx chown configuration if it doesn't exist or is empty
 if [[ ! -s /etc/asterisk/freepbx_chown.conf ]]; then
   cat > /etc/asterisk/freepbx_chown.conf <<EOF
 [blacklist]
