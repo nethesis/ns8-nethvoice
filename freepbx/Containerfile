@@ -543,7 +543,7 @@ RUN a2enmod rewrite proxy* headers
 RUN a2dismod status
 
 # Update CA certificates
-update-ca-certificates --fresh
+RUN update-ca-certificates --fresh
 
 # Upgrade Apache to latest version to get security fixes
 RUN apt-get update && apt-get install -y --only-upgrade apache2 && rm -rf /var/lib/apt/lists/*
