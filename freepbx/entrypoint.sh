@@ -266,9 +266,9 @@ while (\$row = \$sth->fetch(\PDO::FETCH_ASSOC)) {
   '${NETHCTI_DB_PASSWORD}');
 EOF
 
-# create recallonbusy configuration if it doesn't exist
-if [[ ! -f /etc/asterisk/recallonbusy.cfg ]]; then
-  cat > /etc/asterisk/recallonbusy.cfg <<EOF
+# create recallonbusy configuration if it doesn't exist or exists but is empty
+if [[ ! -s /etc/asterisk/recallonbusy.cfg ]]; then
+cat > /etc/asterisk/recallonbusy.cfg <<EOF
 [recallonbusy]
 Host: 127.0.0.1
 Port: 5038
