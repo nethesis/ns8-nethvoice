@@ -268,7 +268,7 @@ EOF
 
 # create recallonbusy configuration if it doesn't exist or exists but is empty
 if [[ ! -s /etc/asterisk/recallonbusy.cfg ]]; then
-cat > /etc/asterisk/recallonbusy.cfg <<EOF
+  cat > /etc/asterisk/recallonbusy.cfg <<EOF
 [recallonbusy]
 Host: 127.0.0.1
 Port: 5038
@@ -280,7 +280,7 @@ EOF
 fi
 
 # create freepbx chown configuration if it doesn't exist
-if [[ ! -f /etc/asterisk/freepbx_chown.conf ]]; then
+if [[ ! -s /etc/asterisk/freepbx_chown.conf ]]; then
   cat > /etc/asterisk/freepbx_chown.conf <<EOF
 [blacklist]
 directory = /var/www/html/freepbx/rest
