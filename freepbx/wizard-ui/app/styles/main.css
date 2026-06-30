@@ -1285,6 +1285,43 @@ a {
   clear: both;
   font-size: 16px;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.profile-macro-title > [class*='col-'] {
+  display: flex;
+  align-items: center;
+}
+
+.profile-macro-title > .profile-macro-switch-col {
+  display: block;
+}
+
+.profile-macro-switch-col {
+  flex: 0 0 68px;
+  min-width: 68px;
+  width: 68px;
+  max-width: none;
+}
+
+.profile-macro-switch-col .bootstrap-switch {
+  display: inline-block;
+  height: auto;
+  font-weight: 400;
+  width: 68px;
+  min-width: 68px;
+}
+
+.profile-macro-switch-col .bootstrap-switch span {
+  white-space: nowrap;
+}
+
+.profile-macro-spacer {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 0;
+  max-width: none;
 }
 
 .profile-permission {
