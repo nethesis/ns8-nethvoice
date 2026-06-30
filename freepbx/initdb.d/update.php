@@ -83,6 +83,20 @@ $pjsip_identifiers_order = json_encode(['header', 'ip', 'username', 'auth_userna
 $stmt = $db->prepare("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = ? WHERE `key` = 'pjsip_identifers_order' AND `val` = 'ip,username,anonymous,auth_username'");
 $stmt->execute([$pjsip_identifiers_order]);
 
+// Asterisk 22 rejects local_net=none. Keep disabled transport local networks
+// as empty values so regenerated PJSIP transport config omits the setting.
+$stmt = $db->prepare(
+	"UPDATE `asterisk`.`kvstore_Sipsettings`
+	SET `val` = ''
+	WHERE (`key` LIKE 'tcplocalnet-%' OR `key` LIKE 'udplocalnet-%' OR `key` LIKE 'tlslocalnet-%')
+	AND LOWER(TRIM(`val`)) = 'none'"
+);
+$stmt->execute();
+if ($stmt->rowCount() > 0) {
+	$stmt = $db->prepare("UPDATE `asterisk`.`admin` SET `value` = 'true' WHERE `variable` = 'need_reload'");
+	$stmt->execute();
+}
+
 // Disable automatic module updates and keep security updates in email-only mode.
 $stmt = $db->prepare(
 	"INSERT INTO `asterisk`.`kvstore_FreePBX` (`key`, `val`, `type`, `id`) VALUES (?, ?, NULL, 'updates')
