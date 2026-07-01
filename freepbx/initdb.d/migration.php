@@ -6,12 +6,39 @@
 
 include_once '/etc/freepbx_db.conf';
 
+function migrateFrom14To17(\PDO $db): void
+{
+	$sql = "UPDATE `asterisk`.`sip`
+		JOIN `asterisk`.`rest_devices_phones`
+		ON `sip`.`id` = `rest_devices_phones`.`extension`
+		SET `sip`.`data` = 'yes'
+		WHERE `sip`.`keyword` = 'send_connected_line'";
+	$db->query($sql);
+}
+
+function setMigrationScriptVersion(\PDO $db, int $version): void
+{
+	$stmt = $db->prepare("INSERT INTO `asterisk`.`admin` (`variable`, `value`) VALUES ('MIGRATION_SCRIPT',?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)");
+	$stmt->execute([$version]);
+}
+
 # check if migration is needed. Exit 0 if not
 $stmt = $db->prepare("SELECT `value` FROM `asterisk`.`admin` WHERE `variable` = 'MIGRATION_SCRIPT'");
 $stmt->execute();
-$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-if (count($res) > 0) {
+
+$migration_version = $stmt->fetchColumn();
+if ($migration_version !== false) {
+	$migration_version = (int) $migration_version;
+}
+
+if ($migration_version !== false && $migration_version >= 2) {
 	echo "Migration already done\n";
+	exit(0);
+}
+
+if ($migration_version === 1) {
+	migrateFrom14To17($db);
+	setMigrationScriptVersion($db, 2);
 	exit(0);
 }
 
@@ -421,5 +448,5 @@ if (count($res) == 0) {
 	$db->query("UPDATE `rest_cti_permissions` SET `displayname`='Transcription and Summary', `description`='Calls transcription and summary' WHERE `id` = 5000");
 }
 
-$stmt = $db->prepare("INSERT IGNORE INTO `asterisk`.`admin` (`variable`, `value`) VALUES ('MIGRATION_SCRIPT',?)");
-$stmt->execute([1]);
+migrateFrom14To17($db);
+setMigrationScriptVersion($db, 2);
