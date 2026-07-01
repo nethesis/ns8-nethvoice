@@ -4,7 +4,7 @@ require_once("session.inc.php");
 require("translations.php");
 
 $ntabs = $_REQUEST['ntab'];
-switch($_REQUEST['action']) {
+switch($_REQUEST['action'] ?? '') {
 
   case "edit":
     if(editAlarm($_REQUEST['ext'],$_REQUEST['hour'],$_REQUEST['enabled'],$_REQUEST['start'],$_REQUEST['days'],$_REQUEST['group']))
@@ -29,4 +29,3 @@ switch($_REQUEST['action']) {
     echo "</response>";
     return;
 }
-

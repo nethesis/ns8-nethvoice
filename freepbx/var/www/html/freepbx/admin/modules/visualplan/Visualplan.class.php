@@ -71,7 +71,7 @@ class Visualplan implements \BMO
   public function doConfigPageInit($page)
   {
       $id = $_REQUEST['id'] ? $_REQUEST['id'] : '';
-      $action = $_REQUEST['action'] ? $_REQUEST['action'] : '';
+      $action = $_REQUEST['action'] ?? '';
       $exampleField = $_REQUEST['example-field'] ? $_REQUEST['example-field'] : '';
     //Handle form submissions
     switch ($action) {

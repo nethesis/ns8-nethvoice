@@ -75,7 +75,7 @@ class Pin implements \BMO
             ));
             return true;
         }
-        $action = $_REQUEST['action']?$_REQUEST['action']:'';
+        $action = $_REQUEST['action'] ?? '';
         //Handle form submissions
         switch ($action) {
         case 'add':
@@ -240,4 +240,3 @@ class Pin implements \BMO
     }
     public static function myConfigPageInits() { return array("routing"); }
 }
-

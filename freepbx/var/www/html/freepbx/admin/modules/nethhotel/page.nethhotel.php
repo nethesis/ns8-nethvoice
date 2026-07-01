@@ -1,7 +1,7 @@
 <?php
 //PHPLICENSE 
 
-$action = $_REQUEST['action'];
+$action = $_REQUEST['action'] ?? '';
 $extdisplay=$_REQUEST['extdisplay'];  //the extension we are currently displaying
 $dispnum = "nethhotel"; //used for switch on config.php
 

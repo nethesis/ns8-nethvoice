@@ -343,7 +343,8 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
                 needreload();
         } elseif ($display == "trunks") {
             global $db;
-            if ($_REQUEST['action'] == "edittrunk" && !empty($_REQUEST['extdisplay'])) {
+            $action = $_REQUEST['action'] ?? '';
+            if ($action == "edittrunk" && !empty($_REQUEST['extdisplay'])) {
                 if (!empty($_REQUEST['disable_topos_header'])) {
                     // save topos configuratino for the trunk on trunk edit
                     $disable_topos_header = $_REQUEST['disable_topos_header'] == "yes" ? 1 : 0;
@@ -356,7 +357,7 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
                     $trunkid = str_replace("OUT_", "", $_REQUEST['extdisplay']);
                     $this->setConfig('disable_srtp_header', $disable_srtp_header, $trunkid);
                 }
-            } elseif ($_REQUEST['action'] == "addtrunk") {
+            } elseif ($action == "addtrunk") {
                 // Get the future trunk id
                 $sql = 'SELECT trunkid FROM trunks';
                 $sth = $db->prepare($sql);
@@ -381,7 +382,7 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
                     $disable_srtp_header = $_REQUEST['disable_srtp_header'] == "yes" ? 1 : 0;
                     $this->setConfig('disable_srtp_header', $disable_srtp_header, $trunkid);
                 }
-            } elseif ($_REQUEST['action'] == "deltrunk") {
+            } elseif ($action == "deltrunk") {
                 $trunkid = str_replace("OUT_", "", $_REQUEST['extdisplay']);
                 // delete topos configuration for the trunk
                 $this->delConfig('disable_topos_header', $trunkid);

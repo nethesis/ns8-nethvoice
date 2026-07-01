@@ -66,7 +66,7 @@ class Queueoptions implements \BMO
     // This handles any data passed to this module before the page is rendered.
     public function doConfigPageInit($page) {
         $dbh = \FreePBX::Database();
-        $action = $_REQUEST['action']?$_REQUEST['action']:'';
+        $action = $_REQUEST['action'] ?? '';
         if ($page === 'queues' and ($action == 'add' or $action == 'edit')) {
             $id = $_REQUEST['extdisplay']?$_REQUEST['extdisplay']:'';
             $sql = 'DELETE FROM `queues_details` WHERE `id` = ? AND `keyword` = "lazymembers"';
@@ -346,7 +346,6 @@ class Queueoptions implements \BMO
     public static function myConfigPageInits() { return array("queues"); }
     public static function myGuiHooks() { return array(); }
 }
-
 
 
 
