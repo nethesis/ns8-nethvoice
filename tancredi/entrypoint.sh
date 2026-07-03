@@ -28,11 +28,15 @@ astdb = "/var/lib/asterisk/db/astdb.sqlite3"
 file_reader = "apache"
 [macvendors]
 00A859 = fanvil
+00A85A = fanvil
 0C383E = fanvil
-7C2F80 = gigaset
+002104 = gigaset
+14B370 = gigaset
 589EC6 = gigaset
+7C2F80 = gigaset
 005058 = sangoma
 000413 = snom
+1C7126 = snom
 001565 = yealink
 249AD8 = yealink
 44DBD2 = yealink
@@ -42,6 +46,10 @@ C4FC22 = yealink
 E0E656 = nethesis
 0C1105 = akuvox
 9C7514 = akuvox
+000B82 = grandstream
+C074AD = grandstream
+EC74D7 = grandstream
+144CFF = grandstream
 EOF
 
 # Set defaults into an array

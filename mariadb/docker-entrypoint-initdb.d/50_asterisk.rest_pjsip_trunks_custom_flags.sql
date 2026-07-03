@@ -63,4 +63,6 @@ INSERT INTO `rest_pjsip_trunks_custom_flags` (`provider_id`,`keyword`,`value`) V
 (29,"disable_srtp_header",1),
 (30,"disable_srtp_header",1),
 (31,"disable_srtp_header",1),
-(31,"disable_topos_header",1);
+(31,"disable_topos_header",1),
+(32,"disable_srtp_header",0),
+(32,"disable_topos_header",0);
