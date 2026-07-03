@@ -77,6 +77,22 @@ $stmt->execute([$_ENV['NETHVOICE_HOST']]);
 $stmt = $db->prepare("INSERT IGNORE INTO `featurecodes` (`modulename`,`featurename`,`description`,`helptext`,`defaultcode`,`customcode`,`enabled`,`providedest`) VALUES ('nethcti3','audio_test','Audio Test','NethVoice CTI Audio Test','*41',NULL,1,0)");
 $stmt->execute();
 
+// Prefer header matching before IP so proxied static PJSIP trunks are identified
+// from X-Forwarded-* headers.
+$pjsip_identifiers_order = json_encode(['header', 'ip', 'username', 'auth_username', 'anonymous']);
+$stmt = $db->prepare("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = ? WHERE `key` = 'pjsip_identifers_order' AND `val` = 'ip,username,anonymous,auth_username'");
+$stmt->execute([$pjsip_identifiers_order]);
+
+// Rename the Satellite CTI permission displayname/description on existing
+// installations. The migration.php script exits early once it has already run,
+// so its UPDATE branch never reaches already-migrated installs; doing it here
+// (update.php runs on every start and is idempotent) ensures the rename is
+// applied everywhere. Kept before the multi-statement query below: after a
+// multi-statement execute the PDO connection has pending result sets, which
+// would make this query silently fail.
+$stmt = $db->prepare("UPDATE `asterisk`.`rest_cti_permissions` SET `displayname` = 'Transcription and Summary', `description` = 'Calls transcription and summary' WHERE `id` = 5000 AND `displayname` = 'Speech-To-Text'");
+$stmt->execute();
+
 // Update outbound routes notification_on field
 // If is set to "call" and there is an email address configured for that route,
 // set it to "pattern", if no email is configured set it to empty.

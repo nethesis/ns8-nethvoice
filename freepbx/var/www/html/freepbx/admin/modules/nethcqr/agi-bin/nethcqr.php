@@ -47,7 +47,17 @@ $variables = array (
 );
 
 try {
-    $cqrdb = new PDO($cqr_details['db_type'].':host='.$cqr_details['db_url'].';dbname='.$cqr_details['db_name'],
+    if ($cqr_details['db_type'] == 'mssql') {
+        $url = explode(":",$cqr_details['db_url']);
+        if (count($url) == 1) {
+            $url[1] = 1433;
+        }
+        $dsn = "odbc:Driver=FreeTDS;Server={$url[0]},{$url[1]};Database={$cqr_details['db_name']};";
+    } else {
+        $dsn = $cqr_details['db_type'].':host='.$cqr_details['db_url'].';dbname='.$cqr_details['db_name'];
+    }
+
+    $cqrdb = new PDO($dsn,
             $cqr_details['db_user'],
             $cqr_details['db_pass']
         );

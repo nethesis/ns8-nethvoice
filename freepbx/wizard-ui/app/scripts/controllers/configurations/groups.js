@@ -10,6 +10,17 @@
 angular.module('nethvoiceWizardUiApp')
   .controller('UsersGroupsCtrl', function ($scope, ProfileService) {
     $scope.allGroups = [];
+    $scope.groupNameInvalid = false;
+
+    $scope.validateGroupName = function (group) {
+      if (!group || typeof group.name !== 'string') {
+        $scope.groupNameInvalid = false;
+        return true;
+      }
+
+      $scope.groupNameInvalid = !/^[a-zA-Z0-9]+$/.test(group.name);
+      return !$scope.groupNameInvalid;
+    };
 
     $scope.getAllGroups = function (reload) {
       $scope.view.changeRoute = reload;
@@ -23,6 +34,10 @@ angular.module('nethvoiceWizardUiApp')
     };
 
     $scope.saveGroup = function (group) {
+      if (!$scope.validateGroupName(group)) {
+        return;
+      }
+
       group.onSave = true;
       ProfileService.createGroup(group).then(function (res) {
         group.onSave = false;
@@ -32,6 +47,7 @@ angular.module('nethvoiceWizardUiApp')
         $scope.onSaveError = false;
         $scope.allGroups.push(group);
         $scope.newGroup = {};
+        $scope.groupNameInvalid = false;
         $('#newGroupModal').modal('hide');
       }, function (err) {
         group.onSave = false;

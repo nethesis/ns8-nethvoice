@@ -178,6 +178,7 @@ RUN groupadd -g 991 -r asterisk && \
     useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk && \
 	apt-get update && \
 	apt-get install -y \
+        ca-certificates \
 		cron \
 		curl \
 		tdsodbc \
@@ -382,7 +383,7 @@ RUN install_module() { \
 	install_module queues https://github.com/nethesis/freepbx-queues/archive/refs/tags/release/16.0.28.tar.gz && \
 	install_module rapidcode https://github.com/nethesis/RapidCode/archive/refs/tags/1.0.1.tar.gz && \
 	install_module recordings https://github.com/nethesis/freepbx-recordings/archive/refs/tags/release/ns8/16.0.14-pl.2.tar.gz && \
-	install_module returnontransfer https://github.com/nethesis/returnontransfer/archive/refs/tags/1.1.11.tar.gz && \
+	install_module returnontransfer https://github.com/nethesis/returnontransfer/archive/refs/tags/1.2.0.tar.gz && \
 	install_module voicemail https://github.com/nethesis/freepbx-voicemail/archive/14.0.6.26.tar.gz
 
 # Install Nethesis vendor modules
@@ -540,6 +541,9 @@ RUN a2enmod rewrite proxy* headers
 
 # disable server-status page
 RUN a2dismod status
+
+# Update CA certificates
+RUN update-ca-certificates --fresh
 
 # Upgrade Apache to latest version to get security fixes
 RUN apt-get update && apt-get install -y --only-upgrade apache2 && rm -rf /var/lib/apt/lists/*
