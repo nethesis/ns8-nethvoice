@@ -10,8 +10,11 @@ INSERT INTO `rest_cti_permissions` (`id`,`name`,`displayname`,`description`) VAL
 (6,"parkings","Parkings","View parkings state and pickup parked calls"),
 (8,"chat","Chat","Use chat service"),
 (9,"privacy","Privacy","Obfuscate called and caller numbers for other users"),
-(12,"ad_phonebook","Advanced Phonebook","Modify and delete all contacts"),
+(10,"phonebook_level_0","Phonebook read only","View phonebook contacts"),
+(11,"phonebook_level_1","Phonebook private contacts","Create, edit and delete owned private contacts"),
+(12,"ad_phonebook","Advanced Phonebook","Read and write all contacts"),
 (13,"ad_cdr","PBX CDR","View all users call history"),
+(14,"phonebook_level_2","Phonebook public and shared contacts","Create, edit and delete public and shared contacts"),
 (15,"spy","Spy","Hear other extensions calls"),
 (16,"intrude","Intrude","Intrude in calls"),
 (17,"ad_recording","Advanced Recording","Record anyone call"),
@@ -30,5 +33,5 @@ INSERT INTO `rest_cti_permissions` (`id`,`name`,`displayname`,`description`) VAL
 (3000,"video_conference","Video Conference","Allow to start a video conference"),
 (3500,"all_groups","All groups","Allow to see all groups and operators"),
 (4000,"group_cdr","Group CDR","Allow to see call history of members of user groups"),
-(5000,"satellite_stt","Speech-To-Text","Calls transcription using Speech-To-Text");
+(5000,"satellite_stt","Transcription and Summary","Calls transcription and summary");
 
