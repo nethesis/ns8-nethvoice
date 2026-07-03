@@ -18,5 +18,6 @@ fi
 
 # Restart nethcti-server if running, to pick up NETHCTI_CDR_SCRIPT changes
 # Restart if running FreePBX to pick up any changes
+systemctl --user reset-failed nethcti-server.service
 systemctl --user try-restart nethcti-server.service
 systemctl --user try-restart freepbx.service
