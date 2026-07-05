@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import os
+import sys
+
+import agent
+
+
+SYSTEMD_TARGET = "systemd"
+TARGET_NAMES = (SYSTEMD_TARGET,)
+
+
+def _text(value):
+    if isinstance(value, bytes):
+        return value.decode()
+    if value is None:
+        return ""
+    return str(value)
+
+
+def _yaml_string(value):
+    return json.dumps(str(value))
+
+
+def _target_yaml(target, node_id, metrics_path=None):
+    lines = [
+        "- targets:",
+        f"  - {_yaml_string(target)}",
+        "  labels:",
+        f"    node: {_yaml_string(node_id)}",
+    ]
+    if metrics_path:
+        lines.append(f"    __metrics_path__: {_yaml_string(metrics_path)}")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _event_payload():
+    node_id = int(os.environ["NODE_ID"])
+    return json.dumps({
+        "reason": os.getenv("AGENT_TASK_ACTION", "unknown"),
+        "module_id": os.environ["MODULE_ID"],
+        "node_id": node_id,
+        "module_uuid": os.getenv("MODULE_UUID", ""),
+    })
+
+
+def _read_node_address(node_id):
+    with agent.redis_connect() as rdb:
+        node_address = _text(rdb.hget(f"node/{node_id}/vpn", "ip_address"))
+
+    if not node_address:
+        print(agent.SD_ERROR + f"VPN address for node {node_id} is not available", file=sys.stderr)
+        sys.exit(2)
+
+    return node_address
+
+
+def _require_env(env, name):
+    value = env.get(name)
+    if not value:
+        print(agent.SD_ERROR + f"{name} is not set", file=sys.stderr)
+        sys.exit(2)
+    return value
+
+
+def _build_target_configs(env, node_id, node_address):
+    systemd_exporter_port = _require_env(env, "NETHVOICE_SYSTEMD_EXPORTER_PORT")
+
+    return {
+        SYSTEMD_TARGET: _target_yaml(
+            f"{node_address}:{systemd_exporter_port}",
+            node_id,
+        ),
+    }
+
+
+def update_targets():
+    env = agent.read_envfile("environment")
+    module_id = os.environ["MODULE_ID"]
+    agent_id = os.environ["AGENT_ID"]
+    node_id = int(os.environ["NODE_ID"])
+    node_address = _read_node_address(node_id)
+
+    target_configs = _build_target_configs(env, node_id, node_address)
+    metrics_key = f"module/{module_id}/metrics_targets"
+    event_key = f"{agent_id}/event/metrics-target-changed"
+
+    with agent.redis_connect(privileged=True) as prdb:
+        trx = prdb.pipeline()
+        for target_name, target_config in target_configs.items():
+            trx.hset(metrics_key, target_name, target_config)
+        trx.publish(event_key, _event_payload())
+        trx.execute()
+
+
+def remove_targets():
+    module_id = os.environ["MODULE_ID"]
+    agent_id = os.environ["AGENT_ID"]
+    metrics_key = f"module/{module_id}/metrics_targets"
+    event_key = f"{agent_id}/event/metrics-target-changed"
+
+    with agent.redis_connect(privileged=True) as prdb:
+        trx = prdb.pipeline()
+        trx.hdel(metrics_key, *TARGET_NAMES)
+        trx.publish(event_key, _event_payload())
+        trx.execute()
+
+
+def main():
+    if len(sys.argv) != 2 or sys.argv[1] not in ("update", "remove"):
+        print(f"Usage: {sys.argv[0]} update|remove", file=sys.stderr)
+        sys.exit(2)
+
+    if sys.argv[1] == "update":
+        update_targets()
+    else:
+        remove_targets()
+
+
+if __name__ == "__main__":
+    main()
