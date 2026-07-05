@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import sys
+
+import agent
+
+
+env = agent.read_envfile("environment")
+
+if "NETHVOICE_SYSTEMD_EXPORTER_PORT" not in env:
+    print("NETHVOICE_SYSTEMD_EXPORTER_PORT is not set, skipping metrics target provisioning", file=sys.stderr)
+    sys.exit(0)
+
+agent.run_helper("prometheus-targets", "update").check_returncode()

@@ -1,0 +1,36 @@
+#
+# This systemd unit starts prometheus-community/systemd_exporter using Podman.
+#
+[Unit]
+Description=systemd exporter
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%E/state/environment
+WorkingDirectory=%E/state
+Restart=always
+ExecStartPre=/bin/rm -f %t/systemd-exporter.pid %t/systemd-exporter.ctr-id
+# In rootless Podman, container UID 0 maps to the module user on the host.
+# This keeps the user D-Bus peer credential scoped to the module user.
+ExecStart=/usr/bin/podman run \
+    --detach \
+    --conmon-pidfile=%t/systemd-exporter.pid \
+    --cidfile=%t/systemd-exporter.ctr-id \
+    --cgroups=no-conmon \
+    --log-opt=tag=%u \
+    --replace --name=%N \
+    --user=0 \
+    --volume=%t/bus:/tmp/systemd-user-bus \
+    --env=DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/systemd-user-bus \
+    --network=host \
+    ${SYSTEMD_EXPORTER_IMAGE} \
+    --web.listen-address=:${NETHVOICE_SYSTEMD_EXPORTER_PORT} \
+    --systemd.collector.user
+
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/systemd-exporter.ctr-id -t 10
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/systemd-exporter.ctr-id
+PIDFile=%t/systemd-exporter.pid
+Type=forking
+
+[Install]
+WantedBy=default.target

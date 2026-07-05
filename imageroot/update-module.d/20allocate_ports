@@ -137,3 +137,9 @@ if not 'SATELLITE_PGSQL_PORT' in env:
 	pgsql_port = allocated_ports[0]
 	print(f"New port allocated for SATELLITE PGSQL: {pgsql_port}", file=sys.stderr)
 	agent.set_env('SATELLITE_PGSQL_PORT', pgsql_port)
+
+if not 'NETHVOICE_SYSTEMD_EXPORTER_PORT' in env:
+	allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
+	systemd_exporter_port = allocated_ports[0]
+	print(f"New port allocated for NethVoice systemd exporter: {systemd_exporter_port}", file=sys.stderr)
+	agent.set_env('NETHVOICE_SYSTEMD_EXPORTER_PORT', systemd_exporter_port)
