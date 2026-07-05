@@ -12,6 +12,7 @@ Restart=always
 ExecStartPre=/bin/rm -f %t/systemd-exporter.pid %t/systemd-exporter.ctr-id
 # In rootless Podman, container UID 0 maps to the module user on the host.
 # This keeps the user D-Bus peer credential scoped to the module user.
+# Disable the container SELinux label so it can connect to the user bus socket.
 ExecStart=/usr/bin/podman run \
     --detach \
     --conmon-pidfile=%t/systemd-exporter.pid \
@@ -20,6 +21,7 @@ ExecStart=/usr/bin/podman run \
     --log-opt=tag=%u \
     --replace --name=%N \
     --user=0 \
+    --security-opt=label=disable \
     --volume=%t/bus:/tmp/systemd-user-bus \
     --env=DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/systemd-user-bus \
     --network=host \
