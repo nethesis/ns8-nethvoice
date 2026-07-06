@@ -72,11 +72,13 @@ def _require_env(env, name):
 
 def _build_target_configs(env, node_id, node_address):
     systemd_exporter_port = _require_env(env, "NETHVOICE_SYSTEMD_EXPORTER_PORT")
+    systemd_exporter_metrics_path = _require_env(env, "SYSTEMD_EXPORTER_PROMETHEUS_PATH")
 
     return {
         SYSTEMD_TARGET: _target_yaml(
             f"{node_address}:{systemd_exporter_port}",
             node_id,
+            systemd_exporter_metrics_path,
         ),
     }
 
