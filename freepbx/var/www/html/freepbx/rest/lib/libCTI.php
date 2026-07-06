@@ -215,7 +215,7 @@ function getCTIPermissionProfiles($profileId=false, $minified=false, $printnull=
             // Get profile macro permissions
             $sql = 'SELECT `macro_permission_id` FROM `rest_cti_profiles_macro_permissions` WHERE `profile_id` = '.$id;
             $profile_macro_permissions = $dbh->sql($sql,"getAll",\PDO::FETCH_COLUMN);
-            $results[$id] = array('id' => $id, 'name' => $profile['name'], 'macro_permissions' => array());
+            $results[$id] = array('id' => (string) $id, 'name' => $profile['name'], 'macro_permissions' => array());
             foreach ($macro_permissions as $macro_permission) {
                 // Write macro permission name
                 $results[$id]['macro_permissions'][$macro_permission['name']] = array();
