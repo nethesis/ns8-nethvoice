@@ -7,19 +7,26 @@
 
 import json
 import sys
-import subprocess
-import os
 from pathlib import Path
+
 import agent
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
+from timezones import get_accepted_timezones, get_local_timezone
+
+
+def log_timezone_warning(message):
+    print(agent.SD_ERR, f"get-defaults: {message}", file=sys.stderr)
+
+
 # Get list of accepted timezones
-tz_command=["timedatectl", "list-timezones"]
-accepted_timezone_list = subprocess.check_output(tz_command, text=True).splitlines()
-accepted_timezone_list.sort()
+accepted_timezone_list = get_accepted_timezones(log=log_timezone_warning)
 
 # Get local timezone
-tz_command=["timedatectl", "show", "-p", "Timezone", "--value"]
-local_timezone = subprocess.check_output(tz_command, text=True).strip()
+local_timezone = get_local_timezone(
+    accepted_timezones=accepted_timezone_list,
+    log=log_timezone_warning,
+)
 
 # Get proxy status
 rdb = agent.redis_connect(privileged=True)

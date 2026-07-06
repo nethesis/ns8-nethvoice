@@ -7,20 +7,26 @@
 
 import json
 import os
-import subprocess
 import sys
+from pathlib import Path
 
 import agent
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
+from timezones import get_accepted_timezones
+
 agent.set_weight(os.path.basename(__file__), 0)  # Validation step, no task progress at all
+
+
+def log_timezone_warning(message):
+    print(agent.SD_ERR, f"configure-module: {message}", file=sys.stderr)
+
 
 request = json.load(sys.stdin)
 
 if "timezone" in request:
     timezone = request["timezone"]
-    accepted_timezone_list = set(
-        subprocess.check_output(["timedatectl", "list-timezones"], text=True).splitlines()
-    )
+    accepted_timezone_list = set(get_accepted_timezones(log=log_timezone_warning))
 
     if timezone not in accepted_timezone_list:
         agent.set_status("validation-failed")
