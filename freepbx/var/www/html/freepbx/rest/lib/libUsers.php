@@ -224,7 +224,7 @@ function getAllUsers() {
                   ' WHERE userman_users.username = ?';
                 $stmt = $dbh->prepare($sql);$stmt->execute(array($users[$i]['username']));
                 $profile = $stmt->fetch(\PDO::FETCH_ASSOC)['profile_id'];
-                $users[$i]['profile'] = $profile === null ? null : (string) $profile;
+                $users[$i]['profile'] = $profile === null ? null : (int) $profile;
             }
         }
         $i++;
