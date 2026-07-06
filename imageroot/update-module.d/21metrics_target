@@ -6,11 +6,18 @@
 #
 
 import sys
+import uuid
 
 import agent
 
 
 env = agent.read_envfile("environment")
+
+if not env.get("SYSTEMD_EXPORTER_PROMETHEUS_PATH"):
+    metrics_path = f"/{uuid.uuid4()}"
+    agent.set_env("SYSTEMD_EXPORTER_PROMETHEUS_PATH", metrics_path)
+    env["SYSTEMD_EXPORTER_PROMETHEUS_PATH"] = metrics_path
+    print(f"Generated systemd exporter Prometheus metrics path: {metrics_path}", file=sys.stderr)
 
 if "NETHVOICE_SYSTEMD_EXPORTER_PORT" not in env:
     print("NETHVOICE_SYSTEMD_EXPORTER_PORT is not set, skipping metrics target provisioning", file=sys.stderr)
