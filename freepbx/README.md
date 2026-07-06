@@ -29,6 +29,8 @@ FreePBX container for NethServer 8
 - `PHONEBOOK_LDAP_PORT` port of LDAP server
 - `PHONEBOOK_LDAP_USER` user of LDAP server
 - `PHONEBOOK_LDAP_PASS` password of LDAP server
+- `PHONEBOOK_EXPORT_SPEEDDIAL_AND_RAPIDCODE` export speed dial and RapidCode entries to the centralized phonebook. Default is `true`; set to `false` to disable
+- `PHONEBOOK_EXPORT_EXTENSIONS` export extensions to the centralized phonebook. Default is `true`; set to `false` to disable
 - `PROXY_IP` sip proxy host or ip to be used in extensions. Default is host
 - `PROXY_PORT` sip proxy port. Default is 5060
 - `APACHE_PORT` Port used for httpd
