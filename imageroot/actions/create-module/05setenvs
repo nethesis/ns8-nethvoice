@@ -170,6 +170,8 @@ agent.set_env('SATELLITE_PGSQL_DB', 'satellite')
 agent.set_env('SATELLITE_PGSQL_PORT', str(port_list[36]))
 agent.set_env('NETHVOICE_SYSTEMD_EXPORTER_PORT', port_list[37])
 agent.set_env('SYSTEMD_EXPORTER_PROMETHEUS_PATH', f'/{uuid.uuid4()}')
+agent.set_env('SYSTEMD_EXPORTER_UNIT_INCLUDE', '.*')
+agent.set_env('SYSTEMD_EXPORTER_UNIT_EXCLUDE', '^$')
 
 # Asterisk WSS
 agent.set_env('ASTERISK_WSS_PORT', port_list[34])

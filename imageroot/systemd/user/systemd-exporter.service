@@ -28,6 +28,8 @@ ExecStart=/usr/bin/podman run \
     ${SYSTEMD_EXPORTER_IMAGE} \
     --web.listen-address=:${NETHVOICE_SYSTEMD_EXPORTER_PORT} \
     --web.telemetry-path=${SYSTEMD_EXPORTER_PROMETHEUS_PATH} \
+    --systemd.collector.unit-include=${SYSTEMD_EXPORTER_UNIT_INCLUDE} \
+    --systemd.collector.unit-exclude=${SYSTEMD_EXPORTER_UNIT_EXCLUDE} \
     --systemd.collector.user
 
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/systemd-exporter.ctr-id -t 10

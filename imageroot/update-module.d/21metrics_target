@@ -19,6 +19,12 @@ if not env.get("SYSTEMD_EXPORTER_PROMETHEUS_PATH"):
     env["SYSTEMD_EXPORTER_PROMETHEUS_PATH"] = metrics_path
     print(f"Generated systemd exporter Prometheus metrics path: {metrics_path}", file=sys.stderr)
 
+if "SYSTEMD_EXPORTER_UNIT_INCLUDE" not in env:
+    agent.set_env("SYSTEMD_EXPORTER_UNIT_INCLUDE", ".*")
+
+if "SYSTEMD_EXPORTER_UNIT_EXCLUDE" not in env:
+    agent.set_env("SYSTEMD_EXPORTER_UNIT_EXCLUDE", "^$")
+
 if "NETHVOICE_SYSTEMD_EXPORTER_PORT" not in env:
     print("NETHVOICE_SYSTEMD_EXPORTER_PORT is not set, skipping metrics target provisioning", file=sys.stderr)
     sys.exit(0)
