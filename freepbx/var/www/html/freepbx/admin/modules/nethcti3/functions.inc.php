@@ -547,6 +547,22 @@ function nethcti3_get_config_late($engine) {
                 $r['macro_permissions']['operator_panel']['permissions'][] = array('name' => 'waiting_queue_'.$r['id'], 'value' => true);
             }
 
+            $r['id'] = (string) $r['id'];
+            foreach ($r['macro_permissions'] as $macroPermissionName => $macroPermission) {
+                foreach ($macroPermission['permissions'] as $permissionIndex => $permission) {
+                    if (isset($permission['id'])) {
+                        $r['macro_permissions'][$macroPermissionName]['permissions'][$permissionIndex]['id'] = (string) $permission['id'];
+                    }
+                }
+            }
+            if (isset($r['outbound_routes_permissions'])) {
+                foreach ($r['outbound_routes_permissions'] as $routeIndex => $routePermission) {
+                    if (isset($routePermission['route_id'])) {
+                        $r['outbound_routes_permissions'][$routeIndex]['route_id'] = (string) $routePermission['route_id'];
+                    }
+                }
+            }
+
             $out[$r['id']] = $r;
         }
 
