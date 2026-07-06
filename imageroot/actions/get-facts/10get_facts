@@ -88,6 +88,14 @@ def collect_cti(facts):
     facts['nethvoice_announcements_count'] = int(rows[5])
     facts['nethvoice_offhour_count'] = int(rows[6])
 
+def collect_cti_2fa(facts):
+    result = subprocess.run(
+        ["podman", "exec", "nethcti-middleware", "find", "/var/lib/whale/secrets/",
+         "-type", "f", "-name", "status", "-exec", "grep", "-qE", "^1$", "{}", ";", "-print"],
+        capture_output=True, text=True, check=True,
+    )
+    facts['nethvoice_cti_2fa_enabled_count'] = len([l for l in result.stdout.splitlines() if l != ''])
+
 def collect_nethcti3(facts):
     rows = sql_rows("nethcti3",
         "SELECT COUNT(*) FROM customer_card "
@@ -170,6 +178,7 @@ safe("telephony-counts", collect_telephony, facts)
 safe("trunks-by-tech", collect_trunks_by_tech, facts)
 safe("cdr", collect_cdr, facts)
 safe("cti", collect_cti, facts)
+safe("cti-2fa", collect_cti_2fa, facts)
 safe("nethcti3", collect_nethcti3, facts)
 safe("devices", collect_devices, facts)
 safe("physical-devices-by-vendor", collect_physical_devices_by_vendor, facts)
