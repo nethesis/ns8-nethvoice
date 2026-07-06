@@ -26,6 +26,10 @@ Check if systemd exporter target is published
 Check if systemd exporter returns user session metrics
     ${metrics_path} =             Get Module Environment Value    SYSTEMD_EXPORTER_PROMETHEUS_PATH
     ${systemd_exporter_port} =    Get Module Environment Value    NETHVOICE_SYSTEMD_EXPORTER_PORT
+    ${unit_include} =             Get Module Environment Value    SYSTEMD_EXPORTER_UNIT_INCLUDE
+    ${unit_exclude} =             Get Module Environment Value    SYSTEMD_EXPORTER_UNIT_EXCLUDE
+    Should Be Equal               ${unit_include}    .*
+    Should Be Equal               ${unit_exclude}    ^$
     ${metrics} =                  Wait Until Keyword Succeeds
     ...                           30x
     ...                           10s
@@ -36,6 +40,23 @@ Check if systemd exporter returns user session metrics
     Should Contain                ${metrics}    systemd_exporter_build_info
     Should Match Regexp           ${metrics}    (?m)^systemd_unit_state\\{.*name="freepbx\\.service"
     Should Not Match Regexp       ${metrics}    (?m)^systemd_unit_state\\{.*name="systemd-journald\\.service"
+
+Check if systemd exporter unit filters are applied
+    [Teardown]                    Restore Default systemd exporter filters
+    ${metrics_path} =             Get Module Environment Value    SYSTEMD_EXPORTER_PROMETHEUS_PATH
+    ${systemd_exporter_port} =    Get Module Environment Value    NETHVOICE_SYSTEMD_EXPORTER_PORT
+    Set systemd exporter filters
+    ...                           systemd-exporter[.]service|freepbx[.]service
+    ...                           freepbx[.]service
+    Restart systemd exporter
+    ${metrics} =                  Wait Until Keyword Succeeds
+    ...                           30x
+    ...                           10s
+    ...                           Fetch systemd exporter metrics
+    ...                           ${systemd_exporter_port}
+    ...                           ${metrics_path}
+    Should Match Regexp           ${metrics}    (?m)^systemd_unit_state\\{.*name="systemd-exporter\\.service"
+    Should Not Match Regexp       ${metrics}    (?m)^systemd_unit_state\\{.*name="freepbx\\.service"
 
 *** Keywords ***
 Get Module Environment Value
@@ -51,6 +72,27 @@ Get Module Runtime Value
     ...    runagent -m ${module_id} sh -lc 'key="$1"; printenv "$key"' sh ${name}
     Should Not Be Empty    ${value}
     RETURN    ${value}
+
+Set systemd exporter filters
+    [Arguments]    ${include}    ${exclude}
+    ${stdout}    ${stderr}    ${rc} =    Execute Command
+    ...    runagent -m ${module_id} python3 -c 'import agent, sys; agent.set_env(sys.argv[1], sys.argv[2]); agent.set_env(sys.argv[3], sys.argv[4])' SYSTEMD_EXPORTER_UNIT_INCLUDE '${include}' SYSTEMD_EXPORTER_UNIT_EXCLUDE '${exclude}'
+    ...    return_stdout=True
+    ...    return_stderr=True
+    ...    return_rc=True
+    Should Be Equal As Integers    ${rc}    0    ${stderr}
+
+Restore Default systemd exporter filters
+    Set systemd exporter filters    .*    ^$
+    Restart systemd exporter
+
+Restart systemd exporter
+    ${stdout}    ${stderr}    ${rc} =    Execute Command
+    ...    runagent -m ${module_id} systemctl --user restart systemd-exporter.service
+    ...    return_stdout=True
+    ...    return_stderr=True
+    ...    return_rc=True
+    Should Be Equal As Integers    ${rc}    0    ${stderr}
 
 Fetch systemd exporter metrics
     [Arguments]    ${port}    ${path}
