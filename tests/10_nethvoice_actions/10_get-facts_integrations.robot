@@ -34,6 +34,7 @@ Check if the facts are returned as expected
     Should Be Equal As Integers    ${response['nethvoice_cti_profiles_count']}    3
     Should Be Equal As Integers    ${response['nethvoice_cti_groups_count']}    0
     Should Be Equal As Integers    ${response['nethvoice_cti_users_count']}    0
+    Should Be Equal As Integers    ${response['nethvoice_cti_2fa_enabled_count']}    0
 
     Should Be Equal As Integers    ${response['nethvoice_devices_count']}    0
     Dictionary Should Contain Key    ${response}    nethvoice_devices_by_type
