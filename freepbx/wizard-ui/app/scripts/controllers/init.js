@@ -136,6 +136,17 @@ angular.module('nethvoiceWizardUiApp')
       return $scope.wizard.stepCount;
     }
 
+    $scope.getCurrentWizardRoute = function () {
+      return appConfig.STEP_MAP_REVERSE[String($scope.wizard.stepCount)] || appConfig.STEP_MAP_REVERSE['0'];
+    }
+
+    $scope.redirectToCurrentWizardStep = function () {
+      var wizardRoute = $scope.getCurrentWizardRoute();
+      if (wizardRoute && ('/' + wizardRoute) !== $location.path()) {
+        $location.path('/' + wizardRoute);
+      }
+    }
+
     $scope.languagesArr = LanguageService.getAllLanguages();
     $scope.changeLanguage = function (l) {
       var userLang = '';
@@ -294,19 +305,40 @@ angular.module('nethvoiceWizardUiApp')
     }
 
     $scope.validateLocation = function () {
+      if ($scope.wizard.isWizard && ($location.path() === '/' || !$location.path())) {
+        $scope.redirectToCurrentWizardStep()
+        return
+      }
+
       if ($scope.wizard.provisioning != "tancredi") {
         switch ($location.path()) {
           case "/devices/inventory":
-            $location.path('/')
+            if ($scope.wizard.isWizard) {
+              $scope.redirectToCurrentWizardStep()
+            } else {
+              $location.path('/')
+            }
             break
           case "/devices/models":
-            $location.path('/')
+            if ($scope.wizard.isWizard) {
+              $scope.redirectToCurrentWizardStep()
+            } else {
+              $location.path('/')
+            }
             break
           case "/configurations/preferences":
-            $location.path('/')
+            if ($scope.wizard.isWizard) {
+              $scope.redirectToCurrentWizardStep()
+            } else {
+              $location.path('/')
+            }
             break
           case "/apps/bulkdevices":
-            $location.path('/')
+            if ($scope.wizard.isWizard) {
+              $scope.redirectToCurrentWizardStep()
+            } else {
+              $location.path('/')
+            }
             break
           default:
             break
@@ -314,10 +346,18 @@ angular.module('nethvoiceWizardUiApp')
       } else {
         switch ($location.path()) {
           case "/users/devices":
-            $location.path('/')
+            if ($scope.wizard.isWizard) {
+              $scope.redirectToCurrentWizardStep()
+            } else {
+              $location.path('/')
+            }
             break
           case "/configurations/preferencesFreepbx":
-            $location.path('/')
+            if ($scope.wizard.isWizard) {
+              $scope.redirectToCurrentWizardStep()
+            } else {
+              $location.path('/')
+            }
             break
           default:
             break

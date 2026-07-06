@@ -393,9 +393,12 @@ $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 // Add permission if not exists
 if (count($res) == 0) {
 	# Add permission
-	$db->query("INSERT INTO `rest_cti_permissions` VALUES (5000,'satellite_stt','Speech-To-Text','Calls transcription using Speech-To-Text')");
+	$db->query("INSERT INTO `rest_cti_permissions` VALUES (5000,'satellite_stt','Transcription and Summary','Calls transcription and summary')");
 	# Add permission to nethvoice cti macro permission
 	$db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`,`permission_id`) VALUES (12,5000)");
+} else {
+	# Update displayname and description on existing installations
+	$db->query("UPDATE `rest_cti_permissions` SET `displayname`='Transcription and Summary', `description`='Calls transcription and summary' WHERE `id` = 5000");
 }
 
 $stmt = $db->prepare("INSERT IGNORE INTO `asterisk`.`admin` (`variable`, `value`) VALUES ('MIGRATION_SCRIPT',?)");

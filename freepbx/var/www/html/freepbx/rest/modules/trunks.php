@@ -285,12 +285,18 @@ $app->post('/trunks', function (Request $request, Response $response, $args) {
     $pjsip_data[] = array( "keyword" => "contact_user", "data" => $params['username']);
     $pjsip_data[] = array( "keyword" => "extdisplay", "data" => "OUT_".$trunkid);
     $pjsip_data[] = array( "keyword" => "from_user", "data" => $params['username']);
-    $pjsip_data[] = array( "keyword" => "outbound_proxy", "data" => 'sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'].';lr');
     $pjsip_data[] = array( "keyword" => "sv_channelid", "data" => $params['name']);
     $pjsip_data[] = array( "keyword" => "sv_trunk_name", "data" => $params['name']);
     $pjsip_data[] = array( "keyword" => "trunk_name", "data" => $params['name']);
     $pjsip_data[] = array( "keyword" => "username", "data" => $params['username']);
     $pjsip_data[] = array( "keyword" => "secret", "data" => $params['password']);
+    # Add outbound_proxy when missing, and replace it only when empty or set to the loopback sentinel sip:127.0.0.1:5060; preserve explicit provider values
+    $outbound_proxy_id = array_search('outbound_proxy', array_column($pjsip_data, 'keyword'));
+    if ($outbound_proxy_id === false) {
+        $pjsip_data[] = array( "keyword" => "outbound_proxy", "data" => 'sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'].';lr');
+    } elseif (empty($pjsip_data[$outbound_proxy_id]['data']) || $pjsip_data[$outbound_proxy_id]['data'] == 'sip:127.0.0.1:5060') {
+        $pjsip_data[$outbound_proxy_id]['data'] = 'sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'].';lr';
+    }
 
     // Set codecs
     if (!empty($params['codecs'])) {

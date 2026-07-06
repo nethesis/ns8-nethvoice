@@ -7,6 +7,7 @@ After=freepbx.service reports-api.service
 ExecStart=/usr/bin/podman exec freepbx /opt/nethvoice-report/scripts/queue-miner.php
 ExecStart=/usr/bin/podman exec reports-api tasks cdr
 ExecStart=/usr/bin/podman exec reports-api tasks cost
+ExecStart=/usr/bin/podman exec reports-api tasks cleanup
 ExecStart=/usr/bin/podman exec reports-api tasks views
 ExecStart=/usr/bin/podman exec reports-api tasks queries
 ExecStart=/usr/bin/podman exec reports-api tasks phonebook

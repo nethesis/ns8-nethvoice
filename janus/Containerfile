@@ -1,6 +1,7 @@
 FROM debian:bullseye-slim
 
-ARG JANUS_TAG=v1.3.1
+ARG JANUS_COMMIT=94408ffccbc1a7c39dac82d55e5dd475c807e770
+ARG JANUS_REPO=https://github.com/meetecho/janus-gateway.git
 
 RUN apt-get -y update && \
 	apt-get install -y \
@@ -32,12 +33,16 @@ RUN apt-get -y update && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
+COPY remote-artifacts.sha256 /tmp/remote-artifacts.sha256
+
 RUN cd /tmp && \
-	wget https://github.com/cisco/libsrtp/archive/v2.3.0.tar.gz && \
+	wget -O v2.3.0.tar.gz https://github.com/cisco/libsrtp/archive/v2.3.0.tar.gz && \
+	artifact_checksum=$(grep "  v2.3.0.tar.gz$" remote-artifacts.sha256) && \
+	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
 	tar xfv v2.3.0.tar.gz && \
 	cd libsrtp-2.3.0 && \
 	./configure --prefix=/usr --enable-openssl && \
-	make shared_library && \
+	make -j"$(nproc)" shared_library && \
 	make install
 
 RUN cd /tmp && \
@@ -46,18 +51,22 @@ RUN cd /tmp && \
 	git checkout 0.1.17 && \
 	./autogen.sh && \
 	./configure --prefix=/usr && \
-	make && \
+	make -j"$(nproc)" && \
 	make install
 
 RUN cd /tmp && \
-    git clone --depth 1 --branch ${JANUS_TAG} https://github.com/meetecho/janus-gateway.git && \
+    mkdir janus-gateway && \
     cd janus-gateway && \
+    git init -q && \
+    git remote add origin ${JANUS_REPO} && \
+    git fetch --depth 1 origin ${JANUS_COMMIT} && \
+    git checkout -q FETCH_HEAD && \
     cp -r . /usr/local/src/janus-gateway
 
 RUN cd /usr/local/src/janus-gateway && \
 	sh autogen.sh && \
 	./configure --enable-post-processing --prefix=/usr/local && \
-	make && \
+	make -j"$(nproc)" && \
 	make install && \
 	make configs
 

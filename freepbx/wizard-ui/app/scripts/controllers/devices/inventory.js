@@ -37,7 +37,7 @@ angular.module('nethvoiceWizardUiApp')
     const npx5Name = "nethesis-NPX5"
     const npx210Name = "nethesis-NPX210"
     const npv61Name = "nethesis-NPV61"
-    const npx5v2Name = "nethesis-NPX5v2"
+    const npx5v2Name = npx5Name
 
     function gotModels(models) {
       $scope.models = models;

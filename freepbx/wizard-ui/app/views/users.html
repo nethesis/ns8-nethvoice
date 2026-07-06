@@ -14,7 +14,7 @@
   <p>
     {{'Configure Provider, to setup an already existing LDAP or Active Directory Server or to setup a new one using the Server Manager' | translate}}.
   </p>
-  <p>
+  <p ng-if="!customConfig.BRAND_NAME || customConfig.BRAND_NAME === 'NethVoice'">
     {{'Learn more about this' | translate}} <a target="_blank" href="{{customConfig.BRAND_DOCS}}">{{'on the documentation' | translate}}</a>.
   </p>
   <div class="blank-slate-pf-main-action">

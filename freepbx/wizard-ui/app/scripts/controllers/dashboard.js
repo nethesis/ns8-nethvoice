@@ -8,7 +8,16 @@
  * Controller of the nethvoiceWizardUiApp
  */
 angular.module('nethvoiceWizardUiApp')
-  .controller('DashboardCtrl', function ($rootScope, $scope, $interval, DashboardService) {
+  .controller('DashboardCtrl', function ($rootScope, $scope, $interval, $location, DashboardService) {
+    if ($scope.wizard.isWizard) {
+      if (typeof $scope.redirectToCurrentWizardStep === 'function') {
+        $scope.redirectToCurrentWizardStep();
+      } else {
+        $location.path('/extensions');
+      }
+      return;
+    }
+
     $scope.data = {
       users: {},
       extensions: {},

@@ -9,7 +9,7 @@ CREATE TABLE `voicemessages` (
   `dir` varchar(80) DEFAULT '',
   `context` varchar(80) DEFAULT '',
   `macrocontext` varchar(80) DEFAULT '',
-  `callerid` varchar(40) DEFAULT '',
+  `callerid` varchar(255) DEFAULT '',
   `origtime` varchar(40) DEFAULT '',
   `duration` varchar(20) DEFAULT '',
   `mailboxuser` varchar(80) DEFAULT '',
