@@ -21,7 +21,7 @@
 -->
 
 <form action="config.php?display=pin" method="post" class="fpbx-submit" id="hwform" name="hwform" data-fpbx-delete="config.php?display=pin">
-<input type="hidden" name='action' value="<?php echo $_REQUEST['extension']?'edit':'add' ?>">
+<input type="hidden" name='action' value="<?php echo !empty($_REQUEST['extension'])?'edit':'add' ?>">
 
 <?php
 

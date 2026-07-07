@@ -154,9 +154,9 @@ class Pin implements \BMO
     // This is also documented at http://wiki.freepbx.org/display/FOP/BMO+Ajax+Calls
     public function ajaxHandler()
     {
-        switch ($_REQUEST['command']) {
+        switch ($_REQUEST['command'] ?? '') {
         case 'getJSON':
-            switch ($_REQUEST['jdata']) {
+            switch ($_REQUEST['jdata'] ?? '') {
             case 'grid':
                 $ret = array();
                 foreach ( $this->pin_get() as $pin) {
@@ -180,11 +180,11 @@ class Pin implements \BMO
     // http://wiki.freepbx.org/display/FOP/HTML+Output+from+BMO
     public function showPage()
     {
-        switch ($_REQUEST['view']) {
+        switch ($_REQUEST['view'] ?? '') {
         case 'form':
-            if(isset($_REQUEST['id']) && !empty($_REQUEST['id'])){
+            if(isset($_REQUEST['extension']) && !empty($_REQUEST['extension'])){
                 $subhead = _('Edit Pin');
-                $content = load_view(__DIR__.'/views/form.php', array('config' => $this->pin_get($id)));
+                $content = load_view(__DIR__.'/views/form.php', array('config' => $this->pin_get($_REQUEST['extension'])));
             }else{
                 $subhead = _('Add Pin');
                 $content = load_view(__DIR__.'/views/form.php');
