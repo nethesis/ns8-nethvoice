@@ -1,0 +1,8 @@
+# Launch miners and tasks at night
+00 00 * * *  asterisk /opt/nethvoice-report/scripts/queue-miner.php && /opt/nethvoice-report/tasks/tasks cdr && /opt/nethvoice-report/tasks/tasks cost && /opt/nethvoice-report/tasks/tasks views && /opt/nethvoice-report/tasks/tasks queries
+
+# precalculate phonebook numbers during night
+10 00 * * *     asterisk /opt/nethvoice-report/tasks/tasks phonebook
+
+# precalculate filter values during night
+20 00 * * *     asterisk /opt/nethvoice-report/tasks/tasks values
