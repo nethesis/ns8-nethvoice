@@ -29,7 +29,7 @@ Check if systemd exporter returns user session metrics
     ${unit_include} =             Get Module Environment Value    SYSTEMD_EXPORTER_UNIT_INCLUDE
     ${unit_exclude} =             Get Module Environment Value    SYSTEMD_EXPORTER_UNIT_EXCLUDE
     Should Be Equal               ${unit_include}    .*
-    Should Be Equal               ${unit_exclude}    ^$
+    Should Be Equal               ${unit_exclude}    .*[.](device|mount|scope|slice|swap|target)$
     ${metrics} =                  Wait Until Keyword Succeeds
     ...                           30x
     ...                           10s
@@ -37,8 +37,11 @@ Check if systemd exporter returns user session metrics
     ...                           ${systemd_exporter_port}
     ...                           ${metrics_path}
     Should Contain                ${metrics}    \# HELP
-    Should Contain                ${metrics}    systemd_exporter_build_info
     Should Match Regexp           ${metrics}    (?m)^systemd_unit_state\\{.*name="freepbx\\.service"
+    Should Not Match Regexp       ${metrics}    (?m)^go_
+    Should Not Match Regexp       ${metrics}    (?m)^process_
+    Should Not Match Regexp       ${metrics}    (?m)^promhttp_
+    Should Not Match Regexp       ${metrics}    (?m)^systemd_unit_state\\{.*name="[^"]+\\.(device|mount|scope|slice|swap|target)"
     Should Not Match Regexp       ${metrics}    (?m)^systemd_unit_state\\{.*name="systemd-journald\\.service"
 
 Check if systemd exporter unit filters are applied
@@ -83,7 +86,7 @@ Set systemd exporter filters
     Should Be Equal As Integers    ${rc}    0    ${stderr}
 
 Restore Default systemd exporter filters
-    Set systemd exporter filters    .*    ^$
+    Set systemd exporter filters    .*    .*[.](device|mount|scope|slice|swap|target)$
     Restart systemd exporter
 
 Restart systemd exporter
