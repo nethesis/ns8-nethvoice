@@ -1,0 +1,20 @@
+name: "Clean up registry"
+
+on:
+  delete:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  delete_images:
+    name: "Delete ghcr.io images ${{ github.event.ref }}"
+    runs-on: ubuntu-latest
+    environment: Registry
+    steps:
+      - uses: NethServer/ns8-github-actions/.github/actions/delete-untagged-versions@v1
+        with:
+          images: "nethvoice-cti"
+          delete_image_token: ${{ secrets.GITHUB_TOKEN }}

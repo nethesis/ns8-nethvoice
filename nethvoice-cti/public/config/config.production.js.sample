@@ -1,0 +1,20 @@
+window.CONFIG = {
+  PRODUCT_NAME: 'NethVoice CTI',
+  COMPANY_NAME: 'Nethesis',
+  COMPANY_SUBNAME: 'CTI',
+  COMPANY_URL: 'https://www.nethesis.it/',
+  API_ENDPOINT:
+    window.location.hostname +
+    (window.location.port ? ':' + window.location.port : '') +
+    window.location.pathname,
+  API_SCHEME: window.location.protocol + '//',
+  NAVBAR_LOGO_URL: '',
+  NAVBAR_LOGO_DARK_URL: '',
+  WS_ENDPOINT:
+    'wss://' +
+    window.location.hostname +
+    (window.location.port ? ':' + window.location.port : '') +
+    window.location.pathname +
+    'ws',
+  OPENAI_KEY_PRESENT: false
+}

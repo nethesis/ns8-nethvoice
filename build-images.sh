@@ -212,11 +212,11 @@ fi
 reponame="nethvoice-cti-ui"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v0.15.23)
-
-    # Commit the image
-    buildah commit "${container}" "${repobase}/${reponame}"
-    buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
+    pushd nethvoice-cti
+    build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" \
+        --tag "${repobase}/${reponame}" \
+        --tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
+    popd
     finish_timing
     # Append the image URL to the images array
     images+=("${repobase}/${reponame}")
