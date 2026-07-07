@@ -1,0 +1,49 @@
+<?php
+
+/*
+ * Copyright (C) 2020 Nethesis S.r.l.
+ * http://www.nethesis.it - nethserver@nethesis.it
+ *
+ * This script is part of NethServer.
+ *
+ * NethServer is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License,
+ * or any later version.
+ *
+ * NethServer is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with NethServer.  If not, see COPYING.
+ */
+
+require_once __DIR__.'/../vendor/autoload.php';
+require_once __DIR__.'/../src/init.php';
+
+use DI\ContainerBuilder;
+
+$containerBuilder = new ContainerBuilder();
+$containerBuilder->addDefinitions([
+    'config' => function() {
+        global $config;
+        return $config;
+    },
+    'logger' => function($c) {
+        return \Tancredi\LoggerFactory::createLogger('upgrade', $c);
+    },
+    'storage' => function($c) {
+        return new \Tancredi\Entity\FileStorage($c->get('logger'), $c->get('config'));
+    }
+]);
+
+$container = $containerBuilder->build();
+
+# Launch update scripts
+$filesArray=glob(__DIR__ . "/upgrade.d/*.php");
+foreach ($filesArray as $file) {
+    $container->get('logger')->debug("Launching upgrade script $file");
+    include $file;
+}

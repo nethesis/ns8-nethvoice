@@ -1,0 +1,215 @@
+{% import 'gigasetP.macros' as gigasetp %}
+<?xml version="1.0" encoding="utf-8"?>
+<settings>
+{% autoescape %}
+    <phone-settings>
+        <language perm="">{{ gigasetp.language(language) }}</language>
+        <ring_sound>{{ gigasetp.ringtone_map(ringtone, cap_ringtone_count) | replace({'Custom':'Ringer1'}) }}</ring_sound>
+        <internal_ringer_text idx="0" perm="">ring1</internal_ringer_text>
+        <internal_ringer_text idx="1" perm="">ring2</internal_ringer_text>
+        <internal_ringer_text idx="2" perm="">ring3</internal_ringer_text>
+        <internal_ringer_text idx="3" perm="">ring4</internal_ringer_text>
+        <internal_ringer_text idx="4" perm="">ring5</internal_ringer_text>
+        <internal_ringer_text idx="5" perm="">ring6</internal_ringer_text>
+        <internal_ringer_text idx="6" perm="">ring7</internal_ringer_text>
+        <internal_ringer_text idx="7" perm="">ring8</internal_ringer_text>
+        <internal_ringer_text idx="8" perm="">ring9</internal_ringer_text>
+        <internal_ringer_text idx="9" perm="">ring10</internal_ringer_text>
+        <internal_ringer_text idx="10" perm="">ring11</internal_ringer_text>
+        <internal_ringer_file idx="0" perm="">Ringer1</internal_ringer_file>
+        <internal_ringer_file idx="1" perm="">Ringer2</internal_ringer_file>
+        <internal_ringer_file idx="2" perm="">Ringer3</internal_ringer_file>
+        <internal_ringer_file idx="3" perm="">Ringer4</internal_ringer_file>
+        <internal_ringer_file idx="4" perm="">Ringer5</internal_ringer_file>
+        <internal_ringer_file idx="5" perm="">Ringer6</internal_ringer_file>
+        <internal_ringer_file idx="6" perm="">Ringer7</internal_ringer_file>
+        <internal_ringer_file idx="7" perm="">Ringer8</internal_ringer_file>
+        <internal_ringer_file idx="8" perm="">Ringer9</internal_ringer_file>
+        <internal_ringer_file idx="9" perm="">Ringer</internal_ringer_file>
+        <internal_ringer_file idx="10" perm="">Silent</internal_ringer_file>
+        <auto_redial perm="">{{ auto_redial ? 'on' : 'off' }}</auto_redial>
+
+        <lldp_enable perm="">off</lldp_enable>
+        <vlan_id perm="">{{ (vlan_id_phone > 0 and vlan_id_phone < 4095) ? vlan_id_phone : '' }}</vlan_id>
+        <vlan_qos perm="">{{ (vlan_id_phone > 0 and vlan_id_phone < 4095) ? '0' : '' }}</vlan_qos>
+        <vlan_port_tagging perm="">{{ (vlan_id_pcport > 0 and vlan_id_pcport < 4095) ? 'on' : 'off' }}</vlan_port_tagging>
+        <vlan_pc_id perm="">{{ (vlan_id_pcport > 0 and vlan_id_pcport < 4095) ? vlan_id_pcport : '' }}</vlan_pc_id>
+        <vlan_pc_priority perm="">{{ (vlan_id_pcport > 0 and vlan_id_pcport < 4095) ? '0' : '' }}</vlan_pc_priority>
+
+        <transfer_on_hangup perm="">on</transfer_on_hangup>
+        <transfer_on_hangup_non_pots perm="">on</transfer_on_hangup_non_pots>
+        <auto_dial perm="">4</auto_dial>
+        <keyboard_lock_emergency perm="">112</keyboard_lock_emergency>
+        <dtmf_speaker_phone perm="">off</dtmf_speaker_phone>
+        <guess_number perm="">off</guess_number>
+
+        <ntp_server perm="">{{ ntp_server ?: 'pool.ntp.org' }}</ntp_server>
+        <date_us_format perm="">{{ gigasetp.date_format(date_format) }}</date_us_format>
+        <time_24_format perm="">{{ time_format == '12' ? 'off' : 'on' }}</time_24_format>
+        <ldap_base perm="">{{ ldap_base }}</ldap_base>
+        <ldap_port perm="">{{ ldap_port | default( ldap_tls == 'ldaps' ? '636' : '389' ) }}</ldap_port>
+        <ldap_server perm="">{{ ldap_server | default(hostname) }}</ldap_server>
+        <ldap_username perm="">{{ ldap_user }}</ldap_username>
+        <ldap_password perm="">{{ ldap_password }}</ldap_password>
+        <ldap_over_tls perm="">{{ ldap_tls == 'ldaps' ? 'on' : 'off' }}</ldap_over_tls>
+        <ldap_display_name perm="">{{ ldap_name_display }}</ldap_display_name>
+        <ldap_number_attributes perm="">{{ [ldap_mainphone_number_attr, ldap_mobilephone_number_attr, ldap_otherphone_number_attr] | join(' ') }}</ldap_number_attributes>
+        <ldap_name_attributes perm="">{{ ldap_name_attr }}</ldap_name_attributes>
+        <ldap_number_filter perm="">{{ ldap_number_filter }}</ldap_number_filter>
+        <ldap_search_filter perm="">{{ ldap_name_filter }}</ldap_search_filter>
+
+        <dim_timer perm="">{{ backlight_time == 0 ? '2147483647' : backlight_time}}</dim_timer>
+
+        <screen_saver_timeout perm="">{{ screensaver_time }}</screen_saver_timeout>
+        <custom_bg_image_url perm="">{{ cap_background_file and background_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/backgrounds/#{background_file}" : "" }}</custom_bg_image_url>
+        <dhcp perm="">on</dhcp>
+        <dhcp_v6 perm="">off</dhcp_v6>
+
+        {% if dss_transfer == 'attended' %}
+            <transfer_dialing_on_transfer perm="">attended</transfer_dialing_on_transfer>
+        {% else %}
+            {# default value #}
+            <transfer_dialing_on_transfer perm="">blind</transfer_dialing_on_transfer>
+        {% endif %}
+
+        <admin_mode_password perm="">{{ adminpw | default('admin') }}</admin_mode_password>
+        <admin_mode_password_confirm perm="">{{ adminpw | default('admin') }}</admin_mode_password_confirm>
+        <http_user perm="">admin</http_user>
+        <http_pass perm="">{{ adminpw |  default('admin') }}</http_pass>
+        <http_scheme perm="">off</http_scheme>
+
+        <setting_server perm="RW">{{ provisioning_url2 }}</setting_server>
+        {# gigasetp allowed values: 3..15. active_backlight_level values: 1..10 #}
+        <backlight perm="">{{ (1.2 * brightness + 3)|round  }}</backlight>
+        <backlight_idle perm="">8</backlight_idle>
+        <timezone perm="">{{ gigasetp.timezone(timezone) }}</timezone>
+        <tone_scheme perm="">{{ gigasetp.tonezone(tonezone) }}</tone_scheme>
+        <update_policy perm="">auto_update</update_policy>
+        <firmware_status perm="">{{ firmware_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/gigasetP-firmware.xml" : "" }}</firmware_status>
+        <web_language perm="">{{ gigasetp.language(language) }}</web_language>
+        <eth_pc perm="">auto</eth_pc>
+
+        <idle_status_btn_index perm="">4</idle_status_btn_index>
+        <idle_ok_key_action perm="">keyevent F_REDIAL</idle_ok_key_action>
+        <idle_cancel_key_action perm="">keyevent F_CANCEL</idle_cancel_key_action>
+        <idle_up_key_action perm="">keyevent F_PREV_ID</idle_up_key_action>
+        <idle_down_key_action perm="">keyevent F_NEXT_ID</idle_down_key_action>
+        <idle_left_key_action perm="">keyevent F_ACCEPTED_LIST</idle_left_key_action>
+        <idle_right_key_action perm="">keyevent F_MISSED_LIST</idle_right_key_action>
+
+        <dkey_retrieve perm="">speed {{ account_voicemail_1 }}</dkey_retrieve>
+
+        <dkey_dnd perm="">keyevent F_DND</dkey_dnd>
+        <dkey_directory perm="">keyevent F_DIRECTORY_SEARCH</dkey_directory>
+        <dkey_hold perm="">keyevent F_HOLD</dkey_hold>
+        <dkey_transfer perm="">keyevent F_TRANSFER</dkey_transfer>
+        <dkey_menu perm="">keyevent F_SETTINGS</dkey_menu>
+
+        {% for identity in range(1, 1) %}
+            {% if _context['account_username_' ~ identity] is defined %}
+                <user_media_transport_offer idx="{{ identity }}" perm="">udp</user_media_transport_offer>
+                <user_active idx="{{ identity }}" perm="">on</user_active>
+                <user_srtp idx="{{ identity }}" perm="">{{ _context['account_encryption_' ~ identity] ? 'on' : 'off' }}</user_srtp>
+                <user_auth_tag idx="{{ identity }}" perm="">off</user_auth_tag>
+                <user_name idx="{{ identity }}" perm="">{{ _context['account_username_' ~ identity] }}</user_name>
+                <user_pass idx="{{ identity }}" perm="">{{ _context['account_password_' ~ identity] }}</user_pass>
+                <user_host idx="{{ identity }}" perm="">{{ hostname }}</user_host>
+                <user_outbound idx="{{ identity }}" perm="">
+                    {{- (_context['outbound_proxy_' ~ identity] is defined and _context['outbound_proxy_' ~ identity] != '' ? _context['outbound_proxy_' ~ identity]  : hostname) ~ ':'
+                        ~ (_context['account_encryption_' ~ identity] ? sip_tls_port : sip_udp_port) ~ ';transport='
+                        ~ (_context['account_encryption_' ~ identity] ? 'tls' : 'udp')
+                    -}}
+                </user_outbound>
+                <codec_priority_list idx="{{ identity }}" perm="">g729,g722,pcmu,pcma,amr-0,amrwb-0,gsm,g723,g726-32,aal2-g726-32,telephone-event</codec_priority_list>
+                <retry_after_failed_subscribe idx="{{ identity }}" perm="">600</retry_after_failed_subscribe>
+
+                <fwd_all_enabled idx="{{ identity }}" perm="">{{ _context['account_always_fwd_target_' ~ identity] ? 'on' : 'off' }}</fwd_all_enabled>
+                <fwd_all_target idx="{{ identity }}" perm="">{{ _context['account_always_fwd_target_' ~ identity] }}</fwd_all_target>
+                <fwd_busy_enabled idx="{{ identity }}" perm="">{{ _context['account_busy_fwd_target_' ~ identity] ? 'on' : 'off' }}</fwd_busy_enabled>
+                <fwd_busy_target idx="{{ identity }}" perm="">{{ _context['account_busy_fwd_target_' ~ identity] }}</fwd_busy_target>
+                <fwd_time_enabled idx="{{ identity }}" perm="">{{ _context['account_timeout_fwd_target_' ~ identity] ? 'on' : 'off' }}</fwd_time_enabled>
+                <fwd_time_target idx="{{ identity }}" perm="">{{ _context['account_timeout_fwd_target_' ~ identity] }}</fwd_time_target>
+                <dnd_mode idx="{{ identity }}" perm="">{{ _context['account_dnd_enable_' ~ identity] ? 'on' : 'off' }}</dnd_mode>
+
+                <blf_park_pick_up idx="{{ identity }}" perm="">*88</blf_park_pick_up>
+                <blf_directed_call_pickup idx="{{ identity }}" perm="">*97</blf_directed_call_pickup>
+
+                {% if _context['account_call_waiting_' ~ identity] and call_waiting_tone %}
+                    <call_waiting idx="{{ identity }}" perm="">on</call_waiting>
+                {% elseif _context['account_call_waiting_' ~ identity] and not call_waiting_tone %}
+                    <call_waiting idx="{{ identity }}" perm="">visual</call_waiting>
+                {% elseif not (_context['account_call_waiting_' ~ identity]) %}
+                    <call_waiting idx="{{ identity }}" perm="">off</call_waiting>
+                {% else %}
+                    {# default value #}
+                    <call_waiting idx="{{ identity }}" perm="">on</call_waiting>
+                {% endif %}
+
+                <fwd_all_on_code idx="{{ identity }}" perm="">{{ cfalwayson }}</fwd_all_on_code>
+                <fwd_all_off_code idx="{{ identity }}" perm="">{{ cfalwaysoff }}</fwd_all_off_code>
+                <fwd_busy_on_code idx="{{ identity }}" perm="">{{ cfbusyon }}</fwd_busy_on_code>
+                <fwd_busy_off_code idx="{{ identity }}" perm="">{{ cfbusyoff }}</fwd_busy_off_code>
+                <fwd_time_secs idx="{{ identity }}" perm="">{{ _context['account_cftimeout_' ~ identity] }}</fwd_time_secs>
+                <fwd_time_on_code idx="{{ identity }}" perm="">{{ cftimeouton }}</fwd_time_on_code>
+                <fwd_time_off_code idx="{{ identity }}" perm="">{{ cftimeoutoff }}</fwd_time_off_code>
+                <dnd_on_code idx="{{ identity }}" perm="">{{ dndon }}</dnd_on_code>
+                <dnd_off_code idx="{{ identity }}" perm="">{{ dndoff }}</dnd_off_code>
+                <user_custom idx="{{ identity }}" perm="">{{ ringtone_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/ringtones/#{ringtone_file}?" : "" }}</user_custom>
+                <user_dtmf_info idx="{{ identity }}" perm="">{{ _context['account_dtmf_type_' ~ identity] == 'sip_info' ? 'sip_info_only' : 'off' }}</user_dtmf_info>
+                <user_realname idx="{{ identity }}" perm="">{{ _context['account_display_name_' ~ identity] }}</user_realname>
+                <user_ringer idx="{{ identity }}" perm="">{{ gigasetp.ringtone_map(ringtone, cap_ringtone_count) }}</user_ringer>
+                <user_ringer_private_line idx="{{ identity }}" perm="">Ringer2</user_ringer_private_line>
+                <user_ringer_forwarded_calls idx="{{ identity }}" perm="">Ringer3</user_ringer_forwarded_calls>
+            {% endif %}
+        {% endfor %}
+
+        <dhcp_options_on_ip_aquire perm="">1 3 4 6 12 15 42 43 51 66 67 120 125 133</dhcp_options_on_ip_aquire>
+        <dhcp_options_on_inform perm="">43 120 125 132</dhcp_options_on_inform>
+        <prov_polling_enabled perm="">{{ provisioning_freq == 'never' ? 'off' : 'on' }}</prov_polling_enabled>
+        <prov_polling_mode perm="">{{ provisioning_complete ? 'random' : 'rel' }}</prov_polling_mode>
+        <prov_polling_period perm="">{{ provisioning_complete ? '86400' : '60' }}</prov_polling_period>
+        <prov_polling_time perm="">01:00</prov_polling_time>
+        <prov_polling_time_rand_end perm="">04:00</prov_polling_time_rand_end>
+
+        {% for number in 1..cap_softkey_count %}
+                {% if _context['softkey_type_' ~ number] == 'forward' -%}
+                    <gui_fkey{{ number }} perm="">keyevent F_REDIRECT</gui_fkey{{ number }}>
+                {% elseif _context['softkey_type_' ~ number] == 'dnd' -%}
+                    <gui_fkey{{ number }} perm="">keyevent F_DND</gui_fkey{{ number }}>
+                {% elseif _context['softkey_type_' ~ number] == 'recall' -%}
+                    <gui_fkey{{ number }} perm="">keyevent F_REDIAL</gui_fkey{{ number }}>
+                {% elseif _context['softkey_type_' ~ number] == 'speed' -%}
+                    <gui_fkey{{ number }} perm="">speed {{ softkey_value }}</gui_fkey{{ number }}>
+                {% elseif _context['softkey_type_' ~ number] == 'group_pickup' -%}
+                    <gui_fkey{{ number }} perm="">speed {{ pickup_group }}</gui_fkey{{ number }}>
+                {% elseif _context['softkey_type_' ~ number] == 'history' -%}
+                    <gui_fkey{{ number }} perm="">keyevent F_CALL_LIST</gui_fkey{{ number }}>
+                {% elseif _context['softkey_type_' ~ number] == 'menu' -%}
+                    <gui_fkey{{ number }} perm="">keyevent F_SETTINGS</gui_fkey{{ number }}>
+                {% elseif _context['softkey_type_' ~ number] == 'status' -%}
+                    <gui_fkey{{ number }} perm="">keyevent F_STATUS</gui_fkey{{ number }}>
+                {% elseif _context['softkey_type_' ~ number] == 'ldap' or _context['softkey_type_' ~ number] == 'directory' -%}
+                    <gui_fkey{{ number }} perm="">keyevent F_DIRECTORY_SEARCH</gui_fkey{{ number }}>
+                {% elseif _context['softkey_type_' ~ number] == 'local_directory' -%}
+                    <gui_fkey{{ number }} perm="">keyevent F_ADR_BOOK</gui_fkey{{ number }}>
+                {% elseif _context['softkey_type_' ~ number] == 'favorite' -%}
+                    <gui_fkey{{ number }} perm="">keyevent F_FAVORITES</gui_fkey{{ number }}>
+                {% else -%}
+                    <gui_fkey{{ number }} perm="">keyevent none</gui_fkey{{ number }}>
+                {% endif -%}
+        {% endfor %}
+    </phone-settings>
+    <functionKeys>
+        {# line keys #}
+        {% if cap_linekey_count > 0 %}
+            {% for number in 1..(cap_linekey_count) %}
+                    {{gigasetp.linekey_type_map(_context['linekey_type_' ~ number], _context['linekey_value_' ~ number], _context['linekey_label_' ~ number], dndtoggle, pickup_group, number, queuetoggle, pickup_direct)}}
+            {% endfor %}
+        {% endif %}
+        {% set expkey_max = cap_expmodule_count * cap_expkey_count %}
+        {% for expkey in (expkey_max > 0 ? range(1,expkey_max) : []) %}
+            {{gigasetp.linekey_type_map(_context['expkey_type_' ~ expkey], _context['expkey_value_' ~ expkey], _context['expkey_label_' ~ expkey], dndtoggle, pickup_group, cap_linekey_count + expkey, queuetoggle, pickup_direct)}}
+        {% endfor %}
+    </functionKeys>
+{% endautoescape %}
+</settings>

@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<settings>
+    <phone-settings>
+        <language perm="">Italiano</language>
+        <ring_sound>Ringer1</ring_sound>
+        <internal_ringer_text idx="0" perm="">ring1</internal_ringer_text>
+        <internal_ringer_text idx="1" perm="">ring2</internal_ringer_text>
+        <internal_ringer_text idx="2" perm="">ring3</internal_ringer_text>
+        <internal_ringer_text idx="3" perm="">ring4</internal_ringer_text>
+        <internal_ringer_text idx="4" perm="">ring5</internal_ringer_text>
+        <internal_ringer_text idx="5" perm="">ring6</internal_ringer_text>
+        <internal_ringer_text idx="6" perm="">ring7</internal_ringer_text>
+        <internal_ringer_text idx="7" perm="">ring8</internal_ringer_text>
+        <internal_ringer_text idx="8" perm="">ring9</internal_ringer_text>
+        <internal_ringer_text idx="9" perm="">ring10</internal_ringer_text>
+        <internal_ringer_text idx="10" perm="">ring11</internal_ringer_text>
+        <internal_ringer_file idx="0" perm="">Ringer1</internal_ringer_file>
+        <internal_ringer_file idx="1" perm="">Ringer2</internal_ringer_file>
+        <internal_ringer_file idx="2" perm="">Ringer3</internal_ringer_file>
+        <internal_ringer_file idx="3" perm="">Ringer4</internal_ringer_file>
+        <internal_ringer_file idx="4" perm="">Ringer5</internal_ringer_file>
+        <internal_ringer_file idx="5" perm="">Ringer6</internal_ringer_file>
+        <internal_ringer_file idx="6" perm="">Ringer7</internal_ringer_file>
+        <internal_ringer_file idx="7" perm="">Ringer8</internal_ringer_file>
+        <internal_ringer_file idx="8" perm="">Ringer9</internal_ringer_file>
+        <internal_ringer_file idx="9" perm="">Ringer</internal_ringer_file>
+        <internal_ringer_file idx="10" perm="">Silent</internal_ringer_file>
+        <auto_redial perm="">off</auto_redial>
+
+        <lldp_enable perm="">off</lldp_enable>
+        <vlan_id perm=""></vlan_id>
+        <vlan_qos perm=""></vlan_qos>
+        <vlan_port_tagging perm="">off</vlan_port_tagging>
+        <vlan_pc_id perm=""></vlan_pc_id>
+        <vlan_pc_priority perm=""></vlan_pc_priority>
+
+        <transfer_on_hangup perm="">on</transfer_on_hangup>
+        <transfer_on_hangup_non_pots perm="">on</transfer_on_hangup_non_pots>
+        <auto_dial perm="">4</auto_dial>
+        <keyboard_lock_emergency perm="">112</keyboard_lock_emergency>
+        <dtmf_speaker_phone perm="">off</dtmf_speaker_phone>
+        <guess_number perm="">off</guess_number>
+
+        <ntp_server perm="">pool.ntp.org</ntp_server>
+        <date_us_format perm="">off</date_us_format>
+        <time_24_format perm="">on</time_24_format>
+        <ldap_base perm="">dc=phonebook,dc=nh</ldap_base>
+        <ldap_port perm="">20123</ldap_port>
+        <ldap_server perm="">ldap.example.com</ldap_server>
+        <ldap_username perm="">cn=ldapuser,dc=phonebook,dc=nh</ldap_username>
+        <ldap_password perm="">password</ldap_password>
+        <ldap_over_tls perm="">on</ldap_over_tls>
+        <ldap_display_name perm="">%cn %o</ldap_display_name>
+        <ldap_number_attributes perm="">telephoneNumber mobile homePhone</ldap_number_attributes>
+        <ldap_name_attributes perm="">cn o</ldap_name_attributes>
+        <ldap_number_filter perm="">(|(telephoneNumber=%)(mobile=%)(homePhone=%))</ldap_number_filter>
+        <ldap_search_filter perm="">(|(cn=%)(o=%))</ldap_search_filter>
+
+        <dim_timer perm="">30</dim_timer>
+
+        <screen_saver_timeout perm="">600</screen_saver_timeout>
+        <custom_bg_image_url perm=""></custom_bg_image_url>
+        <dhcp perm="">on</dhcp>
+        <dhcp_v6 perm="">off</dhcp_v6>
+
+                    <transfer_dialing_on_transfer perm="">attended</transfer_dialing_on_transfer>
+        
+        <admin_mode_password perm="">admin,1234</admin_mode_password>
+        <admin_mode_password_confirm perm="">admin,1234</admin_mode_password_confirm>
+        <http_user perm="">admin</http_user>
+        <http_pass perm="">admin,1234</http_pass>
+        <http_scheme perm="">off</http_scheme>
+
+                <setting_server perm="RW">https://voice.example.com/provisioning/tok2/000413aabbcc.xml</setting_server>
+                <backlight perm="">9</backlight>
+        <backlight_idle perm="">8</backlight_idle>
+        <timezone perm="">ITA+1</timezone>
+        <tone_scheme perm="">ITA</tone_scheme>
+        <update_policy perm="">auto_update</update_policy>
+        <firmware_status perm=""></firmware_status>
+        <web_language perm="">Italiano</web_language>
+        <eth_pc perm="">auto</eth_pc>
+
+        <idle_status_btn_index perm="">4</idle_status_btn_index>
+        <idle_ok_key_action perm="">keyevent F_REDIAL</idle_ok_key_action>
+        <idle_cancel_key_action perm="">keyevent F_CANCEL</idle_cancel_key_action>
+        <idle_up_key_action perm="">keyevent F_PREV_ID</idle_up_key_action>
+        <idle_down_key_action perm="">keyevent F_NEXT_ID</idle_down_key_action>
+        <idle_left_key_action perm="">keyevent F_ACCEPTED_LIST</idle_left_key_action>
+        <idle_right_key_action perm="">keyevent F_MISSED_LIST</idle_right_key_action>
+
+        <dkey_retrieve perm="">speed *97</dkey_retrieve>
+
+        <dkey_dnd perm="">keyevent F_DND</dkey_dnd>
+        <dkey_directory perm="">keyevent F_DIRECTORY_SEARCH</dkey_directory>
+        <dkey_hold perm="">keyevent F_HOLD</dkey_hold>
+        <dkey_transfer perm="">keyevent F_TRANSFER</dkey_transfer>
+        <dkey_menu perm="">keyevent F_SETTINGS</dkey_menu>
+
+                                    <user_media_transport_offer idx="1" perm="">udp</user_media_transport_offer>
+                <user_active idx="1" perm="">on</user_active>
+                <user_srtp idx="1" perm="">on</user_srtp>
+                <user_auth_tag idx="1" perm="">off</user_auth_tag>
+                <user_name idx="1" perm="">1234</user_name>
+                <user_pass idx="1" perm="">testpass123</user_pass>
+                <user_host idx="1" perm="">voice.example.com</user_host>
+                <user_outbound idx="1" perm="">proxy.examplesis.it:5061;transport=tls</user_outbound>
+                <codec_priority_list idx="1" perm="">g729,g722,pcmu,pcma,amr-0,amrwb-0,gsm,g723,g726-32,aal2-g726-32,telephone-event</codec_priority_list>
+                <retry_after_failed_subscribe idx="1" perm="">600</retry_after_failed_subscribe>
+
+                <fwd_all_enabled idx="1" perm="">off</fwd_all_enabled>
+                <fwd_all_target idx="1" perm=""></fwd_all_target>
+                <fwd_busy_enabled idx="1" perm="">off</fwd_busy_enabled>
+                <fwd_busy_target idx="1" perm=""></fwd_busy_target>
+                <fwd_time_enabled idx="1" perm="">off</fwd_time_enabled>
+                <fwd_time_target idx="1" perm=""></fwd_time_target>
+                <dnd_mode idx="1" perm="">off</dnd_mode>
+
+                <blf_park_pick_up idx="1" perm="">*88</blf_park_pick_up>
+                <blf_directed_call_pickup idx="1" perm="">*97</blf_directed_call_pickup>
+
+                                    <call_waiting idx="1" perm="">off</call_waiting>
+                
+                <fwd_all_on_code idx="1" perm="">*72</fwd_all_on_code>
+                <fwd_all_off_code idx="1" perm="">*73</fwd_all_off_code>
+                <fwd_busy_on_code idx="1" perm="">*90</fwd_busy_on_code>
+                <fwd_busy_off_code idx="1" perm="">*91</fwd_busy_off_code>
+                <fwd_time_secs idx="1" perm=""></fwd_time_secs>
+                <fwd_time_on_code idx="1" perm="">*52</fwd_time_on_code>
+                <fwd_time_off_code idx="1" perm="">*53</fwd_time_off_code>
+                <dnd_on_code idx="1" perm="">*78</dnd_on_code>
+                <dnd_off_code idx="1" perm="">*79</dnd_off_code>
+                <user_custom idx="1" perm=""></user_custom>
+                <user_dtmf_info idx="1" perm="">off</user_dtmf_info>
+                <user_realname idx="1" perm="">Test User</user_realname>
+                <user_ringer idx="1" perm="">Ringer1</user_ringer>
+                <user_ringer_private_line idx="1" perm="">Ringer2</user_ringer_private_line>
+                <user_ringer_forwarded_calls idx="1" perm="">Ringer3</user_ringer_forwarded_calls>
+                    
+        <dhcp_options_on_ip_aquire perm="">1 3 4 6 12 15 42 43 51 66 67 120 125 133</dhcp_options_on_ip_aquire>
+        <dhcp_options_on_inform perm="">43 120 125 132</dhcp_options_on_inform>
+        <prov_polling_enabled perm="">on</prov_polling_enabled>
+        <prov_polling_mode perm="">rel</prov_polling_mode>
+        <prov_polling_period perm="">60</prov_polling_period>
+        <prov_polling_time perm="">01:00</prov_polling_time>
+        <prov_polling_time_rand_end perm="">04:00</prov_polling_time_rand_end>
+
+                        <gui_fkey1 perm="">keyevent F_CALL_LIST</gui_fkey1>
+                                <gui_fkey2 perm="">keyevent F_SETTINGS</gui_fkey2>
+                                <gui_fkey3 perm="">keyevent F_REDIRECT</gui_fkey3>
+                                <gui_fkey4 perm="">keyevent F_REDIAL</gui_fkey4>
+                    </phone-settings>
+    <functionKeys>
+                                                                            <fkey idx="0" context="1" label="" lp="on" perm="">line </fkey>
+
+                                    <fkey idx="1" context="1" label="" lp="on" perm="">line </fkey>
+
+                                                            </functionKeys>
+</settings>

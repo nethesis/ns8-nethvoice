@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+{% import 'sangoma.macros' as sangoma %}
+{% autoescape %}
+<hl_provision version="1">
+    <config version="1">
+        <!--Account1/Basic-->
+        {% if account_password_1 -%}
+        <P271 para="Account1.Active">1</P271>
+        <P47 para="Account1.Sipserver">{{ hostname }}:{{ account_encryption_1 ? sip_tls_port : sip_udp_port }}</P47>
+        <P967 para="Account1.FailoverSipserver" />
+        <P8851 para="Account1.SecondFailoverSipserver" />
+        <P4567 para="Account1.PreferPrimaryServer">1</P4567>
+        {% if outbound_proxy_1 is defined and outbound_proxy_1 != '' %}
+        <P48 para="Account1.OutboundProxy">{{ outbound_proxy_1 }}:{{ outbound_proxy_port_1 is defined and outbound_proxy_port_1 != '' ? outbound_proxy_port_1 : account_encryption_1 ? '5061' : '5060' }}</P48>
+        {% else %}
+        <P48 para="Account1.OutboundProxy" />
+        {% endif %}
+        {% if outbound_proxy_1 is defined and outbound_proxy_1 != '' and outbound_proxy2_1 is defined and outbound_proxy2_1 != '' %}
+        <P20047 para="Account1.BackUpOutboundProxy">{{ outbound_proxy2_1 }}:{{ outbound_proxy2_port_1 is defined and outbound_proxy2_port_1 != '' ? outbound_proxy2_port_1 : account_encryption_1 ? '5061' : '5060' }}</P20047>
+        {% else %}
+        <P20047 para="Account1.BackUpOutboundProxy" />
+        {% endif %}
+        <P130 para="Account1.SipTransport">{{ account_encryption_1 ? '2' : '0' }}</P130>
+        <P52 para="Account1.NatTraversal">2</P52>
+        <P20000 para="Account1.Lable">{{ account_display_name_1 }}</P20000>
+        <P35 para="Account1.SipUserId">{{ account_username_1 }}</P35>
+        <P36 para="Account1.AuthenticateID">{{ account_username_1 }}</P36>
+        <P34 para="Account1.AuthenticatePassword">{{ account_password_1 }}</P34>
+        <P3 para="Account1.DispalyName">{{ account_display_name_1 }}</P3>
+        <P103 para="Account1.DnsMode">0</P103>
+        <P63 para="Account1.UserIdIsPhoneNumber">1</P63>
+        <P31 para="Account1.SipRegistration">1</P31>
+        <P81 para="Account1.UnregisterOnReboot">1</P81>
+        <P32 para="Account1.RegisterExpiration">15</P32>
+        <P109 para="Account1.OutCallWithoutReg">1</P109>
+        <P33 para="Account1.VoiceMailId">{{ account_voicemail_1 }}</P33>
+        <P20166 para="Account1.DtmfMode">{{ sangoma.dtmf(account_dtmf_type_1) }}</P20166>
+        <P183 para="Account1.SRtpMode">{{ account_encryption_1 ? '2' : '0' }}</P183>
+        <P185 para="Account1.RingTimeout">60</P185>
+        <P72 para="Account1.Use#AsDialKey">{{ pound ? 1 : 0 }}</P72>
+        <P4705 para="Account1.DirectCallPickupCode">{{ pickup_direct }}</P4705>
+        <P4706 para="Account1.GroupCallPickupCode">{{ pickup_group }}</P4706>
+        <P20157 para="Account1.CallerDisplaySource">3</P20157>
+        <P57 para="Account1.Choice1">18</P57>
+        <P58 para="Account1.Choice2">0</P58>
+        <P59 para="Account1.Choice3">8</P59>
+        <P60 para="Account1.Choice4">9</P60>
+        <P61 para="Account1.Choice5">3</P61>
+        <P62 para="Account1.Choice6">2</P62>
+        <P37 para="Account1.VoiceFramesPerTX">2</P37>
+        {%- endif %}
+
+        <!--Network/Basic-->
+        <P8 para="IPv4WanMode">0</P8>
+{% if vlan_id_pcport != '' %}
+        <P231 para="PcPort">1</P231>
+{% else %}
+        <!--Configure P231 PcPort from web UI-->
+{% endif %}
+        <!--Network/Advance-->
+        <!--Network/Advance/LLDP-->
+        <P5438 para="Active">1</P5438>
+        <P5439 para="PackedInterval">120</P5439>
+        <!--Network/Advance/Qos Set -->
+        <P38 para="Layer3QoS">48</P38>
+        <P51 para="VLAN.WANPort.VID">{{ (vlan_id_phone > 0 and vlan_id_phone < 4095) ? vlan_id_phone : '0' }}</P51>
+        <P229 para="VLAN.PCPort.VID">{{ (vlan_id_pcport > 0 and vlan_id_pcport < 4095) ? vlan_id_pcport : '0' }}</P229>
+        <!--Network/Advance/NTP Server-->
+        <P30 para="UrlOrIpAddress">{{ ntp_server ?: 'pool.ntp.org' }}</P30>
+        <P144 para="DHCPOverrideNTP">0</P144>
+        <!--Network/Advance/VPN-->
+        <!--Network/Advance/Web Server-->
+        <P901 para="HTTPPort">80</P901>
+        <P8724 para="HTTPSPort">443</P8724>
+        <P8725 para="Type">1</P8725>
+        <!--Network/Advance/802.1X-->
+        <P8626 para="802.1XMode">0</P8626>
+        <P8627 para="Identity" />
+        <P8628 para="MD5Password" />
+        <!--Network/Advance/Others-->
+        <P76 para="STUN Server" />
+        <P84 para="KeepAtiveInterval">20</P84>
+        <P8684 para="DhcpVlan">0</P8684>
+        <!--FunctionKeys-->
+        {% for idx in cap_linekey_count ? range(1, cap_linekey_count) : [] %}
+        {% if _context["linekey_type_#{idx}"] == "queuetoggle" %}
+            {% set linekey_value = queuetoggle %}
+        {% else %}
+            {% set linekey_value = _context["linekey_value_#{idx}"] %}
+        {% endif %}
+        {{- sangoma.pcode("LineKey#{idx}.Type", sangoma.linekey_type_map(_context["linekey_type_#{idx}"]), '0') }}
+        {{ sangoma.pcode("LineKey#{idx}.Value", linekey_value, '') }}
+        {{ sangoma.pcode("LineKey#{idx}.Label", _context["linekey_label_#{idx}"], '') }}
+        {% endfor %}
+
+        <!--FunctionKeys/ProgrammableKey-->
+        <P43200 para="SoftKey1.Type">{{ sangoma.softkey_type_map(softkey_type_1) }}</P43200>
+        <P43300 para="SoftKey1.Account">0</P43300>
+        <P43400 para="SoftKey1.Value">{{ softkey_type_1 == "group_pickup" ? pickup_group : softkey_value_1 }}</P43400>
+        <P20043 para="ProgrammableKey1.Label">{{ softkey_label_1 }}</P20043>
+        <P43201 para="SoftKey2.Type">{{ sangoma.softkey_type_map(softkey_type_2) }}</P43201>
+        <P43301 para="SoftKey2.Account">0</P43301>
+        <P43401 para="SoftKey2.Value">{{ softkey_type_2 == "group_pickup" ? pickup_group : softkey_value_2 }}</P43401>
+        <P20044 para="ProgrammableKey2.Label">{{ softkey_label_2 }}</P20044>
+        <P43202 para="SoftKey3.Type">{{ sangoma.softkey_type_map(softkey_type_3) }}</P43202>
+        <P43302 para="SoftKey3.Account">0</P43302>
+        <P43402 para="SoftKey3.Value">{{ softkey_type_3 == "group_pickup" ? pickup_group : softkey_value_3 }}</P43402>
+        <P20045 para="ProgrammableKey3.Label">{{ softkey_label_3 }}</P20045>
+        <P43203 para="SoftKey4.Type">{{ sangoma.softkey_type_map(softkey_type_4) }}</P43203>
+        <P43303 para="SoftKey4.Account">0</P43303>
+        <P43403 para="SoftKey4.Value">{{ softkey_type_4 == "group_pickup" ? pickup_group : softkey_value_4 }}</P43403>
+        <P20046 para="ProgrammableKey4.Label">{{ softkey_label_4 }}</P20046>
+
+        <!--ExpKeys-->
+        {%- for m in cap_expmodule_count ? range(0, cap_expmodule_count - 1) : [] -%}
+        {%- for k in 0..(cap_expkey_count - 1) -%}
+        {%- set idx = 1 + k + (m * cap_expkey_count) %}
+        {{ sangoma.pcode_expkey(m, k, _context["expkey_type_#{idx}"], _context["expkey_value_#{idx}"], _context["expkey_label_#{idx}"]) -}}
+        {%- endfor -%}
+        {% endfor %}
+
+        <!--Setting-->
+        <!--Setting/Preference-->
+        <P2525 para="Preference.WebLanguage">{{ sangoma.language(language) }}</P2525>
+        <P64 para="Preference.TimeZone">{{ sangoma.timezone(timezone) }}</P64>
+        <P143 para="Preference.DHCPTime">0</P143>
+        <P75 para="Preference.DaylightSavingTime">2</P75>
+        <P102 para="Preference.DateDisplayFormat">{{ sangoma.date_format(date_format) }}</P102>
+        <P8624 para="Preference.TimeFormat">{{ time_format == '12' ? '1' : '0' }}</P8624>
+        <P8683 para="Preference.BacklightTime">{{ backlight_time ?: '0' }}</P8683>
+        <P8940 para="Preference.ScreenTimeOut">{{ sangoma.screensaver_wait_time(screensaver_time) }}</P8940>
+        <P8950 para="Preference.ScreenSaverType">{{ cap_screensaver_file and screensaver_file ? '3' : '0' }}</P8950>
+        <P8721 para="Preference.RingTones">{{ ringtone in 1 .. cap_ringtone_count ? ringtone : '1' }}</P8721>
+        <P85 para="Preference.NoKeyEntryTimeout">3</P85>
+        <P8672 para="Preference.IncomingCallShowMode">1</P8672>
+        <P8680 para="Preference.WatchDogEnable">1</P8680>
+        <P2532 para="Preference.DisplayMode">0</P2532>
+        <P8660 para="Preference.WallPaper">{{ wallpaper }}</P8660>
+        <P20018 para="Preference.DialFirstDigit">1</P20018>
+        <P8621 para="Preference.LcdLanguage">{{ sangoma.language(language) }}</P8621>
+        <P56203 para="Preference.BusyToneTimer">4</P56203>
+        <P23263 para="Preference.LogoLED">{{ lcd_logo_mode }}</P23263>
+        <P1399 para="Preference.AlertInternalText">ring1</P1399>
+        <P1402 para="Preference.AlertInternalRinger">1</P1402>
+        <P1400 para="Preference.AlertExternalText">ring2</P1400>
+        <P1403 para="Preference.AlertExternalText">2</P1403>
+        <P1401 para="Preference.AlertGroupText">ring3</P1401>
+        <P1404 para="Preference.AlertGroupText">3</P1404>
+        <P20059 para="AlertRingText4">ring4</P20059>
+        <P20060 para="AlertRingText5">ring5</P20060>
+        <P20061 para="AlertRingText6">ring6</P20061>
+        <P20062 para="AlertRingText7">ring7</P20062>
+        <P20063 para="AlertRingText8">ring8</P20063>
+        <P20064 para="AlertRingText9">ring9</P20064>
+        <P20065 para="AlertRingText10">ring10</P20065>
+        <P20066 para="AlertRingFile4">4</P20066>
+        <P20067 para="AlertRingFile5">5</P20067>
+        <P20068 para="AlertRingFile6">6</P20068>
+        <P20069 para="AlertRingFile7">7</P20069>
+        <P20070 para="AlertRingFile8">8</P20070>
+        <P20071 para="AlertRingFile9">9</P20071>
+        <P20072 para="AlertRingFile10">10</P20072>
+        <!--Setting/Features-->
+        <P53100 para="ForwardAlways.OnOff">{{ account_always_fwd_target_1 ? '1' : '0' }}</P53100>
+        <P53101 para="ForwardAlways.Target" >{{ account_always_fwd_target_1 }}</P53101>
+        <P53102 para="ForwardAlways.OnCode">{{ cfalwayson }}</P53102>
+        <P53103 para="ForwardAlways.OffCode">{{ cfalwaysoff }}</P53103>
+        <P53110 para="ForwardBusy.OnOff">{{ account_busy_fwd_target_1 ? '1' : '0' }}</P53110>
+        <P53111 para="ForwardBusy.Target" >{{ account_busy_fwd_target_1 }}</P53111>
+        <P53112 para="ForwardBusy.OnCode">{{ cfbusyon }}</P53112>
+        <P53113 para="ForwardBusy.OffCode">{{ cfbusyoff }}</P53113>
+        <P53120 para="ForwardNoAnswer.OnOff">{{ account_timeout_fwd_target_1 ? '1' : '0' }}</P53120>
+        <P53124 para="ForwardNoAnswer.AfterRingTime">{{ account_cftimeout_1}}</P53124>
+        <P53121 para="ForwardNoAnswer.Target" >{{ account_timeout_fwd_target_1 }}</P53121>
+        <P53122 para="ForwardNoAnswer.OnCode">{{ cftimeouton }}</P53122>
+        <P53123 para="ForwardNoAnswer.OffCode">{{ cftimeoutoff }}</P53123>
+        <P53200 para="DND.OnCode">{{ dndon }}</P53200>
+        <P53201 para="DND.OffCode">{{ dndoff }}</P53201>
+        <P53202 para="DND.AuthNum" />
+
+        <P3201 para="Transfer.BlindTransferOnHook">1</P3201>
+        <P3202 para="Transfer.Semi-AttendedTransfer">1</P3202>
+        <P3204 para="Transfer.AttendedTransferOnHook">1</P3204>
+        <P3205 para="Transfer.TransferModeviaDSSkey">{{ sangoma.dss_transfer(dss_transfer) }}</P3205>
+        <P3207 para="Transfer.HoldTransferOnHook">0</P3207>
+        <P4701 para="CallPickup.DirectCallPickup">1</P4701>
+        <P4745 para="CallPickup.DirectCallPickupCode">{{ pickup_direct }}</P4745>
+        <P4702 para="CallPickup.GroupCallPickup">1</P4702>
+        <P4746 para="CallPickup.GroupCallPickupCode">{{ pickup_group }}</P4746>
+        <P4703 para="CallPickup.VisualAlertForBLFPickup">0</P4703>
+        <P4704 para="CallPickup.AudioAlertForBLFPickup">0</P4704>
+
+        <P8849 para="CallWaiting.OnOff">{{ call_waiting }}</P8849>
+        <P8850 para="CallWaiting.Tone">{{ call_waiting_tone }}</P8850>
+        <P56204 para="AutoRedial.OnOff">{{ auto_redial }}</P56204>
+        <P56205 para="AutoRedial.Interval">3</P56205>
+        <P56206 para="AutoRedial.Times">3</P56206>
+
+        <!--Directory/LDAP-->
+        <P5430 para="LDAP.NameFilter">{{ ldap_name_filter }}</P5430>
+        <P5431 para="LDAP.NumberFilter">{{ ldap_number_filter }}</P5431>
+        <P5432 para="LDAP.ServerAddress">{{ ldap_server | default(hostname) }}</P5432>
+        <P5433 para="LDAP.Port">{{ ldap_port | default('389') }}</P5433>
+        <P5434 para="LDAP.Base">{{ ldap_base }}</P5434>
+        <P5435 para="LDAP.UserName">{{ ldap_user }}</P5435>
+        <P5436 para="LDAP.Password">{{ ldap_password }}</P5436>
+        <P5437 para="LDAP.Max.Hits">50</P5437>
+        <P5440 para="LDAP.DisplayName"></P5440>
+        <P23136 para="Directory.LDAPNameAttributes">{{ ldap_name_attr }}</P23136>
+        <P23137 para="Directory.LDAPNumberAttributes">{{ [ldap_mainphone_number_attr, ldap_mobilephone_number_attr, ldap_otherphone_number_attr] | join(' ') }}</P23137>
+        <P5442 para="LDAP.SearchDelay">200</P5442>
+        <P5441 para="LDAP.Protocol">1</P5441>
+        <P5443 para="LDAP.LookupForIncomingCall">0</P5443>
+        <P5444 para="LDAP.SortingResults">1</P5444>
+
+        <!--Management-->
+        <!--Management/PassWord-->
+        <P8681 para="LogUser.Admin">admin</P8681>
+        <P8682 para="LogUser.User">user</P8682>
+        <P2 para="AdminPassword" >{{ adminpw | default('admin') }}</P2>
+        <P196 para="UserPassword" >{{ userpw | default('1234') }}</P196>
+        <!--Management/AutoProvision-->
+        <P212 para="FirmwareUpGrade.UrgrateMode">{{ provisioning_url_scheme == 'https' ? '3' : '1' }}</P212>
+        <P192 para="FirmwareUpGrade.FirmwareServerPath">{{ firmware_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/firmware/#{firmware_file}?" : "" }}</P192>
+        <P237 para="FirmwareUpGrade.ConfigServerPath">{{ provisioning_url2 }}</P237>
+        <P1145 para="FirmwareUpGrade.AllowDHCPOption">66</P1145>
+        <P145 para="FirmwareUpGrade.ToOverrideServer">0</P145>
+        <P194 para="FirmwareUpGrade.AutoUpgrade">{{ ( provisioning_complete and provisioning_freq == 'never' ) ? '0' : '1' }}</P194>
+        <P193 para="FirmwareUpGrade.CheckUpgradeTimes">{{ provisioning_complete ? sangoma.upgrade_wait_minutes(timezone) : '10' }}</P193>
+        <P232 para="FirmwareUpGrade.FilePrefix"></P232>
+        <P233 para="FirmwareUpGrade.FilePostfix"></P233>
+        <P238 para="FirmwareUpGrade.CheckMode">0</P238>
+
+        <!--Global Config-->
+        <P8951 para="GlobalConfig.LogoText">{{ logo_text | default('Sangoma') }}</P8951>
+
+        <P20058 para="ToneSelectCountry">{{ sangoma.tonezone(tonezone) }}</P20058>
+
+        <P20165 para="FirmwareUpGrade.PnPActive">0</P20165>
+        <P20172 para="Preference.VmTransfer">0</P20172>
+        <P20173 para="Preference.VmTransferCode" />
+        <P20174 para="FirmwareUpGrade.RingUrl">{{ ringtone_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/ringtones/#{ringtone_file}?" : "" }}</P20174>
+        <P20051 para="FirmwareUpGrade.ScreensaverServerURL">{{ cap_screensaver_file and screensaver_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/screensavers/#{screensaver_file}" : "" }}</P20051>
+        <P20052 para="FirmwareUpGrade.WallpaperServerURL">{{ cap_background_file and background_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/backgrounds/#{background_file}" : "" }}</P20052>
+        <P40002 para="FirmwareUpGrade.ExpServer"></P40002>
+
+{% if cap_contrast %}
+        <!-- Undocumented P tag for "LCD Gray Level" for models S4xx S3xx S2xx ranging 0-19 -->
+        <P20995 para="Preference.LcdGrayLevel">{{ contrast != '' ? contrast * 2 : '12' }}</P20995>
+{% endif %}
+        <P20642 para="Preference.InactiveLevel"></P20642>
+        <P20643 para="Preference.ActiveLevel">{{ brightness != '' ? brightness + 1 : '1' }}</P20643>
+
+        <P24053 para="VLAN.WANPort.Active">{{ vlan_id_phone != '' ? '1' : '0' }}</P24053>
+        <P24054 para="VLAN.PCPort.Active">{{ vlan_id_pcport != '' ? '1' : '0' }}</P24054>
+
+    </config>
+</hl_provision>
+{% endautoescape %}

@@ -1,0 +1,11 @@
+# Variables
+{% import 'variables.macros' as variables %}
+
+{% for key in _context|keys|sort %}
+## {{ key }}
+
+Current value: {{ _context[key] }}
+
+Allowed values:
+
+{% endfor %}

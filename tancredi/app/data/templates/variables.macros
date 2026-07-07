@@ -1,0 +1,5 @@
+{% macro allowed_values(varname) %}
+{% set av = {
+    'hostname': ['String', 'The provisioning server DNS name or IP address']
+} %}
+{% endmacro allowed_values %}

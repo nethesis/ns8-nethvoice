@@ -1,0 +1,1046 @@
+{%- import 'akuvoxw.macros' as akuvox -%}
+{%- import 'language.macros' as l10n -%}
+#!version:1.0.0.1
+
+#Configure the url of the firmware file server, support ftp/tftp/http/https protocol, the suffix of the file name must be .rom;
+Config.Firmware.Url = {{ firmware_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/firmware/#{firmware_file}" : "" }}
+
+#Configure the url of the custom ringtone file server, support ftp/tftp/http/https protocol, the suffix of the file name must be .wav;
+Config.Ringtone.Url =  {{ ringtone_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/ringtones/#{ringtone_file}?" : "" }}
+
+#Configure the url of the contact file server, support ftp/tftp/http/https protocol, the suffix of the file name must be .xml;
+Config.Contact.Url = 
+
+#configure the url of Extd(Em53 or Em63), support ftp/tftp/http/https protocol, the suffix of the file name must be .rom;
+Config.Extd.Url = 
+
+#configure the url of client certificate
+Config.Certificate.01.Url=
+Config.Certificate.02.Url=
+Config.Certificate.03.Url=
+Config.Certificate.04.Url=
+Config.Certificate.05.Url=
+Config.Certificate.06.Url=
+Config.Certificate.07.Url=
+Config.Certificate.08.Url=
+Config.Certificate.09.Url=
+Config.Certificate.10.Url=
+
+# Autoprovision Configuration
+
+Config.Autoprovision.GENERAL.Url = {{ provisioning_url2 }}
+Config.Autoprovision.GENERAL.UserName = 
+Config.Autoprovision.GENERAL.Pwd = 
+Config.Autoprovision.GENERAL.Priority = 0
+Config.Autoprovision.GENERAL.CustomEnable = 
+
+Config.Autoprovision.MODE.Mode = {{ provisioning_freq == 'never' ? '1' : '3' }}
+
+Config.Autoprovision.SCHEDULE.DayOfWeek = 1~5
+Config.Autoprovision.SCHEDULE.SomeDayOfWeek = 
+Config.Autoprovision.SCHEDULE.HourOfDay = 4
+Config.Autoprovision.SCHEDULE.MinuteOfHour = 0
+Config.Autoprovision.SCHEDULE.SecondOfMinute = 0
+
+Config.Autoprovision.REBOOT_MODE.Mode = 0
+
+Config.Autoprovision.REBOOT_SCHEDULE.DayOfWeek = 0
+Config.Autoprovision.REBOOT_SCHEDULE.HourOfDay = 0
+Config.Autoprovision.REBOOT_SCHEDULE.Edit = 0
+
+Config.Autoprovision.AES.Key16 = 
+Config.Autoprovision.AES.Key16Mac = 
+
+Config.Autoprovision.PNP.Enable = 0
+Config.Autoprovision.PNP.Url = 
+
+Config.Autoprovision.DHCP_OPTION.Enable = 1
+Config.Autoprovision.DHCP_OPTION.CustomId = 
+Config.Autoprovision.DHCP_OPTION.CustomValue = 
+
+Config.Autoprovision.RETRY_TIMES.Times = 0
+
+Config.Autoprovision.REDIRECT.Url = 
+Config.Autoprovision.REDIRECT.Enable = 0
+
+# Network Configuration
+
+Config.Network.LAN.Type = 0
+Config.Network.LAN.StaticIP = 
+Config.Network.LAN.SubnetMask = 
+Config.Network.LAN.DefaultGateway = 
+Config.Network.LAN.PrimaryDNS = 
+Config.Network.LAN.SecondaryDNS = 
+Config.Network.LAN.Enable = 1
+Config.Network.LAN.UseStaticDNS = 0
+
+Config.Network.PPPOE.User = 
+Config.Network.PPPOE.Pwd = 
+
+Config.Network.PC.Type = 1
+Config.Network.PC.RouterIP = 10.0.0.1
+Config.Network.PC.SubnetMask = 255.255.255.0
+Config.Network.PC.EnableDHCP = 1
+Config.Network.PC.StartIP = 10.0.0.10
+Config.Network.PC.EndIP = 10.0.0.100
+
+Config.Network.8021X.ModeOf8021X = 0
+Config.Network.8021X.Identity = 
+Config.Network.8021X.PwdMd5 = 
+
+Config.Network.RTPPORT.Max = 12000
+Config.Network.RTPPORT.Min = 11800
+
+Config.Network.QOS.SignalTos = 40
+Config.Network.QOS.RtpTos = 40
+
+Config.Network.LLDP.LLDPEnable = 0
+Config.Network.LLDP.Interval = 30
+
+Config.Network.VLAN.LanVlanEnable = {{ vlan_id_phone > 0 ? '1' : '0' }}
+Config.Network.VLAN.LanVid = {{ vlan_id_phone > 0 and vlan_id_phone < 4095 ? vlan_id_phone : '1' }}
+Config.Network.VLAN.LanPriority = 0
+Config.Network.VLAN.PcVlanEnable = {{ vlan_id_pcport > 0 ? '1' : '0' }}
+Config.Network.VLAN.PcVid = {{ vlan_id_pcport > 0 and vlan_id_pcport < 4095 ? vlan_id_pcport : '1' }}
+Config.Network.VLAN.PcPriority = 0
+
+Config.Network.SNMP.Enable = 0
+Config.Network.SNMP.Port = 
+Config.Network.SNMP.TrustedAddress = 
+
+Config.Network.VPN.Enable = 0
+
+# TR069 Configuration
+
+Config.TR069.General.Enable = 0
+Config.TR069.General.Verison = 0
+Config.TR069.General.ServerType = 0
+
+;Config.TR069.DeviceInfo.ProvisioningCode = 
+Config.TR069.DeviceInfo.DeviceName = 
+Config.TR069.DeviceInfo.Password = 
+Config.TR069.DeviceInfo.ErrorNumber = 
+Config.TR069.DeviceInfo.LongConnection = 
+Config.TR069.DeviceInfo.Description = 
+Config.TR069.DeviceInfo.LongConnectionAddr = 
+
+Config.TR069.ManagementServer.URL = 
+Config.TR069.ManagementServer.Username = 
+Config.TR069.ManagementServer.Password = 
+Config.TR069.ManagementServer.PeriodicInformEnable = 
+Config.TR069.ManagementServer.PeriodicInformInterval = 1800
+Config.TR069.ManagementServer.PeriodicInformTime = 
+;Config.TR069.ManagementServer.ParameterKey = 
+Config.TR069.ManagementServer.ConnectionRequestURL = 
+Config.TR069.ManagementServer.ConnectionRequestUsername = 
+Config.TR069.ManagementServer.ConnectionRequestPassword = 
+Config.TR069.ManagementServer.STUNEnable = 0
+Config.TR069.ManagementServer.STUNServerAddress = 
+Config.TR069.ManagementServer.STUNServerPort = 
+Config.TR069.ManagementServer.STUNUsername = 
+Config.TR069.ManagementServer.STUNPassword = 
+Config.TR069.ManagementServer.STUNMaximumKeepAlivePeriod = 
+Config.TR069.ManagementServer.STUNMinimumKeepAlivePeriod = 
+Config.TR069.ManagementServer.NATDetected = 0
+Config.TR069.ManagementServer.UDPConnectionRequestAddress = 
+Config.TR069.ManagementServer.UDPConnectionRequestAddressNotificationLimit = 
+Config.TR069.ManagementServer.UpgradesManaged = 
+Config.TR069.ManagementServer.DHCPCustomId = 
+
+;Config.TR069.Reboot.CmdKey = 
+
+Config.TR069.Download.Enable = 
+;Config.TR069.Download.CmdKey = 
+Config.TR069.Download.StartTime = 
+Config.TR069.Download.Url = 
+
+Config.TR069.UserInfo.SubID = 
+Config.TR069.UserInfo.AuthenticationType = 
+
+Config.TR069.IMSAKA_Ki.KiValue = 
+Config.TR069.IMSAKA_Ki.TemplateID = 
+
+Config.TR069.IMSAKA_OPc.OPcValue = 
+Config.TR069.IMSAKA_OPc.TemplateID = 
+
+Config.TR069.IMPU.Priority = 
+Config.TR069.IMPU.Service = 
+Config.TR069.IMPU.Port = 
+
+Config.TR069.IRS.IMPU = 
+
+Config.TR069.WildcardedRegInfo.WildcardedGroupID = 
+Config.TR069.WildcardedRegInfo.WildcardedIndication = 
+
+Config.TR069.DeviceInfo.X_00D0F8_ConfigVersion = 
+
+
+{% for line in 1..3 %}
+{% if _context['account_username_' ~ line] is defined %}
+
+
+# Account{{ line }} Configuration
+
+Config.Account{{ line }}.GENERAL.Enable = 1
+Config.Account{{ line }}.GENERAL.Label = {{ _context['account_display_name_' ~ line]|default }}
+Config.Account{{ line }}.GENERAL.DisplayName = {{ _context['account_display_name_' ~ line]|default }}
+Config.Account{{ line }}.GENERAL.UserName = {{ _context['account_username_' ~ line]|default }}
+Config.Account{{ line }}.GENERAL.AuthName = {{ _context['account_username_' ~ line]|default }}
+Config.Account{{ line }}.GENERAL.Pwd = {{ _context['account_password_' ~ line]|default }}
+
+Config.Account{{ line }}.SIP.Server = {{ hostname }}
+Config.Account{{ line }}.SIP.Server2 = 
+Config.Account{{ line }}.SIP.Port = {{ _context['account_encryption_' ~ line] ? sip_tls_port : sip_udp_port }}
+Config.Account{{ line }}.SIP.Port2 = 5060
+Config.Account{{ line }}.SIP.TransType = {{ _context['account_encryption_' ~ line] ? '2' : '0'  }}
+Config.Account{{ line }}.SIP.ListenPortMin = 1024
+Config.Account{{ line }}.SIP.ListenPortMax = 65535
+
+Config.Account{{ line }}.OUTPROXY.Enable = {{ _context['outbound_proxy_' ~ line] is defined and _context['outbound_proxy_' ~ line] != '' ? '1' : '0' }}
+Config.Account{{ line }}.OUTPROXY.Server = {{ _context['outbound_proxy_' ~ line] is defined ? _context['outbound_proxy_' ~ line] : '' }}
+Config.Account{{ line }}.OUTPROXY.Port = {{ _context['outbound_proxy_port_' ~ line] is defined ? _context['outbound_proxy_port_' ~ line] : _context['account_encryption_' ~ line] ? '5061' : '5060' }}
+Config.Account{{ line }}.OUTPROXY.BakServer = {{ _context['outbound_proxy2_' ~ line] is defined ? _context['outbound_proxy2_' ~ line] : '' }}
+Config.Account{{ line }}.OUTPROXY.BakPort = {{ _context['outbound_proxy2_port_' ~ line] is defined ? _context['outbound_proxy2_port' ~ line] : _context['account_encryption_' ~ line] ? '5061' : '5060' }}
+Config.Account{{ line }}.OUTPROXY.DHCPOption = 0
+
+Config.Account{{ line }}.STUN.Enable = 0
+Config.Account{{ line }}.STUN.Server = 
+Config.Account{{ line }}.STUN.Port = 3478
+
+Config.Account{{ line }}.ENCRYPTION.SRTPEncryption = {{ _context['account_encryption_' ~ line] ? '2' : '0' }}
+Config.Account{{ line }}.ENCRYPTION.SRTPEncryptionAlg = 0
+
+Config.Account{{ line }}.DTMF.Type = {{ akuvox.dtmf(_context['account_dtmf_type_' ~ line]) }}
+Config.Account{{ line }}.DTMF.Payload = 101
+Config.Account{{ line }}.DTMF.InfoType = 0
+Config.Account{{ line }}.DTMF.Duration = 300
+Config.Account{{ line }}.DTMF.Power = 
+Config.Account{{ line }}.DTMF.Payload = 101
+
+Config.Account{{ line }}.NAT.UdpKeepEnable = 1
+Config.Account{{ line }}.NAT.UdpKeepInterval = 30
+Config.Account{{ line }}.NAT.Rport = 0
+
+Config.Account{{ line }}.BLF.SubscribePeriod = 1800
+Config.Account{{ line }}.BLF.BlfListUri = 
+Config.Account{{ line }}.BLF.BlfNotifyParseType = 1
+Config.Account{{ line }}.BLF.BlfListCode = 
+Config.Account{{ line }}.BLF.BlfListBargeInCode = 
+
+Config.Account{{ line }}.VOICEMSG.Number = {{ _context['account_voicemail_' ~ line]|default }}
+
+Config.Account{{ line }}.MUSIC_SERVER.Uri = 
+Config.Account{{ line }}.MUSIC_SERVER.Enable = 0
+
+Config.Account{{ line }}.ANONYMOUS_CALL.Enable = 0
+Config.Account{{ line }}.ANONYMOUS_CALL.OnCode = 
+Config.Account{{ line }}.ANONYMOUS_CALL.OffCode = 
+Config.Account{{ line }}.ANONYMOUS_CALL.PrivacyHeaderValue = id
+
+Config.Account{{ line }}.REJECT_ANONYMOUSCALL.Enable = 0
+Config.Account{{ line }}.REJECT_ANONYMOUSCALL.OnCode = 
+Config.Account{{ line }}.REJECT_ANONYMOUSCALL.OffCode = 
+
+Config.Account{{ line }}.REG.Timeout = 3600
+Config.Account{{ line }}.REG.Timeout2 = 3600
+
+Config.Account{{ line }}.CONFERENCE.Type = 0
+Config.Account{{ line }}.CONFERENCE.Uri = 
+
+Config.Account{{ line }}.AUTO_ANSWER.Enable = 0
+
+Config.Account{{ line }}.SESSION.EnableTimer = 0
+Config.Account{{ line }}.SESSION.Interval = 7200
+Config.Account{{ line }}.SESSION.Refresher = 0
+
+Config.Account{{ line }}.SUBSCRIBE.SubscribeACDExpire = 1800
+Config.Account{{ line }}.SUBSCRIBE.SubsribeMWI = 1
+Config.Account{{ line }}.SUBSCRIBE.SubscribeMWIExpire = 3600
+Config.Account{{ line }}.SUBSCRIBE.SubscribeFKSSExpire = 1800
+
+Config.Account{{ line }}.CALL.Enable{{ line }} = 0
+Config.Account{{ line }}.CALL.CIDSource = 5
+Config.Account{{ line }}.CALL.Ptime = 20
+Config.Account{{ line }}.CALL.UserPhone = 0
+Config.Account{{ line }}.CALL.RdrInfoDetection = 0
+Config.Account{{ line }}.CALL.PreventSIPHacking = 0
+Config.Account{{ line }}.CALL.UseRemoteCodec = 1
+
+Config.Account{{ line }}.FEATURE_DND.Enable = {{ _context['account_dnd_enable_' ~ line] ? '1' : '0' }}
+Config.Account{{ line }}.FEATURE_DND.OnCode = {{ dndon }}
+Config.Account{{ line }}.FEATURE_DND.OffCode = {{ dndoff }}
+Config.Account{{ line }}.FEATURE_DND.ReturnCode = 486
+
+Config.Account{{ line }}.FEATURE_AWAY.Enable = 
+
+Config.Account{{ line }}.FEATURE_FORWARD_ALWAYS.Enable = {{ _context['account_always_fwd_target_' ~ line] ? '1' : '0' }}
+Config.Account{{ line }}.FEATURE_FORWARD_ALWAYS.LastEnable = 0
+Config.Account{{ line }}.FEATURE_FORWARD_ALWAYS.Target = {{ _context['account_always_fwd_target_' ~ line]|default }}
+Config.Account{{ line }}.FEATURE_FORWARD_ALWAYS.OnCode = {{ cfalwayson }}
+Config.Account{{ line }}.FEATURE_FORWARD_ALWAYS.OffCode = {{ cfalwaysoff }}
+
+Config.Account{{ line }}.FEATURE_FORWARD_BUSY.Enable = {{ _context['account_busy_fwd_target_' ~ line] ? '1' : '0' }}
+Config.Account{{ line }}.FEATURE_FORWARD_BUSY.LastEnable = 0
+Config.Account{{ line }}.FEATURE_FORWARD_BUSY.Target = {{ _context['account_busy_fwd_target_' ~ line]|default }}
+Config.Account{{ line }}.FEATURE_FORWARD_BUSY.OnCode = {{ cfbusyon }}
+Config.Account{{ line }}.FEATURE_FORWARD_BUSY.OffCode = {{ cfbusyoff }}
+
+Config.Account{{ line }}.FEATURE_FORWARD_TIMEOUT.Enable = {{ _context['account_timeout_fwd_target_' ~ line] ? '1' : '0' }}
+Config.Account{{ line }}.FEATURE_FORWARD_TIMEOUT.LastEnable = 0
+Config.Account{{ line }}.FEATURE_FORWARD_TIMEOUT.Target = {{ _context['account_timeout_fwd_target_' ~ line]|default }}
+Config.Account{{ line }}.FEATURE_FORWARD_TIMEOUT.OnCode = {{ cftimeouton }}
+Config.Account{{ line }}.FEATURE_FORWARD_TIMEOUT.OffCode = {{ cftimeoutoff }}
+Config.Account{{ line }}.FEATURE_FORWARD_TIMEOUT.TimeOut = {{ _context['account_cftimeout_' ~ line] | default('2') }}
+
+Config.Account{{ line }}.FALLBACK.RedundancyType = 1
+Config.Account{{ line }}.FALLBACK.Timeout = 60
+Config.Account{{ line }}.FALLBACK.DetectMethod = 1
+
+Config.Account{{ line }}.Audio0.Enable = 1
+Config.Account{{ line }}.Audio0.Name = G729
+Config.Account{{ line }}.Audio0.Priority = 1
+Config.Account{{ line }}.Audio0.Payload = 18
+
+Config.Account{{ line }}.Audio1.Enable = 1
+Config.Account{{ line }}.Audio1.Name = PCMU
+Config.Account{{ line }}.Audio1.Priority = 3
+Config.Account{{ line }}.Audio1.Payload = 0
+
+Config.Account{{ line }}.Audio2.Enable = 1
+Config.Account{{ line }}.Audio2.Name = PCMA
+Config.Account{{ line }}.Audio2.Priority = 4
+Config.Account{{ line }}.Audio2.Payload = 8
+
+Config.Account{{ line }}.Audio3.Enable = 0
+Config.Account{{ line }}.Audio3.Name = G723_53
+Config.Account{{ line }}.Audio3.Priority = 0
+Config.Account{{ line }}.Audio3.Payload = 4
+
+Config.Account{{ line }}.Audio4.Enable = 0
+Config.Account{{ line }}.Audio4.Name = G723_63
+Config.Account{{ line }}.Audio4.Priority = 0
+Config.Account{{ line }}.Audio4.Payload = 4
+
+Config.Account{{ line }}.Audio5.Enable = 1
+Config.Account{{ line }}.Audio5.Name = G722
+Config.Account{{ line }}.Audio5.Priority = 5
+Config.Account{{ line }}.Audio5.Payload = 9
+
+Config.Account{{ line }}.Audio6.Enable = 0
+Config.Account{{ line }}.Audio6.Name = G726-16
+Config.Account{{ line }}.Audio6.Priority = 0
+Config.Account{{ line }}.Audio6.Payload = 112
+
+Config.Account{{ line }}.Audio7.Enable = 0
+Config.Account{{ line }}.Audio7.Name = G726-24
+Config.Account{{ line }}.Audio7.Priority = 0
+Config.Account{{ line }}.Audio7.Payload = 102
+
+Config.Account{{ line }}.Audio8.Enable = 0
+Config.Account{{ line }}.Audio8.Name = G726-32
+Config.Account{{ line }}.Audio8.Priority = 0
+Config.Account{{ line }}.Audio8.Payload = 2
+
+Config.Account{{ line }}.Audio9.Enable = 1
+Config.Account{{ line }}.Audio9.Name = opus
+Config.Account{{ line }}.Audio9.Priority = 7
+Config.Account{{ line }}.Audio9.Payload = 111
+
+Config.Account{{ line }}.Audio10.Enable = 0
+Config.Account{{ line }}.Audio10.Name = iLBC_13_3
+Config.Account{{ line }}.Audio10.Priority = 0
+Config.Account{{ line }}.Audio10.Payload = 97
+
+Config.Account{{ line }}.Audio11.Enable = 0
+Config.Account{{ line }}.Audio11.Name = iLBC_15_2
+Config.Account{{ line }}.Audio11.Priority = 0
+Config.Account{{ line }}.Audio11.Payload = 97
+
+Config.Account{{ line }}.Audio12.Enable = 0
+Config.Account{{ line }}.Audio12.Name = NONE
+Config.Account{{ line }}.Audio12.Priority = 0
+Config.Account{{ line }}.Audio12.Payload = 0
+
+Config.Account{{ line }}.AOC.AocEnable = 0
+
+Config.Account{{ line }}.RINGTONE.Type = {{ ringtone }}
+
+Config.Account{{ line }}.ESCAPE_CHARACTER.Enable = 1
+
+Config.Account{{ line }}.ADVANCED.ShowMissedCall = 1
+
+Config.Account{{ line }}.HOTELING.Enable = 0
+Config.Account{{ line }}.HOTELING.User = 
+Config.Account{{ line }}.HOTELING.Password = 9YazKJCEs3zHN8GJLSgIu6GLs7v3gjMtosPwoiyH8YZAXscPkoRCDzSLQMgX
+Config.Account{{ line }}.HOTELING.AutoLogin = 0
+
+Config.Account{{ line }}.REMOTE_USER_AGENT.Separator = 
+Config.Account{{ line }}.REMOTE_USER_AGENT.DoorPhone = 
+Config.Account{{ line }}.REMOTE_USER_AGENT.NumberList_DoorPhone = 
+{% endif %}
+{% endfor %}
+
+# Em Configuration
+
+Config.Em1.SETTING.BackLightLevel = {{ ( brightness == '0' or brightness >= 1 ) ? brightness + 1 }}
+Config.Em1.SETTING.BackLightTime = {{ backlight_time | default('0') }}
+Config.Em1.SETTING.Contrast = {{ ( contrast == '0' or contrast >= 1 ) ? contrast + 1 }}
+Config.Em1.SETTING.Interval = 
+Config.Em1.SETTING.Mode = 1
+
+
+{% if cap_expkey_count > 0 and cap_expmodule_count > 0 %}
+{% set expkey = 1 %}
+{% for module in 1..cap_expmodule_count %}
+{% for number in 1..cap_expkey_count %}
+Config.Em{{ module }}.EXTKEY{{ number }}.Type = {{ akuvox.linekey_type(_context['expkey_type_' ~ expkey]) }}
+Config.Em{{ module }}.EXTKEY{{ number }}.Label = {{ _context['expkey_label_' ~ expkey] }}
+Config.Em{{ module }}.EXTKEY{{ number }}.Param1 =
+{%- if _context['expkey_type_' ~ expkey] == 'pickup' %}
+ {{ pickup_direct }}
+{% elseif _context['expkey_type_' ~ expkey] == 'group_pickup' %}
+ {{ pickup_group }}
+{%- else %}
+{{ _context['expkey_value_' ~ expkey] }}
+{% endif %}
+
+Config.Em{{ module }}.EXTKEY{{ number }}.Param2 = 1
+{% if _context['expkey_type_' ~ expkey] == "blf" -%}
+Config.Em{{ module }}.EXTKEY{{ number }}.Param3 = {{ pickup_direct }}
+{%- else %}
+Config.Em{{ module }}.EXTKEY{{ number }}.Param3 =
+{% endif %}
+
+Config.Em{{ module }}.EXTKEY{{ number }}.Param4 =
+Config.Em{{ module }}.EXTKEY{{ number }}.Param5 =
+Config.Em{{ module }}.EXTKEY{{ number }}.Param6 =
+
+{% set expkey =  expkey + 1 %}
+{% endfor %}
+{% endfor %}
+{% endif %}
+
+# Call Forward Configuration
+
+Config.Forward.ALWAYS.Enable = {{ _context['account_always_fwd_target_1'] ? '1' : '0' }}
+Config.Forward.ALWAYS.LastEnable = 0
+Config.Forward.ALWAYS.Target = {{ account_always_fwd_target_1 }}
+Config.Forward.ALWAYS.OnCode = {{ cfalwayson }}
+Config.Forward.ALWAYS.OffCode = {{ cfalwaysoff }}
+
+Config.Forward.BUSY.Enable = {{ account_busy_fwd_target_1 ? '1' : '0' }}
+Config.Forward.BUSY.LastEnable = 0
+Config.Forward.BUSY.Target = {{ account_busy_fwd_target_1 }}
+Config.Forward.BUSY.OnCode = {{ cfbusyon }}
+Config.Forward.BUSY.OffCode = {{ cfbusyoff }}
+
+Config.Forward.TIMEOUT.Enable = {{ account_timeout_fwd_target_1 ? '1' : '0' }}
+Config.Forward.TIMEOUT.LastEnable = 0
+Config.Forward.TIMEOUT.Target = {{ account_timeout_fwd_target_1 }}
+Config.Forward.TIMEOUT.Timeout = {{ account_cftimeout_1}}
+Config.Forward.TIMEOUT.OnCode = {{ cftimeouton }}
+Config.Forward.TIMEOUT.OffCode = {{ cftimeoutoff }}
+
+Config.Forward.CALLPARK.Enable = 0
+Config.Forward.CALLPARK.Target = 
+Config.Forward.CALLPARK.Line = 0
+
+Config.Forward.FORWARDMODE.Mode = 1
+Config.Forward.FORWARDMODE.FeatureSync = 1
+
+Config.Forward.ADVANCED.UseFwdAsTransfer = 0
+
+# BroadSoft Configuration
+
+Config.BroadSoft.BROADSOFT0.DisplayName = 
+Config.BroadSoft.BROADSOFT0.Server = 
+Config.BroadSoft.BROADSOFT0.Port = 
+Config.BroadSoft.BROADSOFT0.User = 
+Config.BroadSoft.BROADSOFT0.Pwd = Mg+J/olcLHwVNEbCnJYIhjaaLYeHQZUtQMGQi0NGHRWcRpvWXqQVoZs2M8ic
+
+Config.BroadSoft.BROADSOFT1.DisplayName = 
+Config.BroadSoft.BROADSOFT1.Server = 
+Config.BroadSoft.BROADSOFT1.Port = 
+Config.BroadSoft.BROADSOFT1.User = 
+Config.BroadSoft.BROADSOFT1.Pwd = hrdC6sXIu3wtXpaIXGiSwRWHgvXBAzSHCCzCoZvIMi2ChgPHt5y3lR2SpLND
+
+Config.BroadSoft.BROADSOFT2.DisplayName = 
+Config.BroadSoft.BROADSOFT2.Server = 
+Config.BroadSoft.BROADSOFT2.Port = 
+Config.BroadSoft.BROADSOFT2.User = 
+Config.BroadSoft.BROADSOFT2.Pwd = FzNeXpAom3wsXDacxTOCxAMylgOQ9aEPRhVh/oI0NrdC9y1GQ8Kbs0GiF8NQ
+
+Config.BroadSoft.BROADSOFT3.DisplayName = 
+Config.BroadSoft.BROADSOFT3.Server = 
+Config.BroadSoft.BROADSOFT3.Port = 
+Config.BroadSoft.BROADSOFT3.User = 
+Config.BroadSoft.BROADSOFT3.Pwd = UMdhKDQXQnyilTbwUDeHwzTHm8OcnMjxXILEt6JhA/UDpDco8EAdLQjwt0Pw
+
+Config.BroadSoft.BROADSOFT4.DisplayName = 
+Config.BroadSoft.BROADSOFT4.Server = 
+Config.BroadSoft.BROADSOFT4.Port = 
+Config.BroadSoft.BROADSOFT4.User = 
+Config.BroadSoft.BROADSOFT4.Pwd = KOrDLTLEHXw3MyxcM14dw6JDx9aVCBU29YkX8MJB1sQ2osPE6ojH6pC3m0Ez
+
+Config.BroadSoft.BROADSOFT5.DisplayName = 
+Config.BroadSoft.BROADSOFT5.Server = 
+Config.BroadSoft.BROADSOFT5.Port = 
+Config.BroadSoft.BROADSOFT5.User = 
+Config.BroadSoft.BROADSOFT5.Pwd = 9ZuEQxdhiHw2HfD3lve3QPCEiZwzQJUPpEZAxYmIKMGh9RWbXMGVM0E2N0No
+
+Config.BroadSoft.UPDATECONTACT.Enable = 1
+Config.BroadSoft.UPDATECONTACT.Interval = 3600
+
+# LDAP Configuration
+
+Config.Ldap.LDAP.NameFilter = {{ ldap_name_filter | preg_replace('/%/', '#') }}
+Config.Ldap.LDAP.NumberFilter = {{ ldap_number_filter | preg_replace('/%/', '#') }}
+Config.Ldap.LDAP.Server = {{ ldap_server | default(hostname) }}
+Config.Ldap.LDAP.Port = {{ ldap_port | default( ldap_tls == 'ldaps' ? '636' : '389' ) }}
+Config.Ldap.LDAP.Root = {{ ldap_base }}
+Config.Ldap.LDAP.User = {{ ldap_user }}
+Config.Ldap.LDAP.Pwd = {{ ldap_password }}
+Config.Ldap.LDAP.MaxHits = 50
+Config.Ldap.LDAP.NameAttr = {{ ldap_name_attr }}
+Config.Ldap.LDAP.NumberAttr = {{ [ldap_mainphone_number_attr, ldap_mobilephone_number_attr, ldap_otherphone_number_attr] | join(' ') }}
+Config.Ldap.LDAP.DisplayName = {{ ldap_name_display | preg_replace('/%/', '') }}
+Config.Ldap.LDAP.Version = 
+Config.Ldap.LDAP.SearchDelay = 1000
+Config.Ldap.LDAP.Enable = 1
+
+# Remote Phone Book Configuration
+
+Config.RemotePhoneBook.REMOTE_PHONE_BOOK0.DisplayName = 
+Config.RemotePhoneBook.REMOTE_PHONE_BOOK0.Url = 
+
+Config.RemotePhoneBook.REMOTE_PHONE_BOOK1.DisplayName = 
+Config.RemotePhoneBook.REMOTE_PHONE_BOOK1.Url = 
+
+Config.RemotePhoneBook.REMOTE_PHONE_BOOK2.DisplayName = 
+Config.RemotePhoneBook.REMOTE_PHONE_BOOK2.Url = 
+
+Config.RemotePhoneBook.REMOTE_PHONE_BOOK3.DisplayName = 
+Config.RemotePhoneBook.REMOTE_PHONE_BOOK3.Url = 
+
+Config.RemotePhoneBook.REMOTE_PHONE_BOOK4.DisplayName = 
+Config.RemotePhoneBook.REMOTE_PHONE_BOOK4.Url = 
+
+Config.RemotePhoneBook.GENERAL.Search = 1
+Config.RemotePhoneBook.GENERAL.FlashInterval = 3600
+
+# AreaCode Configuration
+
+Config.AreaCode.GENERAL.Code = 
+Config.AreaCode.GENERAL.MinLen = 1
+Config.AreaCode.GENERAL.MaxLen = 1
+Config.AreaCode.GENERAL.Account = 0
+
+# Feature Configuration
+
+Config.Features.CALL_WAITING.Enable = {{ _context['account_call_waiting_' ~ line] ? '1' : '0' }}
+Config.Features.CALL_WAITING.PlayTone = 1
+Config.Features.CALL_WAITING.OnCode = {{ call_waiting_on }}
+Config.Features.CALL_WAITING.OffCode = {{ call_waiting_off }}
+
+Config.Features.HOTLINE.Enable = 0
+Config.Features.HOTLINE.Number = 
+Config.Features.HOTLINE.Delay = 0
+
+Config.Features.AUTO_REDIAL.Enable = 0
+Config.Features.AUTO_REDIAL.Interval = 10
+Config.Features.AUTO_REDIAL.Times = 3
+
+Config.Features.DND.Enable = {{ _context['account_dnd_enable_1'] ? '1' : '0' }}
+Config.Features.DND.ReturnCode = 486
+Config.Features.DND.OnCode = {{ dndon }}
+Config.Features.DND.OffCode = {{ dndoff }}
+
+Config.Features.REJECT.ReturnCode = 603
+Config.Features.REJECT.EnableReasonCause = 1
+
+Config.Features.INTERCOM.Enable = 1
+Config.Features.INTERCOM.Mute = 0
+
+Config.Features.CALL_PICKUP.VisualAlert = 
+
+Config.Features.SPEEDDIAL.Label01 = 
+Config.Features.SPEEDDIAL.Label02 = 
+Config.Features.SPEEDDIAL.Label03 = 
+Config.Features.SPEEDDIAL.Label04 = 
+Config.Features.SPEEDDIAL.Label05 = 
+Config.Features.SPEEDDIAL.Label06 = 
+Config.Features.SPEEDDIAL.Label07 = 
+Config.Features.SPEEDDIAL.Label08 = 
+Config.Features.SPEEDDIAL.Label09 = 
+Config.Features.SPEEDDIAL.Label10 = 
+Config.Features.SPEEDDIAL.Label11 = 
+Config.Features.SPEEDDIAL.Label12 = 
+Config.Features.SPEEDDIAL.Num01 = 
+Config.Features.SPEEDDIAL.Num02 = 
+Config.Features.SPEEDDIAL.Num03 = 
+Config.Features.SPEEDDIAL.Num04 = 
+Config.Features.SPEEDDIAL.Num05 = 
+Config.Features.SPEEDDIAL.Num06 = 
+Config.Features.SPEEDDIAL.Num07 = 
+Config.Features.SPEEDDIAL.Num08 = 
+Config.Features.SPEEDDIAL.Num09 = 
+Config.Features.SPEEDDIAL.Num10 = 
+Config.Features.SPEEDDIAL.Num11 = 
+Config.Features.SPEEDDIAL.Num12 = 
+Config.Features.SPEEDDIAL.Line01 = 
+Config.Features.SPEEDDIAL.Line02 = 
+Config.Features.SPEEDDIAL.Line03 = 
+Config.Features.SPEEDDIAL.Line04 = 
+Config.Features.SPEEDDIAL.Line05 = 
+Config.Features.SPEEDDIAL.Line06 = 
+Config.Features.SPEEDDIAL.Line07 = 
+Config.Features.SPEEDDIAL.Line08 = 
+Config.Features.SPEEDDIAL.Line09 = 
+Config.Features.SPEEDDIAL.Line10 = 
+Config.Features.SPEEDDIAL.Line11 = 
+Config.Features.SPEEDDIAL.Line12 = 
+
+Config.Features.DIALNOW.Delay = 3
+Config.Features.DIALNOW.DialAll = 1
+Config.Features.DIALNOW.DialAllForHandfree = 0
+Config.Features.DIALNOW.DialAllForHeadset = 0
+Config.Features.DIALNOW.OffHookDialOut = 0
+
+Config.Features.AUTOANSWER.Delay = 0
+
+Config.Features.Others.EarlyDTMF = 1
+Config.Features.Others.ViewDTMFNum = 1
+Config.Features.Others.ViewHistoryType = 0
+
+Config.Features.ACD.ACDAutoAvailable = 0
+Config.Features.ACD.ACDAutoAvailableTime = 90
+Config.Features.ACD.ACDAutoLogin = 0
+
+Config.Features.ACTIONURL.SetupCompleted = 
+Config.Features.ACTIONURL.Registered = 
+Config.Features.ACTIONURL.Unregistered = 
+Config.Features.ACTIONURL.RegisterFailed = 
+Config.Features.ACTIONURL.OffHook = 
+Config.Features.ACTIONURL.OnHook = 
+Config.Features.ACTIONURL.IncomingCall = 
+Config.Features.ACTIONURL.OutgoingCall = 
+Config.Features.ACTIONURL.Established = 
+Config.Features.ACTIONURL.Terminated = 
+Config.Features.ACTIONURL.OpenDND = 
+Config.Features.ACTIONURL.CloseDND = 
+Config.Features.ACTIONURL.OpenAlwaysForward = 
+Config.Features.ACTIONURL.CloseAlwaysForward = 
+Config.Features.ACTIONURL.OpenBusyForward = 
+Config.Features.ACTIONURL.CloseBusyForward = 
+Config.Features.ACTIONURL.OpenNoAnswerForward = 
+Config.Features.ACTIONURL.CloseNoAnswerForward = 
+Config.Features.ACTIONURL.TransferCall = 
+Config.Features.ACTIONURL.BlindTransfer = 
+Config.Features.ACTIONURL.AttendedTransfer = 
+Config.Features.ACTIONURL.Hold = 
+Config.Features.ACTIONURL.UnHold = 
+Config.Features.ACTIONURL.Mute = 
+Config.Features.ACTIONURL.UnMute = 
+Config.Features.ACTIONURL.MissedCall = 
+Config.Features.ACTIONURL.IPChanged = 
+Config.Features.ACTIONURL.ForwardInComingCall = 
+Config.Features.ACTIONURL.RejectInComingCall = 
+Config.Features.ACTIONURL.AnswerNewInCall = 
+Config.Features.ACTIONURL.TransferFinished = 
+Config.Features.ACTIONURL.TransferFailed = 
+Config.Features.ACTIONURL.IdleToBusy = 
+Config.Features.ACTIONURL.BusyToIdle = 
+Config.Features.ACTIONURL.Enable = 0
+
+Config.Features.REMOTECONTROL.ActionURIAllowIPList = 
+
+Config.Features.SENDKEY.KeySendType = 1
+
+Config.Features.CALLCOMPELETE.Enable = 0
+
+Config.Features.DIALSEARCH.Enable = 1
+Config.Features.DIALSEARCH.Delay = 800
+
+Config.Features.BLF.CallType = 3
+Config.Features.BLF.CallMode = 3
+Config.Features.BLF.ToneType = 0
+Config.Features.BLF.DisplayMode = 2
+
+Config.Features.BLFLED.TerminateForDual = 1
+Config.Features.BLFLED.ProceedingForDual = 6
+Config.Features.BLFLED.ConfirmedForDual = 4
+Config.Features.BLFLED.ConfirmedHoldForDual = 4
+Config.Features.BLFLED.TerminateForGreen = 0
+Config.Features.BLFLED.ProceedingForGreen = 3
+Config.Features.BLFLED.ConfirmedForGreen = 1
+
+# Setting Configuration
+
+Config.Settings.LANGUAGE.Type = {{ akuvox.language(language) }}
+Config.Settings.LANGUAGE.ActiveWebLang = 1
+Config.Settings.LANGUAGE.WebLang = 0
+
+Config.Settings.DATETIME.Type = 1
+Config.Settings.DATETIME.TimeFormat = {{ time_format == '12' ? '0' : '1' }}
+Config.Settings.DATETIME.DateFormat = {{ akuvox.date_format(date_format) }}
+Config.Settings.DATETIME.Offset = +60
+
+Config.Settings.SNTP.Enable = 1
+Config.Settings.SNTP.TimeZone = {{ akuvox.timezone(timezone) }}
+Config.Settings.SNTP.Name = {{ akuvox.timezoneName(timezone) }}
+Config.Settings.SNTP.NTPServer1 = {{ ntp_server }}
+Config.Settings.SNTP.NTPServer2 = pool.ntp.org
+Config.Settings.SNTP.DTS = 1
+Config.Settings.SNTP.Interval = 3600
+Config.Settings.SNTP.StartTime = 3/5/7/3
+Config.Settings.SNTP.EndTime = 10/5/7/2
+
+Config.Settings.BACKLIGHT.Level = {{ brightness | default('4') }}
+Config.Settings.BACKLIGHT.Time = {{ backlight_time | default('20') }}
+Config.Settings.BACKLIGHT.FreeLevel = 1
+
+Config.Settings.DISPLAYSTYLE.LinekeyPage = 1
+Config.Settings.DISPLAYSTYLE.PowerLedBlinkTimeOut = 0
+
+Config.Settings.GENERAL.DirectIP = 0
+Config.Settings.GENERAL.WebTitle = IP Phone
+Config.Settings.GENERAL.HttpUserAgent = 
+Config.Settings.GENERAL.UseStarForIP = 
+
+Config.Settings.LOGLEVEL.Level = 3
+Config.Settings.LOGLEVEL.RemoteSyslog = 0
+Config.Settings.LOGLEVEL.RemoteServer = 
+
+Config.Settings.PCAP.RefreshEnable = 0
+
+Config.Settings.RINGTONE.Type = {{ ringtone }}
+
+Config.Settings.LOGIN.User = admin
+Config.Settings.LOGIN.Password = {{ adminpw | default('admin') }}
+
+Config.Settings.WEB_LOGIN.User = admin
+Config.Settings.WEB_LOGIN.Password = {{ adminpw | default('admin') }}
+Config.Settings.WEB_LOGIN.Type = 1
+Config.Settings.WEB_LOGIN.User02 = user
+Config.Settings.WEB_LOGIN.Password02 = {{ userpw | default('1234') }}
+Config.Settings.WEB_LOGIN.Type02 = 0
+
+Config.Settings.WEB_LOGIN_STATUS.Active = 1
+Config.Settings.WEB_LOGIN_STATUS.SessionTimeOut = 300
+
+Config.Settings.CALLTIMEOUT.DialOut = 3600
+Config.Settings.CALLTIMEOUT.DialIn = 3600
+
+Config.Settings.RINGER.Keyword01 =  ring1
+Config.Settings.RINGER.Ringtone01 = Ring1.wav
+Config.Settings.RINGER.Keyword02 = ring2
+Config.Settings.RINGER.Ringtone02 = Ring2.wav
+Config.Settings.RINGER.Keyword03 = ring3
+Config.Settings.RINGER.Ringtone03 = Ring3.wav
+Config.Settings.RINGER.Keyword04 = ring4
+Config.Settings.RINGER.Ringtone04 = Ring4.wav
+Config.Settings.RINGER.Keyword05 = ring5
+Config.Settings.RINGER.Ringtone05 = Ring5.wav
+Config.Settings.RINGER.Keyword06 = ring6
+Config.Settings.RINGER.Ringtone06 = Ring6.wav
+Config.Settings.RINGER.Keyword07 = ring7
+Config.Settings.RINGER.Ringtone07 = Ring7.wav
+Config.Settings.RINGER.Keyword08 = ring8
+Config.Settings.RINGER.Ringtone08 = Ring8.wav
+Config.Settings.RINGER.Keyword09 = ring9
+Config.Settings.RINGER.Ringtone09 = Ring9.wav
+Config.Settings.RINGER.Keyword10 = ring10
+Config.Settings.RINGER.Ringtone10 = Bellcore-dr1.wav
+Config.Settings.RINGER.Keyword11 = ring11
+Config.Settings.RINGER.Ringtone11 = Bellcore-dr2.wav
+Config.Settings.RINGER.Keyword12 = ring12
+Config.Settings.RINGER.Ringtone12 = Bellcore-dr3.wav
+
+Config.Settings.HOTDESKING.ServerName = 0
+Config.Settings.HOTDESKING.ServerPort = 0
+Config.Settings.HOTDESKING.OutBoundName = 0
+Config.Settings.HOTDESKING.OutBoundPort = 0
+Config.Settings.HOTDESKING.PhoneName = 1
+Config.Settings.HOTDESKING.RegisterName = 1
+Config.Settings.HOTDESKING.PassWord = pPXIgoZhF7Z8D7OaLDTxx/fHxS0XXsiaNpA098XIA0DqmoYdQJDwnDShLJAD
+Config.Settings.HOTDESKING.ServerName2 = 0
+Config.Settings.HOTDESKING.ServerPort2 = 0
+
+Config.Settings.DATEDISPLAY.DisplayMode = 2
+
+Config.Settings.OTHERS.QuickReset = 1
+
+Config.Settings.KEYPADLOCK.Type = 0
+Config.Settings.KEYPADLOCK.Pin = 9/73XEItxHxhLMeC1pz3nEGbw6TCQUYoRsFCKF7HgkOCi8EzpDI2hGHqhIIz
+Config.Settings.KEYPADLOCK.Timeout = 0
+
+Config.Settings.LCDLOGO.Name = 
+
+Config.Settings.SECURITY.OnlyAcceptTrusted = 0
+
+Config.Settings.DNS.SipDnsCacheLevel = 0
+
+Config.Settings.EXTDPAGEMODE.PageMode = 0
+
+Config.Settings.TESTRESULT.Lcd = 
+Config.Settings.TESTRESULT.LcdVoltage = 
+Config.Settings.TESTRESULT.Kpad = 
+Config.Settings.TESTRESULT.Led = 
+Config.Settings.TESTRESULT.Bklight = 
+Config.Settings.TESTRESULT.Handfree = 
+Config.Settings.TESTRESULT.Handset = 
+Config.Settings.TESTRESULT.Headset = 
+Config.Settings.TESTRESULT.ProductInfo = 
+Config.Settings.TESTRESULT.Network = 
+Config.Settings.TESTRESULT.Expansion = 
+Config.Settings.TESTRESULT.SkipItems = LcdVoltage&
+Config.Settings.TESTRESULT.EssentialItems = Lcd&Extkey&Kpad&Led&Bklight&Handfree&Handset&Headset&ProductInfo&Network&
+Config.Settings.TESTRESULT.Version = v2
+Config.Settings.TESTRESULT.MACUsed = 2
+Config.Settings.TESTRESULT.Extkey = 
+
+# CallLog Configuration
+
+Config.Calllog.CALLLOG0.DisplayName = 
+Config.Calllog.CALLLOG0.Server = 
+Config.Calllog.CALLLOG0.Port = 
+Config.Calllog.CALLLOG0.User = 
+Config.Calllog.CALLLOG0.Pwd = m4Y3F6G7pHwIQDOWhIaCksHqi1CcMyg3F8T3NJoVNPdAhJqGaPAykmgXm6TE
+
+Config.Calllog.CALLLOG1.DisplayName = 
+Config.Calllog.CALLLOG1.Server = 
+Config.Calllog.CALLLOG1.Port = 
+Config.Calllog.CALLLOG1.User = 
+Config.Calllog.CALLLOG1.Pwd = h+oVLYgDoXyJnANCxMgPXvCihmgIFyzW92HwFzQsopbF8PA0YRebMwPqhsUD
+
+Config.Calllog.CALLLOG2.DisplayName = 
+Config.Calllog.CALLLOG2.Server = 
+Config.Calllog.CALLLOG2.Port = 
+Config.Calllog.CALLLOG2.User = 
+Config.Calllog.CALLLOG2.Pwd = wfGJQrvw/nwsh/G7uzO3HYvHMojEmkYo/rtDNyw0i8LwnIj1HfUVocE2kJqS
+
+# Programmable Key Configuration
+
+{% for softkey in 1..cap_softkey_count %}
+Config.Programable.SOFTKEY0{{ softkey }}.Type = {{ akuvox.softkey_type(_context['softkey_type_' ~ softkey]) }}
+Config.Programable.SOFTKEY0{{ softkey }}.Label = {{ _context['softkey_label_' ~ softkey] }}
+Config.Programable.SOFTKEY0{{ softkey }}.Param1 = 
+{%- if _context['softkey_type_' ~ softkey] == 'pickup' %}
+ {{ pickup_direct }}
+{% elseif _context['softkey_type_' ~ softkey] == 'group_pickup' %}
+ {{ pickup_group }}
+{%- else %}
+{{ _context['softkey_value_' ~ softkey] }}
+{% endif %}
+
+Config.Programable.SOFTKEY0{{ softkey }}.Param2 = 1
+Config.Programable.SOFTKEY0{{ softkey }}.Param3 =
+
+{% endfor %}
+
+Config.Programable.OK.Type = 4
+Config.Programable.OK.Param1 = 
+Config.Programable.OK.Param2 = 0
+Config.Programable.OK.Param3 = 
+
+Config.Programable.CANCEL.Type = 0
+Config.Programable.CANCEL.Param1 = 
+Config.Programable.CANCEL.Param2 = 0
+Config.Programable.CANCEL.Param3 = 
+
+Config.Programable.BOOK.Type = 5
+Config.Programable.BOOK.Param1 = 10
+Config.Programable.BOOK.Param2 = 
+Config.Programable.BOOK.Param3 = 
+
+Config.Programable.MUTE.Type = 0
+Config.Programable.MUTE.Param1 = 
+Config.Programable.MUTE.Param2 = 0
+Config.Programable.MUTE.Param3 = 
+
+Config.Programable.REDIAL.Type = 13
+Config.Programable.REDIAL.Param1 = 
+Config.Programable.REDIAL.Param2 = 0
+Config.Programable.REDIAL.Param3 = 
+
+Config.Programable.VOICEMESSAGE.Type = {{ akuvox.linekey_type(_context['linekey_type_2']) }}
+Config.Programable.VOICEMESSAGE.Label = {{ _context['linekey_label_2'] }}
+Config.Programable.VOICEMESSAGE.Param1 = 
+{%- if _context['linekey_type_2'] == 'pickup' %}
+ {{ pickup_direct }}
+{% elseif _context['linekey_type_2'] == 'group_pickup' %}
+ {{ pickup_group }}
+{%- else %}
+{{ _context['linekey_value_2'] }}
+{% endif %}
+
+Config.Programable.VOICEMESSAGE.Param2 = 1
+{% if _context['linekey_type_1'] == "blf" -%}
+Config.Programable.VOICEMESSAGE.Param3 = {{ pickup_direct }}
+{%- else %}
+Config.Programable.VOICEMESSAGE.Param3 = 
+{% endif %}
+
+
+Config.Programable.TRANSFER.Type = {{ akuvox.linekey_type(_context['linekey_type_1']) }}
+Config.Programable.TRANSFER.Param1 = 
+{%- if _context['linekey_type_1'] == 'pickup' %}
+ {{ pickup_direct }}
+{% elseif _context['linekey_type_1'] == 'group_pickup' %}
+ {{ pickup_group }}
+{%- else %}
+{{ _context['linekey_value_1'] }}
+{% endif %}
+
+Config.Programable.TRANSFER.Param2 = 1
+{% if _context['linekey_type_1'] == "blf" -%}
+Config.Programable.TRANSFER.Param3 = {{ pickup_direct }}
+{%- else %}
+Config.Programable.TRANSFER.Param3 = 
+{% endif %}
+
+Config.Programable.STAR.Type = 1
+Config.Programable.STAR.Param1 = 
+Config.Programable.STAR.Param2 = 
+Config.Programable.STAR.Param3 = 
+Config.Programable.STAR.Param4 = 
+Config.Programable.STAR.LongPress = 1
+
+{% for dsskey in 1..cap_dsskey_count %}
+# DSStkey {{ dsskey }}
+Config.Programable.DSSKEY0{{ dsskey }}.Type = {{ akuvox.linekey_type(_context['dsskey_type_' ~ dsskey]) }}
+Config.Programable.DSSKEY01.Param1 = {{ _context['dsskey_value_' ~ dsstkey] }}
+Config.Programable.DSSKEY01.Param2 = 1
+Config.Programable.DSSKEY01.Param3 = 
+Config.Programable.DSSKEY01.Param4 = 
+Config.Programable.DSSKEY01.Label = {{ _context['dsskey_label_' ~ dsskey] }}
+Config.Programable.DSSKEY01.Param5 = 
+Config.Programable.DSSKEY01.Param6 = 
+
+{% endfor %}
+# Tone Configuration
+
+Config.Tone.GENERAL.Ringback = 
+Config.Tone.GENERAL.Dialtone = 
+Config.Tone.GENERAL.Callwait = 420/300,0/15000
+
+# Voice Configuration
+
+Config.Voice.GENERAL.VAD = 0
+Config.Voice.GENERAL.CNG = 1
+Config.Voice.GENERAL.SideTone = -32768
+Config.Voice.GENERAL.EchoCanceller = 1
+Config.Voice.GENERAL.AgcSend = 
+Config.Voice.GENERAL.AgcRecv = 
+Config.Voice.GENERAL.AgcTarget = 
+Config.Voice.GENERAL.HsTxEq = 
+
+Config.Voice.JITTER.Enable = 1
+Config.Voice.JITTER.Adaptive = 1
+Config.Voice.JITTER.Min = 0
+Config.Voice.JITTER.Max = 300
+Config.Voice.JITTER.Nominal = 120
+
+Config.Voice.TONE.Country = {{ akuvox.tonezone(tonezone) }}
+
+Config.Voice.DTMF.Repetition = 10
+Config.Voice.DTMF.Duration = 150
+
+Config.Voice.RTCP.Enable = 1
+Config.Voice.RTCP.Interval = 5
+Config.Voice.RTCP.RTCPXR = 0
+
+Config.Voice.G726.Coding = 0
+
+Config.Voice.SIDETONE.Handset = 0
+Config.Voice.SIDETONE.Headset = 0
+
+# XML Browser Configuration
+
+Config.XMLBrowser.XMLBROWSER.VendorPrefix = IPPhone
+Config.XMLBrowser.XMLBROWSER.MenuItemNode = MenuItem
+Config.XMLBrowser.XMLBROWSER.DirectoryItemNode = DirectoryEntry
+Config.XMLBrowser.XMLBROWSER.MenuItemNameNode = Prompt
+Config.XMLBrowser.XMLBROWSER.MenuItemURLNode = URI
+Config.XMLBrowser.XMLBROWSER.DirectoryItemNameNode = Name
+Config.XMLBrowser.XMLBROWSER.DirectoryItemTelephoneNode = Telephone
+Config.XMLBrowser.XMLBROWSER.DirectoryItemPresenceNode = Presence
+
+Config.XMLBrowser.REMOTEURL.History = 
+Config.XMLBrowser.REMOTEURL.Phonebook = 
+Config.XMLBrowser.REMOTEURL.HistoryMissed = 
+Config.XMLBrowser.REMOTEURL.VoiceMail = 
+Config.XMLBrowser.REMOTEURL.LiveSearch = 
+
+# CustomcMenu Configuration
+
+Config.CustomMenu.DIALMENUITEM01.Type = 7
+Config.CustomMenu.DIALMENUITEM01.Label = Phone Book
+Config.CustomMenu.DIALMENUITEM01.Param1 = 
+
+Config.CustomMenu.DIALMENUITEM02.Type = 
+Config.CustomMenu.DIALMENUITEM02.Label = 
+Config.CustomMenu.DIALMENUITEM02.Param1 = 
+
+Config.CustomMenu.DIALMENUITEM03.Type = 
+Config.CustomMenu.DIALMENUITEM03.Label = 
+Config.CustomMenu.DIALMENUITEM03.Param1 = 
+
+Config.CustomMenu.DIALMENUITEM04.Type = 
+Config.CustomMenu.DIALMENUITEM04.Label = 
+Config.CustomMenu.DIALMENUITEM04.Param1 = 
+
+Config.CustomMenu.DIALMENUITEM05.Type = 
+Config.CustomMenu.DIALMENUITEM05.Label = 
+Config.CustomMenu.DIALMENUITEM05.Param1 = 
+
+Config.CustomMenu.DIALMENUITEM06.Type = 
+Config.CustomMenu.DIALMENUITEM06.Label = 
+Config.CustomMenu.DIALMENUITEM06.Param1 = 
+
+Config.CustomMenu.DIALMENUITEM07.Type = 
+Config.CustomMenu.DIALMENUITEM07.Label = 
+Config.CustomMenu.DIALMENUITEM07.Param1 = 
+
+Config.CustomMenu.DIALMENUITEM08.Type = 
+Config.CustomMenu.DIALMENUITEM08.Label = 
+Config.CustomMenu.DIALMENUITEM08.Param1 = 
+
+# Multicast Configuration
+
+Config.Multicast.PRIORITY.Enable = 1
+Config.Multicast.PRIORITY.Priority = 10
+
+Config.Multicast.GENERAL.Codec = 
+
+Config.Multicast.LISTEN0.Label = 
+Config.Multicast.LISTEN0.IP = 
+
+Config.Multicast.LISTEN1.Label = 
+Config.Multicast.LISTEN1.IP = 
+
+Config.Multicast.LISTEN2.Label = 
+Config.Multicast.LISTEN2.IP = 
+
+Config.Multicast.LISTEN3.Label = 
+Config.Multicast.LISTEN3.IP = 
+
+Config.Multicast.LISTEN4.Label = 
+Config.Multicast.LISTEN4.IP = 
+
+Config.Multicast.LISTEN5.Label = 
+Config.Multicast.LISTEN5.IP = 
+
+Config.Multicast.LISTEN6.Label = 
+Config.Multicast.LISTEN6.IP = 
+
+Config.Multicast.LISTEN7.Label = 
+Config.Multicast.LISTEN7.IP = 
+
+Config.Multicast.LISTEN8.Label = 
+Config.Multicast.LISTEN8.IP = 
+
+Config.Multicast.LISTEN9.Label = 
+Config.Multicast.LISTEN9.IP = 
+
+
