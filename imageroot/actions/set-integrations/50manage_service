@@ -27,6 +27,12 @@ if call_enabled == 'True' or vm_enabled == 'True':
     subprocess.run(["systemctl", "--user", "start", "satellite-recordings-cleanup.service"], check=True)
 
     subprocess.run(["systemctl", "--user", "try-restart", "freepbx.service"], check=True)
+    # Restarting the container alone does not reload Asterisk's dialplan: the
+    # satellite hooks (auto-recording for transcription) were already written
+    # to extensions_additional.conf by FreePBX, but Asterisk keeps running
+    # with whatever dialplan it loaded before. Without this, calls are
+    # silently never recorded/transcribed until someone reloads by hand.
+    subprocess.run(["podman", "exec", "freepbx", "fwconsole", "reload"], check=True)
     subprocess.run(["systemctl", "--user", "try-restart", "nethcti-server.service"], check=True)
     subprocess.run(["systemctl", "--user", "try-restart", "nethcti-ui.service"], check=True)
 
