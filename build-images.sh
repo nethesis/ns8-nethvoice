@@ -193,9 +193,7 @@ fi
 reponame="nethvoice-cti-middleware"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    # Pinned by digest (not the mutable branch tag) so this temporary testing
-    # reference can't silently change if fix_satellite_summary_503 is force-pushed.
-    container=$(buildah from ghcr.io/nethesis/nethcti-middleware@sha256:6e38e730904fc2169597715032f9fe6384a8ef2f636d4c81f68f62590c3bc84f)
+    container=$(buildah from ghcr.io/nethesis/nethcti-middleware:fix_satellite_summary_503)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
@@ -317,9 +315,7 @@ fi
 reponame="nethvoice-satellite"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    # Pinned by digest (not the mutable branch tag) so this temporary testing
-    # reference can't silently change if fix_satellite_schema_init is force-pushed.
-    container=$(buildah from ghcr.io/nethesis/satellite@sha256:5efaf2483637f278c34044bb45560e032417bdeb4897f4135f2825645ce95d3b)
+    container=$(buildah from ghcr.io/nethesis/satellite:fix_satellite_schema_init)
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
     buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
