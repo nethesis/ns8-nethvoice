@@ -1,0 +1,14 @@
+{
+  "name": "phonebook",
+  "main": "arch_phonebook.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "logger",
+      "dbconn"
+    ],
+    "provides": [
+      "phonebook"
+    ]
+  }
+}

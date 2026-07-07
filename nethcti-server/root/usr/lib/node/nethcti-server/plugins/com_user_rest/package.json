@@ -1,0 +1,16 @@
+{
+  "name": "com_user_rest",
+  "main": "arch_com_user_rest.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "user",
+      "util",
+      "logger",
+      "astProxy",
+      "authorization",
+      "configManager"
+    ],
+    "provides": []
+  }
+}

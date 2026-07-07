@@ -1,0 +1,13 @@
+{
+    #
+    # Add a new port for tls connections
+    #
+
+    my $ports = $DB->get_prop('nethcti-server', 'TCPPorts');
+
+    if ( $ports eq '8182') {
+        $DB->set_prop('nethcti-server', 'TCPPorts', '8182,8183');
+    }
+
+    return '';
+}

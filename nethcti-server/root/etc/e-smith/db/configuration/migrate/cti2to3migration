@@ -1,0 +1,25 @@
+{
+    #
+    # Delete from configuration db nethcti 2 configurations that are no longer needed or conflict with nethcti 3
+    #
+    
+    use esmith::ConfigDB;
+
+    my $configDb = esmith::ConfigDB->open() || return '';
+
+    my $nethcti = $configDb->get('nethcti-server') || return ''; # no nethcti-server key means that migration isn't needed
+
+    # Remove configurations
+    foreach ( qw(AuthType LdapBaseDN LdapOu LdapPort LdapServer LdapsSelfSigned Protocol)) {
+         $configDb->get_prop_and_delete('nethcti-server',$_);
+    }
+
+    # Update ports
+    my $ports = $configDb->get_prop('nethcti-server', 'TCPPorts');
+
+    if ( $ports eq '8179,8181,8182,8183') {
+        $configDb->set_prop('nethcti-server', 'TCPPorts', '8182,8183');
+    }
+
+    return '';
+} 

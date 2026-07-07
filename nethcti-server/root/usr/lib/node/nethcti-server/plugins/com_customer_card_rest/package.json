@@ -1,0 +1,14 @@
+{
+  "name": "com_customer_card_rest",
+  "main": "arch_com_customer_card_rest.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "util",
+      "logger",
+      "customerCard",
+      "authorization"
+    ],
+    "provides": []
+  }
+}

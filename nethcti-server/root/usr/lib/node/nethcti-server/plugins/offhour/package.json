@@ -1,0 +1,15 @@
+{
+  "name": "offhour",
+  "main": "arch_offhour.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "user",
+      "logger",
+      "dbconn",
+      "astProxy",
+      "configManager"
+    ],
+    "provides": ["offhour"]
+  }
+}

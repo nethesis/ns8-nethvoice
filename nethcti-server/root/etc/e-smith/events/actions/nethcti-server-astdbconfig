@@ -1,0 +1,42 @@
+#!/usr/bin/scl enable rh-php56 -- php
+<?php
+include_once('/etc/freepbx.conf');
+global $amp_conf;
+$asteriskcdrdb = array();
+if (empty($amp_conf['CDRDBNAME'])) {
+    $amp_conf['CDRDBNAME'] = 'asteriskcdrdb';
+}
+foreach (array('history_call','cel','voicemail','queue_log') as $dbobj) {
+    $asteriskcdrdb[$dbobj] = array();
+    $asteriskcdrdb[$dbobj]['dbhost'] = 'localhost';
+    $asteriskcdrdb[$dbobj]['dbport'] = '/var/lib/mysql/mysql.sock';
+    $asteriskcdrdb[$dbobj]['dbtype'] = 'mysql';
+    $asteriskcdrdb[$dbobj]['dbuser'] = ($amp_conf['CDRDBUSER'] ? $amp_conf['CDRDBUSER'] : $amp_conf['AMPDBUSER']);
+    $asteriskcdrdb[$dbobj]['dbpassword'] = ($amp_conf['CDRDBPASS'] ? $amp_conf['CDRDBPASS'] : $amp_conf['AMPDBPASS']);
+    $asteriskcdrdb[$dbobj]['dbname'] = $amp_conf['CDRDBNAME'];
+}
+
+$res1 = file_put_contents('/etc/nethcti/dbstatic.d/'.$amp_conf['CDRDBNAME'].'.json',json_encode($asteriskcdrdb, JSON_PRETTY_PRINT));
+
+$asterisk = array();
+foreach (array('ampusers','incoming','offhour','rest_users','userman_users','rest_cti_profiles_paramurl','pin','pin_protected_routes') as $dbobj) {
+    $asterisk[$dbobj] = array();
+    $asterisk[$dbobj]['dbhost'] = 'localhost';
+    $asterisk[$dbobj]['dbport'] = '/var/lib/mysql/mysql.sock';
+    $asterisk[$dbobj]['dbtype'] = $amp_conf['AMPDBENGINE'];
+    $asterisk[$dbobj]['dbuser'] = $amp_conf['AMPDBUSER'];
+    $asterisk[$dbobj]['dbpassword'] = $amp_conf['AMPDBPASS'];
+    $asterisk[$dbobj]['dbname'] = $amp_conf['AMPDBNAME'];
+}
+
+$res2 = file_put_contents('/etc/nethcti/dbstatic.d/'.$amp_conf['AMPDBNAME'].'.json',json_encode($asterisk, JSON_PRETTY_PRINT));
+
+
+if ($res1 === FALSE ) {
+    throw new Exception('fail to write asteriskcdrdb config');
+}
+
+if ($res2 === FALSE ) {
+    throw new Exception('fail to write asterisk config');
+}
+exit(0);

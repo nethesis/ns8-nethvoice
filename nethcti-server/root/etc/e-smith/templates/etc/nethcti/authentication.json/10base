@@ -1,0 +1,19 @@
+{
+    use esmith::NetworksDB;
+    my $unautheCall = ${'nethcti-server'}{'UnautheCall'} || "disabled";
+    my $allowedIp = ${'nethcti-server'}{'UnautheCallAddress'} || esmith::NetworksDB->local_access_spec();
+    my $autheEnabled = ${'nethcti-server'}{'AuthenticationEnabled'} || "false";
+
+    $OUT = '{
+    "enabled": ' . $autheEnabled . ',
+    "type": "pam",
+    "file": {
+        "path": "/etc/nethcti/users.json"
+    },
+    "expiration_timeout": "3600",
+    "unauthe_call": {
+        "status": "' . $unautheCall . '",
+        "allowed_ip": "' . $allowedIp . '"
+    }
+}';
+}

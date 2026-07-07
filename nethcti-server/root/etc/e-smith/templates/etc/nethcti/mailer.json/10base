@@ -1,0 +1,5 @@
+\{
+    "port":    "25",
+    "address": "localhost",
+    "sender":  "noreply@{$DomainName}"
+\}

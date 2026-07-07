@@ -1,0 +1,15 @@
+{
+  "name": "history",
+  "main": "arch_history.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "logger",
+      "dbconn",
+      "astProxy"
+    ],
+    "provides": [
+      "history"
+    ]
+  }
+}

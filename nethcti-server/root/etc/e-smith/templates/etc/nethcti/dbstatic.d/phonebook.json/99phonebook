@@ -1,0 +1,9 @@
+    "phonebook": \{
+        "dbhost":     "localhost",
+        "dbport":     "/var/lib/mysql/mysql.sock",
+        "dbtype":     "mysql",
+        "dbuser":     "pbookuser",
+        "dbpassword": "{$phonebookdb_pwd}",
+        "dbname":     "phonebook"
+    \}
+\}

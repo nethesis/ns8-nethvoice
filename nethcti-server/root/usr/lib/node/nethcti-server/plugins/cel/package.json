@@ -1,0 +1,12 @@
+{
+  "name": "cel",
+  "main": "arch_cel.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "dbconn",
+      "logger"
+    ],
+    "provides": ["cel"]
+  }
+}
