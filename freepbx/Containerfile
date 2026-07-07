@@ -375,7 +375,7 @@ RUN install_module() { \
 	install_module core https://github.com/FreePBX/core/archive/refs/tags/release/17.0.18.49.tar.gz && \
 	install_module customcontexts https://github.com/FreePBX-ContributedModules/customcontexts/archive/refs/tags/release/17.0.1.3.tar.gz && \
 	install_module paging https://github.com/FreePBX/paging/archive/refs/tags/release/17.0.4.tar.gz && \
-	install_module queuemetrics https://github.com/nethesis/queuemetrics/archive/refs/tags/release/2.11.0.3.tar.gz && \
+	install_module queuemetrics https://github.com/nethesis/queuemetrics/archive/refs/tags/2.11.0.4.tar.gz && \
 	install_module queues https://github.com/FreePBX/queues/archive/refs/tags/release/17.0.4.tar.gz && \
 	install_module recordings https://github.com/FreePBX/recordings/archive/refs/tags/release/17.0.5.tar.gz && \
 	install_module voicemail https://github.com/FreePBX/voicemail/archive/refs/tags/release/17.0.5.34.tar.gz
