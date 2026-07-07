@@ -1,0 +1,114 @@
+name: Scan images
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Build and Publish Container"]
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: write
+  security-events: write
+  packages: write
+
+jobs:
+  build_info:
+    if : ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    name: "Check build types"
+    runs-on: ubuntu-latest
+    outputs:
+      is_main: ${{ steps.check_branch.outputs.is_main }}
+      is_release: ${{ steps.check_release.outputs.is_release }}
+      registry: ${{ steps.registry.outputs.registry }}
+      base_path: ${{ steps.registry.outputs.base_path }}
+      image_tag: ${{ steps.registry.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check if the branch is main
+        id: check_branch
+        run: |
+          if [[ "${{ github.event.workflow_run.head_branch || github.ref_name }}" == "main" ]]
+          then
+            echo "is_main=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_main=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Check if a Github release is being created
+        id: check_release
+        run: |
+          if  gh release view ${{ github.event.workflow_run.head_branch || github.ref_name }} >& /dev/null
+          then
+            echo "is_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_release=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Get registry information
+        id: registry
+        run: |
+          echo "registry=ghcr.io" >> $GITHUB_OUTPUT
+          # Convert repository owner to lowercase
+          echo "base_path=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
+          echo "image_tag=${{ github.event.workflow_run.head_branch || github.ref_name }}" >> $GITHUB_OUTPUT
+  scan_images:
+    name: "Scan images"
+    needs: build_info
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - ${{ needs.build_info.outputs.registry }}/${{ needs.build_info.outputs.base_path }}/satellite:${{ needs.build_info.outputs.image_tag }}
+    steps:
+      - name: Run vulnerability scanner
+        if: ${{ needs.build_info.outputs.is_main == 'true' || needs.build_info.outputs.is_release == 'true' }}
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ matrix.image }}
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          limit-severities-for-sarif: true
+      - name: Upload scan results to GitHub Security tab
+        if: ${{ needs.build_info.outputs.is_main == 'true' || needs.build_info.outputs.is_release == 'true' }}
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'trivy-results.sarif'
+      - name: Update GitHub Dependency Graph
+        if: ${{ needs.build_info.outputs.is_main == 'true' || needs.build_info.outputs.is_release == 'true' }}
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ matrix.image }}
+          format: github
+          output: sbom.github.json
+          github-pat: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate CycloneDX SBOM
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ matrix.image }}
+          format: cyclonedx
+          output: sbom-${{ github.run_id }}-${{ github.run_attempt }}.cdx.json
+      - name: Set safe filename
+        id: safe-filename
+        run: |
+          SAFE_NAME=$(echo "${{ matrix.image }}" | sed 's/[^a-zA-Z0-9]/-/g')
+          echo "safe_name=${SAFE_NAME}" >> $GITHUB_OUTPUT
+      - name: Upload CycloneDX SBOM
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.safe-filename.outputs.safe_name }}-cyclonedx-sbom
+          path: sbom-${{ github.run_id }}-${{ github.run_attempt }}.cdx.json
+      - name: Upload SBOM to GitHub Release
+        if: ${{ needs.build_info.outputs.is_release == 'true' }}
+        run: |
+          # rename the file to the a safe name
+          mv sbom-${{ github.run_id }}-${{ github.run_attempt }}.cdx.json \
+            "${{ steps.safe-filename.outputs.safe_name }}.cdx.json"
+          gh release upload ${{ needs.build_info.outputs.image_tag }} \
+            "${{ steps.safe-filename.outputs.safe_name }}.cdx.json" \
+            --clobber --repo ${{ github.repository }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
