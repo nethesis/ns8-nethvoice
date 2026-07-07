@@ -10,6 +10,7 @@ RUN apk add --no-cache \
 # download node_modules
 COPY root/usr/lib/node/nethcti-server/package.json .
 COPY root/usr/lib/node/nethcti-server/package-lock.json .
+COPY root/usr/lib/node/nethcti-server/packages/astproxy packages/astproxy
 RUN --mount=type=cache,id=nethvoice-cti-server-npm,target=/root/.npm \
     npm ci --cache /root/.npm
 
@@ -29,6 +30,7 @@ ENTRYPOINT ["/entrypoint"]
 CMD ["npm", "start"]
 # copy application
 COPY root/var/lib/nethserver/nethcti/templates/customer_card /var/lib/nethserver/nethcti/templates/customer_card
+COPY root/usr/lib/node/nethcti-server/packages packages
 COPY root/usr/lib/node/nethcti-server/plugins plugins
 COPY root/usr/lib/node/nethcti-server/scripts scripts
 COPY root/usr/lib/node/nethcti-server/sql sql
