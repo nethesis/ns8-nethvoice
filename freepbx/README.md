@@ -30,7 +30,13 @@ FreePBX container for NethServer 8
 - `PHONEBOOK_LDAP_USER` user of LDAP server
 - `PHONEBOOK_LDAP_PASS` password of LDAP server
 - `PHONEBOOK_EXPORT_SPEEDDIAL_AND_RAPIDCODE` export speed dial and RapidCode entries to the centralized phonebook. Default is `true`; set to `false` to disable
+
+Note: when disabling, remove old imported rapidcode and speed dials from phonebook table `mysql phonebook -e 'SELECT * FROM phonebook WHERE sid_imported = "NethVoice RapidCodes" OR sid_imported = "speeddial"'`
+
 - `PHONEBOOK_EXPORT_EXTENSIONS` export extensions to the centralized phonebook. Default is `true`; set to `false` to disable
+
+Note: when disabling, remove old imported extensions from phonebook table `mysql phonebook -e 'SELECT * FROM phonebook WHERE sid_imported="nethvoice extensions"'`
+
 - `PROXY_IP` sip proxy host or ip to be used in extensions. Default is host
 - `PROXY_PORT` sip proxy port. Default is 5060
 - `APACHE_PORT` Port used for httpd
