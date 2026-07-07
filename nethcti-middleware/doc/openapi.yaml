@@ -1,0 +1,1517 @@
+openapi: 3.0.0
+info:
+  title: NethCTI Middleware API
+  description: |
+    NethCTI Middleware provides authentication, 2FA, phonebook management, 
+    and integration with NethVoice/NethCTI systems.
+  version: 1.0.0
+  contact:
+    name: Nethesis
+    url: https://www.nethesis.it
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://middleware.example.com/api
+    description: Production server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /login endpoint
+    superAdminAuth:
+      type: http
+      scheme: bearer
+      description: Super admin bearer token for administrative endpoints
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          description: User login name
+        password:
+          type: string
+          format: password
+          description: User password
+
+    LoginResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        expire:
+          type: string
+          format: date-time
+        token:
+          type: string
+          description: JWT bearer token for subsequent requests
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          nullable: true
+        error:
+          type: string
+
+    TwoFAStatus:
+      type: object
+      properties:
+        status:
+          type: boolean
+
+    QRCodeResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            url:
+              type: string
+              description: otpauth URL to generate the QR code client-side
+            key:
+              type: string
+              description: Shared TOTP secret generated for the user
+
+    VerifyOTPRequest:
+      type: object
+      required:
+        - username
+        - otp
+      properties:
+        username:
+          type: string
+        otp:
+          type: string
+          description: TOTP code or recovery code
+
+    VerifyOTPResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+            expire:
+              type: string
+              format: date-time
+
+    Disable2FARequest:
+      type: object
+      required:
+        - password
+      properties:
+        username:
+          type: string
+          description: Accepted but ignored by the handler; the authenticated user is used
+        password:
+          type: string
+          format: password
+
+    Disable2FAResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          nullable: true
+
+    RecoveryCodesResponse:
+      type: object
+      properties:
+        codes:
+          type: array
+          items:
+            type: string
+
+    TokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+
+    TokenExistsResponse:
+      type: object
+      properties:
+        exists:
+          type: boolean
+
+    PhonebookImportResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        total_rows:
+          type: integer
+          description: Total rows in the CSV
+        imported_rows:
+          type: integer
+          description: Successfully imported rows
+        failed_rows:
+          type: integer
+          description: Failed rows
+        skipped_rows:
+          type: integer
+          description: Skipped rows (validation errors)
+        error_messages:
+          type: array
+          items:
+            type: string
+          description: List of error messages encountered during import
+
+    ReloadProfilesResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+
+    ExtensionLookupResponse:
+      type: object
+      properties:
+        username:
+          type: string
+        mainextension:
+          type: string
+        type:
+          type: string
+        extension:
+          type: string
+
+    ExtensionLookupErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        mainextension:
+          type: string
+        type:
+          type: string
+
+    VoicemailListResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    SummaryWatchRequest:
+      type: object
+      required:
+        - uniqueid
+      properties:
+        uniqueid:
+          type: string
+          description: Unique ID of the call to watch
+
+    SummaryWatchResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          nullable: true
+
+    SummaryUpdateRequest:
+      type: object
+      required:
+        - summary
+      properties:
+        summary:
+          type: string
+          description: Summary text to store for the call
+
+    SummaryListRequest:
+      type: object
+      required:
+        - uniqueids
+      properties:
+        uniqueids:
+          type: array
+          items:
+            type: string
+
+    SummaryListItem:
+      type: object
+      properties:
+        uniqueid:
+          type: string
+        state:
+          type: string
+        has_transcription:
+          type: boolean
+        has_summary:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - uniqueid
+        - state
+        - has_transcription
+        - has_summary
+        - updated_at
+
+    SummaryListNotFoundItem:
+      type: object
+      properties:
+        uniqueid:
+          type: string
+        error:
+          type: string
+          enum: [not_found]
+      required:
+        - uniqueid
+        - error
+
+    SummaryListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/SummaryListItem'
+              - $ref: '#/components/schemas/SummaryListNotFoundItem'
+
+    TranscriptionResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            uniqueid:
+              type: string
+            transcription:
+              type: string
+            src:
+              type: string
+            cnum:
+              type: string
+            cnam:
+              type: string
+            company:
+              type: string
+            ccompany:
+              type: string
+            dst_company:
+              type: string
+            dst_cnam:
+              type: string
+            dst:
+              type: string
+            call_timestamp:
+              type: string
+              format: date-time
+              nullable: true
+            created_at:
+              type: string
+              format: date-time
+              nullable: true
+
+    SummaryResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            uniqueid:
+              type: string
+            summary:
+              type: string
+            sentiment:
+              type: integer
+              nullable: true
+            state:
+              type: string
+            src:
+              type: string
+            dst:
+              type: string
+            cnam:
+              type: string
+            company:
+              type: string
+            dst_company:
+              type: string
+            dst_cnam:
+              type: string
+            call_timestamp:
+              type: string
+              format: date-time
+              nullable: true
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+            deleted_at:
+              type: string
+              format: date-time
+              nullable: true
+
+    SummaryDeleteResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            uniqueid:
+              type: string
+
+    SummaryUpdateResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            uniqueid:
+              type: string
+            summary:
+              type: string
+
+paths:
+  /login:
+    post:
+      summary: User login
+      operationId: login
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /ws/:
+    get:
+      summary: WebSocket proxy
+      operationId: wsProxy
+      tags:
+        - WebSocket
+      responses:
+        '101':
+          description: Switching Protocols
+
+  /logout:
+    post:
+      summary: User logout
+      operationId: logout
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful logout
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+        '401':
+          description: Unauthorized
+
+  /summary/watch:
+    post:
+      summary: Watch for call summary
+      operationId: watchCallSummary
+      tags:
+        - Summary
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SummaryWatchRequest'
+      responses:
+        '202':
+          description: Watch started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SummaryWatchResponse'
+        '200':
+          description: Watch already active or unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SummaryWatchResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - user is not part of the call
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /history/statuses:
+    post:
+      summary: List summary/transcription status for provided unique IDs
+      operationId: listHistoryStatuses
+      tags:
+        - History
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SummaryListRequest'
+      responses:
+        '200':
+          description: Summary status list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SummaryListResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to list summaries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /transcripts/{uniqueid}:
+    get:
+      summary: Get transcription by unique ID
+      operationId: getTranscriptionByUniqueId
+      tags:
+        - Transcripts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uniqueid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transcription retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranscriptionResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to fetch transcription
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /summary/{uniqueid}:
+    head:
+      summary: Check summary existence by unique ID
+      operationId: headSummaryByUniqueId
+      tags:
+        - Summary
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uniqueid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Summary exists
+        '204':
+          description: Summary not ready yet
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Uniqueid not found
+        '500':
+          description: Failed to fetch summary state
+        '503':
+          description: Service unavailable
+    get:
+      summary: Get summary by unique ID
+      operationId: getSummaryByUniqueId
+      tags:
+        - Summary
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uniqueid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Summary retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SummaryResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Missing uniqueid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to fetch summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Update summary by unique ID
+      operationId: updateSummaryByUniqueId
+      tags:
+        - Summary
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uniqueid
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SummaryUpdateRequest'
+      responses:
+        '200':
+          description: Summary updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SummaryUpdateResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to update summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete summary by unique ID
+      operationId: deleteSummaryByUniqueId
+      tags:
+        - Summary
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uniqueid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Summary deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SummaryDeleteResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Missing uniqueid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to delete summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /2fa/status:
+    get:
+      summary: Get 2FA status
+      operationId: get2FAStatus
+      tags:
+        - Two-Factor Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current 2FA status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TwoFAStatus'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /2fa/qr-code:
+    get:
+      summary: Get 2FA QR code for TOTP setup
+      operationId: get2FAQRCode
+      tags:
+        - Two-Factor Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: TOTP setup payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QRCodeResponse'
+        '400':
+          description: Failed to generate or persist the user secret
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /2fa/verify-otp:
+    post:
+      summary: Verify OTP token and enable 2FA
+      operationId: verify2FAOTP
+      tags:
+        - Two-Factor Authentication
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOTPRequest'
+      responses:
+        '200':
+          description: OTP verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyOTPResponse'
+        '400':
+          description: Invalid OTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User secret not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to generate refreshed JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /2fa/disable:
+    post:
+      summary: Disable 2FA
+      operationId: disable2FA
+      tags:
+        - Two-Factor Authentication
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Disable2FARequest'
+      responses:
+        '200':
+          description: 2FA disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Disable2FAResponse'
+        '400':
+          description: Invalid request or failed to revoke 2FA
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /2fa/recovery-codes:
+    post:
+      summary: Get 2FA recovery codes
+      operationId: get2FARecoveryCodes
+      tags:
+        - Two-Factor Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Recovery codes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryCodesResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /tokens/persistent/{audience}:
+    post:
+      summary: Create persistent integration token
+      operationId: createPersistentToken
+      tags:
+        - Integration Tokens
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: audience
+          required: true
+          schema:
+            type: string
+            enum: [phone-island, mobile-app, nethlink]
+          description: Integration token audience
+      responses:
+        '200':
+          description: JWT persistent integration token (exp set to 100 years, aud set to audience)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: Invalid audience
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to generate or persist the token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: Check persistent integration token existence
+      operationId: checkPersistentToken
+      tags:
+        - Integration Tokens
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: audience
+          required: true
+          schema:
+            type: string
+            enum: [phone-island, mobile-app, nethlink]
+          description: Integration token audience
+      responses:
+        '200':
+          description: Token state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenExistsResponse'
+        '400':
+          description: Invalid audience
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Remove persistent integration token(s)
+      operationId: removePersistentToken
+      tags:
+        - Integration Tokens
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: audience
+          required: true
+          schema:
+            type: string
+            enum: [phone-island, mobile-app, nethlink]
+          description: Integration token audience
+      responses:
+        '204':
+          description: Token(s) removed
+        '400':
+          description: Invalid audience
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to persist token removal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /authentication/phone_island_token_login:
+    post:
+      summary: Create Phone Island token (legacy endpoint)
+      operationId: phoneIslandTokenLoginLegacy
+      tags:
+        - Integration Tokens
+      deprecated: true
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subtype:
+                  type: string
+                  description: Legacy subtype; "nethlink" maps to nethlink audience, defaults to phone-island
+      responses:
+        '200':
+          description: JWT persistent integration token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to generate or persist the token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /authentication/persistent_token_remove:
+    post:
+      summary: Remove persistent token (legacy endpoint)
+      operationId: phoneIslandTokenRemoveLegacy
+      tags:
+        - Integration Tokens
+      deprecated: true
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                subtype:
+                  type: string
+                  description: Legacy subtype; "nethlink" maps to nethlink audience, defaults to phone-island
+      responses:
+        '204':
+          description: Token(s) removed
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to persist token removal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /authentication/phone_island_token_check:
+    get:
+      summary: Check Phone Island token (legacy endpoint)
+      operationId: phoneIslandTokenCheckLegacy
+      tags:
+        - Integration Tokens
+      deprecated: true
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Token state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenExistsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /phonebook/import:
+    post:
+      summary: Import phonebook contacts for authenticated user
+      operationId: importPhonebook
+      tags:
+        - Phonebook
+      description: |
+        Import phonebook contacts for the authenticated user. The request must be
+        a multipart/form-data POST with a single file field named `file` containing
+        the CSV of contacts. The authenticated user's JWT must contain the
+        capability `phonebook.ad_phonebook` to allow import.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file containing phonebook contacts
+            examples:
+              sample_csv_upload:
+                summary: Example CSV multipart upload
+                value:
+                  file: "contacts.csv"
+                  csv_content: |
+                    name,workemail,cellphone
+                    John Doe,john@example.com,555-1234
+                    Jane Smith,jane@example.com,555-5678
+      responses:
+        '200':
+          description: Phonebook import completed for the authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhonebookImportResponse'
+        '400':
+          description: Bad request - missing file, invalid CSV, or invalid authenticated user
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ErrorResponse'
+                  - $ref: '#/components/schemas/PhonebookImportResponse'
+        '401':
+          description: Unauthorized - invalid or missing JWT
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "authorization required"
+        '403':
+          description: Forbidden - missing capability (phonebook.ad_phonebook)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "forbidden: missing capability"
+
+  /admin/phonebook/import:
+    post:
+      summary: Import phonebook contacts (Super Admin only)
+      operationId: adminImportPhonebook
+      tags:
+        - Administration
+      description: |
+        Admin phonebook import endpoint for super administrators.
+
+        This endpoint allows super administrators to import phonebook contacts
+        from a CSV file into any target user's phonebook. The target username
+        must be provided as a form field.
+
+        CSV Format: Requires multipart/form-data with:
+        - Field "username" (string, required): Target username to import contacts for
+        - Field "file" (binary, required): CSV file with contact data
+
+        CSV Columns (case-insensitive): name (required),
+        and optional: workemail, homeemail, workphone, homephone, cellphone, fax, title,
+        company, notes, homestreet, homepob, homecity, homeprovince, homepostalcode,
+        homecountry, workstreet, workpob, workcity, workprovince, workpostalcode,
+        workcountry, url, extension, speeddial_num, type (optional, default: private).
+
+        Security: Requires two factors of authentication:
+        1. IP Whitelist - Request must come from an allowed IP/CIDR range (default: 127.0.0.0/8)
+        2. Bearer Token - Must provide valid super admin token in Authorization header
+      security:
+        - superAdminAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - username
+                - file
+              properties:
+                username:
+                  type: string
+                  description: Target username to import contacts for
+                  example: john.smith
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file containing phonebook contacts
+      responses:
+        '200':
+          description: Phonebook import completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhonebookImportResponse'
+        '400':
+          description: Bad request - missing username field or invalid CSV
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "username field is required"
+        '401':
+          description: Unauthorized - invalid or missing super admin token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "super admin authentication required"
+        '403':
+          description: Forbidden - client IP is not in the super admin allowed IP whitelist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "access denied: IP not in allowed list"
+  /admin/reload/profiles:
+    post:
+      summary: Reload profiles and users configuration (Super Admin only)
+      operationId: adminReloadProfiles
+      tags:
+        - Administration
+      description: |
+        Trigger a global reload of profiles and users configuration from the configured JSON files.
+        This endpoint is intended for super-administrators and will call the internal reload routine
+        to refresh in-memory profiles and users without restarting the service.
+      security:
+        - superAdminAuth: []
+      responses:
+        '200':
+          description: Profiles reloaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReloadProfilesResponse'
+
+              examples:
+                success:
+                  summary: Successful reload example
+                  value:
+                    code: 200
+                    message: "profiles reloaded successfully"
+                    data: {}
+        '500':
+          description: Internal server error when reload fails
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                failure:
+                  summary: Failure example
+                  value:
+                    code: 500
+                    message: "failed to reload profiles"
+                    data: "parse profiles: invalid character 'i'"
+
+  /extensions/{mainextension}/{type}:
+    get:
+      summary: Resolve endpoint extension by main extension and endpoint type
+      operationId: getExtensionByMainExtensionAndType
+      tags:
+        - Extensions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: mainextension
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Endpoint type to resolve, for example `nethlink`
+      responses:
+        '200':
+          description: Extension resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtensionLookupResponse'
+        '400':
+          description: Missing main extension or type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtensionLookupErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Matching extension not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtensionLookupErrorResponse'
+
+  /voicemail/list/{id}:
+    get:
+      summary: Get voicemail by numeric ID or proxy legacy list selectors
+      operationId: listVoicemailById
+      tags:
+        - Voicemail
+      description: |
+        When `id` is numeric, the middleware fetches the legacy voicemail list and filters it locally.
+        When `id` is a legacy selector such as `all`, `old`, or `inbox`, the request is transparently
+        proxied to the legacy V1 API path.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Voicemail list or filtered voicemail item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoicemailListResponse'
+        '400':
+          description: Missing voicemail id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Failed to fetch the legacy voicemail list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+tags:
+  - name: Authentication
+    description: Login and session management
+  - name: Transcripts
+    description: Transcript retrieval endpoints
+  - name: Summary
+    description: Summary retrieval, updates, and watch/status endpoints
+  - name: Two-Factor Authentication
+    description: TOTP-based 2FA management
+  - name: Integration Tokens
+    description: Long-lived integration tokens and legacy compatibility endpoints
+  - name: Phonebook
+    description: Phonebook management and CSV import
+  - name: Extensions
+    description: Endpoint resolution helpers
+  - name: Voicemail
+    description: Voicemail retrieval and legacy proxy behavior
+  - name: Administration
+    description: Administrative operations requiring super admin authentication
