@@ -1,0 +1,45 @@
+name: Update astproxy dependency
+
+# Check nightly if a new @nethesis/astproxy version is available for the
+# imported nethcti-server source and open a PR against this module repo.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-dependency:
+    name: Update astproxy dependency
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 14.21.1
+          registry-url: https://registry.npmjs.org/
+
+      - name: Update dependency
+        working-directory: nethcti-server/root/usr/lib/node/nethcti-server
+        run: npm install @nethesis/astproxy@latest --save
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          title: "build(deps): update astproxy dependency"
+          branch: "astproxy-dependency/patch"
+          branch-suffix: "timestamp"
+          commit-message: "build(deps): update astproxy dependency"
+          add-paths: |
+            nethcti-server/root/usr/lib/node/nethcti-server/package.json
+            nethcti-server/root/usr/lib/node/nethcti-server/package-lock.json
+          body: |
+            Update `@nethesis/astproxy` in the imported nethcti-server
+            source tree.
