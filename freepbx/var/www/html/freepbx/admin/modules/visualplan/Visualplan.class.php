@@ -70,9 +70,9 @@ class Visualplan implements \BMO
   // This handles any data passed to this module before the page is rendered.
   public function doConfigPageInit($page)
   {
-      $id = $_REQUEST['id'] ? $_REQUEST['id'] : '';
+      $id = $_REQUEST['id'] ?? '';
       $action = $_REQUEST['action'] ?? '';
-      $exampleField = $_REQUEST['example-field'] ? $_REQUEST['example-field'] : '';
+      $exampleField = $_REQUEST['example-field'] ?? '';
     //Handle form submissions
     switch ($action) {
     case 'add':
@@ -111,9 +111,9 @@ class Visualplan implements \BMO
   // This is also documented at http://wiki.freepbx.org/display/FOP/BMO+Ajax+Calls
   public function ajaxHandler()
   {
-      switch ($_REQUEST['command']) {
+      switch ($_REQUEST['command'] ?? '') {
     case 'getJSON':
-      switch ($_REQUEST['jdata']) {
+      switch ($_REQUEST['jdata'] ?? '') {
       case 'grid':
         $ret = array();
         /*code here to generate array*/
@@ -140,7 +140,7 @@ class Visualplan implements \BMO
   // http://wiki.freepbx.org/display/FOP/HTML+Output+from+BMO
   public function showPage()
   {
-      switch ($_REQUEST['view']) {
+      switch ($_REQUEST['view'] ?? '') {
     case 'form':
       if (isset($_REQUEST['id']) && !empty($_REQUEST['id'])) {
           $subhead = _('Edit Visual Plan');
