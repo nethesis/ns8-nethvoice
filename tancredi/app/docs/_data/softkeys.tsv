@@ -1,0 +1,13 @@
+type	description	value	label
+[empty string]	The soft key is not available or not assigned	N/A	N/A
+forward	Enable/disable the *forward* state. If enabled all incoming calls are forwarded to the given number	The phone or extension number	Free text label
+dnd	Enable/disable the *do not disturb* state (DND). If enabled all incoming calls are rejected	N/A	N/A
+recall	Call the last dialled number	N/A	Free text label, empty for default
+pick_up	Answer a ringing call directed to the given extension	The extension number	Free text label
+speed_dial	Call a number pressing the button	The number to call	Free text label
+group_pickup	Answer a ringing call directed to an extension of your pickup group	N/A	N/A
+history	Access the phone call history screen	N/A	Free text label, empty for default
+menu	Access the phone settings menu	N/A	Free text label, empty for default
+status	Display the phone status (e.g. registration, firmware...)	N/A	Free text label, empty for default
+ldap	Display the LDAP address book	N/A	Free text label, empty for default
+prefix	Add the configured digits to the dialling number	The prefix digits	Free text label, empty for default

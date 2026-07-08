@@ -1,0 +1,9 @@
+#!/bin/sh
+
+#
+# Fake RPM command for statistics
+#
+echo "nethcti3-0.0.1-1.ns8.noarch"
+echo "nethcti-server3-0.0.1-1.ns8.noarch"
+echo "janus-gateway-0.0.0-1-1.ns8.noarch"
+echo "nethserver-nethvoice14-0.0.1-1.ns8.noarch"

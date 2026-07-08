@@ -1,0 +1,12 @@
+[Unit]
+Description=Redis instance for nethvoice-report
+
+[Service]
+ExecStart=/usr/bin/redis-server /etc/redis-nethvoice-report.conf --daemonize no
+ExecStop=/usr/libexec/redis-shutdown redis-nethvoice-report
+User=redis
+Group=asterisk
+RuntimeDirectory=redis-nethvoice-report
+RuntimeDirectoryMode=0755
+Restart=on-failure
+RestartSec=5

@@ -1,0 +1,16 @@
+{
+  "name": "com_videoconf_rest",
+  "main": "arch_com_videoconf_rest.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "util",
+      "user",
+      "logger",
+      "mailer",
+      "videoconf",
+      "authorization"
+    ],
+    "provides": []
+  }
+}

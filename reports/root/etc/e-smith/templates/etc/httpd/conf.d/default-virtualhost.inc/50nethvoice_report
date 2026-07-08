@@ -1,0 +1,6 @@
+#
+# 50nethvoice_report
+#
+RewriteEngine On
+RewriteCond %\{HTTPS\} !=on
+RewriteRule ^/pbx-report(/.*)?$  https://%\{HTTP_HOST\}/pbx-report$1  [L,R=301]

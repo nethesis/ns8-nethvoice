@@ -1,0 +1,14 @@
+{
+    my $jitsiURL = ${'conference'}{'JitsiUrl'} || "";
+
+    $OUT = '{
+';
+    if ($jitsiURL ne "") {
+        $OUT = $OUT . '
+    "jitsi": {
+        "url": "' . $jitsiURL .'"
+    }';
+    }
+    $OUT = $OUT . '
+}';
+}

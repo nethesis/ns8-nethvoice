@@ -1,0 +1,12 @@
+#
+# 40nethifiertls
+#
+{
+    my $sips = $asterisk{'AllowExternalSIPS'} || 'disabled';
+    if ($sips eq 'enabled') {
+        $OUT .= "# Enable nethifier TLS socket for red interface\n";
+        $OUT .= "?COMMENT Enable nethifier TLS socket for red interface\n";
+        $OUT .= "ACCEPT\tnet\t\$FW\ttcp\t8183\n";
+        $OUT .= "?COMMENT\n";
+    }
+}

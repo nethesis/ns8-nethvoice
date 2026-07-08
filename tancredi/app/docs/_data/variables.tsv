@@ -1,0 +1,111 @@
+access	name	index	description	datatype	domain
+ro	mac		The phone MAC address in IEEE 802 notation, e.g. `11-22-33-AA-BB-CC`	string	
+ro	short_mac		The phone MAC address in hexadecimal notation, e.g. `112233aabbcc`	string	
+ro	model		The parent scope identifier (model)	string	
+rw	sip_tls_port		TCP port number of the PBX host that phones connect to with SIPS protocol.	integer	
+rw	sip_udp_port		UDP port number of the PBX host that phones connect to with SIP protocol.	integer	
+rw	hostname		Host name or IP address of the PBX host.	string	IP/host name
+rw	timezone		Local timezone of the phone.  - Must be a valid TZ database entry (https://www.iana.org/time-zones). Run `timedatectl list-timezones` for a list of valid strings.	string	
+rw	tonezone		Local tones code for the call state (busy, ringing, off-hook?). Must be an ISO 3166-1 alpha-2 country code (e.g. `it`, `es`, `gb`?)	string	
+rw	language		Phone UI language. Must be an ISO 639-1 language code (e.g. `it`, `en`...) 	string	
+rw	ntp_server		Host name or IP address of the network time (NTP) server.	string	IP/host name
+rw	ringtone		Ringtone type selector. See also [cap_ringtone_count](#cap_ringtone_count).	integer	0 == silent, -1 => use ringtone_file, N>0 phone builtin ringtone N
+rw	ringtone_file		Name of a file under the `ringtones/` directory, e.g. `mymusic.wav`. If the file does not exist under `rw_dir/` or `ro_dir/`, an empty string is forcibly returned.	string	must match the regexp `[a-z0-9A-Z_-\.]+`
+rw	account_dtmf_type	account	Type of DTMF transport.	string	one of `inband`, `rfc4733`, `sip_info`
+rw	account_encryption	account	If true, use SIPS and RTP encryption.	boolean	
+rw	account_display_name	account	SIP line and account label for the phone UI	string	
+rw	account_username	account	SIP user name.	string	
+rw	account_password	account	SIP password.	string	
+rw	account_extension	account	The extension number of the account.	string	
+ro	account_always_fwd_target	account	Unconditionally forward incoming calls to the given extension. Set to empty string to disable.	string	
+ro	account_busy_fwd_target	account	If busy, forward incoming calls to the given extension. Set to empty string to disable.	string	
+ro	account_timeout_fwd_target	account	If not answered, forward incoming calls to the given extension. Set to empty string to disable.	string	
+ro	account_dnd_enable	account	Do not disturb switch.	boolean	
+ro	account_call_waiting	account	Account call waiting	string	
+ro	account_cftimeout	account	Timeout for the account call forward	integer	
+rw	account_voicemail	account	Voicemail function/service code.	string	
+rw	account_dnd_allow	account	Grant the phone user to change DnD status.	boolean	
+rw	account_fwd_allow	account	Grant the phone user to change the call forward setting.	boolean	
+rw	cftimeout		Wait the given number of seconds until the call forward is considered not answered.	integer	
+rw	cfalwayson		Function/service code to enable unconditioned call forward.	string	
+rw	cfalwaysoff		Function/service code to disable unconditioned call forward.	string	
+rw	cfbusyon		Function/service code to enable call forward on busy.	string	
+rw	cfbusyoff		Function/service code to disable call forward on busy.	string	
+rw	cftimeouton		Function/service code to enable call forward on busy after timeout.	string	
+rw	cftimeoutoff		Function/service code to disable call forward on busy after timeout.	string	
+rw	dndon		Function/service code to enable DnD	string	
+rw	dndoff		Function/service code to disable DnD	string	
+rw	dndtoggle		Function/service code to toggle DnD state. If enabled turn it disabled and vice-versa.	string	
+rw	queuetoggle		Function/service code 	string	
+rw	call_waiting_tone		Emit a tone when a call is waiting.	boolean	
+rw	call_waiting_off		Function/service code to disable the call waiting tone.	string	
+rw	call_waiting_on		Function/service code to enable the call waiting tone.	string	
+rw	pickup_group		Group pickup code.	string	
+rw	pickup_direct		Direct pickup code.	string	
+rw	vlan_id_phone		VLAN VID for phone ethernet port.	integer	empty/0 = disabled, range 1-4095
+rw	vlan_id_pcport		VLAN VID for PC/DATA ethernet port.	integer	empty/0 = disabled, range 1-4095
+rw	date_format		Date display format in the phone UI	string	"one of """" (empty string),`DD MM YY`, `DD MM YYYY`, `DD MMM WW`, `DD MMM YY`, `DD MMM YYYY`, `WWW DD MMM`, `WWW MMM DD`, `MM DD YY`, `MM DD YYYY`, `MMM DD WW`, `YY MM DD`, `YYYY MM DD`"
+ro	cap_date_format_blacklist		List of valid [date_format](#date_format) values not supported by the phone. Must be a comma separated list of values among those allowed for [date_format](#date_format).	string	
+rw	time_format		Time display format in the phone UI	string	one of `12`,`24`
+rw	ldap_server		Host name or IP address of the LDAP phonebook server.	string	hostname or IP
+rw	ldap_port		TCP port number of the LDAP phonebook server. Required if different than the usual 389 (ldap) and 636 (ldaps).	integer	
+rw	ldap_tls		Enable and set the TLS method for LDAP connections.	string	one of `none`,`starttls`,`ldaps`
+ro	cap_ldap_tls_blacklist		List of valid ldap_tls values that are not supported by the phone LDAP client library.	string	
+rw	ldap_user		LDAP user name if authentication is required.	string	
+rw	ldap_password		LDAP password if authentication is required.	string	
+rw	ldap_base		istinguished Name for search base; e.g. `dc=phonebook,dc=example,dc=com`	string	
+rw	ldap_name_display		Template string for displaying the contact name. The string can use %-prefixed placeholders that refer to the selected LDAP entry attributes, e.g. `%cn %o`	string	
+rw	ldap_mainphone_number_attr		LDAP entry attribute with the contact main phone number.	string	
+rw	ldap_mobilephone_number_attr		LDAP entry attribute with the contact mobile phone number.	string	
+rw	ldap_otherphone_number_attr		LDAP entry attribute with the contact additional phone number.	string	
+rw	ldap_name_attr		LDAP attributes list (space separated) containing the contact name part(s), e.g. `cn o`	string	
+rw	ldap_number_filter		LDAP search by number filter. The placeholder `%` is replaced by the number to search.	string	
+rw	ldap_name_filter		LDAP search by name filter. The placeholder `%` is replaced by the name to search.		
+rw	dss_transfer		Call transfer mode.	string	one of `verify`,`attended`,`blind`
+ro	cap_dss_transfer_blacklist		Comma separate list of [dss_transfer](#dss_transfer) modes that are not supported by the phone.	string	
+rw	adminpw		Phone and web UI admin password.	string	
+rw	userpw		Phone and web UI user password.	string	
+rw	outbound_proxy_$line		string		Outbound proxy IP/host name
+rw	outbound_proxy_port_$line		integer		Outbound proxy port
+rw	outbound_proxy2_$line		string		Backup outbound proxy IP/host name
+rw	outbound_proxy2_port_$line		integer		Backup outbound proxy port
+ro	provisioning_complete		The provisioning is considered complete when the phone uses `tok2` for authentication. The temporary `tok1` token is invalidated.	boolean	
+rw	provisioning_url_scheme		URI scheme to fetch the provisioning resources.	string	one of `http`, `https`
+rw	provisioning_url_path		Basic URI path component, that is prefixed to the security token and file name components, e.g. `/provisioning/`.	string	
+rw	provisioning_url_filename		URI file name component. It can be empty for some phones, or correspond to the literal phone MAC address, MAC placeholders or whatever.	string	
+rw	provisioning_freq		Set how often the phone requests the provisioning file.	string	one of `everyday`, `never`
+ro	provisioning_url1		This is a complete provisioning URI, obtained from the scheme, hostname, path, tok2 and filename parts.	string	
+ro	provisioning_url2		This is a complete provisioning URI, obtained from the scheme, hostname, path, tok1 and filename parts.	string	
+ro	tok1		Temporary authentication token. It is invalidated once tok2 is used for the first time.	string	
+ro	tok2		Final authentication token. Once it is used, tok1 is invalidated.	string	
+rw	firmware_file		Name of a file under the `firmware/` directory, e.g. `myrom-1.2.3b.z`. If the file does not exist under `rw_dir/` or `ro_dir/`, an empty string is forcibly returned.	string	must match the regexp `[a-z0-9A-Z_-\.]+`
+rw	softkey_type	softkey	Soft key type/function code. See the appropriate [Soft key types](#soft-key-types) section.	string	
+rw	softkey_label	softkey	Soft key label string. Some [softkey_type](#softkey_type) may allow to customize the soft key label.	string	
+rw	softkey_value	softkey	Soft key value string. The meaning and the fact of being compulsory depends on the [softkey_type](#softkey_type).	string	
+rw	linekey_type	linekey	Line key type/function code. See the [Line key types](#line-key-types) section.	string	
+rw	linekey_value	linekey	Line key value string. The meaning and the fact of being compulsory depends on the [linekey_type](#linekey_type).	string	
+rw	linekey_label	linekey	Line key label string. Some [linekey_type](#linekey_type) may allow to customize the line key label.	string	
+rw	expkey_type	expkey	Expansion key type. See the [softkey_type](#softkey_type) description for more information.	string	
+rw	expkey_label	expkey	Expansion label. See the [softkey_type](#softkey_type) description for more information.	string	
+rw	expkey_value	expkey	Expansion key value. See the [softkey_type](#softkey_type) description for more information.	string	
+rw	background_file		Name of a file under the `backgrounds/` directory, e.g. `mywallpaper.png`. If the file does not exist under `rw_dir/` or `ro_dir/`, an empty string is forcibly returned.	string	 must match the regexp `[a-z0-9A-Z_-\.]+`
+rw	screensaver_file		Name of a file under the `screensavers/` directory, e.g. `mywallpaper.png`. If the file does not exist under `rw_dir/` or `ro_dir/`, an empty string is forcibly returned.	string	must match the regexp `[a-z0-9A-Z_-\.]+`
+rw	backlight_time		Seconds before the phone backlight goes off. 	integer	0 = never goes off, N > 0 is the number of seconds to wait among the allowed values: 3, 5, 7, 10, 15, 30, 60, 120, 300, 600, 1200 ,1800, 2400, 3000, 3600.
+rw	screensaver_time		Seconds the screen saver starts. 	integer	0 = never starts, N > 0 is the number of seconds to wait among the allowed values: 3, 5, 7, 10, 15, 30, 60, 120, 300, 600, 1200 ,1800, 2400, 3000, 3600.
+rw	contrast		Set a custom contrast for phone display.	integer	 range 0-9
+rw	brightness		Set a custom brightness for phone display.	integer	 range 0-9
+ro	cap_linekey_count		Number of line keys available in the phone.	integer	
+ro	cap_linekey_type_blacklist		Comma separated list of `linekey_type` values, not allowed by the phone.	string	
+ro	cap_softkey_count		Number of soft keys available in the phone.	integer	
+ro	cap_softkey_type_blacklist		Comma separated list of `softkey_type` values, not allowed by the phone.	string	
+ro	cap_expkey_count		Number of expansion keys available in a single expansion module.	integer	
+ro	cap_expkey_type_blacklist		Comma separated list of `expkey_type` values, not allowed by the phone.	string	
+ro	cap_ringtone_count		Number of ringtones supported by the phone.	integer	
+ro	cap_ringtone_blacklist		Comma separated list of ringtone identifiers not supported by the phone. E.g. `-1` (custom ringtone)	string	
+ro	cap_expmodule_count		Number of pluggable expansion modules.	integer	
+ro	cap_contrast		Capability to change display contrast.	boolean	
+ro	cap_screensaver_file		Capability to use a custom screensaver.	boolean	
+ro	cap_background_file		Capability to use a custom background. boolean	boolean	
+ro	cap_backlight_time_blacklist		Comma separated list of [backlight_time](#backlight_time) values not supported by the phone	string	one of: 0, 3, 5, 7, 10, 15, 30, 60, 120, 300, 600, 1200 ,1800, 2400, 3000, 3600
+ro	cap_screensaver_time_blacklist		Comma separated list of [screensaver_time](#screensaver_time) values not supported by the phone.	string	one of: 0, 3, 5, 7, 10, 15, 30, 60, 120, 300, 600, 1200 ,1800, 2400, 3000, 3600
+ro	cap_brightness		Capability to set a custom brightness.	boolean	

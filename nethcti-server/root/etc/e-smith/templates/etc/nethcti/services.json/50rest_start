@@ -1,0 +1,52 @@
+  "rest": \{
+    "user": \{
+      "port": "50000",
+      "address": "localhost"
+    \},
+    "phonebook": \{
+      "port":    "50001",
+      "address": "localhost"
+    \},
+    "astproxy": \{
+      "port": "50002",
+      "address": "localhost"
+    \},
+    "history": \{
+      "port": "50003",
+      "address": "localhost"
+    \},
+    "static": \{
+      "port": "50004",
+      "address": "localhost",
+      "webroot": "/usr/lib/node/nethcti-server/plugins/com_static_http/static",
+      "customWebroot": "/var/lib/nethserver/nethcti/static"
+    \},
+    "voicemail": \{
+      "port": "50005",
+      "address": "localhost"
+    \},
+    "dbconn": \{
+      "port": "50006",
+      "address": "localhost"
+    \},
+    "customer_card": \{
+      "port": "50007",
+      "address": "localhost",
+      "templates_customercards": "/var/lib/nethserver/nethcti/templates/customer_card"
+    \},
+    "streaming": \{
+      "port": "50008",
+      "address": "localhost"
+    \},
+    "offhour": \{
+      "port": "50009",
+      "address": "localhost"
+    \},
+    "profiling": \{
+      "port": "50010",
+      "address": "localhost"
+    \},
+    "videoconf": \{
+      "port": "50011",
+      "address": "localhost"
+    \},

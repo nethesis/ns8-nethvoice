@@ -1,0 +1,19 @@
+FROM docker.io/centos:7.9.2009
+# Setup image
+WORKDIR /app
+RUN yum install -y \
+        gcc \
+        pam-devel \
+        rrdtool-devel \
+        wget \
+    && wget https://go.dev/dl/go1.19.5.linux-amd64.tar.gz \
+    && tar -C /usr/local -xzf go1.19.5.linux-amd64.tar.gz \
+    && rm go1.19.5.linux-amd64.tar.gz
+ENV PATH=$PATH:/usr/local/go/bin
+# Download dependencies
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+# Build the binary
+COPY . .
+RUN go build

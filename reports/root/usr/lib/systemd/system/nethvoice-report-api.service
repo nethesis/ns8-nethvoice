@@ -1,0 +1,19 @@
+[Unit]
+Description=NethVoice Report API unit
+After=syslog.target network-online.target systemd-tmpfiles-setup.service
+Documentation=https://github.com/nethesis/nethvoice-report
+Wants=redis-nethvoice-report.service
+After=redis-rspamd.service
+
+
+[Service]
+Environment="GIN_MODE=release"
+EnvironmentFile=-/etc/sysconfig/nethvoice-report
+ExecStart=/opt/nethvoice-report/api/api
+User=asterisk
+Group=asterisk
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

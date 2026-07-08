@@ -1,0 +1,2314 @@
+{%- import 'yealink.macros' as yealink -%}
+{%- import 'language.macros' as l10n -%}
+#!version:1.0.0.1
+
+##File header "#!version:1.0.0.1" can not be edited or deleted, and must be placed in the first line.##
+
+#######################################################################################
+##                                    Network CDP                                    ##
+#######################################################################################
+static.network.cdp.enable = 0
+static.network.cdp.packet_interval = 60
+
+#######################################################################################
+##                                    Network IPv6                                   ##
+#######################################################################################
+static.network.ipv6_static_dns_enable = 0
+static.network.ipv6_icmp_v6.enable = 1
+static.network.ipv6_secondary_dns =
+static.network.ipv6_primary_dns =
+static.network.ipv6_internet_port.gateway =
+static.network.ipv6_internet_port.ip =
+static.network.ipv6_internet_port.type = 0
+static.network.ipv6_prefix = 64
+
+#######################################################################################
+##                                    Network WiFi                                   ##
+#######################################################################################
+##static.wifi.X.label=
+##static.wifi.X.ssid=
+##static.wifi.X.priority=
+##static.wifi.X.security_mode=
+##static.wifi.X.cipher_type=
+##static.wifi.X.password=
+##static.wifi.X.eap_type=
+##static.wifi.X.eap_user_name=
+##static.wifi.x.eap_password=
+##(X ranges from 1 to 5)
+##Only T5XW/T54S/T52S/T48G/T48S/T46G/T46S/T42S/T41S/T29G/T27G Models support these parameters.
+
+##static.wifi.enable =
+##static.wifi.1.label =
+##static.wifi.1.ssid =
+##static.wifi.1.priority =
+##static.wifi.1.security_mode =
+##static.wifi.1.cipher_type =
+##static.wifi.1.password =
+##static.wifi.1.eap_type =
+##static.wifi.1.eap_user_name =
+##static.wifi.1.eap_password =
+##static.wifi.show_scan_prompt =
+
+##V83 Add
+##static.wifi.function.enable =
+
+##V84 SP4 ADD
+##static.network.wifi.ip_address_mode=
+##static.network.wifi.preference =
+##static.network.wifi.internet_port.type =
+##static.network.wifi.internet_port.ip=
+##static.network.wifi.internet_port.mask=
+##static.network.wifi.internet_port.gateway=
+##static.network.wifi.static_dns_enable=
+##static.network.wifi.primary_dns=
+##static.network.wifi.secondary_dns=
+##static.network.wifi.ipv6_internet_port.type=
+##static.network.wifi.ipv6_internet_port.ip=
+##static.network.wifi.ipv6_prefix=
+##static.network.wifi.ipv6_internet_port.gateway=
+##static.network.wifi.ipv6_static_dns_enable=
+##static.network.wifi.ipv6_primary_dns=
+##static.network.wifi.ipv6_secondary_dns=
+##static.network.wifi.ipv6_icmp_v6.enable=
+
+#######################################################################################
+##                                 Network Internet                                  ##
+#######################################################################################
+static.network.ip_address_mode = 0
+##static.network.span_to_pc_port = 0
+##static.network.vlan.pc_port_mode = 1
+static.network.static_dns_enable = 0
+##static.network.pc_port.enable = 1
+##static.network.primary_dns =
+##static.network.secondary_dns =
+##static.network.internet_port.gateway =
+##static.network.internet_port.mask =
+##static.network.internet_port.ip =
+static.network.internet_port.type = 0
+
+##V83 Add
+##static.network.preference =
+
+#######################################################################################
+##                               Network Advanced                                    ##
+#######################################################################################
+static.network.dhcp.option60type = 0
+static.network.mtu_value = 1500
+static.network.qos.audiotos = 46
+static.network.port.min_rtpport = 11780
+static.network.port.max_rtpport = 12780
+static.network.qos.signaltos = 26
+
+static.wui.http_enable = 1
+static.wui.https_enable = 1
+static.network.port.https = 443
+static.network.port.http = 80
+
+static.network.pc_port.speed_duplex = 0
+static.network.internet_port.speed_duplex = 0
+
+##V83 Add
+static.network.redundancy.mode = 2
+static.network.redundancy.failback.timeout = 55
+
+#######################################################################################
+##                                   Network LLDP                                    ##
+#######################################################################################
+static.network.lldp.enable = 0
+static.network.lldp.packet_interval = 60
+
+#######################################################################################
+##                                   Network VLAN                                    ##
+#######################################################################################
+static.network.vlan.dhcp_enable = 0
+static.network.vlan.dhcp_option = 132
+static.network.vlan.vlan_change.enable = 1
+
+static.network.vlan.pc_port_vid = {{ vlan_id_pcport > 0 and vlan_id_pcport < 4095 ? vlan_id_pcport : '1' }}
+static.network.vlan.pc_port_enable = {{ vlan_id_pcport > 0 ? '1' : '0' }}
+static.network.vlan.pc_port_priority = 0
+
+static.network.vlan.internet_port_priority = 0
+static.network.vlan.internet_port_vid = {{ vlan_id_phone > 0 and vlan_id_phone < 4095 ? vlan_id_phone : '1' }}
+static.network.vlan.internet_port_enable = {{ vlan_id_phone > 0 ? '1' : '0' }}
+
+#######################################################################################
+##                                    Network VPN                                    ##
+#######################################################################################
+static.network.vpn_enable = 0
+static.openvpn.url =
+
+#######################################################################################
+##                                 Network 802.1x                                    ##
+#######################################################################################
+static.network.802_1x.mode = 0
+static.network.802_1x.identity =
+static.network.802_1x.md5_password =
+static.network.802_1x.client_cert_url =
+static.network.802_1x.root_cert_url =
+static.network.802_1x.eap_fast_provision_mode = 0
+static.network.802_1x.anonymous_identity =
+static.network.802_1x.proxy_eap_logoff.enable = 0
+
+static.auto_provision.custom.protect = 0
+static.auto_provision.custom.sync = 0
+static.auto_provision.custom.sync.path =
+static.auto_provision.custom.upload_method = 0
+
+#######################################################################################
+##                                    YMCS                                           ##
+#######################################################################################
+dm.enable = 1
+dm.server.port = 443
+dm.server.http_enable = 0
+dm.server.https_enable = 0
+dm.server.retry_min_interval = 5
+dm.server.retry_interval_multiplier = 2000
+dm.server.retry_interval_max_power = 5
+dm.server.address = eu-device-scheduler.ymcs.yealink.com
+
+#######################################################################################
+##                                    ZERO Touch                                     ##
+#######################################################################################
+static.zero_touch.enable = 0
+static.zero_touch.wait_time = 5
+static.features.hide_zero_touch_url.enable = 0
+static.zero_touch.network_fail_delay_times = 1000
+static.zero_touch.network_fail_wait_times = 8
+
+#######################################################################################
+##                                   Autop URL                                       ##
+#######################################################################################
+static.auto_provision.server.url = {{ provisioning_url2 }}
+static.auto_provision.server.username =
+static.auto_provision.server.password =
+
+#######################################################################################
+##                                   Autop Weekly                                    ##
+#######################################################################################
+static.auto_provision.weekly.enable =  {{ provisioning_freq == 'never' ? '0' : '1' }}
+static.auto_provision.weekly.dayofweek = 0123456
+static.auto_provision.weekly.end_time = {{ '04:00' }}
+static.auto_provision.weekly.begin_time = {{ '01:00' }}
+static.auto_provision.weekly_upgrade_interval = 0
+
+#######################################################################################
+##                                   Autop Repeat                                    ##
+#######################################################################################
+static.auto_provision.repeat.enable = {{ provisioning_complete ? '0' : '1' }}
+static.auto_provision.repeat.minutes = {{ provisioning_complete ? '1440' : '1' }}
+
+#######################################################################################
+##                                   Autop DHCP                                      ##
+#######################################################################################
+static.auto_provision.dhcp_option.list_user_options =
+static.auto_provision.dhcp_option.enable = 0
+
+##V83 Add
+static.auto_provision.dhcp_option.list_user6_options =
+
+#######################################################################################
+##                                   Autop Mode                                      ##
+#######################################################################################
+static.auto_provision.power_on = 1
+custom.auto_provision.save_rps_info.enable = 1
+
+#######################################################################################
+##                               Flexible Autop                                      ##
+#######################################################################################
+static.auto_provision.flexible.end_time = 07:00
+static.auto_provision.flexible.begin_time = 02:00
+static.auto_provision.flexible.interval = 30
+static.auto_provision.flexible.enable = 0
+
+#######################################################################################
+##                                 Autoprovision  Other                              ##
+#######################################################################################
+static.auto_provision.prompt.enable = 0
+static.auto_provision.attempt_expired_time = 5
+static.auto_provision.attempt_before_failed = 3
+static.network.attempt_expired_time = 10
+static.auto_provision.update_file_mode = 0
+static.auto_provision.retry_delay_after_file_transfer_failed = 5
+static.auto_provision.inactivity_time_expire = 0
+static.auto_provision.dns_resolv_timeout = 5
+static.auto_provision.dns_resolv_nretry = 2
+static.auto_provision.dns_resolv_nosys = 1
+static.auto_provision.user_agent_mac.enable = 1
+static.auto_provision.server.type = {{ provisioning_protocol }}
+features.action_uri_force_autop = 0
+static.auto_provision.reboot_force.enable = 0
+static.auto_provision.dhcp_option.option60_value = yealink
+static.custom_mac_cfg.url =
+static.auto_provision.aes_key_in_file = 0
+static.auto_provision.aes_key_16.mac =
+static.auto_provision.aes_key_16.com =
+features.custom_version_info =
+##V83 Add
+static.auto_provision.authentication.expired_time = 7200
+static.auto_provision.connect.keep_alive = 0
+
+##V84 Add
+static.auto_provision.config_version.mac =
+static.auto_provision.config_version.com =
+
+#######################################################################################
+##                                   Autop PNP                                       ##
+#######################################################################################
+static.auto_provision.pnp_enable = {{ pnp_enable ?? '0' }}
+
+#######################################################################################
+##                                  Autop Code                                       ##
+#######################################################################################
+##static.autoprovision.X.name
+##static.autoprovision.X.code
+##static.autoprovision.X.url
+##static.autoprovision.X.user
+##static.autoprovision.X.password
+##static.autoprovision.X.com_aes
+##static.autoprovision.X.mac_aes
+##Autop Code(X ranges from 1 to 50)
+
+static.autoprovision.1.name =
+static.autoprovision.1.code =
+static.autoprovision.1.url =
+static.autoprovision.1.user =
+static.autoprovision.1.password =
+static.autoprovision.1.com_aes =
+static.autoprovision.1.mac_aes =
+
+#######################################################################################
+##                                   TR069                                           ##
+#######################################################################################
+static.managementserver.enable = 0
+static.managementserver.username =
+static.managementserver.password =
+static.managementserver.url =
+static.managementserver.periodic_inform_enable = 1
+static.managementserver.periodic_inform_interval = 60
+static.managementserver.connection_request_password =
+static.managementserver.connection_request_username =
+
+#######################################################################################
+##                            Firmware Update                                        ##
+#######################################################################################
+static.firmware.url = {{ firmware_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/firmware/#{firmware_file}" : "" }}
+
+#######################################################################################
+##                            Confguration                                           ##
+#######################################################################################
+features.reset_by_long_press_enable = 1
+features.factory_pwd_enable = 0
+static.configuration.url =
+static.features.custom_factory_config.enable = 0
+static.custom_factory_configuration.url =
+
+#######################################################################################
+##                               SYSLOG                                              ##
+#######################################################################################
+static.syslog.enable = 0
+static.syslog.server =
+static.syslog.level = 3
+static.syslog.server_port = 514
+static.syslog.transport_type = 0
+static.syslog.facility = 16
+static.syslog.prepend_mac_address.enable = 0
+static.local_log.enable = 1
+static.local_log.level = 3
+static.local_log.max_file_size =
+
+#######################################################################################
+##                               Log Backup                                          ##
+#######################################################################################
+static.auto_provision.local_log.backup.enable = 0
+static.auto_provision.local_log.backup.path =
+static.auto_provision.local_log.backup.upload_period = 30
+static.auto_provision.local_log.backup.append = 0
+static.auto_provision.local_log.backup.bootlog.upload_wait_time = 120
+static.auto_provision.local_log.backup.append.max_file_size = 1024
+static.auto_provision.local_log.backup.append.limit_mode = 0
+
+#######################################################################################
+##                                   User Mode                                       ##
+#######################################################################################
+static.security.var_enable = 0
+static.web_item_level.url =
+
+#######################################################################################
+##                                  Quick Login                                      ##
+#######################################################################################
+wui.quick_login = 1
+
+#######################################################################################
+##                               Security                                            ##
+#######################################################################################
+static.phone_setting.reserve_certs_enable = 0
+features.relog_offtime = 5
+static.security.default_ssl_method = 3
+static.security.cn_validation = 0
+static.security.dev_cert = 0
+static.security.ca_cert = 2
+static.security.trust_certificates = 1
+static.security.server_ssl_method = 0
+
+##V83 Add
+static.security.default_access_level = 0
+phone_setting.reserve_certs_config.enable = 0
+
+#######################################################################################
+##                               Watch Dog                                           ##
+#######################################################################################
+static.watch_dog.enable = 1
+
+#######################################################################################
+##                                   Server Certificates                             ##
+#######################################################################################
+static.server_certificates.url =
+static.server_certificates.delete =
+
+#######################################################################################
+##                           Trusted Certificates                                    ##
+#######################################################################################
+static.trusted_certificates.url =
+static.trusted_certificates.delete =
+
+#######################################################################################
+##                           Secure Domain List                                      ##
+#######################################################################################
+wui.secure_domain_list = any
+
+#######################################################################################
+##                               Encryption                                          ##
+#######################################################################################
+static.auto_provision.encryption.directory = 0
+static.auto_provision.encryption.call_log = 0
+static.auto_provision.encryption.config = 0
+
+#######################################################################################
+##                                   Transfer                                        ##
+#######################################################################################
+dialplan.transfer.mode = 0
+transfer.on_hook_trans_enable = 1
+transfer.tran_others_after_conf_enable = 0
+transfer.blind_tran_on_hook_enable = 1
+transfer.semi_attend_tran_enable = 1
+transfer.multi_call_trans_enable = 1
+phone_setting.call_appearance.transfer_via_new_linekey = 1
+
+#######################################################################################
+##                                   Conference                                      ##
+#######################################################################################
+features.conference.with_previous_call.enable = 0
+features.local_conf.combine_with_one_press.enable = 0
+phone_setting.call_appearance.conference_via_new_linekey = 1
+
+#######################################################################################
+##                                   Anonymous                                       ##
+#######################################################################################
+features.anonymous_response_code = 433
+
+#######################################################################################
+##                          Call Configuration                                       ##
+#######################################################################################
+phone_setting.incoming_call_when_dialing.priority = 1
+phone_setting.hold_or_swap.mode = 0
+features.play_held_tone.interval = 60
+features.play_held_tone.delay = 30
+features.play_held_tone.enable = 0
+features.play_hold_tone.interval = 30
+features.play_hold_tone.delay = 30
+features.play_hold_tone.enable = 0
+features.mute.autoanswer_mute.enable = 0
+phone_setting.end_call_net_disconnect.enable = 0
+features.custom_auto_answer_tone.enable = 1
+default_input_method.dialing = 1
+features.speaker_mode.enable = 1
+features.headset_mode.enable = 1
+features.handset_mode.enable = 1
+features.conference.local.enable = 1
+features.off_hook_answer.enable = 1
+features.caller_name_type_on_dialing = 1
+phone_setting.show_code403 =
+phone_setting.ring_for_tranfailed = {{ yealink.ringtone(ringtone) }}
+features.password_dial.length =
+features.password_dial.prefix =
+features.password_dial.enable = 0
+features.group_listen_in_talking_enable = 1
+phone_setting.call_info_display_method = 0
+phone_setting.called_party_info_display.enable = 0
+features.headset_training = 0
+features.headset_prior = 0
+features.dtmf.replace_tran = 0
+features.dtmf.transfer =
+phone_setting.ringing_timeout = 300
+phone_setting.ringback_timeout = 300
+phone_setting.permit_silent_mode.enable = 1
+features.ok_key.talking.mode = 0
+
+features.keep_mute.enable = 0
+transfer.dsskey_deal_type = {{ yealink.dss_transfer(dss_transfer) }}
+features.auto_linekeys.enable = 0
+phone_setting.call_appearance.calls_per_linekey = 0
+features.linekey_call_with_default_account = 0
+##V83 Add
+features.station_name.value =
+features.station_name.scrolling_display = 1
+voice.headset.autoreset_spk_vol = 0
+voice.handset.autoreset_spk_vol = 0
+voice.handfree.autoreset_spk_vol = 0
+features.headset.ctrl_call.enable = 0
+phone_setting.incoming_call.reject.enable = 1
+
+features.play_mute_tone.enable = 0
+features.play_mute_tone.interval = 5
+
+features.call_out_directory_by_off_hook.enable = 0
+features.congestion_tone.codelist =
+
+##V84 Add
+phone_setting.icon.delete =
+phone_setting.icon.url =
+
+###V84SP4
+voice.handset.tia4965.enable = 1
+voice.headset.tia4965.enable = 1
+
+#######################################################################################
+##                           Custom Softkey                                          ##
+#######################################################################################
+phone_setting.custom_softkey_enable = 0
+custom_softkey_talking.url =
+custom_softkey_ring_back.url =
+custom_softkey_dialing.url =
+custom_softkey_connecting.url =
+custom_softkey_call_in.url =
+custom_softkey_call_failed.url =
+
+##V83 Add
+features.homescreen_softkey.acd.enable = 1
+features.homescreen_softkey.hoteling.enable = 1
+phone_setting.custom_softkey.apply_to_states =
+features.custom_softkey_dynamic.enable = 1
+
+#######################################################################################
+##                                   Features Bluetooth                              ##
+#######################################################################################
+##Only T5XW/T54S/T52S/T48G/T48S/T46G/T46S/T42S/T41S/T29G/T27G Models support the parameter.
+features.bluetooth_enable = 0
+##V83 Add
+static.bluetooth.function.enable = 1
+
+##V84 Add
+bluetooth.a2dp_sink = 1
+bluetooth.connect_confirm.enable = 0
+
+#######################################################################################
+##                                  Features USB Record                              ##
+#######################################################################################
+##Only T5XW/T54S/T52S/T48G/T48S/T46G/T46S/T42S/T41S/T29G/T27G Models support the parameter.
+features.usb_call_recording.enable = 0
+features.auto_recording.enable = 0
+features.idle_recording.enable = 0
+
+#######################################################################################
+##                                  Features USB                                     ##
+#######################################################################################
+##V83 Add
+static.usb.power.enable = 1
+
+##V84 Add
+static.usbdisk.function.enable = 1
+
+#######################################################################################
+##                                    Codec                                          ##
+#######################################################################################
+voice.g726.aal2.enable = 0
+
+#######################################################################################
+##                                   DTMF                                            ##
+#######################################################################################
+features.dtmf.min_interval = 50	
+features.dtmf.volume = -10
+features.dtmf.duration = 100
+
+#######################################################################################
+##                                   Tones                                           ##
+#######################################################################################
+voice.tone.autoanswer =
+voice.tone.message =
+voice.tone.stutter =
+voice.tone.info =
+voice.tone.dialrecall =
+voice.tone.callwaiting =
+voice.tone.congestion =
+voice.tone.busy =
+voice.tone.ring =
+voice.tone.dial =
+voice.tone.country = {{ yealink.tonezone(tonezone) }}
+voice.side_tone = -25
+features.partition_tone = 0
+voice.tone.secondary_dial = 350+440/3000
+#######################################################################################
+##                          Tones V83 voice.tone.stutterdial                         ##
+#######################################################################################
+voice.tone.stutterdial =
+voice.tone.stutter_dial_tone.apply_to_dnd.enable = 0
+voice.tone.stutter_dial_tone.apply_to_fwd.enable = 0
+voice.tone.stutter_dial_tone.apply_to_fwd.enable = 0
+
+#######################################################################################
+##                                   Jitter Buffer                                   ##
+#######################################################################################
+voice.jib.normal = 120
+voice.jib.max = 240
+voice.jib.min = 60
+voice.jib.adaptive = 1
+
+voice.jib.wifi.normal = 240
+voice.jib.wifi.max = 500
+voice.jib.wifi.min = 60
+voice.jib.wifi.adaptive = 1
+
+#######################################################################################
+##                                   Echo Cancellation                               ##
+#######################################################################################
+voice.echo_cancellation = 1
+voice.cng = 1
+voice.vad = 0
+
+##V84 Add
+voice.ans_nb.enable = 0
+voice.tns.enable = 1
+
+################################################################
+#                        SIP Backup Server                    ##
+################################################################
+static.network.dns.ttl_enable = 1
+static.network.dns.last_cache_expired.enable = 0
+static.network.dns.last_cache_expired = 3600
+static.network.dns.query_timeout = 3
+static.network.dns.retry_times = 2
+sip.dns_transport_type = 0
+sip.skip_redundant_failover_addr = 1
+
+################################################################
+#                        SIP Basic Config                     ##
+################################################################
+sip.use_out_bound_in_dialog = 0
+sip.unreg_with_socket_close = 0
+phone_setting.disable_account_without_username.enable = 0
+features.auto_answer.first_call_only = 1
+
+##V84 Add
+phone_setting.call_display_name.mode = 0
+
+################################################################
+#                        SIP Advanced config                  ##
+################################################################
+sip.request_validation.event =
+sip.sdp_early_answer_or_offer = 0
+sip.cid_source.preference = P-Preferred-Identity, P-Asserted-Identity, Remote-Party-ID, From
+sip.request_validation.digest.realm = YealinkSPIP
+sip.request_validation.digest.list =
+sip.request_validation.source.list =
+sip.send_keepalive_by_socket = 1
+sip.reliable_protocol.timerae.enable = 0
+sip.requesturi.e164.addglobalprefix = 0
+sip.trust_ctrl = 0
+sip.mac_in_ua = 0
+sip.call_fail_use_reason.enable = 0
+
+sip.timer_t1 = 0.5
+sip.timer_t2 = 4
+sip.timer_t4 = 5
+
+sip.listen_mode = 0
+sip.listen_port = 5060
+sip.tls_listen_port = 5061
+sip.tcp_port_random_mode = 1
+sip.escape_characters.enable = 1
+sip.notify_reboot_enable = 1
+sip.send_response_by_request = 1
+sip.disp_incall_to_info = 0
+features.call_invite_format = 0
+phone_setting.early_media.rtp_sniffer.timeout = 1
+sip.reg_surge_prevention = 0
+
+################################################################
+#        V84 new add sip.escape_characters.enable             ##
+################################################################
+sip.reserve_characters =
+
+##V83 Add
+sip.dhcp.option120.mode = 0
+
+################################################################
+#                        NAT&ICE                              ##
+################################################################
+static.sip.nat_turn.enable = 0
+static.sip.nat_turn.username =
+static.sip.nat_turn.password =
+static.sip.nat_turn.server =
+static.sip.nat_turn.port = 3478
+
+static.sip.nat_stun.enable = 0
+static.sip.nat_stun.server =
+static.sip.nat_stun.port = 3478
+
+static.ice.enable =
+static.network.static_nat.enable =
+static.network.static_nat.addr =
+
+#######################################################################################
+##                           DNS                                                     ##
+#######################################################################################
+dns_cache_a.1.name =
+dns_cache_a.1.ip =
+dns_cache_a.1.ttl = 300
+dns_cache_srv.1.name =
+dns_cache_srv.1.port = 0
+dns_cache_srv.1.priority = 0
+dns_cache_srv.1.target =
+dns_cache_srv.1.weight = 0
+dns_cache_srv.1.ttl = 300
+dns_cache_naptr.1.name =
+dns_cache_naptr.1.order = 0
+dns_cache_naptr.1.preference = 0
+dns_cache_naptr.1.replace =
+dns_cache_naptr.1.service =
+dns_cache_naptr.1.ttl = 300
+
+#######################################################################################
+##                                 RTP                                               ##
+#######################################################################################
+features.rtp_symmetric.enable = 0
+
+#######################################################################################
+##                                 RTCP-XR                                           ##
+#######################################################################################
+voice.rtcp.enable = 1
+voice.rtcp_cname =
+voice.rtcp_xr.enable = 0
+phone_setting.vq_rtcpxr_display_symm_oneway_delay.enable = 0
+phone_setting.vq_rtcpxr_display_round_trip_delay.enable = 0
+phone_setting.vq_rtcpxr_display_moscq.enable = 1
+phone_setting.vq_rtcpxr_display_moslq.enable = 1
+phone_setting.vq_rtcpxr_display_packets_lost.enable = 1
+phone_setting.vq_rtcpxr_display_jitter_buffer_max.enable = 1
+phone_setting.vq_rtcpxr_display_jitter.enable = 1
+phone_setting.vq_rtcpxr_display_remote_codec.enable = 1
+phone_setting.vq_rtcpxr_display_local_codec.enable = 1
+phone_setting.vq_rtcpxr_display_remote_call_id.enable = 1
+phone_setting.vq_rtcpxr_display_local_call_id.enable = 1
+phone_setting.vq_rtcpxr_display_stop_time.enable = 1
+phone_setting.vq_rtcpxr_display_start_time.enable = 1
+phone_setting.vq_rtcpxr_interval_period = 20
+phone_setting.vq_rtcpxr_delay_threshold_critical =
+phone_setting.vq_rtcpxr_delay_threshold_warning =
+phone_setting.vq_rtcpxr_moslq_threshold_critical =
+phone_setting.vq_rtcpxr_moslq_threshold_warning =
+phone_setting.vq_rtcpxr.interval_report.enable = 0
+phone_setting.vq_rtcpxr.states_show_on_gui.enable = 0
+phone_setting.vq_rtcpxr.states_show_on_web.enable = 0
+phone_setting.vq_rtcpxr.session_report.enable = 0
+
+#######################################################################################
+##                                   Contact                                         ##
+#######################################################################################
+static.directory_setting.url =
+super_search.url =
+
+local_contact.data.url =
+local_contact.data.delete =
+
+##Only T5XW/T54S/T52S/T48G/T48S/T46G/T46S/T29G Models support the parameter
+phone_setting.contact_photo_display.enable = 1
+phone_setting.incoming_call.horizontal_roll_interval = 500
+
+##Only T5XW/T54S/T52S/T48G/T48S/T46G/T46S/T29G Models support the parameter
+local_contact.data_photo_tar.url =
+local_contact.photo.url =
+local_contact.image.url =
+
+##Only T48G/S Models support the parameter
+local_contact.icon_image.url =
+local_contact.icon.url =
+
+search_in_dialing.local_directory.enable = 1
+search_in_dialing.local_directory.priority = 1
+
+#######################################################################################
+##                                 Remote Phonebook                                  ##
+#######################################################################################
+##remote_phonebook.data.X.url
+##remote_phonebook.data.X.name
+#remote_phonebook.data.X.username=
+#remote_phonebook.data.X.password=
+##(X ranges from 1 to 5)
+
+features.remote_phonebook.enter_update_enable = 0
+features.remote_phonebook.flash_time = 21600
+features.remote_phonebook.enable = 0
+remote_phonebook.display_name =
+
+directory_setting.remote_phone_book.enable = 0
+directory_setting.remote_phone_book.priority = 4
+search_in_dialing.remote_phone_book.enable = 0
+search_in_dialing.remote_phone_book.priority = 3
+
+##V84 ADD
+
+#######################################################################################
+##                                 LDAP                                              ##
+#######################################################################################
+ldap.enable = 1
+ldap.user = {{ ldap_user }}
+ldap.password = {{ ldap_password }}
+ldap.base = {{ ldap_base }}
+ldap.port = {{ ldap_port | default( ldap_tls == 'ldaps' ? '636' : '389' ) }}
+ldap.host = {{ ldap_server | default(hostname) }}
+ldap.customize_label = {{ l10n.gettext('Phonebook', language) }}
+ldap.incoming_call_special_search.enable = 0
+ldap.tls_mode = 
+{%- if ldap_tls == 'starttls' %}
+{{- '1' }}
+{% elseif ldap_tls == 'ldaps' %}
+{{- '2' }}
+{% else %}
+{{- '0' }}
+{% endif %}
+ldap.search_type = 1
+ldap.numb_display_mode = 1
+ldap.ldap_sort = 1
+ldap.call_in_lookup = 0
+ldap.version = 3
+ldap.display_name = {{ ldap_name_display }}
+ldap.numb_attr = {{ [ldap_mainphone_number_attr, ldap_mobilephone_number_attr, ldap_otherphone_number_attr] | join(' ') }}
+ldap.name_attr = {{ ldap_name_attr }}
+ldap.max_hits = 50
+ldap.number_filter = {{ ldap_number_filter }}
+ldap.name_filter = {{ ldap_name_filter }}
+ldap.call_out_lookup = 0
+ldap.anonymous_bind_operation.enable = 1
+directory_setting.ldap.enable = 1
+directory_setting.ldap.priority = 5
+search_in_dialing.ldap.enable = 0
+search_in_dialing.ldap.priority = 4
+
+##V84 SP4 ADD
+ldap.custom_extra_attr_name =
+ldap.display_extra_attr =
+ldap.extra_attr =
+
+#######################################################################################
+##                                 History                                           ##
+#######################################################################################
+static.auto_provision.local_calllog.write_delay.terminated = 60
+static.auto_provision.local_calllog.backup.path =
+static.auto_provision.local_calllog.backup.enable = 0
+super_search.recent_call = 1
+features.call_out_history_by_off_hook.enable = 1
+features.save_call_history = 1
+features.call_log_show_num = 0
+search_in_dialing.history.enable = 1
+search_in_dialing.history.priority = 2
+directory_setting.history.enable = 0
+directory_setting.history.priority = 2
+features.save_init_num_to_history.enable = 1
+features.redial_via_local_sip_server.enable = 1
+
+##V83 Add
+features.calllog_detailed_information = 1
+
+##V84 Add
+features.call_log_merge.enable = 0
+
+#######################################################################################
+##                          Contact Backup                                           ##
+#######################################################################################
+static.auto_provision.local_contact.backup.path =
+static.auto_provision.local_contact.backup.enable = 0
+
+#######################################################################################
+##                          Contact Other                                            ##
+#######################################################################################
+directory.search_type = 0
+directory_setting.local_directory.enable = 1
+directory_setting.local_directory.priority = 1
+
+##V83 Add
+phone_setting.search.highlight_keywords.enable = 1
+
+#######################################################################################
+##                          Favorites                                                ##
+#######################################################################################
+##V83 Add
+local_contact.favorite.enable = 0
+phone_setting.favorite_sequence_type = 0
+
+#######################################################################################
+##                                  Dsskey                                           ##
+#######################################################################################
+features.block_linekey_in_menu.enable = 0
+features.shorten_linekey_label.enable = 0
+features.flash_url_dsskey_led.enable = 1
+features.config_dsskey_length = 0
+phone_setting.page_tip = 0
+features.keep_switch_page_key.enable = 0
+
+##phone_setting.idle_dsskey_and_title.transparency(Only support T5XW/T54S/T52S/T48G/T48S)
+phone_setting.idle_dsskey_and_title.transparency = 100%
+
+##V83 Add
+phone_setting.keytype_sequence =
+phone_setting.dsskey_label.display_method = 0
+local.dsskey_type_config.mode = 0
+
+#######################################################################################
+##                                XML                                                ##
+#######################################################################################
+push_xml.server =
+push_xml.sip_notify = 0
+push_xml.block_in_calling = 0
+default_input_method.xml_browser_input_screen = 2aB
+
+##V83 Add
+hoteling.authentication_mode = 0
+push_xml.phonebook.search.delay = 1000
+features.xml_browser.loading_tip.delay = 100
+features.xml_browser.pwd =
+features.xml_browser.user_name =
+push_xml.password =
+push_xml.username =
+
+#######################################################################################
+##                                  Forward                                          ##
+#######################################################################################
+features.fwd.allow = {{ account_fwd_allow_1 ? '1' : '0' }}
+features.fwd_mode = 1
+forward.no_answer.timeout = {{ cftimeout }}
+forward.no_answer.on_code = {{ cftimeouton }}
+forward.no_answer.off_code = {{ cftimeoutoff }}
+forward.busy.off_code = {{ cfbusyoff }}
+forward.busy.on_code = {{ cfbusyon }}
+forward.always.off_code = {{ cfalwaysoff }}
+forward.always.on_code = {{ cfalwayson }}
+
+features.forward.emergency.authorized_number =
+features.forward.emergency.enable = 0
+forward.idle_access_always_fwd.enable = 0
+features.forward_call_popup.enable = 1
+
+##V83 Add
+features.forward.no_answer.show_ring_times = 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20
+
+##V84 Add
+features.no_answer_code = 486
+
+#######################################################################################
+##                                  DND                                              ##
+#######################################################################################
+features.dnd.allow = {{ account_dnd_allow_1 ? '1' : '0' }}
+features.dnd_mode = 1
+
+features.dnd.off_code = {{ dndoff }}
+features.dnd.on_code = {{ dndon }}
+
+features.dnd.emergency_authorized_number =
+features.dnd.emergency_enable = 0
+features.dnd.large_icon.enable = 1
+
+##V83 Add
+features.keep_dnd.enable = 1
+
+#######################################################################################
+##                               Phone Lock                                          ##
+#######################################################################################
+phone_setting.phone_lock.enable = 0
+phone_setting.phone_lock.lock_key_type = 0
+phone_setting.phone_lock.unlock_pin = 123
+phone_setting.emergency.number = 112,911,110
+phone_setting.phone_lock.lock_time_out = 0
+
+#######################################################################################
+##                               Hotdesking                                          ##
+#######################################################################################
+phone_setting.logon_wizard = 0
+phone_setting.logon_wizard_forever_wait = 0
+
+hotdesking.startup_register_name_enable = 0
+hotdesking.startup_username_enable = 1
+hotdesking.startup_password_enable = 1
+hotdesking.startup_sip_server_enable = 0
+hotdesking.startup_outbound_enable = 0
+
+hotdesking.dsskey_register_name_enable = 0
+hotdesking.dsskey_username_enable = 1
+hotdesking.dsskey_password_enable = 1
+hotdesking.dsskey_sip_server_enable = 0
+hotdesking.dsskey_outbound_enable = 0
+
+#######################################################################################
+##                               Voice Mail                                          ##
+#######################################################################################
+features.voice_mail_alert.enable = 0
+features.voice_mail_popup.enable = 1
+features.voice_mail_tone_enable = 1
+features.hide_feature_access_codes.enable = 0
+
+#######################################################################################
+##                               Text Message                                        ##
+#######################################################################################
+features.text_message.enable = 0
+features.text_message_popup.enable = 0
+
+#######################################################################################
+##                               Audio Intercom                                      ##
+#######################################################################################
+features.intercom.mode = 1
+features.intercom.subscribe.enable = 0
+features.intercom.led.enable = 0
+features.intercom.feature_access_code =
+features.blf.intercom_mode.enable = 0
+
+features.redial_tone =
+features.key_tone = 1
+features.send_key_tone = 1
+
+features.intercom.allow = 1
+features.intercom.barge = 0
+features.intercom.tone = 1
+features.intercom.mute = 0
+
+voice.handset_send = 0
+voice.handfree_send = 0
+voice.headset_send = 0
+features.intercom.headset_prior.enable = 0
+features.ringer_device.is_use_headset = 0
+features.intercom.barge_in_dialing.enable = 0
+
+#######################################################################################
+##                               Feature General                                     ##
+#######################################################################################
+features.ip_call.auto_answer.enable = 1
+features.show_default_account = 1
+features.call.dialtone_time_out = 15
+features.missed_call_popup.enable = 1
+features.auto_answer_tone.enable = 1
+features.key_as_send = {{ pound }}
+features.send_pound_key = 0
+features.busy_tone_delay = 3
+features.hotline_delay = 4
+features.hotline_number =
+features.direct_ip_call_enable = 0
+features.call_num_filter = , -()/
+features.call_completion_enable = 1
+features.allow_mute = 1
+features.auto_answer_delay = 1
+features.normal_refuse_code = 486
+features.dnd_refuse_code = 480
+features.upload_server =
+features.dtmf.repetition = 3
+features.dtmf.hide_delay = 0
+features.dtmf.hide = 0
+features.play_local_dtmf_tone_enable = 1
+features.reboot_in_talk_enable = 0
+features.fwd_diversion_enable = 1
+
+auto_redial.times = 10
+auto_redial.interval = 10
+auto_redial.enable =  {{ auto_redial }}
+
+sip.rfc2543_hold = 0
+sip.use_23_as_pound = 1
+forward.international.enable = 1
+phone_setting.headsetkey_mode = 1
+phone_setting.is_deal180 = 1
+phone_setting.change_183_to_180 = 0
+phone_setting.browser.url = https://www.google.com
+
+##V84 Add
+features.touch_tone =
+
+#######################################################################################
+##                               Action URL&URI                                      ##
+#######################################################################################
+features.csta_control.enable = 0
+features.action_uri.enable = 1
+features.action_uri_limit_ip = *.*.*.*
+features.show_action_uri_option = 0
+action_url.call_remote_canceled =
+action_url.remote_busy =
+action_url.cancel_callout =
+action_url.handfree =
+action_url.headset =
+action_url.unheld =
+action_url.held =
+action_url.transfer_failed =
+action_url.transfer_finished =
+action_url.answer_new_incoming_call =
+action_url.reject_incoming_call =
+action_url.forward_incoming_call =
+action_url.ip_change =
+action_url.idle_to_busy =
+action_url.busy_to_idle =
+action_url.call_terminated =
+action_url.missed_call =
+action_url.unmute =
+action_url.mute =
+action_url.unhold =
+action_url.hold =
+action_url.always_fwd_off =
+action_url.always_fwd_on =
+action_url.attended_transfer_call =
+action_url.blind_transfer_call =
+action_url.busy_fwd_off =
+action_url.busy_fwd_on =
+action_url.call_established =
+action_url.call_waiting_off =
+action_url.call_waiting_on =
+action_url.dnd_off =
+action_url.dnd_on =
+action_url.incoming_call =
+action_url.no_answer_fwd_off =
+action_url.no_answer_fwd_on =
+action_url.off_hook =
+action_url.on_hook =
+action_url.outgoing_call =
+action_url.register_failed =
+action_url.registered =
+action_url.setup_autop_finish =
+action_url.setup_completed =
+action_url.transfer_call =
+action_url.unregistered =
+
+##V84 Add
+action_url.peripheral_information =
+
+#######################################################################################
+##                               Power LED                                           ##
+#######################################################################################
+phone_setting.hold_and_held_power_led_flash_enable = 1
+phone_setting.mute_power_led_flash_enable = 1
+phone_setting.talk_and_dial_power_led_enable = 1
+phone_setting.mail_power_led_flash_enable = 0
+phone_setting.ring_power_led_flash_enable = 1
+phone_setting.common_power_led_enable = 0
+phone_setting.missed_call_power_led_flash.enable = 1
+
+#######################################################################################
+##                                  Time&Date                                        ##
+#######################################################################################
+lcl.datetime.date.format = WWW DD MMM
+auto_dst.url =
+local_time.manual_time_enable = 0
+local_time.manual_ntp_srv_prior = 1
+local_time.time_format = {{ time_format == '12' ? '0' : '1' }}
+local_time.date_format = {{ yealink.date_format(date_format) }}
+local_time.dhcp_time = 0
+
+local_time.summer_time = 2
+local_time.dst_time_type = 1
+local_time.start_time = 3/5/7/2
+local_time.end_time = 10/5/7/3
+local_time.offset_time = 60
+local_time.interval = 1000
+
+local_time.ntp_server1 = {{ ntp_server }}
+local_time.ntp_server2 = pool.ntp.org
+local_time.time_zone = {{ yealink.timezone(timezone) }}
+local_time.time_zone_name = {{ yealink.timezoneName(timezone) }}
+
+#######################################################################################
+##                           Multicast Paging                                        ##
+#######################################################################################
+##multicast.listen_address.X.label
+##multicast.paging_address.X.channel
+##multicast.listen_address.X.ip_address
+##multicast.paging_address.X.ip_address
+##multicast.paging_address.X.label
+##multicast.listen_address.X.channel
+##multicast.listen_address.X.volume
+##Multicast(X ranges from 1 to 31.)
+
+multicast.codec = PCMU
+
+multicast.paging_address.1.channel = 0
+multicast.paging_address.1.label =
+multicast.paging_address.1.ip_address =
+multicast.receive_priority.enable = 1
+multicast.receive_priority.priority = 31
+
+multicast.receive.use_speaker = 0
+multicast.receive.enhance_volume = 0
+multicast.receive.ignore_dnd.priority = 0
+
+multicast.listen_address.1.channel = 0
+multicast.listen_address.1.label =
+multicast.listen_address.1.ip_address =
+multicast.listen_address.1.volume = 0
+
+#######################################################################################
+##                           Preference&Status                                       ##
+#######################################################################################
+##Not support T19P_E2
+static.features.default_account = 1
+
+##Logo File Format: .dob
+##Resolution: SIP-T42G/T42S/T41P/T41S: <=192*64  2 gray scale;SIP-T27P/G: <=240*120  2 gray scale;SIP-T40P/T40G/T23P/T23G/T21(P) E2/T19(P) E2: <=132*64  2 gray scale##
+phone_setting.lcd_logo.mode = {{ lcd_logo_mode }}
+lcd_logo.delete =
+lcd_logo.url = {{ lcd_logo_url }}
+
+phone_setting.contrast = {{ ( contrast == '0' or contrast >= 1 ) ? contrast + 1 }}
+phone_setting.backlight_time = {{ backlight_time | default('0') }}
+phone_setting.inactive_backlight_level =
+phone_setting.active_backlight_level = {{ ( brightness == '0' or brightness >= 1 ) ? brightness + 1 }}
+phone_setting.predial_autodial = 1
+
+ringtone.url = {{ ringtone_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/ringtones/#{ringtone_file}?" : "" }}
+ringtone.delete =
+phone_setting.ring_type = {{ yealink.ringtone(ringtone, ringtone_file, cap_ringtone_count) }}
+phone_setting.inter_digit_time = 4
+
+##Only T54S Model supports the parameter
+phone_setting.idle_clock_display.enable = 1
+
+#######################################################################################
+##                           Digitmap                                                ##
+#######################################################################################
+dialplan.digitmap.enable = 0
+dialplan.digitmap.string = [2-9]11 | 0T | 011xxx.T | [0-1][2-9]xx xxxxxxx | [2-9]xx xxxxxxx | [2-9]xxxT | **x.T | +x.T| 00x.T
+dialplan.digitmap.no_match_action = 0
+dialplan.digitmap.interdigit_short_timer = 3
+dialplan.digitmap.interdigit_long_timer = 10
+dialplan.digitmap.apply_to.press_send = 1
+dialplan.digitmap.apply_to.forward = 1
+dialplan.digitmap.apply_to.history_dial = 0
+dialplan.digitmap.apply_to.directory_dial = 1
+dialplan.digitmap.apply_to.on_hook_dial = 1
+dialplan.digitmap.active.on_hook_dialing = 0
+
+##V83 Add
+dialplan.digitmap.apply_to.prefix_key = 1
+
+##V84 ADD
+features.local_calllog.received.replace_rule =
+
+#######################################################################################
+##                           Emergency Dialplan                                      ##
+#######################################################################################
+dialplan.emergency.enable = 1
+dialplan.emergency.1.value = 112
+dialplan.emergency.server.1.address =
+dialplan.emergency.server.1.transport_type = 0
+dialplan.emergency.server.1.port = 5060
+dialplan.emergency.1.server_priority = 1,2,3
+dialplan.emergency.custom_asserted_id =
+dialplan.emergency.asserted_id_source = ELIN
+dialplan.emergency.asserted_id.sip_account =  1
+dialplan.emergency.held.request_element.1.name =
+dialplan.emergency.held.request_element.1.value =
+dialplan.emergency.held.request_type = SIMPLE
+dialplan.emergency.held.server_url =
+
+#######################################################################################
+##                               Dialplan                                            ##
+#######################################################################################
+dialplan_replace_rule.url =
+dialplan.replace.line_id.1 =
+dialplan.replace.replace.1 =
+dialplan.replace.prefix.1 =
+phone_setting.dialnow_delay = 1
+dialplan_dialnow.url =
+dialplan.dialnow.line_id.1 =
+dialplan.dialnow.rule.1 =
+dialplan.block_out.line_id.1 =
+dialplan.block_out.number.1 =
+dialplan.area_code.line_id =
+dialplan.area_code.max_len = 15
+dialplan.area_code.min_len = 1
+dialplan.area_code.code =
+
+#######################################################################################
+##                                 Rings Settings                                    ##
+#######################################################################################
+distinctive_ring_tones.alert_info.1.text = ring1
+distinctive_ring_tones.alert_info.1.ringer = 1
+distinctive_ring_tones.alert_info.2.text = ring2
+distinctive_ring_tones.alert_info.2.ringer = 2
+distinctive_ring_tones.alert_info.3.text = ring3
+distinctive_ring_tones.alert_info.3.ringer = 3
+distinctive_ring_tones.alert_info.4.text = ring4
+distinctive_ring_tones.alert_info.4.ringer = 4
+distinctive_ring_tones.alert_info.5.text = ring5
+distinctive_ring_tones.alert_info.5.ringer = 5
+distinctive_ring_tones.alert_info.6.text = ring6
+distinctive_ring_tones.alert_info.6.ringer = 6
+distinctive_ring_tones.alert_info.7.text = ring7
+distinctive_ring_tones.alert_info.7.ringer = 7
+distinctive_ring_tones.alert_info.8.text = ring8
+distinctive_ring_tones.alert_info.8.ringer = 8
+distinctive_ring_tones.alert_info.9.text = ring9
+distinctive_ring_tones.alert_info.9.ringer = 9
+distinctive_ring_tones.alert_info.10.text = ring10
+distinctive_ring_tones.alert_info.10.ringer = 10
+
+#######################################################################################
+##                                   IME Settings                                    ##
+#######################################################################################
+directory.search_default_input_method = abc
+directory.edit_default_input_method = Abc
+gui_input_method.url =
+
+##V83 Add
+##Only T48G/T48S Models support the parameter
+phone_setting.virtual_keyboard.enable = 1
+
+#######################################################################################
+##                                   Language Settings                               ##
+#######################################################################################
+wui_lang.url =
+wui_lang_note.url =
+wui_lang.delete =
+gui_input_method.delete =
+gui_lang.url =
+gui_lang.delete =
+lang.gui = {{ yealink.language(language) }}
+lang.wui = {{ yealink.language(language) }}
+
+#######################################################################################
+##                                   Screensaver                                     ##
+#######################################################################################
+screensaver.type = {{ cap_screensaver_file and screensaver_file ? '1' : '0' }}
+screensaver.delete =
+screensaver.upload_url = {{ cap_screensaver_file and screensaver_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/screensavers/#{screensaver_file}" : "" }}
+features.blf_active_backlight.enable = {{ yealink_blf_active_backlight | default('0') }}
+screensaver.display_clock.enable = 1
+screensaver.clock_move_interval = 600
+screensaver.picture_change_interval = 60
+screensaver.wait_time = {{ screensaver_time | default('600') }}
+screensaver.xml_browser.url =
+
+#######################################################################################
+##                                  Power Saving                                     ##
+#######################################################################################
+features.power_saving.enable = 0
+features.power_saving.power_led_flash.on_time = 500
+features.power_saving.power_led_flash.off_time = 500
+features.power_saving.office_hour.monday = 7,19
+features.power_saving.office_hour.tuesday = 7,19
+features.power_saving.office_hour.wednesday = 7,19
+features.power_saving.office_hour.thursday = 7,19
+features.power_saving.office_hour.friday = 7,19
+features.power_saving.office_hour.saturday = 7,7
+features.power_saving.office_hour.sunday = 7,7
+features.power_saving.user_input_ext.idle_timeout = 10
+features.power_saving.off_hour.idle_timeout = 10
+features.power_saving.office_hour.idle_timeout = 960
+features.power_saving.intelligent_mode = 0
+
+#######################################################################################
+##                           Backgrounds  Settings                                   ##
+#######################################################################################
+##File Formate:
+##SIP-T57W/T54W/T54S/T52S/T48S/T48G/T46G/T46S/T29G: .jpg/.png/.bmp/.jpeg;
+##Resolution:
+##SIP-T57W/T48S/T48G:<=2.0 megapixels;
+##for SIP-T54W/T46G/T46S/T29G: <=1.8 megapixels;SIP-T54S/T52S:<=4.2 megapixels;
+##Single File Size: <=5MB
+##2MB of space should bereserved for the phone
+
+wallpaper_upload.url = {{ cap_background_file and background_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/backgrounds/#{background_file}" : "" }}
+phone_setting.backgrounds = {{ background_file }}
+
+## phone_setting.backgrounds_with_dsskey_unfold(Only support T48G/S)
+phone_setting.backgrounds_with_dsskey_unfold = Auto
+
+##expansion_module.backgrounds(Only support T5XW/T54S/T52S)
+expansion_module.backgrounds = %NULL%
+expansion_module.page_tip.blf_call_in.enable = %NULL%
+expansion_module.page_tip.blf_call_in.led = %NULL%
+
+#######################################################################################
+##                               BSFT Setting                                        ##
+#######################################################################################
+bw.enable = 0
+
+#######################################################################################
+##                                  BLF/BLF List                                     ##
+#######################################################################################
+phone_setting.auto_blf_list_enable = 1
+phone_setting.blf_list_sequence_type = 0
+
+blf.enhanced.parked.enable = 0
+blf.enhanced.parked.led =
+blf.enhanced.parked.talking.action =
+blf.enhanced.parked.callin.action =
+blf.enhanced.parked.idle.action =
+
+blf.enhanced.talking.enable = 0
+blf.enhanced.talking.led =
+blf.enhanced.talking.talking.action =
+blf.enhanced.talking.callin.action =
+blf.enhanced.talking.idle.action =
+
+blf.enhanced.callout.enable = 0
+blf.enhanced.callout.led =
+blf.enhanced.callout.talking.action =
+blf.enhanced.callout.callin.action =
+blf.enhanced.callout.idle.action =
+
+blf.enhanced.callin.enable = 0
+blf.enhanced.callin.led =
+blf.enhanced.callin.talking.action =
+blf.enhanced.callin.callin.action =
+blf.enhanced.callin.idle.action =
+
+blf.enhanced.idle.enable = 0
+blf.enhanced.idle.led =
+blf.enhanced.idle.talking.action =
+blf.enhanced.idle.callin.action =
+blf.enhanced.idle.idle.action =
+
+features.blf_list_version = 0
+sip.sub_refresh_random = 0
+sip.terminate_notify_sub_delay_time = 0
+
+features.blf_led_mode = 0
+features.blf_pickup_only_send_code = 0
+
+##V84 Add
+blf.enhanced.dnd.enable = 0
+blf.enhanced.dnd.led =
+blf.enhanced.hold.enable = 0
+blf.enhanced.hold.led =
+
+features.blf.show_callinfo.enable = 1
+
+##V84 SP4 ADD
+blf.normal_barge_in_code =
+blf.whisper_barge_in_code =
+blf.listen_barge_in_code =
+
+#######################################################################################
+##                                   SCA                                             ##
+#######################################################################################
+features.auto_release_bla_line = 0
+features.barge_in_via_username.enable = 0
+
+#######################################################################################
+##                                   Call Park                                       ##
+#######################################################################################
+features.call_park.enable = 0
+features.call_park.park_mode = 2
+features.call_park.park_code =
+features.call_park.park_retrieve_code =
+features.call_park.direct_send.enable = 1
+features.call_park.park_visual_notify_enable = 0
+features.call_park.park_ring = 0
+features.call_park.group_enable = 0
+features.call_park.group_park_code =
+sip.call_park_without_blf = 0
+features.call_park.line_restriction.enable = 0
+
+
+#######################################################################################
+##                                    Broadsoft ACD                                  ##
+#######################################################################################
+acd.enable = 0
+acd.auto_available_timer = 60
+
+#######################################################################################
+##                              Broadsoft XSI                                        ##
+#######################################################################################
+bw.xsi.enable = 0
+sip.authentication_for_xsi = 0
+default_input_method.xsi_password = 2aB
+
+#######################################################################################
+##                             Broadsoft Network Directory                           ##
+#######################################################################################
+bw.xsi.directory.enable = 0
+bw.calllog_and_dir = 0
+bw.xsi.call_log.enable = 0
+bw_phonebook.custom = 0
+bw_phonebook.enterprise_common_enable = 1
+bw_phonebook.enterprise_common_displayname = EnterpriseCommon
+bw_phonebook.enterprise_enable = 1
+bw_phonebook.enterprise_displayname = Enterprise
+bw_phonebook.group_common_enable = 1
+bw_phonebook.group_common_displayname = GroupCommon
+bw_phonebook.personal_enable = 1
+bw_phonebook.personal_displayname =Personal
+bw_phonebook.group_enable = 1
+bw_phonebook.group_displayname = Group
+directory.update_time_interval = 60
+bw.xsi.directory.alphabetized_by_lastname.enable = 0
+directory_setting.bw_directory.enable = 0
+directory_setting.bw_directory.priority = 6
+search_in_dialing.bw_directory.enable = 0
+search_in_dialing.bw_directory.priority = 5
+##V83 Add
+bw.xsi.directory.update.enable = 1
+
+#######################################################################################
+##                             Broadsoft Network Calllog                             ##
+#######################################################################################
+##V83 Add
+bw.xsi.call_log.delete.enable = 0
+bw.xsi.call_log.multiple_accounts.enable = 0
+phone_setting.ring_duration = 6
+
+#######################################################################################
+##                                Call Pickup                                        ##
+#######################################################################################
+features.pickup.direct_pickup_enable = 1
+features.pickup.group_pickup_enable = 1
+features.pickup.direct_pickup_code = {{ pickup_direct }}
+features.pickup.group_pickup_code = {{ pickup_group }}
+features.pickup.blf_audio_enable = 0
+features.pickup.blf_visual_enable = 0
+features.pickup_display.method = 2
+
+##V84 Add
+features.pickup.blf_audio.list = any
+features.pickup.blf_visual.list = any
+
+#######################################################################################
+##                                Alert Info                                         ##
+#######################################################################################
+features.alert_info_tone = 0
+
+#######################################################################################
+##                       Broadsoft Visual Voice Mail                                 ##
+#######################################################################################
+bw.voice_mail.visual.enable = 0
+voice_mail.message_key.mode = 0
+bw.voice_mail.visual.display_videomail.enable = 0
+
+#######################################################################################
+##                              Broadsoft Call Recording                             ##
+#######################################################################################
+bw.call_recording.mode = 1
+
+#######################################################################################
+##                              Broadsoft Call Decline                               ##
+#######################################################################################
+features.call_decline.enable = 0
+
+#######################################################################################
+##                         BLF Ring Type                                             ##
+#######################################################################################
+features.blf.ring_type = Splash.wav
+
+#######################################################################################
+##                         Features Sync                                             ##
+#######################################################################################
+features.feature_key_sync.enable = 0
+features.forward.feature_key_sync.local_processing.enable = 0
+features.forward.feature_key_sync.enable = 1
+features.dnd.feature_key_sync.local_processing.enable = 0
+features.dnd.feature_key_sync.enable = 1
+call_waiting.mode = 0
+
+#######################################################################################
+##                           Broadsoft  UC                                           ##
+#######################################################################################
+##Only T5XW/T54S/T52S/T48G/T48S/T46G/T46S/T29G Models support the parameter
+bw.xmpp.enable = 0
+features.uc_password =
+features.uc_username =
+bw.xmpp.presence_icon.mode = 0
+bw.xmpp.change_presence.force_manual.enable = 1
+bw.xmpp.change_presence.enable = 0
+phone_setting.dsskey_directory_auto.enable = 1
+features.uc_dir.match_tail_number = 4
+directory_setting.bw_uc_buddies.enable = 0
+directory_setting.bw_uc_buddies.priority = 12
+search_in_dialing.bw_uc_buddies.enable = 0
+search_in_dialing.bw_uc_buddies.priority = 6
+
+##V83 Add
+phone_setting.uc_favorite_sequence_type = 0
+
+#######################################################################################
+##                      Broadsoft  Emergency Call                                    ##
+#######################################################################################
+##V83 Add
+bw.emergency_calling.enable  = 0
+
+#######################################################################################
+##                         Metaswitch Setting                                        ##
+#######################################################################################
+meta.enable = 0
+meta.login_mode =
+meta.comm_portal.server.username =
+meta.comm_portal.server.password =
+meta.comm_portal.server.url =
+meta.comm_portal.enable = 0
+meta.comm_portal.contacts.update_interval =
+meta.comm_portal.acd.enable = 0
+meta.comm_portal.replace_local_call_list.enable = 0
+meta.comm_portal.contacts.group.mlhgs.label =
+meta.comm_portal.contacts.group.extensions.label =
+meta.comm_portal.contacts.group.contacts.label =
+meta.comm_portal.contacts.group.mlhgs.enable = 0
+meta.comm_portal.contacts.group.extensions.enable = 0
+meta.comm_portal.contacts.group.contacts.enable = 0
+meta.comm_portal.call_list.enable = 0
+meta.comm_portal.contacts.enable = 0
+meta.comm_portal.message.enable = 0
+meta.comm_portal.logout.enable = 0
+meta.comm_portal.keep_alive_interval_time =
+
+##V83 Add
+directory_setting.meta_directory.enable = 0
+directory_setting.meta_directory.priority =
+directory_setting.meta_call_log.enable = 0
+directory_setting.meta_call_log.priority =
+search_in_dialing.meta_call_log.priority =
+search_in_dialing.meta_call_log.enable = 0
+search_in_dialing.meta_directory.priority =
+search_in_dialing.meta_directory.enable = 0
+
+#######################################################################################
+##                                   Genbend Setting                                 ##
+#######################################################################################
+gb.sopi.enable = 0
+gb.sopi.gab.enable = 0
+gb.sopi.pab.enable = 0
+features.pab.soupuser =
+features.pab.enable = 0
+gb.sopi.pab.match_in_calling.enable = 1
+gb.sopi.gab.retain_search_filter = 1
+gb.sopi.service_url =
+gb.sopi.password =
+gb.sopi.username =
+directory_setting.gb_gab_directory.priority = 0
+directory_setting.gb_gab_directory.enable = 0
+directory_setting.gb_pab_directory.enable = 0
+directory_setting.gb_pab_directory.priority = 0
+search_in_dialing.gb_pab_directory.priority = 0
+search_in_dialing.gb_pab_directory.enable = 0
+
+#######################################################################################
+##                                   Loopback Call                                   ##
+#######################################################################################
+##V83 Add
+sip.loopback.enable = 0
+sip.loopback_type = 3
+sip.pkt_loopback_mode = 3
+sip.loopback.auto_answer.mode = 1
+sip.pkt_loopback_encapsulated_payload = 112
+sip.pkt_loopback_directed_payload = 113
+
+#######################################################################################
+##                                   V84 add                                         ##
+#######################################################################################
+google_contact_server.enable = 0
+google_contact_server.display_mode = 0
+
+static.features.network_test.check_policy = 0
+static.features.network_test.enable = 0
+static.features.network_test.host =
+static.features.network_test.period = 60
+static.features.network_unavailable_test.period = 30
+
+phone_setting.warnings_display.mode = 0
+
+bw.flexible_seating.remember_password.ldap.enable = 0
+
+vcaccount.enable = 0
+
+#######################################################################################
+##                       V84 T5XW add   VPM-Acoustic Shield                          ##
+#######################################################################################
+features.acoustic_shield.level = 0
+features.acoustic_shield.mode = 2
+
+#######################################################################################
+##                               V84 T5XW add                                        ##
+#######################################################################################
+base.pin_code = 0000
+base.repeater_mode.enable = 0
+base.pin_code_for_register = 0000
+base.double_pin_code.enable = 0
+base.active_handset.number = 8
+base.eco_mode.enable = 0
+
+custom.handset.auto_answer.enable = 1
+custom.handset.auto_intercom = -1
+custom.handset.backlight_out_of_charger.enable = 0
+custom.handset.backlight_in_charger.enable = 1
+custom.handset.color_scheme = -1
+custom.handset.confirmation_tone.enable = 1
+custom.handset.date_format = {{ yealink.date_format(date_format) }}
+custom.handset.eco_mode.enable = 0
+custom.handset.keypad_light.enable = 1
+custom.handset.keypad_tone.enable = 1
+custom.handset.language = {{ yealink.language(language) }}
+custom.handset.low_battery_tone.enable = 1
+custom.handset.missed_call_notify_light.enable = 1
+custom.handset.screen_saver.enable = 1
+custom.handset.time_format = {{ time_format }}
+custom.handset.voice_mail_notify_light.enable = 1
+custom.handset.wallpaper = -1
+
+{% for handset in 0..10 %}
+{% if _context['name_' ~ line] is defined %}
+
+handset.{{ handset }}.dial_out_default_line = {{ _context['handset_default_line_' ~ line] | default }}
+handset.{{ handset }}.dial_out_lines = {{ _context['handset_dialout_line_' ~ line] | default }}
+handset.{{ handset }}.hac.enable = {{ _context['handset_hac_' ~ line] | default }}
+handset.{{ handset }}.incoming_lines = {{ _context['handset_incoming_lines_' ~ line] | default }}
+handset.{{ handset }}.name = {{ _context['handset_name_' ~ line] | default }}
+
+{% endif %}
+{% endfor %}
+
+
+over_the_air.base_trigger = 1
+over_the_air.handset_tip = 1
+over_the_air.handset_trigger = 1
+over_the_air.url = {{ provisioning_url2 }}
+over_the_air.url.w52h = {{ provisioning_url2 }}
+over_the_air.url.w53h = {{ provisioning_url2 }}
+over_the_air.url.w56h = {{ provisioning_url2 }}
+
+auto_provision.custom.handset.protect = 1
+auto_provision.handset_configured.enable = 1
+phone_setting.end_call_on_hook.enable = 1
+
+directory_setting.shared_contact.enable = 0
+shared_contact_list.url =
+
+#######################################################################################
+##                        V84 SP4 add                                                ##
+#######################################################################################
+phone_setting.search_t9.enable = 1
+gb.presence.line = 1
+gb.presence.enable = 0
+gb.emergency_instant_messages.enable = 0
+gb.emergency_instant_messages.displaytimeout = 1
+features.transfer_keep_session2_after_failed.enable = 0
+features.emergency_instant_messages.ring_type = Splash.wav
+features.call_park.performby_holdhardkey.enable = 0
+features.blf_extension.mode = 1
+features.auto_answer.ring_type = 0
+directory_setting.presence_list.priority = 6
+directory_setting.presence_list.enable = 1
+custom.features.dsskey_lock_type =
+auto_provision.pnp_check_url.enable = 0
+
+acd.logout_fixed_display.enable = 0
+acd.available_fixed_display.enable = 0
+acd.disp_code_fixed_display.enable = 0
+acd.trace_fixed_display.enable = 0
+
+features.parked_call_monitor.blf_visual_enable = 0
+features.parked_call_monitor.blf_audio_enable = 1
+features.parked_call_monitor.blf.ring_type = Splash.wav
+
+voice.handset.tia4965.enable = 1
+voice.headset.tia4965.enable = 1
+
+#######################################################################################
+##                        Video Settings                                             ##
+#######################################################################################
+static.camera.function.enablea = 1
+camera.status_bar_icon.enable = 1
+video.enable = 1
+camera.flicker = 50
+features.default_layout = 1
+features.full_screen_in_call_enable = 1
+features.video_call_bandwidth = 0
+sip.h264.peer_resolution.default = 2
+
+{% for line in 0..10 %}
+{% if _context['account_username_' ~ line] is defined %}
+#######################################################################################
+##                                   Transfer                                        ##
+#######################################################################################
+account.{{ line }}.phone_setting.call_appearance.transfer_via_new_linekey = 0
+
+#######################################################################################
+##                               Call Waiting                                        ##
+#######################################################################################
+call_waiting.enable = {{ _context['account_call_waiting_' ~ line] ? '1' : '0' }}
+call_waiting.tone = {{ call_waiting_tone }}
+call_waiting.off_code = {{ call_waiting_off }}
+call_waiting.on_code = {{ call_waiting_on }}
+
+#######################################################################################
+##                                   Conference                                      ##
+#######################################################################################
+account.{{ line }}.phone_setting.call_appearance.conference_via_new_linekey = 0
+
+#######################################################################################
+##                                   Anonymous                                       ##
+#######################################################################################
+account.{{ line }}.anonymous_call.server_base_only =
+account.{{ line }}.send_anonymous_rejection_code = 0
+account.{{ line }}.anonymous_reject_offcode =
+account.{{ line }}.anonymous_reject_oncode =
+account.{{ line }}.reject_anonymous_call = 0
+account.{{ line }}.anonymous_call_offcode =
+account.{{ line }}.anonymous_call_oncode =
+account.{{ line }}.anonymous_call = 0
+account.{{ line }}.send_anonymous_code = 0
+
+#######################################################################################
+##                          Call Configuration                                       ##
+#######################################################################################
+account.{{ line }}.music_server_uri =
+account.{{ line }}.music_on_hold_type = 0
+account.{{ line }}.auto_label.rule = {L}_{1}
+account.{{ line }}.auto_label.enable = 0
+account.{{ line }}.number_of_linekey = 1
+account.{{ line }}.phone_setting.call_appearance.calls_per_linekey =
+
+#######################################################################################
+##                                    Codec                                          ##
+#######################################################################################
+account.{{ line }}.codec.ilbc_15_2kbps.priority = 0
+account.{{ line }}.codec.ilbc_15_2kbps.enable = 0
+account.{{ line }}.codec.ilbc_13_33kbps.priority = 0
+account.{{ line }}.codec.ilbc_13_33kbps.enable = 0
+account.{{ line }}.codec.pcma.enable = 1
+account.{{ line }}.codec.pcma.priority = 2
+account.{{ line }}.codec.pcmu.enable = 1
+account.{{ line }}.codec.pcmu.priority = 3
+account.{{ line }}.codec.opus.priority = 5
+account.{{ line }}.codec.opus.enable = 1
+account.{{ line }}.codec.opus.para = opus-wb
+account.{{ line }}.codec.g726_40.enable = 0
+account.{{ line }}.codec.g726_40.priority =
+account.{{ line }}.codec.g726_32.enable = 0
+account.{{ line }}.codec.g726_32.priority = 0
+account.{{ line }}.codec.g726_24.enable = 0
+account.{{ line }}.codec.g726_24.priority = 0
+account.{{ line }}.codec.g726_16.enable = 0
+account.{{ line }}.codec.g726_16.priority = 0
+account.{{ line }}.codec.g723_63.priority = 0
+account.{{ line }}.codec.g723_63.enable = 0
+account.{{ line }}.codec.g723_53.priority = 0
+account.{{ line }}.codec.g723_53.enable = 0
+account.{{ line }}.codec.g729.priority = 1
+account.{{ line }}.codec.g729.enable = 1
+account.{{ line }}.codec.g722.priority = 4
+account.{{ line }}.codec.g722.enable = 1
+account.{{ line }}.codec.G722_1_24kpbs.priority = 0
+account.{{ line }}.codec.G722_1_24kpbs.enable = 0
+account.{{ line }}.codec.G722_1c_24kpbs.priority = 0
+account.{{ line }}.codec.G722_1c_24kpbs.enable = 0
+account.{{ line }}.codec.G722_1c_32kpbs.priority = 0
+account.{{ line }}.codec.G722_1c_32kpbs.enable = 0
+account.{{ line }}.codec.G722_1c_48kpbs.priority = 0
+account.{{ line }}.codec.G722_1c_48kpbs.enable = 0
+
+account.{{ line }}.video.h264.priority = 1
+account.{{ line }}.video.h264.enable = 1
+account.{{ line }}.video.vp8.priority = 2
+account.{{ line }}.video.vp8.enable = 1
+account.{{ line }}.video.h263.priority = 3
+account.{{ line }}.video.h263.enable = 1
+account.{{ line }}.video.h264hp.priority = 4
+account.{{ line }}.video.h264hp.enable = 1
+
+################################################################
+#                      Account Register                       ##
+################################################################
+account.{{ line }}.enable = 1
+account.{{ line }}.label = {{ _context['account_display_name_' ~ line]|default }}
+account.{{ line }}.display_name = {{ _context['account_display_name_' ~ line]|default }}
+account.{{ line }}.auth_name = {{ _context['account_username_' ~ line]|default }}
+account.{{ line }}.user_name = {{ _context['account_username_' ~ line]|default }}
+account.{{ line }}.password = {{ _context['account_password_' ~ line]|default }}
+account.{{ line }}.sip_server.1.address = {{ hostname }}
+account.{{ line }}.sip_server.1.port = {{ _context['account_encryption_' ~ line] ? sip_tls_port : sip_udp_port }}
+account.{{ line }}.sip_server.1.transport_type = {{ _context['account_encryption_' ~ line] ? '2' : '0'  }}
+account.{{ line }}.sip_server.1.expires = 3600
+account.{{ line }}.sip_server.1.retry_counts = 3
+
+account.{{ line }}.outbound_proxy_enable = {{ _context['outbound_proxy_' ~ line] is defined and _context['outbound_proxy_' ~ line] != '' ? '1' : '0' }}
+account.{{ line }}.outbound_proxy.1.address = {{ _context['outbound_proxy_' ~ line] is defined ? _context['outbound_proxy_' ~ line] : '' }}
+account.{{ line }}.outbound_proxy.1.port = {{ _context['outbound_proxy_port_' ~ line] is defined ? _context['outbound_proxy_port_' ~ line] : _context['account_encryption_' ~ line] ? '5061' : '5060' }}
+account.{{ line }}.outbound_proxy.2.address = {{ _context['outbound_proxy2_' ~ line] is defined ? _context['outbound_proxy2_' ~ line] : '' }}
+account.{{ line }}.outbound_proxy.2.port = {{ _context['outbound_proxy2_port_' ~ line] is defined ? _context['outbound_proxy2_port' ~ line] : _context['account_encryption_' ~ line] ? '5061' : '5060' }}
+account.{{ line }}.outbound_proxy_fallback_interval = 3600
+account.{{ line }}.nat.nat_traversal = 0
+
+################################################################
+#                      Account Basic                          ##
+################################################################
+account.{{ line }}.auto_answer = 0
+
+################################################################
+#                      Account Advanced                       ##
+################################################################
+account.{{ line }}.nat.udp_update_enable = 1
+account.{{ line }}.nat.udp_update_time = 30
+account.{{ line }}.nat.rport = 0
+
+account.{{ line }}.dtmf.type = {{ yealink.dtmf(_context['account_dtmf_type_' ~ line]) }}
+account.{{ line }}.dtmf.info_type = 1
+account.{{ line }}.dtmf.dtmf_payload = 101
+account.{{ line }}.100rel_enable = 0
+
+account.{{ line }}.subscribe_register = 0
+account.{{ line }}.cid_source = 3
+account.{{ line }}.enable_user_equal_phone = 0
+account.{{ line }}.srtp_encryption = {{ _context['account_encryption_' ~ line] ? '2' : '0' }}
+account.{{ line }}.srtp_unencrypted_rtp.enable = 0
+account.{{ line }}.srtp.unencrypted_rtcp.enable = 0
+# Fix SRTP error
+{% if provisioning_user_agent matches '/(SIP-(T3|T4|T5|T7|T8))|(AX8)/' %}
+account.{{ line }}.srtp.cipher_list = AES_CM_128_HMAC_SHA1_80,AES_CM_128_HMAC_SHA1_32
+{% endif %}
+account.{{ line }}.ptime = 20
+account.{{ line }}.register_line = 0
+account.{{ line }}.register_mac = 0
+account.{{ line }}.reg_fail_retry_interval = 30
+account.{{ line }}.unregister_on_reboot = 1
+
+account.{{ line }}.session_timer.refresher = 0
+account.{{ line }}.session_timer.expires = 1800
+account.{{ line }}.session_timer.enable = 0
+
+account.{{ line }}.conf_type = 0
+account.{{ line }}.sip_server_type = 0
+
+##V83 Add
+account.{{ line }}.sip_server_mode = 0
+
+################################################################
+#                        SIP Backup Server                    ##
+################################################################
+account.{{ line }}.outbound_proxy.1.register_on_enable = -1
+account.{{ line }}.outbound_proxy.1.failback_timeout = -1
+account.{{ line }}.outbound_proxy.1.failback_mode = -1
+account.{{ line }}.outbound_proxy.1.retry_counts = -1
+account.{{ line }}.outbound_proxy.1.only_signal_with_registered = -1
+account.{{ line }}.outbound_proxy.1.failback_subscribe.enable = -1
+account.{{ line }}.outbound_proxy.1.invite_retry_counts = -1
+
+account.{{ line }}.sip_server.1.register_on_enable = 0
+account.{{ line }}.sip_server.1.failback_timeout = 3600
+account.{{ line }}.sip_server.1.failback_mode = 0
+account.{{ line }}.sip_server.1.failback_subscribe.enable = 0
+account.{{ line }}.sip_server.1.only_signal_with_registered = 0
+account.{{ line }}.sip_server.1.invite_retry_counts = 3
+
+account.{{ line }}.outbound_proxy.2.register_on_enable = -1
+account.{{ line }}.outbound_proxy.2.failback_timeout = -1
+account.{{ line }}.outbound_proxy.2.failback_mode = -1
+account.{{ line }}.outbound_proxy.2.retry_counts = -1
+account.{{ line }}.outbound_proxy.2.only_signal_with_registered = -1
+account.{{ line }}.outbound_proxy.2.failback_subscribe.enable = -1
+account.{{ line }}.outbound_proxy.2.invite_retry_counts = -1
+
+account.{{ line }}.sip_server.2.register_on_enable = 0
+account.{{ line }}.sip_server.2.failback_timeout = 3600
+account.{{ line }}.sip_server.2.failback_mode = 0
+account.{{ line }}.sip_server.2.failback_subscribe.enable = 0
+account.{{ line }}.sip_server.2.only_signal_with_registered = 0
+account.{{ line }}.sip_server.2.invite_retry_counts = 3
+
+account.{{ line }}.static_cache_pri = 0
+account.{{ line }}.dns_cache_type = 1
+account.{{ line }}.naptr_build = 0
+account.{{ line }}.fallback.timeout = 120
+account.{{ line }}.fallback.redundancy_type = 0
+account.{{ line }}.reg_failed_retry_max_time = 60
+account.{{ line }}.reg_failed_retry_min_time = 0
+account.{{ line }}.redundancy_with_reg_fail.enable = 0
+
+##V83 Add
+account.{{ line }}.sip_server.1.outbound_proxy_enable = {{ _context['outbound_proxy_' ~ line] is defined ? '1' : '0' }}
+account.{{ line }}.sip_server.2.outbound_proxy_enable = {{ _context['outbound_proxy2_' ~ line] is defined ? '1' : '0' }}
+
+################################################################
+#                        SIP Basic config                     ##
+################################################################
+account.{{ line }}.contact_take_line_param = 0
+account.{{ line }}.update_ack_while_dialing = 0
+account.{{ line }}.srtp_lifetime = 0
+account.{{ line }}.third_part_request_with_route.enable = 0
+account.{{ line }}.insert_outbound_in_route.enable = 0
+account.{{ line }}.path.enable = 0
+account.{{ line }}.sub_fail_retry_interval = 30
+account.{{ line }}.transfer_refer_to_contact_header.enable = 1
+account.{{ line }}.hold_use_inactive = 0
+account.{{ line }}.gruu.enable = 0
+account.{{ line }}.dial_tone = 0
+account.{{ line }}.call_id_mode = 0
+account.{{ line }}.subscribe_expires_overlap = -1
+account.{{ line }}.register_expires_overlap = -1
+account.{{ line }}.call_info = notused
+account.{{ line }}.custom_ua =
+account.{{ line }}.mwi_parse_terminated = 0
+account.{{ line }}.check_cseq.enable = 0
+account.{{ line }}.check_to_tag.enable = 0
+account.{{ line }}.vq_rtcpxr.collector_server_port = 5060
+account.{{ line }}.vq_rtcpxr.collector_server_host =
+account.{{ line }}.vq_rtcpxr.collector_name =
+account.{{ line }}.compact_header_enable = 0
+account.{{ line }}.cp_source = 0
+account.{{ line }}.cid_source_ppi = 1
+account.{{ line }}.cid_source_privacy = 1
+account.{{ line }}.reg_with_pani_header.enable =
+account.{{ line }}.alert_info =
+account.{{ line }}.picture_info_enable = 0
+
+##V83 Add
+account.{{ line }}.invite_with_pani_header.enable = 0
+
+##V84 Add
+account.{{ line }}.invite_with_rpid_header.enable = 1
+
+account.{{ line }}.auto_answer_mute_enable =
+
+##V84 SP4 Add
+account.{{ line }}.share_line.enable_private_code =
+account.{{ line }}.share_line.cancel_private_code =
+
+#######################################################################################
+##                                 History                                           ##
+#######################################################################################
+account.{{ line }}.missed_calllog = 1
+
+#######################################################################################
+##                                  Forward                                          ##
+#######################################################################################
+account.{{ line }}.timeout_fwd.off_code = {{ cftimeoutoff }}
+account.{{ line }}.timeout_fwd.on_code = {{ cftimeouton }}
+account.{{ line }}.timeout_fwd.timeout = {{ _context['account_cftimeout_' ~ line] | default('2') }}
+account.{{ line }}.timeout_fwd.target = {{ _context['account_timeout_fwd_target_' ~ line]|default }}
+account.{{ line }}.timeout_fwd.enable = {{ _context['account_timeout_fwd_target_' ~ line] ? '1' : '0' }}
+account.{{ line }}.busy_fwd.off_code = {{ cfbusyoff }}
+account.{{ line }}.busy_fwd.on_code = {{ cfbusyon }}
+account.{{ line }}.busy_fwd.target = {{ _context['account_busy_fwd_target_' ~ line]|default }}
+account.{{ line }}.busy_fwd.enable = {{ _context['account_busy_fwd_target_' ~ line] ? '1' : '0' }}
+account.{{ line }}.always_fwd.off_code = {{ cfalwaysoff }}
+account.{{ line }}.always_fwd.on_code = {{ cfalwayson }}
+account.{{ line }}.always_fwd.target = {{ _context['account_always_fwd_target_' ~ line]|default }}
+account.{{ line }}.always_fwd.enable = {{ _context['account_always_fwd_target_' ~ line] ? '1' : '0' }}
+
+#######################################################################################
+##                                  DND                                              ##
+#######################################################################################
+account.{{ line }}.dnd.enable = {{ _context['account_dnd_enable_' ~ line] ? '1' : '0' }}
+account.{{ line }}.dnd.off_code = {{ dndoff }}
+account.{{ line }}.dnd.on_code = {{ dndon }}
+
+#######################################################################################
+##                               Voice Mail                                          ##
+#######################################################################################
+voice_mail.number.1 = {{ _context['account_voicemail_' ~ line]|default }}
+account.{{ line }}.subscribe_mwi = 1
+account.{{ line }}.subscribe_mwi_to_vm = 0
+account.{{ line }}.subscribe_mwi_expires = 3600
+account.{{ line }}.display_mwi.enable = 1
+
+#######################################################################################
+##                               Auto Dial                                           ##
+#######################################################################################
+account.{{ line }}.auto_dial_enable =
+account.{{ line }}.auto_dial_num =
+
+#######################################################################################
+##                           Preference&Status                                       ##
+#######################################################################################
+account.{{ line }}.ringtone.ring_type = {{ yealink.ringtone(ringtone) }}
+
+#######################################################################################
+##                           Digitmap                                                ##
+#######################################################################################
+account.{{ line }}.dialplan.digitmap.enable = 0
+account.{{ line }}.dialplan.digitmap.string =
+account.{{ line }}.dialplan.digitmap.no_match_action =
+account.{{ line }}.dialplan.digitmap.interdigit_short_timer = 3
+account.{{ line }}.dialplan.digitmap.interdigit_long_timer =
+account.{{ line }}.dialplan.digitmap.apply_to.press_send =
+account.{{ line }}.dialplan.digitmap.apply_to.forward =
+account.{{ line }}.dialplan.digitmap.apply_to.history_dial =
+account.{{ line }}.dialplan.digitmap.apply_to.directory_dial =
+account.{{ line }}.dialplan.digitmap.apply_to.on_hook_dial =
+account.{{ line }}.dialplan.digitmap.active.on_hook_dialing =
+
+#######################################################################################
+##                                 Rings Settings                                    ##
+#######################################################################################
+account.{{ line }}.alert_info_url_enable = 1
+
+#######################################################################################
+##                                  BLF/BLF List                                     ##
+#######################################################################################
+account.{{ line }}.blf.blf_list_uri =
+account.{{ line }}.blf_list_barge_in_code =
+account.{{ line }}.blf_list_code =
+account.{{ line }}.blf_list_retrieve_call_parked_code =
+account.{{ line }}.blf.subscribe_period = 1800
+account.{{ line }}.blf.match_host.enable = 0
+account.{{ line }}.out_dialog_blf_enable = 0
+account.{{ line }}.blf.subscribe_event = 0
+
+##V84 Add
+account.{{ line }}.blf_list_call_parked_code =
+account.{{ line }}.blf_list_call_parked_list =
+
+##V84 SP4 ADD
+account.{{ line }}.blf_list_whisper_code =
+account.{{ line }}.blf_list_listen_in_code =
+
+#######################################################################################
+##                                   SCA                                             ##
+#######################################################################################
+account.{{ line }}.shared_line = 0
+account.{{ line }}.line_seize.expires = 15
+account.{{ line }}.shared_line_one_touch_bargein.enable = 0
+account.{{ line }}.shared_line_one_touch_retrieve.enable = 1
+account.{{ line }}.sca_manage_interface_display_time = 10
+account.{{ line }}.shared_line_callpull_code =
+
+##V83 Add
+account.x.share_line.barge_in.enable = 1
+
+#######################################################################################
+##                                   BLA                                             ##
+#######################################################################################
+account.{{ line }}.bla_number =
+account.{{ line }}.bla_subscribe_period = 300
+account.{{ line }}.bla.notify_with_expire.enable = 1
+account.{{ line }}.bla.subscribe_uri_build_type = 0
+
+#######################################################################################
+##                                   Call Park                                       ##
+#######################################################################################
+account.{{ line }}.callpark_enable = 1
+
+#######################################################################################
+##                                    Broadsoft ACD                                  ##
+#######################################################################################
+account.{{ line }}.acd.enable = 0
+account.{{ line }}.acd.available = 0
+account.{{ line }}.acd.unavailable_reason_enable = 0
+account.{{ line }}.acd.initial_state = 1
+account.{{ line }}.subscribe_acd_expires = 3600
+
+#######################################################################################
+##                                 Broadsoft ACD Call Center                         ##
+#######################################################################################
+##account.X.reason_code.Y=
+##account.X.reason_code_name.Y=
+##account.X.bw_disp_code.Y=
+##account.X.bw_disp_code_name.Y=
+##account.X.supervisor_info_code.Y=
+##account.X.supervisor_info_code_name.Y=
+##The value Y must be continuous.
+
+account.{{ line }}.reason_code.1 =
+account.{{ line }}.reason_code_name.1 =
+account.{{ line }}.bw_disp_code.1 =
+account.{{ line }}.bw_disp_code_name.1 =
+account.{{ line }}.supervisor_info_code.1 =
+account.{{ line }}.supervisor_info_code_name.1 =
+
+#######################################################################################
+##                                 Broadsoft Call Center                             ##
+#######################################################################################
+account.{{ line }}.call_center.call_info_enable = 0
+account.{{ line }}.call_center.show_call_info_time = 30
+account.{{ line }}.call_center.disp_code_enable = 0
+account.{{ line }}.call_center.trace_enable = 0
+account.{{ line }}.call_center.emergency_enable = 0
+account.{{ line }}.call_center.queue_status_enable = 0
+account.{{ line }}.call_center.queue_status_light_enable = 0
+
+#######################################################################################
+##                         Broadsoft Hoteling                                        ##
+#######################################################################################
+account.{{ line }}.hoteling.enable = 0
+account.{{ line }}.hoteling.user_id =
+account.{{ line }}.hoteling.password =
+account.{{ line }}.hoteling.expires = 3600
+account.{{ line }}.hoteling.auto_login_enable = 0
+
+#######################################################################################
+##                              Broadsoft XSI                                        ##
+#######################################################################################
+account.{{ line }}.xsi.user =
+account.{{ line }}.xsi.password =
+account.{{ line }}.xsi.host =
+account.{{ line }}.xsi.server_type = HTTP
+account.{{ line }}.xsi.port = 80
+
+#######################################################################################
+##                                Call Pickup                                        ##
+#######################################################################################
+account.{{ line }}.direct_pickup_code = {{ pickup_direct }}
+account.{{ line }}.group_pickup_code = {{ pickup_group }}
+account.{{ line }}.dialoginfo_callpickup = 0
+account.{{ line }}.refresh_remote_id.enable = 1
+
+#######################################################################################
+##                              Broadsoft Call Recording                             ##
+#######################################################################################
+account.{{ line }}.call_recording.enable = 0
+
+#######################################################################################
+##                                Network Conferene                                  ##
+#######################################################################################
+account.{{ line }}.conf_uri =
+
+#######################################################################################
+##                              Broadsoft Call Decline                               ##
+#######################################################################################
+account.{{ line }}.features.call_decline.enable =
+
+#######################################################################################
+##                       Broadsoft Security Classification                           ##
+#######################################################################################
+account.{{ line }}.security_classification.enable = 0
+
+#######################################################################################
+##                        Broadsoft Flexible Seating                                 ##
+#######################################################################################
+account.{{ line }}.flexible_seating.enable = 0
+account.{{ line }}.hoteling.pin =
+account.{{ line }}.hoteling.mode = 0
+
+#######################################################################################
+##                         Features Sync                                             ##
+#######################################################################################
+account.{{ line }}.features.forward.feature_key_sync.local_processing.enable =
+account.{{ line }}.features.dnd.feature_key_sync.local_processing.enable =
+
+##V84 Add
+account.{{ line }}.dnd.feature_key_sync.enable =
+account.{{ line }}.feature_key_sync.enable = 0
+account.{{ line }}.forward.feature_key_sync.enable =
+
+#######################################################################################
+##                                   ACD                                             ##
+#######################################################################################
+account.{{ line }}.acd.available_url =
+account.{{ line }}.acd.away_url =
+account.{{ line }}.acd.refresh_url =
+account.{{ line }}.acd.call_information =
+
+#######################################################################################
+##                                   PSTN                                            ##
+#######################################################################################
+pstn.account.{{ line }}.enable = 1
+pstn.account.{{ line }}.label =
+pstn.account.{{ line }}.ring_type = {{ yealink.ringtone(ringtone) }}
+pstn.account.{{ line }}.missed_calllog = 1
+pstn.account.{{ line }}.auto_answer = 0
+pstn.account.{{ line }}.auto_answer_mute_enable = 0
+{% endif %}
+{% endfor %}
+
+#######################################################################################
+##                                  virtual_user                                     ##
+#######################################################################################
+##V84 Add
+bw.virtual_user.1.enable = 0
+bw.virtual_user.1.label =
+bw.virtual_user.1.xsi.dnd.enable = 0
+bw.virtual_user.1.xsi.host =
+bw.virtual_user.1.xsi.password =
+bw.virtual_user.1.xsi.port = 80
+bw.virtual_user.1.xsi.server_type =
+bw.virtual_user.1.xsi.user =
+
+#######################################################################################
+##                                  Programablekey                                   ##
+#######################################################################################
+#programablekey.X.type
+#programablekey.X.line
+#programablekey.X.value
+#programablekey.X.xml_phonebook
+#programablekey.X.history_type
+#programablekey.X.label(X ranges from 1 to 4)
+#programablekey.X.extension
+##Programablekey X ranges(T48G/T48S/T46G/T46S: X=1-10, 12-14;T42G/T42S/T41P/T41S/T40P/T40G: X=1-10, 13;T29G/T27P/T27G: X=1-14;T23P/T23G/T21(P) E2: 1-10, 14;T19(P) E2: X=1-9, 13, 14;)##
+
+{% for softkey in 1..cap_softkey_count %}
+# Softkey {{ number }}
+programablekey.{{ softkey }}.type = {{ yealink.softkey_type(_context['softkey_type_' ~ softkey]) }}
+programablekey.{{ softkey }}.value = {{ _context['softkey_value_' ~ softkey] }}
+programablekey.{{ softkey }}.label = {{ _context['softkey_label_' ~ softkey] }}
+programablekey.{{ softkey }}.pickup_value = 
+{%- if _context['softkey_type_' ~ softkey] == 'pick_up' %}
+    {{ pickup_direct }}
+{% elseif _context['softkey_type_' ~ softkey] == 'group_pickup' %}
+    {{ pickup_group }}
+{%- else %}
+ %NULL%
+{% endif %}
+
+{% endfor %}
+##V83 Add
+programablekey.type_range.custom =
+
+#######################################################################################
+##                                  Linekey                                          ##
+#######################################################################################
+
+{% for number in 1..cap_linekey_count %}
+# Linekey {{ number }}
+linekey.{{ number }}.type = {{ yealink.linekey_type(_context['linekey_type_' ~ number]) }}
+linekey.{{ number }}.line = 1
+{% if _context['linekey_type_' ~ number] == "queuetoggle" -%}
+    linekey.{{ number }}.value = {{ queuetoggle }}
+{% else -%}
+    linekey.{{ number }}.value = {{ _context['linekey_value_' ~ number] }}
+{% endif %}
+linekey.{{ number }}.label = {{ _context['linekey_label_' ~ number] }}
+
+{% endfor %}
+#######################################################################################
+##                                Expansion Key                                      ##
+#######################################################################################
+
+{% if cap_expkey_count > 0 and cap_expmodule_count > 0 %}
+{% set expkey = 1 %}
+{% if cap_expkey_count == 38 %}
+{% set cap_expkey_count = cap_expkey_count + 2 %}
+{% set expkey_old_ver = 1 %}
+{% endif %}
+{% for module in 1..cap_expmodule_count %}
+{% for number in 1..cap_expkey_count %}
+{# Skip expkey 21 #}
+{% if expkey_old_ver == 1 and (number == 1 or number == 21) %}
+# Skip button 1 and 21 of EXP20 -- page switch button
+expansion_module.{{ module }}.key.{{ number }}.type = 37
+{% else %}
+# Expansion module {{ module }}, Key {{ number }}
+expansion_module.{{ module }}.key.{{ number }}.type = {{ yealink.linekey_type(_context['expkey_type_' ~ expkey]) }}
+expansion_module.{{ module }}.key.{{ number }}.value = {{ _context['expkey_value_' ~ expkey] }}
+expansion_module.{{ module }}.key.{{ number }}.label = {{ _context['expkey_label_' ~ expkey] }}
+
+{% set expkey =  expkey + 1 %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% endif %}
+
+#######################################################################################
+##                               Security                                            ##
+#######################################################################################
+static.security.user_name.admin = admin
+static.security.user_password = admin:{{ adminpw | default('admin') }}
+static.security.user_name.user = user
+static.security.user_password = user:{{ userpw | default('1234') }}
+static.security.user_name.var = var
+static.security.user_password = var:{{ userpw | default('1234') }}
+
+{% if provisioning_user_agent matches '/SIP-(T19P_E2 5[0-4]|T21P_E2 5[0-4]|T23G 4[0-4]|T23P 4[0-4]|T27G 6[0-9]|T27P 6[0-9]|T40G 7[0-9]|T4[1-8]S 6[0-9]|T58 5[0-9])\.8[4-9]/' %}
+# Fix TLS error 218910881 (ASN1_item_verify-unknown message digest algorithm)
+sip.tls_cipher_list=!ECDH:AES:!ADH:!LOW:!NULL
+security.tls_cipher_list =!ECDH:AES:!ADH:!LOW:!NULL
+{% endif %}

@@ -1,0 +1,6 @@
+vendor/
+var/test-runtime/
+data/backgrounds/packaged-test.txt
+data/firmware/packaged-test.txt
+data/ringtones/packaged-test.txt
+data/screensavers/packaged-test.txt

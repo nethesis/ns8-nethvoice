@@ -1,0 +1,4 @@
+{
+    my $url = ${'nethcti-server'}{JabberUrl} || "https://${SystemName}.${DomainName}/http-bind";
+    $OUT = '{ "url" : "' . $url . '", "domain": "'. $DomainName .'" }';
+}

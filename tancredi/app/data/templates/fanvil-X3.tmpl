@@ -1,0 +1,864 @@
+<<VOIP CONFIG FILE>>Version:2.0002                            
+{% import 'fanvil.macros' as fanvil %}
+{% import 'language.macros' as l10n %}
+
+<GLOBAL CONFIG MODULE>
+WAN Mode           :DHCP
+Enable DHCP        :1
+Use Vendor Class ID:0
+DHCP Auto DNS      :1
+DHCP Auto Time     :0
+DHCP Option 100-101:1
+ARP Cache Life     :2
+Enable PPPoE       :0
+RTP Initial Port   :10000
+RTP Port Quantity  :200
+SNTP Server        :{{ ntp_server | default('pool.ntp.org') }}
+Second SNTP Server :
+Enable SNTP        :1
+Time Zone          :{{ fanvil.tz_map(timezone, 'offset') }}
+Location           :{{ fanvil.tz_map(timezone, 'location') }}
+Time Zone Name     :{{ fanvil.tz_map(timezone, 'name') }}
+Enable DST         :1
+DST Fixed Type     :2
+SNTP Timeout       :3600
+DST Min Offset     :60
+DST Start Mon      :3
+DST Start Week     :5
+DST Start Wday     :0
+DST Start Hour     :2
+DST End Mon        :10
+DST End Week       :5
+DST End Wday       :0
+DST End Hour       :2
+Language           :{{ fanvil.language_code(language) }}
+Push XML IP        :
+Enable Call History:1
+Active Uri IP      :
+Boot Completed Url :
+Reg On Url         :
+Reg Off Url        :
+Reg Failed Url     :
+Offhook Url        :
+Onhook Uri         :
+Incmoing Call Url  :
+Outgoing Call Url  :
+Call Active Url    :
+Call Stop Url      :
+DND On Url         :
+DND Off Url        :
+Always FWD On Url  :
+Always FWD Off Url :
+Busy FWD On Url    :
+Busy FWD Off Url   :
+No Ans FWD On Url  :
+No Ans FWD Off Url :
+Transfer Url       :
+B Transfer Url     :
+A Transfer Url     :
+Hold Url           :
+Unhold Url         :
+Mute Url           :
+Unmute Url         :
+Missed call Url    :
+IP Change Url      :
+Idle to Busy Url   :
+Busy to Idle Url   :
+ATE ID             :
+All Pswd Encryption:0
+
+<TELE CONFIG MODULE>
+Dial by Pound      :1
+BTransfer by Pound :1
+Onhook to BXfer    :0
+Onhook to AXfer    :1
+Memory Key to BXfer:0
+Xfer On Conf Onhook:0
+Dial Fixed Length  :0
+Fixed Length Nums  :11
+Dial by Timeout    :1
+Dial Timeout value :3
+Dialpeer With Line :0
+Accept Any Call    :1
+IP Dial Prefix     :.
+Auto Switch Call   :0
+--Port Config--    :
+P1 Enable DND      :1
+P1 DND Mode        :1
+P1 Call Record Type:0
+P1 Enable Force Rin:0
+P1 Mute Ringing    :{{ ringtone == '0' ? 1 : 0 }}
+P1 CWaiting Tone   :{{ fanvil.b2v(call_waiting_tone) }}
+P1 Ban Dial Out    :0
+P1 Ban Empty CID   :0
+P1 Enable CLIP     :1
+P1 CallWaiting     :{{ fanvil.b2v(account_call_waiting_1) }}
+P1 CallTransfer    :1
+P1 CallSemiXfer    :1
+P1 CallConference  :1
+P1 AutoAnswer      :0
+P1 No Answer Time  :20
+P1 Warm Line Time  :0
+P1 Hotline Num     :
+P1 Auto PickupNext :0
+P1 Busy No Line    :1
+P1 Auto Onhook     :1
+P1 Auto Onhook Time:3
+P1 DND Code        :1
+P1 Busy Code       :2
+P1 Reject Code     :3
+P1 Caller Display T:5
+P1 Caller Name Type:5
+P1 Enable Intercom :1
+P1 Intercom Mute   :0
+P1 Intercom Tone   :1
+P1 Intercom Barge  :1
+P1 Use Auto Redial :0
+P1 AutoRedial Delay:30
+P1 AutoRedial Times:5
+P1 Call Complete   :0
+P1 Hide DTMF Type  :0
+P1 Talk DTMF Tone  :1
+P1 Dial DTMF Tone  :1
+P1 Psw Dial Mode   :0
+P1 Psw Dial Length :0
+P1 Psw Dial Prefix :
+P1 Enable MultiLine:1
+P1 Allow IP Call   :1
+P1 CHolding Tone   :1
+P1 Number Privacy  :0
+P1 Privacy Rule    :.
+Transf SDial       :0
+Enable Code Plan   :0
+Country Code       :
+Area Code          :
+Transf DTMF Code   :
+Hold DTMF Code     :
+Conf DTMF Code     :
+Conf Limit Rule    :/0
+Ena Two Ext Conf   :0
+
+<DSP CONFIG MODULE>
+Signal Standard    :{{ fanvil.tones_code(tonezone) }}
+Enable MWI Tone    :1
+Play Egress DTMF   :2
+Onhook Time        :120
+G729 Payload Len   :1
+G723 Bit Rate      :1
+G722 Timestamps    :0
+VAD                :0
+Ring Type          :{{ ringtone in 1 .. cap_ringtone_count ? ringtone : 1 }}
+Dtmf Payload Type  :101
+TX AGC             :0
+RX AGC             :0
+Headset MIC offset :3
+Headset spkr offset:7
+Sidetone GAIN      :1
+EHS Type           :0
+RTP Keep Alive     :0
+Session Report     :0
+Interval Report    :0
+Interval Period    :60
+MOS-LQ Warning     :40
+MOS-LQ Critical    :25
+Delay Warning      :150
+Delay Critical     :200
+Phone Report       :0
+WEB Report         :0
+--Port Config--    :
+P1 Voice Codec1    :G729/8000
+P1 Voice Codec2    :PCMU/8000
+P1 Voice Codec3    :PCMA/8000
+P1 Voice Codec4    :G722/8000
+P1 Voice Codec5    :G723/8000
+P1 Voice Codec6    :G726-32/8000
+--Alert Info Ring--:
+Alert1 Text        :ring1
+Alert1 Ring Type   :1
+Alert2 Text        :ring2
+Alert2 Ring Type   :2
+Alert3 Text        :ring3
+Alert3 Ring Type   :3
+Alert4 Text        :ring4
+Alert4 Ring Type   :4
+Alert5 Text        :ring5
+Alert5 Ring Type   :5
+Alert6 Text        :ring6
+Alert6 Ring Type   :6
+Alert7 Text        :ring7
+Alert7 Ring Type   :7
+Alert8 Text        :ring8
+Alert8 Ring Type   :8
+Alert9 Text        :ring9
+Alert9 Ring Type   :9
+Alert10 Text       :
+Alert10 Ring Type  :1
+
+<SIP CONFIG MODULE>
+SIP  Port          :5060
+STUN Server        :
+STUN Port          :3478
+STUN Refresh Time  :50
+SIP Wait Stun Time :800
+Extern NAT Addrs   :
+Reg Fail Interval  :32
+SIP Pswd Encryption:0
+Strict BranchPrefix:0
+Enable Group Backup:0
+Enable RFC4475     :1
+SIP invite strict  :1
+Notify Reboot      :0
+SMS direct Enabled :0
+SMS Save Enabled   :1
+SMS Ring Enabled   :1
+CSTA Enable        :0
+Strict UA Match    :0
+--SIP Line List--  :
+{% for line in range(1, 1) %}
+{% if _context['account_username_' ~ line] is defined %}
+SIP{{ line }} Phone Number  :{{ _context['account_username_' ~ line] }}
+SIP{{ line }} Display Name  :{{ _context['account_display_name_' ~ line] }}
+SIP{{ line }} Sip Name      :{{ _context['account_display_name_' ~ line] }}
+SIP{{ line }} Register Addr :{{ hostname }}
+SIP{{ line }} Register Port :{{ _context['account_encryption_' ~ line] ? sip_tls_port : sip_udp_port }}
+SIP{{ line }} Register User :{{ _context['account_username_' ~ line] }}
+SIP{{ line }} Register Pswd :{{ _context['account_password_' ~ line] }}
+SIP{{ line }} Register TTL  :3600
+SIP{{ line }} Backup Addr   :
+SIP{{ line }} Backup Port   :{{ _context['account_encryption_' ~ line] ? sip_tls_port : sip_udp_port }}
+SIP{{ line }} Backup Transpo:0
+SIP{{ line }} Backup TTL    :3600
+SIP{{ line }} Backup Mode   :0
+SIP{{ line }} Enable Reg    :1
+SIP{{ line }} Proxy Addr    :{{ _context['outbound_proxy_' ~ line] is defined ? _context['outbound_proxy_' ~ line] : '' }}
+SIP{{ line }} Proxy Port    :{{ _context['outbound_proxy_port_' ~ line] is defined ? _context['outbound_proxy_port_' ~ line] : _context['account_encryption_' ~ line] ? '5061' : '5060' }}
+SIP{{ line }} Proxy User    :
+SIP{{ line }} Proxy Pswd    :
+SIP{{ line }} BakProxy Addr :{{ _context['outbound_proxy2_' ~ line] is defined ? _context['outbound_proxy2_' ~ line] : '' }}
+SIP{{ line }} BakProxy Port :{{ _context['outbound_proxy2_port_' ~ line] is defined ? _context['outbound_proxy2_port' ~ line] : _context['account_encryption_' ~ line] ? '5061' : '5060' }}
+SIP{{ line }} Enable Failbac:{{ _context['outbound_proxy2_' ~ line] is defined and _context['outbound_proxy2_' ~ line] != '' ? '1' : '0' }}
+SIP{{ line }} Failback Hold :1
+SIP{{ line }} Failback Inter:1800
+SIP{{ line }} Signal Failbac:0
+SIP{{ line }} Signal Retry C:3
+SIP{{ line }} Ena RFC5939   :0
+SIP{{ line }} Media Crypto  :{{ _context['account_encryption_' ~ line] ? '2' : '0' }}
+SIP{{ line }} SRTP Auth-Tag :0
+SIP{{ line }} Local Domain  :
+SIP{{ line }} Always FWD    :{{ _context['account_always_fwd_target_' ~ line] ? '1' : '0' }}
+SIP{{ line }} Busy FWD      :{{ _context['account_busy_fwd_target_' ~ line] ? '1' : '0' }}
+SIP{{ line }} No Answer FWD :{{ _context['account_timeout_fwd_target_' ~ line] ? '1' : '0' }}
+SIP{{ line }} Always FWD Num:{{ _context['account_always_fwd_target_' ~ line]|default }}
+SIP{{ line }} Busy FWD Num  :{{ _context['account_busy_fwd_target_' ~ line]|default }}
+SIP{{ line }} NoAnswer FWD N:{{ _context['account_timeout_fwd_target_' ~ line]|default }}
+SIP{{ line }} FWD Timer     :5
+SIP{{ line }} Ring Type     :0
+SIP{{ line }} Hotline Num   :
+SIP{{ line }} Enable Hotline:0
+SIP{{ line }} WarmLine Time :0
+SIP{{ line }} Pickup Num    :{{ pickup_direct }}
+SIP{{ line }} Join Num      :
+SIP{{ line }} NAT UDPUpdate :2
+SIP{{ line }} UDPUpdate TTL :60
+SIP{{ line }} Server Type   :0
+SIP{{ line }} User Agent    :
+SIP{{ line }} PRACK         :0
+SIP{{ line }} Keep AUTH     :0
+SIP{{ line }} Session Timer :0
+SIP{{ line }} S.Timer Expire:0
+SIP{{ line }} Enable GRUU   :0
+SIP{{ line }} DTMF Mode     :{{ fanvil.dtmf_map(_context['account_dtmf_type_' ~ line]) }}
+SIP{{ line }} DTMF Info Mode:0
+SIP{{ line }} NAT Type      :0
+SIP{{ line }} Enable Rport  :1
+SIP{{ line }} Subscribe     :1
+SIP{{ line }} Sub Expire    :3600
+SIP{{ line }} Single Codec  :0
+SIP{{ line }} CLIR          :0
+SIP{{ line }} Strict Proxy  :1
+SIP{{ line }} Direct Contact:0
+SIP{{ line }} History Info  :0
+SIP{{ line }} DNS SRV       :0
+SIP{{ line }} DNS Mode      :0
+SIP{{ line }} XFER Expire   :0
+SIP{{ line }} Ban Anonymous :0
+SIP{{ line }} Dial Off Line :0
+SIP{{ line }} Quota Name    :0
+SIP{{ line }} Presence Mode :0
+SIP{{ line }} RFC Ver       :1
+SIP{{ line }} Signal Port   :5060
+SIP{{ line }} Transport     :{{ _context['account_encryption_' ~ line] ? '3' : '0' }}
+SIP{{ line }} Enable ChgPort:0
+SIP{{ line }} TLS Version   :2
+SIP{{ line }} Ena sips URI  :0
+SIP{{ line }} Use SRV Mixer :0
+SIP{{ line }} SRV Mixer Uri :
+SIP{{ line }} Long Contact  :0
+SIP{{ line }} Auto TCP      :0
+SIP{{ line }} Uri Escaped   :1
+SIP{{ line }} Click to Talk :0
+SIP{{ line }} MWI Num       :{{ _context['account_voicemail_' ~ line] }}
+SIP{{ line }} CallPark Num  :70
+SIP{{ line }} Retrieve Num  :
+SIP{{ line }} MSRPHelp Num  :
+SIP{{ line }} User Is Phone :0
+SIP{{ line }} Auto Answer   :0
+SIP{{ line }} NoAnswerTime  :5
+SIP{{ line }} MissedCallLog :1
+SIP{{ line }} SvcCode Mode  :1
+SIP{{ line }} DNDOn SvcCode :{{ dndon }}
+SIP{{ line }} DNDOff SvcCode:{{ dndoff }}
+SIP{{ line }} CFUOn SvcCode :{{ cfalwayson }}
+SIP{{ line }} CFUOff SvcCode:{{ cfalwaysoff }}
+SIP{{ line }} CFBOn SvcCode :{{ cfbusyon }}
+SIP{{ line }} CFBOff SvcCode:{{ cfbusyoff }}
+SIP{{ line }} CFNOn SvcCode :{{ cftimeouton }}
+SIP{{ line }} CFNOff SvcCode:{{ cftimeoutoff }}
+SIP{{ line }} ANCOn SvcCode :
+SIP{{ line }} ANCOff SvcCode:
+SIP{{ line }} Send ANOn Code:
+SIP{{ line }} Send ANOffCode:
+SIP{{ line }} CW On Code    :{{ call_waiting_on }}
+SIP{{ line }} CW Off Code   :{{ call_waiting_off }}
+SIP{{ line }} VoiceCodecMap :G711U,G711A,G722,G729,G726-32,G723
+SIP{{ line }} BLFList Uri   :
+SIP{{ line }} BLF Server    :
+SIP{{ line }} Respond 182   :0
+SIP{{ line }} Enable BLFList:0
+SIP{{ line }} Caller Id Type:5
+SIP{{ line }} Syn Clock Time:0
+SIP{{ line }} Use VPN       :1
+SIP{{ line }} Enable DND    :{{ _context['account_dnd_enable_' ~ line] ? '1' : '0' }}
+SIP{{ line }} Update Reg Exp:1
+SIP{{ line }} Inactive Hold :0
+SIP{{ line }} Enable SCA    :0
+SIP{{ line }} Sub CallPark  :0
+SIP{{ line }} Hoteling Event:0
+SIP{{ line }} Sub CC Status :0
+SIP{{ line }} CSTA Number   :
+SIP{{ line }} Feature Sync  :0
+SIP{{ line }} Req With Port :0
+SIP{{ line }} Enable Mute   :0
+SIP{{ line }} VQ Name       :
+SIP{{ line }} VQ Server     :
+SIP{{ line }} VQ Server Port:5060
+SIP{{ line }} VQ HTTP Server:
+SIP{{ line }} Unreg Reboot  :1
+SIP{{ line }} Flash Mode    :0
+SIP{{ line }} Use Tel Call  :0
+SIP{{ line }} Content Type  :
+SIP{{ line }} Content Body  :
+SIP{{ line }} Deal 180      :1
+SIP{{ line }} Ena MAC Header:0
+SIP{{ line }} Ena REG MAC   :0
+SIP{{ line }} BLF dialog mat:1
+SIP{{ line }} Ptime         :0
+{% endif %}
+{% endfor %}
+
+<MCAST CFG MODULE>
+Priority           :0
+Enbale Priority    :0
+Multicast Tone     :1
+--Mcast Addr--     :
+MCAST1 Port        :0
+MCAST1 Name        :
+MCAST1 Host        :
+MCAST2 Port        :0
+MCAST2 Name        :
+MCAST2 Host        :
+MCAST3 Port        :0
+MCAST3 Name        :
+MCAST3 Host        :
+MCAST4 Port        :0
+MCAST4 Name        :
+MCAST4 Host        :
+MCAST5 Port        :0
+MCAST5 Name        :
+MCAST5 Host        :
+MCAST6 Port        :0
+MCAST6 Name        :
+MCAST6 Host        :
+MCAST7 Port        :0
+MCAST7 Name        :
+MCAST7 Host        :
+MCAST8 Port        :0
+MCAST8 Name        :
+MCAST8 Host        :
+MCAST9 Port        :0
+MCAST9 Name        :
+MCAST9 Host        :
+MCAST10 Port       :0
+MCAST10 Name       :
+MCAST10 Host       :
+
+<PPPoE CONFIG MODULE>
+PPPoE User         :user123
+PPPoE Password     :password
+PPPoE Svc Name     :ANY
+PPPoE IP Address   :
+
+<MMI CONFIG MODULE>
+Web Port           :80
+Web Server Type    :0
+Https Web Port     :443
+Enable MMI Filter  :0
+Web Authentication :0
+Default WEB User   :0
+--MMI Account--    :
+Account1 Name      :admin
+Account1 Password  :{{ adminpw | default('admin') }}
+Account1 Level     :10
+Account2 Name      :guest
+Account2 Password  :{{ userpw | default('1234') }}
+Account2 Level     :5
+
+<QOS CONFIG MODULE>
+Enable VLAN        :{{ vlan_id_phone > 0 ? '1' : '0' }}
+Enable diffServ    :0
+LLDP Transmit      :1
+LLDP Refresh Time  :60
+LLDP Learn Policy  :1
+CDP Enabled        :0
+CDP Refresh Time   :60
+Singalling DSCP    :46
+Voice DSCP         :46
+VLAN ID            :{{ (vlan_id_phone > 0 and vlan_id_phone < 4095) ? vlan_id_phone : '0' }}
+Signalling Priority:0
+Voice Priority     :0
+LAN Port Priority  :0
+VLAN Recv Check    :1
+Enable PVID        :{{ vlan_id_pcport > 0 ? '2' : '1' }}
+PVID Value         :{{ (vlan_id_pcport > 0 and vlan_id_pcport < 4095) ? vlan_id_pcport : '0' }}
+DHCP Option Vlan   :0
+
+<DEBUG CONFIG MODULE>
+MGR Trace Level    :0
+SIP Trace Level    :0
+Trace File Info    :0
+Enable Watch Dog   :1
+Enable Memory Info :0
+
+<AAA CONFIG MODULE>
+Enable Syslog      :0
+Syslog address     :0.0.0.0
+Syslog port        :514
+
+<ACCESS CONFIG MODULE>
+Enable In Access   :0
+Enable Out Access  :0
+
+<PHONE CONFIG MODULE>
+Menu Password      :23646
+KeyLock Password   :123
+Fast Keylock Code  :
+Enable KeyLock     :0
+KeyLock Status     :0
+Emergency Call     :{{ fanvil.emergency_map(tonezone) }}
+LCD Title          :{{ logo_text | default('Fanvil') }}
+LCD Constrast      :{{ fanvil.contrast_map(contrast) }}
+LCD Luminance      :1
+Backlight Off Time :{{ backlight_time >= 0 and backlight_time <= 3600 ? backlight_time : '0' }}
+ScrnSaver Wait Time:{{ screensaver_time >= 0 and screensaver_time <= 3600 ? screensaver_time : '0' }}
+Power Led Refresh  :0
+KeyLock Timeout    :0
+Enable Power Led   :0
+SMS MWI Power Led  :2
+Miss Call Power Led:3
+Talk Dial Power Led:1
+Ringing Power Led  :3
+Mute Call Power Led:2
+Hold Power Led     :2
+Time Display Style :{{ time_format == '12' ? '1' : '0' }}
+Remove Call Timer  :0
+Phone Model        :
+FuncKey Page Num   :5
+Blf Default type   :0
+Disable CHN IME    :0
+Disable Dial Search:0
+Redial Enter CLog  :1
+Date Display Style :{{ fanvil.date_format(date_format) }}
+Date Separator     :0
+BLF Idle Color     :0
+BLF Idle Ctl       :1
+BLF Ring Color     :1
+BLF Ring Ctl       :2
+BLF Using Color    :1
+BLF Using Ctl      :1
+BLF Failed Color   :0
+BLF Failed Ctl     :0
+BLF Parked Color   :0
+BLF Parked Ctl     :2
+Line Idle Color    :0
+Line Idle Ctl      :1
+Enable Pre-Dial    :1
+Default Line       :1
+Enable Default Line:1
+Enable Auto SelLine:1
+Agent Username     :
+Agent Password     :
+Agent Number       :
+Agent Sipline      :0
+Agent Status       :0
+Agent Status Reason:
+--BW Calllogs Conf-:
+BWCLog1 Title      :
+BWCLog1 URL        :
+BWCLog1 Username   :
+BWCLog1 Password   :
+BWCLog1 SipLine    :0
+BWCLog2 Title      :
+BWCLog2 URL        :
+BWCLog2 Username   :
+BWCLog2 Password   :
+BWCLog2 SipLine    :0
+BWCLog3 Title      :
+BWCLog3 URL        :
+BWCLog3 Username   :
+BWCLog3 Password   :
+BWCLog3 SipLine    :0
+--BW Directory Conf:
+BWDir1 Title       :
+BWDir1 URL         :
+BWDir1 Username    :
+BWDir1 Password    :
+BWDir1 SipLine     :0
+BWDir2 Title       :
+BWDir2 URL         :
+BWDir2 Username    :
+BWDir2 Password    :
+BWDir2 SipLine     :0
+BWDir3 Title       :
+BWDir3 URL         :
+BWDir3 Username    :
+BWDir3 Password    :
+BWDir3 SipLine     :0
+BWDir4 Title       :
+BWDir4 URL         :
+BWDir4 Username    :
+BWDir4 Password    :
+BWDir4 SipLine     :0
+BWDir5 Title       :
+BWDir5 URL         :
+BWDir5 Username    :
+BWDir5 Password    :
+BWDir5 SipLine     :0
+BWDir6 Title       :
+BWDir6 URL         :
+BWDir6 Username    :
+BWDir6 Password    :
+BWDir6 SipLine     :0
+--LDAP Config--    :
+LDAP1 Title        :{{ l10n.gettext('Phonebook', language) | slice(0, 31) }}
+LDAP1 Server       :{{ ldap_server | default(hostname) }}
+LDAP1 port         :{{ ldap_port | default( ldap_tls == 'ldaps' ? '636' : '389' ) }}
+LDAP1 Authenticate :{{ ldap_password ? '3' : '0' }}
+LDAP1 Version      :3
+LDAP1 Calling Line :1
+LDAP1 Enable Search:0
+LDAP1 Bind Line    :1
+LDAP1 Base         :{{ ldap_base }}
+LDAP1 Use SSL      :
+{%- if ldap_tls == 'starttls' %}
+    {{- '2' }}
+{% elseif ldap_tls == 'ldaps' %}
+    {{- '1' }}
+{% else %}
+    {{- '0' }}
+{% endif %}
+LDAP1 Authenticate :{{ ( ldap_user and ldap_password and ldap_tls in ['ldaps', 'start_tls'] ) ? '3' : '0' }}
+LDAP1 Username     :{{ ldap_user }}
+LDAP1 Password     :{{ ldap_password }}
+LDAP1 Tel Attr     :{{ ldap_mainphone_number_attr }}
+LDAP1 Mobile Attr  :{{ ldap_mobilephone_number_attr }}
+LDAP1 Other Attr   :{{ ldap_otherphone_number_attr }}
+LDAP1 Displayname  :{{ ldap_name_display | replace({'%': ''}) }}
+LDAP1 Filter Name  :{{ ldap_name_filter }}
+LDAP1 Filter number:{{ ldap_number_filter }}
+
+--Xml PhoneBook--  :
+Phonebook Groups   :
+
+--Function Key--   :
+{% set dss_transfer_map = {
+    'verify': 'c',
+    'blind': 'b',
+    'attended': 'a',
+} %}
+{% for index in range(1, cap_linekey_count) %}
+{% if _context['linekey_type_' ~ index] == 'blf' %}
+Fkey{{ index }} Type               :1
+Fkey{{ index }} Value              :{{ _context['linekey_value_' ~ index] ~ '@1/b'
+                                    ~ (dss_transfer_map[dss_transfer] ?? 'a')
+                                    ~ pickup_direct ~ _context['linekey_value_' ~ index]
+                                    }}
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | slice(0,10)  }}
+{% elseif _context['linekey_type_' ~ index] == 'conference' %}
+Fkey{{ index }} Type               :1
+Fkey{{ index }} Value              :{{ _context['linekey_value_' ~ index] ~ '@1/bf'
+                                    ~ pickup_direct ~ _context['linekey_value_' ~ index]
+                                    }}
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | slice(0,10)  }}
+{% elseif _context['linekey_type_' ~ index] == 'direct_pickup' %}
+Fkey{{ index }} Type               :3
+Fkey{{ index }} Value              :F_PICKUP
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | default(l10n.gettext('Pickup', language)) | slice(0,10)  }}
+{% elseif _context['linekey_type_' ~ index] == 'dnd' %}
+Fkey{{ index }} Type               :3
+Fkey{{ index }} Value              :F_DND
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | default(l10n.gettext('DND', language)) | slice(0,10) }}
+{% elseif _context['linekey_type_' ~ index] == 'dtmf' %}
+Fkey{{ index }} Type               :4
+Fkey{{ index }} Value              :{{ _context['linekey_value_' ~ index] }}
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | slice(0,10) }}
+{% elseif _context['linekey_type_' ~ index] == 'forward' %}
+Fkey{{ index }} Type               :1
+Fkey{{ index }} Value              :{{ _context['linekey_value_' ~ index] ~ '@1/a' }}
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | slice(0,10) }}
+{% elseif _context['linekey_type_' ~ index] == 'group_pickup' %}
+Fkey{{ index }} Type               :1
+Fkey{{ index }} Value              :{{ pickup_group ~ '@1/f' }}
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | default(l10n.gettext('Pickup', language)) | slice(0,10) }}
+{% elseif _context['linekey_type_' ~ index] == 'hold' %}
+Fkey{{ index }} Type               :3
+Fkey{{ index }} Value              :F_HOLD
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | default(l10n.gettext('Hold', language)) | slice(0,10) }}
+{% elseif _context['linekey_type_' ~ index] == 'ldap' %}
+Fkey{{ index }} Type               :3
+Fkey{{ index }} Value              :F_LDAP:1
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | default(l10n.gettext('Phonebook', language)) | slice(0,10)  }}
+{% elseif _context['linekey_type_' ~ index] == 'line' %}
+Fkey{{ index }} Type               :2
+Fkey{{ index }} Value              :SIP1
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | default(l10n.gettext('Line %s', language) | format(index)) | slice(0,10) }}
+{% elseif _context['linekey_type_' ~ index] == 'multicast_paging' %}
+Fkey{{ index }} Type               :14
+Fkey{{ index }} Value              :{{ _context['linekey_value_' ~ index] ~ '/PCMU' }}
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index]  | slice(0,10) }}
+{% elseif _context['linekey_type_' ~ index] == 'phone_lock' %}
+Fkey{{ index }} Type               :3
+Fkey{{ index }} Value              :F_LOCK
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | default(l10n.gettext('Lock phone', language)) | slice(0,10) }}
+{% elseif _context['linekey_type_' ~ index] == 'prefix' %}
+Fkey{{ index }} Type               :3
+Fkey{{ index }} Value              :F_PREFIX:{{ _context['linekey_value_' ~ index] }}
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | slice(0,10) }}
+{% elseif _context['linekey_type_' ~ index] == 'recall' %}
+Fkey{{ index }} Type               :3
+Fkey{{ index }} Value              :F_REDIAL
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | default(l10n.gettext('Redial', language)) | slice(0,10) }}
+{% elseif _context['linekey_type_' ~ index] == 'record' %}
+Fkey{{ index }} Type               :3
+Fkey{{ index }} Value              :F_REC
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | default(l10n.gettext('Record', language)) | slice(0,10) }}
+{% elseif _context['linekey_type_' ~ index] == 'speed_dial' %}
+Fkey{{ index }} Type               :1
+Fkey{{ index }} Value              :{{ _context['linekey_value_' ~ index] ~ '@1/f' }}
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | slice(0,10) }}
+{% elseif _context['linekey_type_' ~ index] == 'queuetoggle' %}
+Fkey{{ index }} Type               :1
+Fkey{{ index }} Value              :{{ queuetoggle ~ '@1/f' }}
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | slice(0,10) }}
+{% elseif _context['linekey_type_' ~ index] == 'transfer' %}
+Fkey{{ index }} Type               :3
+Fkey{{ index }} Value              :F_B_TRANSFER
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | default(l10n.gettext('Transfer', language)) | slice(0,10) }}
+{% elseif _context['linekey_type_' ~ index] == 'url' %}
+Fkey{{ index }} Type               :7
+Fkey{{ index }} Value              :{{ 'get:' ~ _context['linekey_value_' ~ index] }}
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | default(l10n.gettext('URL', language)) | slice(0,10) }}
+{% elseif _context['linekey_type_' ~ index] == 'voice_mail' %}
+Fkey{{ index }} Type               :3
+Fkey{{ index }} Value              :F_MWI
+Fkey{{ index }} Title              :{{ _context['linekey_label_' ~ index] | default(l10n.gettext('Voice mail', language)) | slice(0,10) }}
+{% else %}
+Fkey{{ index }} Type               :0
+Fkey{{ index }} Value              :
+Fkey{{ index }} Title              :
+{% endif %}
+{% endfor %}
+
+--Soft Dss Key--   :
+{% for index in 1..cap_softkey_count %}
+{% if _context['softkey_type_' ~ index] == 'ldap' %}
+SoftFkey{{ index }} Type     :3
+SoftFkey{{ index }} Value    :F_LDAP@1
+SoftFkey{{ index }} Title    :{{ _context['softkey_label_' ~ index] | default(l10n.gettext('Phonebook', language)) }}
+{% elseif _context['softkey_type_' ~ index] == 'forward' %}
+SoftFkey{{ index }} Type     :3
+SoftFkey{{ index }} Value    :F_CFWD
+SoftFkey{{ index }} Title    :{{ _context['softkey_label_' ~ index] | default(l10n.gettext('Forward', language)) }}
+{% elseif _context['softkey_type_' ~ index] == 'pickup' %}
+SoftFkey{{ index }} Type     :3
+SoftFkey{{ index }} Value    :F_PICKUP
+SoftFkey{{ index }} Title    :{{ _context['softkey_label_' ~ index] | default(l10n.gettext('Pickup', language)) }}
+{% elseif _context['softkey_type_' ~ index] == 'speed_dial' %}
+SoftFkey{{ index }} Type     :1
+SoftFkey{{ index }} Value    :{{ _context['softkey_value_' ~ index] ~ '@1/f' }}
+SoftFkey{{ index }} Title    :{{ _context['softkey_label_' ~ index] | default('N/A') }}
+{% elseif _context['softkey_type_' ~ index] == 'group_pickup' %}
+SoftFkey{{ index }} Type     :1
+SoftFkey{{ index }} Value    :{{ pickup_group ~ '@1/f' }}
+SoftFkey{{ index }} Title    :{{ _context['softkey_label_' ~ index] | default(l10n.gettext('Pickup', language)) }}
+{% else %}
+SoftFkey{{ index }} Type     :0
+SoftFkey{{ index }} Value    :
+SoftFkey{{ index }} Title    :
+{% endif %}
+
+{% endfor %}
+
+Ui font Color      :0xFFFFFF$0x444343
+Ui Title Color     :0x000026$0x4f79a7
+Ui Softkey Color   :up:0x5e6f85$0x485972@ down:0x00$0xffc83b
+Ui List  Color     :0x00$0xa9c1c9
+Ui Balloon Color   :0x00$0x6c7b8d
+Ui Second Color    :odd:0xc9d9eb$0x9fc0e3@ even:0x356291$0x7296bb@ select:0x34373c$0xe2a917@ interval:0x4478ae@ LSKbgc:0x6b84aa
+Ui ScrnSaver Color :0x00$0x808080
+Vqm Display Order  :
+DSS Home Page      :1
+Download Pb search :0
+Block XML when call:0
+SIP Notify XML     :1
+XML Update Interval:0
+
+<SCREEN KEY CONFIG MODULE>
+Desktop Softkey    :{% for index in 1..cap_softkey_count -%}
+{% set screen_type = {
+     '': 'none',
+     'forward': 'dsskey' ~ index,
+     'dnd': 'dnd',
+     'recall': 'redial',
+     'pick_up': 'dsskey' ~ index,
+     'speed_dial': 'dsskey' ~ index,
+     'group_pickup': 'dsskey' ~ index,
+     'history': 'history',
+     'menu': 'menu',
+     'status': 'status',
+     'ldap': 'dsskey' ~ index,
+     'prefix': 'dsskey' ~ index,
+} %}
+    {{- (screen_type[_context['softkey_type_' ~ index]] ?: 'none') ~ ';' -}}
+{%- endfor %}
+
+Talking Softkey    :hold;xfer;conf;end;
+Ringing Softkey    :accept;none;cfwd;reject;
+Alerting Softkey   :none;none;none;end;
+XAlerting Softkey  :xfer;none;none;end;
+Conference Softkey :hold;none;split;end;
+Waiting Softkey    :hold;xfer;conf;end;
+Ending Softkey     :repeat;none;none;end;
+DialerPre Softkey  :delete;save;send;exit;
+DialerCall Softkey :delete;history;send;exit;
+DialerXfer Softkey :delete;xfer;send;exit;
+DialerCfwd Softkey :delete;none;cfwd;exit;
+Desktop Click      :history;status;paccout;naccout;menu;
+Dailer  Click      :pline;nline;none;none;none;
+Call    Click      :pcall;ncall;voldown;volup;none;
+Desktop Long Press :status;none;none;sdial;reset;
+Softkey Mode       :2
+Softkey Exit Style :1
+
+<SIP Hotspot MODULE>
+Enable Hotspot     :0
+Mode               :1
+Listen Type        :0
+Listen IP          :224.0.2.0
+Listen Port        :16360
+Remote Port        :16360
+Own Name           :SIP Hotspot
+--Line Conf List-- :
+HS1 Enable         :1
+HS2 Enable         :1
+
+<RECORD CONFIG MODULE>
+Enabled            :0
+Voice Codec        :PCMA
+Enable Server Rec  :0
+Enable PBX Rec     :0
+Server Addr        :
+Server Port        :0
+Type               :0
+
+<AUTOUPDATE CONFIG MODULE>
+Download Username  :
+Download Password  :
+AP Pswd Encryption :0
+Config File Name   :{{ 'http' in provisioning_url_scheme ? (provisioning_url_path | trim('/', 'left') ~ tok2 ~ '/$mac.cfg') : '$mac.cfg' }}
+Config File Key    :
+Common Cfg File Key:
+Download Server IP :{{ hostname }}
+Download Protocol  :{{ fanvil.scheme_map(provisioning_url_scheme) }}
+Download Mode      :{{ (provisioning_complete and provisioning_freq == 'never') ? '1' : '2' }}
+Download Interval  :{{ provisioning_complete ? fanvil.upgrade_wait_hours(timezone, short_mac) : '1' }}
+DHCP Option        :0
+Save DHCP Opion    :0
+DHCP Option 120    :0
+PNP Enable         :0
+PNP IP             :224.0.1.75
+PNP Port           :5060
+PNP Transport      :0
+PNP Interval       :1
+Save Provision Info:0
+Download CommonConf:0
+Download DeviceConf:1
+Check FailTimes    :5
+update PB Interval :720
+Clr PB B4 Import   :0
+Trust Certification:0
+Device Cert Mode   :1
+Auto Server Digest :0
+Enable Auto Upgrade:0
+Upgrade Server 1   :
+Upgrade Server 2   :
+Auto Upgrade intval:72
+Auto Image Url     :{{ firmware_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/firmware/#{firmware_file}" : "" }}
+Auto Etc Url       :{{ background_file ends with '.bmp' ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/backgrounds/#{background_file}" : "" }}
+
+<VPN CONFIG MODULE>
+VPN mode           :2
+L2TP LNS IP        :
+L2TP User Name     :
+L2TP Password      :
+L2TP Negotiate DNS :1
+Enable VPN Tunnel  :0
+VPN Server IP      :0.0.0.0
+VPN Server Port    :80
+Server Group ID    :VPN
+Server Area Code   :12345
+
+<DOT1X CONFIG MODULE>
+Xsup User          :admin
+Xsup Password      :admin
+Xsup Enable        :0
+Xsup AuthMac       :
+Xsup UseDefaultMac :1
+
+<TR069 CONFIG MODULE>
+ACS Server Type    :1
+ACS URL            :0.0.0.0
+ACS UserName       :admin
+ACS Password       :admin
+CPE UserName       :dps
+CPE Password       :dps
+CPE SerialNumber   :
+ParameterKey       :
+RebootCommandKey   :
+DownloadCommandKey :
+ProvisioningCode   :
+Download status    :0
+ACS Contact State  :0
+Download Start Time:0
+Download End Time  :0
+TR069 Tone         :0
+Enable TR069       :0
+TLS Version        :0
+Periodix Interval  :3600
+Area Code          :020
+STUN Enable        :0
+STUN Server Addr   :0.0.0.0
+STUN Server Port   :3478
+STUN Local Port    :30000
+Heartbeat Interval :50
+Heart Resp Timeout :3
+<<END OF FILE>>

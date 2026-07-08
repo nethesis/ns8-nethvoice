@@ -1,0 +1,15 @@
+USE `@database_name`;
+
+START TRANSACTION;
+
+DROP FUNCTION IF EXISTS get_trunk_name;
+CREATE FUNCTION get_trunk_name (s VARCHAR(255))
+  RETURNS VARCHAR(255) CHARACTER SET 'utf8' COLLATE 'utf8_bin' DETERMINISTIC
+  RETURN Substring_index(SUBSTRING(s,1,LENGTH(s)-LOCATE('-',REVERSE(s))), '/', -1);
+
+DROP FUNCTION IF EXISTS clean_prefix;
+CREATE FUNCTION clean_prefix (s VARCHAR(255))
+  RETURNS VARCHAR(255) CHARACTER SET 'utf8' COLLATE 'utf8_bin' DETERMINISTIC
+  RETURN REPLACE(Substring_index(s,"@international_prefix",-1),"+","00");
+
+COMMIT;

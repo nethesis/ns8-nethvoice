@@ -1,0 +1,55 @@
+#!/bin/bash
+
+#
+# Build UI with npm
+# Requires:
+# - libpam0g-dev on Ubuntu
+# - pam-devel on Fedora
+#
+
+# Exit 1 on error
+set -xe
+
+# Prepare dist
+mkdir -p dist
+
+#
+# Clean old versions
+#
+rm -rf dist/ui.tar.gz
+rm -rf dist/api
+rm -rf dist/tasks
+
+#
+# Build UI
+#
+pushd ui
+buildah build --force-rm --layers --jobs "$(nproc)" --tag nethesis/nethvoice-report-ui
+ui_container="$(podman run --rm -d nethesis/nethvoice-report-ui:latest tail -f /dev/null)"
+podman cp "$ui_container":/app/dist dist
+podman stop -t 0 "$ui_container"
+tar cvzf ui.tar.gz -C dist .
+cp ui.tar.gz ../dist/
+popd
+
+#
+# Build API
+#
+pushd api
+buildah build --force-rm --layers --jobs "$(nproc)" --tag nethesis/nethvoice-report-api
+api_container="$(podman run --rm -d nethesis/nethvoice-report-api:latest tail -f /dev/null)"
+podman cp "$api_container":/app/api api
+podman stop -t 0 "$api_container"
+cp api ../dist/
+popd
+
+#
+# Build Tasks
+#
+pushd tasks
+buildah build --force-rm --layers --jobs "$(nproc)" --tag nethesis/nethvoice-report-tasks
+tasks_container="$(podman run --rm -d nethesis/nethvoice-report-tasks:latest tail -f /dev/null)"
+podman cp "$tasks_container":/app/tasks tasks
+podman stop -t 0 "$tasks_container"
+cp tasks ../dist/
+popd

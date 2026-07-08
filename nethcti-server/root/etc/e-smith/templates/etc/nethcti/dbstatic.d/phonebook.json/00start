@@ -1,0 +1,6 @@
+{
+    use NethServer::Password;
+    our $phonebookdb_pwd = NethServer::Password::store('PhonebookDBPasswd') || die('Could not generate phonebook database password!');
+    return "";
+}
+\{

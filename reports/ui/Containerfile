@@ -1,0 +1,16 @@
+FROM docker.io/library/node:14.21.2-alpine as base
+WORKDIR /app
+# Install node_modules
+COPY package.json .
+COPY package-lock.json .
+RUN npm ci
+# Copy application files
+COPY public public
+COPY src src
+COPY .browserslistrc .
+COPY .eslintrc.js .
+COPY babel.config.js .
+COPY vue.config.js .
+# Build dist
+ENV NODE_ENV=production
+RUN npm run build

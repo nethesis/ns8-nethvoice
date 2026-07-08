@@ -1,0 +1,185 @@
+#
+# ringtone -- translate ringtone to Gigaset builtin file names
+#
+{% macro ringtone_map(index) %}
+{% set map = {
+    '1': '01.mp3',
+    '2': '02_Memo.mp3',
+    '3': '03_Vibe.mp3',
+    '4': '04_Listen.mp3',
+    '5': '05_Down.mp3',
+    '6': '06_Gigaset.mp3',
+    '7': '07_Egg.mp3',
+    '8': '08_Peak.mp3',
+    '9': '09_Step 3.mp3',
+    '10': '10_P Cut.mp3',
+    '11': '11_Set.mp3',
+    '12': '12_Sim.mp3',
+    '13': '13_Tone one.mp3',
+    '14': '14_Dunken.mp3',
+    '15': '15_Piano.mp3',
+    '16': '16_Officebuffer.mp3',
+    '17': '17_Twelve.mp3',
+    '18': '18_Flightzone.mp3',
+    '19': '19_Waste.mp3',
+    '20': '20_Smooth_G.mp3',
+    '21': '21_Green Tea.mp3',
+    '22': 'bellcore_dr1.ogg',
+    '23': 'bellcore_dr2.ogg',
+    '24': 'bellcore_dr3.ogg',
+    '25': 'bellcore_dr4.ogg',
+    '26': 'bellcore_dr5.ogg',
+    '27': 'Evolve 1.ogg',
+    '28': 'Evolve 2.ogg',
+} %}
+{{- map[index] ?: map['6'] -}}
+{% endmacro ringtone_map %}
+
+#
+# linekey_type_map -- translate "linekey_type_"
+#
+{% macro linekey_type_map(linekey_type, number, linekey_value, dndtoggle, pickup_group, queuetoggle, pickup_direct) %}
+{% if linekey_type == "blf" %}
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.Type" value="4" />
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.PhoneNumber" value="{{ linekey_value }}" />
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.CallPickupCode" value="{{ pickup_direct }}" />
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.Color" value="3" />
+{% elseif linekey_type == "dtmf" %}
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.Type" value="7" />
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.EnableCode" value="{{ linekey_value }}" />
+{% elseif linekey_type == "forward" %}
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.Type" value="6" />
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.PhoneNumber" value="{{ linekey_value }}" />
+{% elseif linekey_type == "line" %}
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.Type" value="0" />
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.Connection" value="{{ linekey_value }}" />
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.Color" value="3" />
+{% elseif linekey_type == "speed_dial" %}
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.Type" value="3" />
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.PhoneNumber" value="{{ linekey_value }}" />
+{% elseif linekey_type == "url" %}
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.Type" value="8" />
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.URL" value="{{ linekey_value }}" />
+{% elseif linekey_type == "dnd" %}
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.Type" value="10" />
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.EnableCode" value="{{ dndtoggle }}" />
+{% elseif linekey_type == "queuetoggle" %}
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.Type" value="10" />
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.EnableCode" value="{{ queuetoggle }}" />
+{% elseif linekey_type == "group_pickup" %}
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.Type" value="10" />
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.EnableCode" value="{{ pickup_group }}" />
+{% elseif linekey_type == "voice_mail" %}
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.Type" value="10" />
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.EnableCode" value="{{ account_voicemail_1 }}" />
+{% else %}
+    <param name="PhoneUI.Keys.FunctionKeys.{{ number }}.Type" value="-1" />
+{% endif %}
+{% endmacro linekey_type_map %}
+
+#
+# softkey_type_map -- translate "softkey_type"
+#
+{% macro softkey_type_map(softkey_type, number, softkey_value, dndtoggle) %}
+{% if softkey_type == "recall" %}
+    <param name="PhoneUI.Keys.SoftKeys.{{ number }}.Type" value="17"/>
+{% elseif softkey_type == "forward" %}
+    <param name="PhoneUI.Keys.SoftKeys.{{ number }}.Type" value="6" />
+    <param name="PhoneUI.Keys.SoftKeys.{{ number }}.PhoneNumber" value="{{ softkey_value }}" />
+{% elseif softkey_type == "speed_dial" %}
+    <param name="PhoneUI.Keys.SoftKeys.{{ number }}.Type" value="3" />
+    <param name="PhoneUI.Keys.SoftKeys.{{ number }}.PhoneNumber" value="{{ softkey_value }}" />
+{% elseif softkey_type == "dnd" %}
+    <param name="PhoneUI.Keys.SoftKeys.{{ number }}.Type" value="10" />
+    <param name="PhoneUI.Keys.SoftKeys.{{ number }}.EnableCode" value="{{ dndtoggle }}" />
+{% elseif softkey_type == "ldap" %}
+    <param name="PhoneUI.Keys.SoftKeys.{{ number }}.Type" value="13" />
+{% elseif softkey_type == "group_pickup" %}
+    <param name="PhoneUI.Keys.SoftKeys.{{ number }}.Type" value="10"/>
+    <param name="PhoneUI.Keys.SoftKeys.{{ number }}.EnableCode" value="*8"/>
+    <param name="PhoneUI.Keys.SoftKeys.{{ number }}.DisableCode" value="*8"/>
+    <param name="PhoneUI.Keys.SoftKeys.{{ number }}.EnableName" value="Pickup"/>
+    <param name="PhoneUI.Keys.SoftKeys.{{ number }}.DisableName" value="Pickup"/>
+{% else %}
+    <param name="PhoneUI.Keys.SoftKeys.{{ number }}.Type" value="-1"/>
+{% endif %}
+{% endmacro softkey_type_map %}
+
+#
+# dtmf_map -- translate "account_dtmf_type" value to Fanvil code
+#
+{% macro dtmf_map(account_dtmf_type) %}
+{% if account_dtmf_type == 'inband' %}
+    {{- '0' -}}
+{% elseif account_dtmf_type == 'rfc4733' %}
+    {{- '1' -}}
+{% elseif account_dtmf_type == 'sip_info' %}
+    {{- '3' -}}
+{% else %}
+    {{- '0' -}}
+{% endif %}
+{% endmacro dtmf_map %}
+
+#
+# Translate the language name to Gigaset language code
+#
+{% macro language_code(lang) %}
+    {%- set code = {
+        "en": "en-us",
+        "it": "it-it"
+} -%}
+    {{- code[lang] ?? 'en-us' -}}
+{% endmacro language_code %}
+
+#
+# Translate the tones country to Gigaset tonezone
+#
+{% macro tones_code(country) %}
+    {%- set tones = {
+       "it" : "ITA",
+       "at" : "AUT",
+       "cz" : "CZE",
+       "dk" : "DNK",
+       "fi" : "FIN",
+       "fr" : "FRA",
+       "de" : "DEU",
+       "gr" : "GRC",
+       "nl" : "NLD",
+       "pl" : "POL",
+       "pt" : "PRT",
+       "ru" : "RUS",
+       "za" : "ZAF",
+       "es" : "ESP",
+       "se" : "SWE",
+       "uk" : "GBR",
+       "us" : "USA"
+} -%}
+    {{- tones[country] ?? 'INT' -}}
+{% endmacro tones_code %}
+
+#
+# The Gigaset timezone parameters map
+#
+{% macro timezone_map(tz) %}
+{%- set tz_map = {
+  "Europe/Rome": "GMT+1.Europe/Amsterdam",
+  "UTC": "GMT.Europe/London"
+} -%}
+{% if tz_map[tz] is defined %}
+    {{- tz_map[tz] -}}
+{% else %}
+    {{- tz_map['UTC'] -}}
+{% endif %}
+{% endmacro timezone_map %}
+
+#
+# Set date format
+#
+{% macro date_format(date_format) %}
+{% if date_format in ["WWW MMM DD", "MM DD YY", "MM DD YYYY", "MMM DD WW"] %}
+    {{- 'mm.dd.yyyy' -}}
+{% else %}
+    {{- 'dd.mm.yyyy' -}}
+{% endif %}
+{% endmacro date_format %}
+
