@@ -38,8 +38,10 @@ elif call_enabled == 'False' and vm_enabled == 'False':
     subprocess.run(["systemctl", "--user", "stop", "satellite-mqtt.service"], check=False)
     subprocess.run(["systemctl", "--user", "disable", "satellite-mqtt.service"], check=False)
 
-    subprocess.run(["systemctl", "--user", "stop", "satellite-pgsql.service"], check=False)
-    subprocess.run(["systemctl", "--user", "disable", "satellite-pgsql.service"], check=False)
+    # Do NOT stop satellite-pgsql: stopping the live/write path (satellite + mqtt)
+    # already prevents new transcripts/summaries from being created, while keeping
+    # the database up so users can still consult the ones generated in the past.
+    # The middleware reads them through a direct connection to this DB.
 
     subprocess.run(["systemctl", "--user", "stop", "satellite-recordings-cleanup.timer"], check=False)
     subprocess.run(["systemctl", "--user", "disable", "satellite-recordings-cleanup.timer"], check=False)
