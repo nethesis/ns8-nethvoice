@@ -45,6 +45,17 @@ run_phonebook_step() {
         fi
 }
 
+phonebook_export_enabled() {
+        case "${1:-true}" in
+                0|false|False|FALSE|no|No|NO|disabled|Disabled|DISABLED)
+                        return 1
+                        ;;
+                *)
+                        return 0
+                        ;;
+        esac
+}
+
 # Publish all configured phonebook into one phonebook
 
 # empty phonebook table
@@ -54,10 +65,14 @@ run_phonebook_step /usr/share/phonebooks/clean.php
 run_phonebook_step /usr/share/phonebooks/nethcti_export.php
 
 # Export nethvoice speeddial if requested
-run_phonebook_step /usr/share/phonebooks/speeddial_and_rapidcode_export.php
+if phonebook_export_enabled "${PHONEBOOK_EXPORT_SPEEDDIAL_AND_RAPIDCODE:-true}"; then
+        run_phonebook_step /usr/share/phonebooks/speeddial_and_rapidcode_export.php
+fi
 
 # Export nethvoice extensions
-run_phonebook_step /usr/share/phonebooks/nethvoice_extensions_export.php
+if phonebook_export_enabled "${PHONEBOOK_EXPORT_EXTENSIONS:-true}"; then
+        run_phonebook_step /usr/share/phonebooks/nethvoice_extensions_export.php
+fi
 
 # Load custom phonebooks
 if [ -d /etc/phonebook/sources.d ]; then
@@ -85,4 +100,3 @@ if [ -d /usr/share/phonebooks/post_scripts ]; then
 fi
 
 update_last_sync_at
-
