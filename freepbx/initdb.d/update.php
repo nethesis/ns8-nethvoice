@@ -106,6 +106,16 @@ foreach ([
 	$stmt->execute([$key, $value]);
 }
 
+// Rename the Satellite CTI permission displayname/description on existing
+// installations. The migration.php script exits early once it has already run,
+// so its UPDATE branch never reaches already-migrated installs; doing it here
+// (update.php runs on every start and is idempotent) ensures the rename is
+// applied everywhere. Kept before the multi-statement query below: after a
+// multi-statement execute the PDO connection has pending result sets, which
+// would make this query silently fail.
+$stmt = $db->prepare("UPDATE `asterisk`.`rest_cti_permissions` SET `displayname` = 'Transcription and Summary', `description` = 'Calls transcription and summary' WHERE `id` = 5000 AND `displayname` = 'Speech-To-Text'");
+$stmt->execute();
+
 // Update outbound routes notification_on field
 // If is set to "call" and there is an email address configured for that route,
 // set it to "pattern", if no email is configured set it to empty.
