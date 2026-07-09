@@ -96,8 +96,10 @@ $app->post('/configuration/wizard', function (Request $request, Response $respon
         if ($step == 13) {
             // Restart Asterisk
             system("/usr/sbin/asterisk -rx 'core restart when convenient' &> /dev/null");
-            // Notify nethcti-server restart
+            // Notify nethcti-server and nethcti-middleware restart
             $file = fopen("/notify/restart_nethcti-server", 'w');
+            fclose($file);
+            $file = fopen("/notify/restart_nethcti-middleware", 'w');
             fclose($file);
         }
         // clean table
