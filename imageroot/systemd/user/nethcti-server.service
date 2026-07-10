@@ -6,12 +6,14 @@
 Description=NethCTI server daemon
 Wants=freepbx.service get-certificate.service
 After=freepbx.service get-certificate.service
+StartLimitBurst=60
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%S/state/environment
 WorkingDirectory=%S/state
 Restart=always
+RestartSec=10s
 ExecStartPre=/bin/rm -f %t/nethcti-server.pid %t/nethcti-server.ctr-id
 ExecStartPre=-runagent install-certificate nethcti-server
 

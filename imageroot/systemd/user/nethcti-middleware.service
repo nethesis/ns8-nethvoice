@@ -4,7 +4,6 @@
 #
 [Unit]
 Description=NethCTI middleware daemon
-Wants=nethcti-server.service
 After=nethcti-server.service mariadb.service
 Requires=mariadb.service
 
