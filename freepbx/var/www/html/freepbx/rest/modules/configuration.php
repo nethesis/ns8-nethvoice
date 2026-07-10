@@ -97,9 +97,13 @@ $app->post('/configuration/wizard', function (Request $request, Response $respon
             // Restart Asterisk
             system("/usr/sbin/asterisk -rx 'core restart when convenient' >/dev/null 2>&1");
             // Notify nethcti-server restart
-            if (is_dir('/notify') || @mkdir('/notify', 0775, true)) {
-                $file = @fopen('/notify/restart_nethcti-server', 'w');
-                if ($file !== false) {
+            if (!is_dir('/notify') && !mkdir('/notify', 0775, true) && !is_dir('/notify')) {
+                error_log('Unable to create /notify directory');
+            } else {
+                $file = fopen('/notify/restart_nethcti-server', 'w');
+                if ($file === false) {
+                    error_log('Unable to write /notify/restart_nethcti-server');
+                } else {
                     fclose($file);
                 }
             }
