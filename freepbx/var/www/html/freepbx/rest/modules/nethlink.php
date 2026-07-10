@@ -23,6 +23,7 @@ use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
 include_once('lib/libExtensions.php');
+include_once('lib/libCTI.php');
 
 $app->get('/nethlink/{mainextension}', function (Request $request, Response $response, $args) {
     $route = $request->getAttribute('route');
@@ -33,6 +34,29 @@ $app->get('/nethlink/{mainextension}', function (Request $request, Response $res
         return $response->withJson($extension, 200);
     } else {
         return $response->withJson(null,200);
+    }
+});
+
+$app->get('/nethlink/info/{username}', function (Request $request, Response $response, $args) {
+    try {
+        $route = $request->getAttribute('route');
+        $username = $route->getArgument('username');
+
+        $dbh = NethCTI::Database();
+        $sql = 'SELECT `user`, `extension`, `timestamp`, `nethlink_version`, `os_type`, `os_release`, `arch`'.
+               ' FROM `user_nethlink` WHERE `user` = ?';
+        $stmt = $dbh->prepare($sql);
+        $stmt->execute(array($username));
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!empty($row)) {
+            return $response->withJson($row, 200);
+        } else {
+            return $response->withJson(null, 200);
+        }
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return $response->withStatus(500);
     }
 });
 
