@@ -137,8 +137,11 @@ lt_run_manifest() {
 
   lt_section "Running manifest $(basename "${manifest}")"
   lt_info "User: ${REST_AUTH_USER}"
-  lt_info "Secretkey: ${REST_API_SECRETKEY}"
-
+  if [[ -n "${REST_API_SECRETKEY}" ]]; then
+    lt_info "Secretkey: ${REST_API_SECRETKEY:0:6}…"
+  else
+    lt_info "Secretkey: (empty)"
+  fi
   while IFS=$'\t' read -r name method path payload expected; do
     lt_run_authenticated_api "${method}" "${path}" "${payload}" "${expected}" "${name}"
   done < <(python3 "${LOCAL_TESTING_DIR}/bin/manifest_to_tsv.py" "${manifest}")
