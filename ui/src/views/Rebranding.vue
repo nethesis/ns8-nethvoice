@@ -422,6 +422,47 @@
                           :invalid-message="error.rebranding_wizard_login_background_url"
                           :helper-text="$t('rebranding.public_url_image_helper')"
                         />
+                        <h3 class="section-title">
+                          {{ $t("rebranding.freepbx_admin_settings") }}
+                        </h3>
+                        <NsTextInput
+                          :label="
+                            $t('rebranding.rebranding_freepbx_admin_logo_url_label') +
+                            ' (' +
+                            $t('common.optional') +
+                            ')'
+                          "
+                          v-model="rebranding_freepbx_admin_logo_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://mydomain.com/path/to/image.svg',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="error.rebranding_freepbx_admin_logo_url"
+                          :helper-text="$t('rebranding.freepbx_admin_logo_url_helper')"
+                        />
+                        <NsTextInput
+                          :label="
+                            $t('rebranding.rebranding_freepbx_admin_favicon_url_label') +
+                            ' (' +
+                            $t('common.optional') +
+                            ')'
+                          "
+                          v-model="rebranding_freepbx_admin_favicon_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://mydomain.com/favicon.ico',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="error.rebranding_freepbx_admin_favicon_url"
+                          :helper-text="$t('rebranding.public_url_image_helper')"
+                        >
+                          <template slot="tooltip">
+                            {{ $t("rebranding.rebranding_favicon_url_tooltip") }}
+                          </template></NsTextInput
+                        >
                         <div class="rebranding-save-actions">
                           <NsButton
                             kind="ghost"
@@ -823,6 +864,8 @@ export default {
       rebranding_wizard_login_background_url: "",
       rebranding_wizard_favicon_url: "",
       rebranding_wizard_login_logo_url: "",
+      rebranding_freepbx_admin_logo_url: "",
+      rebranding_freepbx_admin_favicon_url: "",
       rebranding_nethlink_company_name: "",
       rebranding_nethlink_company_url: "",
       lastSubmittedRebrandingPayloads: {
@@ -1075,6 +1118,10 @@ export default {
         config.rebranding_wizard_favicon_url;
       this.rebranding_wizard_login_logo_url =
         config.rebranding_wizard_login_logo_url;
+      this.rebranding_freepbx_admin_logo_url =
+        config.rebranding_freepbx_admin_logo_url;
+      this.rebranding_freepbx_admin_favicon_url =
+        config.rebranding_freepbx_admin_favicon_url;
       this.rebranding_nethlink_company_name =
         config.rebranding_nethlink_company_name;
       this.rebranding_nethlink_company_url =
@@ -1105,6 +1152,10 @@ export default {
           config.rebranding_wizard_favicon_url,
         rebranding_wizard_login_background_url:
           config.rebranding_wizard_login_background_url,
+        rebranding_freepbx_admin_logo_url:
+          config.rebranding_freepbx_admin_logo_url,
+        rebranding_freepbx_admin_favicon_url:
+          config.rebranding_freepbx_admin_favicon_url,
         rebranding_nethlink_company_name:
           config.rebranding_nethlink_company_name,
         rebranding_nethlink_company_url: config.rebranding_nethlink_company_url,
@@ -1155,6 +1206,8 @@ export default {
         rebranding_wizard_login_logo_url: "",
         rebranding_wizard_favicon_url: "",
         rebranding_wizard_login_background_url: "",
+        rebranding_freepbx_admin_logo_url: "",
+        rebranding_freepbx_admin_favicon_url: "",
         rebranding_nethlink_company_name: "Nethesis",
         rebranding_nethlink_company_url: "https://www.nethesis.it/",
         ...overrides,
@@ -1203,10 +1256,14 @@ export default {
           this.rebranding_wizard_login_logo_url = "";
           this.rebranding_wizard_favicon_url = "";
           this.rebranding_wizard_login_background_url = "";
+          this.rebranding_freepbx_admin_logo_url = "";
+          this.rebranding_freepbx_admin_favicon_url = "";
           this.clearTabErrors([
             "rebranding_wizard_login_logo_url",
             "rebranding_wizard_favicon_url",
             "rebranding_wizard_login_background_url",
+            "rebranding_freepbx_admin_logo_url",
+            "rebranding_freepbx_admin_favicon_url",
           ]);
           break;
         case "reports":
@@ -1317,6 +1374,10 @@ export default {
         rebranding_wizard_favicon_url: this.rebranding_wizard_favicon_url,
         rebranding_wizard_login_background_url:
           this.rebranding_wizard_login_background_url,
+        rebranding_freepbx_admin_logo_url:
+          this.rebranding_freepbx_admin_logo_url,
+        rebranding_freepbx_admin_favicon_url:
+          this.rebranding_freepbx_admin_favicon_url,
         rebranding_nethlink_company_name:
           this.rebranding_nethlink_company_name,
         rebranding_nethlink_company_url: this.rebranding_nethlink_company_url,
