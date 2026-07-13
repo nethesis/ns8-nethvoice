@@ -124,6 +124,12 @@ if os.getenv('ICEENFORCE') is None:
 if os.getenv('NETHCTI_PRIVACY_NUMBERS') is None:
     agent.set_env('NETHCTI_PRIVACY_NUMBERS', 'xxx')
 
+if os.getenv('PHONEBOOK_EXPORT_SPEEDDIAL_AND_RAPIDCODE') is None:
+    agent.set_env('PHONEBOOK_EXPORT_SPEEDDIAL_AND_RAPIDCODE', 'true')
+
+if os.getenv('PHONEBOOK_EXPORT_EXTENSIONS') is None:
+    agent.set_env('PHONEBOOK_EXPORT_EXTENSIONS', 'true')
+
 # Add satellite environment for updates
 if os.getenv('SATELLITE_ARI_APP') is None:
     agent.set_env('SATELLITE_ARI_APP', 'satellite')
