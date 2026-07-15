@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Re-assert the allocated service ports in the FreePBX database.
+#
+# On first boot the FreePBX modules `iaxsettings` and `sipsettings` are
+# installed by freepbx_init.sh (started at configure-module/80start_services).
+# Their install() reseeds the settings tables from defaults:
+#   - Iaxsettings.edit() TRUNCATEs `iaxsettings` and, since the default
+#     `bindport` is empty, drops the row entirely.
+#   - sipsettings/install.php DELETEs `rtpstart`/`rtpend` from `sipsettings`.
+# This discards the ports injected at DB init time by
+# mariadb/docker-entrypoint-initdb.d/70_asterisk_ports.sh.
+#
+# We run here, after 90wait_freepbx (modules installed), and upsert the legacy
+# `iaxsettings`/`sipsettings` rows so they exist regardless of what FreePBX
+# reseeded, then reload so the generated Asterisk config picks up the values.
+# UPDATE-only would touch zero rows whenever FreePBX removed them
+# (see NVQA-7498-02/03/04). The `kvstore_Sipsettings` rows are always present
+# (managed by the module) and use a UNIQUE(`key`,`id`) index, so we keep them
+# on UPDATE to avoid inserting a duplicate row under a mismatched `id`.
+
+import os
+import subprocess
+
+import agent
+
+MARIADB_ROOT_PASSWORD = agent.read_envfile("passwords.env")["MARIADB_ROOT_PASSWORD"]
+
+
+def run_sql(query):
+    agent.run_helper(
+        *f"podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e".split(),
+        query,
+    ).check_returncode()
+
+
+IAX_PORT = os.environ["ASTERISK_IAX_PORT"]
+SIP_UDP_PORT = os.environ["ASTERISK_SIP_UDP_PORT"]
+SIP_PORT = os.environ["ASTERISK_SIP_PORT"]
+SIPS_PORT = os.environ["ASTERISK_SIPS_PORT"]
+RTPSTART = os.environ["ASTERISK_RTPSTART"]
+RTPEND = os.environ["ASTERISK_RTPEND"]
+ASTMANAGERPORT = os.environ["ASTMANAGERPORT"]
+
+# iaxsettings (chan_iax2): bindport row is dropped by the module install
+run_sql(f"""
+INSERT INTO `iaxsettings` (`keyword`, `data`, `seq`, `type`)
+VALUES ('bindport', '{IAX_PORT}', 1, 0)
+ON DUPLICATE KEY UPDATE `data` = VALUES(`data`);
+""")
+
+# sipsettings (chan_sip legacy): rtpstart/rtpend are deleted by the module
+# install, bindport survives but we upsert it too for idempotency
+run_sql(f"""
+INSERT INTO `sipsettings` (`keyword`, `data`, `seq`, `type`) VALUES
+    ('bindport', '{SIP_UDP_PORT}', 1, 0),
+    ('rtpstart', '{RTPSTART}', 0, 0),
+    ('rtpend', '{RTPEND}', 0, 0)
+ON DUPLICATE KEY UPDATE `data` = VALUES(`data`);
+""")
+
+# kvstore_Sipsettings (chan_pjsip): rows are managed by the module and always
+# present; UPDATE in place to avoid duplicate rows under a mismatched `id`
+run_sql(f"""
+UPDATE `kvstore_Sipsettings`
+SET `val` = CASE
+    WHEN `key` = 'udpport-0.0.0.0' THEN '{SIP_UDP_PORT}'
+    WHEN `key` = 'tcpport-0.0.0.0' THEN '{SIP_PORT}'
+    WHEN `key` = 'tlsport-0.0.0.0' THEN '{SIPS_PORT}'
+    WHEN `key` = 'bindport' THEN '{SIP_PORT}'
+    WHEN `key` = 'tlsbindport' THEN '{SIPS_PORT}'
+    WHEN `key` = 'rtpstart' THEN '{RTPSTART}'
+    WHEN `key` = 'rtpend' THEN '{RTPEND}'
+END
+WHERE `key` IN ('udpport-0.0.0.0', 'tcpport-0.0.0.0', 'tlsport-0.0.0.0',
+                'bindport', 'tlsbindport', 'rtpstart', 'rtpend');
+""")
+
+# freepbx_settings: Asterisk Manager port (PK is `keyword`, single column)
+run_sql(f"""
+INSERT INTO `freepbx_settings`
+    (`keyword`, `value`, `name`, `level`, `description`, `type`, `options`,
+     `defaultval`, `readonly`, `hidden`, `category`, `module`, `emptyok`, `sortorder`)
+VALUES
+    ('ASTMANAGERPORT', '{ASTMANAGERPORT}', 'Asterisk Manager Port', 2,
+     'Port for the Asterisk Manager', 'int', '1024,65535', '{ASTMANAGERPORT}',
+     1, 0, 'Asterisk Manager', '', 0, 0)
+ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), `defaultval` = VALUES(`defaultval`);
+""")
+
+# Reload FreePBX so the regenerated Asterisk config uses the new ports.
+# Skip gracefully if the container is not reachable (config will be correct
+# on the next start).
+if subprocess.run(
+    ["podman", "exec", "freepbx", "true"],
+    stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL,
+).returncode == 0:
+    subprocess.run(
+        ["podman", "exec", "--user", "asterisk", "freepbx",
+         "fwconsole", "reload", "--no-interaction"],
+        check=True,
+    )

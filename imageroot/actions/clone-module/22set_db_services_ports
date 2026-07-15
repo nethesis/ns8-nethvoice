@@ -122,14 +122,13 @@ WHERE `key` IN ('udpport-0.0.0.0', 'tlsport-0.0.0.0', 'tcpport-0.0.0.0', 'bindpo
 """
 agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
 
-# SQL query to update sipsettings RTP range
+# SQL query to upsert sipsettings RTP range (rows are removed by the
+# sipsettings module install, so UPDATE-only would touch zero rows)
 SQL_QUERY = f"""
-UPDATE `sipsettings`
-SET `data` = CASE
-    WHEN `keyword` = 'rtpstart' THEN '{os.environ['ASTERISK_RTPSTART']}'
-    WHEN `keyword` = 'rtpend' THEN '{os.environ['ASTERISK_RTPEND']}'
-END
-WHERE `keyword` IN ('rtpstart', 'rtpend');
+INSERT INTO `sipsettings` (`keyword`, `data`, `seq`, `type`) VALUES
+    ('rtpstart', '{os.environ['ASTERISK_RTPSTART']}', 0, 0),
+    ('rtpend', '{os.environ['ASTERISK_RTPEND']}', 0, 0)
+ON DUPLICATE KEY UPDATE `data` = VALUES(`data`);
 """
 agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
 
@@ -164,21 +163,20 @@ WHERE `key` IN ('bindport', 'tlsbindport');
 """
 agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
 
-# SQL query to update iaxsettings
+# SQL query to upsert iaxsettings (bindport row is dropped by the iaxsettings
+# module install, so UPDATE-only would touch zero rows)
 SQL_QUERY = f"""
-UPDATE `iaxsettings`
-SET `data` = '{os.environ['ASTERISK_IAX_PORT']}'
-WHERE `keyword` = 'bindport';
+INSERT INTO `iaxsettings` (`keyword`, `data`, `seq`, `type`)
+VALUES ('bindport', '{os.environ['ASTERISK_IAX_PORT']}', 1, 0)
+ON DUPLICATE KEY UPDATE `data` = VALUES(`data`);
 """
 agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
 
-# SQL query to update sipsettings
+# SQL query to upsert sipsettings bindport
 SQL_QUERY = f"""
-UPDATE `sipsettings`
-SET `data` = '{os.environ['ASTERISK_SIP_UDP_PORT']}',
-    `seq` = 1,
-    `type` = 0
-WHERE `keyword` = 'bindport';
+INSERT INTO `sipsettings` (`keyword`, `data`, `seq`, `type`)
+VALUES ('bindport', '{os.environ['ASTERISK_SIP_UDP_PORT']}', 1, 0)
+ON DUPLICATE KEY UPDATE `data` = VALUES(`data`);
 """
 agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
 
