@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import os
+import re
+import sys
+
+
+PROTECTED_PORTS = (
+    "ASTERISK_SIP_PORT",
+    "SATELLITE_HTTP_PORT",
+)
+IP_FAMILIES = ("ipv4", "ipv6")
+RULE_PRIORITY = -100
+
+
+def parse_port(environment, variable):
+    """Return a validated TCP/UDP port from the module environment."""
+    value = environment.get(variable, "")
+    if not re.fullmatch(r"[1-9][0-9]{0,4}", value):
+        raise ValueError(f"{variable} must be an integer between 1 and 65535")
+
+    port = int(value)
+    if port > 65535:
+        raise ValueError(f"{variable} must be an integer between 1 and 65535")
+    return port
+
+
+def build_rules(environment):
+    """Build stable DROP rules for internal UDP services."""
+    ports = [parse_port(environment, variable) for variable in PROTECTED_PORTS]
+    return [
+        f'rule priority="{RULE_PRIORITY}" family="{family}" '
+        f'port port="{port}" protocol="udp" drop'
+        for port in ports
+        for family in IP_FAMILIES
+    ]
+
+
+def apply_rules(operation, rules):
+    """Apply or remove rules using the privileged node firewall API."""
+    import agent
+
+    if operation == "add":
+        return agent.add_rich_rules(rules)
+    return agent.remove_rich_rules(rules)
+
+
+def main(argv=None, environment=None):
+    argv = sys.argv[1:] if argv is None else argv
+    environment = os.environ if environment is None else environment
+
+    if len(argv) != 1 or argv[0] not in ("add", "remove"):
+        print(f"Usage: {sys.argv[0]} add|remove", file=sys.stderr)
+        return 2
+
+    try:
+        rules = build_rules(environment)
+    except ValueError as error:
+        print(f"Firewall protection error: {error}", file=sys.stderr)
+        return 2
+
+    if not apply_rules(argv[0], rules):
+        print(f"Firewall protection error: could not {argv[0]} rich rules", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

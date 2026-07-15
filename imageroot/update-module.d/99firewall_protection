@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import os
+import subprocess
+
+import agent
+
+
+try:
+    subprocess.run([
+        os.path.join(
+            os.environ['AGENT_INSTALL_DIR'],
+            'bin',
+            'nethvoice-firewall-protection',
+        ),
+        'add',
+    ], check=True)
+except (OSError, subprocess.CalledProcessError):
+    # The core update-module.d runner ignores child exit codes. Propagate the
+    # failure through the action status channel so the update task is aborted.
+    agent.set_status('validation-failed')
+    raise
