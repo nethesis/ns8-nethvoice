@@ -87,6 +87,17 @@ html {
   border-top-left-radius: 0px;
 }
 
+.profile-panel .bootstrap-switch {
+  border: 0;
+  box-shadow: none;
+}
+
+.profile-panel .bootstrap-switch.bootstrap-switch-focused {
+  border: 1px solid #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+  outline: 2px solid transparent;
+}
+
 .wizard-modal .wizard-pf-sidebar .list-group-item.active > a {
   color: #10b981 !important;
 }

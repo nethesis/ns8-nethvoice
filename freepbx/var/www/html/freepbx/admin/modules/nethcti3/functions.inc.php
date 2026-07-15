@@ -194,6 +194,7 @@ function nethcti3_get_config_late($engine) {
                     /*Add isTrunk = 1 header to VoIP trunks that doesn't require SRTP encryption*/
                     $disable_srtp_header = $nethcti3->getConfig('disable_srtp_header', $trunk['trunkid']);
                     if ($disable_srtp_header==1) {
+                        $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_execif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'Set', '__FROMMACRODIALOUTTRUNK=1'),'',6);
                         $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'isTrunk,1'),'',6);
                         $add_unset_istrunk = true;
                     }
@@ -220,10 +221,11 @@ function nethcti3_get_config_late($engine) {
         $no_srtp_extensions = array_column($res, 'extension');
         // add FROMMACRODIALONE variable before the Dial() in macro-dial-one
         $ext->splice('macro-dial-one', 's', 'dial', new ext_setvar('__FROMMACRODIALONE','1'), '',0);
+        $ext->splice('macro-dial-one', 's', 'dial', new ext_setvar('__FROMMACRODIALOUTTRUNK','0'), '',0);
         if (!empty($no_srtp_extensions)) {
-            // add isTrunk header to calls to extensions with encryption disabled
-            $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & x${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${CALLERID(num)})}x = x1x]', 'func-set-sipheader,s,1', false, 'isTrunk,1'), '',2);
-            $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & x${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${CALLERID(num)})}x = x0x]', 'func-set-sipheader,s,1', false, 'isTrunk,unset'), '',3);
+            // Only apply the extension SRTP guardrails to extension legs, never to outbound trunk legs.
+            $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & "${FROMMACRODIALOUTTRUNK}" != "1" & x${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${CALLERID(num)})}x = x1x]', 'func-set-sipheader,s,1', false, 'isTrunk,1'), '',2);
+            $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & "${FROMMACRODIALOUTTRUNK}" != "1" & x${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${CALLERID(num)})}x = x0x]', 'func-set-sipheader,s,1', false, 'isTrunk,unset'), '',3);
         }
 
         /* Add inboundlookup agi for each inbound routes*/

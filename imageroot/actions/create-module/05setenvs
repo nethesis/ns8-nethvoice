@@ -139,6 +139,8 @@ agent.set_env('PHONEBOOK_DB_USER', 'pbookuser')
 agent.set_env('PHONEBOOK_LDAP_USER', 'ldapuser')
 # 'PHONEBOOK_LDAP_PASS' written to passwords.env
 agent.set_env('PHONEBOOK_LDAP_LIMIT', '500')
+agent.set_env('PHONEBOOK_EXPORT_SPEEDDIAL_AND_RAPIDCODE', 'true')
+agent.set_env('PHONEBOOK_EXPORT_EXTENSIONS', 'true')
 
 # Reports
 agent.set_env('REPORTS_REDIS_PORT', port_list[26])
