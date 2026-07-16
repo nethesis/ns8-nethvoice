@@ -20,7 +20,7 @@ try:
         ),
         'add',
     ], check=True)
-except (OSError, subprocess.CalledProcessError):
+except (KeyError, OSError, subprocess.CalledProcessError):
     # The core update-module.d runner ignores child exit codes. Propagate the
     # failure through the action status channel so the update task is aborted.
     agent.set_status('validation-failed')
