@@ -64,6 +64,26 @@ fi
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/50_asterisk.rest_pjsip_trunks_specialopts.sql
 # NethCTI Server
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" nethcti3 -e 'DELETE FROM `auth` WHERE user LIKE "%_phone-island"'
+# Phonebook: add extended contact fields for existing installs (issue #7124)
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" nethcti3 -e '
+ALTER TABLE cti_phonebook
+  ADD COLUMN IF NOT EXISTS firstname varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS lastname varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS job varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS facebook varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS instagram varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS linkedin varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS workphone2 varchar(25) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS cellphone2 varchar(25) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS otherphone varchar(25) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS otheremail varchar(255) DEFAULT NULL'
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" nethcti3 -e '
+ALTER TABLE cti_phonebook
+  ADD INDEX IF NOT EXISTS lastname_idx (lastname),
+  ADD INDEX IF NOT EXISTS wphone2_idx (workphone2),
+  ADD INDEX IF NOT EXISTS cphone2_idx (cellphone2),
+  ADD INDEX IF NOT EXISTS ophone_idx (otherphone),
+  ADD INDEX IF NOT EXISTS oemail_idx (otheremail)'
 # Enable WebSocket transport
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'UPDATE kvstore_Sipsettings SET val="{\"wss\":{\"0.0.0.0\":\"on\"},\"udp\":{\"0.0.0.0\":\"on\"},\"tcp\":{\"0.0.0.0\":\"on\"},\"ws\":{\"0.0.0.0\":\"on\"},\"tls\":{\"0.0.0.0\":\"on\"}}" WHERE `key` = "binds"'
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e "
