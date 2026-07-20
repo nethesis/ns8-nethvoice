@@ -7,10 +7,105 @@
 
 import agent
 import os
+import subprocess
 
 # Set new service ports
 
 MARIADB_ROOT_PASSWORD = agent.read_envfile("passwords.env")["MARIADB_ROOT_PASSWORD"]
+
+ASTERISK_CONFIG_FILES = (
+    "/etc/asterisk/pjsip.transports.conf",
+    "/etc/asterisk/sip_general_additional.conf",
+)
+
+
+def read_mysql_values(query):
+    result = subprocess.run(
+        [
+            "podman",
+            "exec",
+            "mariadb",
+            "mysql",
+            "asterisk",
+            "-N",
+            "-B",
+            "-u",
+            "root",
+            f"-p{MARIADB_ROOT_PASSWORD}",
+            "-e",
+            query,
+        ],
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    return [value.strip() for value in result.stdout.splitlines() if value.strip()]
+
+
+def run_freepbx_sed(expression):
+    if subprocess.run(
+        ["podman", "exec", "freepbx", "true"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    ).returncode == 0:
+        subprocess.run(
+            ["podman", "exec", "freepbx", "sed", "-i", "-E", expression, *ASTERISK_CONFIG_FILES],
+            check=True,
+        )
+        return
+
+    subprocess.run(
+        [
+            "podman",
+            "run",
+            "--rm",
+            "--entrypoint",
+            "/bin/sed",
+            "--volume=asterisk:/etc/asterisk:z",
+            os.environ["NETHVOICE_FREEPBX_IMAGE"],
+            "-i",
+            "-E",
+            expression,
+            *ASTERISK_CONFIG_FILES,
+        ],
+        check=True,
+    )
+
+
+def replace_config_ports(old_ports, new_port):
+    agent.assert_exp(new_port.isdigit())
+    for old_port in sorted(old_ports):
+        if old_port != new_port:
+            run_freepbx_sed(f"s/:{old_port}$/:{new_port}/")
+
+
+old_sip_ports = {
+    port for port in read_mysql_values("""
+SELECT `val`
+FROM `kvstore_Sipsettings`
+WHERE `key` IN ('udpport-0.0.0.0', 'tcpport-0.0.0.0', 'bindport');
+""")
+    if port.isdigit()
+}
+old_sip_ports.update(
+    port for port in read_mysql_values("""
+SELECT `data`
+FROM `sipsettings`
+WHERE `keyword` = 'bindport';
+""")
+    if port.isdigit()
+)
+old_sips_ports = {
+    port for port in read_mysql_values("""
+SELECT `val`
+FROM `kvstore_Sipsettings`
+WHERE `key` IN ('tlsport-0.0.0.0', 'tlsbindport');
+""")
+    if port.isdigit()
+}
+
+replace_config_ports(old_sip_ports, os.environ['ASTERISK_SIP_PORT'])
+replace_config_ports(old_sips_ports, os.environ['ASTERISK_SIPS_PORT'])
 
 # SQL query to update kvstore_Sipsettings
 SQL_QUERY = f"""

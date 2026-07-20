@@ -32,7 +32,7 @@
     "name": "Nome",
     "enabled": "Abilitato",
     "disabled": "Disabilitato",
-    "eg_value": "es. {value}",
+    "eg_value": "Es. {value}",
     "loading": "Caricamento",
     "node_id": "Nodo {id}",
     "save": "Salva",
