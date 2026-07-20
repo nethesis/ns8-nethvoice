@@ -169,7 +169,7 @@ angular.module('nethvoiceWizardUiApp')
     };
 
     $scope.getCtiUsers = function () {
-      UserService.list(true).then(function (res) {
+      UserService.list(false).then(function (res) {
         $scope.ctiUsers = angular.isArray(res.data) ? res.data : [];
       }, function (err) {
         console.log(err);
