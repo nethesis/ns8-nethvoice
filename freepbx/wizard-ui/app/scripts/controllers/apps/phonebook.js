@@ -73,6 +73,46 @@ angular.module('nethvoiceWizardUiApp')
       "name": {
         "icon": "user",
         "label": "Name"
+      },
+      "firstname": {
+        "icon": "user",
+        "label": "First name"
+      },
+      "lastname": {
+        "icon": "user",
+        "label": "Last name"
+      },
+      "job": {
+        "icon": "briefcase",
+        "label": "Job"
+      },
+      "workphone2": {
+        "icon": "phone",
+        "label": "Work phone"
+      },
+      "cellphone2": {
+        "icon": "mobile",
+        "label": "Cell phone"
+      },
+      "otherphone": {
+        "icon": "phone",
+        "label": "Other telephone number"
+      },
+      "otheremail": {
+        "icon": "envelope",
+        "label": "Other email address"
+      },
+      "facebook": {
+        "icon": "facebook",
+        "label": "Facebook"
+      },
+      "instagram": {
+        "icon": "instagram",
+        "label": "Instagram"
+      },
+      "linkedin": {
+        "icon": "linkedin",
+        "label": "LinkedIn"
       }
     }
 

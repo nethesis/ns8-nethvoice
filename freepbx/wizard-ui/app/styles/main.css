@@ -2843,6 +2843,15 @@ iframe body {
 .settings-title {
   margin-top: 16px;
 }
+.settings-row {
+  clear: both;
+}
+
+.settings-row::after {
+  content: "";
+  display: table;
+  clear: both;
+}
 
 .onof-button-phonebook {
   margin-bottom: 0px !important;

@@ -381,6 +381,46 @@
                                       <td>workcountry</td>
                                       <td>{{"State / region of employment"| translate}}</td>
                                     </tr>
+                                    <tr>
+                                      <td>firstname</td>
+                                      <td>{{"First name"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>lastname</td>
+                                      <td>{{"Last name"| translate}}</td>
+                                    </tr>
+                                    <tr>
+                                      <td>job</td>
+                                      <td>{{"Job"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>workphone2</td>
+                                      <td>{{"Secondary business telephone number"| translate}}</td>
+                                    </tr>
+                                    <tr>
+                                      <td>cellphone2</td>
+                                      <td>{{"Secondary mobile number"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>otherphone</td>
+                                      <td>{{"Other telephone number"| translate}}</td>
+                                    </tr>
+                                    <tr>
+                                      <td>otheremail</td>
+                                      <td>{{"Other email address"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>facebook</td>
+                                      <td>{{"Facebook"| translate}}</td>
+                                    </tr>
+                                    <tr>
+                                      <td>instagram</td>
+                                      <td>{{"Instagram"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>linkedin</td>
+                                      <td>{{"LinkedIn"| translate}}</td>
+                                    </tr>
                                   </tbody>
                                 </table> 
                               </div>
@@ -393,7 +433,7 @@
                 </div>
                 <!-- on new source creation -->
                 <div class="list-group list-view-pf list-view-pf-view no-margin-top">
-                  <div ng-repeat="(kc, c) in colsSources" class="list-group-item">
+                  <div ng-repeat="(kc, c) in colsSources" ng-if="kc !== 'type'" class="list-group-item">
                     <div class="list-view-pf-main-info">
                       <div class="list-view-pf-left">
                         <span class="fa fa-columns list-view-pf-icon-sm"></span>
