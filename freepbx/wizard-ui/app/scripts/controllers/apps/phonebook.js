@@ -8,7 +8,7 @@
  * Controller of the nethvoiceWizardUiApp
  */
 angular.module('nethvoiceWizardUiApp')
-  .controller('PhonebookCtrl', function ($scope, ApplicationService, PhonebookService) {
+  .controller('PhonebookCtrl', function ($scope, ApplicationService, PhonebookService, ProfileService) {
 
     // set variables
     $scope.sourcePortMap = {
@@ -105,15 +105,46 @@ angular.module('nethvoiceWizardUiApp')
       mapping: {}
     };
 
+    $scope.sharing = {
+      mode: 'public',
+      groups: []
+    };
+
     $scope.allSources = {};
     $scope.allSourcesList = [];
     $scope.colsSources = {};
     $scope.colsDestinations = {};
+    $scope.allGroups = [];
 
     $scope.view.changeRoute = true;
 
+    $scope.getAllGroups = function () {
+      ProfileService.allGroups().then(function (res) {
+        $scope.allGroups = angular.isArray(res.data) ? res.data : [];
+      }, function (err) {
+        console.log(err);
+      });
+    };
+
     $scope.getSourceName = function (pbo, defval) {
-      return pbo.type ? pbo.type : defval;
+      return pbo.dbname || pbo.url || pbo._sourceKey || defval;
+    };
+
+    $scope.buildSharingType = function () {
+      if ($scope.sharing.mode === 'group' && $scope.sharing.groups.length) {
+        return 'group:' + $scope.sharing.groups.join(',');
+      }
+      return 'public';
+    };
+
+    $scope.applySharingFromType = function (type) {
+      if (typeof type === 'string' && type.indexOf('group:') === 0) {
+        $scope.sharing.mode = 'group';
+        $scope.sharing.groups = type.slice(6).split(',').filter(function (g) { return g !== ''; });
+      } else {
+        $scope.sharing.mode = 'public';
+        $scope.sharing.groups = [];
+      }
     };
 
     $scope.getSourceType = function (pbo, defval) {
@@ -214,6 +245,7 @@ angular.module('nethvoiceWizardUiApp')
       $scope.ui.modifyId = kg;
       $scope.newSource = g;
       $scope.colsSources = g.sourceColumns;
+      $scope.applySharingFromType(g.type);
       setTimeout(function () {
         $scope.checkConnection(g);
       }, 500);
@@ -223,6 +255,7 @@ angular.module('nethvoiceWizardUiApp')
       $scope.ui.onModify = false;
       $scope.switchsourceModalTab("datasource");
       $scope.querySelect = [];
+      $scope.sharing = { mode: 'public', groups: [] };
       $scope.newSource = {
         query: "SELECT * FROM [table]",
         dbtype: "mysql",
@@ -252,14 +285,22 @@ angular.module('nethvoiceWizardUiApp')
           url: s.url,
         };
       }
-      payload.type = s.type;
+      payload.type = $scope.buildSharingType();
       payload.mapping = s.mapping;
       payload.enabled = s.enabled;
       payload.interval = s.interval;
       return payload;
     };
 
+    $scope.isSharingValid = function () {
+      return $scope.sharing.mode !== 'group' || $scope.sharing.groups.length > 0;
+    };
+
     $scope.saveSource = function () {
+      if (!$scope.isSharingValid()) {
+        $scope.onSaveErrorSource = true;
+        return;
+      }
       PhonebookService.createConfig(createSourcePayload($scope.newSource)).then(function (res) {
         $("#creationsourceModal").modal('hide');
         $scope.onSaveSuccessSource = true;
@@ -272,6 +313,10 @@ angular.module('nethvoiceWizardUiApp')
     }
 
     $scope.updateSource = function (fromSwitch) {
+      if (!fromSwitch && !$scope.isSharingValid()) {
+        $scope.onSaveErrorSource = true;
+        return;
+      }
       PhonebookService.updateConfig($scope.ui.modifyId, createSourcePayload($scope.newSource)).then(function (res) {
         if (!fromSwitch) {
           $("#creationsourceModal").modal('hide');
@@ -309,6 +354,7 @@ angular.module('nethvoiceWizardUiApp')
     $scope.onOfSource = function (ks, s) {
       $scope.ui.modifyId = ks;
       $scope.newSource = s;
+      $scope.applySharingFromType(s.type);
       $scope.updateSource(true);
     }
 
@@ -364,11 +410,13 @@ angular.module('nethvoiceWizardUiApp')
       if (next.templateUrl === 'views/apps/phonebook.html') {
         $scope.getDestColumns();
         $scope.getAllSources();
+        $scope.getAllGroups();
       }
     });
 
     $scope.$on('loginCompleted', function (event, args) {
       $scope.getDestColumns();
       $scope.getAllSources();
+      $scope.getAllGroups();
     });
   });

@@ -109,7 +109,11 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
         $newsource['dbtype'] = $data['dbtype'];
         // optional parameters
         $newsource['interval'] = empty($data['interval']) ? 1440 : $data['interval'];
-        $newsource['type'] = empty($data['type']) ? $id : $data['type'];
+        $sharing = empty($data['type']) ? 'public' : $data['type'];
+        if ($sharing !== 'public' && strpos($sharing, 'group:') !== 0) {
+            $sharing = 'public';
+        }
+        $newsource['type'] = $sharing;
         $newsource['enabled'] = empty($data['enabled']) ? false : $data['enabled'];
 
         $file = $config_dir.'/'.$id.'.json';

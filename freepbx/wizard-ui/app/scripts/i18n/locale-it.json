@@ -1,4 +1,9 @@
 {
+  "Sharing options": "Opzioni di condivisione",
+  "Public": "Pubblico",
+  "Select groups": "Seleziona i gruppi",
+  "Select at least one group": "Seleziona almeno un gruppo",
+  "Choose who can see the contacts imported from this source": "Scegli chi può vedere i contatti importati da questa sorgente",
   "pb_source_dialog_title": "Sorgente rubrica",
   "pb_source_type_label": "Tipo sorgente",
   "pb_check_button_label": "Verifica",

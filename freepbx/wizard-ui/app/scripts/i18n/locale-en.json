@@ -1,4 +1,11 @@
 {
+  "Sharing options": "Sharing options",
+  "Public": "Public",
+  "Groups": "Groups",
+  "Select groups": "Select groups",
+  "Select at least one group": "Select at least one group",
+  "Choose who can see the contacts imported from this source": "Choose who can see the contacts imported from this source",
+  "Synchronization": "Synchronization",
   "pb_source_dialog_title": "Phonebook source",
   "pb_source_type_label": "Source type",
   "pb_check_button_label": "Verify",

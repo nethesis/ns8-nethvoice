@@ -192,6 +192,39 @@
                   <div class="adjust-profile-margin">
                     <div>
                       <div class="settings-row">
+                        <h3 class="settings-title">{{"Sharing options" | translate}}</h3>
+                        <div class="phonebook-settings-rows col-xs-12 col-sm-6 col-lg-6">
+                          <p class="sync-settings-string">
+                            {{"Choose who can see the contacts imported from this source" | translate}}.
+                          </p>
+                          <div class="radio">
+                            <label>
+                              <input type="radio" name="phonebookSharingMode" ng-model="sharing.mode" ng-value="'public'">
+                              {{"Public" | translate}}
+                            </label>
+                          </div>
+                          <div class="radio">
+                            <label>
+                              <input type="radio" name="phonebookSharingMode" ng-model="sharing.mode" ng-value="'group'">
+                              {{"Groups" | translate}}
+                            </label>
+                          </div>
+                        </div>
+                        <div class="phonebook-settings-rows col-xs-12 col-sm-6 col-lg-6">
+                          <div ng-if="sharing.mode === 'group'">
+                            <p class="sync-settings-string">
+                              {{"Select groups" | translate}}.
+                            </p>
+                            <select multiple pf-select ng-model="sharing.groups"
+                              ng-options="g.name as g.name for g in allGroups | orderBy:'name'">
+                            </select>
+                            <p ng-if="sharing.mode === 'group' && sharing.groups.length < 1" class="text-danger">
+                              {{"Select at least one group" | translate}}.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="settings-row">
                         <h3 class="settings-title">{{"Synchronization" | translate}}</h3>
                         <div class="phonebook-settings-rows col-xs-12 col-sm-6 col-lg-6">
                           <p class="sync-settings-string">
@@ -259,10 +292,6 @@
                                     <tr>
                                       <td>owner_id</td>
                                       <td>{{"Contact owner"| translate}}</td>
-                                    </tr>
-                                    <tr id="columnModalColored">
-                                      <td>type</td>
-                                      <td>{{"Source of origin"| translate}}</td>
                                     </tr>
                                     <tr>
                                       <td>homeemail</td>
@@ -454,11 +483,6 @@
                           <form id="dbInfoSqlSource" class="form-horizontal source-form" ng-submit="checkConnection(newSource)">
                             <div class="modal-body">
                               <div class="form-group">
-                                <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Phonebook name' | translate}}</label>
-                                <div class="col-sm-9 input-container">
-                                  <input required ng-disabled="newSource.readonly" ng-model="newSource.type" type="text" class="form-control"></div>
-                              </div>
-                              <div class="form-group">
                                 <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'pb_source_type_label' | translate}}</label>
                                 <div class="col-sm-9 input-container">
                                   <select ng-change="updateDbType()" ng-disabled="newSource.readonly || ui.onModify" required title="-" pf-select="" ng-model="newSource.dbtype"
@@ -607,7 +631,7 @@
             </span>
             <span class="i fa fa-angle-right"></span>
           </button>
-          <button ng-if="sourceModal.tab === 'sync'" ng-click="ui.onModify ? updateSource() : saveSource()" class="btn btn-primary wizard-pf-next">
+          <button ng-if="sourceModal.tab === 'sync'" ng-disabled="!isSharingValid()" ng-click="ui.onModify ? updateSource() : saveSource()" class="btn btn-primary wizard-pf-next">
             <span class="wizard-pf-button-text">
               {{"Save" | translate}}
             </span>
