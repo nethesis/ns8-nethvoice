@@ -59,7 +59,7 @@ def run_freepbx_sed(expression):
             "run",
             "--rm",
             "--entrypoint",
-            "/usr/bin/sed",
+            "/bin/sed",
             "--volume=asterisk:/etc/asterisk:z",
             os.environ["NETHVOICE_FREEPBX_IMAGE"],
             "-i",
