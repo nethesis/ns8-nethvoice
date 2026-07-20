@@ -124,6 +124,9 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
             $sharing = 'public';
         }
         $newsource['type'] = $sharing;
+        // CSV only: global owner chosen from the users list, written to owner_id of
+        // every imported contact. Optional; empty means no owner.
+        $newsource['owner'] = isset($data['owner']) ? $data['owner'] : '';
         $newsource['enabled'] = empty($data['enabled']) ? false : $data['enabled'];
 
         $file = $config_dir.'/'.$id.'.json';

@@ -8,7 +8,7 @@
  * Controller of the nethvoiceWizardUiApp
  */
 angular.module('nethvoiceWizardUiApp')
-  .controller('PhonebookCtrl', function ($scope, ApplicationService, PhonebookService, ProfileService) {
+  .controller('PhonebookCtrl', function ($scope, ApplicationService, PhonebookService, ProfileService, UserService) {
 
     // set variables
     $scope.sourcePortMap = {
@@ -155,12 +155,22 @@ angular.module('nethvoiceWizardUiApp')
     $scope.colsSources = {};
     $scope.colsDestinations = {};
     $scope.allGroups = [];
+    // CTI users, used as the owner picker for CSV sources.
+    $scope.ctiUsers = [];
 
     $scope.view.changeRoute = true;
 
     $scope.getAllGroups = function () {
       ProfileService.allGroups().then(function (res) {
         $scope.allGroups = angular.isArray(res.data) ? res.data : [];
+      }, function (err) {
+        console.log(err);
+      });
+    };
+
+    $scope.getCtiUsers = function () {
+      UserService.list(true).then(function (res) {
+        $scope.ctiUsers = angular.isArray(res.data) ? res.data : [];
       }, function (err) {
         console.log(err);
       });
@@ -324,6 +334,9 @@ angular.module('nethvoiceWizardUiApp')
           dbtype: 'csv',
           url: s.url,
         };
+        // CSV only: a global owner is chosen from the users list instead of mapping
+        // owner_id. Written to owner_id of every imported row.
+        payload.owner = s.owner || '';
       }
       payload.type = $scope.buildSharingType();
       payload.mapping = s.mapping;
@@ -451,6 +464,7 @@ angular.module('nethvoiceWizardUiApp')
         $scope.getDestColumns();
         $scope.getAllSources();
         $scope.getAllGroups();
+        $scope.getCtiUsers();
       }
     });
 
@@ -458,5 +472,6 @@ angular.module('nethvoiceWizardUiApp')
       $scope.getDestColumns();
       $scope.getAllSources();
       $scope.getAllGroups();
+      $scope.getCtiUsers();
     });
   });

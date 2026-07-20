@@ -224,6 +224,20 @@
                           </div>
                         </div>
                       </div>
+                      <div class="settings-row" ng-if="newSource.dbtype === 'csv'">
+                        <h3 class="settings-title">{{"Owner" | translate}}</h3>
+                        <div class="phonebook-settings-rows col-xs-12 col-sm-6 col-lg-6">
+                          <p class="sync-settings-string">
+                            {{"Assign an owner to the imported contacts" | translate}}.
+                          </p>
+                          <select pf-select="{ width: '100%', noneSelectedText: '-' }" ng-model="newSource.owner"
+                            ng-options="u.username as (u.displayname + ' (' + u.username + ')') for u in ctiUsers | orderBy:'displayname'">
+                            <option value="">-</option>
+                          </select>
+                        </div>
+                        <div class="phonebook-settings-rows col-xs-12 col-sm-6 col-lg-6">
+                        </div>
+                      </div>
                       <div class="settings-row">
                         <h3 class="settings-title">{{"Synchronization" | translate}}</h3>
                         <div class="phonebook-settings-rows col-xs-12 col-sm-6 col-lg-6">
@@ -459,7 +473,7 @@
                               <li ng-if="newSource.mapping.lenght < 1" class="not-selectable cursive">
                                 <a>{{"No columns available" | translate}}</a>
                               </li>
-                              <li ng-if="!d.inuse" ng-repeat="(kd, d) in colsDestinations" role="presentation" class="not-selectable">
+                              <li ng-if="!d.inuse && !(newSource.dbtype === 'csv' && kd === 'owner_id')" ng-repeat="(kd, d) in colsDestinations" role="presentation" class="not-selectable">
                                 <a ng-click="enableSourceSave(kc, kd)" role="menuitem">
                                   {{kd}}
                                 </a>
