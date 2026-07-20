@@ -50,7 +50,12 @@ CREATE TABLE `phonebook` (
   KEY wphone_idx (workphone),
   KEY cphone_idx (cellphone),
   KEY fax_idx (fax),
-  KEY company_idx (company)
+  KEY company_idx (company),
+  KEY lastname_idx (lastname),
+  KEY wphone2_idx (workphone2),
+  KEY cphone2_idx (cellphone2),
+  KEY ophone_idx (otherphone),
+  KEY oemail_idx (otheremail)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `sync_metadata` (

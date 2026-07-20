@@ -99,7 +99,12 @@ ALTER TABLE phonebook
   ADD COLUMN IF NOT EXISTS workphone2 varchar(25) DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS cellphone2 varchar(25) DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS otherphone varchar(25) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS otheremail varchar(255) DEFAULT NULL'
+  ADD COLUMN IF NOT EXISTS otheremail varchar(255) DEFAULT NULL,
+  ADD INDEX IF NOT EXISTS lastname_idx (lastname),
+  ADD INDEX IF NOT EXISTS wphone2_idx (workphone2),
+  ADD INDEX IF NOT EXISTS cphone2_idx (cellphone2),
+  ADD INDEX IF NOT EXISTS ophone_idx (otherphone),
+  ADD INDEX IF NOT EXISTS oemail_idx (otheremail)'
 # Enable WebSocket transport
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'UPDATE kvstore_Sipsettings SET val="{\"wss\":{\"0.0.0.0\":\"on\"},\"udp\":{\"0.0.0.0\":\"on\"},\"tcp\":{\"0.0.0.0\":\"on\"},\"ws\":{\"0.0.0.0\":\"on\"},\"tls\":{\"0.0.0.0\":\"on\"}}" WHERE `key` = "binds"'
 exit 0

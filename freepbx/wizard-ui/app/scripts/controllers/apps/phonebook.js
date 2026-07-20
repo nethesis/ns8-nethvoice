@@ -170,7 +170,12 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.getCtiUsers = function () {
       UserService.list(false).then(function (res) {
-        $scope.ctiUsers = angular.isArray(res.data) ? res.data : [];
+        var users = angular.isArray(res.data) ? res.data : [];
+        // The owner must be a configured user (one with an extension), like the Users page shows.
+        // The list is filtered here client-side because the backend returns every user.
+        $scope.ctiUsers = users.filter(function (u) {
+          return u.default_extension && u.default_extension !== 'none';
+        });
       }, function (err) {
         console.log(err);
       });

@@ -119,14 +119,40 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
         $newsource['dbtype'] = $data['dbtype'];
         // optional parameters
         $newsource['interval'] = empty($data['interval']) ? 1440 : $data['interval'];
+        // Sharing: 'public' or 'group:<comma-separated group names>'. Group names are
+        // validated against the existing CTI groups; unknown ones are dropped, and a
+        // group scope left with no valid groups falls back to public. This keeps the
+        // stored value trustworthy even when the request bypasses the wizard UI.
         $sharing = empty($data['type']) ? 'public' : $data['type'];
-        if ($sharing !== 'public' && strpos($sharing, 'group:') !== 0) {
+        if (strpos($sharing, 'group:') === 0) {
+            $requested = array_filter(array_map('trim', explode(',', substr($sharing, strlen('group:')))));
+            $existingGroups = array();
+            try {
+                $dbh = FreePBX::Database();
+                $rows = $dbh->sql('SELECT name FROM rest_cti_groups', 'getAll', \PDO::FETCH_ASSOC);
+                if (is_array($rows)) {
+                    foreach ($rows as $r) {
+                        $existingGroups[] = $r['name'];
+                    }
+                }
+            } catch (Exception $e) {
+                error_log($e->getMessage());
+            }
+            $validGroups = array_values(array_intersect($requested, $existingGroups));
+            $sharing = count($validGroups) ? 'group:'.implode(',', $validGroups) : 'public';
+        } else {
             $sharing = 'public';
         }
         $newsource['type'] = $sharing;
         // CSV only: global owner chosen from the users list, written to owner_id of
-        // every imported contact. Optional; empty means no owner.
-        $newsource['owner'] = isset($data['owner']) ? $data['owner'] : '';
+        // every imported contact. Optional; empty means no owner. Must be an existing
+        // user; an unknown owner is dropped to avoid orphan owner_id references.
+        $owner = isset($data['owner']) ? trim($data['owner']) : '';
+        if ($owner !== '' && !userExists($owner)) {
+            error_log("Ignoring unknown owner '$owner' for phonebook source $id");
+            $owner = '';
+        }
+        $newsource['owner'] = $owner;
         $newsource['enabled'] = empty($data['enabled']) ? false : $data['enabled'];
 
         $file = $config_dir.'/'.$id.'.json';
