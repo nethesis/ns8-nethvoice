@@ -136,7 +136,10 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
                     }
                 }
             } catch (Exception $e) {
+                // Fail safe: if we cannot validate the groups, reject rather than
+                // silently downgrading a group-restricted source to public.
                 error_log($e->getMessage());
+                return $response->withJson(array("status"=>"Cannot validate sharing groups"), 500);
             }
             $validGroups = array_values(array_intersect($requested, $existingGroups));
             $sharing = count($validGroups) ? 'group:'.implode(',', $validGroups) : 'public';
