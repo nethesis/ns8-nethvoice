@@ -223,7 +223,8 @@ function getAllUsers() {
                   ' JOIN userman_users ON rest_users.user_id = userman_users.id'.
                   ' WHERE userman_users.username = ?';
                 $stmt = $dbh->prepare($sql);$stmt->execute(array($users[$i]['username']));
-                $profile = $stmt->fetch(\PDO::FETCH_ASSOC)['profile_id'];
+                $profileRow = $stmt->fetch(\PDO::FETCH_ASSOC);
+                $profile = $profileRow === false ? null : $profileRow['profile_id'];
                 $users[$i]['profile'] = $profile === null ? null : (int) $profile;
             }
         }
