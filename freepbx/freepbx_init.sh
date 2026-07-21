@@ -22,6 +22,8 @@ modules_to_install=(
     backup
     pm2
     core
+    timeconditions
+    userman
     cdr
     blacklist
     bosssecretary
@@ -73,8 +75,6 @@ modules_to_install=(
     satellite
     setcid
     sipsettings
-    timeconditions
-    userman
     visualplan
     voicemail
     vmblast
