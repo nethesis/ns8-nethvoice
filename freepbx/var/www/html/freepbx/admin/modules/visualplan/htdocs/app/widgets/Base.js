@@ -760,9 +760,15 @@ MyConnection = draw2d.Connection.extend({
         this._super(memento);
 
         if (typeof memento.target.decoration !== "undefined" && memento.target.decoration != null) {
-            this.setTargetDecorator(eval("new " + memento.target.decoration));
-            this.targetDecorator.setDimension(10, 10);
-            this.targetDecorator.setBackgroundColor("#4caf50");
+            var decoratorClasses = {
+                "draw2d.decoration.connection.ArrowDecorator": draw2d.decoration.connection.ArrowDecorator
+            };
+            var DecoratorCtor = decoratorClasses[memento.target.decoration];
+            if (DecoratorCtor) {
+                this.setTargetDecorator(new DecoratorCtor());
+                this.targetDecorator.setDimension(10, 10);
+                this.targetDecorator.setBackgroundColor("#4caf50");
+            }
         }
     }
 });

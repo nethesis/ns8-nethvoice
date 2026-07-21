@@ -43,12 +43,13 @@ if ($handle = opendir(__DIR__. '/../..')) {
 }
 
 // read i18n data
-$lang = $_COOKIE['lang'];
+$lang = $_COOKIE['lang'] ?? '';
 if (empty($lang)) {
     $lang = "en";
 }
-$langParts = explode("_", $lang);
-$languages = file_get_contents("i18n/".$langParts[0].".js");
+$langParts = explode("_", (string)$lang);
+$langCode = (isset($langParts[0]) && preg_match('/^[a-z]{2}$/', $langParts[0])) ? $langParts[0] : 'en';
+$languages = file_get_contents("i18n/".$langCode.".js");
 $languages = substr($languages, 0, -1);
 $langParts = explode("=", $languages);
 $language = trim($langParts[1]);

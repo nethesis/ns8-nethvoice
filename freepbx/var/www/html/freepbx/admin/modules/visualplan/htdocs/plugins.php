@@ -114,7 +114,7 @@ if ($reqGet && ($reqGet === "tools")) {
     
                     $select = FreePBX::Timeconditions()->getTimeGroup($jsonArray['id']);
                     $dbh = FreePBX::Database();
-                    $sql = "SELECT * FROM timegroups_details WHERE timegroupid = ".$jsonArray['id'];
+                    $sql = "SELECT * FROM timegroups_details WHERE timegroupid = ".(int)$jsonArray['id'];
                     $final = $dbh->sql($sql, 'getAll', \PDO::FETCH_ASSOC);
     
                     if ($final) {
@@ -195,6 +195,7 @@ if ($reqGet && ($reqGet === "tools")) {
         $timevar = time();
         $path = "/var/spool/asterisk/tmp/";
         $valid_formats1 = array("mp3", "wav");
+        $actual_image_name = "";
         if ($_SERVER['REQUEST_METHOD'] == "POST") {
           $filename = $_FILES['file1']['name'];
           $size = $_FILES['file1']['size'];
@@ -207,6 +208,10 @@ if ($reqGet && ($reqGet === "tools")) {
             }
           }
         }
-        echo $timevar."-".$filename;
+        // Return the exact on-disk name as plain text: the client (View.js) uses this value
+        // verbatim as the temp filename for the recordings convert/remove API, so it must match
+        // the stored file byte-for-byte. text/plain also prevents any HTML rendering of the name.
+        header('Content-Type: text/plain; charset=utf-8');
+        echo $actual_image_name;
     }
 } 
