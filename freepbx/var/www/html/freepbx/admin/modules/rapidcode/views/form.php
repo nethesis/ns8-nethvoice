@@ -20,13 +20,15 @@
 #
 -->
 
-<form action="config.php?display=rapidcode" method="post" class="fpbx-submit" id="hwform" name="hwform" data-fpbx-delete="config.php?display=rapidcode&action=delete&id=<?php echo $_REQUEST['id']?>">
-<input type="hidden" name='action' value="<?php echo $_REQUEST['id']?'edit':'add' ?>">
+<?php $id = $_REQUEST['id'] ?? ''; ?>
+
+<form action="config.php?display=rapidcode" method="post" class="fpbx-submit" id="hwform" name="hwform" data-fpbx-delete="config.php?display=rapidcode&action=delete&id=<?php echo htmlspecialchars($id, ENT_QUOTES, 'UTF-8')?>">
+<input type="hidden" name='action' value="<?php echo $id ? 'edit' : 'add' ?>">
 
 <?php
 if (isset($_REQUEST['id'])) {
-    $data = \FreePBX::Rapidcode()->getOne($_REQUEST['id']);
-    echo("<input type='hidden' name='id' value='".$_REQUEST['id']."'>");
+    $data = \FreePBX::Rapidcode()->getOne($id);
+    echo("<input type='hidden' name='id' value='".htmlspecialchars($id, ENT_QUOTES, 'UTF-8')."'>");
 } else {
     $data['label'] = '';
     $data['code'] = '';
