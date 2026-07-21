@@ -14,6 +14,24 @@ function migrateFrom14To17(\PDO $db): void
 		SET `sip`.`data` = 'yes'
 		WHERE `sip`.`keyword` = 'send_connected_line'";
 	$db->query($sql);
+
+	# Prevent Sound Languages from replacing NethVoice prompts with the
+	# lower-version FreePBX packages in its preferred ulaw/g722 formats.
+	$sql = "UPDATE `asterisk`.`soundlang_packages` AS `package`
+		JOIN (
+			SELECT `type`, `module`, `language`,
+				MAX(`installed`) AS `nethvoice_version`
+			FROM `asterisk`.`soundlang_packages`
+			WHERE `author` = 'www.nethesis.it'
+			AND `installed` IS NOT NULL
+			GROUP BY `type`, `module`, `language`
+		) AS `nethvoice_package`
+		ON `package`.`type` = `nethvoice_package`.`type`
+		AND `package`.`module` = `nethvoice_package`.`module`
+		AND `package`.`language` = `nethvoice_package`.`language`
+		SET `package`.`version` = `nethvoice_package`.`nethvoice_version`,
+			`package`.`installed` = `nethvoice_package`.`nethvoice_version`";
+	$db->query($sql);
 }
 
 function setMigrationScriptVersion(\PDO $db, int $version): void
