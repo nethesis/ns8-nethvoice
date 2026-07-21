@@ -414,7 +414,10 @@ example.View = draw2d.Canvas.extend({
             }
             if (missing) {
                 var typeFig = $(event.dropped).data("shape") || event.shape;
-                var figure = eval("new " + typeFig + "();");
+                var figureClasses = { "Base": Base };
+                var FigureCtor = figureClasses[typeFig];
+                if (!FigureCtor) { return; }
+                var figure = new FigureCtor();
                 figure.onDrop(event.dropped, event.x, event.y, elem);
                 var command = new draw2d.command.CommandAdd(event.context, figure, event.x - figure.width - 75, event.y - 25);
                 event.context.getCommandStack().execute(command);
@@ -1335,7 +1338,10 @@ example.View = draw2d.Canvas.extend({
                 this.createList("select", "", data);
             } else {
                 var type = $(droppedDomNode[0]).data("shape");
-                var figure = eval("new " + type + "();");
+                var figureClasses = { "Base": Base };
+                var FigureCtor = figureClasses[type];
+                if (!FigureCtor) { return; }
+                var figure = new FigureCtor();
                 figure.onDrop(droppedDomNode, x, y, []);
 
                 var command = new draw2d.command.CommandAdd(this, figure, x - figure.width - 75, y - 25);
