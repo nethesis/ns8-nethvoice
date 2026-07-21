@@ -26,17 +26,23 @@ function nethhotel_ext_list() {
 
 function nethhotel_get($account){
 	//get all the variables for the meetme
-	$results = sql("SELECT id from sip  WHERE id = '$account' and  keyword='context' and data='hotel'","getAll",DB_FETCHMODE_ASSOC);
-	return count($results);
+	$dbh = FreePBX::Database();
+	$sth = $dbh->prepare("SELECT id from sip WHERE id = ? and keyword='context' and data='hotel'");
+	$sth->execute(array($account));
+	return count($sth->fetchAll());
 }
 
 function nethhotel_del($account){
-	$results = sql("UPDATE sip SET data='from-internal' WHERE id = \"$account\" AND keyword='context'","query");
+	$dbh = FreePBX::Database();
+	$sth = $dbh->prepare("UPDATE sip SET data='from-internal' WHERE id = ? AND keyword='context'");
+	$sth->execute(array($account));
 	needreload();
 }
 
 function nethhotel_add($account){
-	$results = sql("UPDATE sip SET data='hotel' WHERE id = \"$account\" AND keyword='context'","query");
+	$dbh = FreePBX::Database();
+	$sth = $dbh->prepare("UPDATE sip SET data='hotel' WHERE id = ? AND keyword='context'");
+	$sth->execute(array($account));
 	needreload();
 }
 
