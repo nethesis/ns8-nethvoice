@@ -9,6 +9,15 @@ function nethhotel_log($msg, $function=''){
   error_log(date('M d H:i:s')."$function: ".print_r($msg,true));
 }
 
+function isValidRoomExt($ext, $caller)
+{
+  if (!ctype_digit((string)$ext)) {
+    nethhotel_log("Invalid room extension: $ext", $caller);
+    return false;
+  }
+  return true;
+}
+
 function loadRates()
 {
   $rates = getAllRates();
@@ -132,6 +141,7 @@ function getTimeGroupsDetails()
 function createOptionTimeGroups($id)
 {
   global $db;
+  $id = (int)$id;
   $timegroups = getTimeGroups();
   $id_group = '';
   if( $id!='0') $id_group = sql("SELECT id_timegroups_groups from roomsdb.codes where id='$id';","getRow", DB_FETCHMODE_ASSOC);
@@ -157,6 +167,7 @@ function createOptionTimeGroups($id)
 function getTimeGroupsDetailsFromId($id)
 {
   global $db;
+  $id = (int)$id;
 
   if($id!= '0')
   {
@@ -176,6 +187,7 @@ function getTimeGroupsDetailsFromId($id)
 function getTimeGroupsDetailsFromIdGroups($id)
 {
   global $db;
+  $id = (int)$id;
   if($id!= '0')
   {
    $group = '';
@@ -193,6 +205,7 @@ function getTimeGroupsDetailsFromIdGroups($id)
 function getTimeDetailsFromIdGroupsArray($id)
 {
   global $db;
+  $id = (int)$id;
   $details = array();
   if($id!= '0') $details = sql("SELECT time from asterisk.timegroups_details where timegroupid='$id';","getAll",DB_FETCHMODE_ASSOC);
   else $details[0]= '*';
@@ -272,8 +285,8 @@ function getAllCodes()
 function delRate($id)
 {
   global $db;
+  $id = (int)$id;
   $res = $db->query("DELETE FROM roomsdb.rates WHERE id=$id");
-  echo "DELETE FROM roomsdb.rates WHERE id=$id";
   if (@DB::isError($res))
     return false;
   else
@@ -283,8 +296,8 @@ function delRate($id)
 function delExtra($id)
 {
   global $db;
+  $id = (int)$id;
   $res = $db->query("DELETE FROM roomsdb.extra WHERE id=$id");
-  echo "DELETE FROM roomsdb.extra WHERE id=$id";
   if (@DB::isError($res))
     return false;
   else
@@ -295,8 +308,8 @@ function delExtra($id)
 function delCode($id)
 {
   global $db;
+  $id = (int)$id;
   $res = $db->query("DELETE FROM roomsdb.codes WHERE id=$id");
-  echo "DELETE FROM roomsdb.codes WHERE id=$id";
   if (@DB::isError($res))
     return false;
   else
@@ -305,46 +318,43 @@ function delCode($id)
 
 function addRate($duration,$price,$answer_duration,$answer_price,$pattern,$enabled,$name='default')
 {
-  global $db;
   $price = str_replace(',','.',$price);
-  $qry = "INSERT INTO roomsdb.rates (name,duration,price,answer_duration,answer_price,pattern,enabled) VALUES ('$name','$duration','$price','$answer_duration','$answer_price','$pattern','$enabled')";
-  //echo $qry;
-  $res = $db->query($qry);
-  if (@DB::isError($res))
+  $dbh = FreePBX::Database();
+  $sth = $dbh->prepare("INSERT INTO roomsdb.rates (name,duration,price,answer_duration,answer_price,pattern,enabled) VALUES (?,?,?,?,?,?,?)");
+  try {
+    return $sth->execute(array($name,$duration,$price,$answer_duration,$answer_price,$pattern,$enabled));
+  } catch (Exception $e) {
+    nethhotel_log($e->getMessage(),__FUNCTION__);
     return false;
-  else
-    return true;
+  }
 }
 
 function newExtra($price,$code,$enabled,$name='default')
 {
-  global $db;
   $price = str_replace(',','.',$price);
-  $qry = "INSERT INTO roomsdb.extra (name,price,code,enabled) VALUES ('$name','$price','$code','$enabled')";
-  //echo $qry;
-  $res = $db->query($qry);
-  if (@DB::isError($res))
+  $dbh = FreePBX::Database();
+  $sth = $dbh->prepare("INSERT INTO roomsdb.extra (name,price,code,enabled) VALUES (?,?,?,?)");
+  try {
+    return $sth->execute(array($name,$price,$code,$enabled));
+  } catch (Exception $e) {
+    nethhotel_log($e->getMessage(),__FUNCTION__);
     return false;
-  else
-    return true;
+  }
 }
 
 
 function addCode($code,$number,$note,$id_timegroups_groups,$falsegoto)
 {
-  global $db;
-  $qry = "INSERT INTO roomsdb.codes (code,number,note,id_timegroups_groups,falsegoto) VALUES ($code,$number,'$note','$id_timegroups_groups','$falsegoto')";
-  $res = $db->query($qry);
-  if (@DB::isError($res))
-    return false;
-  else
-    return true;
+  $dbh = FreePBX::Database();
+  $sth = $dbh->prepare("INSERT INTO roomsdb.codes (code,number,note,id_timegroups_groups,falsegoto) VALUES (?,?,?,?,?)");
+  return $sth->execute(array($code,$number,$note,$id_timegroups_groups,$falsegoto));
 }
 
 
 function getRate($id)
 {
   global $db;
+  $id = (int)$id;
   $result = sql("SELECT * FROM roomsdb.rates WHERE id=$id","getRow", DB_FETCHMODE_ASSOC);
 
   return "<duration>{$result['duration']}</duration><price>{$result['price']}</price><enabled>{$result['enabled']}</enabled>
@@ -356,6 +366,7 @@ function getRate($id)
 function getExtra($id)
 {
   global $db;
+  $id = (int)$id;
   $result = sql("SELECT * FROM roomsdb.extra WHERE id=$id","getRow", DB_FETCHMODE_ASSOC);
   $price = str_replace('.',',',$result['price']);
   return "<price>{$price}</price><enabled>{$result['enabled']}</enabled>
@@ -366,6 +377,7 @@ function getExtra($id)
 function getCode($id)
 {
   global $db;
+  $id = (int)$id;
   $result = sql("SELECT * FROM roomsdb.codes WHERE id=$id","getRow", DB_FETCHMODE_ASSOC);
   $time_group = getTimeGroupsFromId($result['id_timegroups_groups']);
 
@@ -375,6 +387,7 @@ function getCode($id)
 function getGroup($ext)
 {
   global $db;
+  $ext = (int)$ext;
   $result = sql("SELECT `group` FROM roomsdb.rooms WHERE extension=$ext","getRow", DB_FETCHMODE_ASSOC);
   if(!$result['group'])
     return "<group>-1</group>";
@@ -398,6 +411,8 @@ function getHistoryRooms()
 function editAlarm($ext,$hour,$enabled,$start,$days=1,$group=0)
 {
   global $db;
+  $ext = (string)$ext;
+  if (!isValidRoomExt($ext, __FUNCTION__)) return false;
   $ret = true;
   $from = explode("/",$start);
   $h = explode(":",$hour);
@@ -410,7 +425,7 @@ function editAlarm($ext,$hour,$enabled,$start,$days=1,$group=0)
 
   if($group)
   {
-    $res = sql("SELECT `group` from roomsdb.rooms WHERE extension=$ext","getRow"); //determino il gruppo della camera
+    $res = sql("SELECT `group` from roomsdb.rooms WHERE extension=".(int)$ext,"getRow"); //determino il gruppo della camera
     $group = $res[0];
     $rooms = sql("SELECT extension from roomsdb.rooms WHERE `group`=$group","getAll"); //seleziono tutte le camere del gruppo
     foreach($rooms as $ext) //sostituisco tutte le sveglie del gruppo
@@ -432,8 +447,11 @@ function editSurname($ext,$name)
 {
    global $db;
    global $astman;
+   $ext = (string)$ext;
+   if (!isValidRoomExt($ext, __FUNCTION__)) return false;
    if ($astman) {
-    $cidname = (empty($name) ? "Room $ext" : "<$ext> ".$db->escapeSimple($name));
+    $amiName = str_replace(["\r", "\n"], '', $name);
+    $cidname = (empty($amiName) ? "Room $ext" : "<$ext> ".$amiName);
     $astman->database_put("AMPUSER",$ext."/cidname",$cidname);
    } else {
     nethhotel_log ("Astman failed",__FUNCTION__);
@@ -471,6 +489,9 @@ function createAlarm($ext,$hour,$start,$end,$enabled,$days){
 function _createAlarm($ext,$hour,$start,$end,$enabled,$days)
 {
    global $db;
+   $ext = (int)$ext;
+   $enabled = (int)$enabled;
+   $hour = preg_replace('/[^0-9:]/', '', (string)$hour);
    $res = $db->query("REPLACE INTO roomsdb.alarms (extension,hour,start,end,enabled) VALUES ($ext,'$hour:00',from_unixtime($start),from_unixtime($end),$enabled)");
    for($i=0; $i<$days; $i++)
    {
@@ -489,6 +510,7 @@ function _createAlarm($ext,$hour,$start,$end,$enabled,$days)
 function disableAlarm($ext,$disableGroup=0)
 {
   global $db;
+  $ext = (int)$ext;
   $ret = true;
   if($disableGroup)
   {
@@ -507,6 +529,7 @@ function disableAlarm($ext,$disableGroup=0)
 function deleteAlarm($ext)
 {
     global $db;
+    $ext = (int)$ext;
     $res = $db->query("UPDATE roomsdb.alarms SET enabled=0 WHERE extension=$ext");
     deleteCallFile($ext);
     nethhotel_log("Deleted alarm for room $ext",__FUNCTION__);
@@ -516,6 +539,7 @@ function deleteAlarm($ext)
 function getAlarm($ext)
 {
   global $db;
+  $ext = (int)$ext;
   $result = sql("SELECT TIME_FORMAT(hour, '%H:%i') as hour,date_format(start,'%d/%m/%Y') as start,date_format(end,'%d/%m/%Y') as end,enabled,to_days(end)-to_days(start) as days FROM roomsdb.alarms WHERE extension=$ext","getRow");
 
   if($result[1]!="00/00/0000")
@@ -585,6 +609,8 @@ function findRate($number,$rates)
 function setExtra($ext)
 {
   global $db;
+    $ext = (string)$ext;
+    if (!isValidRoomExt($ext, __FUNCTION__)) return;
     $extras_list = getextraList();
     $extras = sql ("SELECT date_format(date,'%d/%m/%Y %H:%i') as data,name,number,price,extension,UNIX_TIMESTAMP(date) as date from roomsdb.extra_history where extension='$ext' and checkout!='1' order by date desc","getAll");
 
@@ -620,6 +646,10 @@ function setExtra($ext)
 function addExtra($ext,$id,$number,$less)
 {
       global $db;
+      $ext = (string)$ext;
+      if (!isValidRoomExt($ext, __FUNCTION__)) return false;
+      $id = (int)$id;
+      $number = (int)$number;
       $error = 0;
       if($less)
       {
@@ -630,7 +660,7 @@ function addExtra($ext,$id,$number,$less)
        {
          $tmp = explode("-", $del);
          if($tmp[1]) {
-                      $out = $db->query("DELETE FROM roomsdb.extra_history WHERE extension='$tmp[0]' and date=FROM_UNIXTIME($tmp[1])");
+                      $out = $db->query("DELETE FROM roomsdb.extra_history WHERE extension='".(int)$tmp[0]."' and date=FROM_UNIXTIME(".(int)$tmp[1].")");
                       if (@DB::isError($out)) $error = 1;
                     }
        }
@@ -639,9 +669,10 @@ function addExtra($ext,$id,$number,$less)
       if($number)
       {
        $extras = sql ("SELECT name,price,code from roomsdb.extra where id='$id'","getAll");
+       $sth = $db->prepare("INSERT INTO roomsdb.extra_history (extension,id,date,name,price,number,checkout) VALUES (?,?,now(),?,?,?,0)");
        foreach($extras as $extra)
        {
-        $res = $db->query("INSERT INTO roomsdb.extra_history (extension,id,date,name,price,number,checkout) VALUES ('$ext','$id',now(),'$extra[0]','$extra[1]','$number',0)");
+        $res = $sth->execute(array($ext,$id,$extra[0],$extra[1],$number));
         fias('MINIBAR2PMS', array(
             'DA' => date('ymd'),
             'TI' => date('His'),
@@ -662,6 +693,10 @@ function addExtra($ext,$id,$number,$less)
 function getReport($ext,$start="",$end="")
 {
   global $db;
+  $ext = (string)$ext;
+  if (!isValidRoomExt($ext, __FUNCTION__)) return;
+  $start = (int)$start;
+  $end = (int)$end;
   if($start && $end) {
       $results = sql("SELECT date_format(calldate,'%d/%m/%Y %H:%i') as calldate,dst,billsec from asteriskcdrdb.cdr where accountcode='$ext' and disposition='ANSWERED' and billsec!=0 and calldate >= from_unixtime('$start') and calldate <= from_unixtime('$end')","getAll");
       $extras = sql ("SELECT date_format(date,'%d/%m/%Y %H:%i') as date,name,number,price from roomsdb.extra_history where extension='$ext' and date >= from_unixtime('$start') and date <= from_unixtime('$end')","getAll");
@@ -784,6 +819,8 @@ function getReport($ext,$start="",$end="")
 function getTotalCost($ext)
 {
   global $db;
+  $ext = (string)$ext;
+  if (!isValidRoomExt($ext, __FUNCTION__)) return 0;
       $results = sql("SELECT date_format(calldate,'%d/%m/%Y %H:%i') as calldate,dst,billsec from asteriskcdrdb.cdr join roomsdb.rooms on cdr.accountcode=roomsdb.rooms.extension where accountcode='$ext' and disposition='ANSWERED' and billsec!=0 and calldate >= roomsdb.rooms.start","getAll");
 
       $extras = sql ("SELECT date_format(date,'%d/%m/%Y %H:%i') as date,name,number,price from roomsdb.extra_history where extension='$ext' and checkout!='1'","getAll");
@@ -869,13 +906,11 @@ function getTotalCost($ext)
 
 function assignExtra($tot,$ext)
 {
-  global $db;
-      $res = $db->query("INSERT INTO roomsdb.extra_history (extension,id,date,name,price,number,checkout) VALUES ('$ext','9999',now(),'Cabina','$tot','1',0)");
-
-      if (@DB::isError($res))
-      return false;
-      else
-      return true;
+      $ext = (string)$ext;
+      if (!isValidRoomExt($ext, __FUNCTION__)) return false;
+      $dbh = FreePBX::Database();
+      $sth = $dbh->prepare("INSERT INTO roomsdb.extra_history (extension,id,date,name,price,number,checkout) VALUES (?,'9999',now(),'Cabina',?,'1',0)");
+      return $sth->execute(array($ext,$tot));
 }
 
 
@@ -988,85 +1023,40 @@ function getOptions()
 
 function saveOptions($prefix,$ext_pattern,$internal_call,$groupcalls,$externalcalls,$internal_call_nocheckin,$reception,$enableclean,$clean,$reception_lang="en")
 {
-  global $db;
-  $db->query("DELETE FROM roomsdb.options WHERE variable='prefix' OR variable='ext_pattern' OR variable='internal_call' OR variable='enableclean' OR variable='groupcalls' OR variable='externalcalls' OR variable='internal_call_nocheckin' OR variable='reception' OR variable='clean' OR variable='reception_lang'");
-  $qry = "REPLACE INTO roomsdb.options (variable,value) VALUES ('prefix','$prefix')";
-  $res = $db->query($qry);
-  $qry = "REPLACE INTO roomsdb.options (variable,value) VALUES ('ext_pattern','$ext_pattern')";
-  $res2 = $db->query($qry);
-
-  if($internal_call=='true')
-    $internal_call='1';
-  else
-    $internal_call='0';
-
-  $qry = "REPLACE INTO roomsdb.options (variable,value) VALUES ('internal_call','$internal_call')";
-  $res3 = $db->query($qry);
-
-  if($groupcalls=='true')
-    $groupcalls='1';
-  else
-    $groupcalls='0';
-
-  $qry = "REPLACE INTO roomsdb.options (variable,value) VALUES ('groupcalls','$groupcalls')";
-  $res9 = $db->query($qry);
-
-  if($externalcalls=='true')
-    $externalcalls='1';
-  else
-    $externalcalls='0';
-
-  $qry = "REPLACE INTO roomsdb.options (variable,value) VALUES ('externalcalls','$externalcalls')";
-  $res10= $db->query($qry);
-
-  if($internal_call_nocheckin=='true')
-    $internal_call_nocheckin='1';
-  else
-    $internal_call_nocheckin='0';
-
-  $qry = "REPLACE INTO roomsdb.options (variable,value) VALUES ('internal_call_nocheckin','$internal_call_nocheckin')";
-  $res4 = $db->query($qry);
-
-  $qry = "REPLACE INTO roomsdb.options (variable,value) VALUES ('reception','$reception')";
-  $res5 = $db->query($qry);
-
-  if($enableclean=='true')
-    $enableclean='1';
-  else
-    $enableclean='0';
-  $db->query("DELETE FROM roomsdb.options WHERE variable = 'enableclean'");
-  $qry = "REPLACE INTO roomsdb.options (variable,value) VALUES ('enableclean','$enableclean')";
-  $res6 = $db->query($qry);
-
-  if($clean=='true')
-    $clean='1';
-  else
-    $clean='0';
-  $qry = "REPLACE INTO roomsdb.options (variable,value) VALUES ('clean','$clean')";
-  $res7 = $db->query($qry);
-
-  $qry = "REPLACE INTO roomsdb.options (variable,value) VALUES ('reception_lang','$reception_lang')";
-  $res8 = $db->query($qry);
-
-  if (@DB::isError($res) || @DB::isError($res2) || @DB::isError($res3) || @DB::isError($res4) || @DB::isError($res5) || @DB::isError($res6) || @DB::isError($res7)|| @DB::isError($res8) || @DB::isError($res9)|| @DB::isError($res10))
-    return false;
-  else
-    return true;
+  $dbh = FreePBX::Database();
+  $options = array(
+    'prefix'                  => $prefix,
+    'ext_pattern'             => $ext_pattern,
+    'internal_call'           => ($internal_call=='true') ? '1' : '0',
+    'groupcalls'              => ($groupcalls=='true') ? '1' : '0',
+    'externalcalls'           => ($externalcalls=='true') ? '1' : '0',
+    'internal_call_nocheckin' => ($internal_call_nocheckin=='true') ? '1' : '0',
+    'reception'               => $reception,
+    'enableclean'             => ($enableclean=='true') ? '1' : '0',
+    'clean'                   => ($clean=='true') ? '1' : '0',
+    'reception_lang'          => $reception_lang,
+  );
+  $dbh->query("DELETE FROM roomsdb.options WHERE variable IN ('prefix','ext_pattern','internal_call','enableclean','groupcalls','externalcalls','internal_call_nocheckin','reception','clean','reception_lang')");
+  $sth = $dbh->prepare("REPLACE INTO roomsdb.options (variable,value) VALUES (?,?)");
+  foreach ($options as $variable => $value) {
+    $sth->execute(array($variable,$value));
+  }
+  return true;
 }
 
 function setRoomLang($ext, $lang)
 {
-  global $db;
-  $res = $db->query("UPDATE roomsdb.rooms SET lang=\"$lang\" where extension=\"$ext\"");
-
-  if (@DB::isError($res))
-    return false;
-  else
-    return true;
+  $ext = (string)$ext;
+  if (!isValidRoomExt($ext, __FUNCTION__)) return false;
+  $dbh = FreePBX::Database();
+  $sth = $dbh->prepare("UPDATE roomsdb.rooms SET lang=? WHERE extension=?");
+  return $sth->execute(array($lang,$ext));
 }
 
 function checkCost($ext)
 {
+    $ext = (string)$ext;
+    if (!isValidRoomExt($ext, __FUNCTION__)) return false;
     $call = sql("SELECT date_format(calldate,'%d/%m/%Y %H:%i') as calldate,dst,billsec from asteriskcdrdb.cdr join roomsdb.rooms on cdr.accountcode=roomsdb.rooms.extension where accountcode='$ext' and disposition='ANSWERED' and billsec!=0 and calldate >= roomsdb.rooms.start","getAll");
     $extra = sql ("SELECT date_format(date,'%d/%m/%Y %H:%i') as date,name,number,price from roomsdb.extra_history where extension='$ext' and checkout!='1'","getAll");
 
@@ -1080,9 +1070,12 @@ function checkCost($ext)
 function externalCheckIn($room, $reservation='', $name='',$language='')
 {
     global $db;
+    $room = (string)$room;
+    if (!isValidRoomExt($room, __FUNCTION__)) return false;
+    $roomId = (int)$room;
     $res = $db->query('DELETE IGNORE FROM roomsdb.options WHERE `variable`="needReload"');
     $res = $db->query('INSERT INTO roomsdb.options SET `variable`="needReload",`value`="true"');
-    $res = $db->getRow('SELECT * FROM roomsdb.rooms WHERE extension='.$room, DB_FETCHMODE_ASSOC);
+    $res = $db->getRow('SELECT * FROM roomsdb.rooms WHERE extension='.$roomId, DB_FETCHMODE_ASSOC);
     if (DB::IsError($res)) {
 	//log error here
 	nethhotel_log ($res->getMessage(),__FUNCTION__);
@@ -1094,24 +1087,24 @@ function externalCheckIn($room, $reservation='', $name='',$language='')
             nethhotel_log ("Forcing check-in for dirty room ".$room,__FUNCTION__ );
 	else
 	    nethhotel_log ("Forcing check-in for already checked in room ".$room,__FUNCTION__ );
-	$res = sql("SELECT start from roomsdb.rooms WHERE extension=$room","getRow");
+	$res = sql("SELECT start from roomsdb.rooms WHERE extension=$roomId","getRow");
 	if (@DB::IsError($res)) {
             //log error here
             nethhotel_log ($res->getMessage(),__FUNCTION__);
         }
-  	$res = $db->query("INSERT INTO roomsdb.history (extension,start,end) VALUES ($room,'$res[0]',now())");
+  	$res = $db->query("INSERT INTO roomsdb.history (extension,start,end) VALUES ($roomId,'$res[0]',now())");
         if (@DB::IsError($res)) {
             nethhotel_log ($res->getMessage(),__FUNCTION__);
         }
-  	$res = $db->query("UPDATE roomsdb.extra_history SET checkout='1' WHERE extension=$room");
+  	$res = $db->query("UPDATE roomsdb.extra_history SET checkout='1' WHERE extension=$roomId");
         if (@DB::IsError($res)) {
             nethhotel_log ($res->getMessage(),__FUNCTION__);
         }
-  	$res = $db->query("DELETE FROM roomsdb.alarms WHERE extension=$room");
+  	$res = $db->query("DELETE FROM roomsdb.alarms WHERE extension=$roomId");
         if (@DB::IsError($res)) {
             nethhotel_log ($res->getMessage(),__FUNCTION__);
         }
-	$res = $db->query("DELETE FROM roomsdb.rooms WHERE extension=$room");
+	$res = $db->query("DELETE FROM roomsdb.rooms WHERE extension=$roomId");
 	if (@DB::IsError($res)) {
             //log error here
             nethhotel_log ($res->getMessage(),__FUNCTION__);
@@ -1124,9 +1117,12 @@ function _checkIn($room,$reservation='', $name='',$language='')
 {
   global $db;
   global $astman;
+  $room = (string)$room;
+  if (!isValidRoomExt($room, __FUNCTION__)) return false;
   if($language=='') $language= getReceptionAudioLang();
   if ($astman) {
-  $cidname = (empty($name) ? "Room $room" : "<$room> ".$db->escapeSimple($name));
+  $amiName = str_replace(["\r", "\n"], '', $name);
+  $cidname = (empty($amiName) ? "Room $room" : "<$room> ".$amiName);
   $astman->database_put("AMPUSER",$room."/cidname",$cidname);
   } else {
     nethhotel_log ("Astman failed",__FUNCTION__);
@@ -1189,6 +1185,8 @@ function _checkOut($room)
 {
   global $db;
   global $astman;
+  $room = (string)$room;
+  if (!isValidRoomExt($room, __FUNCTION__)) return false;
 
   try {
         $sql = "SELECT start from roomsdb.rooms WHERE extension=?";
@@ -1233,6 +1231,8 @@ function externalCleanRoom($room)
 
 function cleanRoom($room)
 {
+  $room = (string)$room;
+  if (!isValidRoomExt($room, __FUNCTION__)) return false;
     global $db;
     /*
     FIAS feedback is sent BEFORE actually cleaning the room, because PMS status is more important than NethHotel one,
@@ -1245,7 +1245,7 @@ function cleanRoom($room)
         )
     );
     /*Clean room on neth-hotel only if it is in checkout and need to be cleand. Refs #3982*/
-    $res = $db->getOne("SELECT clean FROM roomsdb.rooms WHERE extension=$room");
+    $res = $db->getOne("SELECT clean FROM roomsdb.rooms WHERE extension=".(int)$room);
     if ($res == 1) {
         /*room checkout and free*/
         fias('RE2PMS', array(
@@ -1268,6 +1268,7 @@ function cleanRoom($room)
 function _cleanRoom($room)
 {
   global $db;
+  $room = (int)$room;
   $res = $db->query("DELETE FROM roomsdb.rooms WHERE extension=$room");
   if (@DB::isError($res))
   {
@@ -1284,24 +1285,26 @@ function getGroupName($extension)
 {
   global $db;
   //get group id
-  $gid = sql("SELECT group_id FROM roomsdb.groups_rooms WHERE extension = $extension LIMIT 1","getOne");
+  $gid = sql("SELECT group_id FROM roomsdb.groups_rooms WHERE extension = ".(int)$extension." LIMIT 1","getOne");
   if (empty($gid)) return _("No Group");
-  $res = sql("SELECT name from roomsdb.room_groups WHERE id=$gid","getRow");
+  $res = sql("SELECT name from roomsdb.room_groups WHERE id=".(int)$gid,"getRow");
   return $res[0];
 }
 
 function setGroup($ext,$group)
 {
   global $db;
+  $ext = (int)$ext;
+  $group = (int)$group;
   nethhotel_log ("$ext $group");
-  $sql = "DELETE FROM roomsdb.groups_rooms WHERE `extension` = ".$db->escapeSimple($ext);
+  $sql = "DELETE FROM roomsdb.groups_rooms WHERE `extension` = ".$ext;
   $res = $db->query($sql);
   if (@DB::IsError($res)) {
       nethhotel_log ($sql." ".$res->getMessage(),__FUNCTION__);
       die($sql." ".$res->getMessage());
   }
   if ($group>0){
-      $sql = "INSERT INTO roomsdb.groups_rooms SET `group_id` = ".$db->escapeSimple($group).", `extension` = ".$db->escapeSimple($ext);
+      $sql = "INSERT INTO roomsdb.groups_rooms SET `group_id` = ".$group.", `extension` = ".$ext;
       $res = $db->query($sql);
       if (@DB::IsError($res)) {
           nethhotel_log ($sql." ".$res->getMessage(),__FUNCTION__);
@@ -1323,15 +1326,15 @@ function getHistory($start='',$to='',$ext='')
   if($start)
   {
      $tmp = explode("/",$start);
-     $where.=" AND start>='$tmp[2]-$tmp[1]-$tmp[0]' "; //formato data: Y-m-d
+     $where.=" AND start>='".(int)$tmp[2]."-".(int)$tmp[1]."-".(int)$tmp[0]."' "; //formato data: Y-m-d
   }
-  if($end)
+  if($to)
   {
-     $tmp = explode("/",$end);
-     $where.=" AND end<='$tmp[2]-$tmp[1]-$tmp[0]' ";
+     $tmp = explode("/",$to);
+     $where.=" AND end < DATE_ADD('".(int)$tmp[2]."-".(int)$tmp[1]."-".(int)$tmp[0]."', INTERVAL 1 DAY) ";
   }
   if($ext)
-     $where.=" AND extension=$ext ";
+     $where.=" AND extension=".(int)$ext." ";
 
   $results = sql("SELECT extension,date_format(start,'%d/%m/%Y %H:%i') as start,date_format(end,'%d/%m/%Y %H:%i') as end, unix_timestamp(start), unix_timestamp(end) FROM roomsdb.history WHERE true $where","getAll");
 
@@ -1388,8 +1391,8 @@ function loadGroups(){
         //Get group status (check-in/check-out/clean)
         $class = '';
         $needclean = false;
-        $group_id = $group[0];
-        $sql = "SELECT extension FROM roomsdb.groups_rooms WHERE group_id = ".$db->escapeSimple($group_id);
+        $group_id = (int)$group[0];
+        $sql = "SELECT extension FROM roomsdb.groups_rooms WHERE group_id = ".$group_id;
         $rooms = $db->getAll($sql,DB_FETCHMODE_ASSOC);
         if (@DB::IsError($rooms)) {
             nethhotel_log ($sql." ".$rooms->getMessage(),__FUNCTION__);
@@ -1404,7 +1407,7 @@ function loadGroups(){
             $rooms_checkin = '';
             $rooms_clean = '';
             foreach ($rooms as $room){
-                $sql = "SELECT * from roomsdb.rooms WHERE  extension = ".$db->escapeSimple($room['extension']);
+                $sql = "SELECT * from roomsdb.rooms WHERE  extension = ".(int)$room['extension'];
                 $res = $db->getRow($sql,DB_FETCHMODE_ASSOC);
                 if (@DB::IsError($res)) {
                     nethhotel_log ($sql." ".$res->getMessage(),__FUNCTION__);
@@ -1556,8 +1559,9 @@ function cleanGroupDialog($group_id){
 /*Group Action Exec*/
 function setAlarmGroup($group_id,$hour,$date,$days){
     global $db;
+    $group_id = (int)$group_id;
     nethhotel_log($group_id,__FUNCTION__);
-    $sql = "SELECT extension FROM roomsdb.groups_rooms WHERE group_id = ".$db->escapeSimple($group_id);
+    $sql = "SELECT extension FROM roomsdb.groups_rooms WHERE group_id = ".$group_id;
     $rooms = $db->getAll($sql,DB_FETCHMODE_ASSOC);
     if (@DB::IsError($rooms)) {
         nethhotel_log ($sql." ".$rooms->getMessage(),__FUNCTION__);
@@ -1570,8 +1574,9 @@ function setAlarmGroup($group_id,$hour,$date,$days){
 }
 function deleteAlarmGroup($group_id){
     global $db;
+    $group_id = (int)$group_id;
     nethhotel_log($group_id,__FUNCTION__);
-    $sql = "SELECT extension FROM roomsdb.groups_rooms WHERE group_id = ".$db->escapeSimple($group_id);
+    $sql = "SELECT extension FROM roomsdb.groups_rooms WHERE group_id = ".$group_id;
     $rooms = $db->getAll($sql,DB_FETCHMODE_ASSOC);
     if (@DB::IsError($rooms)) {
         nethhotel_log ($sql." ".$rooms->getMessage(),__FUNCTION__);
@@ -1585,14 +1590,15 @@ function deleteAlarmGroup($group_id){
 }
 function checkInGroup($group_id,$lang){
     global $db;
+    $group_id = (int)$group_id;
     nethhotel_log($group_id." ".$lang,__FUNCTION__);
-    $sql = "SELECT extension FROM roomsdb.groups_rooms WHERE group_id = ".$db->escapeSimple($group_id);
+    $sql = "SELECT extension FROM roomsdb.groups_rooms WHERE group_id = ".$group_id;
     $rooms = $db->getAll($sql,DB_FETCHMODE_ASSOC);
     if (@DB::IsError($rooms)) {
         nethhotel_log ($sql." ".$rooms->getMessage(),__FUNCTION__);
         die($sql." ".$rooms->getMessage());
     }
-    $group_name = $db->getOne("SELECT name from roomsdb.room_groups WHERE id = ".$db->escapeSimple($group_id));
+    $group_name = $db->getOne("SELECT name from roomsdb.room_groups WHERE id = ".$group_id);
     foreach ($rooms as $room){
         externalCheckIn($room['extension'], '', $group_name,$lang);
     }
@@ -1600,8 +1606,9 @@ function checkInGroup($group_id,$lang){
 }
 function checkOutGroup($group_id){
     global $db;
+    $group_id = (int)$group_id;
     nethhotel_log($group_id,__FUNCTION__);
-    $sql = "SELECT extension FROM roomsdb.groups_rooms WHERE group_id = ".$db->escapeSimple($group_id);
+    $sql = "SELECT extension FROM roomsdb.groups_rooms WHERE group_id = ".$group_id;
     $rooms = $db->getAll($sql,DB_FETCHMODE_ASSOC);
     if (@DB::IsError($rooms)) {
         nethhotel_log ($sql." ".$rooms->getMessage(),__FUNCTION__);
@@ -1614,8 +1621,9 @@ function checkOutGroup($group_id){
 }
 function cleanGroup($group_id){
     global $db;
+    $group_id = (int)$group_id;
     nethhotel_log($group_id,__FUNCTION__);
-    $sql = "SELECT extension FROM roomsdb.groups_rooms WHERE group_id = ".$db->escapeSimple($group_id);
+    $sql = "SELECT extension FROM roomsdb.groups_rooms WHERE group_id = ".$group_id;
     $rooms = $db->getAll($sql,DB_FETCHMODE_ASSOC);
     if (@DB::IsError($rooms)) {
         nethhotel_log ($sql." ".$rooms->getMessage(),__FUNCTION__);
@@ -1629,14 +1637,15 @@ function cleanGroup($group_id){
 
 function getGroupOptions($extension){
     global $db;
-    $sql = "SELECT group_id from roomsdb.groups_rooms WHERE extension = ".$db->escapeSimple($extension);
+    $extension = (int)$extension;
+    $sql = "SELECT group_id from roomsdb.groups_rooms WHERE extension = ".$extension;
     $group_id = $db->getOne($sql);
     if (@DB::IsError($group_id)){
         nethhotel_log ($sql." ".$group_id->getMessage(),__FUNCTION__);
         die($sql." ".$group_id->getMessage());
     }
     if (empty($group_id)) return array(); //No group
-    $sql = "SELECT * FROM roomsdb.room_groups WHERE id = $group_id";
+    $sql = "SELECT * FROM roomsdb.room_groups WHERE id = ".(int)$group_id;
     $res = $db->getRow($sql,DB_FETCHMODE_ASSOC);
     if (@DB::IsError($res)) {
         nethhotel_log ($sql." ".$res->getMessage(),__FUNCTION__);
@@ -1647,7 +1656,8 @@ function getGroupOptions($extension){
 
 function getSameGroupExt($ext){
     global $db;
-    $sql = "SELECT extension FROM roomsdb.groups_rooms WHERE group_id = (SELECT group_id FROM roomsdb.groups_rooms WHERE extension = ".$db->escapeSimple($ext)." LIMIT 1)";
+    $ext = (int)$ext;
+    $sql = "SELECT extension FROM roomsdb.groups_rooms WHERE group_id = (SELECT group_id FROM roomsdb.groups_rooms WHERE extension = ".$ext." LIMIT 1)";
     $res = $db->getAll($sql,DB_FETCHMODE_ASSOC);
     if (@DB::IsError($res)) {
         nethhotel_log ($sql." ".$res->getMessage(),__FUNCTION__);
@@ -1675,17 +1685,17 @@ function getGroupsDialog($group_id=false){
         $group['externalcalls'] = $options['externalcalls'];
     } else {
         $new = false;
-        $sql = "SELECT * from roomsdb.room_groups WHERE  id = ".$db->escapeSimple($group_id);
+        $sql = "SELECT * from roomsdb.room_groups WHERE  id = ".(int)$group_id;
         $res = $db->getRow($sql,DB_FETCHMODE_ASSOC);
         if (@DB::IsError($res)) {
             nethhotel_log ($sql." ".$res->getMessage(),__FUNCTION__);
             die($sql." ".$res->getMessage());
         }
         $group = $res;
-        $title = sprintf(_('Edit group %s'),$group['name']);
+        $title = sprintf(_('Edit group %s'),htmlspecialchars($group['name'], ENT_QUOTES));
 
         //get rooms in group
-        $sql = 'SELECT extension FROM roomsdb.groups_rooms WHERE group_id ='.$db->escapeSimple($group['id']);
+        $sql = 'SELECT extension FROM roomsdb.groups_rooms WHERE group_id ='.(int)$group['id'];
         $res = $db->getAll($sql,DB_FETCHMODE_ASSOC);
         if (@DB::IsError($res)) {
             nethhotel_log ($sql." ".$res->getMessage(),__FUNCTION__);
@@ -1721,7 +1731,7 @@ function getGroupsDialog($group_id=false){
 <div id="add-group-dialog" data-gid="'.$group['id'].'" title="'.$title.'">
   <form>
       <div><label for="group_name_dial">'._('Group Name').'</label></div>
-      <div><input type="text" name="group_name_dial" id="group_name_dial" value="'.$group['name'].'" class="text ui-widget-content ui-corner-all" /></div>
+      <div><input type="text" name="group_name_dial" id="group_name_dial" value="'.htmlspecialchars($group['name'], ENT_QUOTES).'" class="text ui-widget-content ui-corner-all" /></div>
 
       <div><label for="group_groupcalls_dial">'._('Enable calls between member of this group').'</label></div>
       <div><input type="checkbox" name="group_groupcalls_dial" id="group_groupcalls_dial" class="ui-widget-content ui-corner-all" '.$groupcalls_check.'/></div>
@@ -1771,8 +1781,9 @@ function getGroupsDialog($group_id=false){
 
 function deleteGroup($group_id){
     global $db;
-    $sql = 'DELETE FROM roomsdb.room_groups WHERE `id` = '.$db->escapeSimple($group_id);
-    $sql2 = 'DELETE FROM roomsdb.groups_rooms WHERE `group_id` = '.$db->escapeSimple($group_id);
+    $group_id = (int)$group_id;
+    $sql = 'DELETE FROM roomsdb.room_groups WHERE `id` = '.$group_id;
+    $sql2 = 'DELETE FROM roomsdb.groups_rooms WHERE `group_id` = '.$group_id;
     $res = $db->query($sql);
     $res2 = $db->query($sql2);
     if (@DB::IsError($res)) {
@@ -1788,45 +1799,28 @@ function deleteGroup($group_id){
 }
 
 function saveGroupsDialog($group_name,$groupcalls,$roomscalls,$externalcalls,$note,$rooms_in_group,$group_id=false){
-    global $db;
+    $dbh = FreePBX::Database();
+    $groupcalls = (int)$groupcalls;
+    $roomscalls = (int)$roomscalls;
+    $externalcalls = (int)$externalcalls;
     if ($group_id===false || $group_id==''){
         //NEW Group
-        $sql = 'INSERT INTO roomsdb.room_groups SET
-            `name` = "'.$db->escapeSimple($group_name).'",
-            `groupcalls` = '.$db->escapeSimple($groupcalls).',
-            `roomscalls` = '.$db->escapeSimple($roomscalls).',
-            `externalcalls` = '.$db->escapeSimple($externalcalls).',
-            `note` = "'.$db->escapeSimple($note).'"
-             ';
+        $sth = $dbh->prepare('INSERT INTO roomsdb.room_groups SET `name` = ?, `groupcalls` = ?, `roomscalls` = ?, `externalcalls` = ?, `note` = ?');
+        $sth->execute(array($group_name,$groupcalls,$roomscalls,$externalcalls,$note));
+        $group_id = (int)$dbh->lastInsertId();
     } else {
         //Existing Group
-         $db->query('DELETE FROM roomsdb.groups_rooms WHERE `group_id` = '.$db->escapeSimple($group_id));
-         $sql = 'UPDATE roomsdb.room_groups SET
-            `name` = "'.$db->escapeSimple($group_name).'",
-            `groupcalls` = '.$db->escapeSimple($groupcalls).',
-            `roomscalls` = '.$db->escapeSimple($roomscalls).',
-            `externalcalls` = '.$db->escapeSimple($externalcalls).',
-            `note` = "'.$db->escapeSimple($note).'"
-             WHERE `id` = '.$db->escapeSimple($group_id);
-    }
-    $res = $db->query($sql);
-    if (@DB::IsError($res)) {
-        nethhotel_log ($sql." ".$res->getMessage(),__FUNCTION__);
-        die($sql." ".$res->getMessage());
-    }
-    if ($group_id===false || $group_id==''){
-        $res = $db->getOne('SELECT MAX(id) FROM roomsdb.room_groups LIMIT 1');
-        if (@DB::IsError($res)) {
-            nethhotel_log ($sql." ".$res->getMessage(),__FUNCTION__);
-            die($sql." ".$res->getMessage());
-        }
-        $group_id = $res;
+        $group_id = (int)$group_id;
+        $dbh->query('DELETE FROM roomsdb.groups_rooms WHERE `group_id` = '.$group_id);
+        $sth = $dbh->prepare('UPDATE roomsdb.room_groups SET `name` = ?, `groupcalls` = ?, `roomscalls` = ?, `externalcalls` = ?, `note` = ? WHERE `id` = ?');
+        $sth->execute(array($group_name,$groupcalls,$roomscalls,$externalcalls,$note,$group_id));
     }
     /*Add rooms to group*/
     foreach (json_decode($rooms_in_group) as $room){
-        $sql = 'DELETE FROM roomsdb.groups_rooms WHERE `extension` = '.$db->escapeSimple($room).' ; INSERT INTO roomsdb.groups_rooms SET `group_id` = '.$db->escapeSimple($group_id).', `extension` = '.$db->escapeSimple($room);
-        $db->query($sql);
-        nethhotel_log ($sql,__FUNCTION__);
+        $room = (int)$room;
+        $dbh->query('DELETE FROM roomsdb.groups_rooms WHERE `extension` = '.$room);
+        $dbh->query('INSERT INTO roomsdb.groups_rooms SET `group_id` = '.$group_id.', `extension` = '.$room);
+        nethhotel_log ("group_id=$group_id extension=$room",__FUNCTION__);
     }
     //TODO refresh page
     return true;
@@ -1834,6 +1828,7 @@ function saveGroupsDialog($group_name,$groupcalls,$roomscalls,$externalcalls,$no
 
 function loadRooms($ntab)
 {
+  $ntab = (int)$ntab;
   $rooms = getRoomList();
   $alarms = getEnabledAlarmList();
   $alarmsfailed = getEnabledAlarmsFailed();

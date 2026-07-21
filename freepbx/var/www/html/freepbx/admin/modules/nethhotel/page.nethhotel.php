@@ -7,7 +7,7 @@ $dispnum = "nethhotel"; //used for switch on config.php
 
 //check if the extension is within range for this user
 if (isset($account) && !checkRange($account)){
-	echo "<script>javascript:alert('"._("Warning! Extension")." $account "._("is not allowed for your account.")."');</script>";
+	echo "<script>javascript:alert('"._("Warning! Extension")." ".htmlspecialchars($account, ENT_QUOTES)." "._("is not allowed for your account.")."');</script>";
 } else {
 	
 	//if submitting form, update database
@@ -29,7 +29,7 @@ if ($extdisplay)
   $is_room = nethhotel_get($extdisplay);
 else
   $is_room = false;
-$delURL = $_REQUEST['PHP_SELF'].'?'.$_SERVER['QUERY_STRING'].'&action=delete';
+$delURL = $_SERVER['SCRIPT_NAME'].'?'.$_SERVER['QUERY_STRING'].'&action=delete';
 ?>
 
 <!-- right side menu -->
@@ -46,22 +46,23 @@ $delURL = $_REQUEST['PHP_SELF'].'?'.$_SERVER['QUERY_STRING'].'&action=delete';
 
 
 <div class="content">
-<h2><?php echo _("Rooms Management")." ". $extdisplay; ?></h2>
+<h2><?php echo _("Rooms Management")." ". htmlspecialchars($extdisplay, ENT_QUOTES); ?></h2>
 <?php
 if ($action == 'delete') {
-	echo '<br><h3>'._("Room").' '.$extdisplay.' '._('deleted').'!</h3><br/>';
+	echo '<br><h3>'._("Room").' '.htmlspecialchars($extdisplay, ENT_QUOTES).' '._('deleted').'!</h3><br/>';
 } else if ($action == 'add'){
-	echo '<br><h3>'._("Room").' '.$extdisplay.' '._('added').'!</h3><br/>';
+	echo '<br><h3>'._("Room").' '.htmlspecialchars($extdisplay, ENT_QUOTES).' '._('added').'!</h3><br/>';
 } else if ($action=="confirm_delete")
 {
-    echo "<p>".sprintf(_("Remove %s from rooms context?"),$extdisplay)."</p>";
-    echo '<p> <form autocomplete="off" name="editMM" action="'.$_REQUEST['PHP_SELF'].'" method="get" style="float: left; margin-right: 40px">
+    echo "<p>".sprintf(_("Remove %s from rooms context?"), htmlspecialchars($extdisplay, ENT_QUOTES))."</p>";
+    echo '<p> <form autocomplete="off" name="editMM" action="'.htmlspecialchars($_SERVER['SCRIPT_NAME'], ENT_QUOTES).'" method="get" style="float: left; margin-right: 40px">
               <input type="hidden" name="action" value=""/>
               <input type="hidden" name="display" value="'.$dispnum.'"/>
               <input type="submit" value="'._('Cancel').'"/>
               </form>
-             <form autocomplete="off" name="editMM" action="'.$_REQUEST['PHP_SELF'].'" method="post">
-              <input type="hidden" name="extdisplay" value="'.$extdisplay.'"/>
+             <form autocomplete="off" name="editMM" action="'.htmlspecialchars($_SERVER['SCRIPT_NAME'], ENT_QUOTES).'" method="post">
+              <input type="hidden" name="display" value="'.$dispnum.'"/>
+              <input type="hidden" name="extdisplay" value="'.htmlspecialchars($extdisplay, ENT_QUOTES).'"/>
               <input type="hidden" name="action" value="delete"/>
               <input type="submit" value="'._('Ok').'"/>
               </form>';
@@ -69,12 +70,12 @@ if ($action == 'delete') {
      if ($action!="")
        return;
      if ($extdisplay)
-	echo "<p><a href='$delURL'>"._("Remove from rooms context").": $extdisplay</a></p>";
+	echo "<p><a href='".htmlspecialchars($delURL, ENT_QUOTES)."'>"._("Remove from rooms context").": ".htmlspecialchars($extdisplay, ENT_QUOTES)."</a></p>";
      else {
        
  
 ?>
-	<form autocomplete="off" name="editMM" action="<?php $_REQUEST['PHP_SELF'] ?>" method="post">
+	<form autocomplete="off" name="editMM" action="<?php echo htmlspecialchars($_SERVER['SCRIPT_NAME'], ENT_QUOTES); ?>" method="post">
 	<input type="hidden" name="display" value="<?php echo $dispnum?>">
 	<input type="hidden" name="action" value="add">
 	<table>
