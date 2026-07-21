@@ -18,7 +18,8 @@ switch($_REQUEST['action']) {
 
   case "disableAlarmAlert":
      global $db;
-     $sql = "UPDATE roomsdb.alarms_history SET retry = 98 WHERE retry = 99 AND extension = {$_REQUEST['ext']}";
+     $ext = (int)$_REQUEST['ext'];
+     $sql = "UPDATE roomsdb.alarms_history SET retry = 98 WHERE retry = 99 AND extension = $ext";
      $db->query($sql);
      return true;
      break;
