@@ -174,12 +174,15 @@ class Directdid implements \BMO
     // http://wiki.freepbx.org/display/FOP/HTML+Output+from+BMO
     public function showPage()
     {
-        switch ($_REQUEST['view']) {
+        $view = $_REQUEST['view'] ?? '';
+        $id = $_REQUEST['id'] ?? '';
+
+        switch ($view) {
         case 'form':
-            if(isset($_REQUEST['id']) && !empty($_REQUEST['id'])){
+            if (!empty($id)) {
                 $subhead = _('Edit Direct DID');
                 $content = load_view(__DIR__.'/views/form.php', array('config' => directdid_get_details($id)));
-            }else{
+            } else {
                 $subhead = _('Add Direct DID');
                 $content = load_view(__DIR__.'/views/form.php');
             }
