@@ -273,8 +273,28 @@
                   <span class="pficon pficon-info"></span>
                   {{"Associate the source columns with the destination columns" | translate}}.
                 </div>
+                <!-- Infinity: fixed, read-only mapping (applied by the importer) -->
+                <div ng-if="newSource.dbtype === 'infinity'" class="list-group list-view-pf list-view-pf-view no-margin-top">
+                  <div ng-repeat="row in infinityMapping" class="list-group-item">
+                    <div class="list-view-pf-main-info">
+                      <div class="list-view-pf-left">
+                        <span class="fa fa-columns list-view-pf-icon-sm"></span>
+                      </div>
+                      <div class="list-view-pf-body">
+                        <div class="list-view-pf-description">
+                          <div class="list-group-item-heading">{{row.source | translate}}</div>
+                        </div>
+                        <div class="list-view-pf-additional-info">
+                          <div class="list-view-pf-additional-info-item">
+                            <span class="fa fa-long-arrow-right right-margin-fine"></span>{{row.dest}}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <div ng-if="sourceModal.querySelectProgress" class="spinner phonebook-sources-map"></div>
-                <div ng-if="!sourceModal.querySelectionDone" class="list-group-item list-item-header list-item-header-phonebook">
+                <div ng-if="!sourceModal.querySelectionDone && newSource.dbtype !== 'infinity'" class="list-group-item list-item-header list-item-header-phonebook">
                   <div class="list-view-pf-main-info">
                     <div class="list-view-pf-left">
                       <span class="fa fa-usera list-view-pf-icon-sm adjust-line phonebook-table-left-border"></span>
@@ -446,7 +466,7 @@
                   </div>
                 </div>
                 <!-- on new source creation -->
-                <div class="list-group list-view-pf list-view-pf-view no-margin-top">
+                <div ng-if="newSource.dbtype !== 'infinity'" class="list-group list-view-pf list-view-pf-view no-margin-top">
                   <div ng-repeat="(kc, c) in colsSources" ng-if="kc !== 'type'" class="list-group-item">
                     <div class="list-view-pf-main-info">
                       <div class="list-view-pf-left">
@@ -589,6 +609,24 @@
                                   <button tabindex="-1" type="button" class="btn btn-default mln-1 zindex-2" ng-disabled="newSource.readonly" ng-click="csvUploadClick($event)">
                                     <span class="fa fa-upload"></span>
                                   </button>
+                                </div>
+                              </div>
+                              <!-- type Infinity Zucchetti -->
+                              <div ng-if="newSource.dbtype == 'infinity'" class="form-group">
+                                <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'URL' | translate}}</label>
+                                <div class="col-sm-9 input-container">
+                                  <input required ng-disabled="newSource.readonly" ng-model="newSource.url" type="url" class="form-control"></div>
+                              </div>
+                              <div ng-if="newSource.dbtype == 'infinity'" class="form-group">
+                                <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Username' | translate}}</label>
+                                <div class="col-sm-9 input-container">
+                                  <input required ng-disabled="newSource.readonly" ng-model="newSource.username" type="text" class="form-control"></div>
+                              </div>
+                              <div ng-if="newSource.dbtype == 'infinity'" class="form-group">
+                                <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Password' | translate}}</label>
+                                <div class="col-sm-9 input-container">
+                                  <input ng-disabled="newSource.readonly" ng-model="newSource.password" type="{{newSource.showPass ? 'text' : 'password'}}" class="form-control">
+                                  <a ng-click="togglePass(newSource)">{{newSource.showPass ? 'Hide' : 'Show' | translate}}</a>
                                 </div>
                               </div>
                               <div class="form-group">

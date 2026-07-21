@@ -82,6 +82,28 @@ def load_api_credentials():
             log("Failed reading configuration file", {"file": configuration_file, "error": str(err)})
 
 
+def sanitize_base_url(raw):
+    # Accept the app base, the home page (.../jsp/home.jsp), any /jsp or /servlet
+    # path, a missing scheme, a trailing slash or a query/fragment, and reduce it to
+    # the API base used to build the endpoints.
+    value = (raw or '').strip()
+    if not value:
+        return ''
+    if '://' not in value:
+        value = 'https://' + value
+    for sep in ('?', '#'):
+        idx = value.find(sep)
+        if idx != -1:
+            value = value[:idx]
+    low = value.lower()
+    cut = len(value)
+    for marker in ('/servlet', '/jsp'):
+        idx = low.find(marker)
+        if idx != -1 and idx < cut:
+            cut = idx
+    return value[:cut].rstrip('/')
+
+
 def get_token(base_url, api_username, api_password):
     token_url = f"{base_url.rstrip('/')}/servlet/oauth/token"
     auth = (api_username, api_password)
@@ -219,6 +241,16 @@ def normalize_contact(contact):
         '',                                   # workpostalcode
         '',                                   # workcountry
         '',                                   # url
+        '',                                   # firstname
+        '',                                   # lastname
+        '',                                   # job
+        '',                                   # facebook
+        '',                                   # instagram
+        '',                                   # linkedin
+        '',                                   # workphone2
+        '',                                   # cellphone2
+        '',                                   # otherphone
+        '',                                   # otheremail
         IMPORT_SOURCE                         # sid_imported
     )
 
@@ -268,7 +300,10 @@ def getenv_required(name):
 
 
 def main():
+    global url
     load_api_credentials()
+
+    url = sanitize_base_url(url)
 
     if not url or not username or not password:
         print('No URL, username or password found', file=sys.stderr)
@@ -304,10 +339,21 @@ def main():
             workpostalcode,
             workcountry,
             url,
+            firstname,
+            lastname,
+            job,
+            facebook,
+            instagram,
+            linkedin,
+            workphone2,
+            cellphone2,
+            otherphone,
+            otheremail,
             sid_imported
         ) VALUES (
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         )
     """
 

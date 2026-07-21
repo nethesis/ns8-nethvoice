@@ -118,8 +118,24 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.allDBTypes = {
       "mysql": "MySQL",
-      "csv": "CSV"
+      "csv": "CSV",
+      "infinity": "Infinity Zucchetti"
     };
+
+    // Fixed, read-only field mapping applied by the importer for Infinity sources.
+    $scope.infinityMapping = [
+      { source: "Name", dest: "name" },
+      { source: "Company", dest: "company" },
+      { source: "Mobile phone", dest: "cellphone" },
+      { source: "Work phone", dest: "workphone" },
+      { source: "Home phone", dest: "homephone" },
+      { source: "Fax", dest: "fax" },
+      { source: "Work email", dest: "workemail" },
+      { source: "Home email", dest: "homeemail" },
+      { source: "Address", dest: "workstreet" },
+      { source: "Office", dest: "title" },
+      { source: "Office / status / id", dest: "notes" }
+    ];
 
     $scope.syncIntervals = {
       "15": "15 minutes",
@@ -342,6 +358,15 @@ angular.module('nethvoiceWizardUiApp')
         // CSV only: a global owner is chosen from the users list instead of mapping
         // owner_id. Written to owner_id of every imported row.
         payload.owner = s.owner || '';
+      } else if (s.dbtype == 'infinity') {
+        // Zucchetti Infinity API source: fixed field mapping is applied by the
+        // importer, so only the API credentials are configured here.
+        payload = {
+          dbtype: 'infinity',
+          url: s.url,
+          username: s.username,
+          password: s.password,
+        };
       }
       payload.type = $scope.buildSharingType();
       payload.mapping = s.mapping;

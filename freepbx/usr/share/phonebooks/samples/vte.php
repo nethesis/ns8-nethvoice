@@ -111,7 +111,7 @@ if (!empty($data['data'][0]['count'])) {
 
 		// Write result to phonebook database
 		if (!empty($data['data']) && is_array($data['data'])) {
-			$query_insert = 'INSERT INTO phonebook (name,company,title,workphone,cellphone,homephone,workemail,fax,workstreet,workpob,workcity,workprovince,workpostalcode,workcountry,type,sid_imported) VALUES ';
+			$query_insert = 'INSERT INTO phonebook (name,company,title,workphone,cellphone,homephone,workemail,fax,workstreet,workpob,workcity,workprovince,workpostalcode,workcountry,firstname,lastname,job,facebook,instagram,linkedin,workphone2,cellphone2,otherphone,otheremail,type,sid_imported) VALUES ';
 			$questionmarks = [];
 			$query_data = [];
 			foreach ($data['data'] as $record) {
@@ -169,7 +169,7 @@ if (!empty($data['data'][0]['count'])) {
 					curl_close($ch);
 				}
 
-				$questionmarks[] = '(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)';
+				$questionmarks[] = '(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)';
 				$query_data[] = $name;
 				$query_data[] = $company;
 				$query_data[] = (($record['salutationtype'] ?? '') == '--None--') ? '' : ($record['salutationtype'] ?? '') ;
@@ -184,6 +184,16 @@ if (!empty($data['data'][0]['count'])) {
 				$query_data[] = $record['mailingstate'] ?? '' ;
 				$query_data[] = $record['mailingzip'] ?? '' ;
 				$query_data[] = $record['mailingcountry'] ?? '' ;
+				$query_data[] = $record['firstname'] ?? '' ;
+				$query_data[] = $record['lastname'] ?? '' ;
+				$query_data[] = '' ; // job
+				$query_data[] = '' ; // facebook
+				$query_data[] = '' ; // instagram
+				$query_data[] = '' ; // linkedin
+				$query_data[] = '' ; // workphone2
+				$query_data[] = '' ; // cellphone2
+				$query_data[] = '' ; // otherphone
+				$query_data[] = '' ; // otheremail
 				$query_data[] = 'vte';
 				$query_data[] = 'vte';
 			}

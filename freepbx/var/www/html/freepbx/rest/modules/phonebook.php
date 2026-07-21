@@ -105,6 +105,9 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
             $mandatory_params = array('host','port','user','password','dbname','query','mapping');
         } else if($data['dbtype'] == 'csv') {
             $mandatory_params = array('url','mapping');
+        } else if($data['dbtype'] == 'infinity') {
+            // Infinity has a fixed field mapping applied by the importer, so no mapping.
+            $mandatory_params = array('url','username','password');
         } else {
             return $response->withJson(array("status"=>"Bad dbtype value"), 400);
         }
@@ -215,6 +218,8 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
             $mandatory_params = array('host','port','user','password','dbname','query');
         } else if($data['dbtype'] == 'csv') {
             $mandatory_params = array('url');
+        } else if($data['dbtype'] == 'infinity') {
+            $mandatory_params = array('url','username','password');
         } else {
             return $response->withJson(array("status"=>"Bad dbtype value"), 400);
         }
