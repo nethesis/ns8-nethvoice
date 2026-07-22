@@ -27,9 +27,10 @@ include_once('lib/libUsers.php');
 
 /**
  * Validate a sharing value ('public' or 'group:<g1,g2>'). Group names are checked
- * against the existing CTI groups; unknown ones are dropped and a group scope left
- * with no valid group falls back to 'public'. Throws on DB error so the caller can
- * fail closed instead of silently downgrading a restricted source to public.
+ * against the existing CTI groups; unknown ones are dropped. A group scope where no
+ * requested group exists throws InvalidArgumentException so the caller can fail closed
+ * (reject) rather than silently downgrading a restricted source to public. A DB error
+ * throws a generic Exception, also to be treated as fail closed.
  */
 function validatePhonebookSharing($rawType) {
     $sharing = empty($rawType) ? 'public' : $rawType;
@@ -46,7 +47,13 @@ function validatePhonebookSharing($rawType) {
         }
     }
     $validGroups = array_values(array_intersect($requested, $existingGroups));
-    return count($validGroups) ? 'group:'.implode(',', $validGroups) : 'public';
+    if (!count($validGroups)) {
+        // Fail closed: a group scope was requested but none of the groups exist
+        // (deleted/renamed after configuration, or a typo). Downgrading to public
+        // would expose previously group-restricted contacts.
+        throw new \InvalidArgumentException('none of the selected sharing groups exist');
+    }
+    return 'group:'.implode(',', $validGroups);
 }
 
 $app->get('/phonebook/fields', function (Request $request, Response $response, $args) {
@@ -153,6 +160,8 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
         // the existing CTI groups. Fail closed if the groups cannot be validated.
         try {
             $newsource['type'] = validatePhonebookSharing(isset($data['type']) ? $data['type'] : '');
+        } catch (\InvalidArgumentException $e) {
+            return $response->withJson(array("status"=>"None of the selected sharing groups exist"), 400);
         } catch (Exception $e) {
             error_log($e->getMessage());
             return $response->withJson(array("status"=>"Cannot validate sharing groups"), 500);
@@ -313,6 +322,8 @@ $app->post('/phonebook/import-cti', function (Request $request, Response $respon
         // Sharing value applied to every imported contact.
         try {
             $sharing = validatePhonebookSharing(isset($data['type']) ? $data['type'] : '');
+        } catch (\InvalidArgumentException $e) {
+            return $response->withJson(array("status"=>"None of the selected sharing groups exist"), 400);
         } catch (Exception $e) {
             error_log($e->getMessage());
             return $response->withJson(array("status"=>"Cannot validate sharing groups"), 500);
