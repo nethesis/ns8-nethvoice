@@ -79,15 +79,20 @@ def replace_config_ports(old_ports, new_port):
             run_freepbx_sed(f"s/:{old_port}$/:{new_port}/")
 
 
-old_sip_ports = {
+# Old SIP bindings must be rewritten to the new port that matches their
+# protocol. Rewriting the UDP-side bindings to the TCP port made the UDP
+# transport listen on the TCP port (QA finding B6). Keep the UDP-side bindings
+# (kvstore udpport and the chan_sip legacy bindport) and the TCP-side bindings
+# (kvstore tcpport and the pjsip bindport) in separate sets.
+old_sip_udp_ports = {
     port for port in read_mysql_values("""
 SELECT `val`
 FROM `kvstore_Sipsettings`
-WHERE `key` IN ('udpport-0.0.0.0', 'tcpport-0.0.0.0', 'bindport');
+WHERE `key` = 'udpport-0.0.0.0';
 """)
     if port.isdigit()
 }
-old_sip_ports.update(
+old_sip_udp_ports.update(
     port for port in read_mysql_values("""
 SELECT `data`
 FROM `sipsettings`
@@ -95,6 +100,14 @@ WHERE `keyword` = 'bindport';
 """)
     if port.isdigit()
 )
+old_sip_tcp_ports = {
+    port for port in read_mysql_values("""
+SELECT `val`
+FROM `kvstore_Sipsettings`
+WHERE `key` IN ('tcpport-0.0.0.0', 'bindport');
+""")
+    if port.isdigit()
+}
 old_sips_ports = {
     port for port in read_mysql_values("""
 SELECT `val`
@@ -104,7 +117,8 @@ WHERE `key` IN ('tlsport-0.0.0.0', 'tlsbindport');
     if port.isdigit()
 }
 
-replace_config_ports(old_sip_ports, os.environ['ASTERISK_SIP_PORT'])
+replace_config_ports(old_sip_udp_ports, os.environ['ASTERISK_SIP_UDP_PORT'])
+replace_config_ports(old_sip_tcp_ports, os.environ['ASTERISK_SIP_PORT'])
 replace_config_ports(old_sips_ports, os.environ['ASTERISK_SIPS_PORT'])
 
 # SQL query to update kvstore_Sipsettings
