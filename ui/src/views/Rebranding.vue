@@ -137,7 +137,9 @@
                           "
                           :disabled="loading.setRebranding"
                           :invalid-message="error.rebranding_login_logo_url"
-                          :helper-text="$t('rebranding.public_url_image_helper')"
+                          :helper-text="
+                            $t('rebranding.public_url_image_helper')
+                          "
                         />
                         <NsTextInput
                           :label="
@@ -153,8 +155,12 @@
                             })
                           "
                           :disabled="loading.setRebranding"
-                          :invalid-message="error.rebranding_login_logo_dark_url"
-                          :helper-text="$t('rebranding.public_url_image_helper')"
+                          :invalid-message="
+                            error.rebranding_login_logo_dark_url
+                          "
+                          :helper-text="
+                            $t('rebranding.public_url_image_helper')
+                          "
                         />
                         <NsTextInput
                           :label="
@@ -171,7 +177,9 @@
                           "
                           :disabled="loading.setRebranding"
                           :invalid-message="error.rebranding_navbar_logo_url"
-                          :helper-text="$t('rebranding.public_url_image_helper')"
+                          :helper-text="
+                            $t('rebranding.public_url_image_helper')
+                          "
                         />
                         <NsTextInput
                           :label="
@@ -187,8 +195,12 @@
                             })
                           "
                           :disabled="loading.setRebranding"
-                          :invalid-message="error.rebranding_navbar_logo_dark_url"
-                          :helper-text="$t('rebranding.public_url_image_helper')"
+                          :invalid-message="
+                            error.rebranding_navbar_logo_dark_url
+                          "
+                          :helper-text="
+                            $t('rebranding.public_url_image_helper')
+                          "
                         />
                         <NsTextInput
                           :label="
@@ -205,10 +217,14 @@
                           "
                           :disabled="loading.setRebranding"
                           :invalid-message="error.rebranding_favicon_url"
-                          :helper-text="$t('rebranding.public_url_image_helper')"
+                          :helper-text="
+                            $t('rebranding.public_url_image_helper')
+                          "
                         >
                           <template slot="tooltip">
-                            {{ $t("rebranding.rebranding_favicon_url_tooltip") }}
+                            {{
+                              $t("rebranding.rebranding_favicon_url_tooltip")
+                            }}
                           </template></NsTextInput
                         >
                         <NsTextInput
@@ -225,8 +241,12 @@
                             })
                           "
                           :disabled="loading.setRebranding"
-                          :invalid-message="error.rebranding_login_background_url"
-                          :helper-text="$t('rebranding.public_url_image_helper')"
+                          :invalid-message="
+                            error.rebranding_login_background_url
+                          "
+                          :helper-text="
+                            $t('rebranding.public_url_image_helper')
+                          "
                         />
                         <NsToggle
                           :label="$t('rebranding.login_illustration')"
@@ -261,97 +281,121 @@
                           $t("rebranding.login_page_preview")
                         }}</label>
                         <div class="preview-frame cti-preview-frame">
-                        <div class="preview-browser-bar preview-browser-bar-light">
-                          <div class="preview-dots">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </div>
-                          <div class="preview-tab preview-tab-light">
-                            <img
-                              v-if="ctiFaviconUrl"
-                              :src="ctiFaviconUrl"
-                              alt="CTI favicon"
-                              class="preview-favicon"
-                            />
-                            <div
-                              v-else
-                              class="preview-favicon preview-favicon-fallback"
-                            >
-                              {{ ctiBrandInitial }}
-                            </div>
-                            <span class="preview-tab-label">
-                              {{ ctiPreviewTitle }}
-                            </span>
-                          </div>
-                          <div class="preview-theme-buttons">
-                            <NsButton
-                              kind="secondary"
-                              @click="setLightTheme"
-                              :disabled="!isDarkMode"
-                              class="theme-button dark-theme-btn preview-theme-button"
-                            >
-                              <Sun20 />
-                            </NsButton>
-                            <NsButton
-                              kind="secondary"
-                              @click="setDarkTheme"
-                              :disabled="isDarkMode"
-                              class="theme-button dark-theme-btn preview-theme-button"
-                            >
-                              <Moon20 />
-                            </NsButton>
-                          </div>
-                        </div>
-                        <div class="login-preview">
                           <div
-                            class="login-background"
-                            :style="{
-                              backgroundImage: `url(${loginBackgroundUrl})`,
-                            }"
+                            class="
+                              preview-browser-bar preview-browser-bar-light
+                            "
                           >
-                            <div class="login-container">
-                              <div :class="isDarkMode ? 'dark-theme' : 'light-theme'">
-                                <div class="login-card">
-                                  <img
-                                    :src="logoUrl"
-                                    :alt="isDarkMode ? 'Logo Dark' : 'Logo Light'"
-                                    class="login-logo"
-                                  />
-                                  <div class="login-brand-name">
-                                    {{ ctiProductLabel }}
-                                  </div>
-                                  <div class="login-form">
-                                    <label for="username" class="login-label">
-                                      {{ $t("rebranding.username") }}
-                                    </label>
-                                    <input
-                                      type="text"
-                                      value="username"
-                                      disabled
-                                      class="login-input"
+                            <div class="preview-dots">
+                              <span></span>
+                              <span></span>
+                              <span></span>
+                            </div>
+                            <div class="preview-tab preview-tab-light">
+                              <img
+                                v-if="ctiFaviconUrl"
+                                :src="ctiFaviconUrl"
+                                alt="CTI favicon"
+                                class="preview-favicon"
+                              />
+                              <div
+                                v-else
+                                class="preview-favicon preview-favicon-fallback"
+                              >
+                                {{ ctiBrandInitial }}
+                              </div>
+                              <span class="preview-tab-label">
+                                {{ ctiPreviewTitle }}
+                              </span>
+                            </div>
+                            <div class="preview-theme-buttons">
+                              <NsButton
+                                kind="secondary"
+                                @click="setLightTheme"
+                                :disabled="!isDarkMode"
+                                class="
+                                  theme-button
+                                  dark-theme-btn
+                                  preview-theme-button
+                                "
+                              >
+                                <Sun20 />
+                              </NsButton>
+                              <NsButton
+                                kind="secondary"
+                                @click="setDarkTheme"
+                                :disabled="isDarkMode"
+                                class="
+                                  theme-button
+                                  dark-theme-btn
+                                  preview-theme-button
+                                "
+                              >
+                                <Moon20 />
+                              </NsButton>
+                            </div>
+                          </div>
+                          <div class="login-preview">
+                            <div
+                              class="login-background"
+                              :style="{
+                                backgroundImage: `url(${loginBackgroundUrl})`,
+                              }"
+                            >
+                              <div class="login-container">
+                                <div
+                                  :class="
+                                    isDarkMode ? 'dark-theme' : 'light-theme'
+                                  "
+                                >
+                                  <div class="login-card">
+                                    <img
+                                      :src="logoUrl"
+                                      :alt="
+                                        isDarkMode ? 'Logo Dark' : 'Logo Light'
+                                      "
+                                      class="login-logo"
                                     />
-                                    <label for="password" class="login-label">
-                                      {{ $t("rebranding.password") }}
-                                    </label>
-                                    <input
-                                      type="password"
-                                      value="*********"
-                                      disabled
-                                      class="login-input"
-                                    />
-                                    <button disabled class="login-button">
-                                      <span>{{ $t("rebranding.sign_in") }}</span>
-                                    </button>
+                                    <div class="login-brand-name">
+                                      {{ ctiProductLabel }}
+                                    </div>
+                                    <div class="login-form">
+                                      <label for="username" class="login-label">
+                                        {{ $t("rebranding.username") }}
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value="username"
+                                        disabled
+                                        class="login-input"
+                                      />
+                                      <label for="password" class="login-label">
+                                        {{ $t("rebranding.password") }}
+                                      </label>
+                                      <input
+                                        type="password"
+                                        value="*********"
+                                        disabled
+                                        class="login-input"
+                                      />
+                                      <button disabled class="login-button">
+                                        <span>{{
+                                          $t("rebranding.sign_in")
+                                        }}</span>
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                              <div class="login-svg" v-if="rebranding_login_people">
-                                <img
-                                  src="../assets/action_voice-cti.svg"
-                                  alt="Login illustration"
-                                  class="svg-image"
-                                />
+                                <div
+                                  class="login-svg"
+                                  v-if="rebranding_login_people"
+                                >
+                                  <img
+                                    src="../assets/action_voice-cti.svg"
+                                    alt="Login illustration"
+                                    class="svg-image"
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -369,7 +413,9 @@
                         </h3>
                         <NsTextInput
                           :label="
-                            $t('rebranding.rebranding_wizard_login_logo_url_label') +
+                            $t(
+                              'rebranding.rebranding_wizard_login_logo_url_label'
+                            ) +
                             ' (' +
                             $t('common.optional') +
                             ')'
@@ -381,8 +427,12 @@
                             })
                           "
                           :disabled="loading.setRebranding"
-                          :invalid-message="error.rebranding_wizard_login_logo_url"
-                          :helper-text="$t('rebranding.public_url_image_helper')"
+                          :invalid-message="
+                            error.rebranding_wizard_login_logo_url
+                          "
+                          :helper-text="
+                            $t('rebranding.public_url_image_helper')
+                          "
                         />
                         <NsTextInput
                           :label="
@@ -399,10 +449,14 @@
                           "
                           :disabled="loading.setRebranding"
                           :invalid-message="error.rebranding_wizard_favicon_url"
-                          :helper-text="$t('rebranding.public_url_image_helper')"
+                          :helper-text="
+                            $t('rebranding.public_url_image_helper')
+                          "
                         >
                           <template slot="tooltip">
-                            {{ $t("rebranding.rebranding_favicon_url_tooltip") }}
+                            {{
+                              $t("rebranding.rebranding_favicon_url_tooltip")
+                            }}
                           </template></NsTextInput
                         >
                         <NsTextInput
@@ -419,15 +473,21 @@
                             })
                           "
                           :disabled="loading.setRebranding"
-                          :invalid-message="error.rebranding_wizard_login_background_url"
-                          :helper-text="$t('rebranding.public_url_image_helper')"
+                          :invalid-message="
+                            error.rebranding_wizard_login_background_url
+                          "
+                          :helper-text="
+                            $t('rebranding.public_url_image_helper')
+                          "
                         />
                         <h3 class="section-title">
                           {{ $t("rebranding.freepbx_admin_settings") }}
                         </h3>
                         <NsTextInput
                           :label="
-                            $t('rebranding.rebranding_freepbx_admin_logo_url_label') +
+                            $t(
+                              'rebranding.rebranding_freepbx_admin_logo_url_label'
+                            ) +
                             ' (' +
                             $t('common.optional') +
                             ')'
@@ -439,12 +499,18 @@
                             })
                           "
                           :disabled="loading.setRebranding"
-                          :invalid-message="error.rebranding_freepbx_admin_logo_url"
-                          :helper-text="$t('rebranding.freepbx_admin_logo_url_helper')"
+                          :invalid-message="
+                            error.rebranding_freepbx_admin_logo_url
+                          "
+                          :helper-text="
+                            $t('rebranding.freepbx_admin_logo_url_helper')
+                          "
                         />
                         <NsTextInput
                           :label="
-                            $t('rebranding.rebranding_freepbx_admin_favicon_url_label') +
+                            $t(
+                              'rebranding.rebranding_freepbx_admin_favicon_url_label'
+                            ) +
                             ' (' +
                             $t('common.optional') +
                             ')'
@@ -456,11 +522,17 @@
                             })
                           "
                           :disabled="loading.setRebranding"
-                          :invalid-message="error.rebranding_freepbx_admin_favicon_url"
-                          :helper-text="$t('rebranding.public_url_image_helper')"
+                          :invalid-message="
+                            error.rebranding_freepbx_admin_favicon_url
+                          "
+                          :helper-text="
+                            $t('rebranding.public_url_image_helper')
+                          "
                         >
                           <template slot="tooltip">
-                            {{ $t("rebranding.rebranding_favicon_url_tooltip") }}
+                            {{
+                              $t("rebranding.rebranding_favicon_url_tooltip")
+                            }}
                           </template></NsTextInput
                         >
                         <div class="rebranding-save-actions">
@@ -479,59 +551,72 @@
                           $t("rebranding.login_page_preview")
                         }}</label>
                         <div class="preview-frame wizard-login-preview">
-                        <div class="preview-browser-bar preview-browser-bar-light">
-                          <div class="preview-dots">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </div>
-                          <div class="preview-tab preview-tab-light">
-                            <img
-                              v-if="wizardFaviconUrl"
-                              :src="wizardFaviconUrl"
-                              alt="Wizard favicon"
-                              class="preview-favicon"
-                            />
-                            <div
-                              v-else
-                              class="preview-favicon preview-favicon-fallback"
-                            >
-                              {{ wizardBrandInitial }}
+                          <div
+                            class="
+                              preview-browser-bar preview-browser-bar-light
+                            "
+                          >
+                            <div class="preview-dots">
+                              <span></span>
+                              <span></span>
+                              <span></span>
                             </div>
-                            <span class="preview-tab-label">
-                              {{ wizardPreviewTitle }}
-                            </span>
-                          </div>
-                        </div>
-                        <div class="wizard-login-shell">
-                          <div class="wizard-login-panel">
-                            <div class="wizard-login-card-preview">
-                              <div class="wizard-login-welcome">Welcome</div>
-                              <div class="wizard-login-subtitle">
-                                Sign in to Admin
-                              </div>
-                              <div class="wizard-login-form-preview">
-                                <label class="wizard-login-label">User</label>
-                                <div class="wizard-login-input"></div>
-                                <label class="wizard-login-label">
-                                  {{ $t("rebranding.password") }}
-                                </label>
-                                <div class="wizard-login-input wizard-login-input-with-icon">
-                                  <span class="wizard-login-input-eye"></span>
-                                </div>
-                                <div class="wizard-login-button-preview">
-                                  {{ $t("rebranding.sign_in") }}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <div class="wizard-login-stage" :style="wizardBackgroundStyle">
-                            <div class="wizard-login-stage-logo-wrap">
+                            <div class="preview-tab preview-tab-light">
                               <img
-                                :src="wizardStageLogoUrl"
-                                alt="Wizard logo"
-                                class="wizard-login-stage-logo"
+                                v-if="wizardFaviconUrl"
+                                :src="wizardFaviconUrl"
+                                alt="Wizard favicon"
+                                class="preview-favicon"
                               />
+                              <div
+                                v-else
+                                class="preview-favicon preview-favicon-fallback"
+                              >
+                                {{ wizardBrandInitial }}
+                              </div>
+                              <span class="preview-tab-label">
+                                {{ wizardPreviewTitle }}
+                              </span>
+                            </div>
+                          </div>
+                          <div class="wizard-login-shell">
+                            <div class="wizard-login-panel">
+                              <div class="wizard-login-card-preview">
+                                <div class="wizard-login-welcome">Welcome</div>
+                                <div class="wizard-login-subtitle">
+                                  Sign in to Admin
+                                </div>
+                                <div class="wizard-login-form-preview">
+                                  <label class="wizard-login-label">User</label>
+                                  <div class="wizard-login-input"></div>
+                                  <label class="wizard-login-label">
+                                    {{ $t("rebranding.password") }}
+                                  </label>
+                                  <div
+                                    class="
+                                      wizard-login-input
+                                      wizard-login-input-with-icon
+                                    "
+                                  >
+                                    <span class="wizard-login-input-eye"></span>
+                                  </div>
+                                  <div class="wizard-login-button-preview">
+                                    {{ $t("rebranding.sign_in") }}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div
+                              class="wizard-login-stage"
+                              :style="wizardBackgroundStyle"
+                            >
+                              <div class="wizard-login-stage-logo-wrap">
+                                <img
+                                  :src="wizardStageLogoUrl"
+                                  alt="Wizard logo"
+                                  class="wizard-login-stage-logo"
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -548,7 +633,9 @@
                         </h3>
                         <NsTextInput
                           :label="
-                            $t('rebranding.rebranding_reports_login_logo_url_label') +
+                            $t(
+                              'rebranding.rebranding_reports_login_logo_url_label'
+                            ) +
                             ' (' +
                             $t('common.optional') +
                             ')'
@@ -560,8 +647,12 @@
                             })
                           "
                           :disabled="loading.setRebranding"
-                          :invalid-message="error.rebranding_reports_login_logo_url"
-                          :helper-text="$t('rebranding.public_url_image_helper')"
+                          :invalid-message="
+                            error.rebranding_reports_login_logo_url
+                          "
+                          :helper-text="
+                            $t('rebranding.public_url_image_helper')
+                          "
                         />
                         <NsTextInput
                           :label="
@@ -577,11 +668,17 @@
                             })
                           "
                           :disabled="loading.setRebranding"
-                          :invalid-message="error.rebranding_reports_favicon_url"
-                          :helper-text="$t('rebranding.public_url_image_helper')"
+                          :invalid-message="
+                            error.rebranding_reports_favicon_url
+                          "
+                          :helper-text="
+                            $t('rebranding.public_url_image_helper')
+                          "
                         >
                           <template slot="tooltip">
-                            {{ $t("rebranding.rebranding_favicon_url_tooltip") }}
+                            {{
+                              $t("rebranding.rebranding_favicon_url_tooltip")
+                            }}
                           </template></NsTextInput
                         >
                         <NsTextInput
@@ -598,8 +695,12 @@
                             })
                           "
                           :disabled="loading.setRebranding"
-                          :invalid-message="error.rebranding_reports_login_background_url"
-                          :helper-text="$t('rebranding.public_url_image_helper')"
+                          :invalid-message="
+                            error.rebranding_reports_login_background_url
+                          "
+                          :helper-text="
+                            $t('rebranding.public_url_image_helper')
+                          "
                         />
                         <div class="rebranding-save-actions">
                           <NsButton
@@ -617,57 +718,63 @@
                           $t("rebranding.login_page_preview")
                         }}</label>
                         <div class="preview-frame reports-login-preview">
-                        <div class="preview-browser-bar preview-browser-bar-dark">
-                          <div class="preview-dots">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </div>
-                          <div class="preview-tab preview-tab-dark">
-                            <img
-                              v-if="reportsFaviconUrl"
-                              :src="reportsFaviconUrl"
-                              alt="Reports favicon"
-                              class="preview-favicon"
-                            />
-                            <div
-                              v-else
-                              class="preview-favicon preview-favicon-fallback"
-                            >
-                              {{ reportsBrandInitial }}
+                          <div
+                            class="preview-browser-bar preview-browser-bar-dark"
+                          >
+                            <div class="preview-dots">
+                              <span></span>
+                              <span></span>
+                              <span></span>
                             </div>
-                            <span class="preview-tab-label">
-                              {{ reportsPreviewTitle }}
-                            </span>
-                          </div>
-                        </div>
-                        <div class="reports-login-shell">
-                          <div class="reports-login-panel">
-                            <div class="reports-login-brand">
+                            <div class="preview-tab preview-tab-dark">
                               <img
-                                :src="reportsLogoUrl"
-                                alt="Reports logo"
-                                class="reports-login-logo"
+                                v-if="reportsFaviconUrl"
+                                :src="reportsFaviconUrl"
+                                alt="Reports favicon"
+                                class="preview-favicon"
                               />
-                              <div class="reports-login-subtitle">
-                                {{ reportsSubtitle }}
+                              <div
+                                v-else
+                                class="preview-favicon preview-favicon-fallback"
+                              >
+                                {{ reportsBrandInitial }}
                               </div>
-                            </div>
-                            <div class="reports-login-form">
-                              <label class="reports-login-label">
-                                {{ $t("rebranding.username") }}
-                              </label>
-                              <div class="reports-login-input"></div>
-                              <label class="reports-login-label">
-                                {{ $t("rebranding.password") }}
-                              </label>
-                              <div class="reports-login-input"></div>
-                              <div class="reports-login-button">
-                                {{ $t("rebranding.sign_in") }}
-                              </div>
+                              <span class="preview-tab-label">
+                                {{ reportsPreviewTitle }}
+                              </span>
                             </div>
                           </div>
-                          <div class="reports-login-side" :style="reportsBackgroundStyle"></div>
+                          <div class="reports-login-shell">
+                            <div class="reports-login-panel">
+                              <div class="reports-login-brand">
+                                <img
+                                  :src="reportsLogoUrl"
+                                  alt="Reports logo"
+                                  class="reports-login-logo"
+                                />
+                                <div class="reports-login-subtitle">
+                                  {{ reportsSubtitle }}
+                                </div>
+                              </div>
+                              <div class="reports-login-form">
+                                <label class="reports-login-label">
+                                  {{ $t("rebranding.username") }}
+                                </label>
+                                <div class="reports-login-input"></div>
+                                <label class="reports-login-label">
+                                  {{ $t("rebranding.password") }}
+                                </label>
+                                <div class="reports-login-input"></div>
+                                <div class="reports-login-button">
+                                  {{ $t("rebranding.sign_in") }}
+                                </div>
+                              </div>
+                            </div>
+                            <div
+                              class="reports-login-side"
+                              :style="reportsBackgroundStyle"
+                            ></div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -685,7 +792,9 @@
                           v-model="rebranding_nethlink_company_name"
                           placeholder="Nethesis"
                           :disabled="loading.setRebranding"
-                          :invalid-message="error.rebranding_nethlink_company_name"
+                          :invalid-message="
+                            error.rebranding_nethlink_company_name
+                          "
                         />
                         <NsTextInput
                           :label="$t('rebranding.rebranding_company_url')"
@@ -696,8 +805,12 @@
                             })
                           "
                           :disabled="loading.setRebranding"
-                          :invalid-message="error.rebranding_nethlink_company_url"
-                          :helper-text="$t('rebranding.rebranding_company_url_helper')"
+                          :invalid-message="
+                            error.rebranding_nethlink_company_url
+                          "
+                          :helper-text="
+                            $t('rebranding.rebranding_company_url_helper')
+                          "
                         />
                         <div class="rebranding-save-actions">
                           <NsButton
@@ -756,8 +869,13 @@
                                   </div>
                                 </div>
                               </div>
-                              <div class="nethlink-preview-dock" aria-hidden="true">
-                                <div class="nethlink-preview-dock-item is-active">
+                              <div
+                                class="nethlink-preview-dock"
+                                aria-hidden="true"
+                              >
+                                <div
+                                  class="nethlink-preview-dock-item is-active"
+                                >
                                   <img
                                     :src="nethlinkDockIconUrl"
                                     alt="NethLink dock icon"
@@ -783,7 +901,10 @@
                       kind="primary"
                       :icon="Save20"
                       :loading="loading.setRebranding"
-                      :disabled="loading.setRebranding || !!error.rebranding_nethlink_company_url"
+                      :disabled="
+                        loading.setRebranding ||
+                        !!error.rebranding_nethlink_company_url
+                      "
                     >
                       {{ $t("common.save") }}
                     </NsButton>
@@ -943,7 +1064,10 @@ export default {
       return this.reportsPreviewTitle.charAt(0).toUpperCase();
     },
     reportsPreviewTitle() {
-      return this.composePreviewTitle("Report", ["NethVoice", "NethVoice Reports"]);
+      return this.composePreviewTitle("Report", [
+        "NethVoice",
+        "NethVoice Reports",
+      ]);
     },
     reportsSubtitle() {
       return "Report";
@@ -1114,8 +1238,7 @@ export default {
       this.rebranding_wizard_brand_name = sharedBrandName;
       this.rebranding_wizard_login_background_url =
         config.rebranding_wizard_login_background_url;
-      this.rebranding_wizard_favicon_url =
-        config.rebranding_wizard_favicon_url;
+      this.rebranding_wizard_favicon_url = config.rebranding_wizard_favicon_url;
       this.rebranding_wizard_login_logo_url =
         config.rebranding_wizard_login_logo_url;
       this.rebranding_freepbx_admin_logo_url =
@@ -1130,26 +1253,21 @@ export default {
         rebranding_login_people: config.rebranding_login_people,
         rebranding_brand_name: sharedBrandName,
         rebranding_navbar_logo_url: config.rebranding_navbar_logo_url,
-        rebranding_navbar_logo_dark_url:
-          config.rebranding_navbar_logo_dark_url,
+        rebranding_navbar_logo_dark_url: config.rebranding_navbar_logo_dark_url,
         rebranding_login_logo_url: config.rebranding_login_logo_url,
-        rebranding_login_logo_dark_url:
-          config.rebranding_login_logo_dark_url,
+        rebranding_login_logo_dark_url: config.rebranding_login_logo_dark_url,
         rebranding_favicon_url: config.rebranding_favicon_url,
-        rebranding_login_background_url:
-          config.rebranding_login_background_url,
+        rebranding_login_background_url: config.rebranding_login_background_url,
         rebranding_reports_brand_name: sharedBrandName,
         rebranding_reports_login_logo_url:
           config.rebranding_reports_login_logo_url,
-        rebranding_reports_favicon_url:
-          config.rebranding_reports_favicon_url,
+        rebranding_reports_favicon_url: config.rebranding_reports_favicon_url,
         rebranding_reports_login_background_url:
           config.rebranding_reports_login_background_url,
         rebranding_wizard_brand_name: sharedBrandName,
         rebranding_wizard_login_logo_url:
           config.rebranding_wizard_login_logo_url,
-        rebranding_wizard_favicon_url:
-          config.rebranding_wizard_favicon_url,
+        rebranding_wizard_favicon_url: config.rebranding_wizard_favicon_url,
         rebranding_wizard_login_background_url:
           config.rebranding_wizard_login_background_url,
         rebranding_freepbx_admin_logo_url:
@@ -1173,9 +1291,7 @@ export default {
         return "";
       }
 
-      return ["NethVoice", "NethVoice CTI", "NethVoice Reports"].includes(
-        value
-      )
+      return ["NethVoice", "NethVoice CTI", "NethVoice Reports"].includes(value)
         ? ""
         : value;
     },
@@ -1308,9 +1424,8 @@ export default {
       );
 
       // register to task completion
-      this.core.$root.$once(
-        `${taskAction}-completed-${eventId}`,
-        () => this.setRebrandingCompleted(submissionKey)
+      this.core.$root.$once(`${taskAction}-completed-${eventId}`, () =>
+        this.setRebrandingCompleted(submissionKey)
       );
 
       const res = await to(
@@ -1336,12 +1451,15 @@ export default {
     async setBrandName() {
       const snapshot = this.getPayloadDefaults(this.savedRebrandingConfig);
 
-      await this.submitRebranding({
-        ...snapshot,
-        rebranding_brand_name: this.rebranding_brand_name,
-        rebranding_reports_brand_name: this.rebranding_brand_name,
-        rebranding_wizard_brand_name: this.rebranding_brand_name,
-      }, "setBrandName");
+      await this.submitRebranding(
+        {
+          ...snapshot,
+          rebranding_brand_name: this.rebranding_brand_name,
+          rebranding_reports_brand_name: this.rebranding_brand_name,
+          rebranding_wizard_brand_name: this.rebranding_brand_name,
+        },
+        "setBrandName"
+      );
     },
     async setRebranding() {
       if (
@@ -1355,33 +1473,38 @@ export default {
 
       const snapshot = this.getPayloadDefaults(this.savedRebrandingConfig);
 
-      await this.submitRebranding({
-        ...snapshot,
-        rebranding_login_people: this.rebranding_login_people ? "show" : "hide",
-        rebranding_navbar_logo_url: this.rebranding_navbar_logo_url,
-        rebranding_navbar_logo_dark_url: this.rebranding_navbar_logo_dark_url,
-        rebranding_login_logo_url: this.rebranding_login_logo_url,
-        rebranding_login_logo_dark_url: this.rebranding_login_logo_dark_url,
-        rebranding_favicon_url: this.rebranding_favicon_url,
-        rebranding_login_background_url: this.rebranding_login_background_url,
-        rebranding_reports_login_logo_url:
-          this.rebranding_reports_login_logo_url,
-        rebranding_reports_favicon_url: this.rebranding_reports_favicon_url,
-        rebranding_reports_login_background_url:
-          this.rebranding_reports_login_background_url,
-        rebranding_wizard_login_logo_url:
-          this.rebranding_wizard_login_logo_url,
-        rebranding_wizard_favicon_url: this.rebranding_wizard_favicon_url,
-        rebranding_wizard_login_background_url:
-          this.rebranding_wizard_login_background_url,
-        rebranding_freepbx_admin_logo_url:
-          this.rebranding_freepbx_admin_logo_url,
-        rebranding_freepbx_admin_favicon_url:
-          this.rebranding_freepbx_admin_favicon_url,
-        rebranding_nethlink_company_name:
-          this.rebranding_nethlink_company_name,
-        rebranding_nethlink_company_url: this.rebranding_nethlink_company_url,
-      }, "setRebranding");
+      await this.submitRebranding(
+        {
+          ...snapshot,
+          rebranding_login_people: this.rebranding_login_people
+            ? "show"
+            : "hide",
+          rebranding_navbar_logo_url: this.rebranding_navbar_logo_url,
+          rebranding_navbar_logo_dark_url: this.rebranding_navbar_logo_dark_url,
+          rebranding_login_logo_url: this.rebranding_login_logo_url,
+          rebranding_login_logo_dark_url: this.rebranding_login_logo_dark_url,
+          rebranding_favicon_url: this.rebranding_favicon_url,
+          rebranding_login_background_url: this.rebranding_login_background_url,
+          rebranding_reports_login_logo_url:
+            this.rebranding_reports_login_logo_url,
+          rebranding_reports_favicon_url: this.rebranding_reports_favicon_url,
+          rebranding_reports_login_background_url:
+            this.rebranding_reports_login_background_url,
+          rebranding_wizard_login_logo_url:
+            this.rebranding_wizard_login_logo_url,
+          rebranding_wizard_favicon_url: this.rebranding_wizard_favicon_url,
+          rebranding_wizard_login_background_url:
+            this.rebranding_wizard_login_background_url,
+          rebranding_freepbx_admin_logo_url:
+            this.rebranding_freepbx_admin_logo_url,
+          rebranding_freepbx_admin_favicon_url:
+            this.rebranding_freepbx_admin_favicon_url,
+          rebranding_nethlink_company_name:
+            this.rebranding_nethlink_company_name,
+          rebranding_nethlink_company_url: this.rebranding_nethlink_company_url,
+        },
+        "setRebranding"
+      );
     },
     setRebrandingAborted(
       taskAction,
@@ -1997,8 +2120,11 @@ export default {
 }
 
 .nethlink-preview-frame {
-  background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.75), transparent 34%),
+  background: radial-gradient(
+      circle at top,
+      rgba(255, 255, 255, 0.75),
+      transparent 34%
+    ),
     linear-gradient(180deg, #dbe4f4 0%, #bccadd 42%, #8b97ab 100%);
 }
 
