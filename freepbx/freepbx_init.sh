@@ -22,18 +22,18 @@ modules_to_install=(
     backup
     pm2
     core
+    cel
+    calendar
     timeconditions
     userman
     cdr
     blacklist
     bosssecretary
     bulkhandler
-    calendar
     callback
     callforward
     callrecording
     callwaiting
-    cel
     certman
     conferences
     customappsreg
