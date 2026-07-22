@@ -22,6 +22,33 @@
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
+include_once('lib/libMiddleware.php');
+include_once('lib/libUsers.php');
+
+/**
+ * Validate a sharing value ('public' or 'group:<g1,g2>'). Group names are checked
+ * against the existing CTI groups; unknown ones are dropped and a group scope left
+ * with no valid group falls back to 'public'. Throws on DB error so the caller can
+ * fail closed instead of silently downgrading a restricted source to public.
+ */
+function validatePhonebookSharing($rawType) {
+    $sharing = empty($rawType) ? 'public' : $rawType;
+    if (strpos($sharing, 'group:') !== 0) {
+        return 'public';
+    }
+    $requested = array_filter(array_map('trim', explode(',', substr($sharing, strlen('group:')))));
+    $existingGroups = array();
+    $dbh = FreePBX::Database();
+    $rows = $dbh->sql('SELECT name FROM rest_cti_groups', 'getAll', \PDO::FETCH_ASSOC);
+    if (is_array($rows)) {
+        foreach ($rows as $r) {
+            $existingGroups[] = $r['name'];
+        }
+    }
+    $validGroups = array_values(array_intersect($requested, $existingGroups));
+    return count($validGroups) ? 'group:'.implode(',', $validGroups) : 'public';
+}
+
 $app->get('/phonebook/fields', function (Request $request, Response $response, $args) {
     $fields = array(
        'cellphone',
@@ -122,43 +149,14 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
         $newsource['dbtype'] = $data['dbtype'];
         // optional parameters
         $newsource['interval'] = empty($data['interval']) ? 1440 : $data['interval'];
-        // Sharing: 'public' or 'group:<comma-separated group names>'. Group names are
-        // validated against the existing CTI groups; unknown ones are dropped, and a
-        // group scope left with no valid groups falls back to public. This keeps the
-        // stored value trustworthy even when the request bypasses the wizard UI.
-        $sharing = empty($data['type']) ? 'public' : $data['type'];
-        if (strpos($sharing, 'group:') === 0) {
-            $requested = array_filter(array_map('trim', explode(',', substr($sharing, strlen('group:')))));
-            $existingGroups = array();
-            try {
-                $dbh = FreePBX::Database();
-                $rows = $dbh->sql('SELECT name FROM rest_cti_groups', 'getAll', \PDO::FETCH_ASSOC);
-                if (is_array($rows)) {
-                    foreach ($rows as $r) {
-                        $existingGroups[] = $r['name'];
-                    }
-                }
-            } catch (Exception $e) {
-                // Fail safe: if we cannot validate the groups, reject rather than
-                // silently downgrading a group-restricted source to public.
-                error_log($e->getMessage());
-                return $response->withJson(array("status"=>"Cannot validate sharing groups"), 500);
-            }
-            $validGroups = array_values(array_intersect($requested, $existingGroups));
-            $sharing = count($validGroups) ? 'group:'.implode(',', $validGroups) : 'public';
-        } else {
-            $sharing = 'public';
+        // Sharing: 'public' or 'group:<comma-separated group names>', validated against
+        // the existing CTI groups. Fail closed if the groups cannot be validated.
+        try {
+            $newsource['type'] = validatePhonebookSharing(isset($data['type']) ? $data['type'] : '');
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            return $response->withJson(array("status"=>"Cannot validate sharing groups"), 500);
         }
-        $newsource['type'] = $sharing;
-        // CSV only: global owner chosen from the users list, written to owner_id of
-        // every imported contact. Optional; empty means no owner. Must be an existing
-        // user; an unknown owner is dropped to avoid orphan owner_id references.
-        $owner = isset($data['owner']) ? trim($data['owner']) : '';
-        if ($owner !== '' && !userExists($owner)) {
-            error_log("Ignoring unknown owner '$owner' for phonebook source $id");
-            $owner = '';
-        }
-        $newsource['owner'] = $owner;
         $newsource['enabled'] = empty($data['enabled']) ? false : $data['enabled'];
 
         $file = $config_dir.'/'.$id.'.json';
@@ -290,6 +288,107 @@ $app->post('/phonebook/uploadfile', function (Request $request, Response $respon
         ), 200);
     } catch (Exception $e) {
         unlink($upload_dest);
+        error_log($e->getMessage());
+        return $response->withJson(array("status"=>$e->getMessage()), 500);
+    }
+});
+
+/*
+* POST /phonebook/import-cti
+* One-shot import of an uploaded CSV into the personal CTI phonebook (cti_phonebook)
+* via the middleware admin endpoint. Unlike the recurring sources, this is not stored
+* under sources.d: contacts are appended once, assigned to a single owner, with a
+* single visibility (sharing) applied to every row.
+*/
+$app->post('/phonebook/import-cti', function (Request $request, Response $response, $args) {
+    try {
+        $data = $request->getParsedBody();
+
+        // Owner is mandatory and must be an existing user (fail closed).
+        $owner = isset($data['owner']) ? trim($data['owner']) : '';
+        if ($owner === '' || !userExists($owner)) {
+            return $response->withJson(array("status"=>"Invalid or missing owner"), 400);
+        }
+
+        // Sharing value applied to every imported contact.
+        try {
+            $sharing = validatePhonebookSharing(isset($data['type']) ? $data['type'] : '');
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            return $response->withJson(array("status"=>"Cannot validate sharing groups"), 500);
+        }
+
+        // Column mapping source->destination; must map to at least 'name', otherwise
+        // the middleware skips every row (nameless rows are discarded).
+        $mapping = isset($data['mapping']) ? (array)$data['mapping'] : array();
+        if (empty($mapping)) {
+            return $response->withJson(array("status"=>"Missing value: mapping"), 400);
+        }
+        if (!in_array('name', array_values($mapping), true)) {
+            return $response->withJson(array("status"=>"Mapping must include the 'name' destination"), 400);
+        }
+
+        // Resolve the uploaded CSV path from its file:// URL, constrained to the
+        // uploads directory to avoid reading arbitrary files.
+        $url = isset($data['url']) ? $data['url'] : '';
+        $baseDir = '/var/lib/nethvoice/phonebook/uploads/';
+        if (strpos($url, 'file://' . $baseDir) !== 0) {
+            return $response->withJson(array("status"=>"Invalid CSV url"), 400);
+        }
+        $srcPath = realpath(substr($url, strlen('file://')));
+        if ($srcPath === false || strpos($srcPath, $baseDir) !== 0 || !is_file($srcPath)) {
+            return $response->withJson(array("status"=>"CSV file not found"), 400);
+        }
+
+        $in = fopen($srcPath, 'r');
+        if ($in === false) {
+            return $response->withJson(array("status"=>"Cannot read CSV file"), 500);
+        }
+        $header = fgetcsv($in);
+        if ($header === false) {
+            fclose($in);
+            return $response->withJson(array("status"=>"Empty CSV file"), 400);
+        }
+
+        // Map each source column index to its destination name; unmapped columns are
+        // dropped. A 'type' column carrying the sharing value is appended to every row.
+        $destForIndex = array();
+        foreach ($header as $i => $col) {
+            $col = trim($col);
+            if (isset($mapping[$col]) && $mapping[$col] !== '') {
+                $destForIndex[$i] = $mapping[$col];
+            }
+        }
+        if (empty($destForIndex)) {
+            fclose($in);
+            return $response->withJson(array("status"=>"No mapped columns found in CSV"), 400);
+        }
+        $destHeader = array_values($destForIndex);
+        $destHeader[] = 'type';
+
+        $tmp = tempnam(sys_get_temp_dir(), 'cti_csv_');
+        $out = fopen($tmp, 'w');
+        fputcsv($out, $destHeader);
+        while (($row = fgetcsv($in)) !== false) {
+            $vals = array();
+            foreach ($destForIndex as $i => $dest) {
+                $vals[] = isset($row[$i]) ? $row[$i] : '';
+            }
+            $vals[] = $sharing;
+            fputcsv($out, $vals);
+        }
+        fclose($in);
+        fclose($out);
+
+        $res = importCtiPhonebookCsv($owner, $tmp);
+        unlink($tmp);
+        if ($res === false) {
+            return $response->withJson(array("status"=>"Middleware not reachable"), 502);
+        }
+        $decoded = json_decode($res['body'], true);
+        $status = $res['httpCode'] ? $res['httpCode'] : 500;
+        return $response->withJson($decoded !== null ? $decoded : array("status"=>$res['body']), $status);
+    } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withJson(array("status"=>$e->getMessage()), 500);
     }

@@ -277,13 +277,6 @@ def syncSourceCsv(path, output, deleteonly):
   if sConfig[sid]['type'] is not None:
     destCols.append('type')
 
-  # CSV only: a global owner chosen in the wizard is written to owner_id of every
-  # imported row. Skip if owner_id is already mapped.
-  owner = sConfig[sid].get('owner')
-  writeOwner = bool(owner) and 'owner_id' not in destCols
-  if writeOwner:
-    destCols.append('owner_id')
-
   importedCount = 0
   errCount = 0
 
@@ -298,8 +291,6 @@ def syncSourceCsv(path, output, deleteonly):
     values.append(str(sid))
     if sConfig[sid]['type'] is not None:
       values.append(str(sConfig[sid]['type']))
-    if writeOwner:
-      values.append(str(owner))
     sql = 'INSERT INTO ' + dConfig['dbtable'] + ' (' + ','.join(destCols) + ') VALUES (' + percents + ')'
     try:
       curDest.execute(sql, tuple(values))

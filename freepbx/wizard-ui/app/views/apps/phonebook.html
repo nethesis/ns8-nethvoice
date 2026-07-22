@@ -30,7 +30,9 @@
         <span class="pficon pficon-close"></span>
       </button>
       <span class="pficon pficon-ok"></span>
-      <strong>{{'Source saved' | translate}}.</strong> {{'Source saved with success' | translate}}
+      <strong>{{'Source saved' | translate}}.</strong>
+      <span ng-if="!importResult">{{'Source saved with success' | translate}}</span>
+      <span ng-if="importResult">{{'Imported' | translate}}: {{importResult.ImportedRows}} - {{'Skipped' | translate}}: {{importResult.SkippedRows}} - {{'Failed' | translate}}: {{importResult.FailedRows}}</span>
     </div>
     <div ng-if="onSaveErrorSource" class="alert alert-danger alert-dismissable">
       <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
@@ -224,7 +226,7 @@
                           </div>
                         </div>
                       </div>
-                      <div class="settings-row" ng-if="newSource.dbtype === 'csv'">
+                      <div class="settings-row" ng-if="isCtiPhonebookType(newSource.dbtype)">
                         <h3 class="settings-title">{{"Owner" | translate}}</h3>
                         <div class="phonebook-settings-rows col-xs-12 col-sm-6 col-lg-6">
                           <p class="sync-settings-string">
@@ -238,7 +240,7 @@
                         <div class="phonebook-settings-rows col-xs-12 col-sm-6 col-lg-6">
                         </div>
                       </div>
-                      <div class="settings-row">
+                      <div class="settings-row" ng-if="!isCtiPhonebookType(newSource.dbtype)">
                         <h3 class="settings-title">{{"Synchronization" | translate}}</h3>
                         <div class="phonebook-settings-rows col-xs-12 col-sm-6 col-lg-6">
                           <p class="sync-settings-string">
@@ -493,7 +495,7 @@
                               <li ng-if="newSource.mapping.lenght < 1" class="not-selectable cursive">
                                 <a>{{"No columns available" | translate}}</a>
                               </li>
-                              <li ng-if="!d.inuse && !(newSource.dbtype === 'csv' && kd === 'owner_id')" ng-repeat="(kd, d) in colsDestinations" role="presentation" class="not-selectable">
+                              <li ng-if="!d.inuse && !((newSource.dbtype === 'csv' || newSource.dbtype === 'csv_cti') && kd === 'owner_id')" ng-repeat="(kd, d) in colsDestinations" role="presentation" class="not-selectable">
                                 <a ng-click="enableSourceSave(kc, kd)" role="menuitem">
                                   {{kd}}
                                 </a>
@@ -598,8 +600,8 @@
                                   <div required ng-model="newSource.query" class="editor-form editor-form-phonebook" ui-ace="{theme:'twilight',mode: 'sql', onChange: editorOnChange}"></div>
                                 </div>
                               </div>
-                              <!-- type CSV -->
-                              <div ng-if="newSource.dbtype == 'csv'" class="form-group">
+                              <!-- type CSV (centralized or CTI phonebook) -->
+                              <div ng-if="newSource.dbtype == 'csv' || newSource.dbtype == 'csv_cti'" class="form-group">
                                 <label class="col-sm-3 control-label" for="input-csv-url">{{'pb_csv_url_label' | translate}}</label>
                                 <div class="col-sm-8 input-container" style="padding-right: 0 !important">
                                   <input id="input-csv-url" required ng-disabled="newSource.readonly" ng-model="newSource.url" type="url" pattern="(https?://|file:///).+" type="text" class="form-control">
@@ -723,9 +725,9 @@
             </span>
             <span class="i fa fa-angle-right"></span>
           </button>
-          <button ng-if="sourceModal.tab === 'sync'" ng-disabled="!isSharingValid()" ng-click="ui.onModify ? updateSource() : saveSource()" class="btn btn-primary wizard-pf-next">
+          <button ng-if="sourceModal.tab === 'sync'" ng-disabled="isCtiPhonebookType(newSource.dbtype) ? !isCtiImportValid() : !isSharingValid()" ng-click="ui.onModify ? updateSource() : saveSource()" class="btn btn-primary wizard-pf-next">
             <span class="wizard-pf-button-text">
-              {{"Save" | translate}}
+              {{(isCtiPhonebookType(newSource.dbtype) ? "Import" : "Save") | translate}}
             </span>
             <span class="i fa fa-angle-right"></span>
           </button>

@@ -119,7 +119,17 @@ angular.module('nethvoiceWizardUiApp')
     $scope.allDBTypes = {
       "mysql": "MySQL",
       "csv": "CSV",
+      "csv_cti": "CSV (CTI phonebook)",
       "infinity": "Infinity Zucchetti"
+    };
+
+    // Source types that write into the personal CTI phonebook (cti_phonebook)
+    // instead of the centralized one. They carry an owner and are imported
+    // one-shot through the middleware rather than synced on a schedule.
+    $scope.ctiPhonebookTypes = ['csv_cti'];
+
+    $scope.isCtiPhonebookType = function (dbtype) {
+      return $scope.ctiPhonebookTypes.indexOf(dbtype) !== -1;
     };
 
     // Fixed, read-only field mapping applied by the importer for Infinity sources.
@@ -350,14 +360,14 @@ angular.module('nethvoiceWizardUiApp')
           password: s.password,
           query: s.query,
         };
-      } else if (s.dbtype == 'csv') {
+      } else if (s.dbtype == 'csv' || s.dbtype == 'csv_cti') {
+        // csv_cti shares the CSV file format: the same test/preview path is used to
+        // read the source columns. The actual import target (centralized vs CTI
+        // phonebook) is decided at save time, not here.
         payload = {
           dbtype: 'csv',
           url: s.url,
         };
-        // CSV only: a global owner is chosen from the users list instead of mapping
-        // owner_id. Written to owner_id of every imported row.
-        payload.owner = s.owner || '';
       } else if (s.dbtype == 'infinity') {
         // Zucchetti Infinity API source: fixed field mapping is applied by the
         // importer, so only the API credentials are configured here.
@@ -379,7 +389,41 @@ angular.module('nethvoiceWizardUiApp')
       return $scope.sharing.mode !== 'group' || $scope.sharing.groups.length > 0;
     };
 
+    var createCtiImportPayload = function (s) {
+      return {
+        url: s.url,
+        owner: s.owner || '',
+        type: $scope.buildSharingType(),
+        mapping: s.mapping
+      };
+    };
+
+    $scope.isCtiImportValid = function () {
+      return $scope.isSharingValid() && !!($scope.newSource && $scope.newSource.owner);
+    };
+
     $scope.saveSource = function () {
+      if ($scope.isCtiPhonebookType($scope.newSource.dbtype)) {
+        // One-shot import into the personal CTI phonebook through the middleware.
+        // No recurring source is stored: an owner is required and the contacts are
+        // appended once.
+        if (!$scope.isCtiImportValid()) {
+          $scope.onSaveErrorSource = true;
+          return;
+        }
+        $scope.importResult = null;
+        PhonebookService.importCti(createCtiImportPayload($scope.newSource)).then(function (res) {
+          $("#creationsourceModal").modal('hide');
+          $scope.onSaveSuccessSource = true;
+          $scope.importResult = res.data;
+          $scope.ui.onModify = false;
+        }, function (err) {
+          $scope.onSaveErrorSource = true;
+          $scope.importResult = err && err.data ? err.data : null;
+          console.log(err);
+        });
+        return;
+      }
       if (!$scope.isSharingValid()) {
         $scope.onSaveErrorSource = true;
         return;
