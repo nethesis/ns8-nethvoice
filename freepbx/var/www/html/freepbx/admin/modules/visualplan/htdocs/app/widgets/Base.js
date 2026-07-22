@@ -319,7 +319,7 @@ Base = draw2d.shape.layout.VerticalLayout.extend({
     },
 
     onDrop: function (droppedDomNode, x, y, elements) {
-        this.creationSwitch(elements, droppedDomNode[0].id, $(droppedDomNode[0]).text().trim());
+        return this.creationSwitch(elements, droppedDomNode[0].id, $(droppedDomNode[0]).text().trim());
     },
 
     creationSwitch: function (elem, type, title) {
@@ -332,6 +332,27 @@ Base = draw2d.shape.layout.VerticalLayout.extend({
             type: "Base",
             userData: []
         };
+
+        // Some node types require a recording/timegroup to be selected. When no
+        // recording exists yet the <select> is empty, so selectedOptions[0] is
+        // undefined. Validate before dereferencing it: abort creation and show a
+        // message instead of crashing the canvas.
+        var requiredSelect = {
+            "ivr": { index: 2, attr: "annid" },
+            "cqr": { index: 2, attr: "annid" },
+            "app-announcement": { index: 1, attr: "annid" },
+            "timeconditions": { index: 1, attr: "timeid" }
+        };
+        var req = requiredSelect[type];
+        if (req) {
+            var sel = elem && elem[req.index];
+            var opt = (sel && sel.selectedOptions) ? sel.selectedOptions[0] : null;
+            if (!opt || !opt.attributes[req.attr]) {
+                $(".error-message").html("");
+                $('#modalCreation').append('<p class="error-message">' + languages[browserLang]["view_error_empty"] + '</p>');
+                return false;
+            }
+        }
 
         switch (type) {
             case "app-blackhole":
@@ -659,6 +680,7 @@ Base = draw2d.shape.layout.VerticalLayout.extend({
                 break;
         }
         this.setPersistentAttributes(templateObj, type);
+        return true;
     },
 
     removeEntity: function (index) {
