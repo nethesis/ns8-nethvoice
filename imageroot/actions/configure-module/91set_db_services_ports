@@ -25,8 +25,10 @@
 # on UPDATE to avoid inserting a duplicate row under a mismatched `id`.
 
 import os
+import re
 import subprocess
 import sys
+import time
 
 
 def run_sql(query):
@@ -126,3 +128,42 @@ if subprocess.run(
             "database and will be applied on the next FreePBX start",
             file=sys.stderr,
         )
+
+    # A `fwconsole reload` does NOT rebind an already-loaded PJSIP transport, so
+    # after a fresh install (or any change to the SIP UDP port) Asterisk keeps
+    # listening on the old/default port until a restart (QA finding B4). Restart
+    # only when the live transport is not already on the allocated port, to
+    # avoid disrupting calls on every reconfigure.
+    def sip_udp_transport_bound(port):
+        result = subprocess.run(
+            ["podman", "exec", "freepbx",
+             "asterisk", "-rx", "pjsip show transports"],
+            capture_output=True, text=True,
+        )
+        return re.search(rf":{port}(\D|$)", result.stdout) is not None
+
+    if not sip_udp_transport_bound(SIP_UDP_PORT):
+        print(
+            f"restarting Asterisk to rebind the SIP UDP transport to {SIP_UDP_PORT}",
+            file=sys.stderr,
+        )
+        subprocess.run(
+            ["podman", "exec", "--user", "asterisk", "freepbx",
+             "fwconsole", "restart", "--no-interaction"],
+        )
+        # Wait for Asterisk to come back up (bounded to ~5 minutes)
+        for _ in range(60):
+            probe = subprocess.run(
+                ["podman", "exec", "freepbx",
+                 "asterisk", "-rx", "core show version"],
+                capture_output=True, text=True,
+            )
+            if probe.stdout.startswith("Asterisk"):
+                break
+            time.sleep(5)
+        if not sip_udp_transport_bound(SIP_UDP_PORT):
+            print(
+                f"WARNING: SIP UDP transport is not bound to {SIP_UDP_PORT} "
+                "after restart",
+                file=sys.stderr,
+            )
