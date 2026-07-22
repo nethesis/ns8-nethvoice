@@ -28,16 +28,21 @@ import os
 import subprocess
 import sys
 
-import agent
-
-MARIADB_ROOT_PASSWORD = agent.read_envfile("passwords.env")["MARIADB_ROOT_PASSWORD"]
-
 
 def run_sql(query):
-    agent.run_helper(
-        *f"podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e".split(),
-        query,
-    ).check_returncode()
+    # Read the root password from the mariadb container's own environment
+    # (MYSQL_PWD, exported inside the shell so it never appears in any process
+    # argv) instead of placing it on the host command line, where
+    # agent.run_helper would log it to the system journal (QA finding B2).
+    subprocess.run(
+        [
+            "podman", "exec", "-i", "mariadb", "bash", "-c",
+            'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; exec /usr/bin/mysql -uroot asterisk',
+        ],
+        input=query,
+        text=True,
+        check=True,
+    )
 
 
 IAX_PORT = os.environ["ASTERISK_IAX_PORT"]
