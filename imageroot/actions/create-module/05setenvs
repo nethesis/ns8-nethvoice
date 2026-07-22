@@ -110,6 +110,8 @@ agent.set_env('WIZARD_BRAND_NAME', 'NethVoice')
 agent.set_env('WIZARD_LOGIN_LOGO_URL', '')
 agent.set_env('WIZARD_FAVICON_URL', '')
 agent.set_env('WIZARD_LOGIN_BACKGROUND_URL', '')
+agent.set_env('FREEPBX_ADMIN_LOGO_URL', '')
+agent.set_env('FREEPBX_ADMIN_FAVICON_URL', '')
 
 agent.set_env('CDRDBHOST', '127.0.0.1')
 agent.set_env('CDRDBNAME', 'asteriskcdrdb')
