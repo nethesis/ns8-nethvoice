@@ -208,7 +208,7 @@ angular.module('nethvoiceWizardUiApp')
     };
 
     $scope.getSourceName = function (pbo, defval) {
-      return pbo.dbname || pbo.url || pbo._sourceKey || defval;
+      return pbo._displayName || pbo.dbname || pbo.url || pbo._sourceKey || defval;
     };
 
     $scope.buildSharingType = function () {
@@ -234,9 +234,23 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.normalizeSources = function (sources) {
       $scope.allSources = angular.isObject(sources) ? sources : {};
-      $scope.allSourcesList = Object.keys($scope.allSources).map(function (key) {
+      var keys = Object.keys($scope.allSources).sort(function (a, b) {
+        var na = parseInt((a.match(/(\d+)$/) || [])[1], 10) || 0;
+        var nb = parseInt((b.match(/(\d+)$/) || [])[1], 10) || 0;
+        return na - nb;
+      });
+      var counters = {};
+      $scope.allSourcesList = keys.map(function (key, idx) {
         var source = $scope.allSources[key] || {};
         source._sourceKey = key;
+        source._order = idx;
+        var t = source.dbtype || 'source';
+        counters[t] = (counters[t] || 0) + 1;
+        if (t === 'mysql' && source.dbname) {
+          source._displayName = source.dbname;
+        } else {
+          source._displayName = t + counters[t];
+        }
         return source;
       });
     };
