@@ -26,6 +26,7 @@
 
 import os
 import subprocess
+import sys
 
 import agent
 
@@ -94,15 +95,29 @@ ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), `defaultval` = VALUES(`defaul
 """)
 
 # Reload FreePBX so the regenerated Asterisk config uses the new ports.
-# Skip gracefully if the container is not reachable (config will be correct
-# on the next start).
+# The port rows are already committed above; the reload only applies them to
+# the live configuration. A reload failure (FreePBX not fully ready) must NOT
+# abort the action: the stored values are correct and are applied on the next
+# FreePBX start. Skip gracefully if the container is not reachable.
 if subprocess.run(
     ["podman", "exec", "freepbx", "true"],
     stdout=subprocess.DEVNULL,
     stderr=subprocess.DEVNULL,
 ).returncode == 0:
+    # Fix cache/file ownership first to avoid the LESS cache reload failure
+    # ("Can not create the LESS cache folder ... run fwconsole chown").
     subprocess.run(
+        ["podman", "exec", "freepbx", "fwconsole", "chown"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    reload_result = subprocess.run(
         ["podman", "exec", "--user", "asterisk", "freepbx",
          "fwconsole", "reload", "--no-interaction"],
-        check=True,
     )
+    if reload_result.returncode != 0:
+        print(
+            "WARNING: fwconsole reload failed; port values are stored in the "
+            "database and will be applied on the next FreePBX start",
+            file=sys.stderr,
+        )

@@ -11,3 +11,17 @@ until curl -fs http://127.0.0.1:${APACHE_PORT}/freepbx/admin/config.php &> /dev/
     echo "waiting for FreePBX to be ready" > /dev/stderr
     sleep 5
 done
+
+# HTTP reachability does not prove the fwconsole CLI is usable: the binary may
+# not be executable yet, the Core BMO class may be unloaded, or module install
+# may still be running. Later steps (e.g. 91set_db_services_ports) call
+# fwconsole, so wait until it can actually list modules before returning.
+attempt=0
+until podman exec --user asterisk freepbx fwconsole ma list &> /dev/null ; do
+    if [ "$((attempt++))" -ge 60 ]; then
+        echo "fwconsole did not become ready in time" > /dev/stderr
+        exit 1
+    fi
+    echo "waiting for fwconsole to be ready" > /dev/stderr
+    sleep 5
+done
