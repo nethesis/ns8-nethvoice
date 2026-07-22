@@ -418,7 +418,7 @@ example.View = draw2d.Canvas.extend({
                 var FigureCtor = figureClasses[typeFig];
                 if (!FigureCtor) { return; }
                 var figure = new FigureCtor();
-                figure.onDrop(event.dropped, event.x, event.y, elem);
+                if (figure.onDrop(event.dropped, event.x, event.y, elem) === false) { return; }
                 var command = new draw2d.command.CommandAdd(event.context, figure, event.x - figure.width - 75, event.y - 25);
                 event.context.getCommandStack().execute(command);
 
@@ -1342,7 +1342,7 @@ example.View = draw2d.Canvas.extend({
                 var FigureCtor = figureClasses[type];
                 if (!FigureCtor) { return; }
                 var figure = new FigureCtor();
-                figure.onDrop(droppedDomNode, x, y, []);
+                if (figure.onDrop(droppedDomNode, x, y, []) === false) { return; }
 
                 var command = new draw2d.command.CommandAdd(this, figure, x - figure.width - 75, y - 25);
                 this.getCommandStack().execute(command);
@@ -1538,17 +1538,18 @@ var onSuccess = function (s) {
 }
 
 function startRecording() {
-    if (navigator.getUserMedia) {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         $('#newRecordingNameSection2').hide();
-        navigator.getUserMedia({
+        navigator.mediaDevices.getUserMedia({
             audio: true
-        }, onSuccess, onFail);
+        }).then(onSuccess).catch(onFail);
     } else {
-        console.log('navigator.getUserMedia not present');
+        console.log('navigator.mediaDevices.getUserMedia not present');
     }
 }
 
 function stopRecording() {
+    if (!recorder) { return; }
     recorder.stop();
     $('#startRecordingBtn').removeClass('blink');
     window.streamReference.getAudioTracks().forEach(function(track) {
