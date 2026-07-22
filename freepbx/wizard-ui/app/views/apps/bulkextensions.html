@@ -72,7 +72,7 @@
       </div>
       <div class="list-group list-view-pf list-view-pf-view adjust-margin-extensions margin-bottom-lg">
         <div ng-if="user.default_extension !== 'none'" class="list-group-item {{user.selected == true ? 'selected' : ''}}"
-        ng-repeat="user in users | customFilterMultiple:'displayname,username,default_extension':search.string | orderBy:'user.username' | limitTo: usersLimit"
+        ng-repeat="user in users | customFilterMultiple:'displayname,username,default_extension':search.string | orderBy:'username' | limitTo: usersLimit"
           ng-click="selectUser(user)">
           <div class="list-view-pf-actions {{user.alreadyExists ? 'has-error' : ''}}">
             <div ng-show="user.isInAction" class="spinner spinner-sm adjust-margin"></div>

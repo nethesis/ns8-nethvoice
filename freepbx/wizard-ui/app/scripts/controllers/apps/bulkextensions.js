@@ -63,8 +63,10 @@ angular.module('nethvoiceWizardUiApp')
       if (!$scope.lockOnList) {
         $scope.lockOnList = true;
         UserService.list(true).then(function (res) {
-          $scope.users = res.data;
-          $scope.num.tot = Object.keys($scope.users).length;
+          $scope.users = (res.data || []).filter(function (user) {
+            return user.default_extension !== 'none';
+          });
+          $scope.num.tot = $scope.users.length;
           $scope.view.changeRoute = false;
         }, function (err) {
           $scope.users = {}
@@ -100,7 +102,7 @@ angular.module('nethvoiceWizardUiApp')
         $scope.num.selected = 0;
         for (var g in res.data) {
           for (var u in $scope.users) {
-            if (res.data[g].user_id == $scope.users[u].id) {
+            if (res.data[g].user_id == $scope.users[u].id && $scope.users[u].default_extension !== 'none') {
               usersId.push($scope.users[u].id);
               $scope.users[u].selected = true;
               $scope.num.selected++;
@@ -116,15 +118,17 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.selectAll = function (val) {
       $scope.selectLabel = val == true ? 'All' : '';
+      $scope.num.selected = 0;
       for (var u in $scope.users) {
-        if (val == true) {
-          $scope.num.selected = Object.keys($scope.users).length;
+        if (val == true && $scope.users[u].default_extension !== 'none') {
           $scope.users[u].selected = true;
+          $scope.num.selected++;
         } else {
-          $scope.num.selected = 0;
           $scope.users[u].selected = false;
-          $scope.search.result = false;
         }
+      }
+      if (val != true) {
+        $scope.search.result = false;
       }
       $scope.search.string = '';
     }
