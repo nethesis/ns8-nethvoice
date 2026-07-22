@@ -20,7 +20,7 @@
           <div class="dropdown inline-display">
             <button class="btn btn-default dropdown-toggle drd-button" type="button" id="dropdownMenu1" data-toggle="dropdown">
               <span class="filter-option pull-left">
-                -
+                {{selectLabel || '-'}}
               </span>
               <span class="caret drd-carret"></span>
             </button>
@@ -33,7 +33,7 @@
               </li>
               <li ng-if="!(allGroups | isEmpty)" class="divider"></li>
               <li ng-repeat="group in allGroups">
-                <a ng-click="selectGroup(group.id)">{{'Group' | translate}} {{group.name}}</a>
+                <a ng-click="selectGroup(group.id, group.name)">{{'Group' | translate}} {{group.name}}</a>
               </li>
               <li ng-if="!(allGroups | isEmpty)" class="divider"></li>
               <li>
@@ -81,7 +81,7 @@
             <span ng-if="user.alreadyExists" class="help-block">{{'Extension already in use' | translate}}</span>
           </div>
           <div class="list-view-pf-checkbox">
-            <input type="checkbox" ng-click="user.selected == true ? user.selected = false : user.selected = true" ng-model="user.selected"
+            <input type="checkbox" ng-checked="user.selected"
               ng-disabled="user.default_extension === 'none'">
           </div>
           <div class="list-view-pf-main-info">

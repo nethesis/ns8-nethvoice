@@ -26,6 +26,7 @@ angular.module('nethvoiceWizardUiApp')
     };
     $scope.bulkEdit = {}
     $scope.usersLimit = 20
+    $scope.selectLabel = '';
 
     $scope.view.changeRoute = true;
 
@@ -92,8 +93,9 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
-    $scope.selectGroup = function (id) {
+    $scope.selectGroup = function (id, name) {
       var usersId = [];
+      $scope.selectLabel = 'Group ' + name;
       ProfileService.allUserGroups(id).then(function (res) {
         $scope.num.selected = 0;
         for (var g in res.data) {
@@ -113,6 +115,7 @@ angular.module('nethvoiceWizardUiApp')
     }
 
     $scope.selectAll = function (val) {
+      $scope.selectLabel = val == true ? 'All' : '';
       for (var u in $scope.users) {
         if (val == true) {
           $scope.num.selected = Object.keys($scope.users).length;
@@ -127,6 +130,7 @@ angular.module('nethvoiceWizardUiApp')
     }
 
     $scope.selectInterval = function () {
+      $scope.selectLabel = 'Interval';
       $scope.num.selected = 0;
       for (var u in $scope.users) {
         $scope.users[u].selected = false;
