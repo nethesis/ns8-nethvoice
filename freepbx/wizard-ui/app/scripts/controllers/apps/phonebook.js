@@ -309,15 +309,15 @@ angular.module('nethvoiceWizardUiApp')
     }
 
     $scope.reloadAvailableDestinations = function () {
+      // Recompute the "in use" flag for every destination from the current mapping.
+      // Must reset all columns (not only iterate the mapping) so switching to a new
+      // source with an empty mapping frees the destinations used by the previous one.
+      var used = {};
+      for (var src in $scope.newSource.mapping) {
+        used[$scope.newSource.mapping[src]] = true;
+      }
       for (var column in $scope.colsDestinations) {
-        for (var map in $scope.newSource.mapping) {
-          if ($scope.newSource.mapping[map] === column) {
-            $scope.colsDestinations[column].inuse = true;
-            break;
-          } else {
-            $scope.colsDestinations[column].inuse = false; 
-          }
-        }
+        $scope.colsDestinations[column].inuse = !!used[column];
       }
     }
 
@@ -434,6 +434,9 @@ angular.module('nethvoiceWizardUiApp')
       PhonebookService.createConfig(createSourcePayload($scope.newSource)).then(function (res) {
         $("#creationsourceModal").modal('hide');
         $scope.onSaveSuccessSource = true;
+        // Recurring centralized source: no one-shot import result to show, so clear any
+        // leftover count from a previous CTI import (the "Imported/Skipped/Failed" text).
+        $scope.importResult = null;
         $scope.ui.onModify = false;
         $scope.getAllSources();
       }, function (err) {
