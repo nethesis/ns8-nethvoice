@@ -32,7 +32,7 @@
       <span class="pficon pficon-ok"></span>
       <strong>{{'Source saved' | translate}}.</strong>
       <span ng-if="!importResult">{{'Source saved with success' | translate}}</span>
-      <span ng-if="importResult">{{'Imported' | translate}}: {{importResult.ImportedRows}} - {{'Skipped' | translate}}: {{importResult.SkippedRows}} - {{'Failed' | translate}}: {{importResult.FailedRows}}</span>
+      <span ng-if="importResult">{{'Imported' | translate}}: {{importResult.imported_rows}} - {{'Skipped' | translate}}: {{importResult.skipped_rows}} - {{'Failed' | translate}}: {{importResult.failed_rows}}</span>
     </div>
     <div ng-if="onSaveErrorSource" class="alert alert-danger alert-dismissable">
       <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
