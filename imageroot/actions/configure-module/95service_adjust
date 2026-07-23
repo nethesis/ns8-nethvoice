@@ -8,7 +8,8 @@
 MARIADB_ROOT_PASSWORD=$(grep '^MARIADB_ROOT_PASSWORD=' ./passwords.env) && export $MARIADB_ROOT_PASSWORD
 # start nethcti-server if wizard step is completed
 WIZARD_STEP=$(/usr/bin/podman exec mariadb mysql -u root -h 127.0.0.1 -P $NETHVOICE_MARIADB_PORT -p$MARIADB_ROOT_PASSWORD asterisk -BNe "select step from rest_wizard" | tr -d -c '[:digit:]')
+WIZARD_STEP=${WIZARD_STEP:-0}
 if [[ $WIZARD_STEP -ge 10 ]]; then
-    echo "Starting nethcti-server" >> /dev/stderr
-    /usr/bin/systemctl --user restart nethcti-server
+    echo "Starting nethcti-server and nethcti-middleware" >> /dev/stderr
+    /usr/bin/systemctl --user restart nethcti-server.service nethcti-middleware.service
 fi
