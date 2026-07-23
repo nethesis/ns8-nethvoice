@@ -125,6 +125,9 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.create = function () {
       $scope.onSave = true
+      if ($scope.trunk.provider === 'elevenlabs') {
+        $scope.trunk.username = $scope.trunk.name
+      }
       TrunkService.createTrunkVoip($scope.trunk).then(function (res) {
         $scope.onSave = false
         $scope.onSaveError = false

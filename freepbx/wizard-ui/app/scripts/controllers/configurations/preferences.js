@@ -62,15 +62,7 @@ angular.module('nethvoiceWizardUiApp')
     })
 
     $scope.usersIsEmpty = function() {
-      for(var u in $scope.allUsers) {
-        var user = $scope.allUsers[u];
-
-        if(user.devices.length > 0) {
-          return false
-        }
-
-        return true
-      }
+      return !$scope.allUsers || $scope.allUsers.length === 0;
     };
 
     $rootScope.$on('scrollingContainerView', function () {

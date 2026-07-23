@@ -140,8 +140,14 @@ def syncSourceDB(path, output, deleteonly):
   importedCount=0
   errCount=0
 
-  if sConfig[sid]['type'] is not None:
-    destCols.append('type')
+  # `type` is always written (with a 'custom' fallback below) so destCols and values
+  # stay aligned even when the config omits it.
+  destCols.append('type')
+  # Sharing (public/group) is stored in its own `access` column, separate from the
+  # source category in `type`. Always written with an explicit 'public' fallback so a
+  # row is never left implicitly scoped.
+  sourceAccess = sConfig[sid].get('access') or 'public'
+  destCols.append('access')
   percents = ('%s, ' * len(destCols))[:-2]
 
   # Since now row isn't a dict, save columns name to convert it into a dict if it is needed in the while loop
@@ -168,6 +174,9 @@ def syncSourceDB(path, output, deleteonly):
       values.append(str(sConfig[sid]['type']))
     else:
       values.append('custom')
+
+    # Append access (sharing)
+    values.append(str(sourceAccess))
 
     sql = 'INSERT INTO ' + dConfig['dbtable'] + ' (' + ','.join(destCols) + ') VALUES (' + percents + ')'
 
@@ -276,6 +285,10 @@ def syncSourceCsv(path, output, deleteonly):
 
   if sConfig[sid]['type'] is not None:
     destCols.append('type')
+  # Sharing (public/group) lives in the dedicated `access` column, always written with
+  # an explicit 'public' fallback.
+  sourceAccess = sConfig[sid].get('access') or 'public'
+  destCols.append('access')
 
   importedCount = 0
   errCount = 0
@@ -291,6 +304,7 @@ def syncSourceCsv(path, output, deleteonly):
     values.append(str(sid))
     if sConfig[sid]['type'] is not None:
       values.append(str(sConfig[sid]['type']))
+    values.append(str(sourceAccess))
     sql = 'INSERT INTO ' + dConfig['dbtable'] + ' (' + ','.join(destCols) + ') VALUES (' + percents + ')'
     try:
       curDest.execute(sql, tuple(values))
@@ -307,108 +321,171 @@ def syncSourceCsv(path, output, deleteonly):
   dbDest.close()
   logger.info('end source import of ' + path + ' into phonebook.phonebook')
 
-# Sync contacts using infinity API
-def syncSourceInfinity(url, username, password, deleteonly):
-	# Get authentication token
-	token_url = f"{url}/servlet/oauth/token"
-	auth = (username, password)
-	token_body = {
-		"scope": "logintoken"
-	}
-	try:
-		token_response = requests.post(token_url, auth=auth, data=token_body)
-		if token_response.status_code != 200:
-			raise Exception('Failed to get token from ' + token_url + ' with status code ' + str(token_response.status_code))
-		token = token_response.json()['access_token']
-		token = token_response.json().get("access_token")
-		if not token:
-			raise Exception('No token found in response from ' + url)
-		logger.debug('Got bearer token from ' + url)
-		# Get contacts using token
-		contact_url = f"{url}/servlet/api/v1/gsfr_fgetaddress_wsapi/"
-		headers = {
-			"Authorization": f"Bearer {token}"
-		}
-		contact_response = requests.get(contact_url, headers=headers)
-		if contact_response.status_code != 200:
-			raise Exception('Failed to get contacts from ' + url + ' with status code ' + str(contact_response.status_code))
-		contacts = contact_response.json()['data']
-		logger.debug(f'Got {len(contacts)} contacts from {url}')
-		dConfig = getPhonebookDestConfig()
-		dbDest = getDbConn(dConfig)
-		if dbDest is not None:
-			logger.debug('destination db connection ("phonebook"): ok')
-		else:
-			raise Exception('destination db connection ("phonebook"): failed')
-		curDest = dbDest.cursor()
-		sid = 'infinity'
-		delcount = curDest.execute('DELETE FROM ' + dConfig['dbtable'] + ' WHERE sid_imported="{}"'.format(sid))
-		logger.info('clean destination: removed ' + str(delcount) + ' entries from ' + dConfig['dbname'] + '.' + dConfig['dbtable'] + ' with sid_imported="' + sid + '"')
-		if deleteonly == True:
-			return
-		toTransfer = len(contacts)
-		logger.debug('synchronizing source "' + sid + '" (' + str(toTransfer) + ' entries)...')
-		start = datetime.datetime.now().replace(microsecond=0)
-		pb_contacts = []
-		for contact in contacts:
-			pb_contact = {}
-			if 'name' in contact:
-				pb_contact['name'] = contact['name']
-			if 'company' in contact:
-				pb_contact['company'] = contact['company']
-			if 'tel' in contact:
-				for tel in contact['tel']:
-					if 'type' in tel and tel['type'] == 'Cellulare' and not 'cellphone' in pb_contact:
-						pb_contact['cellphone'] = tel['number']
-					elif not 'workphone' in pb_contact:
-						pb_contact['workphone'] = tel['number']
-					else:
-						pb_contact['homephone'] = tel['number']
-			if 'mail' in contact:
-				for mail in contact['mail']:
-					if not 'workemail' in pb_contact:
-						pb_contact['workemail'] = mail['mail']
-					else:
-						pb_contact['homeemail'] = mail['mail']
-			if 'address' in contact:
-				pb_contact['workstreet'] = contact['address']
-			if 'office' in contact and contact['office'] != '':
-				pb_contact['notes'] = f'Office: {contact["office"]}'
-			if 'status' in contact and contact['status'] != '':
-				if not 'notes' in pb_contact:
-					pb_contact['notes'] = ''
-				if pb_contact['notes'] != '':
-					pb_contact['notes'] += ', '
-				pb_contact['notes'] += f'Status: {contact["status"]}'
-			pb_contact['sid_imported'] = sid
-			pb_contact['type'] = 'infinity'
-			pb_contacts.append(pb_contact)
+# Sync contacts from the Zucchetti Infinity API into the centralized phonebook.
+def normalizeInfinityContact(contact, sid, source_type, access):
+  row = {}
+  name = (contact.get('name') or '').strip()
+  if name:
+    row['name'] = name
+  company = (contact.get('company') or '').strip()
+  if company:
+    row['company'] = company
+  homephone = workphone = cellphone = fax = ''
+  for tel in contact.get('tel') or []:
+    number = (tel.get('number') or '').strip()
+    ptype = (tel.get('type') or '').strip().lower()
+    if not number:
+      continue
+    if 'fax' in ptype and not fax:
+      fax = number
+    elif ('cell' in ptype or 'mobile' in ptype or 'cellulare' in ptype) and not cellphone:
+      cellphone = number
+    elif not workphone:
+      workphone = number
+    elif not homephone:
+      homephone = number
+  if cellphone:
+    row['cellphone'] = cellphone
+  if workphone:
+    row['workphone'] = workphone
+  if homephone:
+    row['homephone'] = homephone
+  if fax:
+    row['fax'] = fax
+  primary = secondary = ''
+  for mail in contact.get('mail') or []:
+    email = (mail.get('mail') or '').strip()
+    mtype = (mail.get('type') or '').strip().lower()
+    if not email:
+      continue
+    if mtype == 'primary' and not primary:
+      primary = email
+    elif mtype == 'secondary' and not secondary:
+      secondary = email
+    elif not primary:
+      primary = email
+    elif not secondary:
+      secondary = email
+  if primary:
+    row['workemail'] = primary
+  if secondary:
+    row['homeemail'] = secondary
+  address = (contact.get('address') or '').strip()
+  if address:
+    row['workstreet'] = address
+  office = (contact.get('office') or '').strip()
+  if office:
+    row['title'] = office
+  notes = []
+  if contact.get('id'):
+    notes.append('Infinity ID: ' + str(contact['id']))
+  if office:
+    notes.append('Office: ' + office)
+  status = (contact.get('status') or '').strip()
+  if status:
+    notes.append('Status: ' + status)
+  if notes:
+    row['notes'] = ' | '.join(notes)
+  row['type'] = source_type
+  row['access'] = access
+  row['sid_imported'] = sid
+  return row
 
-		importedCount = 0
-		errCount = 0
-		for pb_contact in pb_contacts:
-			values = []
-			insert_placeholder_format = ('%s, ' * len(pb_contact.keys()))[:-2]
-			for pb_contact_key in pb_contact.keys():
-				values.append(pb_contact[pb_contact_key])
-			sql = 'INSERT INTO ' + dConfig['dbtable'] + ' (' + ','.join(pb_contact.keys()) + ') VALUES (' + insert_placeholder_format + ')'
-			try:
-				curDest.execute(sql, tuple(values))
-				importedCount += 1
-			except Exception as err:
-				errCount += 1
-				logger.error('copying entry "' + str(pb_contact) + '"')
-				logger.error(str(err))
-			dbDest.commit()
-		curDest.close()
-		dbDest.close()
-		end = datetime.datetime.now().replace(microsecond=0)
-		percent = str(importedCount*100/toTransfer) if toTransfer > 0 else '0'
-		logger.info('source "' + sid + '" imported ' + percent + '%: ' + str(importedCount) + ' imported - ' + str(errCount) + ' errors - ' + str(toTransfer) + ' tot - duration ' + str(end-start))
-		logger.info('end source import of ' + url + ' into phonebook.phonebook')
-	except Exception as err:
-		logger.error(str(err))
-		sys.exit(1)
+
+def sanitizeInfinityBaseUrl(raw):
+  # Be tolerant about what the admin pastes: accept the app base, the home page
+  # (.../jsp/home.jsp), any /jsp or /servlet path, missing scheme, trailing slash
+  # or a query/fragment, and reduce it to the API base used to build the endpoints.
+  url = (raw or '').strip()
+  if not url:
+    return ''
+  if '://' not in url:
+    url = 'https://' + url
+  for sep in ('?', '#'):
+    idx = url.find(sep)
+    if idx != -1:
+      url = url[:idx]
+  low = url.lower()
+  cut = len(url)
+  for marker in ('/servlet', '/jsp'):
+    idx = low.find(marker)
+    if idx != -1 and idx < cut:
+      cut = idx
+  return url[:cut].rstrip('/')
+
+
+def syncSourceInfinity(path, output, deleteonly):
+  with open(path, 'r') as sourceFile:
+    sConfig = json.load(sourceFile)
+  sid = next(iter(sConfig))
+  config = sConfig[sid]
+  base_url = sanitizeInfinityBaseUrl(config.get('url'))
+  username = config.get('username') or ''
+  password = config.get('password') or ''
+  # `type` holds the source label/category (restored pre-sharing behavior); the
+  # sharing scope (public / group:...) chosen in the wizard goes to `access`.
+  source_type = config.get('type') or 'infinity'
+  access = config.get('access') or 'public'
+  try:
+    if not base_url or not username or not password:
+      raise Exception('Infinity source requires a url, username and password')
+    token_url = base_url + '/servlet/oauth/token'
+    token_response = requests.post(token_url, auth=(username, password), data={'scope': 'logintoken'}, timeout=30)
+    if token_response.status_code != 200:
+      raise Exception('Failed to get token from ' + token_url + ' with status code ' + str(token_response.status_code))
+    token = token_response.json().get('access_token')
+    if not token:
+      raise Exception('No token found in response from ' + token_url)
+    logger.debug('Got bearer token from ' + base_url)
+    contact_url = base_url + '/servlet/api/gsfr_fgetaddress_wsapi'
+    contact_response = requests.get(contact_url, headers={'Authorization': 'Bearer ' + token}, timeout=120)
+    if contact_response.status_code != 200:
+      raise Exception('Failed to get contacts from ' + contact_url + ' with status code ' + str(contact_response.status_code))
+    contacts = contact_response.json().get('data', [])
+    if not isinstance(contacts, list):
+      raise Exception('Unexpected response schema from ' + contact_url)
+    logger.debug('Got ' + str(len(contacts)) + ' contacts from ' + base_url)
+    pb_contacts = [normalizeInfinityContact(c, sid, source_type, access) for c in contacts]
+    if output == True:
+      # check mode: emit a preview to stdout, do not touch the database
+      json.dump(pb_contacts[:3], sys.stdout)
+      logger.info('end check of source import of ' + path + ' into phonebook.phonebook')
+      return
+    dConfig = getPhonebookDestConfig()
+    dbDest = getDbConn(dConfig)
+    if dbDest is None:
+      raise Exception('destination db connection ("phonebook"): failed')
+    curDest = dbDest.cursor()
+    delcount = curDest.execute('DELETE FROM ' + dConfig['dbtable'] + ' WHERE sid_imported="{}"'.format(sid))
+    logger.info('clean destination: removed ' + str(delcount) + ' entries from ' + dConfig['dbname'] + '.' + dConfig['dbtable'] + ' with sid_imported="' + sid + '"')
+    if deleteonly == True:
+      dbDest.commit()
+      curDest.close()
+      dbDest.close()
+      return
+    start = datetime.datetime.now().replace(microsecond=0)
+    importedCount = 0
+    errCount = 0
+    for pb_contact in pb_contacts:
+      cols = list(pb_contact.keys())
+      placeholder = ('%s, ' * len(cols))[:-2]
+      sql = 'INSERT INTO ' + dConfig['dbtable'] + ' (' + ','.join(cols) + ') VALUES (' + placeholder + ')'
+      try:
+        curDest.execute(sql, tuple(pb_contact[c] for c in cols))
+        importedCount += 1
+      except Exception as err:
+        errCount += 1
+        logger.error('copying entry "' + str(pb_contact) + '"')
+        logger.error(str(err))
+      dbDest.commit()
+    curDest.close()
+    dbDest.close()
+    end = datetime.datetime.now().replace(microsecond=0)
+    logger.info('source "' + sid + '" imported: ' + str(importedCount) + ' imported - ' + str(errCount) + ' errors - ' + str(len(pb_contacts)) + ' tot - duration ' + str(end-start))
+    logger.info('end source import of ' + path + ' into phonebook.phonebook')
+  except Exception as err:
+    logger.error(str(err))
+    sys.exit(1)
 
 if __name__ == '__main__':
   descr = 'MySQL and CSV Phonebook importer. Imports contacts from a MySQL database (or CSV) source into phonebook.phonebook database. Destination log is syslog.'
@@ -453,7 +530,7 @@ if __name__ == '__main__':
     elif sConfig[sid]['dbtype'] == 'csv':
       syncSourceCsv(args.source_path, args.check, args.deleteonly)
     elif sConfig[sid]['dbtype'] == 'infinity':
-        syncSourceInfinity(sConfig[sid]['url'], sConfig[sid]['username'], sConfig[sid]['password'], args.deleteonly)
+        syncSourceInfinity(args.source_path, args.check, args.deleteonly)
     if not args.check and not args.deleteonly and not args.skip_sync_metadata_update:
       updateSyncMetadata()
   else:
