@@ -90,7 +90,7 @@ ALTER TABLE cti_phonebook
 # every phonebook search with "Unknown column".
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" phonebook -e '
 ALTER TABLE phonebook
-  ADD COLUMN IF NOT EXISTS access varchar(255) NOT NULL DEFAULT "",
+  ADD COLUMN IF NOT EXISTS access varchar(255) NOT NULL DEFAULT "public",
   ADD COLUMN IF NOT EXISTS firstname varchar(255) DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS lastname varchar(255) DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS job varchar(255) DEFAULT NULL,

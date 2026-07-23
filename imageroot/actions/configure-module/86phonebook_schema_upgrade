@@ -20,7 +20,7 @@ MARIADB_ROOT_PASSWORD=$(grep '^MARIADB_ROOT_PASSWORD=' ./passwords.env) && expor
 
 /usr/bin/podman exec mariadb mysql -u root -h 127.0.0.1 -P "$NETHVOICE_MARIADB_PORT" -p"$MARIADB_ROOT_PASSWORD" phonebook -e "
 ALTER TABLE phonebook
-  ADD COLUMN IF NOT EXISTS access varchar(255) NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS access varchar(255) NOT NULL DEFAULT 'public',
   ADD COLUMN IF NOT EXISTS firstname varchar(255) DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS lastname varchar(255) DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS job varchar(255) DEFAULT NULL,
