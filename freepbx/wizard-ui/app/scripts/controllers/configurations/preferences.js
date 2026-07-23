@@ -632,6 +632,29 @@ angular.module('nethvoiceWizardUiApp')
       }
     }
 
+    $scope.openNethLinkInfo = function (username) {
+      UserService.getNethLinkInfo(username).then(function (res) {
+        if (res && res.data) {
+          $scope.currentNethLinkInfo = res.data
+          $scope.emptyNethLinkInfo = false
+        } else {
+          $scope.currentNethLinkInfo = null
+          $scope.emptyNethLinkInfo = true
+        }
+        $("#nethlinkInfoModal").modal("show")
+      }, function (err) {
+        console.log(err)
+        $scope.currentNethLinkInfo = null
+        $scope.emptyNethLinkInfo = true
+        $("#nethlinkInfoModal").modal("show")
+      })
+    }
+
+    $('#nethlinkInfoModal').on('hide.bs.modal', function () {
+      $scope.currentNethLinkInfo = null
+      $scope.emptyNethLinkInfo = false
+    })
+
     $scope.setProfile = function () {
       ProfileService.setUserProfile($scope.currentUser.id, {
         profile_id: $scope.currentUser.profile

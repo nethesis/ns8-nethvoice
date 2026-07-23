@@ -494,6 +494,14 @@
               <div class="list-group-item abstract-item cursor-default ng-scope">
                 <div class="list-view-pf-actions">
                   <div class="display-flex">
+                    <!-- nethlink info -->
+                    <button
+                      ng-if="currentUser.nethLinkState"
+                      type="button"
+                      class="btn btn-default"
+                      ng-click="openNethLinkInfo(currentUser.username)">
+                      {{ 'Info' | translate }}
+                    </button>
                   </div>
                 </div>
                 <div class="list-view-pf-main-info">
@@ -835,6 +843,71 @@
               <label class="control-label">
                 {{currentPhoneInfo.codecs}}
               </label>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">{{"Cancel" | translate}}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="nethlinkInfoModal" tabindex="-1" role="dialog" aria-labelledby="nethlinkInfoModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+          <span class="pficon pficon-close"></span>
+        </button>
+        <h4 class="modal-title" id="nethlinkInfoModalLabel">{{'NethLink info' | translate}}</h4>
+      </div>
+      <div class="modal-body">
+        <div ng-if="emptyNethLinkInfo" class="alert alert-warning">
+          <span class="pficon pficon-warning-triangle-o"></span>
+          <strong>
+            {{"NethLink never connected" | translate}}.
+          </strong>
+          <p>
+            {{"Sign in with NethLink to see the informations" | translate}}!
+          </p>
+        </div>
+        <form ng-if="!emptyNethLinkInfo" class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-4 control-label">{{'Extension' | translate}}</label>
+            <div class="col-sm-8">
+              <label class="control-label">{{currentNethLinkInfo.extension || "-"}}</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-4 control-label">{{'NethLink version' | translate}}</label>
+            <div class="col-sm-8">
+              <label class="control-label">{{currentNethLinkInfo.nethlink_version || "-"}}</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-4 control-label">{{'Operating system' | translate}}</label>
+            <div class="col-sm-8">
+              <label class="control-label">{{currentNethLinkInfo.os_type || "-"}}</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-4 control-label">{{'OS version' | translate}}</label>
+            <div class="col-sm-8">
+              <label class="control-label">{{currentNethLinkInfo.os_release || "-"}}</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-4 control-label">{{'Architecture' | translate}}</label>
+            <div class="col-sm-8">
+              <label class="control-label">{{currentNethLinkInfo.arch || "-"}}</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-4 control-label">{{'Last seen' | translate}}</label>
+            <div class="col-sm-8">
+              <label class="control-label">{{currentNethLinkInfo.timestamp || "-"}}</label>
             </div>
           </div>
         </form>
