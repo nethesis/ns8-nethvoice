@@ -200,11 +200,20 @@ if ($reqGet && ($reqGet === "tools")) {
           $filename = $_FILES['file1']['name'];
           $size = $_FILES['file1']['size'];
           if(strlen($filename)) {
-            list($txt, $ext) = explode(".", $filename);
-            if(in_array($ext,$valid_formats1)) {
-              $actual_image_name = $timevar."-".$txt.".".$ext;
+            // Derive the extension safely (handles names with multiple/zero dots)
+            // and strip any unsafe characters from the base so a client-controlled
+            // filename can never influence the on-disk path. Dots are removed too:
+            // the client re-applies its own dot-collapsing to the returned name, so
+            // the stored name must have a single dot (before the extension) to match.
+            $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+            $base = preg_replace('/[^A-Za-z0-9_-]/', '_', pathinfo($filename, PATHINFO_FILENAME));
+            if($base !== "" && in_array($ext, $valid_formats1, true)) {
+              $candidate = $timevar."-".$base.".".$ext;
               $tmp = $_FILES['file1']['tmp_name'];
-              move_uploaded_file($tmp, $path.$actual_image_name);
+              // Only advertise the name to the client if the file is actually stored.
+              if(move_uploaded_file($tmp, $path.$candidate)) {
+                $actual_image_name = $candidate;
+              }
             }
           }
         }

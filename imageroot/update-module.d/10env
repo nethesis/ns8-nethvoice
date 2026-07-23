@@ -100,6 +100,10 @@ if os.getenv('WIZARD_FAVICON_URL') is None:
     agent.set_env('WIZARD_FAVICON_URL', os.getenv('FAVICON_URL', ''))
 if os.getenv('WIZARD_LOGIN_BACKGROUND_URL') is None:
     agent.set_env('WIZARD_LOGIN_BACKGROUND_URL', os.getenv('LOGIN_BACKGROUND_URL', ''))
+if os.getenv('FREEPBX_ADMIN_LOGO_URL') is None:
+    agent.set_env('FREEPBX_ADMIN_LOGO_URL', '')
+if os.getenv('FREEPBX_ADMIN_FAVICON_URL') is None:
+    agent.set_env('FREEPBX_ADMIN_FAVICON_URL', '')
 
 if os.getenv('REPORTS_UI_APP_NAME') is None:
     agent.set_env('REPORTS_UI_APP_NAME', 'NethVoice Reports')

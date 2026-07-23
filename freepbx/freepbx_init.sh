@@ -130,6 +130,45 @@ ionice -c2 -n7 nice -n 10 fwconsole chown
 # Disable signature check
 php -r 'include_once "/etc/freepbx_db.conf"; $db->query("UPDATE freepbx_settings SET value = 0 WHERE keyword = \"SIGNATURECHECK\"");'
 
+# Apply rebranding to the FreePBX admin GUI (freepbx_settings table).
+# The admin GUI reads branding from freepbx_settings, which the rebranding env
+# vars never touched: this keeps titles/logo/favicon in sync with the other
+# surfaces (CTI, wizard, reports). Same mechanism as the wizard: external URLs
+# are written verbatim, empty values fall back to the in-image defaults.
+freepbx_admin_brand_name="${WIZARD_BRAND_NAME:-${BRAND_NAME:-NethVoice}}"
+
+freepbx_admin_logo_url="${FREEPBX_ADMIN_LOGO_URL-}"
+if [[ -z "${FREEPBX_ADMIN_LOGO_URL+x}" ]]; then
+	freepbx_admin_logo_url="${WIZARD_LOGIN_LOGO_URL:-${LOGIN_LOGO_URL:-}}"
+fi
+
+freepbx_admin_favicon_url="${FREEPBX_ADMIN_FAVICON_URL-}"
+if [[ -z "${FREEPBX_ADMIN_FAVICON_URL+x}" ]]; then
+	freepbx_admin_favicon_url="${WIZARD_FAVICON_URL:-${FAVICON_URL:-}}"
+fi
+
+# Write branding via a prepared statement so quotes/apostrophes in the brand
+# name cannot break the query. Logo/favicon are updated only when a non-empty
+# URL is provided, otherwise the default in-image asset is preserved.
+BRAND_NAME="${freepbx_admin_brand_name}" \
+LOGO_URL="${freepbx_admin_logo_url}" \
+FAVICON_URL="${freepbx_admin_favicon_url}" \
+php -r '
+include_once "/etc/freepbx_db.conf";
+$brand = getenv("BRAND_NAME") ?: "NethVoice";
+$logo = getenv("LOGO_URL");
+$favicon = getenv("FAVICON_URL");
+$set = function($keyword, $value) use ($db) {
+	$sth = $db->prepare("UPDATE freepbx_settings SET value = :value WHERE keyword = :keyword");
+	$sth->execute([":value" => $value, ":keyword" => $keyword]);
+};
+$set("BRAND_TITLE", $brand . " Administration");
+$set("DASHBOARD_FREEPBX_BRAND", $brand);
+$set("BRAND_FREEPBX_ALT_LEFT", $brand);
+if ($logo !== false && $logo !== "") { $set("BRAND_IMAGE_TANGO_LEFT", $logo); }
+if ($favicon !== false && $favicon !== "") { $set("BRAND_IMAGE_FAVICON", $favicon); }
+'
+
 # Sync users
 fwconsole userman --syncall --force --verbose
 
