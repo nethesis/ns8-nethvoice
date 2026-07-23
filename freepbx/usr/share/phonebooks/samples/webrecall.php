@@ -67,10 +67,11 @@ while($row = $sth->fetch(\PDO::FETCH_ASSOC)) {
                                 cellphone2,
                                 otherphone,
                                 otheremail,
+                                access,
                                 sid_imported
                         )
                         VALUES
-				(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+				(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
 	$sth = $phonebookdb->prepare($query);
 	$sth->execute(array(
 		'admin',		#owner_id
@@ -108,6 +109,7 @@ while($row = $sth->fetch(\PDO::FETCH_ASSOC)) {
                 '',             	#cellphone2
                 '',             	#otherphone
                 '',             	#otheremail
+                'public',               #access
                 $source_name            #sid_imported
 	));
 }

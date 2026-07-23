@@ -156,10 +156,18 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
         $newsource['dbtype'] = $data['dbtype'];
         // optional parameters
         $newsource['interval'] = empty($data['interval']) ? 1440 : $data['interval'];
-        // Sharing: 'public' or 'group:<comma-separated group names>', validated against
-        // the existing CTI groups. Fail closed if the groups cannot be validated.
+        // `type` is the free-text source label/name (shown as the card title and stored
+        // in the phonebook `type` column, kept free for the customer import scripts).
+        $sourceName = isset($data['type']) ? trim($data['type']) : '';
+        if ($sourceName === '') {
+            return $response->withJson(array("status"=>"Missing value: type"), 400);
+        }
+        $newsource['type'] = $sourceName;
+        // Sharing goes in the dedicated `access` field: 'public' or
+        // 'group:<comma-separated group names>', validated against the existing CTI
+        // groups. Fail closed if the groups cannot be validated.
         try {
-            $newsource['type'] = validatePhonebookSharing(isset($data['type']) ? $data['type'] : '');
+            $newsource['access'] = validatePhonebookSharing(isset($data['access']) ? $data['access'] : '');
         } catch (\InvalidArgumentException $e) {
             return $response->withJson(array("status"=>"None of the selected sharing groups exist"), 400);
         } catch (Exception $e) {

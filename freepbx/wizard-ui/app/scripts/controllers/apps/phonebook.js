@@ -208,7 +208,7 @@ angular.module('nethvoiceWizardUiApp')
     };
 
     $scope.getSourceName = function (pbo, defval) {
-      return pbo._displayName || pbo.dbname || pbo.url || pbo._sourceKey || defval;
+      return pbo.type || pbo.dbname || pbo._sourceKey || defval;
     };
 
     $scope.buildSharingType = function () {
@@ -218,10 +218,10 @@ angular.module('nethvoiceWizardUiApp')
       return 'public';
     };
 
-    $scope.applySharingFromType = function (type) {
-      if (typeof type === 'string' && type.indexOf('group:') === 0) {
+    $scope.applySharingFromAccess = function (access) {
+      if (typeof access === 'string' && access.indexOf('group:') === 0) {
         $scope.sharing.mode = 'group';
-        $scope.sharing.groups = type.slice(6).split(',').filter(function (g) { return g !== ''; });
+        $scope.sharing.groups = access.slice(6).split(',').filter(function (g) { return g !== ''; });
       } else {
         $scope.sharing.mode = 'public';
         $scope.sharing.groups = [];
@@ -234,23 +234,9 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.normalizeSources = function (sources) {
       $scope.allSources = angular.isObject(sources) ? sources : {};
-      var keys = Object.keys($scope.allSources).sort(function (a, b) {
-        var na = parseInt((a.match(/(\d+)$/) || [])[1], 10) || 0;
-        var nb = parseInt((b.match(/(\d+)$/) || [])[1], 10) || 0;
-        return na - nb;
-      });
-      var counters = {};
-      $scope.allSourcesList = keys.map(function (key, idx) {
+      $scope.allSourcesList = Object.keys($scope.allSources).map(function (key) {
         var source = $scope.allSources[key] || {};
         source._sourceKey = key;
-        source._order = idx;
-        var t = source.dbtype || 'source';
-        counters[t] = (counters[t] || 0) + 1;
-        if (t === 'mysql' && source.dbname) {
-          source._displayName = source.dbname;
-        } else {
-          source._displayName = t + counters[t];
-        }
         return source;
       });
     };
@@ -340,7 +326,7 @@ angular.module('nethvoiceWizardUiApp')
       $scope.ui.modifyId = kg;
       $scope.newSource = g;
       $scope.colsSources = g.sourceColumns;
-      $scope.applySharingFromType(g.type);
+      $scope.applySharingFromAccess(g.access);
       setTimeout(function () {
         $scope.checkConnection(g);
       }, 500);
@@ -392,7 +378,10 @@ angular.module('nethvoiceWizardUiApp')
           password: s.password,
         };
       }
-      payload.type = $scope.buildSharingType();
+      // type = free-text source name (card title, phonebook `type` column);
+      // access = sharing scope (public/group), enforced by the middleware.
+      payload.type = s.type;
+      payload.access = $scope.buildSharingType();
       payload.mapping = s.mapping;
       payload.enabled = s.enabled;
       payload.interval = s.interval;
@@ -495,7 +484,7 @@ angular.module('nethvoiceWizardUiApp')
     $scope.onOfSource = function (ks, s) {
       $scope.ui.modifyId = ks;
       $scope.newSource = s;
-      $scope.applySharingFromType(s.type);
+      $scope.applySharingFromAccess(s.access);
       $scope.updateSource(true);
     }
 

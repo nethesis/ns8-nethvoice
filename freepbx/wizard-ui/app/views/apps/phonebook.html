@@ -42,7 +42,7 @@
       <strong>{{'Source not saved' | translate}}.</strong> {{'Source saving error' | translate}}
     </div>
     <div ng-if="!(allSourcesList | isEmpty)" class="row row-cards-pf adjust-card">
-      <div ng-repeat="g in allSourcesList | orderBy:'_order' track by g._sourceKey" ng-init="kg = g._sourceKey" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+      <div ng-repeat="g in allSourcesList | orderBy:'type' track by g._sourceKey" ng-init="kg = g._sourceKey" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
         <div id="accordion-markup-{{$index}}" class="card-pf">
           <div data-toggle="collapse" data-parent="#accordion-markup-{{$index}}"
           href="#collapse-{{$index}}">
@@ -564,6 +564,13 @@
                                   <select ng-change="updateDbType()" ng-disabled="newSource.readonly || ui.onModify" required title="-" pf-select="" ng-model="newSource.dbtype"
                                     ng-options="k as v for (k, v) in  allDBTypes">
                                   </select></div>
+                              </div>
+                              <!-- Phonebook name: free-text source label (centralized sources only) -->
+                              <div ng-if="!isCtiPhonebookType(newSource.dbtype)" class="form-group">
+                                <label class="col-sm-3 control-label" for="input-phonebook-name">{{'Phonebook name' | translate}}</label>
+                                <div class="col-sm-9 input-container">
+                                  <input id="input-phonebook-name" required ng-disabled="newSource.readonly" ng-model="newSource.type" type="text" class="form-control">
+                                </div>
                               </div>
                               <!-- type mysql -->
                               <div ng-if="newSource.dbtype == 'mysql'" ng-if="newSource.dbtype == 'mysql'" class="form-group">

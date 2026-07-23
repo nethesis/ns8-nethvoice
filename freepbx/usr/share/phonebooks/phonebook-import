@@ -140,8 +140,14 @@ def syncSourceDB(path, output, deleteonly):
   importedCount=0
   errCount=0
 
-  if sConfig[sid]['type'] is not None:
-    destCols.append('type')
+  # `type` is always written (with a 'custom' fallback below) so destCols and values
+  # stay aligned even when the config omits it.
+  destCols.append('type')
+  # Sharing (public/group) is stored in its own `access` column, separate from the
+  # source category in `type`. Always written with an explicit 'public' fallback so a
+  # row is never left implicitly scoped.
+  sourceAccess = sConfig[sid].get('access') or 'public'
+  destCols.append('access')
   percents = ('%s, ' * len(destCols))[:-2]
 
   # Since now row isn't a dict, save columns name to convert it into a dict if it is needed in the while loop
@@ -168,6 +174,9 @@ def syncSourceDB(path, output, deleteonly):
       values.append(str(sConfig[sid]['type']))
     else:
       values.append('custom')
+
+    # Append access (sharing)
+    values.append(str(sourceAccess))
 
     sql = 'INSERT INTO ' + dConfig['dbtable'] + ' (' + ','.join(destCols) + ') VALUES (' + percents + ')'
 
@@ -276,6 +285,10 @@ def syncSourceCsv(path, output, deleteonly):
 
   if sConfig[sid]['type'] is not None:
     destCols.append('type')
+  # Sharing (public/group) lives in the dedicated `access` column, always written with
+  # an explicit 'public' fallback.
+  sourceAccess = sConfig[sid].get('access') or 'public'
+  destCols.append('access')
 
   importedCount = 0
   errCount = 0
@@ -291,6 +304,7 @@ def syncSourceCsv(path, output, deleteonly):
     values.append(str(sid))
     if sConfig[sid]['type'] is not None:
       values.append(str(sConfig[sid]['type']))
+    values.append(str(sourceAccess))
     sql = 'INSERT INTO ' + dConfig['dbtable'] + ' (' + ','.join(destCols) + ') VALUES (' + percents + ')'
     try:
       curDest.execute(sql, tuple(values))
@@ -308,7 +322,7 @@ def syncSourceCsv(path, output, deleteonly):
   logger.info('end source import of ' + path + ' into phonebook.phonebook')
 
 # Sync contacts from the Zucchetti Infinity API into the centralized phonebook.
-def normalizeInfinityContact(contact, sid, contact_type):
+def normalizeInfinityContact(contact, sid, source_type, access):
   row = {}
   name = (contact.get('name') or '').strip()
   if name:
@@ -372,7 +386,8 @@ def normalizeInfinityContact(contact, sid, contact_type):
     notes.append('Status: ' + status)
   if notes:
     row['notes'] = ' | '.join(notes)
-  row['type'] = contact_type
+  row['type'] = source_type
+  row['access'] = access
   row['sid_imported'] = sid
   return row
 
@@ -407,8 +422,10 @@ def syncSourceInfinity(path, output, deleteonly):
   base_url = sanitizeInfinityBaseUrl(config.get('url'))
   username = config.get('username') or ''
   password = config.get('password') or ''
-  # Sharing value (public / group:...) chosen in the wizard, written to every row.
-  contact_type = config.get('type') or 'public'
+  # `type` holds the source label/category (restored pre-sharing behavior); the
+  # sharing scope (public / group:...) chosen in the wizard goes to `access`.
+  source_type = config.get('type') or 'infinity'
+  access = config.get('access') or 'public'
   try:
     if not base_url or not username or not password:
       raise Exception('Infinity source requires a url, username and password')
@@ -428,7 +445,7 @@ def syncSourceInfinity(path, output, deleteonly):
     if not isinstance(contacts, list):
       raise Exception('Unexpected response schema from ' + contact_url)
     logger.debug('Got ' + str(len(contacts)) + ' contacts from ' + base_url)
-    pb_contacts = [normalizeInfinityContact(c, sid, contact_type) for c in contacts]
+    pb_contacts = [normalizeInfinityContact(c, sid, source_type, access) for c in contacts]
     if output == True:
       # check mode: emit a preview to stdout, do not touch the database
       json.dump(pb_contacts[:3], sys.stdout)

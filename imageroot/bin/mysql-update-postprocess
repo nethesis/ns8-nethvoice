@@ -90,6 +90,7 @@ ALTER TABLE cti_phonebook
 # every phonebook search with "Unknown column".
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" phonebook -e '
 ALTER TABLE phonebook
+  ADD COLUMN IF NOT EXISTS access varchar(255) NOT NULL DEFAULT "",
   ADD COLUMN IF NOT EXISTS firstname varchar(255) DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS lastname varchar(255) DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS job varchar(255) DEFAULT NULL,
@@ -105,6 +106,10 @@ ALTER TABLE phonebook
   ADD INDEX IF NOT EXISTS cphone2_idx (cellphone2),
   ADD INDEX IF NOT EXISTS ophone_idx (otherphone),
   ADD INDEX IF NOT EXISTS oemail_idx (otheremail)'
+# Existing centralized rows (pre-sharing imports, legacy scripts, nethcti republish)
+# have empty access after the column is added: they were publicly visible, so mark them
+# public explicitly. Group-scoped rows carry 'group:...' and are left untouched.
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" phonebook -e 'UPDATE phonebook SET access = "public" WHERE access = ""'
 # Enable WebSocket transport
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'UPDATE kvstore_Sipsettings SET val="{\"wss\":{\"0.0.0.0\":\"on\"},\"udp\":{\"0.0.0.0\":\"on\"},\"tcp\":{\"0.0.0.0\":\"on\"},\"ws\":{\"0.0.0.0\":\"on\"},\"tls\":{\"0.0.0.0\":\"on\"}}" WHERE `key` = "binds"'
 exit 0

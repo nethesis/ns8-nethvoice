@@ -66,8 +66,8 @@ try {
 
 
     // Prepare the INSERT statement
-    $insert_sql = "INSERT INTO phonebook (company, name, workphone, firstname, lastname, job, facebook, instagram, linkedin, workphone2, cellphone2, otherphone, otheremail, type, sid_imported)
-                   VALUES (:company, :name, :workphone, :firstname, :lastname, :job, :facebook, :instagram, :linkedin, :workphone2, :cellphone2, :otherphone, :otheremail, :type, :sid)";
+    $insert_sql = "INSERT INTO phonebook (company, name, workphone, firstname, lastname, job, facebook, instagram, linkedin, workphone2, cellphone2, otherphone, otheremail, type, access, sid_imported)
+                   VALUES (:company, :name, :workphone, :firstname, :lastname, :job, :facebook, :instagram, :linkedin, :workphone2, :cellphone2, :otherphone, :otheremail, :type, :access, :sid)";
                    
     $stmt_insert = $phonebookDB->prepare($insert_sql);
 
@@ -95,6 +95,7 @@ try {
             ':otherphone' => '',
             ':otheremail' => '',
             ':type'       => 'zucchetti_postgres',
+            ':access'     => 'public',
             ':sid'        => 'zucchetti_postgres'
         ]);
         $insert_count++;

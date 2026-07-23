@@ -217,7 +217,8 @@ def normalize_contact(contact):
 
     row = (
         'admin',                              # owner_id
-        'contact',                            # type
+        'contact',                            # type (source category)
+        'public',                             # access (sharing)
         homeemail,                            # homeemail
         workemail,                            # workemail
         homephone,                            # homephone
@@ -316,6 +317,7 @@ def main():
         INSERT INTO phonebook (
             owner_id,
             type,
+            access,
             homeemail,
             workemail,
             homephone,
@@ -353,7 +355,7 @@ def main():
         ) VALUES (
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         )
     """
 
