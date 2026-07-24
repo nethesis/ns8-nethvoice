@@ -249,8 +249,8 @@ function exitError()
 }
 
 /******************************************************/
-$target = $argv[1];
-$mode = $argv[2];
+$target = $argv[1] ?? '';
+$mode = $argv[2] ?? 0;
 if($mode == 1)
 {
   $target=requestTarget(MAX_TRIES); //chiedo il centralino da modificare
@@ -264,7 +264,7 @@ $stmt->execute([$target]);
 $cdidresult = $stmt->fetchAll();
 neth_debug($cdidsql);
 
-if(!$cdidresult[0][0]) {
+if(empty($cdidresult[0][0])) {
         $insert="INSERT into roomsdb.alarms set extension=?, enabled='0'";
         neth_debug($insert);
         $sth = $db->prepare($insert);

@@ -357,9 +357,9 @@ function getRate($id)
   $id = (int)$id;
   $result = sql("SELECT * FROM roomsdb.rates WHERE id=$id","getRow", DB_FETCHMODE_ASSOC);
 
-  return "<duration>{$result['duration']}</duration><price>{$result['price']}</price><enabled>{$result['enabled']}</enabled>
-  <answer_duration>{$result['answer_duration']}</answer_duration><answer_price>{$result['answer_price']}</answer_price>
-  <name>{$result['name']}</name><pattern>{$result['pattern']}</pattern>";
+  return "<duration>".($result['duration'] ?? '')."</duration><price>".($result['price'] ?? '')."</price><enabled>".($result['enabled'] ?? '')."</enabled>
+  <answer_duration>".($result['answer_duration'] ?? '')."</answer_duration><answer_price>".($result['answer_price'] ?? '')."</answer_price>
+  <name>".($result['name'] ?? '')."</name><pattern>".($result['pattern'] ?? '')."</pattern>";
 
 }
 
@@ -368,9 +368,9 @@ function getExtra($id)
   global $db;
   $id = (int)$id;
   $result = sql("SELECT * FROM roomsdb.extra WHERE id=$id","getRow", DB_FETCHMODE_ASSOC);
-  $price = str_replace('.',',',$result['price']);
-  return "<price>{$price}</price><enabled>{$result['enabled']}</enabled>
-  <name>{$result['name']}</name><code>{$result['code']}</code>";
+  $price = str_replace('.',',',$result['price'] ?? '');
+  return "<price>{$price}</price><enabled>".($result['enabled'] ?? '')."</enabled>
+  <name>".($result['name'] ?? '')."</name><code>".($result['code'] ?? '')."</code>";
 
 }
 
@@ -379,9 +379,7 @@ function getCode($id)
   global $db;
   $id = (int)$id;
   $result = sql("SELECT * FROM roomsdb.codes WHERE id=$id","getRow", DB_FETCHMODE_ASSOC);
-  $time_group = getTimeGroupsFromId($result['id_timegroups_groups']);
-
-  return "<code>{$result['code']}</code><note>{$result['note']}</note><number>{$result['number']}</number><falsegoto>{$result['falsegoto']}</falsegoto>";
+  return "<code>".($result['code'] ?? '')."</code><note>".($result['note'] ?? '')."</note><number>".($result['number'] ?? '')."</number><falsegoto>".($result['falsegoto'] ?? '')."</falsegoto>";
 }
 
 function getGroup($ext)
@@ -389,7 +387,7 @@ function getGroup($ext)
   global $db;
   $ext = (int)$ext;
   $result = sql("SELECT `group` FROM roomsdb.rooms WHERE extension=$ext","getRow", DB_FETCHMODE_ASSOC);
-  if(!$result['group'])
+  if(empty($result['group']))
     return "<group>-1</group>";
   else
     return "<group>{$result['group']}</group>";
@@ -426,6 +424,7 @@ function editAlarm($ext,$hour,$enabled,$start,$days=1,$group=0)
   if($group)
   {
     $res = sql("SELECT `group` from roomsdb.rooms WHERE extension=".(int)$ext,"getRow"); //determino il gruppo della camera
+    if (empty($res)) return false;
     $group = $res[0];
     $rooms = sql("SELECT extension from roomsdb.rooms WHERE `group`=$group","getAll"); //seleziono tutte le camere del gruppo
     foreach($rooms as $ext) //sostituisco tutte le sveglie del gruppo
@@ -515,6 +514,7 @@ function disableAlarm($ext,$disableGroup=0)
   if($disableGroup)
   {
     $res = sql("SELECT `group` from roomsdb.rooms WHERE extension=$ext","getRow"); //determino il gruppo della camera
+    if (empty($res)) return false;
     $group = $res[0];
     $rooms = sql("SELECT extension from roomsdb.rooms WHERE `group`=$group","getAll"); //seleziono tutte le camere del gruppo
     foreach($rooms as $ext) //sostituisco tutte le sveglie del gruppo
@@ -542,10 +542,14 @@ function getAlarm($ext)
   $ext = (int)$ext;
   $result = sql("SELECT TIME_FORMAT(hour, '%H:%i') as hour,date_format(start,'%d/%m/%Y') as start,date_format(end,'%d/%m/%Y') as end,enabled,to_days(end)-to_days(start) as days FROM roomsdb.alarms WHERE extension=$ext","getRow");
 
-  if($result[1]!="00/00/0000")
-    $start = $result[1];
+  $hour = $result[0] ?? '';
+  $start = '';
+  $days = $result[4] ?? '';
+  $enabled = $result[3] ?? '';
+  if(($result[1] ?? '') != "00/00/0000")
+    $start = $result[1] ?? '';
 
-  return "<hour>$result[0]</hour><start>$start</start><days>$result[4]</days><enabled>$result[3]</enabled>";
+  return "<hour>$hour</hour><start>$start</start><days>$days</days><enabled>$enabled</enabled>";
 
 }
 
@@ -968,7 +972,7 @@ function getRoomList()
         // $result["7"] is the room language. It has been added in this manner
         // to not change the existing code that use $result["6"] element
         $result["7"]=$result["6"];
-        $result["6"]=$group[$result["0"]];
+        $result["6"]=$group[$result["0"]] ?? '';
         if (!isset($result["7"]))
             $result["7"] = "en";
         $host[]=$result;
@@ -983,9 +987,7 @@ function getReceptionAudioLang()
 {
   global $db;
   $results = sql("SELECT value FROM roomsdb.options WHERE variable=\"reception_lang\"","getAll");
-  $lang=$results[0][0];
-  if (!isset($lang))
-    $lang = "en";
+  $lang=$results[0][0] ?? "en";
 
   return $lang;
 }
@@ -1005,7 +1007,7 @@ function getGroupList()
 function isInternalCall($numtocall)
 {
   $options = getOptions();
-  return ($numtocall[0] != $options['prefix']);
+  return (($numtocall[0] ?? '') != ($options['prefix'] ?? ''));
 }
 
 function getOptions()
@@ -1288,7 +1290,7 @@ function getGroupName($extension)
   $gid = sql("SELECT group_id FROM roomsdb.groups_rooms WHERE extension = ".(int)$extension." LIMIT 1","getOne");
   if (empty($gid)) return _("No Group");
   $res = sql("SELECT name from roomsdb.room_groups WHERE id=".(int)$gid,"getRow");
-  return $res[0];
+  return $res[0] ?? _("No Group");
 }
 
 function setGroup($ext,$group)
@@ -1497,6 +1499,7 @@ function loadGroups(){
 
 /*Group Action Dialogs*/
 function setAlarmGroupDialog($group_id){
+    $out = '';
     $out .= '<div data-group-id='.$group_id.' id="setAlarmGroupDialog" title="'._('Group Alarms').'">';
     $out .= '
 <form>
@@ -1516,6 +1519,7 @@ function setAlarmGroupDialog($group_id){
     return $out;
 }
 function deleteAlarmGroupDialog($group_id){
+    $out = '';
     $out .= '<div data-group-id='.$group_id.' id="deleteAlarmGroupDialog" title="'._('Group Alarms').'">';
     $out .= '<span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span>';
     $out .= _('Delete all group alarms?');
@@ -1525,6 +1529,7 @@ function deleteAlarmGroupDialog($group_id){
 function checkInGroupDialog($group_id){
     global $supported_audio_langs;
     $options = getOptions();
+    $out = '';
     $out .= '<div data-group-id='.$group_id.' id="checkInGroupDialog" title="'._('Group Check In').'">';
     $out .= '<span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span>';
     $out .= _('Do Check In for all rooms in group?');
@@ -1532,7 +1537,7 @@ function checkInGroupDialog($group_id){
     $out .= '<select id="customer_lang">';
     foreach ($supported_audio_langs as $lang) {
         $selected='';
-        if ($options['reception_lang'] == $lang) {
+        if (($options['reception_lang'] ?? 'en') == $lang) {
             $selected = 'selected';
         }
         $out .= '<option value="'.$lang.'" '.$selected.'>'.$lang.'</option>';
@@ -1542,6 +1547,7 @@ function checkInGroupDialog($group_id){
     return $out;
 }
 function checkOutGroupDialog($group_id){
+    $out = '';
     $out .= '<div data-group-id='.$group_id.' id="checkOutGroupDialog" title="'._('Group Check Out').'">';
     $out .= '<span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span>';
     $out .= _('Do Check Out for all rooms in group?');
@@ -1549,6 +1555,7 @@ function checkOutGroupDialog($group_id){
     return $out;
 }
 function cleanGroupDialog($group_id){
+    $out = '';
     $out .= '<div data-group-id='.$group_id.' id="cleanGroupDialog" title="'._('Group Clean').'">';
     $out .= '<span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span>';
     $out .= _('Clean all rooms?');
@@ -1567,8 +1574,9 @@ function setAlarmGroup($group_id,$hour,$date,$days){
         nethhotel_log ($sql." ".$rooms->getMessage(),__FUNCTION__);
         die($sql." ".$rooms->getMessage());
     }
+    $ret = true;
     foreach ($rooms as $room){
-        editAlarm($room['extension'],$hour,1,$date,$days);
+        $ret = editAlarm($room['extension'],$hour,1,$date,$days) && $ret;
     }
     return $ret;
 }
@@ -1583,10 +1591,11 @@ function deleteAlarmGroup($group_id){
         die($sql." ".$rooms->getMessage());
     }
 
+    $ret = true;
     foreach ($rooms as $room){
-        deleteAlarm($room['extension']);
+        $ret = deleteAlarm($room['extension']) && $ret;
     }
-    return $true;
+    return $ret;
 }
 function checkInGroup($group_id,$lang){
     global $db;
@@ -1599,10 +1608,11 @@ function checkInGroup($group_id,$lang){
         die($sql." ".$rooms->getMessage());
     }
     $group_name = $db->getOne("SELECT name from roomsdb.room_groups WHERE id = ".$group_id);
+    $ret = true;
     foreach ($rooms as $room){
-        externalCheckIn($room['extension'], '', $group_name,$lang);
+        $ret = externalCheckIn($room['extension'], '', $group_name,$lang) && $ret;
     }
-    return $true;
+    return $ret;
 }
 function checkOutGroup($group_id){
     global $db;
@@ -1614,10 +1624,11 @@ function checkOutGroup($group_id){
         nethhotel_log ($sql." ".$rooms->getMessage(),__FUNCTION__);
         die($sql." ".$rooms->getMessage());
     }
+    $ret = true;
     foreach ($rooms as $room){
-        externalCheckOut($room['extension']);
+        $ret = externalCheckOut($room['extension']) && $ret;
     }
-    return $true;
+    return $ret;
 }
 function cleanGroup($group_id){
     global $db;
@@ -1629,10 +1640,11 @@ function cleanGroup($group_id){
         nethhotel_log ($sql." ".$rooms->getMessage(),__FUNCTION__);
         die($sql." ".$rooms->getMessage());
     }
+    $ret = true;
     foreach ($rooms as $room){
-        cleanRoom($room['extension']);
+        $ret = cleanRoom($room['extension']) && $ret;
     }
-    return $true;
+    return $ret;
 }
 
 function getGroupOptions($extension){
@@ -1891,7 +1903,7 @@ function loadRooms($ntab)
 
       $alarmstatus = '';
       $actions = '';
-      if($alarmsfailed[$room[0]]!="") {
+      if(!empty($alarmsfailed[$room[0]])) {
         $class .= ' alarmFailed ';
         $alarmstatus="<img class='action' id='alarmFailed{$room[0]}' src='images/alarm-failed.png' title='Allarme Sveglia ".$alarmsfailed[$room[0]]."' label='Allarme Sveglia ".$alarmsfailed[$room[0]]."'/>" ;
         #sveglia fallita nella giornata
@@ -1936,17 +1948,19 @@ function loadRooms($ntab)
        $divgroup.= getGroupName($room[0]);
        $divgroup.="<a href='#ajax-editGroup-$room[0]' style='margin-left: 5px'><img class='action' src='images/group.png' title='Gruppo' label='Gruppo'/></a></div>";
     }
-    $floor[$room[6]].= "<div class='room $class' id='$room[0]'>";
-    $floor[$room[6]].= "<h3 style='margin-top: -10px'>$room[0]</h3>";
-    $floor[$room[6]].= $divname."<div class='actions'><hr/>$alarmstatus $actions</div>".$divgroup;
-    $floor[$room[6]].="</div>";
+    $floor_key = $room[6];
+    if (!isset($floor[$floor_key])) $floor[$floor_key] = '';
+    $floor[$floor_key].= "<div class='room $class' id='$room[0]'>";
+    $floor[$floor_key].= "<h3 style='margin-top: -10px'>$room[0]</h3>";
+    $floor[$floor_key].= $divname."<div class='actions'><hr/>$alarmstatus $actions</div>".$divgroup;
+    $floor[$floor_key].="</div>";
   }
 
 # Scrivo i div dei tab
 
   foreach($floors as $num)
    {
-      echo "<div id=\"tabs-".$num."\">".$floor[$num]."</div>";
+      echo "<div id=\"tabs-".$num."\">".($floor[$num] ?? '')."</div>";
    }
 }
 

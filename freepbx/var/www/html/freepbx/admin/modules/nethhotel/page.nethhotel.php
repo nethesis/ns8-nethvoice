@@ -2,7 +2,7 @@
 //PHPLICENSE 
 
 $action = $_REQUEST['action'] ?? '';
-$extdisplay=$_REQUEST['extdisplay'];  //the extension we are currently displaying
+$extdisplay=$_REQUEST['extdisplay'] ?? '';  //the extension we are currently displaying
 $dispnum = "nethhotel"; //used for switch on config.php
 
 //check if the extension is within range for this user
@@ -29,7 +29,7 @@ if ($extdisplay)
   $is_room = nethhotel_get($extdisplay);
 else
   $is_room = false;
-$delURL = $_SERVER['SCRIPT_NAME'].'?'.$_SERVER['QUERY_STRING'].'&action=delete';
+$delURL = ($_SERVER['SCRIPT_NAME'] ?? '').'?'.($_SERVER['QUERY_STRING'] ?? '').'&action=delete';
 ?>
 
 <!-- right side menu -->

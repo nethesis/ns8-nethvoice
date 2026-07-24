@@ -15,6 +15,7 @@ function nethhotel_list() {
 
 //get extensions not in room list
 function nethhotel_ext_list() {
+	$extens = array();
         $results = sql("select id from sip where keyword='context' and data='from-internal' order by id","getAll",DB_FETCHMODE_ASSOC);
         foreach($results as $result){
                 // check to see if we are in-range for the current AMP User.

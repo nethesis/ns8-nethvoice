@@ -52,6 +52,7 @@ $stmt = $db->prepare($sql);
 $stmt->execute([$camera]);
 $cdidresult = $stmt->fetchAll();
 neth_debug($sql);
+if (empty($cdidresult)) exitError();
 $exten=$cdidresult[0][0];
 
 $sql="SELECT roomsdb.extra.id, roomsdb.extra.name, roomsdb.extra.price, roomsdb.extra.code FROM roomsdb.extra WHERE roomsdb.extra.code=? and roomsdb.extra.enabled=1";
@@ -59,6 +60,7 @@ $stmt = $db->prepare($sql);
 $stmt->execute([$extra]);
 $cdidresult = $stmt->fetchAll();
 neth_debug($sql);
+if (empty($cdidresult)) exitError();
 $extra_id=$cdidresult[0][0];
 $extra_name=$cdidresult[0][1];
 $extra_price=$cdidresult[0][2];
