@@ -1,0 +1,306 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+"""Synchronize allocated Asterisk ports before FreePBX starts."""
+
+import argparse
+import os
+import subprocess
+
+
+PORT_ENV_VARS = (
+    "ASTERISK_SIP_UDP_PORT",
+    "ASTERISK_SIP_PORT",
+    "ASTERISK_SIPS_PORT",
+    "ASTERISK_IAX_PORT",
+    "ASTERISK_RTPSTART",
+    "ASTERISK_RTPEND",
+    "ASTMANAGERPORT",
+)
+
+MYSQL_COMMAND = (
+    'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; '
+    "exec /usr/bin/mysql --batch --skip-column-names -u root asterisk"
+)
+
+
+def read_state_environment():
+    values = {}
+    try:
+        with open("./environment", encoding="utf-8") as environment_file:
+            for line in environment_file:
+                line = line.rstrip("\n")
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                name, value = line.split("=", 1)
+                values[name] = value
+    except FileNotFoundError:
+        pass
+    return values
+
+
+def read_ports():
+    state_environment = read_state_environment()
+    ports = {}
+    for name in PORT_ENV_VARS:
+        # update-module can allocate ports in an earlier step without changing
+        # the already-running action environment. The state file is canonical.
+        value = state_environment.get(name, os.environ.get(name, ""))
+        if not value.isdigit() or not 1 <= int(value) <= 65535:
+            raise SystemExit(f"{name} must be a port number between 1 and 65535")
+        ports[name] = value
+    if int(ports["ASTERISK_RTPSTART"]) > int(ports["ASTERISK_RTPEND"]):
+        raise SystemExit("ASTERISK_RTPSTART must not exceed ASTERISK_RTPEND")
+    return ports
+
+
+def read_environment_value(name):
+    return read_state_environment().get(name, os.environ.get(name, ""))
+
+
+def run_sql(query):
+    # Override the exec environment from the current passwords file. This is
+    # required by clone-module, which changes the database password after the
+    # MariaDB container has started. The secret is never placed in host argv:
+    # mysql reads MYSQL_PWD from the exec environment and SQL is sent on stdin.
+    subprocess.run(
+        [
+            "podman",
+            "exec",
+            "--env-file=./passwords.env",
+            "-i",
+            "mariadb",
+            "bash",
+            "-c",
+            MYSQL_COMMAND,
+        ],
+        input=query,
+        text=True,
+        check=True,
+    )
+
+
+def rewrite_persisted_config(ports):
+    # FreePBX transport sections are protocol-specific. Rewrite them by section
+    # instead of replacing an old numeric value globally: legacy instances can
+    # have the same old port for UDP and TCP, while the new allocations differ.
+    pjsip_expressions = (
+        (
+            r"/^\[[^]]+-udp\]$/,/^\[/ "
+            r"s#^([[:space:]]*bind[[:space:]]*=[[:space:]]*.*):[0-9]+"
+            rf"([[:space:]]*)$#\1:{ports['ASTERISK_SIP_UDP_PORT']}\2#"
+        ),
+        (
+            r"/^\[[^]]+-tcp\]$/,/^\[/ "
+            r"s#^([[:space:]]*bind[[:space:]]*=[[:space:]]*.*):[0-9]+"
+            rf"([[:space:]]*)$#\1:{ports['ASTERISK_SIP_PORT']}\2#"
+        ),
+        (
+            r"/^\[[^]]+-tls\]$/,/^\[/ "
+            r"s#^([[:space:]]*bind[[:space:]]*=[[:space:]]*.*):[0-9]+"
+            rf"([[:space:]]*)$#\1:{ports['ASTERISK_SIPS_PORT']}\2#"
+        ),
+    )
+    sip_expressions = (
+        (
+            r"s#^([[:space:]]*bindport[[:space:]]*=[[:space:]]*)[0-9]+"
+            rf"([[:space:]]*)$#\1{ports['ASTERISK_SIP_UDP_PORT']}\2#"
+        ),
+        (
+            r"s#^([[:space:]]*bindaddr[[:space:]]*=[[:space:]]*.*):[0-9]+"
+            rf"([[:space:]]*)$#\1:{ports['ASTERISK_SIP_UDP_PORT']}\2#"
+        ),
+    )
+    iax_expressions = (
+        (
+            r"s#^([[:space:]]*bindport[[:space:]]*=[[:space:]]*)[0-9]+"
+            rf"([[:space:]]*)$#\1{ports['ASTERISK_IAX_PORT']}\2#"
+        ),
+    )
+    rtp_expressions = (
+        (
+            r"s#^([[:space:]]*rtpstart[[:space:]]*=[[:space:]]*)[0-9]+"
+            rf"([[:space:]]*)$#\1{ports['ASTERISK_RTPSTART']}\2#"
+        ),
+        (
+            r"s#^([[:space:]]*rtpend[[:space:]]*=[[:space:]]*)[0-9]+"
+            rf"([[:space:]]*)$#\1{ports['ASTERISK_RTPEND']}\2#"
+        ),
+    )
+
+    edits = (
+        ("/etc/asterisk/pjsip.transports.conf", pjsip_expressions),
+        ("/etc/asterisk/sip_general_additional.conf", sip_expressions),
+        ("/etc/asterisk/iax_general_additional.conf", iax_expressions),
+        ("/etc/asterisk/rtp_additional.conf", rtp_expressions),
+    )
+    shell_script = """
+set -e
+while (( $# > 0 )); do
+    file=$1
+    expression_count=$2
+    shift 2
+    sed_arguments=()
+    for ((index = 0; index < expression_count; index++)); do
+        sed_arguments+=("-e" "$1")
+        shift
+    done
+    if [[ -f "$file" ]]; then
+        sed -i -E "${sed_arguments[@]}" "$file"
+    fi
+done
+"""
+    command = [
+        "podman",
+        "run",
+        "--rm",
+        "--entrypoint=/bin/bash",
+        "--volume=asterisk:/etc/asterisk:z",
+        read_environment_value("NETHVOICE_FREEPBX_IMAGE"),
+        "-c",
+        shell_script,
+        "sync-asterisk-ports",
+    ]
+    for file_name, expressions in edits:
+        command.extend((file_name, str(len(expressions)), *expressions))
+    subprocess.run(command, check=True)
+
+
+def build_port_sql(ports, disable_http_tls):
+    sip_udp = ports["ASTERISK_SIP_UDP_PORT"]
+    sip_tcp = ports["ASTERISK_SIP_PORT"]
+    sip_tls = ports["ASTERISK_SIPS_PORT"]
+    iax = ports["ASTERISK_IAX_PORT"]
+    rtp_start = ports["ASTERISK_RTPSTART"]
+    rtp_end = ports["ASTERISK_RTPEND"]
+    ami = ports["ASTMANAGERPORT"]
+
+    # sipsettings/iaxsettings use (keyword, seq, type) as their primary key.
+    # Delete the managed keywords first so a legacy row with different seq/type
+    # cannot survive beside the allocated value.
+    query = f"""
+START TRANSACTION;
+
+UPDATE `kvstore_Sipsettings`
+SET `val` = CASE
+    WHEN `key` = 'udpport-0.0.0.0' THEN '{sip_udp}'
+    WHEN `key` = 'tcpport-0.0.0.0' THEN '{sip_tcp}'
+    WHEN `key` = 'tlsport-0.0.0.0' THEN '{sip_tls}'
+    WHEN `key` = 'bindport' THEN '{sip_tcp}'
+    WHEN `key` = 'tlsbindport' THEN '{sip_tls}'
+    WHEN `key` = 'rtpstart' THEN '{rtp_start}'
+    WHEN `key` = 'rtpend' THEN '{rtp_end}'
+END
+WHERE `key` IN (
+    'udpport-0.0.0.0', 'tcpport-0.0.0.0', 'tlsport-0.0.0.0',
+    'bindport', 'tlsbindport', 'rtpstart', 'rtpend'
+);
+
+INSERT INTO `kvstore_Sipsettings` (`key`, `val`, `type`, `id`)
+SELECT 'udpport-0.0.0.0', '{sip_udp}', NULL, 'noid'
+WHERE NOT EXISTS (
+    SELECT 1 FROM `kvstore_Sipsettings` WHERE `key` = 'udpport-0.0.0.0'
+);
+INSERT INTO `kvstore_Sipsettings` (`key`, `val`, `type`, `id`)
+SELECT 'tcpport-0.0.0.0', '{sip_tcp}', NULL, 'noid'
+WHERE NOT EXISTS (
+    SELECT 1 FROM `kvstore_Sipsettings` WHERE `key` = 'tcpport-0.0.0.0'
+);
+INSERT INTO `kvstore_Sipsettings` (`key`, `val`, `type`, `id`)
+SELECT 'tlsport-0.0.0.0', '{sip_tls}', NULL, 'noid'
+WHERE NOT EXISTS (
+    SELECT 1 FROM `kvstore_Sipsettings` WHERE `key` = 'tlsport-0.0.0.0'
+);
+INSERT INTO `kvstore_Sipsettings` (`key`, `val`, `type`, `id`)
+SELECT 'bindport', '{sip_tcp}', NULL, 'noid'
+WHERE NOT EXISTS (
+    SELECT 1 FROM `kvstore_Sipsettings` WHERE `key` = 'bindport'
+);
+INSERT INTO `kvstore_Sipsettings` (`key`, `val`, `type`, `id`)
+SELECT 'tlsbindport', '{sip_tls}', NULL, 'noid'
+WHERE NOT EXISTS (
+    SELECT 1 FROM `kvstore_Sipsettings` WHERE `key` = 'tlsbindport'
+);
+INSERT INTO `kvstore_Sipsettings` (`key`, `val`, `type`, `id`)
+SELECT 'rtpstart', '{rtp_start}', NULL, 'noid'
+WHERE NOT EXISTS (
+    SELECT 1 FROM `kvstore_Sipsettings` WHERE `key` = 'rtpstart'
+);
+INSERT INTO `kvstore_Sipsettings` (`key`, `val`, `type`, `id`)
+SELECT 'rtpend', '{rtp_end}', NULL, 'noid'
+WHERE NOT EXISTS (
+    SELECT 1 FROM `kvstore_Sipsettings` WHERE `key` = 'rtpend'
+);
+
+DELETE FROM `sipsettings`
+WHERE `keyword` IN ('bindport', 'rtpstart', 'rtpend');
+INSERT INTO `sipsettings` (`keyword`, `data`, `seq`, `type`) VALUES
+    ('bindport', '{sip_udp}', 1, 0),
+    ('rtpstart', '{rtp_start}', 0, 0),
+    ('rtpend', '{rtp_end}', 0, 0);
+
+DELETE FROM `iaxsettings` WHERE `keyword` = 'bindport';
+INSERT INTO `iaxsettings` (`keyword`, `data`, `seq`, `type`)
+VALUES ('bindport', '{iax}', 1, 0);
+
+INSERT INTO `freepbx_settings`
+    (`keyword`, `value`, `name`, `level`, `description`, `type`, `options`,
+     `defaultval`, `readonly`, `hidden`, `category`, `module`, `emptyok`,
+     `sortorder`)
+VALUES
+    ('ASTMANAGERPORT', '{ami}', 'Asterisk Manager Port', 2,
+     'Port for the Asterisk Manager', 'int', '1024,65535', '{ami}', 1, 0,
+     'Asterisk Manager', '', 0, 0)
+ON DUPLICATE KEY UPDATE
+    `value` = VALUES(`value`),
+    `defaultval` = VALUES(`defaultval`);
+"""
+
+    if disable_http_tls:
+        query += """
+UPDATE `freepbx_settings`
+SET `value` = '0',
+    `name` = 'Enable TLS for the mini-HTTP Server',
+    `level` = 3,
+    `description` = 'Enables listening for HTTPS connections. This is for Asterisk, it is not directly related for FreePBX usage and the value of this setting is irrelevant for accessing core FreePBX settings. Default is no.',
+    `type` = 'bool',
+    `options` = '',
+    `defaultval` = '0',
+    `readonly` = 0,
+    `hidden` = 0,
+    `category` = 'Asterisk Builtin mini-HTTP server',
+    `module` = '',
+    `emptyok` = 0,
+    `sortorder` = 0
+WHERE `keyword` = 'HTTPTLSENABLE';
+"""
+    query += "COMMIT;\n"
+    return query
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--rewrite-config",
+        action="store_true",
+        help="also rewrite restored/cloned persistent Asterisk configuration",
+    )
+    parser.add_argument(
+        "--disable-http-tls",
+        action="store_true",
+        help="preserve the clone/restore HTTP TLS compatibility adjustment",
+    )
+    args = parser.parse_args()
+
+    ports = read_ports()
+    if args.rewrite_config:
+        rewrite_persisted_config(ports)
+    run_sql(build_port_sql(ports, args.disable_http_tls))
+
+
+if __name__ == "__main__":
+    main()

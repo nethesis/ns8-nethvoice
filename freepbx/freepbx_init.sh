@@ -100,10 +100,14 @@ trap 'rm -f ${module_status}' EXIT
 fwconsole ma list | grep '^| ' | grep -v '^| Module'| awk '{print $2,$6}' > "$module_status"
 
 # Install required modules
+port_modules_to_restore=()
 for module in "${modules_to_install[@]}"; do
     if ! test -s "$module_status" || grep -q "$module " "$module_status" && ! grep -q "$module Enabled" "$module_status" ; then
         echo Installing module "$module"
         fwconsole moduleadmin install "$module"
+        if [[ "$module" == "iaxsettings" || "$module" == "sipsettings" ]]; then
+            port_modules_to_restore+=("$module")
+        fi
     fi
 done
 
@@ -124,6 +128,13 @@ for module in "${obsolete_modules[@]}"; do
     fi
 done
 
+# The iaxsettings and sipsettings installers can remove values seeded during
+# MariaDB initialization. Restore only their affected rows before the existing
+# final reload generates configuration. PJSIP transports are not changed here.
+if (( ${#port_modules_to_restore[@]} > 0 )); then
+    php /initdb.d/restore_module_ports.php "${port_modules_to_restore[@]}" || exit 1
+fi
+
 # Fix permissions
 ionice -c2 -n7 nice -n 10 fwconsole chown
 
@@ -138,4 +149,3 @@ su asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload"
 
 # Apply low-priority background DB updates
 ionice -c3 nice -n 19 php /initdb.d/slow_database_updates.php >/dev/null 2>&1 &
-

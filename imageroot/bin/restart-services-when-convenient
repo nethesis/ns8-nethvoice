@@ -1,10 +1,17 @@
 #!/bin/bash
 
-# Restart services passed as arguments when there are no active calls
+# Restart services passed as arguments when there are no active calls.
+# With --wait-only, return as soon as the PBX is idle without restarting.
 
 set -e
 
 TIMEOUT=10800 # 3h
+WAIT_ONLY=false
+
+if [[ "${1:-}" == "--wait-only" ]]; then
+    WAIT_ONLY=true
+    shift
+fi
 
 for SECONDS in $(seq 1 $TIMEOUT); do
     # Check if there are any calls in progress
@@ -19,6 +26,15 @@ for SECONDS in $(seq 1 $TIMEOUT); do
     sleep 1
 done
 
+if $WAIT_ONLY; then
+    exit 0
+fi
+
+if [[ "$#" -eq 0 ]]; then
+    echo "No services specified" >&2
+    exit 2
+fi
+
 # Restart services
-echo "Restarting services $@ wich was postponed for $SECONDS seconds"
-systemctl --user try-restart $@
+echo "Restarting services $* which was postponed for $SECONDS seconds"
+systemctl --user try-restart "$@"

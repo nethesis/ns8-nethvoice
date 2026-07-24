@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+
+# Start only MariaDB. Step 70 configure-module will start FreePBX after the
+# restored database and persistent Asterisk configuration use allocated ports.
+systemctl --user start mariadb.service
+sync-asterisk-ports --rewrite-config --disable-http-tls

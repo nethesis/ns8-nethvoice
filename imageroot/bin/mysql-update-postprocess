@@ -14,8 +14,6 @@ if [ "$MARIADB_RUNNING" != "active" ]; then
 fi
 
 # Create roomsdb and fias databases, refresh provider defaults and apply DB fixes
-MARIADB_ROOT_PASSWORD=$(grep '^MARIADB_ROOT_PASSWORD=' ./passwords.env) && export "${MARIADB_ROOT_PASSWORD?}"
-
 podman exec -i mariadb bash <<'EOF'
 # Hotel
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/00_roomsdb-schema-create.sql
@@ -86,23 +84,14 @@ ALTER TABLE cti_phonebook
   ADD INDEX IF NOT EXISTS oemail_idx (otheremail)'
 # Enable WebSocket transport
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'UPDATE kvstore_Sipsettings SET val="{\"wss\":{\"0.0.0.0\":\"on\"},\"udp\":{\"0.0.0.0\":\"on\"},\"tcp\":{\"0.0.0.0\":\"on\"},\"ws\":{\"0.0.0.0\":\"on\"},\"tls\":{\"0.0.0.0\":\"on\"}}" WHERE `key` = "binds"'
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e "
-INSERT INTO \`sipsettings\` (\`keyword\`,\`data\`,\`seq\`,\`type\`) VALUES
-    ('rtpstart','${ASTERISK_RTPSTART}',0,0),
-    ('rtpend','${ASTERISK_RTPEND}',0,0),
-    ('bindport','${ASTERISK_SIP_UDP_PORT}',1,0)
-ON DUPLICATE KEY UPDATE \`data\`=VALUES(\`data\`);
-UPDATE kvstore_Sipsettings SET val='${ASTERISK_RTPSTART}' WHERE \`key\`='rtpstart';
-UPDATE kvstore_Sipsettings SET val='${ASTERISK_RTPEND}' WHERE \`key\`='rtpend';
-UPDATE kvstore_Sipsettings SET val='${ASTERISK_SIP_UDP_PORT}' WHERE \`key\`='udpport-0.0.0.0';
-INSERT INTO \`iaxsettings\` (\`keyword\`,\`data\`,\`seq\`,\`type\`) VALUES ('bindport','${ASTERISK_IAX_PORT}',1,0)
-ON DUPLICATE KEY UPDATE \`data\`=VALUES(\`data\`);
-"
 exit 0
 EOF
+
+# Synchronize all allocated Asterisk/FreePBX ports while MariaDB is running and
+# before any lifecycle caller starts FreePBX.
+sync-asterisk-ports --rewrite-config
 
 # stop mariadb container if it wasn't running before
 if [ "$MARIADB_RUNNING" != "active" ]; then
     systemctl --user stop mariadb
 fi
-

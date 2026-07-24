@@ -1,8 +1,54 @@
 #!/bin/bash
 
+set -e
+
 # reload systemd changes
 systemctl --user daemon-reload
 
-# launch background tasks that restart freepbx only if there aren't any calls in progress
-echo "Restarting FreePBX, Janus, NethCTI and Middleware server when there are no active calls"
-restart-services-when-convenient mariadb freepbx janus nethcti-server nethcti-middleware nethcti-ui phonebook reports-api reports-redis reports-ui tancredi satellite satellite-mqtt satellite-pgsql
+# Remember exactly which services were active. They are stopped after the PBX
+# becomes idle and started once after the new MariaDB image has applied its
+# migrations and synchronized every allocated Asterisk port.
+services=(
+    freepbx
+    janus
+    nethcti-server
+    nethcti-middleware
+    nethcti-ui
+    phonebook
+    reports-api
+    reports-redis
+    reports-ui
+    tancredi
+    satellite
+    satellite-mqtt
+    satellite-pgsql
+)
+active_services=()
+for service in "${services[@]}"; do
+    if systemctl --user is-active --quiet "$service"; then
+        active_services+=("$service")
+    fi
+done
+
+echo "Waiting for active calls to finish before updating services"
+restart-services-when-convenient --wait-only
+
+# Stop FreePBX and its companion services so no new call can begin between the
+# idle check and the database synchronization.
+if (( ${#active_services[@]} > 0 )); then
+    systemctl --user stop "${active_services[@]}"
+fi
+
+# If MariaDB was active, restart it now so migrations use the new image. If it
+# was inactive, mysql-update-postprocess starts it temporarily and restores the
+# inactive state when it is done.
+systemctl --user try-restart mariadb
+
+# This includes the idempotent port synchronization and completes before
+# FreePBX/Asterisk is allowed to start.
+mysql-update-postprocess
+
+if (( ${#active_services[@]} > 0 )); then
+    echo "Starting updated services"
+    systemctl --user start "${active_services[@]}"
+fi
