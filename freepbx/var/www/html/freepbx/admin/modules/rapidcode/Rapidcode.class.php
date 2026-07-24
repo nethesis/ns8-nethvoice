@@ -50,9 +50,9 @@ class Rapidcode implements \BMO
 	//
 	// This handles any data passed to this module before the page is rendered.
 	public function doConfigPageInit($page) {
-		$id = $_REQUEST['id']?$_REQUEST['id']:'';
+		$id = $_REQUEST['id'] ?? '';
 		$action = $_REQUEST['action'] ?? '';
-		$exampleField = $_REQUEST['example-field']?$_REQUEST['example-field']:'';
+		$exampleField = $_REQUEST['example-field'] ?? '';
 		//Handle form submissions
 		switch ($action) {
 		case 'add':
@@ -135,9 +135,9 @@ class Rapidcode implements \BMO
 	// This is also documented at http://wiki.freepbx.org/display/FOP/BMO+Ajax+Calls
 	public function ajaxHandler()
 	{
-		switch ($_REQUEST['command']) {
+		switch ($_REQUEST['command'] ?? '') {
 		case 'getJSON':
-			switch ($_REQUEST['jdata']) {
+			switch ($_REQUEST['jdata'] ?? '') {
 			case 'grid':
 				$ret = $this->getList();
                                 $code = '*0'; // *0 is the default feature code for RapidCode
@@ -149,7 +149,7 @@ class Rapidcode implements \BMO
                                         }
                                         if (!empty($f['customcode'])) {
                                             $code = $f['customcode'];
-                                        } elseif (!empty(['defaultcode'])) {
+                                        } elseif (!empty($f['defaultcode'])) {
                                             $code = $f['defaultcode'];
                                         }
                                         break;
@@ -177,7 +177,7 @@ class Rapidcode implements \BMO
 	// http://wiki.freepbx.org/display/FOP/HTML+Output+from+BMO
 	public function showPage()
 	{
-		switch ($_REQUEST['view']) {
+		switch ($_REQUEST['view'] ?? '') {
 		case 'form':
 			if(isset($_REQUEST['id']) && !empty($_REQUEST['id'])){
 				$subhead = _('Edit Rapid Code');
@@ -209,7 +209,7 @@ class Rapidcode implements \BMO
             $sql = 'SELECT * FROM `rapidcode` WHERE `id` = ?';
             $stmt = $dbh->prepare($sql);
             $stmt->execute(array($id));
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC)[0];
+            return $stmt->fetch(\PDO::FETCH_ASSOC) ?: array();
 	}
 	/**
 	 * getList gets a list od subjects and their respective id.
@@ -235,19 +235,15 @@ class Rapidcode implements \BMO
                 $sql = 'SELECT `id` FROM `rapidcode` WHERE `code` = ?';
                 $stmt = $dbh->prepare($sql);
                 $stmt->execute(array($code));
-                $id = $stmt->fetchAll()[0][0];
-                if (isset($id)) {
+                $id = $stmt->fetchColumn();
+                if ($id !== false) {
                     $this->deleteItem($id);
                 }
                 $sql = 'INSERT INTO `rapidcode` (`label`,`number`,`code`) VALUES (?,?,?)';
                 $stmt = $dbh->prepare($sql);
                 $stmt->execute(array($label,$number,$code));
-                $sql = 'SELECT LAST_INSERT_ID() FROM `rapidcode`';
-                $stmt = $dbh->prepare($sql);
-                $stmt->execute(array());
-                $res = $stmt->fetchAll()[0][0];
-                return $res;
-            } catch (Exception $e) {
+                return $dbh->lastInsertId();
+            } catch (\Throwable $e) {
                 return FALSE;
             }
 	}
