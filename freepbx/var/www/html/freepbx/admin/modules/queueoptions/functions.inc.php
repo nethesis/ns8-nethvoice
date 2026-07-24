@@ -22,6 +22,7 @@
 
 function queueoptions_destinations() {
     global $amp_conf;
+    $extens = array();
     $results = \FreePBX::Queueoptions()->queueoptions_get();
     if (isset($results)) {
 	foreach($results as $queue) {
@@ -43,7 +44,7 @@ function queueoptions_getdestinfo($dest) {
 
 // provide hook for queue module
 function queueoptions_hook_queues($viewing_itemid, $target_menuid) {
-    if ($target_menuid != 'queues' or $_REQUEST['view'] != 'form' or !isset($_REQUEST['extdisplay'])) {
+    if ($target_menuid != 'queues' or ($_REQUEST['view'] ?? '') != 'form' or !isset($_REQUEST['extdisplay'])) {
         return false;
     }
     $dbh = \FreePBX::Database();
@@ -52,12 +53,8 @@ function queueoptions_hook_queues($viewing_itemid, $target_menuid) {
     $sth->execute(array(
         $viewing_itemid,
     ));
-    $res = $sth->fetchAll(\PDO::FETCH_ASSOC)[0]['data'];
-    if ($res === "yes") {
-        $enabled = TRUE;
-    } else {
-        $enabled = FALSE;
-    }
+    $res = $sth->fetchColumn();
+    $enabled = ($res === "yes");
     $hookhtml = '
                 <!--LazyMembers HOOK-->
                 <div class="row">
@@ -82,4 +79,3 @@ function queueoptions_hook_queues($viewing_itemid, $target_menuid) {
                 <!--END LazyMembers HOOK-->';
             return $hookhtml;
 }
-

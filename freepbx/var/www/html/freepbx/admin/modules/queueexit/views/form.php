@@ -20,13 +20,15 @@
 #
 -->
 
+<?php $id = $_REQUEST['id'] ?? ''; ?>
+
 <form action="config.php?display=queueexit" method="post" class="fpbx-submit" id="hwform" name="hwform" data-fpbx-delete="config.php?display=queueexit">
-<input type="hidden" name='action' value="<?php echo $_REQUEST['id']?'edit':'add' ?>">
+<input type="hidden" name='action' value="<?php echo $id ? 'edit' : 'add' ?>">
 
 <?php
-if (isset($_REQUEST['id'])) {
-    $config = queueexit_get_details($_REQUEST['id']);
-    echo("<input type='hidden' name='id' value='".$_REQUEST['id']."'>");
+if ($id !== '') {
+    $config = queueexit_get_details($id);
+    echo("<input type='hidden' name='id' value='".htmlspecialchars($id, ENT_QUOTES)."'>");
 } else {
     $config['displayname'] = '';
     $config['timeout_destination'] = 'app-blackhole,hangup,1';

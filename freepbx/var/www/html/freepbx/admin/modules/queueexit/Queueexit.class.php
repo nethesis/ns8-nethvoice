@@ -20,9 +20,9 @@ class Queueexit implements \BMO
 
     // This handles any data passed to this module before the page is rendered.
     public function doConfigPageInit($page) {
-        $id = $_REQUEST['id']?$_REQUEST['id']:'';
+        $id = $_REQUEST['id'] ?? '';
         $action = $_REQUEST['action'] ?? '';
-        $exampleField = $_REQUEST['example-field']?$_REQUEST['example-field']:'';
+        $exampleField = $_REQUEST['example-field'] ?? '';
         //Handle form submissions
         $dbh = \FreePBX::Database();
         $destinations = array();
@@ -123,9 +123,9 @@ class Queueexit implements \BMO
     // This is also documented at http://wiki.freepbx.org/display/FOP/BMO+Ajax+Calls
     public function ajaxHandler()
     {
-        switch ($_REQUEST['command']) {
+        switch ($_REQUEST['command'] ?? '') {
         case 'getJSON':
-            switch ($_REQUEST['jdata']) {
+            switch ($_REQUEST['jdata'] ?? '') {
             case 'grid':
                 $ret = array();
                 foreach ( $this->queueexit_get() as $queueexit) {

@@ -117,7 +117,6 @@ function queueexit_get_details($id) {
     $sql = 'SELECT * FROM queueexit WHERE id = ?';
     $sth = $dbh->prepare($sql);
     $sth->execute(array($id));
-    $res = $sth->fetchAll()[0];
-    return $res;
+    $res = $sth->fetch(\PDO::FETCH_ASSOC);
+    return is_array($res) ? $res : array();
 }
-

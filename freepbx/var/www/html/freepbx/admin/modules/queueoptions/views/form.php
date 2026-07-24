@@ -20,13 +20,15 @@
 #
 -->
 
+<?php $id = $_REQUEST['id'] ?? ''; ?>
+
 <form action="config.php?display=queueoptions" method="post" class="fpbx-submit" id="hwform" name="hwform" data-fpbx-delete="config.php?display=queueoptions">
-<input type="hidden" name='action' value="<?php echo $_REQUEST['id']?'edit':'add' ?>">
+<input type="hidden" name='action' value="<?php echo $id ? 'edit' : 'add' ?>">
 
 <?php
-if (isset($_REQUEST['id'])) {
-    $config = \FreePBX::Queueoptions()->queueoptions_get($_REQUEST['id']);
-    echo("<input type='hidden' name='id' value='".htmlspecialchars($_REQUEST['id'], ENT_QUOTES)."'>");
+if ($id !== '') {
+    $config = \FreePBX::Queueoptions()->queueoptions_get($id);
+    echo("<input type='hidden' name='id' value='".htmlspecialchars($id, ENT_QUOTES)."'>");
 } else {
     $config['name'] = _('New Queue Options');
     $config['VQ_CIDPP'] = '';
