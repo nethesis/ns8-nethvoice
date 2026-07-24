@@ -32,6 +32,11 @@ function migrateFrom14To17(\PDO $db): void
 		SET `package`.`version` = `nethvoice_package`.`nethvoice_version`,
 			`package`.`installed` = `nethvoice_package`.`nethvoice_version`";
 	$db->query($sql);
+
+	# Remove text lines that were incorrectly imported as prompt filenames.
+	$sql = "DELETE FROM `asterisk`.`soundlang_prompts`
+		WHERE `filename` LIKE CONCAT('%', CHAR(10), '%')";
+	$db->query($sql);
 }
 
 function setMigrationScriptVersion(\PDO $db, int $version): void
