@@ -427,10 +427,10 @@ function nethcti3_get_config_late($engine) {
                     // Retrieve profile id and mobile
                     $stmt = $dbh->prepare('SELECT profile_id,mobile FROM rest_users WHERE user_id = ?');
                     $stmt->execute(array($user['id']));
-                    $profileRes = $stmt->fetch();
+                    $profileRes = $stmt->fetch(\PDO::FETCH_ASSOC);
 
                     // Skip user if he doesn't have a profile associated
-                    if ($profileRes['profile_id'] == null) {
+                    if (!is_array($profileRes) || empty($profileRes['profile_id'])) {
                         continue;
                     }
 
@@ -468,7 +468,7 @@ function nethcti3_get_config_late($engine) {
                                 $stmt->execute(array($e['extension']));
                                 $sipres = $stmt->fetchAll();
 
-                                if ($sipres[0]['data'] && $sipres[1]['data']) {
+                                if (count($sipres) >= 2 && !empty($sipres[0]['data']) && !empty($sipres[1]['data'])) {
                                     $settings['user'] = $sipres[0]['data'];
                                     $settings['password'] = $sipres[1]['data'];
                                 } else {
@@ -691,23 +691,23 @@ function nethcti3_get_config_early($engine) {
     $variables = array();
 
     //featurcodes
-    $variables['cftimeouton'] = $featurecodes['callforwardcfuon'];
-    $variables['cftimeoutoff'] = $featurecodes['callforwardcfuoff'];
-    $variables['cfbusyoff'] = $featurecodes['callforwardcfboff'];
-    $variables['cfbusyon'] = $featurecodes['callforwardcfbon'];
-    $variables['cfalwaysoff'] = $featurecodes['callforwardcfoff'];
-    $variables['cfalwayson'] = $featurecodes['callforwardcfon'];
-    $variables['dndoff'] = $featurecodes['donotdisturbdnd_off'];
-    $variables['dndon'] = $featurecodes['donotdisturbdnd_on'];
-    $variables['dndtoggle'] = $featurecodes['donotdisturbdnd_toggle'];
-    $variables['call_waiting_off'] = $featurecodes['callwaitingcwoff'];
-    $variables['call_waiting_on'] = $featurecodes['callwaitingcwon'];
-    $variables['pickup_direct'] = $featurecodes['corepickup'];
-    $variables['pickup_group'] = $featurecodes['corepickupexten'];
-    $variables['queuetoggle'] = $featurecodes['queuesque_toggle'];
+    $variables['cftimeouton'] = $featurecodes['callforwardcfuon'] ?? '';
+    $variables['cftimeoutoff'] = $featurecodes['callforwardcfuoff'] ?? '';
+    $variables['cfbusyoff'] = $featurecodes['callforwardcfboff'] ?? '';
+    $variables['cfbusyon'] = $featurecodes['callforwardcfbon'] ?? '';
+    $variables['cfalwaysoff'] = $featurecodes['callforwardcfoff'] ?? '';
+    $variables['cfalwayson'] = $featurecodes['callforwardcfon'] ?? '';
+    $variables['dndoff'] = $featurecodes['donotdisturbdnd_off'] ?? '';
+    $variables['dndon'] = $featurecodes['donotdisturbdnd_on'] ?? '';
+    $variables['dndtoggle'] = $featurecodes['donotdisturbdnd_toggle'] ?? '';
+    $variables['call_waiting_off'] = $featurecodes['callwaitingcwoff'] ?? '';
+    $variables['call_waiting_on'] = $featurecodes['callwaitingcwon'] ?? '';
+    $variables['pickup_direct'] = $featurecodes['corepickup'] ?? '';
+    $variables['pickup_group'] = $featurecodes['corepickupexten'] ?? '';
+    $variables['queuetoggle'] = $featurecodes['queuesque_toggle'] ?? '';
 
     // FreePBX settings
-    $variables['cftimeout'] = $amp_conf['CFRINGTIMERDEFAULT'];
+    $variables['cftimeout'] = $amp_conf['CFRINGTIMERDEFAULT'] ?? '';
 
     /*********************
     * Extension specific *
@@ -740,6 +740,10 @@ function nethcti3_get_config_early($engine) {
     $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE sections LIKE '%*%' AND username = ?");
     $stmt->execute(array($user));
     $user = $stmt->fetchAll();
+    if (empty($user)) {
+        error_log('Failed to find the FreePBX admin user for Tancredi configuration');
+        return;
+    }
     $password_sha1 = $user[0]['password_sha1'];
     $username = $user[0]['username'];
     $secretkey = sha1($username . $password_sha1 . $secret);
@@ -803,7 +807,7 @@ function nethcti3_get_config_early($engine) {
         }
 
         $user_variables['account_username_1'] = $extension;
-        $user_variables['account_password_1'] = $sip['secret'];
+        $user_variables['account_password_1'] = $sip['secret'] ?? ($ext['secret'] ?? '');
         $user_variables['account_dtmf_type_1'] = 'rfc4733';
         if (array_key_exists('dtmfmode',$sip)) {
             if ($sip['dtmfmode'] == 'inband') $user_variables['account_dtmf_type_1'] = 'inband';
@@ -811,7 +815,7 @@ function nethcti3_get_config_early($engine) {
             elseif ($sip['dtmfmode'] == 'info') $user_variables['account_dtmf_type_1'] = 'sip_info';
             elseif ($sip['dtmfmode'] == 'rfc4733') $user_variables['account_dtmf_type_1'] = 'rfc4733';
         }
-        $user_variables['account_voicemail_1'] = $featurecodes['voicemailmyvoicemail'];
+        $user_variables['account_voicemail_1'] = $featurecodes['voicemailmyvoicemail'] ?? '';
         $res = nethcti_tancredi_patch($tancrediUrl . 'phones/' . str_replace(':','-',$deviceMac), $username, $secretkey, array("variables" => $user_variables));
     }
     /***********************************
@@ -876,14 +880,17 @@ function nethvoice_report_config() {
     foreach (\FreePBX::Queues()->listQueues() as $q) {
         $queues[$q[0]] = array();
         $queue_details = queues_get($q[0]);
-        foreach (explode(PHP_EOL,$queue_details['dynmembers']) as $m) {
+        if (!is_array($queue_details)) {
+            continue;
+        }
+        foreach (explode(PHP_EOL, $queue_details['dynmembers'] ?? '') as $m) {
             // $m format is 201,0
             $tmp = explode(",",$m);
             if ($tmp[0]) {
                 $queues[$q[0]][] = $tmp[0];
             }
         }
-        foreach($queue_details['member'] as $m) {
+        foreach($queue_details['member'] ?? array() as $m) {
             // $m format Local/200@from-queue/n,0
             $tmp = explode("@",$m);
             $tmp = explode("/",$tmp[0]);
@@ -929,9 +936,9 @@ function nethvoice_report_config() {
         // Get user permission profile
         $stmt = $dbh->prepare('SELECT profile_id FROM rest_users WHERE user_id = ?');
         $stmt->execute(array($user_id));
-        $profileRes = $stmt->fetch();
+        $profileRes = $stmt->fetch(\PDO::FETCH_ASSOC);
         // Skip user if he doesn't have a profile associated
-        if ($profileRes['profile_id'] == null) {
+        if (!is_array($profileRes) || empty($profileRes['profile_id'])) {
             continue;
         }
         $profile = null;
@@ -971,7 +978,7 @@ function nethvoice_report_config() {
                 // Add queue to user queues list
                 $user['queues'][] = $queue_name;
                 // Add agent displaynames from queues
-                foreach ($queues[$queue_name] as $member_extension) {
+                foreach ($queues[$queue_name] ?? array() as $member_extension) {
                     if (isset($ext2user[$member_extension])) {
                         $user['agents'][] = $ext2user[$member_extension];
                     }
@@ -1009,7 +1016,7 @@ function nethvoice_report_config() {
                         if ($group["username"] == $username) {
                             $user["groups"][] = $group["name"];
                             foreach ($groups as $g) {
-                                if($g["name"] == $group["name"]) {
+                                if($g["name"] == $group["name"] && isset($g["id"])) {
                                     foreach ($res_devices as $device) {
                                         if ($g["id"] == $device["user_id"]) {
                                             $user["users"][] = $device["extension"];
