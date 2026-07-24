@@ -60,6 +60,7 @@ $langArray = json_decode($language, true);
  */
 
 // incoming data (inbound routes)
+$data['incoming'] = array();
 $get_data = FreePBX::Core()->getAllDIDs('extension');
 foreach ($get_data as $key => $row) {
     if ($row['cidnum'] != "") {
