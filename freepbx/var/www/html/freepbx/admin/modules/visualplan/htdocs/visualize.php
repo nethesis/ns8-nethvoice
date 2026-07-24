@@ -59,8 +59,23 @@ $langArray = json_decode($language, true);
  *  GET ELEMENTS ALL DATA AND CREATE DATA OBJECT 
  */
 
+$data = array(
+    'incoming' => array(),
+    'from-did-direct' => array(),
+    'ext-local' => array(),
+    'ivr' => array(),
+    'cqr' => array(),
+    'timeconditions' => array(),
+    'timegroups' => array(),
+    'app-announcement' => array(),
+    'recordings' => array(),
+    'ext-group' => array(),
+    'ext-meetme' => array(),
+    'ext-queues' => array(),
+    'app-daynight' => array()
+);
+
 // incoming data (inbound routes)
-$data['incoming'] = array();
 $get_data = FreePBX::Core()->getAllDIDs('extension');
 foreach ($get_data as $key => $row) {
     if ($row['cidnum'] != "") {
@@ -258,13 +273,13 @@ foreach ($_GET as $key => $value) {
 
         case "readData":
             $name = trim($_GET["readData"]);
-            print_r(/*nethvplan_json_pretty(*/json_encode($data[$name], true));
+            print_r(/*nethvplan_json_pretty(*/json_encode($data[$name] ?? array(), true));
         break;
 
         case "getAll":
             $name = $_GET["getAll"];
             $widContainer = array();
-            foreach ($data[$name] as $key => $value) {
+            foreach ($data[$name] ?? array() as $key => $value) {
                 if ($name == "ext-local") {
                     $key = "vmb".$key;
                 }
