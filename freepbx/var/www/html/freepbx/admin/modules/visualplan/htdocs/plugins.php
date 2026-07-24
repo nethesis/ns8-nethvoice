@@ -34,12 +34,12 @@ if ($handle = opendir(__DIR__. '/../..')) {
     closedir($handle);
 }
 
-$reqGet = $_GET['getType'];
-$reqPost = $_POST['getType'];
+$reqGet = $_GET['getType'] ?? '';
+$reqPost = $_POST['getType'] ?? '';
 
 
-if ($reqGet && ($reqGet === "tools")) {
-    switch ($_GET['rest']) {
+if ($reqGet === "tools") {
+    switch ($_GET['rest'] ?? '') {
         case 'getvoices':
             try {
                 $lang = strtolower(trim((string)($_GET['lang'] ?? '')));
@@ -61,7 +61,7 @@ if ($reqGet && ($reqGet === "tools")) {
 
         case 'getaudio':
             try {
-                $res = FreePBX::Satellite()->get_unsaved_audio($_GET['token']);
+                $res = FreePBX::Satellite()->get_unsaved_audio($_GET['token'] ?? '');
                 echo $res;
             } catch (\Exception $e) {
                 http_response_code(400);
@@ -72,11 +72,15 @@ if ($reqGet && ($reqGet === "tools")) {
         default:
             break;
     }    
-} else if ($reqPost && ($reqPost === "tools")) {
-    switch ($_POST['rest']) {
+} else if ($reqPost === "tools") {
+    switch ($_POST['rest'] ?? '') {
         case 'ttstext':
             try {
-                $res = FreePBX::Satellite()->tts($_POST['text'], $_POST['voice'], $_POST['lang']);
+                $res = FreePBX::Satellite()->tts(
+                    $_POST['text'] ?? '',
+                    $_POST['voice'] ?? '',
+                    $_POST['lang'] ?? ''
+                );
                 echo json_encode($res);
             } catch (\Exception $e) {
                 http_response_code(500);
@@ -87,7 +91,12 @@ if ($reqGet && ($reqGet === "tools")) {
 
         case 'savetts':
             try {
-                $res = FreePBX::Satellite()->save_recording($_POST['token'], $_POST['lang'], $_POST['name'], $_POST['desc']);
+                $res = FreePBX::Satellite()->save_recording(
+                    $_POST['token'] ?? '',
+                    $_POST['lang'] ?? '',
+                    $_POST['name'] ?? '',
+                    $_POST['desc'] ?? ''
+                );
                 echo $res;
             } catch (\Exception $e) {
                 http_response_code(500);
@@ -104,45 +113,46 @@ if ($reqGet && ($reqGet === "tools")) {
     
     if ($json) {
         $jsonArray = json_decode($json, true);
-        $type = $jsonArray['type'];
-        $rest = $jsonArray['rest'];
+        if (!is_array($jsonArray)) {
+            http_response_code(400);
+            echo json_encode(array('error' => 'Invalid JSON request'));
+            return;
+        }
+
+        $type = $jsonArray['type'] ?? '';
+        $rest = $jsonArray['rest'] ?? '';
     
         switch ($type) {
             case 'timegroup':
     
                 if ($rest == "get") {
-    
-                    $select = FreePBX::Timeconditions()->getTimeGroup($jsonArray['id']);
+
+                    $id = (int)($jsonArray['id'] ?? 0);
+                    $select = FreePBX::Timeconditions()->getTimeGroup($id);
                     $dbh = FreePBX::Database();
-                    $sql = "SELECT * FROM timegroups_details WHERE timegroupid = ".(int)$jsonArray['id'];
+                    $sql = "SELECT * FROM timegroups_details WHERE timegroupid = ".$id;
                     $final = $dbh->sql($sql, 'getAll', \PDO::FETCH_ASSOC);
     
                     if ($final) {
     
                         foreach ($final as $key => $value) {
-                            $explode = explode("|", $value["time"]);
+                            $explode = array_pad(explode("|", (string)($value["time"] ?? '')), 4, '');
 
-                            $times = explode("-", $explode[0]);
+                            $times = array_pad(explode("-", $explode[0]), 2, '');
                             $wdays = explode("-", $explode[1]);
                             $mdays = explode("-", $explode[2]);
                             $months = explode("-", $explode[3]);
 
-                            $times_start = explode(":", $times[0]);
+                            $times_start = array_pad(explode(":", $times[0]), 2, '');
 
                             $final[$key]["hour_start"] = trim($times_start[0], " ");
-                            $spliths = str_split($final[$key]["hour_start"]); 
-                            if ($spliths[0] == "0") {
-                                $final[$key]["hour_start"] = $spliths[1];
-                            }
+                            $final[$key]["hour_start"] = preg_replace('/^0(?=\d)/', '', $final[$key]["hour_start"]);
 
                             $final[$key]["minute_start"] = trim($times_start[1], " ");
-                            $splitms = str_split($final[$key]["minute_start"]); 
-                            if ($splitms[0] == "0") {
-                                $final[$key]["minute_start"] = $splitms[1];
-                            }
+                            $final[$key]["minute_start"] = preg_replace('/^0(?=\d)/', '', $final[$key]["minute_start"]);
 
-                            if ($times[1]) {
-                                $times_finish = explode(":", $times[1]);
+                            if ($times[1] !== '') {
+                                $times_finish = array_pad(explode(":", $times[1]), 2, '');
                                 $final[$key]["hour_finish"] = trim($times_finish[0], " ");
                                 $final[$key]["minute_finish"] = trim($times_finish[1], " ");
                             } else {
@@ -150,14 +160,8 @@ if ($reqGet && ($reqGet === "tools")) {
                                 $final[$key]["minute_finish"] = trim($times_start[1], " ");
                             }
 
-                            $splithf = str_split($final[$key]["hour_finish"]); 
-                            if ($splithf[0] == "0") {
-                                $final[$key]["hour_finish"] = $splithf[1];
-                            }
-                            $splitmf = str_split($final[$key]["minute_finish"]); 
-                            if ($splitmf[0] == "0") {
-                                $final[$key]["minute_finish"] = $splitmf[1];
-                            }
+                            $final[$key]["hour_finish"] = preg_replace('/^0(?=\d)/', '', $final[$key]["hour_finish"]);
+                            $final[$key]["minute_finish"] = preg_replace('/^0(?=\d)/', '', $final[$key]["minute_finish"]);
                             
                             $final[$key]["wday_start"] = isset($wdays[0]) ? trim($wdays[0], " ") : "-";
                             $final[$key]["wday_finish"] = isset($wdays[1]) ? trim($wdays[1], " ") : (isset($wdays[0]) ? trim($wdays[0], " ") : "-");
@@ -173,14 +177,19 @@ if ($reqGet && ($reqGet === "tools")) {
                     echo json_encode($final);
     
                 } else if ($rest == "set") {
-    
-                    $addedTime = FreePBX::Timeconditions()->addTimeGroup($jsonArray["times"][0]['name'], $jsonArray["times"]);
+
+                    $times = is_array($jsonArray['times'] ?? null) ? $jsonArray['times'] : array();
+                    $name = $times[0]['name'] ?? '';
+                    $addedTime = FreePBX::Timeconditions()->addTimeGroup($name, $times);
                     echo $addedTime;
-    
+
                 } else if ($rest == "update") {
-    
-                    $updateName = FreePBX::Timeconditions()->editTimeGroup( $jsonArray['id'], $jsonArray["times"][0]['name'] );
-                    $updateTime = FreePBX::Timeconditions()->editTimes( $jsonArray['id'], $jsonArray["times"] );
+
+                    $id = (int)($jsonArray['id'] ?? 0);
+                    $times = is_array($jsonArray['times'] ?? null) ? $jsonArray['times'] : array();
+                    $name = $times[0]['name'] ?? '';
+                    $updateName = FreePBX::Timeconditions()->editTimeGroup($id, $name);
+                    $updateTime = FreePBX::Timeconditions()->editTimes($id, $times);
                     echo json_encode($updateName);
     
                 }
@@ -196,9 +205,8 @@ if ($reqGet && ($reqGet === "tools")) {
         $path = "/var/spool/asterisk/tmp/";
         $valid_formats1 = array("mp3", "wav");
         $actual_image_name = "";
-        if ($_SERVER['REQUEST_METHOD'] == "POST") {
-          $filename = $_FILES['file1']['name'];
-          $size = $_FILES['file1']['size'];
+        if (($_SERVER['REQUEST_METHOD'] ?? '') == "POST" && isset($_FILES['file1']) && is_array($_FILES['file1'])) {
+          $filename = (string)($_FILES['file1']['name'] ?? '');
           if(strlen($filename)) {
             // Derive the extension safely (handles names with multiple/zero dots)
             // and strip any unsafe characters from the base so a client-controlled
@@ -209,7 +217,7 @@ if ($reqGet && ($reqGet === "tools")) {
             $base = preg_replace('/[^A-Za-z0-9_-]/', '_', pathinfo($filename, PATHINFO_FILENAME));
             if($base !== "" && in_array($ext, $valid_formats1, true)) {
               $candidate = $timevar."-".$base.".".$ext;
-              $tmp = $_FILES['file1']['tmp_name'];
+              $tmp = $_FILES['file1']['tmp_name'] ?? '';
               // Only advertise the name to the client if the file is actually stored.
               if(move_uploaded_file($tmp, $path.$candidate)) {
                 $actual_image_name = $candidate;
@@ -223,4 +231,4 @@ if ($reqGet && ($reqGet === "tools")) {
         header('Content-Type: text/plain; charset=utf-8');
         echo $actual_image_name;
     }
-} 
+}
