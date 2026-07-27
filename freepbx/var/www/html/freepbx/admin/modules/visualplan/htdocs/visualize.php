@@ -527,6 +527,8 @@ function nethvplan_bindData($data, $dest, $id)
 {
     global $langArray;
     global $widgetTemplate;
+    global $xPos;
+    global $yPos;
     $widget = $widgetTemplate;
     if (!empty($data[$dest][$id]['userData'])) {
         $widget['userData'] = $data[$dest][$id]['userData'];        
