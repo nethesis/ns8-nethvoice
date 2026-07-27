@@ -3008,7 +3008,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:^1.0.0":
+"axios@npm:^1.18.1":
   version: 1.18.1
   resolution: "axios@npm:1.18.1"
   dependencies:
@@ -11787,7 +11787,7 @@ __metadata:
     "@vue/cli-service": "npm:~4.5.0"
     "@vue/eslint-config-prettier": "npm:^6.0.0"
     await-to-js: "npm:^3.0.0"
-    axios: "npm:^1.0.0"
+    axios: "npm:^1.18.1"
     carbon-components: "npm:^10.41.0"
     core-js: "npm:^3.6.5"
     eslint: "npm:^6.7.2"
