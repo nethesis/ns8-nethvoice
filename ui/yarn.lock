@@ -1434,9 +1434,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@nethserver/ns8-ui-lib@npm:^1.10.1":
-  version: 1.12.4
-  resolution: "@nethserver/ns8-ui-lib@npm:1.12.4"
+"@nethserver/ns8-ui-lib@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "@nethserver/ns8-ui-lib@npm:2.0.0"
   dependencies:
     "@rollup/plugin-json": "npm:^4.1.0"
     core-js: "npm:^3.15.2"
@@ -1445,7 +1445,7 @@ __metadata:
     vue-date-fns: "npm:^2.0.1"
   peerDependencies:
     vue: ^2.6.12
-  checksum: 10c0/dfd6475dbf462280ca43002ef504f95e21bc5f842312020e79cfc1e7f1e7389cbcbef290c70376aa37876cd89f37a9fe3cceaf0e645df7ff7420573740d3f5dd
+  checksum: 10c0/4a238e4dcd8ae988cf6a5ed2c041507cdf8341e80f832e45c7fd5049a290b5c44a1731a38db4efd08b7835b2aaf6da99c6972a59202e5d882359081809faabb4
   languageName: node
   linkType: hard
 
@@ -11772,7 +11772,7 @@ __metadata:
     "@babel/eslint-parser": "npm:^7.11.0"
     "@carbon/icons-vue": "npm:^10.37.0"
     "@carbon/vue": "npm:^2.40.0"
-    "@nethserver/ns8-ui-lib": "npm:^1.10.1"
+    "@nethserver/ns8-ui-lib": "npm:^2.0.0"
     "@vue/cli-plugin-babel": "npm:~4.5.18"
     "@vue/cli-plugin-eslint": "npm:~4.5.18"
     "@vue/cli-plugin-router": "npm:~4.5.18"
