@@ -90,8 +90,10 @@ def syncSourceDB(path, output, deleteonly):
   curSource = dbSource.cursor()
   if output == True:
     curSource.execute(sConfig[sid]['query'])
-    rows = curSource.fetchall()[:PREVIEW_ROWS]
+    rows = curSource.fetchmany(PREVIEW_ROWS)
     cols = tuple([i[0] for i in curSource.description])
+    while curSource.fetchmany(1000):
+      pass
     res = []
     for row in rows:
       temp = {}
@@ -244,7 +246,7 @@ def syncSourceCsv(path, output, deleteonly):
     df.append(r)
 
   if output == True:
-    json.dump(df, sys.stdout)
+    json.dump(df[:PREVIEW_ROWS], sys.stdout)
     logger.info('end ' + ('check of' if output == True else '') + ' source import of ' + path + ' into phonebook.phonebook')
     return
 

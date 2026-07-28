@@ -368,9 +368,6 @@ angular.module('nethvoiceWizardUiApp')
           password: s.password,
           query: s.query,
         };
-        if (s.driver) {
-          payload.driver = s.driver;
-        }
       } else if (s.dbtype == 'csv' || s.dbtype == 'csv_cti') {
         // csv_cti shares the CSV file format: the same test/preview path is used to
         // read the source columns. The actual import target (centralized vs CTI
