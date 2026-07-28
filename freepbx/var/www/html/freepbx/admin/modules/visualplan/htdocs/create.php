@@ -568,6 +568,18 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
             $cond = array();
             $goto = array();
 
+            if (empty($id)) {
+                $existingCqrs = nethcqr_get_details();
+                if (is_array($existingCqrs)) {
+                    foreach ($existingCqrs as $existingCqr) {
+                        if (($existingCqr['name'] ?? null) === $name) {
+                            $id = $existingCqr['id_cqr'] ?? "";
+                            break;
+                        }
+                    }
+                }
+            }
+
             if (!array_key_exists($value['id'], $currentCreated)) {
                 if (empty($id)) {
                     $idCQR = nethcqr_save_details(array(
