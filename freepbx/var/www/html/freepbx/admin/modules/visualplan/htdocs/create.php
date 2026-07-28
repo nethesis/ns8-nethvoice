@@ -426,7 +426,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
         break;
 
         case "app-announcement":
-            $id = $value['userData']['id'];
+            $id = $value['userData']['id'] ?? "";
             $name = $value['userData']['description'];
             $rec_id = $value['userData']['announcement'];
 
@@ -450,7 +450,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
         break;
 
         case "ivr":
-            $id = $value['userData']['id'];
+            $id = $value['userData']['id'] ?? "";
             $name = $value['userData']['name'];
             $description = $value['userData']['description'];
             $announcement = $value['userData']['announcement'];
@@ -558,7 +558,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
         break;
 
         case "cqr":
-            $id = $value['userData']['id'];
+            $id = $value['userData']['id'] ?? "";
             $name = $value['userData']['name'];
             $description = $value['userData']['description'];
             $announcement = $value['userData']['announcement'];
@@ -714,7 +714,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
         break;
 
         case "timeconditions":
-            $id = $value['userData']['id'];
+            $id = $value['userData']['id'] ?? "";
             $name = $value['userData']['name'];
             $time = $value['userData']['time'];
             if (!array_key_exists($value['id'], $currentCreated)) {
@@ -778,7 +778,6 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
         break;
 
         case "app-daynight":
-            $id = $value['userData']['id'];
             $name = $value['userData']['name'];
             $controlCode = $value['userData']['code'];
             $destinations = nethvplan_getDestination($value, $connectionArray, $currentCreated, $wType);
