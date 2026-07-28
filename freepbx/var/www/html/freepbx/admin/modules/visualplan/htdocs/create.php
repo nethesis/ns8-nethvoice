@@ -299,9 +299,18 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
             $destination = trim($destinations["output_".$value['entities'][8]['id']] ?? "");
             $exists = queues_get($extension);
             if (empty($exists)) {
+                $_REQUEST['maxlen'] = "0";
+                $_REQUEST['joinempty'] = "yes";
+                $_REQUEST['leavewhenempty'] = "no";
                 $_REQUEST['strategy'] = $strategy;
                 $_REQUEST['timeout'] = $timeout;
+                $_REQUEST['wrapuptime'] = "0";
+                $_REQUEST['announcefreq'] = "0";
+                $_REQUEST['min-announce'] = "15";
+                $_REQUEST['announceholdtime'] = "no";
+                $_REQUEST['announceposition'] = "no";
                 $_REQUEST['answered_elsewhere'] = "1";
+                $_REQUEST['recording'] = "dontcare";
                 queues_add(
                     $extension,
                     $name,
