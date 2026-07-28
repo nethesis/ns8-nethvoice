@@ -1733,7 +1733,7 @@ INSERT INTO `rest_pjsip_trunks_defaults` (`provider_id`,`keyword`,`data`) VALUES
 (32,"auth_rejection_permanent","off"),
 (32,"authentication","both"),
 (32,"client_uri",""),
-(32,"codecs","ulaw,alaw,gsm,g726,g722,vp8,h264"),
+(32,"codecs","ulaw,alaw,g722"),
 (32,"context","from-internal"),
 (32,"dialopts",""),
 (32,"dialoutopts_cb","sys"),
