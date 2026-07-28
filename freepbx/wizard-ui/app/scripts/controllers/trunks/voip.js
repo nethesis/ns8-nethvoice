@@ -19,6 +19,8 @@ angular.module('nethvoiceWizardUiApp')
     $scope.searchTrunk = ""
     $scope.newPwd = ""
     $scope.voipLimit = 20;
+    $scope.availableCodecs = []
+    $scope.availableEditCodecs = []
 
     $scope.onDelete = false
     $scope.onDeleteError = false
@@ -58,6 +60,7 @@ angular.module('nethvoiceWizardUiApp')
       $scope.editedSelectedTrunk.forceCodec = angular.copy($scope.trunk.forceCodec)
       $scope.editedSelectedTrunk.info = angular.copy($scope.trunksInfo)
       $scope.editedSelectedTrunk.codecs = angular.copy($scope.selectedTrunk).details.codecs.split(",")
+      $scope.availableEditCodecs = angular.copy($scope.editedSelectedTrunk.codecs)
     }
 
     var getProvidersList = function () {
@@ -75,6 +78,15 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.providerDesc = function (provider) {
       return $scope.providers ? $scope.providers.find(el => el.provider === provider).description : "-"
+    }
+
+    $scope.selectProvider = function () {
+      var provider = $scope.providers.find(function (item) {
+        return item.provider === $scope.trunk.provider
+      })
+
+      $scope.availableCodecs = provider && provider.codecs ? provider.codecs.split(",") : []
+      $scope.trunk.codecs = angular.copy($scope.availableCodecs)
     }
 
     $scope.arrayJoin = function (arr) {
@@ -227,12 +239,16 @@ angular.module('nethvoiceWizardUiApp')
 
     // Set default codecs
     $scope.retrieveCodecs().then(function (res) {
-      $scope.availableCodecs = res.map(function (a) {
+      var defaultCodecs = res.map(function (a) {
         return a.codec;
       });
-      for (var c in res) {
-        if (res[c].enabled) {
-          $scope.trunk.codecs = [res[c].codec];
+      $scope.availableEditCodecs = angular.copy(defaultCodecs)
+      if (!$scope.trunk.provider) {
+        $scope.availableCodecs = defaultCodecs
+        for (var c in res) {
+          if (res[c].enabled) {
+            $scope.trunk.codecs = [res[c].codec];
+          }
         }
       }
     }, function (err) {

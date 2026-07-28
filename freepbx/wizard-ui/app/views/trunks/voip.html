@@ -202,7 +202,7 @@
             <div class="form-group">
               <label class="col-sm-3 control-label">{{'Provider' | translate}}</label>
               <div class="col-sm-9">
-                <select pf-select="{ width: '100%', noneSelectedText: '-' }" ng-model="trunk.provider" ng-options="m.provider as m.description for m in providers">
+                <select pf-select="{ width: '100%', noneSelectedText: '-' }" ng-model="trunk.provider" ng-change="selectProvider()" ng-options="m.provider as m.description for m in providers">
                   <option value="">-</option>
                 </select>
               </div>
@@ -355,7 +355,7 @@
                 <label>{{'Favourite codecs' | translate}} </label>
               </div>
               <div class="col-sm-9">
-                  <select class="mt-3" title="-" multiple pf-select="{ width: '100%' }" ng-model=editedSelectedTrunk.codecs ng-options="p as p for p in availableCodecs"></select>
+                  <select class="mt-3" title="-" multiple pf-select="{ width: '100%' }" ng-model=editedSelectedTrunk.codecs ng-options="p as p for p in availableEditCodecs"></select>
               </div>
             </div>
           </div>
