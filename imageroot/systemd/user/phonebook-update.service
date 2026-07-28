@@ -5,7 +5,7 @@ Description=Update centralized phonebook
 Type=simple
 ExecStart=podman exec freepbx /usr/share/phonebooks/phonebook
 ExecStartPost=systemctl --user restart phonebook.service
-WorkingDirectory=%S/state
+WorkingDirectory=%E/state
 SyslogIdentifier=%u/%N
 
 [Install]
