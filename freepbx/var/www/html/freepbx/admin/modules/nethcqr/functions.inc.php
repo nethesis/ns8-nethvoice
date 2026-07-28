@@ -380,7 +380,7 @@ fclose ($openfile);
 function nethcqr_save_details($vals){
         global $db, $amp_conf;
         foreach($vals as $key => $value) {
-                $vals[$key] = $db->escapeSimple($value);
+                $vals[$key] = $db->escapeSimple((string) ($value ?? ''));
         }
     $id_cqr=$vals['id_cqr'];
         $name=$vals['name'];
