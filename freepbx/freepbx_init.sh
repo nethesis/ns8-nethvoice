@@ -130,6 +130,35 @@ ionice -c2 -n7 nice -n 10 fwconsole chown
 # Disable signature check
 php -r 'include_once "/etc/freepbx_db.conf"; $db->query("UPDATE freepbx_settings SET value = 0 WHERE keyword = \"SIGNATURECHECK\"");'
 
+# Re-apply the allocated service ports.
+# Installing the iaxsettings/sipsettings modules above reseeds their tables and
+# drops the ports injected at DB init (mariadb 70_asterisk_ports.sh). We must
+# restore them BEFORE the reload below: a `fwconsole reload` does not rebind an
+# already-loaded PJSIP transport, so the transport has to be generated with the
+# correct port on the first reload to avoid a restart. Ports come from the
+# container environment (ASTERISK_*). kvstore_Sipsettings rows are managed by
+# the module and only UPDATEd to avoid inserting a duplicate under a mismatched
+# `id` (UNIQUE(`key`,`id`)).
+php <<'PHP'
+<?php
+include_once "/etc/freepbx_db.conf";
+$iax    = (int) getenv("ASTERISK_IAX_PORT");
+$sipudp = (int) getenv("ASTERISK_SIP_UDP_PORT");
+$siptcp = (int) getenv("ASTERISK_SIP_PORT");
+$sips   = (int) getenv("ASTERISK_SIPS_PORT");
+$rtps   = (int) getenv("ASTERISK_RTPSTART");
+$rtpe   = (int) getenv("ASTERISK_RTPEND");
+$astmgr = (int) getenv("ASTMANAGERPORT");
+if ($iax && $sipudp && $siptcp && $sips && $rtps && $rtpe) {
+    $db->query("INSERT INTO `iaxsettings` (`keyword`,`data`,`seq`,`type`) VALUES ('bindport','$iax',1,0) ON DUPLICATE KEY UPDATE `data`=VALUES(`data`)");
+    $db->query("INSERT INTO `sipsettings` (`keyword`,`data`,`seq`,`type`) VALUES ('rtpstart','$rtps',0,0),('rtpend','$rtpe',0,0),('bindport','$sipudp',1,0) ON DUPLICATE KEY UPDATE `data`=VALUES(`data`)");
+    $db->query("UPDATE `kvstore_Sipsettings` SET `val` = CASE `key` WHEN 'udpport-0.0.0.0' THEN '$sipudp' WHEN 'tcpport-0.0.0.0' THEN '$siptcp' WHEN 'tlsport-0.0.0.0' THEN '$sips' WHEN 'bindport' THEN '$siptcp' WHEN 'tlsbindport' THEN '$sips' WHEN 'rtpstart' THEN '$rtps' WHEN 'rtpend' THEN '$rtpe' END WHERE `key` IN ('udpport-0.0.0.0','tcpport-0.0.0.0','tlsport-0.0.0.0','bindport','tlsbindport','rtpstart','rtpend')");
+    if ($astmgr) {
+        $db->query("INSERT INTO `freepbx_settings` (`keyword`,`value`,`name`,`level`,`description`,`type`,`options`,`defaultval`,`readonly`,`hidden`,`category`,`module`,`emptyok`,`sortorder`) VALUES ('ASTMANAGERPORT','$astmgr','Asterisk Manager Port',2,'Port for the Asterisk Manager','int','1024,65535','$astmgr',1,0,'Asterisk Manager','',0,0) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`), `defaultval`=VALUES(`defaultval`)");
+    }
+}
+PHP
+
 # Sync users
 fwconsole userman --syncall --force --verbose
 
