@@ -571,6 +571,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
             if (!array_key_exists($value['id'], $currentCreated)) {
                 if (empty($id)) {
                     $idCQR = nethcqr_save_details(array(
+                        "id_cqr" => "",
                         "name" => $name,
                         "description" => $description,
                         "announcement" => $announcement,

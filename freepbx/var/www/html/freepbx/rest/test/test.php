@@ -815,6 +815,7 @@ $test = "NethCQR save/get details/entries";
 try {
 
     $idCQR = nethcqr_save_details(array(
+        "id_cqr" => "",
         "name" => 'testCQR',
         "description" => 'Test CQR created by automatic testing',
         "announcement" => '',
