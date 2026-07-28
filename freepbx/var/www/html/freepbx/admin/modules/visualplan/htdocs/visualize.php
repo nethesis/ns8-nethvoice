@@ -293,7 +293,7 @@ foreach ($_GET as $key => $value) {
             $tmpDestArray = array();
 
             $dest = base64_decode($_GET["getChild"]);
-            $finalDest = base64_decode($_GET["getChildDest"]);
+            $finalDest = base64_decode($_GET["getChildDest"] ?? '');
             $pieces = explode("|", $finalDest);
             unset($pieces[count($pieces)-1]);
 
