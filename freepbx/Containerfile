@@ -348,7 +348,7 @@ RUN install_module() { \
 	install_module featurecodeadmin https://github.com/FreePBX/featurecodeadmin/archive/refs/tags/release/16.0.11.tar.gz && \
 	install_module filestore https://github.com/FreePBX/filestore/archive/refs/tags/release/16.0.18.5.tar.gz && \
 	install_module findmefollow https://github.com/FreePBX/findmefollow/archive/refs/tags/release/16.0.23.tar.gz && \
-	install_module framework https://github.com/FreePBX/framework/archive/refs/tags/release/16.0.40.3.tar.gz && \
+	install_module framework https://github.com/FreePBX/framework/archive/refs/tags/release/16.0.40.21.tar.gz && \
 	install_module iaxsettings https://github.com/FreePBX/iaxsettings/archive/refs/tags/release/16.0.4.tar.gz && \
 	install_module infoservices https://github.com/FreePBX/infoservices/archive/refs/tags/release/16.0.2.tar.gz && \
 	install_module ivr https://github.com/FreePBX/ivr/archive/refs/tags/release/16.0.10.tar.gz && \
