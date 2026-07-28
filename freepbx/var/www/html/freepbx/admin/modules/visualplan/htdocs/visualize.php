@@ -227,11 +227,11 @@ $get_data = daynight_list();
 foreach ($get_data as $key => $row) {
     $daynight_obj = daynight_get_obj($row['ext']);
     $data['app-daynight'][$row['ext']] = array(
-        "name"=> $daynight_obj['fc_description'],
+        "name"=> $daynight_obj['fc_description'] ?? "",
         "control_code"=> "*28".$row['ext'],
         "ext"=> $row['ext'],
-        "green_flow"=> $daynight_obj['day'],
-        "red_flow"=> $daynight_obj['night']
+        "green_flow"=> $daynight_obj['day'] ?? "",
+        "red_flow"=> $daynight_obj['night'] ?? ""
     );
 }
 $data['codeavailable'] = daynight_get_avail();

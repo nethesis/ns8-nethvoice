@@ -798,11 +798,18 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
             $controlCode = $value['userData']['code'];
             $destinations = nethvplan_getDestination($value, $connectionArray, $currentCreated, $wType);
             $exists = daynight_get_obj($controlCode);
+            if (!is_array($exists)) {
+                $exists = array();
+            }
+            $existingSettings = $exists;
+            unset($existingSettings['state']);
+            $state = $exists['state'] ?? '';
             daynight_edit(array(
-                "day_recording_id" => $exists['day_recording_id'],
-                "night_recording_id" => $exists['night_recording_id'],
-                "password" => $exists['password'],
-                "state" => strlen($exists['state']) > 0 ? $exists['state'] : 'DAY',
+                "action" => empty($existingSettings) ? "add" : "edit",
+                "day_recording_id" => $exists['day_recording_id'] ?? "",
+                "night_recording_id" => $exists['night_recording_id'] ?? "",
+                "password" => $exists['password'] ?? "",
+                "state" => in_array($state, array("DAY", "NIGHT"), true) ? $state : "DAY",
                 "fc_description" => $name,
                 "goto1" => "truegoto",
                 "goto0" => "falsegoto",
