@@ -133,10 +133,12 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
             $id = 'custom_'.$i;
             $new = true;
         }
+        $optional_params = array();
         if(!isset($data['dbtype'])) {
             return $response->withJson(array("status"=>"Missing value: dbtype"), 400);
-        } else if($data['dbtype'] == 'mysql') {
+        } else if($data['dbtype'] == 'mysql' || $data['dbtype'] == 'mssql') {
             $mandatory_params = array('host','port','user','password','dbname','query','mapping');
+            $optional_params = array('driver');
         } else if($data['dbtype'] == 'csv') {
             $mandatory_params = array('url','mapping');
         } else if($data['dbtype'] == 'infinity') {
@@ -152,6 +154,11 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
                 return $response->withJson(array("status"=>"Missing value: $var"), 400);
             }
             $newsource[$var] = $data[$var];
+        }
+        foreach ($optional_params as $var) {
+            if (isset($data[$var]) && !empty($data[$var])) {
+                $newsource[$var] = $data[$var];
+            }
         }
         $newsource['dbtype'] = $data['dbtype'];
         // optional parameters
@@ -227,10 +234,12 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
         $id = uniqid('phonebook_test_');
         $file = '/tmp/'.$id.'.json';
         $newsource = array();
+        $optional_params = array();
         if(!isset($data['dbtype'])) {
             return $response->withJson(array("status"=>"Missing value: dbtype"), 400);
-        } else if($data['dbtype'] == 'mysql') {
+        } else if($data['dbtype'] == 'mysql' || $data['dbtype'] == 'mssql') {
             $mandatory_params = array('host','port','user','password','dbname','query');
+            $optional_params = array('driver');
         } else if($data['dbtype'] == 'csv') {
             $mandatory_params = array('url');
         } else if($data['dbtype'] == 'infinity') {
@@ -245,6 +254,11 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
                 return $response->withJson(array("status"=>"Missing value: $var"), 400);
             }
             $newsource[$id][$var] = $data[$var];
+        }
+        foreach ($optional_params as $var) {
+            if (isset($data[$var]) && !empty($data[$var])) {
+                $newsource[$id][$var] = $data[$var];
+            }
         }
         $newsource[$id]['dbtype'] = $data['dbtype'];
         $newsource[$id]['enabled'] = true;
@@ -263,7 +277,10 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
             unlink_local_csv($newsource[$id]);
             return $response->withJson(array("status"=>false),200);
         }
-        $res = json_decode($output[0]);
+        $res = isset($output[0]) ? json_decode($output[0]) : null;
+        if (!is_array($res)) {
+            return $response->withJson(array("status"=>false),200);
+        }
         return $response->withJson(array_slice($res, 0, 3),200);
     } catch (Exception $e) {
         error_log($e->getMessage());
