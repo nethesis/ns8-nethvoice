@@ -736,6 +736,7 @@ try {
 $test = "IVR save/get details/entries";
 try {
     $idIVR = ivr_save_details(array(
+                        "id" => "",
                         "name" => 'testIVR',
                         "description" => "Test IVR",
                         "announcement" => '',

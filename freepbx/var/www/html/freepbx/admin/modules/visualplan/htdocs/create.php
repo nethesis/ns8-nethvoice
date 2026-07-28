@@ -462,6 +462,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
             if (!array_key_exists($value['id'], $currentCreated)) {
                 if (empty($id)) {
                     $idIVR = ivr_save_details(array(
+                        "id" => "",
                         "name" => $name,
                         "description" => $description,
                         "announcement" => $announcement,
