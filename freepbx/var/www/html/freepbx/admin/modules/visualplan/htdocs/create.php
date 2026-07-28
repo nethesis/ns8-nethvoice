@@ -750,6 +750,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                         "fcc_password" => "",
                         "deptname" => "",
                         "generate_hint" => "",
+                        "tcstate_new" => "unchanged",
                         "mode" => "time-group",
                         "calendar_id" => "",
                         "calendar_group_id" => ""
@@ -770,6 +771,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                         "fcc_password" => $exists['fcc_password'],
                         "deptname" => $exists['deptname'],
                         "generate_hint" => $exists['generate_hint'],
+                        "tcstate_new" => "unchanged",
                         "mode" => $exists['mode'],
                         "calendar_id" => $exists['calendar_id'],
                         "calendar_group_id" => $exists['calendar_group_id']
