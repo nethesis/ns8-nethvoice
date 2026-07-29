@@ -359,7 +359,7 @@ RUN install_module() { \
 	install_module music https://github.com/FreePBX/music/archive/refs/tags/release/16.0.3.tar.gz && \
 	install_module outroutemsg https://github.com/FreePBX/outroutemsg/archive/refs/tags/release/16.0.1.tar.gz && \
 	install_module parking https://github.com/FreePBX/parking/archive/refs/tags/release/16.0.4.tar.gz && \
-	install_module pm2 https://github.com/FreePBX/pm2/archive/refs/tags/release/14.0.1.tar.gz && \
+	install_module pm2 https://github.com/FreePBX/pm2/archive/refs/tags/release/16.0.8.tar.gz && \
 	install_module queueprio https://github.com/FreePBX/queueprio/archive/refs/tags/release/16.0.3.tar.gz && \
 	install_module ringgroups https://github.com/FreePBX/ringgroups/archive/refs/tags/release/16.0.11.tar.gz && \
 	install_module setcid https://github.com/FreePBX/setcid/archive/refs/tags/release/16.0.3.tar.gz && \
