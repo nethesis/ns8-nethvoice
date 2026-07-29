@@ -10,8 +10,8 @@ StartLimitBurst=60
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-EnvironmentFile=%S/state/environment
-WorkingDirectory=%S/state
+EnvironmentFile=%E/state/environment
+WorkingDirectory=%E/state
 Restart=always
 RestartSec=10s
 ExecStartPre=/bin/rm -f %t/nethcti-server.pid %t/nethcti-server.ctr-id
@@ -32,7 +32,7 @@ ExecStart=/usr/bin/podman run \
     --volume=spool:/var/spool/asterisk:z \
     --volume=reports_config:/opt/nethvoice-report:z \
     --volume=/dev/log:/dev/log \
-    --env-file=%S/state/passwords.env \
+    --env-file=%E/state/passwords.env \
     --env=ASTMANAGERPORT \
     --env=APACHE_PORT \
     --env=NETHCTI* \
