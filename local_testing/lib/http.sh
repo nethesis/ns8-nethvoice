@@ -142,7 +142,7 @@ lt_run_manifest() {
   else
     lt_info "Secretkey: (empty)"
   fi
-  while IFS=$'\t' read -r name method path payload expected; do
+  while IFS=$'\x1f' read -r name method path payload expected; do
     lt_run_authenticated_api "${method}" "${path}" "${payload}" "${expected}" "${name}"
   done < <(python3 "${LOCAL_TESTING_DIR}/bin/manifest_to_tsv.py" "${manifest}")
 }

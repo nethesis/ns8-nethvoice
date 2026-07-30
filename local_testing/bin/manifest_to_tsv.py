@@ -26,7 +26,10 @@ def main() -> int:
             payload_text,
             expected,
         ]
-        print("\t".join(row))
+        # A tab is IFS whitespace in Bash, so consecutive tabs collapse and
+        # shift fields when an operation has no payload. Use a non-whitespace
+        # separator to preserve the empty payload column.
+        print("\x1f".join(row))
 
     return 0
 
