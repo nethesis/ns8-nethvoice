@@ -24,10 +24,11 @@ function queueexit_destinations() {
     global $amp_conf;
     $results = \FreePBX::Queueexit()->queueexit_get();
     if (isset($results)) {
-	foreach($results as $queueexit) {
-            $name .= $queueexit['displayname'];
-	    $extens[] = array('destination' => 'queueexit-'.$queueexit['id'].',${EXTEN},1','description' => $name, 'category' => 'QueueExit', 'id' => $queueexit['id'],'edit_url' => 'config.php?display=queueexit&view=form&id='.$queueexit['id']);
-	}
+        $extens = array();
+        foreach ($results as $queueexit) {
+            $name = $queueexit['displayname'];
+            $extens[] = array('destination' => 'queueexit-'.$queueexit['id'].',${EXTEN},1','description' => $name, 'category' => 'QueueExit', 'id' => $queueexit['id'],'edit_url' => 'config.php?display=queueexit&view=form&id='.$queueexit['id']);
+        }
         return $extens;
     }
 }
@@ -116,7 +117,6 @@ function queueexit_get_details($id) {
     $sql = 'SELECT * FROM queueexit WHERE id = ?';
     $sth = $dbh->prepare($sql);
     $sth->execute(array($id));
-    $res = $sth->fetchAll()[0];
-    return $res;
+    $res = $sth->fetch(\PDO::FETCH_ASSOC);
+    return is_array($res) ? $res : array();
 }
-

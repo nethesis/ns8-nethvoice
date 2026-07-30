@@ -20,13 +20,15 @@
 #
 -->
 
+<?php $id = $_REQUEST['id'] ?? ''; ?>
+
 <form action="config.php?display=directdid" method="post" class="fpbx-submit" id="hwform" name="hwform" data-fpbx-delete="config.php?display=directdid">
-<input type="hidden" name='action' value="<?php echo $_REQUEST['id']?'edit':'add' ?>">
+<input type="hidden" name='action' value="<?php echo $id ? 'edit' : 'add' ?>">
 
 <?php
-if (isset($_REQUEST['id'])) {
-    $config = directdid_get_details($_REQUEST['id']);
-    echo("<input type='hidden' name='id' value='".$_REQUEST['id']."'>");
+if ($id !== '') {
+    $config = directdid_get_details($id);
+    echo("<input type='hidden' name='id' value='".htmlspecialchars($id, ENT_QUOTES)."'>");
 } else {
     $config['timeout'] = 15;
     $config['timeout_destination'] = 'app-blackhole,hangup,1';
@@ -38,12 +40,16 @@ if (isset($_REQUEST['id'])) {
         $extensions = \FreePBX::Core()->getAllUsers();
         $extensions = array_keys($extensions);
         $extarr = array();
+        $sumlen = 0;
         foreach ($extensions as $i => $ext) {
             if (preg_match('/^9...*/',$ext)) {
                 continue;
             }
             $extarr[] = substr($ext,0,1);
             $sumlen += strlen($ext) ;
+        }
+        if (count($extarr) === 0) {
+            throw new RuntimeException('No extensions available');
         }
         $avglen = $sumlen / count($extarr);
         $count=array_count_values($extarr);
@@ -68,7 +74,7 @@ if (isset($_REQUEST['id'])) {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="root"></i>
             </div>
             <div class="col-md-7">
-                <input type="text" class="form-control" id="root" name="root" value="<?php  echo $config['root'] ?>">
+                <input type="text" class="form-control" id="root" name="root" value="<?php echo htmlspecialchars((string) $config['root'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>
         <div class="col-md-12">
@@ -84,7 +90,7 @@ if (isset($_REQUEST['id'])) {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="varlength"></i>
             </div>
             <div class="col-md-7">
-                <input type="text" class="form-control" id="varlength" name="varlength" value="<?php  echo $config['varlength'] ?>">
+                <input type="text" class="form-control" id="varlength" name="varlength" value="<?php echo htmlspecialchars((string) $config['varlength'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>
         <div class="col-md-12">
@@ -100,7 +106,7 @@ if (isset($_REQUEST['id'])) {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="prefix"></i>
             </div>
             <div class="col-md-7">
-                <input type="text" class="form-control" id="prefix" name="prefix" value="<?php echo $config['prefix'] ?>">
+                <input type="text" class="form-control" id="prefix" name="prefix" value="<?php echo htmlspecialchars((string) $config['prefix'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>
         <div class="col-md-12">
@@ -117,7 +123,7 @@ if (isset($_REQUEST['id'])) {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="timeout"></i>
             </div>
             <div class="col-md-7">
-                <input type="number" min="5" max="60" class="form-control" id="timeout" name="timeout" value="<?php echo $config['timeout'] ?>">
+                <input type="number" min="5" max="60" class="form-control" id="timeout" name="timeout" value="<?php echo htmlspecialchars((string) $config['timeout'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>    
     </div>

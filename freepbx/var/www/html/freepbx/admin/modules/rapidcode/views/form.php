@@ -20,13 +20,15 @@
 #
 -->
 
-<form action="config.php?display=rapidcode" method="post" class="fpbx-submit" id="hwform" name="hwform" data-fpbx-delete="config.php?display=rapidcode&action=delete&id=<?php echo $_REQUEST['id']?>">
-<input type="hidden" name='action' value="<?php echo $_REQUEST['id']?'edit':'add' ?>">
+<?php $id = $_REQUEST['id'] ?? ''; ?>
+
+<form action="config.php?display=rapidcode" method="post" class="fpbx-submit" id="hwform" name="hwform" data-fpbx-delete="config.php?display=rapidcode&action=delete&id=<?php echo htmlspecialchars($id, ENT_QUOTES, 'UTF-8')?>">
+<input type="hidden" name='action' value="<?php echo $id ? 'edit' : 'add' ?>">
 
 <?php
 if (isset($_REQUEST['id'])) {
-    $data = \FreePBX::Rapidcode()->getOne($_REQUEST['id']);
-    echo("<input type='hidden' name='id' value='".$_REQUEST['id']."'>");
+    $data = \FreePBX::Rapidcode()->getOne($id);
+    echo("<input type='hidden' name='id' value='".htmlspecialchars($id, ENT_QUOTES, 'UTF-8')."'>");
 } else {
     $data['label'] = '';
     $data['code'] = '';
@@ -43,7 +45,7 @@ if (isset($_REQUEST['id'])) {
                                 <i class="fa fa-question-circle fpbx-help-icon" data-for="label"></i>
                         </div>
                         <div class="col-md-9">
-                                <input type="text" class="form-control" id="label" name="label" value="<?php echo $data['label'];?>">
+                                <input type="text" class="form-control" id="label" name="label" value="<?php echo htmlspecialchars((string) $data['label'], ENT_QUOTES, 'UTF-8');?>">
                         </div>
                 </div>
         </div>
@@ -62,7 +64,7 @@ if (isset($_REQUEST['id'])) {
 				<i class="fa fa-question-circle fpbx-help-icon" data-for="number"></i>
 			</div>
 			<div class="col-md-9">
-				<input type="text" class="form-control" id="number" name="number" value="<?php echo $data['number'];?>">
+				<input type="text" class="form-control" id="number" name="number" value="<?php echo htmlspecialchars((string) $data['number'], ENT_QUOTES, 'UTF-8');?>">
 			</div>
 		</div>
 	</div>
@@ -81,7 +83,7 @@ if (isset($_REQUEST['id'])) {
 				<i class="fa fa-question-circle fpbx-help-icon" data-for="code"></i>
 			</div>
 			<div class="col-md-9">
-				<input type="text" class="form-control" id="code" name="code" value="<?php echo $data['code'];?>">
+				<input type="text" class="form-control" id="code" name="code" value="<?php echo htmlspecialchars((string) $data['code'], ENT_QUOTES, 'UTF-8');?>">
 			</div>
 		</div>
 	</div>
