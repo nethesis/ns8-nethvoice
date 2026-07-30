@@ -6,6 +6,7 @@ lt_cleanup_old() {
   podman volume rm "${MARIADB_VOLUME}" -f >/dev/null 2>&1 || true
   podman volume rm "${TANCREDI_VOLUME}" -f >/dev/null 2>&1 || true
   podman volume rm "${ASTDB_VOLUME}" -f >/dev/null 2>&1 || true
+  podman volume rm "${NOTIFY_VOLUME}" -f >/dev/null 2>&1 || true
 }
 
 lt_rebuild_workspace_image() {
@@ -186,6 +187,7 @@ lt_start_freepbx() {
     -e TANCREDIPORT="${TANCREDIPORT}" \
     -v "${TANCREDI_VOLUME}:/var/lib/tancredi:z" \
     -v "${ASTDB_VOLUME}:/var/lib/asterisk/db:z" \
+    -v "${NOTIFY_VOLUME}:/notify:z" \
     "${NETHVOICE_FREEPBX_IMAGE}" \
     >/dev/null
 }
