@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<ruleset name="ns8-nethvoice PHP 8.2 compatibility">
+    <description>Check active NethVoice PHP sources for PHP 8.2 compatibility.</description>
+
+    <config name="testVersion" value="8.2"/>
+    <arg name="extensions" value="php"/>
+    <arg name="parallel" value="8"/>
+    <arg value="p"/>
+
+    <rule ref="PHPCompatibility"/>
+
+    <file>../../freepbx/var/www/html/freepbx/rest</file>
+    <file>../../freepbx/var/www/html/freepbx/admin/modules</file>
+    <file>../../freepbx/usr/share/neth-hotel-fias</file>
+    <file>../../freepbx/usr/src/nethvoice</file>
+    <file>../../tancredi</file>
+</ruleset>

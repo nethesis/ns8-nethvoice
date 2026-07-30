@@ -1,0 +1,31 @@
+name: PHP checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php-checks:
+    name: PHP 8.2 compatibility
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install compatibility tools
+        run: composer install --working-dir=tools/php-compatibility --no-interaction --no-progress --prefer-dist
+
+      - name: Run PHP checks
+        run: |
+          container=$(buildah from docker.io/library/php:8.2-cli-alpine)
+          trap 'buildah rm "$container"' EXIT
+          buildah run \
+            --volume "${GITHUB_WORKSPACE}:/workspace:ro" \
+            --workingdir /workspace \
+            "$container" \
+            -- sh tools/check-php.sh
