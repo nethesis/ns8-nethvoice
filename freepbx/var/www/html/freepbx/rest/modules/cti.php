@@ -560,7 +560,7 @@ $app->delete('/cti/dbconn/{id}', function (Request $request, Response $response,
         $dbh = NethCTI::Database();
         $sql = 'DELETE FROM user_dbconn WHERE id = ?';
         $sth = $dbh->prepare($sql);
-        $sth->execute(array($id));
+        $res = $sth->execute(array($id));
 
         if ($res === FALSE) {
             throw new Exception($sth->errorInfo()[2]);
@@ -832,7 +832,7 @@ $app->post('/cti/customer_card', function (Request $request, Response $response,
         $sql = 'INSERT INTO customer_card(name, creation, query, template, dbconn_id, permission_id)'.
             ' VALUES (?, NOW(), ?, ?, ?, ?)';
         $sth = $dbh->prepare($sql);
-        $sth->execute(array($name, $query, $template, $dbconn_id, $permission_id));
+        $res = $sth->execute(array($name, $query, $template, $dbconn_id, $permission_id));
 
         if ($res === FALSE) {
             $sql = 'DELETE FROM rest_cti_permissions WHERE id = ?';
@@ -983,7 +983,7 @@ $app->delete('/cti/customer_card/{id}', function (Request $request, Response $re
         $dbi = FreePBX::Database();
         $sql = 'DELETE FROM rest_cti_permissions WHERE id = ?';
         $sth = $dbi->prepare($sql);
-        $sth->execute(array($obj['permission_id']));
+        $res = $sth->execute(array($obj['permission_id']));
 
         if ($res === FALSE) {
             throw new Exception($sth->errorInfo()[2]);
@@ -991,7 +991,7 @@ $app->delete('/cti/customer_card/{id}', function (Request $request, Response $re
 
         $sql = 'DELETE FROM customer_card WHERE id = ?';
         $sth = $dbh->prepare($sql);
-        $sth->execute(array($id));
+        $res = $sth->execute(array($id));
 
         if ($res === FALSE) {
             throw new Exception($sth->errorInfo()[2]);
@@ -1213,9 +1213,9 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
         }
 
         $dbh = FreePBX::Database();
-        $res = $sql = 'INSERT INTO rest_cti_streaming(descr, url, exten, open) VALUES (?, ?, ?, ?)';
+        $sql = 'INSERT INTO rest_cti_streaming(descr, url, exten, open) VALUES (?, ?, ?, ?)';
         $sth = $dbh->prepare($sql);
-        $sth->execute(array($name, $url, $exten, $open));
+        $res = $sth->execute(array($name, $url, $exten, $open));
 
         if ($res === FALSE) {
             $sql = 'DELETE FROM rest_cti_permissions WHERE id = ?';
@@ -1276,7 +1276,7 @@ $app->delete('/cti/streaming/{name}', function (Request $request, Response $resp
         $dbi = FreePBX::Database();
         $sql = 'DELETE FROM rest_cti_permissions WHERE name = ?';
         $sth = $dbi->prepare($sql);
-        $sth->execute(array('vs_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$name)))));
+        $res = $sth->execute(array('vs_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$name)))));
 
         if ($res === FALSE) {
             throw new Exception($sth->errorInfo()[2]);
@@ -1284,7 +1284,7 @@ $app->delete('/cti/streaming/{name}', function (Request $request, Response $resp
 
         $sql = 'DELETE FROM rest_cti_streaming WHERE descr = ?';
         $sth = $dbi->prepare($sql);
-        $sth->execute(array($name));
+        $res = $sth->execute(array($name));
 
         if ($res === FALSE) {
             throw new Exception($sth->errorInfo()[2]);

@@ -159,9 +159,12 @@ function getAllAvailablePermissions($minified=false) {
 function getAllAvailableMacroPermissionsPermissions() {
     try {
         $dbh = FreePBX::Database();
-        foreach (getAllAvailableMacroPermissions() as $macro_permission) {
-            $sql = 'SELECT `permission_id` FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = '.$macro_permission['id'];
-            $macro_permissions_permissions[$macro_permission['id']] = $dbh->sql($sql,"getAll",\PDO::FETCH_COLUMN);
+        $macro_permissions_permissions = array();
+        foreach ((array) getAllAvailableMacroPermissions() as $macro_permission) {
+            $sql = 'SELECT `permission_id` FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = ?';
+            $sth = $dbh->prepare($sql);
+            $sth->execute(array($macro_permission['id']));
+            $macro_permissions_permissions[$macro_permission['id']] = $sth->fetchAll(\PDO::FETCH_COLUMN);
         }
         return $macro_permissions_permissions;
     } catch (Exception $e) {
@@ -296,6 +299,8 @@ function getCTIPermissionProfiles($profileId=false, $minified=false, $printnull=
                 $context_name = 'cti-profile-'.$id;
             }
 
+            $context_permissions = array();
+            $context_all_route_permission = null;
             // make sure context exists
             $customcontexts_contexts = customcontexts_getcontexts();
             if (!empty($customcontexts_contexts) && in_array($context_name, array_column($customcontexts_contexts,0))){
@@ -309,7 +314,6 @@ function getCTIPermissionProfiles($profileId=false, $minified=false, $printnull=
                 }
 
                 // get the context "all route" permission
-                $context_all_route_permission = null;
                 if (isset($outbound_allroutes_id) && isset($context_permissions[$outbound_allroutes_id])) {
                     if ($context_permissions[$outbound_allroutes_id][4] === 'no') {
                         $context_all_route_permission = false;
@@ -322,6 +326,7 @@ function getCTIPermissionProfiles($profileId=false, $minified=false, $printnull=
             // Get routes context permissions
             $context_route_permissions = array();
             foreach ($all_outbound_routes as $outbound_route) {
+                $outbound_route_context_id = false;
                 // get context id foreach route
                 if (!empty($context_permissions)) {
                     $outbound_route_context_id = array_search('outrt-'.$outbound_route['route_id'],array_column($context_permissions,2));
@@ -611,15 +616,17 @@ function setCustomContextPermissions($profile){
 }
 
 function context_permission_compare($a,$b) {
-    if ($a['sort'] == $b['sort']) {
-        return 0;
-    }
-    return ($a['sort'] < $b['sort']) ? -1 : 1;
+    $left = isset($a['sort']) ? (int) $a['sort'] : PHP_INT_MAX;
+    $right = isset($b['sort']) ? (int) $b['sort'] : PHP_INT_MAX;
+    return $left <=> $right;
 }
 
 function deleteCTIProfile($id){
     try {
-        $profile = getCTIPermissionProfiles($profile_id);
+        $profile = getCTIPermissionProfiles($id);
+        if (!is_array($profile) || !isset($profile['name'])) {
+            throw new Exception('CTI profile not found');
+        }
         $dbh = FreePBX::Database();
         $sql = 'DELETE FROM `rest_cti_profiles` WHERE `id` = ?';
         $sth = $dbh->prepare($sql);
@@ -643,8 +650,7 @@ function getProfileID($profilename) {
     $sql = 'SELECT `id` FROM `rest_cti_profiles` WHERE `name` = ?';
     $sth = $dbh->prepare($sql);
     $sth->execute(array($profilename));
-    $data = $sth->fetchAll()[0][0];
-    return $data;
+    return $sth->fetchColumn();
 }
 
 function setCTIUserProfile($user_id,$profile_id){
@@ -663,7 +669,10 @@ function setCTIUserProfile($user_id,$profile_id){
                 ' WHERE userman_users.id = ?';
         $sth = $dbh->prepare($sql);
         $sth->execute(array($user_id));
-        $username = $sth->fetchAll()[0][0];
+        $username = $sth->fetchColumn();
+        if ($username === false) {
+            throw new Exception('CTI user not found');
+        }
         $dbhcti = NethCTI::Database();
         $sql =  'INSERT IGNORE INTO user_settings (username,key_name,value) ' .
                 ' VALUES (?,"desktop_notifications","true")';
@@ -710,8 +719,8 @@ try {
         $query = 'SELECT id FROM rest_cti_groups WHERE name = ?';
         $sth = $dbh->prepare($query);
         $sth->execute(array($name));
-        $res = $sth->fetchAll()[0][0];
-        if (!empty($res)) {
+        $res = $sth->fetchColumn();
+        if ($res !== false) {
             return $res;
         }
 
@@ -733,6 +742,10 @@ try {
         $sth->execute(array("grp_".trim(strtolower(preg_replace('/[^a-zA-Z0-9]/','',$name)))));
         $perm_id = $sth->fetchObject();
 
+        if (!$macro_group_id || !$perm_id) {
+            throw new Exception('Unable to create CTI group permissions');
+        }
+
         $sql = 'INSERT INTO rest_cti_macro_permissions_permissions VALUES (?, ?)';
         $sth = $dbh->prepare($sql);
         $sth->execute(array($macro_group_id->id, $perm_id->id));
@@ -740,7 +753,10 @@ try {
         $query = 'SELECT id FROM rest_cti_groups WHERE name = ?';
         $sth = $dbh->prepare($query);
         $sth->execute(array($name));
-        $group_id = $sth->fetchObject()->id;
+        $group_id = $sth->fetchColumn();
+        if ($group_id === false) {
+            throw new Exception('Unable to create CTI group');
+        }
         return $group_id;
      } catch (Exception $e) {
         error_log($e->getMessage());
