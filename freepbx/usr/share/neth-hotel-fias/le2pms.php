@@ -19,7 +19,7 @@ try {
     for ($i = 0 ; $i <= 60 ; $i++) {
         sleep(1);
         $sth->execute();
-        $res = $sth->fetchAll()[0][0];
+        $res = (int) $sth->fetchColumn();
         if ($res == 0) {
             exit(0);
         }
@@ -28,4 +28,3 @@ try {
     logMessage($section ." ERROR ". $e->getMessage(),ERROR,str_replace('.php','',basename($argv[0])));
     exit(1);
 }
-

@@ -125,7 +125,7 @@ try {
                 $query = "SELECT text FROM roomsdb.rooms WHERE extension = ?";
                 $sth = $db->prepare($query);
                 $sth->execute(array($room_number));
-                $old_name = $sth->fetchAll()[0]['text'];
+                $old_name = $sth->fetchColumn();
                 $guest_name = empty($old_name) ? $guest_name : $old_name . " - " . $guest_name;
         }
         externalCheckIn($room_number, $reservation_number, $guest_name, $guest_language);
@@ -137,4 +137,3 @@ try {
     logMessage($section ." Error: ". $e->getMessage(),ERROR,str_replace('.php','',basename($argv[0])));
     exit(1);
 }
-
