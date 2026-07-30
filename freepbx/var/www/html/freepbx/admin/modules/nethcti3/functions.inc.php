@@ -88,14 +88,17 @@ function nethcti3_get_config($engine) {
                 $dbh = \FreePBX::Database();
                 $stmt = $dbh->prepare('SELECT value FROM soundlang_settings WHERE keyword = "language"');
                 $stmt->execute();
-                $res = $stmt->fetch();
+                $language = $stmt->fetchColumn();
+                if ($language === false) {
+                    $language = '';
+                }
 
                 /* set admin bridge */
                 $conferences_conf->addConfBridge("cti_admin_bridge_conf", 'record_conference', 'yes');
-                $conferences_conf->addConfBridge("cti_admin_bridge_conf", 'language', $res['value']);
+                $conferences_conf->addConfBridge("cti_admin_bridge_conf", 'language', $language);
 
                 /* set admin bridge */
-                $conferences_conf->addConfBridge("cti_bridge_conf", 'language', $res['value']);
+                $conferences_conf->addConfBridge("cti_bridge_conf", 'language', $language);
 
                 /* set admin user conf*/
                 $conferences_conf->addConfUser("cti_admin_user_conf", 'marked', 'yes');

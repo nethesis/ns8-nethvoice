@@ -97,7 +97,7 @@ $app->get('/extensions/{extension}/srtp', function (Request $request, Response $
     $stmt = $dbh->prepare($sql);
     $stmt->execute(array($args['extension']));
     $res = $stmt->fetch(\PDO::FETCH_ASSOC);
-    if ($res['srtp'] == '1') {
+    if (is_array($res) && ($res['srtp'] ?? null) == '1') {
         return jsonResponse($response, TRUE, 200, JSON_FLAGS);
     }
     return jsonResponse($response, FALSE, 200, JSON_FLAGS);
@@ -130,4 +130,3 @@ function getFeaturcodes(){
     }
     return $featurecodes;
 }
-

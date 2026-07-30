@@ -785,17 +785,17 @@ function createMainExtensionForUser($username,$mainextension,$outboundcid='') {
     //Update user to add this extension as default extension
     //get uid
     $user = $fpbx->Userman->getUserByUsername($username);
-    $uid = $user['id'];
-    if (!isset($uid)) {
+    if (!is_array($user) || !isset($user['id'])) {
         return [array('message'=>'User not found' ), 404];
     }
+    $uid = $user['id'];
 
     //Delete user old extension and all his extensions
     $sql = 'SELECT `default_extension` FROM `userman_users` WHERE `username` = ?';
     $stmt = $dbh->prepare($sql);
     $stmt->execute(array($username));
     $res = $stmt->fetch(\PDO::FETCH_ASSOC);
-    if (isset($res)){
+    if (is_array($res) && !empty($res['default_extension'])) {
         $oldmain = $res['default_extension'];
         $ext_to_del = array();
         $ext_to_del[] = $oldmain;
