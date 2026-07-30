@@ -51,11 +51,19 @@ if ($argv[1] == "--all") {
 $sql = "SELECT `password_sha1` FROM `ampusers` WHERE `username` = 'admin'";
 $sth = $db->prepare($sql);
 $sth->execute();
-$fpbxPasswordHash = $sth->fetchAll(\PDO::FETCH_ASSOC)[0]['password_sha1'];
+$fpbxPasswordHash = $sth->fetchColumn();
+if ($fpbxPasswordHash === false || empty($_ENV['NETHVOICESECRETKEY']) || empty($_ENV['NETHVOICE_HOST'])) {
+    error_log('Missing FreePBX password hash or NethVoice environment');
+    exit(1);
+}
 $secretKey = sha1("admin{$fpbxPasswordHash}{$_ENV['NETHVOICESECRETKEY']}");
 
 foreach ($mac_addresses as $mac_address) {
     $mac_address = strtr(strtoupper($mac_address), ':', '-'); // MAC format sanitization
+    if (!preg_match('/^[0-9A-F]{2}(?:-[0-9A-F]{2}){5}$/', $mac_address)) {
+        error_log("Invalid MAC address: $mac_address");
+        continue;
+    }
     
     // Call Tancredi API to create a new tok1
     $queryUrl = "http://{$_ENV['NETHVOICE_HOST']}/tancredi/api/v1/phones/{$mac_address}/tok1";
@@ -123,4 +131,3 @@ foreach ($mac_addresses as $mac_address) {
     }
     echo "Configured new provisioning url for $mac_address\n";
 }
-

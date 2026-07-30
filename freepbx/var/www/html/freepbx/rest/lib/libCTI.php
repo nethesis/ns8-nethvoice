@@ -97,7 +97,10 @@ function getAllAvailablePermissions($minified=false) {
                     $sql = 'SELECT id FROM rest_cti_permissions WHERE name = ?';
                     $sth = $dbh->prepare($sql);
                     $sth->execute(array('in_queue_'.$queue[0]));
-                    $pid = $sth->fetchAll()[0][0];
+                    $pid = $sth->fetchColumn();
+                    if ($pid === false) {
+                        throw new RuntimeException('Unable to retrieve queue permission');
+                    }
                     // Insert into macro permissions permissions
                     $sql = 'INSERT INTO rest_cti_macro_permissions_permissions (macro_permission_id,permission_id) VALUES (?,?)';
                     $sth = $dbh->prepare($sql);
@@ -453,7 +456,7 @@ function postCTIProfile($profile, $id=false){
 
         //set macro_permissions
         foreach (getAllAvailableMacroPermissions() as $macro_permission) {
-            if (!$profile['macro_permissions'][$macro_permission['name']]['value']) {
+            if (empty($profile['macro_permissions'][$macro_permission['name']]['value'])) {
                 $sql = 'DELETE IGNORE FROM `rest_cti_profiles_macro_permissions` WHERE `profile_id` = ? AND `macro_permission_id` = ?';
                 $sth = $dbh->prepare($sql);
                 $sth->execute(array($id, $macro_permission['id']));
@@ -464,14 +467,14 @@ function postCTIProfile($profile, $id=false){
             }
             if (!empty($profile['macro_permissions'][$macro_permission['name']]['permissions'])) {
                 foreach ($profile['macro_permissions'][$macro_permission['name']]['permissions'] as $permission ) {
-                    if ($permission['value']) {
+                    if (!empty($permission['value'])) {
                         // Create new permission here if don't exists
-                        if (is_null($permission['id'])) {
+                        if (is_null($permission['id'] ?? null)) {
                             // Check if the permission already exists
                             $sql = 'SELECT `id` FROM `rest_cti_permissions` WHERE `name` = ? AND `displayname` = ? AND `description` = ?';
                             $sth = $dbh->prepare($sql);
                             $sth->execute(array($permission['name'],$permission['displayname'],$permission['description']));
-                            $res = $sth->fetchAll()[0][0];
+                            $res = $sth->fetchColumn();
                             if (!empty($res)) {
                                 // it exists
                                 $permission['id'] = $res;
@@ -495,7 +498,7 @@ function postCTIProfile($profile, $id=false){
                         $sth = $dbh->prepare($sql);
                         $sth->execute(array($id, $permission['id']));
                     } else {
-                        if (!is_null($permission['id'])) {
+                        if (!is_null($permission['id'] ?? null)) {
                             $sql = 'DELETE IGNORE FROM `rest_cti_profiles_permissions` WHERE `profile_id` = ? AND `permission_id` = ?';
                             $sth = $dbh->prepare($sql);
                             $sth->execute(array($id, $permission['id']));

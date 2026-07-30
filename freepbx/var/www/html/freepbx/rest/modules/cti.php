@@ -140,7 +140,7 @@ $app->get('/cti/profiles/users/{user_id}', function (Request $request, Response 
         $sql = 'SELECT `profile_id` FROM `rest_users` WHERE `user_id` = ?';
         $sth = $dbh->prepare($sql);
         $sth->execute(array($user_id));
-        $profile_id = $sth->fetchAll()[0][0];
+        $profile_id = $sth->fetchColumn();
         if (!$profile_id) {
             return $response->withStatus(404);
         }

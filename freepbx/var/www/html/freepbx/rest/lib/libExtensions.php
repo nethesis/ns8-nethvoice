@@ -111,14 +111,20 @@ function createExtension($mainextensionnumber,$delete=false){
             $sql = 'SELECT `data` FROM `sip` WHERE `id`=? AND `keyword`="namedcallgroup"';
             $sth = $dbh->prepare($sql);
             $sth->execute([$mainextensionnumber]);
-            $maincallgroup = $sth->fetchAll()[0]['data'];
+            $maincallgroup = $sth->fetchColumn();
+            if ($maincallgroup === false) {
+                $maincallgroup = '';
+            }
             $sql = 'UPDATE `sip` SET `data`= ? WHERE `id`=? AND `keyword`="namedcallgroup"';
             $sth = $dbh->prepare($sql);
             $sth->execute([$maincallgroup,$extension]);
             $sql = 'SELECT `data` FROM `sip` WHERE `id`=? AND `keyword`="namedpickupgroup"';
             $sth = $dbh->prepare($sql);
             $sth->execute([$mainextensionnumber]);
-            $mainpickupgroup = $sth->fetchAll()[0]['data'];
+            $mainpickupgroup = $sth->fetchColumn();
+            if ($mainpickupgroup === false) {
+                $mainpickupgroup = '';
+            }
             $sql = 'UPDATE `sip` SET `data`= ? WHERE `id`=? AND `keyword`="namedpickupgroup"';
             $sth = $dbh->prepare($sql);
             $sth->execute([$mainpickupgroup,$extension]);
@@ -395,12 +401,17 @@ function legacy_useExtensionAsPhysical($extension,$mac,$model,$line=false, $web_
         $astman->database_del("CW",$extension);
 
         // insert created physical extension in password table
-        $extension_secret = sql('SELECT data FROM `sip` WHERE id = "' . $extension . '" AND keyword="secret"', "getOne");
         $dbh = FreePBX::Database();
+        $stmt = $dbh->prepare('SELECT data FROM `sip` WHERE id = ? AND keyword = "secret"');
+        $stmt->execute(array($extension));
+        $extension_secret = $stmt->fetchColumn();
+        if ($extension_secret === false) {
+            throw new RuntimeException('Extension secret not found');
+        }
         $vendor = getVendorFromMac($mac);
         $stmt = $dbh->prepare('SELECT COUNT(*) AS num FROM `rest_devices_phones` WHERE mac = ?');
         $stmt->execute(array($mac));
-        $res = $stmt->fetchAll()[0]['num'];
+        $res = (int) $stmt->fetchColumn();
         if ($res == 0) {
             addPhone($mac, $vendor, $model);
         }
@@ -463,12 +474,18 @@ function tancredi_useExtensionAsPhysical($extension,$mac,$model,$line=false,$web
     $astman->database_del("CW",$extension);
 
     // insert created physical extension in password table
-    $extension_secret = sql('SELECT data FROM `sip` WHERE id = "' . $extension . '" AND keyword="secret"', "getOne");
     $dbh = FreePBX::Database();
+    $stmt = $dbh->prepare('SELECT data FROM `sip` WHERE id = ? AND keyword = "secret"');
+    $stmt->execute(array($extension));
+    $extension_secret = $stmt->fetchColumn();
+    if ($extension_secret === false) {
+        error_log('Extension secret not found');
+        return false;
+    }
     $vendor = getVendorFromMac($mac);
     $stmt = $dbh->prepare('SELECT COUNT(*) AS num FROM `rest_devices_phones` WHERE mac = ?');
     $stmt->execute(array($mac));
-    $res = $stmt->fetchAll()[0]['num'];
+    $res = (int) $stmt->fetchColumn();
     if ($res == 0) {
         addPhone($mac, $vendor, $model);
     }

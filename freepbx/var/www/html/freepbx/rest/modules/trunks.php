@@ -135,7 +135,7 @@ $app->patch('/trunks/{trunkid}', function (Request $request, Response $response,
         $sql = 'SELECT COUNT(*) AS n FROM `trunks` WHERE `trunkid` = ? AND `tech` = "pjsip"';
         $sth = $dbh->prepare($sql);
         $res = $sth->execute([$trunkid]);
-        $n = $sth->fetchAll(\PDO::FETCH_ASSOC)[0]['n'];
+        $n = (int) $sth->fetchColumn();
         if (!$res || $n != 1) {
             throw new Exception("Can't patch trunk $trunkid");
         }
