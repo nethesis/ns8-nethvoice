@@ -179,20 +179,32 @@ $app->patch('/trunks/{trunkid}', function (Request $request, Response $response,
         }
 
         // Set codecs
-        if (!isset($params['forceCodec']) && !$params['forceCodec'] && isset($params['codecs'])) {
-            // Get default codecs
-            $sql = 'SELECT `data` FROM `rest_pjsip_trunks_defaults` WHERE `keyword` = "codecs" AND `provider_id` IN ( SELECT `provider_id` FROM `rest_pjsip_trunks_defaults` WHERE `keyword` = "sip_server" AND `data` IN ( SELECT `data` FROM `pjsip` WHERE `keyword` = "sip_server" AND `id` = 2))';
-            $sth = $dbh->prepare($sql);
-            $res = $sth->execute([$trunkid]);
-            if (!$res) {
-                throw new Exception('Error getting default codecs for privider');
+        if (isset($params['codecs'])) {
+            if (!is_array($params['codecs'])) {
+                return jsonResponse($response, ['error'=>'codecs must be an array'],400);
             }
-            $default_codecs = $sth->fetchAll(\PDO::FETCH_ASSOC)[0]['data'];
-            $newcodecs = implode(',',array_unique(array_merge($params['codecs'],explode(',',$default_codecs))));
-        } elseif (isset($params['forceCodec']) && $params['forceCodec'] && isset($params['codecs'])) {
-            $newcodecs = implode(',',$params['codecs']);
-        }
-        if (!empty($newcodecs)) {
+            foreach ($params['codecs'] as $codec) {
+                if (!is_string($codec)) {
+                    return jsonResponse($response, ['error'=>'codecs must contain strings'],400);
+                }
+            }
+
+            $codecs = $params['codecs'];
+            if (empty($params['forceCodec'])) {
+                // Get the provider defaults associated with this trunk.
+                $sql = 'SELECT `data` FROM `rest_pjsip_trunks_defaults` WHERE `keyword` = "codecs" AND `provider_id` IN ( SELECT `provider_id` FROM `rest_pjsip_trunks_defaults` WHERE `keyword` = "sip_server" AND `data` IN ( SELECT `data` FROM `pjsip` WHERE `keyword` = "sip_server" AND `id` = ?))';
+                $sth = $dbh->prepare($sql);
+                $res = $sth->execute([$trunkid]);
+                if (!$res) {
+                    throw new Exception('Error getting default codecs for provider');
+                }
+                $default_codecs = $sth->fetchColumn();
+                if ($default_codecs !== false && $default_codecs !== '') {
+                    $codecs = array_merge($codecs, explode(',', $default_codecs));
+                }
+            }
+
+            $newcodecs = implode(',', array_unique(array_filter($codecs, 'strlen')));
             $sql = 'UPDATE `pjsip` SET `data` = ? WHERE `id` = ? AND `keyword` = "codecs"';
             $sth = $dbh->prepare($sql);
             $res = $sth->execute([$newcodecs,$trunkid]);
@@ -223,17 +235,19 @@ $app->patch('/trunks/{trunkid}', function (Request $request, Response $response,
  */
 $app->post('/trunks', function (Request $request, Response $response, $args) {
   $params = $request->getParsedBody();
-    $params['provider'];
-    $params['name'];
-    $params['username'];
-    $params['password'];
-    $params['phone'];
-    $params['codecs'];
 
     foreach (['provider','username','password','phone','codecs','forceCodec'] as $p) {
         if (!isset($params[$p])) {
             error_log("missing parameter $p");
             return $response->withStatus(400);
+        }
+    }
+    if (!is_array($params['codecs'])) {
+        return jsonResponse($response, ['error'=>'codecs must be an array'],400);
+    }
+    foreach ($params['codecs'] as $codec) {
+        if (!is_string($codec)) {
+            return jsonResponse($response, ['error'=>'codecs must contain strings'],400);
         }
     }
 
@@ -304,14 +318,14 @@ $app->post('/trunks', function (Request $request, Response $response, $args) {
             if ($data['keyword'] !== "codecs") {
                 continue;
             } else {
-                $default_codecs = $data['keyword'];
+                $default_codecs = array_filter(explode(',', $data['data']), 'strlen');
                 unset($pjsip_data[$index]);
             }
         }
         if ($params['forceCodec']) {
             $pjsip_data[] = array( "keyword" => "codecs", "data" => implode(',',$params['codecs']));
         } else {
-            $pjsip_data[] = array( "keyword" => "codecs", "data" => implode(',',array_unique(array_merge($params['codecs'],explode(',',$default_codecs)))));
+            $pjsip_data[] = array( "keyword" => "codecs", "data" => implode(',',array_unique(array_merge($params['codecs'],$default_codecs ?? array()))));
         }
     }
 
@@ -350,14 +364,16 @@ $app->post('/trunks', function (Request $request, Response $response, $args) {
     $sql = "SELECT `value` FROM `rest_pjsip_trunks_custom_flags` WHERE `keyword` = 'disable_topos_header' AND `provider_id` IN (SELECT `id` FROM `rest_pjsip_providers` WHERE `provider` = ?)";
     $sth = $dbh->prepare($sql);
     $sth->execute([$params['provider']]);
-    $disable_topos_header = $sth->fetchColumn()[0];
+    $disable_topos_header = $sth->fetchColumn();
+    $disable_topos_header = ($disable_topos_header === false) ? 0 : $disable_topos_header;
     Freepbx::Nethcti3()->setConfig('disable_topos_header', $disable_topos_header, $trunkid);
 
     // Set disable srtp flag if needed
     $sql = "SELECT `value` FROM `rest_pjsip_trunks_custom_flags` WHERE `keyword` = 'disable_srtp_header' AND `provider_id` IN (SELECT `id` FROM `rest_pjsip_providers` WHERE `provider` = ?)";
     $sth = $dbh->prepare($sql);
     $sth->execute([$params['provider']]);
-    $disable_srtp = $sth->fetchColumn()[0];
+    $disable_srtp = $sth->fetchColumn();
+    $disable_srtp = ($disable_srtp === false) ? 0 : $disable_srtp;
     Freepbx::Nethcti3()->setConfig('disable_srtp_header', $disable_srtp, $trunkid);
 
     system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
