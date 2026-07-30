@@ -393,19 +393,39 @@ $app->put('/cti/paramurl/{id}', function (Request $request, Response $response, 
       $data = $request->getParsedBody();
       $args = array();
       $fields = array();
+
+      if (!isset($data['url'], $data['profiles']) || !is_array($data['profiles'])) {
+        return jsonResponse($response, array('status' => 'Invalid CTI source data'), 400);
+      }
+
+      $profiles = array();
+      foreach ($data['profiles'] as $profile) {
+        if (filter_var($profile, FILTER_VALIDATE_INT) === false || (int) $profile <= 0) {
+          return jsonResponse($response, array('status' => 'Invalid CTI profile id'), 400);
+        }
+        $profiles[] = (int) $profile;
+      }
+      $profiles = array_values(array_unique($profiles));
+
       $dbh = FreePBX::Database();
-      foreach ($data["profiles"] as $p) {
+      foreach ($profiles as $p) {
         $sql = 'INSERT INTO rest_cti_profiles_paramurl (profile_id, url, only_queues) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE profile_id=VALUES(profile_id), url=VALUES(url), only_queues=VALUES(only_queues)';
         $sth = $dbh->prepare($sql);
-        $only_queues = ($data['only_queues']) ? 1 : 0;
+        $only_queues = !empty($data['only_queues']) ? 1 : 0;
         $res = $sth->execute(array($p, $data["url"], $only_queues));
         if ($res === FALSE) {
           throw new Exception($sth->errorInfo()[2]);
         }
       }
-      $sql = 'DELETE FROM rest_cti_profiles_paramurl WHERE url=? AND profile_id NOT IN ('.implode(",", $data["profiles"]).')';
+
+      $sql = 'DELETE FROM rest_cti_profiles_paramurl WHERE url = ?';
+      $query_params = array($data['url']);
+      if (!empty($profiles)) {
+        $sql .= ' AND profile_id NOT IN ('.implode(',', array_fill(0, count($profiles), '?')).')';
+        $query_params = array_merge($query_params, $profiles);
+      }
       $sth = $dbh->prepare($sql);
-      $res = $sth->execute(array($data["url"]));
+      $res = $sth->execute($query_params);
       if ($res === FALSE) {
           throw new Exception($sth->errorInfo()[2]);
       }

@@ -294,7 +294,10 @@ $app->post('/devices/phones/model', function (Request $request, Response $respon
         $model = $params['model'];
 
         $dbh = FreePBX::Database();
-        $dbh->query('DELETE IGNORE FROM `rest_devices_phones` WHERE `mac` = "'.$mac.'"');
+        $stmt = $dbh->prepare('DELETE IGNORE FROM `rest_devices_phones` WHERE `mac` = ?');
+        if (!$stmt->execute(array($mac))) {
+            throw new Exception($stmt->errorInfo()[2]);
+        }
         $sql = 'INSERT INTO `rest_devices_phones` (`mac`,`vendor`, `model`) VALUES (?,?,?)';
         $stmt = $dbh->prepare($sql);
         if ($res = $stmt->execute(array($mac,$vendor,$model))) {
