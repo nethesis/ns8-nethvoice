@@ -710,12 +710,12 @@ function getReport($ext,$start="",$end="")
 
       $extras = sql ("SELECT date_format(date,'%d/%m/%Y %H:%i') as date,name,number,price from roomsdb.extra_history where extension='$ext' and checkout!='1'","getAll");
   }
+  $tot_billsec = 0;
+  $tot_amount = 0;
   if (count($results)>0)
   {
     echo "<tr><th>". _("Date and time")."</th><th>". _("Destination")."</th><th>". _("Duration (sec)")."</th><th>". _("Billable (sec)")."</th><th>". _("Cost (€)")."</th></tr>";
 
-    $tot_billsec = 0;
-    $tot_amount = 0;
     $i=0;
     $rates = getAllRates();
     $options = getOptions();
@@ -729,7 +729,7 @@ function getReport($ext,$start="",$end="")
       if($i%2)
         $altrow=' class="altrow" ';
 
-      $dst_n= substr($result[1],strlen($options['prefix']));
+      $dst_n= substr($result[1],strlen($options['prefix'] ?? ''));
       $dst = $result[1];
       if(strlen($dst)>5) $dst=substr($dst, 0, -4)."XXXX";
       if(!isInternalCall($result[1]))
@@ -750,19 +750,19 @@ function getReport($ext,$start="",$end="")
 	if($secs > $answer_duration) //se la durata e' maggiore del singolo scatto, faccio il calcolo completo
 	{
 	  $billsec = $secs - $answer_duration; //tolgo la durata dello scatto alla risposta
-          if ($duration == 0) {
-              $ticks = 0;
-          } else {
-              $ticks = floor($billsec/$duration);
-          }
-          if ($billsec % $duration) {
-              $ticks++;
-          }
+	  if ($duration <= 0) {
+	    $ticks = 0;
+	  } else {
+	    $ticks = floor($billsec/$duration);
+	    if ($billsec % $duration) {
+	      $ticks++;
+	    }
+	  }
 	  $amount = ($answer_price+($ticks*$price))/100; //converto da centesimi a euro
 	}
 	else //altrimenti aggiungo solo lo scatto alla risposta
 	{
-	  $billsec = $sec;
+	  $billsec = $secs;
 	  $amount = $answer_price/100; //converto da centesimi a euro
 
 	}
@@ -825,6 +825,8 @@ function getTotalCost($ext)
   global $db;
   $ext = (string)$ext;
   if (!isValidRoomExt($ext, __FUNCTION__)) return 0;
+      $tot_amount = 0;
+      $extra_amount = 0;
       $results = sql("SELECT date_format(calldate,'%d/%m/%Y %H:%i') as calldate,dst,billsec from asteriskcdrdb.cdr join roomsdb.rooms on cdr.accountcode=roomsdb.rooms.extension where accountcode='$ext' and disposition='ANSWERED' and billsec!=0 and calldate >= roomsdb.rooms.start","getAll");
 
       $extras = sql ("SELECT date_format(date,'%d/%m/%Y %H:%i') as date,name,number,price from roomsdb.extra_history where extension='$ext' and checkout!='1'","getAll");
@@ -863,14 +865,17 @@ function getTotalCost($ext)
 	if($secs > $answer_duration) //se la durata e' maggiore del singolo scatto, faccio il calcolo completo
 	{
 	  $billsec = $secs - $answer_duration; //tolgo la durata dello scatto alla risposta
-	  $ticks = floor($billsec/$duration);
-	  if($billsec % $duration)
-	  $ticks++;
+	  if ($duration > 0) {
+	    $ticks = floor($billsec/$duration);
+	    if ($billsec % $duration) {
+	      $ticks++;
+	    }
+	  }
 	  $amount = ($answer_price+($ticks*$price))/100; //converto da centesimi a euro
 	}
 	else //altrimenti aggiungo solo lo scatto alla risposta
 	{
-	  $billsec = $sec;
+	  $billsec = $secs;
 	  $amount = $answer_price/100; //converto da centesimi a euro
 
 	}
@@ -902,7 +907,7 @@ function getTotalCost($ext)
     $tot=$extra_amount+$tot_amount;
   }
   else
-    $tot=$extra_amount+$tot_amount;
+    $tot=$tot_amount;
 
 
   return $tot;

@@ -65,7 +65,7 @@ $stmt = $db->prepare($sql);
 $stmt->execute([$extension, $alarm]);
 $res = $stmt->fetchAll();
 $cdidresult = $res[0] ?? [];
-neth_debug("$qrymaxretry Retry=" . ($cdidresult[0] ?? ''));
+neth_debug("$sql Retry=" . ($cdidresult[0] ?? ''));
 
 if (empty($cdidresult[0])) {
     $retry=0; # array vuoto, allora è la prima chiamata
@@ -88,7 +88,7 @@ $stmt = $db->prepare($sql);
 $stmt->execute([$calldate, $extension, $alarm, $retry]);
 
 if ($allarme) {
-    $time = mktime()+30;
+    $time = time()+30;
     $sql = "INSERT INTO roomsdb.alarmcalls SET timestamp = ?, extension = ?, enabled = 1, alarmtype = 1";
     $stmt = $db->prepare($sql);
     $stmt->execute([$time, $extension]);
