@@ -62,7 +62,7 @@ if ($id !== '') {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="name"></i>
             </div>
             <div class="col-md-7">
-                <input type="text" class="form-control" id="name" name="name" value="<?php  echo $config['name'] ?>">
+                <input type="text" class="form-control" id="name" name="name" value="<?php echo htmlspecialchars((string) $config['name'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>
         <div class="col-md-12">
@@ -78,7 +78,7 @@ if ($id !== '') {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="VQ_AINFO"></i>
             </div>
             <div class="col-md-7">
-                <input type="text" class="form-control" id="VQ_CIDPP" name="VQ_CIDPP" value="<?php  echo $config['VQ_CIDPP'] ?>">
+                <input type="text" class="form-control" id="VQ_CIDPP" name="VQ_CIDPP" value="<?php echo htmlspecialchars((string) $config['VQ_CIDPP'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>
         <div class="col-md-12">
@@ -96,7 +96,7 @@ if ($id !== '') {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="VQ_AINFO"></i>
             </div>
             <div class="col-md-7">
-                <input type="text" class="form-control" id="VQ_AINFO" name="VQ_AINFO" value="<?php  echo $config['VQ_AINFO'] ?>">
+                <input type="text" class="form-control" id="VQ_AINFO" name="VQ_AINFO" value="<?php echo htmlspecialchars((string) $config['VQ_AINFO'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>
         <div class="col-md-12">
@@ -118,7 +118,7 @@ if ($id !== '') {
                     $recordings = \FreePBX::Recordings()->getAllRecordings();
                     array_unshift($recordings, array('filename'=>'','displayname'=>'--'));
                     foreach($recordings as $recording) {?>
-                    <option value="<?php echo $recording['filename']?>" <?php echo ($config['VQ_JOINMSG'] == $recording['filename']) ? 'SELECTED': ''?>><?php echo $recording['displayname']?></option>
+                    <option value="<?php echo htmlspecialchars((string) $recording['filename'], ENT_QUOTES, 'UTF-8')?>" <?php echo ($config['VQ_JOINMSG'] == $recording['filename']) ? 'SELECTED': ''?>><?php echo htmlspecialchars((string) $recording['displayname'], ENT_QUOTES, 'UTF-8')?></option>
                 <?php } ?>
                 </select>
             </div>
@@ -177,7 +177,7 @@ if ($id !== '') {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="VQ_GOSUB"></i>
             </div>
             <div class="col-md-7">
-                <input type="text" class="form-control" id="VQ_GOSUB" name="VQ_GOSUB" value="<?php  echo $config['VQ_GOSUB'] ?>">
+                <input type="text" class="form-control" id="VQ_GOSUB" name="VQ_GOSUB" value="<?php echo htmlspecialchars((string) $config['VQ_GOSUB'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>
         <div class="col-md-12">
@@ -194,7 +194,7 @@ if ($id !== '') {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="VQ_AGI"></i>
             </div>
             <div class="col-md-7">
-                <input type="text" class="form-control" id="VQ_AGI" name="VQ_AGI" value="<?php  echo $config['VQ_AGI'] ?>">
+                <input type="text" class="form-control" id="VQ_AGI" name="VQ_AGI" value="<?php echo htmlspecialchars((string) $config['VQ_AGI'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>
         <div class="col-md-12">
@@ -230,7 +230,7 @@ if ($id !== '') {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="VQ_POSITION"></i>
             </div>
             <div class="col-md-7">
-                <input type="number" min="0" max="1000" class="form-control" id="VQ_POSITION" name="VQ_POSITION" value="<?php echo $config['VQ_POSITION'] ?>">
+                <input type="number" min="0" max="1000" class="form-control" id="VQ_POSITION" name="VQ_POSITION" value="<?php echo htmlspecialchars((string) $config['VQ_POSITION'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>
     </div>
@@ -254,7 +254,7 @@ if ($id !== '') {
                     $recordings = \FreePBX::Recordings()->getAllRecordings();
                     array_unshift($recordings, array('filename'=>'','displayname'=>'--'));
                     foreach($recordings as $recording) {?>
-                    <option value="<?php echo $recording['filename']?>" <?php echo ($config['VQ_CONFIRMMSG'] == $recording['filename']) ? 'SELECTED': ''?>><?php echo $recording['displayname']?></option>
+                    <option value="<?php echo htmlspecialchars((string) $recording['filename'], ENT_QUOTES, 'UTF-8')?>" <?php echo ($config['VQ_CONFIRMMSG'] == $recording['filename']) ? 'SELECTED': ''?>><?php echo htmlspecialchars((string) $recording['displayname'], ENT_QUOTES, 'UTF-8')?></option>
                 <?php } ?>
                 </select>
             </div>
@@ -278,7 +278,7 @@ if ($id !== '') {
                     $recordings = \FreePBX::Recordings()->getAllRecordings();
                     array_unshift($recordings, array('filename'=>'','displayname'=>'--'));
                     foreach($recordings as $recording) {?>
-                    <option value="<?php echo $recording['filename']?>" <?php echo ($config['VQ_AANNOUNCE'] == $recording['filename']) ? 'SELECTED': ''?>><?php echo $recording['displayname']?></option>
+                    <option value="<?php echo htmlspecialchars((string) $recording['filename'], ENT_QUOTES, 'UTF-8')?>" <?php echo ($config['VQ_AANNOUNCE'] == $recording['filename']) ? 'SELECTED': ''?>><?php echo htmlspecialchars((string) $recording['displayname'], ENT_QUOTES, 'UTF-8')?></option>
                 <?php } ?>
                 </select>
             </div>
@@ -302,7 +302,7 @@ if ($id !== '') {
                     $musicCategories = \FreePBX::Music()->getCategories();
                     array_unshift($musicCategories, array('category'=>'','categorydisplay'=>'--'));
                     foreach($musicCategories as $category) {?>
-                    <option value="<?php echo $category['category']?>" <?php echo ($config['VQ_MOH'] == $category['category']) ? 'SELECTED': ''?>><?php echo (isset($category['categorydisplay'])) ? $category['categorydisplay'] : $category['category']?></option>
+                    <option value="<?php echo htmlspecialchars((string) $category['category'], ENT_QUOTES, 'UTF-8')?>" <?php echo ($config['VQ_MOH'] == $category['category']) ? 'SELECTED': ''?>><?php echo htmlspecialchars((string) ($category['categorydisplay'] ?? $category['category']), ENT_QUOTES, 'UTF-8')?></option>
                 <?php } ?>
                 </select>
             </div>
@@ -341,7 +341,7 @@ if ($id !== '') {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="VQ_MAXWAIT"></i>
             </div>
             <div class="col-md-7">
-                <input type="number" min="0" max="1000" class="form-control" id="VQ_MAXWAIT" name="VQ_MAXWAIT" value="<?php echo $config['VQ_MAXWAIT'] ?>">
+                <input type="number" min="0" max="1000" class="form-control" id="VQ_MAXWAIT" name="VQ_MAXWAIT" value="<?php echo htmlspecialchars((string) $config['VQ_MAXWAIT'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>
     </div>
@@ -402,7 +402,7 @@ if ($id !== '') {
                 <?php
                     $queues = \FreePBX::Queues()->listQueues(false);
                     foreach( $queues as $queue ) {?>
-                        <option value="<?php echo 'ext-queues,'.$queue[0].',1'?>" <?php echo ($config['DEST'] == 'ext-queues,'.$queue[0].',1') ? 'SELECTED': ''?>> <?php echo $queue[0].' - '. $queue[1]?></option>
+                        <option value="<?php echo htmlspecialchars((string) ('ext-queues,'.$queue[0].',1'), ENT_QUOTES, 'UTF-8')?>" <?php echo ($config['DEST'] == 'ext-queues,'.$queue[0].',1') ? 'SELECTED': ''?>> <?php echo htmlspecialchars((string) ($queue[0].' - '. $queue[1]), ENT_QUOTES, 'UTF-8')?></option>
                     <?php } ?>
                 </select>
 

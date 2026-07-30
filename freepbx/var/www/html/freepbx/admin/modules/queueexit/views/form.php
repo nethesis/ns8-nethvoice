@@ -51,7 +51,7 @@ if ($id !== '') {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="displayname"></i>
             </div>
             <div class="col-md-7">
-                <input type="text" class="form-control" id="displayname" name="displayname" value="<?php  echo $config['displayname'] ?>">
+                <input type="text" class="form-control" id="displayname" name="displayname" value="<?php echo htmlspecialchars((string) $config['displayname'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>
         <div class="col-md-12">

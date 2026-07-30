@@ -70,7 +70,7 @@ if ($id !== '') {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="root"></i>
             </div>
             <div class="col-md-7">
-                <input type="text" class="form-control" id="root" name="root" value="<?php  echo $config['root'] ?>">
+                <input type="text" class="form-control" id="root" name="root" value="<?php echo htmlspecialchars((string) $config['root'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>
         <div class="col-md-12">
@@ -86,7 +86,7 @@ if ($id !== '') {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="varlength"></i>
             </div>
             <div class="col-md-7">
-                <input type="text" class="form-control" id="varlength" name="varlength" value="<?php  echo $config['varlength'] ?>">
+                <input type="text" class="form-control" id="varlength" name="varlength" value="<?php echo htmlspecialchars((string) $config['varlength'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>
         <div class="col-md-12">
@@ -102,7 +102,7 @@ if ($id !== '') {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="prefix"></i>
             </div>
             <div class="col-md-7">
-                <input type="text" class="form-control" id="prefix" name="prefix" value="<?php echo $config['prefix'] ?>">
+                <input type="text" class="form-control" id="prefix" name="prefix" value="<?php echo htmlspecialchars((string) $config['prefix'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>
         <div class="col-md-12">
@@ -119,7 +119,7 @@ if ($id !== '') {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="timeout"></i>
             </div>
             <div class="col-md-7">
-                <input type="number" min="5" max="60" class="form-control" id="timeout" name="timeout" value="<?php echo $config['timeout'] ?>">
+                <input type="number" min="5" max="60" class="form-control" id="timeout" name="timeout" value="<?php echo htmlspecialchars((string) $config['timeout'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>    
     </div>

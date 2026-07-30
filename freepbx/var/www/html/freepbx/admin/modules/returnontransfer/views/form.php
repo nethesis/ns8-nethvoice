@@ -33,7 +33,7 @@
           <i class="fa fa-question-circle fpbx-help-icon" data-for="timeout"></i>
         </div>
         <div class="col-md-9">
-          <input type="number" min="5" max="60" class="form-control" id="timeout" name="timeout" value="<?php echo $settings['timeout'];?>">
+          <input type="number" min="5" max="60" class="form-control" id="timeout" name="timeout" value="<?php echo htmlspecialchars((string) $settings['timeout'], ENT_QUOTES, 'UTF-8');?>">
         </div>
       </div>
     </div>
@@ -53,7 +53,7 @@
           <i class="fa fa-question-circle fpbx-help-icon" data-for="prefix"></i>
         </div>
         <div class="col-md-9">
-          <input type="text" class="form-control" id="prefix" name="prefix" value="<?php echo $settings['prefix'];?>">
+          <input type="text" class="form-control" id="prefix" name="prefix" value="<?php echo htmlspecialchars((string) $settings['prefix'], ENT_QUOTES, 'UTF-8');?>">
         </div>
       </div>
     </div>
@@ -73,7 +73,7 @@
           <i class="fa fa-question-circle fpbx-help-icon" data-for="alertinfo"></i>
         </div>
         <div class="col-md-9">
-          <input type="text" class="form-control" id="alertinfo" name="alertinfo" value="<?php echo $settings['alertinfo'];?>">
+          <input type="text" class="form-control" id="alertinfo" name="alertinfo" value="<?php echo htmlspecialchars((string) $settings['alertinfo'], ENT_QUOTES, 'UTF-8');?>">
         </div>
       </div>
     </div>

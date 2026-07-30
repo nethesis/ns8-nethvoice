@@ -45,7 +45,7 @@ if (isset($_REQUEST['id'])) {
                                 <i class="fa fa-question-circle fpbx-help-icon" data-for="label"></i>
                         </div>
                         <div class="col-md-9">
-                                <input type="text" class="form-control" id="label" name="label" value="<?php echo $data['label'];?>">
+                                <input type="text" class="form-control" id="label" name="label" value="<?php echo htmlspecialchars((string) $data['label'], ENT_QUOTES, 'UTF-8');?>">
                         </div>
                 </div>
         </div>
@@ -64,7 +64,7 @@ if (isset($_REQUEST['id'])) {
 				<i class="fa fa-question-circle fpbx-help-icon" data-for="number"></i>
 			</div>
 			<div class="col-md-9">
-				<input type="text" class="form-control" id="number" name="number" value="<?php echo $data['number'];?>">
+				<input type="text" class="form-control" id="number" name="number" value="<?php echo htmlspecialchars((string) $data['number'], ENT_QUOTES, 'UTF-8');?>">
 			</div>
 		</div>
 	</div>
@@ -83,7 +83,7 @@ if (isset($_REQUEST['id'])) {
 				<i class="fa fa-question-circle fpbx-help-icon" data-for="code"></i>
 			</div>
 			<div class="col-md-9">
-				<input type="text" class="form-control" id="code" name="code" value="<?php echo $data['code'];?>">
+				<input type="text" class="form-control" id="code" name="code" value="<?php echo htmlspecialchars((string) $data['code'], ENT_QUOTES, 'UTF-8');?>">
 			</div>
 		</div>
 	</div>
