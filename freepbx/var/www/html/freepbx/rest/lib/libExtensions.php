@@ -97,6 +97,7 @@ function createExtension($mainextensionnumber,$delete=false){
             $data['name'] = $mainextension['name'];
             $mainextdata = $fpbx->Core->getUser($mainextension['extension']);
             $data['outboundcid'] = $mainextdata['outboundcid'];
+            $data['vm'] = 'no';
             $res = $fpbx->Core->processQuickCreate('pjsip', $extension, $data);
             if (!$res['status']) {
                 throw new Exception("Error creating extension");
@@ -111,14 +112,20 @@ function createExtension($mainextensionnumber,$delete=false){
             $sql = 'SELECT `data` FROM `sip` WHERE `id`=? AND `keyword`="namedcallgroup"';
             $sth = $dbh->prepare($sql);
             $sth->execute([$mainextensionnumber]);
-            $maincallgroup = $sth->fetchAll()[0]['data'];
+            $maincallgroup = $sth->fetchColumn();
+            if ($maincallgroup === false) {
+                $maincallgroup = '';
+            }
             $sql = 'UPDATE `sip` SET `data`= ? WHERE `id`=? AND `keyword`="namedcallgroup"';
             $sth = $dbh->prepare($sql);
             $sth->execute([$maincallgroup,$extension]);
             $sql = 'SELECT `data` FROM `sip` WHERE `id`=? AND `keyword`="namedpickupgroup"';
             $sth = $dbh->prepare($sql);
             $sth->execute([$mainextensionnumber]);
-            $mainpickupgroup = $sth->fetchAll()[0]['data'];
+            $mainpickupgroup = $sth->fetchColumn();
+            if ($mainpickupgroup === false) {
+                $mainpickupgroup = '';
+            }
             $sql = 'UPDATE `sip` SET `data`= ? WHERE `id`=? AND `keyword`="namedpickupgroup"';
             $sth = $dbh->prepare($sql);
             $sth->execute([$mainpickupgroup,$extension]);
@@ -218,6 +225,7 @@ function useExtensionAsWebRTC($extension) {
             $sql = 'UPDATE `rest_devices_phones`'.
                 ' SET user_id = ('. $uidquery. '), secret= ?, type = "webrtc"' .
                 ' WHERE extension = ?';
+            $stmt = $dbh->prepare($sql);
             if ($stmt->execute(array(getMainExtension($extension),$extension_secret,$extension))) {
                 return true;
             }
@@ -750,7 +758,8 @@ function _getTypeExtension($mainextension,$type) {
     $sql = 'SELECT extension FROM `rest_devices_phones` WHERE user_id = ('. $uidquery. ') AND type = ? AND `extension`';
     $stmt = $dbh->prepare($sql);
     $stmt->execute(array($mainextension,$type));
-    return $stmt->fetchAll()[0][0];
+    $extension = $stmt->fetchColumn();
+    return ($extension === false) ? null : $extension;
 }
 
 function createMainExtensionForUser($username,$mainextension,$outboundcid='') {
@@ -760,17 +769,17 @@ function createMainExtensionForUser($username,$mainextension,$outboundcid='') {
     //Update user to add this extension as default extension
     //get uid
     $user = $fpbx->Userman->getUserByUsername($username);
-    $uid = $user['id'];
-    if (!isset($uid)) {
+    if (!is_array($user) || !isset($user['id'])) {
         return [array('message'=>'User not found' ), 404];
     }
+    $uid = $user['id'];
 
     //Delete user old extension and all his extensions
     $sql = 'SELECT `default_extension` FROM `userman_users` WHERE `username` = ?';
     $stmt = $dbh->prepare($sql);
     $stmt->execute(array($username));
     $res = $stmt->fetch(\PDO::FETCH_ASSOC);
-    if (isset($res)){
+    if (is_array($res) && !empty($res['default_extension'])) {
         $oldmain = $res['default_extension'];
         $ext_to_del = array();
         $ext_to_del[] = $oldmain;
@@ -830,6 +839,7 @@ function createMainExtensionForUser($username,$mainextension,$outboundcid='') {
 
     $data['outboundcid']=$outboundcid;
     //create main extension
+    $data['vm'] = 'no';
     $res = $fpbx->Core->processQuickCreate('pjsip', $mainextension, $data);
     if (!$res['status']) {
         return [array('message'=>$res['message']), 500];
@@ -1004,7 +1014,7 @@ function setExtensionCustomContextProfile($extension) {
     $sql = 'SELECT profile_id FROM rest_devices_phones JOIN rest_users ON rest_devices_phones.user_id = rest_users.user_id JOIN sip on rest_devices_phones.extension COLLATE utf8mb4_general_ci = sip.id WHERE extension = ? AND sip.keyword = "context" AND (sip.data = "from-internal" OR sip.data LIKE "cti-profile-")';
     $stmt = $dbh->prepare($sql);
     $stmt->execute([$extension]);
-    $profile_id = $stmt->fetch(\PDO::FETCH_ASSOC)[0]['profile_id'];
+    $profile_id = $stmt->fetchColumn();
     if (!empty($profile_id)) {
         setSipData($extension,'context','cti-profile-'.$profile_id);
     }

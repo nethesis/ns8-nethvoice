@@ -140,11 +140,11 @@ $app->get('/cti/profiles/users/{user_id}', function (Request $request, Response 
         $sql = 'SELECT `profile_id` FROM `rest_users` WHERE `user_id` = ?';
         $sth = $dbh->prepare($sql);
         $sth->execute(array($user_id));
-        $profile_id = $sth->fetchAll()[0][0];
+        $profile_id = $sth->fetchColumn();
         if (!$profile_id) {
             return $response->withStatus(404);
         }
-        return jsonResponse($response, array('id' => $profile_id),200);
+        return jsonResponse($response, array('id' => (string) $profile_id),200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -393,19 +393,39 @@ $app->put('/cti/paramurl/{id}', function (Request $request, Response $response, 
       $data = $request->getParsedBody();
       $args = array();
       $fields = array();
+
+      if (!isset($data['url'], $data['profiles']) || !is_array($data['profiles'])) {
+        return jsonResponse($response, array('status' => 'Invalid CTI source data'), 400);
+      }
+
+      $profiles = array();
+      foreach ($data['profiles'] as $profile) {
+        if (filter_var($profile, FILTER_VALIDATE_INT) === false || (int) $profile <= 0) {
+          return jsonResponse($response, array('status' => 'Invalid CTI profile id'), 400);
+        }
+        $profiles[] = (int) $profile;
+      }
+      $profiles = array_values(array_unique($profiles));
+
       $dbh = FreePBX::Database();
-      foreach ($data["profiles"] as $p) {
+      foreach ($profiles as $p) {
         $sql = 'INSERT INTO rest_cti_profiles_paramurl (profile_id, url, only_queues) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE profile_id=VALUES(profile_id), url=VALUES(url), only_queues=VALUES(only_queues)';
         $sth = $dbh->prepare($sql);
-        $only_queues = ($data['only_queues']) ? 1 : 0;
+        $only_queues = !empty($data['only_queues']) ? 1 : 0;
         $res = $sth->execute(array($p, $data["url"], $only_queues));
         if ($res === FALSE) {
           throw new Exception($sth->errorInfo()[2]);
         }
       }
-      $sql = 'DELETE FROM rest_cti_profiles_paramurl WHERE url=? AND profile_id NOT IN ('.implode(",", $data["profiles"]).')';
+
+      $sql = 'DELETE FROM rest_cti_profiles_paramurl WHERE url = ?';
+      $query_params = array($data['url']);
+      if (!empty($profiles)) {
+        $sql .= ' AND profile_id NOT IN ('.implode(',', array_fill(0, count($profiles), '?')).')';
+        $query_params = array_merge($query_params, $profiles);
+      }
       $sth = $dbh->prepare($sql);
-      $res = $sth->execute(array($data["url"]));
+      $res = $sth->execute($query_params);
       if ($res === FALSE) {
           throw new Exception($sth->errorInfo()[2]);
       }
@@ -540,7 +560,7 @@ $app->delete('/cti/dbconn/{id}', function (Request $request, Response $response,
         $dbh = NethCTI::Database();
         $sql = 'DELETE FROM user_dbconn WHERE id = ?';
         $sth = $dbh->prepare($sql);
-        $sth->execute(array($id));
+        $res = $sth->execute(array($id));
 
         if ($res === FALSE) {
             throw new Exception($sth->errorInfo()[2]);
@@ -812,7 +832,7 @@ $app->post('/cti/customer_card', function (Request $request, Response $response,
         $sql = 'INSERT INTO customer_card(name, creation, query, template, dbconn_id, permission_id)'.
             ' VALUES (?, NOW(), ?, ?, ?, ?)';
         $sth = $dbh->prepare($sql);
-        $sth->execute(array($name, $query, $template, $dbconn_id, $permission_id));
+        $res = $sth->execute(array($name, $query, $template, $dbconn_id, $permission_id));
 
         if ($res === FALSE) {
             $sql = 'DELETE FROM rest_cti_permissions WHERE id = ?';
@@ -963,7 +983,7 @@ $app->delete('/cti/customer_card/{id}', function (Request $request, Response $re
         $dbi = FreePBX::Database();
         $sql = 'DELETE FROM rest_cti_permissions WHERE id = ?';
         $sth = $dbi->prepare($sql);
-        $sth->execute(array($obj['permission_id']));
+        $res = $sth->execute(array($obj['permission_id']));
 
         if ($res === FALSE) {
             throw new Exception($sth->errorInfo()[2]);
@@ -971,7 +991,7 @@ $app->delete('/cti/customer_card/{id}', function (Request $request, Response $re
 
         $sql = 'DELETE FROM customer_card WHERE id = ?';
         $sth = $dbh->prepare($sql);
-        $sth->execute(array($id));
+        $res = $sth->execute(array($id));
 
         if ($res === FALSE) {
             throw new Exception($sth->errorInfo()[2]);
@@ -1014,7 +1034,7 @@ $app->get('/cti/streaming', function (Request $request, Response $response, $arg
                 $restemp = $sth->fetchAll(PDO::FETCH_ASSOC);
                 if ($restemp) {
                     foreach($restemp as $pid) {
-                        array_push($res[$i]['profiles'], $pid['profile_id']);
+                        array_push($res[$i]['profiles'], (string) $pid['profile_id']);
                     }
                 }
             }
@@ -1193,9 +1213,9 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
         }
 
         $dbh = FreePBX::Database();
-        $res = $sql = 'INSERT INTO rest_cti_streaming(descr, url, exten, open) VALUES (?, ?, ?, ?)';
+        $sql = 'INSERT INTO rest_cti_streaming(descr, url, exten, open) VALUES (?, ?, ?, ?)';
         $sth = $dbh->prepare($sql);
-        $sth->execute(array($name, $url, $exten, $open));
+        $res = $sth->execute(array($name, $url, $exten, $open));
 
         if ($res === FALSE) {
             $sql = 'DELETE FROM rest_cti_permissions WHERE id = ?';
@@ -1218,23 +1238,28 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
         $route = $request->getAttribute('route');
         $data = $request->getParsedBody();
 
+        if (!is_array($data) || !isset($data['url']) || !is_string($data['url']) || $data['url'] === '') {
+            return jsonResponse($response, array('status' => 'Invalid source URL'), 400);
+        }
         $url = $data['url'];
 
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true );
         $ret_val = curl_exec($curl);
-        if (curl_errno($ch)) {
-            error_log(__FILE__.':'.__LINE__.' curl error: '.curl_error($ch));
+        if ($ret_val === false) {
+            error_log(__FILE__.':'.__LINE__.' curl error: '.curl_error($curl));
+            curl_close($curl);
+            return $response->withStatus(500);
         }
+        curl_close($curl);
 
-        if (strpos($ret_val, '<!DOCTYPE html PUBLIC') !== false || $ret_val === false) {
+        if (strpos($ret_val, '<!DOCTYPE html PUBLIC') !== false) {
             return $response->withStatus(500);
         } else {
             $b64_image_data =  chunk_split(base64_encode($ret_val));
-            curl_close($curl);
             return jsonResponse($response, $b64_image_data);
         }
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
     }
@@ -1251,7 +1276,7 @@ $app->delete('/cti/streaming/{name}', function (Request $request, Response $resp
         $dbi = FreePBX::Database();
         $sql = 'DELETE FROM rest_cti_permissions WHERE name = ?';
         $sth = $dbi->prepare($sql);
-        $sth->execute(array('vs_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$name)))));
+        $res = $sth->execute(array('vs_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$name)))));
 
         if ($res === FALSE) {
             throw new Exception($sth->errorInfo()[2]);
@@ -1259,7 +1284,7 @@ $app->delete('/cti/streaming/{name}', function (Request $request, Response $resp
 
         $sql = 'DELETE FROM rest_cti_streaming WHERE descr = ?';
         $sth = $dbi->prepare($sql);
-        $sth->execute(array($name));
+        $res = $sth->execute(array($name));
 
         if ($res === FALSE) {
             throw new Exception($sth->errorInfo()[2]);

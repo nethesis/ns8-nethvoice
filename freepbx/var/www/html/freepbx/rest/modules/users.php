@@ -83,7 +83,7 @@ $app->get('/users/{all}', function (Request $request, Response $response, $args)
         system('fwconsole userman --syncall --force > /dev/null &'); // force FreePBX user sync
         triggerMiddlewareProfilesReloadAfterUserSync();
     }
-    return jsonResponse($response, array_values(getAllUsers()),200);
+    return jsonResponse($response, array_values(getAllUsers($all)),200);
 });
 
 
@@ -237,7 +237,7 @@ $app->get('/csv/csvexport', function (Request $request, Response $response, $arg
 
         // Voicemails
         $tmp = FreePBX::Voicemail()->getVoicemail();
-        $voicemails = $tmp['default'];
+        $voicemails = (isset($tmp['default']) && is_array($tmp['default'])) ? $tmp['default'] : array();
 
         // CTI Groups
         $sql = 'SELECT rest_cti_users_groups.user_id, rest_cti_groups.name'.
@@ -257,6 +257,7 @@ $app->get('/csv/csvexport', function (Request $request, Response $response, $arg
         $sth = $dbh->prepare($sql);
         $sth->execute();
         $res = $sth->fetchAll(PDO::FETCH_ASSOC);
+        $profiles = array();
         foreach ($res as $r) {
             $profiles[$r['id']] = $r['name'];
         }
@@ -302,7 +303,7 @@ $app->get('/csv/csvexport', function (Request $request, Response $response, $arg
             }
             // CTI Profile
             if (isset($u['profile']) && !empty($u['profile'])) {
-                $row[] = $profiles[$u['profile']];
+                $row[] = $profiles[$u['profile']] ?? '';
             } else {
                 $row[] = '';
             }
@@ -319,7 +320,6 @@ $app->get('/csv/csvexport', function (Request $request, Response $response, $arg
             $csvstring .= implode(',',$row);
             $csvstring .= "\r\n";
         }
-        error_log($csvstring);
         return jsonResponse($response, base64_encode($csvstring),200);
     } catch (Exception $e) {
         error_log($e->getMessage());
