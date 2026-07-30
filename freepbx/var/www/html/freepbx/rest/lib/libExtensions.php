@@ -218,6 +218,7 @@ function useExtensionAsWebRTC($extension) {
             $sql = 'UPDATE `rest_devices_phones`'.
                 ' SET user_id = ('. $uidquery. '), secret= ?, type = "webrtc"' .
                 ' WHERE extension = ?';
+            $stmt = $dbh->prepare($sql);
             if ($stmt->execute(array(getMainExtension($extension),$extension_secret,$extension))) {
                 return true;
             }
@@ -375,12 +376,12 @@ function useExtensionAsMobileApp($extension) {
     }
 }
 
-function useExtensionAsPhysical($extension,$mac,$model,$line=false,$provisioning_token=null, $web_user = null ,$web_password = null) {
+function useExtensionAsPhysical($extension,$mac,$model,$line=false,$web_user = null,$web_password = null) {
     $provisioningEngine = getProvisioningEngine();
     if ($provisioningEngine == 'freepbx') {
-        return legacy_useExtensionAsPhysical($extension,$mac,$model,false, $web_user, $web_password);
+        return legacy_useExtensionAsPhysical($extension,$mac,$model,$line,$web_user,$web_password);
     } elseif ($provisioningEngine == 'tancredi') {
-        return tancredi_useExtensionAsPhysical($extension,$mac,$model,false,$provisioning_token, $web_user, $web_password);
+        return tancredi_useExtensionAsPhysical($extension,$mac,$model,$line,$web_user,$web_password);
     } else {
         throw new Exception('Unknown provisioning!');
     }
@@ -408,7 +409,7 @@ function legacy_useExtensionAsPhysical($extension,$mac,$model,$line=false, $web_
                    'SELECT userman_users.id FROM userman_users WHERE userman_users.default_extension = ? '.
                    '), extension = ?, secret= ?, web_user = ?, web_password = ?, type = "physical" WHERE mac = ? AND line = ?';
             $stmt = $dbh->prepare($sql);
-            $res = $stmt->execute(array(getMainExtension($extension),$extension,$extension_secret,$mac,$line));
+            $res = $stmt->execute(array(getMainExtension($extension),$extension,$extension_secret,$web_user,$web_password,$mac,$line));
         } else {
             $sql = 'UPDATE `rest_devices_phones` SET user_id = ( '.
                    'SELECT userman_users.id FROM userman_users WHERE userman_users.default_extension = ? '.
@@ -420,6 +421,8 @@ function legacy_useExtensionAsPhysical($extension,$mac,$model,$line=false, $web_
         if ($res) {
             // Add extension to endpointman
             $endpoint = FreePBX::endpointmanager();
+            $mainextension = FreePBX::create()->Core->getUser(getMainExtension($extension));
+            $mainextension_name = $mainextension['name'] ?? getMainExtension($extension);
             // Get model id by mac
             $brand = $endpoint->get_brand_from_mac($mac);
             $models = $endpoint->models_available(null, $brand['id']);
@@ -433,13 +436,15 @@ function legacy_useExtensionAsPhysical($extension,$mac,$model,$line=false, $web_
             if (!$model_id) {
                 throw new Exception('model not found');
             } else {
-                $mac_id = $dbh->sql('SELECT id FROM endpointman_mac_list WHERE mac = "'.preg_replace('/:/', '', $mac).'"', "getOne");
+                $stmt = $dbh->prepare('SELECT id FROM endpointman_mac_list WHERE mac = ?');
+                $stmt->execute(array(preg_replace('/:/', '', $mac)));
+                $mac_id = $stmt->fetchColumn();
                 if ($mac_id) {
                      // add line if device already exist
-                    $endpoint->add_line($mac_id, $line, $extension, $mainextension['name']);
+                    $endpoint->add_line($mac_id, $line, $extension, $mainextension_name);
                 } else {
                     // add device to endpointman module
-                    $mac_id = $endpoint->add_device($mac, $model_id, $extension, null, $line, $mainextension['name']);
+                    $mac_id = $endpoint->add_device($mac, $model_id, $extension, null, $line, $mainextension_name);
                 }
             }
         } else {
@@ -590,6 +595,8 @@ function useExtensionAsGSWaveApp($extension,$mac,$model) {
         if ($res) {
             // Add extension to endpointman
             $endpoint = \FreePBX::Endpointmanager();
+            $mainextension = FreePBX::create()->Core->getUser(getMainExtension($extension));
+            $mainextension_name = $mainextension['name'] ?? getMainExtension($extension);
             // brand id hardcoded to "App"
             $brand = array('id' => 23, 'name' => 'App');
             $models = $endpoint->models_available(null, $brand['id']);
@@ -604,7 +611,7 @@ function useExtensionAsGSWaveApp($extension,$mac,$model) {
                 throw new Exception('model not found');
             } else {
                 // add device to endpointman module
-                $mac_id = $endpoint->add_device($mac, $model_id, $extension, null, $line, $mainextension['name']);
+                $mac_id = $endpoint->add_device($mac, $model_id, $extension, null, null, $mainextension_name);
             }
         } else {
             throw new Exception("Error adding device");
