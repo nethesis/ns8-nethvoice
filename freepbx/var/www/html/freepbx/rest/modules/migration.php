@@ -129,12 +129,11 @@ $app->post('/migration/importusers', function (Request $request, Response $respo
 });
 
 $app->post('/migration/importprofiles', function (Request $request, Response $response, $args) {
+    $errors = array(); $warnings = array(); $infos = array();
+    $return = true;
     try {
         $profiles = getOldCTIProfiles();
-        $errors = array(); $warnings = array(); $infos = array();
-        $returncode = 422;
         if (!empty($profiles)) {
-            $return = true;
             foreach ($profiles as $old_profile) {
                 $res = cloneOldCTIProfile($old_profile);
                 if ($res['status']) {
@@ -144,6 +143,7 @@ $app->post('/migration/importprofiles', function (Request $request, Response $re
                     $infos = array_merge($infos,$res['infos']);
                     $warnings = array_merge($warnings,$res['warnings']);
                     $errors = array_merge($errors,$res['errors']);
+                    $return = false;
                 }
             }
         }
@@ -395,6 +395,7 @@ $app->post('/migration/cdr', function (Request $request, Response $response, $ar
 });
 
 $app->get('/migration/cdr', function (Request $request, Response $response, $args) {
+    $status = array('status' => false, 'errors' => array('Unable to read CDR migration status'));
     try {
         $statusfile = '/var/run/nethvoice/cdrmigration';
         if (file_exists($statusfile)) {
@@ -484,4 +485,3 @@ $app->post('/migration/postmigration', function (Request $request, Response $res
         return jsonResponse($response, array('status' => false, 'errors' => array($e->getMessage())),500);
     }
 });
-
