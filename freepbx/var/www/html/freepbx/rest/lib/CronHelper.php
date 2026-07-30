@@ -29,7 +29,9 @@
  * @link      https://github.com/nethesis/dev/issues
  */
 
-define('REBOOT_HELPER_SCRIPT', '/var/www/html/freepbx/rest/lib/phonesRebootHelper.php');
+if (!defined('REBOOT_HELPER_SCRIPT')) {
+    define('REBOOT_HELPER_SCRIPT', '/var/www/html/freepbx/rest/lib/phonesRebootHelper.php');
+}
 
 class CronHelper
 {

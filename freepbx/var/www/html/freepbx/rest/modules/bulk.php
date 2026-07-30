@@ -129,9 +129,12 @@ $app->post('/bulk/{mainextensions}', function (Request $request, Response $respo
         $route = $request->getAttribute('route');
         $mainextensions = explode(',',$route->getArgument('mainextensions'));
         $params = $request->getParsedBody();
-        $status = true;
+        if (!is_array($params)) {
+            return jsonResponse($response, array('status' => false, 'error' => 'Invalid request body'), 400);
+        }
+        $err = '';
         foreach ($params as $action => $data) {
-            if (in_array($action,$blkfunc)) {
+            if (in_array($action,$blkfunc,true)) {
                 $function = 'post_'.$action;
                 $res = $function($mainextensions,$data);
                 if ($res !== true) {
@@ -142,21 +145,26 @@ $app->post('/bulk/{mainextensions}', function (Request $request, Response $respo
         //outboundcid
         if (isset($params['outboundcid_fixed']) && !is_null($params['outboundcid_fixed'])) {
             if (!isset($params['outboundcid_variable']) || $params['outboundcid_variable'] == 0 || $params['outboundcid_variable'] == '') {
-                post_outboundcid($mainextensions,$params['outboundcid_fixed']);
+                $res = post_outboundcid($mainextensions,$params['outboundcid_fixed']);
+                if ($res !== true) {
+                    $err .= $res."\n";
+                }
             } else {
                 foreach ($mainextensions as $mainextension) {
-                     post_outboundcid(array($mainextension), $params['outboundcid_fixed'].substr($mainextension,-$params['outboundcid_variable']));
+                    $res = post_outboundcid(array($mainextension), $params['outboundcid_fixed'].substr($mainextension,-$params['outboundcid_variable']));
+                    if ($res !== true) {
+                        $err .= $res."\n";
+                    }
                 }
             }
         }
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-        if (isset($err)) {
+        if ($err !== '') {
             throw new Exception($err);
         }
         return jsonResponse($response, array('status' => true), 200);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         error_log($e->getMessage());
-        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
+        return jsonResponse($response, array('status' => false, 'error' => 'Unable to apply bulk settings'), 500);
     }
 });
-
