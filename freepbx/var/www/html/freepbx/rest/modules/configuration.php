@@ -95,7 +95,7 @@ $app->post('/configuration/wizard', function (Request $request, Response $respon
         // Restart nethcti-server if wizard is completed
         if ($step == 13) {
             // Restart Asterisk
-            system("/usr/sbin/asterisk -rx 'core restart when convenient' &> /dev/null");
+            system("/usr/sbin/asterisk -rx 'core restart when convenient' >/dev/null 2>&1");
             // Notify nethcti-server and nethcti-middleware restart
             foreach (['restart_nethcti-server', 'restart_nethcti-middleware'] as $notification) {
                 if (@file_put_contents('/notify/'.$notification, '') === false) {
