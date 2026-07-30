@@ -109,11 +109,11 @@ $app->delete('/physicalextensions/{id}', function (Request $request, Response $r
             $sql = 'SELECT `extension` FROM `rest_devices_phones` WHERE `mac` = ? LIMIT 1';
             $stmt = $dbh->prepare($sql);
             $stmt->execute(array($id));
-	    $res = $stmt->fetchAll(\PDO::FETCH_ASSOC)[0]['extension'];
-	    $sql = 'DELETE FROM `rest_devices_phones` WHERE `mac` = ?';
-	    $stmt = $dbh->prepare($sql);
-	    $stmt->execute(array($id));
-            if (is_null($res)) {
+            $res = $stmt->fetchColumn();
+            $sql = 'DELETE FROM `rest_devices_phones` WHERE `mac` = ?';
+            $stmt = $dbh->prepare($sql);
+            $stmt->execute(array($id));
+            if ($res === false || $res === null) {
                 system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
                 return $response->withStatus(200);
             } else {

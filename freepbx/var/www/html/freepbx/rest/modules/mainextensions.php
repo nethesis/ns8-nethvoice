@@ -46,7 +46,7 @@ $app->post('/mainextensions', function (Request $request, Response $response, $a
     $params = $request->getParsedBody();
     $username = $params['username'];
     $mainextension = $params['extension'];
-    $outboundcid = $params['outboundcid'];
+    $outboundcid = $params['outboundcid'] ?? '';
 
     if (
         configuredUsersCount() >= communityUsersLimit() && // check if there are more configured users than the allowed limit

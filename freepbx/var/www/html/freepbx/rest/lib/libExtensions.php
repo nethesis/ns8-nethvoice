@@ -757,7 +757,8 @@ function _getTypeExtension($mainextension,$type) {
     $sql = 'SELECT extension FROM `rest_devices_phones` WHERE user_id = ('. $uidquery. ') AND type = ? AND `extension`';
     $stmt = $dbh->prepare($sql);
     $stmt->execute(array($mainextension,$type));
-    return $stmt->fetchAll()[0][0];
+    $extension = $stmt->fetchColumn();
+    return ($extension === false) ? null : $extension;
 }
 
 function createMainExtensionForUser($username,$mainextension,$outboundcid='') {
@@ -1011,7 +1012,7 @@ function setExtensionCustomContextProfile($extension) {
     $sql = 'SELECT profile_id FROM rest_devices_phones JOIN rest_users ON rest_devices_phones.user_id = rest_users.user_id JOIN sip on rest_devices_phones.extension COLLATE utf8mb4_general_ci = sip.id WHERE extension = ? AND sip.keyword = "context" AND (sip.data = "from-internal" OR sip.data LIKE "cti-profile-")';
     $stmt = $dbh->prepare($sql);
     $stmt->execute([$extension]);
-    $profile_id = $stmt->fetch(\PDO::FETCH_ASSOC)[0]['profile_id'];
+    $profile_id = $stmt->fetchColumn();
     if (!empty($profile_id)) {
         setSipData($extension,'context','cti-profile-'.$profile_id);
     }

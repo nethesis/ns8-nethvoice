@@ -275,8 +275,8 @@ $app->post('/devices/phones/reload/{extension:[0-9]+}', function (Request $reque
     $dbh = FreePBX::Database();
     $stmt = $dbh->prepare('SELECT `vendor` FROM `rest_devices_phones` WHERE `extension` LIKE ? AND `mac` IS NOT NULL AND `vendor` IS NOT NULL AND `type` = "physical"');
     $stmt->execute([$extension]);
-    $vendor = $stmt->fetchAll()[0][0];
-    if (empty($vendor)) {
+    $vendor = $stmt->fetchColumn();
+    if ($vendor === false || $vendor === '') {
         return $response->withStatus(403);
     }
     $res = $astman->send_request('Command',array('Command'=>"pjsip send notify generic-reload endpoint $extension"));

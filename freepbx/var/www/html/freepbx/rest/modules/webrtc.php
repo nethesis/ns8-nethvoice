@@ -53,7 +53,7 @@ $app->post('/webrtc', function (Request $request, Response $response, $args) {
         }
 
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-        return jsonResponse($response, array('extension'=>$extension,'mobile_extension'=>$extensionm), 200);
+        return jsonResponse($response, array('extension'=>$extension,'mobile_extension'=>null), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);

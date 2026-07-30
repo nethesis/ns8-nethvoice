@@ -25,8 +25,9 @@ use \Psr\Http\Message\ResponseInterface as Response;
 $app->get('/voicemails', function (Request $request, Response $response, $args) {
     try {
         $res = FreePBX::Voicemail()->getVoicemail();
+        $voicemails = (isset($res['default']) && is_array($res['default'])) ? $res['default'] : array();
 
-        return jsonResponse($response, $res['default'] ? $res['default'] : array(), 200);
+        return jsonResponse($response, $voicemails, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
 
@@ -39,12 +40,13 @@ $app->get('/voicemails/{extension}', function (Request $request, Response $respo
         $route = $request->getAttribute('route');
         $extension = $route->getArgument('extension');
         $res = FreePBX::Voicemail()->getVoicemail();
+        $voicemails = (isset($res['default']) && is_array($res['default'])) ? $res['default'] : array();
 
-        if (is_array($res['default']) && !array_key_exists($extension, $res['default'])) {
+        if (!array_key_exists($extension, $voicemails)) {
           return jsonResponse($response, null,200);
         }
 
-        return jsonResponse($response, $res['default'][$extension], 200);
+        return jsonResponse($response, $voicemails[$extension], 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
 
