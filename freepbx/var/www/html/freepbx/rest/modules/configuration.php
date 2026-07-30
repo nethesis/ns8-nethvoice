@@ -97,10 +97,11 @@ $app->post('/configuration/wizard', function (Request $request, Response $respon
             // Restart Asterisk
             system("/usr/sbin/asterisk -rx 'core restart when convenient' &> /dev/null");
             // Notify nethcti-server and nethcti-middleware restart
-            $file = fopen("/notify/restart_nethcti-server", 'w');
-            fclose($file);
-            $file = fopen("/notify/restart_nethcti-middleware", 'w');
-            fclose($file);
+            foreach (['restart_nethcti-server', 'restart_nethcti-middleware'] as $notification) {
+                if (@file_put_contents('/notify/'.$notification, '') === false) {
+                    throw new RuntimeException('Unable to create notification '.$notification);
+                }
+            }
         }
         // clean table
         sql('TRUNCATE `rest_wizard`');

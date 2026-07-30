@@ -1238,23 +1238,28 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
         $route = $request->getAttribute('route');
         $data = $request->getParsedBody();
 
+        if (!is_array($data) || !isset($data['url']) || !is_string($data['url']) || $data['url'] === '') {
+            return jsonResponse($response, array('status' => 'Invalid source URL'), 400);
+        }
         $url = $data['url'];
 
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true );
         $ret_val = curl_exec($curl);
-        if (curl_errno($ch)) {
-            error_log(__FILE__.':'.__LINE__.' curl error: '.curl_error($ch));
+        if ($ret_val === false) {
+            error_log(__FILE__.':'.__LINE__.' curl error: '.curl_error($curl));
+            curl_close($curl);
+            return $response->withStatus(500);
         }
+        curl_close($curl);
 
-        if (strpos($ret_val, '<!DOCTYPE html PUBLIC') !== false || $ret_val === false) {
+        if (strpos($ret_val, '<!DOCTYPE html PUBLIC') !== false) {
             return $response->withStatus(500);
         } else {
             $b64_image_data =  chunk_split(base64_encode($ret_val));
-            curl_close($curl);
             return jsonResponse($response, $b64_image_data);
         }
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
     }

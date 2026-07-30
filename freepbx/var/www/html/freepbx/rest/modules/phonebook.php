@@ -228,17 +228,23 @@ $app->post('/phonebook/syncnow/{id}', function (Request $request, Response $resp
 $app->post('/phonebook/uploadfile', function (Request $request, Response $response, $args) {
     $upload_dest = sprintf('/var/lib/nethvoice/phonebook/uploads/%s.csv', uniqid());
     try {
-        $file = array_pop($request->getUploadedFiles());
+        $uploaded_files = $request->getUploadedFiles();
+        $file = reset($uploaded_files);
+        if ($file === false) {
+            return jsonResponse($response, array("status"=>"File upload is required"), 400);
+        }
         if ($file->getError() != UPLOAD_ERR_OK) {
-            return jsonResponse($response, array("status"=>"File upload error"), 500);
+            return jsonResponse($response, array("status"=>"File upload error"), 400);
         }
         $file->moveTo($upload_dest);
         return jsonResponse($response, array(
             "status" => true,
             "uri" => "file://" . $upload_dest,
         ), 200);
-    } catch (Exception $e) {
-        unlink($upload_dest);
+    } catch (Throwable $e) {
+        if (is_file($upload_dest)) {
+            unlink($upload_dest);
+        }
         error_log($e->getMessage());
         return jsonResponse($response, array("status"=>$e->getMessage()), 500);
     }
@@ -310,4 +316,3 @@ function unlink_local_csv($config)
         unlink(substr($config['url'], 7));
     }
 }
-
