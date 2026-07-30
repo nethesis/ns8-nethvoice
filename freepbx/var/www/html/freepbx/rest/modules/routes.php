@@ -282,6 +282,7 @@ $app->get('/outboundroutes/supportedLocales', function (Request $request, Respon
         $dbh = FreePBX::Database();
         $sql = "SELECT DISTINCT `locale` FROM `outbound_routes_locales`";
         $res = $dbh->sql($sql,"getAll",\PDO::FETCH_NUM);
+        $langs = array();
         foreach ($res as $lang){
             $langs[]=$lang[0];
         }
@@ -291,4 +292,3 @@ $app->get('/outboundroutes/supportedLocales', function (Request $request, Respon
         return jsonResponse($response, 'An error occurred', 500);
     }
 });
-
