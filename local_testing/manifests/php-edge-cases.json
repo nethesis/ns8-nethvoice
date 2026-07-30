@@ -1,0 +1,88 @@
+{
+  "name": "php-edge-cases",
+  "description": "Regression checks for absent records and malformed PHP REST inputs",
+  "operations": [
+    {
+      "name": "Filter trunks through a Slim route argument",
+      "method": "GET",
+      "path": "/freepbx/rest/trunks/pjsip",
+      "expected_status": [200]
+    },
+    {
+      "name": "List users through a Slim route argument",
+      "method": "GET",
+      "path": "/freepbx/rest/users/false",
+      "expected_status": [200]
+    },
+    {
+      "name": "Read a missing user password",
+      "method": "GET",
+      "path": "/freepbx/rest/users/php-edge-missing/password",
+      "expected_status": [404]
+    },
+    {
+      "name": "Read a missing main extension",
+      "method": "GET",
+      "path": "/freepbx/rest/mainextensions/999999",
+      "expected_status": [404]
+    },
+    {
+      "name": "Read a missing physical extension",
+      "method": "GET",
+      "path": "/freepbx/rest/physicalextensions/999999",
+      "expected_status": [404]
+    },
+    {
+      "name": "Read a missing CTI user profile",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/profiles/users/999999",
+      "expected_status": [404]
+    },
+    {
+      "name": "Read SRTP for a missing extension",
+      "method": "GET",
+      "path": "/freepbx/rest/extensions/999999/srtp",
+      "expected_status": [200]
+    },
+    {
+      "name": "Delete a missing gateway",
+      "method": "DELETE",
+      "path": "/freepbx/rest/devices/gateways/999999",
+      "expected_status": [404]
+    },
+    {
+      "name": "Reject phone provisioning without a MAC",
+      "method": "POST",
+      "path": "/freepbx/rest/devices/phones/provision",
+      "payload": {},
+      "expected_status": [400]
+    },
+    {
+      "name": "Reject phone reboot without an address",
+      "method": "POST",
+      "path": "/freepbx/rest/devices/phones/reboot",
+      "payload": {"mac": "00:11:22:33:44:55"},
+      "expected_status": [400]
+    },
+    {
+      "name": "Reject phone reconfigure without an extension",
+      "method": "POST",
+      "path": "/freepbx/rest/phones/reconfigure",
+      "payload": {},
+      "expected_status": [400]
+    },
+    {
+      "name": "Reject RPS configuration without a URL",
+      "method": "POST",
+      "path": "/freepbx/rest/phones/rps/00-11-22-33-44-55",
+      "payload": {},
+      "expected_status": [400]
+    },
+    {
+      "name": "Reject phonebook upload without a file",
+      "method": "POST",
+      "path": "/freepbx/rest/phonebook/uploadfile",
+      "expected_status": [400]
+    }
+  ]
+}
