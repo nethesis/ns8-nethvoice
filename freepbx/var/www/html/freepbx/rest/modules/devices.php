@@ -366,11 +366,16 @@ $app->delete('/devices/gateways/{id}', function (Request $request, Response $res
         $route = $request->getAttribute('route');
         $id = $route->getArgument('id');
         $sql = "SELECT `name`,`mac` FROM `gateway_config` WHERE `id` = ?";
-        $fpbx = FreePBX::create();
         $sth = FreePBX::Database()->prepare($sql);
         $sth->execute(array($id));
         $res = $sth->fetch(\PDO::FETCH_ASSOC);
+        if ($res === false) {
+            return jsonResponse($response, array('status' => 'Gateway configuration not found'), 404);
+        }
         system("php /var/www/html/freepbx/rest/lib/tftpDeleteConfig.php ".escapeshellarg($res['name'])." ".escapeshellarg($res['mac']), $ret);
+        if ($ret !== 0) {
+            throw new RuntimeException('Unable to delete gateway provisioning files');
+        }
         //get all trunks for this gateway
         $sql = "SELECT `trunk` FROM `gateway_config_fxo` WHERE `config_id` = ? UNION SELECT `physical_extension` FROM `gateway_config_fxs` WHERE `config_id` = ? UNION SELECT `trunk` FROM `gateway_config_isdn` WHERE `config_id` = ? UNION SELECT `trunk` FROM `gateway_config_pri` WHERE `config_id` = ?";
         $sth = FreePBX::Database()->prepare($sql);
@@ -389,7 +394,7 @@ $app->delete('/devices/gateways/{id}', function (Request $request, Response $res
         $sth->execute(array($id));
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         return jsonResponse($response, array('status' => true), 200);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         error_log($e->getMessage());
         return jsonResponse($response, array("status"=>$e->getMessage()), 500);
     }

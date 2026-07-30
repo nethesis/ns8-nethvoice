@@ -35,13 +35,15 @@ function gateway_get_configuration($name, $mac=false){
         $config = $sth->fetch(\PDO::FETCH_ASSOC);
         if ($config === false){
             /*Configuration doesn't exist*/
-            error_log("Configuration not found");
-            exit(1);
+            throw new RuntimeException('Gateway configuration not found');
         }
         $sql = "SELECT `model`,`manufacturer` FROM `gateway_models` WHERE `id` = ?";
         $sth = FreePBX::Database()->prepare($sql);
         $sth->execute(array($config['model_id']));
         $res = $sth->fetch(\PDO::FETCH_ASSOC);
+        if ($res === false) {
+            throw new RuntimeException('Gateway model not found');
+        }
         $config['model'] = $res['model'];
         $config['manufacturer'] = $res['manufacturer'];
         $sql = "SELECT a.trunk,a.trunknumber AS trunknumber, b.name as username, secret, `protocol` FROM `gateway_config_isdn` AS a JOIN trunks AS b ON a.trunk=b.trunkid WHERE `config_id` = ?";
@@ -72,15 +74,16 @@ function gateway_get_configuration($name, $mac=false){
         }
 
         return $config;
-    } catch (Exception $e){
+    } catch (Throwable $e){
         error_log($e->getMessage());
-        exit(1);
+        throw $e;
     }
 }
 
 function gateway_generate_configuration_file($name,$mac = false){
     try{
         $config = gateway_get_configuration($name,$mac);
+        $output = '';
         # read template
         $template = "/var/www/html/freepbx/rest/lib/gateway/templates/{$config['manufacturer']}/{$config['model']}.txt";
         $handle = fopen($template, "r");
@@ -93,8 +96,7 @@ function gateway_generate_configuration_file($name,$mac = false){
             }
             fclose($handle);
         } else {
-            error_log("Template $template not found");
-            return false;
+            throw new RuntimeException("Gateway template not found: $template");
         }
         # replace variables in template
         $output = str_replace("ASTERISKIP",$config['ipv4_green'],$output);
@@ -177,9 +179,9 @@ function gateway_generate_configuration_file($name,$mac = false){
         }
 
 
-    } catch (Exception $e){
+    } catch (Throwable $e){
         error_log($e->getMessage());
-        exit(1);
+        throw $e;
     }
     return $output;
 }
