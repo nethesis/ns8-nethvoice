@@ -66,10 +66,12 @@ class Pin implements \BMO
              * and takes EnablePIN and route id values to update 
              * pin_protected_routes table
              ******************************/
-            $sql = 'DELETE FROM `pin_protected_routes` WHERE `route_id` = ?; INSERT INTO `pin_protected_routes` (`route_id`,`enabled`) VALUES (?,?)';
+            $sql = 'DELETE FROM `pin_protected_routes` WHERE `route_id` = ?';
+            $sth = $dbh->prepare($sql);
+            $sth->execute(array($_REQUEST['id']));
+            $sql = 'INSERT INTO `pin_protected_routes` (`route_id`,`enabled`) VALUES (?,?)';
             $sth = $dbh->prepare($sql);
             $sth->execute(array(
-                $_REQUEST['id'],
                 $_REQUEST['id'],
                 $_REQUEST['EnablePIN'],
             ));
@@ -213,7 +215,10 @@ class Pin implements \BMO
             $sql = 'SELECT * FROM pin WHERE extension = ?';
             $sth = $dbh->prepare($sql);
             $sth->execute(array($extension));
-            $res = $sth->fetchAll(\PDO::FETCH_ASSOC)[0];
+            $res = $sth->fetch(\PDO::FETCH_ASSOC);
+            if ($res === false) {
+                $res = array();
+            }
         }
         return $res;
     }

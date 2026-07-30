@@ -37,7 +37,7 @@ if (isset($_REQUEST['extension'])) {
     }
     $config['extension'] = isset($avail[0]) ? $avail[0]['extension'] : '' ;
     $config['pin'] = rand(0,9999);
-    while (strlen($config['pin'] < 4))  $config['pin'] = '0'.$config['pin']; 
+    while (strlen((string) $config['pin']) < 4)  $config['pin'] = '0'.$config['pin'];
     $config['enabled'] = 1;
 }
 

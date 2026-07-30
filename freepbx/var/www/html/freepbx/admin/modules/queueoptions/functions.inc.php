@@ -35,8 +35,9 @@ function queueoptions_destinations() {
 
 function queueoptions_getdestinfo($dest) {
     global $active_modules;
-    if (substr(trim($dest),0,14 == 'queueoptions-')) {
-        $id = preg_replace('/queueoptions-([0-9]*),.*/','${1}',$dest);
+    $dest = trim($dest);
+    if (preg_match('/^queueoptions-([0-9]+),/', $dest, $matches)) {
+        $id = $matches[1];
         return array('description' => "QueueOptions", 'edit_url' => 'config.php?display=queueoptions&view=form&id='.$id);
     }
     return array('description' => "QueueOptions", 'edit_url' => 'config.php?display=queueoptions');

@@ -40,12 +40,16 @@ if ($id !== '') {
         $extensions = \FreePBX::Core()->getAllUsers();
         $extensions = array_keys($extensions);
         $extarr = array();
+        $sumlen = 0;
         foreach ($extensions as $i => $ext) {
             if (preg_match('/^9...*/',$ext)) {
                 continue;
             }
             $extarr[] = substr($ext,0,1);
             $sumlen += strlen($ext) ;
+        }
+        if (count($extarr) === 0) {
+            throw new RuntimeException('No extensions available');
         }
         $avglen = $sumlen / count($extarr);
         $count=array_count_values($extarr);

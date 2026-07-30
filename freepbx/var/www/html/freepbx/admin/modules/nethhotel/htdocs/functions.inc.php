@@ -1199,7 +1199,10 @@ function _checkOut($room)
         $sql = "SELECT start from roomsdb.rooms WHERE extension=?";
         $sth = $db->prepare($sql);
         $sth->execute(array($room));
-        $start = $sth->fetchAll()[0][0];
+        $start = $sth->fetchColumn();
+        if ($start === false) {
+            throw new RuntimeException("Room $room has no active stay");
+        }
         $sql = "INSERT IGNORE INTO roomsdb.history (extension,start,end) VALUES (?,?,now())";
         $sth = $db->prepare($sql);
         $sth->execute(array($room,$start));

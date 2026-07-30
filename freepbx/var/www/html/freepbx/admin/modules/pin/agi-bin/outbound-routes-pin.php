@@ -42,13 +42,17 @@ function neth_debug($msg,$force=false) {
 
 $agi = new AGI();
 
-$exten = $argv[1];
+$exten = $argv[1] ?? '';
+if ($exten === '') {
+    neth_debug('pin check invoked without an extension');
+    exit(0);
+}
 
 $dbh = FreePBX::Database();
 $sql = 'SELECT `pin`,`enabled` FROM pin WHERE extension = ?';
 $sth = $dbh->prepare($sql);
 $sth->execute(array($exten));
-$res = $sth->fetchAll(\PDO::FETCH_ASSOC)[0];
+$res = $sth->fetch(\PDO::FETCH_ASSOC);
 
 // allow call if pin isn't configured or it isn't enabled
 if (empty($res) or $res['enabled'] != 1 or empty($res['pin'])) {
@@ -68,9 +72,8 @@ for ($i = 1; $i <=3; $i ++) {
         @$agi->stream_file("pin-is-correct");
         exit(0);
     }
-    @$agi->stream_file("pin-is-incorrect ");
+    @$agi->stream_file("pin-is-incorrect");
     neth_debug('incorrect pin');
 }
 neth_debug('incorrect pin inserted for 3 times, hangup');
 $agi->exec("Macro","hangupcall");
-
