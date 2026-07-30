@@ -161,11 +161,6 @@ angular
         controller: 'AppsParamurlCtrl',
         controllerAs: 'apps/paramurl'
       })
-      .when('/apps/cloudServices', {
-        templateUrl: 'views/apps/cloudServices.html',
-        controller: 'AppsVoicemailTextCtrl',
-        controllerAs: 'apps/voicemailText'
-      })
       .when('/admin/languages', {
         templateUrl: 'views/admin/languages.html',
         controller: 'AdminLanguagesCtrl',
