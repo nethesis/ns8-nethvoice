@@ -62,7 +62,9 @@ class Visualplan implements \BMO
   {
     $path = \FreePBX::Config()->get_conf_setting('AMPWEBROOT');
     $location = $path.'/visualplan';
-    unlink($location);
+    if (is_link($location)) {
+        unlink($location);
+    }
   }
 
   // http://wiki.freepbx.org/display/FOP/BMO+Hooks#BMOHooks-HTTPHooks(ConfigPageInits)
@@ -73,14 +75,17 @@ class Visualplan implements \BMO
       $id = $_REQUEST['id'] ?? '';
       $action = $_REQUEST['action'] ?? '';
       $exampleField = $_REQUEST['example-field'] ?? '';
+      $body = $_REQUEST['body'] ?? '';
     //Handle form submissions
     switch ($action) {
     case 'add':
-      $id = $this->addItem($exampleField, $body);
-      $_REQUEST['id'] = $id;
+      $id = $this->addItem(array('subject' => $exampleField, 'body' => $body));
+      if ($id !== false) {
+          $_REQUEST['id'] = $id;
+      }
       break;
     case 'edit':
-      $this->updateItem($id, $exampleField, $body);
+      $this->updateItem($id, array('body' => $body));
       break;
     case 'delete':
       $this->deleteItem($id);
@@ -140,22 +145,9 @@ class Visualplan implements \BMO
   // http://wiki.freepbx.org/display/FOP/HTML+Output+from+BMO
   public function showPage()
   {
-      switch ($_REQUEST['view'] ?? '') {
-    case 'form':
-      if (isset($_REQUEST['id']) && !empty($_REQUEST['id'])) {
-          $subhead = _('Edit Visual Plan');
-          $content = load_view(__DIR__.'/views/form.php', $this->getOne($_REQUEST['id']));
-      } else {
-          $subhead = _('Add Visual Plan');
-          $content = load_view(__DIR__.'/views/form.php');
-      }
-      break;
-    default:
       $subhead = _('Visual Plan List');
       $routes = core_did_list();
       $content = load_view(__DIR__.'/views/grid.php', array('routes' => $routes));
-      break;
-    }
       echo load_view(__DIR__.'/views/default.php', array('subhead' => $subhead, 'content' => $content));
   }
 
@@ -167,35 +159,39 @@ class Visualplan implements \BMO
    */
   public function getOne($id)
   {
-      return $this->getConfig($id, 'settingsgroup');
+      return array('subject' => $id, 'body' => $this->getConfig($id, 'items'));
   }
   /**
    * getList gets a list od subjects and their respective id.
    */
   public function getList()
   {
-      return $this->getAll('settingsgroup');
+      return $this->getAll('items');
   }
   /**
    * addItem Add an Item.
    */
   public function addItem($data)
   {
-      $this->setConfig($data['subject'], $data['body'], 'items');
+      if (empty($data['subject'])) {
+          return false;
+      }
+      $this->setConfig($data['subject'], $data['body'] ?? '', 'items');
+      return $data['subject'];
   }
   /**
    * updateItem Updates the given ID.
    */
   public function updateItem($id, $data)
   {
-      $this->addItem(array('subject' => $id, 'data' => $data));
+      $data['subject'] = $id;
+      return $this->addItem($data);
   }
   /**
    * deleteItem Deletes the given ID.
    */
   public function deleteItem($id)
   {
-      // Setting an item to (bool) 'false' deletes it from the kvstore.
-    // $this->addItem(array("subject" => $id, "data" => false));
+      $this->setConfig($id, false, 'items');
   }
 }
