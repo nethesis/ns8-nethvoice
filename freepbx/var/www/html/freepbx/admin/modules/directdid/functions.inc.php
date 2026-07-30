@@ -22,6 +22,7 @@
 
 function directdid_destinations() {
     global $amp_conf;
+    $extens = array();
     $results = \FreePBX::Directdid()->directdid_get();
     if (isset($results)) {
 	foreach($results as $did) {
@@ -80,10 +81,9 @@ function directdid_get_details($id) {
     $sql = 'SELECT * FROM directdid WHERE id = ?';
     $sth = $dbh->prepare($sql);
     $sth->execute(array($id));
-    $res = $sth->fetchAll()[0];
-    return $res;
+    $res = $sth->fetch(\PDO::FETCH_ASSOC);
+    return is_array($res) ? $res : array();
 }
-
 
 
 

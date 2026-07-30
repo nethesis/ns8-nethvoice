@@ -35,12 +35,12 @@ try {
 
     $sth = $db->prepare($sql);
     $sth->execute(array($code));
-    $num_to_call = $sth->fetchAll()[0][0];
-    $agi->set_variable("RAPIDCODENUM",$num_to_call);
-
-    if (!isset($num_to_call) || empty($num_to_call)) {
+    $num_to_call = $sth->fetchColumn();
+    if ($num_to_call === false || $num_to_call === '') {
         throw new Exception("Empty num to call for $code");
     }
+
+    $agi->set_variable("RAPIDCODENUM", $num_to_call);
 } catch (Exception $e) {
     @$agi->verbose('Rapidcode ERROR: '.$e->getMessage());
 }

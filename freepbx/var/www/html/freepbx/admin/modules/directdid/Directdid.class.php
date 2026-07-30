@@ -40,9 +40,9 @@ class Directdid implements \BMO
     //
     // This handles any data passed to this module before the page is rendered.
     public function doConfigPageInit($page) {
-        $id = $_REQUEST['id']?$_REQUEST['id']:'';
-        $action = $_REQUEST['action']?$_REQUEST['action']:'';
-        $exampleField = $_REQUEST['example-field']?$_REQUEST['example-field']:'';
+        $id = $_REQUEST['id'] ?? '';
+        $action = $_REQUEST['action'] ?? '';
+        $exampleField = $_REQUEST['example-field'] ?? '';
         //Handle form submissions
         $dbh = \FreePBX::Database();
         $destinations = array();
@@ -142,9 +142,9 @@ class Directdid implements \BMO
     // This is also documented at http://wiki.freepbx.org/display/FOP/BMO+Ajax+Calls
     public function ajaxHandler()
     {
-        switch ($_REQUEST['command']) {
+        switch ($_REQUEST['command'] ?? '') {
         case 'getJSON':
-            switch ($_REQUEST['jdata']) {
+            switch ($_REQUEST['jdata'] ?? '') {
             case 'grid':
                 $ret = array();
                 foreach ( $this->directdid_get() as $did) {
@@ -174,12 +174,15 @@ class Directdid implements \BMO
     // http://wiki.freepbx.org/display/FOP/HTML+Output+from+BMO
     public function showPage()
     {
-        switch ($_REQUEST['view']) {
+        $view = $_REQUEST['view'] ?? '';
+        $id = $_REQUEST['id'] ?? '';
+
+        switch ($view) {
         case 'form':
-            if(isset($_REQUEST['id']) && !empty($_REQUEST['id'])){
+            if (!empty($id)) {
                 $subhead = _('Edit Direct DID');
                 $content = load_view(__DIR__.'/views/form.php', array('config' => directdid_get_details($id)));
-            }else{
+            } else {
                 $subhead = _('Add Direct DID');
                 $content = load_view(__DIR__.'/views/form.php');
             }
