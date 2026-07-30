@@ -250,9 +250,17 @@ function getPjSipDefaults() {
 }
 
 function addEditGateway($params){
+    $errors = array(); $warnings = array(); $infos = array();
     try {
-        $errors = array(); $warnings = array(); $infos = array();
-        $fpbx = FreePBX::create();
+        $required = array('name', 'model', 'ipv4_new', 'gateway', 'ipv4_green', 'netmask_green', 'mac');
+        foreach ($required as $field) {
+            if (!isset($params[$field]) || $params[$field] === '') {
+                $errors[] = 'Missing gateway field '.$field;
+            }
+        }
+        if (!empty($errors)) {
+            return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
+        }
         $dbh = FreePBX::Database();
         $gatewayIpv4 = $params['ipv4'] ?? '';
         $proxyFqdn = $_ENV['NETHVOICE_PROXY_FQDN'] ?? ($params['proxy'] ?? '');
@@ -298,16 +306,20 @@ function addEditGateway($params){
         $sth = FreePBX::Database()->prepare($sql);
         $sth->execute(array($params['model']));
         $res = $sth->fetch(\PDO::FETCH_ASSOC);
+        if ($res === false) {
+            $errors[] = 'Gateway model not found';
+            return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
+        }
 
         // Create unique smart name
         $vendor = $res['manufacturer'];
         $uid = strtolower(substr(str_replace(':', '', $params['mac']), -6, 6));
 
         $trunksByTypes = array(
-          'isdn' => $params['trunks_isdn'],
-          'pri' => $params['trunks_pri'],
-          'fxo' => $params['trunks_fxo'],
-          'fxs' => $params['trunks_fxs']
+          'isdn' => $params['trunks_isdn'] ?? array(),
+          'pri' => $params['trunks_pri'] ?? array(),
+          'fxo' => $params['trunks_fxo'] ?? array(),
+          'fxs' => $params['trunks_fxs'] ?? array()
         );
 
         foreach ($trunksByTypes as $type=>$trunks) {
@@ -321,7 +333,6 @@ function addEditGateway($params){
                         $nextTrunkId = count(core_trunks_list());
 
                         $trunk['trunknumber'] = intval('20'. str_pad(++$nextTrunkId, 3, '0', STR_PAD_LEFT));
-                        $srvip = $_ENV['NETHVOICE_HOST'];
                         $secret = substr(md5(uniqid(rand(), true)),0,13);
                         $defaults = getPjSipDefaults();
                         $defaults['aors'] = $trunkName;
@@ -384,7 +395,11 @@ function addEditGateway($params){
                         /* create physical extension */
                         $mainextensionnumber = $trunk['linked_extension'];
                         $extension = createExtension($mainextensionnumber,true);
-                        if (useExtensionAsCustomPhysical($extension,false,'physical',$web_user,$web_password) === false) {
+                        if ($extension === false) {
+                            $errors[] = 'Error creating extension';
+                            return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
+                        }
+                        if (useExtensionAsCustomPhysical($extension,false,'physical') === false) {
                             $errors[] = 'Error creating custom extension';
                             return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
                         }
@@ -400,16 +415,32 @@ function addEditGateway($params){
                         /* Add fxs extension to fxo AOR */
                         $trunk_number = (strtolower($res['manufacturer']) === 'patton' ? 0 : 2);
                         $trunk_name = $vendor. '_'. $uid. '_fxo_'. $trunk_number;
-                        $trunk_pjsip_id = sql('SELECT id FROM `pjsip` WHERE keyword ="trunk_name" AND data = "' . $trunk_name . '"' , "getOne");
+                        $sql = 'SELECT id FROM `pjsip` WHERE keyword = "trunk_name" AND data = ?';
+                        $sth = $dbh->prepare($sql);
+                        $sth->execute(array($trunk_name));
+                        $trunk_pjsip_id = $sth->fetchColumn();
                         if (!empty($trunk_pjsip_id)) {
-                            $trunk_pjsip_aor = sql('SELECT data FROM `pjsip` WHERE keyword ="aors" AND id = "' . $trunk_pjsip_id . '"', "getOne");
+                            $sql = 'SELECT data FROM `pjsip` WHERE keyword = "aors" AND id = ?';
+                            $sth = $dbh->prepare($sql);
+                            $sth->execute(array($trunk_pjsip_id));
+                            $trunk_pjsip_aor = $sth->fetchColumn();
+                            if ($trunk_pjsip_aor === false) {
+                                $trunk_pjsip_aor = '';
+                            }
                             $trunk_pjsip_aor .= ",".$extension;
                             $sql = "REPLACE INTO `pjsip` (`id`,`keyword`,`data`,`flags`) VALUES (?,?,?,?)";
                             $sth = FreePBX::Database()->prepare($sql);
                             $sth->execute(array($trunk_pjsip_id,'aors',$trunk_pjsip_aor,'0'));
                         }
                         /*Save fxs trunks parameters*/
-                        $extension_secret = sql('SELECT data FROM `sip` WHERE id = "' . $extension . '" AND keyword="secret"', "getOne");
+                        $sql = 'SELECT data FROM `sip` WHERE id = ? AND keyword = "secret"';
+                        $sth = $dbh->prepare($sql);
+                        $sth->execute(array($extension));
+                        $extension_secret = $sth->fetchColumn();
+                        if ($extension_secret === false) {
+                            $errors[] = 'Error retrieving extension secret';
+                            return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
+                        }
                         $sql = "REPLACE INTO `gateway_config_fxs` (`config_id`,`extension`,`physical_extension`,`secret`) VALUES (?,?,?,?)";
                         $sth = FreePBX::Database()->prepare($sql);
                         $sth->execute(array($configId,$trunk['linked_extension'],$extension,$extension_secret));

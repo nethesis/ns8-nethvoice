@@ -316,15 +316,15 @@ $app->post('/devices/phones/model', function (Request $request, Response $respon
 */
 
 $app->post('/devices/gateways', function (Request $request, Response $response, $args) {
+    $result = array('status' => false, 'errors' => array('Unable to save gateway'));
     try {
-        $fpbx = FreePBX::create();
         $params = $request->getParsedBody();
         $result = addEditGateway($params);
         if ($result['status']) {
             return jsonResponse($response, $result,200);
         }
         return jsonResponse($response, $result,500);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         error_log($e->getMessage());
         return jsonResponse($response, $result,500);
     }
@@ -337,15 +337,22 @@ $app->post('/devices/gateways/push', function (Request $request, Response $respo
     try {
         #create configuration files
         $params = $request->getParsedBody();
-        $name = $params['name'];
-        $mac = $params['mac'];
+        $name = $params['name'] ?? '';
+        $mac = $params['mac'] ?? '';
+        if ($name === '' || $mac === '') {
+            return jsonResponse($response, array('status'=>false, 'error'=>'Missing gateway name or MAC'), 400);
+        }
 
         #Launch configuration push
-        system("php /var/www/html/freepbx/rest/lib/tftpPushConfig.php ".escapeshellarg($name)." ".escapeshellarg(strtoupper($mac)));
+        $command = "php /var/www/html/freepbx/rest/lib/tftpPushConfig.php ".escapeshellarg($name)." ".escapeshellarg(strtoupper($mac));
+        exec($command, $output, $exitCode);
+        if ($exitCode !== 0) {
+            return jsonResponse($response, array('status'=>false, 'error'=>'Gateway configuration push failed'), 500);
+        }
         return jsonResponse($response, array('status'=>true), 200);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         error_log($e->getMessage());
-        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
+        return jsonResponse($response, array('status'=>false, 'error'=>'Gateway configuration push failed'), 500);
     }
 });
 
