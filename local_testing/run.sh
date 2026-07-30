@@ -45,6 +45,7 @@ start_stack() {
   lt_cleanup_old
   lt_pull_images "${mariadb_policy}" "${freepbx_policy}" "${tancredi_policy}"
   lt_create_pod
+  lt_initialize_notify_volume
   lt_initialize_mariadb_volume
   lt_start_mariadb
   lt_wait_for_mariadb

@@ -88,6 +88,16 @@ lt_create_pod() {
     >/dev/null
 }
 
+lt_initialize_notify_volume() {
+  lt_section 'Initializing service notification volume'
+  podman volume create "${NOTIFY_VOLUME}" >/dev/null
+  podman run --rm \
+    --entrypoint /bin/chmod \
+    -v "${NOTIFY_VOLUME}:/notify:z" \
+    "${NETHVOICE_FREEPBX_IMAGE}" \
+    a+rwx /notify
+}
+
 lt_initialize_mariadb_volume() {
   lt_section 'Initializing MariaDB volume'
   podman run \
