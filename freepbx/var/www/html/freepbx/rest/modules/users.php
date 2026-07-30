@@ -78,7 +78,7 @@ $app->get('/users/sync', function (Request $request, Response $response, $args) 
 # List all users
 
 $app->get('/users/{all}', function (Request $request, Response $response, $args) {
-    $all = $request->getAttribute('all');
+    $all = $args['all'];
     if($all == "true") {
         system('fwconsole userman --syncall --force > /dev/null &'); // force FreePBX user sync
         triggerMiddlewareProfilesReloadAfterUserSync();
@@ -127,7 +127,7 @@ $app->post('/users', function (Request $request, Response $response, $args) {
 
 $app->post('/users/{username}/password', function (Request $request, Response $response, $args) {
     $params = $request->getParsedBody();
-    $username = strtolower($request->getAttribute('username'));
+    $username = strtolower($args['username']);
     $password = $params['password'];
 
     if ($username === 'admin') { # change freepbx admin password
@@ -159,7 +159,7 @@ $app->post('/users/{username}/password', function (Request $request, Response $r
 
 $app->get('/users/{username}/password', function (Request $request, Response $response, $args) {
     $params = $request->getParsedBody();
-    $username = strtolower($request->getAttribute('username'));
+    $username = strtolower($args['username']);
     $password = getPassword($username);
     if ($password) {
         return jsonResponse($response, ['result' => $password]);

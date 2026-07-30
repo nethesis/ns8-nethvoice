@@ -69,7 +69,7 @@ $app->get('/trunks/{tech}', function (Request $request, Response $response, $arg
     try {
         $result = array();
         $trunks = FreePBX::Core()->listTrunks();
-        $tech = $request->getAttribute('tech');
+        $tech = $args['tech'];
         $tech = strtolower($tech);
 
         foreach($trunks as $trunk) {
