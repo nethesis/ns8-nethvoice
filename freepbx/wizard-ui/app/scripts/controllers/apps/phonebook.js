@@ -8,7 +8,7 @@
  * Controller of the nethvoiceWizardUiApp
  */
 angular.module('nethvoiceWizardUiApp')
-  .controller('PhonebookCtrl', function ($scope, ApplicationService, PhonebookService) {
+  .controller('PhonebookCtrl', function ($scope, ApplicationService, PhonebookService, ProfileService, UserService) {
 
     // set variables
     $scope.sourcePortMap = {
@@ -73,13 +73,79 @@ angular.module('nethvoiceWizardUiApp')
       "name": {
         "icon": "user",
         "label": "Name"
+      },
+      "firstname": {
+        "icon": "user",
+        "label": "First name"
+      },
+      "lastname": {
+        "icon": "user",
+        "label": "Last name"
+      },
+      "job": {
+        "icon": "briefcase",
+        "label": "Job"
+      },
+      "workphone2": {
+        "icon": "phone",
+        "label": "Work phone"
+      },
+      "cellphone2": {
+        "icon": "mobile",
+        "label": "Cell phone"
+      },
+      "otherphone": {
+        "icon": "phone",
+        "label": "Other telephone number"
+      },
+      "otheremail": {
+        "icon": "envelope",
+        "label": "Other email address"
+      },
+      "facebook": {
+        "icon": "facebook",
+        "label": "Facebook"
+      },
+      "instagram": {
+        "icon": "instagram",
+        "label": "Instagram"
+      },
+      "linkedin": {
+        "icon": "linkedin",
+        "label": "LinkedIn"
       }
     }
 
     $scope.allDBTypes = {
       "mysql": "MySQL",
-      "csv": "CSV"
+      "csv": "CSV",
+      "csv_cti": "CSV (CTI phonebook)",
+      "infinity": "Infinity Zucchetti"
     };
+
+    // Source types that write into the personal CTI phonebook (cti_phonebook)
+    // instead of the centralized one. They carry an owner and are imported
+    // one-shot through the middleware rather than synced on a schedule.
+    $scope.ctiPhonebookTypes = ['csv_cti'];
+
+    $scope.isCtiPhonebookType = function (dbtype) {
+      return $scope.ctiPhonebookTypes.indexOf(dbtype) !== -1;
+    };
+
+    // Fixed, read-only field mapping applied by the importer for Infinity sources.
+    $scope.infinityMapping = [
+      { source: "Name", dest: "name" },
+      { source: "Company", dest: "company" },
+      { source: "Mobile phone", dest: "cellphone" },
+      { source: "Work phone", dest: "workphone" },
+      { source: "Home phone", dest: "homephone" },
+      { source: "Fax", dest: "fax" },
+      { source: "Work email", dest: "workemail" },
+      { source: "Home email", dest: "homeemail" },
+      { source: "Address", dest: "workstreet" },
+      { source: "Office", dest: "title" },
+      { source: "Office / status / id", dest: "notes" }
+    ];
 
     $scope.syncIntervals = {
       "15": "15 minutes",
@@ -105,15 +171,61 @@ angular.module('nethvoiceWizardUiApp')
       mapping: {}
     };
 
+    $scope.sharing = {
+      mode: 'public',
+      groups: []
+    };
+
     $scope.allSources = {};
     $scope.allSourcesList = [];
     $scope.colsSources = {};
     $scope.colsDestinations = {};
+    $scope.allGroups = [];
+    // CTI users, used as the owner picker for CSV sources.
+    $scope.ctiUsers = [];
 
     $scope.view.changeRoute = true;
 
+    $scope.getAllGroups = function () {
+      ProfileService.allGroups().then(function (res) {
+        $scope.allGroups = angular.isArray(res.data) ? res.data : [];
+      }, function (err) {
+        console.log(err);
+      });
+    };
+
+    $scope.getCtiUsers = function () {
+      UserService.list(false).then(function (res) {
+        var users = angular.isArray(res.data) ? res.data : [];
+        // The owner must be a configured user (one with an extension), like the Users page shows.
+        // The list is filtered here client-side because the backend returns every user.
+        $scope.ctiUsers = users.filter(function (u) {
+          return u.default_extension && u.default_extension !== 'none';
+        });
+      }, function (err) {
+        console.log(err);
+      });
+    };
+
     $scope.getSourceName = function (pbo, defval) {
-      return pbo.type ? pbo.type : defval;
+      return pbo.type || pbo.dbname || pbo._sourceKey || defval;
+    };
+
+    $scope.buildSharingType = function () {
+      if ($scope.sharing.mode === 'group' && $scope.sharing.groups.length) {
+        return 'group:' + $scope.sharing.groups.join(',');
+      }
+      return 'public';
+    };
+
+    $scope.applySharingFromAccess = function (access) {
+      if (typeof access === 'string' && access.indexOf('group:') === 0) {
+        $scope.sharing.mode = 'group';
+        $scope.sharing.groups = access.slice(6).split(',').filter(function (g) { return g !== ''; });
+      } else {
+        $scope.sharing.mode = 'public';
+        $scope.sharing.groups = [];
+      }
     };
 
     $scope.getSourceType = function (pbo, defval) {
@@ -197,15 +309,15 @@ angular.module('nethvoiceWizardUiApp')
     }
 
     $scope.reloadAvailableDestinations = function () {
+      // Recompute the "in use" flag for every destination from the current mapping.
+      // Must reset all columns (not only iterate the mapping) so switching to a new
+      // source with an empty mapping frees the destinations used by the previous one.
+      var used = {};
+      for (var src in $scope.newSource.mapping) {
+        used[$scope.newSource.mapping[src]] = true;
+      }
       for (var column in $scope.colsDestinations) {
-        for (var map in $scope.newSource.mapping) {
-          if ($scope.newSource.mapping[map] === column) {
-            $scope.colsDestinations[column].inuse = true;
-            break;
-          } else {
-            $scope.colsDestinations[column].inuse = false; 
-          }
-        }
+        $scope.colsDestinations[column].inuse = !!used[column];
       }
     }
 
@@ -214,6 +326,7 @@ angular.module('nethvoiceWizardUiApp')
       $scope.ui.modifyId = kg;
       $scope.newSource = g;
       $scope.colsSources = g.sourceColumns;
+      $scope.applySharingFromAccess(g.access);
       setTimeout(function () {
         $scope.checkConnection(g);
       }, 500);
@@ -223,6 +336,7 @@ angular.module('nethvoiceWizardUiApp')
       $scope.ui.onModify = false;
       $scope.switchsourceModalTab("datasource");
       $scope.querySelect = [];
+      $scope.sharing = { mode: 'public', groups: [] };
       $scope.newSource = {
         query: "SELECT * FROM [table]",
         dbtype: "mysql",
@@ -246,23 +360,83 @@ angular.module('nethvoiceWizardUiApp')
           password: s.password,
           query: s.query,
         };
-      } else if (s.dbtype == 'csv') {
+      } else if (s.dbtype == 'csv' || s.dbtype == 'csv_cti') {
+        // csv_cti shares the CSV file format: the same test/preview path is used to
+        // read the source columns. The actual import target (centralized vs CTI
+        // phonebook) is decided at save time, not here.
         payload = {
           dbtype: 'csv',
           url: s.url,
         };
+      } else if (s.dbtype == 'infinity') {
+        // Zucchetti Infinity API source: fixed field mapping is applied by the
+        // importer, so only the API credentials are configured here.
+        payload = {
+          dbtype: 'infinity',
+          url: s.url,
+          username: s.username,
+          password: s.password,
+        };
       }
+      // type = free-text source name (card title, phonebook `type` column);
+      // access = sharing scope (public/group), enforced by the middleware.
       payload.type = s.type;
+      payload.access = $scope.buildSharingType();
       payload.mapping = s.mapping;
       payload.enabled = s.enabled;
       payload.interval = s.interval;
       return payload;
     };
 
+    $scope.isSharingValid = function () {
+      return $scope.sharing.mode !== 'group' || $scope.sharing.groups.length > 0;
+    };
+
+    var createCtiImportPayload = function (s) {
+      return {
+        url: s.url,
+        owner: s.owner || '',
+        type: $scope.buildSharingType(),
+        mapping: s.mapping
+      };
+    };
+
+    $scope.isCtiImportValid = function () {
+      return $scope.isSharingValid() && !!($scope.newSource && $scope.newSource.owner);
+    };
+
     $scope.saveSource = function () {
+      if ($scope.isCtiPhonebookType($scope.newSource.dbtype)) {
+        // One-shot import into the personal CTI phonebook through the middleware.
+        // No recurring source is stored: an owner is required and the contacts are
+        // appended once.
+        if (!$scope.isCtiImportValid()) {
+          $scope.onSaveErrorSource = true;
+          return;
+        }
+        $scope.importResult = null;
+        PhonebookService.importCti(createCtiImportPayload($scope.newSource)).then(function (res) {
+          $("#creationsourceModal").modal('hide');
+          $scope.onSaveSuccessSource = true;
+          $scope.importResult = res.data;
+          $scope.ui.onModify = false;
+        }, function (err) {
+          $scope.onSaveErrorSource = true;
+          $scope.importResult = err && err.data ? err.data : null;
+          console.log(err);
+        });
+        return;
+      }
+      if (!$scope.isSharingValid()) {
+        $scope.onSaveErrorSource = true;
+        return;
+      }
       PhonebookService.createConfig(createSourcePayload($scope.newSource)).then(function (res) {
         $("#creationsourceModal").modal('hide');
         $scope.onSaveSuccessSource = true;
+        // Recurring centralized source: no one-shot import result to show, so clear any
+        // leftover count from a previous CTI import (the "Imported/Skipped/Failed" text).
+        $scope.importResult = null;
         $scope.ui.onModify = false;
         $scope.getAllSources();
       }, function (err) {
@@ -272,6 +446,10 @@ angular.module('nethvoiceWizardUiApp')
     }
 
     $scope.updateSource = function (fromSwitch) {
+      if (!fromSwitch && !$scope.isSharingValid()) {
+        $scope.onSaveErrorSource = true;
+        return;
+      }
       PhonebookService.updateConfig($scope.ui.modifyId, createSourcePayload($scope.newSource)).then(function (res) {
         if (!fromSwitch) {
           $("#creationsourceModal").modal('hide');
@@ -309,6 +487,7 @@ angular.module('nethvoiceWizardUiApp')
     $scope.onOfSource = function (ks, s) {
       $scope.ui.modifyId = ks;
       $scope.newSource = s;
+      $scope.applySharingFromAccess(s.access);
       $scope.updateSource(true);
     }
 
@@ -364,11 +543,15 @@ angular.module('nethvoiceWizardUiApp')
       if (next.templateUrl === 'views/apps/phonebook.html') {
         $scope.getDestColumns();
         $scope.getAllSources();
+        $scope.getAllGroups();
+        $scope.getCtiUsers();
       }
     });
 
     $scope.$on('loginCompleted', function (event, args) {
       $scope.getDestColumns();
       $scope.getAllSources();
+      $scope.getAllGroups();
+      $scope.getCtiUsers();
     });
   });

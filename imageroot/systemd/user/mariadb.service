@@ -7,10 +7,10 @@ Description=mariadb server
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-EnvironmentFile=%S/state/environment
+EnvironmentFile=%E/state/environment
 # needed for the ExecStartpost action
-EnvironmentFile=%S/state/passwords.env
-WorkingDirectory=%S/state
+EnvironmentFile=%E/state/passwords.env
+WorkingDirectory=%E/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/mariadb.pid %t/mariadb.ctr-id
 ExecStart=/usr/bin/podman run \
@@ -23,7 +23,7 @@ ExecStart=/usr/bin/podman run \
 	--volume=mariadb-data:/var/lib/mysql:Z \
 	--volume=/dev/log:/dev/log \
 	--publish=127.0.0.1:${NETHVOICE_MARIADB_PORT}:3306 \
-	--env-file=%S/state/passwords.env \
+	--env-file=%E/state/passwords.env \
 	--env=NETHVOICE_MARIADB_PORT \
 	--env=AMPDBUSER \
 	--env=CDRDBUSER \
