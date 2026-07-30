@@ -280,7 +280,8 @@ $app->post('/devices/phones/reload/{extension:[0-9]+}', function (Request $reque
         return $response->withStatus(403);
     }
     $res = $astman->send_request('Command',array('Command'=>"pjsip send notify generic-reload endpoint $extension"));
-    if ($res['Response'] !== 'Success' || preg_match('/failed.$/m', $res['data']) || preg_match('/^Unable/m', $res['data'])) {
+    $data = is_array($res) ? ($res['data'] ?? '') : '';
+    if (!is_array($res) || ($res['Response'] ?? '') !== 'Success' || preg_match('/failed.$/m', $data) || preg_match('/^Unable/m', $data)) {
         return $response->withStatus(500);
     }
     return $response->withStatus(202);
@@ -427,6 +428,9 @@ $app->delete('/devices/gateways/{id}', function (Request $request, Response $res
 $app->post('/devices/phones/provision', function (Request $request, Response $response, $args) {
     try {
         $body = $request->getParsedBody();
+        if (!is_array($body) || empty($body['mac'])) {
+            return jsonResponse($response, array('message' => 'MAC address is required'), 400);
+        }
 
         $mac = $body['mac'];
 
@@ -444,7 +448,7 @@ $app->post('/devices/phones/provision', function (Request $request, Response $re
         }
 
         return $response->withStatus(200);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         error_log($e->getMessage());
         return jsonResponse($response, array('message' => $e->getMessage()), 500);
     }
@@ -456,6 +460,9 @@ $app->post('/devices/phones/provision', function (Request $request, Response $re
 $app->post('/devices/phones/reboot', function (Request $request, Response $response, $args) {
     try {
         $body = $request->getParsedBody();
+        if (!is_array($body) || empty($body['mac']) || empty($body['ip'])) {
+            return jsonResponse($response, array('message' => 'MAC address and IP are required'), 400);
+        }
 
         $mac = $body['mac'];
         $phoneIp = $body['ip'];
@@ -496,7 +503,7 @@ $app->post('/devices/phones/reboot', function (Request $request, Response $respo
         }
 
         return $response->withStatus(200);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         error_log($e->getMessage());
         return jsonResponse($response, array('message' => $e->getMessage()), 500);
     }
