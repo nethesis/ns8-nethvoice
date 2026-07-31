@@ -59,11 +59,13 @@ if ($fpbxPasswordHash === false || empty($_ENV['NETHVOICESECRETKEY']) || empty($
 $secretKey = sha1("admin{$fpbxPasswordHash}{$_ENV['NETHVOICESECRETKEY']}");
 
 foreach ($mac_addresses as $mac_address) {
-    $mac_address = strtr(strtoupper($mac_address), ':', '-'); // MAC format sanitization
-    if (!preg_match('/^[0-9A-F]{2}(?:-[0-9A-F]{2}){5}$/', $mac_address)) {
-        error_log("Invalid MAC address: $mac_address");
+    $originalMac = (string) $mac_address;
+    $compactMac = str_replace(array(':', '-'), '', strtoupper(trim($originalMac)));
+    if (!preg_match('/^[0-9A-F]{12}$/', $compactMac)) {
+        error_log("Invalid MAC address: $originalMac");
         continue;
     }
+    $mac_address = implode('-', str_split($compactMac, 2));
     
     // Call Tancredi API to create a new tok1
     $queryUrl = "http://{$_ENV['NETHVOICE_HOST']}/tancredi/api/v1/phones/{$mac_address}/tok1";
