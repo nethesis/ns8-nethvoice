@@ -261,13 +261,24 @@ function addEditGateway($params){
             }
         }
         if (!empty($errors)) {
-            return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
+            return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos, 'http_status' => 400);
         }
         $dbh = FreePBX::Database();
         $gatewayIpv4 = $params['ipv4'] ?? '';
         $proxyFqdn = $_ENV['NETHVOICE_PROXY_FQDN'] ?? ($params['proxy'] ?? '');
         $proxyIp = $_ENV['PROXY_IP'] ?? '';
         $proxyPort = $_ENV['PROXY_PORT'] ?? '';
+
+        // Resolve the model before replacing an existing configuration.
+        $sql = "SELECT `manufacturer` FROM `gateway_models` WHERE `id` = ?";
+        $sth = $dbh->prepare($sql);
+        $sth->execute(array($params['model']));
+        $model = $sth->fetch(\PDO::FETCH_ASSOC);
+        if ($model === false) {
+            $errors[] = 'Gateway model not found';
+            return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos, 'http_status' => 400);
+        }
+
         /*Check if config exists*/
         $sql = "SELECT `id` FROM `gateway_config` WHERE `name` = ?";
         $prep = array($params['name']);
@@ -303,18 +314,8 @@ function addEditGateway($params){
         }
         $configId = $res['id'];
 
-        // create trunks
-        $sql = "SELECT `manufacturer` FROM `gateway_models` WHERE `id` = ?";
-        $sth = FreePBX::Database()->prepare($sql);
-        $sth->execute(array($params['model']));
-        $res = $sth->fetch(\PDO::FETCH_ASSOC);
-        if ($res === false) {
-            $errors[] = 'Gateway model not found';
-            return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
-        }
-
         // Create unique smart name
-        $vendor = $res['manufacturer'];
+        $vendor = $model['manufacturer'];
         $uid = strtolower(substr(str_replace(':', '', $params['mac']), -6, 6));
 
         $trunksByTypes = array(
@@ -326,7 +327,7 @@ function addEditGateway($params){
 
         foreach ($trunksByTypes as $type=>$trunks) {
 
-            $port = (strtolower($res['manufacturer']) === 'patton' ? 0 : 1);
+            $port = (strtolower($model['manufacturer']) === 'patton' ? 0 : 1);
             if (!empty($trunks)) {
                 foreach ($trunks as $trunk) {
                     if($type != 'fxs') {
@@ -415,7 +416,7 @@ function addEditGateway($params){
                         $stmt->execute([$extension]);
 
                         /* Add fxs extension to fxo AOR */
-                        $trunk_number = (strtolower($res['manufacturer']) === 'patton' ? 0 : 2);
+                        $trunk_number = (strtolower($model['manufacturer']) === 'patton' ? 0 : 2);
                         $trunk_name = $vendor. '_'. $uid. '_fxo_'. $trunk_number;
                         $sql = 'SELECT id FROM `pjsip` WHERE keyword = "trunk_name" AND data = ?';
                         $sth = $dbh->prepare($sql);

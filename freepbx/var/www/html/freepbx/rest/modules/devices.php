@@ -324,7 +324,9 @@ $app->post('/devices/gateways', function (Request $request, Response $response, 
         if ($result['status']) {
             return jsonResponse($response, $result,200);
         }
-        return jsonResponse($response, $result,500);
+        $httpStatus = $result['http_status'] ?? 500;
+        unset($result['http_status']);
+        return jsonResponse($response, $result,$httpStatus);
     } catch (Throwable $e) {
         error_log($e->getMessage());
         return jsonResponse($response, $result,500);
