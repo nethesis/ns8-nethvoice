@@ -210,17 +210,18 @@ try {
         # add Voicemail
         try {
             if (isset($row[5]) && !empty($row[5])) {
-                if (!$hasExtension) {
-                    throw new Exception('A numeric extension is required');
-                }
-                if (strtolower($row[5]) == 'true' || $row[5] == 1) {
+                $enableVoicemail = in_array(strtolower((string) $row[5]), array('true', '1'), true);
+                if ($enableVoicemail) {
+                    if (!$hasExtension) {
+                        throw new Exception('A numeric extension is required');
+                    }
                     $data = array();
                     $data['name'] = $row[1];
                     $data['vmpwd'] = rand(0, 9).rand(0, 9).rand(0, 9).rand(0, 9);
                     $data['email'] = '';
                     $data['vm'] = 'yes';
                     FreePBX::create()->Voicemail->processQuickCreate('pjsip', $mainextension, $data);
-                } else {
+                } elseif ($hasExtension) {
                     FreePBX::create()->Voicemail->delMailbox($mainextension);
                 }
             }
@@ -234,10 +235,11 @@ try {
         # add WebRTC
         try {
             if (isset($row[6]) && !empty($row[6])) {
-                if (!$hasExtension) {
-                    throw new Exception('A numeric extension is required');
-                }
-                if (strtolower($row[6]) == 'true' || $row[6] == 1) {
+                $enableWebRTC = in_array(strtolower((string) $row[6]), array('true', '1'), true);
+                if ($enableWebRTC) {
+                    if (!$hasExtension) {
+                        throw new Exception('A numeric extension is required');
+                    }
                     # enable WebRTC
                     $extension = createExtension($mainextension,false);
                     if ($extension === false ) {
@@ -248,11 +250,14 @@ try {
                         throw new Exception('Error associating webrtc extension');
                     }
 
-                } else {
+                } elseif ($hasExtension) {
                     # disable WebRTC
                     $extension = getWebRTCExtension($mainextension);
                     $mobile_extension = getWebRTCMobileExtension($mainextension);
-                    if (empty($extension) || !deleteExtension($extension) || (!empty($mobile_extension) && !deleteExtension($mobile_extension))) {
+                    if (!empty($extension) && !deleteExtension($extension)) {
+                        throw new Exception('Error deleting extension');
+                    }
+                    if (!empty($mobile_extension) && !deleteExtension($mobile_extension)) {
                         throw new Exception('Error deleting extension');
                     }
                 }
@@ -313,10 +318,11 @@ try {
         # add NethLink
         try {
             if (isset($row[9]) && !empty($row[9])) {
-                if (!$hasExtension) {
-                    throw new Exception('A numeric extension is required');
-                }
-                if (strtolower($row[9]) == 'true' || $row[9] == 1) {
+                $enableNethLink = in_array(strtolower((string) $row[9]), array('true', '1'), true);
+                if ($enableNethLink) {
+                    if (!$hasExtension) {
+                        throw new Exception('A numeric extension is required');
+                    }
                     # enable NethLink
                     $extension = createExtension($mainextension,false);
                     if ($extension === false ) {
@@ -327,11 +333,14 @@ try {
                         throw new Exception('Error associating nethlink extension');
                     }
 
-                } else {
+                } elseif ($hasExtension) {
                     # disable NethLink
                     $extension = getNethLinkExtension($mainextension);
                     $mobile_extension = getNethLinkMobileExtension($mainextension);
-                    if (empty($extension) || !deleteExtension($extension) || (!empty($mobile_extension) && !deleteExtension($mobile_extension))) {
+                    if (!empty($extension) && !deleteExtension($extension)) {
+                        throw new Exception('Error deleting extension');
+                    }
+                    if (!empty($mobile_extension) && !deleteExtension($mobile_extension)) {
                         throw new Exception('Error deleting extension');
                     }
                 }
