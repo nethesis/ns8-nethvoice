@@ -140,6 +140,18 @@ $app->patch('/trunks/{trunkid}', function (Request $request, Response $response,
             throw new Exception("Can't patch trunk $trunkid");
         }
 
+        // Validate the complete payload before applying any updates.
+        if (isset($params['codecs'])) {
+            if (!is_array($params['codecs'])) {
+                return jsonResponse($response, ['error'=>'codecs must be an array'],400);
+            }
+            foreach ($params['codecs'] as $codec) {
+                if (!is_string($codec)) {
+                    return jsonResponse($response, ['error'=>'codecs must contain strings'],400);
+                }
+            }
+        }
+
         // Change username
         if (isset($params['username'])) {
             $sql = 'UPDATE `pjsip` SET `data` = ? WHERE `id` = ? AND `keyword` IN (?,?,?)';
@@ -180,15 +192,6 @@ $app->patch('/trunks/{trunkid}', function (Request $request, Response $response,
 
         // Set codecs
         if (isset($params['codecs'])) {
-            if (!is_array($params['codecs'])) {
-                return jsonResponse($response, ['error'=>'codecs must be an array'],400);
-            }
-            foreach ($params['codecs'] as $codec) {
-                if (!is_string($codec)) {
-                    return jsonResponse($response, ['error'=>'codecs must contain strings'],400);
-                }
-            }
-
             $codecs = $params['codecs'];
             if (empty($params['forceCodec'])) {
                 // Get the provider defaults associated with this trunk.
