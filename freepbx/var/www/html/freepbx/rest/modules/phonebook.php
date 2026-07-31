@@ -135,7 +135,7 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
         }
         if(!isset($data['dbtype'])) {
             return $response->withJson(array("status"=>"Missing value: dbtype"), 400);
-        } else if($data['dbtype'] == 'mysql') {
+        } else if($data['dbtype'] == 'mysql' || $data['dbtype'] == 'mssql') {
             $mandatory_params = array('host','port','user','password','dbname','query','mapping');
         } else if($data['dbtype'] == 'csv') {
             $mandatory_params = array('url','mapping');
@@ -229,7 +229,7 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
         $newsource = array();
         if(!isset($data['dbtype'])) {
             return $response->withJson(array("status"=>"Missing value: dbtype"), 400);
-        } else if($data['dbtype'] == 'mysql') {
+        } else if($data['dbtype'] == 'mysql' || $data['dbtype'] == 'mssql') {
             $mandatory_params = array('host','port','user','password','dbname','query');
         } else if($data['dbtype'] == 'csv') {
             $mandatory_params = array('url');
@@ -263,7 +263,10 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
             unlink_local_csv($newsource[$id]);
             return $response->withJson(array("status"=>false),200);
         }
-        $res = json_decode($output[0]);
+        $res = isset($output[0]) ? json_decode($output[0]) : null;
+        if (!is_array($res)) {
+            return $response->withJson(array("status"=>false),200);
+        }
         return $response->withJson(array_slice($res, 0, 3),200);
     } catch (Exception $e) {
         error_log($e->getMessage());

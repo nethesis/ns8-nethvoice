@@ -7,6 +7,7 @@ import io
 import requests
 
 SYNC_METADATA_SCOPE = 'centralized_phonebook'
+PREVIEW_ROWS = 3
 
 
 def signalHandler(sig, frame):
@@ -31,7 +32,8 @@ def getDbConn(config):
   elif(config['dbtype'] == 'mssql'):
     try:
       port = int(config['port'])
-      return pyodbc.connect(driver=config['driver'], server=config['host'], port=port, uid=config['user'], pwd=config['password'], database=config['dbname'])
+      driver = config.get('driver') or 'FreeTDS'
+      return pyodbc.connect(driver=driver, server=config['host'], port=port, uid=config['user'], pwd=config['password'], database=config['dbname'])
     except Exception as err:
       logger.error(str(err))
       return None
@@ -88,8 +90,10 @@ def syncSourceDB(path, output, deleteonly):
   curSource = dbSource.cursor()
   if output == True:
     curSource.execute(sConfig[sid]['query'])
-    rows = curSource.fetchall()
+    rows = curSource.fetchmany(PREVIEW_ROWS)
     cols = tuple([i[0] for i in curSource.description])
+    while curSource.fetchmany(1000):
+      pass
     res = []
     for row in rows:
       temp = {}
@@ -101,7 +105,7 @@ def syncSourceDB(path, output, deleteonly):
       for x in cols:
         temp[x] = ''
       res.append(temp)
-    json.dump(res, sys.stdout)
+    json.dump(res, sys.stdout, default=str)
     logger.info('write ' + str(len(rows)) + ' entries to std output')
     logger.info('end ' + ('check of' if output == True else '') + ' source import of ' + path + ' into phonebook.phonebook')
     curSource.close()
@@ -150,21 +154,14 @@ def syncSourceDB(path, output, deleteonly):
   destCols.append('access')
   percents = ('%s, ' * len(destCols))[:-2]
 
-  # Since now row isn't a dict, save columns name to convert it into a dict if it is needed in the while loop
-  if(sConfig[sid]['dbtype'] == 'mysql'):
-    columns = [col[0] for col in curSource.description]
+  columns = [col[0] for col in curSource.description]
 
   while row is not None:
     values = []
-    # convert row from tuple to dict if type is mysql
-    if(sConfig[sid]['dbtype'] == 'mysql'):
-      row = {columns[i]: row[i] for i in range(len(columns))}
+    row = {columns[i]: row[i] for i in range(len(columns))}
 
     for el in sourceCols:
-      if(sConfig[sid]['dbtype'] == 'mysql'):
-        values.append(row[el])
-      elif(sConfig[sid]['dbtype'] == 'mssql'):
-        values.append(row.__getattribute__(el))
+      values.append(row[el])
 
     # Append sid_imported
     values.append(str(sid))
@@ -249,7 +246,7 @@ def syncSourceCsv(path, output, deleteonly):
     df.append(r)
 
   if output == True:
-    json.dump(df, sys.stdout)
+    json.dump(df[:PREVIEW_ROWS], sys.stdout)
     logger.info('end ' + ('check of' if output == True else '') + ' source import of ' + path + ' into phonebook.phonebook')
     return
 

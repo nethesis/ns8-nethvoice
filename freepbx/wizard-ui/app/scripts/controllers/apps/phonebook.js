@@ -17,6 +17,7 @@ angular.module('nethvoiceWizardUiApp')
       "mssql:7_3_A": '1433',
       "mssql:7_3_B": '1433',
       "mssql:7_4": '1433',
+      "mssql": '1433',
       "mysql": '3306',
       "postgres": '5432'
     };
@@ -118,6 +119,7 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.allDBTypes = {
       "mysql": "MySQL",
+      "mssql": "MS SQL Server",
       "csv": "CSV",
       "csv_cti": "CSV (CTI phonebook)",
       "infinity": "Infinity Zucchetti"
@@ -130,6 +132,12 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.isCtiPhonebookType = function (dbtype) {
       return $scope.ctiPhonebookTypes.indexOf(dbtype) !== -1;
+    };
+
+    $scope.dbSourceTypes = ['mysql', 'mssql'];
+
+    $scope.isDbSourceType = function (dbtype) {
+      return $scope.dbSourceTypes.indexOf(dbtype) !== -1;
     };
 
     // Fixed, read-only field mapping applied by the importer for Infinity sources.
@@ -350,9 +358,9 @@ angular.module('nethvoiceWizardUiApp')
 
     var createSourcePayload = function(s) {
       var payload = {};
-      if (s.dbtype == 'mysql') {
+      if ($scope.isDbSourceType(s.dbtype)) {
         payload = {
-          dbtype: 'mysql',
+          dbtype: s.dbtype,
           dbname: s.dbname,
           host: s.host,
           port: s.port,
@@ -492,8 +500,9 @@ angular.module('nethvoiceWizardUiApp')
     }
 
     $scope.updateDbType = function () {
-      if ($scope.newSource.dbtype == 'mysql') {
-        $scope.newSource.port = $scope.sourcePortMap[$scope.newSource.dbtype];
+      var defaultPort = $scope.sourcePortMap[$scope.newSource.dbtype];
+      if (defaultPort) {
+        $scope.newSource.port = defaultPort;
       } else {
         delete $scope.newSource.port;
       }
