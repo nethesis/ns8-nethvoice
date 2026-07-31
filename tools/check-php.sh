@@ -18,7 +18,11 @@ file_count=$(wc -l < "$php_files" | tr -d ' ')
 echo "PHP syntax check passed for $file_count files with PHP $(php -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;')"
 
 set -- \
+    "$repo_root/freepbx/configure_users.php" \
+    "$repo_root/freepbx/initdb.d" \
+    "$repo_root/freepbx/usr/share/phonebooks" \
     "$repo_root/freepbx/var/www/html/freepbx/rest" \
+    "$repo_root/freepbx/var/www/html/freepbx/admin/libraries" \
     "$repo_root/freepbx/var/www/html/freepbx/admin/modules" \
     "$repo_root/freepbx/usr/share/neth-hotel-fias" \
     "$repo_root/freepbx/usr/src/nethvoice" \

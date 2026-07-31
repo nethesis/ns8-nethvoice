@@ -9,7 +9,11 @@
 
     <rule ref="PHPCompatibility"/>
 
+    <file>../../freepbx/configure_users.php</file>
+    <file>../../freepbx/initdb.d</file>
+    <file>../../freepbx/usr/share/phonebooks</file>
     <file>../../freepbx/var/www/html/freepbx/rest</file>
+    <file>../../freepbx/var/www/html/freepbx/admin/libraries</file>
     <file>../../freepbx/var/www/html/freepbx/admin/modules</file>
     <file>../../freepbx/usr/share/neth-hotel-fias</file>
     <file>../../freepbx/usr/src/nethvoice</file>
