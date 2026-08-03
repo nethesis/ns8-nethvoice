@@ -10,8 +10,8 @@ After=mariadb.service get-certificate.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-EnvironmentFile=%S/state/environment
-WorkingDirectory=%S/state
+EnvironmentFile=%E/state/environment
+WorkingDirectory=%E/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/freepbx.pid %t/freepbx.ctr-id
 ExecStartPre=-runagent install-certificate freepbx
@@ -41,7 +41,7 @@ ExecStart=runagent /usr/bin/podman run \
     --volume=phonebookcsv:/var/lib/nethvoice/phonebook/uploads/:z \
     --volume=/dev/log:/dev/log \
     --volume=./freepbx_custom_modules:/freepbx_custom_modules:z \
-    --env-file=%S/state/passwords.env \
+    --env-file=%E/state/passwords.env \
     --env=NETHVOICE* \
     --env=ASTERISK_* \
     --env=APACHE_RUN_USER \
@@ -67,6 +67,8 @@ ExecStart=runagent /usr/bin/podman run \
     --env=WIZARD_LOGIN_LOGO_URL \
     --env=WIZARD_FAVICON_URL \
     --env=WIZARD_LOGIN_BACKGROUND_URL \
+    --env=FREEPBX_ADMIN_LOGO_URL \
+    --env=FREEPBX_ADMIN_FAVICON_URL \
     --env=PHONEBOOK* \
     --env=SUBSCRIPTION_SYSTEMID \
     --env=PROXY_IP \
@@ -75,7 +77,7 @@ ExecStart=runagent /usr/bin/podman run \
     --env=USER_DOMAIN \
     --env=SATELLITE* \
     --env=SMTP_FROM_ADDRESS \
-    --env-file=%S/state/smarthost.env \
+    --env-file=%E/state/smarthost.env \
     --network=host \
     --tz=${TIMEZONE} \
     --hostname=${NETHVOICE_HOST} \

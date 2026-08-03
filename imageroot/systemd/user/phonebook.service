@@ -9,8 +9,8 @@ After=get-certificate.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-EnvironmentFile=%S/state/environment
-WorkingDirectory=%S/state
+EnvironmentFile=%E/state/environment
+WorkingDirectory=%E/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/phonebook.pid %t/phonebook.ctr-id
 ExecStartPre=-runagent install-certificate phonebook
@@ -24,7 +24,7 @@ ExecStart=/usr/bin/podman run \
     --log-opt=tag=%u \
     --replace --name=%N \
     --env=PHONEBOOK* \
-    --env-file=%S/state/passwords.env \
+    --env-file=%E/state/passwords.env \
     --env=NETHVOICE_MARIADB_PORT \
     --volume=/dev/log:/dev/log \
     --volume=tancredi:/var/lib/tancredi:z \

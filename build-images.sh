@@ -116,7 +116,7 @@ fi
 reponame="nethvoice-mariadb"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from docker.io/library/mariadb:10.11.17)
+    container=$(buildah from docker.io/library/mariadb:10.11.18)
     buildah add "${container}" mariadb/ /
 
     # Commit the image

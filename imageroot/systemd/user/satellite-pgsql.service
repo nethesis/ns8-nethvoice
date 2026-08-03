@@ -3,9 +3,9 @@ Description=Podman PostgreSQL service for Satellite
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-EnvironmentFile=%S/state/environment
-EnvironmentFile=%S/state/passwords.env
-WorkingDirectory=%S/state
+EnvironmentFile=%E/state/environment
+EnvironmentFile=%E/state/passwords.env
+WorkingDirectory=%E/state
 Restart=always
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/satellite-pgsql.pid %t/satellite-pgsql.ctr-id

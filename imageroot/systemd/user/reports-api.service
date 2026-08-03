@@ -5,8 +5,8 @@ After=mariadb.service reports-redis.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-EnvironmentFile=%S/state/environment
-WorkingDirectory=%S/state
+EnvironmentFile=%E/state/environment
+WorkingDirectory=%E/state
 Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
@@ -19,7 +19,7 @@ ExecStart=/usr/bin/podman run \
         --volume=reports_config:/opt/nethvoice-report:z \
         --network=host \
         --add-host=${NETHVOICE_HOST}:127.0.0.1 \
-        --env-file=%S/state/passwords.env \
+        --env-file=%E/state/passwords.env \
         --env REPORTS_INTERNATIONAL_PREFIX \
         --env NETHVOICE_HOST \
         --env NETHVOICE_LDAP_SCHEMA \
