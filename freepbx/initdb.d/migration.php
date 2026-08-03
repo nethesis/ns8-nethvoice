@@ -263,22 +263,37 @@ if (count($extensions) > 0) {
 # add nethlink table if not exist
 $nethcti3db->query("CREATE TABLE IF NOT EXISTS `user_nethlink` (`user` varchar(255) NOT NULL UNIQUE,`extension` varchar(255) NOT NULL,`timestamp` varchar(255) DEFAULT NULL) ENGINE=MyISAM DEFAULT CHARSET=utf8");
 
-// Add proxy field to gateway configuration if it doesn't exist
-$sql = "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'gateway_config' AND COLUMN_NAME = 'proxy'";
+// Add proxy field to gateway configuration if it doesn't exist. Also detect a
+// previous partial run: ADD COLUMN is committed even if a later query fails.
+$sql = "SELECT `COLUMN_NAME`, `CHARACTER_MAXIMUM_LENGTH`
+	FROM `information_schema`.`COLUMNS`
+	WHERE `TABLE_SCHEMA` = 'asterisk'
+	AND `TABLE_NAME` = 'gateway_config'
+	AND `COLUMN_NAME` IN ('proxy', 'ipv4_green')";
 $stmt = $db->prepare($sql);
 $stmt->execute();
 $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-if (count($res) == 0) {
+$gateway_columns = array_column($res, null, 'COLUMN_NAME');
+$proxy_column_exists = isset($gateway_columns['proxy']);
+$gateway_migration_needed = !$proxy_column_exists
+	|| (int) ($gateway_columns['ipv4_green']['CHARACTER_MAXIMUM_LENGTH'] ?? 0) < 255;
+
+if (!$proxy_column_exists) {
 	$db->query("ALTER TABLE `asterisk`.`gateway_config` ADD COLUMN `proxy` VARCHAR(255) DEFAULT NULL AFTER `mac`");
+}
+
+if ($gateway_migration_needed) {
 	// set default proxy for all existing gateways
-	$db->query("UPDATE `asterisk`.`gateway_config` SET `proxy` = 'sip:".$_ENV['PROXY_IP'].":".$_ENV['PROXY_PORT']."' WHERE `proxy` IS NULL");
-	// set pbx ip to NETHVOICE_HOST
-	$db->query("UPDATE `asterisk`.`gateway_config` SET `ipv4_green` = '".$_ENV['NETHVOICE_HOST']);
+	$stmt = $db->prepare("UPDATE `asterisk`.`gateway_config` SET `proxy` = ? WHERE `proxy` IS NULL");
+	$stmt->execute(['sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT']]);
 	# use bigger field for gateways ip fields to allow also the use of hostnames
 	$db->query("ALTER TABLE `asterisk`.`gateway_config` MODIFY COLUMN `gateway` VARCHAR(255) DEFAULT NULL");
 	$db->query("ALTER TABLE `asterisk`.`gateway_config` MODIFY COLUMN `ipv4` VARCHAR(255) DEFAULT NULL");
 	$db->query("ALTER TABLE `asterisk`.`gateway_config` MODIFY COLUMN `ipv4_green` VARCHAR(255) DEFAULT NULL");
 	$db->query("ALTER TABLE `asterisk`.`gateway_config` MODIFY COLUMN `ipv4_new` VARCHAR(255) DEFAULT NULL");
+	// set pbx ip to NETHVOICE_HOST after widening the field
+	$stmt = $db->prepare("UPDATE `asterisk`.`gateway_config` SET `ipv4_green` = ?");
+	$stmt->execute([$_ENV['NETHVOICE_HOST']]);
 	$db->query("ALTER TABLE `asterisk`.`gateway_config_isdn` MODIFY COLUMN `secret` VARCHAR(255) DEFAULT NULL");
 	$db->query("ALTER TABLE `asterisk`.`gateway_config_fxo` MODIFY COLUMN `secret` VARCHAR(255) DEFAULT NULL");
 	$db->query("ALTER TABLE `asterisk`.`gateway_config_pri` MODIFY COLUMN `secret` VARCHAR(255) DEFAULT NULL");
