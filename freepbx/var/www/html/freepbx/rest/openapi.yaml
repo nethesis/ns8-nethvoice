@@ -3084,9 +3084,11 @@ paths:
               - id: '1'
                 provider: activenetwork
                 description: Active Network
+                codecs: ulaw,alaw
               - id: '2'
                 provider: clouditalia
                 description: Clouditalia
+                codecs: ulaw,alaw,gsm,g726,g722,g729
       operationId: get_providers
   /phones/reconfigure:
     post:
