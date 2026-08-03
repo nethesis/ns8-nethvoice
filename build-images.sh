@@ -4,6 +4,7 @@
 set -e
 
 # Prepare variables for later use
+# throwaway testing pin — rebuild for #8105 unanswered-queue destination (2026-08-03)
 images=()
 timings=()
 build_timing_file="${BUILD_TIMING_FILE:-build-timings.tsv}"
