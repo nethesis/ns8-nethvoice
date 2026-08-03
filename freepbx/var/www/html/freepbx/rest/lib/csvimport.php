@@ -85,9 +85,17 @@ try {
 
         # create user
         if (!userExists($row[0])) {
+            $token = getToken();
+            if (empty($token)) {
+                $result += 1;
+                $err .= "Error creating user ".$row[0].": users-admin is unavailable\n";
+                unset($csv[$k]);
+                continue;
+            }
+
             $header = array();
             $header[] = 'Content-type: application/json';
-            $header[] = 'Authorization: Bearer '. getToken();
+            $header[] = 'Authorization: Bearer '. $token;
 
             # Set password
             if ( ! isset($row[3]) || empty($row[3]) ){
@@ -103,11 +111,8 @@ try {
             ];
 
             $ch = curl_init(getUserPortalUrl() . '/add-user');
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            setUserPortalCurlDefaults($ch, $header);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($post));
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
             // execute!
             $response = curl_exec($ch);
@@ -132,7 +137,7 @@ try {
                 unset($csv[$k]);
                 continue;
             }
-            if (($resJSON->status ?? '') == "failure") {
+            if (($resJSON->status ?? 'failure') != "success") {
                 $result += 1;
                 $message = $resJSON->error[0]->error ?? 'unknown user portal error';
                 $err .= "Error creating user ".$row[0].": ".$message."\n";

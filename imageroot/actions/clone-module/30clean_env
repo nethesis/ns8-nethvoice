@@ -10,4 +10,8 @@ import agent
 
 # Cleanup the environment
 agent.unset_env('NETHVOICE_USER_PORTAL_USERNAME')
+agent.mset_env({
+    'NETHVOICE_USER_PORTAL_URL': '',
+    'NETHVOICE_USER_PORTAL_NODE': '',
+})
 agent.unset_env('RESTART_SERVICES')
