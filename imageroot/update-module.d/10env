@@ -41,7 +41,6 @@ if not os.path.exists("passwords.env"):
         "REPORTS_PASSWORD": os.environ['REPORTS_PASSWORD'],
         "REPORTS_API_KEY": os.environ['REPORTS_API_KEY'],
         "REPORTS_SECRET": os.environ['REPORTS_SECRET'],
-        "NETHVOICE_USER_PORTAL_PASSWORD": os.getenv('NETHVOICE_USER_PORTAL_PASSWORD', ''),
         "SUBSCRIPTION_SECRET": os.getenv('SUBSCRIPTION_SECRET', ''),
         "NETHVOICE_LDAP_PASS": os.environ['NETHVOICE_LDAP_PASS'],
         "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN":gen_password()
@@ -63,7 +62,6 @@ if not os.path.exists("passwords.env"):
     agent.unset_env('REPORTS_PASSWORD')
     agent.unset_env('REPORTS_API_KEY')
     agent.unset_env('REPORTS_SECRET')
-    agent.unset_env('NETHVOICE_USER_PORTAL_PASSWORD')
     agent.unset_env('SUBSCRIPTION_SECRET')
     agent.unset_env('NETHVOICE_LDAP_PASS')
 else:
@@ -72,6 +70,14 @@ else:
     if 'NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN' not in passwords:
         passwords['NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN'] = gen_password()
         agent.write_envfile("passwords.env", passwords)
+
+passwords = agent.read_envfile("passwords.env")
+if 'NETHVOICE_USER_PORTAL_PASSWORD' in passwords:
+    del passwords['NETHVOICE_USER_PORTAL_PASSWORD']
+    agent.write_envfile("passwords.env", passwords)
+
+agent.unset_env('NETHVOICE_USER_PORTAL_USERNAME')
+agent.unset_env('NETHVOICE_USER_PORTAL_PASSWORD')
 
 # Set the brand site and docs static URLs
 agent.set_env('BRAND_SITE', 'https://www.nethesis.it/soluzioni/nethvoice')
