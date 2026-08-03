@@ -19,6 +19,9 @@ angular.module('nethvoiceWizardUiApp')
     $scope.searchTrunk = ""
     $scope.newPwd = ""
     $scope.voipLimit = 20;
+    var defaultCodecs = ['g729', 'alaw', 'ulaw']
+    $scope.availableCodecs = angular.copy(defaultCodecs)
+    $scope.availableEditCodecs = angular.copy(defaultCodecs)
 
     $scope.onDelete = false
     $scope.onDeleteError = false
@@ -32,8 +35,14 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.trunk = {
       forceCodec: true,
-      codecs: ['alaw', 'ulaw']
+      codecs: angular.copy(defaultCodecs)
     };
+
+    var mergeCodecs = function (first, second) {
+      return first.concat(second).filter(function (codec, index, codecs) {
+        return codecs.indexOf(codec) === index
+      })
+    }
 
     $scope.retrieveCodecs = function () {
       return CodecService.getVoipCodecs();
@@ -58,6 +67,7 @@ angular.module('nethvoiceWizardUiApp')
       $scope.editedSelectedTrunk.forceCodec = angular.copy($scope.trunk.forceCodec)
       $scope.editedSelectedTrunk.info = angular.copy($scope.trunksInfo)
       $scope.editedSelectedTrunk.codecs = angular.copy($scope.selectedTrunk).details.codecs.split(",")
+      $scope.availableEditCodecs = mergeCodecs(defaultCodecs, $scope.editedSelectedTrunk.codecs)
     }
 
     var getProvidersList = function () {
@@ -75,6 +85,15 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.providerDesc = function (provider) {
       return $scope.providers ? $scope.providers.find(el => el.provider === provider).description : "-"
+    }
+
+    $scope.selectProvider = function () {
+      var provider = $scope.providers.find(function (item) {
+        return item.provider === $scope.trunk.provider
+      })
+
+      $scope.availableCodecs = provider && provider.codecs ? provider.codecs.split(",") : angular.copy(defaultCodecs)
+      $scope.trunk.codecs = angular.copy($scope.availableCodecs)
     }
 
     $scope.arrayJoin = function (arr) {
@@ -125,6 +144,9 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.create = function () {
       $scope.onSave = true
+      if ($scope.trunk.provider === 'elevenlabs') {
+        $scope.trunk.username = $scope.trunk.name
+      }
       TrunkService.createTrunkVoip($scope.trunk).then(function (res) {
         $scope.onSave = false
         $scope.onSaveError = false
@@ -136,8 +158,9 @@ angular.module('nethvoiceWizardUiApp')
           $scope.newCreated = true
           $scope.trunk = {
             forceCodec: true,
-            codecs: ['alaw', 'ulaw']
+            codecs: angular.copy(defaultCodecs)
           }
+          $scope.availableCodecs = angular.copy(defaultCodecs)
         }, 1000)
         getVoipTrunksInfo()
         // count all trunks
@@ -224,13 +247,16 @@ angular.module('nethvoiceWizardUiApp')
 
     // Set default codecs
     $scope.retrieveCodecs().then(function (res) {
-      $scope.availableCodecs = res.map(function (a) {
-        return a.codec;
-      });
-      for (var c in res) {
-        if (res[c].enabled) {
-          $scope.trunk.codecs = [res[c].codec];
-        }
+      var enabledCodecs = res.filter(function (codec) {
+        return codec.enabled
+      }).map(function (codec) {
+        return codec.codec
+      })
+      defaultCodecs = mergeCodecs(defaultCodecs, enabledCodecs)
+      $scope.availableEditCodecs = mergeCodecs(defaultCodecs, $scope.editedSelectedTrunk.codecs || [])
+      if (!$scope.trunk.provider) {
+        $scope.availableCodecs = angular.copy(defaultCodecs)
+        $scope.trunk.codecs = angular.copy(defaultCodecs)
       }
     }, function (err) {
       console.log(err);

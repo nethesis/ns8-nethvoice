@@ -65,7 +65,12 @@ if (strlen($number)> 4) {
             @$agi->verbose("Error conecting to asterisk database, skipped");
             exit(1);
         }
-        $lookup_query = "SELECT `name`,`company` FROM `phonebook` WHERE `homephone` LIKE '%[NUMBER]%' OR `workphone` LIKE '%[NUMBER]%' OR `cellphone` LIKE '%[NUMBER]%' OR `fax` LIKE '%[NUMBER]%'";
+        // Match every phone-bearing column, including the secondary/other numbers.
+        // Restrict to public contacts only: a system-wide inbound lookup must not
+        // reveal names of group-restricted contacts. Every publicly-resolvable row
+        // (imports, templates and nethcti-republished public CTI contacts) carries
+        // access='public'.
+        $lookup_query = "SELECT `name`,`company` FROM `phonebook` WHERE (`homephone` LIKE '%[NUMBER]%' OR `workphone` LIKE '%[NUMBER]%' OR `cellphone` LIKE '%[NUMBER]%' OR `fax` LIKE '%[NUMBER]%' OR `workphone2` LIKE '%[NUMBER]%' OR `cellphone2` LIKE '%[NUMBER]%' OR `otherphone` LIKE '%[NUMBER]%') AND `access` = 'public'";
         $sql=preg_replace('/\[NUMBER\]/',$number,$lookup_query);
         @$agi->verbose($sql);
 
