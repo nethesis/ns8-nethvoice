@@ -151,6 +151,32 @@ class UsersAdminProviderTest(unittest.TestCase):
             "restart-services-when-convenient", "freepbx"
         )
 
+    def test_set_route_failure_does_not_persist_provider(self):
+        self.agent.list_service_providers.return_value = [
+            {"url": "http://10.0.0.2:2000", "node": "2"}
+        ]
+        self.agent.set_route.return_value = {"exit_code": 1}
+
+        with self.assertRaisesRegex(AssertionError, "agent assertion failed"):
+            self.provider.configure_users_admin(
+                "domain.example.test", restart_if_changed=True
+            )
+
+        self.agent.mset_env.assert_not_called()
+        self.agent.run_helper.assert_not_called()
+
+    def test_delete_route_failure_does_not_clear_provider(self):
+        self.agent.list_service_providers.return_value = []
+        self.tasks.run.return_value = {"exit_code": 1}
+
+        with self.assertRaisesRegex(AssertionError, "agent assertion failed"):
+            self.provider.configure_users_admin(
+                "domain.example.test", restart_if_changed=True
+            )
+
+        self.agent.mset_env.assert_not_called()
+        self.agent.run_helper.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
