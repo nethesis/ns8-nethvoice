@@ -6,29 +6,74 @@
 #
 
 import json
-import sys
-import agent
 import os
+import sys
+
+import agent
 from agent.ldapproxy import Ldapproxy
 
-event = json.load(sys.stdin)
 
-mydomain = os.environ.get('USER_DOMAIN', '')
-if mydomain not in event.get('domains', []):
-    exit(0)
+LDAP_ENV_VARIABLES = (
+    'NETHVOICE_LDAP_HOST',
+    'NETHVOICE_LDAP_PORT',
+    'NETHVOICE_LDAP_USER',
+    'NETHVOICE_LDAP_SCHEMA',
+    'NETHVOICE_LDAP_BASE',
+)
 
-# Get domain parameters
-domparams = Ldapproxy().get_domain(mydomain)
-agent.set_env('NETHVOICE_LDAP_HOST', domparams['host'])
-agent.set_env('NETHVOICE_LDAP_PORT', domparams['port'])
-agent.set_env('NETHVOICE_LDAP_USER', domparams['bind_dn'])
-agent.set_env('NETHVOICE_LDAP_SCHEMA', domparams['schema'])
-agent.set_env('NETHVOICE_LDAP_BASE', domparams['base_dn'])
+LDAP_SERVICES = (
+    'freepbx.service',
+    'phonebook.service',
+)
 
-passwords = agent.read_envfile('passwords.env')
-passwords['NETHVOICE_LDAP_PASS'] = domparams['bind_password']
-agent.write_envfile('passwords.env', passwords)
-agent.unset_env('NETHVOICE_LDAP_PASS')
 
-agent.run_helper('systemctl', '--user', 'restart', 'freepbx.service').check_returncode()
-agent.run_helper('systemctl', '--user', 'restart', 'phonebook.service').check_returncode()
+def update_password(password=None):
+    passwords = agent.read_envfile('passwords.env')
+    if password is None:
+        if passwords.pop('NETHVOICE_LDAP_PASS', None) is not None:
+            agent.write_envfile('passwords.env', passwords)
+    else:
+        passwords['NETHVOICE_LDAP_PASS'] = password
+        agent.write_envfile('passwords.env', passwords)
+    agent.unset_env('NETHVOICE_LDAP_PASS')
+
+
+def clear_ldap_configuration():
+    for variable in LDAP_ENV_VARIABLES:
+        agent.unset_env(variable)
+    update_password()
+
+
+def restart_ldap_consumers():
+    for service in LDAP_SERVICES:
+        agent.run_helper(
+            'systemctl', '--user', 'restart', service
+        ).check_returncode()
+
+
+def main():
+    event = json.load(sys.stdin)
+
+    mydomain = os.environ.get('USER_DOMAIN', '')
+    if mydomain not in event.get('domains', []):
+        return
+
+    domparams = Ldapproxy().get_domain(mydomain)
+    if domparams is None:
+        print(
+            agent.SD_WARNING + f'User domain {mydomain} is no longer available'
+        )
+        clear_ldap_configuration()
+    else:
+        agent.set_env('NETHVOICE_LDAP_HOST', domparams['host'])
+        agent.set_env('NETHVOICE_LDAP_PORT', domparams['port'])
+        agent.set_env('NETHVOICE_LDAP_USER', domparams['bind_dn'])
+        agent.set_env('NETHVOICE_LDAP_SCHEMA', domparams['schema'])
+        agent.set_env('NETHVOICE_LDAP_BASE', domparams['base_dn'])
+        update_password(domparams['bind_password'])
+
+    restart_ldap_consumers()
+
+
+if __name__ == '__main__':
+    main()

@@ -42,6 +42,7 @@ class UserDomainChangedEventTest(unittest.TestCase):
                 get_domain=mock.Mock(return_value=domain_parameters)
             )
         )
+        self.agent.SD_WARNING = ""
         self.agent.set_env = mock.Mock()
         self.agent.read_envfile = mock.Mock(
             return_value={
@@ -67,7 +68,7 @@ class UserDomainChangedEventTest(unittest.TestCase):
                 io.StringIO('{"domains":["domain.example.test"]}'),
             ),
         ):
-            load_script(
+            handler = load_script(
                 "user_domain_changed_ldap",
                 HANDLER_PATH,
                 {
@@ -75,6 +76,7 @@ class UserDomainChangedEventTest(unittest.TestCase):
                     "agent.ldapproxy": self.ldapproxy,
                 },
             )
+            handler.main()
 
         self.agent.write_envfile.assert_called_once_with(
             "passwords.env",
@@ -90,6 +92,82 @@ class UserDomainChangedEventTest(unittest.TestCase):
         )
         self.processes[0].check_returncode.assert_called_once_with()
         self.processes[1].check_returncode.assert_called_once_with()
+        self.assertEqual(
+            [
+                mock.call("systemctl", "--user", "restart", "freepbx.service"),
+                mock.call("systemctl", "--user", "restart", "phonebook.service"),
+            ],
+            self.agent.run_helper.call_args_list,
+        )
+
+    def test_clears_ldap_configuration_when_domain_is_removed(self):
+        self.ldapproxy.Ldapproxy.return_value.get_domain.return_value = None
+
+        with (
+            mock.patch.dict(
+                os.environ,
+                {"USER_DOMAIN": "domain.example.test"},
+                clear=True,
+            ),
+            mock.patch.object(
+                sys,
+                "stdin",
+                io.StringIO('{"domains":["domain.example.test"]}'),
+            ),
+        ):
+            handler = load_script(
+                "user_domain_removed_ldap",
+                HANDLER_PATH,
+                {
+                    "agent": self.agent,
+                    "agent.ldapproxy": self.ldapproxy,
+                },
+            )
+            handler.main()
+
+        self.agent.set_env.assert_not_called()
+        for variable in (
+            "NETHVOICE_LDAP_HOST",
+            "NETHVOICE_LDAP_PORT",
+            "NETHVOICE_LDAP_USER",
+            "NETHVOICE_LDAP_SCHEMA",
+            "NETHVOICE_LDAP_BASE",
+            "NETHVOICE_LDAP_PASS",
+        ):
+            self.assertIn(mock.call(variable), self.agent.unset_env.call_args_list)
+        self.agent.write_envfile.assert_called_once_with(
+            "passwords.env",
+            {"KEEP_ME": "value"},
+        )
+        self.assertEqual(2, self.agent.run_helper.call_count)
+
+    def test_ignores_unchanged_domain(self):
+        with (
+            mock.patch.dict(
+                os.environ,
+                {"USER_DOMAIN": "domain.example.test"},
+                clear=True,
+            ),
+            mock.patch.object(
+                sys,
+                "stdin",
+                io.StringIO('{"domains":["other.example.test"]}'),
+            ),
+        ):
+            handler = load_script(
+                "unrelated_user_domain_changed_ldap",
+                HANDLER_PATH,
+                {
+                    "agent": self.agent,
+                    "agent.ldapproxy": self.ldapproxy,
+                },
+            )
+            handler.main()
+
+        self.ldapproxy.Ldapproxy.assert_not_called()
+        self.agent.set_env.assert_not_called()
+        self.agent.unset_env.assert_not_called()
+        self.agent.run_helper.assert_not_called()
 
 
 if __name__ == "__main__":
