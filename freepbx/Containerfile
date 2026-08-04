@@ -112,6 +112,7 @@ RUN cd /usr/src/asterisk && \
 	make menuselect-tree && \
 	perl -n -i -e 'print unless /openr2/i' menuselect-tree && \
 	make menuselect.makeopts && \
+	menuselect/menuselect --disable BUILD_NATIVE menuselect.makeopts && \
 	menuselect/menuselect --enable app_voicemail_odbc menuselect.makeopts && \
 	make -j"$(nproc)" ${MAKEARGS} && \
 	make install ${MAKEARGS} && \
