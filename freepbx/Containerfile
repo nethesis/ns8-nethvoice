@@ -302,9 +302,9 @@ RUN mkdir -p \
 	/var/www/html/freepbx/admin/modules/framework
 
 # Download framework module
-RUN sh /usr/local/bin/fetch-remote-artifact freepbx-framework-bootstrap-release-17.0.30.tar.gz https://github.com/FreePBX/framework/archive/refs/tags/release/17.0.30.tar.gz && \
-	tar xzf /tmp/freepbx-framework-bootstrap-release-17.0.30.tar.gz --strip-components=1 -C /var/www/html/freepbx/admin/modules/framework && \
-	rm -f /tmp/freepbx-framework-bootstrap-release-17.0.30.tar.gz && \
+RUN sh /usr/local/bin/fetch-remote-artifact freepbx-framework-bootstrap-release-17.0.32.tar.gz https://github.com/FreePBX/framework/archive/refs/tags/release/17.0.32.tar.gz && \
+	tar xzf /tmp/freepbx-framework-bootstrap-release-17.0.32.tar.gz --strip-components=1 -C /var/www/html/freepbx/admin/modules/framework && \
+	rm -f /tmp/freepbx-framework-bootstrap-release-17.0.32.tar.gz && \
 	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/htdocs/* /var/www/html/freepbx/ && \
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/enum.conf /etc/asterisk/ && \
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/musiconhold.conf /etc/asterisk/ && \
@@ -329,7 +329,7 @@ RUN install_module() { \
 	install_module arimanager https://github.com/FreePBX/arimanager/archive/refs/tags/release/17.0.1.1.tar.gz && \
 	install_module asterisk-cli https://github.com/FreePBX/asterisk-cli/archive/refs/tags/release/17.0.2.tar.gz && \
 	install_module asteriskinfo https://github.com/FreePBX/asteriskinfo/archive/refs/tags/release/17.0.2.tar.gz && \
-	install_module backup https://github.com/FreePBX/backup/archive/refs/tags/release/17.0.11.tar.gz && \
+	install_module backup https://github.com/FreePBX/backup/archive/refs/tags/release/17.0.12.tar.gz && \
 	install_module blacklist https://github.com/FreePBX/blacklist/archive/refs/tags/release/17.0.1.2.tar.gz && \
 	install_module bulkhandler https://github.com/FreePBX/bulkhandler/archive/refs/tags/release/17.0.7.1.tar.gz && \
 	install_module calendar https://github.com/FreePBX/calendar/archive/refs/tags/release/17.0.4.24.tar.gz && \
@@ -339,7 +339,7 @@ RUN install_module() { \
 	install_module callwaiting https://github.com/FreePBX/callwaiting/archive/refs/tags/release/17.0.3.4.tar.gz && \
 	install_module cdr https://github.com/FreePBX/cdr/archive/refs/tags/release/17.0.11.2.tar.gz && \
 	install_module cel https://github.com/FreePBX/cel/archive/refs/tags/release/17.0.2.15.tar.gz && \
-	install_module certman https://github.com/FreePBX/certman/archive/refs/tags/release/17.0.3.14.tar.gz && \
+	install_module certman https://github.com/FreePBX/certman/archive/refs/tags/release/17.0.3.15.tar.gz && \
 	install_module conferences https://github.com/FreePBX/conferences/archive/refs/tags/release/17.0.3.2.tar.gz && \
 	install_module customappsreg https://github.com/FreePBX/customappsreg/archive/refs/tags/release/17.0.1.tar.gz && \
 	install_module daynight https://github.com/FreePBX/daynight/archive/refs/tags/release/17.0.1.2.tar.gz && \
@@ -350,7 +350,7 @@ RUN install_module() { \
 	install_module featurecodeadmin https://github.com/FreePBX/featurecodeadmin/archive/refs/tags/release/17.0.2.tar.gz && \
 	install_module filestore https://github.com/FreePBX/filestore/archive/refs/tags/release/17.0.3.tar.gz && \
 	install_module findmefollow https://github.com/FreePBX/findmefollow/archive/refs/tags/release/17.0.4.13.tar.gz && \
-	install_module framework https://github.com/FreePBX/framework/archive/refs/tags/release/17.0.30.tar.gz && \
+	install_module framework https://github.com/FreePBX/framework/archive/refs/tags/release/17.0.32.tar.gz && \
 	install_module iaxsettings https://github.com/FreePBX/iaxsettings/archive/refs/tags/release/17.0.2.tar.gz && \
 	install_module infoservices https://github.com/FreePBX/infoservices/archive/refs/tags/release/17.0.1.1.tar.gz && \
 	install_module ivr https://github.com/FreePBX/ivr/archive/refs/tags/release/17.0.9.tar.gz && \
@@ -373,7 +373,7 @@ RUN install_module() { \
 	install_module bosssecretary https://github.com/nethesis/freepbx-bosssecretary/archive/refs/tags/1.0.3.tar.gz && \
 	mkdir -p /var/www/html/freepbx/admin/modules/core && \
 	rm -fr /var/www/html/freepbx/admin/modules/core/* && \
-	install_module core https://github.com/FreePBX/core/archive/refs/tags/release/17.0.18.49.tar.gz && \
+	install_module core https://github.com/FreePBX/core/archive/refs/tags/release/17.0.18.51.tar.gz && \
 	install_module customcontexts https://github.com/FreePBX-ContributedModules/customcontexts/archive/refs/tags/release/17.0.1.3.tar.gz && \
 	install_module paging https://github.com/FreePBX/paging/archive/refs/tags/release/17.0.4.tar.gz && \
 	install_module queuemetrics https://github.com/nethesis/queuemetrics/archive/refs/tags/2.11.0.4.tar.gz && \
