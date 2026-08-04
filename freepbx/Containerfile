@@ -68,6 +68,9 @@ RUN cd /usr/src/asterisk && \
 	artifact_checksum=$(grep "  asterisk-${ASTERISK_VERSION}.tar.gz$" remote-artifacts.sha256) && \
 	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
 	tar xzf asterisk-${ASTERISK_VERSION}.tar.gz && \
+	cd asterisk-${ASTERISK_VERSION} && \
+	patch --batch --fuzz=0 -p1 < ../asterisk-22-lazymembers.patch && \
+	cd .. && \
 	rm -f asterisk-${ASTERISK_VERSION}.tar.gz && \
 	mkdir cache && \
 	cd cache && \
