@@ -54,32 +54,34 @@ def delete_route():
 
 def configure_route(domain, provider_url):
     if not provider_url:
-        return delete_route()
+        result = delete_route()
+    else:
+        result = agent.set_route(
+            {
+                "instance": os.environ["MODULE_ID"] + "-users-admin",
+                "url": provider_url,
+                "http2https": True,
+                "host": os.environ["NETHVOICE_HOST"],
+                "path": "/users-admin/" + domain,
+                "strip_prefix": True,
+            },
+            error_passthrough=False,
+        )
 
-    return agent.set_route(
-        {
-            "instance": os.environ["MODULE_ID"] + "-users-admin",
-            "url": provider_url,
-            "http2https": True,
-            "host": os.environ["NETHVOICE_HOST"],
-            "path": "/users-admin/" + domain,
-            "strip_prefix": True,
-        },
-        error_passthrough=False,
-    )
+    agent.assert_exp(result["exit_code"] == 0)
 
 
 def configure_users_admin(domain, restart_if_changed=False):
     previous_provider = read_current_provider()
     selected_provider = select_provider(domain)
 
+    configure_route(domain, selected_provider[0])
     agent.mset_env(
         {
             URL_VARIABLE: selected_provider[0],
             NODE_VARIABLE: selected_provider[1],
         }
     )
-    configure_route(domain, selected_provider[0])
 
     changed = previous_provider != selected_provider
     if changed and restart_if_changed:
