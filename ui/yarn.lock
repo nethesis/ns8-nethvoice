@@ -6165,15 +6165,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"generate-password-lite@npm:^1.0.0":
-  version: 1.0.2
-  resolution: "generate-password-lite@npm:1.0.2"
-  bin:
-    generate-password-lite: dist/index.js
-  checksum: 10c0/e2781ec3b2cd72df07bb35fd5e9c3e524d0dcf09f5dcac44f1eb585dac526683f6019c2a6f4ca0f7f70d427fc63bcbe0375b44238cf59375288847d58459175f
-  languageName: node
-  linkType: hard
-
 "gensync@npm:^1.0.0-beta.2":
   version: 1.0.0-beta.2
   resolution: "gensync@npm:1.0.0-beta.2"
@@ -11786,7 +11777,6 @@ __metadata:
     eslint: "npm:^6.7.2"
     eslint-plugin-prettier: "npm:^3.3.1"
     eslint-plugin-vue: "npm:^6.2.2"
-    generate-password-lite: "npm:^1.0.0"
     lottie-web-vue: "npm:^1.2.0"
     prettier: "npm:^2.2.1"
     sass: "npm:^1.34.1"
