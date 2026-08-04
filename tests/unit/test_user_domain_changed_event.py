@@ -52,7 +52,7 @@ class UserDomainChangedEventTest(unittest.TestCase):
         )
         self.agent.write_envfile = mock.Mock()
         self.agent.unset_env = mock.Mock()
-        self.processes = [mock.Mock(), mock.Mock()]
+        self.processes = [mock.Mock(), mock.Mock(), mock.Mock()]
         self.agent.run_helper = mock.Mock(side_effect=self.processes)
 
     def test_refreshes_ldap_password_only_in_passwords_file(self):
@@ -92,10 +92,12 @@ class UserDomainChangedEventTest(unittest.TestCase):
         )
         self.processes[0].check_returncode.assert_called_once_with()
         self.processes[1].check_returncode.assert_called_once_with()
+        self.processes[2].check_returncode.assert_called_once_with()
         self.assertEqual(
             [
                 mock.call("systemctl", "--user", "restart", "freepbx.service"),
                 mock.call("systemctl", "--user", "restart", "phonebook.service"),
+                mock.call("systemctl", "--user", "restart", "reports-api.service"),
             ],
             self.agent.run_helper.call_args_list,
         )
@@ -139,7 +141,7 @@ class UserDomainChangedEventTest(unittest.TestCase):
             "passwords.env",
             {"KEEP_ME": "value"},
         )
-        self.assertEqual(2, self.agent.run_helper.call_count)
+        self.assertEqual(3, self.agent.run_helper.call_count)
 
     def test_ignores_unchanged_domain(self):
         with (

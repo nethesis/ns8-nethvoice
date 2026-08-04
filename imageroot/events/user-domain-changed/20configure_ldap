@@ -24,6 +24,7 @@ LDAP_ENV_VARIABLES = (
 LDAP_SERVICES = (
     'freepbx.service',
     'phonebook.service',
+    'reports-api.service',
 )
 
 
