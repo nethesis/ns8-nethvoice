@@ -85,9 +85,11 @@ function getUser($username) {
     return $username;
 }
 
-function userExists($username) {
+function userExists($username, $token = null) {
     $providerUrl = getUserPortalUrl();
-    $token = getToken();
+    if ($token === null) {
+        $token = getToken();
+    }
     if (empty($providerUrl) || empty($token)) {
         return false;
     }

@@ -47,6 +47,7 @@ try {
     $numusers = count($csv);
     $step = 100/$numusers/2; //use /2 because we use 2 for cicle
     $progress = -$step; //start with negative progress because
+    $token = getToken();
 
     foreach ($csv as $k => $row) {
         $progress += $step;
@@ -72,16 +73,15 @@ try {
         #lowercase username
         $row[0] = strtolower($row[0]);
 
-        # create user
-        if (!userExists($row[0])) {
-            $token = getToken();
-            if (empty($token)) {
-                $result += 1;
-                $err .= "Error creating user ".$row[0].": users-admin is unavailable\n";
-                unset($csv[$k]);
-                continue;
-            }
+        if (empty($token)) {
+            $result += 1;
+            $err .= "Error creating user ".$row[0].": users-admin is unavailable\n";
+            unset($csv[$k]);
+            continue;
+        }
 
+        # create user
+        if (!userExists($row[0], $token)) {
             $header = array();
             $header[] = 'Content-type: application/json';
             $header[] = 'Authorization: Bearer '. $token;
