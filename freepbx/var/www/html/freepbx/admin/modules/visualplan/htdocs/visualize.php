@@ -137,7 +137,7 @@ foreach ($get_cqr as $row) {
     $data['cqr'][$row['id_cqr']]["default_destination"] = $row['default_destination'];
     $get_entries = nethcqr_get_entries($row['id_cqr']);
     foreach ($get_entries as $key => $value) {
-        $data['cqr'][$row['id_cqr']]['selections'][$value['position']] = array( "position" => $value['pisition'],
+        $data['cqr'][$row['id_cqr']]['selections'][$value['position']] = array( "position" => $value['position'],
             "condition" => $value['condition'],
             "dest" => $value['destination']
         );
