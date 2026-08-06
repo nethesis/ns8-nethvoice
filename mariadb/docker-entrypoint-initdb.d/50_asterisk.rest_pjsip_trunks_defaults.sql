@@ -1935,7 +1935,7 @@ INSERT INTO `rest_pjsip_trunks_defaults` (`provider_id`,`keyword`,`data`) VALUES
 (35,"t38_udptl_nat","no"),
 (35,"transport","0.0.0.0-udp"),
 (35,"trust_rpid","no"),
-(35,"userconfig","");
+(35,"userconfig",""),
 (36,"aor_contact",""),
 (36,"aors",""),
 (36,"auth_rejection_permanent","off"),
