@@ -35,4 +35,7 @@ INSERT INTO `rest_pjsip_providers` (`id`,`provider`,`description`) VALUES
 (30,"oval","OVAL"),
 (31,"enegan","Enegan"),
 (32,"elevenlabs","ElevenLabs"),
-(33,"airbit","Airbit");
+(33,"multiwire","MultiWire (singola numerazione)"),
+(34,"multiwire-multinumero","MultiWire Multinumero"),
+(35,"vianova","Vianova (una sola linea x nodo)"),
+(36,"airbit","Airbit");

@@ -26,7 +26,7 @@
 <?php
 if (isset($_REQUEST['id'])) {
     $config = \FreePBX::Queueoptions()->queueoptions_get($_REQUEST['id']);
-    echo("<input type='hidden' name='id' value='".$_REQUEST['id']."'>");
+    echo("<input type='hidden' name='id' value='".htmlspecialchars($_REQUEST['id'], ENT_QUOTES)."'>");
 } else {
     $config['name'] = _('New Queue Options');
     $config['VQ_CIDPP'] = '';

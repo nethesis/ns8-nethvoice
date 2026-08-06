@@ -115,7 +115,7 @@ fi
 reponame="nethvoice-mariadb"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from docker.io/library/mariadb:10.11.17)
+    container=$(buildah from docker.io/library/mariadb:10.11.18)
     buildah add "${container}" mariadb/ /
 
     # Commit the image
@@ -193,7 +193,7 @@ fi
 reponame="nethvoice-cti-middleware"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/nethcti-middleware:v0.5.14)
+    container=$(buildah from ghcr.io/nethesis/nethcti-middleware:v0.5.19)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
@@ -212,7 +212,7 @@ fi
 reponame="nethvoice-cti-ui"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v0.15.24)
+    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v0.15.28)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"

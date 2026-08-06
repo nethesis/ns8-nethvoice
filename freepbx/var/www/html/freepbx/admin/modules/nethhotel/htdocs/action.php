@@ -127,23 +127,23 @@ switch($_REQUEST['action'])
   break;
 
   case "deleteAlarmGroupDialog":
-   echo deleteAlarmGroupDialog($_REQUEST['group_id']);
+   echo deleteAlarmGroupDialog(intval($_REQUEST['group_id']));
   break;
 
   case "setAlarmGroupDialog":
-    echo setAlarmGroupDialog($_REQUEST['group_id']);
+    echo setAlarmGroupDialog(intval($_REQUEST['group_id']));
   break;
 
   case "checkInGroupDialog":
-    echo checkInGroupDialog($_REQUEST['group_id']);
+    echo checkInGroupDialog(intval($_REQUEST['group_id']));
   break;
 
   case "checkOutGroupDialog":
-    echo checkOutGroupDialog($_REQUEST['group_id']);
+    echo checkOutGroupDialog(intval($_REQUEST['group_id']));
   break;
 
   case "cleanGroupDialog":
-    echo cleanGroupDialog($_REQUEST['group_id']);
+    echo cleanGroupDialog(intval($_REQUEST['group_id']));
   break;
 
   case "deleteAlarmGroup":

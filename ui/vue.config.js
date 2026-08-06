@@ -1,10 +1,18 @@
 module.exports = {
+  css: {
+    loaderOptions: {
+      sass: {
+        sassOptions: {
+          silenceDeprecations: ["import", "global-builtin", "color-functions", "if-function", "legacy-js-api"],
+        },
+      },
+    },
+  },
   publicPath: "./",
   configureWebpack: {
     optimization: {
       splitChunks: {
-        minSize: 10000,
-        maxSize: 250000,
+        maxSize: 500000,
       },
     },
   },
