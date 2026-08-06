@@ -1,0 +1,1111 @@
+{
+  "name": "default",
+  "description": "Migrated local REST smoke sequence for FreePBX and Tancredi",
+  "operations": [
+    {
+      "name": "Create Alice main extension",
+      "method": "POST",
+      "path": "/freepbx/rest/mainextensions",
+      "payload": {"username": "alice", "extension": "201"},
+      "expected_status": [201]
+    },
+    {
+      "name": "Create Bob main extension",
+      "method": "POST",
+      "path": "/freepbx/rest/mainextensions",
+      "payload": {"username": "bob", "extension": "202"},
+      "expected_status": [201]
+    },
+    {
+      "name": "Read main extension limits after Bob",
+      "method": "GET",
+      "path": "/freepbx/rest/mainextensions/userlimits",
+      "expected_status": [200]
+    },
+    {
+      "name": "Create Foo main extension",
+      "method": "POST",
+      "path": "/freepbx/rest/mainextensions",
+      "payload": {"username": "foo", "extension": "203"},
+      "expected_status": [201]
+    },
+    {
+      "name": "Read main extension limits after Foo",
+      "method": "GET",
+      "path": "/freepbx/rest/mainextensions/userlimits",
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 2",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 2},
+      "expected_status": [200]
+    },
+    {
+      "name": "Read gateway list",
+      "method": "GET",
+      "path": "/freepbx/rest/devices/gateways/list/e2fa272b0b69291f2916ccf63f55d0e8",
+      "expected_status": [200]
+    },
+    {
+      "name": "List users",
+      "method": "GET",
+      "path": "/freepbx/rest/users/false",
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 3",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 3},
+      "expected_status": [200]
+    },
+    {
+      "name": "List providers",
+      "method": "GET",
+      "path": "/freepbx/rest/providers",
+      "expected_status": [200]
+    },
+    {
+      "name": "List trunks before gateway creation",
+      "method": "GET",
+      "path": "/freepbx/rest/trunks",
+      "expected_status": [200]
+    },
+    {
+      "name": "List VoIP codecs",
+      "method": "GET",
+      "path": "/freepbx/rest/codecs/voip",
+      "expected_status": [200]
+    },
+    {
+      "name": "Reset wizard to step 2",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 2},
+      "expected_status": [200]
+    },
+    {
+      "name": "Read gateway list again",
+      "method": "GET",
+      "path": "/freepbx/rest/devices/gateways/list/e2fa272b0b69291f2916ccf63f55d0e8",
+      "expected_status": [200]
+    },
+    {
+      "name": "List gateway manufacturers",
+      "method": "GET",
+      "path": "/freepbx/rest/devices/gateways/manufacturers",
+      "expected_status": [200]
+    },
+    {
+      "name": "List users again",
+      "method": "GET",
+      "path": "/freepbx/rest/users/false",
+      "expected_status": [200]
+    },
+    {
+      "name": "Create Patton gateway",
+      "method": "POST",
+      "path": "/freepbx/rest/devices/gateways",
+      "payload": {
+        "proxy": "sip::;lr",
+        "ipv4_green": "192.168.12.32",
+        "manufacturer": "Patton",
+        "name": "Patton-TRINITY ISDN 2 Porte",
+        "model": "17",
+        "trunks_isdn": [
+          {"name": 0, "type": "pp"},
+          {"name": 1, "type": "pmp"}
+        ],
+        "trunks_pri": [],
+        "trunks_fxo": [],
+        "trunks_fxs": [],
+        "ipv4_new": "192.168.12.34",
+        "mac": "00:AA:BB:CC:DD:EE",
+        "netmask_green": "255.255.255.248",
+        "gateway": "192.168.12.33",
+        "onSave": true,
+        "onSaveSuccess": false,
+        "onError": false,
+        "onDeleteSuccess": false,
+        "onPushSuccess": false,
+        "ipv4": ""
+      },
+      "expected_status": [200]
+    },
+    {
+      "name": "Read gateway list after create",
+      "method": "GET",
+      "path": "/freepbx/rest/devices/gateways/list/e2fa272b0b69291f2916ccf63f55d0e8",
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 3 again",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 3},
+      "expected_status": [200]
+    },
+    {
+      "name": "List providers after gateway",
+      "method": "GET",
+      "path": "/freepbx/rest/providers",
+      "expected_status": [200]
+    },
+    {
+      "name": "List trunks after gateway",
+      "method": "GET",
+      "path": "/freepbx/rest/trunks",
+      "expected_status": [200]
+    },
+    {
+      "name": "List VoIP codecs again",
+      "method": "GET",
+      "path": "/freepbx/rest/codecs/voip",
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 4",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 4},
+      "expected_status": [200]
+    },
+    {
+      "name": "List inbound routes",
+      "method": "GET",
+      "path": "/freepbx/rest/inboundroutes",
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 5",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 5},
+      "expected_status": [200]
+    },
+    {
+      "name": "List trunks before outbound routes",
+      "method": "GET",
+      "path": "/freepbx/rest/trunks",
+      "expected_status": [200]
+    },
+    {
+      "name": "List outbound routes",
+      "method": "GET",
+      "path": "/freepbx/rest/outboundroutes",
+      "expected_status": [200]
+    },
+    {
+      "name": "Read outbound route defaults",
+      "method": "GET",
+      "path": "/freepbx/rest/outboundroutes/defaults",
+      "expected_status": [200]
+    },
+    {
+      "name": "Create outbound routes",
+      "method": "POST",
+      "path": "/freepbx/rest/outboundroutes",
+      "payload": {
+        "it": [
+          {
+            "name": "national_it",
+            "trunks": [
+              {"name": "Patton_ccddee_isdn_0", "trunkid": "1"},
+              {"name": "Patton_ccddee_isdn_1", "trunkid": "2"}
+            ]
+          },
+          {
+            "name": "cellphone_it",
+            "trunks": [
+              {"name": "Patton_ccddee_isdn_0", "trunkid": "1"},
+              {"name": "Patton_ccddee_isdn_1", "trunkid": "2"}
+            ]
+          },
+          {
+            "name": "international_it",
+            "trunks": [
+              {"name": "Patton_ccddee_isdn_0", "trunkid": "1"},
+              {"name": "Patton_ccddee_isdn_1", "trunkid": "2"}
+            ]
+          },
+          {
+            "name": "toll_it",
+            "trunks": [
+              {"name": "Patton_ccddee_isdn_0", "trunkid": "1"},
+              {"name": "Patton_ccddee_isdn_1", "trunkid": "2"}
+            ]
+          }
+        ]
+      },
+      "expected_status": [200]
+    },
+    {
+      "name": "List outbound routes after create",
+      "method": "GET",
+      "path": "/freepbx/rest/outboundroutes",
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 6",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 6},
+      "expected_status": [200]
+    },
+    {
+      "name": "Fetch MAC address map",
+      "method": "GET",
+      "path": "/freepbx/rest/lib/macAddressMap.json",
+      "expected_status": [200]
+    },
+    {
+      "name": "List Tancredi phones",
+      "method": "GET",
+      "path": "/tancredi/api/v1/phones",
+      "expected_status": [200]
+    },
+    {
+      "name": "Read configuration networks",
+      "method": "GET",
+      "path": "/freepbx/rest/configuration/networks",
+      "expected_status": [200]
+    },
+    {
+      "name": "Skip to step 8 to avoid being blocked by network configuration",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": { "status": "true", "step": 8 },
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 9",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 9},
+      "expected_status": [200]
+    },
+    {
+      "name": "List CTI groups at step 9",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/groups",
+      "expected_status": [200]
+    },
+    {
+      "name": "Create CTI group test",
+      "method": "POST",
+      "path": "/freepbx/rest/cti/groups",
+      "payload": {"name": "test", "onSave": true},
+      "expected_status": [200]
+    },
+    {
+      "name": "List CTI groups after creating test",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/groups",
+      "expected_status": [200]
+    },
+    {
+      "name": "Create CTI group test2",
+      "method": "POST",
+      "path": "/freepbx/rest/cti/groups",
+      "payload": {"name": "test2", "onSave": true},
+      "expected_status": [200]
+    },
+    {
+      "name": "List CTI groups after creating test2",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/groups",
+      "expected_status": [200]
+    },
+    {
+      "name": "Delete CTI group 2",
+      "method": "DELETE",
+      "path": "/freepbx/rest/cti/groups/2",
+      "expected_status": [200]
+    },
+    {
+      "name": "List CTI groups after deleting group 2",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/groups",
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 10",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 10},
+      "expected_status": [200]
+    },
+    {
+      "name": "List CTI profiles at step 10",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/profiles",
+      "expected_status": [200]
+    },
+    {
+      "name": "Read main extension limits at step 10",
+      "method": "GET",
+      "path": "/freepbx/rest/mainextensions/userlimits",
+      "expected_status": [200]
+    },
+    {
+      "name": "List CTI groups at step 10",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/groups",
+      "expected_status": [200]
+    },
+    {
+      "name": "Update CTI profile 1",
+      "method": "POST",
+      "path": "/freepbx/rest/cti/profiles/1",
+      "payload": {
+        "id": "1",
+        "name": "Base",
+        "macro_permissions": {
+          "settings": {
+            "value": true,
+            "displayname": "Settings",
+            "description": "General and notifications settings",
+            "permissions": [
+              {"id": "2", "name": "dnd", "displayname": "DND", "description": "Configure do Not Disturb", "value": true},
+              {"id": "3", "name": "call_forward", "displayname": "Call Forward", "description": "Configure Call Forward", "value": false},
+              {"id": "4", "name": "recording", "displayname": "Recording", "description": "Record own conversations. View/listen/delete own recording", "value": false},
+              {"id": "5", "name": "conference", "displayname": "Conference", "description": "Make a conference call", "value": false},
+              {"id": "6", "name": "parkings", "displayname": "Parkings", "description": "View parkings state and pickup parked calls", "value": false},
+              {"id": "15", "name": "spy", "displayname": "Spy", "description": "Hear other extensions calls", "value": false},
+              {"id": "16", "name": "intrude", "displayname": "Intrude", "description": "Intrude in calls", "value": false},
+              {"id": "18", "name": "pickup", "displayname": "Pickup", "description": "Pick-up any call", "value": true}
+            ]
+          },
+          "phonebook": {
+            "value": true,
+            "displayname": "Phonebook",
+            "description": "View Phonebook, add contacts, modify and delete own contacts",
+            "permissions": [
+              {"id": "12", "name": "ad_phonebook", "displayname": "Advanced Phonebook", "description": "Modify and delete all contacts", "value": false}
+            ]
+          },
+          "cdr": {
+            "value": true,
+            "displayname": "CDR",
+            "description": "View own call history",
+            "permissions": [
+              {"id": "13", "name": "ad_cdr", "displayname": "PBX CDR", "description": "View all users call history", "value": false},
+              {"id": "4000", "name": "group_cdr", "displayname": "Group CDR", "description": "Allow to see call history of members of user groups", "value": false}
+            ]
+          },
+          "customer_card": {
+            "value": true,
+            "displayname": "Customer Card",
+            "description": "Allow to view Customer Cards",
+            "permissions": []
+          },
+          "presence_panel": {
+            "value": true,
+            "displayname": "Presence Panel",
+            "description": "Allow to view Presence Panel",
+            "permissions": [
+              {"id": "17", "name": "ad_recording", "displayname": "Advanced Recording", "description": "Record anyone call", "value": false},
+              {"id": "19", "name": "transfer", "displayname": "Transfer", "description": "Transfer everyone call", "value": false},
+              {"id": "20", "name": "ad_parking", "displayname": "Advanced Parking", "description": "Allow to park any call and to pickup them using any extension", "value": false},
+              {"id": "21", "name": "hangup", "displayname": "Hangup", "description": "Hangup everyone call", "value": false},
+              {"id": "22", "name": "trunks", "displayname": "PBX lines", "description": "View PBX lines", "value": false},
+              {"id": "26", "name": "ad_phone", "displayname": "Advanced Phone", "description": "Use phone features (hangup, call, answer) on conversations not owned by the user", "value": false},
+              {"id": "3500", "name": "all_groups", "displayname": "All groups", "description": "Allow to see all groups and operators", "value": false},
+              {"id": "5001", "name": "grp_test", "displayname": "Group: test", "description": "Group: test: of presence panel", "value": false}
+            ]
+          },
+          "queue_agent": {
+            "value": true,
+            "displayname": "Use queue agent panel",
+            "description": "View Queues and queues info of the user, login/logout from queues, enable or disable pause state",
+            "permissions": [
+              {"id": "23", "name": "ad_queue_agent", "displayname": "Advanced queue agent panel", "description": "View more queue information", "value": false},
+              {"id": "24", "name": "lost_queue_call", "displayname": "Lost Queue Calls", "description": "Allow to view Queue Recall panel", "value": false}
+            ]
+          },
+          "streaming": {
+            "value": false,
+            "displayname": "Streaming",
+            "description": "Allow to view Streaming Panel",
+            "permissions": []
+          },
+          "off_hour": {
+            "value": false,
+            "displayname": "Off Hour",
+            "description": "Allow to change of his incoming call paths",
+            "permissions": [
+              {"id": "25", "name": "advanced_off_hour", "displayname": "Advanced Off Hour", "description": "Allow to change user's incoming call path and generic inbound routes", "value": false},
+              {"id": "27", "name": "ad_off_hour", "displayname": "Admin Off Hour", "description": "Allow to change all incoming call paths", "value": false}
+            ]
+          },
+          "remote_sites": {
+            "value": false,
+            "displayname": "Remote Sites",
+            "description": "Allow to view Remote Sites information",
+            "permissions": []
+          },
+          "qmanager": {
+            "value": false,
+            "displayname": "Queue Manager",
+            "description": "Allow to view and manage queues in real time",
+            "permissions": []
+          },
+          "operator_panel": {
+            "value": false,
+            "displayname": "Operator Panel",
+            "description": "Enables Operator Panel interface for operators",
+            "permissions": []
+          },
+          "nethvoice_cti": {
+            "value": true,
+            "displayname": "NethVoice CTI",
+            "description": "Enables access to NethVoice CTI application",
+            "permissions": [
+              {"id": "8", "name": "chat", "displayname": "Chat", "description": "Use chat service", "value": false},
+              {"id": "9", "name": "privacy", "displayname": "Privacy", "description": "Obfuscate called and caller numbers for other users", "value": true},
+              {"id": "1000", "name": "screen_sharing", "displayname": "Screen Sharing", "description": "Allow to share the desktop", "value": false},
+              {"id": "2000", "name": "phone_buttons", "displayname": "Phone buttons", "description": "Allow the user to customize functions of physical phone buttons. These values correspond to the Line Keys settings shown in Devices -> Models and Configurations pages", "value": false},
+              {"id": "3000", "name": "video_conference", "displayname": "Video Conference", "description": "Allow to start a video conference", "value": false},
+              {"id": "5000", "name": "satellite_stt", "displayname": "Speech-To-Text", "description": "Calls transcription using Speech-To-Text", "value": false}
+            ]
+          }
+        },
+        "outbound_routes_permissions": [
+          {"route_id": "1", "name": "national_it", "permission": true},
+          {"route_id": "2", "name": "cellphone_it", "permission": true},
+          {"route_id": "3", "name": "international_it", "permission": true},
+          {"route_id": "4", "name": "toll_it", "permission": true}
+        ],
+        "onSave": true
+      },
+      "expected_status": [200]
+    },
+    {
+      "name": "Read CTI profile 3",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/profiles/3",
+      "expected_status": [200]
+    },
+    {
+      "name": "Create CTI profile test",
+      "method": "POST",
+      "path": "/freepbx/rest/cti/profiles",
+      "payload": {
+        "name": "test",
+        "macro_permissions": {
+          "settings": {
+            "value": true,
+            "displayname": "Settings",
+            "description": "General and notifications settings",
+            "permissions": [
+              {"id": "2", "name": "dnd", "displayname": "DND", "description": "Configure do Not Disturb", "value": true},
+              {"id": "3", "name": "call_forward", "displayname": "Call Forward", "description": "Configure Call Forward", "value": true},
+              {"id": "4", "name": "recording", "displayname": "Recording", "description": "Record own conversations. View/listen/delete own recording", "value": true},
+              {"id": "5", "name": "conference", "displayname": "Conference", "description": "Make a conference call", "value": true},
+              {"id": "6", "name": "parkings", "displayname": "Parkings", "description": "View parkings state and pickup parked calls", "value": true},
+              {"id": "15", "name": "spy", "displayname": "Spy", "description": "Hear other extensions calls", "value": false},
+              {"id": "16", "name": "intrude", "displayname": "Intrude", "description": "Intrude in calls", "value": false},
+              {"id": "18", "name": "pickup", "displayname": "Pickup", "description": "Pick-up any call", "value": false}
+            ]
+          },
+          "phonebook": {
+            "value": true,
+            "displayname": "Phonebook",
+            "description": "View Phonebook, add contacts, modify and delete own contacts",
+            "permissions": [
+              {"id": "12", "name": "ad_phonebook", "displayname": "Advanced Phonebook", "description": "Modify and delete all contacts", "value": true}
+            ]
+          },
+          "cdr": {
+            "value": true,
+            "displayname": "CDR",
+            "description": "View own call history",
+            "permissions": [
+              {"id": "13", "name": "ad_cdr", "displayname": "PBX CDR", "description": "View all users call history", "value": true},
+              {"id": "4000", "name": "group_cdr", "displayname": "Group CDR", "description": "Allow to see call history of members of user groups", "value": false}
+            ]
+          },
+          "customer_card": {
+            "value": true,
+            "displayname": "Customer Card",
+            "description": "Allow to view Customer Cards",
+            "permissions": []
+          },
+          "presence_panel": {
+            "value": true,
+            "displayname": "Presence Panel",
+            "description": "Allow to view Presence Panel",
+            "permissions": [
+              {"id": "17", "name": "ad_recording", "displayname": "Advanced Recording", "description": "Record anyone call", "value": false},
+              {"id": "19", "name": "transfer", "displayname": "Transfer", "description": "Transfer everyone call", "value": false},
+              {"id": "20", "name": "ad_parking", "displayname": "Advanced Parking", "description": "Allow to park any call and to pickup them using any extension", "value": false},
+              {"id": "21", "name": "hangup", "displayname": "Hangup", "description": "Hangup everyone call", "value": false},
+              {"id": "22", "name": "trunks", "displayname": "PBX lines", "description": "View PBX lines", "value": true},
+              {"id": "26", "name": "ad_phone", "displayname": "Advanced Phone", "description": "Use phone features (hangup, call, answer) on conversations not owned by the user", "value": false},
+              {"id": "3500", "name": "all_groups", "displayname": "All groups", "description": "Allow to see all groups and operators", "value": false},
+              {"id": "5001", "name": "grp_test", "displayname": "Group: test", "description": "Group: test: of presence panel", "value": false}
+            ]
+          },
+          "queue_agent": {
+            "value": true,
+            "displayname": "Use queue agent panel",
+            "description": "View Queues and queues info of the user, login/logout from queues, enable or disable pause state",
+            "permissions": [
+              {"id": "23", "name": "ad_queue_agent", "displayname": "Advanced queue agent panel", "description": "View more queue information", "value": true},
+              {"id": "24", "name": "lost_queue_call", "displayname": "Lost Queue Calls", "description": "Allow to view Queue Recall panel", "value": true}
+            ]
+          },
+          "streaming": {
+            "value": true,
+            "displayname": "Streaming",
+            "description": "Allow to view Streaming Panel",
+            "permissions": []
+          },
+          "off_hour": {
+            "value": true,
+            "displayname": "Off Hour",
+            "description": "Allow to change of his incoming call paths",
+            "permissions": [
+              {"id": "25", "name": "advanced_off_hour", "displayname": "Advanced Off Hour", "description": "Allow to change user's incoming call path and generic inbound routes", "value": true},
+              {"id": "27", "name": "ad_off_hour", "displayname": "Admin Off Hour", "description": "Allow to change all incoming call paths", "value": false}
+            ]
+          },
+          "remote_sites": {
+            "value": true,
+            "displayname": "Remote Sites",
+            "description": "Allow to view Remote Sites information",
+            "permissions": []
+          },
+          "qmanager": {
+            "value": false,
+            "displayname": "Queue Manager",
+            "description": "Allow to view and manage queues in real time",
+            "permissions": []
+          },
+          "operator_panel": {
+            "value": false,
+            "displayname": "Operator Panel",
+            "description": "Enables Operator Panel interface for operators",
+            "permissions": []
+          },
+          "nethvoice_cti": {
+            "value": true,
+            "displayname": "NethVoice CTI",
+            "description": "Enables access to NethVoice CTI application",
+            "permissions": [
+              {"id": "8", "name": "chat", "displayname": "Chat", "description": "Use chat service", "value": true},
+              {"id": "9", "name": "privacy", "displayname": "Privacy", "description": "Obfuscate called and caller numbers for other users", "value": false},
+              {"id": "1000", "name": "screen_sharing", "displayname": "Screen Sharing", "description": "Allow to share the desktop", "value": false},
+              {"id": "2000", "name": "phone_buttons", "displayname": "Phone buttons", "description": "Allow the user to customize functions of physical phone buttons. These values correspond to the Line Keys settings shown in Devices -> Models and Configurations pages", "value": false},
+              {"id": "3000", "name": "video_conference", "displayname": "Video Conference", "description": "Allow to start a video conference", "value": false},
+              {"id": "5000", "name": "satellite_stt", "displayname": "Speech-To-Text", "description": "Calls transcription using Speech-To-Text", "value": false}
+            ]
+          }
+        },
+        "outbound_routes_permissions": [
+          {"route_id": "1", "name": "national_it", "permission": true},
+          {"route_id": "2", "name": "cellphone_it", "permission": true},
+          {"route_id": "3", "name": "international_it", "permission": true},
+          {"route_id": "4", "name": "toll_it", "permission": true}
+        ]
+      },
+      "expected_status": [200]
+    },
+    {
+      "name": "List CTI profiles after creating test profile",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/profiles",
+      "expected_status": [200]
+    },
+    {
+      "name": "List CTI groups after creating test profile",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/groups",
+      "expected_status": [200]
+    },
+    {
+      "name": "Update CTI profile 4",
+      "method": "POST",
+      "path": "/freepbx/rest/cti/profiles/4",
+      "payload": {
+        "id": "4",
+        "name": "test",
+        "macro_permissions": {
+          "settings": {
+            "value": true,
+            "displayname": "Settings",
+            "description": "General and notifications settings",
+            "permissions": [
+              {"id": "2", "name": "dnd", "displayname": "DND", "description": "Configure do Not Disturb", "value": true},
+              {"id": "3", "name": "call_forward", "displayname": "Call Forward", "description": "Configure Call Forward", "value": true},
+              {"id": "4", "name": "recording", "displayname": "Recording", "description": "Record own conversations. View/listen/delete own recording", "value": true},
+              {"id": "5", "name": "conference", "displayname": "Conference", "description": "Make a conference call", "value": true},
+              {"id": "6", "name": "parkings", "displayname": "Parkings", "description": "View parkings state and pickup parked calls", "value": true},
+              {"id": "15", "name": "spy", "displayname": "Spy", "description": "Hear other extensions calls", "value": false},
+              {"id": "16", "name": "intrude", "displayname": "Intrude", "description": "Intrude in calls", "value": false},
+              {"id": "18", "name": "pickup", "displayname": "Pickup", "description": "Pick-up any call", "value": false}
+            ]
+          },
+          "phonebook": {
+            "value": true,
+            "displayname": "Phonebook",
+            "description": "View Phonebook, add contacts, modify and delete own contacts",
+            "permissions": [
+              {"id": "12", "name": "ad_phonebook", "displayname": "Advanced Phonebook", "description": "Modify and delete all contacts", "value": true}
+            ]
+          },
+          "cdr": {
+            "value": true,
+            "displayname": "CDR",
+            "description": "View own call history",
+            "permissions": [
+              {"id": "13", "name": "ad_cdr", "displayname": "PBX CDR", "description": "View all users call history", "value": true},
+              {"id": "4000", "name": "group_cdr", "displayname": "Group CDR", "description": "Allow to see call history of members of user groups", "value": false}
+            ]
+          },
+          "customer_card": {
+            "value": true,
+            "displayname": "Customer Card",
+            "description": "Allow to view Customer Cards",
+            "permissions": []
+          },
+          "presence_panel": {
+            "value": true,
+            "displayname": "Presence Panel",
+            "description": "Allow to view Presence Panel",
+            "permissions": [
+              {"id": "17", "name": "ad_recording", "displayname": "Advanced Recording", "description": "Record anyone call", "value": false},
+              {"id": "19", "name": "transfer", "displayname": "Transfer", "description": "Transfer everyone call", "value": false},
+              {"id": "20", "name": "ad_parking", "displayname": "Advanced Parking", "description": "Allow to park any call and to pickup them using any extension", "value": false},
+              {"id": "21", "name": "hangup", "displayname": "Hangup", "description": "Hangup everyone call", "value": false},
+              {"id": "22", "name": "trunks", "displayname": "PBX lines", "description": "View PBX lines", "value": true},
+              {"id": "26", "name": "ad_phone", "displayname": "Advanced Phone", "description": "Use phone features (hangup, call, answer) on conversations not owned by the user", "value": false},
+              {"id": "3500", "name": "all_groups", "displayname": "All groups", "description": "Allow to see all groups and operators", "value": false},
+              {"id": "5001", "name": "grp_test", "displayname": "Group: test", "description": "Group: test: of presence panel", "value": false}
+            ]
+          },
+          "queue_agent": {
+            "value": true,
+            "displayname": "Use queue agent panel",
+            "description": "View Queues and queues info of the user, login/logout from queues, enable or disable pause state",
+            "permissions": [
+              {"id": "23", "name": "ad_queue_agent", "displayname": "Advanced queue agent panel", "description": "View more queue information", "value": true},
+              {"id": "24", "name": "lost_queue_call", "displayname": "Lost Queue Calls", "description": "Allow to view Queue Recall panel", "value": true}
+            ]
+          },
+          "streaming": {
+            "value": true,
+            "displayname": "Streaming",
+            "description": "Allow to view Streaming Panel",
+            "permissions": []
+          },
+          "off_hour": {
+            "value": true,
+            "displayname": "Off Hour",
+            "description": "Allow to change of his incoming call paths",
+            "permissions": [
+              {"id": "25", "name": "advanced_off_hour", "displayname": "Advanced Off Hour", "description": "Allow to change user's incoming call path and generic inbound routes", "value": true},
+              {"id": "27", "name": "ad_off_hour", "displayname": "Admin Off Hour", "description": "Allow to change all incoming call paths", "value": true}
+            ]
+          },
+          "remote_sites": {
+            "value": true,
+            "displayname": "Remote Sites",
+            "description": "Allow to view Remote Sites information",
+            "permissions": []
+          },
+          "qmanager": {
+            "value": false,
+            "displayname": "Queue Manager",
+            "description": "Allow to view and manage queues in real time",
+            "permissions": []
+          },
+          "operator_panel": {
+            "value": false,
+            "displayname": "Operator Panel",
+            "description": "Enables Operator Panel interface for operators",
+            "permissions": []
+          },
+          "nethvoice_cti": {
+            "value": true,
+            "displayname": "NethVoice CTI",
+            "description": "Enables access to NethVoice CTI application",
+            "permissions": [
+              {"id": "8", "name": "chat", "displayname": "Chat", "description": "Use chat service", "value": true},
+              {"id": "9", "name": "privacy", "displayname": "Privacy", "description": "Obfuscate called and caller numbers for other users", "value": false},
+              {"id": "1000", "name": "screen_sharing", "displayname": "Screen Sharing", "description": "Allow to share the desktop", "value": false},
+              {"id": "2000", "name": "phone_buttons", "displayname": "Phone buttons", "description": "Allow the user to customize functions of physical phone buttons. These values correspond to the Line Keys settings shown in Devices -> Models and Configurations pages", "value": false},
+              {"id": "3000", "name": "video_conference", "displayname": "Video Conference", "description": "Allow to start a video conference", "value": false},
+              {"id": "5000", "name": "satellite_stt", "displayname": "Speech-To-Text", "description": "Calls transcription using Speech-To-Text", "value": false}
+            ]
+          }
+        },
+        "outbound_routes_permissions": [
+          {"route_id": "1", "name": "national_it", "permission": true},
+          {"route_id": "2", "name": "cellphone_it", "permission": true},
+          {"route_id": "3", "name": "international_it", "permission": true},
+          {"route_id": "4", "name": "toll_it", "permission": true}
+        ],
+        "onSave": true
+      },
+      "expected_status": [200]
+    },
+    {
+      "name": "Read CTI profile 4",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/profiles/4",
+      "expected_status": [200]
+    },
+    {
+      "name": "Create CTI profile test2",
+      "method": "POST",
+      "path": "/freepbx/rest/cti/profiles",
+      "payload": {
+        "name": "test2",
+        "macro_permissions": {
+          "settings": {
+            "value": true,
+            "displayname": "Settings",
+            "description": "General and notifications settings",
+            "permissions": [
+              {"id": "2", "name": "dnd", "displayname": "DND", "description": "Configure do Not Disturb", "value": true},
+              {"id": "3", "name": "call_forward", "displayname": "Call Forward", "description": "Configure Call Forward", "value": true},
+              {"id": "4", "name": "recording", "displayname": "Recording", "description": "Record own conversations. View/listen/delete own recording", "value": true},
+              {"id": "5", "name": "conference", "displayname": "Conference", "description": "Make a conference call", "value": true},
+              {"id": "6", "name": "parkings", "displayname": "Parkings", "description": "View parkings state and pickup parked calls", "value": true},
+              {"id": "15", "name": "spy", "displayname": "Spy", "description": "Hear other extensions calls", "value": false},
+              {"id": "16", "name": "intrude", "displayname": "Intrude", "description": "Intrude in calls", "value": false},
+              {"id": "18", "name": "pickup", "displayname": "Pickup", "description": "Pick-up any call", "value": false}
+            ]
+          },
+          "phonebook": {
+            "value": true,
+            "displayname": "Phonebook",
+            "description": "View Phonebook, add contacts, modify and delete own contacts",
+            "permissions": [
+              {"id": "12", "name": "ad_phonebook", "displayname": "Advanced Phonebook", "description": "Modify and delete all contacts", "value": true}
+            ]
+          },
+          "cdr": {
+            "value": true,
+            "displayname": "CDR",
+            "description": "View own call history",
+            "permissions": [
+              {"id": "13", "name": "ad_cdr", "displayname": "PBX CDR", "description": "View all users call history", "value": true},
+              {"id": "4000", "name": "group_cdr", "displayname": "Group CDR", "description": "Allow to see call history of members of user groups", "value": false}
+            ]
+          },
+          "customer_card": {
+            "value": true,
+            "displayname": "Customer Card",
+            "description": "Allow to view Customer Cards",
+            "permissions": []
+          },
+          "presence_panel": {
+            "value": true,
+            "displayname": "Presence Panel",
+            "description": "Allow to view Presence Panel",
+            "permissions": [
+              {"id": "17", "name": "ad_recording", "displayname": "Advanced Recording", "description": "Record anyone call", "value": false},
+              {"id": "19", "name": "transfer", "displayname": "Transfer", "description": "Transfer everyone call", "value": false},
+              {"id": "20", "name": "ad_parking", "displayname": "Advanced Parking", "description": "Allow to park any call and to pickup them using any extension", "value": false},
+              {"id": "21", "name": "hangup", "displayname": "Hangup", "description": "Hangup everyone call", "value": false},
+              {"id": "22", "name": "trunks", "displayname": "PBX lines", "description": "View PBX lines", "value": true},
+              {"id": "26", "name": "ad_phone", "displayname": "Advanced Phone", "description": "Use phone features (hangup, call, answer) on conversations not owned by the user", "value": false},
+              {"id": "3500", "name": "all_groups", "displayname": "All groups", "description": "Allow to see all groups and operators", "value": false},
+              {"id": "5001", "name": "grp_test", "displayname": "Group: test", "description": "Group: test: of presence panel", "value": false}
+            ]
+          },
+          "queue_agent": {
+            "value": true,
+            "displayname": "Use queue agent panel",
+            "description": "View Queues and queues info of the user, login/logout from queues, enable or disable pause state",
+            "permissions": [
+              {"id": "23", "name": "ad_queue_agent", "displayname": "Advanced queue agent panel", "description": "View more queue information", "value": true},
+              {"id": "24", "name": "lost_queue_call", "displayname": "Lost Queue Calls", "description": "Allow to view Queue Recall panel", "value": true}
+            ]
+          },
+          "streaming": {
+            "value": true,
+            "displayname": "Streaming",
+            "description": "Allow to view Streaming Panel",
+            "permissions": []
+          },
+          "off_hour": {
+            "value": true,
+            "displayname": "Off Hour",
+            "description": "Allow to change of his incoming call paths",
+            "permissions": [
+              {"id": "25", "name": "advanced_off_hour", "displayname": "Advanced Off Hour", "description": "Allow to change user's incoming call path and generic inbound routes", "value": true},
+              {"id": "27", "name": "ad_off_hour", "displayname": "Admin Off Hour", "description": "Allow to change all incoming call paths", "value": true}
+            ]
+          },
+          "remote_sites": {
+            "value": true,
+            "displayname": "Remote Sites",
+            "description": "Allow to view Remote Sites information",
+            "permissions": []
+          },
+          "qmanager": {
+            "value": false,
+            "displayname": "Queue Manager",
+            "description": "Allow to view and manage queues in real time",
+            "permissions": []
+          },
+          "operator_panel": {
+            "value": false,
+            "displayname": "Operator Panel",
+            "description": "Enables Operator Panel interface for operators",
+            "permissions": []
+          },
+          "nethvoice_cti": {
+            "value": true,
+            "displayname": "NethVoice CTI",
+            "description": "Enables access to NethVoice CTI application",
+            "permissions": [
+              {"id": "8", "name": "chat", "displayname": "Chat", "description": "Use chat service", "value": true},
+              {"id": "9", "name": "privacy", "displayname": "Privacy", "description": "Obfuscate called and caller numbers for other users", "value": false},
+              {"id": "1000", "name": "screen_sharing", "displayname": "Screen Sharing", "description": "Allow to share the desktop", "value": false},
+              {"id": "2000", "name": "phone_buttons", "displayname": "Phone buttons", "description": "Allow the user to customize functions of physical phone buttons. These values correspond to the Line Keys settings shown in Devices -> Models and Configurations pages", "value": false},
+              {"id": "3000", "name": "video_conference", "displayname": "Video Conference", "description": "Allow to start a video conference", "value": false},
+              {"id": "5000", "name": "satellite_stt", "displayname": "Speech-To-Text", "description": "Calls transcription using Speech-To-Text", "value": false}
+            ]
+          }
+        },
+        "outbound_routes_permissions": [
+          {"route_id": "1", "name": "national_it", "permission": true},
+          {"route_id": "2", "name": "cellphone_it", "permission": true},
+          {"route_id": "3", "name": "international_it", "permission": true},
+          {"route_id": "4", "name": "toll_it", "permission": true}
+        ]
+      },
+      "expected_status": [200]
+    },
+    {
+      "name": "List CTI profiles after creating test2",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/profiles",
+      "expected_status": [200]
+    },
+    {
+      "name": "List CTI groups after creating test2",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/groups",
+      "expected_status": [200]
+    },
+    {
+      "name": "Delete CTI profile 5",
+      "method": "DELETE",
+      "path": "/freepbx/rest/cti/profiles/5",
+      "expected_status": [200]
+    },
+    {
+      "name": "List CTI profiles after deleting profile 5",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/profiles",
+      "expected_status": [200]
+    },
+    {
+      "name": "List CTI groups after deleting profile 5",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/groups",
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 11",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 11},
+      "expected_status": [200]
+    },
+    {
+      "name": "Read user sync state",
+      "method": "GET",
+      "path": "/freepbx/rest/users/sync",
+      "expected_status": [200]
+    },
+    {
+      "name": "Fetch MAC address map again",
+      "method": "GET",
+      "path": "/freepbx/rest/lib/macAddressMap.json",
+      "expected_status": [200]
+    },
+    {
+      "name": "List users with sync",
+      "method": "GET",
+      "path": "/freepbx/rest/users/true",
+      "expected_status": [200]
+    },
+    {
+      "name": "List CTI profiles at step 11",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/profiles",
+      "expected_status": [200]
+    },
+    {
+      "name": "List CTI groups at step 11",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/groups",
+      "expected_status": [200]
+    },
+    {
+      "name": "List users without sync before app setup",
+      "method": "GET",
+      "path": "/freepbx/rest/users/false",
+      "expected_status": [200]
+    },
+    {
+      "name": "Read CTI groups for user 1",
+      "method": "GET",
+      "path": "/freepbx/rest/cti/groups/users/1",
+      "expected_status": [200]
+    },
+    {
+      "name": "Read voicemail for extension 201",
+      "method": "GET",
+      "path": "/freepbx/rest/voicemails/201",
+      "expected_status": [200]
+    },
+    {
+      "name": "Read mobile for alice",
+      "method": "GET",
+      "path": "/freepbx/rest/mobiles/alice",
+      "expected_status": [200]
+    },
+    {
+      "name": "Read WebRTC extension for 201",
+      "method": "GET",
+      "path": "/freepbx/rest/webrtc/201",
+      "expected_status": [200]
+    },
+    {
+      "name": "Read NethLink extension for 201",
+      "method": "GET",
+      "path": "/freepbx/rest/nethlink/201",
+      "expected_status": [200]
+    },
+    {
+      "name": "Read mobile app extension for 201",
+      "method": "GET",
+      "path": "/freepbx/rest/mobileapp/201",
+      "expected_status": [200]
+    },
+    {
+      "name": "Assign CTI profile 1 to user 1",
+      "method": "POST",
+      "path": "/freepbx/rest/cti/profiles/users/1",
+      "payload": {"profile_id": "1"},
+      "expected_status": [200]
+    },
+    {
+      "name": "Assign CTI group 1 to user 1",
+      "method": "POST",
+      "path": "/freepbx/rest/cti/groups/users/1",
+      "payload": {"groups": ["1"]},
+      "expected_status": [200]
+    },
+    {
+      "name": "Enable voicemail for extension 201",
+      "method": "POST",
+      "path": "/freepbx/rest/voicemails",
+      "payload": {"extension": "201", "state": "yes"},
+      "expected_status": [200]
+    },
+    {
+      "name": "Set mobile number for alice",
+      "method": "POST",
+      "path": "/freepbx/rest/mobiles",
+      "payload": {"username": "alice", "mobile": "1234567890"},
+      "expected_status": [200]
+    },
+    {
+      "name": "Create WebRTC extension for 201",
+      "method": "POST",
+      "path": "/freepbx/rest/webrtc",
+      "payload": {"extension": "201"},
+      "expected_status": [200]
+    },
+    {
+      "name": "Reassign CTI group 1 to user 1 after WebRTC",
+      "method": "POST",
+      "path": "/freepbx/rest/cti/groups/users/1",
+      "payload": {"groups": ["1"]},
+      "expected_status": [200]
+    },
+    {
+      "name": "Create mobile app extension for 201",
+      "method": "POST",
+      "path": "/freepbx/rest/mobileapp",
+      "payload": {"mainextension": "201"},
+      "expected_status": [201]
+    },
+    {
+      "name": "Create NethLink extension for 201",
+      "method": "POST",
+      "path": "/freepbx/rest/nethlink",
+      "payload": {"extension": "201"},
+      "expected_status": [200]
+    },
+    {
+      "name": "Reassign CTI group 1 to user 1 after app provisioning",
+      "method": "POST",
+      "path": "/freepbx/rest/cti/groups/users/1",
+      "payload": {"groups": ["1"]},
+      "expected_status": [200]
+    },
+    {
+      "name": "Read Tancredi defaults first pass",
+      "method": "GET",
+      "path": "/tancredi/api/v1/defaults",
+      "expected_status": [200]
+    },
+    {
+      "name": "Read Tancredi defaults second pass",
+      "method": "GET",
+      "path": "/tancredi/api/v1/defaults",
+      "expected_status": [200]
+    },
+    {
+      "name": "List provisionable phones",
+      "method": "GET",
+      "path": "/freepbx/rest/devices/phones/list",
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 12",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 12},
+      "expected_status": [200]
+    },
+    {
+      "name": "List available languages",
+      "method": "GET",
+      "path": "/freepbx/rest/settings/languages",
+      "expected_status": [200]
+    },
+    {
+      "name": "Set default language to it",
+      "method": "POST",
+      "path": "/freepbx/rest/settings/defaultlanguage",
+      "payload": {"lang": "it"},
+      "expected_status": [200]
+    },
+    {
+      "name": "Advance wizard to step 13",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "true", "step": 13},
+      "expected_status": [200]
+    },
+    {
+      "name": "Close wizard at step 13",
+      "method": "POST",
+      "path": "/freepbx/rest/configuration/wizard",
+      "payload": {"status": "false", "step": 13},
+      "expected_status": [200]
+    }
+  ]
+}

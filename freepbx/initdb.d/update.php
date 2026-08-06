@@ -83,6 +83,29 @@ $pjsip_identifiers_order = json_encode(['header', 'ip', 'username', 'auth_userna
 $stmt = $db->prepare("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = ? WHERE `key` = 'pjsip_identifers_order' AND `val` = 'ip,username,anonymous,auth_username'");
 $stmt->execute([$pjsip_identifiers_order]);
 
+// Asterisk 22 rejects local_net=none. Keep disabled transport local networks
+// as empty values so regenerated PJSIP transport config omits the setting.
+$stmt = $db->prepare(
+	"UPDATE `asterisk`.`kvstore_Sipsettings`
+	SET `val` = ''
+	WHERE (`key` LIKE 'tcplocalnet-%' OR `key` LIKE 'udplocalnet-%' OR `key` LIKE 'tlslocalnet-%')
+	AND LOWER(TRIM(`val`)) = 'none'"
+);
+$stmt->execute();
+
+// Disable automatic module updates and keep security updates in email-only mode.
+$stmt = $db->prepare(
+	"INSERT INTO `asterisk`.`kvstore_FreePBX` (`key`, `val`, `type`, `id`) VALUES (?, ?, NULL, 'updates')
+	ON DUPLICATE KEY UPDATE `val` = VALUES(`val`), `type` = VALUES(`type`)"
+);
+foreach ([
+	['auto_module_updates', 'disabled'],
+	['auto_module_security_updates', 'emailonly'],
+	['unsigned_module_emails', 'disabled'],
+] as [$key, $value]) {
+	$stmt->execute([$key, $value]);
+}
+
 // Rename the Satellite CTI permission displayname/description on existing
 // installations. The migration.php script exits early once it has already run,
 // so its UPDATE branch never reaches already-migrated installs; doing it here
@@ -97,17 +120,26 @@ $stmt->execute();
 // If is set to "call" and there is an email address configured for that route,
 // set it to "pattern", if no email is configured set it to empty.
 // "call" option doesn't even works and breaks satellite real time transcription #7795
-$sql = "UPDATE `asterisk`.`outbound_routes` 
-		SET `notification_on` = 'pattern' 
-		WHERE `notification_on` = 'call' AND `route_id` IN (
-			SELECT `route_id` 
-			FROM `asterisk`.`outbound_route_email` 
-			WHERE `emailto` LIKE '%@%');
-		UPDATE `asterisk`.`outbound_routes` 
-		SET `notification_on` = ''
-		WHERE `route_id` NOT IN (
-			SELECT `route_id` 
-			FROM `asterisk`.`outbound_route_email` 
-			WHERE `emailto` LIKE '%@%')";
+$sql = "SELECT COUNT(*) AS `required_tables`
+	FROM `information_schema`.`TABLES`
+	WHERE `TABLE_SCHEMA` = 'asterisk'
+	AND `TABLE_NAME` IN ('outbound_routes', 'outbound_route_email')";
 $stmt = $db->prepare($sql);
 $stmt->execute();
+$res = $stmt->fetch(\PDO::FETCH_ASSOC);
+if ((int) ($res['required_tables'] ?? 0) === 2) {
+	$sql = "UPDATE `asterisk`.`outbound_routes` 
+			SET `notification_on` = 'pattern' 
+			WHERE `notification_on` = 'call' AND `route_id` IN (
+				SELECT `route_id` 
+				FROM `asterisk`.`outbound_route_email` 
+				WHERE `emailto` LIKE '%@%');
+			UPDATE `asterisk`.`outbound_routes` 
+			SET `notification_on` = ''
+			WHERE `route_id` NOT IN (
+				SELECT `route_id` 
+				FROM `asterisk`.`outbound_route_email` 
+				WHERE `emailto` LIKE '%@%')";
+	$stmt = $db->prepare($sql);
+	$stmt->execute();
+}

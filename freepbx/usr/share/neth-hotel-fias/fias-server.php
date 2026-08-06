@@ -153,7 +153,7 @@ function sendLDLRLA($socket) {
     global $config;
     logMessage("Send LDLR", DEBUGVERBOSE, "fias-server");
     $sent = false;
-    while (list($key, $val) = each($config["record_LDLR"])) {
+    foreach ($config["record_LDLR"] as $key => $val) {
         if (getOperationCommand($val) == "LD") {
             $val = str_replace("DA", "DA" . date("ymd"), $val);
             $val = str_replace("TI", "TI" . date("His"), $val);
@@ -290,6 +290,7 @@ while ($socket = socket_accept($sock)) {
                     break;
                     case -1: // timeout
                         $state = "stSendLS";
+                    break;
                     case -2: // disconnected
                     case -3: // Out of sequence
                         $state = "stDisconnected";
@@ -310,7 +311,7 @@ while ($socket = socket_accept($sock)) {
                     $sth = $fiasserverdb->prepare($query);
                     $rs = $sth->execute(array($record, $record_id));
                     if ($rs === false) {
-                        logMessage("Error updating record; record_id: $record_id; " . mysql_error(), ERROR, "fias-server");
+                        logMessage("Error updating record; record_id: $record_id; " . getPDOErrorMessage($sth), ERROR, "fias-server");
                     }
                     $state = "stWaitForData";
                 }
@@ -342,7 +343,7 @@ while ($socket = socket_accept($sock)) {
                     $sth = $fiasserverdb->prepare($query);
                     $rs = $sth->execute(array());
                     if (!$rs) {
-                        throw new Exception('Mysql Error reading messages; ' . mysql_error());
+                        throw new Exception('Database error reading messages; ' . getPDOErrorMessage($sth));
                     }
                     $data = $sth->fetchAll();
                     if (count($data) == 0) {
@@ -362,7 +363,7 @@ while ($socket = socket_accept($sock)) {
                             $sth = $fiasserverdb->prepare($query);
                             $rs = $sth->execute(array($record, $record_id));
                             if ($rs === false) {
-                                logMessage('Mysql Error updating messages; ' . mysql_error(), INFO, "fias-server");
+                                logMessage('Database error updating messages; ' . getPDOErrorMessage($sth), INFO, "fias-server");
                             }
                             logMessage("LE (Link End) message sent. Exiting", INFO, "fias-server");
                             $state = "stDisconnected";
@@ -387,16 +388,16 @@ while ($socket = socket_accept($sock)) {
                     $sth = $fiasserverdb->prepare($query);
                     $rs = $sth->execute(array($params[0], $record));
                     if (!$rs) {
-                        throw new Exception('Error writing message to DB; ' . mysql_error());
+                        throw new Exception('Error writing message to DB; ' . getPDOErrorMessage($sth));
                     }
                     $last_id = $fiasserverdb->lastInsertId();
-                    logMessage("INSERT INTO messagesparameters (msgid, param, value) VALUES ({$last_id},\"" . substr($params[$i], 0, 2) . "\",\"" . substr($params[$i], 2) . "\")'", DEBUGVERBOSE, "fias-server");
                     $query = 'INSERT INTO messagesparameters (msgid, param, value) VALUES (?,?,?)';
                     $sth = $fiasserverdb->prepare($query);
                     for ($i = 1;$i < count($params) - 1;$i++) {
+                        logMessage("INSERT INTO messagesparameters (msgid, param, value) VALUES ({$last_id},\"" . substr($params[$i], 0, 2) . "\",\"" . substr($params[$i], 2) . "\")'", DEBUGVERBOSE, "fias-server");
                         $rs = $sth->execute(array($last_id, substr($params[$i], 0, 2), substr($params[$i], 2)));
                         if (!$rs) {
-                            throw new Exception('Error writing messageparameters to DB; ' . mysql_error());
+                            throw new Exception('Error writing message parameters to DB; ' . getPDOErrorMessage($sth));
                         }
                     }
                     $state = "stReadDB";
@@ -409,4 +410,3 @@ while ($socket = socket_accept($sock)) {
         }
     }
 }
-

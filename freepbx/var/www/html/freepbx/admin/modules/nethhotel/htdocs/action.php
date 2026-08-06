@@ -4,8 +4,9 @@
  require("translations.php");
 
 $ntabs = $_REQUEST['ntab'];
+$action = $_REQUEST['action'] ?? '';
 
-switch($_REQUEST['action'])
+switch($action)
 {
   case 'addRate':
     if (addRate($_REQUEST['duration'],$_REQUEST['price'],$_REQUEST['answer_duration'],$_REQUEST['answer_price'],$_REQUEST['pattern'],$_REQUEST['enabled'],$_REQUEST['name']))
@@ -172,7 +173,7 @@ switch($_REQUEST['action'])
 
 }
 
-if ($_REQUEST['action']==='gettext'){
+if ($action === 'gettext'){
     header ('Content-Type: application/json');
 
     $untranslated = json_decode(stripslashes($_REQUEST['untranslated']));
@@ -181,4 +182,3 @@ if ($_REQUEST['action']==='gettext'){
     }
     echo json_encode($translated);
 }
-

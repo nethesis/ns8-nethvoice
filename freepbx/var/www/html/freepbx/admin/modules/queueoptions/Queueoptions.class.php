@@ -66,9 +66,9 @@ class Queueoptions implements \BMO
     // This handles any data passed to this module before the page is rendered.
     public function doConfigPageInit($page) {
         $dbh = \FreePBX::Database();
-        $action = $_REQUEST['action']?$_REQUEST['action']:'';
+        $action = $_REQUEST['action'] ?? '';
         if ($page === 'queues' and ($action == 'add' or $action == 'edit')) {
-            $id = $_REQUEST['extdisplay']?$_REQUEST['extdisplay']:'';
+            $id = $_REQUEST['extdisplay'] ?? '';
             $sql = 'DELETE FROM `queues_details` WHERE `id` = ? AND `keyword` = "lazymembers"';
             $data = array($id);
             if (isset($_REQUEST['LazyMembers']) && $_REQUEST['LazyMembers'] == 1) {
@@ -79,24 +79,24 @@ class Queueoptions implements \BMO
             $sth->execute($data);
         }
         if ($page === 'queueoptions') {
-            $id = $_REQUEST['id']?$_REQUEST['id']:'';
-            $name = $_REQUEST['name']?$_REQUEST['name']:'';
-            $VQ_CIDPP = $_REQUEST['VQ_CIDPP']?$_REQUEST['VQ_CIDPP']:'';
-            $VQ_AINFO = $_REQUEST['VQ_AINFO']?$_REQUEST['VQ_AINFO']:'';
-            $VQ_JOINMSG = $_REQUEST['VQ_JOINMSG']?$_REQUEST['VQ_JOINMSG']:'';
-            $VQ_RETRY = $_REQUEST['VQ_RETRY']?$_REQUEST['VQ_RETRY']:'';
-            $VQ_OPTIONS = $_REQUEST['VQ_OPTIONS']?$_REQUEST['VQ_OPTIONS']:'';
-            $VQ_GOSUB = $_REQUEST['VQ_GOSUB']?$_REQUEST['VQ_GOSUB']:'';
-            $VQ_AGI = $_REQUEST['VQ_AGI']?$_REQUEST['VQ_AGI']:'';
-            $VQ_POSITION_ENABLED = $_REQUEST['VQ_POSITION_ENABLED']?$_REQUEST['VQ_POSITION_ENABLED']:0;
-            $VQ_POSITION = $_REQUEST['VQ_POSITION']?$_REQUEST['VQ_POSITION']:'';
-            $VQ_CONFIRMMSG = $_REQUEST['VQ_CONFIRMMSG']?$_REQUEST['VQ_CONFIRMMSG']:'';
-            $VQ_AANNOUNCE = $_REQUEST['VQ_AANNOUNCE']?$_REQUEST['VQ_AANNOUNCE']:'';
-            $VQ_MOH = $_REQUEST['VQ_MOH']?$_REQUEST['VQ_MOH']:'';
-            $VQ_MAXWAIT_ENABLED = $_REQUEST['VQ_MAXWAIT_ENABLED']?$_REQUEST['VQ_MAXWAIT_ENABLED']:0;
-            $VQ_MAXWAIT = $_REQUEST['VQ_MAXWAIT']?$_REQUEST['VQ_MAXWAIT']:'';
-            $VQ_DEST_ENABLED = $_REQUEST['VQ_DEST_ENABLED']?$_REQUEST['VQ_DEST_ENABLED']:0;
-            $DEST = $_REQUEST['DEST']?$_REQUEST['DEST']:'';
+            $id = $_REQUEST['id'] ?? '';
+            $name = $_REQUEST['name'] ?? '';
+            $VQ_CIDPP = $_REQUEST['VQ_CIDPP'] ?? '';
+            $VQ_AINFO = $_REQUEST['VQ_AINFO'] ?? '';
+            $VQ_JOINMSG = $_REQUEST['VQ_JOINMSG'] ?? '';
+            $VQ_RETRY = $_REQUEST['VQ_RETRY'] ?? '';
+            $VQ_OPTIONS = $_REQUEST['VQ_OPTIONS'] ?? '';
+            $VQ_GOSUB = $_REQUEST['VQ_GOSUB'] ?? '';
+            $VQ_AGI = $_REQUEST['VQ_AGI'] ?? '';
+            $VQ_POSITION_ENABLED = $_REQUEST['VQ_POSITION_ENABLED'] ?? 0;
+            $VQ_POSITION = $_REQUEST['VQ_POSITION'] ?? '';
+            $VQ_CONFIRMMSG = $_REQUEST['VQ_CONFIRMMSG'] ?? '';
+            $VQ_AANNOUNCE = $_REQUEST['VQ_AANNOUNCE'] ?? '';
+            $VQ_MOH = $_REQUEST['VQ_MOH'] ?? '';
+            $VQ_MAXWAIT_ENABLED = $_REQUEST['VQ_MAXWAIT_ENABLED'] ?? 0;
+            $VQ_MAXWAIT = $_REQUEST['VQ_MAXWAIT'] ?? '';
+            $VQ_DEST_ENABLED = $_REQUEST['VQ_DEST_ENABLED'] ?? 0;
+            $DEST = $_REQUEST['DEST'] ?? '';
             //Destination
             $key = 'VQ_DEST';
             if (isset($_REQUEST['goto'.$key]) && isset($_REQUEST[$_REQUEST['goto'.$key].$key])) {
@@ -217,9 +217,9 @@ class Queueoptions implements \BMO
     // This is also documented at http://wiki.freepbx.org/display/FOP/BMO+Ajax+Calls
     public function ajaxHandler()
     {
-        switch ($_REQUEST['command']) {
+        switch ($_REQUEST['command'] ?? '') {
         case 'getJSON':
-            switch ($_REQUEST['jdata']) {
+            switch ($_REQUEST['jdata'] ?? '') {
             case 'grid':
                 $ret = array();
                 foreach ( $this->queueoptions_get() as $qcb) {
@@ -243,9 +243,12 @@ class Queueoptions implements \BMO
     // http://wiki.freepbx.org/display/FOP/HTML+Output+from+BMO
     public function showPage()
     {
-        switch ($_REQUEST['view']) {
+        $view = $_REQUEST['view'] ?? '';
+        $id = $_REQUEST['id'] ?? '';
+
+        switch ($view) {
         case 'form':
-            if(isset($_REQUEST['id']) && !empty($_REQUEST['id'])){
+            if (!empty($id)) {
                 $subhead = _('Edit Queue Options');
                 $content = load_view(__DIR__.'/views/form.php', array('config' => $this->queueoptions_get($id)));
             }else{
@@ -272,7 +275,10 @@ class Queueoptions implements \BMO
             $sql = 'SELECT * FROM queueoptions WHERE id = ?';
             $sth = $dbh->prepare($sql);
             $sth->execute(array($id));
-            $res = $sth->fetchAll()[0];
+            $res = $sth->fetch(\PDO::FETCH_ASSOC);
+            if (!is_array($res)) {
+                $res = array();
+            }
         }
         return $res;
     }
@@ -346,8 +352,6 @@ class Queueoptions implements \BMO
     public static function myConfigPageInits() { return array("queues"); }
     public static function myGuiHooks() { return array(); }
 }
-
-
 
 
 

@@ -29,7 +29,7 @@ include(AGIBIN_DIR."/phpagi.php");
 $agi = new AGI();
 
 //Get cqr id, passed as an argument and check that it isn't empty
-$id_cqr = $argv[1];
+$id_cqr = $argv[1] ?? '';
 if (empty($id_cqr)) {
     $agi->verbose("ERROR: id_cqr cannot be empty!");
     exit (1);
@@ -40,6 +40,10 @@ $sql = "SELECT * FROM nethcqr_details WHERE `id_cqr`= ?";
 $stmt = $db->prepare($sql);
 $stmt->execute(array($id_cqr));
 $cqr_details = $stmt->fetch(\PDO::FETCH_ASSOC);
+if (!is_array($cqr_details)) {
+    $agi->verbose("ERROR: CQR id $id_cqr does not exist");
+    exit(1);
+}
 
 $variables = array (
     'DATE' => date("Y-m-d G:i:s"),
@@ -95,7 +99,7 @@ if (empty($cqr_details['use_code'])) {
             $stmt = $phonebookdb->prepare($sql);
             $stmt->execute(["%$number","%$number"]);
             $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            if (!empty($workphones) && count($res)>=1){
+            if (!empty($res)) {
                 $variables['CID'] = $res[0]['workphone'];
             }
         } catch (PDOException $e) {
@@ -119,14 +123,14 @@ if (empty($cqr_details['use_code'])) {
     $stmt = $cqr_cc_db->prepare($cc_query);
     $stmt->execute();
     $cqr_query_results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-    if (is_array($cqr_query_results)) {
-        if (is_array($cqr_query_results[0])) {
-            $variables['CUSTOMERCODE'] = array_pop($cqr_query_results[0]);
+    $variables['CUSTOMERCODE'] = '';
+    if (!empty($cqr_query_results)) {
+        $first_result = $cqr_query_results[0];
+        if (is_array($first_result)) {
+            $variables['CUSTOMERCODE'] = array_pop($first_result);
         } else {
-            $variables['CUSTOMERCODE'] = $cqr_query_results[0];
+            $variables['CUSTOMERCODE'] = $first_result;
         }
-    } else {
-        $variables['CUSTOMERCODE'] = $cqr_query_results;
     }
 
     if (!empty($variables['CUSTOMERCODE'])) {

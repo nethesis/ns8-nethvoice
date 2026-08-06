@@ -22,7 +22,10 @@
 require_once('/etc/freepbx.conf');
 
 try{
-    $name = $argv[1];
+    $name = $argv[1] ?? '';
+    if ($name === '') {
+        throw new InvalidArgumentException('Missing gateway name');
+    }
     if (isset($argv[2])) {
         $mac=$argv[2];
     } else {
@@ -54,6 +57,9 @@ try{
     $sth = FreePBX::Database()->prepare($sql);
     $sth->execute(array($config['model_id']));
     $res = $sth->fetch(\PDO::FETCH_ASSOC);
+    if ($res === false) {
+        throw new RuntimeException('Gateway model not found');
+    }
     $config['model'] = $res['model'];
     $config['manufacturer'] = $res['manufacturer'];
 
@@ -78,11 +84,16 @@ try{
         $script = "mediatrix-tftp";
         $deviceUsername = 'admin';
         $devicePassword = 'administrator';
+    } else {
+        throw new RuntimeException('Unsupported gateway manufacturer');
     }
 
     $cmd='/var/www/html/freepbx/rest/lib/gateway/pushtftp/'.$script.' '.escapeshellarg($config['ipv4']).' '.escapeshellarg($config['ipv4_green']).' '.escapeshellarg($filename).' '.escapeshellarg($deviceUsername).' '.escapeshellarg($devicePassword);
-    exec($cmd,$return);
-} catch (Exception $e){
+    exec($cmd,$output,$exitCode);
+    if ($exitCode !== 0) {
+        throw new RuntimeException('Gateway TFTP push failed');
+    }
+} catch (Throwable $e){
     error_log($e->getMessage());
     exit(1);
 }

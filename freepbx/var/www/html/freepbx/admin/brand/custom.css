@@ -9,7 +9,7 @@ a, a:visited {
 .freepbx-navbar .navbar {
   border-top-color: #6ec664;
 }
-.freepbx-navbar .navbar .navbar-nav > li.open {
+.freepbx-navbar .navbar .navbar-nav > li.open, .freepbx-navbar .navbar .navbar-nav > li.show {
   border-left-color: #6ec664;
 }
 .freepbx-navbar .navbar .navbar-nav > li:hover {

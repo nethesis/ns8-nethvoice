@@ -6,9 +6,10 @@ $ini_file = parse_ini_file("/etc/asterisk/fias.conf", true);
 $config = $ini_file["fiasd"];
 $dbconfig = $ini_file["general"];
 
-$fiasserverdb = new \PDO('mysql:host='.$dbconfig["dbhost"].';dbname=fias_server',$dbconfig["user"],$dbconfig["pwd"]);
-if ($fiasserverdb === false) {
-    logMessage("Error connecting to database; ".mysql_error(), ERROR, __FILE__);
+try {
+    $fiasserverdb = new \PDO('mysql:host='.$dbconfig["dbhost"].';dbname=fias_server',$dbconfig["user"],$dbconfig["pwd"]);
+} catch (PDOException $e) {
+    logMessage("Error connecting to database; ".$e->getMessage(), ERROR, __FILE__);
     exit(1);
 }
 
@@ -33,7 +34,7 @@ function insertMessageIntoServerDB($section,$parameters) {
         $sth = $fiasserverdb->prepare($query);
         $rs = $sth->execute(array($matches[1],$matches[2]));
         if (!$rs) {
-            throw new Exception('Mysql Error inserting message');
+            throw new Exception('Database error inserting message: '.getPDOErrorMessage($sth));
         }
         $msgid = $fiasserverdb->lastInsertId();
         if (!empty($parameters)) {
@@ -42,7 +43,7 @@ function insertMessageIntoServerDB($section,$parameters) {
                 $sth = $fiasserverdb->prepare($query);
                 $rs = $sth->execute(array($msgid,$label,$value));
                 if (!$rs) {
-                    throw new Exception('Mysql Error inserting messageparameters');
+                    throw new Exception('Database error inserting message parameters: '.getPDOErrorMessage($sth));
                 }
             }
 	}

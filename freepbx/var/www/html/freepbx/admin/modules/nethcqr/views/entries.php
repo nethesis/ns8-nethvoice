@@ -32,7 +32,7 @@ if (!$entries){
 	$entries=array(array(
 		'position' => 1,
 		'condition' => '',
-		'goto' => ''
+		'destination' => ''
 	));
 }
 foreach ($entries as $e) {

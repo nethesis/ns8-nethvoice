@@ -3,6 +3,7 @@
 date_default_timezone_set('Europe/Rome');
 
 define( "ERROR" , 0);
+define( "WARNING" , 0);
 define( "INFO" , 1);
 define( "DEBUG" , 2);
 define( "DEBUGVERBOSE" , 3);
@@ -25,6 +26,16 @@ function logMessage($message, $level=ERROR, $tag="") {
     }
     fputs($out, Date("ymd H.i.s")." {$tag}[".getmypid()."]: ".$message."\n");
     fclose($out);
+}
+
+function getPDOErrorMessage($resource) {
+    if (is_object($resource) && method_exists($resource, 'errorInfo')) {
+        $error = $resource->errorInfo();
+        if (isset($error[2]) && $error[2] !== '') {
+            return $error[2];
+        }
+    }
+    return 'unknown database error';
 }
 
 function getSection($command_full_path) {
@@ -63,7 +74,7 @@ function insertMessageIntoDB($section,$parameters) {
         $sth = $fiasdb->prepare($query);
         $rs = $sth->execute(array($matches[1],$matches[2]));
         if (!$rs) {
-            throw new Exception('Mysql Error inserting message');
+            throw new Exception('Database error inserting message: '.getPDOErrorMessage($sth));
         }
         $msgid = $fiasdb->lastInsertId();
         if (!empty($parameters)) {
@@ -72,7 +83,7 @@ function insertMessageIntoDB($section,$parameters) {
                 $sth = $fiasdb->prepare($query);
                 $rs = $sth->execute(array($msgid,$label,$value));
                 if (!$rs) {
-                    throw new Exception('Mysql Error inserting messageparameters');
+                    throw new Exception('Database error inserting message parameters: '.getPDOErrorMessage($sth));
                 }
             }
         }
@@ -84,12 +95,11 @@ function insertMessageIntoDB($section,$parameters) {
 }
 
 include_once('/etc/freepbx_db.conf');
-$fiasdb = new \PDO($amp_conf['AMPDBENGINE'].':host='.$amp_conf['AMPDBHOST'].';port='.$amp_conf['AMPDBPORT'].';dbname=fias',
-	$amp_conf['AMPDBUSER'],
-	$amp_conf['AMPDBPASS']);
-
-if ($fiasdb === false) {
-    logMessage("Error connecting to database; ".mysql_error(), ERROR, __FILE__);
+try {
+    $fiasdb = new \PDO($amp_conf['AMPDBENGINE'].':host='.$amp_conf['AMPDBHOST'].';port='.$amp_conf['AMPDBPORT'].';dbname=fias',
+        $amp_conf['AMPDBUSER'],
+        $amp_conf['AMPDBPASS']);
+} catch (PDOException $e) {
+    logMessage("Error connecting to database; ".$e->getMessage(), ERROR, __FILE__);
     exit(1);
 }
-

@@ -7,6 +7,11 @@ require_once '/etc/freepbx_db.conf';
 
 logMessage(implode(" ",$argv),DEBUG,"cdr");
 
+if ($argc < 14) {
+    logMessage("Invalid CDR arguments", ERROR, "cdr");
+    exit(1);
+}
+
 $cdr_config = $ini_file["cdr"];
 $cdrExternalExtensions=explode(',',$cdr_config['cdrExternalExtensions']);
 $cdrInternalExtensions=explode(',',$cdr_config['cdrInternalExtensions']);
@@ -80,7 +85,7 @@ if ( $calltype === 'Incoming' || $calltype === 'Internal' || $disposition != 'AN
 if (strlen($source) <= 4) {
     // 3-4 digit extensions
     $room_number = $source;
-} elseif (strlen($source) <= 6 && strpos($source, '9') === '0') {
+} elseif (strlen($source) <= 6 && strpos($source, '9') === 0) {
     // 3-4 digit extensions, but call is made using a secondary extension
     $room_number = substr($source,2);
 } else {
@@ -102,7 +107,7 @@ try {
     $query = "SELECT COUNT(*) as num FROM messages WHERE `cmd` = 'PS' AND `dir` = 'PMS'";
     $sth = $fiasdb->prepare($query);
     $rs = $sth->execute();
-    $res = $sth->fetchAll(PDO::FETCH_ASSOC)[0]['num'];
+    $res = $sth->fetchColumn();
     $psn = (int) $res + 1;
     // P# max length is 8 byte
     $psn = $psn % 99999999;
@@ -120,6 +125,7 @@ if (isset($options['prefix'])&& $options['prefix']!='') {
 $rate = findRate($dst, getAllRates());
 $answer_duration = (int) $rate['answer_duration'];
 $tick_duration = (int) $rate['duration'];
+$ticks = 0;
 
 if ($billableseconds > $answer_duration ) {
     $bs = $billableseconds - $answer_duration;

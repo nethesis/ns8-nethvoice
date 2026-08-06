@@ -5,6 +5,8 @@
     <publisher>Nethesis</publisher>
     <type>setup</type>
     <category>Applications</category>
+    <license>GPLv3+</license>
+    <licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
     <menuitems>
         <nethhotel>Gestione Camere</nethhotel>
         <hotel>Hotel</hotel>

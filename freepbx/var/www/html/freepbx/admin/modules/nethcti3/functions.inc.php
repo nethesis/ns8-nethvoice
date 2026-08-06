@@ -88,14 +88,17 @@ function nethcti3_get_config($engine) {
                 $dbh = \FreePBX::Database();
                 $stmt = $dbh->prepare('SELECT value FROM soundlang_settings WHERE keyword = "language"');
                 $stmt->execute();
-                $res = $stmt->fetch();
+                $language = $stmt->fetchColumn();
+                if ($language === false) {
+                    $language = '';
+                }
 
                 /* set admin bridge */
                 $conferences_conf->addConfBridge("cti_admin_bridge_conf", 'record_conference', 'yes');
-                $conferences_conf->addConfBridge("cti_admin_bridge_conf", 'language', $res['value']);
+                $conferences_conf->addConfBridge("cti_admin_bridge_conf", 'language', $language);
 
                 /* set admin bridge */
-                $conferences_conf->addConfBridge("cti_bridge_conf", 'language', $res['value']);
+                $conferences_conf->addConfBridge("cti_bridge_conf", 'language', $language);
 
                 /* set admin user conf*/
                 $conferences_conf->addConfUser("cti_admin_user_conf", 'marked', 'yes');
@@ -189,6 +192,8 @@ function nethcti3_get_config_late($engine) {
             }
             $nethcti3 = \FreePBX::Nethcti3();
             $trunks = FreePBX::Core()->listTrunks();
+            $add_unset_topos = false;
+            $add_unset_istrunk = false;
             foreach ($trunks as $trunk) {
                 try {
                     /*Add isTrunk = 1 header to VoIP trunks that doesn't require SRTP encryption*/
@@ -413,8 +418,9 @@ function nethcti3_get_config_late($engine) {
         $users = \FreePBX::create()->Userman->getAllUsers();
         $dbh = \FreePBX::Database();
         $freepbxVoicemails = \FreePBX::Voicemail()->getVoicemail();
-        $enabledVoicemails = ($freepbxVoicemails['default'] != null) ? array_keys($freepbxVoicemails['default']) : array();
-        $domainName = end(explode('.', gethostname(), 2));
+        $enabledVoicemails = !empty($freepbxVoicemails['default']) ? array_keys($freepbxVoicemails['default']) : array();
+        $hostnameParts = explode('.', gethostname(), 2);
+        $domainName = end($hostnameParts);
         $enableJanus = false;
 
         foreach ($users as $user) {
@@ -424,10 +430,10 @@ function nethcti3_get_config_late($engine) {
                     // Retrieve profile id and mobile
                     $stmt = $dbh->prepare('SELECT profile_id,mobile FROM rest_users WHERE user_id = ?');
                     $stmt->execute(array($user['id']));
-                    $profileRes = $stmt->fetch();
+                    $profileRes = $stmt->fetch(\PDO::FETCH_ASSOC);
 
                     // Skip user if he doesn't have a profile associated
-                    if ($profileRes['profile_id'] == null) {
+                    if (!is_array($profileRes) || empty($profileRes['profile_id'])) {
                         continue;
                     }
 
@@ -465,7 +471,7 @@ function nethcti3_get_config_late($engine) {
                                 $stmt->execute(array($e['extension']));
                                 $sipres = $stmt->fetchAll();
 
-                                if ($sipres[0]['data'] && $sipres[1]['data']) {
+                                if (count($sipres) >= 2 && !empty($sipres[0]['data']) && !empty($sipres[1]['data'])) {
                                     $settings['user'] = $sipres[0]['data'];
                                     $settings['password'] = $sipres[1]['data'];
                                 } else {
@@ -498,7 +504,7 @@ function nethcti3_get_config_late($engine) {
                         'firstname' => isset($user['fname']) ? (string)$user['fname'] : '',
                         'lastname' => isset($user['lname']) ? (string)$user['lname'] : '',
                         'endpoints' => $endpoints,
-                        'profile_id' => $profileRes['profile_id']
+                        'profile_id' => (string) $profileRes['profile_id']
                     );
 
                     $json[preg_replace('/@[\.a-zA-Z0-9]*/','',$user['username'])] = $userJson;
@@ -517,9 +523,11 @@ function nethcti3_get_config_late($engine) {
         }
 
         // Write operator.json configuration file
+        $out = [];
         $results = getCTIGroups();
-        if (!$results) {
-            error_log('Empty operator config');
+        if ($results === false) {
+            error_log('Failed to load CTI groups for operator config');
+            $results = [];
         }
         foreach ($results as $r) {
             $out[$r['name']][] = $r['username'];
@@ -536,13 +544,30 @@ function nethcti3_get_config_late($engine) {
         */
         $out = [];
         $results = getCTIPermissionProfiles(false,true,false);
-        if (!$results) {
-            error_log('Empty profile config');
+        if ($results === false) {
+            error_log('Failed to load CTI profiles for profiles config');
+            $results = [];
         }
         foreach ($results as $r) {
             // Add oppanel waiting queue
             if ($r['macro_permissions']['operator_panel']['value']) {
                 $r['macro_permissions']['operator_panel']['permissions'][] = array('name' => 'waiting_queue_'.$r['id'], 'value' => true);
+            }
+
+            $r['id'] = (string) $r['id'];
+            foreach ($r['macro_permissions'] as $macroPermissionName => $macroPermission) {
+                foreach ($macroPermission['permissions'] as $permissionIndex => $permission) {
+                    if (isset($permission['id'])) {
+                        $r['macro_permissions'][$macroPermissionName]['permissions'][$permissionIndex]['id'] = (string) $permission['id'];
+                    }
+                }
+            }
+            if (isset($r['outbound_routes_permissions'])) {
+                foreach ($r['outbound_routes_permissions'] as $routeIndex => $routePermission) {
+                    if (isset($routePermission['route_id'])) {
+                        $r['outbound_routes_permissions'][$routeIndex]['route_id'] = (string) $routePermission['route_id'];
+                    }
+                }
             }
 
             $out[$r['id']] = $r;
@@ -575,8 +600,9 @@ function nethcti3_get_config_late($engine) {
         $sth->execute();
         $results = $sth->fetchAll(PDO::FETCH_ASSOC);
 
-        if (!$results) {
-            error_log('Empty profile config');
+        if ($results === false) {
+            error_log('Failed to load CTI streaming config');
+            $results = [];
         }
         foreach ($results as $r) {
             $pername = 'vs_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$r['descr'])));
@@ -670,23 +696,23 @@ function nethcti3_get_config_early($engine) {
     $variables = array();
 
     //featurcodes
-    $variables['cftimeouton'] = $featurecodes['callforwardcfuon'];
-    $variables['cftimeoutoff'] = $featurecodes['callforwardcfuoff'];
-    $variables['cfbusyoff'] = $featurecodes['callforwardcfboff'];
-    $variables['cfbusyon'] = $featurecodes['callforwardcfbon'];
-    $variables['cfalwaysoff'] = $featurecodes['callforwardcfoff'];
-    $variables['cfalwayson'] = $featurecodes['callforwardcfon'];
-    $variables['dndoff'] = $featurecodes['donotdisturbdnd_off'];
-    $variables['dndon'] = $featurecodes['donotdisturbdnd_on'];
-    $variables['dndtoggle'] = $featurecodes['donotdisturbdnd_toggle'];
-    $variables['call_waiting_off'] = $featurecodes['callwaitingcwoff'];
-    $variables['call_waiting_on'] = $featurecodes['callwaitingcwon'];
-    $variables['pickup_direct'] = $featurecodes['corepickup'];
-    $variables['pickup_group'] = $featurecodes['corepickupexten'];
-    $variables['queuetoggle'] = $featurecodes['queuesque_toggle'];
+    $variables['cftimeouton'] = $featurecodes['callforwardcfuon'] ?? '';
+    $variables['cftimeoutoff'] = $featurecodes['callforwardcfuoff'] ?? '';
+    $variables['cfbusyoff'] = $featurecodes['callforwardcfboff'] ?? '';
+    $variables['cfbusyon'] = $featurecodes['callforwardcfbon'] ?? '';
+    $variables['cfalwaysoff'] = $featurecodes['callforwardcfoff'] ?? '';
+    $variables['cfalwayson'] = $featurecodes['callforwardcfon'] ?? '';
+    $variables['dndoff'] = $featurecodes['donotdisturbdnd_off'] ?? '';
+    $variables['dndon'] = $featurecodes['donotdisturbdnd_on'] ?? '';
+    $variables['dndtoggle'] = $featurecodes['donotdisturbdnd_toggle'] ?? '';
+    $variables['call_waiting_off'] = $featurecodes['callwaitingcwoff'] ?? '';
+    $variables['call_waiting_on'] = $featurecodes['callwaitingcwon'] ?? '';
+    $variables['pickup_direct'] = $featurecodes['corepickup'] ?? '';
+    $variables['pickup_group'] = $featurecodes['corepickupexten'] ?? '';
+    $variables['queuetoggle'] = $featurecodes['queuesque_toggle'] ?? '';
 
     // FreePBX settings
-    $variables['cftimeout'] = $amp_conf['CFRINGTIMERDEFAULT'];
+    $variables['cftimeout'] = $amp_conf['CFRINGTIMERDEFAULT'] ?? '';
 
     /*********************
     * Extension specific *
@@ -719,6 +745,10 @@ function nethcti3_get_config_early($engine) {
     $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE sections LIKE '%*%' AND username = ?");
     $stmt->execute(array($user));
     $user = $stmt->fetchAll();
+    if (empty($user)) {
+        error_log('Failed to find the FreePBX admin user for Tancredi configuration');
+        return;
+    }
     $password_sha1 = $user[0]['password_sha1'];
     $username = $user[0]['username'];
     $secretkey = sha1($username . $password_sha1 . $secret);
@@ -727,6 +757,11 @@ function nethcti3_get_config_early($engine) {
     foreach ($extdata as $ext) {
         $extension = $ext['extension'];
         $mainextension = $ext['mainextension'];
+
+        $deviceMac = $ext['mac'] ?? '';
+        if ($deviceMac === '') {
+            continue;
+        }
 
         // Get extension sip parameters
         $sql = 'SELECT keyword,data FROM sip WHERE id = ?';
@@ -745,11 +780,11 @@ function nethcti3_get_config_early($engine) {
         $user_variables['account_dnd_allow_1'] = '1';
         $user_variables['account_fwd_allow_1'] = '1';
         if (array_key_exists('profile_id',$ext)
-            && is_array($permission)
-            && array_key_exists($ext['profile_id'],$permission)
+            && is_array($permissions)
+            && array_key_exists($ext['profile_id'],$permissions)
             && array_key_exists('macro_permissions',$permissions[$ext['profile_id']])
             && array_key_exists('settings',$permissions[$ext['profile_id']]['macro_permissions'])
-            && array_key_exists('permissions',$$permissions[$ext['profile_id']]['macro_permissions']['settings']))
+            && array_key_exists('permissions',$permissions[$ext['profile_id']]['macro_permissions']['settings']))
         {
             foreach ($permissions[$ext['profile_id']]['macro_permissions']['settings']['permissions'] as $permission) {
                 if ($permission['name'] == 'dnd') {
@@ -777,7 +812,7 @@ function nethcti3_get_config_early($engine) {
         }
 
         $user_variables['account_username_1'] = $extension;
-        $user_variables['account_password_1'] = $sip['secret'];
+        $user_variables['account_password_1'] = $sip['secret'] ?? ($ext['secret'] ?? '');
         $user_variables['account_dtmf_type_1'] = 'rfc4733';
         if (array_key_exists('dtmfmode',$sip)) {
             if ($sip['dtmfmode'] == 'inband') $user_variables['account_dtmf_type_1'] = 'inband';
@@ -785,8 +820,8 @@ function nethcti3_get_config_early($engine) {
             elseif ($sip['dtmfmode'] == 'info') $user_variables['account_dtmf_type_1'] = 'sip_info';
             elseif ($sip['dtmfmode'] == 'rfc4733') $user_variables['account_dtmf_type_1'] = 'rfc4733';
         }
-        $user_variables['account_voicemail_1'] = $featurecodes['voicemailmyvoicemail'];
-        $res = nethcti_tancredi_patch($tancrediUrl . 'phones/' . str_replace(':','-',$ext['mac']), $username, $secretkey, array("variables" => $user_variables));
+        $user_variables['account_voicemail_1'] = $featurecodes['voicemailmyvoicemail'] ?? '';
+        $res = nethcti_tancredi_patch($tancrediUrl . 'phones/' . str_replace(':','-',$deviceMac), $username, $secretkey, array("variables" => $user_variables));
     }
     /***********************************
     * call Tancredi /defaults REST API *
@@ -830,7 +865,15 @@ function nethvoice_report_config() {
     $users = array();
     $queues = array();
     $groups = getCTIGroups();
+    if ($groups === false) {
+        error_log('Failed to load CTI groups for nethvoice report');
+        $groups = array();
+    }
     $profiles = getCTIPermissionProfiles();
+    if ($profiles === false) {
+        error_log('Failed to load CTI profiles for nethvoice report');
+        $profiles = array();
+    }
 
     // Add special X and admin users for API access
     $config = array(
@@ -842,14 +885,17 @@ function nethvoice_report_config() {
     foreach (\FreePBX::Queues()->listQueues() as $q) {
         $queues[$q[0]] = array();
         $queue_details = queues_get($q[0]);
-        foreach (explode(PHP_EOL,$queue_details['dynmembers']) as $m) {
+        if (!is_array($queue_details)) {
+            continue;
+        }
+        foreach (explode(PHP_EOL, $queue_details['dynmembers'] ?? '') as $m) {
             // $m format is 201,0
             $tmp = explode(",",$m);
             if ($tmp[0]) {
                 $queues[$q[0]][] = $tmp[0];
             }
         }
-        foreach($queue_details['member'] as $m) {
+        foreach($queue_details['member'] ?? array() as $m) {
             // $m format Local/200@from-queue/n,0
             $tmp = explode("@",$m);
             $tmp = explode("/",$tmp[0]);
@@ -895,16 +941,20 @@ function nethvoice_report_config() {
         // Get user permission profile
         $stmt = $dbh->prepare('SELECT profile_id FROM rest_users WHERE user_id = ?');
         $stmt->execute(array($user_id));
-        $profileRes = $stmt->fetch();
+        $profileRes = $stmt->fetch(\PDO::FETCH_ASSOC);
         // Skip user if he doesn't have a profile associated
-        if ($profileRes['profile_id'] == null) {
+        if (!is_array($profileRes) || empty($profileRes['profile_id'])) {
             continue;
         }
+        $profile = null;
         foreach ($profiles as $p) {
             if ($p['id'] === $profileRes['profile_id']) {
                 $profile = $p;
                 break;
             }
+        }
+        if ($profile === null) {
+            continue;
         }
 
         // Check if user has privacy permission enabled
@@ -933,7 +983,7 @@ function nethvoice_report_config() {
                 // Add queue to user queues list
                 $user['queues'][] = $queue_name;
                 // Add agent displaynames from queues
-                foreach ($queues[$queue_name] as $member_extension) {
+                foreach ($queues[$queue_name] ?? array() as $member_extension) {
                     if (isset($ext2user[$member_extension])) {
                         $user['agents'][] = $ext2user[$member_extension];
                     }
@@ -971,7 +1021,7 @@ function nethvoice_report_config() {
                         if ($group["username"] == $username) {
                             $user["groups"][] = $group["name"];
                             foreach ($groups as $g) {
-                                if($g["name"] == $group["name"]) {
+                                if($g["name"] == $group["name"] && isset($g["id"])) {
                                     foreach ($res_devices as $device) {
                                         if ($g["id"] == $device["user_id"]) {
                                             $user["users"][] = $device["extension"];

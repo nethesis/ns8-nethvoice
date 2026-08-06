@@ -20,53 +20,76 @@
 # along with NethServer.  If not, see COPYING.
 #
 
-class AuthMiddleware
+use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+
+class AuthMiddleware implements MiddlewareInterface
 {
     private $secret = NULL;
+    private ResponseFactoryInterface $responseFactory;
 
-    public function __construct($secret) {
+    public function __construct($secret, ResponseFactoryInterface $responseFactory) {
         $this->secret = $secret;
+        $this->responseFactory = $responseFactory;
     }
 
     /**
      * Authentication middleware invokable class
      *
      * @param  \Psr\Http\Message\ServerRequestInterface $request  PSR7 request
-     * @param  \Psr\Http\Message\ResponseInterface      $response PSR7 response
-     * @param  callable                                 $next     Next middleware
+     * @param  \Psr\Http\Server\RequestHandlerInterface $handler  Next middleware
      *
      * @return \Psr\Http\Message\ResponseInterface
      */
-    public function __invoke($request, $response, $next)
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        if ($request->isOptions()) {
-            $response = $next($request, $response);
+        $path = trim($request->getUri()->getPath(), '/');
+        $isTestAuthPath = preg_match('#(^|/)testauth$#', $path) === 1;
+        if (strtoupper($request->getMethod()) === 'OPTIONS') {
+            return $handler->handle($request);
         }
-        else if ($request->getUri()->getPath() != 'testauth' && (!$request->hasHeader('Secretkey') || !$request->hasHeader('User'))) {
-            return $response->withJson(['error' => 'Forbidden: no credentials'], 403);
-	} else {
-	    $dbh = FreePBX::Database();
+
+        if (!$isTestAuthPath && (!$request->hasHeader('Secretkey') || !$request->hasHeader('User'))) {
+            return $this->jsonResponse(['error' => 'Forbidden: no credentials'], 403);
+        }
+
+	$dbh = FreePBX::Database();
             $given_user = $request->getHeaderLine('User');
             $given_secret = $request->getHeaderLine('Secretkey');
 
-	    $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE sections LIKE '%*%' AND username = ?");
-	    $stmt->execute(array($given_user));
-	    $user = $stmt->fetchAll();
-            $password_sha1 = $user[0]['password_sha1'];
-            $username = $user[0]['username'];
+        $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE sections LIKE '%*%' AND username = ?");
+        $stmt->execute(array($given_user));
+        $user = $stmt->fetch(\PDO::FETCH_ASSOC) ?: array();
+        $password_sha1 = $user['password_sha1'] ?? '';
+        $username = $user['username'] ?? '';
 
             # check the user is valid and is an admin (sections = *)
-            if ($request->getUri()->getPath() != 'testauth' && !$username ) {
-                return $response->withJson(['error' => 'Forbidden: invalid user'], 403);
+        if (!$isTestAuthPath && !$username ) {
+            return $this->jsonResponse(['error' => 'Forbidden: invalid user'], 403);
             }
             $hash = sha1($username . $password_sha1 . $this->secret);
-            if ($request->getUri()->getPath() != 'testauth' && $given_secret != $hash) {
-                $response = $response->withJson(['error' => 'Forbidden: wrong secret key'], 403);
-            } else {
-                $response = $next($request, $response);
-            }
+        if (!$isTestAuthPath && $given_secret != $hash) {
+            return $this->jsonResponse(['error' => 'Forbidden: wrong secret key'], 403);
         }
 
-        return $response;
+        return $handler->handle($request);
+    }
+
+    private function jsonResponse(array $payload, int $status): ResponseInterface
+    {
+        $response = $this->responseFactory->createResponse();
+        $json = json_encode($payload);
+        if ($json === false) {
+            throw new RuntimeException('Unable to encode middleware JSON response: ' . json_last_error_msg());
+        }
+
+        $response->getBody()->write($json);
+
+        return $response
+            ->withHeader('Content-Type', 'application/json;charset=utf-8')
+            ->withStatus($status);
     }
 }

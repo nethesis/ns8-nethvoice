@@ -103,7 +103,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
             $descriptionParts = explode(")", $partsNum[1]);
             $description = trim($descriptionParts[0]);
             $destinations = nethvplan_getDestination($value, $connectionArray);
-            $destination = trim($destinations["output_".$value['entities'][0]['id']]);
+            $destination = trim($destinations["output_".$value['entities'][0]['id']] ?? "");
             $exists = core_did_get($extension, $cidnum);
             $did = $extension."/".$cidnum;
 
@@ -218,7 +218,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
             $strategy = $value['userData']['strategy'];
             $grpTime = (int)$value['userData']['ringtime'];
             $destinations = nethvplan_getDestination($value, $connectionArray, $currentCreated, $wType);
-            $destination = trim($destinations["output_".$value['entities'][5]['id']]);
+            $destination = trim($destinations["output_".$value['entities'][5]['id']] ?? "");
             $exists = ringgroups_get($extension);
 
             if (count($exists) <= 5) {
@@ -296,12 +296,21 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
             $maxwait = $value['userData']['maxwait'];
 
             $destinations = nethvplan_getDestination($value, $connectionArray, $currentCreated, $wType);
-            $destination = trim($destinations["output_".$value['entities'][8]['id']]);
+            $destination = trim($destinations["output_".$value['entities'][8]['id']] ?? "");
             $exists = queues_get($extension);
             if (empty($exists)) {
+                $_REQUEST['maxlen'] = "0";
+                $_REQUEST['joinempty'] = "yes";
+                $_REQUEST['leavewhenempty'] = "no";
                 $_REQUEST['strategy'] = $strategy;
                 $_REQUEST['timeout'] = $timeout;
+                $_REQUEST['wrapuptime'] = "0";
+                $_REQUEST['announcefreq'] = "0";
+                $_REQUEST['min-announce'] = "15";
+                $_REQUEST['announceholdtime'] = "no";
+                $_REQUEST['announceposition'] = "no";
                 $_REQUEST['answered_elsewhere'] = "1";
+                $_REQUEST['recording'] = "dontcare";
                 queues_add(
                     $extension,
                     $name,
@@ -333,6 +342,66 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                 );
                     
             } else {
+                $queueDefaults = array(
+                    'maxlen' => '0',
+                    'joinempty' => 'yes',
+                    'leavewhenempty' => 'no',
+                    'autopause' => 'no',
+                    'retry' => '5',
+                    'wrapuptime' => '0',
+                    'announce-frequency' => '0',
+                    'announce-holdtime' => 'no',
+                    'announce-position' => 'no',
+                    'queue-youarenext' => 'silence/1',
+                    'queue-thereare' => 'silence/1',
+                    'queue-callswaiting' => 'silence/1',
+                    'queue-thankyou' => '',
+                    'periodic-announce-frequency' => '0',
+                    'monitor-format' => '',
+                    'monitor-join' => 'yes',
+                    'eventwhencalled' => '',
+                    'eventmemberstatus' => 'no',
+                    'music' => 'inherit',
+                    'weight' => '0',
+                    'autofill' => 'no',
+                    'ringinuse' => 'yes',
+                    'reportholdtime' => 'no',
+                    'servicelevel' => '60',
+                    'memberdelay' => '0',
+                    'timeoutrestart' => 'no',
+                    'recording' => 'dontcare',
+                    'rvolume' => '',
+                    'rvol_mode' => '',
+                    'rtone' => '0',
+                    'skip_joinannounce' => '',
+                    'answered_elsewhere' => '0',
+                    'timeoutpriority' => 'app',
+                    'autopausebusy' => 'no',
+                    'autopauseunavail' => 'no',
+                    'autopausedelay' => '0',
+                    'penaltymemberslimit' => '0',
+                    'announcemenu' => 'none',
+                    'min-announce-frequency' => '15',
+                    'lazymembers' => '',
+                    'password' => '',
+                    'prefix' => '',
+                    'agentannounce_id' => '',
+                    'joinannounce_id' => '',
+                    'alertinfo' => '',
+                    'cwignore' => '1',
+                    'qregex' => '',
+                    'queuewait' => '0',
+                    'use_queue_context' => '0',
+                    'dynmemberonly' => 'no',
+                    'togglehint' => '0',
+                    'qnoanswer' => '0',
+                    'callconfirm' => '0',
+                    'callconfirm_id' => '',
+                    'monitor_type' => '',
+                    'monitor_heard' => '0',
+                    'monitor_spoken' => '0'
+                );
+                $exists = array_merge($queueDefaults, $exists);
                 queues_del($extension);
                 $_REQUEST['maxlen'] = $exists['maxlen'];
                 $_REQUEST['joinempty'] = $exists['joinempty'];
@@ -417,7 +486,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
         break;
 
         case "app-announcement":
-            $id = $value['userData']['id'];
+            $id = $value['userData']['id'] ?? "";
             $name = $value['userData']['description'];
             $rec_id = $value['userData']['announcement'];
 
@@ -427,12 +496,12 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                     $idReturn = $idAnn;
                     $currentCreated[$value['id']] = $idReturn;
                     $destinations = nethvplan_getDestination($value, $connectionArray);
-                    $destination = trim($destinations["output_".$value['entities'][2]['id']]);
+                    $destination = trim($destinations["output_".$value['entities'][2]['id']] ?? "");
                     announcement_edit($idReturn, $name, $rec_id, "", $destination, 0, 0, "");
                 } else {
                     $currentCreated[$value['id']] = $id;
                     $destinations = nethvplan_getDestination($value, $connectionArray);
-                    $destination = trim($destinations["output_".$value['entities'][2]['id']]);
+                    $destination = trim($destinations["output_".$value['entities'][2]['id']] ?? "");
                     $exists = announcement_get($id);
                     announcement_edit($id, $name, $rec_id, $exists['allow_skip'], $destination, $exists['return_ivr'], $exists['noanswer'], $exists['repeat_msg']);
                     $idReturn = $id;
@@ -441,7 +510,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
         break;
 
         case "ivr":
-            $id = $value['userData']['id'];
+            $id = $value['userData']['id'] ?? "";
             $name = $value['userData']['name'];
             $description = $value['userData']['description'];
             $announcement = $value['userData']['announcement'];
@@ -453,6 +522,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
             if (!array_key_exists($value['id'], $currentCreated)) {
                 if (empty($id)) {
                     $idIVR = ivr_save_details(array(
+                        "id" => "",
                         "name" => $name,
                         "description" => $description,
                         "announcement" => $announcement,
@@ -477,8 +547,8 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                     $idReturn = $idIVR;
                     $currentCreated[$value['id']] = $idIVR;
                     $destinations = nethvplan_getDestination($value, $connectionArray, $currentCreated, $wType);
-                    $invDest = trim($destinations["output_".$value['entities'][2]['id']]);
-                    $timeDest = trim($destinations["output_".$value['entities'][3]['id']]);
+                    $invDest = trim($destinations["output_".$value['entities'][2]['id']] ?? "");
+                    $timeDest = trim($destinations["output_".$value['entities'][3]['id']] ?? "");
                     $idIVR = ivr_save_details(array(
                         "id" => $idIVR,
                         "name" => $name,
@@ -505,8 +575,8 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                 } else {
                     $currentCreated[$value['id']] = $id;
                     $destinations = nethvplan_getDestination($value, $connectionArray, $currentCreated, $wType);
-                    $invDest = trim($destinations["output_".$value['entities'][2]['id']]);
-                    $timeDest = trim($destinations["output_".$value['entities'][3]['id']]);
+                    $invDest = trim($destinations["output_".$value['entities'][2]['id']] ?? "");
+                    $timeDest = trim($destinations["output_".$value['entities'][3]['id']] ?? "");
                     $exists = ivr_get_details($id);
                     $idIVR = ivr_save_details(array(
                         "id" => $id,
@@ -540,7 +610,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                         continue;
                     }
                     $ext[] = $v['text'];
-                    $goto[] = trim($destinations["output_".$v['id']]);
+                    $goto[] = trim($destinations["output_".$v['id']] ?? "");
                 }
                 $ivrArray['ext'] = $ext;
                 $ivrArray['goto'] = $goto;
@@ -549,17 +619,31 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
         break;
 
         case "cqr":
-            $id = $value['userData']['id'];
+            $id = $value['userData']['id'] ?? "";
             $name = $value['userData']['name'];
             $description = $value['userData']['description'];
             $announcement = $value['userData']['announcement'];
+            $defDest = "";
+            $pos = array();
+            $cond = array();
+            $goto = array();
+
+            if (empty($id)) {
+                $existingCqrs = nethcqr_get_details();
+                if (is_array($existingCqrs)) {
+                    foreach ($existingCqrs as $existingCqr) {
+                        if (($existingCqr['name'] ?? null) === $name) {
+                            $id = $existingCqr['id_cqr'] ?? "";
+                            break;
+                        }
+                    }
+                }
+            }
 
             if (!array_key_exists($value['id'], $currentCreated)) {
-                if (empty($defDest)) {
-                    $defDest = "";
-                }
                 if (empty($id)) {
                     $idCQR = nethcqr_save_details(array(
+                        "id_cqr" => "",
                         "name" => $name,
                         "description" => $description,
                         "announcement" => $announcement,
@@ -588,7 +672,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                     $idReturn = $idCQR;
                     $currentCreated[$value['id']] = $idCQR;
                     $destinations = nethvplan_getDestination($value, $connectionArray, $currentCreated, $wType);
-                    $defDest = trim($destinations["output_".$value['entities'][2]['id']]);
+                    $defDest = trim($destinations["output_".$value['entities'][2]['id']] ?? "");
                     $idCQR = nethcqr_save_details(array(
                         "id_cqr" => $idReturn,
                         "name" => $name,
@@ -656,7 +740,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                     ));
                     $currentCreated[$value['id']] = $idCQR;
                     $destinations = nethvplan_getDestination($value, $connectionArray, $currentCreated, $wType);
-                    $defDest = trim($destinations["output_".$value['entities'][2]['id']]);
+                    $defDest = trim($destinations["output_".$value['entities'][2]['id']] ?? "");
                     $idCQR = nethcqr_save_details(array(
                         "id_cqr" => $idCQR,
                         "name" => $name,
@@ -693,7 +777,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                         $pos[] = $position;
                         $position += 1;
                         $cond[] = $v['text'];
-                        $goto[] = trim($destinations["output_".$v['id']]);
+                        $goto[] = trim($destinations["output_".$v['id']] ?? "");
                     }
                 }
                 $cqrArray['position'] = $pos;
@@ -704,7 +788,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
         break;
 
         case "timeconditions":
-            $id = $value['userData']['id'];
+            $id = $value['userData']['id'] ?? "";
             $name = $value['userData']['name'];
             $time = $value['userData']['time'];
             if (!array_key_exists($value['id'], $currentCreated)) {
@@ -730,14 +814,15 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                         "displayname" => $name,
                         "time" => $time,
                         "timezone" => "",
-                        "falsegoto0" => trim($destinations["output_".$value['entities'][2]['id']]),
-                        "truegoto1" => trim($destinations["output_".$value['entities'][3]['id']]),
+                        "falsegoto0" => trim($destinations["output_".$value['entities'][2]['id']] ?? ""),
+                        "truegoto1" => trim($destinations["output_".$value['entities'][3]['id']] ?? ""),
                         "goto1" => "truegoto",
                         "goto0" => "falsegoto",
                         "invert_hint" => "",
                         "fcc_password" => "",
                         "deptname" => "",
                         "generate_hint" => "",
+                        "tcstate_new" => "unchanged",
                         "mode" => "time-group",
                         "calendar_id" => "",
                         "calendar_group_id" => ""
@@ -750,14 +835,15 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                         "displayname" => $name,
                         "time" => $time,
                         "timezone" => $exists['timezone'],
-                        "falsegoto0" => trim($destinations["output_".$value['entities'][2]['id']]),
-                        "truegoto1" => trim($destinations["output_".$value['entities'][3]['id']]),
+                        "falsegoto0" => trim($destinations["output_".$value['entities'][2]['id']] ?? ""),
+                        "truegoto1" => trim($destinations["output_".$value['entities'][3]['id']] ?? ""),
                         "goto1" => "truegoto",
                         "goto0" => "falsegoto",
                         "invert_hint" => $exists['invert_hint'],
                         "fcc_password" => $exists['fcc_password'],
                         "deptname" => $exists['deptname'],
                         "generate_hint" => $exists['generate_hint'],
+                        "tcstate_new" => "unchanged",
                         "mode" => $exists['mode'],
                         "calendar_id" => $exists['calendar_id'],
                         "calendar_group_id" => $exists['calendar_group_id']
@@ -768,21 +854,27 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
         break;
 
         case "app-daynight":
-            $id = $value['userData']['id'];
             $name = $value['userData']['name'];
             $controlCode = $value['userData']['code'];
             $destinations = nethvplan_getDestination($value, $connectionArray, $currentCreated, $wType);
             $exists = daynight_get_obj($controlCode);
+            if (!is_array($exists)) {
+                $exists = array();
+            }
+            $existingSettings = $exists;
+            unset($existingSettings['state']);
+            $state = $exists['state'] ?? '';
             daynight_edit(array(
-                "day_recording_id" => $exists['day_recording_id'],
-                "night_recording_id" => $exists['night_recording_id'],
-                "password" => $exists['password'],
-                "state" => strlen($exists['state']) > 0 ? $exists['state'] : 'DAY',
+                "action" => empty($existingSettings) ? "add" : "edit",
+                "day_recording_id" => $exists['day_recording_id'] ?? "",
+                "night_recording_id" => $exists['night_recording_id'] ?? "",
+                "password" => $exists['password'] ?? "",
+                "state" => in_array($state, array("DAY", "NIGHT"), true) ? $state : "DAY",
                 "fc_description" => $name,
                 "goto1" => "truegoto",
                 "goto0" => "falsegoto",
-                "truegoto1" => trim($destinations["output_".$value['entities'][2]['id']]),
-                "falsegoto0" => trim($destinations["output_".$value['entities'][1]['id']])
+                "truegoto1" => trim($destinations["output_".$value['entities'][2]['id']] ?? ""),
+                "falsegoto0" => trim($destinations["output_".$value['entities'][1]['id']] ?? "")
             ), $controlCode);
     break;
     }
@@ -819,6 +911,7 @@ function nethvplan_checkDestination($destination, $type, $value, $connectionArra
 function nethvplan_getDestination($values, $connectionArray)
 {
     $id = $values['id'];
+    $destAsterisk = array();
     foreach ($connectionArray as $key => $value) {
         if ($value['source']['node'] == $id) {
             $destination = $value['target']['node'];

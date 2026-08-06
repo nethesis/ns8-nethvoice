@@ -21,16 +21,6 @@
 
 include_once '/var/www/html/freepbx/rest/lib/libCTI.php';
 
-function getExtension($extension) {
-    $extensions = FreePBX::create()->Core->getAllUsers();
-    foreach ($extensions as $e) {
-        if ($e['extension'] == (string) $extension) {
-            return $e;
-        }
-    }
-    return false;
-}
-
 function getAllExtensions($mainextension) {
     $extensions = array($mainextension);
     foreach (FreePBX::create()->Core->getAllUsers() as $ext) {
@@ -46,8 +36,8 @@ function getSipTableData($id,$keyword){
     $sql = 'SELECT `data` FROM `sip` WHERE `id`=? AND `keyword`=?';
     $sth = $dbh->prepare($sql);
     $sth->execute(array($id,$keyword));
-    $data = $sth->fetchAll()[0][0];
-    return $data;
+    $data = $sth->fetchColumn();
+    return ($data === false) ? null : $data;
 }
 
 function writeSipTableData($id,$keyword,$value){
@@ -56,7 +46,7 @@ function writeSipTableData($id,$keyword,$value){
     $sth = $dbh->prepare($sql);
     $res = $sth->execute(array($value,$id,"9%$id",$keyword));
     if ($res === FALSE) {
-        return new Exception($sth->errorInfo()[2]);
+        return $sth->errorInfo()[2] ?? 'unknown database error';
     }
     return true;
 }
@@ -67,7 +57,10 @@ function get_displayname($mainextension) {
     $sql = 'SELECT `name` FROM `users` WHERE `extension`=?';
     $sth = $dbh->prepare($sql);
     $sth->execute(array($mainextension));
-    $displayname = $sth->fetchAll()[0][0];
+    $displayname = $sth->fetchColumn();
+    if ($displayname === false) {
+        return null;
+    }
     $displayname = str_replace($mainextension,preg_replace('/./','?',$mainextension),$displayname);
     $displayname = str_replace(substr($mainextension,-3),preg_replace('/./','?',substr($mainextension,-3)),$displayname);
     $displayname = str_replace(substr($mainextension,-2),preg_replace('/./','?',substr($mainextension,-2)),$displayname);
@@ -85,7 +78,7 @@ function get_profile($mainextension) {
     $sql = 'SELECT rest_users.profile_id FROM rest_users JOIN userman_users ON rest_users.user_id = userman_users.id WHERE userman_users.default_extension = ?';
     $sth = $dbh->prepare($sql);
     $sth->execute([$mainextension]);
-    $profile_id = $sth->fetchAll()[0][0];
+    $profile_id = $sth->fetchColumn();
     if (empty($profile_id)) {
         return -1;
     }
@@ -127,8 +120,8 @@ function get_noanswerdest($mainextension) {
     $sql = 'SELECT `noanswer_dest` FROM `users` WHERE `extension` = ?';
     $sth = $dbh->prepare($sql);
     $sth->execute(array($mainextension));
-    $data = $sth->fetchAll()[0][0];
-    return $data;
+    $data = $sth->fetchColumn();
+    return ($data === false) ? null : $data;
 }
 
 function get_busydest($mainextension) {
@@ -136,8 +129,8 @@ function get_busydest($mainextension) {
     $sql = 'SELECT `busy_dest` FROM `users` WHERE `extension` = ?';
     $sth = $dbh->prepare($sql);
     $sth->execute(array($mainextension));
-    $data = $sth->fetchAll()[0][0];
-    return $data;
+    $data = $sth->fetchColumn();
+    return ($data === false) ? null : $data;
 }
 
 function get_notreachabledest($mainextension) {
@@ -145,8 +138,8 @@ function get_notreachabledest($mainextension) {
     $sql = 'SELECT `chanunavail_dest` FROM `users` WHERE `extension` = ?';
     $sth = $dbh->prepare($sql);
     $sth->execute(array($mainextension));
-    $data = $sth->fetchAll()[0][0];
-    return $data;
+    $data = $sth->fetchColumn();
+    return ($data === false) ? null : $data;
 }
 
 function get_outboundcid($mainextension) {
@@ -154,7 +147,10 @@ function get_outboundcid($mainextension) {
     $sql = 'SELECT `outboundcid` FROM `users` WHERE `extension` = ?';
     $sth = $dbh->prepare($sql);
     $sth->execute(array($mainextension));
-    $data = $sth->fetchAll()[0][0];
+    $data = $sth->fetchColumn();
+    if ($data === false) {
+        return null;
+    }
     // Only remove outer <> if format is simple <number>
     // For alphanumeric format "name" <number>, return as is
     if (preg_match('/^<\d+>$/', $data)) {
@@ -168,16 +164,16 @@ function post_displayname($mainextensions,$data) {
         return true;
     }
     foreach ($mainextensions as $mainextension) {
-        foreach (getExtension($mainextension) as $extension) {
-            $displayname = preg_replace('/\?\?\?\?/',$mainextension,$data);
-            $displayname = preg_replace('/\?\?\?/',substr($mainextension,-3),$displayname);
-            $displayname = preg_replace('/\?\?/',substr($mainextension,-2),$displayname);
-            $displayname = preg_replace('/\?/',substr($mainextension,-1),$displayname);
-            //change caller ID
-            $res = writeSipTableData($mainextension,'callerid',$displayname." <$mainextension>");
-            if ($res !== true) {
-                $err .= __FUNCTION__." ".$res."\n";
-            }
+        $displayname = preg_replace('/\?\?\?\?/',$mainextension,$data);
+        $displayname = preg_replace('/\?\?\?/',substr($mainextension,-3),$displayname);
+        $displayname = preg_replace('/\?\?/',substr($mainextension,-2),$displayname);
+        $displayname = preg_replace('/\?/',substr($mainextension,-1),$displayname);
+        //change caller ID
+        $res = writeSipTableData($mainextension,'callerid',$displayname." <$mainextension>");
+        if ($res !== true) {
+            $err .= __FUNCTION__." ".$res."\n";
+        }
+        foreach (getAllExtensions($mainextension) as $extension) {
             //change device displayname
             $dbh = FreePBX::Database();
             $sql = 'UPDATE `users` SET `name`=? WHERE `extension`=?';
@@ -199,11 +195,9 @@ function post_context($mainextensions,$data) {
         return true;
     }
     foreach ($mainextensions as $mainextension) {
-        foreach (getExtension($mainextension) as $extension) {
-            $res = writeSipTableData($extension,'context',$data);
-            if ($res !== true) {
-                $err .= __FUNCTION__." ".$res."\n";
-            }
+        $res = writeSipTableData($mainextension,'context',$data);
+        if ($res !== true) {
+            $err .= __FUNCTION__." ".$res."\n";
         }
     }
     if (isset($err)) {
@@ -222,9 +216,10 @@ function post_profile($mainextensions,$data) {
         $sql = "SELECT id FROM userman_users WHERE default_extension = ?";
         $sth = $dbh->prepare($sql);
         $sth->execute([$mainextension]);
-        $user_id = $sth->fetchAll()[0][0];
-        if (empty($user_id)) {
-            $err .= __FUNCTION__." Can't retrieve user_id for extension $data\n";
+        $user_id = $sth->fetchColumn();
+        if ($user_id === false) {
+            $err .= __FUNCTION__." Can't retrieve user_id for extension $mainextension\n";
+            continue;
         }
         // Set CTI Profile
         $res = setCTIUserProfile($user_id,$data);

@@ -6,17 +6,73 @@
 
 include_once '/etc/freepbx_db.conf';
 
+function migrateFrom14To17(\PDO $db): void
+{
+	$sql = "UPDATE `asterisk`.`sip`
+		JOIN `asterisk`.`rest_devices_phones`
+		ON `sip`.`id` = `rest_devices_phones`.`extension`
+		SET `sip`.`data` = 'yes'
+		WHERE `sip`.`keyword` = 'send_connected_line'";
+	$db->query($sql);
+
+	# Prevent Sound Languages from replacing NethVoice prompts with the
+	# lower-version FreePBX packages in its preferred ulaw/g722 formats.
+	$sql = "UPDATE `asterisk`.`soundlang_packages` AS `package`
+		JOIN (
+			SELECT `type`, `module`, `language`,
+				MAX(`installed`) AS `nethvoice_version`
+			FROM `asterisk`.`soundlang_packages`
+			WHERE `author` = 'www.nethesis.it'
+			AND `installed` IS NOT NULL
+			GROUP BY `type`, `module`, `language`
+		) AS `nethvoice_package`
+		ON `package`.`type` = `nethvoice_package`.`type`
+		AND `package`.`module` = `nethvoice_package`.`module`
+		AND `package`.`language` = `nethvoice_package`.`language`
+		SET `package`.`version` = `nethvoice_package`.`nethvoice_version`,
+			`package`.`installed` = `nethvoice_package`.`nethvoice_version`";
+	$db->query($sql);
+
+	# Remove text lines that were incorrectly imported as prompt filenames.
+	$sql = "DELETE FROM `asterisk`.`soundlang_prompts`
+		WHERE `filename` LIKE CONCAT('%', CHAR(10), '%')";
+	$db->query($sql);
+}
+
+function setMigrationScriptVersion(\PDO $db, int $version): void
+{
+	$stmt = $db->prepare("INSERT INTO `asterisk`.`admin` (`variable`, `value`) VALUES ('MIGRATION_SCRIPT',?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)");
+	$stmt->execute([$version]);
+}
+
 # check if migration is needed. Exit 0 if not
 $stmt = $db->prepare("SELECT `value` FROM `asterisk`.`admin` WHERE `variable` = 'MIGRATION_SCRIPT'");
 $stmt->execute();
-$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-if (count($res) > 0) {
+
+$migration_version = $stmt->fetchColumn();
+if ($migration_version !== false) {
+	$migration_version = (int) $migration_version;
+}
+
+if ($migration_version !== false && $migration_version >= 2) {
 	echo "Migration already done\n";
 	exit(0);
 }
 
+if ($migration_version === 1) {
+	migrateFrom14To17($db);
+	setMigrationScriptVersion($db, 2);
+	exit(0);
+}
+
 # Add srtp column to rest_devices_phones
-$db->query("ALTER TABLE `asterisk`.`rest_devices_phones` ADD COLUMN `srtp` BOOLEAN DEFAULT NULL AFTER `type`");
+$sql = "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'rest_devices_phones' AND COLUMN_NAME = 'srtp'";
+$stmt = $db->prepare($sql);
+$stmt->execute();
+$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+if (count($res) == 0) {
+	$db->query("ALTER TABLE `asterisk`.`rest_devices_phones` ADD COLUMN `srtp` BOOLEAN DEFAULT NULL AFTER `type`");
+}
 
 /* Convert existing srtp physical and mobile extensions to be used with proxy */
 # get all NethVoice extensions with srtp enabled
@@ -117,41 +173,54 @@ $sql = "UPDATE `asterisk`.`pjsip`
 $stmt = $db->prepare($sql);
 $stmt->execute(['sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'].';lr']);
 # migrate profiles, macro_permissions and permissions scheme to new format
-# Check if NethVoice CTI macro_permission exists
-$sql = "SELECT * FROM `rest_cti_macro_permissions` WHERE `macro_permission_id` = 12";
+$sql = "SELECT COUNT(*) AS `required_columns`
+	FROM `information_schema`.`COLUMNS`
+	WHERE `TABLE_SCHEMA` = 'asterisk'
+	AND (
+		(`TABLE_NAME` = 'rest_cti_macro_permissions' AND `COLUMN_NAME` = 'macro_permission_id')
+		OR (`TABLE_NAME` = 'rest_cti_profiles_macro_permissions' AND `COLUMN_NAME` = 'macro_permission_id')
+		OR (`TABLE_NAME` = 'rest_cti_macro_permissions_permissions' AND `COLUMN_NAME` = 'macro_permission_id')
+	)";
 $stmt = $db->prepare($sql);
 $stmt->execute();
-$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-if (count($res) == 0) {
-	# Add NethVoice CTI macro_permission
-	$db->query("INSERT INTO `rest_cti_macro_permissions` VALUES (12,'nethvoice_cti','NethVoice CTI','Enables access to NethVoice CTI application')");
-	# Add NethVoice CTI macro_permission to all existing profiles
-	$db->query("INSERT INTO `rest_cti_profiles_macro_permissions` (`profile_id`, `macro_permission_id`) SELECT `id`, 12 FROM `rest_cti_profiles`");
+$res = $stmt->fetch(\PDO::FETCH_ASSOC);
+if ((int) ($res['required_columns'] ?? 0) === 3) {
+	# Check if NethVoice CTI macro_permission exists
+	$sql = "SELECT * FROM `rest_cti_macro_permissions` WHERE `macro_permission_id` = 12";
+	$stmt = $db->prepare($sql);
+	$stmt->execute();
+	$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+	if (count($res) == 0) {
+		# Add NethVoice CTI macro_permission
+		$db->query("INSERT INTO `rest_cti_macro_permissions` VALUES (12,'nethvoice_cti','NethVoice CTI','Enables access to NethVoice CTI application')");
+		# Add NethVoice CTI macro_permission to all existing profiles
+		$db->query("INSERT INTO `rest_cti_profiles_macro_permissions` (`profile_id`, `macro_permission_id`) SELECT `id`, 12 FROM `rest_cti_profiles`");
+	}
+	# move pickup from presence_panel to settings
+	$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 5 AND `permission_id` = 18");
+	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (1,18);");
+	# move spy from presence_panel to settings
+	$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 5 AND `permission_id` = 15");
+	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (1,15);");
+	# move intrude from presence_panel to settings
+	$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 5 AND `permission_id` = 16");
+	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (1,16);");
+	# move phone_buttons from settings to nethvoice_cti
+	$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 2000");
+	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,2000);");
+	# move privacy from settings to nethvoice_cti
+	$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 9");
+	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,9);");
+	# move chat from settings to nethvoice_cti
+	$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 8");
+	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,8);");
+	# move screen_sharing from settings to nethvoice_cti
+	$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 1000");
+	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,1000);");
+	# move video_conference from settings to nethvoice_cti
+	$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 3000");
+	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,3000);");
 }
-# move pickup from presence_panel to settings
-$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 5 AND `permission_id` = 18");
-$db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (1,18);");
-# move spy from presence_panel to settings
-$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 5 AND `permission_id` = 15");
-$db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (1,15);");
-# move intrude from presence_panel to settings
-$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 5 AND `permission_id` = 16");
-$db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (1,16);");
-# move phone_buttons from settings to nethvoice_cti
-$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 2000");
-$db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,2000);");
-# move privacy from settings to nethvoice_cti
-$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 9");
-$db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,9);");
-# move chat from settings to nethvoice_cti
-$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 8");
-$db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,8);");
-# move screen_sharing from settings to nethvoice_cti
-$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 1000");
-$db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,1000);");
-# move video_conference from settings to nethvoice_cti
-$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 3000");
-$db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,3000);");
 
 # change default host for nethcqr from localhost to 127.0.0.1:${NETHVOICE_MARIADB_PORT}
 $db->query("UPDATE `asterisk`.`nethcqr_details` SET `db_url` = '127.0.0.1:{$_ENV['NETHVOICE_MARIADB_PORT']}' WHERE `db_url` = 'localhost'");
@@ -194,22 +263,37 @@ if (count($extensions) > 0) {
 # add nethlink table if not exist
 $nethcti3db->query("CREATE TABLE IF NOT EXISTS `user_nethlink` (`user` varchar(255) NOT NULL UNIQUE,`extension` varchar(255) NOT NULL,`timestamp` varchar(255) DEFAULT NULL) ENGINE=MyISAM DEFAULT CHARSET=utf8");
 
-// Add proxy field to gateway configuration if it doesn't exist
-$sql = "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'gateway_config' AND COLUMN_NAME = 'proxy'";
+// Add proxy field to gateway configuration if it doesn't exist. Also detect a
+// previous partial run: ADD COLUMN is committed even if a later query fails.
+$sql = "SELECT `COLUMN_NAME`, `CHARACTER_MAXIMUM_LENGTH`
+	FROM `information_schema`.`COLUMNS`
+	WHERE `TABLE_SCHEMA` = 'asterisk'
+	AND `TABLE_NAME` = 'gateway_config'
+	AND `COLUMN_NAME` IN ('proxy', 'ipv4_green')";
 $stmt = $db->prepare($sql);
 $stmt->execute();
 $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-if (count($res) == 0) {
+$gateway_columns = array_column($res, null, 'COLUMN_NAME');
+$proxy_column_exists = isset($gateway_columns['proxy']);
+$gateway_migration_needed = !$proxy_column_exists
+	|| (int) ($gateway_columns['ipv4_green']['CHARACTER_MAXIMUM_LENGTH'] ?? 0) < 255;
+
+if (!$proxy_column_exists) {
 	$db->query("ALTER TABLE `asterisk`.`gateway_config` ADD COLUMN `proxy` VARCHAR(255) DEFAULT NULL AFTER `mac`");
+}
+
+if ($gateway_migration_needed) {
 	// set default proxy for all existing gateways
-	$db->query("UPDATE `asterisk`.`gateway_config` SET `proxy` = 'sip:".$_ENV['PROXY_IP'].":".$_ENV['PROXY_PORT']."' WHERE `proxy` IS NULL");
-	// set pbx ip to NETHVOICE_HOST
-	$db->query("UPDATE `asterisk`.`gateway_config` SET `ipv4_green` = '".$_ENV['NETHVOICE_HOST']);
+	$stmt = $db->prepare("UPDATE `asterisk`.`gateway_config` SET `proxy` = ? WHERE `proxy` IS NULL");
+	$stmt->execute(['sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT']]);
 	# use bigger field for gateways ip fields to allow also the use of hostnames
 	$db->query("ALTER TABLE `asterisk`.`gateway_config` MODIFY COLUMN `gateway` VARCHAR(255) DEFAULT NULL");
 	$db->query("ALTER TABLE `asterisk`.`gateway_config` MODIFY COLUMN `ipv4` VARCHAR(255) DEFAULT NULL");
 	$db->query("ALTER TABLE `asterisk`.`gateway_config` MODIFY COLUMN `ipv4_green` VARCHAR(255) DEFAULT NULL");
 	$db->query("ALTER TABLE `asterisk`.`gateway_config` MODIFY COLUMN `ipv4_new` VARCHAR(255) DEFAULT NULL");
+	// set pbx ip to NETHVOICE_HOST after widening the field
+	$stmt = $db->prepare("UPDATE `asterisk`.`gateway_config` SET `ipv4_green` = ?");
+	$stmt->execute([$_ENV['NETHVOICE_HOST']]);
 	$db->query("ALTER TABLE `asterisk`.`gateway_config_isdn` MODIFY COLUMN `secret` VARCHAR(255) DEFAULT NULL");
 	$db->query("ALTER TABLE `asterisk`.`gateway_config_fxo` MODIFY COLUMN `secret` VARCHAR(255) DEFAULT NULL");
 	$db->query("ALTER TABLE `asterisk`.`gateway_config_pri` MODIFY COLUMN `secret` VARCHAR(255) DEFAULT NULL");
@@ -280,7 +364,7 @@ $sql = "CREATE TABLE IF NOT EXISTS `kvstore_FreePBX_modules_Nethcti3` (
 $stmt = $db->prepare($sql);
 $stmt->execute();
 # check if table exists
-$sql = "SELECT * FROM information_schema.tables WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'pjsip_trunks_custom_flags'";
+$sql = "SELECT * FROM information_schema.tables WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'rest_pjsip_trunks_custom_flags'";
 $stmt = $db->prepare($sql);
 $stmt->execute();
 $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -389,17 +473,18 @@ if (count($res) == 0) {
 // Check if permission already exists
 $sql = "SELECT * FROM `rest_cti_permissions` WHERE `id` = 5000";
 $stmt = $db->prepare($sql);
+$stmt->execute();
 $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 // Add permission if not exists
 if (count($res) == 0) {
 	# Add permission
 	$db->query("INSERT INTO `rest_cti_permissions` VALUES (5000,'satellite_stt','Transcription and Summary','Calls transcription and summary')");
 	# Add permission to nethvoice cti macro permission
-	$db->query("INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`,`permission_id`) VALUES (12,5000)");
+	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`,`permission_id`) VALUES (12,5000)");
 } else {
 	# Update displayname and description on existing installations
 	$db->query("UPDATE `rest_cti_permissions` SET `displayname`='Transcription and Summary', `description`='Calls transcription and summary' WHERE `id` = 5000");
 }
 
-$stmt = $db->prepare("INSERT IGNORE INTO `asterisk`.`admin` (`variable`, `value`) VALUES ('MIGRATION_SCRIPT',?)");
-$stmt->execute([1]);
+migrateFrom14To17($db);
+setMigrationScriptVersion($db, 2);

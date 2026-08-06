@@ -106,7 +106,8 @@ function getPassword($username) {
     $sql = 'SELECT rest_users.password FROM rest_users JOIN userman_users ON rest_users.user_id = userman_users.id WHERE userman_users.username = ?';
     $stmt = $dbh->prepare($sql);
     $stmt->execute([getUser($username)]);
-    return $stmt->fetchAll()[0][0];
+    $password = $stmt->fetchColumn();
+    return ($password === false) ? null : $password;
 }
 
 function setPassword($username, $password) {
@@ -116,7 +117,7 @@ function setPassword($username, $password) {
     $sql =  'SELECT id FROM userman_users WHERE username = ?' ;
     $stmt = $dbh->prepare($sql);
     $stmt->execute(array($username));
-    $id = $stmt->fetchAll()[0][0];
+    $id = $stmt->fetchColumn();
     if (empty($id)) {
         system('fwconsole userman --syncall --force > /dev/null &');
     }
@@ -175,16 +176,18 @@ function getUserID($username) {
     $sql = 'SELECT `id` FROM `userman_users` WHERE `username` = ?';
     $sth = $dbh->prepare($sql);
     $sth->execute(array($username));
-    $data = $sth->fetchAll()[0][0];
-    return $data;
+    $data = $sth->fetchColumn();
+    return ($data === false) ? null : $data;
 }
 
-function getAllUsers() {
+function getAllUsers($all = "true") {
     global $astman;
-    $blacklist = ['admin', 'administrator', 'guest', 'krbtgt','ldapservice', $_ENV['NETHVOICE_USER_PORTAL_USERNAME']];
+    $blacklist = ['admin', 'administrator', 'guest', 'krbtgt','ldapservice'];
+    if (!empty($_ENV['NETHVOICE_USER_PORTAL_USERNAME'])) {
+        $blacklist[] = strtolower($_ENV['NETHVOICE_USER_PORTAL_USERNAME']);
+    }
     $users = FreePBX::create()->Userman->getAllUsers();
     $dbh = FreePBX::Database();
-    $i = 0;
     // Get registration status of extensions
     if (empty($astman->memAstDB)) {
         $astman->LoadAstDB();
@@ -195,20 +198,20 @@ function getAllUsers() {
             $registrations[] = preg_replace('/^\/registrar\/contact\/([0-9]*);@[a-z0-9]*$/', '$1' ,$key);
         }
     }
-    foreach ($users as $user) {
-        if (in_array(strtolower($users[$i]['username']), $blacklist)) {
+    foreach ($users as $i => $user) {
+        if (in_array(strtolower($user['username']), $blacklist)) {
             unset($users[$i]);
         } else {
-            if($all == "false" && $users[$i]['default_extension'] == 'none') {
+            if($all === "false" && $user['default_extension'] == 'none') {
                 unset($users[$i]);
             } else {
-                $users[$i]['password'] = getPassword($users[$i]['username']);
+                $users[$i]['password'] = getPassword($user['username']);
                 $sql = 'SELECT rest_devices_phones.*'.
                   ' FROM rest_devices_phones'.
                   ' JOIN userman_users ON rest_devices_phones.user_id = userman_users.id'.
                   ' WHERE userman_users.default_extension = ?';
                 $stmt = $dbh->prepare($sql);
-                $stmt->execute(array($users[$i]['default_extension']));
+                $stmt->execute(array($user['default_extension']));
                 $users[$i]['devices'] = array();
                 while ($d = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                     if (array_search($d['extension'],$registrations)!==FALSE) {
@@ -222,11 +225,12 @@ function getAllUsers() {
                   ' FROM rest_users'.
                   ' JOIN userman_users ON rest_users.user_id = userman_users.id'.
                   ' WHERE userman_users.username = ?';
-                $stmt = $dbh->prepare($sql);$stmt->execute(array($users[$i]['username']));
-                $users[$i]['profile'] = $stmt->fetch(\PDO::FETCH_ASSOC)['profile_id'];
+                $stmt = $dbh->prepare($sql);$stmt->execute(array($user['username']));
+                $profileRow = $stmt->fetch(\PDO::FETCH_ASSOC);
+                $profile = $profileRow === false ? null : $profileRow['profile_id'];
+                $users[$i]['profile'] = $profile === null ? null : (int) $profile;
             }
         }
-        $i++;
     }
     return $users;
 }
