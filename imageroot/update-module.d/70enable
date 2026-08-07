@@ -16,6 +16,10 @@ systemctl --user enable --now nethcti-middleware.service
 echo "Enabling nethvoice-cdr-cleanup timer"
 systemctl --user enable --now nethvoice-cdr-cleanup.timer
 
+# Enable FreePBX external calendar synchronization timer
+echo "Enabling nethvoice-calendar-sync timer"
+systemctl --user enable --now nethvoice-calendar-sync.timer
+
 # Enable NethCTI UI weekly restart timer for timezone updates
 echo "Enabling nethcti-ui-restart timer"
 systemctl --user enable --now nethcti-ui-restart.timer
