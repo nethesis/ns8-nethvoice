@@ -23,6 +23,8 @@ namespace FreePBX\modules;
 
 class Nethcti3 extends \FreePBX_Helpers implements \BMO
 {
+    private const DISPLAY_NAME_MAX_LENGTH = 50;
+
     protected $FreePBX;
     protected $db;
     protected $astman;
@@ -39,6 +41,7 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
 
     /**
      * Set the same display name on a list of FreePBX extensions.
+     * Names are normalized to the 50-character users.name field width.
      * SIP callerid includes the main extension; users.name and AstDB cidname do not.
      *
      * @return bool true when at least one stored value changed
@@ -48,7 +51,10 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
             throw new \InvalidArgumentException('Extensions must be an array');
         }
 
-        $displayname = (string) $displayname;
+        $displayname = iconv_substr((string) $displayname, 0, self::DISPLAY_NAME_MAX_LENGTH, 'UTF-8');
+        if ($displayname === false) {
+            throw new \InvalidArgumentException('Display name must be valid UTF-8');
+        }
         $mainextension = trim((string) $mainextension);
         if ($mainextension === '') {
             throw new \InvalidArgumentException('Main extension must not be empty');
