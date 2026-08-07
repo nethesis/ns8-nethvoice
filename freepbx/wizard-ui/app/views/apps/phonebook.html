@@ -53,17 +53,17 @@
           </h2>
         </div>
         <div id="collapse-{{$index}}" class="panel-collapse collapse">
-          <!-- mysql -->
-          <div ng-if="g.dbtype == 'mysql'" class="progress-description full-size-max">
+          <!-- mysql / mssql -->
+          <div ng-if="isDbSourceType(g.dbtype)" class="progress-description full-size-max">
             {{'Database address' | translate}} <span class="right-only"><strong>{{g.host}}</strong></span>
           </div>
-          <div ng-if="g.dbtype == 'mysql'" class="progress-description full-size-max">
+          <div ng-if="isDbSourceType(g.dbtype)" class="progress-description full-size-max">
             {{'Database port' | translate}} <span class="right-only"><strong>{{g.port}}</strong></span>
           </div>
-          <div ng-if="g.dbtype == 'mysql'" class="progress-description full-size-max">
+          <div ng-if="isDbSourceType(g.dbtype)" class="progress-description full-size-max">
             {{'Database user' | translate}} <span class="right-only"><strong>{{g.user}}</strong></span>
           </div>
-          <div ng-if="g.dbtype == 'mysql'" class="progress-description full-size-max">
+          <div ng-if="isDbSourceType(g.dbtype)" class="progress-description full-size-max">
             {{'Database password' | translate}} <span class="right-only"><strong>{{g.showPass ? g.password : '*****'}}</strong>
               <a ng-click="togglePass(g)">{{g.showPass ? 'Hide' : 'Show' | translate}}</a></span>
           </div>
@@ -572,28 +572,28 @@
                                   <input id="input-phonebook-name" required ng-disabled="newSource.readonly" ng-model="newSource.type" type="text" class="form-control">
                                 </div>
                               </div>
-                              <!-- type mysql -->
-                              <div ng-if="newSource.dbtype == 'mysql'" ng-if="newSource.dbtype == 'mysql'" class="form-group">
+                              <!-- type mysql / mssql -->
+                              <div ng-if="isDbSourceType(newSource.dbtype)" class="form-group">
                                 <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Database name' | translate}}</label>
                                 <div class="col-sm-9 input-container">
                                   <input required ng-disabled="newSource.readonly" ng-model="newSource.dbname" type="text" class="form-control"></div>
                               </div>
-                              <div ng-if="newSource.dbtype == 'mysql'" class="form-group">
+                              <div ng-if="isDbSourceType(newSource.dbtype)" class="form-group">
                                 <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Database address' | translate}}</label>
                                 <div class="col-sm-9 input-container">
                                   <input required ng-disabled="newSource.readonly" ng-model="newSource.host" type="text" class="form-control"></div>
                               </div>
-                              <div ng-if="newSource.dbtype == 'mysql'" class="form-group">
+                              <div ng-if="isDbSourceType(newSource.dbtype)" class="form-group">
                                 <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Database port' | translate}}</label>
                                 <div class="col-sm-9 input-container">
                                   <input required ng-disabled="newSource.readonly" ng-model="newSource.port" type="text" class="form-control"></div>
                               </div>
-                              <div ng-if="newSource.dbtype == 'mysql'" class="form-group">
+                              <div ng-if="isDbSourceType(newSource.dbtype)" class="form-group">
                                 <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Database user' | translate}}</label>
                                 <div class="col-sm-9 input-container">
                                   <input required ng-disabled="newSource.readonly" ng-model="newSource.user" type="text" class="form-control"></div>
                               </div>
-                              <div ng-if="newSource.dbtype == 'mysql'" class="form-group">
+                              <div ng-if="isDbSourceType(newSource.dbtype)" class="form-group">
                                 <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Database password' | translate}}</label>
                                 <div class="col-sm-9 input-container">
                                   <input ng-disabled="newSource.readonly" ng-model="newSource.password" type="{{newSource.showPass ? 'text' : 'password'}}"
@@ -601,7 +601,7 @@
                                   <a ng-click="togglePass(newSource)">{{newSource.showPass ? 'Hide' : 'Show' | translate}}</a>
                                 </div>
                               </div>
-                              <div ng-if="newSource.dbtype == 'mysql'" class="form-group">
+                              <div ng-if="isDbSourceType(newSource.dbtype)" class="form-group">
                                 <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Select query' | translate}}</label>
                                 <div class="col-sm-9 input-container">
                                   <div required ng-model="newSource.query" class="editor-form editor-form-phonebook" ui-ace="{theme:'twilight',mode: 'sql', onChange: editorOnChange}"></div>

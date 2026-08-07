@@ -345,9 +345,7 @@
               core.$t('common.no_search_results_description')
             "
             :itemsPerPageLabel="core.$t('pagination.items_per_page')"
-            :rangeOfTotalItemsLabel="
-              core.$t('pagination.range_of_total_items')
-            "
+            :rangeOfTotalItemsLabel="core.$t('pagination.range_of_total_items')"
             :ofTotalPagesLabel="core.$t('pagination.of_total_pages')"
             :backwardText="core.$t('pagination.previous_page')"
             :forwardText="core.$t('pagination.next_page')"
