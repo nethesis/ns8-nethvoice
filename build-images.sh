@@ -176,6 +176,7 @@ if should_build "${reponame}"; then
     start_timing "${reponame}"
     pushd nethcti-server
     build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" --target production \
+        --build-arg NETHCTI_SERVER_COMMIT=feat_group_calls \
         --tag "${repobase}/${reponame}" \
         --tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
     popd
