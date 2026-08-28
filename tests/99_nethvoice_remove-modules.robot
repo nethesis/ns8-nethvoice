@@ -13,6 +13,10 @@ Check if nethvoice is removed correctly
     ...    return_rc=True  return_stdout=False
     Should Be Equal As Integers    ${rc}  0
 
+Check if the systemd metrics target is removed correctly
+    ${target} =    Execute Command    redis-cli --raw HGET module/${module_id}/metrics_targets systemd
+    Should Be Empty    ${target}
+
 Check if the nethvoice user domain admin is removed correctly
     ${response} =  Run task    cluster/get-domain-user
     ...    {"domain":"${users_domain}", "user":"${nv_domain_admin}"}

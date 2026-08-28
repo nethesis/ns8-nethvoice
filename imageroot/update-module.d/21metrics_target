@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import sys
+import uuid
+
+import agent
+
+
+SYSTEMD_EXPORTER_UNIT_EXCLUDE_DEFAULT = ".*[.](device|mount|scope|slice|swap|target)$"
+
+
+env = agent.read_envfile("environment")
+
+if not env.get("SYSTEMD_EXPORTER_PROMETHEUS_PATH"):
+    metrics_path = f"/{uuid.uuid4()}"
+    agent.set_env("SYSTEMD_EXPORTER_PROMETHEUS_PATH", metrics_path)
+    env["SYSTEMD_EXPORTER_PROMETHEUS_PATH"] = metrics_path
+    print(f"Generated systemd exporter Prometheus metrics path: {metrics_path}", file=sys.stderr)
+
+if "SYSTEMD_EXPORTER_UNIT_INCLUDE" not in env:
+    agent.set_env("SYSTEMD_EXPORTER_UNIT_INCLUDE", ".*")
+
+if "SYSTEMD_EXPORTER_UNIT_EXCLUDE" not in env:
+    agent.set_env("SYSTEMD_EXPORTER_UNIT_EXCLUDE", SYSTEMD_EXPORTER_UNIT_EXCLUDE_DEFAULT)
+
+if "NETHVOICE_SYSTEMD_EXPORTER_PORT" not in env:
+    print("NETHVOICE_SYSTEMD_EXPORTER_PORT is not set, skipping metrics target provisioning", file=sys.stderr)
+    sys.exit(0)
+
+agent.run_helper("prometheus-targets", "update").check_returncode()
