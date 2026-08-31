@@ -313,6 +313,10 @@ RUN sh /usr/local/bin/fetch-remote-artifact freepbx-framework-bootstrap-release-
 	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/agi-bin /var/lib/asterisk/ && \
 	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/bin /var/lib/asterisk/
 
+COPY --chown=asterisk:asterisk var/lib/asterisk/agi-bin/nethcti_answered_elsewhere.php /var/lib/asterisk/agi-bin/nethcti_answered_elsewhere.php
+COPY --chown=asterisk:asterisk var/lib/asterisk/agi-bin/nethcti_answered_elsewhere.php /usr/src/nethvoice/agi-bin/nethcti_answered_elsewhere.php
+RUN chmod 0755 /var/lib/asterisk/agi-bin/nethcti_answered_elsewhere.php /usr/src/nethvoice/agi-bin/nethcti_answered_elsewhere.php
+
 # Download other modules
 RUN install_module() { \
 		module_url="${2}"; \
