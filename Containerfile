@@ -24,11 +24,11 @@ COPY imageroot /imageroot
 # copy ui from ui_builder
 COPY --from=ui_builder /app/dist /ui
 ENTRYPOINT [ "/" ]
-LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm,portsadm nethvoice-proxy@any:routeadm cluster:accountconsumer"
+LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm,portsadm nethvoice-proxy@any:routeadm cluster:accountconsumer openldap@any:domadm samba@any:domadm"
 LABEL org.nethserver.tcp-ports-demand="36"
 LABEL org.nethserver.udp-ports-demand="2003"
 LABEL org.nethserver.rootfull="0"
-LABEL org.nethserver.min-core="3.20.1"
+LABEL org.nethserver.min-core="3.21.0"
 ARG REPOBASE=ghcr.io/nethserver
 ARG IMAGETAG=latest
 LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \
