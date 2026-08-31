@@ -215,6 +215,7 @@ RUN groupadd -g 991 -r asterisk && \
 		libspandsp2 \
 		libsnmp40 \
 		libical3 \
+		libsox-fmt-mp3 \
 		sqlite3 \
 		unixodbc-dev \
 		freetds-dev \
