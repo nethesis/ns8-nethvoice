@@ -2018,27 +2018,46 @@ function fias($section,$arguments) {
     if (!file_exists('/etc/asterisk/fias.conf')) {
         return FALSE;
     }
+    require_once '/usr/share/neth-hotel-fias/command-runner.inc.php';
     $ini_file = parse_ini_file("/etc/asterisk/fias.conf", true);
     if (isset($ini_file[$section]['command'])) {
-        $command = $ini_file[$section]['command'];
+        $configuredCommand = $ini_file[$section]['command'];
+    } elseif (isset($ini_file[$section]['comando'])) {
+        $configuredCommand = $ini_file[$section]['comando'];
     } else {
-        $command = $ini_file[$section]['comando'];
+        nethhotel_log("Missing FIAS command for section $section", __FUNCTION__);
+        return FALSE;
     }
     if (isset($ini_file[$section]['format'])) {
         $format = explode("_", $ini_file[$section]['format']);
-    } else {
+    } elseif (isset($ini_file[$section]['formato'])) {
         $format = explode("_", $ini_file[$section]['formato']);
+    } else {
+        nethhotel_log("Missing FIAS format for section $section", __FUNCTION__);
+        return FALSE;
     }
-    foreach ($format as $label) {
-        if (isset($arguments[$label])) {
-            $command .= ' ' . escapeshellarg($arguments[$label]);
-        } else {
-            $command .= ' ""';
+
+    try {
+        $command = fiasBuildCommand($configuredCommand);
+        foreach ($format as $label) {
+            if (isset($arguments[$label])) {
+                $command[] = $arguments[$label];
+            } else {
+                $command[] = '';
+            }
         }
+        $result = fiasRunProcess($command);
+    } catch (Throwable $exception) {
+        nethhotel_log("Invalid FIAS command: " . $exception->getMessage(), __FUNCTION__);
+        return FALSE;
     }
-    exec($command, $output, $exit_val);
-    if ($exit_val != 0) {
-        nethhotel_log("ERROR executing command: $command\n".implode("\n",$output));
+
+    if ($result['exit_code'] != 0) {
+        nethhotel_log(
+            "ERROR executing argv: " . fiasFormatCommandForLog($result['argv'])
+                . "\n" . implode("\n", $result['output']),
+            __FUNCTION__
+        );
         return FALSE;
     }
     return TRUE;

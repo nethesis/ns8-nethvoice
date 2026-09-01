@@ -1,5 +1,8 @@
 <?php
 
+require_once dirname(__FILE__) . '/command-runner.inc.php';
+require_once dirname(__FILE__) . '/database.inc.php';
+
 date_default_timezone_set('Europe/Rome');
 
 define( "ERROR" , 0);
@@ -154,6 +157,48 @@ function getArguments($section,$args) {
     return $arguments;
 }
 
+function executeFiasCustomFields($arguments, $room, $reservation, $guestName, $guestLanguage, $tag) {
+    global $ini_file;
+
+    if (empty($ini_file['custom_fields']) || !is_array($ini_file['custom_fields'])) {
+        return;
+    }
+
+    $customFields = $ini_file['custom_fields'];
+    foreach (array('A0', 'A1', 'A2', 'A3') as $recordId) {
+        if (empty($arguments[$recordId]) || empty($customFields[$recordId])) {
+            continue;
+        }
+
+        try {
+            $command = fiasBuildCommand(
+                $customFields[$recordId],
+                array(
+                    '%ARG%' => $arguments[$recordId],
+                    '%ROOM%' => $room,
+                    '%RESERVATION%' => $reservation,
+                    '%GUESTNAME%' => $guestName,
+                    '%GUESTLANGUAGE%' => $guestLanguage,
+                )
+            );
+            $result = fiasRunProcess($command);
+            $logLevel = $result['exit_code'] === 0 ? DEBUG : ERROR;
+            $message = 'Custom command argv: ' . fiasFormatCommandForLog($result['argv'])
+                . '. Result: ' . $result['exit_code'];
+            if (!empty($result['output'])) {
+                $message .= '. Output: ' . json_encode($result['output']);
+            }
+            logMessage($message, $logLevel, $tag);
+        } catch (Throwable $exception) {
+            logMessage(
+                "Invalid custom command for {$recordId}: " . $exception->getMessage(),
+                ERROR,
+                $tag
+            );
+        }
+    }
+}
+
 function insertMessageIntoDB($section,$parameters) {
     global $fiasdb;
     try {
@@ -161,26 +206,10 @@ function insertMessageIntoDB($section,$parameters) {
             throw new Exception("ERROR: Unknow section $section");
         }
         logMessage("command: {$matches[1]}, direction: {$matches[2]}, parameters: ".json_encode($parameters),DEBUG,'insertMessageIntoDB');
-        $query = "INSERT INTO messages (cmd, dir) VALUES (?,?)";
-        $sth = $fiasdb->prepare($query);
-        $rs = $sth->execute(array($matches[1],$matches[2]));
-        if (!$rs) {
-            throw new Exception('Mysql Error inserting message');
-        }
-        $msgid = $fiasdb->lastInsertId();
-        if (!empty($parameters)) {
-            foreach ($parameters as $label => $value) {
-                $query = "INSERT INTO messagesparameters (msgid, param, value) VALUES (?, ?, ?)";
-                $sth = $fiasdb->prepare($query);
-                $rs = $sth->execute(array($msgid,$label,$value));
-                if (!$rs) {
-                    throw new Exception('Mysql Error inserting messageparameters');
-                }
-            }
-        }
+        $msgid = insertFiasMessage($fiasdb, $matches[1], $matches[2], $parameters);
         logMessage("Queued {$section} message {$msgid}", INFO, 'insertMessageIntoDB');
         return TRUE;
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         logMessage("Error: ".$e->getMessage(),ERROR,'insertMessageIntoDB');
         return FALSE;
     }
@@ -189,12 +218,11 @@ function insertMessageIntoDB($section,$parameters) {
 include_once(getFreepbxDbConfigPath());
 $fiasdb = new \PDO(buildMysqlDsn($amp_conf['AMPDBHOST'], getFiasDatabaseName(), $amp_conf['AMPDBPORT']),
 	$amp_conf['AMPDBUSER'],
-	$amp_conf['AMPDBPASS']);
+	$amp_conf['AMPDBPASS'],
+    fiasPdoOptions());
 
 if ($fiasdb === false) {
     logMessage("Error connecting to database; ".mysql_error(), ERROR, __FILE__);
     exit(1);
 }
-
 initScriptLifecycleLogging();
-

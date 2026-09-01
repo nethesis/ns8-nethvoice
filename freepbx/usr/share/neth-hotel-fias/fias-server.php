@@ -393,32 +393,26 @@ while ($socket = socket_accept($sock)) {
                     if (($params === false) or (empty($params))) {
                         throw new Exception('Error: wrong parameters ' . print_r($params, true));
                     }
-                    logMessage("INSERT INTO messages (cmd, dir, raw) VALUES (\"{$params[0]}\",\"PMS\",\"{$record}\")'", DEBUGVERBOSE, "fias-server");
-                    $query = 'INSERT INTO messages (cmd, dir, raw) VALUES (?,"PMS",?)';
-                    $sth = $fiasserverdb->prepare($query);
-                    $rs = $sth->execute(array($params[0], $record));
-                    if (!$rs) {
-                        throw new Exception('Error writing message to DB; ' . mysql_error());
-                    }
-                    $last_id = $fiasserverdb->lastInsertId();
-                    $query = 'INSERT INTO messagesparameters (msgid, param, value) VALUES (?,?,?)';
-                    $sth = $fiasserverdb->prepare($query);
+                    $parameters = array();
                     for ($i = 1;$i < count($params) - 1;$i++) {
-                        logMessage("INSERT INTO messagesparameters (msgid, param, value) VALUES ({$last_id},\"" . substr($params[$i], 0, 2) . "\",\"" . substr($params[$i], 2) . "\")'", DEBUGVERBOSE, "fias-server");
-                        $rs = $sth->execute(array($last_id, substr($params[$i], 0, 2), substr($params[$i], 2)));
-                        if (!$rs) {
-                            throw new Exception('Error writing messageparameters to DB; ' . mysql_error());
-                        }
+                        $parameters[] = array(substr($params[$i], 0, 2), substr($params[$i], 2));
                     }
+                    logMessage(
+                        'Storing received record: ' . json_encode(
+                            array('command' => $params[0], 'direction' => 'PMS', 'parameters' => $parameters)
+                        ),
+                        DEBUGVERBOSE,
+                        'fias-server'
+                    );
+                    insertFiasMessage($fiasserverdb, $params[0], 'PMS', $parameters, $record);
                     $state = "stReadDB";
                 }
-                catch(Exception $e) {
+                catch(Throwable $e) {
                     logMessage($e->getMessage(), ERROR, "fias-server");
                     $state = "stDisconnected";
                 }
             break;
         }
     }
-
     socket_close($socket);
 }

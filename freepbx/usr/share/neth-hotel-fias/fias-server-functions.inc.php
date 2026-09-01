@@ -1,5 +1,7 @@
 <?php
 
+require_once dirname(__FILE__) . '/database.inc.php';
+
 date_default_timezone_set('Europe/Rome');
 
 $dbconfig = $ini_file["general"];
@@ -13,7 +15,8 @@ if (isset($dbconfig['dbport']) && $dbconfig['dbport'] !== '') {
 $fiasserverdb = new \PDO(
     buildMysqlDsn($dbconfig["dbhost"], getFiasServerDatabaseName(), $dbport),
     $dbconfig["user"],
-    $dbconfig["pwd"]
+    $dbconfig["pwd"],
+    fiasPdoOptions()
 );
 if ($fiasserverdb === false) {
     logMessage("Error connecting to database; ".mysql_error(), ERROR, __FILE__);
@@ -37,26 +40,10 @@ function insertMessageIntoServerDB($section,$parameters) {
             throw new Exception("ERROR: Unknow section $section");
         }
         logMessage("command: {$matches[1]}, direction: {$matches[2]}, parameters: ".json_encode($parameters),DEBUG,'insertMessageIntoServerDB');
-        $query = "INSERT INTO messages (cmd, dir) VALUES (?,?)";
-        $sth = $fiasserverdb->prepare($query);
-        $rs = $sth->execute(array($matches[1],$matches[2]));
-        if (!$rs) {
-            throw new Exception('Mysql Error inserting message');
-        }
-        $msgid = $fiasserverdb->lastInsertId();
-        if (!empty($parameters)) {
-            foreach ($parameters as $label => $value) {
-                $query = "INSERT INTO messagesparameters (msgid, param, value) VALUES (?, ?, ?)";
-                $sth = $fiasserverdb->prepare($query);
-                $rs = $sth->execute(array($msgid,$label,$value));
-                if (!$rs) {
-                    throw new Exception('Mysql Error inserting messageparameters');
-                }
-            }
-	}
+        $msgid = insertFiasMessage($fiasserverdb, $matches[1], $matches[2], $parameters);
         logMessage("Queued {$section} server message {$msgid}", INFO, 'insertMessageIntoServerDB');
         return TRUE;
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         logMessage("Error: ".$e->getMessage(),ERROR,'insertMessageIntoDB');
         return FALSE;
     }

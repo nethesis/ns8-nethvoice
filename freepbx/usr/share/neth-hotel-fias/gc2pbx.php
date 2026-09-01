@@ -56,9 +56,7 @@ if (!empty($arguments['RO'])) {
     $old_room_number = $room_number;
 }
 
-if (!empty($arguments['G#'])) {
-    $reservation_number = $arguments['G#'];
-}
+$reservation_number = !empty($arguments['G#']) ? $arguments['G#'] : '';
 
 if (!empty($arguments['GL'])) {
     /*convert fias language code to normal language code*/
@@ -97,21 +95,14 @@ if (!empty($arguments['GS'])) {
     $share_flag = 'N';
 }
 
-// Exec custom commands
-$custom_fields = $ini_file['custom_fields'];
-foreach (['A0','A1','A2','A3'] as $record_id) {
-    if (!empty($arguments[$record_id]) && !empty($custom_fields[$record_id])) {
-        // replace argument in custom command
-        $custom_command = str_replace('%ARG%',$arguments[$record_id],$custom_fields[$record_id]);
-        // replace %ROOM%, %RESERVATION%, %GUESTNAME%, %GUESTLANGUAGE%
-        $custom_command = str_replace('%ROOM%',$room_number,$custom_command);
-        $custom_command = str_replace('%RESERVATION%',$reservation_number,$custom_command);
-        $custom_command = str_replace('%GUESTNAME%',$guest_name,$custom_command);
-        $custom_command = str_replace('%GUESTLANGUAGE%',$guest_language,$custom_command);
-        exec($custom_command, $output, $exit_val);
-        logMessage("Executed custom command: $custom_command. Result: $exit_val",DEBUG,str_replace('.php','',basename($argv[0])));
-    }
-}
+executeFiasCustomFields(
+    $arguments,
+    $room_number,
+    $reservation_number,
+    $guest_name,
+    $guest_language,
+    str_replace('.php', '', basename($argv[0]))
+);
 
 try {
     # check if old room was shared
@@ -142,4 +133,3 @@ try {
     logMessage($section ." ERROR ". $e->getMessage(),ERROR,str_replace('.php','',basename($argv[0])));
     exit(1);
 }
-

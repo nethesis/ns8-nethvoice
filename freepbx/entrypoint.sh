@@ -412,7 +412,19 @@ command=/usr/share/neth-hotel-fias/minibar.php
 format=DA_TI_RN_MA_M#_TA
 
 [custom_fields]
-A0='logger -t fias "Check-in room %ROOM% #%RESERVATION% Guest: %GUESTNAME% %GUESTLANGUAGE%. Custom field A0: %ARG%"'
+A0[]="/usr/bin/logger"
+A0[]="-t"
+A0[]="fias"
+A0[]="--"
+A0[]="Check-in room"
+A0[]="%ROOM%"
+A0[]="reservation"
+A0[]="%RESERVATION%"
+A0[]="guest"
+A0[]="%GUESTNAME%"
+A0[]="%GUESTLANGUAGE%"
+A0[]="custom field A0"
+A0[]="%ARG%"
 A1=
 A2=
 A3=
@@ -442,6 +454,7 @@ if [[ "${NETHVOICE_HOTEL}" -eq True && -n "${NETHVOICE_HOTEL_FIAS_ADDRESS}" && -
   cat > /etc/supervisor/conf.d/fias.conf <<EOF
 [program:fias]
 command=/usr/share/neth-hotel-fias/fiasd.php
+user=asterisk
 autostart=true
 autorestart=true
 stdout_logfile=/dev/stdout
@@ -453,6 +466,7 @@ stderr_logfile_backups=0
 
 [program:fiasdispatcher]
 command=/usr/share/neth-hotel-fias/dispatcher.php
+user=asterisk
 autostart=true
 autorestart=true
 stdout_logfile=/dev/stdout
