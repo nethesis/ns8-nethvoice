@@ -22,6 +22,8 @@
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
+include_once(__DIR__. '/../lib/libExtensions.php');
+
 $app->get('/voicemails', function (Request $request, Response $response, $args) {
     try {
         $res = FreePBX::Voicemail()->getVoicemail();
@@ -69,14 +71,18 @@ $app->post('/voicemails', function (Request $request, Response $response, $args)
         }
 
         if($params['state'] == 'yes') {
-            $user = FreePBX::create()->Userman->getUserByDefaultExtension($extension['extension']);
-            $tech = $extension['tech'];
-            $data = array();
-            $data['name'] = $extension['name'];
-            $data['vmpwd'] = rand(0, 9).rand(0, 9).rand(0, 9).rand(0, 9);
-            $data['email'] = $user['email'];
-            $data['vm'] = 'yes';
-            FreePBX::create()->Voicemail->processQuickCreate($tech, $extension['extension'], $data);
+            $voicemail = FreePBX::create()->Voicemail;
+            if ($voicemail->getMailbox($extension['extension'], false) === null) {
+                $mainextension = getMainExtension($extension['extension']);
+                $user = FreePBX::create()->Userman->getUserByDefaultExtension($mainextension);
+                $tech = $extension['tech'];
+                $data = array();
+                $data['name'] = $extension['name'];
+                $data['vmpwd'] = rand(0, 9).rand(0, 9).rand(0, 9).rand(0, 9);
+                $data['email'] = is_array($user) && isset($user['email']) ? $user['email'] : '';
+                $data['vm'] = 'yes';
+                $voicemail->processQuickCreate($tech, $extension['extension'], $data);
+            }
         } else {
             FreePBX::create()->Voicemail->delMailbox($extension['extension']);
             $sql = 'UPDATE `users` SET `voicemail` = "novm" WHERE `extension` = ?';
