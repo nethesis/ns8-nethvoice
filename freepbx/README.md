@@ -334,3 +334,34 @@ If the harness fails, start with `report.md`, then open the referenced
 `commands/*.log`. The per-command file correlates the FIAS wire frame with the
 producer/handler lifecycle and any `nethhotel` lines. The three full daemon
 logs are available for handshake, reconnect, timeout, or queue diagnostics.
+
+### Configure custom FIAS actions safely
+
+Custom actions for the FIAS `A0` through `A3` fields are configured as an
+argument array. The first item is the executable; each following item is a
+literal argument or one standalone placeholder:
+
+```ini
+[custom_fields]
+A0[]="/usr/bin/logger"
+A0[]="-t"
+A0[]="fias"
+A0[]="--"
+A0[]="Custom field A0"
+A0[]="%ARG%"
+```
+
+Supported placeholders are `%ARG%`, `%ROOM%`, `%RESERVATION%`, `%GUESTNAME%`,
+and `%GUESTLANGUAGE%`. Commands are executed directly without a shell, so
+command substitution, pipelines, redirection, and other shell syntax are not
+supported. The FIAS daemon, dispatcher, handlers, and their custom actions run
+as the unprivileged `asterisk` user. Existing scalar command templates are
+tokenized before placeholder substitution for compatibility, but should be
+migrated to the array form to make the argument boundaries explicit.
+In legacy scalar templates, a backslash inside a double-quoted argument is
+treated as an escape and removed. Existing commands that require literal
+backslashes, such as regular expressions containing `\d+`, must be migrated to
+the array form.
+The executable and fixed arguments are administrator-controlled configuration;
+FIAS placeholders must not be placed in code evaluated by a shell or interpreter
+option such as `sh -c` or `php -r`.

@@ -53,27 +53,43 @@ while (TRUE) {
             logMessage("Command section $section not defined in configuration file /etc/asterisk/fias.conf", ERROR, "dispatcher");
             continue;
         }
-        $command = $ini_file[$section]["command"];
-        $format = explode("_", $ini_file[$section]["format"]);
-        foreach ($format as $parameter) {
-	    $command .= ' ';
-            if (empty($parameter) || !isset($message['parameters'][$parameter])) {
-                $command .= "''";
-	    } else {
-                $command .= escapeshellarg($message['parameters'][$parameter]);
+        $command = array();
+        try {
+            $command = fiasBuildCommand($ini_file[$section]["command"]);
+            $format = explode("_", $ini_file[$section]["format"]);
+            foreach ($format as $parameter) {
+                if (empty($parameter) || !isset($message['parameters'][$parameter])) {
+                    $command[] = '';
+                } else {
+                    $command[] = $message['parameters'][$parameter];
+                }
             }
+            logMessage(
+                "Message $id ($section) launching argv: " . fiasFormatCommandForLog($command),
+                INFO,
+                "dispatcher"
+            );
+            $result = fiasRunProcess($command);
+        } catch (Throwable $exception) {
+            $result = array(
+                'exit_code' => -1,
+                'output' => array($exception->getMessage()),
+                'argv' => isset($command) && is_array($command) ? $command : array(),
+            );
         }
-        logMessage("Message $id ($section) launching command: $command", INFO, "dispatcher");
-        $output = array();
-        exec($command.' 2>&1', $output, $exit_val);
-        foreach ($output as $line) {
+        foreach ($result['output'] as $line) {
             logMessage("Message $id ($section) handler: $line", INFO, "dispatcher");
         }
         $query = "UPDATE messages SET elaborationtime = CURRENT_TIMESTAMP WHERE id = ?";
         $sth = $fiasdb->prepare($query);
         $sth->execute(array($id));
-        if ($exit_val != 0) {
-            logMessage("Message $id ($section) failed with exit code $exit_val", ERROR, "dispatcher");
+        if ($result['exit_code'] != 0) {
+            logMessage(
+                "Message $id ($section) failed with exit code {$result['exit_code']} for argv "
+                    . fiasFormatCommandForLog($result['argv']),
+                ERROR,
+                "dispatcher"
+            );
         } else {
             logMessage("Message $id ($section) completed with exit code 0", INFO, "dispatcher");
         }
