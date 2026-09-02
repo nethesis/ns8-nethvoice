@@ -108,12 +108,18 @@ chown asterisk:asterisk /var/lib/asterisk/db /var/spool/asterisk/outgoing /var/s
 mkdir -p /etc/nethcti
 chown -R asterisk:asterisk /etc/nethcti
 
-# Keep the CSV upload volume non-empty. NS8 backup mounts module volumes in a
+# Keep the phonebook volumes non-empty. NS8 backup mounts module volumes in a
 # helper container, and an empty named volume can be re-initialized there with
 # root ownership. Seeding a hidden file prevents ownership drift.
-mkdir -p /var/lib/nethvoice/phonebook/uploads
-touch /var/lib/nethvoice/phonebook/uploads/.nethvoice-volume-guard
-chown -R asterisk:asterisk /var/lib/nethvoice/phonebook/uploads
+mkdir -p \
+	/etc/phonebook/sources.d \
+	/var/lib/nethvoice/phonebook/uploads
+touch \
+	/etc/phonebook/sources.d/.nethvoice-volume-guard \
+	/var/lib/nethvoice/phonebook/uploads/.nethvoice-volume-guard
+chown -R asterisk:asterisk \
+	/etc/phonebook/sources.d \
+	/var/lib/nethvoice/phonebook/uploads
 
 # Don't continue with initialization if the database is not ready
 if [[ -z "${AMPDBUSER}" || -z "${AMPDBPASS}" ]]; then
