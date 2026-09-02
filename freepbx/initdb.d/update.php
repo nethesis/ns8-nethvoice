@@ -6,6 +6,17 @@
 
 include_once '/etc/freepbx_db.conf';
 
+// Shared FIAS rooms display all guest names in this field. The original
+// 32-character limit is too short even for two ordinary guest names.
+$sql = "SELECT CHARACTER_MAXIMUM_LENGTH
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = 'roomsdb' AND TABLE_NAME = 'rooms' AND COLUMN_NAME = 'text'";
+$stmt = $db->query($sql);
+$roomTextLength = $stmt->fetchColumn();
+if ($roomTextLength !== false && (int)$roomTextLength < 255) {
+	$db->exec('ALTER TABLE `roomsdb`.`rooms` MODIFY `text` varchar(255) DEFAULT NULL');
+}
+
 # Create hotel cti context if not exist and NETHVOICE_HOTEL environment variable is set
 # check if hotel profile exists
 $sql = 'SELECT id FROM `asterisk`.`rest_cti_profiles` WHERE name = "Hotel"';
