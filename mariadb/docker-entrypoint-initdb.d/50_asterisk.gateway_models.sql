@@ -27,4 +27,5 @@ INSERT INTO `gateway_models` (`id`,`model`,`manufacturer`,`tech`,`n_pri_trunks`,
 (43,"gxw4232","Grandstream","fxs",0,0,0,32,"GXW4216 SIP 32 Porte FXS"),
 (44,"gxw4232TLS","Grandstream","fxs",0,0,0,32,"GXW4232 SIP TLS 32 Porte FXS"),
 (45,"gxw4248","Grandstream","fxs",0,0,0,48,"GXW4216 SIP 48 Porte FXS"),
-(46,"gxw4248TLS","Grandstream","fxs",0,0,0,48,"GXW4216 SIP TLS 48 Porte FXS");
+(46,"gxw4248TLS","Grandstream","fxs",0,0,0,48,"GXW4216 SIP TLS 48 Porte FXS"),
+(48,"ht841TLS","Grandstream","fxo",0,0,4,0,"HT841 Analogico 4 Porte FXO");
