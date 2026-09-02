@@ -115,20 +115,29 @@ try {
     $res = $sth->fetchAll();
     if (count($res) === 0) {
         # no reservation for this room
-        externalCheckIn($room_number, $reservation_number, $guest_name, $guest_language);
+        if (!externalCheckIn($room_number, $reservation_number, $guest_name, $guest_language)) {
+            throw new Exception("Error checking in room $room_number");
+        }
     } else {
         # room already reserved
         if  ($share_flag === 'N') {
             logMessage($section ." WARNING: $room_number is reserved but share flag isn't enabled", ERROR,str_replace('.php','',basename($argv[0])));
+            if (!externalCheckIn($room_number, $reservation_number, $guest_name, $guest_language)) {
+                throw new Exception("Error checking in room $room_number");
+            }
         } else {
-                # Get old guest name
-                $query = "SELECT text FROM roomsdb.rooms WHERE extension = ?";
-                $sth = $db->prepare($query);
-                $sth->execute(array($room_number));
-                $old_name = $sth->fetchAll()[0]['text'];
-                $guest_name = empty($old_name) ? $guest_name : $old_name . " - " . $guest_name;
+            # Keep the existing occupancy and add the shared guest to its label.
+            # externalCheckIn() must not be used here because it force-checks out
+            # an already occupied room before checking it in again.
+            $query = "SELECT text FROM roomsdb.rooms WHERE extension = ?";
+            $sth = $db->prepare($query);
+            $sth->execute(array($room_number));
+            $old_name = $sth->fetchColumn();
+            $room_guest_name = empty($old_name) ? $guest_name : $old_name . " - " . $guest_name;
+            if (!editSurname($room_number, $room_guest_name)) {
+                throw new Exception("Error adding shared guest to room $room_number");
+            }
         }
-        externalCheckIn($room_number, $reservation_number, $guest_name, $guest_language);
     }
     $query = "INSERT INTO `reservations` (`room_number`,`reservation_number`,`guest_name`,`guest_language`,`share_flag`,`checkindate`) VALUES (?,?,?,?,?,?)";
     $sth = $fiasdb->prepare($query);
@@ -137,4 +146,3 @@ try {
     logMessage($section ." Error: ". $e->getMessage(),ERROR,str_replace('.php','',basename($argv[0])));
     exit(1);
 }
-
