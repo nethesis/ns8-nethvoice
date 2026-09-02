@@ -72,16 +72,21 @@ $app->post('/voicemails', function (Request $request, Response $response, $args)
 
         if($params['state'] == 'yes') {
             $voicemail = FreePBX::create()->Voicemail;
-            if ($voicemail->getMailbox($extension['extension'], false) === null) {
-                $mainextension = getMainExtension($extension['extension']);
-                $user = FreePBX::create()->Userman->getUserByDefaultExtension($mainextension);
+            $mailbox = $voicemail->getMailbox($extension['extension'], false);
+            $mainextension = getMainExtension($extension['extension']);
+            $user = FreePBX::create()->Userman->getUserByDefaultExtension($mainextension);
+            $email = is_array($user) && isset($user['email']) ? $user['email'] : '';
+            if ($mailbox === null) {
                 $tech = $extension['tech'];
                 $data = array();
                 $data['name'] = $extension['name'];
-                $data['vmpwd'] = rand(0, 9).rand(0, 9).rand(0, 9).rand(0, 9);
-                $data['email'] = is_array($user) && isset($user['email']) ? $user['email'] : '';
+                $data['vmpwd'] = sprintf('%04d', random_int(0, 9999));
+                $data['email'] = $email;
                 $data['vm'] = 'yes';
                 $voicemail->processQuickCreate($tech, $extension['extension'], $data);
+            } elseif (!isset($mailbox['email']) || $mailbox['email'] !== $email) {
+                $mailbox['email'] = $email;
+                $voicemail->updateMailbox($extension['extension'], $mailbox, false);
             }
         } else {
             FreePBX::create()->Voicemail->delMailbox($extension['extension']);
