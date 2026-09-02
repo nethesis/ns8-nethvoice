@@ -193,7 +193,8 @@ fi
 reponame="nethvoice-cti-middleware"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/nethcti-middleware:v0.5.19)
+    # SSO feature branch (NethServer/dev#8142, nethesis/nethcti-middleware#79)
+    container=$(buildah from ghcr.io/nethesis/nethcti-middleware:sso)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
@@ -212,7 +213,8 @@ fi
 reponame="nethvoice-cti-ui"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v0.15.28)
+    # SSO feature branch (NethServer/dev#8142, nethesis/nethvoice-cti#558)
+    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:sso)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
@@ -223,6 +225,25 @@ if should_build "${reponame}"; then
 else
     skip_build "${reponame}"
 fi
+
+#############################
+##  SAML2 SP (SSO)    ##
+#############################
+reponame="nethvoice-saml2-proxy"
+if should_build "${reponame}"; then
+    start_timing "${reponame}"
+    pushd saml2-proxy
+    build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" \
+        --tag "${repobase}/${reponame}" \
+        --tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
+    popd
+    finish_timing
+    # Append the image URL to the images array
+    images+=("${repobase}/${reponame}")
+else
+    skip_build "${reponame}"
+fi
+
 
 #############################
 ##      Janus Gateway      ##
