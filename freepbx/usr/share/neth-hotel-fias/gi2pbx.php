@@ -91,6 +91,12 @@ if (!empty($arguments['GS'])) {
     $share_flag = 'N';
 }
 
+if (isset($arguments['GG'])) {
+    $guest_group_number = trim($arguments['GG']);
+} else {
+    $guest_group_number = '';
+}
+
 // Exec custom commands
 $custom_fields = $ini_file['custom_fields'];
 foreach (['A0','A1','A2','A3'] as $record_id) {
@@ -142,6 +148,41 @@ try {
     $query = "INSERT INTO `reservations` (`room_number`,`reservation_number`,`guest_name`,`guest_language`,`share_flag`,`checkindate`) VALUES (?,?,?,?,?,?)";
     $sth = $fiasdb->prepare($query);
     $sth->execute(array($room_number,$reservation_number,$guest_name,$guest_language,$share_flag,date('Y-m-d G:i:s')));
+
+    if ($guest_group_number !== '') {
+        # FIAS GG is alphanumeric, while NethHotel uses an internal numeric ID.
+        # Use the FIAS group number as the NethHotel group name so all rooms with
+        # the same GG value are assigned to the same group.
+        $query = "SELECT id FROM roomsdb.room_groups WHERE name = ? ORDER BY id LIMIT 1";
+        $sth = $db->prepare($query);
+        $sth->execute(array($guest_group_number));
+        $group_id = $sth->fetchColumn();
+
+        if ($group_id === false) {
+            $options = getOptions();
+            $query = "INSERT INTO roomsdb.room_groups (`name`,`note`,`groupcalls`,`roomscalls`,`externalcalls`) VALUES (?,?,?,?,?)";
+            $sth = $db->prepare($query);
+            $sth->execute(array(
+                $guest_group_number,
+                "Created from FIAS guest group $guest_group_number",
+                (int)($options['groupcalls'] ?? 0),
+                (int)($options['internal_call'] ?? 0),
+                (int)($options['externalcalls'] ?? 0)
+            ));
+
+            $query = "SELECT id FROM roomsdb.room_groups WHERE name = ? ORDER BY id LIMIT 1";
+            $sth = $db->prepare($query);
+            $sth->execute(array($guest_group_number));
+            $group_id = $sth->fetchColumn();
+            if ($group_id === false) {
+                throw new Exception("Error creating guest group $guest_group_number");
+            }
+        }
+
+        if (!setGroup($room_number, $group_id)) {
+            throw new Exception("Error assigning room $room_number to guest group $guest_group_number");
+        }
+    }
 } catch (Exception $e){
     logMessage($section ." Error: ". $e->getMessage(),ERROR,str_replace('.php','',basename($argv[0])));
     exit(1);
