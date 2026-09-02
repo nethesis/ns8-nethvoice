@@ -1,0 +1,22 @@
+<SPConfig xmlns="urn:mace:shibboleth:3.0:native:sp:config"
+    xmlns:conf="urn:mace:shibboleth:3.0:native:sp:config" clockSkew="300">
+    <ApplicationDefaults entityID="${SP_ENTITY_ID}" REMOTE_USER="${SP_IDENTITY_ATTRIBUTE}">
+        <Sessions lifetime="28800" timeout="3600" relayState="ss:mem"
+                  checkAddress="false" handlerSSL="false" cookieProps="https"
+                  handlerURL="/Shibboleth.sso">
+            <SSO entityID="${SP_IDP_ENTITY_ID}">SAML2</SSO>
+            <Logout>SAML2 Local</Logout>
+            <Handler type="MetadataGenerator" Location="/Metadata" signing="false"/>
+            <Handler type="Status" Location="/Status"/>
+            <Handler type="Session" Location="/Session" showAttributeValues="true"/>
+        </Sessions>
+        <Errors supportContact="root@localhost" helpLocation="/about.html" styleSheet="/saml2-proxy/main.css"/>
+        ${SP_METADATA_PROVIDER}
+        <AttributeExtractor type="XML" validate="true" reloadChanges="false" path="attribute-map.xml"/>
+        <AttributeResolver type="Query" subjectMatch="true"/>
+        <AttributeFilter type="XML" validate="true" path="attribute-policy.xml"/>
+        <CredentialResolver type="File" key="/var/lib/saml2-proxy/sp-key.pem" certificate="/var/lib/saml2-proxy/sp-cert.pem"/>
+    </ApplicationDefaults>
+    <SecurityPolicyProvider type="XML" validate="true" path="security-policy.xml"/>
+    <ProtocolProvider type="XML" validate="true" reloadChanges="false" path="protocols.xml"/>
+</SPConfig>

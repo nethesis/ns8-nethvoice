@@ -22,6 +22,12 @@ response = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-mo
     "reports_international_prefix": old_envs["REPORTS_INTERNATIONAL_PREFIX"],
     "timezone": old_envs["TIMEZONE"],
     "user_domain": old_envs["USER_DOMAIN"],
+    "authentication_method": old_envs.get("AUTHENTICATION_METHOD", "password"),
+    "saml2": {
+        "idp_metadata_url": old_envs.get("SAML2_IDP_METADATA_URL", ""),
+        "identity_attribute": old_envs.get("SAML2_IDENTITY_ATTRIBUTE", "") or "uid",
+        "login_button_label": old_envs.get("SAML2_LOGIN_BUTTON_LABEL", ""),
+    },
 })
 
 agent.assert_exp(response['exit_code'] == 0)
