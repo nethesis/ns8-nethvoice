@@ -1,0 +1,11 @@
+<afp:AttributeFilterPolicyGroup
+    xmlns:afp="urn:mace:shibboleth:2.0:afp"
+    xmlns:basic="urn:mace:shibboleth:2.0:afp:mf:basic"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <afp:AttributeFilterPolicy>
+        <afp:PolicyRequirementRule xsi:type="basic:ANY"/>
+        <afp:AttributeRule attributeID="${SP_IDENTITY_ATTRIBUTE}">
+            ${SP_VALUE_RULE}
+        </afp:AttributeRule>
+    </afp:AttributeFilterPolicy>
+</afp:AttributeFilterPolicyGroup>
