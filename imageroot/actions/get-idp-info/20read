@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import os
+import subprocess
+import sys
+
+import saml_metadata
+
+request = json.load(sys.stdin)
+resolve_hosts = (os.getenv('NETHVOICE_HOST', ''), os.getenv('NETHCTI_UI_HOST', ''))
+try:
+    xml = saml_metadata.fetch(request['url'], resolve_hosts)
+except subprocess.CalledProcessError as ex:
+    print(f"get-idp-info: cannot fetch {request['url']}: {ex.stderr}", file=sys.stderr)
+    sys.exit(1)
+json.dump(saml_metadata.parse_branding(xml), fp=sys.stdout)

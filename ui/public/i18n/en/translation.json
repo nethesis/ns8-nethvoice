@@ -22,7 +22,8 @@
     "set-rebranding": "Configure rebranding",
     "set-nethvoice-admin-password": "Change NethVoice admin password",
     "get-ports-list": "Get ports list",
-    "restart-module": "Restart application"
+    "restart-module": "Restart application",
+    "get-idp-info": "Read IdP metadata"
   },
   "common": {
     "processing": "Processing…",
@@ -36,7 +37,9 @@
     "node_id": "Node {id}",
     "save": "Save",
     "optional": "optional",
-    "status": "Status"
+    "status": "Status",
+    "copy_to_clipboard": "Copy to clipboard",
+    "copied_to_clipboard": "Copied to clipboard"
   },
   "error": {
     "401": "Invalid authentication",
@@ -61,6 +64,23 @@
     "save": "Save",
     "title": "Settings",
     "user_domain": "Account provider",
+    "authentication_method": "Authentication method",
+    "authentication_method_tooltip": "How users prove their identity. It is independent from the account provider, which always stores the user records.",
+    "authentication_method_password": "Local password",
+    "authentication_method_saml2": "SAML2 Single Sign-On",
+    "saml2_info_title": "SAML2 Single Sign-On",
+    "saml2_info_description": "Users authenticate on the external Identity Provider. They must still exist in the selected account provider with a CTI profile, and their SAML identity attribute must match the account provider username.",
+    "saml2_sp_metadata_url": "Service provider metadata URL",
+    "saml2_sp_metadata_url_helper": "Register this module as a trusted service provider on the identity provider using this metadata URL",
+    "saml2_idp_metadata_url": "Identity Provider metadata URL",
+    "saml2_idp_metadata_url_tooltip": "URL of the SAML2 Identity Provider metadata document.",
+    "saml2_login_preview": "Login button preview",
+    "saml2_preview_not_available": "Preview not available",
+    "saml2_identity_attribute": "Identity attribute",
+    "saml2_identity_attribute_tooltip": "SAML attribute mapped to the account provider username (e.g. uid, eppn).",
+    "saml2_login_button_label": "SSO login button label (optional)",
+    "saml2_login_button_label_placeholder": "e.g. Sign in with SSO",
+    "saml2_default_button_label": "Sign in with SSO",
     "reports_international_prefix": "Reports prefix",
     "reports_international_prefix_tooltip": "Format must be either \"00**\" or \"+**\"",
     "reports_prefix_invalid": "Invalid format",
