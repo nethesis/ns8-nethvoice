@@ -46,10 +46,19 @@ try {
             }
             $final_checkout = true;
         } else {
-            # Shared room. Remove guest name from room
-            $query = 'UPDATE roomsdb.rooms SET text = TRIM(REPLACE(text,(SELECT guest_name FROM fias.reservations WHERE room_number = ?), "")) WHERE extension = ?';
+            # Shared room. Rebuild the label from the guests that remain after
+            # this reservation checks out. Selecting by room here is not
+            # scalar when the room is shared, and string replacement leaves
+            # dangling separators when the first or middle guest departs.
+            $query = 'SELECT guest_name FROM fias.reservations WHERE room_number = ? AND reservation_number <> ? ORDER BY checkindate, reservation_number';
             $sth = $fiasdb->prepare($query);
-            $sth->execute(array($room_number,$room_number));
+            $sth->execute(array($room_number, $reservation_number));
+            $remaining_guest_names = array_filter($sth->fetchAll(PDO::FETCH_COLUMN), function ($guest_name) {
+                return $guest_name !== null && $guest_name !== '';
+            });
+            if (!editSurname($room_number, implode(' - ', $remaining_guest_names))) {
+                throw new Exception("Error updating shared room $room_number guest names");
+            }
         }
         # Delete reservation
         $query = "DELETE FROM `reservations` WHERE `reservation_number`= ?";
