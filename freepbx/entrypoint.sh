@@ -420,6 +420,21 @@ A3=
 EOF
 fi
 
+# Add the optional GG configuration to FIAS files kept in the persistent
+# Asterisk volume. Keep the legacy format active until administrators opt in.
+if ! grep -Fq 'FLRNG#GNGLGGGSSFA0A1A2A3' /etc/asterisk/fias.conf; then
+  sed -i '/^1="LR|RIGI|FLRNG#GNGLGSSFA0A1A2A3|"$/a\
+; Optional FIAS Guest Group Number (GG) support: replace the active row\
+; above with the following row to manage NethHotel room groups from GI.\
+;1="LR|RIGI|FLRNG#GNGLGGGSSFA0A1A2A3|"' /etc/asterisk/fias.conf
+fi
+if ! grep -Fq 'format=RN_G#_GN_GL_GG_GS_SF_A0_A1_A2_A3' /etc/asterisk/fias.conf; then
+  sed -i '/^format=RN_G#_GN_GL_GS_SF_A0_A1_A2_A3$/a\
+; When GG support is enabled in the RIGI row, replace the active format\
+; above with this one. GG follows GL in the expected FIAS field order.\
+;format=RN_G#_GN_GL_GG_GS_SF_A0_A1_A2_A3' /etc/asterisk/fias.conf
+fi
+
 # configure fias
 if [[ "${NETHVOICE_HOTEL}" -eq True && -n "${NETHVOICE_HOTEL_FIAS_ADDRESS}" && -n "${NETHVOICE_HOTEL_FIAS_PORT}" ]]; then
   sed -i 's/^address=.*/address='"${NETHVOICE_HOTEL_FIAS_ADDRESS}"'/' /etc/asterisk/fias.conf
