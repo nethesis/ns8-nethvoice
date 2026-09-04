@@ -183,7 +183,9 @@ try {
         ))) {
             throw new Exception("Error creating or reusing guest group $guest_group_number");
         }
-        $group_id = (int)$db->lastInsertId();
+        # $db is FreePBX's PEAR-compatible DB wrapper. Its insert ID accessor is
+        # insert_id(); lastInsertId() belongs to the wrapped PDO connection.
+        $group_id = (int)$db->insert_id();
         if ($group_id <= 0) {
             throw new Exception("Error resolving guest group $guest_group_number");
         }
@@ -192,7 +194,7 @@ try {
             throw new Exception("Error assigning room $room_number to guest group $guest_group_number");
         }
     }
-} catch (Exception $e){
+} catch (Throwable $e){
     logMessage($section ." Error: ". $e->getMessage(),ERROR,str_replace('.php','',basename($argv[0])));
     exit(1);
 }
