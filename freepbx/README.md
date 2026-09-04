@@ -260,3 +260,77 @@ NethVoice Hotel FIAS is installed and disabled by default. To enable it, set the
 
 Other configuration and finetune can be found in the file `/etc/asterisk/fias.conf` configuration file.
 If you need to change the configuration, you can do it in the file `/etc/asterisk/fias.conf` and restart container mounting new version as volume. Database credentials and server configuration will be overwritten with environment variables.
+
+### Run the complete FIAS test
+
+The isolated test starts a local PMS simulator, the real FIAS client and the
+real dispatcher. It covers the link handshake and reconnect/shutdown paths,
+all command sections enabled by the default `fias.conf`, guest groups and
+shared rooms, room status/DND behavior, and the minibar/CDR modes. It creates
+temporary transport databases and chooses an unused six-room block; both are
+removed at the end. It does not require Hotel FIAS to be enabled against a real
+PMS.
+
+Run it from an NS8 node, replacing the module identifier if needed:
+
+```sh
+NV_MODULE=nethvoice1
+FIAS_E2E_DIR=/tmp/fias-e2e-manual-$(date +%s)
+
+runagent -m "$NV_MODULE" podman exec \
+  -e FIAS_E2E_ARTIFACT_DIR="$FIAS_E2E_DIR" \
+  -e FIAS_E2E_SCENARIO=manual \
+  -e FIAS_E2E_MODULE_ID="$NV_MODULE" \
+  freepbx php /usr/share/neth-hotel-fias/fias-server-e2e.php
+```
+
+The command exits non-zero if any transport, handler, state assertion, or
+cleanup check fails. Its final output prints the evidence path. To copy the
+sanitized evidence bundle to the current machine:
+
+```sh
+mkdir -p tests/outputs/fias-e2e/manual
+runagent -m "$NV_MODULE" sh -lc \
+  'podman exec freepbx tar -C "$1" -czf - . | base64 -w0' sh "$FIAS_E2E_DIR" \
+  | base64 -d | tar -xzf - -C tests/outputs/fias-e2e/manual
+
+sed -n '1,240p' tests/outputs/fias-e2e/manual/report.md
+runagent -m "$NV_MODULE" podman exec freepbx rm -rf -- "$FIAS_E2E_DIR"
+```
+
+The bundle contains:
+
+- `report.md`: command-by-command human-readable report
+- `report.json`: the same results for automation
+- `commands/*.log`: trigger script, dispatched handler, parameters, wire frame,
+  assertion, and associated logs for every tested command/mode
+- `hotel.log`: NethHotel log lines correlated to their FIAS message
+- `fiasd.log`, `fias-server.log`, and `dispatcher.log`: full protocol evidence
+- `environment.json`: scenario metadata with no credentials
+
+You can optionally pass the first room number to the PHP script. The requested
+room and the following five rooms must be unused; otherwise the test stops
+without altering them.
+
+### Run install and update tests in GitHub Actions
+
+The extended test is manual-only and remains skipped during ordinary PR runs.
+After the branch images have been published, dispatch it for the branch:
+
+```sh
+gh workflow run test-module.yml \
+  --ref fias_improve \
+  -f debug_shell=false \
+  -f run_fias_e2e=true
+```
+
+The workflow runs a fresh installation on `dn1` and an update on `rl1`.
+Download the `tests-logs-dn1` and `tests-logs-rl1` artifacts from that run; the
+reports are under `fias-e2e/install/` and `fias-e2e/update/` respectively.
+If the branch image publication is unavailable but an exact PR testing image
+has already been published, pass it with `-f fias_image=<module-image-url>`.
+
+If the harness fails, start with `report.md`, then open the referenced
+`commands/*.log`. The per-command file correlates the FIAS wire frame with the
+producer/handler lifecycle and any `nethhotel` lines. The three full daemon
+logs are available for handshake, reconnect, timeout, or queue diagnostics.

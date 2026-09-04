@@ -6,7 +6,20 @@ require_once("config.inc.php");
 require_once("utils.inc.php");
 
 function nethhotel_log($msg, $function=''){
-  error_log(date('M d H:i:s')."$function: ".print_r($msg,true));
+  if (is_array($msg) || is_object($msg)) {
+    $msg = print_r($msg, true);
+  }
+
+  $prefix = $function !== '' ? "$function: " : '';
+  $line = date('M d H:i:s')." nethhotel[".getmypid()."]: ".$prefix.rtrim((string) $msg);
+
+  if (!error_log($line)) {
+    $out = fopen('php://stderr', 'w');
+    if ($out) {
+      fputs($out, $line.PHP_EOL);
+      fclose($out);
+    }
+  }
 }
 
 function isValidRoomExt($ext, $caller)
@@ -1092,15 +1105,15 @@ function externalCheckIn($room, $reservation='', $name='',$language='')
             //log error here
             nethhotel_log ($res->getMessage(),__FUNCTION__);
         }
-  	$res = $db->query("INSERT INTO roomsdb.history (extension,start,end) VALUES ($roomId,'$res[0]',now())");
+	$res = $db->query("INSERT INTO roomsdb.history (extension,start,end) VALUES ($roomId,'$res[0]',now())");
         if (@DB::IsError($res)) {
             nethhotel_log ($res->getMessage(),__FUNCTION__);
         }
-  	$res = $db->query("UPDATE roomsdb.extra_history SET checkout='1' WHERE extension=$roomId");
+	$res = $db->query("UPDATE roomsdb.extra_history SET checkout='1' WHERE extension=$roomId");
         if (@DB::IsError($res)) {
             nethhotel_log ($res->getMessage(),__FUNCTION__);
         }
-  	$res = $db->query("DELETE FROM roomsdb.alarms WHERE extension=$roomId");
+	$res = $db->query("DELETE FROM roomsdb.alarms WHERE extension=$roomId");
         if (@DB::IsError($res)) {
             nethhotel_log ($res->getMessage(),__FUNCTION__);
         }
@@ -1297,18 +1310,35 @@ function setGroup($ext,$group)
   $ext = (int)$ext;
   $group = (int)$group;
   nethhotel_log ("$ext $group");
+  $runQuery = function ($sql) use ($db) {
+    try {
+      $res = $db->query($sql);
+    } catch (Throwable $e) {
+      nethhotel_log ($sql." ".$e->getMessage(), 'setGroup');
+      return false;
+    }
+    $isError = $res === false || (class_exists('DB') && DB::isError($res));
+    if ($isError) {
+      if (is_object($res) && method_exists($res, 'getMessage')) {
+        $message = $res->getMessage();
+      } elseif (method_exists($db, 'errorInfo')) {
+        $message = implode(' ', array_filter($db->errorInfo()));
+      } else {
+        $message = 'database query failed';
+      }
+      nethhotel_log ($sql." ".$message, 'setGroup');
+      return false;
+    }
+    return true;
+  };
   $sql = "DELETE FROM roomsdb.groups_rooms WHERE `extension` = ".$ext;
-  $res = $db->query($sql);
-  if (@DB::IsError($res)) {
-      nethhotel_log ($sql." ".$res->getMessage(),__FUNCTION__);
-      die($sql." ".$res->getMessage());
+  if (!$runQuery($sql)) {
+      return false;
   }
   if ($group>0){
       $sql = "INSERT INTO roomsdb.groups_rooms SET `group_id` = ".$group.", `extension` = ".$ext;
-      $res = $db->query($sql);
-      if (@DB::IsError($res)) {
-          nethhotel_log ($sql." ".$res->getMessage(),__FUNCTION__);
-          die($sql." ".$res->getMessage());
+      if (!$runQuery($sql)) {
+          return false;
       }
       nethhotel_log ("Added room $ext to group $group");
   } else {
