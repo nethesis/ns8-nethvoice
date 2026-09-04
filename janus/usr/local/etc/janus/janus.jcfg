@@ -401,7 +401,11 @@ nat: {
 # names to identify the plugins to disable. By default all available
 # plugins are enabled and loaded at startup.
 plugins: {
-	#disable = "libjanus_voicemail.so,libjanus_recordplay.so"
+	# NethVoice only uses the SIP plugin. Disable every other plugin so that
+	# demo plugins (e.g. streaming) do not bind fixed host-network UDP ports
+	# such as 5002/5102, which collide between instances on the same node
+	# (QA finding B8).
+	disable = "libjanus_streaming.so,libjanus_echotest.so,libjanus_videocall.so,libjanus_videoroom.so,libjanus_audiobridge.so,libjanus_voicemail.so,libjanus_recordplay.so,libjanus_textroom.so,libjanus_nosip.so"
 }
 
 # You can choose which of the available transports should be enabled or

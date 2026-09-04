@@ -37,8 +37,7 @@ restore_envs = [
     'FLEXISIP_LOG_LEVEL',
     'ICEIGNORE',
     'JANUS_DEBUG_LEVEL',
-    'JANUS_RTPEND',
-    'JANUS_RTPSTART',
+
     'LOGIN_BACKGROUND_URL',
     'LOGIN_LOGO_URL',
     'LOGIN_PEOPLE',
