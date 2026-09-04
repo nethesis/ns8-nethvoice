@@ -38,8 +38,9 @@ config = {
         'client_id': os.getenv('OIDC_CLIENT_ID', ''),
         'login_button_label': os.getenv('OIDC_LOGIN_BUTTON_LABEL', ''),
         'idp_name': os.getenv('OIDC_IDP_NAME', ''),
-        # the client secret is never returned; expose only whether it is set
-        'client_secret_set': bool(agent.read_envfile('passwords.env').get('OIDC_CLIENT_SECRET', '')),
+        # returned to the admin-only UI so the field shows the stored value
+        # (revealed on demand); the API is already authenticated as admin
+        'client_secret': agent.read_envfile('passwords.env').get('OIDC_CLIENT_SECRET', ''),
     },
 }
 
