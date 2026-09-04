@@ -246,6 +246,24 @@ fi
 
 
 #############################
+##  OIDC front-door (SSO)  ##
+#############################
+# Mirror of the upstream oauth2-proxy (configured entirely via env at runtime).
+reponame="nethvoice-oauth2-proxy"
+if should_build "${reponame}"; then
+    start_timing "${reponame}"
+    container=$(buildah from quay.io/oauth2-proxy/oauth2-proxy:v7.7.1)
+    buildah commit "${container}" "${repobase}/${reponame}"
+    buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
+    finish_timing
+    # Append the image URL to the images array
+    images+=("${repobase}/${reponame}")
+else
+    skip_build "${reponame}"
+fi
+
+
+#############################
 ##      Janus Gateway      ##
 #############################
 reponame="nethvoice-janus"

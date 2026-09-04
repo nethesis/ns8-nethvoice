@@ -64,9 +64,9 @@
             "type": "string"
         },
         "authentication_method": {
-            "description": "How users prove their identity: local password or SAML2 SSO",
+            "description": "How users prove their identity: local password, SAML2 or OIDC SSO",
             "type": "string",
-            "enum": ["password", "saml2"]
+            "enum": ["password", "saml2", "oidc"]
         },
         "saml2": {
             "description": "SAML2 SSO settings, used only when authentication_method is saml2",
@@ -99,6 +99,32 @@
                 "jwt_timeout_hours": {
                     "description": "Optional JWT lifetime in hours (default 336)",
                     "type": ["integer", "string"]
+                }
+            }
+        },
+        "oidc": {
+            "description": "OIDC SSO settings, used only when authentication_method is oidc",
+            "type": "object",
+            "properties": {
+                "issuer_url": {
+                    "description": "OIDC issuer URL (discovery base)",
+                    "type": "string"
+                },
+                "client_id": {
+                    "description": "OIDC client id registered on the provider",
+                    "type": "string"
+                },
+                "client_secret": {
+                    "description": "OIDC client secret (stored in passwords.env)",
+                    "type": "string"
+                },
+                "login_button_label": {
+                    "description": "Optional label shown on the CTI SSO login button",
+                    "type": "string"
+                },
+                "idp_name": {
+                    "description": "Optional provider name shown under the SSO login button",
+                    "type": "string"
                 }
             }
         }
