@@ -206,8 +206,9 @@ def apply_oidc():
                'http://127.0.0.1:' + op_port + '/oauth2/auth',
                'X-Auth-Request-Preferred-Username')
 
-    initiator = ('https://' + CTI_HOST + '/oauth2/start?rd='
-                 + 'https%3A%2F%2F' + CTI_HOST + '%2F%3Fssologin%3D1')
+    # rd must be a relative path: oauth2-proxy rejects absolute redirects whose
+    # host is not whitelisted, and a relative one needs no extra config
+    initiator = 'https://' + CTI_HOST + '/oauth2/start?rd=%2F%3Fssologin%3D1'
     expose_to_cti('oidc', initiator, os.getenv('OIDC_LOGIN_BUTTON_LABEL', ''),
                   os.getenv('OIDC_IDP_NAME', ''), '')
 
