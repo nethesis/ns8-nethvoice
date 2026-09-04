@@ -5,8 +5,18 @@ require_once 'fias-server-functions.inc.php';
 $config["record_start"] = chr($config["record_start"]);
 $config["record_end"] = chr($config["record_end"]);
 $config["record_LDLR"] = $ini_file["record_LDLR"];
+
+function getLockFilePath() {
+    $lockPath = getenv('FIAS_SERVER_LOCK_PATH');
+    if ($lockPath !== false && $lockPath !== '') {
+        return $lockPath;
+    }
+
+    return "/var/run/" . basename($_SERVER['argv'][0]);
+}
+
 # Test lock
-$fp = fopen("/var/run/" . basename($argv[0]), "a");
+$fp = fopen(getLockFilePath(), "a");
 if (!$fp || !flock($fp, LOCK_EX | LOCK_NB, $eWouldBlock) || $eWouldBlock) {
     if ($eWouldBlock) {
         logMessage("Daemon already running", DEBUGVERBOSE, "fias-server");
@@ -30,7 +40,7 @@ function socketSendMessage($socket, $message, $len) {
         $offset+= $sent;
     }
     if ($sent === false) {
-        logMessage("error sending message: " . socket_strerror(socket_last_error()), ERROR, "fiasd");
+        logMessage("error sending message: " . socket_strerror(socket_last_error()), ERROR, "fias-server");
         return false;
     }
     return $len;
@@ -104,12 +114,14 @@ function readRecord($socket, &$record) {
                 break;
         }
     }
+    $record = mb_convert_encoding($record, 'UTF-8', $config['remote_character_encoding']);
     return $result;
 }
 
 function sendData($socket, $val) {
         global $config;
         $val = $config["record_start"] . $val . $config["record_end"];
+        $val = mb_convert_encoding($val, $config['remote_character_encoding'], 'auto');
         $sent = socketSendMessage($socket, $val, strlen($val));
         logMessage("send: " . $val, INFO, "fias-server");
         usleep($config["send_msdelay"] * 1000);
@@ -153,7 +165,7 @@ function sendLDLRLA($socket) {
     global $config;
     logMessage("Send LDLR", DEBUGVERBOSE, "fias-server");
     $sent = false;
-    while (list($key, $val) = each($config["record_LDLR"])) {
+    foreach ($config["record_LDLR"] as $val) {
         if (getOperationCommand($val) == "LD") {
             $val = str_replace("DA", "DA" . date("ymd"), $val);
             $val = str_replace("TI", "TI" . date("His"), $val);
@@ -183,6 +195,8 @@ while ($socket = socket_accept($sock)) {
         logMessage("state: $state", DEBUGVERBOSE, "fias-server");
         switch ($state) {
             case "stStart":
+                $query = "DELETE FROM messages WHERE cmd = 'LE' AND dir = 'PBX' AND elaborationtime IS NULL";
+                $fiasserverdb->query($query);
                 if (socket_getpeername($socket, $raddr, $rport)) {
                     $state = "stSendLS";
                 } else {
@@ -261,6 +275,8 @@ while ($socket = socket_accept($sock)) {
                         logMessage("received: " . $record, INFO, "fias-server");
                         if (getOperationCommand($record) == "LS") {
                             $state = "stSendLDLRLA";
+                        } elseif (getOperationCommand($record) == "LD") {
+                            $state = "stSendLA";
                         } elseif (getOperationCommand($record) == "LA") {
                             $state = "stSendLA";
                         } else {
@@ -290,17 +306,12 @@ while ($socket = socket_accept($sock)) {
                     break;
                     case -1: // timeout
                         $state = "stSendLS";
+                    break;
                     case -2: // disconnected
                     case -3: // Out of sequence
                         $state = "stDisconnected";
                     break;
                 }
-            break;
-            case "stDisconnected":
-                logMessage("Error: " . socket_strerror(socket_last_error($socket)), ERROR, "fias-server");
-                socket_close($socket);
-                sleep(1);
-                $state = "stStart";
             break;
             case "stSendData":
                 if (false === sendData($socket, $record)) {
@@ -408,5 +419,7 @@ while ($socket = socket_accept($sock)) {
             break;
         }
     }
+
+    socket_close($socket);
 }
 

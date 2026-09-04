@@ -6,7 +6,20 @@ require_once("config.inc.php");
 require_once("utils.inc.php");
 
 function nethhotel_log($msg, $function=''){
-  error_log(date('M d H:i:s')."$function: ".print_r($msg,true));
+  if (is_array($msg) || is_object($msg)) {
+    $msg = print_r($msg, true);
+  }
+
+  $prefix = $function !== '' ? "$function: " : '';
+  $line = date('M d H:i:s')." nethhotel[".getmypid()."]: ".$prefix.rtrim((string) $msg);
+
+  if (!error_log($line)) {
+    $out = fopen('php://stderr', 'w');
+    if ($out) {
+      fputs($out, $line.PHP_EOL);
+      fclose($out);
+    }
+  }
 }
 
 function isValidRoomExt($ext, $caller)
@@ -1092,15 +1105,15 @@ function externalCheckIn($room, $reservation='', $name='',$language='')
             //log error here
             nethhotel_log ($res->getMessage(),__FUNCTION__);
         }
-  	$res = $db->query("INSERT INTO roomsdb.history (extension,start,end) VALUES ($roomId,'$res[0]',now())");
+	$res = $db->query("INSERT INTO roomsdb.history (extension,start,end) VALUES ($roomId,'$res[0]',now())");
         if (@DB::IsError($res)) {
             nethhotel_log ($res->getMessage(),__FUNCTION__);
         }
-  	$res = $db->query("UPDATE roomsdb.extra_history SET checkout='1' WHERE extension=$roomId");
+	$res = $db->query("UPDATE roomsdb.extra_history SET checkout='1' WHERE extension=$roomId");
         if (@DB::IsError($res)) {
             nethhotel_log ($res->getMessage(),__FUNCTION__);
         }
-  	$res = $db->query("DELETE FROM roomsdb.alarms WHERE extension=$roomId");
+	$res = $db->query("DELETE FROM roomsdb.alarms WHERE extension=$roomId");
         if (@DB::IsError($res)) {
             nethhotel_log ($res->getMessage(),__FUNCTION__);
         }
