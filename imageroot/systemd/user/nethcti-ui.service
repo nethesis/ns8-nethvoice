@@ -7,8 +7,8 @@ Description=NethCTI ui daemon
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-EnvironmentFile=%S/state/environment
-WorkingDirectory=%S/state
+EnvironmentFile=%E/state/environment
+WorkingDirectory=%E/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/nethcti-ui.pid %t/nethcti-ui.ctr-id
 ExecStart=/usr/bin/podman run \
@@ -20,9 +20,9 @@ ExecStart=/usr/bin/podman run \
     --replace --name=%N \
     --volume=/dev/log:/dev/log \
     --network=host \
-    --env-file=%S/state/passwords.env \
+    --env-file=%E/state/passwords.env \
     --env=BRAND_NAME=${BRAND_NAME} \
-    --env=PRODUCT_NAME=${NETHCTI_PRODUCT_NAME} \
+    --env=PRODUCT_NAME=${NETHCTI_UI_PRODUCT_NAME} \
     --env=COMPANY_NAME=${NETHCTI_COMPANY_NAME} \
     --env=COMPANY_URL=${NETHCTI_COMPANY_URL} \
     --env=API_ENDPOINT=${NETHCTI_UI_HOST} \

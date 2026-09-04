@@ -3,7 +3,10 @@ WORKDIR /app
 # install deps
 COPY package.json .
 COPY yarn.lock .
-RUN yarn install --frozen-lockfile
+COPY .yarnrc.yml .
+RUN --mount=type=cache,id=nethvoice-ui-yarn,target=/var/cache/yarn \
+    corepack enable && \
+    YARN_CACHE_FOLDER=/var/cache/yarn yarn install --immutable
 # copy application
 COPY public public
 COPY src src

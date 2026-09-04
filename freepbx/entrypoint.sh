@@ -83,6 +83,11 @@ EOF
 # Show Asterisk logfiles module on FreePBX interface
 sed -i '/^; Hide Asterisk logfile$/N;/\n\[logfiles\]$/N;/\nremove=Yes$/d' /etc/asterisk/freepbx_menu.conf
 
+# logrotate runs as root inside the container and refuses world- or group-
+# writable parent directories. Re-apply safe modes on each start because the
+# packaged defaults are too permissive for both Asterisk and Apache logs.
+install -d -o asterisk -g asterisk -m 0755 /var/log/asterisk /var/log/apache2
+
 chown -c asterisk:asterisk /etc/asterisk/*.conf
 
 # Configure ODBC for asteriskcdrdb
@@ -103,17 +108,23 @@ chown asterisk:asterisk /var/lib/asterisk/db /var/spool/asterisk/outgoing /var/s
 mkdir -p /etc/nethcti
 chown -R asterisk:asterisk /etc/nethcti
 
-# Keep the CSV upload volume non-empty. NS8 backup mounts module volumes in a
+# Keep the phonebook volumes non-empty. NS8 backup mounts module volumes in a
 # helper container, and an empty named volume can be re-initialized there with
 # root ownership. Seeding a hidden file prevents ownership drift.
-mkdir -p /var/lib/nethvoice/phonebook/uploads
-touch /var/lib/nethvoice/phonebook/uploads/.nethvoice-volume-guard
-chown -R asterisk:asterisk /var/lib/nethvoice/phonebook/uploads
+mkdir -p \
+	/etc/phonebook/sources.d \
+	/var/lib/nethvoice/phonebook/uploads
+touch \
+	/etc/phonebook/sources.d/.nethvoice-volume-guard \
+	/var/lib/nethvoice/phonebook/uploads/.nethvoice-volume-guard
+chown -R asterisk:asterisk \
+	/etc/phonebook/sources.d \
+	/var/lib/nethvoice/phonebook/uploads
 
 # Don't continue with initialization if the database is not ready
 if [[ -z "${AMPDBUSER}" || -z "${AMPDBPASS}" ]]; then
 
-	if [ "$@" == "/usr/bin/supervisord" ]; then
+	if [[ "${1:-}" == "/usr/bin/supervisord" ]]; then
 		echo "AMPDBUSER and AMPDBPASS are not set, exiting."
 		exit 0
 	fi
@@ -131,12 +142,38 @@ if [[ ! -f /etc/apache2/sites-enabled/wizard.conf ]] ; then
 	ln -sf /etc/apache2/sites-available/wizard.conf /etc/apache2/sites-enabled/wizard.conf
 fi
 
+wizard_brand_name="${WIZARD_BRAND_NAME-}"
+if [[ -z "${WIZARD_BRAND_NAME+x}" ]]; then
+	wizard_brand_name="${BRAND_NAME:-NethVoice}"
+fi
+
+wizard_login_logo_url="${WIZARD_LOGIN_LOGO_URL-}"
+if [[ -z "${WIZARD_LOGIN_LOGO_URL+x}" ]]; then
+	wizard_login_logo_url="${LOGIN_LOGO_URL:-}"
+fi
+
+wizard_favicon_url="${WIZARD_FAVICON_URL-}"
+if [[ -z "${WIZARD_FAVICON_URL+x}" ]]; then
+	wizard_favicon_url="${FAVICON_URL:-}"
+fi
+
+wizard_login_background_url="${WIZARD_LOGIN_BACKGROUND_URL-}"
+if [[ -z "${WIZARD_LOGIN_BACKGROUND_URL+x}" ]]; then
+	wizard_login_background_url="${LOGIN_BACKGROUND_URL:-}"
+fi
+
+wizard_navbar_logo_url="${wizard_login_logo_url}"
+
 # Write wizard and restapi configuration
 cat > /var/www/html/freepbx/wizard/scripts/custom.js <<EOF
 var customConfig = {
-  BRAND_NAME: '${BRAND_NAME:=NethVoice}',
+  BRAND_NAME: '${wizard_brand_name}',
   BRAND_SITE: '${BRAND_SITE:=https://www.nethesis.it/soluzioni/nethvoice}',
   BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethserver.org/projects/ns8/it/latest/nethvoice.html}',
+  NAVBAR_LOGO_URL: '${wizard_navbar_logo_url}',
+  LOGIN_LOGO_URL: '${wizard_login_logo_url}',
+  FAVICON_URL: '${wizard_favicon_url}',
+  LOGIN_BACKGROUND_URL: '${wizard_login_background_url}',
   BASE_API_URL: '/freepbx/rest',
   BASE_API_URL_CTI: '/api',
   VPLAN_URL: '/freepbx/visualplan',
@@ -235,8 +272,8 @@ while (\$row = \$sth->fetch(\PDO::FETCH_ASSOC)) {
   '${NETHCTI_DB_PASSWORD}');
 EOF
 
-# create recallonbusy configuration if it doesn't exist
-if [[ ! -f /etc/asterisk/recallonbusy.cfg ]]; then
+# create recallonbusy configuration if it doesn't exist or exists but is empty
+if [[ ! -s /etc/asterisk/recallonbusy.cfg ]]; then
   cat > /etc/asterisk/recallonbusy.cfg <<EOF
 [recallonbusy]
 Host: 127.0.0.1
@@ -248,8 +285,8 @@ CheckInterval: 20
 EOF
 fi
 
-# create freepbx chown configuration if it doesn't exist
-if [[ ! -f /etc/asterisk/freepbx_chown.conf ]]; then
+# create freepbx chown configuration if it doesn't exist or is empty
+if [[ ! -s /etc/asterisk/freepbx_chown.conf ]]; then
   cat > /etc/asterisk/freepbx_chown.conf <<EOF
 [blacklist]
 directory = /var/www/html/freepbx/rest
@@ -299,6 +336,9 @@ psmode=M
 [record_LDLR]
 0="LD|DA|TI|V#2.0.2|IFPB|"
 1="LR|RIGI|FLRNG#GNGLGSSFA0A1A2A3|"
+; Optional FIAS Guest Group Number (GG) support: replace the active row
+; above with the following row to manage NethHotel room groups from GI.
+;1="LR|RIGI|FLRNG#GNGLGGGSSFA0A1A2A3|"
 2="LR|RIGO|FLRNG#GSSF|"
 3="LR|RIGC|FLRNG#GNGLGSROA0A1A2A3|"
 4="LR|RIRE|FLRNRSMLCSDN|"
@@ -343,6 +383,9 @@ format=DA_TI_RN
 [GI2PBX]
 command=/usr/share/neth-hotel-fias/gi2pbx.php
 format=RN_G#_GN_GL_GS_SF_A0_A1_A2_A3
+; When GG support is enabled in the RIGI row, replace the active format
+; above with this one. GG follows GL in the expected FIAS field order.
+;format=RN_G#_GN_GL_GG_GS_SF_A0_A1_A2_A3
 
 [GO2PBX]
 command=/usr/share/neth-hotel-fias/go2pbx.php
@@ -375,6 +418,21 @@ A2=
 A3=
 
 EOF
+fi
+
+# Add the optional GG configuration to FIAS files kept in the persistent
+# Asterisk volume. Keep the legacy format active until administrators opt in.
+if ! grep -Fq 'FLRNG#GNGLGGGSSFA0A1A2A3' /etc/asterisk/fias.conf; then
+  sed -i '/^1="LR|RIGI|FLRNG#GNGLGSSFA0A1A2A3|"$/a\
+; Optional FIAS Guest Group Number (GG) support: replace the active row\
+; above with the following row to manage NethHotel room groups from GI.\
+;1="LR|RIGI|FLRNG#GNGLGGGSSFA0A1A2A3|"' /etc/asterisk/fias.conf
+fi
+if ! grep -Fq 'format=RN_G#_GN_GL_GG_GS_SF_A0_A1_A2_A3' /etc/asterisk/fias.conf; then
+  sed -i '/^format=RN_G#_GN_GL_GS_SF_A0_A1_A2_A3$/a\
+; When GG support is enabled in the RIGI row, replace the active format\
+; above with this one. GG follows GL in the expected FIAS field order.\
+;format=RN_G#_GN_GL_GG_GS_SF_A0_A1_A2_A3' /etc/asterisk/fias.conf
 fi
 
 # configure fias

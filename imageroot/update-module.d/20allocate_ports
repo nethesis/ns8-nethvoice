@@ -114,10 +114,12 @@ def allocate_rtp_ports_range(size):
     agent.assert_exp(int(seq) > 0)
     return (seq - size, seq - 1)
 
-if os.getenv('SATELLITE_RTP_PORT') is None:
-	satellite_rtp_port = allocate_rtp_ports_range(1)[0]
-	print(f"New port allocated for SATELLITE RTP: {satellite_rtp_port}", file=sys.stderr)
-	agent.set_env('SATELLITE_RTP_PORT', satellite_rtp_port)
+# SATELLITE_RTP_PORT is no longer needed: satellite reuses SATELLITE_HTTP_PORT
+# (same port number, UDP protocol). Unset any existing value so the env file
+# stays clean. The variable is kept in the environment for backward compat only.
+if os.getenv('SATELLITE_RTP_PORT') is not None:
+	agent.unset_env('SATELLITE_RTP_PORT')
+	print("SATELLITE_RTP_PORT removed: satellite now reuses SATELLITE_HTTP_PORT for RTP", file=sys.stderr)
 
 # add port for Asterisk WSS
 if not 'ASTERISK_WSS_PORT' in env:

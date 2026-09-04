@@ -194,6 +194,7 @@ function nethcti3_get_config_late($engine) {
                     /*Add isTrunk = 1 header to VoIP trunks that doesn't require SRTP encryption*/
                     $disable_srtp_header = $nethcti3->getConfig('disable_srtp_header', $trunk['trunkid']);
                     if ($disable_srtp_header==1) {
+                        $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_execif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'Set', '__FROMMACRODIALOUTTRUNK=1'),'',6);
                         $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'isTrunk,1'),'',6);
                         $add_unset_istrunk = true;
                     }
@@ -220,10 +221,11 @@ function nethcti3_get_config_late($engine) {
         $no_srtp_extensions = array_column($res, 'extension');
         // add FROMMACRODIALONE variable before the Dial() in macro-dial-one
         $ext->splice('macro-dial-one', 's', 'dial', new ext_setvar('__FROMMACRODIALONE','1'), '',0);
+        $ext->splice('macro-dial-one', 's', 'dial', new ext_setvar('__FROMMACRODIALOUTTRUNK','0'), '',0);
         if (!empty($no_srtp_extensions)) {
-            // add isTrunk header to calls to extensions with encryption disabled
-            $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & x${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${CALLERID(num)})}x = x1x]', 'func-set-sipheader,s,1', false, 'isTrunk,1'), '',2);
-            $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & x${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${CALLERID(num)})}x = x0x]', 'func-set-sipheader,s,1', false, 'isTrunk,unset'), '',3);
+            // Only apply the extension SRTP guardrails to extension legs, never to outbound trunk legs.
+            $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & "${FROMMACRODIALOUTTRUNK}" != "1" & x${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${CALLERID(num)})}x = x1x]', 'func-set-sipheader,s,1', false, 'isTrunk,1'), '',2);
+            $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & "${FROMMACRODIALOUTTRUNK}" != "1" & x${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${CALLERID(num)})}x = x0x]', 'func-set-sipheader,s,1', false, 'isTrunk,unset'), '',3);
         }
 
         /* Add inboundlookup agi for each inbound routes*/
@@ -493,6 +495,8 @@ function nethcti3_get_config_late($engine) {
                     // Join configuration
                     $userJson = array(
                         'name' => $user['displayname'],
+                        'firstname' => isset($user['fname']) ? (string)$user['fname'] : '',
+                        'lastname' => isset($user['lname']) ? (string)$user['lname'] : '',
                         'endpoints' => $endpoints,
                         'profile_id' => $profileRes['profile_id']
                     );
@@ -624,6 +628,30 @@ function nethcti3_get_config_late($engine) {
 function nethcti3_get_config_early($engine) {
     include_once('/var/www/html/freepbx/rest/lib/libCTI.php');
     global $amp_conf;
+    global $db;
+
+    $pjsip = \FreePBX::Core()->getDriver('pjsip');
+    $trunks = FreePBX::Core()->listTrunks();
+    foreach ($trunks as $trunk) {
+        $pjsip_trunk_stmt = $pjsip
+            ? $db->prepare('SELECT keyword, data FROM pjsip WHERE id = ? AND keyword IN ("registration", "sip_server", "trunk_name", "outbound_proxy", "authentication")')
+            : null;
+        if ($pjsip_trunk_stmt && $trunk['tech'] === 'pjsip') {
+            $pjsip_trunk_stmt->execute([$trunk['trunkid']]);
+            $pjsip_trunk = array_column($pjsip_trunk_stmt->fetchAll(\PDO::FETCH_ASSOC), 'data', 'keyword');
+            if (($pjsip_trunk['registration'] ?? '') === 'none'
+                && !empty($pjsip_trunk['trunk_name'])
+                && !empty($pjsip_trunk['sip_server'])
+                && !empty($pjsip_trunk['outbound_proxy'])
+                && ($pjsip_trunk['authentication'] === 'none' || $pjsip_trunk['authentication'] === 'outbound' || $pjsip_trunk['authentication'] === 'off')
+                && preg_match('/^sip:'. preg_quote($_ENV['PROXY_IP'], '/') .':'. preg_quote($_ENV['PROXY_PORT'], '/') .';lr$/', $pjsip_trunk['outbound_proxy'])) {
+                // if sip_server is a hostname, resolve it to an IP address
+                $sip_server_ip = gethostbyname($pjsip_trunk['sip_server']);
+                $pjsip->addIdentify($pjsip_trunk['trunk_name'], 'match_header', 'X-Forwarded-For: /' . preg_quote($sip_server_ip, '/') . '$/');
+            }
+        }
+    }
+
     // Call Tancredi API to set variables that needs to be set on FreePBX retrieve conf
     // get featurecodes
     $dbh = FreePBX::Database();

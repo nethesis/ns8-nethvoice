@@ -91,6 +91,13 @@ if (!empty($arguments['GS'])) {
     $share_flag = 'N';
 }
 
+$guest_group_configured = array_key_exists('GG', $arguments);
+if ($guest_group_configured) {
+    $guest_group_number = trim($arguments['GG']);
+} else {
+    $guest_group_number = '';
+}
+
 // Exec custom commands
 $custom_fields = $ini_file['custom_fields'];
 foreach (['A0','A1','A2','A3'] as $record_id) {
@@ -115,26 +122,83 @@ try {
     $res = $sth->fetchAll();
     if (count($res) === 0) {
         # no reservation for this room
-        externalCheckIn($room_number, $reservation_number, $guest_name, $guest_language);
+        if (!externalCheckIn($room_number, $reservation_number, $guest_name, $guest_language)) {
+            throw new Exception("Error checking in room $room_number");
+        }
     } else {
         # room already reserved
         if  ($share_flag === 'N') {
             logMessage($section ." WARNING: $room_number is reserved but share flag isn't enabled", ERROR,str_replace('.php','',basename($argv[0])));
+            if (!externalCheckIn($room_number, $reservation_number, $guest_name, $guest_language)) {
+                throw new Exception("Error checking in room $room_number");
+            }
         } else {
-                # Get old guest name
-                $query = "SELECT text FROM roomsdb.rooms WHERE extension = ?";
-                $sth = $db->prepare($query);
-                $sth->execute(array($room_number));
-                $old_name = $sth->fetchAll()[0]['text'];
-                $guest_name = empty($old_name) ? $guest_name : $old_name . " - " . $guest_name;
+            # Keep the existing occupancy and add the shared guest to its label.
+            # externalCheckIn() must not be used here because it force-checks out
+            # an already occupied room before checking it in again.
+            $query = "SELECT text FROM roomsdb.rooms WHERE extension = ? AND clean = 0";
+            $sth = $db->prepare($query);
+            $sth->execute(array($room_number));
+            $old_name = $sth->fetchColumn();
+            if ($old_name === false) {
+                # FIAS still has a reservation, but NethHotel does not have an
+                # active occupancy (for example, after a manual check-out).
+                if (!externalCheckIn($room_number, $reservation_number, $guest_name, $guest_language)) {
+                    throw new Exception("Error restoring check-in for shared room $room_number");
+                }
+            } else {
+                $room_guest_name = empty($old_name) ? $guest_name : $old_name . " - " . $guest_name;
+                if (!editSurname($room_number, $room_guest_name)) {
+                    throw new Exception("Error adding shared guest to room $room_number");
+                }
+            }
         }
-        externalCheckIn($room_number, $reservation_number, $guest_name, $guest_language);
     }
     $query = "INSERT INTO `reservations` (`room_number`,`reservation_number`,`guest_name`,`guest_language`,`share_flag`,`checkindate`) VALUES (?,?,?,?,?,?)";
     $sth = $fiasdb->prepare($query);
     $sth->execute(array($room_number,$reservation_number,$guest_name,$guest_language,$share_flag,date('Y-m-d G:i:s')));
+
+    if ($guest_group_configured && $guest_group_number === '') {
+        # An empty GG explicitly means that this room is not in a guest group.
+        if (!setGroup($room_number, 0)) {
+            throw new Exception("Error removing room $room_number from its guest group");
+        }
+    } elseif ($guest_group_configured) {
+        # FIAS GG is alphanumeric, while NethHotel uses an internal numeric ID.
+        # Use the FIAS group number as the NethHotel group name so all rooms with
+        # the same GG value are assigned to the same group.
+        $group_note = "Created from FIAS guest group $guest_group_number";
+        $query = "SELECT id FROM roomsdb.room_groups WHERE name = ? AND note = ? ORDER BY id LIMIT 1";
+        $sth = $db->prepare($query);
+        $sth->execute(array($guest_group_number, $group_note));
+        $group_id = $sth->fetchColumn();
+
+        if ($group_id === false) {
+            $options = getOptions();
+            $query = "INSERT INTO roomsdb.room_groups (`name`,`note`,`groupcalls`,`roomscalls`,`externalcalls`) VALUES (?,?,?,?,?)";
+            $sth = $db->prepare($query);
+            $sth->execute(array(
+                $guest_group_number,
+                $group_note,
+                (int)($options['groupcalls'] ?? 0),
+                (int)($options['internal_call'] ?? 0),
+                (int)($options['externalcalls'] ?? 0)
+            ));
+
+            $query = "SELECT id FROM roomsdb.room_groups WHERE name = ? AND note = ? ORDER BY id LIMIT 1";
+            $sth = $db->prepare($query);
+            $sth->execute(array($guest_group_number, $group_note));
+            $group_id = $sth->fetchColumn();
+            if ($group_id === false) {
+                throw new Exception("Error creating guest group $guest_group_number");
+            }
+        }
+
+        if (!setGroup($room_number, $group_id)) {
+            throw new Exception("Error assigning room $room_number to guest group $guest_group_number");
+        }
+    }
 } catch (Exception $e){
     logMessage($section ." Error: ". $e->getMessage(),ERROR,str_replace('.php','',basename($argv[0])));
     exit(1);
 }
-

@@ -1,10 +1,18 @@
 module.exports = {
+  css: {
+    loaderOptions: {
+      sass: {
+        sassOptions: {
+          silenceDeprecations: ["import", "global-builtin", "color-functions", "if-function", "legacy-js-api"],
+        },
+      },
+    },
+  },
   publicPath: "./",
   configureWebpack: {
     optimization: {
       splitChunks: {
-        minSize: 10000,
-        maxSize: 250000,
+        maxSize: 500000,
       },
     },
   },
@@ -19,6 +27,4 @@ module.exports = {
         return options;
       });
   },
-  // added to fix the build of https://github.com/nethesis/ns8-nethvoice/pull/756
-  transpileDependencies: ["generate-password-lite"],
 };

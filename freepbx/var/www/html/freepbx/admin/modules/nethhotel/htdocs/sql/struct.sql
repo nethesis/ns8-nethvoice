@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS `rooms` (
   `start` timestamp NOT NULL default '0000-00-00 00:00:00',
   `group` int(11) default NULL,
   `clean` tinyint(1) NOT NULL default '0',
-  `text` varchar(32) default NULL,
+  `text` varchar(255) default NULL,
   `lang` varchar(5) default NULL,
   PRIMARY KEY  (`extension`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

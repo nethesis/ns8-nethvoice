@@ -9,6 +9,37 @@
  */
 angular.module('nethvoiceWizardUiApp')
   .controller('AppsCardsCtrl', function ($scope, ProfileService, ApplicationService) {
+    function b64EncodeUnicode(str) {
+      return btoa(unescape(encodeURIComponent(str)));
+    }
+    function b64DecodeUnicode(str) {
+      return decodeURIComponent(escape(atob(str)));
+    }
+    var CCARD_OBJECTS_PREFIX = 'ccardTemplateObjects:';
+    var DEFAULT_TEMPLATE_OBJECTS = '[{"name": "John", "lastname": "Doe"}]';
+    function saveTemplateObjects(name, objects) {
+      if (!name || objects === undefined || objects === null) {
+        return;
+      }
+      try {
+        localStorage.setItem(CCARD_OBJECTS_PREFIX + name, objects);
+      } catch (e) {
+        console.log(e);
+      }
+    }
+    function loadTemplateObjects(name) {
+      try {
+        var stored = localStorage.getItem(CCARD_OBJECTS_PREFIX + name);
+        if (stored) {
+          JSON.parse(stored);
+          return stored;
+        }
+      } catch (e) {
+        console.log(e);
+      }
+      return DEFAULT_TEMPLATE_OBJECTS;
+    }
+
     $scope.allProfiles = [];
     $scope.allSources = [];
     $scope.allTemplates = [];
@@ -148,7 +179,7 @@ angular.module('nethvoiceWizardUiApp')
       ApplicationService.allTemplates().then(function (res) {
         $scope.allTemplates = res.data;
         for (var t in $scope.allTemplates) {
-          $scope.allTemplates[t].html = atob($scope.allTemplates[t].html);
+          $scope.allTemplates[t].html = b64DecodeUnicode($scope.allTemplates[t].html);
         }
         $scope.view.changeRoute = false;
       }, function (err) {
@@ -162,7 +193,7 @@ angular.module('nethvoiceWizardUiApp')
       ApplicationService.allCards().then(function (res) {
         $scope.allCards = res.data;
         for (var t in $scope.allCards) {
-          $scope.allCards[t].query = atob($scope.allCards[t].query);
+          $scope.allCards[t].query = b64DecodeUnicode($scope.allCards[t].query);
           $scope.allCards[t].template = $scope.allCards[t].template.custom ? $scope.allCards[t].template.name + '_custom' : $scope.allCards[t].template.name;
         }
         $scope.view.changeRoute = false;
@@ -295,7 +326,9 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.saveTemplate = function (s) {
       s.onSave = true;
-      s.html = btoa(s.html);
+      s.html = b64EncodeUnicode(s.html);
+      // persisti i Results di esempio (solo-preview) lato client prima di scartarli
+      saveTemplateObjects(s.name, s.objects);
       // clean useless data
       delete s.objects;
       delete s.onSave;
@@ -387,7 +420,7 @@ angular.module('nethvoiceWizardUiApp')
     $scope.modifyTemplate = function (s) {
       s.onMod = true;
       s.old_name = s.name;
-      s.objects = s.custom ? '[{"name": "John", "lastname": "Doe"}]' : $scope.switchResultsData(s.name);
+      s.objects = s.custom ? loadTemplateObjects(s.name) : $scope.switchResultsData(s.name);
       $scope.newTemplate = s;
     };
     $scope.checkTemplateDeps = function (s) {
@@ -428,7 +461,7 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.saveCard = function (s) {
       s.onSave = true;
-      s.query = btoa(s.query);
+      s.query = b64EncodeUnicode(s.query);
       // clean useless data
       delete s.onSave;
       delete s.onMod;
@@ -515,10 +548,10 @@ angular.module('nethvoiceWizardUiApp')
       ApplicationService.customerCardPreview({
         dbconn_id: g.dbconn_id,
         template: g.template,
-        query: btoa(g.query)
+        query: b64EncodeUnicode(g.query)
       }).then(function (res) {
 
-        g.render_html = '<style>body{overflow: auto !important; padding: 5px !important;}</style><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"/>' + atob(res.data.html);
+        g.render_html = '<style>body{overflow: auto !important; padding: 5px !important;}</style><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"/>' + b64DecodeUnicode(res.data.html);
         g.isChecking = false;
       }, function (err) {
         g.isChecking = false;

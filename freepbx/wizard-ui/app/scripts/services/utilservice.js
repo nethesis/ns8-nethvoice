@@ -10,6 +10,18 @@
 angular.module('nethvoiceWizardUiApp')
   .service('UtilService', function ($interval, $q, RestService) {
     this.isEmpty = function (obj, nested) {
+      if (obj === null || obj === undefined) {
+        return true;
+      }
+
+      if (angular.isArray(obj)) {
+        return obj.length === 0;
+      }
+
+      if (!angular.isObject(obj)) {
+        return true;
+      }
+
       if (nested) {
         var empties = [];
         for (var o in obj) {

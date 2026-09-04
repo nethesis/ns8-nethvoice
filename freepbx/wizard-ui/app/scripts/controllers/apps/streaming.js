@@ -124,6 +124,7 @@ angular.module('nethvoiceWizardUiApp')
           $scope.checkConnection($scope.allSources[s]);
         }
       }, function (err) {
+        $scope.allSources = [];
         $scope.view.changeRoute = false;
         console.log(err);
       });
@@ -145,19 +146,33 @@ angular.module('nethvoiceWizardUiApp')
       ProfileService.allProfiles().then(function (res) {
         $scope.allProfiles = res.data;
       }, function (err) {
+        $scope.view.changeRoute = false;
         console.log(err);
       });
     };
 
+    var pageInitialized = false;
+
+    var initializePage = function () {
+      if (pageInitialized) {
+        return;
+      }
+      pageInitialized = true;
+      $scope.getUserList();
+      $scope.getAllProfiles();
+    };
+
     $scope.$on( "$routeChangeSuccess", function(event, next, current) {
       if (next.templateUrl === 'views/apps/streaming.html') {
-        $scope.getUserList();
-        $scope.getAllProfiles();
+        initializePage();
       }
     });
 
     $scope.$on('loginCompleted', function (event, args) {
-      $scope.getUserList();
-      $scope.getAllProfiles();
+      initializePage();
     });
+
+    if ($scope.login && $scope.login.isLogged) {
+      initializePage();
+    }
   });

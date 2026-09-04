@@ -7,6 +7,7 @@ CREATE TABLE `phonebook` (
   id int(11) NOT NULL auto_increment,
   owner_id varchar(255) NOT NULL default '',
   type varchar(255) NOT NULL default '',
+  access varchar(255) NOT NULL default 'public',
   homeemail varchar(255) default NULL,
   workemail varchar(255) default NULL,
   homephone varchar(25) default NULL,
@@ -30,6 +31,16 @@ CREATE TABLE `phonebook` (
   workpostalcode varchar(255) default NULL,
   workcountry varchar(255) default NULL,
   url varchar(255) default NULL,
+  firstname varchar(255) default NULL,
+  lastname varchar(255) default NULL,
+  job varchar(255) default NULL,
+  facebook varchar(255) default NULL,
+  instagram varchar(255) default NULL,
+  linkedin varchar(255) default NULL,
+  workphone2 varchar(25) default NULL,
+  cellphone2 varchar(25) default NULL,
+  otherphone varchar(25) default NULL,
+  otheremail varchar(255) default NULL,
   sid_imported varchar(255) default NULL,
   PRIMARY KEY  (id),
   KEY owner_idx (owner_id),
@@ -40,5 +51,16 @@ CREATE TABLE `phonebook` (
   KEY wphone_idx (workphone),
   KEY cphone_idx (cellphone),
   KEY fax_idx (fax),
-  KEY company_idx (company)
+  KEY company_idx (company),
+  KEY lastname_idx (lastname),
+  KEY wphone2_idx (workphone2),
+  KEY cphone2_idx (cellphone2),
+  KEY ophone_idx (otherphone),
+  KEY oemail_idx (otheremail)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `sync_metadata` (
+  `scope` varchar(255) NOT NULL,
+  `last_sync_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`scope`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;

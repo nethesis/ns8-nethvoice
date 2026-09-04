@@ -53,9 +53,9 @@ if ($reqGet && ($reqGet === "tools")) {
                 }
                 echo json_encode($res);
             } catch (\Exception $e) {
-                http_response_code(500);
-                error_log("Error retrieving available voices: " . $e->getMessage());
-                echo json_encode(['error' => $e->getMessage()]);
+                // Return empty voices on any error so the dialog still opens
+                error_log("getvoices failed: " . $e->getMessage());
+                echo json_encode([]);
             }
             break;
 
@@ -114,7 +114,7 @@ if ($reqGet && ($reqGet === "tools")) {
     
                     $select = FreePBX::Timeconditions()->getTimeGroup($jsonArray['id']);
                     $dbh = FreePBX::Database();
-                    $sql = "SELECT * FROM timegroups_details WHERE timegroupid = ".$jsonArray['id'];
+                    $sql = "SELECT * FROM timegroups_details WHERE timegroupid = ".(int)$jsonArray['id'];
                     $final = $dbh->sql($sql, 'getAll', \PDO::FETCH_ASSOC);
     
                     if ($final) {
@@ -195,18 +195,32 @@ if ($reqGet && ($reqGet === "tools")) {
         $timevar = time();
         $path = "/var/spool/asterisk/tmp/";
         $valid_formats1 = array("mp3", "wav");
+        $actual_image_name = "";
         if ($_SERVER['REQUEST_METHOD'] == "POST") {
           $filename = $_FILES['file1']['name'];
           $size = $_FILES['file1']['size'];
           if(strlen($filename)) {
-            list($txt, $ext) = explode(".", $filename);
-            if(in_array($ext,$valid_formats1)) {
-              $actual_image_name = $timevar."-".$txt.".".$ext;
+            // Derive the extension safely (handles names with multiple/zero dots)
+            // and strip any unsafe characters from the base so a client-controlled
+            // filename can never influence the on-disk path. Dots are removed too:
+            // the client re-applies its own dot-collapsing to the returned name, so
+            // the stored name must have a single dot (before the extension) to match.
+            $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+            $base = preg_replace('/[^A-Za-z0-9_-]/', '_', pathinfo($filename, PATHINFO_FILENAME));
+            if($base !== "" && in_array($ext, $valid_formats1, true)) {
+              $candidate = $timevar."-".$base.".".$ext;
               $tmp = $_FILES['file1']['tmp_name'];
-              move_uploaded_file($tmp, $path.$actual_image_name);
+              // Only advertise the name to the client if the file is actually stored.
+              if(move_uploaded_file($tmp, $path.$candidate)) {
+                $actual_image_name = $candidate;
+              }
             }
           }
         }
-        echo $timevar."-".$filename;
+        // Return the exact on-disk name as plain text: the client (View.js) uses this value
+        // verbatim as the temp filename for the recordings convert/remove API, so it must match
+        // the stored file byte-for-byte. text/plain also prevents any HTML rendering of the name.
+        header('Content-Type: text/plain; charset=utf-8');
+        echo $actual_image_name;
     }
 } 

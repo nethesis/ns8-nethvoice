@@ -1,0 +1,92 @@
+name: NS8 PR Testing Image
+
+on:
+  pull_request:
+    paths-ignore:
+      - '.github/**'
+      - 'tests/**'
+      - 'README.md'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'renovate.json'
+      - 'test-module.sh'
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  tagname:
+    name: Compute image tag
+    runs-on: ubuntu-latest
+    outputs:
+      imagetag: ${{ steps.imagetag.outputs.imagetag }}
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Compute image tag
+        id: imagetag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MERGE_SHA: ${{ github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          short_sha="${MERGE_SHA::7}"
+          echo "imagetag=pr-${PR_NUMBER}.${RUN_NUMBER}-${RUN_ATTEMPT}.${short_sha}" >> "$GITHUB_OUTPUT"
+  create-testing-pr-image:
+    name: Create testing PR ${{ matrix.group }} images
+    needs: tagname
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - group: freepbx
+            images: freepbx
+          - group: app-support
+            images: tancredi,cti-server,phonebook,sftp
+          - group: reports
+            images: reports-api,reports-ui
+          - group: wrappers
+            images: mariadb,cti-middleware,cti-ui,satellite
+          - group: janus
+            images: janus
+          - group: module
+            images: nethvoice
+    uses: ./.github/workflows/build-images.yml
+    with:
+      imagetag: ${{ needs.tagname.outputs.imagetag }}
+      build-images: ${{ matrix.images }}
+    secrets: inherit
+  build-status:
+    name: Build status
+    needs: create-testing-pr-image
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+        - run: ${{!contains(needs.*.result, 'failure')}}
+  comment-pr:
+    name: Comment PR with testing image URL
+    needs: [tagname, create-testing-pr-image]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Comment PR with image URL
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          IMAGETAG: ${{ needs.tagname.outputs.imagetag }}
+        run: |
+          reponame="${{ github.event.repository.name }}"
+          # Strip the ns8- prefix from the repo name
+          reponame="${reponame#ns8-}"
+          image_url="ghcr.io/${{ github.repository_owner }}/${reponame}:${IMAGETAG}"
+          gh pr comment -R ${{ github.repository }} "${PR_NUMBER}" --body "🔨 PR testing image: \`${image_url}\`"

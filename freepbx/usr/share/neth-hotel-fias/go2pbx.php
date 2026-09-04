@@ -32,53 +32,57 @@ if (!empty($arguments['G#'])) {
 
 # Allow shared rooms
 try {
+    $final_checkout = false;
     if (!empty($reservation_number)) {
-        $reservation_deleted = false;
         # Check if room is shared and there are other reservation for this room
         $query = "SELECT * FROM `reservations` WHERE `room_number`= ?";
         $sth = $fiasdb->prepare($query);
         $sth->execute(array($room_number));
-	    $res = $sth->fetchAll();
+	$res = $sth->fetchAll();
         if (count($res) <= 1) {
             # There is only one guest with this reservation
             if (!externalCheckOut($room_number)) {
                 throw new Exception("Error checking out room $room_number");
             }
             logMessage($section ." Room $room_number checked out successfully.",INFO,str_replace('.php','',basename($argv[0])));
+            $final_checkout = true;
         } else {
-            $query = "DELETE FROM `reservations` WHERE `reservation_number`= ?";
+            # Shared room. Rebuild the label from the guests that remain after
+            # this reservation checks out. Selecting by room here is not
+            # scalar when the room is shared, and string replacement leaves
+            # dangling separators when the first or middle guest departs.
+            $query = 'SELECT guest_name FROM fias.reservations WHERE room_number = ? AND reservation_number <> ? ORDER BY checkindate, reservation_number';
             $sth = $fiasdb->prepare($query);
-            $sth->execute(array($reservation_number));
-            $reservation_deleted = true;
-
-            $query = "SELECT guest_name FROM `reservations` WHERE `room_number`= ? ORDER BY `reservation_number`";
-            $sth = $fiasdb->prepare($query);
-            $sth->execute(array($room_number));
-            $remaining_reservations = $sth->fetchAll(PDO::FETCH_ASSOC);
-
-            $remaining_guests = array();
-            foreach ($remaining_reservations as $reservation) {
-                if (!empty($reservation['guest_name'])) {
-                    $remaining_guests[] = trim($reservation['guest_name']);
-                }
+            $sth->execute(array($room_number, $reservation_number));
+            $remaining_guest_names = array_filter($sth->fetchAll(PDO::FETCH_COLUMN), function ($guest_name) {
+                return $guest_name !== null && $guest_name !== '';
+            });
+            if (!editSurname($room_number, implode(' - ', $remaining_guest_names))) {
+                throw new Exception("Error updating shared room $room_number guest names");
             }
-
-            $query = 'UPDATE roomsdb.rooms SET text = ? WHERE extension = ?';
-            $sth = $fiasdb->prepare($query);
-            $sth->execute(array(implode(' - ', $remaining_guests), $room_number));
             logMessage($section ." Room $room_number is shared. Reservation $reservation_number removed from room.",INFO,str_replace('.php','',basename($argv[0])));
         }
         # Delete reservation
-        if (!$reservation_deleted) {
-            $query = "DELETE FROM `reservations` WHERE `reservation_number`= ?";
-            $sth = $fiasdb->prepare($query);
-	        $sth->execute(array($reservation_number));
-        }
+        $query = "DELETE FROM `reservations` WHERE `reservation_number`= ?";
+        $sth = $fiasdb->prepare($query);
+	$sth->execute(array($reservation_number));
     } else {
         if (!externalCheckOut($room_number)) {
             throw new Exception("Error checking out room $room_number");
         }
         logMessage($section ." Room $room_number checked out successfully.",INFO,str_replace('.php','',basename($argv[0])));
+        $final_checkout = true;
+    }
+
+    if ($final_checkout) {
+        # Remove only groups created and managed through FIAS GG. Groups managed
+        # directly by NethHotel keep their existing room assignments.
+        $query = "SELECT COUNT(*) FROM roomsdb.groups_rooms AS gr INNER JOIN roomsdb.room_groups AS rg ON rg.id = gr.group_id WHERE gr.extension = ? AND rg.note LIKE 'Created from FIAS guest group %'";
+        $sth = $db->prepare($query);
+        $sth->execute(array($room_number));
+        if ((int)$sth->fetchColumn() > 0 && !setGroup($room_number, 0)) {
+            throw new Exception("Error removing room $room_number from its FIAS guest group");
+        }
     }
 } catch (Exception $e){
     logMessage($section ." ERROR ". $e->getMessage(),ERROR,str_replace('.php','',basename($argv[0])));

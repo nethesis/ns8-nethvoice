@@ -8,17 +8,16 @@
     "reports_international_prefix_tooltip": "Formaat moet \"00**\" of \"+**\" zijn",
     "set_password": "NethVoice administratie wachtwoord",
     "timezone": "Tijdzone",
-    "create_nethvoice_adm": "Creëer NethVoice Administrateur voor gebruikerbeheer",
     "nethcti_ui_host_format": "Moet een geldige domeinnaam zijn.",
     "proxy_not_installed": "Nethvoice Proxy",
     "timezone_placeholder": "Kies de tijdzone",
-    "set_nethvoice_adm_password": "Zet NethVoice Administrateur wachtwoord voor gebruikersbeheer",
     "proxy_not_installed_description": "De proxy moet worden geïnstalleerd voordat NethVoice wordt geconfigureerd.",
     "nethcti_ui_host": "NethVoice CTI basis",
     "reports_prefix_invalid": "Ongeldige opmaak",
     "nethvoice_host_format": "Moet een geldige domeinnaam zijn.",
     "reports_international_prefix": "Prefix rapporten",
-    "timezone_tooltip": "Zet de tijdzone voor de huidige NethVoice installatie"
+    "timezone_tooltip": "Zet de tijdzone voor de huidige NethVoice installatie",
+    "openai_api_key_pattern": "Ongeldig API-sleutelformaat"
   },
   "common": {
     "required": "Vereist",
@@ -72,5 +71,9 @@
   },
   "task": {
     "cannot_create_task": "Kan taak {actie} niet aanmaken"
+  },
+  "integrations": {
+    "openai_api_key": "OpenAI API-sleutel",
+    "openai_api_key_tooltip": "Om gespreksamenvattingen te gebruiken, heb je een OpenAI API-sleutel nodig. Je kunt die verkrijgen via {openaiLink}."
   }
 }

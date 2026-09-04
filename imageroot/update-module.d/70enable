@@ -19,3 +19,8 @@ systemctl --user enable --now nethvoice-cdr-cleanup.timer
 # Enable NethCTI UI weekly restart timer for timezone updates
 echo "Enabling nethcti-ui-restart timer"
 systemctl --user enable --now nethcti-ui-restart.timer
+
+# Migrate Satellite cleanup to timer-based scheduling
+echo "Enabling satellite recordings cleanup timer"
+systemctl --user disable satellite-recordings-cleanup.service >/dev/null 2>&1 || true
+systemctl --user enable --now satellite-recordings-cleanup.timer

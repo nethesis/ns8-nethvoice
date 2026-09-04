@@ -41,7 +41,6 @@ if not os.path.exists("passwords.env"):
         "REPORTS_PASSWORD": os.environ['REPORTS_PASSWORD'],
         "REPORTS_API_KEY": os.environ['REPORTS_API_KEY'],
         "REPORTS_SECRET": os.environ['REPORTS_SECRET'],
-        "NETHVOICE_USER_PORTAL_PASSWORD": os.getenv('NETHVOICE_USER_PORTAL_PASSWORD', ''),
         "SUBSCRIPTION_SECRET": os.getenv('SUBSCRIPTION_SECRET', ''),
         "NETHVOICE_LDAP_PASS": os.environ['NETHVOICE_LDAP_PASS'],
         "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN":gen_password()
@@ -63,7 +62,6 @@ if not os.path.exists("passwords.env"):
     agent.unset_env('REPORTS_PASSWORD')
     agent.unset_env('REPORTS_API_KEY')
     agent.unset_env('REPORTS_SECRET')
-    agent.unset_env('NETHVOICE_USER_PORTAL_PASSWORD')
     agent.unset_env('SUBSCRIPTION_SECRET')
     agent.unset_env('NETHVOICE_LDAP_PASS')
 else:
@@ -73,15 +71,74 @@ else:
         passwords['NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN'] = gen_password()
         agent.write_envfile("passwords.env", passwords)
 
+passwords = agent.read_envfile("passwords.env")
+if 'NETHVOICE_USER_PORTAL_PASSWORD' in passwords:
+    del passwords['NETHVOICE_USER_PORTAL_PASSWORD']
+    agent.write_envfile("passwords.env", passwords)
+
+agent.unset_env('NETHVOICE_USER_PORTAL_USERNAME')
+agent.unset_env('NETHVOICE_USER_PORTAL_PASSWORD')
+
 # Set the brand site and docs static URLs
 agent.set_env('BRAND_SITE', 'https://www.nethesis.it/soluzioni/nethvoice')
 agent.set_env('BRAND_DOCS', 'https://docs.nethserver.org/projects/ns8/it/latest/nethvoice.html')
+
+if os.getenv('NETHCTI_UI_PRODUCT_NAME') is None:
+    agent.set_env('NETHCTI_UI_PRODUCT_NAME', os.getenv('BRAND_NAME', 'NethVoice CTI'))
+
+if os.getenv('LOGIN_PEOPLE') is None:
+    agent.set_env('LOGIN_PEOPLE', 'show')
+if os.getenv('NAVBAR_LOGO_URL') is None:
+    agent.set_env('NAVBAR_LOGO_URL', '')
+if os.getenv('NAVBAR_LOGO_DARK_URL') is None:
+    agent.set_env('NAVBAR_LOGO_DARK_URL', '')
+if os.getenv('LOGIN_LOGO_URL') is None:
+    agent.set_env('LOGIN_LOGO_URL', '')
+if os.getenv('FAVICON_URL') is None:
+    agent.set_env('FAVICON_URL', '')
+if os.getenv('LOGIN_BACKGROUND_URL') is None:
+    agent.set_env('LOGIN_BACKGROUND_URL', '')
+if os.getenv('WIZARD_BRAND_NAME') is None:
+    agent.set_env('WIZARD_BRAND_NAME', os.getenv('BRAND_NAME', 'NethVoice'))
+if os.getenv('WIZARD_LOGIN_LOGO_URL') is None:
+    agent.set_env('WIZARD_LOGIN_LOGO_URL', os.getenv('LOGIN_LOGO_URL', ''))
+if os.getenv('WIZARD_FAVICON_URL') is None:
+    agent.set_env('WIZARD_FAVICON_URL', os.getenv('FAVICON_URL', ''))
+if os.getenv('WIZARD_LOGIN_BACKGROUND_URL') is None:
+    agent.set_env('WIZARD_LOGIN_BACKGROUND_URL', os.getenv('LOGIN_BACKGROUND_URL', ''))
+if os.getenv('FREEPBX_ADMIN_LOGO_URL') is None:
+    agent.set_env('FREEPBX_ADMIN_LOGO_URL', '')
+if os.getenv('FREEPBX_ADMIN_FAVICON_URL') is None:
+    agent.set_env('FREEPBX_ADMIN_FAVICON_URL', '')
+
+if os.getenv('REPORTS_UI_APP_NAME') is None:
+    agent.set_env('REPORTS_UI_APP_NAME', 'NethVoice Reports')
+if os.getenv('REPORTS_UI_BRAND_NAME') is None:
+    agent.set_env('REPORTS_UI_BRAND_NAME', os.getenv('REPORTS_UI_APP_NAME', 'NethVoice Reports'))
+if os.getenv('REPORTS_UI_COMPANY_NAME') is None:
+    agent.set_env('REPORTS_UI_COMPANY_NAME', 'Nethesis')
+if os.getenv('REPORTS_UI_HELP_URL') is None:
+    agent.set_env('REPORTS_UI_HELP_URL', 'https://docs.nethserver.org/projects/ns8/en/latest/nethvoice.html')
+if os.getenv('REPORTS_UI_LOGIN_LOGO_URL') is None:
+    agent.set_env('REPORTS_UI_LOGIN_LOGO_URL', '')
+if os.getenv('REPORTS_UI_FAVICON_URL') is None:
+    agent.set_env('REPORTS_UI_FAVICON_URL', '')
+if os.getenv('REPORTS_UI_LOGIN_BACKGROUND_URL') is None:
+    agent.set_env('REPORTS_UI_LOGIN_BACKGROUND_URL', '')
+if os.getenv('REPORTS_UI_LOGIN_BACKGROUND_COLOR') is None:
+    agent.set_env('REPORTS_UI_LOGIN_BACKGROUND_COLOR', '')
 
 if os.getenv('ICEENFORCE') is None:
     agent.set_env('ICEENFORCE', 'none')
 
 if os.getenv('NETHCTI_PRIVACY_NUMBERS') is None:
     agent.set_env('NETHCTI_PRIVACY_NUMBERS', 'xxx')
+
+if os.getenv('PHONEBOOK_EXPORT_SPEEDDIAL_AND_RAPIDCODE') is None:
+    agent.set_env('PHONEBOOK_EXPORT_SPEEDDIAL_AND_RAPIDCODE', 'true')
+
+if os.getenv('PHONEBOOK_EXPORT_EXTENSIONS') is None:
+    agent.set_env('PHONEBOOK_EXPORT_EXTENSIONS', 'true')
 
 # Add satellite environment for updates
 if os.getenv('SATELLITE_ARI_APP') is None:

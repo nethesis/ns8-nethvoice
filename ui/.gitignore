@@ -24,3 +24,9 @@ pnpm-debug.log*
 
 # Output of 'npm pack'
 *.tgz
+
+# Yarn v4 node-modules rules
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins

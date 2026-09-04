@@ -1,0 +1,43 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+#
+# initdb.d only runs on a fresh mariadb volume, and the middleware DB user only has
+# SELECT on the phonebook database, so the migration must run here (as root) on every
+# configure/update/restore. ADD COLUMN IF NOT EXISTS makes it idempotent. This step is
+# numbered after 85mysql_background_import (restore) and after 80start_services (mariadb
+# up), and the middleware is not started --now during configure, so it never queries the
+# new projection before the columns exist.
+
+set -e    # exit immediately if an error occurs
+exec 1>&2 # ensure any output is sent to stderr
+
+# sourcing the file directly is broken with quotes
+MARIADB_ROOT_PASSWORD=$(grep '^MARIADB_ROOT_PASSWORD=' ./passwords.env) && export $MARIADB_ROOT_PASSWORD
+
+/usr/bin/podman exec mariadb mysql -u root -h 127.0.0.1 -P "$NETHVOICE_MARIADB_PORT" -p"$MARIADB_ROOT_PASSWORD" phonebook -e "
+ALTER TABLE phonebook
+  ADD COLUMN IF NOT EXISTS access varchar(255) NOT NULL DEFAULT 'public',
+  ADD COLUMN IF NOT EXISTS firstname varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS lastname varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS job varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS facebook varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS instagram varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS linkedin varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS workphone2 varchar(25) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS cellphone2 varchar(25) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS otherphone varchar(25) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS otheremail varchar(255) DEFAULT NULL,
+  ADD INDEX IF NOT EXISTS lastname_idx (lastname),
+  ADD INDEX IF NOT EXISTS wphone2_idx (workphone2),
+  ADD INDEX IF NOT EXISTS cphone2_idx (cellphone2),
+  ADD INDEX IF NOT EXISTS ophone_idx (otherphone),
+  ADD INDEX IF NOT EXISTS oemail_idx (otheremail);
+"
+
+# Existing centralized rows with empty access were publicly visible: mark them public
+# explicitly (group-scoped rows carry 'group:...' and are left untouched).
+/usr/bin/podman exec mariadb mysql -u root -h 127.0.0.1 -P "$NETHVOICE_MARIADB_PORT" -p"$MARIADB_ROOT_PASSWORD" phonebook -e "UPDATE phonebook SET access = 'public' WHERE access = '';"

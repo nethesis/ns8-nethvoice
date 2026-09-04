@@ -6,6 +6,17 @@
 
 include_once '/etc/freepbx_db.conf';
 
+// Shared FIAS rooms display all guest names in this field. The original
+// 32-character limit is too short even for two ordinary guest names.
+$sql = "SELECT CHARACTER_MAXIMUM_LENGTH
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = 'roomsdb' AND TABLE_NAME = 'rooms' AND COLUMN_NAME = 'text'";
+$stmt = $db->query($sql);
+$roomTextLength = $stmt->fetchColumn();
+if ($roomTextLength !== false && (int)$roomTextLength < 255) {
+	$db->exec('ALTER TABLE `roomsdb`.`rooms` MODIFY `text` varchar(255) DEFAULT NULL');
+}
+
 # Create hotel cti context if not exist and NETHVOICE_HOTEL environment variable is set
 # check if hotel profile exists
 $sql = 'SELECT id FROM `asterisk`.`rest_cti_profiles` WHERE name = "Hotel"';
@@ -75,6 +86,22 @@ $stmt = $db->prepare("INSERT IGNORE INTO `asterisk`.`admin` (`variable`, `value`
 $stmt->execute([$_ENV['NETHVOICE_HOST']]);
 // Add Audio Test feature code
 $stmt = $db->prepare("INSERT IGNORE INTO `featurecodes` (`modulename`,`featurename`,`description`,`helptext`,`defaultcode`,`customcode`,`enabled`,`providedest`) VALUES ('nethcti3','audio_test','Audio Test','NethVoice CTI Audio Test','*41',NULL,1,0)");
+$stmt->execute();
+
+// Prefer header matching before IP so proxied static PJSIP trunks are identified
+// from X-Forwarded-* headers.
+$pjsip_identifiers_order = json_encode(['header', 'ip', 'username', 'auth_username', 'anonymous']);
+$stmt = $db->prepare("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = ? WHERE `key` = 'pjsip_identifers_order' AND `val` = 'ip,username,anonymous,auth_username'");
+$stmt->execute([$pjsip_identifiers_order]);
+
+// Rename the Satellite CTI permission displayname/description on existing
+// installations. The migration.php script exits early once it has already run,
+// so its UPDATE branch never reaches already-migrated installs; doing it here
+// (update.php runs on every start and is idempotent) ensures the rename is
+// applied everywhere. Kept before the multi-statement query below: after a
+// multi-statement execute the PDO connection has pending result sets, which
+// would make this query silently fail.
+$stmt = $db->prepare("UPDATE `asterisk`.`rest_cti_permissions` SET `displayname` = 'Transcription and Summary', `description` = 'Calls transcription and summary' WHERE `id` = 5000 AND `displayname` = 'Speech-To-Text'");
 $stmt->execute();
 
 // Update outbound routes notification_on field
