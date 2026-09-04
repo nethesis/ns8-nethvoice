@@ -33,6 +33,14 @@ config = {
         'idp_signing_cert': base64.b64decode(os.getenv('SAML2_IDP_SIGNING_CERT', '')).decode(),
         'jwt_timeout_hours': os.getenv('SAML2_JWT_TIMEOUT_HOURS', ''),
     },
+    'oidc': {
+        'issuer_url': os.getenv('OIDC_ISSUER_URL', ''),
+        'client_id': os.getenv('OIDC_CLIENT_ID', ''),
+        'login_button_label': os.getenv('OIDC_LOGIN_BUTTON_LABEL', ''),
+        'idp_name': os.getenv('OIDC_IDP_NAME', ''),
+        # the client secret is never returned; expose only whether it is set
+        'client_secret_set': bool(agent.read_envfile('passwords.env').get('OIDC_CLIENT_SECRET', '')),
+    },
 }
 
 json.dump(config, fp=sys.stdout)

@@ -272,6 +272,77 @@
                     </template>
                   </NsTextInput>
                 </template>
+                <template v-if="authentication_method === 'oidc'">
+                  <NsInlineNotification
+                    kind="info"
+                    :title="$t('settings.oidc_info_title')"
+                    :description="$t('settings.oidc_info_description')"
+                    :showCloseButton="false"
+                  />
+                  <NsTextInput
+                    :label="$t('settings.oidc_issuer_url')"
+                    v-model.trim="oidc.issuer_url"
+                    placeholder="https://idp.example.com"
+                    :disabled="isFormDisabled"
+                    :invalid-message="error.oidc_issuer_url"
+                    ref="oidc_issuer_url"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.oidc_issuer_url_tooltip") }}
+                    </template>
+                  </NsTextInput>
+                  <NsTextInput
+                    :label="$t('settings.oidc_client_id')"
+                    v-model.trim="oidc.client_id"
+                    :disabled="isFormDisabled"
+                    :invalid-message="error.oidc_client_id"
+                    ref="oidc_client_id"
+                  />
+                  <cv-text-input
+                    :label="$t('settings.oidc_client_secret')"
+                    type="password"
+                    v-model.trim="oidc.client_secret"
+                    :placeholder="
+                      oidc.client_secret_set
+                        ? $t('settings.oidc_client_secret_set')
+                        : ''
+                    "
+                    :helper-text="$t('settings.oidc_client_secret_helper')"
+                    :invalid-message="error.oidc_client_secret"
+                    :disabled="isFormDisabled"
+                    ref="oidc_client_secret"
+                  />
+                  <NsTextInput
+                    :label="$t('settings.oidc_idp_name')"
+                    v-model.trim="oidc.idp_name"
+                    :placeholder="$t('settings.oidc_idp_name_placeholder')"
+                    :disabled="isFormDisabled"
+                  />
+                  <NsTextInput
+                    :label="$t('settings.saml2_login_button_label')"
+                    v-model.trim="oidc.login_button_label"
+                    :placeholder="
+                      $t('settings.saml2_login_button_label_placeholder')
+                    "
+                    :disabled="isFormDisabled"
+                  />
+                  <div class="idp-preview">
+                    <div class="bx--label">
+                      {{ $t("settings.saml2_login_preview") }}
+                    </div>
+                    <div class="idp-preview-box">
+                      <div class="idp-preview-button">
+                        {{
+                          oidc.login_button_label ||
+                          $t("settings.saml2_default_button_label")
+                        }}
+                      </div>
+                      <div v-if="oidc.idp_name" class="idp-preview-idp">
+                        <span>{{ oidc.idp_name }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </template>
                 <NsComboBox
                   v-model.trim="timezone"
                   :autoFilter="true"
@@ -441,6 +512,14 @@ export default {
         identity_attribute: "uid",
         login_button_label: "",
       },
+      oidc: {
+        issuer_url: "",
+        client_id: "",
+        client_secret: "",
+        client_secret_set: false,
+        idp_name: "",
+        login_button_label: "",
+      },
       authMethodList: [],
       reports_international_prefix: "+39",
       timezone: "",
@@ -478,6 +557,9 @@ export default {
         authentication_method: "",
         saml2_idp_metadata_url: "",
         saml2_identity_attribute: "",
+        oidc_issuer_url: "",
+        oidc_client_id: "",
+        oidc_client_secret: "",
         reports_international_prefix: "",
         timezone: "",
       },
@@ -679,6 +761,16 @@ export default {
           login_button_label: config.saml2.login_button_label || "",
         };
       }
+      if (config.oidc) {
+        this.oidc = {
+          issuer_url: config.oidc.issuer_url || "",
+          client_id: config.oidc.client_id || "",
+          client_secret: "",
+          client_secret_set: !!config.oidc.client_secret_set,
+          idp_name: config.oidc.idp_name || "",
+          login_button_label: config.oidc.login_button_label || "",
+        };
+      }
 
       if (config.reports_international_prefix !== "") {
         this.reports_international_prefix = config.reports_international_prefix;
@@ -730,6 +822,22 @@ export default {
         }
         if (!this.saml2.identity_attribute) {
           this.error.saml2_identity_attribute = this.$t("error.required");
+          isValidationOk = false;
+        }
+      }
+
+      if (this.authentication_method === "oidc") {
+        if (!this.oidc.issuer_url) {
+          this.error.oidc_issuer_url = this.$t("error.required");
+          isValidationOk = false;
+        }
+        if (!this.oidc.client_id) {
+          this.error.oidc_client_id = this.$t("error.required");
+          isValidationOk = false;
+        }
+        // the secret is required only when none is stored yet
+        if (!this.oidc.client_secret && !this.oidc.client_secret_set) {
+          this.error.oidc_client_secret = this.$t("error.required");
           isValidationOk = false;
         }
       }
@@ -803,6 +911,17 @@ export default {
             timezone: this.timezone,
             authentication_method: this.authentication_method,
             saml2: this.saml2,
+            oidc: {
+              issuer_url: this.oidc.issuer_url,
+              client_id: this.oidc.client_id,
+              idp_name: this.oidc.idp_name,
+              login_button_label: this.oidc.login_button_label,
+              // sent only when the admin typed a new one, so a re-save does
+              // not wipe the stored secret
+              ...(this.oidc.client_secret
+                ? { client_secret: this.oidc.client_secret }
+                : {}),
+            },
           },
           extra: {
             title: this.$t("settings.configure_instance", {

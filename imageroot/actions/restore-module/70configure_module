@@ -28,6 +28,14 @@ response = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-mo
         "identity_attribute": old_envs.get("SAML2_IDENTITY_ATTRIBUTE", "") or "uid",
         "login_button_label": old_envs.get("SAML2_LOGIN_BUTTON_LABEL", ""),
     },
+    # client_secret is omitted on purpose: it is preserved in the restored
+    # passwords.env and configure-module only overwrites it when a value is sent
+    "oidc": {
+        "issuer_url": old_envs.get("OIDC_ISSUER_URL", ""),
+        "client_id": old_envs.get("OIDC_CLIENT_ID", ""),
+        "login_button_label": old_envs.get("OIDC_LOGIN_BUTTON_LABEL", ""),
+        "idp_name": old_envs.get("OIDC_IDP_NAME", ""),
+    },
 })
 
 agent.assert_exp(response['exit_code'] == 0)
