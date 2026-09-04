@@ -298,7 +298,8 @@ RUN mkdir -p \
 	/var/lib/asterisk/playback \
 	/var/run/asterisk/ \
 	/var/run/nethvoice/ \
-	/var/www/html/freepbx/admin/modules/framework
+	/var/www/html/freepbx/admin/modules/framework \
+	&& touch /etc/phonebook/sources.d/.nethvoice-volume-guard
 
 # Download framework module
 RUN sh /usr/local/bin/fetch-remote-artifact freepbx-framework-bootstrap-release-16.0.39.tar.gz https://github.com/FreePBX/framework/archive/refs/tags/release/16.0.39.tar.gz && \

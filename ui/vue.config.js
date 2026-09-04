@@ -27,6 +27,4 @@ module.exports = {
         return options;
       });
   },
-  // added to fix the build of https://github.com/nethesis/ns8-nethvoice/pull/756
-  transpileDependencies: ["generate-password-lite"],
 };
