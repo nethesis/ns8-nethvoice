@@ -44,6 +44,7 @@ try {
             if (!externalCheckOut($room_number)) {
                 throw new Exception("Error checking out room $room_number");
             }
+            logMessage($section ." Room $room_number checked out successfully.",INFO,str_replace('.php','',basename($argv[0])));
             $final_checkout = true;
         } else {
             # Shared room. Rebuild the label from the guests that remain after
@@ -59,6 +60,7 @@ try {
             if (!editSurname($room_number, implode(' - ', $remaining_guest_names))) {
                 throw new Exception("Error updating shared room $room_number guest names");
             }
+            logMessage($section ." Room $room_number is shared. Reservation $reservation_number removed from room.",INFO,str_replace('.php','',basename($argv[0])));
         }
         # Delete reservation
         $query = "DELETE FROM `reservations` WHERE `reservation_number`= ?";
@@ -68,6 +70,7 @@ try {
         if (!externalCheckOut($room_number)) {
             throw new Exception("Error checking out room $room_number");
         }
+        logMessage($section ." Room $room_number checked out successfully.",INFO,str_replace('.php','',basename($argv[0])));
         $final_checkout = true;
     }
 
