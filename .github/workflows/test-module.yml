@@ -12,6 +12,11 @@ on:
         required: false
         default: false
         type: boolean
+      fias_image:
+        description: "Optional already-published module image for the FIAS E2E run"
+        required: false
+        default: ""
+        type: string
   workflow_run:
     workflows: ["Publish images"]
     types: [completed]
@@ -46,9 +51,9 @@ jobs:
             node: rl1
     uses: NethServer/ns8-github-actions/.github/workflows/test-on-digitalocean-infra.yml@v1
     with:
-      coremodules: ${{ matrix.scenario == 'install' && needs.module.outputs.image || '' }}
+      coremodules: ${{ matrix.scenario == 'install' && (inputs.fias_image || needs.module.outputs.image) || '' }}
       leader_nodes: ${{ matrix.node }}
-      args: ${{ format('{0} -v SCENARIO:{1} -v RUN_FIAS_E2E:true', needs.module.outputs.image, matrix.scenario) }}
+      args: ${{ format('{0} -v SCENARIO:{1} -v RUN_FIAS_E2E:true', inputs.fias_image || needs.module.outputs.image, matrix.scenario) }}
       repo_ref: ${{ needs.module.outputs.sha }}
       debug_shell: ${{ inputs.debug_shell }}
     secrets:
