@@ -32,10 +32,19 @@ if (proxy_id is not None):
     proxy_id = proxy_id.split("module/")[1]
     proxy_status["module_id"] = proxy_id
 
+# Authentication methods available in this module: the UI renders one option
+# per entry; a new method is just a new entry.
+available_authentication_methods = [
+    {"id": "password", "requires_provider": False},
+    {"id": "saml2", "requires_provider": True},
+    {"id": "oidc", "requires_provider": True},
+]
+
 config={
         "accepted_timezone_list": accepted_timezone_list,
         "local_timezone": local_timezone,
         "proxy_status": proxy_status,
+        "available_authentication_methods": available_authentication_methods,
         }
 
 json.dump(config, fp=sys.stdout)

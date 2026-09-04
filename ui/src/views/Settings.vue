@@ -162,6 +162,204 @@
                   "
                   :showCloseButton="false"
                 />
+                <!-- authentication method: how users prove identity (orthogonal to
+                     the account provider above, which is the source of user records) -->
+                <NsComboBox
+                  :title="$t('settings.authentication_method')"
+                  :options="authMethodList"
+                  :auto-highlight="true"
+                  :label="core.$t('common.choose')"
+                  :disabled="isFormDisabled"
+                  :invalid-message="error.authentication_method"
+                  v-model="authentication_method"
+                  ref="authentication_method"
+                  :acceptUserInput="false"
+                >
+                  <template slot="tooltip">
+                    {{ $t("settings.authentication_method_tooltip") }}
+                  </template>
+                </NsComboBox>
+                <template v-if="authentication_method === 'saml2'">
+                  <NsInlineNotification
+                    kind="info"
+                    :title="$t('settings.saml2_info_title')"
+                    :description="$t('settings.saml2_info_description')"
+                    :showCloseButton="false"
+                  />
+                  <div
+                    v-if="saml2SpMetadataUrl"
+                    class="sp-metadata-field mg-bottom-md"
+                  >
+                    <div class="bx--label">
+                      {{ $t("settings.saml2_sp_metadata_url") }}
+                    </div>
+                    <cv-code-snippet
+                      kind="oneline"
+                      :copy-feedback="$t('common.copied_to_clipboard')"
+                      :feedback-aria-label="$t('common.copy_to_clipboard')"
+                      >{{ saml2SpMetadataUrl }}</cv-code-snippet
+                    >
+                    <div class="bx--form__helper-text">
+                      {{ $t("settings.saml2_sp_metadata_url_helper") }}
+                    </div>
+                  </div>
+                  <NsTextInput
+                    :label="$t('settings.saml2_idp_metadata_url')"
+                    v-model.trim="saml2.idp_metadata_url"
+                    placeholder="https://idp.example.com/idp/shibboleth"
+                    :disabled="isFormDisabled"
+                    :invalid-message="error.saml2_idp_metadata_url"
+                    ref="saml2_idp_metadata_url"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.saml2_idp_metadata_url_tooltip") }}
+                    </template>
+                  </NsTextInput>
+                  <NsTextInput
+                    :label="$t('settings.saml2_login_button_label')"
+                    v-model.trim="saml2.login_button_label"
+                    :placeholder="
+                      $t('settings.saml2_login_button_label_placeholder')
+                    "
+                    :disabled="isFormDisabled"
+                  />
+                  <div class="idp-preview">
+                    <div class="bx--label">
+                      {{ $t("settings.saml2_login_preview") }}
+                    </div>
+                    <div class="idp-preview-box">
+                      <cv-skeleton-text
+                        v-if="loading.getIdpInfo"
+                        :paragraph="true"
+                        :line-count="2"
+                      />
+                      <template v-else-if="idpPreview && !error.getIdpInfo">
+                        <div class="idp-preview-button">
+                          {{
+                            saml2.login_button_label ||
+                            $t("settings.saml2_default_button_label")
+                          }}
+                        </div>
+                        <div
+                          v-if="idpPreview.display_name || idpPreview.logo_url"
+                          class="idp-preview-idp"
+                        >
+                          <img
+                            v-if="idpPreview.logo_url"
+                            :src="idpPreview.logo_url"
+                            alt=""
+                          />
+                          <span v-if="idpPreview.display_name">{{
+                            idpPreview.display_name
+                          }}</span>
+                        </div>
+                      </template>
+                      <div v-else class="idp-preview-error">
+                        {{ $t("settings.saml2_preview_not_available") }}
+                      </div>
+                    </div>
+                  </div>
+                  <NsTextInput
+                    :label="$t('settings.saml2_identity_attribute')"
+                    v-model.trim="saml2.identity_attribute"
+                    placeholder="uid"
+                    :disabled="isFormDisabled"
+                    :invalid-message="error.saml2_identity_attribute"
+                    ref="saml2_identity_attribute"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.saml2_identity_attribute_tooltip") }}
+                    </template>
+                  </NsTextInput>
+                </template>
+                <template v-if="authentication_method === 'oidc'">
+                  <NsInlineNotification
+                    kind="info"
+                    :title="$t('settings.oidc_info_title')"
+                    :description="$t('settings.oidc_info_description')"
+                    :showCloseButton="false"
+                  />
+                  <div
+                    v-if="oidcRedirectUri"
+                    class="sp-metadata-field mg-bottom-md"
+                  >
+                    <div class="bx--label">
+                      {{ $t("settings.oidc_redirect_uri") }}
+                    </div>
+                    <cv-code-snippet
+                      kind="oneline"
+                      :copy-feedback="$t('common.copied_to_clipboard')"
+                      :feedback-aria-label="$t('common.copy_to_clipboard')"
+                      >{{ oidcRedirectUri }}</cv-code-snippet
+                    >
+                    <div class="bx--form__helper-text">
+                      {{ $t("settings.oidc_redirect_uri_helper") }}
+                    </div>
+                  </div>
+                  <NsTextInput
+                    :label="$t('settings.oidc_issuer_url')"
+                    v-model.trim="oidc.issuer_url"
+                    placeholder="https://idp.example.com"
+                    :disabled="isFormDisabled"
+                    :invalid-message="error.oidc_issuer_url"
+                    ref="oidc_issuer_url"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.oidc_issuer_url_tooltip") }}
+                    </template>
+                  </NsTextInput>
+                  <NsTextInput
+                    :label="$t('settings.oidc_client_id')"
+                    v-model.trim="oidc.client_id"
+                    :disabled="isFormDisabled"
+                    :invalid-message="error.oidc_client_id"
+                    ref="oidc_client_id"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.oidc_client_id_tooltip") }}
+                    </template>
+                  </NsTextInput>
+                  <cv-text-input
+                    :label="$t('settings.oidc_client_secret')"
+                    type="password"
+                    :password-visible="false"
+                    v-model.trim="oidc.client_secret"
+                    :helper-text="$t('settings.oidc_client_secret_helper')"
+                    :invalid-message="error.oidc_client_secret"
+                    :disabled="isFormDisabled"
+                    ref="oidc_client_secret"
+                  />
+                  <NsTextInput
+                    :label="$t('settings.oidc_idp_name')"
+                    v-model.trim="oidc.idp_name"
+                    :placeholder="$t('settings.oidc_idp_name_placeholder')"
+                    :disabled="isFormDisabled"
+                  />
+                  <NsTextInput
+                    :label="$t('settings.saml2_login_button_label')"
+                    v-model.trim="oidc.login_button_label"
+                    :placeholder="
+                      $t('settings.saml2_login_button_label_placeholder')
+                    "
+                    :disabled="isFormDisabled"
+                  />
+                  <div class="idp-preview">
+                    <div class="bx--label">
+                      {{ $t("settings.saml2_login_preview") }}
+                    </div>
+                    <div class="idp-preview-box">
+                      <div class="idp-preview-button">
+                        {{
+                          oidc.login_button_label ||
+                          $t("settings.saml2_default_button_label")
+                        }}
+                      </div>
+                      <div v-if="oidc.idp_name" class="idp-preview-idp">
+                        <span>{{ oidc.idp_name }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </template>
                 <NsComboBox
                   v-model.trim="timezone"
                   :autoFilter="true"
@@ -325,6 +523,20 @@ export default {
       isLetsEncryptCurrentlyEnabled: false,
       user_domain: "",
       currentUserDomain: "",
+      authentication_method: "password",
+      saml2: {
+        idp_metadata_url: "",
+        identity_attribute: "uid",
+        login_button_label: "",
+      },
+      oidc: {
+        issuer_url: "",
+        client_id: "",
+        client_secret: "",
+        idp_name: "",
+        login_button_label: "",
+      },
+      authMethodList: [],
       reports_international_prefix: "+39",
       timezone: "",
       isProxyInstalled: false,
@@ -332,8 +544,11 @@ export default {
       passwordValidation: null,
       focusPasswordField: { element: "" },
       clearConfirmPasswordCommand: 0,
+      idpPreview: undefined,
+      idpPreviewTimer: null,
       loading: {
         getConfiguration: false,
+        getIdpInfo: false,
         configureModule: false,
         userDomains: false,
         getDefaults: false,
@@ -344,6 +559,7 @@ export default {
       timezoneList: [],
       error: {
         getConfiguration: "",
+        getIdpInfo: "",
         configureModule: "",
         userDomains: "",
         getDefaults: "",
@@ -354,10 +570,40 @@ export default {
         nethcti_ui_host: "",
         lets_encrypt: "",
         user_domain: "",
+        authentication_method: "",
+        saml2_idp_metadata_url: "",
+        saml2_identity_attribute: "",
+        oidc_issuer_url: "",
+        oidc_client_id: "",
+        oidc_client_secret: "",
         reports_international_prefix: "",
         timezone: "",
       },
     };
+  },
+  watch: {
+    "saml2.idp_metadata_url"() {
+      clearTimeout(this.idpPreviewTimer);
+      this.idpPreview = undefined;
+      this.error.getIdpInfo = "";
+      if (this.saml2.idp_metadata_url.startsWith("https://")) {
+        this.idpPreviewTimer = setTimeout(this.getIdpInfo, 800);
+      }
+    },
+    isLoading(loading, wasLoading) {
+      // NsComboBox shows the raw value at mount and never resolves the label
+      // when options arrive later (its labels differ from the ids); once the
+      // form is rendered with the options ready, ask it to resolve the label
+      // for the current value.
+      if (wasLoading && !loading && this.authentication_method) {
+        this.$nextTick(() => {
+          const combo = this.$refs.authentication_method;
+          if (combo && combo.internalUpdateValue) {
+            combo.internalUpdateValue(this.authentication_method);
+          }
+        });
+      }
+    },
   },
   computed: {
     ...mapState([
@@ -368,6 +614,16 @@ export default {
       "isShownFirstConfigurationModal",
       "instanceStatus",
     ]),
+    saml2SpMetadataUrl() {
+      return this.nethcti_ui_host
+        ? "https://" + this.nethcti_ui_host + "/Shibboleth.sso/Metadata"
+        : "";
+    },
+    oidcRedirectUri() {
+      return this.nethcti_ui_host
+        ? "https://" + this.nethcti_ui_host + "/oauth2/callback"
+        : "";
+    },
     isFormDisabled() {
       return (
         this.loading.getConfiguration ||
@@ -435,6 +691,46 @@ export default {
       this.getUserDomains();
       this.getDefaults();
     },
+    async getIdpInfo() {
+      this.loading.getIdpInfo = true;
+      this.error.getIdpInfo = "";
+      const taskAction = "get-idp-info";
+      const eventId = this.getUuid();
+
+      this.core.$root.$once(`${taskAction}-aborted-${eventId}`, () => {
+        this.loading.getIdpInfo = false;
+        this.error.getIdpInfo = "unreachable";
+      });
+
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        (taskContext, taskResult) => {
+          this.loading.getIdpInfo = false;
+          this.idpPreview = taskResult.output;
+        }
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          data: {
+            url: this.saml2.idp_metadata_url,
+          },
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.loading.getIdpInfo = false;
+        this.error.getIdpInfo = "unreachable";
+      }
+    },
     async getConfiguration() {
       this.loading.getConfiguration = true;
       this.error.getConfiguration = "";
@@ -491,6 +787,25 @@ export default {
 
       this.user_domain = config.user_domain;
       this.currentUserDomain = config.user_domain;
+
+      this.authentication_method = config.authentication_method || "password";
+      if (config.saml2) {
+        this.saml2 = {
+          idp_metadata_url: config.saml2.idp_metadata_url || "",
+          identity_attribute: config.saml2.identity_attribute || "uid",
+          login_button_label: config.saml2.login_button_label || "",
+        };
+      }
+      if (config.oidc) {
+        this.oidc = {
+          issuer_url: config.oidc.issuer_url || "",
+          client_id: config.oidc.client_id || "",
+          client_secret: config.oidc.client_secret || "",
+          idp_name: config.oidc.idp_name || "",
+          login_button_label: config.oidc.login_button_label || "",
+        };
+      }
+
       if (config.reports_international_prefix !== "") {
         this.reports_international_prefix = config.reports_international_prefix;
       }
@@ -531,6 +846,33 @@ export default {
           "error.reports_prefix_invalid"
         );
         isValidationOk = false;
+      }
+
+      // SAML2 SSO requires the IdP metadata and the identity attribute
+      if (this.authentication_method === "saml2") {
+        if (!this.saml2.idp_metadata_url) {
+          this.error.saml2_idp_metadata_url = this.$t("error.required");
+          isValidationOk = false;
+        }
+        if (!this.saml2.identity_attribute) {
+          this.error.saml2_identity_attribute = this.$t("error.required");
+          isValidationOk = false;
+        }
+      }
+
+      if (this.authentication_method === "oidc") {
+        if (!this.oidc.issuer_url) {
+          this.error.oidc_issuer_url = this.$t("error.required");
+          isValidationOk = false;
+        }
+        if (!this.oidc.client_id) {
+          this.error.oidc_client_id = this.$t("error.required");
+          isValidationOk = false;
+        }
+        if (!this.oidc.client_secret) {
+          this.error.oidc_client_secret = this.$t("error.required");
+          isValidationOk = false;
+        }
       }
 
       if (
@@ -600,6 +942,15 @@ export default {
             user_domain: this.user_domain,
             reports_international_prefix: this.reports_international_prefix,
             timezone: this.timezone,
+            authentication_method: this.authentication_method,
+            saml2: this.saml2,
+            oidc: {
+              issuer_url: this.oidc.issuer_url,
+              client_id: this.oidc.client_id,
+              client_secret: this.oidc.client_secret,
+              idp_name: this.oidc.idp_name,
+              login_button_label: this.oidc.login_button_label,
+            },
           },
           extra: {
             title: this.$t("settings.configure_instance", {
@@ -741,6 +1092,18 @@ export default {
       );
       this.loading.getDefaults = false;
       this.isProxyInstalled = taskResult.output.proxy_status.proxy_installed;
+
+      // build the authentication method options from the module-provided registry
+      // (extensible: a new method appears here without changing this view)
+      const methods = taskResult.output.available_authentication_methods || [
+        { id: "password" },
+        { id: "saml2" },
+      ];
+      this.authMethodList = methods.map((m) => ({
+        name: m.id,
+        value: m.id,
+        label: this.$t("settings.authentication_method_" + m.id),
+      }));
     },
     goToCertificates() {
       this.core.$router.push("/settings/tls-certificates");
@@ -930,4 +1293,53 @@ export default {
 
 <style scoped lang="scss">
 @import "../styles/carbon-utils";
+
+.idp-preview {
+  max-width: 38rem;
+  margin-top: 0.5rem;
+  margin-bottom: 2rem;
+}
+.idp-preview-box {
+  border: 1px solid $ui-03;
+  border-radius: 6px;
+  padding: 1rem;
+  min-height: 7.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.idp-preview-button {
+  background: $interactive-01;
+  color: #fff;
+  border-radius: 4px;
+  padding: 0.5rem 0;
+  width: 100%;
+  max-width: 20rem;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.idp-preview-idp {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: $text-02;
+  font-size: 0.875rem;
+}
+.idp-preview-idp img {
+  height: 1.25rem;
+  width: auto;
+}
+.idp-preview-error {
+  color: $text-02;
+  font-size: 0.875rem;
+}
+
+// align the SP metadata snippet with the width of the other form inputs
+.sp-metadata-field,
+.sp-metadata-field ::v-deep .bx--snippet--single {
+  max-width: 38rem;
+}
 </style>

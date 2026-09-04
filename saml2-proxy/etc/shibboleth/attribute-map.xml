@@ -1,0 +1,3 @@
+<Attributes xmlns="urn:mace:shibboleth:2.0:attribute-map">
+${SP_ATTRIBUTE_MAP_ENTRIES}
+</Attributes>

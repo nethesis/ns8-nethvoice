@@ -5,10 +5,18 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+import base64
 import json
+import os
 import sys
 
 import agent
+
+
+def b64(value):
+    """Multi-line values (PEM certificates) are stored base64-encoded:
+    the environment file is line-based."""
+    return base64.b64encode(value.encode()).decode() if value else ''
 
 request = json.load(sys.stdin)
 
@@ -29,3 +37,34 @@ getFromRequest(request, 'nethcti_ui_host', 'NETHCTI_UI_HOST', '')
 # Deprecated, will be removed in future releases.
 if "app_brand_id" in request:
     agent.set_env('BRAND_APPID', request['app_brand_id'])
+
+# Authentication method: 'password' checks credentials against the user domain,
+# 'saml2'/'oidc' delegate to an external IdP (wiring applied by 45authentication).
+authentication_method = request.get('authentication_method', 'password')
+if authentication_method not in ('password', 'saml2', 'oidc'):
+    authentication_method = 'password'
+agent.set_env('AUTHENTICATION_METHOD', authentication_method)
+
+saml2 = request.get('saml2', {}) or {}
+agent.set_env('SAML2_IDP_METADATA_URL', saml2.get('idp_metadata_url', ''))
+agent.set_env('SAML2_IDENTITY_ATTRIBUTE', saml2.get('identity_attribute', '') or 'uid')
+agent.set_env('SAML2_LOGIN_BUTTON_LABEL', saml2.get('login_button_label', ''))
+# optional hardening knobs (default off); fields absent from the payload keep
+# their current value, so the settings form does not wipe API-set options
+agent.set_env('SAML2_USER_ALLOWLIST', saml2.get('user_allowlist', os.getenv('SAML2_USER_ALLOWLIST', '')))
+agent.set_env('SAML2_IDENTITY_VALUE_REGEX', saml2.get('identity_value_regex', os.getenv('SAML2_IDENTITY_VALUE_REGEX', '')))
+if 'idp_signing_cert' in saml2:
+    agent.set_env('SAML2_IDP_SIGNING_CERT', b64(saml2.get('idp_signing_cert', '')))
+agent.set_env('SAML2_JWT_TIMEOUT_HOURS', str(saml2.get('jwt_timeout_hours', os.getenv('SAML2_JWT_TIMEOUT_HOURS', '')) or ''))
+
+oidc = request.get('oidc', {}) or {}
+agent.set_env('OIDC_ISSUER_URL', oidc.get('issuer_url', ''))
+agent.set_env('OIDC_CLIENT_ID', oidc.get('client_id', ''))
+agent.set_env('OIDC_LOGIN_BUTTON_LABEL', oidc.get('login_button_label', ''))
+agent.set_env('OIDC_IDP_NAME', oidc.get('idp_name', ''))
+# the client secret is sensitive: keep it in passwords.env, overwritten only
+# when a non-empty value is sent (so re-saving the form does not wipe it)
+if oidc.get('client_secret'):
+    passwords = agent.read_envfile('passwords.env')
+    passwords['OIDC_CLIENT_SECRET'] = oidc['client_secret']
+    agent.write_envfile('passwords.env', passwords)

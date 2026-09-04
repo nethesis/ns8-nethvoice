@@ -29,6 +29,18 @@
         "reports_international_prefix": {
             "description": "International prefix for the reports app",
             "type": "string"
+        },
+        "authentication_method": {
+            "description": "How users authenticate: 'password' (direct), 'saml2' or 'oidc' (SSO)",
+            "type": "string"
+        },
+        "saml2": {
+            "description": "SAML2 SSO settings",
+            "type": "object"
+        },
+        "oidc": {
+            "description": "OIDC SSO settings",
+            "type": "object"
         }
     }
 }

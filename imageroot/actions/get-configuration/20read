@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+import base64
 import json
 import sys
 import os
@@ -19,6 +20,28 @@ config = {
     'user_domain': os.getenv('USER_DOMAIN', ''),
     'reports_international_prefix': os.getenv('REPORTS_INTERNATIONAL_PREFIX', ''),
     'subscription_systemid': os.getenv('SUBSCRIPTION_SYSTEMID', ''),
+    # Authentication method: how users prove identity (independent from user_domain,
+    # which stays the source of user records). Defaults to direct password.
+    'authentication_method': os.getenv('AUTHENTICATION_METHOD', 'password'),
+    'saml2': {
+        'idp_metadata_url': os.getenv('SAML2_IDP_METADATA_URL', ''),
+        'identity_attribute': os.getenv('SAML2_IDENTITY_ATTRIBUTE', 'uid'),
+        'login_button_label': os.getenv('SAML2_LOGIN_BUTTON_LABEL', ''),
+        'user_allowlist': os.getenv('SAML2_USER_ALLOWLIST', ''),
+        'identity_value_regex': os.getenv('SAML2_IDENTITY_VALUE_REGEX', ''),
+        # stored base64-encoded (see configure-module/20setenvs)
+        'idp_signing_cert': base64.b64decode(os.getenv('SAML2_IDP_SIGNING_CERT', '')).decode(),
+        'jwt_timeout_hours': os.getenv('SAML2_JWT_TIMEOUT_HOURS', ''),
+    },
+    'oidc': {
+        'issuer_url': os.getenv('OIDC_ISSUER_URL', ''),
+        'client_id': os.getenv('OIDC_CLIENT_ID', ''),
+        'login_button_label': os.getenv('OIDC_LOGIN_BUTTON_LABEL', ''),
+        'idp_name': os.getenv('OIDC_IDP_NAME', ''),
+        # returned to the admin-only UI so the field shows the stored value
+        # (revealed on demand); the API is already authenticated as admin
+        'client_secret': agent.read_envfile('passwords.env').get('OIDC_CLIENT_SECRET', ''),
+    },
 }
 
 json.dump(config, fp=sys.stdout)

@@ -43,6 +43,13 @@
       "description": "The current system timezone",
       "type": "string"
     },
+    "available_authentication_methods": {
+      "description": "Selectable authentication methods for the UI",
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
     "proxy_status": {
       "description": "Status of the NethVoice proxy",
       "type": "object",
