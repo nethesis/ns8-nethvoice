@@ -322,12 +322,8 @@
                   <cv-text-input
                     :label="$t('settings.oidc_client_secret')"
                     type="password"
+                    :password-visible="false"
                     v-model.trim="oidc.client_secret"
-                    :placeholder="
-                      oidc.client_secret_set
-                        ? $t('settings.oidc_client_secret_set')
-                        : ''
-                    "
                     :helper-text="$t('settings.oidc_client_secret_helper')"
                     :invalid-message="error.oidc_client_secret"
                     :disabled="isFormDisabled"
@@ -537,7 +533,6 @@ export default {
         issuer_url: "",
         client_id: "",
         client_secret: "",
-        client_secret_set: false,
         idp_name: "",
         login_button_label: "",
       },
@@ -593,6 +588,20 @@ export default {
       this.error.getIdpInfo = "";
       if (this.saml2.idp_metadata_url.startsWith("https://")) {
         this.idpPreviewTimer = setTimeout(this.getIdpInfo, 800);
+      }
+    },
+    isLoading(loading, wasLoading) {
+      // NsComboBox shows the raw value at mount and never resolves the label
+      // when options arrive later (its labels differ from the ids); once the
+      // form is rendered with the options ready, ask it to resolve the label
+      // for the current value.
+      if (wasLoading && !loading && this.authentication_method) {
+        this.$nextTick(() => {
+          const combo = this.$refs.authentication_method;
+          if (combo && combo.internalUpdateValue) {
+            combo.internalUpdateValue(this.authentication_method);
+          }
+        });
       }
     },
   },
@@ -791,8 +800,7 @@ export default {
         this.oidc = {
           issuer_url: config.oidc.issuer_url || "",
           client_id: config.oidc.client_id || "",
-          client_secret: "",
-          client_secret_set: !!config.oidc.client_secret_set,
+          client_secret: config.oidc.client_secret || "",
           idp_name: config.oidc.idp_name || "",
           login_button_label: config.oidc.login_button_label || "",
         };
@@ -861,8 +869,7 @@ export default {
           this.error.oidc_client_id = this.$t("error.required");
           isValidationOk = false;
         }
-        // the secret is required only when none is stored yet
-        if (!this.oidc.client_secret && !this.oidc.client_secret_set) {
+        if (!this.oidc.client_secret) {
           this.error.oidc_client_secret = this.$t("error.required");
           isValidationOk = false;
         }
@@ -940,13 +947,9 @@ export default {
             oidc: {
               issuer_url: this.oidc.issuer_url,
               client_id: this.oidc.client_id,
+              client_secret: this.oidc.client_secret,
               idp_name: this.oidc.idp_name,
               login_button_label: this.oidc.login_button_label,
-              // sent only when the admin typed a new one, so a re-save does
-              // not wipe the stored secret
-              ...(this.oidc.client_secret
-                ? { client_secret: this.oidc.client_secret }
-                : {}),
             },
           },
           extra: {
@@ -1101,15 +1104,6 @@ export default {
         value: m.id,
         label: this.$t("settings.authentication_method_" + m.id),
       }));
-      // cv-combo-box resolves its shown label only when the value changes, not
-      // when options arrive later: re-apply so the label shows after this load
-      const method = this.authentication_method;
-      if (method) {
-        this.authentication_method = "";
-        this.$nextTick(() => {
-          this.authentication_method = method;
-        });
-      }
     },
     goToCertificates() {
       this.core.$router.push("/settings/tls-certificates");
