@@ -51,7 +51,7 @@ try {
             # this reservation checks out. Selecting by room here is not
             # scalar when the room is shared, and string replacement leaves
             # dangling separators when the first or middle guest departs.
-            $query = 'SELECT guest_name FROM fias.reservations WHERE room_number = ? AND reservation_number <> ? ORDER BY checkindate, reservation_number';
+            $query = 'SELECT guest_name FROM reservations WHERE room_number = ? AND reservation_number <> ? ORDER BY checkindate, reservation_number';
             $sth = $fiasdb->prepare($query);
             $sth->execute(array($room_number, $reservation_number));
             $remaining_guest_names = array_filter($sth->fetchAll(PDO::FETCH_COLUMN), function ($guest_name) {

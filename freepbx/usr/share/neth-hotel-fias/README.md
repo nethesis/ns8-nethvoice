@@ -99,6 +99,8 @@ The helper layer also supports test-only environment overrides:
 - `FIAS_SERVER_DB_NAME`: alternate transport database name for the test server
 - `FREEPBX_DB_CONF_PATH`: alternate path for `freepbx_db.conf`
 - `FIAS_SERVER_LOCK_PATH`: alternate lock file path for `fias-server.php`
+- `FIAS_E2E_ARTIFACT_DIR`: sanitized report/log destination used by the E2E harness
+- `FIAS_E2E_SCENARIO`: label such as `install`, `update`, or `manual` stored in evidence
 
 ### `[general]`
 
@@ -270,7 +272,8 @@ server.
 
 ### What it does
 
-1. creates a temporary `fias.conf` with a free TCP port
+1. creates a private temporary `fias.conf` with a free TCP port, short test
+   timeouts, verbose logging, and opt-in `GG` support
 2. creates temporary transport databases for `fias` and `fias_server`
   - this requires MariaDB admin credentials because the normal FreePBX
     application user only has grants on the existing service databases
@@ -278,15 +281,13 @@ server.
    - `fias-server.php`
    - `dispatcher.php`
    - `fiasd.php`
-4. runs the real test-server wrappers:
-   - `fias-server-gi2pbx.php`
-   - `fias-server-gc2pbx.php`
-   - `fias-server-go2pbx.php`
-   - `fias-server-wr2pbx.php`
-   - `fias-server-wc2pbx.php`
-   - `fias-server-re2pbx.php`
-   - `fias-server-le2pbx.php`
-5. polls `roomsdb` to verify that each step changed the expected state
+4. tests every active inbound and outbound command path, including minibar
+   modes `M`/`C`, CDR modes `C`/`T`, supported `RE` statuses, DND on/off, guest
+   groups, shared checkout, room moves, `PA` dispatch, and both `LE` directions
+5. verifies the LS/LD/LR/LA handshake, PMS-initiated reconnect, wire frames,
+   dispatcher completion, Hotel/Asterisk/database state, and cleanup
+6. exports a sanitized report and correlated logs while always deleting the
+   private runtime directory and credentials
 
 ### Prerequisites
 
@@ -306,7 +307,8 @@ credentials for the isolated transport databases too.
 ### Command
 
 ```sh
-php /usr/share/neth-hotel-fias/fias-server-e2e.php <room-number>
+FIAS_E2E_ARTIFACT_DIR=/tmp/fias-e2e-evidence \
+php /usr/share/neth-hotel-fias/fias-server-e2e.php [first-room-number]
 ```
 
 If you already created two dedicated databases and granted `AMPDBUSER` access,
@@ -316,18 +318,36 @@ you can skip the admin-only create/drop step:
 FIAS_DB_NAME=my_fias_e2e \
 FIAS_SERVER_DB_NAME=my_fias_server_e2e \
 FIAS_E2E_SKIP_DB_CREATE=1 \
-php /usr/share/neth-hotel-fias/fias-server-e2e.php <room-number>
+php /usr/share/neth-hotel-fias/fias-server-e2e.php [first-room-number]
 ```
 
 Notes:
 
-- the script also uses `<room-number> + 1000` as the move target room
-- it cleans the tested rows in `roomsdb` on success and drops the temporary
-  transport databases
+- with no room argument, the script selects an unused six-room block; an
+  explicitly requested block must also be unused
+- it restores the pre-test `needReload` option and removes fixture rows,
+  generated Asterisk DB keys, FIAS groups, and temporary transport databases
 - when `FIAS_E2E_SKIP_DB_CREATE=1` is used, the script truncates the provided
-  transport databases on success instead of dropping them
-- on failure it keeps the temporary databases and log files under
-  `$(mktempdir)/fias-e2e-<pid>` so the failure can be inspected
+  transport databases instead of dropping them
+- runtime files containing credentials are always removed, including after a
+  failure; only the sanitized evidence directory is retained
+- `report.md` lists every tested FIAS record, the script that launched it, the
+  dispatched handler, raw wire evidence, functional assertion, and associated
+  Hotel logs (or `none expected`)
+
+The active command/mode coverage is:
+
+| Direction | Records and modes |
+| --- | --- |
+| Link | `LS`, `LD`, `LR`, `LA`; PMS `LE` plus reconnect; PBX `LE` plus clean shutdown |
+| PMS to PBX | `GI` normal/GG create/GG reuse/shared; `GC`; `GO` partial/final; `WR`; `WC`; `RE` statuses 1/3/4 and DND Y/N; `PA` dispatch |
+| PBX to PMS | `WR`; `WC`; `WA`; `RE` statuses 1/3/4; direct `PS`; `DR`; minibar `PS` modes M/C; CDR `PS` modes C/T; `LE` |
+
+`PA2PBX` is expected to report `NOT_IMPLEMENTED`: the harness proves its wire
+transport and dispatch to `pa2pbx.php`, whose current business implementation
+is deliberately a placeholder. `RE2PBX` statuses 2 and 5 are also explicitly
+not implemented and status 6 has no handler branch. `gc2pms.php` is a legacy
+helper not wired in the default configuration, and no `wa2pbx.php` path exists.
 
 ## Manual smoke tests
 
@@ -482,12 +502,13 @@ wake-up request step, inspect `roomsdb.alarms` for the tested extension.
 #### `fias-server-e2e.php`
 
 - Purpose: automated end-to-end validation for the standalone test server.
-- Parameters: `<room-number>`.
+- Parameters: optional `[first-room-number]` for an unused six-room fixture block.
 - Behavior:
   - creates isolated transport config and temporary databases
   - starts `fias-server.php`, `dispatcher.php`, and `fiasd.php`
-  - runs the test-server wrappers in a fixed sequence
-  - validates the resulting `roomsdb` state after each command
+  - tests all active command paths and behavioral modes in a fixed sequence
+  - validates protocol, wire, dispatcher, `roomsdb`, group, and Asterisk state
+  - emits a sanitized command/log report and verifies fixture cleanup
 
 ### Outbound queue producers: FreePBX to PMS
 

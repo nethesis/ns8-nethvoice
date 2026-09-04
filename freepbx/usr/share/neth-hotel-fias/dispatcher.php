@@ -54,14 +54,19 @@ while (TRUE) {
                 $command .= escapeshellarg($message['parameters'][$parameter]);
             }
         }
-        logMessage("Launching command: $command", INFO, "dispatcher");
-        exec($command, $output, $exit_val);
+        logMessage("Message $id ($section) launching command: $command", INFO, "dispatcher");
+        $output = array();
+        exec($command.' 2>&1', $output, $exit_val);
+        foreach ($output as $line) {
+            logMessage("Message $id ($section) handler: $line", INFO, "dispatcher");
+        }
         $query = "UPDATE messages SET elaborationtime = CURRENT_TIMESTAMP WHERE id = ?";
         $sth = $fiasdb->prepare($query);
         $sth->execute(array($id));
         if ($exit_val != 0) {
-            logMessage("ERROR executing command \"$command\": ".implode("\n",$output), ERROR, "dispatcher");
+            logMessage("Message $id ($section) failed with exit code $exit_val", ERROR, "dispatcher");
+        } else {
+            logMessage("Message $id ($section) completed with exit code 0", INFO, "dispatcher");
         }
     }
 }
-
