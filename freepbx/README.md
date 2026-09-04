@@ -327,6 +327,8 @@ gh workflow run test-module.yml \
 The workflow runs a fresh installation on `dn1` and an update on `rl1`.
 Download the `tests-logs-dn1` and `tests-logs-rl1` artifacts from that run; the
 reports are under `fias-e2e/install/` and `fias-e2e/update/` respectively.
+If the branch image publication is unavailable but an exact PR testing image
+has already been published, pass it with `-f fias_image=<module-image-url>`.
 
 If the harness fails, start with `report.md`, then open the referenced
 `commands/*.log`. The per-command file correlates the FIAS wire frame with the
