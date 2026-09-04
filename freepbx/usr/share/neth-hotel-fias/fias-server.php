@@ -401,10 +401,10 @@ while ($socket = socket_accept($sock)) {
                         throw new Exception('Error writing message to DB; ' . mysql_error());
                     }
                     $last_id = $fiasserverdb->lastInsertId();
-                    logMessage("INSERT INTO messagesparameters (msgid, param, value) VALUES ({$last_id},\"" . substr($params[$i], 0, 2) . "\",\"" . substr($params[$i], 2) . "\")'", DEBUGVERBOSE, "fias-server");
                     $query = 'INSERT INTO messagesparameters (msgid, param, value) VALUES (?,?,?)';
                     $sth = $fiasserverdb->prepare($query);
                     for ($i = 1;$i < count($params) - 1;$i++) {
+                        logMessage("INSERT INTO messagesparameters (msgid, param, value) VALUES ({$last_id},\"" . substr($params[$i], 0, 2) . "\",\"" . substr($params[$i], 2) . "\")'", DEBUGVERBOSE, "fias-server");
                         $rs = $sth->execute(array($last_id, substr($params[$i], 0, 2), substr($params[$i], 2)));
                         if (!$rs) {
                             throw new Exception('Error writing messageparameters to DB; ' . mysql_error());
@@ -422,4 +422,3 @@ while ($socket = socket_accept($sock)) {
 
     socket_close($socket);
 }
-
