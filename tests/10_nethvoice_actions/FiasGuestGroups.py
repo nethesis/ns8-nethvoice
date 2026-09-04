@@ -16,6 +16,7 @@ import re
 import secrets
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 
 
 FIAS_CONFIG = "/etc/asterisk/fias.conf"
@@ -131,7 +132,7 @@ def set_gi_format(contents, target_format):
     return "".join(output)
 
 
-def invoke_gi(room, reservation, guest_name, language, group, share="N"):
+def invoke_gi(room, reservation, guest_name, language, group, share="N", check=True):
     arguments = [
         room,
         reservation,
@@ -145,7 +146,9 @@ def invoke_gi(room, reservation, guest_name, language, group, share="N"):
         "",
         "",
     ]
-    podman_exec("freepbx", "php", GI_SCRIPT, *arguments, timeout=120)
+    return podman_exec(
+        "freepbx", "php", GI_SCRIPT, *arguments, timeout=120, check=check
+    )
 
 
 def invoke_legacy_gi(room, reservation, guest_name, language, share="N"):
@@ -184,8 +187,9 @@ def group_note(group_name):
 def find_group(group_name, note):
     result_rows = rows(
         "SELECT id,COALESCE(groupcalls,0),COALESCE(roomscalls,0),COALESCE(externalcalls,0) "
-        "FROM roomsdb.room_groups WHERE name={} AND note={} ORDER BY id".format(
-            sql_quote(group_name), sql_quote(note)
+        "FROM roomsdb.room_groups "
+        "WHERE name={} AND note={} AND fias_guest_group_number={} ORDER BY id".format(
+            sql_quote(group_name), sql_quote(note), sql_quote(group_name)
         )
     )
     return result_rows
@@ -289,11 +293,39 @@ def check_config_contract(original_config):
         )
     )
     require(text_length >= 255, "roomsdb.rooms.text is shorter than 255 characters")
+    group_key_length = int(
+        scalar(
+            "SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS "
+            "WHERE TABLE_SCHEMA='roomsdb' AND TABLE_NAME='room_groups' "
+            "AND COLUMN_NAME='fias_guest_group_number'",
+            "0",
+        )
+    )
+    require(group_key_length == 100, "FIAS guest group key is not varchar(100)")
+    group_key_nullable = scalar(
+        "SELECT IS_NULLABLE FROM information_schema.COLUMNS "
+        "WHERE TABLE_SCHEMA='roomsdb' AND TABLE_NAME='room_groups' "
+        "AND COLUMN_NAME='fias_guest_group_number'"
+    )
+    require(group_key_nullable == "YES", "FIAS guest group key is not nullable")
+    unique_group_key = int(
+        scalar(
+            "SELECT COUNT(*) FROM information_schema.STATISTICS "
+            "WHERE TABLE_SCHEMA='roomsdb' AND TABLE_NAME='room_groups' "
+            "AND INDEX_NAME='unique_fias_guest_group_number' AND NON_UNIQUE=0 "
+            "AND COLUMN_NAME='fias_guest_group_number'",
+            "0",
+        )
+    )
+    require(unique_group_key == 1, "FIAS guest group key is not unique")
     return {
         "ok": True,
         "legacy_default": True,
         "gg_opt_in_available": True,
         "room_text_length": text_length,
+        "group_key_length": group_key_length,
+        "group_key_nullable": True,
+        "unique_group_key": True,
     }
 
 
@@ -336,6 +368,96 @@ def check_create_and_reuse(rooms_list, reservations, group_a, manual_note):
         "group_id": fias_group_id,
         "rooms_assigned": 2,
         "manual_collision_avoided": True,
+    }
+
+
+def check_concurrent_create(rooms_list, reservations, group_a):
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [
+            executor.submit(
+                invoke_gi,
+                rooms_list[0],
+                reservations[0],
+                "Concurrent Alpha",
+                "IT",
+                group_a,
+            ),
+            executor.submit(
+                invoke_gi,
+                rooms_list[1],
+                reservations[1],
+                "Concurrent Beta",
+                "EN",
+                group_a,
+            ),
+        ]
+        for future in futures:
+            future.result()
+
+    fias_groups = find_group(group_a, group_note(group_a))
+    require(len(fias_groups) == 1, "concurrent GI created duplicate FIAS groups")
+    group_id = int(fias_groups[0][0])
+    require(
+        group_assignments(rooms_list[0]) == [group_id],
+        "first concurrent room has the wrong group",
+    )
+    require(
+        group_assignments(rooms_list[1]) == [group_id],
+        "second concurrent room has the wrong group",
+    )
+    return {
+        "ok": True,
+        "single_group_created": True,
+        "both_rooms_assigned": True,
+    }
+
+
+def check_long_group(rooms_list, reservations, long_group, truncated_group):
+    require(len(long_group) == 101, "long GG fixture is not 101 characters")
+    require(len(truncated_group) == 100, "truncated GG fixture is not 100 characters")
+
+    invoke_gi(rooms_list[0], reservations[0], "Long Group Alpha", "IT", long_group)
+    invoke_gi(rooms_list[1], reservations[1], "Long Group Beta", "EN", long_group)
+
+    fias_groups = find_group(truncated_group, group_note(truncated_group))
+    require(len(fias_groups) == 1, "truncated GG did not reuse one FIAS group")
+    group_id = int(fias_groups[0][0])
+    require(
+        group_assignments(rooms_list[0]) == [group_id]
+        and group_assignments(rooms_list[1]) == [group_id],
+        "rooms using a long GG were not assigned to its truncated group",
+    )
+    return {
+        "ok": True,
+        "stored_group_length": len(truncated_group),
+        "truncated_group_reused": True,
+    }
+
+
+def check_assignment_error(rooms_list, reservations, group_a, trigger_name):
+    room = rooms_list[0]
+    mysql(
+        "USE roomsdb; CREATE TRIGGER `{}` BEFORE INSERT ON groups_rooms "
+        "FOR EACH ROW SIGNAL SQLSTATE '45000' "
+        "SET MESSAGE_TEXT = 'forced FIAS group assignment failure'".format(trigger_name)
+    )
+
+    failed_gi = invoke_gi(
+        room,
+        reservations[0],
+        "Assignment Failure",
+        "IT",
+        group_a,
+        check=False,
+    )
+    expected_error = "Error assigning room {} to guest group {}".format(room, group_a)
+    require(failed_gi.returncode != 0, "setGroup failure did not make GI fail")
+    require(expected_error in failed_gi.stderr, "GI did not log its structured assignment error")
+    require(group_assignments(room) == [], "failed group assignment left a partial mapping")
+    return {
+        "ok": True,
+        "nonzero_exit": True,
+        "structured_error": True,
     }
 
 
@@ -458,10 +580,11 @@ def restore_need_reload(values):
         )
 
 
-def cleanup(rooms_list, reservations, group_names, need_reload_values):
+def cleanup(rooms_list, reservations, group_names, need_reload_values, trigger_name):
     room_csv = ",".join(map(str, rooms_list))
     reservation_csv = ",".join(map(str, reservations))
     group_csv = ",".join(sql_quote(name) for name in group_names)
+    mysql("DROP TRIGGER IF EXISTS roomsdb.`{}`".format(trigger_name))
     mysql("DELETE FROM fias.reservations WHERE reservation_number IN ({})".format(reservation_csv))
     mysql("DELETE FROM roomsdb.groups_rooms WHERE extension IN ({})".format(room_csv))
     mysql("DELETE FROM roomsdb.alarms WHERE extension IN ({})".format(room_csv))
@@ -502,7 +625,10 @@ group_a = "fias-gg-test-{}-a".format(token)
 group_b = "fias-gg-test-{}-b".format(token)
 manual_group_name = "fias-gg-test-{}-manual".format(token)
 manual_note = "Manual test group " + token
-group_names = [group_a, group_b, manual_group_name]
+long_group = ("fias-gg-test-{}-".format(token) + ("x" * 101))[:101]
+truncated_group = long_group[:100]
+assignment_trigger_name = "fias_gg_test_fail_" + token
+group_names = [group_a, group_b, manual_group_name, truncated_group]
 need_reload_values = [row[0] for row in rows("SELECT value FROM roomsdb.options WHERE variable='needReload'")]
 config_changed = False
 test_error = None
@@ -516,6 +642,22 @@ try:
         write_config(set_gi_format(original_config, GG_GI_FORMAT))
         config_changed = True
         result = check_create_and_reuse(rooms_list, reservations, group_a, manual_note)
+    elif operation == "concurrent-create":
+        write_config(set_gi_format(original_config, GG_GI_FORMAT))
+        config_changed = True
+        result = check_concurrent_create(rooms_list, reservations, group_a)
+    elif operation == "long-group":
+        write_config(set_gi_format(original_config, GG_GI_FORMAT))
+        config_changed = True
+        result = check_long_group(
+            rooms_list, reservations, long_group, truncated_group
+        )
+    elif operation == "assignment-error":
+        write_config(set_gi_format(original_config, GG_GI_FORMAT))
+        config_changed = True
+        result = check_assignment_error(
+            rooms_list, reservations, group_a, assignment_trigger_name
+        )
     elif operation == "change-empty":
         write_config(set_gi_format(original_config, GG_GI_FORMAT))
         config_changed = True
@@ -541,7 +683,13 @@ finally:
         except Exception as error:
             cleanup_errors.append("config restore failed: " + str(error))
     try:
-        cleanup(rooms_list, reservations, group_names, need_reload_values)
+        cleanup(
+            rooms_list,
+            reservations,
+            group_names,
+            need_reload_values,
+            assignment_trigger_name,
+        )
     except Exception as error:
         cleanup_errors.append("fixture cleanup failed: " + str(error))
 
