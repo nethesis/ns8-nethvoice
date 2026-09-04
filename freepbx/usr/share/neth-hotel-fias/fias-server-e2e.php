@@ -623,7 +623,7 @@ function writeEvidence($artifactDir, $logs, $results, $status, $error, $environm
 
     $exclusions = array(
         'gc2pms.php is present but not wired by the default fias.conf.',
-        'wa2pbx.php is not present/wired; WA is PBX -> PMS only.',
+        'wa2pbx.php is an unwired not-implemented placeholder; the supported WA path is PBX -> PMS.',
         'RE2PBX statuses 2 and 5 explicitly log not implemented; status 6 has no handler branch.',
         'PA2PBX transport/dispatch is tested; its business handler explicitly logs not implemented.',
     );

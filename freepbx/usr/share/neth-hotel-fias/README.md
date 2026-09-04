@@ -347,7 +347,8 @@ The active command/mode coverage is:
 transport and dispatch to `pa2pbx.php`, whose current business implementation
 is deliberately a placeholder. `RE2PBX` statuses 2 and 5 are also explicitly
 not implemented and status 6 has no handler branch. `gc2pms.php` is a legacy
-helper not wired in the default configuration, and no `wa2pbx.php` path exists.
+helper not wired in the default configuration. `wa2pbx.php` is an unwired
+not-implemented placeholder; the supported WA path is PBX to PMS.
 
 ## Manual smoke tests
 
