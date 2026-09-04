@@ -559,8 +559,10 @@ function outbound(&$results, $baseDir, $environment, $serverPdo, $script, $comma
 function attachLogs(&$results, $logs) {
     foreach ($results as &$result) {
         $lines = array();
-        if ($result['direction'] === 'PMS -> PBX' && $result['message_id'] !== null) {
-            $lines = lineMatches($logs['dispatcher'], 'Message '.$result['message_id'].' (');
+        if ($result['direction'] === 'PMS -> PBX' && $result['message_id'] !== null
+            && preg_match('/2pbx\.php$/', $result['dispatched_script'])) {
+            $dispatcherCommand = strtoupper($result['command']).'2PBX';
+            $lines = lineMatches($logs['dispatcher'], 'Message '.$result['message_id'].' ('.$dispatcherCommand.')');
         } elseif ($result['command'] === 'LS/LD/LR/LA') {
             foreach (array('Connected to', 'Send LS', 'LD|', 'LR|', 'Send LA') as $needle) {
                 $lines = array_merge($lines, lineMatches($logs['client']."\n".$logs['server'], $needle));
@@ -625,7 +627,17 @@ function writeEvidence($artifactDir, $logs, $results, $status, $error, $environm
         'RE2PBX statuses 2 and 5 explicitly log not implemented; status 6 has no handler branch.',
         'PA2PBX transport/dispatch is tested; its business handler explicitly logs not implemented.',
     );
-    $report = array('status' => $status, 'error' => $error, 'generated_at' => gmdate('c'), 'commands_tested' => count($results), 'results' => $results, 'cleanup' => $cleanup, 'expected_exclusions' => $exclusions);
+    $report = array(
+        'status' => $status,
+        'error' => $error,
+        'generated_at' => gmdate('c'),
+        'scenario' => $environmentInfo['scenario'],
+        'environment' => $environmentInfo,
+        'commands_tested' => count($results),
+        'results' => $results,
+        'cleanup' => $cleanup,
+        'expected_exclusions' => $exclusions,
+    );
     file_put_contents($artifactDir.'/report.json', json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)."\n");
 
     $markdown = "# FIAS end-to-end evidence\n\n- Overall status: **{$status}**\n";
