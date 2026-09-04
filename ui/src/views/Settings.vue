@@ -279,6 +279,23 @@
                     :description="$t('settings.oidc_info_description')"
                     :showCloseButton="false"
                   />
+                  <div
+                    v-if="oidcRedirectUri"
+                    class="sp-metadata-field mg-bottom-md"
+                  >
+                    <div class="bx--label">
+                      {{ $t("settings.oidc_redirect_uri") }}
+                    </div>
+                    <cv-code-snippet
+                      kind="oneline"
+                      :copy-feedback="$t('common.copied_to_clipboard')"
+                      :feedback-aria-label="$t('common.copy_to_clipboard')"
+                      >{{ oidcRedirectUri }}</cv-code-snippet
+                    >
+                    <div class="bx--form__helper-text">
+                      {{ $t("settings.oidc_redirect_uri_helper") }}
+                    </div>
+                  </div>
                   <NsTextInput
                     :label="$t('settings.oidc_issuer_url')"
                     v-model.trim="oidc.issuer_url"
@@ -297,7 +314,11 @@
                     :disabled="isFormDisabled"
                     :invalid-message="error.oidc_client_id"
                     ref="oidc_client_id"
-                  />
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.oidc_client_id_tooltip") }}
+                    </template>
+                  </NsTextInput>
                   <cv-text-input
                     :label="$t('settings.oidc_client_secret')"
                     type="password"
@@ -587,6 +608,11 @@ export default {
     saml2SpMetadataUrl() {
       return this.nethcti_ui_host
         ? "https://" + this.nethcti_ui_host + "/Shibboleth.sso/Metadata"
+        : "";
+    },
+    oidcRedirectUri() {
+      return this.nethcti_ui_host
+        ? "https://" + this.nethcti_ui_host + "/oauth2/callback"
         : "";
     },
     isFormDisabled() {
@@ -1075,6 +1101,15 @@ export default {
         value: m.id,
         label: this.$t("settings.authentication_method_" + m.id),
       }));
+      // cv-combo-box resolves its shown label only when the value changes, not
+      // when options arrive later: re-apply so the label shows after this load
+      const method = this.authentication_method;
+      if (method) {
+        this.authentication_method = "";
+        this.$nextTick(() => {
+          this.authentication_method = method;
+        });
+      }
     },
     goToCertificates() {
       this.core.$router.push("/settings/tls-certificates");
