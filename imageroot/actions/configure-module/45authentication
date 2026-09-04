@@ -7,7 +7,11 @@
 
 #
 # Authentication method dispatcher: applies the wiring for the method persisted
-# by 20setenvs. saml2 = trusted-mint secrets + Shibboleth SP unit + routes.
+# by 20setenvs. Pluggable front-doors share one trusted-mint contract:
+#   saml2 -> Shibboleth SP (mod_shib), identity in Remote-User
+#   oidc  -> oauth2-proxy, identity in X-Auth-Request-Preferred-Username
+# Both are guarded by a Traefik forwardAuth on a dedicated /api/sso-login mint
+# route; password tears everything down.
 #
 
 import os
@@ -22,9 +26,12 @@ import saml_metadata
 METHOD = os.getenv('AUTHENTICATION_METHOD', 'password')
 CTI_HOST = os.getenv('NETHCTI_UI_HOST', '')
 
-# Traefik routes owned by the saml2 method: the SP handlers (Login/ACS) and the
+# Traefik routes owned by an SSO method: the front-door handler and the
 # forwardAuth-protected mint route.
 SP_ROUTES = ('sso-sp-handler', 'sso-mint')
+# Front-door units and their on-demand images, torn down on any method change.
+SSO_UNITS = ('saml2-proxy.service', 'oauth2-proxy.service')
+SSO_IMAGE_ENVS = ('NETHVOICE_SAML2_PROXY_IMAGE', 'NETHVOICE_OAUTH2_PROXY_IMAGE')
 
 
 def set_env(key, val):
@@ -32,6 +39,12 @@ def set_env(key, val):
     generated here (secrets, image) are readable later in the same run."""
     agent.set_env(key, val)
     os.environ[key] = val
+
+
+def derive_image(name):
+    """Version-locked reference of an on-demand SSO image, from the module tag."""
+    repo, _, tag = os.environ['IMAGE_URL'].rpartition(':')
+    return repo.rsplit('/', 1)[0] + '/' + name + ':' + (tag if repo else 'latest')
 
 
 def ensure_sso_secrets():
@@ -49,7 +62,10 @@ def ensure_sso_secrets():
     if not os.getenv('NETHCTI_SSO_PROXY_SECRET'):
         set_env('NETHCTI_SSO_PROXY_SECRET', secrets.token_urlsafe(32))
         changed = True
-    set_env('NETHCTI_SSO_USER_HEADER', 'Remote-User')
+    # oauth2-proxy session cookie key (needs a 16/24/32-byte value)
+    if not os.getenv('NETHCTI_SSO_OIDC_COOKIE_SECRET'):
+        set_env('NETHCTI_SSO_OIDC_COOKIE_SECRET', secrets.token_hex(16))
+        changed = True
     # optional hardening knobs sourced from the module settings (empty = default)
     set_env('NETHCTI_SSO_USER_ALLOWLIST', os.getenv('SAML2_USER_ALLOWLIST', ''))
     set_env('NETHCTI_SSO_JWT_TIMEOUT_HOURS', os.getenv('SAML2_JWT_TIMEOUT_HOURS', ''))
@@ -59,6 +75,7 @@ def ensure_sso_secrets():
 def clear_sso_secrets():
     """Revoke the trusted-mint secrets: no stale secret left when SSO is off."""
     for var in ('NETHCTI_SSO_TRUSTED_SECRET', 'NETHCTI_SSO_TOKEN_KEY', 'NETHCTI_SSO_PROXY_SECRET',
+                'NETHCTI_SSO_OIDC_COOKIE_SECRET', 'NETHCTI_SSO_USER_HEADER',
                 'NETHCTI_SSO_USER_ALLOWLIST', 'NETHCTI_SSO_JWT_TIMEOUT_HOURS'):
         if os.getenv(var):
             agent.set_env(var, '')
@@ -70,24 +87,23 @@ def restart_trusted_mint():
         subprocess.run(['systemctl', '--user', 'restart', unit], check=False)
 
 
-def set_routes():
-    sp_port = os.getenv('SAML2_PROXY_PORT', '20090')
+def set_routes(handler_path, handler_port, check_url, user_header):
     mw_port = os.getenv('NETHVOICE_MIDDLEWARE_PORT', '20038')
     http2https = os.getenv('TRAEFIK_HTTP2HTTPS', 'true') == 'true'
 
-    # SP handler endpoints (Login initiator + ACS) on the CTI host — no strip,
-    # mod_shib needs the full /Shibboleth.sso/* path.
+    # Front-door handler endpoints on the CTI host — no strip, the SP/oauth2-proxy
+    # need the full path (/Shibboleth.sso/* or /oauth2/*).
     agent.set_route({
         'instance': os.environ['MODULE_ID'] + '-sso-sp-handler',
-        'url': 'http://127.0.0.1:' + sp_port,
+        'url': 'http://127.0.0.1:' + handler_port,
         'http2https': http2https,
         'host': CTI_HOST,
-        'path': '/Shibboleth.sso',
+        'path': handler_path,
         'strip_prefix': False,
     }, error_passthrough=False)
 
-    # Mint route guarded by forwardAuth: Traefik replaces Remote-User with the
-    # SP-verified value, so a client cannot forge the identity.
+    # Mint route guarded by forwardAuth: Traefik replaces the identity header with
+    # the front-door-verified value, so a client cannot forge it.
     agent.set_route({
         'instance': os.environ['MODULE_ID'] + '-sso-mint',
         'url': 'http://127.0.0.1:' + mw_port,
@@ -97,8 +113,8 @@ def set_routes():
         'strip_prefix': False,
         'priority': 5000,
         'forward_auth': {
-            'address': 'http://127.0.0.1:' + sp_port + '/sso-auth',
-            'auth_response_headers': ['Remote-User'],
+            'address': check_url,
+            'auth_response_headers': [user_header],
         },
         # injected AFTER forwardAuth: proves to the middleware the request came
         # through the proxy, closing the direct-to-loopback mint bypass
@@ -106,6 +122,14 @@ def set_routes():
             'request': {'X-SSO-Proxy-Secret': os.getenv('NETHCTI_SSO_PROXY_SECRET', '')},
         },
     }, error_passthrough=False)
+
+
+def expose_to_cti(method, initiator, button_label, idp_name='', idp_logo=''):
+    agent.set_env('NETHCTI_UI_AUTH_METHOD', method)
+    agent.set_env('NETHCTI_UI_SSO_LOGIN_URL', initiator)
+    agent.set_env('NETHCTI_UI_SSO_BUTTON_LABEL', button_label)
+    agent.set_env('NETHCTI_UI_SSO_IDP_NAME', idp_name)
+    agent.set_env('NETHCTI_UI_SSO_IDP_LOGO', idp_logo)
 
 
 def read_idp_branding():
@@ -124,52 +148,74 @@ def read_idp_branding():
     return branding['display_name'], branding['logo_url']
 
 
+def start_unit(unit, state_subdir):
+    os.makedirs(os.path.expanduser('~/.config/state/' + state_subdir), exist_ok=True)
+    subprocess.run(['systemctl', '--user', 'daemon-reload'], check=True)
+    subprocess.run(['systemctl', '--user', 'enable', '--now', unit], check=True)
+    subprocess.run(['systemctl', '--user', 'restart', unit], check=False)
+
+
 def apply_saml2():
     if not os.getenv('SAML2_IDP_METADATA_URL') or not CTI_HOST:
         print("authentication: saml2 selected but idp_metadata_url/cti host missing", file=sys.stderr)
         sys.exit(3)
-
     print("authentication: method=saml2, starting the SAML2 SP", file=sys.stderr)
+    subprocess.run(['systemctl', '--user', 'disable', '--now', 'oauth2-proxy.service'], check=False)
 
-    # restart the secret readers only on (re)generation, so re-running the
-    # step does not needlessly bounce the CTI server
     if ensure_sso_secrets():
-        print("authentication: generated per-install trusted-mint secrets", file=sys.stderr)
         restart_trusted_mint()
+    set_env('NETHCTI_SSO_USER_HEADER', 'Remote-User')
+    restart_trusted_mint()
 
-    # the SP image is not shipped with the module images (saves space for
-    # installations without SSO): derive its version-locked reference from the
-    # module tag; the unit pulls it on demand at first start (--pull=missing)
-    repo, _, tag = os.environ['IMAGE_URL'].rpartition(':')
-    sp_image = repo.rsplit('/', 1)[0] + '/nethvoice-saml2-proxy:' + (tag if repo else 'latest')
-    set_env('NETHVOICE_SAML2_PROXY_IMAGE', sp_image)
+    # the SP image is not shipped with the module images (saves space for installs
+    # without SSO): derive its tag; the unit pulls it on demand (--pull=missing)
+    set_env('NETHVOICE_SAML2_PROXY_IMAGE', derive_image('nethvoice-saml2-proxy'))
+    start_unit('saml2-proxy.service', 'saml2-proxy')
 
-    # (re)start the SP: it renders its own configuration from the SAML2_* envs
-    os.makedirs(os.path.expanduser('~/.config/state/saml2-proxy'), exist_ok=True)
-    subprocess.run(['systemctl', '--user', 'daemon-reload'], check=True)
-    subprocess.run(['systemctl', '--user', 'enable', '--now', 'saml2-proxy.service'], check=True)
-    subprocess.run(['systemctl', '--user', 'restart', 'saml2-proxy.service'], check=False)
+    sp_port = os.getenv('SAML2_PROXY_PORT', '20090')
+    set_routes('/Shibboleth.sso', sp_port,
+               'http://127.0.0.1:' + sp_port + '/sso-auth', 'Remote-User')
 
-    set_routes()
-
-    # expose SSO to the CTI UI: the login button sends the browser to the SP
-    # SAML initiator; ?ssologin=1 on return triggers the /api/sso-login mint
-    initiator = (
-        'https://' + CTI_HOST + '/Shibboleth.sso/Login?target='
-        + 'https%3A%2F%2F' + CTI_HOST + '%2F%3Fssologin%3D1'
-    )
-    agent.set_env('NETHCTI_UI_AUTH_METHOD', 'saml2')
-    agent.set_env('NETHCTI_UI_SSO_LOGIN_URL', initiator)
-    agent.set_env('NETHCTI_UI_SSO_BUTTON_LABEL', os.getenv('SAML2_LOGIN_BUTTON_LABEL', ''))
+    initiator = ('https://' + CTI_HOST + '/Shibboleth.sso/Login?target='
+                 + 'https%3A%2F%2F' + CTI_HOST + '%2F%3Fssologin%3D1')
     idp_name, idp_logo = read_idp_branding()
-    agent.set_env('NETHCTI_UI_SSO_IDP_NAME', idp_name)
-    agent.set_env('NETHCTI_UI_SSO_IDP_LOGO', idp_logo)
+    expose_to_cti('saml2', initiator, os.getenv('SAML2_LOGIN_BUTTON_LABEL', ''), idp_name, idp_logo)
+
+
+def apply_oidc():
+    if not os.getenv('OIDC_ISSUER_URL') or not os.getenv('OIDC_CLIENT_ID') or not CTI_HOST:
+        print("authentication: oidc selected but issuer_url/client_id/cti host missing", file=sys.stderr)
+        sys.exit(3)
+    print("authentication: method=oidc, starting oauth2-proxy", file=sys.stderr)
+    subprocess.run(['systemctl', '--user', 'disable', '--now', 'saml2-proxy.service'], check=False)
+
+    if ensure_sso_secrets():
+        restart_trusted_mint()
+    # oauth2-proxy exposes the identity in this header (from the preferred_username claim)
+    set_env('NETHCTI_SSO_USER_HEADER', 'X-Auth-Request-Preferred-Username')
+    restart_trusted_mint()
+
+    # the unit reads OAUTH2_PROXY_PORT from the environment (no entrypoint to
+    # default it), so persist it before starting
+    op_port = os.getenv('OAUTH2_PROXY_PORT') or '20091'
+    set_env('OAUTH2_PROXY_PORT', op_port)
+    set_env('NETHVOICE_OAUTH2_PROXY_IMAGE', derive_image('nethvoice-oauth2-proxy'))
+    start_unit('oauth2-proxy.service', 'oauth2-proxy')
+
+    set_routes('/oauth2', op_port,
+               'http://127.0.0.1:' + op_port + '/oauth2/auth',
+               'X-Auth-Request-Preferred-Username')
+
+    initiator = ('https://' + CTI_HOST + '/oauth2/start?rd='
+                 + 'https%3A%2F%2F' + CTI_HOST + '%2F%3Fssologin%3D1')
+    expose_to_cti('oidc', initiator, os.getenv('OIDC_LOGIN_BUTTON_LABEL', ''),
+                  os.getenv('OIDC_IDP_NAME', ''), '')
 
 
 def teardown():
-    print("authentication: method=password, tearing down the SAML2 SP", file=sys.stderr)
-    subprocess.run(['systemctl', '--user', 'disable', '--now', 'saml2-proxy.service'],
-                   check=False)
+    print("authentication: method=password, tearing down SSO front-doors", file=sys.stderr)
+    for unit in SSO_UNITS:
+        subprocess.run(['systemctl', '--user', 'disable', '--now', unit], check=False)
     for inst in SP_ROUTES:
         try:
             agent.tasks.run(
@@ -181,16 +227,13 @@ def teardown():
         except Exception as ex:
             print(f"delete-route {inst}: {ex}", file=sys.stderr)
     # tell the CTI UI to use the local password form again
-    agent.set_env('NETHCTI_UI_AUTH_METHOD', 'password')
-    agent.set_env('NETHCTI_UI_SSO_LOGIN_URL', '')
-    agent.set_env('NETHCTI_UI_SSO_BUTTON_LABEL', '')
-    agent.set_env('NETHCTI_UI_SSO_IDP_NAME', '')
-    agent.set_env('NETHCTI_UI_SSO_IDP_LOGO', '')
-    # reclaim the space of the on-demand SP image
-    sp_image = os.getenv('NETHVOICE_SAML2_PROXY_IMAGE', '')
-    if sp_image:
-        subprocess.run(['podman', 'rmi', '--ignore', sp_image], check=False)
-        agent.set_env('NETHVOICE_SAML2_PROXY_IMAGE', '')
+    expose_to_cti('password', '', '')
+    # reclaim the space of the on-demand front-door images
+    for var in SSO_IMAGE_ENVS:
+        image = os.getenv(var, '')
+        if image:
+            subprocess.run(['podman', 'rmi', '--ignore', image], check=False)
+            agent.set_env(var, '')
     # close the passwordless mint path completely
     had_secret = bool(os.getenv('NETHCTI_SSO_TRUSTED_SECRET'))
     clear_sso_secrets()
@@ -200,5 +243,7 @@ def teardown():
 
 if METHOD == 'saml2':
     apply_saml2()
+elif METHOD == 'oidc':
+    apply_oidc()
 else:
     teardown()
