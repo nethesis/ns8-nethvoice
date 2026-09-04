@@ -42,7 +42,8 @@ def run(command, input_text=None, timeout=60, check=True):
         timeout=timeout,
     )
     if check and result.returncode != 0:
-        detail = (result.stderr.strip() or result.stdout.strip())[-2000:]
+        output = [stream.strip() for stream in (result.stdout, result.stderr) if stream.strip()]
+        detail = "\n".join(output)[-4000:]
         raise RuntimeError(
             "command failed (rc={}): {}{}".format(
                 result.returncode,
@@ -451,8 +452,9 @@ def check_assignment_error(rooms_list, reservations, group_a, trigger_name):
         check=False,
     )
     expected_error = "Error assigning room {} to guest group {}".format(room, group_a)
+    failed_output = "\n".join((failed_gi.stdout, failed_gi.stderr))
     require(failed_gi.returncode != 0, "setGroup failure did not make GI fail")
-    require(expected_error in failed_gi.stderr, "GI did not log its structured assignment error")
+    require(expected_error in failed_output, "GI did not log its structured assignment error")
     require(group_assignments(room) == [], "failed group assignment left a partial mapping")
     return {
         "ok": True,
