@@ -93,7 +93,9 @@ if (!empty($arguments['GS'])) {
 
 $guest_group_configured = array_key_exists('GG', $arguments);
 if ($guest_group_configured) {
-    $guest_group_number = trim($arguments['GG']);
+    # NethHotel stores group names in a varchar(100). Normalize once so group
+    # lookup and creation always use the same bounded value.
+    $guest_group_number = substr(trim($arguments['GG']), 0, 100);
 } else {
     $guest_group_number = '';
 }
@@ -168,30 +170,22 @@ try {
         # Use the FIAS group number as the NethHotel group name so all rooms with
         # the same GG value are assigned to the same group.
         $group_note = "Created from FIAS guest group $guest_group_number";
-        $query = "SELECT id FROM roomsdb.room_groups WHERE name = ? AND note = ? ORDER BY id LIMIT 1";
+        $options = getOptions();
+        $query = "INSERT INTO roomsdb.room_groups (`name`,`note`,`fias_guest_group_number`,`groupcalls`,`roomscalls`,`externalcalls`) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE `id` = LAST_INSERT_ID(`id`)";
         $sth = $db->prepare($query);
-        $sth->execute(array($guest_group_number, $group_note));
-        $group_id = $sth->fetchColumn();
-
-        if ($group_id === false) {
-            $options = getOptions();
-            $query = "INSERT INTO roomsdb.room_groups (`name`,`note`,`groupcalls`,`roomscalls`,`externalcalls`) VALUES (?,?,?,?,?)";
-            $sth = $db->prepare($query);
-            $sth->execute(array(
-                $guest_group_number,
-                $group_note,
-                (int)($options['groupcalls'] ?? 0),
-                (int)($options['internal_call'] ?? 0),
-                (int)($options['externalcalls'] ?? 0)
-            ));
-
-            $query = "SELECT id FROM roomsdb.room_groups WHERE name = ? AND note = ? ORDER BY id LIMIT 1";
-            $sth = $db->prepare($query);
-            $sth->execute(array($guest_group_number, $group_note));
-            $group_id = $sth->fetchColumn();
-            if ($group_id === false) {
-                throw new Exception("Error creating guest group $guest_group_number");
-            }
+        if (!$sth->execute(array(
+            $guest_group_number,
+            $group_note,
+            $guest_group_number,
+            (int)($options['groupcalls'] ?? 0),
+            (int)($options['internal_call'] ?? 0),
+            (int)($options['externalcalls'] ?? 0)
+        ))) {
+            throw new Exception("Error creating or reusing guest group $guest_group_number");
+        }
+        $group_id = (int)$db->lastInsertId();
+        if ($group_id <= 0) {
+            throw new Exception("Error resolving guest group $guest_group_number");
         }
 
         if (!setGroup($room_number, $group_id)) {

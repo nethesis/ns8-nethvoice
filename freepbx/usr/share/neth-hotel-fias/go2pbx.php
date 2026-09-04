@@ -77,7 +77,7 @@ try {
     if ($final_checkout) {
         # Remove only groups created and managed through FIAS GG. Groups managed
         # directly by NethHotel keep their existing room assignments.
-        $query = "SELECT COUNT(*) FROM roomsdb.groups_rooms AS gr INNER JOIN roomsdb.room_groups AS rg ON rg.id = gr.group_id WHERE gr.extension = ? AND rg.note LIKE 'Created from FIAS guest group %'";
+        $query = "SELECT COUNT(*) FROM roomsdb.groups_rooms AS gr INNER JOIN roomsdb.room_groups AS rg ON rg.id = gr.group_id WHERE gr.extension = ? AND (rg.fias_guest_group_number IS NOT NULL OR rg.note LIKE 'Created from FIAS guest group %')";
         $sth = $db->prepare($query);
         $sth->execute(array($room_number));
         if ((int)$sth->fetchColumn() > 0 && !setGroup($room_number, 0)) {
