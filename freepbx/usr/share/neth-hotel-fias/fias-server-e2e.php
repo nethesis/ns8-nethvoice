@@ -892,8 +892,28 @@ try {
     outbound($results, $baseDir, $environment, $serverPdo, 'wr2pms.php', 'WR', 'wake-up request', array($date, '073000', $moveRoom), 'WR frame received by PMS simulator');
     outbound($results, $baseDir, $environment, $serverPdo, 'wc2pms.php', 'WC', 'wake-up clear', array($date, '073000', $moveRoom), 'WC frame received by PMS simulator');
     outbound($results, $baseDir, $environment, $serverPdo, 'wa2pms.php', 'WA', 'answer status OK', array($date, '073000', $moveRoom, 'OK'), 'WA/AS=OK frame received by PMS simulator');
+    $secondaryRoom = '99'.$moveRoom;
     foreach (array('1', '3', '4') as $roomStatus) {
-        outbound($results, $baseDir, $environment, $serverPdo, 're2pms.php', 'RE', 'RS='.$roomStatus, array($moveRoom, $roomStatus), 'RE room-status frame received by PMS simulator');
+        $roomStatusMessage = outbound(
+            $results,
+            $baseDir,
+            $environment,
+            $serverPdo,
+            're2pms.php',
+            'RE',
+            'RS='.$roomStatus,
+            array($secondaryRoom, $roomStatus),
+            'secondary extension mapped to the main room in the RE frame received by the PMS simulator'
+        );
+        $mappedToMainRoom = isset($roomStatusMessage['parameters']['RN'])
+            && $roomStatusMessage['parameters']['RN'] === (string)$moveRoom;
+        if (!$mappedToMainRoom) {
+            $results[count($results) - 1]['functional_status'] = 'FAIL';
+        }
+        requireCondition(
+            $mappedToMainRoom,
+            "RE2PMS RS={$roomStatus} did not map secondary extension {$secondaryRoom} to room {$moveRoom}"
+        );
     }
     outbound($results, $baseDir, $environment, $serverPdo, 'ps2pms.php', 'PS', 'direct producer',
         array($date, '3281231231', '000015', '', '', '', 'C', $moveRoom, '25', '113000', '9001', '', 'E2E'),
