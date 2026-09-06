@@ -40,6 +40,15 @@ while (TRUE) {
     // Launch a command foreach message
     foreach ($messages as $id => $message){
         $section = $message['section'];
+        // LR records advertise protocol capabilities during link negotiation.
+        // They do not map to a PBX-side hotel command, so acknowledge them
+        // silently instead of reporting a missing LR2PBX configuration section.
+        if ($section === 'LR2PBX') {
+            $query = "UPDATE messages SET elaborationtime = CURRENT_TIMESTAMP WHERE id = ?";
+            $sth = $fiasdb->prepare($query);
+            $sth->execute(array($id));
+            continue;
+        }
         if (!isset($ini_file[$section])) {
             logMessage("Command section $section not defined in configuration file /etc/asterisk/fias.conf", ERROR, "dispatcher");
             continue;

@@ -955,6 +955,10 @@ try {
         $processStatus = proc_get_status($processes[2]['process']);
         return !$processStatus['running'];
     });
+    waitUntil('LR negotiation records acknowledged', function () use ($fiasPdo) {
+        return (int)$fiasPdo->query("SELECT COUNT(*) FROM messages WHERE cmd = 'LR' AND dir = 'PBX' AND elaborationtime IS NULL")->fetchColumn() === 0;
+    });
+    requireCondition(!logHas($paths['dispatcher'], 'LR2PBX'), 'Dispatcher logged an LR2PBX negotiation record');
     echo "[PASS] PBX -> PMS LE clean shutdown\n";
     $status = 'PASS';
 } catch (Throwable $throwable) {
