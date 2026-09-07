@@ -50,6 +50,10 @@
         "type": "object"
       }
     },
+    "sso_auth": {
+      "description": "Whether SSO methods (saml2/oidc) are enabled in this module",
+      "type": "boolean"
+    },
     "proxy_status": {
       "description": "Status of the NethVoice proxy",
       "type": "object",

@@ -33,17 +33,23 @@ if (proxy_id is not None):
     proxy_status["module_id"] = proxy_id
 
 # Authentication methods available in this module: the UI renders one option
-# per entry; a new method is just a new entry.
+# per entry; a new method is just a new entry. SSO methods are hidden unless the
+# opt-in SSO_AUTH env var is set.
+sso_auth = os.getenv('SSO_AUTH', 'false').lower() == 'true'
 available_authentication_methods = [
     {"id": "password", "requires_provider": False},
-    {"id": "saml2", "requires_provider": True},
-    {"id": "oidc", "requires_provider": True},
 ]
+if sso_auth:
+    available_authentication_methods += [
+        {"id": "saml2", "requires_provider": True},
+        {"id": "oidc", "requires_provider": True},
+    ]
 
 config={
         "accepted_timezone_list": accepted_timezone_list,
         "local_timezone": local_timezone,
         "proxy_status": proxy_status,
+        "sso_auth": sso_auth,
         "available_authentication_methods": available_authentication_methods,
         }
 
