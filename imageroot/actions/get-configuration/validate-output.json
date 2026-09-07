@@ -34,6 +34,10 @@
             "description": "How users authenticate: 'password' (direct), 'saml2' or 'oidc' (SSO)",
             "type": "string"
         },
+        "sso_auth": {
+            "description": "Whether SSO methods (saml2/oidc) are enabled in this module",
+            "type": "boolean"
+        },
         "saml2": {
             "description": "SAML2 SSO settings",
             "type": "object"

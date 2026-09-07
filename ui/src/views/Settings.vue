@@ -162,6 +162,9 @@
                   "
                   :showCloseButton="false"
                 />
+                <!-- SSO management (saml2/oidc) is shown only when it is enabled
+                     for this module via the SSO_AUTH env var -->
+                <template v-if="sso_auth">
                 <!-- authentication method: how users prove identity (orthogonal to
                      the account provider above, which is the source of user records) -->
                 <NsComboBox
@@ -360,6 +363,7 @@
                     </div>
                   </div>
                 </template>
+                </template>
                 <NsComboBox
                   v-model.trim="timezone"
                   :autoFilter="true"
@@ -536,6 +540,8 @@ export default {
         idp_name: "",
         login_button_label: "",
       },
+      // SSO (saml2/oidc) management is hidden unless enabled via the SSO_AUTH env
+      sso_auth: false,
       authMethodList: [],
       reports_international_prefix: "+39",
       timezone: "",
@@ -788,6 +794,7 @@ export default {
       this.user_domain = config.user_domain;
       this.currentUserDomain = config.user_domain;
 
+      this.sso_auth = !!config.sso_auth;
       this.authentication_method = config.authentication_method || "password";
       if (config.saml2) {
         this.saml2 = {
@@ -849,7 +856,7 @@ export default {
       }
 
       // SAML2 SSO requires the IdP metadata and the identity attribute
-      if (this.authentication_method === "saml2") {
+      if (this.sso_auth && this.authentication_method === "saml2") {
         if (!this.saml2.idp_metadata_url) {
           this.error.saml2_idp_metadata_url = this.$t("error.required");
           isValidationOk = false;
@@ -860,7 +867,7 @@ export default {
         }
       }
 
-      if (this.authentication_method === "oidc") {
+      if (this.sso_auth && this.authentication_method === "oidc") {
         if (!this.oidc.issuer_url) {
           this.error.oidc_issuer_url = this.$t("error.required");
           isValidationOk = false;
@@ -932,26 +939,32 @@ export default {
         this.configureModuleCompleted
       );
 
+      const data = {
+        nethvoice_host: this.nethvoice_host,
+        nethcti_ui_host: this.nethcti_ui_host,
+        lets_encrypt: this.lets_encrypt,
+        user_domain: this.user_domain,
+        reports_international_prefix: this.reports_international_prefix,
+        timezone: this.timezone,
+      };
+      // SSO settings are sent only when the feature is enabled: with SSO off the
+      // saml2/oidc payload is omitted entirely, not sent empty
+      if (this.sso_auth) {
+        data.authentication_method = this.authentication_method;
+        data.saml2 = this.saml2;
+        data.oidc = {
+          issuer_url: this.oidc.issuer_url,
+          client_id: this.oidc.client_id,
+          client_secret: this.oidc.client_secret,
+          idp_name: this.oidc.idp_name,
+          login_button_label: this.oidc.login_button_label,
+        };
+      }
+
       const res = await to(
         this.createModuleTaskForApp(this.instanceName, {
           action: taskAction,
-          data: {
-            nethvoice_host: this.nethvoice_host,
-            nethcti_ui_host: this.nethcti_ui_host,
-            lets_encrypt: this.lets_encrypt,
-            user_domain: this.user_domain,
-            reports_international_prefix: this.reports_international_prefix,
-            timezone: this.timezone,
-            authentication_method: this.authentication_method,
-            saml2: this.saml2,
-            oidc: {
-              issuer_url: this.oidc.issuer_url,
-              client_id: this.oidc.client_id,
-              client_secret: this.oidc.client_secret,
-              idp_name: this.oidc.idp_name,
-              login_button_label: this.oidc.login_button_label,
-            },
-          },
+          data,
           extra: {
             title: this.$t("settings.configure_instance", {
               instance: this.instanceName,

@@ -242,7 +242,13 @@ def teardown():
         restart_trusted_mint()
 
 
-if METHOD == 'saml2':
+# SSO is opt-in: with SSO_AUTH off, always fall back to the local password form
+# and tear down any leftover SSO wiring, regardless of the persisted method.
+SSO_AUTH = os.getenv('SSO_AUTH', 'false').lower() == 'true'
+
+if not SSO_AUTH:
+    teardown()
+elif METHOD == 'saml2':
     apply_saml2()
 elif METHOD == 'oidc':
     apply_oidc()

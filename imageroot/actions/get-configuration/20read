@@ -23,6 +23,8 @@ config = {
     # Authentication method: how users prove identity (independent from user_domain,
     # which stays the source of user records). Defaults to direct password.
     'authentication_method': os.getenv('AUTHENTICATION_METHOD', 'password'),
+    # SSO is opt-in: the UI shows the saml2/oidc settings only when this is true
+    'sso_auth': os.getenv('SSO_AUTH', 'false').lower() == 'true',
     'saml2': {
         'idp_metadata_url': os.getenv('SAML2_IDP_METADATA_URL', ''),
         'identity_attribute': os.getenv('SAML2_IDENTITY_ATTRIBUTE', 'uid'),
