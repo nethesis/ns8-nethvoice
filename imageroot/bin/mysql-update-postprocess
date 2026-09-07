@@ -52,6 +52,7 @@ if [ -n "${VM_CALLERID_LENGTH}" ] && [ "${VM_CALLERID_LENGTH}" -lt 255 ]; then
     /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" -e "ALTER TABLE \`asteriskcdrdb\`.\`voicemessages\` MODIFY \`callerid\` varchar(255) DEFAULT ''"
 fi
 # VoIP Providers
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/10_asterisk.rest_pjsip_trunks_custom_flags.sql
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'TRUNCATE TABLE `providers`'
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'TRUNCATE TABLE `rest_pjsip_providers`'
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'TRUNCATE TABLE `rest_pjsip_trunks_custom_flags`'

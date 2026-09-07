@@ -62,14 +62,6 @@
         "timezone": {
             "description": "Asterisk Timezone for timeconditions",
             "type": "string"
-        },
-        "nethvoice_adm_username": {
-            "description": "NethVoice username for account provider",
-            "type": "string"
-        },
-        "nethvoice_adm_password": {
-            "description": "NethVoice password for account provider",
-            "type": "string"
         }
     }
 }

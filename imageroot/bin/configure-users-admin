@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import argparse
+import os
+
+import agent
+import agent.tasks
+
+
+URL_VARIABLE = "NETHVOICE_USER_PORTAL_URL"
+NODE_VARIABLE = "NETHVOICE_USER_PORTAL_NODE"
+
+
+def read_current_provider():
+    environment = agent.read_envfile(
+        os.path.join(os.environ["AGENT_STATE_DIR"], "environment")
+    )
+    return (
+        environment.get(URL_VARIABLE, ""),
+        environment.get(NODE_VARIABLE, ""),
+    )
+
+
+def select_provider(domain):
+    if not domain:
+        return "", ""
+
+    providers = agent.list_service_providers(
+        agent.redis_connect(use_replica=True),
+        "users-admin",
+        "http",
+        {"domain": domain},
+    )
+    if not providers:
+        return "", ""
+
+    provider = providers[0]
+    return provider["url"], str(provider["node"])
+
+
+def delete_route():
+    return agent.tasks.run(
+        agent_id=agent.resolve_agent_id("traefik@node"),
+        action="delete-route",
+        data={"instance": os.environ["MODULE_ID"] + "-users-admin"},
+        extra={"isNotificationHidden": True},
+    )
+
+
+def configure_route(domain, provider_url):
+    if not provider_url:
+        result = delete_route()
+    else:
+        result = agent.set_route(
+            {
+                "instance": os.environ["MODULE_ID"] + "-users-admin",
+                "url": provider_url,
+                "http2https": True,
+                "host": os.environ["NETHVOICE_HOST"],
+                "path": "/users-admin/" + domain,
+                "strip_prefix": True,
+            },
+            error_passthrough=False,
+        )
+
+    agent.assert_exp(result["exit_code"] == 0)
+
+
+def configure_users_admin(domain, restart_if_changed=False):
+    previous_provider = read_current_provider()
+    selected_provider = select_provider(domain)
+
+    configure_route(domain, selected_provider[0])
+    agent.mset_env(
+        {
+            URL_VARIABLE: selected_provider[0],
+            NODE_VARIABLE: selected_provider[1],
+        }
+    )
+
+    changed = previous_provider != selected_provider
+    if changed and restart_if_changed:
+        result = agent.run_helper("restart-services-when-convenient", "freepbx")
+        agent.assert_exp(result.returncode == 0)
+
+    return changed
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("domain")
+    parser.add_argument("--restart-if-changed", action="store_true")
+    args = parser.parse_args()
+
+    configure_users_admin(args.domain, args.restart_if_changed)
+
+
+if __name__ == "__main__":
+    main()

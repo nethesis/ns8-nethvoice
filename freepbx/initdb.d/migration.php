@@ -280,7 +280,7 @@ $sql = "CREATE TABLE IF NOT EXISTS `kvstore_FreePBX_modules_Nethcti3` (
 $stmt = $db->prepare($sql);
 $stmt->execute();
 # check if table exists
-$sql = "SELECT * FROM information_schema.tables WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'pjsip_trunks_custom_flags'";
+$sql = "SELECT * FROM information_schema.tables WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'rest_pjsip_trunks_custom_flags'";
 $stmt = $db->prepare($sql);
 $stmt->execute();
 $res = $stmt->fetchAll(\PDO::FETCH_ASSOC);

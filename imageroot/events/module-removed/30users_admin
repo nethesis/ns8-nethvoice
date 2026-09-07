@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import os
+
+import agent
+
+
+def main():
+    if os.environ.get("AGENT_EVENT_SOURCE") != "cluster":
+        print(agent.SD_DEBUG + "Event ignored: invalid source")
+        return
+
+    domain = os.environ.get("USER_DOMAIN", "")
+    if not os.environ.get("NETHVOICE_HOST") or not domain:
+        print(agent.SD_DEBUG + "Event ignored: NethVoice is not configured")
+        return
+
+    result = agent.run_helper(
+        "configure-users-admin",
+        domain,
+        "--restart-if-changed",
+    )
+    agent.assert_exp(result.returncode == 0)
+
+
+if __name__ == "__main__":
+    main()
