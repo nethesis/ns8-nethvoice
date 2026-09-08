@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Repoint the SIP proxy-bypass port-forward to the new SIP UDP port.
+#
+# Some installations bypass the SIP proxy with a documented firewalld
+# forward-port rule that forwards :5060/udp to the instance SIP port. In the
+# old model the SIP UDP listener lived on ASTERISK_SIP_PORT (same number as the
+# SIP TCP port), so the forward pointed there. This PR moves the SIP UDP
+# listener to a dedicated ASTERISK_SIP_UDP_PORT: an existing forward would then
+# deliver to a port where Asterisk no longer listens on UDP, breaking the trunk.
+#
+# We look for any forward-port rule whose UDP destination (to-port) is the old
+# SIP port and repoint it to the new one, preserving every other field (family,
+# source, incoming port). to-port equals ASTERISK_SIP_PORT, which is unique to
+# this instance on the node, so we never touch another instance's rule.
+#
+# Best-effort: firewall problems must never abort the update. On a core without
+# agent.list_rich_rules() (pre NethServer/ns8-core#1299) the call raises and we
+# log a hint instead of rewriting; the admin can fix the forward by hand.
+
+import os
+import sys
+
+import agent
+
+old_port = os.environ.get("ASTERISK_SIP_PORT")
+new_port = os.environ.get("ASTERISK_SIP_UDP_PORT")
+
+# Nothing to do when the SIP UDP port did not move (already migrated, or the
+# env is not available for some reason).
+if not old_port or not new_port or old_port == new_port:
+    sys.exit(0)
+
+try:
+    # raise_on_error=True: an empty list must mean "no rules", not "lookup
+    # failed" — otherwise we could silently skip a stale forward.
+    rich_rules = agent.list_rich_rules(raise_on_error=True)
+except Exception as ex:
+    print(
+        agent.SD_WARNING
+        + f"Could not read the node firewall rich rules ({ex}). If this "
+        f"instance bypasses the SIP proxy, repoint the forward-port "
+        f"destination to {new_port}/udp manually.",
+        file=sys.stderr,
+    )
+    sys.exit(0)
+
+old_token = f'to-port="{old_port}"'
+new_token = f'to-port="{new_port}"'
+
+for rule in rich_rules:
+    if "forward-port" not in rule or 'protocol="udp"' not in rule or old_token not in rule:
+        continue
+
+    new_rule = rule.replace(old_token, new_token)
+    print(
+        agent.SD_INFO
+        + f"Repointing SIP proxy-bypass forward-port {old_port} -> {new_port}/udp",
+        file=sys.stderr,
+    )
+    if not agent.remove_rich_rules([rule]):
+        print(
+            agent.SD_WARNING + f"Failed to remove old forward-port rule: {rule}",
+            file=sys.stderr,
+        )
+        continue
+    if not agent.add_rich_rules([new_rule]):
+        print(
+            agent.SD_WARNING + f"Failed to add new forward-port rule: {new_rule}",
+            file=sys.stderr,
+        )
