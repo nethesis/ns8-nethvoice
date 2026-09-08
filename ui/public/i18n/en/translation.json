@@ -22,7 +22,9 @@
     "set-rebranding": "Configure rebranding",
     "set-nethvoice-admin-password": "Change NethVoice admin password",
     "get-ports-list": "Get ports list",
-    "restart-module": "Restart application"
+    "restart-module": "Restart application",
+    "get-ports-migration": "Get ports migration",
+    "dismiss-ports-migration": "Dismiss ports migration notice"
   },
   "common": {
     "processing": "Processing…",
@@ -123,7 +125,17 @@
     "protocol": "Protocol",
     "port": "Port",
     "search_service_details": "Search service details",
-    "restart_module_warning": "Restarting the application {name} will interrupt its operation and may cause downtime. Proceed only if maintenance is needed and users are aware."
+    "restart_module_warning": "Restarting the application {name} will interrupt its operation and may cause downtime. Proceed only if maintenance is needed and users are aware.",
+    "service": "Service",
+    "old_port": "Old port",
+    "new_port": "New port",
+    "ports_changed_title": "Service ports changed after the update",
+    "ports_changed_description": "These ports were reassigned once during this update and will remain stable going forward. The SIP proxy-bypass port-forward was updated automatically, but any external firewall, NAT or trunk rule pointing to the old ports must be updated manually.",
+    "view_changed_ports": "View changed ports",
+    "i_read_dismiss": "I read, dismiss",
+    "ports_changed_modal_title": "Changed service ports",
+    "ports_changed_modal_description": "Old and new ports for this instance after the update.",
+    "close": "Close"
   },
   "welcome": {
     "configure_nethvoice": "Configure NethVoice",

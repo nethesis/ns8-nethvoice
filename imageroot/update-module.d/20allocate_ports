@@ -8,6 +8,7 @@
 # Allocate new port for sftp service
 import sys
 import os
+import json
 import agent
 
 if not hasattr(agent, 'allocate_ports'):
@@ -99,6 +100,13 @@ if not 'SATELLITE_HTTP_PORT' in env:
 asterisk_rtp_start = int(env.get('ASTERISK_RTPSTART', 0))
 asterisk_rtp_end = int(env.get('ASTERISK_RTPEND', 0))
 
+# Collect the client-facing ports that change during this update, so the Status
+# page can show the old -> new mapping and the admin can fix any external
+# firewall/NAT/trunk rule that still references the old ports (rules outside NS8
+# cannot be migrated automatically). Filled by both the full-migration branch
+# and the partial (per-port) branch below.
+migration = []
+
 # Allocate RTP/UDP ports via ns8-core if:
 # - UDP_PORTS_RANGE is absent (old instances that used the fake Redis-based allocation), OR
 # - any of the five RTP env vars is missing
@@ -150,6 +158,28 @@ if 'UDP_PORTS_RANGE' not in env or any(env_name not in env for env_name in (
 	])
 	# MariaDB will be updated with the new RTP/IAX/SIP UDP ports at step 85mysql_update.
 
+	# Record the old -> new mapping of the reassigned client-facing ports.
+	old_asterisk_rtp = None
+	if env.get('ASTERISK_RTPSTART') and env.get('ASTERISK_RTPEND'):
+		old_asterisk_rtp = f"{env['ASTERISK_RTPSTART']}-{env['ASTERISK_RTPEND']}"
+	old_janus_rtp = None
+	if env.get('JANUS_RTPSTART') and env.get('JANUS_RTPEND'):
+		old_janus_rtp = f"{env['JANUS_RTPSTART']}-{env['JANUS_RTPEND']}"
+	for service, protocol, old_value, new_value in (
+		("Asterisk SIP UDP", "udp", env.get('ASTERISK_SIP_PORT'), sip_udp_port),
+		("Asterisk RTP", "udp", old_asterisk_rtp, f"{asterisk_rtp_start}-{asterisk_rtp_end}"),
+		("Janus RTP", "udp", old_janus_rtp, f"{janus_rtp_start}-{janus_rtp_end}"),
+		("Satellite RTP", "udp", env.get('SATELLITE_RTP_PORT') or env.get('SATELLITE_HTTP_PORT'), satellite_rtp_port),
+		("Asterisk IAX", "udp", env.get('ASTERISK_IAX_PORT'), iax_udp_port),
+	):
+		if old_value and str(old_value) != str(new_value):
+			migration.append({
+				"service": service,
+				"protocol": protocol,
+				"old": str(old_value),
+				"new": str(new_value),
+			})
+
 else:
 	# For instances that already have UDP_PORTS_RANGE and all RTP vars set
 	# (block above did not run): migrate each port independently so that a
@@ -167,6 +197,21 @@ else:
 		print(f"New UDP port allocated for Asterisk SIP UDP: {sip_udp_port}", file=sys.stderr)
 		agent.set_env('ASTERISK_SIP_UDP_PORT', sip_udp_port)
 		agent.add_public_service(os.environ['MODULE_ID'], [str(sip_udp_port)+"/udp"])
+		# SIP UDP moved off the old shared SIP port: record it for the notice.
+		if env.get('ASTERISK_SIP_PORT'):
+			migration.append({
+				"service": "Asterisk SIP UDP",
+				"protocol": "udp",
+				"old": str(env['ASTERISK_SIP_PORT']),
+				"new": str(sip_udp_port),
+			})
+
+# Persist the port-migration notice for the Status page. Only written when at
+# least one client-facing port actually changed during this update, so it shows
+# once (on the migrating update) and never on fresh installs or no-op updates.
+if migration:
+	agent.set_env('PORTS_MIGRATION_REPORT', json.dumps(migration))
+	agent.set_env('PORTS_MIGRATION_SEEN', '0')
 
 # add port for Asterisk WSS
 if not 'ASTERISK_WSS_PORT' in env:

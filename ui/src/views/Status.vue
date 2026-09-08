@@ -14,6 +14,19 @@
         <ResumeConfigNotification />
       </cv-column>
     </cv-row>
+    <cv-row v-if="portsMigration.length && !portsMigrationSeen">
+      <cv-column class="ports-migration-notification">
+        <NsInlineNotification
+          kind="warning"
+          :title="$t('status.ports_changed_title')"
+          :description="$t('status.ports_changed_description')"
+          :actionLabel="$t('status.view_changed_ports')"
+          :showCloseButton="true"
+          @action="isPortsMigrationModalShown = true"
+          @close="dismissPortsMigration"
+        />
+      </cv-column>
+    </cv-row>
     <cv-row v-if="error.getStatus">
       <cv-column>
         <NsInlineNotification
@@ -514,6 +527,44 @@
       :node="status.node"
       @hide="isShownRestartModuleModal = false"
     />
+    <NsModal
+      size="default"
+      :visible="isPortsMigrationModalShown"
+      @modal-hidden="isPortsMigrationModalShown = false"
+      @primary-click="isPortsMigrationModalShown = false"
+    >
+      <template slot="title">{{
+        $t("status.ports_changed_modal_title")
+      }}</template>
+      <template slot="content">
+        <p class="ports-migration-modal-intro">
+          {{ $t("status.ports_changed_modal_description") }}
+        </p>
+        <table class="ports-migration-table">
+          <thead>
+            <tr>
+              <th>{{ $t("status.service") }}</th>
+              <th>{{ $t("status.protocol") }}</th>
+              <th>{{ $t("status.old_port") }}</th>
+              <th class="arrow-col" aria-hidden="true"></th>
+              <th>{{ $t("status.new_port") }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row, i) in portsMigration" :key="`mig-${i}`">
+              <td>{{ row.service }}</td>
+              <td class="protocol-cell">{{ row.protocol }}</td>
+              <td class="old-port">{{ row.old }}</td>
+              <td class="arrow-col" aria-hidden="true">&rarr;</td>
+              <td>
+                <span class="new-port">{{ row.new }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+      <template slot="primary-button">{{ $t("status.close") }}</template>
+    </NsModal>
   </cv-grid>
 </template>
 
@@ -570,12 +621,17 @@ export default {
       volumesTableColumns: ["name", "mount", "created"],
       portsTablePage: [],
       portsTableColumns: ["name", "port", "protocol"],
+      portsMigration: [],
+      portsMigrationSeen: true,
+      isPortsMigrationModalShown: false,
       loading: {
         getStatus: false,
         listBackupRepositories: false,
         listBackups: false,
         getDefaults: false,
         getPortsList: false,
+        getPortsMigration: false,
+        dismissPortsMigration: false,
       },
       error: {
         getStatus: "",
@@ -583,6 +639,8 @@ export default {
         listBackups: "",
         getDefaults: "",
         getPortsList: "",
+        getPortsMigration: "",
+        dismissPortsMigration: "",
       },
     };
   },
@@ -660,6 +718,7 @@ export default {
     this.listBackupRepositories();
     this.getDefaults();
     this.getPortsList();
+    this.getPortsMigration();
   },
   methods: {
     ...mapActions(["setInstanceStatusInStore", "setDefaultsInStore"]),
@@ -921,6 +980,84 @@ export default {
       this.ports = taskResult.output;
       this.loading.getPortsList = false;
     },
+    async getPortsMigration() {
+      this.loading.getPortsMigration = true;
+      this.error.getPortsMigration = "";
+      const taskAction = "get-ports-migration";
+      const eventId = this.getUuid();
+
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.getPortsMigrationAborted
+      );
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.getPortsMigrationCompleted
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.getPortsMigration = this.getErrorMessage(err);
+        this.loading.getPortsMigration = false;
+        return;
+      }
+    },
+    getPortsMigrationAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.getPortsMigration = this.$t("error.generic_error");
+      this.loading.getPortsMigration = false;
+    },
+    getPortsMigrationCompleted(taskContext, taskResult) {
+      this.portsMigration = taskResult.output.migration || [];
+      this.portsMigrationSeen = taskResult.output.seen;
+      this.loading.getPortsMigration = false;
+    },
+    async dismissPortsMigration() {
+      // Optimistically hide the banner, then persist the "seen" flag
+      this.portsMigrationSeen = true;
+      this.loading.dismissPortsMigration = true;
+      this.error.dismissPortsMigration = "";
+      const taskAction = "dismiss-ports-migration";
+      const eventId = this.getUuid();
+
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.dismissPortsMigrationCompleted
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.dismissPortsMigration = this.getErrorMessage(err);
+        this.loading.dismissPortsMigration = false;
+      }
+    },
+    dismissPortsMigrationCompleted() {
+      this.loading.dismissPortsMigration = false;
+    },
     goToDomainsAndUsers() {
       this.core.$router.push("/domains");
     },
@@ -939,5 +1076,70 @@ export default {
 .break-word {
   word-wrap: break-word;
   max-width: 30vw;
+}
+
+.ports-migration-notification {
+  margin-bottom: $spacing-06;
+}
+
+// Let the standard inline notification span the full page width (the component
+// has a default max-width). Override only from this page, without touching the
+// shared NsInlineNotification component.
+.ports-migration-notification ::v-deep .bx--inline-notification {
+  max-width: 100%;
+}
+
+.ports-migration-modal-intro {
+  margin-bottom: $spacing-06;
+}
+
+.ports-migration-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ports-migration-table th,
+.ports-migration-table td {
+  text-align: left;
+  padding: $spacing-03 $spacing-06 $spacing-03 0;
+  vertical-align: middle;
+}
+
+.ports-migration-table thead th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.32px;
+  text-transform: uppercase;
+  color: $text-02;
+  border-bottom: 1px solid $ui-04;
+}
+
+.ports-migration-table tbody tr {
+  border-bottom: 1px solid $ui-03;
+}
+
+.ports-migration-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.ports-migration-table .protocol-cell {
+  text-transform: uppercase;
+  color: $text-02;
+}
+
+.ports-migration-table .old-port {
+  color: $text-02;
+  text-decoration: line-through;
+}
+
+.ports-migration-table .arrow-col {
+  width: 1.5rem;
+  color: $text-02;
+  padding-right: $spacing-04;
+}
+
+.ports-migration-table .new-port {
+  font-weight: 600;
+  color: $support-02;
 }
 </style>

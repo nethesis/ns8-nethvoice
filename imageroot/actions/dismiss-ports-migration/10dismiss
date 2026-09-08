@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Mark the port-migration notice as seen, so the Status page stops showing the
+# banner. The mapping itself is kept for reference until the next migration
+# overwrites it.
+
+import agent
+
+agent.set_env("PORTS_MIGRATION_SEEN", "1")

@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Drop the port-migration notice on a restored instance.
+#
+# PORTS_MIGRATION_REPORT / PORTS_MIGRATION_SEEN are recorded on the update that
+# reassigns the ports, to show the Status-page banner once. They are part of the
+# module environment and therefore end up in the backup. On restore we clear
+# them: by the time a backup was taken the admin had already seen (and likely
+# dismissed) the notice, and the restored instance keeps its own ports, so the
+# old mapping is not relevant there. Stripping at restore (not at backup) avoids
+# wiping the notice from the still-running source instance.
+
+import agent
+
+env = agent.read_envfile("environment")
+for key in ("PORTS_MIGRATION_REPORT", "PORTS_MIGRATION_SEEN"):
+    if key in env:
+        agent.unset_env(key)
