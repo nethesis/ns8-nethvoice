@@ -5,15 +5,30 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-# Reload FreePBX/Asterisk configuration so that the port values written to
-# MariaDB at step 85mysql_update are applied without waiting for the next
-# full service restart.
-# Skip gracefully if FreePBX is not running (reload is an optimisation, not
-# a hard requirement — the config will be correct on the next start).
+# Refresh the running FreePBX so the DB changes from step 85mysql_update are
+# applied without waiting for the next full restart.
+#
+# The allocated ports are already re-applied by freepbx_init before the PJSIP
+# transport binds on the restart at 80restart, so this reload is best-effort:
+# run `fwconsole chown` first to avoid the LESS cache error, and never fail the
+# update if the reload does not succeed (the config is correct on the next start).
 
 if ! systemctl --user is-active --quiet freepbx; then
     echo "FreePBX is not running, skipping reload" >&2
     exit 0
 fi
 
-podman exec --user asterisk freepbx fwconsole reload --no-interaction
+# Skip gracefully if the container is not reachable yet
+if ! podman exec freepbx true >/dev/null 2>&1; then
+    echo "FreePBX container not ready, skipping reload" >&2
+    exit 0
+fi
+
+# Fix cache/file ownership before reload, otherwise the reload aborts with
+# "Can not create the LESS cache folder ... run fwconsole chown".
+podman exec freepbx fwconsole chown >/dev/null 2>&1
+
+if ! podman exec --user asterisk freepbx fwconsole reload --no-interaction; then
+    echo "WARNING: fwconsole reload failed; changes will apply on the next FreePBX start" >&2
+fi
+exit 0
