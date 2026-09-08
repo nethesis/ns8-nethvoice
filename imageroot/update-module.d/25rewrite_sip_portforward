@@ -23,13 +23,17 @@
 # agent.list_rich_rules() (pre NethServer/ns8-core#1299) the call raises and we
 # log a hint instead of rewriting; the admin can fix the forward by hand.
 
-import os
 import sys
 
 import agent
 
-old_port = os.environ.get("ASTERISK_SIP_PORT")
-new_port = os.environ.get("ASTERISK_SIP_UDP_PORT")
+# Read the env file, not os.environ: ASTERISK_SIP_UDP_PORT is created by the
+# earlier 20allocate_ports step in this same run, and os.environ is frozen at
+# the start of the update — it would not contain the newly allocated value.
+env = agent.read_envfile("environment")
+
+old_port = env.get("ASTERISK_SIP_PORT")
+new_port = env.get("ASTERISK_SIP_UDP_PORT")
 
 # Nothing to do when the SIP UDP port did not move (already migrated, or the
 # env is not available for some reason).

@@ -13,6 +13,11 @@ node_id = int(os.environ['NODE_ID'])
 agent_id = os.environ['AGENT_ID']
 module_uuid = os.environ['MODULE_UUID']
 
+# Read ports from the env file, not os.environ: on the first update of a legacy
+# instance ASTERISK_SIP_UDP_PORT is created earlier in the same run and
+# os.environ is frozen at the start of the update, so it would be missing here.
+env = agent.read_envfile("environment")
+
 with agent.redis_connect() as rdb:
     node_address = rdb.hget(f'node/{node_id}/vpn', 'ip_address')
 
@@ -38,7 +43,7 @@ with agent.redis_connect(privileged=True) as prdb:
     trx.delete(service_key).hset(service_key, mapping={
         "node_address": node_address,
         "node_id": str(node_id),
-        "port": os.environ["ASTERISK_SIP_UDP_PORT"],
+        "port": env["ASTERISK_SIP_UDP_PORT"],
     })
 
     # Publish change event
