@@ -38,8 +38,9 @@ podman exec freepbx fwconsole chown >/dev/null 2>&1
 podman exec --user asterisk freepbx fwconsole reload --no-interaction || \
     echo "WARNING: fwconsole reload failed; continuing with restart" >&2
 
-# Restart Asterisk so the PJSIP UDP transport is rebound to the new port
-podman exec --user asterisk freepbx fwconsole restart --no-interaction
+# Restart Asterisk so the PJSIP UDP transport is rebound to the new port.
+# `fwconsole restart` manages the services and must run as root (unlike reload).
+podman exec freepbx fwconsole restart --no-interaction
 
 # Wait for Asterisk to be back up
 attempt=0
