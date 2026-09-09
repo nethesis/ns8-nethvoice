@@ -405,26 +405,20 @@ while ( TRUE ) {
             if (($params === false) or (empty($params))) {
                 throw new Exception('Error: wrong parameters '.print_r($params,true));
             }
-            logMessage("INSERT INTO messages (cmd, dir, raw) VALUES (\"{$params[0]}\",\"PBX\",\"{$record}\")'", DEBUGVERBOSE, "fias");
-            $query = 'INSERT INTO messages (cmd, dir, raw) VALUES (?,"PBX",?)';
-            $sth = $fiasdb->prepare($query);
-            $rs = $sth->execute(array($params[0],$record));
-            if (!$rs) {
-                throw new Exception('Error writing message to DB; '.mysql_error());
-            }
-
-            $last_id = $fiasdb->lastInsertId();
-            $query = 'INSERT INTO messagesparameters (msgid, param, value) VALUES (?,?,?)';
-            $sth = $fiasdb->prepare($query);
+            $parameters = array();
             for ($i=1; $i<count($params)-1; $i++) {
-                logMessage("INSERT INTO messagesparameters (msgid, param, value) VALUES ({$last_id},\"".substr($params[$i],0,2)."\",\"".substr($params[$i],2)."\")'", DEBUGVERBOSE, "fiasd");
-                $rs = $sth->execute(array($last_id, substr($params[$i],0,2), substr($params[$i],2)));
-                if (!$rs) {
-                    throw new Exception('Error writing messageparameters to DB; '.mysql_error());
-                }
+                $parameters[] = array(substr($params[$i],0,2), substr($params[$i],2));
             }
+            logMessage(
+                'Storing received record: ' . json_encode(
+                    array('command' => $params[0], 'direction' => 'PBX', 'parameters' => $parameters)
+                ),
+                DEBUGVERBOSE,
+                'fiasd'
+            );
+            insertFiasMessage($fiasdb, $params[0], 'PBX', $parameters, $record);
             $state = "stReadDB";
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             logMessage($e->getMessage(), ERROR, "fiasd");
             $state = "stDisconnected";
         }

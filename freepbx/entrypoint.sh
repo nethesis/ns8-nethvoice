@@ -108,12 +108,18 @@ chown asterisk:asterisk /var/lib/asterisk/db /var/spool/asterisk/outgoing /var/s
 mkdir -p /etc/nethcti
 chown -R asterisk:asterisk /etc/nethcti
 
-# Keep the CSV upload volume non-empty. NS8 backup mounts module volumes in a
+# Keep the phonebook volumes non-empty. NS8 backup mounts module volumes in a
 # helper container, and an empty named volume can be re-initialized there with
 # root ownership. Seeding a hidden file prevents ownership drift.
-mkdir -p /var/lib/nethvoice/phonebook/uploads
-touch /var/lib/nethvoice/phonebook/uploads/.nethvoice-volume-guard
-chown -R asterisk:asterisk /var/lib/nethvoice/phonebook/uploads
+mkdir -p \
+	/etc/phonebook/sources.d \
+	/var/lib/nethvoice/phonebook/uploads
+touch \
+	/etc/phonebook/sources.d/.nethvoice-volume-guard \
+	/var/lib/nethvoice/phonebook/uploads/.nethvoice-volume-guard
+chown -R asterisk:asterisk \
+	/etc/phonebook/sources.d \
+	/var/lib/nethvoice/phonebook/uploads
 
 # Don't continue with initialization if the database is not ready
 if [[ -z "${AMPDBUSER}" || -z "${AMPDBPASS}" ]]; then
@@ -330,6 +336,9 @@ psmode=M
 [record_LDLR]
 0="LD|DA|TI|V#2.0.2|IFPB|"
 1="LR|RIGI|FLRNG#GNGLGSSFA0A1A2A3|"
+; Optional FIAS Guest Group Number (GG) support: replace the active row
+; above with the following row to manage NethHotel room groups from GI.
+;1="LR|RIGI|FLRNG#GNGLGGGSSFA0A1A2A3|"
 2="LR|RIGO|FLRNG#GSSF|"
 3="LR|RIGC|FLRNG#GNGLGSROA0A1A2A3|"
 4="LR|RIRE|FLRNRSMLCSDN|"
@@ -374,6 +383,9 @@ format=DA_TI_RN
 [GI2PBX]
 command=/usr/share/neth-hotel-fias/gi2pbx.php
 format=RN_G#_GN_GL_GS_SF_A0_A1_A2_A3
+; When GG support is enabled in the RIGI row, replace the active format
+; above with this one. GG follows GL in the expected FIAS field order.
+;format=RN_G#_GN_GL_GG_GS_SF_A0_A1_A2_A3
 
 [GO2PBX]
 command=/usr/share/neth-hotel-fias/go2pbx.php
@@ -400,12 +412,39 @@ command=/usr/share/neth-hotel-fias/minibar.php
 format=DA_TI_RN_MA_M#_TA
 
 [custom_fields]
-A0='logger -t fias "Check-in room %ROOM% #%RESERVATION% Guest: %GUESTNAME% %GUESTLANGUAGE%. Custom field A0: %ARG%"'
+A0[]="/usr/bin/logger"
+A0[]="-t"
+A0[]="fias"
+A0[]="--"
+A0[]="Check-in room"
+A0[]="%ROOM%"
+A0[]="reservation"
+A0[]="%RESERVATION%"
+A0[]="guest"
+A0[]="%GUESTNAME%"
+A0[]="%GUESTLANGUAGE%"
+A0[]="custom field A0"
+A0[]="%ARG%"
 A1=
 A2=
 A3=
 
 EOF
+fi
+
+# Add the optional GG configuration to FIAS files kept in the persistent
+# Asterisk volume. Keep the legacy format active until administrators opt in.
+if ! grep -Fq 'FLRNG#GNGLGGGSSFA0A1A2A3' /etc/asterisk/fias.conf; then
+  sed -i '/^1="LR|RIGI|FLRNG#GNGLGSSFA0A1A2A3|"$/a\
+; Optional FIAS Guest Group Number (GG) support: replace the active row\
+; above with the following row to manage NethHotel room groups from GI.\
+;1="LR|RIGI|FLRNG#GNGLGGGSSFA0A1A2A3|"' /etc/asterisk/fias.conf
+fi
+if ! grep -Fq 'format=RN_G#_GN_GL_GG_GS_SF_A0_A1_A2_A3' /etc/asterisk/fias.conf; then
+  sed -i '/^format=RN_G#_GN_GL_GS_SF_A0_A1_A2_A3$/a\
+; When GG support is enabled in the RIGI row, replace the active format\
+; above with this one. GG follows GL in the expected FIAS field order.\
+;format=RN_G#_GN_GL_GG_GS_SF_A0_A1_A2_A3' /etc/asterisk/fias.conf
 fi
 
 # configure fias
@@ -415,6 +454,7 @@ if [[ "${NETHVOICE_HOTEL}" -eq True && -n "${NETHVOICE_HOTEL_FIAS_ADDRESS}" && -
   cat > /etc/supervisor/conf.d/fias.conf <<EOF
 [program:fias]
 command=/usr/share/neth-hotel-fias/fiasd.php
+user=asterisk
 autostart=true
 autorestart=true
 stdout_logfile=/dev/stdout
@@ -426,6 +466,7 @@ stderr_logfile_backups=0
 
 [program:fiasdispatcher]
 command=/usr/share/neth-hotel-fias/dispatcher.php
+user=asterisk
 autostart=true
 autorestart=true
 stdout_logfile=/dev/stdout

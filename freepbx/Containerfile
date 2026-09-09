@@ -10,7 +10,21 @@ ARG LIBDIR=/usr/lib
 ARG DATADIR=/var/lib
 ARG MAKEARGS="DEBUG= OPTIMIZE= DESTDIR=${BUILDROOT} ASTVARRUNDIR=/var/run/asterisk ASTDATADIR=${DATADIR}/asterisk ASTVARLIBDIR=${DATADIR}/asterisk ASTDBDIR=${DATADIR}/asterisk/db NOISY_BUILD=1"
 COPY usr/src/asterisk /usr/src/asterisk
-RUN apt-get update && \
+# Bullseye LTS ended on 2026-08-31; no further official security updates are planned.
+# Third-party Extended LTS may support selected packages separately:
+# https://www.debian.org/News/2026/20260831
+# Restore reliable build downloads using archive.debian.org for bullseye and
+# bullseye-updates, plus the fixed 2026-09-01 snapshot for bullseye-security.
+# The snapshot avoids live-mirror package 404s and retains final LTS versions.
+# It does not extend Debian 11 security support. Any later fix requires changing
+# these sources; rebuilding cannot fetch updates beyond the fixed snapshot.
+# check-valid-until=no skips only snapshot metadata expiry; signature and checksum
+# verification remain enabled. See https://snapshot.debian.org/
+RUN sed -i \
+	-e 's|deb\.debian\.org/debian |archive.debian.org/debian |g' \
+	-e 's|http://deb\.debian\.org/debian-security |[check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260901T000000Z/ |g' \
+	/etc/apt/sources.list && \
+	apt-get update && \
 	apt-get install -y \
 		automake \
 		build-essential \
@@ -174,7 +188,13 @@ RUN cd /usr/src/asterisk && \
 FROM docker.io/library/php:7.4-apache
 WORKDIR /var/lib/asterisk
 ARG DEBIAN_FRONTEND=noninteractive
-RUN groupadd -g 991 -r asterisk && \
+# Apply the same archived and frozen sources described in the build stage above.
+# This restores package availability without extending Debian 11 security support.
+RUN sed -i \
+	-e 's|deb\.debian\.org/debian |archive.debian.org/debian |g' \
+	-e 's|http://deb\.debian\.org/debian-security |[check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260901T000000Z/ |g' \
+	/etc/apt/sources.list && \
+	groupadd -g 991 -r asterisk && \
     useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk && \
 	apt-get update && \
 	apt-get install -y \
@@ -215,6 +235,7 @@ RUN groupadd -g 991 -r asterisk && \
 		libspandsp2 \
 		libsnmp40 \
 		libical3 \
+		libsox-fmt-mp3 \
 		sqlite3 \
 		unixodbc-dev \
 		freetds-dev \
@@ -297,7 +318,8 @@ RUN mkdir -p \
 	/var/lib/asterisk/playback \
 	/var/run/asterisk/ \
 	/var/run/nethvoice/ \
-	/var/www/html/freepbx/admin/modules/framework
+	/var/www/html/freepbx/admin/modules/framework \
+	&& touch /etc/phonebook/sources.d/.nethvoice-volume-guard
 
 # Download framework module
 RUN sh /usr/local/bin/fetch-remote-artifact freepbx-framework-bootstrap-release-16.0.39.tar.gz https://github.com/FreePBX/framework/archive/refs/tags/release/16.0.39.tar.gz && \
