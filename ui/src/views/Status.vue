@@ -983,7 +983,7 @@ export default {
     async getPortsMigration() {
       this.loading.getPortsMigration = true;
       this.error.getPortsMigration = "";
-      const taskAction = "get-ports-migration";
+      const taskAction = "get-port-migration-status";
       const eventId = this.getUuid();
 
       this.core.$root.$once(
@@ -1029,7 +1029,7 @@ export default {
       this.portsMigrationSeen = true;
       this.loading.dismissPortsMigration = true;
       this.error.dismissPortsMigration = "";
-      const taskAction = "dismiss-ports-migration";
+      const taskAction = "set-port-migration-status";
       const eventId = this.getUuid();
 
       this.core.$root.$once(
@@ -1040,6 +1040,9 @@ export default {
       const res = await to(
         this.createModuleTaskForApp(this.instanceName, {
           action: taskAction,
+          data: {
+            seen: true,
+          },
           extra: {
             title: this.$t("action." + taskAction),
             isNotificationHidden: true,

@@ -23,8 +23,8 @@
     "set-nethvoice-admin-password": "Modifica password admin di NethVoice",
     "restart-module": "Riavvia applicazione",
     "get-ports-list": "Ottieni lista porte",
-    "get-ports-migration": "Recupero migrazione porte",
-    "dismiss-ports-migration": "Chiudi avviso migrazione porte"
+    "get-port-migration-status": "Recupero migrazione porte",
+    "set-port-migration-status": "Aggiorna avviso migrazione porte"
   },
   "common": {
     "processing": "Elaborazione in corso…",

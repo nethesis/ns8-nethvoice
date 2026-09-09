@@ -1,1 +1,16 @@
-../actions/configure-module/96publish_srv_keys
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Run the configure-module publish step in a fresh action context.
+#
+# update-module.d steps share the environment captured at the start of the
+# update, so a variable created earlier in the same run (ASTERISK_SIP_UDP_PORT,
+# allocated at 20allocate_ports) would not be visible here. Actions instead
+# reload the environment at every step, so invoke the configure-module step via
+# runagent to publish the service keys with the up-to-date ports.
+
+exec runagent "${AGENT_INSTALL_DIR}/actions/configure-module/96publish_srv_keys"
