@@ -5,22 +5,28 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-# Refresh the running FreePBX so the DB changes from step 85mysql_update are
-# applied without waiting for the next full restart.
+# Apply the port values written to MariaDB at step 85mysql_update to the live
+# Asterisk.
 #
-# The allocated ports are already re-applied by freepbx_init before the PJSIP
-# transport binds on the restart at 80restart, so this reload is best-effort:
-# run `fwconsole chown` first to avoid the LESS cache error, and never fail the
-# update if the reload does not succeed (the config is correct on the next start).
+# A `fwconsole reload` regenerates the FreePBX-managed config from the database
+# but does NOT rebind an already-loaded PJSIP transport. On an update the
+# FreePBX container is recreated: Asterisk starts and binds the persisted
+# (old-port) pjsip.transports.conf before freepbx_init regenerates it, so a
+# reload alone leaves the SIP UDP transport on the old port. We therefore reload
+# to regenerate the config and then restart Asterisk so the transport is rebound
+# to the new port, wait for it to come back, and verify the live transport.
+#
+# Skip gracefully if FreePBX is not running (the config will be correct on the
+# next start).
 
 if ! systemctl --user is-active --quiet freepbx; then
-    echo "FreePBX is not running, skipping reload" >&2
+    echo "FreePBX is not running, skipping reload/restart" >&2
     exit 0
 fi
 
 # Skip gracefully if the container is not reachable yet
 if ! podman exec freepbx true >/dev/null 2>&1; then
-    echo "FreePBX container not ready, skipping reload" >&2
+    echo "FreePBX container not ready, skipping reload/restart" >&2
     exit 0
 fi
 
@@ -28,7 +34,25 @@ fi
 # "Can not create the LESS cache folder ... run fwconsole chown".
 podman exec freepbx fwconsole chown >/dev/null 2>&1
 
-if ! podman exec --user asterisk freepbx fwconsole reload --no-interaction; then
-    echo "WARNING: fwconsole reload failed; changes will apply on the next FreePBX start" >&2
+# Regenerate the FreePBX-managed configuration from the database
+podman exec --user asterisk freepbx fwconsole reload --no-interaction || \
+    echo "WARNING: fwconsole reload failed; continuing with restart" >&2
+
+# Restart Asterisk so the PJSIP UDP transport is rebound to the new port
+podman exec --user asterisk freepbx fwconsole restart --no-interaction
+
+# Wait for Asterisk to be back up
+attempt=0
+until [[ $(podman exec freepbx asterisk -rx 'core show version' 2>/dev/null) == Asterisk* ]]; do
+    if [ "$((attempt++))" -ge 60 ]; then
+        echo "Asterisk did not come back after restart" >&2
+        exit 1
+    fi
+    sleep 5
+done
+
+# Verify the live SIP UDP transport is bound to the allocated port
+if ! podman exec freepbx asterisk -rx 'pjsip show transports' \
+        | grep -qE ":${ASTERISK_SIP_UDP_PORT}([^0-9]|$)"; then
+    echo "WARNING: SIP UDP transport is not bound to ${ASTERISK_SIP_UDP_PORT} after restart" >&2
 fi
-exit 0
