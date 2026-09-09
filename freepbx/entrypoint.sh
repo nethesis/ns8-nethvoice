@@ -164,10 +164,17 @@ fi
 
 wizard_navbar_logo_url="${wizard_login_logo_url}"
 
+# Serialize configuration values as JavaScript strings instead of interpolating
+# them into quoted literals. Rebranding values are operator-controlled and may
+# contain quotes or other characters with special meaning in JavaScript.
+js_string() {
+	php -r 'echo json_encode($argv[1], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);' "$1"
+}
+
 # Write wizard and restapi configuration
 cat > /var/www/html/freepbx/wizard/scripts/custom.js <<EOF
 var customConfig = {
-  BRAND_NAME: '${wizard_brand_name}',
+  BRAND_NAME: $(js_string "${wizard_brand_name}"),
   BRAND_SITE: '${BRAND_SITE:=https://www.nethesis.it/soluzioni/nethvoice}',
   BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethserver.org/projects/ns8/it/latest/nethvoice.html}',
   NAVBAR_LOGO_URL: '${wizard_navbar_logo_url}',
