@@ -314,14 +314,13 @@ without altering them.
 
 ### Run install and update tests in GitHub Actions
 
-The extended test is manual-only and remains skipped during ordinary PR runs.
-After the branch images have been published, dispatch it for the branch:
+The FIAS E2E test is the default for this workflow. It runs automatically
+after a successful `Publish images` workflow, or it can be dispatched manually
+for a branch after its images have been published:
 
 ```sh
 gh workflow run test-module.yml \
-  --ref fias_improve \
-  -f debug_shell=false \
-  -f run_fias_e2e=true
+  --ref fias_improve
 ```
 
 The workflow runs a fresh installation on `dn1` and an update on `rl1`.
