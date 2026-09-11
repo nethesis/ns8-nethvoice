@@ -38,7 +38,7 @@ with agent.redis_connect(privileged=True) as prdb:
     trx.delete(service_key).hset(service_key, mapping={
         "node_address": node_address,
         "node_id": str(node_id),
-        "port": os.environ["ASTERISK_SIP_PORT"],
+        "port": os.environ["ASTERISK_SIP_UDP_PORT"],
     })
 
     # Publish change event
