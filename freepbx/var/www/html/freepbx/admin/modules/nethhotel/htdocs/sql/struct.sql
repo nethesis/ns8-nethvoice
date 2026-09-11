@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS `rooms` (
   `start` timestamp NOT NULL default '0000-00-00 00:00:00',
   `group` int(11) default NULL,
   `clean` tinyint(1) NOT NULL default '0',
-  `text` varchar(32) default NULL,
+  `text` varchar(255) default NULL,
   `lang` varchar(5) default NULL,
   PRIMARY KEY  (`extension`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -92,10 +92,12 @@ CREATE TABLE IF NOT EXISTS `room_groups` (
   `id` int(11) NOT NULL auto_increment,
   `name` varchar(100) NOT NULL default '',
   `note` varchar(255) NOT NULL default '',
+  `fias_guest_group_number` varchar(100) default NULL,
   `groupcalls` tinyint(1),
   `roomscalls` tinyint(1),
   `externalcalls` tinyint(1),
-  PRIMARY KEY  (`id`)
+  PRIMARY KEY  (`id`),
+  UNIQUE KEY `unique_fias_guest_group_number` (`fias_guest_group_number`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `groups_rooms` (
