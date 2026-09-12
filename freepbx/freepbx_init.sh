@@ -175,6 +175,9 @@ fwconsole userman --syncall --force --verbose
 # Always apply changes on start
 su asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload"
 
+# Reset phones RPS after FreePBX modules have been initialized
+php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed
+
 # Apply low-priority background DB updates
 ionice -c3 nice -n 19 php /initdb.d/slow_database_updates.php >/dev/null 2>&1 &
 

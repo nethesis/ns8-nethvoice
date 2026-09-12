@@ -28,16 +28,37 @@
  *
  */
 
-// Check that a mac address or "--all" is provided
+// Check that a mac address or a supported option is provided
 if ($argc != 2) {
-    echo "usage: $argv[0] [MAC_ADDRESS | --all]\n";
+    echo "usage: $argv[0] [MAC_ADDRESS | --all | --host-changed]\n";
     exit(127);
+}
+
+$resetOnHostChange = $argv[1] == "--host-changed";
+if ($resetOnHostChange) {
+    require_once '/etc/freepbx_db.conf';
+
+    $sql = "SELECT `value` FROM `asterisk`.`admin` WHERE `variable` = 'NETHVOICE_HOST'";
+    $sth = $db->prepare($sql);
+    $sth->execute();
+    $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
+    $hostChanged = count($result) > 0 && $result[0]['value'] != $_ENV['NETHVOICE_HOST'];
+
+    // Store the current hostname before the reset attempt, preserving one-shot behavior.
+    $sth = $db->prepare("DELETE IGNORE FROM `asterisk`.`admin` WHERE `variable` = 'NETHVOICE_HOST'");
+    $sth->execute();
+    $sth = $db->prepare("INSERT IGNORE INTO `asterisk`.`admin` (`variable`, `value`) VALUES ('NETHVOICE_HOST',?)");
+    $sth->execute([$_ENV['NETHVOICE_HOST']]);
+
+    if (!$hostChanged) {
+        exit(0);
+    }
 }
 
 require_once '/etc/freepbx.conf';
 require_once '/var/www/html/freepbx/rest/lib/libExtensions.php';
 
-if ($argv[1] == "--all") {
+if ($argv[1] == "--all" || $resetOnHostChange) {
     // Get all phones from rest_devices_phones table
     $sql = "SELECT mac FROM rest_devices_phones WHERE mac IS NOT NULL AND type = 'physical'";
     $sth = $db->prepare($sql);
