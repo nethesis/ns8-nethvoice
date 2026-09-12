@@ -45,7 +45,6 @@ modules_to_install=(
     fax
     featurecodeadmin
     findmefollow
-    googletts
     iaxsettings
     infoservices
     ivr
@@ -83,6 +82,7 @@ modules_to_install=(
 
 obsolete_modules=(
     bulkdids
+    googletts
     inboundlookup
     outboundlookup
 )
@@ -177,4 +177,3 @@ su asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload"
 
 # Apply low-priority background DB updates
 ionice -c3 nice -n 19 php /initdb.d/slow_database_updates.php >/dev/null 2>&1 &
-
