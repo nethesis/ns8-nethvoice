@@ -1,0 +1,10 @@
+[Unit]
+Description=Run scheduled NethVoice queue statistics resets every minute
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=1s
+Unit=nethvoice-queue-stats-reset.service
+
+[Install]
+WantedBy=timers.target
