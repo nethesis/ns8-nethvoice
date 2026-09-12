@@ -19,6 +19,18 @@ cat > $FILE <<EOF
 }
 EOF
 
+# Optional trusted-SSO block, emitted only when a per-install mint secret is
+# provided (SSO off by default).
+SSO_JSON=""
+if [ -n "${NETHCTI_SSO_TRUSTED_SECRET}" ]; then
+  SSO_JSON=$(cat <<EOJ
+,
+  "sso_trusted_secret": "${NETHCTI_SSO_TRUSTED_SECRET}",
+  "sso_token_key": "${NETHCTI_SSO_TOKEN_KEY}",
+  "sso_user_allowlist": "${NETHCTI_SSO_USER_ALLOWLIST}"
+EOJ
+)
+fi
 FILE=/etc/nethcti/authentication.json
 cat > $FILE <<EOF
 {
@@ -31,7 +43,7 @@ cat > $FILE <<EOF
   "unauthe_call": {
           "status": "${NETHCTI_UNAUTHE_CALL:-disabled}",
           "allowed_ip": "${NETHCTI_UNAUTHE_CALL_IP:-127.0.0.1}"
-  }
+  }${SSO_JSON}
 }
 EOF
 

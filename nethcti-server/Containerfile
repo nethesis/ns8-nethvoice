@@ -2,7 +2,8 @@
 FROM docker.io/library/alpine:3.17.10 as repofetcher
 WORKDIR /app
 RUN apk add --no-cache git
-ARG NETHCTI_SERVER_COMMIT=ns8
+# SSO feature branch ns8-sso (NethServer/dev#8142, nethesis/nethcti-server#357)
+ARG NETHCTI_SERVER_COMMIT=53112bd15048f4d9d6d6d9f61930d27f354b04e4
 RUN git clone https://github.com/nethesis/nethcti-server.git . \
     && git checkout "${NETHCTI_SERVER_COMMIT}"
 
