@@ -23,12 +23,122 @@ namespace FreePBX\modules;
 
 class Nethcti3 extends \FreePBX_Helpers implements \BMO
 {
+    private const DISPLAY_NAME_MAX_LENGTH = 50;
+
+    protected $FreePBX;
+    protected $db;
+    protected $astman;
+    private static $displayNameReloadScheduled = false;
+
     public function __construct($freepbx = null) {
         if ($freepbx == null)
             throw new Exception("Not given a FreePBX Object");
 
         $this->FreePBX = $freepbx;
         $this->db = $freepbx->Database;
+        $this->astman = $freepbx->astman;
+    }
+
+    /**
+     * Set the same display name on a list of FreePBX extensions.
+     * Names are normalized to the 50-character users.name field width.
+     * SIP callerid includes the main extension; users.name and AstDB cidname do not.
+     *
+     * @return bool true when at least one stored value changed
+     */
+    public function setExtensionsDisplayName($extensions, $displayname, $mainextension) {
+        if (!is_array($extensions)) {
+            throw new \InvalidArgumentException('Extensions must be an array');
+        }
+
+        $displayname = iconv_substr((string) $displayname, 0, self::DISPLAY_NAME_MAX_LENGTH, 'UTF-8');
+        if ($displayname === false) {
+            throw new \InvalidArgumentException('Display name must be valid UTF-8');
+        }
+        $mainextension = trim((string) $mainextension);
+        if ($mainextension === '') {
+            throw new \InvalidArgumentException('Main extension must not be empty');
+        }
+        $callerid = $displayname.' <'.$mainextension.'>';
+        $extensions = array_unique(array_map('strval', $extensions));
+
+        $selectUserName = $this->db->prepare('SELECT `name` FROM `users` WHERE `extension` = ?');
+        $updateUserName = $this->db->prepare('UPDATE `users` SET `name` = ? WHERE `extension` = ?');
+        $selectSipCallerId = $this->db->prepare('SELECT `data` FROM `sip` WHERE `id` = ? AND `keyword` = "callerid"');
+        $writeSipCallerId = $this->db->prepare('REPLACE INTO `sip` SET `id` = ?, `keyword` = "callerid", `data` = ?');
+        $changed = false;
+
+        foreach ($extensions as $extension) {
+            $extension = trim($extension);
+            if ($extension === '') {
+                continue;
+            }
+
+            $selectUserName->execute(array($extension));
+            $userName = $selectUserName->fetch(\PDO::FETCH_ASSOC);
+            if ($userName !== false && (string) $userName['name'] !== $displayname) {
+                $updateUserName->execute(array($displayname, $extension));
+                $changed = true;
+            }
+
+            $selectSipCallerId->execute(array($extension));
+            $sipCallerId = $selectSipCallerId->fetch(\PDO::FETCH_ASSOC);
+            if ($sipCallerId === false || (string) $sipCallerId['data'] !== $callerid) {
+                $writeSipCallerId->execute(array($extension, $callerid));
+                $changed = true;
+            }
+
+            $astdbName = $this->astman->database_get('AMPUSER', $extension.'/cidname');
+            if ($astdbName === false || (string) $astdbName !== $displayname) {
+                if (!$this->astman->database_put('AMPUSER', $extension.'/cidname', $displayname)) {
+                    throw new \RuntimeException('Unable to update AstDB display name for extension '.$extension);
+                }
+                $changed = true;
+            }
+        }
+
+        return $changed;
+    }
+
+    /**
+     * Synchronize an updated Userman display name with its FreePBX extensions.
+     */
+    public function usermanUpdateUser($id, $display, $data) {
+        try {
+            $user = $this->FreePBX->Userman->getUserByID($id);
+            if (empty($user) || empty($user['default_extension']) || $user['default_extension'] === 'none') {
+                return false;
+            }
+
+            $extensions = array($user['default_extension']);
+            $stmt = $this->db->prepare(
+                'SELECT `extension` FROM `rest_devices_phones`'.
+                ' WHERE `user_id` = ? AND `extension` IS NOT NULL AND `extension` != ""'
+            );
+            $stmt->execute(array($id));
+            $extensions = array_merge($extensions, $stmt->fetchAll(\PDO::FETCH_COLUMN));
+
+            $displayname = isset($user['displayname']) ? $user['displayname'] : '';
+            $changed = $this->setExtensionsDisplayName($extensions, $displayname, $user['default_extension']);
+            if ($changed) {
+                $this->scheduleDisplayNameReload();
+            }
+            return $changed;
+        } catch (\Throwable $e) {
+            error_log('Unable to synchronize display name for Userman user '.$id.': '.$e->getMessage());
+            return false;
+        }
+    }
+
+    private function scheduleDisplayNameReload() {
+        if (self::$displayNameReloadScheduled) {
+            return;
+        }
+
+        self::$displayNameReloadScheduled = true;
+        register_shutdown_function(function () {
+            system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null 2>&1 &');
+        });
     }
 
     public function install() {
