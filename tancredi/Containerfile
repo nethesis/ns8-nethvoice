@@ -5,6 +5,9 @@ COPY etc /etc
 COPY usr /usr
 COPY entrypoint.sh /
 
+# LLDP commit for pull request testing; replace with its containing release.
+ARG TANCREDI_VERSION=cf5a1e0ecd2bafa33a95f59373d3071171289f13
+
 RUN apt update && \
 	apt install -y libapache2-mod-xsendfile zip && \
 	a2enmod headers && \
@@ -14,8 +17,7 @@ RUN apt update && \
 	sed -i 's/Listen 443/Listen $\{TANCREDI_SSL_PORT\}/' /etc/apache2/ports.conf && \
 	echo '\n: ${TANCREDIPORT:=80}\nexport TANCREDIPORT\n: ${TANCREDI_SSL_PORT:=443}\nexport TANCREDI_SSL_PORT\n' >> /etc/apache2/envvars && \
 	# Install Tancredi files
-	BRANCH=1.10.1 && \
-	curl -L https://github.com/nethesis/tancredi/archive/refs/tags/${BRANCH}.tar.gz -o - | tar xzp --strip-component=1 -C /usr/share/tancredi/ tancredi-${BRANCH}/data/ tancredi-${BRANCH}/public/ tancredi-${BRANCH}/scripts/ tancredi-${BRANCH}/src/ tancredi-${BRANCH}/composer.json tancredi-${BRANCH}/composer.lock
+	curl -fL https://github.com/nethesis/tancredi/archive/${TANCREDI_VERSION}.tar.gz -o - | tar xzp --strip-component=1 -C /usr/share/tancredi/ tancredi-${TANCREDI_VERSION}/data/ tancredi-${TANCREDI_VERSION}/public/ tancredi-${TANCREDI_VERSION}/scripts/ tancredi-${TANCREDI_VERSION}/src/ tancredi-${TANCREDI_VERSION}/composer.json tancredi-${TANCREDI_VERSION}/composer.lock
 
 # Add Nethesis firmware template
 COPY usr/share/tancredi/data/templates/nethesis-firmware.tmpl /usr/share/tancredi/data/templates/nethesis-firmware.tmpl

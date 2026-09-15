@@ -887,6 +887,7 @@
   "vlan_id_phone_label": "Identificativo VLAN (VID)",
   "vlan_id_pcport_label": "Identificativo VLAN per porta PC",
   "network_settings_label": "Rete",
+  "lldp_enable_label": "LLDP",
   "Admin password": "Password admin",
   "User password": "Password utente",
   "New model": "Nuovo modello",
