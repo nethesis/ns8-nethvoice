@@ -58,7 +58,7 @@ $resolve = function ($id) use (&$resolve, &$resolved, &$visiting, &$updates, $sc
     $template = $scope->data['tmpl_phone'] ?? $parent['template'];
     $configured_here = array_key_exists('lldp_enable', $scope->data);
     // An explicit value anywhere in the original inheritance chain wins,
-    // including "0" and a blank value that omits LLDP from provisioning.
+    // including "0" and invalid values handled by the template fallback.
     $value = $configured_here
         ? $scope->data['lldp_enable']
         : ($parent['configured'] ? $parent['value'] : ($legacy_values[$template] ?? $parent['value']));

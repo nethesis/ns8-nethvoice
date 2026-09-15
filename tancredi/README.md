@@ -43,10 +43,10 @@ NethVoice does not reapply the compatibility values.
 
 Gigaset Maxwell and templates without LLDP support do not expose this control.
 The scope variable is `lldp_enable`, with string values `"1"` (enabled) and
-`"0"` (disabled). A missing or blank resolved variable omits LLDP settings from
-the rendered configuration; removing a scope override instead inherits its
-parent's value. Existing custom template files must implement the variable to
-respond to the selector.
+`"0"` (disabled). A missing or invalid resolved value uses the old default for
+that template family shown in the table above; removing a scope override instead
+inherits its parent's value. Existing custom template files must implement the
+variable to respond to the selector.
 
 The migration completion marker is defaults metadata version `16`, also shipped
 by the new Tancredi defaults. Fresh installations skip the compatibility

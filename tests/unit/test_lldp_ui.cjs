@@ -17,17 +17,20 @@ const context = vm.createContext({
     copy,
     element: () => ({ ready() {} })
   },
-  $: () => ({ on() {}, each() {} }),
+  $: () => ({ on() {}, each() {}, modal() {} }),
   localStorage: { getItem: () => null },
   document: { addEventListener() {}, removeEventListener() {} },
   setTimeout() {},
+  setInterval() {},
+  clearInterval() {},
   console
 });
 for (const file of [
   'services/provisioning/maps/genericphoneservice.js',
   'services/provisioning/maps/globalsservice.js',
   'controllers/templates/models-ui.js',
-  'controllers/templates/default-modal.js'
+  'controllers/templates/default-modal.js',
+  'controllers/configurations/preferences.js'
 ]) {
   vm.runInContext(fs.readFileSync(path.join(scripts, file), 'utf8'), context, { filename: file });
 }
@@ -59,6 +62,42 @@ test('global and model selectors use the same string values, including disabled 
     const strings = JSON.parse(fs.readFileSync(path.join(scripts, 'i18n/locale-' + language + '.json'), 'utf8'));
     assert.ok(strings[model.description]);
   }
+});
+
+function configurationController(modelTemplate, phoneTemplate) {
+  const generic = new constructors.GenericPhoneService({});
+  const response = data => ({ then: callback => callback({ data: copy(data) }) });
+  const scope = {
+    view: {}, macVendors: [],
+    $watch() {}, $on() {},
+    destroyAllSelects() {}, modelLdapTypeCheck() {},
+    buildModel() {
+      const variables = { tmpl_phone: modelTemplate };
+      this.currentModel = {
+        ui: { map: generic.map(variables) },
+        storedVariables: copy(variables),
+        variables: copy(variables)
+      };
+      return response({});
+    }
+  };
+  const inert = {};
+  const userService = { statusSynchronization: () => response(true) };
+  const phoneService = { getPhone: () => response({ variables: { tmpl_phone: phoneTemplate } }) };
+  constructors.ConfigurationsCtrl(
+    scope, { $on() {} }, inert, inert, inert, inert, inert,
+    userService, phoneService, inert, inert, generic
+  );
+  scope.setCurrentModelConfig('test-model', '00-00-00-00-00-01');
+  return scope.currentModel.ui.map.network.lldp_enable.visible;
+}
+
+test('phone template override hides LLDP when its effective template is unsupported', () => {
+  assert.equal(configurationController('yealink.tmpl', 'custom.tmpl'), false);
+});
+
+test('phone template override exposes LLDP when its effective template supports it', () => {
+  assert.equal(configurationController('gigaset-Maxwell.tmpl', 'yealink.tmpl'), true);
 });
 
 function modelController(location, stored = {}, globals = { lldp_enable: '1' }) {
