@@ -6,7 +6,7 @@ COPY usr /usr
 COPY entrypoint.sh /
 
 # LLDP commit for pull request testing; replace with its containing release.
-ARG TANCREDI_VERSION=cf5a1e0ecd2bafa33a95f59373d3071171289f13
+ARG TANCREDI_VERSION=3f810292704d8c050e42a887e25e9b56fd90f33d
 
 RUN apt update && \
 	apt install -y libapache2-mod-xsendfile zip && \

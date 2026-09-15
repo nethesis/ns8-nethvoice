@@ -20,6 +20,10 @@ angular.module('nethvoiceWizardUiApp')
       "nethesis.tmpl", "sangoma.tmpl"
     ];
 
+    this.isLldpSupported = function (variables) {
+      return lldpTemplates.indexOf(variables.tmpl_phone) !== -1
+    }
+
     this.map = function (variables) {
       let softkey_count = parseInt(variables.cap_softkey_count),
           softkey_type_blacklist = variables.cap_softkey_type_blacklist ? variables.cap_softkey_type_blacklist.split(",") : "",
@@ -50,7 +54,7 @@ angular.module('nethvoiceWizardUiApp')
         },
         "network": {
           "lldp_enable": {
-            "visible": lldpTemplates.indexOf(variables.tmpl_phone) !== -1
+            "visible": this.isLldpSupported(variables)
           }
         },
         "preferences": {
