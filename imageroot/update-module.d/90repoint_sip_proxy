@@ -1,0 +1,27 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Re-register the SIP route on the nethvoice-proxy after an update.
+#
+# The proxy route targets the Asterisk SIP UDP listener. Until this PR that
+# listener lived on ASTERISK_SIP_PORT; it now lives on the dedicated
+# ASTERISK_SIP_UDP_PORT (allocated at 20allocate_ports). The route stored on the
+# proxy still points at the old port, so SIP traffic (trunks, Janus/WebRTC) is
+# refused. Nothing else refreshes the route on update, so re-run the
+# configure-module step that pushes it, in a fresh action context (update-module.d
+# steps do not see ASTERISK_SIP_UDP_PORT, allocated in this same run).
+#
+# configure-module/60sip_proxy exits 2 when no proxy is installed on the node:
+# that is not an error for the update.
+
+runagent "${AGENT_INSTALL_DIR}/actions/configure-module/60sip_proxy"
+rc=$?
+if [ "$rc" -eq 2 ]; then
+    echo "No nethvoice-proxy on this node, skipping SIP route refresh" >&2
+    exit 0
+fi
+exit "$rc"
