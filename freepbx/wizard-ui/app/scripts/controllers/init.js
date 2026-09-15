@@ -474,6 +474,7 @@ angular.module('nethvoiceWizardUiApp')
       return {
         pinned: ProvGlobalsService.pinned(),
         preferences: ProvGlobalsService.preferences(),
+        network: ProvGlobalsService.network(),
         phonebook: ProvGlobalsService.phonebook()
       }
     }
