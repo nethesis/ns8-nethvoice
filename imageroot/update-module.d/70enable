@@ -16,6 +16,9 @@ systemctl --user enable --now nethcti-middleware.service
 echo "Enabling nethvoice-cdr-cleanup timer"
 systemctl --user enable --now nethvoice-cdr-cleanup.timer
 
+# Enable scheduled queue statistics resets
+echo "Enabling nethvoice-queue-stats-reset timer"
+systemctl --user enable --now nethvoice-queue-stats-reset.timer
 # Enable FreePBX external calendar synchronization timer
 echo "Enabling nethvoice-calendar-sync timer"
 systemctl --user enable --now nethvoice-calendar-sync.timer
