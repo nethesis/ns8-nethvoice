@@ -18,8 +18,6 @@ config = {
     'timezone': os.getenv('TIMEZONE', 'UTC'),
     'user_domain': os.getenv('USER_DOMAIN', ''),
     'reports_international_prefix': os.getenv('REPORTS_INTERNATIONAL_PREFIX', ''),
-    'nethvoice_adm_username': os.getenv('NETHVOICE_USER_PORTAL_USERNAME', ''),
-    'nethvoice_adm_password': agent.read_envfile("passwords.env").get('NETHVOICE_USER_PORTAL_PASSWORD',""),
     'subscription_systemid': os.getenv('SUBSCRIPTION_SYSTEMID', ''),
 }
 
