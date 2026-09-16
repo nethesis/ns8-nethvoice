@@ -1,22 +1,39 @@
-name: Test module
+name: Test FIAS
 
 on:
   workflow_dispatch:
     inputs:
-      debug_shell:
-        description: "Debug shell"
-        required: true
-        type: boolean
+      fias_image:
+        description: "Optional already-published module image for the FIAS E2E run"
+        required: false
+        default: ""
+        type: string
   workflow_run:
     workflows: ["Publish images"]
     types: [completed]
 
 jobs:
-  run:
-    name: "Run tests"
-    uses: NethServer/ns8-github-actions/.github/workflows/test-module.yml@v1
+  module:
+    name: "Resolve FIAS test image"
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    uses: NethServer/ns8-github-actions/.github/workflows/module-info.yml@v1
+
+  fias-e2e:
+    name: "FIAS E2E (${{ matrix.scenario }})"
+    needs: module
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - scenario: install
+            node: dn1
+          - scenario: update
+            node: rl1
+    uses: NethServer/ns8-github-actions/.github/workflows/test-on-digitalocean-infra.yml@v1
     with:
-      ui_tests_strategy: on_renovate_ui_change
-      debug_shell: ${{ github.event.inputs.debug_shell == 'true' }}
+      coremodules: ${{ matrix.scenario == 'install' && (inputs.fias_image || needs.module.outputs.image) || '' }}
+      leader_nodes: ${{ matrix.node }}
+      args: ${{ format('{0} -v SCENARIO:{1} -v RUN_FIAS_E2E:true', inputs.fias_image || needs.module.outputs.image, matrix.scenario) }}
+      repo_ref: ${{ needs.module.outputs.sha }}
     secrets:
       do_token: ${{ secrets.do_token }}

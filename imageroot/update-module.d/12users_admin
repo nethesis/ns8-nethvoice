@@ -1,0 +1,15 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+exec 1>&2
+
+if [ -z "${USER_DOMAIN:-}" ]; then
+    exit 0
+fi
+
+configure-users-admin "${USER_DOMAIN}"
