@@ -1,0 +1,19 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Repoint this instance's no-register inbound trunks on the nethvoice-proxy to
+# the new SIP UDP port (see bin/repoint-proxy-trunks for the rationale).
+#
+# Run via runagent so the helper sees the up-to-date environment:
+# ASTERISK_SIP_UDP_PORT is allocated earlier in this same update run
+# (20allocate_ports) and would not be visible in the frozen update-module.d
+# environment. Best-effort: a proxy problem must not abort the update.
+
+runagent "${AGENT_INSTALL_DIR}/bin/repoint-proxy-trunks" || \
+    echo "WARNING: proxy trunk repoint failed; check no-register trunks manually" >&2
+
+exit 0
