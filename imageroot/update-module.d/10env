@@ -182,3 +182,7 @@ if os.getenv('NETHVOICE_MIDDLEWARE_V1_PROTOCOL') is None:
 # admin opts in from the settings page.
 if os.getenv('AUTHENTICATION_METHOD') is None:
     agent.set_env('AUTHENTICATION_METHOD', 'password')
+
+# Lower the old janus default of 5, which logged every API request and keep-alive
+if os.getenv('JANUS_DEBUG_LEVEL') == '5':
+    agent.set_env('JANUS_DEBUG_LEVEL', '3')
