@@ -190,3 +190,7 @@ if os.getenv('NETHVOICE_MIDDLEWARE_GIN_MODE') is None:
     agent.set_env('NETHVOICE_MIDDLEWARE_GIN_MODE', 'release')
 if os.getenv('REPORTS_GIN_MODE') is None:
     agent.set_env('REPORTS_GIN_MODE', 'release')
+
+# supervisord and cron logged every job start and end at the old default
+if os.getenv('FREEPBX_LOG_LEVEL') is None:
+    agent.set_env('FREEPBX_LOG_LEVEL', 'warn')
