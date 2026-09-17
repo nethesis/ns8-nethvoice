@@ -194,3 +194,7 @@ if os.getenv('REPORTS_GIN_MODE') is None:
 # supervisord and cron logged every job start and end at the old default
 if os.getenv('FREEPBX_LOG_LEVEL') is None:
     agent.set_env('FREEPBX_LOG_LEVEL', 'warn')
+
+# info logged every RTP stream, ARI channel and HTTP request
+if os.getenv('SATELLITE_LOG_LEVEL') is None:
+    agent.set_env('SATELLITE_LOG_LEVEL', 'WARNING')
