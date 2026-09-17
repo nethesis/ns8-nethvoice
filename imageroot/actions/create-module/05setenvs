@@ -153,6 +153,7 @@ agent.set_env('PHONEBOOK_EXPORT_SPEEDDIAL_AND_RAPIDCODE', 'true')
 agent.set_env('PHONEBOOK_EXPORT_EXTENSIONS', 'true')
 
 # Reports
+agent.set_env('REPORTS_GIN_MODE', 'release')
 agent.set_env('REPORTS_REDIS_PORT', port_list[27])
 agent.set_env('REPORTS_API_PORT', port_list[28])
 # 'REPORTS_PASSWORD' written to passwords.env
@@ -184,6 +185,7 @@ agent.set_env('NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS', '127.0.0.1:' + str(port_lis
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT', '127.0.0.1:' + str(port_list[6]))
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT', '127.0.0.1:' + str(port_list[7]))
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_PROTOCOL', 'http')
+agent.set_env('NETHVOICE_MIDDLEWARE_GIN_MODE', 'release')
 
 # Default values for NETHCTI_* and other variables. These variables are not yet
 # exposed in the UI. Edit the environment file manually if you need to change
