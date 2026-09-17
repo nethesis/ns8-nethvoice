@@ -127,7 +127,7 @@ agent.set_env('NETHCTI_DB_USER', 'nethcti3')
 # 'NETHVOICESECRETKEY' written to passwords.env
 
 # 'JANUS_ADMIN_SECRET' written to passwords.env
-agent.set_env('JANUS_DEBUG_LEVEL', 5)
+agent.set_env('JANUS_DEBUG_LEVEL', 3)
 agent.set_env('JANUS_RTPSTART', janus_start)
 agent.set_env('JANUS_RTPEND', janus_end)
 agent.set_env('ASTERISK_RTPSTART', sip_start)
