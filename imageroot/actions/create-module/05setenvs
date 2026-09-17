@@ -179,6 +179,7 @@ agent.set_env('ASTERISK_WSS_PORT', port_list[34])
 agent.set_env('SATELLITE_ARI_APP', 'satellite')
 agent.set_env('SATELLITE_ARI_USERNAME', 'satellite')
 agent.set_env('SATELLITE_MQTT_USERNAME', 'satellite')
+agent.set_env('SATELLITE_LOG_LEVEL', 'WARNING')
 
 # NethCTI Middleware
 agent.set_env('NETHVOICE_MIDDLEWARE_PORT', port_list[35])
