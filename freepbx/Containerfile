@@ -576,6 +576,9 @@ RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,
 # Rotate logs hourly
 RUN mv /etc/cron.daily/logrotate /etc/cron.hourly/logrotate
 
+# pam_unix logs a session open and close line for every cron run, "quiet" drops them
+RUN sed -i -E '/pam_unix\.so/ s/[[:space:]]*$/ quiet/' /etc/pam.d/common-session-noninteractive
+
 # Install centralized phonebook update script and CSV upload path
 COPY usr/share/phonebooks /usr/share/phonebooks
 RUN mkdir -p /var/lib/nethvoice/phonebook/uploads \

@@ -35,6 +35,7 @@ restore_envs = [
     'CDRDBUSER',
     'CONFERENCE_JITSI_URL',
     'FLEXISIP_LOG_LEVEL',
+    'FREEPBX_LOG_LEVEL',
     'ICEIGNORE',
     'JANUS_DEBUG_LEVEL',
     'JANUS_RTPEND',
