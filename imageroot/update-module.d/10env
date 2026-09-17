@@ -176,3 +176,7 @@ if os.getenv('NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT') is None:
 
 if os.getenv('NETHVOICE_MIDDLEWARE_V1_PROTOCOL') is None:
     agent.set_env('NETHVOICE_MIDDLEWARE_V1_PROTOCOL', 'http')
+
+# Lower the old janus default of 5, which logged every API request and keep-alive
+if os.getenv('JANUS_DEBUG_LEVEL') == '5':
+    agent.set_env('JANUS_DEBUG_LEVEL', '3')
