@@ -180,3 +180,7 @@ if os.getenv('NETHVOICE_MIDDLEWARE_V1_PROTOCOL') is None:
 # Lower the old janus default of 5, which logged every API request and keep-alive
 if os.getenv('JANUS_DEBUG_LEVEL') == '5':
     agent.set_env('JANUS_DEBUG_LEVEL', '3')
+
+# Tancredi logged every provisioning and API request with its bodies at DEBUG
+if os.getenv('TANCREDI_LOG_LEVEL') is None:
+    agent.set_env('TANCREDI_LOG_LEVEL', 'WARNING')

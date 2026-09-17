@@ -124,6 +124,7 @@ agent.set_env('NETHCTI_DB_USER', 'nethcti3')
 # 'NETHCTI_DB_PASSWORD' written to passwords.env
 
 # 'TANCREDI_STATIC_TOKEN' written to passwords.env
+agent.set_env('TANCREDI_LOG_LEVEL', 'WARNING')
 # 'NETHVOICESECRETKEY' written to passwords.env
 
 # 'JANUS_ADMIN_SECRET' written to passwords.env
