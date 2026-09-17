@@ -184,3 +184,9 @@ if os.getenv('JANUS_DEBUG_LEVEL') == '5':
 # Tancredi logged every provisioning and API request with its bodies at DEBUG
 if os.getenv('TANCREDI_LOG_LEVEL') is None:
     agent.set_env('TANCREDI_LOG_LEVEL', 'WARNING')
+
+# Gin's mode for the two Go services; release also turns off permissive CORS
+if os.getenv('NETHVOICE_MIDDLEWARE_GIN_MODE') is None:
+    agent.set_env('NETHVOICE_MIDDLEWARE_GIN_MODE', 'release')
+if os.getenv('REPORTS_GIN_MODE') is None:
+    agent.set_env('REPORTS_GIN_MODE', 'release')
