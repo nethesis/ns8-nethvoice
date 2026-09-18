@@ -526,4 +526,17 @@ url_encode() {
 sed 's/FreePBX/'"${BRAND_NAME}"'/' -i /etc/asterisk/voicemail.conf*
 sed 's/http:\/\/AMPWEBADDRESS\/ucp/https:\/\/'"${NETHCTI_UI_HOST}"'\/history/' -i /etc/asterisk/voicemail.conf*
 
+# translate FREEPBX_LOG_LEVEL into the supervisord level
+case "${FREEPBX_LOG_LEVEL:-warn}" in
+    warn)  supervisord_level=warn ;;
+    info)  supervisord_level=info ;;
+    debug) supervisord_level=debug ;;
+    *)
+        echo "entrypoint: unknown FREEPBX_LOG_LEVEL '${FREEPBX_LOG_LEVEL}', using 'warn'" >&2
+        supervisord_level=warn ;;
+esac
+
+# at info supervisord reports every reaped grandchild of a cron job
+sed -i -E "s/^loglevel=.*/loglevel=${supervisord_level}/" /etc/supervisor/conf.d/supervisord.conf
+
 exec "$@"

@@ -10,4 +10,4 @@ Janus-gateway container for NethServer 8
 - `ICEIGNORE` list of interfaces to ignore. Default is 'vmnet,tap,tun,virb,vb-' https://github.com/meetecho/janus-gateway#configure-and-start
 - `STUNSERVER` STUN server. Default is stun1.l.google.com
 - `STUNPORT` STUN port. Default is 19302
-- `JANUS_DEBUG_LEVEL` Debug/logging level (0=disable debugging, 7=maximum debug level; default=4)
+- `JANUS_DEBUG_LEVEL` Debug/logging level (0=disable debugging, 7=maximum debug level; default=3, which is warnings and errors). Level 5 and above logs every API request, session lookup and keep-alive

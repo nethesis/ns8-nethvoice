@@ -16,3 +16,4 @@ Tancredi code repository are https://github.com/nethesis/tancredi and https://gi
 - `PHONEBOOK_LDAP_PORT` port of  the LDAP server used by phonebook, the host is the same as NethVoice host
 - `PHONEBOOK_LDAP_USER` user of the LDAP server used by phonebook
 - `PHONEBOOK_LDAP_PASS` password for the LDAP server used by phonebook
+- `TANCREDI_LOG_LEVEL` verbosity of the Tancredi application log: `WARNING` (default), `ERROR`, `INFO` or `DEBUG`. At `DEBUG` every provisioning and API request is logged with its request and response body. Only these four uppercase values are understood, anything else is read as `DEBUG`

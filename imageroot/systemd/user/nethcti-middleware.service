@@ -29,6 +29,7 @@ ExecStart=/usr/bin/podman run \
     --volume=nethcti:/etc/nethcti:z \
     --env-file=%E/state/passwords.env \
     --env=NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS \
+    --env=GIN_MODE=${NETHVOICE_MIDDLEWARE_GIN_MODE} \
     --env=NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT \
     --env=NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT \
     --env=NETHVOICE_MIDDLEWARE_V1_PROTOCOL \
