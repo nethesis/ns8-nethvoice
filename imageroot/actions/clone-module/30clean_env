@@ -15,3 +15,8 @@ agent.mset_env({
     'NETHVOICE_USER_PORTAL_NODE': '',
 })
 agent.unset_env('RESTART_SERVICES')
+# per-install SSO secrets: the clone regenerates its own at configure
+agent.unset_env('NETHCTI_SSO_TRUSTED_SECRET')
+agent.unset_env('NETHCTI_SSO_TOKEN_KEY')
+agent.unset_env('NETHCTI_SSO_PROXY_SECRET')
+agent.unset_env('NETHCTI_SSO_OIDC_COOKIE_SECRET')

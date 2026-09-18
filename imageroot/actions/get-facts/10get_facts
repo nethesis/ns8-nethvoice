@@ -156,6 +156,7 @@ def collect_trunks_by_provider(facts):
 
 
 def collect_env_features(facts):
+    facts['nethvoice_authentication_method'] = os.getenv('AUTHENTICATION_METHOD') or 'password'
     facts['nethvoice_hotel_enabled'] = os.getenv('NETHVOICE_HOTEL', 'False') == 'True'
     facts['nethvoice_ai_call_summary_enabled'] = os.getenv('SATELLITE_CALL_SUMMARY_ENABLED', 'False') == 'True'
     facts['nethvoice_ai_call_transcription_enabled'] = os.getenv('SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'False') == 'True'

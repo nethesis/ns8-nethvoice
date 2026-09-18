@@ -1,0 +1,42 @@
+#
+# Shibboleth SP (mod_shib) for the saml2 authentication method (see 45authentication):
+# it renders its own configuration at start from the SP_* variables below.
+#
+[Unit]
+Description=Shibboleth SAML2 Service Provider for NethVoice CTI SSO
+After=nethcti-middleware.service
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%E/state/environment
+WorkingDirectory=%E/state
+Restart=always
+# the image is pulled on demand at first start (--pull=missing): allow a slow
+# link; on timeout Restart=always retries, so a partial pull eventually completes
+TimeoutStartSec=1800
+ExecStartPre=/bin/rm -f %t/saml2-proxy.pid %t/saml2-proxy.ctr-id
+ExecStart=/usr/bin/podman run \
+    --detach \
+    --pull=missing \
+    --conmon-pidfile=%t/saml2-proxy.pid \
+    --cidfile=%t/saml2-proxy.ctr-id \
+    --cgroups=no-conmon \
+    --log-opt=tag=%u \
+    --replace \
+    --name=%N \
+    --network=host \
+    "--env=SP_HOST=${NETHCTI_UI_HOST}" \
+    "--env=SP_PORT=${SAML2_PROXY_PORT}" \
+    "--env=SP_IDP_METADATA_URL=${SAML2_IDP_METADATA_URL}" \
+    "--env=SP_IDENTITY_ATTRIBUTE=${SAML2_IDENTITY_ATTRIBUTE}" \
+    "--env=SP_IDENTITY_VALUE_REGEX=${SAML2_IDENTITY_VALUE_REGEX}" \
+    "--env=SP_IDP_SIGNING_CERT_B64=${SAML2_IDP_SIGNING_CERT}" \
+    "--env=SP_RESOLVE_LOCAL_HOSTS=${NETHVOICE_HOST} ${NETHCTI_UI_HOST}" \
+    --volume=%E/state/saml2-proxy:/var/lib/saml2-proxy:z \
+    ${NETHVOICE_SAML2_PROXY_IMAGE}
+ExecStop=/usr/bin/podman rm --ignore -f --cidfile %t/saml2-proxy.ctr-id
+PIDFile=%t/saml2-proxy.pid
+Type=forking
+
+[Install]
+WantedBy=default.target

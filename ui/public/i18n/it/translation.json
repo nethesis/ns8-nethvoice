@@ -22,7 +22,8 @@
     "set-rebranding": "Configura rebranding",
     "set-nethvoice-admin-password": "Modifica password admin di NethVoice",
     "restart-module": "Riavvia applicazione",
-    "get-ports-list": "Ottieni lista porte"
+    "get-ports-list": "Ottieni lista porte",
+    "get-idp-info": "Lettura metadata IdP"
   },
   "common": {
     "processing": "Elaborazione in corso…",
@@ -36,7 +37,9 @@
     "node_id": "Nodo {id}",
     "save": "Salva",
     "optional": "opzionale",
-    "status": "Stato"
+    "status": "Stato",
+    "copy_to_clipboard": "Copia negli appunti",
+    "copied_to_clipboard": "Copiato negli appunti"
   },
   "error": {
     "401": "Autenticazione non valida",
@@ -88,7 +91,37 @@
     "go_to_software_center": "Vai al Software center",
     "nethvoice_host_pattern": "Deve essere un nome di dominio valido",
     "nethcti_ui_host_pattern": "Deve essere un nome di dominio valido",
-    "user_domain": "Account provider"
+    "user_domain": "Account provider",
+    "authentication_method": "Metodo di autenticazione",
+    "authentication_method_tooltip": "Come gli utenti dimostrano la propria identità. È indipendente dall'account provider, che resta la sorgente degli utenti.",
+    "authentication_method_password": "Password locale",
+    "authentication_method_saml2": "SAML2 Single Sign-On",
+    "authentication_method_oidc": "OpenID Connect (OAuth2)",
+    "oidc_info_title": "OpenID Connect Single Sign-On",
+    "oidc_info_description": "Registra prima NethVoice come applicazione sul tuo provider OpenID Connect, usando la redirect URI qui sotto: il provider ti fornirà un Client ID e un Client secret da inserire qui. Gli utenti si autenticano sul provider ma devono comunque esistere nell'account provider selezionato con un profilo CTI, e il claim preferred_username deve corrispondere allo username dell'account provider.",
+    "oidc_redirect_uri": "Redirect URI (callback)",
+    "oidc_redirect_uri_helper": "Registra NethVoice come applicazione sull'identity provider usando questa redirect URI",
+    "oidc_issuer_url": "URL issuer",
+    "oidc_issuer_url_tooltip": "URL base del provider OpenID Connect (l'issuer che pubblica /.well-known/openid-configuration).",
+    "oidc_client_id": "Client ID",
+    "oidc_client_id_tooltip": "Identificativo dell'applicazione (client) assegnato dal provider quando registri NethVoice.",
+    "oidc_client_secret": "Client secret",
+    "oidc_client_secret_helper": "Secret rilasciato dal provider per questa applicazione",
+    "oidc_idp_name": "Nome identity provider (opzionale)",
+    "oidc_idp_name_placeholder": "es. Acme SSO",
+    "saml2_info_title": "SAML2 Single Sign-On",
+    "saml2_info_description": "Gli utenti si autenticano sull'Identity Provider esterno. Devono comunque esistere nell'account provider selezionato con un profilo CTI, e l'attributo identità SAML deve corrispondere allo username dell'account provider.",
+    "saml2_sp_metadata_url": "URL metadata del service provider",
+    "saml2_sp_metadata_url_helper": "Registra questo modulo come service provider fidato sull'identity provider usando questo URL dei metadata",
+    "saml2_idp_metadata_url": "URL metadata dell'Identity Provider",
+    "saml2_idp_metadata_url_tooltip": "URL del documento metadata dell'Identity Provider SAML2.",
+    "saml2_login_preview": "Anteprima bottone di login",
+    "saml2_preview_not_available": "Anteprima non disponibile",
+    "saml2_identity_attribute": "Attributo identità",
+    "saml2_identity_attribute_tooltip": "Attributo SAML mappato sullo username dell'account provider (es. uid, eppn).",
+    "saml2_login_button_label": "Etichetta pulsante login SSO (opzionale)",
+    "saml2_login_button_label_placeholder": "es. Accedi con SSO",
+    "saml2_default_button_label": "Accedi con SSO"
   },
   "status": {
     "app_images": "Immagine dell'applicazione | Immagini dell'applicazione",

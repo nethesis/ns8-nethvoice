@@ -176,3 +176,9 @@ if os.getenv('NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT') is None:
 
 if os.getenv('NETHVOICE_MIDDLEWARE_V1_PROTOCOL') is None:
     agent.set_env('NETHVOICE_MIDDLEWARE_V1_PROTOCOL', 'http')
+
+# Existing installs updating to the SSO release keep the local password login:
+# set the default explicitly so the env is present and SSO stays off until the
+# admin opts in from the settings page.
+if os.getenv('AUTHENTICATION_METHOD') is None:
+    agent.set_env('AUTHENTICATION_METHOD', 'password')

@@ -1,0 +1,49 @@
+#
+# oauth2-proxy for the oidc authentication method (see 45authentication): a pure
+# forwardAuth front-door configured entirely via OAUTH2_PROXY_* env vars. The
+# client secret comes from passwords.env; nothing is baked into the image.
+#
+[Unit]
+Description=oauth2-proxy OIDC front-door for NethVoice CTI SSO
+After=nethcti-middleware.service
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%E/state/environment
+EnvironmentFile=-%S/state/passwords.env
+WorkingDirectory=%E/state
+Restart=always
+# the image is pulled on demand at first start (--pull=missing): allow a slow
+# link; on timeout Restart=always retries, so a partial pull eventually completes
+TimeoutStartSec=1800
+ExecStartPre=/bin/rm -f %t/oauth2-proxy.pid %t/oauth2-proxy.ctr-id
+ExecStart=/usr/bin/podman run \
+    --detach \
+    --pull=missing \
+    --conmon-pidfile=%t/oauth2-proxy.pid \
+    --cidfile=%t/oauth2-proxy.ctr-id \
+    --cgroups=no-conmon \
+    --log-opt=tag=%u \
+    --replace \
+    --name=%N \
+    --network=host \
+    "--env=OAUTH2_PROXY_PROVIDER=oidc" \
+    "--env=OAUTH2_PROXY_OIDC_ISSUER_URL=${OIDC_ISSUER_URL}" \
+    "--env=OAUTH2_PROXY_CLIENT_ID=${OIDC_CLIENT_ID}" \
+    "--env=OAUTH2_PROXY_CLIENT_SECRET=${OIDC_CLIENT_SECRET}" \
+    "--env=OAUTH2_PROXY_COOKIE_SECRET=${NETHCTI_SSO_OIDC_COOKIE_SECRET}" \
+    "--env=OAUTH2_PROXY_REDIRECT_URL=https://${NETHCTI_UI_HOST}/oauth2/callback" \
+    "--env=OAUTH2_PROXY_HTTP_ADDRESS=127.0.0.1:${OAUTH2_PROXY_PORT}" \
+    "--env=OAUTH2_PROXY_REVERSE_PROXY=true" \
+    "--env=OAUTH2_PROXY_SET_XAUTHREQUEST=true" \
+    "--env=OAUTH2_PROXY_SKIP_PROVIDER_BUTTON=true" \
+    "--env=OAUTH2_PROXY_EMAIL_DOMAINS=*" \
+    "--env=OAUTH2_PROXY_COOKIE_SECURE=true" \
+    "--env=OAUTH2_PROXY_UPSTREAMS=static://202" \
+    ${NETHVOICE_OAUTH2_PROXY_IMAGE}
+ExecStop=/usr/bin/podman rm --ignore -f --cidfile %t/oauth2-proxy.ctr-id
+PIDFile=%t/oauth2-proxy.pid
+Type=forking
+
+[Install]
+WantedBy=default.target
