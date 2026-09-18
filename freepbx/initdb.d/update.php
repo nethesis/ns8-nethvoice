@@ -6,6 +6,52 @@
 
 include_once '/etc/freepbx_db.conf';
 
+// Shared FIAS rooms display all guest names in this field. The original
+// 32-character limit is too short even for two ordinary guest names.
+$sql = "SELECT CHARACTER_MAXIMUM_LENGTH
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = 'roomsdb' AND TABLE_NAME = 'rooms' AND COLUMN_NAME = 'text'";
+$stmt = $db->query($sql);
+$roomTextLength = $stmt->fetchColumn();
+if ($roomTextLength !== false && (int)$roomTextLength < 255) {
+	$db->exec('ALTER TABLE `roomsdb`.`rooms` MODIFY `text` varchar(255) DEFAULT NULL');
+}
+
+// Keep a database-enforced identity for groups created from FIAS GG. The
+// nullable key lets manually managed groups continue to use the same name.
+$sql = "SELECT COUNT(*)
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = 'roomsdb' AND TABLE_NAME = 'room_groups'
+          AND COLUMN_NAME = 'fias_guest_group_number'";
+if ((int)$db->query($sql)->fetchColumn() === 0) {
+	$db->exec('ALTER TABLE `roomsdb`.`room_groups` ADD COLUMN `fias_guest_group_number` varchar(100) DEFAULT NULL AFTER `note`');
+}
+
+// Preserve the deterministic first group used by previous PR builds. Any
+// additional duplicate definitions remain unkeyed and are no longer selected
+// by FIAS; their room assignments are reconciled by the next GI/GO event.
+$db->exec("UPDATE `roomsdb`.`room_groups` AS `rg`
+           INNER JOIN (
+             SELECT `name`, MIN(`id`) AS `canonical_id`
+             FROM `roomsdb`.`room_groups`
+             WHERE `note` LIKE 'Created from FIAS guest group %'
+             GROUP BY `name`
+           ) AS `legacy`
+             ON `legacy`.`canonical_id` = `rg`.`id`
+           LEFT JOIN `roomsdb`.`room_groups` AS `keyed`
+             ON `keyed`.`fias_guest_group_number` = `legacy`.`name`
+           SET `rg`.`fias_guest_group_number` = `legacy`.`name`
+           WHERE `rg`.`fias_guest_group_number` IS NULL
+             AND `keyed`.`id` IS NULL");
+
+$sql = "SELECT COUNT(*)
+        FROM information_schema.STATISTICS
+        WHERE TABLE_SCHEMA = 'roomsdb' AND TABLE_NAME = 'room_groups'
+          AND INDEX_NAME = 'unique_fias_guest_group_number'";
+if ((int)$db->query($sql)->fetchColumn() === 0) {
+	$db->exec('ALTER TABLE `roomsdb`.`room_groups` ADD UNIQUE KEY `unique_fias_guest_group_number` (`fias_guest_group_number`)');
+}
+
 # Create hotel cti context if not exist and NETHVOICE_HOTEL environment variable is set
 # check if hotel profile exists
 $sql = 'SELECT id FROM `asterisk`.`rest_cti_profiles` WHERE name = "Hotel"';
