@@ -11,35 +11,39 @@ import subprocess
 
 # Set new service ports
 
-MARIADB_ROOT_PASSWORD = agent.read_envfile("passwords.env")["MARIADB_ROOT_PASSWORD"]
-
 ASTERISK_CONFIG_FILES = (
     "/etc/asterisk/pjsip.transports.conf",
     "/etc/asterisk/sip_general_additional.conf",
 )
 
+# Run mysql through the mariadb container's own shell and read the root password
+# from MYSQL_PWD (exported inside the shell from the container environment) so it
+# never appears in a host command line or process argv, where it would be logged
+# to the system journal (QA finding B2). The SQL is passed over stdin.
+_MYSQL_ENV = 'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; exec /usr/bin/mysql -u root asterisk'
+
 
 def read_mysql_values(query):
     result = subprocess.run(
         [
-            "podman",
-            "exec",
-            "mariadb",
-            "mysql",
-            "asterisk",
-            "-N",
-            "-B",
-            "-u",
-            "root",
-            f"-p{MARIADB_ROOT_PASSWORD}",
-            "-e",
-            query,
+            "podman", "exec", "-i", "mariadb", "bash", "-c",
+            'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; exec /usr/bin/mysql -N -B -u root asterisk',
         ],
+        input=query,
         check=True,
         stdout=subprocess.PIPE,
         text=True,
     )
     return [value.strip() for value in result.stdout.splitlines() if value.strip()]
+
+
+def run_sql(query):
+    subprocess.run(
+        ["podman", "exec", "-i", "mariadb", "bash", "-c", _MYSQL_ENV],
+        input=query,
+        text=True,
+        check=True,
+    )
 
 
 def run_freepbx_sed(expression):
@@ -79,15 +83,20 @@ def replace_config_ports(old_ports, new_port):
             run_freepbx_sed(f"s/:{old_port}$/:{new_port}/")
 
 
-old_sip_ports = {
+# Old SIP bindings must be rewritten to the new port that matches their
+# protocol. Rewriting the UDP-side bindings to the TCP port made the UDP
+# transport listen on the TCP port (QA finding B6). Keep the UDP-side bindings
+# (kvstore udpport and the chan_sip legacy bindport) and the TCP-side bindings
+# (kvstore tcpport and the pjsip bindport) in separate sets.
+old_sip_udp_ports = {
     port for port in read_mysql_values("""
 SELECT `val`
 FROM `kvstore_Sipsettings`
-WHERE `key` IN ('udpport-0.0.0.0', 'tcpport-0.0.0.0', 'bindport');
+WHERE `key` = 'udpport-0.0.0.0';
 """)
     if port.isdigit()
 }
-old_sip_ports.update(
+old_sip_udp_ports.update(
     port for port in read_mysql_values("""
 SELECT `data`
 FROM `sipsettings`
@@ -95,6 +104,14 @@ WHERE `keyword` = 'bindport';
 """)
     if port.isdigit()
 )
+old_sip_tcp_ports = {
+    port for port in read_mysql_values("""
+SELECT `val`
+FROM `kvstore_Sipsettings`
+WHERE `key` IN ('tcpport-0.0.0.0', 'bindport');
+""")
+    if port.isdigit()
+}
 old_sips_ports = {
     port for port in read_mysql_values("""
 SELECT `val`
@@ -104,22 +121,35 @@ WHERE `key` IN ('tlsport-0.0.0.0', 'tlsbindport');
     if port.isdigit()
 }
 
-replace_config_ports(old_sip_ports, os.environ['ASTERISK_SIP_PORT'])
+replace_config_ports(old_sip_udp_ports, os.environ['ASTERISK_SIP_UDP_PORT'])
+replace_config_ports(old_sip_tcp_ports, os.environ['ASTERISK_SIP_PORT'])
 replace_config_ports(old_sips_ports, os.environ['ASTERISK_SIPS_PORT'])
 
 # SQL query to update kvstore_Sipsettings
 SQL_QUERY = f"""
 UPDATE `kvstore_Sipsettings`
 SET `val` = CASE
-    WHEN `key` = 'udpport-0.0.0.0' THEN '{os.environ['ASTERISK_SIP_PORT']}'
+    WHEN `key` = 'udpport-0.0.0.0' THEN '{os.environ['ASTERISK_SIP_UDP_PORT']}'
     WHEN `key` = 'tlsport-0.0.0.0' THEN '{os.environ['ASTERISK_SIPS_PORT']}'
     WHEN `key` = 'tcpport-0.0.0.0' THEN '{os.environ['ASTERISK_SIP_PORT']}'
     WHEN `key` = 'bindport' THEN '{os.environ['ASTERISK_SIP_PORT']}'
     WHEN `key` = 'tlsbindport' THEN '{os.environ['ASTERISK_SIPS_PORT']}'
+    WHEN `key` = 'rtpstart' THEN '{os.environ['ASTERISK_RTPSTART']}'
+    WHEN `key` = 'rtpend' THEN '{os.environ['ASTERISK_RTPEND']}'
 END
-WHERE `key` IN ('udpport-0.0.0.0', 'tlsport-0.0.0.0', 'tcpport-0.0.0.0', 'bindport', 'tlsbindport');
+WHERE `key` IN ('udpport-0.0.0.0', 'tlsport-0.0.0.0', 'tcpport-0.0.0.0', 'bindport', 'tlsbindport', 'rtpstart', 'rtpend');
 """
-agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
+run_sql(SQL_QUERY)
+
+# SQL query to upsert sipsettings RTP range (rows are removed by the
+# sipsettings module install, so UPDATE-only would touch zero rows)
+SQL_QUERY = f"""
+INSERT INTO `sipsettings` (`keyword`, `data`, `seq`, `type`) VALUES
+    ('rtpstart', '{os.environ['ASTERISK_RTPSTART']}', 0, 0),
+    ('rtpend', '{os.environ['ASTERISK_RTPEND']}', 0, 0)
+ON DUPLICATE KEY UPDATE `data` = VALUES(`data`);
+"""
+run_sql(SQL_QUERY)
 
 # SQL query to update freepbx_settings
 SQL_QUERY = f"""
@@ -139,7 +169,7 @@ SET `value` = '{os.environ['ASTMANAGERPORT']}',
     `sortorder` = 0
 WHERE `keyword` = 'ASTMANAGERPORT'
 """
-agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
+run_sql(SQL_QUERY)
 
 # SQL query to update kvstore_Sipsettings with bindport and tlsbindport
 SQL_QUERY = f"""
@@ -150,27 +180,24 @@ SET `val` = CASE
 END
 WHERE `key` IN ('bindport', 'tlsbindport');
 """
-agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
+run_sql(SQL_QUERY)
 
-# SQL query to update iaxsettings
+# SQL query to upsert iaxsettings (bindport row is dropped by the iaxsettings
+# module install, so UPDATE-only would touch zero rows)
 SQL_QUERY = f"""
-UPDATE `iaxsettings`
-SET `data` = '{os.environ['ASTERISK_IAX_PORT']}',
-    `seq` = 1,
-    `type` = 0
-WHERE `keyword` = 'bindport';
+INSERT INTO `iaxsettings` (`keyword`, `data`, `seq`, `type`)
+VALUES ('bindport', '{os.environ['ASTERISK_IAX_PORT']}', 1, 0)
+ON DUPLICATE KEY UPDATE `data` = VALUES(`data`);
 """
-agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
+run_sql(SQL_QUERY)
 
-# SQL query to update sipsettings
+# SQL query to upsert sipsettings bindport
 SQL_QUERY = f"""
-UPDATE `sipsettings`
-SET `data` = '{os.environ['ASTERISK_SIP_PORT']}',
-    `seq` = 1,
-    `type` = 0
-WHERE `keyword` = 'bindport';
+INSERT INTO `sipsettings` (`keyword`, `data`, `seq`, `type`)
+VALUES ('bindport', '{os.environ['ASTERISK_SIP_UDP_PORT']}', 1, 0)
+ON DUPLICATE KEY UPDATE `data` = VALUES(`data`);
 """
-agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
+run_sql(SQL_QUERY)
 
 # SQL query to update freepbx_settings for HTTPTLSENABLE
 SQL_QUERY = f"""
@@ -190,4 +217,4 @@ SET `value` = '0',
     `sortorder` = 0
 WHERE `keyword` = 'HTTPTLSENABLE';
 """
-agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
+run_sql(SQL_QUERY)
