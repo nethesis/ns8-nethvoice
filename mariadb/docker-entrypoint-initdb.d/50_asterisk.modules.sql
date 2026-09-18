@@ -43,7 +43,6 @@ INSERT INTO `modules` (`id`,`modulename`,`version`,`enabled`,`signature`) VALUES
 (38,"extraoptions","0.0.1",1,"{\"status\":129,\"details\":[]}"),
 (39,"fax","14.0.2.7",1,"{\"status\":129,\"details\":[]}"),
 (40,"findmefollow","14.0.1.23",1,"{\"status\":129,\"details\":[]}"),
-(41,"googletts","0.0.3",1,"{\"status\":129,\"details\":[]}"),
 (42,"iaxsettings","14.0.1.4",1,"{\"status\":129,\"details\":[]}"),
 (43,"inboundlookup","0.0.7",1,"{\"status\":129,\"details\":[]}"),
 (44,"ivr","14.0.4",1,"{\"status\":129,\"details\":[]}"),
