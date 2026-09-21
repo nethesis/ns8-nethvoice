@@ -1,8 +1,13 @@
-name: Test FIAS
+name: Test module
 
 on:
   workflow_dispatch:
     inputs:
+      debug_shell:
+        description: "Debug shell"
+        required: false
+        default: false
+        type: boolean
       fias_image:
         description: "Optional already-published module image for the FIAS E2E run"
         required: false
@@ -13,6 +18,16 @@ on:
     types: [completed]
 
 jobs:
+  run:
+    name: "Run tests"
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    uses: NethServer/ns8-github-actions/.github/workflows/test-module.yml@v1
+    with:
+      ui_tests_strategy: on_renovate_ui_change
+      debug_shell: ${{ inputs.debug_shell == true }}
+    secrets:
+      do_token: ${{ secrets.do_token }}
+
   module:
     name: "Resolve FIAS test image"
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
@@ -35,5 +50,6 @@ jobs:
       leader_nodes: ${{ matrix.node }}
       args: ${{ format('{0} -v SCENARIO:{1} -v RUN_FIAS_E2E:true', inputs.fias_image || needs.module.outputs.image, matrix.scenario) }}
       repo_ref: ${{ needs.module.outputs.sha }}
+      debug_shell: ${{ inputs.debug_shell == true }}
     secrets:
       do_token: ${{ secrets.do_token }}
