@@ -61,19 +61,31 @@ if udp_bound; then
     exit 0
 fi
 
-podman exec freepbx fwconsole restart --no-interaction
+wait_asterisk() {
+    local attempt=0
+    until [[ $(podman exec freepbx asterisk -rx 'core show version' 2>/dev/null) == Asterisk* ]]; do
+        if [ "$((attempt++))" -ge 60 ]; then
+            echo "Asterisk did not come back after restart" >&2
+            return 1
+        fi
+        sleep 5
+    done
+}
 
-# Wait for Asterisk to be back up
-attempt=0
-until [[ $(podman exec freepbx asterisk -rx 'core show version' 2>/dev/null) == Asterisk* ]]; do
-    if [ "$((attempt++))" -ge 60 ]; then
-        echo "Asterisk did not come back after restart" >&2
-        exit 1
+# Restart Asterisk to rebind the transport, then verify. During the migrating
+# update the DB/config can still be settling when this step runs, so a single
+# reload+restart may rebind the old port; the DB is authoritative, so retry
+# reload+restart until the live transport matches (or give up with a warning).
+for restart_attempt in 1 2 3; do
+    podman exec freepbx fwconsole restart --no-interaction
+    wait_asterisk || exit 1
+    if udp_bound; then
+        exit 0
     fi
+    echo "SIP UDP transport not on ${sip_udp_port} after restart ${restart_attempt}, retrying" >&2
+    # Regenerate the config from the (authoritative) DB before the next restart.
+    podman exec --user asterisk freepbx fwconsole reload --no-interaction || true
     sleep 5
 done
 
-# Verify the live SIP UDP transport is bound to the allocated port
-if ! udp_bound; then
-    echo "WARNING: SIP UDP transport is not bound to ${sip_udp_port:-<unset>} after restart" >&2
-fi
+echo "WARNING: SIP UDP transport is not bound to ${sip_udp_port:-<unset>} after retries" >&2
