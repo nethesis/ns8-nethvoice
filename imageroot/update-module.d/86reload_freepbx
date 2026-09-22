@@ -12,9 +12,16 @@
 # but does NOT rebind an already-loaded PJSIP transport. On an update the
 # FreePBX container is recreated: Asterisk starts and binds the persisted
 # (old-port) pjsip.transports.conf before freepbx_init regenerates it, so a
-# reload alone leaves the SIP UDP transport on the old port. We therefore reload
-# to regenerate the config and then restart Asterisk so the transport is rebound
-# to the new port, wait for it to come back, and verify the live transport.
+# reload alone leaves the SIP UDP transport on the old port.
+#
+# We reload to regenerate the config, then:
+#   - if the live SIP UDP transport is already on the target port, stop (a normal
+#     update where the port did not move — avoid a needless Asterisk restart);
+#   - otherwise restart Asterisk (as root) to rebind, and retry reload+restart
+#     until the live transport matches the target port. The DB is authoritative,
+#     so this converges even when the DB/config are still settling during a
+#     legacy->PR migration (a single reload+restart can otherwise rebind the old
+#     port).
 #
 # Skip gracefully if FreePBX is not running (the config will be correct on the
 # next start).
@@ -30,11 +37,16 @@ if ! podman exec freepbx true >/dev/null 2>&1; then
     exit 0
 fi
 
-# Target SIP UDP port, read from the environment FILE: update-module.d steps run
+# Target SIP UDP port. Prefer the environment FILE: update-module.d steps run
 # with os.environ frozen at the start of the update, so on the migrating update
-# ASTERISK_SIP_UDP_PORT (allocated in step 20 during this same run) is not in the
-# shell environment. read it from the file to get the up-to-date value.
-sip_udp_port=$(grep -E '^ASTERISK_SIP_UDP_PORT=' "${AGENT_STATE_DIR}/environment" | cut -d= -f2)
+# ASTERISK_SIP_UDP_PORT (allocated in step 20 during this same run) is only in
+# the file, not in the shell environment. Fall back to the shell environment
+# (correct for a normal update, where the port did not change this run) so an
+# unreadable file does not silently disable the skip-restart gate.
+sip_udp_port=$(grep -E '^ASTERISK_SIP_UDP_PORT=' "${AGENT_STATE_DIR}/environment" 2>/dev/null | cut -d= -f2 | tr -d '[:space:]')
+if [ -z "$sip_udp_port" ]; then
+    sip_udp_port="${ASTERISK_SIP_UDP_PORT}"
+fi
 
 # Fix cache/file ownership before reload, otherwise the reload aborts with
 # "Can not create the LESS cache folder ... run fwconsole chown".
