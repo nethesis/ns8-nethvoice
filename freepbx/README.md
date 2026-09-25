@@ -314,9 +314,9 @@ without altering them.
 
 ### Run install and update tests in GitHub Actions
 
-The FIAS E2E test is the default for this workflow. It runs automatically
-after a successful `Publish images` workflow, or it can be dispatched manually
-for a branch after its images have been published:
+The FIAS E2E test always runs, alongside the standard module test suite. It
+runs automatically after a successful `Publish images` workflow, or it can be
+dispatched manually for a branch after its images have been published:
 
 ```sh
 gh workflow run test-module.yml \
