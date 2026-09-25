@@ -9,6 +9,7 @@
 #
 # The script looks for files named <action>_<service> inside the notify directory
 
+cti_ready=false
 for file in $(find notify/ -type f); do
     action=$(basename $file | cut -d'_' -f1)
     service=$(basename $file | cut -d'_' -f2)
@@ -17,5 +18,18 @@ for file in $(find notify/ -type f); do
         # Execute reload only if the service is running
         /usr/bin/systemctl --user is-active -q $service || continue
     fi
+    case "$action:$service" in
+        start:nethcti-server|restart:nethcti-server|start:nethcti-middleware|restart:nethcti-middleware)
+            cti_ready=true
+            ;;
+    esac
     /usr/bin/systemctl --user $action $service
 done
+services_status=$?
+
+# The wizard requests CTI startup before its database write completes. Publish
+# from the startup intent even if systemctl failed, so startup failures alert.
+if $cti_ready; then
+    prometheus-alert-rules update --cti-ready || exit "$?"
+fi
+exit "$services_status"

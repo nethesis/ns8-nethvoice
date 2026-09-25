@@ -8,5 +8,4 @@
 set -e
 exec 1>&2
 
-prometheus-alert-rules remove
-prometheus-targets remove
+prometheus-alert-rules update
