@@ -23,6 +23,7 @@ ExecStart=runagent /usr/bin/podman run \
     --env=RTP_PORT=${SATELLITE_HTTP_PORT} \
     --env=MQTT_URL="mqtt://127.0.0.1:${SATELLITE_MQTT_PORT}" \
     --env=MQTT_TOPIC_PREFIX=satellite \
+    --env=LOG_LEVEL=${SATELLITE_LOG_LEVEL} \
     --env=MQTT_USERNAME=${SATELLITE_MQTT_USERNAME} \
     --env=HTTP_PORT=${SATELLITE_HTTP_PORT} \
     --env=API_TOKEN=${SATELLITE_API_TOKEN} \
