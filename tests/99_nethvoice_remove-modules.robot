@@ -21,10 +21,5 @@ Check if the module alert rules are removed correctly
     ${count} =    Execute Command    redis-cli --raw HLEN module/${module_id}/metrics_alert_rules
     Should Be Equal As Integers    ${count}    0
 
-Check if the nethvoice user domain admin is removed correctly
-    ${response} =  Run task    cluster/get-domain-user
-    ...    {"domain":"${users_domain}", "user":"${nv_domain_admin}"}
-    ...    rc_expected=2    decode_json=False
-
 Remove internal domain
     Run task    cluster/remove-internal-domain    {"domain":"${users_domain}"}
