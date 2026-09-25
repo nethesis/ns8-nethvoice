@@ -2,7 +2,18 @@
 Library    SSHLibrary
 Resource   ./api.resource
 
+*** Variables ***
+${METRICS_IMAGE_URL}    ghcr.io/nethserver/metrics:module-alert-rules
+
 *** Test Cases ***
+Update metrics for module alert rules
+    ${metrics_id}    ${rc} =    Execute Command    redis-cli --raw GET cluster/default_instance/metrics
+    ...    return_rc=True
+    Should Be Equal As Integers    ${rc}    0
+    Should Not Be Empty    ${metrics_id}
+    Run task    cluster/update-module
+    ...    {"force":true,"module_url":"${METRICS_IMAGE_URL}","instances":["${metrics_id}"]}
+
 Setup internal user provider
     ${response} =     Run task    cluster/add-internal-provider    {"image":"openldap","node":1}
     Set Global Variable    ${openldap_module_id}    ${response['module_id']}

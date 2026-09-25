@@ -7,16 +7,7 @@ ${RUN_METRICS_ALERT_RULES_E2E}    ${FALSE}
 
 *** Test Cases ***
 Check if metrics loads and scopes NethVoice service rules
-    ${rules} =    Wait Until Keyword Succeeds    30x    10s    Read Loaded NethVoice Rules
-    ${names} =    Evaluate    {rule["name"] for rule in $rules}
-    Should Contain    ${names}    NethVoiceFreePBXDown
-    Should Contain    ${names}    NethVoiceSystemdExporterDown
-    FOR    ${rule}    IN    @{rules}
-        Should Be Equal    ${rule}[health]    ok
-        Should Be Equal    ${rule}[labels][severity]    critical
-        Should Contain    ${rule}[query]    module_id="${module_id}"
-        Should Be Equal As Numbers    ${rule}[duration]    300
-    END
+    Wait Until Keyword Succeeds    30x    10s    NethVoice Rules Should Be Loaded
 
 Check if a stopped service alerts and recovers
     [Teardown]    Start Monitored Service And Wait For Recovery    tancredi.service    NethVoiceTancrediDown
@@ -49,6 +40,18 @@ Require Module Alert Rules Test Environment
         ${rc} =    Execute Command    runagent -m ${module_id} systemctl --user is-active --quiet ${unit}
         ...    return_stdout=False    return_rc=True
         Should Be Equal As Integers    ${rc}    0    ${unit} must be running before this test
+    END
+
+NethVoice Rules Should Be Loaded
+    ${rules} =    Read Loaded NethVoice Rules
+    ${names} =    Evaluate    {rule["name"] for rule in $rules}
+    Should Contain    ${names}    NethVoiceFreePBXDown
+    Should Contain    ${names}    NethVoiceSystemdExporterDown
+    FOR    ${rule}    IN    @{rules}
+        Should Be Equal    ${rule}[health]    ok
+        Should Be Equal    ${rule}[labels][severity]    critical
+        Should Contain    ${rule}[query]    module_id="${module_id}"
+        Should Be Equal As Numbers    ${rule}[duration]    300
     END
 
 Read Loaded NethVoice Rules
