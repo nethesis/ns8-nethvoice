@@ -80,7 +80,8 @@ foreach ($res as $alarm){
     chgrp($fname,'asterisk');
     $res = rename($fname,"/var/spool/asterisk/outgoing/".$filename);
     if ($res == FALSE) {
-        print("Error moving call file! $fname -> /var/spool/asterisk/outgoing/".$filename);
+        fwrite(STDERR, "Error moving call file! $fname -> /var/spool/asterisk/outgoing/$filename\n");
+        exit(1);
     }
 
     // mark enabled = 0 to avoid more ringing
