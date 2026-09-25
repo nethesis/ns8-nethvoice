@@ -59,6 +59,95 @@ The file must be created inside the container. Example:
 touch /notify/restart_nethcti-server
 ```
 
+## Service alerts
+
+NethVoice publishes built-in service alerts through the metrics module's
+module-provided alert rules interface.
+Alert evaluation requires a metrics module that implements that interface.
+Earlier metrics versions ignore the published rules and continue collecting metrics.
+Notifications use the existing metrics module portal and email configuration.
+
+Every alert has critical severity and a five-minute delay. A service alert fires
+when its expected systemd unit is not active or is missing, while the systemd
+exporter remains reachable. A separate `NethVoiceSystemdExporterDown` alert reports
+scrape failures and suppresses individual service alerts during the outage.
+English and Italian annotations identify the service, module, and node.
+
+| Services | When monitored |
+| --- | --- |
+| systemd exporter | After module creation |
+| FreePBX, MariaDB, Janus, Tancredi, Phonebook, CTI UI, Reports API/Redis/UI | After module configuration |
+| CTI server and middleware | When the wizard reaches step 10 or requests CTI startup |
+| Satellite and MQTT | When call or voicemail transcription is enabled |
+| Satellite PostgreSQL | When transcription is enabled or the database unit remains enabled for historical transcripts |
+
+Each service has a distinct `NethVoice<Component>Down` alert name, so recovering
+one service does not clear another service's notification. This monitors systemd
+unit availability. It does not probe Asterisk inside FreePBX, database response
+times, WebSockets, RTP, telephony quality, AI APIs, or services in other modules.
+Maintenance jobs and timers are excluded. Custom `SYSTEMD_EXPORTER_UNIT_INCLUDE`
+and `SYSTEMD_EXPORTER_UNIT_EXCLUDE` filters must retain the monitored units, since
+missing unit metrics also trigger alerts.
+
+The `prometheus-alert-rules` helper owns the `systemd-exporter`, `core-services`,
+`cti-services`, and `satellite-services` fields of
+`module/<module_id>/metrics_alert_rules`. It publishes changes through
+`module/<module_id>/event/metrics-alert-rules-changed`. Metrics assigns module
+identity and scopes every query to the publishing instance.
+
+Creation, configuration, integration changes, upgrades, restores, and clones
+refresh these fields. Destruction removes them. Unrelated fields are preserved
+and unchanged updates do not emit an event. If the bounded CTI readiness lookup
+fails, existing CTI rules are retained. Instances without previously published
+CTI rules defer them until a subsequent successful refresh or wizard startup
+request. Other service rules continue to update.
+
+To refresh the rules manually on an NS8 node, replace `nethvoice1` with the
+instance ID and run:
+
+```bash
+runagent -m nethvoice1 prometheus-alert-rules update
+redis-cli --raw HKEYS module/nethvoice1/metrics_alert_rules
+```
+
+Successful publication does not guarantee that metrics accepted the rules.
+Check the metrics module journal for validation errors and its Prometheus
+`/api/v1/rules` endpoint for loaded `NethVoice` alerts.
+
+### Testing alert rules
+
+From the repository root, run the Python publisher tests and generate the
+Prometheus fixtures. Python requires PyYAML.
+
+```bash
+python3 -m unittest discover -s tests/unit
+python3 tests/prometheus/generate_rule_tests.py /tmp/nethvoice-alert-rule-tests
+podman run --rm --network=none --security-opt=label=disable \
+  --volume=/tmp/nethvoice-alert-rule-tests:/work:ro --workdir=/work \
+  --entrypoint=/bin/promtool quay.io/prometheus/prometheus:v3.5.3 \
+  check rules rules.yml
+podman run --rm --network=none --security-opt=label=disable \
+  --volume=/tmp/nethvoice-alert-rule-tests:/work:ro --workdir=/work \
+  --entrypoint=/bin/promtool quay.io/prometheus/prometheus:v3.5.3 \
+  test rules tests.yml
+```
+
+The rule tests cover the five-minute threshold, all non-active states, missing
+units, recovery, exporter outages, and separation between modules and services.
+Robot tests also check publication during installation, configuration,
+integration changes, and removal.
+
+On a disposable leader node with the compatible metrics module and an already
+configured NethVoice instance, enable the live alert suite with
+`RUN_METRICS_ALERT_RULES_E2E:True`. It stops Tancredi and the exporter in turn,
+waits for each five-minute alert, and restores each service in teardown:
+
+```bash
+python3 -m robot --suite '14 Prometheus Alert Rules' \
+  --variable NODE_ADDR:test-node.example.org --variable module_id:nethvoice1 \
+  --variable RUN_METRICS_ALERT_RULES_E2E:True tests
+```
+
 ## Phonebook integration
 
 The module defines the `pbookreader` role that allows to call the following API:

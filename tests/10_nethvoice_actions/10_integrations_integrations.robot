@@ -21,6 +21,10 @@ Set integrations configuration
     Should Be Equal    ${response['satellite_call_summary_enabled']}    ${True}
     Should Be Equal As Strings    ${response['deepgram_api_key']}    deepgramkey123
     Should Be Equal As Strings    ${response['openai_api_key']}    openaikey-123
+    ${rules} =    Execute Command    redis-cli --raw HGET module/${module_id}/metrics_alert_rules satellite-services
+    Should Contain    ${rules}    NethVoiceSatelliteDown
+    Should Contain    ${rules}    NethVoiceSatelliteMQTTDown
+    Should Contain    ${rules}    NethVoiceSatellitePostgreSQLDown
 
 Disable integrations configuration
     ${response} =  Run task    module/${module_id}/set-integrations
@@ -30,6 +34,10 @@ Disable integrations configuration
     Should Be Equal    ${response['satellite_call_transcription_enabled']}    ${False}
     Should Be Equal    ${response['satellite_voicemail_transcription_enabled']}    ${False}
     Should Be Equal    ${response['satellite_call_summary_enabled']}    ${False}
+    ${rules} =    Execute Command    redis-cli --raw HGET module/${module_id}/metrics_alert_rules satellite-services
+    Should Not Contain    ${rules}    NethVoiceSatelliteDown
+    Should Not Contain    ${rules}    NethVoiceSatelliteMQTTDown
+    Should Contain    ${rules}    NethVoiceSatellitePostgreSQLDown
 
 Partial update integrations configuration
     ${response} =  Run task    module/${module_id}/set-integrations
@@ -41,3 +49,8 @@ Partial update integrations configuration
     Should Be Equal    ${response['satellite_call_summary_enabled']}    ${False}
     Should Be Equal As Strings    ${response['deepgram_api_key']}    ${EMPTY}
     Should Be Equal As Strings    ${response['openai_api_key']}    ${EMPTY}
+
+    ${rules} =    Execute Command    redis-cli --raw HGET module/${module_id}/metrics_alert_rules satellite-services
+    Should Contain    ${rules}    NethVoiceSatelliteDown
+    Should Contain    ${rules}    NethVoiceSatelliteMQTTDown
+    Should Contain    ${rules}    NethVoiceSatellitePostgreSQLDown

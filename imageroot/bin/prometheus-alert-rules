@@ -1,0 +1,200 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import argparse
+import fcntl
+import os
+import subprocess
+import sys
+
+import agent
+import yaml
+
+
+RULE_SETS = ("systemd-exporter", "core-services", "cti-services", "satellite-services")
+CORE_SERVICES = (
+    ("freepbx", "FreePBX"),
+    ("mariadb", "MariaDB"),
+    ("janus", "Janus"),
+    ("tancredi", "Tancredi"),
+    ("phonebook", "Phonebook"),
+    ("nethcti-ui", "CTIUI"),
+    ("reports-api", "ReportsAPI"),
+    ("reports-redis", "ReportsRedis"),
+    ("reports-ui", "ReportsUI"),
+)
+CTI_SERVICES = (("nethcti-server", "CTIServer"), ("nethcti-middleware", "CTIMiddleware"))
+SATELLITE_SERVICES = (("satellite", "Satellite"), ("satellite-mqtt", "SatelliteMQTT"))
+SATELLITE_DATABASE = ("satellite-pgsql", "SatellitePostgreSQL")
+
+
+def service_rule(service, component):
+    unit = f"{service}.service"
+    return {
+        "alert": f"NethVoice{component}Down",
+        "expr": (
+            '(up{target_type="systemd"} == 1) unless on(instance, module_id) '
+            '(systemd_unit_state{target_type="systemd", '
+            f'name="{unit}", state="active"}} == 1)'
+        ),
+        "for": "5m",
+        "labels": {"severity": "critical", "service": unit},
+        "annotations": {
+            "summary_en": f"NethVoice service {unit} is unavailable",
+            "summary_it": f"Servizio NethVoice {unit} non disponibile",
+            "description_en": (
+                f"The expected unit {unit} has been inactive or missing for 5 minutes "
+                "on {{ $labels.module_id }} (node {{ $labels.node }}). "
+                "The systemd exporter is reachable."
+            ),
+            "description_it": (
+                f"L'unità attesa {unit} è inattiva o assente da 5 minuti "
+                "su {{ $labels.module_id }} (nodo {{ $labels.node }}). "
+                "L'esportatore systemd è raggiungibile."
+            ),
+        },
+    }
+
+
+def exporter_rule():
+    return {
+        "alert": "NethVoiceSystemdExporterDown",
+        "expr": 'up{target_type="systemd"} == 0',
+        "for": "5m",
+        "labels": {"severity": "critical", "service": "systemd-exporter.service"},
+        "annotations": {
+            "summary_en": "NethVoice service monitoring is unavailable",
+            "summary_it": "Monitoraggio dei servizi NethVoice non disponibile",
+            "description_en": (
+                "The systemd exporter for {{ $labels.module_id }} "
+                "(node {{ $labels.node }}) has been unreachable for 5 minutes. "
+                "Service states cannot be monitored."
+            ),
+            "description_it": (
+                "L'esportatore systemd di {{ $labels.module_id }} "
+                "(nodo {{ $labels.node }}) non è raggiungibile da 5 minuti. "
+                "Impossibile monitorare lo stato dei servizi."
+            ),
+        },
+    }
+
+
+def rule_document(name, rules):
+    return yaml.safe_dump(
+        {"groups": [{"name": f"nethvoice.{name}", "rules": rules}]},
+        allow_unicode=True,
+        sort_keys=False,
+    )
+
+
+def cti_ready():
+    """Return None when readiness cannot be read, preserving published CTI rules."""
+    try:
+        result = subprocess.run(
+            ["podman", "exec", "mariadb", "sh", "-c",
+             'exec mysql --connect-timeout=5 -u root -h 127.0.0.1 '
+             '-P "$NETHVOICE_MARIADB_PORT" -p"$MARIADB_ROOT_PASSWORD" '
+             'asterisk -BN -e "SELECT COALESCE(MAX(step), 0) FROM rest_wizard"'],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode == 0:
+            return int(result.stdout.strip()) >= 10
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        pass
+    print(
+        "Warning: cannot read CTI wizard readiness; retaining existing CTI alert rules "
+        "or deferring them until the next update if none were published",
+        file=sys.stderr,
+    )
+    return None
+
+
+def satellite_database_enabled():
+    result = subprocess.run(
+        ["systemctl", "--user", "is-enabled", "satellite-pgsql.service"],
+        capture_output=True, text=True, timeout=10,
+    )
+    state = result.stdout.strip()
+    if state in ("enabled", "enabled-runtime"):
+        return True
+    if state in ("disabled", "static", "indirect", "masked", "masked-runtime", "not-found"):
+        return False
+    raise RuntimeError("Cannot determine whether satellite-pgsql.service is enabled")
+
+
+def build_rule_sets(env, previous, force_cti_ready=False):
+    # Match the existing target provisioning guard for upgrades without a port.
+    if not env.get("NETHVOICE_SYSTEMD_EXPORTER_PORT"):
+        return {}
+    desired = {"systemd-exporter": rule_document("systemd-exporter", [exporter_rule()])}
+    if not env.get("NETHVOICE_HOST"):
+        return desired
+
+    desired["core-services"] = rule_document(
+        "core-services", [service_rule(*service) for service in CORE_SERVICES]
+    )
+    ready = True if force_cti_ready else cti_ready()
+    if ready:
+        desired["cti-services"] = rule_document(
+            "cti-services", [service_rule(*service) for service in CTI_SERVICES]
+        )
+    elif ready is None and "cti-services" in previous:
+        desired["cti-services"] = previous["cti-services"]
+
+    satellite_enabled = any(env.get(key) == "True" for key in (
+        "SATELLITE_CALL_TRANSCRIPTION_ENABLED", "SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED",
+    ))
+    services = list(SATELLITE_SERVICES) if satellite_enabled else []
+    if satellite_enabled or satellite_database_enabled():
+        services.append(SATELLITE_DATABASE)
+    if services:
+        desired["satellite-services"] = rule_document(
+            "satellite-services", [service_rule(*service) for service in services]
+        )
+    return desired
+
+
+def publish_rules(remove=False, force_cti_ready=False):
+    key = f'module/{os.environ["MODULE_ID"]}/metrics_alert_rules'
+    with agent.redis_connect(privileged=True) as rdb:
+        # Only read and change fields owned by this helper.
+        previous = {
+            name: value.decode() if isinstance(value, bytes) else value
+            for name, value in zip(RULE_SETS, rdb.hmget(key, RULE_SETS))
+            if value is not None
+        }
+        desired = {} if remove else build_rule_sets(
+            agent.read_envfile("environment"), previous, force_cti_ready,
+        )
+        if desired == previous:
+            return
+        trx = rdb.pipeline()
+        for name, value in desired.items():
+            if previous.get(name) != value:
+                trx.hset(key, name, value)
+        obsolete = previous.keys() - desired.keys()
+        if obsolete:
+            trx.hdel(key, *sorted(obsolete))
+        trx.publish(f'{os.environ["AGENT_ID"]}/event/metrics-alert-rules-changed', "{}")
+        trx.execute()
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Publish NethVoice service alert rules")
+    parser.add_argument("command", choices=("update", "remove"))
+    parser.add_argument("--cti-ready", action="store_true", help="CTI startup has been requested")
+    args = parser.parse_args()
+    if args.command == "remove" and args.cti_ready:
+        parser.error("--cti-ready requires update")
+    # The watcher and module tasks can publish concurrently.
+    with open("prometheus-alert-rules.lock", "a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        publish_rules(remove=args.command == "remove", force_cti_ready=args.cti_ready)
+
+
+if __name__ == "__main__":
+    main()

@@ -8,3 +8,14 @@ Check if nethvoice is installed correctly
     Should Be Equal As Integers    ${rc}  0
     &{output} =    Evaluate    ${output}
     Set Global Variable    ${module_id}    ${output.module_id}
+
+Check if systemd exporter starts before configuration
+    ${status}  ${rc} =    Execute Command
+    ...    runagent -m ${module_id} systemctl --user is-active systemd-exporter.service
+    ...    return_rc=True
+    Should Be Equal As Integers    ${rc}    0
+    Should Be Equal               ${status}    active
+
+Check if only exporter alerts are published before configuration
+    ${fields} =    Execute Command    redis-cli --raw HKEYS module/${module_id}/metrics_alert_rules
+    Should Be Equal    ${fields}    systemd-exporter
