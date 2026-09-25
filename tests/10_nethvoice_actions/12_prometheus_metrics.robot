@@ -3,6 +3,28 @@ Library    SSHLibrary
 Resource   ../api.resource
 
 *** Test Cases ***
+Check if core service alerts are published
+    ${source} =    Execute Command    redis-cli --raw HGET module/${module_id}/metrics_alert_rules core-services
+    ${rules} =    Evaluate    yaml.safe_load($source)["groups"][0]["rules"]    modules=yaml
+    ${services} =    Evaluate    {rule["labels"]["service"] for rule in $rules}
+    ${expected} =    Evaluate    {"freepbx.service", "mariadb.service", "janus.service", "tancredi.service", "phonebook.service", "nethcti-ui.service", "reports-api.service", "reports-redis.service", "reports-ui.service"}
+    Should Be Equal    ${services}    ${expected}
+    FOR    ${rule}    IN    @{rules}
+        Should Be Equal    ${rule}[for]    5m
+        Should Be Equal    ${rule}[labels][severity]    critical
+        ${annotations} =    Evaluate    set($rule["annotations"])
+        ${expected_annotations} =    Evaluate    {"summary_en", "summary_it", "description_en", "description_it"}
+        Should Be Equal    ${annotations}    ${expected_annotations}
+        Should Not Contain    ${rule}[labels]    module_id
+    END
+
+Check if exporter alert is published
+    ${source} =    Execute Command    redis-cli --raw HGET module/${module_id}/metrics_alert_rules systemd-exporter
+    ${rule} =    Evaluate    yaml.safe_load($source)["groups"][0]["rules"][0]    modules=yaml
+    Should Be Equal    ${rule}[alert]    NethVoiceSystemdExporterDown
+    Should Be Equal    ${rule}[expr]    up{target_type="systemd"} == 0
+    Should Be Equal    ${rule}[for]    5m
+
 Check if systemd exporter target is published
     ${metrics_path} =             Get Module Environment Value    SYSTEMD_EXPORTER_PROMETHEUS_PATH
     ${systemd_exporter_port} =    Get Module Environment Value    NETHVOICE_SYSTEMD_EXPORTER_PORT
