@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Set port migration status",
+  "$id": "http://nethserver.org/json-schema/task/input/nethvoice/set-port-migration-status",
+  "description": "Mark the port-migration notice as seen (or not).",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "seen": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the admin has seen and dismissed the migration notice."
+    }
+  }
+}
