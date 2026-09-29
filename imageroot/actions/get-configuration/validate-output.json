@@ -29,6 +29,14 @@
         "reports_international_prefix": {
             "description": "International prefix for the reports app",
             "type": "string"
+        },
+        "matrix_enabled": {
+            "description": "Enable embedded Matrix chat",
+            "type": "boolean"
+        },
+        "matrix_host": {
+            "description": "Matrix hostname, preserved when chat is disabled",
+            "type": "string"
         }
     }
 }

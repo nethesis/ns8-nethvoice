@@ -62,6 +62,14 @@
         "timezone": {
             "description": "Asterisk Timezone for timeconditions",
             "type": "string"
+        },
+        "matrix_enabled": {
+            "description": "Enable embedded Matrix chat",
+            "type": "boolean"
+        },
+        "matrix_host": {
+            "description": "Matrix hostname, preserved when chat is disabled",
+            "type": "string"
         }
     }
 }
