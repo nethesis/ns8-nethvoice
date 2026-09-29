@@ -1,0 +1,9 @@
+[Unit]
+Description=Synchronize external FreePBX calendars
+After=freepbx.service
+
+[Service]
+Type=oneshot
+ExecCondition=/usr/bin/systemctl --user --quiet is-active freepbx.service
+ExecStart=/usr/bin/podman exec freepbx fwconsole calendar --sync
+SyslogIdentifier=%u/%N
