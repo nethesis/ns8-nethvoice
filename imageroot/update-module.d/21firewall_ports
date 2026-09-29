@@ -1,0 +1,19 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Rebuild the instance public-firewall port set after the ports have been
+# (re)allocated at 20allocate_ports.
+#
+# add_public_service() appends by default, so opening the new RTP/UDP ranges
+# during a migration would leave the old ranges behind (overlapping, stale
+# entries). Re-run the authoritative create-module/90firewall action, which
+# applies the full correct list with replace_ports=True: this drops the stale
+# entries and reopens exactly the intended ports (SIP UDP and Satellite are
+# deliberately not exposed). Invoke it via runagent so it sees the freshly
+# allocated ports from the environment file.
+
+exec runagent "${AGENT_INSTALL_DIR}/actions/create-module/90firewall"

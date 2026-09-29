@@ -1,0 +1,103 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2025 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Apply the port values written to MariaDB at step 85mysql_update to the live
+# Asterisk.
+#
+# A `fwconsole reload` regenerates the FreePBX-managed config from the database
+# but does NOT rebind an already-loaded PJSIP transport. On an update the
+# FreePBX container is recreated: Asterisk starts and binds the persisted
+# (old-port) pjsip.transports.conf before freepbx_init regenerates it, so a
+# reload alone leaves the SIP UDP transport on the old port.
+#
+# We reload to regenerate the config, then:
+#   - if the live SIP UDP transport is already on the target port, stop (a normal
+#     update where the port did not move — avoid a needless Asterisk restart);
+#   - otherwise restart Asterisk (as root) to rebind, and retry reload+restart
+#     until the live transport matches the target port. The DB is authoritative,
+#     so this converges even when the DB/config are still settling during a
+#     legacy->PR migration (a single reload+restart can otherwise rebind the old
+#     port).
+#
+# Skip gracefully if FreePBX is not running (the config will be correct on the
+# next start).
+
+if ! systemctl --user is-active --quiet freepbx; then
+    echo "FreePBX is not running, skipping reload/restart" >&2
+    exit 0
+fi
+
+# Skip gracefully if the container is not reachable yet
+if ! podman exec freepbx true >/dev/null 2>&1; then
+    echo "FreePBX container not ready, skipping reload/restart" >&2
+    exit 0
+fi
+
+# Target SIP UDP port. Prefer the environment FILE: update-module.d steps run
+# with os.environ frozen at the start of the update, so on the migrating update
+# ASTERISK_SIP_UDP_PORT (allocated in step 20 during this same run) is only in
+# the file, not in the shell environment. Fall back to the shell environment
+# (correct for a normal update, where the port did not change this run) so an
+# unreadable file does not silently disable the skip-restart gate.
+sip_udp_port=$(grep -E '^ASTERISK_SIP_UDP_PORT=' "${AGENT_STATE_DIR}/environment" 2>/dev/null | cut -d= -f2 | tr -d '[:space:]')
+if [ -z "$sip_udp_port" ]; then
+    sip_udp_port="${ASTERISK_SIP_UDP_PORT}"
+fi
+
+# Fix cache/file ownership before reload, otherwise the reload aborts with
+# "Can not create the LESS cache folder ... run fwconsole chown".
+podman exec freepbx fwconsole chown >/dev/null 2>&1
+
+# Regenerate the FreePBX-managed configuration from the database
+podman exec --user asterisk freepbx fwconsole reload --no-interaction || \
+    echo "WARNING: fwconsole reload failed; continuing" >&2
+
+# The live SIP UDP transport bind address, if any.
+udp_bound() {
+    [ -n "$sip_udp_port" ] && podman exec freepbx asterisk -rx 'pjsip show transports' 2>/dev/null \
+        | grep -E '[[:space:]]udp[[:space:]]' | grep -qE ":${sip_udp_port}([^0-9]|\$)"
+}
+
+# `fwconsole reload` regenerates the config from the DB but does NOT rebind an
+# already-loaded PJSIP transport. Only on the migrating update does the SIP UDP
+# port move, leaving the live transport on the old port; a normal update finds it
+# already correct. Restart Asterisk (as root — unlike reload) only when the
+# transport is not yet on the target port, so an ordinary update does not drop
+# active calls.
+if udp_bound; then
+    echo "SIP UDP transport already bound to ${sip_udp_port}, skipping restart" >&2
+    exit 0
+fi
+
+wait_asterisk() {
+    local attempt=0
+    until [[ $(podman exec freepbx asterisk -rx 'core show version' 2>/dev/null) == Asterisk* ]]; do
+        if [ "$((attempt++))" -ge 60 ]; then
+            echo "Asterisk did not come back after restart" >&2
+            return 1
+        fi
+        sleep 5
+    done
+}
+
+# Restart Asterisk to rebind the transport, then verify. During the migrating
+# update the DB/config can still be settling when this step runs, so a single
+# reload+restart may rebind the old port; the DB is authoritative, so retry
+# reload+restart until the live transport matches (or give up with a warning).
+for restart_attempt in 1 2 3; do
+    podman exec freepbx fwconsole restart --no-interaction
+    wait_asterisk || exit 1
+    if udp_bound; then
+        exit 0
+    fi
+    echo "SIP UDP transport not on ${sip_udp_port} after restart ${restart_attempt}, retrying" >&2
+    # Regenerate the config from the (authoritative) DB before the next restart.
+    podman exec --user asterisk freepbx fwconsole reload --no-interaction || true
+    sleep 5
+done
+
+echo "WARNING: SIP UDP transport is not bound to ${sip_udp_port:-<unset>} after retries" >&2
