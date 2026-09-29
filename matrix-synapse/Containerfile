@@ -1,0 +1,4 @@
+FROM ghcr.io/element-hq/synapse:v1.149.1
+COPY nethvoice_auth_provider.py /usr/local/lib/nethvoice/nethvoice_auth_provider.py
+ENV PYTHONPATH=/usr/local/lib/nethvoice
+USER 991:991
