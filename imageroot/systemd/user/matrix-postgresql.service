@@ -4,7 +4,6 @@ Description=Embedded Matrix PostgreSQL
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%E/state/environment
-EnvironmentFile=%E/state/passwords.env
 WorkingDirectory=%E/state
 ExecCondition=runagent matrix-config enabled
 Restart=always
@@ -16,9 +15,9 @@ ExecStart=/usr/bin/podman run --detach --replace --name=%N \
     --cgroups=no-conmon --log-opt=tag=%u \
     --publish=127.0.0.1:${MATRIX_POSTGRES_PORT}:5432 \
     --volume=matrix-postgresql-data:/var/lib/postgresql/data:Z \
+    --env-file=%E/state/matrix/postgresql.env \
     --env=POSTGRES_USER=${MATRIX_POSTGRES_USER} \
     --env=POSTGRES_DB=${MATRIX_POSTGRES_DB} \
-    --env=POSTGRES_PASSWORD=${MATRIX_POSTGRES_PASSWORD} \
     "--env=POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C" \
     ${POSTGRES_IMAGE}
 ExecStartPost=runagent matrix-config wait postgresql

@@ -7,6 +7,8 @@ import unittest
 from unittest.mock import patch
 import types
 import sys
+import contextlib
+import io
 
 
 def load_helper(name):
@@ -90,11 +92,38 @@ class MatrixConfigurationTests(unittest.TestCase):
 
     def test_credentials_are_serialized_without_yaml_interpolation(self):
         self.passwords['MATRIX_POSTGRES_PASSWORD'] = 'a"\n: {danger: value}'
+        config, _, _ = matrix.configurations(self.env, self.passwords)
+        self.assertEqual(config['database']['args']['password'], self.passwords['MATRIX_POSTGRES_PASSWORD'])
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, 'Invalid Matrix service credential'):
+                matrix.generate(Path(directory), self.env, self.passwords)
+
+    def test_service_env_files_have_only_needed_secrets_and_are_private(self):
         with tempfile.TemporaryDirectory() as directory:
             state = Path(directory)
-            matrix.generate(state, self.env, self.passwords)
-            config = json.loads((state / 'matrix/synapse/homeserver.yaml').read_text())
-            self.assertEqual(config['database']['args']['password'], self.passwords['MATRIX_POSTGRES_PASSWORD'])
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
+                matrix.generate(state, self.env, self.passwords)
+            self.assertEqual(output.getvalue(), '')
+            pg = state / 'matrix/postgresql.env'
+            bridge = state / 'matrix/m2a.env'
+            self.assertEqual(pg.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(bridge.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(pg.read_text(), 'POSTGRES_PASSWORD=' + self.passwords['MATRIX_POSTGRES_PASSWORD'] + '\n')
+            self.assertEqual(bridge.read_text().splitlines(), [
+                'MATRIX_AS_TOKEN=' + self.passwords['MATRIX_M2A_AS_TOKEN'],
+                'MATRIX_HS_TOKEN=' + self.passwords['MATRIX_M2A_HS_TOKEN'],
+                'EXT_AUTH_TOKEN=' + self.passwords['MATRIX_INTERNAL_AUTH_TOKEN'],
+            ])
+            units = Path(__file__).resolve().parents[2] / 'imageroot/systemd/user'
+            for name, secret_names in (
+                ('matrix-postgresql.service', ('MATRIX_POSTGRES_PASSWORD', 'POSTGRES_PASSWORD=${')),
+                ('matrix2acrobits.service', ('MATRIX_M2A_AS_TOKEN', 'MATRIX_M2A_HS_TOKEN', 'MATRIX_INTERNAL_AUTH_TOKEN')),
+            ):
+                unit = (units / name).read_text()
+                self.assertIn('--env-file=%E/state/matrix/', unit)
+                for secret in secret_names:
+                    self.assertNotIn(secret, unit)
 
     def test_upgrade_allocates_every_slot_from_core_inclusive_range(self):
         env = {}

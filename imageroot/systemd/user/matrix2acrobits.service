@@ -6,7 +6,6 @@ After=matrix-synapse.service nethcti-middleware.service
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%E/state/environment
-EnvironmentFile=%E/state/passwords.env
 WorkingDirectory=%E/state
 ExecCondition=runagent matrix-config enabled
 Restart=always
@@ -18,14 +17,13 @@ ExecStart=/usr/bin/podman run --detach --replace --name=%N \
     --cgroups=no-conmon --log-opt=tag=%u --network=host \
     --userns=keep-id:uid=65532,gid=65532 \
     --volume=matrix2acrobits-data:/data:Z \
+    --env-file=%E/state/matrix/m2a.env \
     --env=MATRIX_SERVER_NAME=${NETHVOICE_MATRIX_HOST} \
     --env=MATRIX_HOMESERVER_URL=http://127.0.0.1:${MATRIX_SYNAPSE_PORT} \
     --env=PROXY_URL=https://${NETHVOICE_MATRIX_HOST} \
     --env=PROXY_HOST=127.0.0.1 --env=PROXY_PORT=${MATRIX_M2A_PORT} \
     --env=AS_USER_ID=@_acrobits_proxy:${NETHVOICE_MATRIX_HOST} \
-    --env=MATRIX_AS_TOKEN=${MATRIX_M2A_AS_TOKEN} --env=MATRIX_HS_TOKEN=${MATRIX_M2A_HS_TOKEN} \
     --env=EXT_AUTH_URL=http://127.0.0.1:${NETHVOICE_MIDDLEWARE_MATRIX_PORT}/internal/matrix \
-    --env=EXT_AUTH_TOKEN=${MATRIX_INTERNAL_AUTH_TOKEN} \
     --env=PUSH_TOKEN_DB_PATH=/data/push.db --env=LOGLEVEL=INFO \
     ${NETHVOICE_MATRIX2ACROBITS_IMAGE}
 ExecStartPost=runagent matrix-config wait bridge

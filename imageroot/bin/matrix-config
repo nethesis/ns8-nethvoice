@@ -132,6 +132,25 @@ def atomic_write(path, contents):
     temporary.replace(path)
 
 
+def write_service_env_files(state, passwords):
+    """Keep service credentials out of expanded Podman command arguments."""
+    service_values = (
+        ('postgresql.env', {'POSTGRES_PASSWORD': passwords['MATRIX_POSTGRES_PASSWORD']}),
+        ('m2a.env', {
+            'MATRIX_AS_TOKEN': passwords['MATRIX_M2A_AS_TOKEN'],
+            'MATRIX_HS_TOKEN': passwords['MATRIX_M2A_HS_TOKEN'],
+            'EXT_AUTH_TOKEN': passwords['MATRIX_INTERNAL_AUTH_TOKEN'],
+        }),
+    )
+    for name, values in service_values:
+        # Generated tokens use URL-safe characters. Fail closed if a damaged
+        # secret file contains an env-file delimiter or newline.
+        if any(not re.fullmatch(r'[A-Za-z0-9_-]+', value) for value in values.values()):
+            raise ValueError('Invalid Matrix service credential')
+        atomic_write(state / 'matrix' / name,
+                     ''.join(key + '=' + value + '\n' for key, value in values.items()))
+
+
 def generate(state, env, passwords, smtp=None):
     base_url = 'https://' + env['NETHVOICE_MATRIX_HOST'] if enabled(env) else ''
     atomic_write(state / 'middleware.env', 'NETHVOICE_MATRIX_BASE_URL=' + base_url + '\n')
@@ -141,6 +160,7 @@ def generate(state, env, passwords, smtp=None):
     if identity_path.exists() and json.loads(identity_path.read_text())['server_name'] != env['NETHVOICE_MATRIX_HOST']:
         raise ValueError('Matrix server identity cannot be changed')
     config, registration, logging = configurations(env, passwords, smtp)
+    write_service_env_files(state, passwords)
     for name, contents in (('homeserver.yaml', config), ('matrix2acrobits.yaml', registration), ('log.config', logging)):
         atomic_write(state / 'matrix/synapse' / name, json.dumps(contents, indent=2) + '\n')
     # Persist identity before startup: a failed start must not permit a different
