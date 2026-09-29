@@ -59,3 +59,6 @@ fi
 if systemctl --user --quiet is-active satellite-pgsql.service; then
     podman exec satellite-pgsql pg_dumpall -U satellite | gzip > satellite_postgresql.pg_dump.gz
 fi
+
+# Embedded Matrix databases remain durable even when chat is disabled.
+runagent matrix-state dump

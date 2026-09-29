@@ -8,3 +8,5 @@
 set -e
 
 rm -rf db_backup.xb.gz asterisk_backup satellite_postgresql.pg_dump.gz
+
+runagent matrix-state cleanup

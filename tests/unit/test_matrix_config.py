@@ -4,6 +4,9 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
+import types
+import sys
 
 
 def load_helper(name):
@@ -92,6 +95,24 @@ class MatrixConfigurationTests(unittest.TestCase):
             matrix.generate(state, self.env, self.passwords)
             config = json.loads((state / 'matrix/synapse/homeserver.yaml').read_text())
             self.assertEqual(config['database']['args']['password'], self.passwords['MATRIX_POSTGRES_PASSWORD'])
+
+    def test_upgrade_allocates_every_slot_from_core_inclusive_range(self):
+        env = {}
+        passwords = {}
+        def write_passwords(name, values):
+            passwords.update(values)
+        agent = types.SimpleNamespace(
+            read_envfile=lambda name: env if name == 'environment' else passwords,
+            write_envfile=write_passwords,
+            set_env=lambda name, value: env.update({name: value}),
+            allocate_ports=lambda count, protocol, keep_existing: (21000, 21000 + count - 1))
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.dict(sys.modules, {'agent': agent}), \
+                patch.object(sys, 'argv', ['matrix-config', 'initialize']), \
+                patch.dict(matrix.os.environ, {'AGENT_STATE_DIR': directory}):
+            self.assertEqual(matrix.main(), 0)
+        self.assertEqual([env[name] for name in matrix.PORT_NAMES], ['21000', '21001', '21002', '21003'])
+        self.assertEqual(env['NETHVOICE_MIDDLEWARE_MATRIX_LISTEN_ADDRESS'], '127.0.0.1:21003')
 
 
 if __name__ == '__main__':

@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+exec 1>&2
+# Old backups have no Matrix dump; initialize preserves restored credentials.
+runagent matrix-config initialize
+runagent matrix-state restore
+# Configure validation must inspect the restored wizard before configure80.
+if runagent matrix-config enabled; then
+    systemctl --user start mariadb.service
+fi

@@ -21,7 +21,7 @@ cleanup() {
     exit "$ec"
 }
 trap cleanup EXIT
-gunzip -c /tmp/satellite_postgresql.pg_dump.gz | psql -U postgres
+gunzip -c /tmp/satellite_postgresql.pg_dump.gz | psql -U "$POSTGRES_USER"
 EOS
 
 # Override the image /docker-entrypoint-initdb.d contents, to restore the
@@ -31,13 +31,13 @@ podman run \
     --interactive \
     --network=none \
     --volume=./restore:/docker-entrypoint-initdb.d/:Z \
-    --volume=satellite_pgdata:/var/lib/postgresql/data:Z \
+    --volume=satellite_pgdata:/var/lib/postgresql/18/docker:Z \
     --volume=./satellite_postgresql.pg_dump.gz:/tmp/satellite_postgresql.pg_dump.gz:Z \
     --replace --name=restore_db \
     --env POSTGRES_USER=${SATELLITE_PGSQL_USER} \
     --env POSTGRES_PASSWORD=${SATELLITE_PGSQL_PASSWORD} \
     --env TZ=UTC \
-    "${POSTGRES_IMAGE}"
+    "${PGVECTOR_IMAGE}"
 
 
 # If the restore is successful, clean up:

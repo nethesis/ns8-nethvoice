@@ -18,6 +18,8 @@ old_envs = request['environment']
 # call configure module
 response = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-module', data={
     "nethvoice_host": old_envs["NETHVOICE_HOST"],
+    "matrix_enabled": old_envs.get("NETHVOICE_MATRIX_ENABLED", "False") == "True",
+    "matrix_host": old_envs.get("NETHVOICE_MATRIX_HOST", ""),
     "nethcti_ui_host": old_envs["NETHCTI_UI_HOST"],
     "reports_international_prefix": old_envs["REPORTS_INTERNATIONAL_PREFIX"],
     "timezone": old_envs["TIMEZONE"],
