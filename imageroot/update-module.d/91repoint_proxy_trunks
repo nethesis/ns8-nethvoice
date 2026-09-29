@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Repoint this instance's no-register inbound trunks on the nethvoice-proxy to
+# the new SIP UDP port.
+#
+# A trunk without registration is matched on the proxy by a dedicated rule whose
+# dispatcher destination is a static sip:<node-ip>:<port> pointing at this
+# instance's Asterisk SIP listener. Unlike the generic per-domain route (handled
+# by configure-module/60sip_proxy), these trunk rules are created out-of-band
+# via the proxy *-trunk actions and NethVoice never rewrites them. When this PR
+# moves the SIP UDP listener from ASTERISK_SIP_PORT to the dedicated
+# ASTERISK_SIP_UDP_PORT, the trunk destination still points at the old (now
+# TCP-only) port and inbound calls are refused.
+#
+# Find the proxy trunks whose destination is this node's ip + the old SIP port
+# and re-add them with the new SIP UDP port. Matching on the ip:port pair keeps
+# it scoped to this instance (SIP ports are unique per node).
+#
+# Best-effort: a proxy problem must never abort the update. Calling the proxy
+# *-trunk actions needs the "trunkadm" role (requested in our Containerfile
+# authorizations); older proxy versions expose only the *-route actions and have
+# no trunkadm role, so the task is refused (403) and we log a clean note instead
+# of failing.
+
+import re
+import sys
+
+import agent
+import agent.tasks
+
+# Read the env file, not os.environ: ASTERISK_SIP_UDP_PORT is created by the
+# earlier 20allocate_ports step in this same run, and os.environ is frozen at
+# the start of the update.
+env = agent.read_envfile("environment")
+
+old_port = env.get("ASTERISK_SIP_PORT")
+new_port = env.get("ASTERISK_SIP_UDP_PORT")
+
+# Nothing to do when the SIP UDP port did not move (already migrated).
+if not old_port or not new_port or old_port == new_port:
+    sys.exit(0)
+
+proxy_id = agent.resolve_agent_id("nethvoice-proxy@node")
+if proxy_id is None:
+    # No proxy on this node: nothing to repoint.
+    sys.exit(0)
+
+# The trunk destination host is this node's VPN ip, the same host used by the
+# generic route (configure-module/60sip_proxy).
+with agent.redis_connect(use_replica=True) as rdb:
+    node_address = rdb.hget(f'node/{int(env["NODE_ID"])}/vpn', "ip_address")
+
+if not node_address:
+    print(agent.SD_WARNING + "Cannot resolve this node VPN address, skipping trunk repoint",
+          file=sys.stderr)
+    sys.exit(0)
+
+# Fetch the trunks currently configured on the proxy.
+try:
+    response = agent.tasks.run(
+        agent_id=proxy_id,
+        action="list-trunks",
+        data={},
+        extra={"isNotificationHidden": True},
+    )
+    agent.assert_exp(response["exit_code"] == 0)
+except Exception as ex:
+    print(agent.SD_WARNING + f"Cannot list proxy trunks ({ex}); no-register trunks "
+          f"not repointed. The proxy may not grant nethvoice the *-trunk actions yet.",
+          file=sys.stderr)
+    sys.exit(0)
+
+trunks = response.get("output")
+if isinstance(trunks, str):
+    import json
+    trunks = json.loads(trunks or "[]")
+trunks = trunks or []
+
+# Match "sip:<node_address>:<old_port>" allowing an optional suffix (parameters
+# or path) that must be preserved when rewriting the port.
+uri_re = re.compile(r"^sip:([^:;/?]+):(\d+)(.*)$")
+
+changed = 0
+for trunk in trunks:
+    destination = trunk.get("destination") or {}
+    match = uri_re.match(destination.get("uri", ""))
+    if not match:
+        continue
+    host, port, suffix = match.group(1), match.group(2), match.group(3)
+    if host != node_address or port != str(old_port):
+        continue
+
+    new_uri = f"sip:{host}:{new_port}{suffix}"
+    try:
+        result = agent.tasks.run(
+            agent_id=proxy_id,
+            action="add-trunk",
+            data={
+                "rule": trunk["rule"],
+                "destination": {
+                    "uri": new_uri,
+                    "description": destination.get("description") or env.get("MODULE_ID", ""),
+                },
+            },
+            extra={"isNotificationHidden": True},
+        )
+        agent.assert_exp(result["exit_code"] == 0)
+    except Exception as ex:
+        print(agent.SD_WARNING + f"Failed to repoint trunk rule {trunk['rule']} ({ex})",
+              file=sys.stderr)
+        continue
+    changed += 1
+    print(agent.SD_INFO + f"Repointed trunk rule {trunk['rule']}: "
+          f"{destination['uri']} -> {new_uri}", file=sys.stderr)
+
+if changed:
+    print(agent.SD_INFO + f"Repointed {changed} no-register trunk(s) to SIP UDP port {new_port}",
+          file=sys.stderr)
