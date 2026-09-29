@@ -26,6 +26,13 @@ def volume_path(name):
     return Path(result.stdout.strip()) if result.returncode == 0 else None
 
 
+def volume_file_exists(volume, filename):
+    # Rootless container files can be owned by a mapped UID that the module
+    # user cannot stat outside Podman's user namespace.
+    return subprocess.run(['podman', 'unshare', 'test', '-f', str(volume / filename)],
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+
+
 def database_initialized():
     volume = volume_path('matrix-postgresql-data')
     return bool(volume and subprocess.run(['podman', 'unshare', 'test', '-s', str(volume / 'PG_VERSION')],
@@ -115,7 +122,7 @@ def dump_database(destination, name, env):
 
 def dump_bridge(env):
     volume = volume_path('matrix2acrobits-data')
-    if volume is None or not (volume / 'push.db').exists():
+    if volume is None or not volume_file_exists(volume, 'push.db'):
         return
     if container_running('matrix2acrobits'):
         run('podman', 'exec', 'matrix2acrobits', '/usr/local/bin/matrix2acrobits',
@@ -147,16 +154,24 @@ def restore_database(source, env, passwords):
     source.unlink()
 
 
-def restore_bridge():
-    volume = volume_path('matrix2acrobits-data')
-    if volume is None or not (volume / 'push.backup.db').exists():
-        return
+def restore_bridge_files(volume):
+    """Run only inside podman unshare, where mapped volume files are readable."""
     temporary = volume / 'push.db.restore'
     shutil.copyfile(volume / 'push.backup.db', temporary)
     os.chmod(temporary, 0o600)
+    snapshot = (volume / 'push.backup.db').stat()
+    os.chown(temporary, snapshot.st_uid, snapshot.st_gid)
     for suffix in ('-wal', '-shm'):
         (volume / ('push.db' + suffix)).unlink(missing_ok=True)
     temporary.replace(volume / 'push.db')
+
+
+def restore_bridge():
+    volume = volume_path('matrix2acrobits-data')
+    if volume is None or not volume_file_exists(volume, 'push.backup.db'):
+        return
+    run('podman', 'unshare', sys.executable, str(Path(__file__).resolve()),
+        'restore-bridge-files', str(volume))
 
 
 def clone_environment(current, source, passwords, old_passwords, replace):
@@ -204,8 +219,14 @@ def clone(state, agent, request):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('operation', choices=('dump', 'cleanup', 'restore', 'clone'))
+    parser.add_argument('operation', choices=('dump', 'cleanup', 'restore', 'clone', 'restore-bridge-files'))
+    parser.add_argument('volume', nargs='?')
     options = parser.parse_args()
+    if options.operation == 'restore-bridge-files':
+        if not options.volume:
+            parser.error('restore-bridge-files requires a volume path')
+        restore_bridge_files(Path(options.volume))
+        return
     import agent
     state = Path(os.environ.get('AGENT_STATE_DIR', os.getcwd()))
     env = {**os.environ, **agent.read_envfile('environment')}
@@ -213,7 +234,7 @@ def main():
         (state / 'matrix_postgresql.pg_dump.gz').unlink(missing_ok=True)
         bridge = volume_path('matrix2acrobits-data')
         if bridge:
-            (bridge / 'push.backup.db').unlink(missing_ok=True)
+            run('podman', 'unshare', 'rm', '-f', str(bridge / 'push.backup.db'))
         return
     passwords = agent.read_envfile('passwords.env')
     if options.operation == 'dump':

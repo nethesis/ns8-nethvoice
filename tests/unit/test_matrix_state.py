@@ -86,8 +86,7 @@ class MatrixStateTests(unittest.TestCase):
             (volume / 'push.backup.db').write_bytes(b'consistent')
             (volume / 'push.db').write_bytes(b'old')
             (volume / 'push.db-wal').write_bytes(b'stale')
-            with patch.object(state, 'volume_path', return_value=volume):
-                state.restore_bridge()
+            state.restore_bridge_files(volume)
             self.assertEqual((volume / 'push.db').read_bytes(), b'consistent')
             self.assertFalse((volume / 'push.db-wal').exists())
             self.assertEqual((volume / 'push.db').stat().st_mode & 0o777, 0o600)
@@ -96,6 +95,21 @@ class MatrixStateTests(unittest.TestCase):
         with patch.object(state, 'volume_path', return_value=None):
             state.restore_bridge()
             self.assertFalse(state.database_initialized())
+
+    def test_bridge_volume_probe_uses_podman_user_namespace(self):
+        volume = Path('/rootless/matrix2acrobits-data/_data')
+        with patch.object(state.subprocess, 'run', return_value=type('Result', (), {'returncode': 0})()) as command:
+            self.assertTrue(state.volume_file_exists(volume, 'push.db'))
+        self.assertEqual(command.call_args.args[0],
+                         ['podman', 'unshare', 'test', '-f', str(volume / 'push.db')])
+
+    def test_bridge_restore_enters_podman_user_namespace(self):
+        volume = Path('/rootless/matrix2acrobits-data/_data')
+        with patch.object(state, 'volume_path', return_value=volume), \
+                patch.object(state, 'volume_file_exists', return_value=True), \
+                patch.object(state, 'run') as command:
+            state.restore_bridge()
+        self.assertEqual(command.call_args.args[:3], ('podman', 'unshare', state.sys.executable))
 
     def test_failed_snapshot_restarts_only_previously_active_writers(self):
         commands = []
