@@ -44,7 +44,11 @@ async function loadI18n() {
   const navigatorLang = navigator.language.substring(0, 2);
   const messages = await loadLanguage(navigatorLang);
   Vue.use(VueI18n);
-  const i18n = new VueI18n();
+  const i18n = new VueI18n({ fallbackLocale: "en" });
+  if (navigatorLang !== "en") {
+    const englishMessages = await loadLanguage("en");
+    i18n.setLocaleMessage("en", englishMessages.default);
+  }
   i18n.setLocaleMessage(navigatorLang, messages.default);
   i18n.locale = navigatorLang;
 

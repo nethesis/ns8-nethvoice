@@ -93,6 +93,43 @@
                   :invalid-message="error.nethcti_ui_host"
                   ref="nethcti_ui_host"
                 />
+                <NsToggle
+                  value="matrixEnabled"
+                  :label="$t('settings.matrix_enabled')"
+                  v-model="matrix_enabled"
+                  :disabled="isFormDisabled"
+                  ref="matrix_enabled"
+                >
+                  <template #tooltip>
+                    {{ $t("settings.matrix_enabled_tooltip") }}
+                  </template>
+                  <template slot="text-left">{{
+                    $t("common.disabled")
+                  }}</template>
+                  <template slot="text-right">{{
+                    $t("common.enabled")
+                  }}</template>
+                </NsToggle>
+                <NsInlineNotification
+                  v-if="error.matrix_enabled"
+                  kind="error"
+                  :title="$t('settings.matrix_enabled')"
+                  :description="error.matrix_enabled"
+                  :showCloseButton="false"
+                />
+                <NsTextInput
+                  v-if="matrix_enabled"
+                  :label="$t('settings.matrix_host')"
+                  v-model.trim="matrix_host"
+                  placeholder="matrix.example.com"
+                  :disabled="isFormDisabled"
+                  :invalid-message="error.matrix_host"
+                  ref="matrix_host"
+                >
+                  <template #tooltip>
+                    {{ $t("settings.matrix_host_tooltip") }}
+                  </template>
+                </NsTextInput>
                 <!-- let's encrypt toggle -->
                 <NsToggle
                   value="letsEncrypt"
@@ -322,6 +359,8 @@ export default {
       nethvoice_admin_password: "",
       nethcti_ui_host: "",
       lets_encrypt: false,
+      matrix_enabled: false,
+      matrix_host: "",
       isLetsEncryptCurrentlyEnabled: false,
       user_domain: "",
       currentUserDomain: "",
@@ -353,6 +392,8 @@ export default {
         nethvoice_admin_password: "",
         nethcti_ui_host: "",
         lets_encrypt: "",
+        matrix_enabled: "",
+        matrix_host: "",
         user_domain: "",
         reports_international_prefix: "",
         timezone: "",
@@ -487,6 +528,8 @@ export default {
       this.nethcti_ui_host = config.nethcti_ui_host;
       this.nethvoice_admin_password = "";
       this.lets_encrypt = config.lets_encrypt;
+      this.matrix_enabled = config.matrix_enabled || false;
+      this.matrix_host = config.matrix_host || "";
       this.isLetsEncryptCurrentlyEnabled = config.lets_encrypt;
 
       this.user_domain = config.user_domain;
@@ -522,6 +565,22 @@ export default {
 
       if (!this.timezone) {
         this.error.timezone = this.$t("error.required");
+        isValidationOk = false;
+      }
+
+      if (this.matrix_enabled && !this.matrix_host) {
+        this.error.matrix_host = this.$t("settings.matrix_host_required");
+        isValidationOk = false;
+      }
+
+      if (
+        this.matrix_enabled &&
+        this.matrix_host &&
+        [this.nethvoice_host, this.nethcti_ui_host].some(
+          (host) => host.toLowerCase() === this.matrix_host.toLowerCase()
+        )
+      ) {
+        this.error.matrix_host = this.$t("settings.matrix_host_conflict");
         isValidationOk = false;
       }
 
@@ -597,6 +656,8 @@ export default {
             nethvoice_host: this.nethvoice_host,
             nethcti_ui_host: this.nethcti_ui_host,
             lets_encrypt: this.lets_encrypt,
+            matrix_enabled: this.matrix_enabled,
+            matrix_host: this.matrix_host,
             user_domain: this.user_domain,
             reports_international_prefix: this.reports_international_prefix,
             timezone: this.timezone,

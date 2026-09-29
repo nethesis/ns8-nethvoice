@@ -82,7 +82,7 @@
     "deepgram_api_key_pattern": "Invalid API Key format",
     "openai_api_key_pattern": "Invalid API Key format",
     "request_le_certificates": "Request Let's Encrypt certificates",
-    "request_le_certificates_tooltip": "Requests Let's Encrypt TLS certificates automatically for @:settings.nethvoice_host and @:(settings.nethcti_ui_host). Disabling this option deletes the existing certificates (if any). You can also view or delete them in Cluster settings > TLS certificates.",
+    "request_le_certificates_tooltip": "Requests Let's Encrypt TLS certificates automatically for the NethVoice, NethVoice CTI and enabled Matrix hostnames. Disabling this option deletes the existing certificates (if any). You can also view or delete them in Cluster settings > TLS certificates.",
     "general": "General",
     "change_nethvoice_admin_password": "Change NethVoice admin password",
     "new_admin_password": "New admin password",
@@ -90,7 +90,16 @@
     "change_password": "Change password",
     "go_to_software_center": "Go to Software center",
     "nethvoice_host_pattern": "Must be a valid domain name",
-    "nethcti_ui_host_pattern": "Must be a valid domain name"
+    "nethcti_ui_host_pattern": "Must be a valid domain name",
+    "matrix_enabled": "Matrix chat",
+    "matrix_enabled_tooltip": "Enable one-to-one chat for NethVoice users with chat permission. Disabling chat retains users and message history.",
+    "matrix_host": "Matrix hostname",
+    "matrix_host_tooltip": "Use a dedicated hostname with a valid TLS certificate. The hostname cannot change after chat is initialized because it identifies Matrix users.",
+    "matrix_host_required": "Enter the Matrix hostname",
+    "matrix_host_invalid": "Must be a valid domain name, not an IP address",
+    "matrix_host_conflict": "Use a hostname different from NethVoice and NethVoice CTI",
+    "matrix_host_immutable": "The Matrix hostname cannot change after chat has been initialized",
+    "matrix_setup_required": "Complete the NethVoice setup before enabling chat"
   },
   "status": {
     "app_images": "Application image | Application images",

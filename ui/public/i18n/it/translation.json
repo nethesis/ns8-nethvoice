@@ -81,7 +81,7 @@
     "deepgram_api_key_pattern": "Formato API Key non valido",
     "openai_api_key_pattern": "Formato API Key non valido",
     "request_le_certificates": "Richiedi certificati Let's Encrypt",
-    "request_le_certificates_tooltip": "Richiede automaticamente i certificati TLS Let's Encrypt per @:settings.nethvoice_host e @:(settings.nethcti_ui_host). Disabilitando questa opzione i certificati esistenti (se presenti) verranno eliminati. Puoi anche visualizzarli o eliminarli in Impostazioni cluster > Certificati TLS.",
+    "request_le_certificates_tooltip": "Richiede automaticamente i certificati TLS Let's Encrypt per gli hostname di NethVoice, NethVoice CTI e Matrix, se abilitato. Disabilitando questa opzione i certificati esistenti (se presenti) verranno eliminati. Puoi anche visualizzarli o eliminarli in Impostazioni cluster > Certificati TLS.",
     "general": "Generale",
     "change_nethvoice_admin_password": "Cambia password per l'utente admin di NethVoice",
     "new_admin_password": "Nuova password admin",
@@ -90,7 +90,16 @@
     "go_to_software_center": "Vai al Software center",
     "nethvoice_host_pattern": "Deve essere un nome di dominio valido",
     "nethcti_ui_host_pattern": "Deve essere un nome di dominio valido",
-    "user_domain": "Account provider"
+    "user_domain": "Account provider",
+    "matrix_enabled": "Chat Matrix",
+    "matrix_enabled_tooltip": "Abilita la chat individuale per gli utenti NethVoice con il permesso di chat. Disabilitando la chat vengono conservati utenti e cronologia dei messaggi.",
+    "matrix_host": "Hostname Matrix",
+    "matrix_host_tooltip": "Usa un hostname dedicato con un certificato TLS valido. Non è possibile modificarlo dopo l’inizializzazione della chat perché identifica gli utenti Matrix.",
+    "matrix_host_required": "Inserisci l’hostname Matrix",
+    "matrix_host_invalid": "Deve essere un nome di dominio valido, non un indirizzo IP",
+    "matrix_host_conflict": "Usa un hostname diverso da NethVoice e NethVoice CTI",
+    "matrix_host_immutable": "Non è possibile modificare l’hostname Matrix dopo l’inizializzazione della chat",
+    "matrix_setup_required": "Completa la configurazione di NethVoice prima di abilitare la chat"
   },
   "status": {
     "app_images": "Immagine dell'applicazione | Immagini dell'applicazione",
