@@ -17,6 +17,9 @@ if default_traefik_id is None:
     sys.exit(2)
 
 services = [
+    "matrix",
+    "matrix-m2a",
+    "matrix-push",
     "wizard",
     "freepbx",
     "tancredi",

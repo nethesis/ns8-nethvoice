@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+import json
+import os
+from pathlib import Path
+import runpy
+import subprocess
+import sys
+import agent
+
+request = json.load(sys.stdin)
+matrix = runpy.run_path(str(Path(__file__).resolve().parents[2] / 'bin/matrix-config'))
+env = {**os.environ, **agent.read_envfile('environment')}
+identity_path = Path(os.environ['AGENT_STATE_DIR']) / 'matrix/identity.json'
+identity = json.loads(identity_path.read_text()) if identity_path.exists() else None
+complete = True
+if request.get('matrix_enabled', matrix['enabled'](env)):
+    passwords = agent.read_envfile('passwords.env')
+    # Pass the DB credential through the container environment, never an argv
+    # password option that would be visible in journal/process diagnostics.
+    result = subprocess.run(['podman', 'exec', '--env', 'MYSQL_PWD',
+                             'mariadb', 'mysql', '-u', 'root', '-h', '127.0.0.1',
+                             '-P', env['NETHVOICE_MARIADB_PORT'], 'asterisk', '-BNe',
+                             'select step from rest_wizard'],
+                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=10,
+                            env={**os.environ, 'MYSQL_PWD': passwords['MARIADB_ROOT_PASSWORD']})
+    try:
+        complete = result.returncode == 0 and int(result.stdout.strip()) >= 10
+    except ValueError:
+        complete = False
+errors = matrix['validate_settings'](env, request, identity, complete)
+if errors:
+    agent.set_status('validation-failed')
+    json.dump(errors, sys.stdout)
+    sys.exit(3)

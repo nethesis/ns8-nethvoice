@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+exec 1>&2
+runagent matrix-config initialize
+# Regenerate transport URLs from the destination allocation, never old ports.
+runagent matrix-config routes <<'EOF'
+{}
+EOF

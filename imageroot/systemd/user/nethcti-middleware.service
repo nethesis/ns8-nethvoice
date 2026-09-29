@@ -11,6 +11,7 @@ Requires=mariadb.service
 Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%E/state/environment
 EnvironmentFile=%E/state/passwords.env
+EnvironmentFile=-%E/state/middleware.env
 WorkingDirectory=%E/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/nethcti-middleware.pid %t/nethcti-middleware.ctr-id
@@ -28,6 +29,8 @@ ExecStart=/usr/bin/podman run \
     --volume=nethcti-middleware-secrets:/var/lib/whale/secrets \
     --volume=nethcti:/etc/nethcti:z \
     --env-file=%E/state/passwords.env \
+    --env=NETHVOICE_MATRIX_BASE_URL \
+    --env=NETHVOICE_MIDDLEWARE_MATRIX_LISTEN_ADDRESS \
     --env=NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS \
     --env=NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT \
     --env=NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT \

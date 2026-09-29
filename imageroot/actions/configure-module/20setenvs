@@ -7,6 +7,7 @@
 
 import json
 import sys
+import os
 
 import agent
 
@@ -29,3 +30,7 @@ getFromRequest(request, 'nethcti_ui_host', 'NETHCTI_UI_HOST', '')
 # Deprecated, will be removed in future releases.
 if "app_brand_id" in request:
     agent.set_env('BRAND_APPID', request['app_brand_id'])
+
+# Preserve Matrix identity if older callers omit the optional chat fields.
+agent.set_env('NETHVOICE_MATRIX_ENABLED', str(request.get('matrix_enabled', os.environ.get('NETHVOICE_MATRIX_ENABLED', 'False') == 'True')))
+agent.set_env('NETHVOICE_MATRIX_HOST', request.get('matrix_host', os.environ.get('NETHVOICE_MATRIX_HOST', '')))
