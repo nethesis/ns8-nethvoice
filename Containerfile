@@ -25,7 +25,7 @@ COPY imageroot /imageroot
 COPY --from=ui_builder /app/dist /ui
 ENTRYPOINT [ "/" ]
 LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm,portsadm nethvoice-proxy@any:routeadm,trunkadm cluster:accountconsumer openldap@any:domadm samba@any:domadm"
-LABEL org.nethserver.tcp-ports-demand="36"
+LABEL org.nethserver.tcp-ports-demand="40"
 LABEL org.nethserver.udp-ports-demand="2003"
 LABEL org.nethserver.rootfull="0"
 LABEL org.nethserver.min-core="3.22.0"
@@ -45,4 +45,7 @@ LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \
     ${REPOBASE}/nethvoice-sftp:${IMAGETAG} \
     docker.io/library/eclipse-mosquitto:2 \
     ${REPOBASE}/nethvoice-satellite:${IMAGETAG}\
-    docker.io/pgvector/pgvector:0.8.1-pg18-trixie"
+    docker.io/pgvector/pgvector:0.8.1-pg18-trixie \
+    docker.io/library/postgres:16.15-alpine \
+    ${REPOBASE}/nethvoice-matrix-synapse:${IMAGETAG} \
+    ${REPOBASE}/nethvoice-matrix2acrobits:${IMAGETAG}"
