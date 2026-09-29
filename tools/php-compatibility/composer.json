@@ -1,0 +1,16 @@
+{
+    "name": "nethserver/ns8-nethvoice-php-tools",
+    "description": "Pinned PHP compatibility tooling for ns8-nethvoice",
+    "license": "GPL-3.0-or-later",
+    "type": "project",
+    "require-dev": {
+        "phpcompatibility/php-compatibility": "10.0.0-alpha2",
+        "squizlabs/php_codesniffer": "4.0.1"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        },
+        "sort-packages": true
+    }
+}

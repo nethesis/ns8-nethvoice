@@ -82,6 +82,16 @@ function logMessage($message, $level=ERROR, $tag="") {
     fclose($out);
 }
 
+function getPDOErrorMessage($resource) {
+    if (is_object($resource) && method_exists($resource, 'errorInfo')) {
+        $error = $resource->errorInfo();
+        if (isset($error[2]) && $error[2] !== '') {
+            return $error[2];
+        }
+    }
+    return 'unknown database error';
+}
+
 function initScriptLifecycleLogging() {
     if (PHP_SAPI !== 'cli') {
         return;
@@ -216,13 +226,13 @@ function insertMessageIntoDB($section,$parameters) {
 }
 
 include_once(getFreepbxDbConfigPath());
-$fiasdb = new \PDO(buildMysqlDsn($amp_conf['AMPDBHOST'], getFiasDatabaseName(), $amp_conf['AMPDBPORT']),
-	$amp_conf['AMPDBUSER'],
-	$amp_conf['AMPDBPASS'],
-    fiasPdoOptions());
-
-if ($fiasdb === false) {
-    logMessage("Error connecting to database; ".mysql_error(), ERROR, __FILE__);
+try {
+    $fiasdb = new \PDO(buildMysqlDsn($amp_conf['AMPDBHOST'], getFiasDatabaseName(), $amp_conf['AMPDBPORT']),
+        $amp_conf['AMPDBUSER'],
+        $amp_conf['AMPDBPASS'],
+        fiasPdoOptions());
+} catch (PDOException $e) {
+    logMessage("Error connecting to database; ".$e->getMessage(), ERROR, __FILE__);
     exit(1);
 }
 initScriptLifecycleLogging();

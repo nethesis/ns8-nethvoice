@@ -22,16 +22,18 @@ modules_to_install=(
     backup
     pm2
     core
+    cel
+    calendar
+    timeconditions
+    userman
     cdr
     blacklist
     bosssecretary
     bulkhandler
-    calendar
     callback
     callforward
     callrecording
     callwaiting
-    cel
     certman
     conferences
     customappsreg
@@ -45,7 +47,6 @@ modules_to_install=(
     fax
     featurecodeadmin
     findmefollow
-    googletts
     iaxsettings
     infoservices
     ivr
@@ -74,8 +75,6 @@ modules_to_install=(
     satellite
     setcid
     sipsettings
-    timeconditions
-    userman
     visualplan
     voicemail
     vmblast
@@ -83,6 +82,7 @@ modules_to_install=(
 
 obsolete_modules=(
     bulkdids
+    googletts
     inboundlookup
     outboundlookup
 )

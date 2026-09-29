@@ -29,7 +29,10 @@ try {
     define('FREEPBX_IS_AUTH',1);
 
     #create configuration files
-    $name = $argv[1];
+    $name = $argv[1] ?? '';
+    if ($name === '') {
+        throw new InvalidArgumentException('Missing gateway name');
+    }
     if (isset($argv[2])) {
         $mac=$argv[2];
     } else {
@@ -43,12 +46,16 @@ try {
     if ($config['manufacturer'] == 'Sangoma'){
         $filename = preg_replace('/:/','',$config['mac'])."config.txt";
         $scriptname = preg_replace('/:/','',$config['mac'])."script.txt";
-        copy("/var/www/html/freepbx/rest/lib/gateway/templates/Sangoma/script.txt","$tftpdir/$scriptname");
+        if (!copy("/var/www/html/freepbx/rest/lib/gateway/templates/Sangoma/script.txt","$tftpdir/$scriptname")) {
+            throw new RuntimeException('Unable to copy Sangoma provisioning script');
+        }
     } else {
         $filename = preg_replace('/:/','',$config['mac']).".cfg";
     }
-    file_put_contents($tftpdir."/".$filename,gateway_generate_configuration_file($name,$mac), LOCK_EX);
-} catch (Exception $e){
+    if (file_put_contents($tftpdir."/".$filename,gateway_generate_configuration_file($name,$mac), LOCK_EX) === false) {
+        throw new RuntimeException('Unable to write gateway configuration');
+    }
+} catch (Throwable $e){
         error_log($e->getMessage());
         exit(1);
 }

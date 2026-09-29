@@ -92,8 +92,9 @@ while ($row = $sth->fetch(\PDO::FETCH_ASSOC)) {
     }
 
     $res = $astman->send_request('Command',array('Command'=>"pjsip send notify $notify_string endpoint {$row['extension']}"));
-    if ($res['Response'] !== 'Success' || preg_match('/failed.$/m', $res['data']) || preg_match('/^Unable/m', $res['data'])) {
-         $emsg = $argv[0].': '.'ERROR rebooting phone '.$mac.': '.$res['data'];
+    $data = is_array($res) ? ($res['data'] ?? '') : '';
+    if (!is_array($res) || ($res['Response'] ?? '') !== 'Success' || preg_match('/failed.$/m', $data) || preg_match('/^Unable/m', $data)) {
+         $emsg = $argv[0].': '.'ERROR rebooting phone '.$mac.': '.$data;
          error_log($emsg);
          echo($emsg."\n");
          exit(126);
@@ -107,4 +108,3 @@ $emsg = $argv[0].': '."ERROR. Can't find phone $mac in rest_devices_phone";
 error_log($emsg);
 echo($emsg."\n");
 exit(126);
-

@@ -22,16 +22,18 @@
 
 // provide hook for routing
 function pin_hook_core($viewing_itemid, $target_menuid) {
-    if ($target_menuid != 'routing' or $_REQUEST['view'] != 'form') {
+    $routeId = $_REQUEST['id'] ?? null;
+    if ($target_menuid != 'routing' or ($_REQUEST['view'] ?? '') != 'form' or empty($routeId)) {
         return false;
     }
     $dbh = \FreePBX::Database();
     $sql = 'SELECT `enabled` FROM `pin_protected_routes` WHERE `route_id` = ?';
     $sth = $dbh->prepare($sql);
     $sth->execute(array(
-        $_REQUEST['id'],
+        $routeId,
     ));
-    $enabled = $sth->fetchAll(\PDO::FETCH_ASSOC)[0]['enabled'];
+    $route = $sth->fetch(\PDO::FETCH_ASSOC);
+    $enabled = $route['enabled'] ?? 0;
     $hookhtml = '
                 <!--PIN HOOK-->
                 <div class="row">
@@ -56,5 +58,3 @@ function pin_hook_core($viewing_itemid, $target_menuid) {
                 <!--END PIN HOOK-->';
             return $hookhtml;
 }
-
-

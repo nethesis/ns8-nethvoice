@@ -11,7 +11,7 @@ for file in $(find /var/run/nethvoice -name "satellite-r-*-*.wav" -cmin +10) ;\
     echo launching transcription for call $uniqueid-$linkedid ;\
     /var/lib/asterisk/bin/satellite_transcript -u $uniqueid -l "$linkedid" ;\
 done ;\
-find /var/run/nethvoice \( -name "satellite-r-*-*.wav" -o -name "satellite-t-*-*.wav" \) -cmin +60 -exec rm -f {} + ;\
+find /var/run/nethvoice "(" -name "satellite-r-*-*.wav" -o -name "satellite-t-*-*.wav" ")" -cmin +60 -exec rm -f {} + ;\
 '
 
 SyslogIdentifier=%u/%N

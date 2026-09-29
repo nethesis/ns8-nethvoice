@@ -1,0 +1,494 @@
+--- a/apps/app_queue.c
++++ b/apps/app_queue.c
+@@ -1879,6 +1879,8 @@
+ 	unsigned int dial_callerid_absent:1;
+ 	/*! TRUE if the call is still active */
+ 	unsigned int stillgoing:1;
++	/*! TRUE if this attempt owns a pending-member reservation after no-answer. */
++	unsigned int lazy_noanswer:1;
+ 	struct ast_aoc_decoded *aoc_s_rate_list;
+ 	/*! Original channel name.  Must be freed.  Could be NULL if allocation failed. */
+ 	char *orig_chan_name;
+@@ -1946,6 +1948,14 @@
+ 	unsigned int delme:1;                /*!< Flag to delete entry on reload */
+ 	char rt_uniqueid[80];                /*!< Unique id of realtime member entry */
+ 	unsigned int ringinuse:1;            /*!< Flag to ring queue members even if their status is 'inuse' */
++	/*!
++	 * \brief Temporarily excluded by LazyMembers after ring-no-answer.
++	 *
++	 * This state intentionally remains on the shared queue member object to
++	 * preserve the legacy NethVoice semantics.  Concurrent callers in the same
++	 * queue therefore share exclusions; per-caller isolation is out of scope.
++	 */
++	unsigned int lazy_excluded:1;
+ };
+ 
+ enum empty_conditions {
+@@ -2033,6 +2043,7 @@
+ 	struct ast_str *sound_periodicannounce[MAX_PERIODIC_ANNOUNCEMENTS];
+ 	unsigned int dead:1;
+ 	unsigned int ringinuse:1;
++	unsigned int lazymembers:1;
+ 	unsigned int announce_to_first_user:1; /*!< Whether or not we announce to the first user in a queue */
+ 	unsigned int setinterfacevar:1;
+ 	unsigned int setqueuevar:1;
+@@ -2103,6 +2114,9 @@
+ static struct ao2_container *queues;
+ 
+ static void update_realtime_members(struct call_queue *q);
++static int num_available_members(struct call_queue *q);
++static int queue_member_is_lazy_excluded(struct call_queue *q, struct member *mem);
++static unsigned int queue_lazy_members_reset_locked(struct call_queue *q, const char *reason);
+ static struct member *interface_exists(struct call_queue *q, const char *interface);
+ static int set_member_paused(const char *queuename, const char *interface, const char *reason, int paused);
+ static int update_queue(struct call_queue *q, struct member *member, int callcompletedinsl, time_t starttime);
+@@ -2630,6 +2644,9 @@
+ 	mem_iter = ao2_iterator_init(q->members, 0);
+ 	for (; (member = ao2_iterator_next(&mem_iter)); ao2_ref(member, -1)) {
+ 		int penalty = member->penalty;
++		if (queue_member_is_lazy_excluded(q, member)) {
++			continue;
++		}
+ 		if (raise_penalty != INT_MAX && penalty < raise_penalty) {
+ 			/* Check if we should respect minimum penalty threshold */
+ 			if (raise_respect_min && penalty < min_penalty) {
+@@ -2792,6 +2809,12 @@
+ 
+ 		m->status = status;
+ 
++		if (status == AST_DEVICE_NOT_INUSE
++			&& queue_member_is_lazy_excluded(q, m)
++			&& !num_available_members(q)) {
++			queue_lazy_members_reset_locked(q, "excluded member became available");
++		}
++
+ 		/* Remove the member from the pending members pool only when the status changes.
+ 		 * This is not done unconditionally because we can occasionally see multiple
+ 		 * device state notifications of not in use after a previous call has ended,
+@@ -2815,6 +2838,10 @@
+ 	int available = 0;
+ 	int wrapuptime;
+ 
++	if (queue_member_is_lazy_excluded(q, mem)) {
++		return 0;
++	}
++
+ 	switch (mem->status) {
+ 		case AST_DEVICE_INVALID:
+ 		case AST_DEVICE_UNAVAILABLE:
+@@ -2844,6 +2871,107 @@
+ 	return available;
+ }
+ 
++/*!
++ * \internal
++ * \brief Test whether a member is temporarily excluded by LazyMembers.
++ * \pre The queue is locked.
++ */
++static int queue_member_is_lazy_excluded(struct call_queue *q, struct member *mem)
++{
++	return q->lazymembers && mem->lazy_excluded;
++}
++
++/*!
++ * \internal
++ * \brief Clear all temporary LazyMembers exclusions.
++ * \pre The queue is locked or is not yet published.
++ * \return The number of exclusions cleared.
++ */
++static unsigned int queue_lazy_members_reset_locked(struct call_queue *q, const char *reason)
++{
++	struct ao2_iterator mem_iter;
++	struct member *mem;
++	unsigned int reset = 0;
++
++	if (!q->members) {
++		return 0;
++	}
++
++	mem_iter = ao2_iterator_init(q->members, 0);
++	while ((mem = ao2_iterator_next(&mem_iter))) {
++		if (mem->lazy_excluded) {
++			mem->lazy_excluded = 0;
++			++reset;
++		}
++		ao2_ref(mem, -1);
++	}
++	ao2_iterator_destroy(&mem_iter);
++
++	if (reset) {
++		ast_debug(1, "Queue '%s' reset %u LazyMembers exclusion%s (%s)\n",
++			q->name, reset, reset == 1 ? "" : "s", reason);
++	}
++
++	return reset;
++}
++
++/*!
++ * \internal
++ * \brief Clear LazyMembers exclusions and republish queue availability.
++ */
++static void queue_lazy_members_reset(struct call_queue *q, const char *reason)
++{
++	unsigned int reset;
++
++	ao2_lock(q);
++	reset = queue_lazy_members_reset_locked(q, reason);
++	if (reset) {
++		ast_devstate_changed(num_available_members(q) ? AST_DEVICE_NOT_INUSE : AST_DEVICE_INUSE,
++			AST_DEVSTATE_CACHABLE, "Queue:%s_avail", q->name);
++	}
++	ao2_unlock(q);
++}
++
++/*!
++ * \internal
++ * \brief Mark a current queue member after a ring-no-answer attempt.
++ * \return Non-zero if the exact member is still linked in the queue.
++ */
++static int queue_lazy_member_mark_noanswer(struct call_queue *q, struct member *mem)
++{
++	struct member *current;
++	int marked = 0;
++
++	ao2_lock(q);
++	if (!q->lazymembers) {
++		goto done;
++	}
++
++	/*
++	 * The call attempt owns a member reference, but a dynamic update may have
++	 * removed or replaced that object while its channel was ringing.  Only mark
++	 * the exact object that is still linked in this queue.
++	 */
++	current = ao2_find(q->members, mem, OBJ_POINTER);
++	if (current) {
++		if (current == mem) {
++			marked = 1;
++			if (!current->lazy_excluded) {
++				current->lazy_excluded = 1;
++				ast_debug(1, "Queue '%s' LazyMembers excluded member '%s' after ring-no-answer\n",
++					q->name, current->membername);
++				ast_devstate_changed(num_available_members(q) ? AST_DEVICE_NOT_INUSE : AST_DEVICE_INUSE,
++					AST_DEVSTATE_CACHABLE, "Queue:%s_avail", q->name);
++			}
++		}
++		ao2_ref(current, -1);
++	}
++
++done:
++	ao2_unlock(q);
++	return marked;
++}
++
+ /*! \brief set a member's status based on device state of that member's interface*/
+ static void device_state_cb(void *unused, struct stasis_subscription *sub, struct stasis_message *msg)
+ {
+@@ -3158,6 +3286,7 @@
+ 	int i;
+ 	struct penalty_rule *pr_iter;
+ 
++	queue_lazy_members_reset_locked(q, "queue configuration reload");
+ 	q->dead = 0;
+ 	q->retry = DEFAULT_RETRY;
+ 	q->timeout = DEFAULT_TIMEOUT;
+@@ -3177,6 +3306,7 @@
+ 	q->roundingseconds = 0; /* Default - don't announce seconds */
+ 	q->servicelevel = 0;
+ 	q->ringinuse = 1;
++	q->lazymembers = 0;
+ 	q->announce_to_first_user = 0;
+ 	q->setinterfacevar = 0;
+ 	q->setqueuevar = 0;
+@@ -3687,7 +3817,24 @@
+ 	} else if (!strcasecmp(param, "autofill")) {
+ 		q->autofill = ast_true(val);
+ 	} else if (!strcasecmp(param, "autopause")) {
+-		q->autopause = autopause2int(val);
++		int autopause = autopause2int(val);
++
++		if (q->lazymembers && autopause != QUEUE_AUTOPAUSE_OFF) {
++			q->autopause = QUEUE_AUTOPAUSE_OFF;
++			ast_log(LOG_WARNING, "Queue '%s' cannot enable both autopause and lazymembers; "
++				"lazymembers takes precedence and autopause is disabled\n", q->name);
++			ast_debug(1, "Queue '%s' rejected autopause because LazyMembers is enabled\n", q->name);
++		} else {
++			q->autopause = autopause;
++		}
++	} else if (!strcasecmp(param, "lazymembers")) {
++		q->lazymembers = ast_true(val);
++		if (q->lazymembers && q->autopause != QUEUE_AUTOPAUSE_OFF) {
++			q->autopause = QUEUE_AUTOPAUSE_OFF;
++			ast_log(LOG_WARNING, "Queue '%s' cannot enable both autopause and lazymembers; "
++				"lazymembers takes precedence and autopause is disabled\n", q->name);
++			ast_debug(1, "Queue '%s' disabled autopause because LazyMembers takes precedence\n", q->name);
++		}
+ 	} else if (!strcasecmp(param, "autopausedelay")) {
+ 		q->autopausedelay = atoi(val);
+ 	} else if (!strcasecmp(param, "autopausebusy")) {
+@@ -3767,6 +3914,7 @@
+  */
+ static void member_add_to_queue(struct call_queue *queue, struct member *mem)
+ {
++	queue_lazy_members_reset_locked(queue, "queue membership changed");
+ 	ao2_lock(queue->members);
+ 	mem->queuepos = ao2_container_count(queue->members);
+ 	ao2_link(queue->members, mem);
+@@ -3783,6 +3931,7 @@
+  */
+ static void member_remove_from_queue(struct call_queue *queue, struct member *mem)
+ {
++	queue_lazy_members_reset_locked(queue, "queue membership changed");
+ 	pending_members_remove(mem);
+ 	ao2_lock(queue->members);
+ 	ast_devstate_changed(QUEUE_UNKNOWN_PAUSED_DEVSTATE, AST_DEVSTATE_CACHABLE, "Queue:%s_pause_%s", queue->name, mem->interface);
+@@ -3866,6 +4015,15 @@
+ 	mem_iter = ao2_iterator_init(q->members, 0);
+ 	while ((m = ao2_iterator_next(&mem_iter))) {
+ 		if (!strcasecmp(m->rt_uniqueid, rt_uniqueid)) {
++			if ((paused_str && m->paused != paused)
++				|| strcasecmp(state_interface, m->state_interface)
++				|| m->penalty != penalty
++				|| m->ringinuse != ringinuse
++				|| m->wrapuptime != wrapuptime
++				|| (realtime_reason_paused
++					&& !ast_strings_equal(m->reason_paused, S_OR(reason_paused, "")))) {
++				queue_lazy_members_reset_locked(q, "realtime queue member changed");
++			}
+ 			m->dead = 0;	/* Do not delete this one. */
+ 			ast_copy_string(m->rt_uniqueid, rt_uniqueid, sizeof(m->rt_uniqueid));
+ 			if (paused_str) {
+@@ -4886,32 +5044,47 @@
+  *
+  * \retval non-zero if an entry can be called.
+  */
+-static int can_ring_entry(struct queue_ent *qe, struct callattempt *call)
++static int can_ring_entry_internal(struct queue_ent *qe, struct callattempt *call,
++	int ignore_lazy, int reserve_member, int ignore_pending)
+ {
+ 	struct member *memberp = call->member;
+ 	int wrapuptime;
++	int ringinuse;
+ 
++	ao2_lock(qe->parent);
++	ringinuse = memberp->ringinuse;
+ 	if (memberp->paused) {
++		ao2_unlock(qe->parent);
+ 		ast_debug(1, "%s paused, can't receive call\n", call->interface);
+ 		return 0;
+ 	}
+ 
+-	if (!memberp->ringinuse && !member_status_available(memberp->status)) {
++	if (!ringinuse && !member_status_available(memberp->status)) {
++		ao2_unlock(qe->parent);
+ 		ast_debug(1, "%s not available, can't receive call\n", call->interface);
+ 		return 0;
+ 	}
+ 
++	if (!ignore_lazy && queue_member_is_lazy_excluded(qe->parent, memberp)) {
++		ao2_unlock(qe->parent);
++		ast_debug(2, "Queue '%s' LazyMembers skipping excluded member '%s'\n",
++			qe->parent->name, memberp->membername);
++		return 0;
++	}
++
+ 	if (memberp->lastqueue) {
+ 		wrapuptime = get_wrapuptime(memberp->lastqueue, memberp);
+ 	} else {
+ 		wrapuptime = get_wrapuptime(qe->parent, memberp);
+ 	}
+ 	if (wrapuptime && (time(NULL) - memberp->lastcall) < wrapuptime) {
++		ao2_unlock(qe->parent);
+ 		ast_debug(1, "Wrapuptime not yet expired on queue %s for %s\n",
+ 			(memberp->lastqueue ? memberp->lastqueue->name : qe->parent->name),
+ 			call->interface);
+ 		return 0;
+ 	}
++	ao2_unlock(qe->parent);
+ 
+ 	if (use_weight && compare_weight(qe->parent, memberp)) {
+ 		ast_debug(1, "Priority queue delaying call to %s:%s\n",
+@@ -4925,14 +5098,14 @@
+ 		return 0;
+ 	}
+ 
+-	if (!memberp->ringinuse) {
++	if (!ringinuse) {
+ 		struct member *mem;
+ 
+ 		ao2_lock(pending_members);
+ 
+ 		mem = ao2_find(pending_members, memberp,
+ 				  OBJ_SEARCH_OBJECT | OBJ_NOLOCK);
+-		if (mem) {
++		if (mem && !ignore_pending) {
+ 			/*
+ 			 * If found that means this member is currently being attempted
+ 			 * from another calling thread, so stop trying from this thread
+@@ -4943,6 +5116,12 @@
+ 			ao2_unlock(pending_members);
+ 			return 0;
+ 		}
++		ao2_cleanup(mem);
++
++		if (!reserve_member) {
++			ao2_unlock(pending_members);
++			return member_status_available(get_queue_member_status(memberp));
++		}
+ 
+ 		/*
+ 		 * If not found add it to the container so another queue
+@@ -4968,6 +5147,61 @@
+ 	return 1;
+ }
+ 
++static int can_ring_entry(struct queue_ent *qe, struct callattempt *call)
++{
++	return can_ring_entry_internal(qe, call, 0, 1, 0);
++}
++
++/*!
++ * \internal
++ * \brief Reset an exhausted LazyMembers selection cycle.
++ *
++ * The outgoing list already contains only members accepted by calc_metric(),
++ * including the caller's current penalty range.  Reusing can_ring_entry_internal()
++ * without reserving the member applies the remaining queue selection rules and
++ * avoids the legacy patch's approximate member counting.
++ */
++static void queue_lazy_members_reset_exhausted_cycle(struct queue_ent *qe,
++	struct callattempt *outgoing)
++{
++	struct callattempt *call;
++	int have_eligible_excluded = 0;
++	int enabled;
++
++	ao2_lock(qe->parent);
++	enabled = qe->parent->lazymembers;
++	ao2_unlock(qe->parent);
++	if (!enabled) {
++		return;
++	}
++
++	for (call = outgoing; call; call = call->q_next) {
++		int excluded;
++
++		ao2_lock(qe->parent);
++		excluded = queue_member_is_lazy_excluded(qe->parent, call->member);
++		ao2_unlock(qe->parent);
++
++		if (excluded) {
++			/*
++			 * A just-timed-out attempt still owns its pending_members entry.
++			 * Ignore only that reservation while retaining all other effective
++			 * selection checks, including a fresh device-state lookup.
++			 */
++			if (can_ring_entry_internal(qe, call, 1, 0, call->lazy_noanswer)) {
++				have_eligible_excluded = 1;
++			}
++		} else if (can_ring_entry_internal(qe, call, 0, 0, 0)) {
++			/* At least one normally callable member remains in this cycle. */
++			return;
++		}
++	}
++
++	if (have_eligible_excluded) {
++		queue_lazy_members_reset(qe->parent, "all eligible members attempted");
++	}
++}
++
+ /*!
+  * \brief Part 2 of ring_one
+  *
+@@ -5857,6 +6091,7 @@
+ 					endtime = (long) time(NULL) - starttime;
+ 					ast_channel_publish_dial(qe->chan, o->chan, on, "NOANSWER");
+ 					rna(endtime * 1000, qe, o->chan, on, membername, 1);
++					o->lazy_noanswer = queue_lazy_member_mark_noanswer(qe->parent, o->member);
+ 					do_hang(o);
+ 					if (qe->parent->strategy != QUEUE_STRATEGY_RINGALL) {
+ 						if (qe->parent->timeoutrestart) {
+@@ -5954,6 +6189,7 @@
+ 		for (o = start; o; o = o->call_next) {
+ 			if (o->chan) {
+ 				rna(orig, qe, o->chan, o->interface, o->member->membername, 1);
++				o->lazy_noanswer = queue_lazy_member_mark_noanswer(qe->parent, o->member);
+ 			}
+ 		}
+ 
+@@ -7430,6 +7666,7 @@
+ 	ao2_unlock(qe->parent);
+ 	peer = lpeer ? lpeer->chan : NULL;
+ 	if (!peer) {
++		queue_lazy_members_reset_exhausted_cycle(qe, outgoing);
+ 		qe->pending = 0;
+ 		if (to) {
+ 			/* Must gotten hung up */
+@@ -7457,6 +7694,7 @@
+ 		time(&now);
+ 		recalc_holdtime(qe, (now - qe->start));
+ 		member = lpeer->member;
++		queue_lazy_members_reset(qe->parent, "queue member answered");
+ 		ao2_lock(qe->parent);
+ 		callcompletedinsl = member->callcompletedinsl = ((now - qe->start) <= qe->parent->servicelevel);
+ 		ao2_unlock(qe->parent);
+@@ -8056,6 +8294,8 @@
+  */
+ static void set_queue_member_pause(struct call_queue *q, struct member *mem, const char *reason, int paused)
+ {
++	queue_lazy_members_reset_locked(q, "queue member pause state changed");
++
+ 	if (mem->paused == paused) {
+ 		ast_debug(1, "%spausing already-%spaused queue member %s:%s\n",
+ 			(paused ? "" : "un"), (paused ? "" : "un"), q->name, mem->interface);
+@@ -8202,6 +8442,7 @@
+ 		}
+ 
+ 		mem->penalty = penalty;
++		queue_lazy_members_reset_locked(q, "queue member penalty changed");
+ 
+ 		ast_queue_log(q->name, "NONE", interface, "PENALTY", "%d", penalty);
+ 		queue_publish_member_blob(queue_member_penalty_type(), queue_member_blob_create(q, mem));
+@@ -8224,6 +8465,8 @@
+  */
+ static void set_queue_member_ringinuse(struct call_queue *q, struct member *mem, int ringinuse)
+ {
++	queue_lazy_members_reset_locked(q, "queue member ringinuse changed");
++
+ 	if (mem->realtime) {
+ 		update_realtime_member_field(mem, q->name, realtime_ringinuse_field,
+ 			ringinuse ? "1" : "0");
+@@ -9244,6 +9487,8 @@
+ 		ast_stopstream(chan);
+ 	}
+ 
++	/* Every terminal Queue() path converges here while qe.parent is still valid. */
++	queue_lazy_members_reset(qe.parent, "queue call ended");
+ 	set_queue_variables(qe.parent, qe.chan);
+ 
+ 	leave_queue(&qe);
+@@ -10202,6 +10447,7 @@
+ 		init_queue(q);
+ 	}
+ 	if (member_reload) {
++		queue_lazy_members_reset_locked(q, "queue member reload");
+ 		ao2_callback(q->members, OBJ_NODATA, mark_member_dead, NULL);
+ 		q->found = 1;
+ 	}
+
+--- a/configs/samples/queues.conf.sample
++++ b/configs/samples/queues.conf.sample
+@@ -226,6 +226,13 @@
+ ; all: Member will be paused in all queues he/she is a member
+ ;autopause=yes
+ ;
++; LazyMembers temporarily excludes a queue member after ring-no-answer. The
++; member becomes eligible again after the current member cycle is exhausted or
++; the queue call ends. This differs from autopause: it does not pause the member
++; or require an explicit unpause. LazyMembers and autopause are mutually
++; exclusive; when both are enabled, lazymembers takes precedence.
++;lazymembers=no
++;
+ ; Autopausedelay delay autopause for autopausedelay seconds from the
+ ; last call if a member has not taken a call the delay has no effect.
+ ;autopausedelay=60
