@@ -5,7 +5,7 @@ $escape = function ($value) {
 $trunks = isset($trunks) && is_array($trunks) ? $trunks : array();
 $form = isset($form) && is_array($form) ? $form : array();
 $errors = isset($error) && $error !== '' ? (array) $error : array();
-$showForm = (isset($_GET['view']) && $_GET['view'] === 'form') || !empty($form) || !empty($errors);
+$showForm = (isset($_GET['view']) && $_GET['view'] === 'form') || !empty($form);
 $editing = !empty($form['id']);
 $provider = isset($form['provider']) ? $form['provider'] : 'openai';
 $enabled = array_key_exists('enabled', $form) ? (bool) $form['enabled'] : true;
