@@ -1,0 +1,10 @@
+[Unit]
+Description=Reset scheduled NethVoice queue statistics
+After=freepbx.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=%E/state/environment
+ExecCondition=/usr/bin/systemctl --user --quiet is-active freepbx.service
+ExecStart=/usr/bin/podman exec --user asterisk --env TIMEZONE=${TIMEZONE} freepbx /var/lib/asterisk/bin/queue_reset_stats_scheduler.php
+SyslogIdentifier=%u/%N

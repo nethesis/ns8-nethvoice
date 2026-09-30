@@ -58,6 +58,14 @@
             "description": "NethVoice Wizard rebranding link to background image",
             "type": "string"
         },
+        "rebranding_freepbx_admin_logo_url": {
+            "description": "FreePBX admin GUI rebranding link to top-left logo",
+            "type": "string"
+        },
+        "rebranding_freepbx_admin_favicon_url": {
+            "description": "FreePBX admin GUI rebranding link to favicon",
+            "type": "string"
+        },
         "rebranding_reports_brand_name": {
             "description": "NethVoice Reports brand name",
             "type": "string"

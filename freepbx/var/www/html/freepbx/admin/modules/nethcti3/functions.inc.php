@@ -495,6 +495,8 @@ function nethcti3_get_config_late($engine) {
                     // Join configuration
                     $userJson = array(
                         'name' => $user['displayname'],
+                        'firstname' => isset($user['fname']) ? (string)$user['fname'] : '',
+                        'lastname' => isset($user['lname']) ? (string)$user['lname'] : '',
                         'endpoints' => $endpoints,
                         'profile_id' => $profileRes['profile_id']
                     );

@@ -5,8 +5,8 @@ Description=Get TLS certificate from Traefik
 Type=oneshot
 # Automatically start once, at boot. Manual restart is still allowed.
 RemainAfterExit=true
-EnvironmentFile=%S/state/environment
-WorkingDirectory=%S/state
+EnvironmentFile=%E/state/environment
+WorkingDirectory=%E/state
 SyslogIdentifier=%N
 ExecStart=-runagent get-certificate \
     --cert-file=server.pem \

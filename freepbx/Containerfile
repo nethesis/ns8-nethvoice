@@ -1,5 +1,5 @@
 # Stage 1: Build Asterisk
-FROM docker.io/debian:bullseye-20260623 as builder
+FROM docker.io/debian:11 as builder
 
 # Set fixed Asterisk version
 ARG ASTERISK_VERSION=18.26.3
@@ -10,7 +10,21 @@ ARG LIBDIR=/usr/lib
 ARG DATADIR=/var/lib
 ARG MAKEARGS="DEBUG= OPTIMIZE= DESTDIR=${BUILDROOT} ASTVARRUNDIR=/var/run/asterisk ASTDATADIR=${DATADIR}/asterisk ASTVARLIBDIR=${DATADIR}/asterisk ASTDBDIR=${DATADIR}/asterisk/db NOISY_BUILD=1"
 COPY usr/src/asterisk /usr/src/asterisk
-RUN apt-get update && \
+# Bullseye LTS ended on 2026-08-31; no further official security updates are planned.
+# Third-party Extended LTS may support selected packages separately:
+# https://www.debian.org/News/2026/20260831
+# Restore reliable build downloads using archive.debian.org for bullseye and
+# bullseye-updates, plus the fixed 2026-09-01 snapshot for bullseye-security.
+# The snapshot avoids live-mirror package 404s and retains final LTS versions.
+# It does not extend Debian 11 security support. Any later fix requires changing
+# these sources; rebuilding cannot fetch updates beyond the fixed snapshot.
+# check-valid-until=no skips only snapshot metadata expiry; signature and checksum
+# verification remain enabled. See https://snapshot.debian.org/
+RUN sed -i \
+	-e 's|deb\.debian\.org/debian |archive.debian.org/debian |g' \
+	-e 's|http://deb\.debian\.org/debian-security |[check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260901T000000Z/ |g' \
+	/etc/apt/sources.list && \
+	apt-get update && \
 	apt-get install -y \
 		automake \
 		build-essential \
@@ -174,7 +188,13 @@ RUN cd /usr/src/asterisk && \
 FROM docker.io/library/php:7.4-apache
 WORKDIR /var/lib/asterisk
 ARG DEBIAN_FRONTEND=noninteractive
-RUN groupadd -g 991 -r asterisk && \
+# Apply the same archived and frozen sources described in the build stage above.
+# This restores package availability without extending Debian 11 security support.
+RUN sed -i \
+	-e 's|deb\.debian\.org/debian |archive.debian.org/debian |g' \
+	-e 's|http://deb\.debian\.org/debian-security |[check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260901T000000Z/ |g' \
+	/etc/apt/sources.list && \
+	groupadd -g 991 -r asterisk && \
     useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk && \
 	apt-get update && \
 	apt-get install -y \
@@ -215,6 +235,7 @@ RUN groupadd -g 991 -r asterisk && \
 		libspandsp2 \
 		libsnmp40 \
 		libical3 \
+		libsox-fmt-mp3 \
 		sqlite3 \
 		unixodbc-dev \
 		freetds-dev \
@@ -297,7 +318,8 @@ RUN mkdir -p \
 	/var/lib/asterisk/playback \
 	/var/run/asterisk/ \
 	/var/run/nethvoice/ \
-	/var/www/html/freepbx/admin/modules/framework
+	/var/www/html/freepbx/admin/modules/framework \
+	&& touch /etc/phonebook/sources.d/.nethvoice-volume-guard
 
 # Download framework module
 RUN sh /usr/local/bin/fetch-remote-artifact freepbx-framework-bootstrap-release-16.0.39.tar.gz https://github.com/FreePBX/framework/archive/refs/tags/release/16.0.39.tar.gz && \
@@ -348,7 +370,7 @@ RUN install_module() { \
 	install_module featurecodeadmin https://github.com/FreePBX/featurecodeadmin/archive/refs/tags/release/16.0.11.tar.gz && \
 	install_module filestore https://github.com/FreePBX/filestore/archive/refs/tags/release/16.0.18.5.tar.gz && \
 	install_module findmefollow https://github.com/FreePBX/findmefollow/archive/refs/tags/release/16.0.23.tar.gz && \
-	install_module framework https://github.com/FreePBX/framework/archive/refs/tags/release/16.0.40.3.tar.gz && \
+	install_module framework https://github.com/FreePBX/framework/archive/refs/tags/release/16.0.40.21.tar.gz && \
 	install_module iaxsettings https://github.com/FreePBX/iaxsettings/archive/refs/tags/release/16.0.4.tar.gz && \
 	install_module infoservices https://github.com/FreePBX/infoservices/archive/refs/tags/release/16.0.2.tar.gz && \
 	install_module ivr https://github.com/FreePBX/ivr/archive/refs/tags/release/16.0.10.tar.gz && \
@@ -359,7 +381,7 @@ RUN install_module() { \
 	install_module music https://github.com/FreePBX/music/archive/refs/tags/release/16.0.3.tar.gz && \
 	install_module outroutemsg https://github.com/FreePBX/outroutemsg/archive/refs/tags/release/16.0.1.tar.gz && \
 	install_module parking https://github.com/FreePBX/parking/archive/refs/tags/release/16.0.4.tar.gz && \
-	install_module pm2 https://github.com/FreePBX/pm2/archive/refs/tags/release/14.0.1.tar.gz && \
+	install_module pm2 https://github.com/FreePBX/pm2/archive/refs/tags/release/16.0.8.tar.gz && \
 	install_module queueprio https://github.com/FreePBX/queueprio/archive/refs/tags/release/16.0.3.tar.gz && \
 	install_module ringgroups https://github.com/FreePBX/ringgroups/archive/refs/tags/release/16.0.11.tar.gz && \
 	install_module setcid https://github.com/FreePBX/setcid/archive/refs/tags/release/16.0.3.tar.gz && \
@@ -371,7 +393,7 @@ RUN install_module() { \
 	install_module bosssecretary https://github.com/nethesis/freepbx-bosssecretary/archive/refs/tags/1.0.1.tar.gz && \
 	mkdir -p /var/www/html/freepbx/admin/modules/core && \
 	rm -fr /var/www/html/freepbx/admin/modules/core/* && \
-	install_module core https://github.com/nethesis/freepbx-core/archive/refs/tags/release/ns8/16.0.68.9-pl.2.tar.gz && \
+	install_module core https://github.com/nethesis/freepbx-core/archive/refs/tags/release/ns8/16.0.68.40-pl1.tar.gz && \
 	install_module customcontexts https://github.com/nethesis/freepbx-customcontexts/archive/refs/tags/release/13.0.3.4.tar.gz && \
 	install_module directdid https://github.com/nethesis/directdid/archive/1.1.8.tar.gz && \
 	install_module extraoptions https://github.com/nethesis/freepbx-extraoptions/archive/refs/tags/1.0.0.tar.gz && \

@@ -90,6 +90,16 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
+    this.importCti = function (obj) {
+      return $q(function (resolve, reject) {
+        RestService.post('/phonebook/import-cti', obj).then(function (res) {
+          resolve(res);
+        }, function (err) {
+          reject(err);
+        });
+      });
+    };
+
     this.uploadFile = function (file) {
       return $q(function (resolve, reject) {
         RestService.postfile('/phonebook/uploadfile', file).then(function (res) {

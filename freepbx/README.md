@@ -64,6 +64,24 @@ podman exec freepbx sh -lc "sed -n '1,20p' /var/www/html/freepbx/wizard/scripts/
 
 The wizard is publicly reachable both from `/freepbx/wizard/#!/` and from the shorter `#!/` path because Apache forwards non-`/freepbx` requests to the wizard application.
 
+## Phone RPS reset helper
+
+`/var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php` renews phone provisioning tokens in Tancredi and updates the corresponding RPS provisioning URLs in Falconieri. It accepts one argument:
+
+- `MAC_ADDRESS` resets a single phone. Colons in the address are converted to hyphens and letters are converted to uppercase.
+- `--all` resets every physical phone with a MAC address in the `rest_devices_phones` table.
+- `--host-changed` checks the `NETHVOICE_HOST` marker in the `asterisk.admin` table. If the stored hostname differs from the current environment value, it behaves like `--all`. If the marker is missing or unchanged, no phones are reset. The current hostname is stored before a reset attempt, so the operation is performed at most once for each hostname change.
+
+The container automatically runs the helper with `--host-changed` after FreePBX modules have been initialized and `fwconsole reload` has completed. Individual phone failures are logged and do not stop the helper from processing the remaining phones.
+
+Examples from inside the FreePBX container:
+
+```bash
+php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php 00:11:22:33:44:55
+php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --all
+php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed
+```
+
 ## User base Environments
 - `NETHVOICE_LDAP_PASS` Ldap password of user base
 - `NETHVOICE_LDAP_SCHEMA` [ad|rfc2307] luser base schema
@@ -260,3 +278,107 @@ NethVoice Hotel FIAS is installed and disabled by default. To enable it, set the
 
 Other configuration and finetune can be found in the file `/etc/asterisk/fias.conf` configuration file.
 If you need to change the configuration, you can do it in the file `/etc/asterisk/fias.conf` and restart container mounting new version as volume. Database credentials and server configuration will be overwritten with environment variables.
+
+### Run the complete FIAS test
+
+The isolated test starts a local PMS simulator, the real FIAS client and the
+real dispatcher. It covers the link handshake and reconnect/shutdown paths,
+all command sections enabled by the default `fias.conf`, guest groups and
+shared rooms, room status/DND behavior, and the minibar/CDR modes. It creates
+temporary transport databases and chooses an unused six-room block; both are
+removed at the end. It does not require Hotel FIAS to be enabled against a real
+PMS.
+
+Run it from an NS8 node, replacing the module identifier if needed:
+
+```sh
+NV_MODULE=nethvoice1
+FIAS_E2E_DIR=/tmp/fias-e2e-manual-$(date +%s)
+
+runagent -m "$NV_MODULE" podman exec \
+  -e FIAS_E2E_ARTIFACT_DIR="$FIAS_E2E_DIR" \
+  -e FIAS_E2E_SCENARIO=manual \
+  -e FIAS_E2E_MODULE_ID="$NV_MODULE" \
+  freepbx php /usr/share/neth-hotel-fias/fias-server-e2e.php
+```
+
+The command exits non-zero if any transport, handler, state assertion, or
+cleanup check fails. Its final output prints the evidence path. To copy the
+sanitized evidence bundle to the current machine:
+
+```sh
+mkdir -p tests/outputs/fias-e2e/manual
+runagent -m "$NV_MODULE" sh -lc \
+  'podman exec freepbx tar -C "$1" -czf - . | base64 -w0' sh "$FIAS_E2E_DIR" \
+  | base64 -d | tar -xzf - -C tests/outputs/fias-e2e/manual
+
+sed -n '1,240p' tests/outputs/fias-e2e/manual/report.md
+runagent -m "$NV_MODULE" podman exec freepbx rm -rf -- "$FIAS_E2E_DIR"
+```
+
+The bundle contains:
+
+- `report.md`: command-by-command human-readable report
+- `report.json`: the same results for automation
+- `commands/*.log`: trigger script, dispatched handler, parameters, wire frame,
+  assertion, and associated logs for every tested command/mode
+- `hotel.log`: NethHotel log lines correlated to their FIAS message
+- `fiasd.log`, `fias-server.log`, and `dispatcher.log`: full protocol evidence
+- `environment.json`: scenario metadata with no credentials
+
+You can optionally pass the first room number to the PHP script. The requested
+room and the following five rooms must be unused; otherwise the test stops
+without altering them.
+
+### Run install and update tests in GitHub Actions
+
+The FIAS E2E test always runs, alongside the standard module test suite. It
+runs automatically after a successful `Publish images` workflow, or it can be
+dispatched manually for a branch after its images have been published:
+
+```sh
+gh workflow run test-module.yml \
+  --ref fias_improve
+```
+
+The workflow runs a fresh installation on `dn1` and an update on `rl1`.
+Download the `tests-logs-dn1` and `tests-logs-rl1` artifacts from that run; the
+reports are under `fias-e2e/install/` and `fias-e2e/update/` respectively.
+If the branch image publication is unavailable but an exact PR testing image
+has already been published, pass it with `-f fias_image=<module-image-url>`.
+
+If the harness fails, start with `report.md`, then open the referenced
+`commands/*.log`. The per-command file correlates the FIAS wire frame with the
+producer/handler lifecycle and any `nethhotel` lines. The three full daemon
+logs are available for handshake, reconnect, timeout, or queue diagnostics.
+
+### Configure custom FIAS actions safely
+
+Custom actions for the FIAS `A0` through `A3` fields are configured as an
+argument array. The first item is the executable; each following item is a
+literal argument or one standalone placeholder:
+
+```ini
+[custom_fields]
+A0[]="/usr/bin/logger"
+A0[]="-t"
+A0[]="fias"
+A0[]="--"
+A0[]="Custom field A0"
+A0[]="%ARG%"
+```
+
+Supported placeholders are `%ARG%`, `%ROOM%`, `%RESERVATION%`, `%GUESTNAME%`,
+and `%GUESTLANGUAGE%`. Commands are executed directly without a shell, so
+command substitution, pipelines, redirection, and other shell syntax are not
+supported. The FIAS daemon, dispatcher, handlers, and their custom actions run
+as the unprivileged `asterisk` user. Existing scalar command templates are
+tokenized before placeholder substitution for compatibility, but should be
+migrated to the array form to make the argument boundaries explicit.
+In legacy scalar templates, a backslash inside a double-quoted argument is
+treated as an escape and removed. Existing commands that require literal
+backslashes, such as regular expressions containing `\d+`, must be migrated to
+the array form.
+The executable and fixed arguments are administrator-controlled configuration;
+FIAS placeholders must not be placed in code evaluated by a shell or interpreter
+option such as `sh -c` or `php -r`.
