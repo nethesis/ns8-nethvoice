@@ -7,6 +7,7 @@
 
 import agent
 import os
+import random
 import secrets
 import string
 
@@ -164,6 +165,8 @@ if not 'SATELLITE_PGSQL_PASSWORD' in agent.read_envfile('passwords.env'):
     passwordsfile['SATELLITE_PGSQL_PASSWORD'] = gen_password()
 if not (passwordsfile.get('SATELLITE_API_TOKEN') or '').strip():
     passwordsfile['SATELLITE_API_TOKEN'] = gen_password()
+if not passwordsfile.get('SATELLITE_AGENT_CONFIG_KEY'):
+    passwordsfile['SATELLITE_AGENT_CONFIG_KEY'] = secrets.token_urlsafe(48)
 agent.write_envfile('passwords.env', passwordsfile)
 
 if os.getenv('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT') is None:
