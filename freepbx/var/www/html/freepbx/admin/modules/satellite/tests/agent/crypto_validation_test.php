@@ -75,6 +75,7 @@ try {
         AgentValidation::validateGrokPhoneNumber('390721123456');
     }, 'Bad Direct SIP number accepted');
     agent_assert(AgentValidation::validateFallback('ext-local,203,1') === 'ext-local,203,1', 'FreePBX fallback rejected');
+    agent_assert(AgentValidation::validateFallback('queueexit-3,${EXTEN},1') === 'queueexit-3,${EXTEN},1', 'Dynamic FreePBX fallback rejected');
     agent_reject(function () {
         AgentValidation::validateFallback("ext-local,203,1\nSystem(evil)");
     }, 'Unsafe fallback accepted');

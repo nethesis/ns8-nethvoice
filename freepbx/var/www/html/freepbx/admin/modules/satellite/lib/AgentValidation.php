@@ -70,7 +70,7 @@ class AgentValidation
             return null;
         }
         if (!is_string($destination) || strlen($destination) > 255 ||
-            !preg_match('/^[A-Za-z0-9_-]+,[A-Za-z0-9_.*+#-]+,[1-9][0-9]*$/D', $destination)) {
+            !preg_match('~^[A-Za-z0-9_-]+,(?:[A-Za-z0-9_.*+#-]+|\$\{EXTEN\}),[1-9][0-9]*$~D', $destination)) {
             throw new \InvalidArgumentException('Invalid fallback destination');
         }
         return $destination;

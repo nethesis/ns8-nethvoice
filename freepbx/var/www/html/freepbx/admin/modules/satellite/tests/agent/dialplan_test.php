@@ -111,4 +111,12 @@ satellite_get_config_late('asterisk');
 agent_dialplan_assert(!isset($ext->entries['satellite-agent-destination-1']),
     'Invalid SIP header flow must not enter the dialplan');
 
+FreePBX::$satellite->destinations[0]['cleverai_flow'] = 'flow_1';
+FreePBX::$satellite->destinations[0]['fallback_destination'] = 'queueexit-3,${EXTEN},1';
+$ext = new AgentDialplanCollector();
+satellite_get_config_late('asterisk');
+agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-1'],
+    'ext_goto', array('1', '${EXTEN}', 'queueexit-3')),
+    'Native FreePBX dynamic fallback missing');
+
 echo "Agent dialplan tests passed\n";
