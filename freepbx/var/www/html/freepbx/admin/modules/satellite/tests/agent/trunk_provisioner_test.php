@@ -41,6 +41,8 @@ class TestCore
     public $calls = array();
     public $nextId = 10;
     public $failAdd = false;
+    public $failNextAdds = 0;
+    public $partialOnFailure = false;
 
     public function __construct()
     {
@@ -60,16 +62,23 @@ class TestCore
     public function addTrunk($name, $tech, $base, $edit = false)
     {
         $this->calls[] = array('add', $name, $tech, $base, $_POST, $edit);
-        if ($this->failAdd) {
-            throw new RuntimeException('Core add failed');
-        }
         $id = $edit ? $base['trunknum'] : $this->nextId++;
-        $this->trunks[$id] = array(
+        $row = array(
             'trunkid' => $id,
             'channelid' => $base['channelid'],
             'tech' => $tech,
             'provider' => $base['provider'],
         );
+        if ($this->failAdd || $this->failNextAdds > 0) {
+            if ($this->failNextAdds > 0) {
+                $this->failNextAdds--;
+            }
+            if ($this->partialOnFailure) {
+                $this->trunks[$id] = $row;
+            }
+            throw new RuntimeException('Core add failed');
+        }
+        $this->trunks[$id] = $row;
         return $id;
     }
 
@@ -156,5 +165,31 @@ failsWith(function () use ($provisioner) {
     $provisioner->createManagedTrunk(array('id' => 3, 'provider' => 'openai', 'openai_project_id' => 'proj_test'));
 }, 'Core add failed');
 check($_POST === $originalPost, 'POST restored after Core exception');
+
+$rollbackCore = new TestCore();
+$rollbackProvisioner = new AgentTrunkProvisioner($rollbackCore, new TestCrypto());
+$previous = array('id' => 4, 'provider' => 'openai', 'openai_project_id' => 'proj_before', 'enabled' => 1);
+$previous['freepbx_trunk_id'] = $rollbackProvisioner->createManagedTrunk($previous);
+$previous['freepbx_trunk_name'] = 'AgentTrunk_4';
+$replacement = $previous;
+$replacement['openai_project_id'] = 'proj_after';
+$replacement['enabled'] = 0;
+$rollbackCore->failNextAdds = 1;
+$rollbackCore->partialOnFailure = true;
+failsWith(function () use ($rollbackProvisioner, $replacement, $previous) {
+    $rollbackProvisioner->updateManagedTrunk($replacement, $previous);
+}, 'Core add failed');
+check($rollbackCore->calls[1] === array('delete', 10, 'pjsip', true), 'rollback test removed old trunk');
+check($rollbackCore->calls[3] === array('delete', 10, 'pjsip', true), 'rollback removed partial replacement');
+check($rollbackCore->calls[4][4]['aor_contact'] === 'sip:sip.api.openai.com:5061;transport=tls'
+    && $rollbackCore->calls[4][3]['disabletrunk'] === 'off', 'rollback restored previous settings');
+check(isset($rollbackCore->trunks[10]), 'rollback restored original ID');
+check($_POST === $originalPost, 'POST restored after rollback');
+
+$rollbackCore->failNextAdds = 2;
+failsWith(function () use ($rollbackProvisioner, $replacement, $previous) {
+    $rollbackProvisioner->updateManagedTrunk($replacement, $previous);
+}, 'rollback failed: Core add failed');
+check($_POST === $originalPost, 'POST restored after failed rollback');
 
 echo "Agent trunk provisioner tests passed\n";
