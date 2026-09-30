@@ -1,0 +1,114 @@
+<?php
+
+class AgentDialplanApplication
+{
+    public $arguments;
+    public function __construct(...$arguments) { $this->arguments = $arguments; }
+}
+class ext_noop extends AgentDialplanApplication {}
+class ext_set extends AgentDialplanApplication {}
+class ext_execif extends AgentDialplanApplication {}
+class ext_return extends AgentDialplanApplication {}
+class ext_dial extends AgentDialplanApplication {}
+class ext_gotoif extends AgentDialplanApplication {}
+class ext_goto extends AgentDialplanApplication {}
+class ext_hangup extends AgentDialplanApplication {}
+
+class AgentDialplanCollector
+{
+    public $entries = array();
+    public function add($context, $extension, $priority, $application)
+    {
+        $this->entries[$context][] = array($extension, $priority, $application);
+    }
+}
+
+class AgentDialplanSatellite
+{
+    public $destinations = array();
+    public $trunks = array();
+    public function getAgentDestinations() { return $this->destinations; }
+    public function getAgentTrunk($id) { return isset($this->trunks[$id]) ? $this->trunks[$id] : null; }
+}
+
+class FreePBX
+{
+    public static $satellite;
+    public static function Satellite() { return self::$satellite; }
+}
+
+function agent_dialplan_assert($condition, $message)
+{
+    if (!$condition) {
+        throw new RuntimeException($message);
+    }
+}
+
+function agent_dialplan_has($entries, $class, array $arguments)
+{
+    foreach ($entries as $entry) {
+        $application = $entry[2];
+        if ($application instanceof $class && $application->arguments === $arguments) {
+            return true;
+        }
+    }
+    return false;
+}
+
+require_once __DIR__ . '/../../functions.inc.php';
+
+FreePBX::$satellite = new AgentDialplanSatellite();
+for ($id = 1; $id <= 20; ++$id) {
+    FreePBX::$satellite->destinations[] = array(
+        'id' => $id,
+        'freepbx_name' => 'CleverAI_' . $id,
+        'agent_type' => 'cleverai',
+        'cleverai_trunk_id' => $id <= 10 ? 1 : 2,
+        'cleverai_flow' => 'flow_' . $id,
+        'fallback_destination' => 'app-blackhole,hangup,1',
+        'enabled' => 1,
+    );
+}
+FreePBX::$satellite->trunks = array(
+    1 => array('provider' => 'openai', 'openai_project_id' => 'proj_test',
+        'freepbx_trunk_name' => 'AgentTrunk_1', 'enabled' => 1),
+    2 => array('provider' => 'grok', 'grok_phone_number' => '+390721123456',
+        'freepbx_trunk_name' => 'AgentTrunk_2', 'enabled' => 1),
+);
+
+$ext = new AgentDialplanCollector();
+unset($_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED']);
+satellite_get_config_late('asterisk');
+
+agent_dialplan_assert(count(satellite_destinations()) === 20, 'All destinations must be advertised');
+agent_dialplan_assert(satellite_getdest(12) === array('satellite-agent-destination-12,s,1'),
+    'Native destination key must be stable');
+agent_dialplan_assert(count(satellite_check_destinations(array('app-blackhole,hangup,1'))) === 20,
+    'Fallback references must be advertised');
+agent_dialplan_assert(count($ext->entries) === 21, 'Twenty destinations and one header context expected');
+agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-1'],
+    'ext_set', array('__AGENT_FLOW', 'flow_1')), 'First destination flow missing');
+agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-2'],
+    'ext_set', array('__AGENT_FLOW', 'flow_2')), 'Second destination flow missing');
+agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-1'],
+    'ext_dial', array('PJSIP/proj_test@AgentTrunk_1,', 'b(satellite-agent-add-headers^s^1)')),
+    'OpenAI trunk dial missing');
+agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-20'],
+    'ext_dial', array('PJSIP/+390721123456@AgentTrunk_2,', 'b(satellite-agent-add-headers^s^1)')),
+    'Grok trunk dial missing');
+agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-add-headers'],
+    'ext_set', array('PJSIP_HEADER(add,X-OS-FLOW)', '${AGENT_FLOW}')),
+    'Per-destination flow header missing');
+agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-add-headers'],
+    'ext_set', array('PJSIP_HEADER(add,X-OS-Session-ID)', '${CHANNEL(linkedid)}')),
+    'Session header missing');
+agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-1'],
+    'ext_goto', array('1', 'hangup', 'app-blackhole')), 'Fallback missing');
+
+FreePBX::$satellite->destinations[0]['cleverai_flow'] = "bad\r\nX-Evil: yes";
+$ext = new AgentDialplanCollector();
+satellite_get_config_late('asterisk');
+agent_dialplan_assert(!isset($ext->entries['satellite-agent-destination-1']),
+    'Invalid SIP header flow must not enter the dialplan');
+
+echo "Agent dialplan tests passed\n";
