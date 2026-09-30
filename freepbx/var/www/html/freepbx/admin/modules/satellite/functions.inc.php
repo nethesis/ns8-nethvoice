@@ -102,6 +102,130 @@ function satellite_get_config_late($engine) {
             // Return to the dialplan
             $ext->add('satellite', 's', '', new \ext_return());
         }
+        satellite_generate_agent_dialplan();
         break;
+    }
+}
+
+function satellite_agent_destination_key($id) {
+    return 'satellite-agent-destination-' . (int) $id . ',s,1';
+}
+
+function satellite_destinations() {
+    $result = array();
+    foreach (FreePBX::Satellite()->getAgentDestinations() as $row) {
+        if (!empty($row['enabled'])) {
+            $result[] = array(
+                'destination' => satellite_agent_destination_key($row['id']),
+                'description' => $row['freepbx_name']
+            );
+        }
+    }
+    return $result;
+}
+
+function satellite_getdest($id) {
+    return array(satellite_agent_destination_key($id));
+}
+
+function satellite_getdestinfo($dest) {
+    if (!preg_match('/^satellite-agent-destination-([0-9]+),s,1$/', trim($dest), $match)) {
+        return false;
+    }
+    $row = FreePBX::Satellite()->getAgentDestination((int) $match[1]);
+    if (!$row) {
+        return array();
+    }
+    return array(
+        'description' => 'Agent: ' . $row['freepbx_name'],
+        'edit_url' => 'config.php?display=satellite_agents&view=form&id=' . (int) $row['id']
+    );
+}
+
+function satellite_check_destinations($dest = true) {
+    $result = array();
+    if (is_array($dest) && !$dest) {
+        return $result;
+    }
+    foreach (FreePBX::Satellite()->getAgentDestinations() as $row) {
+        $fallback = $row['fallback_destination'];
+        if ($fallback === null || $fallback === '' || ($dest !== true && !in_array($fallback, (array) $dest, true))) {
+            continue;
+        }
+        $result[] = array(
+            'dest' => $fallback,
+            'description' => 'Agent: ' . $row['freepbx_name'] . ' fallback',
+            'edit_url' => 'config.php?display=satellite_agents&view=form&id=' . (int) $row['id']
+        );
+    }
+    return $result;
+}
+
+function satellite_change_destination($old_dest, $new_dest) {
+    FreePBX::Satellite()->changeAgentFallbackDestination($old_dest, $new_dest);
+}
+
+function satellite_generate_agent_dialplan() {
+    global $ext;
+    $satellite = FreePBX::Satellite();
+    $destinations = $satellite->getAgentDestinations();
+    if (!$destinations) {
+        return;
+    }
+
+    $headers = 'satellite-agent-add-headers';
+    $ext->add($headers, 's', '', new ext_noop('Add headers to Agent SIP leg'));
+    $ext->add($headers, 's', '', new ext_set('__AGENT_CALLED_NUMBER', '${AGENT_ORIGINAL_DID}'));
+    $ext->add($headers, 's', '', new ext_execif('$["${AGENT_CALLED_NUMBER}"=""]', 'Set', '__AGENT_CALLED_NUMBER=${AGENT_EXTENSION}'));
+    foreach (array(
+        'X-OS-Caller' => '${AGENT_ORIGINAL_CALLER}',
+        'X-OS-Caller-Name' => '${AGENT_ORIGINAL_CALLER_NAME}',
+        'X-OS-DID' => '${AGENT_CALLED_NUMBER}',
+        'X-OS-Extension' => '${AGENT_EXTENSION}',
+        'X-OS-FLOW' => '${AGENT_FLOW}',
+        'X-OS-Agent-ID' => '${AGENT_DESTINATION_ID}',
+        'X-OS-Session-ID' => '${CHANNEL(linkedid)}'
+    ) as $name => $value) {
+        $ext->add($headers, 's', '', new ext_set('PJSIP_HEADER(add,' . $name . ')', $value));
+    }
+    $ext->add($headers, 's', '', new ext_return());
+
+    foreach ($destinations as $row) {
+        if (empty($row['enabled']) || $row['agent_type'] !== 'cleverai' ||
+            !preg_match('/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/D', (string) $row['cleverai_flow'])) {
+            continue;
+        }
+        $context = 'satellite-agent-destination-' . (int) $row['id'];
+        $trunk = $satellite->getAgentTrunk((int) $row['cleverai_trunk_id']);
+        $ext->add($context, 's', '', new ext_noop('Satellite Agent destination ' . $row['freepbx_name']));
+        $ext->add($context, 's', '', new ext_set('__AGENT_DESTINATION_ID', (int) $row['id']));
+        $ext->add($context, 's', '', new ext_set('__AGENT_TYPE', 'cleverai'));
+        $ext->add($context, 's', '', new ext_set('__AGENT_FLOW', $row['cleverai_flow']));
+        $ext->add($context, 's', '', new ext_set('__AGENT_ORIGINAL_CALLER', '${CALLERID(num)}'));
+        $ext->add($context, 's', '', new ext_set('__AGENT_ORIGINAL_CALLER_NAME', '${CALLERID(name)}'));
+        $ext->add($context, 's', '', new ext_set('__AGENT_ORIGINAL_DID', '${FROM_DID}'));
+        $ext->add($context, 's', '', new ext_set('__AGENT_EXTENSION', ''));
+
+        if ($trunk && !empty($trunk['enabled']) &&
+            preg_match('/^AgentTrunk_[0-9]+$/D', (string) $trunk['freepbx_trunk_name'])) {
+            $user = $trunk['provider'] === 'openai' ? $trunk['openai_project_id'] : $trunk['grok_phone_number'];
+            $valid = $trunk['provider'] === 'openai'
+                ? preg_match('/^proj_[A-Za-z0-9_-]+$/D', (string) $user)
+                : ($trunk['provider'] === 'grok' && preg_match('/^\+[1-9][0-9]{1,14}$/D', (string) $user));
+            if ($valid) {
+                $ext->add($context, 's', '', new ext_dial(
+                    'PJSIP/' . $user . '@' . $trunk['freepbx_trunk_name'] . ',',
+                    'b(satellite-agent-add-headers^s^1)'
+                ));
+                $ext->add($context, 's', '', new ext_gotoif('$["${DIALSTATUS}"="ANSWER"]', 'end'));
+            }
+        }
+
+        $fallback = (string) $row['fallback_destination'];
+        if (preg_match('/^[A-Za-z0-9_+*#.-]+,[A-Za-z0-9_+*#.-]+,[0-9]+$/D', $fallback)) {
+            list($fallbackContext, $fallbackExten, $fallbackPriority) = explode(',', $fallback);
+            $ext->add($context, 's', '', new ext_goto($fallbackPriority, $fallbackExten, $fallbackContext));
+        }
+        $ext->add($context, 's', 'end', new ext_hangup());
     }
 }
