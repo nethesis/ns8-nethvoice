@@ -143,12 +143,26 @@ class Satellite extends \FreePBX_Helpers implements \BMO
             );
             if ($id === null) {
                 $id = $this->agentTrunks->create($input);
+                $freepbxId = null;
+                $provisioner = new AgentTrunkProvisioner();
                 try {
                     $stored = $this->agentTrunks->getStoredById($id);
                     $this->agentTrunks->resolveProviderApiKey($stored);
-                    $freepbxId = (new AgentTrunkProvisioner())->createManagedTrunk($stored);
+                    $freepbxId = $provisioner->createManagedTrunk($stored);
                     $this->agentTrunks->setProvisionedTrunkId($id, $freepbxId);
                 } catch (\Throwable $error) {
+                    if ($freepbxId !== null) {
+                        try {
+                            $stored['freepbx_trunk_id'] = $freepbxId;
+                            $provisioner->deleteManagedTrunk($stored);
+                        } catch (\Throwable $cleanupError) {
+                            throw new \RuntimeException(
+                                'Agent trunk creation failed and FreePBX cleanup failed: ' . $cleanupError->getMessage(),
+                                0,
+                                $error
+                            );
+                        }
+                    }
                     $this->agentTrunks->delete($id);
                     throw $error;
                 }
@@ -161,9 +175,17 @@ class Satellite extends \FreePBX_Helpers implements \BMO
                 try {
                     $stored = $this->agentTrunks->getStoredById($id);
                     $this->agentTrunks->resolveProviderApiKey($stored);
-                    (new AgentTrunkProvisioner())->updateManagedTrunk($stored);
+                    (new AgentTrunkProvisioner())->updateManagedTrunk($stored, $previous);
                 } catch (\Throwable $error) {
-                    $this->restoreAgentTrunk($id, $previous);
+                    try {
+                        $this->restoreAgentTrunk($id, $previous);
+                    } catch (\Throwable $restoreError) {
+                        throw new \RuntimeException(
+                            'Agent trunk update failed and metadata restore failed: ' . $restoreError->getMessage(),
+                            0,
+                            $error
+                        );
+                    }
                     throw $error;
                 }
             }

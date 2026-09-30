@@ -32,7 +32,7 @@ class AgentTrunkProvisioner
     }
 
     /** Replace an existing managed trunk while retaining its FreePBX trunk ID. */
-    public function updateManagedTrunk(array $agentTrunk)
+    public function updateManagedTrunk(array $agentTrunk, array $previousTrunk = null)
     {
         $name = $this->trunkName($agentTrunk);
         $trunkId = $this->ownedTrunkId($agentTrunk, $name);
@@ -40,12 +40,52 @@ class AgentTrunkProvisioner
         $base = $this->baseSettings($name, $agentTrunk);
         $base['trunknum'] = $trunkId;
 
+        if ($previousTrunk !== null) {
+            if ($this->trunkName($previousTrunk) !== $name || $this->ownedTrunkId($previousTrunk, $name) !== $trunkId) {
+                throw new \InvalidArgumentException('Previous managed trunk does not match the trunk being updated');
+            }
+            $previousSettings = $this->pjsipSettings($previousTrunk);
+            $previousBase = $this->baseSettings($name, $previousTrunk);
+            $previousBase['trunknum'] = $trunkId;
+        }
+
         $deleted = $this->core->deleteTrunk($trunkId, 'pjsip', true);
         if ($deleted !== true) {
             throw new \RuntimeException('Could not replace managed trunk ' . $name);
         }
 
-        return $this->addTrunk($name, $base, $settings, true);
+        try {
+            return $this->addTrunk($name, $base, $settings, true);
+        } catch (\Throwable $error) {
+            if ($previousTrunk === null) {
+                throw $error;
+            }
+
+            $rollbackErrors = array();
+            try {
+                if ($this->core->deleteTrunk($trunkId, 'pjsip', true) !== true) {
+                    throw new \RuntimeException('partial trunk cleanup failed');
+                }
+            } catch (\Throwable $cleanupError) {
+                $rollbackErrors[] = $cleanupError->getMessage();
+            }
+            try {
+                if ((int) $this->addTrunk($name, $previousBase, $previousSettings, true) !== $trunkId) {
+                    throw new \RuntimeException('previous trunk was restored under a different ID');
+                }
+            } catch (\Throwable $restoreError) {
+                $rollbackErrors[] = $restoreError->getMessage();
+            }
+            if ($rollbackErrors) {
+                throw new \RuntimeException(
+                    'Could not update managed trunk ' . $name . ': ' . $error->getMessage()
+                    . '; rollback failed: ' . implode('; ', $rollbackErrors),
+                    0,
+                    $error
+                );
+            }
+            throw $error;
+        }
     }
 
     public function deleteManagedTrunk(array $agentTrunk)
