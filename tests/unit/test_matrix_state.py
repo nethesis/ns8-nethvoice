@@ -16,6 +16,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[2]
 CLONE = ROOT / 'imageroot/actions/clone-module/24matrix'
 RESTORE_PUSH = ROOT / 'imageroot/actions/restore-module/25matrix_push'
+RESTORE_POSTGRES = ROOT / 'imageroot/actions/restore-module/24matrix_postgresql'
 DUMP = ROOT / 'imageroot/bin/module-dump-state'
 
 
@@ -103,6 +104,39 @@ class PushRestoreTests(unittest.TestCase):
             self.assertEqual((volume / 'push.db').read_bytes(), b'consistent')
             self.assertFalse((volume / 'push.db-wal').exists())
             self.assertEqual((volume / 'push.db').stat().st_mode & 0o777, 0o600)
+
+
+class PostgresRestoreTests(unittest.TestCase):
+    def test_private_logical_restore_consumes_dump(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory)
+            with gzip.open(state / 'matrix_postgresql.pg_dump.gz', 'wb') as stream:
+                stream.write(b'PGDMP')
+            (state / 'passwords.env').write_text('MATRIX_POSTGRES_PASSWORD=matrix-secret\n')
+            tools = state / 'tools'
+            tools.mkdir()
+            podman = tools / 'podman'
+            podman.write_text('''#!/bin/bash
+printf 'podman %s\\n' "$*" >> "$TEST_MATRIX_LOG"
+if [[ "$1 $2" == 'exec --interactive' ]]; then cat > "$TEST_MATRIX_RESTORED"; fi
+exit 0
+''')
+            podman.chmod(0o755)
+            systemctl = tools / 'systemctl'
+            systemctl.write_text('#!/bin/sh\nprintf "systemctl %s\\n" "$*" >> "$TEST_MATRIX_LOG"\n')
+            systemctl.chmod(0o755)
+            log = state / 'commands.log'
+            restored = state / 'restored.dump'
+            env = {**os.environ, 'PATH': str(tools) + os.pathsep + os.environ['PATH'],
+                   'TEST_MATRIX_LOG': str(log), 'TEST_MATRIX_RESTORED': str(restored),
+                   'POSTGRES_IMAGE': 'postgres:test'}
+            subprocess.run([str(RESTORE_POSTGRES)], cwd=state, check=True, env=env)
+            self.assertEqual(restored.read_bytes(), b'PGDMP')
+            self.assertFalse((state / 'matrix_postgresql.pg_dump.gz').exists())
+            commands = log.read_text()
+            self.assertIn('--network=none', commands)
+            self.assertIn('pg_restore', commands)
+            self.assertNotIn('matrix-secret', commands)
 
 
 class DumpTests(unittest.TestCase):
