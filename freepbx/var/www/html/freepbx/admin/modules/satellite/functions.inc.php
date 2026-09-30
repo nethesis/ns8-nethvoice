@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/lib/AgentValidation.php';
 
 function satellite_get_config($engine) {
     // Intentionally left as a no-op. Configuration handling is done in satellite_get_config_late().
@@ -221,8 +222,12 @@ function satellite_generate_agent_dialplan() {
             }
         }
 
-        $fallback = (string) $row['fallback_destination'];
-        if (preg_match('/^[A-Za-z0-9_+*#.-]+,[A-Za-z0-9_+*#.-]+,[0-9]+$/D', $fallback)) {
+        try {
+            $fallback = AgentValidation::validateFallback($row['fallback_destination']);
+        } catch (\InvalidArgumentException $error) {
+            $fallback = null;
+        }
+        if ($fallback !== null) {
             list($fallbackContext, $fallbackExten, $fallbackPriority) = explode(',', $fallback);
             $ext->add($context, 's', '', new ext_goto($fallbackPriority, $fallbackExten, $fallbackContext));
         }
