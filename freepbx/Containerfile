@@ -349,7 +349,7 @@ RUN install_module() { \
 	install_module arimanager https://github.com/FreePBX/arimanager/archive/refs/tags/release/16.0.13.tar.gz && \
 	install_module asterisk-cli https://github.com/FreePBX/asterisk-cli/archive/refs/tags/release/16.0.8.tar.gz && \
 	install_module asteriskinfo https://github.com/FreePBX/asteriskinfo/archive/refs/tags/release/16.0.10.tar.gz && \
-	install_module backup https://github.com/FreePBX/backup/archive/refs/tags/release/16.0.70.3.tar.gz && \
+	install_module backup https://github.com/FreePBX/backup/archive/refs/tags/release/16.0.76.tar.gz && \
 	install_module blacklist https://github.com/FreePBX/blacklist/archive/refs/tags/release/16.0.21.tar.gz && \
 	install_module bulkhandler https://github.com/FreePBX/bulkhandler/archive/refs/tags/release/16.0.16.tar.gz && \
 	install_module calendar https://github.com/FreePBX/calendar/archive/refs/tags/release/16.0.34.2.tar.gz && \
@@ -378,7 +378,7 @@ RUN install_module() { \
 	install_module logfiles https://github.com/FreePBX/logfiles/archive/refs/tags/release/16.0.7.tar.gz && \
 	install_module manager https://github.com/FreePBX/manager/archive/refs/tags/release/16.0.24.tar.gz && \
 	install_module miscapps https://github.com/FreePBX/miscapps/archive/refs/tags/release/16.0.2.tar.gz && \
-	install_module music https://github.com/FreePBX/music/archive/refs/tags/release/16.0.3.tar.gz && \
+	install_module music https://github.com/FreePBX/music/archive/refs/tags/release/16.0.4.tar.gz && \
 	install_module outroutemsg https://github.com/FreePBX/outroutemsg/archive/refs/tags/release/16.0.1.tar.gz && \
 	install_module parking https://github.com/FreePBX/parking/archive/refs/tags/release/16.0.4.tar.gz && \
 	install_module pm2 https://github.com/FreePBX/pm2/archive/refs/tags/release/16.0.8.tar.gz && \
@@ -386,7 +386,7 @@ RUN install_module() { \
 	install_module ringgroups https://github.com/FreePBX/ringgroups/archive/refs/tags/release/16.0.11.tar.gz && \
 	install_module setcid https://github.com/FreePBX/setcid/archive/refs/tags/release/16.0.3.tar.gz && \
 	install_module sipsettings https://github.com/FreePBX/sipsettings/archive/refs/tags/release/16.0.27.tar.gz && \
-	install_module soundlang https://github.com/FreePBX/soundlang/archive/refs/tags/release/16.0.9.tar.gz && \
+	install_module soundlang https://github.com/FreePBX/soundlang/archive/refs/tags/release/16.0.10.tar.gz && \
 	install_module timeconditions https://github.com/FreePBX/timeconditions/archive/refs/tags/release/16.0.11.tar.gz && \
 	install_module userman https://github.com/FreePBX/userman/archive/refs/tags/release/16.0.45.tar.gz && \
 	install_module vmblast https://github.com/FreePBX/vmblast/archive/refs/tags/release/16.0.11.tar.gz && \
