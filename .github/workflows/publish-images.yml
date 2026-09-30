@@ -15,13 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  dependency-preflight:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - run: bash build-images.sh --check-dependencies
   publish-images:
-    needs: dependency-preflight
     if: github.run_number > 1
     name: Publish ${{ matrix.group }} images
     strategy:

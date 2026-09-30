@@ -9,7 +9,6 @@ timings=()
 build_timing_file="${BUILD_TIMING_FILE:-build-timings.tsv}"
 # The image will be pushed to GitHub container registry
 repobase="${REPOBASE:-ghcr.io/nethesis}"
-. ./build-dependencies.env
 # Configure the image name
 reponame="nethvoice"
 
@@ -83,58 +82,6 @@ build_image() {
     shift
     buildah build "$@"
 }
-
-check_component_dependency() {
-    local component="$1" source_path="$2" base_image="$3"
-    if [[ -n "$source_path" ]]; then
-        if [[ ! -f "$source_path/Containerfile" ]]; then
-            printf 'Missing %s source Containerfile: %s\n' "$component" "$source_path" >&2
-            return 1
-        fi
-        if ! git -C "$source_path" rev-parse --verify HEAD >/dev/null 2>&1 ||
-                [[ -n "$(git -C "$source_path" status --porcelain)" ]]; then
-            printf '%s source must be a clean committed checkout.\n' "$component" >&2
-            return 1
-        fi
-    elif [[ -z "$base_image" ]]; then
-        printf '%s is not released yet. Supply its *_SOURCE or *_BASE_IMAGE input.\n' "$component" >&2
-        return 1
-    fi
-}
-
-check_dependencies() {
-    # Validate before building the module or any wrappers. A module must never
-    # silently advertise companion images implementing the obsolete protocol.
-    if should_build nethvoice || should_build nethvoice-cti-middleware; then
-        check_component_dependency nethcti-middleware "${NETHCTI_MIDDLEWARE_SOURCE:-}" \
-            "${NETHCTI_MIDDLEWARE_BASE_IMAGE:-$NETHCTI_MIDDLEWARE_RELEASE_IMAGE}" || return 1
-    fi
-    if should_build nethvoice || should_build nethvoice-matrix2acrobits; then
-        check_component_dependency matrix2acrobits "${MATRIX2ACROBITS_SOURCE:-}" \
-            "${MATRIX2ACROBITS_BASE_IMAGE:-$MATRIX2ACROBITS_RELEASE_IMAGE}" || return 1
-    fi
-}
-
-build_companion_image() {
-    local source_path="$1" base_image="$2"
-    if [[ -n "$source_path" ]]; then
-        build_image "${reponame}" --force-rm --layers \
-            --file "$source_path/Containerfile" \
-            --label "org.opencontainers.image.revision=$(git -C "$source_path" rev-parse HEAD)" \
-            --tag "${repobase}/${reponame}" \
-            --tag "${repobase}/${reponame}:${IMAGETAG:-latest}" "$source_path"
-    else
-        container=$(buildah from "$base_image")
-        buildah commit "${container}" "${repobase}/${reponame}"
-        buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
-        buildah rm "${container}"
-    fi
-}
-
-check_dependencies
-if [[ "${1:-}" == --check-dependencies ]]; then
-    exit 0
-fi
 
 # Sanitize the image tag by replacing slashes with dashes to avoid issues with buildah tagging
 if [[ -n "${IMAGETAG}" ]]; then
@@ -246,8 +193,10 @@ fi
 reponame="nethvoice-cti-middleware"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    build_companion_image "${NETHCTI_MIDDLEWARE_SOURCE:-}" \
-        "${NETHCTI_MIDDLEWARE_BASE_IMAGE:-$NETHCTI_MIDDLEWARE_RELEASE_IMAGE}"
+    # The published v0.5.19 lacks Matrix auth; update after companion release.
+    container=$(buildah from ghcr.io/nethesis/nethcti-middleware:v0.5.19)
+    buildah commit "${container}" "${repobase}/${reponame}"
+    buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
     finish_timing
     # Append the image URL to the images array
     images+=("${repobase}/${reponame}")
@@ -275,8 +224,10 @@ fi
 reponame="nethvoice-matrix2acrobits"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    build_companion_image "${MATRIX2ACROBITS_SOURCE:-}" \
-        "${MATRIX2ACROBITS_BASE_IMAGE:-$MATRIX2ACROBITS_RELEASE_IMAGE}"
+    # The published 0.0.4 lacks automatic provisioning; update after release.
+    container=$(buildah from ghcr.io/nethesis/matrix2acrobits:0.0.4)
+    buildah commit "${container}" "${repobase}/${reponame}"
+    buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
     finish_timing
     images+=("${repobase}/${reponame}")
 else

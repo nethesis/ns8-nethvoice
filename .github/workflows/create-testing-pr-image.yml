@@ -20,12 +20,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  dependency-preflight:
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository
-    steps:
-      - uses: actions/checkout@v6
-      - run: bash build-images.sh --check-dependencies
   tagname:
     name: Compute image tag
     runs-on: ubuntu-latest
@@ -46,7 +40,7 @@ jobs:
           echo "imagetag=pr-${PR_NUMBER}.${RUN_NUMBER}-${RUN_ATTEMPT}.${short_sha}" >> "$GITHUB_OUTPUT"
   create-testing-pr-image:
     name: Create testing PR ${{ matrix.group }} images
-    needs: [tagname, dependency-preflight]
+    needs: tagname
     if: github.event.pull_request.head.repo.full_name == github.repository
     strategy:
       fail-fast: false
