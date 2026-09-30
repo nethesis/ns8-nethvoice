@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+# Restore the bridge's SQLite snapshot in the rootless Podman user namespace.
+set -e
+exec 1>&2
+
+matrix_bridge_volume=$(podman volume inspect --format '{{.Mountpoint}}' matrix2acrobits-data 2>/dev/null || true)
+if [ -z "$matrix_bridge_volume" ] || ! podman unshare test -f "$matrix_bridge_volume/push.backup.db"; then
+    exit 0
+fi
+
+# Copy first, then replace atomically. A stale WAL/SHM belongs to the old
+# database generation and must not be replayed against the restored snapshot.
+podman unshare sh -c '
+    set -e
+    volume=$1
+    cp -p "$volume/push.backup.db" "$volume/push.db.restore"
+    chmod 600 "$volume/push.db.restore"
+    rm -f "$volume/push.db-wal" "$volume/push.db-shm"
+    mv -f "$volume/push.db.restore" "$volume/push.db"
+' sh "$matrix_bridge_volume"

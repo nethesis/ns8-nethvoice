@@ -1,19 +1,42 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 #
 # Copyright (C) 2023 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-set -e
+set -e -o pipefail
 
 # sourcing the file directly is broken with quotes
 MARIADB_ROOT_PASSWORD=$(grep '^MARIADB_ROOT_PASSWORD=' ./passwords.env) && export $MARIADB_ROOT_PASSWORD
 
 # clean container files on exit
 cleanup () {
-    podman exec mariadb rm -rf /tmp/db_backup
-    podman exec freepbx rm -f /var/lib/asterisk/db/astdb.sqlite3.dump
+    local result=$?
+    trap - EXIT
+    rm -f matrix_postgresql.pg_dump.gz.tmp
+    if [[ ${matrix_snapshot_started:-false} == true ]]; then
+        podman stop --ignore -t 60 matrix-postgresql-snapshot >&2 || {
+            if (( result == 0 )); then result=1; fi
+        }
+    fi
+    if [[ ${matrix_synapse_active:-false} == true ]]; then
+        systemctl --user start matrix-synapse.service >&2 || {
+            if (( result == 0 )); then result=1; fi
+        }
+    fi
+    if [[ ${matrix_bridge_active:-false} == true ]]; then
+        systemctl --user start matrix2acrobits.service >&2 || {
+            if (( result == 0 )); then result=1; fi
+        }
+    fi
+    podman exec mariadb rm -rf /tmp/db_backup || {
+        if (( result == 0 )); then result=1; fi
+    }
+    podman exec freepbx rm -f /var/lib/asterisk/db/astdb.sqlite3.dump || {
+        if (( result == 0 )); then result=1; fi
+    }
+    exit "$result"
 }
 
 trap cleanup EXIT
@@ -60,5 +83,62 @@ if systemctl --user --quiet is-active satellite-pgsql.service; then
     podman exec satellite-pgsql pg_dumpall -U satellite | gzip > satellite_postgresql.pg_dump.gz
 fi
 
-# Embedded Matrix databases remain durable even when chat is disabled.
-runagent matrix-state dump
+# Stop the chat writers while snapshotting the Matrix database and bridge
+# cursor. Remember their previous state so disabled chat stays disabled.
+if systemctl --user --quiet is-active matrix-synapse.service; then
+    matrix_synapse_active=true
+fi
+if systemctl --user --quiet is-active matrix2acrobits.service; then
+    matrix_bridge_active=true
+fi
+if [[ ${matrix_bridge_active:-false} == true ]]; then
+    systemctl --user stop matrix2acrobits.service >&2
+fi
+if [[ ${matrix_synapse_active:-false} == true ]]; then
+    systemctl --user stop matrix-synapse.service >&2
+fi
+
+# A disabled Matrix instance can still hold messages. Serve its initialized
+# PostgreSQL volume temporarily without exposing any network port.
+matrix_pg_volume=$(podman volume inspect --format '{{.Mountpoint}}' matrix-postgresql-data 2>/dev/null || true)
+if [[ -n $matrix_pg_volume ]] && podman unshare test -s "$matrix_pg_volume/PG_VERSION"; then
+    matrix_pg_container=matrix-postgresql
+    if ! podman inspect --format '{{.State.Running}}' "$matrix_pg_container" 2>/dev/null | grep -qx true; then
+        MATRIX_POSTGRES_PASSWORD=$(sed -n 's/^MATRIX_POSTGRES_PASSWORD=//p' passwords.env)
+        POSTGRES_PASSWORD=$MATRIX_POSTGRES_PASSWORD
+        export POSTGRES_PASSWORD
+        matrix_pg_container=matrix-postgresql-snapshot
+        podman run --rm --detach --name="$matrix_pg_container" --network=none \
+            --volume=matrix-postgresql-data:/var/lib/postgresql/data:Z \
+            --env=POSTGRES_USER="${MATRIX_POSTGRES_USER:-synapse}" \
+            --env=POSTGRES_DB="${MATRIX_POSTGRES_DB:-synapse}" \
+            --env=POSTGRES_PASSWORD \
+            '--env=POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C' \
+            "$POSTGRES_IMAGE" >&2
+        matrix_snapshot_started=true
+        for ((attempt=0; attempt<120; attempt++)); do
+            if podman exec "$matrix_pg_container" psql -U "${MATRIX_POSTGRES_USER:-synapse}" \
+                -d "${MATRIX_POSTGRES_DB:-synapse}" -Atc 'SELECT 1' >/dev/null 2>&1; then
+                break
+            fi
+            sleep 1
+        done
+        if (( attempt == 120 )); then
+            echo 'Matrix PostgreSQL snapshot service did not become ready' >&2
+            exit 1
+        fi
+    fi
+    umask 077
+    podman exec "$matrix_pg_container" pg_dump -U "${MATRIX_POSTGRES_USER:-synapse}" \
+        --format=custom "${MATRIX_POSTGRES_DB:-synapse}" | gzip > matrix_postgresql.pg_dump.gz.tmp
+    mv -f matrix_postgresql.pg_dump.gz.tmp matrix_postgresql.pg_dump.gz
+fi
+
+# The bridge backup command uses SQLite's online backup API. Rootless mapped
+# ownership requires probing the volume from inside Podman's user namespace.
+matrix_bridge_volume=$(podman volume inspect --format '{{.Mountpoint}}' matrix2acrobits-data 2>/dev/null || true)
+if [[ -n $matrix_bridge_volume ]] && podman unshare test -f "$matrix_bridge_volume/push.db"; then
+    podman run --rm --network=none --userns=keep-id:uid=65532,gid=65532 \
+        --volume=matrix2acrobits-data:/data:Z --env=PUSH_TOKEN_DB_PATH=/data/push.db \
+        "$NETHVOICE_MATRIX2ACROBITS_IMAGE" backup-db --output /data/push.backup.db >&2
+fi

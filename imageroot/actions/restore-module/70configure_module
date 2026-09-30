@@ -15,6 +15,10 @@ import agent
 request = json.load(sys.stdin)
 old_envs = request['environment']
 
+# Matrix setup validation reads the restored wizard state from MariaDB.
+if old_envs.get("NETHVOICE_MATRIX_ENABLED") == "True":
+    agent.run_helper("systemctl", "--user", "start", "mariadb.service").check_returncode()
+
 # call configure module
 response = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-module', data={
     "nethvoice_host": old_envs["NETHVOICE_HOST"],

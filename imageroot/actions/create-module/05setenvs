@@ -9,8 +9,7 @@ import os
 import sys
 import random
 import string
-import runpy
-from pathlib import Path
+import secrets
 import agent
 
 
@@ -250,8 +249,15 @@ passwords = {
     "SATELLITE_ARI_PASSWORD": gen_password(),
     "SATELLITE_PGSQL_PASSWORD": gen_password(),
     "SATELLITE_API_TOKEN": gen_password(),
-    "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN": gen_password()
+    "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN": gen_password(),
+    "MATRIX_POSTGRES_PASSWORD": secrets.token_urlsafe(48),
+    "MATRIX_REGISTRATION_SECRET": secrets.token_urlsafe(48),
+    "MATRIX_MACAROON_SECRET": secrets.token_urlsafe(48),
+    "MATRIX_FORM_SECRET": secrets.token_urlsafe(48),
+    "MATRIX_SYNAPSE_SECRET": secrets.token_urlsafe(48),
+    "MATRIX_M2A_AS_TOKEN": secrets.token_urlsafe(48),
+    "MATRIX_M2A_HS_TOKEN": secrets.token_urlsafe(48),
+    "MATRIX_INTERNAL_AUTH_TOKEN": secrets.token_urlsafe(48),
 }
 
-matrix = runpy.run_path(str(Path(__file__).resolve().parents[2] / 'bin/matrix-config'))
-agent.write_envfile("passwords.env", matrix['fill_secrets'](passwords))
+agent.write_envfile("passwords.env", passwords)

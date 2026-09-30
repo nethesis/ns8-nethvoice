@@ -7,7 +7,7 @@ After=matrix-synapse.service nethcti-middleware.service
 Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%E/state/environment
 WorkingDirectory=%E/state
-ExecCondition=runagent matrix-config enabled
+ExecCondition=/usr/bin/test "${NETHVOICE_MATRIX_ENABLED}" = True
 Restart=always
 TimeoutStartSec=120
 TimeoutStopSec=70
@@ -26,7 +26,7 @@ ExecStart=/usr/bin/podman run --detach --replace --name=%N \
     --env=EXT_AUTH_URL=http://127.0.0.1:${NETHVOICE_MIDDLEWARE_MATRIX_PORT}/internal/matrix \
     --env=PUSH_TOKEN_DB_PATH=/data/push.db --env=LOGLEVEL=INFO \
     ${NETHVOICE_MATRIX2ACROBITS_IMAGE}
-ExecStartPost=runagent matrix-config wait bridge
+ExecStartPost=/usr/bin/timeout 90 /bin/sh -c 'until curl --fail --silent --max-time 3 http://127.0.0.1:${MATRIX_M2A_PORT}/healthz >/dev/null 2>&1; do sleep 1; done'
 ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/matrix2acrobits.ctr-id -t 60
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile=%t/matrix2acrobits.ctr-id
 PIDFile=%t/matrix2acrobits.pid

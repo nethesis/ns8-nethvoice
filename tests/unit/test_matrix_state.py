@@ -1,142 +1,189 @@
-import gzip
+"""Exercise Matrix clone and push snapshot actions without a running module."""
 import io
+import gzip
+import json
+import os
 from pathlib import Path
+import runpy
+import subprocess
+import sys
 import tempfile
+import types
 import unittest
 from unittest.mock import patch
 
-from test_matrix_config import load_helper
 
-state = load_helper('matrix-state')
-
-
-class FakeDump:
-    def __init__(self, payload, code):
-        self.stdout = io.BytesIO(payload)
-        self.code = code
-
-    def wait(self):
-        return self.code
-
-    def poll(self):
-        return self.code
+ROOT = Path(__file__).resolve().parents[2]
+CLONE = ROOT / 'imageroot/actions/clone-module/24matrix'
+RESTORE_PUSH = ROOT / 'imageroot/actions/restore-module/25matrix_push'
+DUMP = ROOT / 'imageroot/bin/module-dump-state'
 
 
-class MatrixStateTests(unittest.TestCase):
-    def test_move_preserves_identity_and_all_matrix_credentials(self):
-        fresh = {name: 'new-' + name for name in state.matrix['SECRET_NAMES']}
-        old = {name: 'old-' + name for name in state.matrix['SECRET_NAMES']}
-        old['UNRELATED'] = 'old'
-        fresh['UNRELATED'] = 'new'
-        source = {'NETHVOICE_MATRIX_ENABLED': 'True', 'NETHVOICE_MATRIX_HOST': 'matrix.example.org'}
-        settings, passwords = state.clone_environment({}, source, fresh, old, True)
-        self.assertEqual(settings, source)
-        self.assertEqual(passwords['UNRELATED'], 'new')
-        for name in state.matrix['SECRET_NAMES']:
-            self.assertEqual(passwords[name], old[name])
-
-    def test_independent_clone_retains_fresh_credentials_and_clears_identity(self):
-        settings, passwords = state.clone_environment({}, {'NETHVOICE_MATRIX_HOST': 'old.example.org'},
-                                                      {'MATRIX_INTERNAL_AUTH_TOKEN': 'new'},
-                                                      {'MATRIX_INTERNAL_AUTH_TOKEN': 'old'}, False)
-        self.assertEqual(settings, {'NETHVOICE_MATRIX_ENABLED': 'False', 'NETHVOICE_MATRIX_HOST': ''})
-        self.assertEqual(passwords['MATRIX_INTERNAL_AUTH_TOKEN'], 'new')
-
-    def test_saved_startup_lists_cannot_enable_matrix_for_independent_clone(self):
-        original = 'agent.service matrix-postgresql.service\nmatrix-synapse.service matrix2acrobits.service freepbx.service\n'
-        self.assertEqual(state.filter_startup_units(original), 'agent.service freepbx.service\n')
-
-    def test_snapshot_is_gzipped_and_atomically_published(self):
-        with tempfile.TemporaryDirectory() as directory:
-            target = Path(directory) / 'dump.gz'
-            with patch.object(state.subprocess, 'Popen', return_value=FakeDump(b'PGDMP-data', 0)):
-                state.dump_database(target, 'matrix-postgresql', {})
-            with gzip.open(target, 'rb') as stream:
-                self.assertEqual(stream.read(), b'PGDMP-data')
-            self.assertEqual(target.stat().st_mode & 0o777, 0o600)
-            self.assertFalse(target.with_name('dump.gz.tmp').exists())
-
-    def test_failed_dump_cannot_replace_a_previous_snapshot(self):
-        with tempfile.TemporaryDirectory() as directory:
-            target = Path(directory) / 'dump.gz'
-            target.write_bytes(b'previous')
-            with patch.object(state.subprocess, 'Popen', return_value=FakeDump(b'partial', 1)):
-                with self.assertRaises(RuntimeError):
-                    state.dump_database(target, 'matrix-postgresql', {})
-            self.assertEqual(target.read_bytes(), b'previous')
-            self.assertFalse(target.with_name('dump.gz.tmp').exists())
-
-    def test_disabled_database_snapshot_has_no_network_and_stops_after_failure(self):
-        env = {'POSTGRES_IMAGE': 'postgres:16.15-alpine', 'NETHVOICE_MATRIX_ENABLED': 'False'}
+class CloneTests(unittest.TestCase):
+    def run_clone(self, state, replace, source, fresh, old):
+        settings = {}
+        written = []
         commands = []
-        with patch.object(state, 'container_running', return_value=False), \
-                patch.object(state, 'run', side_effect=lambda *args, **kwargs: commands.append((args, kwargs))), \
-                patch.object(state, 'wait_database'):
-            with self.assertRaises(RuntimeError):
-                with state.database(env, {'MATRIX_POSTGRES_PASSWORD': 'secret'}) as name:
-                    self.assertEqual(name, 'matrix-postgresql-snapshot')
-                    raise RuntimeError('dump failed')
-        self.assertIn('--network=none', commands[0][0])
-        self.assertNotIn('secret', ' '.join(commands[0][0]))
-        self.assertEqual(commands[-1][0][:2], ('podman', 'stop'))
 
-    def test_bridge_restore_consumes_snapshot_and_removes_stale_wal(self):
+        def read_envfile(name):
+            return {
+                'environment.clone-module': source,
+                'passwords.env': fresh,
+                'passwords.old': old,
+            }[name]
+
+        fake_agent = types.SimpleNamespace(
+            read_envfile=read_envfile,
+            set_env=lambda name, value: settings.__setitem__(name, value),
+            write_envfile=lambda name, value: written.append((name, value)),
+        )
+
+        def run(command, **kwargs):
+            commands.append((command, kwargs))
+            return types.SimpleNamespace(returncode=0)
+
+        with patch.dict(sys.modules, {'agent': fake_agent}), \
+                patch.dict(os.environ, {'AGENT_STATE_DIR': str(state), 'AGENT_INSTALL_DIR': '/module'}), \
+                patch.object(sys, 'stdin', io.StringIO(json.dumps({'replace': replace}))), \
+                patch('subprocess.run', side_effect=run):
+            runpy.run_path(str(CLONE), run_name='__main__')
+        return settings, written, commands
+
+    def test_move_keeps_transferred_matrix_identity_and_secrets(self):
         with tempfile.TemporaryDirectory() as directory:
-            volume = Path(directory)
+            source = {'NETHVOICE_MATRIX_ENABLED': 'True', 'NETHVOICE_MATRIX_HOST': 'matrix.example.org'}
+            fresh = {'MATRIX_POSTGRES_PASSWORD': 'fresh', 'MATRIX_M2A_AS_TOKEN': 'fresh-as', 'OTHER': 'new'}
+            old = {'MATRIX_POSTGRES_PASSWORD': 'old', 'MATRIX_M2A_AS_TOKEN': 'old-as', 'OTHER': 'old'}
+            settings, written, commands = self.run_clone(Path(directory), True, source, fresh, old)
+            self.assertEqual(settings, source)
+            self.assertEqual(written[0][1]['MATRIX_POSTGRES_PASSWORD'], 'old')
+            self.assertEqual(written[0][1]['MATRIX_M2A_AS_TOKEN'], 'old-as')
+            self.assertEqual(written[0][1]['OTHER'], 'new')
+            self.assertEqual(commands[-1][0], ['runagent', '/module/actions/configure-module/73matrix'])
+
+    def test_independent_clone_clears_identity_and_saved_startup_units(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory)
+            (state / 'matrix').mkdir()
+            (state / 'matrix/identity.json').write_text('{"server_name":"old.example.org"}')
+            (state / 'matrix_postgresql.pg_dump.gz').write_bytes(b'old')
+            units = state / 'default-target.clone-module'
+            units.write_text('agent.service matrix-postgresql.service matrix-synapse.service '
+                             'matrix2acrobits.service freepbx.service\n')
+            settings, written, commands = self.run_clone(state, False, {}, {'MATRIX_POSTGRES_PASSWORD': 'new'},
+                                                         {'MATRIX_POSTGRES_PASSWORD': 'old'})
+            self.assertEqual(settings, {'NETHVOICE_MATRIX_ENABLED': 'False', 'NETHVOICE_MATRIX_HOST': ''})
+            self.assertEqual(written, [])
+            self.assertEqual(units.read_text(), 'agent.service freepbx.service\n')
+            self.assertFalse((state / 'matrix').exists())
+            self.assertFalse((state / 'matrix_postgresql.pg_dump.gz').exists())
+            removed = [call[0][3] for call in commands if call[0][:3] == ['podman', 'volume', 'rm']]
+            self.assertEqual(removed, ['matrix-postgresql-data', 'matrix-synapse-data', 'matrix2acrobits-data'])
+
+
+class PushRestoreTests(unittest.TestCase):
+    def test_snapshot_replaces_database_and_stale_wal(self):
+        with tempfile.TemporaryDirectory() as directory:
+            volume = Path(directory) / 'volume'
+            volume.mkdir()
             (volume / 'push.backup.db').write_bytes(b'consistent')
             (volume / 'push.db').write_bytes(b'old')
             (volume / 'push.db-wal').write_bytes(b'stale')
-            state.restore_bridge_files(volume)
+            tools = Path(directory) / 'tools'
+            tools.mkdir()
+            podman = tools / 'podman'
+            podman.write_text('#!/bin/sh\n'
+                              'if [ "$1" = volume ]; then printf "%s\\n" "$TEST_MATRIX_VOLUME"; exit 0; fi\n'
+                              'if [ "$1" = unshare ]; then shift; exec "$@"; fi\n'
+                              'exit 1\n')
+            podman.chmod(0o755)
+            env = {**os.environ, 'PATH': str(tools) + os.pathsep + os.environ['PATH'],
+                   'TEST_MATRIX_VOLUME': str(volume)}
+            subprocess.run([str(RESTORE_PUSH)], check=True, env=env)
             self.assertEqual((volume / 'push.db').read_bytes(), b'consistent')
             self.assertFalse((volume / 'push.db-wal').exists())
             self.assertEqual((volume / 'push.db').stat().st_mode & 0o777, 0o600)
 
-    def test_old_backup_without_matrix_snapshot_is_supported(self):
-        with patch.object(state, 'volume_path', return_value=None):
-            state.restore_bridge()
-            self.assertFalse(state.database_initialized())
 
-    def test_bridge_volume_probe_uses_podman_user_namespace(self):
-        volume = Path('/rootless/matrix2acrobits-data/_data')
-        with patch.object(state.subprocess, 'run', return_value=type('Result', (), {'returncode': 0})()) as command:
-            self.assertTrue(state.volume_file_exists(volume, 'push.db'))
-        self.assertEqual(command.call_args.args[0],
-                         ['podman', 'unshare', 'test', '-f', str(volume / 'push.db')])
+class DumpTests(unittest.TestCase):
+    def run_dump(self, directory, active=False, fail_dump=False):
+        state = Path(directory)
+        (state / 'passwords.env').write_text('MARIADB_ROOT_PASSWORD=local\nMATRIX_POSTGRES_PASSWORD=matrix-secret\n')
+        volume = state / 'pg-volume'
+        volume.mkdir()
+        (volume / 'PG_VERSION').write_text('16\n')
+        tools = state / 'tools'
+        tools.mkdir()
+        podman = tools / 'podman'
+        podman.write_text('''#!/bin/bash
+printf 'podman %s\\n' "$*" >> "$TEST_MATRIX_LOG"
+case "$1 $2" in
+    'volume inspect')
+        if [[ $* == *matrix-postgresql-data* ]]; then printf '%s\\n' "$TEST_MATRIX_VOLUME"; exit 0; fi
+        exit 1 ;;
+    'unshare test') shift; exec "$@" ;;
+    'inspect --format={{.State.Running}}') printf 'false\\n'; exit 0 ;;
+    'exec mariadb')
+        if [[ $* == *mariabackup* ]]; then printf 'mariadb-data'; fi
+        exit 0 ;;
+    'exec freepbx')
+        if [[ $* == *' ls '* ]]; then exit 1; fi
+        exit 0 ;;
+    'exec matrix-postgresql-snapshot')
+        if [[ $* == *' pg_dump '* ]]; then
+            if [[ ${TEST_MATRIX_FAIL_DUMP:-0} == 1 ]]; then printf partial; exit 2; fi
+            printf PGDMP; exit 0
+        fi
+        exit 0 ;;
+    'cp freepbx:'*) mkdir -p "$(dirname "$3")"; printf astdb > "$3"; exit 0 ;;
+    'run --rm') printf 'cid\\n'; exit 0 ;;
+    'stop --ignore') exit 0 ;;
+esac
+exit 0
+''')
+        podman.chmod(0o755)
+        systemctl = tools / 'systemctl'
+        systemctl.write_text('''#!/bin/bash
+printf 'systemctl %s\\n' "$*" >> "$TEST_MATRIX_LOG"
+if [[ $* == *is-active* ]]; then
+    if [[ ${TEST_MATRIX_ACTIVE:-0} == 1 && $* != *satellite-pgsql* ]]; then exit 0; fi
+    exit 3
+fi
+exit 0
+''')
+        systemctl.chmod(0o755)
+        log = state / 'commands.log'
+        env = {**os.environ, 'PATH': str(tools) + os.pathsep + os.environ['PATH'],
+               'TEST_MATRIX_VOLUME': str(volume), 'TEST_MATRIX_LOG': str(log),
+               'TEST_MATRIX_ACTIVE': '1' if active else '0',
+               'TEST_MATRIX_FAIL_DUMP': '1' if fail_dump else '0',
+               'POSTGRES_IMAGE': 'postgres:test', 'NETHVOICE_MATRIX2ACROBITS_IMAGE': 'bridge:test'}
+        result = subprocess.run([str(DUMP)], cwd=state, env=env, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, text=True)
+        return result, log.read_text()
 
-    def test_bridge_restore_enters_podman_user_namespace(self):
-        volume = Path('/rootless/matrix2acrobits-data/_data')
-        with patch.object(state, 'volume_path', return_value=volume), \
-                patch.object(state, 'volume_file_exists', return_value=True), \
-                patch.object(state, 'run') as command:
-            state.restore_bridge()
-        self.assertEqual(command.call_args.args[:3], ('podman', 'unshare', state.sys.executable))
+    def test_disabled_instance_snapshots_initialized_database_without_starting_services(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result, commands = self.run_dump(directory)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            with gzip.open(Path(directory) / 'matrix_postgresql.pg_dump.gz', 'rb') as stream:
+                self.assertEqual(stream.read(), b'PGDMP')
+            self.assertIn('--network=none', commands)
+            self.assertNotIn('systemctl --user start matrix-', commands)
+            self.assertNotIn('matrix-secret', commands)
 
-    def test_failed_snapshot_restarts_only_previously_active_writers(self):
-        commands = []
-        with patch.object(state.subprocess, 'run', return_value=type('Result', (), {'returncode': 0})()), \
-                patch.object(state, 'run', side_effect=lambda *args, **kwargs: commands.append(args)):
-            with self.assertRaises(RuntimeError):
-                with state.paused_chat():
-                    raise RuntimeError('snapshot failed')
-        self.assertEqual(commands[0], ('systemctl', '--user', 'stop', 'matrix2acrobits.service', 'matrix-synapse.service'))
-        self.assertEqual(commands[1], ('systemctl', '--user', 'start', 'matrix-synapse.service', 'matrix2acrobits.service'))
-
-    def test_disabled_snapshot_does_not_enable_services(self):
-        with patch.object(state.subprocess, 'run', return_value=type('Result', (), {'returncode': 3})()), \
-                patch.object(state, 'run') as command:
-            with state.paused_chat():
-                pass
-        command.assert_not_called()
-
-    def test_satellite_restore_matches_service_image_and_major_version(self):
-        root = Path(__file__).resolve().parents[2]
-        restore = (root / 'imageroot/actions/restore-module/23satellite_pg').read_text()
-        service = (root / 'imageroot/systemd/user/satellite-pgsql.service').read_text()
-        self.assertIn('${PGVECTOR_IMAGE}', restore)
-        self.assertIn('${PGVECTOR_IMAGE}', service)
-        self.assertIn('/var/lib/postgresql/18/docker', restore)
-        self.assertIn('/var/lib/postgresql/18/docker', service)
-        self.assertIn('psql -U "$POSTGRES_USER"', restore)
+    def test_failed_dump_keeps_previous_snapshot_and_restarts_active_writers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            previous = Path(directory) / 'matrix_postgresql.pg_dump.gz'
+            previous.write_bytes(b'previous')
+            result, commands = self.run_dump(directory, active=True, fail_dump=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(previous.read_bytes(), b'previous')
+            self.assertFalse((Path(directory) / 'matrix_postgresql.pg_dump.gz.tmp').exists())
+            self.assertIn('systemctl --user stop matrix2acrobits.service', commands)
+            self.assertIn('systemctl --user stop matrix-synapse.service', commands)
+            self.assertIn('systemctl --user start matrix-synapse.service', commands)
+            self.assertIn('systemctl --user start matrix2acrobits.service', commands)
 
 
 if __name__ == '__main__':

@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+"""Generate Matrix runtime configuration and reconcile its public routes."""
+import json
+import os
+from pathlib import Path
+import re
+import sys
+import agent
+
+
+def configurations(env, passwords, smtp=None):
+    host = env['NETHVOICE_MATRIX_HOST']
+    registration = {
+        'id': 'acrobits-proxy',
+        'url': 'http://127.0.0.1:' + env['MATRIX_M2A_PORT'],
+        'as_token': passwords['MATRIX_M2A_AS_TOKEN'],
+        'hs_token': passwords['MATRIX_M2A_HS_TOKEN'],
+        'sender_localpart': '_acrobits_proxy', 'rate_limited': False,
+        'namespaces': {
+            'users': [{'exclusive': False, 'regex': r'^@[a-z0-9._=/\-]+:' + re.escape(host) + '$'}],
+            'aliases': [{'exclusive': True, 'regex': '^#_acrobits_[0-9a-f]{64}:' + re.escape(host) + '$'}],
+            'rooms': [],
+        },
+    }
+    config = {
+        'server_name': host, 'public_baseurl': 'https://' + host + '/',
+        'pid_file': '/data/homeserver.pid', 'report_stats': False,
+        'listeners': [{'port': int(env['MATRIX_SYNAPSE_PORT']),
+                       'bind_addresses': ['127.0.0.1'], 'type': 'http',
+                       'tls': False, 'x_forwarded': True,
+                       'resources': [{'names': ['client'], 'compress': False}]}],
+        'database': {'name': 'psycopg2', 'args': {
+            'user': env.get('MATRIX_POSTGRES_USER', 'synapse'),
+            'password': passwords['MATRIX_POSTGRES_PASSWORD'],
+            'database': env.get('MATRIX_POSTGRES_DB', 'synapse'),
+            'host': '127.0.0.1', 'port': int(env['MATRIX_POSTGRES_PORT']),
+            'cp_min': 5, 'cp_max': 10,
+        }},
+        'media_store_path': '/data/media_store',
+        'signing_key_path': '/data/' + host + '.signing.key',
+        'log_config': '/data/config/log.config',
+        'enable_registration': False, 'enable_registration_without_verification': False,
+        'registration_shared_secret': passwords['MATRIX_REGISTRATION_SECRET'],
+        'macaroon_secret_key': passwords['MATRIX_MACAROON_SECRET'],
+        'form_secret': passwords['MATRIX_FORM_SECRET'],
+        'federation_domain_whitelist': [], 'trusted_key_servers': [],
+        'password_config': {'enabled': True, 'localdb_enabled': False},
+        'app_service_config_files': ['/data/config/matrix2acrobits.yaml'],
+        'modules': [{'module': 'nethvoice_auth_provider.NethVoiceAuthProvider', 'config': {
+            'middleware_auth_url': 'http://127.0.0.1:' + env['NETHVOICE_MIDDLEWARE_MATRIX_PORT'] + '/internal/matrix/auth',
+            'internal_auth_token': passwords['MATRIX_INTERNAL_AUTH_TOKEN'],
+            'homeserver_url': 'http://127.0.0.1:' + env['MATRIX_SYNAPSE_PORT'],
+            'as_token': passwords['MATRIX_M2A_AS_TOKEN'],
+        }}],
+    }
+    if smtp and smtp.get('enabled'):
+        config['email'] = {
+            'smtp_host': smtp['host'], 'smtp_port': int(smtp['port']),
+            'smtp_user': smtp.get('username', ''), 'smtp_pass': smtp.get('password', ''),
+            'notif_from': 'NethVoice <matrix@' + host + '>',
+            'enable_notifs': False, 'require_transport_security': smtp.get('encrypt_smtp', False),
+        }
+    logging = {
+        'version': 1, 'formatters': {'plain': {'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'}},
+        'handlers': {'console': {'class': 'logging.StreamHandler', 'formatter': 'plain', 'stream': 'ext://sys.stderr'}},
+        'loggers': {'synapse.http.server': {'level': 'WARNING'}, 'synapse.http.client': {'level': 'WARNING'}},
+        'root': {'level': 'INFO', 'handlers': ['console']}, 'disable_existing_loggers': False,
+    }
+    return config, registration, logging
+
+
+def atomic_write(path, contents):
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + '.tmp')
+    with temporary.open('w') as stream:
+        os.chmod(temporary, 0o600)
+        stream.write(contents)
+    temporary.replace(path)
+
+
+def write_service_env_files(state, passwords):
+    """Keep service credentials out of expanded Podman command arguments."""
+    service_values = (
+        ('postgresql.env', {'POSTGRES_PASSWORD': passwords['MATRIX_POSTGRES_PASSWORD']}),
+        ('m2a.env', {
+            'MATRIX_AS_TOKEN': passwords['MATRIX_M2A_AS_TOKEN'],
+            'MATRIX_HS_TOKEN': passwords['MATRIX_M2A_HS_TOKEN'],
+            'EXT_AUTH_TOKEN': passwords['MATRIX_INTERNAL_AUTH_TOKEN'],
+        }),
+    )
+    for name, values in service_values:
+        # Generated tokens use URL-safe characters. Fail closed if a damaged
+        # secret file contains an env-file delimiter or newline.
+        if any(not re.fullmatch(r'[A-Za-z0-9_-]+', value) for value in values.values()):
+            raise ValueError('Invalid Matrix service credential')
+        atomic_write(state / 'matrix' / name,
+                     ''.join(key + '=' + value + '\n' for key, value in values.items()))
+
+
+def generate(state, env, passwords, smtp=None):
+    base_url = 'https://' + env['NETHVOICE_MATRIX_HOST'] if env.get('NETHVOICE_MATRIX_ENABLED') == 'True' else ''
+    if env.get('NETHVOICE_MATRIX_ENABLED') != 'True':
+        atomic_write(state / 'middleware.env', 'NETHVOICE_MATRIX_BASE_URL=\n')
+        return
+    identity_path = state / 'matrix/identity.json'
+    if identity_path.exists() and json.loads(identity_path.read_text())['server_name'] != env['NETHVOICE_MATRIX_HOST']:
+        raise ValueError('Matrix server identity cannot be changed')
+    config, registration, logging = configurations(env, passwords, smtp)
+    write_service_env_files(state, passwords)
+    for name, contents in (('homeserver.yaml', config), ('matrix2acrobits.yaml', registration), ('log.config', logging)):
+        atomic_write(state / 'matrix/synapse' / name, json.dumps(contents, indent=2) + '\n')
+    # Persist identity before startup: a failed start must not permit a different
+    # server_name to be applied to a partially initialized database.
+    atomic_write(identity_path, json.dumps({'server_name': env['NETHVOICE_MATRIX_HOST']}) + '\n')
+    atomic_write(state / 'middleware.env', 'NETHVOICE_MATRIX_BASE_URL=' + base_url + '\n')
+
+
+def routes(agent, env, lets_encrypt=None):
+    if env.get('NETHVOICE_MATRIX_ENABLED') != 'True':
+        target = agent.resolve_agent_id('traefik@node')
+        if target:
+            for suffix in ('matrix', 'matrix-m2a', 'matrix-push'):
+                result = agent.tasks.run(target, action='delete-route', data={'instance': env['MODULE_ID'] + '-' + suffix})
+                agent.assert_exp(result['exit_code'] == 0)
+        return
+    common = {'host': env['NETHVOICE_MATRIX_HOST'], 'http2https': True}
+    if lets_encrypt is not None:
+        common['lets_encrypt'] = lets_encrypt
+    for suffix, port, path, strip, priority in (
+            ('matrix', 'MATRIX_SYNAPSE_PORT', '/', False, 10),
+            ('matrix-m2a', 'MATRIX_M2A_PORT', '/m2a', True, 30),
+            ('matrix-push', 'MATRIX_M2A_PORT', '/_matrix/push/v1/notify', False, 40)):
+        agent.set_route({**common, 'instance': env['MODULE_ID'] + '-' + suffix,
+                         'url': 'http://127.0.0.1:' + env[port], 'path': path,
+                         'strip_prefix': strip, 'priority': priority})
+
+
+def main():
+    env = {**os.environ, **agent.read_envfile('environment')}
+    state = Path(os.environ['AGENT_STATE_DIR'])
+    passwords = agent.read_envfile('passwords.env')
+    smtp = None
+    if env.get('NETHVOICE_MATRIX_ENABLED') == 'True':
+        smtp = agent.get_smarthost_settings(agent.redis_connect(use_replica=True))
+    generate(state, env, passwords, smtp)
+    request = json.load(sys.stdin)
+    routes(agent, env, request.get('lets_encrypt'))
+
+
+if __name__ == '__main__':
+    main()

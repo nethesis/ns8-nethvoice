@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Restore the Matrix database independently of Satellite PostgreSQL.
+set -e -o pipefail
+exec 1>&2
+
+if [[ ! -f matrix_postgresql.pg_dump.gz ]]; then
+    exit 0 # Backup predates embedded Matrix.
+fi
+
+systemctl --user stop matrix2acrobits.service matrix-synapse.service matrix-postgresql.service
+
+MATRIX_POSTGRES_PASSWORD=$(sed -n 's/^MATRIX_POSTGRES_PASSWORD=//p' passwords.env)
+POSTGRES_PASSWORD=$MATRIX_POSTGRES_PASSWORD
+export POSTGRES_PASSWORD
+
+matrix_restore_container=matrix-postgresql-restore
+cleanup() {
+    podman stop --ignore -t 60 "$matrix_restore_container" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+# The database volume is deliberately excluded from backup. A temporary
+# private server initializes it before loading the logical dump.
+podman run --rm --detach --name="$matrix_restore_container" --network=none \
+    --volume=matrix-postgresql-data:/var/lib/postgresql/data:Z \
+    --env=POSTGRES_USER="${MATRIX_POSTGRES_USER:-synapse}" \
+    --env=POSTGRES_DB="${MATRIX_POSTGRES_DB:-synapse}" \
+    --env=POSTGRES_PASSWORD \
+    '--env=POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C' \
+    "$POSTGRES_IMAGE"
+
+for ((attempt=0; attempt<120; attempt++)); do
+    if podman exec "$matrix_restore_container" psql -U "${MATRIX_POSTGRES_USER:-synapse}" \
+        -d "${MATRIX_POSTGRES_DB:-synapse}" -Atc 'SELECT 1' >/dev/null 2>&1; then
+        break
+    fi
+    sleep 1
+done
+if (( attempt == 120 )); then
+    echo 'Matrix PostgreSQL restore service did not become ready' >&2
+    exit 1
+fi
+
+gunzip -c matrix_postgresql.pg_dump.gz | podman exec --interactive "$matrix_restore_container" \
+    pg_restore -U "${MATRIX_POSTGRES_USER:-synapse}" --exit-on-error --clean --if-exists \
+    --no-owner --no-privileges -d "${MATRIX_POSTGRES_DB:-synapse}"
+rm -f matrix_postgresql.pg_dump.gz

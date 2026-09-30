@@ -1,26 +1,30 @@
-import importlib.machinery
-import importlib.util
-import json
-from pathlib import Path
-import tempfile
-import unittest
-from unittest.mock import patch
-import types
-import sys
 import contextlib
 import io
+import json
+import os
+from pathlib import Path
+import re
+import runpy
+import sys
+import tempfile
+import types
+import unittest
+from unittest.mock import patch
 
 
-def load_helper(name):
-    path = Path(__file__).resolve().parents[2] / 'imageroot/bin' / name
-    loader = importlib.machinery.SourceFileLoader(name, str(path))
-    spec = importlib.util.spec_from_loader(name, loader)
-    module = importlib.util.module_from_spec(spec)
-    loader.exec_module(module)
-    return module
+ROOT = Path(__file__).resolve().parents[2]
+CONFIG_ACTION = ROOT / 'imageroot/actions/configure-module/73matrix'
+VALIDATION_ACTION = ROOT / 'imageroot/actions/configure-module/12validate_matrix'
+UPDATE_STEP = ROOT / 'imageroot/update-module.d/22matrix'
 
 
-matrix = load_helper('matrix-config')
+def load_action(path):
+    with patch.dict(sys.modules, {'agent': types.SimpleNamespace()}):
+        return types.SimpleNamespace(**runpy.run_path(str(path)))
+
+
+matrix = load_action(CONFIG_ACTION)
+validation = load_action(VALIDATION_ACTION)
 
 
 class MatrixConfigurationTests(unittest.TestCase):
@@ -31,17 +35,13 @@ class MatrixConfigurationTests(unittest.TestCase):
             'MATRIX_POSTGRES_PORT': '20336', 'MATRIX_SYNAPSE_PORT': '20337',
             'MATRIX_M2A_PORT': '20338', 'NETHVOICE_MIDDLEWARE_MATRIX_PORT': '20339',
         }
-        self.passwords = matrix.fill_secrets({'UNRELATED': 'retained'})
-
-    def test_secrets_are_generated_once_and_preserved(self):
-        self.assertEqual(matrix.fill_secrets(self.passwords), self.passwords)
-        self.assertEqual(self.passwords['UNRELATED'], 'retained')
-        self.assertEqual(len({self.passwords[name] for name in matrix.SECRET_NAMES}), 8)
-        partial = dict(self.passwords)
-        del partial['MATRIX_INTERNAL_AUTH_TOKEN']
-        backfilled = matrix.fill_secrets(partial)
-        for name in partial:
-            self.assertEqual(backfilled[name], partial[name])
+        self.passwords = {'UNRELATED': 'retained', **{
+            name: 'token_' + str(index) for index, name in enumerate((
+                'MATRIX_POSTGRES_PASSWORD', 'MATRIX_REGISTRATION_SECRET',
+                'MATRIX_MACAROON_SECRET', 'MATRIX_FORM_SECRET',
+                'MATRIX_SYNAPSE_SECRET', 'MATRIX_M2A_AS_TOKEN',
+                'MATRIX_M2A_HS_TOKEN', 'MATRIX_INTERNAL_AUTH_TOKEN',
+            ))}}
 
     def test_generated_config_is_private_and_preserves_identity(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -56,8 +56,10 @@ class MatrixConfigurationTests(unittest.TestCase):
             self.assertNotIn('ldap', json.dumps(config).lower())
             self.assertEqual((state / 'matrix/synapse/homeserver.yaml').stat().st_mode & 0o777, 0o600)
             changed = {**self.env, 'NETHVOICE_MATRIX_HOST': 'other.example.org'}
+            advertised = (state / 'middleware.env').read_text()
             with self.assertRaises(ValueError):
                 matrix.generate(state, changed, self.passwords)
+            self.assertEqual((state / 'middleware.env').read_text(), advertised)
 
     def test_disable_removes_advertisement_but_retains_data_and_identity(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -70,7 +72,6 @@ class MatrixConfigurationTests(unittest.TestCase):
             self.assertTrue((state / 'matrix/synapse/homeserver.yaml').exists())
 
     def test_namespace_matches_only_local_users_and_reserved_aliases(self):
-        import re
         _, registration, _ = matrix.configurations(self.env, self.passwords)
         namespaces = registration['namespaces']
         self.assertEqual(namespaces['rooms'], [])
@@ -83,12 +84,12 @@ class MatrixConfigurationTests(unittest.TestCase):
         self.assertIsNone(alias.fullmatch('#general:' + self.env['NETHVOICE_MATRIX_HOST']))
 
     def test_settings_reject_invalid_conflicting_or_changed_identity(self):
-        self.assertEqual(matrix.validate_settings(self.env, {}), [])
-        self.assertEqual(matrix.validate_settings(self.env, {}, wizard_complete=False)[0]['error'], 'matrix_setup_required')
-        self.assertEqual(matrix.validate_settings(self.env, {'matrix_host': ''})[0]['error'], 'matrix_host_required')
-        self.assertEqual(matrix.validate_settings(self.env, {'matrix_host': 'bad/example.org'})[0]['error'], 'matrix_host_invalid')
-        self.assertEqual(matrix.validate_settings(self.env, {'matrix_host': 'pbx.example.org', 'nethvoice_host': 'pbx.example.org'})[0]['error'], 'matrix_host_conflict')
-        self.assertEqual(matrix.validate_settings(self.env, {'matrix_host': 'other.example.org'}, {'server_name': self.env['NETHVOICE_MATRIX_HOST']})[0]['error'], 'matrix_host_immutable')
+        self.assertEqual(validation.validate_settings(self.env, {}), [])
+        self.assertEqual(validation.validate_settings(self.env, {}, wizard_complete=False)[0]['error'], 'matrix_setup_required')
+        self.assertEqual(validation.validate_settings(self.env, {'matrix_host': ''})[0]['error'], 'matrix_host_required')
+        self.assertEqual(validation.validate_settings(self.env, {'matrix_host': 'bad/example.org'})[0]['error'], 'matrix_host_invalid')
+        self.assertEqual(validation.validate_settings(self.env, {'matrix_host': 'pbx.example.org', 'nethvoice_host': 'pbx.example.org'})[0]['error'], 'matrix_host_conflict')
+        self.assertEqual(validation.validate_settings(self.env, {'matrix_host': 'other.example.org'}, {'server_name': self.env['NETHVOICE_MATRIX_HOST']})[0]['error'], 'matrix_host_immutable')
 
     def test_credentials_are_serialized_without_yaml_interpolation(self):
         self.passwords['MATRIX_POSTGRES_PASSWORD'] = 'a"\n: {danger: value}'
@@ -115,7 +116,7 @@ class MatrixConfigurationTests(unittest.TestCase):
                 'MATRIX_HS_TOKEN=' + self.passwords['MATRIX_M2A_HS_TOKEN'],
                 'EXT_AUTH_TOKEN=' + self.passwords['MATRIX_INTERNAL_AUTH_TOKEN'],
             ])
-            units = Path(__file__).resolve().parents[2] / 'imageroot/systemd/user'
+            units = ROOT / 'imageroot/systemd/user'
             for name, secret_names in (
                 ('matrix-postgresql.service', ('MATRIX_POSTGRES_PASSWORD', 'POSTGRES_PASSWORD=${')),
                 ('matrix2acrobits.service', ('MATRIX_M2A_AS_TOKEN', 'MATRIX_M2A_HS_TOKEN', 'MATRIX_INTERNAL_AUTH_TOKEN')),
@@ -125,23 +126,49 @@ class MatrixConfigurationTests(unittest.TestCase):
                 for secret in secret_names:
                     self.assertNotIn(secret, unit)
 
-    def test_upgrade_allocates_every_slot_from_core_inclusive_range(self):
-        env = {}
-        passwords = {}
+    def test_upgrade_allocates_once_and_preserves_existing_secrets(self):
+        env = {'NETHVOICE_MATRIX_HOST': 'matrix.example.org'}
+        passwords = {'UNRELATED': 'retained', 'MATRIX_M2A_AS_TOKEN': 'existing-secret'}
+        allocations = []
+        writes = []
+
+        def allocate_ports(count, protocol, keep_existing):
+            self.assertEqual((count, protocol, keep_existing), (1, 'tcp', True))
+            port = 21000 + len(allocations)
+            allocations.append(port)
+            return port, port
+
         def write_passwords(name, values):
+            self.assertEqual(name, 'passwords.env')
             passwords.update(values)
+            writes.append(dict(values))
+
         agent = types.SimpleNamespace(
             read_envfile=lambda name: env if name == 'environment' else passwords,
             write_envfile=write_passwords,
             set_env=lambda name, value: env.update({name: value}),
-            allocate_ports=lambda count, protocol, keep_existing: (21000, 21000 + count - 1))
-        with tempfile.TemporaryDirectory() as directory, \
-                patch.dict(sys.modules, {'agent': agent}), \
-                patch.object(sys, 'argv', ['matrix-config', 'initialize']), \
-                patch.dict(matrix.os.environ, {'AGENT_STATE_DIR': directory}):
-            self.assertEqual(matrix.main(), 0)
-        self.assertEqual([env[name] for name in matrix.PORT_NAMES], ['21000', '21001', '21002', '21003'])
+            allocate_ports=allocate_ports,
+        )
+        with patch.dict(sys.modules, {'agent': agent}), \
+                patch.dict(os.environ, {'AGENT_INSTALL_DIR': '/tmp/nethvoice-test'}), \
+                patch('subprocess.run') as run_configure:
+            runpy.run_path(str(UPDATE_STEP))
+            first_passwords = dict(passwords)
+            runpy.run_path(str(UPDATE_STEP))
+
+        port_names = ('MATRIX_POSTGRES_PORT', 'MATRIX_SYNAPSE_PORT',
+                      'MATRIX_M2A_PORT', 'NETHVOICE_MIDDLEWARE_MATRIX_PORT')
+        self.assertEqual([env[name] for name in port_names], ['21000', '21001', '21002', '21003'])
         self.assertEqual(env['NETHVOICE_MIDDLEWARE_MATRIX_LISTEN_ADDRESS'], '127.0.0.1:21003')
+        self.assertEqual(env['NETHVOICE_MATRIX_HOST'], 'matrix.example.org')
+        self.assertEqual(env['NETHVOICE_MATRIX_ENABLED'], 'False')
+        self.assertEqual(len(allocations), 4)
+        self.assertEqual(passwords, first_passwords)
+        self.assertEqual(passwords['MATRIX_M2A_AS_TOKEN'], 'existing-secret')
+        self.assertEqual(passwords['UNRELATED'], 'retained')
+        self.assertEqual(len(passwords), 9)
+        self.assertEqual(len(writes), 2)
+        self.assertEqual(run_configure.call_count, 2)
 
 
 if __name__ == '__main__':

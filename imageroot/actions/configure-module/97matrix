@@ -1,3 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 set -e
-exec runagent matrix-config reconcile
+exec 1>&2
+
+if [ "${NETHVOICE_MATRIX_ENABLED}" = "True" ]; then
+    systemctl --user enable matrix-postgresql.service matrix-synapse.service matrix2acrobits.service
+    systemctl --user start matrix-postgresql.service
+    systemctl --user restart matrix-synapse.service matrix2acrobits.service
+else
+    systemctl --user disable --now matrix2acrobits.service matrix-synapse.service matrix-postgresql.service
+fi

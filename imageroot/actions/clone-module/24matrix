@@ -1,3 +1,61 @@
-#!/bin/sh
-set -e
-exec runagent matrix-state clone
+#!/usr/bin/env python3
+"""Keep a moved Matrix identity, or start an independent clone fresh."""
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+import agent
+
+MATRIX_SECRETS = (
+    'MATRIX_POSTGRES_PASSWORD', 'MATRIX_REGISTRATION_SECRET',
+    'MATRIX_MACAROON_SECRET', 'MATRIX_FORM_SECRET', 'MATRIX_SYNAPSE_SECRET',
+    'MATRIX_M2A_AS_TOKEN', 'MATRIX_M2A_HS_TOKEN', 'MATRIX_INTERNAL_AUTH_TOKEN',
+)
+MATRIX_SERVICES = ('matrix-postgresql', 'matrix-synapse', 'matrix2acrobits')
+MATRIX_VOLUMES = ('matrix-postgresql-data', 'matrix-synapse-data', 'matrix2acrobits-data')
+
+request = json.load(sys.stdin)
+state = Path(os.environ['AGENT_STATE_DIR'])
+
+if request.get('replace', False):
+    source = agent.read_envfile('environment.clone-module')
+    for key, default in (('NETHVOICE_MATRIX_ENABLED', 'False'), ('NETHVOICE_MATRIX_HOST', '')):
+        agent.set_env(key, source.get(key, default))
+
+    # create-module generated new passwords before this step. A move keeps the
+    # old Matrix identity, so it must also keep the transferred Matrix secrets.
+    old_passwords = agent.read_envfile('passwords.old')
+    passwords = agent.read_envfile('passwords.env')
+    for name in MATRIX_SECRETS:
+        if name in old_passwords:
+            passwords[name] = old_passwords[name]
+    agent.write_envfile('passwords.env', passwords)
+else:
+    agent.set_env('NETHVOICE_MATRIX_ENABLED', 'False')
+    agent.set_env('NETHVOICE_MATRIX_HOST', '')
+
+    # Core's final step starts the saved units from transfer-state. Remove
+    # Matrix units from that list before it can start a copied homeserver.
+    for filename in ('default-target.clone-module', 'timers-target.clone-module'):
+        path = state / filename
+        if path.exists():
+            units = (unit for unit in path.read_text().split()
+                     if unit.removesuffix('.service') not in MATRIX_SERVICES)
+            temporary = path.with_name(path.name + '.tmp')
+            temporary.write_text(' '.join(units) + '\n')
+            temporary.replace(path)
+
+    for volume in MATRIX_VOLUMES:
+        if subprocess.run(['podman', 'volume', 'exists', volume],
+                          stdout=subprocess.DEVNULL).returncode == 0:
+            subprocess.run(['podman', 'volume', 'rm', volume], check=True, stdout=sys.stderr)
+    shutil.rmtree(state / 'matrix', ignore_errors=True)
+    (state / 'matrix_postgresql.pg_dump.gz').unlink(missing_ok=True)
+
+# Rebuild derived service files for the destination's allocated ports.
+subprocess.run(['runagent', str(Path(os.environ['AGENT_INSTALL_DIR']) /
+                             'actions/configure-module/73matrix')],
+               input='{}', text=True, check=True, stdout=sys.stderr)

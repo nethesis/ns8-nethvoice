@@ -7,6 +7,10 @@
 
 set -e
 
-rm -rf db_backup.xb.gz asterisk_backup satellite_postgresql.pg_dump.gz
+rm -rf db_backup.xb.gz asterisk_backup satellite_postgresql.pg_dump.gz matrix_postgresql.pg_dump.gz
 
-runagent matrix-state cleanup
+# The bridge snapshot is included by path under its persistent volume.
+matrix_bridge_volume=$(podman volume inspect --format '{{.Mountpoint}}' matrix2acrobits-data 2>/dev/null || true)
+if [ -n "$matrix_bridge_volume" ]; then
+    podman unshare rm -f "$matrix_bridge_volume/push.backup.db"
+fi
