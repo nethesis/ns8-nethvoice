@@ -6,7 +6,7 @@ $trunks = isset($trunks) && is_array($trunks) ? $trunks : array();
 $destinations = isset($destinations) && is_array($destinations) ? $destinations : array();
 $form = isset($form) && is_array($form) ? $form : array();
 $errors = isset($error) && $error !== '' ? (array) $error : array();
-$showForm = (isset($_GET['view']) && $_GET['view'] === 'form') || !empty($form) || !empty($errors);
+$showForm = (isset($_GET['view']) && $_GET['view'] === 'form') || !empty($form);
 $editing = !empty($form['id']);
 $enabled = array_key_exists('enabled', $form) ? (bool) $form['enabled'] : true;
 $csrfField = isset($csrfToken) && is_scalar($csrfToken) && (string) $csrfToken !== ''
