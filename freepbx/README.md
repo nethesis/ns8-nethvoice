@@ -180,10 +180,16 @@ To enable call transcription, you need to set the following settings on nethserv
 The `satellite` FreePBX module provides TTS audio generation through
 Satellite, audio preview, and saving as FreePBX recordings.
 
-### Environment variables used by TTS
+### Environment variables used by Satellite HTTP clients
 
 - `SATELLITE_HTTP_PORT` HTTP port of local Satellite API (default: `8080`)
-- `SATELLITE_API_TOKEN` bearer token used for Satellite API authentication (optional)
+- `SATELLITE_API_TOKEN` required bearer token for Satellite transcription, TTS,
+  and model listing requests. The module generates it in `passwords.env` at
+  creation and repairs an absent or blank value during updates.
+
+Satellite binds its HTTP listener to `127.0.0.1`; Satellite and FreePBX share
+the host network so these local URLs remain reachable. No Satellite HTTP route
+is exposed through the public reverse proxy.
 
 The TTS request is sent to:
 
