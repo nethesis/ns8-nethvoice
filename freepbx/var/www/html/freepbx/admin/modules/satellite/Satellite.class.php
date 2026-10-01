@@ -138,8 +138,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
                 'api_key' => isset($_POST['api_key']) ? $_POST['api_key'] : '',
                 'sip_auth_mode' => isset($_POST['sip_auth_mode']) ? $_POST['sip_auth_mode'] : 'none',
                 'sip_auth_username' => isset($_POST['sip_auth_username']) ? trim($_POST['sip_auth_username']) : null,
-                'sip_auth_password' => isset($_POST['sip_auth_password']) ? $_POST['sip_auth_password'] : '',
-                'enabled' => !empty($_POST['enabled']) ? 1 : 0
+                'sip_auth_password' => isset($_POST['sip_auth_password']) ? $_POST['sip_auth_password'] : ''
             );
             if ($id === null) {
                 $id = $this->agentTrunks->create($input);
@@ -244,8 +243,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
             $input = array(
                 'cleverai_trunk_id' => isset($_POST['cleverai_trunk_id']) ? $_POST['cleverai_trunk_id'] : null,
                 'cleverai_flow' => isset($_POST['cleverai_flow']) ? trim($_POST['cleverai_flow']) : '',
-                'fallback_destination' => isset($_POST['fallback_destination']) ? trim($_POST['fallback_destination']) : '',
-                'enabled' => !empty($_POST['enabled']) ? 1 : 0
+                'fallback_destination' => isset($_POST['fallback_destination']) ? trim($_POST['fallback_destination']) : ''
             );
             if ($id === null) {
                 $id = $this->agentDestinations->create($input);
