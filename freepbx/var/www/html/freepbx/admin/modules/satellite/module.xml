@@ -2,12 +2,11 @@
   <rawname>satellite</rawname>
   <repo>unsupported</repo>
   <name>Satellite Module</name>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <category>Applications</category>
   <Publisher>Nethesis</Publisher>
   <menuitems>
-    <satellite_agent_trunks>Agent Trunks</satellite_agent_trunks>
-    <satellite_agents>Agents</satellite_agents>
+    <satellite_agents>Satellite Agent</satellite_agents>
     <satellite_webhooks>Webhooks</satellite_webhooks>
   </menuitems>
   <info></info>

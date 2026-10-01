@@ -76,6 +76,25 @@ class AgentValidation
         return $destination;
     }
 
+    /** Read the dynamic destination fields emitted by FreePBX drawselects(). */
+    public static function submittedFallback(array $request)
+    {
+        $fallback = isset($request['fallback_destination']) && is_string($request['fallback_destination'])
+            ? trim($request['fallback_destination']) : '';
+        if (!array_key_exists('goto0', $request)) {
+            return $fallback;
+        }
+        $selection = $request['goto0'];
+        if ($selection === '') {
+            return '';
+        }
+        if (!is_string($selection) || !preg_match('/^[A-Za-z0-9_-]{1,80}$/D', $selection) ||
+            !isset($request[$selection . '0']) || !is_string($request[$selection . '0'])) {
+            throw new \InvalidArgumentException('Invalid fallback destination selection');
+        }
+        return trim($request[$selection . '0']);
+    }
+
     public static function validateSecretInput($secret, $label)
     {
         if (!is_string($secret) || preg_match('/[\x00\r\n]/', $secret)) {
