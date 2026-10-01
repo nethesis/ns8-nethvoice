@@ -91,10 +91,12 @@ agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destinat
 agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-2'],
     'ext_set', array('__AGENT_FLOW', 'flow_2')), 'Second destination flow missing');
 agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-1'],
-    'ext_dial', array('PJSIP/proj_test@AgentTrunk_1,', 'b(satellite-agent-add-headers^s^1)')),
+    'ext_dial', array('PJSIP/AgentTrunk_1/sip:proj_test@sip.api.openai.com:5061\;transport=tls,',
+        'b(satellite-agent-add-headers^s^1)')),
     'OpenAI trunk dial missing');
 agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-20'],
-    'ext_dial', array('PJSIP/+390721123456@AgentTrunk_2,', 'b(satellite-agent-add-headers^s^1)')),
+    'ext_dial', array('PJSIP/AgentTrunk_2/sip:+390721123456@sip.voice.x.ai:5061\;transport=tls,',
+        'b(satellite-agent-add-headers^s^1)')),
     'Grok trunk dial missing');
 agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-add-headers'],
     'ext_set', array('PJSIP_HEADER(add,X-OS-FLOW)', '${AGENT_FLOW}')),
@@ -102,6 +104,9 @@ agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-add-head
 agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-add-headers'],
     'ext_set', array('PJSIP_HEADER(add,X-OS-Session-ID)', '${CHANNEL(linkedid)}')),
     'Session header missing');
+agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-add-headers'],
+    'ext_set', array('PJSIP_HEADER(add,isTrunk)', '1')),
+    'Trunk header missing');
 agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-1'],
     'ext_goto', array('1', 'hangup', 'app-blackhole')), 'Fallback missing');
 
