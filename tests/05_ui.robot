@@ -40,7 +40,8 @@ Initial setup validates hostnames and saves lowercase routes
     Fill Text    iframe >>> input[type="password"] >> nth=1    ${ADMIN_PASSWORD}
     ${before} =    Run task    module/${module_id}/get-configuration    {}
     ${http_before} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
-    ${sip_before}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "TABLE nethvoice_proxy_routes; TABLE dispatcher; TABLE domain; TABLE dialplan;"'    return_rc=True
+    ${http_before} =    Evaluate    sorted($http_before, key=lambda route: route["instance"])
+    ${sip_before}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "SELECT * FROM nethvoice_proxy_routes ORDER BY setid; SELECT * FROM dispatcher ORDER BY id; SELECT * FROM domain ORDER BY id; SELECT * FROM dialplan ORDER BY id;"'    return_rc=True
     Should Be Equal As Integers    ${rc}    0
     FOR    ${voice}    ${cti}    IN    ${EMPTY}    cti.ns8.local    voice.ns8.local    ${EMPTY}    ${EMPTY}    ${EMPTY}    Same.ns8.local    Same.ns8.local    Same.ns8.local    sAME.ns8.local
         Fill Text    ${VOICE_INPUT}    ${voice}
@@ -59,8 +60,9 @@ Initial setup validates hostnames and saves lowercase routes
         ${after} =    Run task    module/${module_id}/get-configuration    {}
         Should Be Equal    ${after}    ${before}
         ${http_after} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
+        ${http_after} =    Evaluate    sorted($http_after, key=lambda route: route["instance"])
         Should Be Equal    ${http_after}    ${http_before}
-        ${sip_after}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "TABLE nethvoice_proxy_routes; TABLE dispatcher; TABLE domain; TABLE dialplan;"'    return_rc=True
+        ${sip_after}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "SELECT * FROM nethvoice_proxy_routes ORDER BY setid; SELECT * FROM dispatcher ORDER BY id; SELECT * FROM domain ORDER BY id; SELECT * FROM dialplan ORDER BY id;"'    return_rc=True
         Should Be Equal As Integers    ${rc}    0
         Should Be Equal    ${sip_after}    ${sip_before}
     END
@@ -74,8 +76,8 @@ Initial setup validates hostnames and saves lowercase routes
     ${saved} =    Execute Command    runagent -m ${module_id} sh -c 'printf "%s\\n%s\\n" "$NETHVOICE_HOST" "$NETHCTI_UI_HOST"'
     Should Be Equal    ${saved}    voice.ns8.local${\n}cti.ns8.local
     ${routes} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
-    ${own_routes} =    Evaluate    [r for r in $routes if r['instance'].startswith($module_id + '-')]
-    Length Should Be    ${own_routes}    10
+    ${own_routes} =    Evaluate    [r for r in $routes if r['instance'].startswith('${module_id}-')]
+    Length Should Be    ${own_routes}    13
     FOR    ${route}    IN    @{own_routes}
         Should Be True    $route['host'] in ('voice.ns8.local', 'cti.ns8.local')
     END
@@ -92,7 +94,8 @@ Settings rejects empty and matching hostnames without changing routes
     Wait For Elements State    ${VOICE_INPUT}    enabled    timeout=60s
     ${before} =    Run task    module/${module_id}/get-configuration    {}
     ${http_before} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
-    ${sip_before}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "TABLE nethvoice_proxy_routes; TABLE dispatcher; TABLE domain; TABLE dialplan;"'    return_rc=True
+    ${http_before} =    Evaluate    sorted($http_before, key=lambda route: route["instance"])
+    ${sip_before}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "SELECT * FROM nethvoice_proxy_routes ORDER BY setid; SELECT * FROM dispatcher ORDER BY id; SELECT * FROM domain ORDER BY id; SELECT * FROM dialplan ORDER BY id;"'    return_rc=True
     Should Be Equal As Integers    ${rc}    0
     FOR    ${voice}    ${cti}    IN    ${EMPTY}    cti.ns8.local    voice.ns8.local    ${EMPTY}    ${EMPTY}    ${EMPTY}    Same.ns8.local    Same.ns8.local    Same.ns8.local    sAME.ns8.local
         Fill Text    ${VOICE_INPUT}    ${voice}
@@ -111,8 +114,9 @@ Settings rejects empty and matching hostnames without changing routes
         ${after} =    Run task    module/${module_id}/get-configuration    {}
         Should Be Equal    ${after}    ${before}
         ${http_after} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
+        ${http_after} =    Evaluate    sorted($http_after, key=lambda route: route["instance"])
         Should Be Equal    ${http_after}    ${http_before}
-        ${sip_after}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "TABLE nethvoice_proxy_routes; TABLE dispatcher; TABLE domain; TABLE dialplan;"'    return_rc=True
+        ${sip_after}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "SELECT * FROM nethvoice_proxy_routes ORDER BY setid; SELECT * FROM dispatcher ORDER BY id; SELECT * FROM domain ORDER BY id; SELECT * FROM dialplan ORDER BY id;"'    return_rc=True
         Should Be Equal As Integers    ${rc}    0
         Should Be Equal    ${sip_after}    ${sip_before}
     END
@@ -120,8 +124,9 @@ Settings rejects empty and matching hostnames without changing routes
 Repeated Settings saves preserve route identities and dispatcher sets
     [Tags]    ui    hostname
     ${http_before} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
+    ${http_before} =    Evaluate    sorted($http_before, key=lambda route: route["instance"])
     # Dispatcher row IDs may change on save; compare set IDs, destinations and descriptions.
-    ${sip_before}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "TABLE nethvoice_proxy_routes; SELECT setid,destination,description FROM dispatcher ORDER BY setid,destination; TABLE domain; TABLE dialplan;"'    return_rc=True
+    ${sip_before}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "SELECT * FROM nethvoice_proxy_routes ORDER BY setid; SELECT setid,destination,description FROM dispatcher ORDER BY setid,destination; SELECT * FROM domain ORDER BY id; SELECT * FROM dialplan ORDER BY id;"'    return_rc=True
     Should Be Equal As Integers    ${rc}    0
     FOR    ${voice}    ${cti}    IN    VOICE.NS8.LOCAL    CTI.NS8.LOCAL    vOICE.nS8.lOCAL    cTI.nS8.lOCAL
         Fill Text    ${VOICE_INPUT}    ${voice}
@@ -134,8 +139,9 @@ Repeated Settings saves preserve route identities and dispatcher sets
         Get Property    ${VOICE_INPUT}    value    ==    voice.ns8.local
         Get Property    ${CTI_INPUT}    value    ==    cti.ns8.local
         ${http_after} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
+        ${http_after} =    Evaluate    sorted($http_after, key=lambda route: route["instance"])
         Should Be Equal    ${http_after}    ${http_before}
-        ${sip_after}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "TABLE nethvoice_proxy_routes; SELECT setid,destination,description FROM dispatcher ORDER BY setid,destination; TABLE domain; TABLE dialplan;"'    return_rc=True
+        ${sip_after}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "SELECT * FROM nethvoice_proxy_routes ORDER BY setid; SELECT setid,destination,description FROM dispatcher ORDER BY setid,destination; SELECT * FROM domain ORDER BY id; SELECT * FROM dialplan ORDER BY id;"'    return_rc=True
         Should Be Equal As Integers    ${rc}    0
         Should Be Equal    ${sip_after}    ${sip_before}
     END

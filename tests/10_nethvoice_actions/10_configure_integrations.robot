@@ -22,8 +22,8 @@ Check if nethvoice is configured as expected
     ${saved} =    Execute Command    runagent -m ${module_id} sh -c 'printf "%s\\n%s\\n" "$NETHVOICE_HOST" "$NETHCTI_UI_HOST"'
     Should Be Equal    ${saved}    voice.ns8.local${\n}cti.ns8.local
     ${routes} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
-    ${own_routes} =    Evaluate    [r for r in $routes if r['instance'].startswith($module_id + '-')]
-    Length Should Be    ${own_routes}    10
+    ${own_routes} =    Evaluate    [r for r in $routes if r['instance'].startswith('${module_id}-')]
+    Length Should Be    ${own_routes}    13
     FOR    ${route}    IN    @{own_routes}
         Should Be True    $route['host'] in ('voice.ns8.local', 'cti.ns8.local')
     END
@@ -32,6 +32,7 @@ Omitting lets_encrypt preserves saved certificate settings
     [Tags]    hostname
     ${before} =    Run task    module/${module_id}/get-configuration    {}
     ${http_before} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
+    ${http_before} =    Evaluate    sorted($http_before, key=lambda route: route["instance"])
     ${certificate_before}    ${rc} =    Execute Command    bash -o pipefail -c 'timeout 15 openssl s_client -connect 127.0.0.1:443 -servername voice.ns8.local </dev/null 2>/dev/null | openssl x509 -outform DER | sha256sum'    return_rc=True
     Should Be Equal As Integers    ${rc}    0
     Run task    module/${module_id}/configure-module
@@ -40,6 +41,7 @@ Omitting lets_encrypt preserves saved certificate settings
     ${after} =    Run task    module/${module_id}/get-configuration    {}
     Should Be Equal    ${after}[lets_encrypt]    ${before}[lets_encrypt]
     ${http_after} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
+    ${http_after} =    Evaluate    sorted($http_after, key=lambda route: route["instance"])
     Should Be Equal    ${http_after}    ${http_before}
     ${certificate_after}    ${rc} =    Execute Command    bash -o pipefail -c 'timeout 15 openssl s_client -connect 127.0.0.1:443 -servername voice.ns8.local </dev/null 2>/dev/null | openssl x509 -outform DER | sha256sum'    return_rc=True
     Should Be Equal As Integers    ${rc}    0
