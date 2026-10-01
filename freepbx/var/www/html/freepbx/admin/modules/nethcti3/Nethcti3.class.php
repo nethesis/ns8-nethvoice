@@ -267,7 +267,7 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
 
     public function doGuiIntercept($filename, &$output) {
         # Show the custom field in the trunks module
-        if ($filename == "modules/core/page.trunks.php" && $_REQUEST['display'] == "trunks" && strtolower($_REQUEST['tech']) == "pjsip") {
+        if ($filename == "modules/core/page.trunks.php" && $_REQUEST['display'] == "trunks" && !empty($_REQUEST['tech']) && strtolower($_REQUEST['tech']) == "pjsip") {
             $trunkid = str_replace("OUT_", "", $_REQUEST['extdisplay']);
             $disable_topos_header = $this->getConfig('disable_topos_header', $trunkid);
             $disable_srtp_header = $this->getConfig('disable_srtp_header', $trunkid);
