@@ -28,6 +28,7 @@ restore_envs = [
     'BRAND_APPID',
     'BRAND_DOCS',
     'BRAND_NAME',
+    'CHAT_ENABLED',
     'BRAND_SITE',
     'FAVICON_URL',
     'CDRDBHOST',

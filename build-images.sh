@@ -212,7 +212,8 @@ fi
 reponame="nethvoice-cti-ui"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v0.15.31)
+    # CTI feature branch with the chat (NethServer/dev#7648, nethesis/nethvoice-cti#577); before merge: a CTI release >= v0.15.31 with the chat
+    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:nethvoice-chat)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
@@ -336,6 +337,23 @@ reponame="nethvoice-sftp"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
     pushd sftp
+    build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" \
+        --tag "${repobase}/${reponame}" \
+        --tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
+    popd
+    finish_timing
+    images+=("${repobase}/${reponame}")
+else
+    skip_build "${reponame}"
+fi
+
+#########################
+##      ejabberd       ##
+#########################
+reponame="nethvoice-ejabberd"
+if should_build "${reponame}"; then
+    start_timing "${reponame}"
+    pushd ejabberd
     build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" \
         --tag "${repobase}/${reponame}" \
         --tag "${repobase}/${reponame}:${IMAGETAG:-latest}"

@@ -17,6 +17,10 @@
             "description": "Enable call summary generation",
             "type": "boolean"
         },
+        "chat_enabled": {
+            "description": "Enable the NethVoice chat",
+            "type": "boolean"
+        },
         "deepgram_api_key": {
             "description": "Deepgram API key for real-time call and voicemail transcription",
             "type": "string",

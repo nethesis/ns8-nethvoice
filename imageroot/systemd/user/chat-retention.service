@@ -1,0 +1,10 @@
+[Unit]
+Description=NethVoice chat: purge archived messages older than the retention
+After=chat-server.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/podman exec chat-server ejabberdctl delete_old_mam_messages all 365
+StandardOutput=null
+StandardError=null
+LogLevelMax=warning
