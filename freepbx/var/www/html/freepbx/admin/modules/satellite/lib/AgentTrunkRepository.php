@@ -140,7 +140,7 @@ class AgentTrunkRepository
     {
         $oldProvider = $row['provider'];
         foreach (array('name', 'provider', 'runtime_owner', 'openai_project_id',
-                       'grok_phone_number', 'sip_auth_mode', 'sip_auth_username', 'enabled') as $field) {
+                       'grok_phone_number', 'sip_auth_mode', 'sip_auth_username') as $field) {
             if (array_key_exists($field, $input)) {
                 $row[$field] = $input[$field];
             }
@@ -172,7 +172,7 @@ class AgentTrunkRepository
         if ($row['sip_auth_mode'] === 'digest' && isset($input['sip_auth_password']) && $input['sip_auth_password'] !== '') {
             $row['sip_auth_password_encrypted'] = $this->crypto->encryptSecret($input['sip_auth_password']);
         }
-        $row['enabled'] = !empty($row['enabled']) ? 1 : 0;
+        $row['enabled'] = 1;
         return $row;
     }
 

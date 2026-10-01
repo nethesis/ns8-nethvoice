@@ -44,5 +44,9 @@ class AgentSchema
             UNIQUE KEY `uniq_satellite_agent_system_key` (`system_key`),
             UNIQUE KEY `uniq_satellite_agent_freepbx_name` (`freepbx_name`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+        // Disabling Agent trunks and destinations is no longer supported.
+        $db->exec('UPDATE `satellite_agent_trunks` SET `enabled` = 1 WHERE `enabled` <> 1');
+        $db->exec('UPDATE `satellite_agent_destinations` SET `enabled` = 1 WHERE `enabled` <> 1');
     }
 }

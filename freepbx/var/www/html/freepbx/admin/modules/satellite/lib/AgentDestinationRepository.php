@@ -134,7 +134,7 @@ class AgentDestinationRepository
             'cleverai_trunk_id' => $trunkId,
             'cleverai_flow' => AgentValidation::validateFlow(isset($input['cleverai_flow']) ? $input['cleverai_flow'] : null),
             'fallback_destination' => AgentValidation::validateFallback(isset($input['fallback_destination']) ? $input['fallback_destination'] : null),
-            'enabled' => !empty($input['enabled']) ? 1 : 0,
+            'enabled' => 1,
         );
     }
 
