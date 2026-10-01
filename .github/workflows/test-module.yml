@@ -9,6 +9,11 @@ on:
         required: false
         default: false
         type: boolean
+      fias_tests:
+        description: "Run FIAS end-to-end tests"
+        required: true
+        type: boolean
+        default: false
       fias_image:
         description: "Optional already-published module image for the FIAS E2E run"
         required: false
@@ -32,26 +37,32 @@ jobs:
 
   module:
     name: "Resolve FIAS test image"
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: inputs.fias_tests
     uses: NethServer/ns8-github-actions/.github/workflows/module-info.yml@v1
 
   fias-e2e:
     name: "FIAS E2E (${{ matrix.scenario }})"
     needs: module
+    permissions:
+      contents: read
+      statuses: write
     strategy:
       fail-fast: false
       matrix:
         include:
           - scenario: install
-            node: dn1
+            node: debian13
           - scenario: update
-            node: rl1
-    uses: NethServer/ns8-github-actions/.github/workflows/test-on-digitalocean-infra.yml@v1
+            node: rocky9
+    uses: NethServer/ns8-github-actions/.github/workflows/test-on-qemu.yml@v1
     with:
-      coremodules: ${{ matrix.scenario == 'install' && (inputs.fias_image || needs.module.outputs.image) || '' }}
-      leader_nodes: ${{ matrix.node }}
-      args: ${{ format('{0} -v SCENARIO:{1} -v RUN_FIAS_E2E:true', inputs.fias_image || needs.module.outputs.image, matrix.scenario) }}
+      distro: ${{ matrix.node }}
+      image_url: ${{ inputs.fias_image || needs.module.outputs.image }}
+      install_args: ${{ matrix.scenario == 'install' && (inputs.fias_image || needs.module.outputs.image) || '' }}
+      args: ${{ format('-v SCENARIO:{0} -v RUN_FIAS_E2E:true', matrix.scenario) }}
       repo_ref: ${{ needs.module.outputs.sha }}
+      version_tag: ${{ needs.module.outputs.tag }}
+      script: ""
+      artifact_suffix: ${{ format('fias-{0}', matrix.scenario) }}
+      status_suffix: fias
       debug_shell: ${{ inputs.debug_shell == true }}
-    secrets:
-      do_token: ${{ secrets.do_token }}
