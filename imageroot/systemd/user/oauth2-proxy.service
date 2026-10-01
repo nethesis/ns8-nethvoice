@@ -10,7 +10,7 @@ After=nethcti-middleware.service
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%E/state/environment
-EnvironmentFile=-%S/state/passwords.env
+EnvironmentFile=%E/state/passwords.env
 WorkingDirectory=%E/state
 Restart=always
 # the image is pulled on demand at first start (--pull=missing): allow a slow

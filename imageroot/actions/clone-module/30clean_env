@@ -15,8 +15,12 @@ agent.mset_env({
     'NETHVOICE_USER_PORTAL_NODE': '',
 })
 agent.unset_env('RESTART_SERVICES')
-# per-install SSO secrets: the clone regenerates its own at configure
-agent.unset_env('NETHCTI_SSO_TRUSTED_SECRET')
-agent.unset_env('NETHCTI_SSO_TOKEN_KEY')
-agent.unset_env('NETHCTI_SSO_PROXY_SECRET')
-agent.unset_env('NETHCTI_SSO_OIDC_COOKIE_SECRET')
+# per-install SSO secrets (stored in passwords.env): drop them so the clone
+# regenerates its own at configure
+passwords = agent.read_envfile('passwords.env')
+if any(k in passwords for k in ('NETHCTI_SSO_TRUSTED_SECRET', 'NETHCTI_SSO_TOKEN_KEY',
+                                'NETHCTI_SSO_PROXY_SECRET', 'NETHCTI_SSO_OIDC_COOKIE_SECRET')):
+    for k in ('NETHCTI_SSO_TRUSTED_SECRET', 'NETHCTI_SSO_TOKEN_KEY',
+              'NETHCTI_SSO_PROXY_SECRET', 'NETHCTI_SSO_OIDC_COOKIE_SECRET'):
+        passwords.pop(k, None)
+    agent.write_envfile('passwords.env', passwords)

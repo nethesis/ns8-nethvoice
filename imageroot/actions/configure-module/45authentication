@@ -47,36 +47,51 @@ def derive_image(name):
     return repo.rsplit('/', 1)[0] + '/' + name + ':' + (tag if repo else 'latest')
 
 
+# Trusted-mint secrets: kept in passwords.env, NOT in the environment (which NS8
+# exports to Redis where other modules can read module/*).
+SSO_SECRET_KEYS = ('NETHCTI_SSO_TRUSTED_SECRET', 'NETHCTI_SSO_TOKEN_KEY',
+                   'NETHCTI_SSO_PROXY_SECRET', 'NETHCTI_SSO_OIDC_COOKIE_SECRET')
+
+
 def ensure_sso_secrets():
-    """Provision the per-install trusted-mint secrets once (idempotent);
-    returns True when a value was (re)generated."""
+    """Provision the per-install trusted-mint secrets once (idempotent) in
+    passwords.env; returns True when a value was (re)generated."""
+    passwords = agent.read_envfile('passwords.env')
     changed = False
-    if not os.getenv('NETHCTI_SSO_TRUSTED_SECRET'):
-        set_env('NETHCTI_SSO_TRUSTED_SECRET', secrets.token_urlsafe(32))
-        changed = True
-    if not os.getenv('NETHCTI_SSO_TOKEN_KEY'):
-        set_env('NETHCTI_SSO_TOKEN_KEY', secrets.token_urlsafe(32))
-        changed = True
-    # secret injected by Traefik on the mint route (after forwardAuth) so the
-    # middleware trusts the SSO header only when the request came through the proxy
-    if not os.getenv('NETHCTI_SSO_PROXY_SECRET'):
-        set_env('NETHCTI_SSO_PROXY_SECRET', secrets.token_urlsafe(32))
-        changed = True
+    # trusted-mint secret, HMAC token key, and the Traefik->middleware proxy
+    # secret (injected on the mint route after forwardAuth)
+    for key in ('NETHCTI_SSO_TRUSTED_SECRET', 'NETHCTI_SSO_TOKEN_KEY', 'NETHCTI_SSO_PROXY_SECRET'):
+        if not passwords.get(key):
+            passwords[key] = secrets.token_urlsafe(32)
+            changed = True
     # oauth2-proxy session cookie key (needs a 16/24/32-byte value)
-    if not os.getenv('NETHCTI_SSO_OIDC_COOKIE_SECRET'):
-        set_env('NETHCTI_SSO_OIDC_COOKIE_SECRET', secrets.token_hex(16))
+    if not passwords.get('NETHCTI_SSO_OIDC_COOKIE_SECRET'):
+        passwords['NETHCTI_SSO_OIDC_COOKIE_SECRET'] = secrets.token_hex(16)
         changed = True
-    # optional hardening knobs sourced from the module settings (empty = default)
+    if changed:
+        agent.write_envfile('passwords.env', passwords)
+    # optional hardening knobs are not secret and can stay in the environment
     set_env('NETHCTI_SSO_USER_ALLOWLIST', os.getenv('SAML2_USER_ALLOWLIST', ''))
     set_env('NETHCTI_SSO_JWT_TIMEOUT_HOURS', os.getenv('SAML2_JWT_TIMEOUT_HOURS', ''))
     return changed
 
 
+def sso_secret(key):
+    """Read a trusted-mint secret from passwords.env."""
+    return agent.read_envfile('passwords.env').get(key, '')
+
+
 def clear_sso_secrets():
     """Revoke the trusted-mint secrets: no stale secret left when SSO is off."""
-    for var in ('NETHCTI_SSO_TRUSTED_SECRET', 'NETHCTI_SSO_TOKEN_KEY', 'NETHCTI_SSO_PROXY_SECRET',
-                'NETHCTI_SSO_OIDC_COOKIE_SECRET', 'NETHCTI_SSO_USER_HEADER',
-                'NETHCTI_SSO_USER_ALLOWLIST', 'NETHCTI_SSO_JWT_TIMEOUT_HOURS'):
+    passwords = agent.read_envfile('passwords.env')
+    removed = False
+    for key in SSO_SECRET_KEYS:
+        if key in passwords:
+            del passwords[key]
+            removed = True
+    if removed:
+        agent.write_envfile('passwords.env', passwords)
+    for var in ('NETHCTI_SSO_USER_HEADER', 'NETHCTI_SSO_USER_ALLOWLIST', 'NETHCTI_SSO_JWT_TIMEOUT_HOURS'):
         if os.getenv(var):
             agent.set_env(var, '')
 
@@ -119,7 +134,7 @@ def set_routes(handler_path, handler_port, check_url, user_header):
         # injected AFTER forwardAuth: proves to the middleware the request came
         # through the proxy, closing the direct-to-loopback mint bypass
         'headers': {
-            'request': {'X-SSO-Proxy-Secret': os.getenv('NETHCTI_SSO_PROXY_SECRET', '')},
+            'request': {'X-SSO-Proxy-Secret': sso_secret('NETHCTI_SSO_PROXY_SECRET')},
         },
     }, error_passthrough=False)
 
@@ -236,7 +251,7 @@ def teardown():
             subprocess.run(['podman', 'rmi', '--ignore', image], check=False)
             agent.set_env(var, '')
     # close the passwordless mint path completely
-    had_secret = bool(os.getenv('NETHCTI_SSO_TRUSTED_SECRET'))
+    had_secret = bool(sso_secret('NETHCTI_SSO_TRUSTED_SECRET'))
     clear_sso_secrets()
     if had_secret:
         restart_trusted_mint()
