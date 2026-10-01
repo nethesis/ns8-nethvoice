@@ -23,7 +23,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     uses: NethServer/ns8-github-actions/.github/workflows/test-module.yml@v1
     with:
-      ui_tests_strategy: on_renovate_ui_change
+      ui_tests_strategy: always
       debug_shell: ${{ inputs.debug_shell == true }}
     secrets:
       do_token: ${{ secrets.do_token }}
