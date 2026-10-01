@@ -165,10 +165,10 @@ The dependency suite installs the pinned [proxy #222](https://github.com/nethesi
 | Direct configuration rejects matching hosts before persisted configuration or HTTP/SIP routes change | `tests/10_nethvoice_actions/00_configure_module_validation.robot` |
 | Mixed-case action input is persisted in lowercase and omitted `lets_encrypt` preserves existing route and certificate settings | `tests/10_nethvoice_actions/10_configure_integrations.robot` |
 | Legacy mixed-case or absent provisioning markers preserve real Tancredi tokens, without renewal or RPS attempts | `tests/10_nethvoice_actions/14_hostname_provisioning.robot` |
-| A genuine hostname change updates the marker and first-access token, preserves the steady-state token, and later saves/restarts do not renew again | `tests/10_nethvoice_actions/14_hostname_provisioning.robot` |
+| A genuine hostname change writes the marker before the first-access token, updates the provisioning URL host, preserves the steady-state token, and later saves/restarts do not renew again | `tests/10_nethvoice_actions/14_hostname_provisioning.robot` |
 | An unmodified legacy module creates a Restic backup containing mixed-case hosts, a database sentinel and Tancredi tokens. The candidate restores that snapshot and verifies persisted state, routes, repeated saves and service readiness | `tests/20_hostname_restore.robot` |
 
-Provisioning tests use a locally administered MAC with no supported RPS vendor. This prevents contacting real phone registration services. Only token fingerprints leave the node. Successful RPS URL updates and proof that the marker is written **before** renewal remain pending: the existing test helpers do not provide an authorized RPS receiver or an ordering observer. The token-renewal test does not claim either assertion.
+Provisioning tests use a locally administered MAC with no supported RPS vendor. This prevents contacting real phone registration services. Only token fingerprints leave the node. The ordering assertion temporarily adds a timestamp column to the disposable `admin` table and compares the marker insertion time with the new token file's timestamp, then removes the column. Successful RPS URL updates remain pending: the existing test helpers do not provide an authorized RPS receiver. The token-renewal test does not claim successful RPS registration.
 
 ### Manual device QA
 

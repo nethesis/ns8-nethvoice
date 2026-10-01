@@ -33,7 +33,7 @@ Restore a real legacy backup into the candidate
         ${rc} =    Execute Command    runagent -m ${legacy_id} podman exec -i freepbx sh -ec 'curl -fsS --retry 30 --retry-all-errors --retry-delay 2 -H "Authentication: static $TANCREDI_STATIC_TOKEN" -H "HTTP_HOST: localhost" -H "Content-Type: application/json" --data-binary @- --output /dev/null "http://127.0.0.1:$TANCREDIPORT/tancredi/api/v1/phones"' <<'JSON'${\n}{"mac":"02-00-00-81-90-02","model":"gigaset-Maxwell3","display_name":"Hostname restore fixture"}${\n}JSON    return_stdout=False    return_rc=True    timeout=3m
         Should Be Equal As Integers    ${rc}    0
         # Only fingerprints leave the node; filenames in these directories are tokens.
-        ${tokens_before}    ${rc} =    Execute Command    runagent -m ${legacy_id} podman exec freepbx php -r 'foreach (["first_access_tokens","tokens"] as $dir) { $tokens = []; foreach (glob("/var/lib/tancredi/data/".$dir."/*") as $path) { if (trim(file_get_contents($path)) === "02-00-00-81-90-02") { $tokens[] = hash("sha256", basename($path)); } } if (count($tokens) !== 1) { exit(1); } echo $tokens[0], PHP_EOL; }'    return_rc=True
+        ${tokens_before}    ${rc} =    Execute Command    runagent -m ${legacy_id} podman exec freepbx php -d display_errors=0 -d log_errors=0 -r 'foreach (["first_access_tokens","tokens"] as $dir) { $tokens = []; foreach (glob("/var/lib/tancredi/data/".$dir."/*") as $path) { if (trim(file_get_contents($path)) === "02-00-00-81-90-02") { $tokens[] = hash("sha256", basename($path)); } } if (count($tokens) !== 1) { exit(1); } echo $tokens[0], PHP_EOL; }'    return_rc=True
         Should Be Equal As Integers    ${rc}    0
         ${vpn_ip} =    Execute Command    runagent -m node python3 -c 'import agent,os; print(agent.redis_connect().hget("node/"+os.environ["NODE_ID"]+"/vpn", "ip_address"))'
         Should Match Regexp    ${vpn_ip}    ^[0-9.]+$
@@ -73,12 +73,12 @@ Restore a real legacy backup into the candidate
         ${sentinel}    ${rc} =    Execute Command    runagent -m ${restored_id} podman exec -i mariadb sh -c 'exec mysql -N -B -uroot -p"$MARIADB_ROOT_PASSWORD" asterisk' <<'SQL'${\n}SELECT value FROM admin WHERE variable='HOSTNAME_E2E_BACKUP';${\n}SQL    return_rc=True
         Should Be Equal As Integers    ${rc}    0
         Should Be Equal    ${sentinel}    ${legacy_uuid}
-        ${tokens_after}    ${rc} =    Execute Command    runagent -m ${restored_id} podman exec freepbx php -r 'foreach (["first_access_tokens","tokens"] as $dir) { $tokens = []; foreach (glob("/var/lib/tancredi/data/".$dir."/*") as $path) { if (trim(file_get_contents($path)) === "02-00-00-81-90-02") { $tokens[] = hash("sha256", basename($path)); } } if (count($tokens) !== 1) { exit(1); } echo $tokens[0], PHP_EOL; }'    return_rc=True
+        ${tokens_after}    ${rc} =    Execute Command    runagent -m ${restored_id} podman exec freepbx php -d display_errors=0 -d log_errors=0 -r 'foreach (["first_access_tokens","tokens"] as $dir) { $tokens = []; foreach (glob("/var/lib/tancredi/data/".$dir."/*") as $path) { if (trim(file_get_contents($path)) === "02-00-00-81-90-02") { $tokens[] = hash("sha256", basename($path)); } } if (count($tokens) !== 1) { exit(1); } echo $tokens[0], PHP_EOL; }'    return_rc=True
         Should Be Equal As Integers    ${rc}    0
         Should Be Equal    ${tokens_after}    ${tokens_before}
         ${routes} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
-        ${own_routes} =    Evaluate    [r for r in $routes if r['instance'].startswith($restored_id + '-')]
-        Length Should Be    ${own_routes}    10
+        ${own_routes} =    Evaluate    [r for r in $routes if r['instance'].startswith('${restored_id}-')]
+        Length Should Be    ${own_routes}    13
         FOR    ${route}    IN    @{own_routes}
             Should Be True    $route['host'] in ('legacyvoice.ns8.local', 'legacycti.ns8.local')
         END
@@ -89,14 +89,16 @@ Restore a real legacy backup into the candidate
         Should Be Equal As Integers    ${rc}    0
         Should Contain    ${ready}    Asterisk
         ${http_before} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
-        ${sip_before}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "TABLE nethvoice_proxy_routes; SELECT setid,destination,description FROM dispatcher ORDER BY setid,destination; TABLE domain; TABLE dialplan;"'    return_rc=True
+        ${http_before} =    Evaluate    sorted($http_before, key=lambda route: route["instance"])
+        ${sip_before}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "SELECT * FROM nethvoice_proxy_routes ORDER BY setid; SELECT setid,destination,description FROM dispatcher ORDER BY setid,destination; SELECT * FROM domain ORDER BY id; SELECT * FROM dialplan ORDER BY id;"'    return_rc=True
         Should Be Equal As Integers    ${rc}    0
         Run task    module/${restored_id}/configure-module
         ...    {"nethvoice_host":"LEGACYVOICE.NS8.LOCAL","nethcti_ui_host":"LEGACYCTI.NS8.LOCAL","user_domain":"${users_domain}","reports_international_prefix":"+39"}
         ...    decode_json=False
         ${http_after} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
+        ${http_after} =    Evaluate    sorted($http_after, key=lambda route: route["instance"])
         Should Be Equal    ${http_after}    ${http_before}
-        ${sip_after}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "TABLE nethvoice_proxy_routes; SELECT setid,destination,description FROM dispatcher ORDER BY setid,destination; TABLE domain; TABLE dialplan;"'    return_rc=True
+        ${sip_after}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "SELECT * FROM nethvoice_proxy_routes ORDER BY setid; SELECT setid,destination,description FROM dispatcher ORDER BY setid,destination; SELECT * FROM domain ORDER BY id; SELECT * FROM dialplan ORDER BY id;"'    return_rc=True
         Should Be Equal As Integers    ${rc}    0
         Should Be Equal    ${sip_after}    ${sip_before}
     FINALLY
