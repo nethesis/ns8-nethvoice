@@ -64,6 +64,24 @@ podman exec freepbx sh -lc "sed -n '1,20p' /var/www/html/freepbx/wizard/scripts/
 
 The wizard is publicly reachable both from `/freepbx/wizard/#!/` and from the shorter `#!/` path because Apache forwards non-`/freepbx` requests to the wizard application.
 
+## Phone RPS reset helper
+
+`/var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php` renews phone provisioning tokens in Tancredi and updates the corresponding RPS provisioning URLs in Falconieri. It accepts one argument:
+
+- `MAC_ADDRESS` resets a single phone. Colons in the address are converted to hyphens and letters are converted to uppercase.
+- `--all` resets every physical phone with a MAC address in the `rest_devices_phones` table.
+- `--host-changed` checks the `NETHVOICE_HOST` marker in the `asterisk.admin` table. If the stored hostname differs from the current environment value, it behaves like `--all`. If the marker is missing or unchanged, no phones are reset. The current hostname is stored before a reset attempt, so the operation is performed at most once for each hostname change.
+
+The container automatically runs the helper with `--host-changed` after FreePBX modules have been initialized and `fwconsole reload` has completed. Individual phone failures are logged and do not stop the helper from processing the remaining phones.
+
+Examples from inside the FreePBX container:
+
+```bash
+php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php 00:11:22:33:44:55
+php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --all
+php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed
+```
+
 ## User base Environments
 - `NETHVOICE_LDAP_PASS` Ldap password of user base
 - `NETHVOICE_LDAP_SCHEMA` [ad|rfc2307] luser base schema
@@ -314,9 +332,9 @@ without altering them.
 
 ### Run install and update tests in GitHub Actions
 
-The FIAS E2E test is the default for this workflow. It runs automatically
-after a successful `Publish images` workflow, or it can be dispatched manually
-for a branch after its images have been published:
+The FIAS E2E test always runs, alongside the standard module test suite. It
+runs automatically after a successful `Publish images` workflow, or it can be
+dispatched manually for a branch after its images have been published:
 
 ```sh
 gh workflow run test-module.yml \
