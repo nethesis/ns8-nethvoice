@@ -1,4 +1,5 @@
 name: Test module
+run-name: "Test ${{ github.event.workflow_run.head_branch || github.ref_name }} on QEMU"
 
 on:
   workflow_dispatch:
@@ -20,13 +21,14 @@ on:
 jobs:
   run:
     name: "Run tests"
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
-    uses: NethServer/ns8-github-actions/.github/workflows/test-module.yml@v1
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    uses: NethServer/ns8-github-actions/.github/workflows/test-module-qemu.yml@v1
     with:
       ui_tests_strategy: on_renovate_ui_change
       debug_shell: ${{ inputs.debug_shell == true }}
-    secrets:
-      do_token: ${{ secrets.do_token }}
 
   module:
     name: "Resolve FIAS test image"
