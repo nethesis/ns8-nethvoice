@@ -185,7 +185,8 @@ function satellite_generate_agent_dialplan() {
         'X-OS-Extension' => '${AGENT_EXTENSION}',
         'X-OS-FLOW' => '${AGENT_FLOW}',
         'X-OS-Agent-ID' => '${AGENT_DESTINATION_ID}',
-        'X-OS-Session-ID' => '${CHANNEL(linkedid)}'
+        'X-OS-Session-ID' => '${CHANNEL(linkedid)}',
+        'isTrunk' => '1'
     ) as $name => $value) {
         $ext->add($headers, 's', '', new ext_set('PJSIP_HEADER(add,' . $name . ')', $value));
     }
@@ -214,8 +215,10 @@ function satellite_generate_agent_dialplan() {
                 ? preg_match('/^proj_[A-Za-z0-9_-]+$/D', (string) $user)
                 : ($trunk['provider'] === 'grok' && preg_match('/^\+[1-9][0-9]{1,14}$/D', (string) $user));
             if ($valid) {
+                $host = $trunk['provider'] === 'openai' ? 'sip.api.openai.com' : 'sip.voice.x.ai';
                 $ext->add($context, 's', '', new ext_dial(
-                    'PJSIP/' . $user . '@' . $trunk['freepbx_trunk_name'] . ',',
+                    'PJSIP/' . $trunk['freepbx_trunk_name'] . '/sip:' . $user . '@' . $host
+                        . ':5061\;transport=tls,',
                     'b(satellite-agent-add-headers^s^1)'
                 ));
                 $ext->add($context, 's', '', new ext_gotoif('$["${DIALSTATUS}"="ANSWER"]', 'end'));
