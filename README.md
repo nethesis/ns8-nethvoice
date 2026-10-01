@@ -153,6 +153,33 @@ daemon-reload`.
 
 The drop-in is lost when the module is updated or reinstalled.
 
+## Hostname regression tests
+
+The Robot suite covers [NethVoice #995](https://github.com/nethesis/ns8-nethvoice/pull/995) and [issue #8190](https://github.com/NethServer/dev/issues/8190). Run the existing **Test module** workflow on the PR branch to include browser tests. Its ordinary suite runs before the FIAS jobs, which use the same disposable infrastructure. For a local runner, enable `RUN_UI_TESTS=true` and run the whole `tests/` suite so installation and cleanup are included. A Robot `--dryrun` validates syntax and keyword resolution only.
+
+The dependency suite installs the pinned [proxy #222](https://github.com/nethesis/ns8-nethvoice-proxy/pull/222) image **before** the NethVoice candidate. `PROXY_IMAGE_URL` can select a replacement build containing that fix. `LEGACY_NETHVOICE_IMAGE` defaults to `ghcr.io/nethesis/nethvoice:1.7.9` for the genuine backup fixture. Use only disposable nodes: the suite installs and removes applications, creates a local backup destination, writes phone fixtures and changes provisioning markers.
+
+| Coverage | Robot test location |
+| --- | --- |
+| Initial setup and Settings use real browser inputs, reject empty/identical/case-equivalent hosts, save lowercase hostnames, and preserve route identities and dispatcher sets | `tests/05_ui.robot` |
+| Direct configuration rejects matching hosts before persisted configuration or HTTP/SIP routes change | `tests/10_nethvoice_actions/00_configure_module_validation.robot` |
+| Mixed-case action input is persisted in lowercase and omitted `lets_encrypt` preserves existing route and certificate settings | `tests/10_nethvoice_actions/10_configure_integrations.robot` |
+| Legacy mixed-case or absent provisioning markers preserve real Tancredi tokens, without renewal or RPS attempts | `tests/10_nethvoice_actions/14_hostname_provisioning.robot` |
+| A genuine hostname change updates the marker and first-access token, preserves the steady-state token, and later saves/restarts do not renew again | `tests/10_nethvoice_actions/14_hostname_provisioning.robot` |
+| An unmodified legacy module creates a Restic backup containing mixed-case hosts, a database sentinel and Tancredi tokens. The candidate restores that snapshot and verifies persisted state, routes, repeated saves and service readiness | `tests/20_hostname_restore.robot` |
+
+Provisioning tests use a locally administered MAC with no supported RPS vendor. This prevents contacting real phone registration services. Only token fingerprints leave the node. Successful RPS URL updates and proof that the marker is written **before** renewal remain pending: the existing test helpers do not provide an authorized RPS receiver or an ordering observer. The token-renewal test does not claim either assertion.
+
+### Manual device QA
+
+Use paired proxy/NethVoice builds and test domains with working DNS and certificates. Record the exact image references, application versions and result for each step. Automated route, token and readiness checks do not replace these device checks.
+
+1. After initial setup with `Voice.Example.org` and `CTI.Example.org`, generate a QR code in CTI and scan it with the current mobile app. Verify registration completes, reproducing the original #8190 scenario. Make an extension call and an inbound trunk call, and verify audio in both directions.
+2. Restore a genuine backup created with mixed-case hostnames, then generate and scan a fresh CTI QR code. Repeat mobile registration, extension-call and inbound-trunk-call checks after restore.
+3. With an authorized physical test phone and RPS account, verify case-only changes and a missing legacy marker preserve provisioning token fingerprints without renewal or RPS updates. For a genuine hostname change, observe the marker before the renewal request, verify the RPS URL has the new host and renewed token, and verify subsequent saves/restarts do not reset it again. Check that the phone provisions and registers successfully. Keep tokens, QR contents and subscription credentials out of artifacts.
+
+Report executed Robot results with the CI run and its `tests-logs-*` artifacts. Report skipped, blocked or unexecuted cases separately from passes, and keep the device and RPS checks pending until they are actually observed.
+
 ## Uninstall
 
 To uninstall the instance:
