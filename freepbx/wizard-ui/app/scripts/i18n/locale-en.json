@@ -175,6 +175,7 @@
   "time_format_24h": "24 hours",
   "time_format_12h": "12 hours",
   "network_settings_label": "Network",
+  "lldp_enable_label": "LLDP",
   "vlan_id_phone_label": "VLAN identifier (VID)",
   "vlan_id_pcport_label": "PC port VLAN identifier",
   "en": "English",
