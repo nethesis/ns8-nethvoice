@@ -6,7 +6,7 @@ Resource  ../api.resource
 *** Test Cases ***
 Check if nethvoice can be configured correctly
     ${response} =  Run task    module/${module_id}/configure-module
-    ...    {"nethvoice_host": "voice.ns8.local", "nethcti_ui_host": "cti.ns8.local", "user_domain": "${users_domain}", "reports_international_prefix": "+39", "lets_encrypt": false }
+    ...    {"nethvoice_host": "Voice.Ns8.Local", "nethcti_ui_host": "CTI.Ns8.Local", "user_domain": "${users_domain}", "reports_international_prefix": "+39", "lets_encrypt": false }
     ...    decode_json=False
 
 Check if nethvoice is configured as expected
@@ -19,6 +19,31 @@ Check if nethvoice is configured as expected
 
     Dictionary Should Not Contain Key    ${response}    nethvoice_adm_username
     Dictionary Should Not Contain Key    ${response}    nethvoice_adm_password
+    ${saved} =    Execute Command    runagent -m ${module_id} sh -c 'printf "%s\\n%s\\n" "$NETHVOICE_HOST" "$NETHCTI_UI_HOST"'
+    Should Be Equal    ${saved}    voice.ns8.local${\n}cti.ns8.local
+    ${routes} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
+    ${own_routes} =    Evaluate    [r for r in $routes if r['instance'].startswith($module_id + '-')]
+    Length Should Be    ${own_routes}    10
+    FOR    ${route}    IN    @{own_routes}
+        Should Be True    $route['host'] in ('voice.ns8.local', 'cti.ns8.local')
+    END
+
+Omitting lets_encrypt preserves saved certificate settings
+    [Tags]    hostname
+    ${before} =    Run task    module/${module_id}/get-configuration    {}
+    ${http_before} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
+    ${certificate_before}    ${rc} =    Execute Command    bash -o pipefail -c 'timeout 15 openssl s_client -connect 127.0.0.1:443 -servername voice.ns8.local </dev/null 2>/dev/null | openssl x509 -outform DER | sha256sum'    return_rc=True
+    Should Be Equal As Integers    ${rc}    0
+    Run task    module/${module_id}/configure-module
+    ...    {"nethvoice_host":"VOICE.NS8.LOCAL","nethcti_ui_host":"CTI.NS8.LOCAL","user_domain":"${users_domain}","reports_international_prefix":"+39"}
+    ...    decode_json=False
+    ${after} =    Run task    module/${module_id}/get-configuration    {}
+    Should Be Equal    ${after}[lets_encrypt]    ${before}[lets_encrypt]
+    ${http_after} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
+    Should Be Equal    ${http_after}    ${http_before}
+    ${certificate_after}    ${rc} =    Execute Command    bash -o pipefail -c 'timeout 15 openssl s_client -connect 127.0.0.1:443 -servername voice.ns8.local </dev/null 2>/dev/null | openssl x509 -outform DER | sha256sum'    return_rc=True
+    Should Be Equal As Integers    ${rc}    0
+    Should Be Equal    ${certificate_after}    ${certificate_before}
 
 Check if the password can be changed
     ${response} =  Run task    module/${module_id}/set-nethvoice-admin-password   
