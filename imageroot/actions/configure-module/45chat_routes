@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# NethVoice chat routes, removed when the chat is off.
+
+import os
+
+import agent
+import agent.tasks
+
+routes = {
+    'chat-ws': ('/xmpp-websocket', 'CHAT_HTTP_PORT', False),
+    'chat-upload': ('/upload', 'CHAT_HTTP_PORT', False),
+    'chat-gw': ('/chat-gw', 'CHAT_GW_PORT', True),
+}
+for name, (path, port, strip) in routes.items():
+    if os.getenv('CHAT_ENABLED') == 'true':
+        agent.set_route({
+            'instance': os.environ['MODULE_ID'] + '-' + name,
+            'url':  'http://127.0.0.1:' + os.environ[port],
+            'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
+            'host': os.environ["NETHCTI_UI_HOST"],
+            'path': path,
+            'strip_prefix': strip,
+        })
+    else:
+        agent.tasks.run(
+            agent_id=agent.resolve_agent_id('traefik@node'),
+            action='delete-route',
+            data={'instance': os.environ['MODULE_ID'] + '-' + name},
+            extra={'isNotificationHidden': True},
+        )

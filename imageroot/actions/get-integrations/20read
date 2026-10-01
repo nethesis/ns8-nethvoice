@@ -17,6 +17,7 @@ config = {
     'satellite_call_summary_enabled': os.getenv('SATELLITE_CALL_SUMMARY_ENABLED', 'False') == 'True',
     'deepgram_api_key': agent.read_envfile("passwords.env").get('DEEPGRAM_API_KEY', ''),
     'openai_api_key': agent.read_envfile("passwords.env").get('OPENAI_API_KEY', ''),
+    'chat_enabled': os.getenv('CHAT_ENABLED', 'false') == 'true',
 }
 
 json.dump(config, fp=sys.stdout)
