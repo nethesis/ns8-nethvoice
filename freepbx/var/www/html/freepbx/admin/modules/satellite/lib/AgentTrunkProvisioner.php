@@ -98,7 +98,7 @@ class AgentTrunkProvisioner
         return true;
     }
 
-    /** Validate local configuration and the presence of an enabled TLS transport. */
+    /** Validate local configuration and the proxy-facing UDP transport. */
     public function validateManagedTrunk(array $agentTrunk)
     {
         $this->trunkName($agentTrunk);
@@ -124,12 +124,19 @@ class AgentTrunkProvisioner
             throw new \InvalidArgumentException('Phase 1 supports only the CleverAI runtime');
         }
 
-        $transport = $this->tlsTransport();
+        $transport = $this->udpTransport();
+        $proxyIp = isset($_ENV['PROXY_IP']) ? $_ENV['PROXY_IP'] : '';
+        $proxyPort = isset($_ENV['PROXY_PORT']) ? (string) $_ENV['PROXY_PORT'] : '';
+        if (!is_string($proxyIp) || !filter_var($proxyIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
+            || !ctype_digit($proxyPort) || (int) $proxyPort < 1 || (int) $proxyPort > 65535) {
+            throw new \RuntimeException('NethVoice SIP proxy address and port are required');
+        }
         $provider = isset($agentTrunk['provider']) ? $agentTrunk['provider'] : '';
         $settings = array(
             'registration' => 'none',
             'authentication' => 'none',
             'transport' => $transport,
+            'outbound_proxy' => 'sip:' . $proxyIp . ':' . $proxyPort . ';lr',
             'context' => 'from-pstn',
             'direct_media' => 'no',
             'rtp_symmetric' => 'yes',
@@ -184,18 +191,18 @@ class AgentTrunkProvisioner
         return $settings;
     }
 
-    private function tlsTransport()
+    private function udpTransport()
     {
         $driver = $this->core->getDriver('pjsip');
         if ($driver === false || !method_exists($driver, 'getActiveTransports')) {
             throw new \RuntimeException('FreePBX PJSIP driver is unavailable');
         }
         foreach ($driver->getActiveTransports() as $transport) {
-            if (isset($transport['value']) && is_string($transport['value']) && preg_match('/-tls$/', $transport['value'])) {
+            if (isset($transport['value']) && $transport['value'] === '0.0.0.0-udp') {
                 return $transport['value'];
             }
         }
-        throw new \RuntimeException('No active PJSIP TLS transport is configured');
+        throw new \RuntimeException('PJSIP transport 0.0.0.0-udp is not active');
     }
 
     private function baseSettings($name, array $agentTrunk)
