@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# NethVoice chat (CHAT_ENABLED=true): render ejabberd.yml and start the units.
+
+import os
+import string
+import subprocess
+import sys
+
+import agent
+
+ENABLED = os.getenv('CHAT_ENABLED', 'false').lower() == 'true'
+HOST = os.getenv('NETHCTI_UI_HOST', '')
+UNITS = ('chat-server.service', 'chat-gateway.service')
+CONF_DIR = os.path.join(os.environ['AGENT_STATE_DIR'], 'chat')
+TEMPLATE = os.path.join(os.environ['AGENT_INSTALL_DIR'], 'etc', 'chat', 'ejabberd.yml.tmpl')
+
+
+def render():
+    """Write ejabberd.yml; True when its content changed."""
+    secrets = agent.read_envfile('passwords.env')
+    values = {
+        # One internal XMPP domain: addresses never change with the CTI host, which only reaches the server.
+        'CHAT_HOST': 'chat.internal',
+        'CHAT_PUBLIC_HOST': HOST,
+        'CHAT_C2S_PORT': os.environ['CHAT_C2S_PORT'],
+        'CHAT_HTTP_PORT': os.environ['CHAT_HTTP_PORT'],
+        'CHAT_COMPONENT_PORT': os.environ['CHAT_COMPONENT_PORT'],
+        'CHAT_COMPONENT_SECRET': secrets['CHAT_COMPONENT_SECRET'],
+    }
+    with open(TEMPLATE) as f:
+        text = string.Template(f.read()).substitute(values)
+    os.makedirs(CONF_DIR, exist_ok=True)
+    out = os.path.join(CONF_DIR, 'ejabberd.yml')
+    try:
+        with open(out) as f:
+            if f.read() == text:
+                return False
+    except FileNotFoundError:
+        pass
+    with open(out + '.tmp', 'w') as f:
+        f.write(text)
+    os.chmod(out + '.tmp', 0o644)
+    os.replace(out + '.tmp', out)
+    return True
+
+
+def systemctl(*args):
+    return subprocess.run(['systemctl', '--user', *args], check=False).returncode == 0
+
+
+if not ENABLED:
+    for unit in UNITS + ('chat-retention.timer',):
+        systemctl('disable', '--now', unit)
+    sys.exit(0)
+
+for var in ('CHAT_C2S_PORT', 'CHAT_HTTP_PORT', 'CHAT_COMPONENT_PORT', 'CHAT_GW_PORT'):
+    agent.assert_exp(var in os.environ, f"chat: {var} is not allocated")
+agent.assert_exp(HOST != '', "chat: NETHCTI_UI_HOST is not set")
+
+changed = render() or os.getenv('CHAT_FORCE_RESTART') == '1'
+systemctl('daemon-reload')
+# Restart only on changes: a restart drops every chat session.
+for unit in UNITS:
+    systemctl('enable', unit)
+    if changed or not systemctl('is-active', '--quiet', unit):
+        if not systemctl('restart', unit):
+            print(agent.SD_WARNING + f"chat: {unit} did not start, see its journal", file=sys.stderr)
+systemctl('enable', '--now', 'chat-retention.timer')

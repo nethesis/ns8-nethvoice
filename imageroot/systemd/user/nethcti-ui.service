@@ -31,6 +31,7 @@ ExecStart=/usr/bin/podman run \
     --env=PORT=${NETHCTI_UI_PORT} \
     --env=SIP_PORT=${ASTERISK_SIP_UDP_PORT} \
     --env=TIMEZONE=${TIMEZONE} \
+    --env=CHAT_ENABLED=${CHAT_ENABLED} \
     --env=LOGIN_PEOPLE=${LOGIN_PEOPLE} \
     --env=NAVBAR_LOGO_URL=${NAVBAR_LOGO_URL} \
     --env=NAVBAR_LOGO_DARK_URL=${NAVBAR_LOGO_DARK_URL} \
