@@ -141,6 +141,8 @@
     "cannot_create_task": "Impossibile eseguire task {action}"
   },
   "integrations": {
+    "chat": "Chat",
+    "chat_tooltip": "Chat tra gli utenti di NethVoice CTI e l'app mobile",
     "title": "Integrazioni",
     "deepgram_api_key": "API Key di Deepgram",
     "openai_api_key": "API Key OpenAI",

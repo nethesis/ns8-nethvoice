@@ -26,7 +26,7 @@ jobs:
           - group: freepbx
             images: freepbx
           - group: app-support
-            images: tancredi,cti-server,phonebook,sftp
+            images: tancredi,cti-server,phonebook,sftp,ejabberd
           - group: reports
             images: reports-api,reports-ui
           - group: wrappers

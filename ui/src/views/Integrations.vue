@@ -37,6 +37,22 @@
               :line-count="8"
             ></cv-skeleton-text>
             <cv-form v-else @submit.prevent="setIntegrations">
+              <NsToggle
+                :label="$t('integrations.chat')"
+                value="isChatEnabled"
+                :disabled="loading.setIntegrations"
+                v-model="isChatEnabled"
+              >
+                <template #tooltip>{{
+                  $t("integrations.chat_tooltip")
+                }}</template>
+                <template slot="text-left">{{
+                  $t("common.disabled")
+                }}</template>
+                <template slot="text-right">{{
+                  $t("common.enabled")
+                }}</template>
+              </NsToggle>
               <NsTextInput
                 :label="$t('integrations.deepgram_api_key')"
                 v-model.trim="deepgramApiKey"
@@ -211,6 +227,7 @@ export default {
       isCallTranscriptionEnabled: false,
       isVoicemailTranscriptionEnabled: false,
       isCallSummaryEnabled: false,
+      isChatEnabled: false,
       loading: {
         getIntegrations: false,
         setIntegrations: false,
@@ -304,6 +321,7 @@ export default {
         integrations.satellite_voicemail_transcription_enabled || false;
       this.isCallSummaryEnabled =
         integrations.satellite_call_summary_enabled || false;
+      this.isChatEnabled = integrations.chat_enabled || false;
       this.loading.getIntegrations = false;
     },
     async setIntegrations() {
@@ -339,6 +357,7 @@ export default {
         this.createModuleTaskForApp(this.instanceName, {
           action: taskAction,
           data: {
+            chat_enabled: this.isChatEnabled,
             deepgram_api_key: this.deepgramApiKey,
             openai_api_key: hasDeepgramApiKey ? this.openaiApiKey : "",
             satellite_call_transcription_enabled: hasDeepgramApiKey

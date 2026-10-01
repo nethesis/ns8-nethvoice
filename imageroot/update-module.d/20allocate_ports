@@ -218,3 +218,12 @@ if not 'SATELLITE_PGSQL_PORT' in env:
 	pgsql_port = allocated_ports[0]
 	print(f"New port allocated for SATELLITE PGSQL: {pgsql_port}", file=sys.stderr)
 	agent.set_env('SATELLITE_PGSQL_PORT', pgsql_port)
+
+# NethVoice chat: four loopback ports, allocated once
+if 'CHAT_GW_PORT' not in env:
+	start, end = agent.allocate_ports(4, "tcp", keep_existing=True)
+	print(f"New ports allocated for chat: {start}-{end}", file=sys.stderr)
+	agent.set_env('CHAT_C2S_PORT', start)
+	agent.set_env('CHAT_HTTP_PORT', start + 1)
+	agent.set_env('CHAT_COMPONENT_PORT', start + 2)
+	agent.set_env('CHAT_GW_PORT', start + 3)
