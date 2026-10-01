@@ -103,7 +103,11 @@ class Satellite extends \FreePBX_Helpers implements \BMO
                     $this->handleAgentTrunkRequest();
                     break;
                 case 'satellite_agents':
-                    $this->handleAgentDestinationRequest();
+                    if (isset($_POST['section']) && $_POST['section'] === 'trunks') {
+                        $this->handleAgentTrunkRequest();
+                    } else {
+                        $this->handleAgentDestinationRequest();
+                    }
                     break;
             }
         } catch (\Throwable $error) {
@@ -113,6 +117,18 @@ class Satellite extends \FreePBX_Helpers implements \BMO
                 unset($this->agentSubmittedForm['api_key'], $this->agentSubmittedForm['sip_auth_password']);
             }
         }
+    }
+
+    public function getActionBar($request) {
+        $display = isset($request['display']) ? $request['display'] : '';
+        if (!in_array($display, array('satellite_agents', 'satellite_agent_trunks'), true) ||
+            ((isset($_GET['view']) ? $_GET['view'] : '') !== 'form' && $this->agentSubmittedForm === null)) {
+            return array();
+        }
+        return array(
+            'reset' => array('name' => 'reset', 'id' => 'reset', 'value' => _('Reset')),
+            'submit' => array('name' => 'submit', 'id' => 'submit', 'value' => _('Submit')),
+        );
     }
 
     private function agentRequestId() {
@@ -240,10 +256,12 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         $action = isset($_POST['action']) ? $_POST['action'] : '';
         $id = $this->agentRequestId();
         if ($action === 'save') {
+            $fallback = AgentValidation::submittedFallback($_POST);
+            $_POST['fallback_destination'] = $fallback;
             $input = array(
                 'cleverai_trunk_id' => isset($_POST['cleverai_trunk_id']) ? $_POST['cleverai_trunk_id'] : null,
                 'cleverai_flow' => isset($_POST['cleverai_flow']) ? trim($_POST['cleverai_flow']) : '',
-                'fallback_destination' => isset($_POST['fallback_destination']) ? trim($_POST['fallback_destination']) : ''
+                'fallback_destination' => $fallback
             );
             if ($id === null) {
                 $id = $this->agentDestinations->create($input);
@@ -271,26 +289,39 @@ class Satellite extends \FreePBX_Helpers implements \BMO
     }
 
     public function showAgentTrunksPage() {
-        $trunks = $this->getAgentTrunks();
-        $error = $this->agentPageError;
-        $notice = $this->agentPageNotice;
-        $form = $this->agentSubmittedForm;
-        if ($form === null && isset($_GET['id']) && ctype_digit((string) $_GET['id']) && (int) $_GET['id'] > 0) {
-            $form = $this->getAgentTrunk((int) $_GET['id']);
-        }
-        return load_view(__DIR__ . '/views/agent/trunks.php', compact('trunks', 'error', 'notice', 'form'));
+        return $this->showAgentsPage('trunks');
     }
 
-    public function showAgentsPage() {
+    public function showAgentsPage($defaultTab = 'destinations') {
         $trunks = $this->getAgentTrunks();
         $destinations = $this->getAgentDestinations();
         $error = $this->agentPageError;
         $notice = $this->agentPageNotice;
-        $form = $this->agentSubmittedForm;
-        if ($form === null && isset($_GET['id']) && ctype_digit((string) $_GET['id']) && (int) $_GET['id'] > 0) {
-            $form = $this->getAgentDestination((int) $_GET['id']);
+        $tab = isset($_POST['section']) ? $_POST['section'] : (isset($_GET['tab']) ? $_GET['tab'] : $defaultTab);
+        if (!in_array($tab, array('destinations', 'trunks'), true)) {
+            $tab = $defaultTab;
         }
-        return load_view(__DIR__ . '/views/agent/agents.php', compact('trunks', 'destinations', 'error', 'notice', 'form'));
+        $form = $this->agentSubmittedForm;
+        if ($form === null && isset($_GET['view']) && $_GET['view'] === 'form' &&
+            isset($_GET['id']) && ctype_digit((string) $_GET['id']) && (int) $_GET['id'] > 0) {
+            $form = $tab === 'trunks'
+                ? $this->getAgentTrunk((int) $_GET['id'])
+                : $this->getAgentDestination((int) $_GET['id']);
+        }
+        $showForm = (isset($_GET['view']) && $_GET['view'] === 'form') || $form !== null;
+        $formMode = $showForm;
+        $destinationForm = $tab === 'destinations' ? $form : null;
+        $trunkForm = $tab === 'trunks' ? $form : null;
+        $destinationsContent = load_view(__DIR__ . '/views/agent/agents.php', array(
+            'trunks' => $trunks, 'destinations' => $destinations,
+            'form' => $destinationForm, 'showForm' => $showForm && $tab === 'destinations',
+        ));
+        $trunksContent = load_view(__DIR__ . '/views/agent/trunks.php', array(
+            'trunks' => $trunks, 'form' => $trunkForm, 'showForm' => $showForm && $tab === 'trunks',
+        ));
+        return load_view(__DIR__ . '/views/agent/index.php', compact(
+            'tab', 'formMode', 'error', 'notice', 'destinationsContent', 'trunksContent'
+        ));
     }
 
     public function showWebhooksPage() {

@@ -76,6 +76,11 @@ try {
     }, 'Bad Direct SIP number accepted');
     agent_assert(AgentValidation::validateFallback('ext-local,203,1') === 'ext-local,203,1', 'FreePBX fallback rejected');
     agent_assert(AgentValidation::validateFallback('queueexit-3,${EXTEN},1') === 'queueexit-3,${EXTEN},1', 'Dynamic FreePBX fallback rejected');
+    agent_assert(AgentValidation::submittedFallback(array('goto0' => 'ext-local', 'ext-local0' => 'ext-local,203,1')) === 'ext-local,203,1', 'FreePBX destination picker result lost');
+    agent_assert(AgentValidation::submittedFallback(array('goto0' => '', 'fallback_destination' => 'ext-local,203,1')) === '', 'Clearing the FreePBX destination picker failed');
+    agent_reject(function () {
+        AgentValidation::submittedFallback(array('goto0' => 'ext-local'));
+    }, 'Missing FreePBX destination picker field accepted');
     agent_reject(function () {
         AgentValidation::validateFallback("ext-local,203,1\nSystem(evil)");
     }, 'Unsafe fallback accepted');
