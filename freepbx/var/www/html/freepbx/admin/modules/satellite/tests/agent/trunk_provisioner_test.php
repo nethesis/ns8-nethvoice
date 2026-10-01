@@ -24,7 +24,7 @@ class TestPjsipDriver
 {
     public $transports = array(
         array('value' => '', 'text' => 'Auto'),
-        array('value' => '192.0.2.1-udp', 'text' => 'UDP'),
+        array('value' => '0.0.0.0-udp', 'text' => 'UDP'),
         array('value' => '192.0.2.1-tls', 'text' => 'TLS'),
     );
 
@@ -103,6 +103,8 @@ class TestCrypto
 
 $core = new TestCore();
 $provisioner = new AgentTrunkProvisioner($core, new TestCrypto());
+$_ENV['PROXY_IP'] = '192.0.2.10';
+$_ENV['PROXY_PORT'] = '5060';
 $_POST = array('api_key' => 'must never reach PJSIP', 'form_action' => 'save');
 $originalPost = $_POST;
 
@@ -115,7 +117,9 @@ check($_POST === $originalPost, 'POST restored after create');
 check($core->calls[0][1] === 'AgentTrunk_1', 'generated trunk name');
 check($core->calls[0][3]['provider'] === 'satellite-agent', 'module ownership marker');
 check($core->calls[0][4]['trunk_name'] === 'AgentTrunk_1', 'PJSIP endpoint name');
-check($core->calls[0][4]['transport'] === '192.0.2.1-tls', 'active TLS transport selected');
+check($core->calls[0][4]['transport'] === '0.0.0.0-udp', 'proxy-facing UDP transport selected');
+check($core->calls[0][4]['outbound_proxy'] === 'sip:192.0.2.10:5060;lr', 'NethVoice outbound proxy');
+check($core->calls[0][4]['sip_server_port'] === '5061', 'OpenAI SIP server port');
 check($core->calls[0][4]['aor_contact'] === 'sip:sip.api.openai.com:5061;transport=tls', 'OpenAI contact');
 check($core->calls[0][4]['authentication'] === 'none', 'OpenAI has no SIP auth');
 check(!isset($core->calls[0][4]['api_key']), 'HTTP API key excluded from PJSIP');
@@ -134,6 +138,9 @@ $grok = array('id' => 2, 'provider' => 'grok', 'grok_phone_number' => '+39072112
 check($provisioner->createManagedTrunk($grok) === 11, 'create Grok trunk');
 $settings = $core->calls[4][4];
 check($settings['aor_contact'] === 'sip:+390721123456@sip.voice.x.ai:5061;transport=tls', 'Grok contact');
+check($settings['transport'] === '0.0.0.0-udp'
+    && $settings['sip_server_port'] === '5061'
+    && $settings['outbound_proxy'] === 'sip:192.0.2.10:5060;lr', 'Grok proxy routing');
 check($settings['authentication'] === 'outbound' && $settings['secret'] === 'sip-pass', 'Grok SIP digest');
 check($_POST === $originalPost, 'POST restored after Grok create');
 
@@ -157,9 +164,14 @@ failsWith(function () use ($provisioner, $grok) {
 $core->driver->transports = array(array('value' => '192.0.2.1-udp', 'text' => 'UDP'));
 failsWith(function () use ($provisioner, $openai) {
     $provisioner->validateManagedTrunk($openai);
-}, 'No active PJSIP TLS transport');
+}, 'PJSIP transport 0.0.0.0-udp is not active');
 
-$core->driver->transports[] = array('value' => '192.0.2.1-tls', 'text' => 'TLS');
+$core->driver->transports[] = array('value' => '0.0.0.0-udp', 'text' => 'UDP');
+$_ENV['PROXY_PORT'] = '0';
+failsWith(function () use ($provisioner, $openai) {
+    $provisioner->validateManagedTrunk($openai);
+}, 'NethVoice SIP proxy address and port are required');
+$_ENV['PROXY_PORT'] = '5060';
 $core->failAdd = true;
 failsWith(function () use ($provisioner) {
     $provisioner->createManagedTrunk(array('id' => 3, 'provider' => 'openai', 'openai_project_id' => 'proj_test'));
