@@ -241,5 +241,8 @@
   "Configurare porta": "Configure port",
   "Configure port": "Configure port",
   "Enable UDP transport": "Enable UDP transport",
-  "Configure unencrypted audio": "Configure unencrypted audio"
+  "Configure unencrypted audio": "Configure unencrypted audio",
+  "if empty: first name + last name": "if empty: first name + last name",
+  "CSV separator must be a comma": "CSV separator must be a comma",
+  "Mapping must include the 'name' or 'firstname'/'lastname' destination": "Mapping must include the 'name' or 'firstname'/'lastname' destination"
 }
