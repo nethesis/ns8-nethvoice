@@ -35,7 +35,9 @@ jobs:
 
   fias-e2e:
     name: "FIAS E2E (${{ matrix.scenario }})"
-    needs: module
+    # The reusable runner uses the same per-node concurrency key for both jobs.
+    # Finish the ordinary suite before starting FIAS on those disposable nodes.
+    needs: [module, run]
     strategy:
       fail-fast: false
       matrix:
