@@ -176,7 +176,7 @@ if should_build "${reponame}"; then
     start_timing "${reponame}"
     pushd nethcti-server
     build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" --target production \
-        --build-arg NETHCTI_SERVER_COMMIT=fix_calls_mark \
+        --build-arg NETHCTI_SERVER_COMMIT=feat_group_calls \
         --tag "${repobase}/${reponame}" \
         --tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
     popd
@@ -213,7 +213,7 @@ fi
 reponame="nethvoice-cti-ui"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:fix_calls_mark)
+    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:feat_group_calls)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
