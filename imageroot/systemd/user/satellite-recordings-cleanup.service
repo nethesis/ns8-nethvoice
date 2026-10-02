@@ -15,3 +15,6 @@ find /var/run/nethvoice \( -name "satellite-r-*-*.wav" -o -name "satellite-t-*-*
 '
 
 SyslogIdentifier=%u/%N
+StandardOutput=null
+StandardError=null
+LogLevelMax=warning

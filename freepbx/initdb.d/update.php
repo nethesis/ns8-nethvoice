@@ -6,6 +6,15 @@
 
 include_once '/etc/freepbx_db.conf';
 
+// The image supplies SLN sounds. Avoid downloading other formats when
+// soundlang updates the installed languages.
+$db->exec("UPDATE `asterisk`.`soundlang_settings` SET `value` = 'sln' WHERE `keyword` = 'formats'");
+
+// Remove malformed prompt filenames before soundlang is installed/upgraded by
+// freepbx_init.sh. Older sound manifests imported description/blank lines with
+// their trailing newline instead of valid sound filenames.
+$db->exec('DELETE FROM `asterisk`.`soundlang_prompts` WHERE LOCATE(CHAR(10), `filename`) > 0');
+
 // Shared FIAS rooms display all guest names in this field. The original
 // 32-character limit is too short even for two ordinary guest names.
 $sql = "SELECT CHARACTER_MAXIMUM_LENGTH
