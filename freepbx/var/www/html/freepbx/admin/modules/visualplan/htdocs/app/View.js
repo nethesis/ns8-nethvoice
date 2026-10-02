@@ -227,7 +227,13 @@ example.View = draw2d.Canvas.extend({
                             if (event.dropped[0].id === "satellite-agent-destination") {
                                 // A selected Agent and its children may already be on this canvas.
                                 for (var existingId in jsonMarshal) {
-                                    if (app.view.getFigure(existingId) || app.view.getLine(existingId)) {
+                                    var imported = jsonMarshal[existingId];
+                                    // Keep the canvas fallback, including an intentional deletion.
+                                    var reusesAgentFallback = imported.type === "MyConnection" &&
+                                        imported.source.node.indexOf("satellite-agent-destination%") === 0 &&
+                                        imported.source.port.indexOf("output_agent_fallback%") === 0 &&
+                                        app.view.getFigure(imported.source.node);
+                                    if (reusesAgentFallback || app.view.getFigure(existingId) || app.view.getLine(existingId)) {
                                         delete jsonMarshal[existingId];
                                     }
                                 }
