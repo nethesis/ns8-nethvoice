@@ -1,5 +1,13 @@
 <?php
 
+require_once __DIR__ . '/../../lib/AgentSession.php';
+session_save_path(sys_get_temp_dir());
+$helperToken = AgentSession::csrfToken();
+if (!preg_match('/^[a-f0-9]{64}$/D', $helperToken)) {
+    throw new RuntimeException('CSRF helper did not generate a 32-byte hex token');
+}
+AgentSession::assertCsrfToken($helperToken);
+
 class FreePBX_Helpers { public $db; }
 interface BMO {}
 
@@ -179,11 +187,23 @@ serviceCheck($trunks->created['name'] === 'Agent' &&
     $trunks->created['sip_auth_password'] === '' &&
     !isset($trunks->created['ignored']), 'Trunk input was not trimmed and whitelisted');
 
-session_save_path(sys_get_temp_dir());
 $token = $service->agentCsrfToken();
+serviceCheck($token === $helperToken && AgentSession::csrfToken() === $helperToken,
+    'CSRF token was not reused across helper and Satellite');
 $service->assertAgentCsrfToken($token);
+foreach (array('' => 'missing', 'null' => 'literal null', 'wrong' => 'wrong') as $invalid => $label) {
+    serviceReject(function () use ($invalid) {
+        AgentSession::assertCsrfToken($invalid);
+    }, 'CSRF helper accepted ' . $label . ' token');
+    serviceReject(function () use ($service, $invalid) {
+        $service->assertAgentCsrfToken($invalid);
+    }, 'Satellite accepted ' . $label . ' token');
+}
+serviceReject(function () {
+    AgentSession::assertCsrfToken(null);
+}, 'CSRF helper accepted null token');
 serviceReject(function () use ($service) {
-    $service->assertAgentCsrfToken('wrong');
-}, 'Invalid CSRF token was accepted');
+    $service->assertAgentCsrfToken(null);
+}, 'Satellite accepted null token');
 
 echo "Agent save service tests passed\n";

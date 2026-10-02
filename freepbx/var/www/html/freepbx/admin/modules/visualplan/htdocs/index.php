@@ -10,14 +10,15 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
 }
 $visualplanAgentCsrfToken = null;
 try {
-    // Satellite uses a legacy global class, which must be loaded before BMO lookup.
-    $satelliteClass = __DIR__ . '/../../satellite/Satellite.class.php';
-    if (is_file($satelliteClass)) {
-        require_once $satelliteClass;
+    // Issuing a session token must not load or construct the Satellite BMO.
+    $agentSessionFile = __DIR__ . '/../../satellite/lib/AgentSession.php';
+    if (is_file($agentSessionFile)) {
+        require_once $agentSessionFile;
+        $visualplanAgentCsrfToken = AgentSession::csrfToken();
     }
-    $visualplanAgentCsrfToken = FreePBX::Satellite()->agentCsrfToken();
 } catch (Throwable $e) {
     // Satellite is optional: keep the rest of VisualPlan available.
+    error_log('VisualPlan Agent session token is unavailable');
 }
 ?>
 
