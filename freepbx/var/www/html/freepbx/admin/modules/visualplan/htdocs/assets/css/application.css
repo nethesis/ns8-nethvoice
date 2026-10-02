@@ -380,6 +380,23 @@ button.mainmenu_btns:focus {
   background-color: #528ba7;
 }
 
+#satellite-agent-destination {
+  background-color: #528ba7;
+}
+
+#satellite-agent-destination::before {
+  font-family: 'FontAwesome';
+  content: "\f075";
+  margin: 0 3px;
+  margin-right: 13px;
+  font-size: 22px;
+  font-weight: 100;
+}
+
+#satellite-agent-destination:hover {
+  background-color: #639cb7;
+}
+
 /*annuncio*/
 
 #app-announcement {
@@ -896,6 +913,38 @@ footer a:hover {
 .input-creation-mini {
   display: inline-block;
   width: 120px;
+}
+
+.agent-form .agent-trunk-select {
+  white-space: nowrap;
+}
+
+.agent-form .agent-trunk-select select {
+  display: inline-block;
+  width: calc(100% - 40px);
+}
+
+.agent-form .agent-trunk-select .input-creation,
+.agent-form .agent-trunk-select .addButtons {
+  vertical-align: middle;
+  margin-bottom: 14px;
+}
+
+.agent-form .agent-trunk-select .addButtons {
+  margin-left: 6px !important;
+}
+
+.agent-form .agent-trunk-help {
+  margin-top: -14px;
+}
+
+.agent-form .agent-trunk-fields {
+  border-top: 1px solid #ddd;
+  padding-top: 14px;
+}
+
+#modalCreation.agent-dialog {
+  max-height: calc(100vh - 180px) !important;
 }
 
 /* recordings */

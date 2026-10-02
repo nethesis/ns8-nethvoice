@@ -11,6 +11,48 @@ example.View = draw2d.Canvas.extend({
             canvas.addEventListener("DOMMouseScroll", this.MouseWheelHandler, false);
         }
         this.setScrollArea("#" + id);
+        this.getCommandStack().addEventListener({
+            stackChanged: function (change) {
+                var command = change.getCommand();
+                function markAgentPort(port) {
+                    if (!port) return;
+                    var label = port.getParent();
+                    var figure = label && label.getParent();
+                    if (!figure || figure.id.indexOf("satellite-agent-destination%") !== 0 ||
+                        label.id.indexOf("agent_fallback%") !== 0) return;
+                    var data = figure.getUserData();
+                    data.fallback_touched = true;
+                    figure.setUserData(data);
+                }
+                function markAgentFallback(connection) {
+                    if (connection) markAgentPort(connection.getSource());
+                }
+                var removingFigure =
+                    (command instanceof draw2d.command.CommandDelete &&
+                        (change.getDetails() === draw2d.command.CommandStack.PRE_EXECUTE ||
+                         change.getDetails() === draw2d.command.CommandStack.PRE_REDO)) ||
+                    (command instanceof draw2d.command.CommandAdd &&
+                        change.getDetails() === draw2d.command.CommandStack.PRE_UNDO);
+                if (removingFigure && command.figure instanceof Base) {
+                    command.figure.children.each(function (i, child) {
+                        var port = child.figure.getInputPort(0);
+                        if (port) port.getConnections().each(function (j, connection) {
+                            markAgentFallback(connection);
+                        });
+                    });
+                }
+                if (!change.isPostChangeEvent()) return;
+                markAgentFallback(command.connection || command.con ||
+                    (command.figure instanceof draw2d.Connection ? command.figure : null));
+                if (command instanceof draw2d.command.CommandReconnect) {
+                    markAgentPort(command.oldSourcePort);
+                    markAgentPort(command.newSourcePort);
+                }
+                if (command.connections) command.connections.each(function (i, connection) {
+                    markAgentFallback(connection);
+                });
+            }
+        });
     },
 
     // onClick: function(the, mouseX, mouseY, shiftKey, ctrlKey) {
@@ -182,6 +224,14 @@ example.View = draw2d.Canvas.extend({
                                 }
                             });
 
+                            if (event.dropped[0].id === "satellite-agent-destination") {
+                                // A selected Agent and its children may already be on this canvas.
+                                for (var existingId in jsonMarshal) {
+                                    if (app.view.getFigure(existingId) || app.view.getLine(existingId)) {
+                                        delete jsonMarshal[existingId];
+                                    }
+                                }
+                            }
                             var reader = new draw2d.io.json.Reader();
                             reader.unmarshal(app.view, jsonMarshal);
                             $('#loader').hide();
@@ -322,6 +372,8 @@ example.View = draw2d.Canvas.extend({
                                 $(pattern[n]).css("border", "1px solid rgb(255, 97, 97)");
                             }
                         }
+                        if (event.dropped[0].id === "satellite-agent-destination" &&
+                            !event.context.validateAgentForm()) return;
                         if (valid) {
                             $(".error-message").html("");
                             // check existing data
@@ -377,7 +429,30 @@ example.View = draw2d.Canvas.extend({
         }
     },
 
+    validateAgentForm: function () {
+        var flow = $("#satellite-agent-destination-flow");
+        var trunk = $("#satellite-agent-destination-trunk");
+        flow.val($.trim(flow.val()));
+        var validFlow = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(flow.val());
+        var valid = validFlow && /^[1-9][0-9]*$/.test(trunk.val() || "");
+        flow.toggleClass("error-input", !validFlow);
+        trunk.toggleClass("error-input", !/^[1-9][0-9]*$/.test(trunk.val() || ""));
+        if (!valid) {
+            $("#modalCreation .agent-form-error").text(languages[browserLang]["view_error_required_string"]);
+        }
+        return valid;
+    },
+
     checkData: function (elem, type, event) {
+        if (type === "satellite-agent-destination") {
+            var agentFigure = new Base();
+            if (agentFigure.onDrop(event.dropped, event.x, event.y, elem) === false) return;
+            event.context.getCommandStack().execute(new draw2d.command.CommandAdd(
+                event.context, agentFigure, event.x - agentFigure.width - 75, event.y - 25
+            ));
+            $("#modalCreation").dialog("destroy").remove();
+            return;
+        }
         var number = elem[0].value;
         if (type === "incoming") {
             var sufx = elem[1].value;
@@ -518,6 +593,9 @@ example.View = draw2d.Canvas.extend({
                 var v2 = userData.code;
                 return [v1, v2];
                 break;
+
+            case "satellite-agent-destination":
+                return [userData.cleverai_flow || "", userData.cleverai_trunk_id || ""];
 
             case "ext-meetme":
                 var v1 = userData.extension;
@@ -788,7 +866,7 @@ example.View = draw2d.Canvas.extend({
                     $("#modalCreation").html(html);
                     $('#selectExtQueue1').selectpicker();
                     $('#selectExtQueue2').selectpicker();
-                    
+
                     //select default
                     if (strategy) {
                         $('#qus-' + strategy).attr("selected", "selected");
@@ -1249,6 +1327,11 @@ example.View = draw2d.Canvas.extend({
                 });
                 break;
 
+            case "satellite-agent-destination":
+                var agentValues = values.slice();
+                setTimeout(function () { thisApp.showAgentForm(agentValues); }, 0);
+                break;
+
             case "ext-meetme":
                 html += '<form class="form-horizontal">';
                 html += '<div class="form-group">';
@@ -1270,9 +1353,131 @@ example.View = draw2d.Canvas.extend({
         return html;
     },
 
+    showAgentForm: function (values) {
+        var lang = languages[browserLang];
+        var html = '<form class="form-horizontal agent-form" onsubmit="return false;">' +
+            '<div class="form-group"><label class="col-sm-4 control-label label-creation">' + lang.view_agent_flow_string + '</label>' +
+            '<div class="col-sm-7"><input id="satellite-agent-destination-flow" usable class="form-control input-creation" maxlength="128" value="' + escapeHtml(values[0] || "") + '"></div></div>' +
+            '<div class="form-group"><label class="col-sm-4 control-label label-creation">' + lang.view_agent_trunk_string + '</label>' +
+            '<div class="col-sm-7 agent-trunk-select"><select id="satellite-agent-destination-trunk" usable class="form-control input-creation"></select>' +
+            '<button type="button" id="agent-add-trunk" class="btn btn-default addButtons" title="' + lang.view_agent_create_trunk_string + '"><i class="fa fa-plus"></i></button></div></div>' +
+            '<div class="form-group agent-trunk-help"><div class="col-sm-offset-4 col-sm-7"><p class="help-block">' + lang.view_agent_trunk_persist_string + '</p></div></div>' +
+            '<div class="agent-trunk-fields" style="display:none">' +
+            '<div class="form-group"><label class="col-sm-4 control-label label-creation">' + lang.view_name_string + '</label><div class="col-sm-7"><input id="agent-trunk-name" class="form-control input-creation" maxlength="100"></div></div>' +
+            '<div class="form-group"><label class="col-sm-4 control-label label-creation">' + lang.view_agent_provider_string + '</label><div class="col-sm-7"><select id="agent-trunk-provider" class="form-control input-creation"><option value="openai">OpenAI</option><option value="grok">Grok</option></select></div></div>' +
+            '<div class="agent-openai-fields"><div class="form-group"><label class="col-sm-4 control-label label-creation">' + lang.view_agent_project_string + '</label><div class="col-sm-7"><input id="agent-trunk-project" class="form-control input-creation" maxlength="128" placeholder="proj_..."></div></div></div>' +
+            '<div class="agent-grok-fields" style="display:none"><div class="form-group"><label class="col-sm-4 control-label label-creation">' + lang.view_agent_phone_string + '</label><div class="col-sm-7"><input id="agent-trunk-phone" type="tel" class="form-control input-creation" maxlength="32"></div></div>' +
+            '<div class="form-group"><label class="col-sm-4 control-label label-creation">' + lang.view_agent_sip_auth_string + '</label><div class="col-sm-7"><select id="agent-trunk-auth-mode" class="form-control input-creation"><option value="none">' + lang.view_agent_auth_none_string + '</option><option value="digest">Digest</option></select></div></div>' +
+            '<div class="agent-digest-fields" style="display:none"><div class="form-group"><label class="col-sm-4 control-label label-creation">' + lang.view_agent_sip_username_string + '</label><div class="col-sm-7"><input id="agent-trunk-username" class="form-control input-creation" maxlength="128" autocomplete="off"></div></div>' +
+            '<div class="form-group"><label class="col-sm-4 control-label label-creation">' + lang.view_agent_sip_password_string + '</label><div class="col-sm-7"><input id="agent-trunk-password" type="password" class="form-control input-creation" autocomplete="new-password"></div></div></div></div>' +
+            '<div class="form-group"><label class="col-sm-4 control-label label-creation">' + lang.view_agent_api_key_string + '</label><div class="col-sm-7"><input id="agent-trunk-api-key" type="password" class="form-control input-creation" autocomplete="new-password"><p class="help-block">' + lang.view_agent_api_key_help_string + '</p></div></div>' +
+            '<div class="form-group"><div class="col-sm-offset-4 col-sm-7"><button type="button" id="agent-save-trunk" class="btn btn-primary">' + lang.view_agent_save_trunk_string + '</button> ' +
+            '<button type="button" id="agent-cancel-trunk" class="btn btn-default">' + lang.view_agent_cancel_trunk_string + '</button></div></div></div>' +
+            '<p class="error-message agent-form-error"></p></form>';
+        $("#modalCreation").addClass("agent-dialog").html(html);
+        var form = $("#modalCreation");
+        function resizeDialog() {
+            form.dialog("option", "height", "auto");
+            form.css({ maxHeight: Math.max(200, $(window).height() - 160), overflowY: "auto", overflowX: "hidden" });
+            form.dialog("option", "position", "center");
+        }
+        function refreshFields() {
+            var grok = form.find("#agent-trunk-provider").val() === "grok";
+            form.find(".agent-openai-fields").toggle(!grok);
+            form.find(".agent-grok-fields").toggle(grok);
+            form.find(".agent-digest-fields").toggle(grok && form.find("#agent-trunk-auth-mode").val() === "digest");
+            resizeDialog();
+        }
+        function setNestedActive(active) {
+            form.find("#satellite-agent-destination-trunk").prop("disabled", active);
+            form.dialog("widget").find(".ui-dialog-buttonpane button").last().prop("disabled", active);
+        }
+        function openNested() {
+            setNestedActive(true);
+            form.find(".error-message").text("");
+            form.find(".agent-trunk-fields").show();
+            resizeDialog();
+            form.find("#agent-trunk-name").focus();
+        }
+        form.find("#agent-add-trunk").on("click", openNested);
+        form.find("#agent-cancel-trunk").on("click", function () {
+            form.find(".agent-trunk-fields").hide();
+            setNestedActive(false);
+            form.find("#agent-trunk-api-key, #agent-trunk-password").val("");
+            form.find(".agent-form-error").text("");
+            resizeDialog();
+        });
+        form.find("#agent-trunk-provider, #agent-trunk-auth-mode").on("change", refreshFields);
+        form.find("#agent-save-trunk").on("click", function () {
+            var provider = form.find("#agent-trunk-provider").val();
+            var mode = provider === "grok" ? form.find("#agent-trunk-auth-mode").val() : "none";
+            var trunk = {
+                name: $.trim(form.find("#agent-trunk-name").val()),
+                provider: provider,
+                openai_project_id: provider === "openai" ? $.trim(form.find("#agent-trunk-project").val()) : null,
+                grok_phone_number: provider === "grok" ? $.trim(form.find("#agent-trunk-phone").val()) : null,
+                api_key: form.find("#agent-trunk-api-key").val(),
+                sip_auth_mode: mode,
+                sip_auth_username: mode === "digest" ? $.trim(form.find("#agent-trunk-username").val()) : null,
+                sip_auth_password: mode === "digest" ? form.find("#agent-trunk-password").val() : null
+            };
+            if (!trunk.name || trunk.name.length > 100 || (provider === "openai" && !/^proj_[A-Za-z0-9_-]+$/.test(trunk.openai_project_id)) ||
+                (provider === "grok" && (!trunk.grok_phone_number || !trunk.api_key)) ||
+                (mode === "digest" && (!trunk.sip_auth_username || !trunk.sip_auth_password))) {
+                form.find(".agent-form-error").text(lang.view_error_required_string);
+                return;
+            }
+            var button = form.find("#agent-save-trunk").prop("disabled", true);
+            form.find("#agent-cancel-trunk").prop("disabled", true);
+            $.ajax({
+                url: "./plugins.php",
+                type: "POST",
+                contentType: "application/json",
+                dataType: "json",
+                headers: { "X-Satellite-Agent-CSRF": window.visualplanAgentCsrfToken },
+                data: JSON.stringify({ type: "agent-trunk", rest: "set", trunk: trunk })
+            }).done(function (response) {
+                if (!$.contains(document, form[0])) return;
+                var data = response;
+                if (!data.success || !data.trunk || !data.trunk.id) {
+                    form.find(".agent-form-error").text(data.error || lang.view_agent_trunk_error_string);
+                    return;
+                }
+                form.find("#satellite-agent-destination-trunk").append($("<option>").val(data.trunk.id).text(data.trunk.name + " (" + data.trunk.provider + ")")).val(String(data.trunk.id));
+                form.find("#agent-trunk-api-key, #agent-trunk-password").val("");
+                form.find(".agent-trunk-fields").hide();
+                setNestedActive(false);
+                form.find(".agent-form-error").text("");
+                resizeDialog();
+            }).fail(function (xhr) {
+                var data = xhr.responseJSON;
+                form.find(".agent-form-error").text(data && data.error ? data.error : lang.view_agent_trunk_error_string);
+            }).always(function () {
+                button.prop("disabled", false);
+                form.find("#agent-cancel-trunk").prop("disabled", false);
+            });
+        });
+        resizeDialog();
+        $.ajax({ url: "./visualize.php?readData=agent-trunks", dataType: "json" }).done(function (data) {
+            if (!$.contains(document, form[0])) return;
+            var select = form.find("#satellite-agent-destination-trunk");
+            $.each(data || {}, function (id, trunk) {
+                if (trunk && trunk.id) {
+                    select.append($("<option>").val(trunk.id).text(trunk.name + " (" + trunk.provider + ")"));
+                }
+            });
+            if (values[1]) select.val(String(values[1]));
+            if (!select.children().length) openNested();
+        }).fail(function () {
+            form.find(".agent-form-error").text(lang.view_agent_trunks_load_error_string);
+        });
+    },
+
     getDestination: function (destination) {
         var values, dests, dest, id, idlong, ids = null;
-        if (destination.match(/ivr-*/)) {
+        if (/^satellite-agent-destination-[1-9][0-9]*,s,1$/.test(destination)) {
+            return ["satellite-agent-destination", destination.split("-").pop().split(",")[0]];
+        } else if (destination.match(/ivr-*/)) {
             values = destination.split(",");
             dests = values[0].split("-");
             dest = dests[0];
@@ -1364,7 +1569,7 @@ function getHtmlRecordings(elemId, voices) {
     html += '<div id="addRecordingSection" class="simplehide">';
     html += '<hr class="hr-form"><br>';
     html += '<h4 id="' + elemId + '-titleString" class="label-creation label-title"><b>' + languages[browserLang]["view_newrecording_string"] + '</b></h4>';
-    html += '<div class="rowSectionAnn">';   
+    html += '<div class="rowSectionAnn">';
     html += '<form class="form-horizontal" enctype="multipart/form-data" id="form1" method="post">';
     html += '<div class="form-group">';
     html += '<label for="fileupload" class="col-sm-4 control-label label-creation">' + languages[browserLang]["view_upload_recording_string"] + ': </label>';

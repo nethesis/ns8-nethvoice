@@ -6,6 +6,12 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
     header("location: /freepbx/wizard");
     exit(1);
 }
+$visualplanAgentCsrfToken = null;
+try {
+    $visualplanAgentCsrfToken = FreePBX::Satellite()->agentCsrfToken();
+} catch (Throwable $e) {
+    // Satellite is optional: keep the rest of VisualPlan available.
+}
 ?>
 
 <html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -27,6 +33,7 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
 	<!-- languages -->
 	<script type="text/javascript">
 		var languages = {};
+		window.visualplanAgentCsrfToken = <?php echo json_encode($visualplanAgentCsrfToken); ?>;
 	</script>
 	<script src="i18n/en.js"></script>
 	<script src="i18n/it.js"></script>
@@ -112,6 +119,7 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
 			$('#app-announcement').text(languages[browserLang]["base_app_announcement_string"]);
 			$('#timeconditions').text(languages[browserLang]["base_timeconditions_string"]);
 			$('#app-daynight').text(languages[browserLang]["base_app_daynight_string"]);
+			$('#satellite-agent-destination').text(languages[browserLang]["base_agent_string"]);
 
 			$('#from-did-direct').text(languages[browserLang]["base_from_did_direct_string"]);
 			$('#ext-local').text(languages[browserLang]["base_ext_local_string"]);
@@ -224,6 +232,10 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
 			</div>
 			<div data-shape="Base" id="app-daynight" class="palette_node_element draw2d_droppable" title="drag&amp;drop the table into the canvas..">
 			</div>
+			<?php if ($visualplanAgentCsrfToken !== null): ?>
+			<div data-shape="Base" id="satellite-agent-destination" class="palette_node_element draw2d_droppable" title="drag&amp;drop the table into the canvas..">
+			</div>
+			<?php endif; ?>
 			<!-- -->
 			<!-- Cerchio -->
 			<div data-shape="Base" data-radius="20" id="from-did-direct" class="palette_node_element draw2d_droppable endWidget" title="drag&amp;drop the table into the canvas..">
