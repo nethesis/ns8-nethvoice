@@ -1135,5 +1135,8 @@
   "Proxy URL": "URL Proxy",
   "Configurare porta 5060": "Configurare porta 5060",
   "Configurare porta": "Configurare porta",
-  "Configure port": "Configurare porta"
+  "Configure port": "Configurare porta",
+  "if empty: first name + last name": "se vuoto: nome + cognome",
+  "CSV separator must be a comma": "Il separatore del CSV deve essere la virgola",
+  "Mapping must include the 'name' or 'firstname'/'lastname' destination": "La mappatura deve includere la colonna di destinazione 'name' oppure 'firstname'/'lastname'"
 }

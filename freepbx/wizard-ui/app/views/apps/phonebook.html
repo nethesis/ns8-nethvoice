@@ -40,6 +40,7 @@
       </button>
       <span class="pficon pficon-error-circle-o"></span>
       <strong>{{'Source not saved' | translate}}.</strong> {{'Source saving error' | translate}}
+      <span ng-if="importResult.status">{{importResult.status | translate}}</span>
     </div>
     <div ng-if="!(allSourcesList | isEmpty)" class="row row-cards-pf adjust-card">
       <div ng-repeat="g in allSourcesList | orderBy:'type' track by g._sourceKey" ng-init="kg = g._sourceKey" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
@@ -366,64 +367,64 @@
                                       <td>{{"Notes"| translate}}</td>
                                     </tr>
                                     <tr id="columnModalColored">
-                                      <td>name</td>
-                                      <td>{{"Name and surname"| translate}}</td>
-                                    </tr>
-                                    <tr>
                                       <td>homestreet</td>
                                       <td>{{"Home address"| translate}}</td>
                                     </tr>
-                                    <tr id="columnModalColored">
+                                    <tr>
                                       <td>homepob</td>
                                       <td>{{"Home post box"| translate}}</td>
                                     </tr>
-                                    <tr>
+                                    <tr id="columnModalColored">
                                       <td>homecity</td>
                                       <td>{{"City of domicile"| translate}}</td>
                                     </tr>
-                                    <tr id="columnModalColored"> 
+                                    <tr> 
                                       <td>homeprovince </td>
                                       <td>{{"Province of domicile"| translate}}</td>
                                     </tr>
-                                    <tr>
+                                    <tr id="columnModalColored">
                                       <td>homepostalcode</td>
                                       <td>{{"Postal code domicile"| translate}}</td>
                                     </tr>
-                                    <tr id="columnModalColored">
+                                    <tr>
                                       <td>homecountry</td>
                                       <td>{{"State / region of domicile"| translate}}</td>
                                     </tr>
-                                    <tr>
+                                    <tr id="columnModalColored">
                                       <td>workstreet</td>
                                       <td>{{"Business address"| translate}}</td>
                                     </tr>
-                                    <tr id="columnModalColored">
+                                    <tr>
                                       <td>workpob</td>
                                       <td>{{"Post box work"| translate}}</td>
                                     </tr>
-                                    <tr>
+                                    <tr id="columnModalColored">
                                       <td>workcity</td>
                                       <td>{{"Working city"| translate}}</td>
                                     </tr>
-                                    <tr id="columnModalColored">
+                                    <tr>
                                       <td>workprovince</td>
                                       <td>{{"Work province"| translate}}</td>
                                     </tr>
-                                    <tr>
+                                    <tr id="columnModalColored">
                                       <td>workpostalcode</td>
                                       <td>{{"Business postal code"| translate}}</td>
                                     </tr>
-                                    <tr id="columnModalColored">
+                                    <tr>
                                       <td>workcountry</td>
                                       <td>{{"State / region of employment"| translate}}</td>
                                     </tr>
-                                    <tr>
+                                    <tr id="columnModalColored">
                                       <td>firstname</td>
                                       <td>{{"First name"| translate}}</td>
                                     </tr>
-                                    <tr id="columnModalColored">
+                                    <tr>
                                       <td>lastname</td>
                                       <td>{{"Last name"| translate}}</td>
+                                    </tr>
+                                    <tr id="columnModalColored">
+                                      <td>name</td>
+                                      <td>{{"Name and surname"| translate}}<span ng-if="newSource.dbtype === 'csv_cti'"> ({{"if empty: first name + last name"| translate}})</span></td>
                                     </tr>
                                     <tr>
                                       <td>job</td>
@@ -645,6 +646,7 @@
                                   <div ng-show="newSource.isChecking" class="spinner spinner-sm inline-display language-name check-connection"></div>
                                   <span ng-show="!newSource.isChecking && newSource.checked && newSource.verified" class="pficon pficon-ok check-status"></span>
                                   <span ng-show="!newSource.isChecking && newSource.checked && !newSource.verified" class="pficon pficon-error-circle-o check-status"></span>
+                                  <span ng-if="!newSource.isChecking && newSource.checked && !newSource.verified && newSource.checkError" class="help-block">{{newSource.checkError | translate}}</span>
                                 </div>
                               </div>
                               <div class="form-group">
