@@ -168,6 +168,7 @@ class AgentTrunkProvisioner
             if (isset($agentTrunk['sip_auth_mode']) && $agentTrunk['sip_auth_mode'] !== 'none') {
                 throw new \InvalidArgumentException('OpenAI SIP authentication must be none');
             }
+            $settings['media_encryption'] = 'no';
             $projectId = isset($agentTrunk['openai_project_id']) ? $agentTrunk['openai_project_id'] : '';
             if (!is_string($projectId) || strlen($projectId) > 128 || !preg_match('/^proj_[A-Za-z0-9_-]+$/D', $projectId)) {
                 throw new \InvalidArgumentException('Invalid OpenAI project ID');
