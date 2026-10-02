@@ -4,19 +4,9 @@ $escape = function ($value) {
 };
 $trunks = isset($trunks) && is_array($trunks) ? $trunks : array();
 $webhook = isset($webhook) ? trim((string) $webhook) : '';
-$errors = isset($error) && $error !== '' ? (array) $error : array();
-$csrfField = isset($csrfToken) && is_scalar($csrfToken) && (string) $csrfToken !== ''
-    ? '<input type="hidden" name="csrf_token" value="' . $escape($csrfToken) . '">'
-    : '';
 ?>
 <div class="container-fluid">
     <h2><?php echo $escape(_('Webhooks')); ?></h2>
-    <?php foreach ($errors as $message): ?>
-        <div class="alert alert-danger" role="alert"><?php echo $escape($message); ?></div>
-    <?php endforeach; ?>
-    <?php if (!empty($notice)): ?>
-        <div class="alert alert-success" role="status"><?php echo $escape($notice); ?></div>
-    <?php endif; ?>
     <div class="panel panel-default">
         <div class="panel-heading"><?php echo $escape(_('CleverAI webhook')); ?></div>
         <div class="panel-body">
@@ -40,16 +30,7 @@ $csrfField = isset($csrfToken) && is_scalar($csrfToken) && (string) $csrfToken !
                 <td><?php echo $escape($type === 'openai' ? 'OpenAI' : ($type === 'grok' ? 'Grok' : $type)); ?></td>
                 <td><?php echo $webhook === '' ? $escape(_('Not configured')) : '<code>' . $escape($webhook) . '</code>'; ?></td>
                 <td><?php echo $escape(_('CleverAI')); ?></td>
-                <td>
-                    <?php if (!empty($remoteValidationAvailable)): ?>
-                        <form action="config.php?display=satellite_webhooks" method="post">
-                            <input type="hidden" name="action" value="validate"><input type="hidden" name="id" value="<?php echo isset($trunk['id']) ? (int) $trunk['id'] : 0; ?>"><?php echo $csrfField; ?>
-                            <button class="btn btn-default btn-sm" type="submit"><?php echo $escape(_('Validate remote webhook')); ?></button>
-                        </form>
-                    <?php else: ?>
-                        <?php echo $escape(_('Remote validation unavailable')); ?>
-                    <?php endif; ?>
-                </td>
+                <td><?php echo $escape(_('Remote validation unavailable')); ?></td>
             </tr>
         <?php endforeach; ?>
         <?php if (!$trunks): ?><tr><td colspan="5"><?php echo $escape(_('No Agent Trunks configured.')); ?></td></tr><?php endif; ?>

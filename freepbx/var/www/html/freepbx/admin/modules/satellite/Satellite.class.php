@@ -97,21 +97,24 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
             return;
         }
+        if ($page !== 'satellite_agents') {
+            return;
+        }
         try {
-            switch ($page) {
-                case 'satellite_agent_trunks':
-                    $this->handleAgentTrunkRequest();
-                    break;
-                case 'satellite_agents':
-                    if (isset($_POST['section']) && $_POST['section'] === 'trunks') {
-                        $this->handleAgentTrunkRequest();
-                    } else {
-                        $this->handleAgentDestinationRequest();
-                    }
-                    break;
+            if (!hash_equals($this->agentCsrfToken(), isset($_POST['csrf_token']) && is_string($_POST['csrf_token']) ? $_POST['csrf_token'] : '')) {
+                throw new \RuntimeException('Invalid or missing security token, reload the page and retry');
             }
+            if (isset($_POST['section']) && $_POST['section'] === 'trunks') {
+                $this->handleAgentTrunkRequest();
+            } else {
+                $this->handleAgentDestinationRequest();
+            }
+            $this->redirectAfterAgentPost();
         } catch (\Throwable $error) {
-            $this->agentPageError = $error->getMessage();
+            // Do not leak SQL details to the page.
+            $this->agentPageError = $error instanceof \PDOException
+                ? _('Database error, the change was not saved')
+                : $error->getMessage();
             if (isset($_POST['action']) && $_POST['action'] === 'save') {
                 $this->agentSubmittedForm = $_POST;
                 unset($this->agentSubmittedForm['api_key'], $this->agentSubmittedForm['sip_auth_password']);
@@ -121,7 +124,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
 
     public function getActionBar($request) {
         $display = isset($request['display']) ? $request['display'] : '';
-        if (!in_array($display, array('satellite_agents', 'satellite_agent_trunks'), true) ||
+        if (!$display === 'satellite_agents' ||
             ((isset($_GET['view']) ? $_GET['view'] : '') !== 'form' && $this->agentSubmittedForm === null)) {
             return array();
         }
@@ -129,6 +132,45 @@ class Satellite extends \FreePBX_Helpers implements \BMO
             'reset' => array('name' => 'reset', 'id' => 'reset', 'value' => _('Reset')),
             'submit' => array('name' => 'submit', 'id' => 'submit', 'value' => _('Submit')),
         );
+    }
+
+    private function agentCsrfToken() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (empty($_SESSION['satellite_agent_csrf']) || !is_string($_SESSION['satellite_agent_csrf'])) {
+            $_SESSION['satellite_agent_csrf'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['satellite_agent_csrf'];
+    }
+
+    /** Post/Redirect/Get so a reload does not replay the action. */
+    private function redirectAfterAgentPost() {
+        if ($this->agentPageNotice === '' || headers_sent()) {
+            return;
+        }
+        $_SESSION['satellite_agent_notice'] = $this->agentPageNotice;
+        $tab = isset($_POST['section']) && $_POST['section'] === 'trunks' ? 'trunks' : 'destinations';
+        header('Location: config.php?display=satellite_agents&tab=' . $tab);
+        exit;
+    }
+
+    /** True when following fallbacks from $fallback leads back to destination $id. */
+    private function fallbackReaches($id, $fallback) {
+        $seen = array();
+        while (is_string($fallback) && preg_match('/^satellite-agent-destination-([0-9]+),s,1$/D', $fallback, $match)) {
+            $next = (int) $match[1];
+            if ($next === (int) $id) {
+                return true;
+            }
+            if (isset($seen[$next])) {
+                return false;
+            }
+            $seen[$next] = true;
+            $row = $this->agentDestinations->getById($next);
+            $fallback = $row ? $row['fallback_destination'] : null;
+        }
+        return false;
     }
 
     private function agentRequestId() {
@@ -266,8 +308,8 @@ class Satellite extends \FreePBX_Helpers implements \BMO
             if ($id === null) {
                 $id = $this->agentDestinations->create($input);
             } else {
-                if ($input['fallback_destination'] === satellite_agent_destination_key($id)) {
-                    throw new \InvalidArgumentException('A destination cannot fall back to itself');
+                if ($this->fallbackReaches($id, $input['fallback_destination'])) {
+                    throw new \InvalidArgumentException('A destination cannot fall back to itself, directly or through other destinations');
                 }
                 $this->agentDestinations->update($id, $input);
             }
@@ -288,15 +330,16 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         }
     }
 
-    public function showAgentTrunksPage() {
-        return $this->showAgentsPage('trunks');
-    }
-
     public function showAgentsPage($defaultTab = 'destinations') {
         $trunks = $this->getAgentTrunks();
         $destinations = $this->getAgentDestinations();
         $error = $this->agentPageError;
         $notice = $this->agentPageNotice;
+        $csrfToken = $this->agentCsrfToken();
+        if (isset($_SESSION['satellite_agent_notice'])) {
+            $notice = (string) $_SESSION['satellite_agent_notice'];
+            unset($_SESSION['satellite_agent_notice']);
+        }
         $tab = isset($_POST['section']) ? $_POST['section'] : (isset($_GET['tab']) ? $_GET['tab'] : $defaultTab);
         if (!in_array($tab, array('destinations', 'trunks'), true)) {
             $tab = $defaultTab;
@@ -315,9 +358,11 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         $destinationsContent = load_view(__DIR__ . '/views/agent/agents.php', array(
             'trunks' => $trunks, 'destinations' => $destinations,
             'form' => $destinationForm, 'showForm' => $showForm && $tab === 'destinations',
+            'csrfToken' => $csrfToken,
         ));
         $trunksContent = load_view(__DIR__ . '/views/agent/trunks.php', array(
             'trunks' => $trunks, 'form' => $trunkForm, 'showForm' => $showForm && $tab === 'trunks',
+            'csrfToken' => $csrfToken,
         ));
         return load_view(__DIR__ . '/views/agent/index.php', compact(
             'tab', 'formMode', 'error', 'notice', 'destinationsContent', 'trunksContent'

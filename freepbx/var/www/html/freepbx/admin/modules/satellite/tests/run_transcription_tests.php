@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 
-$testFiles = glob(__DIR__ . '/*_test.php');
+$testFiles = array_merge(glob(__DIR__ . '/*_test.php'), glob(__DIR__ . '/agent/*_test.php'));
 sort($testFiles);
 
 $passed = 0;

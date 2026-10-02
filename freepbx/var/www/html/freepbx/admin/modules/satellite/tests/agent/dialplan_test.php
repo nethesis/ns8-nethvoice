@@ -28,7 +28,20 @@ class AgentDialplanSatellite
     public $destinations = array();
     public $trunks = array();
     public function getAgentDestinations() { return $this->destinations; }
-    public function getAgentTrunk($id) { return isset($this->trunks[$id]) ? $this->trunks[$id] : null; }
+    public $changed = array();
+    public function changeAgentFallbackDestination($old, $new)
+    {
+        $this->changed = array($old, $new);
+        return 1;
+    }
+    public function getAgentTrunks()
+    {
+        $rows = array();
+        foreach ($this->trunks as $id => $trunk) {
+            $rows[] = array_merge(array('id' => $id), $trunk);
+        }
+        return $rows;
+    }
 }
 
 class FreePBX
@@ -121,7 +134,12 @@ FreePBX::$satellite->destinations[0]['fallback_destination'] = 'queueexit-3,${EX
 $ext = new AgentDialplanCollector();
 satellite_get_config_late('asterisk');
 agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-1'],
-    'ext_goto', array('1', '${EXTEN}', 'queueexit-3')),
-    'Native FreePBX dynamic fallback missing');
+    'ext_goto', array('1', '${AGENT_ORIGINAL_DID}', 'queueexit-3')),
+    'Dynamic fallback must use the original DID');
+
+agent_dialplan_assert(satellite_change_destination("'ext-local,203,1'", "'ext-local,204,1'") === 1
+    && FreePBX::$satellite->changed === array('ext-local,203,1', 'ext-local,204,1'),
+    'PDO-quoted destinations must be unquoted and the count returned');
+agent_dialplan_assert(satellite_change_destination('', 'x') === 0, 'Empty old destination must be ignored');
 
 echo "Agent dialplan tests passed\n";

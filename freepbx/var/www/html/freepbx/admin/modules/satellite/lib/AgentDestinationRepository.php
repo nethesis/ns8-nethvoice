@@ -50,11 +50,6 @@ class AgentDestinationRepository
         }
     }
 
-    public function insertDestination(array $input)
-    {
-        return $this->create($input);
-    }
-
     /** Only the generated name for this ID can be set. */
     public function setFreePBXName($id, $name)
     {

@@ -28,7 +28,20 @@ class AgentTrunkProvisioner
             throw new \RuntimeException('Managed trunk already exists: ' . $name);
         }
 
-        return $this->addTrunk($name, $this->baseSettings($name, $agentTrunk), $settings);
+        try {
+            return $this->addTrunk($name, $this->baseSettings($name, $agentTrunk), $settings);
+        } catch (\Throwable $error) {
+            // Core::addTrunk can fail after writing part of the trunk.
+            try {
+                $partial = $this->findTrunkByName($name);
+                if ($partial !== null && isset($partial['trunkid'])) {
+                    $this->core->deleteTrunk((int) $partial['trunkid'], 'pjsip', true);
+                }
+            } catch (\Throwable $cleanupError) {
+                // Report the original failure.
+            }
+            throw $error;
+        }
     }
 
     /** Replace an existing managed trunk while retaining its FreePBX trunk ID. */
@@ -91,6 +104,10 @@ class AgentTrunkProvisioner
     public function deleteManagedTrunk(array $agentTrunk)
     {
         $name = $this->trunkName($agentTrunk);
+        if (empty($agentTrunk['freepbx_trunk_id']) || $this->findTrunkByName($name) === null) {
+            // The FreePBX trunk is already gone; only the Agent row remains.
+            return true;
+        }
         $trunkId = $this->ownedTrunkId($agentTrunk, $name);
         if ($this->core->deleteTrunk($trunkId, 'pjsip') !== true) {
             throw new \RuntimeException('Could not delete managed trunk ' . $name);
