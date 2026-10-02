@@ -367,7 +367,7 @@ cat > $FILE <<EOF
 var customConfig = {
   BRAND_NAME: '${BRAND_NAME:=NethVoice}',
   BRAND_SITE: '${BRAND_SITE:=https://www.nethesis.it/soluzioni/nethvoice}',
-  BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethserver.org/projects/ns8/en/latest/nethvoice.html}',
+  BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethvoice.com/it/}',
   BASE_API_URL: '/freepbx/rest',
   BASE_API_URL_CTI: '/webrest',
   VPLAN_URL: '/freepbx/visualplan',

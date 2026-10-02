@@ -81,7 +81,7 @@ agent.unset_env('NETHVOICE_USER_PORTAL_PASSWORD')
 
 # Set the brand site and docs static URLs
 agent.set_env('BRAND_SITE', 'https://www.nethesis.it/soluzioni/nethvoice')
-agent.set_env('BRAND_DOCS', 'https://docs.nethserver.org/projects/ns8/it/latest/nethvoice.html')
+agent.set_env('BRAND_DOCS', 'https://docs.nethvoice.com/it/')
 
 if os.getenv('NETHCTI_UI_PRODUCT_NAME') is None:
     agent.set_env('NETHCTI_UI_PRODUCT_NAME', os.getenv('BRAND_NAME', 'NethVoice CTI'))
@@ -118,7 +118,7 @@ if os.getenv('REPORTS_UI_BRAND_NAME') is None:
 if os.getenv('REPORTS_UI_COMPANY_NAME') is None:
     agent.set_env('REPORTS_UI_COMPANY_NAME', 'Nethesis')
 if os.getenv('REPORTS_UI_HELP_URL') is None:
-    agent.set_env('REPORTS_UI_HELP_URL', 'https://docs.nethserver.org/projects/ns8/en/latest/nethvoice.html')
+    agent.set_env('REPORTS_UI_HELP_URL', 'https://docs.nethvoice.com/it/')
 if os.getenv('REPORTS_UI_LOGIN_LOGO_URL') is None:
     agent.set_env('REPORTS_UI_LOGIN_LOGO_URL', '')
 if os.getenv('REPORTS_UI_FAVICON_URL') is None:
