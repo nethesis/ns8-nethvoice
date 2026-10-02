@@ -80,7 +80,6 @@ ExecStart=runagent /usr/bin/podman run \
     --env=USER_DOMAIN \
     --env=SATELLITE* \
     --env=CLEVERAI_WEBHOOK \
-    --env=OPENAI_API_KEY \
     --env=SMTP_FROM_ADDRESS \
     --env-file=%E/state/smarthost.env \
     --network=host \
