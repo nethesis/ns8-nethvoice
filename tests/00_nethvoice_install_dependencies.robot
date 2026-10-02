@@ -4,7 +4,7 @@ Resource   ./api.resource
 
 *** Variables ***
 # Deploy PR #222 before any NethVoice candidate. Override when the fix is released.
-${PROXY_IMAGE_URL}    ghcr.io/nethesis/nethvoice-proxy:pr-222.139-1.96763ce
+${PROXY_IMAGE_URL}    ghcr.io/nethesis/nethvoice-proxy:pr-222.141-1.a36761f
 
 *** Test Cases ***
 Setup internal user provider
