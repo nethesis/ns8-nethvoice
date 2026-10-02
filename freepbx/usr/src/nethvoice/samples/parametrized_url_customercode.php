@@ -48,7 +48,7 @@ $final_url = 'https://www.example.com/customer.php?id=$CUSTOMER_CODE';
 
 // Replace input variables in API URL
 foreach (['CALLER_NUMBER', 'CALLER_NAME', 'CALLED', 'UNIQUEID'] as $key) {
-	$value = (isset($_GET[$key])) ? $_GET[$key] : '';
+	$value = (isset($_GET[$key])) ? rawurlencode($_GET[$key]) : '';
 	$customercode_api_url = str_replace('$'.$key,$value,$customercode_api_url);
 	$final_url= str_replace('$'.$key,$value,$final_url);
 }
@@ -75,6 +75,13 @@ $final_url= str_replace('$CUSTOMER_CODE',$customer_code,$final_url);
 
 // Sanitize URL to prevent HTTP header injection
 $final_url = str_replace(["\r", "\n"], '', $final_url);
+
+// Only allow http/https redirects
+$scheme = parse_url($final_url, PHP_URL_SCHEME);
+if ($scheme !== 'http' && $scheme !== 'https') {
+	http_response_code(400);
+	exit('Invalid redirect target');
+}
 
 // Redirect to the final_url
 header("Location: $final_url");

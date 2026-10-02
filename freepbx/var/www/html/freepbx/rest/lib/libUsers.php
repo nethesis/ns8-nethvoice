@@ -23,31 +23,40 @@
 require_once('/etc/freepbx.conf');
 
 function getUserPortalUrl() {
-    $host = $_ENV['NETHVOICE_HOST'];
+    $providerUrl = $_ENV['NETHVOICE_USER_PORTAL_URL'] ?? '';
+    if (empty($providerUrl)) {
+        return '';
+    }
+    return rtrim($providerUrl, '/') . '/api';
+}
 
-    # get domain
-    $provider_domain = strtolower($_ENV['NETHVOICE_LDAP_BASE']);
-
-    # parse domain
-    $dcs = explode("dc=", $provider_domain);
-    array_shift($dcs);
-    $domain_raw = implode(".", $dcs);
-    $domain = str_replace(',', '', $domain_raw);
-
-    return 'https://'. $host .'/users-admin/' . $domain . '/api';
+function setUserPortalCurlDefaults($ch, $headers = array()) {
+    if (!empty($headers)) {
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    }
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
 }
 
 function getToken() {
+    $providerUrl = getUserPortalUrl();
+    $username = $_ENV['REDIS_USER'] ?? '';
+    $password = $_ENV['REDIS_PASSWORD'] ?? '';
+    if (empty($providerUrl) || empty($username) || empty($password)) {
+        error_log(__FILE__.':'.__LINE__.' users-admin provider or credentials unavailable');
+        return '';
+    }
+
     $post = [
-        "username" => $_ENV['NETHVOICE_USER_PORTAL_USERNAME'],
-        "password" => $_ENV['NETHVOICE_USER_PORTAL_PASSWORD'],
+        "username" => $username,
+        "password" => $password,
+        "auth_backend" => "api-server",
     ];
 
-    $ch = curl_init(getUserPortalUrl() . '/login');
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $ch = curl_init($providerUrl . '/login');
+    setUserPortalCurlDefaults($ch, ['Content-Type: application/json']);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($post));
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
     // execute!
     $response = curl_exec($ch);
@@ -58,6 +67,11 @@ function getToken() {
 
     // close the connection, release resources used
     curl_close($ch);
+
+    if (!is_object($resJSON) || empty($resJSON->token)) {
+        error_log(__FILE__.':'.__LINE__.' users-admin login failed');
+        return '';
+    }
 
     // return token
     return $resJSON->token;
@@ -71,17 +85,22 @@ function getUser($username) {
     return $username;
 }
 
-function userExists($username) {
+function userExists($username, $token = null) {
+    $providerUrl = getUserPortalUrl();
+    if ($token === null) {
+        $token = getToken();
+    }
+    if (empty($providerUrl) || empty($token)) {
+        return false;
+    }
+
     $header = array();
     $header[] = 'Content-type: application/json';
-    $header[] = 'Authorization: Bearer '. getToken();
+    $header[] = 'Authorization: Bearer '. $token;
 
-    $ch = curl_init(getUserPortalUrl() . '/list-users');
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $ch = curl_init($providerUrl . '/list-users');
+    setUserPortalCurlDefaults($ch, $header);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array()));
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
     // execute!
     $response = curl_exec($ch);
@@ -92,6 +111,11 @@ function userExists($username) {
 
     // close the connection, release resources used
     curl_close($ch);
+
+    if (!is_object($resJson) || !isset($resJson->users)) {
+        error_log(__FILE__.':'.__LINE__.' users-admin list failed');
+        return false;
+    }
 
     foreach ($resJson->users as $user => $props) {
         if ($props->user == $username) {
@@ -181,7 +205,7 @@ function getUserID($username) {
 
 function getAllUsers() {
     global $astman;
-    $blacklist = ['admin', 'administrator', 'guest', 'krbtgt','ldapservice', $_ENV['NETHVOICE_USER_PORTAL_USERNAME']];
+    $blacklist = ['admin', 'administrator', 'guest', 'krbtgt','ldapservice'];
     $users = FreePBX::create()->Userman->getAllUsers();
     $dbh = FreePBX::Database();
     $i = 0;

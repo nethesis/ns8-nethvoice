@@ -9,8 +9,8 @@ After=freepbx.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-EnvironmentFile=%S/state/environment
-WorkingDirectory=%S/state
+EnvironmentFile=%E/state/environment
+WorkingDirectory=%E/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/tancredi.pid %t/tancredi.ctr-id
 ExecStart=/usr/bin/podman run \
@@ -23,7 +23,7 @@ ExecStart=/usr/bin/podman run \
     --volume=tancredi:/var/lib/tancredi:z \
     --volume=astdb:/var/lib/asterisk/db:z \
     --volume=/dev/log:/dev/log \
-    --env-file=%S/state/passwords.env \
+    --env-file=%E/state/passwords.env \
     --env=TANCREDIPORT \
     --env=AMPDBUSER \
     --env=NETHVOICE_MARIADB_PORT \

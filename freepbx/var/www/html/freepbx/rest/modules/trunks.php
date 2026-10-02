@@ -304,7 +304,7 @@ $app->post('/trunks', function (Request $request, Response $response, $args) {
             if ($data['keyword'] !== "codecs") {
                 continue;
             } else {
-                $default_codecs = $data['keyword'];
+                $default_codecs = $data['data'];
                 unset($pjsip_data[$index]);
             }
         }

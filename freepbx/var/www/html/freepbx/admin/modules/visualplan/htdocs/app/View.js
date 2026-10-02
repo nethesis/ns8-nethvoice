@@ -414,8 +414,11 @@ example.View = draw2d.Canvas.extend({
             }
             if (missing) {
                 var typeFig = $(event.dropped).data("shape") || event.shape;
-                var figure = eval("new " + typeFig + "();");
-                figure.onDrop(event.dropped, event.x, event.y, elem);
+                var figureClasses = { "Base": Base };
+                var FigureCtor = figureClasses[typeFig];
+                if (!FigureCtor) { return; }
+                var figure = new FigureCtor();
+                if (figure.onDrop(event.dropped, event.x, event.y, elem) === false) { return; }
                 var command = new draw2d.command.CommandAdd(event.context, figure, event.x - figure.width - 75, event.y - 25);
                 event.context.getCommandStack().execute(command);
 
@@ -1335,8 +1338,11 @@ example.View = draw2d.Canvas.extend({
                 this.createList("select", "", data);
             } else {
                 var type = $(droppedDomNode[0]).data("shape");
-                var figure = eval("new " + type + "();");
-                figure.onDrop(droppedDomNode, x, y, []);
+                var figureClasses = { "Base": Base };
+                var FigureCtor = figureClasses[type];
+                if (!FigureCtor) { return; }
+                var figure = new FigureCtor();
+                if (figure.onDrop(droppedDomNode, x, y, []) === false) { return; }
 
                 var command = new draw2d.command.CommandAdd(this, figure, x - figure.width - 75, y - 25);
                 this.getCommandStack().execute(command);
@@ -1532,17 +1538,18 @@ var onSuccess = function (s) {
 }
 
 function startRecording() {
-    if (navigator.getUserMedia) {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         $('#newRecordingNameSection2').hide();
-        navigator.getUserMedia({
+        navigator.mediaDevices.getUserMedia({
             audio: true
-        }, onSuccess, onFail);
+        }).then(onSuccess).catch(onFail);
     } else {
-        console.log('navigator.getUserMedia not present');
+        console.log('navigator.mediaDevices.getUserMedia not present');
     }
 }
 
 function stopRecording() {
+    if (!recorder) { return; }
     recorder.stop();
     $('#startRecordingBtn').removeClass('blink');
     window.streamReference.getAudioTracks().forEach(function(track) {

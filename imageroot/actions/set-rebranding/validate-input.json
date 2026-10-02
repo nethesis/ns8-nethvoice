@@ -17,6 +17,8 @@
             "rebranding_wizard_login_logo_url": "https://upload.example.org/images/wizard-logo.svg",
             "rebranding_wizard_favicon_url": "https://upload.example.org/images/wizard-favicon.svg",
             "rebranding_wizard_login_background_url": "https://upload.example.org/images/wizard-background.svg",
+            "rebranding_freepbx_admin_logo_url": "https://upload.example.org/images/freepbx-admin-logo.svg",
+            "rebranding_freepbx_admin_favicon_url": "https://upload.example.org/images/freepbx-admin-favicon.svg",
             "rebranding_reports_brand_name": "NethVoice",
             "rebranding_reports_login_logo_url": "https://upload.example.org/images/reports-logo.svg",
             "rebranding_reports_favicon_url": "https://upload.example.org/images/reports-favicon.svg",
@@ -83,6 +85,14 @@
         },
         "rebranding_wizard_login_background_url": {
             "description": "NethVoice Wizard rebranding link to background image",
+            "type": "string"
+        },
+        "rebranding_freepbx_admin_logo_url": {
+            "description": "FreePBX admin GUI rebranding link to top-left logo",
+            "type": "string"
+        },
+        "rebranding_freepbx_admin_favicon_url": {
+            "description": "FreePBX admin GUI rebranding link to favicon",
             "type": "string"
         },
         "rebranding_reports_brand_name": {

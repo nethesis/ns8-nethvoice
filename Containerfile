@@ -3,8 +3,10 @@ WORKDIR /app
 # install deps
 COPY ui/package.json .
 COPY ui/yarn.lock .
+COPY ui/.yarnrc.yml .
 RUN --mount=type=cache,id=nethvoice-module-ui-yarn,target=/var/cache/yarn \
-    yarn install --frozen-lockfile --cache-folder /var/cache/yarn
+    corepack enable && \
+    YARN_CACHE_FOLDER=/var/cache/yarn yarn install --immutable
 # copy application
 COPY ui/public public
 COPY ui/src src
@@ -22,10 +24,11 @@ COPY imageroot /imageroot
 # copy ui from ui_builder
 COPY --from=ui_builder /app/dist /ui
 ENTRYPOINT [ "/" ]
-LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm,portsadm nethvoice-proxy@any:routeadm cluster:accountconsumer"
-LABEL org.nethserver.tcp-ports-demand="37"
+LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm,portsadm nethvoice-proxy@any:routeadm,trunkadm cluster:accountconsumer openldap@any:domadm samba@any:domadm"
+LABEL org.nethserver.tcp-ports-demand="36"
+LABEL org.nethserver.udp-ports-demand="2003"
 LABEL org.nethserver.rootfull="0"
-LABEL org.nethserver.min-core="3.16.0-0"
+LABEL org.nethserver.min-core="3.22.0"
 ARG REPOBASE=ghcr.io/nethserver
 ARG IMAGETAG=latest
 LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \

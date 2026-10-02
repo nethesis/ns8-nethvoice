@@ -34,4 +34,10 @@ INSERT INTO `rest_pjsip_providers` (`id`,`provider`,`description`) VALUES
 (29,"mynet","MyNet (cloud1b.voicer.it)"),
 (30,"oval","OVAL"),
 (31,"enegan","Enegan"),
-(32,"elevenlabs","ElevenLabs");
+(32,"elevenlabs","ElevenLabs"),
+(33,"multiwire","MultiWire (singola numerazione)"),
+(34,"multiwire-multinumero","MultiWire Multinumero"),
+(35,"vianova","Vianova (una sola linea x nodo)"),
+(36,"newassistent","New Assistent"),
+(37,"wic-gnr","WiC VoIP GNR"),
+(38,"eis","eis (sip.teameis.it)");

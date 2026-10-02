@@ -89,6 +89,8 @@ def collect_cti(facts):
     facts['nethvoice_offhour_count'] = int(rows[6])
 
 def collect_cti_2fa(facts):
+    # The middleware stays stopped until the configuration wizard completes.
+    facts['nethvoice_cti_2fa_enabled_count'] = 0
     result = subprocess.run(
         ["podman", "exec", "nethcti-middleware", "find", "/var/lib/whale/secrets/",
          "-type", "f", "-name", "status", "-exec", "grep", "-qE", "^1$", "{}", ";", "-print"],

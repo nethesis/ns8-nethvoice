@@ -9,8 +9,8 @@ After=get-certificate.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-EnvironmentFile=%S/state/environment
-WorkingDirectory=%S/state
+EnvironmentFile=%E/state/environment
+WorkingDirectory=%E/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/janus.pid %t/janus.ctr-id
 ExecStartPre=-runagent install-certificate janus
@@ -22,7 +22,7 @@ ExecStart=/usr/bin/podman run \
     --cgroups=no-conmon \
     --log-opt=tag=%u \
     --replace --name=%N \
-    --env-file=%S/state/passwords.env \
+    --env-file=%E/state/passwords.env \
     --env=LOCAL_IP \
     --env=JANUS_TRANSPORT_PORT \
     --volume=/dev/log:/dev/log \

@@ -29,7 +29,11 @@ require_once(__DIR__. '/../../admin/modules/core/functions.inc.php');
 $app->get('/providers', function (Request $request, Response $response, $args) {
     try {
         global $db;
-        $sql = 'SELECT * FROM `rest_pjsip_providers` ORDER BY `description`';
+        $sql = 'SELECT `providers`.*, `defaults`.`data` AS `codecs` '
+             . 'FROM `rest_pjsip_providers` AS `providers` '
+             . 'LEFT JOIN `rest_pjsip_trunks_defaults` AS `defaults` '
+             . "ON `defaults`.`provider_id` = `providers`.`id` AND `defaults`.`keyword` = 'codecs' "
+             . 'ORDER BY `providers`.`description`';
         $results = $db->getAll($sql, DB_FETCHMODE_ASSOC);
         if(DB::IsError($results)) {
             throw new Exception($results->getMessage());

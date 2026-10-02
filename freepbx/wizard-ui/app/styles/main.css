@@ -2837,11 +2837,20 @@ iframe body {
 }
 
 .phonebook-settings-rows {
-  margin-bottom: 65px;
+  margin-bottom: 24px;
 }
 
 .settings-title {
   margin-top: 16px;
+}
+.settings-row {
+  clear: both;
+}
+
+.settings-row::after {
+  content: "";
+  display: table;
+  clear: both;
 }
 
 .onof-button-phonebook {

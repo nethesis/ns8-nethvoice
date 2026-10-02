@@ -12,7 +12,6 @@
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "octref.vetur",
-        "shenjiaolong.vue-helper",
         "streetsidesoftware.code-spell-checker"
       ]
     }
@@ -24,5 +23,6 @@
   // --network=host is required for hot-reload
   "runArgs": ["--userns=keep-id", "--network=host"],
   "containerUser": "node",
-  "remoteUser": "node"
+  "remoteUser": "node",
+  "postCreateCommand": "sudo corepack enable"
 }
