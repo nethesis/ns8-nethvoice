@@ -20,11 +20,11 @@ Restore a real legacy backup into the candidate
         ${legacy_id} =    Set Variable    ${legacy}[module_id]
         ${legacy_uuid} =    Set Variable    ${legacy}[module_uuid]
         Run task    module/${legacy_id}/configure-module
-        ...    {"nethvoice_host":"LegacyVoice.Ns8.Local","nethcti_ui_host":"LegacyCTI.Ns8.Local","user_domain":"${users_domain}","reports_international_prefix":"+39","lets_encrypt":false}
+        ...    {"nethvoice_host":"${{ $LEGACY_VOICE_HOST.title() }}","nethcti_ui_host":"${{ $LEGACY_CTI_HOST.title() }}","user_domain":"${users_domain}","reports_international_prefix":"+39","lets_encrypt":false}
         ...    decode_json=False
         ${old} =    Run task    module/${legacy_id}/get-configuration    {}
-        Should Be Equal    ${old}[nethvoice_host]    LegacyVoice.Ns8.Local
-        Should Be Equal    ${old}[nethcti_ui_host]    LegacyCTI.Ns8.Local
+        Should Be Equal    ${old}[nethvoice_host]    ${{ $LEGACY_VOICE_HOST.title() }}
+        Should Be Equal    ${old}[nethcti_ui_host]    ${{ $LEGACY_CTI_HOST.title() }}
         ${image} =    Execute Command    runagent -m ${legacy_id} printenv IMAGE_URL
         Should Be Equal    ${image}    ${LEGACY_NETHVOICE_IMAGE}
         # Persist a non-secret sentinel in the real database and a real Tancredi phone.
@@ -41,7 +41,7 @@ Restore a real legacy backup into the candidate
         ${repository}    ${rc} =    Execute Command    bash -o pipefail -c 'api-cli run cluster/add-backup-repository --data - | jq -er .id' <<'JSON'${\n}{"provider":"cluster","name":"Hostname restore fixture","url":"webdav:http://${vpn_ip}:4694","password":"","parameters":{}}${\n}JSON    return_rc=True
         Should Be Equal As Integers    ${rc}    0
         ${backup_id} =    Run task    cluster/add-backup    {"name":"Hostname restore fixture","repository":"${repository}","schedule":"daily","retention":1,"instances":["${legacy_id}"],"enabled":false}
-        ${rc} =    Execute Command    runagent -m ${legacy_id} module-backup ${backup_id} >/dev/null 2>&1    return_stdout=False    return_rc=True    timeout=20m
+        ${rc} =    Execute Command    runagent -m ${legacy_id} timeout --kill-after=15s 10m module-backup ${backup_id} >/dev/null 2>&1    return_stdout=False    return_rc=True    timeout=20m
         Should Be Equal As Integers    ${rc}    0
         ${snapshots}    ${rc} =    Execute Command    runagent -m ${legacy_id} restic-wrapper --destination ${repository} snapshots --json    return_rc=True    timeout=2m
         Should Be Equal As Integers    ${rc}    0
@@ -54,22 +54,32 @@ Restore a real legacy backup into the candidate
         ${restored} =    Run task    cluster/add-module    {"image":"${IMAGE_URL}","node":1,"module_uuid":"${legacy_uuid}"}
         ${restored_id} =    Set Variable    ${restored}[module_id]
         ${restore} =    Catenate    SEPARATOR=\n
-        ...    import agent, agent.tasks, os, tempfile
-        ...    with tempfile.NamedTemporaryFile() as source:
-        ...    ${SPACE * 4}agent.run_restic(agent.redis_connect(privileged=True), "${repository}", "nethvoice/${legacy_uuid}", ["--workdir=/srv"], ["dump", "${snapshot}", "state/environment"], stdout=source, check=True)
-        ...    ${SPACE * 4}old = agent.read_envfile(source.name)
-        ...    assert old["NETHVOICE_HOST"] == "LegacyVoice.Ns8.Local"
-        ...    assert old["NETHCTI_UI_HOST"] == "LegacyCTI.Ns8.Local"
-        ...    assert old["IMAGE_URL"] == "${LEGACY_NETHVOICE_IMAGE}"
-        ...    result = agent.tasks.run(os.environ["AGENT_ID"], "restore-module", data={"repository":"${repository}", "path":"nethvoice/${legacy_uuid}", "snapshot":"${snapshot}", "environment":old})
-        ...    assert result["exit_code"] == 0, "candidate restore-module failed"
-        ${rc} =    Execute Command    runagent -m ${restored_id} python3 - <<'PY'${\n}${restore}${\n}PY    return_stdout=False    return_rc=True    timeout=20m
-        Should Be Equal As Integers    ${rc}    0
+        ...    import agent, agent.tasks, subprocess, sys, tempfile
+        ...    phase = "read legacy backup environment"
+        ...    try:
+        ...    ${SPACE * 4}with tempfile.NamedTemporaryFile() as source:
+        ...    ${SPACE * 8}agent.run_restic(agent.redis_connect(privileged=True), "${repository}", "nethvoice/${legacy_uuid}", ["--workdir=/srv"], ["dump", "${snapshot}", "state/environment"], stdout=source, stderr=subprocess.DEVNULL, check=True)
+        ...    ${SPACE * 8}old = agent.read_envfile(source.name)
+        ...    ${SPACE * 4}phase = "validate legacy backup environment"
+        ...    ${SPACE * 4}assert old["NETHVOICE_HOST"] == "${{ $LEGACY_VOICE_HOST.title() }}"
+        ...    ${SPACE * 4}assert old["NETHCTI_UI_HOST"] == "${{ $LEGACY_CTI_HOST.title() }}"
+        ...    ${SPACE * 4}assert old["IMAGE_URL"] == "${LEGACY_NETHVOICE_IMAGE}"
+        ...    ${SPACE * 4}phase = "restore candidate"
+        ...    ${SPACE * 4}result = agent.tasks.run("module/${restored_id}", "restore-module", endpoint="redis://cluster-leader", data={"repository":"${repository}", "path":"nethvoice/${legacy_uuid}", "snapshot":"${snapshot}", "environment":old, "replace":False})
+        ...    ${SPACE * 4}print("restore-module exit code:", result["exit_code"])
+        ...    ${SPACE * 4}assert result["exit_code"] == 0
+        ...    except Exception as error:
+        ...    ${SPACE * 4}print(phase + ": " + type(error).__name__)
+        ...    ${SPACE * 4}sys.exit(1)
+        # Use the same cluster credentials and task transport as cluster/restore-module.
+        # Only the phase and exit code leave the node; the backup environment stays local.
+        ${restore_result}    ${rc} =    Execute Command    runagent -m cluster python3 - <<'PY'${\n}${restore}${\n}PY    return_rc=True    timeout=20m
+        Should Be Equal As Integers    ${rc}    0    ${restore_result}
         ${configuration} =    Run task    module/${restored_id}/get-configuration    {}
-        Should Be Equal    ${configuration}[nethvoice_host]    legacyvoice.ns8.local
-        Should Be Equal    ${configuration}[nethcti_ui_host]    legacycti.ns8.local
+        Should Be Equal    ${configuration}[nethvoice_host]    ${LEGACY_VOICE_HOST}
+        Should Be Equal    ${configuration}[nethcti_ui_host]    ${LEGACY_CTI_HOST}
         ${saved} =    Execute Command    runagent -m ${restored_id} sh -c 'printf "%s\\n%s\\n" "$NETHVOICE_HOST" "$NETHCTI_UI_HOST"'
-        Should Be Equal    ${saved}    legacyvoice.ns8.local${\n}legacycti.ns8.local
+        Should Be Equal    ${saved}    ${LEGACY_VOICE_HOST}${\n}${LEGACY_CTI_HOST}
         ${sentinel}    ${rc} =    Execute Command    runagent -m ${restored_id} podman exec -i mariadb sh -c 'exec mysql -N -B -uroot -p"$MARIADB_ROOT_PASSWORD" asterisk' <<'SQL'${\n}SELECT value FROM admin WHERE variable='HOSTNAME_E2E_BACKUP';${\n}SQL    return_rc=True
         Should Be Equal As Integers    ${rc}    0
         Should Be Equal    ${sentinel}    ${legacy_uuid}
@@ -80,25 +90,25 @@ Restore a real legacy backup into the candidate
         ${own_routes} =    Evaluate    [r for r in $routes if r['instance'].startswith('${restored_id}-')]
         Length Should Be    ${own_routes}    13
         FOR    ${route}    IN    @{own_routes}
-            Should Be True    $route['host'] in ('legacyvoice.ns8.local', 'legacycti.ns8.local')
+            Should Be True    $route['host'] in ('${LEGACY_VOICE_HOST}', '${LEGACY_CTI_HOST}')
         END
-        ${sip}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec -i postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB"' <<'SQL'${\n}SELECT target FROM nethvoice_proxy_routes WHERE lower(target)='legacyvoice.ns8.local'; SELECT domain FROM domain WHERE lower(domain)='legacyvoice.ns8.local'; SELECT match_exp FROM dialplan WHERE lower(match_exp)='legacyvoice.ns8.local';${\n}SQL    return_rc=True
+        ${sip}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec -i postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB"' <<'SQL'${\n}SELECT target FROM nethvoice_proxy_routes WHERE lower(target)='${LEGACY_VOICE_HOST}'; SELECT domain FROM domain WHERE lower(domain)='${LEGACY_VOICE_HOST}'; SELECT match_exp FROM dialplan WHERE lower(match_exp)='${LEGACY_VOICE_HOST}';${\n}SQL    return_rc=True
         Should Be Equal As Integers    ${rc}    0
-        Should Be Equal    ${sip}    legacyvoice.ns8.local${\n}legacyvoice.ns8.local${\n}legacyvoice.ns8.local
-        ${ready}    ${rc} =    Execute Command    runagent -m ${restored_id} sh -c 'systemctl --user is-active freepbx mariadb tancredi nethcti-ui && podman exec freepbx asterisk -rx "core show version" && curl -fkLsS --retry 30 --retry-all-errors --retry-delay 2 --resolve legacyvoice.ns8.local:443:127.0.0.1 https://legacyvoice.ns8.local/freepbx/admin/ -o /dev/null && curl -fkLsS --retry 30 --retry-all-errors --retry-delay 2 --resolve legacycti.ns8.local:443:127.0.0.1 https://legacycti.ns8.local/ -o /dev/null'    return_rc=True    timeout=5m
+        Should Be Equal    ${sip}    ${LEGACY_VOICE_HOST}${\n}${LEGACY_VOICE_HOST}${\n}${LEGACY_VOICE_HOST}
+        ${ready}    ${rc} =    Execute Command    runagent -m ${restored_id} sh -c 'systemctl --user is-active freepbx mariadb tancredi nethcti-ui && podman exec freepbx asterisk -rx "core show version" && curl -fkLsS --retry 30 --retry-all-errors --retry-delay 2 --resolve ${LEGACY_VOICE_HOST}:443:127.0.0.1 https://${LEGACY_VOICE_HOST}/freepbx/admin/ -o /dev/null && curl -fkLsS --retry 30 --retry-all-errors --retry-delay 2 --resolve ${LEGACY_CTI_HOST}:443:127.0.0.1 https://${LEGACY_CTI_HOST}/ -o /dev/null'    return_rc=True    timeout=5m
         Should Be Equal As Integers    ${rc}    0
         Should Contain    ${ready}    Asterisk
         ${http_before} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
         ${http_before} =    Evaluate    sorted($http_before, key=lambda route: route["instance"])
-        ${sip_before}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "SELECT * FROM nethvoice_proxy_routes ORDER BY setid; SELECT setid,destination,description FROM dispatcher ORDER BY setid,destination; SELECT * FROM domain ORDER BY id; SELECT * FROM dialplan ORDER BY id;"'    return_rc=True
+        ${sip_before}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "SELECT * FROM nethvoice_proxy_routes ORDER BY setid; SELECT setid,destination,description FROM dispatcher ORDER BY setid,destination; SELECT id,domain,did,created_at FROM domain ORDER BY id; SELECT id,dpid,pr,match_op,match_exp,match_len,subst_exp,repl_exp,attrs,created_at,name FROM dialplan ORDER BY id;"'    return_rc=True
         Should Be Equal As Integers    ${rc}    0
         Run task    module/${restored_id}/configure-module
-        ...    {"nethvoice_host":"LEGACYVOICE.NS8.LOCAL","nethcti_ui_host":"LEGACYCTI.NS8.LOCAL","user_domain":"${users_domain}","reports_international_prefix":"+39"}
+        ...    {"nethvoice_host":"${{ $LEGACY_VOICE_HOST.upper() }}","nethcti_ui_host":"${{ $LEGACY_CTI_HOST.upper() }}","user_domain":"${users_domain}","reports_international_prefix":"+39"}
         ...    decode_json=False
         ${http_after} =    Run task    ${traefik_agent}/list-routes    {"expand_list":true}
         ${http_after} =    Evaluate    sorted($http_after, key=lambda route: route["instance"])
         Should Be Equal    ${http_after}    ${http_before}
-        ${sip_after}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "SELECT * FROM nethvoice_proxy_routes ORDER BY setid; SELECT setid,destination,description FROM dispatcher ORDER BY setid,destination; SELECT * FROM domain ORDER BY id; SELECT * FROM dialplan ORDER BY id;"'    return_rc=True
+        ${sip_after}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB" -c "SELECT * FROM nethvoice_proxy_routes ORDER BY setid; SELECT setid,destination,description FROM dispatcher ORDER BY setid,destination; SELECT id,domain,did,created_at FROM domain ORDER BY id; SELECT id,dpid,pr,match_op,match_exp,match_len,subst_exp,repl_exp,attrs,created_at,name FROM dialplan ORDER BY id;"'    return_rc=True
         Should Be Equal As Integers    ${rc}    0
         Should Be Equal    ${sip_after}    ${sip_before}
     FINALLY
