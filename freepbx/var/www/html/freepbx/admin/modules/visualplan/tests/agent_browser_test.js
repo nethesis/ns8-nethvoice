@@ -15,28 +15,29 @@ const { chromium } = require(process.env.VISUALPLAN_PLAYWRIGHT_MODULE || 'playwr
 const root = path.resolve(__dirname, '../htdocs');
 const artifactDir = process.env.VISUALPLAN_BROWSER_ARTIFACT_DIR || path.join(os.tmpdir(), 'visualplan-agent-browser');
 fs.mkdirSync(artifactDir, { recursive: true });
-// Render the real page without preloading Satellite, just like a standalone
-// VisualPlan request. A fake palette would miss module bootstrap regressions.
+// Render the real page without the FreePBX BMO aliases or Satellite object.
+// Palette/token startup must not depend on the module's class or constructor.
 const fixtureDir=fs.mkdtempSync(path.join(os.tmpdir(),'visualplan-freepbx-'));
 const fixtureConf=path.join(fixtureDir,'freepbx.conf');
 fs.writeFileSync(fixtureConf,`<?php
-interface BMO {}
-class FreePBX_Helpers {}
 class VisualplanFixtureUser { public function checkSection($section) { return $section === 'visualplan'; } }
 class FreePBX {
  public static function Satellite() {
-  if (!class_exists('Satellite', false)) { throw new RuntimeException('Satellite class not loaded'); }
-  return new Satellite((object) array('Database' => null));
+  throw new RuntimeException('Satellite BMO must not be constructed to render the palette');
  }
 }
 session_save_path(__DIR__);
 session_start();
 $_SESSION['AMP_user'] = new VisualplanFixtureUser();
-$_SESSION['satellite_agent_csrf'] = 'fixture-csrf';
+if (getenv('VISUALPLAN_FIXTURE_CSRF')) { $_SESSION['satellite_agent_csrf'] = 'fixture-csrf'; }
 `);
 let html;
 try {
- html=cp.execFileSync('php',[path.join(root,'index.php')],{encoding:'utf8',env:{...process.env,FREEPBX_CONF:fixtureConf}});
+ const env={...process.env,FREEPBX_CONF:fixtureConf,VISUALPLAN_FIXTURE_CSRF:''};
+ const freshHtml=cp.execFileSync('php',[path.join(root,'index.php')],{encoding:'utf8',env});
+ assert.match(freshHtml,/visualplanAgentCsrfToken = "[a-f0-9]{64}";/);
+ assert.match(freshHtml,/id="satellite-agent-destination"/);
+ html=cp.execFileSync('php',[path.join(root,'index.php')],{encoding:'utf8',env:{...env,VISUALPLAN_FIXTURE_CSRF:'1'}});
 } finally {
  fs.rmSync(fixtureDir,{recursive:true,force:true});
 }

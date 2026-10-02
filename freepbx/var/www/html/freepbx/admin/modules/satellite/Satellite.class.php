@@ -3,6 +3,7 @@ require_once __DIR__ . '/lib/AgentSchema.php';
 require_once __DIR__ . '/lib/AgentTrunkRepository.php';
 require_once __DIR__ . '/lib/AgentDestinationRepository.php';
 require_once __DIR__ . '/lib/AgentTrunkProvisioner.php';
+require_once __DIR__ . '/lib/AgentSession.php';
 #
 # Copyright (C) 2026 Nethesis S.r.l.
 # http://www.nethesis.it - nethserver@nethesis.it
@@ -133,19 +134,11 @@ class Satellite extends \FreePBX_Helpers implements \BMO
     }
 
     public function agentCsrfToken() {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (empty($_SESSION['satellite_agent_csrf']) || !is_string($_SESSION['satellite_agent_csrf'])) {
-            $_SESSION['satellite_agent_csrf'] = bin2hex(random_bytes(32));
-        }
-        return $_SESSION['satellite_agent_csrf'];
+        return AgentSession::csrfToken();
     }
 
     public function assertAgentCsrfToken($token) {
-        if (!is_string($token) || !hash_equals($this->agentCsrfToken(), $token)) {
-            throw new \RuntimeException('Invalid or missing security token, reload the page and retry');
-        }
+        AgentSession::assertCsrfToken($token);
     }
 
     /** Post/Redirect/Get so a reload does not replay the action. */
