@@ -15,28 +15,54 @@ const { chromium } = require(process.env.VISUALPLAN_PLAYWRIGHT_MODULE || 'playwr
 const root = path.resolve(__dirname, '../htdocs');
 const artifactDir = process.env.VISUALPLAN_BROWSER_ARTIFACT_DIR || path.join(os.tmpdir(), 'visualplan-agent-browser');
 fs.mkdirSync(artifactDir, { recursive: true });
-const index = fs.readFileSync(path.join(root,'index.php'),'utf8');
-const scripts = [...index.matchAll(/<script src="([^"]+)"[^>]*><\/script>/g)].map(m=>`<script src="${m[1]}"></script>`).join('\n');
-const styles = [...index.matchAll(/<link[^>]+href="([^"]+)"[^>]*>/g)].map(m=>`<link rel="stylesheet" href="${m[1]}">`).join('\n');
-const html = `<html><head>${styles}<script>var languages={},browserLang='en'; window.visualplanAgentCsrfToken='fixture-csrf';</script>${scripts}</head><body><div id="container"><div id="toolbar"></div><div id="canvas" style="position:absolute;left:160px;top:80px;width:1100px;height:800px"></div><div id="satellite-agent-destination" data-shape="Base" style="background:#528ba7">Agent</div><div id="loader" style="display:none"></div><div id="errorer" style="display:none"><span></span><span></span></div><div id="emptier" style="display:none"><span></span></div><div id="saver" style="display:none"><span></span></div></div><script>var app = new example.Application();</script></body></html>`;
+// Render the real page without preloading Satellite, just like a standalone
+// VisualPlan request. A fake palette would miss module bootstrap regressions.
+const fixtureDir=fs.mkdtempSync(path.join(os.tmpdir(),'visualplan-freepbx-'));
+const fixtureConf=path.join(fixtureDir,'freepbx.conf');
+fs.writeFileSync(fixtureConf,`<?php
+interface BMO {}
+class FreePBX_Helpers {}
+class VisualplanFixtureUser { public function checkSection($section) { return $section === 'visualplan'; } }
+class FreePBX {
+ public static function Satellite() {
+  if (!class_exists('Satellite', false)) { throw new RuntimeException('Satellite class not loaded'); }
+  return new Satellite((object) array('Database' => null));
+ }
+}
+session_save_path(__DIR__);
+session_start();
+$_SESSION['AMP_user'] = new VisualplanFixtureUser();
+$_SESSION['satellite_agent_csrf'] = 'fixture-csrf';
+`);
+let html;
+try {
+ html=cp.execFileSync('php',[path.join(root,'index.php')],{encoding:'utf8',env:{...process.env,FREEPBX_CONF:fixtureConf}});
+} finally {
+ fs.rmSync(fixtureDir,{recursive:true,force:true});
+}
 let trunks={}, nextId=1, captures=[], saveRequests=[];
 const labelContext={languages:{}};vm.runInNewContext(fs.readFileSync(path.join(root,'i18n/en.js'),'utf8'),labelContext);
-const productionImport=JSON.parse(cp.execFileSync('php',['-r', `
+const productionImports=JSON.parse(cp.execFileSync('php',['-r', `
 define('NETHVPLAN_VISUALIZE_LIBRARY_MODE',true);require $argv[1];
 $langArray=json_decode($argv[2],true);$widgetTemplate=array('userData'=>array(),'entities'=>array());$connectionTemplate=array('type'=>'MyConnection');$xPos=$yPos=10;
 $data=array('satellite-agent-destination'=>array(),'agent-trunks'=>array(1=>array('name'=>'Provider trunk')));
-foreach(array(10=>'satellite-agent-destination-20,s,1',20=>null) as $id=>$fallback){$data['satellite-agent-destination'][$id]=array('id'=>$id,'freepbx_name'=>'CleverAI_'.$id,'cleverai_trunk_id'=>1,'cleverai_flow'=>'existing-flow','fallback_destination'=>$fallback);}
-$widgets=$connections=array();nethvplan_explore($data,'satellite-agent-destination-10,s,1',array());echo json_encode(array_merge($widgets,$connections));
+foreach(array(10=>'satellite-agent-destination-20,s,1',20=>null,40=>'satellite-agent-destination-10,s,1') as $id=>$fallback){$data['satellite-agent-destination'][$id]=array('id'=>$id,'freepbx_name'=>'CleverAI_'.$id,'cleverai_trunk_id'=>1,'cleverai_flow'=>'existing-flow','fallback_destination'=>$fallback);}
+$widgets=$connections=array();nethvplan_explore($data,'satellite-agent-destination-10,s,1',array());$agent=array_merge($widgets,$connections);
+$widgets=$connections=array();nethvplan_explore($data,'satellite-agent-destination-40,s,1',array());echo json_encode(array('agent'=>$agent,'parent'=>array_merge($widgets,$connections)));
 `,path.join(root,'visualize.php'),JSON.stringify(labelContext.languages.en)],{encoding:'utf8'}));
+const productionImport=productionImports.agent;
+const parentImport=productionImports.parent;
+const selectableAgents=productionImport.filter(n=>n.type==='Base').concat(parentImport.filter(n=>n.id==='satellite-agent-destination%40'));
 const server=http.createServer((req,res)=>{
  const u=new URL(req.url,'http://127.0.0.1');
  if(u.pathname==='/'){res.setHeader('Content-Type','text/html');res.end(html);return;}
  if(u.pathname==='/visualize.php'){
   res.setHeader('Content-Type','text/plain');
-  if(u.searchParams.has('getAll'))res.end(JSON.stringify(productionImport.filter(n=>n.type==='Base')));
+  if(u.searchParams.has('getAll'))res.end(JSON.stringify(selectableAgents));
   else if(u.searchParams.has('getChild')){
    const parent=Buffer.from(u.searchParams.get('getChild'),'base64').toString();
-   res.end(JSON.stringify(parent==='satellite-agent-destination%20'?{}:Object.fromEntries(productionImport.filter(n=>n.id!==parent).map(n=>[n.id,n]))));
+   const imported=parent==='satellite-agent-destination%40'?parentImport:productionImport;
+   res.end(JSON.stringify(parent==='satellite-agent-destination%20'?{}:Object.fromEntries(imported.filter(n=>n.id!==parent).map(n=>[n.id,n]))));
   }else res.end(JSON.stringify(trunks));return;
  }
  if(u.pathname==='/plugins.php'||u.pathname==='/create.php'){
@@ -66,7 +92,11 @@ const server=http.createServer((req,res)=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
  await page.waitForFunction(()=>window.app&&app.view);
- await page.evaluate(()=>app.view.createDialog({x:400,y:150,context:app.view,dropped:$('#satellite-agent-destination')}));
+ await page.waitForSelector('#side-nav #satellite-agent-destination',{state:'visible'});
+ assert.equal(await page.locator('#satellite-agent-destination').innerText(),'Agent');
+ assert.equal(await page.evaluate(()=>window.visualplanAgentCsrfToken),'fixture-csrf');
+ await page.locator('#satellite-agent-destination').dragTo(page.locator('#canvas'),{targetPosition:{x:400,y:150}});
+ await page.locator('.context-menu-item').filter({hasText:'Add New'}).click();
  await page.waitForSelector('#satellite-agent-destination-flow');
  await page.waitForSelector('.agent-trunk-fields',{state:'visible'});
  await page.fill('#satellite-agent-destination-flow','sales');
@@ -172,6 +202,44 @@ const server=http.createServer((req,res)=>{
   return {rewired,undone,deleted,oldSource:a.getUserData().fallback_touched,newSource:c.getUserData().fallback_touched};
  });
  assert.deepEqual(tracking,{rewired:true,undone:true,deleted:true,oldSource:true,newSource:true});
+ // Replacing a stored fallback gives it a new ID. Reselecting its source or a
+ // new parent must preserve that replacement and any deliberate deletion.
+ await page.evaluate(data=>{app.view.clear();new draw2d.io.json.Reader().unmarshal(app.view,data);},productionImport.concat(third));
+ await page.evaluate(()=>{
+  const original=app.view.getLines().get(0),stack=app.view.getCommandStack();
+  const source=original.getSource(),target=app.view.getFigure('satellite-agent-destination%30').getPort('input_satellite-agent-destination%30');
+  stack.execute(new draw2d.command.CommandDelete(original));
+  const replacement=new MyConnection();replacement.setSource(source);replacement.setTarget(target);
+  stack.execute(new draw2d.command.CommandAdd(app.view,replacement,0,0));
+  window.replacementFallbackId=replacement.id;
+  window.sharedAgent=app.view.getFigure('satellite-agent-destination%10');
+ });
+ async function selectAgent(elemId){
+  await page.evaluate(()=>app.view.createList('select',null,{x:400,y:150,context:app.view,dropped:$('#satellite-agent-destination')}));
+  await page.locator(`.button-elem-list[elemId="${elemId}"]`).click();
+  await page.waitForSelector('#elementList',{state:'detached'});
+ }
+ async function fallbackState(){
+  return page.evaluate(()=>({
+   reused:app.view.getFigure('satellite-agent-destination%10')===window.sharedAgent,
+   touched:window.sharedAgent.getUserData().fallback_touched,
+   edges:app.view.getLines().asArray().map(line=>({id:line.id,source:line.getSource().getRoot().id,target:line.getTarget().getRoot().id})).sort((a,b)=>a.source.localeCompare(b.source))
+  }));
+ }
+ const replacementId=await page.evaluate(()=>window.replacementFallbackId);
+ const replacementEdge={id:replacementId,source:'satellite-agent-destination%10',target:'satellite-agent-destination%30'};
+ await selectAgent(0);
+ assert.deepEqual(await fallbackState(),{reused:true,touched:true,edges:[replacementEdge]});
+ assert.equal(await page.evaluate(()=>app.view.getFigures().getSize()),3);
+ await selectAgent(2);
+ const parentConnection=parentImport.find(n=>n.type==='MyConnection'&&n.source.node==='satellite-agent-destination%40');
+ const parentEdge={id:parentConnection.id,source:'satellite-agent-destination%40',target:'satellite-agent-destination%10'};
+ assert.deepEqual(await fallbackState(),{reused:true,touched:true,edges:[replacementEdge,parentEdge]});
+ assert.equal(await page.evaluate(()=>app.view.getFigures().getSize()),4);
+ await page.evaluate(()=>app.view.getCommandStack().execute(new draw2d.command.CommandDelete(app.view.getLine(window.replacementFallbackId))));
+ await selectAgent(0);
+ await selectAgent(2);
+ assert.deepEqual(await fallbackState(),{reused:true,touched:true,edges:[parentEdge]});
  assert(!errors.length,errors.join('\n'));
  process.stdout.write('VisualPlan browser smoke passed: OpenAI/Grok trunk forms, cancellation, existing Agent selection/import, fallback rewiring/deletion/undo, secret-free graph, partial-save retry.\n');
  } finally {

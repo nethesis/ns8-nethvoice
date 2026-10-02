@@ -1,13 +1,20 @@
 <?php
 /*check auth*/
-include_once '/etc/freepbx.conf';
-session_start();
+include_once (getenv('FREEPBX_CONF') ?: '/etc/freepbx.conf');
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visualplan')) {
     header("location: /freepbx/wizard");
     exit(1);
 }
 $visualplanAgentCsrfToken = null;
 try {
+    // Satellite uses a legacy global class, which must be loaded before BMO lookup.
+    $satelliteClass = __DIR__ . '/../../satellite/Satellite.class.php';
+    if (is_file($satelliteClass)) {
+        require_once $satelliteClass;
+    }
     $visualplanAgentCsrfToken = FreePBX::Satellite()->agentCsrfToken();
 } catch (Throwable $e) {
     // Satellite is optional: keep the rest of VisualPlan available.
