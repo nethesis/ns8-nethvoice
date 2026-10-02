@@ -501,6 +501,8 @@ export default {
       }
     },
     validateConfigureModule() {
+      this.nethvoice_host = this.nethvoice_host.toLowerCase();
+      this.nethcti_ui_host = this.nethcti_ui_host.toLowerCase();
       this.clearErrors();
       this.validationErrorDetails = [];
       let isValidationOk = true;

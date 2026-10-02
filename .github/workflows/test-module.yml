@@ -9,7 +9,7 @@ on:
         default: false
         type: boolean
       fias_image:
-        description: "Optional already-published module image for the FIAS E2E run"
+        description: "Optional already-published module image for the E2E run"
         required: false
         default: ""
         type: string
@@ -18,23 +18,15 @@ on:
     types: [completed]
 
 jobs:
-  run:
-    name: "Run tests"
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
-    uses: NethServer/ns8-github-actions/.github/workflows/test-module.yml@v1
-    with:
-      ui_tests_strategy: on_renovate_ui_change
-      debug_shell: ${{ inputs.debug_shell == true }}
-    secrets:
-      do_token: ${{ secrets.do_token }}
-
   module:
-    name: "Resolve FIAS test image"
+    name: "Resolve test image"
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     uses: NethServer/ns8-github-actions/.github/workflows/module-info.yml@v1
 
-  fias-e2e:
-    name: "FIAS E2E (${{ matrix.scenario }})"
+  run:
+    name: "Run tests (${{ matrix.scenario }})"
+    # Run the complete suite once per node: separate ordinary and FIAS jobs
+    # collide on both the runner's concurrency key and its artifact names.
     needs: module
     strategy:
       fail-fast: false
@@ -50,6 +42,7 @@ jobs:
       leader_nodes: ${{ matrix.node }}
       args: ${{ format('{0} -v SCENARIO:{1} -v RUN_FIAS_E2E:true', inputs.fias_image || needs.module.outputs.image, matrix.scenario) }}
       repo_ref: ${{ needs.module.outputs.sha }}
+      run_ui_tests: true
       debug_shell: ${{ inputs.debug_shell == true }}
     secrets:
       do_token: ${{ secrets.do_token }}
