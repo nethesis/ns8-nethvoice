@@ -9,7 +9,7 @@ Input can't be empty
 
 Timezone must be part of the accepted list
     ${response} =  Run task    module/${module_id}/configure-module
-    ...    {"nethvoice_host": "voice.ns8.local", "nethcti_ui_host": "cti.ns8.local", "user_domain": "${users_domain}", "reports_international_prefix": "+39", "timezone": "Mars/Phobos"}
+    ...    {"nethvoice_host": "${VOICE_HOST}", "nethcti_ui_host": "${CTI_HOST}", "user_domain": "${users_domain}", "reports_international_prefix": "+39", "timezone": "Mars/Phobos"}
     ...    rc_expected=2    decode_json=False
     Should Contain    ${response}    timezone_not_available
 
