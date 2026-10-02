@@ -57,6 +57,7 @@ Genuine hostname changes renew the first-access token once
     ...    Timestamp the disposable database row and compare it with the actual new token's filesystem timestamp.
     ...    Successful RPS registration still needs an authorized receiver or physical test device.
     Should Be Equal    ${module_id}    ${hostname_test_module_id}
+    Should Not Be Equal    ${{ $RENAMED_VOICE_HOST.lower() }}    ${{ $VOICE_HOST.lower() }}
     ${created} =    Set Variable    ${FALSE}
     ${timestamp_column_added} =    Set Variable    ${FALSE}
     ${hosts_entry_added} =    Set Variable    ${FALSE}
@@ -147,4 +148,9 @@ Genuine hostname changes renew the first-access token once
         Run task    module/${module_id}/configure-module
         ...    {"nethvoice_host":"${VOICE_HOST}","nethcti_ui_host":"${CTI_HOST}","user_domain":"${users_domain}","reports_international_prefix":"+39","lets_encrypt":false}
         ...    decode_json=False
+        # A genuine rename retains the previous SIP domain; remove the fixture alias.
+        Run task    module/${proxy_module_id}/remove-route    {"domain":"${RENAMED_VOICE_HOST}"}
+        ${remaining}    ${rc} =    Execute Command    runagent -m ${proxy_module_id} podman exec -i postgres sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB"' <<'SQL'${\n}SELECT count(*) FROM nethvoice_proxy_routes WHERE lower(target)='${RENAMED_VOICE_HOST}'; SELECT count(*) FROM domain WHERE lower(domain)='${RENAMED_VOICE_HOST}'; SELECT count(*) FROM dialplan WHERE dpid=1 AND lower(match_exp)='${RENAMED_VOICE_HOST}';${\n}SQL    return_rc=True
+        Should Be Equal As Integers    ${rc}    0
+        Should Be Equal    ${remaining}    0${\n}0${\n}0
     END
