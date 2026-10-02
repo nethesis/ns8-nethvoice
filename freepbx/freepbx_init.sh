@@ -45,7 +45,6 @@ modules_to_install=(
     fax
     featurecodeadmin
     findmefollow
-    googletts
     iaxsettings
     infoservices
     ivr
@@ -83,6 +82,7 @@ modules_to_install=(
 
 obsolete_modules=(
     bulkdids
+    googletts
     inboundlookup
     outboundlookup
 )
@@ -209,4 +209,3 @@ php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed
 
 # Apply low-priority background DB updates
 ionice -c3 nice -n 19 php /initdb.d/slow_database_updates.php >/dev/null 2>&1 &
-

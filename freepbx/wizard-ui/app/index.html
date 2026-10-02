@@ -271,9 +271,6 @@
           <div ng-if="!wizard.isWizard" class="panel-body adjust-panel-body list-group-item collapse-menu {{resolveActiveTab('paramurl',2) ? 'active' : ''}}">
             <div ng-click="goTo('apps/paramurl')" class="list-group-item-value menu-item-left no-opacity full-width">{{'Parameterized URLs' | translate | ellipsis:'1200'}}</div>
           </div>
-          <div ng-if="!wizard.isWizard" class="panel-body adjust-panel-body list-group-item collapse-menu {{resolveActiveTab('cloudServices',2) ? 'active' : ''}}">
-            <div ng-click="goTo('apps/cloudServices')" class="list-group-item-value menu-item-left no-opacity full-width">{{'Cloud services' | translate | ellipsis:'1200'}}</div>
-          </div>
           <div ng-if="!wizard.isWizard" class="panel-body adjust-panel-body list-group-item collapse-menu {{resolveActiveTab('bulkextensions',2) ? 'active' : ''}}">
             <div ng-click="goTo('apps/bulkextensions')" class="list-group-item-value menu-item-left no-opacity full-width">{{'Bulk extensions' | translate | ellipsis:'1200'}}</div>
           </div>
@@ -453,7 +450,6 @@
   <script src="scripts/directives/genericerror.js"></script>
   <script src="scripts/services/routeservice.js"></script>
   <script src="scripts/services/codecservice.js"></script>
-  <script src="scripts/services/voicemailtextservice.js"></script>
   <script src="scripts/filters/ellipsis.js"></script>
   <script src="scripts/controllers/final.js"></script>
   <script src="scripts/controllers/configurations/profiles.js"></script>
@@ -478,7 +474,6 @@
   <script src="scripts/filters/blacklistfilternokeydsp.js"></script>
   <script src="scripts/controllers/apps/streaming.js"></script>
   <script src="scripts/controllers/apps/paramurl.js"></script>
-  <script src="scripts/controllers/apps/voicemailText.js"></script>
   <script src="scripts/controllers/admin/languages.js"></script>
   <script src="scripts/controllers/apps/bulkextensions.js"></script>
   <script src="scripts/services/bulkservice.js"></script>
