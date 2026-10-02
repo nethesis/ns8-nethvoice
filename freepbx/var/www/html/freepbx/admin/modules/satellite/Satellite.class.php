@@ -101,9 +101,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
             return;
         }
         try {
-            if (!hash_equals($this->agentCsrfToken(), isset($_POST['csrf_token']) && is_string($_POST['csrf_token']) ? $_POST['csrf_token'] : '')) {
-                throw new \RuntimeException('Invalid or missing security token, reload the page and retry');
-            }
+            $this->assertAgentCsrfToken(isset($_POST['csrf_token']) ? $_POST['csrf_token'] : null);
             if (isset($_POST['section']) && $_POST['section'] === 'trunks') {
                 $this->handleAgentTrunkRequest();
             } else {
@@ -134,7 +132,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         );
     }
 
-    private function agentCsrfToken() {
+    public function agentCsrfToken() {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -142,6 +140,12 @@ class Satellite extends \FreePBX_Helpers implements \BMO
             $_SESSION['satellite_agent_csrf'] = bin2hex(random_bytes(32));
         }
         return $_SESSION['satellite_agent_csrf'];
+    }
+
+    public function assertAgentCsrfToken($token) {
+        if (!is_string($token) || !hash_equals($this->agentCsrfToken(), $token)) {
+            throw new \RuntimeException('Invalid or missing security token, reload the page and retry');
+        }
     }
 
     /** Post/Redirect/Get so a reload does not replay the action. */
@@ -153,24 +157,6 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         $tab = isset($_POST['section']) && $_POST['section'] === 'trunks' ? 'trunks' : 'destinations';
         header('Location: config.php?display=satellite_agents&tab=' . $tab);
         exit;
-    }
-
-    /** True when following fallbacks from $fallback leads back to destination $id. */
-    private function fallbackReaches($id, $fallback) {
-        $seen = array();
-        while (is_string($fallback) && preg_match('/^satellite-agent-destination-([0-9]+),s,1$/D', $fallback, $match)) {
-            $next = (int) $match[1];
-            if ($next === (int) $id) {
-                return true;
-            }
-            if (isset($seen[$next])) {
-                return false;
-            }
-            $seen[$next] = true;
-            $row = $this->agentDestinations->getById($next);
-            $fallback = $row ? $row['fallback_destination'] : null;
-        }
-        return false;
     }
 
     private function agentRequestId() {
@@ -188,65 +174,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         $action = isset($_POST['action']) ? $_POST['action'] : '';
         $id = $this->agentRequestId();
         if ($action === 'save') {
-            $input = array(
-                'name' => isset($_POST['name']) ? trim($_POST['name']) : '',
-                'provider' => isset($_POST['provider']) ? $_POST['provider'] : '',
-                'openai_project_id' => isset($_POST['openai_project_id']) ? trim($_POST['openai_project_id']) : null,
-                'grok_phone_number' => isset($_POST['grok_phone_number']) ? trim($_POST['grok_phone_number']) : null,
-                'api_key' => isset($_POST['api_key']) ? $_POST['api_key'] : '',
-                'sip_auth_mode' => isset($_POST['sip_auth_mode']) ? $_POST['sip_auth_mode'] : 'none',
-                'sip_auth_username' => isset($_POST['sip_auth_username']) ? trim($_POST['sip_auth_username']) : null,
-                'sip_auth_password' => isset($_POST['sip_auth_password']) ? $_POST['sip_auth_password'] : ''
-            );
-            if ($id === null) {
-                $id = $this->agentTrunks->create($input);
-                $freepbxId = null;
-                $provisioner = new AgentTrunkProvisioner();
-                try {
-                    $stored = $this->agentTrunks->getStoredById($id);
-                    $this->agentTrunks->resolveProviderApiKey($stored);
-                    $freepbxId = $provisioner->createManagedTrunk($stored);
-                    $this->agentTrunks->setProvisionedTrunkId($id, $freepbxId);
-                } catch (\Throwable $error) {
-                    if ($freepbxId !== null) {
-                        try {
-                            $stored['freepbx_trunk_id'] = $freepbxId;
-                            $provisioner->deleteManagedTrunk($stored);
-                        } catch (\Throwable $cleanupError) {
-                            throw new \RuntimeException(
-                                'Agent trunk creation failed and FreePBX cleanup failed: ' . $cleanupError->getMessage(),
-                                0,
-                                $error
-                            );
-                        }
-                    }
-                    $this->agentTrunks->delete($id);
-                    throw $error;
-                }
-            } else {
-                $previous = $this->agentTrunks->getStoredById($id);
-                if (!$previous) {
-                    throw new \RuntimeException('Agent trunk not found');
-                }
-                $this->agentTrunks->update($id, $input);
-                try {
-                    $stored = $this->agentTrunks->getStoredById($id);
-                    $this->agentTrunks->resolveProviderApiKey($stored);
-                    (new AgentTrunkProvisioner())->updateManagedTrunk($stored, $previous);
-                } catch (\Throwable $error) {
-                    try {
-                        $this->restoreAgentTrunk($id, $previous);
-                    } catch (\Throwable $restoreError) {
-                        throw new \RuntimeException(
-                            'Agent trunk update failed and metadata restore failed: ' . $restoreError->getMessage(),
-                            0,
-                            $error
-                        );
-                    }
-                    throw $error;
-                }
-            }
-            needreload();
+            $this->saveAgentTrunk($_POST, $id);
             $this->agentPageNotice = 'Agent trunk saved';
             return;
         }
@@ -277,6 +205,75 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         }
     }
 
+    /** Save an Agent trunk through the same validation and provisioning path as the admin form. */
+    public function saveAgentTrunk(array $input, $id = null) {
+        $fields = array('name', 'provider', 'openai_project_id', 'grok_phone_number',
+            'api_key', 'sip_auth_mode', 'sip_auth_username', 'sip_auth_password');
+        $input = array_merge(array(
+            'name' => '', 'provider' => '', 'openai_project_id' => null,
+            'grok_phone_number' => null, 'api_key' => '', 'sip_auth_mode' => 'none',
+            'sip_auth_username' => null, 'sip_auth_password' => '',
+        ), array_intersect_key($input, array_flip($fields)));
+        foreach (array('name', 'openai_project_id', 'grok_phone_number', 'sip_auth_username') as $field) {
+            if (isset($input[$field]) && is_string($input[$field])) {
+                $input[$field] = trim($input[$field]);
+            }
+        }
+        if ($input['sip_auth_password'] === null) {
+            $input['sip_auth_password'] = '';
+        }
+        if ($id === null) {
+            $id = $this->agentTrunks->create($input);
+            $freepbxId = null;
+            $provisioner = new AgentTrunkProvisioner();
+            try {
+                $stored = $this->agentTrunks->getStoredById($id);
+                $this->agentTrunks->resolveProviderApiKey($stored);
+                $freepbxId = $provisioner->createManagedTrunk($stored);
+                $this->agentTrunks->setProvisionedTrunkId($id, $freepbxId);
+            } catch (\Throwable $error) {
+                if ($freepbxId !== null) {
+                    try {
+                        $stored['freepbx_trunk_id'] = $freepbxId;
+                        $provisioner->deleteManagedTrunk($stored);
+                    } catch (\Throwable $cleanupError) {
+                        throw new \RuntimeException(
+                            'Agent trunk creation failed and FreePBX cleanup failed: ' . $cleanupError->getMessage(),
+                            0,
+                            $error
+                        );
+                    }
+                }
+                $this->agentTrunks->delete($id);
+                throw $error;
+            }
+        } else {
+            $previous = $this->agentTrunks->getStoredById($id);
+            if (!$previous) {
+                throw new \RuntimeException('Agent trunk not found');
+            }
+            $this->agentTrunks->update($id, $input);
+            try {
+                $stored = $this->agentTrunks->getStoredById($id);
+                $this->agentTrunks->resolveProviderApiKey($stored);
+                (new AgentTrunkProvisioner())->updateManagedTrunk($stored, $previous);
+            } catch (\Throwable $error) {
+                try {
+                    $this->restoreAgentTrunk($id, $previous);
+                } catch (\Throwable $restoreError) {
+                    throw new \RuntimeException(
+                        'Agent trunk update failed and metadata restore failed: ' . $restoreError->getMessage(),
+                        0,
+                        $error
+                    );
+                }
+                throw $error;
+            }
+        }
+        needreload();
+        return (int) $id;
+    }
+
     private function restoreAgentTrunk($id, array $previous) {
         $crypto = new AgentCrypto();
         $restore = array(
@@ -302,18 +299,10 @@ class Satellite extends \FreePBX_Helpers implements \BMO
             $_POST['fallback_destination'] = $fallback;
             $input = array(
                 'cleverai_trunk_id' => isset($_POST['cleverai_trunk_id']) ? $_POST['cleverai_trunk_id'] : null,
-                'cleverai_flow' => isset($_POST['cleverai_flow']) ? trim($_POST['cleverai_flow']) : '',
+                'cleverai_flow' => isset($_POST['cleverai_flow']) ? $_POST['cleverai_flow'] : '',
                 'fallback_destination' => $fallback
             );
-            if ($id === null) {
-                $id = $this->agentDestinations->create($input);
-            } else {
-                if ($this->fallbackReaches($id, $input['fallback_destination'])) {
-                    throw new \InvalidArgumentException('A destination cannot fall back to itself, directly or through other destinations');
-                }
-                $this->agentDestinations->update($id, $input);
-            }
-            needreload();
+            $this->saveAgentDestination($input, $id);
             $this->agentPageNotice = 'Agent destination saved';
         } elseif ($action === 'delete') {
             if ($id === null) {
@@ -328,6 +317,79 @@ class Satellite extends \FreePBX_Helpers implements \BMO
             needreload();
             $this->agentPageNotice = 'Agent destination deleted';
         }
+    }
+
+    /** Validate an Agent destination, including editability for an existing ID. */
+    public function validateAgentDestination(array $input, $id = null) {
+        if ($id !== null) {
+            $stored = $this->agentDestinations->getById($id);
+            if (!$stored || (int) $stored['system_managed'] !== 0 || $stored['agent_type'] !== 'cleverai') {
+                throw new \RuntimeException('Editable CleverAI destination not found');
+            }
+            $input = array_merge($stored, $input);
+        }
+        foreach (array('cleverai_flow', 'fallback_destination') as $field) {
+            if (isset($input[$field]) && is_string($input[$field])) {
+                $input[$field] = trim($input[$field]);
+            }
+        }
+        return $this->agentDestinations->validateInput($input);
+    }
+
+    public function saveAgentDestination(array $input, $id = null) {
+        if ($id !== null) {
+            $this->saveAgentDestinationBatch(array($id => $input));
+            return (int) $id;
+        }
+        $normalized = $this->validateAgentDestination($input);
+        $id = $this->agentDestinations->create($normalized);
+        needreload();
+        return (int) $id;
+    }
+
+    /** Check changed destinations against the full stored graph before updating any row. */
+    public function saveAgentDestinationBatch(array $changes) {
+        if (!$changes) {
+            return;
+        }
+        $this->db->beginTransaction();
+        try {
+            $fallbacks = array();
+            foreach ($this->agentDestinations->listAll() as $destination) {
+                $fallbacks[(int) $destination['id']] = $destination['fallback_destination'];
+            }
+            $validated = array();
+            foreach ($changes as $id => $input) {
+                if (filter_var($id, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1))) === false
+                    || !is_array($input)) {
+                    throw new \InvalidArgumentException('Invalid Agent destination change');
+                }
+                $id = (int) $id;
+                $validated[$id] = $this->validateAgentDestination($input, $id);
+                $fallbacks[$id] = $validated[$id]['fallback_destination'];
+            }
+            foreach ($validated as $id => $input) {
+                $fallback = $fallbacks[$id];
+                $seen = array($id => true);
+                while (is_string($fallback) &&
+                    preg_match('/^satellite-agent-destination-([0-9]+),s,1$/D', $fallback, $match)) {
+                    $next = (int) $match[1];
+                    if (isset($seen[$next])) {
+                        throw new \InvalidArgumentException('A destination cannot fall back to itself, directly or through other destinations');
+                    }
+                    $seen[$next] = true;
+                    $fallback = isset($fallbacks[$next]) ? $fallbacks[$next] : null;
+                }
+            }
+            foreach ($validated as $id => $input) {
+                $this->agentDestinations->update($id, $input);
+            }
+            $this->db->commit();
+        } catch (\Throwable $error) {
+            $this->db->rollBack();
+            throw $error;
+        }
+        needreload();
     }
 
     public function showAgentsPage($defaultTab = 'destinations') {

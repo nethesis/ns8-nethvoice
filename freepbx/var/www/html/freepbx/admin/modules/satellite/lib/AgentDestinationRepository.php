@@ -111,7 +111,7 @@ class AgentDestinationRepository
         return $statement->rowCount();
     }
 
-    private function validateInput(array $input)
+    public function validateInput(array $input)
     {
         if (isset($input['agent_type']) && $input['agent_type'] !== 'cleverai') {
             throw new \InvalidArgumentException('Phase 1 supports CleverAI destinations only');
