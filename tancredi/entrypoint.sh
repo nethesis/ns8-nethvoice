@@ -7,7 +7,7 @@
 
 cat > /etc/tancredi.conf <<EOF
 [config]
-loglevel = "DEBUG"
+loglevel = "${TANCREDI_LOG_LEVEL:-WARNING}"
 logfile = "php://stderr"
 
 rw_dir = "/var/lib/tancredi/data/"
