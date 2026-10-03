@@ -1,0 +1,10 @@
+[Unit]
+Description=Synchronize built-in Agent configuration with Satellite
+After=freepbx.service satellite.service
+
+[Service]
+Type=oneshot
+ExecCondition=/usr/bin/systemctl --user --quiet is-active freepbx.service
+ExecCondition=/usr/bin/systemctl --user --quiet is-active satellite.service
+ExecStart=/usr/bin/podman exec freepbx php /var/www/html/freepbx/admin/modules/satellite/bin/satellite_agent_sync
+SyslogIdentifier=%u/%N

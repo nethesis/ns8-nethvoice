@@ -144,6 +144,10 @@ if os.getenv('PHONEBOOK_EXPORT_EXTENSIONS') is None:
 # Add satellite environment for updates
 if os.getenv('SATELLITE_ARI_APP') is None:
     agent.set_env('SATELLITE_ARI_APP', 'satellite')
+if os.getenv('SATELLITE_AGENT_ARI_APP') is None:
+    agent.set_env('SATELLITE_AGENT_ARI_APP', 'satellite-agent')
+if os.getenv('SATELLITE_CALL_TRANSCRIPTION_ENABLED') is None:
+    agent.set_env('SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'False')
 if os.getenv('SATELLITE_ARI_USERNAME') is None:
     agent.set_env('SATELLITE_ARI_USERNAME', 'satellite')
 if os.getenv('SATELLITE_MQTT_USERNAME') is None:

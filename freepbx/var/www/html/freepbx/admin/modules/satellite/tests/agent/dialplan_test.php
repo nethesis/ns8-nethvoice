@@ -70,6 +70,16 @@ function agent_dialplan_has($entries, $class, array $arguments)
 
 require_once __DIR__ . '/../../functions.inc.php';
 
+// FreePBX ext_stasis($app_name, $args = '') always inserts a comma between
+// the two parameters. Putting args into the first parameter adds an extra
+// empty argument, which the runtime correctly rejects during admission.
+$dialplanSource = file_get_contents(__DIR__ . '/../../functions.inc.php');
+agent_dialplan_assert(strpos($dialplanSource, "new ext_stasis('satellite-agent', 'caller,'") !== false,
+    'Built-in Stasis must use the native application/arguments contract');
+agent_dialplan_assert(strpos($dialplanSource, '${CHANNEL(endpoint)}') !== false
+    && strpos($dialplanSource, '${CHANNEL(pjsip,endpoint)}') === false,
+    'Internal provenance must use the installed Asterisk endpoint function');
+
 FreePBX::$satellite = new AgentDialplanSatellite();
 for ($id = 1; $id <= 20; ++$id) {
     FreePBX::$satellite->destinations[] = array(
@@ -98,7 +108,10 @@ agent_dialplan_assert(satellite_getdest(12) === array('satellite-agent-destinati
     'Native destination key must be stable');
 agent_dialplan_assert(count(satellite_check_destinations(array('app-blackhole,hangup,1'))) === 20,
     'Fallback references must be advertised');
-agent_dialplan_assert(count($ext->entries) === 21, 'Twenty destinations and one header context expected');
+agent_dialplan_assert(count($ext->entries) === 24, 'Twenty destinations and four shared Agent contexts expected');
+foreach (array('satellite-agent-provider', 'satellite-agent-handoff', 'satellite-agent-end') as $context) {
+    agent_dialplan_assert(isset($ext->entries[$context]), 'Shared Agent context missing: ' . $context);
+}
 agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-1'],
     'ext_set', array('__AGENT_FLOW', 'flow_1')), 'First destination flow missing');
 agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-2'],
@@ -115,8 +128,11 @@ agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-add-head
     'ext_set', array('PJSIP_HEADER(add,X-OS-FLOW)', '${AGENT_FLOW}')),
     'Per-destination flow header missing');
 agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-add-headers'],
-    'ext_set', array('PJSIP_HEADER(add,X-OS-Session-ID)', '${CHANNEL(linkedid)}')),
+    'ext_set', array('PJSIP_HEADER(add,X-OS-Session-ID)', '${AGENT_SESSION_ID}')),
     'Session header missing');
+agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-1'],
+    'ext_set', array('__AGENT_SESSION_ID', '${CHANNEL(linkedid)}')),
+    'CleverAI linkedid session identity missing');
 agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-add-headers'],
     'ext_set', array('PJSIP_HEADER(add,isTrunk)', '1')),
     'Trunk header missing');

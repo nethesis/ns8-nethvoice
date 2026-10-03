@@ -112,11 +112,17 @@ function satellite_agent_destination_key($id) {
     return 'satellite-agent-destination-' . (int) $id . ',s,1';
 }
 
+function satellite_agent_edit_url($row) {
+    if (!empty($row['system_managed']) && in_array($row['agent_type'], array('builtin_internal', 'builtin_external'), true)) {
+        return 'config.php?display=satellite_agents&tab=' . ($row['agent_type'] === 'builtin_internal' ? 'internal' : 'external');
+    }
+    return 'config.php?display=satellite_agents&view=form&id=' . (int) $row['id'];
+}
+
 /** A destination whose flow is invalid never gets a dialplan context. */
 function satellite_agent_destination_valid($row) {
-    if ($row['agent_type'] !== 'cleverai') {
-        return false;
-    }
+    if (in_array($row['agent_type'], array('builtin_internal', 'builtin_external'), true)) { return true; }
+    if ($row['agent_type'] !== 'cleverai') { return false; }
     try {
         AgentValidation::validateFlow($row['cleverai_flow']);
     } catch (\InvalidArgumentException $error) {
@@ -132,7 +138,7 @@ function satellite_destinations() {
             $result[] = array(
                 'destination' => satellite_agent_destination_key($row['id']),
                 'description' => $row['freepbx_name'],
-                'edit_url' => 'config.php?display=satellite_agents&view=form&id=' . (int) $row['id']
+                'edit_url' => satellite_agent_edit_url($row)
             );
         }
     }
@@ -153,7 +159,7 @@ function satellite_getdestinfo($dest) {
     }
     return array(
         'description' => 'Agent: ' . $row['freepbx_name'],
-        'edit_url' => 'config.php?display=satellite_agents&view=form&id=' . (int) $row['id']
+        'edit_url' => satellite_agent_edit_url($row)
     );
 }
 
@@ -170,8 +176,17 @@ function satellite_check_destinations($dest = true) {
         $result[] = array(
             'dest' => $fallback,
             'description' => 'Agent: ' . $row['freepbx_name'] . ' fallback',
-            'edit_url' => 'config.php?display=satellite_agents&view=form&id=' . (int) $row['id']
+            'edit_url' => satellite_agent_edit_url($row)
         );
+    }
+    if (method_exists(FreePBX::Satellite(), 'getAgentProfiles')) {
+        foreach (FreePBX::Satellite()->getAgentProfiles() as $profile) {
+            $fallback = $profile['fallback_destination'];
+            if ($fallback === null || $fallback === '' || ($dest !== true && !in_array($fallback, (array) $dest, true))) { continue; }
+            $result[] = array('dest' => $fallback,
+                'description' => 'Agent: ' . ucfirst($profile['profile_key']) . ' fallback',
+                'edit_url' => 'config.php?display=satellite_agents&tab=' . $profile['profile_key']);
+        }
     }
     return $result;
 }
@@ -203,10 +218,29 @@ function satellite_generate_agent_dialplan() {
         $trunks[(int) $trunk['id']] = $trunk;
     }
 
+    $profiles = array();
+    $routingHash = '';
+    foreach ($destinations as $row) {
+        if (in_array($row['agent_type'], array('builtin_internal', 'builtin_external'), true)) {
+            require_once __DIR__ . '/lib/AgentConfigurationBuilder.php';
+            foreach ((new AgentProfileRepository(FreePBX::Database()))->listAll() as $profile) {
+                $profiles[$profile['profile_key']] = $profile;
+            }
+            try {
+                $builder = new AgentConfigurationBuilder(FreePBX::create());
+                $routingHash = $builder->envelope()->payload_hash;
+                $builder->synchronize();
+            } catch (\Throwable $error) {
+                function_exists('freepbx_log') && freepbx_log(FPBX_LOG_WARNING, 'Satellite Agent synchronization pending');
+            }
+            break;
+        }
+    }
     $headers = 'satellite-agent-add-headers';
     $ext->add($headers, 's', '', new ext_noop('Add headers to Agent SIP leg'));
     $ext->add($headers, 's', '', new ext_set('__AGENT_CALLED_NUMBER', '${AGENT_ORIGINAL_DID}'));
     $ext->add($headers, 's', '', new ext_execif('$["${AGENT_CALLED_NUMBER}"=""]', 'Set', '__AGENT_CALLED_NUMBER=${AGENT_EXTENSION}'));
+    $ext->add($headers, 's', '', new ext_execif('$["${AGENT_SESSION_ID}"=""]', 'Set', '__AGENT_SESSION_ID=${CHANNEL(linkedid)}'));
     foreach (array(
         'X-OS-Caller' => '${AGENT_ORIGINAL_CALLER}',
         'X-OS-Caller-Name' => '${AGENT_ORIGINAL_CALLER_NAME}',
@@ -214,12 +248,46 @@ function satellite_generate_agent_dialplan() {
         'X-OS-Extension' => '${AGENT_EXTENSION}',
         'X-OS-FLOW' => '${AGENT_FLOW}',
         'X-OS-Agent-ID' => '${AGENT_DESTINATION_ID}',
-        'X-OS-Session-ID' => '${CHANNEL(linkedid)}',
+        'X-OS-Session-ID' => '${AGENT_SESSION_ID}',
+        'X-OS-Provider-Leg-ID' => '${AGENT_PROVIDER_LEG_ID}',
+        'X-OS-Agent-Role' => '${AGENT_ROLE}',
+        'X-OS-Destination-ID' => '${AGENT_DESTINATION_ID}',
         'isTrunk' => '1'
     ) as $name => $value) {
         $ext->add($headers, 's', '', new ext_set('PJSIP_HEADER(add,' . $name . ')', $value));
     }
     $ext->add($headers, 's', '', new ext_return());
+
+    // The Local provider leg uses only values set by the authenticated runtime.
+    $ext->add('satellite-agent-provider', '_!', '', new ext_dial(
+        'PJSIP/${AGENT_PROVIDER_TRUNK}/sip:${AGENT_PROVIDER_USER}@${AGENT_PROVIDER_HOST}:5061\\;transport=tls,',
+        'b(satellite-agent-add-headers^s^1)'));
+    $ext->add('satellite-agent-provider', '_!', '', new ext_hangup());
+
+    // Release the PBX-side safety timeout before leaving Agent ownership.
+    // Targets come from native resources; the provider never supplies dialplan.
+    $handoff = 'satellite-agent-handoff';
+    $ext->add($handoff, 's', '', new ext_set('TIMEOUT(absolute)', '0'));
+    $ext->add($handoff, 's', '', new ext_gotoif('$["${AGENT_HANDOFF_ATTEMPT_ID}"="" | "${AGENT_SESSION_ID}"=""]', 'invalid'));
+    if ($profiles) {
+        $handoffResources = (new AgentContextSource(FreePBX::create()))->directory();
+        foreach ($handoffResources as $resource) {
+            $label = 'target-' . str_replace(':', '-', $resource['id']);
+            $ext->add($handoff, 's', '', new ext_gotoif('$["${AGENT_HANDOFF_TARGET_ID}"="' . $resource['id'] . '"]', $label));
+        }
+        $ext->add($handoff, 's', '', new ext_goto('invalid'));
+        foreach ($handoffResources as $resource) {
+            $target = $resource['target'];
+            $label = 'target-' . str_replace(':', '-', $resource['id']);
+            $ext->add($handoff, 's', $label, new ext_set('__AGENT_ROLE', 'released'));
+            $ext->add($handoff, 's', '', new ext_set('__AGENT_SESSION_ID', ''));
+            $ext->add($handoff, 's', '', new ext_goto($target['priority'], $target['exten'], $target['context']));
+        }
+    }
+    $ext->add($handoff, 's', 'invalid', new ext_hangup());
+    // ARI continue requires Stasis ownership; ARI DELETE does not. Complete an
+    // owned conversation through this context to avoid deleting a released leg.
+    $ext->add('satellite-agent-end', 's', '', new ext_hangup());
 
     foreach ($destinations as $row) {
         if (empty($row['enabled']) || !satellite_agent_destination_valid($row)) {
@@ -230,14 +298,45 @@ function satellite_generate_agent_dialplan() {
         $trunk = isset($trunks[(int) $row['cleverai_trunk_id']]) ? $trunks[(int) $row['cleverai_trunk_id']] : null;
         $ext->add($context, 's', '', new ext_noop('Satellite Agent destination ' . $row['freepbx_name']));
         $ext->add($context, 's', '', new ext_set('__AGENT_DESTINATION_ID', (int) $row['id']));
-        $ext->add($context, 's', '', new ext_set('__AGENT_TYPE', 'cleverai'));
-        $ext->add($context, 's', '', new ext_set('__AGENT_FLOW', $row['cleverai_flow']));
+        $builtin = $row['agent_type'] !== 'cleverai';
+        $profileKey = $row['agent_type'] === 'builtin_internal' ? 'internal' : 'external';
+        $profile = $builtin && isset($profiles[$profileKey]) ? $profiles[$profileKey] : null;
+        $ext->add($context, 's', '', new ext_set('__AGENT_TYPE', $row['agent_type']));
+        $ext->add($context, 's', '', new ext_set('__AGENT_FLOW', $builtin ? ucfirst($profileKey) : $row['cleverai_flow']));
         $ext->add($context, 's', '', new ext_set('__AGENT_ORIGINAL_CALLER', '${CALLERID(num)}'));
         $ext->add($context, 's', '', new ext_set('__AGENT_ORIGINAL_CALLER_NAME', '${CALLERID(name)}'));
         $ext->add($context, 's', '', new ext_set('__AGENT_ORIGINAL_DID', '${FROM_DID}'));
         $ext->add($context, 's', '', new ext_set('__AGENT_EXTENSION', ''));
 
-        if ($trunk && !empty($trunk['enabled']) &&
+        if ($builtin) {
+            $ext->add($context, 's', '', new ext_set('__AGENT_ROLE', 'caller'));
+            $ext->add($context, 's', '', new ext_set('__AGENT_SESSION_ID', ''));
+            $ext->add($context, 's', '', new ext_set('__AGENT_PROVIDER_LEG_ID', ''));
+            $ext->add($context, 's', '', new ext_set('AGENT_HANDOFF_ATTEMPT_ID', ''));
+            $ext->add($context, 's', '', new ext_set('AGENT_HANDOFF_TARGET_ID', ''));
+            $ext->add($context, 's', '', new ext_set('__AGENT_LINKEDID', '${CHANNEL(linkedid)}'));
+            $ext->add($context, 's', '', new ext_set('__AGENT_ROUTING_REVISION', $routingHash));
+            // Only a directly authenticated configured endpoint can establish internal origin.
+            // Forwarded, Local and trunk calls retain the external permission ceiling.
+            $ext->add($context, 's', '', new ext_set('__AGENT_CALL_ORIGIN', 'external'));
+            foreach (FreePBX::Core()->listUsers(false) as $user) {
+                if (!isset($user[0]) || !preg_match('/^[0-9]+$/D', (string) $user[0])) { continue; }
+                $condition = '$["${CHANNEL(channeltype)}"="PJSIP" & "${CHANNEL(endpoint)}"="' . $user[0] . '" & "${FROM_DID}"=""]';
+                $ext->add($context, 's', '', new ext_execif($condition, 'Set', '__AGENT_CALL_ORIGIN=internal'));
+                $ext->add($context, 's', '', new ext_execif($condition, 'Set', '__AGENT_EXTENSION=' . $user[0]));
+            }
+            $ext->add($context, 's', '', new ext_set('AGENT_EXIT_REASON', 'fallback'));
+            $ext->add($context, 's', '', new ext_set('TIMEOUT(absolute)', '30'));
+            $ext->add($context, 's', '', new ext_stasis('satellite-agent', 'caller,' . (int) $row['id'] . ',' . $row['agent_type']));
+            $ext->add($context, 's', '', new ext_set('TIMEOUT(absolute)', '0'));
+            $ext->add($context, 's', '', new ext_gotoif('$["${AGENT_EXIT_REASON}"!="fallback"]', 'end'));
+        } else {
+            $ext->add($context, 's', '', new ext_set('__AGENT_SESSION_ID', '${CHANNEL(linkedid)}'));
+            $ext->add($context, 's', '', new ext_set('__AGENT_PROVIDER_LEG_ID', ''));
+            $ext->add($context, 's', '', new ext_set('__AGENT_ROLE', ''));
+        }
+        if (!$builtin && $trunk && !empty($trunk['enabled']) &&
+            (!isset($trunk['runtime_owner']) || $trunk['runtime_owner'] === 'cleverai') &&
             preg_match('/^AgentTrunk_[0-9]+$/D', (string) $trunk['freepbx_trunk_name'])) {
             try {
                 $user = $trunk['provider'] === 'openai'
@@ -259,7 +358,7 @@ function satellite_generate_agent_dialplan() {
         }
 
         try {
-            $fallback = AgentValidation::validateFallback($row['fallback_destination']);
+            $fallback = AgentValidation::validateFallback($builtin && $profile && empty($row['fallback_destination']) ? $profile['fallback_destination'] : $row['fallback_destination']);
         } catch (\InvalidArgumentException $error) {
             $fallback = null;
         }

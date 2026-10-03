@@ -18,10 +18,18 @@ on:
         required: false
         type: string
         default: ""
+      satellite-image:
+        description: "Verified Satellite digest for a module-only build."
+        required: false
+        type: string
+        default: ""
     outputs:
       images:
         description: "Built image names without tags"
         value: ${{ jobs.build-images.outputs.images }}
+      satellite-image:
+        description: "Published Satellite image pinned by digest"
+        value: ${{ jobs.build-images.outputs.satellite-image }}
     secrets:
       netrcb64:
         description: "Netrc Base64-encoded file content for authenticated downloads"
@@ -37,9 +45,11 @@ jobs:
     runs-on: ${{ inputs.runner-version }}
     outputs:
       images: ${{ steps.build.outputs.images }}
+      satellite-image: ${{ steps.publish.outputs.satellite-image }}
     env:
       IMAGETAG: ${{ inputs.imagetag }}
       BUILD_IMAGES: ${{ inputs.build-images }}
+      SATELLITE_BASE_IMAGE: ${{ inputs.satellite-image }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -49,6 +59,26 @@ jobs:
         with:
           path: ui/node_modules
           key: "yarn-${{ hashFiles('ui/yarn.lock') }}"
+
+      - name: Select coordinated Satellite source
+        id: satellite
+        if: inputs.build-images == '' || contains(format(',{0},', inputs.build-images), ',satellite,') || contains(format(',{0},', inputs.build-images), ',nethvoice-satellite,') || inputs.build-images == 'all'
+        run: |
+          satellite_ref=$(cat satellite/runtime-ref)
+          [[ "$satellite_ref" =~ ^[0-9a-f]{40}$ ]]
+          echo "ref=$satellite_ref" >> "$GITHUB_OUTPUT"
+
+      - name: Check out pinned Satellite runtime
+        if: steps.satellite.outputs.ref != ''
+        uses: actions/checkout@v6
+        with:
+          repository: Nethesis/satellite
+          ref: ${{ steps.satellite.outputs.ref }}
+          path: .satellite-source
+
+      - name: Configure Satellite build context
+        if: steps.satellite.outputs.ref != ''
+        run: echo "SATELLITE_SOURCE_DIR=$GITHUB_WORKSPACE/.satellite-source" >> "$GITHUB_ENV"
 
       - name: Prepare image environment
         run: |
@@ -77,12 +107,16 @@ jobs:
           bash build-images.sh
 
       - name: Publish module images
+        id: publish
         run: |
           trap 'buildah logout ghcr.io' EXIT
           images=(${{ steps.build.outputs.images }})
           urls=""
           for image in "${images[@]}" ; do
-            buildah push "${image}" "docker://${image}:${IMAGETAG}"
+            buildah push --digestfile image-digest.txt "${image}" "docker://${image}:${IMAGETAG}"
+            if [[ "${image}" == */nethvoice-satellite ]]; then
+              echo "satellite-image=${image}@$(cat image-digest.txt)" >> "$GITHUB_OUTPUT"
+            fi
             if [[ "${IMAGETAG}" == "main" || "${IMAGETAG}" == "master" ]]; then
               buildah push "${image}" "docker://${image}:latest"
             fi

@@ -90,9 +90,7 @@ if (class_exists('Satellite') && method_exists('Satellite', 'getAgentDestination
             }
         }
         foreach ($satellite->getAgentDestinations() as $agent) {
-            if ($agent['agent_type'] === 'cleverai' && empty($agent['system_managed'])) {
-                $data['satellite-agent-destination'][(int) $agent['id']] = $agent;
-            }
+            $data['satellite-agent-destination'][(int) $agent['id']] = $agent;
         }
     } catch (\Throwable $error) {
         // An unavailable optional module must not prevent other routes from opening.

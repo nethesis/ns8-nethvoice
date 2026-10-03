@@ -2,7 +2,11 @@
 
 # reload systemd changes
 systemctl --user daemon-reload
+systemctl --user enable satellite.service satellite-agent-sync.timer
 
 # launch background tasks that restart freepbx only if there aren't any calls in progress
 echo "Restarting FreePBX, Janus, NethCTI and Middleware server when there are no active calls"
 restart-services-when-convenient mariadb freepbx janus nethcti-server nethcti-middleware nethcti-ui phonebook reports-api reports-redis reports-ui tancredi satellite satellite-mqtt satellite-pgsql
+
+# Start a previously-disabled Agent only after the PBX restart has completed.
+systemctl --user start satellite.service satellite-agent-sync.timer

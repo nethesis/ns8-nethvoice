@@ -52,18 +52,28 @@ class NethvplanAgentGraph
                     throw new InvalidArgumentException('Invalid agent destination ID');
                 }
                 $id = (int) $id;
+                if (!isset($this->stored[$id])) {
+                    throw new InvalidArgumentException('Agent destination not found');
+                }
                 if (isset($persistentIds[$id])) {
                     throw new InvalidArgumentException('An agent must be represented by a single block');
                 }
                 $persistentIds[$id] = true;
             }
-            $input = $satellite->validateAgentDestination(array(
-                'cleverai_trunk_id' => $data['cleverai_trunk_id'] ?? null,
-                'cleverai_flow' => $data['cleverai_flow'] ?? '',
-                'fallback_destination' => $id === null ? null : ($this->stored[$id]['fallback_destination'] ?? null),
+            $stored = $id === null ? null : $this->stored[$id];
+            $protected = $stored !== null && !empty($stored['system_managed']);
+            if ($protected && !empty($data['fallback_touched'])) {
+                throw new InvalidArgumentException('System Agent destinations are reference only');
+            }
+            $input = $protected ? null : $satellite->validateAgentDestination(array(
+                'agent_type' => $stored['agent_type'] ?? ($data['agent_type'] ?? 'cleverai'),
+                'cleverai_trunk_id' => $stored['cleverai_trunk_id'] ?? ($data['cleverai_trunk_id'] ?? null),
+                'cleverai_flow' => $stored['cleverai_flow'] ?? ($data['cleverai_flow'] ?? ''),
+                'fallback_destination' => $stored['fallback_destination'] ?? null,
             ), $id);
             $this->agents[$node] = array(
                 'widget' => $widget, 'id' => $id, 'input' => $input,
+                'protected' => $protected,
                 'touched' => $id === null || ($data['fallback_touched'] ?? false) === true,
             );
         }
@@ -71,6 +81,9 @@ class NethvplanAgentGraph
             $node = $connection['source']['node'] ?? '';
             if (!isset($this->agents[$node])) {
                 continue;
+            }
+            if ($this->agents[$node]['protected']) {
+                throw new InvalidArgumentException('System Agent destinations are reference only');
             }
             $suffix = explode('%', $node, 2)[1];
             $target = $connection['target']['node'] ?? '';
@@ -105,6 +118,9 @@ class NethvplanAgentGraph
             $next['id:' . $id] = $this->fallbackKey($row['fallback_destination']);
         }
         foreach ($this->agents as $node => $agent) {
+            if ($agent['protected']) {
+                continue;
+            }
             $target = $this->edges[$node] ?? null;
             $key = $this->key($node);
             if (!$agent['touched']) {
@@ -135,6 +151,10 @@ class NethvplanAgentGraph
     public function allocate()
     {
         foreach ($this->agents as $node => $agent) {
+            if ($agent['protected']) {
+                $this->ids[$node] = $agent['id'];
+                continue;
+            }
             if (isset($this->ids[$node])) {
                 continue;
             }
@@ -157,6 +177,9 @@ class NethvplanAgentGraph
     {
         $changes = array();
         foreach ($this->agents as $node => $agent) {
+            if ($agent['protected']) {
+                continue;
+            }
             $input = $agent['input'];
             if ($agent['touched']) {
                 $input['fallback_destination'] = isset($this->edges[$node])
@@ -189,19 +212,24 @@ function nethvplan_agent_widget(array $agent, array $trunks, array $labels)
 {
     $id = (int) $agent['id'];
     $node = 'satellite-agent-destination%' . $id;
-    $trunk = $trunks[$agent['cleverai_trunk_id']] ?? array();
+    $type = $agent['agent_type'] ?? 'cleverai';
+    $builtin = $type === 'builtin_internal' || $type === 'builtin_external';
+    $trunk = $trunks[$agent['cleverai_trunk_id'] ?? null] ?? array();
+    $flow = $builtin ? ($type === 'builtin_internal' ? 'Internal' : 'External') : ($agent['cleverai_flow'] ?? '');
+    $typeLabel = $builtin ? ($type === 'builtin_internal' ? 'Builtin Internal' : 'Builtin External') : 'CleverAI';
     return array(
         'type' => 'Base', 'id' => $node, 'radius' => 0, 'bgColor' => '#528ba7',
         'name' => $labels['base_agent_string'],
         'userData' => array(
-            'id' => $id, 'cleverai_trunk_id' => (int) $agent['cleverai_trunk_id'],
+            'id' => $id, 'agent_type' => $type, 'system_managed' => !empty($agent['system_managed']),
+            'cleverai_trunk_id' => $agent['cleverai_trunk_id'] === null ? null : (int) $agent['cleverai_trunk_id'],
             'cleverai_flow' => $agent['cleverai_flow'],
             'fallback_destination' => $agent['fallback_destination'], 'fallback_touched' => false,
         ),
         'entities' => array(
             array('text' => $agent['freepbx_name'], 'id' => $node, 'type' => 'input'),
-            array('text' => $labels['view_agent_flow_string'] . ': ' . $agent['cleverai_flow'], 'id' => 'agent_flow%' . $id, 'type' => 'text'),
-            array('text' => $labels['view_agent_trunk_string'] . ': ' . ($trunk['name'] ?? ''), 'id' => 'agent_trunk%' . $id, 'type' => 'text'),
+            array('text' => ($builtin ? $typeLabel : $labels['view_agent_flow_string']) . ': ' . $flow, 'id' => 'agent_flow%' . $id, 'type' => 'text'),
+            array('text' => $labels['view_agent_trunk_string'] . ': ' . ($builtin ? $typeLabel : ($trunk['name'] ?? '')), 'id' => 'agent_trunk%' . $id, 'type' => 'text'),
             array('text' => $labels['base_agent_fallback_string'], 'id' => 'agent_fallback%' . $id, 'type' => 'output', 'destination' => $agent['fallback_destination'] ?? ''),
         ),
     );

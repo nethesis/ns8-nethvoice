@@ -33,6 +33,13 @@ $csrfField = isset($csrfField) ? $csrfField : (
                     <option value="grok"<?php echo $provider === 'grok' ? ' selected' : ''; ?>>Grok</option>
                 </select></div>
             </div></div></div>
+            <div class="element-container"><div class="row"><div class="form-group">
+                <label class="control-label col-md-3" for="satellite-trunk-runtime"><?php echo $escape(_('Runtime')); ?></label>
+                <div class="col-md-9"><select class="form-control" id="satellite-trunk-runtime" name="runtime_owner"<?php echo $editing ? ' disabled' : ''; ?>>
+                    <option value="cleverai"<?php echo !isset($form['runtime_owner']) || $form['runtime_owner'] === 'cleverai' ? ' selected' : ''; ?>><?php echo $escape(_('CleverAI')); ?></option>
+                    <option value="builtin"<?php echo isset($form['runtime_owner']) && $form['runtime_owner'] === 'builtin' ? ' selected' : ''; ?>><?php echo $escape(_('Builtin Satellite')); ?></option>
+                </select><?php if ($editing): ?><input type="hidden" name="runtime_owner" value="<?php echo $escape(isset($form['runtime_owner']) ? $form['runtime_owner'] : 'cleverai'); ?>"><?php endif; ?><p class="help-block"><?php echo $escape(_('Use a separate provider project or number for each runtime.')); ?></p></div>
+            </div></div></div>
             <fieldset class="satellite-provider-settings" data-provider="openai">
                 <legend><?php echo $escape(_('OpenAI settings')); ?></legend>
                 <div class="element-container"><div class="row"><div class="form-group">
@@ -79,7 +86,7 @@ $csrfField = isset($csrfField) ? $csrfField : (
                     <p class="help-block"><?php echo $escape($editing ? _('Leave blank to keep the existing key. OpenAI can use OPENAI_API_KEY from the environment.') : _('Grok requires a key. OpenAI can use OPENAI_API_KEY from the environment.')); ?></p>
                 </div>
             </div></div></div>
-            <p class="help-block"><?php echo $escape(_('Runtime: CleverAI. Webhook: CLEVERAI_WEBHOOK (read-only).')); ?></p>
+            <p class="help-block"><?php echo $escape(_('Configure built-in webhook signing secrets on the Webhooks page.')); ?></p>
             <p><a href="config.php?display=satellite_agents&amp;tab=trunks"><?php echo $escape(_('Back to trunks')); ?></a></p>
         </form>
         <script>
@@ -120,7 +127,7 @@ $csrfField = isset($csrfField) ? $csrfField : (
                     <td><?php echo $escape(isset($trunk['name']) ? $trunk['name'] : ''); ?></td>
                     <td><?php echo $escape($type === 'openai' ? 'OpenAI' : ($type === 'grok' ? 'Grok' : $type)); ?></td>
                     <td><?php echo $escape($remote); ?></td>
-                    <td><?php echo $escape(_('CleverAI')); ?></td>
+                    <td><?php echo $escape(isset($trunk['runtime_owner']) && $trunk['runtime_owner'] === 'builtin' ? _('Builtin Satellite') : _('CleverAI')); ?></td>
                     <td><?php echo $escape(isset($trunk['status']) ? $trunk['status'] : _('Configured')); ?></td>
                     <td>
                         <a class="btn btn-default btn-sm" href="config.php?display=satellite_agents&amp;tab=trunks&amp;view=form&amp;id=<?php echo $id; ?>"><?php echo $escape(_('Edit')); ?></a>

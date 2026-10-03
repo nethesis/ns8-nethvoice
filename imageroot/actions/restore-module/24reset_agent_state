@@ -1,0 +1,15 @@
+#!/bin/sh
+# The Agent cache contains only a revision and payload hash. Rehydrate it from
+# FreePBX after restore; a retained local volume may refer to the old instance.
+set -e
+exec 1>&2
+
+systemctl --user stop satellite.service || true
+if podman volume exists satellite_agent_state; then
+    podman volume rm --force satellite_agent_state
+else
+    result=$?
+    # Missing is normal; an inspection failure must not preserve an older
+    # watermark and silently break the restored instance's synchronization.
+    [ "$result" -eq 1 ] || exit "$result"
+fi
