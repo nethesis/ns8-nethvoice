@@ -69,8 +69,9 @@ Satellite ARI user credentials, with separate Stasis application names.
 The implementation spans this NS8 repository and the Satellite Git worktree
 at `.worktrees/satellite-phase2` (branch `feat/satellite-agent-phase2`, based on
 `0.2.4`). The worktree has its own Git status/diff and is excluded from the NS8
-repository's tracked files. Both sets of source changes need review and their
-coordinated images need building before deployment.
+repository's tracked files. Both sets of source changes are committed and
+pushed; the coordinated `agent` images are built remotely and deployed to the
+test instance.
 
 Remote CI checks out the exact Satellite commit in `satellite/runtime-ref`.
 It builds and publishes that runtime in a dedicated job, then passes its
@@ -100,7 +101,7 @@ result is observed without repeating continuation or issuing ARI DELETE against
 the caller. A still-owned failed handoff ends at the PBX safety timeout; normal
 human routing keeps its normal timeout behavior.
 
-The focused validation suites pass: 20 Python tests and 9 PHP suites. Coordinated
+The focused validation suites pass: 21 Python tests and 9 PHP suites. Coordinated
 images were built from the exact installed bases and deployed through the NS8
 `update-module` action to `nethvoice51` on `makako.sf.nethserver.net`.
 Live tests covered signed OpenAI Realtime calls, audio, native company/calendar/
@@ -108,7 +109,9 @@ directory tools, basic human handoff, default-deny External handoff, HTTP
 contracts, and Playwright forms and responsive rendering. See
 [the deployment test report](phase2-test-report.md) for evidence and remaining
 validation limits. The `agent` branch publishes the coordinated development
-images; deployment validation of that build is recorded separately.
+images. See [the CI acceptance report](phase2-ci-test-report.md) for the
+published digests, full 118-test runtime suite, final deployment, Playwright
+checks, controlled sample-company voice tests, and remaining human checks.
 
 The canonical built-in webhook is
 `https://<NETHVOICE_HOST>/freepbx/satellite/index.php`; the older
