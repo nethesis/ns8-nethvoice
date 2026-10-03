@@ -1,0 +1,12 @@
+#!/usr/bin/env php
+<?php
+try {
+    $bootstrap_settings['freepbx_error_handler'] = false;
+    define('FREEPBX_IS_AUTH', 1);
+    require_once '/etc/freepbx.conf';
+    require_once dirname(__DIR__) . '/lib/AgentConfigurationBuilder.php';
+    (new AgentConfigurationBuilder(FreePBX::create()))->synchronize();
+} catch (\Throwable $error) {
+    fwrite(STDERR, "Satellite Agent synchronization failed; retry scheduled.\n");
+    exit(1);
+}

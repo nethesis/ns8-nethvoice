@@ -88,6 +88,41 @@ if [[ -n "${IMAGETAG}" ]]; then
     IMAGETAG=$(printf '%s' "${IMAGETAG}" | tr '/' '-')
 fi
 
+# Phase 2 requires a coordinated Satellite runtime. Refuse to publish a module
+# image that would still bundle the upstream 0.2.4 transcription-only process.
+if should_build "nethvoice-satellite"; then
+    if [[ -n "${SATELLITE_SOURCE_DIR:-}" && -n "${SATELLITE_BASE_IMAGE:-}" ]] ||
+       [[ -z "${SATELLITE_SOURCE_DIR:-}" && -z "${SATELLITE_BASE_IMAGE:-}" ]]; then
+        printf 'Set exactly one of SATELLITE_SOURCE_DIR or SATELLITE_BASE_IMAGE for Phase 2 Satellite\n' >&2
+        exit 2
+    fi
+elif should_build "nethvoice"; then
+    if [[ -z "${SATELLITE_BASE_IMAGE:-}" || -n "${SATELLITE_SOURCE_DIR:-}" ]]; then
+        printf 'A module-only build requires SATELLITE_BASE_IMAGE; select nethvoice-satellite to build from SATELLITE_SOURCE_DIR\n' >&2
+        exit 2
+    fi
+fi
+
+if [[ -n "${SATELLITE_BASE_IMAGE:-}" ]]; then
+    satellite_image_name="${SATELLITE_BASE_IMAGE##*/}"
+    if [[ "${satellite_image_name}" != *:* && "${SATELLITE_BASE_IMAGE}" != *@sha256:* ]] ||
+       [[ "${SATELLITE_BASE_IMAGE}" == *:latest || "${SATELLITE_BASE_IMAGE}" == *:lts ||
+          "${SATELLITE_BASE_IMAGE}" == *:main || "${SATELLITE_BASE_IMAGE}" == *:master ||
+          "${SATELLITE_BASE_IMAGE}" == *:dev ]]; then
+        printf 'SATELLITE_BASE_IMAGE must be a reviewed, pinned image reference\n' >&2
+        exit 2
+    fi
+fi
+
+satellite_label_image="${repobase}/nethvoice-satellite:${IMAGETAG:-latest}"
+if should_build "nethvoice" && ! should_build "nethvoice-satellite"; then
+    satellite_label_image="${SATELLITE_BASE_IMAGE}"
+    satellite_check_container=$(buildah from "${SATELLITE_BASE_IMAGE}")
+    buildah run "${satellite_check_container}" -- python -c \
+        'import api, agent.api, agent.runtime, inspect, main; assert isinstance(api.agent_runtime, agent.runtime.AgentRuntime); assert "/api/agent/v1/readiness" in api.app.openapi()["paths"]; assert inspect.iscoroutinefunction(main.main) and "server.serve" in inspect.getsource(main.main)'
+    buildah rm "${satellite_check_container}"
+fi
+
 # Build NS8 Module image
 if should_build "${reponame}"; then
     start_timing "${reponame}"
@@ -97,6 +132,7 @@ if should_build "${reponame}"; then
         --jobs "$(nproc)" \
         --build-arg REPOBASE="${repobase}" \
         --build-arg IMAGETAG="${IMAGETAG:-latest}" \
+        --build-arg SATELLITE_IMAGE="${satellite_label_image}" \
         --target dist \
         --tag "${repobase}/${reponame}" \
         --tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
@@ -310,12 +346,34 @@ else
 fi
 
 ##########################
-## Satellite AI STT/TTS ##
+## Satellite API, Agent and STT/TTS ##
 ##########################
 reponame="nethvoice-satellite"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/satellite:0.2.4)
+    if [[ -n "${SATELLITE_SOURCE_DIR:-}" ]]; then
+        satellite_source=$(realpath "${SATELLITE_SOURCE_DIR}")
+        for required in Containerfile main.py requirements.txt agent/runtime.py agent/api.py; do
+            if [[ ! -f "${satellite_source}/${required}" ]]; then
+                printf 'Satellite source is missing %s\n' "${required}" >&2
+                exit 2
+            fi
+        done
+        if ! grep -Eq '^jsonschema([<=>[:space:]]|$)' "${satellite_source}/requirements.txt"; then
+            printf 'Satellite source must include jsonschema in requirements.txt\n' >&2
+            exit 2
+        fi
+        satellite_build_tag="localhost/nethvoice-satellite-phase2-build:${IMAGETAG:-latest}"
+        buildah build --force-rm --layers \
+            --file "${satellite_source}/Containerfile" \
+            --tag "${satellite_build_tag}" "${satellite_source}"
+        container=$(buildah from "${satellite_build_tag}")
+    else
+        container=$(buildah from "${SATELLITE_BASE_IMAGE}")
+    fi
+    # Check the assembled runtime before tagging it for deployment.
+    buildah run "${container}" -- python -c \
+        'import api, agent.api, agent.runtime, inspect, main; assert isinstance(api.agent_runtime, agent.runtime.AgentRuntime); assert "/api/agent/v1/readiness" in api.app.openapi()["paths"]; assert inspect.iscoroutinefunction(main.main) and "server.serve" in inspect.getsource(main.main)'
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
     buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"

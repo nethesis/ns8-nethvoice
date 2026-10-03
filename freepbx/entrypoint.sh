@@ -135,7 +135,8 @@ fi
 
 # Customized wizard page
 cat > /etc/apache2/sites-available/wizard.conf <<EOF
-AliasMatch ^/(?!freepbx)(.+)$ /var/www/html/freepbx/wizard/\$1
+AliasMatch ^/(?:freepbx/)?satellite/index\\.php$ /var/www/html/freepbx/admin/modules/satellite/htdocs/index.php
+AliasMatch ^/(?!freepbx|satellite(?:/|$))(.+)$ /var/www/html/freepbx/wizard/\$1
 EOF
 
 # Link rewrite configuration

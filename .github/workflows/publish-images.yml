@@ -30,18 +30,30 @@ jobs:
           - group: reports
             images: reports-api,reports-ui
           - group: wrappers
-            images: mariadb,cti-middleware,cti-ui,satellite
+            images: mariadb,cti-middleware,cti-ui
           - group: janus
             images: janus
-          - group: module
-            images: nethvoice
     uses: ./.github/workflows/build-images.yml
     with:
       imagetag: ${{ github.ref_name }}
       build-images: ${{ matrix.images }}
     secrets: inherit
+  satellite:
+    uses: ./.github/workflows/build-images.yml
+    with:
+      imagetag: ${{ github.ref_name }}
+      build-images: satellite
+    secrets: inherit
+  publish-module:
+    needs: [publish-images, satellite]
+    uses: ./.github/workflows/build-images.yml
+    with:
+      imagetag: ${{ github.ref_name }}
+      build-images: nethvoice
+      satellite-image: ${{ needs.satellite.outputs.satellite-image }}
+    secrets: inherit
   module:
-    needs: publish-images
+    needs: publish-module
     uses: NethServer/ns8-github-actions/.github/workflows/module-info.yml@v1
   trivy:
     needs: module

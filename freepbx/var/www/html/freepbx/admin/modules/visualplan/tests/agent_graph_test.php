@@ -141,4 +141,22 @@ $graph = new NethvplanAgentGraph($satellite, array($retry), array());
 $graph->allocate();
 check(count($satellite->created) === 1, 'Reconciled retry allocated a duplicate Agent');
 
+$satellite = new GraphSatellite();
+$satellite->rows[8] = array('id' => 8, 'system_managed' => 1, 'agent_type' => 'builtin_internal',
+    'cleverai_trunk_id' => null, 'cleverai_flow' => null, 'fallback_destination' => null);
+$system = array('type' => 'Base', 'id' => 'satellite-agent-destination%8',
+    'userData' => array('id' => 8, 'agent_type' => 'builtin_internal', 'system_managed' => true,
+        'fallback_touched' => false));
+$graph = new NethvplanAgentGraph($satellite, array($system), array());
+check($graph->allocate()['satellite-agent-destination%8'] === 8, 'System Agent ID was not preserved');
+$graph->save(function () { throw new RuntimeException('System fallback must not be resolved'); });
+check(!$satellite->batch, 'System Agent was sent to edit batch');
+rejects(function () use ($satellite, $system) {
+    $system['userData']['fallback_touched'] = true;
+    new NethvplanAgentGraph($satellite, array($system), array());
+}, 'System Agent fallback edit accepted');
+rejects(function () use ($satellite, $system) {
+    new NethvplanAgentGraph($satellite, array($system), array(linkTo($system, $system)));
+}, 'System Agent fallback edge accepted');
+
 echo "VisualPlan Agent graph tests passed\n";

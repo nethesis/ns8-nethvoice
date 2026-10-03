@@ -12,3 +12,8 @@ DEVELOPMENT.md
 __pycache__/
 *.pyc
 .gitnexus
+
+/.worktrees/
+
+/.playwright-mcp/
+/.satellite-source/

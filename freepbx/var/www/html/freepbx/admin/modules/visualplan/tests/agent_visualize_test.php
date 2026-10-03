@@ -34,6 +34,12 @@ check($widget['entities'][0]['id'] === $widget['id'], 'Input port does not match
 check($widget['entities'][3]['destination'] === 'satellite-agent-destination-20,s,1', 'Existing selection cannot expand fallback');
 check($widget['userData']['fallback_touched'] === false, 'Imported fallback is marked modified');
 check($widget['entities'][2]['text'] === 'Trunk: Provider trunk', 'Trunk details missing');
+$builtIn = array('id' => 30, 'freepbx_name' => 'Satellite Agent Internal', 'agent_type' => 'builtin_internal',
+    'system_managed' => 1, 'cleverai_trunk_id' => null, 'cleverai_flow' => null, 'fallback_destination' => null);
+$builtInWidget = nethvplan_agent_widget($builtIn, array(), $langArray);
+check($builtInWidget['id'] === 'satellite-agent-destination%30'
+    && $builtInWidget['userData']['system_managed'] === true
+    && $builtInWidget['entities'][1]['text'] === 'Builtin Internal: Internal', 'Built-in destination was not selectable');
 $connection = nethvplan_bindConnection($data, 'satellite-agent-destination', 10);
 check($connection['source']['port'] === 'output_agent_fallback%10', 'Fallback output port mismatch');
 check($connection['target']['port'] === 'input_satellite-agent-destination%20', 'Agent target port mismatch');

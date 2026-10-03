@@ -137,8 +137,9 @@ class AgentTrunkProvisioner
 
     private function pjsipSettings(array $agentTrunk)
     {
-        if (isset($agentTrunk['runtime_owner']) && $agentTrunk['runtime_owner'] !== 'cleverai') {
-            throw new \InvalidArgumentException('Phase 1 supports only the CleverAI runtime');
+        $owner = isset($agentTrunk['runtime_owner']) ? $agentTrunk['runtime_owner'] : 'cleverai';
+        if (!in_array($owner, array('cleverai', 'builtin'), true)) {
+            throw new \InvalidArgumentException('Unsupported Agent trunk owner');
         }
 
         $transport = $this->udpTransport();

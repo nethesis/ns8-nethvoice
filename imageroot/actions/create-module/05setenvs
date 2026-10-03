@@ -167,6 +167,8 @@ agent.set_env('ASTERISK_WSS_PORT', port_list[33])
 
 agent.set_env('SATELLITE_RTP_PORT', satellite_udp_port)
 agent.set_env('SATELLITE_ARI_APP', 'satellite')
+agent.set_env('SATELLITE_AGENT_ARI_APP', 'satellite-agent')
+agent.set_env('SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'False')
 agent.set_env('SATELLITE_ARI_USERNAME', 'satellite')
 agent.set_env('SATELLITE_MQTT_USERNAME', 'satellite')
 
