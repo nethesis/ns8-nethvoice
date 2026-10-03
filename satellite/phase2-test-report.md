@@ -1,5 +1,9 @@
 # Phase 2 deployment and testing
 
+This records the earlier node-local development deployment. The subsequent
+published `agent` image deployment and acceptance results are in
+[the CI acceptance report](phase2-ci-test-report.md).
+
 ## Target and deployment
 
 - Date: 3 October 2026.

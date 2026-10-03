@@ -167,5 +167,8 @@ Verification results:
   Rollback was unused. Restore through native profile repositories, followed by
   synchronization and native reload; do not restore by direct SQL writes.
 
-Voice cases SC-01 through SC-10 are written for the next controlled call session
-and have **not been executed with this new sample**.
+The company sample was subsequently preserved during the published `agent`
+image update. Configuration is now revision **24**, with the same hash.
+The automated controlled call sequence exercised all 17 applicable
+profile/question combinations; see [the CI acceptance report](phase2-ci-test-report.md)
+for voice findings and the remaining listening and external-route checks.
