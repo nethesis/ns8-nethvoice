@@ -20,7 +20,7 @@ class AgentContextSource
         } catch (\Throwable $error) { /* Optional PBX module. */ }
         try {
             foreach ($this->freepbx->Ivr->getDetails() as $row) {
-                if (isset($row['id'])) { $resources[] = $this->resource('ivr', $row['id'], isset($row['name']) ? html_entity_decode($row['name'], ENT_QUOTES, 'UTF-8') : 'IVR ' . $row['id'], 'ivr-' . $row['id'], 's'); }
+                if (isset($row['id'])) { $resources[] = $this->resource('ivr', $row['id'], isset($row['name']) ? $row['name'] : 'IVR ' . $row['id'], 'ivr-' . $row['id'], 's'); }
             }
         } catch (\Throwable $error) { /* Optional PBX module. */ }
         $rules = (new AgentDestinationRepository($this->freepbx->Database))->directoryRules();
@@ -42,7 +42,9 @@ class AgentContextSource
     private function resource($type, $id, $name, $context, $exten)
     {
         if (!preg_match('/^[0-9]+$/D', (string) $id)) { return null; }
-        return array('id' => $type . ':' . $id, 'type' => $type, 'name' => (string) $name,
+        $name = trim(html_entity_decode((string) $name, ENT_QUOTES, 'UTF-8'));
+        if ($name === '') { $name = ucfirst($type) . ' ' . $id; }
+        return array('id' => $type . ':' . $id, 'type' => $type, 'name' => $name,
             'description' => '', 'synonyms' => array(), 'internal_allowed' => false,
             'external_allowed' => false, 'target' => array('context' => $context, 'exten' => (string) $exten, 'priority' => 1));
     }

@@ -128,8 +128,26 @@ Transcript capture defaults to off; metadata retention defaults to 30 days,
 enabled transcripts to 7 days. History storage is independent of legacy audio
 transcription and does not gate call handling.
 
-Runtime packaging uses the immutable upstream base in `runtime-ref`, with the
-reviewable `runtime-patches/phase3.patch` and `runtime-overlay` shipped by this
-repository. Provide a Git checkout containing that base as `SATELLITE_SOURCE_DIR`.
-The build archives the base and applies the packaged extensions in a temporary
-directory; local dirty source edits are not included. CI follows the same path.
+Runtime code is maintained in [Nethesis/satellite, branch agent](https://github.com/Nethesis/satellite/tree/agent).
+The module wrapper is built with `buildah from ghcr.io/nethesis/satellite:agent`.
+The upstream commit used for these checks is recorded in `runtime-ref`;
+module-only CI builds still consume the verified wrapper digest. Runtime imports
+and OpenAPI routes are checked before publication. Patches and overlays have
+been removed after integration into Satellite.
+
+See [transfer and browser verification](transfer-test-report.md) for automatic
+capabilities, named destinations, offline provider tests and live UI checks.
+
+## Application integrations and machine API (Phase 4)
+
+The [application API contract](phase4-api-contract.md) documents setup, HTTPS
+connector policy, scoped machine runs, effect reconciliation, retention and
+lifecycle. Open the administrator pages at `/freepbx/wizard/#!/agents/connectors`
+and `/freepbx/wizard/#!/agents/api`. Access starts disabled. The independent
+`SATELLITE_APPLICATION_CONTENT_KEY` protects application credentials and content;
+it is generated/preserved by NS8 lifecycle actions and backed up in `passwords.env`.
+
+The [implementation report](phase4-development.md) and
+[local verification](phase4-test-report.md) record delivered source and pending
+live acceptance. OpenAI is the selected text provider; the actual business API
+details remain owner input. No Phase 4 production deployment is implied.

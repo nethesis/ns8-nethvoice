@@ -31,6 +31,16 @@ workflow authoring remain later milestones. The detailed Phase 3 plan governs
 its delivery scope; references to the original Phase 3 transfer work below
 identify the separate advanced voice track.
 
+**Phase 4 implements API integrations (roadmap M2) in source, with live acceptance
+open.** See [the implementation](satellite/phase4-development.md),
+[API contract](satellite/phase4-api-contract.md), and
+[local checks](satellite/phase4-test-report.md). Reusable HTTP tools, scoped
+credentials, durable effects, administrator configuration and authenticated
+non-voice runs use the shared dispatcher. OpenAI is confirmed for text; the owner
+will provide the customer-lookup/ticket API details. Runtime source is published on Satellite branch `agent`; see the
+[transfer report](satellite/transfer-test-report.md) for image evidence. Production
+deployment remains open. Phase 3 acceptance remains a combined-release gate.
+
 The later application milestones in section 101 remain a **draft roadmap**.
 Their detailed designs, estimates, acceptance tests and delivery commitments
 will be refined when each becomes the next implementation increment.
@@ -5014,7 +5024,9 @@ Finally, the built-in agent can place a caller on hold, privately ask a recipien
 
 # 101. Draft roadmap for the broader Agent application
 
-**Status: M1 is now planned as Phase 3; M2–M5 and V remain a draft roadmap.**
+**Status: M1 is implemented as Phase 3 with release acceptance open; M2 is
+implemented as Phase 4 in source with local checks passed and business/live
+acceptance open; M3–M5 and V remain a draft roadmap.**
 The owner confirmed the monitoring-first release scope on 4 October 2026.
 See [the Phase 3 implementation plan](satellite/phase3-plan.md) for its
 milestones, contracts, ownership, retention, validation and deployment gates.
@@ -5134,6 +5146,13 @@ policy. Avoid a generic unrestricted HTTP/shell/SQL tool.
 M2 completion includes an API-triggered NethVoice run through the common executor
 without requiring a telephone call, and one end-to-end business API integration.
 It does not require a workflow engine or autonomous multi-agent scheduling.
+
+The [Phase 4 plan](satellite/phase4-plan.md) expands this milestone into
+resource ownership, outbound/inbound contracts, effect and cancellation semantics,
+administration, operational limits, delivery steps and acceptance gates. The
+[implementation report](satellite/phase4-development.md) records delivered source
+and refinements. OpenAI is confirmed; the actual business service contract and
+end-to-end acceptance remain open.
 
 ## 101.6 M3 — File resources and context
 
@@ -5273,6 +5292,7 @@ Phase 2 boundaries, UI and API design, ownership, operational limits,
 acceptance scenarios and follow-on decisions. No implementation, deployment
 or test execution was performed by the planning update.
 
-Phase 3 source implementation is now present; validation and deployment remain
-pending. See [the implementation report](satellite/phase3-development.md) and
+Phase 3 source implementation and test deployment are now present; release
+acceptance remains open. See [the implementation report](satellite/phase3-development.md),
+[the acceptance report](satellite/phase3-test-report.md) and
 [the monitoring contract](satellite/monitoring-api-contract.md).

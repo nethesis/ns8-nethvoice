@@ -11,8 +11,8 @@ angular.module('nethvoiceWizardUiApp').controller('AgentsCtrl', function (
   var cursor;
   var eventCursor;
   vm.page = $routeParams.runId ? 'detail' : ($location.path() === '/agents/settings' ? 'settings' : 'overview');
-  vm.filters = {agent: '', provider: '', outcome: '', correlation: '', tool_error: false};
-  vm.outcomes = ['active', 'completed', 'handed_off', 'fallback', 'failed', 'interrupted', 'unknown'];
+  vm.filters = {agent: '', provider: '', outcome: '', correlation: '', execution_kind: '', tool_error: false};
+  vm.outcomes = ['active', 'completed', 'handed_off', 'fallback', 'failed', 'interrupted', 'unknown', 'cancelled'];
   vm.runs = []; vm.events = []; vm.inventory = []; vm.hours = 24; vm.onFirstPage = true;
   vm.loading = true;
   $scope.view.changeRoute = true;
@@ -20,7 +20,7 @@ angular.module('nethvoiceWizardUiApp').controller('AgentsCtrl', function (
   function clear() {
     generation++;
     vm.runs = []; vm.events = []; vm.inventory = []; vm.conversation = null;
-    vm.run = null; vm.overview = null; vm.policy = null; vm.sync = null;
+    vm.apiResult = null; vm.run = null; vm.overview = null; vm.policy = null; vm.sync = null;
     AgentsService.clear();
   }
   function fail(error) {
@@ -86,6 +86,17 @@ angular.module('nethvoiceWizardUiApp').controller('AgentsCtrl', function (
       if (alive && current === generation) { vm.conversation = data; }
     }, fail).finally(function () { vm.transcriptLoading = false; });
   };
+  vm.showApiResult = function () {
+    var current = generation;
+    return AgentsService.request('GET', '/application/runs/' + encodeURIComponent($routeParams.runId) + '/result').then(function (data) {
+      if (alive && current === generation) { vm.apiResult = data; }
+    }, fail);
+  };
+  vm.hideApiResult = function () { vm.apiResult = null; };
+  vm.cancelApiRun = function () {
+    return AgentsService.mutate('POST', '/application/runs/' + encodeURIComponent($routeParams.runId) + '/cancel', {})
+      .then(function () { return loadDetail(); }, fail);
+  };
   vm.hideTranscript = function () { vm.conversation = null; };
   vm.deleteTranscript = function () {
     vm.deleting = true;
@@ -122,7 +133,9 @@ angular.module('nethvoiceWizardUiApp').controller('AgentsCtrl', function (
         vm.page === 'detail' ? $q.all([loadDetail(), vm.loadEvents(false)]) :
           vm.page === 'overview' ? $q.all([loadOverview(), vm.loadRuns(false)]) : $q.when()
       ]);
-    }).catch(fail).finally(function () { if (alive) { vm.loading = false; } });
+    }).catch(fail).finally(function () {
+      if (alive) { vm.loading = false; $scope.view.changeRoute = false; }
+    });
   }
   var unwatch = $scope.$watch('login.isLogged', function (logged) {
     if (logged) { initialize(); } else { clear(); initialized = false; }

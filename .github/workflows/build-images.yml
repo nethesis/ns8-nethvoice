@@ -60,26 +60,6 @@ jobs:
           path: ui/node_modules
           key: "yarn-${{ hashFiles('ui/yarn.lock') }}"
 
-      - name: Select coordinated Satellite source
-        id: satellite
-        if: inputs.build-images == '' || contains(format(',{0},', inputs.build-images), ',satellite,') || contains(format(',{0},', inputs.build-images), ',nethvoice-satellite,') || inputs.build-images == 'all'
-        run: |
-          satellite_ref=$(cat satellite/runtime-ref)
-          [[ "$satellite_ref" =~ ^[0-9a-f]{40}$ ]]
-          echo "ref=$satellite_ref" >> "$GITHUB_OUTPUT"
-
-      - name: Check out pinned Satellite runtime
-        if: steps.satellite.outputs.ref != ''
-        uses: actions/checkout@v6
-        with:
-          repository: Nethesis/satellite
-          ref: ${{ steps.satellite.outputs.ref }}
-          path: .satellite-source
-
-      - name: Configure Satellite build context
-        if: steps.satellite.outputs.ref != ''
-        run: echo "SATELLITE_SOURCE_DIR=$GITHUB_WORKSPACE/.satellite-source" >> "$GITHUB_ENV"
-
       - name: Prepare image environment
         run: |
           repository_owner="${GITHUB_REPOSITORY_OWNER,,}"

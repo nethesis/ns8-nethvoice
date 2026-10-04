@@ -47,6 +47,12 @@ angular
       .when('/agents/settings', {
         templateUrl: 'views/agents/settings.html', controller: 'AgentsCtrl', controllerAs: 'monitor'
       })
+      .when('/agents/connectors', {
+        templateUrl: 'views/agents/connectors.html', controller: 'AgentIntegrationsCtrl', controllerAs: 'integration'
+      })
+      .when('/agents/api', {
+        templateUrl: 'views/agents/api.html', controller: 'AgentIntegrationsCtrl', controllerAs: 'integration'
+      })
       .when('/agents/runs/:runId', {
         templateUrl: 'views/agents/detail.html', controller: 'AgentsCtrl', controllerAs: 'monitor'
       })

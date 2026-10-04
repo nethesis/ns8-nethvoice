@@ -24,8 +24,13 @@ trap cleanup EXIT
 # Fail on all SQL errors rather than silently accepting an incomplete restore.
 gunzip -c /tmp/satellite_postgresql.pg_dump.gz | psql -X -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1
 psql -X -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1 -v restore_user="$POSTGRES_USER" <<'SQL'
-ALTER ROLE :"restore_user" NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+-- PostgreSQL requires the initdb bootstrap role to remain a superuser. Disable
+-- login and clear its password; normal service access uses the restored role.
+ALTER ROLE :"restore_user" NOLOGIN PASSWORD NULL NOCREATEDB NOCREATEROLE NOREPLICATION;
 SQL
+# This file is sourced by docker-entrypoint.sh. Finish the one-shot restore
+# here, invoking cleanup, instead of starting the container's long-lived server.
+exit 0
 EOS
 
 restore_role="restore_$(cat /proc/sys/kernel/random/uuid | tr -d '-')"

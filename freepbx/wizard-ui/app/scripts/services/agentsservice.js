@@ -7,7 +7,7 @@ angular.module('nethvoiceWizardUiApp').service('AgentsService', function ($http)
   this.request = function (method, path, data, params) {
     return $http({method: method, url: base + path, data: data, params: params,
       cache: false, timeout: 10000,
-      headers: method === 'PUT' || method === 'DELETE' ? {'X-Agents-CSRF': csrf} : {}})
+      headers: method === 'PUT' || method === 'DELETE' || method === 'POST' ? {'X-Agents-CSRF': csrf} : {}})
       .then(function (response) { return response.data; });
   };
   this.access = function () {

@@ -1,0 +1,55 @@
+<section class="wizard-pf agents-area" aria-labelledby="api-access-title">
+  <div class="wizard-pf-contents adjust-size">
+    <header class="agents-header"><h1 id="api-access-title">{{'Agents.api_access' | translate}}</h1><nav><a href="#!/agents" class="btn btn-default">{{'Agents.back' | translate}}</a> <a href="#!/agents/connectors" class="btn btn-default">{{'Agents.connectors' | translate}}</a></nav></header>
+    <p class="alert alert-danger" role="alert" ng-if="integration.error">{{('Agents.error.' + integration.error) | translate}}</p>
+    <p role="status" ng-if="integration.loading">{{'Agents.loading' | translate}}</p>
+    <p class="alert alert-success" role="status" ng-if="integration.saved">{{'Agents.application_saved' | translate}}</p>
+    <div ng-if="integration.inventory.health">
+      <p>{{'Agents.api_description' | translate}}</p><code>/agents-api/v1/runs</code>
+      <p ng-if="!integration.inventory.enabled" class="alert alert-info">{{'Agents.integrations_disabled' | translate}}</p>
+      <h2>{{'Agents.support-request' | translate}}</h2><button type="button" class="btn btn-default" ng-click="integration.editPreset()">{{'Agents.configure_api_agent' | translate}}</button>
+      <form ng-if="integration.preset" ng-submit="integration.savePreset()" class="agents-policy">
+        <label>{{'Agents.name' | translate}}<input class="form-control" required ng-model="integration.preset.name"></label>
+        <p>{{'Agents.provider' | translate}}: OpenAI Responses</p>
+        <label>{{'Agents.model' | translate}}<input class="form-control" required ng-model="integration.preset.model"></label>
+        <label>{{'Agents.credential_id' | translate}}<select aria-label="{{'Agents.credential_id' | translate}}" class="form-control" required ng-model="integration.preset.secret_ref"><option ng-repeat="secret in integration.inventory.secrets" ng-if="!secret.revoked" value="{{secret.secret_id}}">{{secret.secret_id}}</option></select></label>
+        <label>{{'Agents.instructions' | translate}}<textarea class="form-control" rows="5" maxlength="8192" ng-model="integration.preset.prompt"></textarea></label>
+        <label>{{'Agents.deadline_seconds' | translate}}<input class="form-control" required type="number" min="1" max="120" ng-model="integration.preset.deadline_seconds"></label>
+        <label>{{'Agents.token_budget' | translate}}<input class="form-control" required type="number" min="256" max="8192" ng-model="integration.preset.max_output_tokens"></label>
+        <label>{{'Agents.result_hours' | translate}}<input class="form-control" required type="number" min="1" max="24" ng-model="integration.preset.result_retention_hours"></label>
+        <label class="agents-checkbox" ng-repeat="option in integration.options"><input type="checkbox" ng-model="integration.presetSelection[option.key]"> {{option.label}}</label>
+        <button class="btn btn-primary" ng-disabled="integration.saving">{{'Agents.save_draft' | translate}}</button>
+      </form>
+      <p ng-repeat="resource in integration.inventory.resources" ng-if="resource.kind === 'preset'">{{'Agents.published_version' | translate}}: {{resource.published_version}} <button type="button" class="btn btn-primary" ng-click="integration.publish(resource)" ng-disabled="integration.saving">{{'Agents.publish' | translate}}</button></p>
+      <h2>{{'Agents.api_clients' | translate}}</h2>
+      <form ng-submit="integration.createClient()" class="agents-policy">
+        <label>{{'Agents.client_id' | translate}}<input class="form-control" required pattern="[a-z][a-z0-9_-]{0,47}" ng-model="integration.client.id"></label>
+        <label>{{'Agents.authorized_customers' | translate}}<input class="form-control" required ng-model="integration.client.customer_ids"></label>
+        <label>{{'Agents.expiry_days' | translate}}<input class="form-control" required type="number" min="1" max="365" ng-model="integration.client.expiry_days"></label>
+        <label class="agents-checkbox"><input type="checkbox" ng-model="integration.client.scopes['runs:create']"> {{'Agents.allow_create' | translate}}</label>
+        <label class="agents-checkbox"><input type="checkbox" ng-model="integration.client.scopes['runs:read']"> {{'Agents.allow_read' | translate}}</label>
+        <label class="agents-checkbox"><input type="checkbox" ng-model="integration.client.scopes['runs:cancel']"> {{'Agents.allow_cancel' | translate}}</label>
+        <label class="agents-checkbox"><input type="checkbox" ng-model="integration.client.scopes['operations:write']"> {{'Agents.allow_tickets' | translate}}</label>
+        <label class="agents-checkbox" ng-repeat="option in integration.options"><input type="checkbox" ng-model="integration.clientSelection[option.key]"> {{option.label}}</label>
+        <button class="btn btn-primary" ng-disabled="integration.saving">{{'Agents.create_client' | translate}}</button>
+      </form>
+      <div ng-if="integration.token" class="alert alert-info"><p>{{'Agents.token_once' | translate}}</p><p class="agents-text" ng-bind="integration.token"></p><button class="btn btn-default" type="button" ng-click="integration.token = null">{{'Agents.hide_token' | translate}}</button></div>
+      <ul><li ng-repeat="client in integration.inventory.clients">{{client.client_id}} · {{client.expires * 1000 | date:'medium'}} <span ng-if="client.revoked">{{'Agents.revoked' | translate}}</span> <button type="button" class="btn btn-default" ng-if="!client.revoked" ng-click="integration.revokeClient(client.client_id)" ng-disabled="integration.saving">{{'Agents.revoke' | translate}}</button></li></ul>
+      <h2>{{'Agents.test_run' | translate}}</h2>
+      <form ng-submit="integration.testRun()" class="agents-policy">
+        <label>{{'Agents.client_id' | translate}}<select aria-label="{{'Agents.client_id' | translate}}" class="form-control" required ng-model="integration.test.client_id"><option ng-repeat="client in integration.inventory.clients" ng-if="!client.revoked" value="{{client.client_id}}">{{client.client_id}}</option></select></label>
+        <label>{{'Agents.published_version' | translate}}<input class="form-control" required type="number" min="1" ng-model="integration.test.version"></label>
+        <label>{{'Agents.customer_id' | translate}}<input class="form-control" required maxlength="128" ng-model="integration.test.customer_id"></label>
+        <label>{{'Agents.action' | translate}}<select aria-label="{{'Agents.action' | translate}}" class="form-control" ng-model="integration.test.action"><option value="lookup">{{'Agents.lookup' | translate}}</option><option value="create_ticket">{{'Agents.create_ticket' | translate}}</option></select></label>
+        <div ng-if="integration.test.action === 'create_ticket'">
+          <label>{{'Agents.summary' | translate}}<input class="form-control" required maxlength="200" ng-model="integration.test.summary"></label>
+          <label>{{'Agents.description' | translate}}<textarea class="form-control" required maxlength="4000" ng-model="integration.test.description"></textarea></label>
+          <label class="alert alert-warning"><input type="checkbox" ng-model="integration.test.confirm_write"> {{'Agents.confirm_ticket_test' | translate}}</label>
+        </div>
+        <label>{{'Agents.request_identity' | translate}}<input class="form-control" maxlength="128" ng-model="integration.test.idempotency"></label>
+        <button class="btn btn-primary" ng-disabled="integration.saving || !integration.inventory.enabled || (integration.test.action === 'create_ticket' && !integration.test.confirm_write)">{{'Agents.start_test' | translate}}</button>
+      </form>
+      <p ng-if="integration.testResult"><a ng-href="#!/agents/runs/{{integration.testResult.run_id}}">{{integration.testResult.run_id}}</a></p>
+    </div>
+  </div>
+</section>

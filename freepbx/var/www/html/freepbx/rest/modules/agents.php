@@ -5,12 +5,13 @@ use Psr\Http\Message\ResponseInterface as Response;
 require_once __DIR__ . '/../../admin/modules/satellite/lib/AgentMonitoringClient.php';
 require_once __DIR__ . '/../../admin/modules/satellite/lib/AgentMonitoringRepository.php';
 require_once __DIR__ . '/../../admin/modules/satellite/lib/AgentConfigurationBuilder.php';
+require_once __DIR__ . '/../lib/AgentApplicationClient.php';
 
 /** Administrator scope is assigned by authentication middleware, never a browser claim. */
 function agentsAuthorize(Request $request, $scope, $mutation = false)
 {
     $user = $request->getAttribute('nethvoice_admin');
-    if (!is_string($user) || $user === '' || !in_array($scope, array('metadata', 'transcripts', 'policy'), true)) {
+    if (!is_string($user) || $user === '' || !in_array($scope, array('metadata', 'transcripts', 'policy', 'connectors', 'api_access'), true)) {
         throw new \RuntimeException('forbidden', 403);
     }
     // Header authentication is required even if an AMP session already exists.
@@ -46,9 +47,10 @@ function agentsResponse(Response $response, callable $operation)
     catch (\InvalidArgumentException $error) { return jsonResponse($response, array('error' => 'invalid_request'), 400); }
     catch (\Throwable $error) {
         $code = (int) $error->getCode();
-        if (!in_array($code, array(400, 403, 404, 409, 422, 503), true)) { $code = 503; }
+        if (!in_array($code, array(400, 403, 404, 409, 413, 422, 429, 503), true)) { $code = 503; }
         $safe = array(400 => 'invalid_request', 403 => 'forbidden', 404 => 'run_not_found',
-            409 => 'configuration_conflict', 422 => 'invalid_query', 503 => 'monitoring_unavailable');
+            409 => 'configuration_conflict', 413 => 'request_too_large', 422 => 'invalid_query',
+            429 => 'capacity_reached', 503 => 'monitoring_unavailable');
         return jsonResponse($response, array('error' => $safe[$code]), $code);
     }
 }
@@ -63,7 +65,7 @@ $app->get('/agents/access', function (Request $request, Response $response) {
             $_SESSION['agents_user'] = $user;
         }
         $token = $_SESSION['agents_csrf']; session_write_close();
-        return array('csrf' => $token, 'scopes' => array('metadata', 'transcripts', 'policy'));
+        return array('csrf' => $token, 'scopes' => array('metadata', 'transcripts', 'policy', 'connectors', 'api_access'));
     });
 });
 
@@ -102,7 +104,7 @@ foreach (array('overview', 'health', 'agents', 'runs') as $operation) {
     $app->get('/agents/' . $operation, function (Request $request, Response $response) use ($operation) {
         return agentsResponse($response, function () use ($request, $operation) {
             agentsAuthorize($request, 'metadata');
-            $allowed = $operation === 'runs' ? array('limit', 'cursor', 'agent', 'provider', 'outcome', 'correlation', 'after', 'before', 'tool_error') :
+            $allowed = $operation === 'runs' ? array('limit', 'cursor', 'agent', 'provider', 'outcome', 'correlation', 'after', 'before', 'tool_error', 'execution_kind') :
                 ($operation === 'overview' ? array('hours') : array());
             $query = $request->getQueryParams();
             foreach ($query as $key => $value) {
@@ -136,5 +138,57 @@ $app->delete('/agents/runs/{id:[A-Za-z0-9_.:-]{1,128}}/transcript',
         return agentsResponse($response, function () use ($request, $args) {
             $actor = agentsAuthorize($request, 'transcripts', true);
             return (new AgentMonitoringClient())->request('DELETE', '/runs/' . $args['id'] . '/transcript', array(), $actor);
+        });
+    });
+
+// Application-owned resources: all routes are concrete and administrator-only.
+$app->get('/agents/application/inventory', function (Request $request, Response $response) {
+    return agentsResponse($response, function () use ($request) {
+        $actor = agentsAuthorize($request, 'connectors');
+        if ($request->getQueryParams()) { throw new \InvalidArgumentException('invalid_query'); }
+        return (new AgentApplicationClient())->request('GET', '/inventory', $actor);
+    });
+});
+$applicationRoutes = array(
+    array('PUT', '/settings', 'connectors'),
+    array('PUT', '/resources/{kind:connector|preset}/{resourceId:[a-z][a-z0-9_-]{0,47}}', 'connectors'),
+    array('POST', '/resources/{kind:connector|preset}/{resourceId:[a-z][a-z0-9_-]{0,47}}/publish', 'connectors'),
+    array('DELETE', '/versions/{kind:connector|preset}/{resourceId:[a-z][a-z0-9_-]{0,47}}/{version:[1-9][0-9]{0,5}}', 'connectors'),
+    array('POST', '/secrets', 'connectors'),
+    array('DELETE', '/secrets/{secretId:[a-z][a-z0-9_-]{0,47}}', 'connectors'),
+    array('PUT', '/grants/{agentId:internal|external|support-request}', 'connectors'),
+    array('POST', '/clients', 'api_access'),
+    array('DELETE', '/clients/{clientId:[a-z][a-z0-9_-]{0,47}}', 'api_access'),
+    array('POST', '/test-runs', 'api_access'),
+    array('POST', '/runs/{runId:[a-f0-9]{32}}/cancel', 'api_access'),
+    array('POST', '/effects/{operationId:[a-f0-9]{32}}/reconcile', 'connectors')
+);
+foreach ($applicationRoutes as $route) {
+    list($method, $path, $scope) = $route;
+    $app->map(array($method), '/agents/application' . $path,
+        function (Request $request, Response $response, array $args) use ($method, $path, $scope) {
+            return agentsResponse($response, function () use ($request, $args, $method, $path, $scope) {
+                $actor = agentsAuthorize($request, $scope, true);
+                if ($request->getQueryParams()) { throw new \InvalidArgumentException('invalid_query'); }
+                $target = AgentApplicationClient::path($path, $args);
+                $input = null;
+                if ($method !== 'DELETE') {
+                    if (($request->getBody()->getSize() ?? 0) > 65536 ||
+                        stripos($request->getHeaderLine('Content-Type'), 'application/json') !== 0) {
+                        throw new \InvalidArgumentException('invalid_request');
+                    }
+                    $input = $request->getParsedBody();
+                    if (!is_array($input)) { throw new \InvalidArgumentException('invalid_request'); }
+                }
+                return (new AgentApplicationClient())->request($method, $target, $actor, $input);
+            });
+        });
+}
+$app->get('/agents/application/runs/{runId:[a-f0-9]{32}}/result',
+    function (Request $request, Response $response, array $args) {
+        return agentsResponse($response, function () use ($request, $args) {
+            $actor = agentsAuthorize($request, 'api_access');
+            if ($request->getQueryParams()) { throw new \InvalidArgumentException('invalid_query'); }
+            return (new AgentApplicationClient())->request('GET', '/runs/' . $args['runId'] . '/result', $actor);
         });
     });

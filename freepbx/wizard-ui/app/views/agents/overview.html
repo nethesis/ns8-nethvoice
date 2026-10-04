@@ -1,6 +1,6 @@
 <section class="wizard-pf agents-area" aria-labelledby="agents-title">
   <div class="wizard-pf-contents adjust-size">
-    <header class="agents-header"><h1 id="agents-title">{{'Agents.title' | translate}}</h1><a href="#!/agents/settings" class="btn btn-default">{{'Agents.settings' | translate}}</a></header>
+    <header class="agents-header"><h1 id="agents-title">{{'Agents.title' | translate}}</h1><nav><a href="#!/agents/connectors" class="btn btn-default">{{'Agents.connectors' | translate}}</a> <a href="#!/agents/api" class="btn btn-default">{{'Agents.api_access' | translate}}</a> <a href="#!/agents/settings" class="btn btn-default">{{'Agents.settings' | translate}}</a></nav></header>
     <p class="alert alert-danger" role="alert" ng-if="monitor.error">{{('Agents.error.' + monitor.error) | translate}}</p>
     <p role="status" ng-if="monitor.loading">{{'Agents.loading' | translate}}</p>
     <div ng-if="monitor.overview">
@@ -23,7 +23,8 @@
     </div>
     <h2>{{'Agents.runs' | translate}}</h2>
     <form class="agents-filters" ng-submit="monitor.loadRuns(false)">
-      <label>{{'Agents.agent' | translate}}<select class="form-control" ng-model="monitor.filters.agent"><option value="">{{'Agents.all' | translate}}</option><option value="internal">{{'Agents.internal' | translate}}</option><option value="external">{{'Agents.external' | translate}}</option></select></label>
+      <label>{{'Agents.agent' | translate}}<select class="form-control" ng-model="monitor.filters.agent"><option value="">{{'Agents.all' | translate}}</option><option value="internal">{{'Agents.internal' | translate}}</option><option value="external">{{'Agents.external' | translate}}</option><option value="support-request">{{'Agents.support-request' | translate}}</option></select></label>
+      <label>{{'Agents.execution_kind' | translate}}<select class="form-control" ng-model="monitor.filters.execution_kind"><option value="">{{'Agents.all' | translate}}</option><option value="voice">{{'Agents.voice_run' | translate}}</option><option value="api">{{'Agents.api_run' | translate}}</option></select></label>
       <label>{{'Agents.provider' | translate}}<select class="form-control" ng-model="monitor.filters.provider"><option value="">{{'Agents.all' | translate}}</option><option value="openai">OpenAI</option><option value="grok">Grok</option></select></label>
       <label>{{'Agents.outcome' | translate}}<select class="form-control" ng-model="monitor.filters.outcome"><option value="">{{'Agents.all' | translate}}</option><option ng-repeat="outcome in monitor.outcomes" value="{{outcome}}">{{('Agents.status.' + outcome) | translate}}</option></select></label>
       <label>{{'Agents.correlation' | translate}}<input class="form-control" ng-model="monitor.filters.correlation" maxlength="128"></label>

@@ -1,9 +1,9 @@
 # Phase 3 — NethVoice Agents monitoring
 
-Planning date: 4 October 2026. Status: source implementation present; validation
-and deployment pending. See [the implementation report](phase3-development.md)
-and [the implemented API contract](monitoring-api-contract.md). No Phase 3 live
-configuration changes have been made.
+Planning date: 4 October 2026. Status: test deployment completed; release
+acceptance remains open. See [the implementation report](phase3-development.md),
+[deployment evidence](phase3-test-report.md) and
+[the implemented API contract](monitoring-api-contract.md).
 
 ## 1. Confirmed scope
 
@@ -296,12 +296,10 @@ Source boundaries:
 
 Use the existing coordinated CI to build the runtime and consume its immutable
 image digest in the module before deploying through supported NS8 actions.
-For this source implementation, `runtime-ref` identifies the upstream base;
-`runtime-patches/phase3.patch` and `runtime-overlay` package the extensions in
-this repository. The build archives that base and applies those versioned
-extensions without mutating the checkout. Once integrated upstream, update
-`runtime-ref` and remove the matching patch/overlay together. No node-local image
-is release evidence.
+The runtime is integrated into Satellite branch `agent`. `runtime-ref` records
+the verified upstream commit, and the module wrapper consumes
+`ghcr.io/nethesis/satellite:agent`. Patches and overlays have been removed after
+upstream integration. No node-local image is release evidence.
 
 ## 8. Acceptance and deployment gates
 

@@ -17,3 +17,8 @@
 .agents-conversation li { border-left: 3px solid #0088ce; background: #f5f5f5; padding: 12px; margin: 12px 0; }
 .agents-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0 0; }
 @media (max-width: 600px) { .agents-area .wizard-pf-contents { padding: 12px; } .agents-facts { grid-template-columns: 1fr; gap: 4px; } .agents-facts dd { margin-bottom: 12px; } }
+.agents-operation { padding: 1rem; margin: 1rem 0; border: 1px solid #bbb; }
+.agents-code { font-family: monospace; width: 100%; }
+.agents-area .agents-policy label { display: block; margin: 0.75rem 0; }
+.agents-area nav { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.agents-area .agents-policy textarea.form-control { max-width: 100%; }

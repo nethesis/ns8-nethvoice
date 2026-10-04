@@ -89,6 +89,11 @@ angular.module('nethvoiceWizardUiApp')
           $('body').show();
           $scope.login.isLogged = true;
           $rootScope.$broadcast('loginCompleted');
+          if (!$scope.wizard.isWizard && $scope.login.returnPath) {
+            var returnPath = $scope.login.returnPath;
+            $scope.login.returnPath = null;
+            $location.path(returnPath);
+          }
         }, function (err) {
           console.log(err);
         });

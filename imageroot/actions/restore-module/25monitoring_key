@@ -7,4 +7,6 @@ import agent
 passwords = agent.read_envfile('passwords.env')
 if not passwords.get('SATELLITE_MONITORING_CONTENT_KEY'):
     passwords['SATELLITE_MONITORING_CONTENT_KEY'] = base64.b64encode(secrets.token_bytes(32)).decode()
-    agent.write_envfile('passwords.env', passwords)
+if not passwords.get('SATELLITE_APPLICATION_CONTENT_KEY'):
+    passwords['SATELLITE_APPLICATION_CONTENT_KEY'] = base64.b64encode(secrets.token_bytes(32)).decode()
+agent.write_envfile('passwords.env', passwords)

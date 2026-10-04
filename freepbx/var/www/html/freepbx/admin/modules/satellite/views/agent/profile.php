@@ -51,6 +51,7 @@ $fallbackIndex = $profileKey === 'internal' ? 1 : 2;
         <?php endforeach; ?>
     </tbody></table>
     <h4><?php echo $escape(_('Tools')); ?></h4>
+    <p class="help-block"><?php echo $escape(_('Enabled tools are added to the call prompt as capabilities. Transfer uses the display names of allowed extensions and the names of allowed queues and IVRs. Transfer also requires the corresponding directory and transfer permissions.')); ?></p>
     <table class="table table-striped"><thead><tr><th><?php echo $escape(_('Tool')); ?></th><th><?php echo $escape(_('Status')); ?></th></tr></thead><tbody>
         <?php foreach ($toolCatalog as $catalogKey => $catalogValue): ?>
         <?php $key = is_int($catalogKey) ? $catalogValue : $catalogKey; $value = isset($tools[$key]) ? $tools[$key] : 'disabled'; ?>
@@ -61,7 +62,7 @@ $fallbackIndex = $profileKey === 'internal' ? 1 : 2;
         <?php endforeach; ?>
     </tbody></table>
     <h4><?php echo $escape(_('Directory')); ?></h4>
-    <p class="help-block"><?php echo $escape(_('Set the name and description visible to the agent. Select whether this profile may use each destination.')); ?></p>
+    <p class="help-block"><?php echo $escape(_('Names come from the FreePBX extension display name, queue name or IVR name. Add descriptions and synonyms to help the agent match requests. Select each destination this profile may use.')); ?></p>
     <table class="table table-striped"><thead><tr><th><?php echo $escape(_('Destination')); ?></th><th><?php echo $escape(_('Visible')); ?></th><th><?php echo $escape(_('Description')); ?></th><th><?php echo $escape(_('Synonyms (comma separated)')); ?></th></tr></thead><tbody>
         <?php foreach ($directory as $item): ?>
         <?php $key = $item['id']; $rule = isset($directoryRules[$key]) ? $directoryRules[$key] : array(); ?>
