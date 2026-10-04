@@ -1,0 +1,415 @@
+diff --git a/agent/configuration.py b/agent/configuration.py
+index d1cc5c9..94c777a 100644
+--- a/agent/configuration.py
++++ b/agent/configuration.py
+@@ -13,6 +13,7 @@ from pathlib import Path
+ from typing import Any
+ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+ 
++from .monitoring.policy import validate_policy
+ from .models import AgentUnavailable, InvalidConfiguration, RevisionConflict
+ 
+ 
+@@ -105,6 +106,10 @@ def validate_payload(payload: Any) -> dict:
+     p = _object(payload, "payload")
+     if not {"profiles", "bindings", "destinations", "directory", "calendars"} <= p.keys():
+         _invalid("incomplete snapshot")
++    try:
++        validate_policy(p.get("monitoring"))
++    except ValueError:
++        _invalid("invalid monitoring policy")
+     profiles = _object(p["profiles"], "profiles")
+     if set(profiles) != {"internal", "external"}:
+         _invalid("both built-in profiles are required")
+diff --git a/agent/events.py b/agent/events.py
+index af452d1..f90ae3a 100644
+--- a/agent/events.py
++++ b/agent/events.py
+@@ -3,6 +3,7 @@
+ import logging
+ import threading
+ import time
++import uuid
+ from collections import deque
+ 
+ 
+@@ -10,6 +11,7 @@ _SAFE_FIELDS = {
+     "run_id", "session_id", "agent_id", "invocation_id", "tool_id",
+     "provider", "state", "status", "outcome", "error_code", "duration_ms",
+     "revision", "attempt_id", "binding_id", "destination_id", "reason_code",
++    "payload_hash", "runtime_epoch", "cdr_id",
+ }
+ 
+ 
+@@ -21,12 +23,13 @@ class EventSink:
+         self._lock = threading.Lock()
+         self._sequences: dict[str, int] = {}
+         self.dropped_count = 0
++        self.observer = None
+         self.logger = logger or logging.getLogger("agent.events")
+ 
+     def emit(self, event_type: str, **fields) -> dict:
+         """Never raise or expose dynamic payload text to logs/history."""
+         try:
+-            clean = {k: v[:128] if isinstance(v, str) else v
++            clean = {k: v[:128].encode("utf-8",errors="replace").decode("utf-8") if isinstance(v, str) else v
+                      for k, v in fields.items() if k in _SAFE_FIELDS
+                      and (isinstance(v, str) or type(v) in (int, float, bool))}
+             run_id = clean.get("run_id")
+@@ -37,10 +40,13 @@ class EventSink:
+                     if len(self._sequences) > 2048:
+                         self._sequences.pop(next(iter(self._sequences)))
+                 event = {"schema_version": 1, "event_type": str(event_type)[:64],
+-                         "timestamp": time.time(), "sequence": sequence, **clean}
++                         "timestamp": time.time(), "sequence": sequence, "event_id": uuid.uuid4().hex, **clean}
+                 if len(self._events) == self._events.maxlen:
+                     self.dropped_count += 1
+                 self._events.append(event)
++            if self.observer is not None:
++                try: self.observer(event)
++                except Exception: pass
+             try:
+                 self.logger.info("agent event %s", event)
+             except Exception:
+diff --git a/agent/providers/realtime.py b/agent/providers/realtime.py
+index 2a1ecd5..b25565d 100644
+--- a/agent/providers/realtime.py
++++ b/agent/providers/realtime.py
+@@ -6,6 +6,8 @@ to the Agent runtime. See the providers' SIP and speech-to-speech documentation.
+ 
+ import asyncio
+ import json
++import os
++from collections import OrderedDict
+ from collections.abc import AsyncIterator, Mapping
+ from urllib.parse import quote, urlencode
+ 
+@@ -69,6 +71,8 @@ class _RealtimeAdapter:
+         self._ws = None
+         self._reader_task = None
+         self._queue: asyncio.Queue[dict | None] = asyncio.Queue(maxsize=256)
++        self._observation_queue = asyncio.Queue(maxsize=64)
++        self._event_ready = asyncio.Event()
+         self._condition = asyncio.Condition()
+         self._pending: set[str] = set()
+         self._seen_calls: set[str] = set()
+@@ -85,6 +89,14 @@ class _RealtimeAdapter:
+         self._tools_config = []
+         self._ready = asyncio.Event()
+         self._session_configured = False
++        self._capture = False
++        self._items = OrderedDict()
++        self._item_sequence = 0
++        self._interrupted = set()
++        self._last_assistant_item = None
++        self._optional_updates = set()
++        self._observations_dropped = False
++        self._usage_responses = set()
+ 
+     async def _client(self) -> aiohttp.ClientSession:
+         if self._session is None:
+@@ -157,15 +169,22 @@ class _RealtimeAdapter:
+ 
+     async def events(self) -> AsyncIterator[dict]:
+         while True:
+-            event = await self._queue.get()
+-            if event is None:
+-                return
+-            yield event
++            if not self._queue.empty():
++                event = self._queue.get_nowait()
++                if event is None:
++                    return
++                yield event
++            elif not self._observation_queue.empty():
++                yield self._observation_queue.get_nowait()
++            else:
++                self._event_ready.clear()
++                await self._event_ready.wait()
+ 
+     async def _emit(self, event: dict) -> None:
+         # A stalled consumer must not force unbounded memory growth.
+         try:
+             self._queue.put_nowait(event)
++            self._event_ready.set()
+         except asyncio.QueueFull:
+             raise ProviderError(f"{self.provider} event queue full")
+ 
+@@ -196,16 +215,115 @@ class _RealtimeAdapter:
+                 self._audio_playing = False
+                 self._pending.clear()
+                 self._condition.notify_all()
++            if not self._observation_queue.empty() and not self._queue.full():
++                self._queue.put_nowait({"type":"monitoring_gap"})
+             for final_event in ({"type": "closed"}, None):
+                 if self._queue.full():
+                     self._queue.get_nowait()
+                 self._queue.put_nowait(final_event)
++            self._event_ready.set()
++
++    async def _observation(self, value):
++        # Optional observations have a separate bounded queue. Tool and voice
++        # lifecycle events never compete with transcript buffers.
++        if self._observation_queue.full():
++            self._observations_dropped = True
++            return
++        if self._observations_dropped:
++            self._observation_queue.put_nowait({"type": "monitoring_gap"})
++            self._observations_dropped = False
++            if self._observation_queue.full():
++                self._observations_dropped = True
++                self._event_ready.set()
++                return
++        self._observation_queue.put_nowait(value)
++        self._event_ready.set()
++
++    def _position(self, item_id):
++        if item_id not in self._items:
++            self._item_sequence += 1
++            self._items[item_id] = self._item_sequence
++            if len(self._items) > 2048:
++                oldest, _ = self._items.popitem(last=False)
++                self._interrupted.discard(oldest)
++        return self._items[item_id]
++
++    async def set_capture(self, enabled):
++        self._capture = bool(enabled and self.provider == "openai")
++        if not self._capture:
++            retained=[]
++            while not self._observation_queue.empty():
++                value=self._observation_queue.get_nowait()
++                if value.get("type") not in ("transcript","transcript_interrupted"):
++                    retained.append(value)
++            for value in retained:
++                self._observation_queue.put_nowait(value)
++        if self.provider != "openai" or self._ws is None or self._ws.closed:
++            return
++        if len(self._optional_updates)>=8:
++            self._capture=False
++            return
++        update_id = "monitoring-" + str(len(self._optional_updates))
++        self._optional_updates.add(update_id)
++        try:
++            await self._send({"event_id": update_id, "type": "session.update", "session": {
++                "type": "realtime", "audio": {"input": {"transcription": {
++                    "model": os.getenv("SATELLITE_MONITORING_TRANSCRIPTION_MODEL", "gpt-4o-mini-transcribe")
++                } if self._capture else None}}}})
++        except Exception:
++            self._capture = False
++            await self._observation({"type": "transcript_failed"})
++
++    async def _monitoring_event(self, raw):
++        kind = raw.get("type")
++        item = raw.get("item") or {}
++        item_id = raw.get("item_id") or item.get("id")
++        if isinstance(item_id, str) and 0 < len(item_id) <= 128 and kind in (
++                "conversation.item.added", "conversation.item.created", "input_audio_buffer.committed", "response.output_item.added"):
++            if item.get("role") == "assistant":
++                self._last_assistant_item = item_id
++            self._position(item_id)
++        if self._capture and kind in ("conversation.item.truncated", "output_audio_buffer.cleared"):
++            ids = [item_id] if item_id in self._items else ([self._last_assistant_item] if self._last_assistant_item else [])
++            for affected in ids:
++                self._interrupted.add(affected)
++                await self._observation({"type": "transcript_interrupted", "item_id": affected})
++        if self._capture and kind == "conversation.item.input_audio_transcription.failed":
++            await self._observation({"type": "transcript_failed"})
++        if self._capture and kind in ("conversation.item.input_audio_transcription.completed", "response.output_audio_transcript.done"):
++            text, index = raw.get("transcript"), raw.get("content_index", 0)
++            if isinstance(text, str) and isinstance(item_id, str) and 0 < len(item_id) <= 128 and type(index) is int and 0 <= index <= 100:
++                data = text.encode("utf-8")
++                await self._observation({"type": "transcript", "text": data[:16384].decode("utf-8", errors="ignore"),
++                    "truncated": len(data) > 16384, "item_id": item_id, "content_index": index,
++                    "role": "caller" if kind.startswith("conversation.") else "assistant",
++                    "position": self._position(item_id), "response_id": str(raw.get("response_id") or "")[:128],
++                    "interrupted": item_id in self._interrupted})
++        if kind == "response.done":
++            response = raw.get("response") or {}
++            response_id = response.get("id")
++            usage = response.get("usage")
++            if isinstance(response_id, str) and response_id not in self._usage_responses and isinstance(usage, dict) and len(self._usage_responses) < 4096:
++                clean = {key: value for key, value in usage.items() if key in ("total_tokens", "input_tokens", "output_tokens")
++                         and type(value) is int and 0 <= value <= 10**12}
++                if clean:
++                    self._usage_responses.add(response_id)
++                    clean["scope"] = "latest_provider_response"
++                    await self._observation({"type": "usage", "usage": clean})
+ 
+     async def _handle(self, raw: dict) -> None:
+         kind = raw.get("type")
++        try:
++            await self._monitoring_event(raw)
++        except Exception:
++            await self._observation({"type": "transcript_failed"})
+         if kind == "session.updated":
+             self._session_configured = True
+             self._ready.set()
++        if kind == "error" and (raw.get("error") or {}).get("event_id") in self._optional_updates:
++            self._capture = False
++            await self._observation({"type": "transcript_failed"})
++            return
+         if kind == "error":
+             await self._emit({"type": "error", "code": "provider_event_error"})
+         if kind == "response.created":
+@@ -303,6 +421,8 @@ class OpenAIAdapter(_RealtimeAdapter):
+         if call_id != self._call:
+             raise ValueError("provider call mismatch")
+         await self._connect(call_id)
++        if self._profile.get("_capture_transcripts"):
++            await self.set_capture(True)
+ 
+ 
+ class GrokAdapter(_RealtimeAdapter):
+diff --git a/agent/runtime.py b/agent/runtime.py
+index e4038da..7c63aa1 100644
+--- a/agent/runtime.py
++++ b/agent/runtime.py
+@@ -15,6 +15,7 @@ from agent.asterisk.controller import AriController
+ from agent.configuration import ConfigurationStore
+ from agent.context import allowed, tool_enabled, visible
+ from agent.events import EventSink
++from agent.monitoring import Monitoring
+ from agent.models import AgentUnavailable, InvalidInvocation, PermissionDenied
+ from agent.providers import create_adapter
+ from agent.providers.webhook import verify_webhook
+@@ -88,10 +89,12 @@ class Call:
+ 
+ class AgentRuntime:
+     def __init__(self, store=None, tools=None, events=None, controller=None,
+-                 adapter_factory=None):
++                 adapter_factory=None, monitoring=None):
+         self.store = store or ConfigurationStore()
+         self.events = events or EventSink()
+         self.tools = tools or ToolRegistry(self.events)
++        self.monitoring = monitoring or Monitoring()
++        self.events.observer = self.monitoring.event
+         self.adapter_factory = adapter_factory or create_adapter
+         self.controller = controller or AriController(
+             os.getenv("ASTERISK_URL", "http://localhost:8088"),
+@@ -117,6 +120,7 @@ class AgentRuntime:
+             return
+         self._stopping = False
+         self._started = True
++        await self.monitoring.start()
+         await self.controller.start()
+ 
+     async def stop(self):
+@@ -127,12 +131,27 @@ class AgentRuntime:
+         for task in list(self._tasks):
+             task.cancel()
+         await asyncio.gather(*self._tasks, return_exceptions=True)
++        await self.monitoring.stop()
+         self._started = False
+ 
+     async def configure(self, envelope):
+         # ConfigurationStore validates then swaps the complete snapshot. Calls
+         # retain their private copies and old webhook secrets until they end.
+-        return self.store.apply(envelope)
++        ack = self.store.apply(envelope)
++        await self.monitoring.configure(envelope["payload"].get("monitoring"))
++        for call in list(self.calls.values()):
++            if call.profile.get("_capture_transcripts") and (not self.monitoring.policy["transcripts"].get(call.profile_key) or
++                    call.profile.get("_capture_version") != self.monitoring.policy["capture_versions"].get(call.profile_key)):
++                call.profile["_capture_transcripts"] = False
++                if call.adapter and hasattr(call.adapter, "set_capture"):
++                    self._spawn(self._stop_capture(call.adapter))
++        return ack
++
++    async def _stop_capture(self, adapter):
++        try:
++            await asyncio.wait_for(adapter.set_capture(False), 2)
++        except Exception:
++            pass
+ 
+     async def refresh_context(self, body):
+         return self.store.refresh_context(body)
+@@ -303,6 +322,9 @@ class AgentRuntime:
+                         time.monotonic() + max(1, int(profile.get("max_call_duration_seconds", 3600))))
+             # Register the immutable pending leg before the first originate await.
+             self.calls[session_id] = call
++            self.monitoring.register(call)
++            self.events.emit("call_started", session_id=session_id, run_id=call.run_id,
++                             agent_id=profile_key, destination_id=destination_id)
+             self.by_caller[channel_id] = session_id
+             self.by_local[call.local_id] = session_id
+             await self.controller.set_variable(channel_id, "AGENT_SESSION_ID", session_id)
+@@ -334,8 +356,6 @@ class AgentRuntime:
+             inherited = {f"__{key}": value for key, value in inherited.items()}
+             await asyncio.wait_for(self.controller.originate_local(session_id, call.local_id,
+                                                                      inherited), SETUP_SECONDS)
+-            self.events.emit("call_started", session_id=session_id, run_id=call.run_id,
+-                             agent_id=profile_key, destination_id=destination_id)
+         except (Exception, asyncio.CancelledError) as exc:
+             self._error(f"Agent call admission failed: {type(exc).__name__}")
+             existing = self.calls.get(locals().get("session_id"))
+@@ -521,6 +541,14 @@ class AgentRuntime:
+                 kind = event.get("type")
+                 if kind == "tool_call":
+                     self._spawn(self._tool_call(call, event))
++                elif kind == "monitoring_gap":
++                    self.events.emit("monitoring_gap",run_id=call.run_id,error_code="provider_observation_gap")
++                elif kind == "transcript":
++                    self.monitoring.transcript(call, event)
++                elif kind in ("transcript_interrupted", "transcript_failed", "usage"):
++                    record = {k: v for k, v in event.items() if k != "type"}
++                    record["run_id"] = call.run_id
++                    self.monitoring.enqueue({"transcript_interrupted": "interruption", "transcript_failed": "text_error", "usage": "usage"}[kind], record)
+                 elif kind in ("error", "closed"):
+                     await self._finish(call, "provider_closed", fallback=call.state != CallState.CONVERSING)
+                     break
+@@ -749,7 +777,10 @@ class AgentRuntime:
+         call.state_revision += 1
+         self.events.emit("call_ended", session_id=call.session_id, run_id=call.run_id,
+                          reason_code=reason, outcome="handed_off" if call.handed_off else
+-                         ("fallback" if caller_action == "fallback" else "completed"))
++                         ("unknown" if call.handoff_attempt_id else
++                          "interrupted" if reason in ("shutdown", "ari_disconnected", "max_duration") else
++                          "fallback" if caller_action == "fallback" else
++                          "failed" if reason != "caller_hangup" else "completed"))
+ 
+     async def _reconcile_orphans(self):
+         try:
+diff --git a/agent/tools/registry.py b/agent/tools/registry.py
+index 96c570b..19b1d7f 100644
+--- a/agent/tools/registry.py
++++ b/agent/tools/registry.py
+@@ -155,6 +155,7 @@ class ToolRegistry:
+     async def dispatch(self, wire_name: str, arguments: Any,
+                        invocation_id: str, context) -> dict:
+         """Return a typed result; repeated invocation IDs share one execution."""
++        manifest = None
+         try:
+             if not isinstance(invocation_id, str) or not 1 <= len(invocation_id) <= 128:
+                 raise InvalidInvocation("invalid invocation ID")
+@@ -193,6 +194,9 @@ class ToolRegistry:
+                                 del self._locks[old_run]
+             return await asyncio.shield(task)
+         except (InvalidInvocation, PermissionDenied, AgentUnavailable) as exc:
++            self.events.emit("tool.rejected", run_id=get(context, "run_id"),
++                             invocation_id=invocation_id if isinstance(invocation_id, str) and len(invocation_id) <= 128 else None,
++                             tool_id=manifest.id if manifest else None, error_code=exc.code)
+             return {"ok": False, "error": {"code": exc.code}}
+ 
+     async def _execute(self, manifest: ToolManifest, args: dict,
+diff --git a/api.py b/api.py
+index 7959509..5c4feb0 100644
+--- a/api.py
++++ b/api.py
+@@ -721,6 +721,8 @@ from agent.runtime import AgentRuntime
+ from agent.api import create_router
+ agent_runtime = AgentRuntime()
+ app.include_router(create_router(agent_runtime))
++from agent.monitoring.api import create_monitoring_router
++app.include_router(create_monitoring_router(agent_runtime))
+ 
+ @app.on_event("startup")
+ async def _start_agent_runtime():
+diff --git a/requirements.txt b/requirements.txt
+index d1a5801..ffa6620 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -17,3 +17,4 @@ uvicorn
+ websockets>=11.0.3
+ zstandard
+ jsonschema==4.23.0
++cryptography==46.0.3

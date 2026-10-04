@@ -504,7 +504,8 @@ RUN chown asterisk:asterisk \
 
 # Direct links to modules
 RUN ln -s /var/www/html/freepbx/admin/modules/visualplan/htdocs /var/www/html/freepbx/visualplan \
-	&& ln -s /var/www/html/freepbx/admin/modules/nethhotel/htdocs /var/www/html/freepbx/hotel
+	&& ln -s /var/www/html/freepbx/admin/modules/nethhotel/htdocs /var/www/html/freepbx/hotel \
+	&& ln -s /var/www/html/freepbx/admin/modules/satellite/htdocs /var/www/html/freepbx/satellite
 
 
 # Link all mudule assets directories

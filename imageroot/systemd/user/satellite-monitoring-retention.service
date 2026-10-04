@@ -1,0 +1,10 @@
+[Unit]
+Description=Expire NethVoice Agent monitoring history
+After=satellite.service satellite-pgsql.service
+
+[Service]
+Type=oneshot
+ExecCondition=/usr/bin/systemctl --user --quiet is-active satellite.service
+ExecStart=/usr/bin/podman exec satellite python -m agent.monitoring.retention
+TimeoutStartSec=15
+SyslogIdentifier=%u/%N

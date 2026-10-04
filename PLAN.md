@@ -12,15 +12,28 @@ Confirmed direction: explicit workflows with agent/tool steps; prioritize
 monitoring, API integrations, and file context before workflow authoring. Advanced
 voice control remains a separate planned track.
 
-Phase 1 is complete. Phase 2 source implementation is now present in this
-repository and the Satellite worktree described in
-[satellite/phase2-development.md](satellite/phase2-development.md). Coordinated
-image builds and the live acceptance scenarios below remain validation gates;
-Phase 2 is not yet marked production-ready. The modularity requirements in
-section 2.6 govern these changes.
-The later application milestones in section 101 are a **draft roadmap**: their
-detailed design, estimates, acceptance tests, and delivery commitments will be
-planned after Phase 2 is implemented and evaluated.
+Phase 1 is complete. Phase 2 is implemented, committed and published through
+coordinated CI, and the `agent` images are deployed to `nethvoice51`. See
+[satellite/phase2-development.md](satellite/phase2-development.md) and
+[the CI acceptance report](satellite/phase2-ci-test-report.md). Automated checks
+and controlled voice scenarios passed within their recorded scope. Human
+listening, exact spoken email/VAT content, and the actual external incoming-call
+path remain acceptance gates; Phase 2 is not marked production-ready here.
+The modularity requirements in section 2.6 govern these changes.
+
+**Phase 3 is monitoring-first (roadmap M1).** The owner confirmed a dedicated
+NethVoice Agents area with the existing management login, administrator-only
+access, execution metadata by default, per-agent transcript opt-in, and
+configurable defaults of 30 days for metadata / 7 days for transcripts.
+The detailed implementation plan is
+[satellite/phase3-plan.md](satellite/phase3-plan.md). API integrations, files and
+workflow authoring remain later milestones. The detailed Phase 3 plan governs
+its delivery scope; references to the original Phase 3 transfer work below
+identify the separate advanced voice track.
+
+The later application milestones in section 101 remain a **draft roadmap**.
+Their detailed designs, estimates, acceptance tests and delivery commitments
+will be refined when each becomes the next implementation increment.
 
 The two initial profiles, FreePBX pages, local HTTP integration, and single
 Satellite daemon describe the Phase 2 delivery. They are not permanent limits
@@ -5001,11 +5014,13 @@ Finally, the built-in agent can place a caller on hold, privately ask a recipien
 
 # 101. Draft roadmap for the broader Agent application
 
-**Status: direction and milestones only.** This is not authorization to expand
-Phase 2 or a detailed implementation specification for the later application.
-Complete Phase 2, review the implementation evidence, then plan each next
-milestone in detail. No dates, effort estimates, framework, workflow engine,
-vector database, queue, or new service topology are committed here.
+**Status: M1 is now planned as Phase 3; M2–M5 and V remain a draft roadmap.**
+The owner confirmed the monitoring-first release scope on 4 October 2026.
+See [the Phase 3 implementation plan](satellite/phase3-plan.md) for its
+milestones, contracts, ownership, retention, validation and deployment gates.
+This does not expand Phase 2 or authorize implementation of the later features.
+Detailed estimates, workflow/ingestion technology and later service topology
+are decided when each following increment is planned.
 
 Each milestone ships the access controls, retention, resource limits, and
 side-effect safeguards required by the capability it introduces. M5 expands
@@ -5229,3 +5244,35 @@ NethVoice application-owned repository is needed when adding authoring. Final
 schemas, migration mechanics, and recovery procedure are post-Phase-2 work, not
 an extra Phase 2 storage migration. No component becomes a second writer merely
 because a new UI is introduced.
+
+
+---
+
+# 102. Phase 3 planning decisions — 2026-10-04
+
+Phase 3 implements **M1: NethVoice Agents monitoring**. The owner confirmed:
+
+| Decision | Confirmed direction |
+|---|---|
+| Release scope | Monitoring first; APIs and file context in later phases |
+| Interface | Dedicated NethVoice Agents area, existing login, FreePBX links |
+| Audience | NethVoice administrators only |
+| Stored content | Execution metadata by default; transcripts opt-in per agent |
+| Default retention | Metadata 30 days; enabled transcripts 7 days; configurable |
+
+Implementation sequence:
+
+1. P3.0: contract, provider capability and Phase 2 acceptance review.
+2. P3.1: durable event/run history, gaps, reconciliation and retention.
+3. P3.2: authenticated NethVoice monitoring interface and native links.
+4. P3.3: optional transcripts, protected storage and deletion.
+5. P3.4: lifecycle/compatibility validation, coordinated CI deployment and report.
+
+[The detailed Phase 3 plan](satellite/phase3-plan.md) records the inspected
+Phase 2 boundaries, UI and API design, ownership, operational limits,
+acceptance scenarios and follow-on decisions. No implementation, deployment
+or test execution was performed by the planning update.
+
+Phase 3 source implementation is now present; validation and deployment remain
+pending. See [the implementation report](satellite/phase3-development.md) and
+[the monitoring contract](satellite/monitoring-api-contract.md).

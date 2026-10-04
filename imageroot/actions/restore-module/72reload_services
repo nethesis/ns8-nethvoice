@@ -8,6 +8,8 @@
 set -e
 
 systemctl --user restart freepbx nethcti-server nethcti-middleware
+systemctl --user enable --now satellite-pgsql.service || true
+systemctl --user enable --now satellite-monitoring-retention.timer
 systemctl --user enable --now satellite-agent-sync.timer
 # The timer retries if Satellite or FreePBX is still settling after restore.
 systemctl --user start satellite-agent-sync.service || true

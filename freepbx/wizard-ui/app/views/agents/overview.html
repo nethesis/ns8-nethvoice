@@ -1,0 +1,40 @@
+<section class="wizard-pf agents-area" aria-labelledby="agents-title">
+  <div class="wizard-pf-contents adjust-size">
+    <header class="agents-header"><h1 id="agents-title">{{'Agents.title' | translate}}</h1><a href="#!/agents/settings" class="btn btn-default">{{'Agents.settings' | translate}}</a></header>
+    <p class="alert alert-danger" role="alert" ng-if="monitor.error">{{('Agents.error.' + monitor.error) | translate}}</p>
+    <p role="status" ng-if="monitor.loading">{{'Agents.loading' | translate}}</p>
+    <div ng-if="monitor.overview">
+      <form class="agents-toolbar" ng-submit="monitor.refresh()">
+        <label for="agents-hours">{{'Agents.period' | translate}}</label>
+        <select id="agents-hours" ng-model="monitor.hours" ng-options="hours for hours in [1,24,168,720]"></select>
+        <span>{{'Agents.hours' | translate}}</span><button class="btn btn-default" type="submit">{{'Agents.refresh' | translate}}</button>
+      </form>
+      <p class="alert alert-warning" ng-if="!monitor.overview.history_complete">{{'Agents.incomplete_history' | translate}}</p>
+      <div class="agents-cards">
+        <div class="card-pf"><h2>{{'Agents.active' | translate}}</h2><strong>{{monitor.overview.active_runs.length}}</strong></div>
+        <div class="card-pf"><h2>{{'Agents.tool_errors' | translate}}</h2><strong>{{monitor.overview.tool_errors === null ? ('Agents.unavailable' | translate) : monitor.overview.tool_errors}}</strong></div>
+        <div class="card-pf"><h2>{{'Agents.storage' | translate}}</h2><strong>{{(monitor.overview.health.available ? 'Agents.available' : 'Agents.unavailable') | translate}}</strong><p>{{'Agents.backlog' | translate}}: {{monitor.overview.health.queued_records}} · {{'Agents.dropped' | translate}}: {{monitor.overview.health.dropped}}</p><p>{{'Agents.last_write' | translate}}: {{monitor.time(monitor.overview.health.last_write) | date:'medium'}}</p></div>
+        <div class="card-pf"><h2>{{'Agents.call_service' | translate}}</h2><strong>{{(monitor.overview.readiness.ready ? 'Agents.ready' : 'Agents.not_ready') | translate}}</strong></div>
+        <div class="card-pf"><h2>{{'Agents.configuration' | translate}}</h2><strong>{{(monitor.sync.desired_revision === monitor.sync.acknowledged_revision ? 'Agents.synced' : 'Agents.pending') | translate}}</strong><p>{{'Agents.revision' | translate}}: {{monitor.sync.acknowledged_revision}} / {{monitor.sync.desired_revision}}</p></div>
+      </div>
+      <ul class="agents-outcomes"><li ng-repeat="outcome in monitor.overview.outcomes">{{('Agents.status.' + outcome.status) | translate}}: {{outcome.count}}</li></ul>
+      <h2>{{'Agents.active' | translate}}</h2><p ng-if="!monitor.overview.active_runs.length">{{'Agents.none_active' | translate}}</p>
+      <ul><li ng-repeat="run in monitor.overview.active_runs"><a ng-href="#!/agents/runs/{{run.run_id}}">{{run.run_id}}</a> · {{run.state}}</li></ul>
+    </div>
+    <h2>{{'Agents.runs' | translate}}</h2>
+    <form class="agents-filters" ng-submit="monitor.loadRuns(false)">
+      <label>{{'Agents.agent' | translate}}<select class="form-control" ng-model="monitor.filters.agent"><option value="">{{'Agents.all' | translate}}</option><option value="internal">{{'Agents.internal' | translate}}</option><option value="external">{{'Agents.external' | translate}}</option></select></label>
+      <label>{{'Agents.provider' | translate}}<select class="form-control" ng-model="monitor.filters.provider"><option value="">{{'Agents.all' | translate}}</option><option value="openai">OpenAI</option><option value="grok">Grok</option></select></label>
+      <label>{{'Agents.outcome' | translate}}<select class="form-control" ng-model="monitor.filters.outcome"><option value="">{{'Agents.all' | translate}}</option><option ng-repeat="outcome in monitor.outcomes" value="{{outcome}}">{{('Agents.status.' + outcome) | translate}}</option></select></label>
+      <label>{{'Agents.correlation' | translate}}<input class="form-control" ng-model="monitor.filters.correlation" maxlength="128"></label>
+      <label>{{'Agents.after' | translate}}<input class="form-control" type="datetime-local" ng-model="monitor.filters.after"></label>
+      <label>{{'Agents.before' | translate}}<input class="form-control" type="datetime-local" ng-model="monitor.filters.before"></label>
+      <label><input type="checkbox" ng-model="monitor.filters.tool_error"> {{'Agents.only_errors' | translate}}</label>
+      <button type="submit" class="btn btn-primary" ng-disabled="monitor.runsLoading">{{'Agents.search' | translate}}</button>
+    </form>
+    <p ng-if="monitor.runsLoading" role="status">{{'Agents.loading' | translate}}</p>
+    <p ng-if="!monitor.loading && !monitor.runsLoading && !monitor.runs.length && !monitor.error">{{'Agents.no_runs' | translate}}</p>
+    <div class="table-responsive" ng-if="monitor.runs.length"><table class="table table-striped"><thead><tr><th>{{'Agents.started' | translate}}</th><th>{{'Agents.agent' | translate}}</th><th>{{'Agents.provider' | translate}}</th><th>{{'Agents.outcome' | translate}}</th><th>{{'Agents.duration' | translate}}</th><th>{{'Agents.run' | translate}}</th></tr></thead><tbody><tr ng-repeat="run in monitor.runs track by run.run_id"><td>{{monitor.time(run.started) | date:'medium'}}</td><td>{{('Agents.' + run.agent_id) | translate}}</td><td>{{run.provider}}</td><td>{{('Agents.status.' + run.status) | translate}} <span ng-if="!run.complete" class="label label-warning">{{'Agents.partial' | translate}}</span></td><td>{{monitor.duration(run) === null ? ('Agents.unavailable' | translate) : monitor.duration(run) + ' s'}}</td><td><a ng-href="#!/agents/runs/{{run.run_id}}">{{run.run_id}}</a></td></tr></tbody></table></div>
+    <div class="agents-toolbar"><button class="btn btn-default" ng-if="!monitor.onFirstPage" ng-click="monitor.loadRuns(false)">{{'Agents.first_page' | translate}}</button><button class="btn btn-default" ng-disabled="!monitor.hasNext || monitor.runsLoading" ng-click="monitor.loadRuns(true)">{{'Agents.next_page' | translate}}</button></div>
+  </div>
+</section>

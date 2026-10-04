@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+"""Clones inherit configuration, never the source instance's Agent history."""
+import json
+import os
+import subprocess
+
+try:
+    os.unlink('satellite_postgresql.pg_dump.gz')
+except FileNotFoundError:
+    pass
+
+command = ['podman', 'exec', '-i', 'mariadb', 'sh', '-c',
+    'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; exec mysql -N -B -u root asterisk']
+result = subprocess.run(command, input="""
+SELECT table_name FROM information_schema.tables WHERE table_schema=DATABASE()
+ AND table_name IN ('satellite_agent_monitoring_policy','satellite_agent_configuration_state');
+""", text=True, capture_output=True, check=True)
+tables = set(result.stdout.splitlines())
+queries = []
+if 'satellite_agent_monitoring_policy' in tables:
+    result = subprocess.run(command, input='SELECT policy_json FROM satellite_agent_monitoring_policy WHERE id=1;',
+                            text=True, capture_output=True, check=True)
+    policy = json.loads(result.stdout)
+    policy['transcripts'] = {'internal': False, 'external': False}
+    policy['capture_versions'] = {'internal': 1, 'external': 1}
+    # Hex avoids SQL quoting and preserves JSON booleans across MariaDB versions.
+    encoded = json.dumps(policy, separators=(',', ':')).encode().hex()
+    queries.append(f'UPDATE satellite_agent_monitoring_policy SET policy_json=CONVERT(0x{encoded} USING utf8mb4), updated_by=NULL WHERE id=1;')
+if 'satellite_agent_configuration_state' in tables:
+    queries.append("""
+UPDATE satellite_agent_configuration_state SET desired_revision=desired_revision+1,
+ desired_hash=NULL,snapshot_revision=NULL,snapshot_hash=NULL,payload_encrypted=NULL,
+ acknowledged_revision=0,acknowledged_hash=NULL WHERE id=1;
+""")
+if queries:
+    subprocess.run(command, input='START TRANSACTION;\n'+'\n'.join(queries)+'\nCOMMIT;', text=True, check=True)

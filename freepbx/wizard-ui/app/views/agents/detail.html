@@ -1,0 +1,40 @@
+<section class="wizard-pf agents-area" aria-labelledby="agent-run-title">
+  <div class="wizard-pf-contents adjust-size">
+    <header class="agents-header"><h1 id="agent-run-title">{{'Agents.run_detail' | translate}}</h1><a href="#!/agents" class="btn btn-default">{{'Agents.back' | translate}}</a></header>
+    <p class="alert alert-danger" role="alert" ng-if="monitor.error">{{('Agents.error.' + monitor.error) | translate}}</p>
+    <p role="status" ng-if="monitor.loading">{{'Agents.loading' | translate}}</p>
+    <div ng-if="monitor.run">
+      <p class="alert alert-warning" ng-if="!monitor.run.complete">{{'Agents.partial_run' | translate}}</p>
+      <dl class="agents-facts">
+        <dt>{{'Agents.run' | translate}}</dt><dd>{{monitor.run.run_id}}</dd>
+        <dt>{{'Agents.session' | translate}}</dt><dd>{{monitor.run.session_id}}</dd>
+        <dt>{{'Agents.cdr' | translate}}</dt><dd>{{monitor.run.cdr_id}}</dd>
+        <dt>{{'Agents.agent' | translate}}</dt><dd>{{('Agents.' + monitor.run.agent_id) | translate}} · {{monitor.run.provider}}</dd>
+        <dt>{{'Agents.outcome' | translate}}</dt><dd>{{('Agents.status.' + monitor.run.status) | translate}} · {{monitor.run.reason}}</dd>
+        <dt>{{'Agents.started' | translate}}</dt><dd>{{monitor.time(monitor.run.started) | date:'medium'}}</dd>
+        <dt>{{'Agents.ended' | translate}}</dt><dd>{{monitor.time(monitor.run.ended) | date:'medium'}}</dd>
+        <dt>{{'Agents.duration' | translate}}</dt><dd>{{monitor.duration(monitor.run) === null ? ('Agents.unavailable' | translate) : monitor.duration(monitor.run) + ' s'}}</dd>
+        <dt>{{'Agents.revision' | translate}}</dt><dd>{{monitor.run.revision}} · {{monitor.run.payload_hash}}</dd>
+        <dt>{{'Agents.usage' | translate}}</dt><dd ng-if="monitor.run.usage">{{'Agents.usage_scope' | translate}} · {{'Agents.input_tokens' | translate}}: {{monitor.run.usage.input_tokens === undefined ? ('Agents.unavailable' | translate) : monitor.run.usage.input_tokens}} · {{'Agents.output_tokens' | translate}}: {{monitor.run.usage.output_tokens === undefined ? ('Agents.unavailable' | translate) : monitor.run.usage.output_tokens}}</dd><dd ng-if="!monitor.run.usage">{{'Agents.unavailable' | translate}}</dd>
+      </dl>
+      <h2>{{'Agents.timeline' | translate}}</h2>
+      <button class="btn btn-default" ng-click="monitor.loadEvents(false)" ng-disabled="monitor.eventsLoading">{{'Agents.refresh' | translate}}</button>
+      <p ng-if="!monitor.events.length && !monitor.eventsLoading">{{'Agents.no_events' | translate}}</p>
+      <div class="table-responsive"><table class="table table-striped"><thead><tr><th>{{'Agents.sequence' | translate}}</th><th>{{'Agents.time' | translate}}</th><th>{{'Agents.event' | translate}}</th><th>{{'Agents.tool' | translate}}</th><th>{{'Agents.result' | translate}}</th><th>{{'Agents.duration' | translate}}</th></tr></thead><tbody><tr ng-repeat="event in monitor.events track by event.event_id"><td>{{event.sequence}}</td><td>{{monitor.time(event.timestamp) | date:'medium'}}</td><td>{{event.event_type}}</td><td>{{event.metadata.tool_id}}<br><small>{{event.metadata.invocation_id}}</small></td><td>{{event.metadata.state || event.metadata.status || event.metadata.outcome}}<br><span class="text-danger">{{event.metadata.error_code || event.metadata.reason_code}}</span></td><td>{{event.metadata.duration_ms === undefined ? '' : event.metadata.duration_ms + ' ms'}}</td></tr></tbody></table></div>
+      <button class="btn btn-default" ng-if="monitor.moreEvents" ng-click="monitor.loadEvents(true)" ng-disabled="monitor.eventsLoading || monitor.events.length >= 2000">{{'Agents.more_events' | translate}}</button>
+      <p ng-if="monitor.moreEvents && monitor.events.length >= 2000">{{'Agents.event_limit' | translate}}</p>
+      <h2>{{'Agents.conversation' | translate}}</h2>
+      <p>{{'Agents.transcript_state' | translate}}: {{('Agents.capture.' + monitor.run.transcript_state) | translate}}</p>
+      <button class="btn btn-default" ng-if="!monitor.conversation" ng-click="monitor.showTranscript()" ng-disabled="monitor.transcriptLoading">{{'Agents.show_conversation' | translate}}</button>
+      <div ng-if="monitor.conversation">
+        <p class="alert alert-info">{{'Agents.generated_audio' | translate}}</p>
+        <p>{{('Agents.capture.' + monitor.conversation.state) | translate}}</p>
+        <ol class="agents-conversation"><li ng-repeat="segment in monitor.conversation.items track by (segment.item_id + ':' + segment.content_index)"><strong>{{('Agents.role.' + segment.role) | translate}}</strong><span ng-if="segment.interrupted" class="label label-warning">{{'Agents.interrupted_audio' | translate}}</span><p class="agents-text" ng-bind="segment.text"></p></li></ol>
+        <button class="btn btn-default" ng-click="monitor.hideTranscript()">{{'Agents.hide_conversation' | translate}}</button>
+      </div>
+      <button class="btn btn-danger" ng-click="monitor.confirmDelete = true" ng-disabled="monitor.run.transcript_state === 'deleted'">{{'Agents.delete_transcript' | translate}}</button>
+      <div class="alert alert-warning" ng-if="monitor.confirmDelete" role="alert"><p>{{'Agents.delete_confirm' | translate}}</p><button class="btn btn-danger" ng-click="monitor.deleteTranscript()" ng-disabled="monitor.deleting">{{'Agents.confirm' | translate}}</button> <button class="btn btn-default" ng-click="monitor.confirmDelete = false">{{'Agents.cancel' | translate}}</button></div>
+      <p>{{'Agents.handoff_scope' | translate}}</p>
+    </div>
+  </div>
+</section>

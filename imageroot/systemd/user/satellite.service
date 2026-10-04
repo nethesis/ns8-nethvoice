@@ -7,6 +7,7 @@ EnvironmentFile=%E/state/environment
 EnvironmentFile=%E/state/passwords.env
 WorkingDirectory=%E/state
 Restart=always
+TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/satellite.pid %t/satellite.ctr-id
 ExecStart=runagent /usr/bin/podman run \
     --detach \
@@ -41,6 +42,7 @@ ExecStart=runagent /usr/bin/podman run \
     --volume=satellite_agent_state:/var/lib/satellite-agent:Z \
     ${NETHVOICE_SATELLITE_IMAGE}
 
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/satellite.ctr-id -t 60
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/satellite.ctr-id
 PIDFile=%t/satellite.pid
 Type=forking

@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/AgentProfileRepository.php';
+require_once __DIR__ . '/AgentMonitoringRepository.php';
 
 /** Additive Agent schema; safe to invoke on install and every upgrade. */
 class AgentSchema
@@ -104,6 +105,20 @@ class AgentSchema
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
         $db->exec('INSERT IGNORE INTO `satellite_agent_configuration_state` (`id`) VALUES (1)');
+
+        $db->exec('CREATE TABLE IF NOT EXISTS satellite_agent_monitoring_policy (
+            id TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+            policy_json LONGTEXT NOT NULL,
+            updated_by VARCHAR(128) NULL,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+        $monitoring = $db->prepare('INSERT IGNORE INTO satellite_agent_monitoring_policy (id,policy_json) VALUES (1,?)');
+        $monitoring->execute(array(json_encode(AgentMonitoringRepository::defaults(), JSON_THROW_ON_ERROR)));
+        if ($monitoring->rowCount() > 0) {
+            // Invalidate a Phase 2 snapshot once; subsequent installs are idempotent.
+            (new AgentConfigurationState($db))->bump();
+        }
+
 
         $db->exec('CREATE TABLE IF NOT EXISTS `satellite_agent_webhook_previous_keys` (
             `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,

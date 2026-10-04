@@ -4,6 +4,7 @@ require_once __DIR__ . '/AgentTrunkRepository.php';
 require_once __DIR__ . '/AgentContextSource.php';
 require_once __DIR__ . '/AgentSatelliteClient.php';
 require_once __DIR__ . '/AgentCrypto.php';
+require_once __DIR__ . '/AgentMonitoringRepository.php';
 /** Produces immutable, encrypted retry snapshots and a separately refreshed PBX context. */
 class AgentConfigurationBuilder
 {
@@ -89,7 +90,8 @@ class AgentConfigurationBuilder
         }
         $source = new AgentContextSource($this->freepbx);
         $payload = (object) array('profiles' => (object) $profiles, 'bindings' => $bindings,
-            'destinations' => $destinations, 'directory' => $source->directory(), 'calendars' => $source->calendars());
+            'destinations' => $destinations, 'directory' => $source->directory(), 'calendars' => $source->calendars(),
+            'monitoring' => (new AgentMonitoringRepository($db))->policy());
         $envelope = (object) array('schema_version' => 1, 'revision' => $status['desired_revision'],
             'payload_hash' => hash('sha256', self::canonicalJson($payload)), 'payload' => $payload);
         try {

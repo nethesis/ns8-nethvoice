@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+# Older backups have no encrypted Agent history or content key.
+import base64
+import secrets
+import agent
+
+passwords = agent.read_envfile('passwords.env')
+if not passwords.get('SATELLITE_MONITORING_CONTENT_KEY'):
+    passwords['SATELLITE_MONITORING_CONTENT_KEY'] = base64.b64encode(secrets.token_bytes(32)).decode()
+    agent.write_envfile('passwords.env', passwords)

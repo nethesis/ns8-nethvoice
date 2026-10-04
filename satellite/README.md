@@ -117,3 +117,19 @@ export $(grep SATELLITE_MQTT_PASSWORD passwords.env); podman exec -it satellite-
 ```
 export $(grep SATELLITE_API_TOKEN passwords.env);curl "http://127.0.0.1:${SATELLITE_HTTP_PORT}/api/get_transcription" --show-error --request POST --form "multichannel=false" --form "encoding=linear16" --form "sample_rate=8000" --form "channels=1" --form "persist=false" --form "summary=false" --header "Authorization: Bearer ${SATELLITE_API_TOKEN}" --form "file=@test.wav;type=audio/wav"
 ```
+
+## NethVoice Agents monitoring (Phase 3)
+
+The [monitoring contract](monitoring-api-contract.md) defines the private runtime
+API, administrator gateway, policy, storage and retention. The
+[implementation report](phase3-development.md) records delivered source and
+pending validation. Open the dedicated area at `/freepbx/wizard/#!/agents`.
+Transcript capture defaults to off; metadata retention defaults to 30 days,
+enabled transcripts to 7 days. History storage is independent of legacy audio
+transcription and does not gate call handling.
+
+Runtime packaging uses the immutable upstream base in `runtime-ref`, with the
+reviewable `runtime-patches/phase3.patch` and `runtime-overlay` shipped by this
+repository. Provide a Git checkout containing that base as `SATELLITE_SOURCE_DIR`.
+The build archives the base and applies the packaged extensions in a temporary
+directory; local dirty source edits are not included. CI follows the same path.

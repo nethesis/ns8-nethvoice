@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodic NethVoice Agent history retention
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=120
+Unit=satellite-monitoring-retention.service
+
+[Install]
+WantedBy=timers.target

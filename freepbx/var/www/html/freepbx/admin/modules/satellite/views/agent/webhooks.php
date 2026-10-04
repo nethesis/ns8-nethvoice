@@ -7,6 +7,7 @@ $webhook = isset($webhook) ? trim((string) $webhook) : '';
 $builtinWebhook = isset($builtinWebhook) ? trim((string) $builtinWebhook) : '';
 ?>
 <div class="container-fluid">
+    <p><a class="btn btn-default" href="/freepbx/wizard/#!/agents"><?php echo $escape(_('Agent monitoring')); ?></a></p>
     <h2><?php echo $escape(_('Webhooks')); ?></h2>
     <?php if (!empty($error)): ?><div class="alert alert-danger" role="alert"><?php echo $escape($error); ?></div><?php endif; ?>
     <?php if (!empty($notice)): ?><div class="alert alert-success" role="status"><?php echo $escape($notice); ?></div><?php endif; ?>

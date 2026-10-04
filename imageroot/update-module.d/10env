@@ -9,6 +9,7 @@ import agent
 import os
 import random
 import secrets
+import base64
 import string
 
 def gen_password(length=32):
@@ -171,6 +172,8 @@ if not (passwordsfile.get('SATELLITE_API_TOKEN') or '').strip():
     passwordsfile['SATELLITE_API_TOKEN'] = gen_password()
 if not passwordsfile.get('SATELLITE_AGENT_CONFIG_KEY'):
     passwordsfile['SATELLITE_AGENT_CONFIG_KEY'] = secrets.token_urlsafe(48)
+if not passwordsfile.get('SATELLITE_MONITORING_CONTENT_KEY'):
+    passwordsfile['SATELLITE_MONITORING_CONTENT_KEY'] = base64.b64encode(secrets.token_bytes(32)).decode()
 agent.write_envfile('passwords.env', passwordsfile)
 
 if os.getenv('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT') is None:

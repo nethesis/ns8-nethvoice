@@ -9,6 +9,7 @@ import os
 import sys
 import random
 import secrets
+import base64
 import string
 import agent
 
@@ -250,6 +251,7 @@ passwords = {
     "SATELLITE_PGSQL_PASSWORD": gen_password(),
     "SATELLITE_API_TOKEN": gen_password(),
     "SATELLITE_AGENT_CONFIG_KEY": secrets.token_urlsafe(48),
+    "SATELLITE_MONITORING_CONTENT_KEY": base64.b64encode(secrets.token_bytes(32)).decode(),
     "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN": gen_password()
 }
 

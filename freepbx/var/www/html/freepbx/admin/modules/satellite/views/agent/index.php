@@ -6,6 +6,7 @@ $tab = in_array($tab, array('destinations', 'trunks', 'internal', 'external'), t
 ?>
 <div class="container-fluid">
     <h2><?php echo $escape(_('Satellite Agent')); ?></h2>
+    <p><a class="btn btn-default" href="/freepbx/wizard/#!/agents"><?php echo $escape(_('Agent monitoring')); ?></a></p>
     <?php if (!empty($error)): ?>
         <div class="alert alert-danger" role="alert"><?php echo $escape($error); ?></div>
     <?php endif; ?>

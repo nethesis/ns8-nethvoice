@@ -50,9 +50,12 @@ else
     systemctl --user disable nethvoice-hotel-alarms.timer
 fi
 
+# PostgreSQL also owns Agent history, independently of legacy transcription.
+systemctl --user enable --now satellite-pgsql.service || true
+systemctl --user enable --now satellite-monitoring-retention.timer
+
 # Satellite transcription dependencies
 if [ "$SATELLITE_CALL_TRANSCRIPTION_ENABLED" = "True" ] || [ "$SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED" = "True" ]; then
-    systemctl --user enable --now satellite-pgsql.service
     systemctl --user enable --now satellite-mqtt.service
     systemctl --user disable satellite-recordings-cleanup.service >/dev/null 2>&1 || true
     systemctl --user enable --now satellite-recordings-cleanup.timer

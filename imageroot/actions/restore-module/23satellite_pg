@@ -1,18 +1,17 @@
 #!/bin/bash
-
-#
 # Copyright (C) 2025 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
-#
-
 set -e -o pipefail
-exec 1>&2 # Redirect any output to the journal (stderr)
+exec 1>&2
 
+# Older backups can legitimately have no Satellite database.
+if [ ! -s satellite_postgresql.pg_dump.gz ]; then
+    exit 0
+fi
 SATELLITE_PGSQL_PASSWORD=$(grep '^SATELLITE_PGSQL_PASSWORD=' ./passwords.env) && export "${SATELLITE_PGSQL_PASSWORD?}"
-
+export POSTGRES_PASSWORD="${SATELLITE_PGSQL_PASSWORD}"
 mkdir -vp restore
-cat - >restore/satellite_postgresql_restore.sh <<'EOS'
-# Restore all databases from the compressed dump file:
+cat >restore/satellite_postgresql_restore.sh <<'EOS'
 set -e -o pipefail
 cleanup() {
     ec=$?
@@ -21,24 +20,24 @@ cleanup() {
     exit "$ec"
 }
 trap cleanup EXIT
-gunzip -c /tmp/satellite_postgresql.pg_dump.gz | psql -U postgres
+# A unique bootstrap role avoids colliding with roles recreated by pg_dumpall.
+# Fail on all SQL errors rather than silently accepting an incomplete restore.
+gunzip -c /tmp/satellite_postgresql.pg_dump.gz | psql -X -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1
+psql -X -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1 -v restore_user="$POSTGRES_USER" <<'SQL'
+ALTER ROLE :"restore_user" NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+SQL
 EOS
 
-# Override the image /docker-entrypoint-initdb.d contents, to restore the
-# DB dump file. The container will be stopped at the end
+restore_role="restore_$(cat /proc/sys/kernel/random/uuid | tr -d '-')"
 podman run \
-    --rm \
-    --interactive \
-    --network=none \
+    --rm --interactive --network=none \
     --volume=./restore:/docker-entrypoint-initdb.d/:Z \
-    --volume=satellite_pgdata:/var/lib/postgresql/data:Z \
+    --volume=satellite_pgdata:/var/lib/postgresql/18/docker:Z \
     --volume=./satellite_postgresql.pg_dump.gz:/tmp/satellite_postgresql.pg_dump.gz:Z \
     --replace --name=restore_db \
-    --env POSTGRES_USER=${SATELLITE_PGSQL_USER} \
-    --env POSTGRES_PASSWORD=${SATELLITE_PGSQL_PASSWORD} \
+    --env POSTGRES_USER="${restore_role}" \
+    --env POSTGRES_DB=postgres \
+    --env POSTGRES_PASSWORD \
     --env TZ=UTC \
-    "${POSTGRES_IMAGE}"
-
-
-# If the restore is successful, clean up:
+    "${PGVECTOR_IMAGE}"
 rm -rfv restore/ satellite_postgresql.pg_dump.gz
