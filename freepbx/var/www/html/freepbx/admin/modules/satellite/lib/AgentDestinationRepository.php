@@ -73,13 +73,29 @@ class AgentDestinationRepository
         }
     }
 
-    public function update($id, array $input)
+    /** Built-in destinations may change fallback, while retaining their identity. */
+    public function validateUpdateInput($id, array $input)
     {
         $stored = $this->getById($id);
-        if (!$stored || (int) $stored['system_managed'] !== 0) {
+        if (!$stored) {
             throw new \RuntimeException('Editable Agent destination not found');
         }
-        $row = $this->validateInput(array_merge($stored, $input));
+        if (!empty($stored['system_managed'])) {
+            if (!in_array($stored['agent_type'], array('builtin_internal', 'builtin_external'), true)) {
+                throw new \RuntimeException('Editable Agent destination not found');
+            }
+            foreach (array('agent_type', 'cleverai_trunk_id', 'cleverai_flow') as $field) {
+                if (array_key_exists($field, $input) && (string) $input[$field] !== (string) $stored[$field]) {
+                    throw new \InvalidArgumentException('Built-in Agent destination identity cannot be changed');
+                }
+            }
+        }
+        return $this->validateInput(array_merge($stored, $input));
+    }
+
+    public function update($id, array $input)
+    {
+        $row = $this->validateUpdateInput($id, $input);
         $ownTransaction = !$this->db->inTransaction();
         if ($ownTransaction) {
             $this->db->beginTransaction();

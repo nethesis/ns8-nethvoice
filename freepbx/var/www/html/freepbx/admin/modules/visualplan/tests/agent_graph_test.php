@@ -35,7 +35,8 @@ class GraphSatellite
         if ($id !== null && !isset($this->rows[$id])) {
             throw new InvalidArgumentException('Missing agent');
         }
-        if ($input['cleverai_trunk_id'] !== 1 || $input['cleverai_flow'] === '') {
+        if (($input['agent_type'] ?? 'cleverai') === 'cleverai' &&
+            ($input['cleverai_trunk_id'] !== 1 || $input['cleverai_flow'] === '')) {
             throw new InvalidArgumentException('Invalid agent');
         }
         return $input;
@@ -151,12 +152,19 @@ $graph = new NethvplanAgentGraph($satellite, array($system), array());
 check($graph->allocate()['satellite-agent-destination%8'] === 8, 'System Agent ID was not preserved');
 $graph->save(function () { throw new RuntimeException('System fallback must not be resolved'); });
 check(!$satellite->batch, 'System Agent was sent to edit batch');
-rejects(function () use ($satellite, $system) {
-    $system['userData']['fallback_touched'] = true;
-    new NethvplanAgentGraph($satellite, array($system), array());
-}, 'System Agent fallback edit accepted');
+$system['userData']['fallback_touched'] = true;
+$target = array('type' => 'Base', 'id' => 'ext-local%203');
+$graph = new NethvplanAgentGraph($satellite, array($system, $target), array(linkTo($system, $target)));
+$graph->allocate();
+$graph->save(function () { return 'ext-local,203,1'; });
+check($satellite->batch[8]['fallback_destination'] === 'ext-local,203,1', 'System Agent fallback was not saved');
+check($satellite->rows[8]['agent_type'] === 'builtin_internal' && !$satellite->created, 'System Agent identity changed');
+$graph = new NethvplanAgentGraph($satellite, array($system), array());
+$graph->allocate();
+$graph->save(function () { throw new RuntimeException('Disconnected fallback was resolved'); });
+check($satellite->batch[8]['fallback_destination'] === null, 'System Agent fallback disconnect was not saved');
 rejects(function () use ($satellite, $system) {
     new NethvplanAgentGraph($satellite, array($system), array(linkTo($system, $system)));
-}, 'System Agent fallback edge accepted');
+}, 'System Agent fallback cycle accepted');
 
 echo "VisualPlan Agent graph tests passed\n";

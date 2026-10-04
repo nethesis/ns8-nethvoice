@@ -113,10 +113,7 @@ function satellite_agent_destination_key($id) {
 }
 
 function satellite_agent_edit_url($row) {
-    if (!empty($row['system_managed']) && in_array($row['agent_type'], array('builtin_internal', 'builtin_external'), true)) {
-        return 'config.php?display=satellite_agents&tab=' . ($row['agent_type'] === 'builtin_internal' ? 'internal' : 'external');
-    }
-    return 'config.php?display=satellite_agents&view=form&id=' . (int) $row['id'];
+    return 'config.php?display=satellite_agents&tab=destinations&view=form&id=' . (int) $row['id'];
 }
 
 /** A destination whose flow is invalid never gets a dialplan context. */

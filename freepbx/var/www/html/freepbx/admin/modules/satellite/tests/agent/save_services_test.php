@@ -61,6 +61,11 @@ class ServiceDestinations extends AgentDestinationRepository {
     public function listAll() { return array_values($this->rows); }
     public function getById($id) { return isset($this->rows[(int) $id]) ? $this->rows[(int) $id] : null; }
     public function validateInput(array $input) {
+        if (in_array($input['agent_type'] ?? 'cleverai', array('builtin_internal', 'builtin_external'), true)) {
+            return array('agent_type' => $input['agent_type'], 'cleverai_trunk_id' => null,
+                'cleverai_flow' => null, 'fallback_destination' => AgentValidation::validateFallback($input['fallback_destination'] ?? null),
+                'enabled' => 1);
+        }
         if ((int) ($input['cleverai_trunk_id'] ?? 0) !== 7) {
             throw new InvalidArgumentException('CleverAI trunk not found');
         }
@@ -174,6 +179,20 @@ $destinations->rows[2]['system_managed'] = 1;
 serviceReject(function () use ($service) {
     $service->saveAgentDestination(array('cleverai_flow' => 'blocked'), 2);
 }, 'System-managed destination was editable');
+
+$destinations->rows[20] = array('id' => 20, 'system_managed' => 1, 'agent_type' => 'builtin_internal',
+    'cleverai_trunk_id' => null, 'cleverai_flow' => null, 'fallback_destination' => null);
+$service->saveAgentDestination(array('fallback_destination' => 'ext-local,203,1'), 20);
+serviceCheck($destinations->rows[20]['fallback_destination'] === 'ext-local,203,1' &&
+    $destinations->rows[20]['agent_type'] === 'builtin_internal', 'Built-in fallback edit failed');
+serviceReject(function () use ($service) {
+    $service->saveAgentDestination(array('agent_type' => 'builtin_external'), 20);
+}, 'Built-in identity edit accepted');
+serviceReject(function () use ($service) {
+    $service->saveAgentDestination(array('fallback_destination' => 'satellite-agent-destination-20,s,1'), 20);
+}, 'Built-in self fallback accepted');
+$service->saveAgentDestination(array('fallback_destination' => null), 20);
+serviceCheck($destinations->rows[20]['fallback_destination'] === null, 'Built-in fallback clearing failed');
 
 $trunks = new ServiceTrunks();
 serviceSet($service, 'agentTrunks', $trunks);

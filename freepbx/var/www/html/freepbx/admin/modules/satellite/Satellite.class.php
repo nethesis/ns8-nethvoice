@@ -400,19 +400,13 @@ class Satellite extends \FreePBX_Helpers implements \BMO
 
     /** Validate an Agent destination, including editability for an existing ID. */
     public function validateAgentDestination(array $input, $id = null) {
-        if ($id !== null) {
-            $stored = $this->agentDestinations->getById($id);
-            if (!$stored || (int) $stored['system_managed'] !== 0) {
-                throw new \RuntimeException('Editable Agent destination not found');
-            }
-            $input = array_merge($stored, $input);
-        }
         foreach (array('cleverai_flow', 'fallback_destination') as $field) {
             if (isset($input[$field]) && is_string($input[$field])) {
                 $input[$field] = trim($input[$field]);
             }
         }
-        return $this->agentDestinations->validateInput($input);
+        return $id === null ? $this->agentDestinations->validateInput($input)
+            : $this->agentDestinations->validateUpdateInput($id, $input);
     }
 
     public function saveAgentDestination(array $input, $id = null) {
@@ -707,6 +701,12 @@ class Satellite extends \FreePBX_Helpers implements \BMO
             $form = $tab === 'trunks'
                 ? $this->getAgentTrunk((int) $_GET['id'])
                 : $this->getAgentDestination((int) $_GET['id']);
+        }
+        if ($tab === 'destinations' && is_array($form) && !empty($form['id'])) {
+            $storedForm = $this->getAgentDestination((int) $form['id']);
+            if ($storedForm && !empty($storedForm['system_managed'])) {
+                $form = array_merge($storedForm, $form, array('system_managed' => 1));
+            }
         }
         $showForm = (isset($_GET['view']) && $_GET['view'] === 'form') || ($form !== null && !in_array($tab, array('internal', 'external'), true));
         $formMode = $showForm || $tab === 'internal' || $tab === 'external';

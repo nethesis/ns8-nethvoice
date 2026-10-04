@@ -62,10 +62,7 @@ class NethvplanAgentGraph
             }
             $stored = $id === null ? null : $this->stored[$id];
             $protected = $stored !== null && !empty($stored['system_managed']);
-            if ($protected && !empty($data['fallback_touched'])) {
-                throw new InvalidArgumentException('System Agent destinations are reference only');
-            }
-            $input = $protected ? null : $satellite->validateAgentDestination(array(
+            $input = $satellite->validateAgentDestination(array(
                 'agent_type' => $stored['agent_type'] ?? ($data['agent_type'] ?? 'cleverai'),
                 'cleverai_trunk_id' => $stored['cleverai_trunk_id'] ?? ($data['cleverai_trunk_id'] ?? null),
                 'cleverai_flow' => $stored['cleverai_flow'] ?? ($data['cleverai_flow'] ?? ''),
@@ -81,9 +78,6 @@ class NethvplanAgentGraph
             $node = $connection['source']['node'] ?? '';
             if (!isset($this->agents[$node])) {
                 continue;
-            }
-            if ($this->agents[$node]['protected']) {
-                throw new InvalidArgumentException('System Agent destinations are reference only');
             }
             $suffix = explode('%', $node, 2)[1];
             $target = $connection['target']['node'] ?? '';
@@ -118,9 +112,6 @@ class NethvplanAgentGraph
             $next['id:' . $id] = $this->fallbackKey($row['fallback_destination']);
         }
         foreach ($this->agents as $node => $agent) {
-            if ($agent['protected']) {
-                continue;
-            }
             $target = $this->edges[$node] ?? null;
             $key = $this->key($node);
             if (!$agent['touched']) {
@@ -151,10 +142,6 @@ class NethvplanAgentGraph
     public function allocate()
     {
         foreach ($this->agents as $node => $agent) {
-            if ($agent['protected']) {
-                $this->ids[$node] = $agent['id'];
-                continue;
-            }
             if (isset($this->ids[$node])) {
                 continue;
             }
@@ -177,7 +164,7 @@ class NethvplanAgentGraph
     {
         $changes = array();
         foreach ($this->agents as $node => $agent) {
-            if ($agent['protected']) {
+            if ($agent['protected'] && !$agent['touched']) {
                 continue;
             }
             $input = $agent['input'];

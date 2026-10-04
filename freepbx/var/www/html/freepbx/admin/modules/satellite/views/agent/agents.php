@@ -7,6 +7,7 @@ $destinations = isset($destinations) && is_array($destinations) ? $destinations 
 $form = isset($form) && is_array($form) ? $form : array();
 $showForm = !empty($showForm);
 $editing = !empty($form['id']);
+$systemForm = !empty($form['system_managed']);
 $csrfField = isset($csrfToken) && is_scalar($csrfToken) && (string) $csrfToken !== ''
     ? '<input type="hidden" name="csrf_token" value="' . $escape($csrfToken) . '">'
     : '';
@@ -24,7 +25,7 @@ $agentLabels = array('cleverai' => _('CleverAI'), 'builtin_internal' => _('Built
 ?>
 <?php if ($showForm): ?>
     <h3><?php echo $escape($editing ? _('Edit Agent Destination') : _('Add Agent Destination')); ?></h3>
-    <p><?php echo $escape(_('The destination name is generated automatically when saved.')); ?></p>
+    <p><?php echo $escape($systemForm ? _('Change the fallback used if this built-in agent call fails. Configure the agent in its Builtin tab.') : _('The destination name is generated automatically when saved.')); ?></p>
     <form class="fpbx-submit" action="config.php?display=satellite_agents&amp;tab=destinations" method="post">
         <input type="hidden" name="section" value="destinations">
         <input type="hidden" name="action" value="save">
@@ -33,9 +34,9 @@ $agentLabels = array('cleverai' => _('CleverAI'), 'builtin_internal' => _('Built
 
         <div class="element-container"><div class="row"><div class="form-group">
             <div class="col-md-3"><label class="control-label" for="satellite-agent-type"><?php echo $escape(_('Agent')); ?></label></div>
-            <div class="col-md-9"><select class="form-control" id="satellite-agent-type" name="agent_type">
+            <div class="col-md-9"><select class="form-control" id="satellite-agent-type" name="agent_type"<?php echo $systemForm ? ' disabled' : ''; ?>>
                 <?php foreach ($agentLabels as $type => $label): ?><option value="<?php echo $type; ?>"<?php echo (isset($form['agent_type']) ? $form['agent_type'] : 'cleverai') === $type ? ' selected' : ''; ?>><?php echo $escape($label); ?></option><?php endforeach; ?>
-            </select></div>
+            </select><?php if ($systemForm): ?><input type="hidden" name="agent_type" value="<?php echo $escape($form['agent_type']); ?>"><?php endif; ?></div>
         </div></div></div>
 
         <div class="element-container satellite-cleverai-field"><div class="row"><div class="form-group">
@@ -77,6 +78,8 @@ $agentLabels = array('cleverai' => _('CleverAI'), 'builtin_internal' => _('Built
             for (var i = 0; i < fields.length; i++) {
                 fields[i].style.display = type.value === 'cleverai' ? '' : 'none';
             }
+            document.getElementById('satellite-agent-trunk').disabled = type.value !== 'cleverai';
+            document.getElementById('satellite-agent-flow').disabled = type.value !== 'cleverai';
             document.getElementById('satellite-agent-trunk').required = type.value === 'cleverai';
             document.getElementById('satellite-agent-flow').required = type.value === 'cleverai';
         }
@@ -105,8 +108,8 @@ $agentLabels = array('cleverai' => _('CleverAI'), 'builtin_internal' => _('Built
                 <td><?php echo $escape(isset($destination['cleverai_flow']) ? $destination['cleverai_flow'] : ''); ?></td>
                 <td><?php echo $escape($system ? _('System') : ($type === 'cleverai' ? _('Configured') : (isset($builtinStatuses[str_replace('builtin_', '', $type)]) ? $builtinStatuses[str_replace('builtin_', '', $type)] : _('Not configured')))); ?></td>
                 <td>
-                    <?php if (!$system): ?>
                     <a class="btn btn-default btn-sm" href="config.php?display=satellite_agents&amp;tab=destinations&amp;view=form&amp;id=<?php echo $id; ?>"><?php echo $escape(_('Edit')); ?></a>
+                    <?php if (!$system): ?>
                     <form action="config.php?display=satellite_agents&amp;tab=destinations" method="post" style="display:inline" onsubmit="return confirm(<?php echo $escape(json_encode(_('Delete this destination?'))); ?>)">
                         <input type="hidden" name="section" value="destinations"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?php echo $id; ?>"><?php echo $csrfField; ?>
                         <button class="btn btn-danger btn-sm" type="submit"><?php echo $escape(_('Delete')); ?></button>
