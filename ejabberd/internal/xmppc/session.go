@@ -378,7 +378,7 @@ func (ses *Session) Slot(ctx context.Context, filename string, size int64, conte
 	if err != nil {
 		return "", "", nil, err
 	}
-	payload := fmt.Sprintf(`<request xmlns=ns.Upload filename="%s" size="%d" content-type="%s"/>`, attr(filename), size, attr(contentType))
+	payload := fmt.Sprintf(`<request xmlns="%s" filename="%s" size="%d" content-type="%s"/>`, ns.Upload, attr(filename), size, attr(contentType))
 	r, err := ses.s.SendIQElement(ctx, xml.NewDecoder(strings.NewReader(payload)), stanza.IQ{Type: stanza.GetIQ, To: service})
 	if err != nil {
 		return "", "", nil, err
