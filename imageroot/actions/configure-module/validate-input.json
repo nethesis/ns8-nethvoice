@@ -62,6 +62,71 @@
         "timezone": {
             "description": "Asterisk Timezone for timeconditions",
             "type": "string"
+        },
+        "authentication_method": {
+            "description": "How users prove their identity: local password, SAML2 or OIDC SSO",
+            "type": "string",
+            "enum": ["password", "saml2", "oidc"]
+        },
+        "saml2": {
+            "description": "SAML2 SSO settings, used only when authentication_method is saml2",
+            "type": "object",
+            "properties": {
+                "idp_metadata_url": {
+                    "description": "URL of the SAML2 Identity Provider metadata",
+                    "type": "string"
+                },
+                "identity_attribute": {
+                    "description": "SAML attribute mapping to the username (e.g. uid, eppn)",
+                    "type": "string"
+                },
+                "login_button_label": {
+                    "description": "Optional label shown on the CTI SSO login button",
+                    "type": "string"
+                },
+                "user_allowlist": {
+                    "description": "Optional list of usernames allowed to log in via SSO",
+                    "type": "string"
+                },
+                "identity_value_regex": {
+                    "description": "Optional regex the SSO identity value must match",
+                    "type": "string"
+                },
+                "idp_signing_cert": {
+                    "description": "Optional PEM certificate verifying the IdP metadata signature",
+                    "type": "string"
+                },
+                "jwt_timeout_hours": {
+                    "description": "Optional JWT lifetime in hours (default 336)",
+                    "type": ["integer", "string"]
+                }
+            }
+        },
+        "oidc": {
+            "description": "OIDC SSO settings, used only when authentication_method is oidc",
+            "type": "object",
+            "properties": {
+                "issuer_url": {
+                    "description": "OIDC issuer URL (discovery base)",
+                    "type": "string"
+                },
+                "client_id": {
+                    "description": "OIDC client id registered on the provider",
+                    "type": "string"
+                },
+                "client_secret": {
+                    "description": "OIDC client secret (stored in passwords.env)",
+                    "type": "string"
+                },
+                "login_button_label": {
+                    "description": "Optional label shown on the CTI SSO login button",
+                    "type": "string"
+                },
+                "idp_name": {
+                    "description": "Optional provider name shown under the SSO login button",
+                    "type": "string"
+                }
+            }
         }
     }
 }
