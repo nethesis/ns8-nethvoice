@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"path"
 	"strings"
 	"sync"
 	"time"
@@ -531,13 +530,13 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 	names := map[string]string{} // room -> name, asked once per request
 	for _, m := range msgs {
 		// Reactions and other stanzas without text or file: nothing the app can show.
-		if strings.TrimSpace(m.Body) == "" && m.OOB == "" {
+		if strings.TrimSpace(m.Body) == "" && len(m.Files) == 0 {
 			continue
 		}
 		item := sms{SmsID: m.ID, SendingDate: m.At.UTC().Format(time.RFC3339), SmsText: emojify(m.Body), ContentType: "text/plain"}
 		// An attachment goes out in the app's own file transfer format, so it shows a player or a picture.
 		// Messages the app sent before the gateway converted them stay in that format: hand them back as such.
-		attached := m.OOB != ""
+		attached := len(m.Files) > 0
 		if _, ok := parseFileTransfer("", m.Body); ok && !attached {
 			item.ContentType = fileTransferType
 		}
@@ -553,7 +552,7 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 			if m.Nick == in.Username {
 				item.Recipient = name
 				if attached {
-					item.SmsText, item.ContentType = s.fileTransferText(ctx, m.OOB, m.Body), fileTransferType
+					item.SmsText, item.ContentType = s.fileTransferText(ctx, m.Files, m.Body), fileTransferType
 				}
 				sent = append(sent, item)
 			} else {
@@ -561,10 +560,10 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 				author := s.displayName(users, m.Nick)
 				if attached {
 					caption := author
-					if m.Body != "" && m.Body != path.Base(m.OOB) {
+					if !namesOnly(m.Body, fileNames(m.Files), m.Files) {
 						caption = author + ": " + m.Body
 					}
-					item.SmsText, item.ContentType = s.fileTransferText(ctx, m.OOB, caption), fileTransferType
+					item.SmsText, item.ContentType = s.fileTransferText(ctx, m.Files, caption), fileTransferType
 				} else if item.ContentType != fileTransferType {
 					item.SmsText = author + ": " + emojify(m.Body)
 				}
@@ -573,7 +572,7 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if attached {
-			item.SmsText, item.ContentType = s.fileTransferText(ctx, m.OOB, m.Body), fileTransferType
+			item.SmsText, item.ContentType = s.fileTransferText(ctx, m.Files, m.Body), fileTransferType
 		}
 		if m.From == me {
 			item.Recipient = s.address(users, m.To)
@@ -654,9 +653,9 @@ func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request) {
 		id, err = s.sendFileTransfer(fctx, ses, dest, group, f)
 		fcancel()
 	} else if group {
-		id, err = ses.SendGroup(ctx, dest, emojify(in.SmsBody), "")
+		id, err = ses.SendGroup(ctx, dest, emojify(in.SmsBody))
 	} else {
-		id, err = ses.Send(ctx, dest, emojify(in.SmsBody), "")
+		id, err = ses.Send(ctx, dest, emojify(in.SmsBody))
 	}
 	if err != nil {
 		log.Printf("send %s: %v", in.Username, err)

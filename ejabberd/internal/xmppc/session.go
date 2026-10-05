@@ -30,7 +30,8 @@ type Message struct {
 	Room  string // group address when the message came through a group
 	Nick  string // sender's username inside the group
 	Body  string
-	OOB   string
+	OOB   string   // the first attachment
+	Files []string // every attachment, in order (one message may carry several)
 	At    time.Time
 }
 
@@ -93,25 +94,25 @@ func (ses *Session) Close() error {
 func (ses *Session) Me() string { return ses.me.Bare().String() }
 
 // Send delivers a chat message and returns its origin id.
-func (ses *Session) Send(ctx context.Context, to, body, oob string) (string, error) {
+func (ses *Session) Send(ctx context.Context, to, body string, oob ...string) (string, error) {
 	return ses.send(ctx, to, body, oob, stanza.ChatMessage)
 }
 
 // SendGroup posts to a room this account is subscribed to (MucSub: no need to join).
-func (ses *Session) SendGroup(ctx context.Context, room, body, oob string) (string, error) {
+func (ses *Session) SendGroup(ctx context.Context, room, body string, oob ...string) (string, error) {
 	return ses.send(ctx, room, body, oob, stanza.GroupChatMessage)
 }
 
-func (ses *Session) send(ctx context.Context, to, body, oob string, typ stanza.MessageType) (string, error) {
+func (ses *Session) send(ctx context.Context, to, body string, oob []string, typ stanza.MessageType) (string, error) {
 	id := newID()
 	var sb strings.Builder
 	sb.WriteString("<body>")
 	_ = xml.EscapeText(&sb, []byte(body))
 	sb.WriteString("</body>")
 	fmt.Fprintf(&sb, `<origin-id xmlns="%s" id="%s"/><store xmlns="%s"/>`, ns.SID, id, ns.Hints)
-	if oob != "" {
+	for _, u := range oob {
 		sb.WriteString(`<x xmlns="` + ns.OOB + `"><url>`)
-		_ = xml.EscapeText(&sb, []byte(oob))
+		_ = xml.EscapeText(&sb, []byte(u))
 		sb.WriteString(`</url></x>`)
 	}
 	dest, err := jid.Parse(to)
@@ -221,7 +222,7 @@ func (ses *Session) onResult(_ stanza.Message, t xmlstream.TokenReadEncoder) err
 					From string `xml:"from,attr"`
 					To   string `xml:"to,attr"`
 					Body string `xml:"body"`
-					OOB  struct {
+					OOB  []struct {
 						URL string `xml:"url"`
 					} `xml:"jabber:x:oob x"`
 					// A group message reaches a subscriber wrapped in a pubsub event.
@@ -233,7 +234,7 @@ func (ses *Session) onResult(_ stanza.Message, t xmlstream.TokenReadEncoder) err
 									ID   string `xml:"id,attr"`
 									From string `xml:"from,attr"`
 									Body string `xml:"body"`
-									OOB  struct {
+									OOB  []struct {
 										URL string `xml:"url"`
 									} `xml:"jabber:x:oob x"`
 								} `xml:"message"`
@@ -249,13 +250,26 @@ func (ses *Session) onResult(_ stanza.Message, t xmlstream.TokenReadEncoder) err
 	}
 	at, _ := time.Parse(time.RFC3339Nano, m.Result.Forwarded.Delay.Stamp)
 	fm := m.Result.Forwarded.Message
-	msg := Message{ID: m.Result.ID, MsgID: fm.ID, From: address.Bare(fm.From), To: address.Bare(fm.To), Body: fm.Body, OOB: fm.OOB.URL, At: at}
+	urls := func(xs []struct {
+		URL string `xml:"url"`
+	}) (files []string) {
+		for _, x := range xs {
+			if x.URL != "" {
+				files = append(files, x.URL)
+			}
+		}
+		return files
+	}
+	msg := Message{ID: m.Result.ID, MsgID: fm.ID, From: address.Bare(fm.From), To: address.Bare(fm.To), Body: fm.Body, Files: urls(fm.OOB), At: at}
 	if fm.Event.Items.Node == ns.MucSubMessages {
 		inner := fm.Event.Items.Item.Message
-		msg.Room, msg.MsgID, msg.Body, msg.OOB = address.Bare(fm.From), inner.ID, inner.Body, inner.OOB.URL
+		msg.Room, msg.MsgID, msg.Body, msg.Files = address.Bare(fm.From), inner.ID, inner.Body, urls(inner.OOB)
 		if i := strings.IndexByte(inner.From, '/'); i >= 0 {
 			msg.Nick = inner.From[i+1:]
 		}
+	}
+	if len(msg.Files) > 0 {
+		msg.OOB = msg.Files[0]
 	}
 	ses.mu.Lock()
 	if list, tracked := ses.queries[m.Result.QueryID]; tracked {
