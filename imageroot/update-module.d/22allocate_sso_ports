@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Allocate loopback ports for the on-demand SSO front-doors (saml2-proxy,
+# oauth2-proxy) on installs created before the tcp-ports-demand bump to 38.
+# New installs get them from create-module/05setenvs instead.
+import sys
+import agent
+
+if not hasattr(agent, 'allocate_ports'):
+    print("Core version too old, not allocating SSO ports. Try on next update", file=sys.stderr)
+    sys.exit(0)
+
+# read the env file, the real environment may not be updated yet
+env = agent.read_envfile('environment')
+
+for var in ('SAML2_PROXY_PORT', 'OAUTH2_PROXY_PORT'):
+    if var not in env:
+        allocated = agent.allocate_ports(1, "tcp", keep_existing=True)
+        agent.set_env(var, str(allocated[0]))
+        print(f"New port allocated for {var}: {allocated[0]}", file=sys.stderr)

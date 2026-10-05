@@ -162,6 +162,208 @@
                   "
                   :showCloseButton="false"
                 />
+                <!-- SSO management (saml2/oidc) is shown only when it is enabled
+                     for this module via the SSO_AUTH env var -->
+                <template v-if="sso_auth">
+                <!-- authentication method: how users prove identity (orthogonal to
+                     the account provider above, which is the source of user records) -->
+                <NsComboBox
+                  :title="$t('settings.authentication_method')"
+                  :options="authMethodList"
+                  :auto-highlight="true"
+                  :label="core.$t('common.choose')"
+                  :disabled="isFormDisabled"
+                  :invalid-message="error.authentication_method"
+                  v-model="authentication_method"
+                  ref="authentication_method"
+                  :acceptUserInput="false"
+                >
+                  <template slot="tooltip">
+                    {{ $t("settings.authentication_method_tooltip") }}
+                  </template>
+                </NsComboBox>
+                <template v-if="authentication_method === 'saml2'">
+                  <NsInlineNotification
+                    kind="info"
+                    :title="$t('settings.saml2_info_title')"
+                    :description="$t('settings.saml2_info_description')"
+                    :showCloseButton="false"
+                  />
+                  <div
+                    v-if="saml2SpMetadataUrl"
+                    class="sp-metadata-field mg-bottom-md"
+                  >
+                    <div class="bx--label">
+                      {{ $t("settings.saml2_sp_metadata_url") }}
+                    </div>
+                    <cv-code-snippet
+                      kind="oneline"
+                      :copy-feedback="$t('common.copied_to_clipboard')"
+                      :feedback-aria-label="$t('common.copy_to_clipboard')"
+                      >{{ saml2SpMetadataUrl }}</cv-code-snippet
+                    >
+                    <div class="bx--form__helper-text">
+                      {{ $t("settings.saml2_sp_metadata_url_helper") }}
+                    </div>
+                  </div>
+                  <NsTextInput
+                    :label="$t('settings.saml2_idp_metadata_url')"
+                    v-model.trim="saml2.idp_metadata_url"
+                    placeholder="https://idp.example.com/idp/shibboleth"
+                    :disabled="isFormDisabled"
+                    :invalid-message="error.saml2_idp_metadata_url"
+                    ref="saml2_idp_metadata_url"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.saml2_idp_metadata_url_tooltip") }}
+                    </template>
+                  </NsTextInput>
+                  <NsTextInput
+                    :label="$t('settings.saml2_login_button_label')"
+                    v-model.trim="saml2.login_button_label"
+                    :placeholder="
+                      $t('settings.saml2_login_button_label_placeholder')
+                    "
+                    :disabled="isFormDisabled"
+                  />
+                  <div class="idp-preview">
+                    <div class="bx--label">
+                      {{ $t("settings.saml2_login_preview") }}
+                    </div>
+                    <div class="idp-preview-box">
+                      <cv-skeleton-text
+                        v-if="loading.getIdpInfo"
+                        :paragraph="true"
+                        :line-count="2"
+                      />
+                      <template v-else-if="idpPreview && !error.getIdpInfo">
+                        <div class="idp-preview-button">
+                          {{
+                            saml2.login_button_label ||
+                            $t("settings.saml2_default_button_label")
+                          }}
+                        </div>
+                        <div
+                          v-if="idpPreview.display_name || idpPreview.logo_url"
+                          class="idp-preview-idp"
+                        >
+                          <img
+                            v-if="idpPreview.logo_url"
+                            :src="idpPreview.logo_url"
+                            alt=""
+                          />
+                          <span v-if="idpPreview.display_name">{{
+                            idpPreview.display_name
+                          }}</span>
+                        </div>
+                      </template>
+                      <div v-else class="idp-preview-error">
+                        {{ $t("settings.saml2_preview_not_available") }}
+                      </div>
+                    </div>
+                  </div>
+                  <NsTextInput
+                    :label="$t('settings.saml2_identity_attribute')"
+                    v-model.trim="saml2.identity_attribute"
+                    placeholder="uid"
+                    :disabled="isFormDisabled"
+                    :invalid-message="error.saml2_identity_attribute"
+                    ref="saml2_identity_attribute"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.saml2_identity_attribute_tooltip") }}
+                    </template>
+                  </NsTextInput>
+                </template>
+                <template v-if="authentication_method === 'oidc'">
+                  <NsInlineNotification
+                    kind="info"
+                    :title="$t('settings.oidc_info_title')"
+                    :description="$t('settings.oidc_info_description')"
+                    :showCloseButton="false"
+                  />
+                  <div
+                    v-if="oidcRedirectUri"
+                    class="sp-metadata-field mg-bottom-md"
+                  >
+                    <div class="bx--label">
+                      {{ $t("settings.oidc_redirect_uri") }}
+                    </div>
+                    <cv-code-snippet
+                      kind="oneline"
+                      :copy-feedback="$t('common.copied_to_clipboard')"
+                      :feedback-aria-label="$t('common.copy_to_clipboard')"
+                      >{{ oidcRedirectUri }}</cv-code-snippet
+                    >
+                    <div class="bx--form__helper-text">
+                      {{ $t("settings.oidc_redirect_uri_helper") }}
+                    </div>
+                  </div>
+                  <NsTextInput
+                    :label="$t('settings.oidc_issuer_url')"
+                    v-model.trim="oidc.issuer_url"
+                    placeholder="https://idp.example.com"
+                    :disabled="isFormDisabled"
+                    :invalid-message="error.oidc_issuer_url"
+                    ref="oidc_issuer_url"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.oidc_issuer_url_tooltip") }}
+                    </template>
+                  </NsTextInput>
+                  <NsTextInput
+                    :label="$t('settings.oidc_client_id')"
+                    v-model.trim="oidc.client_id"
+                    :disabled="isFormDisabled"
+                    :invalid-message="error.oidc_client_id"
+                    ref="oidc_client_id"
+                  >
+                    <template slot="tooltip">
+                      {{ $t("settings.oidc_client_id_tooltip") }}
+                    </template>
+                  </NsTextInput>
+                  <cv-text-input
+                    :label="$t('settings.oidc_client_secret')"
+                    type="password"
+                    :password-visible="false"
+                    v-model.trim="oidc.client_secret"
+                    :helper-text="$t('settings.oidc_client_secret_helper')"
+                    :invalid-message="error.oidc_client_secret"
+                    :disabled="isFormDisabled"
+                    ref="oidc_client_secret"
+                  />
+                  <NsTextInput
+                    :label="$t('settings.oidc_idp_name')"
+                    v-model.trim="oidc.idp_name"
+                    :placeholder="$t('settings.oidc_idp_name_placeholder')"
+                    :disabled="isFormDisabled"
+                  />
+                  <NsTextInput
+                    :label="$t('settings.saml2_login_button_label')"
+                    v-model.trim="oidc.login_button_label"
+                    :placeholder="
+                      $t('settings.saml2_login_button_label_placeholder')
+                    "
+                    :disabled="isFormDisabled"
+                  />
+                  <div class="idp-preview">
+                    <div class="bx--label">
+                      {{ $t("settings.saml2_login_preview") }}
+                    </div>
+                    <div class="idp-preview-box">
+                      <div class="idp-preview-button">
+                        {{
+                          oidc.login_button_label ||
+                          $t("settings.saml2_default_button_label")
+                        }}
+                      </div>
+                      <div v-if="oidc.idp_name" class="idp-preview-idp">
+                        <span>{{ oidc.idp_name }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+                </template>
                 <NsComboBox
                   v-model.trim="timezone"
                   :autoFilter="true"
@@ -212,27 +414,6 @@
                     </div>
                   </template>
                 </NsInlineNotification>
-                <NsInlineNotification
-                  v-if="error.getUsers"
-                  kind="error"
-                  :title="$t('action.list-domain-users')"
-                  :description="error.getUsers"
-                  :showCloseButton="false"
-                />
-                <NsInlineNotification
-                  v-if="error.addUser"
-                  kind="error"
-                  :title="core.$t('action.add-user')"
-                  :description="error.addUser"
-                  :showCloseButton="false"
-                />
-                <NsInlineNotification
-                  v-if="error.alterUser"
-                  kind="error"
-                  :title="core.$t('action.alter-user')"
-                  :description="error.alterUser"
-                  :showCloseButton="false"
-                />
                 <NsInlineNotification
                   v-if="error.configureModule"
                   kind="error"
@@ -318,7 +499,6 @@ import {
   PageTitleService,
 } from "@nethserver/ns8-ui-lib";
 import ResumeConfigNotification from "@/components/first-configuration/ResumeConfigNotification.vue";
-import { PasswordGeneratorService } from "@/mixins/passwordGenerator";
 
 export default {
   name: "Settings",
@@ -329,7 +509,6 @@ export default {
     UtilService,
     QueryParamService,
     PageTitleService,
-    PasswordGeneratorService,
   ],
   pageTitle() {
     return this.$t("settings.title") + " - " + this.appName;
@@ -348,49 +527,89 @@ export default {
       isLetsEncryptCurrentlyEnabled: false,
       user_domain: "",
       currentUserDomain: "",
+      authentication_method: "password",
+      saml2: {
+        idp_metadata_url: "",
+        identity_attribute: "uid",
+        login_button_label: "",
+      },
+      oidc: {
+        issuer_url: "",
+        client_id: "",
+        client_secret: "",
+        idp_name: "",
+        login_button_label: "",
+      },
+      // SSO (saml2/oidc) management is hidden unless enabled via the SSO_AUTH env
+      sso_auth: false,
+      authMethodList: [],
       reports_international_prefix: "+39",
       timezone: "",
-      nethvoice_adm: {},
       isProxyInstalled: false,
-      config: {},
       subscription_systemid: "",
       passwordValidation: null,
       focusPasswordField: { element: "" },
       clearConfirmPasswordCommand: 0,
+      idpPreview: undefined,
+      idpPreviewTimer: null,
       loading: {
         getConfiguration: false,
+        getIdpInfo: false,
         configureModule: false,
         userDomains: false,
         getDefaults: false,
-        getUsers: false,
         setAdminPassword: false,
-        addUser: false,
-        alterUser: false,
         getStatus: false,
       },
       domainList: [],
       timezoneList: [],
-      providers: {},
-      domainUsers: [],
       error: {
         getConfiguration: "",
+        getIdpInfo: "",
         configureModule: "",
         userDomains: "",
         getDefaults: "",
-        getUsers: "",
         setAdminPassword: "",
-        addUser: "",
-        alterUser: "",
         getStatus: "",
         nethvoice_host: "",
         nethvoice_admin_password: "",
         nethcti_ui_host: "",
         lets_encrypt: "",
         user_domain: "",
+        authentication_method: "",
+        saml2_idp_metadata_url: "",
+        saml2_identity_attribute: "",
+        oidc_issuer_url: "",
+        oidc_client_id: "",
+        oidc_client_secret: "",
         reports_international_prefix: "",
         timezone: "",
       },
     };
+  },
+  watch: {
+    "saml2.idp_metadata_url"() {
+      clearTimeout(this.idpPreviewTimer);
+      this.idpPreview = undefined;
+      this.error.getIdpInfo = "";
+      if (this.saml2.idp_metadata_url.startsWith("https://")) {
+        this.idpPreviewTimer = setTimeout(this.getIdpInfo, 800);
+      }
+    },
+    isLoading(loading, wasLoading) {
+      // NsComboBox shows the raw value at mount and never resolves the label
+      // when options arrive later (its labels differ from the ids); once the
+      // form is rendered with the options ready, ask it to resolve the label
+      // for the current value.
+      if (wasLoading && !loading && this.authentication_method) {
+        this.$nextTick(() => {
+          const combo = this.$refs.authentication_method;
+          if (combo && combo.internalUpdateValue) {
+            combo.internalUpdateValue(this.authentication_method);
+          }
+        });
+      }
+    },
   },
   computed: {
     ...mapState([
@@ -401,16 +620,23 @@ export default {
       "isShownFirstConfigurationModal",
       "instanceStatus",
     ]),
+    saml2SpMetadataUrl() {
+      return this.nethcti_ui_host
+        ? "https://" + this.nethcti_ui_host + "/Shibboleth.sso/Metadata"
+        : "";
+    },
+    oidcRedirectUri() {
+      return this.nethcti_ui_host
+        ? "https://" + this.nethcti_ui_host + "/oauth2/callback"
+        : "";
+    },
     isFormDisabled() {
       return (
         this.loading.getConfiguration ||
         this.loading.configureModule ||
         this.loading.userDomains ||
         this.loading.getDefaults ||
-        this.loading.getUsers ||
-        this.loading.setAdminPassword ||
-        this.loading.addUser ||
-        this.loading.alterUser
+        this.loading.setAdminPassword
       );
     },
     isLoading() {
@@ -425,22 +651,13 @@ export default {
         this.subscription_systemid && this.subscription_systemid.trim() !== ""
       );
     },
-    isSelectedDomainInternal() {
-      const selectedDomain = this.domainList.find(
-        (domain) => domain.name === this.user_domain
-      );
-      return !!selectedDomain && selectedDomain.location === "internal";
-    },
     isErrorState() {
       return !!(
         this.error.getConfiguration ||
         this.error.configureModule ||
         this.error.userDomains ||
         this.error.getDefaults ||
-        this.error.getUsers ||
-        this.error.setAdminPassword ||
-        this.error.addUser ||
-        this.error.alterUser
+        this.error.setAdminPassword
       );
     },
     showChangeProviderWarning() {
@@ -479,6 +696,46 @@ export default {
     loadConfig() {
       this.getUserDomains();
       this.getDefaults();
+    },
+    async getIdpInfo() {
+      this.loading.getIdpInfo = true;
+      this.error.getIdpInfo = "";
+      const taskAction = "get-idp-info";
+      const eventId = this.getUuid();
+
+      this.core.$root.$once(`${taskAction}-aborted-${eventId}`, () => {
+        this.loading.getIdpInfo = false;
+        this.error.getIdpInfo = "unreachable";
+      });
+
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        (taskContext, taskResult) => {
+          this.loading.getIdpInfo = false;
+          this.idpPreview = taskResult.output;
+        }
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          data: {
+            url: this.saml2.idp_metadata_url,
+          },
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.loading.getIdpInfo = false;
+        this.error.getIdpInfo = "unreachable";
+      }
     },
     async getConfiguration() {
       this.loading.getConfiguration = true;
@@ -526,7 +783,6 @@ export default {
       this.loading.getConfiguration = false;
       const config = taskResult.output;
 
-      this.config = taskResult.output;
       this.subscription_systemid = config.subscription_systemid || "";
 
       this.nethvoice_host = config.nethvoice_host;
@@ -537,12 +793,30 @@ export default {
 
       this.user_domain = config.user_domain;
       this.currentUserDomain = config.user_domain;
+
+      this.sso_auth = !!config.sso_auth;
+      this.authentication_method = config.authentication_method || "password";
+      if (config.saml2) {
+        this.saml2 = {
+          idp_metadata_url: config.saml2.idp_metadata_url || "",
+          identity_attribute: config.saml2.identity_attribute || "uid",
+          login_button_label: config.saml2.login_button_label || "",
+        };
+      }
+      if (config.oidc) {
+        this.oidc = {
+          issuer_url: config.oidc.issuer_url || "",
+          client_id: config.oidc.client_id || "",
+          client_secret: config.oidc.client_secret || "",
+          idp_name: config.oidc.idp_name || "",
+          login_button_label: config.oidc.login_button_label || "",
+        };
+      }
+
       if (config.reports_international_prefix !== "") {
         this.reports_international_prefix = config.reports_international_prefix;
       }
       this.timezone = config.timezone;
-      this.nethvoice_adm.username = config.nethvoice_adm_username;
-      this.nethvoice_adm.password = config.nethvoice_adm_password;
 
       if (this.isAppConfigured) {
         this.focusElement("nethvoice_host");
@@ -581,6 +855,33 @@ export default {
         isValidationOk = false;
       }
 
+      // SAML2 SSO requires the IdP metadata and the identity attribute
+      if (this.sso_auth && this.authentication_method === "saml2") {
+        if (!this.saml2.idp_metadata_url) {
+          this.error.saml2_idp_metadata_url = this.$t("error.required");
+          isValidationOk = false;
+        }
+        if (!this.saml2.identity_attribute) {
+          this.error.saml2_identity_attribute = this.$t("error.required");
+          isValidationOk = false;
+        }
+      }
+
+      if (this.sso_auth && this.authentication_method === "oidc") {
+        if (!this.oidc.issuer_url) {
+          this.error.oidc_issuer_url = this.$t("error.required");
+          isValidationOk = false;
+        }
+        if (!this.oidc.client_id) {
+          this.error.oidc_client_id = this.$t("error.required");
+          isValidationOk = false;
+        }
+        if (!this.oidc.client_secret) {
+          this.error.oidc_client_secret = this.$t("error.required");
+          isValidationOk = false;
+        }
+      }
+
       if (
         this.nethvoice_host === this.nethcti_ui_host &&
         this.nethvoice_host !== ""
@@ -613,118 +914,6 @@ export default {
       if (!isValidationOk) {
         return;
       }
-      this.getUsers();
-    },
-    async addAdmUser() {
-      this.error.addUser = "";
-      this.loading.addUser = true;
-      const taskAction = "add-user";
-      const eventId = this.getUuid();
-
-      // register to task error
-      this.core.$root.$once(
-        `${taskAction}-aborted-${eventId}`,
-        this.addAdmUserAborted
-      );
-
-      // register to task completion
-      this.core.$root.$once(
-        `${taskAction}-completed-${eventId}`,
-        this.addAdmUserCompleted
-      );
-
-      this.nethvoice_adm.username = this.instanceName + "-adm";
-      this.nethvoice_adm.password = this.generateAdmPassword();
-
-      const res = await to(
-        this.createModuleTaskForApp(this.providers[this.user_domain], {
-          action: taskAction,
-          data: {
-            user: this.nethvoice_adm.username,
-            display_name: `${this.instanceName} Administrator`,
-            password: this.nethvoice_adm.password,
-            locked: false,
-            groups: ["domain admins"],
-          },
-          extra: {
-            title: this.$t("settings.create_nethvoice_adm"),
-            description: this.$t("common.processing"),
-            eventId,
-            isNotificationHidden: true,
-          },
-        })
-      );
-      const err = res[0];
-
-      if (err) {
-        console.error(`error creating task ${taskAction}`, err);
-        this.error.addUser = this.getErrorMessage(err);
-        this.loading.addUser = false;
-        return;
-      }
-    },
-    addAdmUserAborted(taskResult, taskContext) {
-      console.error(`${taskContext.action} aborted`, taskResult);
-      this.error.addUser = this.$t("error.generic_error");
-      this.loading.addUser = false;
-    },
-    addAdmUserCompleted() {
-      this.loading.addUser = false;
-
-      // proceed with module configuration
-      this.configureModule();
-    },
-    async changeAdmUserPassword() {
-      this.error.alterUser = "";
-      this.loading.alterUser = true;
-      const taskAction = "alter-user";
-      const eventId = this.getUuid();
-
-      // register to task error
-      this.core.$root.$once(
-        `${taskAction}-aborted-${eventId}`,
-        this.changeAdmUserPasswordAborted
-      );
-
-      // register to task completion
-      this.core.$root.$once(
-        `${taskAction}-completed-${eventId}`,
-        this.changeAdmUserPasswordCompleted
-      );
-
-      const res = await to(
-        this.createModuleTaskForApp(this.providers[this.user_domain], {
-          action: "alter-user",
-          data: {
-            user: this.nethvoice_adm.username,
-            password: this.nethvoice_adm.password,
-          },
-          extra: {
-            title: this.$t("settings.set_nethvoice_adm_password"),
-            description: this.$t("common.processing"),
-            eventId,
-            isNotificationHidden: true,
-          },
-        })
-      );
-      const err = res[0];
-
-      if (err) {
-        console.error(`error creating task ${taskAction}`, err);
-        this.error.alterUser = this.getErrorMessage(err);
-        this.loading.alterUser = false;
-        return;
-      }
-    },
-    changeAdmUserPasswordAborted(taskResult, taskContext) {
-      console.error(`${taskContext.action} aborted`, taskResult);
-      this.error.alterUser = this.$t("error.generic_error");
-      this.loading.alterUser = false;
-    },
-    changeAdmUserPasswordCompleted() {
-      this.loading.alterUser = false;
-
-      // proceed with module configuration
       this.configureModule();
     },
     async configureModule() {
@@ -750,19 +939,32 @@ export default {
         this.configureModuleCompleted
       );
 
+      const data = {
+        nethvoice_host: this.nethvoice_host,
+        nethcti_ui_host: this.nethcti_ui_host,
+        lets_encrypt: this.lets_encrypt,
+        user_domain: this.user_domain,
+        reports_international_prefix: this.reports_international_prefix,
+        timezone: this.timezone,
+      };
+      // SSO settings are sent only when the feature is enabled: with SSO off the
+      // saml2/oidc payload is omitted entirely, not sent empty
+      if (this.sso_auth) {
+        data.authentication_method = this.authentication_method;
+        data.saml2 = this.saml2;
+        data.oidc = {
+          issuer_url: this.oidc.issuer_url,
+          client_id: this.oidc.client_id,
+          client_secret: this.oidc.client_secret,
+          idp_name: this.oidc.idp_name,
+          login_button_label: this.oidc.login_button_label,
+        };
+      }
+
       const res = await to(
         this.createModuleTaskForApp(this.instanceName, {
           action: taskAction,
-          data: {
-            nethvoice_host: this.nethvoice_host,
-            nethcti_ui_host: this.nethcti_ui_host,
-            lets_encrypt: this.lets_encrypt,
-            user_domain: this.user_domain,
-            reports_international_prefix: this.reports_international_prefix,
-            timezone: this.timezone,
-            nethvoice_adm_username: this.nethvoice_adm.username,
-            nethvoice_adm_password: this.nethvoice_adm.password,
-          },
+          data,
           extra: {
             title: this.$t("settings.configure_instance", {
               instance: this.instanceName,
@@ -846,7 +1048,6 @@ export default {
           value: domain.name,
           location: domain.location,
         });
-        this.providers[domain.name] = domain.providers[0].id;
       }
       this.loading.userDomains = false;
       this.getConfiguration();
@@ -904,79 +1105,18 @@ export default {
       );
       this.loading.getDefaults = false;
       this.isProxyInstalled = taskResult.output.proxy_status.proxy_installed;
-    },
-    async getUsers() {
-      this.error.getUsers = "";
-      this.loading.getUsers = true;
-      const taskAction = "list-domain-users";
-      const eventId = this.getUuid();
 
-      // register to task error
-      this.core.$root.$once(
-        `${taskAction}-aborted-${eventId}`,
-        this.getUsersAborted
-      );
-
-      // register to task completion
-      this.core.$root.$once(
-        `${taskAction}-completed-${eventId}`,
-        this.getUsersCompleted
-      );
-
-      const res = await to(
-        this.createClusterTaskForApp({
-          action: taskAction,
-          data: {
-            domain: this.user_domain,
-          },
-          extra: {
-            title: this.$t("action." + taskAction),
-            isNotificationHidden: true,
-            eventId,
-          },
-        })
-      );
-      const err = res[0];
-
-      if (err) {
-        console.error(`error creating task ${taskAction}`, err);
-        this.error.getUsers = this.getErrorMessage(err);
-        this.loading.getUsers = false;
-        return;
-      }
-    },
-    getUsersAborted(taskResult, taskContext) {
-      console.error(`${taskContext.action} aborted`, taskResult);
-      this.error.getUsers = this.$t("error.generic_error");
-      this.loading.getUsers = false;
-    },
-    getUsersCompleted(taskContext, taskResult) {
-      this.domainUsers = taskResult.output.users;
-      this.loading.getUsers = false;
-
-      if (!this.isSelectedDomainInternal) {
-        // if selected domain is not internal, proceed with configuration
-        this.configureModule();
-      } else {
-        // check if nethvoice-adm user exists in the domain
-        const admUserExists = this.domainUsers.some((user) => {
-          return user.user === `${this.instanceName}-adm`;
-        });
-
-        if (admUserExists) {
-          // check if domain changed
-          if (this.config.user_domain != this.user_domain) {
-            // change adm user password, then proceed with configuration
-            this.changeAdmUserPassword();
-          } else {
-            // if exists and domain not changed, proceed with configuration
-            this.configureModule();
-          }
-        } else {
-          // if not exists, create nethvoice-adm user in the domain, then proceed with configuration
-          this.addAdmUser();
-        }
-      }
+      // build the authentication method options from the module-provided registry
+      // (extensible: a new method appears here without changing this view)
+      const methods = taskResult.output.available_authentication_methods || [
+        { id: "password" },
+        { id: "saml2" },
+      ];
+      this.authMethodList = methods.map((m) => ({
+        name: m.id,
+        value: m.id,
+        label: this.$t("settings.authentication_method_" + m.id),
+      }));
     },
     goToCertificates() {
       this.core.$router.push("/settings/tls-certificates");
@@ -1166,4 +1306,53 @@ export default {
 
 <style scoped lang="scss">
 @import "../styles/carbon-utils";
+
+.idp-preview {
+  max-width: 38rem;
+  margin-top: 0.5rem;
+  margin-bottom: 2rem;
+}
+.idp-preview-box {
+  border: 1px solid $ui-03;
+  border-radius: 6px;
+  padding: 1rem;
+  min-height: 7.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.idp-preview-button {
+  background: $interactive-01;
+  color: #fff;
+  border-radius: 4px;
+  padding: 0.5rem 0;
+  width: 100%;
+  max-width: 20rem;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.idp-preview-idp {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: $text-02;
+  font-size: 0.875rem;
+}
+.idp-preview-idp img {
+  height: 1.25rem;
+  width: auto;
+}
+.idp-preview-error {
+  color: $text-02;
+  font-size: 0.875rem;
+}
+
+// align the SP metadata snippet with the width of the other form inputs
+.sp-metadata-field,
+.sp-metadata-field ::v-deep .bx--snippet--single {
+  max-width: 38rem;
+}
 </style>
