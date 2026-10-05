@@ -4,12 +4,14 @@
 
 Applies to everything under this directory.
 
-This module has two live responsibilities:
+This module has three live responsibilities:
 
 1. `functions.inc.php` generates the Asterisk dialplan hooks for Satellite call
    transcription and the `satellite` Stasis entrypoint.
 2. `bin/satellite_transcript` turns MixMonitor leg files into labeled uploads
    for the local Satellite HTTP API.
+3. Agent configuration, workflow destination reconciliation and agent dialplan
+   hooks connect the Wizard workflow builder to the Satellite agent runtime.
 
 Most edits here affect live call handling, recording lifecycle, or transcript
 upload behavior.
@@ -126,3 +128,21 @@ upstream `nethesis/satellite` API implementation too.
   `functions.inc.php` and `bin/satellite_transcript`.
 - Any change to transfer handling should come with a regression fixture.
 - Trust code over comments; some comments and older docs are stale.
+
+## Agent workflow skill and human documentation
+
+- Keep [the agent workflow skill](skills/nethvoice-agent-workflows/SKILL.md) and
+  its operation reference updated when trunk fields, credentials, workflow
+  schemas, grants, test fixtures, readiness or result-page routes change.
+- Update only the affected agent sections in repository `satellite/README.md`
+  with the same change. Use mostly ASD STE100-style short, active sentences.
+  Add a Mermaid diagram when it makes the procedure easier to understand.
+- The skill must ask for missing credentials/data, define behavior with the user,
+  and use the supported trunk/workflow configuration interfaces.
+- Test with synthetic fixtures without OpenAI first. Then ask for explicit
+  confirmation before the final OpenAI end-to-end test. Keep this gate in both
+  skill instructions and human test instructions.
+- Give repeatable user tests with actual page links and expected replies, node
+  outcomes and run statuses. Distinguish mock results from persisted live runs.
+- Verify documented paths against the current UI/API. Do not change unrelated
+  transcription documentation as part of an agent workflow update.
