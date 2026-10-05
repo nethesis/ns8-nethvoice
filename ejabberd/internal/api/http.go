@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/address"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/logx"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/store"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/xmppc"
@@ -545,7 +546,7 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 			// each line prefixed with who wrote it, and replies go back to the room.
 			name, ok := names[m.Room]
 			if !ok {
-				name = ses.RoomName(ctx, m.Room)
+				name = address.Thread(ses.RoomName(ctx, m.Room))
 				names[m.Room] = name
 			}
 			item.StreamID = name
@@ -633,7 +634,7 @@ func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request) {
 	}
 	dest, group := to+"@"+s.Host, false
 	if !known {
-		if dest = s.groupByName(ctx, ses, in.SmsTo); dest == "" {
+		if dest = s.groupByName(ctx, ses, address.Name(in.SmsTo)); dest == "" {
 			fail(w, 404, "unknown recipient")
 			return
 		}
