@@ -203,7 +203,7 @@ func runOnce(ctx context.Context, addr string, self, server jid.JID, secret stri
 	})
 	// disco#info: say what we are, so a client probing the services gets an answer, not an error.
 	disco := mux.IQHandlerFunc(func(iq stanza.IQ, t xmlstream.TokenReadEncoder, _ *xml.StartElement) error {
-		payload := xml.NewDecoder(strings.NewReader(`<query xmlns="` + ns.DiscoInfo + `"><identity category="pubsub" type="push" name="NethVoice chat push"/><feature var="` + ns.DiscoInfo + `"/><feature var=ns.Push/></query>`))
+		payload := xml.NewDecoder(strings.NewReader(`<query xmlns="` + ns.DiscoInfo + `"><identity category="pubsub" type="push" name="NethVoice chat push"/><feature var="` + ns.DiscoInfo + `"/><feature var="` + ns.Push + `"/></query>`))
 		_, err := xmlstream.Copy(t, iq.Result(payload))
 		return err
 	})
