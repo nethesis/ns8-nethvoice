@@ -213,8 +213,7 @@ fi
 reponame="nethvoice-cti-ui"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    # SSO feature branch (NethServer/dev#8142, nethesis/nethvoice-cti#558)
-    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:sso)
+    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:issue8197)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
