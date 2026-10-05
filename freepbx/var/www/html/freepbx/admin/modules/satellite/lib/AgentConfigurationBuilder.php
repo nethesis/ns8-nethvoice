@@ -84,9 +84,15 @@ class AgentConfigurationBuilder
         }
         $destinations = array();
         foreach ((new AgentDestinationRepository($db))->listAll() as $row) {
+            if ($row['agent_type'] === 'workflow' && empty($row['enabled'])) { continue; }
             $key = $row['agent_type'] === 'builtin_internal' ? 'internal' : ($row['agent_type'] === 'builtin_external' ? 'external' : null);
             $destinations[] = array('id' => (int) $row['id'], 'agent_type' => $row['agent_type'],
                 'profile_key' => $key, 'fallback_destination' => $row['fallback_destination']);
+            if ($row['agent_type'] === 'workflow') {
+                $index = count($destinations) - 1;
+                $destinations[$index]['workflow_agent_id'] = $row['workflow_agent_id'];
+                $destinations[$index]['workflow_version'] = (int) $row['workflow_version'];
+            }
         }
         $source = new AgentContextSource($this->freepbx);
         $payload = (object) array('profiles' => (object) $profiles, 'bindings' => $bindings,

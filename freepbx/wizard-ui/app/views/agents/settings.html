@@ -5,7 +5,7 @@
     <p ng-if="monitor.loading" role="status">{{'Agents.loading' | translate}}</p>
     <div class="alert alert-success" role="status" ng-if="monitor.saved">{{(monitor.applied ? 'Agents.saved' : 'Agents.saved_pending') | translate}}</div>
     <h2>{{'Agents.inventory' | translate}}</h2>
-    <div class="agents-cards"><div class="card-pf" ng-repeat="agent in monitor.inventory"><h3>{{('Agents.' + agent.agent_id) | translate}}</h3><p>{{agent.provider || ('Agents.unconfigured' | translate)}}</p><p>{{(agent.transcript_supported ? 'Agents.transcript_supported' : 'Agents.metadata_only') | translate}}</p><a class="btn btn-default" ng-href="{{monitor.configurationUrl(agent.agent_id)}}">{{'Agents.configure_agent' | translate}}</a></div></div>
+    <div class="agents-cards"><div class="card-pf" ng-repeat="agent in monitor.inventory"><h3>{{agent.name || agent.agent_id}}</h3><p>{{agent.provider || ('Agents.unconfigured' | translate)}}</p><p>{{(agent.transcript_supported ? 'Agents.transcript_supported' : 'Agents.metadata_only') | translate}}</p><a class="btn btn-default" ng-href="{{monitor.configurationUrl(agent.agent_id)}}">{{'Agents.configure_agent' | translate}}</a></div></div>
     <a href="/freepbx/admin/config.php?display=satellite_agents&amp;tab=trunks">{{'Agents.configure_trunks' | translate}}</a>
     <form name="policyForm" ng-submit="monitor.savePolicy()" ng-if="monitor.policy" class="agents-policy">
       <h2>{{'Agents.retention' | translate}}</h2>

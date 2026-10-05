@@ -139,6 +139,12 @@ angular.module('nethvoiceWizardUiApp').controller('AgentIntegrationsCtrl', funct
     vm.connector = {name: '', origin: '', secret_ref: '', auth: {type: 'bearer'}, networks: '', operations: []};
     vm.addOperation(false);
   };
+  vm.newBusinessPreset = function (key) {
+    return AgentsService.request('GET', '/application/workflows/catalog').then(function (data) {
+      vm.editConnector({resource_id: key, revision: 0, draft: data.connector_presets[key]});
+      if (key === 'freshdesk') { vm.connector.origin = ''; }
+    }, fail);
+  };
   vm.editConnector = function (resource) {
     vm.connectorId = resource.resource_id; vm.connectorRevision = resource.revision;
     vm.connector = angular.copy(resource.draft);
@@ -152,10 +158,10 @@ angular.module('nethvoiceWizardUiApp').controller('AgentIntegrationsCtrl', funct
     var definition = angular.copy(vm.connector);
     definition.private_networks = definition.networks ? definition.networks.split(',').map(function (v) { return v.trim(); }) : [];
     delete definition.networks;
-    if (definition.auth.type === 'bearer') { delete definition.auth.header; }
+    if (definition.auth.type !== 'api_key') { delete definition.auth.header; }
     try {
       angular.forEach(definition.operations, function (op) {
-        op.read_only = op.method === 'GET'; op.identity_field = op.identity_field || null;
+        op.read_only = op.method === 'GET' ? true : !!op.read_only; op.identity_field = op.identity_field || null;
         op.input_schema = angular.fromJson(op.input); op.output_schema = angular.fromJson(op.output);
         op.query = angular.fromJson(op.queryText); op.body = angular.fromJson(op.bodyText); op.projection = angular.fromJson(op.projectionText);
         delete op.input; delete op.output; delete op.queryText; delete op.bodyText; delete op.projectionText;
@@ -190,7 +196,7 @@ angular.module('nethvoiceWizardUiApp').controller('AgentIntegrationsCtrl', funct
   };
   vm.createClient = function () {
     var input = {client_id: vm.client.id, scopes: Object.keys(vm.client.scopes).filter(function (key) { return vm.client.scopes[key]; }),
-      presets: ['support-request'], operations: refs(vm.clientSelection),
+      presets: ['support-request'].concat((vm.client.workflow_ids || '').split(',').map(function (id) { return id.trim(); }).filter(Boolean)), operations: refs(vm.clientSelection),
       customer_ids: vm.client.customer_ids.split(',').map(function (id) { return id.trim(); }).filter(Boolean),
       expires: Math.floor(Date.now() / 1000) + vm.client.expiry_days * 86400};
     return mutate('POST', '/clients', input).then(function (result) { if (result) { vm.token = result.token; } });

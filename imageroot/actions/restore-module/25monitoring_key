@@ -9,4 +9,6 @@ if not passwords.get('SATELLITE_MONITORING_CONTENT_KEY'):
     passwords['SATELLITE_MONITORING_CONTENT_KEY'] = base64.b64encode(secrets.token_bytes(32)).decode()
 if not passwords.get('SATELLITE_APPLICATION_CONTENT_KEY'):
     passwords['SATELLITE_APPLICATION_CONTENT_KEY'] = base64.b64encode(secrets.token_bytes(32)).decode()
+if not passwords.get('SATELLITE_WORKFLOW_DB_PASSWORD'):
+    passwords['SATELLITE_WORKFLOW_DB_PASSWORD'] = secrets.token_urlsafe(32)
 agent.write_envfile('passwords.env', passwords)

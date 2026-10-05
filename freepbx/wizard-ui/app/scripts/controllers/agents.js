@@ -36,7 +36,7 @@ angular.module('nethvoiceWizardUiApp').controller('AgentsCtrl', function (
   }
   vm.time = function (timestamp) { return timestamp ? new Date(timestamp * 1000) : null; };
   vm.duration = function (run) { if (!run.ended && run.status !== 'active') { return null; } return Math.max(0, Math.round(((run.ended || Date.now() / 1000) - run.started))); };
-  vm.configurationUrl = function (agent) { return '/freepbx/admin/config.php?display=satellite_agents&tab=' + agent; };
+  vm.configurationUrl = function (agent) { return agent === 'internal' || agent === 'external' ? '/freepbx/admin/config.php?display=satellite_agents&tab=' + agent : '#!/agents/build/agent/' + encodeURIComponent(agent); };
 
   vm.loadRuns = function (next) {
     if (vm.runsLoading) { return; }

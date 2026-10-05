@@ -47,6 +47,18 @@ angular
       .when('/agents/settings', {
         templateUrl: 'views/agents/settings.html', controller: 'AgentsCtrl', controllerAs: 'monitor'
       })
+      .when('/agents/build', {
+        templateUrl: 'views/agents/workflows.html', controller: 'AgentWorkflowsCtrl', controllerAs: 'builder'
+      })
+      .when('/agents/build/:kind/:agentId', {
+        templateUrl: 'views/agents/workflows.html', controller: 'AgentWorkflowsCtrl', controllerAs: 'builder'
+      })
+      .when('/agents/data', {
+        templateUrl: 'views/agents/data.html', controller: 'AgentWorkflowsCtrl', controllerAs: 'builder'
+      })
+      .when('/agents/graph-runs/:runId', {
+        templateUrl: 'views/agents/workflowrun.html', controller: 'AgentWorkflowsCtrl', controllerAs: 'builder'
+      })
       .when('/agents/connectors', {
         templateUrl: 'views/agents/connectors.html', controller: 'AgentIntegrationsCtrl', controllerAs: 'integration'
       })

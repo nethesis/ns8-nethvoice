@@ -176,6 +176,8 @@ if not passwordsfile.get('SATELLITE_MONITORING_CONTENT_KEY'):
     passwordsfile['SATELLITE_MONITORING_CONTENT_KEY'] = base64.b64encode(secrets.token_bytes(32)).decode()
 if not passwordsfile.get('SATELLITE_APPLICATION_CONTENT_KEY'):
     passwordsfile['SATELLITE_APPLICATION_CONTENT_KEY'] = base64.b64encode(secrets.token_bytes(32)).decode()
+if not passwordsfile.get('SATELLITE_WORKFLOW_DB_PASSWORD'):
+    passwordsfile['SATELLITE_WORKFLOW_DB_PASSWORD'] = secrets.token_urlsafe(32)
 agent.write_envfile('passwords.env', passwordsfile)
 
 if os.getenv('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT') is None:

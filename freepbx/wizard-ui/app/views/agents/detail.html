@@ -1,6 +1,6 @@
 <section class="wizard-pf agents-area" aria-labelledby="agent-run-title">
   <div class="wizard-pf-contents adjust-size">
-    <header class="agents-header"><h1 id="agent-run-title">{{'Agents.run_detail' | translate}}</h1><a href="#!/agents" class="btn btn-default">{{'Agents.back' | translate}}</a></header>
+    <header class="agents-header"><h1 id="agent-run-title">{{'Agents.run_detail' | translate}}</h1><a href="#!/agents" class="btn btn-default">{{'Agents.back' | translate}}</a><a class="btn btn-default" ng-if="monitor.run.agent_id !== 'internal' &amp;&amp; monitor.run.agent_id !== 'external' &amp;&amp; monitor.run.agent_id !== 'support-request'" ng-href="#!/agents/graph-runs/{{monitor.run.run_id}}">{{'Builder.run_graph' | translate}}</a></header>
     <p class="alert alert-danger" role="alert" ng-if="monitor.error">{{('Agents.error.' + monitor.error) | translate}}</p>
     <p role="status" ng-if="monitor.loading">{{'Agents.loading' | translate}}</p>
     <div ng-if="monitor.run">

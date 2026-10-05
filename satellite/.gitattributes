@@ -1,0 +1,2 @@
+# Unified diffs require a space marker on blank context lines.
+phase5-runtime.patch -whitespace

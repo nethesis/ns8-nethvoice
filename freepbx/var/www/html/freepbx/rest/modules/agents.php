@@ -6,6 +6,8 @@ require_once __DIR__ . '/../../admin/modules/satellite/lib/AgentMonitoringClient
 require_once __DIR__ . '/../../admin/modules/satellite/lib/AgentMonitoringRepository.php';
 require_once __DIR__ . '/../../admin/modules/satellite/lib/AgentConfigurationBuilder.php';
 require_once __DIR__ . '/../lib/AgentApplicationClient.php';
+require_once __DIR__ . '/../lib/AgentWorkflowClient.php';
+require_once __DIR__ . '/../../admin/modules/satellite/lib/AgentWorkflowDestination.php';
 
 /** Administrator scope is assigned by authentication middleware, never a browser claim. */
 function agentsAuthorize(Request $request, $scope, $mutation = false)
@@ -44,6 +46,7 @@ function agentsResponse(Response $response, callable $operation)
 {
     $response = $response->withHeader('Cache-Control', 'no-store')->withHeader('X-Content-Type-Options', 'nosniff');
     try { return jsonResponse($response, $operation()); }
+    catch (AgentWorkflowException $error) { return jsonResponse($response, array('error' => $error->getMessage(), 'node_id' => $error->nodeId), $error->getCode()); }
     catch (\InvalidArgumentException $error) { return jsonResponse($response, array('error' => 'invalid_request'), 400); }
     catch (\Throwable $error) {
         $code = (int) $error->getCode();
@@ -68,6 +71,56 @@ $app->get('/agents/access', function (Request $request, Response $response) {
         return array('csrf' => $token, 'scopes' => array('metadata', 'transcripts', 'policy', 'connectors', 'api_access'));
     });
 });
+
+// Workflow routes use their own bounded allowlist and never accept backend URLs.
+$workflowRoutes = array(
+    array('GET', '/inventory'), array('GET', '/catalog'),
+    array('GET', '/definitions/{kind:agent|subflow}/{agentId:[a-z][a-z0-9_-]{0,47}}/versions/{version:[1-9][0-9]{0,5}}'),
+    array('PUT', '/definitions/{kind:agent|subflow}/{agentId:[a-z][a-z0-9_-]{0,47}}'),
+    array('POST', '/definitions/{kind:agent|subflow}/{agentId:[a-z][a-z0-9_-]{0,47}}/{operation:publish|activate}'),
+    array('POST', '/validate'), array('POST', '/test'),
+    array('GET', '/runs/{runId:[A-Za-z0-9_-]{1,128}}'),
+    array('GET', '/jobs/{jobId:[a-f0-9]{32}}'),
+    array('POST', '/runs/{runId:[A-Za-z0-9_-]{1,128}}/cancel'),
+    array('PUT', '/data/{resourceId:[a-z][a-z0-9_-]{0,47}}'), array('POST', '/data/preview'),
+    array('POST', '/data/{resourceId:[a-z][a-z0-9_-]{0,47}}/{operation:publish|refresh}'),
+    array('DELETE', '/data/{resourceId:[a-z][a-z0-9_-]{0,47}}/versions/{version:[1-9][0-9]{0,5}}')
+);
+foreach ($workflowRoutes as $route) {
+    list($method, $path) = $route;
+    $app->map(array($method), '/agents/application/workflows' . $path,
+        function (Request $request, Response $response, array $args) use ($method, $path) {
+            return agentsResponse($response, function () use ($request, $args, $method, $path) {
+                $actor = agentsAuthorize($request, 'connectors', $method !== 'GET');
+                if ($request->getQueryParams()) { throw new \InvalidArgumentException('invalid_query'); }
+                $target = AgentApplicationClient::path($path, $args); $input = null;
+                if (in_array($method, array('PUT', 'POST'), true)) {
+                    $large = strpos($target, '/data/') === 0 && (substr($target, -8) === '/publish' || $target === '/data/preview');
+                    if (($request->getBody()->getSize() ?? 0) > ($large ? 14 * 1024 * 1024 : 262144) ||
+                        stripos($request->getHeaderLine('Content-Type'), 'application/json') !== 0) { throw new \InvalidArgumentException('invalid_request'); }
+                    $input = $request->getParsedBody();
+                    if (!is_array($input)) { throw new \InvalidArgumentException('invalid_request'); }
+                }
+                $client = new AgentWorkflowClient(); $graph = null;
+                $activation = $method === 'POST' && ($args['operation'] ?? '') === 'activate' && ($args['kind'] ?? '') === 'agent';
+                if ($activation) {
+                    $graph = $client->request('GET', '/definitions/agent/' . $args['agentId'] . '/versions/' . (int) ($input['version'] ?? 0), $actor)['definition'];
+                    if (($input['enabled'] ?? false) === true) { (new AgentWorkflowDestination(FreePBX::Database()))->validate($graph); }
+                }
+                $result = $client->request($method, $target, $actor, $input);
+                if ($activation) {
+                    try {
+                        (new AgentWorkflowDestination(FreePBX::Database()))->synchronize($args['agentId'], (int) $input['version'], $graph, $input['enabled']);
+                    } catch (\Throwable $error) { $result['pbx_sync'] = array('pending' => true, 'error_code' => 'workflow_binding_pending'); return $result; }
+                    needreload();
+                    try { (new AgentConfigurationBuilder(FreePBX::create()))->synchronize(); } catch (\Throwable $error) { /* Retry through the existing sync timer. */ }
+                    system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+                    $result['pbx_sync'] = (new AgentConfigurationState(FreePBX::Database()))->status();
+                }
+                return $result;
+            });
+        });
+}
 
 $app->get('/agents/policy', function (Request $request, Response $response) {
     return agentsResponse($response, function () use ($request) {

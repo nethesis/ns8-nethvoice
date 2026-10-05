@@ -253,6 +253,7 @@ passwords = {
     "SATELLITE_AGENT_CONFIG_KEY": secrets.token_urlsafe(48),
     "SATELLITE_MONITORING_CONTENT_KEY": base64.b64encode(secrets.token_bytes(32)).decode(),
     "SATELLITE_APPLICATION_CONTENT_KEY": base64.b64encode(secrets.token_bytes(32)).decode(),
+    "SATELLITE_WORKFLOW_DB_PASSWORD": secrets.token_urlsafe(32),
     "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN": gen_password()
 }
 

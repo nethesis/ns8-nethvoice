@@ -8,9 +8,10 @@ context, and monitoring execution. It remains dedicated to NethVoice; a standalo
 product or independent deployment is not part of this roadmap. Voice integration
 is the first implemented use case.
 
-Confirmed direction: explicit workflows with agent/tool steps; prioritize
-monitoring, API integrations, and file context before workflow authoring. Advanced
-voice control remains a separate planned track.
+Confirmed direction: explicit workflows with agent/tool steps. Monitoring and
+API integrations precede the visual builder. Phase 5 brings the required file
+context and consultative-transfer capabilities into staged delivery of the
+owner's three example workflows; see its detailed plan below.
 
 Phase 1 is complete. Phase 2 is implemented, committed and published through
 coordinated CI, and the `agent` images are deployed to `nethvoice51`. See
@@ -41,7 +42,17 @@ will provide the customer-lookup/ticket API details. Runtime source is published
 [transfer report](satellite/transfer-test-report.md) for image evidence. Production
 deployment remains open. Phase 3 acceptance remains a combined-release gate.
 
-The later application milestones in section 101 remain a **draft roadmap**.
+**Phase 5 implements the visual agent builder and example workflows in source.**
+See [the implementation](satellite/phase5-development.md),
+[test evidence](satellite/phase5-test-report.md) and
+[Phase 5 plan](satellite/phase5-plan.md). The diagram editor, reusable block library,
+router, payment resources, support integrations and consultative transfer are
+implemented and deployed as local test overlays on the authorized nethvoice51.
+Known-payment calls and operator acceptance/decline pass controlled live checks.
+Full support acceptance remains open because live Freshdesk tests are read-only.
+The test report records the remaining voice, administrator and release gates.
+
+The remaining application milestones in section 101 remain a **draft roadmap**.
 Their detailed designs, estimates, acceptance tests and delivery commitments
 will be refined when each becomes the next implementation increment.
 
@@ -5026,11 +5037,14 @@ Finally, the built-in agent can place a caller on hold, privately ask a recipien
 
 **Status: M1 is implemented as Phase 3 with release acceptance open; M2 is
 implemented as Phase 4 in source with local checks passed and business/live
-acceptance open; M3–M5 and V remain a draft roadmap.**
+acceptance open; Phase 5 implements M4 plus the M3 and V capabilities required by
+the three example workflows, with authorized test deployment and partial live
+acceptance. Remaining M3/V extensions and M5 remain a draft roadmap.**
 The owner confirmed the monitoring-first release scope on 4 October 2026.
 See [the Phase 3 implementation plan](satellite/phase3-plan.md) for its
 milestones, contracts, ownership, retention, validation and deployment gates.
-This does not expand Phase 2 or authorize implementation of the later features.
+See [the Phase 5 plan](satellite/phase5-plan.md) for the owner-requested visual
+builder, block library and staged working examples. This does not expand Phase 2.
 Detailed estimates, workflow/ingestion technology and later service topology
 are decided when each following increment is planned.
 
@@ -5046,7 +5060,7 @@ The project owner confirmed:
 |---|---|---|
 | Application scope | Broader application dedicated to NethVoice | Authoring, API integration, file context, and monitoring are NethVoice capabilities; no standalone product/extraction milestone |
 | First workflow model | Explicit steps and branches containing bounded agent decisions and tool calls | Publish a versioned executable definition; autonomous multi-agent coordination is a possible later extension |
-| Delivery priority | Monitoring, API integrations, file context, then workflow authoring | M1–M4 follow this priority; advanced voice transfers do not block them |
+| Delivery priority | Monitoring and APIs first; Phase 5 stages the router/editor, payment data, support integrations and consultative transfer | Phase 5 refines the original M3-before-M4 sequence for the three requested examples |
 
 Keep runtime components modular within NethVoice. API-triggered work need not
 have a telephone call, but still executes inside the NethVoice application's
@@ -5065,12 +5079,12 @@ SaaS, arbitrary customer code execution, or a specific visual-editor technology.
 | M5 — Production operation and extension contracts | Workflows and integrations are manageable under failures, upgrades, and real load | M2–M4; advanced voice capabilities included when enabled | Demonstrate supported recovery semantics, upgrades/restore, access controls, bounded resource use, and operational documentation |
 | V — Advanced voice control (original Phase 3) | Supervised/consultative transfer, recipient decisions, and caller resumption | Phase 2 voice controller and tools/events | Existing sections 64–80 and 97; no dependency on the workflow editor |
 
-Proposed main sequence: `Phase 2 → M0 → M1 → M2 → M3 → M4 → M5`.
-Preserve the confirmed delivery priority M1 → M2 → M3 → M4. Preparatory work for
-M2/M3 may overlap once their shared contracts are agreed, without changing that
-user-visible priority. Track V is retained behind the M1–M4 application priorities
-by default; decide its exact slot alongside M5 at the later planning gate. It is
-not an implicit prerequisite for the main sequence.
+Updated planned sequence: `Phase 2 → M0 → M1 → M2 → Phase 5 → M5`.
+Phase 5 stages M4's editor/router foundation, M3's payment resources, support
+integrations and the V consultative-transfer slice. Advanced transfer does not
+block the initial editor/router stage; it is required to complete the requested
+support workflow. The detailed Phase 5 plan governs this increment; milestone
+descriptions below retain the broader capability boundaries.
 
 ## 101.3 M0 — Post-Phase-2 planning gate
 
@@ -5156,6 +5170,11 @@ end-to-end acceptance remain open.
 
 ## 101.6 M3 — File resources and context
 
+The [Phase 5 payment-secretary plan](satellite/phase5-plan.md#7-use-case-2--payment-secretary)
+defines the first concrete resource slice: text, CSV, XLSX and Google Sheets
+normalized into versioned records for deterministic lookup. General document
+retrieval remains a broader follow-on capability.
+
 Introduce managed resources with stable IDs, immutable versions, ownership and
 access grants. Users can upload supported file types, see processing status,
 attach authorized versions/collections to an agent, and replace/revoke/delete
@@ -5183,6 +5202,13 @@ ingestion. Exact storage and retrieval implementation are deferred to this
 milestone's detailed design.
 
 ## 101.7 M4 — Agentic workflow definitions and authoring
+
+The owner selected an n8n-style diagram interface and three initial templates.
+[Phase 5](satellite/phase5-plan.md) specifies the editor/library, execution
+semantics, custom-agent inventory, delivery stages and acceptance. Its
+[source implementation](satellite/phase5-development.md) and
+[local test evidence](satellite/phase5-test-report.md) are present; live acceptance
+and upstream publication remain open.
 
 Start with an explicit executable definition containing typed inputs/outputs,
 agent steps, calls to registered tools, context bindings, conditions/branches,

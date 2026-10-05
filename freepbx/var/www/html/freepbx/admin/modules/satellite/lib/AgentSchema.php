@@ -71,6 +71,11 @@ class AgentSchema
             PRIMARY KEY (`profile_key`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 
+        foreach (array('workflow_agent_id' => 'VARCHAR(48) NULL',
+            'workflow_version' => 'INT UNSIGNED NULL', 'workflow_binding_id' => 'INT UNSIGNED NULL') as $column => $definition) {
+            self::addColumnIfMissing($db, 'satellite_agent_destinations', $column, $definition);
+        }
+
         foreach (array(
             'max_call_duration_seconds' => 'INT UNSIGNED NOT NULL DEFAULT 600',
             'fallback_destination' => 'VARCHAR(255) NULL',
@@ -148,7 +153,7 @@ class AgentSchema
 
         // Disabling Agent trunks and destinations is no longer supported.
         $db->exec('UPDATE `satellite_agent_trunks` SET `enabled` = 1 WHERE `enabled` <> 1');
-        $db->exec('UPDATE `satellite_agent_destinations` SET `enabled` = 1 WHERE `enabled` <> 1');
+        $db->exec('UPDATE `satellite_agent_destinations` SET `enabled` = 1 WHERE `enabled` <> 1 AND `agent_type` <> \'workflow\'');
     }
 
     private static function addColumnIfMissing($db, $table, $column, $definition)

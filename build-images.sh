@@ -109,11 +109,13 @@ if [[ -n "${SATELLITE_BASE_IMAGE:-}" ]]; then
 fi
 
 satellite_label_image="${repobase}/nethvoice-satellite:${IMAGETAG:-latest}"
+phase5_patch_sha=$(awk '{print $1}' satellite/phase5-runtime.sha256)
+satellite_source_ref=$(cat satellite/runtime-ref)
 if should_build "nethvoice" && ! should_build "nethvoice-satellite"; then
     satellite_label_image="${SATELLITE_BASE_IMAGE}"
     satellite_check_container=$(buildah from "${SATELLITE_BASE_IMAGE}")
-    buildah run "${satellite_check_container}" -- python -c \
-        'import api, agent.api, agent.runtime, agent.monitoring.api, agent.application.api, inspect, main; assert isinstance(api.agent_runtime, agent.runtime.AgentRuntime); assert "/api/agent/v1/readiness" in api.app.openapi()["paths"]; assert "/agents-api/v1/runs" in api.app.openapi()["paths"]; assert inspect.iscoroutinefunction(main.main) and "server.serve" in inspect.getsource(main.main)'
+    buildah add "${satellite_check_container}" satellite/verify-runtime.py /tmp/verify-phase5-runtime.py
+    buildah run "${satellite_check_container}" -- python /tmp/verify-phase5-runtime.py "${phase5_patch_sha}" "${satellite_source_ref}"
     buildah rm "${satellite_check_container}"
 fi
 
@@ -382,13 +384,20 @@ fi
 reponame="nethvoice-satellite"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/satellite:agent)
-    # Check the assembled runtime before tagging it for deployment.
-    buildah run "${container}" -- python -c \
-        'import api, agent.api, agent.runtime, agent.monitoring.api, agent.application.api, inspect, main; assert isinstance(api.agent_runtime, agent.runtime.AgentRuntime); assert "/api/agent/v1/readiness" in api.app.openapi()["paths"]; assert "/agents-api/v1/runs" in api.app.openapi()["paths"]; assert inspect.iscoroutinefunction(main.main) and "server.serve" in inspect.getsource(main.main)'
-    # Commit the image
-    buildah commit "${container}" "${repobase}/${reponame}"
-    buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
+    runtime_context=$(mktemp -d)
+    trap 'rm -rf "${runtime_context}"' EXIT
+    cp satellite/Containerfile satellite/requirements-phase5.txt satellite/verify-runtime.py "${runtime_context}/"
+    runtime_source_args=()
+    if [[ -n "${SATELLITE_SOURCE_DIR:-}" ]]; then runtime_source_args=(--source "${SATELLITE_SOURCE_DIR}"); fi
+    python3 satellite/prepare-runtime.py "${runtime_context}/runtime" "${runtime_source_args[@]}"
+    build_image "${reponame}" --force-rm --layers \
+        --file "${runtime_context}/Containerfile" \
+        --tag "${repobase}/${reponame}" --tag "${repobase}/${reponame}:${IMAGETAG:-latest}" "${runtime_context}"
+    container=$(buildah from "${repobase}/${reponame}:${IMAGETAG:-latest}")
+    buildah run "${container}" -- python /app/verify-phase5-runtime.py "${phase5_patch_sha}" "${satellite_source_ref}"
+    buildah rm "${container}"
+    rm -rf "${runtime_context}"
+    trap - EXIT
     finish_timing
     # Append the image URL to the images array
     images+=("${repobase}/${reponame}")

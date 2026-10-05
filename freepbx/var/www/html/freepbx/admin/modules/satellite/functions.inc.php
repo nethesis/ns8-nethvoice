@@ -113,12 +113,17 @@ function satellite_agent_destination_key($id) {
 }
 
 function satellite_agent_edit_url($row) {
+    if ($row['agent_type'] === 'workflow') { return '/freepbx/wizard/#!/agents/build/agent/' . rawurlencode($row['workflow_agent_id']); }
     return 'config.php?display=satellite_agents&tab=destinations&view=form&id=' . (int) $row['id'];
 }
 
 /** A destination whose flow is invalid never gets a dialplan context. */
 function satellite_agent_destination_valid($row) {
     if (in_array($row['agent_type'], array('builtin_internal', 'builtin_external'), true)) { return true; }
+    if ($row['agent_type'] === 'workflow') {
+        return !empty($row['workflow_binding_id']) && !empty($row['workflow_version']) &&
+            preg_match('/^[a-z][a-z0-9_-]{0,47}$/D', (string) ($row['workflow_agent_id'] ?? ''));
+    }
     if ($row['agent_type'] !== 'cleverai') { return false; }
     try {
         AgentValidation::validateFlow($row['cleverai_flow']);
@@ -285,6 +290,15 @@ function satellite_generate_agent_dialplan() {
     // ARI continue requires Stasis ownership; ARI DELETE does not. Complete an
     // owned conversation through this context to avoid deleting a released leg.
     $ext->add('satellite-agent-end', 's', '', new ext_hangup());
+    // Accepted consultations leave Stasis. Native Bridge owns the human call.
+    $ext->add('satellite-agent-consult-wait', 's', '', new ext_set('TIMEOUT(absolute)', '0'));
+    $ext->add('satellite-agent-consult-wait', 's', '', new ext_execif('1', 'BridgeWait', 'agent-consult,participant,S(30)'));
+    $ext->add('satellite-agent-consult-wait', 's', '', new ext_hangup());
+    $ext->add('satellite-agent-consult-connect', 's', '', new ext_set('TIMEOUT(absolute)', '0'));
+    $ext->add('satellite-agent-consult-connect', 's', '', new ext_execif('1', 'Bridge', '${AGENT_CONSULT_CHANNEL},x'));
+    $ext->add('satellite-agent-consult-connect', 's', '', new ext_gotoif('$["${BRIDGERESULT}"="SUCCESS"]', 'end'));
+    $ext->add('satellite-agent-consult-connect', 's', '', new ext_goto('fallback', 's', '${AGENT_CONSULT_RETURN_CONTEXT}'));
+    $ext->add('satellite-agent-consult-connect', 's', 'end', new ext_hangup());
 
     foreach ($destinations as $row) {
         if (empty($row['enabled']) || !satellite_agent_destination_valid($row)) {
@@ -299,7 +313,7 @@ function satellite_generate_agent_dialplan() {
         $profileKey = $row['agent_type'] === 'builtin_internal' ? 'internal' : 'external';
         $profile = $builtin && isset($profiles[$profileKey]) ? $profiles[$profileKey] : null;
         $ext->add($context, 's', '', new ext_set('__AGENT_TYPE', $row['agent_type']));
-        $ext->add($context, 's', '', new ext_set('__AGENT_FLOW', $builtin ? ucfirst($profileKey) : $row['cleverai_flow']));
+        $ext->add($context, 's', '', new ext_set('__AGENT_FLOW', $row['agent_type'] === 'workflow' ? 'Workflow' : ($builtin ? ucfirst($profileKey) : $row['cleverai_flow'])));
         $ext->add($context, 's', '', new ext_set('__AGENT_ORIGINAL_CALLER', '${CALLERID(num)}'));
         $ext->add($context, 's', '', new ext_set('__AGENT_ORIGINAL_CALLER_NAME', '${CALLERID(name)}'));
         $ext->add($context, 's', '', new ext_set('__AGENT_ORIGINAL_DID', '${FROM_DID}'));
@@ -354,6 +368,7 @@ function satellite_generate_agent_dialplan() {
             }
         }
 
+        $ext->add($context, 's', 'fallback', new ext_noop('Agent fallback destination'));
         try {
             $fallback = AgentValidation::validateFallback($builtin && $profile && empty($row['fallback_destination']) ? $profile['fallback_destination'] : $row['fallback_destination']);
         } catch (\InvalidArgumentException $error) {

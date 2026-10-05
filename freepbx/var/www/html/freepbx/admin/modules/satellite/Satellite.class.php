@@ -250,7 +250,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
             $this->agentPageNotice = 'Local trunk configuration is valid';
         } elseif ($action === 'delete') {
             foreach ($this->agentDestinations->listAll() as $destination) {
-                if ((int) $destination['cleverai_trunk_id'] === $id) {
+                if ((int) $destination['cleverai_trunk_id'] === $id || (int) ($destination['workflow_binding_id'] ?? 0) === $id) {
                     throw new \RuntimeException('Agent trunk is used by a destination');
                 }
             }
@@ -642,7 +642,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
                 $row = isset($destinations[$id]) ? $destinations[$id] : array();
                 $fallback = isset($row['fallback_destination']) ? $row['fallback_destination'] : null;
                 if (($fallback === null || $fallback === '') && isset($row['agent_type']) &&
-                    in_array($row['agent_type'], array('builtin_internal', 'builtin_external'), true)) {
+                    in_array($row['agent_type'], array('builtin_internal', 'builtin_external', 'workflow'), true)) {
                     $edges[] = 'profile:' . ($row['agent_type'] === 'builtin_internal' ? 'internal' : 'external');
                 }
             }

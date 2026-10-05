@@ -81,13 +81,19 @@ class AgentDestinationRepository
             throw new \RuntimeException('Editable Agent destination not found');
         }
         if (!empty($stored['system_managed'])) {
-            if (!in_array($stored['agent_type'], array('builtin_internal', 'builtin_external'), true)) {
+            if (!in_array($stored['agent_type'], array('builtin_internal', 'builtin_external', 'workflow'), true)) {
                 throw new \RuntimeException('Editable Agent destination not found');
             }
             foreach (array('agent_type', 'cleverai_trunk_id', 'cleverai_flow') as $field) {
                 if (array_key_exists($field, $input) && (string) $input[$field] !== (string) $stored[$field]) {
                     throw new \InvalidArgumentException('Built-in Agent destination identity cannot be changed');
                 }
+            }
+            if ($stored['agent_type'] === 'workflow') {
+                // VisualPlan owns only the fallback of this application-owned binding.
+                return array('agent_type' => 'workflow', 'cleverai_trunk_id' => $stored['cleverai_trunk_id'],
+                    'cleverai_flow' => $stored['cleverai_flow'], 'enabled' => (int) $stored['enabled'],
+                    'fallback_destination' => AgentValidation::validateFallback(array_key_exists('fallback_destination', $input) ? $input['fallback_destination'] : $stored['fallback_destination']));
             }
         }
         return $this->validateInput(array_merge($stored, $input));

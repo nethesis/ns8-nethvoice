@@ -108,7 +108,11 @@ agent_dialplan_assert(satellite_getdest(12) === array('satellite-agent-destinati
     'Native destination key must be stable');
 agent_dialplan_assert(count(satellite_check_destinations(array('app-blackhole,hangup,1'))) === 20,
     'Fallback references must be advertised');
-agent_dialplan_assert(count($ext->entries) === 24, 'Twenty destinations and four shared Agent contexts expected');
+agent_dialplan_assert(count($ext->entries) === 26, 'Twenty destinations and six shared Agent contexts expected');
+agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-consult-wait'],
+    'ext_execif', array('1', 'BridgeWait', 'agent-consult,participant,S(30)')), 'Accepted operator must wait in a bounded native holding bridge');
+agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-consult-connect'],
+    'ext_execif', array('1', 'Bridge', '${AGENT_CONSULT_CHANNEL},x')), 'Accepted consultation must bridge the existing leg without redialing');
 foreach (array('satellite-agent-provider', 'satellite-agent-handoff', 'satellite-agent-end') as $context) {
     agent_dialplan_assert(isset($ext->entries[$context]), 'Shared Agent context missing: ' . $context);
 }

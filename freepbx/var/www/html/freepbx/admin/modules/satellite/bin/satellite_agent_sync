@@ -5,6 +5,15 @@ try {
     define('FREEPBX_IS_AUTH', 1);
     require_once '/etc/freepbx.conf';
     require_once dirname(__DIR__) . '/lib/AgentConfigurationBuilder.php';
+    require_once dirname(__DIR__) . '/lib/AgentWorkflowReconciler.php';
+    try {
+        $reconciled = AgentWorkflowReconciler::reconcile(FreePBX::Database());
+        if ($reconciled['changed']) {
+            needreload();
+            exec('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null 2>&1 &');
+        }
+        if ($reconciled['pending']) { fwrite(STDERR, "Workflow PBX binding pending; retry scheduled.\n"); }
+    } catch (\Throwable $error) { /* Application state must not block built-in synchronization. */ }
     (new AgentConfigurationBuilder(FreePBX::create()))->synchronize();
 } catch (\Throwable $error) {
     fwrite(STDERR, "Satellite Agent synchronization failed; retry scheduled.\n");

@@ -1,0 +1,18 @@
+# The entire runtime source is replaced with runtime-ref + phase5-runtime.patch.
+# The reviewed upstream image supplies native audio libraries and existing Python dependencies.
+ARG SATELLITE_RUNTIME_BASE=ghcr.io/nethesis/satellite@sha256:25a8c036b8aa0ca0f98286398c038198d9990ca2d15875447cd6161d7378bfb7
+FROM ${SATELLITE_RUNTIME_BASE} AS dependencies
+COPY requirements-phase5.txt /tmp/requirements-phase5.txt
+RUN pip install --no-cache-dir --user -r /tmp/requirements-phase5.txt
+FROM ${SATELLITE_RUNTIME_BASE}
+COPY --from=dependencies /root/.local /root/.local
+WORKDIR /app
+RUN rm -rf /app/agent && find /app -maxdepth 1 -name '*.py' -delete
+COPY runtime/ /app/
+COPY verify-runtime.py /app/verify-phase5-runtime.py
+RUN python -m compileall -q agent && python -c 'from agent.workflows.contracts import definition; from agent.workflows.templates import templates; from agent.workflows.api import create_workflow_router; [definition(graph) for graph in templates()]'
+LABEL org.nethvoice.agent.workflow-schema="1"
+# Preserve upstream UID 0: the NS8 rootless Podman volume contains configuration
+# written as its container UID 0 with mode 0700/0600, including restored snapshots.
+# Changing USER requires a coordinated volume ownership migration, outside this patch.
+CMD ["python", "main.py"]

@@ -201,8 +201,8 @@ function nethvplan_agent_widget(array $agent, array $trunks, array $labels)
     $node = 'satellite-agent-destination%' . $id;
     $type = $agent['agent_type'] ?? 'cleverai';
     $builtin = $type === 'builtin_internal' || $type === 'builtin_external';
-    $trunk = $trunks[$agent['cleverai_trunk_id'] ?? null] ?? array();
-    $flow = $builtin ? ($type === 'builtin_internal' ? 'Internal' : 'External') : ($agent['cleverai_flow'] ?? '');
+    $trunk = $trunks[$type === 'workflow' ? ($agent['workflow_binding_id'] ?? null) : ($agent['cleverai_trunk_id'] ?? null)] ?? array();
+    $flow = $type === 'workflow' ? ($agent['workflow_agent_id'] ?? '') : ($builtin ? ($type === 'builtin_internal' ? 'Internal' : 'External') : ($agent['cleverai_flow'] ?? ''));
     $typeLabel = $builtin ? ($type === 'builtin_internal' ? 'Builtin Internal' : 'Builtin External') : 'CleverAI';
     return array(
         'type' => 'Base', 'id' => $node, 'radius' => 0, 'bgColor' => '#528ba7',
