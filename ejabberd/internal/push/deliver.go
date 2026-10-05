@@ -171,7 +171,7 @@ func (r *Router) pnm(ctx context.Context, n Notification) {
 	// The app keys threads by the address it fetches messages with: a number for an operator, the name for a group.
 	from, name := r.who(ctx, n.Sender)
 	if address.IsRoom(n.Sender) {
-		from = name
+		from = address.Thread(name)
 	} else if r.Address != nil {
 		from = r.Address(from)
 	}
