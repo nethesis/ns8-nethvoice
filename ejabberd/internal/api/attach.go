@@ -214,8 +214,9 @@ func hostOf(link string) string {
 
 // sendFileTransfer relays each of the app's attachments as a chat attachment; the text, if any, goes as its caption.
 func (s *Server) sendFileTransfer(ctx context.Context, ses *xmppc.Session, to string, group bool, f *acroFile) (string, error) {
-	var last string
-	for i, a := range f.Attachments {
+	// Every attachment, then one message carrying them all with the caption.
+	var links, names []string
+	for _, a := range f.Attachments {
 		data, err := fetchAttachment(ctx, a)
 		if err != nil {
 			return "", err
@@ -229,20 +230,16 @@ func (s *Server) sendFileTransfer(ctx context.Context, ses *xmppc.Session, to st
 		if err != nil {
 			return "", err
 		}
-		caption := name // the chat hides a caption equal to the file name
-		if i == 0 && strings.TrimSpace(f.Body) != "" {
-			caption = f.Body
-		}
-		if group {
-			last, err = ses.SendGroup(ctx, to, caption, link)
-		} else {
-			last, err = ses.Send(ctx, to, caption, link)
-		}
-		if err != nil {
-			return "", err
-		}
+		links, names = append(links, link), append(names, name)
 	}
-	return last, nil
+	caption := strings.Join(names, ", ") // the chat hides a caption that only names the files
+	if strings.TrimSpace(f.Body) != "" {
+		caption = f.Body
+	}
+	if group {
+		return ses.SendGroup(ctx, to, caption, links...)
+	}
+	return ses.Send(ctx, to, caption, links...)
 }
 
 // Size and CRC32 of our own uploads, read once: the app uses the size to decide whether to
@@ -292,33 +289,62 @@ func (s *Server) uploadInfo(ctx context.Context, link string) fileInfo {
 }
 
 // fileTransferText renders a chat attachment for the app.
-func (s *Server) fileTransferText(ctx context.Context, link, caption string) string {
-	name := path.Base(link)
-	if u, err := url.PathUnescape(name); err == nil {
-		name = u
+func (s *Server) fileTransferText(ctx context.Context, links []string, caption string) string {
+	var f acroFile
+	var names []string
+	for _, link := range links {
+		name := path.Base(link)
+		if u, err := url.PathUnescape(name); err == nil {
+			name = u
+		}
+		ct := mime.TypeByExtension(strings.ToLower(path.Ext(name)))
+		switch strings.ToLower(path.Ext(name)) {
+		case ".m4a":
+			ct = "audio/mp4"
+		case ".ogg", ".opus":
+			ct = "audio/ogg"
+		case ".webm":
+			ct = "audio/webm"
+		}
+		if ct == "" {
+			ct = "application/octet-stream"
+		}
+		fi := s.uploadInfo(ctx, link)
+		a := attachment{ContentType: strings.SplitN(ct, ";", 2)[0], ContentURL: s.publicURL(link), Filename: name, ContentSize: fi.size, Hash: fi.hash}
+		// The app's own voice notes carry no file name: that is how it tells them from an audio file.
+		if strings.HasPrefix(a.ContentType, "audio/") {
+			a.Filename = ""
+		}
+		f.Attachments, names = append(f.Attachments, a), append(names, name)
 	}
-	ct := mime.TypeByExtension(strings.ToLower(path.Ext(name)))
-	switch strings.ToLower(path.Ext(name)) {
-	case ".m4a":
-		ct = "audio/mp4"
-	case ".ogg", ".opus":
-		ct = "audio/ogg"
-	case ".webm":
-		ct = "audio/webm"
-	}
-	if ct == "" {
-		ct = "application/octet-stream"
-	}
-	fi := s.uploadInfo(ctx, link)
-	a := attachment{ContentType: strings.SplitN(ct, ";", 2)[0], ContentURL: s.publicURL(link), Filename: name, ContentSize: fi.size, Hash: fi.hash}
-	// The app's own voice notes carry no file name: that is how it tells them from an audio file.
-	if strings.HasPrefix(a.ContentType, "audio/") {
-		a.Filename = ""
-	}
-	f := acroFile{Attachments: []attachment{a}}
-	if caption != "" && caption != name && caption != link {
+	if !namesOnly(caption, names, links) {
 		f.Body = caption
 	}
 	out, _ := json.Marshal(f)
 	return string(out)
+}
+
+// fileNames are the files' names as their links end.
+func fileNames(links []string) []string {
+	names := make([]string, len(links))
+	for i, l := range links {
+		names[i] = path.Base(l)
+		if u, err := url.PathUnescape(names[i]); err == nil {
+			names[i] = u
+		}
+	}
+	return names
+}
+
+// namesOnly tells a caption that just names the files (what a message without text carries) from real words.
+func namesOnly(caption string, names, links []string) bool {
+	if caption == "" || caption == strings.Join(names, ", ") {
+		return true
+	}
+	for i := range names {
+		if caption == names[i] || caption == links[i] {
+			return true
+		}
+	}
+	return false
 }
