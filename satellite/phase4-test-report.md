@@ -79,12 +79,31 @@ initialization socket. Tests refuse database execution unless the isolated
 hostname and explicit test flag are present. Never point them at an installed DB.
 
 For browser checks, install Playwright in an isolated Python environment, and
-Angular 1.8.3, angular-translate 2.13.0 and Bootstrap 3.3.7 into a temporary
+Angular 1.8.3, angular-translate 2.13.0, Angular UI Bootstrap 2.5.0 and
+Bootstrap 3.3.7 into a temporary
 `node_modules` directory. Use an installed Chrome executable:
 
 ```bash
 python satellite/tests/test_application_browser.py --libraries /tmp/ui-fixture/node_modules --browser /usr/bin/google-chrome
 ```
+
+### Field help verification — 5 October 2026
+
+API access and Connectors now have translated help beside every form field,
+including conditional authentication/ticket fields and operation permissions.
+The explanations cover purpose, expected values, JSON mapping examples,
+credential selection, published versions, permission dependencies and real test
+execution. Labels stay associated with their controls; help buttons have
+translated accessible names and descriptions.
+
+The browser suite uses the real Angular UI Bootstrap popovers. English/Italian
+desktop/mobile checks pass for all rendered fields, mouse hover, keyboard focus,
+Escape dismissal (including hover), touch opening, outside dismissal, viewport
+bounds and unchanged form submissions. Conditional POST and API-key fields are
+included. Only one help bubble remains open at a time. Synthetic screenshot
+previews were visually checked; no live service or business operation was used.
+Pass `--output /tmp/agent-field-help` to keep new screenshots outside the original
+Phase 4 evidence directory.
 
 The caller regression imports the inherited `test_agent_voice` fixture; run
 `test_application_voice.py` with the assembled runtime's `tests` directory in

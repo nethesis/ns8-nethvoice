@@ -22,3 +22,15 @@
 .agents-area .agents-policy label { display: block; margin: 0.75rem 0; }
 .agents-area nav { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .agents-area .agents-policy textarea.form-control { max-width: 100%; }
+.agents-field { margin: 0.75rem 0; }
+.agents-field-label { display: flex; align-items: baseline; gap: 6px; }
+.agents-area .agents-field-label label { display: inline; margin: 0; }
+.agents-field-label agent-field-help { flex: 0 0 auto; }
+.agents-help-button { border: 1px solid #72767b; border-radius: 50%; background: transparent; color: #363636; font-weight: bold; font-size: 12px; line-height: 20px; width: 24px; height: 24px; padding: 0; }
+.agents-help-button:hover { background: #e7f1f8; }
+.agents-help-button:focus { outline: 2px solid #0088ce; outline-offset: 2px; }
+.agents-field-tooltip { max-width: min(320px, calc(100vw - 24px)); overflow-wrap: anywhere; }
+.agents-field-tooltip .popover-content { white-space: pre-wrap; font-weight: normal; }
+.agents-checkbox-field { display: flex; align-items: baseline; gap: 6px; }
+.agents-checkbox-field agent-field-help { flex: 0 0 auto; }
+@media (pointer: coarse) { .agents-help-button { width: 32px; height: 32px; font-size: 14px; } }

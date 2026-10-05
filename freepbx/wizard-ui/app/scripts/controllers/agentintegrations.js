@@ -1,5 +1,54 @@
 'use strict';
 
+angular.module('nethvoiceWizardUiApp').directive('agentFieldHelp', function ($document, $rootScope) {
+  var active;
+  function closeOnEscape(event) {
+    if (event.keyCode === 27 && active) { active.$applyAsync(active.closeHelp); }
+  }
+  $document.on('keydown', closeOnEscape);
+  $rootScope.$on('$destroy', function () { $document.off('keydown', closeOnEscape); });
+  return {
+    restrict: 'E',
+    scope: {field: '@', help: '@'},
+    template: '<button type="button" class="agents-help-button" ' +
+      'aria-label="{{\'Agents.help_for\' | translate:{field: (field | translate)} }}" aria-describedby="{{helpId}}" ' +
+      'uib-popover="{{help | translate}}" popover-trigger="\'none\'" ' +
+      'popover-is-open="helpOpen" popover-placement="auto top" ' +
+      'popover-append-to-body="true" popover-animation="false" popover-class="agents-field-tooltip" ' +
+      'ng-mouseenter="showHelp()" ng-mouseleave="leaveHelp()" ' +
+      'ng-focus="showHelp()" ng-blur="closeHelp()" ' +
+      'ng-click="showHelp()" ng-keydown="helpKey($event)">' +
+      '<span aria-hidden="true">?</span></button>' +
+      '<span class="sr-only" id="{{helpId}}">{{help | translate}}</span>',
+    link: function (scope, element) {
+      scope.helpId = 'agents-field-help-' + scope.$id;
+      scope.showHelp = function () {
+        if (active && active !== scope) { active.helpOpen = false; }
+        active = scope; scope.helpOpen = true;
+      };
+      scope.closeHelp = function () {
+        scope.helpOpen = false;
+        if (active === scope) { active = null; }
+      };
+      scope.leaveHelp = function () {
+        if ($document[0].activeElement !== element.find('button')[0]) { scope.closeHelp(); }
+      };
+      scope.helpKey = function (event) {
+        if (event.keyCode === 27) { scope.closeHelp(); event.stopPropagation(); }
+      };
+      function closeOutside(event) {
+        if (scope.helpOpen && !element[0].contains(event.target)) {
+          scope.$applyAsync(scope.closeHelp);
+        }
+      }
+      $document.on('click', closeOutside);
+      scope.$on('$destroy', function () {
+        scope.closeHelp(); $document.off('click', closeOutside);
+      });
+    }
+  };
+});
+
 angular.module('nethvoiceWizardUiApp').controller('AgentIntegrationsCtrl', function (
   $scope, $location, AgentsService
 ) {
