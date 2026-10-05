@@ -13,7 +13,7 @@ if [ "$MARIADB_RUNNING" != "active" ]; then
     systemctl --user start mariadb
 fi
 
-# Create roomsdb and fias databases, refresh provider defaults and apply DB fixes
+# Create roomsdb and fias databases, refresh provider and gateway defaults and apply DB fixes
 MARIADB_ROOT_PASSWORD=$(grep '^MARIADB_ROOT_PASSWORD=' ./passwords.env) && export "${MARIADB_ROOT_PASSWORD?}"
 
 podman exec -i mariadb bash <<'EOF'
@@ -62,6 +62,8 @@ fi
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/50_asterisk.rest_pjsip_trunks_custom_flags.sql
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/50_asterisk.rest_pjsip_trunks_defaults.sql
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/50_asterisk.rest_pjsip_trunks_specialopts.sql
+# Gateway models: refresh the catalog without deleting configured gateways via foreign keys.
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/50_asterisk.gateway_models.sql
 # NethCTI Server
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" nethcti3 -e 'DELETE FROM `auth` WHERE user LIKE "%_phone-island"'
 # Phonebook: add extended contact fields for existing installs

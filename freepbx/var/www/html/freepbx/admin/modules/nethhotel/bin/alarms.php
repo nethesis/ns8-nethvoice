@@ -94,11 +94,10 @@ foreach ($res as $alarm){
     // move file into asterisk dir
     chown($fname,'asterisk');
     chgrp($fname,'asterisk');
-    $moved = rename($fname,"/var/spool/asterisk/outgoing/".$filename);
-    if ($moved === false) {
-        error_log("Error moving call file! $fname -> /var/spool/asterisk/outgoing/".$filename);
-        unlink($fname);
-        continue;
+    $res = rename($fname,"/var/spool/asterisk/outgoing/".$filename);
+    if ($res == FALSE) {
+        fwrite(STDERR, "Error moving call file! $fname -> /var/spool/asterisk/outgoing/$filename\n");
+        exit(1);
     }
 
     // mark enabled = 0 to avoid more ringing

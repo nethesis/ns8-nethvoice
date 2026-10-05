@@ -201,8 +201,16 @@ if ($favicon !== false && $favicon !== "") { $set("BRAND_IMAGE_FAVICON", $favico
 # Sync users
 fwconsole userman --syncall --force --verbose
 
+# Core module installation resets the HTTPS bind address from :: to localhost.
+# WSS clients reach Asterisk through the container network, so restore the
+# container-wide bind address before fwconsole regenerates http.conf.
+php -r 'include_once "/etc/freepbx_db.conf"; $db->query("UPDATE freepbx_settings SET value = \"0.0.0.0\" WHERE keyword = \"HTTPTLSBINDADDRESS\" AND value = \"127.0.0.1\"");'
+
 # Always apply changes on start
 su asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload"
+
+# Reset phones RPS after FreePBX modules have been initialized
+php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed
 
 # Apply low-priority background DB updates
 ionice -c3 nice -n 19 php /initdb.d/slow_database_updates.php >/dev/null 2>&1 &

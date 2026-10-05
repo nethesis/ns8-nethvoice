@@ -6,6 +6,15 @@
 
 include_once '/etc/freepbx_db.conf';
 
+// The image supplies SLN sounds. Avoid downloading other formats when
+// soundlang updates the installed languages.
+$db->exec("UPDATE `asterisk`.`soundlang_settings` SET `value` = 'sln' WHERE `keyword` = 'formats'");
+
+// Remove malformed prompt filenames before soundlang is installed/upgraded by
+// freepbx_init.sh. Older sound manifests imported description/blank lines with
+// their trailing newline instead of valid sound filenames.
+$db->exec('DELETE FROM `asterisk`.`soundlang_prompts` WHERE LOCATE(CHAR(10), `filename`) > 0');
+
 // Shared FIAS rooms display all guest names in this field. The original
 // 32-character limit is too short even for two ordinary guest names.
 $sql = "SELECT CHARACTER_MAXIMUM_LENGTH
@@ -102,23 +111,6 @@ if (count($res) == 0 && !empty($_ENV['NETHVOICE_HOTEL']) && $_ENV['NETHVOICE_HOT
 	$stmt->execute([$hotel_profile_id]);
 }
 
-// Check if NETHVOICE_HOST changed and reset phones RPS if it has
-$stmt = $db->prepare("SELECT `value` FROM `asterisk`.`admin` WHERE `variable` = 'NETHVOICE_HOST'");
-$stmt->execute();
-$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-if (count($res) > 0 && $res[0]['value'] != $_ENV['NETHVOICE_HOST']) {
-	// value exists and differ from current value, update phones RPS
-	$output = [];
-	$return_var = 0;
-	exec("/var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --all", $output, $return_var);
-	if ($return_var !== 0) {
-		error_log("Failed to reset phones RPS: " . implode("\n", $output));
-	}
-}
-$stmt = $db->prepare("DELETE IGNORE FROM `asterisk`.`admin` WHERE `variable` = 'NETHVOICE_HOST'");
-$stmt->execute();
-$stmt = $db->prepare("INSERT IGNORE INTO `asterisk`.`admin` (`variable`, `value`) VALUES ('NETHVOICE_HOST',?)");
-$stmt->execute([$_ENV['NETHVOICE_HOST']]);
 // Add Audio Test feature code
 $stmt = $db->prepare("INSERT IGNORE INTO `featurecodes` (`modulename`,`featurename`,`description`,`helptext`,`defaultcode`,`customcode`,`enabled`,`providedest`) VALUES ('nethcti3','audio_test','Audio Test','NethVoice CTI Audio Test','*41',NULL,1,0)");
 $stmt->execute();

@@ -106,6 +106,53 @@ Notes:
 - Use `-v` / `--verbose` to see request/response details and headers.
 
 
+## Timer logs
+
+These units are silenced to keep the journal small:
+
+- `nethvoice-calendar-sync.service` (every minute)
+- `nethvoice-queue-stats-reset.service` (every minute)
+- `nethvoice-hotel-alarms.service` (every minute)
+- `satellite-recordings-cleanup.service` (every 10 minutes)
+
+Each one sets:
+
+```
+StandardOutput=null
+StandardError=null
+LogLevelMax=warning
+```
+
+`StandardOutput` and `StandardError` drop the command output. `LogLevelMax` drops
+the `Starting`/`Finished` lines and the `podman` container events. Unit failures are
+still logged.
+
+To restore the logs of one unit, add a drop-in. Example for
+`nethvoice-calendar-sync.service` on instance `nethvoice1`:
+
+```bash
+runagent -m nethvoice1
+mkdir -p ~/.config/systemd/user/nethvoice-calendar-sync.service.d
+cat > ~/.config/systemd/user/nethvoice-calendar-sync.service.d/override.conf <<'EOF'
+[Service]
+StandardOutput=journal
+StandardError=inherit
+LogLevelMax=
+EOF
+systemctl --user daemon-reload
+```
+
+Read them with:
+
+```bash
+journalctl --user -u nethvoice-calendar-sync.service -f
+```
+
+To silence the unit again, remove the drop-in directory and run `systemctl --user
+daemon-reload`.
+
+The drop-in is lost when the module is updated or reinstalled.
+
 ## Uninstall
 
 To uninstall the instance:
