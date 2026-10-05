@@ -493,6 +493,8 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         } else {
             throw new \InvalidArgumentException('Unsupported webhook action');
         }
+        // The configuration hash is embedded in the Agent dialplan.
+        needreload();
         $this->synchronizeAgentConfiguration();
     }
 
@@ -569,7 +571,6 @@ class Satellite extends \FreePBX_Helpers implements \BMO
             ));
             AgentValidation::validateDirectoryRule($resourceKey, $rules[$resourceKey]);
         }
-        $previous = $this->agentProfiles->getByKey($key);
         $this->db->beginTransaction();
         try {
             $this->agentProfiles->save($key, $input);
@@ -581,10 +582,8 @@ class Satellite extends \FreePBX_Helpers implements \BMO
             $this->db->rollBack();
             throw $error;
         }
-        if ((string) (isset($previous['trunk_id']) ? $previous['trunk_id'] : '') !== (string) $input['trunk_id'] ||
-            (string) (isset($previous['fallback_destination']) ? $previous['fallback_destination'] : '') !== (string) $fallback) {
-            needreload();
-        }
+        // Every profile field contributes to the hash embedded in the dialplan.
+        needreload();
         $this->synchronizeAgentConfiguration();
         $this->agentPageNotice = $key === 'internal' ? 'Builtin Internal profile saved' : 'Builtin External profile saved';
     }

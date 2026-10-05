@@ -141,6 +141,7 @@ if ($reqGet === "tools") {
                         'api_key', 'sip_auth_mode', 'sip_auth_username', 'sip_auth_password');
                     $input = array_intersect_key($jsonArray['trunk'], array_flip($fields));
                     $id = $satellite->saveAgentTrunk($input);
+                    system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
                     $trunk = $satellite->getAgentTrunk($id);
                     $status = null;
                     foreach ($satellite->getAgentTrunks() as $row) {
@@ -220,6 +221,8 @@ if ($reqGet === "tools") {
                     $times = is_array($jsonArray['times'] ?? null) ? $jsonArray['times'] : array();
                     $name = $times[0]['name'] ?? '';
                     $addedTime = FreePBX::Timeconditions()->addTimeGroup($name, $times);
+                    needreload();
+                    system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
                     echo $addedTime;
 
                 } else if ($rest == "update") {
@@ -229,6 +232,8 @@ if ($reqGet === "tools") {
                     $name = $times[0]['name'] ?? '';
                     $updateName = FreePBX::Timeconditions()->editTimeGroup($id, $name);
                     $updateTime = FreePBX::Timeconditions()->editTimes($id, $times);
+                    needreload();
+                    system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
                     echo json_encode($updateName);
     
                 }

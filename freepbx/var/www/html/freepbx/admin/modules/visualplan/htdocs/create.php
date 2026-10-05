@@ -120,6 +120,7 @@ function nethvplan_extraction($dataArray, $connectionArray)
             return $destinations['output_agent_fallback%' . $suffix] ?? null;
         });
     }
+    needreload();
     system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
 }
 

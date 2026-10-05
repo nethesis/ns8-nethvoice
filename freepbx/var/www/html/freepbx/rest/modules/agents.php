@@ -85,8 +85,11 @@ $app->put('/agents/policy', function (Request $request, Response $response) {
             throw new \InvalidArgumentException('invalid_request');
         }
         $result = (new AgentMonitoringRepository(FreePBX::Database()))->save($request->getParsedBody(), $actor);
+        // Monitoring policy contributes to the hash embedded in the Agent dialplan.
+        needreload();
         try { (new AgentConfigurationBuilder(FreePBX::create()))->synchronize(); }
         catch (\Throwable $error) { /* Native policy is saved; the sync timer retries. */ }
+        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         $result['sync'] = (new AgentConfigurationState(FreePBX::Database()))->status();
         $result['applied'] = false;
         if ($result['sync']['acknowledged_revision'] === $result['revision']) {
