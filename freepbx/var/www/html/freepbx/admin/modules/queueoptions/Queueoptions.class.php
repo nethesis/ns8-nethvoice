@@ -10,127 +10,46 @@ namespace FreePBX\modules;
 
 class Queueoptions implements \BMO
 {
-    private function extractDynamicMembersFromPersistentMembers($persistentMembersValue)
-    {
-        $members = array();
-
-        if (!is_string($persistentMembersValue) || $persistentMembersValue === '') {
-            return $members;
-        }
-
-        foreach (explode('|', $persistentMembersValue) as $member) {
-            $member = trim($member);
-            if ($member === '') {
-                continue;
-            }
-
-            $parts = explode(';', $member, 2);
-            $interface = trim($parts[0]);
-            if ($interface === '') {
-                continue;
-            }
-
-            if (preg_match('#^Local/([^@]+)@from-queue/n$#', $interface, $matches)) {
-                $extension = trim($matches[1]);
-            } else {
-                $extension = '';
-            }
-
-            if ($extension !== '') {
-                $members[] = $extension;
-            }
-        }
-
-        return array_values(array_unique($members));
-    }
-
-    private function extractDynamicMembersFromRequest()
-    {
-        $candidates = array();
-
-        if (isset($_REQUEST['dynmembers'])) {
-            $candidates[] = $_REQUEST['dynmembers'];
-        }
-
-        if (isset($_REQUEST['members']) && is_array($_REQUEST['members']) && isset($_REQUEST['members']['dynamic'])) {
-            $candidates[] = $_REQUEST['members']['dynamic'];
-        }
-
-        if (isset($_REQUEST['members_dynamic'])) {
-            $candidates[] = $_REQUEST['members_dynamic'];
-        }
-
-        if (count($candidates) === 0) {
-            return null;
-        }
-
-        $members = array();
-        foreach ($candidates as $candidate) {
-            if (is_array($candidate)) {
-                $lines = $candidate;
-            } else {
-                $lines = preg_split('/\r\n|\r|\n/', (string) $candidate);
-            }
-
-            foreach ($lines as $line) {
-                $line = trim((string) $line);
-                if ($line === '') {
-                    continue;
-                }
-
-                $parts = explode(',', $line, 2);
-                $extension = trim($parts[0]);
-                if ($extension !== '') {
-                    $members[] = $extension;
-                }
-            }
-        }
-
-        return array_values(array_unique($members));
-    }
-
-    private function removeLoggedDynamicMembers($queueId, $extensions)
+    /**
+     * Logs out the dynamic members of a queue that are no longer in its list.
+     *
+     * It runs after the queues module saved the queue, so QPENALTY already holds
+     * the new list. Only a queue with "Restrict Dynamic Agents" on keeps unlisted
+     * agents out: otherwise anyone may log in, listed or not.
+     */
+    private function logoutUnlistedDynamicMembers($queue)
     {
         global $astman;
 
-        if (!$queueId || !is_array($extensions) || count($extensions) === 0) {
+        if (!$astman || !ctype_digit((string) $queue)) {
+            return;
+        }
+        // Same check as the queues module: when it fails, the queue was not saved.
+        if (function_exists('checkRange') && !checkRange($_REQUEST['account'] ?? '')) {
+            return;
+        }
+        if (strtolower((string) $astman->database_get('QPENALTY/' . $queue, 'dynmemberonly')) !== 'yes') {
             return;
         }
 
-        $persistentMembersKey = (string) $queueId;
-        $persistentMembersValue = false;
-        if ($astman) {
-            $persistentMembersValue = $astman->database_get('Queue PersistentMembers', $persistentMembersKey);
+        $listed = array();
+        foreach (array_keys((array) $astman->database_show('QPENALTY/' . $queue . '/agents')) as $key) {
+            $listed[] = substr($key, strrpos($key, '/') + 1);
         }
 
-        foreach ($extensions as $extension) {
-            $extension = trim((string) $extension);
-            if ($extension === '') {
+        $status = $astman->QueueStatus($queue);
+        if (!is_array($status)) {
+            return;
+        }
+        foreach ($status as $event) {
+            if (strtolower($event['Event'] ?? '') !== 'queuemember'
+                || ($event['Queue'] ?? '') !== (string) $queue
+                || ($event['Membership'] ?? '') !== 'dynamic'
+                || !preg_match('#^Local/([0-9]+)@from-queue/n$#', $event['Location'] ?? '', $matches)) {
                 continue;
             }
-
-            $interface = 'Local/' . $extension . '@from-queue/n';
-
-            if ($astman) {
-                $astman->QueueRemove($queueId, $interface);
-                $astman->Command('queue remove member ' . $interface . ' from ' . $queueId);
-            } else {
-                @shell_exec('/usr/sbin/asterisk -rx ' . escapeshellarg('queue remove member ' . $interface . ' from ' . $queueId));
-            }
-
-            if ($persistentMembersValue !== false) {
-                $members = array_filter(explode('|', $persistentMembersValue), function ($member) use ($interface) {
-                    return strpos($member, $interface . ';') !== 0;
-                });
-                $persistentMembersValue = implode('|', $members);
-            }
-        }
-
-        if ($astman && $persistentMembersValue !== false) {
-            if ($persistentMembersValue === '') {
-                $astman->database_del('Queue PersistentMembers', $persistentMembersKey);
-            } else {
-                $astman->database_put('Queue PersistentMembers', $persistentMembersKey, $persistentMembersValue);
+            if (!in_array($matches[1], $listed, true)) {
+                \FreePBX::Queues()->queues_member_login($queue, $matches[1], false);
             }
         }
     }
@@ -190,25 +109,10 @@ class Queueoptions implements \BMO
     //
     // This handles any data passed to this module before the page is rendered.
     public function doConfigPageInit($page) {
-        global $astman;
         $dbh = \FreePBX::Database();
         $action = $_REQUEST['action']?$_REQUEST['action']:'';
         if ($page === 'queues' and ($action == 'add' or $action == 'edit')) {
             $id = $_REQUEST['extdisplay']?$_REQUEST['extdisplay']:'';
-            $removedDynamicMembers = array();
-
-            if ($action == 'edit' && $id) {
-                $previousDynamicMembers = array();
-                if ($astman) {
-                    $previousPersistentMembers = $astman->database_get('Queue PersistentMembers', (string) $id);
-                    $previousDynamicMembers = $this->extractDynamicMembersFromPersistentMembers($previousPersistentMembers);
-                }
-                $currentDynamicMembers = $this->extractDynamicMembersFromRequest();
-                if (is_array($currentDynamicMembers)) {
-                    $removedDynamicMembers = array_values(array_diff($previousDynamicMembers, $currentDynamicMembers));
-                }
-            }
-
             $sql = 'DELETE FROM `queues_details` WHERE `id` = ? AND `keyword` = "lazymembers"';
             $data = array($id);
             if (isset($_REQUEST['LazyMembers']) && $_REQUEST['LazyMembers'] == 1) {
@@ -218,8 +122,8 @@ class Queueoptions implements \BMO
             $sth = $dbh->prepare($sql);
             $sth->execute($data);
 
-            if ($action == 'edit' && count($removedDynamicMembers) > 0) {
-                $this->removeLoggedDynamicMembers($id, $removedDynamicMembers);
+            if ($action == 'edit') {
+                $this->logoutUnlistedDynamicMembers($id);
             }
         }
         if ($page === 'queueoptions') {
@@ -490,3 +394,10 @@ class Queueoptions implements \BMO
     public static function myConfigPageInits() { return array("queues"); }
     public static function myGuiHooks() { return array(); }
 }
+
+
+
+
+
+
+
