@@ -31,6 +31,8 @@ services = [
     "cti-server-api",
     "middleware-server-api",
     "middleware-cti-server-api",
+    "sso-sp-handler",
+    "sso-mint",
 ]
 
 # Remove traefik route

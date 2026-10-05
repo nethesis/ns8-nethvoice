@@ -104,6 +104,14 @@ restore_envs = [
     'REPORTS_UI_FAVICON_URL',
     'REPORTS_UI_LOGIN_BACKGROUND_URL',
     'REPORTS_UI_LOGIN_BACKGROUND_COLOR',
+    'SSO_AUTH',
+    # SAML2 hardening knobs: 70configure_module omits them from its payload, so
+    # they must be restored here or access restrictions and metadata-signature
+    # verification would be silently dropped
+    'SAML2_USER_ALLOWLIST',
+    'SAML2_IDENTITY_VALUE_REGEX',
+    'SAML2_IDP_SIGNING_CERT',
+    'SAML2_JWT_TIMEOUT_HOURS',
     'STUNSERVER',
     'SUBSCRIPTION_SYSTEMID',
     'TIMEZONE',

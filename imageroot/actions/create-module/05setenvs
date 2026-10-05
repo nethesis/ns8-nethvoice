@@ -173,6 +173,10 @@ agent.set_env('SATELLITE_MQTT_USERNAME', 'satellite')
 agent.set_env('NETHVOICE_MIDDLEWARE_PORT', port_list[34])
 agent.set_env('NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS', '127.0.0.1:' + str(port_list[34]))
 
+# SSO front-doors (loopback, started on demand): see configure-module/45authentication
+agent.set_env('SAML2_PROXY_PORT', port_list[36])
+agent.set_env('OAUTH2_PROXY_PORT', port_list[37])
+
 # IAX2 is UDP-only — port derived from UDP_PORTS_RANGE offset 2001
 agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)
 
