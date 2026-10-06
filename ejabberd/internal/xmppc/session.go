@@ -4,6 +4,8 @@ package xmppc
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/xml"
 	"fmt"
 	"net"
@@ -49,7 +51,8 @@ type Session struct {
 // Dial opens a plaintext c2s connection to addr and authenticates user@host with
 // the given password (the CTI JWT). ejabberd asks chat-extauth, which asks the middleware.
 func Dial(ctx context.Context, addr, host, user, password string) (*Session, error) {
-	origin, err := jid.Parse(fmt.Sprintf("%s@%s/gateway", user, host))
+	// A resource per connection: two at once for the same user must not replace each other.
+	origin, err := jid.Parse(fmt.Sprintf("%s@%s/gateway-%s", user, host, randomID()))
 	if err != nil {
 		return nil, fmt.Errorf("xmpp login %s: %w", user, err)
 	}
@@ -431,4 +434,10 @@ func (ses *Session) Slot(ctx context.Context, filename string, size int64, conte
 		headers[h.Name] = h.Value
 	}
 	return res.Slot.Put.URL, res.Slot.Get.URL, headers, nil
+}
+
+func randomID() string {
+	b := make([]byte, 6)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
 }

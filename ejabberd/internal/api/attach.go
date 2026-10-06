@@ -19,7 +19,6 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/xmppc"
@@ -44,8 +43,22 @@ type attachment struct {
 	Hash          string `json:"hash,omitempty"`
 }
 
-// fileClient fetches from MMMSG and talks to ejabberd's upload service.
+// fileClient talks to ejabberd's upload service on loopback.
 var fileClient = &http.Client{Timeout: 60 * time.Second}
+
+// mmmsgClient fetches the app's files: Acrobits hosts only, on every redirect too.
+var mmmsgClient = &http.Client{Timeout: 60 * time.Second, CheckRedirect: func(r *http.Request, via []*http.Request) error {
+	if len(via) >= 5 || !acrobitsURL(r.URL) {
+		return fmt.Errorf("attachment redirect to %s refused", r.URL.Host)
+	}
+	return nil
+}}
+
+// acrobitsURL: the app's files live on Acrobits' MMMSG service, nowhere else.
+func acrobitsURL(u *url.URL) bool {
+	h := strings.ToLower(u.Hostname())
+	return u.Scheme == "https" && (h == "acrobits.net" || strings.HasSuffix(h, ".acrobits.net")) && (u.Port() == "" || u.Port() == "443")
+}
 
 // parseFileTransfer recognises the app's attachment message, whatever content type it was sent with.
 func parseFileTransfer(contentType, body string) (*acroFile, bool) {
@@ -77,11 +90,11 @@ func decrypt(data []byte, hexKey string) ([]byte, error) {
 // fetchAttachment downloads one of the app's files and returns it in clear, checked against its hash.
 func fetchAttachment(ctx context.Context, a attachment) ([]byte, error) {
 	u, err := url.Parse(a.ContentURL)
-	if err != nil || u.Scheme != "https" {
+	if err != nil || !acrobitsURL(u) {
 		return nil, fmt.Errorf("attachment url %q refused", a.ContentURL)
 	}
 	req, _ := http.NewRequestWithContext(ctx, "GET", a.ContentURL, nil)
-	resp, err := fileClient.Do(req)
+	resp, err := mmmsgClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -242,24 +255,22 @@ func (s *Server) sendFileTransfer(ctx context.Context, ses *xmppc.Session, to st
 	return ses.Send(ctx, to, caption, links...)
 }
 
-// Size and CRC32 of our own uploads, read once: the app uses the size to decide whether to
-// download by itself, and checks what it downloaded against the hash, as for its own files.
+// Size and CRC32 of our own uploads, read once ever and kept in the store: the app uses the size to
+// decide whether to download by itself, and checks what it downloaded against the hash, as for its own files.
 type fileInfo struct {
 	size int64
 	hash string
 }
 
-var (
-	infoMu sync.Mutex
-	infos  = map[string]fileInfo{}
-)
-
 func (s *Server) uploadInfo(ctx context.Context, link string) fileInfo {
-	infoMu.Lock()
-	fi, ok := infos[link]
-	infoMu.Unlock()
-	if ok {
-		return fi
+	// Only our upload service, always through loopback: any other link is not ours to fetch.
+	if s.UploadURL == "" || !strings.Contains(link, "/upload/") {
+		return fileInfo{}
+	}
+	if s.Store != nil {
+		if size, hash, ok := s.Store.UploadInfo(link); ok {
+			return fileInfo{size: size, hash: hash}
+		}
 	}
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -278,13 +289,10 @@ func (s *Server) uploadInfo(ctx context.Context, link string) fileInfo {
 	if err != nil || n == 0 || n > maxAttachment {
 		return fileInfo{}
 	}
-	fi = fileInfo{size: n, hash: strconv.FormatUint(uint64(h.Sum32()), 10)}
-	infoMu.Lock()
-	if len(infos) > 5000 {
-		infos = map[string]fileInfo{}
+	fi := fileInfo{size: n, hash: strconv.FormatUint(uint64(h.Sum32()), 10)}
+	if s.Store != nil {
+		s.Store.PutUploadInfo(link, fi.size, fi.hash)
 	}
-	infos[link] = fi
-	infoMu.Unlock()
 	return fi
 }
 

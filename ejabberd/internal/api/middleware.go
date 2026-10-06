@@ -35,6 +35,8 @@ type Middleware struct {
 	refreshing bool
 }
 
+const tokenTTL = 2 * time.Minute
+
 type cachedToken struct {
 	jwt  string
 	till time.Time
@@ -57,7 +59,7 @@ func NewMiddleware(url string) *Middleware {
 	return &Middleware{URL: url, client: &http.Client{Timeout: 10 * time.Second}, tokens: map[string]cachedToken{}}
 }
 
-// Login exchanges NethVoice credentials for a CTI JWT, cached for an hour.
+// Login exchanges NethVoice credentials for a CTI JWT. The cache is short: a changed password stops working within tokenTTL.
 func (m *Middleware) Login(ctx context.Context, username, password string) (string, error) {
 	key := tokenKey(username, password)
 	m.mu.Lock()
@@ -93,7 +95,7 @@ func (m *Middleware) Login(ctx context.Context, username, password string) (stri
 			delete(m.tokens, k)
 		}
 	}
-	m.tokens[key] = cachedToken{jwt: out.Token, till: time.Now().Add(time.Hour)}
+	m.tokens[key] = cachedToken{jwt: out.Token, till: time.Now().Add(tokenTTL)}
 	m.mu.Unlock()
 	return out.Token, nil
 }

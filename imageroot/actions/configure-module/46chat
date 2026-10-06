@@ -19,8 +19,19 @@ HOST = os.getenv('NETHCTI_UI_HOST', '')
 UNITS = ('chat-server.service', 'chat-gateway.service')
 CONF_DIR = os.path.join(os.environ['AGENT_STATE_DIR'], 'chat')
 TEMPLATE = os.path.join(os.environ['AGENT_INSTALL_DIR'], 'etc', 'chat', 'ejabberd.yml.tmpl')
-RETENTION = os.getenv('CHAT_RETENTION_DAYS', '365')
-QUOTA = os.getenv('CHAT_UPLOAD_QUOTA_MB', '200')
+
+
+def positive_int(var, default):
+    """A tunable from the environment; a malformed one warns and falls back to its default."""
+    value = os.getenv(var, default)
+    if value.isdigit() and int(value) > 0:
+        return value
+    print(agent.SD_WARNING + f"chat: {var}={value!r} is not a positive integer, using {default}", file=sys.stderr)
+    return default
+
+
+RETENTION = positive_int('CHAT_RETENTION_DAYS', '365')
+QUOTA = positive_int('CHAT_UPLOAD_QUOTA_MB', '200')
 
 
 def render():
