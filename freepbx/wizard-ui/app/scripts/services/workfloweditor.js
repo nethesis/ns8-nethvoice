@@ -2,7 +2,8 @@
 /* global Drawflow */
 
 // Drawflow is an interchangeable view over canonical nodes/edges/layout.
-angular.module('nethvoiceWizardUiApp').factory('WorkflowEditor', function () {
+angular.module('nethvoiceWizardUiApp').factory('WorkflowEditor', function ($window) {
+  // Return the named outcomes used by the block.
   function ports(node, blocks) {
     if (node.type === 'conversation.collect' || node.type === 'conversation.decision') {
       return (node.config.outcomes || []).concat(['error', 'timeout']);
@@ -10,15 +11,17 @@ angular.module('nethvoiceWizardUiApp').factory('WorkflowEditor', function () {
     var block = blocks.filter(function (b) { return b.type === node.type; })[0];
     return block ? block.outcomes : [];
   }
+  // Create the diagram view and connect its change handlers.
   function attach(element, graph, blocks, changed, selected, readOnly, steps) {
     var surface = document.createElement('div');
     surface.style.height = '100%'; surface.style.width = '100%'; surface.tabIndex = 0;
     element.appendChild(surface);
     var editor = new Drawflow(surface); // locally bundled, pinned 0.0.60
     var rendering = false;
-    var ids = {}, reverse = {};
+    var ids = {}, reverse = {}, resizeObserver, layoutFrame;
     editor.reroute = true; editor.zoom_min = 0.15; editor.start(); if (readOnly) { editor.editor_mode = 'view'; }
     editor.precanvas.style.transformOrigin = '0 0';
+    // Notify the controller only for user graph changes.
     function notify() { if (!rendering) { changed(); } }
     editor.on('nodeSelected', function (id) { selected(reverse[id]); });
     editor.on('nodeMoved', function (id) {
@@ -50,6 +53,7 @@ angular.module('nethvoiceWizardUiApp').factory('WorkflowEditor', function () {
       var outcome = ports(node, blocks)[parseInt(edge.output_class.replace('output_', ''), 10) - 1];
       graph.edges = graph.edges.filter(function (e) { return e.source !== key || e.target !== target || e.outcome !== outcome; }); notify();
     });
+    // Draw blocks and edges from the canonical graph.
     function render() {
       rendering = true; ids = {}; reverse = {}; editor.clear();
       graph.nodes.forEach(function (node, index) {
@@ -72,8 +76,16 @@ angular.module('nethvoiceWizardUiApp').factory('WorkflowEditor', function () {
         if (port >= 0) { editor.addConnection(ids[edge.source], ids[edge.target], 'output_' + (port + 1), 'input_1'); }
       });
       rendering = false;
+      refreshConnections();
     }
+    // Recompute visible connection paths after layout changes.
+    function refreshConnections() {
+      if (!surface.isConnected || !element.clientWidth || !element.clientHeight) { return; }
+      Object.keys(reverse).forEach(function (id) { editor.updateConnectionNodes('node-' + id); });
+    }
+    // Fit the graph within the visible canvas.
     function fit() {
+      if (!surface.isConnected || !element.clientWidth || !element.clientHeight) { return; }
       var positions = graph.nodes.map(function (node) { return graph.layout[node.id] || {x: 0, y: 0}; });
       if (!positions.length) { return; }
       var minX = Math.min.apply(null, positions.map(function (p) { return p.x; })), minY = Math.min.apply(null, positions.map(function (p) { return p.y; }));
@@ -81,13 +93,30 @@ angular.module('nethvoiceWizardUiApp').factory('WorkflowEditor', function () {
       editor.zoom = Math.max(0.15, Math.min(1, (element.clientWidth - 60) / (maxX - minX), (element.clientHeight - 60) / (maxY - minY)));
       editor.canvas_x = 30 - minX * editor.zoom; editor.canvas_y = 30 - minY * editor.zoom;
       editor.zoom_last_value = editor.zoom; editor.zoom_refresh();
+      refreshConnections();
     }
     render();
-    return {render: render, labels: function () {
+    // Route transitions and list mode can hide the canvas during construction.
+    // Drawflow computes zero-length paths then; recompute after layout settles.
+    layoutFrame = $window.requestAnimationFrame(fit);
+    if ($window.ResizeObserver) {
+      resizeObserver = new $window.ResizeObserver(fit);
+      resizeObserver.observe(element);
+    }
+    return {render: render,
+      // Refresh visible block names from the graph.
+      labels: function () {
       graph.nodes.forEach(function (node) { var title = surface.querySelector('#node-' + ids[node.id] + ' strong'); if (title) { title.textContent = node.name; } });
-    }, zoomIn: function () { editor.zoom_in(); }, zoomOut: function () { editor.zoom_out(); },
+    },
+      // Increase the diagram zoom.
+      zoomIn: function () { editor.zoom_in(); },
+      // Decrease the diagram zoom.
+      zoomOut: function () { editor.zoom_out(); },
       fit: fit,
+      // Stop layout updates and remove the diagram surface.
       destroy: function () {
+        $window.cancelAnimationFrame(layoutFrame);
+        if (resizeObserver) { resizeObserver.disconnect(); }
         editor.editor_mode = 'fixed'; editor.clear();
         surface.remove();
       }};

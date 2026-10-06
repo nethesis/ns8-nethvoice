@@ -10,7 +10,7 @@ from agent.workflows.contracts import BLOCKS
 ROOT=Path(__file__).resolve().parents[2]
 FRONT=ROOT/'freepbx/wizard-ui/app'
 LIB=Path(os.getenv('PHASE5_UI_LIBRARIES','/tmp/nethvoice-phase4-browser/node_modules'))
-OUTPUT=ROOT/'satellite/test-evidence'
+OUTPUT=Path(os.getenv('PHASE5_TEST_OUTPUT',str(ROOT/'satellite/test-evidence')))
 
 
 def main():
@@ -93,6 +93,22 @@ angular.module('nethvoiceWizardUiApp',['pascalprecht.translate']).config(functio
                   const start=performance.now();for(let repeat=0;repeat<3;repeat++){const canvas=service.attach(element,graph,window.fixture.blocks,()=>{},()=>{});if(element.querySelectorAll('.drawflow-node').length!==100)throw Error('Missing nodes');canvas.destroy();if(element.children.length)throw Error('Leaked canvas');}element.remove();return performance.now()-start;
                 }''')
                 assert duration<3000, duration
+                # A real route may build its graph while the canvas is hidden.
+                page.evaluate('''()=>{
+                  const service=angular.element(document.body).injector().get('WorkflowEditor');
+                  const element=document.createElement('div');element.className='workflow-area';
+                  element.style.cssText='width:1000px;height:640px;display:none';document.body.appendChild(element);
+                  const graph=angular.copy(window.templates.find(t=>t.agent_id==='payment-secretary'));
+                  const original=JSON.stringify(graph);let changes=0;
+                  const canvas=service.attach(element,graph,window.fixture.blocks,()=>{changes++;},()=>{});
+                  canvas.fit();element.style.display='block';window.connectionProbe={element,graph,original,canvas,getChanges:()=>changes};
+                }''')
+                page.wait_for_function("window.connectionProbe.element.querySelectorAll('path.main-path').length===12 && Array.from(window.connectionProbe.element.querySelectorAll('path.main-path')).every(p=>p.getTotalLength()>1 && !p.getAttribute('d').includes('NaN'))")
+                original_transform=page.evaluate("window.connectionProbe.element.querySelector('.drawflow').style.transform")
+                page.evaluate("window.connectionProbe.element.style.width='500px'")
+                page.wait_for_function("old=>window.connectionProbe.element.querySelector('.drawflow').style.transform!==old",arg=original_transform)
+                assert page.evaluate("window.connectionProbe.getChanges()===0 && JSON.stringify(window.connectionProbe.graph)===window.connectionProbe.original")
+                page.evaluate("window.connectionProbe.canvas.destroy();window.connectionProbe.element.remove();delete window.connectionProbe")
                 page.screenshot(path=str(OUTPUT/f'phase5-editor-{lang}-{width}.png'),full_page=True)
                 assert page.evaluate('document.documentElement.scrollWidth')<=width+1
                 page.evaluate("var scope=angular.element(document.body).scope();scope.login.isLogged=false;scope.$apply();")
