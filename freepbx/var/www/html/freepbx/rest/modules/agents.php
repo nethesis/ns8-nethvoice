@@ -8,6 +8,7 @@ require_once __DIR__ . '/../../admin/modules/satellite/lib/AgentConfigurationBui
 require_once __DIR__ . '/../lib/AgentApplicationClient.php';
 require_once __DIR__ . '/../lib/AgentWorkflowClient.php';
 require_once __DIR__ . '/../../admin/modules/satellite/lib/AgentWorkflowDestination.php';
+require_once __DIR__ . '/../../admin/modules/satellite/lib/AgentWorkflowReconciler.php';
 
 /** Administrator scope is assigned by authentication middleware, never a browser claim. */
 function agentsAuthorize(Request $request, $scope, $mutation = false)
@@ -104,19 +105,33 @@ foreach ($workflowRoutes as $route) {
                 }
                 $client = new AgentWorkflowClient(); $graph = null;
                 $activation = $method === 'POST' && ($args['operation'] ?? '') === 'activate' && ($args['kind'] ?? '') === 'agent';
+                $publication = $method === 'POST' && ($args['operation'] ?? '') === 'publish' && ($args['kind'] ?? '') === 'agent';
                 if ($activation) {
                     $graph = $client->request('GET', '/definitions/agent/' . $args['agentId'] . '/versions/' . (int) ($input['version'] ?? 0), $actor)['definition'];
                     if (($input['enabled'] ?? false) === true) { (new AgentWorkflowDestination(FreePBX::Database()))->validate($graph); }
                 }
                 $result = $client->request($method, $target, $actor, $input, true);
-                if ($activation) {
+                if ($activation || $publication) {
+                    $changed = true; $pending = false;
                     try {
-                        (new AgentWorkflowDestination(FreePBX::Database()))->synchronize($args['agentId'], (int) $input['version'], $graph, $input['enabled']);
+                        if ($activation) {
+                            (new AgentWorkflowDestination(FreePBX::Database()))->synchronize($args['agentId'], (int) $input['version'], $graph, $input['enabled']);
+                        } else {
+                            // Publication also changes the active version in Satellite.
+                            $sync = AgentWorkflowReconciler::reconcile(FreePBX::Database(), $client);
+                            $changed = $sync['changed']; $pending = $sync['pending'];
+                        }
                     } catch (\Throwable $error) { $result['pbx_sync'] = array('pending' => true, 'error_code' => 'workflow_binding_pending'); return $result; }
-                    needreload();
-                    try { (new AgentConfigurationBuilder(FreePBX::create()))->synchronize(); } catch (\Throwable $error) { /* Retry through the existing sync timer. */ }
-                    system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+                    if ($changed) {
+                        needreload();
+                        try { (new AgentConfigurationBuilder(FreePBX::create()))->synchronize(); } catch (\Throwable $error) { /* Retry through the existing sync timer. */ }
+                        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+                    }
                     $result['pbx_sync'] = (new AgentConfigurationState(FreePBX::Database()))->status();
+                    if ($pending) {
+                        $result['pbx_sync']['pending'] = true;
+                        $result['pbx_sync']['error_code'] = 'workflow_binding_pending';
+                    }
                 }
                 return $result;
             });

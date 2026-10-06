@@ -89,6 +89,12 @@ with a viewer service account. Save the draft, validate it and record its revisi
 Fix validation failures; do not invent missing integration mappings. Verify the
 saved configuration, not only the request you intended to send.
 
+Saving a draft does not change the active version or reload the PBX. Publishing
+selects the new active version and keeps the current enabled state. Agent
+publication reconciles the PBX binding and starts a dialplan reload when it
+changes. Check returned PBX sync status before a call. Pending binding sync is
+retried by the one-minute timer; do not treat publication alone as readiness.
+
 If the stored graph validates through the private API but Wizard reports an
 invalid draft or schema, check the gateway's JSON round trip. Empty node config,
 inputs and schema properties must remain objects; lists must remain arrays.

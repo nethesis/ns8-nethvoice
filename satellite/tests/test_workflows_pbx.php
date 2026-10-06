@@ -4,6 +4,7 @@ $root = dirname(__DIR__, 2);
 $module = $root . '/freepbx/var/www/html/freepbx/admin/modules/satellite';
 require_once $module . '/lib/AgentSchema.php';
 require_once $module . '/lib/AgentWorkflowDestination.php';
+require_once $module . '/lib/AgentWorkflowReconciler.php';
 require_once $module . '/lib/AgentDestinationRepository.php';
 require_once $root . '/freepbx/var/www/html/freepbx/rest/lib/AgentWorkflowData.php';
 function checkWorkflow($condition, $message) { if (!$condition) { throw new RuntimeException($message); } }
@@ -36,6 +37,39 @@ checkWorkflow((int) $row['enabled'] === 1 && (int) $row['workflow_version'] === 
 $cycle = $graph; $cycle['fallback'] = 'satellite-agent-destination-' . $id . ',s,1';
 try { $binding->synchronize('fixture-agent',4,$cycle,true); throw new RuntimeException('Self fallback accepted'); }
 catch (InvalidArgumentException $expected) { checkWorkflow($expected->getMessage() === 'workflow_fallback_cycle', 'Unexpected cycle validation'); }
+
+// Publishing an enabled agent advances its active version without activation.
+// Reconciliation must update the PBX binding and request a reload exactly once.
+class WorkflowPublicationFixture
+{
+    public $version = 4;
+    public $graph;
+    public function request($method, $path, $actor)
+    {
+        if ($path === '/inventory') {
+            return array('agents' => array(array('kind'=>'agent', 'agent_id'=>'fixture-agent', 'entrypoints'=>array('voice'))),
+                'definitions' => array(array('kind'=>'agent', 'agent_id'=>'fixture-agent', 'active_version'=>$this->version, 'enabled'=>true)));
+        }
+        if ($path !== '/definitions/agent/fixture-agent/versions/' . $this->version) {
+            throw new RuntimeException('Unexpected workflow request');
+        }
+        return array('definition' => $this->graph);
+    }
+}
+$publication = new WorkflowPublicationFixture();
+$publication->graph = $graph;
+$publication->graph['fallback'] = 'ext-local,201,1';
+$sync = AgentWorkflowReconciler::reconcile($db, $publication);
+checkWorkflow($sync['changed'] && !$sync['pending'], 'Published active version did not request PBX regeneration');
+$publishedRow = $db->query("SELECT * FROM satellite_agent_destinations WHERE id=" . (int) $id)->fetch(PDO::FETCH_ASSOC);
+checkWorkflow((int) $publishedRow['workflow_version'] === 4 && (int) $publishedRow['enabled'] === 1 &&
+    $publishedRow['fallback_destination'] === 'ext-local,201,1', 'Publication did not apply the version and fallback to the stable PBX destination');
+$sync = AgentWorkflowReconciler::reconcile($db, $publication);
+checkWorkflow(!$sync['changed'] && !$sync['pending'], 'Unchanged publication requested another PBX reload');
+$publication->version = 5;
+$publication->graph = $cycle;
+$sync = AgentWorkflowReconciler::reconcile($db, $publication);
+checkWorkflow(!$sync['changed'] && $sync['pending'], 'Invalid publication must remain pending for reconciliation');
 $destinations = new AgentDestinationRepository($db);
 $cleared = $destinations->validateUpdateInput($id, array('agent_type'=>'workflow','fallback_destination'=>null));
 checkWorkflow($cleared['fallback_destination'] === null, 'VisualPlan cannot remove the workflow fallback');

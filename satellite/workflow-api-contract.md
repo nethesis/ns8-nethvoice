@@ -16,7 +16,7 @@ host or supplies credentials inside graph JSON.
 | PUT | `/definitions/{agent\|subflow}/{id}` | `{definition, expected_revision}` → `{revision}`; 0 creates a draft |
 | GET | `/definitions/{kind}/{id}/versions/{version}` | `{definition}` for an immutable publication |
 | POST | `/validate` | `{definition}` → `{valid, tools}`; structural and live reference checks |
-| POST | `/definitions/{kind}/{id}/publish` | `{expected_revision}` → `{version, revision, execution_hash}` |
+| POST | `/definitions/{kind}/{id}/publish` | `{expected_revision}` → `{version, revision, execution_hash}` plus PBX sync status for an agent |
 | POST | `/definitions/{kind}/{id}/activate` | `{version, enabled, expected_revision}` → activation plus PBX sync status for a voice agent |
 | POST | `/test` | `{definition, fixtures, input, caller, tables?, destinations?}` → labelled mock result and bounded trace; never performs external effects |
 | GET | `/runs/{id}` | Pinned graph, status, safe step metadata, subflow paths and effect states; result content excluded |
@@ -32,6 +32,13 @@ IDs use `[a-z][a-z0-9_-]{0,47}`; `internal`, `external` and `support-request` ar
 reserved agent IDs. Draft writes, publication and activation use optimistic
 revision checks. Definition/graph size is 128 KiB; uploads are at most 10 MiB,
 with a 14 MiB JSON request ceiling for base64 transfer.
+
+Saving a draft does not change the active workflow or reload the PBX.
+Publication selects the new active version and keeps the current enabled state.
+Agent publication reconciles its PBX binding immediately. When a binding changes,
+the gateway marks the configuration for reload and starts `retrieveHelper.sh`.
+Activation also applies the binding and starts the reload. Failed binding sync
+returns `pbx_sync.pending`; the existing one-minute timer retries reconciliation.
 
 ## Canonical definitions and bindings
 

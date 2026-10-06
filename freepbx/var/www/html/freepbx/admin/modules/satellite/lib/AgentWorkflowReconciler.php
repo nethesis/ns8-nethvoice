@@ -5,9 +5,9 @@ require_once __DIR__ . '/../../../../rest/lib/AgentWorkflowClient.php';
 class AgentWorkflowReconciler
 {
     // Retry pending workflow bindings and disable removed publications.
-    public static function reconcile($db)
+    public static function reconcile($db, $client = null)
     {
-        $client = new AgentWorkflowClient();
+        $client = $client ?? new AgentWorkflowClient();
         $inventory = $client->request('GET', '/inventory', 'workflow_sync');
         $query = $db->query('SELECT `workflow_agent_id`,`workflow_version`,`enabled` FROM `satellite_agent_destinations` WHERE `agent_type`=\'workflow\'');
         $stored = array();

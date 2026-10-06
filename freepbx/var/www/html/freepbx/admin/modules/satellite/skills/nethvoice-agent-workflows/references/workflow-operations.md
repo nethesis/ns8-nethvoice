@@ -56,7 +56,7 @@ Use `runagent -m <module>` for NS8 operations. Do not expose a private endpoint.
 | `PUT /definitions/{agent\|subflow}/{id}` | `{definition, expected_revision}`; revision 0 creates a draft |
 | `POST /validate` | `{definition}`; checks graph and current references |
 | `POST /test` | `{definition, fixtures, input, caller, tables?, destinations?}`; returns `test_mode: mock`, `status`, `result`, `trace` |
-| `POST /definitions/{kind}/{id}/publish` | `{expected_revision}`; returns immutable version and new revision |
+| `POST /definitions/{kind}/{id}/publish` | `{expected_revision}`; returns immutable version, new revision and PBX sync for an agent; keeps enabled state and reloads changed PBX bindings |
 | `POST /definitions/{kind}/{id}/activate` | `{version, enabled, expected_revision}`; voice activation also reports PBX sync |
 | `GET /runs/{id}` | Pinned definition and safe steps; excludes result content |
 | `POST /runs/{id}/cancel` | Cancels the requested workflow; a voice call uses its fallback |

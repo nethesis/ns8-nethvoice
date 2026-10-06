@@ -204,6 +204,9 @@ the caller. Configure the fallback branch for each of these outcomes.
 Save and validate the draft. Correct each reported error before publication.
 Check that the saved settings match your choices. Published versions do not
 change. Publish a new graph version to use a newer data or connector version.
+Publishing selects the new active version and keeps the agent's enabled state.
+The PBX updates the binding and starts a dialplan reload when the binding changes.
+Saving a draft does not reload the dialplan. Check PBX sync before a call.
 If a stored draft validates through the private API but fails in Wizard, check
 the workflow gateway JSON types. Empty configuration, inputs and schema
 properties must stay objects (`{}`). Node lists and grants must stay arrays (`[]`).
