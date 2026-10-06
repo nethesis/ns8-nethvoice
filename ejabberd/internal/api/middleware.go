@@ -25,6 +25,7 @@ var (
 type Middleware struct {
 	URL    string
 	OnSeen func(username, name string) // every valid token: who uses the chat, with the name the CTI gives
+	OnMe   func(me cti.Me)             // every valid token: the user's profile, for the CTI groups
 	client *http.Client
 
 	mu      sync.Mutex
@@ -127,8 +128,20 @@ func (m *Middleware) WhoAmI(ctx context.Context, jwt string) (string, error) {
 	if m.OnSeen != nil {
 		m.OnSeen(me.Username, me.Name)
 	}
+	if m.OnMe != nil {
+		m.OnMe(me)
+	}
 	return me.Username, nil
 }
+
+// Token is the newest valid token seen, for the gateway's own reads; "" before any.
+func (m *Middleware) Token() string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.lastJWT
+}
+
+func (m *Middleware) Client() *http.Client { return m.client }
 
 // Directory is the CTI user list for the gateway's own jobs, read with the newest token seen.
 func (m *Middleware) Directory(ctx context.Context) (*userCache, error) {

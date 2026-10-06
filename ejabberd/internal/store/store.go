@@ -5,6 +5,7 @@ package store
 import (
 	"database/sql"
 	"path/filepath"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -38,6 +39,8 @@ func Open(dir string) (*Store, error) {
 		`CREATE INDEX IF NOT EXISTS pnm_tokens_account ON pnm_tokens(username, selector)`,
 		`CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, name TEXT NOT NULL DEFAULT '', missing_since INTEGER NOT NULL DEFAULT 0, inactive INTEGER NOT NULL DEFAULT 0)`,
 		`CREATE TABLE IF NOT EXISTS upload_info (link TEXT PRIMARY KEY, size INTEGER NOT NULL, hash TEXT NOT NULL)`,
+		`CREATE TABLE IF NOT EXISTS group_access (username TEXT PRIMARY KEY, all_groups INTEGER NOT NULL, slugs TEXT NOT NULL)`,
+		`CREATE TABLE IF NOT EXISTS cti_rooms (slug TEXT PRIMARY KEY, name TEXT NOT NULL)`,
 	} {
 		if _, err := db.Exec(q); err != nil {
 			return nil, err
@@ -243,4 +246,75 @@ func (s *Store) IsInactive(username string) bool {
 	var n int
 	_ = s.db.QueryRow(`SELECT COUNT(*) FROM users WHERE username = ? AND inactive = 1`, username).Scan(&n)
 	return n > 0
+}
+
+// GroupAccess is what a user sees in the CTI operators panel besides its own groups.
+type GroupAccess struct {
+	All   bool
+	Slugs []string
+}
+
+// PutGroupAccess stores a user's group permissions; true when they changed.
+func (s *Store) PutGroupAccess(user string, a GroupAccess) bool {
+	slugs := strings.Join(a.Slugs, ",")
+	all := 0
+	if a.All {
+		all = 1
+	}
+	res, err := s.db.Exec(`INSERT INTO group_access (username, all_groups, slugs) VALUES (?, ?, ?)
+		ON CONFLICT(username) DO UPDATE SET all_groups = excluded.all_groups, slugs = excluded.slugs
+		WHERE all_groups != excluded.all_groups OR slugs != excluded.slugs`, user, all, slugs)
+	if err != nil {
+		return false
+	}
+	n, _ := res.RowsAffected()
+	return n > 0
+}
+
+func (s *Store) GroupAccesses() (map[string]GroupAccess, error) {
+	rows, err := s.db.Query(`SELECT username, all_groups, slugs FROM group_access`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]GroupAccess{}
+	for rows.Next() {
+		var u, slugs string
+		var all int
+		if err := rows.Scan(&u, &all, &slugs); err != nil {
+			return nil, err
+		}
+		a := GroupAccess{All: all == 1}
+		if slugs != "" {
+			a.Slugs = strings.Split(slugs, ",")
+		}
+		out[u] = a
+	}
+	return out, rows.Err()
+}
+
+// CTIRooms are the rooms made for CTI groups: slug -> name last given.
+func (s *Store) CTIRooms() (map[string]string, error) {
+	rows, err := s.db.Query(`SELECT slug, name FROM cti_rooms`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]string{}
+	for rows.Next() {
+		var slug, name string
+		if err := rows.Scan(&slug, &name); err != nil {
+			return nil, err
+		}
+		out[slug] = name
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) PutCTIRoom(slug, name string) {
+	_, _ = s.db.Exec(`INSERT OR REPLACE INTO cti_rooms (slug, name) VALUES (?, ?)`, slug, name)
+}
+
+func (s *Store) DeleteCTIRoom(slug string) {
+	_, _ = s.db.Exec(`DELETE FROM cti_rooms WHERE slug = ?`, slug)
 }
