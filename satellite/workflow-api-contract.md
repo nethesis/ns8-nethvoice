@@ -62,6 +62,10 @@ execution timeout is 10–3600 seconds; a voice call also inherits its provider
 profile deadline. Per-operation timeouts remain bounded by the shared transport.
 Each response may request at most ten functions; writes are excluded from
 conversation tools and require deterministic effect/confirmation nodes.
+Subflow execution uses the remaining parent deadline. Its nested engine also
+applies the child graph deadline; the default ten-second operation timeout does
+not wrap the entire reusable graph. Parent permissions, path and deadline are
+restored when the child completes, fails or is cancelled.
 
 A mock fixture keyed by node ID has `{outcome, output}`; conversation fixtures
 use the conversation's declared output fields. Mock tables contain synthetic

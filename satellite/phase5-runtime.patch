@@ -1830,10 +1830,10 @@ index 0000000..0682204
 +    return values
 diff --git a/agent/workflows/engine.py b/agent/workflows/engine.py
 new file mode 100644
-index 0000000..09ce10a
+index 0000000..1582b5c
 --- /dev/null
 +++ b/agent/workflows/engine.py
-@@ -0,0 +1,253 @@
+@@ -0,0 +1,260 @@
 +"""Sequential, bounded graph execution; all capabilities supplied by services."""
 +
 +import asyncio
@@ -1914,8 +1914,15 @@ index 0000000..09ce10a
 +            await self.service.step(context, sequence, node, "running")
 +            try:
 +                node_inputs = bind(node["inputs"], outputs)
++                remaining = deadline - time.monotonic()
++                if node["type"] == "subflow":
++                    # The nested engine applies the child graph deadline. Do not
++                    # wrap a whole reusable graph in a single-operation timeout.
++                    step_timeout = remaining
++                else:
++                    step_timeout = min(remaining, 120 if node["type"].startswith(("conversation.", "voice.")) or node["type"] == "action.confirm" else node["config"].get("timeout_seconds", 10))
 +                outcome, value = await asyncio.wait_for(self.run_node(node, node_inputs, graph, context, inputs or {}, depth),
-+                    timeout=min(deadline - time.monotonic(), 120 if node["type"].startswith(("conversation.", "voice.")) or node["type"] == "action.confirm" else node["config"].get("timeout_seconds", 10)))
++                    timeout=step_timeout)
 +                if len(canonical(value).encode()) > graph["limits"]["max_context_bytes"]:
 +                    raise ApplicationError("step_output_too_large")
 +                outputs[current] = value

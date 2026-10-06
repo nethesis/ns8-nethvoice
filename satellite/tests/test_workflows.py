@@ -269,6 +269,35 @@ async def test_subflow_reduces_permissions_uses_own_definition_and_restores_pare
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize('child_limit,parent_remaining,expected', [
+    (30, 60, 'completed'), (10, 60, 'step_timeout'), (30, 0.1, 'step_timeout')])
+async def test_subflow_speech_uses_graph_deadlines(child_limit, parent_remaining, expected):
+    from unittest.mock import AsyncMock
+    child = graph('long-block', 'Long speech', [node('start', 'start.api'),
+        node('speak', 'conversation.speak', {'text': 'Synthetic speech'}), node('done', 'end')],
+        [('start', 'success', 'speak'), ('speak', 'success', 'done')])
+    child['limits']['max_duration_seconds'] = child_limit
+    parent = graph('parent-deadline', 'Parent', [node('start', 'start.api'),
+        node('child', 'subflow', {'resource': {'resource_id': 'long-block', 'version': 1}}),
+        node('done', 'end')], [('start', 'success', 'child'), ('child', 'success', 'done')])
+    service = AgentRuntime().workflows
+    service.check = AsyncMock(); service.step = AsyncMock(); service.subflow = AsyncMock(return_value=child)
+    async def speak(context, text):
+        await asyncio.sleep(10.1)
+    service.speak = speak
+    context = {'deadline_monotonic': time.monotonic() + parent_remaining, 'permissions': {}, 'subflow_path': []}
+    if expected == 'completed':
+        assert (await service.engine.execute(parent, context))['status'] == expected
+    else:
+        with pytest.raises(ApplicationError) as error:
+            await service.engine.execute(parent, context)
+        assert error.value.code == expected
+    assert context['permissions'] == {} and context['subflow_path'] == []
+    if parent_remaining > child_limit:
+        assert context['deadline_monotonic'] > time.monotonic()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize('flag,priority', [(True,4),(False,2)])
 async def test_merge_alternatives_returns_only_the_taken_branch(flag,priority):
     sample=graph('merge-example','Merge',[node('start','start.api'),node('choice','logic.condition',{'field':'urgent','operator':'eq','value':True},{'urgent':source('start','urgent')}),

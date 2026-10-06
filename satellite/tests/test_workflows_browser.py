@@ -54,6 +54,23 @@ angular.module('nethvoiceWizardUiApp',['pascalprecht.translate']).config(functio
                 saved=page.evaluate('window.mutations[0].input.definition')
                 assert saved['nodes'][1]['config']['defaults']['extension'] is True
                 assert len(saved['edges'])==7
+                # Both conversation nodes reuse the same inspector directives.
+                page.evaluate("var vm=angular.element(document.body).scope().builder;var other=angular.copy(vm.graph.nodes.find(n=>n.id==='choose'));other.id='other_conversation';other.config.outcomes=['again'];other.config.tools=['connector.example.read.v1'];vm.graph.nodes.push(other);vm.select('choose');angular.element(document.body).scope().$apply();")
+                expect(page.get_by_label(labels['field']['outcomes'], exact=True)).to_have_value('pbx, agent, fallback')
+                expect(page.get_by_label(labels['field']['tools'], exact=True)).to_have_value('')
+                page.evaluate("var vm=angular.element(document.body).scope().builder;vm.select('other_conversation');angular.element(document.body).scope().$apply();")
+                expect(page.get_by_label(labels['field']['outcomes'], exact=True)).to_have_value('again')
+                expect(page.get_by_label(labels['field']['tools'], exact=True)).to_have_value('connector.example.read.v1')
+                page.get_by_label(labels['field']['outcomes'], exact=True).fill('again, fallback')
+                page.get_by_label(labels['field']['tools'], exact=True).fill('connector.example.other.v1')
+                values = page.evaluate("angular.element(document.body).scope().builder.graph.nodes.filter(n=>n.id==='choose'||n.id==='other_conversation').map(n=>({id:n.id,outcomes:n.config.outcomes,tools:n.config.tools}))")
+                assert values == [
+                    {'id': 'choose', 'outcomes': ['pbx','agent','fallback'], 'tools': []},
+                    {'id': 'other_conversation', 'outcomes': ['again','fallback'], 'tools': ['connector.example.other.v1']}]
+                page.evaluate("var vm=angular.element(document.body).scope().builder;vm.select('choose');angular.element(document.body).scope().$apply();")
+                expect(page.get_by_label(labels['field']['outcomes'], exact=True)).to_have_value('pbx, agent, fallback')
+                expect(page.get_by_label(labels['field']['tools'], exact=True)).to_have_value('')
+                page.evaluate("var vm=angular.element(document.body).scope().builder;vm.graph.nodes=vm.graph.nodes.filter(n=>n.id!=='other_conversation');vm.select('call');vm.changed();angular.element(document.body).scope().$apply();")
                 page.get_by_label(labels['list_editor']).uncheck()
                 page.evaluate("var vm=angular.element(document.body).scope().builder;vm.graph.nodes[0].name='<img src=x onerror=window.injected=1>';vm.changed();vm.select('call');angular.element(document.body).scope().$apply();")
                 page.get_by_role('button',name=labels['validate'],exact=True).click()

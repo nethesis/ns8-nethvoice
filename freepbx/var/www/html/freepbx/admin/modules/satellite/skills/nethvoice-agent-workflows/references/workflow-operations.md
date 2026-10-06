@@ -30,6 +30,11 @@ reassign a CleverAI project's webhook to Satellite to make a graph work.
 A voice graph selects that trunk through `provider_binding_ref`. An API graph
 uses its explicit `text_provider` model and encrypted credential reference;
 a SIP trunk is not required for an API-only workflow. Graphs do not contain keys.
+Restore preserves configuration keys and supplies missing keys for older backups.
+Clone rotates native trunk ciphertext into its new key, excludes application
+state/history and disables copied workflow destinations. Recreate the missing
+definitions/resources before enabling them. Reusable blocks are bounded by
+their own graph deadline and the remaining parent deadline.
 
 ## Supported API surface
 

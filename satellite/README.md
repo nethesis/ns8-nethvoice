@@ -213,6 +213,16 @@ the caller. Configure the fallback branch for each of these outcomes.
 Save and validate the draft. Correct each reported error before publication.
 Check that the saved settings match your choices. Published versions do not
 change. Publish a new graph version to use a newer data or connector version.
+Reusable blocks use their own graph deadline and the remaining parent deadline.
+They do not use the default ten-second limit for a single operation.
+
+### Backup, restore and clone
+
+Restore keeps existing encryption keys. It creates missing keys for older backups.
+A clone gets new keys. It re-encrypts retained native trunk secrets with its new
+configuration key. It does not copy workflow data, application credentials or
+run history. Copied workflow destinations are disabled. Recreate the workflows
+and their data connections before you enable those destinations.
 
 ### Test without OpenAI first
 

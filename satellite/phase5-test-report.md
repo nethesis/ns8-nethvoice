@@ -11,10 +11,34 @@ image, upstream commit or registry publication was made.
 The Satellite source is upstream commit
 `77592a76e9e17dac063aacb1731e57d26fc6eac2` plus
 [`phase5-runtime.patch`](phase5-runtime.patch). Its SHA-256 is
-`098c55138d68e412ea36f1cf70c6b1bb759cf6296959085342865638e2875745`.
+`2967596955afdcfd9fc814aa70488060ac7322f4295e878bf8c6efe1a194ed4a`.
 `prepare-runtime.py` checks the checksum and patch applicability before assembling
 source; the wrapper records the same provenance in `/app/phase5-source.json`.
 The delivery does not depend on retaining the ignored development worktree.
+
+The recorded 5 October live checks used the previous patch SHA-256
+`098c55138d68e412ea36f1cf70c6b1bb759cf6296959085342865638e2875745`.
+The review corrections below have not been deployed to that PBX.
+
+## Review corrections — 6 October 2026
+
+All six review findings are addressed in source:
+
+| Finding | Correction and regression evidence |
+|---|---|
+| Module-only verifier import failure | Build command sets `PYTHONPATH=/app`. A locally built corrected wrapper passes the real verifier from `/tmp`, with patch/ref provenance checks. Run `PHASE5_RUNTIME_IMAGE=<built-wrapper> bash satellite/tests/run-runtime-verifier.sh`. |
+| Clone cleanup against stopped MariaDB | Cleanup starts the service with regenerated credentials and stops it in `finally`. Module tests model the removed database and verify ordering and cleanup on migration failure. |
+| Retained native ciphertext under the old clone key | Private-stdin PHP helper transactionally re-encrypts API keys, SIP passwords, current and previous webhook keys. Disposable MariaDB/secretbox tests verify exact retained values, new-key isolation, retry and rollback on corrupted ciphertext. Copied workflow destinations are disabled because application definitions are not cloned. |
+| Missing key in older restored backups | Restore generates a missing/empty configuration key; tests also verify preservation and repeated-restore stability. |
+| Ten-second timeout around entire subflow | Subflow uses parent/child graph deadlines. A nested speech operation lasting 10.1 seconds completes when allowed, and is stopped by a ten-second child limit or earlier parent deadline. |
+| Stale array inspector values | A collection watch refreshes text on node selection and array changes. Browser tests switch conversation nodes, edit both outcomes and tools, and verify the first node remains unchanged. |
+
+Verification: **40 workflow tests passed**, **18 module unit tests passed**, actual
+MariaDB/PHP migration and existing PBX fixtures passed, EN/IT desktop/narrow
+browser checks passed, wrapper build and `/tmp` verifier passed. The workflow
+suite reports 17 dependency deprecation warnings. PHP/Python/shell syntax checks
+and `git diff --check` pass. These were offline tests; no OpenAI/provider calls
+or live NS8 clone/restore operations were performed for this review.
 
 ## Local checks
 

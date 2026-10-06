@@ -11,7 +11,7 @@ angular.module('nethvoiceWizardUiApp').directive('workflowConfigField', function
     } else if (type === 'integer' || type === 'number') {
       html += '<input class="form-control" type="number" ng-model="value" min="{{schema.minimum}}" max="{{schema.maximum}}" ng-change="changed()" aria-label="{{label}}">';
     } else if (type === 'array') {
-      scope.text = (scope.value || []).join(', ');
+      scope.$watchCollection('value', function (value) { scope.text = (value || []).join(', '); });
       scope.updateArray = function () { scope.value = scope.text.split(',').map(function (x) { return scope.schema.items.type === 'integer' ? Number(x.trim()) : x.trim(); }).filter(function (x) { return x !== ''; }); scope.changed(); };
       html += '<input class="form-control" ng-model="text" ng-change="updateArray()" aria-label="{{label}}" placeholder="{{\'Builder.comma_values\' | translate}}">';
     } else if (type === 'object' && scope.schema.properties) {

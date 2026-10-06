@@ -99,6 +99,12 @@ snapshots and steps. Originals live in PostgreSQL, so the existing full database
 backup includes them; a separate upload volume is unnecessary. Existing content
 keys in protected module state encrypt resources/results. The existing fresh
 clone policy continues to exclude application state.
+Clone cleanup temporarily starts MariaDB with the regenerated credentials,
+re-encrypts retained trunk/SIP/webhook secrets (including previous webhook keys)
+with the new configuration key, clears the old snapshot, disables copied
+workflow destinations and stops MariaDB again. Secret rotation is transactional
+and accepts an already migrated row on retry. Restore generates a missing
+configuration key for older backups while preserving restored keys.
 
 Uploads run in a bounded parser process; imports and Sheets refreshes have
 asynchronous jobs. Publication creates a new immutable data version. Existing
