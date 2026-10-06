@@ -8,6 +8,7 @@
 import os
 import sys
 import random
+import secrets
 import string
 import agent
 
@@ -241,6 +242,7 @@ passwords = {
     "SATELLITE_ARI_PASSWORD": gen_password(),
     "SATELLITE_PGSQL_PASSWORD": gen_password(),
     "SATELLITE_API_TOKEN": gen_password(),
+    "SATELLITE_AGENT_CONFIG_KEY": secrets.token_urlsafe(48),
     "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN": gen_password()
 }
 
