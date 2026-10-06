@@ -70,8 +70,8 @@ Restore legacy backup
             Should Not Be Equal As Integers    ${rc}    0
         END
         # Also verify that restoration without Satellite reaches the MariaDB data.
-        ${rc} =    Execute Command    runagent -m ${legacy_id} podman exec -i mariadb sh -c 'exec mysql -uroot -p"$MARIADB_ROOT_PASSWORD" asterisk' <<'SQL'${\n}INSERT INTO admin (variable,value) VALUES ('SATELLITE_RESTORE_BACKUP','${legacy_uuid}');${\n}SQL    return_stdout=False    return_rc=True
-        Should Be Equal As Integers    ${rc}    0
+        ${stderr}    ${rc} =    Execute Command    runagent -m ${legacy_id} podman exec -i mariadb sh -c 'exec mysql -uroot -p"$MARIADB_ROOT_PASSWORD" asterisk' <<'SQL'${\n}INSERT INTO admin (variable,value) VALUES ('SATELLITE_RESTORE','${legacy_uuid}');${\n}SQL    return_stdout=False    return_stderr=True    return_rc=True
+        Should Be Equal As Integers    ${rc}    0    ${stderr}
         ${cluster} =    Run task    get-cluster-status    {}
         ${vpn_ip} =    Evaluate    next(node['vpn']['ip_address'] for node in $cluster['nodes'] if int(node['id']) == 1)
         Should Match Regexp    ${vpn_ip}    ^[0-9.]+$
@@ -79,7 +79,8 @@ Restore legacy backup
             ${satellite_before} =    Read Satellite sentinel    ${legacy_id}    ${legacy_uuid}    ${vpn_ip}
         END
         # Discard the generated backup password on the node, before Robot can log it.
-        ${repository}    ${rc} =    Execute Command    bash -o pipefail -c 'api-cli run cluster/add-backup-repository --data - | jq -er .id' <<'JSON'${\n}{"provider":"cluster","name":"Satellite restore fixture","url":"webdav:http://${vpn_ip}:4694","password":"","parameters":{}}${\n}JSON    return_rc=True
+        # Use a distinct destination even if the node already has a backup repository.
+        ${repository}    ${rc} =    Execute Command    bash -o pipefail -c 'api-cli run cluster/add-backup-repository --data - | jq -er .id' <<'JSON'${\n}{"provider":"cluster","name":"Satellite restore fixture","url":"webdav:http://${vpn_ip}:4694/${legacy_uuid}","password":"","parameters":{}}${\n}JSON    return_rc=True
         Should Be Equal As Integers    ${rc}    0
         ${backup_id} =    Run task    cluster/add-backup    {"name":"Satellite restore fixture","repository":"${repository}","schedule":"daily","retention":1,"instances":["${legacy_id}"],"enabled":false}
         ${rc} =    Execute Command    runagent -m ${legacy_id} timeout --kill-after=15s 10m module-backup ${backup_id} >/dev/null 2>&1    return_stdout=False    return_rc=True    timeout=20m
@@ -135,7 +136,7 @@ Restore legacy backup
         Should Be Equal    ${configuration}[nethcti_ui_host]    ${RESTORE_CTI_HOST}
         ${saved} =    Execute Command    runagent -m ${restored_id} sh -c 'printf "%s\\n%s\\n" "$NETHVOICE_HOST" "$NETHCTI_UI_HOST"'
         Should Be Equal    ${saved}    ${RESTORE_VOICE_HOST}${\n}${RESTORE_CTI_HOST}
-        ${sentinel}    ${rc} =    Execute Command    runagent -m ${restored_id} podman exec -i mariadb sh -c 'exec mysql -N -B -uroot -p"$MARIADB_ROOT_PASSWORD" asterisk' <<'SQL'${\n}SELECT value FROM admin WHERE variable='SATELLITE_RESTORE_BACKUP';${\n}SQL    return_rc=True
+        ${sentinel}    ${rc} =    Execute Command    runagent -m ${restored_id} podman exec -i mariadb sh -c 'exec mysql -N -B -uroot -p"$MARIADB_ROOT_PASSWORD" asterisk' <<'SQL'${\n}SELECT value FROM admin WHERE variable='SATELLITE_RESTORE';${\n}SQL    return_rc=True
         Should Be Equal As Integers    ${rc}    0
         Should Be Equal    ${sentinel}    ${legacy_uuid}
     FINALLY
