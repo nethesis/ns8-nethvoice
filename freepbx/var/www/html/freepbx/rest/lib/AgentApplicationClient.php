@@ -2,6 +2,7 @@
 /** Private, bounded transport for application administration. */
 class AgentApplicationClient
 {
+    // Build a gateway path from checked route parameters.
     public static function path($template, $arguments)
     {
         // Quantifier braces are part of the Slim route expression, not the
@@ -19,6 +20,7 @@ class AgentApplicationClient
         return $result;
     }
 
+    // Send a bounded request to the private Satellite API.
     public function request($method, $path, $actor, $input = null)
     {
         $routes = array(

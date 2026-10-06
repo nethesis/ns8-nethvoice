@@ -38,4 +38,3 @@ fi
 
 # Agent monitoring owns PostgreSQL even without legacy transcription.
 systemctl --user enable --now satellite-pgsql.service || true
-systemctl --user enable --now satellite-monitoring-retention.timer

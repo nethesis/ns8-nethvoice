@@ -21,6 +21,7 @@ class NethvplanAgentGraph
     private $ids = array();
     private $stored = array();
 
+    // Set the database and module adapters used by this object.
     public function __construct($satellite, array $widgets, array $connections)
     {
         $this->satellite = $satellite;
@@ -90,12 +91,14 @@ class NethvplanAgentGraph
         $this->validateFallbackGraph();
     }
 
+    // Build the stable VisualPlan node key.
     private function key($node)
     {
         $id = $this->agents[$node]['id'];
         return $id === null ? 'node:' . $node : 'id:' . $id;
     }
 
+    // Normalize a VisualPlan fallback reference.
     private function fallbackKey($destination)
     {
         if (preg_match('/^satellite-agent-destination-([1-9][0-9]*),s,1$/D', (string) $destination, $match)) {
@@ -139,6 +142,7 @@ class NethvplanAgentGraph
         }
     }
 
+    // Allocate stable agent destination IDs for the plan.
     public function allocate()
     {
         foreach ($this->agents as $node => $agent) {
@@ -154,6 +158,7 @@ class NethvplanAgentGraph
         return $this->ids;
     }
 
+    // Return the destination IDs allocated for this plan.
     public function allocatedIds()
     {
         return $this->ids;

@@ -1,5 +1,7 @@
 #!/usr/bin/env php
 <?php
+// Build speaker-labelled audio from Asterisk recording legs and upload it to Satellite.
+// Skip voicemail legs and remove processed temporary files.
 
 // /var/lib/asterisk/bin/satellite_transcript -u ${UNIQUEID} -l ${CHANNEL(linkedid)}
 

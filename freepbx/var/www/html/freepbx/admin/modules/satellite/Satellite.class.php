@@ -49,6 +49,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         $this->agentProfiles = new AgentProfileRepository($this->db);
     }
 
+    // Apply schema changes when FreePBX installs or upgrades this module.
     public function install() {
         AgentSchema::install($this->db);
     }
@@ -59,6 +60,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
     public function restore($backup) {
     }
 
+    // List provider trunks for the agent pages.
     public function getAgentTrunks() {
         $rows = $this->agentTrunks->listAll();
         foreach ($rows as &$row) {
@@ -80,6 +82,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         return $rows;
     }
 
+    // Read one public agent trunk.
     public function getAgentTrunk($id) {
         if ((int) $id < 1) {
             return null;
@@ -87,18 +90,22 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         return $this->agentTrunks->getById($id);
     }
 
+    // List agent destinations for PBX routing.
     public function getAgentDestinations() {
         return $this->agentDestinations->listAll();
     }
 
+    // Read one agent destination.
     public function getAgentDestination($id) {
         return $this->agentDestinations->getById($id);
     }
 
+    // List the built-in agent profiles.
     public function getAgentProfiles() {
         return $this->agentProfiles->listAll();
     }
 
+    // Replace references to a changed fallback destination.
     public function changeAgentFallbackDestination($old, $new) {
         $old = AgentValidation::validateFallback($old);
         $new = AgentValidation::validateFallback($new);
@@ -146,6 +153,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         return $changed;
     }
 
+    // Process submitted agent settings before rendering the page.
     public function doConfigPageInit($page) {
         if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
             return;
@@ -178,6 +186,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         }
     }
 
+    // Return the action buttons for the selected agent page.
     public function getActionBar($request) {
         $display = isset($request['display']) ? $request['display'] : '';
         $tab = isset($request['tab']) ? $request['tab'] : (isset($_GET['tab']) ? $_GET['tab'] : 'destinations');
@@ -192,10 +201,12 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         );
     }
 
+    // Return the session token used by agent forms.
     public function agentCsrfToken() {
         return AgentSession::csrfToken();
     }
 
+    // Reject a form with an invalid session token.
     public function assertAgentCsrfToken($token) {
         AgentSession::assertCsrfToken($token);
     }
@@ -215,6 +226,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         exit;
     }
 
+    // Read and check the requested agent record ID.
     private function agentRequestId() {
         $id = isset($_POST['id']) ? $_POST['id'] : null;
         if ($id === null || $id === '') {
@@ -226,6 +238,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         return (int) $id;
     }
 
+    // Process provider trunk create, edit and delete requests.
     private function handleAgentTrunkRequest() {
         $action = isset($_POST['action']) ? $_POST['action'] : '';
         $id = $this->agentRequestId();
@@ -343,6 +356,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         return (int) $id;
     }
 
+    // Restore the stored trunk after a failed update.
     private function restoreAgentTrunk($id, array $previous) {
         $crypto = new AgentCrypto();
         $restore = array(
@@ -363,6 +377,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         $this->agentTrunks->update($id, $restore);
     }
 
+    // Process agent destination changes.
     private function handleAgentDestinationRequest() {
         $action = isset($_POST['action']) ? $_POST['action'] : '';
         $id = $this->agentRequestId();
@@ -409,6 +424,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
             : $this->agentDestinations->validateUpdateInput($id, $input);
     }
 
+    // Save one agent destination and request a reload.
     public function saveAgentDestination(array $input, $id = null) {
         if ($id !== null) {
             $this->saveAgentDestinationBatch(array($id => $input));
@@ -472,6 +488,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         $this->synchronizeAgentConfiguration();
     }
 
+    // Process webhook signing-secret changes.
     private function handleAgentWebhookRequest() {
         $id = $this->agentRequestId();
         $stored = $id === null ? null : $this->agentTrunks->getStoredById($id);
@@ -498,6 +515,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         $this->synchronizeAgentConfiguration();
     }
 
+    // Process settings for a built-in agent profile.
     private function handleAgentProfileRequest($key) {
         if (!isset($_POST['action']) || $_POST['action'] !== 'save') {
             throw new \InvalidArgumentException('Unsupported profile action');
@@ -588,6 +606,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         $this->agentPageNotice = $key === 'internal' ? 'Builtin Internal profile saved' : 'Builtin External profile saved';
     }
 
+    // Decode a submitted policy and reject invalid fields.
     private function submittedPolicy($field, array $catalog, array $values) {
         $submitted = isset($_POST[$field]) && is_array($_POST[$field]) ? $_POST[$field] : array();
         $result = array();
@@ -601,11 +620,13 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         return $result;
     }
 
+    // Reject a profile fallback that creates a routing cycle.
     private function assertProfileFallbackSafe($key, $fallback) {
         $this->assertAgentFallbackGraphSafe(array(), array($key => AgentValidation::validateFallback($fallback)),
             array('profile:' . $key));
     }
 
+    // Reject cycles across agent fallback destinations.
     private function assertAgentFallbackGraphSafe(array $destinationChanges, array $profileFallbacks, array $roots) {
         $profiles = array();
         if (isset($this->agentProfiles)) {
@@ -660,6 +681,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         }
     }
 
+    // Send the current agent configuration to Satellite.
     private function synchronizeAgentConfiguration() {
         if (!class_exists('AgentConfigurationBuilder') || !isset($this->FreePBX)) {
             return;
@@ -671,10 +693,12 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         }
     }
 
+    // Create the adapter for PBX directory and calendar data.
     private function agentContextSource() {
         return new AgentContextSource($this->FreePBX);
     }
 
+    // Render the agent settings page.
     public function showAgentsPage($defaultTab = 'destinations') {
         $trunks = $this->getAgentTrunks();
         $destinations = $this->getAgentDestinations();
@@ -785,6 +809,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         ));
     }
 
+    // Render the provider webhook page.
     public function showWebhooksPage() {
         $trunks = $this->getAgentTrunks();
         $webhook = getenv('CLEVERAI_WEBHOOK') ?: '';

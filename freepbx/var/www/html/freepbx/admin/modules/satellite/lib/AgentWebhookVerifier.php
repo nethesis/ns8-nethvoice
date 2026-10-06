@@ -2,6 +2,7 @@
 /** Standard Webhooks verification against original bytes, before forwarding locally. */
 class AgentWebhookVerifier
 {
+    // Check the provider webhook signature and timestamp.
     public static function verify($secret, $body, array $headers, $now = null)
     {
         $now = $now === null ? time() : $now;

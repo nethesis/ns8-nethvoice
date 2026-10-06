@@ -31,7 +31,6 @@ LABEL org.nethserver.rootfull="0"
 LABEL org.nethserver.min-core="3.22.0"
 ARG REPOBASE=ghcr.io/nethserver
 ARG IMAGETAG=latest
-ARG SATELLITE_IMAGE=${REPOBASE}/nethvoice-satellite:${IMAGETAG}
 LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \
     ${REPOBASE}/nethvoice-freepbx:${IMAGETAG} \
     ${REPOBASE}/nethvoice-cti-server:${IMAGETAG} \
@@ -45,5 +44,5 @@ LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \
     ${REPOBASE}/nethvoice-reports-api:${IMAGETAG} \
     ${REPOBASE}/nethvoice-sftp:${IMAGETAG} \
     docker.io/library/eclipse-mosquitto:2 \
-    ${SATELLITE_IMAGE}\
+    ${REPOBASE}/nethvoice-satellite:${IMAGETAG}\
     docker.io/pgvector/pgvector:0.8.1-pg18-trixie"

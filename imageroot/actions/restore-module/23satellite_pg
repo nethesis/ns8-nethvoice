@@ -1,17 +1,21 @@
 #!/bin/bash
+
+#
 # Copyright (C) 2025 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
-set -e -o pipefail
-exec 1>&2
+#
 
-# Older backups can legitimately have no Satellite database.
+set -e -o pipefail
+exec 1>&2 # Redirect any output to the journal (stderr)
+
+# Skip the database restore when an older backup has no Satellite dump.
 if [ ! -s satellite_postgresql.pg_dump.gz ]; then
     exit 0
 fi
 SATELLITE_PGSQL_PASSWORD=$(grep '^SATELLITE_PGSQL_PASSWORD=' ./passwords.env) && export "${SATELLITE_PGSQL_PASSWORD?}"
 export POSTGRES_PASSWORD="${SATELLITE_PGSQL_PASSWORD}"
 mkdir -vp restore
-cat >restore/satellite_postgresql_restore.sh <<'EOS'
+cat - >restore/satellite_postgresql_restore.sh <<'EOS'
 set -e -o pipefail
 cleanup() {
     ec=$?
@@ -35,7 +39,9 @@ EOS
 
 restore_role="restore_$(cat /proc/sys/kernel/random/uuid | tr -d '-')"
 podman run \
-    --rm --interactive --network=none \
+    --rm \
+    --interactive \
+    --network=none \
     --volume=./restore:/docker-entrypoint-initdb.d/:Z \
     --volume=satellite_pgdata:/var/lib/postgresql/18/docker:Z \
     --volume=./satellite_postgresql.pg_dump.gz:/tmp/satellite_postgresql.pg_dump.gz:Z \

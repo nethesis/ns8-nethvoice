@@ -10,3 +10,6 @@ restart-services-when-convenient mariadb freepbx janus nethcti-server nethcti-mi
 
 # Start a previously-disabled Agent only after the PBX restart has completed.
 systemctl --user start satellite.service satellite-agent-sync.timer
+
+# Refresh the workflow account after MariaDB has restarted.
+podman exec --env-file=passwords.env mariadb /docker-entrypoint-initdb.d/90_users.sh --workflow-reader-only

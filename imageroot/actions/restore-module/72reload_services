@@ -8,8 +8,6 @@
 set -e
 
 systemctl --user restart freepbx nethcti-server nethcti-middleware
-systemctl --user enable --now satellite-pgsql.service || true
-systemctl --user enable --now satellite-monitoring-retention.timer
-systemctl --user enable --now satellite-agent-sync.timer
-# The timer retries if Satellite or FreePBX is still settling after restore.
-systemctl --user start satellite-agent-sync.service || true
+
+# Refresh the workflow account after the restored database is ready.
+podman exec --env-file=passwords.env mariadb /docker-entrypoint-initdb.d/90_users.sh --workflow-reader-only

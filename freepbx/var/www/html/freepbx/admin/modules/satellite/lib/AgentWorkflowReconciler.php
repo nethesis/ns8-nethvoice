@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../../../rest/lib/AgentWorkflowClient.php';
 /** Reconcile application activation to PBX bindings without a distributed transaction. */
 class AgentWorkflowReconciler
 {
+    // Retry pending workflow bindings and disable removed publications.
     public static function reconcile($db)
     {
         $client = new AgentWorkflowClient();

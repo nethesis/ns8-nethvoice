@@ -2,6 +2,7 @@
 /** Bounded private monitoring transport, with safe HTTP errors only. */
 class AgentMonitoringClient
 {
+    // Send a bounded request to the private Satellite API.
     public function request($method, $path, $query = array(), $actor = null)
     {
         if (!in_array($method, array('GET', 'DELETE'), true) ||

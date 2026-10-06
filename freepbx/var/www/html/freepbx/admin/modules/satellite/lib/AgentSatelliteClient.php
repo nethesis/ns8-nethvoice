@@ -2,6 +2,7 @@
 /** Local-only control plane. Never return upstream error bodies containing credentials. */
 class AgentSatelliteClient
 {
+    // Send a bounded request to the private Satellite API.
     public function request($method, $path, $body = null)
     {
         $port = getenv('SATELLITE_HTTP_PORT');
@@ -31,8 +32,10 @@ class AgentSatelliteClient
         return $result;
     }
 
+    // Read the local Satellite runtime readiness state.
     public function readiness() { return $this->request('GET', '/readiness'); }
 
+    // Build the public provider webhook URL.
     public static function publicWebhookUrl()
     {
         $host = getenv('NETHVOICE_HOST');

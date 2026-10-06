@@ -10,12 +10,14 @@ class AgentTrunkRepository
     private $db;
     private $crypto;
 
+    // Set the database and module adapters used by this object.
     public function __construct($db, $crypto = null)
     {
         $this->db = $db;
         $this->crypto = $crypto ?: new AgentCrypto();
     }
 
+    // List public provider bindings without secret values.
     public function listAll()
     {
         $statement = $this->db->prepare('SELECT * FROM `satellite_agent_trunks` ORDER BY `id`');
@@ -23,6 +25,7 @@ class AgentTrunkRepository
         return array_map(array($this, 'publicRow'), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
+    // Read one public provider binding by its ID.
     public function getById($id)
     {
         $row = $this->getStoredById($id);
@@ -37,6 +40,7 @@ class AgentTrunkRepository
         return $statement->fetch(\PDO::FETCH_ASSOC) ?: null;
     }
 
+    // Create a provider binding with encrypted credentials.
     public function create(array $input)
     {
         $row = $this->newRow($input);
@@ -77,6 +81,7 @@ class AgentTrunkRepository
         }
     }
 
+    // Update a binding and retain any replaced webhook key.
     public function update($id, array $input)
     {
         $stored = $this->getStoredById($id);
@@ -125,6 +130,7 @@ class AgentTrunkRepository
         }
     }
 
+    // Attach the generated FreePBX trunk ID to the binding.
     public function setProvisionedTrunkId($id, $freepbxTrunkId)
     {
         $ownTransaction = !$this->db->inTransaction();
@@ -149,6 +155,7 @@ class AgentTrunkRepository
         }
     }
 
+    // Delete an unreferenced provider binding.
     public function delete($id)
     {
         $id = $this->positiveId($id);
@@ -185,11 +192,13 @@ class AgentTrunkRepository
         }
     }
 
+    // Return the explicit or permitted environment provider key.
     public function resolveProviderApiKey(array $storedTrunk)
     {
         return $this->crypto->resolveProviderApiKey($storedTrunk);
     }
 
+    // Decrypt the current webhook signing secret.
     public function resolveWebhookSigningSecret(array $storedTrunk)
     {
         return $this->crypto->decryptSecret(isset($storedTrunk['webhook_signing_secret_encrypted'])
@@ -219,6 +228,7 @@ class AgentTrunkRepository
         return $bindings;
     }
 
+    // Remove secret values from public trunk data.
     private function publicRow(array $row)
     {
         $status = $this->crypto->apiKeyStatus($row);
@@ -232,6 +242,7 @@ class AgentTrunkRepository
         return $row;
     }
 
+    // Build a new trunk record from checked input.
     private function newRow(array $input)
     {
         $row = array(
@@ -245,6 +256,7 @@ class AgentTrunkRepository
         return $this->mergeRow($row, $input);
     }
 
+    // Merge permitted changes into the stored trunk record.
     private function mergeRow(array $row, array $input)
     {
         $oldProvider = $row['provider'];
@@ -300,6 +312,7 @@ class AgentTrunkRepository
         return $row;
     }
 
+    // Check required provider and SIP credentials.
     private function validateCredentials(array $row)
     {
         if ($row['provider'] === 'grok' && empty($row['api_key_encrypted'])) {
@@ -314,6 +327,7 @@ class AgentTrunkRepository
         }
     }
 
+    // Check provider fields and runtime ownership.
     private function validateBinding(array $row, $excludeId = null)
     {
         $field = $row['provider'] === 'openai' ? 'openai_project_id' : 'grok_phone_number';
@@ -332,6 +346,7 @@ class AgentTrunkRepository
         }
     }
 
+    // Keep the previous signing key when it changes.
     private function retireWebhookSecretIfChanged(array $stored, array $replacement)
     {
         if ($stored['webhook_signing_secret_encrypted'] !== $replacement['webhook_signing_secret_encrypted']) {
@@ -339,6 +354,7 @@ class AgentTrunkRepository
         }
     }
 
+    // Retain the previous signing key for the allowed transition.
     private function retireWebhookSecret(array $stored)
     {
         if ($stored['runtime_owner'] !== 'builtin' || empty($stored['webhook_signing_secret_encrypted'])) {
@@ -351,11 +367,13 @@ class AgentTrunkRepository
         $statement->execute(array((int) $stored['id'], $stored['provider'], $stored['webhook_signing_secret_encrypted']));
     }
 
+    // Remove previous webhook keys after their expiry.
     private function cleanupExpiredWebhookSecrets()
     {
         $this->db->exec('DELETE FROM `satellite_agent_webhook_previous_keys` WHERE `expires_at` <= UTC_TIMESTAMP()');
     }
 
+    // Check whether profiles or destinations use the trunk.
     private function isReferenced($id)
     {
         $id = $this->positiveId($id);
@@ -370,12 +388,14 @@ class AgentTrunkRepository
         return false;
     }
 
+    // Store the generated FreePBX trunk name.
     private function setGeneratedTrunkName($id)
     {
         $statement = $this->db->prepare('UPDATE `satellite_agent_trunks` SET `freepbx_trunk_name` = ? WHERE `id` = ?');
         $statement->execute(array('AgentTrunk_' . $id, $id));
     }
 
+    // Check and return a positive database record ID.
     private function positiveId($id)
     {
         if (filter_var($id, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1))) === false) {

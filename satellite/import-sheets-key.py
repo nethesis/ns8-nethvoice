@@ -17,6 +17,7 @@ except urllib.error.HTTPError as error:
     print('Credential import rejected; HTTP '+str(error.code));sys.exit(1)
 '''
 
+# Check and store the private Sheets credential through the PBX gateway.
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--host',required=True,help='NS8 SSH host, not the public PBX URL')

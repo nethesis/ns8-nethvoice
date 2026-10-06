@@ -6,6 +6,7 @@ require_once __DIR__ . '/AgentMonitoringRepository.php';
 /** Additive Agent schema; safe to invoke on install and every upgrade. */
 class AgentSchema
 {
+    // Create or upgrade the module tables without replacing stored settings.
     public static function install($db)
     {
         $db->exec('CREATE TABLE IF NOT EXISTS `satellite_agent_trunks` (
@@ -156,6 +157,7 @@ class AgentSchema
         $db->exec('UPDATE `satellite_agent_destinations` SET `enabled` = 1 WHERE `enabled` <> 1 AND `agent_type` <> \'workflow\'');
     }
 
+    // Add a schema column only when it is absent.
     private static function addColumnIfMissing($db, $table, $column, $definition)
     {
         $statement = $db->prepare('SHOW COLUMNS FROM `' . $table . '` LIKE ?');

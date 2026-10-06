@@ -3,9 +3,12 @@
 class AgentWorkflowData
 {
     private $db;
+    // Connect through the read-only phonebook and CDR account.
     public function __construct($db) { $this->db = $db; }
+    // Normalize and check a caller phone number.
     public static function digits($phone) { return preg_replace('/[^0-9]/', '', (string) $phone); }
 
+    // Read public company contacts for the verified caller number.
     public function contacts($phone)
     {
         if (!is_string($phone) || strlen($phone) > 40 || !preg_match('/^[+0-9 ()-]+$/D', $phone)) { throw new \InvalidArgumentException('invalid_phone'); }
@@ -37,6 +40,7 @@ class AgentWorkflowData
         return array('status' => 'success', 'company' => $company, 'numbers' => $numbers);
     }
 
+    // Read bounded answered-call history for the allowed numbers.
     public function history(array $numbers, array $support, $days)
     {
         if (count($numbers) > 100 || count($support) > 100 || !is_int($days) || $days < 1 || $days > 365) { throw new \InvalidArgumentException('invalid_history_scope'); }

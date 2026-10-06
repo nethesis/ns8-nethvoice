@@ -7,11 +7,13 @@ class AgentDestinationRepository
 {
     private $db;
 
+    // Set the database and module adapters used by this object.
     public function __construct($db)
     {
         $this->db = $db;
     }
 
+    // List the stored agent destinations.
     public function listAll()
     {
         $statement = $this->db->prepare('SELECT * FROM `satellite_agent_destinations` ORDER BY `id`');
@@ -19,6 +21,7 @@ class AgentDestinationRepository
         return $statement->fetchAll(\PDO::FETCH_ASSOC);
     }
 
+    // Read an agent destination by its ID.
     public function getById($id)
     {
         $statement = $this->db->prepare('SELECT * FROM `satellite_agent_destinations` WHERE `id` = ?');
@@ -99,6 +102,7 @@ class AgentDestinationRepository
         return $this->validateInput(array_merge($stored, $input));
     }
 
+    // Update a checked agent destination.
     public function update($id, array $input)
     {
         $row = $this->validateUpdateInput($id, $input);
@@ -153,6 +157,7 @@ class AgentDestinationRepository
         }
     }
 
+    // Find agent destinations that use this fallback.
     public function listByFallbackDestination($destination)
     {
         $statement = $this->db->prepare('SELECT * FROM `satellite_agent_destinations` WHERE `fallback_destination` = ? ORDER BY `id`');
@@ -160,6 +165,7 @@ class AgentDestinationRepository
         return $statement->fetchAll(\PDO::FETCH_ASSOC);
     }
 
+    // Replace matching fallback references.
     public function replaceFallbackDestination($oldDestination, $newDestination)
     {
         $oldDestination = AgentValidation::validateFallback($oldDestination);
@@ -191,6 +197,7 @@ class AgentDestinationRepository
         }
     }
 
+    // Check the required fields and destination types.
     public function validateInput(array $input)
     {
         $type = isset($input['agent_type']) ? $input['agent_type'] : 'cleverai';
@@ -220,6 +227,7 @@ class AgentDestinationRepository
         );
     }
 
+    // Read per-object directory access rules.
     public function directoryRules()
     {
         $statement = $this->db->prepare('SELECT * FROM `satellite_agent_directory_rules` ORDER BY `resource_key`');
@@ -269,6 +277,7 @@ class AgentDestinationRepository
         }
     }
 
+    // Remove one per-object access rule.
     public function deleteDirectoryRule($resourceKey)
     {
         AgentValidation::validateDirectoryRuleKey($resourceKey);
@@ -293,6 +302,7 @@ class AgentDestinationRepository
         }
     }
 
+    // Check and return a positive database record ID.
     private function positiveId($id)
     {
         if (filter_var($id, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1))) === false) {

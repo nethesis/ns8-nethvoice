@@ -12,8 +12,10 @@ example.View = draw2d.Canvas.extend({
         }
         this.setScrollArea("#" + id);
         this.getCommandStack().addEventListener({
+            // Mark agent fallbacks affected by a canvas command.
             stackChanged: function (change) {
                 var command = change.getCommand();
+                // Mark the agent fallback as changed when its output port changes.
                 function markAgentPort(port) {
                     if (!port) return;
                     var label = port.getParent();
@@ -24,6 +26,7 @@ example.View = draw2d.Canvas.extend({
                     data.fallback_touched = true;
                     figure.setUserData(data);
                 }
+                // Mark the source agent fallback when its connection changes.
                 function markAgentFallback(connection) {
                     if (connection) markAgentPort(connection.getSource());
                 }
@@ -435,6 +438,7 @@ example.View = draw2d.Canvas.extend({
         }
     },
 
+    // Check the flow name and selected provider trunk.
     validateAgentForm: function () {
         var flow = $("#satellite-agent-destination-flow");
         var trunk = $("#satellite-agent-destination-trunk");
@@ -1359,6 +1363,7 @@ example.View = draw2d.Canvas.extend({
         return html;
     },
 
+    // Show agent fields and the form for creating a provider trunk.
     showAgentForm: function (values) {
         var lang = languages[browserLang];
         var html = '<form class="form-horizontal agent-form" onsubmit="return false;">' +
@@ -1382,11 +1387,13 @@ example.View = draw2d.Canvas.extend({
             '<p class="error-message agent-form-error"></p></form>';
         $("#modalCreation").addClass("agent-dialog").html(html);
         var form = $("#modalCreation");
+        // Resize the agent dialog to fit the current fields.
         function resizeDialog() {
             form.dialog("option", "height", "auto");
             form.css({ maxHeight: Math.max(200, $(window).height() - 160), overflowY: "auto", overflowX: "hidden" });
             form.dialog("option", "position", "center");
         }
+        // Show the fields required by the selected agent type.
         function refreshFields() {
             var grok = form.find("#agent-trunk-provider").val() === "grok";
             form.find(".agent-openai-fields").toggle(!grok);
@@ -1394,10 +1401,12 @@ example.View = draw2d.Canvas.extend({
             form.find(".agent-digest-fields").toggle(grok && form.find("#agent-trunk-auth-mode").val() === "digest");
             resizeDialog();
         }
+        // Set whether the nested trunk editor is open.
         function setNestedActive(active) {
             form.find("#satellite-agent-destination-trunk").prop("disabled", active);
             form.dialog("widget").find(".ui-dialog-buttonpane button").last().prop("disabled", active);
         }
+        // Open the nested provider trunk editor.
         function openNested() {
             setNestedActive(true);
             form.find(".error-message").text("");

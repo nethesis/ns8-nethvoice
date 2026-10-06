@@ -1,5 +1,7 @@
 #!/usr/bin/env php
 <?php
+// Reconcile workflow destinations and send FreePBX agent settings to Satellite.
+// The sync timer retries temporary failures.
 try {
     $bootstrap_settings['freepbx_error_handler'] = false;
     define('FREEPBX_IS_AUTH', 1);

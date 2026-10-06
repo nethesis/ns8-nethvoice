@@ -2,6 +2,7 @@
 
 class AgentSession
 {
+    // Return the administrator session token.
     public static function csrfToken() {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -12,6 +13,7 @@ class AgentSession
         return $_SESSION['satellite_agent_csrf'];
     }
 
+    // Reject a missing or mismatched administrator session token.
     public static function assertCsrfToken($token) {
         if (!is_string($token) || !hash_equals(self::csrfToken(), $token)) {
             throw new \RuntimeException('Invalid or missing security token, reload the page and retry');

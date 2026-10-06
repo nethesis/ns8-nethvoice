@@ -11,15 +11,10 @@ import subprocess
 call_enabled = os.getenv('SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'False')
 vm_enabled = os.getenv('SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED', 'False')
 
-# History remains available even on instances that never enabled transcription.
-subprocess.run(["systemctl", "--user", "enable", "--now", "satellite-pgsql.service"], check=False)
-subprocess.run(["systemctl", "--user", "enable", "--now", "satellite-monitoring-retention.timer"], check=True)
-
 if call_enabled == 'True' or vm_enabled == 'True':
     # Enable and restart satellite services
     subprocess.run(["systemctl", "--user", "enable", "satellite-mqtt.service"], check=True)
     subprocess.run(["systemctl", "--user", "restart", "satellite-mqtt.service"], check=True)
-
 
     subprocess.run(["systemctl", "--user", "disable", "satellite-recordings-cleanup.service"], check=False)
     subprocess.run(["systemctl", "--user", "enable", "satellite-recordings-cleanup.timer"], check=True)
@@ -50,7 +45,4 @@ elif call_enabled == 'False' and vm_enabled == 'False':
 
 # The Agent API uses the same Satellite process regardless of transcription.
 # Restart it after any toggle change to pass the current transcription flag.
-subprocess.run(["systemctl", "--user", "enable", "satellite.service"], check=True)
 subprocess.run(["systemctl", "--user", "restart", "satellite.service"], check=True)
-subprocess.run(["systemctl", "--user", "enable", "--now", "satellite-agent-sync.timer"], check=True)
-subprocess.run(["systemctl", "--user", "start", "satellite-agent-sync.service"], check=False)

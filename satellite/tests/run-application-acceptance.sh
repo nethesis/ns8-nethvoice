@@ -3,7 +3,7 @@
 set -euo pipefail
 root=$(cd "$(dirname "$0")/../.." && pwd)
 source_dir=${SATELLITE_SOURCE_DIR:-$root/.worktrees/satellite-agent-transfer}
-runtime_image=ghcr.io/nethesis/nethvoice-satellite@sha256:ab37eb3be709684611c881f3de0dcc1b770b4fe926fdb2e4bbc84beb71d32de6
+runtime_image=${SATELLITE_ACCEPTANCE_IMAGE:-ghcr.io/nethesis/satellite:agent}
 database_image=pgvector/pgvector@sha256:2fd905ba95f99a51be207d0ff0b8d5b8538cbce7e9083b3ccfa65b93bb28b938
 temporary=$(mktemp -d)
 test_id="nv-phase4-$$"

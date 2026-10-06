@@ -5,8 +5,10 @@ require_once __DIR__ . '/AgentConfigurationState.php';
 class AgentMonitoringRepository
 {
     private $db;
+    // Set the database and module adapters used by this object.
     public function __construct($db) { $this->db = $db; }
 
+    // Return the initial monitoring capture and retention policy.
     public static function defaults()
     {
         return array('metadata_retention_days' => 30, 'transcript_retention_days' => 7,
@@ -14,6 +16,7 @@ class AgentMonitoringRepository
             'capture_versions' => array('internal' => 1, 'external' => 1));
     }
 
+    // Read the stored monitoring policy or its defaults.
     public function policy()
     {
         $statement = $this->db->query('SELECT policy_json FROM satellite_agent_monitoring_policy WHERE id=1');
@@ -22,6 +25,7 @@ class AgentMonitoringRepository
         return json_decode($row['policy_json'], true, 16, JSON_THROW_ON_ERROR);
     }
 
+    // Save the checked monitoring capture and retention policy.
     public function save($input, $actor)
     {
         if (!is_array($input) || count($input) !== 4 || !isset($input['metadata_retention_days'],

@@ -74,6 +74,7 @@ $agentLabels = array('cleverai' => _('CleverAI'), 'builtin_internal' => _('Built
     (function () {
         var type = document.getElementById('satellite-agent-type');
         var fields = document.querySelectorAll('.satellite-cleverai-field');
+        // Show only fields used by the selected destination type.
         function updateFields() {
             for (var i = 0; i < fields.length; i++) {
                 fields[i].style.display = type.value === 'cleverai' ? '' : 'none';

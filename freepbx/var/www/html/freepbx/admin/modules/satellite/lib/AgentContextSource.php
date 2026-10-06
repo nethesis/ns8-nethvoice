@@ -5,8 +5,10 @@ require_once __DIR__ . '/AgentProfileRepository.php';
 class AgentContextSource
 {
     private $freepbx;
+    // Use the FreePBX adapters for directory and calendar reads.
     public function __construct($freepbx) { $this->freepbx = $freepbx; }
 
+    // Build the permitted PBX destination directory.
     public function directory()
     {
         $resources = array();
@@ -39,6 +41,7 @@ class AgentContextSource
         return $result;
     }
 
+    // Read a PBX resource through the module adapter.
     private function resource($type, $id, $name, $context, $exten)
     {
         if (!preg_match('/^[0-9]+$/D', (string) $id)) { return null; }
@@ -49,6 +52,7 @@ class AgentContextSource
             'external_allowed' => false, 'target' => array('context' => $context, 'exten' => (string) $exten, 'priority' => 1));
     }
 
+    // Read the available PBX time conditions.
     public function timeConditions()
     {
         $result = array();
@@ -60,6 +64,7 @@ class AgentContextSource
         return $result;
     }
 
+    // Build the calendar data used by agent tools.
     public function calendars()
     {
         $result = array();

@@ -13,6 +13,7 @@ class AgentTrunkProvisioner
     private $core;
     private $crypto;
 
+    // Use FreePBX trunk operations for managed provider bindings.
     public function __construct($core = null, $crypto = null)
     {
         $this->core = $core === null ? \FreePBX::Core() : $core;
@@ -101,6 +102,7 @@ class AgentTrunkProvisioner
         }
     }
 
+    // Delete only the FreePBX trunk owned by this binding.
     public function deleteManagedTrunk(array $agentTrunk)
     {
         $name = $this->trunkName($agentTrunk);
@@ -123,6 +125,7 @@ class AgentTrunkProvisioner
         return true;
     }
 
+    // Build the generated name for an agent trunk.
     private function trunkName(array $agentTrunk)
     {
         if (!isset($agentTrunk['id']) || !ctype_digit((string) $agentTrunk['id']) || (int) $agentTrunk['id'] < 1) {
@@ -135,6 +138,7 @@ class AgentTrunkProvisioner
         return $name;
     }
 
+    // Build provider-specific PJSIP settings.
     private function pjsipSettings(array $agentTrunk)
     {
         $owner = isset($agentTrunk['runtime_owner']) ? $agentTrunk['runtime_owner'] : 'cleverai';
@@ -210,6 +214,7 @@ class AgentTrunkProvisioner
         return $settings;
     }
 
+    // Find the PBX UDP transport used by the provider trunk.
     private function udpTransport()
     {
         $driver = $this->core->getDriver('pjsip');
@@ -224,6 +229,7 @@ class AgentTrunkProvisioner
         throw new \RuntimeException('PJSIP transport 0.0.0.0-udp is not active');
     }
 
+    // Build the common FreePBX trunk settings.
     private function baseSettings($name, array $agentTrunk)
     {
         return array(
@@ -244,6 +250,7 @@ class AgentTrunkProvisioner
         );
     }
 
+    // Create a FreePBX trunk with the checked settings.
     private function addTrunk($name, array $base, array $settings, $edit = false)
     {
         $originalPost = $_POST;
@@ -257,6 +264,7 @@ class AgentTrunkProvisioner
         }
     }
 
+    // Find a FreePBX trunk by its generated name.
     private function findTrunkByName($name)
     {
         foreach ($this->core->listTrunks() as $trunk) {
@@ -267,6 +275,7 @@ class AgentTrunkProvisioner
         return null;
     }
 
+    // Return a trunk ID only when ownership matches.
     private function ownedTrunkId(array $agentTrunk, $name)
     {
         if (!isset($agentTrunk['freepbx_trunk_id']) || !ctype_digit((string) $agentTrunk['freepbx_trunk_id'])) {

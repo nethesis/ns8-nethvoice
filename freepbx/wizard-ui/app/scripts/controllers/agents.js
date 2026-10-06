@@ -17,12 +17,14 @@ angular.module('nethvoiceWizardUiApp').controller('AgentsCtrl', function (
   vm.loading = true;
   $scope.view.changeRoute = true;
 
+  // Clear local agent data and cached administrator access.
   function clear() {
     generation++;
     vm.runs = []; vm.events = []; vm.inventory = []; vm.conversation = null;
     vm.apiResult = null; vm.run = null; vm.overview = null; vm.policy = null; vm.sync = null;
     AgentsService.clear();
   }
+  // Show a safe request error and clear sensitive views.
   function fail(error) {
     if (!alive) { return; }
     vm.error = error.status === 401 || error.status === 403 ? 'unauthorized' :
@@ -34,10 +36,14 @@ angular.module('nethvoiceWizardUiApp').controller('AgentsCtrl', function (
     angular.forEach(vm.runs, function (run) { if (run.status === 'active') { run.status = 'unknown'; run.complete = false; } });
     if (vm.error === 'unauthorized') { clear(); initialized = false; }
   }
+  // Convert a runtime timestamp to a browser date.
   vm.time = function (timestamp) { return timestamp ? new Date(timestamp * 1000) : null; };
+  // Return the elapsed run duration when known.
   vm.duration = function (run) { if (!run.ended && run.status !== 'active') { return null; } return Math.max(0, Math.round(((run.ended || Date.now() / 1000) - run.started))); };
+  // Link the agent to its built-in settings or workflow editor.
   vm.configurationUrl = function (agent) { return agent === 'internal' || agent === 'external' ? '/freepbx/admin/config.php?display=satellite_agents&tab=' + agent : '#!/agents/build/agent/' + encodeURIComponent(agent); };
 
+  // Load a bounded page of run history.
   vm.loadRuns = function (next) {
     if (vm.runsLoading) { return; }
     var params = {limit: 50};
@@ -52,6 +58,7 @@ angular.module('nethvoiceWizardUiApp').controller('AgentsCtrl', function (
       vm.runs = data.items; cursor = data.next_cursor; vm.hasNext = !!cursor; vm.onFirstPage = !next;
     }, fail).finally(function () { vm.runsLoading = false; });
   };
+  // Load a bounded page of run events.
   vm.loadEvents = function (next) {
     if (vm.eventsLoading || vm.events.length >= 2000) { return; }
     vm.eventsLoading = true;
@@ -63,22 +70,26 @@ angular.module('nethvoiceWizardUiApp').controller('AgentsCtrl', function (
       eventCursor = data.next_cursor; vm.moreEvents = !!eventCursor;
     }, fail).finally(function () { vm.eventsLoading = false; });
   };
+  // Load the selected run metadata.
   function loadDetail() {
     var current = generation;
     return AgentsService.request('GET', '/runs/' + encodeURIComponent($routeParams.runId)).then(function (data) {
       if (alive && current === generation) { vm.run = data; if (vm.error === 'unavailable') { vm.error = null; } }
     }, fail);
   }
+  // Load the agent overview and configuration status.
   function loadOverview() {
     var current = generation;
     return AgentsService.request('GET', '/overview', null, {hours: vm.hours}).then(function (data) {
       if (alive && current === generation) { vm.overview = data; vm.sync = data.configuration_sync; if (vm.error === 'unavailable') { vm.error = null; } }
     }, fail);
   }
+  // Reload the current agent inventory or run view.
   vm.refresh = function () {
     vm.error = null;
     return loadOverview();
   };
+  // Load the selected run transcript when capture permits it.
   vm.showTranscript = function () {
     vm.transcriptLoading = true;
     var current = generation;
@@ -86,18 +97,23 @@ angular.module('nethvoiceWizardUiApp').controller('AgentsCtrl', function (
       if (alive && current === generation) { vm.conversation = data; }
     }, fail).finally(function () { vm.transcriptLoading = false; });
   };
+  // Load the encrypted API result through the administrator gateway.
   vm.showApiResult = function () {
     var current = generation;
     return AgentsService.request('GET', '/application/runs/' + encodeURIComponent($routeParams.runId) + '/result').then(function (data) {
       if (alive && current === generation) { vm.apiResult = data; }
     }, fail);
   };
+  // Clear the visible API result.
   vm.hideApiResult = function () { vm.apiResult = null; };
+  // Request cancellation of the selected API run.
   vm.cancelApiRun = function () {
     return AgentsService.mutate('POST', '/application/runs/' + encodeURIComponent($routeParams.runId) + '/cancel', {})
       .then(function () { return loadDetail(); }, fail);
   };
+  // Clear the visible transcript.
   vm.hideTranscript = function () { vm.conversation = null; };
+  // Delete the selected stored transcript.
   vm.deleteTranscript = function () {
     vm.deleting = true;
     var current = generation;
@@ -106,6 +122,7 @@ angular.module('nethvoiceWizardUiApp').controller('AgentsCtrl', function (
       vm.conversation = null; vm.confirmDelete = false; return loadDetail();
     }, fail).finally(function () { vm.deleting = false; });
   };
+  // Save the monitoring capture and retention policy.
   vm.savePolicy = function () {
     vm.saving = true; vm.error = null; vm.saved = false;
     var current = generation;
@@ -117,6 +134,7 @@ angular.module('nethvoiceWizardUiApp').controller('AgentsCtrl', function (
       vm.policy = data.policy; vm.sync = data.sync; vm.saved = true; vm.applied = data.applied;
     }, fail).finally(function () { vm.saving = false; });
   };
+  // Load administrator access and the initial agent views.
   function initialize() {
     if (initialized || !$scope.login || !$scope.login.isLogged) { return; }
     initialized = true; vm.loading = true;

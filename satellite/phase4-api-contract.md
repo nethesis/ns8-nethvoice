@@ -1,9 +1,7 @@
 # Phase 4 application API contract
 
-Source contract, 4 October 2026. Local implementation and fixture verification are
-recorded in [phase4-development.md](phase4-development.md) and
-[phase4-test-report.md](phase4-test-report.md). Business-service acceptance and
-live OpenAI validation remain open. API access starts disabled.
+This contract defines the application API and administrator controls.
+API access starts disabled.
 
 ## Administrator setup
 

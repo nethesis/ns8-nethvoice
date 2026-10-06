@@ -11,19 +11,23 @@ class AgentConfigurationBuilder
     private $freepbx;
     private $state;
     private $client;
+    // Set the database and module adapters used by this object.
     public function __construct($freepbx, $client = null)
     {
         $this->freepbx = $freepbx;
         $this->state = new AgentConfigurationState($freepbx->Database);
         $this->client = $client ?: new AgentSatelliteClient();
     }
+    // Read configuration revisions, hashes and errors.
     public function status() { return $this->state->status(); }
 
+    // Encode ordered configuration data for a stable hash.
     public static function canonicalJson($value)
     {
         return json_encode(self::ordered($value), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
             | JSON_UNESCAPED_LINE_TERMINATORS | JSON_THROW_ON_ERROR);
     }
+    // Sort object fields while preserving list order.
     private static function ordered($value)
     {
         if (is_object($value)) {
@@ -42,6 +46,7 @@ class AgentConfigurationBuilder
         return $value;
     }
 
+    // Build or reuse the encrypted runtime configuration snapshot.
     public function envelope($attempt = 0)
     {
         $status = $this->state->status();
@@ -112,6 +117,7 @@ class AgentConfigurationBuilder
         return $envelope;
     }
 
+    // Send the desired configuration and record its acknowledgement.
     public function synchronize()
     {
         try {

@@ -40,7 +40,7 @@ class AgentLifecycleTests(unittest.TestCase):
         self.assertTrue(self.restore({'SATELLITE_AGENT_CONFIG_KEY': ''})['SATELLITE_AGENT_CONFIG_KEY'])
 
     def clone(self, fail_migration=False):
-        running = False
+        running = True
         events = []
         agent = types.ModuleType('agent')
         secrets = {'passwords.old': {'SATELLITE_AGENT_CONFIG_KEY': 'source-key'},
@@ -66,6 +66,7 @@ class AgentLifecycleTests(unittest.TestCase):
                 if fail_migration:
                     raise subprocess.CalledProcessError(1, command)
             else:
+                self.assertIn('--env-file=passwords.env', command)
                 events.append('query')
             return subprocess.CompletedProcess(command, 0, stdout='')
         with tempfile.TemporaryDirectory() as directory:
@@ -79,20 +80,23 @@ class AgentLifecycleTests(unittest.TestCase):
                      patch('subprocess.run', side_effect=run):
                     if fail_migration:
                         with self.assertRaises(subprocess.CalledProcessError):
-                            runpy.run_path(str(ROOT/'imageroot/actions/clone-module/34monitoring_history'))
+                            runpy.run_path(str(ROOT/'imageroot/actions/clone-module/22satellite_agents'))
                     else:
-                        runpy.run_path(str(ROOT/'imageroot/actions/clone-module/34monitoring_history'))
+                        runpy.run_path(str(ROOT/'imageroot/actions/clone-module/22satellite_agents'))
                 self.assertFalse((state/'satellite_postgresql.pg_dump.gz').exists())
             finally:
                 os.chdir(previous)
-        self.assertFalse(running)
+        self.assertTrue(running)
         return events
 
-    def test_clone_reopens_removed_database_before_cleanup(self):
-        self.assertEqual(self.clone(), ['start', 'rotate', 'query', 'stop'])
+    def test_clone_cleans_database_before_existing_stop_step(self):
+        self.assertEqual(self.clone(), ['rotate', 'query'])
+        steps = sorted(p.name for p in (ROOT/'imageroot/actions/clone-module').iterdir())
+        self.assertLess(steps.index('21set_mariadb_passwords'), steps.index('22satellite_agents'))
+        self.assertLess(steps.index('22satellite_agents'), steps.index('23stop_mariadb_service'))
 
-    def test_clone_stops_database_after_failed_rotation(self):
-        self.assertEqual(self.clone(fail_migration=True), ['start', 'rotate', 'stop'])
+    def test_clone_rotation_failure_stops_the_action_before_database_cleanup(self):
+        self.assertEqual(self.clone(fail_migration=True), ['rotate'])
 
 
 if __name__ == '__main__':

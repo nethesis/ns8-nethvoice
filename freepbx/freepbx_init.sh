@@ -107,10 +107,6 @@ for module in "${modules_to_install[@]}"; do
     fi
 done
 
-# Reinstall the bundled Agent module so its idempotent schema migration runs
-# when an already-enabled module receives new files during an image upgrade.
-fwconsole moduleadmin install satellite
-
 # Add custom freepbx modules
 for module_file in $(ls /freepbx_custom_modules); do
 	module=$(echo "${module_file}" | sed 's/.tar.gz//')
@@ -218,3 +214,4 @@ php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed
 
 # Apply low-priority background DB updates
 ionice -c3 nice -n 19 php /initdb.d/slow_database_updates.php >/dev/null 2>&1 &
+

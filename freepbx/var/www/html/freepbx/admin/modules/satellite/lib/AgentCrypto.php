@@ -3,6 +3,7 @@
 /** Encrypts module secrets with the per-instance NS8 configuration key. */
 class AgentCrypto
 {
+    // Derive the secretbox key from the module configuration key.
     private function key()
     {
         $master = getenv('SATELLITE_AGENT_CONFIG_KEY');
@@ -13,6 +14,7 @@ class AgentCrypto
         return hash('sha256', $master, true);
     }
 
+    // Encrypt a secret with the module configuration key.
     public function encryptSecret($plaintext)
     {
         if ($plaintext === null || $plaintext === '') {
@@ -27,6 +29,7 @@ class AgentCrypto
         return base64_encode($nonce . sodium_crypto_secretbox($plaintext, $nonce, $key));
     }
 
+    // Decrypt a stored secret with the module configuration key.
     public function decryptSecret($encoded)
     {
         if ($encoded === null || $encoded === '') {
@@ -51,6 +54,7 @@ class AgentCrypto
         return $plaintext;
     }
 
+    // Return the explicit or permitted environment provider key.
     public function resolveProviderApiKey(array $trunk)
     {
         if (isset($trunk['provider']) && $trunk['provider'] === 'openai') {
@@ -72,6 +76,7 @@ class AgentCrypto
         throw new \InvalidArgumentException('Unsupported provider');
     }
 
+    // Return whether a provider key is configured without exposing it.
     public function apiKeyStatus(array $trunk)
     {
         if (!empty($trunk['api_key_encrypted'])) {

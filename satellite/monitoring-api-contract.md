@@ -1,17 +1,8 @@
 # Phase 3 monitoring contract
 
-Source implementation: 4 October 2026. Schema version **1**. Test deployment
-and isolated acceptance are recorded in [phase3-test-report.md](phase3-test-report.md);
-live provider, browser and full lifecycle acceptance remain open.
-
-Phase 4 source extends this contract to schema **2** with `execution_kind=api`,
-`support-request`, cancelled outcomes and pinned definition/client/connector
-references. Active ownership comes from the matching voice/API executor. The run
-list accepts `execution_kind=voice|api`; API results/cancellation use the separate
-application contract and encrypted control store. Transcripts do not apply to API
-runs. See [phase4-api-contract.md](phase4-api-contract.md) and
-[local verification](phase4-test-report.md). Schema 2 has not been deployed; the
-old Phase 3 reader rejects it under its existing newer-schema guard.
+The Satellite agent runtime uses monitoring schema **2** for voice and API runs.
+API runs include definition, client and connector references. Transcripts apply
+only to voice runs. See the [application contract](phase4-api-contract.md).
 
 ## Ownership and access
 
@@ -191,8 +182,6 @@ backup copies retain their own lifecycle.
 
 Provider protocol follows the official [Realtime transcription guide](https://developers.openai.com/api/docs/guides/realtime-transcription)
 and [Realtime conversations guide](https://developers.openai.com/api/docs/guides/realtime-conversations).
-OpenAI capability is implemented from those contracts; live SIP/ASR acceptance
-has not been executed for Phase 3. See [the implementation report](phase3-development.md)
-for outstanding validation and release work.
+Check provider behavior with controlled calls before enabling it for users.
 
 Restore role handling follows the official [PostgreSQL 18 pg_dumpall notes](https://www.postgresql.org/docs/18/app-pg-dumpall.html): a distinct bootstrap role avoids the source-role collision, and `psql -X` ignores client startup files.

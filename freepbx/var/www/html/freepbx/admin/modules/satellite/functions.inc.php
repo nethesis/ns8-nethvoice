@@ -108,10 +108,12 @@ function satellite_get_config_late($engine) {
     }
 }
 
+// Build the stable key for an agent destination.
 function satellite_agent_destination_key($id) {
     return 'satellite-agent-destination-' . (int) $id . ',s,1';
 }
 
+// Build the configuration link for an agent destination.
 function satellite_agent_edit_url($row) {
     if ($row['agent_type'] === 'workflow') { return '/freepbx/wizard/#!/agents/build/agent/' . rawurlencode($row['workflow_agent_id']); }
     return 'config.php?display=satellite_agents&tab=destinations&view=form&id=' . (int) $row['id'];
@@ -133,6 +135,7 @@ function satellite_agent_destination_valid($row) {
     return true;
 }
 
+// Return agent destinations to the FreePBX destination selector.
 function satellite_destinations() {
     $result = array();
     foreach (FreePBX::Satellite()->getAgentDestinations() as $row) {
@@ -147,10 +150,12 @@ function satellite_destinations() {
     return $result;
 }
 
+// Build the dialplan reference for an agent destination.
 function satellite_getdest($id) {
     return array(satellite_agent_destination_key($id));
 }
 
+// Return the display information for an agent destination.
 function satellite_getdestinfo($dest) {
     if (!preg_match('/^satellite-agent-destination-([0-9]+),s,1$/', trim($dest), $match)) {
         return false;
@@ -165,6 +170,7 @@ function satellite_getdestinfo($dest) {
     );
 }
 
+// Find agent fallbacks that use a changed PBX destination.
 function satellite_check_destinations($dest = true) {
     $result = array();
     if (is_array($dest) && !$dest) {
@@ -193,6 +199,7 @@ function satellite_check_destinations($dest = true) {
     return $result;
 }
 
+// Replace agent fallbacks after a PBX destination change.
 function satellite_change_destination($old_dest, $new_dest) {
     // FreePBX hands over values already quoted by PDO::quote().
     $old_dest = trim((string) $old_dest, "'");
@@ -208,6 +215,7 @@ function satellite_change_destination($old_dest, $new_dest) {
     }
 }
 
+// Build dialplan contexts for agent calls and accepted transfers.
 function satellite_generate_agent_dialplan() {
     global $ext;
     $satellite = FreePBX::Satellite();

@@ -1,5 +1,7 @@
 #!/usr/bin/env php
 <?php
+// Re-encrypt retained native agent secrets with the cloned instance key.
+// Read the keys and database password from private standard input.
 /** Rotate retained native Agent secrets without printing credentials. */
 require_once __DIR__ . '/../lib/AgentCrypto.php';
 

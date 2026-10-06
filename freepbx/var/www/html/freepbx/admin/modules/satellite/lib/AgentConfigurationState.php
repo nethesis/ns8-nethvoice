@@ -5,6 +5,7 @@ class AgentConfigurationState
 {
     private $db;
 
+    // Set the database and module adapters used by this object.
     public function __construct($db)
     {
         $this->db = $db;
@@ -19,6 +20,7 @@ class AgentConfigurationState
         return (int) $this->status()['desired_revision'];
     }
 
+    // Read configuration revisions, hashes and errors.
     public function status()
     {
         $statement = $this->db->prepare('SELECT `desired_revision`, `desired_hash`, `acknowledged_revision`,
@@ -35,6 +37,7 @@ class AgentConfigurationState
         return $row;
     }
 
+    // Store the encrypted snapshot for the expected revision.
     public function cacheSnapshot($revision, $hash, $ciphertext)
     {
         $revision = $this->revision($revision);
@@ -72,6 +75,7 @@ class AgentConfigurationState
         return $statement->fetch(\PDO::FETCH_ASSOC) ?: null;
     }
 
+    // Store the hash of the desired configuration.
     public function setDesiredHash($revision, $hash)
     {
         $this->assertHash($hash);
@@ -90,6 +94,7 @@ class AgentConfigurationState
         }
     }
 
+    // Record the runtime acknowledgement of a configuration revision.
     public function acknowledge($revision, $hash)
     {
         $revision = $this->revision($revision);
@@ -112,6 +117,7 @@ class AgentConfigurationState
         return $this->status();
     }
 
+    // Store a safe synchronization error.
     public function recordError($error)
     {
         if (!is_string($error)) {
@@ -121,6 +127,7 @@ class AgentConfigurationState
         $statement->execute(array(substr($error, 0, 500)));
     }
 
+    // Check and return a positive configuration revision.
     private function revision($revision)
     {
         if (filter_var($revision, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1))) === false) {
@@ -129,6 +136,7 @@ class AgentConfigurationState
         return (int) $revision;
     }
 
+    // Reject an invalid SHA-256 hash.
     private function assertHash($hash)
     {
         if (!is_string($hash) || !preg_match('/^[a-f0-9]{64}$/D', $hash)) {

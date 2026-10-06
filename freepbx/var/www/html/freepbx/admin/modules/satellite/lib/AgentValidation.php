@@ -3,6 +3,7 @@
 /** Validation for values that enter SIP headers or managed trunk settings. */
 class AgentValidation
 {
+    // Check the provider flow name.
     public static function validateFlow($flow)
     {
         if (!is_string($flow) || !preg_match('/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/D', $flow)) {
@@ -11,6 +12,7 @@ class AgentValidation
         return $flow;
     }
 
+    // Check the OpenAI project ID format.
     public static function validateProjectId($projectId)
     {
         if (!is_string($projectId) || !preg_match('/^proj_[A-Za-z0-9_-]+$/D', $projectId) || strlen($projectId) > 128) {
@@ -19,6 +21,7 @@ class AgentValidation
         return $projectId;
     }
 
+    // Check the Grok SIP phone number format.
     public static function validateGrokPhoneNumber($number)
     {
         if (!is_string($number) || !preg_match('/^\+[1-9][0-9]{1,14}$/D', $number)) {
@@ -27,6 +30,7 @@ class AgentValidation
         return $number;
     }
 
+    // Check the provider trunk settings.
     public static function validateTrunk(array $trunk)
     {
         $name = isset($trunk['name']) ? $trunk['name'] : null;
@@ -64,6 +68,7 @@ class AgentValidation
         return $trunk;
     }
 
+    // Check the built-in profile settings and policy.
     public static function validateProfile(array $profile)
     {
         foreach (array('display_name' => 100, 'language' => 16) as $field => $limit) {
@@ -126,6 +131,7 @@ class AgentValidation
         return $profile;
     }
 
+    // Check the PBX object key used by a directory rule.
     public static function validateDirectoryRuleKey($key)
     {
         if (!is_string($key) || !preg_match('/^(extension|queue|ivr):[A-Za-z0-9_-]{1,100}$/D', $key)
@@ -135,6 +141,7 @@ class AgentValidation
         return $key;
     }
 
+    // Check the directory rule values.
     public static function validateDirectoryRule($key, $rule)
     {
         self::validateDirectoryRuleKey($key);
@@ -173,6 +180,7 @@ class AgentValidation
             'external_allowed' => (bool) $rule['external_allowed']);
     }
 
+    // Check the PBX fallback destination syntax.
     public static function validateFallback($destination)
     {
         if ($destination === null || $destination === '') {
@@ -204,6 +212,7 @@ class AgentValidation
         return trim($request[$selection . '0']);
     }
 
+    // Check a replacement secret without exposing it.
     public static function validateSecretInput($secret, $label)
     {
         if (!is_string($secret) || preg_match('/[\x00\r\n]/', $secret)) {

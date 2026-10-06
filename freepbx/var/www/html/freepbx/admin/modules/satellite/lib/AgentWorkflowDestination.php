@@ -6,8 +6,10 @@ require_once __DIR__ . '/AgentValidation.php';
 class AgentWorkflowDestination
 {
     private $db;
+    // Set the database and module adapters used by this object.
     public function __construct($db) { $this->db = $db; }
 
+    // Reject a cycle in native and workflow fallback references.
     private function validateFallbackChain($agentId, $fallback)
     {
         $rows = $this->db->query('SELECT `id`,`system_key`,`agent_type`,`fallback_destination` FROM `satellite_agent_destinations`')->fetchAll(\PDO::FETCH_ASSOC);
@@ -32,6 +34,7 @@ class AgentWorkflowDestination
         }
     }
 
+    // Check the voice provider binding and PBX fallback path.
     public function validate(array $graph)
     {
         if (!in_array('voice', $graph['entrypoints'], true)) { return; }
@@ -44,6 +47,7 @@ class AgentWorkflowDestination
         $this->validateFallbackChain($graph['agent_id'], $fallback);
     }
 
+    // Create or update the stable PBX binding for this publication.
     public function synchronize($agentId, $version, array $graph, $enabled)
     {
         if (!preg_match('/^[a-z][a-z0-9_-]{0,47}$/D', $agentId) || !is_int($version) || $version < 1 ||

@@ -184,6 +184,7 @@ example.Toolbar = Class.extend({
 			if (this.saveInProgress) return;
 			this.saveInProgress = true;
 			var toolbar = this;
+			// Attach stable agent IDs to the VisualPlan blocks.
 			function reconcileAgentIds(ids) {
 				if (!ids) return;
 				toolbar.view.getFigures().each(function (index, figure) {

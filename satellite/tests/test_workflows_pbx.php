@@ -10,6 +10,11 @@ function checkWorkflow($condition, $message) { if (!$condition) { throw new Runt
 $dsn = 'mysql:host=127.0.0.1;port=' . getenv('PHASE5_DB_PORT') . ';dbname=asterisk;charset=utf8mb4';
 $db = new PDO($dsn, 'root', 'phase5-isolated', array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION));
 AgentSchema::install($db);
+$readerGrants = implode("\n", $db->query("SHOW GRANTS FOR 'satellite_workflow'@'127.0.0.1'")->fetchAll(PDO::FETCH_COLUMN));
+checkWorkflow(strpos($readerGrants, 'SELECT ON `phonebook`.`phonebook`') !== false, 'Workflow phonebook grant missing');
+checkWorkflow(strpos($readerGrants, 'SELECT ON `asteriskcdrdb`.`cdr`') !== false, 'Workflow CDR grant missing');
+checkWorkflow(strpos($readerGrants, 'ALL PRIVILEGES') === false, 'Workflow grant is not read-only');
+
 // Exercise additive upgrade from the prior destination schema.
 $db->exec('ALTER TABLE satellite_agent_destinations DROP COLUMN workflow_agent_id, DROP COLUMN workflow_version, DROP COLUMN workflow_binding_id');
 AgentSchema::install($db);

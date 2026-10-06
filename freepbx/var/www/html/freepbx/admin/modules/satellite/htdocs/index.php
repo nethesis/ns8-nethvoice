@@ -3,6 +3,7 @@
 ini_set('display_errors', '0');
 header('Content-Type: application/json');
 header('Cache-Control: no-store');
+// Send a bounded provider webhook response.
 function agent_webhook_response($code, $result) { http_response_code($code); echo json_encode($result); exit; }
 if (!in_array(parse_url(isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '', PHP_URL_PATH),
     array('/freepbx/satellite/index.php', '/satellite/index.php'), true)) {

@@ -7,11 +7,13 @@ class AgentProfileRepository
 {
     private $db;
 
+    // Set the database and module adapters used by this object.
     public function __construct($db)
     {
         $this->db = $db;
     }
 
+    // List the native permission names supported by agents.
     public static function permissionsCatalog()
     {
         return array('directory.extensions', 'directory.queues', 'directory.ivrs',
@@ -21,22 +23,26 @@ class AgentProfileRepository
             'telephony.external_destination');
     }
 
+    // List the native tools supported by agents.
     public static function toolsCatalog()
     {
         return array('directory.find_destinations', 'company.get_information',
             'calendar.get_opening_hours', 'telephony.handoff');
     }
 
+    // Return the initial permission values for a profile.
     public static function defaultPermissions()
     {
         return array_fill_keys(self::permissionsCatalog(), 'deny');
     }
 
+    // Return the initial tool values for a profile.
     public static function defaultTools()
     {
         return array_fill_keys(self::toolsCatalog(), 'disabled');
     }
 
+    // List the built-in profiles with decoded policies.
     public function listAll()
     {
         $statement = $this->db->prepare('SELECT * FROM `satellite_agent_profiles` ORDER BY `profile_key`');
@@ -44,6 +50,7 @@ class AgentProfileRepository
         return array_map(array($this, 'decodeRow'), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
+    // Read a built-in profile by its stable key.
     public function getByKey($key)
     {
         $key = $this->key($key);
@@ -53,6 +60,7 @@ class AgentProfileRepository
         return $row ? $this->decodeRow($row) : null;
     }
 
+    // Save a checked built-in profile.
     public function save($key, array $input)
     {
         $key = $this->key($key);
@@ -99,6 +107,7 @@ class AgentProfileRepository
         }
     }
 
+    // Decode stored profile JSON fields.
     private function decodeRow(array $row)
     {
         foreach (array('permissions', 'tools', 'transfer_policy', 'knowledge', 'company', 'calendar_services') as $field) {
@@ -112,11 +121,13 @@ class AgentProfileRepository
         return $row;
     }
 
+    // Decode and check a stored JSON object.
     private function json(array $value)
     {
         return json_encode((object) $value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 
+    // Check the built-in profile key.
     private function key($key)
     {
         if ($key !== 'internal' && $key !== 'external') {

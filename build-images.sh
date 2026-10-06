@@ -88,37 +88,6 @@ if [[ -n "${IMAGETAG}" ]]; then
     IMAGETAG=$(printf '%s' "${IMAGETAG}" | tr '/' '-')
 fi
 
-# Satellite Agent code is published by Nethesis/satellite on branch agent.
-# Module-only publication still requires the verified wrapper image digest.
-if should_build "nethvoice" && ! should_build "nethvoice-satellite"; then
-    if [[ -z "${SATELLITE_BASE_IMAGE:-}" ]]; then
-        printf 'A module-only build requires SATELLITE_BASE_IMAGE\n' >&2
-        exit 2
-    fi
-fi
-
-if [[ -n "${SATELLITE_BASE_IMAGE:-}" ]]; then
-    satellite_image_name="${SATELLITE_BASE_IMAGE##*/}"
-    if [[ "${satellite_image_name}" != *:* && "${SATELLITE_BASE_IMAGE}" != *@sha256:* ]] ||
-       [[ "${SATELLITE_BASE_IMAGE}" == *:latest || "${SATELLITE_BASE_IMAGE}" == *:lts ||
-          "${SATELLITE_BASE_IMAGE}" == *:main || "${SATELLITE_BASE_IMAGE}" == *:master ||
-          "${SATELLITE_BASE_IMAGE}" == *:dev ]]; then
-        printf 'SATELLITE_BASE_IMAGE must be a reviewed, pinned image reference\n' >&2
-        exit 2
-    fi
-fi
-
-satellite_label_image="${repobase}/nethvoice-satellite:${IMAGETAG:-latest}"
-phase5_patch_sha=$(awk '{print $1}' satellite/phase5-runtime.sha256)
-satellite_source_ref=$(cat satellite/runtime-ref)
-if should_build "nethvoice" && ! should_build "nethvoice-satellite"; then
-    satellite_label_image="${SATELLITE_BASE_IMAGE}"
-    satellite_check_container=$(buildah from "${SATELLITE_BASE_IMAGE}")
-    buildah add "${satellite_check_container}" satellite/verify-runtime.py /tmp/verify-phase5-runtime.py
-    buildah run "${satellite_check_container}" -- env PYTHONPATH=/app python /tmp/verify-phase5-runtime.py "${phase5_patch_sha}" "${satellite_source_ref}"
-    buildah rm "${satellite_check_container}"
-fi
-
 # Build NS8 Module image
 if should_build "${reponame}"; then
     start_timing "${reponame}"
@@ -128,7 +97,6 @@ if should_build "${reponame}"; then
         --jobs "$(nproc)" \
         --build-arg REPOBASE="${repobase}" \
         --build-arg IMAGETAG="${IMAGETAG:-latest}" \
-        --build-arg SATELLITE_IMAGE="${satellite_label_image}" \
         --target dist \
         --tag "${repobase}/${reponame}" \
         --tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
@@ -379,25 +347,15 @@ else
 fi
 
 ##########################
-## Satellite API, Agent and STT/TTS ##
+## Satellite AI STT/TTS ##
 ##########################
 reponame="nethvoice-satellite"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    runtime_context=$(mktemp -d)
-    trap 'rm -rf "${runtime_context}"' EXIT
-    cp satellite/Containerfile satellite/requirements-phase5.txt satellite/verify-runtime.py "${runtime_context}/"
-    runtime_source_args=()
-    if [[ -n "${SATELLITE_SOURCE_DIR:-}" ]]; then runtime_source_args=(--source "${SATELLITE_SOURCE_DIR}"); fi
-    python3 satellite/prepare-runtime.py "${runtime_context}/runtime" "${runtime_source_args[@]}"
-    build_image "${reponame}" --force-rm --layers \
-        --file "${runtime_context}/Containerfile" \
-        --tag "${repobase}/${reponame}" --tag "${repobase}/${reponame}:${IMAGETAG:-latest}" "${runtime_context}"
-    container=$(buildah from "${repobase}/${reponame}:${IMAGETAG:-latest}")
-    buildah run "${container}" -- python /app/verify-phase5-runtime.py "${phase5_patch_sha}" "${satellite_source_ref}"
-    buildah rm "${container}"
-    rm -rf "${runtime_context}"
-    trap - EXIT
+    container=$(buildah from ghcr.io/nethesis/satellite:agent)
+    # Commit the image
+    buildah commit "${container}" "${repobase}/${reponame}"
+    buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
     finish_timing
     # Append the image URL to the images array
     images+=("${repobase}/${reponame}")

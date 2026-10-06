@@ -97,6 +97,7 @@ $csrfField = isset($csrfField) ? $csrfField : (
                 return;
             }
             var settings = form.querySelectorAll('.satellite-provider-settings');
+            // Show the fields required by the selected provider.
             function updateProviderSettings() {
                 for (var i = 0; i < settings.length; i++) {
                     var active = settings[i].getAttribute('data-provider') === provider.value;

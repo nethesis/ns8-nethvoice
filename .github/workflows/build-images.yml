@@ -18,18 +18,10 @@ on:
         required: false
         type: string
         default: ""
-      satellite-image:
-        description: "Verified Satellite digest for a module-only build."
-        required: false
-        type: string
-        default: ""
     outputs:
       images:
         description: "Built image names without tags"
         value: ${{ jobs.build-images.outputs.images }}
-      satellite-image:
-        description: "Published Satellite image pinned by digest"
-        value: ${{ jobs.build-images.outputs.satellite-image }}
     secrets:
       netrcb64:
         description: "Netrc Base64-encoded file content for authenticated downloads"
@@ -45,11 +37,9 @@ jobs:
     runs-on: ${{ inputs.runner-version }}
     outputs:
       images: ${{ steps.build.outputs.images }}
-      satellite-image: ${{ steps.publish.outputs.satellite-image }}
     env:
       IMAGETAG: ${{ inputs.imagetag }}
       BUILD_IMAGES: ${{ inputs.build-images }}
-      SATELLITE_BASE_IMAGE: ${{ inputs.satellite-image }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -87,16 +77,12 @@ jobs:
           bash build-images.sh
 
       - name: Publish module images
-        id: publish
         run: |
           trap 'buildah logout ghcr.io' EXIT
           images=(${{ steps.build.outputs.images }})
           urls=""
           for image in "${images[@]}" ; do
-            buildah push --digestfile image-digest.txt "${image}" "docker://${image}:${IMAGETAG}"
-            if [[ "${image}" == */nethvoice-satellite ]]; then
-              echo "satellite-image=${image}@$(cat image-digest.txt)" >> "$GITHUB_OUTPUT"
-            fi
+            buildah push "${image}" "docker://${image}:${IMAGETAG}"
             if [[ "${IMAGETAG}" == "main" || "${IMAGETAG}" == "master" ]]; then
               buildah push "${image}" "docker://${image}:latest"
             fi

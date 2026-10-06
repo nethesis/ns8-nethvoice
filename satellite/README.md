@@ -118,43 +118,33 @@ export $(grep SATELLITE_MQTT_PASSWORD passwords.env); podman exec -it satellite-
 export $(grep SATELLITE_API_TOKEN passwords.env);curl "http://127.0.0.1:${SATELLITE_HTTP_PORT}/api/get_transcription" --show-error --request POST --form "multichannel=false" --form "encoding=linear16" --form "sample_rate=8000" --form "channels=1" --form "persist=false" --form "summary=false" --header "Authorization: Bearer ${SATELLITE_API_TOKEN}" --form "file=@test.wav;type=audio/wav"
 ```
 
-## NethVoice Agents monitoring (Phase 3)
+## NethVoice Agents monitoring
 
-The [monitoring contract](monitoring-api-contract.md) defines the private runtime
-API, administrator gateway, policy, storage and retention. The
-[implementation report](phase3-development.md) records delivered source and
-pending validation. Open the dedicated area at `/freepbx/wizard/#!/agents`.
-Transcript capture defaults to off; metadata retention defaults to 30 days,
-enabled transcripts to 7 days. History storage is independent of legacy audio
-transcription and does not gate call handling.
+Open `/freepbx/wizard/#!/agents` for agent status and run history.
+The [monitoring contract](monitoring-api-contract.md) defines access, storage and retention.
+Transcript capture defaults to off. Metadata is kept for 30 days by default.
+Enabled transcripts are kept for 7 days. History storage does not gate call handling.
+The Satellite runtime runs its own retention task.
 
-Runtime code is maintained in [Nethesis/satellite, branch agent](https://github.com/Nethesis/satellite/tree/agent).
-This branch builds the runtime from `runtime-ref` and `phase5-runtime.patch`.
-`phase5-runtime.sha256` identifies the patch. The wrapper uses a pinned base image.
-The build checks imports, API routes and source versions. See the
-[Phase 5 implementation](phase5-development.md) for build and release details.
+Runtime code is maintained in [Nethesis/satellite, branch agent](https://github.com/nethesis/satellite/tree/agent).
+`build-images.sh` takes `ghcr.io/nethesis/satellite:agent` and tags the normal
+NethVoice Satellite wrapper. This repository does not build or patch runtime source.
+Publish the matching Satellite agent image before you build this module branch.
 
-See [transfer and browser verification](transfer-test-report.md) for automatic
-capabilities, named destinations, offline provider tests and live UI checks.
+## Application integrations and machine API
 
-## Application integrations and machine API (Phase 4)
+The [application API contract](phase4-api-contract.md) defines connectors,
+credentials and machine access. Open `/freepbx/wizard/#!/agents/connectors`
+or `/freepbx/wizard/#!/agents/api`. Access starts disabled.
+`SATELLITE_APPLICATION_CONTENT_KEY` encrypts application credentials and content.
+NS8 stores and backs up that key in `passwords.env`.
 
-The [application API contract](phase4-api-contract.md) documents setup, HTTPS
-connector policy, scoped machine runs, effect reconciliation, retention and
-lifecycle. Open the administrator pages at `/freepbx/wizard/#!/agents/connectors`
-and `/freepbx/wizard/#!/agents/api`. Access starts disabled. The independent
-`SATELLITE_APPLICATION_CONTENT_KEY` protects application credentials and content;
-it is generated/preserved by NS8 lifecycle actions and backed up in `passwords.env`.
-
-The [implementation report](phase4-development.md) and
-[local verification](phase4-test-report.md) record delivered source and pending
-live acceptance. OpenAI is the selected text provider; the actual business API
-details remain owner input. No Phase 4 production deployment is implied.
-
-## Visual agent builder (Phase 5)
+## Visual agent builder
 
 Use the Builder to connect blocks and define an agent's behavior. Custom agents
 appear beside the built-in agents. Each agent shows its available tools.
+If your browser retains an older editor after a UI update, press **Ctrl+Shift+R**
+to load the new bundle.
 Templates include a call router, a customer-support agent and a payment secretary.
 The payment source can be text, CSV, XLSX, private Google Sheets or published Google CSV.
 
@@ -213,6 +203,10 @@ the caller. Configure the fallback branch for each of these outcomes.
 Save and validate the draft. Correct each reported error before publication.
 Check that the saved settings match your choices. Published versions do not
 change. Publish a new graph version to use a newer data or connector version.
+If a stored draft validates through the private API but fails in Wizard, check
+the workflow gateway JSON types. Empty configuration, inputs and schema
+properties must stay objects (`{}`). Node lists and grants must stay arrays (`[]`).
+Reload the editor after a gateway repair before you save or publish.
 Reusable blocks use their own graph deadline and the remaining parent deadline.
 They do not use the default ten-second limit for a single operation.
 
@@ -293,11 +287,6 @@ actual values. The assistant must provide full links for your PBX and real runs.
 | Run detail | `/freepbx/wizard/#!/agents/runs/{run_id}` | Status, events, transfer result and safe error codes |
 | Graph trace | `/freepbx/wizard/#!/agents/graph-runs/{run_id}` | Pinned version and each node's outcome |
 
-For the authorized Phase 5 test PBX, open
-[Builder](https://voice.makako.sf.nethserver.net/freepbx/wizard/#!/agents/build)
-or [History](https://voice.makako.sf.nethserver.net/freepbx/wizard/#!/agents).
-Other PBX instances use the same paths on their own address.
-
 | Test | Expected result |
 |---|---|
 | Known payment caller | `identify: known`, `payment: found`, `answer: success`, run `completed`; spoken month, currency and amount match the test row |
@@ -313,13 +302,13 @@ Check both the spoken result and the trace. A `completed` status alone does not
 prove that the spoken amount or private audio was correct. Capture defaults to
 off. A run can have metadata without a transcript.
 
-### Delivery status and references
+### API contracts and offline tests
 
-Source and local checks are delivered. Test overlays are installed on the
-authorized `nethvoice51`. Router handoff, known/unknown payment lookup and
-consultation acceptance/decline passed controlled calls. Freshdesk tests remain
-read-only, so the full customer-support workflow remains a draft. Human audio
-review, full release checks and upstream publication remain open.
+Use the [workflow API contract](workflow-api-contract.md) for graph fields,
+fixtures, publication and result access. These contracts match the Satellite
+agent runtime. Keep its image and the module code compatible.
 
-See the [implementation](phase5-development.md), [test report](phase5-test-report.md),
-[plan](phase5-plan.md) and [workflow API contract](workflow-api-contract.md).
+For local workflow tests, set `SATELLITE_SOURCE_DIR` to a Satellite agent checkout.
+Use that path in `PYTHONPATH`. Run `satellite/tests/run-workflows-database.sh`
+for database tests and `satellite/tests/run-workflows-pbx.sh` for PBX data tests.
+Test output and screenshots are local artifacts. Git ignores them.

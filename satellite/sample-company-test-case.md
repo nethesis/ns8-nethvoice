@@ -137,7 +137,7 @@ content, permission handling, and successful company-tool use are required.
   saved pre-sample profiles through `AgentProfileRepository::save` when retiring
   this sample, then synchronize and apply native FreePBX configuration.
 
-## Configuration and execution record
+## Apply the sample configuration
 
 The repeatable configuration script is
 [configure_sample_company.php](../tests/agent/configure_sample_company.php).
@@ -145,30 +145,3 @@ Run it inside FreePBX with `--apply` and the fixture path. Capture a protected
 pre-change profile snapshot first. It preserves the provider binding and other
 profile fields, saves both profiles in one transaction, synchronizes the Agent,
 and marks native configuration for reload.
-
-Configured on **3 October 2026** using the installed
-`phase2-20261003-1251` images and native `AgentProfileRepository` APIs. Both
-profiles were saved together and native configuration regenerated. No service
-restart, route change or outgoing test call was needed.
-
-Verification results:
-
-- **13/13 automated checks passed**, both locally and against an export of
-  the saved profiles using the installed production tool code.
-- Playwright confirmed the sample company, enabled company tool, Internal VAT
-  `allow`, External VAT `deny`, and all other tools disabled.
-- Desired and acknowledged configuration revision: **21**; hashes agree:
-  `9650e40c71e9543f3b6f3b9ba95cc9bd08d0e540ad8e1cb6ec371dad20fa505a`.
-- Agent readiness: true; ARI connected; synchronization error empty; active
-  calls zero. FreePBX and Satellite remained active with `NRestarts=0`.
-- Protected pre-sample profile snapshot:
-  `/var/tmp/nethvoice51-sample-company-20261003/profiles-before.json` on the host,
-  SHA-256 `c50b8f69eb467f841f4c0c7510c3cc51fe90eeb2a87f3fad3e5ae259fa05b2ce`.
-  Rollback was unused. Restore through native profile repositories, followed by
-  synchronization and native reload; do not restore by direct SQL writes.
-
-The company sample was subsequently preserved during the published `agent`
-image update. Configuration is now revision **24**, with the same hash.
-The automated controlled call sequence exercised all 17 applicable
-profile/question combinations; see [the CI acceptance report](phase2-ci-test-report.md)
-for voice findings and the remaining listening and external-route checks.

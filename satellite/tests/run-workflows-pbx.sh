@@ -29,5 +29,8 @@ INSERT INTO asteriskcdrdb.cdr(calldate,src,cnum,linkedid,uniqueid,channel,dstcha
  (NOW(),'3331234567','3331234567','call-2','leg-3','PJSIP/trunk-4','PJSIP/203-0004','NO ANSWER',0);
 SQL
 test_port=$(docker port "$test_name" 3306/tcp | sed -n 's/^127\.0\.0\.1://p')
+# Apply the upgrade/restore grant path without resetting other database accounts.
+docker exec -i -e MARIADB_ROOT_PASSWORD=phase5-isolated -e SATELLITE_WORKFLOW_DB_PASSWORD=phase5-reader \
+  "$test_name" bash -s -- --workflow-reader-only < "$root/mariadb/docker-entrypoint-initdb.d/90_users.sh"
 PHASE5_DB_PORT="$test_port" php "$root/satellite/tests/test_workflows_pbx.php"
 PHASE5_DB_PORT="$test_port" php "$root/satellite/tests/test_agent_clone.php"
