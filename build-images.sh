@@ -193,8 +193,7 @@ fi
 reponame="nethvoice-cti-middleware"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    # SSO feature branch (NethServer/dev#8142, nethesis/nethcti-middleware#79)
-    container=$(buildah from ghcr.io/nethesis/nethcti-middleware:sso)
+    container=$(buildah from ghcr.io/nethesis/nethcti-middleware:v0.5.20)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
@@ -213,8 +212,7 @@ fi
 reponame="nethvoice-cti-ui"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    # SSO feature branch (NethServer/dev#8142, nethesis/nethvoice-cti#558)
-    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:sso)
+    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v0.15.30)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
