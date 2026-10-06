@@ -106,6 +106,27 @@ Notes:
 - Use `-v` / `--verbose` to see request/response details and headers.
 
 
+## Chat
+
+The NethVoice chat (NethServer/dev#7648) is switched on from the Integrations page, or with
+`set-integrations` and `{"chat_enabled": true}`. It adds two units running the `nethvoice-ejabberd`
+image (see `ejabberd/README.md`): `chat-server` (ejabberd: XMPP over WebSocket, file uploads) and
+`chat-gateway` (push notifications, mobile app web services). Both listen on loopback only.
+
+- Ports: `CHAT_C2S_PORT`, `CHAT_HTTP_PORT`, `CHAT_COMPONENT_PORT`, `CHAT_GW_PORT`, four TCP ports of the module range.
+- Traefik routes on the CTI host: `/xmpp-websocket`, `/upload`, `/chat-gw`; removed when the chat is off.
+- Volumes: `chat-data` (ejabberd database), `chat-upload` (attachments), `chat-gw` (gateway database).
+  The backup takes consistent snapshots of the two databases (`state/chat.db`, `state/chat-gw.db`) and the upload volume.
+- Secret: `CHAT_COMPONENT_SECRET` in `passwords.env`.
+- Tunables, environment variables with their defaults: `CHAT_RETENTION_DAYS` (365) days kept for messages and
+  uploads, `CHAT_UPLOAD_QUOTA_MB` (200) upload quota per user, `CHAT_DEBUG` (unset) verbose logs of the chat programs.
+  Set one, then apply with the integration action:
+
+  ```
+  runagent -m nethvoice1 python3 -c "import agent; agent.set_env('CHAT_RETENTION_DAYS', '180')"
+  api-cli run module/nethvoice1/set-integrations --data '{"chat_enabled": true}'
+  ```
+
 ## Timer logs
 
 These units are silenced to keep the journal small:
@@ -114,6 +135,7 @@ These units are silenced to keep the journal small:
 - `nethvoice-queue-stats-reset.service` (every minute)
 - `nethvoice-hotel-alarms.service` (every minute)
 - `satellite-recordings-cleanup.service` (every 10 minutes)
+- `chat-retention.service` (daily)
 
 Each one sets:
 
