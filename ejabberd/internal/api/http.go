@@ -27,9 +27,10 @@ type Server struct {
 	VAPIDPublic string
 	Store       *store.Store
 	MW          *Middleware
-	EjabberdAPI string // ejabberd's mod_http_api on loopback, for archive purges
-	PublicHost  string // the CTI host: attachment links point there, whatever host they were uploaded under
-	UploadURL   string // ejabberd's upload service on loopback, for attachments relayed from the app
+	EjabberdAPI string                                        // ejabberd's mod_http_api on loopback, for archive purges
+	PublicHost  string                                        // the CTI host: attachment links point there, whatever host they were uploaded under
+	UploadURL   string                                        // ejabberd's upload service on loopback, for attachments relayed from the app
+	RoomName    func(ctx context.Context, room string) string // cached room names (push component), "" when unknown
 
 	failures window // failed Acrobits logins
 	sends    window // messages from the app
@@ -144,13 +145,23 @@ func (s *Server) deleteConversation(w http.ResponseWriter, r *http.Request) {
 }
 
 // groupByName finds a room the account is subscribed to by its name or address.
+// roomName prefers the shared cached lookup, then asks the room over the user's session.
+func (s *Server) roomName(ctx context.Context, ses *xmppc.Session, room string) string {
+	if s.RoomName != nil {
+		if n := s.RoomName(ctx, room); n != "" {
+			return n
+		}
+	}
+	return ses.RoomName(ctx, room)
+}
+
 func (s *Server) groupByName(ctx context.Context, ses *xmppc.Session, name string) string {
 	rooms, err := ses.Groups(ctx)
 	if err != nil {
 		return ""
 	}
 	for _, room := range rooms {
-		if room == name || strings.EqualFold(ses.RoomName(ctx, room), name) {
+		if room == name || strings.EqualFold(s.roomName(ctx, ses, room), name) {
 			return room
 		}
 	}
@@ -545,7 +556,7 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 			// each line prefixed with who wrote it, and replies go back to the room.
 			name, ok := names[m.Room]
 			if !ok {
-				name = address.Thread(ses.RoomName(ctx, m.Room))
+				name = address.Thread(s.roomName(ctx, ses, m.Room))
 				names[m.Room] = name
 			}
 			item.StreamID = name
