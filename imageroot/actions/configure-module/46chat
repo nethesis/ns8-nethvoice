@@ -46,6 +46,7 @@ def render():
     try:
         with open(out) as f:
             if f.read() == text:
+                os.chmod(out, 0o600) # files written before this mode stay private too
                 return False
     except FileNotFoundError:
         pass
