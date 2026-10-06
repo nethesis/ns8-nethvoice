@@ -375,6 +375,7 @@ angular.module('nethvoiceWizardUiApp')
         payload = {
           dbtype: 'csv',
           url: s.url,
+          cti_import: s.dbtype == 'csv_cti',
         };
       } else if (s.dbtype == 'infinity') {
         // Zucchetti Infinity API source: fixed field mapping is applied by the
@@ -520,6 +521,7 @@ angular.module('nethvoiceWizardUiApp')
     $scope.checkConnection = function (s) {
       var payload = createSourcePayload(s);
       s.isChecking = true;
+      s.checkError = null;
       $scope.sourceModal.querySelectProgress = true;
       PhonebookService.testConnections(payload).then(function (res) {
         $scope.sourceModal.querySelectProgress = false;
@@ -540,6 +542,8 @@ angular.module('nethvoiceWizardUiApp')
         s.checked = true;
         s.isChecking = false;
         s.verified = false;
+        $scope.sourceModal.querySelectProgress = false;
+        s.checkError = err && err.data && typeof err.data.status === 'string' ? err.data.status : null;
         console.log(err);
       });
     };

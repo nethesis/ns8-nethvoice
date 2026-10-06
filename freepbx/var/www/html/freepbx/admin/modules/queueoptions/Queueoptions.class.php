@@ -10,6 +10,50 @@ namespace FreePBX\modules;
 
 class Queueoptions implements \BMO
 {
+    /**
+     * Logs out the dynamic members of a queue that are no longer in its list.
+     *
+     * It runs after the queues module saved the queue, so QPENALTY already holds
+     * the new list. Only a queue with "Restrict Dynamic Agents" on keeps unlisted
+     * agents out: otherwise anyone may log in, listed or not.
+     */
+    private function logoutUnlistedDynamicMembers($queue)
+    {
+        global $astman;
+
+        if (!$astman || !ctype_digit((string) $queue)) {
+            return;
+        }
+        // Same check as the queues module: when it fails, the queue was not saved.
+        if (function_exists('checkRange') && !checkRange($_REQUEST['account'] ?? '')) {
+            return;
+        }
+        if (strtolower((string) $astman->database_get('QPENALTY/' . $queue, 'dynmemberonly')) !== 'yes') {
+            return;
+        }
+
+        $listed = array();
+        foreach (array_keys((array) $astman->database_show('QPENALTY/' . $queue . '/agents')) as $key) {
+            $listed[] = substr($key, strrpos($key, '/') + 1);
+        }
+
+        $status = $astman->QueueStatus($queue);
+        if (!is_array($status)) {
+            return;
+        }
+        foreach ($status as $event) {
+            if (strtolower($event['Event'] ?? '') !== 'queuemember'
+                || ($event['Queue'] ?? '') !== (string) $queue
+                || ($event['Membership'] ?? '') !== 'dynamic'
+                || !preg_match('#^Local/([0-9]+)@from-queue/n$#', $event['Location'] ?? '', $matches)) {
+                continue;
+            }
+            if (!in_array($matches[1], $listed, true)) {
+                \FreePBX::Queues()->queues_member_login($queue, $matches[1], false);
+            }
+        }
+    }
+
 
     // Note that the default Constructor comes from BMO/Self_Helper.
     // You may override it here if you wish. By default every BMO
@@ -77,6 +121,10 @@ class Queueoptions implements \BMO
             }
             $sth = $dbh->prepare($sql);
             $sth->execute($data);
+
+            if ($action == 'edit') {
+                $this->logoutUnlistedDynamicMembers($id);
+            }
         }
         if ($page === 'queueoptions') {
             $id = $_REQUEST['id']?$_REQUEST['id']:'';
