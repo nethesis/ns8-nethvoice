@@ -3,11 +3,12 @@
 // call history (pbx.history), using a read-only phonebook/CDR database account.
 // Accept only local POST requests authenticated with the Satellite bearer token.
 header('Content-Type: application/json'); header('Cache-Control: no-store');
-$token = getenv('SATELLITE_API_TOKEN');
+$token = getenv('SATELLITE_PBX_DATA_TOKEN');
 // Apache can expose Authorization only through the original request headers.
 $headers = function_exists('getallheaders') ? array_change_key_case(getallheaders(), CASE_LOWER) : array();
 $authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? ($headers['authorization'] ?? '');
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !in_array($_SERVER['REMOTE_ADDR'] ?? '', array('127.0.0.1', '::1'), true) ||
+if (isset($_SERVER['HTTP_X_FORWARDED_FOR']) || isset($_SERVER['HTTP_X_FORWARDED_HOST']) || isset($_SERVER['HTTP_X_REAL_IP']) ||
+    $_SERVER['REQUEST_METHOD'] !== 'POST' || !in_array($_SERVER['REMOTE_ADDR'] ?? '', array('127.0.0.1', '::1'), true) ||
     !$token || !hash_equals('Bearer ' . $token, $authorization)) { http_response_code(403); echo '{"error":"forbidden"}'; exit; }
 try {
     if (strpos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') !== 0) { throw new \InvalidArgumentException(); }

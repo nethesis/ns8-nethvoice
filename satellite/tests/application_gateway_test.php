@@ -39,3 +39,16 @@ foreach (array('[]', 'null', 'true', '{invalid}', '{"definition":') as $invalid)
     throw new RuntimeException('Workflow gateway accepted a non-object or malformed body');
 }
 echo "Workflow JSON object/list round trips passed\n";
+
+// Application input uses the same decoder before cURL encoding.
+$connector = '{"definition":{"operations":[{"query":{},"body":{},"projection":{},"input_schema":{"type":"object","properties":{}},"output_schema":{"type":"object","properties":{}}}]},"expected_revision":0}';
+if (json_encode(AgentWorkflowClient::decodeObject($connector)) !== $connector) {
+    throw new RuntimeException('Connector empty objects changed at the gateway');
+}
+require __DIR__ . '/../../freepbx/var/www/html/freepbx/rest/lib/AgentWorkflowData.php';
+foreach (array('+', '-', '()', '393') as $phone) {
+    try { (new AgentWorkflowData(null))->contacts($phone); }
+    catch (InvalidArgumentException $error) { continue; }
+    throw new RuntimeException('Empty or short caller number reached PBX data queries');
+}
+echo "Connector JSON types and empty phone rejection passed\n";

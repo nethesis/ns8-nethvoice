@@ -18,6 +18,7 @@ if default_traefik_id is None:
 
 services = [
     "wizard",
+    "agents-api",
     "freepbx",
     "tancredi",
     "provisioning",

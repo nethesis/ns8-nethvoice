@@ -25,10 +25,15 @@ function agentsAuthorize(Request $request, $scope, $mutation = false)
     }
     if ($origin !== '') {
         $parts = parse_url($origin);
-        $host = getenv('NETHVOICE_HOST');
-        if (!$parts || ($parts['scheme'] ?? '') !== 'https' ||
-            !hash_equals(strtolower((string) $host), strtolower($parts['host'] ?? '')) ||
-            isset($parts['user']) || isset($parts['pass']) || (isset($parts['port']) && $parts['port'] !== 443)) {
+        $host = parse_url('http://' . $request->getHeaderLine('Host'));
+        $scheme = $request->getUri()->getScheme();
+        $forwardedScheme = $request->getHeaderLine('X-Forwarded-Proto');
+        if (in_array($forwardedScheme, array('http', 'https'), true)) { $scheme = $forwardedScheme; }
+        if (!$parts || !$host || !in_array($scheme, array('http', 'https'), true) ||
+            ($parts['scheme'] ?? '') !== $scheme ||
+            !hash_equals(strtolower($host['host'] ?? ''), strtolower($parts['host'] ?? '')) ||
+            isset($parts['user']) || isset($parts['pass']) ||
+            ($parts['port'] ?? ($scheme === 'https' ? 443 : 80)) !== ($host['port'] ?? ($scheme === 'https' ? 443 : 80))) {
             throw new \RuntimeException('forbidden_origin', 403);
         }
     }
@@ -56,7 +61,7 @@ function agentsResponse(Response $response, callable $operation)
         $safe = array(400 => 'invalid_request', 403 => 'forbidden', 404 => 'run_not_found',
             409 => 'configuration_conflict', 413 => 'request_too_large', 422 => 'invalid_query',
             429 => 'capacity_reached', 503 => 'monitoring_unavailable');
-        return jsonResponse($response, array('error' => $safe[$code]), $code);
+        return jsonResponse($response, array('error' => $error->getMessage() === 'forbidden_origin' ? 'forbidden_origin' : $safe[$code]), $code);
     }
 }
 
@@ -249,8 +254,7 @@ foreach ($applicationRoutes as $route) {
                         stripos($request->getHeaderLine('Content-Type'), 'application/json') !== 0) {
                         throw new \InvalidArgumentException('invalid_request');
                     }
-                    $input = $request->getParsedBody();
-                    if (!is_array($input)) { throw new \InvalidArgumentException('invalid_request'); }
+                    $input = AgentWorkflowClient::decodeObject((string) $request->getBody());
                 }
                 return (new AgentApplicationClient())->request($method, $target, $actor, $input);
             });

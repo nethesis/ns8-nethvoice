@@ -5,6 +5,12 @@ import os
 import subprocess
 import agent
 
+# transfer-state includes volumes, not only the SQL dump. Reset the copied
+# cluster before services can use the clone's new credentials and content keys.
+subprocess.run(['systemctl', '--user', 'stop', 'satellite.service', 'satellite-pgsql.service'], check=True)
+subprocess.run(['podman', 'volume', 'rm', '--force', '--ignore',
+                'satellite_pgdata', 'satellite_agent_state'], check=True)
+
 try:
     # PostgreSQL also owns Phase 4 connectors, clients, results and effect state.
     # A fresh database starts API access disabled and contains no copied tokens.

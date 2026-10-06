@@ -40,6 +40,7 @@ jobs:
     env:
       IMAGETAG: ${{ inputs.imagetag }}
       BUILD_IMAGES: ${{ inputs.build-images }}
+      SATELLITE_RUNTIME_IMAGE: ${{ vars.SATELLITE_RUNTIME_IMAGE }}
     steps:
       - uses: actions/checkout@v7
         with:

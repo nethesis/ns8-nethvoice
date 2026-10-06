@@ -12,9 +12,12 @@ class AgentWorkflowData
     public function contacts($phone)
     {
         if (!is_string($phone) || strlen($phone) > 40 || !preg_match('/^[+0-9 ()-]+$/D', $phone)) { throw new \InvalidArgumentException('invalid_phone'); }
-        $number = self::digits($phone); $variants = array($number);
+        $number = self::digits($phone);
+        if (strlen($number) < 6) { throw new \InvalidArgumentException('invalid_phone'); }
+        $variants = array($number);
         if (substr($number, 0, 2) === '00') { $variants[] = substr($number, 2); }
-        if (substr($number, 0, 2) === '39') { $variants[] = substr($number, 2); }
+        if (substr(trim($phone), 0, 1) === '+' && substr($number, 0, 2) === '39') { $variants[] = substr($number, 2); }
+        if (substr($number, 0, 4) === '0039') { $variants[] = substr($number, 4); }
         $variants = array_values(array_unique($variants));
         $placeholders = implode(',', array_fill(0, count($variants), '?'));
         $conditions = array(); $parameters = array();
@@ -48,7 +51,7 @@ class AgentWorkflowData
         $digits = array();
         foreach ($numbers as $number) {
             if (!is_string($number) || strlen($number) > 40) { throw new \InvalidArgumentException('invalid_phone'); }
-            $digit = self::digits($number); if ($digit) { $digits[] = $digit; if (substr($digit, 0, 2) === '39') { $digits[] = substr($digit, 2); } }
+            $digit = self::digits($number); if ($digit) { $digits[] = $digit; if (substr(trim($number), 0, 1) === '+' && substr($digit, 0, 2) === '39') { $digits[] = substr($digit, 2); } }
         }
         $digits = array_values(array_unique($digits));
         if (!$digits || !$support) { return array('status' => 'success', 'operators' => array()); }

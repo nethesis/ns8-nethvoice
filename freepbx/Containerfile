@@ -425,7 +425,7 @@ COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/satellite /var
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/visualplan /var/www/html/freepbx/admin/modules/visualplan
 
 # Remove tests and development files
-RUN rm -rf /var/www/html/freepbx/admin/modules/satellite/tests && \
+RUN rm -rf /var/www/html/freepbx/admin/modules/visualplan/tests /var/www/html/freepbx/admin/modules/satellite/tests && \
 	rm -rf /var/www/html/freepbx/admin/modules/satellite/AGENTS.md
 
 
@@ -617,5 +617,7 @@ COPY usr/src/nethvoice/samples/* /usr/src/nethvoice/samples/
 COPY configure_users.php /
 COPY entrypoint.sh /entrypoint
 COPY usr/share/neth-hotel-fias /usr/share/neth-hotel-fias
+# Startup must initialize and chown mounted PBX state before Supervisor drops
+# individual services to their configured users. The NS8 Podman instance is rootless.
 CMD ["/usr/bin/supervisord"]
 ENTRYPOINT ["/entrypoint"]

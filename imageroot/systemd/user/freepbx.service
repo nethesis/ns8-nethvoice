@@ -79,7 +79,6 @@ ExecStart=runagent /usr/bin/podman run \
     --env=REDIS_PASSWORD \
     --env=USER_DOMAIN \
     --env=SATELLITE* \
-    --env=CLEVERAI_WEBHOOK \
     --env=SMTP_FROM_ADDRESS \
     --env-file=%E/state/smarthost.env \
     --network=host \

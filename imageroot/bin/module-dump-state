@@ -59,5 +59,17 @@ fi
 if systemctl --user --quiet is-active satellite-pgsql.service ||
    systemctl --user --quiet is-enabled satellite-pgsql.service; then
     systemctl --user start satellite-pgsql.service
+    ready=false
+    for attempt in $(seq 1 60); do
+        if podman exec satellite-pgsql sh -c 'pg_isready -U "$POSTGRES_USER"' >/dev/null 2>&1; then
+            ready=true
+            break
+        fi
+        sleep 1
+    done
+    if [ "$ready" != true ]; then
+        echo 'Satellite PostgreSQL did not become ready for backup' >&2
+        exit 1
+    fi
     podman exec satellite-pgsql sh -c 'exec pg_dumpall -U "$POSTGRES_USER"' | gzip > satellite_postgresql.pg_dump.gz
 fi

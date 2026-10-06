@@ -121,7 +121,6 @@ restore_envs = [
     'TIMEZONE',
     'TRAEFIK_HTTP2HTTPS',
     'USER_DOMAIN',
-    'CLEVERAI_WEBHOOK',
     'SATELLITE_CALL_TRANSCRIPTION_ENABLED',
     'SATELLITE_LOG_LEVEL',
     'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED',
@@ -130,3 +129,11 @@ restore_envs = [
 for env in restore_envs:
     if env in old_envs:
         agent.set_env(env, old_envs[env])
+
+# Older backups kept the webhook URL in environment. Preserve it privately.
+if old_envs.get('CLEVERAI_WEBHOOK'):
+    passwords = agent.read_envfile('passwords.env')
+    if not passwords.get('CLEVERAI_WEBHOOK'):
+        passwords['CLEVERAI_WEBHOOK'] = old_envs['CLEVERAI_WEBHOOK']
+        agent.write_envfile('passwords.env', passwords)
+agent.unset_env('CLEVERAI_WEBHOOK')

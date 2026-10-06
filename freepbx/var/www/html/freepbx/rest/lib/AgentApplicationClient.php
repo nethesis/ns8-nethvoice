@@ -59,8 +59,8 @@ class AgentApplicationClient
             $safe = in_array($status, array(400, 403, 404, 409, 413, 422, 429), true) ? $status : 503;
             throw new \RuntimeException('application_request_failed', $safe);
         }
-        $value = json_decode($body, true, 32);
-        if (!is_array($value)) { throw new \RuntimeException('application_unavailable', 503); }
+        $value = json_decode($body, false, 32);
+        if (!$value instanceof \stdClass) { throw new \RuntimeException('application_unavailable', 503); }
         return $value;
     }
 }
