@@ -13,6 +13,13 @@ class ext_dial extends AgentDialplanApplication {}
 class ext_gotoif extends AgentDialplanApplication {}
 class ext_goto extends AgentDialplanApplication {}
 class ext_hangup extends AgentDialplanApplication {}
+class ext_answer extends AgentDialplanApplication {}
+class ext_stasis extends AgentDialplanApplication {}
+
+class AgentDialplanCore
+{
+    public function listUsers($withNames) { return array(array('201')); }
+}
 
 class AgentDialplanCollector
 {
@@ -48,6 +55,7 @@ class FreePBX
 {
     public static $satellite;
     public static function Satellite() { return self::$satellite; }
+    public static function Core() { return new AgentDialplanCore(); }
 }
 
 function agent_dialplan_assert($condition, $message)
@@ -128,6 +136,16 @@ agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destinat
     'ext_dial', array('PJSIP/AgentTrunk_2/sip:+390721123456@sip.voice.x.ai:5061\;transport=tls,',
         'b(satellite-agent-add-headers^s^1)')),
     'Grok trunk dial missing');
+foreach (FreePBX::$satellite->destinations as $destination) {
+    $entries = $ext->entries['satellite-agent-destination-' . $destination['id']];
+    $answered = false;
+    foreach ($entries as $entry) {
+        if ($entry[2] instanceof ext_answer) { $answered = true; }
+        if ($entry[2] instanceof ext_dial) {
+            agent_dialplan_assert($answered, 'Caller must be answered before dialing the Agent trunk');
+        }
+    }
+}
 agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-add-headers'],
     'ext_set', array('PJSIP_HEADER(add,X-OS-FLOW)', '${AGENT_FLOW}')),
     'Per-destination flow header missing');
@@ -156,6 +174,25 @@ satellite_get_config_late('asterisk');
 agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-1'],
     'ext_goto', array('1', '${AGENT_ORIGINAL_DID}', 'queueexit-3')),
     'Dynamic fallback must use the original DID');
+
+// Workflow calls enter Stasis on the incoming caller channel.
+FreePBX::$satellite->destinations[0]['agent_type'] = 'workflow';
+FreePBX::$satellite->destinations[0]['workflow_binding_id'] = 1;
+FreePBX::$satellite->destinations[0]['workflow_version'] = 1;
+FreePBX::$satellite->destinations[0]['workflow_agent_id'] = 'call-router';
+$ext = new AgentDialplanCollector();
+satellite_get_config_late('asterisk');
+$entries = $ext->entries['satellite-agent-destination-1'];
+$answered = false;
+$enteredStasis = false;
+foreach ($entries as $entry) {
+    if ($entry[2] instanceof ext_answer) { $answered = true; }
+    if ($entry[2] instanceof ext_stasis) {
+        agent_dialplan_assert($answered, 'Workflow caller must be answered before entering Stasis');
+        $enteredStasis = true;
+    }
+}
+agent_dialplan_assert($enteredStasis, 'Workflow must enter the Agent runtime');
 
 agent_dialplan_assert(satellite_change_destination("'ext-local,203,1'", "'ext-local,204,1'") === 1
     && FreePBX::$satellite->changed === array('ext-local,203,1', 'ext-local,204,1'),

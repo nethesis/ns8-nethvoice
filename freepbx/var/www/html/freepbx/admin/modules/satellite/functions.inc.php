@@ -346,6 +346,8 @@ function satellite_generate_agent_dialplan() {
             }
             $ext->add($context, 's', '', new ext_set('AGENT_EXIT_REASON', 'fallback'));
             $ext->add($context, 's', '', new ext_set('TIMEOUT(absolute)', '30'));
+            // Establish caller media before the agent starts its greeting.
+            $ext->add($context, 's', '', new ext_answer());
             $ext->add($context, 's', '', new ext_stasis('satellite-agent', 'caller,' . (int) $row['id'] . ',' . $row['agent_type']));
             $ext->add($context, 's', '', new ext_set('TIMEOUT(absolute)', '0'));
             $ext->add($context, 's', '', new ext_gotoif('$["${AGENT_EXIT_REASON}"!="fallback"]', 'end'));
@@ -367,6 +369,7 @@ function satellite_generate_agent_dialplan() {
             }
             if ($valid) {
                 $host = $trunk['provider'] === 'openai' ? 'sip.api.openai.com' : 'sip.voice.x.ai';
+                $ext->add($context, 's', '', new ext_answer());
                 $ext->add($context, 's', '', new ext_dial(
                     'PJSIP/' . $trunk['freepbx_trunk_name'] . '/sip:' . $user . '@' . $host
                         . ':5061\;transport=tls,',

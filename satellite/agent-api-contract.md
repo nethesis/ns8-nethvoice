@@ -60,7 +60,8 @@ An event can never create a session without a matching ARI admission.
 
 Generated destinations set `AGENT_DESTINATION_ID`, `AGENT_TYPE`,
 `AGENT_ROUTING_REVISION` (configuration payload hash), trusted
-`AGENT_CALL_ORIGIN` and original caller/DID values, then enter
+`AGENT_CALL_ORIGIN` and original caller/DID values, answer the caller with
+`Answer()`, then enter
 `Stasis(satellite-agent,caller,<destination id>,<agent type>)`.
 Uncertain origin uses the external permission/visibility ceiling.
 The runtime allocates session/run IDs, a provider-leg nonce, and known Local

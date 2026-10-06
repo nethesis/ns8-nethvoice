@@ -179,6 +179,7 @@ and a stored credential reference. Its client also needs access to the workflow.
 Open **Builder**. Copy a template or create a blank graph. Select the provider
 binding for a voice workflow. Set its prompts, language, inputs, tools and fallback.
 Select published versions of connectors, data sources and reusable blocks.
+The PBX answers incoming agent calls before the agent starts its greeting.
 
 Tell the assistant which outcomes you need. Include the failure paths:
 
