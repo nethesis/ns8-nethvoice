@@ -38,10 +38,12 @@ if find "$@" -type f -name '*.php' -exec grep -nH -E 'fetch[[:space:]]*\([^)]*\)
     exit 1
 fi
 
+# nethvoice_admin is trusted identity supplied by AuthMiddleware, not a
+# route placeholder. Keep all other route arguments on $args or the route.
 find "$repo_root/freepbx/var/www/html/freepbx/rest/modules" \
     -type f -name '*.php' \
     -exec grep -nH -E "getAttribute[[:space:]]*\([[:space:]]*['\"][^'\"]+['\"]" {} + \
-    | grep -v -E "getAttribute[[:space:]]*\([[:space:]]*['\"]route['\"]" \
+    | grep -v -E "getAttribute[[:space:]]*\([[:space:]]*['\"](route|nethvoice_admin)['\"]" \
     > "$route_attributes" || true
 if [ -s "$route_attributes" ]; then
     cat "$route_attributes"
