@@ -82,7 +82,7 @@ require_once __DIR__ . '/../../functions.inc.php';
 // the two parameters. Putting args into the first parameter adds an extra
 // empty argument, which the runtime correctly rejects during admission.
 $dialplanSource = file_get_contents(__DIR__ . '/../../functions.inc.php');
-agent_dialplan_assert(strpos($dialplanSource, "new ext_stasis('satellite-agent', 'caller,'") !== false,
+agent_dialplan_assert(strpos($dialplanSource, "new ext_stasis(getenv('SATELLITE_AGENT_ARI_APP') ?: 'satellite-agent', 'caller,'") !== false,
     'Built-in Stasis must use the native application/arguments contract');
 agent_dialplan_assert(strpos($dialplanSource, '${CHANNEL(endpoint)}') !== false
     && strpos($dialplanSource, '${CHANNEL(pjsip,endpoint)}') === false,
@@ -164,8 +164,8 @@ agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destinat
 FreePBX::$satellite->destinations[0]['cleverai_flow'] = "bad\r\nX-Evil: yes";
 $ext = new AgentDialplanCollector();
 satellite_get_config_late('asterisk');
-agent_dialplan_assert(!isset($ext->entries['satellite-agent-destination-1']),
-    'Invalid SIP header flow must not enter the dialplan');
+agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-1'], 'ext_goto', array('1', 'hangup', 'app-blackhole')),
+    'Invalid SIP header flow must retain a safe fallback context');
 
 FreePBX::$satellite->destinations[0]['cleverai_flow'] = 'flow_1';
 FreePBX::$satellite->destinations[0]['fallback_destination'] = 'queueexit-3,${EXTEN},1';
@@ -200,3 +200,26 @@ agent_dialplan_assert(satellite_change_destination("'ext-local,203,1'", "'ext-lo
 agent_dialplan_assert(satellite_change_destination('', 'x') === 0, 'Empty old destination must be ignored');
 
 echo "Agent dialplan tests passed\n";
+
+// Disabled and malformed rows keep their native context and fallback.
+FreePBX::$satellite->destinations[0]['enabled'] = 0;
+FreePBX::$satellite->destinations[0]['fallback_destination'] = 'app-blackhole,hangup,1';
+FreePBX::$satellite->destinations[1]['cleverai_flow'] = 'invalid flow';
+$ext = new AgentDialplanCollector();
+satellite_generate_agent_dialplan();
+foreach (array(1, 2) as $id) {
+    $entries = $ext->entries['satellite-agent-destination-' . $id];
+    agent_dialplan_assert(agent_dialplan_has($entries, 'ext_goto', array('1', 'hangup', 'app-blackhole')), 'Disabled/invalid destination must use its fallback');
+    foreach ($entries as $entry) { agent_dialplan_assert(!$entry[2] instanceof ext_dial, 'Disabled destination must not call a provider'); }
+}
+echo "Disabled and invalid fallback contexts passed\n";
+
+// A configured Stasis application must agree with Satellite's ARI app.
+FreePBX::$satellite->destinations[0]['enabled'] = 1;
+putenv('SATELLITE_AGENT_ARI_APP=synthetic-agent-app');
+$ext = new AgentDialplanCollector();
+satellite_generate_agent_dialplan();
+agent_dialplan_assert(agent_dialplan_has($ext->entries['satellite-agent-destination-1'],
+    'ext_stasis', array('synthetic-agent-app', 'caller,1,workflow')), 'Configured Agent ARI application was ignored');
+putenv('SATELLITE_AGENT_ARI_APP');
+echo "Configured Agent ARI application passed\n";

@@ -21,7 +21,7 @@ foreach ($trunks as $trunk) {
         }
     }
 }
-$agentLabels = array('cleverai' => _('CleverAI'), 'builtin_internal' => _('Builtin Internal'), 'builtin_external' => _('Builtin External'));
+$agentLabels = array('workflow' => _('Workflow'), 'cleverai' => _('CleverAI'), 'builtin_internal' => _('Builtin Internal'), 'builtin_external' => _('Builtin External'));
 ?>
 <?php if ($showForm): ?>
     <h3><?php echo $escape($editing ? _('Edit Agent Destination') : _('Add Agent Destination')); ?></h3>

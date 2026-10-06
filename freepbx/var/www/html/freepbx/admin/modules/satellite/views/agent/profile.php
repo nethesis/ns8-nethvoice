@@ -96,4 +96,5 @@ $fallbackIndex = $profileKey === 'internal' ? 1 : 2;
         <?php echo drawselects(isset($profile['fallback_destination']) ? $profile['fallback_destination'] : '', $fallbackIndex, false, false); ?>
     </div>
     <p class="help-block"><?php echo $escape(_('Basic handoff follows the permission and directory rules above.')); ?></p>
+    <input type="hidden" name="profile_complete" value="1">
 </form>

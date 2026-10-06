@@ -61,7 +61,7 @@ class AgentValidation
         }
         if ($mode === 'digest') {
             $username = isset($trunk['sip_auth_username']) ? $trunk['sip_auth_username'] : null;
-            if (!is_string($username) || $username === '' || strlen($username) > 128 || preg_match('/[\x00-\x20\x7F]/', $username)) {
+            if (!is_string($username) || $username === '' || strlen($username) > 128 || preg_match('/[;#"\x00-\x20\x7F]/', $username)) {
                 throw new \InvalidArgumentException('Invalid SIP authentication username');
             }
         }
@@ -215,7 +215,8 @@ class AgentValidation
     // Check a replacement secret without exposing it.
     public static function validateSecretInput($secret, $label)
     {
-        if (!is_string($secret) || preg_match('/[\x00\r\n]/', $secret)) {
+        if (!is_string($secret) || preg_match('/[\x00\r\n]/', $secret) ||
+            ($label === 'SIP authentication password' && preg_match('/[;#"]/', $secret))) {
             throw new \InvalidArgumentException('Invalid ' . $label);
         }
         return $secret;

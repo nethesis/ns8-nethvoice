@@ -226,3 +226,13 @@ serviceReject(function () use ($service) {
 }, 'Satellite accepted null token');
 
 echo "Agent save service tests passed\n";
+
+// PHP truncates a large form before its final sentinel. Reject it before a write.
+$profileMethod = new ReflectionMethod(Satellite::class, 'handleAgentProfileRequest');
+$profileMethod->setAccessible(true);
+$emptySatellite = (new ReflectionClass(Satellite::class))->newInstanceWithoutConstructor();
+$_POST = array('action' => 'save', 'greeting' => 'Synthetic greeting');
+serviceReject(function () use ($profileMethod, $emptySatellite) {
+    $profileMethod->invoke($emptySatellite, 'external');
+}, 'A truncated profile form must be rejected before modifying stored settings');
+echo "Truncated profile form rejection passed\n";

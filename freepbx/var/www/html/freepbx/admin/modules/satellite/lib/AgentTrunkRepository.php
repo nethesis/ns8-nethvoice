@@ -159,6 +159,7 @@ class AgentTrunkRepository
     public function delete($id)
     {
         $id = $this->positiveId($id);
+        if ($this->isReferenced($id)) { throw new \RuntimeException('Agent trunk is referenced'); }
         $statement = $this->db->prepare('SELECT COUNT(*) FROM `satellite_agent_destinations` WHERE `cleverai_trunk_id` = ?');
         $statement->execute(array($id));
         if ((int) $statement->fetchColumn() !== 0) {
@@ -378,6 +379,7 @@ class AgentTrunkRepository
     {
         $id = $this->positiveId($id);
         foreach (array('SELECT COUNT(*) FROM `satellite_agent_destinations` WHERE `cleverai_trunk_id` = ?',
+                       'SELECT COUNT(*) FROM `satellite_agent_destinations` WHERE `workflow_binding_id` = ?',
                        'SELECT COUNT(*) FROM `satellite_agent_profiles` WHERE `trunk_id` = ?') as $sql) {
             $statement = $this->db->prepare($sql);
             $statement->execute(array($id));

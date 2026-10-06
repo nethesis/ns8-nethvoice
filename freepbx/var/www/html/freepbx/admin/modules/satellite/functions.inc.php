@@ -103,7 +103,10 @@ function satellite_get_config_late($engine) {
             // Return to the dialplan
             $ext->add('satellite', 's', '', new \ext_return());
         }
-        satellite_generate_agent_dialplan();
+        try { satellite_generate_agent_dialplan(); }
+        catch (\Throwable $error) {
+            function_exists('freepbx_log') && freepbx_log(FPBX_LOG_WARNING, 'Satellite Agent dialplan generation failed');
+        }
         break;
     }
 }
@@ -210,7 +213,7 @@ function satellite_change_destination($old_dest, $new_dest) {
     try {
         return (int) FreePBX::Satellite()->changeAgentFallbackDestination($old_dest, $new_dest);
     } catch (\InvalidArgumentException $error) {
-        // Not an Agent fallback value: nothing to update.
+        function_exists('freepbx_log') && freepbx_log(FPBX_LOG_WARNING, 'Satellite Agent fallback replacement rejected; check destination references');
         return 0;
     }
 }
@@ -283,7 +286,7 @@ function satellite_generate_agent_dialplan() {
         $handoffResources = (new AgentContextSource(FreePBX::create()))->directory();
         foreach ($handoffResources as $resource) {
             $label = 'target-' . str_replace(':', '-', $resource['id']);
-            $ext->add($handoff, 's', '', new ext_gotoif('$["${AGENT_HANDOFF_TARGET_ID}"="' . $resource['id'] . '"]', $label));
+            $ext->add($handoff, 's', '', new ext_gotoif('$["${AGENT_HANDOFF_TARGET_ID}"="' . $resource['id'] . '" & (("${AGENT_CALL_ORIGIN}"="internal" & ' . (!empty($resource['internal_allowed']) ? '1' : '0') . ') | ("${AGENT_CALL_ORIGIN}"="external" & ' . (!empty($resource['external_allowed']) ? '1' : '0') . '))]', $label));
         }
         $ext->add($handoff, 's', '', new ext_goto('invalid'));
         foreach ($handoffResources as $resource) {
@@ -310,7 +313,21 @@ function satellite_generate_agent_dialplan() {
 
     foreach ($destinations as $row) {
         if (empty($row['enabled']) || !satellite_agent_destination_valid($row)) {
-            function_exists('freepbx_log') && freepbx_log(FPBX_LOG_WARNING, 'Satellite Agent destination ' . (int) $row['id'] . ' skipped: invalid CleverAI flow');
+            $context = 'satellite-agent-destination-' . (int) $row['id'];
+            $ext->add($context, 's', 'fallback', new ext_noop('Disabled or invalid Satellite Agent; use fallback'));
+            $ext->add($context, 's', '', new ext_set('__AGENT_ORIGINAL_DID', '${FROM_DID}'));
+            try {
+                $key = $row['agent_type'] === 'builtin_internal' ? 'internal' : 'external';
+                $fallback = AgentValidation::validateFallback(empty($row['fallback_destination']) &&
+                    in_array($row['agent_type'], array('builtin_internal', 'builtin_external'), true) && isset($profiles[$key])
+                    ? $profiles[$key]['fallback_destination'] : $row['fallback_destination']);
+            }
+            catch (\InvalidArgumentException $error) { $fallback = null; }
+            if ($fallback !== null) {
+                list($fc, $fe, $fp) = explode(',', $fallback);
+                $ext->add($context, 's', '', new ext_goto($fp, $fe === '${EXTEN}' ? '${FROM_DID}' : $fe, $fc));
+            }
+            $ext->add($context, 's', 'end', new ext_hangup());
             continue;
         }
         $context = 'satellite-agent-destination-' . (int) $row['id'];
@@ -348,7 +365,7 @@ function satellite_generate_agent_dialplan() {
             $ext->add($context, 's', '', new ext_set('TIMEOUT(absolute)', '30'));
             // Establish caller media before the agent starts its greeting.
             $ext->add($context, 's', '', new ext_answer());
-            $ext->add($context, 's', '', new ext_stasis('satellite-agent', 'caller,' . (int) $row['id'] . ',' . $row['agent_type']));
+            $ext->add($context, 's', '', new ext_stasis(getenv('SATELLITE_AGENT_ARI_APP') ?: 'satellite-agent', 'caller,' . (int) $row['id'] . ',' . $row['agent_type']));
             $ext->add($context, 's', '', new ext_set('TIMEOUT(absolute)', '0'));
             $ext->add($context, 's', '', new ext_gotoif('$["${AGENT_EXIT_REASON}"!="fallback"]', 'end'));
         } else {

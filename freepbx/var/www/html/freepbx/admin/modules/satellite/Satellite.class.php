@@ -54,8 +54,11 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         AgentSchema::install($this->db);
     }
     public function uninstall() {
+        // Preserve native routing state on a FreePBX-only uninstall. NS8 module
+        // removal owns managed trunks and database lifecycle (satellite/README.md).
     }
     public function backup() {
+        // Agent backup/restore is provided by the complete NS8 database dumps.
     }
     public function restore($backup) {
     }
@@ -520,6 +523,9 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         if (!isset($_POST['action']) || $_POST['action'] !== 'save') {
             throw new \InvalidArgumentException('Unsupported profile action');
         }
+        if (($_POST['profile_complete'] ?? '') !== '1') {
+            throw new \InvalidArgumentException('Incomplete profile form. Reload the page and submit again.');
+        }
         $fallbackIndex = $key === 'internal' ? 1 : 2;
         $fallbackRequest = $_POST;
         if (array_key_exists('goto' . $fallbackIndex, $_POST)) {
@@ -579,6 +585,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
             $resourceKey = $item['id'];
             $submitted = isset($directory[$resourceKey]) && is_array($directory[$resourceKey]) ? $directory[$resourceKey] : array();
             $existing = isset($existingRules[$resourceKey]) ? $existingRules[$resourceKey] : array();
+            if (!array_key_exists($resourceKey, $directory)) { continue; }
             $synonyms = isset($submitted['synonyms']) && is_string($submitted['synonyms'])
                 ? array_values(array_filter(array_map('trim', explode(',', $submitted['synonyms'])), 'strlen')) : array();
             $rules[$resourceKey] = array_merge($existing, array(
@@ -691,6 +698,9 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         } catch (\Throwable $error) {
             $this->agentPageWarning = _('Saved, but Satellite synchronization is pending. Check local Satellite readiness.');
         }
+        // Apply the matching dialplan even while a configuration push is pending.
+        // The shared helper serializes concurrent administration reloads.
+        exec('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null 2>&1 &');
     }
 
     // Create the adapter for PBX directory and calendar data.
