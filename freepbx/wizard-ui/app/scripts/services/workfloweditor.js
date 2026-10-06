@@ -81,7 +81,20 @@ angular.module('nethvoiceWizardUiApp').factory('WorkflowEditor', function ($wind
     // Recompute visible connection paths after layout changes.
     function refreshConnections() {
       if (!surface.isConnected || !element.clientWidth || !element.clientHeight) { return; }
-      Object.keys(reverse).forEach(function (id) { editor.updateConnectionNodes('node-' + id); });
+      Object.keys(reverse).forEach(function (id) {
+        var block = surface.querySelector('#node-' + id);
+        if (!block) { return; }
+        // Position ports from the rendered labels so wrapped titles and custom
+        // outcome counts keep each dot and its connection on the same row.
+        var outcomes = block.querySelectorAll('small');
+        Array.prototype.forEach.call(block.querySelectorAll('.output'), function (port, index) {
+          var label = outcomes[index];
+          port.style.top = (label.offsetTop + (label.offsetHeight - port.offsetHeight) / 2) + 'px';
+        });
+        var input = block.querySelector('.input'), title = block.querySelector('strong');
+        if (input) { input.style.top = (title.offsetTop + (title.offsetHeight - input.offsetHeight) / 2) + 'px'; }
+        editor.updateConnectionNodes('node-' + id);
+      });
     }
     // Fit the graph within the visible canvas.
     function fit() {
@@ -107,6 +120,7 @@ angular.module('nethvoiceWizardUiApp').factory('WorkflowEditor', function ($wind
       // Refresh visible block names from the graph.
       labels: function () {
       graph.nodes.forEach(function (node) { var title = surface.querySelector('#node-' + ids[node.id] + ' strong'); if (title) { title.textContent = node.name; } });
+      refreshConnections();
     },
       // Increase the diagram zoom.
       zoomIn: function () { editor.zoom_in(); },
