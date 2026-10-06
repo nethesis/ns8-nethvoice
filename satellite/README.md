@@ -271,7 +271,7 @@ For a voice test:
    The workflow ID is not a telephone number. Use the test route supplied by
    your administrator or assistant.
 3. Follow the supplied test script. For payment, ask for the chosen month.
-   For an unknown caller, supply the test resident name and exact code.
+   For every caller, supply the test resident name and exact code.
 4. For consultation, the operator presses **1** to accept or **2** to decline
    after the private summary. For ticket actions, follow the caller's separate
    confirmation prompt. Operator acceptance does not confirm a ticket change.
@@ -295,7 +295,7 @@ actual values. The assistant must provide full links for your PBX and real runs.
 
 | Test | Expected result |
 |---|---|
-| Known payment caller | `identify: known`, `payment: found`, `answer: success`, run `completed`; spoken month, currency and amount match the test row |
+| Known payment caller | `identify: known`, `verify: verified`, `payment: found`, `answer: success`, run `completed`; spoken month, currency and amount match the test row |
 | Verified unknown payment caller | `identify: unknown`, `verify: verified`, then the same payment result |
 | Wrong code or ambiguous identity | Verification denied; fallback used; no payment disclosed |
 | Router to another agent | Parent run `handed_off`; linked child uses the selected agent and has its own result |
@@ -318,3 +318,38 @@ For local workflow tests, set `SATELLITE_SOURCE_DIR` to a Satellite agent checko
 Use that path in `PYTHONPATH`. Run `satellite/tests/run-workflows-database.sh`
 for database tests and `satellite/tests/run-workflows-pbx.sh` for PBX data tests.
 Test output and screenshots are local artifacts. Git ignores them.
+
+## Review fixes and build requirements
+
+Build Satellite from the corrected source and run its acceptance suites first.
+Set `SATELLITE_RUNTIME_IMAGE=ghcr.io/nethesis/satellite@sha256:<tested digest>`
+when building NethVoice. GitHub builds use the repository variable with the same
+name. A mutable branch tag is rejected. Acceptance runners require
+`SATELLITE_ACCEPTANCE_IMAGE`, `SATELLITE_SOURCE_DIR` and an optional exact
+`SATELLITE_ACCEPTANCE_REF`. They use the tests from that Satellite checkout.
+
+Satellite contracts and runtime tests are maintained in nethesis/satellite.
+The local contract files link to that source. PBX gateway, clone, dialplan,
+restore and browser tests remain here. The module’s `configure-module` action
+accepts optional `cleverai_webhook`: omit it to preserve the current URL or send
+an empty value to remove it. It is stored in `passwords.env`, including URLs that
+contain credentials; configuration reads do not expose it.
+
+Payment caller ID does not authorize disclosure. Every caller must supply the
+resident name and exact verification code. Use codes with at least six characters
+and store identifier columns as text. Numeric XLSX/Sheets amounts retain their
+numeric value. Set a data reference to `version: "latest"` to use each successful
+Sheet refresh; the selected version stays fixed within a run. Explicit integer
+references retain their immutable snapshot. Failed refreshes do not renew data
+freshness. Unreferenced versions are pruned; referenced versions are retained.
+
+Builtin profile forms reject incomplete submissions before changing any stored
+settings. Successful administration saves apply the matching dialplan. Disabled
+or invalid destinations keep their fallback context. The sync retry timer runs
+every five minutes. Satellite waits for PostgreSQL readiness before startup and
+receives only its required secrets. PBX data uses a separate local credential.
+
+Agent settings are backed up and restored through NS8 module database dumps.
+The FreePBX-only backup/uninstall hooks intentionally retain agent tables and
+managed trunks; they do not provide a standalone agent backup or cleanup. Use
+NS8 module backup/restore and module removal for the supported lifecycle.

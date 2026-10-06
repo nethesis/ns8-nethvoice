@@ -132,8 +132,8 @@ effects and their caller-confirmation steps before asking. If the answer is no,
 stop before provider calls and give instructions for a later user-run test.
 
 For a published payment test, tell the user which test route to call, the month,
-and, for an unknown caller, the name/code to supply securely. Expected trace:
-`identify: known`, or `identify: unknown` then `verify: verified`; next
+and the name/code that every caller must supply securely. Expected trace:
+`identify: known` or `identify: unknown`, then `verify: verified`; next
 `payment: found`, `answer: success`, terminal `completed`. Check the spoken
 month, currency and amount against the test row, not only the terminal status.
 

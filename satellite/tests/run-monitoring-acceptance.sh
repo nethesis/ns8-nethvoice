@@ -2,8 +2,9 @@
 # Isolated acceptance of the published runtime and the repository restore hook.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/../.." && pwd)
-runtime_image=${SATELLITE_ACCEPTANCE_IMAGE:-ghcr.io/nethesis/satellite:agent}
+runtime_image=${SATELLITE_ACCEPTANCE_IMAGE:?Set SATELLITE_ACCEPTANCE_IMAGE to the tested Satellite image digest}
 database_image=pgvector/pgvector@sha256:2fd905ba95f99a51be207d0ff0b8d5b8538cbce7e9083b3ccfa65b93bb28b938
+source_dir=${SATELLITE_SOURCE_DIR:?Set SATELLITE_SOURCE_DIR to the Satellite checkout under test}
 temporary=$(mktemp -d)
 test_id="nv-phase3-$$"
 network="$test_id-network"
@@ -18,6 +19,7 @@ cleanup() {
     rm -rf "$temporary"
 }
 trap cleanup EXIT
+git -C "$source_dir" archive --format=tar "${SATELLITE_ACCEPTANCE_REF:-HEAD}" | tar -xf - -C "$temporary"
 docker pull "$runtime_image" >/dev/null
 docker pull "$database_image" >/dev/null
 docker network create "$network" >/dev/null
@@ -32,7 +34,7 @@ docker exec "$database" pg_isready -U satellite >/dev/null
 docker run --rm --network "$network" --entrypoint python -e PYTHONPATH=/app \
     -e SATELLITE_MONITORING_ACCEPTANCE=isolated -e PGVECTOR_HOST=nv-phase3-db \
     -e PGVECTOR_USER=satellite -e PGVECTOR_DATABASE=satellite -e PGVECTOR_PASSWORD=phase3-isolated \
-    -v "$root/satellite/tests:/acceptance:ro" "$runtime_image" /acceptance/test_monitoring_acceptance.py
+    -v "$temporary/tests:/acceptance:ro" "$runtime_image" /acceptance/test_monitoring_acceptance.py
 
 docker exec "$database" pg_dumpall -U satellite | gzip > "$temporary/satellite_postgresql.pg_dump.gz"
 printf 'SATELLITE_PGSQL_PASSWORD=phase3-isolated\n' > "$temporary/passwords.env"

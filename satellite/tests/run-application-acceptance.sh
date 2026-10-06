@@ -2,8 +2,8 @@
 # Exercise the Satellite agent source against disposable local services.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/../.." && pwd)
-source_dir=${SATELLITE_SOURCE_DIR:-$root/.worktrees/satellite-agent-transfer}
-runtime_image=${SATELLITE_ACCEPTANCE_IMAGE:-ghcr.io/nethesis/satellite:agent}
+source_dir=${SATELLITE_SOURCE_DIR:?Set SATELLITE_SOURCE_DIR to the Satellite checkout under test}
+runtime_image=${SATELLITE_ACCEPTANCE_IMAGE:?Set SATELLITE_ACCEPTANCE_IMAGE to the tested Satellite image digest}
 database_image=pgvector/pgvector@sha256:2fd905ba95f99a51be207d0ff0b8d5b8538cbce7e9083b3ccfa65b93bb28b938
 temporary=$(mktemp -d)
 test_id="nv-phase4-$$"
@@ -28,5 +28,5 @@ docker exec "$test_id-db" pg_isready -h 127.0.0.1 -U satellite >/dev/null
 docker run --rm --network "$test_id" --entrypoint python -e PYTHONPATH=/app \
     -e SATELLITE_APPLICATION_ACCEPTANCE=isolated -e PGVECTOR_HOST=nv-phase4-db \
     -e PGVECTOR_USER=satellite -e PGVECTOR_DATABASE=satellite -e PGVECTOR_PASSWORD=phase4-isolated \
-    -v "$temporary:/app:ro" -v "$root/satellite/tests:/acceptance:ro" \
-    "$runtime_image" /acceptance/test_application_acceptance.py
+    -v "$temporary:/app:ro" \
+    "$runtime_image" /app/tests/test_application_acceptance.py

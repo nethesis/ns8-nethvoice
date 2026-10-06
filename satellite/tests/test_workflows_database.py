@@ -11,7 +11,7 @@ from agent.workflows.repository import WorkflowRepository
 from agent.workflows.templates import templates, graph, node, source
 from agent.workflows.data import ingest
 from agent.workflows.connectors import presets
-from test_workflows import payment_settings, CSV
+from tests.test_workflows import payment_settings, CSV
 
 
 async def main():

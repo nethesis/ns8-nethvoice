@@ -79,12 +79,12 @@ For common workflows:
   decline or no answer must return to the caller.
 - **Payment:** map resident, phone, month, amount, currency and verification code.
   A unique caller-number match may identify a resident if the user permits it.
-  Unknown/shared numbers need the configured verification. Names alone do not
+  Every caller needs the configured name/code verification. Caller ID is only an identification hint. Names alone do not
   authorize disclosure. Agree any similar-name rule; preserve exact codes and
   reject ambiguous matches. Read the stored amount without recalculating it.
 
-Preview and publish required data/connector versions. Pin those versions in the
-graph. For Sheets, distinguish a published Google CSV URL from private access
+Preview and publish required data/connector versions. Pin connector and reusable block versions in the
+graph. For data, choose an exact version or latest publication pinned per run. For Sheets, distinguish a published Google CSV URL from private access
 with a viewer service account. Save the draft, validate it and record its revision.
 Fix validation failures; do not invent missing integration mappings. Verify the
 saved configuration, not only the request you intended to send.
