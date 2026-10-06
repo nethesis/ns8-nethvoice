@@ -77,8 +77,8 @@ shaper_rules:
   max_user_sessions: 10
   c2s_shaper: normal
   # Upload quota per user, MB: past the hard one the oldest files go.
-  soft_upload_quota: 100
-  hard_upload_quota: 200
+  soft_upload_quota: $CHAT_UPLOAD_SOFT_QUOTA_MB
+  hard_upload_quota: $CHAT_UPLOAD_QUOTA_MB
 
 modules:
   # No roster: presence between operators is directed presence sent by the client.
@@ -128,7 +128,7 @@ modules:
       "X-Content-Type-Options": "nosniff"
       "Content-Security-Policy": "default-src 'none'"
   mod_http_upload_quota:
-    max_days: 365
+    max_days: $CHAT_RETENTION_DAYS
   mod_disco: {}
   mod_ping: {}
   mod_caps: {}

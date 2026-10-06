@@ -17,13 +17,16 @@ routes = {
     'chat-upload': ('/upload', 'CHAT_HTTP_PORT', False),
     'chat-gw': ('/chat-gw', 'CHAT_GW_PORT', True),
 }
+host = os.getenv('NETHCTI_UI_HOST', '')
+# Before configure-module there is no host yet: the routes come with it.
+enabled = os.getenv('CHAT_ENABLED') == 'true' and host != ''
 for name, (path, port, strip) in routes.items():
-    if os.getenv('CHAT_ENABLED') == 'true':
+    if enabled:
         agent.set_route({
             'instance': os.environ['MODULE_ID'] + '-' + name,
             'url':  'http://127.0.0.1:' + os.environ[port],
-            'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
-            'host': os.environ["NETHCTI_UI_HOST"],
+            'http2https':  os.getenv('TRAEFIK_HTTP2HTTPS', 'false') == 'true',
+            'host': host,
             'path': path,
             'strip_prefix': strip,
         })
