@@ -19,6 +19,8 @@ HOST = os.getenv('NETHCTI_UI_HOST', '')
 UNITS = ('chat-server.service', 'chat-gateway.service')
 CONF_DIR = os.path.join(os.environ['AGENT_STATE_DIR'], 'chat')
 TEMPLATE = os.path.join(os.environ['AGENT_INSTALL_DIR'], 'etc', 'chat', 'ejabberd.yml.tmpl')
+RETENTION = os.getenv('CHAT_RETENTION_DAYS', '365')
+QUOTA = os.getenv('CHAT_UPLOAD_QUOTA_MB', '200')
 
 
 def render():
@@ -32,6 +34,10 @@ def render():
         'CHAT_HTTP_PORT': os.environ['CHAT_HTTP_PORT'],
         'CHAT_COMPONENT_PORT': os.environ['CHAT_COMPONENT_PORT'],
         'CHAT_COMPONENT_SECRET': secrets['CHAT_COMPONENT_SECRET'],
+        # Tunables, env with defaults: days kept (messages and uploads) and the per-user upload quota in MB.
+        'CHAT_RETENTION_DAYS': RETENTION,
+        'CHAT_UPLOAD_QUOTA_MB': QUOTA,
+        'CHAT_UPLOAD_SOFT_QUOTA_MB': str(max(1, int(QUOTA) // 2)),
     }
     with open(TEMPLATE) as f:
         text = string.Template(f.read()).substitute(values)
@@ -45,7 +51,7 @@ def render():
         pass
     with open(out + '.tmp', 'w') as f:
         f.write(text)
-    os.chmod(out + '.tmp', 0o644)
+    os.chmod(out + '.tmp', 0o600) # it carries the component secret
     os.replace(out + '.tmp', out)
     return True
 

@@ -1,4 +1,5 @@
 # NethVoice chat gateway: push (Web Push, Acrobits PNM) and the Acrobits web services.
+# It runs as the container's root (the module user outside): the ejabberd image defaults to uid 9000, which could not write /data.
 [Unit]
 Description=NethVoice chat gateway
 After=chat-server.service
