@@ -1,8 +1,12 @@
 <?php
-// Private PBX capability endpoint. Wizard administrator authentication is untouched.
+// Supply Satellite workflows with company contacts (pbx.contacts) and answered
+// call history (pbx.history), using a read-only phonebook/CDR database account.
+// Accept only local POST requests authenticated with the Satellite bearer token.
 header('Content-Type: application/json'); header('Cache-Control: no-store');
 $token = getenv('SATELLITE_API_TOKEN');
-$authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+// Apache can expose Authorization only through the original request headers.
+$headers = function_exists('getallheaders') ? array_change_key_case(getallheaders(), CASE_LOWER) : array();
+$authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? ($headers['authorization'] ?? '');
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !in_array($_SERVER['REMOTE_ADDR'] ?? '', array('127.0.0.1', '::1'), true) ||
     !$token || !hash_equals('Bearer ' . $token, $authorization)) { http_response_code(403); echo '{"error":"forbidden"}'; exit; }
 try {
@@ -17,7 +21,7 @@ try {
     $db = new PDO('mysql:host=127.0.0.1;port=' . $port . ';dbname=phonebook;charset=utf8mb4', 'satellite_workflow', $password,
         array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 3));
     $db->exec('SET SESSION max_statement_time=3');
-    require_once __DIR__ . '/rest/lib/AgentWorkflowData.php';
+    require_once __DIR__ . '/../../../../rest/lib/AgentWorkflowData.php';
     $data = new AgentWorkflowData($db);
     if ($input['operation'] === 'pbx.contacts') {
         $result = $data->contacts($input['input']['phone'] ?? '');

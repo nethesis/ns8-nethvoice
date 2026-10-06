@@ -40,6 +40,15 @@ the gateway marks the configuration for reload and starts `retrieveHelper.sh`.
 Activation also applies the binding and starts the reload. Failed binding sync
 returns `pbx_sync.pending`; the existing one-minute timer retries reconciliation.
 
+## PBX data endpoint
+
+Satellite reads company contacts and answered-call history through the module's
+`/satellite/agent-workflow-data.php` endpoint (also under `/freepbx/satellite/`).
+It accepts local, bearer-authenticated POST requests for `pbx.contacts` and
+`pbx.history` only. Database access uses the read-only `satellite_workflow` account.
+The original `/freepbx/agent-workflow-data.php` URL remains an Apache alias for
+existing Satellite runtime images; no redirect or second PHP entrypoint is used.
+
 ## Canonical definitions and bindings
 
 Required top-level fields are `schema_version`, `agent_id`, `name`, `description`,

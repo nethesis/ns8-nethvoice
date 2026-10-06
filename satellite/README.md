@@ -180,6 +180,8 @@ Open **Builder**. Copy a template or create a blank graph. Select the provider
 binding for a voice workflow. Set its prompts, language, inputs, tools and fallback.
 Select published versions of connectors, data sources and reusable blocks.
 The PBX answers incoming agent calls before the agent starts its greeting.
+Company contacts and answered-call history use the private local endpoint at
+`/satellite/agent-workflow-data.php`. It uses a read-only database account.
 
 Tell the assistant which outcomes you need. Include the failure paths:
 

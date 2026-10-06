@@ -135,7 +135,9 @@ fi
 
 # Customized wizard page
 cat > /etc/apache2/sites-available/wizard.conf <<EOF
-AliasMatch ^/(?:freepbx/)?satellite/index\\.php$ /var/www/html/freepbx/admin/modules/satellite/htdocs/index.php
+AliasMatch ^/(?:freepbx/)?satellite/(index|agent-workflow-data)\\.php$ /var/www/html/freepbx/admin/modules/satellite/htdocs/\$1.php
+# Retain the URL used by existing Satellite runtime images.
+Alias /freepbx/agent-workflow-data.php /var/www/html/freepbx/admin/modules/satellite/htdocs/agent-workflow-data.php
 AliasMatch ^/(?!freepbx|satellite(?:/|$))(.+)$ /var/www/html/freepbx/wizard/\$1
 EOF
 
