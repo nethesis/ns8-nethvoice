@@ -172,10 +172,10 @@ agent.set_env('SATELLITE_MQTT_USERNAME', 'satellite')
 # NethCTI Middleware
 agent.set_env('NETHVOICE_MIDDLEWARE_PORT', port_list[34])
 # NethVoice chat loopback ports: ejabberd c2s, HTTP, component; gateway HTTP.
-agent.set_env('CHAT_C2S_PORT', port_list[36])
-agent.set_env('CHAT_HTTP_PORT', port_list[37])
-agent.set_env('CHAT_COMPONENT_PORT', port_list[38])
-agent.set_env('CHAT_GW_PORT', port_list[39])
+agent.set_env('CHAT_C2S_PORT', port_list[38])
+agent.set_env('CHAT_HTTP_PORT', port_list[39])
+agent.set_env('CHAT_COMPONENT_PORT', port_list[40])
+agent.set_env('CHAT_GW_PORT', port_list[41])
 agent.set_env('NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS', '127.0.0.1:' + str(port_list[34]))
 
 # SSO front-doors (loopback, started on demand): see configure-module/45authentication
