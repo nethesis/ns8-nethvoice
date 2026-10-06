@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('nethvoiceWizardUiApp').controller('AgentWorkflowsCtrl', function (
-  $scope, $routeParams, $location, $timeout, $window, $translate, AgentsService, WorkflowEditor
+  $scope, $q, $routeParams, $location, $timeout, $window, $translate, AgentsService, WorkflowEditor
 ) {
   var vm = this, alive = true, canvas, generation = 0, undo = [], redo = [], latest;
   vm.page = $routeParams.runId ? 'run' : $location.path() === '/agents/data' ? 'data' : $routeParams.agentId ? 'editor' : 'catalog';
@@ -19,8 +19,13 @@ angular.module('nethvoiceWizardUiApp').controller('AgentWorkflowsCtrl', function
     if (!alive) { return; }
     vm.error = error.data && error.data.error || 'workflows_unavailable';
     vm.errorNode = error.data && error.data.node_id;
-    if (error.status === 401 || error.status === 403) { vm.graph = null; vm.preview = null; vm.testResult = null; }
+    if (error.status === 401 || error.status === 403 && vm.error !== 'forbidden_origin') { vm.graph = null; vm.preview = null; vm.testResult = null; }
   }
+  vm.errorMessage = function () {
+    var key = 'Builder.error.' + vm.error;
+    var translated = $translate.instant(key);
+    return translated === key ? $translate.instant('Builder.error.generic') : translated;
+  };
   // Send a bounded request through the administrator gateway.
   function request(method, suffix, data) {
     vm.error = null;
@@ -28,7 +33,14 @@ angular.module('nethvoiceWizardUiApp').controller('AgentWorkflowsCtrl', function
     return (method === 'GET' ? AgentsService.request(method, path(suffix)) : AgentsService.mutate(method, path(suffix), data)).then(function (result) {
       if (!alive || requestedGeneration !== generation) { throw {status: 401, data: {error: 'unauthorized'}}; }
       return result;
-    }).catch(function (error) { fail(error); throw error; });
+    }).catch(function (error) {
+      fail(error);
+      if (error.status === -1 && method !== 'GET') {
+        vm.error = 'request_timeout';
+        return refresh().then(function () { throw error; });
+      }
+      throw error;
+    });
   }
   // Create the diagram view and connect its change handlers.
   function attach() {
@@ -50,6 +62,12 @@ angular.module('nethvoiceWizardUiApp').controller('AgentWorkflowsCtrl', function
       vm.blocks = data.blocks;
       vm.routingObjects = data.routing_objects || []; vm.operations = data.connector_operations || [];
       vm.reusables = data.definitions.filter(function (row) { return row.kind === 'subflow' && row.published_version > 0 && row.enabled; });
+      if (vm.page === 'editor' && vm.graph) {
+        var current = data.definitions.filter(function (item) { return item.agent_id === vm.graph.agent_id && item.kind === vm.kind; })[0];
+        if (current && angular.toJson(current.draft) === angular.toJson(vm.graph)) {
+          vm.revision = current.revision; vm.version = current.active_version; vm.enabled = current.enabled;
+        }
+      }
       if (vm.page === 'editor' && !vm.graph) {
         var row = data.definitions.filter(function (item) { return item.agent_id === $routeParams.agentId && item.kind === vm.kind; })[0];
         if (row) { vm.graph = angular.copy(row.draft); vm.revision = row.revision; vm.version = row.active_version; vm.enabled = row.enabled; latest = angular.toJson(vm.graph); attach(); }
@@ -200,6 +218,7 @@ angular.module('nethvoiceWizardUiApp').controller('AgentWorkflowsCtrl', function
   // Validate and publish an immutable definition version.
   vm.publish = function () {
     return vm.save().then(vm.validate).then(function () {
+      if (!vm.validated) { vm.error = 'invalid_definition'; return $q.reject({data: {error: 'invalid_definition'}}); }
       return request('POST', '/definitions/' + vm.kind + '/' + vm.graph.agent_id + '/publish', {expected_revision: vm.revision});
     }).then(function (result) { vm.version = result.version; vm.revision = result.revision; vm.published = true; });
   };

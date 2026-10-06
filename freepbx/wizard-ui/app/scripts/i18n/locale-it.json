@@ -118,7 +118,8 @@
       "conflict": "La configurazione è cambiata. Ricarica la pagina prima di salvare nuovamente.",
       "invalid": "Controlla i filtri o le impostazioni del monitoraggio.",
       "unavailable": "Il monitoraggio non è disponibile. Aggiorna per riprovare. La gestione chiamate ha un proprio stato del servizio.",
-      "capacity": "Limite capacità raggiunto; riprova più tardi."
+      "capacity": "Limite capacità raggiunto; riprova più tardi.",
+      "forbidden_origin": "Apri questa pagina dallo stesso indirizzo usato per l’API."
     },
     "role": {
       "caller": "Chiamante",
@@ -1593,6 +1594,16 @@
     "default_value": "Valore predefinito (vuoto = null)",
     "discard_changes": "Uscire senza salvare le modifiche al flusso?",
     "published_google_csv": "Google Sheets (CSV pubblicato)",
-    "published_url": "URL del CSV Google pubblicato"
+    "published_url": "URL del CSV Google pubblicato",
+    "error": {
+      "generic": "Richiesta non riuscita. Controlla le impostazioni e riprova.",
+      "configuration_conflict": "Le impostazioni sono cambiate. Aggiorna la pagina e riprova.",
+      "invalid_request": "Controlla le impostazioni inviate.",
+      "invalid_definition": "Correggi gli errori del grafo prima di pubblicare.",
+      "workflows_unavailable": "Il servizio workflow non è disponibile.",
+      "upload_too_large": "Il file caricato è troppo grande.",
+      "forbidden_origin": "Apri questa pagina dallo stesso indirizzo usato per l’API.",
+      "request_timeout": "La richiesta è scaduta. Le ultime impostazioni salvate sono state aggiornate."
+    }
   }
 }

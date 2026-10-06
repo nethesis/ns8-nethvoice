@@ -1,9 +1,13 @@
 'use strict';
 
 angular.module('nethvoiceWizardUiApp').controller('AgentsCtrl', function (
-  $scope, $routeParams, $location, $interval, $document, $q, AgentsService
+  $scope, $routeParams, $location, $interval, $document, $q, $translate, AgentsService
 ) {
   var vm = this;
+  vm.agentLabel = function (id) {
+    var key = 'Agents.' + id, label = $translate.instant(key);
+    return label === key ? id : label;
+  };
   var alive = true;
   var initialized = false;
   var pollBusy = false;
@@ -27,7 +31,7 @@ angular.module('nethvoiceWizardUiApp').controller('AgentsCtrl', function (
   // Show a safe request error and clear sensitive views.
   function fail(error) {
     if (!alive) { return; }
-    vm.error = error.status === 401 || error.status === 403 ? 'unauthorized' :
+    vm.error = error.data && error.data.error === 'forbidden_origin' ? 'forbidden_origin' : error.status === 401 || error.status === 403 ? 'unauthorized' :
       error.status === 404 ? 'not_found' : error.status === 409 ? 'conflict' :
       error.status === 400 || error.status === 422 ? 'invalid' : 'unavailable';
     vm.conversation = null;

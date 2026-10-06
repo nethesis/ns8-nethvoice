@@ -5,7 +5,14 @@ angular.module('nethvoiceWizardUiApp').directive('workflowConfigField', function
   return {restrict: 'E', scope: {schema: '=', value: '=', label: '@', changed: '&'}, link: function (scope, element) {
     var type = scope.schema.type;
     var html = '<label class="workflow-field-label">{{label}}</label>';
-    if (scope.schema.enum) {
+    if (scope.schema.oneOf && scope.schema.oneOf.some(function (option) { return option.const === 'latest'; })) {
+      scope.$watch('value', function (value) { scope.text = value === undefined ? '' : String(value); });
+      scope.updateVersion = function () {
+        scope.value = scope.text === 'latest' ? 'latest' : /^\d+$/.test(scope.text) ? Number(scope.text) : scope.text;
+        scope.changed();
+      };
+      html += '<input class="form-control" ng-model="text" ng-change="updateVersion()" aria-label="{{label}}" placeholder="latest">';
+    } else if (scope.schema.enum) {
       html += '<select class="form-control" ng-model="value" ng-options="option for option in schema.enum" ng-change="changed()"></select>';
     } else if (type === 'boolean') {
       html += '<input type="checkbox" ng-model="value" ng-change="changed()" aria-label="{{label}}">';

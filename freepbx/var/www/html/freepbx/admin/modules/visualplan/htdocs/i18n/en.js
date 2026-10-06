@@ -34,6 +34,8 @@ languages.en = {
     "base_alternative_flow_string": "Alternative Flow (red)",
     "base_agent_string": "Agent",
     "base_agent_fallback_string": "Fallback",
+    "view_agent_workflow_string": "Workflow",
+    "view_agent_binding_string": "Provider binding",
     "view_agent_flow_string": "CleverAI flow",
     "view_agent_trunk_string": "CleverAI trunk",
     "view_agent_create_trunk_string": "Create trunk",

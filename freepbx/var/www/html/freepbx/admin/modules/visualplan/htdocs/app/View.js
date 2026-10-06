@@ -1477,7 +1477,7 @@ example.View = draw2d.Canvas.extend({
             if (!$.contains(document, form[0])) return;
             var select = form.find("#satellite-agent-destination-trunk");
             $.each(data || {}, function (id, trunk) {
-                if (trunk && trunk.id) {
+                if (trunk && trunk.id && trunk.runtime_owner === "cleverai") {
                     select.append($("<option>").val(trunk.id).text(trunk.name + " (" + trunk.provider + ")"));
                 }
             });

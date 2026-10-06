@@ -6,9 +6,9 @@ angular.module('nethvoiceWizardUiApp').service('AgentsService', function ($http)
   // Clear local agent data and cached administrator access.
   this.clear = function () { csrf = undefined; };
   // Send a bounded request through the administrator gateway.
-  this.request = function (method, path, data, params) {
+  this.request = function (method, path, data, params, timeout) {
     return $http({method: method, url: base + path, data: data, params: params,
-      cache: false, timeout: 10000,
+      cache: false, timeout: timeout || (/^\/application\/workflows\/data\//.test(path) ? 60000 : 45000),
       headers: method === 'PUT' || method === 'DELETE' || method === 'POST' ? {'X-Agents-CSRF': csrf} : {}})
       .then(function (response) { return response.data; });
   };

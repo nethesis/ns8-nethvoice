@@ -351,6 +351,7 @@ example.Toolbar = Class.extend({
 	},
 
 	createDialog: function (obj, node) {
+		if (obj.id === "satellite-agent-destination" && node.getUserData().system_managed) return;
 		var thisApp = this;
 		var dialog = $('<div id="modalCreation"></div>')
 			.dialog({

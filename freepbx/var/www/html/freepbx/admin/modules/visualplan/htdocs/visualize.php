@@ -85,9 +85,7 @@ if (class_exists('Satellite') && method_exists('Satellite', 'getAgentDestination
     try {
         $satellite = FreePBX::Satellite();
         foreach ($satellite->getAgentTrunks() as $trunk) {
-            if ($trunk['runtime_owner'] === 'cleverai') {
-                $data['agent-trunks'][(int) $trunk['id']] = $trunk;
-            }
+            $data['agent-trunks'][(int) $trunk['id']] = $trunk;
         }
         foreach ($satellite->getAgentDestinations() as $agent) {
             $data['satellite-agent-destination'][(int) $agent['id']] = $agent;

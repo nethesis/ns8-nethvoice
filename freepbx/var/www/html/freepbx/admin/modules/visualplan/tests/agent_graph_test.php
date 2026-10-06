@@ -36,7 +36,7 @@ class GraphSatellite
             throw new InvalidArgumentException('Missing agent');
         }
         if (($input['agent_type'] ?? 'cleverai') === 'cleverai' &&
-            ($input['cleverai_trunk_id'] !== 1 || $input['cleverai_flow'] === '')) {
+            (!in_array($input['cleverai_trunk_id'], array(1, 2), true) || $input['cleverai_flow'] === '')) {
             throw new InvalidArgumentException('Invalid agent');
         }
         return $input;
@@ -168,3 +168,17 @@ rejects(function () use ($satellite, $system) {
 }, 'System Agent fallback cycle accepted');
 
 echo "VisualPlan Agent graph tests passed\n";
+
+// Existing non-system agents must accept the browser's edited identity fields.
+$satellite->rows[1] = array('id' => 1, 'agent_type' => 'cleverai', 'cleverai_trunk_id' => 1, 'cleverai_flow' => 'sales', 'fallback_destination' => 'ext-local,201,1');
+$satellite->rows[1]['system_managed'] = false;
+$satellite->rows[1]['cleverai_flow'] = 'sales';
+$edited = agent('edited', 1);
+$edited['userData']['cleverai_flow'] = 'support';
+$edited['userData']['cleverai_trunk_id'] = 2;
+$graph = new NethvplanAgentGraph($satellite, array($edited), array());
+$graph->allocate();
+$graph->save(function () { throw new RuntimeException('Unchanged fallback must remain stored'); });
+check($satellite->batch[1]['cleverai_flow'] === 'support', 'Existing Agent flow edit was discarded');
+check($satellite->batch[1]['cleverai_trunk_id'] === 2, 'Existing Agent trunk edit was discarded');
+echo "Existing VisualPlan Agent flow and trunk edits passed\n";

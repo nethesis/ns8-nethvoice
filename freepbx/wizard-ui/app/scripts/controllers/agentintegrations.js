@@ -73,13 +73,13 @@ angular.module('nethvoiceWizardUiApp').controller('AgentIntegrationsCtrl', funct
   // Clear local agent data and cached administrator access.
   function clear() {
     generation++; vm.token = null; vm.secret = {}; vm.inventory = {};
-    vm.testResult = null; vm.test = {}; vm.client = {}; vm.preset = null; vm.connector = null;
+    vm.testResult = null; vm.test = {action: 'lookup', version: 1}; vm.client = {scopes: {'runs:create': true, 'runs:read': true, 'runs:cancel': true}, customer_ids: '', expiry_days: 30}; vm.preset = null; vm.connector = null;
     vm.reconciliationResult = null;
     AgentsService.clear();
   }
   // Show a safe request error and clear sensitive views.
   function fail(error) {
-    vm.error = error.status === 401 || error.status === 403 ? 'unauthorized' :
+    vm.error = error.data && error.data.error === 'forbidden_origin' ? 'forbidden_origin' : error.status === 401 || error.status === 403 ? 'unauthorized' :
       error.status === 409 ? 'conflict' : error.status === 400 || error.status === 422 ? 'invalid' :
       error.status === 429 ? 'capacity' : 'unavailable';
     if (vm.error === 'unauthorized') { clear(); }
@@ -225,7 +225,7 @@ angular.module('nethvoiceWizardUiApp').controller('AgentIntegrationsCtrl', funct
   };
   // Create a scoped machine API client.
   vm.createClient = function () {
-    var input = {client_id: vm.client.id, scopes: Object.keys(vm.client.scopes).filter(function (key) { return vm.client.scopes[key]; }),
+    var input = {client_id: vm.client.id, scopes: Object.keys(vm.client.scopes || {}).filter(function (key) { return vm.client.scopes[key]; }),
       presets: ['support-request'].concat((vm.client.workflow_ids || '').split(',').map(function (id) { return id.trim(); }).filter(Boolean)), operations: refs(vm.clientSelection),
       customer_ids: vm.client.customer_ids.split(',').map(function (id) { return id.trim(); }).filter(Boolean),
       expires: Math.floor(Date.now() / 1000) + vm.client.expiry_days * 86400};

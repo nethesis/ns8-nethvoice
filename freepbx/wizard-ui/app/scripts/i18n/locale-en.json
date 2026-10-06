@@ -118,7 +118,8 @@
       "conflict": "Configuration changed. Reload this page before saving again.",
       "invalid": "Check the filter values or monitoring settings.",
       "unavailable": "Monitoring is unavailable. Refresh to retry. Call handling has its own service status.",
-      "capacity": "Capacity limit reached; retry later."
+      "capacity": "Capacity limit reached; retry later.",
+      "forbidden_origin": "Open this page from the same address used for the API."
     },
     "role": {
       "caller": "Caller",
@@ -718,6 +719,16 @@
     "default_value": "Default value (blank = null)",
     "discard_changes": "Leave without saving the workflow changes?",
     "published_google_csv": "Google Sheets (published CSV)",
-    "published_url": "Published Google CSV URL"
+    "published_url": "Published Google CSV URL",
+    "error": {
+      "generic": "The request failed. Check the settings and try again.",
+      "configuration_conflict": "The settings changed. Refresh the page and try again.",
+      "invalid_request": "Check the submitted settings.",
+      "invalid_definition": "Fix the graph validation errors before publishing.",
+      "workflows_unavailable": "The workflow service is unavailable.",
+      "upload_too_large": "The uploaded file is too large.",
+      "forbidden_origin": "Open this page from the same address used for the API.",
+      "request_timeout": "The request timed out. The latest stored settings have been refreshed."
+    }
   }
 }

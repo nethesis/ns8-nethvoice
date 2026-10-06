@@ -31,7 +31,7 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.login = {
       isLogged: false,
-      returnPath: /^\/agents(?:\/(?:settings|connectors|api|runs\/[A-Za-z0-9_-]{1,128}))?$/.test($location.path()) ? $location.path() : null
+      returnPath: /^\/agents(?:\/(?:settings|connectors|api|data|build(?:\/(?:agent|subflow)\/[a-z][a-z0-9_-]{0,47})?|(?:runs|graph-runs)\/[A-Za-z0-9_.:-]{1,128}))?$/.test($location.path()) ? $location.path() : null
     };
     $scope.loginUrl = 'views/login.html';
     $scope.modelsUIUrl = 'views/templates/models-ui.html';

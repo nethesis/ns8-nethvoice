@@ -65,8 +65,8 @@ class NethvplanAgentGraph
             $protected = $stored !== null && !empty($stored['system_managed']);
             $input = $satellite->validateAgentDestination(array(
                 'agent_type' => $stored['agent_type'] ?? ($data['agent_type'] ?? 'cleverai'),
-                'cleverai_trunk_id' => $stored['cleverai_trunk_id'] ?? ($data['cleverai_trunk_id'] ?? null),
-                'cleverai_flow' => $stored['cleverai_flow'] ?? ($data['cleverai_flow'] ?? ''),
+                'cleverai_trunk_id' => $protected ? ($stored['cleverai_trunk_id'] ?? null) : ($data['cleverai_trunk_id'] ?? ($stored['cleverai_trunk_id'] ?? null)),
+                'cleverai_flow' => $protected ? ($stored['cleverai_flow'] ?? '') : ($data['cleverai_flow'] ?? ($stored['cleverai_flow'] ?? '')),
                 'fallback_destination' => $stored['fallback_destination'] ?? null,
             ), $id);
             $this->agents[$node] = array(
@@ -208,7 +208,7 @@ function nethvplan_agent_widget(array $agent, array $trunks, array $labels)
     $builtin = $type === 'builtin_internal' || $type === 'builtin_external';
     $trunk = $trunks[$type === 'workflow' ? ($agent['workflow_binding_id'] ?? null) : ($agent['cleverai_trunk_id'] ?? null)] ?? array();
     $flow = $type === 'workflow' ? ($agent['workflow_agent_id'] ?? '') : ($builtin ? ($type === 'builtin_internal' ? 'Internal' : 'External') : ($agent['cleverai_flow'] ?? ''));
-    $typeLabel = $builtin ? ($type === 'builtin_internal' ? 'Builtin Internal' : 'Builtin External') : 'CleverAI';
+    $typeLabel = $type === 'workflow' ? ($labels['view_agent_workflow_string'] ?? 'Workflow') : ($builtin ? ($type === 'builtin_internal' ? 'Builtin Internal' : 'Builtin External') : 'CleverAI');
     return array(
         'type' => 'Base', 'id' => $node, 'radius' => 0, 'bgColor' => '#528ba7',
         'name' => $labels['base_agent_string'],
@@ -220,8 +220,8 @@ function nethvplan_agent_widget(array $agent, array $trunks, array $labels)
         ),
         'entities' => array(
             array('text' => $agent['freepbx_name'], 'id' => $node, 'type' => 'input'),
-            array('text' => ($builtin ? $typeLabel : $labels['view_agent_flow_string']) . ': ' . $flow, 'id' => 'agent_flow%' . $id, 'type' => 'text'),
-            array('text' => $labels['view_agent_trunk_string'] . ': ' . ($builtin ? $typeLabel : ($trunk['name'] ?? '')), 'id' => 'agent_trunk%' . $id, 'type' => 'text'),
+            array('text' => ($type !== 'cleverai' ? $typeLabel : $labels['view_agent_flow_string']) . ': ' . $flow, 'id' => 'agent_flow%' . $id, 'type' => 'text'),
+            array('text' => ($type === 'workflow' ? ($labels['view_agent_binding_string'] ?? 'Provider binding') : $labels['view_agent_trunk_string']) . ': ' . ($builtin ? $typeLabel : ($trunk['name'] ?? '')), 'id' => 'agent_trunk%' . $id, 'type' => 'text'),
             array('text' => $labels['base_agent_fallback_string'], 'id' => 'agent_fallback%' . $id, 'type' => 'output', 'destination' => $agent['fallback_destination'] ?? ''),
         ),
     );

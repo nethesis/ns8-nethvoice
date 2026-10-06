@@ -34,6 +34,8 @@ languages.it = {
     "base_alternative_flow_string": "Flusso Alternativo (rosso)",
     "base_agent_string": "Agente",
     "base_agent_fallback_string": "Destinazione alternativa",
+    "view_agent_workflow_string": "Workflow",
+    "view_agent_binding_string": "Connessione al provider",
     "view_agent_flow_string": "Flusso CleverAI",
     "view_agent_trunk_string": "Trunk CleverAI",
     "view_agent_create_trunk_string": "Crea trunk",

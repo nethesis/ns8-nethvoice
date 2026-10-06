@@ -12,7 +12,7 @@
         <dt>{{'Agents.published_version' | translate}}</dt><dd>{{monitor.run.definition_revision}}</dd>
         <dt>{{'Agents.session' | translate}}</dt><dd>{{monitor.run.session_id}}</dd>
         <dt>{{'Agents.cdr' | translate}}</dt><dd>{{monitor.run.cdr_id}}</dd>
-        <dt>{{'Agents.agent' | translate}}</dt><dd>{{('Agents.' + monitor.run.agent_id) | translate}} · {{monitor.run.provider}}</dd>
+        <dt>{{'Agents.agent' | translate}}</dt><dd>{{monitor.agentLabel(monitor.run.agent_id)}} · {{monitor.run.provider}}</dd>
         <dt>{{'Agents.outcome' | translate}}</dt><dd>{{('Agents.status.' + monitor.run.status) | translate}} · {{monitor.run.reason}}</dd>
         <dt>{{'Agents.started' | translate}}</dt><dd>{{monitor.time(monitor.run.started) | date:'medium'}}</dd>
         <dt>{{'Agents.ended' | translate}}</dt><dd>{{monitor.time(monitor.run.ended) | date:'medium'}}</dd>
