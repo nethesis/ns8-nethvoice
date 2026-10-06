@@ -115,7 +115,7 @@ if should_build "nethvoice" && ! should_build "nethvoice-satellite"; then
     satellite_label_image="${SATELLITE_BASE_IMAGE}"
     satellite_check_container=$(buildah from "${SATELLITE_BASE_IMAGE}")
     buildah add "${satellite_check_container}" satellite/verify-runtime.py /tmp/verify-phase5-runtime.py
-    buildah run "${satellite_check_container}" -- python /tmp/verify-phase5-runtime.py "${phase5_patch_sha}" "${satellite_source_ref}"
+    buildah run "${satellite_check_container}" -- env PYTHONPATH=/app python /tmp/verify-phase5-runtime.py "${phase5_patch_sha}" "${satellite_source_ref}"
     buildah rm "${satellite_check_container}"
 fi
 
