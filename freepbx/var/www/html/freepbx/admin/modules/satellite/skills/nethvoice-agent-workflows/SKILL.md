@@ -89,6 +89,12 @@ with a viewer service account. Save the draft, validate it and record its revisi
 Fix validation failures; do not invent missing integration mappings. Verify the
 saved configuration, not only the request you intended to send.
 
+If the stored graph validates through the private API but Wizard reports an
+invalid draft or schema, check the gateway's JSON round trip. Empty node config,
+inputs and schema properties must remain objects; lists must remain arrays.
+Repair the gateway instead of changing valid graph fields. Reload the editor
+after that repair, then verify save, validation and publication again.
+
 ## Test without OpenAI first
 
 Use **Run mock** or the workflow `/test` endpoint with synthetic fixtures.

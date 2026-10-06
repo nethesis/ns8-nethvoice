@@ -42,6 +42,7 @@ function agentsAuthorize(Request $request, $scope, $mutation = false)
     return preg_match('/^[A-Za-z0-9_.@-]{1,128}$/D', $user) ? $user : 'admin-' . hash('sha256', $user);
 }
 
+// Send JSON results with safe errors and no caching.
 function agentsResponse(Response $response, callable $operation)
 {
     $response = $response->withHeader('Cache-Control', 'no-store')->withHeader('X-Content-Type-Options', 'nosniff');
@@ -98,8 +99,8 @@ foreach ($workflowRoutes as $route) {
                     $large = strpos($target, '/data/') === 0 && (substr($target, -8) === '/publish' || $target === '/data/preview');
                     if (($request->getBody()->getSize() ?? 0) > ($large ? 14 * 1024 * 1024 : 262144) ||
                         stripos($request->getHeaderLine('Content-Type'), 'application/json') !== 0) { throw new \InvalidArgumentException('invalid_request'); }
-                    $input = $request->getParsedBody();
-                    if (!is_array($input)) { throw new \InvalidArgumentException('invalid_request'); }
+                    // Slim's associative parser turns {} into []; preserve graph JSON types.
+                    $input = AgentWorkflowClient::decodeObject((string) $request->getBody());
                 }
                 $client = new AgentWorkflowClient(); $graph = null;
                 $activation = $method === 'POST' && ($args['operation'] ?? '') === 'activate' && ($args['kind'] ?? '') === 'agent';
@@ -107,7 +108,7 @@ foreach ($workflowRoutes as $route) {
                     $graph = $client->request('GET', '/definitions/agent/' . $args['agentId'] . '/versions/' . (int) ($input['version'] ?? 0), $actor)['definition'];
                     if (($input['enabled'] ?? false) === true) { (new AgentWorkflowDestination(FreePBX::Database()))->validate($graph); }
                 }
-                $result = $client->request($method, $target, $actor, $input);
+                $result = $client->request($method, $target, $actor, $input, true);
                 if ($activation) {
                     try {
                         (new AgentWorkflowDestination(FreePBX::Database()))->synchronize($args['agentId'], (int) $input['version'], $graph, $input['enabled']);

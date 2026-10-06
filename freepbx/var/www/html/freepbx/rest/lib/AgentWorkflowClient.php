@@ -3,11 +3,23 @@
 class AgentWorkflowException extends \RuntimeException
 {
     public $nodeId;
+    // Keep the safe error code, HTTP status and block ID.
     public function __construct($code, $status, $nodeId = null) { parent::__construct($code, $status); $this->nodeId = $nodeId; }
 }
 class AgentWorkflowClient
 {
-    public function request($method, $path, $actor, $input = null)
+    // Keep nested JSON objects distinct from lists at the browser boundary.
+    public static function decodeObject($json)
+    {
+        $value = json_decode($json, false, 48);
+        if (!$value instanceof \stdClass || json_last_error() !== JSON_ERROR_NONE) {
+            throw new \InvalidArgumentException('invalid_request');
+        }
+        return (array) $value;
+    }
+
+    // Send a bounded request to the private Satellite API.
+    public function request($method, $path, $actor, $input = null, $preserveObjects = false)
     {
         $id = '[a-z][a-z0-9_-]{0,47}'; $run = '[A-Za-z0-9_-]{1,128}';
         $routes = array(
@@ -45,6 +57,7 @@ class AgentWorkflowClient
             throw new AgentWorkflowException($code, $status, $node);
         }
         if (!is_array($value)) { throw new \RuntimeException('workflows_unavailable', 503); }
-        return $value;
+        // PBX adapters use associative arrays. The browser needs original JSON types.
+        return $preserveObjects ? self::decodeObject($body) : $value;
     }
 }
