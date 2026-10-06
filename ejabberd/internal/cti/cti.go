@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
+	"strings"
 )
 
 // ErrUnauthorized: the middleware refused the token.
@@ -26,12 +28,55 @@ type Me struct {
 					} `json:"chat"`
 				} `json:"permissions"`
 			} `json:"nethvoice_cti"`
+			// all_groups and grp_<slug>: the operator groups shown besides the user's own.
+			PresencePanel struct {
+				Permissions map[string]struct {
+					Value bool `json:"value"`
+				} `json:"permissions"`
+			} `json:"presence_panel"`
 		} `json:"macro_permissions"`
 	} `json:"profile"`
 }
 
 // ChatAllowed: the chat is a CTI profile permission, like the other features.
 func (m Me) ChatAllowed() bool { return m.Profile.MacroPermissions.NethvoiceCTI.Permissions.Chat.Value }
+
+// GroupAccess: every operator group (all_groups), or the slugs of the grp_ permissions granted.
+func (m Me) GroupAccess() (all bool, slugs []string) {
+	for k, p := range m.Profile.MacroPermissions.PresencePanel.Permissions {
+		switch {
+		case !p.Value:
+		case k == "all_groups":
+			all = true
+		case strings.HasPrefix(k, "grp_"):
+			slugs = append(slugs, strings.TrimPrefix(k, "grp_"))
+		}
+	}
+	sort.Strings(slugs)
+	return all, slugs
+}
+
+// Groups are the CTI operator groups and their members, by group name.
+type Groups map[string]struct {
+	Users []string `json:"users"`
+}
+
+// OperatorGroups reads every operator group, whoever the token belongs to.
+func OperatorGroups(ctx context.Context, client *http.Client, base, token string) (Groups, error) {
+	var g Groups
+	return g, Get(ctx, client, base, token, "/astproxy/opgroups", &g)
+}
+
+// Slug is a group name as the CTI keys its permission: grp_<slug>.
+func Slug(name string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(name) {
+		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
 
 // Get reads a middleware path with a CTI token into out.
 func Get(ctx context.Context, client *http.Client, base, token, path string, out any) error {

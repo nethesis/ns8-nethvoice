@@ -27,6 +27,12 @@ api_permissions:
       - set_room_affiliation
       - unsubscribe_room
       - destroy_room
+      # CTI groups as rooms: create them, follow their members, tell clients
+      - create_room_with_opts
+      - subscribe_room
+      - change_room_option
+      - send_direct_invitation
+      - send_stanza
 
 listen:
   - port: $CHAT_C2S_PORT
