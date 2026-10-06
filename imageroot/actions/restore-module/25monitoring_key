@@ -5,6 +5,8 @@ import secrets
 import agent
 
 passwords = agent.read_envfile('passwords.env')
+if not passwords.get('SATELLITE_AGENT_CONFIG_KEY'):
+    passwords['SATELLITE_AGENT_CONFIG_KEY'] = secrets.token_urlsafe(48)
 if not passwords.get('SATELLITE_MONITORING_CONTENT_KEY'):
     passwords['SATELLITE_MONITORING_CONTENT_KEY'] = base64.b64encode(secrets.token_bytes(32)).decode()
 if not passwords.get('SATELLITE_APPLICATION_CONTENT_KEY'):

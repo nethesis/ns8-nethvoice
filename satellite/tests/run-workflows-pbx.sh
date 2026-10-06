@@ -30,3 +30,4 @@ INSERT INTO asteriskcdrdb.cdr(calldate,src,cnum,linkedid,uniqueid,channel,dstcha
 SQL
 test_port=$(docker port "$test_name" 3306/tcp | sed -n 's/^127\.0\.0\.1://p')
 PHASE5_DB_PORT="$test_port" php "$root/satellite/tests/test_workflows_pbx.php"
+PHASE5_DB_PORT="$test_port" php "$root/satellite/tests/test_agent_clone.php"
