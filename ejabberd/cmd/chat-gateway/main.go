@@ -64,6 +64,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	router.RoomName = push.RoomName
+	mw.OnMe = srv.SeenProfile
 	srv.RoomName = push.RoomName
 	router.Names = mw.Name
 	router.Address = mw.Extension
@@ -82,6 +83,19 @@ func main() {
 		return m.ID
 	}
 	go push.ServeComponent(ctx, componentAddr, host, secret, router)
+	// CTI groups as rooms: soon after start, then every GroupsEvery.
+	go func() {
+		for wait := 20 * time.Second; ; wait = api.GroupsEvery {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(wait):
+				gctx, cancel := context.WithTimeout(ctx, time.Minute)
+				srv.SyncGroups(gctx)
+				cancel()
+			}
+		}
+	}()
 	// Accounts gone from the CTI: a minute after start, then every ten minutes.
 	go func() {
 		for wait := time.Minute; ; wait = 10 * time.Minute {
