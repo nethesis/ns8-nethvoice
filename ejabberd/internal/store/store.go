@@ -37,6 +37,7 @@ func Open(dir string) (*Store, error) {
 		`CREATE INDEX IF NOT EXISTS pnm_tokens_user ON pnm_tokens(username)`,
 		`CREATE INDEX IF NOT EXISTS pnm_tokens_account ON pnm_tokens(username, selector)`,
 		`CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, name TEXT NOT NULL DEFAULT '', missing_since INTEGER NOT NULL DEFAULT 0, inactive INTEGER NOT NULL DEFAULT 0)`,
+		`CREATE TABLE IF NOT EXISTS upload_info (link TEXT PRIMARY KEY, size INTEGER NOT NULL, hash TEXT NOT NULL)`,
 	} {
 		if _, err := db.Exec(q); err != nil {
 			return nil, err
@@ -103,6 +104,9 @@ func (s *Store) DeleteWebSub(node, username string) error {
 
 // PutPNM stores an Acrobits device; a known account and selector keep their (random) node.
 func (s *Store) PutPNM(t PNMToken) (node string, err error) {
+	if t.Token != "" {
+		s.dropOtherOwners(t)
+	}
 	err = s.db.QueryRow(`SELECT node FROM pnm_tokens WHERE username = ? AND selector = ?`, t.Username, t.Selector).Scan(&node)
 	if err == nil {
 		_, err = s.db.Exec(`UPDATE pnm_tokens SET token = ?, app_id = ? WHERE node = ?`, t.Token, t.AppID, node)
@@ -114,6 +118,21 @@ func (s *Store) PutPNM(t PNMToken) (node string, err error) {
 	_, err = s.db.Exec(`INSERT INTO pnm_tokens(node, username, selector, token, app_id, created) VALUES(?,?,?,?,?,?)`,
 		t.Node, t.Username, t.Selector, t.Token, t.AppID, time.Now().Unix())
 	return t.Node, err
+}
+
+// dropOtherOwners: a device token belongs to whoever registered it last (a shared phone changes user).
+func (s *Store) dropOtherOwners(t PNMToken) {
+	_, _ = s.db.Exec(`DELETE FROM pnm_tokens WHERE token = ? AND username <> ?`, t.Token, t.Username)
+}
+
+// UploadInfo is the size and CRC32 of one of our uploads, once read.
+func (s *Store) UploadInfo(link string) (size int64, hash string, ok bool) {
+	ok = s.db.QueryRow(`SELECT size, hash FROM upload_info WHERE link = ?`, link).Scan(&size, &hash) == nil
+	return
+}
+
+func (s *Store) PutUploadInfo(link string, size int64, hash string) {
+	_, _ = s.db.Exec(`INSERT OR REPLACE INTO upload_info(link, size, hash) VALUES(?,?,?)`, link, size, hash)
 }
 
 func (s *Store) PNM(node string) (*PNMToken, error) {
