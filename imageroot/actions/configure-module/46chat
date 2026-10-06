@@ -46,13 +46,13 @@ def render():
     try:
         with open(out) as f:
             if f.read() == text:
-                os.chmod(out, 0o600) # files written before this mode stay private too
                 return False
     except FileNotFoundError:
         pass
     with open(out + '.tmp', 'w') as f:
         f.write(text)
-    os.chmod(out + '.tmp', 0o600) # it carries the component secret
+    # World-readable on purpose: ejabberd runs as uid 9000 in its image, the module home is private anyway.
+    os.chmod(out + '.tmp', 0o644)
     os.replace(out + '.tmp', out)
     return True
 
