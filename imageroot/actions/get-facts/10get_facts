@@ -112,6 +112,11 @@ def collect_nethlink(facts):
         'os_release': 'nethvoice_nethlink_by_os_release',
         'arch': 'nethvoice_nethlink_by_arch',
     }
+    os_type_names = {
+        'win32': 'Windows',
+        'darwin': 'macOS',
+        'linux': 'Linux',
+    }
     for key in columns.values():
         facts[key] = {}
     for column, key in columns.items():
@@ -121,7 +126,10 @@ def collect_nethlink(facts):
         for row in rows:
             parts = row.split('\t')
             if len(parts) == 2:
-                facts[key][parts[0]] = int(parts[1])
+                value = parts[0]
+                if column == 'os_type':
+                    value = os_type_names.get(value.lower(), value)
+                facts[key][value] = facts[key].get(value, 0) + int(parts[1])
 
 def collect_devices(facts):
     rows = sql_rows(AMPDBNAME,

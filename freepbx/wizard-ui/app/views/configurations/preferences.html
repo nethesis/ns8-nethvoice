@@ -889,19 +889,7 @@
           <div class="form-group">
             <label class="col-sm-4 control-label">{{'Operating system' | translate}}</label>
             <div class="col-sm-8">
-              <label class="control-label">{{currentNethLinkInfo.os_type || "-"}}</label>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="col-sm-4 control-label">{{'OS version' | translate}}</label>
-            <div class="col-sm-8">
-              <label class="control-label">{{currentNethLinkInfo.os_release || "-"}}</label>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="col-sm-4 control-label">{{'Architecture' | translate}}</label>
-            <div class="col-sm-8">
-              <label class="control-label">{{currentNethLinkInfo.arch || "-"}}</label>
+              <label class="control-label">{{(currentNethLinkInfo.os_type | osName) || "-"}}</label>
             </div>
           </div>
           <div class="form-group">
