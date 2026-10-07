@@ -54,8 +54,8 @@
                   $t("common.enabled")
                 }}</template>
               </NsToggle>
-              <!-- chat settings, only while the chat is enabled -->
-              <template v-if="isChatEnabled">
+              <!-- chat settings, only while the chat is enabled (v-show: the combobox mounts once) -->
+              <div v-show="isChatEnabled">
                 <NsComboBox
                   :title="$t('integrations.chat_retention')"
                   :options="chatRetentionOptions"
@@ -84,7 +84,7 @@
                   :disabled="loading.setIntegrations"
                   ref="chat_upload_max_file_mb"
                 />
-              </template>
+              </div>
               <h4 class="mb-4 section-title">
                 {{ $t("integrations.transcription_and_ai") }}
               </h4>
@@ -388,7 +388,10 @@ export default {
       this.isCallSummaryEnabled =
         integrations.satellite_call_summary_enabled || false;
       this.isChatEnabled = integrations.chat_enabled || false;
-      this.chatRetentionDays = String(integrations.chat_retention_days || 365);
+      // set after the combobox mounts: it shows the label only for a changed value
+      const retention = String(integrations.chat_retention_days || 365);
+      this.chatRetentionDays = "";
+      setTimeout(() => (this.chatRetentionDays = retention));
       this.chatUploadQuotaMb = String(integrations.chat_upload_quota_mb || 200);
       this.chatUploadMaxFileMb = String(
         integrations.chat_upload_max_file_mb || 25
