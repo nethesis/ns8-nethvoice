@@ -122,13 +122,12 @@ image (see `ejabberd/README.md`): `chat-server` (ejabberd: XMPP over WebSocket, 
   Its members are who sees the group in the CTI operators panel: the group's members, plus users with the
   `all_groups` or that group's `grp_` permission. Members join and leave with the CTI; a deleted group's room is
   destroyed; a renamed group gets a new room.
-- Tunables, environment variables with their defaults: `CHAT_RETENTION_DAYS` (365) days kept for messages and
-  uploads, `CHAT_UPLOAD_QUOTA_MB` (200) upload quota per user, `CHAT_DEBUG` (unset) verbose logs of the chat programs.
-  Set one, then apply with the integration action:
+- Settings, on the Integrations page or in `set-integrations` (defaults in brackets): `chat_retention_days` (365,
+  3650 means forever) days kept for messages and uploads, `chat_upload_quota_mb` (200) upload space per user,
+  `chat_upload_max_file_mb` (25) largest upload. `CHAT_DEBUG` (unset) turns on verbose logs of the chat programs.
 
   ```
-  runagent -m nethvoice1 python3 -c "import agent; agent.set_env('CHAT_RETENTION_DAYS', '180')"
-  api-cli run module/nethvoice1/set-integrations --data '{"chat_enabled": true}'
+  api-cli run module/nethvoice1/set-integrations --data '{"chat_enabled": true, "chat_retention_days": 180}'
   ```
 
 ## Timer logs
