@@ -32,6 +32,7 @@ def positive_int(var, default):
 
 RETENTION = positive_int('CHAT_RETENTION_DAYS', '365')
 QUOTA = positive_int('CHAT_UPLOAD_QUOTA_MB', '200')
+MAX_FILE = positive_int('CHAT_UPLOAD_MAX_FILE_MB', '25')
 
 
 def render():
@@ -45,10 +46,11 @@ def render():
         'CHAT_HTTP_PORT': os.environ['CHAT_HTTP_PORT'],
         'CHAT_COMPONENT_PORT': os.environ['CHAT_COMPONENT_PORT'],
         'CHAT_COMPONENT_SECRET': secrets['CHAT_COMPONENT_SECRET'],
-        # Tunables, env with defaults: days kept (messages and uploads) and the per-user upload quota in MB.
+        # Tunables (Integrations page), env with defaults: days kept (messages and uploads), per-user quota and largest file in MB.
         'CHAT_RETENTION_DAYS': RETENTION,
         'CHAT_UPLOAD_QUOTA_MB': QUOTA,
         'CHAT_UPLOAD_SOFT_QUOTA_MB': str(max(1, int(QUOTA) // 2)),
+        'CHAT_UPLOAD_MAX_SIZE': str(int(MAX_FILE) * 1024 * 1024),
     }
     with open(TEMPLATE) as f:
         text = string.Template(f.read()).substitute(values)

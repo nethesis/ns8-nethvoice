@@ -21,6 +21,9 @@ if "satellite_call_summary_enabled" in request:
     agent.set_env("SATELLITE_CALL_SUMMARY_ENABLED", request["satellite_call_summary_enabled"])
 if "chat_enabled" in request:
     agent.set_env("CHAT_ENABLED", "true" if request["chat_enabled"] else "false")
+for key in ("chat_retention_days", "chat_upload_quota_mb", "chat_upload_max_file_mb"):
+    if key in request:
+        agent.set_env(key.upper(), str(request[key]))
 
 # read from  the passwords.env file
 passwordsfile = agent.read_envfile("passwords.env")

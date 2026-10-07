@@ -125,7 +125,7 @@ modules:
     docroot: /opt/ejabberd/upload
     put_url: https://$CHAT_PUBLIC_HOST/upload
     get_url: https://$CHAT_PUBLIC_HOST/upload
-    max_size: 26214400
+    max_size: $CHAT_UPLOAD_MAX_SIZE
     # custom_headers replaces the defaults: CORS for uploads from other origins.
     custom_headers:
       "Access-Control-Allow-Origin": "*"
