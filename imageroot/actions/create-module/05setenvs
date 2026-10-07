@@ -148,8 +148,8 @@ agent.set_env('PHONEBOOK_EXPORT_EXTENSIONS', 'true')
 
 # Reports
 agent.set_env('REPORTS_GIN_MODE', 'release')
-agent.set_env('REPORTS_REDIS_PORT', port_list[27])
-agent.set_env('REPORTS_API_PORT', port_list[28])
+agent.set_env('REPORTS_REDIS_PORT', port_list[26])
+agent.set_env('REPORTS_API_PORT', port_list[27])
 # 'REPORTS_PASSWORD' written to passwords.env
 # 'REPORTS_API_KEY' written to passwords.env
 # 'REPORTS_SECRET' written to passwords.env
