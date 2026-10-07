@@ -18,6 +18,10 @@ config = {
     'deepgram_api_key': agent.read_envfile("passwords.env").get('DEEPGRAM_API_KEY', ''),
     'openai_api_key': agent.read_envfile("passwords.env").get('OPENAI_API_KEY', ''),
     'chat_enabled': os.getenv('CHAT_ENABLED', 'false') == 'true',
+    # Same defaults as configure-module/46chat.
+    'chat_retention_days': int(os.getenv('CHAT_RETENTION_DAYS', '365')),
+    'chat_upload_quota_mb': int(os.getenv('CHAT_UPLOAD_QUOTA_MB', '200')),
+    'chat_upload_max_file_mb': int(os.getenv('CHAT_UPLOAD_MAX_FILE_MB', '25')),
 }
 
 json.dump(config, fp=sys.stdout)
