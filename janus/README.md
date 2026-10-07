@@ -2,6 +2,11 @@
 
 Janus-gateway container for NethServer 8
 
+The entrypoint prefixes every stdout/stderr line with `[janus]`, including
+startup banners and library output. Lines already carrying the prefix are
+left unchanged. `JANUS_DEBUG_LEVEL` controls Janus's logger; messages that
+bypass that logger may still appear at lower levels.
+
 ## Environment variables
 
 - `LOCAL_IP` local IP address to bind to for SIP stack and media
