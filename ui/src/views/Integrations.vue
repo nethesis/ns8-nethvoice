@@ -54,18 +54,16 @@
                   $t("common.enabled")
                 }}</template>
               </NsToggle>
-              <!-- chat settings, only while the chat is enabled (v-show: the combobox mounts once) -->
-              <div v-show="isChatEnabled">
-                <NsComboBox
-                  :title="$t('integrations.chat_retention')"
-                  :options="chatRetentionOptions"
-                  :auto-highlight="true"
-                  :label="core.$t('common.choose')"
-                  :disabled="loading.setIntegrations"
-                  :invalid-message="error.chat_retention_days"
+              <!-- chat settings, only while the chat is enabled -->
+              <template v-if="isChatEnabled">
+                <NsTextInput
+                  :label="$t('integrations.chat_retention')"
                   v-model="chatRetentionDays"
+                  type="number"
+                  :helper-text="$t('integrations.chat_retention_helper')"
+                  :invalid-message="error.chat_retention_days"
+                  :disabled="loading.setIntegrations"
                   ref="chat_retention_days"
-                  :acceptUserInput="false"
                 />
                 <NsTextInput
                   :label="$t('integrations.chat_upload_quota')"
@@ -84,7 +82,7 @@
                   :disabled="loading.setIntegrations"
                   ref="chat_upload_max_file_mb"
                 />
-              </div>
+              </template>
               <h4 class="mb-4 section-title">
                 {{ $t("integrations.transcription_and_ai") }}
               </h4>
@@ -299,27 +297,6 @@ export default {
     hasOpenaiApiKey() {
       return this.hasDeepgramApiKey && !!this.openaiApiKey;
     },
-    chatRetentionOptions() {
-      // 3650 days stands for "forever"
-      const label = (days) =>
-        days === "3650"
-          ? this.$t("integrations.chat_retention_forever")
-          : this.$t("integrations.chat_retention_days", { days });
-      const options = ["30", "90", "180", "365", "3650"].map((days) => ({
-        name: label(days),
-        label: label(days),
-        value: days,
-      }));
-      // a value set by hand stays selectable
-      if (!options.some((o) => o.value === this.chatRetentionDays)) {
-        options.push({
-          name: label(this.chatRetentionDays),
-          label: label(this.chatRetentionDays),
-          value: this.chatRetentionDays,
-        });
-      }
-      return options;
-    },
   },
   beforeRouteEnter(to, from, next) {
     next((vm) => {
@@ -388,10 +365,7 @@ export default {
       this.isCallSummaryEnabled =
         integrations.satellite_call_summary_enabled || false;
       this.isChatEnabled = integrations.chat_enabled || false;
-      // set after the combobox mounts: it shows the label only for a changed value
-      const retention = String(integrations.chat_retention_days || 365);
-      this.chatRetentionDays = "";
-      setTimeout(() => (this.chatRetentionDays = retention));
+      this.chatRetentionDays = String(integrations.chat_retention_days || 365);
       this.chatUploadQuotaMb = String(integrations.chat_upload_quota_mb || 200);
       this.chatUploadMaxFileMb = String(
         integrations.chat_upload_max_file_mb || 25
@@ -399,14 +373,20 @@ export default {
       this.loading.getIntegrations = false;
     },
     validateChat() {
+      this.error.chat_retention_days = "";
       this.error.chat_upload_quota_mb = "";
       this.error.chat_upload_max_file_mb = "";
       if (!this.isChatEnabled) {
         return true;
       }
+      const days = Number(this.chatRetentionDays);
       const quota = Number(this.chatUploadQuotaMb);
       const maxFile = Number(this.chatUploadMaxFileMb);
-      if (!Number.isInteger(quota) || quota < 10 || quota > 100000) {
+      if (!Number.isInteger(days) || days < 1 || days > 3650) {
+        this.error.chat_retention_days = this.$t(
+          "integrations.chat_retention_invalid"
+        );
+      } else if (!Number.isInteger(quota) || quota < 10 || quota > 100000) {
         this.error.chat_upload_quota_mb = this.$t(
           "integrations.chat_upload_quota_invalid"
         );
@@ -419,7 +399,11 @@ export default {
           "integrations.chat_upload_max_file_over_quota"
         );
       }
-      for (const field of ["chat_upload_quota_mb", "chat_upload_max_file_mb"]) {
+      for (const field of [
+        "chat_retention_days",
+        "chat_upload_quota_mb",
+        "chat_upload_max_file_mb",
+      ]) {
         if (this.error[field]) {
           this.focusElement(field);
           return false;
