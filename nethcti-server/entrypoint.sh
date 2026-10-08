@@ -416,6 +416,9 @@ cat > $FILE <<EOF
 	    "cancel": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=CANCEL"
         }
     },
+    "^snom\\\s*D8[6-9][0-9]": {
+        "urls": {}
+    },
     "^snom.*": {
         "urls": {
             "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/command.htm?number=\$NUMBER",

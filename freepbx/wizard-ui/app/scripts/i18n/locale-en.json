@@ -193,6 +193,12 @@
   "Admin Off Hour": "Admin phone lines",
   "Advanced Off Hour": "Advanced phone lines",
   "NethLink": "Desktop Phone",
+  "NethLink info": "NethLink info",
+  "NethLink never connected": "NethLink never connected",
+  "Sign in with NethLink to see the informations": "Sign in with NethLink to see the informations",
+  "NethLink version": "NethLink version",
+  "Operating system": "Operating system",
+  "Last seen": "Last seen",
   "Sign in": "Sign in",
   "Sign in to": "Sign in to",
   "Password": "Password",
@@ -241,5 +247,8 @@
   "Configurare porta": "Configure port",
   "Configure port": "Configure port",
   "Enable UDP transport": "Enable UDP transport",
-  "Configure unencrypted audio": "Configure unencrypted audio"
+  "Configure unencrypted audio": "Configure unencrypted audio",
+  "if empty: first name + last name": "if empty: first name + last name",
+  "CSV separator must be a comma": "CSV separator must be a comma",
+  "Mapping must include the 'name' or 'firstname'/'lastname' destination": "Mapping must include the 'name' or 'firstname'/'lastname' destination"
 }
