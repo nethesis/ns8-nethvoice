@@ -179,6 +179,28 @@ and a stored credential reference. Its client also needs access to the workflow.
 Open **Builder**. Copy a template or create a blank graph. Select the provider
 binding for a voice workflow. Set its prompts, language, inputs, tools and fallback.
 Select published versions of connectors, data sources and reusable blocks.
+For an OpenAI trunk, set **Voice model override** to `gpt-live-1` for GPT-Live
+or `gpt-realtime` for Realtime. Both APIs can use the same trunk. Leave the field
+empty to inherit the external profile model. Built-in profiles use their
+existing **Model** field. Save and publish a new workflow version to change its
+voice model; existing published definitions are immutable.
+
+For GPT-Live, enable Live SIP on the OpenAI project. Add the
+`live.transport.incoming` webhook subscription and retain
+`realtime.call.incoming`. Keep the same webhook URL and signing secret. The
+provider-facing SIP/media path must support TLS and SRTP. Verify the external
+media negotiation through the NethVoice proxy; the PBX-side RTP setting alone
+does not describe that leg. Live uses the trunk's key and a `gpt-6-luna` backend
+for reasoning and tools, billed separately from the Live voice session.
+
+Live advances when a structured tool supplies the required data. Writes still
+require configured confirmations, permissions and exact approved arguments.
+Speech-only steps use prompt readiness instead of an audio-completion signal;
+this does not prove that the caller heard every word. DTMF is accepted after
+prompt readiness. Operator acceptance remains separate from caller approval.
+After a private Live consultation fails or is declined, the caller stays on
+hold while Satellite creates a fresh provider session without private context.
+
 The PBX answers incoming agent calls before the agent starts its greeting.
 Company contacts and answered-call history use the private local endpoint at
 `/satellite/agent-workflow-data.php`. It uses a read-only database account.

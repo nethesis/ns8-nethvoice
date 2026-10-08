@@ -25,6 +25,11 @@ supplied for this task. Do not ask the user to repeat credentials.
 - Provider and runtime owner. These workflows require the built-in Satellite
   runtime; a CleverAI-owned trunk cannot execute this graph.
 - For OpenAI voice: project ID, project API key and webhook signing secret.
+  Select Realtime or GPT-Live per profile/workflow using the existing model
+  field (`gpt-realtime` or `gpt-live-1`). For Live, verify the project has Live
+  SIP enabled and subscribes to `live.transport.incoming`. Retain Realtime's
+  subscription when both APIs are used. See the operation reference for Live
+  prompt readiness and confirmation behavior.
   Ask whether the project webhook is configured; use the exact URL shown by
   the PBX Webhooks page. Do not invent a webhook URL or create a new cloud project.
 - For another supported provider, obtain its actual trunk fields from the form.

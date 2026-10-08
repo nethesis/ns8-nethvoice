@@ -30,9 +30,11 @@ $fallbackIndex = $profileKey === 'internal' ? 1 : 2;
     </div>
     <?php foreach (array('model' => _('Model'), 'voice' => _('Voice'), 'language' => _('Language'), 'greeting' => _('Greeting')) as $field => $label): ?>
     <div class="form-group"><label for="<?php echo $profileKey . '-' . $field; ?>"><?php echo $escape($label); ?></label>
-        <input class="form-control" id="<?php echo $profileKey . '-' . $field; ?>" name="<?php echo $field; ?>" type="text" maxlength="<?php echo $field === 'greeting' ? 1000 : ($field === 'language' ? 16 : 128); ?>" value="<?php echo $escape(isset($profile[$field]) ? $profile[$field] : ''); ?>">
+        <input class="form-control" id="<?php echo $profileKey . '-' . $field; ?>" name="<?php echo $field; ?>" type="text"<?php if ($field === 'model'): ?> list="<?php echo $profileKey; ?>-voice-models"<?php endif; ?> maxlength="<?php echo $field === 'greeting' ? 1000 : ($field === 'language' ? 16 : 128); ?>" value="<?php echo $escape(isset($profile[$field]) ? $profile[$field] : ''); ?>">
     </div>
     <?php endforeach; ?>
+    <datalist id="<?php echo $profileKey; ?>-voice-models"><option value="gpt-realtime">OpenAI Realtime</option><option value="gpt-live-1">OpenAI GPT-Live</option></datalist>
+    <p class="help-block"><?php echo $escape(_('For OpenAI, gpt-live-1 selects GPT-Live and gpt-realtime selects Realtime. Both can share the same trunk.')); ?></p>
     <div class="form-group"><label for="<?php echo $profileKey; ?>-duration"><?php echo $escape(_('Maximum call duration (seconds)')); ?></label>
         <input class="form-control" id="<?php echo $profileKey; ?>-duration" name="max_call_duration_seconds" type="number" min="60" max="7200" required value="<?php echo $escape(isset($profile['max_call_duration_seconds']) ? $profile['max_call_duration_seconds'] : 900); ?>">
     </div>

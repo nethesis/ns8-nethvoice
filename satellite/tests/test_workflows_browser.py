@@ -46,12 +46,19 @@ angular.module('nethvoiceWizardUiApp',['pascalprecht.translate']).config(functio
                 page.wait_for_function("document.querySelectorAll('#workflow-canvas .drawflow-node').length===6")
                 labels=json.loads((FRONT/f'scripts/i18n/locale-{lang}.json').read_text())['Builder']
                 assert page.locator('#workflow-canvas .drawflow-node').count()==6
+                page.locator('details.workflow-settings').evaluate('(element) => element.open = true')
+                model = 'gpt-live-1' if lang == 'en' else 'gpt-realtime'
+                page.get_by_label(labels['voice_model'], exact=True).fill(model)
+                expect(page.locator('#agent-voice-model-help')).to_have_text(labels['voice_model_help'])
+                assert page.locator('#agent-voice-models option').evaluate_all('(items) => items.map(item => item.value)') == ['gpt-realtime', 'gpt-live-1']
+                page.locator('details.workflow-settings').evaluate('(element) => element.open = false')
                 page.get_by_label(labels['list_editor']).check()
                 page.get_by_role('button',name='Destinations · pbx.catalog').click()
                 page.get_by_label('extension',exact=True).check()
                 page.get_by_role('button',name=labels['save'],exact=True).first.click()
                 page.wait_for_function('window.mutations.length>0')
                 saved=page.evaluate('window.mutations[0].input.definition')
+                assert saved['voice_settings']['model'] == model
                 assert saved['nodes'][1]['config']['defaults']['extension'] is True
                 assert len(saved['edges'])==7
                 # Both conversation nodes reuse the same inspector directives.

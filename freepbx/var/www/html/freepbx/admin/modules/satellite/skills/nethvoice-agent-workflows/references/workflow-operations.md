@@ -30,6 +30,18 @@ reassign a CleverAI project's webhook to Satellite to make a graph work.
 A voice graph selects that trunk through `provider_binding_ref`. An API graph
 uses its explicit `text_provider` model and encrypted credential reference;
 a SIP trunk is not required for an API-only workflow. Graphs do not contain keys.
+For OpenAI voice, set `voice_settings.model` to `gpt-live-1` for GPT-Live or
+`gpt-realtime` for Realtime; an absent override inherits the external profile.
+Both APIs can share one trunk. Live uses managed Responses delegation with
+`gpt-6-luna` and the same key. Its project needs Live SIP access and a
+`live.transport.incoming` webhook subscription alongside Realtime's subscription.
+Verify TLS/SRTP on the provider-facing proxy leg during the approved live test.
+Live uses structured tool readiness rather than audio completion. Keep all
+configured DTMF confirmations and exact-argument write checks. Prompt readiness
+is not evidence that the caller heard the complete message. A declined private
+consultation replaces the Live provider session before returning to the caller.
+Test both model choices through save, validate, publish and activation. Include
+private-summary isolation and caller/operator confirmation in live acceptance.
 Restore preserves configuration keys and supplies missing keys for older backups.
 Clone rotates native trunk ciphertext into its new key, excludes application
 state/history and disables copied workflow destinations. Recreate the missing

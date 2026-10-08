@@ -1584,6 +1584,7 @@
     "input_schema": "Campi di ingresso del flusso",
     "output_schema": "Campi di uscita del flusso",
     "voice_model": "Modello vocale personalizzato",
+    "voice_model_help": "Su un trunk OpenAI, gpt-live-1 seleziona GPT-Live; gpt-realtime seleziona Realtime. Entrambi possono usare lo stesso trunk. Lascia vuoto per ereditare il modello del profilo esterno.",
     "voice": "Voce personalizzata",
     "language": "Lingua",
     "limits": "Limiti di esecuzione",

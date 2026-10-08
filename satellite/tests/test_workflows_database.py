@@ -3,6 +3,10 @@ import asyncio
 import base64
 import os
 import time
+from unittest.mock import patch
+
+import httpx
+from fastapi import FastAPI
 
 from agent.application.contracts import ApplicationError, connector
 from agent.application.crypto import ContentKey
@@ -11,6 +15,7 @@ from agent.workflows.repository import WorkflowRepository
 from agent.workflows.templates import templates, graph, node, source
 from agent.workflows.data import ingest
 from agent.workflows.connectors import presets
+from agent.workflows.api import create_workflow_router
 from tests.test_workflows import payment_settings, CSV
 
 
@@ -22,6 +27,28 @@ async def main():
     app.available=True; service.available=True
     app.repository.set_enabled(True,'acceptance')
     repo=service.repository
+    # Both voice APIs survive the administrator save/validate/publish/activate
+    # path with the same string binding ID and existing database schema.
+    http_app = FastAPI()
+    http_app.include_router(create_workflow_router(service))
+    with patch.dict(os.environ, {'API_TOKEN': 'isolated-workflow-token'}):
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=http_app), base_url='http://test',
+                headers={'Authorization': 'Bearer isolated-workflow-token', 'X-Agents-Actor': 'acceptance'}) as client:
+            base = '/api/agent/v1/application/workflows'
+            for model in ('gpt-realtime', 'gpt-live-1'):
+                voice = graph(model, model, [node('call', 'start.call'), node('done', 'end')], [('call', 'success', 'done')])
+                voice.update(provider_binding_ref='1', voice_settings={'model': model})
+                path = base + '/definitions/agent/' + model
+                response = await client.put(path, json={'definition': voice, 'expected_revision': 0})
+                assert response.status_code == 200, response.text
+                response = await client.post(base + '/validate', json={'definition': voice})
+                assert response.status_code == 200 and response.json()['valid'], response.text
+                response = await client.post(path + '/publish', json={'expected_revision': 1})
+                assert response.status_code == 200, response.text
+                response = await client.post(path + '/activate', json={'version': 1, 'enabled': True, 'expected_revision': 2})
+                assert response.status_code == 200, response.text
+                saved = repo.workflow_version('agent', model, 1)
+                assert saved['provider_binding_ref'] == '1' and saved['voice_settings']['model'] == model
     rows,errors=ingest(CSV,payment_settings()); assert not errors
     repo.data_save('payments',payment_settings(),0,'acceptance')
     uploaded=repo.data_publish('payments',1,rows,base64.b64encode(CSV).decode(),{'country_code':'39'},app.key,'acceptance')
@@ -93,7 +120,7 @@ async def main():
     assert next(agent for agent in inventory['agents'] if agent['agent_id']=='payment-secretary')['status']=='invalid'
     repo.workflow_activate('agent','payment-secretary',1,False,4,'acceptance')
     assert next(agent for agent in (await service.inventory())['agents'] if agent['agent_id']=='payment-secretary')['status']=='disabled'
-    print('PostgreSQL publication/conflicts, encrypted data, async ingestion, revocation and scoped/idempotent API execution passed')
+    print('PostgreSQL Realtime/Live publication, conflicts, encrypted data, async ingestion, revocation and scoped/idempotent API execution passed')
 
 
 if __name__=='__main__': asyncio.run(main())

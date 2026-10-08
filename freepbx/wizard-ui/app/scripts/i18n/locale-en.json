@@ -709,6 +709,7 @@
     "input_schema": "Workflow input fields",
     "output_schema": "Workflow output fields",
     "voice_model": "Voice model override",
+    "voice_model_help": "On an OpenAI trunk, gpt-live-1 selects GPT-Live; gpt-realtime selects Realtime. Both can share the same trunk. Leave blank to inherit the external profile model.",
     "voice": "Voice override",
     "language": "Language",
     "limits": "Execution limits",
