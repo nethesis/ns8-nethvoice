@@ -3,7 +3,7 @@
 FROM docker.io/library/alpine:3.17.10 as repofetcher
 WORKDIR /app
 RUN apk add --no-cache git
-ARG NETHVOICE_REPORT_COMMIT=5a9c148810c0b8189ae7b90d125c4824f629e93c
+ARG NETHVOICE_REPORT_COMMIT=26ae9195e4e8d8f78c99a0d58d36988a169d0c2e
 RUN git clone https://github.com/nethesis/nethvoice-report \
     && cd nethvoice-report \
     && git checkout $NETHVOICE_REPORT_COMMIT
@@ -47,7 +47,6 @@ RUN apk add --no-cache \
 # ziutek/rrd's cgo bindings predate rrd.h's const-correct signatures;
 # newer GCC defaults make that a hard error instead of a warning
 ENV CGO_CFLAGS="-Wno-error=incompatible-pointer-types"
-ENV GOFLAGS="-mod=mod"
 
 # Use gobuilder stage to build api
 FROM gobuilder as apibuilder
