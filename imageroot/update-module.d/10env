@@ -6,7 +6,6 @@
 #
 
 import agent
-import mariadb_tuning
 import os
 import random
 import string
@@ -183,7 +182,3 @@ if os.getenv('NETHVOICE_MIDDLEWARE_V1_PROTOCOL') is None:
 # admin opts in from the settings page.
 if os.getenv('AUTHENTICATION_METHOD') is None:
     agent.set_env('AUTHENTICATION_METHOD', 'password')
-
-# Size the MariaDB buffer pool for the node memory, unless an administrator set it.
-if os.getenv('NETHVOICE_MARIADB_BUFFER_POOL_SIZE') is None:
-    agent.set_env('NETHVOICE_MARIADB_BUFFER_POOL_SIZE', mariadb_tuning.default_buffer_pool_size())

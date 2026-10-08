@@ -13,6 +13,11 @@ EnvironmentFile=%E/state/passwords.env
 WorkingDirectory=%E/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/mariadb.pid %t/mariadb.ctr-id
+# Settings that depend on the node, such as the buffer pool size. The file is
+# mounted in the container: if it cannot be written, an empty one leaves the
+# MariaDB defaults.
+ExecStartPre=-runagent mariadb-gen-config
+ExecStartPre=/usr/bin/touch %E/state/mariadb-tuning.cnf
 ExecStart=/usr/bin/podman run \
 	--detach \
 	--conmon-pidfile=%t/mariadb.pid \
@@ -21,6 +26,7 @@ ExecStart=/usr/bin/podman run \
 	--log-opt=tag=%u \
 	--replace --name=%N \
 	--volume=mariadb-data:/var/lib/mysql:Z \
+	--volume=%E/state/mariadb-tuning.cnf:/etc/mysql/conf.d/zz-nethvoice-tuning.cnf:Z \
 	--volume=/dev/log:/dev/log \
 	--publish=127.0.0.1:${NETHVOICE_MARIADB_PORT}:3306 \
 	--env-file=%E/state/passwords.env \
@@ -41,8 +47,7 @@ ExecStart=/usr/bin/podman run \
 	--network=host \
 	--tz=${TIMEZONE} \
 	${NETHVOICE_MARIADB_IMAGE} \
-	--port ${NETHVOICE_MARIADB_PORT} \
-	--innodb-buffer-pool-size=${NETHVOICE_MARIADB_BUFFER_POOL_SIZE}
+	--port ${NETHVOICE_MARIADB_PORT}
 
 # Wait till db is initialized
 ExecStartPost=podman exec mariadb bash -c "while ! mysql -u${AMPDBUSER} -p${AMPDBPASS} -h127.0.0.1 -P${NETHVOICE_MARIADB_PORT} asterisk -e 'SHOW TABLES' 2> /dev/null > /dev/null; do sleep 5; done"
