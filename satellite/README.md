@@ -351,7 +351,7 @@ building NethVoice. Local builds can override it with
 GitHub builds can override it with the repository variable of the same name.
 An unset override uses the committed pin. A mutable branch tag is rejected.
 The current pin was published from Satellite commit
-[`6db8b9c`](https://github.com/nethesis/satellite/commit/6db8b9c4afce6e4807dc77c59890f690c242622a),
+[`08cabfa`](https://github.com/nethesis/satellite/commit/08cabfa08c71401dde933f18b21eb01499524f6b),
 after its unit and isolated application/monitoring storage checks passed.
 Acceptance runners require
 `SATELLITE_ACCEPTANCE_IMAGE`, `SATELLITE_SOURCE_DIR` and an optional exact

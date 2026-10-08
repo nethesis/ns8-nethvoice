@@ -62,8 +62,10 @@ jobs:
             echo "IMAGETAG=${imagetag}"
           } >> "$GITHUB_ENV"
 
-      - name: Validate image build configuration
-        run: python3 -m unittest discover -s tests/unit -p test_build_images.py
+      - name: Validate build and acceptance helpers
+        run: |
+          python3 -m unittest discover -s tests/unit -p test_build_images.py
+          python3 -m unittest discover -s tests/unit -p test_users_admin_readiness.py
 
       - name: Log in to container registry
         env:
