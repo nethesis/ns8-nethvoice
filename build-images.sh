@@ -85,6 +85,9 @@ build_image() {
 
 # Validate the selected runtime before building any module images.
 if should_build "nethvoice-satellite"; then
+    if [[ -z "${SATELLITE_RUNTIME_IMAGE:-}" ]]; then
+        SATELLITE_RUNTIME_IMAGE=$(cat satellite/runtime-image.txt)
+    fi
     : "${SATELLITE_RUNTIME_IMAGE:?Set SATELLITE_RUNTIME_IMAGE to the tested Satellite release digest}"
     if [[ ! "$SATELLITE_RUNTIME_IMAGE" =~ ^ghcr.io/nethesis/satellite@sha256:[a-f0-9]{64}$ ]]; then
         echo 'SATELLITE_RUNTIME_IMAGE must be an immutable Satellite digest' >&2

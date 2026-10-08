@@ -127,8 +127,9 @@ Enabled transcripts are kept for 7 days. History storage does not gate call hand
 The Satellite runtime runs its own retention task.
 
 Runtime code is maintained in [Nethesis/satellite, branch agent](https://github.com/nethesis/satellite/tree/agent).
-`build-images.sh` takes `ghcr.io/nethesis/satellite:agent` and tags the normal
-NethVoice Satellite wrapper. This repository does not build or patch runtime source.
+`build-images.sh` imports the immutable runtime digest recorded in
+`satellite/runtime-image.txt` and tags the normal NethVoice Satellite wrapper.
+This repository does not build or patch runtime source.
 Publish the matching Satellite agent image before you build this module branch.
 
 ## Application integrations and machine API
@@ -344,9 +345,15 @@ Test output and screenshots are local artifacts. Git ignores them.
 ## Review fixes and build requirements
 
 Build Satellite from the corrected source and run its acceptance suites first.
-Set `SATELLITE_RUNTIME_IMAGE=ghcr.io/nethesis/satellite@sha256:<tested digest>`
-when building NethVoice. GitHub builds use the repository variable with the same
-name. A mutable branch tag is rejected. Acceptance runners require
+Record the matching published digest in `satellite/runtime-image.txt` before
+building NethVoice. Local builds can override it with
+`SATELLITE_RUNTIME_IMAGE=ghcr.io/nethesis/satellite@sha256:<tested digest>`;
+GitHub builds can override it with the repository variable of the same name.
+An unset override uses the committed pin. A mutable branch tag is rejected.
+The current pin was published from Satellite commit
+[`6db8b9c`](https://github.com/nethesis/satellite/commit/6db8b9c4afce6e4807dc77c59890f690c242622a),
+after its unit and isolated application/monitoring storage checks passed.
+Acceptance runners require
 `SATELLITE_ACCEPTANCE_IMAGE`, `SATELLITE_SOURCE_DIR` and an optional exact
 `SATELLITE_ACCEPTANCE_REF`. They use the tests from that Satellite checkout.
 

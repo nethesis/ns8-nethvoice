@@ -60,10 +60,11 @@ RUN cd /tmp && \
 	make install
 
 RUN cd /tmp && \
-	git clone https://gitlab.freedesktop.org/libnice/libnice && \
-	cd libnice && \
-	git checkout 0.1.17 && \
-	./autogen.sh && \
+	wget --tries=3 -O libnice-0.1.17.tar.gz https://libnice.freedesktop.org/releases/libnice-0.1.17.tar.gz && \
+	artifact_checksum=$(grep "  libnice-0.1.17.tar.gz$" remote-artifacts.sha256) && \
+	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
+	tar xf libnice-0.1.17.tar.gz && \
+	cd libnice-0.1.17 && \
 	./configure --prefix=/usr && \
 	make -j"$(nproc)" && \
 	make install
