@@ -41,7 +41,8 @@ ExecStart=/usr/bin/podman run \
 	--network=host \
 	--tz=${TIMEZONE} \
 	${NETHVOICE_MARIADB_IMAGE} \
-	--port ${NETHVOICE_MARIADB_PORT}
+	--port ${NETHVOICE_MARIADB_PORT} \
+	--innodb-buffer-pool-size=${NETHVOICE_MARIADB_BUFFER_POOL_SIZE}
 
 # Wait till db is initialized
 ExecStartPost=podman exec mariadb bash -c "while ! mysql -u${AMPDBUSER} -p${AMPDBPASS} -h127.0.0.1 -P${NETHVOICE_MARIADB_PORT} asterisk -e 'SHOW TABLES' 2> /dev/null > /dev/null; do sleep 5; done"

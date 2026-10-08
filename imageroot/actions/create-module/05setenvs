@@ -10,6 +10,7 @@ import sys
 import random
 import string
 import agent
+import mariadb_tuning
 
 
 def gen_password(length=32):
@@ -245,3 +246,6 @@ passwords = {
 }
 
 agent.write_envfile("passwords.env", passwords)
+
+# Size the MariaDB buffer pool for the node memory.
+agent.set_env('NETHVOICE_MARIADB_BUFFER_POOL_SIZE', mariadb_tuning.default_buffer_pool_size())
