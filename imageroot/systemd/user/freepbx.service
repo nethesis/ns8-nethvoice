@@ -44,6 +44,7 @@ ExecStart=runagent /usr/bin/podman run \
     --volume=./freepbx_custom_modules:/freepbx_custom_modules:z \
     --env-file=%E/state/passwords.env \
     --env=NETHVOICE* \
+    --env=FREEPBX_LOG_LEVEL \
     --env=ASTERISK_* \
     --env=APACHE_RUN_USER \
     --env=APACHE_RUN_GROUP \
