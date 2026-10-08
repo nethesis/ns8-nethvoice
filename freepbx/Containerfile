@@ -185,7 +185,7 @@ RUN cd /usr/src/asterisk && \
 	cp *.so ${BUILDROOT}${LIBDIR}/asterisk/modules/ && \
 	cp codec_opus_config-en_US.xml ${BUILDROOT}${DATADIR}/asterisk/documentation/thirdparty/
 
-FROM docker.io/library/php:7.4-apache
+FROM docker.io/library/php:8.1-apache
 WORKDIR /var/lib/asterisk
 ARG DEBIAN_FRONTEND=noninteractive
 # Apply the same archived and frozen sources described in the build stage above.
