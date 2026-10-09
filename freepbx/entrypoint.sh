@@ -176,7 +176,7 @@ cat > /var/www/html/freepbx/wizard/scripts/custom.js <<EOF
 var customConfig = {
   BRAND_NAME: $(js_string "${wizard_brand_name}"),
   BRAND_SITE: '${BRAND_SITE:=https://www.nethesis.it/soluzioni/nethvoice}',
-  BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethserver.org/projects/ns8/it/latest/nethvoice.html}',
+  BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethvoice.com/it/}',
   NAVBAR_LOGO_URL: '${wizard_navbar_logo_url}',
   LOGIN_LOGO_URL: '${wizard_login_logo_url}',
   FAVICON_URL: '${wizard_favicon_url}',
