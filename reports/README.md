@@ -30,6 +30,7 @@ Build is handled by a single containerfile to allow reuse of common layers betwe
 NS8 provides to the containers the necessary configurations to run, divided by container here's a rundown:
  - `api`
    - file - `~/.config/state/report/api-config.json`: contains all the configuration needed for reports to run, this configurations gets generated every `configure-module`. For more info please refer to the [main repo](https://github.com/nethesis/nethvoice-report).
+   - env - `GIN_MODE`: Gin's own mode, taken from `REPORTS_GIN_MODE` in the module environment. Defaults to `release`, which disables the permissive CORS configuration of `api/main.go`; set it to `debug` only for development.
    - env - `REPORTS_INTERNATIONAL_PREFIX`: due to being reluctant to change a standard file used by reports to configure, this variable is provided to the container allowing migration of tables at start.
    - env - `NETHVOICE_LDAP_SCHEMA`: ldap schema provided by NS8 `config-module` to ensure correct usage of authentication protocol.
    - env - `NETHVOICE_LDAP_BASE`: base endpoint location.
