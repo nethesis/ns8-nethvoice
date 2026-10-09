@@ -89,6 +89,7 @@ sed -i '/^; Hide Asterisk logfile$/N;/\n\[logfiles\]$/N;/\nremove=Yes$/d' /etc/a
 install -d -o asterisk -g asterisk -m 0755 /var/log/asterisk /var/log/apache2
 
 chown -c asterisk:asterisk /etc/asterisk/*.conf
+chown -R asterisk:asterisk /var/www/html/freepbx/admin/modules/pm2/node
 
 # Configure ODBC for asteriskcdrdb
 cat > /etc/odbc.ini <<EOF

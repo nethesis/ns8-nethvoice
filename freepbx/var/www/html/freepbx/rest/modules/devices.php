@@ -41,7 +41,7 @@ $app->get('/devices/{mac}/brand', function (Request $request, Response $response
     try {
         $route = $request->getAttribute('route');
         $mac = $route->getArgument('mac');
-        return $response->withJson(getVendorFromMac($mac), 200);
+        return jsonResponse($response, getVendorFromMac($mac), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -95,7 +95,7 @@ $app->get('/devices/gateways/list/{id}', function (Request $request, Response $r
             }
         }
 
-        return $response->withJson(array_values($gateways), 200);
+        return jsonResponse($response, array_values($gateways), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -206,7 +206,7 @@ $app->get('/devices/phones/list', function (Request $request, Response $response
             );
             $res[] = $phone;
         }
-        return $response->withJson($res,200);
+        return jsonResponse($response, $res,200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -228,7 +228,7 @@ $app->get('/devices/gateways/list', function (Request $request, Response $respon
                 }
             }
         }
-        return $response->withJson(array_unique($res, SORT_REGULAR), 200);
+        return jsonResponse($response, array_unique($res, SORT_REGULAR), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -246,7 +246,7 @@ $app->get('/devices/phones/manufacturers', function (Request $request, Response 
         }
         array_push($res[$model['name']], $model['model']);
     }
-    return $response->withJson($res, 200);
+    return jsonResponse($response, $res, 200);
 });
 
 $app->get('/devices/gateways/manufacturers', function (Request $request, Response $response, $args) {
@@ -262,7 +262,7 @@ $app->get('/devices/gateways/manufacturers', function (Request $request, Respons
         $model['ipv4_green'] = $_ENV['NETHVOICE_HOST'];
         array_push($res[$model['manufacturer']], $model);
     }
-    return $response->withJson($res, 200);
+    return jsonResponse($response, $res, 200);
 });
 
 $app->post('/devices/phones/reload/{extension:[0-9]+}', function (Request $request, Response $response, $args) {
@@ -275,12 +275,13 @@ $app->post('/devices/phones/reload/{extension:[0-9]+}', function (Request $reque
     $dbh = FreePBX::Database();
     $stmt = $dbh->prepare('SELECT `vendor` FROM `rest_devices_phones` WHERE `extension` LIKE ? AND `mac` IS NOT NULL AND `vendor` IS NOT NULL AND `type` = "physical"');
     $stmt->execute([$extension]);
-    $vendor = $stmt->fetchAll()[0][0];
-    if (empty($vendor)) {
+    $vendor = $stmt->fetchColumn();
+    if ($vendor === false || $vendor === '') {
         return $response->withStatus(403);
     }
     $res = $astman->send_request('Command',array('Command'=>"pjsip send notify generic-reload endpoint $extension"));
-    if ($res['Response'] !== 'Success' || preg_match('/failed.$/m', $res['data']) || preg_match('/^Unable/m', $res['data'])) {
+    $data = is_array($res) ? ($res['data'] ?? '') : '';
+    if (!is_array($res) || ($res['Response'] ?? '') !== 'Success' || preg_match('/failed.$/m', $data) || preg_match('/^Unable/m', $data)) {
         return $response->withStatus(500);
     }
     return $response->withStatus(202);
@@ -294,7 +295,10 @@ $app->post('/devices/phones/model', function (Request $request, Response $respon
         $model = $params['model'];
 
         $dbh = FreePBX::Database();
-        $dbh->query('DELETE IGNORE FROM `rest_devices_phones` WHERE `mac` = "'.$mac.'"');
+        $stmt = $dbh->prepare('DELETE IGNORE FROM `rest_devices_phones` WHERE `mac` = ?');
+        if (!$stmt->execute(array($mac))) {
+            throw new Exception($stmt->errorInfo()[2]);
+        }
         $sql = 'INSERT INTO `rest_devices_phones` (`mac`,`vendor`, `model`) VALUES (?,?,?)';
         $stmt = $dbh->prepare($sql);
         if ($res = $stmt->execute(array($mac,$vendor,$model))) {
@@ -313,17 +317,19 @@ $app->post('/devices/phones/model', function (Request $request, Response $respon
 */
 
 $app->post('/devices/gateways', function (Request $request, Response $response, $args) {
+    $result = array('status' => false, 'errors' => array('Unable to save gateway'));
     try {
-        $fpbx = FreePBX::create();
         $params = $request->getParsedBody();
         $result = addEditGateway($params);
         if ($result['status']) {
-            return $response->withJson($result,200);
+            return jsonResponse($response, $result,200);
         }
-        return $response->withJson($result,500);
-    } catch (Exception $e) {
+        $httpStatus = $result['http_status'] ?? 500;
+        unset($result['http_status']);
+        return jsonResponse($response, $result,$httpStatus);
+    } catch (Throwable $e) {
         error_log($e->getMessage());
-        return $response->withJson($result,500);
+        return jsonResponse($response, $result,500);
     }
 });
 
@@ -334,15 +340,22 @@ $app->post('/devices/gateways/push', function (Request $request, Response $respo
     try {
         #create configuration files
         $params = $request->getParsedBody();
-        $name = $params['name'];
-        $mac = $params['mac'];
+        $name = $params['name'] ?? '';
+        $mac = $params['mac'] ?? '';
+        if ($name === '' || $mac === '') {
+            return jsonResponse($response, array('status'=>false, 'error'=>'Missing gateway name or MAC'), 400);
+        }
 
         #Launch configuration push
-        system("php /var/www/html/freepbx/rest/lib/tftpPushConfig.php ".escapeshellarg($name)." ".escapeshellarg(strtoupper($mac)));
-        return $response->withJson(array('status'=>true), 200);
-    } catch (Exception $e) {
+        $command = "php /var/www/html/freepbx/rest/lib/tftpPushConfig.php ".escapeshellarg($name)." ".escapeshellarg(strtoupper($mac));
+        exec($command, $output, $exitCode);
+        if ($exitCode !== 0) {
+            return jsonResponse($response, array('status'=>false, 'error'=>'Gateway configuration push failed'), 500);
+        }
+        return jsonResponse($response, array('status'=>true), 200);
+    } catch (Throwable $e) {
         error_log($e->getMessage());
-        return $response->withJson(array("status"=>$e->getMessage()), 500);
+        return jsonResponse($response, array('status'=>false, 'error'=>'Gateway configuration push failed'), 500);
     }
 });
 
@@ -356,11 +369,16 @@ $app->delete('/devices/gateways/{id}', function (Request $request, Response $res
         $route = $request->getAttribute('route');
         $id = $route->getArgument('id');
         $sql = "SELECT `name`,`mac` FROM `gateway_config` WHERE `id` = ?";
-        $fpbx = FreePBX::create();
         $sth = FreePBX::Database()->prepare($sql);
         $sth->execute(array($id));
         $res = $sth->fetch(\PDO::FETCH_ASSOC);
+        if ($res === false) {
+            return jsonResponse($response, array('status' => 'Gateway configuration not found'), 404);
+        }
         system("php /var/www/html/freepbx/rest/lib/tftpDeleteConfig.php ".escapeshellarg($res['name'])." ".escapeshellarg($res['mac']), $ret);
+        if ($ret !== 0) {
+            throw new RuntimeException('Unable to delete gateway provisioning files');
+        }
         //get all trunks for this gateway
         $sql = "SELECT `trunk` FROM `gateway_config_fxo` WHERE `config_id` = ? UNION SELECT `physical_extension` FROM `gateway_config_fxs` WHERE `config_id` = ? UNION SELECT `trunk` FROM `gateway_config_isdn` WHERE `config_id` = ? UNION SELECT `trunk` FROM `gateway_config_pri` WHERE `config_id` = ?";
         $sth = FreePBX::Database()->prepare($sql);
@@ -378,10 +396,10 @@ $app->delete('/devices/gateways/{id}', function (Request $request, Response $res
         $sth = FreePBX::Database()->prepare($sql);
         $sth->execute(array($id));
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-        return $response->withJson(array('status' => true), 200);
-    } catch (Exception $e) {
+        return jsonResponse($response, array('status' => true), 200);
+    } catch (Throwable $e) {
         error_log($e->getMessage());
-        return $response->withJson(array("status"=>$e->getMessage()), 500);
+        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
     }
 });
 
@@ -399,7 +417,7 @@ $app->delete('/devices/gateways/{id}', function (Request $request, Response $res
              $mac = false;
          }
          $config = gateway_generate_configuration_file($name,$mac);
-         return $response->withJson(base64_encode($config),200);
+         return jsonResponse($response, base64_encode($config),200);
      } catch (Exception $e) {
          error_log($e->getMessage());
          return $response->withStatus(500);
@@ -412,6 +430,9 @@ $app->delete('/devices/gateways/{id}', function (Request $request, Response $res
 $app->post('/devices/phones/provision', function (Request $request, Response $response, $args) {
     try {
         $body = $request->getParsedBody();
+        if (!is_array($body) || empty($body['mac'])) {
+            return jsonResponse($response, array('message' => 'MAC address is required'), 400);
+        }
 
         $mac = $body['mac'];
 
@@ -429,9 +450,9 @@ $app->post('/devices/phones/provision', function (Request $request, Response $re
         }
 
         return $response->withStatus(200);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('message' => $e->getMessage()), 500);
+        return jsonResponse($response, array('message' => $e->getMessage()), 500);
     }
 });
 
@@ -441,6 +462,9 @@ $app->post('/devices/phones/provision', function (Request $request, Response $re
 $app->post('/devices/phones/reboot', function (Request $request, Response $response, $args) {
     try {
         $body = $request->getParsedBody();
+        if (!is_array($body) || empty($body['mac']) || empty($body['ip'])) {
+            return jsonResponse($response, array('message' => 'MAC address and IP are required'), 400);
+        }
 
         $mac = $body['mac'];
         $phoneIp = $body['ip'];
@@ -481,8 +505,8 @@ $app->post('/devices/phones/reboot', function (Request $request, Response $respo
         }
 
         return $response->withStatus(200);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         error_log($e->getMessage());
-        return $response->withJson(array('message' => $e->getMessage()), 500);
+        return jsonResponse($response, array('message' => $e->getMessage()), 500);
     }
 });

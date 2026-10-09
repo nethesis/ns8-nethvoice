@@ -12,14 +12,15 @@ if (isset($dbconfig['dbport']) && $dbconfig['dbport'] !== '') {
     $dbport = $amp_conf['AMPDBPORT'];
 }
 
-$fiasserverdb = new \PDO(
-    buildMysqlDsn($dbconfig["dbhost"], getFiasServerDatabaseName(), $dbport),
-    $dbconfig["user"],
-    $dbconfig["pwd"],
-    fiasPdoOptions()
-);
-if ($fiasserverdb === false) {
-    logMessage("Error connecting to database; ".mysql_error(), ERROR, __FILE__);
+try {
+    $fiasserverdb = new \PDO(
+        buildMysqlDsn($dbconfig["dbhost"], getFiasServerDatabaseName(), $dbport),
+        $dbconfig["user"],
+        $dbconfig["pwd"],
+        fiasPdoOptions()
+    );
+} catch (PDOException $e) {
+    logMessage("Error connecting to database; ".$e->getMessage(), ERROR, __FILE__);
     exit(1);
 }
 

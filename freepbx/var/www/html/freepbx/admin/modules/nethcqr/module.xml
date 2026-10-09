@@ -5,6 +5,8 @@
         <publisher>Nethesis</publisher>
 	<type>tool</type>
 	<category>Applications</category>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
 	<description>Call Query Routing. Rout calls looking at result of a mysql query</description>
 	<menuitems>
 		<nethcqr>Call Query Routing</nethcqr>

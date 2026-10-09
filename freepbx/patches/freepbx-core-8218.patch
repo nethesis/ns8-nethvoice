@@ -1,0 +1,15 @@
+--- a/etc/extensions.conf
++++ b/etc/extensions.conf
+@@ -193,11 +193,7 @@
+ exten => s,n(noanonymous),Set(TIMEOUT(absolute)=15)
+ exten => s,n,Set(receveip=${IF($["${CUT(CHANNEL,/,1)}" != "PJSIP"]?recvip:pjsip,remote_addr)})
+ exten => s,n,Log(WARNING,"Rejecting unknown SIP connection from ${CHANNEL(${receveip})}")
+-exten => s,n,Answer
+-exten => s,n,Wait(2)
+-exten => s,n,Playback(ss-noservice)
+-exten => s,n,Playtones(congestion)
+-exten => s,n,Congestion(5)
++exten => s,n,Hangup
+ exten => h,1,Hangup
+ exten => i,1,Hangup
+ exten => t,1,Hangup

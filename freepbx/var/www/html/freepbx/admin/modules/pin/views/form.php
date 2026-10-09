@@ -21,7 +21,7 @@
 -->
 
 <form action="config.php?display=pin" method="post" class="fpbx-submit" id="hwform" name="hwform" data-fpbx-delete="config.php?display=pin">
-<input type="hidden" name='action' value="<?php echo $_REQUEST['extension']?'edit':'add' ?>">
+<input type="hidden" name='action' value="<?php echo !empty($_REQUEST['extension'])?'edit':'add' ?>">
 
 <?php
 
@@ -37,7 +37,7 @@ if (isset($_REQUEST['extension'])) {
     }
     $config['extension'] = isset($avail[0]) ? $avail[0]['extension'] : '' ;
     $config['pin'] = rand(0,9999);
-    while (strlen($config['pin'] < 4))  $config['pin'] = '0'.$config['pin']; 
+    while (strlen((string) $config['pin']) < 4)  $config['pin'] = '0'.$config['pin'];
     $config['enabled'] = 1;
 }
 
@@ -54,11 +54,11 @@ if (isset($_REQUEST['extension'])) {
                 <?php
                     if (isset($_REQUEST['extension'])) {
                         // Edit existing
-                        echo '<input type="text" class="form-control" id="extension" name="extension" value="'.$config['extension'].'" readonly>';
+                        echo '<input type="text" class="form-control" id="extension" name="extension" value="'.htmlspecialchars((string) $config['extension'], ENT_QUOTES, 'UTF-8').'" readonly>';
                     } else {
                         echo '<select class="form-control" id="extension" name="extension">';
                         foreach($avail as $extension) {
-                            echo '<option value="'.$extension['extension'].'" '.($config['extension'] == $extension['extension'] ? 'SELECTED': '').'>'.$extension['extension']. ' - ' . $extension['name'].'</option>';
+                            echo '<option value="'.htmlspecialchars((string) $extension['extension'], ENT_QUOTES, 'UTF-8').'" '.($config['extension'] == $extension['extension'] ? 'SELECTED': '').'>'.htmlspecialchars((string) ($extension['extension']. ' - ' . $extension['name']), ENT_QUOTES, 'UTF-8').'</option>';
                         }
                         echo '</select>';
                     }?>
@@ -77,7 +77,7 @@ if (isset($_REQUEST['extension'])) {
                 <i class="fa fa-question-circle fpbx-help-icon" data-for="pin"></i>
             </div>
             <div class="col-md-7">
-                <input type="text" class="form-control" id="pin" name="pin" value="<?php  echo $config['pin'] ?>">
+                <input type="text" class="form-control" id="pin" name="pin" value="<?php echo htmlspecialchars((string) $config['pin'], ENT_QUOTES, 'UTF-8') ?>">
             </div>
         </div>
         <div class="col-md-12">
