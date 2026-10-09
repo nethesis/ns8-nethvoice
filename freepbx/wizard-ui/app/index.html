@@ -9,7 +9,8 @@
   <meta name="viewport" content="width=device-width">
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
   <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
-  <!-- build:css(.) styles/vendor.css -->
+  <!-- build:css({.,app}) styles/vendor.css -->
+  <link rel="stylesheet" href="lib/drawflow/drawflow.min.css">
   <link rel="stylesheet" href="node_modules/bootstrap-combobox/css/bootstrap-combobox.css" />
   <link rel="stylesheet" href="node_modules/bootstrap-datepicker/dist/css/bootstrap-datepicker3.css" />
   <link rel="stylesheet" href="node_modules/bootstrap-select/dist/css/bootstrap-select.css" />
@@ -30,6 +31,8 @@
   <link rel="stylesheet" href="styles/login.css">
   <link rel="stylesheet" href="styles/trunks.css">
   <link rel="stylesheet" href="styles/dashboard.css">
+  <link rel="stylesheet" href="styles/agents.css">
+  <link rel="stylesheet" href="styles/workflows.css">
   <!-- endbuild -->
   <link rel="stylesheet" href="styles/brand.css">
 </head>
@@ -108,6 +111,11 @@
             <span class="fa fa-tachometer" title="{{'Dashboard' | translate}}" data-toggle="tooltip" data-placement="right"></span>
             <span class="list-group-item-value">{{'Dashboard' | translate | ellipsis:'1200'}}</span>
           </a>
+        </li>
+
+        <!-- AGENTS -->
+        <li ng-if="!wizard.isMigrationView && !wizard.isWizard" class="list-group-item collapse-menu {{resolveActiveTab('agents',1) ? 'active' : ''}}" id="agents-item-menu">
+          <a href="#!/agents"><span class="fa fa-comments" aria-hidden="true"></span><span class="list-group-item-value">{{'Agents.title' | translate}}</span></a>
         </li>
 
         <!-- USERS -->
@@ -336,6 +344,7 @@
     <!-- end footer -->
   </div>
 
+  <script src="lib/drawflow/drawflow.min.js"></script>
   <!-- build:js(.) scripts/vendor.js -->
   <script src="node_modules/jquery/dist/jquery.js"></script>
   <script src="node_modules/angular/angular.js"></script>
@@ -443,6 +452,9 @@
   <script src="scripts/services/utilservice.js"></script>
   <script src="scripts/filters/capitalize.js"></script>
   <script src="scripts/services/dashboardservice.js"></script>
+  <script src="scripts/services/agentsservice.js"></script>
+  <script src="scripts/services/workfloweditor.js"></script>
+  <script src="scripts/directives/workflowfields.js"></script>
   <script src="scripts/services/deviceservice.js"></script>
   <script src="scripts/filters/masktocidr.js"></script>
   <script src="scripts/filters/objcount.js"></script>
@@ -485,6 +497,9 @@
   <script src="scripts/controllers/migration/cdr.js"></script>
   <script src="scripts/controllers/migration/report.js"></script>
   <script src="scripts/controllers/dashboard.js"></script>
+  <script src="scripts/controllers/agents.js"></script>
+  <script src="scripts/controllers/agentintegrations.js"></script>
+  <script src="scripts/controllers/agentworkflows.js"></script>
   <script src="scripts/controllers/apps/phonebook.js"></script>
   <script src="scripts/services/phonebookservice.js"></script>
   <script src="scripts/controllers/devices/inventory.js"></script>

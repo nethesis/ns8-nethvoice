@@ -12,3 +12,16 @@ DEVELOPMENT.md
 __pycache__/
 *.pyc
 .gitnexus
+
+/.worktrees/
+
+/.playwright-mcp/
+/.satellite-source/
+
+# Keep local plans, test evidence and development reports out of commits.
+/PLAN.md
+**/test-evidence/
+**/*-test-report.md
+**/*-report.md
+**/*-development.md
+**/phase*-plan.md

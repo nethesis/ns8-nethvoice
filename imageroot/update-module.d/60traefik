@@ -11,6 +11,16 @@ import agent
 # Read the env file to get updated environment variables
 env = agent.read_envfile('environment')
 
+if env.get('SATELLITE_HTTP_PORT') and env.get('NETHVOICE_HOST'):
+    agent.set_route({
+        'instance': env['MODULE_ID'] + '-agents-api',
+        'url': 'http://127.0.0.1:' + env['SATELLITE_HTTP_PORT'],
+        'http2https': True,
+        'host': env['NETHVOICE_HOST'],
+        'path': '/agents-api/v1',
+        'strip_prefix': False,
+    }, error_passthrough=False)
+
 # Configure middleware routes if middleware environment variables are set
 if (env.get('NETHVOICE_MIDDLEWARE_PORT') and 
     env.get('NETHVOICE_HOST') and 

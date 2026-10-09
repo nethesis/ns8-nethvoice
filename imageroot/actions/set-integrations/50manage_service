@@ -16,12 +16,6 @@ if call_enabled == 'True' or vm_enabled == 'True':
     subprocess.run(["systemctl", "--user", "enable", "satellite-mqtt.service"], check=True)
     subprocess.run(["systemctl", "--user", "restart", "satellite-mqtt.service"], check=True)
 
-    subprocess.run(["systemctl", "--user", "enable", "satellite.service"], check=True)
-    subprocess.run(["systemctl", "--user", "restart", "satellite.service"], check=True)
-
-    subprocess.run(["systemctl", "--user", "enable", "satellite-pgsql.service"], check=True)
-    subprocess.run(["systemctl", "--user", "restart", "satellite-pgsql.service"], check=True)
-
     subprocess.run(["systemctl", "--user", "disable", "satellite-recordings-cleanup.service"], check=False)
     subprocess.run(["systemctl", "--user", "enable", "satellite-recordings-cleanup.timer"], check=True)
     subprocess.run(["systemctl", "--user", "start", "satellite-recordings-cleanup.service"], check=True)
@@ -31,10 +25,7 @@ if call_enabled == 'True' or vm_enabled == 'True':
     subprocess.run(["systemctl", "--user", "try-restart", "nethcti-ui.service"], check=True)
 
 elif call_enabled == 'False' and vm_enabled == 'False':
-    # Stop and disable services
-    subprocess.run(["systemctl", "--user", "stop", "satellite.service"], check=False)
-    subprocess.run(["systemctl", "--user", "disable", "satellite.service"], check=False)
-
+    # Stop only the transcription dependencies; the Agent runtime stays up.
     subprocess.run(["systemctl", "--user", "stop", "satellite-mqtt.service"], check=False)
     subprocess.run(["systemctl", "--user", "disable", "satellite-mqtt.service"], check=False)
 
@@ -51,3 +42,7 @@ elif call_enabled == 'False' and vm_enabled == 'False':
     subprocess.run(["systemctl", "--user", "try-restart", "freepbx.service"], check=True)
     subprocess.run(["systemctl", "--user", "try-restart", "nethcti-server.service"], check=True)
     subprocess.run(["systemctl", "--user", "try-restart", "nethcti-ui.service"], check=True)
+
+# The Agent API uses the same Satellite process regardless of transcription.
+# Restart it after any toggle change to pass the current transcription flag.
+subprocess.run(["systemctl", "--user", "restart", "satellite.service"], check=True)

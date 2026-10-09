@@ -7,7 +7,9 @@
 
 import os
 import sys
+import random
 import secrets
+import base64
 import string
 import agent
 
@@ -169,6 +171,8 @@ agent.set_env('ASTERISK_WSS_PORT', port_list[33])
 
 agent.set_env('SATELLITE_RTP_PORT', satellite_udp_port)
 agent.set_env('SATELLITE_ARI_APP', 'satellite')
+agent.set_env('SATELLITE_AGENT_ARI_APP', 'satellite-agent')
+agent.set_env('SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'False')
 agent.set_env('SATELLITE_ARI_USERNAME', 'satellite')
 agent.set_env('SATELLITE_MQTT_USERNAME', 'satellite')
 agent.set_env('SATELLITE_LOG_LEVEL', 'WARNING')
@@ -246,6 +250,11 @@ passwords = {
     "SATELLITE_ARI_PASSWORD": gen_password(),
     "SATELLITE_PGSQL_PASSWORD": gen_password(),
     "SATELLITE_API_TOKEN": gen_password(),
+    "SATELLITE_PBX_DATA_TOKEN": secrets.token_urlsafe(32),
+    "SATELLITE_AGENT_CONFIG_KEY": secrets.token_urlsafe(48),
+    "SATELLITE_MONITORING_CONTENT_KEY": base64.b64encode(secrets.token_bytes(32)).decode(),
+    "SATELLITE_APPLICATION_CONTENT_KEY": base64.b64encode(secrets.token_bytes(32)).decode(),
+    "SATELLITE_WORKFLOW_DB_PASSWORD": secrets.token_urlsafe(32),
     "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN": gen_password()
 }
 

@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+"""Clones inherit native configuration, never history or application credentials."""
+import json
+import os
+import subprocess
+import agent
+
+# transfer-state includes volumes, not only the SQL dump. Reset the copied
+# cluster before services can use the clone's new credentials and content keys.
+subprocess.run(['systemctl', '--user', 'stop', 'satellite.service', 'satellite-pgsql.service'], check=True)
+subprocess.run(['podman', 'volume', 'rm', '--force', '--ignore',
+                'satellite_pgdata', 'satellite_agent_state'], check=True)
+
+try:
+    # PostgreSQL also owns Phase 4 connectors, clients, results and effect state.
+    # A fresh database starts API access disabled and contains no copied tokens.
+    os.unlink('satellite_postgresql.pg_dump.gz')
+except FileNotFoundError:
+    pass
+
+# Use the database already started by step 20 and updated by step 21.
+# Step 23 stops it after this cleanup. Load the new passwords for SQL commands.
+previous = agent.read_envfile('passwords.old')
+current = agent.read_envfile('passwords.env')
+subprocess.run(['podman', 'run', '--rm', '--interactive', '--network=host',
+                '--entrypoint=php', os.environ['NETHVOICE_FREEPBX_IMAGE'],
+                '/var/www/html/freepbx/admin/modules/satellite/bin/satellite_agent_clone'],
+               input=json.dumps({'source_key': previous.get('SATELLITE_AGENT_CONFIG_KEY', ''),
+                                 'target_key': current['SATELLITE_AGENT_CONFIG_KEY'],
+                                 'database': {'port': int(os.environ['NETHVOICE_MARIADB_PORT']),
+                                              'password': current['MARIADB_ROOT_PASSWORD']}}),
+               text=True, check=True, stdout=subprocess.DEVNULL)
+command = ['podman', 'exec', '--env-file=passwords.env', '-i', 'mariadb', 'sh', '-c',
+    'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; exec mysql -N -B -u root asterisk']
+result = subprocess.run(command, input="""
+SELECT table_name FROM information_schema.tables WHERE table_schema=DATABASE()
+ AND table_name IN ('satellite_agent_monitoring_policy','satellite_agent_configuration_state','satellite_agent_destinations');
+""", text=True, capture_output=True, check=True)
+tables = set(result.stdout.splitlines())
+queries = []
+if 'satellite_agent_monitoring_policy' in tables:
+    result = subprocess.run(command, input='SELECT policy_json FROM satellite_agent_monitoring_policy WHERE id=1;',
+                            text=True, capture_output=True, check=True)
+    policy = json.loads(result.stdout)
+    policy['transcripts'] = {'internal': False, 'external': False}
+    policy['capture_versions'] = {'internal': 1, 'external': 1}
+    # Hex avoids SQL quoting and preserves JSON booleans across MariaDB versions.
+    encoded = json.dumps(policy, separators=(',', ':')).encode().hex()
+    queries.append(f'UPDATE satellite_agent_monitoring_policy SET policy_json=CONVERT(0x{encoded} USING utf8mb4), updated_by=NULL WHERE id=1;')
+if 'satellite_agent_configuration_state' in tables:
+    queries.append("""
+UPDATE satellite_agent_configuration_state SET desired_revision=desired_revision+1,
+ desired_hash=NULL,snapshot_revision=NULL,snapshot_hash=NULL,payload_encrypted=NULL,
+ acknowledged_revision=0,acknowledged_hash=NULL WHERE id=1;
+""")
+if 'satellite_agent_destinations' in tables:
+    queries.append("UPDATE satellite_agent_destinations SET enabled=0 WHERE agent_type='workflow';")
+if queries:
+    subprocess.run(command, input='START TRANSACTION;\n'+'\n'.join(queries)+'\nCOMMIT;', text=True, check=True)

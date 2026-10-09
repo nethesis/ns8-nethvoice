@@ -117,3 +117,268 @@ export $(grep SATELLITE_MQTT_PASSWORD passwords.env); podman exec -it satellite-
 ```
 export $(grep SATELLITE_API_TOKEN passwords.env);curl "http://127.0.0.1:${SATELLITE_HTTP_PORT}/api/get_transcription" --show-error --request POST --form "multichannel=false" --form "encoding=linear16" --form "sample_rate=8000" --form "channels=1" --form "persist=false" --form "summary=false" --header "Authorization: Bearer ${SATELLITE_API_TOKEN}" --form "file=@test.wav;type=audio/wav"
 ```
+
+## NethVoice Agents monitoring
+
+Open `/freepbx/wizard/#!/agents` for agent status and run history.
+The [monitoring contract](monitoring-api-contract.md) defines access, storage and retention.
+Transcript capture defaults to off. Metadata is kept for 30 days by default.
+Enabled transcripts are kept for 7 days. History storage does not gate call handling.
+The Satellite runtime runs its own retention task.
+
+Runtime code is maintained in [Nethesis/satellite, branch agent](https://github.com/nethesis/satellite/tree/agent).
+`build-images.sh` imports the immutable runtime digest recorded in
+`satellite/runtime-image.txt` and tags the normal NethVoice Satellite wrapper.
+This repository does not build or patch runtime source.
+Publish the matching Satellite agent image before you build this module branch.
+
+## Application integrations and machine API
+
+The [application API contract](phase4-api-contract.md) defines connectors,
+credentials and machine access. Open `/freepbx/wizard/#!/agents/connectors`
+or `/freepbx/wizard/#!/agents/api`. Access starts disabled.
+`SATELLITE_APPLICATION_CONTENT_KEY` encrypts application credentials and content.
+NS8 stores and backs up that key in `passwords.env`.
+
+## Visual agent builder
+
+Use the Builder to connect blocks and define an agent's behavior. Custom agents
+appear beside the built-in agents. Each agent shows its available tools.
+If your browser retains an older editor after a UI update, press **Ctrl+Shift+R**
+to load the new bundle.
+Templates include a call router, a customer-support agent and a payment secretary.
+The payment source can be text, CSV, XLSX, private Google Sheets or published Google CSV.
+
+The [agent workflow skill](https://github.com/nethesis/ns8-nethvoice/tree/agent/freepbx/var/www/html/freepbx/admin/modules/satellite/skills/nethvoice-agent-workflows/SKILL.md)
+helps a coding agent create, configure and test these workflows. Ask it to read
+that skill and describe the workflow you need. It asks for missing credentials
+and data. It tests with mock data first. It asks for confirmation before the
+final OpenAI test. The skill is stored in this branch; publication is separate.
+
+### Create the trunk and data sources
+
+1. Give the assistant your PBX address, workflow name and required behavior.
+   State whether the workflow handles calls or API requests.
+2. For calls, select an existing compatible agent trunk or create one in
+   **Agent Trunks**. Select **Builtin Satellite** as its runtime. For OpenAI,
+   supply the project ID and project API key. Use the password field for the key.
+3. Open **Webhooks**. Use the exact URL shown there for the provider webhook.
+   Store its signing secret on that page. A saved setting does not prove that
+   the remote provider connection works.
+4. Open **Connections** for integration credentials and connector operations.
+   Enter secrets through the credential form. Do not put keys in a graph or report.
+5. Open **Data sources** for payment data. Map the fields, preview the rows and
+   publish the data. Use a viewer service account for a private Google Sheet.
+   A published Google CSV needs its published download URL and no Google key.
+   See [Google Sheets setup](google-sheets-setup.md).
+
+An API-only workflow does not need a SIP trunk. It needs an explicit text model
+and a stored credential reference. Its client also needs access to the workflow.
+
+### Define the behavior
+
+Open **Builder**. Copy a template or create a blank graph. Select the provider
+binding for a voice workflow. Set its prompts, language, inputs, tools and fallback.
+Select published versions of connectors, data sources and reusable blocks.
+For an OpenAI trunk, set **Voice model override** to `gpt-live-1` for GPT-Live
+or `gpt-realtime` for Realtime. Both APIs can use the same trunk. Leave the field
+empty to inherit the external profile model. Built-in profiles use their
+existing **Model** field. Save and publish a new workflow version to change its
+voice model; existing published definitions are immutable.
+
+For GPT-Live, enable Live SIP on the OpenAI project. Add the
+`live.transport.incoming` webhook subscription and retain
+`realtime.call.incoming`. Keep the same webhook URL and signing secret. The
+provider-facing SIP/media path must support TLS and SRTP. Verify the external
+media negotiation through the NethVoice proxy; the PBX-side RTP setting alone
+does not describe that leg. Live uses the trunk's key and a `gpt-6-luna` backend
+for reasoning and tools, billed separately from the Live voice session.
+
+Live advances when a structured tool supplies the required data. Writes still
+require configured confirmations, permissions and exact approved arguments.
+Speech-only steps use prompt readiness instead of an audio-completion signal;
+this does not prove that the caller heard every word. DTMF is accepted after
+prompt readiness. Operator acceptance remains separate from caller approval.
+After a private Live consultation fails or is declined, the caller stays on
+hold while Satellite creates a fresh provider session without private context.
+
+The PBX answers incoming agent calls before the agent starts its greeting.
+Company contacts and answered-call history use the private local endpoint at
+`/satellite/agent-workflow-data.php`. It uses a read-only database account.
+
+Tell the assistant which outcomes you need. Include the failure paths:
+
+| Workflow | Decisions to supply |
+|---|---|
+| Call router | Allowed PBX destinations and agents, disabled objects, fallback and delegated tools |
+| Customer support | Caller lookup, ticket fields, support extensions, assignee mapping, documentation source and confirmation rules |
+| Payment secretary | Resident fields, caller matching, unknown-caller verification, month, currency and source age limit |
+
+Router targets start disabled. Enable only the required targets. Tool selection
+does not grant access. Enable the required operation grants separately.
+
+A payment name alone does not permit disclosure. Use the agreed caller-number
+or code verification rule. If similar-name matching is selected, codes still
+match exactly. An ambiguous resident match must fail verification.
+
+Support ticket creation and urgency changes require caller confirmation.
+Consultation holds the caller while the operator hears the private summary.
+The operator must accept before the transfer. Decline or no answer returns to
+the caller. Configure the fallback branch for each of these outcomes.
+
+Save and validate the draft. Correct each reported error before publication.
+Check that the saved settings match your choices. Published versions do not
+change. Publish a new graph version to use a newer data or connector version.
+Publishing selects the new active version and keeps the agent's enabled state.
+The PBX updates the binding and starts a dialplan reload when the binding changes.
+Saving a draft does not reload the dialplan. Check PBX sync before a call.
+If a stored draft validates through the private API but fails in Wizard, check
+the workflow gateway JSON types. Empty configuration, inputs and schema
+properties must stay objects (`{}`). Node lists and grants must stay arrays (`[]`).
+Reload the editor after a gateway repair before you save or publish.
+Reusable blocks use their own graph deadline and the remaining parent deadline.
+They do not use the default ten-second limit for a single operation.
+
+### Backup, restore and clone
+
+Restore keeps existing encryption keys. It creates missing keys for older backups.
+A clone gets new keys. It re-encrypts retained native trunk secrets with its new
+configuration key. It does not copy workflow data, application credentials or
+run history. Copied workflow destinations are disabled. Recreate the workflows
+and their data connections before you enable those destinations.
+
+### Test without OpenAI first
+
+The assistant first tests with synthetic inputs and mock responses. This test
+makes no provider calls, no real transfers and no external business changes.
+It does not generate test speech through OpenAI.
+
+In the editor, open **Test**, enter the caller and conversation fixtures, and
+select **Run mock**. Check the node outcomes in the table below the test form.
+The result must take the expected success or fallback branch.
+
+The current form supplies conversation fixtures only. Payment tables and other
+block responses need the authenticated workflow test API. The assistant can
+supply these fixtures. See the [workflow API contract](workflow-api-contract.md).
+`table_fixture_required` means that a mock table is missing. It does not report
+a failed live data source. Mock results are not stored as live history runs.
+
+Test invalid identity, missing records, declined actions and unavailable
+transfers. A mock success proves the graph's branch behavior. It does not prove
+remote service access or correct call audio.
+
+```mermaid
+flowchart TD
+    A[Supply behavior, credentials and data] --> B[Configure trunk and draft]
+    B --> C[Test with mocks; no OpenAI]
+    C --> D{Offline checks pass?}
+    D -->|No| B
+    D -->|Yes| E{Approve final OpenAI test?}
+    E -->|No| F[Keep offline results and test instructions]
+    E -->|Yes| G[Publish, enable and wait for PBX sync]
+    G --> H[Run the agreed live test]
+    H --> I[Check audio and linked run results]
+```
+
+### Confirm and repeat the final test
+
+After the mock tests pass, the assistant asks to run the final OpenAI test.
+It gives the workflow version, caller, operator, test limit and expected result.
+The test sends call data to OpenAI and can incur charges. Confirm the specific
+test before it starts. A read-only integration test must not create or change tickets.
+
+For a voice test:
+
+1. Check that the selected published version is enabled and PBX sync is ready.
+2. Call the agreed test number or route from the reserved caller extension.
+   The workflow ID is not a telephone number. Use the test route supplied by
+   your administrator or assistant.
+3. Follow the supplied test script. For payment, ask for the chosen month.
+   For every caller, supply the test resident name and exact code.
+4. For consultation, the operator presses **1** to accept or **2** to decline
+   after the private summary. For ticket actions, follow the caller's separate
+   confirmation prompt. Operator acceptance does not confirm a ticket change.
+5. Check the reply or transfer against the expected result. Then check history
+   and the graph trace. End the call and stop temporary test clients.
+
+For an API workflow, use the agreed test client and input. The real runs API
+can call OpenAI and integrations. It is not a mock endpoint.
+
+### Check results
+
+On your PBX, use these page paths. Replace `{agent_id}` and `{run_id}` with the
+actual values. The assistant must provide full links for your PBX and real runs.
+
+| Page | Path | What to check |
+|---|---|---|
+| Builder | `/freepbx/wizard/#!/agents/build/agent/{agent_id}` | Correct graph, grants and published version |
+| History | `/freepbx/wizard/#!/agents` | New run, agent, time, terminal status and configuration sync |
+| Run detail | `/freepbx/wizard/#!/agents/runs/{run_id}` | Status, events, transfer result and safe error codes |
+| Graph trace | `/freepbx/wizard/#!/agents/graph-runs/{run_id}` | Pinned version and each node's outcome |
+
+| Test | Expected result |
+|---|---|
+| Known payment caller | `identify: known`, `verify: verified`, `payment: found`, `answer: success`, run `completed`; spoken month, currency and amount match the test row |
+| Verified unknown payment caller | `identify: unknown`, `verify: verified`, then the same payment result |
+| Wrong code or ambiguous identity | Verification denied; fallback used; no payment disclosed |
+| Router to another agent | Parent run `handed_off`; linked child uses the selected agent and has its own result |
+| Router to a PBX destination | Requested permitted endpoint receives the caller |
+| Accepted consultation | Operator accepts; caller and operator connect; private summary is not heard by the caller |
+| Declined/unavailable consultation | Caller resumes the configured branch; no orphan call remains |
+| Declined ticket action | No ticket created or changed |
+
+Check both the spoken result and the trace. A `completed` status alone does not
+prove that the spoken amount or private audio was correct. Capture defaults to
+off. A run can have metadata without a transcript.
+
+### API contracts and offline tests
+
+Use the [workflow API contract](workflow-api-contract.md) for graph fields,
+fixtures, publication and result access. These contracts match the Satellite
+agent runtime. Keep its image and the module code compatible.
+
+For local workflow tests, set `SATELLITE_SOURCE_DIR` to a Satellite agent checkout.
+Use that path in `PYTHONPATH`. Run `satellite/tests/run-workflows-database.sh`
+for database tests and `satellite/tests/run-workflows-pbx.sh` for PBX data tests.
+Test output and screenshots are local artifacts. Git ignores them.
+
+## Review fixes and build requirements
+
+Build Satellite from the corrected source and run its acceptance suites first.
+Record the matching published digest in `satellite/runtime-image.txt` before
+building NethVoice. Local builds can override it with
+`SATELLITE_RUNTIME_IMAGE=ghcr.io/nethesis/satellite@sha256:<tested digest>`;
+GitHub builds can override it with the repository variable of the same name.
+An unset override uses the committed pin. A mutable branch tag is rejected.
+The current pin was published from Satellite commit
+[`08cabfa`](https://github.com/nethesis/satellite/commit/08cabfa08c71401dde933f18b21eb01499524f6b),
+after its unit and isolated application/monitoring storage checks passed.
+Acceptance runners require
+`SATELLITE_ACCEPTANCE_IMAGE`, `SATELLITE_SOURCE_DIR` and an optional exact
+`SATELLITE_ACCEPTANCE_REF`. They use the tests from that Satellite checkout.
+
+Satellite contracts and runtime tests are maintained in nethesis/satellite.
+The local contract files link to that source. PBX gateway, clone, dialplan,
+restore and browser tests remain here. The module’s `configure-module` action
+accepts optional `cleverai_webhook`: omit it to preserve the current URL or send
+an empty value to remove it. It is stored in `passwords.env`, including URLs that
+contain credentials; configuration reads do not expose it.
+
+Payment caller ID does not authorize disclosure. Every caller must supply the
+resident name and exact verification code. Use codes with at least six characters
+and store identifier columns as text. Numeric XLSX/Sheets amounts retain their
+numeric value. Set a data reference to `version: "latest"` to use each successful
+Sheet refresh; the selected version stays fixed within a run. Explicit integer
+references retain their immutable snapshot. Failed refreshes do not renew data
+freshness. Unreferenced versions are pruned; referenced versions are retained.
+
+Builtin profile forms reject incomplete submissions before changing any stored
+settings. Successful administration saves apply the matching dialplan. Disabled
+or invalid destinations keep their fallback context. The sync retry timer runs
+every five minutes. Satellite waits for PostgreSQL readiness before startup and
+receives only its required secrets. PBX data uses a separate local credential.
+
+Agent settings are backed up and restored through NS8 module database dumps.
+The FreePBX-only backup/uninstall hooks intentionally retain agent tables and
+managed trunks; they do not provide a standalone agent backup or cleanup. Use
+NS8 module backup/restore and module removal for the supported lifecycle.

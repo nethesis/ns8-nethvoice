@@ -1,0 +1,62 @@
+#!/usr/bin/env php
+<?php
+// Re-encrypt retained native agent secrets with the cloned instance key.
+// Read the keys and database password from private standard input.
+/** Rotate retained native Agent secrets without printing credentials. */
+require_once __DIR__ . '/../lib/AgentCrypto.php';
+
+$db = null;
+try {
+    $input = json_decode(stream_get_contents(STDIN), true, 16, JSON_THROW_ON_ERROR);
+    foreach (array('source_key', 'target_key') as $field) {
+        if (!isset($input[$field]) || !is_string($input[$field])) {
+            throw new RuntimeException('Invalid key input');
+        }
+    }
+    if ($input['target_key'] === '') { throw new RuntimeException('Missing target key'); }
+    $connection = $input['database'];
+    $port = (int) $connection['port'];
+    if ($port < 1 || $port > 65535) { throw new RuntimeException('Invalid database port'); }
+    $db = new PDO('mysql:host=127.0.0.1;port=' . $port . ';dbname=asterisk;charset=utf8mb4',
+        'root', $connection['password'], array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION));
+    $tables = $db->query("SELECT table_name FROM information_schema.tables
+        WHERE table_schema=DATABASE()")->fetchAll(PDO::FETCH_COLUMN);
+    $crypto = new AgentCrypto();
+    $rotate = function ($encoded) use ($crypto, $input) {
+        if ($encoded === null || $encoded === '') { return $encoded; }
+        putenv('SATELLITE_AGENT_CONFIG_KEY=' . $input['source_key']);
+        try {
+            $plain = $crypto->decryptSecret($encoded);
+        } catch (RuntimeException $error) {
+            // A retry may see secrets that the previous transaction rotated.
+            putenv('SATELLITE_AGENT_CONFIG_KEY=' . $input['target_key']);
+            $crypto->decryptSecret($encoded);
+            return $encoded;
+        }
+        putenv('SATELLITE_AGENT_CONFIG_KEY=' . $input['target_key']);
+        return $crypto->encryptSecret($plain);
+    };
+    $db->beginTransaction();
+    if (in_array('satellite_agent_trunks', $tables, true)) {
+        $rows = $db->query('SELECT id,api_key_encrypted,sip_auth_password_encrypted,
+            webhook_signing_secret_encrypted FROM satellite_agent_trunks FOR UPDATE')->fetchAll(PDO::FETCH_ASSOC);
+        $update = $db->prepare('UPDATE satellite_agent_trunks SET api_key_encrypted=?,
+            sip_auth_password_encrypted=?,webhook_signing_secret_encrypted=? WHERE id=?');
+        foreach ($rows as $row) {
+            $update->execute(array($rotate($row['api_key_encrypted']),
+                $rotate($row['sip_auth_password_encrypted']),
+                $rotate($row['webhook_signing_secret_encrypted']), $row['id']));
+        }
+    }
+    if (in_array('satellite_agent_webhook_previous_keys', $tables, true)) {
+        $rows = $db->query('SELECT id,secret_encrypted FROM satellite_agent_webhook_previous_keys
+            FOR UPDATE')->fetchAll(PDO::FETCH_ASSOC);
+        $update = $db->prepare('UPDATE satellite_agent_webhook_previous_keys SET secret_encrypted=? WHERE id=?');
+        foreach ($rows as $row) { $update->execute(array($rotate($row['secret_encrypted']), $row['id'])); }
+    }
+    $db->commit();
+} catch (Throwable $error) {
+    if ($db && $db->inTransaction()) { $db->rollBack(); }
+    fwrite(STDERR, "Clone Agent credential rotation failed\n");
+    exit(1);
+}

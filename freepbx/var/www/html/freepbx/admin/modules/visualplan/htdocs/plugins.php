@@ -123,6 +123,46 @@ if ($reqGet === "tools") {
         $rest = $jsonArray['rest'] ?? '';
     
         switch ($type) {
+            case 'agent-trunk':
+                header('Content-Type: application/json; charset=utf-8');
+                if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+                    http_response_code(405);
+                    echo json_encode(array('error' => 'POST is required'));
+                    break;
+                }
+                try {
+                    if ($rest !== 'set' || !isset($jsonArray['trunk']) || !is_array($jsonArray['trunk']) ||
+                        array_key_exists('id', $jsonArray) || array_key_exists('id', $jsonArray['trunk'])) {
+                        throw new \InvalidArgumentException('Invalid Agent trunk creation request');
+                    }
+                    $satellite = FreePBX::Satellite();
+                    $satellite->assertAgentCsrfToken($_SERVER['HTTP_X_SATELLITE_AGENT_CSRF'] ?? null);
+                    $fields = array('name', 'provider', 'openai_project_id', 'grok_phone_number',
+                        'api_key', 'sip_auth_mode', 'sip_auth_username', 'sip_auth_password');
+                    $input = array_intersect_key($jsonArray['trunk'], array_flip($fields));
+                    $id = $satellite->saveAgentTrunk($input);
+                    system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+                    $trunk = $satellite->getAgentTrunk($id);
+                    $status = null;
+                    foreach ($satellite->getAgentTrunks() as $row) {
+                        if ((int) $row['id'] === $id) {
+                            $status = $row['status'];
+                            break;
+                        }
+                    }
+                    echo json_encode(array('success' => true, 'trunk' => array(
+                        'id' => $id, 'name' => $trunk['name'], 'provider' => $trunk['provider'],
+                        'status' => $status,
+                    )));
+                } catch (\Throwable $error) {
+                    http_response_code(400);
+                    // Core/DB exceptions can include SIP credentials or SQL values.
+                    $message = $error instanceof \InvalidArgumentException
+                        ? $error->getMessage() : 'Unable to save Agent trunk';
+                    echo json_encode(array('error' => $message));
+                }
+                break;
+
             case 'timegroup':
     
                 if ($rest == "get") {
@@ -181,6 +221,8 @@ if ($reqGet === "tools") {
                     $times = is_array($jsonArray['times'] ?? null) ? $jsonArray['times'] : array();
                     $name = $times[0]['name'] ?? '';
                     $addedTime = FreePBX::Timeconditions()->addTimeGroup($name, $times);
+                    needreload();
+                    system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
                     echo $addedTime;
 
                 } else if ($rest == "update") {
@@ -190,6 +232,8 @@ if ($reqGet === "tools") {
                     $name = $times[0]['name'] ?? '';
                     $updateName = FreePBX::Timeconditions()->editTimeGroup($id, $name);
                     $updateTime = FreePBX::Timeconditions()->editTimes($id, $times);
+                    needreload();
+                    system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
                     echo json_encode($updateName);
     
                 }

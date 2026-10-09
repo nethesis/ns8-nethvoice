@@ -1,0 +1,36 @@
+.agents-area .wizard-pf-contents { padding: 24px; overflow-y: auto; }
+.agents-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.agents-header h1 { margin: 0; }
+.agents-cards { display: flex; flex-wrap: wrap; gap: 16px; margin: 20px 0; }
+.agents-cards .card-pf { flex: 1 1 220px; margin: 0; padding: 16px; }
+.agents-cards strong { font-size: 24px; }
+.agents-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 16px 0; }
+.agents-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-bottom: 20px; }
+.agents-filters label { flex: 1 1 180px; max-width: 280px; }
+.agents-outcomes { display: flex; flex-wrap: wrap; gap: 24px; padding-left: 18px; }
+.agents-facts { display: grid; grid-template-columns: minmax(130px, 180px) minmax(0, 1fr); gap: 10px; }
+.agents-facts dd, .agents-area td { overflow-wrap: anywhere; }
+.agents-policy { max-width: 650px; margin-top: 24px; }
+.agents-policy .form-control { max-width: 220px; margin: 6px 0 16px; }
+.agents-checkbox { display: block; margin: 12px 0; }
+.agents-conversation { list-style: none; padding: 0; }
+.agents-conversation li { border-left: 3px solid #0088ce; background: #f5f5f5; padding: 12px; margin: 12px 0; }
+.agents-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0 0; }
+@media (max-width: 600px) { .agents-area .wizard-pf-contents { padding: 12px; } .agents-facts { grid-template-columns: 1fr; gap: 4px; } .agents-facts dd { margin-bottom: 12px; } }
+.agents-operation { padding: 1rem; margin: 1rem 0; border: 1px solid #bbb; }
+.agents-code { font-family: monospace; width: 100%; }
+.agents-area .agents-policy label { display: block; margin: 0.75rem 0; }
+.agents-area nav { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.agents-area .agents-policy textarea.form-control { max-width: 100%; }
+.agents-field { margin: 0.75rem 0; }
+.agents-field-label { display: flex; align-items: baseline; gap: 6px; }
+.agents-area .agents-field-label label { display: inline; margin: 0; }
+.agents-field-label agent-field-help { flex: 0 0 auto; }
+.agents-help-button { border: 1px solid #72767b; border-radius: 50%; background: transparent; color: #363636; font-weight: bold; font-size: 12px; line-height: 20px; width: 24px; height: 24px; padding: 0; }
+.agents-help-button:hover { background: #e7f1f8; }
+.agents-help-button:focus { outline: 2px solid #0088ce; outline-offset: 2px; }
+.agents-field-tooltip { max-width: min(320px, calc(100vw - 24px)); overflow-wrap: anywhere; }
+.agents-field-tooltip .popover-content { white-space: pre-wrap; font-weight: normal; }
+.agents-checkbox-field { display: flex; align-items: baseline; gap: 6px; }
+.agents-checkbox-field agent-field-help { flex: 0 0 auto; }
+@media (pointer: coarse) { .agents-help-button { width: 32px; height: 32px; font-size: 14px; } }

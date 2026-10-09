@@ -40,6 +40,7 @@ jobs:
     env:
       IMAGETAG: ${{ inputs.imagetag }}
       BUILD_IMAGES: ${{ inputs.build-images }}
+      SATELLITE_RUNTIME_IMAGE: ${{ vars.SATELLITE_RUNTIME_IMAGE }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -60,6 +61,11 @@ jobs:
             echo "REPOBASE=ghcr.io/${repository_owner}"
             echo "IMAGETAG=${imagetag}"
           } >> "$GITHUB_ENV"
+
+      - name: Validate build and acceptance helpers
+        run: |
+          python3 -m unittest discover -s tests/unit -p test_build_images.py
+          python3 -m unittest discover -s tests/unit -p test_users_admin_readiness.py
 
       - name: Log in to container registry
         env:

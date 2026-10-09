@@ -1,0 +1,4 @@
+interface:
+  display_name: "NethVoice Agent Workflows"
+  short_description: "Create, configure and test NethVoice agent workflows"
+  default_prompt: "Use $nethvoice-agent-workflows to set up an agent trunk, define my workflow, test it without OpenAI, and ask before the final live test."

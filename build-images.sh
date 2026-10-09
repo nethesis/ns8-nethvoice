@@ -83,6 +83,19 @@ build_image() {
     buildah build "$@"
 }
 
+# Validate the selected runtime before building any module images.
+if should_build "nethvoice-satellite"; then
+    if [[ -z "${SATELLITE_RUNTIME_IMAGE:-}" ]]; then
+        SATELLITE_RUNTIME_IMAGE=$(cat satellite/runtime-image.txt)
+    fi
+    : "${SATELLITE_RUNTIME_IMAGE:?Set SATELLITE_RUNTIME_IMAGE to the tested Satellite release digest}"
+    if [[ ! "$SATELLITE_RUNTIME_IMAGE" =~ ^ghcr.io/nethesis/satellite@sha256:[a-f0-9]{64}$ ]]; then
+        echo 'SATELLITE_RUNTIME_IMAGE must be an immutable Satellite digest' >&2
+        exit 1
+    fi
+fi
+
+
 # Sanitize the image tag by replacing slashes with dashes to avoid issues with buildah tagging
 if [[ -n "${IMAGETAG}" ]]; then
     IMAGETAG=$(printf '%s' "${IMAGETAG}" | tr '/' '-')
@@ -106,6 +119,7 @@ if should_build "${reponame}"; then
 else
     skip_build "${reponame}"
 fi
+
 
 
 
@@ -352,7 +366,7 @@ fi
 reponame="nethvoice-satellite"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/satellite:0.2.4)
+    container=$(buildah from "$SATELLITE_RUNTIME_IMAGE")
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
     buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"

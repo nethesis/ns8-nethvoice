@@ -1,7 +1,7 @@
 [Unit]
-Description=Satellite call transcription for NethVoice
-Requires=satellite-mqtt.service satellite-pgsql.service
-After=satellite-mqtt.service satellite-pgsql.service
+Description=Satellite API and Agent runtime for NethVoice
+Wants=satellite-pgsql.service
+After=satellite-pgsql.service satellite-mqtt.service freepbx.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -9,14 +9,20 @@ EnvironmentFile=%E/state/environment
 EnvironmentFile=%E/state/passwords.env
 WorkingDirectory=%E/state
 Restart=always
+TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/satellite.pid %t/satellite.ctr-id
+ExecStartPre=runagent wait-satellite-pgsql
 ExecStart=runagent /usr/bin/podman run \
     --detach \
     --conmon-pidfile=%t/satellite.pid \
     --cidfile=%t/satellite.ctr-id \
     --cgroups=no-conmon \
     --replace --name=%N \
-    --env-file=%E/state/passwords.env \
+    --env=SATELLITE_MONITORING_CONTENT_KEY=${SATELLITE_MONITORING_CONTENT_KEY} \
+    --env=SATELLITE_APPLICATION_CONTENT_KEY=${SATELLITE_APPLICATION_CONTENT_KEY} \
+    --env=DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY} \
+    --env=OPENAI_API_KEY=${OPENAI_API_KEY} \
+    --env=HTTP_HOST=127.0.0.1 \
     --env=ASTERISK_URL="http://127.0.0.1:${ASTERISK_WS_PORT}" \
     --env=ARI_APP=${SATELLITE_ARI_APP} \
     --env=ARI_USERNAME=${SATELLITE_ARI_USERNAME} \
@@ -28,7 +34,12 @@ ExecStart=runagent /usr/bin/podman run \
     --env=HTTP_PORT=${SATELLITE_HTTP_PORT} \
     --env=HTTP_HOST=127.0.0.1 \
     --env=API_TOKEN=${SATELLITE_API_TOKEN} \
+    --env=SATELLITE_PBX_DATA_TOKEN=${SATELLITE_PBX_DATA_TOKEN} \
+    --env=APACHE_PORT=${APACHE_PORT} \
     --env=SATELLITE_ARI_PASSWORD=${SATELLITE_ARI_PASSWORD} \
+    --env=SATELLITE_AGENT_ARI_APP=${SATELLITE_AGENT_ARI_APP} \
+    --env=SATELLITE_CALL_TRANSCRIPTION_ENABLED=${SATELLITE_CALL_TRANSCRIPTION_ENABLED} \
+    --env=SATELLITE_AGENT_STATE_PATH=/var/lib/satellite-agent/configuration.json \
     --env=SATELLITE_MQTT_PASSWORD=${SATELLITE_MQTT_PASSWORD} \
     --env=PGVECTOR_HOST=127.0.0.1 \
     --env=PGVECTOR_PORT=${SATELLITE_PGSQL_PORT} \
@@ -37,8 +48,10 @@ ExecStart=runagent /usr/bin/podman run \
     --env=PGVECTOR_PASSWORD=${SATELLITE_PGSQL_PASSWORD} \
     --tz=${TIMEZONE} \
     --network=host \
+    --volume=satellite_agent_state:/var/lib/satellite-agent:Z,U \
     ${NETHVOICE_SATELLITE_IMAGE}
 
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/satellite.ctr-id -t 60
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/satellite.ctr-id
 PIDFile=%t/satellite.pid
 Type=forking

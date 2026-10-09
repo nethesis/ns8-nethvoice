@@ -27,7 +27,14 @@ systemctl --user enable --now nethvoice-calendar-sync.timer
 echo "Enabling nethcti-ui-restart timer"
 systemctl --user enable --now nethcti-ui-restart.timer
 
-# Migrate Satellite cleanup to timer-based scheduling
-echo "Enabling satellite recordings cleanup timer"
+# Migrate Satellite cleanup to timer-based scheduling only when needed.
 systemctl --user disable satellite-recordings-cleanup.service >/dev/null 2>&1 || true
-systemctl --user enable --now satellite-recordings-cleanup.timer
+if [ "${SATELLITE_CALL_TRANSCRIPTION_ENABLED:-False}" = "True" ] ||
+   [ "${SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED:-False}" = "True" ]; then
+    systemctl --user enable --now satellite-recordings-cleanup.timer
+else
+    systemctl --user disable --now satellite-recordings-cleanup.timer
+fi
+
+# Agent monitoring owns PostgreSQL even without legacy transcription.
+systemctl --user enable --now satellite-pgsql.service || true

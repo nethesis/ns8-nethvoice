@@ -7,7 +7,9 @@
 
 import agent
 import os
+import random
 import secrets
+import base64
 import string
 
 def gen_password(length=32):
@@ -143,6 +145,10 @@ if os.getenv('PHONEBOOK_EXPORT_EXTENSIONS') is None:
 # Add satellite environment for updates
 if os.getenv('SATELLITE_ARI_APP') is None:
     agent.set_env('SATELLITE_ARI_APP', 'satellite')
+if os.getenv('SATELLITE_AGENT_ARI_APP') is None:
+    agent.set_env('SATELLITE_AGENT_ARI_APP', 'satellite-agent')
+if os.getenv('SATELLITE_CALL_TRANSCRIPTION_ENABLED') is None:
+    agent.set_env('SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'False')
 if os.getenv('SATELLITE_ARI_USERNAME') is None:
     agent.set_env('SATELLITE_ARI_USERNAME', 'satellite')
 if os.getenv('SATELLITE_MQTT_USERNAME') is None:
@@ -162,9 +168,22 @@ if not 'SATELLITE_ARI_PASSWORD' in agent.read_envfile('passwords.env'):
     passwordsfile['SATELLITE_ARI_PASSWORD'] = gen_password()
 if not 'SATELLITE_PGSQL_PASSWORD' in agent.read_envfile('passwords.env'):
     passwordsfile['SATELLITE_PGSQL_PASSWORD'] = gen_password()
-if not (passwordsfile.get('SATELLITE_API_TOKEN') or '').strip():
+if not passwordsfile.get('SATELLITE_API_TOKEN', '').strip():
     passwordsfile['SATELLITE_API_TOKEN'] = gen_password()
+if not passwordsfile.get('SATELLITE_PBX_DATA_TOKEN'):
+    passwordsfile['SATELLITE_PBX_DATA_TOKEN'] = secrets.token_urlsafe(32)
+if not passwordsfile.get('SATELLITE_AGENT_CONFIG_KEY'):
+    passwordsfile['SATELLITE_AGENT_CONFIG_KEY'] = secrets.token_urlsafe(48)
+if not passwordsfile.get('SATELLITE_MONITORING_CONTENT_KEY'):
+    passwordsfile['SATELLITE_MONITORING_CONTENT_KEY'] = base64.b64encode(secrets.token_bytes(32)).decode()
+if not passwordsfile.get('SATELLITE_APPLICATION_CONTENT_KEY'):
+    passwordsfile['SATELLITE_APPLICATION_CONTENT_KEY'] = base64.b64encode(secrets.token_bytes(32)).decode()
+if not passwordsfile.get('SATELLITE_WORKFLOW_DB_PASSWORD'):
+    passwordsfile['SATELLITE_WORKFLOW_DB_PASSWORD'] = secrets.token_urlsafe(32)
+if os.getenv('CLEVERAI_WEBHOOK') and not passwordsfile.get('CLEVERAI_WEBHOOK'):
+    passwordsfile['CLEVERAI_WEBHOOK'] = os.environ['CLEVERAI_WEBHOOK']
 agent.write_envfile('passwords.env', passwordsfile)
+agent.unset_env('CLEVERAI_WEBHOOK')
 
 if os.getenv('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT') is None:
     # Use existing NETHCTI_SERVER_API_PORT for API endpoint

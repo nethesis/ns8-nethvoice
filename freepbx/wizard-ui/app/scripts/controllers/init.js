@@ -30,7 +30,8 @@ angular.module('nethvoiceWizardUiApp')
     };
 
     $scope.login = {
-      isLogged: false
+      isLogged: false,
+      returnPath: /^\/agents(?:\/(?:settings|connectors|api|data|build(?:\/(?:agent|subflow)\/[a-z][a-z0-9_-]{0,47})?|(?:runs|graph-runs)\/[A-Za-z0-9_.:-]{1,128}))?$/.test($location.path()) ? $location.path() : null
     };
     $scope.loginUrl = 'views/login.html';
     $scope.modelsUIUrl = 'views/templates/models-ui.html';
@@ -62,6 +63,7 @@ angular.module('nethvoiceWizardUiApp')
     $scope.SCROLLPLUS = 20
 
     $scope.doLogout = function () {
+      $scope.login.returnPath = null;
       LoginService.removeCredentials();
       $location.path('/');
       $('#loginTpl').show();
@@ -263,7 +265,11 @@ angular.module('nethvoiceWizardUiApp')
           });
         } else {
           // !isMigration
-          $location.path('/');
+          // A delayed dashboard bootstrap must not replace the Agents page
+          // restored after login.
+          if (!$scope.login.isLogged || !/^\/agents(?:\/|$)/.test($location.path())) {
+            $location.path('/');
+          }
         }
       }, function (err) {
         console.log(err);

@@ -8,3 +8,6 @@
 set -e
 
 systemctl --user restart freepbx nethcti-server nethcti-middleware
+
+# Refresh the workflow account after the restored database is ready.
+podman exec --env-file=passwords.env mariadb /docker-entrypoint-initdb.d/90_users.sh --workflow-reader-only

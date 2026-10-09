@@ -127,6 +127,11 @@
                     "type": "string"
                 }
             }
+        "cleverai_webhook": {
+            "description": "CleverAI HTTPS webhook URL. Omit to preserve; empty removes it. Stored as a secret.",
+            "type": "string",
+            "maxLength": 2048,
+            "pattern": "^(https://[^\\s\\x00-\\x1f]+)?$"
         }
     }
 }

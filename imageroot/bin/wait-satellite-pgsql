@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Type=forking completes before PostgreSQL accepts connections.
+set -euo pipefail
+exec 1>&2
+for attempt in $(seq 1 60); do
+    if podman exec satellite-pgsql sh -c 'pg_isready -h 127.0.0.1 -U "$POSTGRES_USER"' >/dev/null 2>&1; then
+        exit 0
+    fi
+    sleep 1
+done
+echo 'Satellite PostgreSQL did not become ready'
+exit 1

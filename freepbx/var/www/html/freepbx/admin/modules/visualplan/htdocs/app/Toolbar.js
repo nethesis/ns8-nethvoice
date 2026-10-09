@@ -3,6 +3,7 @@ example.Toolbar = Class.extend({
 	init: function (elementId, view) {
 		this.html = $("#" + elementId);
 		this.view = view;
+		this.saveInProgress = false;
 
 		// register this class as event listener for the canvas
 		// CommandStack. This is required to update the state of
@@ -180,6 +181,21 @@ example.Toolbar = Class.extend({
 		this.saveButton = $("<button class='mainmenu_btns'><i class='fa fa-check fa-lg'></i></button>");
 		this.html.append(this.saveButton);
 		this.saveButton.click($.proxy(function () {
+			if (this.saveInProgress) return;
+			this.saveInProgress = true;
+			var toolbar = this;
+			// Attach stable agent IDs to the VisualPlan blocks.
+			function reconcileAgentIds(ids) {
+				if (!ids) return;
+				toolbar.view.getFigures().each(function (index, figure) {
+					if (figure.id.indexOf('satellite-agent-destination%') === 0 &&
+						Object.prototype.hasOwnProperty.call(ids, figure.id)) {
+						var data = figure.getUserData();
+						data.id = ids[figure.id];
+						figure.setUserData(data);
+					}
+				});
+			}
 
 			var writer = new draw2d.io.json.Writer();
 			writer.marshal(this.view, function (json) {
@@ -211,6 +227,7 @@ example.Toolbar = Class.extend({
 					}
 				}
 				if (jQuery.isEmptyObject(json)) {
+					toolbar.saveInProgress = false;
 					$('#emptier').fadeIn("slow");
 					$('#emptier').children().html("&nbsp;&nbsp;" + languages[browserLang]["toolbar_empty_string"]);
 					setTimeout(function () {
@@ -222,19 +239,21 @@ example.Toolbar = Class.extend({
 						url: "./create.php?",
 						type: "POST",
 						contentType: 'application/json',
+						headers: { 'X-Satellite-Agent-CSRF': window.visualplanAgentCsrfToken || '' },
 						data: JSON.stringify(json),
 						beforeSend: function (xhr) {
 							$('#loader').show();
 						}
 					}).done(function (c) {
 						$('#loader').hide();
+						var resp;
 						try {
-							var resp = JSON.parse(c);
+							resp = typeof c === 'string' ? JSON.parse(c.substring(c.indexOf('{'))) : c;
 						} catch (e) {
-							var resp = c;
-							resp = resp.substring(resp.indexOf("{"));
-							resp = JSON.parse(resp);
+							resp = { success: false };
 						}
+						reconcileAgentIds(resp.agentIds);
+						toolbar.saveInProgress = false;
 						if (resp.success) {
 							$('#saver').children().html("&nbsp;&nbsp;" + languages[browserLang]["toolbar_save_string"]);
 							$('#saver').fadeIn("slow");
@@ -255,8 +274,9 @@ example.Toolbar = Class.extend({
 							}
 						} else { //TODO: maybe never executed?
 							$('#loader').hide();
+							toolbar.saveInProgress = false;
 							$('#errorer').children().eq(0).html("&nbsp;&nbsp;" + languages[browserLang]["toolbar_not_save_string"]);
-							$('#errorer').children().eq(1).html("&nbsp;&nbsp;" + languages[browserLang]["toolbar_not_save_log_string"]);
+							$('#errorer').children().eq(1).text(resp.error || languages[browserLang]["toolbar_not_save_log_string"]);
 							$('#errorer').fadeIn("slow");
 							console.clear();
 							setTimeout(function () {
@@ -265,8 +285,10 @@ example.Toolbar = Class.extend({
 						}
 					}).fail(function (err) {
 						$('#loader').hide();
+						toolbar.saveInProgress = false;
+						reconcileAgentIds(err.responseJSON && err.responseJSON.agentIds);
 						$('#errorer').children().eq(0).html("&nbsp;&nbsp;" + languages[browserLang]["toolbar_not_save_string"]);
-						$('#errorer').children().eq(1).html("&nbsp;&nbsp;" + languages[browserLang]["toolbar_not_save_log_string"]);
+						$('#errorer').children().eq(1).text(err.responseJSON && err.responseJSON.error || languages[browserLang]["toolbar_not_save_log_string"]);
 						$('#errorer').fadeIn("slow");
 						setTimeout(function () {
 							$('#errorer').fadeOut("slow");
@@ -329,6 +351,7 @@ example.Toolbar = Class.extend({
 	},
 
 	createDialog: function (obj, node) {
+		if (obj.id === "satellite-agent-destination" && node.getUserData().system_managed) return;
 		var thisApp = this;
 		var dialog = $('<div id="modalCreation"></div>')
 			.dialog({
@@ -345,6 +368,7 @@ example.Toolbar = Class.extend({
 						$(this).dialog('destroy').remove();
 					},
 					Save: function () {
+						if (obj.id === "satellite-agent-destination" && !obj.context.validateAgentForm()) return;
 
 						// update values
 						var usableElems = obj.context.getElemByAttr("usable");
@@ -379,6 +403,14 @@ example.Toolbar = Class.extend({
 	 **/
 	updateValues: function (elems, node, obj) {
 		switch (obj.id) {
+			case "satellite-agent-destination":
+				var agentData = node.getUserData();
+				agentData.cleverai_flow = elems[0].value;
+				agentData.cleverai_trunk_id = Number(elems[1].value);
+				node.setUserData(agentData);
+				node.children.data[2].figure.setText(languages[browserLang]["view_agent_flow_string"] + ": " + elems[0].value);
+				node.children.data[3].figure.setText(languages[browserLang]["view_agent_trunk_string"] + ": " + elems[1].selectedOptions[0].text);
+				break;
 			case "incoming":
 				node.children.data[1].figure.setText(elems[0].value + ' / ' + elems[1].value + ' ( ' + elems[2].value + ' )');
 				break;

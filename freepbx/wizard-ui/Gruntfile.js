@@ -390,6 +390,11 @@ module.exports = function (grunt) {
           dest: '<%= yeoman.dist %>/scripts/',
         }, {
           expand: true,
+          cwd: 'app/lib/drawflow/',
+          src: ['drawflow.min.js', 'LICENSE'],
+          dest: '<%= yeoman.dist %>/lib/drawflow/',
+        }, {
+          expand: true,
           cwd: 'app/lib/clipboard-copy-element/dist/',
           src: ['index.umd.js'],
           dest: '<%= yeoman.dist %>/lib/clipboard-copy-element/dist/',

@@ -19,6 +19,7 @@ import os
 import secrets
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -189,7 +190,26 @@ def check_contract():
     }
 
 
+def wait_for_freepbx_init():
+    # Apache accepts requests while the first-boot module installation runs.
+    # User Manager must finish installing before the CSV importer can sync.
+    deadline = time.monotonic() + 300
+    while time.monotonic() < deadline:
+        result = subprocess.run(
+            ["podman", "exec", "freepbx", "pgrep", "-f", "^/bin/bash /freepbx_init.sh$"],
+            text=True,
+            capture_output=True,
+            timeout=15,
+        )
+        if result.returncode == 1:
+            return
+        require(result.returncode == 0, "cannot inspect FreePBX initialization")
+        time.sleep(2)
+    raise RuntimeError("FreePBX initialization did not finish")
+
+
 def check_api_flow():
+    wait_for_freepbx_init()
     token = login()
     direct_user = "direct" + secrets.token_hex(4)
     csv_user = "csv" + secrets.token_hex(4)
@@ -220,7 +240,16 @@ def check_api_flow():
             capture_output=True,
             timeout=120,
         )
-        require(result.returncode == 0, "FreePBX CSV import failed")
+        if result.returncode != 0:
+            status = subprocess.run(
+                ["podman", "exec", "freepbx", "cat", "/var/run/nethvoice/csvimport.code"],
+                text=True, capture_output=True, timeout=15,
+            )
+            try:
+                details = json.loads(status.stdout).get("errors", "")
+            except (ValueError, AttributeError):
+                details = "import status unavailable"
+            raise RuntimeError("FreePBX CSV import failed: " + str(details)[:2000])
         require(user_exists(token, csv_user), "FreePBX-created user is missing")
         remove_user(token, csv_user)
         csv_removed = not user_exists(token, csv_user)

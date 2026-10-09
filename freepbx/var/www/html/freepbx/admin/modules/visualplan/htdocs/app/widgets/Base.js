@@ -663,6 +663,36 @@ Base = draw2d.shape.layout.VerticalLayout.extend({
                 };
                 break;
 
+            case "satellite-agent-destination":
+                templateObj.id = type + "%" + id;
+                templateObj.bgColor = "#528ba7";
+                templateObj.radius = 0;
+                templateObj.entities = [{
+                    text: languages[browserLang]["base_agent_string"],
+                    id: templateObj.id,
+                    type: "input"
+                }, {
+                    text: languages[browserLang]["view_agent_flow_string"] + ": " + elem[0].value,
+                    id: "agent_flow%" + id,
+                    type: "text"
+                }, {
+                    text: languages[browserLang]["view_agent_trunk_string"] + ": " + elem[1].selectedOptions[0].text,
+                    id: "agent_trunk%" + id,
+                    type: "text"
+                }, {
+                    text: languages[browserLang]["base_agent_fallback_string"],
+                    id: "agent_fallback%" + id,
+                    type: "output"
+                }];
+                templateObj.userData = {
+                    id: null,
+                    cleverai_trunk_id: Number(elem[1].value),
+                    cleverai_flow: elem[0].value,
+                    fallback_destination: null,
+                    fallback_touched: false
+                };
+                break;
+
             case "ext-meetme":
                 templateObj.id = type + "%" + elem[0].value;
                 templateObj.bgColor = "#65c6bb";

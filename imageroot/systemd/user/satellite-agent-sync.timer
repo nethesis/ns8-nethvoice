@@ -1,0 +1,10 @@
+[Unit]
+Description=Retry built-in Agent configuration synchronization
+
+[Timer]
+OnCalendar=*-*-* *:0/5:00
+Persistent=true
+Unit=satellite-agent-sync.service
+
+[Install]
+WantedBy=timers.target

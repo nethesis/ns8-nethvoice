@@ -50,16 +50,16 @@ else
     systemctl --user disable nethvoice-hotel-alarms.timer
 fi
 
-# Satellite
+# PostgreSQL also owns Agent history, independently of legacy transcription.
+systemctl --user enable --now satellite-pgsql.service || true
+
+# Satellite transcription dependencies
 if [ "$SATELLITE_CALL_TRANSCRIPTION_ENABLED" = "True" ] || [ "$SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED" = "True" ]; then
-    systemctl --user enable --now satellite.service
     systemctl --user enable --now satellite-mqtt.service
     systemctl --user disable satellite-recordings-cleanup.service >/dev/null 2>&1 || true
     systemctl --user enable --now satellite-recordings-cleanup.timer
     systemctl --user start satellite-recordings-cleanup.service
 else
-    systemctl --user stop satellite.service
-    systemctl --user disable satellite.service
     systemctl --user stop satellite-mqtt.service
     systemctl --user disable satellite-mqtt.service
     systemctl --user stop satellite-recordings-cleanup.timer
@@ -67,3 +67,8 @@ else
     systemctl --user stop satellite-recordings-cleanup.service
     systemctl --user disable satellite-recordings-cleanup.service >/dev/null 2>&1 || true
 fi
+
+# The Agent API and ARI app stay available when transcription is disabled.
+systemctl --user enable --now satellite.service
+systemctl --user enable --now satellite-agent-sync.timer
+systemctl --user start satellite-agent-sync.service || true

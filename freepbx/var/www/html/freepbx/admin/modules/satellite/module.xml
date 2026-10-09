@@ -2,9 +2,13 @@
   <rawname>satellite</rawname>
   <repo>unsupported</repo>
   <name>Satellite Module</name>
-  <version>0.0.1</version>
+  <version>0.3.1</version>
   <category>Applications</category>
   <Publisher>Nethesis</Publisher>
+  <menuitems>
+    <satellite_agents>Satellite Agent</satellite_agents>
+    <satellite_webhooks>Webhooks</satellite_webhooks>
+  </menuitems>
   <info></info>
   <license>GPLv3+</license>
   <licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
@@ -16,6 +20,6 @@
     <get_config pri="480">satellite_get_config</get_config>
     <get_config pri="600">satellite_get_config_late</get_config>
 </methods>
-<description>Generate Satellite Configuration hooking apply config</description>
+<description>Satellite transcription, TTS and voice agent integration</description>
 <changelog></changelog>
 </module>

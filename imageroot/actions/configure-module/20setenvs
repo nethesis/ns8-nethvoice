@@ -20,6 +20,12 @@ def b64(value):
 
 request = json.load(sys.stdin)
 
+if 'cleverai_webhook' in request:
+    passwords = agent.read_envfile('passwords.env')
+    passwords['CLEVERAI_WEBHOOK'] = request['cleverai_webhook']
+    agent.write_envfile('passwords.env', passwords)
+    agent.unset_env('CLEVERAI_WEBHOOK')
+
 def getFromRequest(request, var_name, env_name, default = ""):
     if var_name in request:
         agent.set_env(env_name, request[var_name])

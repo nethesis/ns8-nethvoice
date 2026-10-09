@@ -1,0 +1,1 @@
+ghcr.io/nethesis/satellite@sha256:eb6bd06ad20d886b487f291449913f561799bf7815b8bce569f5b5ae3ca7b0c8

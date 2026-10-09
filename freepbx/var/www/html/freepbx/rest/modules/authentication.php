@@ -43,7 +43,7 @@ $app->get('/login', function (Request $request, Response $response) {
 
 $app->get('/logout', function (Request $request, Response $response) {
     session_start();
-    unset($_SESSION['AMP_user']);
+    unset($_SESSION['AMP_user'], $_SESSION['agents_csrf'], $_SESSION['agents_user']);
     return jsonResponse($response, ['success' => true]);
 });
 

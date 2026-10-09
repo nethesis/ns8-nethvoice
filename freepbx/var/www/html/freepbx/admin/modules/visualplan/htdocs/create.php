@@ -1,5 +1,11 @@
 <?php
 
+// Pure graph regression tests use the same functions without bootstrapping FreePBX.
+if (defined('NETHVPLAN_CREATE_LIBRARY_MODE') && NETHVPLAN_CREATE_LIBRARY_MODE) {
+    require_once __DIR__ . '/agentGraph.php';
+    return;
+}
+
 if (!@include_once(getenv('FREEPBX_CONF') ? getenv('FREEPBX_CONF') : '/etc/freepbx.conf')) {
     include_once('/etc/asterisk/freepbx.conf');
 }
@@ -9,6 +15,8 @@ session_start();
 if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visualplan')) {
     exit(1);
 }
+
+require_once __DIR__ . '/agentGraph.php';
 
 // bypass freepbx authentication
 define('FREEPBX_IS_AUTH', 1);
@@ -37,28 +45,66 @@ if ($handle = opendir(__DIR__. '/../..')) {
 $json = file_get_contents("php://input");
 $jsonArray = json_decode($json, true);
 
+if (!is_array($jsonArray) || array_filter($jsonArray, function ($item) { return !is_array($item); })) {
+    http_response_code(400);
+    header('Content-Type: application/json');
+    echo json_encode(array('success' => false, 'error' => 'Invalid VisualPlan request'));
+    return;
+}
+
 $widgetArray = array_filter(
     $jsonArray,
     function ($w) {
-        return $w['type'] == "Base";
+        return ($w['type'] ?? '') == "Base";
     }
 );
 
 $connectionArray = array_filter(
     $jsonArray,
     function ($w) {
-        return $w['type'] == "MyConnection";
+        return ($w['type'] ?? '') == "MyConnection";
     }
 );
 
 $currentCreated = array();
 $currentVisited = array();
 $returnedIdArray = array();
+$agentGraph = null;
 
-nethvplan_extraction($widgetArray, $connectionArray);
+try {
+    $hasAgents = false;
+    foreach ($widgetArray as $widget) {
+        if (strpos((string) ($widget['id'] ?? ''), 'satellite-agent-destination%') === 0) {
+            $hasAgents = true;
+            break;
+        }
+    }
+    if ($hasAgents) {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            throw new \InvalidArgumentException('Agent configuration requires POST');
+        }
+        $satellite = FreePBX::Satellite();
+        $satellite->assertAgentCsrfToken($_SERVER['HTTP_X_SATELLITE_AGENT_CSRF'] ?? '');
+        $agentGraph = new NethvplanAgentGraph($satellite, $widgetArray, $connectionArray);
+        $currentCreated = $agentGraph->allocate();
+    }
+    nethvplan_extraction($widgetArray, $connectionArray);
+    header('Content-Type: application/json');
+    echo json_encode(array('success' => $returnedIdArray,
+        'agentIds' => $agentGraph ? $agentGraph->allocatedIds() : new \stdClass()));
+} catch (\Throwable $error) {
+    http_response_code($error instanceof \InvalidArgumentException ? 400 : 500);
+    header('Content-Type: application/json');
+    $safe = $error instanceof \PDOException ? 'Database error, the change was not saved'
+        : (($error instanceof \InvalidArgumentException || $error instanceof \RuntimeException)
+            ? $error->getMessage() : 'Unable to save VisualPlan configuration');
+    echo json_encode(array('success' => false, 'error' => $safe,
+        'agentIds' => $agentGraph ? $agentGraph->allocatedIds() : new \stdClass()));
+}
 
 function nethvplan_extraction($dataArray, $connectionArray)
 {
+    global $agentGraph;
     foreach ($dataArray as $key => $value) {
         // get type of widget
         $explodeId = explode("%", $value['id']);
@@ -67,11 +113,16 @@ function nethvplan_extraction($dataArray, $connectionArray)
         // create object
         nethvplan_switchCreate($wType, $value, $connectionArray);
     }
+    if ($agentGraph !== null) {
+        $agentGraph->save(function ($widget) use ($connectionArray) {
+            $destinations = nethvplan_getDestination($widget, $connectionArray);
+            $suffix = explode('%', $widget['id'], 2)[1];
+            return $destinations['output_agent_fallback%' . $suffix] ?? null;
+        });
+    }
+    needreload();
     system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
 }
-
-$returnedIdArray = array("success" => $returnedIdArray);
-print_r(/*json_pretty(*/json_encode($returnedIdArray, true));
 
 function nethvplan_randomPassword()
 {
@@ -95,6 +146,14 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
     global $returnedIdArray;
 
     switch ($wType) {
+        case "satellite-agent-destination":
+            // IDs were allocated once, before any other block resolves Agent links.
+            $idReturn = $currentCreated[$value['id']] ?? null;
+            if (!$idReturn) {
+                throw new \RuntimeException('Agent block was not prepared');
+            }
+        break;
+
         case "incoming":
             $partsNum = explode("(", $value['entities'][0]['text']);
             $extensionParts = explode("/", $partsNum[0]);
@@ -918,11 +977,15 @@ function nethvplan_getDestination($values, $connectionArray)
 
             $parts = explode("%", $destination);
 
-            if ($parts[0] === "app-announcement" || $parts[0] === "ivr" || $parts[0] === "cqr" || $parts[0] === "timeconditions") {
+            if ($parts[0] === "app-announcement" || $parts[0] === "ivr" || $parts[0] === "cqr" || $parts[0] === "timeconditions" || $parts[0] === "satellite-agent-destination") {
                 $result = nethvplan_checkDestination($destination, $parts[0], $values, $connectionArray);
             }
 
             switch ($parts[0]) {
+                case "satellite-agent-destination":
+                    $destAsterisk[$value['source']['port']] = satellite_agent_destination_key($result);
+                break;
+
                 case "app-blackhole":
                     $destAsterisk[$value['source']['port']] = "app-blackhole,hangup,1";
                 break;

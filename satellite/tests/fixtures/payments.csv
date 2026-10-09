@@ -1,0 +1,7 @@
+resident_id,name,period,amount,currency,phone,verification_code,building,unit
+test-alice,Alice Test,2026-10,125.50,EUR,+390201000001,410101,Test building,A1
+test-alice,Alice Test,2026-11,129.75,EUR,+390201000001,410101,Test building,A1
+test-bruno,Bruno Test,2026-10,98.20,EUR,,420202,Test building,A2
+test-carla,Carla Test,2026-10,210.00,EUR,+390201000003,430303,Test building,B1
+test-dario,Dario Test,2026-10,87.05,EUR,+390201000003,440404,Test building,B2
+test-elisa,Elìsa Test,2026-10,0.01,EUR,,450505,Test building,C1

@@ -20,12 +20,29 @@
 # along with NethServer.  If not, see COPYING.
 #
 
+# Give the workflow account read access to public contacts and call history.
+grant_satellite_workflow_reader() {
+    [[ -n "${SATELLITE_WORKFLOW_DB_PASSWORD:-}" ]] || return 0
+    [[ "${SATELLITE_WORKFLOW_DB_PASSWORD}" =~ ^[A-Za-z0-9_-]+$ ]] || return 1
+    MYSQL_PWD="${MARIADB_ROOT_PASSWORD}" /usr/bin/mysql -u root <<SQL
+GRANT SELECT ON phonebook.phonebook TO 'satellite_workflow'@'127.0.0.1' IDENTIFIED BY '${SATELLITE_WORKFLOW_DB_PASSWORD}';
+GRANT SELECT ON asteriskcdrdb.cdr TO 'satellite_workflow'@'127.0.0.1';
+SQL
+}
+
+# Update only these grants when the module upgrade or restore requests it.
+if [[ "${1:-}" == "--workflow-reader-only" ]]; then
+    grant_satellite_workflow_reader
+    exit $?
+fi
+
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on asterisk.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'"
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on asteriskcdrdb.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'"
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on asteriskcdrdb.* to '${CDRDBUSER}'@'127.0.0.1' identified by '${CDRDBPASS}'"
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on nethcti3.* to '${NETHCTI_DB_USER}'@'127.0.0.1' identified by '${NETHCTI_DB_PASSWORD}'"
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on ${PHONEBOOK_DB_NAME}.* to '${PHONEBOOK_DB_USER}'@'127.0.0.1' identified by '${PHONEBOOK_DB_PASS}'"
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT SELECT on ${PHONEBOOK_DB_NAME}.* to '${NETHCTI_DB_USER}'@'127.0.0.1' identified by '${NETHCTI_DB_PASSWORD}'"
+grant_satellite_workflow_reader
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on asteriskcdrdb.* to 'nethvoice_report'@'%' identified by '${REPORTS_PASSWORD}';"
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on asteriskcdrdb.* to 'nethvoice_report'@'localhost' identified by '${REPORTS_PASSWORD}';"
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -e "GRANT ALL on asterisk.* to 'nethvoice_report'@'%' identified by '${REPORTS_PASSWORD}';"

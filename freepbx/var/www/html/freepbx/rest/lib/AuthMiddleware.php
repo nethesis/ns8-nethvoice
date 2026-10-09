@@ -47,7 +47,7 @@ class AuthMiddleware implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $path = trim($request->getUri()->getPath(), '/');
-        $isTestAuthPath = preg_match('#(^|/)testauth$#', $path) === 1;
+        $isTestAuthPath = $path === 'freepbx/rest/testauth';
         if (strtoupper($request->getMethod()) === 'OPTIONS') {
             return $handler->handle($request);
         }
@@ -71,11 +71,11 @@ class AuthMiddleware implements MiddlewareInterface
             return $this->jsonResponse(['error' => 'Forbidden: invalid user'], 403);
             }
             $hash = sha1($username . $password_sha1 . $this->secret);
-        if (!$isTestAuthPath && $given_secret != $hash) {
+        if (!$isTestAuthPath && !hash_equals($hash, $given_secret)) {
             return $this->jsonResponse(['error' => 'Forbidden: wrong secret key'], 403);
         }
 
-        return $handler->handle($request);
+        return $handler->handle($isTestAuthPath ? $request : $request->withAttribute('nethvoice_admin', $username));
     }
 
     private function jsonResponse(array $payload, int $status): ResponseInterface

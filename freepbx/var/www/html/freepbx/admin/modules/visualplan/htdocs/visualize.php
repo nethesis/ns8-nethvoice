@@ -1,5 +1,10 @@
 <?php
 
+if (defined('NETHVPLAN_VISUALIZE_LIBRARY_MODE') && NETHVPLAN_VISUALIZE_LIBRARY_MODE) {
+    require_once __DIR__ . '/agentGraph.php';
+    return;
+}
+
 /**
  * This script is used to:
  * - extract asterisk elements informations using the freepbx functions and
@@ -17,6 +22,8 @@ session_start();
 if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visualplan')) {
     exit(1);
 }
+
+require_once __DIR__ . '/agentGraph.php';
 
 // bypass freepbx authentication
 define('FREEPBX_IS_AUTH', 1);
@@ -50,10 +57,7 @@ if (empty($lang)) {
 $langParts = explode("_", (string)$lang);
 $langCode = (isset($langParts[0]) && preg_match('/^[a-z]{2}$/', $langParts[0])) ? $langParts[0] : 'en';
 $languages = file_get_contents("i18n/".$langCode.".js");
-$languages = substr($languages, 0, -1);
-$langParts = explode("=", $languages);
-$language = trim($langParts[1]);
-$langArray = json_decode($language, true);
+$langArray = nethvplan_read_labels($languages);
 
 /**
  *  GET ELEMENTS ALL DATA AND CREATE DATA OBJECT 
@@ -72,8 +76,25 @@ $data = array(
     'ext-group' => array(),
     'ext-meetme' => array(),
     'ext-queues' => array(),
-    'app-daynight' => array()
+    'app-daynight' => array(),
+    'satellite-agent-destination' => array(),
+    'agent-trunks' => array()
 );
+
+if (class_exists('Satellite') && method_exists('Satellite', 'getAgentDestinations')) {
+    try {
+        $satellite = FreePBX::Satellite();
+        foreach ($satellite->getAgentTrunks() as $trunk) {
+            $data['agent-trunks'][(int) $trunk['id']] = $trunk;
+        }
+        foreach ($satellite->getAgentDestinations() as $agent) {
+            $data['satellite-agent-destination'][(int) $agent['id']] = $agent;
+        }
+    } catch (\Throwable $error) {
+        // An unavailable optional module must not prevent other routes from opening.
+        error_log('VisualPlan Agent configuration is unavailable');
+    }
+}
 
 // incoming data (inbound routes)
 $get_data = FreePBX::Core()->getAllDIDs('extension');
@@ -299,6 +320,10 @@ foreach ($_GET as $key => $value) {
 
             foreach ($pieces as $d) {
                 $cDest = explode("%", $dest);
+                if ($cDest[0] === 'satellite-agent-destination' && $d === '') {
+                    // An Agent without a fallback is a single selectable block.
+                    continue;
+                }
                 if (nethvplan_hasDestinationData($data, $cDest[0], $cDest[1])) {
                     $connection = nethvplan_bindConnection($data, $cDest[0], $cDest[1]);
 
@@ -430,7 +455,9 @@ function nethvplan_cmpTime($a, $b)
 // get destination from asterisk destination id
 function nethvplan_getDestination($destination)
 {
-    if (preg_match('/ivr-*/', $destination)) {
+    if (preg_match('/^satellite-agent-destination-([1-9][0-9]*),s,1$/D', (string) $destination, $match)) {
+        return array('satellite-agent-destination', $match[1]);
+    } elseif (preg_match('/ivr-*/', $destination)) {
         $values = explode(",", $destination);
         $dests = explode("-", $values[0]);
         $dest = $dests[0];
@@ -488,7 +515,8 @@ function nethvplan_isKnownDestinationType($dest)
         "ivr",
         "cqr",
         "ext-queues",
-        "ext-group"
+        "ext-group",
+        "satellite-agent-destination"
     );
 
     return in_array($dest, $knownDestinations);
@@ -535,6 +563,12 @@ function nethvplan_bindData($data, $dest, $id)
     }
 
     switch ($dest) {
+        case "satellite-agent-destination":
+            $widget = nethvplan_agent_widget($data[$dest][$id], $data['agent-trunks'], $langArray);
+            $widget['x'] = $xPos;
+            $widget['y'] = $yPos;
+        break;
+
         case "incoming":
             $widget['type'] = "Base";
             $widget['id'] = "incoming%".$id;
@@ -1051,6 +1085,23 @@ function nethvplan_bindConnection($data, $dest, $id)
     $connection = $connectionTemplate;
 
     switch ($dest) {
+        case "satellite-agent-destination":
+            $fallback = $data[$dest][$id]['fallback_destination'];
+            if (!$fallback) {
+                return array();
+            }
+            list($destNew, $idDest) = nethvplan_getDestination($fallback);
+            if (!nethvplan_hasDestinationData($data, $destNew, $idDest)) {
+                return array();
+            }
+            $connection['id'] = $dest . '%' . $id . '=' . $fallback;
+            $connection['source'] = array('node' => $dest . '%' . $id, 'port' => 'output_agent_fallback%' . $id);
+            $connection['target'] = array(
+                'node' => $destNew . '%' . $idDest,
+                'port' => 'input_' . $destNew . '%' . $idDest,
+                'decoration' => 'draw2d.decoration.connection.ArrowDecorator',
+            );
+        break;
         
         case "app-announcement":
             $res = nethvplan_getDestination($data[$dest][$id]['postdest']);
@@ -1363,6 +1414,17 @@ function nethvplan_explore($data, $destination, $destArray)
         // choose correct destination and
         // add widget and connections
         switch ($dest) {
+            case "satellite-agent-destination":
+                array_push($widgets, nethvplan_bindData($data, $dest, $id));
+                $connection = nethvplan_bindConnection($data, $dest, $id);
+                if (!empty($connection['id'])) {
+                    array_push($connections, $connection);
+                }
+                if (!empty($data[$dest][$id]['fallback_destination'])) {
+                    nethvplan_explore($data, $data[$dest][$id]['fallback_destination'], $destArray);
+                }
+            break;
+
             case "from-did-direct":
                 $widget = nethvplan_bindData($data, $dest, $id);
                 // add widget
