@@ -1317,6 +1317,17 @@ a {
   white-space: nowrap;
 }
 
+.bootstrap-switch .bootstrap-switch-handle-off,
+.bootstrap-switch .bootstrap-switch-handle-on,
+.bootstrap-switch .bootstrap-switch-label {
+  display: inline-block !important;
+  height: 100%;
+}
+
+.login-pf {
+  background-image: none;
+}
+
 .profile-macro-spacer {
   flex: 1 1 0;
   min-width: 0;
@@ -2955,6 +2966,8 @@ iframe body {
   border-color: transparent #f5f5f5;
   cursor: pointer;
   border-bottom: 1px #ededed solid;
+  background-color: #ededed;
+  box-shadow: none;
 }
 
 .background-white {
