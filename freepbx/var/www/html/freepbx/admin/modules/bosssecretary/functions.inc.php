@@ -983,8 +983,8 @@ function bosssecretary_get_form_add( array $params)
 	$vars["group_label"] = (isset($params["group_label"])) ? $params["group_label"] : '';
 	$vars["delete_button"] = "";
 	$vars["action"] = "Add";
-	$vars["message_details"] = $params["message_details"];
-	$vars["message_title"] = $params["message_title"];
+	$vars["message_details"] = $params["message_details"] ?? array();
+	$vars["message_title"] = $params["message_title"] ?? '';
 	return bosssecretary_get_form($vars);
 }
 
@@ -1000,8 +1000,8 @@ function bosssecretary_get_form_edit( array $params)
 	$vars["group_label"] = $params["group_label"];
 	$vars["delete_button"] = bosssecretary_get_delete_button();
 	$vars["action"] = "Edit";
-	$vars["message_details"] = $params["message_details"];
-	$vars["message_title"] = $params["message_title"];
+	$vars["message_details"] = $params["message_details"] ?? array();
+	$vars["message_title"] = $params["message_title"] ?? '';
 	$vars["delete_question"] = "Do you really to want delete " . $vars["group_number"] . " (" .$vars["group_label"] . ") group?";
 	$vars["delete_url"] = "config.php?display=bosssecretary&bsgroupdelete=".BOSSSECRETARY_PARAM_PREFIX. $params["group_number"];
 	return bosssecretary_get_form($vars);
@@ -1023,9 +1023,10 @@ function bosssecretary_get_form ( array $vars)
 			$vars["messages"] .= "<li>$details</li>";
 		}
 		$vars["messages"] .= "</ul>";
-		unset($vars["message_details"]);
-		unset($vars["message_title"]);
 	}
+	// Message metadata is not a template value: an empty details array must
+	// not reach str_replace(), which requires a string replacement here.
+	unset($vars["message_details"], $vars["message_title"]);
 
 
 	foreach ($vars as $var => $value)
