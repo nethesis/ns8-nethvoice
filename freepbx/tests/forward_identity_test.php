@@ -32,7 +32,7 @@ check(count($ext->_exts['macro-dial-one'][' cf ']) === count($steps), 'repeated 
 nethcti3_configure_forward_progress($ext);
 $progress = array_map(fn($step) => $step['cmd']->output(), $ext->_exts['macro-dial-one'][' cf ']);
 $noanswer = array_search('Set(DIALSTATUS=NOANSWER)', $progress, true);
-check($progress[$noanswer-2] === 'Answer()' && $progress[$noanswer-1] === 'Ringing()', 'progress response moved onto successful forwarding');
+check($progress[$noanswer-2] === 'Answer' && $progress[$noanswer-1] === 'Ringing()', 'progress response moved onto successful forwarding');
 check(array_merge(array_slice($progress, 0, $noanswer-2), array_slice($progress, $noanswer)) === $after, 'progress response changed another instruction');
 $ext->_exts['macro-dial-one'][' cf '] = [];
 try {
