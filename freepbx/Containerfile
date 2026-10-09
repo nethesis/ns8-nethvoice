@@ -199,6 +199,7 @@ RUN groupadd -g 991 -r asterisk && \
 		mycli \
 		nodejs \
 		npm \
+		patch \
 		python3-pip \
 		python3-pycurl \
 		python3-pyodbc \
@@ -384,6 +385,13 @@ RUN install_module() { \
 	install_module queues https://github.com/FreePBX/queues/archive/refs/tags/release/17.0.4.tar.gz && \
 	install_module recordings https://github.com/FreePBX/recordings/archive/refs/tags/release/17.0.6.tar.gz && \
 	install_module voicemail https://github.com/FreePBX/voicemail/archive/refs/tags/release/17.0.5.35.tar.gz
+
+# Apply the issue-specific NethVoice compatibility fixes to pinned upstream Core.
+# The historical freepbx-core.patch is intentionally not applied.
+COPY patches /tmp/nethvoice-core-patches
+RUN for core_patch in /tmp/nethvoice-core-patches/freepbx-core-821*.patch; do \
+        patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < "$core_patch" || exit 1; \
+    done && rm -rf /tmp/nethvoice-core-patches
 
 # PHP 8.x compatibility: harden customcontexts against empty dialpattern array entries
 # (PHP 8 throws "Undefined array key 0" when indexing into an empty string).
