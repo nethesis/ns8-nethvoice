@@ -9,14 +9,8 @@
 # oauth2-proxy) on installs created before the SSO support: 1.7.x instances
 # hold 37 TCP ports (including the dropped IAX TCP port), so the demand of 39
 # leaves room for these two. New installs get them from create-module/05setenvs.
-import os
-import subprocess
 import sys
 import agent
-
-# Fixed port persisted by 1.7.10 testing releases when the OAUTH2_PROXY_PORT
-# allocation failed: it was never reserved for this module
-LEGACY_OAUTH2_PORT = '20091'
 
 if not hasattr(agent, 'allocate_ports'):
     print("Core version too old, not allocating SSO ports. Try on next update", file=sys.stderr)
@@ -24,23 +18,6 @@ if not hasattr(agent, 'allocate_ports'):
 
 # read the env file, the real environment may not be updated yet
 env = agent.read_envfile('environment')
-
-
-def in_create_range(port):
-    try:
-        start, end = env['TCP_PORTS_RANGE'].split('-')
-        return int(start) <= int(port) <= int(end)
-    except (KeyError, ValueError):
-        return False
-
-
-reallocated = False
-if (env.get('OAUTH2_PROXY_PORT') == LEGACY_OAUTH2_PORT
-        and not in_create_range(LEGACY_OAUTH2_PORT)
-        and env.get('SSO_PORTS_FIXED') != '1'):
-    print(f"OAUTH2_PROXY_PORT={LEGACY_OAUTH2_PORT} was not allocated, allocating a new one", file=sys.stderr)
-    del env['OAUTH2_PROXY_PORT']
-    reallocated = True
 
 for var in ('SAML2_PROXY_PORT', 'OAUTH2_PROXY_PORT'):
     if var not in env:
@@ -53,11 +30,3 @@ for var in ('SAML2_PROXY_PORT', 'OAUTH2_PROXY_PORT'):
             continue
         agent.set_env(var, str(allocated[0]))
         print(f"New port allocated for {var}: {allocated[0]}", file=sys.stderr)
-        if var == 'OAUTH2_PROXY_PORT' and reallocated:
-            # the new port can be 20091 itself, if it was free: do not
-            # reallocate it again on the next update
-            agent.set_env('SSO_PORTS_FIXED', '1')
-            if env.get('SSO_AUTH', '').lower() == 'true' and env.get('AUTHENTICATION_METHOD') == 'oidc':
-                # re-apply the oidc wiring (unit + Traefik routes) on the new
-                # port, in a fresh action context that sees the updated env
-                subprocess.run(['runagent', os.environ['AGENT_INSTALL_DIR'] + '/actions/configure-module/45authentication'], check=False)
