@@ -1,0 +1,10 @@
+# ejabberd with the chat programs: chat-extauth (ejabberd auth) and chat-gateway (push, Acrobits services).
+FROM docker.io/library/golang:1.26.8-alpine AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags=-s -o /out/ ./cmd/...
+
+FROM ghcr.io/processone/ejabberd:26.07
+COPY --from=build /out/chat-extauth /out/chat-gateway /opt/ejabberd/bin/

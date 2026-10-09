@@ -1,0 +1,27 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# NethVoice chat: restore the SQLite snapshots of module-dump-state into their volumes.
+set -e
+exec 1>&2
+
+restore() {
+    local vol=$1 file=$2 owner=$3
+    [ -f "$file" ] || return 0
+    podman volume create --ignore "$vol" >/dev/null
+    # let podman populate a new volume from the image first
+    if [ "$vol" = chat-data ]; then
+        podman run --rm --volume="$vol":/opt/ejabberd/database:Z --entrypoint=true "${NETHVOICE_EJABBERD_IMAGE}"
+    fi
+    local dir
+    dir=$(podman volume inspect "$vol" --format '{{.Mountpoint}}')
+    podman unshare sh -c 'cp -f "$1" "$2/$3" && rm -f "$2/$3-wal" "$2/$3-shm" && chown "$4:$4" "$2/$3"' _ "$file" "$dir" "$file" "$owner"
+    rm -f "$file"
+}
+
+restore chat-data chat.db 9000   # ejabberd runs as 9000 in its image
+restore chat-gw chat-gw.db 0     # the gateway runs as the container's root

@@ -1,0 +1,38 @@
+# NethVoice chat server (ejabberd), loopback only; Traefik publishes /xmpp-websocket and /upload.
+[Unit]
+Description=NethVoice chat server (ejabberd)
+After=nethcti-middleware.service
+StartLimitBurst=60
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%E/state/environment
+EnvironmentFile=%E/state/passwords.env
+WorkingDirectory=%E/state
+Restart=always
+SuccessExitStatus=143
+RestartSec=10s
+ExecStartPre=/bin/rm -f %t/chat-server.pid %t/chat-server.ctr-id
+ExecStart=/usr/bin/podman run \
+    --detach \
+    --conmon-pidfile=%t/chat-server.pid \
+    --cidfile=%t/chat-server.ctr-id \
+    --cgroups=no-conmon \
+    --log-opt=tag=%u \
+    --replace --name=%N \
+    --image-volume=ignore \
+    --volume=%E/state/chat/ejabberd.yml:/opt/ejabberd/conf/ejabberd.yml:ro,z \
+    --volume=chat-data:/opt/ejabberd/database:Z \
+    --volume=chat-upload:/opt/ejabberd/upload:Z \
+    --env=CHAT_MIDDLEWARE_URL=http://127.0.0.1:${NETHVOICE_MIDDLEWARE_PORT} \
+    --env=CHAT_COMPONENT_SECRET \
+    --env=CHAT_DEBUG=${CHAT_DEBUG} \
+    --network=host \
+    --tz=${TIMEZONE} \
+    ${NETHVOICE_EJABBERD_IMAGE}
+ExecStopPost=/usr/bin/podman rm -v --ignore -f --cidfile %t/chat-server.ctr-id
+PIDFile=%t/chat-server.pid
+Type=forking
+
+[Install]
+WantedBy=default.target

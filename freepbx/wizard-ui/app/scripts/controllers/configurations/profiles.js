@@ -280,7 +280,7 @@ angular.module('nethvoiceWizardUiApp')
       return $scope.phonebookPermissionsStatus[permission.name] === 'success';
     };
 
-    $scope.tempBlacklist = ["chat", "video_conference", "trunks"];
+    $scope.tempBlacklist = ["video_conference", "trunks"];
 
     $scope.isInBlacklist = function(perm) {
       return $scope.tempBlacklist.includes(perm) || perm.startsWith('in_queue_');

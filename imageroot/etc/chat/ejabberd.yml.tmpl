@@ -1,0 +1,141 @@
+# NethVoice chat: ejabberd configuration for one tenant.
+# Rendered by configure-module/46chat; do not edit the copy in state/chat/.
+hosts: [$CHAT_HOST]
+loglevel: warning
+default_db: sql
+sql_type: sqlite
+sql_database: /opt/ejabberd/database/chat.db
+
+# The XMPP password is the CTI JWT; chat-extauth verifies it with the middleware.
+auth_method: [external]
+extauth_program: /opt/ejabberd/bin/chat-extauth
+extauth_pool_size: 2
+# chat-extauth caches accepted tokens for 60 s.
+auth_use_cache: false
+
+# The gateway purges a user's archive with a peer (conversation delete).
+api_permissions:
+  "chat gateway":
+    who:
+      ip: 127.0.0.1/8
+    what:
+      - remove_mam_for_user_with_peer
+      # users gone from the CTI: close their sessions, take them out of groups
+      - kick_user
+      - get_user_subscriptions
+      - get_room_affiliations
+      - set_room_affiliation
+      - unsubscribe_room
+      - destroy_room
+      # CTI groups as rooms: create them, follow their members, tell clients
+      - create_room_with_opts
+      - subscribe_room
+      - change_room_option
+      - send_direct_invitation
+      - send_stanza
+
+listen:
+  - port: $CHAT_C2S_PORT
+    ip: 127.0.0.1
+    module: ejabberd_c2s
+    starttls: false
+    max_stanza_size: 65536
+    shaper: c2s_shaper
+    access: c2s
+  - port: $CHAT_HTTP_PORT
+    ip: 127.0.0.1
+    module: ejabberd_http
+    request_handlers:
+      /xmpp-websocket: ejabberd_http_ws
+      /upload: mod_http_upload
+      /api: mod_http_api
+  - port: $CHAT_COMPONENT_PORT
+    ip: 127.0.0.1
+    module: ejabberd_service
+    hosts:
+      push.$CHAT_HOST:
+        password: "$CHAT_COMPONENT_SECRET"
+
+acl:
+  local:
+    user_regexp: ""
+
+# No federation: this server never talks to other XMPP servers, in or out.
+s2s_access: s2s
+access_rules:
+  s2s:
+    deny: all
+  local:
+    allow: local
+  c2s:
+    allow: all
+  muc_create:
+    allow: local
+  pubsub_createnode:
+    allow: local
+
+shaper:
+  # Bytes/s from each client (WebSocket too); the burst lets a full stanza through at once.
+  normal:
+    rate: 3000
+    burst_size: 131072
+shaper_rules:
+  max_user_sessions: 10
+  c2s_shaper: normal
+  # Upload quota per user, MB: past the hard one the oldest files go.
+  soft_upload_quota: $CHAT_UPLOAD_SOFT_QUOTA_MB
+  hard_upload_quota: $CHAT_UPLOAD_QUOTA_MB
+
+modules:
+  # No roster: presence between operators is directed presence sent by the client.
+  mod_mam:
+    default: always
+    assume_mam_usage: true
+  mod_carboncopy: {}
+  mod_stream_mgmt:
+    resend_on_timeout: if_offline
+    # A closed tab must go offline soon, so the push goes out.
+    resume_timeout: 30
+    max_resume_timeout: 30
+  mod_muc:
+    host: conference.@HOST@
+    access_create: muc_create
+    default_room_options:
+      persistent: true
+      members_only: true
+      public: false
+      public_list: false
+      mam: true
+      anonymous: false
+      # Groups via MucSub: members get messages in their archive and by push.
+      allow_subscription: true
+  mod_muc_admin: {}
+  mod_admin_extra: {} # send_message and friends for ejabberdctl, handy when debugging a tenant
+  mod_http_api: {}
+  mod_pubsub:
+    plugins: [pep]
+    access_createnode: pubsub_createnode
+    force_node_config:
+      "urn:xmpp:mds:displayed:0":
+        access_model: whitelist
+  mod_push:
+    include_sender: true
+    include_body: true
+  mod_http_upload:
+    docroot: /opt/ejabberd/upload
+    put_url: https://$CHAT_PUBLIC_HOST/upload
+    get_url: https://$CHAT_PUBLIC_HOST/upload
+    max_size: $CHAT_UPLOAD_MAX_SIZE
+    # custom_headers replaces the defaults: CORS for uploads from other origins.
+    custom_headers:
+      "Access-Control-Allow-Origin": "*"
+      "Access-Control-Allow-Methods": "GET,HEAD,PUT,OPTIONS"
+      "Access-Control-Allow-Headers": "Content-Type"
+      "X-Content-Type-Options": "nosniff"
+      "Content-Security-Policy": "default-src 'none'"
+  mod_http_upload_quota:
+    max_days: $CHAT_RETENTION_DAYS
+  mod_disco: {}
+  mod_ping: {}
+  mod_caps: {}
+  mod_version: {}
