@@ -217,9 +217,12 @@ fi
 if ! grep -q '^mailcmd=' /etc/asterisk/voicemail.conf; then
 	# write mailcmd if it isn't already set
 	sed -i "s|^\[general\]$|[general]\nmailcmd=/var/lib/asterisk/bin/send_email|" /etc/asterisk/voicemail.conf
-elif grep -q '^mailcmd=/usr/sbin/sendmail' /etc/asterisk/voicemail.conf; then
-	# replace mailcmd if it is already set and is the old binary
-	sed -i "s|^mailcmd=/usr/sbin/sendmail.*|mailcmd=/var/lib/asterisk/bin/send_email|" /etc/asterisk/voicemail.conf
+elif grep -Eq '^mailcmd=(/usr/sbin/sendmail|/var/lib/asterisk/bin/googlestt_sendmail\.php)' /etc/asterisk/voicemail.conf; then
+	# replace mailcmd if it references a retired delivery binary
+	sed -i \
+		-e "s|^mailcmd=/usr/sbin/sendmail.*|mailcmd=/var/lib/asterisk/bin/send_email|" \
+		-e "s|^mailcmd=/var/lib/asterisk/bin/googlestt_sendmail\.php.*|mailcmd=/var/lib/asterisk/bin/send_email|" \
+		/etc/asterisk/voicemail.conf
 fi
 
 # Configure mysql
@@ -526,5 +529,18 @@ url_encode() {
 # customize voicemail branding
 sed 's/FreePBX/'"${BRAND_NAME}"'/' -i /etc/asterisk/voicemail.conf*
 sed 's/http:\/\/AMPWEBADDRESS\/ucp/https:\/\/'"${NETHCTI_UI_HOST}"'\/history/' -i /etc/asterisk/voicemail.conf*
+
+# translate FREEPBX_LOG_LEVEL into the supervisord level
+case "${FREEPBX_LOG_LEVEL:-warn}" in
+    warn)  supervisord_level=warn ;;
+    info)  supervisord_level=info ;;
+    debug) supervisord_level=debug ;;
+    *)
+        echo "entrypoint: unknown FREEPBX_LOG_LEVEL '${FREEPBX_LOG_LEVEL}', using 'warn'" >&2
+        supervisord_level=warn ;;
+esac
+
+# at info supervisord reports every reaped grandchild of a cron job
+sed -i -E "s/^loglevel=.*/loglevel=${supervisord_level}/" /etc/supervisor/conf.d/supervisord.conf
 
 exec "$@"

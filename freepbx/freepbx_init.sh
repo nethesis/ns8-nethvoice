@@ -214,4 +214,3 @@ php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed
 
 # Apply low-priority background DB updates
 ionice -c3 nice -n 19 php /initdb.d/slow_database_updates.php >/dev/null 2>&1 &
-

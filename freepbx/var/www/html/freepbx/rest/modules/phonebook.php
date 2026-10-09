@@ -233,6 +233,12 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
             $mandatory_params = array('host','port','user','password','dbname','query');
         } else if($data['dbtype'] == 'csv') {
             $mandatory_params = array('url');
+            if (!empty($data['cti_import'])) {
+                $csvPath = isset($data['url']) ? uploadedCsvPath($data['url']) : false;
+                if ($csvPath !== false && !csvHeaderIsCommaSeparated($csvPath)) {
+                    return $response->withJson(array("status"=>"CSV separator must be a comma"), 400);
+                }
+            }
         } else if($data['dbtype'] == 'infinity') {
             $mandatory_params = array('url','username','password');
         } else {
@@ -346,26 +352,24 @@ $app->post('/phonebook/import-cti', function (Request $request, Response $respon
             return jsonResponse($response, array("status"=>"Cannot validate sharing groups"), 500);
         }
 
-        // Column mapping source->destination; must map to at least 'name', otherwise
-        // the middleware skips every row (nameless rows are discarded).
+        // Column mapping source->destination; must map to 'name' or to 'firstname'/'lastname',
+        // otherwise the middleware skips every row (nameless rows are discarded). When 'name'
+        // is empty the middleware composes it as "firstname lastname".
         $mapping = isset($data['mapping']) ? (array)$data['mapping'] : array();
         if (empty($mapping)) {
             return jsonResponse($response, array("status"=>"Missing value: mapping"), 400);
         }
-        if (!in_array('name', array_values($mapping), true)) {
-            return jsonResponse($response, array("status"=>"Mapping must include the 'name' destination"), 400);
+        if (empty(array_intersect(array('name', 'firstname', 'lastname'), array_values($mapping)))) {
+            return $response->withJson(array("status"=>"Mapping must include the 'name' or 'firstname'/'lastname' destination"), 400);
         }
 
-        // Resolve the uploaded CSV path from its file:// URL, constrained to the
-        // uploads directory to avoid reading arbitrary files.
         $url = isset($data['url']) ? $data['url'] : '';
-        $baseDir = '/var/lib/nethvoice/phonebook/uploads/';
-        if (strpos($url, 'file://' . $baseDir) !== 0) {
-            return jsonResponse($response, array("status"=>"Invalid CSV url"), 400);
+        $srcPath = uploadedCsvPath($url);
+        if ($srcPath === false) {
+            return $response->withJson(array("status"=>"CSV file not found"), 400);
         }
-        $srcPath = realpath(substr($url, strlen('file://')));
-        if ($srcPath === false || strpos($srcPath, $baseDir) !== 0 || !is_file($srcPath)) {
-            return jsonResponse($response, array("status"=>"CSV file not found"), 400);
+        if (!csvHeaderIsCommaSeparated($srcPath)) {
+            return $response->withJson(array("status"=>"CSV separator must be a comma"), 400);
         }
 
         $in = fopen($srcPath, 'r');
@@ -478,6 +482,42 @@ $app->post('/phonebook/sources/{prop:speeddial|extensions|nethcti}/{status:enabl
 	// TODO remove this API
     return $response->withStatus(200);
 });
+
+/**
+ * Resolve an uploaded CSV file:// URL to its real path, constrained to the uploads
+ * directory to avoid reading arbitrary files. Returns false when invalid or missing.
+ */
+function uploadedCsvPath($url)
+{
+    $baseDir = '/var/lib/nethvoice/phonebook/uploads/';
+    if (!is_string($url) || strpos($url, 'file://' . $baseDir) !== 0) {
+        return false;
+    }
+    $path = realpath(substr($url, strlen('file://')));
+    if ($path === false || strpos($path, $baseDir) !== 0 || !is_file($path)) {
+        return false;
+    }
+    return $path;
+}
+
+/**
+ * The CTI phonebook import reads the CSV with the comma delimiter only: reject a
+ * header that is clearly split by semicolons or tabs instead.
+ */
+function csvHeaderIsCommaSeparated($path)
+{
+    $in = fopen($path, 'r');
+    if ($in === false) {
+        return false;
+    }
+    $line = fgets($in);
+    fclose($in);
+    if ($line === false) {
+        return true;
+    }
+    $commas = substr_count($line, ',');
+    return $commas >= substr_count($line, ';') && $commas >= substr_count($line, "\t");
+}
 
 function unlink_local_csv($config)
 {
