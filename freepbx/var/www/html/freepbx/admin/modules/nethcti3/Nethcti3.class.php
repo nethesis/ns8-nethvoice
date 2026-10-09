@@ -260,10 +260,28 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
 
     // Add custom headers for trunks to trunks module
     public static function myGuiHooks() {
-        return array("core", "INTERCEPT" => array("modules/core/page.trunks.php","modules/core/page.routing.php"));
+        return array("core", "INTERCEPT" => array("modules/core/page.routing.php"));
     }
 
-    public function doGuiHook($filename, &$output){}
+    public function doGuiHook(&$currentcomponent, $module) {
+        if (($_REQUEST['display'] ?? '') != 'trunks') {
+            return;
+        }
+
+        $marker = '<!--END OUTBOUND PROXY-->';
+        $replacement = $marker;
+        $this->doGuiIntercept('modules/core/page.trunks.php', $replacement);
+        if ($replacement === $marker) {
+            return;
+        }
+
+        // Let config.php include Core in its own scope: the trunk page relies on
+        // its $module_hook variable, which GuiHooks::getOutput() does not have.
+        // Prepare the fields now, then insert them when the response is flushed.
+        ob_start(static function ($output) use ($marker, $replacement) {
+            return str_replace($marker, $replacement, $output);
+        });
+    }
 
     public function doGuiIntercept($filename, &$output) {
         # Show the custom field in the trunks module
