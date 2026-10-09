@@ -20,6 +20,7 @@ ExecStart=/usr/bin/podman run \
     --cgroups=no-conmon \
     --log-opt=tag=%u \
     --replace --name=%N \
+    --image-volume=ignore \
     --volume=chat-gw:/data:Z \
     --env=CHAT_HOST=chat.internal \
     --env=CHAT_PUBLIC_HOST=${NETHCTI_UI_HOST} \
@@ -37,7 +38,7 @@ ExecStart=/usr/bin/podman run \
     --user=root \
     --entrypoint=/opt/ejabberd/bin/chat-gateway \
     ${NETHVOICE_EJABBERD_IMAGE}
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/chat-gateway.ctr-id
+ExecStopPost=/usr/bin/podman rm -v --ignore -f --cidfile %t/chat-gateway.ctr-id
 PIDFile=%t/chat-gateway.pid
 Type=forking
 
