@@ -45,7 +45,7 @@ jobs:
         with:
           lfs: true
 
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ui/node_modules
           key: "yarn-${{ hashFiles('ui/yarn.lock') }}"
