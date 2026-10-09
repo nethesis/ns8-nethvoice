@@ -139,23 +139,23 @@ angular-sanitize@angular/bower-angular-sanitize#v1.8.3:
   version "1.8.3"
   resolved "https://codeload.github.com/angular/bower-angular-sanitize/tar.gz/7d2d056aee4b69046a55ba57cc2808e5e58aab65"
 
-angular-translate-loader-static-files@PascalPrecht/bower-angular-translate-loader-static-files#2.13.1:
-  version "2.13.1"
-  uid "59c5996893978339fb7455cde14f1b9854a42b07"
-  resolved "https://codeload.github.com/PascalPrecht/bower-angular-translate-loader-static-files/tar.gz/59c5996893978339fb7455cde14f1b9854a42b07"
+angular-translate-loader-static-files@PascalPrecht/bower-angular-translate-loader-static-files#2.19.1:
+  version "2.19.1"
+  uid "8794307a09becb0e53405bfa454d93d4182e31fb"
+  resolved "https://codeload.github.com/PascalPrecht/bower-angular-translate-loader-static-files/tar.gz/8794307a09becb0e53405bfa454d93d4182e31fb"
   dependencies:
-    angular-translate "~2.13.1"
+    angular-translate "~2.19.1"
 
 angular-translate@PascalPrecht/bower-angular-translate#2.13.0:
   version "0.0.0"
   resolved "https://codeload.github.com/PascalPrecht/bower-angular-translate/tar.gz/ba9c58adb6519b44d5975a397a3eeda0c650fbd8"
 
-angular-translate@~2.13.1:
-  version "2.13.1"
-  resolved "https://registry.yarnpkg.com/angular-translate/-/angular-translate-2.13.1.tgz#05673eb371986fc11edc151f590299d7e0c46228"
-  integrity sha512-BmphYJPq1ptro51ru2r87neQft6USk3jr3dxeWO55fQqr2jjE9sX+PitW2EZc4F0BzN2fL1F305t39qWPx4kXA==
+angular-translate@~2.19.1:
+  version "2.19.1"
+  resolved "https://registry.yarnpkg.com/angular-translate/-/angular-translate-2.19.1.tgz#8636236f6a24d9dfbf11b88ad958c2246f72a3ce"
+  integrity sha512-SrU40ndnL422vXiVoqVveCmSnCzMcIXxQgnl7Cv9krOKUg6B8KZK3ddYzidHR/rxVuySezYHNDgRvzQNKwAdNQ==
   dependencies:
-    angular ">=1.2.26 <=1.6"
+    angular "^1.8.0"
 
 angular-ui-ace@angular-ui/ui-ace#bower:
   version "0.0.0"
@@ -166,22 +166,17 @@ angular-ui-bootstrap@0.14.x:
   resolved "https://registry.yarnpkg.com/angular-ui-bootstrap/-/angular-ui-bootstrap-0.14.3.tgz#d96ce604c84bbd706ba34aabca1d5a7376e18ba6"
   integrity sha512-dGgfsZptA/L1ncDpTSHGt1QwdiDOvBkdvI2QWmwA7fMAWe6GaGXUrYOh1QpKj4uN2WW2/GLNkDozXfGv0TMwiA==
 
-angular-ui-sortable@angular-ui/ui-sortable#v0.0.1:
-  version "0.0.2"
-  uid "27d85e21cb96f49ed53cb48ed58841804e3fb4f9"
-  resolved "https://codeload.github.com/angular-ui/ui-sortable/tar.gz/27d85e21cb96f49ed53cb48ed58841804e3fb4f9"
+angular-ui-sortable@angular-ui/ui-sortable#v0.19.0:
+  version "0.0.0"
+  uid "6d7468b6f2718d8d8807b6f145403c484ce31adb"
+  resolved "https://codeload.github.com/angular-ui/ui-sortable/tar.gz/6d7468b6f2718d8d8807b6f145403c484ce31adb"
 
 "angular@1.3.0 - 1.5.*":
   version "1.5.11"
   resolved "https://registry.yarnpkg.com/angular/-/angular-1.5.11.tgz#8c5ba7386f15965c9acf3429f6881553aada30d6"
   integrity sha1-jFunOG8VllyazzQp9ogVU6raMNY=
 
-"angular@>=1.2.26 <=1.6":
-  version "1.6.10"
-  resolved "https://registry.yarnpkg.com/angular/-/angular-1.6.10.tgz#eed3080a34d29d0f681ff119b18ce294e3f74826"
-  integrity sha512-PCZ5/hVdvPQiYyH0VwsPjrErPHRcITnaXxhksceOXgtJeesKHLA7KDu4X/yvcAi+1zdGgGF+9pDxkJvghXI9Wg==
-
-angular@>=1.4.0, angular@angular/bower-angular#v1.8.3:
+angular@>=1.4.0, angular@^1.8.0, angular@angular/bower-angular#v1.8.3:
   version "1.8.3"
   resolved "https://codeload.github.com/angular/bower-angular/tar.gz/142f3c4bc7d43b6de39581a0d886bbf97f8b62ef"
 
