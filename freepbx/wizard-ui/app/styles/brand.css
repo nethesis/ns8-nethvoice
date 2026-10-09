@@ -11,7 +11,7 @@ a {
   background: #10b981;
 }
 
-.wizard-pf-steps-indicator .active .wizard-pf-step-number {
+.wizard-pf-steps-indicator .wizard-pf-step.active .wizard-pf-step-number {
   background-color: #10b981;
   border-color: #047857;
 }

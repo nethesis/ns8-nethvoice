@@ -370,11 +370,100 @@ a {
 .wizard-pf-steps-indicator {
   padding: 25px 0px;
   margin-bottom: 0px;
+  background: none;
+  border-top: 0;
+  height: 120px;
+}
+
+.wizard-pf-steps {
+  text-align: center;
+}
+
+.wizard-pf-steps-indicator .wizard-pf-step:not(.active) {
+  display: block;
+}
+
+.wizard-pf-steps-indicator .wizard-pf-step a {
+  display: inline;
+  font-weight: 400;
+}
+
+.wizard-pf-steps-indicator .wizard-pf-step a .wizard-pf-step-title {
+  margin-left: 0;
+}
+
+.wizard-pf-steps-indicator .wizard-pf-step:before {
+  background-color: #bbb;
+  content: "";
+  height: 2px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 40px;
+}
+
+.wizard-pf-steps-indicator .wizard-pf-step:first-child:before {
+  left: 50%;
+  right: 0;
+}
+
+.wizard-pf-steps-indicator .wizard-pf-step:last-child:before {
+  left: 0;
+  right: 50%;
+}
+
+.wizard-pf-steps-indicator .wizard-pf-step:only-of-type:before {
+  background-color: transparent;
+}
+
+.wizard-pf-steps-indicator .wizard-pf-step .wizard-pf-step-number {
+  border-color: #bbb;
+  position: absolute;
+  top: 27px;
+  left: calc(50% - 13px);
+}
+
+.wizard-pf-body {
+  background: none;
 }
 
 .wizard-pf-footer {
   z-index: 998;
   background: #f5f5f5;
+  display: block;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.list-view-pf .list-group-item:hover {
+  background-color: #ededed;
+}
+
+.dropdown-kebab-pf .btn-link:focus {
+  outline: none;
+}
+
+.dropdown-kebab-pf .btn-link {
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.btn-lg,
+.btn-group-lg > .btn {
+  padding: 2px 6px;
+}
+
+.toast-notifications-list-pf {
+  top: 20px;
+}
+
+.list-view-pf .list-group-item.active,
+.list-view-pf .list-group-item.list-view-pf-expand-active:first-child {
+  border-top-color: #39a5dc;
 }
 
 #wizardStepBase {
