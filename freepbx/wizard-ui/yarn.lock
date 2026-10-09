@@ -146,9 +146,10 @@ angular-translate-loader-static-files@PascalPrecht/bower-angular-translate-loade
   dependencies:
     angular-translate "~2.19.1"
 
-angular-translate@PascalPrecht/bower-angular-translate#2.13.0:
+angular-translate@PascalPrecht/bower-angular-translate#2.19.1:
   version "0.0.0"
-  resolved "https://codeload.github.com/PascalPrecht/bower-angular-translate/tar.gz/ba9c58adb6519b44d5975a397a3eeda0c650fbd8"
+  uid e3117e15bdd2991886f6c33bcbe3a89ca9ed1cd6
+  resolved "https://codeload.github.com/PascalPrecht/bower-angular-translate/tar.gz/e3117e15bdd2991886f6c33bcbe3a89ca9ed1cd6"
 
 angular-translate@~2.19.1:
   version "2.19.1"
