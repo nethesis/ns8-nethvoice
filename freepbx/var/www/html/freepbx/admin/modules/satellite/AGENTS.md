@@ -23,14 +23,17 @@ upload behavior.
 - `tests/attended_transfer_segments_test.php`
 - `Satellite.class.php`
 - `module.xml`
-- repository root: `AGENTS.md`, `COMPONENTS.md`, `freepbx/README.md`
+- workspace parent: `AGENTS.md`; repository: `COMPONENTS.md`, `freepbx/README.md`
+- repository `satellite/agent-api-contract.md`, `monitoring-api-contract.md`,
+  `phase4-api-contract.md`, and `workflow-api-contract.md` for affected agent work
 
 ## Current Source Of Truth
 
 - `satellite_get_config()` is a no-op; `satellite_get_config_late()` does the
   real dialplan work.
-- Dialplan is active only for the `asterisk` engine and when
-  `SATELLITE_CALL_TRANSCRIPTION_ENABLED == 'True'`.
+- Transcription dialplan is active only for the `asterisk` engine and when
+  `SATELLITE_CALL_TRANSCRIPTION_ENABLED == 'True'`. Agent dialplan generation
+  is separate and runs for the `asterisk` engine even with transcription off.
 - Current splice targets: `macro-exten-vm`, `ext-queues`,
   `from-queue-exten-only`, `macro-dialout-trunk`, and generated
   `satellite-ext-callrecording`.
@@ -43,8 +46,9 @@ upload behavior.
 - Post-process command:
   `/var/lib/asterisk/bin/satellite_transcript -u ${UNIQUEID} -l ${CHANNEL(linkedid)}`.
 - The `satellite` context is only a thin `Stasis('satellite')` wrapper.
-- `Satellite.class.php` is mostly TTS/admin code, not the call-transcription
-  pipeline.
+- `Satellite.class.php` handles TTS/admin services and native agent configuration,
+  managed trunks, profiles, fallback validation and synchronization. The call
+  transcription segmentation pipeline remains in `bin/satellite_transcript`.
 
 Treat older docs as stale unless the code reintroduces them. In particular,
 there is no current `satellite-recordcheck`, `stoprec`, or broader
@@ -100,14 +104,10 @@ upstream `nethesis/satellite` API implementation too.
 ## Tests
 
 - Use `tests/run_transcription_tests.php` as the single entrypoint for the
-  in-tree Satellite transcription regressions.
-- Current regression files are:
-  `tests/attended_transfer_segments_test.php`,
-  `tests/external_attended_transfer_segments_test.php`,
-  `tests/double_attended_transfer_segments_test.php`, and
-  `tests/four_way_two_transfers_test.php`,
-  `tests/multiparty_skip_test.php`, and
-  `tests/upload_fields_test.php`.
+  in-tree Satellite agent and transcription regressions. It discovers PHP tests
+  in `tests/` and `tests/agent/`; inspect the runner/current files rather than
+  relying on an older fixed list. Agent tests cover crypto/validation, native
+  names, dialplan, save services and trunk provisioning.
 - These are pure PHP library tests, not end-to-end telephony or HTTP tests.
 - Shared setup and assertions now live in `tests/bootstrap.php`; new tests
   should `require_once` it and call `satellite_test_bootstrap(...)` instead of
@@ -128,6 +128,36 @@ upstream `nethesis/satellite` API implementation too.
   `functions.inc.php` and `bin/satellite_transcript`.
 - Any change to transfer handling should come with a regression fixture.
 - Trust code over comments; some comments and older docs are stale.
+
+## Native Agent Configuration and Runtime Boundary
+
+- This module owns `satellite_agent_*` MariaDB tables and generated FreePBX
+  trunks/destinations. Python runtime source lives in the separate Satellite
+  repository's `agent` branch, not repository `satellite/`.
+- Use `AgentTrunkProvisioner` and FreePBX Core's PJSIP API for managed trunks.
+  Preserve `AgentTrunk_<id>` identity, trunk ownership and rollback checks.
+  `runtime_owner=builtin` uses Satellite; `cleverai` routing remains separate.
+- Bump `AgentConfigurationState` within the native mutation transaction. Reuse
+  the encrypted snapshot for the same revision; synchronize through
+  `AgentConfigurationBuilder` and check matching revision/hash acknowledgement.
+  Directory/calendar refreshes must reference that accepted hash.
+- Keep `ext_stasis(app, args)` separate and align the agent app with
+  `SATELLITE_AGENT_ARI_APP`. Preserve trusted `AGENT_*` variables, inherited
+  provider correlation and the generated fallback/handoff contexts.
+- The public webhook is `htdocs/index.php`; verify raw bytes and forward the
+  signed base64 envelope only to the private loopback Satellite client.
+  `htdocs/agent-workflow-data.php` is local/bearer-only and uses the read-only
+  `satellite_workflow` account for company contacts and answered-call history.
+- Workflow administration goes through repository `freepbx/var/www/html/freepbx/rest/`.
+  Keep JSON objects distinct from arrays through the PHP gateway. Publication
+  and activation reconcile PBX destinations and trigger reload; draft saving
+  must not reload or change the live route.
+- Agent Builder pages live in AngularJS `freepbx/wizard-ui/`; the NS8 Vue UI is
+  separate. Keep workflow manifests, inspector fields, English/Italian labels,
+  contracts and the matching runtime tests aligned.
+- See the workspace review handoff before assuming all tests pass: pending
+  app-name and clone-volume edits need corresponding regression updates, and
+  the Satellite review worktree has a draft-save binding-type mismatch.
 
 ## Agent workflow skill and human documentation
 
