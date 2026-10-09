@@ -153,14 +153,52 @@ function nethcti3_get_config($engine) {
     }
 }
 
+/** Add the forwarding identity without replacing Core's loop check. */
+function nethcti3_configure_forward_identity($ext) {
+    $context = 'macro-dial-one';
+    $extension = 'cf';
+    $loopCheck = 'ExecIf($["${DB(CF/${DEXTEN})}"="${CFAMPUSER}" | "${DB(CF/${DEXTEN})}"="${REALCALLERIDNUM}" | "${CUT(CUT(BLINDTRANSFER,-,1),/,1)}" = "${DB(CF/${DEXTEN})}" | "${DEXTEN}"="${DB(CF/${DEXTEN})}"]?Return())';
+    $matches = [];
+    foreach ($ext->_exts[$context][' cf '] ?? [] as $index => $step) {
+        if ($step['cmd']->output() === $loopCheck) {
+            $matches[] = $index;
+        }
+        if (($step['tag'] ?? '') === 'nethvoice-cf-destination') {
+            return;
+        }
+    }
+    if (count($matches) !== 1) {
+        throw new RuntimeException('Cannot find the Core call-forward loop check; refusing to change the dialplan');
+    }
+
+    // splice() takes a zero-based position, unlike replace() priorities.
+    $position = $matches[0] + 1;
+    $ext->splice($context, $extension, (string) $position, new ext_set('NETHVOICE_CF_DEST', '${DB(CF/${DEXTEN})}'), 'nethvoice-cf-destination');
+    $ext->splice($context, $extension, (string) ($position + 1), new ext_execif('$["${CFIGNORE}"="" & "${NETHVOICE_CF_DEST}"!="" & "${NETHVOICE_CF_DEST:0:2}"!="vm" & "${DB(AMPUSER/${NETHVOICE_CF_DEST}/cidnum)}"=""]', 'Set', '__REALCALLERIDNUM=${DEXTEN}'), 'nethvoice-cf-identity');
+}
+
+/** Keep the TIM progress response on the no-answer path as instructions move. */
+function nethcti3_configure_forward_progress($ext) {
+    $matches = [];
+    foreach ($ext->_exts['macro-dial-one'][' cf '] ?? [] as $index => $step) {
+        if ($step['cmd']->output() === 'Set(DIALSTATUS=NOANSWER)') {
+            $matches[] = $index;
+        }
+    }
+    if (count($matches) !== 1) {
+        throw new RuntimeException('Cannot find the Core call-forward no-answer path');
+    }
+    $ext->splice('macro-dial-one', 'cf', (string) $matches[0], new ext_answer());
+    $ext->splice('macro-dial-one', 'cf', (string) ($matches[0] + 1), new ext_ringing());
+}
+
 function nethcti3_get_config_late($engine) {
     global $ext;
     global $amp_conf;
     global $db;
     switch($engine) {
         case "asterisk":
-            /* Change CF for CTI voicemail status */
-            $ext->replace('macro-dial-one', 'cf', '2', new ext_execif('$["${DB(AMPUSER/${DB_RESULT}/cidnum)}" == "" && "${DB_RESULT:0:2}" != "vm"]', 'Set','__REALCALLERIDNUM=${DEXTEN}'));
+            nethcti3_configure_forward_identity($ext);
 
             /* get featurecodes */
             $query='SELECT featurename,IF(customcode IS NULL OR customcode = "",defaultcode,customcode) as defaultcode FROM featurecodes WHERE ( modulename="nethcti3" OR modulename="donotdisturb" ) AND ( featurename="que_toggle") AND enabled="1"';
@@ -401,8 +439,7 @@ function nethcti3_get_config_late($engine) {
         /* Change SIP response for unregistered extensions #7321*/
         $ext->replace('macro-exten-vm', '_s-!', '4', new extension('HangUp(20)'));
         /* Add Answer() and Ringing() to macro-dial-one on call forwarding #7321*/
-        $ext->splice('macro-dial-one', 'cf', '', new ext_answer(), '', 7);
-        $ext->splice('macro-dial-one', 'cf', '', new ext_ringing(), '', 8);
+        nethcti3_configure_forward_progress($ext);
         break;
     }
 
