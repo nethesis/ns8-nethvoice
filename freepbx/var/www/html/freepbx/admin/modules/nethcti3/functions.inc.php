@@ -153,14 +153,37 @@ function nethcti3_get_config($engine) {
     }
 }
 
+/** Add the forwarding identity without replacing Core's loop check. */
+function nethcti3_configure_forward_identity($ext) {
+    $context = 'macro-dial-one';
+    $extension = 'cf';
+    $loopCheck = 'ExecIf($["${DB(CF/${DEXTEN})}"="${CFAMPUSER}" | "${DB(CF/${DEXTEN})}"="${REALCALLERIDNUM}" | "${CUT(CUT(BLINDTRANSFER,-,1),/,1)}" = "${DB(CF/${DEXTEN})}" | "${DEXTEN}"="${DB(CF/${DEXTEN})}"]?Return())';
+    $matches = [];
+    foreach ($ext->_exts[$context][' cf '] ?? [] as $index => $step) {
+        if ($step['cmd']->output() === $loopCheck) {
+            $matches[] = $index;
+        }
+        if (($step['tag'] ?? '') === 'nethvoice-cf-destination') {
+            return;
+        }
+    }
+    if (count($matches) !== 1) {
+        throw new RuntimeException('Cannot find the Core call-forward loop check; refusing to change the dialplan');
+    }
+
+    // splice() takes a zero-based position, unlike replace() priorities.
+    $position = $matches[0] + 1;
+    $ext->splice($context, $extension, (string) $position, new ext_set('NETHVOICE_CF_DEST', '${DB(CF/${DEXTEN})}'), 'nethvoice-cf-destination');
+    $ext->splice($context, $extension, (string) ($position + 1), new ext_execif('$["${CFIGNORE}"="" & "${NETHVOICE_CF_DEST}"!="" & "${NETHVOICE_CF_DEST:0:2}"!="vm" & "${DB(AMPUSER/${NETHVOICE_CF_DEST}/cidnum)}"=""]', 'Set', '__REALCALLERIDNUM=${DEXTEN}'), 'nethvoice-cf-identity');
+}
+
 function nethcti3_get_config_late($engine) {
     global $ext;
     global $amp_conf;
     global $db;
     switch($engine) {
         case "asterisk":
-            /* Change CF for CTI voicemail status */
-            $ext->replace('macro-dial-one', 'cf', '2', new ext_execif('$["${DB(AMPUSER/${DB_RESULT}/cidnum)}" == "" && "${DB_RESULT:0:2}" != "vm"]', 'Set','__REALCALLERIDNUM=${DEXTEN}'));
+            nethcti3_configure_forward_identity($ext);
 
             /* get featurecodes */
             $query='SELECT featurename,IF(customcode IS NULL OR customcode = "",defaultcode,customcode) as defaultcode FROM featurecodes WHERE ( modulename="nethcti3" OR modulename="donotdisturb" ) AND ( featurename="que_toggle") AND enabled="1"';
