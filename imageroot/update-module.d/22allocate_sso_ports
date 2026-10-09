@@ -6,8 +6,9 @@
 #
 
 # Allocate loopback ports for the on-demand SSO front-doors (saml2-proxy,
-# oauth2-proxy) on installs created before the tcp-ports-demand bump to 38.
-# New installs get them from create-module/05setenvs instead.
+# oauth2-proxy) on installs created before the SSO support: 1.7.x instances
+# hold 37 TCP ports (including the dropped IAX TCP port), so the demand of 39
+# leaves room for these two. New installs get them from create-module/05setenvs.
 import sys
 import agent
 
@@ -20,6 +21,12 @@ env = agent.read_envfile('environment')
 
 for var in ('SAML2_PROXY_PORT', 'OAUTH2_PROXY_PORT'):
     if var not in env:
-        allocated = agent.allocate_ports(1, "tcp", keep_existing=True)
+        try:
+            allocated = agent.allocate_ports(1, "tcp", keep_existing=True)
+        except Exception as ex:
+            # SSO is opt-in: do not block the update, 45authentication refuses
+            # to start a front-door without its port
+            print(f"Cannot allocate a port for {var}: {ex}. SSO will not be available until the next update", file=sys.stderr)
+            continue
         agent.set_env(var, str(allocated[0]))
         print(f"New port allocated for {var}: {allocated[0]}", file=sys.stderr)
