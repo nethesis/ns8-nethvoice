@@ -2,6 +2,20 @@
 
 FreePBX container for NethServer 8
 
+## Vendored FreePBX modules
+
+Boss Secretary and QueueMetrics are stored in `var/www/html/freepbx/admin/modules/`
+and copied into the image at build time. Their sources, translations, and upstream
+license declarations are preserved from the following release archives:
+
+| Module | Source archive | Archive SHA-256 |
+| --- | --- | --- |
+| Boss Secretary | [nethesis/freepbx-bosssecretary 1.0.3](https://github.com/nethesis/freepbx-bosssecretary/archive/refs/tags/1.0.3.tar.gz) | `d59e31be47bfd36834e5003f976eb4ee9ab6f4e00394c279992d73bac32a7cde` |
+| QueueMetrics | [nethesis/queuemetrics 2.11.0.4](https://github.com/nethesis/queuemetrics/archive/refs/tags/2.11.0.4.tar.gz) | `c2e353cac1d695d0ff9ec5e788db472431d8e1491f2eeceee3fb99aa317833fa` |
+
+QueueMetrics retains the upstream `module.xml` version `2.11.0.1`, even though
+its source archive is tagged `2.11.0.4`.
+
 ## Environment variables
 
 - `APACHE_RUN_USER` user Apache is run with (Asterisk)
@@ -49,6 +63,7 @@ Note: when disabling, remove old imported extensions from phonebook table `mysql
 - `LOGIN_BACKGROUND_URL` Public URL for the wizard login background image
 - `SUBSCRIPTION_SYSTEMID` my.nethesis.it server SystemID
 - `SUBSCRIPTION_SECRET` my.nethesis.it server secret
+- `FREEPBX_LOG_LEVEL` supervisord verbosity: `warn` (default), `info` or `debug`; cron and the PAM session lines of each cron run are always quiet
 
 ## Wizard runtime branding
 
@@ -180,10 +195,16 @@ To enable call transcription, you need to set the following settings on nethserv
 The `satellite` FreePBX module provides TTS audio generation through
 Satellite, audio preview, and saving as FreePBX recordings.
 
-### Environment variables used by TTS
+### Environment variables used by Satellite HTTP clients
 
 - `SATELLITE_HTTP_PORT` HTTP port of local Satellite API (default: `8080`)
-- `SATELLITE_API_TOKEN` bearer token used for Satellite API authentication (optional)
+- `SATELLITE_API_TOKEN` required bearer token for Satellite transcription, TTS,
+  and model listing requests. The module generates it in `passwords.env` at
+  creation and repairs an absent or blank value during updates.
+
+Satellite binds its HTTP listener to `127.0.0.1`; Satellite and FreePBX share
+the host network so these local URLs remain reachable. No Satellite HTTP route
+is exposed through the public reverse proxy.
 
 The TTS request is sent to:
 

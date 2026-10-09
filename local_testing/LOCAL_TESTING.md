@@ -11,6 +11,24 @@ when you need full module integration coverage on a real cluster.
 
 ## Workflow
 
+The NethCTI trunk GUI regression runs without containers or a database:
+
+```bash
+php local_testing/tests/nethcti_gui_hooks_test.php
+```
+
+It checks the Core page loading scope, proxy controls and saved selections,
+and the outbound-route GUI hook.
+
+The Boss/Secretary form regression also runs without containers or a database:
+
+```bash
+php local_testing/tests/bosssecretary_forms_test.php
+```
+
+It renders the real Add/Edit templates with missing, empty, and populated
+messages, checking that entered fields and group controls are preserved.
+
 ### collect fixture from a production machine
 
 ssh into machine and go in nethvoice instance with `runagent -m nethvoiceX`, then collect fixture 

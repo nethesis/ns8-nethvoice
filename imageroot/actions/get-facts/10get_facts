@@ -105,6 +105,32 @@ def collect_nethcti3(facts):
     facts['nethvoice_customer_cards_count'] = int(rows[0])
     facts['nethvoice_nethlink_active_count'] = int(rows[1])
 
+def collect_nethlink(facts):
+    columns = {
+        'nethlink_version': 'nethvoice_nethlink_by_version',
+        'os_type': 'nethvoice_nethlink_by_os_type',
+        'os_release': 'nethvoice_nethlink_by_os_release',
+        'arch': 'nethvoice_nethlink_by_arch',
+    }
+    os_type_names = {
+        'win32': 'Windows',
+        'darwin': 'macOS',
+        'linux': 'Linux',
+    }
+    for key in columns.values():
+        facts[key] = {}
+    for column, key in columns.items():
+        rows = sql_rows("nethcti3",
+            f"SELECT IFNULL(NULLIF({column}, ''), 'unknown'), COUNT(*) FROM user_nethlink "
+            f"WHERE timestamp >= NOW() - INTERVAL 14 DAY GROUP BY 1;")
+        for row in rows:
+            parts = row.split('\t')
+            if len(parts) == 2:
+                value = parts[0]
+                if column == 'os_type':
+                    value = os_type_names.get(value.lower(), value)
+                facts[key][value] = facts[key].get(value, 0) + int(parts[1])
+
 def collect_devices(facts):
     rows = sql_rows(AMPDBNAME,
         "SELECT type, COUNT(*) FROM rest_devices_phones WHERE user_id IS NOT NULL GROUP BY type;")
@@ -184,6 +210,7 @@ safe("cdr", collect_cdr, facts)
 safe("cti", collect_cti, facts)
 safe("cti-2fa", collect_cti_2fa, facts)
 safe("nethcti3", collect_nethcti3, facts)
+safe("nethlink", collect_nethlink, facts)
 safe("devices", collect_devices, facts)
 safe("physical-devices-by-vendor", collect_physical_devices_by_vendor, facts)
 safe("physical-devices-by-model", collect_physical_devices_by_model, facts)
