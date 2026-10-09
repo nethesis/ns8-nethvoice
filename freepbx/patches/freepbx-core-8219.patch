@@ -203,7 +203,7 @@
  		$ext->add($c, 's', '', new \ext_while('$["${SET(HASH(dialparties,workingext)=${HASH(dialparties_EXTLIST,${I})})}" != ""]'));
  		$ext->add($c, 's', '', new \ext_gotoif('$["${HASH(dialparties,workingext)}"=""]','next'));
  		$ext->add($c, 's', '', new \ext_sethash('dialparties','EXTLISTCOUNT','${MATH(${HASH(dialparties,EXTLISTCOUNT)} + 1,int)}'));
-+		$ext->add($c, 's', '', new \ext_sethash('dialparties','FORWARD_OWNER','${HASH(dialparties_FORWARD_OWNER,${HASH(dialparties,workingext)})}'));
++		$ext->add($c, 's', '', new \ext_sethash('dialparties','FORWARD_OWNER','${HASH(dialparties_FORWARD_OWNER,${I})}'));
  		$ext->add($c, 's', '', new \ext_noop('Working with extension ${HASH(dialparties,workingext)}'));
  		$ext->add($c, 's', '', new \ext_gosub('1','s','dialparties-isextavail','${HASH(dialparties,workingext)}'));
  
@@ -247,7 +247,7 @@
  		$ext->add($c, 's', '', new \ext_gotoif('$["${HASH(dialparties,CFIGNORE)}" != ""]','cfignore'));
  		// append a hash sign so we can send out on chan_local below unless cfingore is set
 -		$ext->add($c, 's', '', new \ext_sethash('dialparties_EXTLIST','${I}','${CF}#'));
-+		$ext->add($c, 's', '', new \ext_sethash('dialparties_FORWARD_OWNER','${HASH(dialparties,CF)}#','${HASH(dialparties,workingext)}'));
++		$ext->add($c, 's', '', new \ext_sethash('dialparties_FORWARD_OWNER','${I}','${HASH(dialparties,workingext)}'));
 +		$ext->add($c, 's', '', new \ext_sethash('dialparties_EXTLIST','${I}','${HASH(dialparties,CF)}#'));
  		$ext->add($c, 's', '', new \ext_noop('Extension ${HASH(dialparties,workingext)} has call forward set to ${HASH(dialparties,CF)}'));
  		// This only really needs to be set if we are setting Diversion Headers, but it's not worth the hassle of
