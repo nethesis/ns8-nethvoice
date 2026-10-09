@@ -20,6 +20,7 @@ ExecStart=/usr/bin/podman run \
     --cgroups=no-conmon \
     --log-opt=tag=%u \
     --replace --name=%N \
+    --image-volume=ignore \
     --volume=%E/state/chat/ejabberd.yml:/opt/ejabberd/conf/ejabberd.yml:ro,z \
     --volume=chat-data:/opt/ejabberd/database:Z \
     --volume=chat-upload:/opt/ejabberd/upload:Z \
@@ -29,7 +30,7 @@ ExecStart=/usr/bin/podman run \
     --network=host \
     --tz=${TIMEZONE} \
     ${NETHVOICE_EJABBERD_IMAGE}
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/chat-server.ctr-id
+ExecStopPost=/usr/bin/podman rm -v --ignore -f --cidfile %t/chat-server.ctr-id
 PIDFile=%t/chat-server.pid
 Type=forking
 
