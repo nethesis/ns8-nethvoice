@@ -354,7 +354,7 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
                 $_REQUEST['monitor-join'] = $exists['monitor-join'];
                 $_REQUEST['eventwhencalled'] = $exists['eventwhencalled'];
                 $_REQUEST['eventmemberstatus'] = $exists['eventmemberstatus'];
-                $_REQUEST['music'] = $exists['music'];
+                $_REQUEST['music'] = isset($exists['music']) ? $exists['music'] : 'inherit';
                 $_REQUEST['weight'] = $exists['weight'];
                 $_REQUEST['autofill'] = ($exists['autofill']==='yes')?$exists['autofill']:'';
                 $_REQUEST['ringinuse'] = $exists['ringinuse'];
