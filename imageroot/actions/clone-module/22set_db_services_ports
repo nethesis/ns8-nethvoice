@@ -17,18 +17,23 @@ ASTERISK_CONFIG_FILES = (
 )
 
 # Run mysql through the mariadb container's own shell and read the root password
-# from MYSQL_PWD (exported inside the shell from the container environment) so it
-# never appears in a host command line or process argv, where it would be logged
-# to the system journal (QA finding B2). The SQL is passed over stdin.
-_MYSQL_ENV = 'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; exec /usr/bin/mysql -u root asterisk'
+# from MYSQL_PWD so it never appears in a host command line or process argv,
+# where it would be logged to the system journal (QA finding B2). The SQL is
+# passed over stdin.
+#
+# The password is injected with --env-file from the module state passwords.env,
+# NOT taken from the container environment: the container is started with the
+# secrets of the source instance and clone-module rotates the root password
+# (21set_mariadb_passwords) after the container is already running, so the
+# container environment holds a stale MARIADB_ROOT_PASSWORD and mysql fails
+# with "Access denied for user 'root'@'localhost'".
+_MYSQL_EXEC = ["podman", "exec", "-i", "--env-file=passwords.env", "mariadb", "bash", "-c"]
+_MYSQL_SHELL = 'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; exec /usr/bin/mysql {} -u root asterisk'
 
 
 def read_mysql_values(query):
     result = subprocess.run(
-        [
-            "podman", "exec", "-i", "mariadb", "bash", "-c",
-            'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; exec /usr/bin/mysql -N -B -u root asterisk',
-        ],
+        [*_MYSQL_EXEC, _MYSQL_SHELL.format("-N -B")],
         input=query,
         check=True,
         stdout=subprocess.PIPE,
@@ -39,7 +44,7 @@ def read_mysql_values(query):
 
 def run_sql(query):
     subprocess.run(
-        ["podman", "exec", "-i", "mariadb", "bash", "-c", _MYSQL_ENV],
+        [*_MYSQL_EXEC, _MYSQL_SHELL.format("")],
         input=query,
         text=True,
         check=True,
