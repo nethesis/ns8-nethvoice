@@ -49,6 +49,7 @@ Note: when disabling, remove old imported extensions from phonebook table `mysql
 - `LOGIN_BACKGROUND_URL` Public URL for the wizard login background image
 - `SUBSCRIPTION_SYSTEMID` my.nethesis.it server SystemID
 - `SUBSCRIPTION_SECRET` my.nethesis.it server secret
+- `FREEPBX_LOG_LEVEL` supervisord verbosity: `warn` (default), `info` or `debug`; cron and the PAM session lines of each cron run are always quiet
 
 ## Wizard runtime branding
 

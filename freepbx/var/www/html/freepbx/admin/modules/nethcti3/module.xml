@@ -2,7 +2,7 @@
   <rawname>nethcti3</rawname>
   <repo>unsupported</repo>
   <name>NethCTI 3 Configuration Module</name>
-  <version>1.5.0</version>
+  <version>1.5.1</version>
   <category>Applications</category>
   <Publisher>Nethesis</Publisher>
   <info></info>
@@ -17,6 +17,13 @@
     <get_config pri="480">nethcti3_get_config</get_config>
     <get_config pri="600">nethcti3_get_config_late</get_config>
 </methods>
+<hooks>
+    <userman class="Userman" namespace="FreePBX\modules">
+        <method callingMethod="updateUser" class="Nethcti3" namespace="FreePBX\modules">usermanUpdateUser</method>
+    </userman>
+</hooks>
 <description>Generate NethCTI 3 Configuration hooking apply config</description>
-<changelog></changelog>
+<changelog>
+  *1.5.1* Synchronize Userman display names with linked extensions
+</changelog>
 </module>

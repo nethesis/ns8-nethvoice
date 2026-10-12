@@ -937,7 +937,8 @@ import {
   PageTitleService,
 } from "@nethserver/ns8-ui-lib";
 import ResumeConfigNotification from "@/components/first-configuration/ResumeConfigNotification.vue";
-import { Sun20, Moon20 } from "@carbon/icons-vue";
+import Sun20 from "@carbon/icons-vue/es/sun/20";
+import Moon20 from "@carbon/icons-vue/es/moon/20";
 import Save20 from "@carbon/icons-vue/es/save/20";
 import Reset20 from "@carbon/icons-vue/es/reset/20";
 import Information16 from "@carbon/icons-vue/es/information/16";
