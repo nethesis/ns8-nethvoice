@@ -1,3 +1,12 @@
+# Build the standalone Agents UI; the final image receives compiled assets only.
+FROM docker.io/library/node:24.15.0-slim AS agents-ui-builder
+WORKDIR /build/agents-ui
+COPY agents-ui/package.json agents-ui/package-lock.json ./
+RUN npm ci
+COPY agents-ui/index.html agents-ui/tsconfig.json agents-ui/vite.config.ts ./
+COPY agents-ui/src ./src
+RUN npm run build
+
 # Stage 1: Build Asterisk
 FROM docker.io/debian:trixie as builder
 
@@ -194,6 +203,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends libbcg729-dev l
 	make -j"$(nproc)" && \
 	install -D -m 0755 .libs/codec_g729.so ${BUILDROOT}${LIBDIR}/asterisk/modules/codec_g729.so
 
+# /var/run is a symlink to /run in the runtime image. Asterisk stages only
+# empty runtime directories there; omit them from the root filesystem copy.
+RUN test -z "$(find ${BUILDROOT}/var/run -type f -print -quit)" && \
+    rm -rf ${BUILDROOT}/var/run
+
 FROM docker.io/library/php:8.2-apache
 WORKDIR /var/lib/asterisk
 ARG DEBIAN_FRONTEND=noninteractive
@@ -278,6 +292,7 @@ RUN sed -i 's/^# *bg_BG.UTF-8 UTF-8/bg_BG.UTF-8 UTF-8/' /etc/locale.gen && \
 
 # Copy Asterisk files
 COPY --from=builder /usr/src/asterisk/build/./ /
+RUN mkdir -p /var/run/asterisk
 COPY remote-artifacts.sha256 /tmp/remote-artifacts.sha256
 COPY fetch-remote-artifact /usr/local/bin/fetch-remote-artifact
 
@@ -592,6 +607,7 @@ RUN docker-php-source extract && \
 	docker-php-source delete
 
 # Install nethvoice-wizard-restapi and nethvoice-wizard-ui
+COPY --from=agents-ui-builder --chown=asterisk:asterisk /build/agents-ui/dist /var/www/html/freepbx/agents-ui
 COPY var/www/html/freepbx/rest /var/www/html/freepbx/rest
 COPY wizard-ui /tmp/wizard
 RUN --mount=type=cache,id=nethvoice-freepbx-composer,target=/var/cache/composer \

@@ -1,0 +1,23 @@
+{
+  "contract_version": 1,
+  "agent_id": "basic_voice",
+  "destination_id": "agent:basic_voice",
+  "workflow_version": 1,
+  "provider_binding_id": "provider_test",
+  "provider": "openai",
+  "conversation": {
+    "language": "en",
+    "voice": "test_voice",
+    "greeting": "Hello",
+    "instructions": "Help the test caller."
+  },
+  "enabled_tools": [
+    "directory.find_destinations",
+    "telephony.transfer"
+  ],
+  "approved_destination_ids": [
+    "extension:203"
+  ],
+  "fallback_destination_id": "extension:203",
+  "max_call_duration_seconds": 600
+}
