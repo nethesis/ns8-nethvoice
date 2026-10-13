@@ -32,12 +32,15 @@ import agent
 # the start of the update — it would not contain the newly allocated value.
 env = agent.read_envfile("environment")
 
-old_port = env.get("ASTERISK_SIP_PORT")
 new_port = env.get("ASTERISK_SIP_UDP_PORT")
+# Old SIP UDP listener ports: ASTERISK_SIP_PORT before the TCP/UDP split, and
+# the previous SIP UDP port when this update moved it (set by 20allocate_ports).
+old_ports = {env.get(var) for var in ("ASTERISK_SIP_PORT", "PREVIOUS_SIP_UDP_PORT")}
+old_ports -= {None, "", new_port}
 
 # Nothing to do when the SIP UDP port did not move (already migrated, or the
 # env is not available for some reason).
-if not old_port or not new_port or old_port == new_port:
+if not new_port or not old_ports:
     sys.exit(0)
 
 try:
@@ -54,14 +57,16 @@ except Exception as ex:
     )
     sys.exit(0)
 
-old_token = f'to-port="{old_port}"'
 new_token = f'to-port="{new_port}"'
 
 for rule in rich_rules:
-    if "forward-port" not in rule or 'protocol="udp"' not in rule or old_token not in rule:
+    if "forward-port" not in rule or 'protocol="udp"' not in rule:
+        continue
+    old_port = next((port for port in old_ports if f'to-port="{port}"' in rule), None)
+    if old_port is None:
         continue
 
-    new_rule = rule.replace(old_token, new_token)
+    new_rule = rule.replace(f'to-port="{old_port}"', new_token)
     print(
         agent.SD_INFO
         + f"Repointing SIP proxy-bypass forward-port {old_port} -> {new_port}/udp",

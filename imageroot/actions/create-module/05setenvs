@@ -20,14 +20,14 @@ def gen_password(length=32):
 
 # RTP/UDP ports are pre-allocated by ns8-core via the udp-ports-demand label
 # and exposed as UDP_PORTS_RANGE — no extra allocation needed here.
-# Layout (2003 ports total):
-#   [0..999]   Asterisk RTP
-#   [1000..1999] Janus RTP
-#   [2000]     Satellite RTP
-#   [2001]     Asterisk IAX (UDP-only protocol)
-#   [2002]     Asterisk SIP UDP (separate from TCP SIP port)
-asterisk_rtp_ports = 1000
-janus_rtp_ports = 1000
+# Layout (1003 ports total):
+#   [0..499]   Asterisk RTP
+#   [500..999] Janus RTP
+#   [1000]     Satellite RTP
+#   [1001]     Asterisk IAX (UDP-only protocol)
+#   [1002]     Asterisk SIP UDP (separate from TCP SIP port)
+asterisk_rtp_ports = 500
+janus_rtp_ports = 500
 udp_range = os.environ['UDP_PORTS_RANGE'].split("-")
 rtp_start = int(udp_range[0])
 sip_start = rtp_start
@@ -181,10 +181,10 @@ agent.set_env('NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS', '127.0.0.1:' + str(port_lis
 agent.set_env('SAML2_PROXY_PORT', port_list[36])
 agent.set_env('OAUTH2_PROXY_PORT', port_list[37])
 
-# IAX2 is UDP-only — port derived from UDP_PORTS_RANGE offset 2001
+# IAX2 is UDP-only — port derived from UDP_PORTS_RANGE offset 1001
 agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)
 
-# SIP UDP port is separate from TCP SIP port — offset 2002
+# SIP UDP port is separate from TCP SIP port — offset 1002
 agent.set_env('ASTERISK_SIP_UDP_PORT', sip_udp_port)
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT', '127.0.0.1:' + str(port_list[6]))
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT', '127.0.0.1:' + str(port_list[7]))

@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# PREVIOUS_SIP_UDP_PORT is set by 20allocate_ports only for the steps of the
+# same update: remove it so a later update never repoints to a stale port.
+
+import agent
+
+agent.unset_env('PREVIOUS_SIP_UDP_PORT')

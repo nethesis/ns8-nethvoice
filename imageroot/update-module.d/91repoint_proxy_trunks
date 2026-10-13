@@ -38,11 +38,14 @@ import agent.tasks
 # the start of the update.
 env = agent.read_envfile("environment")
 
-old_port = env.get("ASTERISK_SIP_PORT")
 new_port = env.get("ASTERISK_SIP_UDP_PORT")
+# Old SIP UDP listener ports: ASTERISK_SIP_PORT before the TCP/UDP split, and
+# the previous SIP UDP port when this update moved it (set by 20allocate_ports).
+old_ports = {env.get(var) for var in ("ASTERISK_SIP_PORT", "PREVIOUS_SIP_UDP_PORT")}
+old_ports -= {None, "", new_port}
 
 # Nothing to do when the SIP UDP port did not move (already migrated).
-if not old_port or not new_port or old_port == new_port:
+if not new_port or not old_ports:
     sys.exit(0)
 
 proxy_id = agent.resolve_agent_id("nethvoice-proxy@node")
@@ -92,7 +95,7 @@ for trunk in trunks:
     if not match:
         continue
     host, port, suffix = match.group(1), match.group(2), match.group(3)
-    if host != node_address or port != str(old_port):
+    if host != node_address or port not in old_ports:
         continue
 
     new_uri = f"sip:{host}:{new_port}{suffix}"
