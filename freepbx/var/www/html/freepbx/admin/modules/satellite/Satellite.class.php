@@ -291,7 +291,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
             $existingOwner = $existing && isset($existing['runtime_owner']) ? $existing['runtime_owner'] : 'cleverai';
         }
         $fields = array('name', 'provider', 'openai_project_id', 'grok_phone_number',
-            'api_key', 'sip_auth_mode', 'sip_auth_username', 'sip_auth_password', 'runtime_owner');
+            'api_key', 'sip_auth_mode', 'sip_auth_username', 'sip_auth_password', 'runtime_owner', 'webhook_signing_secret');
         $input = array_merge(array(
             'name' => '', 'provider' => '', 'openai_project_id' => null,
             'grok_phone_number' => null, 'api_key' => '', 'sip_auth_mode' => 'none',
@@ -519,6 +519,54 @@ class Satellite extends \FreePBX_Helpers implements \BMO
     }
 
     // Process settings for a built-in agent profile.
+    // Save checked JSON profile fields through the same native ownership boundary.
+    public function saveAgentProfile($key, array $input, $expectedRevision, array $directory = array()) {
+        $fields = array('display_name', 'trunk_id', 'model', 'voice', 'language', 'greeting', 'prompt',
+            'permissions', 'tools', 'transfer_policy', 'knowledge', 'max_call_duration_seconds',
+            'fallback_destination', 'company', 'calendar_services');
+        if (array_diff(array_keys($input), $fields) || !is_int($expectedRevision) || $expectedRevision < 0) {
+            throw new \InvalidArgumentException('invalid_request');
+        }
+        $this->assertProfileFallbackSafe($key, $input['fallback_destination'] ?? null);
+        $validConditions = array_column($this->agentContextSource()->timeConditions(), 'id');
+        foreach ($input['calendar_services'] ?? array() as $service => $condition) {
+            if (!is_string($service) || !preg_match('/^[A-Za-z0-9_.:-]{1,64}$/D', $service) ||
+                !in_array((string) $condition, $validConditions, true)) {
+                throw new \InvalidArgumentException('invalid_calendar_service');
+            }
+        }
+        $items = array_column($this->agentContextSource()->directory(), null, 'id');
+        $rules = array();
+        foreach ($directory as $id => $submitted) {
+            if (!isset($items[$id]) || !is_array($submitted) ||
+                array_diff(array_keys($submitted), array('description', 'synonyms', 'allowed')) ||
+                !is_bool($submitted['allowed'] ?? null)) { throw new \InvalidArgumentException('invalid_directory'); }
+            $rules[$id] = array(
+                'resource_type' => $items[$id]['type'], 'description' => $submitted['description'] ?? '',
+                'synonyms' => $submitted['synonyms'] ?? array(), $key . '_allowed' => $submitted['allowed']);
+            AgentValidation::validateDirectoryRule($id, $rules[$id]);
+        }
+        $this->db->beginTransaction();
+        try {
+            $profile = $this->agentProfiles->save($key, $input, $expectedRevision);
+            if ($rules) {
+                // Profile save holds the configuration-state lock. Read the other
+                // profile's visibility after it, so concurrent saves do not erase it.
+                $existingRules = $this->agentDestinations->directoryRules();
+                foreach ($rules as $id => &$rule) { $rule = array_merge($existingRules[$id] ?? array(), $rule); }
+                unset($rule);
+                $this->agentDestinations->saveDirectoryRules($rules);
+            }
+            $this->db->commit();
+        } catch (\Throwable $error) {
+            if ($this->db->inTransaction()) { $this->db->rollBack(); }
+            throw $error;
+        }
+        needreload();
+        $this->synchronizeAgentConfiguration();
+        return $profile;
+    }
+
     private function handleAgentProfileRequest($key) {
         if (!isset($_POST['action']) || $_POST['action'] !== 'save') {
             throw new \InvalidArgumentException('Unsupported profile action');

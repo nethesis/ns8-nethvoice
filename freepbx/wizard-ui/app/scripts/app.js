@@ -41,33 +41,15 @@ angular
         controller: 'DashboardCtrl',
         controllerAs: 'dashboard'
       })
-      .when('/agents', {
-        templateUrl: 'views/agents/overview.html', controller: 'AgentsCtrl', controllerAs: 'monitor'
-      })
-      .when('/agents/settings', {
-        templateUrl: 'views/agents/settings.html', controller: 'AgentsCtrl', controllerAs: 'monitor'
-      })
-      .when('/agents/build', {
-        templateUrl: 'views/agents/workflows.html', controller: 'AgentWorkflowsCtrl', controllerAs: 'builder'
-      })
-      .when('/agents/build/:kind/:agentId', {
-        templateUrl: 'views/agents/workflows.html', controller: 'AgentWorkflowsCtrl', controllerAs: 'builder'
-      })
-      .when('/agents/data', {
-        templateUrl: 'views/agents/data.html', controller: 'AgentWorkflowsCtrl', controllerAs: 'builder'
-      })
-      .when('/agents/graph-runs/:runId', {
-        templateUrl: 'views/agents/workflowrun.html', controller: 'AgentWorkflowsCtrl', controllerAs: 'builder'
-      })
-      .when('/agents/connectors', {
-        templateUrl: 'views/agents/connectors.html', controller: 'AgentIntegrationsCtrl', controllerAs: 'integration'
-      })
-      .when('/agents/api', {
-        templateUrl: 'views/agents/api.html', controller: 'AgentIntegrationsCtrl', controllerAs: 'integration'
-      })
-      .when('/agents/runs/:runId', {
-        templateUrl: 'views/agents/detail.html', controller: 'AgentsCtrl', controllerAs: 'monitor'
-      })
+      .when('/agents', { template: '', controller: 'AgentsRedirectCtrl' })
+      .when('/agents/settings', { template: '', controller: 'AgentsRedirectCtrl' })
+      .when('/agents/build', { template: '', controller: 'AgentsRedirectCtrl' })
+      .when('/agents/build/:kind/:agentId', { template: '', controller: 'AgentsRedirectCtrl' })
+      .when('/agents/data', { template: '', controller: 'AgentsRedirectCtrl' })
+      .when('/agents/graph-runs/:runId', { template: '', controller: 'AgentsRedirectCtrl' })
+      .when('/agents/connectors', { template: '', controller: 'AgentsRedirectCtrl' })
+      .when('/agents/api', { template: '', controller: 'AgentsRedirectCtrl' })
+      .when('/agents/runs/:runId', { template: '', controller: 'AgentsRedirectCtrl' })
       .when('/extensions', {
         templateUrl: 'views/extensions.html',
         controller: 'UsersExtensionsCtrl',

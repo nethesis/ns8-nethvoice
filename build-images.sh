@@ -367,6 +367,12 @@ reponame="nethvoice-satellite"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
     container=$(buildah from "$SATELLITE_RUNTIME_IMAGE")
+    # The standalone Agents UI requires the coordinated schema 2 runtime.
+    if ! buildah run "$container" -- python -c 'from agent.workflows.designer_api import register_designer_routes; from agent.workflows.tool_contracts import tool'; then
+        echo 'The pinned Satellite image lacks the Agents designer API. Publish the matching runtime and update satellite/runtime-image.txt.' >&2
+        buildah rm "$container"
+        exit 1
+    fi
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
     buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"

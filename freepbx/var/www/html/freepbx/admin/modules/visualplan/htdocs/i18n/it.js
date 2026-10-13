@@ -5,7 +5,6 @@ languages.it = {
     "toolbar_save_string": "Salvato",
     "toolbar_not_save_string": "Non Salvato",
     "toolbar_not_save_log_string": "Controllare i log della console per dettagli",
-
     "base_no_elements_string": "Nessun elemento trovato",
     "base_delete_night_service_string": "Elimina Servizio Notte",
     "base_add_night_service_string": "Aggiungi Servizio Notte",
@@ -53,7 +52,6 @@ languages.it = {
     "view_agent_cancel_trunk_string": "Annulla",
     "view_agent_trunk_error_string": "Impossibile salvare il trunk",
     "view_agent_trunks_load_error_string": "Impossibile caricare i trunk",
-
     "view_selection_string": "- Selezione",
     "view_add_new_string": "Aggiungi Nuovo",
     "view_select_exis_string": "Seleziona Esistente",
@@ -62,11 +60,9 @@ languages.it = {
     "view_error_inserted_string": "Errore: Il valore inserito è già in uso",
     "view_error_required_string": "Compila i campi richiesti",
     "view_number_string": "Numero",
-
     "view_number_string_did": "Numero Chiamato",
     "view_number_string_cid": "Numero Chiamante",
     "view_any_string": "TUTTI",
-
     "view_description_string": "Descrizione",
     "view_ringtime_string": "Tempo di Squillo",
     "view_strategy_string": "Strategia di Squillo",
@@ -78,12 +74,10 @@ languages.it = {
     "view_timegroup_string": "Gruppo Temporale",
     "view_control_code_string": "Codice di controllo",
     "view_error_empty": "Il valore inserito non è valido",
-
     "view_queuesTimeString_unlimited": "Illimitato",
     "view_queuesTimeString_seconds": "secondi",
     "view_queuesTimeString_second": "secondo",
     "view_queuesTimeString_maxWait": "Tempo di Attesa Massimo",
-
     "view_queuesTimeString_minutes_60": "1 minuto",
     "view_queuesTimeString_minutes_61": "1 minuto, 1 secondo",
     "view_queuesTimeString_minutes_62": "1 minuto, 2 secondi",
@@ -142,7 +136,6 @@ languages.it = {
     "view_queuesTimeString_minutes_117": "1 minuto, 57 secondi",
     "view_queuesTimeString_minutes_118": "1 minuto, 58 secondi",
     "view_queuesTimeString_minutes_119": "1 minuto, 59 secondi",
-
     "view_queuesTimeString_minutes_80": "1 minuto, 20 secondi",
     "view_queuesTimeString_minutes_100": "1 minuto, 40 secondi",
     "view_queuesTimeString_minutes_120": "2 minuti",
@@ -190,7 +183,6 @@ languages.it = {
     "view_queuesTimeString_minutes_6600": "1 ora, 50 minuti",
     "view_queuesTimeString_minutes_6900": "1 ora, 55 minuti",
     "view_queuesTimeString_minutes_7200": "2 ore",
-
     "base_hangup_string": "Termina Chiamata",
     "base_incoming_string": "Rotta in Entrata",
     "base_night_service_string": "Servizio Notte",
@@ -209,7 +201,6 @@ languages.it = {
     "base_alternative_string": "Destinazione Alternativa",
     "base_ivr_suggest_string": "Aggiungi un'opzione cliccando il tasto destro del mouse",
     "base_details_string": "Avanzate",
-    
     "view_addtimetimegroup_string": "Aggiungi Tempo",
     "view_savegrouptimegroup_string": "Salva Gruppo",
     "view_removetimetimegroup_string": "Rimuovi Tempo",
@@ -265,10 +256,14 @@ languages.it = {
     "view_text_tts_string": "Testo",
     "view_description_recording_string": "Descrizione",
     "view_language_record_tts": "Registra TTS",
-    "view_name_googlekey_label" : "API Key Google",
+    "view_name_googlekey_label": "API Key Google",
     "view_tts_button_set_key": "Imposta chiave",
     "view_tts_error_1": "Errore durante la creazione del file audio, controllare la chiave API e la connessione a internet",
     "view_tts_error_2": "Errore durante l'ascolto dell'audio",
     "view_tts_save_key": "Salva chiave",
-    "view_text_sendtts_string": "Invia"
+    "view_text_sendtts_string": "Invia",
+    "view_agent_select_published_string": "Agente vocale pubblicato",
+    "view_agent_legacy_string": "Destinazione CleverAI",
+    "view_agent_open_string": "Apri Agenti",
+    "view_agent_already_added_string": "Questo agente è già presente nel diagramma."
 };

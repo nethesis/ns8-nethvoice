@@ -1,3 +1,14 @@
+# Standalone Agents document; build tools and sources never enter the PHP image.
+FROM docker.io/library/node:24.15.0-bookworm-slim AS agents-ui
+WORKDIR /home/node
+USER node
+RUN mkdir agents
+WORKDIR /home/node/agents
+COPY --chown=node:node var/www/html/freepbx/admin/modules/satellite/htdocs/agents/package*.json ./
+RUN npm ci --no-audit --no-fund
+COPY --chown=node:node var/www/html/freepbx/admin/modules/satellite/htdocs/agents/ ./
+RUN npm run build
+
 # Stage 1: Build Asterisk
 FROM docker.io/debian:trixie as builder
 
@@ -425,8 +436,9 @@ COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/satellite /var
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/visualplan /var/www/html/freepbx/admin/modules/visualplan
 
 # Remove tests and development files
-RUN rm -rf /var/www/html/freepbx/admin/modules/visualplan/tests /var/www/html/freepbx/admin/modules/satellite/tests && \
+RUN rm -rf /var/www/html/freepbx/admin/modules/satellite/htdocs/agents /var/www/html/freepbx/admin/modules/visualplan/tests /var/www/html/freepbx/admin/modules/satellite/tests && \
 	rm -rf /var/www/html/freepbx/admin/modules/satellite/AGENTS.md
+COPY --from=agents-ui --chown=asterisk:asterisk /home/node/agents/dist/ /var/www/html/freepbx/admin/modules/satellite/htdocs/agents/
 
 
 # Create directories

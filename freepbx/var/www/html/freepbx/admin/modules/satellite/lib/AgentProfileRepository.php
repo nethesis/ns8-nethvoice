@@ -61,7 +61,7 @@ class AgentProfileRepository
     }
 
     // Save a checked built-in profile.
-    public function save($key, array $input)
+    public function save($key, array $input, $expectedRevision = null)
     {
         $key = $this->key($key);
         $ownTransaction = !$this->db->inTransaction();
@@ -73,6 +73,7 @@ class AgentProfileRepository
             if (!$stored) {
                 throw new \RuntimeException('Agent profile not found');
             }
+            if ($expectedRevision !== null && $stored['config_revision'] !== $expectedRevision) { throw new \RuntimeException('configuration_conflict', 409); }
             $row = array_merge($stored, $input);
             $row['flow'] = $key === 'internal' ? 'Internal' : 'External';
             $row = AgentValidation::validateProfile($row);
@@ -87,13 +88,16 @@ class AgentProfileRepository
                 `flow` = ?, `model` = ?, `voice` = ?, `language` = ?, `greeting` = ?, `prompt` = ?,
                 `permissions_json` = ?, `tools_json` = ?, `transfer_policy_json` = ?, `knowledge_json` = ?,
                 `max_call_duration_seconds` = ?, `fallback_destination` = ?, `company_json` = ?,
-                `calendar_services_json` = ?, `config_revision` = `config_revision` + 1 WHERE `profile_key` = ?');
-            $statement->execute(array($row['display_name'], $row['trunk_id'], $row['flow'], $row['model'],
+                `calendar_services_json` = ?, `config_revision` = `config_revision` + 1 WHERE `profile_key` = ?' . ($expectedRevision !== null ? ' AND `config_revision` = ?' : ''));
+            $parameters = array($row['display_name'], $row['trunk_id'], $row['flow'], $row['model'],
                 $row['voice'], $row['language'], $row['greeting'], $row['prompt'],
                 $this->json($row['permissions']), $this->json($row['tools']),
                 $this->json($row['transfer_policy']), $this->json($row['knowledge']),
                 $row['max_call_duration_seconds'], $row['fallback_destination'], $this->json($row['company']),
-                $this->json($row['calendar_services']), $key));
+                $this->json($row['calendar_services']), $key);
+            if ($expectedRevision !== null) { $parameters[] = $expectedRevision; }
+            $statement->execute($parameters);
+            if ($expectedRevision !== null && $statement->rowCount() !== 1) { throw new \RuntimeException('configuration_conflict', 409); }
             (new AgentConfigurationState($this->db))->bump();
             if ($ownTransaction) {
                 $this->db->commit();

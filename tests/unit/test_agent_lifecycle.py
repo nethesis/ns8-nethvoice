@@ -50,8 +50,13 @@ class AgentLifecycleTests(unittest.TestCase):
         def run(command, **kwargs):
             nonlocal running
             if command[0] == 'systemctl':
-                running = command[2] == 'start'
-                events.append(command[2])
+                self.assertEqual(command[2:], ['stop', 'satellite.service', 'satellite-pgsql.service'])
+                self.assertNotIn('mariadb.service', command)
+                events.append('stop_satellite')
+                return subprocess.CompletedProcess(command, 0)
+            if command[:3] == ['podman', 'volume', 'rm']:
+                self.assertEqual(command[3:], ['--force', '--ignore', 'satellite_pgdata', 'satellite_agent_state'])
+                events.append('remove_runtime_volumes')
                 return subprocess.CompletedProcess(command, 0)
             self.assertTrue(running, 'Database command while MariaDB is stopped')
             self.assertNotIn('source-key', command)
@@ -90,13 +95,13 @@ class AgentLifecycleTests(unittest.TestCase):
         return events
 
     def test_clone_cleans_database_before_existing_stop_step(self):
-        self.assertEqual(self.clone(), ['rotate', 'query'])
+        self.assertEqual(self.clone(), ['stop_satellite', 'remove_runtime_volumes', 'rotate', 'query'])
         steps = sorted(p.name for p in (ROOT/'imageroot/actions/clone-module').iterdir())
         self.assertLess(steps.index('21set_mariadb_passwords'), steps.index('22satellite_agents'))
         self.assertLess(steps.index('22satellite_agents'), steps.index('23stop_mariadb_service'))
 
     def test_clone_rotation_failure_stops_the_action_before_database_cleanup(self):
-        self.assertEqual(self.clone(fail_migration=True), ['rotate'])
+        self.assertEqual(self.clone(fail_migration=True), ['stop_satellite', 'remove_runtime_volumes', 'rotate'])
 
 
 if __name__ == '__main__':

@@ -89,6 +89,12 @@ angular.module('nethvoiceWizardUiApp')
           $('body').show();
           $scope.login.isLogged = true;
           $rootScope.$broadcast('loginCompleted');
+          var agentsReturn = window.sessionStorage.getItem('nethvoice.agents.return');
+          if (!$scope.wizard.isWizard && agentsReturn && /^\/freepbx\/satellite\/agents\/#\//.test(agentsReturn)) {
+            window.sessionStorage.removeItem('nethvoice.agents.return');
+            window.location.assign(agentsReturn);
+            return;
+          }
           if (!$scope.wizard.isWizard && $scope.login.returnPath) {
             var returnPath = $scope.login.returnPath;
             $scope.login.returnPath = null;

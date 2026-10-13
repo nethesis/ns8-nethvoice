@@ -96,6 +96,17 @@ if (class_exists('Satellite') && method_exists('Satellite', 'getAgentDestination
     }
 }
 
+// Reuse canonical destination widgets when adding a published voice agent.
+$data['published-agents'] = array();
+foreach ($data['satellite-agent-destination'] as $agent) {
+    if (!empty($agent['system_managed']) && !empty($agent['enabled']) &&
+        in_array($agent['agent_type'], array('workflow', 'builtin_internal', 'builtin_external'), true)) {
+        $widget = nethvplan_agent_widget($agent, $data['agent-trunks'], $langArray);
+        $widget['agent_name'] = $agent['workflow_agent_id'] ?? $agent['freepbx_name'];
+        $data['published-agents'][(int) $agent['id']] = $widget;
+    }
+}
+
 // incoming data (inbound routes)
 $get_data = FreePBX::Core()->getAllDIDs('extension');
 foreach ($get_data as $key => $row) {

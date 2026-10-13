@@ -351,7 +351,11 @@ example.Toolbar = Class.extend({
 	},
 
 	createDialog: function (obj, node) {
-		if (obj.id === "satellite-agent-destination" && node.getUserData().system_managed) return;
+		if (obj.id === "satellite-agent-destination" && node.getUserData().system_managed) {
+            var data = node.getUserData();
+            window.open('/freepbx/satellite/agents/#/agents/' + encodeURIComponent(data.workflow_agent_id || (data.agent_type === 'builtin_internal' ? 'internal' : 'external')) + '/general', '_blank', 'noopener');
+            return;
+        }
 		var thisApp = this;
 		var dialog = $('<div id="modalCreation"></div>')
 			.dialog({

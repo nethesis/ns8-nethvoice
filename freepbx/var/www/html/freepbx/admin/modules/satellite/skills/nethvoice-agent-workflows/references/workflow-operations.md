@@ -10,15 +10,15 @@ credentials, extensions or data into a reusable skill.
 |---|---|
 | Agent trunks | `/freepbx/admin/config.php?display=satellite_agents&tab=trunks` |
 | Webhook URL and signing secret | `/freepbx/admin/config.php?display=satellite_webhooks` |
-| Workflow catalog | `/freepbx/wizard/#!/agents/build` |
-| Agent editor | `/freepbx/wizard/#!/agents/build/agent/{agent_id}` |
-| Reusable block editor | `/freepbx/wizard/#!/agents/build/subflow/{agent_id}` |
-| Credentials and connector versions | `/freepbx/wizard/#!/agents/connectors` |
-| Data sources | `/freepbx/wizard/#!/agents/data` |
-| History and configuration status | `/freepbx/wizard/#!/agents` |
-| Live run metadata | `/freepbx/wizard/#!/agents/runs/{run_id}` |
-| Pinned graph and node trace | `/freepbx/wizard/#!/agents/graph-runs/{run_id}` |
-| API clients | `/freepbx/wizard/#!/agents/api` |
+| Workflow catalog | `/freepbx/satellite/agents/#/agents` |
+| Agent editor | `/freepbx/satellite/agents/#/agents/{agent_id}/workflow` |
+| Reusable block editor | `/freepbx/satellite/agents/#/workflows/{agent_id}/workflow` |
+| Credentials and connector versions | `/freepbx/satellite/agents/#/settings/connections` |
+| Data sources | `/freepbx/satellite/agents/#/sources` |
+| History and configuration status | `/freepbx/satellite/agents/#/activity` |
+| Live run metadata | `/freepbx/satellite/agents/#/activity/{run_id}` |
+| Pinned graph and node trace | `/freepbx/satellite/agents/#/activity/{run_id}` |
+| API clients | `/freepbx/satellite/agents/#/settings/api-access` |
 
 OpenAI voice trunks use a project ID of the form `proj_...`, the project API key,
 and built-in runtime ownership. The form generates the OpenAI TLS SIP server
@@ -159,3 +159,22 @@ Link the history and actual run/graph pages. Name expected nodes and errors for
 each scenario. If no live run exists, say so and link the editor's mock trace
 instead. Transcripts require capture to have been enabled; do not enable capture
 just to obtain a result when audio/run metadata suffice.
+
+## Standalone designer policy
+
+The Wizard Agents link opens the Vue 3 document in a new tab. Use its General,
+Workflow, Tools and Test tabs. The Test tab uses offline scripted fixtures only.
+Do not treat a saved mock as proof of live provider, PBX or connector behavior.
+Continue to obtain explicit user approval before the final live OpenAI test.
+
+Schema 2 registry bindings separate conversation use from workflow use and can
+restrict origins and fixed scope. A phase may inherit or restrict agent tools.
+Enabled direct write tools execute immediately without caller confirmation; keep
+argument validation, verified identity, grants, durable effects and machine write
+approvals. Schema 1 templates and explicit confirmation nodes retain their
+existing policy. Do not silently remove those nodes during migration.
+
+Use typed table queries or local PDF/text search for new sources. Never execute
+SQL, XLSX formulas or user expressions. Scanned PDF files without text require
+verification. Store credentials through Settings; never put their values in graph
+JSON. Check the matching schema 2 runtime contract before publishing.

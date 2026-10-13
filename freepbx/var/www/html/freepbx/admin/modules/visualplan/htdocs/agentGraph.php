@@ -213,7 +213,7 @@ function nethvplan_agent_widget(array $agent, array $trunks, array $labels)
         'type' => 'Base', 'id' => $node, 'radius' => 0, 'bgColor' => '#528ba7',
         'name' => $labels['base_agent_string'],
         'userData' => array(
-            'id' => $id, 'agent_type' => $type, 'system_managed' => !empty($agent['system_managed']),
+            'id' => $id, 'agent_type' => $type, 'workflow_agent_id' => $agent['workflow_agent_id'] ?? null, 'workflow_version' => $agent['workflow_version'] ?? null, 'system_managed' => !empty($agent['system_managed']),
             'cleverai_trunk_id' => $agent['cleverai_trunk_id'] === null ? null : (int) $agent['cleverai_trunk_id'],
             'cleverai_flow' => $agent['cleverai_flow'],
             'fallback_destination' => $agent['fallback_destination'], 'fallback_touched' => false,

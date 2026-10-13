@@ -40,6 +40,33 @@ foreach (array('[]', 'null', 'true', '{invalid}', '{"definition":') as $invalid)
 }
 echo "Workflow JSON object/list round trips passed\n";
 
+// Designer routes remain concrete and actor-authenticated. An unset runtime
+// port stops valid requests before any socket is opened in this pure test.
+putenv('SATELLITE_HTTP_PORT');
+$workflowClient = new AgentWorkflowClient();
+foreach (array(
+    array('GET', '/tools'), array('PUT', '/tools/tickets'),
+    array('POST', '/tools/tickets/publish'), array('POST', '/tools/test'),
+    array('POST', '/data/inspect'), array('POST', '/documents/policy/publish'),
+    array('GET', '/data/orders/versions/1/preview'),
+    array('GET', '/runs/run-1/tool-calls/call-1/content'),
+    array('POST', '/simulations'), array('GET', '/simulations/mock-1'),
+    array('POST', '/activity'), array('PUT', '/credentials/business')
+) as $route) {
+    try { $workflowClient->request($route[0], $route[1], 'test-admin'); }
+    catch (RuntimeException $error) {
+        if ($error->getMessage() === 'workflows_unavailable') { continue; }
+        throw $error;
+    }
+    throw new RuntimeException('Designer route must stop at the unset runtime port');
+}
+foreach (array('/tools/../configuration', '/tools/tickets/versions/0', '/activity?actor=admin', 'https://external.example/tools') as $path) {
+    try { $workflowClient->request('GET', $path, 'test-admin'); }
+    catch (InvalidArgumentException $error) { continue; }
+    throw new RuntimeException('Designer gateway accepted an arbitrary route');
+}
+echo "Designer fixed routes passed\n";
+
 // Application input uses the same decoder before cURL encoding.
 $connector = '{"definition":{"operations":[{"query":{},"body":{},"projection":{},"input_schema":{"type":"object","properties":{}},"output_schema":{"type":"object","properties":{}}}]},"expected_revision":0}';
 if (json_encode(AgentWorkflowClient::decodeObject($connector)) !== $connector) {

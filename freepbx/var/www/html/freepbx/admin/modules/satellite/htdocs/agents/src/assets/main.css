@@ -1,0 +1,106 @@
+@import "@fortawesome/fontawesome-svg-core/styles.css" layer(vendor);
+@import "tailwindcss";
+@import "@fontsource/poppins/400.css";
+@import "@fontsource/poppins/500.css";
+@import "@fontsource/poppins/600.css";
+@import "@nethesis/vue-components/theme.css";
+@import "@vue-flow/core/dist/style.css" layer(vendor);
+@import "@vue-flow/controls/dist/style.css" layer(vendor);
+@import "@vue-flow/minimap/dist/style.css" layer(vendor);
+@source '../../node_modules/@nethesis/vue-components';
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  --color-gray-950: #030712;
+  --color-primary-50: #ecfdf5;
+  --color-primary-100: #d1fae5;
+  --color-primary-200: #a7f3d0;
+  --color-primary-300: #6ee7b7;
+  --color-primary-400: #34d399;
+  --color-primary-500: #10b981;
+  --color-primary-600: #059669;
+  --color-primary-700: #047857;
+  --color-primary-800: #065f46;
+  --color-primary-900: #064e3b;
+  --color-primary-950: #022c22;
+}
+
+@layer base {
+  html,
+  body,
+  #app {
+    @apply min-h-full;
+  }
+  body {
+    @apply m-0 bg-gray-50 font-normal text-sm text-gray-900 dark:bg-gray-900 dark:text-gray-50;
+  }
+  h1 {
+    @apply text-2xl font-medium leading-9;
+  }
+  h2 {
+    @apply text-lg font-medium;
+  }
+  h3 {
+    @apply text-base font-medium;
+  }
+  label {
+    @apply block text-sm font-medium;
+  }
+}
+@layer components {
+  .nv-panel {
+    @apply rounded-md border border-gray-200 bg-white p-6 dark:border-gray-600 dark:bg-gray-800;
+  }
+  .nv-muted {
+    @apply text-gray-600 dark:text-gray-300;
+  }
+  .nv-field-grid {
+    @apply grid gap-6 md:grid-cols-2;
+  }
+  .nv-stack {
+    @apply space-y-6;
+  }
+  .nv-action-bar {
+    @apply flex flex-wrap items-center gap-3;
+  }
+  .nv-canvas {
+    @apply h-[560px] overflow-hidden rounded-md border border-gray-200 dark:border-gray-600;
+  }
+  .nv-node {
+    @apply w-64 rounded-md border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-500 dark:bg-gray-800;
+  }
+  .nv-node.selected {
+    @apply ring-2 ring-primary-500;
+  }
+  .nv-node.error {
+    @apply border-rose-500;
+  }
+  .nv-node .vue-flow__handle {
+    @apply h-2.5 w-2.5 rounded-full bg-primary-500;
+  }
+  .vue-flow__controls-button {
+    @apply border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white;
+  }
+  .vue-flow__controls-button svg {
+    fill: currentColor;
+  }
+}
+
+@layer components {
+  .vue-flow__minimap {
+    @apply bg-white dark:bg-gray-800;
+  }
+  .vue-flow__minimap-node {
+    @apply fill-gray-300 dark:fill-gray-600;
+  }
+}

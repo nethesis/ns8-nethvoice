@@ -440,6 +440,7 @@ example.View = draw2d.Canvas.extend({
 
     // Check the flow name and selected provider trunk.
     validateAgentForm: function () {
+        if ($("#published-agent-select").val()) return true;
         var flow = $("#satellite-agent-destination-flow");
         var trunk = $("#satellite-agent-destination-trunk");
         flow.val($.trim(flow.val()));
@@ -455,6 +456,19 @@ example.View = draw2d.Canvas.extend({
 
     checkData: function (elem, type, event) {
         if (type === "satellite-agent-destination") {
+            var selected = $("#published-agent-select").val();
+            if (selected) {
+                var widget = $("#published-agent-select").data("agents")[selected];
+                if (!widget || event.context.getFigure(widget.id)) {
+                    $("#modalCreation .agent-form-error").text(languages[browserLang].view_agent_already_added_string);
+                    return;
+                }
+                var figure = new Base();
+                figure.setPersistentAttributes($.extend(true, {}, widget));
+                event.context.getCommandStack().execute(new draw2d.command.CommandAdd(event.context, figure, event.x, event.y));
+                $("#modalCreation").dialog("destroy").remove();
+                return;
+            }
             var agentFigure = new Base();
             if (agentFigure.onDrop(event.dropped, event.x, event.y, elem) === false) return;
             event.context.getCommandStack().execute(new draw2d.command.CommandAdd(
@@ -1387,6 +1401,27 @@ example.View = draw2d.Canvas.extend({
             '<p class="error-message agent-form-error"></p></form>';
         $("#modalCreation").addClass("agent-dialog").html(html);
         var form = $("#modalCreation");
+        if (!values[0] && !values[1]) {
+            var picker = $('<div class="form-group"><label class="col-sm-4 control-label"></label><div class="col-sm-7"><select id="published-agent-select" class="form-control"><option value=""></option></select><a id="published-agent-open" target="_blank" rel="noopener"></a></div></div>');
+            picker.find('label').text(lang.view_agent_select_published_string);
+            picker.find('option').text(lang.view_agent_legacy_string);
+            picker.find('a').text(lang.view_agent_open_string).attr('href', '/freepbx/satellite/agents/#/agents');
+            form.find('form').prepend(picker);
+            $.ajax({ url: './visualize.php?readData=published-agents', dataType: 'json' }).done(function (agents) {
+                if (!$.contains(document, form[0])) return;
+                var select = picker.find('select').data('agents', agents);
+                $.each(agents || {}, function (id, item) { select.append($('<option>').val(id).text(item.agent_name)); });
+                select.on('change', function () {
+                    var selected = agents[select.val()];
+                    form.find('.form-group').not(picker).toggle(!selected);
+                    form.find('.agent-trunk-help, .agent-trunk-fields').hide();
+                    picker.find('a').attr('href', '/freepbx/satellite/agents/#/agents/' + (selected ? encodeURIComponent(selected.userData.workflow_agent_id || (selected.userData.agent_type === 'builtin_internal' ? 'internal' : 'external')) + '/general' : ''));
+                    form.dialog('option', 'height', 'auto');
+                });
+                if (select.children().length > 1) select.val(select.children().eq(1).val()).trigger('change');
+            }).fail(function () { form.find('.agent-form-error').text(lang.view_agent_trunks_load_error_string); });
+        }
+
         // Resize the agent dialog to fit the current fields.
         function resizeDialog() {
             form.dialog("option", "height", "auto");
@@ -1482,7 +1517,7 @@ example.View = draw2d.Canvas.extend({
                 }
             });
             if (values[1]) select.val(String(values[1]));
-            if (!select.children().length) openNested();
+            if (!select.children().length && !form.find("#published-agent-select").length) openNested();
         }).fail(function () {
             form.find(".agent-form-error").text(lang.view_agent_trunks_load_error_string);
         });

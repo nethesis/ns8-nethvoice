@@ -82,6 +82,19 @@ $app->get('/agents/access', function (Request $request, Response $response) {
 // Workflow routes use their own bounded allowlist and never accept backend URLs.
 $workflowRoutes = array(
     array('GET', '/inventory'), array('GET', '/catalog'),
+    array('GET', '/dependencies'), array('GET', '/tools'),
+    array('PUT', '/tools/{toolId:[a-z][a-z0-9_-]{0,47}}'),
+    array('GET', '/tools/{toolId:[a-z][a-z0-9_-]{0,47}}/versions/{version:[1-9][0-9]{0,5}}'),
+    array('POST', '/tools/{toolId:[a-z][a-z0-9_-]{0,47}}/publish'),
+    array('DELETE', '/tools/{toolId:[a-z][a-z0-9_-]{0,47}}/versions/{version:[1-9][0-9]{0,5}}'),
+    array('POST', '/tools/test'), array('POST', '/connections/test'), array('POST', '/activity'),
+    array('POST', '/simulations'), array('GET', '/simulations/{runId:[A-Za-z0-9_-]{1,128}}'),
+    array('PUT', '/credentials/{secretId:[a-z][a-z0-9_-]{0,47}}'),
+    array('POST', '/data/inspect'),
+    array('POST', '/documents/{resourceId:[a-z][a-z0-9_-]{0,47}}/publish'),
+    array('GET', '/data/{resourceId:[a-z][a-z0-9_-]{0,47}}/versions/{version:[1-9][0-9]{0,5}}/preview'),
+    array('GET', '/runs/{runId:[A-Za-z0-9_-]{1,128}}/tool-calls'),
+    array('GET', '/runs/{runId:[A-Za-z0-9_-]{1,128}}/tool-calls/{invocationId:[A-Za-z0-9_-]{1,128}}/content'),
     array('GET', '/definitions/{kind:agent|subflow}/{agentId:[a-z][a-z0-9_-]{0,47}}/versions/{version:[1-9][0-9]{0,5}}'),
     array('PUT', '/definitions/{kind:agent|subflow}/{agentId:[a-z][a-z0-9_-]{0,47}}'),
     array('POST', '/definitions/{kind:agent|subflow}/{agentId:[a-z][a-z0-9_-]{0,47}}/{operation:publish|activate}'),
@@ -98,11 +111,11 @@ foreach ($workflowRoutes as $route) {
     $app->map(array($method), '/agents/application/workflows' . $path,
         function (Request $request, Response $response, array $args) use ($method, $path) {
             return agentsResponse($response, function () use ($request, $args, $method, $path) {
-                $actor = agentsAuthorize($request, 'connectors', $method !== 'GET');
+                $actor = agentsAuthorize($request, strpos($path, '/content') !== false ? 'transcripts' : 'connectors', $method !== 'GET');
                 if ($request->getQueryParams()) { throw new \InvalidArgumentException('invalid_query'); }
                 $target = AgentApplicationClient::path($path, $args); $input = null;
                 if (in_array($method, array('PUT', 'POST'), true)) {
-                    $large = strpos($target, '/data/') === 0 && (substr($target, -8) === '/publish' || $target === '/data/preview');
+                    $large = (strpos($target, '/data/') === 0 && (substr($target, -8) === '/publish' || in_array($target, array('/data/preview', '/data/inspect'), true))) || strpos($target, '/documents/') === 0;
                     if (($request->getBody()->getSize() ?? 0) > ($large ? 14 * 1024 * 1024 : 262144) ||
                         stripos($request->getHeaderLine('Content-Type'), 'application/json') !== 0) { throw new \InvalidArgumentException('invalid_request'); }
                     // Slim's associative parser turns {} into []; preserve graph JSON types.
@@ -138,6 +151,7 @@ foreach ($workflowRoutes as $route) {
                         $result['pbx_sync']['error_code'] = 'workflow_binding_pending';
                     }
                 }
+                if ($target === '/inventory') { $result = agentsEnrichInventory($result); }
                 return $result;
             });
         });
@@ -268,3 +282,5 @@ $app->get('/agents/application/runs/{runId:[a-f0-9]{32}}/result',
             return (new AgentApplicationClient())->request('GET', '/runs/' . $args['runId'] . '/result', $actor);
         });
     });
+
+require_once __DIR__ . '/agents-native.php';

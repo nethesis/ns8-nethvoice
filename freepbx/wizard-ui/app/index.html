@@ -115,7 +115,7 @@
 
         <!-- AGENTS -->
         <li ng-if="!wizard.isMigrationView && !wizard.isWizard" class="list-group-item collapse-menu {{resolveActiveTab('agents',1) ? 'active' : ''}}" id="agents-item-menu">
-          <a href="#!/agents"><span class="fa fa-comments" aria-hidden="true"></span><span class="list-group-item-value">{{'Agents.title' | translate}}</span></a>
+          <a href="/freepbx/satellite/agents/#/agents" target="_blank" rel="noopener"><span class="fa fa-comments" aria-hidden="true"></span><span class="list-group-item-value">{{'Agents.title' | translate}}</span></a>
         </li>
 
         <!-- USERS -->
@@ -498,6 +498,7 @@
   <script src="scripts/controllers/migration/report.js"></script>
   <script src="scripts/controllers/dashboard.js"></script>
   <script src="scripts/controllers/agents.js"></script>
+  <script src="scripts/controllers/agentsredirect.js"></script>
   <script src="scripts/controllers/agentintegrations.js"></script>
   <script src="scripts/controllers/agentworkflows.js"></script>
   <script src="scripts/controllers/apps/phonebook.js"></script>

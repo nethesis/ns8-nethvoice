@@ -120,7 +120,7 @@ export $(grep SATELLITE_API_TOKEN passwords.env);curl "http://127.0.0.1:${SATELL
 
 ## NethVoice Agents monitoring
 
-Open `/freepbx/wizard/#!/agents` for agent status and run history.
+Open `/freepbx/satellite/agents/#/activity` for agent status and run history.
 The [monitoring contract](monitoring-api-contract.md) defines access, storage and retention.
 Transcript capture defaults to off. Metadata is kept for 30 days by default.
 Enabled transcripts are kept for 7 days. History storage does not gate call handling.
@@ -135,14 +135,16 @@ Publish the matching Satellite agent image before you build this module branch.
 ## Application integrations and machine API
 
 The [application API contract](phase4-api-contract.md) defines connectors,
-credentials and machine access. Open `/freepbx/wizard/#!/agents/connectors`
-or `/freepbx/wizard/#!/agents/api`. Access starts disabled.
+credentials and machine access. Open `/freepbx/satellite/agents/#/activity/connectors`
+or `/freepbx/satellite/agents/#/activity/api`. Access starts disabled.
 `SATELLITE_APPLICATION_CONTENT_KEY` encrypts application credentials and content.
 NS8 stores and backs up that key in `passwords.env`.
 
 ## Visual agent builder
 
-Use the Builder to connect blocks and define an agent's behavior. Custom agents
+Use the standalone Agents interface to connect blocks and define an agent's behavior.
+Select **Agents** in the Wizard. The interface opens in a new tab at
+`/freepbx/satellite/agents/` and reuses the Wizard sign-in. Custom agents
 appear beside the built-in agents. Each agent shows its available tools.
 If your browser retains an older editor after a UI update, press **Ctrl+Shift+R**
 to load the new bundle.
@@ -155,12 +157,43 @@ that skill and describe the workflow you need. It asks for missing credentials
 and data. It tests with mock data first. It asks for confirmation before the
 final OpenAI test. The skill is stored in this branch; publication is separate.
 
+### Designer tools and sources
+
+The **General**, **Workflow**, **Tools** and **Test** tabs share an agent draft.
+Add a published tool to the agent. Select conversation use, explicit workflow
+use, origin limits and fixed scope. A conversation phase can inherit those tools
+or select a smaller set. Enabled direct write tools do not ask the caller for
+confirmation. Older explicit confirmation nodes keep their existing behavior.
+
+Use **Tools** to publish API operations, structured queries, local document
+search, native telephony capabilities or a reusable workflow. API tools pin a
+published connection version. Use **Settings → Connections** to manage the
+connection and encrypted credentials. Machine clients retain their operation
+scopes and exact write argument approvals.
+
+Use **Data sources** to map CSV, XLSX or Google Sheets columns to typed fields.
+Sensitive fields are hidden in previews and results. Payment sources retain
+resident-code verification. Document collections accept PDF and text files.
+Search runs locally and returns document, version and page references. Scanned
+PDFs without text require verification; they supply no search passages.
+
+The **Test** tab runs scripted offline fixtures and saves the result in
+**Activity**. It does not call a provider or perform business writes. A
+**Settings** connection probe is a real read request. The machine API test-run
+endpoint is also live execution. Keep these procedures separate.
+
+**Activity** shows voice calls, API runs and offline simulations. Tool metadata
+contains no raw arguments or results. Optional encrypted tool content and mock
+messages expire after seven days. Publication selects an immutable version and
+preserves enabled state. Check pending PBX synchronization before assigning a
+voice agent to a VisualPlan route. Draft changes do not alter live routing.
+
 ### Create the trunk and data sources
 
 1. Give the assistant your PBX address, workflow name and required behavior.
    State whether the workflow handles calls or API requests.
 2. For calls, select an existing compatible agent trunk or create one in
-   **Agent Trunks**. Select **Builtin Satellite** as its runtime. For OpenAI,
+   **Settings → Voice providers**. Select **Builtin Satellite** as its runtime. For OpenAI,
    supply the project ID and project API key. Use the password field for the key.
 3. Open **Webhooks**. Use the exact URL shown there for the provider webhook.
    Store its signing secret on that page. A saved setting does not prove that
@@ -177,7 +210,7 @@ and a stored credential reference. Its client also needs access to the workflow.
 
 ### Define the behavior
 
-Open **Builder**. Copy a template or create a blank graph. Select the provider
+Open **Agents** and select an agent. Copy a template or create a blank graph. Select the provider
 binding for a voice workflow. Set its prompts, language, inputs, tools and fallback.
 Select published versions of connectors, data sources and reusable blocks.
 For an OpenAI trunk, set **Voice model override** to `gpt-live-1` for GPT-Live
@@ -194,8 +227,9 @@ media negotiation through the NethVoice proxy; the PBX-side RTP setting alone
 does not describe that leg. Live uses the trunk's key and a `gpt-6-luna` backend
 for reasoning and tools, billed separately from the Live voice session.
 
-Live advances when a structured tool supplies the required data. Writes still
-require configured confirmations, permissions and exact approved arguments.
+Live advances when a structured tool supplies the required data. Legacy workflow writes require configured confirmations. Schema 2 registry write
+tools execute immediately within their bindings and permissions. Machine clients
+still require exact approved arguments and write scopes.
 Speech-only steps use prompt readiness instead of an audio-completion signal;
 this does not prove that the caller heard every word. DTMF is accepted after
 prompt readiness. Operator acceptance remains separate from caller approval.
@@ -221,7 +255,9 @@ A payment name alone does not permit disclosure. Use the agreed caller-number
 or code verification rule. If similar-name matching is selected, codes still
 match exactly. An ambiguous resident match must fail verification.
 
-Support ticket creation and urgency changes require caller confirmation.
+Legacy support templates require caller confirmation for ticket creation and
+urgency changes. New registry tools with the direct write policy execute
+immediately. Bind the allowed scope before enabling them.
 Consultation holds the caller while the operator hears the private summary.
 The operator must accept before the transfer. Decline or no answer returns to
 the caller. Configure the fallback branch for each of these outcomes.
@@ -311,10 +347,10 @@ actual values. The assistant must provide full links for your PBX and real runs.
 
 | Page | Path | What to check |
 |---|---|---|
-| Builder | `/freepbx/wizard/#!/agents/build/agent/{agent_id}` | Correct graph, grants and published version |
-| History | `/freepbx/wizard/#!/agents` | New run, agent, time, terminal status and configuration sync |
-| Run detail | `/freepbx/wizard/#!/agents/runs/{run_id}` | Status, events, transfer result and safe error codes |
-| Graph trace | `/freepbx/wizard/#!/agents/graph-runs/{run_id}` | Pinned version and each node's outcome |
+| Builder | `/freepbx/satellite/agents/#/agents/{agent_id}/workflow` | Correct graph, grants and published version |
+| History | `/freepbx/satellite/agents/#/activity` | New run, agent, time, terminal status and configuration sync |
+| Run detail | `/freepbx/satellite/agents/#/activity/{run_id}` | Status, events, transfer result and safe error codes |
+| Graph trace | `/freepbx/satellite/agents/#/activity/{run_id}` | Pinned version and each node's outcome |
 
 | Test | Expected result |
 |---|---|

@@ -66,6 +66,7 @@ const viewSandbox = {
     example: {},
     draw2d: { Canvas: { extend: methods => methods } },
     $: selector => ({
+        "#published-agent-select": field(""),
         "#satellite-agent-destination-flow": flowField,
         "#satellite-agent-destination-trunk": trunkField,
         "#modalCreation .agent-form-error": field("")

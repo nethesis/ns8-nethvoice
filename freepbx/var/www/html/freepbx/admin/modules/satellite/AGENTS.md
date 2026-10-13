@@ -152,8 +152,9 @@ upstream `nethesis/satellite` API implementation too.
   Keep JSON objects distinct from arrays through the PHP gateway. Publication
   and activation reconcile PBX destinations and trigger reload; draft saving
   must not reload or change the live route.
-- Agent Builder pages live in AngularJS `freepbx/wizard-ui/`; the NS8 Vue UI is
-  separate. Keep workflow manifests, inspector fields, English/Italian labels,
+- The standalone Agents pages live in `htdocs/agents/` (Vue 3/Tailwind 4). The
+  Wizard opens the separate document in a new tab; legacy Angular routes redirect
+  to it. The NS8 Vue administration UI remains separate. Keep workflow manifests, inspector fields, English/Italian labels,
   contracts and the matching runtime tests aligned.
 - See the workspace review handoff before assuming all tests pass: pending
   app-name and clone-volume edits need corresponding regression updates, and

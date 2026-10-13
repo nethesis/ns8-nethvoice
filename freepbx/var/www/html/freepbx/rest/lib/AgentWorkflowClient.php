@@ -22,11 +22,12 @@ class AgentWorkflowClient
     public function request($method, $path, $actor, $input = null, $preserveObjects = false)
     {
         $id = '[a-z][a-z0-9_-]{0,47}'; $run = '[A-Za-z0-9_-]{1,128}';
+        $version = '[1-9][0-9]{0,5}';
         $routes = array(
-            'GET' => '#^/(inventory|catalog|jobs/[a-f0-9]{32}|definitions/(agent|subflow)/' . $id . '/versions/[1-9][0-9]{0,5}|runs/' . $run . ')$#D',
-            'PUT' => '#^/(definitions/(agent|subflow)/' . $id . '|data/' . $id . ')$#D',
-            'POST' => '#^/(validate|test|definitions/(agent|subflow)/' . $id . '/(publish|activate)|data/preview|data/' . $id . '/(publish|refresh)|runs/' . $run . '/cancel)$#D',
-            'DELETE' => '#^/data/' . $id . '/versions/[1-9][0-9]{0,5}$#D');
+            'GET' => '#^/(inventory|catalog|dependencies|tools|jobs/[a-f0-9]{32}|definitions/(agent|subflow)/' . $id . '/versions/' . $version . '|tools/' . $id . '/versions/' . $version . '|data/' . $id . '/versions/' . $version . '/preview|simulations/' . $run . '|runs/' . $run . '(/tool-calls(/' . $run . '/content)?)?)$#D',
+            'PUT' => '#^/(definitions/(agent|subflow)/' . $id . '|data/' . $id . '|tools/' . $id . '|credentials/' . $id . ')$#D',
+            'POST' => '#^/(validate|test|activity|simulations|tools/test|connections/test|tools/' . $id . '/publish|documents/' . $id . '/publish|definitions/(agent|subflow)/' . $id . '/(publish|activate)|data/(preview|inspect)|data/' . $id . '/(publish|refresh)|runs/' . $run . '/cancel)$#D',
+            'DELETE' => '#^/(data|tools)/' . $id . '/versions/' . $version . '$#D');
         if (!isset($routes[$method]) || !preg_match($routes[$method], $path) || !preg_match('/^[A-Za-z0-9_.@-]{1,128}$/D', $actor)) {
             throw new \InvalidArgumentException('invalid_operation');
         }
@@ -34,7 +35,7 @@ class AgentWorkflowClient
         if (!ctype_digit((string) $port) || (int) $port < 1 || (int) $port > 65535 || !$token) {
             throw new \RuntimeException('workflows_unavailable', 503);
         }
-        $large = preg_match('#^/data/(preview|' . $id . '/publish)$#D', $path);
+        $large = preg_match('#^/(data/(preview|inspect|' . $id . '/publish)|documents/' . $id . '/publish)$#D', $path);
         $payload = $input === null ? null : json_encode($input, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($payload === false || ($payload !== null && strlen($payload) > ($large ? 14 * 1024 * 1024 : 262144))) {
             throw new \InvalidArgumentException('invalid_request');

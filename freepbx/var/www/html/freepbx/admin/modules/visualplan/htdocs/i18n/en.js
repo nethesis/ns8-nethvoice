@@ -5,7 +5,6 @@ languages.en = {
     "toolbar_save_string": "Saved",
     "toolbar_not_save_string": "Not Saved",
     "toolbar_not_save_log_string": "See console log for details",
-
     "base_no_elements_string": "No elements found",
     "base_delete_night_service_string": "Delete Night Service",
     "base_add_night_service_string": "Add Night Service",
@@ -53,7 +52,6 @@ languages.en = {
     "view_agent_cancel_trunk_string": "Cancel",
     "view_agent_trunk_error_string": "Could not save trunk",
     "view_agent_trunks_load_error_string": "Could not load trunks",
-
     "view_selection_string": "- Selection",
     "view_add_new_string": "Add New",
     "view_select_exis_string": "Select Existing",
@@ -62,11 +60,9 @@ languages.en = {
     "view_error_inserted_string": "Error: The inserted value is used",
     "view_error_required_string": "Compile required fields",
     "view_number_string": "Number",
-
     "view_number_string_did": "DID Number",
     "view_number_string_cid": "CallerID Number",
     "view_any_string": "ANY",
-
     "view_description_string": "Description",
     "view_ringtime_string": "Ring Time",
     "view_strategy_string": "Ring Strategy",
@@ -78,12 +74,10 @@ languages.en = {
     "view_timegroup_string": "Time group",
     "view_control_code_string": "Control code",
     "view_error_empty": "Inserted value is not valid",
-
     "view_queuesTimeString_unlimited": "Unlimited",
     "view_queuesTimeString_seconds": "seconds",
     "view_queuesTimeString_second": "second",
     "view_queuesTimeString_maxWait": "Max Wait Time",
-
     "view_queuesTimeString_minutes_60": "1 minute",
     "view_queuesTimeString_minutes_61": "1 minute, 1 second",
     "view_queuesTimeString_minutes_62": "1 minute, 2 seconds",
@@ -142,7 +136,6 @@ languages.en = {
     "view_queuesTimeString_minutes_117": "1 minute, 57 seconds",
     "view_queuesTimeString_minutes_118": "1 minute, 58 seconds",
     "view_queuesTimeString_minutes_119": "1 minute, 59 seconds",
-
     "view_queuesTimeString_minutes_80": "1 minute, 20 seconds",
     "view_queuesTimeString_minutes_100": "1 minute, 40 seconds",
     "view_queuesTimeString_minutes_120": "2 minutes",
@@ -190,7 +183,6 @@ languages.en = {
     "view_queuesTimeString_minutes_6600": "1 hour, 50 minutes",
     "view_queuesTimeString_minutes_6900": "1 hour, 55 minutes",
     "view_queuesTimeString_minutes_7200": "2 hours",
-
     "base_hangup_string": "Hangup",
     "base_incoming_string": "Incoming route",
     "base_night_service_string": "Night Service",
@@ -209,7 +201,6 @@ languages.en = {
     "base_alternative_string": "Alternative Destination",
     "base_ivr_suggest_string": "Right-click to add option",
     "base_details_string": "Advanced",
-    
     "view_addtimetimegroup_string": "Add Time",
     "view_savegrouptimegroup_string": "Save Group",
     "view_removetimetimegroup_string": "Remove Time",
@@ -265,10 +256,14 @@ languages.en = {
     "view_text_tts_string": "Text",
     "view_description_recording_string": "Description",
     "view_language_record_tts": "Record TTS",
-    "view_name_googlekey_label" : "Google API Key",
+    "view_name_googlekey_label": "Google API Key",
     "view_tts_button_set_key": "Set key",
     "view_tts_error_1": "Error creating audio file, check the api key and the internet connection",
     "view_tts_error_2": "Error listening the audio",
     "view_tts_save_key": "Save key",
-    "view_text_sendtts_string": "Send"
+    "view_text_sendtts_string": "Send",
+    "view_agent_select_published_string": "Published voice agent",
+    "view_agent_legacy_string": "CleverAI destination",
+    "view_agent_open_string": "Open Agents",
+    "view_agent_already_added_string": "This agent is already on the canvas."
 };

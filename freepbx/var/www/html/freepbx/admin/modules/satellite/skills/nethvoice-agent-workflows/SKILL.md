@@ -167,3 +167,22 @@ credential, data or acceptance input with the next concrete step.
 When this branch changes agent setup or testing, update the affected sections of
 `satellite/README.md` and this skill together. Use mostly short, active sentences
 in the human instructions. Keep unrelated documentation unchanged.
+
+## Standalone designer policy
+
+The Wizard Agents link opens the Vue 3 document in a new tab. Use its General,
+Workflow, Tools and Test tabs. The Test tab uses offline scripted fixtures only.
+Do not treat a saved mock as proof of live provider, PBX or connector behavior.
+Continue to obtain explicit user approval before the final live OpenAI test.
+
+Schema 2 registry bindings separate conversation use from workflow use and can
+restrict origins and fixed scope. A phase may inherit or restrict agent tools.
+Enabled direct write tools execute immediately without caller confirmation; keep
+argument validation, verified identity, grants, durable effects and machine write
+approvals. Schema 1 templates and explicit confirmation nodes retain their
+existing policy. Do not silently remove those nodes during migration.
+
+Use typed table queries or local PDF/text search for new sources. Never execute
+SQL, XLSX formulas or user expressions. Scanned PDF files without text require
+verification. Store credentials through Settings; never put their values in graph
+JSON. Check the matching schema 2 runtime contract before publishing.
