@@ -15,7 +15,7 @@ final class Access
             $_SESSION['voice_agent_user'] = $user;
             $_SESSION['voice_agent_csrf'] = bin2hex(random_bytes(32));
         }
-        return ['contract_version' => 1, 'milestone' => 'M0', 'capabilities' => [],
+        return ['contract_version' => 1, 'milestone' => 'v0.1-configuration', 'capabilities' => ['agents', 'trunks', 'tools', 'activity'],
                 'csrf' => $_SESSION['voice_agent_csrf']];
     }
 

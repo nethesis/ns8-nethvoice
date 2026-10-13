@@ -1,0 +1,63 @@
+export type JsonObject = Record<string, unknown>;
+export interface Draft {
+  provider_binding_id: string | null;
+  conversation: {
+    language: string;
+    voice: string;
+    greeting: string;
+    instructions: string;
+  };
+  enabled_tools: string[];
+  approved_destination_ids: string[];
+  fallback_destination_id: string | null;
+  max_call_duration_seconds: number;
+}
+export interface Agent extends JsonObject {
+  agent_id: string;
+  name: string;
+  kind: "builtin" | "custom";
+  destination_id: string;
+  enabled: boolean;
+  revision: number;
+  workflow_version: number | null;
+  sync_status: string;
+  routable: boolean;
+  draft: Draft;
+  published: (Draft & { workflow_version: number }) | null;
+}
+export interface Trunk extends JsonObject {
+  binding_id: string;
+  name: string;
+  provider: string;
+  revision: number;
+  sync_status: string;
+  openai_project_id?: string;
+  grok_phone_number?: string;
+  sip_auth_mode?: string;
+  sip_auth_username?: string;
+  api_key_configured: boolean;
+  webhook_secret_configured: boolean;
+}
+export interface Catalog {
+  tools: { id: string; name: string }[];
+  extensions: { id: string; name: string }[];
+  providers: string[];
+}
+export interface Run extends JsonObject {
+  run_id: string;
+  agent_id: string;
+  agent_name?: string;
+  workflow_version: number;
+  started_at: string;
+  ended_at: string | null;
+  outcome: string;
+  error_code: string | null;
+  events?: {
+    event_id: string;
+    event_type: string;
+    occurred_at: string;
+    error_code: string | null;
+    tool_id?: string | null;
+    destination_id?: string | null;
+  }[];
+}

@@ -2,7 +2,8 @@ import { createI18n } from "vue-i18n";
 
 const en = {
   foundationTitle: "Voice agents are coming",
-  foundationHelp: "The workspace is ready. Agent setup and voice calls will be available in v0.1.",
+  foundationHelp:
+    "The workspace is ready. Agent setup and voice calls will be available in v0.1.",
   blockNames: {
     start_call: "Incoming call",
     start_api: "API request",
@@ -708,6 +709,229 @@ const it: typeof en = {
     invalid_columns: "Verifica il mapping delle colonne.",
   },
 };
+Object.assign(en, {
+  webhookEndpoint: "Provider webhook endpoint",
+  trunk: "Provider trunk",
+  saveDraft: "Save draft",
+  edit: "Edit",
+  delete: "Delete",
+  basicVoiceHelp:
+    "Configure Basic Voice, save a draft, publish, then enable routing.",
+  unpublishedChanges:
+    "Saved changes take effect after publishing. Current calls keep their published version.",
+  destinationUnavailable: "Extension unavailable",
+  removeGrant: "Remove permission",
+  publishedVersion: "Published version",
+  back: "Back",
+  reloadSaved: "Reload saved settings",
+  retrySync: "Retry synchronization",
+  maxDuration: "Maximum call duration (seconds)",
+  manageTrunks: "Manage provider trunks",
+  greeting: "Greeting",
+  toolGrantsHelp: "Each agent has independent tool permissions.",
+  approvedExtensions: "Approved extensions",
+  approvedExtensionsHelp:
+    "Directory search and transfers use only these extensions. Fallback is configured separately.",
+  deleteAgentConfirm: "Delete this agent? Referenced agents cannot be deleted.",
+  trunks: "Provider trunks",
+  trunksHelp: "Manage OpenAI and Grok connections.",
+  newTrunk: "New trunk",
+  editTrunk: "Edit trunk",
+  deleteTrunkConfirm: "Delete this trunk? Referenced trunks cannot be deleted.",
+  openaiProject: "OpenAI project ID",
+  grokNumber: "Grok Direct SIP number",
+  sipAuthentication: "SIP authentication",
+  sipAllowedAddresses: "Provider IP allowlist",
+  sipUsername: "SIP username",
+  sipPassword: "SIP password",
+  providerApiKey: "Provider API key",
+  webhookSigningSecret: "Webhook signing secret",
+  credentialsConfigured: "API key and webhook secret configured",
+  secretKeepHelp:
+    "Leave secret fields empty to keep stored credentials. Secrets are never displayed.",
+  secretRequiredHelp:
+    "Provide API key and webhook signing secret. Credentials are encrypted before storage.",
+  providerSetupHelp:
+    "Register the account and signed webhook with the provider before calls. This form configures the native PBX trunk.",
+  activityHelp:
+    "Inspect agent runs and tool or transfer outcomes. Sensitive content is not captured.",
+  startedAt: "Started",
+  endedAt: "Ended",
+  outcome: "Outcome",
+  runDetails: "Run details",
+  errorCode: "Error code",
+  refresh: "Refresh",
+  toolNames: {
+    directory_find_destinations: "Find approved extensions",
+    telephony_transfer: "Transfer to an approved extension",
+  },
+  sync: {
+    pending: "Synchronization pending",
+    error: "Synchronization failed",
+    synced: "Synchronized",
+  },
+  runOutcomes: {
+    running: "Running",
+    completed: "Completed",
+    fallback: "Fallback",
+    failed: "Failed",
+    interrupted: "Interrupted",
+    transferred: "Transferred",
+  },
+  runEvents: {
+    admitted: "Call admitted",
+    completed: "Call completed",
+    fallback: "Fallback used",
+    failed: "Call failed",
+    interrupted: "Call interrupted",
+    tool_denied: "Tool denied",
+    transfer_requested: "Transfer requested",
+    transfer_committed: "Transfer confirmed",
+    transfer_failed: "Transfer failed",
+    transfer_uncertain: "Transfer outcome uncertain",
+  },
+});
+Object.assign(it, {
+  webhookEndpoint: "Endpoint webhook del provider",
+  trunk: "Trunk del provider",
+  saveDraft: "Salva bozza",
+  edit: "Modifica",
+  delete: "Elimina",
+  basicVoiceHelp:
+    "Configura Basic Voice, salva una bozza, pubblicala e abilita le chiamate.",
+  unpublishedChanges:
+    "Le modifiche salvate diventano attive dopo la pubblicazione. Le chiamate in corso mantengono la propria versione pubblicata.",
+  destinationUnavailable: "Interno non disponibile",
+  removeGrant: "Rimuovi permesso",
+  publishedVersion: "Versione pubblicata",
+  back: "Indietro",
+  reloadSaved: "Ricarica impostazioni",
+  retrySync: "Riprova sincronizzazione",
+  maxDuration: "Durata massima chiamata (secondi)",
+  manageTrunks: "Gestisci trunk del provider",
+  greeting: "Saluto iniziale",
+  toolGrantsHelp: "Ogni agente ha permessi indipendenti.",
+  approvedExtensions: "Interni autorizzati",
+  approvedExtensionsHelp:
+    "Ricerca e trasferimento usano solo questi interni. Il fallback è configurato separatamente.",
+  deleteAgentConfirm:
+    "Eliminare l’agente? Gli agenti usati dalle rotte non possono essere eliminati.",
+  trunks: "Trunk dei provider",
+  trunksHelp: "Gestisci le connessioni OpenAI e Grok.",
+  newTrunk: "Nuovo trunk",
+  editTrunk: "Modifica trunk",
+  deleteTrunkConfirm:
+    "Eliminare il trunk? I trunk usati dagli agenti non possono essere eliminati.",
+  openaiProject: "ID progetto OpenAI",
+  grokNumber: "Numero Direct SIP Grok",
+  sipAuthentication: "Autenticazione SIP",
+  sipAllowedAddresses: "IP autorizzati dal provider",
+  sipUsername: "Nome utente SIP",
+  sipPassword: "Password SIP",
+  providerApiKey: "Chiave API provider",
+  webhookSigningSecret: "Segreto firma webhook",
+  credentialsConfigured: "Chiave API e segreto webhook configurati",
+  secretKeepHelp:
+    "Lascia vuoti i campi segreti per mantenere le credenziali. I segreti non vengono mostrati.",
+  secretRequiredHelp:
+    "Inserisci chiave API e segreto firma webhook. Le credenziali vengono cifrate.",
+  providerSetupHelp:
+    "Registra account e webhook firmato nel provider prima delle chiamate. Questo modulo configura il trunk PBX nativo.",
+  activityHelp:
+    "Esamina esecuzioni, strumenti e trasferimenti. I contenuti sensibili non vengono acquisiti.",
+  startedAt: "Inizio",
+  endedAt: "Fine",
+  outcome: "Esito",
+  runDetails: "Dettagli esecuzione",
+  errorCode: "Codice errore",
+  refresh: "Aggiorna",
+  toolNames: {
+    directory_find_destinations: "Cerca interni autorizzati",
+    telephony_transfer: "Trasferisci a un interno autorizzato",
+  },
+  sync: {
+    pending: "Sincronizzazione in attesa",
+    error: "Sincronizzazione fallita",
+    synced: "Sincronizzato",
+  },
+  runOutcomes: {
+    running: "In corso",
+    completed: "Completata",
+    fallback: "Fallback",
+    failed: "Fallita",
+    interrupted: "Interrotta",
+    transferred: "Trasferita",
+  },
+  runEvents: {
+    admitted: "Chiamata accettata",
+    completed: "Chiamata completata",
+    fallback: "Fallback eseguito",
+    failed: "Chiamata fallita",
+    interrupted: "Chiamata interrotta",
+    tool_denied: "Strumento negato",
+    transfer_requested: "Trasferimento richiesto",
+    transfer_committed: "Trasferimento confermato",
+    transfer_failed: "Trasferimento fallito",
+    transfer_uncertain: "Esito trasferimento incerto",
+  },
+});
+Object.assign(en.error, {
+  invalid_secret:
+    "Check the credentials and provider webhook signing secret format.",
+  revision_conflict: "Settings changed elsewhere. Reload before editing.",
+  provider_required: "Choose a provider trunk.",
+  trunk_not_ready: "Synchronize the trunk first.",
+  fallback_required: "Choose a fallback extension.",
+  conversation_required: "Voice and instructions are required.",
+  invalid_configuration: "Check the configuration and limits.",
+  destination_unavailable: "An extension is unavailable. Reload the inventory.",
+  trunk_in_use: "An agent uses this trunk.",
+  agent_in_use: "A route uses this agent.",
+  credentials_required: "Provider credentials are required.",
+  invalid_provider_configuration:
+    "Check the project, number and SIP authentication.",
+  configuration_busy: "Another change is in progress. Retry shortly.",
+  publication_required: "Publish before enabling.",
+  request_unavailable: "Service unavailable. Retry shortly.",
+  builtin_protected: "Built-in agents can be disabled, but cannot be deleted.",
+});
+Object.assign(en.status, { enabled: "Enabled", pending: "Pending" });
+Object.assign(it.status, { enabled: "Abilitato", pending: "In attesa" });
+Object.assign(en, {
+  runEvents: {
+    ...Reflect.get(en, "runEvents"),
+    tool_completed: "Tool completed",
+    tool_failed: "Tool failed",
+  },
+});
+Object.assign(it, {
+  runEvents: {
+    ...Reflect.get(it, "runEvents"),
+    tool_completed: "Strumento completato",
+    tool_failed: "Strumento fallito",
+  },
+});
+Object.assign(it.error, {
+  invalid_secret:
+    "Controlla le credenziali e il formato del segreto firma webhook.",
+  revision_conflict: "Impostazioni cambiate. Ricarica prima di modificare.",
+  provider_required: "Scegli un trunk.",
+  trunk_not_ready: "Sincronizza prima il trunk.",
+  fallback_required: "Scegli un interno di fallback.",
+  conversation_required: "Voce e istruzioni sono obbligatorie.",
+  invalid_configuration: "Controlla configurazione e limiti.",
+  destination_unavailable: "Interno non disponibile. Aggiorna l’elenco.",
+  trunk_in_use: "Il trunk è usato da un agente.",
+  agent_in_use: "L’agente è usato da una rotta.",
+  credentials_required: "Inserisci le credenziali.",
+  invalid_provider_configuration:
+    "Controlla progetto, numero e autenticazione SIP.",
+  configuration_busy: "Modifica in corso. Riprova tra poco.",
+  publication_required: "Pubblica prima di abilitare.",
+  request_unavailable: "Servizio non disponibile.",
+  builtin_protected: "Gli agenti predefiniti non possono essere eliminati.",
+});
+
 export const i18n = createI18n({
   legacy: false,
   locale:

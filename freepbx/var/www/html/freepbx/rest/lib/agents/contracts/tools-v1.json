@@ -1,0 +1,38 @@
+[
+  {
+    "id": "directory.find_destinations",
+    "version": 1,
+    "name": "Find approved extensions",
+    "wire_name": "nv_find_destinations_v1",
+    "description": "Find approved extensions by name or number.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "maxLength": 100
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "telephony.transfer",
+    "version": 1,
+    "name": "Transfer to an approved extension",
+    "wire_name": "nv_transfer_v1",
+    "description": "Transfer the caller to an approved extension ID.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "destination_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "destination_id"
+      ],
+      "additionalProperties": false
+    }
+  }
+]

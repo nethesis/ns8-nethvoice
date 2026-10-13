@@ -8,6 +8,8 @@ $db = new PDO($dsn, 'root', '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 if ($db->query('SHOW DATABASES LIKE "asterisk"')->fetchColumn()) throw new RuntimeException('fresh_disposable_database_required');
 $db->exec('CREATE DATABASE asterisk');
 $db->exec('CREATE DATABASE asteriskcdrdb');
+$db->exec('CREATE TABLE asterisk.users (extension VARCHAR(20) PRIMARY KEY, name VARCHAR(100))');
+$db->exec("INSERT INTO asterisk.users VALUES ('203','Test extension')");
 \NethVoice\Agents\Schema::install($db);
 $snapshot = json_decode(file_get_contents(__DIR__ . '/../../var/www/html/freepbx/rest/lib/agents/contracts/published-v1.example.json'), true);
 \NethVoice\Agents\PublishedContract::validate($snapshot);
@@ -17,7 +19,7 @@ $stmt->execute(['basic_voice', 1, json_encode($snapshot)]);
 \NethVoice\Agents\Schema::install($db);
 assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_versions')->fetchColumn() === 1);
 assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_published')->fetchColumn() === 0);
-$db->exec("UPDATE asterisk.voice_agent_agents SET enabled=1, active_workflow_version=1 WHERE agent_id='basic_voice'");
+$db->exec("UPDATE asterisk.voice_agent_agents SET enabled=1, active_workflow_version=1,sync_status='synced' WHERE agent_id='basic_voice'");
 assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_published')->fetchColumn() === 1);
 function denied(callable $fn): void {
     try { $fn(); } catch (PDOException $e) { return; }
@@ -28,6 +30,7 @@ denied(fn() => $db->exec('DELETE FROM asterisk.voice_agent_versions'));
 // Accounts are only for this isolated test. Actual passwords are provisioned separately.
 foreach (['m0_reader', 'm0_writer'] as $user) $db->exec("CREATE USER '$user'@'%' IDENTIFIED BY ''");
 $db->exec("GRANT SELECT ON asterisk.voice_agent_published TO 'm0_reader'@'%'");
+foreach (['voice_agent_runtime_bindings','voice_agent_extension_directory','voice_agent_runtime_tools'] as $view) $db->exec("GRANT SELECT ON asterisk.$view TO 'm0_reader'@'%'");
 $db->exec("GRANT SELECT, INSERT ON asteriskcdrdb.voice_agent_runs TO 'm0_writer'@'%'");
 $db->exec("GRANT UPDATE (provider_call_id, ended_at, outcome, error_code) ON asteriskcdrdb.voice_agent_runs TO 'm0_writer'@'%'");
 $db->exec("GRANT SELECT, INSERT ON asteriskcdrdb.voice_agent_run_events TO 'm0_writer'@'%'");
@@ -48,4 +51,6 @@ $writer->exec("UPDATE asteriskcdrdb.voice_agent_runs SET outcome='completed', en
 denied(fn() => $writer->exec("UPDATE asteriskcdrdb.voice_agent_runs SET agent_id='other'"));
 denied(fn() => $writer->exec('DELETE FROM asteriskcdrdb.voice_agent_run_events'));
 denied(fn() => $writer->exec("INSERT INTO asteriskcdrdb.voice_agent_run_events (event_id, run_id, event_type) VALUES ('00000000-0000-4000-8000-000000000003', '$run', 'arbitrary_payload')"));
+denied(fn() => $db->exec("UPDATE asterisk.voice_agent_builtin_tools SET tool_version=2"));
+denied(fn() => $db->exec("DELETE FROM asterisk.voice_agent_builtin_tools"));
 echo "PASS: migrations twice, preserved versions, immutable publication, least privileges, bounded idempotent events\n";

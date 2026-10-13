@@ -1,0 +1,16 @@
+<?php
+require_once __DIR__.'/../../var/www/html/freepbx/rest/lib/agents/Service.php';
+$db=new PDO('mysql:host=127.0.0.1;port='.getenv('VOICE_AGENT_RESTORE_PORT'),'root','',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+\NethVoice\Agents\Schema::install($db);
+assert((int)$db->query('SELECT MAX(version) FROM asterisk.voice_agent_schema')->fetchColumn()===5);
+assert((int)$db->query("SELECT COUNT(*) FROM asterisk.voice_agent_agents WHERE kind='builtin'")->fetchColumn()===2);
+assert($db->query("SELECT name FROM asterisk.voice_agent_agents WHERE agent_id='internal'")->fetchColumn()==='Test internal');
+assert((int)$db->query("SELECT COUNT(*) FROM asterisk.voice_agent_versions WHERE agent_id='internal'")->fetchColumn()===2);
+$encoded=$db->query('SELECT secrets_encrypted FROM asterisk.voice_agent_bindings LIMIT 1')->fetchColumn();
+putenv('SATELLITE_AGENT_CONFIG_KEY=synthetic-disposable-key');
+$secrets=json_decode((new \NethVoice\Agents\SecretStore())->decryptSecret($encoded),true);
+assert($secrets['api_key']==='synthetic-api');
+$q=$db->prepare("UPDATE asterisk.voice_agent_versions SET definition_json='{}' WHERE agent_id='internal' AND workflow_version=1");
+try { $q->execute(); throw new RuntimeException('restored_immutable_version_modified'); }
+catch (PDOException $error) { assert($error->getCode()==='45000'); }
+echo "Restored drafts, immutable versions, identities and encrypted credentials passed\n";

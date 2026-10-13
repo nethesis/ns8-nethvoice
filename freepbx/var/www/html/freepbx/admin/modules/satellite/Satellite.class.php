@@ -30,12 +30,56 @@ class Satellite extends \FreePBX_Helpers implements \BMO
     }
 
     public function install() {
+        require_once dirname(__DIR__, 3) . '/rest/lib/agents/Schema.php';
+        \NethVoice\Agents\Schema::install($this->db);
     }
     public function uninstall() {
     }
     public function backup() {
     }
     public function restore($backup) {
+    }
+
+    /** Native extension inventory; callers never provide dialplan strings. */
+    public function agentExtensions(): array {
+        $result = [];
+        foreach ($this->FreePBX->Core->listUsers(false) as $user) {
+            $number = (string) ($user[0] ?? $user['extension'] ?? '');
+            if (!preg_match('/^[0-9]{1,20}$/D', $number)) continue;
+            $result[] = ['id' => 'extension:' . $number, 'name' => (string) ($user[1] ?? $user['name'] ?? $number)];
+        }
+        return $result;
+    }
+
+    public function agentTrunk(string $operation, array $binding, ?array $previous): int {
+        require_once __DIR__ . '/lib/AgentTrunkProvisioner.php';
+        $native = new \AgentTrunkProvisioner($this->FreePBX->Core);
+        if ($operation === 'delete') { $native->deleteManagedTrunk($binding); return 0; }
+        if ($operation === 'update' && !empty($binding['freepbx_trunk_id'])) {
+            return (int) $native->updateManagedTrunk($binding, $previous);
+        }
+        return (int) $native->createManagedTrunk($binding);
+    }
+
+    public function applyAgentDialplan(): bool {
+        needreload();
+        $output = []; $status = 1;
+        exec('timeout 35 fwconsole reload >/dev/null 2>&1', $output, $status);
+        return $status === 0;
+    }
+
+    /** Library reads remain usable without booting the HTTP router. */
+    public function agentDestinations(): array {
+        require_once dirname(__DIR__, 3) . '/rest/lib/agents/Service.php';
+        return (new \NethVoice\Agents\Service($this->db))->all();
+    }
+
+    public function agentDestinationInUse(string $id): bool {
+        // REST loads the BMO class lazily, without the module's destination hooks.
+        require_once __DIR__ . '/functions.inc.php';
+        $dest = satellite_agent_destination_key($id);
+        // FreePBX's destination hooks are authoritative, including routes/IVRs.
+        return !empty($this->FreePBX->Destinations->destinationUsageArray($dest));
     }
 
     public function get_available_voices() {

@@ -66,6 +66,13 @@ client.interceptors.response.use(
     const message = error.response?.data?.error || "";
     if (
       requestGenerations.get(error.config) === authGeneration &&
+      message === "csrf_invalid"
+    ) {
+      csrf = "";
+      accessPromise = undefined;
+    }
+    if (
+      requestGenerations.get(error.config) === authGeneration &&
       (error.response?.status === 401 ||
         (error.response?.status === 403 &&
           /Forbidden|unauthorized/.test(message)))

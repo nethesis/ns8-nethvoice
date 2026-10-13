@@ -96,3 +96,18 @@ and an identity-bound CSRF token. Global Wizard `User`/`Secretkey` authenticatio
 establishes the server-side `nethvoice_admin` attribute. Cross-site browser origins
 are rejected; the response is not cached. No mutation endpoints exist in M0.
 Future mutations must require the existing header authentication and `X-Agents-CSRF`.
+
+## Implemented v0.1 configuration slice
+
+The M0-only descriptions above record the foundation gate. CRUD, publication,
+provider bindings, immutable built-in tool manifests, runtime accounts, pending
+correlation, execution and retention are now implemented by migrations 002–005
+and their PHP/Python services. See [Basic Voice configuration](voice-agents-v01.md)
+for the current API and verified boundaries. Contract version one implies built-in
+tool manifest version one; PHP owns those definitions and runtime checks exact
+supported versions at call admission. The configuration reader additionally needs
+SELECT on `voice_agent_runtime_bindings`, `voice_agent_extension_directory` and
+`voice_agent_runtime_tools`. The writer additionally needs SELECT/INSERT and only
+UPDATE of state/provider_call_id on `voice_agent_pending_calls`. The server now
+reports `v0.1-configuration` with agents/trunks/tools/activity capabilities. Live
+provider calls and transfer/media acceptance remain separate gates.

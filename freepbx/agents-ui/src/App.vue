@@ -15,7 +15,11 @@ const { t, locale } = useI18n();
 const route = useRoute();
 const ui = useUi();
 const mobileMenu = ref(false);
-const items = [{ name: "agents", icon: "comments" }];
+const items = [
+  { name: "agents", icon: "comments" },
+  { name: "trunks", icon: "gear" },
+  { name: "activity", icon: "clock" },
+];
 onMounted(() => {
   document.documentElement.lang = String(locale.value);
   void access().catch(() => {
@@ -95,8 +99,7 @@ watch(locale, (value) => {
         class="mb-1 flex items-center gap-3 rounded-md px-3 py-3 hover:bg-gray-100 dark:hover:bg-gray-800"
         :class="{
           'bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-400':
-            route.path.startsWith('/' + item.name) ||
-            (item.name === 'tools' && route.path.startsWith('/workflows')),
+            route.path.startsWith('/' + item.name),
         }"
         @click="mobileMenu = false"
         ><FontAwesomeIcon :icon="item.icon" class="w-4" />{{
@@ -118,9 +121,7 @@ watch(locale, (value) => {
         }}</NeButton></NeEmptyState
       >
       <RouterView v-else v-slot="{ Component }"
-        ><component
-          :is="Component"
-          :key="$route.path.replace(/\/(general|workflow|tools|test)$/, '')"
+        ><component :is="Component" :key="$route.path"
       /></RouterView>
     </main>
     <div class="fixed bottom-6 right-6 z-50 space-y-3">
