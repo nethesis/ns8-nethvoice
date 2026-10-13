@@ -31,3 +31,9 @@ systemctl --user enable --now nethcti-ui-restart.timer
 echo "Enabling satellite recordings cleanup timer"
 systemctl --user disable satellite-recordings-cleanup.service >/dev/null 2>&1 || true
 systemctl --user enable --now satellite-recordings-cleanup.timer
+
+# Independent agents do not require transcription.
+systemctl --user daemon-reload
+systemctl --user enable --now voice-agent.service
+
+systemctl --user enable --now voice-agent-retention.timer

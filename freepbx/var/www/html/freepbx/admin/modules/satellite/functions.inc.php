@@ -5,6 +5,7 @@ function satellite_get_config($engine) {
 }
 
 function satellite_get_config_late($engine) {
+    if ($engine === 'asterisk') satellite_generate_agent_dialplan();
     global $ext;
     global $amp_conf;
     global $db;
@@ -103,5 +104,72 @@ function satellite_get_config_late($engine) {
             $ext->add('satellite', 's', '', new \ext_return());
         }
         break;
+    }
+}
+
+// Native destinations are references to PHP-owned agents, not separate records.
+function satellite_agent_destination_key($id) {
+    if (!is_string($id) || !preg_match('/^[a-z][a-z0-9_-]{0,47}$/D', $id)) throw new InvalidArgumentException('invalid_identifier');
+    return 'voice-agent-' . $id . ',s,1';
+}
+function satellite_destinations() {
+    $result = [];
+    foreach (FreePBX::Satellite()->agentDestinations() as $agent) {
+        if ($agent['routable']) $result[] = ['destination'=>satellite_agent_destination_key($agent['agent_id']),
+            'description'=>'Agent: '.$agent['name'], 'edit_url'=>'/freepbx/agents-ui/#/agents/'.rawurlencode($agent['agent_id'])];
+    }
+    return $result;
+}
+function satellite_getdest($id) { return [satellite_agent_destination_key($id)]; }
+function satellite_getdestinfo($dest) {
+    if (!preg_match('/^voice-agent-([a-z][a-z0-9_-]{0,47}),s,1$/D', (string)$dest, $match)) return false;
+    foreach (FreePBX::Satellite()->agentDestinations() as $agent) {
+        if ($agent['agent_id']===$match[1]) return ['description'=>'Agent: '.$agent['name'],'edit_url'=>'/freepbx/agents-ui/#/agents/'.rawurlencode($match[1])];
+    }
+    return [];
+}
+function satellite_check_destinations($dest = true) {
+    $result=[];
+    foreach (FreePBX::Satellite()->agentDestinations() as $agent) {
+        $target=$agent['published']['fallback_destination_id']??null;
+        if (!$target || !preg_match('/^extension:([0-9]{1,20})$/D',$target,$match)) continue;
+        $native='from-did-direct,'.$match[1].',1';
+        if ($dest===true || in_array($native,(array)$dest,true)) $result[]=['dest'=>$native,'description'=>'Agent: '.$agent['name'].' fallback', 'edit_url'=>'/freepbx/agents-ui/#/agents/'.rawurlencode($agent['agent_id'])];
+    }
+    return $result;
+}
+function satellite_generate_agent_dialplan() {
+    global $ext;
+    $ext->add('voice-agent-headers','s','',new ext_noop('Correlate provider leg'));
+    foreach (['X-OS-Session-ID'=>'${AGENT_SESSION_ID}', 'X-OS-Provider-Leg-ID'=>'${AGENT_PROVIDER_LEG_ID}', 'X-OS-Agent-ID'=>'${VOICE_AGENT_ID}'] as $name=>$value) {
+        $ext->add('voice-agent-headers','s','',new ext_set('PJSIP_HEADER(add,'.$name.')',$value));
+    }
+    $ext->add('voice-agent-headers','s','',new ext_return());
+    $ext->add('voice-agent-provider','_!','',new ext_dial('PJSIP/${AGENT_PROVIDER_USER}@${AGENT_PROVIDER_TRUNK},20','b(voice-agent-headers^s^1)'));
+    $ext->add('voice-agent-provider','_!','',new ext_hangup());
+    foreach (FreePBX::Satellite()->agentExtensions() as $target) {
+        $number=substr($target['id'],strlen('extension:'));
+        $ext->add('voice-agent-transfer',$number,'',new ext_set('TIMEOUT(absolute)','0'));
+        $ext->add('voice-agent-transfer',$number,'',new ext_goto('1',$number,'from-did-direct'));
+    }
+    foreach (FreePBX::Satellite()->agentDestinations() as $agent) {
+        // Draft-only agents have no generated destination.
+        if (!$agent['published']) continue;
+        $context='voice-agent-'.$agent['agent_id'];
+        $ext->add($context,'s','',new ext_noop('Voice agent'));
+        if ($agent['enabled']) {
+            $ext->add($context,'s','',new ext_answer());
+            $ext->add($context,'s','',new ext_set('TIMEOUT(absolute)','35'));
+            $ext->add($context,'s','',new ext_stasis('voice-agent','caller,'.$agent['agent_id']));
+        }
+        $ext->add($context,'s','fallback',new ext_set('TIMEOUT(absolute)','0'));
+        // Missing/offline runtime or a disabled agent always reaches native fallback.
+        $fallback=$agent['published']['fallback_destination_id'];
+        if (preg_match('/^extension:([0-9]{1,20})$/D',$fallback,$match) &&
+            in_array($fallback,array_column(FreePBX::Satellite()->agentExtensions(),'id'),true)) {
+            $ext->add($context,'s','',new ext_goto('1',$match[1],'from-did-direct'));
+        } else {
+            $ext->add($context,'s','',new ext_hangup());
+        }
     }
 }

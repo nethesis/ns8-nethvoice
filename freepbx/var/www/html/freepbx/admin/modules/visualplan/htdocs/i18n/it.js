@@ -249,5 +249,15 @@ languages.it = {
     "view_tts_error_1": "Errore durante la creazione del file audio, controllare la chiave API e la connessione a internet",
     "view_tts_error_2": "Errore durante l'ascolto dell'audio",
     "view_tts_save_key": "Salva chiave",
-    "view_text_sendtts_string": "Invia"
+    "view_text_sendtts_string": "Invia",
+"base_agent_string": "Agente",
+"agent_configure_string": "Configura agente",
+"agent_select_string": "Seleziona agente",
+"agent_not_ready_string": "Configura, pubblica e abilita l’agente prima di aggiungerlo.",
+"agent_builtin_string": "Predefinito",
+"agent_new_string": "Nuovo agente",
+"agent_add_string": "Aggiungi",
+"agent_cancel_string": "Annulla",
+"agent_load_error_string": "Impossibile caricare gli agenti.",
+"agent_already_added_string": "L’agente è già presente nel piano."
 };

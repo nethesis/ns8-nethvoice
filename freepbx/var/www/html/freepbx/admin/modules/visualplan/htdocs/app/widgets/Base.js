@@ -723,7 +723,9 @@ Base = draw2d.shape.layout.VerticalLayout.extend({
                 var entity = this.addEntity(e.text, e.type, type);
                 entity.id = e.id;
                 entity.on('click', function (event) {
-                    if (event.userData.name === 'ext-queues' && !isNaN(e.id)) {
+                    if (event.userData.name === 'satellite-agent-destination' && e.cssClass === 'link') {
+                        window.open('/freepbx/agents-ui/#/agents/' + encodeURIComponent(e.id), '_blank', 'noopener');
+                    } else if (event.userData.name === 'ext-queues' && !isNaN(e.id)) {
                         window.open(location.origin + '/freepbx/admin/config.php?display=queues&view=form&extdisplay=' + e.id, '_blank');
                     } else if (event.userData.name === 'from-did-direct' && !isNaN(e.id)) {
                         window.open(location.origin + '/freepbx/admin/config.php?display=extensions&extdisplay=' + e.id, '_blank');

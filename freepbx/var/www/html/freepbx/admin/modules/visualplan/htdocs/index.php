@@ -6,6 +6,7 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
     header("location: /freepbx/wizard");
     exit(1);
 }
+$_SESSION['visualplan_agent_csrf'] ??= bin2hex(random_bytes(32));
 ?>
 
 <html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -58,6 +59,8 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
 	<script src="app/Toolbar.js"></script>
 	<!-- widgets -->
 	<script src="app/widgets/Base.js"></script>
+	<script>window.visualplanAgentCsrf = <?php echo json_encode($_SESSION['visualplan_agent_csrf']); ?>;</script>
+	<script src="app/Agents.js"></script>
 	<script type="text/javascript">
 		/**
 		 * @method
@@ -103,6 +106,7 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
 		$(window).load(function () {
 
 			// set widget name
+			$('#satellite-agent-destination').text(languages[browserLang]['base_agent_string']);
 			$('#incoming').text(languages[browserLang]["base_incoming_string"]);
 
 			$('#ext-group').text(languages[browserLang]["base_ext_group_string"]);
@@ -207,6 +211,7 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
 	<div id="side-nav">
 		<div id="layer_elements"></div>
 		<div id="layer_header" class="highlight panetitle blackgradient">
+			<div data-shape="Base" data-radius="20" id="satellite-agent-destination" class="palette_node_element draw2d_droppable endWidget"></div>
 			<!-- Cerchio -->
 			<div data-shape="Base" data-radius="20" id="incoming" class="palette_node_element draw2d_droppable startWidget" title="drag&amp;drop the table into the canvas..">
 			</div>

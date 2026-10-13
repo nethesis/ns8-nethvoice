@@ -2,7 +2,7 @@
 require __DIR__ . '/../../var/www/html/freepbx/rest/lib/agents/Access.php';
 use NethVoice\Agents\Access;
 $a = Access::envelope('admin-one');
-assert($a['capabilities'] === [] && $a['milestone'] === 'M0');
+assert(in_array('tools', $a['capabilities'], true) && $a['milestone'] === 'v0.1-configuration');
 assert($a === Access::envelope('admin-one'));
 Access::requireCsrf('admin-one', $a['csrf']);
 $b = Access::envelope('admin-two');

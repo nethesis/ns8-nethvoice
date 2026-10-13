@@ -11,9 +11,15 @@ final class Schema
             throw new \RuntimeException('schema_busy');
         }
         try {
-            $sql = file_get_contents(__DIR__ . '/migrations/001-foundation.sql');
-            foreach (explode(';', $sql) as $statement) {
-                if (trim($statement) !== '') $db->exec($statement);
+            $exists = $db->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='asterisk' AND table_name='voice_agent_schema'")->fetchColumn();
+            $installed = $exists ? $db->query('SELECT version FROM asterisk.voice_agent_schema')->fetchAll(\PDO::FETCH_COLUMN) : [];
+            foreach (glob(__DIR__ . '/migrations/*.sql') as $migration) {
+                $version = (int) basename($migration);
+                if (in_array($version, $installed)) continue;
+                $sql = file_get_contents($migration);
+                foreach (explode(';', $sql) as $statement) {
+                    if (trim($statement) !== '') $db->exec($statement);
+                }
             }
         } finally {
             $db->query("SELECT RELEASE_LOCK('voice_agent_schema_v1')");

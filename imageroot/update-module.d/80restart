@@ -10,4 +10,4 @@ runagent mysql-update-postprocess --migrate
 runagent prepare-asterisk-config
 
 echo "Restarting services when there are no active calls" >&2
-restart-services-when-convenient mariadb freepbx janus nethcti-server nethcti-middleware nethcti-ui phonebook reports-api reports-redis reports-ui tancredi satellite satellite-mqtt satellite-pgsql
+restart-services-when-convenient mariadb freepbx janus nethcti-server nethcti-middleware nethcti-ui phonebook reports-api reports-redis reports-ui tancredi satellite satellite-mqtt satellite-pgsql voice-agent
