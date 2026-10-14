@@ -143,3 +143,23 @@ verified before tagging/restarting. Native functions checksum:
 `bf8f507dbc6a66c42c09f2e26a0711ab5a799c87ed9b9245a1bf6e74a879fe4b`;
 final runtime checksum:
 `a593deb9774d051c0262267be767b886ebde8b273af2257440e8fa593e5ec301`.
+
+## Follow-up after provider endpoint configuration
+
+The user reported configuring the endpoint. Read-only project inspection confirms
+exactly one matching instance URL with realtime.call.incoming subscribed. A
+server-side comparison against the provider's masked signing-secret hint does not
+match the encrypted secret saved in the trunk. The hint is present and has a
+comparable suffix; neither hint nor secret was output. Incoming events would fail
+signature verification. The user was asked to save that endpoint's signing secret
+through Agents UI. No further call was originated, preserving both remaining
+60-second attempts. No provider write, credential replacement or service restart
+was performed in this follow-up.
+
+The same deployed source/image identities remain healthy. Active calls/channels
+are zero, both ARI apps are present, monitoring readiness is healthy and protected
+rollback images/backups are retained. Source branches were clean at revisions
+5d7f2ca46afce5981b8abae75b3165e3159c4ac2 and
+946ef48a36a836e20017972fccf105bc37097f4b. The previously disposable agent/audio
+remain removed. The user-configured endpoint must be preserved; the agent did not
+create or alter it.
