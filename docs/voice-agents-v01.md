@@ -109,9 +109,10 @@ call and its opaque SIP nonce, leg and agent headers. It cannot create an active
 call. Pending consumption and provider call IDs are idempotent. Each call has a
 setup deadline, configured duration and native fallback. Native transfer targets
 clear the Asterisk watchdog before entering the approved FreePBX extension.
-Transfer success requires an observed matching ARI release, rather than an HTTP
-acknowledgement alone. Actual provider header forwarding and ARI release behavior
-remain live-test gates.
+Transfer success requires both the caller's ARI release and the native wrapper's
+matching channel/token/destination event. The caller is detached from provider
+media before continuation. OpenAI header correlation, audio and native transfer
+were exercised on staging; Grok's live-provider gate remains outstanding.
 
 The bounded private monitoring outbox contains only metadata, survives restart,
 reserves terminal outcome capacity and reports persistent degradation through
@@ -145,4 +146,5 @@ The adapters keep their event/session contracts separate and do not implement
 GPT-Live transport events.
 
 Current UI/call repair evidence and staging limitations are recorded in
-[UI and call verification](voice-agents-ui-call-verification.md).
+[Receptionist verification](voice-agents-receptionist-verification.md). Earlier
+evidence remains in [UI and call verification](voice-agents-ui-call-verification.md).
