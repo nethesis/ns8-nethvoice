@@ -71,6 +71,48 @@ const trunks = useQuery({
   queryKey: ["trunks"],
   queryFn: () => request<{ items: Trunk[] }>("GET", "/trunks"),
 });
+const voices = useQuery({
+  queryKey: [
+    "provider-voices",
+    computed(() => draft.value.provider_binding_id),
+  ],
+  enabled: computed(() => !!draft.value.provider_binding_id),
+  queryFn: () =>
+    request<{ items: { id: string; label: string }[] }>(
+      "GET",
+      "/trunks/" +
+        encodeURIComponent(draft.value.provider_binding_id!) +
+        "/voices",
+    ),
+});
+watch(
+  () => catalog.data.value,
+  (value) => {
+    if (value && creating.value && snapshot() === baseline.value) {
+      draft.value.conversation.language = value.default_language;
+      baseline.value = snapshot();
+    }
+  },
+  { immediate: true },
+);
+const languageOptions = computed(() => {
+  const options = catalog.data.value?.languages || [];
+  const selected = draft.value.conversation.language;
+  return options.some((v) => v.id === selected)
+    ? options
+    : [...options, { id: selected, label: selected }];
+});
+const voiceOptions = computed(() => {
+  const options = voices.data.value?.items || [];
+  const selected = draft.value.conversation.voice;
+  return [
+    { id: "", label: t("choose") },
+    ...options,
+    ...(selected && !options.some((v) => v.id === selected)
+      ? [{ id: selected, label: selected }]
+      : []),
+  ];
+});
 function accept(value: Agent) {
   record.value = value;
   name.value = value.name;
@@ -211,28 +253,28 @@ async function synchronize() {
         ]"
         @update:model-value="draft.provider_binding_id = $event || null"
       />
-      <NeTextInput
+      <FieldSelect
         v-model="draft.conversation.language"
-        :label="t('language')"
-        maxlength="5"
-      />
-      <NeTextInput
-        v-model="draft.conversation.voice"
-        :label="t('voiceName')"
-        maxlength="128"
+        :label="t('defaultLanguage')"
+        :options="languageOptions"
       />
       <FieldSelect
-        :model-value="draft.fallback_destination_id || ''"
-        :label="t('fallback')"
-        :options="[
-          { id: '', label: t('choose') },
-          ...(catalog.data.value?.extensions || []).map((v) => ({
-            id: v.id,
-            label: v.name + ' (' + v.id.split(':')[1] + ')',
-          })),
-        ]"
-        @update:model-value="draft.fallback_destination_id = $event || null"
+        v-model="draft.conversation.voice"
+        :label="t('voiceName')"
+        :options="voiceOptions"
+        :disabled="!draft.provider_binding_id || voices.isPending.value"
       />
+      <NeInlineNotification
+        v-if="voices.isError.value"
+        kind="error"
+        :title="t('voiceCatalogError')"
+      />
+      <NeButton
+        v-if="voices.isError.value"
+        kind="tertiary"
+        @click="voices.refetch()"
+        >{{ t("retry") }}</NeButton
+      >
       <NeTextInput
         :model-value="String(draft.max_call_duration_seconds)"
         :label="t('maxDuration')"

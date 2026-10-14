@@ -85,6 +85,7 @@ $agentsRoute('POST','/profiles/{id}/enabled',function($s,$a,$i,$q,$u) {
 });
 $agentsRoute('DELETE','/profiles/{id}',fn($s,$a,$i,$q,$u)=>$s->remove($a['id'],$i['expected_revision'],$u));
 $agentsRoute('GET','/trunks',fn($s)=>['items'=>$s->trunks()]);
+$agentsRoute('GET','/trunks/{id}/voices',fn($s,$a)=>$s->voices($a['id']));
 $agentsRoute('POST','/trunks',fn($s,$a,$i,$q,$u)=>$s->saveTrunk(null,$i['trunk']??[],$i['expected_revision'],$u));
 $agentsRoute('PUT','/trunks/{id}',fn($s,$a,$i,$q,$u)=>$s->saveTrunk($a['id'],$i['trunk']??[],$i['expected_revision'],$u));
 $agentsRoute('DELETE','/trunks/{id}',fn($s,$a,$i,$q,$u)=>$s->removeTrunk($a['id'],$i['expected_revision'],$u));

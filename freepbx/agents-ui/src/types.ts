@@ -36,12 +36,16 @@ export interface Trunk extends JsonObject {
   sip_auth_mode?: string;
   sip_auth_username?: string;
   api_key_configured: boolean;
+  api_key_source: "stored" | "environment" | "missing";
   webhook_secret_configured: boolean;
 }
 export interface Catalog {
   tools: { id: string; name: string }[];
   extensions: { id: string; name: string }[];
   providers: string[];
+  default_language: string;
+  languages: { id: string; label: string }[];
+  provider_credentials: Record<string, { environment_available: boolean }>;
 }
 export interface Run extends JsonObject {
   run_id: string;

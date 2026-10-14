@@ -68,6 +68,24 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         return $status === 0;
     }
 
+    public function agentTrunkExists(array $binding): bool {
+        require_once __DIR__ . '/lib/AgentTrunkProvisioner.php';
+        return (new \AgentTrunkProvisioner($this->FreePBX->Core))->managedTrunkExists($binding);
+    }
+
+    public function agentTrunkReady(array $binding): bool {
+        if (!$this->agentTrunkExists($binding)) return false;
+        $name='VoiceAgentTrunk_'.(int)$binding['id'];
+        $response=$this->FreePBX->astman->Command('pjsip show endpoint '.$name);
+        $output=is_array($response)?($response['data']??$response['Output']??''):'';
+        return preg_match('/Endpoint:\s+'.preg_quote($name,'/').'(?:[\/\s])/',$output)===1;
+    }
+
+    public function agentPublishedVersions(): array {
+        require_once dirname(__DIR__, 3) . '/rest/lib/agents/Service.php';
+        return (new \NethVoice\Agents\Service($this->db))->nativeVersions();
+    }
+
     /** Library reads remain usable without booting the HTTP router. */
     public function agentDestinations(): array {
         require_once dirname(__DIR__, 3) . '/rest/lib/agents/Service.php';

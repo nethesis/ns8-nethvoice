@@ -1067,7 +1067,15 @@ function nethvplan_bindConnection($data, $dest, $id)
     $connection = $connectionTemplate;
 
     switch ($dest) {
-        
+        case 'satellite-agent-destination':
+            $fallback=$data[$dest][$id]['published']['fallback_destination_id']??'hangup';
+            $native=\NethVoice\Agents\VisualPlan::nativeFallback($fallback);
+            [$targetType,$targetId]=nethvplan_getDestination($native);
+            if (!nethvplan_hasDestinationData($data,$targetType,$targetId)) return [];
+            $connection['id']=$dest.'%'.$id.'='.$native;
+            $connection['source']=['node'=>$dest.'%'.$id,'port'=>'output_agent_fallback%'.$id];
+            $connection['target']=['node'=>$targetType.'%'.$targetId,'port'=>'input_'.$targetType.'%'.$targetId,'decoration'=>'draw2d.decoration.connection.ArrowDecorator'];
+            return [$connection];
         case "app-announcement":
             $res = nethvplan_getDestination($data[$dest][$id]['postdest']);
             $destNew = $res[0];
@@ -1381,6 +1389,9 @@ function nethvplan_explore($data, $destination, $destArray)
         switch ($dest) {
             case 'satellite-agent-destination':
                 $widgets[] = nethvplan_bindData($data, $dest, $id);
+                foreach (nethvplan_bindConnection($data, $dest, $id) as $connection) $connections[]=$connection;
+                $fallback=$data[$dest][$id]['published']['fallback_destination_id']??'hangup';
+                nethvplan_explore($data, \NethVoice\Agents\VisualPlan::nativeFallback($fallback), $destArray);
             break;
 
             case "from-did-direct":

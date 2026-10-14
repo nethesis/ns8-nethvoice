@@ -11,6 +11,7 @@ WorkingDirectory=%E/state
 Restart=always
 RestartSec=5
 ExecStartPre=/bin/rm -f %t/voice-agent.pid %t/voice-agent.ctr-id
+ExecStartPre=runagent configure-voice-agents --secrets-only
 ExecStartPre=runagent /usr/bin/podman exec freepbx php /var/www/html/freepbx/rest/lib/agents/install-runtime.php
 ExecStart=runagent /usr/bin/podman run \
     --detach --replace --name=%N \

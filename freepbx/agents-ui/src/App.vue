@@ -70,25 +70,6 @@ watch(locale, (value) => {
         'fixed bottom-0 left-0 top-16 z-20 w-60 border-r border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-950 lg:block',
       ]"
     >
-      <p class="nv-muted mb-3 px-3 text-xs uppercase">NethVoice</p>
-      <a
-        class="mb-1 block rounded-md px-3 py-3 hover:bg-gray-100 dark:hover:bg-gray-800"
-        href="/freepbx/wizard/"
-        >{{ t("dashboard") }}</a
-      >
-      <p class="nv-muted mb-2 mt-5 px-3 text-xs">{{ t("navigation") }}</p>
-      <a
-        class="block rounded-md px-3 py-3 hover:bg-gray-100 dark:hover:bg-gray-800"
-        href="/freepbx/wizard/#!/users"
-        >{{ t("extensions") }}</a
-      >
-      <a
-        class="block rounded-md px-3 py-3 hover:bg-gray-100 dark:hover:bg-gray-800"
-        href="/freepbx/visualplan/"
-        target="_blank"
-        rel="noopener"
-        >{{ t("routes") }}</a
-      >
       <p class="nv-muted mb-2 mt-6 px-3 text-xs tracking-wide">
         {{ t("voiceAgents") }}
       </p>

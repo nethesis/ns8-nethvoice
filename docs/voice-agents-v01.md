@@ -7,20 +7,27 @@ must be verified independently on an approved test route.
 
 ## Administrator flow
 
-Open `/freepbx/agents-ui/` after signing in through Wizard. Internal and External
+Open Agent from Wizard’s Apps menu; it opens `/freepbx/agents-ui/` in a new tab after the existing Wizard sign-in. Internal and External
 are seeded as disabled built-in agents. Each has its own editable draft and tool
 permissions. Administrators can also create Basic Voice agents. Built-ins cannot
 be deleted; custom agents with native route references cannot be deleted.
 
 Create an OpenAI or Grok provider trunk. API keys, Standard Webhooks signing
 secrets and optional Grok SIP digest passwords are write-only. Blank credentials
-on an edit retain the existing encrypted value. Configure the provider's webhook
+on an edit retain the existing encrypted value. A new API key may be blank when
+PHP and the runner have `OPENAI_API_KEY` or `XAI_API_KEY` (`GROK_API_KEY` is an
+alias). Explicit encrypted keys take precedence. NS8 refreshes the private runner
+credential file on startup and when integrations change; no keys reach the UI. Configure the provider's webhook
 using the HTTPS endpoint shown by the UI; saving a trunk does not configure the
 provider account. Native Core APIs own PJSIP trunk creation and removal; managed
 trunk names start with `VoiceAgentTrunk_` to avoid adopting legacy records.
 
-Configure conversation language, provider voice, greeting, instructions, maximum
-call duration and fallback extension. Enable either or both tools:
+Choose Default language from a dropdown, initialized to the FreePBX default,
+and select a provider voice. The caller can request another language during the
+conversation. OpenAI’s ten built-in Realtime voices come from its documented
+enumeration; there is no documented built-in voice-list endpoint. Grok’s roster
+is fetched server-side from its authenticated voice API, with bounded responses
+and timeouts. Configure greeting, instructions and maximum call duration. Enable either or both tools:
 
 - `directory.find_destinations`: search only the agent's approved extensions.
 - `telephony.transfer`: transfer only to an approved, currently existing extension.
@@ -37,9 +44,17 @@ External. Only enabled, published and synchronized agents can be added. New agen
 opens `/freepbx/agents-ui/#/agents/new` in a new tab; configure/edit opens the saved
 agent. The canvas stores a stable native reference and supports undo. Both agent
 objects and incoming connection references are validated before any PBX write.
-Outgoing graph edges cannot replace the agent's configured fallback.
+Connect the Agent’s Fallback output to its native fallback destination; leaving
+it unconnected selects Hangup. Agents UI does not edit fallback routing. VisualPlan
+checks revisions, destinations and cycles, then publishes only the fallback
+change without publishing unrelated draft edits. Each admitted call keeps a
+native wrapper for its pinned fallback. Provider trunks always use Hangup.
+Synchronization repairs a missing managed native trunk and checks its actual
+Asterisk endpoint; ordinary trunk deletion cannot remove an agent-owned trunk.
 
-Activity lists paginated run metadata and bounded event details. No transcript,
+Activity lists paginated run metadata and bounded event details, including provider
+connection, media bridge and completed provider responses. A caller who hangs up
+before connection is interrupted, rather than reported as a completed conversation. No transcript,
 audio or raw tool arguments/results are stored by this feature. Retention is seven
 days; the module's hourly maintenance timer removes expired terminal runs in
 bounded batches. Retention and content capture are fixed for this v1 contract.
@@ -58,6 +73,7 @@ from `GET /access`, JSON envelopes and an integer `expected_revision`.
 | `/profiles/{id}/publish` | POST | Atomic immutable publication |
 | `/profiles/{id}/enabled` | POST | Enable or disable new admissions |
 | `/trunks`, `/trunks/{id}` | GET, POST / PUT, DELETE | Encrypted provider bindings and native ownership |
+| `/trunks/{id}/voices` | GET | Safe provider voice catalog |
 | `/synchronize` | POST | Audited native provisioning/reload retry |
 | `/runs`, `/runs/{id}` | GET | Paginated activity and bounded event details |
 
@@ -66,11 +82,15 @@ Profile writes use `{profile: {name, draft}, expected_revision}`; trunk writes u
 `{expected_revision}`; enable adds `enabled`; synchronization uses `{retry: true}`.
 The access response declares `v0.1-configuration`, not a release certification.
 
-Migrations 002–005 are additive and run once under the schema lock. They seed
+Migrations 002–007 are additive and run once under the schema lock. They seed
 disabled built-ins with INSERT IGNORE, add encrypted bindings/audits, extension
 views, durable pending-call correlation and immutable version-one tool manifests.
 Configuration stays in `asterisk`; execution metadata stays in `asteriskcdrdb`.
-The shared v1 published contract implicitly pins tool manifest version one. PHP
+The shared v1/v2 published contracts implicitly pin tool manifest version one.
+Version two adds Hangup and validated native fallback destination references;
+previous version-one publications remain valid. Migration 006 extends the version
+constraint and fallback synchronization column. Migration 007 extends monitoring
+phases without capturing conversation content. PHP
 owns manifests; Satellite verifies them against its supported handlers at admission.
 
 NS8 provisions different passwords for `voice_agent_config` and
@@ -128,3 +148,6 @@ Provider protocols were checked against the current primary guides:
 OpenAI uses the current SIP guide's `gpt-realtime-2.1` default.
 The adapters keep their event/session contracts separate and do not implement
 GPT-Live transport events.
+
+Current UI/call repair evidence and staging limitations are recorded in
+[UI and call verification](voice-agents-ui-call-verification.md).

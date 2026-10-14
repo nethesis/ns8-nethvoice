@@ -126,6 +126,13 @@ class AgentTrunkProvisioner
         return true;
     }
 
+    /** Inspect native ownership without modifying or adopting other trunks. */
+    public function managedTrunkExists(array $binding): bool
+    {
+        try { $this->ownedTrunkId($binding,$this->trunkName($binding));return true; }
+        catch (\Throwable $error) { return false; }
+    }
+
     // Build the generated name for an agent trunk.
     private function trunkName(array $agentTrunk)
     {
@@ -160,7 +167,7 @@ class AgentTrunkProvisioner
             'authentication' => 'none',
             'transport' => $transport,
             'outbound_proxy' => 'sip:' . $proxyIp . ':' . $proxyPort . ';lr',
-            'context' => 'from-pstn',
+            'context' => 'voice-agent-trunk-hangup',
             'direct_media' => 'no',
             'qualify_frequency' => '0',
             'rtp_symmetric' => 'yes',
