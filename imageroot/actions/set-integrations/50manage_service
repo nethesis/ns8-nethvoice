@@ -8,6 +8,10 @@
 import os
 import subprocess
 
+# Refresh the independent runner's filtered secrets when the integration key changes.
+# This works in either transcription mode and follows the action's existing restarts.
+subprocess.run(["systemctl", "--user", "try-restart", "voice-agent.service"], check=True)
+
 call_enabled = os.getenv('SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'False')
 vm_enabled = os.getenv('SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED', 'False')
 

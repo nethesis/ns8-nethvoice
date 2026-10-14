@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Idempotent private runner configuration; no provider account writes."""
+import os
+import secrets
+import sys
+import agent
+
+env = agent.read_envfile('environment')
+if '--secrets-only' not in sys.argv and not env.get('VOICE_AGENT_HTTP_PORT'):
+    agent.set_env('VOICE_AGENT_HTTP_PORT', str(agent.allocate_ports(1, 'tcp', keep_existing=True)[0]))
+passwords = agent.read_envfile('passwords.env')
+for name in ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN', 'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD'):
+    if not passwords.get(name):
+        passwords[name] = secrets.token_urlsafe(32)
+agent.write_envfile('passwords.env', passwords)
+os.chmod('passwords.env', 0o600)
+runtime_keys = ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN',
+                'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD',
+                'SATELLITE_ARI_PASSWORD')
+runtime_env={name: passwords[name] for name in runtime_keys}
+for name in ('OPENAI_API_KEY','XAI_API_KEY','GROK_API_KEY'):
+    value=passwords.get(name) or os.environ.get(name)
+    if value:
+        runtime_env[name]=value
+agent.write_envfile('voice-agent.env', runtime_env)
+os.chmod('voice-agent.env', 0o600)
+# Forward exactly the public provider prefix to a loopback-only listener.
+env = agent.read_envfile('environment')
+if '--secrets-only' in sys.argv:
+    sys.exit(0)
+agent.set_route({'instance': os.environ['MODULE_ID'] + '-voice-agent-webhooks',
+    'host': env['NETHVOICE_HOST'], 'path': '/satellite-webhooks',
+    'url': 'http://127.0.0.1:' + env['VOICE_AGENT_HTTP_PORT'], 'strip_prefix': False,
+    'http2https': True})

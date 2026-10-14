@@ -1,0 +1,36 @@
+[Unit]
+Description=Independent Basic Voice runtime
+Requires=mariadb.service freepbx.service
+After=mariadb.service freepbx.service
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%E/state/environment
+EnvironmentFile=%E/state/agent.env
+WorkingDirectory=%E/state
+Restart=always
+RestartSec=5
+ExecStartPre=/bin/rm -f %t/voice-agent.pid %t/voice-agent.ctr-id
+ExecStartPre=runagent configure-voice-agents --secrets-only
+ExecStartPre=runagent /usr/bin/podman exec freepbx php /var/www/html/freepbx/rest/lib/agents/install-runtime.php
+ExecStart=runagent /usr/bin/podman run \
+    --detach --replace --name=%N \
+    --conmon-pidfile=%t/voice-agent.pid --cidfile=%t/voice-agent.ctr-id \
+    --cgroups=no-conmon --network=host --tz=${TIMEZONE} \
+    --volume=voice-agent-events:/var/lib/voice-agent:Z \
+    --env-file=%E/state/voice-agent.env \
+    --env=VOICE_AGENT_ENABLED=true \
+    --env=VOICE_AGENT_EVENT_DIR=/var/lib/voice-agent \
+    --env=VOICE_AGENT_HTTP_HOST=127.0.0.1 \
+    --env=VOICE_AGENT_HTTP_PORT=${VOICE_AGENT_HTTP_PORT} \
+    --env=VOICE_AGENT_DB_PORT=${NETHVOICE_MARIADB_PORT} \
+    --env=ASTERISK_URL=http://127.0.0.1:${ASTERISK_WS_PORT} \
+    --env=ARI_USERNAME=${SATELLITE_ARI_USERNAME} \
+    --entrypoint=python \
+    ${NETHVOICE_SATELLITE_IMAGE} -m voice_agent.runner
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/voice-agent.ctr-id
+PIDFile=%t/voice-agent.pid
+Type=forking
+
+[Install]
+WantedBy=default.target

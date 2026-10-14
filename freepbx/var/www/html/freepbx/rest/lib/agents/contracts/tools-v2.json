@@ -1,0 +1,120 @@
+[
+  {
+    "id": "directory.find_destinations",
+    "version": 2,
+    "name": "Find approved extensions",
+    "wire_name": "nv_find_destinations_v2",
+    "description": "Find approved extensions by name or number.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "maxLength": 100
+        }
+      },
+      "additionalProperties": false
+    },
+    "defaults": {
+      "max_results": 20
+    },
+    "output_schema": {
+      "type": "object",
+      "required": [
+        "destinations"
+      ],
+      "properties": {
+        "destinations": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "configuration_schema": {
+      "type": "object",
+      "required": [
+        "max_results"
+      ],
+      "properties": {
+        "max_results": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "title": "Maximum search results"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "telephony.transfer",
+    "version": 2,
+    "name": "Transfer to an approved extension",
+    "wire_name": "nv_transfer_v2",
+    "description": "Transfer the caller to an approved extension ID.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "destination_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "destination_id"
+      ],
+      "additionalProperties": false
+    },
+    "defaults": {
+      "approved_destination_ids": []
+    },
+    "output_schema": {
+      "type": "object",
+      "required": [
+        "outcome"
+      ],
+      "properties": {
+        "outcome": {
+          "const": "transferred"
+        }
+      },
+      "additionalProperties": false
+    },
+    "configuration_schema": {
+      "type": "object",
+      "required": [
+        "approved_destination_ids"
+      ],
+      "properties": {
+        "approved_destination_ids": {
+          "type": "array",
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^extension:[0-9]{1,20}$(?![\\s\\S])"
+          },
+          "title": "Approved extensions",
+          "x-inventory": "extensions"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+]

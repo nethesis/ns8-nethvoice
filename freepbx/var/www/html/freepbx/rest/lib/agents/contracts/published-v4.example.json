@@ -1,0 +1,38 @@
+{
+  "contract_version": 4,
+  "agent_id": "basic_voice",
+  "destination_id": "agent:basic_voice",
+  "workflow_version": 1,
+  "provider_binding_id": "provider_test",
+  "provider": "openai",
+  "conversation": {
+    "language": "en",
+    "voice": "test_voice",
+    "greeting": "Hello",
+    "instructions": "Help the test caller."
+  },
+  "fallback_destination_id": "hangup",
+  "max_call_duration_seconds": 600,
+  "tool_bindings": [
+    {
+      "tool_id": "directory.find_destinations",
+      "tool_version": 2,
+      "enabled": false,
+      "config": {
+        "max_results": 20
+      }
+    },
+    {
+      "tool_id": "telephony.transfer",
+      "tool_version": 2,
+      "enabled": false,
+      "config": {
+        "approved_destination_ids": []
+      }
+    }
+  ],
+  "debug": {
+    "transcription_enabled": false,
+    "retention_hours": 24
+  }
+}

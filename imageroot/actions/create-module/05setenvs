@@ -246,6 +246,10 @@ passwords = {
     "SATELLITE_ARI_PASSWORD": gen_password(),
     "SATELLITE_PGSQL_PASSWORD": gen_password(),
     "SATELLITE_API_TOKEN": gen_password(),
+    "SATELLITE_AGENT_CONFIG_KEY": gen_password(),
+    "VOICE_AGENT_RUNTIME_TOKEN": gen_password(),
+    "VOICE_AGENT_CONFIG_PASSWORD": gen_password(),
+    "VOICE_AGENT_MONITOR_PASSWORD": gen_password(),
     "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN": gen_password()
 }
 

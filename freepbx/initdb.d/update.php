@@ -6,6 +6,12 @@
 
 include_once '/etc/freepbx_db.conf';
 
+// Agents configuration and monitoring foundation; repeatable on every image update.
+require_once '/var/www/html/freepbx/rest/lib/agents/Schema.php';
+\NethVoice\Agents\Schema::install($db);
+require_once '/var/www/html/freepbx/rest/lib/agents/RuntimeAccounts.php';
+\NethVoice\Agents\RuntimeAccounts::install();
+
 // The image supplies SLN sounds. Avoid downloading other formats when
 // soundlang updates the installed languages.
 $db->exec("UPDATE `asterisk`.`soundlang_settings` SET `value` = 'sln' WHERE `keyword` = 'formats'");

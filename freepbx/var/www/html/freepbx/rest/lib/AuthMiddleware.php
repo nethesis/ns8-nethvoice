@@ -75,7 +75,7 @@ class AuthMiddleware implements MiddlewareInterface
             return $this->jsonResponse(['error' => 'Forbidden: wrong secret key'], 403);
         }
 
-        return $handler->handle($request);
+        return $handler->handle($isTestAuthPath ? $request : $request->withAttribute('nethvoice_admin', $username));
     }
 
     private function jsonResponse(array $payload, int $status): ResponseInterface
