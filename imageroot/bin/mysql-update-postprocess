@@ -112,6 +112,9 @@ ALTER TABLE phonebook
 # have empty access after the column is added: they were publicly visible, so mark them
 # public explicitly. Group-scoped rows carry 'group:...' and are left untouched.
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" phonebook -e 'UPDATE phonebook SET access = "public" WHERE access = ""'
+# Codec lists per device type, same values as NETHVOICE_CODECS_* in rest/lib/libExtensions.php
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'UPDATE `sip` s JOIN `rest_devices_phones` d ON d.`extension` = s.`id` SET s.`data` = "opus,g722,ulaw,alaw,gsm,g726,h264,vp8" WHERE s.`keyword` = "allow" AND d.`type` IN ("webrtc","nethlink","mobile")'
+/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'UPDATE `sip` s JOIN `rest_devices_phones` d ON d.`extension` = s.`id` SET s.`data` = "ulaw,alaw,gsm,g726,g722,h264,vp8" WHERE s.`keyword` = "allow" AND (d.`type` IS NULL OR d.`type` NOT IN ("webrtc","nethlink","mobile"))'
 # Enable WebSocket transport
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'UPDATE kvstore_Sipsettings SET val="{\"wss\":{\"0.0.0.0\":\"on\"},\"udp\":{\"0.0.0.0\":\"on\"},\"tcp\":{\"0.0.0.0\":\"on\"},\"ws\":{\"0.0.0.0\":\"on\"},\"tls\":{\"0.0.0.0\":\"on\"}}" WHERE `key` = "binds"'
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e "
