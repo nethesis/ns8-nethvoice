@@ -117,6 +117,7 @@ ALTER TABLE phonebook
 # Never write empty ports: Asterisk would lose its SIP UDP/RTP/IAX bindings
 if [ -z "${ASTERISK_RTPSTART}" ] || [ -z "${ASTERISK_RTPEND}" ] || [ -z "${ASTERISK_SIP_UDP_PORT}" ] || [ -z "${ASTERISK_IAX_PORT}" ]; then
     echo "Missing Asterisk port variables, ports not updated in the database" >&2
+    exit 1
 else
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e "
 INSERT INTO \`sipsettings\` (\`keyword\`,\`data\`,\`seq\`,\`type\`) VALUES

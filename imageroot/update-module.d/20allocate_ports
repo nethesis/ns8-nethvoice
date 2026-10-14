@@ -105,11 +105,12 @@ asterisk_rtp_end = int(env.get('ASTERISK_RTPEND', 0))
 # and the partial (per-port) branch below.
 migration = []
 
-# UDP block layout: Asterisk RTP + Janus RTP + 1 Satellite + 1 IAX + 1 SIP UDP.
-# Must match create-module/05setenvs and the udp-ports-demand label.
-asterisk_rtp_ports = 500
-janus_rtp_ports = 500
-udp_block_size = asterisk_rtp_ports + janus_rtp_ports + 3
+# UDP block layout: Asterisk RTP + Janus SIP RTP + Janus WebRTC RTP
+# + 1 Satellite + 1 IAX + 1 SIP UDP. Must match create-module/05setenvs.
+asterisk_rtp_ports = 399
+janus_sip_rtp_ports = 399
+janus_rtp_ports = 199
+udp_block_size = asterisk_rtp_ports + janus_sip_rtp_ports + janus_rtp_ports + 3
 
 # Size of the current UDP block, 0 if not allocated by ns8-core yet
 try:
@@ -125,16 +126,19 @@ old_sip_udp_port = env.get('ASTERISK_SIP_UDP_PORT') or env.get('ASTERISK_SIP_POR
 # Allocate RTP/UDP ports via ns8-core if:
 # - UDP_PORTS_RANGE is absent (old instances that used the fake Redis-based allocation), OR
 # - the UDP block has a different size (e.g. the 2003 ports block of 1.7.10), OR
-# - any of the five RTP env vars is missing
+# - any of the RTP env vars is missing
 full_allocation = udp_range_size != udp_block_size or any(env_name not in env for env_name in (
     'ASTERISK_RTPSTART',
     'ASTERISK_RTPEND',
     'JANUS_RTPSTART',
     'JANUS_RTPEND',
+    'JANUS_SIP_RTPSTART',
+    'JANUS_SIP_RTPEND',
     'SATELLITE_RTP_PORT',
 ))
 
 rtp_start = None
+allocation_failed = False
 if full_allocation:
 	try:
 		rtp_start, rtp_end = agent.allocate_ports(udp_block_size, "udp")
@@ -143,6 +147,7 @@ if full_allocation:
 		# a SIP UDP port: keep (or restore) the legacy shared ports and retry on
 		# the next update.
 		print(agent.SD_ERR + f"UDP ports allocation failed ({ex}): keeping the current ports", file=sys.stderr)
+		allocation_failed = True
 		if 'ASTERISK_SIP_UDP_PORT' not in env and env.get('ASTERISK_SIP_PORT'):
 			agent.set_env('ASTERISK_SIP_UDP_PORT', env['ASTERISK_SIP_PORT'])
 		if 'SATELLITE_RTP_PORT' not in env and env.get('SATELLITE_HTTP_PORT'):
@@ -154,13 +159,16 @@ if rtp_start is not None:
 	agent.set_env('UDP_PORTS_RANGE', f'{rtp_start}-{rtp_end}')
 	asterisk_rtp_start = rtp_start
 	asterisk_rtp_end = asterisk_rtp_start + asterisk_rtp_ports - 1
-	janus_rtp_start = asterisk_rtp_end + 1
+	janus_sip_rtp_start = asterisk_rtp_end + 1
+	janus_sip_rtp_end = janus_sip_rtp_start + janus_sip_rtp_ports - 1
+	janus_rtp_start = janus_sip_rtp_end + 1
 	janus_rtp_end = janus_rtp_start + janus_rtp_ports - 1
 	satellite_rtp_port = janus_rtp_end + 1
 	iax_udp_port = satellite_rtp_port + 1
 	sip_udp_port = iax_udp_port + 1
 
 	print(f"New Asterisk RTP range allocated: {asterisk_rtp_start}-{asterisk_rtp_end}", file=sys.stderr)
+	print(f"New Janus SIP RTP range allocated: {janus_sip_rtp_start}-{janus_sip_rtp_end}", file=sys.stderr)
 	print(f"New Janus RTP range allocated: {janus_rtp_start}-{janus_rtp_end}", file=sys.stderr)
 	print(f"New port allocated for SATELLITE RTP: {satellite_rtp_port}", file=sys.stderr)
 	print(f"New UDP port allocated for Asterisk IAX: {iax_udp_port}", file=sys.stderr)
@@ -169,6 +177,8 @@ if rtp_start is not None:
 	agent.set_env('ASTERISK_RTPEND', asterisk_rtp_end)
 	agent.set_env('JANUS_RTPSTART', janus_rtp_start)
 	agent.set_env('JANUS_RTPEND', janus_rtp_end)
+	agent.set_env('JANUS_SIP_RTPSTART', janus_sip_rtp_start)
+	agent.set_env('JANUS_SIP_RTPEND', janus_sip_rtp_end)
 	agent.set_env('SATELLITE_RTP_PORT', satellite_rtp_port)
 	agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)
 	agent.set_env('ASTERISK_SIP_UDP_PORT', sip_udp_port)
@@ -254,3 +264,8 @@ if not 'SATELLITE_PGSQL_PORT' in env:
 	pgsql_port = allocated_ports[0]
 	print(f"New port allocated for SATELLITE PGSQL: {pgsql_port}", file=sys.stderr)
 	agent.set_env('SATELLITE_PGSQL_PORT', pgsql_port)
+
+# The instance keeps working on its current ports, but the update must report
+# the failed allocation
+if allocation_failed:
+	sys.exit(1)
