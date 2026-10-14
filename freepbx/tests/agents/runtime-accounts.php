@@ -12,7 +12,7 @@ assert(\NethVoice\Agents\RuntimeAccounts::install());
 assert(\NethVoice\Agents\RuntimeAccounts::install());
 $reader=new PDO($dsn,'voice_agent_config','synthetic-config-only',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
 $writer=new PDO($dsn,'voice_agent_monitor','synthetic-monitor-only',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
-assert($reader->query('SELECT COUNT(*) FROM asterisk.voice_agent_runtime_tools')->fetchColumn()===2);
+assert($reader->query('SELECT COUNT(*) FROM asterisk.voice_agent_runtime_tools')->fetchColumn()===4);
 function forbidden($db,$sql) {
     try { $db->exec($sql); throw new RuntimeException('unexpected_runtime_grant'); }
     catch (PDOException $error) { assert(in_array($error->errorInfo[1],[1142,1143],true)); }

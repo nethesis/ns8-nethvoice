@@ -6,7 +6,6 @@ import {
   NeTextInput,
   NeTextArea,
   NeButton,
-  NeToggle,
   NeInlineNotification,
   NeSkeleton,
 } from "@nethesis/vue-components";
@@ -16,6 +15,7 @@ import { useTask } from "../composables/useTask";
 import { useUi } from "../stores/ui";
 import PageHeader from "../components/PageHeader.vue";
 import FieldSelect from "../components/FieldSelect.vue";
+import ToolConfiguration from "../components/ToolConfiguration.vue";
 import type { Agent, Catalog, Draft, Trunk } from "../types";
 const { t } = useI18n();
 const route = useRoute(),
@@ -29,8 +29,7 @@ const name = ref("");
 const draft = ref<Draft>({
   provider_binding_id: null,
   conversation: { language: "en", voice: "", greeting: "", instructions: "" },
-  enabled_tools: [],
-  approved_destination_ids: [],
+  tool_bindings: [],
   fallback_destination_id: null,
   max_call_duration_seconds: 600,
 });
@@ -46,16 +45,6 @@ const unpublished = computed(() => {
       JSON.stringify(published[key as keyof Draft]),
   );
 });
-const unavailableTargets = computed(() =>
-  catalog.data.value
-    ? draft.value.approved_destination_ids.filter(
-        (id) =>
-          !catalog.data.value!.extensions.some(
-            (extension) => extension.id === id,
-          ),
-      )
-    : [],
-);
 const agent = useQuery({
   queryKey: ["agent", id],
   enabled: computed(() => !creating.value),
@@ -88,9 +77,17 @@ const voices = useQuery({
 watch(
   () => catalog.data.value,
   (value) => {
-    if (value && creating.value && snapshot() === baseline.value) {
-      draft.value.conversation.language = value.default_language;
-      baseline.value = snapshot();
+    if (value && creating.value) {
+      const pristine = snapshot() === baseline.value;
+      if (pristine) draft.value.conversation.language = value.default_language;
+      if (!draft.value.tool_bindings.length)
+        draft.value.tool_bindings = value.tools.map((tool) => ({
+          tool_id: tool.id,
+          tool_version: tool.version,
+          enabled: false,
+          config: JSON.parse(JSON.stringify(tool.defaults)),
+        }));
+      if (pristine) baseline.value = snapshot();
     }
   },
   { immediate: true },
@@ -129,9 +126,6 @@ watch(
 );
 if (creating.value) baseline.value = snapshot();
 onBeforeRouteLeave(() => (dirty.value ? ui.confirmLeave() : true));
-function toggle(list: string[], key: string, enabled: boolean) {
-  return enabled ? [...new Set([...list, key])] : list.filter((v) => v !== key);
-}
 async function save() {
   await task.run(async () => {
     const value = await request<Agent>(
@@ -212,6 +206,11 @@ async function synchronize() {
   >
     <p v-if="record?.kind === 'builtin'" class="nv-muted">{{ t("builtin") }}</p>
     <NeInlineNotification
+      v-if="record?.legacy"
+      kind="warning"
+      :title="t('legacyAgentHelp')"
+    />
+    <NeInlineNotification
       v-if="unpublished"
       kind="info"
       :title="t('unpublishedChanges')"
@@ -239,129 +238,112 @@ async function synchronize() {
       @click="synchronize"
       >{{ t("retrySync") }}</NeButton
     >
-    <div class="nv-field-grid">
-      <NeTextInput v-model="name" :label="t('name')" required maxlength="100" />
-      <FieldSelect
-        :model-value="draft.provider_binding_id || ''"
-        :label="t('trunk')"
-        :options="[
-          { id: '', label: t('choose') },
-          ...(trunks.data.value?.items || []).map((v) => ({
-            id: v.binding_id,
-            label: v.name + ' (' + v.provider + ')',
-          })),
-        ]"
-        @update:model-value="draft.provider_binding_id = $event || null"
-      />
-      <FieldSelect
-        v-model="draft.conversation.language"
-        :label="t('defaultLanguage')"
-        :options="languageOptions"
-      />
-      <FieldSelect
-        v-model="draft.conversation.voice"
-        :label="t('voiceName')"
-        :options="voiceOptions"
-        :disabled="!draft.provider_binding_id || voices.isPending.value"
-      />
-      <NeInlineNotification
-        v-if="voices.isError.value"
-        kind="error"
-        :title="t('voiceCatalogError')"
-      />
-      <NeButton
-        v-if="voices.isError.value"
-        kind="tertiary"
-        @click="voices.refetch()"
-        >{{ t("retry") }}</NeButton
-      >
-      <NeTextInput
-        :model-value="String(draft.max_call_duration_seconds)"
-        :label="t('maxDuration')"
-        type="number"
-        @update:model-value="draft.max_call_duration_seconds = Number($event)"
-      />
-    </div>
-    <RouterLink to="/trunks" class="text-primary-700 dark:text-primary-400"
-      >{{ t("manageTrunks") }} →</RouterLink
-    >
-    <NeTextArea
-      v-model="draft.conversation.greeting"
-      :label="t('greeting')"
-      :rows="3"
-      maxlength="4096"
-    />
-    <NeTextArea
-      v-model="draft.conversation.instructions"
-      :label="t('instructions')"
-      :rows="6"
-      maxlength="32768"
-    />
-    <section class="space-y-4">
-      <h2>{{ t("tools") }}</h2>
-      <p class="nv-muted">{{ t("toolGrantsHelp") }}</p>
-      <NeToggle
-        v-for="tool in catalog.data.value?.tools || []"
-        :key="tool.id"
-        :model-value="draft.enabled_tools.includes(tool.id)"
-        :label="t('toolNames.' + tool.id.replaceAll('.', '_'))"
-        @update:model-value="
-          draft.enabled_tools = toggle(draft.enabled_tools, tool.id, $event)
-        "
-      />
-    </section>
-    <section class="space-y-4">
-      <h2>{{ t("approvedExtensions") }}</h2>
-      <p class="nv-muted">{{ t("approvedExtensionsHelp") }}</p>
-      <div
-        v-for="target in unavailableTargets"
-        :key="target"
-        class="flex items-center gap-3"
-      >
-        <span>{{ target }} · {{ t("destinationUnavailable") }}</span>
+    <fieldset :disabled="record?.legacy" class="space-y-6">
+      <div class="nv-field-grid">
+        <NeTextInput
+          v-model="name"
+          :label="t('name')"
+          required
+          maxlength="100"
+        />
+        <FieldSelect
+          :model-value="draft.provider_binding_id || ''"
+          :label="t('trunk')"
+          :options="[
+            { id: '', label: t('choose') },
+            ...(trunks.data.value?.items || []).map((v) => ({
+              id: v.binding_id,
+              label: v.name + ' (' + v.provider + ')',
+            })),
+          ]"
+          @update:model-value="draft.provider_binding_id = $event || null"
+        />
+        <FieldSelect
+          v-model="draft.conversation.language"
+          :label="t('defaultLanguage')"
+          :options="languageOptions"
+        />
+        <FieldSelect
+          v-model="draft.conversation.voice"
+          :label="t('voiceName')"
+          :options="voiceOptions"
+          :disabled="!draft.provider_binding_id || voices.isPending.value"
+        />
+        <NeInlineNotification
+          v-if="voices.isError.value"
+          kind="error"
+          :title="t('voiceCatalogError')"
+        />
         <NeButton
+          v-if="voices.isError.value"
           kind="tertiary"
-          @click="
-            draft.approved_destination_ids = toggle(
-              draft.approved_destination_ids,
-              target,
-              false,
+          @click="voices.refetch()"
+          >{{ t("retry") }}</NeButton
+        >
+        <NeTextInput
+          :model-value="String(draft.max_call_duration_seconds)"
+          :label="t('maxDuration')"
+          type="number"
+          @update:model-value="draft.max_call_duration_seconds = Number($event)"
+        />
+      </div>
+      <RouterLink to="/trunks" class="text-primary-700 dark:text-primary-400"
+        >{{ t("manageTrunks") }} →</RouterLink
+      >
+      <NeTextArea
+        v-model="draft.conversation.greeting"
+        :label="t('greeting')"
+        :rows="3"
+        maxlength="4096"
+      />
+      <NeTextArea
+        v-model="draft.conversation.instructions"
+        :label="t('instructions')"
+        :rows="6"
+        maxlength="32768"
+      />
+      <section class="space-y-4">
+        <h2>{{ t("tools") }}</h2>
+        <p class="nv-muted">{{ t("toolGrantsHelp") }}</p>
+        <ToolConfiguration
+          v-for="(binding, index) in draft.tool_bindings"
+          :key="binding.tool_id"
+          :model-value="binding"
+          :definition="
+            catalog.data.value?.tools.find(
+              (tool) =>
+                tool.id === binding.tool_id &&
+                tool.version === binding.tool_version,
             )
           "
-          >{{ t("removeGrant") }}</NeButton
-        >
-      </div>
-      <NeToggle
-        v-for="extension in catalog.data.value?.extensions || []"
-        :key="extension.id"
-        :model-value="draft.approved_destination_ids.includes(extension.id)"
-        :label="extension.name + ' (' + extension.id.split(':')[1] + ')'"
-        @update:model-value="
-          draft.approved_destination_ids = toggle(
-            draft.approved_destination_ids,
-            extension.id,
-            $event,
-          )
-        "
-      />
-    </section>
+          :extensions="catalog.data.value?.extensions || []"
+          @update:model-value="draft.tool_bindings[index] = $event"
+        />
+      </section>
+    </fieldset>
     <p v-if="record" class="nv-muted">
       {{ t("publishedVersion") }}: {{ record.workflow_version || "—" }} ·
       {{ t(record.enabled ? "status.enabled" : "status.disabled") }}
     </p>
     <div class="nv-action-bar">
-      <NeButton type="submit" kind="primary" :loading="task.pending.value">{{
-        t("saveDraft")
-      }}</NeButton>
+      <NeButton
+        type="submit"
+        kind="primary"
+        :disabled="record?.legacy"
+        :loading="task.pending.value"
+        >{{ t("saveDraft") }}</NeButton
+      >
       <NeButton
         v-if="record"
-        :disabled="dirty || task.pending.value"
+        :disabled="dirty || task.pending.value || record.legacy"
         @click="action('publish')"
         >{{ t("publish") }}</NeButton
       >
       <NeButton
         v-if="record"
-        :disabled="dirty || task.pending.value"
+        :disabled="
+          dirty || task.pending.value || (record.legacy && !record.enabled)
+        "
         @click="action('enabled')"
         >{{ t(record.enabled ? "disable" : "activate") }}</NeButton
       >
@@ -369,7 +351,7 @@ async function synchronize() {
         ><NeButton>{{ t("activity") }}</NeButton></RouterLink
       >
       <NeButton
-        v-if="record?.kind === 'custom'"
+        v-if="record?.kind === 'custom' || record?.legacy"
         kind="tertiary"
         :disabled="task.pending.value"
         @click="remove"

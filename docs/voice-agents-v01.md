@@ -7,10 +7,7 @@ must be verified independently on an approved test route.
 
 ## Administrator flow
 
-Open Agent from Wizard’s Apps menu; it opens `/freepbx/agents-ui/` in a new tab after the existing Wizard sign-in. Internal and External
-are seeded as disabled built-in agents. Each has its own editable draft and tool
-permissions. Administrators can also create Basic Voice agents. Built-ins cannot
-be deleted; custom agents with native route references cannot be deleted.
+Open Agent from Wizard’s Apps menu; it opens `/freepbx/agents-ui/` in a new tab after the existing Wizard sign-in. Receptionist is the sole built-in agent and starts inactive. Each agent has its own editable draft and tool bindings. Administrators can also create Basic Voice agents. Receptionist cannot be deleted. Legacy Internal/External configurations are read-only and retain their historical publications. They can be disabled and explicitly retired after native references are removed; no configured agent is automatically deleted or merged.
 
 Create an OpenAI or Grok provider trunk. API keys, Standard Webhooks signing
 secrets and optional Grok SIP digest passwords are write-only. Blank credentials
@@ -29,8 +26,8 @@ enumeration; there is no documented built-in voice-list endpoint. Grok’s roste
 is fetched server-side from its authenticated voice API, with bounded responses
 and timeouts. Configure greeting, instructions and maximum call duration. Enable either or both tools:
 
-- `directory.find_destinations`: search only the agent's approved extensions.
-- `telephony.transfer`: transfer only to an approved, currently existing extension.
+- `directory.find_destinations`: search only existing extensions approved by this agent's enabled transfer binding. Its own result limit defaults to 20 (range 1–100).
+- `telephony.transfer`: transfer only to an explicitly approved, currently existing extension. Its searchable extension allowlist starts empty. Both tools start disabled and are configured in expandable panels on the agent page; disabling transfer also removes all search visibility.
 
 Save the draft, publish it and enable the agent. Calls pin the published version;
 saved draft changes have no effect until published. Optimistic revision conflicts
@@ -39,8 +36,7 @@ remain visible with a retry action. Prompt/tool changes do not require a PBX rel
 publication of a first destination, changed fallback/binding or enablement does.
 Deleting an unpublished draft does not reload Asterisk.
 
-VisualPlan's Agent palette object selects saved agents, including Internal and
-External. Only enabled, published and synchronized agents can be added. New agent
+VisualPlan's Agent palette object selects saved agents, including Receptionist and custom Basic Voice agents. Only enabled, published and synchronized agents can be added. New agent
 opens `/freepbx/agents-ui/#/agents/new` in a new tab; configure/edit opens the saved
 agent. The canvas stores a stable native reference and supports undo. Both agent
 objects and incoming connection references are validated before any PBX write.
@@ -82,15 +78,14 @@ Profile writes use `{profile: {name, draft}, expected_revision}`; trunk writes u
 `{expected_revision}`; enable adds `enabled`; synchronization uses `{retry: true}`.
 The access response declares `v0.1-configuration`, not a release certification.
 
-Migrations 002–007 are additive and run once under the schema lock. They seed
-disabled built-ins with INSERT IGNORE, add encrypted bindings/audits, extension
+Migrations 002–008 are additive and run once under the schema lock. Fresh installations seed only inactive Receptionist with INSERT IGNORE; the schema changes add add encrypted bindings/audits, extension
 views, durable pending-call correlation and immutable version-one tool manifests.
 Configuration stays in `asterisk`; execution metadata stays in `asteriskcdrdb`.
 The shared v1/v2 published contracts implicitly pin tool manifest version one.
 Version two adds Hangup and validated native fallback destination references;
 previous version-one publications remain valid. Migration 006 extends the version
 constraint and fallback synchronization column. Migration 007 extends monitoring
-phases without capturing conversation content. PHP
+phases without capturing conversation content. Migration 008 adds immutable configuration-aware manifest version two and published contract v3. The v3 draft/publication stores `tool_bindings: [{tool_id, tool_version, enabled, config}]`; earlier v1/v2 snapshots and manifest version one stay immutable and executable. The catalog returns declarative configuration schemas and defaults for the new editor. New definitions never enable themselves on existing agents. PHP
 owns manifests; Satellite verifies them against its supported handlers at admission.
 
 NS8 provisions different passwords for `voice_agent_config` and

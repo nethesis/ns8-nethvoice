@@ -6,7 +6,7 @@ satellite_dir=${M0_SATELLITE_DIR:-"${freepbx_dir}/../../satellite"}
 test_python=${M0_PYTHON:-python3}
 python3 "$freepbx_dir/tests/agents/ns8.py"
 test_tmp=$(mktemp -d /tmp/voice-agent-m0.XXXXXX)
-db_container="voice-agent-m0-db-${BASHPID}"
+db_container="voice-agent-m0-db-${test_tmp##*.}"
 cleanup() {
     docker rm -f "$db_container" >/dev/null 2>&1 || true
     rm -rf "$test_tmp"

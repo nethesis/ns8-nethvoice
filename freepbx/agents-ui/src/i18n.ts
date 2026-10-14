@@ -1,6 +1,16 @@
 import { createI18n } from "vue-i18n";
 
 const en = {
+  legacyAgentHelp:
+    "Legacy configuration is read-only. Configure Receptionist with fresh defaults, then remove this agent after its VisualPlan references have been replaced. Existing published calls remain supported.",
+  toolSettings: {
+    max_results: "Maximum search results",
+    approved_destination_ids: "Approved extensions",
+  },
+  searchExtensions: "Search extensions by name or number",
+  noMatchingExtensions: "No matching extensions",
+  toolConfigHelp:
+    "Settings apply only to this agent. Disabled tools keep their settings but cannot be used.",
   foundationTitle: "Voice agents are coming",
   foundationHelp:
     "The workspace is ready. Agent setup and voice calls will be available in v0.1.",
@@ -361,6 +371,16 @@ const en = {
 };
 const it: typeof en = {
   ...en,
+  legacyAgentHelp:
+    "La configurazione precedente è in sola lettura. Configura Receptionist con le impostazioni iniziali, poi rimuovi questo agente dopo aver sostituito i suoi riferimenti in VisualPlan. Le chiamate già pubblicate restano supportate.",
+  toolSettings: {
+    max_results: "Numero massimo di risultati",
+    approved_destination_ids: "Interni autorizzati",
+  },
+  searchExtensions: "Cerca interni per nome o numero",
+  noMatchingExtensions: "Nessun interno corrispondente",
+  toolConfigHelp:
+    "Le impostazioni valgono solo per questo agente. Gli strumenti disabilitati conservano le impostazioni ma non possono essere usati.",
   blockNames: {
     start_call: "Chiamata entrante",
     start_api: "Richiesta API",

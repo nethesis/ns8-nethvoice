@@ -44,7 +44,7 @@ $csrf=['X-Agents-CSRF'=>$access['csrf']];
 [$status]=api('POST','/profiles',['expected_revision'=>0,'profile'=>[],'unexpected'=>true],$csrf); assert($status===422);
 [$status,$catalog]=api('GET','/catalog'); assert($status===200 && count($catalog['tools'])===2);
 [$status,$profiles]=api('GET','/profiles'); assert($status===200 && count($profiles['items'])>=2);
-$draft=['provider_binding_id'=>null,'conversation'=>['language'=>'en','voice'=>'test_voice','greeting'=>'Hello','instructions'=>'Synthetic HTTP test'],'enabled_tools'=>['telephony.transfer'],'approved_destination_ids'=>['extension:203'],'fallback_destination_id'=>'extension:203','max_call_duration_seconds'=>60];
+$draft=['provider_binding_id'=>null,'conversation'=>['language'=>'en','voice'=>'test_voice','greeting'=>'Hello','instructions'=>'Synthetic HTTP test'],'tool_bindings'=>[['tool_id'=>'telephony.transfer','tool_version'=>2,'enabled'=>true,'config'=>['approved_destination_ids'=>['extension:203']]]],'fallback_destination_id'=>'extension:203','max_call_duration_seconds'=>60];
 [$status,$created]=api('POST','/profiles',['expected_revision'=>0,'profile'=>['name'=>'HTTP agent','draft'=>$draft]],$csrf); assert($status===200 && $created['kind']==='custom');
 [$status]=api('POST','/profiles/'.$created['agent_id'].'/publish',['expected_revision'=>$created['revision']],$csrf); assert($status===422);
 [$status]=api('PUT','/profiles/'.$created['agent_id'],['expected_revision'=>0,'profile'=>['name'=>'Stale','draft'=>$draft]],$csrf); assert($status===409);

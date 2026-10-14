@@ -7,8 +7,7 @@ export interface Draft {
     greeting: string;
     instructions: string;
   };
-  enabled_tools: string[];
-  approved_destination_ids: string[];
+  tool_bindings: ToolBinding[];
   fallback_destination_id: string | null;
   max_call_duration_seconds: number;
 }
@@ -16,6 +15,7 @@ export interface Agent extends JsonObject {
   agent_id: string;
   name: string;
   kind: "builtin" | "custom";
+  legacy?: boolean;
   destination_id: string;
   enabled: boolean;
   revision: number;
@@ -40,7 +40,7 @@ export interface Trunk extends JsonObject {
   webhook_secret_configured: boolean;
 }
 export interface Catalog {
-  tools: { id: string; name: string }[];
+  tools: ToolDefinition[];
   extensions: { id: string; name: string }[];
   providers: string[];
   default_language: string;
@@ -64,4 +64,26 @@ export interface Run extends JsonObject {
     tool_id?: string | null;
     destination_id?: string | null;
   }[];
+}
+
+export interface ConfigurationField {
+  type: "integer" | "array";
+  title: string;
+  minimum?: number;
+  maximum?: number;
+  "x-inventory"?: "extensions";
+}
+export interface ToolDefinition {
+  id: string;
+  version: number;
+  name: string;
+  description: string;
+  defaults: Record<string, number | string[]>;
+  configuration_schema: { properties: Record<string, ConfigurationField> };
+}
+export interface ToolBinding {
+  tool_id: string;
+  tool_version: number;
+  enabled: boolean;
+  config: Record<string, number | string[]>;
 }

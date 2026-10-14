@@ -1,19 +1,23 @@
 import { expect, test, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import type { ToolDefinition } from "../../src/types";
+const tools: ToolDefinition[] = JSON.parse(readFileSync(new URL("../../../var/www/html/freepbx/rest/lib/agents/contracts/tools-v2.json", import.meta.url), "utf8"));
 
 async function login(page: Page) {
+  page.on("pageerror", error => { throw error; });
   await page.addInitScript(() => {
     localStorage.setItem("secretkey", JSON.stringify({ user: "administrator", hash: "synthetic-test" }));
     localStorage.setItem("nethvoice.agents.language", "en");
   });
 }
-const draft = {provider_binding_id:"trunk_test",conversation:{language:"en",voice:"ash",greeting:"Hello",instructions:"Synthetic test instructions"},enabled_tools:[],approved_destination_ids:[],fallback_destination_id:"extension:203",max_call_duration_seconds:600};
-const catalog = {tools:[{id:"directory.find_destinations",name:"Find approved extensions"},{id:"telephony.transfer",name:"Transfer to an approved extension"}],extensions:[{id:"extension:203",name:"Test extension"}],providers:["openai","grok"],default_language:"it",languages:[{id:"it",label:"Italiano (it)"},{id:"en",label:"English (en)"},{id:"es",label:"Español (es)"}],provider_credentials:{openai:{environment_available:true},grok:{environment_available:false}}};
+const draft = {provider_binding_id:"trunk_test",conversation:{language:"en",voice:"ash",greeting:"Hello",instructions:"Synthetic test instructions"},tool_bindings:tools.map(tool=>({tool_id:tool.id,tool_version:tool.version,enabled:false,config:structuredClone(tool.defaults)})),fallback_destination_id:"extension:203",max_call_duration_seconds:600};
+const catalog = {tools,extensions:[{id:"extension:203",name:"Test extension"}],providers:["openai","grok"],default_language:"it",languages:[{id:"it",label:"Italiano (it)"},{id:"en",label:"English (en)"},{id:"es",label:"Español (es)"}],provider_credentials:{openai:{environment_available:true},grok:{environment_available:false}}};
 const trunks = [{binding_id:"trunk_test",name:"Test provider",provider:"openai",revision:1,sync_status:"synced",openai_project_id:"proj_test",api_key_configured:true,webhook_secret_configured:true}];
 
 test("built-in agents render with v0.1 navigation and independent tool editing", async ({ page }) => {
   await login(page);
-  let internal = {agent_id:"internal",name:"Internal",kind:"builtin",destination_id:"agent:internal",enabled:false,revision:1,workflow_version:null as number|null,sync_status:"pending",routable:false,draft:structuredClone(draft),published:null as unknown};
-  const external = {...internal,agent_id:"external",name:"External",destination_id:"agent:external",draft:structuredClone(draft)};
+  let internal = {agent_id:"receptionist",name:"Receptionist",kind:"builtin",destination_id:"agent:receptionist",enabled:false,revision:1,workflow_version:null as number|null,sync_status:"pending",routable:false,draft:structuredClone(draft),published:null as unknown};
+  const external = {...internal,agent_id:"custom_test",name:"Independent custom",destination_id:"agent:custom_test",kind:"custom",draft:structuredClone(draft)};
   const mutations: string[] = [];
   await page.route("**/freepbx/rest/agents/**", async route => {
     const url = new URL(route.request().url()), path = url.pathname.replace("/freepbx/rest/agents","");
@@ -34,15 +38,17 @@ test("built-in agents render with v0.1 navigation and independent tool editing",
   });
   await page.goto("./#/agents");
   for (const name of ["Dashboard","Extensions and devices","Routes / VisualPlan"]) await expect(page.getByRole("link",{name,exact:true})).toHaveCount(0);
-  await expect(page.getByRole("link",{name:"Internal",exact:true})).toBeVisible();
-  await expect(page.getByRole("link",{name:"External",exact:true})).toBeVisible();
+  await expect(page.getByRole("link",{name:"Receptionist",exact:true})).toBeVisible();
+  await expect(page.getByRole("link",{name:"Independent custom",exact:true})).toBeVisible();
   await expect(page.getByRole("button",{name:"New agent",exact:true})).toBeVisible();
   await expect(page.getByRole("link",{name:"Data sources",exact:true})).toHaveCount(0);
-  await page.getByRole("link",{name:"Internal",exact:true}).click();
-  await expect(page.getByLabel("Name",{exact:true})).toHaveValue("Internal");
-  await page.getByLabel("Name",{exact:true}).fill("Internal test agent");
+  await page.getByRole("link",{name:"Receptionist",exact:true}).click();
+  await expect(page.getByLabel("Name",{exact:true})).toHaveValue("Receptionist");
+  await page.getByLabel("Name",{exact:true}).fill("Receptionist test agent");
   await page.getByRole("checkbox",{name:"Find approved extensions",exact:true}).locator("..").click();
   await page.getByRole("checkbox",{name:"Transfer to an approved extension",exact:true}).locator("..").click();
+  await page.getByLabel("Maximum search results",{exact:true}).fill("7");
+  await page.getByLabel("Search extensions by name or number",{exact:true}).fill("203");
   await page.getByRole("checkbox",{name:"Test extension (203)",exact:true}).locator("..").click();
   await page.getByRole("button",{name:"Save draft",exact:true}).click();
   await expect(page.getByRole("button",{name:"Publish",exact:true})).toBeEnabled();
@@ -50,9 +56,10 @@ test("built-in agents render with v0.1 navigation and independent tool editing",
   await expect(page.getByText("Published version: 1",{exact:false})).toBeVisible();
   await page.getByRole("button",{name:"Enable agent",exact:true}).click();
   await expect(page.getByRole("button",{name:"Disable agent",exact:true})).toBeVisible();
-  expect(mutations).toEqual(["/profiles/internal","/profiles/internal/publish","/profiles/internal/enabled"]);
-  expect(internal.draft.enabled_tools).toEqual(["directory.find_destinations","telephony.transfer"]);
-  expect(external.draft.enabled_tools).toEqual([]);
+  expect(mutations).toEqual(["/profiles/receptionist","/profiles/receptionist/publish","/profiles/receptionist/enabled"]);
+  expect(internal.draft.tool_bindings.every(binding=>binding.enabled)).toBe(true);
+  expect(internal.draft.tool_bindings[1].config.approved_destination_ids).toEqual(["extension:203"]);
+  expect(external.draft.tool_bindings.some(binding=>binding.enabled)).toBe(false);
   await page.reload();
   await expect(page.getByRole("checkbox",{name:"Transfer to an approved extension",exact:true})).toBeChecked();
   await page.screenshot({path:"/tmp/voice-agent-v01-editor.png",fullPage:true});
@@ -115,6 +122,8 @@ test("new Basic Voice draft saves, conflicts preserve edits, and runs show bound
     await route.fulfill({json});
   });
   await page.goto("./#/agents/new");
+  await expect(page.getByRole("checkbox",{name:"Find approved extensions",exact:true})).not.toBeChecked();
+  await expect(page.getByRole("checkbox",{name:"Transfer to an approved extension",exact:true})).not.toBeChecked();
   await expect(page.getByRole("button",{name:/^Default language/})).toContainText("Italiano (it)");
   await page.getByLabel("Name",{exact:true}).fill("Basic test");
   await page.getByRole("button",{name:"Save draft",exact:true}).click();
