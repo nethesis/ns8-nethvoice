@@ -24,6 +24,7 @@ final class RuntimeAccounts
                     $db->exec('GRANT SELECT,INSERT ON asteriskcdrdb.voice_agent_runs TO '.$identity);
                     $db->exec('GRANT UPDATE (provider_call_id,ended_at,outcome,error_code) ON asteriskcdrdb.voice_agent_runs TO '.$identity);
                     $db->exec('GRANT SELECT,INSERT ON asteriskcdrdb.voice_agent_run_events TO '.$identity);
+                    $db->exec('GRANT INSERT ON asteriskcdrdb.voice_agent_transcripts TO '.$identity);
                     $db->exec('GRANT SELECT,INSERT ON asteriskcdrdb.voice_agent_pending_calls TO '.$identity);
                     $db->exec('GRANT UPDATE (state,provider_call_id) ON asteriskcdrdb.voice_agent_pending_calls TO '.$identity);
                 }

@@ -967,6 +967,53 @@ Object.assign(it.error, {
   builtin_protected: "Gli agenti predefiniti non possono essere eliminati.",
 });
 
+Object.assign(en, {
+  debugSettings: "Debug",
+  debugTranscription: "Call transcription",
+  debugTranscriptionHelp:
+    "Optional OpenAI caller and agent text for new calls after publication. Content is encrypted, visible to administrators and expires after the selected hours. Off by default. Input transcription may add provider charges.",
+  transcriptRetention: "Transcript retention (hours, 1–24)",
+  debugTranscriptHelp:
+    "Generated transcription can be incomplete or differ from what was heard. No audio recording is saved.",
+  noDebugTranscript:
+    "No transcript: capture was disabled, content expired, or transcription was unavailable.",
+  partialTranscript: "Partial or interrupted text",
+  directoryMatches: "Approved directory matches: {count}",
+  transcriptRole: { caller: "Caller", assistant: "Agent" },
+  runEvents: {
+    ...Reflect.get(en, "runEvents"),
+    tool_started: "Tool requested",
+    transcription_failed: "Debug transcription unavailable",
+  },
+});
+Object.assign(it, {
+  debugSettings: "Debug",
+  debugTranscription: "Trascrizione della chiamata",
+  debugTranscriptionHelp:
+    "Testo facoltativo di chiamante e agente OpenAI per nuove chiamate dopo la pubblicazione. Il contenuto è cifrato, visibile agli amministratori e scade dopo le ore selezionate. Disattivato per impostazione predefinita. La trascrizione può comportare costi del provider.",
+  transcriptRetention: "Conservazione trascrizione (ore, 1–24)",
+  debugTranscriptHelp:
+    "La trascrizione generata può essere incompleta o differire da quanto ascoltato. Non viene salvata alcuna registrazione audio.",
+  noDebugTranscript:
+    "Nessuna trascrizione: acquisizione disattivata, contenuto scaduto o trascrizione non disponibile.",
+  partialTranscript: "Testo parziale o interrotto",
+  directoryMatches: "Risultati della rubrica autorizzata: {count}",
+  transcriptRole: { caller: "Chiamante", assistant: "Agente" },
+  runEvents: {
+    ...Reflect.get(it, "runEvents"),
+    tool_started: "Strumento richiesto",
+    transcription_failed: "Trascrizione debug non disponibile",
+  },
+});
+Object.assign(en.error, {
+  transcription_provider_unsupported:
+    "Debug transcription is supported for OpenAI trunks only.",
+});
+Object.assign(it.error, {
+  transcription_provider_unsupported:
+    "La trascrizione debug è supportata solo per trunk OpenAI.",
+});
+
 export const i18n = createI18n({
   legacy: false,
   locale:
