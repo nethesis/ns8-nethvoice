@@ -22,5 +22,8 @@ forbidden($reader,'SELECT * FROM asteriskcdrdb.voice_agent_runs LIMIT 0');
 forbidden($writer,'SELECT * FROM asterisk.voice_agent_published LIMIT 0');
 forbidden($writer,'UPDATE asteriskcdrdb.voice_agent_runs SET agent_id=agent_id');
 forbidden($writer,'DELETE FROM asteriskcdrdb.voice_agent_runs');
+forbidden($writer,'SELECT * FROM asteriskcdrdb.voice_agent_transcripts LIMIT 0');
+forbidden($writer,'DELETE FROM asteriskcdrdb.voice_agent_transcripts');
+forbidden($reader,'SELECT * FROM asteriskcdrdb.voice_agent_transcripts LIMIT 0');
 $writer->exec('UPDATE asteriskcdrdb.voice_agent_runs SET outcome=outcome');
 echo "Separate runtime identities and least-privilege grants passed twice\n";

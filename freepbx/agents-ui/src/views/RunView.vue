@@ -66,7 +66,32 @@ const query = useQuery({
           {{ event.occurred_at
           }}<span v-if="event.error_code"> · {{ event.error_code }}</span>
         </p>
+        <p v-if="event.result_count != null">
+          {{ t("directoryMatches", { count: event.result_count }) }}
+        </p>
       </li>
     </ol>
+    <section class="space-y-4">
+      <h2>{{ t("debugTranscription") }}</h2>
+      <p class="nv-muted">{{ t("debugTranscriptHelp") }}</p>
+      <p v-if="!query.data.value.transcripts?.length" class="nv-muted">
+        {{ t("noDebugTranscript") }}
+      </p>
+      <ol class="space-y-4">
+        <li
+          v-for="(turn, index) in query.data.value.transcripts || []"
+          :key="index"
+          class="border-l-2 border-primary-500 pl-4"
+        >
+          <p class="font-semibold">
+            {{ t("transcriptRole." + turn.role) }} · {{ turn.occurred_at }}
+          </p>
+          <p class="whitespace-pre-wrap break-words">{{ turn.text }}</p>
+          <p v-if="turn.interrupted || turn.truncated" class="nv-muted text-sm">
+            {{ t("partialTranscript") }}
+          </p>
+        </li>
+      </ol>
+    </section>
   </div>
 </template>

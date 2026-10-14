@@ -8,18 +8,19 @@ final class PublishedContract
     public static function validate(array $snapshot): array
     {
         $version=$snapshot['contract_version']??0;
-        if (!in_array($version,[1,2,3],true)) throw new \InvalidArgumentException('invalid_snapshot');
+        if (!in_array($version,[1,2,3,4],true)) throw new \InvalidArgumentException('invalid_snapshot');
         $schema = json_decode(file_get_contents(__DIR__ . '/contracts/published-v'.$version.'.schema.json'), true, 512, JSON_THROW_ON_ERROR);
         if (strlen(json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) > 65536 ||
             !self::matches($snapshot, $schema) ||
             $snapshot['destination_id'] !== 'agent:' . $snapshot['agent_id']) {
             throw new \InvalidArgumentException('invalid_snapshot');
         }
-        if ($version===3) {
+        if ($version>=3) {
             $ids=array_column($snapshot['tool_bindings'],'tool_id');
             if (count($ids)!==count(array_unique($ids))) throw new \InvalidArgumentException('invalid_snapshot');
             foreach ($snapshot['tool_bindings'] as $binding) if (!is_int($binding['tool_version'])) throw new \InvalidArgumentException('invalid_snapshot');
         }
+        if ($version>=4 && $snapshot['debug']['transcription_enabled'] && $snapshot['provider']!=='openai') throw new \InvalidArgumentException('invalid_snapshot');
         return $snapshot;
     }
 

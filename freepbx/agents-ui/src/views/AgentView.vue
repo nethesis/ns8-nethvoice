@@ -8,6 +8,7 @@ import {
   NeButton,
   NeInlineNotification,
   NeSkeleton,
+  NeToggle,
 } from "@nethesis/vue-components";
 import { useI18n } from "vue-i18n";
 import { request, queryClient } from "../api";
@@ -32,6 +33,7 @@ const draft = ref<Draft>({
   tool_bindings: [],
   fallback_destination_id: null,
   max_call_duration_seconds: 600,
+  debug: { transcription_enabled: false, retention_hours: 24 },
 });
 const baseline = ref("");
 const snapshot = () => JSON.stringify({ name: name.value, draft: draft.value });
@@ -42,7 +44,12 @@ const unpublished = computed(() => {
   return Object.keys(draft.value).some(
     (key) =>
       JSON.stringify(draft.value[key as keyof Draft]) !==
-      JSON.stringify(published[key as keyof Draft]),
+      JSON.stringify(
+        published[key as keyof Draft] ??
+          (key === "debug"
+            ? { transcription_enabled: false, retention_hours: 24 }
+            : undefined),
+      ),
   );
 });
 const agent = useQuery({
@@ -114,6 +121,7 @@ function accept(value: Agent) {
   record.value = value;
   name.value = value.name;
   draft.value = JSON.parse(JSON.stringify(value.draft));
+  draft.value.debug ??= { transcription_enabled: false, retention_hours: 24 };
   baseline.value = snapshot();
   queryClient.setQueryData(["agent", value.agent_id], value);
 }
@@ -318,6 +326,23 @@ async function synchronize() {
           "
           :extensions="catalog.data.value?.extensions || []"
           @update:model-value="draft.tool_bindings[index] = $event"
+        />
+      </section>
+      <section class="space-y-4">
+        <h2>{{ t("debugSettings") }}</h2>
+        <NeToggle
+          v-model="draft.debug.transcription_enabled"
+          :label="t('debugTranscription')"
+        />
+        <p class="nv-muted">{{ t("debugTranscriptionHelp") }}</p>
+        <NeTextInput
+          v-if="draft.debug.transcription_enabled"
+          :model-value="String(draft.debug.retention_hours)"
+          :label="t('transcriptRetention')"
+          type="number"
+          min="1"
+          max="24"
+          @update:model-value="draft.debug.retention_hours = Number($event)"
         />
       </section>
     </fieldset>

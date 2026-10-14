@@ -29,6 +29,7 @@ M0_TEST_PORT=$(docker port "$db_container" 3306/tcp | sed 's/.*://')
 export M0_TEST_DSN="mysql:host=127.0.0.1;port=${M0_TEST_PORT}"
 php -d zend.assertions=1 -d assert.exception=1 "$freepbx_dir/tests/agents/mariadb.php"
 php "$freepbx_dir/tests/agents/services.php"
+php "$freepbx_dir/tests/agents/transcripts.php"
 php -d zend.assertions=1 -d assert.exception=1 "$freepbx_dir/tests/agents/visualplan.php"
 php "$freepbx_dir/tests/agents/trunks.php"
 php -d zend.assertions=1 -d assert.exception=1 "$freepbx_dir/tests/agents/native-bootstrap.php"

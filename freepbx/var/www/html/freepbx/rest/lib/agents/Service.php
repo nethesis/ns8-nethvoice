@@ -72,6 +72,7 @@ final class Service
         $published = $row['active_workflow_version'] ? $this->query('SELECT definition_json FROM asterisk.voice_agent_versions WHERE agent_id=? AND workflow_version=?',[$id,$row['active_workflow_version']])->fetchColumn() : false;
         $draft=$draft?json_decode($draft,true,512,JSON_THROW_ON_ERROR):self::emptyDraft();
         $draft['fallback_destination_id']=$draft['fallback_destination_id']??'hangup';
+        if (isset($draft['tool_bindings'])) $draft['debug']=$draft['debug']??['transcription_enabled'=>false,'retention_hours'=>24];
         if ((int)$row['revision']===1 && !$draft['provider_binding_id'] && $draft['conversation']['instructions']==='') $draft['conversation']['language']=$this->native->defaultLanguage();
         return ['agent_id'=>$id,'name'=>$row['name'],'kind'=>$row['kind'],'destination_id'=>$row['destination_id'],
             'enabled'=>(bool)$row['enabled'],'revision'=>(int)$row['revision'], 'workflow_version'=>$row['active_workflow_version'] ? (int)$row['active_workflow_version'] : null,
@@ -89,7 +90,7 @@ final class Service
     private static function emptyDraft(): array
     {
         return ['provider_binding_id'=>null,'conversation'=>['language'=>'en','voice'=>'','greeting'=>'','instructions'=>''],
-            'tool_bindings'=>array_map(fn($tool)=>['tool_id'=>$tool['id'],'tool_version'=>$tool['version'],'enabled'=>false,'config'=>$tool['defaults']],json_decode(file_get_contents(__DIR__.'/contracts/tools-v2.json'),true,512,JSON_THROW_ON_ERROR)),'fallback_destination_id'=>'hangup','max_call_duration_seconds'=>600];
+            'tool_bindings'=>array_map(fn($tool)=>['tool_id'=>$tool['id'],'tool_version'=>$tool['version'],'enabled'=>false,'config'=>$tool['defaults']],json_decode(file_get_contents(__DIR__.'/contracts/tools-v2.json'),true,512,JSON_THROW_ON_ERROR)),'fallback_destination_id'=>'hangup','max_call_duration_seconds'=>600,'debug'=>['transcription_enabled'=>false,'retention_hours'=>24]];
     }
     private static function approvedTargets(array $draft): array
     {
@@ -100,10 +101,11 @@ final class Service
     }
     private function validateDraft(array $draft): array
     {
+        $draft['debug']=$draft['debug']??['transcription_enabled'=>false,'retention_hours'=>24];
         self::fields($draft,array_keys(self::emptyDraft()));
         if (array_diff(array_keys(self::emptyDraft()),array_keys($draft))) self::fail('invalid_fields');
         // Validate the same contract with placeholders for optional incomplete draft fields.
-        $snapshot = $draft + ['contract_version'=>3,'agent_id'=>'validation','destination_id'=>'agent:validation','workflow_version'=>1,'provider'=>'openai'];
+        $snapshot = $draft + ['contract_version'=>4,'agent_id'=>'validation','destination_id'=>'agent:validation','workflow_version'=>1,'provider'=>'openai'];
         if ($snapshot['provider_binding_id'] === null) $snapshot['provider_binding_id']='unconfigured';
         if ($snapshot['fallback_destination_id'] === null) $snapshot['fallback_destination_id']='hangup';
         $draft['fallback_destination_id']=$snapshot['fallback_destination_id'];
@@ -150,7 +152,8 @@ final class Service
             if ($binding['sync_status']!=='synced' || !$this->native->trunkReady($binding)) self::fail('trunk_not_ready',409);
             if (trim($draft['conversation']['voice'])==='' || trim($draft['conversation']['instructions'])==='') self::fail('conversation_required');
             $version=(int)$this->query('SELECT COALESCE(MAX(workflow_version),0)+1 FROM asterisk.voice_agent_versions WHERE agent_id=?',[$id])->fetchColumn();
-            $snapshot=$draft+['contract_version'=>3,'agent_id'=>$id,'destination_id'=>'agent:'.$id,'workflow_version'=>$version,'provider'=>$binding['provider']];
+            if ($draft['debug']['transcription_enabled'] && $binding['provider']!=='openai') self::fail('transcription_provider_unsupported');
+            $snapshot=$draft+['contract_version'=>4,'agent_id'=>$id,'destination_id'=>'agent:'.$id,'workflow_version'=>$version,'provider'=>$binding['provider']];
             if (!in_array($draft['conversation']['voice'],array_column($this->voices($binding['binding_id'])['items'],'id'),true)) self::fail('invalid_voice');
             PublishedContract::validate($snapshot);
             $changed=!$agent['published'] || $agent['published']['fallback_destination_id']!==$snapshot['fallback_destination_id'] || $agent['published']['provider_binding_id']!==$snapshot['provider_binding_id'];
@@ -172,7 +175,7 @@ final class Service
                 if (!$agent['published']) self::fail('publication_required');
                 $snapshot=$agent['published'];
                 PublishedContract::validate($snapshot);
-                if (($snapshot['contract_version']??1)===3) $this->validateDraft(array_intersect_key($snapshot,self::emptyDraft()));
+                if (($snapshot['contract_version']??1)>=3) $this->validateDraft(array_intersect_key($snapshot,self::emptyDraft()));
                 if ($this->binding($snapshot['provider_binding_id'])['sync_status']!=='synced') self::fail('trunk_not_ready',409);
             }
             $this->db->beginTransaction();
@@ -392,7 +395,16 @@ final class Service
         if (!preg_match('/^[a-f0-9-]{36}$/D',$id)) self::fail('invalid_identifier');
         $row=$this->query('SELECT run_id,agent_id,workflow_version,started_at,ended_at,outcome,error_code FROM asteriskcdrdb.voice_agent_runs WHERE run_id=?',[$id])->fetch(\PDO::FETCH_ASSOC);
         if (!$row) self::fail('run_not_found',404);
-        $row['events']=$this->query('SELECT event_id,event_type,occurred_at,error_code,tool_id,destination_id FROM asteriskcdrdb.voice_agent_run_events WHERE run_id=? ORDER BY occurred_at,event_id LIMIT 1000',[$id])->fetchAll(\PDO::FETCH_ASSOC);
+        $row['events']=$this->query('SELECT event_id,event_type,occurred_at,error_code,tool_id,destination_id,result_count FROM asteriskcdrdb.voice_agent_run_events WHERE run_id=? ORDER BY occurred_at,event_id LIMIT 1000',[$id])->fetchAll(\PDO::FETCH_ASSOC);
+        $row['transcripts']=[];
+        $secretStore=new SecretStore();
+        foreach ($this->query('SELECT event_id,content_encrypted,occurred_at FROM asteriskcdrdb.voice_agent_transcripts WHERE run_id=? AND expires_at>NOW() ORDER BY position,occurred_at,event_id LIMIT 64',[$id])->fetchAll(\PDO::FETCH_ASSOC) as $turn) {
+            try {
+                $content=json_decode($secretStore->decryptSecret($turn['content_encrypted']),true,16,JSON_THROW_ON_ERROR);
+                if (($content['run_id']??null)!==$id || ($content['event_id']??null)!==$turn['event_id'] || !in_array($content['role']??null,['caller','assistant'],true) || !is_string($content['text']??null)) continue;
+                $row['transcripts'][]=['role'=>$content['role'],'text'=>$content['text'],'interrupted'=>(bool)($content['interrupted']??false),'truncated'=>(bool)($content['truncated']??false),'occurred_at'=>$turn['occurred_at']];
+            } catch (\Throwable $error) { /* Missing/corrupt optional content must not break run metadata. */ }
+        }
         return $row;
     }
 }

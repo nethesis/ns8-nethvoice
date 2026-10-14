@@ -54,7 +54,7 @@ check($service->get('receptionist')['name'] === 'Test Receptionist', 'seed_does_
 $published = $service->publish('receptionist', $saved['revision'], 'test-admin');
 $enabled = $service->enable('receptionist', true, $published['revision'], 'test-admin');
 check($enabled['routable'], 'ready_destination');
-check($enabled['published']['contract_version']===3,'typed_publication');
+check($enabled['published']['contract_version']===4,'typed_publication');
 check($service->catalog()['tools']===json_decode(file_get_contents(__DIR__.'/../../var/www/html/freepbx/rest/lib/agents/contracts/tools-v2.json'),true),'immutable_catalog_contract');
 check(!array_filter($service->get($external['agent_id'])['draft']['tool_bindings'],fn($binding)=>$binding['enabled']), 'independent_grants');
 $reloads = $native->reloads;
@@ -98,7 +98,7 @@ $native->exists=false;
 check(!$service->get('receptionist')['routable'],'native_drift_not_routable');
 check($service->trunks()[0]['sync_status']==='error','native_drift_visible');
 check($service->synchronize('test-admin')['sync_status']==='synced','missing_native_recovered');
-check($agent['published']['contract_version']===3,'fallback_preserves_v3');
+check($agent['published']['contract_version']===4,'fallback_preserves_v4');
 $service->enable('receptionist',true,$agent['revision'],'test-admin');
 // An installed legacy seed stays readable; explicit retirement cannot orphan references.
 $legacy=json_decode(file_get_contents(__DIR__.'/../../var/www/html/freepbx/rest/lib/agents/contracts/published-v1.example.json'),true);

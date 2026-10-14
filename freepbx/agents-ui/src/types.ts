@@ -10,6 +10,7 @@ export interface Draft {
   tool_bindings: ToolBinding[];
   fallback_destination_id: string | null;
   max_call_duration_seconds: number;
+  debug: { transcription_enabled: boolean; retention_hours: number };
 }
 export interface Agent extends JsonObject {
   agent_id: string;
@@ -63,6 +64,14 @@ export interface Run extends JsonObject {
     error_code: string | null;
     tool_id?: string | null;
     destination_id?: string | null;
+    result_count?: number | null;
+  }[];
+  transcripts?: {
+    role: "caller" | "assistant";
+    text: string;
+    occurred_at: string;
+    interrupted: boolean;
+    truncated: boolean;
   }[];
 }
 

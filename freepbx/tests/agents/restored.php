@@ -2,7 +2,7 @@
 require_once __DIR__.'/../../var/www/html/freepbx/rest/lib/agents/Service.php';
 $db=new PDO('mysql:host=127.0.0.1;port='.getenv('VOICE_AGENT_RESTORE_PORT'),'root','',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
 \NethVoice\Agents\Schema::install($db);
-assert((int)$db->query('SELECT MAX(version) FROM asterisk.voice_agent_schema')->fetchColumn()===8);
+assert((int)$db->query('SELECT MAX(version) FROM asterisk.voice_agent_schema')->fetchColumn()===9);
 assert((int)$db->query("SELECT COUNT(*) FROM asterisk.voice_agent_agents WHERE kind='builtin' AND removed=0")->fetchColumn()===1);
 assert($db->query("SELECT name FROM asterisk.voice_agent_agents WHERE agent_id='receptionist'")->fetchColumn()==='Test Receptionist');
 assert((int)$db->query("SELECT COUNT(*) FROM asterisk.voice_agent_versions WHERE agent_id='receptionist'")->fetchColumn()===4);

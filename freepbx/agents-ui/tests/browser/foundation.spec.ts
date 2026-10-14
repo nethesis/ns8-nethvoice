@@ -118,13 +118,16 @@ test("new Basic Voice draft saves, conflicts preserve edits, and runs show bound
       await route.fulfill({json:profile}); return;
     }
     const run={run_id:runId,agent_id:"agent_test",agent_name:"Basic test",workflow_version:1,started_at:"2026-01-01 10:00:00",ended_at:"2026-01-01 10:01:00",outcome:"transferred",error_code:null};
-    const json=path==="/access"?{csrf:"synthetic-csrf"}:path==="/catalog"?catalog:path==="/trunks"?{items:trunks}:path.endsWith("/voices")?{items:[{id:"ash",label:"ash"},{id:"ballad",label:"ballad"},{id:"coral",label:"coral"}]}:path==="/profiles"?{items:[profile]}:path==="/runs"?{items:[run],has_more:false,page:1}:path.startsWith("/runs/")?{...run,events:[{event_id:runId,event_type:"transfer_committed",occurred_at:run.ended_at,error_code:null,tool_id:"telephony.transfer",destination_id:"extension:203"}]}:profile;
+    const json=path==="/access"?{csrf:"synthetic-csrf"}:path==="/catalog"?catalog:path==="/trunks"?{items:trunks}:path.endsWith("/voices")?{items:[{id:"ash",label:"ash"},{id:"ballad",label:"ballad"},{id:"coral",label:"coral"}]}:path==="/profiles"?{items:[profile]}:path==="/runs"?{items:[run],has_more:false,page:1}:path.startsWith("/runs/")?{...run,transcripts:[{role:"caller",text:"<script>synthetic transcript</script>",occurred_at:run.ended_at,interrupted:false,truncated:false}],events:[{event_id:"synthetic-search",event_type:"tool_completed",occurred_at:run.ended_at,error_code:null,tool_id:"directory.find_destinations",result_count:0},{event_id:runId,event_type:"transfer_committed",occurred_at:run.ended_at,error_code:null,tool_id:"telephony.transfer",destination_id:"extension:203"}]}:profile;
     await route.fulfill({json});
   });
   await page.goto("./#/agents/new");
   await expect(page.getByRole("checkbox",{name:"Find approved extensions",exact:true})).not.toBeChecked();
   await expect(page.getByRole("checkbox",{name:"Transfer to an approved extension",exact:true})).not.toBeChecked();
   await expect(page.getByRole("button",{name:/^Default language/})).toContainText("Italiano (it)");
+  await expect(page.getByRole("checkbox",{name:"Call transcription",exact:true})).not.toBeChecked();
+  await page.getByRole("checkbox",{name:"Call transcription",exact:true}).locator("..").click();
+  await page.getByLabel("Transcript retention (hours, 1–24)",{exact:true}).fill("2");
   await page.getByLabel("Name",{exact:true}).fill("Basic test");
   await page.getByRole("button",{name:"Save draft",exact:true}).click();
   await expect(page).toHaveURL(/#\/agents\/agent_test$/);
@@ -140,4 +143,7 @@ test("new Basic Voice draft saves, conflicts preserve edits, and runs show bound
   await page.getByRole("button",{name:"Open",exact:true}).click();
   await expect(page.getByText("Transfer to an approved extension",{exact:false})).toBeVisible();
   await expect(page.getByText("extension:203",{exact:false})).toBeVisible();
+  await expect(page.getByText("Approved directory matches: 0",{exact:true})).toBeVisible();
+  await expect(page.getByText("<script>synthetic transcript</script>",{exact:true})).toBeVisible();
+  expect(await page.locator(".nv-panel script").count()).toBe(0);
 });
