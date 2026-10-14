@@ -16,7 +16,7 @@ $_SESSION['visualplan_agent_csrf'] ??= bin2hex(random_bytes(32));
 	<meta name="viewport" content="width=device-width, minimum-scale=1.0" />
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<!-- stylesheet include -->
-	<link type="text/css" rel="stylesheet" href="assets/css/application.css" />
+	<link type="text/css" rel="stylesheet" href="assets/css/application.css?v=agent-palette-1" />
 	<link type="text/css" rel="stylesheet" href="assets/css/spinner.css" />
 	<link type="text/css" rel="stylesheet" href="assets/css/contextmenu.css" />
 	<link type="text/css" rel="stylesheet" href="assets/css/font-awesome.css" />
@@ -211,7 +211,6 @@ $_SESSION['visualplan_agent_csrf'] ??= bin2hex(random_bytes(32));
 	<div id="side-nav">
 		<div id="layer_elements"></div>
 		<div id="layer_header" class="highlight panetitle blackgradient">
-			<div data-shape="Base" data-radius="20" id="satellite-agent-destination" class="palette_node_element draw2d_droppable endWidget"></div>
 			<!-- Cerchio -->
 			<div data-shape="Base" data-radius="20" id="incoming" class="palette_node_element draw2d_droppable startWidget" title="drag&amp;drop the table into the canvas..">
 			</div>
@@ -229,6 +228,7 @@ $_SESSION['visualplan_agent_csrf'] ??= bin2hex(random_bytes(32));
 			</div>
 			<div data-shape="Base" id="app-daynight" class="palette_node_element draw2d_droppable" title="drag&amp;drop the table into the canvas..">
 			</div>
+			<div data-shape="Base" id="satellite-agent-destination" class="palette_node_element draw2d_droppable" title="Agent">Agent</div>
 			<!-- -->
 			<!-- Cerchio -->
 			<div data-shape="Base" data-radius="20" id="from-did-direct" class="palette_node_element draw2d_droppable endWidget" title="drag&amp;drop the table into the canvas..">

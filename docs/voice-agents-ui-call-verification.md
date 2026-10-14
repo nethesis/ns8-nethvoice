@@ -217,3 +217,69 @@ endpoint/signing secret is preserved. The verified SIP proxy and HTTP webhook
 routes are unchanged, and HTTPS still serves the UI with certificate verification.
 The disposable configuration audit records create, publish, enable, native
 synchronization and removal without returning actors or input data.
+
+## VisualPlan Agent palette visibility follow-up
+
+Starting revisions are f5559c259a7b722aa080d5709fc279e43e9148bd and
+946ef48a36a836e20017972fccf105bc37097f4b, with clean voice_agent worktrees.
+On the exact existing-route page supplied by the user, read-only browser inspection
+found the Agent palette entry had a transparent background and no pseudo-element
+icon. Its markup also treated it as a terminal circle at the top of the menu. The
+previous drag test covered the picker but did not load the actual palette styles.
+
+The smallest fix reuses the old implementation's blue Agent tile and FontAwesome
+speech-bubble icon. The entry now sits with the processing blocks after Day/Night,
+with a static Agent label before translation. A stylesheet version query ensures
+browsers fetch the restored styles. No business rules, routes, dialplan, provider
+credentials or runtime code were changed.
+
+A new browser regression loads the actual index.php body, native application CSS
+and existing sidebar behavior. It failed on the transparent background before the
+fix, then passed for expanded/collapsed styling. All six browser tests pass, and
+PHP syntax validation passes. An early assertion needed to await the existing
+sidebar width animation; this was corrected in the test.
+
+The scoped development image adds exactly two COPY layers to the previously tested
+FreePBX image: palette markup and stylesheet. All base layers and runtime user are
+unchanged. It inherits the documented FreePBX root startup exception and base
+vulnerability risks. The canonical rebuild also passed. Deployment uses the scoped image to retain
+exactly the already-tested dependency layers. No new
+dependency or Containerfile source change was introduced in git.
+
+Staging verification on the user's exact existing-route page confirms the colored
+Agent tile and speech-bubble icon in expanded and collapsed menus. Dragging it
+opens the saved-agent picker, includes built-ins, and adds a ready agent with one
+input and one fallback output. Block count increases by one and Undo removes the
+added block. No Save action was performed and no existing route was changed.
+Only tightly cropped static palette screenshots were inspected; no caller/route
+content was captured.
+
+The first full-image SSH transfer was stopped when it remained slow. A scoped
+image was instead built on nethvoice57 from the exact currently running FreePBX
+base, copying the same two files and verifying their SHA-256 checksums. The
+premature pre-tag check against the not-yet-imported image failed before any
+service, route or image-reference mutation; no TLS verification was bypassed.
+The successful replacement then independently checked zero calls/channels, kept
+the previous image as localhost/nethvoice-freepbx:v01-palette-rollback, and
+restarted only FreePBX and its independent dependent runner. Satellite's image
+and service were unchanged.
+
+Deployed FreePBX image:
+532ae302dc5b9a1d794324b27c73809dcb29babb46434ea408e4bd43603fd627.
+The server image preserves all tested base layers and adds exactly two layers.
+The locally built equivalent passed Dive analysis and Trivy scanning with zero
+secret findings. Inherited vulnerability counts remain 16 critical, 435 high,
+1,317 medium, 1,201 low and 13 unknown. The completed scan used the existing
+workspace vulnerability DB after an initial /tmp-cache attempt hit its quota.
+CycloneDX SBOM, Dive and scan reports stay in the ignored local artifacts directory.
+The FreePBX root startup exception remains unchanged; no release clearance is
+claimed.
+
+Final checks show all three services/containers healthy with zero unexpected
+restarts, both ARI apps present, zero active calls/channels and no monitoring
+degradation. The private outbox/credentials and earlier rollback backups remain
+protected. The new rollback directory is mode 0700 and its image receipt is mode 0600; rollback at zero
+calls restores only the previous FreePBX image reference and restarts FreePBX plus
+the runner. Preserve the user's current database, env and webhook signing secret.
+No schema migration, configuration API write, provider call or provider account
+write was performed for this palette fix.
