@@ -27,7 +27,7 @@ assert(in_array('Goto(${VOICE_AGENT_FALLBACK},s,1)',$render('voice-agent-interna
 assert(!in_array('Stasis(voice-agent,caller,external)',$render('voice-agent-external')));
 assert(in_array('Goto(${VOICE_AGENT_FALLBACK},s,1)',$render('voice-agent-external')));
 assert(!isset($ext->lines['voice-agent-draft_test']));
-assert($render('voice-agent-transfer','203')===['Set(TIMEOUT(absolute)=0)','Goto(from-did-direct,203,1)']);
+assert($render('voice-agent-transfer','203')===['Set(TIMEOUT(absolute)=0)','UserEvent(VoiceAgentTransfer,token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:203)','Goto(from-did-direct,203,1)']);
 assert(count($render('voice-agent-headers'))===6);
 assert(str_contains($render('voice-agent-provider','_!')[0],'PJSIP/${AGENT_PROVIDER_TRUNK}/sip:${AGENT_PROVIDER_USER}@${AGENT_PROVIDER_HOST}:5061'));
 echo "Native dialplan, correlation headers, transfer watchdog and disabled fallback passed\n";
