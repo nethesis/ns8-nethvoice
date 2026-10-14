@@ -153,6 +153,7 @@ function satellite_generate_agent_dialplan() {
     foreach (FreePBX::Satellite()->agentExtensions() as $target) {
         $number=substr($target['id'],strlen('extension:'));
         $ext->add('voice-agent-transfer',$number,'',new ext_set('TIMEOUT(absolute)','0'));
+        $ext->add('voice-agent-transfer',$number,'',new ext_userevent('VoiceAgentTransfer','token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:'.$number));
         $ext->add('voice-agent-transfer',$number,'',new ext_goto('1',$number,'from-did-direct'));
     }
     // Immutable wrapper names preserve fallback routing across publication/reload.
