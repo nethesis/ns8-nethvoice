@@ -4,7 +4,8 @@
 (function () {
     var originalDrop = example.View.prototype.onDrop;
     example.View.prototype.onDrop = function (node, x, y, shift, ctrl) {
-        if (node.id !== 'satellite-agent-destination') return originalDrop.apply(this, arguments);
+        var element = node && (node[0] || node);
+        if (!element || element.id !== 'satellite-agent-destination') return originalDrop.apply(this, arguments);
         var view = this, lang = languages[browserLang], inventory = {};
         var dialog = $('<div>').attr('id', 'agentPicker');
         var select = $('<select>').attr({'id':'agentSelect','class':'form-control','aria-label':lang.base_agent_string});

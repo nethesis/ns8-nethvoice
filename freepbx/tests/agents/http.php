@@ -12,6 +12,8 @@ class FreePBX {
     public static function Database() { return $GLOBALS['db']; }
     public static function Satellite() { return new class {
         public function agentExtensions() { return [['id'=>'extension:203','name'=>'Test extension']]; }
+        public function agentTrunkExists($row) { return true; }
+        public function agentTrunkReady($row) { return true; }
         public function agentTrunk($operation,$binding,$previous) { return 9002; }
         public function applyAgentDialplan() { return true; }
         public function agentDestinationInUse($id) { return false; }

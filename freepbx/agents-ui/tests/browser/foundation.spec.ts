@@ -6,8 +6,8 @@ async function login(page: Page) {
     localStorage.setItem("nethvoice.agents.language", "en");
   });
 }
-const draft = {provider_binding_id:"trunk_test",conversation:{language:"en",voice:"test_voice",greeting:"Hello",instructions:"Synthetic test instructions"},enabled_tools:[],approved_destination_ids:[],fallback_destination_id:"extension:203",max_call_duration_seconds:600};
-const catalog = {tools:[{id:"directory.find_destinations",name:"Find approved extensions"},{id:"telephony.transfer",name:"Transfer to an approved extension"}],extensions:[{id:"extension:203",name:"Test extension"}],providers:["openai","grok"]};
+const draft = {provider_binding_id:"trunk_test",conversation:{language:"en",voice:"ash",greeting:"Hello",instructions:"Synthetic test instructions"},enabled_tools:[],approved_destination_ids:[],fallback_destination_id:"extension:203",max_call_duration_seconds:600};
+const catalog = {tools:[{id:"directory.find_destinations",name:"Find approved extensions"},{id:"telephony.transfer",name:"Transfer to an approved extension"}],extensions:[{id:"extension:203",name:"Test extension"}],providers:["openai","grok"],default_language:"it",languages:[{id:"it",label:"Italiano (it)"},{id:"en",label:"English (en)"},{id:"es",label:"Español (es)"}],provider_credentials:{openai:{environment_available:true},grok:{environment_available:false}}};
 const trunks = [{binding_id:"trunk_test",name:"Test provider",provider:"openai",revision:1,sync_status:"synced",openai_project_id:"proj_test",api_key_configured:true,webhook_secret_configured:true}];
 
 test("built-in agents render with v0.1 navigation and independent tool editing", async ({ page }) => {
@@ -29,10 +29,11 @@ test("built-in agents render with v0.1 navigation and independent tool editing",
       if(path.endsWith("/enabled")) internal={...internal,enabled:input.enabled,routable:input.enabled,revision:internal.revision+1};
       await route.fulfill({json:internal}); return;
     }
-    const json = path==="/access" ? {milestone:"v0.1-configuration",contract_version:1,capabilities:["agents","tools"],csrf:"synthetic-csrf"} : path==="/catalog" ? catalog : path==="/trunks" ? {items:trunks} : path==="/profiles" ? {items:[internal,external]} : internal;
+    const json = path==="/access" ? {milestone:"v0.1-configuration",contract_version:1,capabilities:["agents","tools"],csrf:"synthetic-csrf"} : path==="/catalog" ? catalog : path==="/trunks" ? {items:trunks} : path.endsWith("/voices") ? {items:[{id:"ash",label:"ash"},{id:"ballad",label:"ballad"},{id:"coral",label:"coral"}]} : path==="/profiles" ? {items:[internal,external]} : internal;
     await route.fulfill({json});
   });
   await page.goto("./#/agents");
+  for (const name of ["Dashboard","Extensions and devices","Routes / VisualPlan"]) await expect(page.getByRole("link",{name,exact:true})).toHaveCount(0);
   await expect(page.getByRole("link",{name:"Internal",exact:true})).toBeVisible();
   await expect(page.getByRole("link",{name:"External",exact:true})).toBeVisible();
   await expect(page.getByRole("button",{name:"New agent",exact:true})).toBeVisible();
@@ -110,10 +111,11 @@ test("new Basic Voice draft saves, conflicts preserve edits, and runs show bound
       await route.fulfill({json:profile}); return;
     }
     const run={run_id:runId,agent_id:"agent_test",agent_name:"Basic test",workflow_version:1,started_at:"2026-01-01 10:00:00",ended_at:"2026-01-01 10:01:00",outcome:"transferred",error_code:null};
-    const json=path==="/access"?{csrf:"synthetic-csrf"}:path==="/catalog"?catalog:path==="/trunks"?{items:trunks}:path==="/profiles"?{items:[profile]}:path==="/runs"?{items:[run],has_more:false,page:1}:path.startsWith("/runs/")?{...run,events:[{event_id:runId,event_type:"transfer_committed",occurred_at:run.ended_at,error_code:null,tool_id:"telephony.transfer",destination_id:"extension:203"}]}:profile;
+    const json=path==="/access"?{csrf:"synthetic-csrf"}:path==="/catalog"?catalog:path==="/trunks"?{items:trunks}:path.endsWith("/voices")?{items:[{id:"ash",label:"ash"},{id:"ballad",label:"ballad"},{id:"coral",label:"coral"}]}:path==="/profiles"?{items:[profile]}:path==="/runs"?{items:[run],has_more:false,page:1}:path.startsWith("/runs/")?{...run,events:[{event_id:runId,event_type:"transfer_committed",occurred_at:run.ended_at,error_code:null,tool_id:"telephony.transfer",destination_id:"extension:203"}]}:profile;
     await route.fulfill({json});
   });
   await page.goto("./#/agents/new");
+  await expect(page.getByRole("button",{name:/^Default language/})).toContainText("Italiano (it)");
   await page.getByLabel("Name",{exact:true}).fill("Basic test");
   await page.getByRole("button",{name:"Save draft",exact:true}).click();
   await expect(page).toHaveURL(/#\/agents\/agent_test$/);

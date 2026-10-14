@@ -122,6 +122,10 @@ const en = {
   blank: "Blank agent",
   channel: "Channel",
   language: "Language",
+  defaultLanguage: "Default language",
+  voiceCatalogError: "Cannot load provider voices. Retry before publishing.",
+  environmentKeyHelp:
+    "Leave the API key blank to use the configured environment key. Blank fields preserve existing stored credentials. The webhook signing secret is still required.",
   voiceName: "Voice",
   provider: "Voice provider",
   model: "Model",
@@ -476,6 +480,11 @@ const it: typeof en = {
   blank: "Agente vuoto",
   channel: "Canale",
   language: "Lingua",
+  defaultLanguage: "Lingua predefinita",
+  voiceCatalogError:
+    "Impossibile caricare le voci del provider. Riprova prima di pubblicare.",
+  environmentKeyHelp:
+    "Lascia vuota la chiave API per usare quella configurata nell’ambiente. I campi vuoti mantengono le credenziali già salvate. Il segreto firma webhook è comunque richiesto.",
   voiceName: "Voce",
   provider: "Provider vocale",
   model: "Modello",
@@ -780,6 +789,9 @@ Object.assign(en, {
   },
   runEvents: {
     admitted: "Call admitted",
+    provider_connected: "Provider connected",
+    media_connected: "Audio connected",
+    response_completed: "Response completed",
     completed: "Call completed",
     fallback: "Fallback used",
     failed: "Call failed",
@@ -864,6 +876,9 @@ Object.assign(it, {
   },
   runEvents: {
     admitted: "Chiamata accettata",
+    provider_connected: "Provider connesso",
+    media_connected: "Audio connesso",
+    response_completed: "Risposta completata",
     completed: "Chiamata completata",
     fallback: "Fallback eseguito",
     failed: "Chiamata fallita",

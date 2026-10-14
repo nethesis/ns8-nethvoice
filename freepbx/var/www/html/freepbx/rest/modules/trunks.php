@@ -95,6 +95,8 @@ $app->delete('/trunks/{trunkid}', function (Request $request, Response $response
   $route = $request->getAttribute('route');
   $trunkid = $route->getArgument('trunkid');
   try {
+    $owned=FreePBX::Core()->getTrunkByID($trunkid);
+    if (($owned['provider']??null)==='satellite-agent') return jsonResponse($response,['error'=>'managed_by_agents'],409);
     FreePBX::Core()->deleteTrunk($trunkid);
     // Delete disable_topos_header configuration for this trunk
     FreePBX::Nethcti3()->delConfig('disable_topos_header', $trunkid);

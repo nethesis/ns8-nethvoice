@@ -11,13 +11,22 @@ import { request, queryClient } from "../api";
 import { useTask } from "../composables/useTask";
 import PageHeader from "../components/PageHeader.vue";
 import FieldSelect from "../components/FieldSelect.vue";
-import type { Trunk } from "../types";
+import type { Catalog, Trunk } from "../types";
 const { t } = useI18n(),
   task = useTask();
 const query = useQuery({
   queryKey: ["trunks"],
   queryFn: () => request<{ items: Trunk[] }>("GET", "/trunks"),
 });
+const catalog = useQuery({
+  queryKey: ["catalog"],
+  queryFn: () => request<Catalog>("GET", "/catalog"),
+});
+const environmentKey = computed(
+  () =>
+    catalog.data.value?.provider_credentials?.[form.value.provider]
+      ?.environment_available || false,
+);
 const editing = ref<Trunk>();
 const visible = ref(false);
 const form = ref({
@@ -175,7 +184,15 @@ async function synchronize() {
       />
     </div>
     <p class="nv-muted">
-      {{ t(editing ? "secretKeepHelp" : "secretRequiredHelp") }}
+      {{
+        t(
+          environmentKey
+            ? "environmentKeyHelp"
+            : editing
+              ? "secretKeepHelp"
+              : "secretRequiredHelp",
+        )
+      }}
     </p>
     <p class="nv-muted">{{ t("providerSetupHelp") }}</p>
     <NeTextInput

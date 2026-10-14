@@ -2,11 +2,12 @@
 require_once __DIR__.'/../../var/www/html/freepbx/rest/lib/agents/Service.php';
 $db=new PDO('mysql:host=127.0.0.1;port='.getenv('VOICE_AGENT_RESTORE_PORT'),'root','',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
 \NethVoice\Agents\Schema::install($db);
-assert((int)$db->query('SELECT MAX(version) FROM asterisk.voice_agent_schema')->fetchColumn()===5);
+assert((int)$db->query('SELECT MAX(version) FROM asterisk.voice_agent_schema')->fetchColumn()===7);
 assert((int)$db->query("SELECT COUNT(*) FROM asterisk.voice_agent_agents WHERE kind='builtin'")->fetchColumn()===2);
 assert($db->query("SELECT name FROM asterisk.voice_agent_agents WHERE agent_id='internal'")->fetchColumn()==='Test internal');
-assert((int)$db->query("SELECT COUNT(*) FROM asterisk.voice_agent_versions WHERE agent_id='internal'")->fetchColumn()===2);
-$encoded=$db->query('SELECT secrets_encrypted FROM asterisk.voice_agent_bindings LIMIT 1')->fetchColumn();
+assert((int)$db->query("SELECT COUNT(*) FROM asterisk.voice_agent_versions WHERE agent_id='internal'")->fetchColumn()===3);
+assert($db->query("SELECT JSON_UNQUOTE(JSON_EXTRACT(definition_json,'$.fallback_destination_id')) FROM asterisk.voice_agent_versions WHERE agent_id='internal' AND workflow_version=3")->fetchColumn()==='native:ivr-7,s,1');
+$encoded=$db->query("SELECT secrets_encrypted FROM asterisk.voice_agent_bindings WHERE JSON_UNQUOTE(JSON_EXTRACT(settings_json,'$.openai_project_id'))='proj_test'")->fetchColumn();
 putenv('SATELLITE_AGENT_CONFIG_KEY=synthetic-disposable-key');
 $secrets=json_decode((new \NethVoice\Agents\SecretStore())->decryptSecret($encoded),true);
 assert($secrets['api_key']==='synthetic-api');
