@@ -148,3 +148,9 @@ GPT-Live transport events.
 Current UI/call repair evidence and staging limitations are recorded in
 [Receptionist verification](voice-agents-receptionist-verification.md). Earlier
 evidence remains in [UI and call verification](voice-agents-ui-call-verification.md).
+
+Optional private debug transcription uses the additive v4 publication contract;
+enable it on the agent's Debug section, save and publish, then open the run from
+Activity. Capture is off by default, OpenAI-only and expires within 1–24 hours.
+See [transfer and debug verification](voice-agents-transfer-debug-verification.md)
+for routing guidance, content handling, staged evidence and cleanup.
