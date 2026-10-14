@@ -52,7 +52,7 @@ final class Service
     }
     public function catalog(): array
     {
-        $tools=array_map(fn($row)=>json_decode($row['manifest_json'],true,512,JSON_THROW_ON_ERROR),$this->query('SELECT manifest_json FROM asterisk.voice_agent_runtime_tools ORDER BY tool_id')->fetchAll(\PDO::FETCH_ASSOC));
+        $tools=array_map(fn($row)=>json_decode($row['manifest_json'],true,512,JSON_THROW_ON_ERROR),$this->query('SELECT manifest_json FROM asterisk.voice_agent_runtime_tools WHERE tool_version=2 ORDER BY tool_id')->fetchAll(\PDO::FETCH_ASSOC));
         return ['agent_types'=>[['id'=>'basic_voice','name'=>'Basic Voice']],
             'tools'=>$tools,
             'providers'=>['openai','grok'], 'extensions'=>$this->native->extensions(),
@@ -76,7 +76,7 @@ final class Service
         return ['agent_id'=>$id,'name'=>$row['name'],'kind'=>$row['kind'],'destination_id'=>$row['destination_id'],
             'enabled'=>(bool)$row['enabled'],'revision'=>(int)$row['revision'], 'workflow_version'=>$row['active_workflow_version'] ? (int)$row['active_workflow_version'] : null,
             'sync_status'=>$row['sync_status'],'routable'=>(bool)$row['enabled'] && (bool)$published && $row['sync_status']==='synced' && $this->bindingReady($published),
-            'draft'=>$draft,
+            'legacy'=>!array_key_exists('tool_bindings',$draft),'draft'=>$draft,
             'published'=>$published ? json_decode($published,true,512,JSON_THROW_ON_ERROR) : null];
     }
     private function bindingReady(string $published): bool
@@ -89,14 +89,21 @@ final class Service
     private static function emptyDraft(): array
     {
         return ['provider_binding_id'=>null,'conversation'=>['language'=>'en','voice'=>'','greeting'=>'','instructions'=>''],
-            'enabled_tools'=>[],'approved_destination_ids'=>[],'fallback_destination_id'=>'hangup','max_call_duration_seconds'=>600];
+            'tool_bindings'=>array_map(fn($tool)=>['tool_id'=>$tool['id'],'tool_version'=>$tool['version'],'enabled'=>false,'config'=>$tool['defaults']],json_decode(file_get_contents(__DIR__.'/contracts/tools-v2.json'),true,512,JSON_THROW_ON_ERROR)),'fallback_destination_id'=>'hangup','max_call_duration_seconds'=>600];
+    }
+    private static function approvedTargets(array $draft): array
+    {
+        foreach ($draft['tool_bindings'] as $binding) {
+            if ($binding['tool_id']==='telephony.transfer') return $binding['config']['approved_destination_ids'];
+        }
+        return [];
     }
     private function validateDraft(array $draft): array
     {
         self::fields($draft,array_keys(self::emptyDraft()));
         if (array_diff(array_keys(self::emptyDraft()),array_keys($draft))) self::fail('invalid_fields');
         // Validate the same contract with placeholders for optional incomplete draft fields.
-        $snapshot = $draft + ['contract_version'=>2,'agent_id'=>'validation','destination_id'=>'agent:validation','workflow_version'=>1,'provider'=>'openai'];
+        $snapshot = $draft + ['contract_version'=>3,'agent_id'=>'validation','destination_id'=>'agent:validation','workflow_version'=>1,'provider'=>'openai'];
         if ($snapshot['provider_binding_id'] === null) $snapshot['provider_binding_id']='unconfigured';
         if ($snapshot['fallback_destination_id'] === null) $snapshot['fallback_destination_id']='hangup';
         $draft['fallback_destination_id']=$snapshot['fallback_destination_id'];
@@ -104,7 +111,7 @@ final class Service
         catch (\Throwable $error) { self::fail('invalid_configuration'); }
         if ($draft['provider_binding_id'] !== null) $this->binding($draft['provider_binding_id']);
         $available = array_column($this->native->extensions(),'id');
-        foreach ($draft['approved_destination_ids'] as $target) {
+        foreach (self::approvedTargets($draft) as $target) {
             if (!in_array($target,$available,true)) self::fail('destination_unavailable');
         }
         $this->native->destination($draft['fallback_destination_id']);
@@ -113,6 +120,7 @@ final class Service
     public function save(?string $id, array $input, int $revision, string $actor): array
     {
         return $this->locked(function() use ($id,$input,$revision,$actor) {
+            if ($id!==null && $this->get($id)['legacy']) self::fail('legacy_configuration_read_only',409);
             self::fields($input,['name','draft']);
             $name=self::text($input['name']??null,100,true);
             if (!is_array($input['draft']??null)) self::fail('invalid_configuration');
@@ -135,18 +143,19 @@ final class Service
     {
         return $this->locked(function() use ($id,$revision,$actor) {
             $agent=$this->get($id); self::revision($agent,$revision);
+            if ($agent['legacy']) self::fail('legacy_configuration_read_only',409);
             $draft=$this->validateDraft($agent['draft']);
             if (!$draft['provider_binding_id']) self::fail('provider_required');
             $binding=$this->binding($draft['provider_binding_id']);
             if ($binding['sync_status']!=='synced' || !$this->native->trunkReady($binding)) self::fail('trunk_not_ready',409);
             if (trim($draft['conversation']['voice'])==='' || trim($draft['conversation']['instructions'])==='') self::fail('conversation_required');
             $version=(int)$this->query('SELECT COALESCE(MAX(workflow_version),0)+1 FROM asterisk.voice_agent_versions WHERE agent_id=?',[$id])->fetchColumn();
-            $snapshot=$draft+['contract_version'=>2,'agent_id'=>$id,'destination_id'=>'agent:'.$id,'workflow_version'=>$version,'provider'=>$binding['provider']];
+            $snapshot=$draft+['contract_version'=>3,'agent_id'=>$id,'destination_id'=>'agent:'.$id,'workflow_version'=>$version,'provider'=>$binding['provider']];
             if (!in_array($draft['conversation']['voice'],array_column($this->voices($binding['binding_id'])['items'],'id'),true)) self::fail('invalid_voice');
             PublishedContract::validate($snapshot);
             $changed=!$agent['published'] || $agent['published']['fallback_destination_id']!==$snapshot['fallback_destination_id'] || $agent['published']['provider_binding_id']!==$snapshot['provider_binding_id'];
             $this->db->beginTransaction();
-            $this->query('INSERT INTO asterisk.voice_agent_versions (agent_id,workflow_version,contract_version,definition_json) VALUES (?,?,?,?)',[$id,$version,2,self::encode($snapshot)]);
+            $this->query('INSERT INTO asterisk.voice_agent_versions (agent_id,workflow_version,contract_version,definition_json) VALUES (?,?,?,?)',[$id,$version,$snapshot['contract_version'],self::encode($snapshot)]);
             $this->query('UPDATE asterisk.voice_agent_agents SET active_workflow_version=?,revision=revision+1,sync_status=? WHERE agent_id=?',[$version,$changed?'pending':$agent['sync_status'],$id]);
             $this->audit($id,$actor,'published',$revision+1);
             $this->db->commit();
@@ -159,9 +168,11 @@ final class Service
         return $this->locked(function() use ($id,$enabled,$revision,$actor) {
             $agent=$this->get($id); self::revision($agent,$revision);
             if ($enabled) {
+                if ($agent['legacy']) self::fail('legacy_configuration_read_only',409);
                 if (!$agent['published']) self::fail('publication_required');
                 $snapshot=$agent['published'];
-                $this->validateDraft(array_intersect_key($snapshot,self::emptyDraft()));
+                PublishedContract::validate($snapshot);
+                if (($snapshot['contract_version']??1)===3) $this->validateDraft(array_intersect_key($snapshot,self::emptyDraft()));
                 if ($this->binding($snapshot['provider_binding_id'])['sync_status']!=='synced') self::fail('trunk_not_ready',409);
             }
             $this->db->beginTransaction();
@@ -175,7 +186,7 @@ final class Service
     {
         return $this->locked(function() use ($id,$revision,$actor) {
             $agent=$this->get($id); self::revision($agent,$revision);
-            if ($agent['kind']==='builtin') self::fail('builtin_protected',409);
+            if ($agent['kind']==='builtin' && !in_array($id,['internal','external'],true)) self::fail('builtin_protected',409);
             if ($this->native->inUse($id)) self::fail('agent_in_use',409);
             $this->db->beginTransaction();
             $this->query("UPDATE asterisk.voice_agent_agents SET removed=1,enabled=0,revision=revision+1,sync_status=? WHERE agent_id=?",[$agent['published']?'pending':'synced',$id]);
@@ -290,9 +301,9 @@ final class Service
                 $this->query('UPDATE asterisk.voice_agent_drafts SET definition_json=?,revision=revision+1 WHERE agent_id=?',[self::encode($draft),$id]);
                 if ($agent['published']) {
                     $version=(int)$this->query('SELECT MAX(workflow_version)+1 FROM asterisk.voice_agent_versions WHERE agent_id=?',[$id])->fetchColumn();
-                    $snapshot=$agent['published'];$snapshot['contract_version']=2;$snapshot['workflow_version']=$version;$snapshot['fallback_destination_id']=$target;
+                    $snapshot=$agent['published'];$snapshot['contract_version']=max(2,$snapshot['contract_version']);$snapshot['workflow_version']=$version;$snapshot['fallback_destination_id']=$target;
                     PublishedContract::validate($snapshot);
-                    $this->query('INSERT INTO asterisk.voice_agent_versions (agent_id,workflow_version,contract_version,definition_json) VALUES (?,?,?,?)',[$id,$version,2,self::encode($snapshot)]);
+                    $this->query('INSERT INTO asterisk.voice_agent_versions (agent_id,workflow_version,contract_version,definition_json) VALUES (?,?,?,?)',[$id,$version,$snapshot['contract_version'],self::encode($snapshot)]);
                     $this->query("UPDATE asterisk.voice_agent_agents SET active_workflow_version=?,sync_status='pending' WHERE agent_id=?",[$version,$id]);
                 }
                 $this->query('UPDATE asterisk.voice_agent_agents SET revision=revision+1 WHERE agent_id=?',[$id]);

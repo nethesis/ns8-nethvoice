@@ -11,6 +11,7 @@ $db->exec('CREATE DATABASE asteriskcdrdb');
 $db->exec('CREATE TABLE asterisk.users (extension VARCHAR(20) PRIMARY KEY, name VARCHAR(100))');
 $db->exec("INSERT INTO asterisk.users VALUES ('203','Test extension')");
 \NethVoice\Agents\Schema::install($db);
+assert($db->query("SELECT agent_id FROM asterisk.voice_agent_agents WHERE kind='builtin'")->fetchAll(PDO::FETCH_COLUMN)===['receptionist']);
 $snapshot = json_decode(file_get_contents(__DIR__ . '/../../var/www/html/freepbx/rest/lib/agents/contracts/published-v1.example.json'), true);
 \NethVoice\Agents\PublishedContract::validate($snapshot);
 $db->exec("INSERT INTO asterisk.voice_agent_agents (agent_id, name, destination_id) VALUES ('basic_voice', 'Synthetic', 'agent:basic_voice')");

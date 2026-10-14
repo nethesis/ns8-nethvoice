@@ -24,11 +24,6 @@ CREATE TABLE IF NOT EXISTS asterisk.voice_agent_binding_audit (
  revision BIGINT UNSIGNED NOT NULL,
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-INSERT IGNORE INTO asterisk.voice_agent_agents (agent_id,name,destination_id,kind)
- VALUES ('internal','Internal','agent:internal','builtin'), ('external','External','agent:external','builtin');
-INSERT IGNORE INTO asterisk.voice_agent_drafts (agent_id,definition_json)
- SELECT agent_id, '{"provider_binding_id":null,"conversation":{"language":"en","voice":"","greeting":"","instructions":""},"enabled_tools":[],"approved_destination_ids":[],"fallback_destination_id":null,"max_call_duration_seconds":600}'
- FROM asterisk.voice_agent_agents WHERE kind='builtin';
 CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_published AS
  SELECT a.agent_id, a.destination_id, v.workflow_version, v.contract_version, v.definition_json
  FROM asterisk.voice_agent_agents a JOIN asterisk.voice_agent_versions v
