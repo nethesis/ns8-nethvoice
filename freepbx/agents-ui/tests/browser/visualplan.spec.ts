@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 const native = resolve(process.cwd(), '../var/www/html/freepbx/admin/modules/visualplan/htdocs');
 
 test('native Agent picker uses saved built-ins, rejects drafts, adds with undo and opens editors', async ({page}) => {
@@ -30,4 +31,30 @@ test('native Agent picker uses saved built-ins, rejects drafts, adds with undo a
   expect(await page.evaluate('window.opened')).toContain('/freepbx/agents-ui/#/agents/external');
   expect(await page.evaluate('app.view.getFigures().getSize()')).toBe(0);
   expect(requests).toBe(1);
+});
+
+
+test('actual Agent palette has a visible tile and icon in expanded and collapsed menus', async ({page}) => {
+  await page.goto('./');
+  const index=readFileSync(resolve(native,'index.php'),'utf8');
+  const body=index.match(/<body[^>]*>([\s\S]*?)<\/body>/)![1];
+  await page.setContent(body);
+  await page.addStyleTag({path:resolve(native,'assets/css/application.css')});
+  await page.addScriptTag({content:'var example={}, languages={}, browserLang="en", app={};'});
+  for (const script of ['lib/shifty.js','lib/raphael.js','lib/jquery-1.10.2.min.js','lib/jquery-ui-1.8.23.custom.min.js','lib/jquery.browser.js','lib/Class.js','lib/json2.js','lib/pathfinding-browser.min.js','lib/draw2d.js','i18n/en.js','app/View.js','app/Toolbar.js']) {
+    await page.addScriptTag({path:resolve(native,script)});
+  }
+  await page.evaluate("$('#satellite-agent-destination').text(languages.en.base_agent_string)");
+  const agent=page.locator('#side-nav #satellite-agent-destination');
+  await expect(agent).toBeVisible();
+  await expect(agent).toHaveText('Agent');
+  expect(await agent.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(82, 139, 167)');
+  expect(await agent.evaluate(el=>getComputedStyle(el,'::before').content)).toBe('"\uf075"');
+  await expect(agent).not.toHaveClass(/endWidget/);
+  await page.evaluate('hideSidenav()');
+  await expect(agent).toHaveClass(/hide_text/);
+  expect(await agent.evaluate(el=>getComputedStyle(el,'::before').content)).toBe('"\uf075"');
+  await expect.poll(()=>agent.evaluate(el=>el.getBoundingClientRect().width)).toBe(50);
+  await page.evaluate('hideSidenav()');
+  await expect(agent).not.toHaveClass(/hide_text/);
 });
