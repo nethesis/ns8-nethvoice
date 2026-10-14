@@ -163,3 +163,57 @@ rollback images/backups are retained. Source branches were clean at revisions
 946ef48a36a836e20017972fccf105bc37097f4b. The previously disposable agent/audio
 remain removed. The user-configured endpoint must be preserved; the agent did not
 create or alter it.
+
+## Completed OpenAI retries after signing-secret correction
+
+The user saved the endpoint's signing secret through Agents UI. Read-only
+preflight confirms one matching endpoint, realtime.call.incoming subscription,
+and a matching stored-secret hint. The prior webhook/secret blocker is resolved.
+No provider endpoint write, secret rotation or integration reconfiguration was
+performed by the agent during these retries.
+
+A new disposable custom agent reused the configured OpenAI binding and selected
+voice/language, with generic instructions, no tools, no transfer destinations,
+Hangup fallback and a 60-second maximum duration. It was provisioned through the
+actual authenticated/CSRF-protected REST API. No existing inbound route, extension
+or caller was used. Zero active calls/channels was checked before each origination.
+A local generic speech fixture was sent by native Asterisk Playback, using existing
+silence/10 segments instead of the unavailable earlier fixture.
+
+| Approved attempt | UTC start | Duration | Outcome | Completed responses |
+| --- | --- | --- | --- | --- |
+| 2 | 2026-10-14 10:22:57 | 41.2196 seconds | completed | 2 |
+| 3 | 2026-10-14 10:24:50 | 41.2626 seconds | completed | 2 |
+
+Both runs have provider admission, provider_connected, media_connected and
+completed events, with no run error. This verifies real signed provider delivery,
+the three SIP correlation headers, call acceptance, sideband establishment and
+ARI bridge lifecycle, followed by provider responses to the greeting/synthetic
+speech. The actual authenticated Activity API lists both completed runs and their
+expected event details, including after disposable-agent removal. SIP ringing
+alone was not used as the success criterion.
+
+The attempted filtered Asterisk RTP-statistics sample returned no matching row,
+so no packet-counter or bidirectional audio-quality result is claimed. No recording
+or transcript was captured, and language-switch output content was not inspected.
+Grok calls, approved extension transfer and NS8 restore/clone remain separate v0.1
+release gates. All three approved call attempts are used; no further provider call
+is authorized by the original bounded test scope.
+
+Scoped full-log inspection of 106 correlated lines finds no missing endpoint or
+origination failure. It still finds the existing native ODBC CDR/CEL warnings
+(40 cel_odbc.c and 8 cdr_adaptive_odbc.c warning/error lines); these are separate
+from the metadata-only agent monitoring, which records both runs successfully.
+The bounded runtime log summary has no safe phase errors. No native CDR/CEL schema
+or integration was modified in this slice.
+
+The disposable agent was removed through REST and its generic server-side audio
+fixture was deleted and checked absent. Ordinary run history and immutable versions
+remain inspectable. Final checks show all three units/containers healthy, zero
+unexpected restarts, zero active calls/channels, both ARI apps present and no
+monitoring degradation. Deployed image/source identities are unchanged and the
+protected rollback images/backups remain available. The user-configured provider
+endpoint/signing secret is preserved. The verified SIP proxy and HTTP webhook
+routes are unchanged, and HTTPS still serves the UI with certificate verification.
+The disposable configuration audit records create, publish, enable, native
+synchronization and removal without returning actors or input data.
