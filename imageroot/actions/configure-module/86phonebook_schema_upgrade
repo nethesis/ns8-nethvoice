@@ -42,7 +42,4 @@ ALTER TABLE phonebook
 # explicitly (group-scoped rows carry 'group:...' and are left untouched).
 /usr/bin/podman exec mariadb mysql -u root -h 127.0.0.1 -P "$NETHVOICE_MARIADB_PORT" -p"$MARIADB_ROOT_PASSWORD" phonebook -e "UPDATE phonebook SET access = 'public' WHERE access = '';"
 
-PHONEBOOK_ID_TYPE=$(/usr/bin/podman exec mariadb mysql -u root -h 127.0.0.1 -P "$NETHVOICE_MARIADB_PORT" -p"$MARIADB_ROOT_PASSWORD" -N -B -e "SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'phonebook' AND TABLE_NAME = 'phonebook' AND COLUMN_NAME = 'id';")
-if [ "$PHONEBOOK_ID_TYPE" != "bigint" ]; then
-    /usr/bin/podman exec mariadb mysql -u root -h 127.0.0.1 -P "$NETHVOICE_MARIADB_PORT" -p"$MARIADB_ROOT_PASSWORD" phonebook -e "ALTER TABLE phonebook MODIFY id bigint NOT NULL AUTO_INCREMENT;"
-fi
+phonebook-id-upgrade

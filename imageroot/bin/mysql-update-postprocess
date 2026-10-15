@@ -129,6 +129,8 @@ ON DUPLICATE KEY UPDATE \`data\`=VALUES(\`data\`);
 exit 0
 EOF
 
+phonebook-id-upgrade || echo "[WARNING] phonebook id upgrade failed" 1>&2
+
 # stop mariadb container if it wasn't running before
 if [ "$MARIADB_RUNNING" != "active" ]; then
     systemctl --user stop mariadb

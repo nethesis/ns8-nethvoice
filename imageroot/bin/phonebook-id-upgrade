@@ -1,0 +1,15 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+
+MARIADB_ROOT_PASSWORD=$(grep '^MARIADB_ROOT_PASSWORD=' ./passwords.env) && export "${MARIADB_ROOT_PASSWORD?}"
+
+PHONEBOOK_ID_TYPE=$(podman exec mariadb mysql -u root -h 127.0.0.1 -P "$NETHVOICE_MARIADB_PORT" -p"$MARIADB_ROOT_PASSWORD" -N -B -e "SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'phonebook' AND TABLE_NAME = 'phonebook' AND COLUMN_NAME = 'id';")
+if [ -n "$PHONEBOOK_ID_TYPE" ] && [ "$PHONEBOOK_ID_TYPE" != "bigint" ]; then
+    podman exec mariadb mysql -u root -h 127.0.0.1 -P "$NETHVOICE_MARIADB_PORT" -p"$MARIADB_ROOT_PASSWORD" phonebook -e "ALTER TABLE phonebook MODIFY id bigint NOT NULL AUTO_INCREMENT;"
+fi
