@@ -5,7 +5,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-# Drop the port-migration notice on a restored instance.
+# Drop the port-migration notice and destination retry state on a restored
+# instance. Pending destinations belong to the source instance's node/ports.
 #
 # PORTS_MIGRATION_REPORT / PORTS_MIGRATION_SEEN are recorded on the update that
 # reassigns the ports, to show the Status-page banner once. They are part of the
@@ -18,6 +19,10 @@
 import agent
 
 env = agent.read_envfile("environment")
-for key in ("PORTS_MIGRATION_REPORT", "PORTS_MIGRATION_SEEN"):
+for key in (
+    "PORTS_MIGRATION_REPORT", "PORTS_MIGRATION_SEEN",
+    "PREVIOUS_SIP_UDP_PORT", "PREVIOUS_SIP_UDP_PORTS",
+    "SIP_PORTFORWARD_MIGRATED", "SIP_PROXY_TRUNKS_MIGRATED",
+):
     if key in env:
         agent.unset_env(key)

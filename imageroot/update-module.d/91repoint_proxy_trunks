@@ -27,6 +27,7 @@
 # no trunkadm role, so the task is refused (403) and we log a clean note instead
 # of failing.
 
+import json
 import re
 import sys
 
@@ -37,20 +38,25 @@ import agent.tasks
 # earlier 20allocate_ports step in this same run, and os.environ is frozen at
 # the start of the update.
 env = agent.read_envfile("environment")
+agent.unset_env("SIP_PROXY_TRUNKS_MIGRATED")
 
 new_port = env.get("ASTERISK_SIP_UDP_PORT")
 # Old SIP UDP listener ports: ASTERISK_SIP_PORT before the TCP/UDP split, and
 # the previous SIP UDP port when this update moved it (set by 20allocate_ports).
 old_ports = {env.get(var) for var in ("ASTERISK_SIP_PORT", "PREVIOUS_SIP_UDP_PORT")}
+old_ports.update(json.loads(env.get("PREVIOUS_SIP_UDP_PORTS", "[]")))
 old_ports -= {None, "", new_port}
 
 # Nothing to do when the SIP UDP port did not move (already migrated).
 if not new_port or not old_ports:
+    if new_port:
+        agent.set_env("SIP_PROXY_TRUNKS_MIGRATED", new_port)
     sys.exit(0)
 
 proxy_id = agent.resolve_agent_id("nethvoice-proxy@node")
 if proxy_id is None:
     # No proxy on this node: nothing to repoint.
+    agent.set_env("SIP_PROXY_TRUNKS_MIGRATED", new_port)
     sys.exit(0)
 
 # The trunk destination host is this node's VPN ip, the same host used by the
@@ -80,7 +86,6 @@ except Exception as ex:
 
 trunks = response.get("output")
 if isinstance(trunks, str):
-    import json
     trunks = json.loads(trunks or "[]")
 trunks = trunks or []
 
@@ -89,6 +94,7 @@ trunks = trunks or []
 uri_re = re.compile(r"^sip:([^:;/?]+):(\d+)(.*)$")
 
 changed = 0
+success = True
 for trunk in trunks:
     destination = trunk.get("destination") or {}
     match = uri_re.match(destination.get("uri", ""))
@@ -116,6 +122,7 @@ for trunk in trunks:
     except Exception as ex:
         print(agent.SD_WARNING + f"Failed to repoint trunk rule {trunk['rule']} ({ex})",
               file=sys.stderr)
+        success = False
         continue
     changed += 1
     print(agent.SD_INFO + f"Repointed trunk rule {trunk['rule']}: "
@@ -124,3 +131,6 @@ for trunk in trunks:
 if changed:
     print(agent.SD_INFO + f"Repointed {changed} no-register trunk(s) to SIP UDP port {new_port}",
           file=sys.stderr)
+
+if success:
+    agent.set_env("SIP_PROXY_TRUNKS_MIGRATED", new_port)

@@ -5,9 +5,18 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-# PREVIOUS_SIP_UDP_PORT is set by 20allocate_ports only for the steps of the
-# same update: remove it so a later update never repoints to a stale port.
+# Keep retry state until both destination consumers confirm the current target.
+# Update hooks are independent: a failure or best-effort skip in either consumer
+# must not discard the ports still needed by the next update.
 
 import agent
 
-agent.unset_env('PREVIOUS_SIP_UDP_PORT')
+env = agent.read_envfile('environment')
+new_port = env.get('ASTERISK_SIP_UDP_PORT')
+if new_port and all(env.get(key) == new_port for key in (
+    'SIP_PORTFORWARD_MIGRATED', 'SIP_PROXY_TRUNKS_MIGRATED',
+)):
+    agent.unset_env('PREVIOUS_SIP_UDP_PORT')
+    agent.unset_env('PREVIOUS_SIP_UDP_PORTS')
+    agent.unset_env('SIP_PORTFORWARD_MIGRATED')
+    agent.unset_env('SIP_PROXY_TRUNKS_MIGRATED')
