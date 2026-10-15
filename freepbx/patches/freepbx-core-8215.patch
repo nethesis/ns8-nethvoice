@@ -1,0 +1,37 @@
+--- a/functions.inc.php
++++ b/functions.inc.php
+@@ -1311,6 +1311,7 @@
+ 			unset($fcc);
+ 
+ 			$picklist = '${EXTEN:'.$fclen.'}';
++			$picklist .= '&${EXTEN:'.$fclen.'}@${PJSIP_ENDPOINT(${EXTEN:'.$fclen.'},context)}';
+ 			$picklist .= '&${EXTEN:'.$fclen.'}@PICKUPMARK';
+ 			$ext->add('app-pickup', "_$fc_pickup.", '', new ext_macro('user-callerid'));
+ 			$ext->add('app-pickup', "_$fc_pickup.", '', new ext_set('PICKUP_EXTEN','${AMPUSER}'));
+@@ -1320,6 +1321,7 @@
+ 			if ($intercom_code != '') {
+ 				$len = strlen($fc_pickup.$intercom_code);
+ 				$picklist  = '${EXTEN:'.$len.'}';
++				$picklist .= '&${EXTEN:'.$len.'}@${PJSIP_ENDPOINT(${EXTEN:'.$len.'},context)}';
+ 				$picklist .= '&${EXTEN:'.$len.'}@PICKUPMARK';
+ 				$ext->add('app-pickup', "_{$fc_pickup}{$intercom_code}.", '', new ext_macro('user-callerid'));
+ 				$ext->add('app-pickup', "_{$fc_pickup}{$intercom_code}.", '', new ext_set('PICKUP_EXTEN','${AMPUSER}'));
+@@ -1348,10 +1350,18 @@
+ 			// so we need to generate the callpickup dialplan for these specific extensions
+ 			// to try the ringgoup.
+ 			foreach ($rg_members as $exten => $grps) {
++				$device = \FreePBX::Core()->getDevice($exten);
++				$device_context = $device['context'] ?? '';
+ 				$picklist  = $exten;
++				if ($device_context !== '') {
++					$picklist .= '&'.$exten.'@'.$device_context;
++				}
+ 				$picklist .= '&'.$exten.'@PICKUPMARK';
+ 
+ 				foreach ($grps as $grp) {
++					if ($device_context !== '') {
++						$picklist .= '&'.$grp.'@'.$device_context;
++					}
+ 					$picklist .= '&'.$grp.'@from-internal';
+ 					$picklist .= '&'.$grp.'@from-internal-xfer';
+ 					$picklist .= '&'.$grp.'@ext-group';

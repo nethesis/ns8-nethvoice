@@ -33,7 +33,7 @@ $app->get('/cti/profiles', function (Request $request, Response $response, $args
     if (!$results) {
         return $response->withStatus(500);
     }
-    return $response->withJson($results,200);
+    return jsonResponse($response, $results,200);
 });
 
 
@@ -48,7 +48,7 @@ $app->get('/cti/profiles/{id}', function (Request $request, Response $response, 
         if (!$results) {
             return $response->withStatus(500);
         }
-        return $response->withJson($results,200);
+        return jsonResponse($response, $results,200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -65,7 +65,7 @@ $app->get('/cti/permissions', function (Request $request, Response $response, $a
         if (!$results) {
             return $response->withStatus(500);
         }
-        return $response->withJson($results,200);
+        return jsonResponse($response, $results,200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -101,7 +101,7 @@ $app->post('/cti/profiles/{id}', function (Request $request, Response $response,
         if ($res) {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
             triggerMiddlewareProfilesReload();
-            return $response->withJson(array('status' => true), 200);
+            return jsonResponse($response, array('status' => true), 200);
         } else {
             throw new Exception('Error editing profile');
         }
@@ -121,7 +121,7 @@ $app->post('/cti/profiles', function (Request $request, Response $response, $arg
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
             triggerMiddlewareProfilesReload();
 
-            return $response->withJson(array('id' => $id ), 200);
+            return jsonResponse($response, array('id' => $id ), 200);
         } else {
             throw new Exception('Error creating new profile');
         }
@@ -140,11 +140,11 @@ $app->get('/cti/profiles/users/{user_id}', function (Request $request, Response 
         $sql = 'SELECT `profile_id` FROM `rest_users` WHERE `user_id` = ?';
         $sth = $dbh->prepare($sql);
         $sth->execute(array($user_id));
-        $profile_id = $sth->fetchAll()[0][0];
+        $profile_id = $sth->fetchColumn();
         if (!$profile_id) {
             return $response->withStatus(404);
         }
-        return $response->withJson(array('id' => $profile_id),200);
+        return jsonResponse($response, array('id' => (string) $profile_id),200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -169,7 +169,7 @@ $app->post('/cti/profiles/users/{user_id}', function (Request $request, Response
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         triggerMiddlewareProfilesReload();
 
-        return $response->withJson(array('status' => true), 200);
+        return jsonResponse($response, array('status' => true), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -183,7 +183,7 @@ $app->delete('/cti/profiles/{id}', function (Request $request, Response $respons
     if (deleteCTIProfile($id)) {
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         triggerMiddlewareProfilesReload();
-        return $response->withJson(array('status' => true), 200);
+        return jsonResponse($response, array('status' => true), 200);
     } else {
         return $response->withStatus(500);
     }
@@ -198,7 +198,7 @@ $app->get('/cti/groups', function (Request $request, Response $response, $args) 
         $sql = 'SELECT id, name FROM `rest_cti_groups`';
         $res = $dbh->sql($sql, 'getAll', \PDO::FETCH_ASSOC);
 
-        return $response->withJson($res, 200);
+        return jsonResponse($response, $res, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -227,7 +227,7 @@ $app->get('/cti/groups/users/{id}', function (Request $request, Response $respon
             $data[] = $res->id;
         }
 
-        return $response->withJson($data, 200);
+        return jsonResponse($response, $data, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -259,7 +259,7 @@ $app->get('/cti/users/groups/{id}', function (Request $request, Response $respon
             $data[] = $res;
         }
 
-        return $response->withJson($data, 200);
+        return jsonResponse($response, $data, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -281,7 +281,7 @@ $app->post('/cti/groups', function (Request $request, Response $response, $args)
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         triggerMiddlewareProfilesReload();
 
-        return $response->withJson($group_id, 200);
+        return jsonResponse($response, $group_id, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -310,7 +310,7 @@ $app->delete('/cti/groups/{id}', function (Request $request, Response $response,
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         triggerMiddlewareProfilesReload();
 
-        return $response->withJson(array('status' => true), 200);
+        return jsonResponse($response, array('status' => true), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -393,19 +393,39 @@ $app->put('/cti/paramurl/{id}', function (Request $request, Response $response, 
       $data = $request->getParsedBody();
       $args = array();
       $fields = array();
+
+      if (!isset($data['url'], $data['profiles']) || !is_array($data['profiles'])) {
+        return jsonResponse($response, array('status' => 'Invalid CTI source data'), 400);
+      }
+
+      $profiles = array();
+      foreach ($data['profiles'] as $profile) {
+        if (filter_var($profile, FILTER_VALIDATE_INT) === false || (int) $profile <= 0) {
+          return jsonResponse($response, array('status' => 'Invalid CTI profile id'), 400);
+        }
+        $profiles[] = (int) $profile;
+      }
+      $profiles = array_values(array_unique($profiles));
+
       $dbh = FreePBX::Database();
-      foreach ($data["profiles"] as $p) {
+      foreach ($profiles as $p) {
         $sql = 'INSERT INTO rest_cti_profiles_paramurl (profile_id, url, only_queues) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE profile_id=VALUES(profile_id), url=VALUES(url), only_queues=VALUES(only_queues)';
         $sth = $dbh->prepare($sql);
-        $only_queues = ($data['only_queues']) ? 1 : 0;
+        $only_queues = !empty($data['only_queues']) ? 1 : 0;
         $res = $sth->execute(array($p, $data["url"], $only_queues));
         if ($res === FALSE) {
           throw new Exception($sth->errorInfo()[2]);
         }
       }
-      $sql = 'DELETE FROM rest_cti_profiles_paramurl WHERE url=? AND profile_id NOT IN ('.implode(",", $data["profiles"]).')';
+
+      $sql = 'DELETE FROM rest_cti_profiles_paramurl WHERE url = ?';
+      $query_params = array($data['url']);
+      if (!empty($profiles)) {
+        $sql .= ' AND profile_id NOT IN ('.implode(',', array_fill(0, count($profiles), '?')).')';
+        $query_params = array_merge($query_params, $profiles);
+      }
       $sth = $dbh->prepare($sql);
-      $res = $sth->execute(array($data["url"]));
+      $res = $sth->execute($query_params);
       if ($res === FALSE) {
           throw new Exception($sth->errorInfo()[2]);
       }
@@ -520,7 +540,7 @@ $app->get('/cti/dbconn', function (Request $request, Response $response, $args) 
 
         $res = $sth->fetchAll(PDO::FETCH_ASSOC);
 
-        return $response->withJson($res);
+        return jsonResponse($response, $res);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -540,13 +560,13 @@ $app->delete('/cti/dbconn/{id}', function (Request $request, Response $response,
         $dbh = NethCTI::Database();
         $sql = 'DELETE FROM user_dbconn WHERE id = ?';
         $sth = $dbh->prepare($sql);
-        $sth->execute(array($id));
+        $res = $sth->execute(array($id));
 
         if ($res === FALSE) {
             throw new Exception($sth->errorInfo()[2]);
         }
 
-        return $response->withJson($res);
+        return jsonResponse($response, $res);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -561,7 +581,7 @@ $app->get('/cti/dbconn/type', function (Request $request, Response $response, $a
         $route = $request->getAttribute('route');
         $data = $request->getParsedBody();
 
-        return $response->withJson(array(
+        return jsonResponse($response, array(
             'mysql' => 'MySQL',
             'postgres' => 'PostgreSQL',
             'mssql:7_4' => 'SQL Server 2012/2014',
@@ -606,7 +626,7 @@ $app->get('/cti/customer_card/template', function (Request $request, Response $r
             closedir($handle);
         }
 
-        return $response->withJson($templates);
+        return jsonResponse($response, $templates);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -743,7 +763,7 @@ $app->get('/cti/customer_card', function (Request $request, Response $response, 
             $res[] = $r;
         }
 
-        return $response->withJson($res);
+        return jsonResponse($response, $res);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -812,7 +832,7 @@ $app->post('/cti/customer_card', function (Request $request, Response $response,
         $sql = 'INSERT INTO customer_card(name, creation, query, template, dbconn_id, permission_id)'.
             ' VALUES (?, NOW(), ?, ?, ?, ?)';
         $sth = $dbh->prepare($sql);
-        $sth->execute(array($name, $query, $template, $dbconn_id, $permission_id));
+        $res = $sth->execute(array($name, $query, $template, $dbconn_id, $permission_id));
 
         if ($res === FALSE) {
             $sql = 'DELETE FROM rest_cti_permissions WHERE id = ?';
@@ -963,7 +983,7 @@ $app->delete('/cti/customer_card/{id}', function (Request $request, Response $re
         $dbi = FreePBX::Database();
         $sql = 'DELETE FROM rest_cti_permissions WHERE id = ?';
         $sth = $dbi->prepare($sql);
-        $sth->execute(array($obj['permission_id']));
+        $res = $sth->execute(array($obj['permission_id']));
 
         if ($res === FALSE) {
             throw new Exception($sth->errorInfo()[2]);
@@ -971,7 +991,7 @@ $app->delete('/cti/customer_card/{id}', function (Request $request, Response $re
 
         $sql = 'DELETE FROM customer_card WHERE id = ?';
         $sth = $dbh->prepare($sql);
-        $sth->execute(array($id));
+        $res = $sth->execute(array($id));
 
         if ($res === FALSE) {
             throw new Exception($sth->errorInfo()[2]);
@@ -1014,12 +1034,12 @@ $app->get('/cti/streaming', function (Request $request, Response $response, $arg
                 $restemp = $sth->fetchAll(PDO::FETCH_ASSOC);
                 if ($restemp) {
                     foreach($restemp as $pid) {
-                        array_push($res[$i]['profiles'], $pid['profile_id']);
+                        array_push($res[$i]['profiles'], (string) $pid['profile_id']);
                     }
                 }
             }
         }
-        return $response->withJson($res);
+        return jsonResponse($response, $res);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -1037,7 +1057,7 @@ $app->get('/cti/paramurls', function (Request $request, Response $response, $arg
       $sth->execute();
       $res = $sth->fetchAll(PDO::FETCH_ASSOC);
       if (sizeof($res) == 0) {
-        return $response->withJson($res);
+        return jsonResponse($response, $res);
       }
       $sql = 'SELECT id, url, group_concat(profile_id) AS profiles, only_queues FROM rest_cti_profiles_paramurl GROUP BY url';
       $sth = $dbh->prepare($sql);
@@ -1050,7 +1070,7 @@ $app->get('/cti/paramurls', function (Request $request, Response $response, $arg
           $res[$i]["only_queues"] = false;
         }
       }
-      return $response->withJson($res);
+      return jsonResponse($response, $res);
   } catch (Exception $e) {
       error_log($e->getMessage());
       return $response->withStatus(500);
@@ -1193,9 +1213,9 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
         }
 
         $dbh = FreePBX::Database();
-        $res = $sql = 'INSERT INTO rest_cti_streaming(descr, url, exten, open) VALUES (?, ?, ?, ?)';
+        $sql = 'INSERT INTO rest_cti_streaming(descr, url, exten, open) VALUES (?, ?, ?, ?)';
         $sth = $dbh->prepare($sql);
-        $sth->execute(array($name, $url, $exten, $open));
+        $res = $sth->execute(array($name, $url, $exten, $open));
 
         if ($res === FALSE) {
             $sql = 'DELETE FROM rest_cti_permissions WHERE id = ?';
@@ -1218,23 +1238,28 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
         $route = $request->getAttribute('route');
         $data = $request->getParsedBody();
 
+        if (!is_array($data) || !isset($data['url']) || !is_string($data['url']) || $data['url'] === '') {
+            return jsonResponse($response, array('status' => 'Invalid source URL'), 400);
+        }
         $url = $data['url'];
 
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true );
         $ret_val = curl_exec($curl);
-        if (curl_errno($ch)) {
-            error_log(__FILE__.':'.__LINE__.' curl error: '.curl_error($ch));
+        if ($ret_val === false) {
+            error_log(__FILE__.':'.__LINE__.' curl error: '.curl_error($curl));
+            curl_close($curl);
+            return $response->withStatus(500);
         }
+        curl_close($curl);
 
-        if (strpos($ret_val, '<!DOCTYPE html PUBLIC') !== false || $ret_val === false) {
+        if (strpos($ret_val, '<!DOCTYPE html PUBLIC') !== false) {
             return $response->withStatus(500);
         } else {
             $b64_image_data =  chunk_split(base64_encode($ret_val));
-            curl_close($curl);
-            return $response->withJson($b64_image_data);
+            return jsonResponse($response, $b64_image_data);
         }
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
     }
@@ -1251,7 +1276,7 @@ $app->delete('/cti/streaming/{name}', function (Request $request, Response $resp
         $dbi = FreePBX::Database();
         $sql = 'DELETE FROM rest_cti_permissions WHERE name = ?';
         $sth = $dbi->prepare($sql);
-        $sth->execute(array('vs_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$name)))));
+        $res = $sth->execute(array('vs_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$name)))));
 
         if ($res === FALSE) {
             throw new Exception($sth->errorInfo()[2]);
@@ -1259,7 +1284,7 @@ $app->delete('/cti/streaming/{name}', function (Request $request, Response $resp
 
         $sql = 'DELETE FROM rest_cti_streaming WHERE descr = ?';
         $sth = $dbi->prepare($sql);
-        $sth->execute(array($name));
+        $res = $sth->execute(array($name));
 
         if ($res === FALSE) {
             throw new Exception($sth->errorInfo()[2]);

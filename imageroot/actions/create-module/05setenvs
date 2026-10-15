@@ -7,7 +7,7 @@
 
 import os
 import sys
-import random
+import secrets
 import string
 import agent
 
@@ -15,7 +15,7 @@ import agent
 def gen_password(length=32):
     """Generates a random password of specified length."""
     choice_pool = string.ascii_letters+string.digits
-    return ''.join(random.choice(choice_pool) for _ in range(length))
+    return ''.join(secrets.choice(choice_pool) for _ in range(length))
 
 
 # ns8-core pre-allocates the udp-ports-demand label size (3000, the maximum

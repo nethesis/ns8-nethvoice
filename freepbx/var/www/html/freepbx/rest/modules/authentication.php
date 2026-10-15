@@ -38,13 +38,13 @@ $app->get('/login', function (Request $request, Response $response) {
     if (!isset($_SESSION['AMP_user'])) {
         $_SESSION['AMP_user'] = new ampuser('admin');
     }
-    return $response->withJson(['success' => true]);
+    return jsonResponse($response, ['success' => true]);
 });
 
 $app->get('/logout', function (Request $request, Response $response) {
     session_start();
     unset($_SESSION['AMP_user']);
-    return $response->withJson(['success' => true]);
+    return jsonResponse($response, ['success' => true]);
 });
 
 $app->post('/testauth', function (Request $request, Response $response, $args) { 
@@ -61,7 +61,7 @@ $app->post('/testauth', function (Request $request, Response $response, $args) {
             unset($no_auth);
             require(__DIR__.'/../config.inc.php');
             $secret = $config['settings']['secretkey'];
-            return $response->withJson(['result' => $secret], 200);
+            return jsonResponse($response, ['result' => $secret], 200);
         }
     }
     unset($_SESSION['AMP_user']);
