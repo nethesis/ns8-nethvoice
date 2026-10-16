@@ -14,6 +14,7 @@ EnvironmentFile=%E/state/environment
 EnvironmentFile=%E/state/agent.env
 WorkingDirectory=%E/state
 Restart=always
+TimeoutStartSec=600
 ExecStartPre=/bin/rm -f %t/freepbx.pid %t/freepbx.ctr-id
 ExecStartPre=-runagent install-certificate freepbx
 ExecStartPre=-runagent discover-smarthost
@@ -88,6 +89,8 @@ ExecStart=runagent /usr/bin/podman run \
 
 # Wait till asterisk is active
 ExecStartPost=podman exec freepbx bash -c "while [[ $$(/usr/sbin/asterisk -rx 'core show version' 2>/dev/null) != Asterisk* ]]; do ((++attempt<300)) || exit 2; sleep 1 ; done"
+# Queue only after readiness; failure is logged but must not restart Asterisk.
+ExecStartPost=-runagent recover-dependent-services --startup freepbx.service
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/freepbx.ctr-id
 PIDFile=%t/freepbx.pid

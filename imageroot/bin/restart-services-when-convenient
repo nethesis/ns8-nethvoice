@@ -2,23 +2,31 @@
 
 # Restart services passed as arguments when there are no active calls
 
-set -e
+set -euo pipefail
+exec 1>&2
 
-TIMEOUT=10800 # 3h
+# Allow a shorter maintenance deadline, never longer than the default 3h.
+TIMEOUT=${NETHVOICE_RESTART_TIMEOUT:-10800}
+if [[ ! $TIMEOUT =~ ^[0-9]{1,5}$ ]] || ((10#$TIMEOUT < 1 || 10#$TIMEOUT > 10800)); then
+    echo "Invalid restart waiting deadline"
+    exit 1
+fi
+DEADLINE=$((SECONDS + 10#$TIMEOUT))
 
-for SECONDS in $(seq 1 $TIMEOUT); do
-    # Check if there are any calls in progress
-    CALLS=$(podman exec freepbx asterisk -rx "core show channels" 2>/dev/null | grep "active call" | cut -d" " -f1) || {
-        # If the command fails, assume there are no calls
-        CALLS=0
-    }
-    if [[ $CALLS -eq 0 ]]; then
-        break
+while ((SECONDS < DEADLINE)); do
+    # A successful command and exactly one valid summary are required. Never
+    # log raw channel output: it can contain communications metadata.
+    REMAINING=$((DEADLINE - SECONDS))
+    QUERY_TIMEOUT=$((REMAINING < 10 ? REMAINING : 10))
+    if OUTPUT=$(timeout "$QUERY_TIMEOUT" podman exec freepbx asterisk -rx "core show channels" 2>/dev/null); then
+        mapfile -t COUNTS < <(printf '%s\n' "$OUTPUT" | sed -nE 's/^([0-9]+) active calls?$/\1/p')
+        if [[ ${#COUNTS[@]} -eq 1 && ${COUNTS[0]} =~ ^0+$ ]]; then
+            echo "Restarting services after a verified zero-call result: $*"
+            exec systemctl --user try-restart "$@"
+        fi
     fi
-    # Sleep for 1 second before checking again
     sleep 1
 done
 
-# Restart services
-echo "Restarting services $@ wich was postponed for $SECONDS seconds"
-systemctl --user try-restart $@
+echo "Restart refused: no verified zero-call result within ${TIMEOUT}s; services left untouched"
+exit 1
