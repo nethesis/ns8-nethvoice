@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+"""Recover only explicitly mapped, enabled services without restarting parents."""
+
+import argparse
+import subprocess
+import sys
+import time
+
+
+DEPENDENTS = {
+    "freepbx.service": "tancredi.service",
+    "reports-api.service": "reports-ui.service",
+}
+
+
+def state(unit, timeout=10):
+    result = subprocess.run(
+        ["systemctl", "--user", "show", unit,
+         "--property=LoadState,UnitFileState,ActiveState,SubState,Job"],
+        capture_output=True, text=True, check=True, timeout=timeout,
+    )
+    values = dict(line.split("=", 1) for line in result.stdout.splitlines() if "=" in line)
+    if not all(key in values for key in (
+        "LoadState", "UnitFileState", "ActiveState", "SubState", "Job",
+    )):
+        raise RuntimeError(f"Cannot determine service state: {unit}")
+    return values
+
+
+def enabled(values):
+    # Enablement is the feature gate for these two services. No optional CTI,
+    # Hotel or Satellite services belong in this mapping.
+    return (values["LoadState"] == "loaded"
+            and values["UnitFileState"] in ("enabled", "enabled-runtime"))
+
+
+def pending(values):
+    return values["Job"].split(" ", 1)[0] not in ("", "0")
+
+
+def recover(prerequisite, startup=False, wait=0):
+    dependent = DEPENDENTS[prerequisite]
+    deadline = time.monotonic() + wait
+    requested = False
+
+    def budget():
+        if not wait:
+            return 10
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise RuntimeError(f"Recovery timed out: {dependent} is not active")
+        return min(10, remaining)
+
+    while True:
+        child = state(dependent, timeout=budget())
+        if not enabled(child):
+            print(f"Recovery skipped for disabled, masked or unavailable {dependent}", file=sys.stderr)
+            return
+        parent = state(prerequisite, timeout=budget())
+        ready = (parent["LoadState"] == "loaded" and (
+            parent["ActiveState"] == "active" or (
+                startup and parent["ActiveState"] == "activating"
+                and parent["SubState"] == "start-post")))
+        if not ready:
+            raise RuntimeError(f"Recovery prerequisite is not ready: {prerequisite}")
+        if child["ActiveState"] == "active" and not pending(child):
+            print(f"Recovery confirmed active {dependent}", file=sys.stderr)
+            return
+        if (not requested and not pending(child)
+                and child["ActiveState"] in ("inactive", "failed")):
+            # Never wait here: the child's After= ordering includes the parent
+            # whose ExecStartPost may be executing this helper. Do not replace
+            # an already queued stop/restart transaction either.
+            subprocess.run(
+                ["systemctl", "--user", "--no-block", "--no-ask-password",
+                 "--job-mode=fail", "start", dependent],
+                check=True, timeout=budget(), stdout=sys.stderr,
+            )
+            requested = True
+            print(f"Queued recovery of {dependent} after {prerequisite}", file=sys.stderr)
+        if not wait:
+            if not requested:
+                print(f"Recovery left existing job or transition for {dependent} untouched", file=sys.stderr)
+            return
+        if time.monotonic() >= deadline:
+            raise RuntimeError(f"Recovery timed out: {dependent} is not active")
+        time.sleep(min(1, max(0, deadline - time.monotonic())))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("prerequisite", choices=DEPENDENTS)
+    parser.add_argument("--startup", action="store_true",
+                        help="Called after readiness in the parent's ExecStartPost")
+    parser.add_argument("--wait", type=int, default=0, choices=range(0, 121),
+                        metavar="0..120", help="Verify recovery for at most this many seconds")
+    args = parser.parse_args()
+    if args.startup and args.wait:
+        parser.error("startup recovery must not wait for the child")
+    try:
+        recover(args.prerequisite, args.startup, args.wait)
+    except (RuntimeError, subprocess.SubprocessError, OSError) as error:
+        print(f"Dependent recovery failed: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

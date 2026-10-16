@@ -1,0 +1,7 @@
+# Test harness only: systemd must run as PID 1/root inside an isolated container.
+# Run this image with rootless Podman; never deploy it as an NS8 component.
+FROM docker.io/library/debian:13.1-slim
+RUN apt-get update && apt-get install -y --no-install-recommends systemd dbus python3 \
+    && rm -rf /var/lib/apt/lists/*
+STOPSIGNAL SIGRTMIN+3
+CMD ["/usr/lib/systemd/systemd"]
