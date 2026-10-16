@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Update port settings and generate configuration before the container restart.
+import subprocess
+import sys
+
+import agent
+
+
+def prepare_ports():
+    # Update hooks inherit the environment from before port allocation.
+    env = agent.read_envfile("environment")
+    ports = {}
+    for name in (
+        "ASTERISK_RTPSTART", "ASTERISK_RTPEND",
+        "ASTERISK_SIP_UDP_PORT", "ASTERISK_IAX_PORT",
+    ):
+        value = env.get(name, "")
+        if not value.isascii() or not value.isdigit() or not 1 <= int(value) <= 65535:
+            raise ValueError(f"Invalid or missing {name}")
+        ports[name] = int(value)
+    if ports["ASTERISK_RTPSTART"] > ports["ASTERISK_RTPEND"]:
+        raise ValueError("Invalid Asterisk RTP range")
+
+    sql = f"""
+INSERT INTO `sipsettings` (`keyword`,`data`,`seq`,`type`) VALUES
+    ('rtpstart','{ports['ASTERISK_RTPSTART']}',0,0),
+    ('rtpend','{ports['ASTERISK_RTPEND']}',0,0),
+    ('bindport','{ports['ASTERISK_SIP_UDP_PORT']}',1,0)
+ON DUPLICATE KEY UPDATE `data`=VALUES(`data`);
+UPDATE `kvstore_Sipsettings` SET `val`=CASE `key`
+    WHEN 'rtpstart' THEN '{ports['ASTERISK_RTPSTART']}'
+    WHEN 'rtpend' THEN '{ports['ASTERISK_RTPEND']}'
+    WHEN 'udpport-0.0.0.0' THEN '{ports['ASTERISK_SIP_UDP_PORT']}' END
+WHERE `key` IN ('rtpstart','rtpend','udpport-0.0.0.0');
+INSERT INTO `iaxsettings` (`keyword`,`data`,`seq`,`type`)
+VALUES ('bindport','{ports['ASTERISK_IAX_PORT']}',1,0)
+ON DUPLICATE KEY UPDATE `data`=VALUES(`data`);
+"""
+    subprocess.run(
+        ["podman", "exec", "-i", "mariadb", "sh", "-c",
+         'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; '
+         'exec mysql -u root -h 127.0.0.1 -P "$NETHVOICE_MARIADB_PORT" asterisk'],
+        input=sql, text=True, stdout=sys.stderr, check=True,
+    )
+    # Persist the new bindings while the old, fully initialized FreePBX is
+    # available. Asterisk will open them on the existing container restart.
+    subprocess.run(
+        ["podman", "exec", "--user", "asterisk", "freepbx", "fwconsole",
+         "reload", "--dont-reload-asterisk", "--no-interaction"],
+        stdout=sys.stderr, check=True,
+    )
+
+
+def main():
+    if subprocess.run(
+        ["systemctl", "--user", "is-active", "--quiet", "freepbx.service"],
+    ).returncode == 0:
+        prepare_ports()
+
+
+if __name__ == "__main__":
+    main()

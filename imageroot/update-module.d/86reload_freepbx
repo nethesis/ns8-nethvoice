@@ -1,6 +1,6 @@
 #!/bin/bash
 
 # Kept to replace the hook on existing installations. Port configuration is
-# generated before the container restart in 80restart. Do not run fwconsole
+# generated before the container restart in 78update_mysql. Do not run fwconsole
 # here: the new container may still be installing its FreePBX modules.
 exit 0
