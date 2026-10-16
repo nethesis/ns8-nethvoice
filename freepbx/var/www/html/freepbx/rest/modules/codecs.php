@@ -28,6 +28,7 @@ use \Psr\Http\Message\ResponseInterface as Response;
 
 $app->get('/codecs/voip', function (Request $request, Response $response, $args) {
     $codecs = array(
+        array ('codec' => 'g722', 'enabled' => false),
         array ('codec' => 'alaw', 'enabled' => true),
         array ('codec' => 'ulaw', 'enabled' => true),
         array ('codec' => 'g729', 'enabled' => true)

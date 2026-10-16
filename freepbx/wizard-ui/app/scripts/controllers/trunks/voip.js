@@ -33,6 +33,8 @@ angular.module('nethvoiceWizardUiApp')
     //Insert all the data that will gonna be edited
     $scope.editedSelectedTrunk = {}
 
+    var allCodecs = []
+
     $scope.trunk = {
       forceCodec: true,
       codecs: angular.copy(defaultCodecs)
@@ -67,7 +69,7 @@ angular.module('nethvoiceWizardUiApp')
       $scope.editedSelectedTrunk.forceCodec = angular.copy($scope.trunk.forceCodec)
       $scope.editedSelectedTrunk.info = angular.copy($scope.trunksInfo)
       $scope.editedSelectedTrunk.codecs = angular.copy($scope.selectedTrunk).details.codecs.split(",")
-      $scope.availableEditCodecs = mergeCodecs(defaultCodecs, $scope.editedSelectedTrunk.codecs)
+      $scope.availableEditCodecs = mergeCodecs(allCodecs, $scope.editedSelectedTrunk.codecs)
     }
 
     var getProvidersList = function () {
@@ -92,8 +94,9 @@ angular.module('nethvoiceWizardUiApp')
         return item.provider === $scope.trunk.provider
       })
 
-      $scope.availableCodecs = provider && provider.codecs ? provider.codecs.split(",") : angular.copy(defaultCodecs)
-      $scope.trunk.codecs = angular.copy($scope.availableCodecs)
+      var providerCodecs = provider && provider.codecs ? provider.codecs.split(",") : angular.copy(defaultCodecs)
+      $scope.availableCodecs = mergeCodecs(providerCodecs, allCodecs)
+      $scope.trunk.codecs = providerCodecs
     }
 
     $scope.arrayJoin = function (arr) {
@@ -247,15 +250,18 @@ angular.module('nethvoiceWizardUiApp')
 
     // Set default codecs
     $scope.retrieveCodecs().then(function (res) {
+      allCodecs = res.map(function (codec) {
+        return codec.codec
+      })
       var enabledCodecs = res.filter(function (codec) {
         return codec.enabled
       }).map(function (codec) {
         return codec.codec
       })
       defaultCodecs = mergeCodecs(defaultCodecs, enabledCodecs)
-      $scope.availableEditCodecs = mergeCodecs(defaultCodecs, $scope.editedSelectedTrunk.codecs || [])
+      $scope.availableEditCodecs = mergeCodecs(allCodecs, $scope.editedSelectedTrunk.codecs || [])
       if (!$scope.trunk.provider) {
-        $scope.availableCodecs = angular.copy(defaultCodecs)
+        $scope.availableCodecs = angular.copy(allCodecs)
         $scope.trunk.codecs = angular.copy(defaultCodecs)
       }
     }, function (err) {
