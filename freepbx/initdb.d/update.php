@@ -116,9 +116,10 @@ $stmt = $db->prepare("INSERT IGNORE INTO `featurecodes` (`modulename`,`featurena
 $stmt->execute();
 
 // Prefer header matching before IP so proxied static PJSIP trunks are identified
-// from X-Forwarded-* headers.
+// from X-Forwarded-* headers. Accept both the original comma-separated default
+// and the JSON array saved by the interface.
 $pjsip_identifiers_order = json_encode(['header', 'ip', 'username', 'auth_username', 'anonymous']);
-$stmt = $db->prepare("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = ? WHERE `key` = 'pjsip_identifers_order' AND `val` = 'ip,username,anonymous,auth_username'");
+$stmt = $db->prepare("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = ? WHERE `key` = 'pjsip_identifers_order' AND `val` IN ('ip,username,anonymous,auth_username', '[\"ip\",\"username\",\"anonymous\",\"header\",\"auth_username\"]')");
 $stmt->execute([$pjsip_identifiers_order]);
 
 // Rename the Satellite CTI permission displayname/description on existing
