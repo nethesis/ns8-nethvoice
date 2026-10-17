@@ -212,7 +212,7 @@ fi
 reponame="nethvoice-cti-ui"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v0.16.0)
+    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:fix_qmanager_alarms)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
