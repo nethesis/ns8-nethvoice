@@ -20,6 +20,13 @@
 # along with NethServer.  If not, see COPYING.
 #
 
+define('NETHVOICE_CODECS_SOFTPHONE', 'opus,g722,ulaw,alaw,gsm,g726,h264,vp8');
+define('NETHVOICE_CODECS_PHONE', 'ulaw,alaw,gsm,g726,g722,h264,vp8');
+
+function setExtensionCodecs($extension, $codecs) {
+    return setSipData($extension, 'allow', $codecs);
+}
+
 function extensionExists($e, $extensions)
 {
     foreach ($extensions as $extension) {
@@ -70,10 +77,7 @@ function createExtension($mainextensionnumber,$delete=false){
            $stmt = $dbh->prepare($sql);
            $stmt->execute(array($extension));
 
-           // set default video codecs
-           $sql = 'UPDATE IGNORE `sip` SET `data` = ? WHERE `id` = ? AND `keyword` = "allow"';
-           $stmt = $dbh->prepare($sql);
-           $stmt->execute(['ulaw,alaw,gsm,g726,vp8',$extension]);
+           setExtensionCodecs($extension, NETHVOICE_CODECS_PHONE);
         } else {
             //create new extension
             //get first free physical extension number for this main extension
@@ -128,10 +132,7 @@ function createExtension($mainextensionnumber,$delete=false){
             $sql = 'UPDATE `sip` SET `data`= ? WHERE `id`=? AND `keyword`="namedpickupgroup"';
             $sth = $dbh->prepare($sql);
             $sth->execute([$mainpickupgroup,$extension]);
-            // set default video codecs
-            $sql = 'UPDATE `sip` SET `data`= ? WHERE `id`=? AND `keyword` = "allow"';
-            $stmt = $dbh->prepare($sql);
-            $stmt->execute(['ulaw,alaw,gsm,g726,vp8',$extension]);
+            setExtensionCodecs($extension, NETHVOICE_CODECS_PHONE);
 
             post_noanswerdest([$extension],get_noanswerdest($mainextensionnumber));
             post_busydest([$extension],get_busydest($mainextensionnumber));
@@ -184,10 +185,7 @@ function useExtensionAsWebRTC($extension) {
         global $astman;
         $astman->database_del("CW",$extension);
 
-        //enable default codecs and video codecs
-        $sql = 'UPDATE IGNORE `sip` SET `data` = ? WHERE `id` = ? AND `keyword` = ?';
-        $stmt = $dbh->prepare($sql);
-        $stmt->execute(array('ulaw,alaw,gsm,g726,vp8',$extension,'allow'));
+        setExtensionCodecs($extension, NETHVOICE_CODECS_SOFTPHONE);
 
         //Set SIP options
         // Set rewrite contact = no
@@ -243,10 +241,7 @@ function useExtensionAsNethLink($extension) {
         global $astman;
         $astman->database_del("CW",$extension);
 
-        //enable default codecs and video codecs
-        $sql = 'UPDATE IGNORE `sip` SET `data` = ? WHERE `id` = ? AND `keyword` = ?';
-        $stmt = $dbh->prepare($sql);
-        $stmt->execute(array('ulaw,alaw,gsm,g726,vp8',$extension,'allow'));
+        setExtensionCodecs($extension, NETHVOICE_CODECS_SOFTPHONE);
 
         //Set SIP options
         // Set rewrite contact = no
@@ -319,6 +314,7 @@ function useExtensionAsCustomPhysical($extension, $secret = false, $type = 'phys
             throw new Exception("Error creating custom device");
         }
 
+        setExtensionCodecs($extension, NETHVOICE_CODECS_PHONE);
         // Set rewrite contact = no
         setSipData($extension,'rewrite_contact','no');
         // disable SRTP
@@ -358,6 +354,7 @@ function useExtensionAsMobileApp($extension) {
             throw new Exception("Error creating custom device");
         }
 
+        setExtensionCodecs($extension, NETHVOICE_CODECS_SOFTPHONE);
         // Set force_rport to no
         setSipData($extension,'force_rport','no');
         // Set maximum_expiration
@@ -430,6 +427,7 @@ function legacy_useExtensionAsPhysical($extension,$mac,$model,$line=false, $web_
         }
 
         if ($res) {
+            setExtensionCodecs($extension, NETHVOICE_CODECS_PHONE);
             // Add extension to endpointman
             $endpoint = FreePBX::endpointmanager();
             $mainextension = FreePBX::create()->Core->getUser(getMainExtension($extension));
@@ -495,6 +493,7 @@ function tancredi_useExtensionAsPhysical($extension,$mac,$model,$line=false,$web
     $stmt = $dbh->prepare($sql);
     $res = $stmt->execute(array(getMainExtension($extension),$extension,$extension_secret,$web_user,$web_password,$mac));
     if ($res) {
+        setExtensionCodecs($extension, NETHVOICE_CODECS_PHONE);
         // Set rewrite contact = no
         setSipData($extension,'rewrite_contact','no');
         // disable SRTP
@@ -633,6 +632,8 @@ function useExtensionAsGSWaveApp($extension,$mac,$model) {
         } else {
             throw new Exception("Error adding device");
         }
+
+        setExtensionCodecs($extension, NETHVOICE_CODECS_PHONE);
 
         //Allows unencrypted SRTP
         $sql = 'UPDATE IGNORE `sip` SET `data` = ? WHERE `id` = ? AND `keyword` = ?';
