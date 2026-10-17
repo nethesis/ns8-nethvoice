@@ -9,7 +9,7 @@ RUN git clone https://github.com/nethesis/nethvoice-report \
     && git checkout $NETHVOICE_REPORT_COMMIT
 
 ### UI ###
-FROM docker.io/library/node:14.21.2-alpine as node_build
+FROM docker.io/library/node:24.21.0-alpine as node_build
 WORKDIR /app
 # Install npm dependencies
 COPY --from=repofetcher /app/nethvoice-report/ui/package.json .
