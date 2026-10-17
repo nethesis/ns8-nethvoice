@@ -32,7 +32,7 @@ jobs:
       statuses: write
     uses: NethServer/ns8-github-actions/.github/workflows/test-module-qemu.yml@v1
     with:
-      ui_tests_strategy: on_renovate_ui_change
+      ui_tests_strategy: always
       debug_shell: ${{ inputs.debug_shell == true }}
 
   module:

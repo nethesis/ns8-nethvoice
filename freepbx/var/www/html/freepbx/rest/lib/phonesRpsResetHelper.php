@@ -42,7 +42,7 @@ if ($resetOnHostChange) {
     $sth = $db->prepare($sql);
     $sth->execute();
     $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
-    $hostChanged = count($result) > 0 && $result[0]['value'] != $_ENV['NETHVOICE_HOST'];
+    $hostChanged = count($result) > 0 && strcasecmp($result[0]['value'], $_ENV['NETHVOICE_HOST']) !== 0;
 
     // Store the current hostname before the reset attempt, preserving one-shot behavior.
     $sth = $db->prepare("DELETE IGNORE FROM `asterisk`.`admin` WHERE `variable` = 'NETHVOICE_HOST'");
