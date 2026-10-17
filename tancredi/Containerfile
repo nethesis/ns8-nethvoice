@@ -1,5 +1,5 @@
 
-FROM docker.io/library/php:8.3-apache-bookworm
+FROM docker.io/library/php:8.5-apache-bookworm
 
 COPY etc /etc
 COPY usr /usr
