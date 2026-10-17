@@ -106,6 +106,30 @@ Notes:
 - Use `-v` / `--verbose` to see request/response details and headers.
 
 
+## Chat
+
+The NethVoice chat (NethServer/dev#7648) is switched on from the Integrations page, or with
+`set-integrations` and `{"chat_enabled": true}`. It adds two units running the `nethvoice-ejabberd`
+image (see `ejabberd/README.md`): `chat-server` (ejabberd: XMPP over WebSocket, file uploads) and
+`chat-gateway` (push notifications, mobile app web services). Both listen on loopback only.
+
+- Ports: `CHAT_C2S_PORT`, `CHAT_HTTP_PORT`, `CHAT_COMPONENT_PORT`, `CHAT_GW_PORT`, four TCP ports of the module range.
+- Traefik routes on the CTI host: `/xmpp-websocket`, `/upload`, `/chat-gw`; removed when the chat is off.
+- Volumes: `chat-data` (ejabberd database), `chat-upload` (attachments), `chat-gw` (gateway database).
+  The backup takes consistent snapshots of the two databases (`state/chat.db`, `state/chat-gw.db`) and the upload volume.
+- Secret: `CHAT_COMPONENT_SECRET` in `passwords.env`.
+- CTI groups: every CTI operator group is a group chat (`cti-<name>` room) kept by the gateway every 2 minutes.
+  Its members are who sees the group in the CTI operators panel: the group's members, plus users with the
+  `all_groups` or that group's `grp_` permission. Members join and leave with the CTI; a deleted group's room is
+  destroyed; a renamed group gets a new room.
+- Settings, on the Integrations page or in `set-integrations` (defaults in brackets): `chat_retention_days` (365,
+  3650 means forever) days kept for messages and uploads, `chat_upload_quota_mb` (200) upload space per user,
+  `chat_upload_max_file_mb` (25) largest upload. `CHAT_DEBUG` (unset) turns on verbose logs of the chat programs.
+
+  ```
+  api-cli run module/nethvoice1/set-integrations --data '{"chat_enabled": true, "chat_retention_days": 180}'
+  ```
+
 ## Timer logs
 
 These units are silenced to keep the journal small:
@@ -114,6 +138,7 @@ These units are silenced to keep the journal small:
 - `nethvoice-queue-stats-reset.service` (every minute)
 - `nethvoice-hotel-alarms.service` (every minute)
 - `satellite-recordings-cleanup.service` (every 10 minutes)
+- `chat-retention.service` (daily)
 
 Each one sets:
 
