@@ -146,7 +146,8 @@ SELECT 'binds','{"wss":{"0.0.0.0":"on"},"udp":{"0.0.0.0":"on"},"tcp":{"0.0.0.0":
 WHERE NOT EXISTS (SELECT 1 FROM kvstore_Sipsettings existing WHERE existing.\`key\`=defaults.k);
 UPDATE kvstore_Sipsettings SET val='' WHERE (\`key\` LIKE 'tcplocalnet-%' OR \`key\` LIKE 'udplocalnet-%' OR \`key\` LIKE 'tlslocalnet-%') AND LOWER(TRIM(val))='none';
 INSERT INTO freepbx_settings (keyword,value,name,level,description,type,options,defaultval,readonly,hidden,category,module,emptyok,sortorder)
-VALUES ('ASTMANAGERPORT','${ASTMANAGERPORT}','Asterisk Manager Port',2,'Port for the Asterisk Manager','int','1024,65535','${ASTMANAGERPORT}',1,0,'Asterisk Manager','',0,0)
+VALUES ('ASTMANAGERPORT','${ASTMANAGERPORT}','Asterisk Manager Port',2,'Port for the Asterisk Manager','int','1024,65535','${ASTMANAGERPORT}',1,0,'Asterisk Manager','',0,0),
+('HTTPTLSENABLE','1','Enable TLS for the mini-HTTP Server',3,'Enable the Asterisk HTTPS listener','bool','','0',0,0,'Asterisk Builtin mini-HTTP server','',0,0)
 ON DUPLICATE KEY UPDATE value=VALUES(value),defaultval=VALUES(defaultval);
 UPDATE freepbx_settings SET value=CASE keyword
 WHEN 'HTTPBINDPORT' THEN '${ASTERISK_WS_PORT}'
