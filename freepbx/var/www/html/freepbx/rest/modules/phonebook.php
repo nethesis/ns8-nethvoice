@@ -236,7 +236,7 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
             if (!empty($data['cti_import'])) {
                 $csvPath = isset($data['url']) ? uploadedCsvPath($data['url']) : false;
                 if ($csvPath !== false && !csvHeaderIsCommaSeparated($csvPath)) {
-                    return $response->withJson(array("status"=>"CSV separator must be a comma"), 400);
+                    return jsonResponse($response, array("status"=>"CSV separator must be a comma"), 400);
                 }
             }
         } else if($data['dbtype'] == 'infinity') {
@@ -360,16 +360,16 @@ $app->post('/phonebook/import-cti', function (Request $request, Response $respon
             return jsonResponse($response, array("status"=>"Missing value: mapping"), 400);
         }
         if (empty(array_intersect(array('name', 'firstname', 'lastname'), array_values($mapping)))) {
-            return $response->withJson(array("status"=>"Mapping must include the 'name' or 'firstname'/'lastname' destination"), 400);
+            return jsonResponse($response, array("status"=>"Mapping must include the 'name' or 'firstname'/'lastname' destination"), 400);
         }
 
         $url = isset($data['url']) ? $data['url'] : '';
         $srcPath = uploadedCsvPath($url);
         if ($srcPath === false) {
-            return $response->withJson(array("status"=>"CSV file not found"), 400);
+            return jsonResponse($response, array("status"=>"CSV file not found"), 400);
         }
         if (!csvHeaderIsCommaSeparated($srcPath)) {
-            return $response->withJson(array("status"=>"CSV separator must be a comma"), 400);
+            return jsonResponse($response, array("status"=>"CSV separator must be a comma"), 400);
         }
 
         $in = fopen($srcPath, 'r');
