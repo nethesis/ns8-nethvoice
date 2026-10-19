@@ -12,6 +12,7 @@ EnvironmentFile=%E/state/environment
 EnvironmentFile=%E/state/passwords.env
 WorkingDirectory=%E/state
 Restart=always
+TimeoutStartSec=600
 ExecStartPre=/bin/rm -f %t/mariadb.pid %t/mariadb.ctr-id
 ExecStart=/usr/bin/podman run \
 	--detach \
