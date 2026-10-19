@@ -59,6 +59,7 @@ lt_import_asterisk_dump() {
 lt_sync_imported_dump_with_environment() {
   lt_section 'Syncing imported dump with current environment'
 
+  podman exec "${MARIADB_CONTAINER}" /usr/local/bin/nethvoice-db-init
   podman exec "${FREEPBX_CONTAINER}" php /initdb.d/initdb.php
   podman exec "${FREEPBX_CONTAINER}" php /initdb.d/migration.php
   podman exec "${FREEPBX_CONTAINER}" php /initdb.d/update.php
