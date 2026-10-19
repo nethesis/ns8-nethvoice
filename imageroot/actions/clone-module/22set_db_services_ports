@@ -1,4 +1,6 @@
 #!/bin/bash
 set -e
+# The database was started before destination ports/secrets were allocated.
+systemctl --user restart mariadb.service
 runagent mysql-update-postprocess
 runagent prepare-asterisk-config

@@ -9,7 +9,7 @@ set -e    # exit immediately if an error occurs
 exec 1>&2 # ensure any output is sent to stderr
 
 # Prepare the database before restarting any application consumer.
-systemctl --user try-restart mariadb.service
+mariadb_was_active=$(systemctl --user is-active mariadb.service || true)
 systemctl --user enable --now mariadb.service
 runagent mysql-update-postprocess
 runagent prepare-asterisk-config
@@ -23,6 +23,11 @@ RESTART_SERVICES="freepbx.service \
                  reports-api.service \
                  reports-ui.service"
 
+# Restart MariaDB and its consumers in one transaction, after preparation.
+# A database started above already has the current environment.
+if [[ "$mariadb_was_active" == active ]]; then
+    RESTART_SERVICES="mariadb.service $RESTART_SERVICES"
+fi
 systemctl --user try-restart $RESTART_SERVICES
 
 # If the control reaches this step, the service can be enabled and started
