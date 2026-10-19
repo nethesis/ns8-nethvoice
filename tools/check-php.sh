@@ -17,6 +17,22 @@ done < "$php_files"
 file_count=$(wc -l < "$php_files" | tr -d ' ')
 echo "PHP syntax check passed for $file_count files with PHP $(php -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;')"
 
+php "$repo_root/freepbx/tests/pin_agi_test.php"
+
+if find "$repo_root/freepbx/var/www/html/freepbx/rest" -type f -name '*.php' \
+    -exec grep -nH -E -e '->withJson[[:space:]]*\(' {} +; then
+    echo 'Slim 4 responses must use jsonResponse(), not withJson().' >&2
+    exit 1
+fi
+
+# ext_macro is supported by the FreePBX 17 adapter, which emits Gosub.
+# Raw application names bypass that adapter and fail on Asterisk 22.
+if find "$repo_root/freepbx/var/www/html/freepbx/admin/modules" -type f -name '*.php' \
+    -exec grep -nH -i -E "(exec|ext_execif)[[:space:]]*\([^;]*['\"]Macro(Exit)?['\"]" {} +; then
+    echo 'Raw Macro and MacroExit applications are unsupported on Asterisk 22.' >&2
+    exit 1
+fi
+
 set -- \
     "$repo_root/freepbx/configure_users.php" \
     "$repo_root/freepbx/initdb.d" \

@@ -391,7 +391,10 @@ RUN install_module() { \
 COPY patches /tmp/nethvoice-core-patches
 RUN for core_patch in /tmp/nethvoice-core-patches/freepbx-core-821*.patch; do \
         patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < "$core_patch" || exit 1; \
-    done && rm -rf /tmp/nethvoice-core-patches
+    done && \
+    # Keep paging groups reachable through from-internal-xfer for blind transfers.
+    patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/paging < /tmp/nethvoice-core-patches/freepbx-paging-transfers.patch && \
+    rm -rf /tmp/nethvoice-core-patches
 
 # PHP 8.x compatibility: harden customcontexts against empty dialpattern array entries
 # (PHP 8 throws "Undefined array key 0" when indexing into an empty string).

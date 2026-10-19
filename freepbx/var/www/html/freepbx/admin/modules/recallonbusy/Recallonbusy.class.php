@@ -134,7 +134,7 @@ class Recallonbusy extends \FreePBX_Helpers implements \BMO
 		} else {
 			$ifstring = '$["${DB(AMPUSER/${AMPUSER}/cidnum)}" != "" & ("${DIALSTATUS}"="BUSY" | "${DIALSTATUS}"="CHANUNAVAIL") & "${DB(ROBconfig/${AMPUSER})}"="enabled" & "${DB(DND/${EXTTOCALL})}" != "YES"]';
 		}
-		$ext->splice('macro-exten-vm', 's', 20, new \ext_execif($ifstring,'MacroExit'));
+		$ext->splice('macro-exten-vm', 's', 20, new \ext_execif($ifstring,'Return'));
 		$context = 'recall-on-busy';
 		$ext->add($context, 's', '', new \ext_agi('recallonbusy_set.php,${EXTTOCALL}'));
 		$ext->add($context, 's', '', new \ext_return());

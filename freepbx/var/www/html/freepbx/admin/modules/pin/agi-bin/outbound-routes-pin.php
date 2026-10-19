@@ -76,4 +76,4 @@ for ($i = 1; $i <=3; $i ++) {
     neth_debug('incorrect pin');
 }
 neth_debug('incorrect pin inserted for 3 times, hangup');
-$agi->exec("Macro","hangupcall");
+$agi->hangup();

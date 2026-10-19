@@ -50,9 +50,9 @@ $app->get('/nethlink/info/{username}', function (Request $request, Response $res
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!empty($row)) {
-            return $response->withJson($row, 200);
+            return jsonResponse($response, $row, 200);
         } else {
-            return $response->withJson(null, 200);
+            return jsonResponse($response, null, 200);
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
