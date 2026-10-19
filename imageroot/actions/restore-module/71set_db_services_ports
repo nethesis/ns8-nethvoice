@@ -1,3 +1,0 @@
-#!/bin/bash
-# Preparation now runs before configure-module in 69set_db_services_ports.
-exit 0

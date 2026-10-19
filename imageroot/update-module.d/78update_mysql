@@ -1,3 +1,0 @@
-#!/bin/bash
-# Compatibility stub: preparation and restart now run together in 80restart.
-exit 0

@@ -1,3 +1,0 @@
-#!/bin/bash
-# Database connection rewrites now run before configure-module.
-exit 0

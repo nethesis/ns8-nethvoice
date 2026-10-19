@@ -1,3 +1,0 @@
-#!/bin/bash
-# Compatibility stub: database preparation runs before applications in 80start_services.
-exit 0
