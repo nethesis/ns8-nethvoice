@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 # wait for asterisk to start
 while [[ $(/usr/sbin/asterisk -rx 'core show version' 2>/dev/null) != Asterisk* ]]; 
     do ((++attempt<300)) || exit 2

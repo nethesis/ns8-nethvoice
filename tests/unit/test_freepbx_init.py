@@ -25,6 +25,7 @@ fwconsole) if [[ "$*" == 'ma list' ]]; then echo '| core | 17.0 | Disabled |'; f
 su) exit "${TEST_RELOAD_EXIT:-0}";;
 php) cat >/dev/null;;
 esac
+if [[ "$(basename "$0") $*" == "${TEST_NONCRITICAL_FAILURE:-}" ]]; then exit 1; fi
 ''')
         stub.chmod(0o755)
         for name in ['asterisk', 'fwconsole', 'su', 'php', 'ionice', 'sleep']:
@@ -33,7 +34,8 @@ esac
         script = script.replace('/usr/sbin/asterisk', str(self.root / 'asterisk'))
         script = script.replace('/freepbx_custom_modules', str(self.root / 'custom'))
         self.script = self.root / 'init.sh'
-        self.script.write_text(script)
+        # Wait for the background update stub so its log is complete.
+        self.script.write_text(script + '\nwait\n')
 
     def run_init(self, **extra):
         result = subprocess.run(['bash', str(self.script)],
@@ -54,6 +56,18 @@ esac
         self.assertEqual(result.returncode, 1)
         self.assertNotIn('phonesRpsResetHelper', calls)
         self.assertNotIn('core restart', calls)
+
+    def test_noncritical_failures_do_not_skip_final_initialization(self):
+        for command in ['fwconsole moduleadmin install core',
+                        'ionice -c2 -n7 nice -n 10 fwconsole chown',
+                        'fwconsole userman --syncall --force --verbose']:
+            with self.subTest(command=command):
+                self.calls.unlink(missing_ok=True)
+                result, calls = self.run_init(TEST_NONCRITICAL_FAILURE=command)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('su asterisk', calls)
+                self.assertIn('phonesRpsResetHelper', calls)
+                self.assertIn('slow_database_updates.php', calls)
 
 
 if __name__ == '__main__':

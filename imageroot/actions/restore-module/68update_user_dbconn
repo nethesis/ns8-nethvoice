@@ -7,6 +7,8 @@
 
 import agent
 import os
+import subprocess
+import sys
 
 # Update user_dbconn before FreePBX starts.
 agent.run_helper("systemctl", "--user", "start", "mariadb.service").check_returncode()
@@ -27,12 +29,11 @@ ON DUPLICATE KEY UPDATE
     `user` = VALUES(`user`),
     `pass` = VALUES(`pass`),
     `name` = VALUES(`name`),
-    `creation` = VALUES(`creation`)
+    `creation` = VALUES(`creation`);
 """
-agent.run_helper(*f'podman exec mariadb mysql nethcti3 -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
 
 # SQL query to insert or update user_dbconn for asteriskcdrdb
-SQL_QUERY = f"""
+SQL_QUERY += f"""
 INSERT INTO user_dbconn (`id`,`host`,`port`,`type`,`user`,`pass`,`name`,`creation`)
 VALUES (2,"127.0.0.1","{os.environ['NETHVOICE_MARIADB_PORT']}","mysql","{os.environ['AMPDBUSER']}","{AMPDBPASS}","asteriskcdrdb",NOW())
 ON DUPLICATE KEY UPDATE
@@ -42,6 +43,11 @@ ON DUPLICATE KEY UPDATE
     `user` = VALUES(`user`),
     `pass` = VALUES(`pass`),
     `name` = VALUES(`name`),
-    `creation` = VALUES(`creation`)
+    `creation` = VALUES(`creation`);
 """
-agent.run_helper(*f'podman exec mariadb mysql nethcti3 -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
+subprocess.run(
+    ['podman', 'exec', '-i', '--env', 'MYSQL_PWD', 'mariadb',
+     'mysql', 'nethcti3', '-u', 'root'],
+    env=dict(os.environ, MYSQL_PWD=MARIADB_ROOT_PASSWORD),
+    input=SQL_QUERY, text=True, stdout=sys.stderr, check=True,
+)

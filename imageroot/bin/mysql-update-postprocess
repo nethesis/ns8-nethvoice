@@ -28,4 +28,4 @@ podman run --rm --network=host \
     --env=NETHVOICE_MARIADB_PORT --env=AMPDBUSER \
     --env=ASTERISK_* --env=ASTMANAGERPORT --env=PROXY_IP --env=PROXY_PORT \
     --entrypoint=/usr/local/bin/nethvoice-db-init \
-    "${NETHVOICE_MARIADB_IMAGE}"
+    "${NETHVOICE_MARIADB_IMAGE}" "$@"

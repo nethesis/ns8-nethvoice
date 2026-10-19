@@ -6,7 +6,7 @@
 set -e
 
 systemctl --user daemon-reload
-runagent mysql-update-postprocess
+runagent mysql-update-postprocess --migrate
 runagent prepare-asterisk-config
 
 echo "Restarting services when there are no active calls" >&2

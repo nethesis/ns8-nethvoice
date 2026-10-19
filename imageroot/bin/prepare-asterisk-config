@@ -6,6 +6,7 @@
 import os
 import subprocess
 import sys
+import time
 
 
 def main():
@@ -13,11 +14,22 @@ def main():
         ['podman', 'exec', 'freepbx', 'true'],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     ).returncode == 0:
-        subprocess.run(
-            ['podman', 'exec', '--user', 'asterisk', 'freepbx', 'fwconsole',
-             'reload', '--dont-reload-asterisk', '--no-interaction'],
-            check=True, stdout=sys.stderr,
-        )
+        # Match startup's bounded retry for FreePBX's reload lock. Other
+        # errors must stop preparation before services are restarted.
+        for attempt in range(60):
+            result = subprocess.run(
+                ['podman', 'exec', '--user', 'asterisk', 'freepbx', 'fwconsole',
+                 'reload', '--dont-reload-asterisk', '--no-interaction'],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+            )
+            print(result.stdout, end='', file=sys.stderr)
+            if result.returncode == 0:
+                break
+            if (result.returncode != 255 or
+                    'Process is already running.' not in result.stdout or attempt == 59):
+                result.check_returncode()
+            print('FreePBX reload is busy, retrying in five seconds', file=sys.stderr)
+            time.sleep(5)
         return
 
     # Restore/clone can carry generated files from another instance. Update
@@ -38,11 +50,11 @@ path = root / 'pjsip.transports.conf'
 if path.exists():
     sections = re.split(r'(?m)(?=^\[)', path.read_text())
     for i, section in enumerate(sections):
-        protocol = re.search(r'(?m)^protocol\s*=\s*(udp|tcp|tls)\s*$', section)
+        protocol = re.search(r'(?m)^protocol[ \t]*=[ \t]*(udp|tcp|tls)[ \t]*$', section)
         if protocol:
             key = {'udp': 'ASTERISK_SIP_UDP_PORT', 'tcp': 'ASTERISK_SIP_PORT',
                    'tls': 'ASTERISK_SIPS_PORT'}[protocol[1]]
-            sections[i] = re.sub(r'(?m)^(bind\s*=\s*[^\n]+?):[0-9]+\s*$',
+            sections[i] = re.sub(r'(?m)^(bind[ \t]*=[ \t]*[^\n]+?):[0-9]+[ \t]*$',
                                  lambda m: m[1] + ':' + os.environ[key], section)
     path.write_text(''.join(sections))
 
@@ -50,7 +62,7 @@ for filename, settings in {
     'sip_general_additional.conf': {'bindport': 'ASTERISK_SIP_UDP_PORT'},
     'iax_general_additional.conf': {'bindport': 'ASTERISK_IAX_PORT'},
     'rtp_additional.conf': {'rtpstart': 'ASTERISK_RTPSTART', 'rtpend': 'ASTERISK_RTPEND'},
-    'http_additional.conf': {'bindport': 'ASTERISK_WS_PORT', 'tlsbindport': 'ASTERISK_WSS_PORT'},
+    'http_additional.conf': {'bindport': 'ASTERISK_WS_PORT'},
     'manager.conf': {'port': 'ASTMANAGERPORT'},
 }.items():
     path = root / filename
@@ -58,8 +70,11 @@ for filename, settings in {
         continue
     content = path.read_text()
     for setting, key in settings.items():
-        content = re.sub(r'(?m)^(' + setting + r'\s*=\s*)[0-9]+\s*$',
+        content = re.sub(r'(?m)^(' + setting + r'[ \t]*=[ \t]*)[0-9]+[ \t]*$',
                          lambda m: m[1] + os.environ[key], content)
+    if filename == 'http_additional.conf':
+        content = re.sub(r'(?m)^(tlsbindaddr[ \t]*=[ \t]*[^\n]+):[0-9]+[ \t]*$',
+                         lambda m: m[1] + ':' + os.environ['ASTERISK_WSS_PORT'], content)
     path.write_text(content)
 ''', text=True, check=True, stdout=sys.stderr,
     )
