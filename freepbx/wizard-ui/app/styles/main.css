@@ -1218,6 +1218,13 @@ a {
   padding-top: 10px !important;
 }
 
+/* Submenu links use the same spacing as the adjacent menu items. */
+.nav-pf-vertical-alt .panel-collapse a.menu-item-left {
+  height: auto;
+  padding-right: 0;
+  padding-bottom: 0;
+}
+
 .menu-item-left:hover {
   background: #404040;
 }
