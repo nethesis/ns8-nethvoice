@@ -12,11 +12,14 @@ assert(\NethVoice\Agents\RuntimeAccounts::install());
 assert(\NethVoice\Agents\RuntimeAccounts::install());
 $reader=new PDO($dsn,'voice_agent_config','synthetic-config-only',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
 $writer=new PDO($dsn,'voice_agent_monitor','synthetic-monitor-only',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
-assert($reader->query('SELECT COUNT(*) FROM asterisk.voice_agent_runtime_tools')->fetchColumn()===4);
+assert($reader->query('SELECT COUNT(*) FROM asterisk.voice_agent_runtime_tools')->fetchColumn()===6);
 function forbidden($db,$sql) {
     try { $db->exec($sql); throw new RuntimeException('unexpected_runtime_grant'); }
     catch (PDOException $error) { assert(in_array($error->errorInfo[1],[1142,1143],true)); }
 }
+foreach (['voice_agent_queue_directory','voice_agent_ivr_directory','voice_agent_ivr_branches'] as $view) $reader->query('SELECT * FROM asterisk.'.$view.' LIMIT 0');
+forbidden($reader,'SELECT * FROM asterisk.queues_config LIMIT 0');
+forbidden($reader,'SELECT * FROM asterisk.ivr_details LIMIT 0');
 forbidden($reader,'SELECT * FROM asterisk.voice_agent_bindings LIMIT 0');
 forbidden($reader,'SELECT * FROM asteriskcdrdb.voice_agent_runs LIMIT 0');
 forbidden($writer,'SELECT * FROM asterisk.voice_agent_published LIMIT 0');

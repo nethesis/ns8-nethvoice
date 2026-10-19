@@ -2,6 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import type { ToolDefinition } from "../../src/types";
 const tools: ToolDefinition[] = JSON.parse(readFileSync(new URL("../../../var/www/html/freepbx/rest/lib/agents/contracts/tools-v2.json", import.meta.url), "utf8"));
+tools.find(t=>t.id==='directory.find_destinations')!.editor={automatic:true};
+const modelCapabilities = JSON.parse(readFileSync(new URL("../../../var/www/html/freepbx/rest/lib/agents/contracts/provider-models-v2.json", import.meta.url), "utf8")).openai;
+const modelCatalog = {items:modelCapabilities.models,backend_models:modelCapabilities.backend_models,default_model:modelCapabilities.default,source:"provider_api",selection:"selectable"};
 
 async function login(page: Page) {
   page.on("pageerror", error => { throw error; });
@@ -10,8 +13,8 @@ async function login(page: Page) {
     localStorage.setItem("nethvoice.agents.language", "en");
   });
 }
-const draft = {provider_binding_id:"trunk_test",conversation:{language:"en",voice:"ash",greeting:"Hello",instructions:"Synthetic test instructions"},tool_bindings:tools.map(tool=>({tool_id:tool.id,tool_version:tool.version,enabled:false,config:structuredClone(tool.defaults)})),fallback_destination_id:"extension:203",max_call_duration_seconds:600};
-const catalog = {tools,extensions:[{id:"extension:203",name:"Test extension"}],providers:["openai","grok"],default_language:"it",languages:[{id:"it",label:"Italiano (it)"},{id:"en",label:"English (en)"},{id:"es",label:"Español (es)"}],provider_credentials:{openai:{environment_available:true},grok:{environment_available:false}}};
+const draft = {provider_binding_id:"trunk_test",conversation:{model:"gpt-realtime-2.1",options:null,language:"en",voice:"ash",greeting:"Hello",instructions:"Synthetic test instructions"},tool_bindings:tools.map(tool=>({tool_id:tool.id,tool_version:tool.version,enabled:false,config:structuredClone(tool.defaults)})),fallback_destination_id:"extension:203",max_call_duration_seconds:600};
+const catalog = {draft_defaults:structuredClone(draft),tools,extensions:[{id:"extension:203",name:"Test extension"}],providers:["openai","grok"],default_language:"it",languages:[{id:"it",label:"Italiano (it)"},{id:"en",label:"English (en)"},{id:"es",label:"Español (es)"}],provider_credentials:{openai:{environment_available:true},grok:{environment_available:false}}};
 const trunks = [{binding_id:"trunk_test",name:"Test provider",provider:"openai",revision:1,sync_status:"synced",openai_project_id:"proj_test",api_key_configured:true,webhook_secret_configured:true}];
 
 test("built-in agents render with v0.1 navigation and independent tool editing", async ({ page }) => {
@@ -23,13 +26,14 @@ test("built-in agents render with v0.1 navigation and independent tool editing",
     const url = new URL(route.request().url()), path = url.pathname.replace("/freepbx/rest/agents","");
     const method = route.request().method();
     expect(route.request().headers()["user"]).toBe("administrator");
+    if(path==="/trunks/models") { await route.fulfill({json:modelCatalog});return; }
     if (method !== "GET") {
       expect(route.request().headers()["x-agents-csrf"]).toBe("synthetic-csrf");
       mutations.push(path);
       const input = route.request().postDataJSON();
       expect(input.expected_revision).toBe(internal.revision);
-      if(method === "PUT") internal={...internal,name:input.profile.name,draft:input.profile.draft,revision:internal.revision+1};
-      if(path.endsWith("/publish")) internal={...internal,workflow_version:1,published:{...internal.draft,workflow_version:1},sync_status:"synced",revision:internal.revision+1};
+      if(method === "PUT") {input.profile.draft.tool_bindings[0].enabled=true; internal={...internal,name:input.profile.name,draft:input.profile.draft,revision:internal.revision+1};}
+      if(path.endsWith("/publish")) internal={...internal,workflow_version:1,enabled:true,routable:true,published:{...internal.draft,workflow_version:1},sync_status:"synced",revision:internal.revision+1};
       if(path.endsWith("/enabled")) internal={...internal,enabled:input.enabled,routable:input.enabled,revision:internal.revision+1};
       await route.fulfill({json:internal}); return;
     }
@@ -45,18 +49,19 @@ test("built-in agents render with v0.1 navigation and independent tool editing",
   await page.getByRole("link",{name:"Receptionist",exact:true}).click();
   await expect(page.getByLabel("Name",{exact:true})).toHaveValue("Receptionist");
   await page.getByLabel("Name",{exact:true}).fill("Receptionist test agent");
-  await page.getByRole("checkbox",{name:"Find approved extensions",exact:true}).locator("..").click();
+  await expect(page.getByRole("checkbox",{name:"Find approved extensions",exact:true})).toHaveCount(0);
   await page.getByRole("checkbox",{name:"Transfer to an approved extension",exact:true}).locator("..").click();
-  await page.getByLabel("Maximum search results",{exact:true}).fill("7");
+
   await page.getByLabel("Search extensions by name or number",{exact:true}).fill("203");
   await page.getByRole("checkbox",{name:"Test extension (203)",exact:true}).locator("..").click();
   await page.getByRole("button",{name:"Save draft",exact:true}).click();
   await expect(page.getByRole("button",{name:"Publish",exact:true})).toBeEnabled();
   await page.getByRole("button",{name:"Publish",exact:true}).click();
   await expect(page.getByText("Published version: 1",{exact:false})).toBeVisible();
-  await page.getByRole("button",{name:"Enable agent",exact:true}).click();
-  await expect(page.getByRole("button",{name:"Disable agent",exact:true})).toBeVisible();
-  expect(mutations).toEqual(["/profiles/receptionist","/profiles/receptionist/publish","/profiles/receptionist/enabled"]);
+  await expect(page.getByRole("button",{name:"Enable agent",exact:true})).toHaveCount(0);
+  await expect(page.getByRole("button",{name:"Disable agent",exact:true})).toHaveCount(0);
+  await expect(page.getByRole("button",{name:"Save draft",exact:true})).toBeDisabled();
+  expect(mutations).toEqual(["/profiles/receptionist","/profiles/receptionist/publish"]);
   expect(internal.draft.tool_bindings.every(binding=>binding.enabled)).toBe(true);
   expect(internal.draft.tool_bindings[1].config.approved_destination_ids).toEqual(["extension:203"]);
   expect(external.draft.tool_bindings.some(binding=>binding.enabled)).toBe(false);
@@ -70,10 +75,14 @@ test("provider credentials are write-only and cleared after saving", async ({pag
   let saved = false;
   await page.route("**/freepbx/rest/agents/**", async route => {
     const path=new URL(route.request().url()).pathname;
+    if(path.endsWith('/trunks/models')) {
+      await route.fulfill({json:{items:[{id:'gpt-realtime-2.1',label:'GPT Realtime 2.1'}],default_model:'gpt-realtime-2.1',source:'provider_api',selection:'selectable'}}); return;
+    }
     if(route.request().method()==="POST") {
       const input=route.request().postDataJSON();
       expect(input.trunk.api_key).toBe("synthetic-provider-key");
       expect(input.trunk.webhook_secret).toBe("whsec_c3ludGhldGljLXNpZ25pbmctc2VjcmV0");
+      expect(input.trunk).not.toHaveProperty("model");
       saved=true; await route.fulfill({json:trunks[0]}); return;
     }
     await route.fulfill({json:path.endsWith("/access")?{csrf:"synthetic-csrf"}:{items:saved?trunks:[]}});
@@ -110,6 +119,7 @@ test("new Basic Voice draft saves, conflicts preserve edits, and runs show bound
   const runId="11111111-1111-4111-a111-111111111111";
   await page.route("**/freepbx/rest/agents/**", async route => {
     const url=new URL(route.request().url()),path=url.pathname.replace("/freepbx/rest/agents","");
+    if(path==="/trunks/models") { await route.fulfill({json:modelCatalog});return; }
     if(route.request().method()!=="GET") {
       const input=route.request().postDataJSON();
       if(conflict) { await route.fulfill({status:409,json:{error:"revision_conflict"}}); return; }
@@ -122,7 +132,7 @@ test("new Basic Voice draft saves, conflicts preserve edits, and runs show bound
     await route.fulfill({json});
   });
   await page.goto("./#/agents/new");
-  await expect(page.getByRole("checkbox",{name:"Find approved extensions",exact:true})).not.toBeChecked();
+  await expect(page.getByRole("checkbox",{name:"Find approved extensions",exact:true})).toHaveCount(0);
   await expect(page.getByRole("checkbox",{name:"Transfer to an approved extension",exact:true})).not.toBeChecked();
   await expect(page.getByRole("button",{name:/^Default language/})).toContainText("Italiano (it)");
   await expect(page.getByRole("checkbox",{name:"Call transcription",exact:true})).not.toBeChecked();

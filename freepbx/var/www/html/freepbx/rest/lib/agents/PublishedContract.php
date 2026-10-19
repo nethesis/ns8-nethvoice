@@ -1,6 +1,7 @@
 <?php
 // SPDX-License-Identifier: GPL-3.0-or-later
 namespace NethVoice\Agents;
+require_once __DIR__.'/ProviderCatalog.php';
 
 /** Standalone validator for the deliberately small v1 JSON Schema vocabulary. */
 final class PublishedContract
@@ -8,7 +9,7 @@ final class PublishedContract
     public static function validate(array $snapshot): array
     {
         $version=$snapshot['contract_version']??0;
-        if (!in_array($version,[1,2,3,4],true)) throw new \InvalidArgumentException('invalid_snapshot');
+        if (!in_array($version,[1,2,3,4,5,6],true)) throw new \InvalidArgumentException('invalid_snapshot');
         $schema = json_decode(file_get_contents(__DIR__ . '/contracts/published-v'.$version.'.schema.json'), true, 512, JSON_THROW_ON_ERROR);
         if (strlen(json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) > 65536 ||
             !self::matches($snapshot, $schema) ||
@@ -21,10 +22,17 @@ final class PublishedContract
             foreach ($snapshot['tool_bindings'] as $binding) if (!is_int($binding['tool_version'])) throw new \InvalidArgumentException('invalid_snapshot');
         }
         if ($version>=4 && $snapshot['debug']['transcription_enabled'] && $snapshot['provider']!=='openai') throw new \InvalidArgumentException('invalid_snapshot');
+        if ($version>=5) ProviderCatalog::validateConversation($snapshot['provider'],$snapshot['conversation']);
+        if ($version>=6) {
+            foreach ($snapshot['tool_bindings'] as $binding) {
+                $descriptions=$binding['config']['descriptions']??[];
+                if (count(array_column($descriptions,'destination_id'))!==count(array_unique(array_column($descriptions,'destination_id')))) throw new \InvalidArgumentException('invalid_snapshot');
+            }
+        }
         return $snapshot;
     }
 
-    private static function matches($value, array $schema): bool
+    public static function matches($value, array $schema): bool
     {
         if (isset($schema['oneOf'])) {
             $matched=0;
@@ -48,6 +56,7 @@ final class PublishedContract
                 break;
             case 'string':
                 if (!is_string($value)) return false;
+                if (isset($schema['minLength']) && mb_strlen($value, 'UTF-8') < $schema['minLength']) return false;
                 if (isset($schema['maxLength']) && mb_strlen($value, 'UTF-8') > $schema['maxLength']) return false;
                 if (isset($schema['pattern']) && preg_match('~' . $schema['pattern'] . '~D', $value) !== 1) return false;
                 break;
@@ -56,6 +65,9 @@ final class PublishedContract
                 break;
             case 'boolean':
                 if (!is_bool($value)) return false;
+                break;
+            case 'null':
+                if ($value !== null) return false;
                 break;
             case '':
                 break;

@@ -40,6 +40,13 @@ const form = ref({
   api_key: "",
   webhook_secret: "",
 });
+function changeProvider(provider: string) {
+  if (provider === form.value.provider) return;
+  form.value.provider = provider;
+  form.value.api_key = "";
+  form.value.webhook_secret = "";
+  form.value.sip_password = "";
+}
 const webhookUrl = computed(
   () => window.location.origin + "/satellite-webhooks/" + form.value.provider,
 );
@@ -121,13 +128,14 @@ async function synchronize() {
         maxlength="100"
       />
       <FieldSelect
-        v-model="form.provider"
+        :model-value="form.provider"
         :label="t('provider')"
         :disabled="!!editing"
         :options="[
           { id: 'openai', label: 'OpenAI' },
           { id: 'grok', label: 'Grok' },
         ]"
+        @update:model-value="changeProvider"
       />
       <NeTextInput
         v-if="form.provider === 'openai'"

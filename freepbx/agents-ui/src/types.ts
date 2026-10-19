@@ -1,7 +1,10 @@
 export type JsonObject = Record<string, unknown>;
 export interface Draft {
+  contract_version?: number;
   provider_binding_id: string | null;
   conversation: {
+    model: string | null;
+    options: Record<string, string | number> | null;
     language: string;
     voice: string;
     greeting: string;
@@ -21,6 +24,7 @@ export interface Agent extends JsonObject {
   enabled: boolean;
   revision: number;
   workflow_version: number | null;
+  draft_version: number;
   sync_status: string;
   routable: boolean;
   draft: Draft;
@@ -42,11 +46,46 @@ export interface Trunk extends JsonObject {
 }
 export interface Catalog {
   tools: ToolDefinition[];
+  draft_defaults: Draft;
   extensions: { id: string; name: string }[];
   providers: string[];
   default_language: string;
   languages: { id: string; label: string }[];
   provider_credentials: Record<string, { environment_available: boolean }>;
+}
+export interface ModelField {
+  type: "string" | "integer";
+  title: string;
+  enum?: string[];
+  minimum?: number;
+  maximum?: number;
+  maxLength?: number;
+  "x-control"?: "textarea";
+}
+export interface ConversationModel {
+  id: string;
+  label: string;
+  adapter: "realtime" | "live" | "grok";
+  status: "supported" | "experimental";
+  voices: { id: string; label: string }[];
+  voice_source?: "provider_api";
+  options_schema: {
+    type: "object" | "null";
+    properties?: Record<string, ModelField>;
+  };
+  defaults: Record<string, string | number> | null;
+}
+export interface ModelCatalog {
+  items: ConversationModel[];
+  backend_models: { id: string; label: string }[];
+  source:
+    | "provider_api"
+    | "cached_provider_api"
+    | "adapter_catalog"
+    | "provider_managed";
+  selection: "selectable" | "provider_managed";
+  default_model: string;
+  discovery_error?: string;
 }
 export interface Run extends JsonObject {
   run_id: string;
@@ -76,23 +115,55 @@ export interface Run extends JsonObject {
 }
 
 export interface ConfigurationField {
-  type: "integer" | "array";
+  type: "integer" | "array" | "boolean";
   title: string;
   minimum?: number;
   maximum?: number;
-  "x-inventory"?: "extensions";
+  "x-inventory"?: "extensions" | "queues" | "ivrs";
+  "x-control"?: "destination-descriptions" | "destination-list";
 }
 export interface ToolDefinition {
   id: string;
   version: number;
   name: string;
   description: string;
-  defaults: Record<string, number | string[]>;
+  editor?: {
+    automatic?: boolean;
+    descriptions_field?: string;
+    categories?: {
+      enabled_field: string;
+      destinations_field: string;
+      inventory: string;
+      selection: "allowlist" | "denylist";
+    }[];
+  };
+  defaults: Record<string, ConfigurationValue>;
   configuration_schema: { properties: Record<string, ConfigurationField> };
 }
 export interface ToolBinding {
   tool_id: string;
   tool_version: number;
   enabled: boolean;
-  config: Record<string, number | string[]>;
+  config: Record<string, ConfigurationValue>;
+}
+
+export interface DescriptionOverride {
+  destination_id: string;
+  description: string;
+}
+export type ConfigurationValue =
+  number | boolean | string[] | DescriptionOverride[];
+export interface DestinationPage {
+  items: {
+    id: string;
+    type: string;
+    name: string;
+    description: string;
+    available: boolean;
+    permitted: boolean;
+  }[];
+  next_offset: number | null;
+  total: number;
+  modules: Record<string, boolean>;
+  unavailable_ids: string[];
 }

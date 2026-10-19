@@ -15,7 +15,11 @@ const query = useQuery({
 const rows = computed(() =>
   (query.data.value?.items || []).map((a) => ({
     ...a,
-    status: a.enabled ? (a.routable ? "enabled" : "pending") : "disabled",
+    status: a.workflow_version
+      ? a.routable
+        ? "published"
+        : "pending"
+      : "draft",
   })),
 );
 </script>

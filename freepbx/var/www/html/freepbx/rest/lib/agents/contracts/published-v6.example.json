@@ -1,0 +1,46 @@
+{
+  "contract_version": 6,
+  "agent_id": "basic_voice",
+  "destination_id": "agent:basic_voice",
+  "workflow_version": 1,
+  "provider_binding_id": "provider_test",
+  "provider": "openai",
+  "conversation": {
+    "language": "en",
+    "voice": "marin",
+    "greeting": "Hello",
+    "instructions": "Help the test caller.",
+    "model": "gpt-realtime-2.1",
+    "options": null
+  },
+  "fallback_destination_id": "hangup",
+  "max_call_duration_seconds": 600,
+  "tool_bindings": [
+    {
+      "tool_id": "pbx.find_destinations",
+      "tool_version": 1,
+      "enabled": false,
+      "config": {
+        "max_results": 20
+      }
+    },
+    {
+      "tool_id": "pbx.transfer",
+      "tool_version": 1,
+      "enabled": false,
+      "config": {
+        "extensions_enabled": false,
+        "extension_allowlist": [],
+        "queues_enabled": true,
+        "queue_denylist": [],
+        "ivrs_enabled": true,
+        "ivr_denylist": [],
+        "descriptions": []
+      }
+    }
+  ],
+  "debug": {
+    "transcription_enabled": false,
+    "retention_hours": 24
+  }
+}

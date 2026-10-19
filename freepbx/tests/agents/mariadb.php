@@ -12,6 +12,20 @@ $db->exec('CREATE TABLE asterisk.users (extension VARCHAR(20) PRIMARY KEY, name 
 $db->exec("INSERT INTO asterisk.users VALUES ('203','Test extension')");
 \NethVoice\Agents\Schema::install($db);
 assert($db->query("SELECT agent_id FROM asterisk.voice_agent_agents WHERE kind='builtin'")->fetchAll(PDO::FETCH_COLUMN)===['receptionist']);
+$seedPrompt=fn()=>$db->query("SELECT JSON_UNQUOTE(JSON_EXTRACT(definition_json,'$.conversation.instructions')) FROM asterisk.voice_agent_drafts WHERE agent_id='receptionist'")->fetchColumn();
+assert($seedPrompt()===\NethVoice\Agents\ReceptionistDefaults::INSTRUCTIONS);
+// Upgrades fill the former blank seed, preserving edits even when left blank.
+$db->exec("UPDATE asterisk.voice_agent_drafts SET definition_json=JSON_SET(definition_json,'$.conversation.instructions','Operator prompt') WHERE agent_id='receptionist'");
+\NethVoice\Agents\Schema::install($db);
+assert($seedPrompt()==='Operator prompt');
+$db->exec("UPDATE asterisk.voice_agent_agents SET revision=2 WHERE agent_id='receptionist'");
+$db->exec("UPDATE asterisk.voice_agent_drafts SET revision=2,definition_json=JSON_SET(definition_json,'$.conversation.instructions','') WHERE agent_id='receptionist'");
+\NethVoice\Agents\Schema::install($db);
+assert($seedPrompt()==='');
+$db->exec("UPDATE asterisk.voice_agent_agents SET revision=1 WHERE agent_id='receptionist'");
+$db->exec("UPDATE asterisk.voice_agent_drafts SET revision=1 WHERE agent_id='receptionist'");
+\NethVoice\Agents\Schema::install($db);
+assert($seedPrompt()===\NethVoice\Agents\ReceptionistDefaults::INSTRUCTIONS);
 $snapshot = json_decode(file_get_contents(__DIR__ . '/../../var/www/html/freepbx/rest/lib/agents/contracts/published-v1.example.json'), true);
 \NethVoice\Agents\PublishedContract::validate($snapshot);
 $db->exec("INSERT INTO asterisk.voice_agent_agents (agent_id, name, destination_id) VALUES ('basic_voice', 'Synthetic', 'agent:basic_voice')");
@@ -31,7 +45,7 @@ denied(fn() => $db->exec('DELETE FROM asterisk.voice_agent_versions'));
 // Accounts are only for this isolated test. Actual passwords are provisioned separately.
 foreach (['m0_reader', 'm0_writer'] as $user) $db->exec("CREATE USER '$user'@'%' IDENTIFIED BY ''");
 $db->exec("GRANT SELECT ON asterisk.voice_agent_published TO 'm0_reader'@'%'");
-foreach (['voice_agent_runtime_bindings','voice_agent_extension_directory','voice_agent_runtime_tools'] as $view) $db->exec("GRANT SELECT ON asterisk.$view TO 'm0_reader'@'%'");
+foreach (['voice_agent_runtime_bindings','voice_agent_extension_directory','voice_agent_runtime_tools','voice_agent_queue_directory','voice_agent_ivr_directory','voice_agent_ivr_branches'] as $view) $db->exec("GRANT SELECT ON asterisk.$view TO 'm0_reader'@'%'");
 $db->exec("GRANT SELECT, INSERT ON asteriskcdrdb.voice_agent_runs TO 'm0_writer'@'%'");
 $db->exec("GRANT UPDATE (provider_call_id, ended_at, outcome, error_code) ON asteriskcdrdb.voice_agent_runs TO 'm0_writer'@'%'");
 $db->exec("GRANT SELECT, INSERT ON asteriskcdrdb.voice_agent_run_events TO 'm0_writer'@'%'");

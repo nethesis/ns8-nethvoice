@@ -19,7 +19,7 @@ $native = new class {
     public function inUse(string $id): bool { return $this->inUse; }
 };
 putenv('SATELLITE_AGENT_CONFIG_KEY=synthetic-disposable-key');
-$service = new Service($db, $native);
+$service = new Service($db, $native,new \NethVoice\Agents\ProviderCatalog(fn()=>['data'=>array_map(fn($item)=>['id'=>$item['id']],\NethVoice\Agents\ProviderCatalog::capabilities('openai')['models'])]));
 function check($condition, $name) { if (!$condition) throw new RuntimeException($name); }
 function denied(callable $call, string $code) {
     try { $call(); } catch (Throwable $error) { check($error->getMessage() === $code, $code.": got ".$error->getMessage()); return; }
@@ -29,7 +29,9 @@ $internal = $service->get('receptionist');
 $external = $service->save(null,['name'=>'Independent custom','draft'=>$internal['draft']],0,'test-admin');
 check(array_column(array_filter($service->all(),fn($agent)=>$agent['kind']==='builtin'),'agent_id')===['receptionist'],'sole_builtin');
 check($internal['kind'] === 'builtin' && !$internal['enabled'], 'seed_disabled');
-check(!array_filter($external['draft']['tool_bindings'],fn($binding)=>$binding['enabled']), 'deny_by_default');
+check(str_contains($internal['draft']['conversation']['instructions'],'You are the Receptionist'),'receptionist_prompt_seeded');
+check($internal['draft']['conversation']['instructions']===Service::receptionistDraft()['conversation']['instructions'],'shared_receptionist_prompt');
+check(!$external['draft']['tool_bindings'][1]['enabled'] && $external['draft']['tool_bindings'][0]['enabled'], 'discovery_automatic_transfer_denied');
 check($external['draft']['conversation']['language']==='it','freepbx_language_default');
 putenv('OPENAI_API_KEY=synthetic-environment-key');
 $envTrunk=$service->saveTrunk(null,['name'=>'Environment provider','provider'=>'openai','openai_project_id'=>'proj_env','api_key'=>'','webhook_secret'=>'whsec_'.base64_encode('synthetic-webhook')],0,'test-admin');
@@ -40,6 +42,7 @@ $trunk = $service->saveTrunk(null, ['name'=>'Test provider','provider'=>'openai'
 check($trunk['api_key_configured'] && !str_contains(json_encode($trunk), 'synthetic-api'), 'secret_not_returned');
 $draft = $internal['draft'];
 $draft['conversation']['voice'] = 'ash';
+$draft['conversation']['model'] = 'gpt-realtime-2.1';
 $draft['conversation']['instructions'] = 'Synthetic test agent';
 $draft['provider_binding_id'] = $trunk['binding_id'];
 $draft['fallback_destination_id'] = 'extension:203';
@@ -51,12 +54,14 @@ $saved = $service->save('receptionist', ['name'=>'Test Receptionist','draft'=>$d
 denied(fn() => $service->save('receptionist', ['name'=>'Stale','draft'=>$draft], $internal['revision'], 'test-admin'), 'revision_conflict');
 Schema::install($db);
 check($service->get('receptionist')['name'] === 'Test Receptionist', 'seed_does_not_reset');
+check($service->get('receptionist')['draft']['conversation']['instructions']==='Synthetic test agent','seed_preserves_custom_prompt');
 $published = $service->publish('receptionist', $saved['revision'], 'test-admin');
-$enabled = $service->enable('receptionist', true, $published['revision'], 'test-admin');
+$enabled = $published;
+check($published['enabled'] && $published['draft_version']===$published['workflow_version'],'publication_activates');
 check($enabled['routable'], 'ready_destination');
-check($enabled['published']['contract_version']===4,'typed_publication');
-check($service->catalog()['tools']===json_decode(file_get_contents(__DIR__.'/../../var/www/html/freepbx/rest/lib/agents/contracts/tools-v2.json'),true),'immutable_catalog_contract');
-check(!array_filter($service->get($external['agent_id'])['draft']['tool_bindings'],fn($binding)=>$binding['enabled']), 'independent_grants');
+check($enabled['published']['contract_version']===5,'typed_publication');
+check(array_map(fn($tool)=>array_diff_key($tool,['editor'=>true]),array_values(array_filter($service->catalog()['tools'],fn($tool)=>$tool['version']===2)))===json_decode(file_get_contents(__DIR__.'/../../var/www/html/freepbx/rest/lib/agents/contracts/tools-v2.json'),true),'immutable_catalog_contract');
+check(!$service->get($external['agent_id'])['draft']['tool_bindings'][1]['enabled'], 'independent_grants');
 $reloads = $native->reloads;
 $draft['conversation']['instructions'] = 'Updated synthetic instructions';
 $saved = $service->save('receptionist', ['name'=>'Test Receptionist','draft'=>$draft], $enabled['revision'], 'test-admin');
@@ -73,17 +78,18 @@ denied(fn() => $service->remove('receptionist', $published['revision'], 'test-ad
 denied(fn() => $service->removeTrunk($trunk['binding_id'], $trunk['revision'], 'test-admin'), 'trunk_in_use');
 $draft['tool_bindings'][1]['config']['approved_destination_ids'] = ['extension:999'];
 denied(fn() => $service->save('receptionist', ['name'=>'Test Receptionist','draft'=>$draft], $published['revision'], 'test-admin'), 'destination_unavailable');
-$disabled = $service->enable('receptionist', false, $published['revision'], 'test-admin');
-check(!$disabled['routable'], 'disable_destination');
+denied(fn()=>$service->enable('receptionist',false,$published['revision'],'test-admin'),'activation_managed_by_publication');
 check($db->query("SELECT COUNT(*) FROM asterisk.voice_agent_audit WHERE agent_id='receptionist'")->fetchColumn() >= 6, 'audited_changes');
 $native->applyOk=false;
-$failed=$service->enable('receptionist',true,$disabled['revision'],'test-admin');
+// A fallback change requires native synchronization; publication alone activates.
+$service->setFallbacks(['receptionist'=>['expected_revision'=>$published['revision'],'destination_id'=>'extension:203']],'test-admin');
+$failed=$service->get('receptionist');
 check($failed['sync_status']==='error' && !$failed['routable'],'failed_reload_not_routable');
 $native->applyOk=true;
 check($service->synchronize('test-admin')['sync_status']==='synced','sync_retry');
 $retried=$service->get('receptionist');
 check($retried['routable'],'retry_routable');
-$service->enable('receptionist',false,$retried['revision'],'test-admin');
+check($retried['enabled'],'published_stays_active');
 check($db->query("SELECT COUNT(*) FROM asterisk.voice_agent_audit WHERE action='native_sync_failed'")->fetchColumn()===1,'retry_audited');
 $agent=$service->get('receptionist');
 $originalInstructions=$agent['published']['conversation']['instructions'];
@@ -98,8 +104,8 @@ $native->exists=false;
 check(!$service->get('receptionist')['routable'],'native_drift_not_routable');
 check($service->trunks()[0]['sync_status']==='error','native_drift_visible');
 check($service->synchronize('test-admin')['sync_status']==='synced','missing_native_recovered');
-check($agent['published']['contract_version']===4,'fallback_preserves_v4');
-$service->enable('receptionist',true,$agent['revision'],'test-admin');
+check($agent['published']['contract_version']===5,'fallback_preserves_v5');
+check($service->get('receptionist')['enabled'],'publication_owns_activation');
 // An installed legacy seed stays readable; explicit retirement cannot orphan references.
 $legacy=json_decode(file_get_contents(__DIR__.'/../../var/www/html/freepbx/rest/lib/agents/contracts/published-v1.example.json'),true);
 $legacy['agent_id']='internal';$legacy['destination_id']='agent:internal';

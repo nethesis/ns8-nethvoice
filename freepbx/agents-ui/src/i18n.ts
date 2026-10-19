@@ -1,11 +1,35 @@
 import { createI18n } from "vue-i18n";
 
 const en = {
+  routingUpgrade: "Upgrade routing draft",
+  routingUpgradeHelp:
+    "Create an unpublished routing draft for extensions, queues and IVRs. Existing extension grants are copied, transfers stay disabled, and the active publication and routes stay in use until you publish.",
+  routingPolicyHelp:
+    "Enable a category, then choose its permitted destinations. Enabled destinations can have an additional description for routing by purpose. Discovery is automatic. IVR branches describe native menu behavior only.",
+  searchDestinations: "Search destinations by name, number or purpose",
+  destinationModuleUnavailable: "This PBX module is unavailable",
+  savedPermitted: "Saved draft: permitted for direct transfer",
+  savedNotPermitted: "Saved draft: unavailable for direct transfer",
+  additionalDescription: "Additional description (optional)",
+  noMatchingDestinations: "No matching destinations",
+  destinationSearch: {
+    extensions: "Search extensions by name, number or purpose",
+    queues: "Search queues by name, number or purpose",
+    ivrs: "Search IVRs by name, number or purpose",
+  },
+
   legacyAgentHelp:
     "Legacy configuration is read-only. Configure Receptionist with fresh defaults, then remove this agent after its VisualPlan references have been replaced. Existing published calls remain supported.",
   toolSettings: {
     max_results: "Maximum search results",
     approved_destination_ids: "Approved extensions",
+    extensions_enabled: "Direct extensions",
+    extension_allowlist: "Approved extensions",
+    queues_enabled: "Queues",
+    queue_denylist: "Queues",
+    ivrs_enabled: "IVRs",
+    ivr_denylist: "IVRs",
+    descriptions: "Routing descriptions",
   },
   searchExtensions: "Search extensions by name or number",
   noMatchingExtensions: "No matching extensions",
@@ -141,7 +165,7 @@ const en = {
   model: "Model",
   credential: "Credential",
   goal: "Goal",
-  instructions: "Instructions",
+  instructions: "Conversation instructions",
   fallback: "Fallback destination",
   permissions: "Permissions",
   advanced: "Advanced settings",
@@ -320,6 +344,7 @@ const en = {
   success: "Saved successfully",
   filters: "Filters",
   status: {
+    published: "Published",
     ready: "Ready",
     draft: "Draft",
     disabled: "Disabled",
@@ -343,6 +368,17 @@ const en = {
     revoked: "Revoked",
   },
   error: {
+    model_required: "Select a conversation model on the agent page.",
+    invalid_model_options: "Check the options supported by the selected model.",
+    backend_model_unavailable:
+      "The selected backend model is unavailable with these credentials.",
+    invalid_voice: "Choose a voice compatible with the selected model.",
+    invalid_provider_model:
+      "Choose a model supported by this provider’s SIP adapter.",
+    provider_model_unavailable:
+      "The selected model is unavailable with these credentials. Refresh the model list.",
+    provider_credentials_rejected:
+      "The provider rejected these API credentials.",
     invalid_json: "Enter valid JSON before continuing.",
     request_failed:
       "The request failed. Check the configuration and try again.",
@@ -371,11 +407,34 @@ const en = {
 };
 const it: typeof en = {
   ...en,
+  routingUpgrade: "Aggiorna bozza di instradamento",
+  routingUpgradeHelp:
+    "Crea una bozza non pubblicata per interni, code e IVR. I permessi degli interni vengono copiati e i nuovi strumenti restano disabilitati. La pubblicazione e le rotte attive restano in uso fino alla pubblicazione della bozza.",
+  routingPolicyHelp:
+    "Abilita una categoria e scegli le destinazioni consentite. Per ogni destinazione abilitata puoi aggiungere una descrizione utile all’instradamento. La ricerca è automatica. Le opzioni degli IVR descrivono solo il comportamento del menu nativo.",
+  searchDestinations: "Cerca destinazioni per nome, numero o funzione",
+  destinationModuleUnavailable: "Modulo PBX non disponibile",
+  savedPermitted: "Bozza salvata: trasferimento diretto consentito",
+  savedNotPermitted: "Bozza salvata: trasferimento diretto non disponibile",
+  additionalDescription: "Descrizione aggiuntiva (opzionale)",
+  noMatchingDestinations: "Nessuna destinazione corrispondente",
+  destinationSearch: {
+    extensions: "Cerca interni per nome, numero o funzione",
+    queues: "Cerca code per nome, numero o funzione",
+    ivrs: "Cerca IVR per nome o funzione",
+  },
   legacyAgentHelp:
     "La configurazione precedente è in sola lettura. Configura Receptionist con le impostazioni iniziali, poi rimuovi questo agente dopo aver sostituito i suoi riferimenti in VisualPlan. Le chiamate già pubblicate restano supportate.",
   toolSettings: {
     max_results: "Numero massimo di risultati",
     approved_destination_ids: "Interni autorizzati",
+    extensions_enabled: "Interni diretti",
+    extension_allowlist: "Interni autorizzati",
+    queues_enabled: "Code",
+    queue_denylist: "Code",
+    ivrs_enabled: "IVR",
+    ivr_denylist: "IVR",
+    descriptions: "Descrizioni di instradamento",
   },
   searchExtensions: "Cerca interni per nome o numero",
   noMatchingExtensions: "Nessun interno corrispondente",
@@ -510,7 +569,7 @@ const it: typeof en = {
   model: "Modello",
   credential: "Credenziale",
   goal: "Obiettivo",
-  instructions: "Istruzioni",
+  instructions: "Istruzioni di conversazione",
   fallback: "Destinazione alternativa",
   permissions: "Permessi",
   advanced: "Impostazioni avanzate",
@@ -691,6 +750,7 @@ const it: typeof en = {
   success: "Salvataggio completato",
   filters: "Filtri",
   status: {
+    published: "Pubblicato",
     ready: "Pronto",
     draft: "Bozza",
     disabled: "Disabilitato",
@@ -714,6 +774,19 @@ const it: typeof en = {
     revoked: "Revocato",
   },
   error: {
+    model_required:
+      "Seleziona un modello di conversazione nella pagina agente.",
+    invalid_model_options:
+      "Verifica le opzioni supportate dal modello selezionato.",
+    backend_model_unavailable:
+      "Il modello backend selezionato non è disponibile con queste credenziali.",
+    invalid_voice: "Scegli una voce compatibile con il modello selezionato.",
+    invalid_provider_model:
+      "Scegli un modello supportato dall’adattatore SIP del provider.",
+    provider_model_unavailable:
+      "Il modello selezionato non è disponibile con queste credenziali. Aggiorna l’elenco.",
+    provider_credentials_rejected:
+      "Il provider ha rifiutato le credenziali API.",
     invalid_json: "Inserisci JSON valido prima di continuare.",
     request_failed: "Richiesta fallita. Verifica la configurazione e riprova.",
     authentication_required: "Accedi tramite il Wizard.",
@@ -739,18 +812,55 @@ const it: typeof en = {
   },
 };
 Object.assign(en, {
+  conversationSettings: "Conversation settings",
+  backendModel: "GPT-Live companion model",
+  companionModelHelp:
+    "Handles GPT-Live reasoning and tool calls. It does not produce the call's voice.",
+  modelVoicesHelp: "Available voices for {model}: {count}.",
+  backendInstructions: "Backend-task instructions",
+  reasoningEffort: "Backend reasoning effort",
+  backendVerbosity: "Backend response detail",
+  serviceTier: "Backend service tier",
+  maxOutputTokens: "Maximum backend output tokens",
+  liveExperimental:
+    "GPT-Live is experimental until its voice-call acceptance checks pass. SIP support must be enabled for your OpenAI project.",
+  liveBackendHelp:
+    "The backend handles reasoning and approved tools. These settings belong only to this agent; response detail controls backend text, not spoken delivery.",
+  voiceModel: "Conversation voice model",
+  voiceModelHelp:
+    "Conversation model for new calls. Voice and debug transcription are separate settings. Current calls keep their model.",
+  providerManagedModel: "Grok SIP (provider-managed model)",
+  modelsLoading: "Loading compatible models…",
+  modelsDiscoveryFailed:
+    "Model discovery failed. Check the API credentials and refresh the list.",
+  modelsEmpty:
+    "No models compatible with this SIP adapter are available with these credentials.",
+  modelUnavailable: "unavailable",
+  savedModelUnavailable:
+    "The saved model is unavailable. It has been kept; choose another model explicitly to change it.",
+  refreshModels: "Refresh models",
+  modelSources: {
+    provider_api: "Available models retrieved from the provider.",
+    cached_provider_api:
+      "Available models from a cached provider response (up to five minutes old).",
+    adapter_catalog:
+      "Provider discovery is unavailable. Showing the maintained compatible-model catalog; account access is not verified.",
+    provider_managed:
+      "Grok chooses the model for inbound SIP calls. Its API ignores model selection for these sessions.",
+  },
   webhookEndpoint: "Provider webhook endpoint",
   trunk: "Provider trunk",
   saveDraft: "Save draft",
   edit: "Edit",
   delete: "Delete",
   basicVoiceHelp:
-    "Configure Basic Voice, save a draft, publish, then enable routing.",
+    "Configure Basic Voice, save a draft and publish. Choose when to call the agent in the dialplan.",
   unpublishedChanges:
     "Saved changes take effect after publishing. Current calls keep their published version.",
-  destinationUnavailable: "Extension unavailable",
+  destinationUnavailable: "Destination unavailable",
   removeGrant: "Remove permission",
   publishedVersion: "Published version",
+  draftVersion: "Saved draft version",
   back: "Back",
   reloadSaved: "Reload saved settings",
   retrySync: "Retry synchronization",
@@ -791,6 +901,8 @@ Object.assign(en, {
   errorCode: "Error code",
   refresh: "Refresh",
   toolNames: {
+    pbx_find_destinations: "Find permitted PBX destinations",
+    pbx_transfer: "Transfer to a permitted PBX destination",
     directory_find_destinations: "Find approved extensions",
     telephony_transfer: "Transfer to an approved extension",
   },
@@ -824,18 +936,55 @@ Object.assign(en, {
   },
 });
 Object.assign(it, {
+  conversationSettings: "Impostazioni di conversazione",
+  backendModel: "Modello di supporto GPT-Live",
+  companionModelHelp:
+    "Gestisce il ragionamento e gli strumenti di GPT-Live. Non genera la voce della chiamata.",
+  modelVoicesHelp: "Voci disponibili per {model}: {count}.",
+  backendInstructions: "Istruzioni per le attività backend",
+  reasoningEffort: "Livello di ragionamento backend",
+  backendVerbosity: "Dettaglio della risposta backend",
+  serviceTier: "Livello di servizio backend",
+  maxOutputTokens: "Token massimi di output backend",
+  liveExperimental:
+    "GPT-Live è sperimentale fino al superamento delle prove di chiamata. Il supporto SIP deve essere abilitato nel progetto OpenAI.",
+  liveBackendHelp:
+    "Il backend gestisce ragionamento e strumenti autorizzati. Le impostazioni valgono solo per questo agente; il dettaglio riguarda il testo backend, non la voce.",
+  voiceModel: "Modello vocale di conversazione",
+  voiceModelHelp:
+    "Modello di conversazione per le nuove chiamate. Voce e trascrizione di debug sono impostazioni separate. Le chiamate in corso mantengono il proprio modello.",
+  providerManagedModel: "Grok SIP (modello gestito dal provider)",
+  modelsLoading: "Caricamento modelli compatibili…",
+  modelsDiscoveryFailed:
+    "Ricerca modelli fallita. Verifica le credenziali API e aggiorna l’elenco.",
+  modelsEmpty:
+    "Nessun modello compatibile con questo adattatore SIP è disponibile con queste credenziali.",
+  modelUnavailable: "non disponibile",
+  savedModelUnavailable:
+    "Il modello salvato non è disponibile ed è stato mantenuto. Scegli esplicitamente un altro modello per cambiarlo.",
+  refreshModels: "Aggiorna modelli",
+  modelSources: {
+    provider_api: "Modelli disponibili recuperati dal provider.",
+    cached_provider_api:
+      "Modelli disponibili da una risposta del provider in cache (massimo cinque minuti).",
+    adapter_catalog:
+      "Ricerca nel provider non disponibile. Viene mostrato il catalogo dei modelli compatibili; l’accesso dell’account non è verificato.",
+    provider_managed:
+      "Grok sceglie il modello per le chiamate SIP in ingresso. L’API ignora la selezione del modello per queste sessioni.",
+  },
   webhookEndpoint: "Endpoint webhook del provider",
   trunk: "Trunk del provider",
   saveDraft: "Salva bozza",
   edit: "Modifica",
   delete: "Elimina",
   basicVoiceHelp:
-    "Configura Basic Voice, salva una bozza, pubblicala e abilita le chiamate.",
+    "Configura Basic Voice, salva una bozza e pubblicala. Il dialplan decide quando chiamare l’agente.",
   unpublishedChanges:
     "Le modifiche salvate diventano attive dopo la pubblicazione. Le chiamate in corso mantengono la propria versione pubblicata.",
-  destinationUnavailable: "Interno non disponibile",
+  destinationUnavailable: "Destinazione non disponibile",
   removeGrant: "Rimuovi permesso",
   publishedVersion: "Versione pubblicata",
+  draftVersion: "Versione bozza salvata",
   back: "Indietro",
   reloadSaved: "Ricarica impostazioni",
   retrySync: "Riprova sincronizzazione",
@@ -878,6 +1027,8 @@ Object.assign(it, {
   errorCode: "Codice errore",
   refresh: "Aggiorna",
   toolNames: {
+    pbx_find_destinations: "Cerca destinazioni PBX consentite",
+    pbx_transfer: "Trasferisci a una destinazione PBX consentita",
     directory_find_destinations: "Cerca interni autorizzati",
     telephony_transfer: "Trasferisci a un interno autorizzato",
   },

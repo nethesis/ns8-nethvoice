@@ -1,0 +1,267 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "agent_id",
+    "destination_id",
+    "workflow_version",
+    "provider_binding_id",
+    "provider",
+    "conversation",
+    "fallback_destination_id",
+    "max_call_duration_seconds",
+    "tool_bindings",
+    "debug"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": 5
+    },
+    "agent_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,47}$(?![\\s\\S])"
+    },
+    "destination_id": {
+      "type": "string",
+      "pattern": "^agent:[a-z][a-z0-9_-]{0,47}$(?![\\s\\S])"
+    },
+    "workflow_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "provider_binding_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,47}$(?![\\s\\S])"
+    },
+    "provider": {
+      "enum": [
+        "openai",
+        "grok"
+      ]
+    },
+    "conversation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "language",
+        "voice",
+        "greeting",
+        "instructions",
+        "model",
+        "options"
+      ],
+      "properties": {
+        "language": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(-[A-Z]{2})?$(?![\\s\\S])"
+        },
+        "voice": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "greeting": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "instructions": {
+          "type": "string",
+          "maxLength": 32768
+        },
+        "model": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "options": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "backend_model",
+                "backend_instructions",
+                "reasoning_effort",
+                "verbosity",
+                "service_tier",
+                "max_output_tokens"
+              ],
+              "properties": {
+                "backend_model": {
+                  "type": "string",
+                  "enum": [
+                    "gpt-6-luna",
+                    "gpt-6-sol"
+                  ],
+                  "title": "backendModel"
+                },
+                "backend_instructions": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32768,
+                  "title": "backendInstructions",
+                  "x-control": "textarea"
+                },
+                "reasoning_effort": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "low",
+                    "medium",
+                    "high",
+                    "xhigh"
+                  ],
+                  "title": "reasoningEffort"
+                },
+                "verbosity": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ],
+                  "title": "backendVerbosity"
+                },
+                "service_tier": {
+                  "type": "string",
+                  "enum": [
+                    "auto",
+                    "default",
+                    "flex",
+                    "priority"
+                  ],
+                  "title": "serviceTier"
+                },
+                "max_output_tokens": {
+                  "type": "integer",
+                  "minimum": 16,
+                  "maximum": 8192,
+                  "title": "maxOutputTokens"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "fallback_destination_id": {
+      "type": "string",
+      "pattern": "^(hangup|extension:[0-9]{1,20}|native:[a-zA-Z0-9_-]{1,80},[a-zA-Z0-9_*#.-]{1,64},1)$(?![\\s\\S])"
+    },
+    "max_call_duration_seconds": {
+      "type": "integer",
+      "minimum": 30,
+      "maximum": 3600
+    },
+    "tool_bindings": {
+      "type": "array",
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "tool_id",
+              "tool_version",
+              "enabled",
+              "config"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "tool_id": {
+                "const": "directory.find_destinations"
+              },
+              "tool_version": {
+                "const": 2
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "config": {
+                "type": "object",
+                "required": [
+                  "max_results"
+                ],
+                "properties": {
+                  "max_results": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "title": "Maximum search results"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "tool_id",
+              "tool_version",
+              "enabled",
+              "config"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "tool_id": {
+                "const": "telephony.transfer"
+              },
+              "tool_version": {
+                "const": 2
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "config": {
+                "type": "object",
+                "required": [
+                  "approved_destination_ids"
+                ],
+                "properties": {
+                  "approved_destination_ids": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^extension:[0-9]{1,20}$(?![\\s\\S])"
+                    },
+                    "title": "Approved extensions",
+                    "x-inventory": "extensions"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        ]
+      }
+    },
+    "debug": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transcription_enabled",
+        "retention_hours"
+      ],
+      "properties": {
+        "transcription_enabled": {
+          "type": "boolean"
+        },
+        "retention_hours": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 24
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:nethvoice:agents:published:5",
+  "title": "Published Basic Voice snapshot v5: agent conversation configuration"
+}

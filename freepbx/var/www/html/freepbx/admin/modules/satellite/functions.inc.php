@@ -144,17 +144,31 @@ function satellite_generate_agent_dialplan() {
     $ext->add('voice-agent-trunk-hangup','s','',new ext_hangup());
     $ext->add('voice-agent-trunk-hangup','_!','',new ext_hangup());
     $ext->add('voice-agent-headers','s','',new ext_noop('Correlate provider leg'));
-    foreach (['X-OS-Session-ID'=>'${AGENT_SESSION_ID}', 'X-OS-Provider-Leg-ID'=>'${AGENT_PROVIDER_LEG_ID}', 'X-OS-Agent-ID'=>'${VOICE_AGENT_ID}','isTrunk'=>'1'] as $name=>$value) {
+    // The proxy treats isTrunk=1 as RTP-only; omit it to retain provider SRTP.
+    foreach (['X-OS-Session-ID'=>'${AGENT_SESSION_ID}', 'X-OS-Provider-Leg-ID'=>'${AGENT_PROVIDER_LEG_ID}', 'X-OS-Agent-ID'=>'${VOICE_AGENT_ID}'] as $name=>$value) {
         $ext->add('voice-agent-headers','s','',new ext_set('PJSIP_HEADER(add,'.$name.')',$value));
     }
     $ext->add('voice-agent-headers','s','',new ext_return());
     $ext->add('voice-agent-provider','_!','',new ext_dial('PJSIP/${AGENT_PROVIDER_TRUNK}/sip:${AGENT_PROVIDER_USER}@${AGENT_PROVIDER_HOST}:5061\\;transport=tls,20','b(voice-agent-headers^s^1)'));
+    $ext->add('voice-agent-provider','_!','',new ext_set('AGENT_PROVIDER_CAUSE_CHANNELS','${HANGUPCAUSE_KEYS()}'));
+    $ext->add('voice-agent-provider','_!','',new ext_set('AGENT_PROVIDER_CAUSE_CHANNEL','${SHIFT(AGENT_PROVIDER_CAUSE_CHANNELS)}'));
+    $ext->add('voice-agent-provider','_!','',new ext_noop('Voice agent provider dial_status=${DIALSTATUS} sip_status=${FILTER(0-9,${HANGUPCAUSE(${AGENT_PROVIDER_CAUSE_CHANNEL},tech)})}'));
     $ext->add('voice-agent-provider','_!','',new ext_hangup());
+    // The broad provider pattern must never originate again from the h extension.
+    $ext->add('voice-agent-provider','h','',new ext_hangup());
     foreach (FreePBX::Satellite()->agentExtensions() as $target) {
         $number=substr($target['id'],strlen('extension:'));
         $ext->add('voice-agent-transfer',$number,'',new ext_set('TIMEOUT(absolute)','0'));
         $ext->add('voice-agent-transfer',$number,'',new ext_userevent('VoiceAgentTransfer','token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:'.$number));
         $ext->add('voice-agent-transfer',$number,'',new ext_goto('1',$number,'from-did-direct'));
+    }
+    foreach (FreePBX::Satellite()->agentDirectory()['items'] as $target) {
+        if (!$target['available'] || !preg_match('/^(queue|ivr):([0-9]{1,20})$/D',$target['id'],$match)) continue;
+        [$nativeContext,$nativeExtension,$priority]=explode(',',$target['native_destination']);
+        $context='voice-agent-transfer-'.$match[1];
+        $ext->add($context,$match[2],'',new ext_set('TIMEOUT(absolute)','0'));
+        $ext->add($context,$match[2],'',new ext_userevent('VoiceAgentTransfer','token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:'.$target['id']));
+        $ext->add($context,$match[2],'',new ext_goto($priority,$nativeExtension,$nativeContext));
     }
     // Immutable wrapper names preserve fallback routing across publication/reload.
     $fallbackContexts=[];
@@ -170,9 +184,13 @@ function satellite_generate_agent_dialplan() {
         else $ext->add($context,'s','',new ext_goto($priority,$extension,$targetContext));
     }
     foreach (FreePBX::Satellite()->agentDestinations() as $agent) {
-        // Draft-only agents have no generated destination.
-        if (!$agent['published']) continue;
         $context='voice-agent-'.$agent['agent_id'];
+        // Keep saved native references safe even before the first publication.
+        // These agents remain absent from the selectable destination list.
+        if (!$agent['published']) {
+            $ext->add($context,'s','',new ext_hangup());
+            continue;
+        }
         $ext->add($context,'s','',new ext_noop('Voice agent'));
         $ext->add($context,'s','',new ext_set('__VOICE_AGENT_FALLBACK',satellite_agent_fallback_context($agent['agent_id'],$agent['published']['fallback_destination_id'])));
         if ($agent['enabled']) {

@@ -42,14 +42,16 @@ $agentsRoute = function (string $method, string $path, callable $operation) use 
                 if (strtolower(explode(';',$request->getHeaderLine('Content-Type'))[0]) !== 'application/json') throw new RuntimeException('invalid_envelope',422);
                 $input=$request->getParsedBody();
                 if (!is_array($input) || array_is_list($input)) throw new RuntimeException('invalid_envelope',422);
-                if (!str_ends_with($request->getUri()->getPath(),'/synchronize')) {
+                $modelDiscovery=$request->getUri()->getPath()==='/freepbx/rest/agents/trunks/models';
+                if (!str_ends_with($request->getUri()->getPath(),'/synchronize') && !$modelDiscovery) {
                     if (!isset($input['expected_revision']) || !is_int($input['expected_revision']) || $input['expected_revision'] < 0) throw new RuntimeException('invalid_revision',422);
                 }
                 $path=$request->getUri()->getPath();
                 $allowed=['expected_revision'];
-                if (str_ends_with($path,'/synchronize')) $allowed=['retry'];
+                if ($modelDiscovery) $allowed=['provider','binding_id','api_key'];
+                elseif (str_ends_with($path,'/synchronize')) $allowed=['retry'];
                 elseif (str_ends_with($path,'/enabled')) $allowed[]='enabled';
-                elseif ($method==='PUT' || ($method==='POST' && !str_ends_with($path,'/publish'))) {
+                elseif ($method==='PUT' || ($method==='POST' && !str_ends_with($path,'/publish') && !str_ends_with($path,'/routing-upgrade'))) {
                     $field=str_contains($path,'/trunks')?'trunk':'profile';
                     $allowed[]=$field;
                     if (!is_array($input[$field]??null) || array_is_list($input[$field])) throw new RuntimeException('invalid_envelope',422);
@@ -74,6 +76,8 @@ $agentsRoute = function (string $method, string $path, callable $operation) use 
     });
 };
 $agentsRoute('GET','/catalog',fn($s)=>$s->catalog());
+$agentsRoute('GET','/destinations',fn($s,$a,$i,$q)=>$s->destinations($q));
+$agentsRoute('POST','/profiles/{id}/routing-upgrade',fn($s,$a,$i,$q,$u)=>$s->routingUpgrade($a['id'],$i['expected_revision'],$u));
 $agentsRoute('GET','/profiles',fn($s)=>['items'=>$s->all()]);
 $agentsRoute('GET','/profiles/{id}',fn($s,$a)=>$s->get($a['id']));
 $agentsRoute('POST','/profiles',fn($s,$a,$i,$q,$u)=>$s->save(null,$i['profile']??[],$i['expected_revision'],$u));
@@ -85,6 +89,7 @@ $agentsRoute('POST','/profiles/{id}/enabled',function($s,$a,$i,$q,$u) {
 });
 $agentsRoute('DELETE','/profiles/{id}',fn($s,$a,$i,$q,$u)=>$s->remove($a['id'],$i['expected_revision'],$u));
 $agentsRoute('GET','/trunks',fn($s)=>['items'=>$s->trunks()]);
+$agentsRoute('POST','/trunks/models',fn($s,$a,$i)=>$s->models($i));
 $agentsRoute('GET','/trunks/{id}/voices',fn($s,$a)=>$s->voices($a['id']));
 $agentsRoute('POST','/trunks',fn($s,$a,$i,$q,$u)=>$s->saveTrunk(null,$i['trunk']??[],$i['expected_revision'],$u));
 $agentsRoute('PUT','/trunks/{id}',fn($s,$a,$i,$q,$u)=>$s->saveTrunk($a['id'],$i['trunk']??[],$i['expected_revision'],$u));

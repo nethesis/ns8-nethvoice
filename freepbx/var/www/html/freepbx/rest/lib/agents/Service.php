@@ -5,6 +5,7 @@ require_once __DIR__ . '/Schema.php';
 require_once __DIR__ . '/PublishedContract.php';
 require_once __DIR__ . '/SecretStore.php';
 require_once __DIR__ . '/Native.php';
+require_once __DIR__ . '/RoutingPolicy.php';
 require_once __DIR__ . '/ProviderCatalog.php';
 
 /** PHP owns drafts, immutable publication, grants and configuration auditing. */
@@ -13,11 +14,13 @@ final class Service
     private \PDO $db;
     private object $native;
     private SecretStore $crypto;
-    public function __construct(\PDO $db, ?object $native = null)
+    private ProviderCatalog $providerCatalog;
+    public function __construct(\PDO $db, ?object $native = null, ?ProviderCatalog $providerCatalog = null)
     {
         $this->db = $db;
         $this->native = $native ?? new Native();
         $this->crypto = new SecretStore();
+        $this->providerCatalog = $providerCatalog ?? new ProviderCatalog();
     }
     private function query(string $sql, array $args = []): \PDOStatement
     { $q = $this->db->prepare($sql); $q->execute($args); return $q; }
@@ -52,12 +55,78 @@ final class Service
     }
     public function catalog(): array
     {
-        $tools=array_map(fn($row)=>json_decode($row['manifest_json'],true,512,JSON_THROW_ON_ERROR),$this->query('SELECT manifest_json FROM asterisk.voice_agent_runtime_tools WHERE tool_version=2 ORDER BY tool_id')->fetchAll(\PDO::FETCH_ASSOC));
+        $tools=array_map(fn($row)=>json_decode($row['manifest_json'],true,512,JSON_THROW_ON_ERROR),$this->query("SELECT manifest_json FROM asterisk.voice_agent_runtime_tools WHERE tool_version=2 OR tool_id IN ('pbx.find_destinations','pbx.transfer') ORDER BY tool_id")->fetchAll(\PDO::FETCH_ASSOC));
+        // Presentation metadata is separate from the immutable runtime manifests.
+        foreach ($tools as &$tool) {
+            if (in_array($tool['id'],['pbx.find_destinations','directory.find_destinations'],true)) $tool['editor']=['automatic'=>true];
+            if ($tool['id']==='pbx.transfer') $tool['editor']=['descriptions_field'=>'descriptions','categories'=>[
+                ['enabled_field'=>'extensions_enabled','destinations_field'=>'extension_allowlist','inventory'=>'extensions','selection'=>'allowlist'],
+                ['enabled_field'=>'queues_enabled','destinations_field'=>'queue_denylist','inventory'=>'queues','selection'=>'denylist'],
+                ['enabled_field'=>'ivrs_enabled','destinations_field'=>'ivr_denylist','inventory'=>'ivrs','selection'=>'denylist'],
+            ]];
+        }
+        unset($tool);
         return ['agent_types'=>[['id'=>'basic_voice','name'=>'Basic Voice']],
-            'tools'=>$tools,
+            'tools'=>$tools,'draft_defaults'=>self::emptyDraft(),
             'providers'=>['openai','grok'], 'extensions'=>$this->native->extensions(),
             'default_language'=>$this->native->defaultLanguage(),'languages'=>ProviderCatalog::languages(),
             'provider_credentials'=>array_combine(['openai','grok'],array_map(fn($p)=>['environment_available'=>ProviderCatalog::environmentKey($p)!==''],['openai','grok']))];
+    }
+    public function destinations(array $query): array
+    {
+        self::fields($query,['query','offset','limit','type','agent_id']);
+        $search=self::text($query['query']??'',100);
+        $offset=$query['offset']??'0'; $limit=$query['limit']??'20';
+        if (!is_scalar($offset) || !preg_match('/^(0|[1-9][0-9]{0,5})$/D',(string)$offset) || (int)$offset>100000 ||
+            !is_scalar($limit) || !preg_match('/^[1-9][0-9]{0,2}$/D',(string)$limit) || (int)$limit>100) self::fail('invalid_page');
+        $type=$query['type']??null;
+        if ($type!==null && !in_array($type,['extension','queue','ivr'],true)) self::fail('invalid_destination');
+        $draft=null;
+        if (isset($query['agent_id'])) { if (!is_string($query['agent_id'])) self::fail('invalid_identifier'); $draft=$this->get($query['agent_id'])['draft']; }
+        $inventory=$this->native->directory(); $rows=$inventory['items'];
+        $unavailable=[];
+        if ($draft) foreach ($draft['tool_bindings']??[] as $binding) foreach (['extension_allowlist','queue_denylist','ivr_denylist'] as $field) {
+            foreach ($binding['config'][$field]??[] as $id) if (!in_array($id,array_column(array_filter($rows,fn($row)=>$row['available']),'id'),true)) $unavailable[]=$id;
+        }
+        // The same per-agent purpose text is searchable by administrators and the LLM.
+        $descriptions=[];
+        foreach ($draft['tool_bindings']??[] as $binding) if ($binding['tool_id']==='pbx.transfer') {
+            foreach ($binding['config']['descriptions'] as $item) $descriptions[$item['destination_id']]=$item['description'];
+        }
+        foreach ($rows as &$row) if (array_key_exists($row['id'],$descriptions)) $row['description']=$descriptions[$row['id']];
+        unset($row);
+        $rows=array_values(array_filter($rows,fn($row)=>($type===null || $row['type']===$type) &&
+            ($search==='' || mb_stripos($row['id'].' '.$row['name'].' '.$row['description'],$search)!==false)));
+        usort($rows,fn($a,$b)=>strcmp($a['id'],$b['id']));
+        $end=(int)$offset+(int)$limit;
+        $items=array_slice($rows,(int)$offset,(int)$limit);
+        foreach ($items as &$item) {
+            unset($item['native_destination']);
+            $item['permitted']=$draft!==null && $item['available'] && RoutingPolicy::permits($draft,$item['id']);
+        }
+        return ['items'=>$items,'next_offset'=>$end<count($rows)?$end:null,'total'=>count($rows),'modules'=>$inventory['modules'],'unavailable_ids'=>array_values(array_unique($unavailable))];
+    }
+    /** Explicit unpublished copy into v6. No route, enabled state or publication changes. */
+    public function routingUpgrade(string $id,int $revision,string $actor): array
+    {
+        return $this->locked(function() use ($id,$revision,$actor) {
+            $agent=$this->get($id); self::revision($agent,$revision);
+            if (($agent['draft']['contract_version']??0)===6) self::fail('routing_already_upgraded',409);
+            $source=$agent['draft']; $draft=self::emptyDraft();
+            foreach (['provider_binding_id','fallback_destination_id','max_call_duration_seconds','debug'] as $key) if (array_key_exists($key,$source)) $draft[$key]=$source[$key];
+            $draft['conversation']=array_replace($draft['conversation'],$source['conversation']);
+            $grants=$source['approved_destination_ids']??[];
+            foreach ($source['tool_bindings']??[] as $binding) if ($binding['tool_id']==='telephony.transfer') $grants=$binding['config']['approved_destination_ids'];
+            $draft['tool_bindings'][1]['config']['extension_allowlist']=$grants;
+            $draft['tool_bindings'][1]['config']['extensions_enabled']=count($grants)>0;
+            $draft=$this->validateDraft($draft);
+            $this->db->beginTransaction();
+            $this->query('UPDATE asterisk.voice_agent_agents SET revision=revision+1 WHERE agent_id=?',[$id]);
+            $this->query('UPDATE asterisk.voice_agent_drafts SET revision=?,definition_json=? WHERE agent_id=?',[$revision+1,self::encode($draft),$id]);
+            $this->audit($id,$actor,'routing_upgraded',$revision+1);
+            $this->db->commit();
+            return $this->get($id);
+        });
     }
     public function all(): array
     {
@@ -73,11 +142,13 @@ final class Service
         $draft=$draft?json_decode($draft,true,512,JSON_THROW_ON_ERROR):self::emptyDraft();
         $draft['fallback_destination_id']=$draft['fallback_destination_id']??'hangup';
         if (isset($draft['tool_bindings'])) $draft['debug']=$draft['debug']??['transcription_enabled'=>false,'retention_hours'=>24];
-        if ((int)$row['revision']===1 && !$draft['provider_binding_id'] && $draft['conversation']['instructions']==='') $draft['conversation']['language']=$this->native->defaultLanguage();
-        return ['agent_id'=>$id,'name'=>$row['name'],'kind'=>$row['kind'],'destination_id'=>$row['destination_id'],
+        if ((int)$row['revision']===1 && !$draft['provider_binding_id'] && ($draft['conversation']['instructions']==='' || ($id==='receptionist' && $draft['conversation']['instructions']===ReceptionistDefaults::INSTRUCTIONS))) $draft['conversation']['language']=$this->native->defaultLanguage();
+        $same=$published && $draft==array_intersect_key(json_decode($published,true,512,JSON_THROW_ON_ERROR),$draft);
+        $draftVersion=$same?(int)$row['active_workflow_version']:(int)$this->query('SELECT COALESCE(MAX(workflow_version),0)+1 FROM asterisk.voice_agent_versions WHERE agent_id=?',[$id])->fetchColumn();
+        return ['agent_id'=>$id,'draft_version'=>$draftVersion,'name'=>$row['name'],'kind'=>$row['kind'],'destination_id'=>$row['destination_id'],
             'enabled'=>(bool)$row['enabled'],'revision'=>(int)$row['revision'], 'workflow_version'=>$row['active_workflow_version'] ? (int)$row['active_workflow_version'] : null,
             'sync_status'=>$row['sync_status'],'routable'=>(bool)$row['enabled'] && (bool)$published && $row['sync_status']==='synced' && $this->bindingReady($published),
-            'legacy'=>!array_key_exists('tool_bindings',$draft),'draft'=>$draft,
+            'legacy'=>!array_key_exists('tool_bindings',$draft) || !array_key_exists('model',$draft['conversation']),'draft'=>$draft,
             'published'=>$published ? json_decode($published,true,512,JSON_THROW_ON_ERROR) : null];
     }
     private function bindingReady(string $published): bool
@@ -87,10 +158,17 @@ final class Service
         catch (\RuntimeException $error) { if ($error->getCode()===404) return false; throw $error; }
         return $binding['sync_status']==='synced' && $this->native->trunkReady($binding);
     }
-    private static function emptyDraft(): array
+    /** Fresh defaults shared by creation and the explicit development reset CLI. */
+    public static function emptyDraft(int $version=6): array
     {
-        return ['provider_binding_id'=>null,'conversation'=>['language'=>'en','voice'=>'','greeting'=>'','instructions'=>''],
-            'tool_bindings'=>array_map(fn($tool)=>['tool_id'=>$tool['id'],'tool_version'=>$tool['version'],'enabled'=>false,'config'=>$tool['defaults']],json_decode(file_get_contents(__DIR__.'/contracts/tools-v2.json'),true,512,JSON_THROW_ON_ERROR)),'fallback_destination_id'=>'hangup','max_call_duration_seconds'=>600,'debug'=>['transcription_enabled'=>false,'retention_hours'=>24]];
+        return ($version===6?['contract_version'=>6]:[]) + ['provider_binding_id'=>null,'conversation'=>['language'=>'en','voice'=>'','greeting'=>'','instructions'=>'','model'=>null,'options'=>null],
+            'tool_bindings'=>array_map(fn($tool)=>['tool_id'=>$tool['id'],'tool_version'=>$tool['version'],'enabled'=>in_array($tool['id'],['pbx.find_destinations','directory.find_destinations'],true),'config'=>$tool['defaults']],json_decode(file_get_contents(__DIR__.'/contracts/tools-v'.($version===6?3:2).'.json'),true,512,JSON_THROW_ON_ERROR)),'fallback_destination_id'=>'hangup','max_call_duration_seconds'=>600,'debug'=>['transcription_enabled'=>false,'retention_hours'=>24]];
+    }
+    public static function receptionistDraft(): array
+    {
+        $draft=self::emptyDraft();
+        $draft['conversation']['instructions']=ReceptionistDefaults::INSTRUCTIONS;
+        return $draft;
     }
     private static function approvedTargets(array $draft): array
     {
@@ -99,13 +177,22 @@ final class Service
         }
         return [];
     }
-    private function validateDraft(array $draft): array
+    private function validateDraft(array $draft, bool $publishing=false): array
     {
         $draft['debug']=$draft['debug']??['transcription_enabled'=>false,'retention_hours'=>24];
+        $version=$draft['contract_version']??5;
+        if (!in_array($version,[5,6],true)) self::fail('invalid_configuration');
         self::fields($draft,array_keys(self::emptyDraft()));
-        if (array_diff(array_keys(self::emptyDraft()),array_keys($draft))) self::fail('invalid_fields');
+        if (array_diff(array_keys(self::emptyDraft(5)),array_keys($draft))) self::fail('invalid_fields');
+        if (!is_array($draft['conversation']??null) || array_diff(['language','voice','greeting','instructions','model','options'],array_keys($draft['conversation']))) self::fail('invalid_configuration');
         // Validate the same contract with placeholders for optional incomplete draft fields.
-        $snapshot = $draft + ['contract_version'=>4,'agent_id'=>'validation','destination_id'=>'agent:validation','workflow_version'=>1,'provider'=>'openai'];
+        $provider=$draft['provider_binding_id']!==null?$this->binding($draft['provider_binding_id'])['provider']:'openai';
+        $snapshot = $draft + ['contract_version'=>$version,'agent_id'=>'validation','destination_id'=>'agent:validation','workflow_version'=>1,'provider'=>$provider];
+        if ($snapshot['conversation']['model']===null) {
+            if ($snapshot['conversation']['options']!==null) self::fail('invalid_model_options');
+            $snapshot['conversation']['model']=ProviderCatalog::capabilities($provider)['default'];
+        }
+        if ($snapshot['conversation']['voice']==='') $snapshot['conversation']['voice']=$provider==='openai'?'marin':'ara';
         if ($snapshot['provider_binding_id'] === null) $snapshot['provider_binding_id']='unconfigured';
         if ($snapshot['fallback_destination_id'] === null) $snapshot['fallback_destination_id']='hangup';
         $draft['fallback_destination_id']=$snapshot['fallback_destination_id'];
@@ -116,7 +203,19 @@ final class Service
         foreach (self::approvedTargets($draft) as $target) {
             if (!in_array($target,$available,true)) self::fail('destination_unavailable');
         }
+        if ($publishing && $version===6) {
+            $available=array_column(array_filter($this->native->directory()['items'],fn($row)=>$row['available']),'id');
+            foreach ($draft['tool_bindings'] as $binding) if ($binding['tool_id']==='pbx.transfer') {
+                foreach ($binding['config']['extension_allowlist'] as $target) if (!in_array($target,$available,true)) self::fail('destination_unavailable');
+            }
+        }
         $this->native->destination($draft['fallback_destination_id']);
+        // Discovery is automatic for newly saved/published routing configurations.
+        // Historical immutable snapshots retain their original enabled bindings.
+        foreach ($draft['tool_bindings'] as &$binding) {
+            if (in_array($binding['tool_id'],['pbx.find_destinations','directory.find_destinations'],true)) $binding['enabled']=true;
+        }
+        unset($binding);
         return $draft;
     }
     public function save(?string $id, array $input, int $revision, string $actor): array
@@ -126,6 +225,7 @@ final class Service
             self::fields($input,['name','draft']);
             $name=self::text($input['name']??null,100,true);
             if (!is_array($input['draft']??null)) self::fail('invalid_configuration');
+            if ($id!==null && ($this->get($id)['draft']['contract_version']??5)===6 && ($input['draft']['contract_version']??5)!==6) self::fail('routing_downgrade_denied',409);
             $input['draft']['fallback_destination_id']=$id===null?'hangup':$this->get($id)['draft']['fallback_destination_id'];
             $draft=$this->validateDraft($input['draft']);
             $creating=$id===null;
@@ -146,20 +246,25 @@ final class Service
         return $this->locked(function() use ($id,$revision,$actor) {
             $agent=$this->get($id); self::revision($agent,$revision);
             if ($agent['legacy']) self::fail('legacy_configuration_read_only',409);
-            $draft=$this->validateDraft($agent['draft']);
+            $draft=$this->validateDraft($agent['draft'],true);
             if (!$draft['provider_binding_id']) self::fail('provider_required');
             $binding=$this->binding($draft['provider_binding_id']);
             if ($binding['sync_status']!=='synced' || !$this->native->trunkReady($binding)) self::fail('trunk_not_ready',409);
             if (trim($draft['conversation']['voice'])==='' || trim($draft['conversation']['instructions'])==='') self::fail('conversation_required');
             $version=(int)$this->query('SELECT COALESCE(MAX(workflow_version),0)+1 FROM asterisk.voice_agent_versions WHERE agent_id=?',[$id])->fetchColumn();
             if ($draft['debug']['transcription_enabled'] && $binding['provider']!=='openai') self::fail('transcription_provider_unsupported');
-            $snapshot=$draft+['contract_version'=>4,'agent_id'=>$id,'destination_id'=>'agent:'.$id,'workflow_version'=>$version,'provider'=>$binding['provider']];
-            if (!in_array($draft['conversation']['voice'],array_column($this->voices($binding['binding_id'])['items'],'id'),true)) self::fail('invalid_voice');
+            $snapshot=$draft+['contract_version'=>$draft['contract_version']??5,'agent_id'=>$id,'destination_id'=>'agent:'.$id,'workflow_version'=>$version,'provider'=>$binding['provider']];
+            if ($draft['conversation']['model']===null) self::fail('model_required');
+            $models=$this->models(['provider'=>$binding['provider'],'binding_id'=>$binding['binding_id']]);
+            if (!in_array($draft['conversation']['model'],array_column($models['items'],'id'),true)) self::fail('provider_model_unavailable');
+            if ($draft['conversation']['model']==='gpt-live-1' && !in_array($draft['conversation']['options']['backend_model'],array_column($models['backend_models'],'id'),true)) self::fail('backend_model_unavailable');
+            if ($binding['provider']==='grok' && !in_array($draft['conversation']['voice'],array_column($this->voices($binding['binding_id'])['items'],'id'),true)) self::fail('invalid_voice');
             PublishedContract::validate($snapshot);
-            $changed=!$agent['published'] || $agent['published']['fallback_destination_id']!==$snapshot['fallback_destination_id'] || $agent['published']['provider_binding_id']!==$snapshot['provider_binding_id'];
+            $changed=!$agent['enabled'] || !$agent['published'] || $agent['published']['fallback_destination_id']!==$snapshot['fallback_destination_id'] || $agent['published']['provider_binding_id']!==$snapshot['provider_binding_id'];
             $this->db->beginTransaction();
             $this->query('INSERT INTO asterisk.voice_agent_versions (agent_id,workflow_version,contract_version,definition_json) VALUES (?,?,?,?)',[$id,$version,$snapshot['contract_version'],self::encode($snapshot)]);
-            $this->query('UPDATE asterisk.voice_agent_agents SET active_workflow_version=?,revision=revision+1,sync_status=? WHERE agent_id=?',[$version,$changed?'pending':$agent['sync_status'],$id]);
+            $this->query('UPDATE asterisk.voice_agent_drafts SET definition_json=?,revision=? WHERE agent_id=?',[self::encode($draft),$revision+1,$id]);
+            $this->query('UPDATE asterisk.voice_agent_agents SET active_workflow_version=?,enabled=1,revision=revision+1,sync_status=? WHERE agent_id=?',[$version,$changed?'pending':$agent['sync_status'],$id]);
             $this->audit($id,$actor,'published',$revision+1);
             $this->db->commit();
             if ($changed) $this->synchronizeUnlocked($actor);
@@ -170,6 +275,7 @@ final class Service
     {
         return $this->locked(function() use ($id,$enabled,$revision,$actor) {
             $agent=$this->get($id); self::revision($agent,$revision);
+            if (!$agent['legacy']) self::fail('activation_managed_by_publication',409);
             if ($enabled) {
                 if ($agent['legacy']) self::fail('legacy_configuration_read_only',409);
                 if (!$agent['published']) self::fail('publication_required');
@@ -250,7 +356,9 @@ final class Service
         $settings=json_decode($row['settings_json'],true,512,JSON_THROW_ON_ERROR);
         $secrets=json_decode($this->crypto->decryptSecret($row['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
         $source=!empty($secrets['api_key'])?'stored':(ProviderCatalog::environmentKey($row['provider'])!==''?'environment':'missing');
-        return $settings+['binding_id'=>$row['binding_id'],'name'=>$row['name'],'provider'=>$row['provider'],'runtime_owner'=>'builtin',
+        unset($settings['model']);
+        return $settings+[
+            'binding_id'=>$row['binding_id'],'name'=>$row['name'],'provider'=>$row['provider'],'runtime_owner'=>'builtin',
             'revision'=>(int)$row['revision'],'sync_status'=>$row['sync_status']==='synced' && !$this->native->trunkReady($row)?'error':$row['sync_status'],'freepbx_trunk_id'=>$row['freepbx_trunk_id']?(int)$row['freepbx_trunk_id']:null,
             'api_key_configured'=>$source!=='missing','api_key_source'=>$source,'webhook_secret_configured'=>!empty($secrets['webhook_secret'])];
     }
@@ -267,6 +375,22 @@ final class Service
         $row=$this->binding($id);
         $secrets=json_decode($this->crypto->decryptSecret($row['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
         return ProviderCatalog::voices($row['provider'],$secrets['api_key']??ProviderCatalog::environmentKey($row['provider']));
+    }
+    /** POST avoids putting unsaved credentials into URLs, caches or browser history. */
+    public function models(array $input): array
+    {
+        self::fields($input,['provider','binding_id','api_key']);
+        $provider=self::text($input['provider']??null,16,true);
+        ProviderCatalog::capabilities($provider);
+        $key=isset($input['api_key'])?self::text($input['api_key'],4096):'';
+        if ($key!=='' && preg_match('/[\r\n\x00]/',$key)) self::fail('invalid_secret');
+        if (isset($input['binding_id'])) {
+            $row=$this->binding(self::text($input['binding_id'],48,true));
+            if ($row['provider']!==$provider) self::fail('invalid_provider');
+            $secrets=json_decode($this->crypto->decryptSecret($row['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
+            if ($key==='') $key=$secrets['api_key']??'';
+        }
+        return $this->providerCatalog->models($provider,$key!==''?$key:ProviderCatalog::environmentKey($provider));
     }
     public function nativeVersions(): array
     {
@@ -326,6 +450,10 @@ final class Service
             if (!in_array($provider,['openai','grok'],true) || ($previous && $previous['provider']!==$provider)) self::fail('invalid_provider');
             $name=self::text($input['name']??null,100,true);
             $settings=['sip_auth_mode'=>$input['sip_auth_mode']??'none'];
+            $previousSettings=$previous?json_decode($previous['settings_json'],true,512,JSON_THROW_ON_ERROR):[];
+            // Retain historical values only for old immutable publications. New
+            // publications never consult them, and no API can edit this setting.
+            if (isset($previousSettings['model'])) $settings['model']=$previousSettings['model'];
             if ($provider==='openai') {
                 $settings['openai_project_id']=self::text($input['openai_project_id']??null,128,true);
                 if (!preg_match('/^proj_[A-Za-z0-9_-]+$/D',$settings['openai_project_id']) || $settings['sip_auth_mode']!=='none') self::fail('invalid_provider_configuration');
@@ -338,6 +466,7 @@ final class Service
                 }
             }
             $secrets=$previous?json_decode($this->crypto->decryptSecret($previous['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR):[];
+            $previousSipPassword=$secrets['sip_password']??'';
             foreach (['api_key','webhook_secret','sip_password'] as $field) {
                 if (isset($input[$field]) && $input[$field]!=='') {
                     $secrets[$field]=self::text($input[$field],4096,true);
@@ -347,12 +476,17 @@ final class Service
             if ((empty($secrets['api_key']) && ProviderCatalog::environmentKey($provider)==='') || empty($secrets['webhook_secret']) || ($settings['sip_auth_mode']==='digest' && empty($secrets['sip_password']))) self::fail('credentials_required');
             if (!str_starts_with($secrets['webhook_secret'],'whsec_') || base64_decode(substr($secrets['webhook_secret'],6),true) === false || strlen(base64_decode(substr($secrets['webhook_secret'],6),true)) < 16) self::fail('invalid_secret');
             $id=$id??'trunk_'.bin2hex(random_bytes(8));
+            $nativeSettings=$settings;$previousNativeSettings=$previousSettings;
+            unset($nativeSettings['model'],$previousNativeSettings['model']);
+            $nativeChanged=!$previous || $previous['sync_status']!=='synced' || !$this->native->trunkReady($previous)
+                || $previous['name']!==$name || $nativeSettings!=$previousNativeSettings || ($secrets['sip_password']??'')!==$previousSipPassword;
             $this->db->beginTransaction();
             if (!$previous) $this->query('INSERT INTO asterisk.voice_agent_bindings (binding_id,name,provider,settings_json,secrets_encrypted) VALUES (?,?,?,?,?)',[$id,$name,$provider,json_encode($settings,JSON_THROW_ON_ERROR),$this->crypto->encryptSecret(json_encode($secrets,JSON_THROW_ON_ERROR))]);
-            else $this->query("UPDATE asterisk.voice_agent_bindings SET name=?,settings_json=?,secrets_encrypted=?,revision=revision+1,sync_status='pending' WHERE binding_id=?",[$name,json_encode($settings,JSON_THROW_ON_ERROR),$this->crypto->encryptSecret(json_encode($secrets,JSON_THROW_ON_ERROR)),$id]);
+            else $this->query("UPDATE asterisk.voice_agent_bindings SET name=?,settings_json=?,secrets_encrypted=?,revision=revision+1,sync_status=? WHERE binding_id=?",[$name,json_encode($settings,JSON_THROW_ON_ERROR),$this->crypto->encryptSecret(json_encode($secrets,JSON_THROW_ON_ERROR)),$nativeChanged?'pending':'synced',$id]);
             $this->audit($id,$actor,$previous?'updated':'created',$revision+1,true);
             $this->db->commit();
             $row=$this->binding($id);
+            if (!$nativeChanged) return $this->safeBinding($row);
             try {
                 $nativeId=$this->native->provision($previous && $this->native->trunkExists($row)?'update':'create',$this->nativeBinding($row),$previous?$this->nativeBinding($previous):null);
                 $row['freepbx_trunk_id']=$nativeId;

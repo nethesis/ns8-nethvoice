@@ -27,6 +27,7 @@ final class Native
         if (!$info || empty($info['description'])) throw new \RuntimeException('destination_unavailable',422);
         return $match[1];
     }
+    public function directory(): array { return \FreePBX::Satellite()->agentDirectory(); }
     public function extensions(): array { return \FreePBX::Satellite()->agentExtensions(); }
     public function provision(string $operation, array $binding, ?array $previous): int
     { return \FreePBX::Satellite()->agentTrunk($operation, $binding, $previous); }

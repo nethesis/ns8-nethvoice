@@ -16,6 +16,7 @@ import { useTask } from "../composables/useTask";
 import { useUi } from "../stores/ui";
 import PageHeader from "../components/PageHeader.vue";
 import FieldSelect from "../components/FieldSelect.vue";
+import ConversationSettings from "../components/ConversationSettings.vue";
 import ToolConfiguration from "../components/ToolConfiguration.vue";
 import type { Agent, Catalog, Draft, Trunk } from "../types";
 const { t } = useI18n();
@@ -29,7 +30,14 @@ const record = ref<Agent>();
 const name = ref("");
 const draft = ref<Draft>({
   provider_binding_id: null,
-  conversation: { language: "en", voice: "", greeting: "", instructions: "" },
+  conversation: {
+    language: "en",
+    voice: "",
+    greeting: "",
+    instructions: "",
+    model: null,
+    options: null,
+  },
   tool_bindings: [],
   fallback_destination_id: null,
   max_call_duration_seconds: 600,
@@ -52,6 +60,17 @@ const unpublished = computed(() => {
       ),
   );
 });
+const canPublish = computed(
+  () =>
+    !!record.value &&
+    !dirty.value &&
+    !task.pending.value &&
+    !record.value.legacy &&
+    (!record.value.published ||
+      (record.value.draft_version !== undefined
+        ? record.value.draft_version !== record.value.workflow_version
+        : unpublished.value)),
+);
 const agent = useQuery({
   queryKey: ["agent", id],
   enabled: computed(() => !creating.value),
@@ -67,33 +86,19 @@ const trunks = useQuery({
   queryKey: ["trunks"],
   queryFn: () => request<{ items: Trunk[] }>("GET", "/trunks"),
 });
-const voices = useQuery({
-  queryKey: [
-    "provider-voices",
-    computed(() => draft.value.provider_binding_id),
-  ],
-  enabled: computed(() => !!draft.value.provider_binding_id),
-  queryFn: () =>
-    request<{ items: { id: string; label: string }[] }>(
-      "GET",
-      "/trunks/" +
-        encodeURIComponent(draft.value.provider_binding_id!) +
-        "/voices",
-    ),
-});
 watch(
   () => catalog.data.value,
   (value) => {
     if (value && creating.value) {
       const pristine = snapshot() === baseline.value;
       if (pristine) draft.value.conversation.language = value.default_language;
-      if (!draft.value.tool_bindings.length)
-        draft.value.tool_bindings = value.tools.map((tool) => ({
-          tool_id: tool.id,
-          tool_version: tool.version,
-          enabled: false,
-          config: JSON.parse(JSON.stringify(tool.defaults)),
-        }));
+      if (!draft.value.tool_bindings.length && value.draft_defaults) {
+        const defaults = JSON.parse(
+          JSON.stringify(value.draft_defaults),
+        ) as Draft;
+        draft.value.tool_bindings = defaults.tool_bindings;
+        draft.value.contract_version = defaults.contract_version;
+      }
       if (pristine) baseline.value = snapshot();
     }
   },
@@ -106,17 +111,19 @@ const languageOptions = computed(() => {
     ? options
     : [...options, { id: selected, label: selected }];
 });
-const voiceOptions = computed(() => {
-  const options = voices.data.value?.items || [];
-  const selected = draft.value.conversation.voice;
-  return [
-    { id: "", label: t("choose") },
-    ...options,
-    ...(selected && !options.some((v) => v.id === selected)
-      ? [{ id: selected, label: selected }]
-      : []),
-  ];
-});
+const selectedTrunk = computed(() =>
+  trunks.data.value?.items.find(
+    (item) => item.binding_id === draft.value.provider_binding_id,
+  ),
+);
+function changeBinding(value: string) {
+  const binding = value || null;
+  if (binding === draft.value.provider_binding_id) return;
+  draft.value.provider_binding_id = binding;
+  draft.value.conversation.model = null;
+  draft.value.conversation.options = null;
+  draft.value.conversation.voice = "";
+}
 function accept(value: Agent) {
   record.value = value;
   name.value = value.name;
@@ -147,22 +154,38 @@ async function save() {
       },
     );
     accept(value);
+    await queryClient.invalidateQueries({ queryKey: ["destinations"] });
     await queryClient.invalidateQueries({ queryKey: ["agents"] });
     if (creating.value) await router.replace("/agents/" + value.agent_id);
   });
 }
-async function action(kind: "publish" | "enabled") {
+async function routingUpgrade() {
+  await task.run(async () => {
+    if (!record.value) return;
+    accept(
+      await request<Agent>(
+        "POST",
+        "/profiles/" + encodeURIComponent(id.value) + "/routing-upgrade",
+        { expected_revision: record.value.revision },
+      ),
+    );
+    await queryClient.invalidateQueries({ queryKey: ["agents"] });
+    await queryClient.invalidateQueries({ queryKey: ["destinations"] });
+  });
+}
+async function publish() {
+  if (!canPublish.value) return;
   await task.run(async () => {
     if (!record.value) return;
     const value = await request<Agent>(
       "POST",
-      "/profiles/" + encodeURIComponent(id.value) + "/" + kind,
+      "/profiles/" + encodeURIComponent(id.value) + "/publish",
       {
         expected_revision: record.value.revision,
-        ...(kind === "enabled" ? { enabled: !record.value.enabled } : {}),
       },
     );
     accept(value);
+    await queryClient.invalidateQueries({ queryKey: ["destinations"] });
     await queryClient.invalidateQueries({ queryKey: ["agents"] });
   });
 }
@@ -246,6 +269,14 @@ async function synchronize() {
       @click="synchronize"
       >{{ t("retrySync") }}</NeButton
     >
+    <section v-if="record && draft.contract_version !== 6" class="space-y-3">
+      <p class="nv-muted">{{ t("routingUpgradeHelp") }}</p>
+      <NeButton
+        :disabled="dirty || task.pending.value"
+        @click="routingUpgrade"
+        >{{ t("routingUpgrade") }}</NeButton
+      >
+    </section>
     <fieldset :disabled="record?.legacy" class="space-y-6">
       <div class="nv-field-grid">
         <NeTextInput
@@ -264,30 +295,13 @@ async function synchronize() {
               label: v.name + ' (' + v.provider + ')',
             })),
           ]"
-          @update:model-value="draft.provider_binding_id = $event || null"
+          @update:model-value="changeBinding"
         />
         <FieldSelect
           v-model="draft.conversation.language"
           :label="t('defaultLanguage')"
           :options="languageOptions"
         />
-        <FieldSelect
-          v-model="draft.conversation.voice"
-          :label="t('voiceName')"
-          :options="voiceOptions"
-          :disabled="!draft.provider_binding_id || voices.isPending.value"
-        />
-        <NeInlineNotification
-          v-if="voices.isError.value"
-          kind="error"
-          :title="t('voiceCatalogError')"
-        />
-        <NeButton
-          v-if="voices.isError.value"
-          kind="tertiary"
-          @click="voices.refetch()"
-          >{{ t("retry") }}</NeButton
-        >
         <NeTextInput
           :model-value="String(draft.max_call_duration_seconds)"
           :label="t('maxDuration')"
@@ -295,6 +309,10 @@ async function synchronize() {
           @update:model-value="draft.max_call_duration_seconds = Number($event)"
         />
       </div>
+      <ConversationSettings
+        v-model="draft.conversation"
+        :binding="selectedTrunk"
+      />
       <RouterLink to="/trunks" class="text-primary-700 dark:text-primary-400"
         >{{ t("manageTrunks") }} →</RouterLink
       >
@@ -313,9 +331,13 @@ async function synchronize() {
       <section class="space-y-4">
         <h2>{{ t("tools") }}</h2>
         <p class="nv-muted">{{ t("toolGrantsHelp") }}</p>
+        <p v-if="draft.contract_version === 6" class="nv-muted">
+          {{ t("routingPolicyHelp") }}
+        </p>
         <ToolConfiguration
           v-for="(binding, index) in draft.tool_bindings"
           :key="binding.tool_id"
+          :agent-id="record?.agent_id"
           :model-value="binding"
           :definition="
             catalog.data.value?.tools.find(
@@ -347,30 +369,24 @@ async function synchronize() {
       </section>
     </fieldset>
     <p v-if="record" class="nv-muted">
-      {{ t("publishedVersion") }}: {{ record.workflow_version || "—" }} ·
-      {{ t(record.enabled ? "status.enabled" : "status.disabled") }}
+      {{ t("publishedVersion") }}: {{ record.workflow_version || "—" }}<br />
+      {{ t("draftVersion") }}:
+      {{ record.draft_version ?? (record.workflow_version || 0) + 1 }}
     </p>
     <div class="nv-action-bar">
       <NeButton
         type="submit"
-        kind="primary"
-        :disabled="record?.legacy"
+        :kind="dirty || creating ? 'primary' : 'secondary'"
+        :disabled="!dirty || task.pending.value || record?.legacy"
         :loading="task.pending.value"
         >{{ t("saveDraft") }}</NeButton
       >
       <NeButton
         v-if="record"
-        :disabled="dirty || task.pending.value || record.legacy"
-        @click="action('publish')"
+        :disabled="!canPublish"
+        :kind="canPublish ? 'primary' : 'secondary'"
+        @click="publish"
         >{{ t("publish") }}</NeButton
-      >
-      <NeButton
-        v-if="record"
-        :disabled="
-          dirty || task.pending.value || (record.legacy && !record.enabled)
-        "
-        @click="action('enabled')"
-        >{{ t(record.enabled ? "disable" : "activate") }}</NeButton
       >
       <RouterLink v-if="record" :to="'/activity?agent_id=' + record.agent_id"
         ><NeButton>{{ t("activity") }}</NeButton></RouterLink
