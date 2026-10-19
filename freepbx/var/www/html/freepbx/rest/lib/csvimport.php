@@ -149,7 +149,10 @@ try {
     }
 
     # sync users
-    system("/usr/bin/fwconsole userman --syncall --force &> /dev/null");
+    system('/usr/bin/fwconsole userman --syncall --force >/dev/null 2>&1', $syncStatus);
+    if ($syncStatus !== 0) {
+        throw new RuntimeException('FreePBX user synchronization failed (exit '.$syncStatus.')');
+    }
     triggerMiddlewareProfilesReload();
 
     foreach ($csv as $k => $row) {

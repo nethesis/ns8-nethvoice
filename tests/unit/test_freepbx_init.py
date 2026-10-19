@@ -22,6 +22,10 @@ class FreepbxInitTest(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
+        self.runtime = self.root / "run"
+        self.runtime.mkdir()
+        self.ready = self.runtime / "freepbx-ready"
+        self.ready.touch()  # Simulate a stale marker left by a previous run.
         self.transport = self.root / "pjsip.transports.conf"
         self.transport.write_text(OLD_TRANSPORT)
         self.calls = self.root / "calls.jsonl"
@@ -88,10 +92,14 @@ $db = new TestDatabase();
             "        if os.environ.get('TEST_CORE_INSTALL'):\n"
             "            print('| core | 17.0 | Disabled |')\n"
             "    elif args[:2] == ['moduleadmin', 'install']:\n"
+            "        if os.environ.get('TEST_INSTALL_EXIT'):\n"
+            "            sys.exit(int(os.environ['TEST_INSTALL_EXIT']))\n"
             "        transport.write_text(os.environ['TEST_NEW_TRANSPORT'])\n"
             "        if args[2] == 'core':\n"
             "            with sqlite3.connect(os.environ['TEST_DATABASE']) as db:\n"
             "                db.execute(\"UPDATE freepbx_settings SET value='127.0.0.1' WHERE keyword='HTTPTLSBINDADDRESS' AND value='::'\")\n"
+            "    elif args[:1] == ['userman']:\n"
+            "        sys.exit(int(os.environ.get('TEST_SYNC_EXIT', '0')))\n"
             "elif command == 'su':\n"
             "    calls = [json.loads(line) for line in Path(os.environ['TEST_CALLS']).read_text().splitlines()]\n"
             "    if sum(call[0] == 'su' for call in calls) <= int(os.environ.get('TEST_BUSY_RELOADS', '0')):\n"
@@ -134,6 +142,7 @@ $db = new TestDatabase();
             .replace("/usr/sbin/asterisk", str(binary / "asterisk"))
             .replace("/etc/asterisk/pjsip.transports.conf", str(self.transport))
             .replace("/freepbx_custom_modules", str(modules))
+            .replace("/var/run/nethvoice", str(self.runtime))
         )
         self.environment = dict(
             os.environ,
@@ -155,6 +164,8 @@ $db = new TestDatabase();
             stderr=subprocess.PIPE, text=True, timeout=20,
         )
         calls = [json.loads(line) for line in self.calls.read_text().splitlines()]
+        if result.returncode != 0:
+            self.assertFalse(self.ready.exists(), "Failed initialization advertised readiness")
         return result, calls
 
     def assert_restart_count(self, calls, count):
@@ -168,6 +179,18 @@ $db = new TestDatabase();
         restart_index = calls.index(["asterisk", "-rx", "core restart now"])
         self.assertLess(reload_index, restart_index)
         self.assertEqual(self.transport.read_text(), NEW_TRANSPORT)
+        self.assertTrue(self.ready.exists())
+
+    def test_failed_module_installation_prevents_sync_and_readiness(self):
+        result, calls = self.run_init(TEST_MODULE_REWRITE="1", TEST_INSTALL_EXIT="3")
+        self.assertEqual(result.returncode, 3)
+        self.assertFalse(any(call[0] == "fwconsole" and call[1] == "userman" for call in calls))
+        self.assertFalse(any(call[0] == "su" for call in calls))
+
+    def test_failed_user_sync_prevents_reload_and_readiness(self):
+        result, calls = self.run_init(TEST_SYNC_EXIT="4")
+        self.assertEqual(result.returncode, 4)
+        self.assertFalse(any(call[0] == "su" for call in calls))
 
     def test_unchanged_transports_do_not_restart(self):
         result, calls = self.run_init(TEST_NEW_TRANSPORT=OLD_TRANSPORT)
