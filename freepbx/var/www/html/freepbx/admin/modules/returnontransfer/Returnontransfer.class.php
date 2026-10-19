@@ -51,7 +51,7 @@ class Returnontransfer extends \FreePBX_Helpers implements \BMO
 	// This handles any data passed to this module before the page is rendered.
 	public function doConfigPageInit($page) {
 		//Handle form submissions
-		switch ($_REQUEST['action']) {
+		switch ($_REQUEST['action'] ?? '') {
 			case 'save':
 			foreach (['timeout','prefix','alertinfo'] as $keyword) {
 				$this->setConfig($keyword,$_REQUEST[$keyword]);
