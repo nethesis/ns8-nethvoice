@@ -3,9 +3,8 @@
 set -e
 exec 1>&2
 # The normal configure flow may keep FreePBX running with its previous env file.
-# Start the independent runner only after its accounts exist in the current DB.
+# Start the shared runtime only after its accounts exist in the current DB.
 systemctl --user daemon-reload
-systemctl --user enable voice-agent.service
-systemctl --user restart voice-agent.service
+manage-satellite
 
 systemctl --user enable --now voice-agent-retention.timer

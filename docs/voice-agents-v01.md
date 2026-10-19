@@ -1,7 +1,7 @@
 # Basic Voice configuration and execution
 
-This slice extends M0 with PHP-owned configuration, native destinations and an
-independent Satellite runner. It is not a declaration that the v0.1 live-call
+This slice extends M0 with PHP-owned configuration, native destinations and a
+shared Satellite runtime. It is not a declaration that the v0.1 live-call
 release gates have passed. Provider calls, media and real transfer confirmation
 must be verified independently on an approved test route.
 
@@ -17,8 +17,8 @@ Open Agent from Wizard’s Apps menu; it opens `/freepbx/agents-ui/` in a new ta
 Create an OpenAI or Grok provider trunk. API keys, Standard Webhooks signing
 secrets and optional Grok SIP digest passwords are write-only. Blank credentials
 on an edit retain the existing encrypted value. A new API key may be blank when
-PHP and the runner have `OPENAI_API_KEY` or `XAI_API_KEY` (`GROK_API_KEY` is an
-alias). Explicit encrypted keys take precedence. NS8 refreshes the private runner
+PHP and Satellite have `OPENAI_API_KEY` or `XAI_API_KEY` (`GROK_API_KEY` is an
+alias). Explicit encrypted keys take precedence. NS8 refreshes the Satellite
 credential file on startup and when integrations change; no keys reach the UI. Configure the provider's webhook
 using the HTTPS endpoint shown by the UI; saving a trunk does not configure the
 provider account. Native Core APIs own PJSIP trunk creation and removal; managed
@@ -134,17 +134,30 @@ owns manifests; Satellite verifies them against its supported handlers at admiss
 NS8 provisions different passwords for `voice_agent_config` and
 `voice_agent_monitor`. The reader gets SELECT only on four dedicated views; the
 writer gets SELECT/INSERT on three execution tables and limited UPDATE columns.
-Neither receives DDL, DELETE, drafts or unrestricted PBX table access. The runner
-gets only its private key/token/DB credentials and ARI password in a mode-0600 env
-file. Credentials and monitoring outbox storage are included in backup/restore.
+Neither receives DDL, DELETE, drafts or unrestricted PBX table access. Satellite
+receives an allowlisted mode-0600 `satellite.env` containing agent and transcription
+credentials, without the MariaDB root password or unrelated module secrets.
+Credentials and monitoring outbox storage are included in backup/restore.
 The additional private listener requires TCP port demand 40 in the module bundle.
 
-`voice-agent.service` uses the canonical Satellite image as UID 65532, independently
-of transcription, with `python -m voice_agent.runner`. It binds to loopback. Traefik
-forwards only `/satellite-webhooks` to this listener; FastAPI exposes exactly the two
-provider webhook paths and authenticated `/internal/ready` outside that prefix.
-Unknown paths, docs and configuration-push routes are absent. Existing transcription
-services and their API routing are independent of this listener.
+`satellite.service` runs one container using the canonical Satellite image as UID
+65532. The NethVoice image wrapper adds `nethvoice_runtime.py`, which supervises
+`python -m voice_agent.runner` and, when either transcription flag is enabled,
+`python main.py`. Both components receive graceful shutdown; an unexpected exit
+of either component stops the other and causes systemd to restart the container.
+The agent listener still binds to loopback. Traefik forwards only
+`/satellite-webhooks` to it; FastAPI exposes exactly the two provider webhook paths
+and authenticated `/internal/ready` outside that prefix. Unknown paths, docs and
+configuration-push routes are absent. The transcription API retains its existing
+port and routing.
+
+Configuration, integration changes and upgrades use `manage-satellite` for the
+same lifecycle: Satellite stays enabled for agents when transcription is off;
+MQTT and the recordings cleanup timer run only with transcription. PostgreSQL
+starts when transcription is enabled and remains available for historical reads
+after transcription is disabled. Upgrades stop and disable the former
+`voice-agent.service` and remove its container before starting Satellite. The
+existing `voice-agent-events` volume, private webhook port and route are retained.
 
 Provider signatures are checked over the original bounded request bytes with a
 five-minute replay window. A webhook must match the persisted, unexpired admitted
@@ -180,6 +193,20 @@ It also runs cross-repository contract/provider/runtime security tests. No real
 provider keys or call are involved. Run UI type-check, lint, unit tests, browser
 tests and production build from `freepbx/agents-ui`. The VisualPlan browser test
 loads its actual native draw2d library. Existing transcription tests remain separate.
+
+Run the local consolidation checks without external services:
+
+```sh
+python3 -m pytest -q tests/unit/test_satellite_runtime.py tests/unit/test_satellite_lifecycle.py
+python3 freepbx/tests/agents/ns8.py
+```
+
+The runtime tests spawn disposable components to verify all transcription modes,
+graceful shutdown and container failure when either component exits. Lifecycle
+tests cover legacy retirement and preservation of historical transcript storage.
+Building this development branch also requires an agent-capable `SATELLITE_IMAGE`;
+the pinned upstream 0.2.4 image has no voice-agent runner. See the
+[Satellite packaging notes](../satellite/README.md#shared-voice-agent-runtime).
 
 Provider protocols were checked against the current primary guides:
 [OpenAI Realtime SIP](https://developers.openai.com/api/docs/guides/voice-sip) and

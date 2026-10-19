@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Idempotent private runner configuration; no provider account writes."""
+"""Idempotent Satellite runtime configuration; no provider account writes."""
 import os
 import secrets
 import sys
@@ -19,12 +19,15 @@ runtime_keys = ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN',
                 'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD',
                 'SATELLITE_ARI_PASSWORD')
 runtime_env={name: passwords[name] for name in runtime_keys}
-for name in ('OPENAI_API_KEY','XAI_API_KEY','GROK_API_KEY'):
+for name in ('OPENAI_API_KEY', 'XAI_API_KEY', 'GROK_API_KEY',
+             'DEEPGRAM_API_KEY', 'SATELLITE_MQTT_PASSWORD'):
     value=passwords.get(name) or os.environ.get(name)
     if value:
         runtime_env[name]=value
-agent.write_envfile('voice-agent.env', runtime_env)
-os.chmod('voice-agent.env', 0o600)
+runtime_env['API_TOKEN'] = passwords['SATELLITE_API_TOKEN']
+runtime_env['PGVECTOR_PASSWORD'] = passwords['SATELLITE_PGSQL_PASSWORD']
+agent.write_envfile('satellite.env', runtime_env)
+os.chmod('satellite.env', 0o600)
 # Forward exactly the public provider prefix to a loopback-only listener.
 env = agent.read_envfile('environment')
 if '--secrets-only' in sys.argv:

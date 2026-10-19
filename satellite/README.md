@@ -4,6 +4,42 @@ Satellite is a Python application that creates a bridge between Asterisk PBX and
 
 https://github.com/nethesis/satellite
 
+## Shared voice-agent runtime
+
+The NethVoice image build adds `nethvoice_runtime.py` to the upstream Satellite
+image and makes it the default command. This launcher runs voice agents and
+optional transcription in the same container managed by `satellite.service`.
+`voice_agent.runner` is always started; `main.py` is started only when
+`SATELLITE_CALL_TRANSCRIPTION_ENABLED` or
+`SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED` is `True` (case insensitive).
+The upstream image must contain both entrypoints and their dependencies. The
+build imports both entrypoints before packaging and fails if either is missing.
+The previously pinned upstream `ghcr.io/nethesis/satellite:0.2.4` contains only
+transcription. Until an agent-capable upstream release is pinned, set
+`SATELLITE_IMAGE` explicitly when building this development branch, for example:
+
+```sh
+SATELLITE_IMAGE=docker-daemon:localhost/satellite:voice-agent-dev \
+BUILD_IMAGES=satellite IMAGETAG=consolidated ./build-images.sh
+```
+
+Use an agent-capable image from the Satellite source checkout; the example refers
+to a local development image, not a published upstream release. The NethVoice
+wrapper runs as UID/GID 65532 regardless of the base image's default identity.
+
+The launcher forwards shutdown to both component process groups, waits up to
+25 seconds, and kills remaining processes. If either component exits unexpectedly
+(including status zero), it stops the other and exits nonzero so systemd restarts
+the container. The existing transcription HTTP port and the private voice-agent
+webhook port remain separate loopback listeners inside that one container.
+
+NS8's `manage-satellite` helper controls the shared service for configuration,
+integration changes and upgrades. It retires the old `voice-agent` container
+without removing its event volume. Disabling transcription keeps voice agents
+running, stops MQTT and recordings cleanup, and preserves PostgreSQL for reads
+of historical transcripts. Runtime credentials are filtered into `satellite.env`;
+unrelated module secrets are not passed to Satellite.
+
 ## Voicemail transcription
 
 Voicemail transcription is enabled by setting the environment variable `SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED` to `True` (also on NS8 interface)

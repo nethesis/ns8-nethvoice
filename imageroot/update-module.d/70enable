@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+exec 1>&2
+
 # Enable middleware service if it exists
 # This is needed when updating from a version without middleware to one with middleware
 # If the service doesn't exist, this command will simply fail without causing issues
@@ -27,13 +29,8 @@ systemctl --user enable --now nethvoice-calendar-sync.timer
 echo "Enabling nethcti-ui-restart timer"
 systemctl --user enable --now nethcti-ui-restart.timer
 
-# Migrate Satellite cleanup to timer-based scheduling
-echo "Enabling satellite recordings cleanup timer"
-systemctl --user disable satellite-recordings-cleanup.service >/dev/null 2>&1 || true
-systemctl --user enable --now satellite-recordings-cleanup.timer
-
-# Independent agents do not require transcription.
+# Start the shared runtime after the no-active-calls check in 80restart.
 systemctl --user daemon-reload
-systemctl --user enable --now voice-agent.service
+systemctl --user enable satellite.service
 
 systemctl --user enable --now voice-agent-retention.timer

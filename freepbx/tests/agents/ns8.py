@@ -7,7 +7,11 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 root=Path(__file__).resolve().parents[3]
-state={'environment':{'NETHVOICE_HOST':'synthetic.example'},'passwords.env':{'SATELLITE_ARI_PASSWORD':'synthetic-ari','MARIADB_ROOT_PASSWORD':'synthetic-root','OPENAI_API_KEY':'synthetic-provider'}}
+state={'environment':{'NETHVOICE_HOST':'synthetic.example'},'passwords.env':{
+    'SATELLITE_ARI_PASSWORD':'synthetic-ari','MARIADB_ROOT_PASSWORD':'synthetic-root',
+    'OPENAI_API_KEY':'synthetic-provider','SATELLITE_API_TOKEN':'synthetic-api',
+    'SATELLITE_PGSQL_PASSWORD':'synthetic-pg','SATELLITE_MQTT_PASSWORD':'synthetic-mqtt',
+    'DEEPGRAM_API_KEY':'synthetic-deepgram'}}
 def write(name,values):
     state[name]=dict(values)
     Path(name).write_text('synthetic-file-only')
@@ -24,10 +28,15 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
         runpy.run_path(str(root/'imageroot/bin/configure-voice-agents'))
         assert first==state['passwords.env']
         agent.allocate_ports.assert_called_once_with(1,'tcp',keep_existing=True)
-        assert 'MARIADB_ROOT_PASSWORD' not in state['voice-agent.env']
-        assert len(state['voice-agent.env'])==6
-        assert state['voice-agent.env']['OPENAI_API_KEY']=='synthetic-provider'
-        assert Path('voice-agent.env').stat().st_mode & 0o777==0o600
+        runtime_env=state['satellite.env']
+        assert 'MARIADB_ROOT_PASSWORD' not in runtime_env
+        assert len(runtime_env)==10
+        assert runtime_env['OPENAI_API_KEY']=='synthetic-provider'
+        assert runtime_env['DEEPGRAM_API_KEY']=='synthetic-deepgram'
+        assert runtime_env['SATELLITE_MQTT_PASSWORD']=='synthetic-mqtt'
+        assert runtime_env['API_TOKEN']=='synthetic-api'
+        assert runtime_env['PGVECTOR_PASSWORD']=='synthetic-pg'
+        assert Path('satellite.env').stat().st_mode & 0o777==0o600
         route=agent.set_route.call_args.args[0]
         assert route['url']=='http://127.0.0.1:30000' and route['path']=='/satellite-webhooks'
         assert route['instance']=='nethvoice_test-voice-agent-webhooks' and route['strip_prefix'] is False

@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Apply the shared Satellite lifecycle after configuration or integration changes."""
+import os
+import subprocess
+import sys
+
+
+def systemctl(*args):
+    subprocess.run(['systemctl', '--user', *args], check=True, stdout=sys.stderr)
+
+
+# Upgrades may still have the former unit loaded, or an orphaned container.
+# Stop it before starting the shared ARI consumer; retain its named event volume.
+legacy = subprocess.run(['systemctl', '--user', 'show', 'voice-agent.service',
+                         '--property=LoadState', '--value'],
+                        capture_output=True, text=True, check=False)
+if legacy.stdout.strip() == 'loaded':
+    systemctl('disable', '--now', 'voice-agent.service')
+subprocess.run(['podman', 'rm', '--ignore', '-f', 'voice-agent'], check=True, stdout=sys.stderr)
+
+# Stop transcription before changing its dependencies. Agents resume in Satellite.
+systemctl('stop', 'satellite.service')
+transcription = any(os.getenv(name, '').lower() == 'true' for name in (
+    'SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED'))
+if transcription:
+    systemctl('enable', '--now', 'satellite-pgsql.service', 'satellite-mqtt.service')
+else:
+    systemctl('disable', '--now', 'satellite-recordings-cleanup.timer')
+    systemctl('stop', 'satellite-recordings-cleanup.service')
+    systemctl('disable', '--now', 'satellite-mqtt.service')
+    # Preserve PostgreSQL for reads of historical transcripts.
+
+systemctl('enable', 'satellite.service')
+systemctl('start', 'satellite.service')
+if transcription:
+    systemctl('disable', 'satellite-recordings-cleanup.service')
+    systemctl('enable', '--now', 'satellite-recordings-cleanup.timer')
+    systemctl('start', 'satellite-recordings-cleanup.service')

@@ -352,7 +352,15 @@ fi
 reponame="nethvoice-satellite"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/satellite:0.2.4)
+    container=$(buildah from "${SATELLITE_IMAGE:-ghcr.io/nethesis/satellite:0.2.4}")
+    # Both runtimes must be present in the selected Satellite release/development image.
+    if ! buildah run "${container}" -- python -c 'import main, voice_agent.runner'; then
+        printf 'Satellite base must include transcription and voice_agent.runner; set SATELLITE_IMAGE to an agent-capable image.\n' >&2
+        buildah rm "${container}"
+        exit 1
+    fi
+    buildah add "${container}" satellite/nethvoice_runtime.py /app/nethvoice_runtime.py
+    buildah config --user 65532:65532 --cmd '["python", "/app/nethvoice_runtime.py"]' "${container}"
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
     buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
