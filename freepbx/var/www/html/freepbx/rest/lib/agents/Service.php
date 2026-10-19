@@ -397,6 +397,20 @@ final class Service
         return array_map(fn($json)=>json_decode($json,true,512,JSON_THROW_ON_ERROR),$this->query('SELECT definition_json FROM asterisk.voice_agent_versions')->fetchAll(\PDO::FETCH_COLUMN));
     }
     /** VisualPlan is the only writer of fallback routing. Never publishes draft edits. */
+    public function saveVisualPlan(array $revisions, callable $writeCanvas): void
+    {
+        $this->locked(function() use ($revisions,$writeCanvas) {
+            foreach ($revisions as $id=>$revision) {
+                $agent=$this->get($id);
+                self::revision($agent,$revision);
+                if (!$agent['routable']) self::fail('agent_not_ready',409);
+            }
+            // Keep the configuration lock through native canvas writes and the
+            // nested fallback publication, so an edit cannot race this check.
+            $writeCanvas();
+        });
+    }
+
     public function setFallbacks(array $changes,string $actor): void
     {
         $this->locked(function() use ($changes,$actor) {
@@ -490,6 +504,8 @@ final class Service
             try {
                 $nativeId=$this->native->provision($previous && $this->native->trunkExists($row)?'update':'create',$this->nativeBinding($row),$previous?$this->nativeBinding($previous):null);
                 $row['freepbx_trunk_id']=$nativeId;
+                // Keep ownership recoverable even when reload or AMI fails.
+                $this->query('UPDATE asterisk.voice_agent_bindings SET freepbx_trunk_id=? WHERE binding_id=?',[$nativeId?:null,$id]);
                 $ok=$nativeId>0 && $this->native->apply() && $this->native->trunkReady($row);
                 $this->query('UPDATE asterisk.voice_agent_bindings SET freepbx_trunk_id=?,sync_status=? WHERE binding_id=?',[$nativeId?:null,$ok?'synced':'error',$id]);
             } catch (\Throwable $error) {

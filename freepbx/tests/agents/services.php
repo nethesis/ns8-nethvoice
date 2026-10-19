@@ -12,9 +12,10 @@ $native = new class {
     public function trunkReady(array $row): bool { return $this->exists; }
     public function destination(string $id): string { if ($id==="hangup") return "app-blackhole,hangup,1"; if ($id==="extension:203") return "from-did-direct,203,1"; if ($id==="native:ivr-7,s,1") return "ivr-7,s,1"; throw new RuntimeException("destination_unavailable",422); }
     public bool $applyOk=true;
+    public bool $applyThrows=false;
     public function extensions(): array { return [['id'=>'extension:203','name'=>'Test extension']]; }
     public function provision(string $operation, array $binding, ?array $previous): int { $this->exists=true; return 9001; }
-    public function apply(): bool { $this->reloads++; return $this->applyOk; }
+    public function apply(): bool { $this->reloads++; if ($this->applyThrows) throw new RuntimeException('synthetic_reload_failure'); return $this->applyOk; }
     public bool $inUse=false;
     public function inUse(string $id): bool { return $this->inUse; }
 };
@@ -59,6 +60,16 @@ $published = $service->publish('receptionist', $saved['revision'], 'test-admin')
 $enabled = $published;
 check($published['enabled'] && $published['draft_version']===$published['workflow_version'],'publication_activates');
 check($enabled['routable'], 'ready_destination');
+$writes=0;
+denied(fn()=>$service->saveVisualPlan(['receptionist'=>$enabled['revision']-1], function() { throw new RuntimeException('stale_canvas_wrote_routes'); }), 'revision_conflict');
+check($writes===0,'stale_visualplan_does_not_write_routes');
+$service->saveVisualPlan(['receptionist'=>$enabled['revision']],function() use ($service,$enabled,&$writes) {
+    $other=new PDO('mysql:host=127.0.0.1;port='.getenv('M0_TEST_PORT'),'root','');
+    check((int)$other->query("SELECT GET_LOCK('voice_agent_configuration',0)")->fetchColumn()===0,'canvas_holds_configuration_lock');
+    $service->setFallbacks(['receptionist'=>['expected_revision'=>$enabled['revision'],'destination_id'=>$enabled['published']['fallback_destination_id']]],'test-admin');
+    $writes++;
+});
+check($writes===1,'current_visualplan_saves_under_lock');
 check($enabled['published']['contract_version']===5,'typed_publication');
 check(array_map(fn($tool)=>array_diff_key($tool,['editor'=>true]),array_values(array_filter($service->catalog()['tools'],fn($tool)=>$tool['version']===2)))===json_decode(file_get_contents(__DIR__.'/../../var/www/html/freepbx/rest/lib/agents/contracts/tools-v2.json'),true),'immutable_catalog_contract');
 check(!$service->get($external['agent_id'])['draft']['tool_bindings'][1]['enabled'], 'independent_grants');
@@ -125,3 +136,12 @@ $native->inUse=false;
 $service->remove('internal',1,'test-admin');
 check($db->query("SELECT definition_json FROM asterisk.voice_agent_versions WHERE agent_id='internal'")->fetchColumn()===$encoded,'legacy_publication_unchanged');
 echo "Agent configuration services passed\n";
+
+// A native trunk remains editable/removable when reload throws after creation.
+$native->applyThrows=true;
+$recoverable=$service->saveTrunk(null,['name'=>'Recoverable provider','provider'=>'openai','openai_project_id'=>'proj_recoverable','api_key'=>'synthetic-api','webhook_secret'=>'whsec_'.base64_encode('synthetic-webhook')],0,'test-admin');
+check($recoverable['freepbx_trunk_id']===9001 && $recoverable['sync_status']==='error','failed_reload_retains_native_trunk_id');
+$native->applyThrows=false;
+$recoverable=$service->saveTrunk($recoverable['binding_id'],['name'=>'Recovered provider','provider'=>'openai','openai_project_id'=>'proj_recoverable'],$recoverable['revision'],'test-admin');
+check($recoverable['sync_status']==='synced','failed_native_trunk_can_be_saved_again');
+$service->removeTrunk($recoverable['binding_id'],$recoverable['revision'],'test-admin');

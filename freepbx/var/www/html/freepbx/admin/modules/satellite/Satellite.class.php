@@ -70,7 +70,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
     public function applyAgentDialplan(): bool {
         needreload();
         $output = []; $status = 1;
-        exec('timeout 35 fwconsole reload >/dev/null 2>&1', $output, $status);
+        exec('/bin/bash '.escapeshellarg(__DIR__.'/bin/voice-agent-reload').' >/dev/null 2>&1', $output, $status);
         return $status === 0;
     }
 

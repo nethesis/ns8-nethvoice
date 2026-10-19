@@ -23,6 +23,8 @@ def stop(*_):
     Path(role + '.stopped').touch()
     sys.exit(0)
 signal.signal(signal.SIGTERM, stop)
+with open(role + '.starts', 'a') as starts:
+    starts.write('start\\n')
 Path(role + '.ready').touch()
 if os.getenv('FAIL_COMPONENT') == role:
     deadline = time.monotonic() + 3
@@ -112,13 +114,22 @@ while True:
 
 @pytest.mark.parametrize('component', ['agent', 'transcription'])
 @pytest.mark.parametrize('status', ['0', '17'])
-def test_component_exit_stops_sibling_and_fails_container(components, component, status):
+def test_component_exit_restarts_it_without_interrupting_sibling(components, component, status):
     process = start(components, 'True', FAIL_COMPONENT=component, FAIL_STATUS=status)
     try:
-        _, errors = process.communicate(timeout=6)
-        assert process.returncode == 1
-        assert b'restarting container' in errors
+        wait_ready(process, components, ['agent', 'transcription'])
+        deadline = time.monotonic() + 9
+        while len((components / (component + '.starts')).read_text().splitlines()) < 2:
+            assert process.poll() is None
+            assert time.monotonic() < deadline
+            time.sleep(0.01)
         sibling = 'transcription' if component == 'agent' else 'agent'
+        assert not (components / (sibling + '.stopped')).exists()
+        assert len((components / (sibling + '.starts')).read_text().splitlines()) == 1
+        process.terminate()
+        _, errors = process.communicate(timeout=5)
+        assert process.returncode == 0
+        assert b'restarting component' in errors
         assert (components / (sibling + '.stopped')).exists()
     finally:
         if process.poll() is None:

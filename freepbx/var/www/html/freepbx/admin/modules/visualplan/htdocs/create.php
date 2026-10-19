@@ -81,7 +81,25 @@ $currentCreated = array();
 $currentVisited = array();
 $returnedIdArray = array();
 
-nethvplan_extraction($widgetArray, $connectionArray);
+try {
+    if ($hasAgent) {
+        $revisions=[];
+        foreach ($widgetArray as $widget) {
+            if (str_starts_with($widget['id']??'','satellite-agent-destination%')) {
+                $revisions[$widget['userData']['agent_id']]=$widget['userData']['revision'];
+            }
+        }
+        (new \NethVoice\Agents\Service(FreePBX::Database()))->saveVisualPlan($revisions,
+            fn()=>nethvplan_extraction($widgetArray,$connectionArray));
+    } else {
+        nethvplan_extraction($widgetArray,$connectionArray);
+    }
+} catch (Throwable $error) {
+    http_response_code(in_array($error->getCode(),[403,404,409,422],true)?$error->getCode():503);
+    header('Content-Type: application/json');
+    echo json_encode(['error'=>'agent_fallback_unavailable']);
+    exit;
+}
 
 function nethvplan_extraction($dataArray, $connectionArray)
 {
@@ -106,8 +124,7 @@ function nethvplan_extraction($dataArray, $connectionArray)
     }
     if ($changes) {
         require_once dirname(__DIR__,4).'/rest/lib/agents/Service.php';
-        try { (new \NethVoice\Agents\Service(FreePBX::Database()))->setFallbacks($changes,$_SESSION['AMP_user']->username??'visualplan-admin'); }
-        catch (Throwable $error) { http_response_code(in_array($error->getCode(),[403,404,409,422],true)?$error->getCode():503); header('Content-Type: application/json');echo json_encode(['error'=>'agent_fallback_unavailable']);exit; }
+        (new \NethVoice\Agents\Service(FreePBX::Database()))->setFallbacks($changes,$_SESSION['AMP_user']->username??'visualplan-admin');
     }
     system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
 }

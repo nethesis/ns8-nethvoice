@@ -23,17 +23,31 @@ def main():
         commands.append([sys.executable, 'main.py'])
 
     children = []
+    restart_at = [None] * len(commands)
     try:
         for command in commands:
             if stopping:
                 return 0
             children.append(subprocess.Popen(command, start_new_session=True))
         while not stopping:
-            for child in children:
+            for index, child in enumerate(children):
                 if child.poll() is not None:
-                    print(f'Satellite component exited (status {child.returncode}); restarting container',
-                          file=sys.stderr, flush=True)
-                    return 1
+                    if restart_at[index] is None:
+                        print(f'Satellite component {index} exited (status {child.returncode}); restarting component',
+                              file=sys.stderr, flush=True)
+                        try:
+                            os.killpg(child.pid, signal.SIGTERM)
+                        except ProcessLookupError:
+                            pass
+                        restart_at[index] = time.monotonic() + 5
+                    elif time.monotonic() >= restart_at[index]:
+                        # Stop orphaned workers before replacing this component.
+                        try:
+                            os.killpg(child.pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                        children[index] = subprocess.Popen(commands[index], start_new_session=True)
+                        restart_at[index] = None
             time.sleep(0.1)
         return 0
     finally:

@@ -12,33 +12,37 @@ optional transcription in the same container managed by `satellite.service`.
 `voice_agent.runner` is always started; `main.py` is started only when
 `SATELLITE_CALL_TRANSCRIPTION_ENABLED` or
 `SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED` is `True` (case insensitive).
-The upstream image must contain both entrypoints and their dependencies. The
-build imports both entrypoints before packaging and fails if either is missing.
-The previously pinned upstream `ghcr.io/nethesis/satellite:0.2.4` contains only
-transcription. Until an agent-capable upstream release is pinned, set
-`SATELLITE_IMAGE` explicitly when building this development branch, for example:
-
-```sh
-SATELLITE_IMAGE=docker-daemon:localhost/satellite:voice-agent-dev \
-BUILD_IMAGES=satellite IMAGETAG=consolidated ./build-images.sh
-```
-
-Use an agent-capable image from the Satellite source checkout; the example refers
-to a local development image, not a published upstream release. The NethVoice
-wrapper runs as UID/GID 65532 regardless of the base image's default identity.
+The default build uses the agent-capable upstream commit pinned in `upstream.env`.
+`fetch-source.sh` verifies the archive SHA-256 before extraction, and
+`build-base.sh` uses its canonical multi-stage Containerfile. No unpublished
+registry tag or local image is required. `SATELLITE_IMAGE` remains an optional
+base override for development; both entrypoints must import successfully.
+The NethVoice wrapper runs as UID/GID 65532.
 
 The launcher forwards shutdown to both component process groups, waits up to
-25 seconds, and kills remaining processes. If either component exits unexpectedly
-(including status zero), it stops the other and exits nonzero so systemd restarts
-the container. The existing transcription HTTP port and the private voice-agent
-webhook port remain separate loopback listeners inside that one container.
+25 seconds, and kills remaining processes. If one component exits unexpectedly,
+it restarts that component after five seconds without interrupting the other.
+Podman's init process reaps orphaned workers. Both HTTP listeners remain on
+loopback with their existing separate ports and authentication.
 
-NS8's `manage-satellite` helper controls the shared service for configuration,
-integration changes and upgrades. It retires the old `voice-agent` container
-without removing its event volume. Disabling transcription keeps voice agents
-running, stops MQTT and recordings cleanup, and preserves PostgreSQL for reads
-of historical transcripts. Runtime credentials are filtered into `satellite.env`;
-unrelated module secrets are not passed to Satellite.
+Satellite stays enabled for agent webhooks and readiness even when no agent is
+enabled. An inactive built-in agent never admits a call. Keeping the listener
+available allows PHP-owned publication and enablement without giving PHP host
+service-management privileges. MQTT, recordings cleanup and transcription itself
+remain conditional on the transcription flags; PostgreSQL stays available for
+historical reads after transcription is disabled.
+
+`manage-satellite` compares the unit, selected environment, filtered credentials
+and image identity before making changes. An unchanged settings save leaves the
+service and calls untouched. A changed configuration waits for no active calls;
+an unavailable Asterisk query refuses the restart. FreePBX restarts do not stop
+Satellite, which reconnects through ARI. Runtime account provisioning runs on
+configuration changes instead of every Satellite start.
+
+Upgrades disable and remove the former `voice-agent` container while retaining
+its event volume. The `:U` mount repairs legacy volume ownership for UID 65532;
+`:Z` preserves its private SELinux label. Credentials are filtered into
+`satellite.env`, without unrelated module secrets.
 
 ## Voicemail transcription
 

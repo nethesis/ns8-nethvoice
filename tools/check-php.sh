@@ -57,7 +57,7 @@ fi
 find "$repo_root/freepbx/var/www/html/freepbx/rest/modules" \
     -type f -name '*.php' \
     -exec grep -nH -E "getAttribute[[:space:]]*\([[:space:]]*['\"][^'\"]+['\"]" {} + \
-    | grep -v -E "getAttribute[[:space:]]*\([[:space:]]*['\"]route['\"]" \
+    | grep -v -E "getAttribute[[:space:]]*\([[:space:]]*['\"](route|nethvoice_admin)['\"]" \
     > "$route_attributes" || true
 if [ -s "$route_attributes" ]; then
     cat "$route_attributes"

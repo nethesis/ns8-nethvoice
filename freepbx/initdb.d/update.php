@@ -6,12 +6,6 @@
 
 include_once '/etc/freepbx_db.conf';
 
-// Agents configuration and monitoring foundation; repeatable on every image update.
-require_once '/var/www/html/freepbx/rest/lib/agents/Schema.php';
-\NethVoice\Agents\Schema::install($db);
-require_once '/var/www/html/freepbx/rest/lib/agents/RuntimeAccounts.php';
-\NethVoice\Agents\RuntimeAccounts::install();
-
 // The image supplies SLN sounds. Avoid downloading other formats when
 // soundlang updates the installed languages.
 $db->exec("UPDATE `asterisk`.`soundlang_settings` SET `value` = 'sln' WHERE `keyword` = 'formats'");
@@ -176,4 +170,17 @@ if ((int) ($res['required_tables'] ?? 0) === 2) {
 				WHERE `emailto` LIKE '%@%')";
 	$stmt = $db->prepare($sql);
 	$stmt->execute();
+}
+
+// Release any pending result sets from the core multi-statement update.
+$stmt->closeCursor();
+// Agent setup must not prevent the core migrations above from running.
+try {
+    // Agents configuration and monitoring foundation; repeatable on every image update.
+    require_once '/var/www/html/freepbx/rest/lib/agents/Schema.php';
+    \NethVoice\Agents\Schema::install($db);
+    require_once '/var/www/html/freepbx/rest/lib/agents/RuntimeAccounts.php';
+    \NethVoice\Agents\RuntimeAccounts::install();
+} catch (\Throwable $error) {
+    error_log('Voice agent setup failed: ' . get_class($error));
 }

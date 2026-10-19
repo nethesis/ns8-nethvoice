@@ -2,8 +2,8 @@
 
 Selected source from the previous Vue application is relocated here: layout,
 Wizard sign-in, theme, EN/IT translations, notification state and authentication
-tests. The GPL license is preserved in `LICENSE`. The source revision and deferred
-components are recorded in `../../docs/voice-agents-m0.md`.
+tests. Nethesis-owned source is licensed GPL-3.0-or-later; see `LICENSE` and
+`../../docs/voice-agents-v01.md` for the supported behavior and test commands.
 
 The v0.1 interface configures built-in/custom Basic Voice agents, enabled tools,
 approved transfer extensions, provider trunks and run activity through the

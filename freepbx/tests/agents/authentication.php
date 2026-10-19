@@ -31,4 +31,9 @@ foreach (['operator', 'missing'] as $user) {
 assert($middleware->process($make()->withHeader('User', 'admin')->withHeader('Secretkey', 'wrong'), $handler)->getStatusCode() === 403);
 $response = $middleware->process($make()->withHeader('User', 'admin')->withHeader('Secretkey', $hash('admin')), $handler);
 assert($response->getStatusCode() === 200 && $response->getHeaderLine('Verified-Admin') === 'admin');
+// A numeric-looking SHA1 must never compare equal to a different numeric string.
+FreePBX::$db->exec("INSERT INTO asterisk.ampusers VALUES ('a','aroZmOk','*')");
+assert(str_starts_with(sha1('aaroZmOk'),'0e'));
+$magicMiddleware=new AuthMiddleware('',$factory);
+assert($magicMiddleware->process($make()->withHeader('User','a')->withHeader('Secretkey','0e0'),$handler)->getStatusCode()===403);
 echo "PASS: Wizard authentication denies missing credentials, wrong keys and non-admin roles\n";

@@ -116,7 +116,7 @@ function satellite_destinations() {
     $result = [];
     foreach (FreePBX::Satellite()->agentDestinations() as $agent) {
         if ($agent['routable']) $result[] = ['destination'=>satellite_agent_destination_key($agent['agent_id']),
-            'description'=>'Agent: '.$agent['name'], 'edit_url'=>'/freepbx/agents-ui/#/agents/'.rawurlencode($agent['agent_id'])];
+            'description'=>'Agent: '.htmlspecialchars($agent['name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'edit_url'=>'/freepbx/agents-ui/#/agents/'.rawurlencode($agent['agent_id'])];
     }
     return $result;
 }
@@ -124,7 +124,7 @@ function satellite_getdest($id) { return [satellite_agent_destination_key($id)];
 function satellite_getdestinfo($dest) {
     if (!preg_match('/^voice-agent-([a-z][a-z0-9_-]{0,47}),s,1$/D', (string)$dest, $match)) return false;
     foreach (FreePBX::Satellite()->agentDestinations() as $agent) {
-        if ($agent['agent_id']===$match[1]) return ['description'=>'Agent: '.$agent['name'],'edit_url'=>'/freepbx/agents-ui/#/agents/'.rawurlencode($match[1])];
+        if ($agent['agent_id']===$match[1]) return ['description'=>'Agent: '.htmlspecialchars($agent['name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),'edit_url'=>'/freepbx/agents-ui/#/agents/'.rawurlencode($match[1])];
     }
     return [];
 }
@@ -135,12 +135,26 @@ function satellite_check_destinations($dest = true) {
         if (!$target || $target==='hangup') continue;
         try { $native=(new \NethVoice\Agents\Native())->destination($target); }
         catch (\Throwable $error) { continue; }
-        if ($dest===true || in_array($native,(array)$dest,true)) $result[]=['dest'=>$native,'description'=>'Agent: '.$agent['name'].' fallback', 'edit_url'=>'/freepbx/visualplan/'];
+        if ($dest===true || in_array($native,(array)$dest,true)) $result[]=['dest'=>$native,'description'=>'Agent: '.htmlspecialchars($agent['name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').' fallback', 'edit_url'=>'/freepbx/visualplan/'];
     }
     return $result;
 }
 function satellite_generate_agent_dialplan() {
     global $ext;
+    // Validate the entire agent projection before adding any PBX contexts.
+    $buffer = new class {
+        public array $lines = [];
+        public function add(...$line): void { $this->lines[] = $line; }
+    };
+    try { satellite_build_agent_dialplan($buffer); }
+    catch (\Throwable $error) {
+        error_log('Voice agent dialplan skipped: ' . get_class($error));
+        return;
+    }
+    foreach ($buffer->lines as $line) $ext->add(...$line);
+}
+
+function satellite_build_agent_dialplan(object $ext): void {
     $ext->add('voice-agent-trunk-hangup','s','',new ext_hangup());
     $ext->add('voice-agent-trunk-hangup','_!','',new ext_hangup());
     $ext->add('voice-agent-headers','s','',new ext_noop('Correlate provider leg'));
@@ -201,6 +215,8 @@ function satellite_generate_agent_dialplan() {
         $ext->add($context,'s','fallback',new ext_set('TIMEOUT(absolute)','0'));
         // The pointer was pinned before Stasis, including the PBX safety watchdog.
         $ext->add($context,'s','',new ext_goto('1','s','${VOICE_AGENT_FALLBACK}'));
+        $ext->add($context,'T','',new ext_set('TIMEOUT(absolute)','0'));
+        $ext->add($context,'T','',new ext_goto('1','s','${VOICE_AGENT_FALLBACK}'));
     }
 }
 

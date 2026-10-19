@@ -92,8 +92,7 @@ $app->get('/trunks/{tech}', function (Request $request, Response $response, $arg
  * @api {delete} /trunks/{trunkid} Delete a trunk
  */
 $app->delete('/trunks/{trunkid}', function (Request $request, Response $response, $args) {
-  $route = $request->getAttribute('route');
-  $trunkid = $route->getArgument('trunkid');
+  $trunkid = $args['trunkid'];
   try {
     $owned=FreePBX::Core()->getTrunkByID($trunkid);
     if (($owned['provider']??null)==='satellite-agent') return jsonResponse($response,['error'=>'managed_by_agents'],409);
@@ -124,12 +123,16 @@ $app->delete('/trunks/{trunkid}', function (Request $request, Response $response
 $app->patch('/trunks/{trunkid}', function (Request $request, Response $response, $args) {
     try {
         $params = $request->getParsedBody();
-        $route = $request->getAttribute('route');
-        $trunkid = $route->getArgument('trunkid');
+        $trunkid = $args['trunkid'];
 
         if (empty($trunkid)) {
             error_log("missing argument $trunkid");
             return jsonResponse($response, ['error'=>"missing argument $trunkid"],400);
+        }
+
+        $owned = FreePBX::Core()->getTrunkByID($trunkid);
+        if (($owned['provider'] ?? null) === 'satellite-agent') {
+            return jsonResponse($response, ['error' => 'managed_by_agents'], 409);
         }
 
         // Make sure that trunk to patch is a pjsip trunk

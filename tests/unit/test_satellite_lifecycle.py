@@ -24,9 +24,23 @@ class Services:
         self.legacy = legacy
         self.orphan = True
         self.calls = []
+        self.idle = True
+        self.fail_legacy_stop = False
+        self.image = "synthetic-image-id"
 
     def run(self, args, **kwargs):
         self.calls.append(args)
+        if args[0] == 'configure-voice-agents':
+            return subprocess.CompletedProcess(args, 0)
+        if args[0] == 'restart-services-when-convenient':
+            assert args[1:] == ['--wait-only']
+            if not self.idle:
+                raise subprocess.CalledProcessError(1, args)
+            return subprocess.CompletedProcess(args, 0)
+        if args[:3] == ['podman', 'image', 'inspect']:
+            return subprocess.CompletedProcess(args, 0, stdout=self.image)
+        if args[:2] == ['podman', 'exec']:
+            return subprocess.CompletedProcess(args, 0)
         if args[:2] == ['podman', 'rm']:
             assert 'voice-agent.service' not in self.active
             assert '--volumes' not in args and '-v' not in args
@@ -34,6 +48,10 @@ class Services:
         else:
             assert args[:2] == ['systemctl', '--user']
             action = args[2]
+            if action == 'is-active':
+                return subprocess.CompletedProcess(args, 0 if args[-1] in self.active else 3)
+            if action == 'disable' and 'voice-agent.service' in args and self.fail_legacy_stop:
+                raise subprocess.CalledProcessError(1, args)
             if action == 'show':
                 return subprocess.CompletedProcess(args, 0, stdout='loaded' if self.legacy else 'not-found')
             services = [arg for arg in args[3:] if not arg.startswith('-')]
@@ -56,17 +74,32 @@ class Services:
         return subprocess.CompletedProcess(args, 0)
 
 
+def apply(services):
+    with patch('subprocess.run', side_effect=services.run):
+        try:
+            runpy.run_path(str(HELPER))
+        except SystemExit as result:
+            assert result.code == 0
+
+
+@pytest.fixture(autouse=True)
+def state(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv('NETHVOICE_SATELLITE_IMAGE', 'synthetic-image')
+    (tmp_path / 'satellite.env').write_text('synthetic-credentials')
+
+
 @pytest.mark.parametrize('legacy', [False, True])
 @pytest.mark.parametrize('call,voicemail', [('False', 'False'), ('True', 'False'),
                                           ('False', 'True'), ('True', 'True')])
 def test_agents_survive_transcription_changes_and_legacy_is_retired(legacy, call, voicemail):
     services = Services(legacy)
     with patch.dict('os.environ', {'SATELLITE_CALL_TRANSCRIPTION_ENABLED': call,
-                                 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED': voicemail}), \
-            patch('subprocess.run', side_effect=services.run):
+                                 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED': voicemail}):
         # Repeated configuration is safe and cannot re-enable the retired runner.
-        runpy.run_path(str(HELPER))
-        runpy.run_path(str(HELPER))
+        apply(services)
+        apply(services)
+    assert services.calls.count(['systemctl', '--user', 'stop', 'satellite.service']) == 1
     assert 'satellite.service' in services.active & services.enabled
     assert 'voice-agent.service' not in services.active | services.enabled
     assert 'satellite-pgsql.service' in services.active
@@ -77,15 +110,30 @@ def test_agents_survive_transcription_changes_and_legacy_is_retired(legacy, call
 
 
 def test_failed_legacy_stop_prevents_duplicate_ari_consumer():
-    def fail_stop(args, **kwargs):
-        if args[2] == 'show':
-            return subprocess.CompletedProcess(args, 0, stdout='loaded')
-        raise subprocess.CalledProcessError(1, args)
+    services = Services(True)
+    services.fail_legacy_stop = True
+    with pytest.raises(subprocess.CalledProcessError):
+        apply(services)
+    assert not any('start' in call for call in services.calls)
 
-    with patch('subprocess.run', side_effect=fail_stop) as run:
-        with pytest.raises(subprocess.CalledProcessError):
-            runpy.run_path(str(HELPER))
-    assert all('start' not in args.args[0] for args in run.call_args_list)
+
+def test_changed_environment_waits_for_idle_and_unrelated_settings_do_not_restart(monkeypatch):
+    services = Services(False)
+    apply(services)
+    monkeypatch.setenv('NETHVOICE_HOST', 'other.example.org')
+    apply(services)
+    assert services.calls.count(['systemctl', '--user', 'stop', 'satellite.service']) == 1
+    monkeypatch.setenv('SATELLITE_HTTP_PORT', '31000')
+    services.idle = False
+    with pytest.raises(subprocess.CalledProcessError):
+        apply(services)
+    assert services.calls.count(['systemctl', '--user', 'stop', 'satellite.service']) == 1
+    services.idle = True
+    apply(services)
+    assert services.calls.count(['systemctl', '--user', 'stop', 'satellite.service']) == 2
+    services.image = 'replacement-image-id'
+    apply(services)
+    assert services.calls.count(['systemctl', '--user', 'stop', 'satellite.service']) == 3
 
 
 def test_upgrade_defers_consolidation_until_call_safe_restart(tmp_path):

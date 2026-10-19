@@ -34,11 +34,20 @@ describe("browser authentication", () => {
     expect(queryClient.getQueryData(["private"])).toBeUndefined();
   });
   it("blocks mutations when an advanced editor contains invalid JSON", async () => {
+    localStorage.setItem("secretkey", JSON.stringify({ user: "administrator", hash: "synthetic-test" }));
     invalidJsonEditors.add(Symbol());
-    const network = vi.spyOn(globalThis, "fetch");
+    const network = vi.spyOn(XMLHttpRequest.prototype, "send").mockImplementation(() => { throw new Error("network_probe"); });
     await expect(
       request("PUT", "/draft", {}),
     ).rejects.toThrow("invalid_json");
     expect(network).not.toHaveBeenCalled();
+    network.mockRestore();
+  });
+  it("observes the XHR adapter for an allowed request", async () => {
+    localStorage.setItem("secretkey", JSON.stringify({ user: "administrator", hash: "synthetic-test" }));
+    const network = vi.spyOn(XMLHttpRequest.prototype, "send").mockImplementation(() => { throw new Error("network_probe"); });
+    await expect(request("GET", "/catalog")).rejects.toThrow("network_probe");
+    expect(network).toHaveBeenCalledOnce();
+    network.mockRestore();
   });
 });

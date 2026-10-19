@@ -33,6 +33,7 @@ services = [
     "middleware-cti-server-api",
     "sso-sp-handler",
     "sso-mint",
+    "voice-agent-webhooks",
 ]
 
 # Remove traefik route

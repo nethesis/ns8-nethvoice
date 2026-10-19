@@ -1,0 +1,69 @@
+name: Voice agent checks
+
+on:
+  pull_request:
+  push:
+    branches: [main, voice_agent]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ui:
+    name: Agent UI and browser regressions
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: freepbx/agents-ui
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+          cache: npm
+          cache-dependency-path: freepbx/agents-ui/package-lock.json
+      - run: npm ci
+      - run: npm run type-check && npm run lint && npm test && npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+        env:
+          CI: "true"
+
+  foundation:
+    name: Agent backend and runtime regressions
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ns8-nethvoice
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: ns8-nethvoice
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: pdo_mysql, mbstring, sodium
+          coverage: none
+      - name: Fetch pinned runtime and native dialplan library
+        run: |
+          bash satellite/fetch-source.sh "${GITHUB_WORKSPACE}/satellite"
+          REMOTE_ARTIFACTS_MANIFEST="$PWD/freepbx/remote-artifacts.sha256" sh freepbx/fetch-remote-artifact freepbx-framework-bootstrap-release-17.0.33.2.tar.gz https://github.com/FreePBX/framework/archive/refs/tags/release/17.0.33.2.tar.gz
+          mkdir -p "${RUNNER_TEMP}/framework"
+          tar -xzf /tmp/freepbx-framework-bootstrap-release-17.0.33.2.tar.gz --strip-components=1 -C "${RUNNER_TEMP}/framework"
+          echo "VOICE_AGENT_EXTENSIONS_FILE=${RUNNER_TEMP}/framework/amp_conf/htdocs/admin/libraries/extensions.class.php" >> "$GITHUB_ENV"
+      - name: Install test dependencies
+        run: |
+          python -m pip install -r "${GITHUB_WORKSPACE}/satellite/requirements-agent.lock" -r "${GITHUB_WORKSPACE}/satellite/requirements-dev.txt"
+          composer install --working-dir=freepbx/var/www/html/freepbx/rest --no-interaction --no-progress --prefer-dist
+      - name: Run disposable database and runtime tests
+        run: |
+          python -m pytest -q tests/unit
+          freepbx/tests/agents/run-foundation.sh
+          php freepbx/var/www/html/freepbx/admin/modules/satellite/tests/run_transcription_tests.php
+        env:
+          M0_SATELLITE_DIR: ${{ github.workspace }}/satellite
+          M0_REST_AUTOLOAD: ${{ github.workspace }}/ns8-nethvoice/freepbx/var/www/html/freepbx/rest/vendor/autoload.php

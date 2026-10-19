@@ -71,7 +71,7 @@ class AuthMiddleware implements MiddlewareInterface
             return $this->jsonResponse(['error' => 'Forbidden: invalid user'], 403);
             }
             $hash = sha1($username . $password_sha1 . $this->secret);
-        if (!$isTestAuthPath && $given_secret != $hash) {
+        if (!$isTestAuthPath && !hash_equals($hash, $given_secret)) {
             return $this->jsonResponse(['error' => 'Forbidden: wrong secret key'], 403);
         }
 

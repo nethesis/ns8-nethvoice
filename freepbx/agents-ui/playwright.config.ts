@@ -6,7 +6,7 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:5187/freepbx/agents-ui/",
     viewport: { width: 1440, height: 1024 },
     browserName: "chromium",
-    channel: "chrome",
+    channel: process.env.CI ? undefined : "chrome",
     launchOptions: { args: ["--no-sandbox"] },
     screenshot: "only-on-failure",
   },

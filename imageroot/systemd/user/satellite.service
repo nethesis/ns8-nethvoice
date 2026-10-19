@@ -1,6 +1,6 @@
 [Unit]
 Description=Satellite voice agents and optional transcription for NethVoice
-Requires=mariadb.service freepbx.service
+Wants=mariadb.service freepbx.service
 After=mariadb.service freepbx.service satellite-mqtt.service satellite-pgsql.service
 
 [Service]
@@ -12,15 +12,15 @@ RestartSec=5
 TimeoutStopSec=45
 ExecStartPre=/bin/rm -f %t/satellite.pid %t/satellite.ctr-id
 ExecStartPre=runagent configure-voice-agents --secrets-only
-ExecStartPre=runagent /usr/bin/podman exec freepbx php /var/www/html/freepbx/rest/lib/agents/install-runtime.php
 ExecStart=runagent /usr/bin/podman run \
     --detach \
+    --init \
     --conmon-pidfile=%t/satellite.pid \
     --cidfile=%t/satellite.ctr-id \
     --cgroups=no-conmon \
     --replace --name=%N \
     --stop-timeout=35 \
-    --volume=voice-agent-events:/var/lib/voice-agent:Z \
+    --volume=voice-agent-events:/var/lib/voice-agent:Z,U \
     --env-file=%E/state/satellite.env \
     --env=VOICE_AGENT_ENABLED=true \
     --env=VOICE_AGENT_EVENT_DIR=/var/lib/voice-agent \

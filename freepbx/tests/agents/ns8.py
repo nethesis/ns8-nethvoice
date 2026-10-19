@@ -46,6 +46,29 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
             except SystemExit as result: assert result.code==0
         agent.set_route.assert_not_called()
         agent.allocate_ports.assert_called_once()
+        # Full demand is already assigned at create: never ask for port 41.
+        for total in (39,40):
+            state['environment'].pop('VOICE_AGENT_HTTP_PORT',None)
+            state['environment']['TCP_PORTS_RANGE']='31000-'+str(31000+total-1)
+            agent.allocate_ports.reset_mock()
+            agent.allocate_ports.side_effect=RuntimeError('max_ports_exceeded')
+            runpy.run_path(str(root/'imageroot/bin/configure-voice-agents'))
+            assert state['environment']['VOICE_AGENT_HTTP_PORT']=='31038'
+            agent.allocate_ports.assert_not_called()
+        # Execute the actual fresh-create mapping as well.
+        state['environment'].clear()
+        with patch.dict(os.environ,{'TCP_PORTS_RANGE':'32000-32039','UDP_PORTS_RANGE':'40000-42002'}):
+            runpy.run_path(str(root/'imageroot/actions/create-module/05setenvs'))
+        assert state['environment']['VOICE_AGENT_HTTP_PORT']==32038
+        assert state['environment']['OAUTH2_PROXY_PORT']==32037
+        # Removal must delete the exact public route previously registered.
+        removed=[]
+        agent.resolve_agent_id=lambda _: 'module/traefik_test'
+        tasks=SimpleNamespace(run=lambda **args: removed.append(args) or {'exit_code':0})
+        agent.tasks=tasks
+        with patch.dict('sys.modules',{'agent.tasks':tasks}):
+            runpy.run_path(str(root/'imageroot/actions/destroy-module/20destroy'))
+        assert any(call['data']['instance']=='nethvoice_test-voice-agent-webhooks' for call in removed)
     finally:
         os.chdir(before)
 assert 'org.nethserver.tcp-ports-demand="40"' in (root/'Containerfile').read_text()
