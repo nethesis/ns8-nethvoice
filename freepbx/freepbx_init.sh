@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Remember the configuration Asterisk starts with, before module installation
+# can regenerate it. A missing file on the first start has no previous hash.
+pjsip_transports_before=$(sha256sum /etc/asterisk/pjsip.transports.conf 2>/dev/null || true)
+
 # wait for asterisk to start
 while [[ $(/usr/sbin/asterisk -rx 'core show version' 2>/dev/null) != Asterisk* ]]; 
     do ((++attempt<300)) || exit 2
@@ -133,10 +137,10 @@ php -r 'include_once "/etc/freepbx_db.conf"; $db->query("UPDATE freepbx_settings
 # Re-apply the allocated service ports.
 # Installing the iaxsettings/sipsettings modules above reseeds their tables and
 # drops the ports injected at DB init (mariadb 70_asterisk_ports.sh). We must
-# restore them BEFORE the reload below: a `fwconsole reload` does not rebind an
-# already-loaded PJSIP transport, so the transport has to be generated with the
-# correct port on the first reload to avoid a restart. Ports come from the
-# container environment (ASTERISK_*). kvstore_Sipsettings rows are managed by
+# restore them BEFORE the reload below. A `fwconsole reload` does not rebind an
+# already-loaded PJSIP transport; changed transport configuration is applied
+# with a core restart after the reload. Ports come from the container
+# environment (ASTERISK_*). kvstore_Sipsettings rows are managed by
 # the module and only UPDATEd to avoid inserting a duplicate under a mismatched
 # `id` (UNIQUE(`key`,`id`)).
 php <<'PHP'
@@ -201,13 +205,45 @@ if ($favicon !== false && $favicon !== "") { $set("BRAND_IMAGE_FAVICON", $favico
 # Sync users
 fwconsole userman --syncall --force --verbose
 
-# Core module installation resets the HTTPS bind address from :: to localhost.
-# WSS clients reach Asterisk through the container network, so restore the
-# container-wide bind address before fwconsole regenerates http.conf.
-php -r 'include_once "/etc/freepbx_db.conf"; $db->query("UPDATE freepbx_settings SET value = \"0.0.0.0\" WHERE keyword = \"HTTPTLSBINDADDRESS\" AND value = \"127.0.0.1\"");'
+# Enable transports after module installation, before generating configuration.
+# Keep this out of the asynchronous post-update database migrations.
+# Core installation also changes the HTTPS bind address from :: to localhost;
+# restore container access for WSS without overwriting custom bind addresses.
+php <<'PHP' || exit $?
+<?php
+include_once "/etc/freepbx_db.conf";
+$binds = [];
+foreach (['wss', 'udp', 'tcp', 'ws', 'tls'] as $protocol) {
+    $binds[$protocol] = ['0.0.0.0' => 'on'];
+}
+$statement = $db->prepare('UPDATE kvstore_Sipsettings SET val = ? WHERE `key` = "binds"');
+$statement->execute([json_encode($binds)]);
+$db->query('UPDATE freepbx_settings SET value = "0.0.0.0" WHERE keyword = "HTTPTLSBINDADDRESS" AND value = "127.0.0.1"');
+PHP
 
-# Always apply changes on start
-su asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload"
+# Userman sync can launch a background reload through NethCTI. Retry only the
+# explicit FreePBX reload-lock rejection, allowing up to five minutes to drain.
+for ((reload_attempt=1; reload_attempt<=60; reload_attempt++)); do
+    reload_output=$(su asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload" 2>&1)
+    reload_status=$?
+    printf '%s\n' "$reload_output"
+    if [[ $reload_status -eq 0 ]]; then
+        break
+    fi
+    if [[ $reload_status -ne 255 || "$reload_output" != *'Process is already running.'* || $reload_attempt -eq 60 ]]; then
+        exit "$reload_status"
+    fi
+    echo "FreePBX reload is busy, retrying in five seconds" >&2
+    sleep 5
+done
+
+# Reload regenerates transport configuration but cannot change live bindings.
+# Recover here if pre-restart generation failed, after all modules are ready.
+pjsip_transports_after=$(sha256sum /etc/asterisk/pjsip.transports.conf) || exit $?
+if [[ "$pjsip_transports_before" != "$pjsip_transports_after" ]]; then
+    echo "PJSIP transport configuration changed, restarting Asterisk" >&2
+    /usr/sbin/asterisk -rx 'core restart now' || exit $?
+fi
 
 # Reset phones RPS after FreePBX modules have been initialized
 php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed

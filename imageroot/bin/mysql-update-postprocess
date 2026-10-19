@@ -112,9 +112,8 @@ ALTER TABLE phonebook
 # have empty access after the column is added: they were publicly visible, so mark them
 # public explicitly. Group-scoped rows carry 'group:...' and are left untouched.
 /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" phonebook -e 'UPDATE phonebook SET access = "public" WHERE access = ""'
-# Enable WebSocket transport
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'UPDATE kvstore_Sipsettings SET val="{\"wss\":{\"0.0.0.0\":\"on\"},\"udp\":{\"0.0.0.0\":\"on\"},\"tcp\":{\"0.0.0.0\":\"on\"},\"ws\":{\"0.0.0.0\":\"on\"},\"tls\":{\"0.0.0.0\":\"on\"}}" WHERE `key` = "binds"'
-# Port settings are applied and generated before the FreePBX restart (78update_mysql).
+# Port settings are prepared before restart (78update_mysql); transport enabling
+# and final configuration generation run together in freepbx_init.sh.
 
 exit 0
 EOF
