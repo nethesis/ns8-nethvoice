@@ -4,14 +4,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 set -e
-exec 1>&2
 
 systemctl --user daemon-reload
 
 echo "Restarting services when there are no active calls" >&2
 restart-services-when-convenient mariadb freepbx janus nethcti-server nethcti-middleware nethcti-ui phonebook reports-api reports-redis reports-ui tancredi satellite satellite-mqtt satellite-pgsql
-
-# Conditional restarts skip inactive units. Recover only enabled mapped
-# dependents, then fail the update if prerequisites or dependents remain down.
-timeout 150 recover-dependent-services --wait 120 freepbx.service
-timeout 150 recover-dependent-services --wait 120 reports-api.service
