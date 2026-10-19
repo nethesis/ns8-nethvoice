@@ -96,7 +96,7 @@ UPDATE sip s JOIN rest_devices_phones d ON d.extension = s.id
 SET s.data = 'opus,g722,ulaw,alaw,gsm,g726,h264,vp8'
 WHERE s.keyword = 'allow' AND d.type IN ('webrtc','nethlink','mobile');
 UPDATE sip s JOIN rest_devices_phones d ON d.extension = s.id
-SET s.data = 'ulaw,alaw,gsm,g726,g722,h264,vp8'
+SET s.data = 'g722,ulaw,alaw,gsm,g726,h264,vp8'
 WHERE s.keyword = 'allow' AND (d.type IS NULL OR d.type NOT IN ('webrtc','nethlink','mobile'));
 SQL
 fi
