@@ -335,6 +335,93 @@ component, keep it out of mergeable defaults:
 
 This module uses the NS8 standard testing infrastructure. For instructions on how to run the test suite locally, refer to the [Running tests locally](https://github.com/NethServer/ns8-github-actions/blob/v1/README.md#running-tests-locally) section of the ns8-github-actions repository.
 
+## Release procedure
+
+The same procedure applies to the [ns8-nethvoice-proxy](https://github.com/NethServer/ns8-nethvoice-proxy) module.
+
+The release is managed with the [gh-ns8](https://github.com/NethServer/gh-ns8) extension for the GitHub CLI:
+
+```bash
+gh extension install NethServer/gh-ns8
+```
+
+Run every command from the repository root. The examples below release version `1.7.10`.
+
+### 1. Check the repository status
+
+```bash
+gh ns8 module-release check
+```
+
+The output lists the open issues and the merged PRs since the latest release:
+
+- PRs without a linked issue, merged into `main`
+- Verified issues with all PRs merged into `main`: ready to release
+- Verified issues with PRs still open: ready to release as soon as the PRs are merged
+- Issues in progress or testing with PRs merged into `main`: release blockers
+- Issues in progress or testing with PRs still open: they do not block the release
+
+A new version can be released only when there are no release blockers.
+
+### 2. Create the release
+
+```bash
+gh ns8 module-release create --with-linked-issues 1.7.10
+```
+
+### 3. Add the external components `HEAD` to the release notes
+
+Edit the release message and append the latest commit of `nethesis/nethcti-server` (branch `ns8`).
+The following script prints the section to paste into the release notes (it requires Bash 4 or later):
+
+```sh
+#!/bin/bash
+
+# Associative array to store repositories, branches, and their corresponding GitHub URLs
+declare -A repositories=(
+    ["nethesis/nethcti-server"]="ns8"
+)
+
+# Function to get the last commit SHA for a given repository and branch
+get_last_commit_sha() {
+    repo=$1
+    branch=$2
+    last_commit_sha=$(gh api repos/"$repo"/commits/"$branch" --jq '.sha')
+    echo -n "* https://github.com/$repo/commit/$last_commit_sha"
+}
+
+# Check if gh CLI is installed
+if ! command -v gh &> /dev/null; then
+    echo "GitHub CLI (gh) is not installed. Please install it first."
+    exit 1
+fi
+
+# Process each repository and branch in the associative array
+echo "### External components \`HEAD\`"
+for repo in "${!repositories[@]}"; do
+    branch=${repositories[$repo]}
+    get_last_commit_sha "$repo" "$branch"
+    echo
+done
+```
+
+### 4. Clean up intermediate testing releases
+
+```bash
+gh ns8 module-release clean 1.7.10
+```
+
+### 5. Comment the linked issues
+
+```bash
+gh ns8 module-release comment 1.7.10
+```
+
+The command adds a comment with the released version to every linked issue.
+It can be used for testing releases too.
+
+Finally, open the links printed in the terminal, close the issues and remove the `verified` label.
+
 ## Music
 
 This project incorporates a number of royalty-free, creative commons licensed music files. These files are distributed under the Creative Commons Attribution-ShareAlike 3.0 license through explicit permission from their authors. The license can be found at: http://creativecommons.org/licenses/by-sa/3.0/
