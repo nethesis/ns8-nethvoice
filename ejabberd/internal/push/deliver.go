@@ -31,6 +31,7 @@ type Router struct {
 	// ArchiveID: archive id of the newest message user exchanged with peer; the app
 	// dedupes push and fetch by it (push Id == sms_id). May be nil.
 	ArchiveID func(ctx context.Context, user, peer string) string
+	DND       func(ctx context.Context, username string) bool // in do not disturb: no push at all, may be nil
 	client    *http.Client
 }
 
@@ -74,7 +75,7 @@ func (r *Router) Deliver(ctx context.Context, n Notification) {
 
 func (r *Router) web(ctx context.Context, n Notification) {
 	sub, err := r.Store.WebSub(n.Node)
-	if err != nil || sub == nil || ownMessage(n.Sender, sub.Username) || r.Store.Away(sub.Username) {
+	if err != nil || sub == nil || ownMessage(n.Sender, sub.Username) || r.Store.Away(sub.Username) || r.dnd(ctx, sub.Username) {
 		return
 	}
 	from, name := r.who(ctx, n.Sender)
@@ -164,7 +165,7 @@ func ownMessage(sender, user string) bool {
 // pnm sends the same NotifyTextMessage matrix2acrobits sends today.
 func (r *Router) pnm(ctx context.Context, n Notification) {
 	tok, err := r.Store.PNM(n.Node)
-	if err != nil || tok == nil || ownMessage(n.Sender, tok.Username) || r.Store.Away(tok.Username) {
+	if err != nil || tok == nil || ownMessage(n.Sender, tok.Username) || r.Store.Away(tok.Username) || r.dnd(ctx, tok.Username) {
 		return
 	}
 	// A group shows in the app as a thread named after the room: the push must open that one.
@@ -208,6 +209,14 @@ func (r *Router) pnm(ctx context.Context, n Notification) {
 			r.Store.Pushed(n.Node)
 		}
 	}
+}
+
+func (r *Router) dnd(ctx context.Context, username string) bool {
+	if r.DND == nil || !r.DND(ctx, username) {
+		return false
+	}
+	logx.Debugf("push %s: DND, skipped", username)
+	return true
 }
 
 func (r *Router) name(username string) string {

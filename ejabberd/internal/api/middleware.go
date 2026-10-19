@@ -34,6 +34,7 @@ type Middleware struct {
 	lastJWT string // the newest token seen valid, to refresh the user list for pushes
 
 	refreshing bool
+	fetching   sync.Mutex // one user list fetch at a time: a group message asks for every member
 }
 
 const tokenTTL = 2 * time.Minute
@@ -51,10 +52,14 @@ type User struct {
 }
 
 type userCache struct {
-	byUser map[string]User
-	byExt  map[string]string
-	till   time.Time
+	byUser  map[string]User
+	byExt   map[string]string
+	till    time.Time
+	fetched time.Time
 }
+
+// presenceTTL: how old a presence may be when a push checks it, so DND holds within seconds.
+const presenceTTL = 15 * time.Second
 
 func NewMiddleware(url string) *Middleware {
 	return &Middleware{URL: url, client: &http.Client{Timeout: 10 * time.Second}, tokens: map[string]cachedToken{}}
@@ -194,10 +199,32 @@ func (m *Middleware) Extension(username string) string {
 	return username
 }
 
+// Presence is the user's CTI presence, read again when older than presenceTTL; "" when unknown.
+func (m *Middleware) Presence(ctx context.Context, username string) string {
+	m.mu.Lock()
+	users, jwt := m.users, m.lastJWT
+	m.mu.Unlock()
+	if jwt != "" && (users == nil || time.Since(users.fetched) > presenceTTL) {
+		if u, err := m.fetch(ctx, jwt, presenceTTL); err == nil {
+			users = u
+		}
+	}
+	if users == nil {
+		return ""
+	}
+	return users.byUser[username].Presence
+}
+
 // Users returns the CTI user list, cached ten minutes, fetched with the caller's JWT.
 func (m *Middleware) Users(ctx context.Context, jwt string) (*userCache, error) {
+	return m.fetch(ctx, jwt, 10*time.Minute)
+}
+
+func (m *Middleware) fetch(ctx context.Context, jwt string, maxAge time.Duration) (*userCache, error) {
+	m.fetching.Lock()
+	defer m.fetching.Unlock()
 	m.mu.Lock()
-	if m.users != nil && time.Now().Before(m.users.till) {
+	if m.users != nil && time.Since(m.users.fetched) < maxAge {
 		u := m.users
 		m.mu.Unlock()
 		return u, nil
@@ -221,7 +248,7 @@ func (m *Middleware) Users(ctx context.Context, jwt string) (*userCache, error) 
 	if err := m.get(ctx, jwt, "/user/endpoints/all", &all); err != nil {
 		return nil, err
 	}
-	uc := &userCache{byUser: map[string]User{}, byExt: map[string]string{}, till: time.Now().Add(10 * time.Minute)}
+	uc := &userCache{byUser: map[string]User{}, byExt: map[string]string{}, till: time.Now().Add(10 * time.Minute), fetched: time.Now()}
 	for _, r := range all {
 		u := User{Username: r.Username, Name: r.Name, Presence: r.MainPresence}
 		if len(r.Endpoints.MainExtension) > 0 {

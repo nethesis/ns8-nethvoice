@@ -68,6 +68,7 @@ func main() {
 	srv.RoomName = push.RoomName
 	router.Names = mw.Name
 	router.Address = mw.Extension
+	router.DND = func(ctx context.Context, username string) bool { return mw.Presence(ctx, username) == "dnd" }
 	router.ArchiveID = func(ctx context.Context, user, peer string) string {
 		ses, err := xmppc.Dial(ctx, c2s, host, user, svcauth.Password(secret, user, host, time.Now()))
 		if err != nil {
