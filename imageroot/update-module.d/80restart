@@ -1,8 +1,13 @@
 #!/bin/bash
 
-# reload systemd changes
-systemctl --user daemon-reload
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-# launch background tasks that restart freepbx only if there aren't any calls in progress
-echo "Restarting FreePBX, Janus, NethCTI and Middleware server when there are no active calls"
+set -e
+
+systemctl --user daemon-reload
+runagent mysql-update-postprocess --migrate
+runagent prepare-asterisk-config
+
+echo "Restarting services when there are no active calls" >&2
 restart-services-when-convenient mariadb freepbx janus nethcti-server nethcti-middleware nethcti-ui phonebook reports-api reports-redis reports-ui tancredi satellite satellite-mqtt satellite-pgsql

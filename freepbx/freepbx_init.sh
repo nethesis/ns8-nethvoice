@@ -103,7 +103,7 @@ fwconsole ma list | grep '^| ' | grep -v '^| Module'| awk '{print $2,$6}' > "$mo
 for module in "${modules_to_install[@]}"; do
     if ! test -s "$module_status" || grep -q "$module " "$module_status" && ! grep -q "$module Enabled" "$module_status" ; then
         echo Installing module "$module"
-        fwconsole moduleadmin install "$module"
+        fwconsole moduleadmin install "$module" || exit $?
     fi
 done
 
@@ -113,7 +113,7 @@ for module_file in $(ls /freepbx_custom_modules); do
 	mkdir -p /var/www/html/freepbx/admin/modules/"${module}"
 	tar xzpf /freepbx_custom_modules/"${module_file}" --strip-component=1 -C /var/www/html/freepbx/admin/modules/${module}
 	echo Installing custom module "$module"
-    fwconsole moduleadmin install "$module"
+    fwconsole moduleadmin install "$module" || exit $?
 done
 
 # Remove obsolete modules if required
@@ -129,35 +129,6 @@ ionice -c2 -n7 nice -n 10 fwconsole chown
 
 # Disable signature check
 php -r 'include_once "/etc/freepbx_db.conf"; $db->query("UPDATE freepbx_settings SET value = 0 WHERE keyword = \"SIGNATURECHECK\"");'
-
-# Re-apply the allocated service ports.
-# Installing the iaxsettings/sipsettings modules above reseeds their tables and
-# drops the ports injected at DB init (mariadb 70_asterisk_ports.sh). We must
-# restore them BEFORE the reload below: a `fwconsole reload` does not rebind an
-# already-loaded PJSIP transport, so the transport has to be generated with the
-# correct port on the first reload to avoid a restart. Ports come from the
-# container environment (ASTERISK_*). kvstore_Sipsettings rows are managed by
-# the module and only UPDATEd to avoid inserting a duplicate under a mismatched
-# `id` (UNIQUE(`key`,`id`)).
-php <<'PHP'
-<?php
-include_once "/etc/freepbx_db.conf";
-$iax    = (int) getenv("ASTERISK_IAX_PORT");
-$sipudp = (int) getenv("ASTERISK_SIP_UDP_PORT");
-$siptcp = (int) getenv("ASTERISK_SIP_PORT");
-$sips   = (int) getenv("ASTERISK_SIPS_PORT");
-$rtps   = (int) getenv("ASTERISK_RTPSTART");
-$rtpe   = (int) getenv("ASTERISK_RTPEND");
-$astmgr = (int) getenv("ASTMANAGERPORT");
-if ($iax && $sipudp && $siptcp && $sips && $rtps && $rtpe) {
-    $db->query("INSERT INTO `iaxsettings` (`keyword`,`data`,`seq`,`type`) VALUES ('bindport','$iax',1,0) ON DUPLICATE KEY UPDATE `data`=VALUES(`data`)");
-    $db->query("INSERT INTO `sipsettings` (`keyword`,`data`,`seq`,`type`) VALUES ('rtpstart','$rtps',0,0),('rtpend','$rtpe',0,0),('bindport','$sipudp',1,0) ON DUPLICATE KEY UPDATE `data`=VALUES(`data`)");
-    $db->query("UPDATE `kvstore_Sipsettings` SET `val` = CASE `key` WHEN 'udpport-0.0.0.0' THEN '$sipudp' WHEN 'tcpport-0.0.0.0' THEN '$siptcp' WHEN 'tlsport-0.0.0.0' THEN '$sips' WHEN 'bindport' THEN '$siptcp' WHEN 'tlsbindport' THEN '$sips' WHEN 'rtpstart' THEN '$rtps' WHEN 'rtpend' THEN '$rtpe' END WHERE `key` IN ('udpport-0.0.0.0','tcpport-0.0.0.0','tlsport-0.0.0.0','bindport','tlsbindport','rtpstart','rtpend')");
-    if ($astmgr) {
-        $db->query("INSERT INTO `freepbx_settings` (`keyword`,`value`,`name`,`level`,`description`,`type`,`options`,`defaultval`,`readonly`,`hidden`,`category`,`module`,`emptyok`,`sortorder`) VALUES ('ASTMANAGERPORT','$astmgr','Asterisk Manager Port',2,'Port for the Asterisk Manager','int','1024,65535','$astmgr',1,0,'Asterisk Manager','',0,0) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`), `defaultval`=VALUES(`defaultval`)");
-    }
-}
-PHP
 
 # Apply rebranding to the FreePBX admin GUI (freepbx_settings table).
 # The admin GUI reads branding from freepbx_settings, which the rebranding env
@@ -199,18 +170,29 @@ if ($favicon !== false && $favicon !== "") { $set("BRAND_IMAGE_FAVICON", $favico
 '
 
 # Sync users
-fwconsole userman --syncall --force --verbose
+fwconsole userman --syncall --force --verbose || exit $?
 
-# Core module installation resets the HTTPS bind address from :: to localhost.
-# WSS clients reach Asterisk through the container network, so restore the
-# container-wide bind address before fwconsole regenerates http.conf.
-php -r 'include_once "/etc/freepbx_db.conf"; $db->query("UPDATE freepbx_settings SET value = \"0.0.0.0\" WHERE keyword = \"HTTPTLSBINDADDRESS\" AND value = \"127.0.0.1\"");'
-
-# Always apply changes on start
-su asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload"
+# Userman sync can launch a background reload through NethCTI. Retry only the
+# explicit FreePBX reload-lock rejection, allowing up to five minutes to drain.
+for ((reload_attempt=1; reload_attempt<=60; reload_attempt++)); do
+    reload_status=0
+    reload_output=$(su asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload" 2>&1) || reload_status=$?
+    printf '%s\n' "$reload_output"
+    if [[ $reload_status -eq 0 ]]; then
+        break
+    fi
+    if [[ $reload_status -ne 255 || "$reload_output" != *'Process is already running.'* || $reload_attempt -eq 60 ]]; then
+        exit "$reload_status"
+    fi
+    echo "FreePBX reload is busy, retrying in five seconds" >&2
+    sleep 5
+done
 
 # Reset phones RPS after FreePBX modules have been initialized
 php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed
+
+# Required modules, user synchronization and reload have all completed.
+touch /var/run/nethvoice/freepbx-ready || exit $?
 
 # Apply low-priority background DB updates
 ionice -c3 nice -n 19 php /initdb.d/slow_database_updates.php >/dev/null 2>&1 &
