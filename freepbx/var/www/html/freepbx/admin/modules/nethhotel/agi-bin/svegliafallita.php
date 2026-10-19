@@ -47,7 +47,7 @@ function exitError()
   neth_debug("exitError()");
   @$agi->answer();
   @$agi->stream_file("alarm/contattare-reception");
-  @$agi->exec("Macro","hangupcall");
+  @$agi->hangup();
   exit(0);
 }
 

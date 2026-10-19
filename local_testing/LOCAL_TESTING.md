@@ -29,6 +29,52 @@ php local_testing/tests/bosssecretary_forms_test.php
 It renders the real Add/Edit templates with missing, empty, and populated
 messages, checking that entered fields and group controls are preserved.
 
+### FreePBX 17 compatibility regressions
+
+Build the FreePBX image and run the focused regressions against its installed
+Slim 4 dependencies, patched Paging module, Core and framework:
+
+```bash
+podman build --layers -t localhost/nethvoice-freepbx:fpbx17-review -f freepbx/Containerfile freepbx
+podman run --rm --entrypoint sh -v "$PWD:/workspace:ro" \
+  localhost/nethvoice-freepbx:fpbx17-review -c '
+    set -e
+    modules=/var/www/html/freepbx/admin/modules
+    php /workspace/local_testing/tests/slim4_responses_test.php /var/www/html/freepbx/rest/vendor/autoload.php
+    php /workspace/freepbx/tests/pin_agi_test.php
+    php /workspace/freepbx/tests/paging_transfer_test.php "$modules/paging" "$modules/core" /var/www/html/freepbx
+    php /workspace/freepbx/tests/recallonbusy_return_test.php "$modules/core" /var/www/html/freepbx
+  '
+```
+
+The REST regression runs the real route handlers, JSON helper, Slim router and
+CSV validation. It replaces external user lookup and database access with
+fixtures and checks NethLink row/null bodies plus each migrated phonebook
+validation response, status and content type. Its uploaded CSV files live only
+in the disposable container. The PIN regression runs the actual AGI body in
+child processes with simulated database and AGI I/O; it covers first/third-attempt
+success, three failures, empty entries and unprotected users. It also runs as
+part of `tools/check-php.sh`. The generated-dialplan regressions use the real
+FreePBX instruction classes and check the RecallOnBusy return and paging
+include chain without installing the transfer callback hook.
+
+These checks do not validate live channel behavior. On an Asterisk 22 test
+instance, verify the following before completing runtime validation:
+
+1. Enable PIN protection on a test outbound route and configure a test user's
+   PIN. Dial a test trunk with the correct PIN, then with two incorrect entries
+   followed by the correct PIN; both calls must reach the test trunk.
+2. Repeat with three incorrect entries and with three empty/timed-out entries.
+   Capture the Asterisk call log and confirm the channel hangs up after the
+   third attempt, with no outbound `Dial` or trunk INVITE.
+3. Create a paging group with two test endpoints and disable **Blind transfer
+   callback**. Reload and inspect `dialplan show from-internal-xfer`,
+   `dialplan show from-internal-additional` and `dialplan show ext-paging`.
+   Confirm the include chain reaches the group.
+4. Call the group normally, then establish a call between test endpoints and
+   blind-transfer it to the paging group. Confirm the paging members answer and
+   receive audio in both cases. End all test calls and restore test settings.
+
 ### collect fixture from a production machine
 
 ssh into machine and go in nethvoice instance with `runagent -m nethvoiceX`, then collect fixture 
