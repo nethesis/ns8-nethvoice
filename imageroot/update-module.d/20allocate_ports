@@ -186,7 +186,7 @@ if rtp_start is not None:
 	# The firewall is opened authoritatively at step 21firewall_ports (which
 	# re-runs create-module/90firewall with replace_ports=True), so we do not
 	# open the ports here: an append would leave the old ranges behind.
-	# MariaDB will be updated with the new RTP/IAX/SIP UDP ports at step 85mysql_update.
+	# MariaDB is prepared with the allocated ports before services restart in 80restart.
 
 	# Record the old -> new mapping of the reassigned client-facing ports.
 	old_asterisk_rtp = None
