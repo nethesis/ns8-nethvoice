@@ -103,7 +103,7 @@ fwconsole ma list | grep '^| ' | grep -v '^| Module'| awk '{print $2,$6}' > "$mo
 for module in "${modules_to_install[@]}"; do
     if ! test -s "$module_status" || grep -q "$module " "$module_status" && ! grep -q "$module Enabled" "$module_status" ; then
         echo Installing module "$module"
-        fwconsole moduleadmin install "$module"
+        fwconsole moduleadmin install "$module" || exit $?
     fi
 done
 
@@ -113,7 +113,7 @@ for module_file in $(ls /freepbx_custom_modules); do
 	mkdir -p /var/www/html/freepbx/admin/modules/"${module}"
 	tar xzpf /freepbx_custom_modules/"${module_file}" --strip-component=1 -C /var/www/html/freepbx/admin/modules/${module}
 	echo Installing custom module "$module"
-    fwconsole moduleadmin install "$module"
+    fwconsole moduleadmin install "$module" || exit $?
 done
 
 # Remove obsolete modules if required
@@ -170,7 +170,7 @@ if ($favicon !== false && $favicon !== "") { $set("BRAND_IMAGE_FAVICON", $favico
 '
 
 # Sync users
-fwconsole userman --syncall --force --verbose
+fwconsole userman --syncall --force --verbose || exit $?
 
 # Userman sync can launch a background reload through NethCTI. Retry only the
 # explicit FreePBX reload-lock rejection, allowing up to five minutes to drain.
@@ -190,6 +190,9 @@ done
 
 # Reset phones RPS after FreePBX modules have been initialized
 php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed
+
+# Required modules, user synchronization and reload have all completed.
+touch /var/run/nethvoice/freepbx-ready || exit $?
 
 # Apply low-priority background DB updates
 ionice -c3 nice -n 19 php /initdb.d/slow_database_updates.php >/dev/null 2>&1 &

@@ -5,6 +5,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+# A restarted container must not advertise readiness from a previous start.
+rm -f /var/run/nethvoice/freepbx-ready || exit $?
+
 # Configure asterisk manager
 cat > /etc/asterisk/manager.conf <<EOF
 [general]
