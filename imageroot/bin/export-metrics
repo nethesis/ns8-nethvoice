@@ -7,18 +7,17 @@
 
 # Print the module metrics in the Prometheus text format. The node runs this
 # command every 5 minutes and adds the module label (ns8-core
-# refresh-module-metrics). On failure the node keeps the previous output.
+# refresh-module-metrics). A failing collector is logged and reported by
+# nethvoice_exporter_collector_up; the others are still exported.
 
 import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pypkg"))
 
-from nvmetrics import systemd  # noqa: E402
+from nvmetrics import dnscheck, runner, systemd  # noqa: E402
 
-try:
-    output = systemd.collect()
-except Exception as ex:
-    print("export-metrics: cannot read the service state: %s" % ex, file=sys.stderr)
-    sys.exit(1)
-sys.stdout.write(output)
+sys.stdout.write(runner.run([
+    ("systemd", systemd.collect),
+    ("public_dns", dnscheck.collect if dnscheck.enabled() else None),
+]))
