@@ -64,3 +64,27 @@ def run(collectors, deadline=DEADLINE):
     ]
     return "".join(output) + "\n".join(lines) + "\n"
 
+
+def once(function):
+    """Return a function that calls function only the first time.
+
+    Later calls return the same result, or raise the same exception: a page
+    used by more collectors is read once per run, also when the collectors
+    ask for it at the same time.
+    """
+    outcome = []
+    lock = threading.Lock()
+
+    def wrapper():
+        with lock:
+            if not outcome:
+                try:
+                    outcome.append((True, function()))
+                except Exception as ex:
+                    outcome.append((False, ex))
+        ok, value = outcome[0]
+        if ok:
+            return value
+        raise value
+
+    return wrapper

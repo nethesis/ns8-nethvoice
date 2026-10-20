@@ -25,7 +25,7 @@ groups:
       # Reported by satellite on real calls (nethesis/satellite#55): it stays
       # 1 until the next successful call. Fires at once, as calls already fail.
       - alert: NethVoiceAiCreditExhausted
-        expr: nethvoice_satellite_ai_credit_exhausted == 1
+        expr: satellite_ai_credit_exhausted == 1
         labels:
           severity: critical
           alertgroup: ai
