@@ -216,6 +216,13 @@ var customConfig = {
 
 EOF
 
+# Share only public branding with the standalone Agents UI. These are the same
+# resolved values used by the Wizard navbar, including legacy fallbacks and
+# explicit empty Wizard overrides. Do not expose the rest of customConfig.
+php -r 'echo json_encode(["BRAND_NAME" => $argv[1], "NAVBAR_LOGO_URL" => $argv[2]], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);' \
+	"${wizard_brand_name}" "${wizard_navbar_logo_url}" \
+	> /var/www/html/freepbx/wizard/branding.json
+
 cat > /var/www/html/freepbx/rest/config.inc.php <<EOF
 <?php
 \$config = [

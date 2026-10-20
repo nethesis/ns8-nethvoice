@@ -11,10 +11,12 @@ import {
 } from "@nethesis/vue-components";
 import { access, auth, signIn } from "./api";
 import { useUi } from "./stores/ui";
+import { DEFAULT_BRANDING, loadWizardBranding } from "./branding";
 const { t, locale } = useI18n();
 const route = useRoute();
 const ui = useUi();
 const mobileMenu = ref(false);
+const branding = ref({ ...DEFAULT_BRANDING });
 const items = [
   { name: "trunks", icon: "gear" },
   { name: "agents", icon: "comments" },
@@ -22,6 +24,9 @@ const items = [
 ];
 onMounted(() => {
   document.documentElement.lang = String(locale.value);
+  void loadWizardBranding().then((value) => {
+    branding.value = value;
+  });
   void access().catch(() => {
     auth.ready = true;
   });
@@ -34,20 +39,25 @@ watch(locale, (value) => {
 <template>
   <div class="min-h-screen">
     <header
-      class="fixed inset-x-0 top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6 dark:border-gray-700 dark:bg-gray-950"
+      class="fixed inset-x-0 top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6 dark:border-gray-700 dark:bg-gray-950"
     >
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 sm:gap-4">
         <NeButton
           class="lg:hidden"
           :aria-label="t('navigation')"
           @click="mobileMenu = !mobileMenu"
           ><FontAwesomeIcon icon="bars" /></NeButton
-        ><a href="#/agents" class="text-2xl font-semibold tracking-tight"
-          ><span class="text-primary-700 dark:text-primary-400">neth</span
-          >voice</a
-        >
+        ><a
+          href="#/agents"
+          class="block w-32 shrink-0 rounded bg-[#171717] px-2 py-1 sm:w-[200px] dark:bg-transparent dark:px-0"
+          ><img
+            :src="branding.logoUrl"
+            :alt="branding.name"
+            class="h-6 w-full object-contain object-left"
+            @error="branding.logoUrl = DEFAULT_BRANDING.logoUrl"
+        /></a>
       </div>
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 sm:gap-4">
         <select
           v-model="locale"
           class="rounded border-gray-300 bg-transparent text-sm dark:border-gray-700"
@@ -55,7 +65,7 @@ watch(locale, (value) => {
         >
           <option value="en">EN</option>
           <option value="it">IT</option></select
-        ><span class="nv-muted">{{ auth.user }}</span
+        ><span class="nv-muted hidden sm:inline">{{ auth.user }}</span
         ><NeButton
           kind="tertiary"
           :aria-label="ui.dark ? 'Light mode' : 'Dark mode'"
