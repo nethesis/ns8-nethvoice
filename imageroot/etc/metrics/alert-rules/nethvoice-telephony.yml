@@ -1,0 +1,53 @@
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# A SIP trunk that cannot reach its provider (or gateway) stops calls. One
+# alert for every kind of trunk, the reason label tells which check failed.
+# Trunks that register through the NethVoice proxy are checked by the proxy
+# rules (same alert name); here only the trunks the proxy cannot see:
+# registrations that bypass the proxy, trunks the remote side registers to,
+# and IP trunks that bypass the proxy, checked with OPTIONS. Endpoint state 0
+# (unknown) never fires. An IP trunk fires only when the provider does not
+# answer OPTIONS: when Asterisk could not qualify it, calls can still work. Series exist while freepbx runs; they come from
+# export-metrics (pypkg/nvmetrics/trunks.py) every 5 minutes, so "for: 10m"
+# means 3 failed checks in a row.
+groups:
+  - name: telephony
+    rules:
+      - alert: NethVoiceTrunkUnreachable
+        expr: nethvoice_trunk_registration_up == 0
+        for: 10m
+        labels:
+          severity: critical
+          alertgroup: telephony
+          reason: registration_failed
+        annotations:
+          summary_en: "Trunk {{ $labels.trunk }} of {{ $labels.module_id }} is unreachable: not registered"
+          summary_it: "Il fascio {{ $labels.trunk }} di {{ $labels.module_id }} non è raggiungibile: non registrato"
+          description_en: "Asterisk of {{ $labels.module_id }} has failed to register trunk {{ $labels.trunk }} for more than 10 minutes: calls through this trunk fail. This trunk does not use the NethVoice proxy. Check the trunk credentials and the provider reachability."
+          description_it: "Asterisk di {{ $labels.module_id }} non riesce a registrare il fascio {{ $labels.trunk }} da più di 10 minuti: le chiamate su questo fascio falliscono. Questo fascio non usa il proxy NethVoice. Verificare le credenziali del fascio e la raggiungibilità del provider."
+      - alert: NethVoiceTrunkUnreachable
+        expr: nethvoice_trunk_endpoint_state{registration="receive"} == 1
+        for: 10m
+        labels:
+          severity: critical
+          alertgroup: telephony
+          reason: not_registered
+        annotations:
+          summary_en: "Trunk {{ $labels.trunk }} of {{ $labels.module_id }} is unreachable: the remote side is not registered"
+          summary_it: "Il fascio {{ $labels.trunk }} di {{ $labels.module_id }} non è raggiungibile: il lato remoto non è registrato"
+          description_en: "The remote side of trunk {{ $labels.trunk }} (for example a gateway) has had no valid registration to {{ $labels.module_id }} for more than 10 minutes: calls through this trunk fail. Check the device, its credentials and the network path through the proxy."
+          description_it: "Il lato remoto del fascio {{ $labels.trunk }} (ad esempio un gateway) non ha una registrazione valida su {{ $labels.module_id }} da più di 10 minuti: le chiamate su questo fascio falliscono. Verificare il dispositivo, le sue credenziali e il percorso di rete attraverso il proxy."
+      - alert: NethVoiceTrunkUnreachable
+        expr: nethvoice_trunk_qualify_up == 0
+        for: 10m
+        labels:
+          severity: critical
+          alertgroup: telephony
+          reason: qualify_failed
+        annotations:
+          summary_en: "Trunk {{ $labels.trunk }} of {{ $labels.module_id }} is unreachable: no answer to OPTIONS"
+          summary_it: "Il fascio {{ $labels.trunk }} di {{ $labels.module_id }} non è raggiungibile: nessuna risposta agli OPTIONS"
+          description_en: "The provider of trunk {{ $labels.trunk }} has not answered the OPTIONS checks of {{ $labels.module_id }} for more than 10 minutes: calls through this trunk fail. Check the provider address and its reachability."
+          description_it: "Il provider del fascio {{ $labels.trunk }} non risponde ai controlli OPTIONS di {{ $labels.module_id }} da più di 10 minuti: le chiamate su questo fascio falliscono. Verificare l'indirizzo del provider e la sua raggiungibilità."

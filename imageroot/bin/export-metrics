@@ -16,7 +16,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pypkg"))
 
-from nvmetrics import aikeys, asterisk, dnscheck, runner, satellite, systemd  # noqa: E402
+from nvmetrics import aikeys, asterisk, dnscheck, runner, satellite, systemd, trunks  # noqa: E402
 
 # Read once per run, shared by more collectors
 passwords = runner.once(aikeys.read_passwords)
@@ -32,6 +32,7 @@ satellite_token = functools.partial(satellite.read_token, passwords)
 sys.stdout.write(runner.run([
     ("systemd", functools.partial(systemd.collect, units)),
     ("asterisk", functools.partial(asterisk.collect, asterisk_page)),
+    ("trunks", functools.partial(trunks.collect, asterisk_page)),
     ("public_dns", dnscheck.collect if dnscheck.enabled() else None),
     ("ai_keys", functools.partial(aikeys.collect, ai_keys) if aikeys.enabled(keys=ai_keys) else None),
     ("satellite", functools.partial(satellite.collect, token=satellite_token) if satellite.enabled() else None),
