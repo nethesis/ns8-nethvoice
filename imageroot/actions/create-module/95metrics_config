@@ -1,0 +1,16 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Publish the module alert rules for the metrics module. Also linked from
+# update-module.d, to publish the rules of a new image. A failure must not
+# stop the module creation or update.
+
+exec 1>&2
+
+if ! publish-metrics-config; then
+    echo "Warning: alert rules not published"
+fi
