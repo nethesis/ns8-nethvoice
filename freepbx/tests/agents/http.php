@@ -49,7 +49,7 @@ assert(!str_contains(json_encode($models),'api_key'));
 [$status]=api('POST','/profiles',['expected_revision'=>0,'profile'=>'invalid'],$csrf); assert($status===422);
 [$status]=api('POST','/profiles',['expected_revision'=>false,'profile'=>['name'=>'HTTP agent','draft'=>[]]],$csrf); assert($status===422);
 [$status]=api('POST','/profiles',['expected_revision'=>0,'profile'=>[],'unexpected'=>true],$csrf); assert($status===422);
-[$status,$catalog]=api('GET','/catalog'); assert($status===200 && count($catalog['tools'])===4 && $catalog['draft_defaults']['contract_version']===6);
+[$status,$catalog]=api('GET','/catalog'); assert($status===200 && count($catalog['tools'])===6 && $catalog['draft_defaults']['contract_version']===7);
 [$status,$profiles]=api('GET','/profiles'); assert($status===200 && count($profiles['items'])>=2);
 $draft=['provider_binding_id'=>null,'conversation'=>['language'=>'en','voice'=>'marin','greeting'=>'Hello','instructions'=>'Synthetic HTTP test','model'=>'gpt-realtime-2.1','options'=>null],'tool_bindings'=>[['tool_id'=>'telephony.transfer','tool_version'=>2,'enabled'=>true,'config'=>['approved_destination_ids'=>['extension:203']]]],'fallback_destination_id'=>'extension:203','max_call_duration_seconds'=>60];
 [$status,$created]=api('POST','/profiles',['expected_revision'=>0,'profile'=>['name'=>'HTTP agent','draft'=>$draft]],$csrf); assert($status===200 && $created['kind']==='custom');
