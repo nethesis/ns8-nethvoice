@@ -56,7 +56,9 @@ final class AgentDirectory
     private function branch(string $selection,string $destination,array $rows): array
     {
         $id=null;
-        foreach ($rows as $row) if ($row['available'] && $row['native_destination']===$destination) { $id=$row['id']; break; }
+        foreach ($rows as $row) {
+            if ($row['available'] && $row['native_destination']===$destination) { $id=$row['id']; break; }
+        }
         return ['selection'=>mb_substr($selection,0,30),'destination_id'=>$id];
     }
 }

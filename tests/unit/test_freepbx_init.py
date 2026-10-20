@@ -15,6 +15,9 @@ class FreepbxInitTest(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
         (self.root / 'custom').mkdir()
+        runtime = self.root / 'run'
+        runtime.mkdir()
+        self.ready = runtime / 'freepbx-ready'
         self.calls = self.root / 'calls'
         stub = self.root / 'stub'
         stub.write_text('''#!/bin/bash
@@ -25,7 +28,7 @@ fwconsole) if [[ "$*" == 'ma list' ]]; then echo '| core | 17.0 | Disabled |'; f
 su) exit "${TEST_RELOAD_EXIT:-0}";;
 php) cat >/dev/null;;
 esac
-if [[ "$(basename "$0") $*" == "${TEST_NONCRITICAL_FAILURE:-}" ]]; then exit 1; fi
+if [[ "$(basename "$0") $*" == "${TEST_COMMAND_FAILURE:-}" ]]; then exit 1; fi
 ''')
         stub.chmod(0o755)
         for name in ['asterisk', 'fwconsole', 'su', 'php', 'ionice', 'sleep']:
@@ -33,6 +36,7 @@ if [[ "$(basename "$0") $*" == "${TEST_NONCRITICAL_FAILURE:-}" ]]; then exit 1; 
         script = (ROOT / 'freepbx/freepbx_init.sh').read_text()
         script = script.replace('/usr/sbin/asterisk', str(self.root / 'asterisk'))
         script = script.replace('/freepbx_custom_modules', str(self.root / 'custom'))
+        script = script.replace('/var/run/nethvoice', str(runtime))
         self.script = self.root / 'init.sh'
         # Wait for the background update stub so its log is complete.
         self.script.write_text(script + '\nwait\n')
@@ -50,24 +54,37 @@ if [[ "$(basename "$0") $*" == "${TEST_NONCRITICAL_FAILURE:-}" ]]; then exit 1; 
         self.assertLess(calls.index('fwconsole moduleadmin install core'), calls.index('su asterisk'))
         self.assertNotIn('core restart', calls)
         self.assertNotIn('HTTPTLSBINDADDRESS', calls)
+        self.assertTrue(self.ready.exists())
 
     def test_failed_reload_stops_remaining_initialization(self):
         result, calls = self.run_init(TEST_RELOAD_EXIT='1')
         self.assertEqual(result.returncode, 1)
         self.assertNotIn('phonesRpsResetHelper', calls)
         self.assertNotIn('core restart', calls)
+        self.assertNotIn('slow_database_updates.php', calls)
+        self.assertFalse(self.ready.exists())
 
     def test_noncritical_failures_do_not_skip_final_initialization(self):
+        result, calls = self.run_init(
+            TEST_COMMAND_FAILURE='ionice -c2 -n7 nice -n 10 fwconsole chown')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('su asterisk', calls)
+        self.assertIn('phonesRpsResetHelper', calls)
+        self.assertIn('slow_database_updates.php', calls)
+        self.assertTrue(self.ready.exists())
+
+    def test_critical_failures_stop_initialization_before_readiness(self):
         for command in ['fwconsole moduleadmin install core',
-                        'ionice -c2 -n7 nice -n 10 fwconsole chown',
                         'fwconsole userman --syncall --force --verbose']:
             with self.subTest(command=command):
                 self.calls.unlink(missing_ok=True)
-                result, calls = self.run_init(TEST_NONCRITICAL_FAILURE=command)
-                self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('su asterisk', calls)
-                self.assertIn('phonesRpsResetHelper', calls)
-                self.assertIn('slow_database_updates.php', calls)
+                result, calls = self.run_init(TEST_COMMAND_FAILURE=command)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertIn(command, calls)
+                self.assertNotIn('su asterisk', calls)
+                self.assertNotIn('phonesRpsResetHelper', calls)
+                self.assertNotIn('slow_database_updates.php', calls)
+                self.assertFalse(self.ready.exists())
 
 
 if __name__ == '__main__':
