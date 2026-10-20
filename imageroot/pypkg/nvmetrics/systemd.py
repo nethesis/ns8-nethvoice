@@ -115,5 +115,5 @@ def render(units, prefix="nethvoice"):
     return "\n".join(lines) + "\n"
 
 
-def collect():
-    return render(read_units())
+def collect(units=read_units):
+    return render(units())

@@ -1,0 +1,56 @@
+# HELP process_virtual_memory_bytes Virtual memory size in bytes.
+# TYPE process_virtual_memory_bytes gauge
+process_virtual_memory_bytes 6.18041344e+08
+# HELP process_resident_memory_bytes Resident memory size in bytes.
+# TYPE process_resident_memory_bytes gauge
+process_resident_memory_bytes 1.34393856e+08
+# HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
+# TYPE process_start_time_seconds gauge
+process_start_time_seconds 1.79251297603e+09
+# HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.
+# TYPE process_cpu_seconds_total counter
+process_cpu_seconds_total 6.58
+# HELP process_open_fds Number of open file descriptors.
+# TYPE process_open_fds gauge
+process_open_fds 16.0
+# HELP process_max_fds Maximum number of open file descriptors.
+# TYPE process_max_fds gauge
+process_max_fds 524288.0
+# HELP python_info Python platform information
+# TYPE python_info gauge
+python_info{implementation="CPython",major="3",minor="15",patchlevel="0",version="3.15.0"} 1.0
+# HELP python_gc_objects_collected_total Objects collected during gc
+# TYPE python_gc_objects_collected_total counter
+python_gc_objects_collected_total{generation="0"} 1642.0
+python_gc_objects_collected_total{generation="1"} 102.0
+python_gc_objects_collected_total{generation="2"} 91.0
+# HELP python_gc_objects_uncollectable_total Uncollectable objects found during GC
+# TYPE python_gc_objects_uncollectable_total counter
+python_gc_objects_uncollectable_total{generation="0"} 0.0
+python_gc_objects_uncollectable_total{generation="1"} 0.0
+python_gc_objects_uncollectable_total{generation="2"} 0.0
+# HELP python_gc_collections_total Number of times this generation was collected
+# TYPE python_gc_collections_total counter
+python_gc_collections_total{generation="0"} 158.0
+python_gc_collections_total{generation="1"} 14.0
+python_gc_collections_total{generation="2"} 1.0
+# HELP satellite_ai_credit_exhausted 1 if the provider reported no credit left, 0 if its last call succeeded, -1 if not known yet.
+# TYPE satellite_ai_credit_exhausted gauge
+satellite_ai_credit_exhausted{provider="deepgram"} -1.0
+satellite_ai_credit_exhausted{provider="openai"} -1.0
+# HELP satellite_ai_calls_total AI provider calls by operation and result.
+# TYPE satellite_ai_calls_total counter
+satellite_ai_calls_total{operation="transcription",provider="deepgram",result="success"} 0.0
+satellite_ai_calls_total{operation="transcription",provider="deepgram",result="failure"} 0.0
+satellite_ai_calls_total{operation="realtime_transcription",provider="deepgram",result="success"} 0.0
+satellite_ai_calls_total{operation="realtime_transcription",provider="deepgram",result="failure"} 0.0
+satellite_ai_calls_total{operation="tts",provider="deepgram",result="success"} 0.0
+satellite_ai_calls_total{operation="tts",provider="deepgram",result="failure"} 0.0
+satellite_ai_calls_total{operation="embedding",provider="openai",result="success"} 0.0
+satellite_ai_calls_total{operation="embedding",provider="openai",result="failure"} 0.0
+satellite_ai_calls_total{operation="clean",provider="openai",result="success"} 0.0
+satellite_ai_calls_total{operation="clean",provider="openai",result="failure"} 0.0
+satellite_ai_calls_total{operation="summary",provider="openai",result="success"} 0.0
+satellite_ai_calls_total{operation="summary",provider="openai",result="failure"} 0.0
+satellite_ai_calls_total{operation="sentiment",provider="openai",result="success"} 0.0
+satellite_ai_calls_total{operation="sentiment",provider="openai",result="failure"} 0.0

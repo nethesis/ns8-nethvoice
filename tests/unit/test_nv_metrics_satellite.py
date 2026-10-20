@@ -16,36 +16,35 @@ from nvmetrics import satellite  # noqa: E402
 from nvmetrics.runner import CheckUnavailable  # noqa: E402
 
 TOKEN = "satellite-secret-token"
-# Output of satellite GET /metrics (nethesis/satellite#55), shortened
-SATELLITE_METRICS = """# HELP satellite_ai_credit_exhausted 1 if the provider reported no credit left, 0 if its last call succeeded, -1 if not known yet.
-# TYPE satellite_ai_credit_exhausted gauge
-satellite_ai_credit_exhausted{provider="deepgram"} 1.0
-satellite_ai_credit_exhausted{provider="openai"} -1.0
-# HELP satellite_ai_calls_total AI provider calls by operation and result.
-# TYPE satellite_ai_calls_total counter
-satellite_ai_calls_total{operation="transcription",provider="deepgram",result="failure"} 3.0
-process_resident_memory_bytes 1.2e+08
-"""
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
+# Output of the satellite GET /metrics page on rl1 (nethesis/satellite#55)
+SATELLITE_METRICS = (FIXTURES / "satellite_metrics_rl1.txt").read_text()
 
 
 class RenderTest(unittest.TestCase):
-    def test_credit_state_is_forwarded(self):
+    def test_satellite_families_are_forwarded_as_they_are(self):
         text = satellite.render(SATELLITE_METRICS)
-        self.assertIn('nethvoice_satellite_ai_credit_exhausted{provider="deepgram"} 1\n', text)
-        self.assertIn('nethvoice_satellite_ai_credit_exhausted{provider="openai"} -1\n', text)
-        self.assertIn("# TYPE nethvoice_satellite_ai_credit_exhausted gauge\n", text)
+        self.assertIn('satellite_ai_credit_exhausted{provider="deepgram"} -1.0\n', text)
+        self.assertIn('satellite_ai_credit_exhausted{provider="openai"} -1.0\n', text)
+        self.assertIn("# TYPE satellite_ai_credit_exhausted gauge\n", text)
+        self.assertIn(
+            'satellite_ai_calls_total{operation="summary",provider="openai",result="failure"} 0.0\n', text
+        )
 
-    def test_other_satellite_metrics_are_not_forwarded(self):
+    def test_other_families_are_not_forwarded(self):
         text = satellite.render(SATELLITE_METRICS)
-        self.assertNotIn("calls_total", text)
         self.assertNotIn("process_", text)
+        self.assertNotIn("python_", text)
+        self.assertNotIn("nethvoice_", text)
 
-    def test_missing_credit_metric_is_unavailable(self):
+    def test_page_without_satellite_metrics_is_unavailable(self):
         with self.assertRaises(CheckUnavailable):
             satellite.render("process_resident_memory_bytes 1\n")
 
     def test_reserved_labels_are_never_set(self):
         self.assertNotRegex(satellite.render(SATELLITE_METRICS), r"(module|module_id|instance)=")
+        text = satellite.render('satellite_x{provider="a"} 1\nsatellite_x{instance="b"} 1\n')
+        self.assertEqual(text, 'satellite_x{provider="a"} 1\n')
 
 
 class CollectTest(unittest.TestCase):
@@ -58,6 +57,10 @@ class CollectTest(unittest.TestCase):
 
         satellite.collect({"SATELLITE_HTTP_PORT": "20111"}, lambda: TOKEN, http)
         self.assertEqual(calls, [("http://127.0.0.1:20111/metrics", TOKEN)])
+
+    def test_token_from_passwords_env(self):
+        self.assertEqual(satellite.read_token(lambda: {"SATELLITE_API_TOKEN": TOKEN}), TOKEN)
+        self.assertEqual(satellite.read_token(lambda: {}), "")
 
     def test_enabled_only_with_transcription(self):
         self.assertTrue(satellite.enabled({"SATELLITE_CALL_TRANSCRIPTION_ENABLED": "True"}))

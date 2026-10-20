@@ -52,7 +52,7 @@ tests:
   # Credit: unknown, then fine, then exhausted, then a successful call
   - interval: 5m
     input_series:
-      - series: 'nethvoice_satellite_ai_credit_exhausted{module_id="nethvoice1",node="1",provider="openai"}'
+      - series: 'satellite_ai_credit_exhausted{module_id="nethvoice1",node="1",provider="openai"}'
         values: '-1x3 0x3 1x3 0x3'
     alert_rule_test:
       - eval_time: 10m
