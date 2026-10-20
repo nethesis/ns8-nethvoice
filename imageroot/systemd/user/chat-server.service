@@ -22,7 +22,7 @@ ExecStart=/usr/bin/podman run \
     --replace --name=%N \
     --image-volume=ignore \
     --volume=%E/state/chat/ejabberd.yml:/opt/ejabberd/conf/ejabberd.yml:ro,z \
-    --volume=chat-data:/opt/ejabberd/database:Z \
+    --volume=chat-data:/opt/ejabberd/database:z \
     --volume=chat-upload:/opt/ejabberd/upload:Z \
     --env=CHAT_MIDDLEWARE_URL=http://127.0.0.1:${NETHVOICE_MIDDLEWARE_PORT} \
     --env=CHAT_COMPONENT_SECRET \

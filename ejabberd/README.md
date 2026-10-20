@@ -3,7 +3,7 @@
 Image `nethvoice-ejabberd`: the official ejabberd plus two Go programs.
 
 - `chat-extauth`: ejabberd external auth; the password is the CTI JWT (Chat permission required).
-- `chat-gateway`: XEP-0357 push (Web Push, Acrobits PNM) and the Acrobits `fetch_messages`, `send_message`, `push_token_report` services.
+- `chat-gateway`: XEP-0357 push (Web Push, Acrobits PNM), the Acrobits `fetch_messages`, `send_message`, `push_token_report` services, and text search in the archive (`GET /chat-gw/search`, read-only on ejabberd's database: MAM has no text search on SQLite).
 
 ```sh
 go vet ./...

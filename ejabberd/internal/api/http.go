@@ -31,6 +31,7 @@ type Server struct {
 	PublicHost  string                                        // the CTI host: attachment links point there, whatever host they were uploaded under
 	UploadURL   string                                        // ejabberd's upload service on loopback, for attachments relayed from the app
 	RoomName    func(ctx context.Context, room string) string // cached room names (push component), "" when unknown
+	Archive     *Archive                                      // ejabberd's message archive, for text search
 
 	failures window // failed Acrobits logins
 	sends    window // messages from the app
@@ -52,6 +53,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /push/mobile", s.mobile)
 	mux.HandleFunc("GET /users/inactive", s.inactive)
 	mux.HandleFunc("DELETE /conversations/{peer}", s.deleteConversation)
+	mux.HandleFunc("GET /search", s.search)
 	// Acrobits mobile app: the three web services it is provisioned with.
 	mux.HandleFunc("POST /api/client/fetch_messages", s.fetchMessages)
 	mux.HandleFunc("POST /api/client/send_message", s.sendMessage)

@@ -47,6 +47,7 @@ func main() {
 	ejabberdAPI := required("CHAT_EJABBERD_API")
 	uploadURL := required("CHAT_UPLOAD_URL")
 	dataDir := env("CHAT_DATA_DIR", "/data")
+	archiveDB := env("CHAT_ARCHIVE_DB", "/ejabberd/chat.db")
 	pnmURL := env("CHAT_PNM_URL", "https://pnm.cloudsoftphone.com/pnm2/send")
 
 	st, err := store.Open(dataDir)
@@ -59,7 +60,7 @@ func main() {
 	}
 	mw := api.NewMiddleware(mwURL)
 	mw.OnSeen = st.SeenUser
-	srv := &api.Server{Host: host, C2SAddr: c2s, PushService: address.Push(host), VAPIDPublic: router.VAPIDPublic, Store: st, MW: mw, EjabberdAPI: ejabberdAPI, UploadURL: uploadURL, PublicHost: publicHost}
+	srv := &api.Server{Host: host, C2SAddr: c2s, PushService: address.Push(host), VAPIDPublic: router.VAPIDPublic, Store: st, MW: mw, EjabberdAPI: ejabberdAPI, UploadURL: uploadURL, PublicHost: publicHost, Archive: &api.Archive{Path: archiveDB}}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
