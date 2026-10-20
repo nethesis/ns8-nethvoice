@@ -8,6 +8,7 @@ Alert rules are published
     Should Be Equal As Integers    ${rc}    0
     Should Contain    ${output}    nethvoice-services
     Should Contain    ${output}    nethvoice-dns
+    Should Contain    ${output}    nethvoice-ai
 
 Service state is exported
     ${output}    ${rc} =    Execute Command    runagent -m ${module_id} export-metrics    return_rc=True

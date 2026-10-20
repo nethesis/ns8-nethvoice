@@ -15,9 +15,10 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pypkg"))
 
-from nvmetrics import dnscheck, runner, systemd  # noqa: E402
+from nvmetrics import aikeys, dnscheck, runner, systemd  # noqa: E402
 
 sys.stdout.write(runner.run([
     ("systemd", systemd.collect),
     ("public_dns", dnscheck.collect if dnscheck.enabled() else None),
+    ("ai_keys", aikeys.collect if aikeys.enabled() else None),
 ]))
