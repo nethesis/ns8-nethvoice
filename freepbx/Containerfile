@@ -230,6 +230,9 @@ RUN groupadd -g 991 -r asterisk && \
 		locales \
 		libicu-dev
 
+# User crontabs use /usr/bin:/bin, and legacy scripts also invoke PHP directly.
+RUN ln -s /usr/local/bin/php /usr/bin/php
+
 # Enable languages for FreePBX UI (all languages from the dropdown menu)
 RUN sed -i 's/^# *bg_BG.UTF-8 UTF-8/bg_BG.UTF-8 UTF-8/' /etc/locale.gen && \
     sed -i 's/^# *cs_CZ.UTF-8 UTF-8/cs_CZ.UTF-8 UTF-8/' /etc/locale.gen && \
