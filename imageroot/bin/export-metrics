@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Print the module metrics in the Prometheus text format. The node runs this
+# command every 5 minutes and adds the module label (ns8-core
+# refresh-module-metrics). On failure the node keeps the previous output.
+
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pypkg"))
+
+from nvmetrics import systemd  # noqa: E402
+
+try:
+    output = systemd.collect()
+except Exception as ex:
+    print("export-metrics: cannot read the service state: %s" % ex, file=sys.stderr)
+    sys.exit(1)
+sys.stdout.write(output)

@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Publish the module alert rules for the metrics module (ns8-metrics).
+#
+# Every etc/metrics/alert-rules/nethvoice-*.yml file is one field of the Redis
+# hash module/<MODULE_ID>/metrics_alert_rules. The metrics-alert-rules-changed
+# event is sent only when a field really changes, so running this at every
+# update does not reload Prometheus for nothing. Fields not owned by this
+# script are never touched. The hash is deleted by the core when the module
+# is removed.
+
+import fcntl
+import os
+import sys
+
+import agent
+
+FIELD_PREFIX = "nethvoice-"
+RULES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "etc", "metrics", "alert-rules")
+LOCK_FILE = "metrics-config.lock"
+
+
+def desired_rules(rules_dir=RULES_DIR):
+    """Return {field: rule file text} for the shipped rule files."""
+    rules = {}
+    for name in sorted(os.listdir(rules_dir)):
+        if name.startswith(FIELD_PREFIX) and name.endswith(".yml"):
+            with open(os.path.join(rules_dir, name), encoding="utf-8") as fp:
+                rules[name[: -len(".yml")]] = fp.read()
+    return rules
+
+
+def publish(rdb, module_id, agent_id, rules):
+    """Sync the rules hash; return True if something changed."""
+    key = "module/%s/metrics_alert_rules" % module_id
+    current = rdb.hgetall(key)
+    pipe = rdb.pipeline()
+    changed = False
+    for field, text in rules.items():
+        if current.get(field) != text:
+            pipe.hset(key, field, text)
+            changed = True
+    for field in current:
+        if field.startswith(FIELD_PREFIX) and field not in rules:
+            pipe.hdel(key, field)
+            changed = True
+    if changed:
+        pipe.publish("%s/event/metrics-alert-rules-changed" % agent_id, "{}")
+        pipe.execute()
+    return changed
+
+
+def main():
+    rules = desired_rules()
+    with open(LOCK_FILE, "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        rdb = agent.redis_connect(privileged=True)
+        changed = publish(rdb, os.environ["MODULE_ID"], os.environ["AGENT_ID"], rules)
+    print("alert rules %s" % ("published" if changed else "unchanged"), file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()
