@@ -16,6 +16,54 @@ license declarations are preserved from the following release archives:
 QueueMetrics retains the upstream `module.xml` version `2.11.0.1`, even though
 its source archive is tagged `2.11.0.4`.
 
+## PM2 dependencies
+
+The image installs the PM2 module's Node dependencies during construction using
+`pm2/package-lock.json`. The checksum-verified module's `node/package.json`
+remains authoritative; do not copy or maintain a separate manifest here.
+`npm ci` fails on a manifest/lockfile mismatch, unavailable packages or integrity
+errors and leaves the lockfile unchanged (see the
+[npm ci documentation](https://docs.npmjs.com/cli/v9/commands/npm-ci/)).
+The image retains the lockfile and `node_modules`, so replacement containers
+have PM2 without downloading dependencies during initialization.
+
+To regenerate the lockfile after changing the pinned module or intentionally
+refreshing its dependency graph, run from the repository root:
+
+```bash
+# Use an image built from this Containerfile, with its existing Node/npm tools.
+FREEPBX_IMAGE=localhost/nethvoice-freepbx:fpbx17-review
+pm2_work=$(mktemp -d)
+pm2_url=$(sed -n 's/.*install_module pm2 \([^ ]*\).*/\1/p' freepbx/Containerfile)
+pm2_archive="pm2-${pm2_url##*/}"
+REMOTE_ARTIFACTS_MANIFEST="$PWD/freepbx/remote-artifacts.sha256" \
+  sh freepbx/fetch-remote-artifact "$pm2_archive" "$pm2_url"
+tar xzf "/tmp/$pm2_archive" --strip-components=1 -C "$pm2_work"
+# Start with the upstream manifest and no previous dependency tree or lockfile.
+rm -rf "$pm2_work/node/node_modules" "$pm2_work/node/package-lock.json"
+podman run --rm --entrypoint sh \
+  -v "$pm2_work/node:/work:Z" -w /work "$FREEPBX_IMAGE" -ec '
+    node --version
+    npm --version
+    npm_cache=$(mktemp -d)
+    npm install --package-lock-only --omit=dev --no-audit --no-fund --cache "$npm_cache"
+    rm -rf "$npm_cache"
+  '
+cp "$pm2_work/node/package-lock.json" freepbx/pm2/package-lock.json
+rm -rf "$pm2_work" "/tmp/$pm2_archive"
+git diff -- freepbx/pm2/package-lock.json
+```
+
+Review the complete graph, resolved URLs and integrity hashes before committing.
+The current lockfile was generated with Node 20.19.2 and npm 9.2.0; use the
+image's toolchain again when it changes. Rebuild the FreePBX image from a clean
+dependency layer and confirm the lockfile remains unchanged. In a disposable
+build context, change the upstream manifest and confirm `npm ci` fails. Then
+test PM2 loading, daemon startup and shutdown as `asterisk` with networking
+disabled. Validate fresh Core initialization and container replacement with the
+initialized database and PBX volumes retained and npm-registry access blocked,
+followed by the PHP/startup regressions and QEMU installation/update jobs.
+
 ## Environment variables
 
 - `APACHE_RUN_USER` user Apache is run with (Asterisk)
