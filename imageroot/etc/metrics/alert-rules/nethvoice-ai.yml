@@ -2,8 +2,9 @@
 # Copyright (C) 2026 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# The Deepgram and OpenAI API keys must be accepted by the providers, or
-# transcriptions and summaries silently stop. Series exist only when
+# The Deepgram and OpenAI API keys must be accepted by the providers, and
+# their accounts must have credit, or transcriptions and summaries silently
+# stop. Series exist only when
 # transcription is on and the key is set; they come from export-metrics
 # (pypkg/nvmetrics/aikeys.py) every 5 minutes, so "for: 10m" means 3
 # rejected checks in a row.
@@ -21,3 +22,15 @@ groups:
           summary_it: "La chiave API {{ $labels.provider }} di {{ $labels.module_id }} è rifiutata"
           description_en: "{{ $labels.provider }} rejects the API key configured in {{ $labels.module_id }}: transcriptions and summaries are not produced. Update the key in the NethVoice integrations page."
           description_it: "{{ $labels.provider }} rifiuta la chiave API configurata in {{ $labels.module_id }}: trascrizioni e riassunti non vengono prodotti. Aggiornare la chiave nella pagina integrazioni di NethVoice."
+      # Reported by satellite on real calls (nethesis/satellite#55): it stays
+      # 1 until the next successful call. Fires at once, as calls already fail.
+      - alert: NethVoiceAiCreditExhausted
+        expr: nethvoice_satellite_ai_credit_exhausted == 1
+        labels:
+          severity: critical
+          alertgroup: ai
+        annotations:
+          summary_en: "The {{ $labels.provider }} credit of {{ $labels.module_id }} is exhausted"
+          summary_it: "Il credito {{ $labels.provider }} di {{ $labels.module_id }} è esaurito"
+          description_en: "{{ $labels.provider }} refused a request of {{ $labels.module_id }} because the account has no credit left: transcriptions and summaries are not produced. Top up the account. The alert clears after the next successful call."
+          description_it: "{{ $labels.provider }} ha rifiutato una richiesta di {{ $labels.module_id }} perché l'account non ha più credito: trascrizioni e riassunti non vengono prodotti. Ricaricare l'account. L'allarme si chiude dopo la prossima chiamata riuscita."
