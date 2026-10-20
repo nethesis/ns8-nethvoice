@@ -4,6 +4,7 @@ FROM docker.io/debian:trixie as builder
 # Set fixed Asterisk version
 ARG ASTERISK_VERSION=22.10.0
 ARG PJSIP_VERSION=2.16
+ARG ASTERISK_G72X_COMMIT=5106838f3aabf8fe09fa3780a8e9d3ed4c2a0063
 ARG DEBIAN_FRONTEND=noninteractive
 ARG BUILDROOT=/usr/src/asterisk/build
 ARG LIBDIR=/usr/lib
@@ -177,6 +178,20 @@ RUN cd /usr/src/asterisk && \
 	cp *.so ${BUILDROOT}${LIBDIR}/asterisk/modules/ && \
 	cp codec_opus_config-en_US.xml ${BUILDROOT}${DATADIR}/asterisk/documentation/thirdparty/
 
+# Build G.729 against the same Asterisk headers as the server. The old bundled
+# Asterisk 18 binary has an incompatible ABI and requests an executable stack.
+RUN apt-get update && apt-get install -y --no-install-recommends libbcg729-dev libtool pkg-config && \
+	cd /usr/src/asterisk && \
+	wget -O asterisk-g72x-${ASTERISK_G72X_COMMIT}.tar.gz https://github.com/arkadijs/asterisk-g72x/archive/${ASTERISK_G72X_COMMIT}.tar.gz && \
+	artifact_checksum=$(grep "  asterisk-g72x-${ASTERISK_G72X_COMMIT}.tar.gz$" remote-artifacts.sha256) && \
+	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
+	tar xzf asterisk-g72x-${ASTERISK_G72X_COMMIT}.tar.gz && \
+	cd asterisk-g72x-${ASTERISK_G72X_COMMIT} && \
+	./autogen.sh && \
+	./configure --with-bcg729 --with-asterisk-includes=/usr/src/asterisk/asterisk-${ASTERISK_VERSION}/include CFLAGS="-O2 -fPIC" LDFLAGS="-Wl,-z,noexecstack" && \
+	make -j"$(nproc)" && \
+	install -D -m 0755 .libs/codec_g729.so ${BUILDROOT}${LIBDIR}/asterisk/modules/codec_g729.so
+
 FROM docker.io/library/php:8.2-apache
 WORKDIR /var/lib/asterisk
 ARG DEBIAN_FRONTEND=noninteractive
@@ -186,6 +201,7 @@ RUN groupadd -g 991 -r asterisk && \
 	apt-get install -y \
         ca-certificates \
 		cron \
+		libbcg729-0 \
 		curl \
 		tdsodbc \
 		gettext \
@@ -301,7 +317,6 @@ COPY var/lib/asterisk /var/lib/asterisk
 COPY usr/bin/backup_astdb /usr/bin/backup_astdb
 COPY usr/bin/restore_astdb /usr/bin/restore_astdb
 COPY usr/local/bin/import-certificate /usr/local/bin/import-certificate
-COPY usr/lib/asterisk/modules/codec_g729.so /usr/lib/asterisk/modules/codec_g729.so
 
 RUN mkdir -p \
 	/etc/phonebook/sources.d/ \

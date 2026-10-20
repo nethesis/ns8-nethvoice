@@ -58,6 +58,18 @@ part of `tools/check-php.sh`. The generated-dialplan regressions use the real
 FreePBX instruction classes and check the RecallOnBusy return and paging
 include chain without installing the transfer callback hook.
 
+Check PHP lookup under cron's restricted PATH and G.729 encoding/decoding in
+an isolated container with synthetic audio:
+
+```bash
+podman run --rm --network=none --entrypoint bash \
+  -v "$PWD/freepbx/tests:/tests:ro" \
+  localhost/nethvoice-freepbx:fpbx17-review /tests/runtime_compatibility_test.sh
+```
+
+The test starts its own Asterisk with no channel drivers and removes its
+temporary configuration and audio on exit.
+
 These checks do not validate live channel behavior. On an Asterisk 22 test
 instance, verify the following before completing runtime validation:
 
