@@ -105,12 +105,16 @@ watch(locale, (value) => {
         ><component :is="Component" :key="$route.path"
       /></RouterView>
     </main>
-    <div class="fixed bottom-6 right-6 z-50 space-y-3">
+    <div
+      class="pointer-events-none fixed bottom-4 right-4 z-50 w-[28rem] max-w-[calc(100vw-2rem)] space-y-3 sm:bottom-6 sm:right-6"
+    >
       <NeToastNotificationV2
         v-for="notice in ui.notices"
         :key="notice.id"
         :notification="notice"
         :sr-close-label="t('close')"
+        full-width
+        class="[overflow-wrap:anywhere]"
         @close="ui.notices = ui.notices.filter((n) => n.id !== notice.id)"
       />
     </div>
