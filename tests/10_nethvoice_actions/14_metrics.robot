@@ -9,6 +9,7 @@ Alert rules are published
     Should Contain    ${output}    nethvoice-services
     Should Contain    ${output}    nethvoice-dns
     Should Contain    ${output}    nethvoice-ai
+    Should Contain    ${output}    nethvoice-telephony
 
 Service state is exported
     ${output}    ${rc} =    Execute Command    runagent -m ${module_id} export-metrics    return_rc=True
