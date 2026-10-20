@@ -51,7 +51,7 @@ $agentsRoute = function (string $method, string $path, callable $operation) use 
                 if ($modelDiscovery) $allowed=['provider','binding_id','api_key'];
                 elseif (str_ends_with($path,'/synchronize')) $allowed=['retry'];
                 elseif (str_ends_with($path,'/enabled')) $allowed[]='enabled';
-                elseif ($method==='PUT' || ($method==='POST' && !str_ends_with($path,'/publish') && !str_ends_with($path,'/routing-upgrade'))) {
+                elseif ($method==='PUT' || ($method==='POST' && !str_ends_with($path,'/publish'))) {
                     $field=str_contains($path,'/trunks')?'trunk':'profile';
                     $allowed[]=$field;
                     if (!is_array($input[$field]??null) || array_is_list($input[$field])) throw new RuntimeException('invalid_envelope',422);
@@ -77,7 +77,6 @@ $agentsRoute = function (string $method, string $path, callable $operation) use 
 };
 $agentsRoute('GET','/catalog',fn($s)=>$s->catalog());
 $agentsRoute('GET','/destinations',fn($s,$a,$i,$q)=>$s->destinations($q));
-$agentsRoute('POST','/profiles/{id}/routing-upgrade',fn($s,$a,$i,$q,$u)=>$s->routingUpgrade($a['id'],$i['expected_revision'],$u));
 $agentsRoute('GET','/profiles',fn($s)=>['items'=>$s->all()]);
 $agentsRoute('GET','/profiles/{id}',fn($s,$a)=>$s->get($a['id']));
 $agentsRoute('POST','/profiles',fn($s,$a,$i,$q,$u)=>$s->save(null,$i['profile']??[],$i['expected_revision'],$u));

@@ -116,6 +116,28 @@ const selectedTrunk = computed(() =>
     (item) => item.binding_id === draft.value.provider_binding_id,
   ),
 );
+function addRecentCallbacks() {
+  const defaults = catalog.data.value?.draft_defaults;
+  if (draft.value.contract_version !== 6 || defaults?.contract_version !== 7)
+    return;
+  const transfer = draft.value.tool_bindings.find(
+    (b) => b.tool_id === "pbx.transfer",
+  );
+  const latest = defaults.tool_bindings.find(
+    (b) => b.tool_id === "pbx.transfer",
+  );
+  const lookup = defaults.tool_bindings.find(
+    (b) => b.tool_id === "pbx.find_recent_callers",
+  );
+  if (!transfer || !latest || !lookup) return;
+  transfer.tool_version = latest.tool_version;
+  transfer.config = {
+    ...JSON.parse(JSON.stringify(latest.config)),
+    ...transfer.config,
+  };
+  draft.value.tool_bindings.push(JSON.parse(JSON.stringify(lookup)));
+  draft.value.contract_version = 7;
+}
 function changeBinding(value: string) {
   const binding = value || null;
   if (binding === draft.value.provider_binding_id) return;
@@ -157,20 +179,6 @@ async function save() {
     await queryClient.invalidateQueries({ queryKey: ["destinations"] });
     await queryClient.invalidateQueries({ queryKey: ["agents"] });
     if (creating.value) await router.replace("/agents/" + value.agent_id);
-  });
-}
-async function routingUpgrade() {
-  await task.run(async () => {
-    if (!record.value) return;
-    accept(
-      await request<Agent>(
-        "POST",
-        "/profiles/" + encodeURIComponent(id.value) + "/routing-upgrade",
-        { expected_revision: record.value.revision },
-      ),
-    );
-    await queryClient.invalidateQueries({ queryKey: ["agents"] });
-    await queryClient.invalidateQueries({ queryKey: ["destinations"] });
   });
 }
 async function publish() {
@@ -269,14 +277,6 @@ async function synchronize() {
       @click="synchronize"
       >{{ t("retrySync") }}</NeButton
     >
-    <section v-if="record && draft.contract_version !== 6" class="space-y-3">
-      <p class="nv-muted">{{ t("routingUpgradeHelp") }}</p>
-      <NeButton
-        :disabled="dirty || task.pending.value"
-        @click="routingUpgrade"
-        >{{ t("routingUpgrade") }}</NeButton
-      >
-    </section>
     <fieldset :disabled="record?.legacy" class="space-y-6">
       <div class="nv-field-grid">
         <NeTextInput
@@ -313,9 +313,6 @@ async function synchronize() {
         v-model="draft.conversation"
         :binding="selectedTrunk"
       />
-      <RouterLink to="/trunks" class="text-primary-700 dark:text-primary-400"
-        >{{ t("manageTrunks") }} →</RouterLink
-      >
       <NeTextArea
         v-model="draft.conversation.greeting"
         :label="t('greeting')"
@@ -331,8 +328,20 @@ async function synchronize() {
       <section class="space-y-4">
         <h2>{{ t("tools") }}</h2>
         <p class="nv-muted">{{ t("toolGrantsHelp") }}</p>
-        <p v-if="draft.contract_version === 6" class="nv-muted">
+        <p v-if="(draft.contract_version || 0) >= 6" class="nv-muted">
           {{ t("routingPolicyHelp") }}
+        </p>
+        <NeButton
+          v-if="
+            draft.contract_version === 6 &&
+            catalog.data.value?.draft_defaults.contract_version === 7
+          "
+          kind="secondary"
+          @click="addRecentCallbacks"
+          >{{ t("addRecentCallbacks") }}</NeButton
+        >
+        <p v-if="draft.contract_version === 7" class="nv-muted">
+          {{ t("recentCallbacksHelp") }}
         </p>
         <ToolConfiguration
           v-for="(binding, index) in draft.tool_bindings"

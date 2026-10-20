@@ -16,8 +16,8 @@ const route = useRoute();
 const ui = useUi();
 const mobileMenu = ref(false);
 const items = [
-  { name: "agents", icon: "comments" },
   { name: "trunks", icon: "gear" },
+  { name: "agents", icon: "comments" },
   { name: "activity", icon: "clock" },
 ];
 onMounted(() => {

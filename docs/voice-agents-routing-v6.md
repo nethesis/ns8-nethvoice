@@ -1,7 +1,13 @@
 # Typed PBX routing slice (v6)
 
-This implements extension, queue and IVR routing for Receptionist and custom
-Basic Voice agents. It does not close v0.1 or declare v0.2 complete. Recent-caller
+For the additive recent-callback implementation, new defaults and validation,
+see [contract v7](voice-agents-recent-callers-v7.md). The v6 implementation and
+acceptance history below are retained for compatibility.
+
+The current editor offers extension and queue routing for Receptionist and custom
+Basic Voice agents. IVR support remains in the pinned runtime contract, but IVRs
+are excluded from selectable routing categories and disabled in fresh, saved and
+newly published drafts. It does not close v0.1 or declare v0.2 complete. Recent-caller
 lookup, duplication, caller admission and the graph editor remain separate work.
 The intermittent silence and human audio acceptance gates remain open.
 
@@ -28,17 +34,15 @@ were extended selectively.
 `published-v6.schema.json` pins `pbx.find_destinations` v1 and `pbx.transfer` v1,
 whose immutable manifests are in `tools-v3.json`. Contracts v1–v5 and historical
 tool manifests are unchanged. No recent-caller manifest or handler is advertised.
-Fresh custom drafts use backend-provided `catalog.draft_defaults` (v6). Existing
-saved drafts remain unchanged until an explicit, revision-checked and CSRF-guarded
-`POST /agents/profiles/{id}/routing-upgrade`. That operation preserves the
-conversation, provider reference, fallback, debug settings and extension grants,
-creates an unpublished v6 draft with both new tools disabled, and leaves the
-active publication, route and enabled state unchanged. A v6 draft cannot be
-silently downgraded through save. Older incomplete model selections still need
-administrative selection before publication.
+Fresh Receptionist and custom drafts use the latest routing defaults (v6), shared
+with the development reset. There is no routing-upgrade action or endpoint during
+pre-release development. Existing test installations can be reset with the
+explicit development reset CLI; saved configuration and immutable publications
+are not automatically rewritten. Release migration behavior will be addressed
+after merge into main. A v6 draft cannot be silently downgraded through save.
 
 The transfer binding owns category policy. Direct extensions default off with an
-empty allowlist; queues and IVRs default on with empty denylists. Disabled tools
+empty allowlist; queues default on with an empty denylist and IVRs stay off. Disabled tools
 cannot be invoked through either logical IDs or wire names. The same policy
 filters startup context, lookup and execution. Description overrides are
 per-agent data. Removed denylist entries persist as tombstones; unavailable
@@ -49,7 +53,8 @@ missing approved extensions. Runtime independently checks current existence.
 `type`, `offset`, `limit` and optional `agent_id`. Default page size is 20, maximum
 100. It returns module availability, unavailable saved IDs and backend-computed
 permissions for the saved draft. The agent editor uses schema-driven toggles,
-paginated searchable destination lists and description fields. The preview is
+paginated searchable destination lists, with optional description fields for
+extensions and queues. IVRs are not selectable. The preview is
 explicitly labeled as the saved draft, with EN/IT translations.
 
 ## Native routing and bounds
@@ -218,3 +223,45 @@ HTTPS assets and webhook-prefix isolation passed again. Shared configuration and
 secret-file hashes were unchanged. Asterisk reported zero active calls and
 channels. Protected rollback files and retained images were verified. Final
 `git diff --check` passed in both active repositories.
+
+
+## Pre-release editor simplification — 2026-10-20
+
+Observed starting revisions: ns8-nethvoice
+`292c9fbb8f087df9beac7a5f6795b22450f1ee96`, Satellite
+`9499c10c6e0976d9a6675c6b1522b9ed6ff13213`; both `voice_agent`, initially clean.
+The documented `.bak` and `old/` reference checkouts were absent in this workspace.
+This change reuses the active agent editor, catalog metadata and default factory.
+
+- Removed the provider-trunk shortcut before Greeting. Navigation order is
+  Provider trunks, Agents, Activity.
+- Removed the routing-upgrade UI, translations, REST endpoint and service method.
+  The existing installation seed now creates Receptionist with the same current
+  draft shape as the default factory and development reset. No new schema
+  migration was added; existing saved records/publications are not converted.
+- Removed IVRs from the catalog's selectable routing categories. Fresh defaults
+  disable IVRs, and save/publish also disable them so an invisible IVR grant cannot
+  survive a submitted draft. Immutable contracts and existing publications remain
+  unchanged. Extensions and queues keep their optional description inputs.
+- Updated browser, database/service and cross-repository fixture expectations.
+  The seed-equality and link-removal checks failed before implementation; the IVR
+  save check likewise reproduced the old behavior. One full browser run had a
+  navigation timeout; its isolated retry and the subsequent full run passed.
+
+Validation: UI production build/type-check, lint, formatting and four unit tests
+passed; all 14 Playwright tests passed. The complete foundation harness passed
+with the prepared Python environment and REST autoloader, including PHP services,
+HTTP authorization/CSRF, 147 Satellite tests, runner correlation, backup/restore,
+development reset and least-privilege accounts. PHP syntax and both repository
+whitespace checks passed. The build retains its existing chunk-size warning;
+Python reports a Starlette test-client deprecation warning.
+
+Commands: `npm run build`, `npm run lint`, `npm run format`, `npm test`,
+`npm run test:browser -- --workers=1`, and
+`M0_PYTHON=/tmp/nethvoice-review-venv/bin/python M0_REST_AUTOLOAD=/tmp/nethvoice-review-rest-vendor/autoload.php bash ns8-nethvoice/freepbx/tests/agents/run-foundation.sh`.
+
+No image build, deployment, Makako call, provider call or live-data reset was
+performed. Rollback is to restore the changed source files and rebuild the UI;
+there is no new database migration to undo. Already saved/published v6 snapshots
+remain valid. Existing pre-release installations need an explicitly authorized
+development reset to recreate Receptionist from these fresh defaults.

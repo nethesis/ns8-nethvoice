@@ -58,12 +58,6 @@ $draft=['provider_binding_id'=>null,'conversation'=>['language'=>'en','voice'=>'
 [$status]=api('GET','/destinations',null,['Secretkey'=>'wrong']); assert($status===403);
 [$status,$destinations]=api('GET','/destinations?limit=1'); assert($status===200 && count($destinations['items'])===1);
 [$status]=api('GET','/destinations?limit=101'); assert($status===422);
-$upgrade='/profiles/'.$created['agent_id'].'/routing-upgrade';
-[$status]=api('POST',$upgrade,['expected_revision'=>$created['revision']]); assert($status===403);
-[$status]=api('POST',$upgrade,['expected_revision'=>0],$csrf); assert($status===409);
-[$status]=api('POST',$upgrade,['expected_revision'=>$created['revision'],'profile'=>[]],$csrf); assert($status===422);
-[$status,$created]=api('POST',$upgrade,['expected_revision'=>$created['revision']],$csrf); assert($status===200 && $created['draft']['contract_version']===6);
-assert(!$created['enabled'] && $created['workflow_version']===null && !$created['draft']['tool_bindings'][1]['enabled']);
 [$status,$runs]=api('GET','/runs'); assert($status===200 && isset($runs['items'],$runs['has_more']));
 [$status]=api('GET','/runs?page=0'); assert($status===422);
 [$status,$removed]=api('DELETE','/profiles/'.$created['agent_id'],['expected_revision'=>$created['revision']],$csrf); assert($status===200 && $removed['removed']);

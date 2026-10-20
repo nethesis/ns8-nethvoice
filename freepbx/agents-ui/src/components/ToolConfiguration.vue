@@ -95,7 +95,24 @@ function unavailable(key: string) {
           v-if="modelValue.config[category.enabled_field] === true"
           class="pl-6 border-l border-gray-200 dark:border-gray-700"
         >
+          <NeTextInput
+            v-for="key in category.fields || []"
+            :key="key"
+            :model-value="String(modelValue.config[key])"
+            :label="
+              label(
+                'toolSettings.' + key,
+                definition.configuration_schema.properties[key].title,
+              )
+            "
+            type="number"
+            :min="definition.configuration_schema.properties[key].minimum"
+            :max="definition.configuration_schema.properties[key].maximum"
+            required
+            @update:model-value="set(key, Number($event))"
+          />
           <DestinationControl
+            :show-descriptions="category.descriptions !== false"
             :inventory="category.inventory"
             :selected="selected(category.destinations_field)"
             :selection-mode="category.selection"

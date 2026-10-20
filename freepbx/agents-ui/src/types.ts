@@ -135,6 +135,8 @@ export interface ToolDefinition {
       destinations_field: string;
       inventory: string;
       selection: "allowlist" | "denylist";
+      fields?: string[];
+      descriptions?: boolean;
     }[];
   };
   defaults: Record<string, ConfigurationValue>;
@@ -161,6 +163,7 @@ export interface DestinationPage {
     description: string;
     available: boolean;
     permitted: boolean;
+    recent_callback_eligible?: boolean;
   }[];
   next_offset: number | null;
   total: number;

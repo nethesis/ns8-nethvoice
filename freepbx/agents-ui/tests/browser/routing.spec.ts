@@ -6,12 +6,12 @@ tools[0].editor = {automatic:true};
 tools[1].editor = {descriptions_field:"descriptions",categories:[
   {enabled_field:"extensions_enabled",destinations_field:"extension_allowlist",inventory:"extensions",selection:"allowlist"},
   {enabled_field:"queues_enabled",destinations_field:"queue_denylist",inventory:"queues",selection:"denylist"},
-  {enabled_field:"ivrs_enabled",destinations_field:"ivr_denylist",inventory:"ivrs",selection:"denylist"},
 ]};
 const old = JSON.parse(readFileSync(new URL("tools-v2.json", base), "utf8"));
 const defaults = JSON.parse(readFileSync(new URL("published-v6.example.json", base), "utf8"));
 for (const key of ["agent_id", "destination_id", "workflow_version", "provider"]) delete defaults[key];
 defaults.tool_bindings[0].enabled = true;
+defaults.tool_bindings[1].config.ivrs_enabled = false;
 const catalog = { tools: [...old, ...tools], draft_defaults: defaults, extensions: [], providers: ["openai", "grok"], default_language: "en", languages: [{ id: "en", label: "English" }] };
 async function login(page: Page) {
   page.on("pageerror",e=>{throw e;});
@@ -25,17 +25,13 @@ const row=(page:Page,name:string)=>toggle(page,name).locator("xpath=ancestor::di
 
 test("routing editor uses positive grants, inline descriptions, collapsed categories and publication lifecycle", async ({ page }) => {
   await login(page);
-  const legacy = structuredClone(defaults); delete legacy.contract_version;
-  legacy.tool_bindings = old.map((tool: {id:string,version:number,defaults:object}) => ({tool_id:tool.id,tool_version:tool.version,enabled:false,config:tool.defaults}));
-  let agent = {agent_id:"receptionist", name:"Receptionist", kind:"builtin", enabled:true, revision:7, draft_version:4,workflow_version:4,sync_status:"synced",legacy:false,draft:legacy,published:{...legacy,workflow_version:4}};
-  let upgrades = 0;
+  let agent = {agent_id:"receptionist", name:"Receptionist", kind:"builtin", enabled:true, revision:7, draft_version:4,workflow_version:4,sync_status:"synced",legacy:false,draft:structuredClone(defaults),published:{...structuredClone(defaults),workflow_version:4}};
   await page.route("**/freepbx/rest/agents/**", async route => {
     const req = route.request(), url = new URL(req.url()), path = url.pathname.split("/agents")[1];
     if (req.method() !== "GET") {
       expect(req.headers()["x-agents-csrf"]).toBe("synthetic-csrf");
       const body=req.postDataJSON(); expect(body.expected_revision).toBe(agent.revision);
-      if(path.endsWith("/routing-upgrade")) { upgrades++; agent={...agent,revision:agent.revision+1,draft_version:5,draft:structuredClone(defaults)}; }
-      else if(req.method()==="PUT") agent={...agent,revision:agent.revision+1,draft_version:5,draft:body.profile.draft};
+      if(req.method()==="PUT") agent={...agent,revision:agent.revision+1,draft_version:5,draft:body.profile.draft};
       else if(path.endsWith("/publish")) agent={...agent,revision:agent.revision+1,workflow_version:5,published:{...agent.draft,workflow_version:5}};
       else throw new Error("Unexpected mutation " + path);
       await route.fulfill({json:agent});return;
@@ -50,7 +46,9 @@ test("routing editor uses positive grants, inline descriptions, collapsed catego
   await page.goto("./#/agents/receptionist");
   await expect(page.getByRole("button",{name:"Save draft",exact:true})).toBeDisabled();
   await expect(page.getByRole("button",{name:"Publish",exact:true})).toBeDisabled();
-  await page.getByRole("button",{name:"Upgrade routing draft",exact:true}).click();
+  await expect(page.getByRole("button",{name:"Upgrade routing draft",exact:true})).toHaveCount(0);
+  await expect(page.getByRole("link",{name:"Manage provider trunks →",exact:true})).toHaveCount(0);
+  await expect(page.locator("aside a")).toHaveText(["Provider trunks", "Agents", "Activity"]);
   await expect(toggle(page,"Find permitted PBX destinations")).toHaveCount(0);
   await expect(toggle(page,"Queues")).toHaveCount(0);
   await toggle(page,"Transfer to a permitted PBX destination").locator("..").click();
@@ -58,7 +56,8 @@ test("routing editor uses positive grants, inline descriptions, collapsed catego
   await expect(page.getByLabel("Search extensions by name, number or purpose",{exact:true})).toHaveCount(0);
   await expect(toggle(page,"Queues")).toBeChecked();
   await expect(toggle(page,"Customer Support (600)")).toBeChecked();
-  await expect(toggle(page,"Main menu")).toBeChecked();
+  await expect(toggle(page,"IVRs")).toHaveCount(0);
+  await expect(toggle(page,"Main menu")).toHaveCount(0);
   await expect(page.getByText("Excluded queues",{exact:true})).toHaveCount(0);
   await expect(page.getByText("Configured routing descriptions",{exact:true})).toHaveCount(0);
   await expect(page.getByRole("button",{name:"Previous",exact:true})).toHaveCount(0);
@@ -74,7 +73,7 @@ test("routing editor uses positive grants, inline descriptions, collapsed catego
   await expect(row(page,"Alice (203)").getByLabel("Additional description (optional)")).toHaveCount(0);
   await toggle(page,"Alice (203)").locator("..").click();
   await row(page,"Alice (203)").getByLabel("Additional description (optional)").fill("He is a very cool guy");
-  await row(page,"Main menu").getByLabel("Additional description (optional)").fill("Customer support");
+
   await expect(page.getByRole("button",{name:"Publish",exact:true})).toBeDisabled();
   await page.getByRole("button",{name:"Save draft",exact:true}).click();
   await expect(page.getByRole("button",{name:"Save draft",exact:true})).toBeDisabled();
@@ -82,11 +81,12 @@ test("routing editor uses positive grants, inline descriptions, collapsed catego
   await expect(publish).toBeEnabled();
   await expect(page.getByText("Published version: 4",{exact:false})).toBeVisible();
   await expect(page.getByText("Saved draft version: 5",{exact:false})).toBeVisible();
-  expect(upgrades).toBe(1);expect(agent.workflow_version).toBe(4);
+  expect(agent.workflow_version).toBe(4);
   expect(agent.draft.tool_bindings[0].enabled).toBe(true);
   const config=agent.draft.tool_bindings[1].config;
+  expect(config.ivrs_enabled).toBe(false);
   expect(config.extension_allowlist).toEqual(["extension:203"]);expect(config.queue_denylist).toEqual([]);expect(config.queues_enabled).toBe(false);
-  expect(config.descriptions).toEqual([{destination_id:"queue:600",description:"Technical support team"},{destination_id:"extension:203",description:"He is a very cool guy"},{destination_id:"ivr:7",description:"Customer support"}]);
+  expect(config.descriptions).toEqual([{destination_id:"queue:600",description:"Technical support team"},{destination_id:"extension:203",description:"He is a very cool guy"}]);
   await page.screenshot({path:"/tmp/voice-agent-routing-editor.png",fullPage:true});
   await publish.click();
   await expect(page.getByText("Published version: 5",{exact:false})).toBeVisible();

@@ -1,0 +1,396 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "agent_id",
+    "destination_id",
+    "workflow_version",
+    "provider_binding_id",
+    "provider",
+    "conversation",
+    "fallback_destination_id",
+    "max_call_duration_seconds",
+    "tool_bindings",
+    "debug"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": 7
+    },
+    "agent_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,47}$(?![\\s\\S])"
+    },
+    "destination_id": {
+      "type": "string",
+      "pattern": "^agent:[a-z][a-z0-9_-]{0,47}$(?![\\s\\S])"
+    },
+    "workflow_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "provider_binding_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,47}$(?![\\s\\S])"
+    },
+    "provider": {
+      "enum": [
+        "openai",
+        "grok"
+      ]
+    },
+    "conversation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "language",
+        "voice",
+        "greeting",
+        "instructions",
+        "model",
+        "options"
+      ],
+      "properties": {
+        "language": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(-[A-Z]{2})?$(?![\\s\\S])"
+        },
+        "voice": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "greeting": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "instructions": {
+          "type": "string",
+          "maxLength": 32768
+        },
+        "model": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "options": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "backend_model",
+                "backend_instructions",
+                "reasoning_effort",
+                "verbosity",
+                "service_tier",
+                "max_output_tokens"
+              ],
+              "properties": {
+                "backend_model": {
+                  "type": "string",
+                  "enum": [
+                    "gpt-6-luna",
+                    "gpt-6-sol"
+                  ],
+                  "title": "backendModel"
+                },
+                "backend_instructions": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32768,
+                  "title": "backendInstructions",
+                  "x-control": "textarea"
+                },
+                "reasoning_effort": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "low",
+                    "medium",
+                    "high",
+                    "xhigh"
+                  ],
+                  "title": "reasoningEffort"
+                },
+                "verbosity": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ],
+                  "title": "backendVerbosity"
+                },
+                "service_tier": {
+                  "type": "string",
+                  "enum": [
+                    "auto",
+                    "default",
+                    "flex",
+                    "priority"
+                  ],
+                  "title": "serviceTier"
+                },
+                "max_output_tokens": {
+                  "type": "integer",
+                  "minimum": 16,
+                  "maximum": 8192,
+                  "title": "maxOutputTokens"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "fallback_destination_id": {
+      "type": "string",
+      "pattern": "^(hangup|extension:[0-9]{1,20}|native:[a-zA-Z0-9_-]{1,80},[a-zA-Z0-9_*#.-]{1,64},1)$(?![\\s\\S])"
+    },
+    "max_call_duration_seconds": {
+      "type": "integer",
+      "minimum": 30,
+      "maximum": 3600
+    },
+    "tool_bindings": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "tool_id",
+              "tool_version",
+              "enabled",
+              "config"
+            ],
+            "properties": {
+              "tool_id": {
+                "const": "pbx.find_destinations"
+              },
+              "tool_version": {
+                "const": 1
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "config": {
+                "type": "object",
+                "required": [
+                  "max_results"
+                ],
+                "properties": {
+                  "max_results": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "title": "Maximum search results"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "tool_id",
+              "tool_version",
+              "enabled",
+              "config"
+            ],
+            "properties": {
+              "tool_id": {
+                "const": "pbx.transfer"
+              },
+              "tool_version": {
+                "const": 2
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "config": {
+                "type": "object",
+                "required": [
+                  "extensions_enabled",
+                  "extension_allowlist",
+                  "queues_enabled",
+                  "queue_denylist",
+                  "ivrs_enabled",
+                  "ivr_denylist",
+                  "descriptions",
+                  "recent_callers_enabled",
+                  "recent_caller_lookback_days",
+                  "recent_caller_denylist"
+                ],
+                "properties": {
+                  "extensions_enabled": {
+                    "type": "boolean",
+                    "title": "Direct extensions"
+                  },
+                  "extension_allowlist": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^extension:[0-9]{1,20}$(?![\\s\\S])"
+                    },
+                    "title": "Approved extensions",
+                    "x-inventory": "extensions",
+                    "x-control": "destination-list"
+                  },
+                  "queues_enabled": {
+                    "type": "boolean",
+                    "title": "Queues"
+                  },
+                  "queue_denylist": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^queue:[0-9]{1,20}$(?![\\s\\S])"
+                    },
+                    "title": "Excluded queues",
+                    "x-inventory": "queues",
+                    "x-control": "destination-list"
+                  },
+                  "ivrs_enabled": {
+                    "type": "boolean",
+                    "title": "IVRs"
+                  },
+                  "ivr_denylist": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^ivr:[0-9]{1,20}$(?![\\s\\S])"
+                    },
+                    "title": "Excluded IVRs",
+                    "x-inventory": "ivrs",
+                    "x-control": "destination-list"
+                  },
+                  "descriptions": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "title": "Routing descriptions",
+                    "x-control": "destination-descriptions",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "destination_id",
+                        "description"
+                      ],
+                      "properties": {
+                        "destination_id": {
+                          "type": "string",
+                          "pattern": "^(extension|queue|ivr):[0-9]{1,20}$(?![\\s\\S])"
+                        },
+                        "description": {
+                          "type": "string",
+                          "maxLength": 500
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "recent_callers_enabled": {
+                    "type": "boolean",
+                    "title": "Recent callbacks"
+                  },
+                  "recent_caller_lookback_days": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 90,
+                    "title": "Recent-call lookback (days)"
+                  },
+                  "recent_caller_denylist": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^extension:[0-9]{1,20}$(?![\\s\\S])"
+                    },
+                    "title": "Excluded callback extensions",
+                    "x-inventory": "extensions",
+                    "x-control": "destination-list"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "tool_id",
+              "tool_version",
+              "enabled",
+              "config"
+            ],
+            "properties": {
+              "tool_id": {
+                "const": "pbx.find_recent_callers"
+              },
+              "tool_version": {
+                "const": 1
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "config": {
+                "type": "object",
+                "required": [
+                  "max_results"
+                ],
+                "properties": {
+                  "max_results": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5,
+                    "title": "Contacts per page"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "debug": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transcription_enabled",
+        "retention_hours"
+      ],
+      "properties": {
+        "transcription_enabled": {
+          "type": "boolean"
+        },
+        "retention_hours": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 24
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:nethvoice:agents:published:6",
+  "title": "Published Basic Voice snapshot v6: typed PBX routing"
+}

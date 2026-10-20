@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 namespace NethVoice\Agents;
 require_once __DIR__.'/ReceptionistDefaults.php';
+require_once __DIR__.'/RecentCallerViews.php';
 
 final class Schema
 {
@@ -23,6 +24,12 @@ final class Schema
                 }
             }
             self::directoryViews($db);
+            RecentCallerViews::install($db);
+            if (!$exists) {
+                require_once __DIR__.'/Service.php';
+                $fresh=$db->prepare("UPDATE asterisk.voice_agent_drafts SET definition_json=? WHERE agent_id='receptionist'");
+                $fresh->execute([json_encode(Service::receptionistDraft(),JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
+            }
             // Initialize only an untouched installation seed. Never rewrite an
             // edited draft or any immutable publication, including on upgrades.
             $seed=$db->prepare("UPDATE asterisk.voice_agent_drafts d JOIN asterisk.voice_agent_agents a ON a.agent_id=d.agent_id SET d.definition_json=JSON_SET(d.definition_json,'$.conversation.instructions',?) WHERE a.agent_id='receptionist' AND a.kind='builtin' AND a.revision=1 AND d.revision=1 AND a.removed=0 AND a.enabled=0 AND a.active_workflow_version IS NULL AND JSON_TYPE(JSON_EXTRACT(d.definition_json,'$.provider_binding_id'))='NULL' AND JSON_UNQUOTE(JSON_EXTRACT(d.definition_json,'$.conversation.instructions'))=''");

@@ -1,11 +1,11 @@
 import { createI18n } from "vue-i18n";
 
 const en = {
-  routingUpgrade: "Upgrade routing draft",
-  routingUpgradeHelp:
-    "Create an unpublished routing draft for extensions, queues and IVRs. Existing extension grants are copied, transfers stay disabled, and the active publication and routes stay in use until you publish.",
+  addRecentCallbacks: "Add recent callbacks to this draft",
+  recentCallbacksHelp:
+    "Recent callbacks require Transfer and Recent callbacks to be enabled. A verified recent call can authorize a callback even when direct transfer to that extension is off. Lookup happens only when someone asks to return a call; the caller confirms or chooses a contact. Save and publish to activate draft changes.",
   routingPolicyHelp:
-    "Enable a category, then choose its permitted destinations. Enabled destinations can have an additional description for routing by purpose. Discovery is automatic. IVR branches describe native menu behavior only.",
+    "Enable a category, then choose its permitted destinations. Enabled extensions and queues can have an additional description for routing by purpose. Discovery is automatic.",
   searchDestinations: "Search destinations by name, number or purpose",
   destinationModuleUnavailable: "This PBX module is unavailable",
   savedPermitted: "Saved draft: permitted for direct transfer",
@@ -21,6 +21,9 @@ const en = {
   legacyAgentHelp:
     "Legacy configuration is read-only. Configure Receptionist with fresh defaults, then remove this agent after its VisualPlan references have been replaced. Existing published calls remain supported.",
   toolSettings: {
+    recent_callers_enabled: "Recent callbacks",
+    recent_caller_lookback_days: "Recent-call lookback (days)",
+    recent_caller_denylist: "Eligible callback extensions",
     max_results: "Maximum search results",
     approved_destination_ids: "Approved extensions",
     extensions_enabled: "Direct extensions",
@@ -407,11 +410,11 @@ const en = {
 };
 const it: typeof en = {
   ...en,
-  routingUpgrade: "Aggiorna bozza di instradamento",
-  routingUpgradeHelp:
-    "Crea una bozza non pubblicata per interni, code e IVR. I permessi degli interni vengono copiati e i nuovi strumenti restano disabilitati. La pubblicazione e le rotte attive restano in uso fino alla pubblicazione della bozza.",
+  addRecentCallbacks: "Aggiungi le richiamate recenti alla bozza",
+  recentCallbacksHelp:
+    "Le richiamate richiedono Trasferimento e Richiamate recenti abilitati. Una chiamata recente verificata può autorizzare una richiamata anche se il trasferimento diretto all'interno è disabilitato. La ricerca avviene solo quando si chiede di richiamare; il chiamante conferma o sceglie un contatto. Salva e pubblica per attivare le modifiche.",
   routingPolicyHelp:
-    "Abilita una categoria e scegli le destinazioni consentite. Per ogni destinazione abilitata puoi aggiungere una descrizione utile all’instradamento. La ricerca è automatica. Le opzioni degli IVR descrivono solo il comportamento del menu nativo.",
+    "Abilita una categoria e scegli le destinazioni consentite. Per gli interni e le code abilitati puoi aggiungere una descrizione utile all’instradamento. La ricerca è automatica.",
   searchDestinations: "Cerca destinazioni per nome, numero o funzione",
   destinationModuleUnavailable: "Modulo PBX non disponibile",
   savedPermitted: "Bozza salvata: trasferimento diretto consentito",
@@ -426,6 +429,9 @@ const it: typeof en = {
   legacyAgentHelp:
     "La configurazione precedente è in sola lettura. Configura Receptionist con le impostazioni iniziali, poi rimuovi questo agente dopo aver sostituito i suoi riferimenti in VisualPlan. Le chiamate già pubblicate restano supportate.",
   toolSettings: {
+    recent_callers_enabled: "Richiamate recenti",
+    recent_caller_lookback_days: "Periodo di ricerca (giorni)",
+    recent_caller_denylist: "Interni abilitati alle richiamate",
     max_results: "Numero massimo di risultati",
     approved_destination_ids: "Interni autorizzati",
     extensions_enabled: "Interni diretti",
@@ -865,7 +871,6 @@ Object.assign(en, {
   reloadSaved: "Reload saved settings",
   retrySync: "Retry synchronization",
   maxDuration: "Maximum call duration (seconds)",
-  manageTrunks: "Manage provider trunks",
   greeting: "Greeting",
   toolGrantsHelp: "Each agent has independent tool permissions.",
   approvedExtensions: "Approved extensions",
@@ -989,7 +994,6 @@ Object.assign(it, {
   reloadSaved: "Ricarica impostazioni",
   retrySync: "Riprova sincronizzazione",
   maxDuration: "Durata massima chiamata (secondi)",
-  manageTrunks: "Gestisci trunk del provider",
   greeting: "Saluto iniziale",
   toolGrantsHelp: "Ogni agente ha permessi indipendenti.",
   approvedExtensions: "Interni autorizzati",

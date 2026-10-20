@@ -37,7 +37,7 @@ ensure(end($keys)==='synthetic-stored-key','stored_discovery');
 $service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id'],'api_key'=>'synthetic-unsaved-key']);
 ensure(end($keys)==='synthetic-unsaved-key','unsaved_key_precedence');
 rejected(fn()=>$service->models(['provider'=>'grok','binding_id'=>$trunk['binding_id']]),'invalid_provider');
-$draft=$service->get('receptionist')['draft'];
+$draft=Service::emptyDraft(5);
 $draft['provider_binding_id']=$trunk['binding_id'];
 $draft['conversation']=['language'=>'en','voice'=>'marin','greeting'=>'Hello','instructions'=>'Speak briefly.','model'=>'gpt-live-1','options'=>ProviderCatalog::capabilities('openai')['models'][4]['defaults']];
 $draft['fallback_destination_id']='hangup';

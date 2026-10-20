@@ -14,6 +14,10 @@ $db->exec("INSERT INTO asterisk.users VALUES ('203','Test extension')");
 assert($db->query("SELECT agent_id FROM asterisk.voice_agent_agents WHERE kind='builtin'")->fetchAll(PDO::FETCH_COLUMN)===['receptionist']);
 $seedPrompt=fn()=>$db->query("SELECT JSON_UNQUOTE(JSON_EXTRACT(definition_json,'$.conversation.instructions')) FROM asterisk.voice_agent_drafts WHERE agent_id='receptionist'")->fetchColumn();
 assert($seedPrompt()===\NethVoice\Agents\ReceptionistDefaults::INSTRUCTIONS);
+require_once __DIR__.'/../../var/www/html/freepbx/rest/lib/agents/Service.php';
+$seed=json_decode($db->query("SELECT definition_json FROM asterisk.voice_agent_drafts WHERE agent_id='receptionist'")->fetchColumn(),true);
+assert($seed===\NethVoice\Agents\Service::receptionistDraft());
+
 // Upgrades fill the former blank seed, preserving edits even when left blank.
 $db->exec("UPDATE asterisk.voice_agent_drafts SET definition_json=JSON_SET(definition_json,'$.conversation.instructions','Operator prompt') WHERE agent_id='receptionist'");
 \NethVoice\Agents\Schema::install($db);

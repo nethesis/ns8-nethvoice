@@ -55,15 +55,15 @@ final class Service
     }
     public function catalog(): array
     {
-        $tools=array_map(fn($row)=>json_decode($row['manifest_json'],true,512,JSON_THROW_ON_ERROR),$this->query("SELECT manifest_json FROM asterisk.voice_agent_runtime_tools WHERE tool_version=2 OR tool_id IN ('pbx.find_destinations','pbx.transfer') ORDER BY tool_id")->fetchAll(\PDO::FETCH_ASSOC));
+        $tools=array_map(fn($row)=>json_decode($row['manifest_json'],true,512,JSON_THROW_ON_ERROR),$this->query("SELECT manifest_json FROM asterisk.voice_agent_runtime_tools WHERE tool_version=2 OR tool_id IN ('pbx.find_destinations','pbx.transfer','pbx.find_recent_callers') ORDER BY tool_id")->fetchAll(\PDO::FETCH_ASSOC));
         // Presentation metadata is separate from the immutable runtime manifests.
         foreach ($tools as &$tool) {
-            if (in_array($tool['id'],['pbx.find_destinations','directory.find_destinations'],true)) $tool['editor']=['automatic'=>true];
+            if (in_array($tool['id'],['pbx.find_destinations','directory.find_destinations','pbx.find_recent_callers'],true)) $tool['editor']=['automatic'=>true];
             if ($tool['id']==='pbx.transfer') $tool['editor']=['descriptions_field'=>'descriptions','categories'=>[
                 ['enabled_field'=>'extensions_enabled','destinations_field'=>'extension_allowlist','inventory'=>'extensions','selection'=>'allowlist'],
                 ['enabled_field'=>'queues_enabled','destinations_field'=>'queue_denylist','inventory'=>'queues','selection'=>'denylist'],
-                ['enabled_field'=>'ivrs_enabled','destinations_field'=>'ivr_denylist','inventory'=>'ivrs','selection'=>'denylist'],
             ]];
+            if ($tool['id']==='pbx.transfer' && $tool['version']>=2) $tool['editor']['categories'][]=['enabled_field'=>'recent_callers_enabled','destinations_field'=>'recent_caller_denylist','inventory'=>'extensions','selection'=>'denylist','fields'=>['recent_caller_lookback_days'],'descriptions'=>false];
         }
         unset($tool);
         return ['agent_types'=>[['id'=>'basic_voice','name'=>'Basic Voice']],
@@ -85,7 +85,7 @@ final class Service
         if (isset($query['agent_id'])) { if (!is_string($query['agent_id'])) self::fail('invalid_identifier'); $draft=$this->get($query['agent_id'])['draft']; }
         $inventory=$this->native->directory(); $rows=$inventory['items'];
         $unavailable=[];
-        if ($draft) foreach ($draft['tool_bindings']??[] as $binding) foreach (['extension_allowlist','queue_denylist','ivr_denylist'] as $field) {
+        if ($draft) foreach ($draft['tool_bindings']??[] as $binding) foreach (['extension_allowlist','queue_denylist','ivr_denylist','recent_caller_denylist'] as $field) {
             foreach ($binding['config'][$field]??[] as $id) if (!in_array($id,array_column(array_filter($rows,fn($row)=>$row['available']),'id'),true)) $unavailable[]=$id;
         }
         // The same per-agent purpose text is searchable by administrators and the LLM.
@@ -103,30 +103,9 @@ final class Service
         foreach ($items as &$item) {
             unset($item['native_destination']);
             $item['permitted']=$draft!==null && $item['available'] && RoutingPolicy::permits($draft,$item['id']);
+            $item['recent_callback_eligible']=$draft!==null && $item['available'] && RoutingPolicy::permitsRecent($draft,$item['id']);
         }
         return ['items'=>$items,'next_offset'=>$end<count($rows)?$end:null,'total'=>count($rows),'modules'=>$inventory['modules'],'unavailable_ids'=>array_values(array_unique($unavailable))];
-    }
-    /** Explicit unpublished copy into v6. No route, enabled state or publication changes. */
-    public function routingUpgrade(string $id,int $revision,string $actor): array
-    {
-        return $this->locked(function() use ($id,$revision,$actor) {
-            $agent=$this->get($id); self::revision($agent,$revision);
-            if (($agent['draft']['contract_version']??0)===6) self::fail('routing_already_upgraded',409);
-            $source=$agent['draft']; $draft=self::emptyDraft();
-            foreach (['provider_binding_id','fallback_destination_id','max_call_duration_seconds','debug'] as $key) if (array_key_exists($key,$source)) $draft[$key]=$source[$key];
-            $draft['conversation']=array_replace($draft['conversation'],$source['conversation']);
-            $grants=$source['approved_destination_ids']??[];
-            foreach ($source['tool_bindings']??[] as $binding) if ($binding['tool_id']==='telephony.transfer') $grants=$binding['config']['approved_destination_ids'];
-            $draft['tool_bindings'][1]['config']['extension_allowlist']=$grants;
-            $draft['tool_bindings'][1]['config']['extensions_enabled']=count($grants)>0;
-            $draft=$this->validateDraft($draft);
-            $this->db->beginTransaction();
-            $this->query('UPDATE asterisk.voice_agent_agents SET revision=revision+1 WHERE agent_id=?',[$id]);
-            $this->query('UPDATE asterisk.voice_agent_drafts SET revision=?,definition_json=? WHERE agent_id=?',[$revision+1,self::encode($draft),$id]);
-            $this->audit($id,$actor,'routing_upgraded',$revision+1);
-            $this->db->commit();
-            return $this->get($id);
-        });
     }
     public function all(): array
     {
@@ -159,10 +138,10 @@ final class Service
         return $binding['sync_status']==='synced' && $this->native->trunkReady($binding);
     }
     /** Fresh defaults shared by creation and the explicit development reset CLI. */
-    public static function emptyDraft(int $version=6): array
+    public static function emptyDraft(int $version=7): array
     {
-        return ($version===6?['contract_version'=>6]:[]) + ['provider_binding_id'=>null,'conversation'=>['language'=>'en','voice'=>'','greeting'=>'','instructions'=>'','model'=>null,'options'=>null],
-            'tool_bindings'=>array_map(fn($tool)=>['tool_id'=>$tool['id'],'tool_version'=>$tool['version'],'enabled'=>in_array($tool['id'],['pbx.find_destinations','directory.find_destinations'],true),'config'=>$tool['defaults']],json_decode(file_get_contents(__DIR__.'/contracts/tools-v'.($version===6?3:2).'.json'),true,512,JSON_THROW_ON_ERROR)),'fallback_destination_id'=>'hangup','max_call_duration_seconds'=>600,'debug'=>['transcription_enabled'=>false,'retention_hours'=>24]];
+        return ($version>=6?['contract_version'=>$version]:[]) + ['provider_binding_id'=>null,'conversation'=>['language'=>'en','voice'=>'','greeting'=>'','instructions'=>'','model'=>null,'options'=>null],
+            'tool_bindings'=>array_map(fn($tool)=>['tool_id'=>$tool['id'],'tool_version'=>$tool['version'],'enabled'=>$version>=7 || in_array($tool['id'],['pbx.find_destinations','directory.find_destinations','pbx.find_recent_callers'],true),'config'=>array_replace($tool['defaults'],$tool['id']==='pbx.transfer'?['ivrs_enabled'=>false]:[])],json_decode(file_get_contents(__DIR__.'/contracts/tools-v'.($version>=7?4:($version===6?3:2)).'.json'),true,512,JSON_THROW_ON_ERROR)),'fallback_destination_id'=>'hangup','max_call_duration_seconds'=>600,'debug'=>['transcription_enabled'=>false,'retention_hours'=>24]];
     }
     public static function receptionistDraft(): array
     {
@@ -181,7 +160,7 @@ final class Service
     {
         $draft['debug']=$draft['debug']??['transcription_enabled'=>false,'retention_hours'=>24];
         $version=$draft['contract_version']??5;
-        if (!in_array($version,[5,6],true)) self::fail('invalid_configuration');
+        if (!in_array($version,[5,6,7],true)) self::fail('invalid_configuration');
         self::fields($draft,array_keys(self::emptyDraft()));
         if (array_diff(array_keys(self::emptyDraft(5)),array_keys($draft))) self::fail('invalid_fields');
         if (!is_array($draft['conversation']??null) || array_diff(['language','voice','greeting','instructions','model','options'],array_keys($draft['conversation']))) self::fail('invalid_configuration');
@@ -203,7 +182,7 @@ final class Service
         foreach (self::approvedTargets($draft) as $target) {
             if (!in_array($target,$available,true)) self::fail('destination_unavailable');
         }
-        if ($publishing && $version===6) {
+        if ($publishing && $version>=6) {
             $available=array_column(array_filter($this->native->directory()['items'],fn($row)=>$row['available']),'id');
             foreach ($draft['tool_bindings'] as $binding) if ($binding['tool_id']==='pbx.transfer') {
                 foreach ($binding['config']['extension_allowlist'] as $target) if (!in_array($target,$available,true)) self::fail('destination_unavailable');
@@ -214,6 +193,9 @@ final class Service
         // Historical immutable snapshots retain their original enabled bindings.
         foreach ($draft['tool_bindings'] as &$binding) {
             if (in_array($binding['tool_id'],['pbx.find_destinations','directory.find_destinations'],true)) $binding['enabled']=true;
+            // IVRs are not offered by the current routing editor. Never retain
+            // an invisible IVR grant when saving or publishing a draft.
+            if ($binding['tool_id']==='pbx.transfer') $binding['config']['ivrs_enabled']=false;
         }
         unset($binding);
         return $draft;
@@ -225,7 +207,7 @@ final class Service
             self::fields($input,['name','draft']);
             $name=self::text($input['name']??null,100,true);
             if (!is_array($input['draft']??null)) self::fail('invalid_configuration');
-            if ($id!==null && ($this->get($id)['draft']['contract_version']??5)===6 && ($input['draft']['contract_version']??5)!==6) self::fail('routing_downgrade_denied',409);
+            if ($id!==null && ($input['draft']['contract_version']??5)<($this->get($id)['draft']['contract_version']??5)) self::fail('routing_downgrade_denied',409);
             $input['draft']['fallback_destination_id']=$id===null?'hangup':$this->get($id)['draft']['fallback_destination_id'];
             $draft=$this->validateDraft($input['draft']);
             $creating=$id===null;

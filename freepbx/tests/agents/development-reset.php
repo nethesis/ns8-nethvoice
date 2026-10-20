@@ -18,8 +18,7 @@ catch (RuntimeException $e) { assert($e->getMessage()==='development_reset_confi
 try { $reset->inspect();throw new LogicException('orphaned_custom_destination'); }
 catch (RuntimeException $e) { assert($e->getMessage()==='agent_in_use'); }
 $native->referenced=false;
-$db->exec('CREATE TABLE asteriskcdrdb.cdr (fixture_id INT PRIMARY KEY, fixture_value VARCHAR(20))');
-$db->exec("INSERT INTO asteriskcdrdb.cdr VALUES (1,'preserve-native-cdr')");
+$db->exec("INSERT INTO asteriskcdrdb.cdr (calldate,dst,uniqueid) VALUES (NOW(),'preserve-native-cdr','reset-probe')");
 $db->exec('CREATE TABLE asterisk.unrelated_reset_test (id INT PRIMARY KEY, note VARCHAR(20))');
 $db->exec("INSERT INTO asterisk.unrelated_reset_test VALUES (1,'preserve')");
 $result=$reset->clear('clear-development-agent-data:nethvoice57');
@@ -29,12 +28,12 @@ assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_versions')->fe
 assert($db->query('SELECT * FROM asterisk.voice_agent_bindings ORDER BY id')->fetchAll(PDO::FETCH_ASSOC)===$bindings);
 assert($db->query('SELECT * FROM asterisk.voice_agent_builtin_tools ORDER BY tool_id,tool_version')->fetchAll(PDO::FETCH_ASSOC)===$tools);
 assert($db->query('SELECT note FROM asterisk.unrelated_reset_test')->fetchColumn()==='preserve');
-assert($db->query('SELECT fixture_value FROM asteriskcdrdb.cdr')->fetchColumn()==='preserve-native-cdr');
+assert($db->query("SELECT dst FROM asteriskcdrdb.cdr WHERE uniqueid='reset-probe'")->fetchColumn()==='preserve-native-cdr');
 $draft=json_decode($db->query("SELECT definition_json FROM asterisk.voice_agent_drafts WHERE agent_id='receptionist'")->fetchColumn(),true);
 assert($draft['conversation']['model']===null && $draft['conversation']['options']===null && $draft['conversation']['language']==='it');
 assert($draft['conversation']['instructions']===Service::receptionistDraft()['conversation']['instructions']);
 assert(str_contains($draft['conversation']['instructions'],'You are the Receptionist'));
-assert($draft['tool_bindings'][0]['enabled'] && !$draft['tool_bindings'][1]['enabled']);
+assert($draft['tool_bindings'][0]['enabled'] && $draft['tool_bindings'][1]['enabled']);
 assert((int)$db->query("SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA='asterisk' AND TRIGGER_NAME LIKE 'voice_agent_versions_no_%'")->fetchColumn()===2);
 assert((int)$db->query('SELECT @@FOREIGN_KEY_CHECKS')->fetchColumn()===1);
 echo "Development reset boundaries, reference denial, retained credentials/catalog and immutable triggers passed\n";

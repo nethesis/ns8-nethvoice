@@ -17,6 +17,7 @@ const props = defineProps<{
   descriptions?: DescriptionOverride[];
   agentId?: string;
   disabled: boolean;
+  showDescriptions?: boolean;
 }>();
 const emit = defineEmits<{
   selection: [value: string[]];
@@ -113,7 +114,7 @@ function describe(id: string, description: string) {
         @update:model-value="toggle(row.id, $event)"
       />
       <NeTextInput
-        v-if="row.available && allowed(row.id)"
+        v-if="showDescriptions !== false && row.available && allowed(row.id)"
         :model-value="
           descriptions?.find((v) => v.destination_id === row.id)?.description ||
           ''

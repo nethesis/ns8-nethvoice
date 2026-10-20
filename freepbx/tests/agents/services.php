@@ -14,6 +14,7 @@ $native = new class {
     public bool $applyOk=true;
     public bool $applyThrows=false;
     public function extensions(): array { return [['id'=>'extension:203','name'=>'Test extension']]; }
+    public function directory(): array { return ['items'=>[['id'=>'extension:203','type'=>'extension','name'=>'Test extension','description'=>'','available'=>true]],'modules'=>['extension'=>true,'queue'=>false,'ivr'=>false]]; }
     public function provision(string $operation, array $binding, ?array $previous): int { $this->exists=true; return 9001; }
     public function apply(): bool { $this->reloads++; if ($this->applyThrows) throw new RuntimeException('synthetic_reload_failure'); return $this->applyOk; }
     public bool $inUse=false;
@@ -30,9 +31,10 @@ $internal = $service->get('receptionist');
 $external = $service->save(null,['name'=>'Independent custom','draft'=>$internal['draft']],0,'test-admin');
 check(array_column(array_filter($service->all(),fn($agent)=>$agent['kind']==='builtin'),'agent_id')===['receptionist'],'sole_builtin');
 check($internal['kind'] === 'builtin' && !$internal['enabled'], 'seed_disabled');
+check($internal['draft']['contract_version']===7,'receptionist_latest_routing');
 check(str_contains($internal['draft']['conversation']['instructions'],'You are the Receptionist'),'receptionist_prompt_seeded');
 check($internal['draft']['conversation']['instructions']===Service::receptionistDraft()['conversation']['instructions'],'shared_receptionist_prompt');
-check(!$external['draft']['tool_bindings'][1]['enabled'] && $external['draft']['tool_bindings'][0]['enabled'], 'discovery_automatic_transfer_denied');
+check($external['draft']['tool_bindings'][1]['enabled'] && $external['draft']['tool_bindings'][0]['enabled'], 'default_transfer_enabled');
 check($external['draft']['conversation']['language']==='it','freepbx_language_default');
 putenv('OPENAI_API_KEY=synthetic-environment-key');
 $envTrunk=$service->saveTrunk(null,['name'=>'Environment provider','provider'=>'openai','openai_project_id'=>'proj_env','api_key'=>'','webhook_secret'=>'whsec_'.base64_encode('synthetic-webhook')],0,'test-admin');
@@ -50,7 +52,8 @@ $draft['fallback_destination_id'] = 'extension:203';
 $draft['tool_bindings'][0]['enabled']=true;
 $draft['tool_bindings'][0]['config']['max_results']=5;
 $draft['tool_bindings'][1]['enabled']=true;
-$draft['tool_bindings'][1]['config']['approved_destination_ids']=['extension:203'];
+$draft['tool_bindings'][1]['config']['extensions_enabled']=true;
+$draft['tool_bindings'][1]['config']['extension_allowlist']=['extension:203'];
 $saved = $service->save('receptionist', ['name'=>'Test Receptionist','draft'=>$draft], $internal['revision'], 'test-admin');
 denied(fn() => $service->save('receptionist', ['name'=>'Stale','draft'=>$draft], $internal['revision'], 'test-admin'), 'revision_conflict');
 Schema::install($db);
@@ -70,9 +73,9 @@ $service->saveVisualPlan(['receptionist'=>$enabled['revision']],function() use (
     $writes++;
 });
 check($writes===1,'current_visualplan_saves_under_lock');
-check($enabled['published']['contract_version']===5,'typed_publication');
-check(array_map(fn($tool)=>array_diff_key($tool,['editor'=>true]),array_values(array_filter($service->catalog()['tools'],fn($tool)=>$tool['version']===2)))===json_decode(file_get_contents(__DIR__.'/../../var/www/html/freepbx/rest/lib/agents/contracts/tools-v2.json'),true),'immutable_catalog_contract');
-check(!$service->get($external['agent_id'])['draft']['tool_bindings'][1]['enabled'], 'independent_grants');
+check($enabled['published']['contract_version']===7,'typed_publication');
+check(array_map(fn($tool)=>array_diff_key($tool,['editor'=>true]),array_values(array_filter($service->catalog()['tools'],fn($tool)=>$tool['version']===2 && in_array($tool['id'],['directory.find_destinations','telephony.transfer'],true))))===json_decode(file_get_contents(__DIR__.'/../../var/www/html/freepbx/rest/lib/agents/contracts/tools-v2.json'),true),'immutable_catalog_contract');
+check(!$service->get($external['agent_id'])['draft']['tool_bindings'][1]['config']['extensions_enabled'], 'independent_grants');
 $reloads = $native->reloads;
 $draft['conversation']['instructions'] = 'Updated synthetic instructions';
 $saved = $service->save('receptionist', ['name'=>'Test Receptionist','draft'=>$draft], $enabled['revision'], 'test-admin');
@@ -87,8 +90,10 @@ $published=$toolPublished;
 check($published['workflow_version'] === 3, 'immutable_versions');
 denied(fn() => $service->remove('receptionist', $published['revision'], 'test-admin'), 'builtin_protected');
 denied(fn() => $service->removeTrunk($trunk['binding_id'], $trunk['revision'], 'test-admin'), 'trunk_in_use');
-$draft['tool_bindings'][1]['config']['approved_destination_ids'] = ['extension:999'];
-denied(fn() => $service->save('receptionist', ['name'=>'Test Receptionist','draft'=>$draft], $published['revision'], 'test-admin'), 'destination_unavailable');
+$draft['tool_bindings'][1]['config']['extension_allowlist'] = ['extension:999'];
+// Missing grants may be saved for review, but publication fails closed.
+$missing=$service->save(null,['name'=>'Missing extension','draft'=>$draft],0,'test-admin');
+denied(fn() => $service->publish($missing['agent_id'],$missing['revision'],'test-admin'), 'destination_unavailable');
 denied(fn()=>$service->enable('receptionist',false,$published['revision'],'test-admin'),'activation_managed_by_publication');
 check($db->query("SELECT COUNT(*) FROM asterisk.voice_agent_audit WHERE agent_id='receptionist'")->fetchColumn() >= 6, 'audited_changes');
 $native->applyOk=false;
@@ -115,7 +120,7 @@ $native->exists=false;
 check(!$service->get('receptionist')['routable'],'native_drift_not_routable');
 check($service->trunks()[0]['sync_status']==='error','native_drift_visible');
 check($service->synchronize('test-admin')['sync_status']==='synced','missing_native_recovered');
-check($agent['published']['contract_version']===5,'fallback_preserves_v5');
+check($agent['published']['contract_version']===7,'fallback_preserves_v7');
 check($service->get('receptionist')['enabled'],'publication_owns_activation');
 // An installed legacy seed stays readable; explicit retirement cannot orphan references.
 $legacy=json_decode(file_get_contents(__DIR__.'/../../var/www/html/freepbx/rest/lib/agents/contracts/published-v1.example.json'),true);

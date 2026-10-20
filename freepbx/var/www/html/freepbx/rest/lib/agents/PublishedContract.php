@@ -9,7 +9,7 @@ final class PublishedContract
     public static function validate(array $snapshot): array
     {
         $version=$snapshot['contract_version']??0;
-        if (!in_array($version,[1,2,3,4,5,6],true)) throw new \InvalidArgumentException('invalid_snapshot');
+        if (!in_array($version,[1,2,3,4,5,6,7],true)) throw new \InvalidArgumentException('invalid_snapshot');
         $schema = json_decode(file_get_contents(__DIR__ . '/contracts/published-v'.$version.'.schema.json'), true, 512, JSON_THROW_ON_ERROR);
         if (strlen(json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) > 65536 ||
             !self::matches($snapshot, $schema) ||

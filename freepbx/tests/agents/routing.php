@@ -28,23 +28,20 @@ $native=new class {
 $service=new Service($db,$native,new \NethVoice\Agents\ProviderCatalog(fn()=>['data'=>array_map(fn($model)=>['id'=>$model['id']],\NethVoice\Agents\ProviderCatalog::capabilities('openai')['models'])]));
 $before=$db->query('SELECT agent_id,workflow_version,definition_json FROM asterisk.voice_agent_versions ORDER BY agent_id,workflow_version')->fetchAll(PDO::FETCH_ASSOC);
 $agent=$service->get('receptionist');
-$published=$agent['published']; $enabled=$agent['enabled']; $sync=$agent['sync_status'];
-$upgraded=$service->routingUpgrade('receptionist',$agent['revision'],'synthetic-admin');
-assert($upgraded['draft']['contract_version']===6 && $upgraded['published']===$published && $upgraded['enabled']===$enabled && $upgraded['sync_status']===$sync);
-assert($upgraded['draft']['tool_bindings'][1]['config']['extension_allowlist']===['extension:203']);
-assert($upgraded['draft']['tool_bindings'][0]['enabled'] && !$upgraded['draft']['tool_bindings'][1]['enabled']);
-try { $service->routingUpgrade('receptionist',$agent['revision'],'synthetic-admin'); throw new LogicException('stale_revision_accepted'); }
-catch (RuntimeException $e) { assert($e->getMessage()==='revision_conflict'); }
-assert($service->destinations(['agent_id'=>'receptionist'])['items'][0]['permitted']===false);
-$draft=$upgraded['draft']; foreach ($draft['tool_bindings'] as &$binding) $binding['enabled']=true; unset($binding);
+assert($agent['draft']['contract_version']===7);
+assert($agent['draft']['tool_bindings'][1]['config']['extension_allowlist']===['extension:203']);
+assert($agent['draft']['tool_bindings'][0]['enabled']);
+$draft=$agent['draft']; foreach ($draft['tool_bindings'] as &$binding) $binding['enabled']=true; unset($binding);
 $draft['tool_bindings'][1]['config']['queue_denylist']=['queue:999'];
+$draft['tool_bindings'][1]['config']['ivrs_enabled']=true;
 $one=$service->save(null,['name'=>'Routing one','draft'=>$draft],0,'synthetic-admin');
 assert($one['draft_version']===1);
+assert(!$one['draft']['tool_bindings'][1]['config']['ivrs_enabled']);
 $one['draft']['tool_bindings'][0]['enabled']=false;
 $one=$service->save($one['agent_id'],['name'=>$one['name'],'draft'=>$one['draft']],$one['revision'],'synthetic-admin');
 assert($one['draft']['tool_bindings'][0]['enabled']);
 $one=$service->publish($one['agent_id'],$one['revision'],'synthetic-admin');
-assert($one['published']['contract_version']===6 && $one['enabled'] && $one['routable'] && $one['draft_version']===1);
+assert($one['published']['contract_version']===7 && $one['enabled'] && $one['routable'] && $one['draft_version']===1);
 \NethVoice\Agents\PublishedContract::validate($one['published']);
 $two=$service->save(null,['name'=>'Routing two','draft'=>Service::emptyDraft()],0,'synthetic-admin');
 $page=$service->destinations(['agent_id'=>$one['agent_id'],'limit'=>'1']);
@@ -58,6 +55,10 @@ assert($one['workflow_version']===1 && $one['draft_version']===2);
 assert($service->destinations(['agent_id'=>$one['agent_id'],'query'=>'happiness'])['items'][0]['id']==='queue:600');
 $catalog=$service->catalog();
 assert(array_values(array_filter($catalog['tools'],fn($t)=>$t['id']==='pbx.find_destinations'))[0]['editor']['automatic']);
+$transfer=array_values(array_filter($catalog['tools'],fn($t)=>$t['id']==='pbx.transfer'))[0];
+assert(array_column($transfer['editor']['categories'],'inventory')===['extensions','queues']);
+assert(!$catalog['draft_defaults']['tool_bindings'][1]['config']['ivrs_enabled']);
+assert(!$service->destinations(['agent_id'=>$one['agent_id'],'type'=>'ivr'])['items'][0]['permitted']);
 // Rehearse upgrading a previously disabled editable publication, twice.
 $db->exec('DELETE FROM asterisk.voice_agent_schema WHERE version=12');
 $q=$db->prepare('UPDATE asterisk.voice_agent_agents SET enabled=0 WHERE agent_id=?');$q->execute([$one['agent_id']]);
@@ -85,4 +86,4 @@ $db->exec("DELETE FROM asterisk.queues_config WHERE extension='600'");
 assert(!$db->query("SELECT id FROM asterisk.voice_agent_queue_directory WHERE id='queue:600'")->fetchColumn());
 $q=$db->prepare('SELECT agent_id,workflow_version,definition_json FROM asterisk.voice_agent_versions WHERE agent_id<>? ORDER BY agent_id,workflow_version');
 $q->execute([$one['agent_id']]);assert($q->fetchAll(PDO::FETCH_ASSOC)===$before);
-echo "Typed routing upgrade, isolation, inventory, authoritative views and repeatable migration passed\n";
+echo "Typed routing defaults, isolation, inventory, authoritative views and repeatable migration passed\n";
