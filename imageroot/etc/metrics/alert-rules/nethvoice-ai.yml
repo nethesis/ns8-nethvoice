@@ -1,0 +1,23 @@
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# The Deepgram and OpenAI API keys must be accepted by the providers, or
+# transcriptions and summaries silently stop. Series exist only when
+# transcription is on and the key is set; they come from export-metrics
+# (pypkg/nvmetrics/aikeys.py) every 5 minutes, so "for: 10m" means 3
+# rejected checks in a row.
+groups:
+  - name: ai
+    rules:
+      - alert: NethVoiceAiKeyInvalid
+        expr: nethvoice_ai_key_valid == 0
+        for: 10m
+        labels:
+          severity: critical
+          alertgroup: ai
+        annotations:
+          summary_en: "The {{ $labels.provider }} API key of {{ $labels.module_id }} is rejected"
+          summary_it: "La chiave API {{ $labels.provider }} di {{ $labels.module_id }} è rifiutata"
+          description_en: "{{ $labels.provider }} rejects the API key configured in {{ $labels.module_id }}: transcriptions and summaries are not produced. Update the key in the NethVoice integrations page."
+          description_it: "{{ $labels.provider }} rifiuta la chiave API configurata in {{ $labels.module_id }}: trascrizioni e riassunti non vengono prodotti. Aggiornare la chiave nella pagina integrazioni di NethVoice."

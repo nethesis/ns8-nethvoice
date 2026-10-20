@@ -1,0 +1,50 @@
+rule_files:
+  - ../../imageroot/etc/metrics/alert-rules/nethvoice-ai.yml
+
+evaluation_interval: 1m
+
+tests:
+  # A key rejected for 10 minutes (one export every 5 minutes)
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_ai_key_valid{module_id="nethvoice1",node="1",provider="deepgram"}'
+        values: '0x20'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: NethVoiceAiKeyInvalid
+        exp_alerts: []
+      - eval_time: 11m
+        alertname: NethVoiceAiKeyInvalid
+        exp_alerts:
+          - exp_labels: {severity: critical, alertgroup: ai, module_id: nethvoice1, node: "1", provider: deepgram}
+            exp_annotations:
+              summary_en: "The deepgram API key of nethvoice1 is rejected"
+              summary_it: "La chiave API deepgram di nethvoice1 è rifiutata"
+              description_en: "deepgram rejects the API key configured in nethvoice1: transcriptions and summaries are not produced. Update the key in the NethVoice integrations page."
+              description_it: "deepgram rifiuta la chiave API configurata in nethvoice1: trascrizioni e riassunti non vengono prodotti. Aggiornare la chiave nella pagina integrazioni di NethVoice."
+
+  # A key rejected for less than 10 minutes, then accepted again
+  - interval: 1m
+    input_series:
+      - series: 'nethvoice_ai_key_valid{module_id="nethvoice1",node="1",provider="openai"}'
+        values: '0x6 1x14'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: NethVoiceAiKeyInvalid
+        exp_alerts: []
+      - eval_time: 12m
+        alertname: NethVoiceAiKeyInvalid
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: NethVoiceAiKeyInvalid
+        exp_alerts: []
+
+  # A valid key
+  - interval: 1m
+    input_series:
+      - series: 'nethvoice_ai_key_valid{module_id="nethvoice1",node="1",provider="openai"}'
+        values: '1x20'
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: NethVoiceAiKeyInvalid
+        exp_alerts: []
