@@ -31,12 +31,13 @@ Restore satellite log level
     ...    Container environment should be    satellite    LOG_LEVEL    WARNING
 
 *** Test Cases ***
-The module environment carries the quiet log levels
+The module environment carries the configured log levels
     Environment should contain    JANUS_DEBUG_LEVEL=3
     Environment should contain    TANCREDI_LOG_LEVEL=WARNING
     Environment should contain    FREEPBX_LOG_LEVEL=warn
     Environment should contain    SATELLITE_LOG_LEVEL=WARNING
-    Environment should contain    NETHVOICE_MIDDLEWARE_GIN_MODE=release
+    # Gin debug mode preserves middleware CORS behavior for integrations.
+    Environment should contain    NETHVOICE_MIDDLEWARE_GIN_MODE=debug
     Environment should contain    REPORTS_GIN_MODE=release
 
 The containers receive their log level
@@ -50,7 +51,7 @@ The containers receive their log level
     Wait Until Keyword Succeeds    120s    5s
     ...    Container environment should be    satellite    LOG_LEVEL    WARNING
     Wait Until Keyword Succeeds    120s    5s
-    ...    Container environment should be    nethcti-middleware    GIN_MODE    release
+    ...    Container environment should be    nethcti-middleware    GIN_MODE    debug
 
 Raising the tancredi level reaches its container
     [Teardown]    Restore tancredi log level
