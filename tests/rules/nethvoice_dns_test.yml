@@ -1,0 +1,50 @@
+rule_files:
+  - ../../imageroot/etc/metrics/alert-rules/nethvoice-dns.yml
+
+evaluation_interval: 1m
+
+tests:
+  # A public name that does not resolve for 15 minutes
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_public_dns_resolves{module_id="nethvoice1",node="1",name="voice.example.com",role="nethvoice"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 14m
+        alertname: NethVoicePublicDnsFailure
+        exp_alerts: []
+      - eval_time: 16m
+        alertname: NethVoicePublicDnsFailure
+        exp_alerts:
+          - exp_labels: {severity: warning, alertgroup: dns, reason: not_resolved, module_id: nethvoice1, node: "1", name: voice.example.com, role: nethvoice}
+            exp_annotations:
+              summary_en: "voice.example.com does not resolve on public DNS"
+              summary_it: "voice.example.com non è risolto dai DNS pubblici"
+              description_en: "Public DNS servers do not resolve voice.example.com (nethvoice of nethvoice1): phones, apps and providers outside the LAN cannot reach it. Check the DNS records."
+              description_it: "I DNS pubblici non risolvono voice.example.com (nethvoice di nethvoice1): telefoni, app e provider fuori dalla LAN non possono raggiungerlo. Verificare i record DNS."
+
+  # One failed export is not enough
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_public_dns_resolves{module_id="nethvoice1",node="1",name="voice.example.com",role="nethvoice"}'
+        values: '0 1x10'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: NethVoicePublicDnsFailure
+        exp_alerts: []
+
+  # The proxy name points to another address
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_public_dns_proxy_ip_match{module_id="nethvoice1",node="1",name="proxy.example.com",expected="203.0.113.5",records="198.51.100.9"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 16m
+        alertname: NethVoicePublicDnsFailure
+        exp_alerts:
+          - exp_labels: {severity: warning, alertgroup: dns, reason: ip_mismatch, module_id: nethvoice1, node: "1", name: proxy.example.com, expected: 203.0.113.5, records: 198.51.100.9}
+            exp_annotations:
+              summary_en: "proxy.example.com does not point to the proxy public IP"
+              summary_it: "proxy.example.com non punta all'IP pubblico del proxy"
+              description_en: "Public DNS resolves proxy.example.com to 198.51.100.9, but the proxy public IP is 203.0.113.5. Phones and providers outside the LAN may reach the wrong address. Update the DNS record."
+              description_it: "I DNS pubblici risolvono proxy.example.com in 198.51.100.9, ma l'IP pubblico del proxy è 203.0.113.5. Telefoni e provider fuori dalla LAN potrebbero raggiungere l'indirizzo sbagliato. Aggiornare il record DNS."
