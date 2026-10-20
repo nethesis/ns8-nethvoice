@@ -58,14 +58,25 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	like := "%" + strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(q) + "%"
-	query := `SELECT timestamp, bare_peer, COALESCE(origin_id, ''), COALESCE(nick, ''), txt FROM archive WHERE username = ? AND txt LIKE ? ESCAPE '\'`
-	args := []any{user, like}
+	// A 1:1 message is in my own archive; a group's is archived once, under the room, for its subscribers.
+	query := `SELECT timestamp, CASE WHEN kind = 'groupchat' THEN username ELSE bare_peer END, COALESCE(origin_id, ''), COALESCE(nick, ''), txt FROM archive WHERE txt LIKE ? ESCAPE '\'`
+	args := []any{like}
+	mine := `(username = ? AND kind = 'chat')`
+	rooms := `(kind = 'groupchat' AND username IN (SELECT room || '@' || host FROM muc_room_subscribers WHERE jid = ?))`
 	if peer := r.URL.Query().Get("peer"); peer != "" {
 		if !strings.Contains(peer, "@") {
 			peer += "@" + s.Host
 		}
-		query += ` AND bare_peer = ?`
-		args = append(args, peer)
+		if address.IsRoom(peer) {
+			query += ` AND username = ? AND ` + rooms
+			args = append(args, peer, user+"@"+s.Host)
+		} else {
+			query += ` AND bare_peer = ? AND ` + mine
+			args = append(args, peer, user)
+		}
+	} else {
+		query += ` AND (` + mine + ` OR ` + rooms + `)`
+		args = append(args, user, user+"@"+s.Host)
 	}
 	rows, err := db.QueryContext(r.Context(), query+` ORDER BY timestamp DESC LIMIT ?`, append(args, searchLimit)...)
 	if err != nil {
