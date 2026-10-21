@@ -83,17 +83,17 @@ class LazySuite(Suite):
         finally:
             self.pending_evidence['queue_log'] = self.pbx.queue_log(offset, self.config['queue'])
 
-    def cleanup(self):
-        try:
-            if (self.config['lazy'] and self.ami and len(self.endpoints) == 3
-                    and not getattr(self, 'probed', False)):
-                self.probed = True
-                self.scenario('all-noanswer', 'A -> B -> A -> B; cycles restart',
-                              lambda: self.wait_order(['A', 'B', 'A', 'B']))
-                self.scenario('visualplan-preserves-lazy', 'saved option survives VisualPlan', self.visualplan)
-                self.scenario('visualplan-ring-sequence', 'A -> B after VisualPlan save', self.queue_call)
-        finally:
-            super().cleanup()
+    def scenario(self, name, expected, action):
+        super().scenario(name, expected, action)
+        # The installed harness has no post-scenario hook. Extend its final
+        # baseline scenario only after it returns with cleared calls. Exceptions
+        # and cancellation go straight to the harness's inherited teardown.
+        if (name == f'queue-live-behavior-{self.repeats}' and self.config['lazy']
+                and all(case['status'] == 'PASS' for case in self.report['scenarios'])):
+            super().scenario('all-noanswer', 'A -> B -> A -> B; cycles restart',
+                             lambda: self.wait_order(['A', 'B', 'A', 'B']))
+            super().scenario('visualplan-preserves-lazy', 'saved option survives VisualPlan', self.visualplan)
+            super().scenario('visualplan-ring-sequence', 'A -> B after VisualPlan save', self.queue_call)
 
     def visualplan(self):
         before = self.pbx.fixture('effective', self.config)
