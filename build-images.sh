@@ -212,8 +212,7 @@ fi
 reponame="nethvoice-cti-ui"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    # CTI feature branch with the chat (NethServer/dev#7648, nethesis/nethvoice-cti#577); before merge: a CTI release > v0.16.0 with the chat
-    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:nethvoice-chat)
+    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v1.0.0)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
