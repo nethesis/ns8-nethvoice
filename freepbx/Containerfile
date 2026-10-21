@@ -232,6 +232,7 @@ RUN groupadd -g 991 -r asterisk && \
 		python3-requests \
 		sox \
 		zip \
+		unzip \
 		vim \
 		supervisor \
 		wget \
