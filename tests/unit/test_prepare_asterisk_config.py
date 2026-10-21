@@ -60,6 +60,14 @@ class PrepareConfigTest(unittest.TestCase):
                 self.script.main()
         sleep.assert_not_called()
 
+    def test_initializing_container_is_never_reloaded_or_rewritten(self):
+        with mock.patch.object(self.script.subprocess, 'run') as run:
+            run.side_effect = [subprocess.CompletedProcess([], 1), subprocess.CompletedProcess([], 0)]
+            with self.assertRaisesRegex(RuntimeError, 'initialization'):
+                self.script.main()
+        self.assertEqual(run.call_count, 2)
+        self.assertIn('freepbx-ready', run.call_args_list[0].args[0][-1])
+
     def test_restored_shared_port_is_split_by_transport_protocol(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

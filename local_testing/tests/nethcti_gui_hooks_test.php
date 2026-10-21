@@ -2,6 +2,8 @@
 // Standalone regression: php local_testing/tests/nethcti_gui_hooks_test.php
 // Exercise the GUI hooks without a FreePBX installation or database writes.
 
+if (!function_exists('_')) { function _($value) { return $value; } }
+
 interface BMO {}
 class FreePBX_Helpers {}
 

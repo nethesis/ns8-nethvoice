@@ -67,10 +67,16 @@ try {
             checkBosssecretaryForm(strpos($html, '{messages}') === false, $context . ': message placeholder unresolved');
             if ($mode === 'edit') {
                 checkBosssecretaryForm(strpos($html, 'name="group_number" value="99"') !== false, $context . ': group number changed');
-                checkBosssecretaryForm(strpos($html, 'bsgroupdelete=bsgroup-99') !== false, $context . ': delete link changed');
+                checkBosssecretaryForm(strpos($html, 'name="bsgroupdelete" value="bsgroup-99"') !== false, $context . ': POST delete control missing');
             }
         }
     }
+    $attack = '"><script>alert(1)</script>{delete_button}';
+    $html = bosssecretary_get_form_edit(array_replace($fields, ['group_number' => '99', 'group_label' => $attack]));
+    checkBosssecretaryForm(!str_contains($html, '<script>'), 'stored label executes HTML');
+    checkBosssecretaryForm(str_contains($html, '&lt;script&gt;'), 'stored label is not escaped');
+    checkBosssecretaryForm(str_contains($html, 'name="csrf_token"'), 'CSRF token missing');
+    checkBosssecretaryForm(!str_contains($html, 'window.location'), 'delete still uses GET');
     echo 'PASS: Boss/Secretary Add/Edit forms, empty metadata, messages and entered fields (PHP ', PHP_VERSION, ")\n";
 } finally {
     restore_error_handler();

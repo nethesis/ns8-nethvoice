@@ -44,7 +44,15 @@ check(str_contains(implode("\n", commands($ext, 'macro-simple-dial', 'docfu')), 
 $resolverStart = strpos($source, "\t\$ext->add('func-nethvoice-forward-context'");
 $resolverEnd = strpos($source, "\tDialplan\\macroDialone", $resolverStart);
 eval(substr($source, $resolverStart, $resolverEnd-$resolverStart));
-check(commands($ext, 'func-nethvoice-forward-context', 's')[0] === 'Set(NETHVOICE_FORWARD_CONTEXT=${PJSIP_ENDPOINT(${ARG1},context)})', 'resolver queries the wrong endpoint');
+$resolver = commands($ext, 'func-nethvoice-forward-context', 's');
+check($resolver[0] === 'Set(NETHVOICE_FORWARD_CONTEXT=)', 'resolver retains a previous owner context');
+foreach (['pjsip' => 'PJSIP_ENDPOINT', 'iax2' => 'IAXPEER', 'sip' => 'SIPPEER'] as $tech => $function) {
+    check(in_array('GotoIf($["${DB(DEVICE/${ARG1}/tech)}"="'.$tech.'"]?'.$tech.',1)', $resolver, true), 'resolver does not select the owner technology');
+    check(commands($ext, 'func-nethvoice-forward-context', $tech) === [
+        'Set(NETHVOICE_FORWARD_CONTEXT=${'.$function.'(${ARG1},context)})', 'Return()'
+    ], 'resolver queries the wrong peer or does not return');
+}
+check(end($resolver) === 'Return()', 'unknown owner technology does not return an empty context');
 
 $agiSource = file_get_contents($argv[1] . '/agi-bin/dialparties.agi');
 $start = strpos($agiSource, 'function get_dial_string(');
@@ -53,23 +61,32 @@ eval(substr($agiSource, $start, $end-$start));
 function debug($message, $level) {}
 function get_var($agi, $variable) { return $agi->values[$variable] ?? ''; }
 class TestForwardAgi {
-    public array $values = ['PJSIP_ENDPOINT(201,context)' => 'cti-profile-2', 'PJSIP_ENDPOINT(202,context)' => 'cti-profile-3'];
+    public array $values = [
+        'DB(DEVICE/201/tech)' => 'pjsip', 'PJSIP_ENDPOINT(201,context)' => 'cti-profile-2',
+        'DB(DEVICE/202/tech)' => 'pjsip', 'PJSIP_ENDPOINT(202,context)' => 'cti-profile-3',
+        'DB(DEVICE/301/tech)' => 'iax2', 'IAXPEER(301,context)' => 'cti-profile-4',
+        'DB(DEVICE/302/tech)' => 'sip', 'SIPPEER(302,context)' => 'cti-profile-5',
+        'DB(DEVICE/303/tech)' => 'iax2', // Stale device with no live peer.
+        'DB(DEVICE/304/tech)' => 'unknown',
+    ];
     public function database_get($family, $key) { return ['data' => '', 'result' => 0]; }
     public function set_variable($key, $value) { $this->values[$key] = $value; }
 }
 $agi = new TestForwardAgi();
-foreach (['201' => 'cti-profile-2', '202' => 'cti-profile-3'] as $owner => $context) {
+foreach (['201' => 'cti-profile-2', '202' => 'cti-profile-3', '301' => 'cti-profile-4', '302' => 'cti-profile-5'] as $owner => $context) {
     check(get_dial_string($agi, '1234#', 'FALSE', '601', $owner) === 'Local/1234@'.$context.'/n', 'group forward uses the wrong owner context');
     check(get_dial_string($agi, '1234#', 'TRUE', '601', $owner) === 'Local/RG-601*-1234#@'.$context, 'confirmation lost the owner context');
 }
-check(get_dial_string($agi, '1234#', 'FALSE', '601', 'missing') === '', 'group forward falls back for a deleted owner');
+foreach (['missing', '303', '304'] as $owner) {
+    check(get_dial_string($agi, '1234#', 'FALSE', '601', $owner) === '', 'group forward falls back for a missing peer or unknown technology');
+}
 check(get_dial_string($agi, '1234#', 'FALSE', '601') === 'Local/1234@from-internal/n', 'explicit external group destination changed');
 
-// Run the actual main AGI loop with two different forwarding owners. A stale
+// Run the actual main AGI loop with different forwarding owners and technologies. A stale
 // index from the preceding CF loop must not select the context for every leg.
 $AGI = $agi;
-$ext = ['1234#', '5678#', '9999#'];
-$forward_owners = [0 => '201', 1 => '202'];
+$ext = ['1234#', '5678#', '8910#', '9999#'];
+$forward_owners = [0 => '201', 1 => '202', 2 => '301'];
 $kk = 99;
 $skipremaining = $mastermode = $cwignore = 0;
 $dsarray = $ext_hunt = [];
@@ -80,7 +97,7 @@ $cidnum = '203';
 $start = strpos($agiSource, "\$ds = '';\nforeach (");
 $end = strpos($agiSource, '} // end foreach ( $ext as $k )', $start);
 eval(substr($agiSource, $start, $end-$start+1));
-check($ds === 'Local/1234@cti-profile-2/n&Local/5678@cti-profile-3/n&Local/9999@from-internal/n&', 'AGI mixed group members lost their own forwarding context');
+check($ds === 'Local/1234@cti-profile-2/n&Local/5678@cti-profile-3/n&Local/8910@cti-profile-4/n&Local/9999@from-internal/n&', 'AGI mixed group members lost their own forwarding context');
 
 $ext = new extensions();
 FreePBX\modules\Core\Dialplan\dialparties::add($ext);

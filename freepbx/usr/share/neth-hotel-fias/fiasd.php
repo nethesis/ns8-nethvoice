@@ -177,6 +177,16 @@ $state= "stStart";
 logMessage("Starting daemon", INFO, "fiasd");
 while ( TRUE ) {
     logMessage("state: $state", DEBUGVERBOSE, "fiasd");
+    // Probe only states which access SQL, reconnecting after wait_timeout or
+    // a database restart. Never replay a partially executed write.
+    if (in_array($state, ['stStart', 'stReadDB', 'stWriteDB', 'stSendData'], true)) {
+        try {
+            $fiasdb->query('SELECT 1');
+        } catch (PDOException $e) {
+            if (!in_array((int) ($e->errorInfo[1] ?? 0), [2006, 2013], true)) { throw $e; }
+            $fiasdb = connectFiasDatabase();
+        }
+    }
     switch($state) {
     case "stStart":
         // Remove waiting LE commands

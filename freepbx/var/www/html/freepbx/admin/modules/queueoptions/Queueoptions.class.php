@@ -115,12 +115,12 @@ class Queueoptions implements \BMO
             $id = $_REQUEST['extdisplay'] ?? '';
             $sql = 'DELETE FROM `queues_details` WHERE `id` = ? AND `keyword` = "lazymembers"';
             $data = array($id);
-            if (isset($_REQUEST['LazyMembers']) && $_REQUEST['LazyMembers'] == 1) {
-                $sql .= ';INSERT INTO `queues_details` (`id`,`keyword`,`data`) values (?,"lazymembers","yes")';
-                $data[] = $id;
-            }
             $sth = $dbh->prepare($sql);
             $sth->execute($data);
+            if (isset($_REQUEST['LazyMembers']) && $_REQUEST['LazyMembers'] == 1) {
+                $sth = $dbh->prepare('INSERT INTO `queues_details` (`id`,`keyword`,`data`) values (?,"lazymembers","yes")');
+                $sth->execute([$id]);
+            }
 
             if ($action == 'edit') {
                 $this->logoutUnlistedDynamicMembers($id);

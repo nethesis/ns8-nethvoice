@@ -6,6 +6,10 @@ if ($argc !== 3) { exit(2); }
 $framework = is_file($argv[2].'/admin/libraries/extensions.class.php')
     ? $argv[2] : $argv[2].'/amp_conf/htdocs';
 require $framework.'/admin/libraries/extensions.class.php';
+class featurecode {
+    public function __construct(...$args) {}
+    public function getCodeActive() { return ''; }
+}
 interface BMO {}
 class FreePBX_Helpers {}
 class FreePBX {
@@ -30,11 +34,15 @@ foreach (['enabled', 'disabled'] as $default) {
     $hook->default = $default;
     $ext = new extensions();
     $ext->add('ext-local', '201', 'dest', new ext_noop('destination'));
-    for ($i = 0; $i < 25; $i++) { $ext->add('macro-exten-vm', 's', '', new ext_noop($i)); }
+    $amp_conf = ['DIVERSIONHEADER' => false, 'AMPUSER' => '', 'NOOPTRACE' => '0'];
+    $start = strpos($core, "\t\$mcontext = 'macro-exten-vm';");
+    $end = strpos($core, '/* macro-exten-vm  */', $start);
+    eval(substr($core, $start, $end - $start));
     $hook->doDialplanHook($ext, 'asterisk', 100);
     $commands = array_map(fn($step) => $step['cmd']->output(), $ext->_exts['macro-exten-vm'][' s ']);
-    check(str_ends_with($commands[20], '?Return())'), 'busy exit is not a subroutine Return');
-    check(str_contains($commands[20], '${DIALSTATUS}') && str_contains($commands[20], '${DB(ROBconfig/${AMPUSER})}'), 'busy exit lost its eligibility checks');
+    $voicemail = array_search('GotoIf($["${ARG1}"="novm"]?s-${DIALSTATUS},1)', $commands, true);
+    check($voicemail !== false && str_ends_with($commands[$voicemail-1], '?Return())'), 'busy exit must precede the real Core voicemail branch');
+    check(str_contains($commands[$voicemail-1], '${DIALSTATUS}') && str_contains($commands[$voicemail-1], '${DB(ROBconfig/${AMPUSER})}'), 'busy exit lost its eligibility checks');
     $recall = array_map(fn($step) => $step['cmd']->output(), $ext->_exts['recall-on-busy'][' s ']);
     check($recall === ['AGI(recallonbusy_set.php,${EXTTOCALL})', 'Return()'], 'recall subroutine no longer returns to its caller');
 }

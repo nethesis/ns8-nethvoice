@@ -11,7 +11,7 @@ foreach ($settings as $key => $val) {
 $checked = (isset($ivr_logging) && $ivr_logging == 'true')?'CHECKED':'';
 
 echo '<h2 id="title">QueueMetrics</h2>';
-echo '<form action="' . $_SERVER['REQUEST_URI'] . '" method="post">';
+echo '<form action="' . htmlspecialchars($_SERVER['REQUEST_URI'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" method="post">';
 echo '<input type="hidden" name="action" value="save">';
 echo '<br /><br />';
 

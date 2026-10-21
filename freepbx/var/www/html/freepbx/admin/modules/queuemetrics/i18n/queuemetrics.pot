@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-02-20 19:52-0500\n"
+"POT-Creation-Date: 2015-07-24 14:23+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: queuemetrics.i18n.php:5
+#: queuemetrics.i18n.php:8
 msgid ""
 "A module for QueueMetrics, that allows you to set if IVR selections should "
 "be logged to the queue logs."
@@ -27,13 +27,14 @@ msgstr ""
 msgid "OK"
 msgstr ""
 
-#: queuemetrics.i18n.php:3
-#: queuemetrics.i18n.php:6
+#: queuemetrics.i18n.php:4
+#: queuemetrics.i18n.php:10
 msgid "QueueMetrics"
 msgstr ""
 
 #: page.queuemetrics.php:20
-#: queuemetrics.i18n.php:4
+#: queuemetrics.i18n.php:6
+#: queuemetrics.i18n.php:12
 msgid "Settings"
 msgstr ""
 

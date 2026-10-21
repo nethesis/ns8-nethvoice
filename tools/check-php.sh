@@ -8,7 +8,7 @@ php_files=$(mktemp)
 route_attributes=$(mktemp)
 trap 'rm -f "$php_files" "$route_attributes"' EXIT HUP INT TERM
 
-find "$repo_root/freepbx" "$repo_root/tancredi" -type f -name '*.php' -print | sort > "$php_files"
+find "$repo_root/freepbx" "$repo_root/tancredi" -type f -name '*.php' -not -path '*/vendor/*' -print | sort > "$php_files"
 
 while IFS= read -r file; do
     php -l "$file" >/dev/null
@@ -19,7 +19,7 @@ echo "PHP syntax check passed for $file_count files with PHP $(php -r 'echo PHP_
 
 php "$repo_root/freepbx/tests/pin_agi_test.php"
 
-if find "$repo_root/freepbx/var/www/html/freepbx/rest" -type f -name '*.php' \
+if find "$repo_root/freepbx/var/www/html/freepbx/rest" -type f -name '*.php' -not -path '*/vendor/*' \
     -exec grep -nH -E -e '->withJson[[:space:]]*\(' {} +; then
     echo 'Slim 4 responses must use jsonResponse(), not withJson().' >&2
     exit 1
@@ -27,7 +27,7 @@ fi
 
 # ext_macro is supported by the FreePBX 17 adapter, which emits Gosub.
 # Raw application names bypass that adapter and fail on Asterisk 22.
-if find "$repo_root/freepbx/var/www/html/freepbx/admin/modules" -type f -name '*.php' \
+if find "$repo_root/freepbx/var/www/html/freepbx/admin/modules" -type f -name '*.php' -not -path '*/vendor/*' \
     -exec grep -nH -i -E "(exec|ext_execif)[[:space:]]*\([^;]*['\"]Macro(Exit)?['\"]" {} +; then
     echo 'Raw Macro and MacroExit applications are unsupported on Asterisk 22.' >&2
     exit 1
@@ -44,18 +44,18 @@ set -- \
     "$repo_root/freepbx/usr/src/nethvoice" \
     "$repo_root/tancredi"
 
-if find "$@" -type f -name '*.php' -exec grep -nH -E 'fetchAll.*\[[[:space:]]*0\]' {} +; then
+if find "$@" -type f -name '*.php' -not -path '*/vendor/*' -exec grep -nH -E 'fetchAll.*\[[[:space:]]*0\]' {} +; then
     echo 'Direct indexing of fetchAll() results is forbidden; use fetch() or fetchColumn().' >&2
     exit 1
 fi
 
-if find "$@" -type f -name '*.php' -exec grep -nH -E 'fetch[[:space:]]*\([^)]*\)[[:space:]]*\[' {} +; then
+if find "$@" -type f -name '*.php' -not -path '*/vendor/*' -exec grep -nH -E 'fetch[[:space:]]*\([^)]*\)[[:space:]]*\[' {} +; then
     echo 'Direct indexing of fetch() results is forbidden; validate the returned row first.' >&2
     exit 1
 fi
 
 find "$repo_root/freepbx/var/www/html/freepbx/rest/modules" \
-    -type f -name '*.php' \
+    -type f -name '*.php' -not -path '*/vendor/*' \
     -exec grep -nH -E "getAttribute[[:space:]]*\([[:space:]]*['\"][^'\"]+['\"]" {} + \
     | grep -v -E "getAttribute[[:space:]]*\([[:space:]]*['\"]route['\"]" \
     > "$route_attributes" || true
@@ -65,12 +65,12 @@ if [ -s "$route_attributes" ]; then
     exit 1
 fi
 
-if find "$@" -type f -name '*.php' -exec grep -nH -E 'mysql_(connect|select_db|query|error|errno|real_escape_string)[[:space:]]*\(' {} +; then
+if find "$@" -type f -name '*.php' -not -path '*/vendor/*' -exec grep -nH -E 'mysql_(connect|select_db|query|error|errno|real_escape_string)[[:space:]]*\(' {} +; then
     echo 'Removed mysql_* APIs are forbidden in active PHP sources.' >&2
     exit 1
 fi
 
-if find "$@" -type f -name '*.php' -exec grep -nH -E 'mktime[[:space:]]*\([[:space:]]*\)' {} +; then
+if find "$@" -type f -name '*.php' -not -path '*/vendor/*' -exec grep -nH -E 'mktime[[:space:]]*\([[:space:]]*\)' {} +; then
     echo 'Zero-argument mktime() is forbidden; use time().' >&2
     exit 1
 fi

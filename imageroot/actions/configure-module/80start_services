@@ -75,3 +75,7 @@ else
     systemctl --user stop satellite-recordings-cleanup.service
     systemctl --user disable satellite-recordings-cleanup.service >/dev/null 2>&1 || true
 fi
+
+if compgen -G "./restore_background/*.sql" >/dev/null; then
+    systemctl --user start --no-block nethvoice-restore-background.service
+fi

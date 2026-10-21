@@ -1,22 +1,29 @@
 --- a/functions.inc.php
 +++ b/functions.inc.php
-@@ -1311,6 +1311,7 @@
+@@ -1311,18 +1311,22 @@
  			unset($fcc);
  
  			$picklist = '${EXTEN:'.$fclen.'}';
-+			$picklist .= '&${EXTEN:'.$fclen.'}@${PJSIP_ENDPOINT(${EXTEN:'.$fclen.'},context)}';
++			$picklist .= '${IF($["${NETHVOICE_FORWARD_CONTEXT}"!=""]?&${EXTEN:'.$fclen.'}@${NETHVOICE_FORWARD_CONTEXT}:)}';
  			$picklist .= '&${EXTEN:'.$fclen.'}@PICKUPMARK';
  			$ext->add('app-pickup', "_$fc_pickup.", '', new ext_macro('user-callerid'));
  			$ext->add('app-pickup', "_$fc_pickup.", '', new ext_set('PICKUP_EXTEN','${AMPUSER}'));
-@@ -1320,6 +1321,7 @@
++			$ext->add('app-pickup', "_$fc_pickup.", '', new ext_gosub(1, 's', 'func-nethvoice-forward-context', '${EXTEN:'.$fclen.'}'));
+ 			$ext->add('app-pickup', "_$fc_pickup.", '', new $ext_pickup($picklist));
+ 			$ext->add('app-pickup', "_$fc_pickup.", '', new ext_hangup(''));
+ 
  			if ($intercom_code != '') {
  				$len = strlen($fc_pickup.$intercom_code);
  				$picklist  = '${EXTEN:'.$len.'}';
-+				$picklist .= '&${EXTEN:'.$len.'}@${PJSIP_ENDPOINT(${EXTEN:'.$len.'},context)}';
++				$picklist .= '${IF($["${NETHVOICE_FORWARD_CONTEXT}"!=""]?&${EXTEN:'.$len.'}@${NETHVOICE_FORWARD_CONTEXT}:)}';
  				$picklist .= '&${EXTEN:'.$len.'}@PICKUPMARK';
  				$ext->add('app-pickup', "_{$fc_pickup}{$intercom_code}.", '', new ext_macro('user-callerid'));
  				$ext->add('app-pickup', "_{$fc_pickup}{$intercom_code}.", '', new ext_set('PICKUP_EXTEN','${AMPUSER}'));
-@@ -1348,10 +1350,18 @@
++				$ext->add('app-pickup', "_{$fc_pickup}{$intercom_code}.", '', new ext_gosub(1, 's', 'func-nethvoice-forward-context', '${EXTEN:'.$len.'}'));
+ 				$ext->add('app-pickup', "_{$fc_pickup}{$intercom_code}.", '', new $ext_pickup($picklist));
+ 				$ext->add('app-pickup', "_{$fc_pickup}{$intercom_code}.", '', new ext_hangup(''));
+ 			}
+@@ -1348,10 +1352,18 @@
  			// so we need to generate the callpickup dialplan for these specific extensions
  			// to try the ringgoup.
  			foreach ($rg_members as $exten => $grps) {

@@ -71,32 +71,7 @@ if(DB::IsError($check)) {
 
 
 
-$sql = "SHOW COLUMNS FROM `bosssecretary_group`";
-$results = $db->getAll($sql, array(), DB_FETCHMODE_ASSOC);
-if(DB::IsError($results)) {
-	die_freepbx("Can not check bosssecretary_group table");
-}
-
-foreach ($results as $column)
-{
-
-	if (trim(strtolower($column["Field"])) == "dring")
-	{
-		$sql = "ALTER TABLE `bosssecretary_group` DROP `".$column["Field"]."` ";
-		$check = $db->query($sql);
-		if(DB::IsError($check)) {
-			die_freepbx("Can not alter bosssecretary_group table");
-		}
-	}
-	if (trim(strtolower($column["Field"])) == "ringtime")
-	{
-		$sql = "ALTER TABLE `bosssecretary_group` DROP `".$column["Field"]."` ";
-		$check = $db->query($sql);
-		if(DB::IsError($check)) {
-			die_freepbx("Can not alter bosssecretary_group table");
-		}
-	}
-}
+// Preserve unused legacy dring/ringtime columns on upgrades.
 
 $sql = "ALTER TABLE bosssecretary_group MODIFY id_group INT(10) NOT NULL";
 $results = $db->query($sql);

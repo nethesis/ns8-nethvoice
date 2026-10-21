@@ -67,7 +67,7 @@ for ($i = 1; $i <=3; $i ++) {
     @$agi->stream_file("insert-pin-followed-by-hash-after-beep");
     $return = $agi->get_data('beep', 10000, 20);
     $pin = $return['result'];
-    if ($pin == $res['pin']) {
+    if ($pin === (string) $res['pin']) {
         neth_debug('correct pin');
         @$agi->stream_file("pin-is-correct");
         exit(0);

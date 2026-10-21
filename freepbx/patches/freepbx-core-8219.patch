@@ -80,11 +80,16 @@
  	$ext->add($mcontext,$exten,'', new ext_return(''));
  
  	/*
-@@ -3931,6 +3939,9 @@
+@@ -3931,6 +3939,14 @@
  
  	/* macro-hangupcall */
  
-+	$ext->add('func-nethvoice-forward-context', 's', '', new ext_set('NETHVOICE_FORWARD_CONTEXT', '${PJSIP_ENDPOINT(${ARG1},context)}'));
++	$ext->add('func-nethvoice-forward-context', 's', '', new ext_set('NETHVOICE_FORWARD_CONTEXT', ''));
++	foreach (['pjsip' => 'PJSIP_ENDPOINT', 'iax2' => 'IAXPEER', 'sip' => 'SIPPEER'] as $tech => $function) {
++		$ext->add('func-nethvoice-forward-context', 's', '', new ext_gotoif('$["${DB(DEVICE/${ARG1}/tech)}"="'.$tech.'"]', $tech.',1'));
++		$ext->add('func-nethvoice-forward-context', $tech, '', new ext_set('NETHVOICE_FORWARD_CONTEXT', '${'.$function.'(${ARG1},context)}'));
++		$ext->add('func-nethvoice-forward-context', $tech, '', new ext_return());
++	}
 +	$ext->add('func-nethvoice-forward-context', 's', '', new ext_return());
 +
  	Dialplan\macroDialone::add($ext);
@@ -159,13 +164,17 @@
  	$dialstring = '';
  
  	if (strpos($extnum,'#') != 0) {
-@@ -875,11 +880,19 @@
+@@ -875,11 +880,23 @@
  		// triggers the call confirmation macro along with the required messages
  		// that were set.
  		//
 +		$context = 'from-internal';
 +		if ($forward_owner !== null) {
-+			$context = get_var($agi, 'PJSIP_ENDPOINT('.$forward_owner.',context)');
++			$tech = get_var($agi, 'DB(DEVICE/'.$forward_owner.'/tech)');
++			$context_functions = ['pjsip' => 'PJSIP_ENDPOINT', 'iax2' => 'IAXPEER', 'sip' => 'SIPPEER'];
++			$context = isset($context_functions[$tech])
++				? get_var($agi, $context_functions[$tech].'('.$forward_owner.',context)')
++				: '';
 +			if ($context === '') {
 +				debug('No forwarding context for extension '.$forward_owner, 2);
 +				return '';

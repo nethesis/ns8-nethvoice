@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
-runagent mysql-update-postprocess
+runagent mysql-update-postprocess --migrate
 runagent prepare-asterisk-config

@@ -148,8 +148,7 @@ WHEN 'bindport' THEN '${ASTERISK_SIP_PORT}'
 WHEN 'tlsbindport' THEN '${ASTERISK_SIPS_PORT}'
 WHEN 'rtpstart' THEN '${ASTERISK_RTPSTART}'
 WHEN 'rtpend' THEN '${ASTERISK_RTPEND}'
-WHEN 'binds' THEN '{"wss":{"0.0.0.0":"on"},"udp":{"0.0.0.0":"on"},"tcp":{"0.0.0.0":"on"},"ws":{"0.0.0.0":"on"},"tls":{"0.0.0.0":"on"}}'
-END WHERE \`key\` IN ('udpport-0.0.0.0','tcpport-0.0.0.0','tlsport-0.0.0.0','bindport','tlsbindport','rtpstart','rtpend','binds');
+END WHERE \`key\` IN ('udpport-0.0.0.0','tcpport-0.0.0.0','tlsport-0.0.0.0','bindport','tlsbindport','rtpstart','rtpend');
 INSERT INTO kvstore_Sipsettings (\`key\`,val,type,id)
 SELECT defaults.k,defaults.v,IF(defaults.k='binds','json-arr',NULL),'noid' FROM (
 SELECT 'udpport-0.0.0.0' k,'${ASTERISK_SIP_UDP_PORT}' v UNION ALL
@@ -169,10 +168,11 @@ ON DUPLICATE KEY UPDATE value=VALUES(value),defaultval=VALUES(defaultval);
 UPDATE freepbx_settings SET value=CASE keyword
 WHEN 'HTTPBINDPORT' THEN '${ASTERISK_WS_PORT}'
 WHEN 'HTTPTLSBINDPORT' THEN '${ASTERISK_WSS_PORT}'
+WHEN 'HTTPBINDADDRESS' THEN '127.0.0.1'
 WHEN 'HTTPENABLED' THEN '1' WHEN 'HTTPTLSENABLE' THEN '1'
 WHEN 'HTTPTLSCERTFILE' THEN '/etc/asterisk/keys/NethServer.crt'
 WHEN 'HTTPTLSPRIVATEKEY' THEN '/etc/asterisk/keys/NethServer.key'
-END WHERE keyword IN ('HTTPBINDPORT','HTTPTLSBINDPORT','HTTPENABLED','HTTPTLSENABLE','HTTPTLSCERTFILE','HTTPTLSPRIVATEKEY');
+END WHERE keyword IN ('HTTPBINDADDRESS','HTTPBINDPORT','HTTPTLSBINDPORT','HTTPENABLED','HTTPTLSENABLE','HTTPTLSCERTFILE','HTTPTLSPRIVATEKEY');
 UPDATE freepbx_settings SET value='0.0.0.0' WHERE keyword='HTTPTLSBINDADDRESS' AND value IN ('::','127.0.0.1');
 SQL
 

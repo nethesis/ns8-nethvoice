@@ -76,7 +76,7 @@ msgstr "Nome identificativo per aiutare l'identificazione."
 
 #: views/form.php:69
 msgid "Timeout Destination"
-msgstr "Destinazione Timeout"
+msgstr "Destianzione Timeout"
 
 #: views/form.php:79
 msgid "Destination when call leave the queue because has reached maximum waiting time"
@@ -84,7 +84,7 @@ msgstr "Destinazione quando la chiamata è uscita dalla coda perché ha raggiunt
 
 #: views/form.php:87
 msgid "Full Destination"
-msgstr "Destinazione Full"
+msgstr "Destianzione Full"
 
 #: views/form.php:97
 msgid "Destination when call leave because queue has reached maximum number of waiting calls"

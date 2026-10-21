@@ -27,8 +27,9 @@ foreach (['**', '**7'] as $fc_pickup) {
     eval($generator);
     foreach (['_'.$fc_pickup.'.' => strlen($fc_pickup), '_'.$fc_pickup.'*80.' => strlen($fc_pickup.'*80')] as $pattern => $length) {
         $steps = array_map(fn($step) => $step['cmd']->output(), $ext->_exts['app-pickup'][' '.$pattern.' ']);
-        $pickup = $steps[2];
-        check(str_contains($pickup, '${EXTEN:'.$length.'}@${PJSIP_ENDPOINT(${EXTEN:'.$length.'},context)}'), 'generic pickup lacks the target context');
+        $pickup = $steps[3];
+        check(str_contains($steps[2], "func-nethvoice-forward-context"), "pickup must resolve the device technology before querying a peer");
+        check(str_contains($pickup, '${EXTEN:'.$length.'}@${NETHVOICE_FORWARD_CONTEXT}'), 'generic pickup lacks the target context');
         check(str_contains($pickup, '${EXTEN:'.$length.'}@PICKUPMARK'), 'PICKUPMARK candidate was lost');
     }
     foreach ([$fc_pickup.'201', $fc_pickup.'*80201'] as $target) {

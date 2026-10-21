@@ -2,5 +2,10 @@
     "require": {
         "slim/psr7": "^1.7",
         "slim/slim": "^4.15"
+    },
+    "config": {
+        "platform": {
+            "php": "8.2.0"
+        }
     }
 }

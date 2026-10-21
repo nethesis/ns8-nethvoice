@@ -1,5 +1,6 @@
 {messages}
 <form method="post" name=bosssecretary action="{form_url}">
+<input type="hidden" name="csrf_token" value="{csrf_token}" />
 <table>
 			<tr>
 				<td colspan="3"><h5>{form_title}</h5> <hr /> </td>

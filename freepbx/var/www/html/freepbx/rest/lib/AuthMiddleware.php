@@ -46,19 +46,21 @@ class AuthMiddleware implements MiddlewareInterface
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $path = trim($request->getUri()->getPath(), '/');
-        $isTestAuthPath = preg_match('#(^|/)testauth$#', $path) === 1;
+        $isTestAuthPath = $request->getUri()->getPath() === '/freepbx/rest/testauth';
         if (strtoupper($request->getMethod()) === 'OPTIONS') {
+            return $this->responseFactory->createResponse(204);
+        }
+        if ($isTestAuthPath) {
             return $handler->handle($request);
         }
 
-        if (!$isTestAuthPath && (!$request->hasHeader('Secretkey') || !$request->hasHeader('User'))) {
+        if (!$request->hasHeader('Secretkey') || !$request->hasHeader('User')) {
             return $this->jsonResponse(['error' => 'Forbidden: no credentials'], 403);
         }
 
-	$dbh = FreePBX::Database();
-            $given_user = $request->getHeaderLine('User');
-            $given_secret = $request->getHeaderLine('Secretkey');
+        $dbh = FreePBX::Database();
+        $given_user = $request->getHeaderLine('User');
+        $given_secret = $request->getHeaderLine('Secretkey');
 
         $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE sections LIKE '%*%' AND username = ?");
         $stmt->execute(array($given_user));
@@ -66,12 +68,12 @@ class AuthMiddleware implements MiddlewareInterface
         $password_sha1 = $user['password_sha1'] ?? '';
         $username = $user['username'] ?? '';
 
-            # check the user is valid and is an admin (sections = *)
-        if (!$isTestAuthPath && !$username ) {
+        # check the user is valid and is an admin (sections = *)
+        if (!$username) {
             return $this->jsonResponse(['error' => 'Forbidden: invalid user'], 403);
-            }
-            $hash = sha1($username . $password_sha1 . $this->secret);
-        if (!$isTestAuthPath && $given_secret != $hash) {
+        }
+        $hash = sha1($username . $password_sha1 . $this->secret);
+        if (!hash_equals($hash, $given_secret)) {
             return $this->jsonResponse(['error' => 'Forbidden: wrong secret key'], 403);
         }
 

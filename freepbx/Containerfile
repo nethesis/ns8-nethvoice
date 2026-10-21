@@ -1,9 +1,11 @@
 # Stage 1: Build Asterisk
-FROM docker.io/debian:trixie as builder
+FROM docker.io/debian:trixie@sha256:4c25275446ca371766b8b093c696782eabce06263fccacb8d5d813b3dc44b308 as builder
 
 # Set fixed Asterisk version
 ARG ASTERISK_VERSION=22.10.0
-ARG PJSIP_VERSION=2.16
+ARG PJSIP_VERSION=2.17
+ARG JANSSON_VERSION=2.15.0
+ARG LIBJWT_VERSION=1.15.3
 ARG ASTERISK_G72X_COMMIT=5106838f3aabf8fe09fa3780a8e9d3ed4c2a0063
 ARG DEBIAN_FRONTEND=noninteractive
 ARG BUILDROOT=/usr/src/asterisk/build
@@ -15,9 +17,10 @@ COPY usr/src/asterisk /usr/src/asterisk
 # disable Asterisk's CAP probe below. Rootless Podman cannot retain
 # CAP_NET_ADMIN after dropping to runuser=asterisk in this image.
 RUN apt-get update && \
-	apt-get install -y \
+	apt-get install -y --no-install-recommends \
 		automake \
 		build-essential \
+		ca-certificates \
 		doxygen \
 		graphviz \
 		libasound2-dev \
@@ -71,14 +74,17 @@ RUN cd /usr/src/asterisk && \
 	tar xzf asterisk-${ASTERISK_VERSION}.tar.gz && \
 	cd asterisk-${ASTERISK_VERSION} && \
 	patch --batch --fuzz=0 -p1 < ../asterisk-22-lazymembers.patch && \
+	patch --batch --fuzz=0 -p1 < ../asterisk-22-mp3.patch && \
+	sed -i '/#include "asterisk.h"/i#define ASTMM_LIBC ASTMM_REDIRECT' addons/mp3/interface.c && \
 	cd .. && \
 	rm -f asterisk-${ASTERISK_VERSION}.tar.gz && \
 	mkdir cache && \
 	cd cache && \
 	wget -O pjproject-${PJSIP_VERSION}.tar.bz2 https://raw.githubusercontent.com/asterisk/third-party/master/pjproject/${PJSIP_VERSION}/pjproject-${PJSIP_VERSION}.tar.bz2 && \
+	wget -O jansson-${JANSSON_VERSION}.tar.bz2 https://raw.githubusercontent.com/asterisk/third-party/master/jansson/${JANSSON_VERSION}/jansson-${JANSSON_VERSION}.tar.bz2 && \
+	wget -O libjwt-${LIBJWT_VERSION}.tar.gz https://raw.githubusercontent.com/asterisk/third-party/master/libjwt/${LIBJWT_VERSION}/libjwt-${LIBJWT_VERSION}.tar.gz && \
 	cd .. && \
-	artifact_checksum=$(grep "  cache/pjproject-${PJSIP_VERSION}.tar.bz2$" remote-artifacts.sha256) && \
-	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
+	grep '  cache/' remote-artifacts.sha256 | sha256sum -c - && \
 	cd asterisk-${ASTERISK_VERSION} && \
 	perl -pi -e 's/^all:.*$/all:/' sounds/Makefile && \
 	perl -pi -e 's/^install:.*$/install:/' sounds/Makefile && \
@@ -115,9 +121,11 @@ RUN cd /usr/src/asterisk && \
 	make menuselect.makeopts && \
 	menuselect/menuselect --disable BUILD_NATIVE menuselect.makeopts && \
 	menuselect/menuselect --enable app_voicemail_odbc menuselect.makeopts && \
+	menuselect/menuselect --enable format_mp3 menuselect.makeopts && \
 	menuselect/menuselect --enable res_prometheus menuselect.makeopts && \
 	make -j"$(nproc)" ${MAKEARGS} && \
 	make install ${MAKEARGS} && \
+	test -s ${BUILDROOT}${LIBDIR}/asterisk/modules/format_mp3.so && \
 	test -s ${BUILDROOT}${LIBDIR}/asterisk/modules/res_prometheus.so && \
 	make samples ${MAKEARGS} && \
 	install -D -p -m 0755 apps/app_voicemail_odbc.so ${BUILDROOT}${LIBDIR}/asterisk/modules/app_voicemail_odbc.so && \
@@ -194,13 +202,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends libbcg729-dev l
 	make -j"$(nproc)" && \
 	install -D -m 0755 .libs/codec_g729.so ${BUILDROOT}${LIBDIR}/asterisk/modules/codec_g729.so
 
-FROM docker.io/library/php:8.2-apache
+FROM docker.io/library/php:8.2-apache@sha256:1650dcb528360aad05d6ed2f83cb403a2a39c31bd14552efd9a747b2207dea86
 WORKDIR /var/lib/asterisk
 ARG DEBIAN_FRONTEND=noninteractive
 RUN groupadd -g 991 -r asterisk && \
     useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk && \
 	apt-get update && \
-	apt-get install -y \
+	apt-get install -y --no-install-recommends \
         ca-certificates \
 		cron \
 		libbcg729-0 \
@@ -414,7 +422,6 @@ RUN cd /var/www/html/freepbx/admin/modules/pm2/node && \
 	rm -rf "${npm_cache}"
 
 # Apply NethVoice compatibility fixes to pinned FreePBX modules.
-# The historical freepbx-core.patch is intentionally not applied.
 COPY patches /tmp/nethvoice-core-patches
 RUN for core_patch in /tmp/nethvoice-core-patches/freepbx-core-821*.patch; do \
         patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < "$core_patch" || exit 1; \
@@ -429,15 +436,8 @@ RUN for core_patch in /tmp/nethvoice-core-patches/freepbx-core-821*.patch; do \
 RUN sed -i 's|if (\$dialpattern\[\$key\]\[0\] == "_")|if (isset(\$dialpattern[\$key][0]) \&\& \$dialpattern[\$key][0] == "_")|g' \
 	/var/www/html/freepbx/admin/modules/customcontexts/functions.inc.php
 
-# PHP 8.x compatibility: customcontexts uses undefined $results in DB::IsError() check
-# (was a notice in PHP 7, fatal under Whoops in PHP 8).  $sections is the actual return value.
-RUN sed -i 's|if(DB::IsError(\$results)) {|if(DB::IsError(\$sections)) {|g; s|\$results = null;|\$sections = array();|' \
-	/var/www/html/freepbx/admin/modules/customcontexts/functions.inc.php
-
-# PHP 8.x compatibility: customcontexts has many DB::IsError($sections) calls where
-# $sections is never assigned (only $results is). Make the check tolerate undefined var.
-RUN sed -i 's|DB::IsError(\$sections)|DB::IsError(\$sections ?? null)|g' \
-	/var/www/html/freepbx/admin/modules/customcontexts/functions.inc.php
+# customcontexts 17.0.1.3 already checks $sections correctly. Preserve the
+# independent $results checks used by its other database queries.
 
 # PHP 8.x compatibility: FreePBX framework DialplanHooks reads 'license' key
 # without isset() guard on non-commercial modules. Guard with ?? '' fallback.
@@ -622,7 +622,7 @@ RUN a2dismod status
 RUN update-ca-certificates --fresh
 
 # Upgrade Apache to latest version to get security fixes
-RUN apt-get update && apt-get install -y --only-upgrade apache2 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends --only-upgrade apache2 && rm -rf /var/lib/apt/lists/*
 
 # Clean apt files
 RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,dpkg,cache,log}/* && touch /var/lib/dpkg/status
@@ -645,6 +645,7 @@ RUN echo "source \$VIMRUNTIME/defaults.vim\nset mouse-=a" >> /root/.vimrc
 COPY etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-default.conf
 COPY etc/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY freepbx_init.sh /freepbx_init.sh
+COPY apply-instance-bindings.php /apply-instance-bindings.php
 COPY etc/amportal.conf /etc
 COPY initdb.d/initdb.php /initdb.d/
 COPY initdb.d/migration.php /initdb.d/
