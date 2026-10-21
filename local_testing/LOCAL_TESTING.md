@@ -70,6 +70,20 @@ podman run --rm --network=none --entrypoint bash \
 The test starts its own Asterisk with no channel drivers and removes its
 temporary configuration and audio on exit.
 
+Check Prometheus startup configuration and scrape the real Asterisk module in
+an isolated container:
+
+```bash
+podman run --rm --network=none --entrypoint bash \
+  -v "$PWD/freepbx/tests:/tests:ro" \
+  localhost/nethvoice-freepbx:fpbx17-review /tests/prometheus_test.sh
+```
+
+This checks that startup replaces stale persistent metrics configuration,
+disables metrics without a password, and restricts configuration-file access.
+It then starts a separate Asterisk and verifies metric samples and Basic Auth
+on both HTTP and HTTPS, including missing and incorrect credentials.
+
 These checks do not validate live channel behavior. On an Asterisk 22 test
 instance, verify the following before completing runtime validation:
 

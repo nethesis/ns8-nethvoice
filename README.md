@@ -43,6 +43,48 @@ You can access NethVoice wizard at:
 https://makako.nethesis.it/nethvoice/
 ```
 
+## Asterisk Prometheus metrics
+
+Asterisk includes `res_prometheus` and serves metrics on its existing local HTTP
+listener at `http://127.0.0.1:${ASTERISK_WS_PORT}/metrics`. The port is allocated
+per instance; read `ASTERISK_WS_PORT` from the module's environment.
+
+The Basic Auth username is `prometheus`. Before starting FreePBX, NS8 generates
+`ASTERISK_PROMETHEUS_PASSWORD` in the module's `passwords.env` if it is missing.
+The password survives restarts, updates and backups; cloning generates a new
+password. Startup also handles backups made before this credential existed.
+The container regenerates `/etc/asterisk/prometheus.conf` from this secret on
+every start. For standalone FreePBX containers, supply
+`ASTERISK_PROMETHEUS_PASSWORD` using letters, digits, underscores or hyphens;
+metrics are disabled when it is absent.
+
+Run Prometheus on the same node and configure a scrape job using the instance's
+allocated port, for example:
+
+```yaml
+scrape_configs:
+  - job_name: nethvoice1-asterisk
+    metrics_path: /metrics
+    basic_auth:
+      username: prometheus
+      password_file: /etc/prometheus/nethvoice1.password
+    static_configs:
+      - targets: ['127.0.0.1:20030'] # Replace with ASTERISK_WS_PORT
+```
+
+Securely copy the value of `ASTERISK_PROMETHEUS_PASSWORD` into the password file,
+readable only by Prometheus. Its network namespace must be able to reach the
+node's loopback listener. From the module shell, this command prompts for the
+password and prints the metrics:
+
+```bash
+curl --user prometheus "http://127.0.0.1:${ASTERISK_WS_PORT}/metrics"
+```
+
+Asterisk shares HTTP routes with its existing HTTPS/WSS listener, so `/metrics`
+also requires authentication there. No additional port or Traefik route is
+created.
+
 ## Notify for services
 
 After FreePBX configurations have been applied, some containers should be restarted or reloaded.
