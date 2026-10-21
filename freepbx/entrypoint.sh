@@ -28,6 +28,28 @@ writetimeout = 5000
 #include manager_custom.conf
 EOF
 
+# The HTTP and HTTPS/WSS listeners share metric routes. Require credentials
+# even for local scraping, and refresh the persistent config on every start.
+install -o asterisk -g asterisk -m 0640 /dev/null /etc/asterisk/prometheus.conf || exit $?
+if [[ -n "${ASTERISK_PROMETHEUS_PASSWORD:-}" ]]; then
+	# NS8 generates a hex password; reject configuration-file metacharacters.
+	if [[ ! "${ASTERISK_PROMETHEUS_PASSWORD}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+		echo 'Invalid ASTERISK_PROMETHEUS_PASSWORD format' >&2
+		exit 1
+	fi
+	cat > /etc/asterisk/prometheus.conf <<EOF
+[general]
+enabled = yes
+core_metrics_enabled = yes
+uri = metrics
+auth_username = prometheus
+auth_password = ${ASTERISK_PROMETHEUS_PASSWORD}
+EOF
+else
+	# Standalone image users must supply a password to enable metrics.
+	printf '[general]\nenabled = no\n' > /etc/asterisk/prometheus.conf
+fi
+
 # create asterisk.conf
 cat > /etc/asterisk/asterisk.conf <<EOF
 [directories]
