@@ -210,6 +210,23 @@ RUN groupadd -g 991 -r asterisk && \
 	apt-get update && \
 	apt-get install -y --no-install-recommends \
         ca-certificates \
+        libcrypt1 \
+        libcurl4t64 \
+        libedit2 \
+        libgcc-s1 \
+        libgsm1 \
+        libodbc2 \
+        libogg0 \
+        libsqlite3-0 \
+        libssl3t64 \
+        libstdc++6 \
+        libsystemd0 \
+        libunbound8 \
+        libuuid1 \
+        libvorbis0a \
+        libvorbisenc2 \
+        libvorbisfile3 \
+        zlib1g \
 		cron \
 		libbcg729-0 \
 		curl \
@@ -287,6 +304,8 @@ RUN sed -i 's/^# *bg_BG.UTF-8 UTF-8/bg_BG.UTF-8 UTF-8/' /etc/locale.gen && \
 
 # Copy Asterisk files
 COPY --from=builder /usr/src/asterisk/build/./ /
+COPY check-asterisk-libraries.py /tmp/check-asterisk-libraries.py
+RUN ldconfig && python3 /tmp/check-asterisk-libraries.py && rm /tmp/check-asterisk-libraries.py
 COPY remote-artifacts.sha256 /tmp/remote-artifacts.sha256
 COPY fetch-remote-artifact /usr/local/bin/fetch-remote-artifact
 
