@@ -273,6 +273,15 @@ $app->post('/trunks', function (Request $request, Response $response, $args) {
 
     // Insert data into trunks table
     $params['name'] = (empty($params['name'])) ? $params['provider'] : $params['name'];
+    // The name is also the Asterisk endpoint name: a space (or another character
+    // not valid in a SIP URI) breaks the OPTIONS qualify of the trunk when it has
+    // no From User. Same rule as freepbx/initdb.d/update.php.
+    $params['name'] = preg_replace('/[^A-Za-z0-9_.-]/', '_', $params['name']);
+    $sth = $dbh->prepare('SELECT COUNT(*) FROM `trunks` WHERE `channelid` = ?');
+    $sth->execute([$params['name']]);
+    if ($sth->fetchColumn() > 0) {
+        $params['name'] .= '_' . $trunkid;
+    }
     $sql = "INSERT INTO `trunks` (`trunkid`,`tech`,`channelid`,`name`,`outcid`,`keepcid`,`maxchans`,`failscript`,`dialoutprefix`,`usercontext`,`provider`,`disabled`,`continue`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
     $sth = $dbh->prepare($sql);
     $sth->execute(array(
