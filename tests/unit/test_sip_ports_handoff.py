@@ -30,6 +30,8 @@ class SipPortsHandoffTest(unittest.TestCase):
             "ASTERISK_RECORDING_SFTP_PORT": "2002", "ASTERISK_WS_PORT": "2003",
             "SATELLITE_MQTT_PORT": "2004", "SATELLITE_HTTP_PORT": "2005",
             "SATELLITE_PGSQL_PORT": "2006",
+            "CHAT_C2S_PORT": "2007", "CHAT_HTTP_PORT": "2008",
+            "CHAT_COMPONENT_PORT": "2009", "CHAT_GW_PORT": "2010",
         }
         self.rules = [self.rule("12002")]
         self.trunks = [{
