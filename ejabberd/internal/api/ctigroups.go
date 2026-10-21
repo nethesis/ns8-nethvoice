@@ -132,6 +132,7 @@ func (s *Server) syncRoom(ctx context.Context, slug, name string, members map[st
 		}
 	}
 	var added []string
+	removed := false
 	for u := range members {
 		if current[u] {
 			continue
@@ -155,6 +156,7 @@ func (s *Server) syncRoom(ctx context.Context, slug, name string, members map[st
 			continue
 		}
 		s.tellRemoved(ctx, u, room)
+		removed = true
 		logx.Debugf("groups: %s out of %s", u, slug)
 	}
 	renamed := known[slug] != name
@@ -162,12 +164,10 @@ func (s *Server) syncRoom(ctx context.Context, slug, name string, members map[st
 		_ = s.ejabberd(ctx, "change_room_option", map[string]string{"name": room, "service": muc, "option": "title", "value": name}, nil)
 		s.Store.PutCTIRoom(slug, name)
 	}
-	// An invitation makes a client show the room, or read its new name.
-	if renamed {
+	// An invitation makes a client show the room, or read its name and members again: everyone's open list follows.
+	if renamed || removed || len(added) > 0 {
 		s.invite(ctx, room, keys(members))
-	} else if len(added) > 0 {
-		s.invite(ctx, room, added)
-		logx.Debugf("groups: %v into %s", added, slug)
+		logx.Debugf("groups: %s now %v", slug, keys(members))
 	}
 	return ok
 }
