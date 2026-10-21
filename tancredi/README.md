@@ -5,6 +5,19 @@ Tancredi container for NethServer 8
 
 Tancredi code repository are https://github.com/nethesis/tancredi and https://github.com/nethesis/nethserver-tancredi/
 
+## Multipart request filtering
+
+Apache rejects multipart requests before PHP executes, except for `POST` to
+`/tancredi/api/v1/backgrounds`, `/tancredi/api/v1/firmware`,
+`/tancredi/api/v1/ringtones`, and `/tancredi/api/v1/screensavers`.
+The exceptions preserve the existing authenticated asset uploads. Provisioning
+downloads and JSON API requests keep their existing behavior.
+
+This limits where multipart parsing can be reached; it does not protect the
+allowed upload endpoints from a PHP parser vulnerability. Session upload
+progress remains disabled. Rebuild and deploy the Tancredi image to apply the
+filter, and install a patched PHP runtime when available.
+
 ## Environment variables
 
 - `AMPDBPASS` password of asterisk database
