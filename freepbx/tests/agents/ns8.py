@@ -61,10 +61,16 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
             agent.allocate_ports.assert_not_called()
         # Execute the actual fresh-create mapping as well.
         state['environment'].clear()
-        with patch.dict(os.environ,{'TCP_PORTS_RANGE':'32000-32039','UDP_PORTS_RANGE':'40000-42002'}):
+        def shrink_udp(count, protocol, **kwargs):
+            assert protocol=='udp' and count==1000
+            return (40000,40999)
+        agent.allocate_ports.reset_mock()
+        agent.allocate_ports.side_effect=shrink_udp
+        with patch.dict(os.environ,{'TCP_PORTS_RANGE':'32000-32039','UDP_PORTS_RANGE':'40000-42999'}):
             runpy.run_path(str(root/'imageroot/actions/create-module/05setenvs'))
         assert state['environment']['VOICE_AGENT_HTTP_PORT']==32038
         assert state['environment']['OAUTH2_PROXY_PORT']==32037
+        agent.allocate_ports.assert_called_once_with(1000,'udp')
         # Removal must delete the exact public route previously registered.
         removed=[]
         agent.resolve_agent_id=lambda _: 'module/traefik_test'

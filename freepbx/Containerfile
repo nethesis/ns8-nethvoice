@@ -189,6 +189,11 @@ RUN cd /usr/src/asterisk && \
 	cp *.so ${BUILDROOT}${LIBDIR}/asterisk/modules/ && \
 	cp codec_opus_config-en_US.xml ${BUILDROOT}${DATADIR}/asterisk/documentation/thirdparty/
 
+# /var/run is a symlink to /run in the runtime image. Asterisk stages only
+# empty runtime directories there; omit them from the root filesystem copy.
+RUN test -z "$(find ${BUILDROOT}/var/run -type f -print -quit)" && \
+    rm -rf ${BUILDROOT}/var/run
+
 # Build G.729 against the same Asterisk headers as the server. The old bundled
 # Asterisk 18 binary has an incompatible ABI and requests an executable stack.
 RUN apt-get update && apt-get install -y --no-install-recommends libbcg729-dev libtool pkg-config && \
@@ -202,11 +207,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends libbcg729-dev l
 	./configure --with-bcg729 --with-asterisk-includes=/usr/src/asterisk/asterisk-${ASTERISK_VERSION}/include CFLAGS="-O2 -fPIC" LDFLAGS="-Wl,-z,noexecstack" && \
 	make -j"$(nproc)" && \
 	install -D -m 0755 .libs/codec_g729.so ${BUILDROOT}${LIBDIR}/asterisk/modules/codec_g729.so
-
-# /var/run is a symlink to /run in the runtime image. Asterisk stages only
-# empty runtime directories there; omit them from the root filesystem copy.
-RUN test -z "$(find ${BUILDROOT}/var/run -type f -print -quit)" && \
-    rm -rf ${BUILDROOT}/var/run
 
 FROM docker.io/library/php:8.2-apache
 WORKDIR /var/lib/asterisk

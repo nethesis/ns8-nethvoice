@@ -76,7 +76,7 @@ PYTHONPATH="$satellite_dir" "$test_python" -m pytest -o addopts='' "$satellite_d
 PYTHONPATH="$satellite_dir" "$test_python" "$freepbx_dir/tests/agents/runner-contract.py"
 agent_php "$freepbx_dir/tests/agents/retention.php"
 VOICE_AGENT_TEST_DB_CONTAINER="$db_container" "$freepbx_dir/tests/agents/restore.sh"
-php -d zend.assertions=1 -d assert.exception=1 "$freepbx_dir/tests/agents/development-reset.php"
+agent_php "$freepbx_dir/tests/agents/development-reset.php"
 
 if [[ -n "${VOICE_AGENT_TEST_PHP_IMAGE:-}" ]]; then
     docker run --rm --network=host --entrypoint=php \
