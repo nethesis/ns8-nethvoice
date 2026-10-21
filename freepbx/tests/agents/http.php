@@ -61,4 +61,15 @@ $draft=['provider_binding_id'=>null,'conversation'=>['language'=>'en','voice'=>'
 [$status,$runs]=api('GET','/runs'); assert($status===200 && isset($runs['items'],$runs['has_more']));
 [$status]=api('GET','/runs?page=0'); assert($status===422);
 [$status,$removed]=api('DELETE','/profiles/'.$created['agent_id'],['expected_revision'=>$created['revision']],$csrf); assert($status===200 && $removed['removed']);
+foreach (['/monitoring/summary','/monitoring/health'] as $path) {
+    [$status]=api('GET',$path,null,['Secretkey'=>'wrong']); assert($status===403);
+    [$status,$result]=api('GET',$path); assert($status===200);
+}
+[$status]=api('GET','/monitoring/summary?provider[]=openai'); assert($status===422);
+[$status]=api('GET','/monitoring/summary?phase=tool'); assert($status===422);
+[$status]=api('GET','/runs?phase=arbitrary'); assert($status===422);
+[$status]=api('GET','/runs?query='.rawurlencode("%_' OR 1=1 --")); assert($status===200);
+[$status]=api('GET','/runs/77777777-7777-4777-a777-777777777777/trace'); assert($status===200);
+[$status]=api('GET','/runs/77777777-7777-4777-a777-777777777777/trace?cursor=bad'); assert($status===422);
+[$status]=api('GET','/runs/77777777-7777-4777-a777-777777777777/trace',null,['Secretkey'=>'wrong']); assert($status===403);
 echo "HTTP authentication, CSRF, envelopes, CRUD, revision conflicts and monitoring passed\n";

@@ -30,7 +30,11 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
         agent.allocate_ports.assert_called_once_with(1,'tcp',keep_existing=True)
         runtime_env=state['satellite.env']
         assert 'MARIADB_ROOT_PASSWORD' not in runtime_env
-        assert len(runtime_env)==10
+        assert len(runtime_env)==11
+        assert runtime_env['VOICE_AGENT_MONITORING_RETENTION_DAYS']=='90'
+        state['environment']['VOICE_AGENT_MONITORING_RETENTION_DAYS']='120'
+        runpy.run_path(str(root/'imageroot/bin/configure-voice-agents'))
+        assert state['satellite.env']['VOICE_AGENT_MONITORING_RETENTION_DAYS']=='120'
         assert runtime_env['OPENAI_API_KEY']=='synthetic-provider'
         assert runtime_env['DEEPGRAM_API_KEY']=='synthetic-deepgram'
         assert runtime_env['SATELLITE_MQTT_PASSWORD']=='synthetic-mqtt'

@@ -96,15 +96,18 @@ export interface Run extends JsonObject {
   ended_at: string | null;
   outcome: string;
   error_code: string | null;
-  events?: {
-    event_id: string;
-    event_type: string;
-    occurred_at: string;
-    error_code: string | null;
-    tool_id?: string | null;
-    destination_id?: string | null;
-    result_count?: number | null;
-  }[];
+  monitoring_version?: number;
+  provider?: string | null;
+  adapter?: string | null;
+  model?: string | null;
+  duration_ms?: number | null;
+  setup_duration_ms?: number | null;
+  first_output_ms?: number | null;
+  trace_status?: "legacy" | "recording" | "complete" | "partial";
+  incomplete?: boolean;
+  usage?: Record<string, number> | null;
+  usage_complete?: boolean;
+  events?: TraceEvent[];
   transcripts?: {
     role: "caller" | "assistant";
     text: string;
@@ -169,4 +172,66 @@ export interface DestinationPage {
   total: number;
   modules: Record<string, boolean>;
   unavailable_ids: string[];
+}
+
+export interface TraceEvent extends JsonObject {
+  event_id: string;
+  event_type: string;
+  occurred_at: string;
+  error_code?: string | null;
+  tool_id?: string | null;
+  destination_id?: string | null;
+  result_count?: number | null;
+  span_id?: string | null;
+  parent_span_id?: string | null;
+  phase?: string | null;
+  status?: string | null;
+  elapsed_ms?: number | null;
+  duration_ms?: number | null;
+  http_status?: number | null;
+  provider_code?: string | null;
+}
+export interface Histogram {
+  samples: number;
+  mean_ms: number | null;
+  p50_ms: number | null;
+  p95_ms: number | null;
+  approximate: boolean;
+}
+export interface Performance extends Histogram {
+  id: string;
+  status: string;
+  invocations?: number;
+}
+export interface MonitoringSummary {
+  resolution?: "day" | "month";
+  from: string;
+  to: string;
+  coverage: {
+    total_runs: number;
+    legacy_runs: number;
+    instrumented_runs: number;
+    partial_runs: number;
+    incomplete_runs: number;
+  };
+  outcomes: { outcome: string; count: number }[];
+  trends: { day: string; outcome: string; count: number }[];
+  latencies: Record<string, Histogram>;
+  latency_trends?: (Histogram & { day: string; metric: string })[];
+  phases: Performance[];
+  tools: Performance[];
+  errors: { phase: string; error_code: string; count: number }[];
+}
+export interface MonitoringHealth {
+  active_calls?: number;
+  spool_writable?: boolean;
+  stale: boolean;
+  observed_at: string | null;
+  ari_connected?: boolean;
+  degraded?: boolean;
+  queue_depth?: number;
+  oldest_pending_seconds?: number;
+  dropped?: number;
+  retries?: number;
+  last_write_at?: string | null;
 }

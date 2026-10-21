@@ -29,3 +29,6 @@ The Vite base is `/freepbx/agents-ui/`. Browser tests use isolated port 5187 and
 synthetic same-origin REST responses. FreePBX's Containerfile builds this source
 in a separate Node stage and copies only `dist` into the final image. Development
 dependencies, environment files and source maps are excluded from the deployed UI.
+
+Activity monitoring, metric definitions and the environment-only metadata retention
+policy are documented in [monitoring v2](../../docs/voice-agents-monitoring-v2.md).

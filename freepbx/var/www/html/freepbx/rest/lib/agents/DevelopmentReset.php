@@ -7,7 +7,7 @@ require_once __DIR__.'/Service.php';
 final class DevelopmentReset
 {
     public const CONFIG_TABLES=['voice_agent_audit','voice_agent_drafts','voice_agent_versions','voice_agent_agents'];
-    public const EVENT_TABLES=['voice_agent_transcripts','voice_agent_run_events','voice_agent_pending_calls','voice_agent_runs'];
+    public const EVENT_TABLES=['voice_agent_metric_hours','voice_agent_runtime_health','voice_agent_transcripts','voice_agent_run_events','voice_agent_pending_calls','voice_agent_runs'];
     public function __construct(private \PDO $db, private object $native) {}
 
     public function inspect(): array

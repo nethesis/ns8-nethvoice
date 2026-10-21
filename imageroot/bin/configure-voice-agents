@@ -7,6 +7,9 @@ import sys
 import agent
 
 env = agent.read_envfile('environment')
+if 'VOICE_AGENT_MONITORING_RETENTION_DAYS' not in env:
+    agent.set_env('VOICE_AGENT_MONITORING_RETENTION_DAYS', '90')
+    env['VOICE_AGENT_MONITORING_RETENTION_DAYS'] = '90'
 if '--secrets-only' not in sys.argv and not env.get('VOICE_AGENT_HTTP_PORT'):
     # Fresh installs already own the full declared demand. Reuse the reserved
     # slot on older installations too; allocate only when that slot is absent.
@@ -31,6 +34,7 @@ for name in ('OPENAI_API_KEY', 'XAI_API_KEY', 'GROK_API_KEY',
     value=passwords.get(name) or os.environ.get(name)
     if value:
         runtime_env[name]=value
+runtime_env['VOICE_AGENT_MONITORING_RETENTION_DAYS'] = env.get('VOICE_AGENT_MONITORING_RETENTION_DAYS', '90')
 runtime_env['API_TOKEN'] = passwords['SATELLITE_API_TOKEN']
 runtime_env['PGVECTOR_PASSWORD'] = passwords['SATELLITE_PGSQL_PASSWORD']
 agent.write_envfile('satellite.env', runtime_env)

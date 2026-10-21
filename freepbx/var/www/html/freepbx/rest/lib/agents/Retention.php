@@ -1,6 +1,7 @@
 <?php
 // SPDX-License-Identifier: GPL-3.0-or-later
 namespace NethVoice\Agents;
+require_once __DIR__.'/Monitoring.php';
 
 /** Privileged maintenance is separate from the runtime monitoring writer. */
 final class Retention
@@ -15,14 +16,17 @@ final class Retention
     }
     public static function clean(\PDO $db, int $budgetSeconds = 30): int
     {
+        $db->exec("SET time_zone='+00:00'");
         $deadline=microtime(true)+max(1,$budgetSeconds);
         $removed=0;
         do {
             $db->beginTransaction();
             try {
                 $transcripts=$db->exec('DELETE FROM asteriskcdrdb.voice_agent_transcripts WHERE expires_at<=NOW() LIMIT 1000');
-                // Even orphaned running rows expire after the fixed seven days.
-                $ids=$db->query('SELECT run_id FROM asteriskcdrdb.voice_agent_runs WHERE retention_until<=NOW() ORDER BY retention_until LIMIT 1000 FOR UPDATE')->fetchAll(\PDO::FETCH_COLUMN);
+                // The effective metadata policy also expires orphaned running rows.
+                $q=$db->prepare('SELECT run_id FROM asteriskcdrdb.voice_agent_runs WHERE started_at<=DATE_SUB(UTC_TIMESTAMP(),INTERVAL ? DAY) ORDER BY started_at LIMIT 1000 FOR UPDATE');
+                $q->execute([Monitoring::retentionDays()]);
+                $ids=$q->fetchAll(\PDO::FETCH_COLUMN);
                 if ($ids) {
                     $marks=implode(',',array_fill(0,count($ids),'?'));
                     foreach (['voice_agent_transcripts','voice_agent_pending_calls','voice_agent_run_events','voice_agent_runs'] as $table) {
@@ -30,10 +34,13 @@ final class Retention
                         $q->execute($ids);
                     }
                 }
+                $q=$db->prepare('DELETE FROM asteriskcdrdb.voice_agent_metric_hours WHERE hour_start<DATE_SUB(UTC_TIMESTAMP(),INTERVAL ? DAY) LIMIT 1000');
+                $q->execute([Monitoring::retentionDays()]);
+                $metrics=$q->rowCount();
                 $db->commit();
                 $removed+=count($ids);
             } catch (\Throwable $error) { $db->rollBack(); throw $error; }
-        } while (($transcripts===1000 || count($ids)===1000) && microtime(true)<$deadline);
+        } while (($transcripts===1000 || $metrics===1000 || count($ids)===1000) && microtime(true)<$deadline);
         return $removed;
     }
 }

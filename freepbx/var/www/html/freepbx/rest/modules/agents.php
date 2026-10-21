@@ -98,6 +98,9 @@ $agentsRoute('GET','/runs',function($s,$a,$i,$q) {
     $page=$q['page']??'1';
     if (!is_scalar($page) || !preg_match('/^[1-9][0-9]{0,4}$/D',(string)$page)) throw new RuntimeException('invalid_page',422);
     if (isset($q['agent_id']) && !is_string($q['agent_id'])) throw new RuntimeException('invalid_identifier',422);
-    return $s->runs($q['agent_id']??null,(int)$page);
+    return $s->runs($q['agent_id']??null,(int)$page,$q);
 });
+$agentsRoute('GET','/monitoring/summary',fn($s,$a,$i,$q)=>$s->monitoringSummary($q));
+$agentsRoute('GET','/monitoring/health',fn($s)=>$s->monitoringHealth());
+$agentsRoute('GET','/runs/{id}/trace',fn($s,$a,$i,$q)=>$s->trace($a['id'],$q));
 $agentsRoute('GET','/runs/{id}',fn($s,$a)=>$s->run($a['id']));

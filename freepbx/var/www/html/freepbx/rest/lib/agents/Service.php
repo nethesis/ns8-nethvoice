@@ -7,6 +7,7 @@ require_once __DIR__ . '/SecretStore.php';
 require_once __DIR__ . '/Native.php';
 require_once __DIR__ . '/RoutingPolicy.php';
 require_once __DIR__ . '/ProviderCatalog.php';
+require_once __DIR__ . '/Monitoring.php';
 
 /** PHP owns drafts, immutable publication, grants and configuration auditing. */
 final class Service
@@ -513,20 +514,18 @@ final class Service
             return ['removed'=>true]+$this->synchronizeUnlocked($actor);
         });
     }
-    public function runs(?string $agentId = null, int $page = 1): array
+    public function runs(?string $agentId = null, int $page = 1, array $filters = []): array
     {
-        if ($agentId!==null) self::id($agentId);
-        if ($page<1 || $page>10000) self::fail('invalid_page');
-        $where=$agentId?' WHERE r.agent_id=?':''; $args=$agentId?[$agentId]:[];
-        $offset=($page-1)*25;
-        $rows=$this->query('SELECT r.run_id,r.agent_id,a.name AS agent_name,r.workflow_version,r.started_at,r.ended_at,r.outcome,r.error_code FROM asteriskcdrdb.voice_agent_runs r LEFT JOIN asterisk.voice_agent_agents a ON a.agent_id=r.agent_id'.$where.' ORDER BY r.started_at DESC,r.run_id DESC LIMIT 26 OFFSET '.$offset,$args)->fetchAll(\PDO::FETCH_ASSOC);
-        return ['items'=>array_slice($rows,0,25),'page'=>$page,'has_more'=>count($rows)>25];
+        if ($agentId!==null) $filters['agent_id']=$agentId;
+        $filters['page']=$page;
+        return (new Monitoring($this->db))->runs($filters);
     }
+    public function monitoringSummary(array $filters): array { return (new Monitoring($this->db))->summary($filters); }
+    public function monitoringHealth(): array { return (new Monitoring($this->db))->health(); }
+    public function trace(string $id,array $query): array { return (new Monitoring($this->db))->trace($id,$query); }
     public function run(string $id): array
     {
-        if (!preg_match('/^[a-f0-9-]{36}$/D',$id)) self::fail('invalid_identifier');
-        $row=$this->query('SELECT run_id,agent_id,workflow_version,started_at,ended_at,outcome,error_code FROM asteriskcdrdb.voice_agent_runs WHERE run_id=?',[$id])->fetch(\PDO::FETCH_ASSOC);
-        if (!$row) self::fail('run_not_found',404);
+        $row=(new Monitoring($this->db))->run($id);
         $row['events']=$this->query('SELECT event_id,event_type,occurred_at,error_code,tool_id,destination_id,result_count FROM asteriskcdrdb.voice_agent_run_events WHERE run_id=? ORDER BY occurred_at,event_id LIMIT 1000',[$id])->fetchAll(\PDO::FETCH_ASSOC);
         $row['transcripts']=[];
         $secretStore=new SecretStore();
