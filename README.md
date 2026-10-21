@@ -245,8 +245,11 @@ Notes:
   satellite, satellite-mqtt, satellite-pgsql, reports-api, reports-redis,
   reports-ui, sftp, saml2-proxy, oauth2-proxy. Disabled services and services
   never started are not watched.
-- Trunks that register through the proxy are checked by NethVoice proxy. A
-  registration overridden in `pjsip.registration_custom.conf` is not checked.
+- Trunks that go through the proxy (registrations and IP trunk OPTIONS) are
+  checked by NethVoice proxy, only over UDP: over TCP and TLS Asterisk sends
+  from a random port and the proxy cannot tell which NethVoice instance a
+  trunk belongs to, so those trunks are not checked yet. A registration overridden in
+  `pjsip.registration_custom.conf` is not checked.
 - When a check cannot run (public DNS or AI provider unreachable, freepbx
   stopped) it is skipped and no alert fires:
   `nethvoice_exporter_collector_up{collector}` is 0.
