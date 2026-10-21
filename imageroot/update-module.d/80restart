@@ -7,7 +7,7 @@ umask 077
 
 systemctl --user daemon-reload
 # Keep consumers stopped until the new schema AND FreePBX modules are ready.
-services=(watcher.path phonebook-update.timer nethvoice-hotel-alarms.timer nethvoice-calendar-sync.timer nethvoice-restore-background freepbx janus nethcti-server nethcti-middleware nethcti-ui phonebook reports-api reports-redis reports-ui tancredi satellite satellite-mqtt satellite-pgsql)
+services=(watcher.path phonebook-update.timer nethvoice-hotel-alarms.timer nethvoice-calendar-sync.timer nethvoice-restore-background freepbx janus nethcti-server satellite-mqtt satellite-pgsql nethcti-middleware nethcti-ui phonebook reports-api reports-redis reports-ui tancredi satellite)
 active=()
 for service in "${services[@]}"; do
     if systemctl --user is-active --quiet "$service"; then active+=("$service"); fi

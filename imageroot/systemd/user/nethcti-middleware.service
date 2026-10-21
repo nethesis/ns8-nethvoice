@@ -4,8 +4,10 @@
 #
 [Unit]
 Description=NethCTI middleware daemon
-After=nethcti-server.service mariadb.service
-Requires=mariadb.service
+After=nethcti-server.service mariadb.service satellite-pgsql.service satellite-mqtt.service
+Requires=mariadb.service satellite-pgsql.service
+# Reconnect the middleware when integration changes restart PostgreSQL.
+PartOf=satellite-pgsql.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
