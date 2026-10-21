@@ -65,7 +65,6 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	router.RoomName = push.RoomName
-	mw.OnMe = srv.SeenProfile
 	srv.RoomName = push.RoomName
 	router.Names = mw.Name
 	router.Address = mw.Extension

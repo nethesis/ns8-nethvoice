@@ -25,7 +25,6 @@ var (
 type Middleware struct {
 	URL    string
 	OnSeen func(username, name string) // every valid token: who uses the chat, with the name the CTI gives
-	OnMe   func(me cti.Me)             // every valid token: the user's profile, for the CTI groups
 	client *http.Client
 
 	mu      sync.Mutex
@@ -132,9 +131,6 @@ func (m *Middleware) WhoAmI(ctx context.Context, jwt string) (string, error) {
 	m.mu.Unlock()
 	if m.OnSeen != nil {
 		m.OnSeen(me.Username, me.Name)
-	}
-	if m.OnMe != nil {
-		m.OnMe(me)
 	}
 	return me.Username, nil
 }

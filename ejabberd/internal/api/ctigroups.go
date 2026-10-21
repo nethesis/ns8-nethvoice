@@ -1,9 +1,9 @@
 package api
 
 // CTI groups as chats: one room per CTI operator group, cti-<slug>@conference.<host>, named after
-// the group. Its members are the users who see the group in the CTI operators panel: the group's
-// own members, plus anyone with all_groups or that group's grp_ permission. The rooms follow the
-// CTI: members join and leave, a renamed group gets a new room, a deleted one is destroyed.
+// the group. Its members are the group's own operators: seeing a group in the operators panel
+// (all_groups, grp_) is not being in it. The rooms follow the CTI: members join and leave, a
+// renamed group gets a new room, a deleted one is destroyed.
 
 import (
 	"context"
@@ -18,7 +18,6 @@ import (
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/address"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/cti"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/logx"
-	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/store"
 )
 
 // CTIRoomPrefix marks the rooms the gateway keeps for CTI groups: clients offer no leave or delete there.
@@ -28,19 +27,6 @@ const CTIRoomPrefix = "cti-"
 const GroupsEvery = 2 * time.Minute
 
 var groupsMu sync.Mutex // one sync at a time
-
-// SeenProfile records which groups a user sees; a change brings the rooms in line at once.
-func (s *Server) SeenProfile(me cti.Me) {
-	all, slugs := me.GroupAccess()
-	if s.Store.PutGroupAccess(me.Username, store.GroupAccess{All: all, Slugs: slugs}) {
-		logx.Debugf("groups: %s sees all=%v %v", me.Username, all, slugs)
-		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-			defer cancel()
-			s.SyncGroups(ctx)
-		}()
-	}
-}
 
 // SyncGroups brings the CTI group rooms in line with the CTI.
 func (s *Server) SyncGroups(ctx context.Context) {
@@ -59,11 +45,6 @@ func (s *Server) SyncGroups(ctx context.Context) {
 	if err != nil || dir == nil || len(dir.byUser) == 0 {
 		return // never act on a guess
 	}
-	access, err := s.Store.GroupAccesses()
-	if err != nil {
-		log.Printf("groups: %v", err)
-		return
-	}
 	known, err := s.Store.CTIRooms()
 	if err != nil {
 		log.Printf("groups: %v", err)
@@ -79,15 +60,11 @@ func (s *Server) SyncGroups(ctx context.Context) {
 			want[slug] = name
 		}
 	}
+	// Only the group's own operators: seeing a group in the operators panel is not being in it.
 	for slug, name := range want {
 		members := map[string]bool{}
 		for _, u := range groups[name].Users {
 			if _, ok := dir.byUser[u]; ok {
-				members[u] = true
-			}
-		}
-		for u, a := range access {
-			if _, ok := dir.byUser[u]; ok && (a.All || contains(a.Slugs, slug)) {
 				members[u] = true
 			}
 		}
@@ -234,15 +211,6 @@ func keys(m map[string]bool) []string {
 	}
 	sort.Strings(out)
 	return out
-}
-
-func contains(list []string, v string) bool {
-	for _, x := range list {
-		if x == v {
-			return true
-		}
-	}
-	return false
 }
 
 func xmlEscape(v string) string {

@@ -161,9 +161,9 @@ image (see `ejabberd/README.md`): `chat-server` (ejabberd: XMPP over WebSocket, 
   The backup takes consistent snapshots of the two databases (`state/chat.db`, `state/chat-gw.db`) and the upload volume.
 - Secret: `CHAT_COMPONENT_SECRET` in `passwords.env`.
 - CTI groups: every CTI operator group is a group chat (`cti-<name>` room) kept by the gateway every 2 minutes.
-  Its members are who sees the group in the CTI operators panel: the group's members, plus users with the
-  `all_groups` or that group's `grp_` permission. Members join and leave with the CTI; a deleted group's room is
-  destroyed; a renamed group gets a new room.
+  Its members are the group's operators only: seeing a group in the operators panel (`all_groups`, `grp_`) does
+  not make a member. Members join and leave with the CTI; a deleted group's room is destroyed; a renamed group
+  gets a new room.
 - Settings, on the Integrations page or in `set-integrations` (defaults in brackets): `chat_retention_days` (365,
   3650 means forever) days kept for messages and uploads, `chat_upload_quota_mb` (200) upload space per user,
   `chat_upload_max_file_mb` (25) largest upload. `CHAT_DEBUG` (unset) turns on verbose logs of the chat programs.
