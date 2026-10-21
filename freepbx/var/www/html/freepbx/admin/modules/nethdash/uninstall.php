@@ -4,7 +4,7 @@ $dbh = \FreePBX::Database();
 out(_('Restoring FreePBX settings'));
 $table = 'nethdash';
 try {
-    $sql = "UPDATE freepbx_settings set value = 'nethdash' where keyword = 'DASHBOARD_OVERRIDE'";
+    $sql = "UPDATE freepbx_settings set value = '' where keyword = 'DASHBOARD_OVERRIDE'";
     $sth = $dbh->prepare($sql);
     $result = $sth->execute();
 } catch (PDOException $e) {
