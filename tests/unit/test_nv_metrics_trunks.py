@@ -26,6 +26,23 @@ TRUNKS_TSV = (FIXTURES / "trunks_rl1.tsv").read_text()
 CONTACTS_RL1 = (FIXTURES / "pjsip_contacts_rl1.txt").read_text()
 CONTACTS_HERON = (FIXTURES / "pjsip_contacts_heron.txt").read_text()
 ENV = {"PROXY_IP": "10.5.4.1", "PROXY_PORT": "5060"}
+# "pjsip show aor" of an IP trunk through the proxy (demo-heron, other address)
+AOR_IP_TRUNK = """#AOR Ip_Proxy
+      Aor:  <Aor..............................................>  <MaxContact>
+    Contact:  <Aor/ContactUri............................> <Hash....> <Status> <RTT(ms)..>
+==========================================================================================
+
+      Aor:  Ip_Proxy                                             0
+    Contact:  Ip_Proxy/sip:203.0.113.5:5060                b6230fe36e Avail        36.694
+
+
+ ParameterName        : ParameterValue
+ =============================================
+ authenticate_qualify : false
+ contact              : sip:203.0.113.5:5060
+ default_expiration   : 3600
+ outbound_proxy       : sip:10.5.4.1:5060
+"""
 
 
 def trunk(name, **settings):
@@ -165,7 +182,7 @@ class QualifyTest(unittest.TestCase):
         t = trunk("Retel_GNR", registration="none", outbound_proxy="sip:10.5.4.1:5060;lr")
         contacts = {"Retel_GNR": ["Avail"]}
         self.assertNotIn("nethvoice_trunk_qualify_up{", trunks.render([t], endpoints(("Retel_GNR", 2)), ENV, contacts))
-        trunks.collect(lambda: endpoints(("Retel_GNR", 2)), ENV, lambda: [t], self.fail)
+        trunks.collect(lambda: endpoints(("Retel_GNR", 2)), ENV, lambda: [t], self.fail, lambda names: {})
 
     def test_not_qualified_is_not_exported(self):
         t = trunk("Retel GNR", registration="none")
@@ -185,6 +202,82 @@ class QualifyTest(unittest.TestCase):
             return subprocess.CompletedProcess(args, 0, stdout=CONTACTS_HERON)
 
         self.assertEqual(trunks.read_contacts(run), {"201": ["Avail"], "Retel GNR": ["NonQual"]})
+
+
+class ProxyInfoTest(unittest.TestCase):
+    def test_parse_aor_contacts(self):
+        self.assertEqual(trunks.parse_aor_contacts(AOR_IP_TRUNK), {"Ip_Proxy": ["sip:203.0.113.5:5060"]})
+        text = "#AOR A\n contact : sip:a.example.com, sip:b.example.com:5070\n#AOR B\n contact : \n"
+        self.assertEqual(
+            trunks.parse_aor_contacts(text), {"A": ["sip:a.example.com", "sip:b.example.com:5070"], "B": []}
+        )
+
+    def test_aor_command(self):
+        def run(args, **kwargs):
+            self.assertEqual(args[:4], ["podman", "exec", "freepbx", "sh"])
+            self.assertIn('asterisk -rx "pjsip show aor $aor"', args[5])
+            self.assertEqual(args[6:], ["sh", "Ip_Proxy", "Ip2"])
+            return subprocess.CompletedProcess(args, 0, stdout=AOR_IP_TRUNK)
+
+        self.assertEqual(trunks.read_aor_contacts(["Ip_Proxy", "Ip2"], run), {"Ip_Proxy": ["sip:203.0.113.5:5060"]})
+
+    def test_uri_parts(self):
+        self.assertEqual(trunks.uri_parts("sip:0123@sip.example.com:5060;transport=udp"), ("0123", "sip.example.com", "5060"))
+        self.assertEqual(trunks.uri_parts("sip:203.0.113.5"), ("", "203.0.113.5", ""))
+        self.assertEqual(trunks.uri_parts("sips:[2001:db8::1]:5061"), ("", "[2001:db8::1]", "5061"))
+
+    def test_registration_through_the_proxy(self):
+        # Same key as the proxy: "<To user>@<To host>" of the REGISTER
+        text = trunks.render(trunks.parse_rows(TRUNKS_TSV), ASTERISK_METRICS, ENV)
+        self.assertIn('nethvoice_trunk_proxy_info{trunk="NvTestProxy",proxy_trunk="NvTestProxy@192.0.2.12"} 1\n', text)
+        # Trunks that bypass the proxy are not mapped
+        self.assertNotIn('proxy_info{trunk="NvTestSend"', text)
+
+    def test_ip_trunk_through_the_proxy(self):
+        proxy = "sip:10.5.4.1:5060;lr"
+        ip = trunk("Ip_Proxy", registration="none", outbound_proxy=proxy)
+        no_port = trunk("Ip2", registration="none", outbound_proxy=proxy)
+        with_user = trunk("Ip3", registration="none", outbound_proxy=proxy)
+        aors = {
+            "Ip_Proxy": ["sip:203.0.113.5:5060"],
+            "Ip2": ["sip:ip2.example.com"],
+            # The proxy tracks only contacts without user part
+            "Ip3": ["sip:Ip3@203.0.113.7:5060"],
+        }
+        text = trunks.render([ip, no_port, with_user], "", ENV, aor_contacts=aors)
+        self.assertIn('nethvoice_trunk_proxy_info{trunk="Ip_Proxy",proxy_trunk="203.0.113.5:5060"} 1\n', text)
+        self.assertIn('nethvoice_trunk_proxy_info{trunk="Ip2",proxy_trunk="ip2.example.com:5060"} 1\n', text)
+        self.assertNotIn('proxy_info{trunk="Ip3"', text)
+
+    def test_receive_trunk_is_not_mapped(self):
+        t = trunk("Gw1", registration="receive", outbound_proxy="sip:10.5.4.1:5060")
+        self.assertNotIn("nethvoice_trunk_proxy_info{", trunks.render([t], "", ENV))
+
+    def test_aor_read_only_for_ip_trunks_through_the_proxy(self):
+        names = []
+        ip = trunk("Ip_Proxy", registration="none", outbound_proxy="sip:10.5.4.1:5060;lr")
+        direct = trunk("Ip_Direct", registration="none")
+        send = trunk("Prov", registration="send", outbound_proxy="sip:10.5.4.1:5060;lr", sip_server="x")
+
+        def aor_contacts(aors):
+            names.extend(aors)
+            return trunks.parse_aor_contacts(AOR_IP_TRUNK)
+
+        text = trunks.collect(lambda: "", ENV, lambda: [ip, direct, send], lambda: {}, aor_contacts)
+        self.assertEqual(names, ["Ip_Proxy"])
+        self.assertIn('proxy_trunk="203.0.113.5:5060"', text)
+
+    def test_aor_error_skips_only_the_ip_trunk_names(self):
+        def aor_contacts(aors):
+            raise OSError("asterisk not answering")
+
+        ip = trunk("Ip_Proxy", registration="none", outbound_proxy="sip:10.5.4.1:5060;lr")
+        err = io.StringIO()
+        with redirect_stderr(err):
+            text = trunks.collect(lambda: endpoints(("Ip_Proxy", 2)), ENV, lambda: [ip], lambda: {}, aor_contacts)
+        self.assertIn('nethvoice_trunk_endpoint_state{trunk="Ip_Proxy"', text)
+        self.assertNotIn("nethvoice_trunk_proxy_info{", text)
+        self.assertIn("cannot read the AOR contacts", err.getvalue())
 
 
 class CollectTest(unittest.TestCase):
