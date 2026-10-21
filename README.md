@@ -221,6 +221,45 @@ daemon-reload`.
 
 The drop-in is lost when the module is updated or reinstalled.
 
+## Monitoring and alerts
+
+Requirements: core 3.24.0 or later, metrics app 1.7.0-dev.1 or later. With an
+older metrics app the alert rules are ignored.
+
+Every 5 minutes the node runs `export-metrics` and passes its output to the
+metrics app. The module publishes its alert rules from
+`imageroot/etc/metrics/alert-rules/` at create and update time.
+
+| Alert | Severity | Fires when |
+|---|---|---|
+| `ServiceDown` | critical | a service is stopped for 10 minutes (`reason="stopped"`) or restarted at least 3 times in 10 minutes (`reason="crash_loop"`) |
+| `NethVoicePublicDnsFailure` | warning | for 15 minutes a public name does not resolve on 1.1.1.1 and 8.8.8.8 (`reason="not_resolved"`), or the proxy name does not point to the proxy public IP (`reason="ip_mismatch"`) |
+| `NethVoiceAiKeyInvalid` | critical | with transcription on, Deepgram or OpenAI rejects the API key (HTTP 401) for 10 minutes |
+| `NethVoiceAiCreditExhausted` | critical | Satellite reports that a provider refused a call for lack of credit; clears after the next successful call |
+| `NethVoiceTrunkUnreachable` | critical | for 10 minutes a trunk that bypasses the proxy is not registered (`reason="registration_failed"`), the remote side of a `receive` trunk is not registered (`reason="not_registered"`), or the provider of an IP trunk that bypasses the proxy does not answer OPTIONS (`reason="qualify_failed"`; not when Asterisk could not send them) |
+
+Notes:
+
+- Services are read from systemd: freepbx (Asterisk), mariadb, janus,
+  nethcti-ui, nethcti-server, nethcti-middleware, phonebook, tancredi,
+  satellite, satellite-mqtt, satellite-pgsql, reports-api, reports-redis,
+  reports-ui, sftp, saml2-proxy, oauth2-proxy. Disabled services and services
+  never started are not watched.
+- Trunks that register through the proxy are checked by NethVoice proxy. A
+  registration overridden in `pjsip.registration_custom.conf` is not checked.
+- When a check cannot run (public DNS or AI provider unreachable, freepbx
+  stopped) it is skipped and no alert fires:
+  `nethvoice_exporter_collector_up{collector}` is 0.
+- The `asterisk_*` metrics of Asterisk (res_prometheus, password
+  `ASTERISK_PROMETHEUS_PASSWORD` in `passwords.env`) and the `satellite_*`
+  metrics of Satellite are copied as they are and stored by the metrics app.
+
+Check the output by hand:
+
+```bash
+runagent -m nethvoice1 export-metrics
+```
+
 ## Uninstall
 
 To uninstall the instance:
