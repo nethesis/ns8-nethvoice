@@ -26,7 +26,14 @@ const CTIRoomPrefix = "cti-"
 // GroupsEvery: how often the rooms are compared with the CTI groups.
 const GroupsEvery = 2 * time.Minute
 
-var groupsMu sync.Mutex // one sync at a time
+// FullSyncEvery: the rooms are checked against the CTI at least this often, even with no change seen.
+const FullSyncEvery = 30 * time.Minute
+
+var (
+	groupsMu   sync.Mutex // one sync at a time
+	lastGroups string     // the CTI groups and members of the last sync that went through
+	lastFull   time.Time
+)
 
 // SyncGroups brings the CTI group rooms in line with the CTI.
 func (s *Server) SyncGroups(ctx context.Context) {
@@ -61,29 +68,49 @@ func (s *Server) SyncGroups(ctx context.Context) {
 		}
 	}
 	// Only the group's own operators: seeing a group in the operators panel is not being in it.
+	members := map[string]map[string]bool{}
+	var seen []string
 	for slug, name := range want {
-		members := map[string]bool{}
+		members[slug] = map[string]bool{}
 		for _, u := range groups[name].Users {
 			if _, ok := dir.byUser[u]; ok {
-				members[u] = true
+				members[slug][u] = true
 			}
 		}
-		s.syncRoom(ctx, slug, name, members, known)
+		seen = append(seen, slug+"="+name+":"+strings.Join(keys(members[slug]), ","))
+	}
+	for slug, name := range known {
+		seen = append(seen, "room "+slug+"="+name)
+	}
+	sort.Strings(seen)
+	// Nothing changed in the CTI: no calls to ejabberd, each of them costs it a burst of CPU.
+	fp := strings.Join(seen, ";")
+	if fp == lastGroups && time.Since(lastFull) < FullSyncEvery {
+		return
+	}
+	ok := true
+	for slug, name := range want {
+		ok = s.syncRoom(ctx, slug, name, members[slug], known) && ok
 	}
 	for slug := range known {
 		if _, ok := want[slug]; !ok {
 			if err := s.ejabberd(ctx, "destroy_room", map[string]string{"name": CTIRoomPrefix + slug, "service": address.MUC(s.Host)}, nil); err != nil && !roomMissing(err) {
 				log.Printf("groups: destroy %s: %v", slug, err)
+				ok = false
 				continue
 			}
 			s.Store.DeleteCTIRoom(slug)
 			logx.Debugf("groups: %s deleted in the CTI, room destroyed", slug)
 		}
 	}
+	// A failed step is retried on the next round.
+	if ok {
+		lastGroups, lastFull = fp, time.Now()
+	}
 }
 
-// syncRoom creates the room or adjusts its members and name.
-func (s *Server) syncRoom(ctx context.Context, slug, name string, members map[string]bool, known map[string]string) {
+// syncRoom creates the room or adjusts its members and name; false when a step failed.
+func (s *Server) syncRoom(ctx context.Context, slug, name string, members map[string]bool, known map[string]string) bool {
 	room, muc := CTIRoomPrefix+slug, address.MUC(s.Host)
 	var affs []struct {
 		Affiliation string `json:"affiliation"`
@@ -92,12 +119,12 @@ func (s *Server) syncRoom(ctx context.Context, slug, name string, members map[st
 	err := s.ejabberd(ctx, "get_room_affiliations", map[string]string{"room": room, "service": muc}, &affs)
 	if err != nil && !roomMissing(err) {
 		log.Printf("groups: %s: %v", slug, err)
-		return
+		return false
 	}
 	if err != nil {
-		s.createRoom(ctx, slug, name, members)
-		return
+		return s.createRoom(ctx, slug, name, members)
 	}
+	ok := true
 	current := map[string]bool{}
 	for _, a := range affs {
 		if a.Affiliation == "member" || a.Affiliation == "owner" {
@@ -111,6 +138,7 @@ func (s *Server) syncRoom(ctx context.Context, slug, name string, members map[st
 		}
 		if err := s.ejabberd(ctx, "set_room_affiliation", map[string]string{"room": room, "service": muc, "user": u, "host": s.Host, "affiliation": "member"}, nil); err != nil {
 			log.Printf("groups: %s into %s: %v", u, slug, err)
+			ok = false
 			continue
 		}
 		s.subscribe(ctx, u, room)
@@ -123,6 +151,7 @@ func (s *Server) syncRoom(ctx context.Context, slug, name string, members map[st
 		// No affiliation in a members-only room: ejabberd drops the subscription too.
 		if err := s.ejabberd(ctx, "set_room_affiliation", map[string]string{"room": room, "service": muc, "user": u, "host": s.Host, "affiliation": "none"}, nil); err != nil {
 			log.Printf("groups: %s out of %s: %v", u, slug, err)
+			ok = false
 			continue
 		}
 		s.tellRemoved(ctx, u, room)
@@ -140,9 +169,10 @@ func (s *Server) syncRoom(ctx context.Context, slug, name string, members map[st
 		s.invite(ctx, room, added)
 		logx.Debugf("groups: %v into %s", added, slug)
 	}
+	return ok
 }
 
-func (s *Server) createRoom(ctx context.Context, slug, name string, members map[string]bool) {
+func (s *Server) createRoom(ctx context.Context, slug, name string, members map[string]bool) bool {
 	room, muc := CTIRoomPrefix+slug, address.MUC(s.Host)
 	var affs, subs []string
 	for _, u := range keys(members) {
@@ -165,11 +195,12 @@ func (s *Server) createRoom(ctx context.Context, slug, name string, members map[
 	}
 	if err := s.ejabberd(ctx, "create_room_with_opts", map[string]any{"room": room, "service": muc, "host": s.Host, "options": opts}, nil); err != nil {
 		log.Printf("groups: create %s: %v", slug, err)
-		return
+		return false
 	}
 	s.Store.PutCTIRoom(slug, name)
 	s.invite(ctx, room, keys(members))
 	logx.Debugf("groups: room for %q with %d members", name, len(members))
+	return true
 }
 
 func (s *Server) subscribe(ctx context.Context, user, room string) {

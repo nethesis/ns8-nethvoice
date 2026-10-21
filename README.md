@@ -160,6 +160,7 @@ image (see `ejabberd/README.md`): `chat-server` (ejabberd: XMPP over WebSocket, 
 - Volumes: `chat-data` (ejabberd database), `chat-upload` (attachments), `chat-gw` (gateway database).
   The backup takes consistent snapshots of the two databases (`state/chat.db`, `state/chat-gw.db`) and the upload volume.
 - Secret: `CHAT_COMPONENT_SECRET` in `passwords.env`.
+- Erlang runs without epmd or a distribution port: `ejabberdctl` reaches the server through a Unix socket in the container.
 - CTI groups: every CTI operator group is a group chat (`cti-<name>` room) kept by the gateway every 2 minutes.
   Its members are the group's operators only: seeing a group in the operators panel (`all_groups`, `grp_`) does
   not make a member. Members join and leave with the CTI; a deleted group's room is destroyed; a renamed group
