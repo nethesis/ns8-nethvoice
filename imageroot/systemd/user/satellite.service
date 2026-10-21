@@ -9,6 +9,7 @@ EnvironmentFile=%E/state/environment
 EnvironmentFile=%E/state/passwords.env
 WorkingDirectory=%E/state
 Restart=always
+RestartSec=10s
 ExecStartPre=/bin/rm -f %t/satellite.pid %t/satellite.ctr-id
 ExecStart=runagent /usr/bin/podman run \
     --detach \
