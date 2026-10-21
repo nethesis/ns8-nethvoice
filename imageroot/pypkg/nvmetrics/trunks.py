@@ -22,6 +22,11 @@ Used by the NethVoiceTrunkUnreachable alert (etc/metrics/alert-rules/nethvoice-t
   silent and counts it as an answer, so the proxy checks those. Not exported
   when Asterisk did not qualify the contact (NonQual, Unknown): the endpoint
   state is then offline too, but calls can still work.
+- nethvoice_trunk_proxy_info{trunk,proxy_trunk}: always 1. Maps a trunk that
+  uses the NethVoice proxy to the "trunk" label of the proxy series: the
+  registration AOR "<user>@<host>" (registration=send) or the contact
+  address "<host>:<port>" (registration=none). The proxy alerts look up the
+  trunk name with it.
 
 The trunk list comes from the FreePBX database, the states from the Asterisk
 metrics page. asterisk_pjsip_outbound_registration_status identifies a
@@ -55,6 +60,10 @@ KEYWORDS = (
 REGISTERED = 1
 # "pjsip show contacts" line: "Contact:  <aor>/<uri> <hash> <status> <rtt>"
 _CONTACT_RE = re.compile(r"^\s*Contact:\s+(.+?)/sips?:\S*\s+\S+\s+(\S+)\s+\S+\s*$")
+# "pjsip show aor" parameter line: "contact : <uri>[,<uri>...]"
+_AOR_CONTACT_RE = re.compile(r"^\s*contact\s*:\s*(.*?)\s*$")
+# Marker printed before each "pjsip show aor" output
+_AOR_MARK = "#AOR "
 
 
 def query():
@@ -134,6 +143,70 @@ def parse_contacts(text):
     return contacts
 
 
+def read_aor_contacts(names, run=subprocess.run):
+    """Return {AOR name: [contact URI]} of the static contacts of the AORs.
+
+    "pjsip show contacts" cuts long URIs, the parameter list of "pjsip show
+    aor" does not.
+    """
+    script = 'for aor; do echo "%s$aor"; asterisk -rx "pjsip show aor $aor"; done' % _AOR_MARK
+    result = run(
+        ["podman", "exec", "freepbx", "sh", "-c", script, "sh", *names],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=TIMEOUT,
+    )
+    return parse_aor_contacts(result.stdout)
+
+
+def parse_aor_contacts(text):
+    contacts = {}
+    aor = None
+    for line in text.splitlines():
+        if line.startswith(_AOR_MARK):
+            aor = line[len(_AOR_MARK):]
+            continue
+        match = _AOR_CONTACT_RE.match(line)
+        if aor is not None and match:
+            contacts[aor] = [uri.strip() for uri in match.group(1).split(",") if uri.strip()]
+    return contacts
+
+
+def uri_parts(uri):
+    """Return (user, host, port) of a SIP URI; port is "" when missing."""
+    rest = re.sub(r"^sips?:", "", uri.strip()).split(";")[0].split("?")[0]
+    user, _, hostport = rest.rpartition("@")
+    if hostport.startswith("["):
+        host, _, port = hostport.partition("]")
+        host += "]"
+        port = port[1:]
+    else:
+        host, _, port = hostport.partition(":")
+    return user, host, port
+
+
+def proxy_trunks(trunk, aor_contacts):
+    """Return the "trunk" labels of the proxy series of a trunk that uses the proxy.
+
+    Same values as the Kamailio htable keys: "<To user>@<To host>" of the
+    REGISTER (To = client URI), "<host>:<port>" of the OPTIONS To URI (the
+    contact, port 5060 when missing; contacts with a user part are not
+    tracked by the proxy).
+    """
+    if registration(trunk) == "send":
+        user, host, _ = uri_parts(registration_uris(trunk)[0])
+        return [user + "@" + host]
+    if registration(trunk) == "none":
+        addresses = []
+        for uri in aor_contacts.get(trunk["name"], []):
+            user, host, port = uri_parts(uri)
+            if host and not user:
+                addresses.append("%s:%s" % (host, port if port not in ("", "0") else "5060"))
+        return addresses
+    return []
+
+
 def qualify_up(statuses):
     """Return 1 if a contact answers OPTIONS, 0 if every checked contact does not, None if not checked."""
     if "Avail" in statuses:
@@ -168,10 +241,11 @@ def registration_uris(trunk):
     return client, server
 
 
-def render(trunks, page, env=os.environ, contacts=None):
+def render(trunks, page, env=os.environ, contacts=None, aor_contacts=None):
     """Return the metrics in the Prometheus text format.
 
     contacts: {AOR name: [contact status]}, None when they cannot be read.
+    aor_contacts: {AOR name: [contact URI]} of the IP trunks that use the proxy.
     """
     endpoints = {
         labels.get("resource"): value
@@ -185,6 +259,7 @@ def render(trunks, page, env=os.environ, contacts=None):
     states = []
     registered = []
     qualified = []
+    mapped = []
     for trunk in trunks:
         name = promtext.escape(trunk["name"])
         bypass = not via_proxy(trunk, env)
@@ -202,6 +277,11 @@ def render(trunks, page, env=os.environ, contacts=None):
             up = qualify_up(contacts.get(trunk["name"], []))
             if up is not None:
                 qualified.append('nethvoice_trunk_qualify_up{trunk="%s"} %d' % (name, up))
+        if not bypass:
+            for proxy_trunk in proxy_trunks(trunk, aor_contacts or {}):
+                mapped.append(
+                    'nethvoice_trunk_proxy_info{trunk="%s",proxy_trunk="%s"} 1' % (name, promtext.escape(proxy_trunk))
+                )
     lines = [
         "# HELP nethvoice_trunk_endpoint_state State of the trunk endpoint in Asterisk: 0 unknown, 1 offline, 2 online",
         "# TYPE nethvoice_trunk_endpoint_state gauge",
@@ -212,11 +292,14 @@ def render(trunks, page, env=os.environ, contacts=None):
         "# HELP nethvoice_trunk_qualify_up 1 if the IP trunk provider answers OPTIONS, 0 if it does not",
         "# TYPE nethvoice_trunk_qualify_up gauge",
         *qualified,
+        "# HELP nethvoice_trunk_proxy_info Maps a trunk to the trunk label of the NethVoice proxy series",
+        "# TYPE nethvoice_trunk_proxy_info gauge",
+        *mapped,
     ]
     return "\n".join(lines) + "\n"
 
 
-def collect(page, env=os.environ, trunks=read_trunks, contacts=read_contacts):
+def collect(page, env=os.environ, trunks=read_trunks, contacts=read_contacts, aor_contacts=read_aor_contacts):
     # The page is read first: while freepbx is down there is nothing to check
     text = page()
     if not env.get("PROXY_IP") or not env.get("PROXY_PORT"):
@@ -230,4 +313,12 @@ def collect(page, env=os.environ, trunks=read_trunks, contacts=read_contacts):
         except Exception as ex:
             # Only the IP trunk check is skipped
             print("trunks: cannot read the contacts: %s" % ex, file=sys.stderr)
-    return render(trunk_list, text, env, contact_list)
+    aor_list = None
+    names = [trunk["name"] for trunk in trunk_list if registration(trunk) == "none" and via_proxy(trunk, env)]
+    if names:
+        try:
+            aor_list = aor_contacts(names)
+        except Exception as ex:
+            # Only the trunk names of the proxy alerts are missing
+            print("trunks: cannot read the AOR contacts: %s" % ex, file=sys.stderr)
+    return render(trunk_list, text, env, contact_list, aor_list)

@@ -249,7 +249,9 @@ Notes:
   checked by NethVoice proxy, only over UDP: over TCP and TLS Asterisk sends
   from a random port and the proxy cannot tell which NethVoice instance a
   trunk belongs to, so those trunks are not checked yet. A registration overridden in
-  `pjsip.registration_custom.conf` is not checked.
+  `pjsip.registration_custom.conf` is not checked. NethVoice exports
+  `nethvoice_trunk_proxy_info{trunk,proxy_trunk}` so the proxy alerts can show
+  the trunk name next to the address the proxy sees.
 - When a check cannot run (public DNS or AI provider unreachable, freepbx
   stopped) it is skipped and no alert fires:
   `nethvoice_exporter_collector_up{collector}` is 0.
