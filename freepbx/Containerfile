@@ -587,7 +587,9 @@ done
 # Add branding
 COPY var/www/html/freepbx/admin/brand/* /var/www/html/freepbx/admin/brand/
 
-RUN ln -sf /var/lib/asterisk/bin/fwconsole /usr/bin/fwconsole
+# Preserve the path used by crontabs carried over from older FreePBX images.
+RUN ln -sf /var/lib/asterisk/bin/fwconsole /usr/bin/fwconsole && \
+	ln -sf /var/lib/asterisk/bin/fwconsole /usr/sbin/fwconsole
 
 RUN pip install --break-system-packages mysql-connector-python configparser
 
