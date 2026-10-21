@@ -226,11 +226,13 @@ function insertMessageIntoDB($section,$parameters) {
 }
 
 include_once(getFreepbxDbConfigPath());
+function connectFiasDatabase() {
+    global $amp_conf;
+    return new \PDO(buildMysqlDsn($amp_conf['AMPDBHOST'], getFiasDatabaseName(), $amp_conf['AMPDBPORT']),
+        $amp_conf['AMPDBUSER'], $amp_conf['AMPDBPASS'], fiasPdoOptions());
+}
 try {
-    $fiasdb = new \PDO(buildMysqlDsn($amp_conf['AMPDBHOST'], getFiasDatabaseName(), $amp_conf['AMPDBPORT']),
-        $amp_conf['AMPDBUSER'],
-        $amp_conf['AMPDBPASS'],
-        fiasPdoOptions());
+    $fiasdb = connectFiasDatabase();
 } catch (PDOException $e) {
     logMessage("Error connecting to database; ".$e->getMessage(), ERROR, __FILE__);
     exit(1);

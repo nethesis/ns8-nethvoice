@@ -370,9 +370,9 @@ function getRate($id)
   $id = (int)$id;
   $result = sql("SELECT * FROM roomsdb.rates WHERE id=$id","getRow", DB_FETCHMODE_ASSOC);
 
-  return "<duration>".($result['duration'] ?? '')."</duration><price>".($result['price'] ?? '')."</price><enabled>".($result['enabled'] ?? '')."</enabled>
-  <answer_duration>".($result['answer_duration'] ?? '')."</answer_duration><answer_price>".($result['answer_price'] ?? '')."</answer_price>
-  <name>".($result['name'] ?? '')."</name><pattern>".($result['pattern'] ?? '')."</pattern>";
+  return "<duration>".htmlspecialchars((string) ($result['duration'] ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8')."</duration><price>".htmlspecialchars((string) ($result['price'] ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8')."</price><enabled>".htmlspecialchars((string) ($result['enabled'] ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8')."</enabled>
+  <answer_duration>".htmlspecialchars((string) ($result['answer_duration'] ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8')."</answer_duration><answer_price>".htmlspecialchars((string) ($result['answer_price'] ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8')."</answer_price>
+  <name>".htmlspecialchars((string) ($result['name'] ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8')."</name><pattern>".htmlspecialchars((string) ($result['pattern'] ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8')."</pattern>";
 
 }
 
@@ -382,8 +382,8 @@ function getExtra($id)
   $id = (int)$id;
   $result = sql("SELECT * FROM roomsdb.extra WHERE id=$id","getRow", DB_FETCHMODE_ASSOC);
   $price = str_replace('.',',',$result['price'] ?? '');
-  return "<price>{$price}</price><enabled>".($result['enabled'] ?? '')."</enabled>
-  <name>".($result['name'] ?? '')."</name><code>".($result['code'] ?? '')."</code>";
+  return "<price>".htmlspecialchars($price, ENT_XML1 | ENT_QUOTES, 'UTF-8')."</price><enabled>".htmlspecialchars((string) ($result['enabled'] ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8')."</enabled>
+  <name>".htmlspecialchars((string) ($result['name'] ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8')."</name><code>".htmlspecialchars((string) ($result['code'] ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8')."</code>";
 
 }
 
@@ -392,7 +392,7 @@ function getCode($id)
   global $db;
   $id = (int)$id;
   $result = sql("SELECT * FROM roomsdb.codes WHERE id=$id","getRow", DB_FETCHMODE_ASSOC);
-  return "<code>".($result['code'] ?? '')."</code><note>".($result['note'] ?? '')."</note><number>".($result['number'] ?? '')."</number><falsegoto>".($result['falsegoto'] ?? '')."</falsegoto>";
+  return "<code>".htmlspecialchars((string) ($result['code'] ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8')."</code><note>".htmlspecialchars((string) ($result['note'] ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8')."</note><number>".htmlspecialchars((string) ($result['number'] ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8')."</number><falsegoto>".htmlspecialchars((string) ($result['falsegoto'] ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8')."</falsegoto>";
 }
 
 function getGroup($ext)

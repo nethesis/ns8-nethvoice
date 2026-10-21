@@ -12,15 +12,8 @@ if [[ "$mariadb_running" != active ]]; then
     systemctl --user start mariadb
 fi
 
-# Complete legacy bulk restores before schema convergence and app startup.
-for dump in ./restore_background/*.sql; do
-    [[ -f "$dump" ]] || continue
-    podman run --rm -i --network=host --env-file=./passwords.env \
-        --env=NETHVOICE_MARIADB_PORT --entrypoint=bash "${NETHVOICE_MARIADB_IMAGE}" \
-        -ec 'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; exec mysql -u root -h 127.0.0.1 -P "$NETHVOICE_MARIADB_PORT"' < "$dump"
-    rm -- "$dump"
-done
-
+# Historic call data is independent of the configuration schema. Start its
+# resumable import only after the synchronous migrations have succeeded.
 # Use SQL from the new image before replacing the running database container.
 # This client never mounts the database volume.
 podman run --rm --network=host \

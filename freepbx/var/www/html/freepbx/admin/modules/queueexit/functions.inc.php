@@ -64,14 +64,14 @@ function queueexit_get_config($engine){
                 $ext->add($contextname, 's-TIMEOUT', '', new ext_goto($goto_timeout_pri,$goto_timeout_exten,$goto_timeout));
 
                 $ext->add($contextname, 's-FULL', '', new ext_noop('Queue FULL'));
-                $ext->add($contextname, 's-FULL', '', new ext_queuelog('${queuenum}','${UNIQUEID}','NONE','${QUEUESTATUS}','${CALLERID(num)}|${CALLERID(num)}'));
+                $ext->add($contextname, 's-FULL', '', new ext_queuelog('${queuenum}','${UNIQUEID}','NONE','${QUEUESTATUS}','${CALLERID(num)}'));
                 $goto_full = strtok($queueexit['full_destination'],',');
                 $goto_full_exten = strtok(',');
                 $goto_full_pri = strtok(',');
                 $ext->add($contextname, 's-FULL', '', new ext_goto($goto_full_pri,$goto_full_exten,$goto_full));
 
                 $ext->add($contextname, 's-JOINEMPTY', '', new ext_noop('Queue JOINEMPTY'));
-                $ext->add($contextname, 's-JOINEMPTY', '', new ext_queuelog('${queuenum}','${UNIQUEID}','NONE','${QUEUESTATUS}','${CALLERID(num)}|${CALLERID(num)}'));
+                $ext->add($contextname, 's-JOINEMPTY', '', new ext_queuelog('${queuenum}','${UNIQUEID}','NONE','${QUEUESTATUS}','${CALLERID(num)}'));
                 $goto_joinempty = strtok($queueexit['joinempty_destination'],',');
                 $goto_joinempty_exten = strtok(',');
                 $goto_joinempty_pri = strtok(',');
@@ -84,7 +84,7 @@ function queueexit_get_config($engine){
                 $ext->add($contextname, 's-LEAVEEMPTY', '', new ext_goto($goto_leaveempty_pri,$goto_leaveempty_exten,$goto_leaveempty));
 
                 $ext->add($contextname, 's-JOINUNAVAIL', '', new ext_noop('Queue JOINUNAVAIL'));
-                $ext->add($contextname, 's-JOINUNAVAIL', '', new ext_queuelog('${queuenum}','${UNIQUEID}','NONE','${QUEUESTATUS}','${CALLERID(num)}|${CALLERID(num)}'));
+                $ext->add($contextname, 's-JOINUNAVAIL', '', new ext_queuelog('${queuenum}','${UNIQUEID}','NONE','${QUEUESTATUS}','${CALLERID(num)}'));
                 $goto_joinunavail = strtok($queueexit['joinunavail_destination'],',');
                 $goto_joinunavail_exten = strtok(',');
                 $goto_joinunavail_pri = strtok(',');

@@ -25,7 +25,7 @@ $dataurl = "ajax.php?module=rapidcode&command=getJSON&jdata=grid";
 <table id="mygrid" data-url="<?php echo $dataurl?>" data-cache="false" data-toolbar="#toolbar-all" data-maintain-selected="true" data-show-columns="true" data-show-toggle="true" data-toggle="table" data-pagination="false" data-search="true" class="table table-striped">
 	<thead>
 		<tr>
-			<th data-field="label"><?php echo _("Label")?></th>
+			<th data-field="label" data-escape="true"><?php echo _("Label")?></th>
                         <th data-field="number"><?php echo _("Phone Number")?></th>
                         <th data-field="code"><?php echo _("Rapid Code")?></th>
 			<th data-field="link" data-formatter="linkFormatter"><?php echo _("Actions")?></th>

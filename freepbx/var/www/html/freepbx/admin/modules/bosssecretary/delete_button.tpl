@@ -1,11 +1,1 @@
-<script language="javascript">
-	function deleteGroup(question, url)
-	{ 
-		if (confirm (question))
-		{ 
-			window.location.href=url;
-		} 
-	}
-</script>
-
-<input type="button" name="delete" value="{delete_button_label}" onclick="deleteGroup('{delete_question}','{delete_url}');" />
+<button type="submit" name="bsgroupdelete" value="bsgroup-{group_number}" onclick="return confirm('Delete this group?')">{delete_button_label}</button>

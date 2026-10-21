@@ -168,7 +168,8 @@ function nethcti3_configure_forward_identity($ext) {
         }
     }
     if (count($matches) !== 1) {
-        throw new RuntimeException('Cannot find the Core call-forward loop check; refusing to change the dialplan');
+        error_log('NethCTI: Cannot find the Core call-forward loop check; skipping forwarding identity hook');
+        return;
     }
 
     // splice() takes a zero-based position, unlike replace() priorities.
@@ -177,18 +178,22 @@ function nethcti3_configure_forward_identity($ext) {
     $ext->splice($context, $extension, (string) ($position + 1), new ext_execif('$["${CFIGNORE}"="" & "${NETHVOICE_CF_DEST}"!="" & "${NETHVOICE_CF_DEST:0:2}"!="vm" & "${DB(AMPUSER/${NETHVOICE_CF_DEST}/cidnum)}"=""]', 'Set', '__REALCALLERIDNUM=${DEXTEN}'), 'nethvoice-cf-identity');
 }
 
-/** Keep the TIM progress response on the no-answer path as instructions move. */
+/** Preserve the TIM Answer/Ringing response on the forwarding path (#7321). */
 function nethcti3_configure_forward_progress($ext) {
     $matches = [];
     foreach ($ext->_exts['macro-dial-one'][' cf '] ?? [] as $index => $step) {
-        if ($step['cmd']->output() === 'Set(DIALSTATUS=NOANSWER)') {
+        if (($step['tag'] ?? '') === 'nethvoice-cf-answer') {
+            return;
+        }
+        if ($step['cmd']->output() === 'ExecIf($["${DEXTEN}"!=""]?Return())') {
             $matches[] = $index;
         }
     }
     if (count($matches) !== 1) {
-        throw new RuntimeException('Cannot find the Core call-forward no-answer path');
+        error_log('NethCTI: Cannot find the Core call-forward return; skipping TIM progress hook');
+        return;
     }
-    $ext->splice('macro-dial-one', 'cf', (string) $matches[0], new ext_answer());
+    $ext->splice('macro-dial-one', 'cf', (string) $matches[0], new ext_answer(), 'nethvoice-cf-answer');
     $ext->splice('macro-dial-one', 'cf', (string) ($matches[0] + 1), new ext_ringing());
 }
 
@@ -642,6 +647,9 @@ function nethcti3_get_config_late($engine) {
             $results = [];
         }
         foreach ($results as $r) {
+            foreach ($r as $key => $value) {
+                if ($value !== null) { $r[$key] = (string) $value; }
+            }
             $pername = 'vs_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$r['descr'])));
             $out[$pername] = $r;
         }

@@ -11,7 +11,7 @@ import time
 
 def main():
     if subprocess.run(
-        ['podman', 'exec', 'freepbx', 'true'],
+        ['podman', 'exec', 'freepbx', 'test', '-f', '/var/run/nethvoice/freepbx-ready'],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     ).returncode == 0:
         # Match startup's bounded retry for FreePBX's reload lock. Other
@@ -31,6 +31,12 @@ def main():
             print('FreePBX reload is busy, retrying in five seconds', file=sys.stderr)
             time.sleep(5)
         return
+
+    if subprocess.run(
+        ['podman', 'exec', 'freepbx', 'true'],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    ).returncode == 0:
+        raise RuntimeError('FreePBX initialization is in progress or has failed; refusing to reload')
 
     # Restore/clone can carry generated files from another instance. Update
     # only their bindings before first start; FreePBX generates the full config

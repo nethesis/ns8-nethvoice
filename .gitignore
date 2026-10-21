@@ -12,3 +12,6 @@ DEVELOPMENT.md
 __pycache__/
 *.pyc
 .gitnexus
+
+/freepbx/var/www/html/freepbx/rest/vendor/
+/.test-sources/

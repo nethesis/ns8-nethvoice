@@ -448,6 +448,11 @@ $app->put('/cti/dbconn/{id}', function (Request $request, Response $response, $a
         $args = array();
         $fields = array();
 
+        $allowed = ['host', 'port', 'type', 'user', 'pass', 'name'];
+        if (!is_array($data) || !$data || array_diff(array_keys($data), $allowed)) {
+            return jsonResponse($response, ['message' => 'Invalid database connection fields'], 400);
+        }
+
         foreach ($data as $p=>$v) {
             $fields[] = $p. ' = ?';
             $args[] = $v;

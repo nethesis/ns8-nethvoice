@@ -453,9 +453,7 @@ function bosssecretary_get_group_number_free()
 function bosssecretary_set_group_number_free($number)
 {
 	global $db;
-	$sql = "INSERT INTO bosssecretary_group_numbers_free VALUES ('$number')";
-	//$result = $db->getAll($sql);
-	return sql($sql);
+	return bosssecretary_execute('INSERT INTO bosssecretary_group_numbers_free VALUES (?)', [$number]);
 }
 
 function bosssecretary_remove_group_number_free($number)
@@ -463,8 +461,7 @@ function bosssecretary_remove_group_number_free($number)
 	global $db;
 	$sql = "DELETE FROM bosssecretary_group_numbers_free WHERE _rowid NOT IN (SELECT _rowid FROM bosssecretary_group) AND _rowid > (SELECT MAX(_rowid) FROM bosssecretary_group)";
 	sql($sql);
-	$sql = "DELETE FROM bosssecretary_group_numbers_free WHERE _rowid = '$number'";
-	return sql($sql);
+	return bosssecretary_execute('DELETE FROM bosssecretary_group_numbers_free WHERE _rowid = ?', [$number]);
 }
 
 
@@ -473,7 +470,7 @@ function bosssecretary_group_add ( $group_number, $group_label,  array $bosses, 
 {
 	global $db;
 	$errors= array();
-	if (is_numeric($group_number) or $group_number =="")
+	if (ctype_digit((string) $group_number))
 	{
 		if (!bosssecretary_group_exists($group_number))
 		{
@@ -489,8 +486,7 @@ function bosssecretary_group_add ( $group_number, $group_label,  array $bosses, 
 
 			if (empty($errors))
 			{
-				$sql = "INSERT INTO bosssecretary_group (`id_group`, `label`) VALUES('".$db->escapeSimple($group_number)."', '".$db->escapeSimple($group_label)."')";
-				sql($sql);
+				bosssecretary_execute('INSERT INTO bosssecretary_group (`id_group`, `label`) VALUES (?, ?)', [$group_number, $group_label]);
 				//$group_number = mysql_insert_id();
 				bosssecretary_remove_group_number_free($group_number);
 
@@ -499,8 +495,7 @@ function bosssecretary_group_add ( $group_number, $group_label,  array $bosses, 
 					$boss = trim($boss);
 					if (!empty($boss) and !(bosssecretary_extension_in_bosses_group($boss)))
 					{
-						$sql = "INSERT INTO bosssecretary_boss VALUES ('$group_number', '$boss')";
-						sql($sql);
+						bosssecretary_execute('INSERT INTO bosssecretary_boss VALUES (?, ?)', [$group_number, $boss]);
 					}
 					else
 					{
@@ -512,8 +507,7 @@ function bosssecretary_group_add ( $group_number, $group_label,  array $bosses, 
 					$secretary = trim($secretary);
 					if (!empty($secretary) and !(bosssecretary_extension_in_secretaries_group($secretary)))
 					{
-						$sql = "INSERT INTO bosssecretary_secretary VALUES ('$group_number', '$secretary')";
-						sql($sql);
+						bosssecretary_execute('INSERT INTO bosssecretary_secretary VALUES (?, ?)', [$group_number, $secretary]);
 					}
 					else
 					{
@@ -528,8 +522,7 @@ function bosssecretary_group_add ( $group_number, $group_label,  array $bosses, 
 						$chief = trim($chief);
 						if (!empty($chief))
 						{
-							$sql = "INSERT INTO bosssecretary_chief VALUES ('$group_number', '$chief')";
-							sql($sql);
+							bosssecretary_execute('INSERT INTO bosssecretary_chief VALUES (?, ?)', [$group_number, $chief]);
 						}
 					}
 				}
@@ -554,7 +547,7 @@ function bosssecretary_group_edit ( $group_number, $group_label,  array $bosses,
 {
 	global $db;
 	$errors= array();
-	if (is_numeric($group_number))
+	if (ctype_digit((string) $group_number))
 	{
 		if (bosssecretary_group_exists($group_number) )
 		{
@@ -569,27 +562,21 @@ function bosssecretary_group_edit ( $group_number, $group_label,  array $bosses,
 
 			if (empty($errors))
 			{
-				$sql = "DELETE FROM `bosssecretary_group` WHERE id_group = $group_number";
-				sql($sql);
+				bosssecretary_execute('DELETE FROM `bosssecretary_group` WHERE id_group = ?', [$group_number]);
 
-				$sql = "DELETE FROM `bosssecretary_boss` WHERE id_group = $group_number";
-				sql($sql);
+				bosssecretary_execute('DELETE FROM `bosssecretary_boss` WHERE id_group = ?', [$group_number]);
 
-				$sql = "DELETE FROM `bosssecretary_secretary` WHERE id_group = $group_number";
-				sql($sql);
+				bosssecretary_execute('DELETE FROM `bosssecretary_secretary` WHERE id_group = ?', [$group_number]);
 
-				$sql = "DELETE FROM `bosssecretary_chief` WHERE id_group = $group_number";
-				sql($sql);
+				bosssecretary_execute('DELETE FROM `bosssecretary_chief` WHERE id_group = ?', [$group_number]);
 
-				$sql = "INSERT INTO bosssecretary_group (`id_group`, `label`) VALUES('".$db->escapeSimple($group_number)."', '".$db->escapeSimple($group_label)."')";
-				sql($sql);
+				bosssecretary_execute('INSERT INTO bosssecretary_group (`id_group`, `label`) VALUES (?, ?)', [$group_number, $group_label]);
 				foreach ($bosses as $boss)
 				{
 					$boss = trim($boss);
 					if (!empty($boss))
 					{
-						$sql = "INSERT INTO bosssecretary_boss VALUES ('$group_number', '$boss')";
-						sql($sql);
+						bosssecretary_execute('INSERT INTO bosssecretary_boss VALUES (?, ?)', [$group_number, $boss]);
 					}
 				}
 				foreach ($secretaries as $secretary)
@@ -597,8 +584,7 @@ function bosssecretary_group_edit ( $group_number, $group_label,  array $bosses,
 					$secretary = trim($secretary);
 					if (!empty($secretary))
 					{
-						$sql = "INSERT INTO bosssecretary_secretary VALUES ('$group_number', '$secretary')";
-						sql($sql);
+						bosssecretary_execute('INSERT INTO bosssecretary_secretary VALUES (?, ?)', [$group_number, $secretary]);
 					}
 				}
 
@@ -607,8 +593,7 @@ function bosssecretary_group_edit ( $group_number, $group_label,  array $bosses,
 					$chief = trim($chief);
 					if (!empty($chief))
 					{
-						$sql = "INSERT INTO bosssecretary_chief VALUES ('$group_number', '$chief')";
-						sql($sql);
+						bosssecretary_execute('INSERT INTO bosssecretary_chief VALUES (?, ?)', [$group_number, $chief]);
 					}
 				}
 
@@ -628,41 +613,27 @@ function bosssecretary_group_edit ( $group_number, $group_label,  array $bosses,
 
 }
 
+function bosssecretary_execute($sql, array $params) {
+    $statement = \FreePBX::Database()->prepare($sql);
+    $statement->execute($params);
+    return $statement;
+}
+
 function bosssecretary_group_delete($group_number)
 {
-	global $db;
-	$sql = "DELETE FROM `bosssecretary_group` WHERE id_group = '$group_number'";
-	$group = sql($sql);
-
-
-	$sql = "DELETE FROM `bosssecretary_boss` WHERE id_group = '$group_number'";
-	$bosses = sql($sql);
-
-	$sql = "DELETE FROM `bosssecretary_secretary` WHERE id_group = '$group_number'";
-	$secretaries = sql($sql);
-
-	$sql = "DELETE FROM `bosssecretary_chief` WHERE id_group = '$group_number'";
-	$chiefs = sql($sql);
-
-	bosssecretary_set_group_number_free($group_number);
-	return (($group === $bosses) and ($group===$secretaries));
+    if (!ctype_digit((string) $group_number)) { return false; }
+    foreach (['group', 'boss', 'secretary', 'chief'] as $table) {
+        bosssecretary_execute('DELETE FROM bosssecretary_' . $table . ' WHERE id_group = ?', [$group_number]);
+    }
+    bosssecretary_set_group_number_free($group_number);
+    return true;
 }
 
-function bosssecretary_group_exists( $group)
+function bosssecretary_group_exists($group)
 {
-	global $db;
-
-	$sql = "SELECT 'true' from bosssecretary_group WHERE id_group='" . $db->escapeSimple($group). "' LIMIT 1";
-	$results = $db->getAll($sql);
-	if(DB::IsError($results)) {
-		$results = null;
-	}
-	return count($results) == 1;
+    if (!ctype_digit((string) $group)) { return false; }
+    return bosssecretary_execute('SELECT id_group FROM bosssecretary_group WHERE id_group = ? LIMIT 1', [$group])->fetchColumn() !== false;
 }
-
-
-
-
 
 function bosssecretary_extension_in_bosses_group( $ext)
 {
@@ -672,7 +643,7 @@ function bosssecretary_extension_in_bosses_group( $ext)
 	if(DB::IsError($results)) {
 		$results = null;
 	}
-	return count($results) == 1;
+	return is_array($results) && count($results) === 1;
 }
 
 
@@ -684,7 +655,7 @@ function bosssecretary_extension_in_secretaries_group( $ext)
 	if(DB::IsError($results)) {
 		$results = null;
 	}
-	return count($results) == 1;
+	return is_array($results) && count($results) === 1;
 }
 
 
@@ -733,7 +704,7 @@ function bosssecretary_extension_exists($ext){
 	global $db;
 	$sql = "SELECT 'true' FROM `users` WHERE extension = '" . $db->escapeSimple($ext) . "' LIMIT 1";
 	$result = $db->getAll($sql);
-	return count($result[0]) === 1;
+	return is_array($result) && count($result) === 1;
 }
 
 
@@ -835,7 +806,10 @@ function bosssecretary_create_nav_groups_links($groups, $dispnum)
 
 function bosssecretary_extract_group_from_request( $param)
 {
-	return ltrim($param, BOSSSECRETARY_PARAM_PREFIX); // easy, isn't it?
+	if (!is_string($param) || !preg_match('/^' . preg_quote(BOSSSECRETARY_PARAM_PREFIX, '/') . '(add|[0-9]+)$/D', $param, $match)) {
+        return '';
+    }
+    return $match[1];
 }
 
 
@@ -973,9 +947,21 @@ OUTPUT;
 }
 
 
+function bosssecretary_escape($value) {
+    return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function bosssecretary_csrf_token() {
+    if (empty($_SESSION['bosssecretary_csrf'])) {
+        $_SESSION['bosssecretary_csrf'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['bosssecretary_csrf'];
+}
+
 function bosssecretary_get_form_add( array $params)
 {
 	$vars["form_title"] = "Add Group";
+    $vars["group_number"] = "";
 	$vars["form_url"] = "config.php?display=bosssecretary&bsgroupdisplay=".BOSSSECRETARY_PARAM_PREFIX. "add";
 	$vars["bosses_extensions"] 		=	(isset($params["bosses"])) ? implode("\n", $params["bosses"]) : '';
 	$vars["secretaries_extensions"]	=	(isset($params["secretaries"])) ? implode("\n", $params["secretaries"]) : '';
@@ -998,7 +984,7 @@ function bosssecretary_get_form_edit( array $params)
 	$vars["chiefs_extensions"]	=	(isset($params["chiefs"])) ? implode("\n", $params["chiefs"]) : '';
 	$vars["group_number"] = $params["group_number"];
 	$vars["group_label"] = $params["group_label"];
-	$vars["delete_button"] = bosssecretary_get_delete_button();
+	$vars["delete_button"] = bosssecretary_get_delete_button($params["group_number"]);
 	$vars["action"] = "Edit";
 	$vars["message_details"] = $params["message_details"] ?? array();
 	$vars["message_title"] = $params["message_title"] ?? '';
@@ -1016,11 +1002,11 @@ function bosssecretary_get_form ( array $vars)
 	$vars["messages"] = "";
 	if (!empty($vars["message_details"]))
 	{
-		$vars["messages"] = "<h5>".$vars["message_title"] . "</h5>";
+		$vars["messages"] = "<h5>".bosssecretary_escape($vars["message_title"]) . "</h5>";
 		$vars["messages"] .= "<ul>";
 		foreach ($vars["message_details"] as $details)
 		{
-			$vars["messages"] .= "<li>$details</li>";
+			$vars["messages"] .= "<li>".bosssecretary_escape($details)."</li>";
 		}
 		$vars["messages"] .= "</ul>";
 	}
@@ -1029,20 +1015,23 @@ function bosssecretary_get_form ( array $vars)
 	unset($vars["message_details"], $vars["message_title"]);
 
 
-	foreach ($vars as $var => $value)
-	{
-		$sForm = str_replace("{".$var. "}", $value, $sForm);
-	}
+    $vars['csrf_token'] = bosssecretary_csrf_token();
+    $replace = [];
+    foreach ($vars as $var => $value) {
+        $replace['{' . $var . '}'] = in_array($var, ['messages', 'delete_button'], true)
+            ? $value : bosssecretary_escape($value);
+    }
+    $sForm = strtr($sForm, $replace);
 	return $sForm;
 }
 
 
 
 
-function bosssecretary_get_delete_button()
+function bosssecretary_get_delete_button($group_number)
 {
 	$sForm = file_get_contents(dirname(__FILE__). "/delete_button.tpl");
-	return str_replace("{delete_button_label}", "Delete Group", $sForm);
+	return strtr($sForm, ["{delete_button_label}" => "Delete Group", "{group_number}" => bosssecretary_escape($group_number)]);
 }
 
 
@@ -1055,8 +1044,8 @@ function bosssecretary_show_nav_users($links){
 
 OUTPUT;
 	foreach ($links as $link){
-		$url  = $link['url'];
-		$text = $link['text'];
+		$url  = bosssecretary_escape($link['url']);
+		$text = bosssecretary_escape($link['text']);
 
 		echo <<<OUTPUT
 		<li><a href="{$url}">{$text}</a></li>

@@ -434,6 +434,9 @@ $app->post('/devices/phones/provision', function (Request $request, Response $re
             return jsonResponse($response, array('message' => 'MAC address is required'), 400);
         }
 
+        if (!is_string($body['mac']) || !preg_match('/^(?:[0-9a-fA-F]{12}|(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})$/D', $body['mac'])) {
+            return jsonResponse($response, ['message' => 'Invalid MAC address'], 400);
+        }
         $mac = $body['mac'];
 
         $endpoint = FreePBX::endpointmanager();
@@ -466,6 +469,9 @@ $app->post('/devices/phones/reboot', function (Request $request, Response $respo
             return jsonResponse($response, array('message' => 'MAC address and IP are required'), 400);
         }
 
+        if (!is_string($body['mac']) || !preg_match('/^(?:[0-9a-fA-F]{12}|(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})$/D', $body['mac'])) {
+            return jsonResponse($response, ['message' => 'Invalid MAC address'], 400);
+        }
         $mac = $body['mac'];
         $phoneIp = $body['ip'];
 

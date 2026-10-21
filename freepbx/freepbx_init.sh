@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# An initialization failure must be visible to systemd, even while supervisor runs.
+ready=/var/run/nethvoice/freepbx-ready
+failed=/var/run/nethvoice/freepbx-failed
+rm -f "$ready" "$failed"
+trap 'status=$?; rm -f "$module_status"; if ((status != 0)); then rm -f "$ready"; touch "$failed"; fi' EXIT
+
 # wait for asterisk to start
 while [[ $(/usr/sbin/asterisk -rx 'core show version' 2>/dev/null) != Asterisk* ]]; 
     do ((++attempt<300)) || exit 2
@@ -85,6 +91,7 @@ obsolete_modules=(
     googletts
     inboundlookup
     outboundlookup
+    endpointman
 )
 
 # Add or remove nethhotel
@@ -96,8 +103,9 @@ fi
 
 # List installed modules ant their status
 module_status=$(mktemp)
-trap 'rm -f ${module_status}' EXIT
 fwconsole ma list | grep '^| ' | grep -v '^| Module'| awk '{print $2,$6}' > "$module_status"
+
+php /apply-instance-bindings.php --save-transports || exit $?
 
 # Install required modules
 for module in "${modules_to_install[@]}"; do
@@ -169,6 +177,10 @@ if ($logo !== false && $logo !== "") { $set("BRAND_IMAGE_TANGO_LEFT", $logo); }
 if ($favicon !== false && $favicon !== "") { $set("BRAND_IMAGE_FAVICON", $favicon); }
 '
 
+php /apply-instance-bindings.php || exit $?
+# fwconsole chown broadens config permissions; restore the metrics secret mode.
+chmod 0640 /etc/asterisk/prometheus.conf || exit $?
+
 # Sync users
 fwconsole userman --syncall --force --verbose || exit $?
 
@@ -192,7 +204,7 @@ done
 php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed
 
 # Required modules, user synchronization and reload have all completed.
-touch /var/run/nethvoice/freepbx-ready || exit $?
+touch "$ready" || exit $?
 
 # Apply low-priority background DB updates
 ionice -c3 nice -n 19 php /initdb.d/slow_database_updates.php >/dev/null 2>&1 &

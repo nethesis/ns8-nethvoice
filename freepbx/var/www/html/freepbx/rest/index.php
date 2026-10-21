@@ -28,7 +28,9 @@ use \Slim\Routing\RouteContext;
 
 function nethvoice_handler($exception) {
   header('Content-type: application/json');
-  echo json_encode(['error' => $exception->getMessage()]);
+  http_response_code(500);
+  error_log((string) $exception);
+  echo json_encode(['error' => 'Internal server error']);
   exit(0);
 }
 
@@ -36,6 +38,16 @@ set_exception_handler('nethvoice_handler');
 
 /** @var \Composer\Autoload\ClassLoader $restAutoloader */
 $restAutoloader = require 'vendor/autoload.php';
+
+// Load the REST stack's PSR contracts before FreePBX can load another version.
+foreach (['Message', 'Request', 'ServerRequest', 'Response', 'Stream', 'Uri', 'UploadedFile'] as $contract) {
+  interface_exists('Psr\\Http\\Message\\' . $contract . 'Interface');
+}
+foreach (['Request', 'Response', 'ServerRequest', 'Stream', 'Uri', 'UploadedFile'] as $contract) {
+  interface_exists('Psr\\Http\\Message\\' . $contract . 'FactoryInterface');
+}
+interface_exists('Psr\\Http\\Server\\MiddlewareInterface');
+interface_exists('Psr\\Http\\Server\\RequestHandlerInterface');
 
 # Initialize FreePBX environment
 $bootstrap_settings['freepbx_error_handler'] = false;
@@ -61,9 +73,6 @@ $app = AppFactory::create();
 $app->setBasePath('/freepbx/rest');
 $app->addBodyParsingMiddleware();
 
-# Add authentication
-$app->add(new AuthMiddleware($config['settings']['secretkey'], $app->getResponseFactory()));
-
 $app->add(function (Request $request, RequestHandlerInterface $handler): Response {
   $route = $request->getAttribute(RouteContext::ROUTE);
   if ($route !== null && $request->getAttribute('route') === null) {
@@ -75,7 +84,10 @@ $app->add(function (Request $request, RequestHandlerInterface $handler): Respons
 
 $app->addRoutingMiddleware();
 
-$errorMiddleware = $app->addErrorMiddleware(true, true, true);
+// Slim executes middleware in reverse order: authenticate before routing.
+$app->add(new AuthMiddleware($config['settings']['secretkey'], $app->getResponseFactory()));
+
+$errorMiddleware = $app->addErrorMiddleware(false, true, true);
 $errorMiddleware->setDefaultErrorHandler(
   function (
     Request $request,
@@ -94,7 +106,13 @@ $errorMiddleware->setDefaultErrorHandler(
     /** @var Response $response */
     $response = $app->getResponseFactory()->createResponse();
 
-    return jsonResponse($response, ['error' => $exception->getMessage()], $status);
+    error_log((string) $exception);
+    $message = match ($status) {
+      400 => 'Bad request', 401 => 'Unauthorized', 403 => 'Forbidden',
+      404 => 'Not found', 405 => 'Method not allowed',
+      default => 'Internal server error',
+    };
+    return jsonResponse($response, ['error' => $message], $status);
   }
 );
 

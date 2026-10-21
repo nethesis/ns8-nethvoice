@@ -12,6 +12,13 @@
 //GNU General Public License for more details.
 
 
+if (!defined('FREEPBX_IS_AUTH')) { die('No direct script access allowed'); }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
+    (!is_string($_POST['csrf_token'] ?? null) || !hash_equals(bosssecretary_csrf_token(), $_POST['csrf_token']))) {
+    http_response_code(403);
+    die('Invalid CSRF token');
+}
+
 if (isset($_GET["extensions"], $_GET["ajax"]))
 {
 	$result = bosssecretary_search($_GET["extensions"]);
@@ -21,7 +28,7 @@ if (isset($_GET["extensions"], $_GET["ajax"]))
 		{
 			foreach ($result as $extension)
 			{
-				echo $extension["extension"] . " extension is " . $extension["type"] . " at '" . $extension["label"] ."' group <br />";
+				echo bosssecretary_escape($extension["extension"] . " extension is " . $extension["type"] . " at '" . $extension["label"] ."' group") . "<br />";
 			}
 
 		}
@@ -115,7 +122,7 @@ if (isset($_GET["extensions"], $_GET["ajax"]))
 		$params["secretaries"] 	= $extensionsCleaned["secretaries"];
 		$content = bosssecretary_get_form_edit( $params);
 	}
-	elseif (isset($_GET["bsgroupdisplay"]))
+	elseif (isset($_GET["bsgroupdisplay"]) && !isset($_POST["bsgroupdelete"]))
   	{
 		$group =  bosssecretary_extract_group_from_request($_GET["bsgroupdisplay"]);
 		if ($group == "add")
@@ -128,9 +135,9 @@ if (isset($_GET["extensions"], $_GET["ajax"]))
 			$content = bosssecretary_get_form_edit($params);
 		}
 	}
-	elseif (isset($_GET["bsgroupdelete"]))
+	elseif (isset($_POST["bsgroupdelete"]))
 	{
-		$group =  bosssecretary_extract_group_from_request($_GET["bsgroupdelete"]);
+		$group =  bosssecretary_extract_group_from_request($_POST["bsgroupdelete"]);
 		if (bosssecretary_group_exists($group))
 		{
 			if (bosssecretary_group_delete($group))

@@ -8,6 +8,7 @@
     <arg value="p"/>
 
     <rule ref="PHPCompatibility"/>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
 
     <file>../../freepbx/configure_users.php</file>
     <file>../../freepbx/initdb.d</file>

@@ -51,6 +51,7 @@ autoload=no
 load=codec_g729.so
 load=format_g729.so
 load=format_sln.so
+load=format_mp3.so
 load=res_convert.so
 EOF
 dd if=/dev/zero of="$test_dir/input.sln" bs=160 count=20 status=none
@@ -84,3 +85,9 @@ test -s "$test_dir/encoded.g729"
 ast "file convert $test_dir/encoded.g729 $test_dir/decoded.sln"
 test -s "$test_dir/decoded.sln"
 echo 'G.729 loads and encodes/decodes synthetic audio with a non-executable stack'
+
+ast 'module show like format_mp3.so' | grep -E '^format_mp3\.so[[:space:]].*Running' >/dev/null
+sox -n -r 8000 -c 1 "$test_dir/input.mp3" trim 0 0.2
+ast "file convert $test_dir/input.mp3 $test_dir/decoded-mp3.sln"
+test -s "$test_dir/decoded-mp3.sln"
+echo 'format_mp3 loads and decodes existing MP3 audio'
