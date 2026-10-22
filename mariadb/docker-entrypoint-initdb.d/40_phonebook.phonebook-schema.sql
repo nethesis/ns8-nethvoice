@@ -4,7 +4,7 @@
 /*!40103 SET TIME_ZONE='+00:00' */;
 USE `phonebook`;
 CREATE TABLE `phonebook` (
-  id int(11) NOT NULL auto_increment,
+  id bigint NOT NULL auto_increment,
   owner_id varchar(255) NOT NULL default '',
   type varchar(255) NOT NULL default '',
   access varchar(255) NOT NULL default 'public',
