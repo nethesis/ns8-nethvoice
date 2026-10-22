@@ -10,6 +10,22 @@ namespace FreePBX\modules;
 
 class Queueoptions implements \BMO
 {
+    /** Persist the queue option after Queues has created or replaced its rows. */
+    public function setLazyMembers($queue, bool $enabled)
+    {
+        if (!ctype_digit((string) $queue)) {
+            throw new \InvalidArgumentException('Invalid queue number');
+        }
+        $dbh = \FreePBX::Database();
+        $sth = $dbh->prepare('DELETE FROM `queues_details` WHERE `id` = ? AND `keyword` = "lazymembers"');
+        $sth->execute([$queue]);
+        if ($enabled) {
+            $sth = $dbh->prepare('INSERT INTO `queues_details` (`id`,`keyword`,`data`) values (?,"lazymembers","yes")');
+            $sth->execute([$queue]);
+        }
+        needreload();
+    }
+
     /**
      * Logs out the dynamic members of a queue that are no longer in its list.
      *
@@ -113,13 +129,9 @@ class Queueoptions implements \BMO
         $action = $_REQUEST['action'] ?? '';
         if ($page === 'queues' and ($action == 'add' or $action == 'edit')) {
             $id = $_REQUEST['extdisplay'] ?? '';
-            $sql = 'DELETE FROM `queues_details` WHERE `id` = ? AND `keyword` = "lazymembers"';
-            $data = array($id);
-            $sth = $dbh->prepare($sql);
-            $sth->execute($data);
-            if (isset($_REQUEST['LazyMembers']) && $_REQUEST['LazyMembers'] == 1) {
-                $sth = $dbh->prepare('INSERT INTO `queues_details` (`id`,`keyword`,`data`) values (?,"lazymembers","yes")');
-                $sth->execute([$id]);
+            if (ctype_digit((string) $id)
+                && (!function_exists('checkRange') || checkRange($_REQUEST['account'] ?? ''))) {
+                $this->setLazyMembers($id, isset($_REQUEST['LazyMembers']) && $_REQUEST['LazyMembers'] == 1);
             }
 
             if ($action == 'edit') {

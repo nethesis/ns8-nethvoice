@@ -87,6 +87,21 @@ angular.module('nethvoiceWizardUiApp')
       }
     }
 
+    this.network = function () {
+      return {
+        "name": "network_settings_label",
+        "data": [{
+          "variable": "lldp_enable",
+          "description": "lldp_enable_label",
+          "type": "list",
+          "options": [
+            { "text": "Enabled", "value": "1" },
+            { "text": "Disabled", "value": "0" }
+          ]
+        }]
+      }
+    }
+
     this.phonebook = function () {
       return {
         "name": "ldap_phonebook_title",
