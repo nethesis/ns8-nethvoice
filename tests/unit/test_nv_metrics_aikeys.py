@@ -25,10 +25,20 @@ OPENAI_KEY = "sk-secret-0123456789abcdef"
 KEYS = {"DEEPGRAM_API_KEY": DEEPGRAM_KEY, "OPENAI_API_KEY": OPENAI_KEY}
 DEEPGRAM_URL = "https://api.deepgram.com/v1/projects"
 OPENAI_URL = "https://api.openai.com/v1/models"
+OPENAI_INVALID_KEY = (
+    401,
+    b'{"error": {"message": "Incorrect API key provided: sk-***.", "type": "invalid_request_error",'
+    b' "param": null, "code": "invalid_api_key"}}',
+)
+OPENAI_MISSING_SCOPES = (
+    401,
+    b'{"error": {"message": "You have insufficient permissions for this operation.'
+    b' Missing scopes: api.model.read.", "type": "invalid_request_error", "param": null, "code": null}}',
+)
 
 
 def fake_http(answers):
-    """answers: {url: HTTP status | exception}"""
+    """answers: {url: HTTP status | (HTTP status, body) | exception}"""
     calls = []
 
     def http(url, authorization):
@@ -36,7 +46,9 @@ def fake_http(answers):
         answer = answers[url]
         if isinstance(answer, Exception):
             raise answer
-        return answer
+        if isinstance(answer, tuple):
+            return answer
+        return answer, b""
 
     http.calls = calls
     return http
@@ -61,9 +73,26 @@ class RenderTest(unittest.TestCase):
         )
 
     def test_invalid_key_401(self):
-        text, _ = self.render({DEEPGRAM_URL: 401, OPENAI_URL: 401})
+        text, _ = self.render({DEEPGRAM_URL: 401, OPENAI_URL: OPENAI_INVALID_KEY})
         self.assertIn('nethvoice_ai_key_valid{provider="deepgram"} 0\n', text)
         self.assertIn('nethvoice_ai_key_valid{provider="openai"} 0\n', text)
+
+    def test_deepgram_401_is_invalid_whatever_the_body(self):
+        text, _ = self.render({DEEPGRAM_URL: (401, b"not json"), OPENAI_URL: 200})
+        self.assertIn('nethvoice_ai_key_valid{provider="deepgram"} 0\n', text)
+
+    def test_openai_401_missing_scopes_is_skipped(self):
+        # A restricted key without Models:read still works for transcription
+        text, err = self.render({DEEPGRAM_URL: 200, OPENAI_URL: OPENAI_MISSING_SCOPES})
+        self.assertIn('nethvoice_ai_key_valid{provider="deepgram"} 1\n', text)
+        self.assertNotIn('provider="openai"', text)
+        self.assertIn("ai_keys: openai: check skipped: HTTP status 401 without invalid_api_key", err)
+        self.assertNotIn("Missing scopes", err)
+
+    def test_openai_401_without_json_is_skipped(self):
+        for body in (b"", b"<html>Unauthorized</html>", b"[]", b'{"error": "x"}', b"\xff\xfe\x00"):
+            text, _ = self.render({DEEPGRAM_URL: 200, OPENAI_URL: (401, body)})
+            self.assertNotIn('provider="openai"', text, body)
 
     def test_forbidden_is_skipped(self):
         # A key without the permission to list projects still works
@@ -104,7 +133,7 @@ class RenderTest(unittest.TestCase):
     def test_providers_are_checked_in_parallel(self):
         def slow(url, authorization):
             time.sleep(0.5)
-            return 200
+            return 200, b""
 
         started = time.monotonic()
         text = aikeys.render(KEYS, slow)
@@ -117,6 +146,7 @@ class RenderTest(unittest.TestCase):
         outputs = []
         answers = (
             {DEEPGRAM_URL: 200, OPENAI_URL: 401},
+            {DEEPGRAM_URL: 200, OPENAI_URL: OPENAI_INVALID_KEY},
             {DEEPGRAM_URL: 403, OPENAI_URL: OSError("bad header Bearer " + OPENAI_KEY)},
             {DEEPGRAM_URL: OSError(DEEPGRAM_KEY), OPENAI_URL: 302},
         )
@@ -186,10 +216,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_response(302)
             self.send_header("Location", "/ok")
         else:
-            self.send_response({"/ok": 200, "/denied": 401}[self.path])
-        self.send_header("Content-Length", "2")
+            self.send_response({"/ok": 200, "/denied": 401, "/large": 401}[self.path])
+        body = b"x" * (aikeys.MAX_BODY + 10) if self.path == "/large" else b"{}"
+        self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(b"{}")
+        self.wfile.write(body)
 
     def log_message(self, *args):
         pass
@@ -209,14 +240,19 @@ class HttpStatusTest(unittest.TestCase):
         self.server.server_close()
 
     def test_status_and_header(self):
-        self.assertEqual(aikeys.http_status(self.base + "/ok", "Token abc"), 200)
+        self.assertEqual(aikeys.http_status(self.base + "/ok", "Token abc"), (200, b""))
         self.assertEqual(self.server.authorizations, ["Token abc"])
 
     def test_error_status_is_returned(self):
-        self.assertEqual(aikeys.http_status(self.base + "/denied", "Token abc"), 401)
+        self.assertEqual(aikeys.http_status(self.base + "/denied", "Token abc"), (401, b"{}"))
+
+    def test_error_body_is_limited(self):
+        status, body = aikeys.http_status(self.base + "/large", "Token abc")
+        self.assertEqual(status, 401)
+        self.assertEqual(len(body), aikeys.MAX_BODY)
 
     def test_redirect_is_not_followed(self):
-        self.assertEqual(aikeys.http_status(self.base + "/redirect", "Token abc"), 302)
+        self.assertEqual(aikeys.http_status(self.base + "/redirect", "Token abc")[0], 302)
         self.assertEqual(self.server.authorizations, ["Token abc"])
 
     def test_name_resolution_timeout_raises_oserror(self):
