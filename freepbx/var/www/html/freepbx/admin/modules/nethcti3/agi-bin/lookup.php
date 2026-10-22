@@ -116,14 +116,19 @@ if (strlen($number)> 4) {
 
             //get name
             $names = [];
+            $hasCompanyRow = false;
             foreach ($res as $row) {
+                if (trim((string)$row[0]) === '-') {
+                    $hasCompanyRow = true;
+                    continue;
+                }
                 if (!empty($row[0])) {
                     $names[] = trim($row[0]);
                 }
             }
             $names = array_unique($names);
             // Name should be empty if there are more different names for the same company
-            if (count($names) > 1) {
+            if (count($names) > 1 || ($hasCompanyRow && count($names) > 0)) {
                 @$agi->verbose("WARNING: more than one names found for this number");
                 $name = '';
             }
