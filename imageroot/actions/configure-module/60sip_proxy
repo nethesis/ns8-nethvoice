@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+import json
 import os
 import sys
 
@@ -37,3 +38,43 @@ response = agent.tasks.run(
 
 # Check if proxy configuration has been successfull
 agent.assert_exp(response['exit_code'] == 0)
+
+# Refresh aliases too, including current destinations to retry failed reloads.
+ports = {os.environ["ASTERISK_SIP_PORT"], os.environ["ASTERISK_SIP_UDP_PORT"]}
+# Previous ports may have been reassigned to another instance after the update.
+if os.environ.get("AGENT_TASK_ACTION") == "update-module":
+    ports.add(os.environ.get("PREVIOUS_SIP_UDP_PORT"))
+    ports.update(json.loads(os.environ.get("PREVIOUS_SIP_UDP_PORTS", "[]")))
+uris = {"sip:" + ksrv[0]["host"] + ":" + port for port in ports if port}
+new_uri = "sip:" + ksrv[0]["host"] + ":" + os.environ["ASTERISK_SIP_UDP_PORT"]
+try:
+    response = agent.tasks.run(agent_id=proxy_id, action="list-routes", data={},
+                               extra={"isNotificationHidden": True})
+    if response["exit_code"] != 0:
+        raise RuntimeError("Cannot list SIP aliases")
+except Exception as ex:
+    print(agent.SD_WARNING + f"Cannot list SIP aliases ({type(ex).__name__}); skipping alias refresh",
+          file=sys.stderr)
+    sys.exit(0)
+for route in response["output"]:
+    if route["domain"] == os.environ["NETHVOICE_HOST"]:
+        continue
+    changed = False
+    for address in route["address"]:
+        uri, separator, parameters = address["uri"].partition(";")
+        if uri not in uris:
+            continue
+        if any(p.lower().startswith("transport=") and p.lower() != "transport=udp"
+               for p in parameters.split(";")):
+            continue
+        address["uri"] = new_uri + separator + parameters
+        changed = True
+    if changed:
+        try:
+            response = agent.tasks.run(agent_id=proxy_id, action="add-route", data=route,
+                                       extra={"isNotificationHidden": True})
+            if response["exit_code"] != 0:
+                raise RuntimeError("Cannot refresh SIP alias")
+        except Exception as ex:
+            print(agent.SD_WARNING + f"Cannot refresh SIP alias {route['domain']} ({type(ex).__name__})",
+                  file=sys.stderr)
