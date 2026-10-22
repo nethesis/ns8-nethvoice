@@ -616,6 +616,8 @@ export default {
       sso_auth: false,
       // built-in alerts (beta), see the set-alerts action
       alerts_enabled: false,
+      // saved value, restored on the switch when set-alerts fails
+      alerts_enabled_saved: false,
       authMethodList: [],
       reports_international_prefix: "+39",
       timezone: "",
@@ -873,6 +875,7 @@ export default {
 
       this.sso_auth = !!config.sso_auth;
       this.alerts_enabled = !!config.alerts_enabled;
+      this.alerts_enabled_saved = this.alerts_enabled;
       this.authentication_method = config.authentication_method || "password";
       if (config.saml2) {
         this.saml2 = {
@@ -1099,6 +1102,7 @@ export default {
       if (err) {
         console.error(`error creating task ${taskAction}`, err);
         this.error.setAlerts = this.getErrorMessage(err);
+        this.alerts_enabled = this.alerts_enabled_saved;
         this.loading.setAlerts = false;
         return;
       }
@@ -1106,9 +1110,11 @@ export default {
     setAlertsAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
       this.error.setAlerts = this.$t("error.generic_error");
+      this.alerts_enabled = this.alerts_enabled_saved;
       this.loading.setAlerts = false;
     },
     setAlertsCompleted() {
+      this.alerts_enabled_saved = this.alerts_enabled;
       this.loading.setAlerts = false;
     },
     configureModuleAborted(taskResult, taskContext) {
