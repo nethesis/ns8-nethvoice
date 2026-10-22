@@ -230,6 +230,15 @@ Every 5 minutes the node runs `export-metrics` and passes its output to the
 metrics app. The module publishes its alert rules from
 `imageroot/etc/metrics/alert-rules/` at create and update time.
 
+The alerts are a beta feature, disabled by default: enable them from the
+"Alerts beta" card of the Settings page, or with the `set-alerts` action:
+
+    api-cli run module/nethvoice1/set-alerts --data '{"alerts_enabled": true}'
+
+The switch is stored in `NETHVOICE_ALERTS_ENABLED` (`True`/`False`). When it
+is off the alert rules are removed from the metrics app; the metrics are
+still exported.
+
 | Alert | Severity | Fires when |
 |---|---|---|
 | `ServiceDown` | critical | a service is stopped for 10 minutes (`reason="stopped"`) or restarted at least 3 times in 10 minutes (`reason="crash_loop"`) |

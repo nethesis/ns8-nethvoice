@@ -144,6 +144,9 @@ agent.set_env('ICEENFORCE', 'none')
 
 agent.set_env('TRAEFIK_HTTP2HTTPS', 'true')
 
+# Built-in alerts are a beta feature: off until enabled from the settings page
+agent.set_env('NETHVOICE_ALERTS_ENABLED', 'False')
+
 agent.set_env('PHONEBOOK_DB_HOST', '127.0.0.1')
 agent.set_env('PHONEBOOK_DB_PORT', port_list[0])
 agent.set_env('PHONEBOOK_DB_NAME', 'phonebook')

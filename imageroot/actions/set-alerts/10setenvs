@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Enable or disable the built-in alerts (beta). The next step publishes or
+# removes the alert rules accordingly.
+
+import json
+import sys
+
+import agent
+
+request = json.load(sys.stdin)
+agent.set_env('NETHVOICE_ALERTS_ENABLED', 'True' if request['alerts_enabled'] else 'False')

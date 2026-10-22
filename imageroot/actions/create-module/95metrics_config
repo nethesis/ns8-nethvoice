@@ -5,9 +5,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-# Publish the module alert rules for the metrics module. Also linked from
-# update-module.d, to publish the rules of a new image. A failure must not
-# stop the module creation or update.
+# Publish the module alert rules for the metrics module, or remove them if
+# the alerts are disabled. Also linked from update-module.d, to publish the
+# rules of a new image, and from restore-module and clone-module, to apply
+# the restored NETHVOICE_ALERTS_ENABLED. A failure must not stop them.
 
 exec 1>&2
 
