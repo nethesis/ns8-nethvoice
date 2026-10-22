@@ -8,7 +8,8 @@
 Used by the NethVoiceAiKeyInvalid alert (etc/metrics/alert-rules/nethvoice-ai.yml):
 
 - nethvoice_ai_key_valid{provider}: 1 if the provider accepts the key, 0 if it
-  rejects it (HTTP status in INVALID_STATUS)
+  rejects it (HTTP status in INVALID_STATUS; for OpenAI only with the error
+  code invalid_api_key)
 
 Checked only when call or voicemail transcription is on and the key is set.
 A provider that does not answer, or answers with another status, is not
@@ -17,6 +18,7 @@ The keys never leave the request header: they are not logged, nor exported.
 """
 
 import http.client
+import json
 import os
 import socket
 import sys
@@ -38,6 +40,11 @@ PROVIDERS = (
 # a key without some permission (e.g. listing Deepgram projects) can still
 # work for transcription, so a 403 is "check skipped", not an invalid key.
 INVALID_STATUS = frozenset((401,))
+# OpenAI answers 401 also to a valid restricted key without the Models:read
+# scope: only the error code invalid_api_key means the key is rejected.
+OPENAI_INVALID_CODE = "invalid_api_key"
+# The error body is read up to this size
+MAX_BODY = 64 * 1024
 TIMEOUT = 4
 USER_AGENT = "nethvoice-export-metrics"
 
@@ -74,7 +81,10 @@ def resolve(host, timeout=TIMEOUT, getaddrinfo=socket.getaddrinfo):
 
 
 def http_status(url, authorization, resolve=resolve):
-    """Return the HTTP status of a GET request; raise OSError if there is no answer."""
+    """Return (HTTP status, error body) of a GET request; raise OSError if there is no answer.
+
+    The body is read, up to MAX_BODY bytes, only for an error status.
+    """
     resolve(urllib.parse.urlsplit(url).hostname)
     request = urllib.request.Request(url, method="GET", headers={"User-Agent": USER_AGENT})
     # Not sent again if the request is redirected
@@ -82,18 +92,32 @@ def http_status(url, authorization, resolve=resolve):
     opener = urllib.request.build_opener(_NoRedirect)
     try:
         with opener.open(request, timeout=TIMEOUT) as response:
-            return response.status
+            return response.status, b""
     except urllib.error.HTTPError as ex:
-        ex.close()
-        return ex.code
+        try:
+            body = ex.read(MAX_BODY)
+        except (OSError, http.client.HTTPException):
+            body = b""
+        finally:
+            ex.close()
+        return ex.code, body
     except http.client.HTTPException as ex:
         raise OSError("invalid HTTP answer (%s)" % type(ex).__name__) from ex
+
+
+def openai_key_rejected(body):
+    """Return True if an OpenAI error body has the code invalid_api_key."""
+    try:
+        error = json.loads(body).get("error")
+        return isinstance(error, dict) and error.get("code") == OPENAI_INVALID_CODE
+    except (ValueError, AttributeError, RecursionError):
+        return False
 
 
 def check(provider, key, url, scheme, http=http_status):
     """Return 1 if the key is valid, 0 if it is rejected, None if unknown."""
     try:
-        status = http(url, "%s %s" % (scheme, key))
+        status, body = http(url, "%s %s" % (scheme, key))
     except Exception as ex:
         reason = str(ex).replace(key, "***") or type(ex).__name__
         print("ai_keys: %s: check skipped: %s" % (provider, reason), file=sys.stderr)
@@ -101,7 +125,11 @@ def check(provider, key, url, scheme, http=http_status):
     if status == 200:
         return 1
     if status in INVALID_STATUS:
-        return 0
+        if provider != "openai" or openai_key_rejected(body):
+            return 0
+        reason = "HTTP status %s without %s" % (status, OPENAI_INVALID_CODE)
+        print("ai_keys: %s: check skipped: %s" % (provider, reason), file=sys.stderr)
+        return None
     print("ai_keys: %s: check skipped: HTTP status %s" % (provider, status), file=sys.stderr)
     return None
 
