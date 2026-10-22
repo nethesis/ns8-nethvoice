@@ -20,8 +20,8 @@
 # along with NethServer.  If not, see COPYING.
 #
 
-define('NETHVOICE_CODECS_SOFTPHONE', 'opus,g722,ulaw,alaw,gsm,g726,h264,vp8');
-define('NETHVOICE_CODECS_PHONE', 'g722,ulaw,alaw,gsm,g726,h264,vp8');
+define('NETHVOICE_CODECS_SOFTPHONE', 'opus,g722,ulaw,alaw,h264,vp8');
+define('NETHVOICE_CODECS_PHONE', 'g722,ulaw,alaw,h264,vp8');
 
 function setExtensionCodecs($extension, $codecs) {
     return setSipData($extension, 'allow', $codecs);
