@@ -114,6 +114,17 @@ noload = res_http_media_cache.so
 noload = res_phoneprov.so
 EOF
 
+# Opus in-band FEC needs packet_loss > 0; codecs.conf lives in the persistent volume
+if ! grep -q '^type *= *opus' /etc/asterisk/codecs.conf 2>/dev/null; then
+	cat >> /etc/asterisk/codecs.conf <<EOF
+
+[opus]
+type=opus
+packet_loss=10
+fec=yes
+EOF
+fi
+
 # Show Asterisk logfiles module on FreePBX interface
 sed -i '/^; Hide Asterisk logfile$/N;/\n\[logfiles\]$/N;/\nremove=Yes$/d' /etc/asterisk/freepbx_menu.conf
 

@@ -87,6 +87,19 @@ if $migrate; then
     # Gateway models: refresh the catalog without deleting configured gateways via foreign keys.
     db < /docker-entrypoint-initdb.d/50_asterisk.gateway_models.sql
 fi
+# Codec lists per device type, same values as NETHVOICE_CODECS_* in
+# freepbx/var/www/html/freepbx/rest/lib/libExtensions.php: existing devices
+# converge on update and import. Lists edited by hand are overwritten.
+if $migrate; then
+    db asterisk <<'SQL'
+UPDATE sip s JOIN rest_devices_phones d ON d.extension = s.id
+SET s.data = 'opus,g722,ulaw,alaw,gsm,g726,h264,vp8'
+WHERE s.keyword = 'allow' AND d.type IN ('webrtc','nethlink','mobile');
+UPDATE sip s JOIN rest_devices_phones d ON d.extension = s.id
+SET s.data = 'g722,ulaw,alaw,gsm,g726,h264,vp8'
+WHERE s.keyword = 'allow' AND (d.type IS NULL OR d.type NOT IN ('webrtc','nethlink','mobile'));
+SQL
+fi
 # NethCTI Server
 db nethcti3 -e 'DELETE FROM `auth` WHERE user LIKE "%_phone-island"'
 # Phonebook: add extended contact fields for existing installs
@@ -132,6 +145,10 @@ ALTER TABLE phonebook
 # have empty access after the column is added: they were publicly visible, so mark them
 # public explicitly. Group-scoped rows carry 'group:...' and are left untouched.
 db phonebook -e 'UPDATE phonebook SET access = "public" WHERE access = ""'
+phonebook_id_type=$(db -N -B -e "SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'phonebook' AND TABLE_NAME = 'phonebook' AND COLUMN_NAME = 'id'")
+if [[ -n "$phonebook_id_type" && "$phonebook_id_type" != bigint ]]; then
+    db phonebook -e 'ALTER TABLE phonebook MODIFY id bigint NOT NULL AUTO_INCREMENT'
+fi
 
 # Instance bindings have one owner. Module installers must preserve these rows.
 db asterisk <<SQL
