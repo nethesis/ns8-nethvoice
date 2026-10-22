@@ -87,8 +87,7 @@
     "request_le_certificates": "Richiedi certificati Let's Encrypt",
     "request_le_certificates_tooltip": "Richiede automaticamente i certificati TLS Let's Encrypt per @:settings.nethvoice_host e @:(settings.nethcti_ui_host). Disabilitando questa opzione i certificati esistenti (se presenti) verranno eliminati. Puoi anche visualizzarli o eliminarli in Impostazioni cluster > Certificati TLS.",
     "general": "Generale",
-    "alerts_beta": "Avvisi beta",
-    "alerts_beta_description": "Invia al sistema di avvisi del cluster gli avvisi predefiniti su servizi NethVoice, fasci, DNS pubblico e chiavi AI. Beta: gli avvisi possono cambiare.",
+    "alerts_beta_description": "Può generare avvisi indesiderati e gli avvisi possono cambiare nei prossimi rilasci.",
     "alerts_enabled": "Avvisi",
     "change_nethvoice_admin_password": "Cambia password per l'utente admin di NethVoice",
     "new_admin_password": "Nuova password admin",
@@ -127,7 +126,16 @@
     "saml2_identity_attribute_tooltip": "Attributo SAML mappato sullo username dell'account provider (es. uid, eppn).",
     "saml2_login_button_label": "Etichetta pulsante login SSO (opzionale)",
     "saml2_login_button_label_placeholder": "es. Accedi con SSO",
-    "saml2_default_button_label": "Accedi con SSO"
+    "saml2_default_button_label": "Accedi con SSO",
+    "alerts_title": "Avvisi (beta)",
+    "alerts_beta_title": "Funzione in beta",
+    "alerts_description": "Se abilitato, ogni 5 minuti NethVoice controlla i suoi servizi, i fasci, i nomi pubblici e le chiavi AI e genera questi avvisi:",
+    "alerts_service_down": "un servizio di NethVoice (ad esempio FreePBX, MariaDB, CTI o Janus) è fermo o si riavvia continuamente",
+    "alerts_trunk_unreachable": "un fascio SIP non raggiunge il provider o il gateway",
+    "alerts_public_dns": "i nomi pubblici di NethVoice, CTI o del proxy non sono risolti dai DNS pubblici, o puntano a un indirizzo sbagliato",
+    "alerts_ai_key": "la chiave Deepgram o OpenAI è rifiutata",
+    "alerts_ai_credit": "l'account del provider AI ha esaurito il credito",
+    "alerts_where": "Gli avvisi attivi sono visibili nella pagina Nodi e, se il cluster ha una sottoscrizione, su my.nethesis.it."
   },
   "status": {
     "app_images": "Immagine dell'applicazione | Immagini dell'applicazione",
