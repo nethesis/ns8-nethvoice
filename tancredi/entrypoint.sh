@@ -101,7 +101,7 @@ do
 	echo "${variable} = \"${DEFAULTS[${variable}]}\"" >> ${dst_file}
 done
 
-runuser -s /bin/bash -c "php /usr/share/tancredi/scripts/upgrade.php" - www-data
+runuser -s /bin/bash -c "php /usr/share/tancredi/scripts/upgrade.php" - www-data || exit $?
 
 exec "$@"
 

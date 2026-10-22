@@ -15,7 +15,7 @@ jobs:
     name: PHP 8.2 compatibility
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install compatibility tools
         run: composer install --working-dir=tools/php-compatibility --no-interaction --no-progress --prefer-dist
