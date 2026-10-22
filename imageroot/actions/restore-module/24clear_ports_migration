@@ -24,7 +24,6 @@ for key in (
     "PREVIOUS_SIP_UDP_PORT", "PREVIOUS_SIP_UDP_PORTS",
     "SIP_PORTFORWARD_MIGRATED", "SIP_PROXY_TRUNKS_MIGRATED",
     "SIP_PROXY_ROUTES_MIGRATED",
-    "SIP_PROXY_ROUTES_PENDING",
 ):
     if key in env:
         agent.unset_env(key)

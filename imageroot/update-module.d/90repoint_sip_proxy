@@ -1,27 +1,81 @@
-#!/bin/bash
+#!/usr/bin/env python3
 
 #
 # Copyright (C) 2026 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-# Re-register the SIP route on the nethvoice-proxy after an update.
-#
-# The proxy route targets the Asterisk SIP UDP listener. Until this PR that
-# listener lived on ASTERISK_SIP_PORT; it now lives on the dedicated
-# ASTERISK_SIP_UDP_PORT (allocated at 20allocate_ports). The route stored on the
-# proxy still points at the old port, so SIP traffic (trunks, Janus/WebRTC) is
-# refused. Nothing else refreshes the route on update, so re-run the
-# configure-module step that pushes it, in a fresh action context (update-module.d
-# steps do not see ASTERISK_SIP_UDP_PORT, allocated in this same run).
-#
-# configure-module/60sip_proxy exits 2 when no proxy is installed on the node:
-# that is not an error for the update.
+import json
+import os
+import re
+import subprocess
+import sys
 
-runagent "${AGENT_INSTALL_DIR}/actions/configure-module/60sip_proxy"
-rc=$?
-if [ "$rc" -eq 2 ]; then
-    echo "No nethvoice-proxy on this node, skipping SIP route refresh" >&2
-    exit 0
-fi
-exit "$rc"
+import agent
+import agent.tasks
+
+env = agent.read_envfile("environment")
+new_port = env["ASTERISK_SIP_UDP_PORT"]
+agent.unset_env("SIP_PROXY_ROUTES_MIGRATED")
+proxy_id = agent.resolve_agent_id("nethvoice-proxy@node")
+if proxy_id is None:
+    agent.set_env("SIP_PROXY_ROUTES_MIGRATED", new_port)
+    sys.exit(0)
+
+# Keep the primary route refresh in a fresh action context, as before.
+agent.run_helper("runagent", os.path.join(
+    os.environ["AGENT_INSTALL_DIR"], "actions/configure-module/60sip_proxy",
+)).check_returncode()
+
+ports = {env.get(key) for key in ("ASTERISK_SIP_PORT", "PREVIOUS_SIP_UDP_PORT")}
+ports.update(json.loads(env.get("PREVIOUS_SIP_UDP_PORTS", "[]")))
+# Reapply current destinations too: a previous write may have saved the new
+# port before its live reload failed. No separate pending-route state is needed.
+ports.add(new_port)
+ports -= {None, ""}
+uri_re = re.compile(r"^sip:(\[[^\]]+\]|[^:;/?@\s]+):(\d+)(.*)$", re.I)
+
+try:
+    interfaces = json.loads(subprocess.check_output(["ip", "-j", "address", "show"], text=True, timeout=10))
+    local_addresses = {a["local"] for i in interfaces for a in i.get("addr_info", [])}
+    response = agent.tasks.run(agent_id=proxy_id, action="list-routes", data={},
+                               extra={"isNotificationHidden": True})
+    if response["exit_code"] != 0:
+        raise RuntimeError("Cannot list proxy routes")
+    routes = response["output"]
+    if isinstance(routes, str):
+        routes = json.loads(routes)
+    success = True
+    for route in routes:
+        if route["domain"] == env["NETHVOICE_HOST"]:
+            continue
+        addresses = [dict(a) for a in route["address"]]
+        changed = False
+        for address in addresses:
+            uri = address["uri"]
+            match = uri_re.match(uri)
+            if not match:
+                continue
+            host, port, suffix = match.groups()
+            transports = re.findall(r"(?:^|;)transport(?:=([^;]*))?(?=;|$)", suffix.split("?", 1)[0], re.I)
+            if host.strip("[]") not in local_addresses or port not in ports or any(t.lower() != "udp" for t in transports):
+                continue
+            address["uri"] = uri[:match.start(2)] + new_port + uri[match.end(2):]
+            changed = True
+        if not changed:
+            continue
+        try:
+            result = agent.tasks.run(agent_id=proxy_id, action="add-route",
+                                     data={"domain": route["domain"], "address": addresses},
+                                     extra={"isNotificationHidden": True})
+            if result["exit_code"] != 0:
+                raise RuntimeError("Route update failed")
+        except Exception:
+            success = False
+            print(agent.SD_WARNING + f"Failed to refresh SIP route {route['domain']}; retry on next update",
+                  file=sys.stderr)
+    if success:
+        agent.set_env("SIP_PROXY_ROUTES_MIGRATED", new_port)
+except Exception as ex:
+    print(agent.SD_WARNING + f"Cannot refresh additional SIP routes ({type(ex).__name__}); retry on next update",
+          file=sys.stderr)

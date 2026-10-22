@@ -17,20 +17,6 @@ Output example:
 
 This module is intended to be used with the ns8-nethvoice-proxy module as SIP proxy
 
-On update, domain routes and trunks to this node's known old SIP UDP ports are migrated to
-`ASTERISK_SIP_UDP_PORT`, including additional domains on instances whose port
-was moved by an earlier update. Other destinations, descriptions, URI parameters,
-and explicit non-UDP transports are preserved. Ownership is determined by the
-node address and old port, not the description. Addresses assigned to the node's
-interfaces are recognized as well as its VPN address.
-
-Domain migration failures produce warnings and retain old ports for retry, like
-the trunk migration. `SIP_PROXY_ROUTES_PENDING` records writes whose live reload
-may need retry even when the saved port is already correct. Old-port handoff
-state is cleared only after firewall, trunk, and domain migrations succeed;
-restore clears the source instance's retry state. Serialize manual route edits
-with updates because the proxy `add-route` action replaces the full address list.
-
 ## Configure
 
 Module can be configured from cluster-admin NethServer 8 interface.

@@ -28,11 +28,12 @@
 # of failing.
 
 import json
+import re
+import subprocess
 import sys
 
 import agent
 import agent.tasks
-from sip_proxy_migration import node_addresses, repoint_uri
 
 # Read the env file, not os.environ: ASTERISK_SIP_UDP_PORT is created by the
 # earlier 20allocate_ports step in this same run, and os.environ is frozen at
@@ -59,8 +60,7 @@ if proxy_id is None:
     agent.set_env("SIP_PROXY_TRUNKS_MIGRATED", new_port)
     sys.exit(0)
 
-# Include verified local addresses: manually added trunks may use this node's
-# LAN/service IP rather than the VPN IP used by configure-module/60sip_proxy.
+# Manually added trunks can target another address assigned to this node.
 with agent.redis_connect(use_replica=True) as rdb:
     node_address = rdb.hget(f'node/{int(env["NODE_ID"])}/vpn', "ip_address")
 
@@ -70,10 +70,12 @@ if not node_address:
     sys.exit(0)
 
 try:
-    addresses = node_addresses(node_address)
+    interfaces = json.loads(subprocess.check_output(["ip", "-j", "address", "show"], text=True, timeout=10))
+    local_addresses = {a["local"] for i in interfaces for a in i.get("addr_info", [])}
+    local_addresses.add(node_address)
 except Exception as ex:
-    print(agent.SD_WARNING + f"Cannot read this node's assigned addresses "
-          f"({type(ex).__name__}), skipping trunk repoint", file=sys.stderr)
+    print(agent.SD_WARNING + f"Cannot read node addresses ({type(ex).__name__}), skipping trunk repoint",
+          file=sys.stderr)
     sys.exit(0)
 
 # Fetch the trunks currently configured on the proxy.
@@ -96,14 +98,23 @@ if isinstance(trunks, str):
     trunks = json.loads(trunks or "[]")
 trunks = trunks or []
 
+# Match "sip:<node_address>:<old_port>" allowing an optional suffix (parameters
+# or path) that must be preserved when rewriting the port.
+uri_re = re.compile(r"^sip:(\[[^\]]+\]|[^:;/?@\s]+):(\d+)(.*)$", re.I)
+
 changed = 0
 success = True
 for trunk in trunks:
     destination = trunk.get("destination") or {}
-    uri = destination.get("uri", "")
-    new_uri = repoint_uri(uri, addresses, old_ports, new_port)
-    if new_uri == uri:
+    match = uri_re.match(destination.get("uri", ""))
+    if not match:
         continue
+    host, port, suffix = match.group(1), match.group(2), match.group(3)
+    transports = re.findall(r"(?:^|;)transport(?:=([^;]*))?(?=;|$)", suffix.split("?", 1)[0], re.I)
+    if host.strip("[]") not in local_addresses or port not in old_ports or any(t.lower() != "udp" for t in transports):
+        continue
+
+    new_uri = f"sip:{host}:{new_port}{suffix}"
     try:
         result = agent.tasks.run(
             agent_id=proxy_id,
