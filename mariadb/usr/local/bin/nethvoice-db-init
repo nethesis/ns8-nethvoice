@@ -93,11 +93,29 @@ fi
 if $migrate; then
     db asterisk <<'SQL'
 UPDATE sip s JOIN rest_devices_phones d ON d.extension = s.id
-SET s.data = 'opus,g722,ulaw,alaw,gsm,g726,h264,vp8'
+SET s.data = 'opus,g722,ulaw,alaw,h264,vp8'
 WHERE s.keyword = 'allow' AND d.type IN ('webrtc','nethlink','mobile');
 UPDATE sip s JOIN rest_devices_phones d ON d.extension = s.id
-SET s.data = 'g722,ulaw,alaw,gsm,g726,h264,vp8'
+SET s.data = 'g722,ulaw,alaw,h264,vp8'
 WHERE s.keyword = 'allow' AND (d.type IS NULL OR d.type NOT IN ('webrtc','nethlink','mobile'));
+SQL
+fi
+# Global codec defaults of Asterisk SIP Settings (kvstore_Sipsettings), the
+# allow lists FreePBX uses where no per-device list applies: same codecs and
+# order as the device lists (G.722 first, no GSM/G.726, H.264 before VP8).
+if $migrate; then
+    db asterisk <<'SQL'
+UPDATE kvstore_Sipsettings SET val=CASE `key`
+WHEN 'voicecodecs' THEN '{"g722":1,"ulaw":2,"alaw":3,"opus":4}'
+WHEN 'videocodecs' THEN '{"h264":1,"vp8":2}'
+WHEN 'videosupport' THEN 'yes'
+END, type=IF(`key`='videosupport',NULL,'json-arr') WHERE `key` IN ('voicecodecs','videocodecs','videosupport');
+INSERT INTO kvstore_Sipsettings (`key`,val,type,id)
+SELECT defaults.k,defaults.v,defaults.t,'noid' FROM (
+SELECT 'voicecodecs' k,'{"g722":1,"ulaw":2,"alaw":3,"opus":4}' v,'json-arr' t UNION ALL
+SELECT 'videocodecs','{"h264":1,"vp8":2}','json-arr' UNION ALL
+SELECT 'videosupport','yes',NULL) defaults
+WHERE NOT EXISTS (SELECT 1 FROM kvstore_Sipsettings existing WHERE existing.`key`=defaults.k);
 SQL
 fi
 # NethCTI Server

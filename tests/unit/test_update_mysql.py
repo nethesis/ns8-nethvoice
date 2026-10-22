@@ -74,7 +74,8 @@ fi
                 for mutation in ['INSERT INTO `rest_cti_profiles_permissions`',
                                  'TRUNCATE TABLE', '50_asterisk.rest_pjsip_providers.sql',
                                  '50_asterisk.gateway_models.sql',
-                                 'UPDATE sip s JOIN rest_devices_phones']:
+                                 'UPDATE sip s JOIN rest_devices_phones',
+                                 "WHEN 'voicecodecs' THEN"]:
                     self.assertEqual(mutation in calls, '--migrate' in options, mutation)
                 self.assertIn('INSERT INTO sipsettings', calls)
 
