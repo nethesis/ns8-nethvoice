@@ -7,7 +7,7 @@
 
 import os
 import sys
-import random
+import secrets
 import string
 import agent
 
@@ -15,24 +15,32 @@ import agent
 def gen_password(length=32):
     """Generates a random password of specified length."""
     choice_pool = string.ascii_letters+string.digits
-    return ''.join(random.choice(choice_pool) for _ in range(length))
+    return ''.join(secrets.choice(choice_pool) for _ in range(length))
 
 
-# RTP/UDP ports are pre-allocated by ns8-core via the udp-ports-demand label
-# and exposed as UDP_PORTS_RANGE — no extra allocation needed here.
-# Layout (2003 ports total):
-#   [0..999]   Asterisk RTP
-#   [1000..1999] Janus RTP
-#   [2000]     Satellite RTP
-#   [2001]     Asterisk IAX (UDP-only protocol)
-#   [2002]     Asterisk SIP UDP (separate from TCP SIP port)
-asterisk_rtp_ports = 1000
-janus_rtp_ports = 1000
+# ns8-core pre-allocates the udp-ports-demand label size (3000, the maximum
+# allowed per instance): shrink it to the default block size.
+# Layout (1000 ports total):
+#   [0..398]   Asterisk RTP
+#   [399..797] Janus SIP plugin RTP (towards Asterisk)
+#   [798..996] Janus WebRTC RTP
+#   [997]      Satellite RTP
+#   [998]      Asterisk IAX (UDP-only protocol)
+#   [999]      Asterisk SIP UDP (separate from TCP SIP port)
+asterisk_rtp_ports = 399
+janus_sip_rtp_ports = 399
+janus_rtp_ports = 199
+udp_block_size = asterisk_rtp_ports + janus_sip_rtp_ports + janus_rtp_ports + 3
 udp_range = os.environ['UDP_PORTS_RANGE'].split("-")
+if int(udp_range[1]) - int(udp_range[0]) + 1 != udp_block_size:
+    udp_range = agent.allocate_ports(udp_block_size, "udp")
+    agent.set_env('UDP_PORTS_RANGE', f'{udp_range[0]}-{udp_range[1]}')
 rtp_start = int(udp_range[0])
 sip_start = rtp_start
 sip_end = sip_start + asterisk_rtp_ports - 1
-janus_start = sip_end + 1
+janus_sip_start = sip_end + 1
+janus_sip_end = janus_sip_start + janus_sip_rtp_ports - 1
+janus_start = janus_sip_end + 1
 janus_end = janus_start + janus_rtp_ports - 1
 satellite_udp_port = janus_end + 1
 iax_udp_port = satellite_udp_port + 1
@@ -125,6 +133,8 @@ agent.set_env('FREEPBX_LOG_LEVEL', 'warn')
 agent.set_env('JANUS_DEBUG_LEVEL', 3)
 agent.set_env('JANUS_RTPSTART', janus_start)
 agent.set_env('JANUS_RTPEND', janus_end)
+agent.set_env('JANUS_SIP_RTPSTART', janus_sip_start)
+agent.set_env('JANUS_SIP_RTPEND', janus_sip_end)
 agent.set_env('ASTERISK_RTPSTART', sip_start)
 agent.set_env('ASTERISK_RTPEND', sip_end)
 agent.set_env('STUNSERVER', 'stun1.l.google.com')
@@ -175,21 +185,26 @@ agent.set_env('SATELLITE_LOG_LEVEL', 'WARNING')
 
 # NethCTI Middleware
 agent.set_env('NETHVOICE_MIDDLEWARE_PORT', port_list[34])
+# NethVoice chat loopback ports: ejabberd c2s, HTTP, component; gateway HTTP.
+agent.set_env('CHAT_C2S_PORT', port_list[38])
+agent.set_env('CHAT_HTTP_PORT', port_list[39])
+agent.set_env('CHAT_COMPONENT_PORT', port_list[40])
+agent.set_env('CHAT_GW_PORT', port_list[41])
 agent.set_env('NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS', '127.0.0.1:' + str(port_list[34]))
 
 # SSO front-doors (loopback, started on demand): see configure-module/45authentication
 agent.set_env('SAML2_PROXY_PORT', port_list[36])
 agent.set_env('OAUTH2_PROXY_PORT', port_list[37])
 
-# IAX2 is UDP-only — port derived from UDP_PORTS_RANGE offset 2001
+# IAX2 is UDP-only — port derived from UDP_PORTS_RANGE offset 1001
 agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)
 
-# SIP UDP port is separate from TCP SIP port — offset 2002
+# SIP UDP port is separate from TCP SIP port — offset 1002
 agent.set_env('ASTERISK_SIP_UDP_PORT', sip_udp_port)
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT', '127.0.0.1:' + str(port_list[6]))
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT', '127.0.0.1:' + str(port_list[7]))
 agent.set_env('NETHVOICE_MIDDLEWARE_V1_PROTOCOL', 'http')
-agent.set_env('NETHVOICE_MIDDLEWARE_GIN_MODE', 'release')
+agent.set_env('NETHVOICE_MIDDLEWARE_GIN_MODE', 'debug')
 
 # Default values for NETHCTI_* and other variables. These variables are not yet
 # exposed in the UI. Edit the environment file manually if you need to change
@@ -246,7 +261,8 @@ passwords = {
     "SATELLITE_ARI_PASSWORD": gen_password(),
     "SATELLITE_PGSQL_PASSWORD": gen_password(),
     "SATELLITE_API_TOKEN": gen_password(),
-    "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN": gen_password()
+    "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN": gen_password(),
+    "CHAT_COMPONENT_SECRET": gen_password()
 }
 
 agent.write_envfile("passwords.env", passwords)

@@ -1,0 +1,11 @@
+--- a/Iaxsettings.class.php
++++ b/Iaxsettings.class.php
+@@ -40,7 +40,7 @@
+ 	public function install()
+ 	{
+         outn(_("populating default settings.."));
+-        $this->edit($this->getDefaults());
++        $this->edit($this->getConfigs());
+ 	}
+ 	
+ 	public function uninstall() { }

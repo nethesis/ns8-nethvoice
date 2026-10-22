@@ -59,6 +59,22 @@ $langArray = json_decode($language, true);
  *  GET ELEMENTS ALL DATA AND CREATE DATA OBJECT 
  */
 
+$data = array(
+    'incoming' => array(),
+    'from-did-direct' => array(),
+    'ext-local' => array(),
+    'ivr' => array(),
+    'cqr' => array(),
+    'timeconditions' => array(),
+    'timegroups' => array(),
+    'app-announcement' => array(),
+    'recordings' => array(),
+    'ext-group' => array(),
+    'ext-meetme' => array(),
+    'ext-queues' => array(),
+    'app-daynight' => array()
+);
+
 // incoming data (inbound routes)
 $get_data = FreePBX::Core()->getAllDIDs('extension');
 foreach ($get_data as $key => $row) {
@@ -100,8 +116,12 @@ foreach ($get_data as $key => $row) {
     $data['ivr'][$row['id']]["id"] = $row['id'];
     $data['ivr'][$row['id']]["description"] = $row['description'];
     $data['ivr'][$row['id']]["announcement"] = $row['announcement'];
-    $data['ivr'][$row['id']]["invalid_destination"] = $row['invalid_destination'];
-    $data['ivr'][$row['id']]["timeout_destination"] = $row['timeout_destination'];
+    // Required IVR exits must remain drawable even when FreePBX leaves them unset.
+    foreach (['invalid_destination', 'timeout_destination'] as $field) {
+        $destination = $row[$field] ?? '';
+        $data['ivr'][$row['id']][$field] = trim((string)$destination) === ''
+            ? 'app-blackhole,hangup,1' : $destination;
+    }
     $selection_data = ivr_get_entries($row['id']);
     foreach ($selection_data as $key => $value) {
         $data['ivr'][$row['id']]['selections'][$value['selection']] = array(
@@ -121,7 +141,7 @@ foreach ($get_cqr as $row) {
     $data['cqr'][$row['id_cqr']]["default_destination"] = $row['default_destination'];
     $get_entries = nethcqr_get_entries($row['id_cqr']);
     foreach ($get_entries as $key => $value) {
-        $data['cqr'][$row['id_cqr']]['selections'][$value['position']] = array( "position" => $value['pisition'],
+        $data['cqr'][$row['id_cqr']]['selections'][$value['position']] = array( "position" => $value['position'],
             "condition" => $value['condition'],
             "dest" => $value['destination']
         );
@@ -211,11 +231,11 @@ $get_data = daynight_list();
 foreach ($get_data as $key => $row) {
     $daynight_obj = daynight_get_obj($row['ext']);
     $data['app-daynight'][$row['ext']] = array(
-        "name"=> $daynight_obj['fc_description'],
+        "name"=> $daynight_obj['fc_description'] ?? "",
         "control_code"=> "*28".$row['ext'],
         "ext"=> $row['ext'],
-        "green_flow"=> $daynight_obj['day'],
-        "red_flow"=> $daynight_obj['night']
+        "green_flow"=> $daynight_obj['day'] ?? "",
+        "red_flow"=> $daynight_obj['night'] ?? ""
     );
 }
 $data['codeavailable'] = daynight_get_avail();
@@ -257,13 +277,13 @@ foreach ($_GET as $key => $value) {
 
         case "readData":
             $name = trim($_GET["readData"]);
-            print_r(/*nethvplan_json_pretty(*/json_encode($data[$name], true));
+            print_r(/*nethvplan_json_pretty(*/json_encode($data[$name] ?? array(), true));
         break;
 
         case "getAll":
             $name = $_GET["getAll"];
             $widContainer = array();
-            foreach ($data[$name] as $key => $value) {
+            foreach ($data[$name] ?? array() as $key => $value) {
                 if ($name == "ext-local") {
                     $key = "vmb".$key;
                 }
@@ -277,7 +297,7 @@ foreach ($_GET as $key => $value) {
             $tmpDestArray = array();
 
             $dest = base64_decode($_GET["getChild"]);
-            $finalDest = base64_decode($_GET["getChildDest"]);
+            $finalDest = base64_decode($_GET["getChildDest"] ?? '');
             $pieces = explode("|", $finalDest);
             unset($pieces[count($pieces)-1]);
 
@@ -511,6 +531,8 @@ function nethvplan_bindData($data, $dest, $id)
 {
     global $langArray;
     global $widgetTemplate;
+    global $xPos;
+    global $yPos;
     $widget = $widgetTemplate;
     if (!empty($data[$dest][$id]['userData'])) {
         $widget['userData'] = $data[$dest][$id]['userData'];        

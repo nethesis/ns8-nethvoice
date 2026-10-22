@@ -1,0 +1,11 @@
+#!/bin/bash
+# Import historic call data without blocking configure, restore or update.
+set -euo pipefail
+exec 1>&2
+for dump in ./restore_background/*.sql; do
+    [[ -f "$dump" ]] || continue
+    podman run --rm -i --network=host --env-file=./passwords.env \
+        --env=NETHVOICE_MARIADB_PORT --entrypoint=bash "${NETHVOICE_MARIADB_IMAGE}" \
+        -ec 'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; exec mysql -u root -h 127.0.0.1 -P "$NETHVOICE_MARIADB_PORT"' < "$dump"
+    rm -- "$dump"
+done

@@ -321,7 +321,7 @@ while ($socket = socket_accept($sock)) {
                     $sth = $fiasserverdb->prepare($query);
                     $rs = $sth->execute(array($record, $record_id));
                     if ($rs === false) {
-                        logMessage("Error updating record; record_id: $record_id; " . mysql_error(), ERROR, "fias-server");
+                        logMessage("Error updating record; record_id: $record_id; " . getPDOErrorMessage($sth), ERROR, "fias-server");
                     }
                     $state = "stWaitForData";
                 }
@@ -353,7 +353,7 @@ while ($socket = socket_accept($sock)) {
                     $sth = $fiasserverdb->prepare($query);
                     $rs = $sth->execute(array());
                     if (!$rs) {
-                        throw new Exception('Mysql Error reading messages; ' . mysql_error());
+                        throw new Exception('Database error reading messages; ' . getPDOErrorMessage($sth));
                     }
                     $data = $sth->fetchAll();
                     if (count($data) == 0) {
@@ -373,7 +373,7 @@ while ($socket = socket_accept($sock)) {
                             $sth = $fiasserverdb->prepare($query);
                             $rs = $sth->execute(array($record, $record_id));
                             if ($rs === false) {
-                                logMessage('Mysql Error updating messages; ' . mysql_error(), INFO, "fias-server");
+                                logMessage('Database error updating messages; ' . getPDOErrorMessage($sth), INFO, "fias-server");
                             }
                             logMessage("LE (Link End) message sent. Exiting", INFO, "fias-server");
                             $state = "stDisconnected";

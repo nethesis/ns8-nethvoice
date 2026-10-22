@@ -177,6 +177,16 @@ $state= "stStart";
 logMessage("Starting daemon", INFO, "fiasd");
 while ( TRUE ) {
     logMessage("state: $state", DEBUGVERBOSE, "fiasd");
+    // Probe only states which access SQL, reconnecting after wait_timeout or
+    // a database restart. Never replay a partially executed write.
+    if (in_array($state, ['stStart', 'stReadDB', 'stWriteDB', 'stSendData'], true)) {
+        try {
+            $fiasdb->query('SELECT 1');
+        } catch (PDOException $e) {
+            if (!in_array((int) ($e->errorInfo[1] ?? 0), [2006, 2013], true)) { throw $e; }
+            $fiasdb = connectFiasDatabase();
+        }
+    }
     switch($state) {
     case "stStart":
         // Remove waiting LE commands
@@ -317,7 +327,7 @@ while ( TRUE ) {
             $sth = $fiasdb->prepare($query);
             $rs = $sth->execute(array($record,$record_id));
             if ($rs === false) {
-                logMessage("Error updating record; record_id: $record_id; ".mysql_error(), ERROR, "fiasd");
+                logMessage("Error updating record; record_id: $record_id; ".getPDOErrorMessage($sth), ERROR, "fiasd");
             }
             $state = "stWaitForData";
         }
@@ -359,7 +369,7 @@ while ( TRUE ) {
                 $sth = $fiasdb->prepare($query);
                 $rs = $sth->execute(array());
                 if (!$rs) {
-                    throw new Exception('Mysql Error reading messages; '.mysql_error());
+                    throw new Exception('Database error reading messages; '.getPDOErrorMessage($sth));
                 }
 
                 $data = $sth->fetchAll();
@@ -384,7 +394,7 @@ while ( TRUE ) {
                         $sth = $fiasdb->prepare($query);
                         $rs = $sth->execute(array($record,$record_id));
                         if ($rs === false) {
-                            logMessage('Mysql Error updating messages; '.mysql_error(), INFO, "fiasd");
+                            logMessage('Database error updating messages; '.getPDOErrorMessage($sth), INFO, "fiasd");
                         }
                         logMessage("LE (Link End) message sent. Exiting", INFO, "fiasd");
                         exit(0);

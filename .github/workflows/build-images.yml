@@ -76,6 +76,16 @@ jobs:
           fi
           bash build-images.sh
 
+      - name: Check FreePBX runtime
+        run: |
+          if [[ " ${{ steps.build.outputs.images }} " == *"/nethvoice-freepbx "* ]]; then
+            for test in runtime_compatibility_test.sh prometheus_test.sh; do
+              podman run --rm --network=none \
+                --volume "${GITHUB_WORKSPACE}/freepbx/tests:/tests:ro" \
+                --entrypoint=bash "${REPOBASE}/nethvoice-freepbx:${IMAGETAG}" "/tests/${test}"
+            done
+          fi
+
       - name: Publish module images
         run: |
           trap 'buildah logout ghcr.io' EXIT

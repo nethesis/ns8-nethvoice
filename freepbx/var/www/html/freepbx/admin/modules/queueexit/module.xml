@@ -1,0 +1,22 @@
+<module>
+  <rawname>queueexit</rawname>
+  <repo>unsupported</repo>
+  <name>Queue Exit</name>
+  <version>0.0.1</version>
+  <category>Applications</category>
+  <Publisher>Andrea Marchionni</Publisher>
+  <info></info>
+  <licence>GPL</licence>
+  <licenselink>http://www.gnu.org/licenses/gpl-2.0.txt</licenselink>
+  <menuitems>
+    <queueexit>Queue Exit</queueexit>
+</menuitems>
+<depends>
+  <version>14</version>
+</depends>
+<supported>14.0</supported>
+
+<description>Allow to manage destination for call exits from a queue</description>
+<changelog></changelog>
+
+</module>
