@@ -487,8 +487,13 @@
         <cv-row>
           <cv-column>
             <cv-tile light>
-              <h4 class="mb-4">{{ $t("settings.alerts_beta") }}</h4>
-              <p class="mb-4">{{ $t("settings.alerts_beta_description") }}</p>
+              <h4 class="mb-4">{{ $t("settings.alerts_title") }}</h4>
+              <NsInlineNotification
+                kind="info"
+                :title="$t('settings.alerts_beta_title')"
+                :description="$t('settings.alerts_beta_description')"
+                :showCloseButton="false"
+              />
               <cv-form @submit.prevent="setAlerts">
                 <NsToggle
                   value="alertsEnabled"
@@ -496,6 +501,34 @@
                   v-model="alerts_enabled"
                   :disabled="isFormDisabled"
                 >
+                  <template #tooltip>
+                    <div class="mg-bottom-sm">
+                      {{ $t("settings.alerts_description") }}
+                    </div>
+                    <ul class="alerts-list mg-bottom-sm">
+                      <li>
+                        <code>ServiceDown</code>:
+                        {{ $t("settings.alerts_service_down") }}
+                      </li>
+                      <li>
+                        <code>NethVoiceTrunkUnreachable</code>:
+                        {{ $t("settings.alerts_trunk_unreachable") }}
+                      </li>
+                      <li>
+                        <code>NethVoicePublicDnsFailure</code>:
+                        {{ $t("settings.alerts_public_dns") }}
+                      </li>
+                      <li>
+                        <code>NethVoiceAiKeyInvalid</code>:
+                        {{ $t("settings.alerts_ai_key") }}
+                      </li>
+                      <li>
+                        <code>NethVoiceAiCreditExhausted</code>:
+                        {{ $t("settings.alerts_ai_credit") }}
+                      </li>
+                    </ul>
+                    <div>{{ $t("settings.alerts_where") }}</div>
+                  </template>
                   <template slot="text-left">{{
                     $t("common.disabled")
                   }}</template>
@@ -1401,6 +1434,11 @@ export default {
 
 <style scoped lang="scss">
 @import "../styles/carbon-utils";
+
+.alerts-list {
+  list-style: disc;
+  padding-left: 1.5rem;
+}
 
 .idp-preview {
   max-width: 38rem;
