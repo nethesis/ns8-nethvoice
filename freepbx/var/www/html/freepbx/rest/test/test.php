@@ -736,6 +736,7 @@ try {
 $test = "IVR save/get details/entries";
 try {
     $idIVR = ivr_save_details(array(
+                        "id" => "",
                         "name" => 'testIVR',
                         "description" => "Test IVR",
                         "announcement" => '',
@@ -814,6 +815,7 @@ $test = "NethCQR save/get details/entries";
 try {
 
     $idCQR = nethcqr_save_details(array(
+        "id_cqr" => "",
         "name" => 'testCQR',
         "description" => 'Test CQR created by automatic testing',
         "announcement" => '',

@@ -177,7 +177,7 @@ foreach ([true, false] as $withMac) {
                 gateway_test_assert_tag($output, 'P' . ($base + $i), "fxo-user-$i");
             }
             gateway_test_assert_tag($output, 'P' . (4120 + $i), "fxo-secret-$i");
-            gateway_test_assert_tag($output, $i === 1 ? 'P3305' : 'P' . (92827 + $i), "trunk-$i");
+            gateway_test_assert_tag($output, $i === 1 ? 'P3305' : 'P' . (92827 + $i), "line-$i");
         }
     };
 }

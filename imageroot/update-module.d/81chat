@@ -1,0 +1,12 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# NethVoice chat: re-render the configuration and restart the units after an update.
+if [ "${CHAT_ENABLED:-false}" != "true" ]; then
+    exit 0
+fi
+CHAT_FORCE_RESTART=1 python3 "${AGENT_INSTALL_DIR}/actions/configure-module/46chat" </dev/null

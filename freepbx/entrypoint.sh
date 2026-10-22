@@ -5,6 +5,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+# A restarted container must not advertise readiness from a previous start.
+rm -f /var/run/nethvoice/freepbx-ready /var/run/nethvoice/freepbx-failed || exit $?
+
 # Configure asterisk manager
 cat > /etc/asterisk/manager.conf <<EOF
 [general]
@@ -24,6 +27,37 @@ writetimeout = 5000
 #include manager_additional.conf
 #include manager_custom.conf
 EOF
+
+# The HTTP and HTTPS/WSS listeners share metric routes. Require credentials
+# even for local scraping, and refresh the persistent config on every start.
+install -o asterisk -g asterisk -m 0640 /dev/null /etc/asterisk/prometheus.conf || exit $?
+if [[ -n "${ASTERISK_PROMETHEUS_PASSWORD:-}" ]]; then
+	# NS8 generates a hex password; reject configuration-file metacharacters.
+	if [[ ! "${ASTERISK_PROMETHEUS_PASSWORD}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+		echo 'Invalid ASTERISK_PROMETHEUS_PASSWORD format' >&2
+		exit 1
+	fi
+	cat > /etc/asterisk/prometheus.conf <<EOF
+[general]
+enabled = yes
+core_metrics_enabled = yes
+uri = metrics
+auth_username = prometheus
+auth_password = ${ASTERISK_PROMETHEUS_PASSWORD}
+EOF
+else
+	# Standalone image users must supply a password to enable metrics.
+	printf '[general]\nenabled = no\n' > /etc/asterisk/prometheus.conf
+fi
+
+# Preserve the metrics credential permissions on later `fwconsole chown` runs.
+cat > /etc/asterisk/nethvoice_chown.conf <<'EOF'
+[custom]
+file = /etc/asterisk/prometheus.conf,0640,asterisk,asterisk
+EOF
+if ! grep -Fxq '#include nethvoice_chown.conf' /etc/asterisk/freepbx_chown.conf 2>/dev/null; then
+    printf '\n#include nethvoice_chown.conf\n' >> /etc/asterisk/freepbx_chown.conf
+fi
 
 # create asterisk.conf
 cat > /etc/asterisk/asterisk.conf <<EOF
@@ -80,6 +114,17 @@ noload = res_http_media_cache.so
 noload = res_phoneprov.so
 EOF
 
+# Opus in-band FEC needs packet_loss > 0; codecs.conf lives in the persistent volume
+if ! grep -q '^type *= *opus' /etc/asterisk/codecs.conf 2>/dev/null; then
+	cat >> /etc/asterisk/codecs.conf <<EOF
+
+[opus]
+type=opus
+packet_loss=10
+fec=yes
+EOF
+fi
+
 # Show Asterisk logfiles module on FreePBX interface
 sed -i '/^; Hide Asterisk logfile$/N;/\n\[logfiles\]$/N;/\nremove=Yes$/d' /etc/asterisk/freepbx_menu.conf
 
@@ -89,6 +134,7 @@ sed -i '/^; Hide Asterisk logfile$/N;/\n\[logfiles\]$/N;/\nremove=Yes$/d' /etc/a
 install -d -o asterisk -g asterisk -m 0755 /var/log/asterisk /var/log/apache2
 
 chown -c asterisk:asterisk /etc/asterisk/*.conf
+chown -R asterisk:asterisk /var/www/html/freepbx/admin/modules/pm2/node
 
 # Configure ODBC for asteriskcdrdb
 cat > /etc/odbc.ini <<EOF
@@ -507,6 +553,13 @@ sed -i "s/Listen 80/Listen ${APACHE_PORT}/" /etc/apache2/ports.conf
 
 # Load apache envvars
 source /etc/apache2/envvars
+
+# Asterisk 22 cannot execute the FreePBX 16 dialplan. Quarantine it until
+# freepbx_init installs all modules and generates the new Gosub dialplan.
+if grep -qE '(^|[,=])Macro(Exit)?\(' /etc/asterisk/extensions_additional.conf 2>/dev/null; then
+    cp -p /etc/asterisk/extensions_additional.conf /etc/asterisk/extensions_additional.conf.pre-freepbx17
+    printf '; Awaiting FreePBX 17 initialization\n' > /etc/asterisk/extensions_additional.conf
+fi
 
 # Install freepbx modules and apply changes after asterisk is started by supervisor
 /freepbx_init.sh &

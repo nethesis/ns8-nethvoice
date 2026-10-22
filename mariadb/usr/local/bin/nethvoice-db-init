@@ -1,0 +1,198 @@
+#!/bin/bash
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -euo pipefail
+export LC_ALL=C
+export MYSQL_PWD="${MARIADB_ROOT_PASSWORD}"
+socket=false
+migrate=false
+for option in "$@"; do
+    case "$option" in
+        --socket) socket=true ;;
+        --migrate) migrate=true ;;
+        *) echo "Unknown option: $option" >&2; exit 2 ;;
+    esac
+done
+mysql_args=(-u root)
+if ! $socket; then
+    mysql_args+=(-h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}")
+fi
+db() { mysql "${mysql_args[@]}" "$@"; }
+
+# Validate all allocated bindings before changing the database.
+for name in ASTERISK_RTPSTART ASTERISK_RTPEND ASTERISK_SIP_UDP_PORT ASTERISK_SIP_PORT ASTERISK_SIPS_PORT ASTERISK_IAX_PORT ASTERISK_WS_PORT ASTERISK_WSS_PORT ASTMANAGERPORT; do
+    value=${!name:-}
+    if [[ ! "$value" =~ ^[0-9]+$ ]] || (( 10#$value < 1 || 10#$value > 65535 )); then
+        echo "Invalid or missing $name" >&2
+        exit 2
+    fi
+done
+if (( ASTERISK_RTPSTART > ASTERISK_RTPEND )); then
+    echo "Invalid Asterisk RTP range" >&2
+    exit 2
+fi
+
+# Hotel
+db < /docker-entrypoint-initdb.d/00_roomsdb-schema-create.sql
+db < /docker-entrypoint-initdb.d/40_roomsdb.alarmcalls-schema.sql
+db < /docker-entrypoint-initdb.d/40_roomsdb.alarms_history-schema.sql
+db < /docker-entrypoint-initdb.d/40_roomsdb.alarms-schema.sql
+db < /docker-entrypoint-initdb.d/40_roomsdb.codes-schema.sql
+db < /docker-entrypoint-initdb.d/40_roomsdb.extra_history-schema.sql
+db < /docker-entrypoint-initdb.d/40_roomsdb.extra-schema.sql
+db < /docker-entrypoint-initdb.d/40_roomsdb.groups_rooms-schema.sql
+db < /docker-entrypoint-initdb.d/40_roomsdb.history-schema.sql
+db < /docker-entrypoint-initdb.d/40_roomsdb.options-schema.sql
+db < /docker-entrypoint-initdb.d/40_roomsdb.rates-schema.sql
+RATES_COUNT=$(db -N -B -e 'SELECT COUNT(*) FROM roomsdb.rates')
+if [ "${RATES_COUNT}" -eq 0 ]; then
+    db < /docker-entrypoint-initdb.d/45_roomsdb.defaults.sql
+fi
+db < /docker-entrypoint-initdb.d/40_roomsdb.room_groups-schema.sql
+db < /docker-entrypoint-initdb.d/40_roomsdb.rooms-schema.sql
+db -e "GRANT ALL on roomsdb.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'"
+db < /docker-entrypoint-initdb.d/00_fias-schema-create.sql
+db < /docker-entrypoint-initdb.d/40_fias.messages-schema.sql
+db < /docker-entrypoint-initdb.d/40_fias.messagesparameters-schema.sql
+db < /docker-entrypoint-initdb.d/40_fias.reservations-schema.sql
+db -e "GRANT ALL on fias.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'"
+db phonebook -e 'CREATE TABLE IF NOT EXISTS `sync_metadata` (`scope` varchar(255) NOT NULL, `last_sync_at` datetime DEFAULT NULL, PRIMARY KEY (`scope`)) ENGINE=MyISAM DEFAULT CHARSET=utf8'
+db asterisk -e 'INSERT INTO `rest_cti_permissions` (`id`,`name`,`displayname`,`description`) VALUES (10,"phonebook_level_0","Phonebook read only","View phonebook contacts"),(11,"phonebook_level_1","Phonebook private contacts","Create, edit and delete owned private contacts"),(12,"ad_phonebook","Advanced Phonebook","Read and write all contacts"),(14,"phonebook_level_2","Phonebook public and shared contacts","Create, edit and delete public and shared contacts") ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `displayname`=VALUES(`displayname`), `description`=VALUES(`description`)'
+db asterisk -e 'INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`,`permission_id`) VALUES (2,10),(2,11),(2,12),(2,14) ON DUPLICATE KEY UPDATE `permission_id`=VALUES(`permission_id`)'
+if $migrate; then
+    # Upgrade/import migrations must not re-grant admin-revoked permissions
+    # when configure-module only reconciles instance settings.
+    db asterisk -e 'INSERT INTO `rest_cti_profiles_permissions` (`profile_id`,`permission_id`) SELECT `profile_id`, 10 FROM `rest_cti_profiles_macro_permissions` WHERE `macro_permission_id` = 2 ON DUPLICATE KEY UPDATE `permission_id`=VALUES(`permission_id`)'
+    db asterisk -e 'INSERT INTO `rest_cti_profiles_permissions` (`profile_id`,`permission_id`) SELECT `profile_id`, 14 FROM `rest_cti_profiles_permissions` WHERE `permission_id` = 12 ON DUPLICATE KEY UPDATE `permission_id`=VALUES(`permission_id`)'
+fi
+db -e "INSERT IGNORE INTO \`asterisk\`.\`admin\` (\`variable\`, \`value\`) VALUES ('NETHVOICE_HOST','')"
+VM_CALLERID_LENGTH=$(db -N -B -e "SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'asteriskcdrdb' AND TABLE_NAME = 'voicemessages' AND COLUMN_NAME = 'callerid'")
+if [ -n "${VM_CALLERID_LENGTH}" ] && [ "${VM_CALLERID_LENGTH}" -lt 255 ]; then
+    db -e "ALTER TABLE \`asteriskcdrdb\`.\`voicemessages\` MODIFY \`callerid\` varchar(255) DEFAULT ''"
+fi
+# Refresh bundled catalogs only on initialization, update or import.
+if $migrate; then
+    # VoIP Providers
+    db < /docker-entrypoint-initdb.d/10_asterisk.rest_pjsip_trunks_custom_flags.sql
+    db asterisk -e 'DROP TABLE IF EXISTS `providers`'
+    db asterisk -e 'TRUNCATE TABLE `rest_pjsip_providers`'
+    db asterisk -e 'TRUNCATE TABLE `rest_pjsip_trunks_custom_flags`'
+    db asterisk -e 'TRUNCATE TABLE `rest_pjsip_trunks_defaults`'
+    db asterisk -e 'TRUNCATE TABLE `rest_pjsip_trunks_specialopts`'
+    db < /docker-entrypoint-initdb.d/50_asterisk.rest_pjsip_providers.sql
+    db < /docker-entrypoint-initdb.d/50_asterisk.rest_pjsip_trunks_custom_flags.sql
+    db < /docker-entrypoint-initdb.d/50_asterisk.rest_pjsip_trunks_defaults.sql
+    db < /docker-entrypoint-initdb.d/50_asterisk.rest_pjsip_trunks_specialopts.sql
+    # Gateway models: refresh the catalog without deleting configured gateways via foreign keys.
+    db < /docker-entrypoint-initdb.d/50_asterisk.gateway_models.sql
+fi
+# Codec lists per device type, same values as NETHVOICE_CODECS_* in
+# freepbx/var/www/html/freepbx/rest/lib/libExtensions.php: existing devices
+# converge on update and import. Lists edited by hand are overwritten.
+if $migrate; then
+    db asterisk <<'SQL'
+UPDATE sip s JOIN rest_devices_phones d ON d.extension = s.id
+SET s.data = 'opus,g722,ulaw,alaw,gsm,g726,h264,vp8'
+WHERE s.keyword = 'allow' AND d.type IN ('webrtc','nethlink','mobile');
+UPDATE sip s JOIN rest_devices_phones d ON d.extension = s.id
+SET s.data = 'g722,ulaw,alaw,gsm,g726,h264,vp8'
+WHERE s.keyword = 'allow' AND (d.type IS NULL OR d.type NOT IN ('webrtc','nethlink','mobile'));
+SQL
+fi
+# NethCTI Server
+db nethcti3 -e 'DELETE FROM `auth` WHERE user LIKE "%_phone-island"'
+# Phonebook: add extended contact fields for existing installs
+db nethcti3 -e '
+ALTER TABLE cti_phonebook
+  ADD COLUMN IF NOT EXISTS firstname varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS lastname varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS job varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS facebook varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS instagram varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS linkedin varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS workphone2 varchar(25) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS cellphone2 varchar(25) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS otherphone varchar(25) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS otheremail varchar(255) DEFAULT NULL'
+db nethcti3 -e '
+ALTER TABLE cti_phonebook
+  ADD INDEX IF NOT EXISTS lastname_idx (lastname),
+  ADD INDEX IF NOT EXISTS wphone2_idx (workphone2),
+  ADD INDEX IF NOT EXISTS cphone2_idx (cellphone2),
+  ADD INDEX IF NOT EXISTS ophone_idx (otherphone),
+  ADD INDEX IF NOT EXISTS oemail_idx (otheremail)'
+# Centralized phonebook
+db phonebook -e '
+ALTER TABLE phonebook
+  ADD COLUMN IF NOT EXISTS access varchar(255) NOT NULL DEFAULT "public",
+  ADD COLUMN IF NOT EXISTS firstname varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS lastname varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS job varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS facebook varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS instagram varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS linkedin varchar(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS workphone2 varchar(25) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS cellphone2 varchar(25) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS otherphone varchar(25) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS otheremail varchar(255) DEFAULT NULL,
+  ADD INDEX IF NOT EXISTS lastname_idx (lastname),
+  ADD INDEX IF NOT EXISTS wphone2_idx (workphone2),
+  ADD INDEX IF NOT EXISTS cphone2_idx (cellphone2),
+  ADD INDEX IF NOT EXISTS ophone_idx (otherphone),
+  ADD INDEX IF NOT EXISTS oemail_idx (otheremail)'
+# Existing centralized rows (pre-sharing imports, legacy scripts, nethcti republish)
+# have empty access after the column is added: they were publicly visible, so mark them
+# public explicitly. Group-scoped rows carry 'group:...' and are left untouched.
+db phonebook -e 'UPDATE phonebook SET access = "public" WHERE access = ""'
+
+# Instance bindings have one owner. Module installers must preserve these rows.
+db asterisk <<SQL
+INSERT INTO sipsettings (keyword,data,seq,type) VALUES
+('rtpstart','${ASTERISK_RTPSTART}',0,0),('rtpend','${ASTERISK_RTPEND}',0,0),('bindport','${ASTERISK_SIP_UDP_PORT}',1,0)
+ON DUPLICATE KEY UPDATE data=VALUES(data);
+INSERT INTO iaxsettings (keyword,data,seq,type) VALUES ('bindport','${ASTERISK_IAX_PORT}',1,0)
+ON DUPLICATE KEY UPDATE data=VALUES(data);
+UPDATE kvstore_Sipsettings SET val=CASE \`key\`
+WHEN 'udpport-0.0.0.0' THEN '${ASTERISK_SIP_UDP_PORT}'
+WHEN 'tcpport-0.0.0.0' THEN '${ASTERISK_SIP_PORT}'
+WHEN 'tlsport-0.0.0.0' THEN '${ASTERISK_SIPS_PORT}'
+WHEN 'bindport' THEN '${ASTERISK_SIP_PORT}'
+WHEN 'tlsbindport' THEN '${ASTERISK_SIPS_PORT}'
+WHEN 'rtpstart' THEN '${ASTERISK_RTPSTART}'
+WHEN 'rtpend' THEN '${ASTERISK_RTPEND}'
+END WHERE \`key\` IN ('udpport-0.0.0.0','tcpport-0.0.0.0','tlsport-0.0.0.0','bindport','tlsbindport','rtpstart','rtpend');
+INSERT INTO kvstore_Sipsettings (\`key\`,val,type,id)
+SELECT defaults.k,defaults.v,IF(defaults.k='binds','json-arr',NULL),'noid' FROM (
+SELECT 'udpport-0.0.0.0' k,'${ASTERISK_SIP_UDP_PORT}' v UNION ALL
+SELECT 'tcpport-0.0.0.0','${ASTERISK_SIP_PORT}' UNION ALL
+SELECT 'tlsport-0.0.0.0','${ASTERISK_SIPS_PORT}' UNION ALL
+SELECT 'bindport','${ASTERISK_SIP_PORT}' UNION ALL
+SELECT 'tlsbindport','${ASTERISK_SIPS_PORT}' UNION ALL
+SELECT 'rtpstart','${ASTERISK_RTPSTART}' UNION ALL
+SELECT 'rtpend','${ASTERISK_RTPEND}' UNION ALL
+SELECT 'binds','{"wss":{"0.0.0.0":"on"},"udp":{"0.0.0.0":"on"},"tcp":{"0.0.0.0":"on"},"ws":{"0.0.0.0":"on"},"tls":{"0.0.0.0":"on"}}') defaults
+WHERE NOT EXISTS (SELECT 1 FROM kvstore_Sipsettings existing WHERE existing.\`key\`=defaults.k);
+UPDATE kvstore_Sipsettings SET val='' WHERE (\`key\` LIKE 'tcplocalnet-%' OR \`key\` LIKE 'udplocalnet-%' OR \`key\` LIKE 'tlslocalnet-%') AND LOWER(TRIM(val))='none';
+INSERT INTO freepbx_settings (keyword,value,name,level,description,type,options,defaultval,readonly,hidden,category,module,emptyok,sortorder)
+VALUES ('ASTMANAGERPORT','${ASTMANAGERPORT}','Asterisk Manager Port',2,'Port for the Asterisk Manager','int','1024,65535','${ASTMANAGERPORT}',1,0,'Asterisk Manager','',0,0),
+('HTTPTLSENABLE','1','Enable TLS for the mini-HTTP Server',3,'Enable the Asterisk HTTPS listener','bool','','0',0,0,'Asterisk Builtin mini-HTTP server','',0,0)
+ON DUPLICATE KEY UPDATE value=VALUES(value),defaultval=VALUES(defaultval);
+UPDATE freepbx_settings SET value=CASE keyword
+WHEN 'HTTPBINDPORT' THEN '${ASTERISK_WS_PORT}'
+WHEN 'HTTPTLSBINDPORT' THEN '${ASTERISK_WSS_PORT}'
+WHEN 'HTTPBINDADDRESS' THEN '127.0.0.1'
+WHEN 'HTTPENABLED' THEN '1' WHEN 'HTTPTLSENABLE' THEN '1'
+WHEN 'HTTPTLSCERTFILE' THEN '/etc/asterisk/keys/NethServer.crt'
+WHEN 'HTTPTLSPRIVATEKEY' THEN '/etc/asterisk/keys/NethServer.key'
+END WHERE keyword IN ('HTTPBINDADDRESS','HTTPBINDPORT','HTTPTLSBINDPORT','HTTPENABLED','HTTPTLSENABLE','HTTPTLSCERTFILE','HTTPTLSPRIVATEKEY');
+UPDATE freepbx_settings SET value='0.0.0.0' WHERE keyword='HTTPTLSBINDADDRESS' AND value IN ('::','127.0.0.1');
+SQL
+
+if [[ -n "${PROXY_IP:-}" && -n "${PROXY_PORT:-}" ]]; then
+    # Proxy coordinates come from NS8 service discovery, never from action input.
+    db asterisk <<SQL
+UPDATE sip SET data='sip:${PROXY_IP}:${PROXY_PORT};lr' WHERE keyword='outbound_proxy' AND data LIKE 'sip:%;lr';
+UPDATE pjsip SET data='sip:${PROXY_IP}:${PROXY_PORT};lr' WHERE keyword='outbound_proxy' AND data LIKE 'sip:%;lr';
+SQL
+fi

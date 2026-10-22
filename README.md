@@ -43,6 +43,48 @@ You can access NethVoice wizard at:
 https://makako.nethesis.it/nethvoice/
 ```
 
+## Asterisk Prometheus metrics
+
+Asterisk includes `res_prometheus` and serves metrics on its existing local HTTP
+listener at `http://127.0.0.1:${ASTERISK_WS_PORT}/metrics`. The port is allocated
+per instance; read `ASTERISK_WS_PORT` from the module's environment.
+
+The Basic Auth username is `prometheus`. Before starting FreePBX, NS8 generates
+`ASTERISK_PROMETHEUS_PASSWORD` in the module's `passwords.env` if it is missing.
+The password survives restarts, updates and backups; cloning generates a new
+password. Startup also handles backups made before this credential existed.
+The container regenerates `/etc/asterisk/prometheus.conf` from this secret on
+every start. For standalone FreePBX containers, supply
+`ASTERISK_PROMETHEUS_PASSWORD` using letters, digits, underscores or hyphens;
+metrics are disabled when it is absent.
+
+Run Prometheus on the same node and configure a scrape job using the instance's
+allocated port, for example:
+
+```yaml
+scrape_configs:
+  - job_name: nethvoice1-asterisk
+    metrics_path: /metrics
+    basic_auth:
+      username: prometheus
+      password_file: /etc/prometheus/nethvoice1.password
+    static_configs:
+      - targets: ['127.0.0.1:20030'] # Replace with ASTERISK_WS_PORT
+```
+
+Securely copy the value of `ASTERISK_PROMETHEUS_PASSWORD` into the password file,
+readable only by Prometheus. Its network namespace must be able to reach the
+node's loopback listener. From the module shell, this command prompts for the
+password and prints the metrics:
+
+```bash
+curl --user prometheus "http://127.0.0.1:${ASTERISK_WS_PORT}/metrics"
+```
+
+Asterisk shares HTTP routes with its existing HTTPS/WSS listener, so `/metrics`
+also requires authentication there. No additional port or Traefik route is
+created.
+
 ## Notify for services
 
 After FreePBX configurations have been applied, some containers should be restarted or reloaded.
@@ -106,6 +148,30 @@ Notes:
 - Use `-v` / `--verbose` to see request/response details and headers.
 
 
+## Chat
+
+The NethVoice chat (NethServer/dev#7648) is switched on from the Integrations page, or with
+`set-integrations` and `{"chat_enabled": true}`. It adds two units running the `nethvoice-ejabberd`
+image (see `ejabberd/README.md`): `chat-server` (ejabberd: XMPP over WebSocket, file uploads) and
+`chat-gateway` (push notifications, mobile app web services). Both listen on loopback only.
+
+- Ports: `CHAT_C2S_PORT`, `CHAT_HTTP_PORT`, `CHAT_COMPONENT_PORT`, `CHAT_GW_PORT`, four TCP ports of the module range.
+- Traefik routes on the CTI host: `/xmpp-websocket`, `/upload`, `/chat-gw`; removed when the chat is off.
+- Volumes: `chat-data` (ejabberd database), `chat-upload` (attachments), `chat-gw` (gateway database).
+  The backup takes consistent snapshots of the two databases (`state/chat.db`, `state/chat-gw.db`) and the upload volume.
+- Secret: `CHAT_COMPONENT_SECRET` in `passwords.env`.
+- CTI groups: every CTI operator group is a group chat (`cti-<name>` room) kept by the gateway every 2 minutes.
+  Its members are who sees the group in the CTI operators panel: the group's members, plus users with the
+  `all_groups` or that group's `grp_` permission. Members join and leave with the CTI; a deleted group's room is
+  destroyed; a renamed group gets a new room.
+- Settings, on the Integrations page or in `set-integrations` (defaults in brackets): `chat_retention_days` (365,
+  3650 means forever) days kept for messages and uploads, `chat_upload_quota_mb` (200) upload space per user,
+  `chat_upload_max_file_mb` (25) largest upload. `CHAT_DEBUG` (unset) turns on verbose logs of the chat programs.
+
+  ```
+  api-cli run module/nethvoice1/set-integrations --data '{"chat_enabled": true, "chat_retention_days": 180}'
+  ```
+
 ## Timer logs
 
 These units are silenced to keep the journal small:
@@ -114,6 +180,7 @@ These units are silenced to keep the journal small:
 - `nethvoice-queue-stats-reset.service` (every minute)
 - `nethvoice-hotel-alarms.service` (every minute)
 - `satellite-recordings-cleanup.service` (every 10 minutes)
+- `chat-retention.service` (daily)
 
 Each one sets:
 
@@ -161,7 +228,45 @@ To uninstall the instance:
 
 ## Building images locally
 
-Use `build-images.sh` to build the module images with Buildah:
+This repository now has two testing paths:
+
+- `test-module.sh` for the full Robot Framework integration suite against a
+    real NS8 node
+- `local_testing/run.sh` for fast, local REST API validation with Podman
+
+### Local REST API testing
+
+Use the local suite when you need a quick feedback loop for FreePBX and
+Tancredi REST endpoints without provisioning a full NS8 environment.
+
+Prerequisites:
+
+- `podman`
+- `python3`
+- network access to pull the published test images, unless you override them
+    with locally built tags
+
+Run the default local REST suite:
+
+        ./local_testing/run.sh
+
+Useful local commands:
+
+        ./local_testing/run.sh start
+        ./local_testing/run.sh run-manifest ./local_testing/manifests/default.json
+        ./local_testing/run.sh request GET /freepbx/rest/trunks
+        ./local_testing/run.sh cleanup
+
+The local suite starts MariaDB, FreePBX, and Tancredi in a disposable Podman
+pod, seeds a known baseline of local REST users, computes the REST auth headers,
+and executes a declarative manifest of API calls.
+
+For the local suite structure, manifest format, extension workflow, and
+debugging tips, see `local_testing/LOCAL_TESTING.md`.
+
+### Full NS8 integration testing
+
+Test the module using the `test-module.sh` script:
 
 ```bash
 bash build-images.sh
@@ -296,6 +401,93 @@ component, keep it out of mergeable defaults:
 ## Running tests locally
 
 This module uses the NS8 standard testing infrastructure. For instructions on how to run the test suite locally, refer to the [Running tests locally](https://github.com/NethServer/ns8-github-actions/blob/v1/README.md#running-tests-locally) section of the ns8-github-actions repository.
+
+## Release procedure
+
+The same procedure applies to the [ns8-nethvoice-proxy](https://github.com/NethServer/ns8-nethvoice-proxy) module.
+
+The release is managed with the [gh-ns8](https://github.com/NethServer/gh-ns8) extension for the GitHub CLI:
+
+```bash
+gh extension install NethServer/gh-ns8
+```
+
+Run every command from the repository root. The examples below release version `1.7.10`.
+
+### 1. Check the repository status
+
+```bash
+gh ns8 module-release check
+```
+
+The output lists the open issues and the merged PRs since the latest release:
+
+- PRs without a linked issue, merged into `main`
+- Verified issues with all PRs merged into `main`: ready to release
+- Verified issues with PRs still open: ready to release as soon as the PRs are merged
+- Issues in progress or testing with PRs merged into `main`: release blockers
+- Issues in progress or testing with PRs still open: they do not block the release
+
+A new version can be released only when there are no release blockers.
+
+### 2. Create the release
+
+```bash
+gh ns8 module-release create --with-linked-issues 1.7.10
+```
+
+### 3. Add the external components `HEAD` to the release notes
+
+Edit the release message and append the latest commit of `nethesis/nethcti-server` (branch `ns8`).
+The following script prints the section to paste into the release notes (it requires Bash 4 or later):
+
+```sh
+#!/bin/bash
+
+# Associative array to store repositories, branches, and their corresponding GitHub URLs
+declare -A repositories=(
+    ["nethesis/nethcti-server"]="ns8"
+)
+
+# Function to get the last commit SHA for a given repository and branch
+get_last_commit_sha() {
+    repo=$1
+    branch=$2
+    last_commit_sha=$(gh api repos/"$repo"/commits/"$branch" --jq '.sha')
+    echo -n "* https://github.com/$repo/commit/$last_commit_sha"
+}
+
+# Check if gh CLI is installed
+if ! command -v gh &> /dev/null; then
+    echo "GitHub CLI (gh) is not installed. Please install it first."
+    exit 1
+fi
+
+# Process each repository and branch in the associative array
+echo "### External components \`HEAD\`"
+for repo in "${!repositories[@]}"; do
+    branch=${repositories[$repo]}
+    get_last_commit_sha "$repo" "$branch"
+    echo
+done
+```
+
+### 4. Clean up intermediate testing releases
+
+```bash
+gh ns8 module-release clean 1.7.10
+```
+
+### 5. Comment the linked issues
+
+```bash
+gh ns8 module-release comment 1.7.10
+```
+
+The command adds a comment with the released version to every linked issue.
+It can be used for testing releases too.
+
+Finally, open the links printed in the terminal, close the issues and remove the `verified` label.
 
 ## Music
 
