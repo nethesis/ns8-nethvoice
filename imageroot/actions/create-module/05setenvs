@@ -211,7 +211,7 @@ agent.set_env('NETHVOICE_MIDDLEWARE_GIN_MODE', 'debug')
 # them.
 agent.set_env('BRAND_APPID', '')
 agent.set_env('CONFERENCE_JITSI_URL', 'https://jitsi.nethserver.net')
-agent.set_env('NETHCTI_ALERTS', 'false')
+agent.set_env('NETHCTI_ALERTS', 'true')
 agent.set_env('NETHCTI_AUTHENTICATION_ENABLED', 'true')
 agent.set_env('NETHCTI_AUTOC2C', 'enabled')
 agent.set_env('NETHCTI_JABBER_DOMAIN', '')
