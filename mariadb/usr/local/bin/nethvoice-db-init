@@ -145,6 +145,10 @@ ALTER TABLE phonebook
 # have empty access after the column is added: they were publicly visible, so mark them
 # public explicitly. Group-scoped rows carry 'group:...' and are left untouched.
 db phonebook -e 'UPDATE phonebook SET access = "public" WHERE access = ""'
+phonebook_id_type=$(db -N -B -e "SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'phonebook' AND TABLE_NAME = 'phonebook' AND COLUMN_NAME = 'id'")
+if [[ -n "$phonebook_id_type" && "$phonebook_id_type" != bigint ]]; then
+    db phonebook -e 'ALTER TABLE phonebook MODIFY id bigint NOT NULL AUTO_INCREMENT'
+fi
 
 # Instance bindings have one owner. Module installers must preserve these rows.
 db asterisk <<SQL
