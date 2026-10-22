@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# configure-module/60sip_proxy refreshes only NETHVOICE_HOST. Additional domain
+# routes must follow the UDP listener too, including on already migrated nodes.
+# Match the verified node address AND a known old port, never descriptions.
+# Best-effort like 91repoint_proxy_trunks: warn and retain the handoff on failure.
+
+import json
+import sys
+
+import agent
+import agent.tasks
+from sip_proxy_migration import node_addresses, repoint_uri
+
+
+def proxy_action(proxy_id, action, data):
+    result = agent.tasks.run(
+        agent_id=proxy_id, action=action, data=data,
+        extra={"isNotificationHidden": True},
+    )
+    # assert_exp exits the interpreter; raise instead so another domain can
+    # still be repaired after one failed action.
+    if result["exit_code"] != 0:
+        raise RuntimeError(f"Proxy {action} failed with exit code {result['exit_code']}")
+    output = result.get("output")
+    if isinstance(output, str):
+        return json.loads(output) if output.strip() else None
+    return output
+
+
+def addresses_key(addresses):
+    return sorted((address["uri"], address["description"]) for address in addresses)
+
+
+def migrate():
+    # Update hooks inherit a frozen environment; read changes from earlier hooks.
+    env = agent.read_envfile("environment")
+    agent.unset_env("SIP_PROXY_ROUTES_MIGRATED")
+    new_port = env.get("ASTERISK_SIP_UDP_PORT")
+    old_ports = {env.get(key) for key in ("ASTERISK_SIP_PORT", "PREVIOUS_SIP_UDP_PORT")}
+    old_ports.update(json.loads(env.get("PREVIOUS_SIP_UDP_PORTS", "[]")))
+    old_ports -= {None, "", new_port}
+    pending = set(json.loads(env.get("SIP_PROXY_ROUTES_PENDING", "[]")))
+    if not new_port:
+        return
+    if not old_ports and not pending:
+        agent.set_env("SIP_PROXY_ROUTES_MIGRATED", new_port)
+        return
+    proxy_id = agent.resolve_agent_id("nethvoice-proxy@node")
+    if proxy_id is None:
+        agent.set_env("SIP_PROXY_ROUTES_MIGRATED", new_port)
+        return
+
+    with agent.redis_connect(use_replica=True) as rdb:
+        node_address = rdb.hget(f'node/{int(env["NODE_ID"])}/vpn', "ip_address")
+    if not node_address:
+        raise ValueError("Node VPN address unavailable")
+    addresses = node_addresses(node_address)
+    routes = proxy_action(proxy_id, "list-routes", {})
+    if not isinstance(routes, list):
+        raise ValueError("Invalid route list")
+    # A removed route no longer needs a reload. Never recreate deleted routes.
+    pending.intersection_update(route["domain"] for route in routes)
+
+    success = True
+    for route in routes:
+        domain = route["domain"]
+        try:
+            # Re-read just before replacement: add-route replaces the full list.
+            current = proxy_action(proxy_id, "get-route", {"domain": domain})["address"]
+            addresses_key(current)  # Validate before any write.
+            updated = [dict(address, uri=repoint_uri(
+                address["uri"], addresses, old_ports, new_port,
+            )) for address in current]
+            if updated == current and domain not in pending:
+                continue
+            # add-route can save the DB and then fail its live reload. Persist
+            # intent before the write so the next update reapplies even a route
+            # whose saved port is already correct, also after interruption.
+            pending.add(domain)
+            agent.set_env("SIP_PROXY_ROUTES_PENDING", json.dumps(sorted(pending)))
+            proxy_action(proxy_id, "add-route", {"domain": domain, "address": updated})
+            saved = proxy_action(proxy_id, "get-route", {"domain": domain})["address"]
+            if addresses_key(saved) != addresses_key(updated):
+                raise ValueError("Route verification failed")
+            pending.remove(domain)
+            agent.set_env("SIP_PROXY_ROUTES_PENDING", json.dumps(sorted(pending)))
+            print(agent.SD_INFO + f"Repointed SIP domain route {domain} to UDP port {new_port}",
+                  file=sys.stderr)
+        except Exception as ex:
+            success = False
+            print(agent.SD_WARNING + f"Failed to repoint SIP domain route {domain} "
+                  f"({type(ex).__name__}); retry state retained", file=sys.stderr)
+    if not pending:
+        agent.unset_env("SIP_PROXY_ROUTES_PENDING")
+    if success:
+        agent.set_env("SIP_PROXY_ROUTES_MIGRATED", new_port)
+
+
+def main():
+    try:
+        migrate()
+    except Exception as ex:
+        print(agent.SD_WARNING + f"Cannot migrate SIP domain routes ({type(ex).__name__}); "
+              "retry state retained", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()

@@ -242,7 +242,7 @@ if migration:
 	agent.set_env('PORTS_MIGRATION_SEEN', '0')
 
 # Retain all pending SIP UDP ports across updates (including another port move)
-# until both destination consumers have confirmed migration. Import the singular
+# until all destination consumers have confirmed migration. Import the singular
 # key for handoffs recorded by earlier versions.
 previous_sip_udp_ports = set(json.loads(env.get('PREVIOUS_SIP_UDP_PORTS', '[]')))
 if env.get('PREVIOUS_SIP_UDP_PORT'):
@@ -257,6 +257,7 @@ if previous_sip_udp_ports:
 # an earlier update. Each consumer confirms the current target after its scan.
 agent.unset_env('SIP_PORTFORWARD_MIGRATED')
 agent.unset_env('SIP_PROXY_TRUNKS_MIGRATED')
+agent.unset_env('SIP_PROXY_ROUTES_MIGRATED')
 
 # add port for Asterisk WSS
 if not 'ASTERISK_WSS_PORT' in env:
