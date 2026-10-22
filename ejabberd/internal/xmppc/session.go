@@ -35,6 +35,11 @@ type Message struct {
 	OOB   string   // the first attachment
 	Files []string // every attachment, in order (one message may carry several)
 	At    time.Time
+	// What a retraction (XEP-0424) needs: the sender's origin-id, the room's id for a group message,
+	// and, on a retraction itself, the message it takes back (an origin-id, or a room id in a group).
+	OriginID string
+	RoomSID  string
+	Retract  string
 }
 
 // Session is one authenticated client session.
@@ -124,6 +129,22 @@ func (ses *Session) send(ctx context.Context, to, body string, oob []string, typ
 	}
 	msg := stanza.Message{To: dest, Type: typ, ID: id}
 	return id, ses.s.Send(ctx, msg.Wrap(xml.NewDecoder(strings.NewReader(sb.String()))))
+}
+
+// Retract takes back one of my messages for everyone (XEP-0424): ref is its origin-id, or the
+// room's id in a group. No body, so no push; archived, so every client and the app see it.
+func (ses *Session) Retract(ctx context.Context, to, ref string, group bool) error {
+	dest, err := jid.Parse(to)
+	if err != nil {
+		return err
+	}
+	typ := stanza.ChatMessage
+	if group {
+		typ = stanza.GroupChatMessage
+	}
+	payload := fmt.Sprintf(`<retract xmlns="%s" id="%s"/><store xmlns="%s"/>`, ns.Retract, attr(ref), ns.Hints)
+	msg := stanza.Message{To: dest, Type: typ, ID: newID()}
+	return ses.s.Send(ctx, msg.Wrap(xml.NewDecoder(strings.NewReader(payload))))
 }
 
 // EnablePush registers node on the push service for this account (XEP-0357).
@@ -228,6 +249,8 @@ func (ses *Session) onResult(_ stanza.Message, t xmlstream.TokenReadEncoder) err
 					OOB  []struct {
 						URL string `xml:"url"`
 					} `xml:"jabber:x:oob x"`
+					Origin  idAttr `xml:"urn:xmpp:sid:0 origin-id"`
+					Retract idAttr `xml:"urn:xmpp:message-retract:1 retract"`
 					// A group message reaches a subscriber wrapped in a pubsub event.
 					Event struct {
 						Items struct {
@@ -240,6 +263,9 @@ func (ses *Session) onResult(_ stanza.Message, t xmlstream.TokenReadEncoder) err
 									OOB  []struct {
 										URL string `xml:"url"`
 									} `xml:"jabber:x:oob x"`
+									Origin   idAttr   `xml:"urn:xmpp:sid:0 origin-id"`
+									StanzaID []idAttr `xml:"urn:xmpp:sid:0 stanza-id"`
+									Retract  idAttr   `xml:"urn:xmpp:message-retract:1 retract"`
 								} `xml:"message"`
 							} `xml:"item"`
 						} `xml:"items"`
@@ -263,10 +289,17 @@ func (ses *Session) onResult(_ stanza.Message, t xmlstream.TokenReadEncoder) err
 		}
 		return files
 	}
-	msg := Message{ID: m.Result.ID, MsgID: fm.ID, From: address.Bare(fm.From), To: address.Bare(fm.To), Body: fm.Body, Files: urls(fm.OOB), At: at}
+	msg := Message{ID: m.Result.ID, MsgID: fm.ID, From: address.Bare(fm.From), To: address.Bare(fm.To), Body: fm.Body, Files: urls(fm.OOB), At: at,
+		OriginID: fm.Origin.ID, Retract: fm.Retract.ID}
 	if fm.Event.Items.Node == ns.MucSubMessages {
 		inner := fm.Event.Items.Item.Message
 		msg.Room, msg.MsgID, msg.Body, msg.Files = address.Bare(fm.From), inner.ID, inner.Body, urls(inner.OOB)
+		msg.OriginID, msg.Retract = inner.Origin.ID, inner.Retract.ID
+		for _, sid := range inner.StanzaID {
+			if sid.By == msg.Room {
+				msg.RoomSID = sid.ID
+			}
+		}
 		if i := strings.IndexByte(inner.From, '/'); i >= 0 {
 			msg.Nick = inner.From[i+1:]
 		}
@@ -280,6 +313,11 @@ func (ses *Session) onResult(_ stanza.Message, t xmlstream.TokenReadEncoder) err
 	}
 	ses.mu.Unlock()
 	return nil
+}
+
+type idAttr struct {
+	ID string `xml:"id,attr"`
+	By string `xml:"by,attr"`
 }
 
 func checkResult(r xml.TokenReader) error {

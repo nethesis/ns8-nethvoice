@@ -32,6 +32,7 @@ type Server struct {
 	UploadURL   string                                        // ejabberd's upload service on loopback, for attachments relayed from the app
 	RoomName    func(ctx context.Context, room string) string // cached room names (push component), "" when unknown
 	Archive     *Archive                                      // ejabberd's message archive, for text search
+	Retention   int                                           // days the archive keeps messages
 
 	failures window // failed Acrobits logins
 	sends    window // messages from the app
@@ -541,11 +542,43 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 	me := ses.Me()
 	received, sent := []sms{}, []sms{}
 	names := map[string]string{} // room -> name, asked once per request
+	hidden := s.Store.Hidden(in.Username)
+	// A member's copy of a group message outlives its retraction: drop it when its author took it back.
+	gone := map[string]bool{}
 	for _, m := range msgs {
+		if m.Retract != "" && m.Room != "" {
+			gone[m.Room+"|"+m.Retract+"|"+m.Nick] = true
+		}
+	}
+	var known []store.AppMsg
+	for _, m := range msgs {
+		// What a retraction names the message by: the room's id in a group, else the sender's origin-id.
+		peer, ref, author := m.Room, m.RoomSID, m.Nick
+		if m.Room == "" {
+			peer, ref, author = m.From, m.OriginID, address.Local(m.From)
+			if m.From == me {
+				peer = m.To
+			}
+			if ref == "" {
+				ref = m.MsgID
+			}
+		}
+		if m.Retract != "" {
+			if item, ok := s.retraction(ctx, ses, in.Username, users, names, m, peer, author); ok && author == in.Username {
+				sent = append(sent, item)
+			} else if ok {
+				received = append(received, item)
+			}
+			continue
+		}
+		if hidden[m.ID] || m.Room != "" && gone[m.Room+"|"+m.RoomSID+"|"+m.Nick] {
+			continue
+		}
 		// Reactions and other stanzas without text or file: nothing the app can show.
 		if strings.TrimSpace(m.Body) == "" && len(m.Files) == 0 {
 			continue
 		}
+		known = append(known, store.AppMsg{SmsID: m.ID, Ref: ref, Peer: peer, Author: author})
 		item := sms{SmsID: m.ID, SendingDate: m.At.UTC().Format(time.RFC3339), SmsText: emojify(m.Body), ContentType: "text/plain"}
 		// An attachment goes out in the app's own file transfer format, so it shows a player or a picture.
 		// Messages the app sent before the gateway converted them stay in that format: hand them back as such.
@@ -556,11 +589,7 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 		if m.Room != "" {
 			// A group, which the app does not know: it shows as a thread named after the room,
 			// each line prefixed with who wrote it, and replies go back to the room.
-			name, ok := names[m.Room]
-			if !ok {
-				name = address.Thread(s.roomName(ctx, ses, m.Room))
-				names[m.Room] = name
-			}
+			name := s.thread(ctx, ses, names, m.Room)
 			item.StreamID = name
 			if m.Nick == in.Username {
 				item.Recipient = name
@@ -596,7 +625,44 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 			received = append(received, item)
 		}
 	}
+	s.Store.PutAppMsgs(in.Username, known)
 	writeJSON(w, 200, map[string]any{"date": time.Now().UTC().Format(time.RFC3339), "received_smss": received, "sent_smss": sent})
+}
+
+// thread is a group's name as the app's address for it, asked once per request.
+func (s *Server) thread(ctx context.Context, ses *xmppc.Session, names map[string]string, room string) string {
+	name, ok := names[room]
+	if !ok {
+		name = address.Thread(s.roomName(ctx, ses, room))
+		names[room] = name
+	}
+	return name
+}
+
+// retraction is the app's delete message for a retraction in the archive: only for the
+// copies of the author's message the app was given, so nobody takes back what others wrote.
+func (s *Server) retraction(ctx context.Context, ses *xmppc.Session, user string, users *userCache, names map[string]string, m xmppc.Message, peer, author string) (sms, bool) {
+	ids := s.Store.AppMsgIDs(user, peer, m.Retract, author)
+	if len(ids) == 0 {
+		return sms{}, false
+	}
+	del := make([]map[string]string, len(ids))
+	for i, id := range ids {
+		del[i] = map[string]string{"sms_id": id, "scope": "everywhere"}
+	}
+	text, _ := json.Marshal(del)
+	item := sms{SmsID: m.ID, SendingDate: m.At.UTC().Format(time.RFC3339), SmsText: string(text), ContentType: deleteType}
+	addr := s.address(users, peer)
+	if m.Room != "" {
+		addr = s.thread(ctx, ses, names, m.Room)
+		item.StreamID = addr
+	}
+	if author == user {
+		item.Recipient = addr
+	} else {
+		item.Sender = addr
+	}
+	return item, true
 }
 
 // address renders an operator for Acrobits: the main extension when known, else the username.
@@ -629,6 +695,10 @@ func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request) {
 	defer ses.Close()
 	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 	defer cancel()
+	if in.ContentType == deleteType {
+		s.deleteMessages(ctx, w, ses, in.Username, in.SmsBody)
+		return
+	}
 	if in.SmsTo == "" || in.SmsBody == "" {
 		fail(w, 400, "sms_to and sms_body are required")
 		return
@@ -675,10 +745,44 @@ func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// The app keeps a pending copy: give it the id the archive will use, or it shows the message twice.
+	origin := id
 	if archived := ses.FindSent(ctx, id); archived != "" {
 		id = archived
+		if !group {
+			// Known at once, so it can be deleted before the next fetch (a group's room id comes with that).
+			s.Store.PutAppMsgs(in.Username, []store.AppMsg{{SmsID: id, Ref: origin, Peer: dest, Author: in.Username}})
+		}
 	}
 	writeJSON(w, 200, map[string]string{"sms_id": id})
+}
+
+// deleteMessages: the app deleted messages. "everywhere" on my own takes them back for everyone
+// (XEP-0424); anything else is hidden for me only. Either way it never comes back in a fetch.
+func (s *Server) deleteMessages(ctx context.Context, w http.ResponseWriter, ses *xmppc.Session, user, body string) {
+	var dels []struct {
+		SmsID string `json:"sms_id"`
+		Scope string `json:"scope"`
+	}
+	if err := json.Unmarshal([]byte(body), &dels); err != nil || len(dels) == 0 || len(dels) > 100 {
+		fail(w, 400, "invalid delete request")
+		return
+	}
+	for _, d := range dels {
+		if !archiveID(d.SmsID) {
+			continue
+		}
+		s.Store.Hide(user, d.SmsID)
+		m, ok := s.Store.AppMsg(user, d.SmsID)
+		if !ok || d.Scope != "everywhere" || m.Author != user {
+			continue
+		}
+		if err := ses.Retract(ctx, m.Peer, m.Ref, address.IsRoom(m.Peer)); err != nil {
+			log.Printf("delete %s: %v", user, err)
+			fail(w, 502, "chat server error")
+			return
+		}
+	}
+	writeJSON(w, 200, map[string]string{})
 }
 
 // pushTokenReport stores the device token and enables push for the account on ejabberd.

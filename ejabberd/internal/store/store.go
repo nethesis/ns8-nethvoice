@@ -1,5 +1,5 @@
 // Package store is the gateway's SQLite: push registrations and a few settings.
-// Messages are never stored here; the archive is ejabberd's MAM.
+// Messages are never stored here, only the ids the app knows them by; the archive is ejabberd's MAM.
 package store
 
 import (
@@ -40,6 +40,11 @@ func Open(dir string) (*Store, error) {
 		`CREATE TABLE IF NOT EXISTS upload_info (link TEXT PRIMARY KEY, size INTEGER NOT NULL, hash TEXT NOT NULL)`,
 		`DROP TABLE IF EXISTS group_access`, // CTI group rooms follow the group members only
 		`CREATE TABLE IF NOT EXISTS cti_rooms (slug TEXT PRIMARY KEY, name TEXT NOT NULL)`,
+		// The app knows a message by its id in its own archive; a retraction names it otherwise.
+		`CREATE TABLE IF NOT EXISTS app_msgs (username TEXT NOT NULL, sms_id TEXT NOT NULL, ref TEXT NOT NULL, peer TEXT NOT NULL, author TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (username, sms_id))`,
+		`CREATE INDEX IF NOT EXISTS app_msgs_ref ON app_msgs(username, peer, ref)`,
+		// Deleted in the app for that person only.
+		`CREATE TABLE IF NOT EXISTS app_hidden (username TEXT NOT NULL, sms_id TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (username, sms_id))`,
 	} {
 		if _, err := db.Exec(q); err != nil {
 			return nil, err
@@ -271,4 +276,74 @@ func (s *Store) PutCTIRoom(slug, name string) {
 
 func (s *Store) DeleteCTIRoom(slug string) {
 	_, _ = s.db.Exec(`DELETE FROM cti_rooms WHERE slug = ?`, slug)
+}
+
+// AppMsg is a message as the app knows it: ref is its origin-id, or the room's id in a group.
+type AppMsg struct {
+	SmsID, Ref, Peer, Author string
+}
+
+func (s *Store) PutAppMsgs(username string, msgs []AppMsg) {
+	if len(msgs) == 0 {
+		return
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return
+	}
+	now := time.Now().Unix()
+	for _, m := range msgs {
+		_, _ = tx.Exec(`INSERT OR IGNORE INTO app_msgs (username, sms_id, ref, peer, author, at) VALUES (?,?,?,?,?,?)`, username, m.SmsID, m.Ref, m.Peer, m.Author, now)
+	}
+	_ = tx.Commit()
+}
+
+func (s *Store) AppMsg(username, smsID string) (AppMsg, bool) {
+	m := AppMsg{SmsID: smsID}
+	err := s.db.QueryRow(`SELECT ref, peer, author FROM app_msgs WHERE username = ? AND sms_id = ?`, username, smsID).Scan(&m.Ref, &m.Peer, &m.Author)
+	return m, err == nil
+}
+
+// AppMsgIDs are the app's ids of author's message ref with peer.
+func (s *Store) AppMsgIDs(username, peer, ref, author string) []string {
+	rows, err := s.db.Query(`SELECT sms_id FROM app_msgs WHERE username = ? AND peer = ? AND ref = ? AND author = ?`, username, peer, ref, author)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if rows.Scan(&id) == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+func (s *Store) Hide(username, smsID string) {
+	_, _ = s.db.Exec(`INSERT OR IGNORE INTO app_hidden (username, sms_id, at) VALUES (?,?,?)`, username, smsID, time.Now().Unix())
+}
+
+func (s *Store) Hidden(username string) map[string]bool {
+	out := map[string]bool{}
+	rows, err := s.db.Query(`SELECT sms_id FROM app_hidden WHERE username = ?`, username)
+	if err != nil {
+		return out
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+		if rows.Scan(&id) == nil {
+			out[id] = true
+		}
+	}
+	return out
+}
+
+// PruneAppMsgs forgets ids older than the longest history the archive keeps.
+func (s *Store) PruneAppMsgs(before time.Time) {
+	for _, q := range []string{`DELETE FROM app_msgs WHERE at < ?`, `DELETE FROM app_hidden WHERE at < ?`} {
+		_, _ = s.db.Exec(q, before.Unix())
+	}
 }
