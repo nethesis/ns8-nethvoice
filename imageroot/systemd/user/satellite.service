@@ -1,7 +1,8 @@
 [Unit]
 Description=Satellite call transcription for NethVoice
 Requires=satellite-mqtt.service satellite-pgsql.service
-After=satellite-mqtt.service satellite-pgsql.service
+# Satellite exits when Asterisk ARI is not ready: start it after FreePBX
+After=satellite-mqtt.service satellite-pgsql.service freepbx.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
