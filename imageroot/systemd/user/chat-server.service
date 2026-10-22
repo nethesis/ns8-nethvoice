@@ -13,6 +13,7 @@ Restart=always
 SuccessExitStatus=143
 RestartSec=10s
 ExecStartPre=/bin/rm -f %t/chat-server.pid %t/chat-server.ctr-id
+# Erlang: schedulers sleep instead of spinning (idle CPU), no epmd or distribution port (ejabberdctl uses the ctl socket).
 ExecStart=/usr/bin/podman run \
     --detach \
     --conmon-pidfile=%t/chat-server.pid \
@@ -27,6 +28,7 @@ ExecStart=/usr/bin/podman run \
     --env=CHAT_MIDDLEWARE_URL=http://127.0.0.1:${NETHVOICE_MIDDLEWARE_PORT} \
     --env=CHAT_COMPONENT_SECRET \
     --env=CHAT_DEBUG=${CHAT_DEBUG} \
+    "--env=ERL_OPTIONS=+sbwt none +sbwtdcpu none +sbwtdio none -start_epmd false -dist_listen false" \
     --network=host \
     --tz=${TIMEZONE} \
     ${NETHVOICE_EJABBERD_IMAGE}

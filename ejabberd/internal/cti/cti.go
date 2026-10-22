@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sort"
 	"strings"
 )
 
@@ -28,33 +27,12 @@ type Me struct {
 					} `json:"chat"`
 				} `json:"permissions"`
 			} `json:"nethvoice_cti"`
-			// all_groups and grp_<slug>: the operator groups shown besides the user's own.
-			PresencePanel struct {
-				Permissions map[string]struct {
-					Value bool `json:"value"`
-				} `json:"permissions"`
-			} `json:"presence_panel"`
 		} `json:"macro_permissions"`
 	} `json:"profile"`
 }
 
 // ChatAllowed: the chat is a CTI profile permission, like the other features.
 func (m Me) ChatAllowed() bool { return m.Profile.MacroPermissions.NethvoiceCTI.Permissions.Chat.Value }
-
-// GroupAccess: every operator group (all_groups), or the slugs of the grp_ permissions granted.
-func (m Me) GroupAccess() (all bool, slugs []string) {
-	for k, p := range m.Profile.MacroPermissions.PresencePanel.Permissions {
-		switch {
-		case !p.Value:
-		case k == "all_groups":
-			all = true
-		case strings.HasPrefix(k, "grp_"):
-			slugs = append(slugs, strings.TrimPrefix(k, "grp_"))
-		}
-	}
-	sort.Strings(slugs)
-	return all, slugs
-}
 
 // Groups are the CTI operator groups and their members, by group name.
 type Groups map[string]struct {

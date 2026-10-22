@@ -25,3 +25,4 @@ restore() {
 
 restore chat-data chat.db 9000   # ejabberd runs as 9000 in its image
 restore chat-gw chat-gw.db 0     # the gateway runs as the container's root
+"${AGENT_INSTALL_DIR}"/bin/chat-upload-owner

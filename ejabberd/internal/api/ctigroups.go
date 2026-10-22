@@ -1,9 +1,9 @@
 package api
 
 // CTI groups as chats: one room per CTI operator group, cti-<slug>@conference.<host>, named after
-// the group. Its members are the users who see the group in the CTI operators panel: the group's
-// own members, plus anyone with all_groups or that group's grp_ permission. The rooms follow the
-// CTI: members join and leave, a renamed group gets a new room, a deleted one is destroyed.
+// the group. Its members are the group's own operators: seeing a group in the operators panel
+// (all_groups, grp_) is not being in it. The rooms follow the CTI: members join and leave, a
+// renamed group gets a new room, a deleted one is destroyed.
 
 import (
 	"context"
@@ -18,7 +18,6 @@ import (
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/address"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/cti"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/logx"
-	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/store"
 )
 
 // CTIRoomPrefix marks the rooms the gateway keeps for CTI groups: clients offer no leave or delete there.
@@ -27,20 +26,14 @@ const CTIRoomPrefix = "cti-"
 // GroupsEvery: how often the rooms are compared with the CTI groups.
 const GroupsEvery = 2 * time.Minute
 
-var groupsMu sync.Mutex // one sync at a time
+// FullSyncEvery: the rooms are checked against the CTI at least this often, even with no change seen.
+const FullSyncEvery = 30 * time.Minute
 
-// SeenProfile records which groups a user sees; a change brings the rooms in line at once.
-func (s *Server) SeenProfile(me cti.Me) {
-	all, slugs := me.GroupAccess()
-	if s.Store.PutGroupAccess(me.Username, store.GroupAccess{All: all, Slugs: slugs}) {
-		logx.Debugf("groups: %s sees all=%v %v", me.Username, all, slugs)
-		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-			defer cancel()
-			s.SyncGroups(ctx)
-		}()
-	}
-}
+var (
+	groupsMu   sync.Mutex // one sync at a time
+	lastGroups string     // the CTI groups and members of the last sync that went through
+	lastFull   time.Time
+)
 
 // SyncGroups brings the CTI group rooms in line with the CTI.
 func (s *Server) SyncGroups(ctx context.Context) {
@@ -59,11 +52,6 @@ func (s *Server) SyncGroups(ctx context.Context) {
 	if err != nil || dir == nil || len(dir.byUser) == 0 {
 		return // never act on a guess
 	}
-	access, err := s.Store.GroupAccesses()
-	if err != nil {
-		log.Printf("groups: %v", err)
-		return
-	}
 	known, err := s.Store.CTIRooms()
 	if err != nil {
 		log.Printf("groups: %v", err)
@@ -79,34 +67,50 @@ func (s *Server) SyncGroups(ctx context.Context) {
 			want[slug] = name
 		}
 	}
+	// Only the group's own operators: seeing a group in the operators panel is not being in it.
+	members := map[string]map[string]bool{}
+	var seen []string
 	for slug, name := range want {
-		members := map[string]bool{}
+		members[slug] = map[string]bool{}
 		for _, u := range groups[name].Users {
 			if _, ok := dir.byUser[u]; ok {
-				members[u] = true
+				members[slug][u] = true
 			}
 		}
-		for u, a := range access {
-			if _, ok := dir.byUser[u]; ok && (a.All || contains(a.Slugs, slug)) {
-				members[u] = true
-			}
-		}
-		s.syncRoom(ctx, slug, name, members, known)
+		seen = append(seen, slug+"="+name+":"+strings.Join(keys(members[slug]), ","))
+	}
+	for slug, name := range known {
+		seen = append(seen, "room "+slug+"="+name)
+	}
+	sort.Strings(seen)
+	// Nothing changed in the CTI: no calls to ejabberd, each of them costs it a burst of CPU.
+	fp := strings.Join(seen, ";")
+	if fp == lastGroups && time.Since(lastFull) < FullSyncEvery {
+		return
+	}
+	ok := true
+	for slug, name := range want {
+		ok = s.syncRoom(ctx, slug, name, members[slug], known) && ok
 	}
 	for slug := range known {
 		if _, ok := want[slug]; !ok {
 			if err := s.ejabberd(ctx, "destroy_room", map[string]string{"name": CTIRoomPrefix + slug, "service": address.MUC(s.Host)}, nil); err != nil && !roomMissing(err) {
 				log.Printf("groups: destroy %s: %v", slug, err)
+				ok = false
 				continue
 			}
 			s.Store.DeleteCTIRoom(slug)
 			logx.Debugf("groups: %s deleted in the CTI, room destroyed", slug)
 		}
 	}
+	// A failed step is retried on the next round.
+	if ok {
+		lastGroups, lastFull = fp, time.Now()
+	}
 }
 
-// syncRoom creates the room or adjusts its members and name.
-func (s *Server) syncRoom(ctx context.Context, slug, name string, members map[string]bool, known map[string]string) {
+// syncRoom creates the room or adjusts its members and name; false when a step failed.
+func (s *Server) syncRoom(ctx context.Context, slug, name string, members map[string]bool, known map[string]string) bool {
 	room, muc := CTIRoomPrefix+slug, address.MUC(s.Host)
 	var affs []struct {
 		Affiliation string `json:"affiliation"`
@@ -115,12 +119,12 @@ func (s *Server) syncRoom(ctx context.Context, slug, name string, members map[st
 	err := s.ejabberd(ctx, "get_room_affiliations", map[string]string{"room": room, "service": muc}, &affs)
 	if err != nil && !roomMissing(err) {
 		log.Printf("groups: %s: %v", slug, err)
-		return
+		return false
 	}
 	if err != nil {
-		s.createRoom(ctx, slug, name, members)
-		return
+		return s.createRoom(ctx, slug, name, members)
 	}
+	ok := true
 	current := map[string]bool{}
 	for _, a := range affs {
 		if a.Affiliation == "member" || a.Affiliation == "owner" {
@@ -128,12 +132,14 @@ func (s *Server) syncRoom(ctx context.Context, slug, name string, members map[st
 		}
 	}
 	var added []string
+	removed := false
 	for u := range members {
 		if current[u] {
 			continue
 		}
 		if err := s.ejabberd(ctx, "set_room_affiliation", map[string]string{"room": room, "service": muc, "user": u, "host": s.Host, "affiliation": "member"}, nil); err != nil {
 			log.Printf("groups: %s into %s: %v", u, slug, err)
+			ok = false
 			continue
 		}
 		s.subscribe(ctx, u, room)
@@ -146,9 +152,11 @@ func (s *Server) syncRoom(ctx context.Context, slug, name string, members map[st
 		// No affiliation in a members-only room: ejabberd drops the subscription too.
 		if err := s.ejabberd(ctx, "set_room_affiliation", map[string]string{"room": room, "service": muc, "user": u, "host": s.Host, "affiliation": "none"}, nil); err != nil {
 			log.Printf("groups: %s out of %s: %v", u, slug, err)
+			ok = false
 			continue
 		}
 		s.tellRemoved(ctx, u, room)
+		removed = true
 		logx.Debugf("groups: %s out of %s", u, slug)
 	}
 	renamed := known[slug] != name
@@ -156,16 +164,15 @@ func (s *Server) syncRoom(ctx context.Context, slug, name string, members map[st
 		_ = s.ejabberd(ctx, "change_room_option", map[string]string{"name": room, "service": muc, "option": "title", "value": name}, nil)
 		s.Store.PutCTIRoom(slug, name)
 	}
-	// An invitation makes a client show the room, or read its new name.
-	if renamed {
+	// An invitation makes a client show the room, or read its name and members again: everyone's open list follows.
+	if renamed || removed || len(added) > 0 {
 		s.invite(ctx, room, keys(members))
-	} else if len(added) > 0 {
-		s.invite(ctx, room, added)
-		logx.Debugf("groups: %v into %s", added, slug)
+		logx.Debugf("groups: %s now %v", slug, keys(members))
 	}
+	return ok
 }
 
-func (s *Server) createRoom(ctx context.Context, slug, name string, members map[string]bool) {
+func (s *Server) createRoom(ctx context.Context, slug, name string, members map[string]bool) bool {
 	room, muc := CTIRoomPrefix+slug, address.MUC(s.Host)
 	var affs, subs []string
 	for _, u := range keys(members) {
@@ -188,11 +195,12 @@ func (s *Server) createRoom(ctx context.Context, slug, name string, members map[
 	}
 	if err := s.ejabberd(ctx, "create_room_with_opts", map[string]any{"room": room, "service": muc, "host": s.Host, "options": opts}, nil); err != nil {
 		log.Printf("groups: create %s: %v", slug, err)
-		return
+		return false
 	}
 	s.Store.PutCTIRoom(slug, name)
 	s.invite(ctx, room, keys(members))
 	logx.Debugf("groups: room for %q with %d members", name, len(members))
+	return true
 }
 
 func (s *Server) subscribe(ctx context.Context, user, room string) {
@@ -234,15 +242,6 @@ func keys(m map[string]bool) []string {
 	}
 	sort.Strings(out)
 	return out
-}
-
-func contains(list []string, v string) bool {
-	for _, x := range list {
-		if x == v {
-			return true
-		}
-	}
-	return false
 }
 
 func xmlEscape(v string) string {
