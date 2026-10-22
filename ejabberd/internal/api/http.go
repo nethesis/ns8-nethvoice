@@ -55,6 +55,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /users/inactive", s.inactive)
 	mux.HandleFunc("DELETE /conversations/{peer}", s.deleteConversation)
 	mux.HandleFunc("GET /search", s.search)
+	mux.HandleFunc("GET /prefs/host", s.chatHost)
+	mux.HandleFunc("PUT /prefs/host", s.chatHost)
 	// Acrobits mobile app: the three web services it is provisioned with.
 	mux.HandleFunc("POST /api/client/fetch_messages", s.fetchMessages)
 	mux.HandleFunc("POST /api/client/send_message", s.sendMessage)
@@ -828,4 +830,32 @@ func randomID() string {
 	b := make([]byte, 12)
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
+}
+
+// chatHost is where a person's chat windows live while NethLink runs: "nethlink" (the default) or "cti".
+// GET reads it, PUT {"host": …} sets it; the islands tell the person's other clients themselves.
+func (s *Server) chatHost(w http.ResponseWriter, r *http.Request) {
+	user, _, err := s.bearerUser(r)
+	if err != nil {
+		fail(w, 401, "unauthorized")
+		return
+	}
+	if r.Method == http.MethodPut {
+		var in struct {
+			Host string `json:"host"`
+		}
+		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&in) != nil || in.Host != "nethlink" && in.Host != "cti" {
+			fail(w, 400, `host must be "nethlink" or "cti"`)
+			return
+		}
+		if err := s.Store.SetPref(user, "host", in.Host); err != nil {
+			fail(w, 500, "internal error")
+			return
+		}
+	}
+	host := s.Store.Pref(user, "host")
+	if host == "" {
+		host = "nethlink"
+	}
+	writeJSON(w, 200, map[string]string{"host": host})
 }

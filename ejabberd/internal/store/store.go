@@ -44,6 +44,7 @@ func Open(dir string) (*Store, error) {
 		`CREATE TABLE IF NOT EXISTS app_msgs (username TEXT NOT NULL, sms_id TEXT NOT NULL, ref TEXT NOT NULL, peer TEXT NOT NULL, author TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (username, sms_id))`,
 		`CREATE INDEX IF NOT EXISTS app_msgs_ref ON app_msgs(username, peer, ref)`,
 		// Deleted in the app for that person only.
+		`CREATE TABLE IF NOT EXISTS user_prefs (username TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY (username, key))`,
 		`CREATE TABLE IF NOT EXISTS app_hidden (username TEXT NOT NULL, sms_id TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (username, sms_id))`,
 	} {
 		if _, err := db.Exec(q); err != nil {
@@ -346,4 +347,16 @@ func (s *Store) PruneAppMsgs(before time.Time) {
 	for _, q := range []string{`DELETE FROM app_msgs WHERE at < ?`, `DELETE FROM app_hidden WHERE at < ?`} {
 		_, _ = s.db.Exec(q, before.Unix())
 	}
+}
+
+// Pref is one of a person's chat settings, "" when never set.
+func (s *Store) Pref(username, key string) string {
+	var v string
+	_ = s.db.QueryRow(`SELECT value FROM user_prefs WHERE username = ? AND key = ?`, username, key).Scan(&v)
+	return v
+}
+
+func (s *Store) SetPref(username, key, value string) error {
+	_, err := s.db.Exec(`INSERT OR REPLACE INTO user_prefs (username, key, value) VALUES (?,?,?)`, username, key, value)
+	return err
 }
