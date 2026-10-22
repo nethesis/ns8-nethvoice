@@ -111,6 +111,32 @@ class PublishTest(unittest.TestCase):
         self.assertEqual(redis.commands, [])
 
 
+    def test_disabled_alerts_remove_owned_fields_only(self):
+        redis = FakeRedis({KEY: {"custom": "z\n", "nethvoice-services": "x\n"}})
+        self.assertTrue(self.publish(redis, {}))
+        self.assertEqual(redis.hashes[KEY], {"custom": "z\n"})
+        self.assertEqual(redis.events(), [("publish", EVENT, "{}")])
+
+    def test_disabled_alerts_without_rules_is_noop(self):
+        redis = FakeRedis({KEY: {"custom": "z\n"}})
+        self.assertFalse(self.publish(redis, {}))
+        self.assertEqual(redis.commands, [])
+
+
+class AlertsEnabledTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.script = load_script()
+
+    def test_off_by_default(self):
+        self.assertFalse(self.script.alerts_enabled({}))
+
+    def test_on_only_when_true(self):
+        self.assertTrue(self.script.alerts_enabled({"NETHVOICE_ALERTS_ENABLED": "True"}))
+        self.assertFalse(self.script.alerts_enabled({"NETHVOICE_ALERTS_ENABLED": "False"}))
+        self.assertFalse(self.script.alerts_enabled({"NETHVOICE_ALERTS_ENABLED": ""}))
+
+
 class DesiredRulesTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

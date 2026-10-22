@@ -1,0 +1,12 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Publish or remove the alert rules. Unlike create and update, a failure
+# here is reported to the user, who asked for the change.
+
+exec 1>&2
+exec publish-metrics-config

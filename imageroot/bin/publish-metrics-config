@@ -13,6 +13,10 @@
 # update does not reload Prometheus for nothing. Fields not owned by this
 # script are never touched. The hash is deleted by the core when the module
 # is removed.
+#
+# The alerts are a beta feature, off unless NETHVOICE_ALERTS_ENABLED is
+# "True" (set-alerts action): when off, the owned fields are removed, while
+# export-metrics keeps sending the metrics.
 
 import fcntl
 import os
@@ -33,6 +37,10 @@ def desired_rules(rules_dir=RULES_DIR):
             with open(os.path.join(rules_dir, name), encoding="utf-8") as fp:
                 rules[name[: -len(".yml")]] = fp.read()
     return rules
+
+
+def alerts_enabled(environ=os.environ):
+    return environ.get("NETHVOICE_ALERTS_ENABLED", "False") == "True"
 
 
 def publish(rdb, module_id, agent_id, rules):
@@ -56,12 +64,18 @@ def publish(rdb, module_id, agent_id, rules):
 
 
 def main():
-    rules = desired_rules()
+    rules = desired_rules() if alerts_enabled() else {}
     with open(LOCK_FILE, "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         rdb = agent.redis_connect(privileged=True)
         changed = publish(rdb, os.environ["MODULE_ID"], os.environ["AGENT_ID"], rules)
-    print("alert rules %s" % ("published" if changed else "unchanged"), file=sys.stderr)
+    if not changed:
+        state = "unchanged"
+    elif rules:
+        state = "published"
+    else:
+        state = "removed"
+    print("alert rules %s" % state, file=sys.stderr)
 
 
 if __name__ == "__main__":

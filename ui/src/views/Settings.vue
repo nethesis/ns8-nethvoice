@@ -483,6 +483,45 @@
             </cv-tile>
           </cv-column>
         </cv-row>
+        <!-- built-in alerts (beta) -->
+        <cv-row>
+          <cv-column>
+            <cv-tile light>
+              <h4 class="mb-4">{{ $t("settings.alerts_beta") }}</h4>
+              <p class="mb-4">{{ $t("settings.alerts_beta_description") }}</p>
+              <cv-form @submit.prevent="setAlerts">
+                <NsToggle
+                  value="alertsEnabled"
+                  :label="$t('settings.alerts_enabled')"
+                  v-model="alerts_enabled"
+                  :disabled="isFormDisabled"
+                >
+                  <template slot="text-left">{{
+                    $t("common.disabled")
+                  }}</template>
+                  <template slot="text-right">{{
+                    $t("common.enabled")
+                  }}</template>
+                </NsToggle>
+                <NsInlineNotification
+                  v-if="error.setAlerts"
+                  kind="error"
+                  :title="$t('action.set-alerts')"
+                  :description="error.setAlerts"
+                  :showCloseButton="false"
+                />
+                <NsButton
+                  kind="primary"
+                  :icon="Save20"
+                  :loading="loading.setAlerts"
+                  :disabled="isFormDisabled || isErrorState"
+                >
+                  {{ $t("common.save") }}
+                </NsButton>
+              </cv-form>
+            </cv-tile>
+          </cv-column>
+        </cv-row>
       </template>
     </template>
   </cv-grid>
@@ -542,6 +581,8 @@ export default {
       },
       // SSO (saml2/oidc) management is hidden unless enabled via the SSO_AUTH env
       sso_auth: false,
+      // built-in alerts (beta), see the set-alerts action
+      alerts_enabled: false,
       authMethodList: [],
       reports_international_prefix: "+39",
       timezone: "",
@@ -559,6 +600,7 @@ export default {
         userDomains: false,
         getDefaults: false,
         setAdminPassword: false,
+        setAlerts: false,
         getStatus: false,
       },
       domainList: [],
@@ -570,6 +612,7 @@ export default {
         userDomains: "",
         getDefaults: "",
         setAdminPassword: "",
+        setAlerts: "",
         getStatus: "",
         nethvoice_host: "",
         nethvoice_admin_password: "",
@@ -636,7 +679,8 @@ export default {
         this.loading.configureModule ||
         this.loading.userDomains ||
         this.loading.getDefaults ||
-        this.loading.setAdminPassword
+        this.loading.setAdminPassword ||
+        this.loading.setAlerts
       );
     },
     isLoading() {
@@ -795,6 +839,7 @@ export default {
       this.currentUserDomain = config.user_domain;
 
       this.sso_auth = !!config.sso_auth;
+      this.alerts_enabled = !!config.alerts_enabled;
       this.authentication_method = config.authentication_method || "password";
       if (config.saml2) {
         this.saml2 = {
@@ -984,6 +1029,54 @@ export default {
         this.loading.configureModule = false;
         return;
       }
+    },
+    async setAlerts() {
+      this.loading.setAlerts = true;
+      this.error.setAlerts = "";
+      const taskAction = "set-alerts";
+      const eventId = this.getUuid();
+
+      // register to task error
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.setAlertsAborted
+      );
+
+      // register to task completion
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        this.setAlertsCompleted
+      );
+
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          data: {
+            alerts_enabled: this.alerts_enabled,
+          },
+          extra: {
+            title: this.$t("action." + taskAction),
+            description: this.$t("common.processing"),
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.setAlerts = this.getErrorMessage(err);
+        this.loading.setAlerts = false;
+        return;
+      }
+    },
+    setAlertsAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.setAlerts = this.$t("error.generic_error");
+      this.loading.setAlerts = false;
+    },
+    setAlertsCompleted() {
+      this.loading.setAlerts = false;
     },
     configureModuleAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
