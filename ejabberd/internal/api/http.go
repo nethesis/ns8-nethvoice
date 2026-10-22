@@ -587,13 +587,12 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 		if attached {
 			item.SmsText, item.ContentType = s.fileTransferText(ctx, m.Files, m.Body), fileTransferType
 		}
+		// No stream_id: a chat the app starts has none, and one here would split it from the replies.
 		if m.From == me {
 			item.Recipient = s.address(users, m.To)
-			item.StreamID = item.Recipient
 			sent = append(sent, item)
 		} else {
 			item.Sender = s.address(users, m.From)
-			item.StreamID = item.Sender
 			received = append(received, item)
 		}
 	}
