@@ -8,7 +8,7 @@
  * Controller of the nethvoiceWizardUiApp
  */
 angular.module('nethvoiceWizardUiApp')
-  .controller('ConfigurationsCtrl', function ($scope, $rootScope, $q, ConfigurationService, ProfileService, ModelService, DeviceService, UserService, PhoneService, DashboardService, $timeout) {
+  .controller('ConfigurationsCtrl', function ($scope, $rootScope, $q, ConfigurationService, ProfileService, ModelService, DeviceService, UserService, PhoneService, DashboardService, $timeout, GenericPhoneService) {
 
     $scope.view.changeRoute = true
     $scope.allUsers = []
@@ -265,6 +265,7 @@ angular.module('nethvoiceWizardUiApp')
             $scope.currentModel.storedVariables[variable] = res.data.variables[variable]
             $scope.currentModel.variables[variable] = res.data.variables[variable]
           }
+          $scope.currentModel.ui.map.network.lldp_enable.visible = GenericPhoneService.isLldpSupported($scope.currentModel.variables)
           $("#singleModelModal").modal("show")
         }, function () {
           console.log(err)
