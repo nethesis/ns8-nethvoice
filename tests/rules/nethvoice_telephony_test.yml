@@ -49,8 +49,8 @@ tests:
             exp_annotations:
               summary_en: "Trunk Gw1 of nethvoice1 is unreachable: the remote side is not registered"
               summary_it: "Il fascio Gw1 di nethvoice1 non è raggiungibile: il lato remoto non è registrato"
-              description_en: "The remote side of trunk Gw1 (for example a gateway) has had no valid registration to nethvoice1 for more than 10 minutes: calls through this trunk fail. Check the device, its credentials and the network path through the proxy. If the NethVoice proxy is also down, fix the proxy first."
-              description_it: "Il lato remoto del fascio Gw1 (ad esempio un gateway) non ha una registrazione valida su nethvoice1 da più di 10 minuti: le chiamate su questo fascio falliscono. Verificare il dispositivo, le sue credenziali e il percorso di rete attraverso il proxy. Se anche il proxy NethVoice non è attivo, sistemare prima il proxy."
+              description_en: "The remote side of trunk Gw1 (for example a gateway) has had no valid registration to nethvoice1 for more than 10 minutes: calls through this trunk fail. Check the device, its credentials and the network path."
+              description_it: "Il lato remoto del fascio Gw1 (ad esempio un gateway) non ha una registrazione valida su nethvoice1 da più di 10 minuti: le chiamate su questo fascio falliscono. Verificare il dispositivo, le sue credenziali e il percorso di rete."
 
   # An IP trunk that does not answer OPTIONS
   - interval: 5m
