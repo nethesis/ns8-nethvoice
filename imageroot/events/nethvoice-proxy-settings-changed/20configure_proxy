@@ -7,6 +7,8 @@
 
 import agent
 import os
+import subprocess
+import sys
 
 
 ksrv = agent.list_service_providers(agent.redis_connect(use_replica=True), "sip", "tcp", {"module_id": os.environ['AGENT_EVENT_SOURCE'].removeprefix("module/")})
@@ -46,4 +48,4 @@ SET `data` = 'sip:{os.environ['PROXY_IP']}:{os.environ['PROXY_PORT']};lr'
 WHERE `keyword` = 'outbound_proxy' AND `data` LIKE 'sip:%;lr';
 """
 
-agent.run_helper(*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY).check_returncode()
+subprocess.run([*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY], stdout=sys.stderr, check=True)
