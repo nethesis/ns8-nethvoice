@@ -45,7 +45,11 @@ INVALID_STATUS = frozenset((401,))
 OPENAI_INVALID_CODE = "invalid_api_key"
 # The error body is read up to this size
 MAX_BODY = 64 * 1024
-TIMEOUT = 4
+RESOLVE_TIMEOUT = 4
+# OpenAI often takes more than 4 seconds to answer: about one check in ten
+# was skipped. Name resolution plus connection plus answer stays within the
+# 20 seconds of the collector deadline (runner.DEADLINE).
+TIMEOUT = 8
 USER_AGENT = "nethvoice-export-metrics"
 
 
@@ -56,7 +60,7 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-def resolve(host, timeout=TIMEOUT, getaddrinfo=socket.getaddrinfo):
+def resolve(host, timeout=RESOLVE_TIMEOUT, getaddrinfo=socket.getaddrinfo):
     """Raise OSError if host does not resolve within timeout seconds.
 
     getaddrinfo has no timeout of its own: it runs in a thread that is
