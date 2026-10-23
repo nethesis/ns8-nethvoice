@@ -11,6 +11,7 @@ FROM docker.io/library/node:14.21.1-alpine as base
 WORKDIR /app
 
 FROM base as node_modules
+ARG ASTPROXY_VERSION=0.2.0
 # install dependencies for npm ci
 RUN apk add --no-cache \
         python3 \
@@ -19,7 +20,8 @@ RUN apk add --no-cache \
 COPY --from=repofetcher /app/root/usr/lib/node/nethcti-server/package.json .
 COPY --from=repofetcher /app/root/usr/lib/node/nethcti-server/package-lock.json .
 RUN --mount=type=cache,id=nethvoice-cti-server-npm,target=/root/.npm \
-    npm ci --cache /root/.npm
+    npm ci --cache /root/.npm && \
+    npm install --no-save --cache /root/.npm @nethesis/astproxy@${ASTPROXY_VERSION}
 # asterisk-ami@0.2.0-beta1 is published on npm with a parser that only
 # accepts single-digit AMI major versions. Asterisk 22 reports AMI 11.0.0.
 RUN sed -i 's|^var versionRegexp = .*|var versionRegexp = /^Asterisk Call Manager\\/(\\d+\\.\\d)/;|' \
