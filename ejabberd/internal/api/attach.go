@@ -26,6 +26,7 @@ import (
 
 const (
 	fileTransferType = "application/x-acro-filetransfer+json"
+	deleteType       = "application/x-acro-delete-message+json"
 	maxAttachment    = 25 << 20 // ejabberd's max_size for uploads
 )
 

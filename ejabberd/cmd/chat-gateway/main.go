@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -49,6 +50,10 @@ func main() {
 	dataDir := env("CHAT_DATA_DIR", "/data")
 	archiveDB := env("CHAT_ARCHIVE_DB", "/ejabberd/chat.db")
 	pnmURL := env("CHAT_PNM_URL", "https://pnm.cloudsoftphone.com/pnm2/send")
+	retention, err := strconv.Atoi(env("CHAT_RETENTION_DAYS", "365"))
+	if err != nil || retention < 1 {
+		retention = 365
+	}
 
 	st, err := store.Open(dataDir)
 	if err != nil {
@@ -60,7 +65,7 @@ func main() {
 	}
 	mw := api.NewMiddleware(mwURL)
 	mw.OnSeen = st.SeenUser
-	srv := &api.Server{Host: host, C2SAddr: c2s, PushService: address.Push(host), VAPIDPublic: router.VAPIDPublic, Store: st, MW: mw, EjabberdAPI: ejabberdAPI, UploadURL: uploadURL, PublicHost: publicHost, Archive: &api.Archive{Path: archiveDB}}
+	srv := &api.Server{Host: host, C2SAddr: c2s, PushService: address.Push(host), VAPIDPublic: router.VAPIDPublic, Store: st, MW: mw, EjabberdAPI: ejabberdAPI, UploadURL: uploadURL, PublicHost: publicHost, Archive: &api.Archive{Path: archiveDB}, Retention: retention}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

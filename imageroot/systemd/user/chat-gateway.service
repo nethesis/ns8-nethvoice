@@ -34,6 +34,7 @@ ExecStart=/usr/bin/podman run \
     --env=CHAT_UPLOAD_URL=http://127.0.0.1:${CHAT_HTTP_PORT}/upload \
     --env=CHAT_EJABBERD_API=http://127.0.0.1:${CHAT_HTTP_PORT}/api \
     --env=CHAT_DATA_DIR=/data \
+    --env=CHAT_RETENTION_DAYS \
     --network=host \
     --tz=${TIMEZONE} \
     --user=root \
