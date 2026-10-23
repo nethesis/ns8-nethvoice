@@ -156,7 +156,7 @@ image (see `ejabberd/README.md`): `chat-server` (ejabberd: XMPP over WebSocket, 
 `chat-gateway` (push notifications, mobile app web services). Both listen on loopback only.
 
 - Ports: `CHAT_C2S_PORT`, `CHAT_HTTP_PORT`, `CHAT_COMPONENT_PORT`, `CHAT_GW_PORT`, four TCP ports of the module range.
-- Traefik routes on the CTI host: `/xmpp-websocket`, `/upload`, `/chat-gw`; removed when the chat is off.
+- Traefik routes on the CTI host: `/xmpp-websocket`, `/upload`, `/chat-gw`; `/chat-gw` also on the PBX host, the domain the mobile app logs in with. Removed when the chat is off.
 - Volumes: `chat-data` (ejabberd database), `chat-upload` (attachments), `chat-gw` (gateway database).
   The backup takes consistent snapshots of the two databases (`state/chat.db`, `state/chat-gw.db`) and the upload volume.
 - Secret: `CHAT_COMPONENT_SECRET` in `passwords.env`.

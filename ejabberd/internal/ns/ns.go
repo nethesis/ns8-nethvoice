@@ -15,6 +15,7 @@ const (
 	Pubsub         = "http://jabber.org/protocol/pubsub"
 	Push           = "urn:xmpp:push:0"
 	RSM            = "http://jabber.org/protocol/rsm"
+	Retract        = "urn:xmpp:message-retract:1"
 	SID            = "urn:xmpp:sid:0"
 	Upload         = "urn:xmpp:http:upload:0"
 )

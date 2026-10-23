@@ -47,6 +47,7 @@ func (s *Server) ejabberd(ctx context.Context, cmd string, args, out any) error 
 // (the first member added inherits a group it owned), push registrations deleted.
 // Its history stays, for it and for everyone else, until the retention removes it.
 func (s *Server) Reconcile(ctx context.Context) {
+	s.Store.PruneAppMsgs(time.Now().AddDate(0, 0, -s.Retention-1)) // the archive no longer has them
 	dir, err := s.MW.Directory(ctx)
 	if err != nil || dir == nil || len(dir.byUser) == 0 {
 		return // no list, nothing to compare with: never act on a guess

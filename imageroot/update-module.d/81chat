@@ -9,4 +9,5 @@
 if [ "${CHAT_ENABLED:-false}" != "true" ]; then
     exit 0
 fi
+python3 "${AGENT_INSTALL_DIR}/actions/configure-module/45chat_routes" </dev/null
 CHAT_FORCE_RESTART=1 python3 "${AGENT_INSTALL_DIR}/actions/configure-module/46chat" </dev/null
