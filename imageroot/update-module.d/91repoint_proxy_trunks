@@ -29,6 +29,7 @@
 
 import json
 import re
+import subprocess
 import sys
 
 import agent
@@ -59,13 +60,21 @@ if proxy_id is None:
     agent.set_env("SIP_PROXY_TRUNKS_MIGRATED", new_port)
     sys.exit(0)
 
-# The trunk destination host is this node's VPN ip, the same host used by the
-# generic route (configure-module/60sip_proxy).
+# Manually added trunks can target another address assigned to this node.
 with agent.redis_connect(use_replica=True) as rdb:
     node_address = rdb.hget(f'node/{int(env["NODE_ID"])}/vpn', "ip_address")
 
 if not node_address:
     print(agent.SD_WARNING + "Cannot resolve this node VPN address, skipping trunk repoint",
+          file=sys.stderr)
+    sys.exit(0)
+
+try:
+    interfaces = json.loads(subprocess.check_output(["ip", "-j", "address", "show"], text=True, timeout=10))
+    local_addresses = {a["local"] for i in interfaces for a in i.get("addr_info", [])}
+    local_addresses.add(node_address)
+except Exception as ex:
+    print(agent.SD_WARNING + f"Cannot read node addresses ({type(ex).__name__}), skipping trunk repoint",
           file=sys.stderr)
     sys.exit(0)
 
@@ -91,7 +100,7 @@ trunks = trunks or []
 
 # Match "sip:<node_address>:<old_port>" allowing an optional suffix (parameters
 # or path) that must be preserved when rewriting the port.
-uri_re = re.compile(r"^sip:([^:;/?]+):(\d+)(.*)$")
+uri_re = re.compile(r"^sip:(\[[^\]]+\]|[^:;/?@\s]+):(\d+)(.*)$", re.I)
 
 changed = 0
 success = True
@@ -101,7 +110,8 @@ for trunk in trunks:
     if not match:
         continue
     host, port, suffix = match.group(1), match.group(2), match.group(3)
-    if host != node_address or port not in old_ports:
+    transports = re.findall(r"(?:^|;)transport(?:=([^;]*))?(?=;|$)", suffix.split("?", 1)[0], re.I)
+    if host.strip("[]") not in local_addresses or port not in old_ports or any(t.lower() != "udp" for t in transports):
         continue
 
     new_uri = f"sip:{host}:{new_port}{suffix}"
