@@ -8,7 +8,20 @@
 set -e -o pipefail
 exec 1>&2 # Redirect any output to the journal (stderr)
 
-SATELLITE_PGSQL_PASSWORD=$(grep '^SATELLITE_PGSQL_PASSWORD=' ./passwords.env) && export "${SATELLITE_PGSQL_PASSWORD?}"
+# Satellite is optional, so older backups may not contain a dump or credentials.
+if [[ ! -e satellite_postgresql.pg_dump.gz ]]; then
+    exit 0
+fi
+
+# Validate the entire gzip stream, including the case of an empty SQL payload.
+dump_bytes=$(gzip -cd satellite_postgresql.pg_dump.gz | wc -c)
+if (( dump_bytes == 0 )); then
+    echo 'The Satellite PostgreSQL dump is empty'
+    exit 1
+fi
+
+: "${PGVECTOR_IMAGE:?PGVECTOR_IMAGE is required to restore Satellite}"
+SATELLITE_PGSQL_PASSWORD=$(sed -n 's/^SATELLITE_PGSQL_PASSWORD=//p' ./passwords.env)
 
 mkdir -vp restore
 cat - >restore/satellite_postgresql_restore.sh <<'EOS'
@@ -17,11 +30,23 @@ set -e -o pipefail
 cleanup() {
     ec=$?
     trap - EXIT
-    docker_temp_server_stop
+    docker_temp_server_stop || { stop_ec=$?; (( ec != 0 )) || ec=$stop_ec; }
     exit "$ec"
 }
-trap cleanup EXIT
-gunzip -c /tmp/satellite_postgresql.pg_dump.gz | psql -U postgres
+trap 'cleanup' EXIT
+# initdb already created the bootstrap role. Keep its ALTER ROLE statements,
+# including the saved password, and let every other SQL error fail the restore.
+BOOTSTRAP_ROLE_STATEMENT=$(psql -X -U "$POSTGRES_USER" -d postgres -At -v ON_ERROR_STOP=1 \
+    --set=bootstrap_role="$POSTGRES_USER" <<'SQL'
+SELECT 'CREATE ROLE ' || quote_ident(:'bootstrap_role') || ';';
+SQL
+)
+export BOOTSTRAP_ROLE_STATEMENT
+gunzip -c /tmp/satellite_postgresql.pg_dump.gz \
+    | awk '!skipped && $0 == ENVIRON["BOOTSTRAP_ROLE_STATEMENT"] { skipped = 1; next } { print }' \
+    | psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres
+# This file is sourced by the entrypoint. Exit before it starts a permanent server.
+exit 0
 EOS
 
 # Override the image /docker-entrypoint-initdb.d contents, to restore the
@@ -31,13 +56,14 @@ podman run \
     --interactive \
     --network=none \
     --volume=./restore:/docker-entrypoint-initdb.d/:Z \
-    --volume=satellite_pgdata:/var/lib/postgresql/data:Z \
+    --volume=satellite_pgdata:/var/lib/postgresql/18/docker:Z \
     --volume=./satellite_postgresql.pg_dump.gz:/tmp/satellite_postgresql.pg_dump.gz:Z \
     --replace --name=restore_db \
-    --env POSTGRES_USER=${SATELLITE_PGSQL_USER} \
-    --env POSTGRES_PASSWORD=${SATELLITE_PGSQL_PASSWORD} \
+    --env POSTGRES_USER="${SATELLITE_PGSQL_USER:?}" \
+    --env POSTGRES_PASSWORD="${SATELLITE_PGSQL_PASSWORD:?}" \
+    --env POSTGRES_DB=postgres \
     --env TZ=UTC \
-    "${POSTGRES_IMAGE}"
+    "${PGVECTOR_IMAGE}"
 
 
 # If the restore is successful, clean up:
