@@ -172,3 +172,37 @@ if ((int) ($res['required_tables'] ?? 0) === 2) {
 	$stmt = $db->prepare($sql);
 	$stmt->execute();
 }
+
+// The trunk name is also the Asterisk endpoint name. With a space, and no From
+// User, Asterisk cannot build the OPTIONS qualify of the trunk ("Unable to
+// create outbound OPTIONS request"), so a provider outage is never detected.
+// Names with spaces still come from the FreePBX trunk page (it replaces spaces
+// only in trunks.name), CSV imports, restores and NethServer 7 migrations.
+// Every character not valid in a SIP URI becomes "_", the same rule of the
+// wizard API (rest/modules/trunks.php). This runs before the reload of
+// freepbx_init.sh. Routes refer to trunks by id and inbound trunks are matched
+// by IP, so calls keep working; a custom dialplan that uses the old name must
+// be fixed by hand.
+try {
+	$trunks = $db->query("SELECT `trunkid`, `channelid`, `name` FROM `asterisk`.`trunks` WHERE `tech` = 'pjsip'")->fetchAll(PDO::FETCH_NUM);
+	$used = array_column($trunks, 1);
+	foreach ($trunks as [$trunkid, $channelid, $name]) {
+		$new_name = preg_replace('/[^A-Za-z0-9_.-]/', '_', $channelid);
+		if ($new_name === $channelid && !preg_match('/[^A-Za-z0-9_.-]/', $name)) {
+			continue;
+		}
+		if ($new_name !== $channelid && in_array($new_name, $used, true)) {
+			$new_name .= '_' . $trunkid;
+		}
+		$used[] = $new_name;
+		$db->prepare("UPDATE `asterisk`.`trunks` SET `channelid` = ?, `name` = ? WHERE `trunkid` = ?")->execute([$new_name, $new_name, $trunkid]);
+		$db->prepare("UPDATE `asterisk`.`pjsip` SET `data` = ? WHERE `id` = ? AND `keyword` IN ('trunk_name', 'sv_channelid', 'sv_trunk_name')")->execute([$new_name, $trunkid]);
+		if ($new_name === $channelid) {
+			error_log("Trunk $trunkid: name '$name' set to '$new_name'");
+		} else {
+			error_log("Trunk $trunkid renamed from '$channelid' to '$new_name': check custom dialplan that uses the old name");
+		}
+	}
+} catch (Exception $e) {
+	error_log('Cannot check the trunk names: ' . $e->getMessage());
+}

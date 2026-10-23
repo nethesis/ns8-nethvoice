@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Print the module metrics in the Prometheus text format. The node runs this
+# command every 5 minutes and adds the module label (ns8-core
+# refresh-module-metrics). A failing collector is logged and reported by
+# nethvoice_exporter_collector_up; the others are still exported.
+
+import functools
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pypkg"))
+
+from nvmetrics import aikeys, asterisk, dnscheck, runner, satellite, systemd, trunks  # noqa: E402
+
+# Read once per run, shared by more collectors
+passwords = runner.once(aikeys.read_passwords)
+units = runner.once(systemd.read_units)
+asterisk_page = runner.once(functools.partial(
+    asterisk.read_page,
+    password=functools.partial(asterisk.read_password, passwords),
+    active=functools.partial(asterisk.freepbx_active, units),
+))
+ai_keys = functools.partial(aikeys.read_keys, passwords)
+satellite_token = functools.partial(satellite.read_token, passwords)
+
+sys.stdout.write(runner.run([
+    ("systemd", functools.partial(systemd.collect, units)),
+    ("asterisk", functools.partial(asterisk.collect, asterisk_page)),
+    ("trunks", functools.partial(trunks.collect, asterisk_page)),
+    ("public_dns", dnscheck.collect if dnscheck.enabled() else None),
+    ("ai_keys", functools.partial(aikeys.collect, ai_keys) if aikeys.enabled(keys=ai_keys) else None),
+    ("satellite", functools.partial(satellite.collect, token=satellite_token) if satellite.enabled() else None),
+]))

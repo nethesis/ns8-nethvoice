@@ -1,0 +1,4 @@
+NvTestSend	NvTestSend	send				NvTestSend	outbound	192.0.2.10	5060
+NvTestRecv	NvTestRecv	receive				NvTestRecv	inbound		5060
+NvTestIp	NvTestIp	none				NvTestIp	off	192.0.2.11	5060
+NvTestProxy	NvTestProxy	send	sip:10.5.4.1:5060;lr			NvTestProxy	outbound	192.0.2.12	5060

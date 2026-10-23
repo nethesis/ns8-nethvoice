@@ -1,0 +1,109 @@
+rule_files:
+  - ../../imageroot/etc/metrics/alert-rules/nethvoice-services.yml
+
+evaluation_interval: 1m
+
+tests:
+  # Unit stopped: "stopped" once the last 10 minutes are all 0
+  - interval: 1m
+    input_series:
+      - series: 'nethvoice_service_up{module_id="nethvoice1",node="1",service="freepbx"}'
+        values: '1x4 0x35'
+      - series: 'nethvoice_service_restarts_total{module_id="nethvoice1",node="1",service="freepbx"}'
+        values: '0x40'
+    alert_rule_test:
+      - eval_time: 13m
+        alertname: ServiceDown
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: ServiceDown
+        exp_alerts:
+          - exp_labels: {severity: critical, alertgroup: services, reason: stopped, service: freepbx, module_id: nethvoice1, node: "1"}
+            exp_annotations:
+              summary_en: "Service freepbx (Asterisk) is down"
+              summary_it: "Il servizio freepbx (Asterisk) non è attivo"
+              description_en: "Service freepbx (Asterisk) of module nethvoice1 on node 1 has been down for more than 10 minutes"
+              description_it: "Il servizio freepbx (Asterisk) del modulo nethvoice1 sul nodo 1 non è attivo da più di 10 minuti"
+
+  # Crash loop: 3 restarts in one export step, unit back up
+  - interval: 1m
+    input_series:
+      - series: 'nethvoice_service_up{module_id="nethvoice1",node="1",service="janus"}'
+        values: '1x50'
+      - series: 'nethvoice_service_restarts_total{module_id="nethvoice1",node="1",service="janus"}'
+        values: '0x9 3x40'
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: ServiceDown
+        exp_alerts:
+          - exp_labels: {severity: critical, alertgroup: services, reason: crash_loop, service: janus, module_id: nethvoice1, node: "1"}
+            exp_annotations: &janus_loop
+              summary_en: "Service janus keeps restarting"
+              summary_it: "Il servizio janus si riavvia continuamente"
+              description_en: "Service janus of module nethvoice1 on node 1 restarted at least 3 times in the last 10 minutes"
+              description_it: "Il servizio janus del modulo nethvoice1 sul nodo 1 si è riavviato almeno 3 volte negli ultimi 10 minuti"
+      - eval_time: 21m
+        alertname: ServiceDown
+        exp_alerts: []
+
+  # Start limit hit: crash_loop, then stopped, never both and never none
+  - interval: 1m
+    input_series:
+      - series: 'nethvoice_service_up{module_id="nethvoice1",node="1",service="janus"}'
+        values: '1x29 0x35'
+      - series: 'nethvoice_service_restarts_total{module_id="nethvoice1",node="1",service="janus"}'
+        values: '0x24 5x40'
+    alert_rule_test:
+      - eval_time: 26m
+        alertname: ServiceDown
+        exp_alerts:
+          - exp_labels: {severity: critical, alertgroup: services, reason: crash_loop, service: janus, module_id: nethvoice1, node: "1"}
+            exp_annotations: *janus_loop
+      - eval_time: 35m
+        alertname: ServiceDown
+        exp_alerts:
+          - exp_labels: {severity: critical, alertgroup: services, reason: crash_loop, service: janus, module_id: nethvoice1, node: "1"}
+            exp_annotations: *janus_loop
+      - eval_time: 38m
+        alertname: ServiceDown
+        exp_alerts:
+          - exp_labels: {severity: critical, alertgroup: services, reason: crash_loop, service: janus, module_id: nethvoice1, node: "1"}
+            exp_annotations: *janus_loop
+      - eval_time: 39m
+        alertname: ServiceDown
+        exp_alerts:
+          - exp_labels: {severity: critical, alertgroup: services, reason: stopped, service: janus, module_id: nethvoice1, node: "1"}
+            exp_annotations: &janus_stopped
+              summary_en: "Service janus is down"
+              summary_it: "Il servizio janus non è attivo"
+              description_en: "Service janus of module nethvoice1 on node 1 has been down for more than 10 minutes"
+              description_it: "Il servizio janus del modulo nethvoice1 sul nodo 1 non è attivo da più di 10 minuti"
+      - eval_time: 60m
+        alertname: ServiceDown
+        exp_alerts:
+          - exp_labels: {severity: critical, alertgroup: services, reason: stopped, service: janus, module_id: nethvoice1, node: "1"}
+            exp_annotations: *janus_stopped
+
+  # Slow restarts (one every 5 minutes) are not a crash loop
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_service_up{module_id="nethvoice1",node="1",service="janus"}'
+        values: '1x12'
+      - series: 'nethvoice_service_restarts_total{module_id="nethvoice1",node="1",service="janus"}'
+        values: '0+1x12'
+    alert_rule_test:
+      - eval_time: 50m
+        alertname: ServiceDown
+        exp_alerts: []
+
+  # A manual restart resets the counter: no alert
+  - interval: 1m
+    input_series:
+      - series: 'nethvoice_service_up{module_id="nethvoice1",node="1",service="janus"}'
+        values: '1x40'
+      - series: 'nethvoice_service_restarts_total{module_id="nethvoice1",node="1",service="janus"}'
+        values: '5x20 0x20'
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: ServiceDown
+        exp_alerts: []

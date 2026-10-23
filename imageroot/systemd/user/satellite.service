@@ -1,7 +1,8 @@
 [Unit]
 Description=Satellite call transcription for NethVoice
 Requires=satellite-mqtt.service satellite-pgsql.service
-After=satellite-mqtt.service satellite-pgsql.service
+# Satellite exits when Asterisk ARI is not ready: start it after FreePBX
+After=satellite-mqtt.service satellite-pgsql.service freepbx.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -9,6 +10,7 @@ EnvironmentFile=%E/state/environment
 EnvironmentFile=%E/state/passwords.env
 WorkingDirectory=%E/state
 Restart=always
+RestartSec=10s
 ExecStartPre=/bin/rm -f %t/satellite.pid %t/satellite.ctr-id
 ExecStart=runagent /usr/bin/podman run \
     --detach \
