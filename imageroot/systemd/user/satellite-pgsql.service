@@ -7,6 +7,7 @@ EnvironmentFile=%E/state/environment
 EnvironmentFile=%E/state/passwords.env
 WorkingDirectory=%E/state
 Restart=always
+TimeoutStartSec=300
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/satellite-pgsql.pid %t/satellite-pgsql.ctr-id
 ExecStart=/usr/bin/podman run --conmon-pidfile %t/satellite-pgsql.pid \
@@ -22,6 +23,9 @@ ExecStart=/usr/bin/podman run --conmon-pidfile %t/satellite-pgsql.pid \
 	--tz=${TIMEZONE} \
 	--network=host \
 	${PGVECTOR_IMAGE}
+
+# Wait for the final TCP listener, not the temporary initialization socket.
+ExecStartPost=/usr/bin/podman exec satellite-pgsql sh -c 'until pg_isready -q -h 127.0.0.1 -p "$$PGPORT" -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"; do sleep 1; done'
 
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/satellite-pgsql.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/satellite-pgsql.ctr-id

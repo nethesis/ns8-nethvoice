@@ -4,18 +4,25 @@ FROM docker.io/library/php:8.3-apache-bookworm
 COPY etc /etc
 COPY usr /usr
 COPY entrypoint.sh /
+COPY remote-artifacts.sha256 /tmp/remote-artifacts.sha256
+
+ARG TANCREDI_VERSION=1.11.0
 
 RUN apt update && \
 	apt install -y libapache2-mod-xsendfile zip && \
-	a2enmod headers && \
+	a2enmod headers rewrite && \
 	ln -sf /etc/apache2/sites-available/tancredi.conf /etc/apache2/sites-enabled/tancredi.conf && \
 	sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:$\{TANCREDIPORT\}>/' /etc/apache2/sites-enabled/000-default.conf && \
 	sed -i 's/Listen 80/Listen $\{TANCREDIPORT\}/' /etc/apache2/ports.conf && \
 	sed -i 's/Listen 443/Listen $\{TANCREDI_SSL_PORT\}/' /etc/apache2/ports.conf && \
 	echo '\n: ${TANCREDIPORT:=80}\nexport TANCREDIPORT\n: ${TANCREDI_SSL_PORT:=443}\nexport TANCREDI_SSL_PORT\n' >> /etc/apache2/envvars && \
 	# Install Tancredi files
-	BRANCH=1.10.4 && \
-	curl -L https://github.com/nethesis/tancredi/archive/refs/tags/${BRANCH}.tar.gz -o - | tar xzp --strip-component=1 -C /usr/share/tancredi/ tancredi-${BRANCH}/data/ tancredi-${BRANCH}/public/ tancredi-${BRANCH}/scripts/ tancredi-${BRANCH}/src/ tancredi-${BRANCH}/composer.json tancredi-${BRANCH}/composer.lock
+	cd /tmp && \
+	curl -fL https://github.com/nethesis/tancredi/archive/refs/tags/${TANCREDI_VERSION}.tar.gz -o tancredi-${TANCREDI_VERSION}.tar.gz && \
+	artifact_checksum=$(grep "  tancredi-${TANCREDI_VERSION}.tar.gz$" remote-artifacts.sha256) && \
+	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
+	tar xzp --strip-component=1 -f tancredi-${TANCREDI_VERSION}.tar.gz -C /usr/share/tancredi/ tancredi-${TANCREDI_VERSION}/data/ tancredi-${TANCREDI_VERSION}/public/ tancredi-${TANCREDI_VERSION}/scripts/ tancredi-${TANCREDI_VERSION}/src/ tancredi-${TANCREDI_VERSION}/composer.json tancredi-${TANCREDI_VERSION}/composer.lock && \
+	rm tancredi-${TANCREDI_VERSION}.tar.gz remote-artifacts.sha256
 
 # Add Nethesis firmware template
 COPY usr/share/tancredi/data/templates/nethesis-firmware.tmpl /usr/share/tancredi/data/templates/nethesis-firmware.tmpl

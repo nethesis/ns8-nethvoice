@@ -13,10 +13,10 @@ include(AGIBIN_DIR."/phpagi.php");
 global $db;
 
 $agi = new AGI();
-$direction = $argv[1];
-$number =  $argv[2];
+$direction = $argv[1] ?? '';
+$number = $argv[2] ?? '';
 if ($direction == 'out') {
-    $cnam =  $argv[3];
+    $cnam = $argv[3] ?? '';
 }
 $name = '';
 $company = '';
@@ -38,8 +38,8 @@ if (strlen($number)> 4) {
                     //expects a json obj
                     if ($apiResult != '') {
                         $jsonData = json_decode($apiResult);
-                        $name = $jsonData->name;
-                        $company = $jsonData->company;
+                        $name = (string)($jsonData->name ?? '');
+                        $company = (string)($jsonData->company ?? '');
                         if ($name == '' && $company == '') {
                             //continue with the next exe file
                             continue;
@@ -116,18 +116,23 @@ if (strlen($number)> 4) {
 
             //get name
             $names = [];
+            $hasCompanyRow = false;
             foreach ($res as $row) {
+                if (trim((string)$row[0]) === '-') {
+                    $hasCompanyRow = true;
+                    continue;
+                }
                 if (!empty($row[0])) {
                     $names[] = trim($row[0]);
                 }
             }
             $names = array_unique($names);
             // Name should be empty if there are more different names for the same company
-            if (count($names) > 1) {
+            if (count($names) > 1 || ($hasCompanyRow && count($names) > 0)) {
                 @$agi->verbose("WARNING: more than one names found for this number");
                 $name = '';
             }
-            else $name = $names[0];
+            else $name = $names[0] ?? '';
         }
         @$agi->verbose("Name = $name, Company = $company, Number = $number, source = Mysql");
     }

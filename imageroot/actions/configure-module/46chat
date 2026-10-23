@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# NethVoice chat (CHAT_ENABLED=true): render ejabberd.yml and start the units.
+
+import os
+import string
+import subprocess
+import sys
+
+import agent
+
+ENABLED = os.getenv('CHAT_ENABLED', 'false').lower() == 'true'
+HOST = os.getenv('NETHCTI_UI_HOST', '')
+UNITS = ('chat-server.service', 'chat-gateway.service')
+CONF_DIR = os.path.join(os.environ['AGENT_STATE_DIR'], 'chat')
+TEMPLATE = os.path.join(os.environ['AGENT_INSTALL_DIR'], 'etc', 'chat', 'ejabberd.yml.tmpl')
+
+
+def positive_int(var, default):
+    """A tunable from the environment; a malformed one warns and falls back to its default."""
+    value = os.getenv(var, default)
+    if value.isdigit() and int(value) > 0:
+        return value
+    print(agent.SD_WARNING + f"chat: {var}={value!r} is not a positive integer, using {default}", file=sys.stderr)
+    return default
+
+
+RETENTION = positive_int('CHAT_RETENTION_DAYS', '365')
+QUOTA = positive_int('CHAT_UPLOAD_QUOTA_MB', '200')
+MAX_FILE = positive_int('CHAT_UPLOAD_MAX_FILE_MB', '25')
+
+
+def render():
+    """Write ejabberd.yml; True when its content changed."""
+    secrets = agent.read_envfile('passwords.env')
+    values = {
+        # One internal XMPP domain: addresses never change with the CTI host, which only reaches the server.
+        'CHAT_HOST': 'chat.internal',
+        'CHAT_PUBLIC_HOST': HOST,
+        'CHAT_C2S_PORT': os.environ['CHAT_C2S_PORT'],
+        'CHAT_HTTP_PORT': os.environ['CHAT_HTTP_PORT'],
+        'CHAT_COMPONENT_PORT': os.environ['CHAT_COMPONENT_PORT'],
+        'CHAT_COMPONENT_SECRET': secrets['CHAT_COMPONENT_SECRET'],
+        # Tunables (Integrations page), env with defaults: days kept (messages and uploads), per-user quota and largest file in MB.
+        'CHAT_RETENTION_DAYS': RETENTION,
+        'CHAT_UPLOAD_QUOTA_MB': QUOTA,
+        'CHAT_UPLOAD_SOFT_QUOTA_MB': str(max(1, int(QUOTA) // 2)),
+        'CHAT_UPLOAD_MAX_SIZE': str(int(MAX_FILE) * 1024 * 1024),
+    }
+    with open(TEMPLATE) as f:
+        text = string.Template(f.read()).substitute(values)
+    os.makedirs(CONF_DIR, exist_ok=True)
+    out = os.path.join(CONF_DIR, 'ejabberd.yml')
+    try:
+        with open(out) as f:
+            if f.read() == text:
+                return False
+    except FileNotFoundError:
+        pass
+    with open(out + '.tmp', 'w') as f:
+        f.write(text)
+    # World-readable on purpose: ejabberd runs as uid 9000 in its image, the module home is private anyway.
+    os.chmod(out + '.tmp', 0o644)
+    os.replace(out + '.tmp', out)
+    return True
+
+
+def systemctl(*args):
+    return subprocess.run(['systemctl', '--user', *args], check=False).returncode == 0
+
+
+if not ENABLED:
+    for unit in UNITS + ('chat-retention.timer',):
+        systemctl('disable', '--now', unit)
+    sys.exit(0)
+
+for var in ('CHAT_C2S_PORT', 'CHAT_HTTP_PORT', 'CHAT_COMPONENT_PORT', 'CHAT_GW_PORT'):
+    agent.assert_exp(var in os.environ, f"chat: {var} is not allocated")
+agent.assert_exp(HOST != '', "chat: NETHCTI_UI_HOST is not set")
+
+changed = render() or os.getenv('CHAT_FORCE_RESTART') == '1'
+systemctl('daemon-reload')
+# Restart only on changes: a restart drops every chat session.
+for unit in UNITS:
+    systemctl('enable', unit)
+    if changed or not systemctl('is-active', '--quiet', unit):
+        if not systemctl('restart', unit):
+            print(agent.SD_WARNING + f"chat: {unit} did not start, see its journal", file=sys.stderr)
+systemctl('enable', '--now', 'chat-retention.timer')
