@@ -37,8 +37,8 @@ groups:
         annotations:
           summary_en: "Trunk {{ $labels.trunk }} of {{ $labels.module_id }} is unreachable: the remote side is not registered"
           summary_it: "Il fascio {{ $labels.trunk }} di {{ $labels.module_id }} non è raggiungibile: il lato remoto non è registrato"
-          description_en: "The remote side of trunk {{ $labels.trunk }} (for example a gateway) has had no valid registration to {{ $labels.module_id }} for more than 10 minutes: calls through this trunk fail. Check the device, its credentials and the network path through the proxy. If the NethVoice proxy is also down, fix the proxy first."
-          description_it: "Il lato remoto del fascio {{ $labels.trunk }} (ad esempio un gateway) non ha una registrazione valida su {{ $labels.module_id }} da più di 10 minuti: le chiamate su questo fascio falliscono. Verificare il dispositivo, le sue credenziali e il percorso di rete attraverso il proxy. Se anche il proxy NethVoice non è attivo, sistemare prima il proxy."
+          description_en: "The remote side of trunk {{ $labels.trunk }} (for example a gateway) has had no valid registration to {{ $labels.module_id }} for more than 10 minutes: calls through this trunk fail. Check the device, its credentials and the network path."
+          description_it: "Il lato remoto del fascio {{ $labels.trunk }} (ad esempio un gateway) non ha una registrazione valida su {{ $labels.module_id }} da più di 10 minuti: le chiamate su questo fascio falliscono. Verificare il dispositivo, le sue credenziali e il percorso di rete."
       - alert: NethVoiceTrunkUnreachable
         expr: nethvoice_trunk_qualify_up == 0
         for: 10m
