@@ -1,6 +1,17 @@
 --- a/Dialplan/macroDialone.php
 +++ b/Dialplan/macroDialone.php
-@@ -135,7 +135,7 @@
+@@ -16,7 +16,10 @@
+ 
+ 		$ext->add($mcontext,$exten,'', new \ext_set('DIALSTATUS_CW', ''));
+ 		$ext->add($mcontext,$exten,'', new \ext_gosubif('$["${FROM_DID}"!="" & "${SCREEN}"="" & "${SIGNORE}"="" & "${DB(AMPUSER/${DEXTEN}/screen)}"!=""]','screen,1'));
++		// Gosub frames restore ARG1, so cf returns its forward timer in a channel variable.
++		$ext->add($mcontext,$exten,'', new \ext_set('NETHVOICE_DIAL_TIMER', '${ARG1}'));
+ 		$ext->add($mcontext,$exten,'', new \ext_gosubif('$["${DB(CF/${DEXTEN})}"!=""]','cf,1'));
++		$ext->add($mcontext,$exten,'', new \ext_set('ARG1', '${NETHVOICE_DIAL_TIMER}'));
+ 		$ext->add($mcontext,$exten,'', new \ext_gotoif('$["${DEXTEN:-1}"="#" | "${DB(DND/${DEXTEN})}"=""]','skip1'));
+ 		$ext->add($mcontext,$exten,'', new \ext_set('DEXTEN', ''));
+ 		$ext->add($mcontext,$exten,'', new \ext_set('DIALSTATUS', 'BUSY'));
+@@ -135,7 +138,7 @@
  
  		$exten = 'usegoto';
  		$ext->add($mcontext,$exten,'', new \ext_set('USEGOTO', ''));
@@ -9,7 +20,20 @@
  
  		$exten = 'screen';
  		$ext->add($mcontext,$exten,'', new \ext_gotoif('$["${DB(AMPUSER/${DEXTEN}/screen)}"!="nomemory" | "${CALLERID(number)}"=""]','memory'));
-@@ -213,8 +213,10 @@
+@@ -148,10 +151,10 @@
+ 		$exten = 'cf';
+ 		$ext->add($mcontext,$exten,'', new \ext_set('CFAMPUSER', '${IF($["${AMPUSER}"=""]?${CALLERID(number)}:${AMPUSER})}'));
+ 		$ext->add($mcontext,$exten,'', new \ext_execif('$["${DB(CF/${DEXTEN})}"="${CFAMPUSER}" | "${DB(CF/${DEXTEN})}"="${REALCALLERIDNUM}" | "${CUT(CUT(BLINDTRANSFER,-,1),/,1)}" = "${DB(CF/${DEXTEN})}" | "${DEXTEN}"="${DB(CF/${DEXTEN})}"]', 'Return'));
+-		$ext->add($mcontext,$exten,'', new \ext_execif('$["${DB(AMPUSER/${DEXTEN}/cfringtimer)}" != "0" & "${DB(AMPUSER/${DEXTEN}/cfringtimer)}" != ""]', 'Set', 'ARG1=${IF($["${DB(AMPUSER/${DEXTEN}/cfringtimer)}"="-1"]? : ${DB(AMPUSER/${DEXTEN}/cfringtimer)})}'));
++		$ext->add($mcontext,$exten,'', new \ext_execif('$["${DB(AMPUSER/${DEXTEN}/cfringtimer)}" != "0" & "${DB(AMPUSER/${DEXTEN}/cfringtimer)}" != ""]', 'Set', 'NETHVOICE_DIAL_TIMER=${IF($["${DB(AMPUSER/${DEXTEN}/cfringtimer)}"="-1"]? : ${DB(AMPUSER/${DEXTEN}/cfringtimer)})}'));
+ 		// FREEPBX-11431 Call Forward Ringtimer Default - Setting does not work
+ 		// we have stored in asteriskDB , lets read from that
+-		$ext->add($mcontext,$exten,'', new \ext_execif('$["${DB(AMPUSER/${DEXTEN}/cfringtimer)}" == "0"]', 'Set', 'ARG1=${IF($["${DB(FREEPBXCONF/CFRINGTIMERDEFAULT)}"="-1"]? : ${DB(FREEPBXCONF/CFRINGTIMERDEFAULT)})}'));
++		$ext->add($mcontext,$exten,'', new \ext_execif('$["${DB(AMPUSER/${DEXTEN}/cfringtimer)}" == "0"]', 'Set', 'NETHVOICE_DIAL_TIMER=${IF($["${DB(FREEPBXCONF/CFRINGTIMERDEFAULT)}"="-1"]? : ${DB(FREEPBXCONF/CFRINGTIMERDEFAULT)})}'));
+ 		$ext->add($mcontext,$exten,'', new \ext_set('DEXTEN', '${IF($["${CFIGNORE}"=""]?"${DB(CF/${DEXTEN})}#": )}'));
+ 		$ext->add($mcontext,$exten,'', new \ext_set('__DIVERSION_REASON', '${IF($["${DEXTEN}"!=""]?"unconditional": )}'));
+ 		$ext->add($mcontext,$exten,'', new \ext_execif('$["${DEXTEN}"!=""]', 'Return'));
+@@ -213,9 +216,11 @@
  		$ext->add($mcontext,$exten,'', new \ext_return(''));
  
  		$exten = 'dlocal';
@@ -17,10 +41,12 @@
 +		$ext->add($mcontext,$exten,'', new \ext_execif('$["${NETHVOICE_FORWARD_CONTEXT}"=""]', 'Hangup', '21'));
  		//$ext->add($mcontext,$exten,'', new \ext_set('DSTRING', 'Local/${DEXTEN:0:${MATH(${LEN(${DEXTEN})}-1,int)}}@from-internal/n'));
 -		$ext->add($mcontext,$exten,'', new \ext_set('DSTRING', '${IF($["${ARG1}"=""]?${DEXTEN:0:${MATH(${LEN(${DEXTEN})}-1,int)}}:Local/${DEXTEN:0:${MATH(${LEN(${DEXTEN})}-1,int)}}@from-internal/n)}'));
-+		$ext->add($mcontext,$exten,'', new \ext_set('DSTRING', '${IF($["${ARG1}"=""]?${DEXTEN:0:${MATH(${LEN(${DEXTEN})}-1,int)}}:Local/${DEXTEN:0:${MATH(${LEN(${DEXTEN})}-1,int)}}@${NETHVOICE_FORWARD_CONTEXT}/n)}'));
- 		$ext->add($mcontext,$exten,'', new \ext_set('USEGOTO', '${IF($["${ARG1}"=""]?1:0)}'));
+-		$ext->add($mcontext,$exten,'', new \ext_set('USEGOTO', '${IF($["${ARG1}"=""]?1:0)}'));
++		$ext->add($mcontext,$exten,'', new \ext_set('DSTRING', '${IF($["${NETHVOICE_DIAL_TIMER}"=""]?${DEXTEN:0:${MATH(${LEN(${DEXTEN})}-1,int)}}:Local/${DEXTEN:0:${MATH(${LEN(${DEXTEN})}-1,int)}}@${NETHVOICE_FORWARD_CONTEXT}/n)}'));
++		$ext->add($mcontext,$exten,'', new \ext_set('USEGOTO', '${IF($["${NETHVOICE_DIAL_TIMER}"=""]?1:0)}'));
  		$ext->add($mcontext,$exten,'', new \ext_return(''));
  
+ 		if ($chan_dahdi) {
 --- a/functions.inc.php
 +++ b/functions.inc.php
 @@ -3654,22 +3654,26 @@
@@ -122,15 +148,16 @@
  	// mastermode description:
  	//
  	// if mastermode is set then the first extension will be examined and mastermode will be reset so that the others
-@@ -380,6 +382,7 @@
+@@ -380,6 +382,8 @@
  	// Don't bother checking these if we will be blanking the extnum anyhow
  	if ($skipremaining == 0) {
  		$extnum    = $k;
-+		$forward_owner = $forward_owners[$kk] ?? null;
++		// External Follow Me destinations belong to the Follow Me owner.
++		$forward_owner = $forward_owners[$kk] ?? ($fmgrp !== '' ? $fmgrp : null);
  
  		// CWIGNORE is sent down the channel when all extensions should be treated as if they do not have
  		// call waiting enabled. This is used primarily by Queue type setups (sometimes Ring Groups) when
-@@ -453,6 +456,7 @@
+@@ -453,6 +457,7 @@
  				//
  				if ($rgmethod != '' && $rgmethod != 'none' && !$cfignore) {
  					debug("Extension $extnum has call forward on no answer set and is unavailable and is part of a Ring Group forwarding to '$extcfu'",1);
@@ -138,7 +165,7 @@
  					$extnum = $extcfu . '#';   # same method as the normal cf, i.e. send to Local
  				} else {
  					debug("Extension $extnum has call forward on no answer set and is unavailable",1);
-@@ -476,6 +480,7 @@
+@@ -476,6 +481,7 @@
  							$AGI->set_variable('__DIVERSION_REASON','user-busy');
  						}else{
  							debug("Extension $extnum has call forward on busy set to $extcfb",1);
@@ -146,7 +173,7 @@
  							$extnum = $extcfb . '#';   # same method as the normal cf, i.e. send to Local
  						}
  					// CW not in use
-@@ -535,7 +540,7 @@
+@@ -535,7 +541,7 @@
  			debug("Extension '$realext' already in the dialstring, ignoring duplicate",1);
  		} else {
  			$dsarray[$realext] = 1;  // could be dial string i suppose but currently only using for duplicate check
@@ -155,7 +182,7 @@
  			if (strlen($extds)) {
  			 	$ds .= $extds . '&';
  			}
-@@ -864,7 +869,7 @@
+@@ -864,7 +870,7 @@
  	return '';
  }
  
@@ -164,7 +191,7 @@
  	$dialstring = '';
  
  	if (strpos($extnum,'#') != 0) {
-@@ -875,11 +880,23 @@
+@@ -875,11 +881,23 @@
  		// triggers the call confirmation macro along with the required messages
  		// that were set.
  		//
@@ -216,11 +243,13 @@
  		$ext->add($c, 's', '', new \ext_noop('Working with extension ${HASH(dialparties,workingext)}'));
  		$ext->add($c, 's', '', new \ext_gosub('1','s','dialparties-isextavail','${HASH(dialparties,workingext)}'));
  
-@@ -612,11 +615,14 @@
+@@ -612,11 +615,16 @@
  		// triggers the call confirmation macro along with the required messages
  		// that were set.
  		//
 +		$ext->add($c, 's', '', new \ext_setvar('NETHVOICE_FORWARD_CONTEXT', 'from-internal'));
++		// External Follow Me destinations belong to the Follow Me owner.
++		$ext->add($c, 's', '', new \ext_execif('$["${HASH(dialparties,FORWARD_OWNER)}"=""]', 'Set', 'HASH(dialparties,FORWARD_OWNER)=${HASH(dialparties,FMGRP)}'));
 +		$ext->add($c, 's', '', new \ext_gosubif('$["${HASH(dialparties,FORWARD_OWNER)}"!=""]', 'func-nethvoice-forward-context,s,1', false, '${HASH(dialparties,FORWARD_OWNER)}'));
 +		$ext->add($c, 's', '', new \ext_gotoif('$["${NETHVOICE_FORWARD_CONTEXT}"=""]', 'forwardreturn'));
  		$ext->add($c, 's', '', new \ext_sethash('dialparties','workingext', '${REPLACE(HASH(dialparties,workingext),#,)}'));
@@ -233,7 +262,7 @@
  
  		$ext->add($c, 'internal', '', new \ext_setvar('DEVICES','${DB(AMPUSER/${HASH(dialparties,workingext)}/device)}'));
  		$ext->add($c, 'internal','', new \ext_while('$["${SET(DEVICE=${SHIFT(DEVICES,&)})}" != ""]'));
-@@ -680,7 +686,8 @@
+@@ -680,7 +688,8 @@
  
  
  		$ext->add($c, 'check1-1-1', '', new \ext_noop('Extension ${HASH(dialparties,workingext)} has call forward on no answer set and is unavailable and is part of a Ring Group forwarding to ${HASH(dialparties,EXTCFU)}'));
@@ -243,7 +272,7 @@
  		$ext->add($c, 'check1-1-1', '', new \ext_goto('s,return'));
  
  
-@@ -702,6 +709,7 @@
+@@ -702,6 +711,7 @@
  
  		$ext->add($c, 'check1-2-1-1', '', new \ext_gotoif('$["${HASH(dialparties,RGMETHOD)}"="0"]','check1-2-1-1-1,1'));
  		$ext->add($c, 'check1-2-1-1','', new \ext_noop('Extension ${HASH(dialparties,workingext)} has call forward on busy set to ${HASH(dialparties,EXTCFB)}'));
@@ -251,7 +280,7 @@
  		$ext->add($c, 'check1-2-1-1', '', new \ext_sethash('dialparties','workingext','${HASH(dialparties,EXTCFB)}#')); //# same method as the normal cf, i.e. send to Local
  		$ext->add($c, 'check1-2-1-1', '', new \ext_goto('s,return'));
  
-@@ -772,7 +780,8 @@
+@@ -772,7 +782,8 @@
  		$ext->add($c, 's', '', new \ext_gotoif('$["${AMPUSER}" = "${HASH(dialparties,CF)}" | ${REALCALLERIDNUM} = ${CF} | "${CUT(BLINDTRANSFER,/${HASH(dialparties,CF)}-)}" != ""]','ignored'));
  		$ext->add($c, 's', '', new \ext_gotoif('$["${HASH(dialparties,CFIGNORE)}" != ""]','cfignore'));
  		// append a hash sign so we can send out on chan_local below unless cfingore is set
@@ -261,3 +290,14 @@
  		$ext->add($c, 's', '', new \ext_noop('Extension ${HASH(dialparties,workingext)} has call forward set to ${HASH(dialparties,CF)}'));
  		// This only really needs to be set if we are setting Diversion Headers, but it's not worth the hassle of
  		// checking the amportal.conf settings here and there is no harm done in setting it other than minor overhead
+--- a/Dialplan/macroDial.php
++++ b/Dialplan/macroDial.php
+@@ -41,7 +41,7 @@
+         if(!$dpdialplan) {
+           $ext->add($c,$s,'dial', new \ext_agi('dialparties.agi'));
+         } else {
+-          $ext->add($c,$s,'dial', new \ext_gosub('1','s','dialparties'));
++          $ext->add($c,$s,'dial', new \ext_gosub('1','s','dialparties','${ARG1},${ARG2},${ARG3}'));
+         }
+ 
+         $ext->add($c,$s,'', new \ext_gotoif('$["${MACRODIALGOTO_PRI}"!=""]','${MACRODIALGOTO_PRI}'));
