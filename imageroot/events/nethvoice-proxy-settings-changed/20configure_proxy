@@ -48,4 +48,4 @@ SET `data` = 'sip:{os.environ['PROXY_IP']}:{os.environ['PROXY_PORT']};lr'
 WHERE `keyword` = 'outbound_proxy' AND `data` LIKE 'sip:%;lr';
 """
 
-subprocess.run([*f'podman exec mariadb mysql asterisk -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY], stdout=sys.stderr, check=True)
+subprocess.run('podman exec -i --env MYSQL_PWD mariadb mysql asterisk -u root'.split(), env=dict(os.environ, MYSQL_PWD=MARIADB_ROOT_PASSWORD), input=SQL_QUERY, text=True, stdout=sys.stderr, check=True)
