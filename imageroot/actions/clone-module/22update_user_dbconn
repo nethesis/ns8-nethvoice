@@ -30,7 +30,7 @@ ON DUPLICATE KEY UPDATE
     `name` = VALUES(`name`),
     `creation` = VALUES(`creation`)
 """
-subprocess.run([*f'podman exec mariadb mysql nethcti3 -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY], stdout=sys.stderr, check=True)
+subprocess.run('podman exec -i --env MYSQL_PWD mariadb mysql nethcti3 -u root'.split(), env=dict(os.environ, MYSQL_PWD=MARIADB_ROOT_PASSWORD), input=SQL_QUERY, text=True, stdout=sys.stderr, check=True)
 
 # SQL query to insert or update user_dbconn for asteriskcdrdb
 SQL_QUERY = f"""
@@ -45,4 +45,4 @@ ON DUPLICATE KEY UPDATE
     `name` = VALUES(`name`),
     `creation` = VALUES(`creation`)
 """
-subprocess.run([*f'podman exec mariadb mysql nethcti3 -u root -p{MARIADB_ROOT_PASSWORD} -e'.split(), SQL_QUERY], stdout=sys.stderr, check=True)
+subprocess.run('podman exec -i --env MYSQL_PWD mariadb mysql nethcti3 -u root'.split(), env=dict(os.environ, MYSQL_PWD=MARIADB_ROOT_PASSWORD), input=SQL_QUERY, text=True, stdout=sys.stderr, check=True)
