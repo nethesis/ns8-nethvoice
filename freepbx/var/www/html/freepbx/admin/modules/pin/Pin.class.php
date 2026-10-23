@@ -66,16 +66,18 @@ class Pin implements \BMO
              * and takes EnablePIN and route id values to update 
              * pin_protected_routes table
              ******************************/
-            $sql = 'DELETE FROM `pin_protected_routes` WHERE `route_id` = ?; INSERT INTO `pin_protected_routes` (`route_id`,`enabled`) VALUES (?,?)';
+            $sql = 'DELETE FROM `pin_protected_routes` WHERE `route_id` = ?';
+            $sth = $dbh->prepare($sql);
+            $sth->execute(array($_REQUEST['id']));
+            $sql = 'INSERT INTO `pin_protected_routes` (`route_id`,`enabled`) VALUES (?,?)';
             $sth = $dbh->prepare($sql);
             $sth->execute(array(
-                $_REQUEST['id'],
                 $_REQUEST['id'],
                 $_REQUEST['EnablePIN'],
             ));
             return true;
         }
-        $action = $_REQUEST['action']?$_REQUEST['action']:'';
+        $action = $_REQUEST['action'] ?? '';
         //Handle form submissions
         switch ($action) {
         case 'add':
@@ -154,9 +156,9 @@ class Pin implements \BMO
     // This is also documented at http://wiki.freepbx.org/display/FOP/BMO+Ajax+Calls
     public function ajaxHandler()
     {
-        switch ($_REQUEST['command']) {
+        switch ($_REQUEST['command'] ?? '') {
         case 'getJSON':
-            switch ($_REQUEST['jdata']) {
+            switch ($_REQUEST['jdata'] ?? '') {
             case 'grid':
                 $ret = array();
                 foreach ( $this->pin_get() as $pin) {
@@ -180,11 +182,11 @@ class Pin implements \BMO
     // http://wiki.freepbx.org/display/FOP/HTML+Output+from+BMO
     public function showPage()
     {
-        switch ($_REQUEST['view']) {
+        switch ($_REQUEST['view'] ?? '') {
         case 'form':
-            if(isset($_REQUEST['id']) && !empty($_REQUEST['id'])){
+            if(isset($_REQUEST['extension']) && !empty($_REQUEST['extension'])){
                 $subhead = _('Edit Pin');
-                $content = load_view(__DIR__.'/views/form.php', array('config' => $this->pin_get($id)));
+                $content = load_view(__DIR__.'/views/form.php', array('config' => $this->pin_get($_REQUEST['extension'])));
             }else{
                 $subhead = _('Add Pin');
                 $content = load_view(__DIR__.'/views/form.php');
@@ -213,7 +215,10 @@ class Pin implements \BMO
             $sql = 'SELECT * FROM pin WHERE extension = ?';
             $sth = $dbh->prepare($sql);
             $sth->execute(array($extension));
-            $res = $sth->fetchAll(\PDO::FETCH_ASSOC)[0];
+            $res = $sth->fetch(\PDO::FETCH_ASSOC);
+            if ($res === false) {
+                $res = array();
+            }
         }
         return $res;
     }
@@ -240,4 +245,3 @@ class Pin implements \BMO
     }
     public static function myConfigPageInits() { return array("routing"); }
 }
-

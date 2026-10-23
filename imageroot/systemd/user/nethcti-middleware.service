@@ -4,8 +4,10 @@
 #
 [Unit]
 Description=NethCTI middleware daemon
-After=nethcti-server.service mariadb.service
-Requires=mariadb.service
+After=nethcti-server.service mariadb.service satellite-pgsql.service satellite-mqtt.service
+Requires=mariadb.service satellite-pgsql.service
+# Reconnect the middleware when integration changes restart PostgreSQL.
+PartOf=satellite-pgsql.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -29,6 +31,7 @@ ExecStart=/usr/bin/podman run \
     --volume=nethcti:/etc/nethcti:z \
     --env-file=%E/state/passwords.env \
     --env=NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS \
+    --env=GIN_MODE=${NETHVOICE_MIDDLEWARE_GIN_MODE} \
     --env=NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT \
     --env=NETHVOICE_MIDDLEWARE_V1_WS_ENDPOINT \
     --env=NETHVOICE_MIDDLEWARE_V1_PROTOCOL \
@@ -38,6 +41,11 @@ ExecStart=/usr/bin/podman run \
     --env=SATELLITE_PGSQL_PORT \
     --env=NETHVOICE_MIDDLEWARE_MARIADB_PASSWORD=${MARIADB_ROOT_PASSWORD} \
     --env=NETHVOICE_MIDDLEWARE_MARIADB_PORT=${NETHVOICE_MARIADB_PORT} \
+    --env=NETHVOICE_MIDDLEWARE_SSO_TRUSTED_SECRET=${NETHCTI_SSO_TRUSTED_SECRET} \
+    --env=NETHVOICE_MIDDLEWARE_SSO_TOKEN_KEY=${NETHCTI_SSO_TOKEN_KEY} \
+    --env=NETHVOICE_MIDDLEWARE_SSO_USER_HEADER=${NETHCTI_SSO_USER_HEADER} \
+    --env=NETHVOICE_MIDDLEWARE_SSO_PROXY_SECRET=${NETHCTI_SSO_PROXY_SECRET} \
+    --env=NETHVOICE_MIDDLEWARE_JWT_TIMEOUT_HOURS=${NETHCTI_SSO_JWT_TIMEOUT_HOURS} \
     --network=host \
     --tz=${TIMEZONE} \
     ${NETHVOICE_CTI_MIDDLEWARE_IMAGE}

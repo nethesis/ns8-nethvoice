@@ -12,6 +12,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%E/state/environment
 WorkingDirectory=%E/state
 Restart=always
+SuccessExitStatus=143
 ExecStartPre=/bin/rm -f %t/phonebook.pid %t/phonebook.ctr-id
 ExecStartPre=-runagent install-certificate phonebook
 

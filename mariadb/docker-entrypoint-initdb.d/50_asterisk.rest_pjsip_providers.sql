@@ -39,4 +39,5 @@ INSERT INTO `rest_pjsip_providers` (`id`,`provider`,`description`) VALUES
 (34,"multiwire-multinumero","MultiWire Multinumero"),
 (35,"vianova","Vianova (una sola linea x nodo)"),
 (36,"newassistent","New Assistent"),
-(37,"wic-gnr","WiC VoIP GNR");
+(37,"wic-gnr","WiC VoIP GNR"),
+(38,"eis","eis (sip.teameis.it)");

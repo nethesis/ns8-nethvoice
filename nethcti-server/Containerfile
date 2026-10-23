@@ -2,7 +2,7 @@
 FROM docker.io/library/alpine:3.17.10 as repofetcher
 WORKDIR /app
 RUN apk add --no-cache git
-ARG NETHCTI_SERVER_COMMIT=ns8
+ARG NETHCTI_SERVER_COMMIT=aa943745f7a9f6e7a795475673d9fab4d38cf66e
 RUN git clone https://github.com/nethesis/nethcti-server.git . \
     && git checkout "${NETHCTI_SERVER_COMMIT}"
 
@@ -20,6 +20,11 @@ COPY --from=repofetcher /app/root/usr/lib/node/nethcti-server/package.json .
 COPY --from=repofetcher /app/root/usr/lib/node/nethcti-server/package-lock.json .
 RUN --mount=type=cache,id=nethvoice-cti-server-npm,target=/root/.npm \
     npm ci --cache /root/.npm
+# asterisk-ami@0.2.0-beta1 is published on npm with a parser that only
+# accepts single-digit AMI major versions. Asterisk 22 reports AMI 11.0.0.
+RUN sed -i 's|^var versionRegexp = .*|var versionRegexp = /^Asterisk Call Manager\\/(\\d+\\.\\d)/;|' \
+    node_modules/asterisk-ami/lib/parse.js && \
+    grep -Fqx 'var versionRegexp = /^Asterisk Call Manager\/(\d+\.\d)/;' node_modules/asterisk-ami/lib/parse.js
 
 FROM base as production
 # install production packages, add astersik as user

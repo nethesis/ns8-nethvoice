@@ -30,7 +30,8 @@ $sth->execute([]);
 
 $sth = $nethctidb->prepare("SELECT owner_id, homeemail, workemail, homephone, workphone, cellphone, fax, title, company, notes, name,
                                 homestreet, homepob, homecity, homeprovince, homepostalcode, homecountry, workstreet, workpob, workcity,
-				workprovince, workpostalcode, workcountry, url FROM cti_phonebook WHERE type='public'");
+				workprovince, workpostalcode, workcountry, url, firstname, lastname, job, facebook, instagram, linkedin,
+				workphone2, cellphone2, otherphone, otheremail FROM cti_phonebook WHERE type='public'");
 $sth->execute([]);
 
 while($row = $sth->fetch(\PDO::FETCH_ASSOC)) {
@@ -63,10 +64,20 @@ while($row = $sth->fetch(\PDO::FETCH_ASSOC)) {
 				workpostalcode,
 				workcountry,
 				url,
+				firstname,
+				lastname,
+				job,
+				facebook,
+				instagram,
+				linkedin,
+				workphone2,
+				cellphone2,
+				otherphone,
+				otheremail,
 				sid_imported
 			)
 			VALUES
-				(?, "nethcti", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "nethcti")';
+				(?, "nethcti", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "nethcti")';
 	$sth2 = $phonebookdb->prepare($query);
 	$sth2->execute(array_values($row));
 }

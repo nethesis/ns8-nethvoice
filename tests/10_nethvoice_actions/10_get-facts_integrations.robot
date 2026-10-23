@@ -51,6 +51,13 @@ Check if the facts are returned as expected
 
     Dictionary Should Contain Key    ${response}    nethvoice_customer_cards_count
     Dictionary Should Contain Key    ${response}    nethvoice_nethlink_active_count
+    Dictionary Should Contain Key    ${response}    nethvoice_nethlink_by_version
+    Dictionary Should Contain Key    ${response}    nethvoice_nethlink_by_os_type
+    Dictionary Should Contain Key    ${response}    nethvoice_nethlink_by_os_release
+    Dictionary Should Contain Key    ${response}    nethvoice_nethlink_by_arch
+    ${nethlink_by_version} =    Set Variable    ${response['nethvoice_nethlink_by_version']}
+    ${nethlink_by_version_sum} =    Evaluate    sum($nethlink_by_version.values()) if $nethlink_by_version else 0
+    Should Be Equal As Integers    ${nethlink_by_version_sum}    ${response['nethvoice_nethlink_active_count']}
     Dictionary Should Contain Key    ${response}    nethvoice_announcements_count
     Dictionary Should Contain Key    ${response}    nethvoice_offhour_count
 

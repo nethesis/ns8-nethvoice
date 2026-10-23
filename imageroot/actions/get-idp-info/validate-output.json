@@ -1,0 +1,20 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "get-idp-info output",
+    "$id": "http://nethserver.org/json-schema/task/output/nethvoice/get-idp-info",
+    "description": "SAML2 IdP entityID and branding (MDUI)",
+    "examples": [
+        {
+            "entity_id": "https://idp.example.com/idp/shibboleth",
+            "display_name": "Example University",
+            "logo_url": "https://idp.example.com/logo.png"
+        }
+    ],
+    "type": "object",
+    "required": ["entity_id"],
+    "properties": {
+        "entity_id": { "type": "string" },
+        "display_name": { "type": "string" },
+        "logo_url": { "type": "string" }
+    }
+}

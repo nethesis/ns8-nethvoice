@@ -41,11 +41,11 @@ jobs:
       IMAGETAG: ${{ inputs.imagetag }}
       BUILD_IMAGES: ${{ inputs.build-images }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           lfs: true
 
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ui/node_modules
           key: "yarn-${{ hashFiles('ui/yarn.lock') }}"
@@ -75,6 +75,16 @@ jobs:
             ( umask 077; base64 -d <<<"${NETRC_B64}" > ~/.netrc )
           fi
           bash build-images.sh
+
+      - name: Check FreePBX runtime
+        run: |
+          if [[ " ${{ steps.build.outputs.images }} " == *"/nethvoice-freepbx "* ]]; then
+            for test in runtime_compatibility_test.sh prometheus_test.sh; do
+              podman run --rm --network=none \
+                --volume "${GITHUB_WORKSPACE}/freepbx/tests:/tests:ro" \
+                --entrypoint=bash "${REPOBASE}/nethvoice-freepbx:${IMAGETAG}" "/tests/${test}"
+            done
+          fi
 
       - name: Publish module images
         run: |

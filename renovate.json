@@ -2,5 +2,25 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "local>NethServer/.github:ns8-automerge"
+  ],
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/examples/**",
+    "**/__tests__/**",
+    "**/test/**",
+    "**/tests/**",
+    "**/__fixtures__/**",
+    "freepbx/wizard-ui/**"
+  ],
+  "packageRules": [
+    {
+      "description": "nethcti-server is pinned to Node 14: major bumps break the build",
+      "matchFileNames": ["nethcti-server/**"],
+      "matchDepNames": ["docker.io/library/node"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    }
   ]
 }

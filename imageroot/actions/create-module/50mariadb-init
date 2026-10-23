@@ -18,10 +18,6 @@ podman run \
     --env=CTIUSER \
     --env=NETHCTI_DB_USER \
     --env=PHONEBOOK* \
-    --env=ASTERISK_RTPSTART \
-    --env=ASTERISK_RTPEND \
-    --env=ASTERISK_SIP_PORT \
-    --env=ASTERISK_SIPS_PORT \
-    --env=ASTERISK_IAX_PORT \
+    --env=ASTERISK_* \
     --env=ASTMANAGERPORT \
     ${NETHVOICE_MARIADB_IMAGE}

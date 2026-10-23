@@ -23,6 +23,7 @@ use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
 include_once('lib/libExtensions.php');
+include_once('lib/libCTI.php');
 
 $app->get('/nethlink/{mainextension}', function (Request $request, Response $response, $args) {
     $route = $request->getAttribute('route');
@@ -30,9 +31,32 @@ $app->get('/nethlink/{mainextension}', function (Request $request, Response $res
 
     $extension = getNethLinkExtension($mainextension);
     if (!empty($extension)) {
-        return $response->withJson($extension, 200);
+        return jsonResponse($response, $extension, 200);
     } else {
-        return $response->withJson(null,200);
+        return jsonResponse($response, null,200);
+    }
+});
+
+$app->get('/nethlink/info/{username}', function (Request $request, Response $response, $args) {
+    try {
+        $route = $request->getAttribute('route');
+        $username = $route->getArgument('username');
+
+        $dbh = NethCTI::Database();
+        $sql = 'SELECT `user`, `extension`, `timestamp`, `nethlink_version`, `os_type`, `os_release`, `arch`'.
+               ' FROM `user_nethlink` WHERE `user` = ?';
+        $stmt = $dbh->prepare($sql);
+        $stmt->execute(array($username));
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!empty($row)) {
+            return jsonResponse($response, $row, 200);
+        } else {
+            return jsonResponse($response, null, 200);
+        }
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return $response->withStatus(500);
     }
 });
 
@@ -45,15 +69,15 @@ $app->post('/nethlink', function (Request $request, Response $response, $args) {
         $extension = createExtension($extensionnumber,false);
 
         if ($extension === false ) {
-            $response->withJson(array("status"=>"Error creating extension"), 500);
+            return jsonResponse($response, array("status"=>"Error creating extension"), 500);
         }
 
         if (useExtensionAsNethLink($extension) === false) {
-            $response->withJson(array("status"=>"Error associating nethlink extension"), 500);
+            return jsonResponse($response, array("status"=>"Error associating nethlink extension"), 500);
         }
 
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-        return $response->withJson(array('extension'=>$extension,'mobile_extension'=>$extensionm), 200);
+        return jsonResponse($response, array('extension'=>$extension,'mobile_extension'=>null), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);

@@ -2,6 +2,68 @@
 
 FreePBX container for NethServer 8
 
+## Vendored FreePBX modules
+
+Boss Secretary and QueueMetrics are stored in `var/www/html/freepbx/admin/modules/`
+and copied into the image at build time. Their sources, translations, and upstream
+license declarations are preserved from the following release archives:
+
+| Module | Source archive | Archive SHA-256 |
+| --- | --- | --- |
+| Boss Secretary | [nethesis/freepbx-bosssecretary 1.0.3](https://github.com/nethesis/freepbx-bosssecretary/archive/refs/tags/1.0.3.tar.gz) | `d59e31be47bfd36834e5003f976eb4ee9ab6f4e00394c279992d73bac32a7cde` |
+| QueueMetrics | [nethesis/queuemetrics 2.11.0.4](https://github.com/nethesis/queuemetrics/archive/refs/tags/2.11.0.4.tar.gz) | `c2e353cac1d695d0ff9ec5e788db472431d8e1491f2eeceee3fb99aa317833fa` |
+
+QueueMetrics retains the upstream `module.xml` version `2.11.0.1`, even though
+its source archive is tagged `2.11.0.4`.
+
+## PM2 dependencies
+
+The image installs the PM2 module's Node dependencies during construction using
+`pm2/package-lock.json`. The checksum-verified module's `node/package.json`
+remains authoritative; do not copy or maintain a separate manifest here.
+`npm ci` fails on a manifest/lockfile mismatch, unavailable packages or integrity
+errors and leaves the lockfile unchanged (see the
+[npm ci documentation](https://docs.npmjs.com/cli/v9/commands/npm-ci/)).
+The image retains the lockfile and `node_modules`, so replacement containers
+have PM2 without downloading dependencies during initialization.
+
+To regenerate the lockfile after changing the pinned module or intentionally
+refreshing its dependency graph, run from the repository root:
+
+```bash
+# Use an image built from this Containerfile, with its existing Node/npm tools.
+FREEPBX_IMAGE=localhost/nethvoice-freepbx:fpbx17-review
+pm2_work=$(mktemp -d)
+pm2_url=$(sed -n 's/.*install_module pm2 \([^ ]*\).*/\1/p' freepbx/Containerfile)
+pm2_archive="pm2-${pm2_url##*/}"
+REMOTE_ARTIFACTS_MANIFEST="$PWD/freepbx/remote-artifacts.sha256" \
+  sh freepbx/fetch-remote-artifact "$pm2_archive" "$pm2_url"
+tar xzf "/tmp/$pm2_archive" --strip-components=1 -C "$pm2_work"
+# Start with the upstream manifest and no previous dependency tree or lockfile.
+rm -rf "$pm2_work/node/node_modules" "$pm2_work/node/package-lock.json"
+podman run --rm --entrypoint sh \
+  -v "$pm2_work/node:/work:Z" -w /work "$FREEPBX_IMAGE" -ec '
+    node --version
+    npm --version
+    npm_cache=$(mktemp -d)
+    npm install --package-lock-only --omit=dev --no-audit --no-fund --cache "$npm_cache"
+    rm -rf "$npm_cache"
+  '
+cp "$pm2_work/node/package-lock.json" freepbx/pm2/package-lock.json
+rm -rf "$pm2_work" "/tmp/$pm2_archive"
+git diff -- freepbx/pm2/package-lock.json
+```
+
+Review the complete graph, resolved URLs and integrity hashes before committing.
+The current lockfile was generated with Node 20.19.2 and npm 9.2.0; use the
+image's toolchain again when it changes. Rebuild the FreePBX image from a clean
+dependency layer and confirm the lockfile remains unchanged. In a disposable
+build context, change the upstream manifest and confirm `npm ci` fails. Then
+test PM2 loading, daemon startup and shutdown as `asterisk` with networking
+disabled. Validate fresh Core initialization and container replacement with the
+initialized database and PBX volumes retained and npm-registry access blocked,
+followed by the PHP/startup regressions and QEMU installation/update jobs.
+
 ## Environment variables
 
 - `APACHE_RUN_USER` user Apache is run with (Asterisk)
@@ -49,6 +111,7 @@ Note: when disabling, remove old imported extensions from phonebook table `mysql
 - `LOGIN_BACKGROUND_URL` Public URL for the wizard login background image
 - `SUBSCRIPTION_SYSTEMID` my.nethesis.it server SystemID
 - `SUBSCRIPTION_SECRET` my.nethesis.it server secret
+- `FREEPBX_LOG_LEVEL` supervisord verbosity: `warn` (default), `info` or `debug`; cron and the PAM session lines of each cron run are always quiet
 
 ## Wizard runtime branding
 
@@ -63,6 +126,24 @@ podman exec freepbx sh -lc "sed -n '1,20p' /var/www/html/freepbx/wizard/scripts/
 ```
 
 The wizard is publicly reachable both from `/freepbx/wizard/#!/` and from the shorter `#!/` path because Apache forwards non-`/freepbx` requests to the wizard application.
+
+## Phone RPS reset helper
+
+`/var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php` renews phone provisioning tokens in Tancredi and updates the corresponding RPS provisioning URLs in Falconieri. It accepts one argument:
+
+- `MAC_ADDRESS` resets a single phone. Colons in the address are converted to hyphens and letters are converted to uppercase.
+- `--all` resets every physical phone with a MAC address in the `rest_devices_phones` table.
+- `--host-changed` checks the `NETHVOICE_HOST` marker in the `asterisk.admin` table. If the stored hostname differs from the current environment value, it behaves like `--all`. If the marker is missing or unchanged, no phones are reset. The current hostname is stored before a reset attempt, so the operation is performed at most once for each hostname change.
+
+The container automatically runs the helper with `--host-changed` after FreePBX modules have been initialized and `fwconsole reload` has completed. Individual phone failures are logged and do not stop the helper from processing the remaining phones.
+
+Examples from inside the FreePBX container:
+
+```bash
+php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php 00:11:22:33:44:55
+php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --all
+php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed
+```
 
 ## User base Environments
 - `NETHVOICE_LDAP_PASS` Ldap password of user base
@@ -162,10 +243,16 @@ To enable call transcription, you need to set the following settings on nethserv
 The `satellite` FreePBX module provides TTS audio generation through
 Satellite, audio preview, and saving as FreePBX recordings.
 
-### Environment variables used by TTS
+### Environment variables used by Satellite HTTP clients
 
 - `SATELLITE_HTTP_PORT` HTTP port of local Satellite API (default: `8080`)
-- `SATELLITE_API_TOKEN` bearer token used for Satellite API authentication (optional)
+- `SATELLITE_API_TOKEN` required bearer token for Satellite transcription, TTS,
+  and model listing requests. The module generates it in `passwords.env` at
+  creation and repairs an absent or blank value during updates.
+
+Satellite binds its HTTP listener to `127.0.0.1`; Satellite and FreePBX share
+the host network so these local URLs remain reachable. No Satellite HTTP route
+is exposed through the public reverse proxy.
 
 The TTS request is sent to:
 
@@ -314,9 +401,9 @@ without altering them.
 
 ### Run install and update tests in GitHub Actions
 
-The FIAS E2E test is the default for this workflow. It runs automatically
-after a successful `Publish images` workflow, or it can be dispatched manually
-for a branch after its images have been published:
+The FIAS E2E test always runs, alongside the standard module test suite. It
+runs automatically after a successful `Publish images` workflow, or it can be
+dispatched manually for a branch after its images have been published:
 
 ```sh
 gh workflow run test-module.yml \

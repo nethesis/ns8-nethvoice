@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Repoint the SIP proxy-bypass port-forward to the new SIP UDP port.
+#
+# Some installations bypass the SIP proxy with a documented firewalld
+# forward-port rule that forwards :5060/udp to the instance SIP port. In the
+# old model the SIP UDP listener lived on ASTERISK_SIP_PORT (same number as the
+# SIP TCP port), so the forward pointed there. This PR moves the SIP UDP
+# listener to a dedicated ASTERISK_SIP_UDP_PORT: an existing forward would then
+# deliver to a port where Asterisk no longer listens on UDP, breaking the trunk.
+#
+# We look for any forward-port rule whose UDP destination (to-port) is the old
+# SIP port and repoint it to the new one, preserving every other field (family,
+# source, incoming port). Pending previous listener ports are retained until
+# both this step and the proxy trunk migration succeed.
+#
+# Best-effort: firewall problems must never abort the update. On a core without
+# agent.list_rich_rules() (pre NethServer/ns8-core#1299) the call raises and we
+# log a hint instead of rewriting; the admin can fix the forward by hand.
+
+import json
+import sys
+
+import agent
+
+# Read the env file, not os.environ: ASTERISK_SIP_UDP_PORT is created by the
+# earlier 20allocate_ports step in this same run, and os.environ is frozen at
+# the start of the update — it would not contain the newly allocated value.
+env = agent.read_envfile("environment")
+agent.unset_env("SIP_PORTFORWARD_MIGRATED")
+
+new_port = env.get("ASTERISK_SIP_UDP_PORT")
+# Old SIP UDP listener ports: ASTERISK_SIP_PORT before the TCP/UDP split, and
+# the previous SIP UDP port when this update moved it (set by 20allocate_ports).
+old_ports = {env.get(var) for var in ("ASTERISK_SIP_PORT", "PREVIOUS_SIP_UDP_PORT")}
+old_ports.update(json.loads(env.get("PREVIOUS_SIP_UDP_PORTS", "[]")))
+old_ports -= {None, "", new_port}
+
+# Nothing to do when the SIP UDP port did not move (already migrated, or the
+# env is not available for some reason).
+if not new_port or not old_ports:
+    if new_port:
+        agent.set_env("SIP_PORTFORWARD_MIGRATED", new_port)
+    sys.exit(0)
+
+try:
+    # raise_on_error=True: an empty list must mean "no rules", not "lookup
+    # failed" — otherwise we could silently skip a stale forward.
+    rich_rules = agent.list_rich_rules(raise_on_error=True)
+except Exception as ex:
+    print(
+        agent.SD_WARNING
+        + f"Could not read the node firewall rich rules ({ex}). If this "
+        f"instance bypasses the SIP proxy, repoint the forward-port "
+        f"destination to {new_port}/udp manually.",
+        file=sys.stderr,
+    )
+    sys.exit(0)
+
+new_token = f'to-port="{new_port}"'
+success = True
+known_rules = set(rich_rules)
+
+for rule in rich_rules:
+    if "forward-port" not in rule or 'protocol="udp"' not in rule:
+        continue
+    old_port = next((port for port in old_ports if f'to-port="{port}"' in rule), None)
+    if old_port is None:
+        continue
+
+    new_rule = rule.replace(f'to-port="{old_port}"', new_token)
+    print(
+        agent.SD_INFO
+        + f"Repointing SIP proxy-bypass forward-port {old_port} -> {new_port}/udp",
+        file=sys.stderr,
+    )
+    # Install the replacement first: a failed add must leave the original rule
+    # available for the next update to find and retry.
+    if new_rule not in known_rules and not agent.add_rich_rules([new_rule]):
+        print(
+            agent.SD_WARNING + f"Failed to add new forward-port rule: {new_rule}",
+            file=sys.stderr,
+        )
+        success = False
+        continue
+    known_rules.add(new_rule)
+    if not agent.remove_rich_rules([rule]):
+        print(
+            agent.SD_WARNING + f"Failed to remove old forward-port rule: {rule}",
+            file=sys.stderr,
+        )
+        success = False
+
+if success:
+    agent.set_env("SIP_PORTFORWARD_MIGRATED", new_port)

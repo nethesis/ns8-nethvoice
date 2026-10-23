@@ -28,16 +28,37 @@
  *
  */
 
-// Check that a mac address or "--all" is provided
+// Check that a mac address or a supported option is provided
 if ($argc != 2) {
-    echo "usage: $argv[0] [MAC_ADDRESS | --all]\n";
+    echo "usage: $argv[0] [MAC_ADDRESS | --all | --host-changed]\n";
     exit(127);
+}
+
+$resetOnHostChange = $argv[1] == "--host-changed";
+if ($resetOnHostChange) {
+    require_once '/etc/freepbx_db.conf';
+
+    $sql = "SELECT `value` FROM `asterisk`.`admin` WHERE `variable` = 'NETHVOICE_HOST'";
+    $sth = $db->prepare($sql);
+    $sth->execute();
+    $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
+    $hostChanged = count($result) > 0 && $result[0]['value'] != $_ENV['NETHVOICE_HOST'];
+
+    // Store the current hostname before the reset attempt, preserving one-shot behavior.
+    $sth = $db->prepare("DELETE IGNORE FROM `asterisk`.`admin` WHERE `variable` = 'NETHVOICE_HOST'");
+    $sth->execute();
+    $sth = $db->prepare("INSERT IGNORE INTO `asterisk`.`admin` (`variable`, `value`) VALUES ('NETHVOICE_HOST',?)");
+    $sth->execute([$_ENV['NETHVOICE_HOST']]);
+
+    if (!$hostChanged) {
+        exit(0);
+    }
 }
 
 require_once '/etc/freepbx.conf';
 require_once '/var/www/html/freepbx/rest/lib/libExtensions.php';
 
-if ($argv[1] == "--all") {
+if ($argv[1] == "--all" || $resetOnHostChange) {
     // Get all phones from rest_devices_phones table
     $sql = "SELECT mac FROM rest_devices_phones WHERE mac IS NOT NULL AND type = 'physical'";
     $sth = $db->prepare($sql);
@@ -51,11 +72,21 @@ if ($argv[1] == "--all") {
 $sql = "SELECT `password_sha1` FROM `ampusers` WHERE `username` = 'admin'";
 $sth = $db->prepare($sql);
 $sth->execute();
-$fpbxPasswordHash = $sth->fetchAll(\PDO::FETCH_ASSOC)[0]['password_sha1'];
+$fpbxPasswordHash = $sth->fetchColumn();
+if ($fpbxPasswordHash === false || empty($_ENV['NETHVOICESECRETKEY']) || empty($_ENV['NETHVOICE_HOST'])) {
+    error_log('Missing FreePBX password hash or NethVoice environment');
+    exit(1);
+}
 $secretKey = sha1("admin{$fpbxPasswordHash}{$_ENV['NETHVOICESECRETKEY']}");
 
 foreach ($mac_addresses as $mac_address) {
-    $mac_address = strtr(strtoupper($mac_address), ':', '-'); // MAC format sanitization
+    $originalMac = (string) $mac_address;
+    $compactMac = str_replace(array(':', '-'), '', strtoupper(trim($originalMac)));
+    if (!preg_match('/^[0-9A-F]{12}$/', $compactMac)) {
+        error_log("Invalid MAC address: $originalMac");
+        continue;
+    }
+    $mac_address = implode('-', str_split($compactMac, 2));
     
     // Call Tancredi API to create a new tok1
     $queryUrl = "http://{$_ENV['NETHVOICE_HOST']}/tancredi/api/v1/phones/{$mac_address}/tok1";
@@ -123,4 +154,3 @@ foreach ($mac_addresses as $mac_address) {
     }
     echo "Configured new provisioning url for $mac_address\n";
 }
-

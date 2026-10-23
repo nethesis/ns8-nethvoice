@@ -1,0 +1,40 @@
+name: Provisioning checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lldp:
+    name: LLDP UI, migration, and templates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Run LLDP UI tests
+        run: node tests/unit/test_lldp_ui.cjs
+
+      - name: Prepare pinned Tancredi sources
+        run: |
+          version=$(sed -n 's/^ARG TANCREDI_VERSION=//p' tancredi/Containerfile)
+          sources=$(mktemp -d)
+          curl -fL --retry 3 "https://github.com/nethesis/tancredi/archive/refs/tags/${version}.tar.gz" -o "${sources}/tancredi-${version}.tar.gz"
+          (cd "$sources" && sha256sum -c "${GITHUB_WORKSPACE}/tancredi/remote-artifacts.sha256")
+          tar xzf "${sources}/tancredi-${version}.tar.gz" -C "$sources"
+          echo "TANCREDI_ROOT=${sources}/tancredi-${version}" >> "$GITHUB_ENV"
+          composer install --working-dir="${sources}/tancredi-${version}" --no-dev --no-interaction --no-progress --prefer-dist
+
+      - name: Run LLDP migration and rendering tests
+        run: |
+          php tests/unit/test_tancredi_lldp.php
+          tancredi_conf="${TANCREDI_ROOT}/tancredi.conf.sample" php "${TANCREDI_ROOT}/test/lldp-rendering.php"
