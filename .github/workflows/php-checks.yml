@@ -17,6 +17,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Python test runner
+        run: python3 -m pip install 'pytest>=7.4.0'
+
       - name: Install compatibility tools
         run: composer install --working-dir=tools/php-compatibility --no-interaction --no-progress --prefer-dist
 
@@ -27,7 +34,7 @@ jobs:
         run: python3 tools/prepare-freepbx-test-sources.py .test-sources
 
       - name: Run Python unit tests
-        run: python3 -m unittest discover -s tests/unit -v
+        run: python3 -m pytest -q tests/unit
 
       - name: Run PHP checks
         run: |

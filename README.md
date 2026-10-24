@@ -503,3 +503,10 @@ This project incorporates a number of royalty-free, creative commons licensed mu
 * [manolo_camp-morning_coffee] - Manolo Camp, beatbastard@gmx.net
 
 * [reno_project-system] - Reno Project, renoproject@hotmail.com
+
+## Voice agents alpha
+
+Voice agents support fresh v8 installations with matching NethVoice/Satellite
+images. Configuration is PHP/MariaDB-owned and activation happens on publication.
+See [architecture, installation and operations](docs/voice-agents.md) and
+[validation and acceptance gaps](docs/voice-agents-validation.md).

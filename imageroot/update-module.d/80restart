@@ -42,7 +42,7 @@ if [[ " ${active[*]} " == *' freepbx '* ]]; then
     systemctl --user start freepbx
 fi
 for service in "${active[@]}"; do
-    [[ $service == freepbx ]] || systemctl --user start "$service"
+    [[ $service == freepbx || $service == satellite ]] || systemctl --user start "$service"
 done
 touch "$backup/succeeded"
 echo "Upgrade recovery snapshot retained in $backup" >&2
@@ -50,3 +50,7 @@ echo "Upgrade recovery snapshot retained in $backup" >&2
 if compgen -G "./restore_background/*.sql" >/dev/null; then
     systemctl --user start --no-block nethvoice-restore-background.service
 fi
+
+# Retire the old agent container only after the call-safe stop above.
+# A fresh action context also picks up ports allocated earlier in the update.
+runagent manage-satellite

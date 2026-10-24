@@ -51,11 +51,55 @@ $connectionArray = array_filter(
     }
 );
 
+// Validate all agent references before any route or PBX write.
+require_once dirname(__DIR__, 4) . '/rest/lib/agents/VisualPlan.php';
+require_once dirname(__DIR__, 4) . '/rest/lib/agents/Service.php';
+try {
+    $hasAgent=false;
+    foreach ($widgetArray as $widget) $hasAgent=$hasAgent || str_starts_with($widget['id']??'', 'satellite-agent-destination%');
+    foreach ($connectionArray as $connection) foreach (['source','target'] as $end) $hasAgent=$hasAgent || str_starts_with($connection[$end]['node']??'', 'satellite-agent-destination%');
+    if ($hasAgent) {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['visualplan_agent_csrf']) ||
+            !hash_equals($_SESSION['visualplan_agent_csrf'], $_SERVER['HTTP_X_VISUALPLAN_AGENT_CSRF'] ?? '')) throw new RuntimeException('forbidden', 403);
+        foreach ($widgetArray as $widget) {
+            if (!str_starts_with($widget['id']??'','satellite-agent-destination%')) continue;
+            $agent=(new \NethVoice\Agents\Service(FreePBX::Database()))->get($widget['userData']['agent_id']??'');
+            if (!is_int($widget['userData']['revision']??null) || $widget['userData']['revision']!==$agent['revision']) throw new RuntimeException('revision_conflict',409);
+        }
+        \NethVoice\Agents\VisualPlan::validateGraph($widgetArray,$connectionArray, function($id) {
+            foreach (FreePBX::Satellite()->agentDestinations() as $agent) if ($agent['agent_id'] === $id) return $agent;
+            throw new RuntimeException('agent_not_found', 404);
+        });
+    }
+} catch (Throwable $error) {
+    http_response_code(in_array($error->getCode(), [403,404,409,422], true) ? $error->getCode() : 422);
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'agent_reference_unavailable']); exit;
+}
+
 $currentCreated = array();
 $currentVisited = array();
 $returnedIdArray = array();
 
-nethvplan_extraction($widgetArray, $connectionArray);
+try {
+    if ($hasAgent) {
+        $revisions=[];
+        foreach ($widgetArray as $widget) {
+            if (str_starts_with($widget['id']??'','satellite-agent-destination%')) {
+                $revisions[$widget['userData']['agent_id']]=$widget['userData']['revision'];
+            }
+        }
+        (new \NethVoice\Agents\Service(FreePBX::Database()))->saveVisualPlan($revisions,
+            fn()=>nethvplan_extraction($widgetArray,$connectionArray));
+    } else {
+        nethvplan_extraction($widgetArray,$connectionArray);
+    }
+} catch (Throwable $error) {
+    http_response_code(in_array($error->getCode(),[403,404,409,422],true)?$error->getCode():503);
+    header('Content-Type: application/json');
+    echo json_encode(['error'=>'agent_fallback_unavailable']);
+    exit;
+}
 
 function nethvplan_extraction($dataArray, $connectionArray)
 {
@@ -66,6 +110,21 @@ function nethvplan_extraction($dataArray, $connectionArray)
     
         // create object
         nethvplan_switchCreate($wType, $value, $connectionArray);
+    }
+    $changes=[];
+    foreach ($dataArray as $widget) {
+        if (!str_starts_with($widget['id']??'','satellite-agent-destination%')) continue;
+        $id=$widget['userData']['agent_id'];
+        $targets=nethvplan_getDestination($widget,$connectionArray);
+        $target=$targets['output_agent_fallback%'.$id]??'app-blackhole,hangup,1';
+        if ($target==='app-blackhole,hangup,1') $target='hangup';
+        elseif (preg_match('/^from-did-direct,([0-9]{1,20}),1$/D',$target,$m)) $target='extension:'.$m[1];
+        else $target='native:'.$target;
+        $changes[$id]=['expected_revision'=>$widget['userData']['revision'],'destination_id'=>$target];
+    }
+    if ($changes) {
+        require_once dirname(__DIR__,4).'/rest/lib/agents/Service.php';
+        (new \NethVoice\Agents\Service(FreePBX::Database()))->setFallbacks($changes,$_SESSION['AMP_user']->username??'visualplan-admin');
     }
     system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
 }
@@ -143,6 +202,10 @@ function nethvplan_switchCreate($wType, $value, $connectionArray)
         break;
 
         // from-did-direct = extension
+        case 'satellite-agent-destination':
+            return explode('%', $value['id'])[1];
+        break;
+
         case "from-did-direct":
             $parts = explode("(", $value['entities'][0]['text']);
             $name = trim($parts[0]);
@@ -925,6 +988,9 @@ function nethvplan_getDestination($values, $connectionArray)
             }
 
             switch ($parts[0]) {
+                case 'satellite-agent-destination':
+                    $destAsterisk[$value['source']['port']] = satellite_agent_destination_key($parts[1]);
+                break;
                 case "app-blackhole":
                     $destAsterisk[$value['source']['port']] = "app-blackhole,hangup,1";
                 break;

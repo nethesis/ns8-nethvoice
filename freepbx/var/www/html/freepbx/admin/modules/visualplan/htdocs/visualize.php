@@ -42,6 +42,8 @@ if ($handle = opendir(__DIR__. '/../..')) {
     closedir($handle);
 }
 
+require_once dirname(__DIR__, 4) . '/rest/lib/agents/VisualPlan.php';
+
 // read i18n data
 $lang = $_COOKIE['lang'] ?? '';
 if (empty($lang)) {
@@ -271,6 +273,14 @@ $connectionTemplate = array(
     )
  );
 
+// Saved agents, including built-ins, are projected from the PHP library.
+$data['satellite-agent-destination'] = [];
+$data['voice-agents'] = [];
+foreach (FreePBX::Satellite()->agentDestinations() as $agent) {
+    $data['satellite-agent-destination'][$agent['agent_id']] = $agent;
+    $data['voice-agents'][$agent['agent_id']] = \NethVoice\Agents\VisualPlan::widget($agent, $langArray);
+}
+
 // START HANDLING REQUESTS
 foreach ($_GET as $key => $value) {
     switch ($key) {
@@ -434,6 +444,7 @@ function nethvplan_cmpTime($a, $b)
 // get destination from asterisk destination id
 function nethvplan_getDestination($destination)
 {
+    if (preg_match('/^voice-agent-([a-z][a-z0-9_-]{0,47}),s,1$/D', (string)$destination, $match)) return ['satellite-agent-destination', $match[1]];
     if (preg_match('/ivr-*/', $destination)) {
         $values = explode(",", $destination);
         $dests = explode("-", $values[0]);
@@ -492,7 +503,8 @@ function nethvplan_isKnownDestinationType($dest)
         "ivr",
         "cqr",
         "ext-queues",
-        "ext-group"
+        "ext-group",
+        "satellite-agent-destination"
     );
 
     return in_array($dest, $knownDestinations);
@@ -562,6 +574,10 @@ function nethvplan_bindData($data, $dest, $id)
             );
         break;
         
+        case 'satellite-agent-destination':
+            return \NethVoice\Agents\VisualPlan::widget($data[$dest][$id], $langArray, (int)$xPos, (int)$yPos);
+        break;
+
         case "from-did-direct":
             $widget['type'] = "Base";
             $widget['radius'] = "20";
@@ -1055,7 +1071,15 @@ function nethvplan_bindConnection($data, $dest, $id)
     $connection = $connectionTemplate;
 
     switch ($dest) {
-        
+        case 'satellite-agent-destination':
+            $fallback=$data[$dest][$id]['published']['fallback_destination_id']??'hangup';
+            $native=\NethVoice\Agents\VisualPlan::nativeFallback($fallback);
+            [$targetType,$targetId]=nethvplan_getDestination($native);
+            if (!nethvplan_hasDestinationData($data,$targetType,$targetId)) return [];
+            $connection['id']=$dest.'%'.$id.'='.$native;
+            $connection['source']=['node'=>$dest.'%'.$id,'port'=>'output_agent_fallback%'.$id];
+            $connection['target']=['node'=>$targetType.'%'.$targetId,'port'=>'input_'.$targetType.'%'.$targetId,'decoration'=>'draw2d.decoration.connection.ArrowDecorator'];
+            return [$connection];
         case "app-announcement":
             $res = nethvplan_getDestination($data[$dest][$id]['postdest']);
             $destNew = $res[0];
@@ -1367,6 +1391,13 @@ function nethvplan_explore($data, $destination, $destArray)
         // choose correct destination and
         // add widget and connections
         switch ($dest) {
+            case 'satellite-agent-destination':
+                $widgets[] = nethvplan_bindData($data, $dest, $id);
+                foreach (nethvplan_bindConnection($data, $dest, $id) as $connection) $connections[]=$connection;
+                $fallback=$data[$dest][$id]['published']['fallback_destination_id']??'hangup';
+                nethvplan_explore($data, \NethVoice\Agents\VisualPlan::nativeFallback($fallback), $destArray);
+            break;
+
             case "from-did-direct":
                 $widget = nethvplan_bindData($data, $dest, $id);
                 // add widget
