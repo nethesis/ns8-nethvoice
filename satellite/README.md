@@ -4,6 +4,46 @@ Satellite is a Python application that creates a bridge between Asterisk PBX and
 
 https://github.com/nethesis/satellite
 
+## Shared voice-agent runtime
+
+The NethVoice image build adds `nethvoice_runtime.py` to the upstream Satellite
+image and makes it the default command. This launcher runs voice agents and
+optional transcription in the same container managed by `satellite.service`.
+`voice_agent.runner` is always started; `main.py` is started only when
+`SATELLITE_CALL_TRANSCRIPTION_ENABLED` or
+`SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED` is `True` (case insensitive).
+The default build uses the agent-capable upstream commit pinned in `upstream.env`.
+`fetch-source.sh` verifies the archive SHA-256 before extraction, and
+`build-base.sh` uses its canonical multi-stage Containerfile. No unpublished
+registry tag or local image is required. `SATELLITE_IMAGE` remains an optional
+base override for development; both entrypoints must import successfully.
+The NethVoice wrapper runs as UID/GID 65532.
+
+The launcher forwards shutdown to both component process groups, waits up to
+25 seconds, and kills remaining processes. If one component exits unexpectedly,
+it restarts that component after five seconds without interrupting the other.
+Podman's init process reaps orphaned workers. Both HTTP listeners remain on
+loopback with their existing separate ports and authentication.
+
+Satellite stays enabled for agent webhooks and readiness even when no agent is
+enabled. An inactive built-in agent never admits a call. Keeping the listener
+available allows PHP-owned publication and enablement without giving PHP host
+service-management privileges. MQTT, recordings cleanup and transcription itself
+remain conditional on the transcription flags; PostgreSQL stays available for
+historical reads after transcription is disabled.
+
+`manage-satellite` compares the unit, selected environment, filtered credentials
+and image identity before making changes. An unchanged settings save leaves the
+service and calls untouched. A changed configuration waits for no active calls;
+an unavailable Asterisk query refuses the restart. FreePBX restarts do not stop
+Satellite, which reconnects through ARI. Runtime account provisioning runs on
+configuration changes instead of every Satellite start.
+
+Upgrades disable and remove the former `voice-agent` container while retaining
+its event volume. The `:U` mount repairs legacy volume ownership for UID 65532;
+`:Z` preserves its private SELinux label. Credentials are filtered into
+`satellite.env`, without unrelated module secrets.
+
 ## Voicemail transcription
 
 Voicemail transcription is enabled by setting the environment variable `SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED` to `True` (also on NS8 interface)
@@ -117,3 +157,10 @@ export $(grep SATELLITE_MQTT_PASSWORD passwords.env); podman exec -it satellite-
 ```
 export $(grep SATELLITE_API_TOKEN passwords.env);curl "http://127.0.0.1:${SATELLITE_HTTP_PORT}/api/get_transcription" --show-error --request POST --form "multichannel=false" --form "encoding=linear16" --form "sample_rate=8000" --form "channels=1" --form "persist=false" --form "summary=false" --header "Authorization: Bearer ${SATELLITE_API_TOKEN}" --form "file=@test.wav;type=audio/wav"
 ```
+
+## Voice agents alpha
+
+Use the matching v8 runtime and fresh database baseline. See the maintained
+[voice agents guide](../docs/voice-agents.md). Configuration and tool permissions
+belong to each agent; publication activates it. Runtime packaging is pinned by
+`upstream.env` and checked by `fetch-source.sh`.
