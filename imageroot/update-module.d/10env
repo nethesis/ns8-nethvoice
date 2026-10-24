@@ -166,6 +166,13 @@ if not (passwordsfile.get('SATELLITE_API_TOKEN') or '').strip():
     passwordsfile['SATELLITE_API_TOKEN'] = gen_password()
 agent.write_envfile('passwords.env', passwordsfile)
 
+# Per-instance voice-agent secrets never belong in Redis environment metadata.
+for key in ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN',
+            'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD'):
+    if not passwordsfile.get(key):
+        passwordsfile[key] = gen_password()
+agent.write_envfile('passwords.env', passwordsfile)
+
 if os.getenv('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT') is None:
     # Use existing NETHCTI_SERVER_API_PORT for API endpoint
     agent.set_env('NETHVOICE_MIDDLEWARE_V1_API_ENDPOINT', '127.0.0.1:' + os.environ['NETHCTI_SERVER_API_PORT'])

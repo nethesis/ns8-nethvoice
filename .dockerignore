@@ -1,0 +1,11 @@
+# The module image only packages lifecycle files and its NS8 UI.
+# Component images use their own build contexts.
+*
+!Containerfile
+!imageroot/
+!imageroot/**
+!ui/
+!ui/**
+ui/node_modules
+ui/dist
+ui/.env*
