@@ -172,3 +172,16 @@ if ((int) ($res['required_tables'] ?? 0) === 2) {
 	$stmt = $db->prepare($sql);
 	$stmt->execute();
 }
+
+// Release any pending result sets from the core multi-statement update.
+$stmt->closeCursor();
+// Agent setup must not prevent the core migrations above from running.
+try {
+    // Agents configuration and monitoring foundation; repeatable on every image update.
+    require_once '/var/www/html/freepbx/rest/lib/agents/Schema.php';
+    \NethVoice\Agents\Schema::install($db);
+    require_once '/var/www/html/freepbx/rest/lib/agents/RuntimeAccounts.php';
+    \NethVoice\Agents\RuntimeAccounts::install();
+} catch (\Throwable $error) {
+    error_log('Voice agent setup failed: ' . get_class($error));
+}
