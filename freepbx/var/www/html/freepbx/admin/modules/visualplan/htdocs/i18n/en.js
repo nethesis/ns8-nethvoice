@@ -249,5 +249,15 @@ languages.en = {
     "view_tts_error_1": "Error creating audio file, check the api key and the internet connection",
     "view_tts_error_2": "Error listening the audio",
     "view_tts_save_key": "Save key",
-    "view_text_sendtts_string": "Send"
+    "view_text_sendtts_string": "Send",
+"base_agent_string": "Agent",
+"agent_configure_string": "Configure agent",
+"agent_select_string": "Select agent",
+"agent_not_ready_string": "Configure, publish and enable this agent before adding it.",
+"agent_builtin_string": "Built-in",
+"agent_new_string": "New agent",
+"agent_add_string": "Add",
+"agent_cancel_string": "Cancel",
+"agent_load_error_string": "Unable to load agents.",
+"agent_already_added_string": "This agent is already on the canvas."
 };
