@@ -1,0 +1,19 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -uo pipefail
+reload_output=$(mktemp)
+trap 'rm -f "$reload_output"' EXIT
+for attempt in {1..6}; do
+    timeout 600 fwconsole reload >"$reload_output" 2>&1
+    status=$?
+    if [[ $status -eq 0 ]]; then
+        exit 0
+    fi
+    if ! grep -q 'Process is already running' "$reload_output"; then
+        cat "$reload_output" >&2
+        exit "$status"
+    fi
+    sleep 2
+done
+cat "$reload_output" >&2
+exit "$status"
