@@ -195,6 +195,8 @@ agent.set_env('NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS', '127.0.0.1:' + str(port_lis
 # SSO front-doors (loopback, started on demand): see configure-module/45authentication
 agent.set_env('SAML2_PROXY_PORT', port_list[36])
 agent.set_env('OAUTH2_PROXY_PORT', port_list[37])
+# Chat owns slots 38..41; keep the provider webhook listener separate.
+agent.set_env('VOICE_AGENT_HTTP_PORT', port_list[42])
 
 # IAX2 is UDP-only — port derived from UDP_PORTS_RANGE offset 1001
 agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)
@@ -262,7 +264,11 @@ passwords = {
     "SATELLITE_PGSQL_PASSWORD": gen_password(),
     "SATELLITE_API_TOKEN": gen_password(),
     "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN": gen_password(),
-    "CHAT_COMPONENT_SECRET": gen_password()
+    "CHAT_COMPONENT_SECRET": gen_password(),
+    "SATELLITE_AGENT_CONFIG_KEY": gen_password(),
+    "VOICE_AGENT_RUNTIME_TOKEN": gen_password(),
+    "VOICE_AGENT_CONFIG_PASSWORD": gen_password(),
+    "VOICE_AGENT_MONITOR_PASSWORD": gen_password()
 }
 
 agent.write_envfile("passwords.env", passwords)

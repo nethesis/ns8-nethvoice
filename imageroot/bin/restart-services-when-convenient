@@ -2,7 +2,13 @@
 
 # Restart services passed as arguments when there are no active calls
 
-set -e
+set -eo pipefail
+
+WAIT_ONLY=false
+if [[ "${1:-}" == "--wait-only" ]]; then
+    WAIT_ONLY=true
+    shift
+fi
 
 operation=try-restart
 if [[ ${1:-} == --stop ]]; then
@@ -14,15 +20,31 @@ TIMEOUT=10800 # 3h
 for SECONDS in $(seq 1 $TIMEOUT); do
     # Check if there are any calls in progress
     CALLS=$(podman exec freepbx asterisk -rx "core show channels" 2>/dev/null | grep "active call" | cut -d" " -f1) || {
+        if $WAIT_ONLY; then
+            echo 'Cannot verify active calls; refusing to restart Satellite' >&2
+            exit 1
+        fi
         # If the command fails, assume there are no calls
         CALLS=0
     }
+    if $WAIT_ONLY && ! [[ "$CALLS" =~ ^[0-9]+$ ]]; then
+        echo 'Invalid active call count; refusing to restart Satellite' >&2
+        exit 1
+    fi
     if [[ $CALLS -eq 0 ]]; then
         break
     fi
     # Sleep for 1 second before checking again
     sleep 1
 done
+
+if $WAIT_ONLY; then
+    if [[ $CALLS -ne 0 ]]; then
+        echo 'Calls are still active; refusing to restart Satellite' >&2
+        exit 1
+    fi
+    exit 0
+fi
 
 # Restart services
 echo "Restarting services $@ wich was postponed for $SECONDS seconds"
