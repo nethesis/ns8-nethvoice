@@ -38,6 +38,7 @@ services = [
     "chat-ws",
     "chat-upload",
     "chat-gw",
+    "voice-agent-webhooks",
     "chat-gw-pbx",
 ]
 

@@ -1,0 +1,7 @@
+[Unit]
+Description=Voice agent monitoring retention
+After=freepbx.service
+
+[Service]
+Type=oneshot
+ExecStart=runagent /usr/bin/podman exec freepbx php /var/www/html/freepbx/rest/lib/agents/retention.php
