@@ -2,6 +2,15 @@
 
 FreePBX container for NethServer 8
 
+## Reload logging
+
+Reload start/completion, warnings, errors and security notifications remain in
+the normal output. Legacy FreePBX function deprecation messages use `dbug()`
+instead: they are silent with `FPBXDBUGDISABLE=TRUE` (the default), and can be
+enabled for troubleshooting by setting it to `FALSE` in FreePBX Advanced Settings.
+Conflicting sound files and failed SIP authentication remain visible because
+they can indicate configuration problems.
+
 ## Vendored FreePBX modules
 
 Boss Secretary and QueueMetrics are stored in `var/www/html/freepbx/admin/modules/`

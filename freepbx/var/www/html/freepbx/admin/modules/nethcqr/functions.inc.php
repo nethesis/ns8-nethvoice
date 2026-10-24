@@ -321,7 +321,7 @@ function nethcqr_get_details($id_cqr=''){
     $id_cqr = $db->escapeSimple($id_cqr);
     $sql = "SELECT * FROM `nethcqr_details`";
     if ($id_cqr) $sql .=" WHERE `id_cqr` = $id_cqr";
-    $results =& $db->getAll($sql,DB_FETCHMODE_ASSOC);
+    $results = $db->getAll($sql,DB_FETCHMODE_ASSOC);
     if (DB::isError($results)) {
         freepbx_debug(__FUNCTION__."QUERY: $sql");
             return false;

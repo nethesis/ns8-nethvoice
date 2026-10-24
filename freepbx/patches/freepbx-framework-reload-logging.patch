@@ -1,0 +1,22 @@
+--- a/amp_conf/htdocs/admin/libraries/BMO/Modules.class.php
++++ b/amp_conf/htdocs/admin/libraries/BMO/Modules.class.php
+@@ -476,7 +476,7 @@
+ 		$function = $trace[$pos]['function'];
+ 		$file =  $trace[$pos]['file'];
+ 		$line =  $trace[$pos]['line'];
+-		freepbx_log(LOG_WARNING,'Depreciated Function '.$function.' detected in '.$file.' on line '.$line);
++		dbug('Deprecated Function '.$function.' detected in '.$file.' on line '.$line);
+ 	}
+ 
+ 	function isAssoc(array $arr) {
+--- a/amp_conf/htdocs/admin/libraries/modulefunctions.legacy.php
++++ b/amp_conf/htdocs/admin/libraries/modulefunctions.legacy.php
+@@ -4,7 +4,7 @@
+     $function = $trace[1]['function'];
+ 	$line = $trace[1]['line'];
+ 	$file = $trace[1]['file'];
+-	freepbx_log(LOG_WARNING,'Depreciated Function '.$function.' detected in '.$file.' on line '.$line);
++	dbug('Deprecated Function '.$function.' detected in '.$file.' on line '.$line);
+ }
+ 
+ function module_delete($modulename, $force = false) {

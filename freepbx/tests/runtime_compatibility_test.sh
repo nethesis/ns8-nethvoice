@@ -10,6 +10,7 @@ ulimit -c 0
 env -i PATH=/usr/bin:/bin /usr/bin/env php -r 'exit(PHP_MAJOR_VERSION === 8 ? 0 : 1);'
 /usr/bin/php -r 'exit(PHP_MAJOR_VERSION === 8 ? 0 : 1);'
 echo 'PHP works with the user-cron PATH and the legacy absolute path'
+php "$(dirname "$0")/reload_logging_test.php"
 
 test_dir=$(mktemp -d)
 asterisk_pid=
