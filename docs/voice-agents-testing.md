@@ -34,11 +34,22 @@ to include authentication/CSRF HTTP cases. Set `VOICE_AGENT_EXTENSIONS_FILE` to
 the pinned FreePBX `extensions.class.php` for native dialplan checks. Missing
 optional integrations are reported explicitly. Do not run against a PBX database.
 
-Build Satellite with both `Containerfile.agent` and `Containerfile`, then update
-`satellite/upstream.env` only after verifying the downloadable source archive's
-commit and checksum. `satellite/fetch-source.sh` enforces the checksum. Build the
-FreePBX image with its isolated UI build stage. Inspect final images for source
-maps, development helpers, tests, environment files and dependencies.
+Verify the application with both transcription flags off, each flag separately
+on, both on, and SIGTERM/SIGINT shutdown. Tests also cover transcription startup
+retry, endpoint isolation and cancellation/reaping of per-request workers.
+
+Build the NethVoice Satellite wrapper with `BUILD_IMAGES=satellite bash build-images.sh`.
+It consumes the published Satellite PR #56 image pinned by digest in
+`build-images.sh`; no upstream source build is needed. CI checks out its source
+revision `66253bf9345b4be369a24b07692b522a3c02998f` directly for the paired tests.
+When changing the base, verify its registry digest and source-revision label,
+then update the image pin and CI checkout together. **Replace the PR image with
+a versioned Satellite release before merging.** `SATELLITE_IMAGE` can override
+the base for local development; the shared-lifecycle import check still applies.
+The pinned PR image includes the shared lifecycle. Older images fail the import
+check; refresh the published digest and matching CI revision together.
+Build the FreePBX image with its isolated UI build stage. Inspect final images
+for source maps, development helpers, tests, environment files and dependencies.
 
 Staging uses a disposable instance and bounded synthetic call stimuli. Capture a
 protected backup, verify zero calls, install the exact image pair, recreate agent
