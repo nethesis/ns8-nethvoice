@@ -6,24 +6,35 @@ https://github.com/nethesis/satellite
 
 ## Shared voice-agent runtime
 
-The NethVoice image build adds `nethvoice_runtime.py` to the upstream Satellite
-image and makes it the default command. This launcher runs voice agents and
-optional transcription in the same container managed by `satellite.service`.
-`voice_agent.runner` is always started; `main.py` is started only when
+The published Satellite image runs `python /app/main.py` in the existing
+`satellite.service` container. One event loop owns startup, signals and shutdown.
+Voice-agent routing stays in `voice_agent/`; optional transcription stays in
+`transcription.py`, `asterisk_bridge.py`, `mqtt_client.py` and `api.py`.
+Transcription and its HTTP API start only when
 `SATELLITE_CALL_TRANSCRIPTION_ENABLED` or
 `SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED` is `True` (case insensitive).
-The default build uses the agent-capable upstream commit pinned in `upstream.env`.
-`fetch-source.sh` verifies the archive SHA-256 before extraction, and
-`build-base.sh` uses its canonical multi-stage Containerfile. No unpublished
-registry tag or local image is required. `SATELLITE_IMAGE` remains an optional
-base override for development; both entrypoints must import successfully.
-The NethVoice wrapper runs as UID/GID 65532.
 
-The launcher forwards shutdown to both component process groups, waits up to
-25 seconds, and kills remaining processes. If one component exits unexpectedly,
-it restarts that component after five seconds without interrupting the other.
-Podman's init process reaps orphaned workers. Both HTTP listeners remain on
-loopback with their existing separate ports and authentication.
+The two HTTP apps keep their existing loopback ports and authentication. Only
+exact signed webhook paths on the voice-agent listener are forwarded publicly;
+transcription endpoints are not mounted on that listener. Each component retains
+its own ARI connection and Stasis application (`voice-agent` versus `ARI_APP`).
+Transcription startup and MQTT/ARI reconnection failures recover locally without
+restarting agent calls. Shutdown stops both listeners, cancels transcription
+connection/connector tasks, closes RTP streams and terminates/reaps per-request
+transcription workers. PostgreSQL startup work runs outside the shared event loop.
+The process no longer supervises or restarts component subprocesses. A fatal
+process failure still affects both components; systemd restarts the application.
+
+The build consumes the published Satellite PR #56 image pinned in `build-images.sh`
+to `sha256:3e8df2c59bdb2b9ec58fac850fafc430721490a890d10c78dd595f455ad1a36a`.
+Its source revision is `66253bf9345b4be369a24b07692b522a3c02998f`; NethVoice CI
+checks out that exact revision for paired tests. The import check requires the
+shared application lifecycle. `SATELLITE_IMAGE` remains a development base override.
+**Replace the PR image with a versioned Satellite release before merging, updating
+the digest and matching CI source revision together.**
+No source download/build fallback or local source overlay is used by NethVoice.
+The application runs as UID/GID 65532; configuration, credentials and volumes keep
+their existing ownership and locations.
 
 Satellite stays enabled for agent webhooks and readiness even when no agent is
 enabled. An inactive built-in agent never admits a call. Keeping the listener
@@ -32,8 +43,9 @@ service-management privileges. MQTT, recordings cleanup and transcription itself
 remain conditional on the transcription flags; PostgreSQL stays available for
 historical reads after transcription is disabled.
 
-`manage-satellite` compares the unit, selected environment, filtered credentials
-and image identity before making changes. An unchanged settings save leaves the
+The `configure-module/94voice_agents` and `set-integrations/50manage_service`
+action steps compare the unit, selected environment, filtered credentials and
+image identity before making changes. An unchanged settings save leaves the
 service and calls untouched. A changed configuration waits for no active calls;
 an unavailable Asterisk query refuses the restart. FreePBX restarts do not stop
 Satellite, which reconnects through ARI. Runtime account provisioning runs on
@@ -162,5 +174,5 @@ export $(grep SATELLITE_API_TOKEN passwords.env);curl "http://127.0.0.1:${SATELL
 
 Use the matching v8 runtime and fresh database baseline. See the maintained
 [voice agents guide](../docs/voice-agents.md). Configuration and tool permissions
-belong to each agent; publication activates it. Runtime packaging is pinned by
-`upstream.env` and checked by `fetch-source.sh`.
+belong to each agent; publication activates it. The base image is pinned by
+digest in `build-images.sh`; CI tests its matching source revision.

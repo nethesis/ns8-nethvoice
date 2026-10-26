@@ -290,6 +290,7 @@ path with `BUILD_TIMING_FILE` when comparing repeated runs.
 | `REPOBASE` | `ghcr.io/nethesis` | Registry/repository prefix used for the built images. Use a local prefix such as `localhost/ns8-nethvoice` when testing locally. |
 | `IMAGETAG` | `latest` locally, current ref name in workflows | Tag applied to the built images. Slashes are normalized to dashes. |
 | `BUILD_IMAGES` | empty | Comma-separated list of image names to build. Both full names (`nethvoice-freepbx`) and short names (`freepbx`) are accepted. Empty means build everything. |
+| `SATELLITE_IMAGE` | Digest-pinned Satellite PR #56 image | Optional Satellite base override for development. Replace the PR default with a versioned release before merging; see [packaging](satellite/README.md). |
 | `BUILD_TIMING_FILE` | `build-timings.tsv` | Output file written at the end of the run with one timing row per image. |
 
 Package-manager cache mounts are enabled inside the Containerfiles where they

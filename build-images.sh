@@ -369,22 +369,17 @@ fi
 reponame="nethvoice-satellite"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    if [[ -n "${SATELLITE_IMAGE:-}" ]]; then
-        satellite_image="$SATELLITE_IMAGE"
-    else
-        source satellite/upstream.env
-        satellite_image="localhost/nethvoice-satellite-source:${SATELLITE_SOURCE_COMMIT}"
-        bash satellite/build-base.sh "$satellite_image"
-    fi
+    # Development PR #56: replace with a versioned Satellite release before merging.
+    # Source 66253bf9345b4be369a24b07692b522a3c02998f; keep agents-checks.yml aligned.
+    satellite_image="${SATELLITE_IMAGE:-ghcr.io/nethesis/satellite:pr-56@sha256:3e8df2c59bdb2b9ec58fac850fafc430721490a890d10c78dd595f455ad1a36a}"
     container=$(buildah from "$satellite_image")
-    # Both runtimes must be present in the selected Satellite release/development image.
-    if ! buildah run "${container}" -- python -c 'import main, voice_agent.runner'; then
-        printf 'Satellite base must include transcription and voice_agent.runner; set SATELLITE_IMAGE to an agent-capable image.\n' >&2
+    # Require the shared lifecycle before starting voice agents and optional transcription.
+    if ! buildah run "${container}" -- python -c 'from main import run; from transcription import run as transcribe; from voice_agent.runner import app_from_env'; then
+        printf 'Satellite base must include the shared main.run lifecycle; refresh the published image pin or set SATELLITE_IMAGE.\n' >&2
         buildah rm "${container}"
         exit 1
     fi
-    buildah add "${container}" satellite/nethvoice_runtime.py /app/nethvoice_runtime.py
-    buildah config --user 65532:65532 --cmd '["python", "/app/nethvoice_runtime.py"]' "${container}"
+    buildah config --user 65532:65532 --cmd '["python", "/app/main.py"]' "${container}"
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
     buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
