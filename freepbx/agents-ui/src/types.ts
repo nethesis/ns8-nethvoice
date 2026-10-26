@@ -15,7 +15,13 @@ export interface Draft {
   max_call_duration_seconds: number;
   debug: { transcription_enabled: boolean; retention_hours: number };
 }
+export interface CleverAiConfiguration {
+  execution: "cleverai";
+  provider_binding_id: string | null;
+  fallback_destination_id: string | null;
+}
 export interface Agent extends JsonObject {
+  agent_type?: "basic_voice" | "cleverai";
   agent_id: string;
   name: string;
   kind: "builtin" | "custom";
@@ -23,10 +29,10 @@ export interface Agent extends JsonObject {
   enabled: boolean;
   revision: number;
   workflow_version: number | null;
-  draft_version: number;
+  draft_version: number | null;
   sync_status: string;
   routable: boolean;
-  draft: Draft;
+  draft: Draft | CleverAiConfiguration;
   published: (Draft & { workflow_version: number }) | null;
 }
 export interface Trunk extends JsonObject {

@@ -1,6 +1,12 @@
 import { createI18n } from "vue-i18n";
 
 const en = {
+  agentType: "Agent type",
+  saveExternal: "Save",
+  cleverAiTrunkHelp:
+    "CleverAI uses OpenAI SIP transport. Configure the OpenAI incoming-call webhook externally to point to CleverAI. NethVoice needs only the project ID; no API key or webhook secret.",
+  cleverAiAgentHelp:
+    "CleverAI manages conversations, tools and monitoring. Save requests the PBX reload and makes this destination available when ready. Configure fallback in VisualPlan. Transfers back to NethVoice are not supported yet.",
   recentCallbacksHelp:
     "Recent callbacks require Transfer and Recent callbacks to be enabled. A verified recent call can authorize a callback even when direct transfer to that extension is off. Lookup happens only when someone asks to return a call; the caller confirms or chooses a contact. Save and publish to activate draft changes.",
   routingPolicyHelp:
@@ -161,6 +167,10 @@ const en = {
     invalid_columns: "Check the column mapping.",
     invalid_secret:
       "Check the credentials and provider webhook signing secret format.",
+    incompatible_trunk: "The trunk is incompatible with this agent type.",
+    invalid_agent_type: "The agent type cannot be changed after creation.",
+    external_agent_not_publishable:
+      "CleverAI agents use Save instead of Publish.",
     provider_required: "Choose a provider trunk.",
     trunk_not_ready: "Synchronize the trunk first.",
     fallback_required: "Choose a fallback extension.",
@@ -435,6 +445,12 @@ const en = {
   maxOutputTokens: "Maximum backend output tokens",
 };
 const it: typeof en = {
+  agentType: "Tipo di agente",
+  saveExternal: "Salva",
+  cleverAiTrunkHelp:
+    "CleverAI usa il trasporto SIP di OpenAI. Configurare esternamente il webhook delle chiamate in ingresso di OpenAI verso CleverAI. NethVoice richiede solo l’ID del progetto, senza chiave API o segreto webhook.",
+  cleverAiAgentHelp:
+    "CleverAI gestisce conversazioni, strumenti e monitoraggio. Salva richiede il reload del PBX e rende disponibile la destinazione quando pronta. Configurare la destinazione alternativa in VisualPlan. I trasferimenti verso NethVoice non sono ancora supportati.",
   recentCallbacksHelp:
     "Le richiamate richiedono Trasferimento e Richiamate recenti abilitati. Una chiamata recente verificata può autorizzare una richiamata anche se il trasferimento diretto all'interno è disabilitato. La ricerca avviene solo quando si chiede di richiamare; il chiamante conferma o sceglie un contatto. Salva e pubblica per attivare le modifiche.",
   routingPolicyHelp:
@@ -596,6 +612,11 @@ const it: typeof en = {
     invalid_columns: "Verifica il mapping delle colonne.",
     invalid_secret:
       "Controlla le credenziali e il formato del segreto firma webhook.",
+    incompatible_trunk: "Il trunk non è compatibile con questo tipo di agente.",
+    invalid_agent_type:
+      "Il tipo di agente non può essere modificato dopo la creazione.",
+    external_agent_not_publishable:
+      "Gli agenti CleverAI usano Salva anziché Pubblica.",
     provider_required: "Scegli un trunk.",
     trunk_not_ready: "Sincronizza prima il trunk.",
     fallback_required: "Scegli un interno di fallback.",

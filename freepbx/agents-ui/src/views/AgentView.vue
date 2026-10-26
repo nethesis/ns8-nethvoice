@@ -18,7 +18,13 @@ import PageHeader from "../components/PageHeader.vue";
 import FieldSelect from "../components/FieldSelect.vue";
 import ConversationSettings from "../components/ConversationSettings.vue";
 import ToolConfiguration from "../components/ToolConfiguration.vue";
-import type { Agent, Catalog, Draft, Trunk } from "../types";
+import type {
+  Agent,
+  Catalog,
+  Draft,
+  Trunk,
+  CleverAiConfiguration,
+} from "../types";
 const { t } = useI18n();
 const route = useRoute(),
   router = useRouter(),
@@ -28,6 +34,16 @@ const id = computed(() => String(route.params.id || ""));
 const creating = computed(() => !id.value);
 const record = ref<Agent>();
 const name = ref("");
+const agentType = ref("basic_voice");
+const external = computed(() => agentType.value === "cleverai");
+const externalConfig = ref<CleverAiConfiguration>({
+  execution: "cleverai",
+  provider_binding_id: null,
+  fallback_destination_id: "hangup",
+});
+const configuration = computed(() =>
+  external.value ? externalConfig.value : draft.value,
+);
 const draft = ref<Draft>({
   contract_version: 8,
   provider_binding_id: null,
@@ -45,10 +61,11 @@ const draft = ref<Draft>({
   debug: { transcription_enabled: false, retention_hours: 24 },
 });
 const baseline = ref("");
-const snapshot = () => JSON.stringify({ name: name.value, draft: draft.value });
+const snapshot = () =>
+  JSON.stringify({ name: name.value, draft: configuration.value });
 const dirty = computed(() => !!baseline.value && snapshot() !== baseline.value);
 const unpublished = computed(() => {
-  if (!record.value?.published) return false;
+  if (external.value || !record.value?.published) return false;
   const published = record.value.published;
   return Object.keys(draft.value).some(
     (key) =>
@@ -64,6 +81,7 @@ const unpublished = computed(() => {
 const canPublish = computed(
   () =>
     !!record.value &&
+    !external.value &&
     !dirty.value &&
     !task.pending.value &&
     (!record.value.published ||
@@ -118,6 +136,10 @@ const selectedTrunk = computed(() =>
 );
 function changeBinding(value: string) {
   const binding = value || null;
+  if (external.value) {
+    externalConfig.value.provider_binding_id = binding;
+    return;
+  }
   if (binding === draft.value.provider_binding_id) return;
   draft.value.provider_binding_id = binding;
   draft.value.conversation.model = null;
@@ -127,7 +149,10 @@ function changeBinding(value: string) {
 function accept(value: Agent) {
   record.value = value;
   name.value = value.name;
-  draft.value = JSON.parse(JSON.stringify(value.draft));
+  agentType.value = value.agent_type || "basic_voice";
+  if ("execution" in value.draft)
+    externalConfig.value = JSON.parse(JSON.stringify(value.draft));
+  else draft.value = JSON.parse(JSON.stringify(value.draft));
   baseline.value = snapshot();
   queryClient.setQueryData(["agent", value.agent_id], value);
 }
@@ -148,7 +173,7 @@ async function save() {
         ? "/profiles"
         : "/profiles/" + encodeURIComponent(id.value),
       {
-        profile: { name: name.value, draft: draft.value },
+        profile: { name: name.value, draft: configuration.value },
         expected_revision: record.value?.revision || 0,
       },
     );
@@ -204,7 +229,7 @@ async function synchronize() {
 <template>
   <PageHeader
     :title="creating ? t('newAgent') : name"
-    :description="t('basicVoiceHelp')"
+    :description="t(external ? 'cleverAiAgentHelp' : 'basicVoiceHelp')"
     ><RouterLink to="/agents"
       ><NeButton>{{ t("back") }}</NeButton></RouterLink
     ></PageHeader
@@ -236,20 +261,33 @@ async function synchronize() {
     }}</NeButton>
     <NeInlineNotification
       v-if="
-        record && record.sync_status !== 'synced' && record.workflow_version
+        record &&
+        record.sync_status !== 'synced' &&
+        (record.workflow_version || external)
       "
       kind="warning"
       :title="t('sync.' + record.sync_status)"
     />
     <NeButton
       v-if="
-        record && record.sync_status !== 'synced' && record.workflow_version
+        record &&
+        record.sync_status !== 'synced' &&
+        (record.workflow_version || external)
       "
       :loading="task.pending.value"
       @click="synchronize"
       >{{ t("retrySync") }}</NeButton
     >
     <fieldset class="space-y-6">
+      <FieldSelect
+        v-model="agentType"
+        :label="t('agentType')"
+        :disabled="!!record"
+        :options="[
+          { id: 'basic_voice', label: 'Basic Voice' },
+          { id: 'cleverai', label: 'CleverAI' },
+        ]"
+      />
       <div class="nv-field-grid">
         <NeTextInput
           v-model="name"
@@ -258,92 +296,98 @@ async function synchronize() {
           maxlength="100"
         />
         <FieldSelect
-          :model-value="draft.provider_binding_id || ''"
+          :model-value="configuration.provider_binding_id || ''"
           :label="t('trunk')"
           :options="[
             { id: '', label: t('choose') },
-            ...(trunks.data.value?.items || []).map((v) => ({
-              id: v.binding_id,
-              label: v.name + ' (' + v.provider + ')',
-            })),
+            ...(trunks.data.value?.items || [])
+              .filter((v) => (v.provider === 'cleverai') === external)
+              .map((v) => ({
+                id: v.binding_id,
+                label: v.name + ' (' + v.provider + ')',
+              })),
           ]"
           @update:model-value="changeBinding"
         />
         <FieldSelect
+          v-if="!external"
           v-model="draft.conversation.language"
           :label="t('defaultLanguage')"
           :options="languageOptions"
         />
         <NeTextInput
+          v-if="!external"
           :model-value="String(draft.max_call_duration_seconds)"
           :label="t('maxDuration')"
           type="number"
           @update:model-value="draft.max_call_duration_seconds = Number($event)"
         />
       </div>
-      <ConversationSettings
-        v-model="draft.conversation"
-        :binding="selectedTrunk"
-      />
-      <NeTextArea
-        v-model="draft.conversation.greeting"
-        :label="t('greeting')"
-        :rows="3"
-        maxlength="4096"
-      />
-      <NeTextArea
-        v-model="draft.conversation.instructions"
-        :label="t('instructions')"
-        :rows="6"
-        maxlength="32768"
-      />
-      <section class="space-y-4">
-        <h2>{{ t("tools") }}</h2>
-        <p class="nv-muted">{{ t("toolGrantsHelp") }}</p>
-        <p class="nv-muted">
-          {{ t("routingPolicyHelp") }}
-        </p>
-        <p class="nv-muted">
-          {{ t("recentCallbacksHelp") }}
-        </p>
-        <p class="nv-muted">
-          {{ t("hangupToolHelp") }}
-        </p>
-        <ToolConfiguration
-          v-for="(binding, index) in draft.tool_bindings"
-          :key="binding.tool_id"
-          :agent-id="record?.agent_id"
-          :model-value="binding"
-          :definition="
-            catalog.data.value?.tools.find(
-              (tool) =>
-                tool.id === binding.tool_id &&
-                tool.version === binding.tool_version,
-            )
-          "
-          :extensions="catalog.data.value?.extensions || []"
-          @update:model-value="draft.tool_bindings[index] = $event"
+      <template v-if="!external">
+        <ConversationSettings
+          v-model="draft.conversation"
+          :binding="selectedTrunk"
         />
-      </section>
-      <section class="space-y-4">
-        <h2>{{ t("debugSettings") }}</h2>
-        <NeToggle
-          v-model="draft.debug.transcription_enabled"
-          :label="t('debugTranscription')"
+        <NeTextArea
+          v-model="draft.conversation.greeting"
+          :label="t('greeting')"
+          :rows="3"
+          maxlength="4096"
         />
-        <p class="nv-muted">{{ t("debugTranscriptionHelp") }}</p>
-        <NeTextInput
-          v-if="draft.debug.transcription_enabled"
-          :model-value="String(draft.debug.retention_hours)"
-          :label="t('transcriptRetention')"
-          type="number"
-          min="1"
-          max="24"
-          @update:model-value="draft.debug.retention_hours = Number($event)"
+        <NeTextArea
+          v-model="draft.conversation.instructions"
+          :label="t('instructions')"
+          :rows="6"
+          maxlength="32768"
         />
-      </section>
+        <section class="space-y-4">
+          <h2>{{ t("tools") }}</h2>
+          <p class="nv-muted">{{ t("toolGrantsHelp") }}</p>
+          <p class="nv-muted">
+            {{ t("routingPolicyHelp") }}
+          </p>
+          <p class="nv-muted">
+            {{ t("recentCallbacksHelp") }}
+          </p>
+          <p class="nv-muted">
+            {{ t("hangupToolHelp") }}
+          </p>
+          <ToolConfiguration
+            v-for="(binding, index) in draft.tool_bindings"
+            :key="binding.tool_id"
+            :agent-id="record?.agent_id"
+            :model-value="binding"
+            :definition="
+              catalog.data.value?.tools.find(
+                (tool) =>
+                  tool.id === binding.tool_id &&
+                  tool.version === binding.tool_version,
+              )
+            "
+            :extensions="catalog.data.value?.extensions || []"
+            @update:model-value="draft.tool_bindings[index] = $event"
+          />
+        </section>
+        <section class="space-y-4">
+          <h2>{{ t("debugSettings") }}</h2>
+          <NeToggle
+            v-model="draft.debug.transcription_enabled"
+            :label="t('debugTranscription')"
+          />
+          <p class="nv-muted">{{ t("debugTranscriptionHelp") }}</p>
+          <NeTextInput
+            v-if="draft.debug.transcription_enabled"
+            :model-value="String(draft.debug.retention_hours)"
+            :label="t('transcriptRetention')"
+            type="number"
+            min="1"
+            max="24"
+            @update:model-value="draft.debug.retention_hours = Number($event)"
+          />
+        </section>
+      </template>
     </fieldset>
-    <p v-if="record" class="nv-muted">
+    <p v-if="record && !external" class="nv-muted">
       {{ t("publishedVersion") }}: {{ record.workflow_version || "—" }}<br />
       {{ t("draftVersion") }}:
       {{ record.draft_version ?? (record.workflow_version || 0) + 1 }}
@@ -354,16 +398,18 @@ async function synchronize() {
         :kind="dirty || creating ? 'primary' : 'secondary'"
         :disabled="!dirty || task.pending.value"
         :loading="task.pending.value"
-        >{{ t("saveDraft") }}</NeButton
+        >{{ t(external ? "saveExternal" : "saveDraft") }}</NeButton
       >
       <NeButton
-        v-if="record"
+        v-if="record && !external"
         :disabled="!canPublish"
         :kind="canPublish ? 'primary' : 'secondary'"
         @click="publish"
         >{{ t("publish") }}</NeButton
       >
-      <RouterLink v-if="record" :to="'/activity?agent_id=' + record.agent_id"
+      <RouterLink
+        v-if="record && !external"
+        :to="'/activity?agent_id=' + record.agent_id"
         ><NeButton>{{ t("activity") }}</NeButton></RouterLink
       >
       <NeButton

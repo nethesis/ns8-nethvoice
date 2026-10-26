@@ -37,7 +37,7 @@ if [[ "$ready" != true ]]; then echo 'disposable_db_unavailable' >&2; exit 1; fi
 export M0_TEST_DSN="mysql:host=127.0.0.1;port=${M0_TEST_PORT}"
 agent_php "$freepbx_dir/tests/agents/installation.php"
 agent_php "$freepbx_dir/tests/agents/mariadb.php"
-agent_php "$freepbx_dir/tests/agents/services.php"
+agent_php "$freepbx_dir/tests/agents/cleverai.php"
 agent_php "$freepbx_dir/tests/agents/provider-models.php"
 agent_php "$freepbx_dir/tests/agents/model-settings.php"
 agent_php "$freepbx_dir/tests/agents/routing.php"

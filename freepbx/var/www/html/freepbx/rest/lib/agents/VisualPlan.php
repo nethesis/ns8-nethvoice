@@ -9,7 +9,7 @@ final class VisualPlan
     {
         $id=$agent['agent_id'];
         if (!preg_match('/^[a-z][a-z0-9_-]{0,47}$/D',$id)) throw new \RuntimeException('invalid_agent_reference',422);
-        $fallback=$agent['published']['fallback_destination_id']??null;
+        $fallback=($agent['agent_type']??null)==='cleverai'?$agent['draft']['fallback_destination_id']:($agent['published']['fallback_destination_id']??null);
         return ['type'=>'Base','id'=>'satellite-agent-destination%'.$id,'name'=>$labels['base_agent_string']??'Agent',
             'x'=>$x,'y'=>$y,'radius'=>20,'bgColor'=>'#7c3aed',
             'userData'=>['agent_id'=>$id,'system_managed'=>true,'routable'=>(bool)$agent['routable'],'kind'=>$agent['kind'],'revision'=>$agent['revision']??1],
