@@ -110,7 +110,7 @@
       "gridPos": {
         "x": 0,
         "y": 1,
-        "w": 4,
+        "w": 6,
         "h": 4
       },
       "targets": [
@@ -175,9 +175,9 @@
         "uid": "prometheus"
       },
       "gridPos": {
-        "x": 4,
+        "x": 6,
         "y": 1,
-        "w": 4,
+        "w": 6,
         "h": 4
       },
       "targets": [
@@ -235,207 +235,6 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "DNS problems",
-      "description": "Public names that do not resolve on public DNS, or a proxy name that does not point to the proxy public IP.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 8,
-        "y": 1,
-        "w": 3,
-        "h": 4
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "(count(nethvoice_public_dns_resolves{module_id=\"__MODULE_ID__\"} == 0) or vector(0)) + (count(nethvoice_public_dns_proxy_ip_match{module_id=\"__MODULE_ID__\"} == 0) or vector(0))",
-          "legendFormat": "",
-          "refId": "A",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "none",
-          "decimals": 0,
-          "noValue": "0",
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      }
-    },
-    {
-      "id": 5,
-      "type": "stat",
-      "title": "AI keys rejected",
-      "description": "AI providers that reject the API key. Checked only with transcription on.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 11,
-        "y": 1,
-        "w": 3,
-        "h": 4
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "count(nethvoice_ai_key_valid{module_id=\"__MODULE_ID__\"} == 0) or vector(0)",
-          "legendFormat": "",
-          "refId": "A",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "none",
-          "decimals": 0,
-          "noValue": "0",
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      }
-    },
-    {
-      "id": 6,
-      "type": "stat",
-      "title": "AI out of credit",
-      "description": "AI providers that refused a call for lack of credit. Clears after the next successful call.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 14,
-        "y": 1,
-        "w": 3,
-        "h": 4
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "count(satellite_ai_credit_exhausted{module_id=\"__MODULE_ID__\"} == 1) or vector(0)",
-          "legendFormat": "",
-          "refId": "A",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "none",
-          "decimals": 0,
-          "noValue": "0",
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      }
-    },
-    {
-      "id": 7,
-      "type": "stat",
       "title": "Checks skipped",
       "description": "Checks that could not run (for example public DNS unreachable, or freepbx stopped). Their panels can show old or no data. See which ones in the Checks panel below.",
       "datasource": {
@@ -443,9 +242,9 @@
         "uid": "prometheus"
       },
       "gridPos": {
-        "x": 17,
+        "x": 12,
         "y": 1,
-        "w": 4,
+        "w": 6,
         "h": 4
       },
       "targets": [
@@ -501,7 +300,7 @@
       }
     },
     {
-      "id": 8,
+      "id": 5,
       "type": "stat",
       "title": "Data",
       "description": "Fresh when the Asterisk uptime changed in the last 15 minutes. Stale means the metrics have not been updated: the other panels show old values. No data while freepbx is down.",
@@ -510,9 +309,9 @@
         "uid": "prometheus"
       },
       "gridPos": {
-        "x": 21,
+        "x": 18,
         "y": 1,
-        "w": 3,
+        "w": 6,
         "h": 4
       },
       "targets": [
@@ -591,7 +390,167 @@
       }
     },
     {
-      "id": 9,
+      "id": 6,
+      "type": "table",
+      "title": "Active alerts",
+      "description": "Alerts of this NethVoice and of its NethVoice proxy that are firing, or pending (the condition is true, the alert waits before firing). Empty also when the alerts are disabled in Settings: no alert is evaluated then.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max by (alertname, alertstate, severity, reason, what, module_id) (label_join((ALERTS_FOR_STATE{module_id=\"__MODULE_ID__\"} or ALERTS_FOR_STATE{nethvoice=\"__MODULE_ID__\"} or ALERTS_FOR_STATE{module_id=\"$proxy\", nethvoice=\"\"}) * ignoring (alertstate) group_left (alertstate) (ALERTS{module_id=\"__MODULE_ID__\"} or ALERTS{nethvoice=\"__MODULE_ID__\"} or ALERTS{module_id=\"$proxy\", nethvoice=\"\"}), \"what\", \"\", \"service\", \"trunk\", \"name\", \"provider\")) * 1000",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No active alerts (or alerts disabled)",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "firing": {
+                        "text": "firing",
+                        "color": "red",
+                        "index": 0
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "orange",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Severity"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "critical": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "warning": {
+                        "color": "orange",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Since"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "State",
+            "desc": false
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "alertname": 0,
+              "severity": 1,
+              "alertstate": 2,
+              "reason": 3,
+              "what": 4,
+              "module_id": 5,
+              "Value": 6
+            },
+            "renameByName": {
+              "alertname": "Alert",
+              "severity": "Severity",
+              "alertstate": "State",
+              "reason": "Reason",
+              "what": "What",
+              "module_id": "Module",
+              "Value": "Since"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 7,
       "type": "stat",
       "title": "Services",
       "description": "State of each service now. Crash loop: systemd restarted it at least 3 times in 10 minutes.",
@@ -601,7 +560,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 5,
+        "y": 11,
         "w": 16,
         "h": 7
       },
@@ -690,7 +649,7 @@
       }
     },
     {
-      "id": 10,
+      "id": 8,
       "type": "bargauge",
       "title": "Restarts",
       "description": "Automatic restarts done by systemd in the selected time range.",
@@ -700,7 +659,7 @@
       },
       "gridPos": {
         "x": 16,
-        "y": 5,
+        "y": 11,
         "w": 8,
         "h": 4
       },
@@ -768,7 +727,7 @@
       }
     },
     {
-      "id": 11,
+      "id": 9,
       "type": "stat",
       "title": "Checks",
       "description": "Checks run by export-metrics every 5 minutes. Skipped: the check could not run, no alert fires for it.",
@@ -778,7 +737,7 @@
       },
       "gridPos": {
         "x": 16,
-        "y": 9,
+        "y": 15,
         "w": 8,
         "h": 3
       },
@@ -857,7 +816,7 @@
       }
     },
     {
-      "id": 12,
+      "id": 10,
       "type": "table",
       "title": "Trunks",
       "description": "State of each trunk now, with the same checks as the NethVoiceTrunkUnreachable alert. Path proxy: the trunk goes through NethVoice proxy, which reports the last SIP code of the provider (408: no answer). Not checked: Asterisk could not check the trunk, or the proxy has no answer for it yet.",
@@ -867,7 +826,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 12,
+        "y": 18,
         "w": 24,
         "h": 7
       },
@@ -989,20 +948,20 @@
       ]
     },
     {
-      "id": 13,
+      "id": 11,
       "type": "row",
       "title": "Trends",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 19,
+        "y": 25,
         "w": 24,
         "h": 1
       },
       "panels": []
     },
     {
-      "id": 14,
+      "id": 12,
       "type": "timeseries",
       "title": "Calls and channels",
       "description": "Active calls and channels, sampled every 5 minutes: short calls between two samples are not shown here, see Calls per hour.",
@@ -1012,7 +971,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 20,
+        "y": 26,
         "w": 12,
         "h": 8
       },
@@ -1064,7 +1023,7 @@
       }
     },
     {
-      "id": 15,
+      "id": 13,
       "type": "timeseries",
       "title": "Calls per hour",
       "description": "Calls handled by Asterisk in each hour.",
@@ -1074,7 +1033,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 20,
+        "y": 26,
         "w": 12,
         "h": 8
       },
@@ -1115,7 +1074,7 @@
       "interval": "1h"
     },
     {
-      "id": 16,
+      "id": 14,
       "type": "state-timeline",
       "title": "Trunks over time",
       "description": "State of each trunk over time, same checks as the Trunks table.",
@@ -1125,7 +1084,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 28,
+        "y": 34,
         "w": 12,
         "h": 8
       },
@@ -1205,7 +1164,7 @@
       }
     },
     {
-      "id": 17,
+      "id": 15,
       "type": "state-timeline",
       "title": "Services over time",
       "description": "Service up or down over time.",
@@ -1215,7 +1174,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 28,
+        "y": 34,
         "w": 12,
         "h": 8
       },
@@ -1296,7 +1255,7 @@
       }
     },
     {
-      "id": 18,
+      "id": 16,
       "type": "timeseries",
       "title": "Phones online",
       "description": "PJSIP endpoints other than trunks (extensions, apps, WebRTC) with at least one registered device, and all those configured.",
@@ -1306,7 +1265,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 36,
+        "y": 42,
         "w": 12,
         "h": 8
       },
@@ -1358,7 +1317,7 @@
       }
     },
     {
-      "id": 19,
+      "id": 17,
       "type": "timeseries",
       "title": "AI calls per hour",
       "description": "Calls to the AI providers made by Satellite in each hour, by operation, successful or failed.",
@@ -1368,7 +1327,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 36,
+        "y": 42,
         "w": 12,
         "h": 8
       },
@@ -1432,20 +1391,20 @@
       "interval": "1h"
     },
     {
-      "id": 20,
+      "id": 18,
       "type": "row",
       "title": "Resources",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 44,
+        "y": 50,
         "w": 24,
         "h": 1
       },
       "panels": []
     },
     {
-      "id": 21,
+      "id": 19,
       "type": "timeseries",
       "title": "CPU by container",
       "description": "CPU used by each container of NethVoice and its proxy, in cores.",
@@ -1455,7 +1414,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 45,
+        "y": 51,
         "w": 12,
         "h": 8
       },
@@ -1502,7 +1461,7 @@
       }
     },
     {
-      "id": 22,
+      "id": 20,
       "type": "timeseries",
       "title": "Memory by container",
       "description": "Memory used by each container of NethVoice and its proxy.",
@@ -1512,7 +1471,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 45,
+        "y": 51,
         "w": 12,
         "h": 8
       },
@@ -1559,7 +1518,7 @@
       }
     },
     {
-      "id": 23,
+      "id": 21,
       "type": "stat",
       "title": "OOM kills",
       "description": "Containers killed because they ran out of memory, in the selected time range.",
@@ -1569,7 +1528,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 53,
+        "y": 59,
         "w": 4,
         "h": 6
       },
@@ -1624,7 +1583,7 @@
       }
     },
     {
-      "id": 24,
+      "id": 22,
       "type": "timeseries",
       "title": "Disk used",
       "description": "Disk used by NethVoice and its proxy: volumes, images and state.",
@@ -1634,7 +1593,7 @@
       },
       "gridPos": {
         "x": 4,
-        "y": 53,
+        "y": 59,
         "w": 20,
         "h": 6
       },

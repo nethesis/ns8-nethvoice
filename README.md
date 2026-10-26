@@ -300,9 +300,11 @@ clone and restore time `publish-metrics-config` replaces `__MODULE_ID__` and
 stores it in the `module/<module_id>/metrics_dashboards` hash, then the
 metrics app restarts Grafana to load it.
 
-- Health now: services, trunks, public DNS, AI keys and credit, checks that
-  could not run, and whether the data is fresh. A trunk or service is shown
-  failing with the same checks as the alerts, without their wait time.
+- Health now: services down, trunks failing, checks that could not run,
+  whether the data is fresh, and the active (firing or pending) alerts of the
+  instance and of its proxy. A trunk or service is shown failing with the
+  same checks as the alerts, without their wait time. The alerts table is
+  empty also when the alerts are disabled.
 - Trends: calls and channels, calls per hour, trunk and service state over
   time, phones online, AI calls per hour.
 - Resources: CPU, memory, OOM kills and disk of the NethVoice containers and
