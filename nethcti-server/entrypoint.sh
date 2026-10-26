@@ -15,7 +15,14 @@ cat > $FILE <<EOF
         "prefix": "${NETHCTI_PREFIX}",
         "auto_c2c": "${NETHCTI_AUTOC2C}",
         "trunks_events": "${NETHCTI_TRUNKS_EVENTS}",
-        "qm_alarms_notifications": ${NETHCTI_ALERTS:-true}
+        "qm_alarms_notifications": ${NETHCTI_ALERTS:-true},
+        "qm_alarms": {
+                "max_calls_per_op": "${NETHCTI_ALERTS_MAX_CALLS_PER_OP:-2}",
+                "max_calls": "${NETHCTI_ALERTS_MAX_CALLS:-10}",
+                "max_holdtime": "${NETHCTI_ALERTS_MAX_HOLDTIME:-120}",
+                "callers_max_wait": "${NETHCTI_ALERTS_CALLERS_MAX_WAIT:-250}",
+                "check_interval": "${NETHCTI_ALERTS_CHECK_INTERVAL:-30}"
+        }
 }
 EOF
 
