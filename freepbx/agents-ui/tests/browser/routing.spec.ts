@@ -2,6 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 const base = new URL("../../../var/www/html/freepbx/rest/lib/agents/contracts/", import.meta.url);
 const tools = JSON.parse(readFileSync(new URL("tools-v5.json", base), "utf8"));
+delete tools[1].configuration_schema.properties.ivrs_enabled;
+delete tools[1].configuration_schema.properties.ivr_denylist;
 tools[0].editor = {automatic:true};
 tools[1].editor = {descriptions_field:"descriptions",categories:[
   {enabled_field:"extensions_enabled",destinations_field:"extension_allowlist",inventory:"extensions",selection:"allowlist"},

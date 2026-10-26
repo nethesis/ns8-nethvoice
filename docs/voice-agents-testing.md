@@ -41,7 +41,7 @@ retry, endpoint isolation and cancellation/reaping of per-request workers.
 Build the NethVoice Satellite wrapper with `BUILD_IMAGES=satellite bash build-images.sh`.
 It consumes the published Satellite PR #56 image pinned by digest in
 `build-images.sh`; no upstream source build is needed. CI checks out its source
-revision `66253bf9345b4be369a24b07692b522a3c02998f` directly for the paired tests.
+revision `52b178eb28ffecc81f8dc5d4d724bb8730020097` directly for the paired tests.
 When changing the base, verify its registry digest and source-revision label,
 then update the image pin and CI checkout together. **Replace the PR image with
 a versioned Satellite release before merging.** `SATELLITE_IMAGE` can override

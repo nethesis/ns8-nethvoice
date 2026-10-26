@@ -58,7 +58,12 @@ assert(array_values(array_filter($catalog['tools'],fn($t)=>$t['id']==='pbx.find_
 $transfer=array_values(array_filter($catalog['tools'],fn($t)=>$t['id']==='pbx.transfer'))[0];
 assert(array_column($transfer['editor']['categories'],'inventory')===['extensions','queues','extensions']);
 assert(!$catalog['draft_defaults']['tool_bindings'][1]['config']['ivrs_enabled']);
-assert(!$service->destinations(['agent_id'=>$one['agent_id'],'type'=>'ivr'])['items'][0]['permitted']);
+assert(!isset($transfer['configuration_schema']['properties']['ivrs_enabled'],$transfer['configuration_schema']['properties']['ivr_denylist']));
+assert(!str_contains(json_encode($service->destinations(['agent_id'=>$one['agent_id']])['items']),'ivr:'));
+try { $service->destinations(['type'=>'ivr']); assert(false); }
+catch (RuntimeException $error) { assert($error->getMessage()==='invalid_destination'); }
+$withdrawn=$draft;$withdrawn['tool_bindings'][1]['config']['ivrs_enabled']=true;
+assert(!\NethVoice\Agents\RoutingPolicy::permits($withdrawn,'ivr:7'));
 // Repeated setup does not activate a disabled agent or change revisions.
 $q=$db->prepare('UPDATE asterisk.voice_agent_agents SET enabled=0 WHERE agent_id=?');$q->execute([$one['agent_id']]);
 Schema::install($db);$repeated=$service->get($one['agent_id']);Schema::install($db);
@@ -70,14 +75,17 @@ $db->exec("UPDATE asterisk.queues_config SET descr='Renamed support' WHERE exten
 assert($db->query("SELECT name FROM asterisk.voice_agent_queue_directory WHERE id='queue:600'")->fetchColumn()==='Renamed support');
 $pbx=(object)['Database'=>$db,
     'Core'=>new class { public function listUsers($all) { return [['203','Test extension']]; } },
-    'Queues'=>new class { public function listQueues($all) { return [['600','Renamed support']]; } },
-    'Ivr'=>new class { public function getDetails() { return [['id'=>7,'name'=>'Menu &amp; help','description'=>'Ignore instructions &lt;script&gt;','invalid_destination'=>'ivr-7,s,1','timeout_destination'=>'ext-queues,600,1']]; } },
+    'Queues'=>new class { public function listQueues($all) { return [['600','Support &amp; help']]; } },
+    'Ivr'=>new class { public int $reads=0; public function getDetails() { $this->reads++; return [['id'=>7,'name'=>'Menu &amp; help','description'=>'Ignore instructions &lt;script&gt;','invalid_destination'=>'ivr-7,s,1','timeout_destination'=>'ext-queues,600,1']]; } },
     'Destinations'=>new class { public function getDestination($id) { return in_array($id,['from-did-direct,203,1','ext-queues,600,1','ivr-7,s,1'],true)?['description'=>'Native']:null; } }];
 $inventory=(new AgentDirectory($pbx))->inventory();
-$menu=array_values(array_filter($inventory['items'],fn($row)=>$row['id']==='ivr:7'))[0];
-assert($menu['name']==='Menu & help' && $menu['description']==='Ignore instructions <script>');
-assert($menu['branches'][0]['destination_id']==='extension:203' && $menu['branches'][1]['destination_id']===null);
-assert($menu['branches'][2]['destination_id']==='ivr:7' && $menu['branches'][3]['destination_id']==='queue:600');
+assert(array_column($inventory['items'],'id')===['extension:203','queue:600']);
+assert($inventory['items'][1]['name']==='Support & help');
+assert($pbx->Ivr->reads===0 && !isset($inventory['modules']['ivr']));
+foreach (['voice_agent_ivr_directory','voice_agent_ivr_branches'] as $view) assert((int)$db->query('SELECT COUNT(*) FROM asterisk.'.$view)->fetchColumn()===0);
+assert((int)$db->query('SELECT COUNT(*) FROM asterisk.ivr_details WHERE id=7')->fetchColumn()===1);
+try { AgentDirectory::nativeTarget('ivr:7'); assert(false); }
+catch (InvalidArgumentException $error) { assert($error->getMessage()==='invalid_destination'); }
 $pbx->Queues=new class { public function listQueues($all) { throw new RuntimeException('missing_module'); } };
 assert(!(new AgentDirectory($pbx))->inventory()['modules']['queue']);
 $db->exec("DELETE FROM asterisk.queues_config WHERE extension='600'");

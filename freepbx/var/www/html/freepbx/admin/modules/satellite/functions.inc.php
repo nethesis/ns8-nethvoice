@@ -169,12 +169,12 @@ function satellite_build_agent_dialplan() {
         $ext->add('voice-agent-transfer',$number,'',new ext_goto('1',$number,'from-did-direct'));
     }
     foreach (FreePBX::Satellite()->agentDirectory()['items'] as $target) {
-        if (!$target['available'] || !preg_match('/^(queue|ivr):([0-9]{1,20})$/D',$target['id'],$match)) continue;
+        if (!$target['available'] || !preg_match('/^queue:([0-9]{1,20})$/D',$target['id'],$match)) continue;
         [$nativeContext,$nativeExtension,$priority]=explode(',',$target['native_destination']);
-        $context='voice-agent-transfer-'.$match[1];
-        $ext->add($context,$match[2],'',new ext_set('TIMEOUT(absolute)','0'));
-        $ext->add($context,$match[2],'',new ext_userevent('VoiceAgentTransfer','token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:'.$target['id']));
-        $ext->add($context,$match[2],'',new ext_goto($priority,$nativeExtension,$nativeContext));
+        $context='voice-agent-transfer-queue';
+        $ext->add($context,$match[1],'',new ext_set('TIMEOUT(absolute)','0'));
+        $ext->add($context,$match[1],'',new ext_userevent('VoiceAgentTransfer','token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:'.$target['id']));
+        $ext->add($context,$match[1],'',new ext_goto($priority,$nativeExtension,$nativeContext));
     }
     // Immutable wrapper names preserve fallback routing across publication/reload.
     $fallbackContexts=[];

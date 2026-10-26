@@ -7,6 +7,8 @@ const base = new URL(
 const read = (name: string) =>
   JSON.parse(readFileSync(new URL(name, base), "utf8"));
 const tools = read("tools-v5.json");
+delete tools[1].configuration_schema.properties.ivrs_enabled;
+delete tools[1].configuration_schema.properties.ivr_denylist;
 function draft() {
   const value = read("published-v8.example.json");
   for (const key of [

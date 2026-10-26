@@ -45,7 +45,7 @@ jobs:
         with:
           repository: nethesis/satellite
           # PR #56 image source; update with the Satellite image in build-images.sh.
-          ref: 66253bf9345b4be369a24b07692b522a3c02998f
+          ref: 52b178eb28ffecc81f8dc5d4d724bb8730020097
           path: satellite
       - uses: actions/setup-python@v6
         with:
