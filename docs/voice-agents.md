@@ -68,14 +68,15 @@ Each agent owns its own enabled bindings, configuration and grants.
 | Directory discovery and transfer | Enabled |
 | Direct extensions | Disabled, empty explicit allowlist |
 | Queues | Enabled, empty denylist |
-| IVRs | Disabled; the current editor does not expose IVR activation |
 | Recent callbacks | Enabled, seven-day window, separate extension denylist |
 | Agent-controlled hangup | Disabled; optional bounded goodbye playback |
 | Debug transcripts | Disabled; encrypted text, 1–24 hour retention when enabled |
 
 Directory names and descriptions are untrusted data. Deleted targets fail closed;
-renames preserve stable permissions. Native IVR branches describe native behavior
-and never grant a direct transfer. An enabled callback can reach an extension that
+renames preserve stable permissions. Agent routing supports extensions, queues
+and verified recent callbacks; IVR routing has been removed from the product and
+roadmap. Native VisualPlan fallback destinations remain administrator-controlled.
+An enabled callback can reach an extension that
 is denied for direct transfer only with short-lived evidence bound to this caller,
 agent, publication and live session. Lookup uses the PBX's inbound caller identity,
 not a number supplied by a model or caller. Caller ID is spoofable and is not strong
@@ -139,7 +140,8 @@ belong outside published documentation.
 See [testing](voice-agents-testing.md), [v8 contract](voice-agents-contract-v8.md)
 and [validation record](voice-agents-validation.md). These checks do not replace
 live acceptance. Duplication, caller admission policies, richer graph workflows and
-custom connectors remain roadmap work; this cleanup adds no product features.
+custom connectors remain roadmap work; IVR discovery, menu context and transfers
+are intentionally excluded.
 
 ## CleverAI (external conversations)
 

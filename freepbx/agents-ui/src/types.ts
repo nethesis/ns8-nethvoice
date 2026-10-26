@@ -126,7 +126,7 @@ export interface ConfigurationField {
   title: string;
   minimum?: number;
   maximum?: number;
-  "x-inventory"?: "extensions" | "queues" | "ivrs";
+  "x-inventory"?: "extensions" | "queues";
   "x-control"?: "destination-descriptions" | "destination-list";
 }
 export interface ToolDefinition {

@@ -26,8 +26,8 @@ The process no longer supervises or restarts component subprocesses. A fatal
 process failure still affects both components; systemd restarts the application.
 
 The build consumes the published Satellite PR #56 image pinned in `build-images.sh`
-to `sha256:3e8df2c59bdb2b9ec58fac850fafc430721490a890d10c78dd595f455ad1a36a`.
-Its source revision is `66253bf9345b4be369a24b07692b522a3c02998f`; NethVoice CI
+to `sha256:ef50b10b07135e0a730587b1f7ab9779113b0f6536d793f591fbe08425bb73e4`.
+Its source revision is `52b178eb28ffecc81f8dc5d4d724bb8730020097`; NethVoice CI
 checks out that exact revision for paired tests. The import check requires the
 shared application lifecycle. `SATELLITE_IMAGE` remains a development base override.
 **Replace the PR image with a versioned Satellite release before merging, updating

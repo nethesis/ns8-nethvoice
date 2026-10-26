@@ -18,7 +18,6 @@ const en = {
   destinationSearch: {
     extensions: "Search extensions by name, number or purpose",
     queues: "Search queues by name, number or purpose",
-    ivrs: "Search IVRs by name, number or purpose",
   },
   toolSettings: {
     recent_callers_enabled: "Recent callbacks",
@@ -29,8 +28,6 @@ const en = {
     extension_allowlist: "Approved extensions",
     queues_enabled: "Queues",
     queue_denylist: "Queues",
-    ivrs_enabled: "IVRs",
-    ivr_denylist: "IVRs",
     descriptions: "Routing descriptions",
     playback_timeout_seconds: "Maximum goodbye playback (seconds)",
   },
@@ -462,7 +459,6 @@ const it: typeof en = {
   destinationSearch: {
     extensions: "Cerca interni per nome, numero o funzione",
     queues: "Cerca code per nome, numero o funzione",
-    ivrs: "Cerca IVR per nome o funzione",
   },
   toolSettings: {
     recent_callers_enabled: "Richiamate recenti",
@@ -473,8 +469,6 @@ const it: typeof en = {
     extension_allowlist: "Interni autorizzati",
     queues_enabled: "Code",
     queue_denylist: "Code",
-    ivrs_enabled: "IVR",
-    ivr_denylist: "IVR",
     descriptions: "Descrizioni di instradamento",
     playback_timeout_seconds: "Attesa massima per il saluto finale (secondi)",
   },

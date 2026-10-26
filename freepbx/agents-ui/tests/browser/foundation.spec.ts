@@ -2,6 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import type { ToolDefinition } from "../../src/types";
 const tools: ToolDefinition[] = JSON.parse(readFileSync(new URL("../../../var/www/html/freepbx/rest/lib/agents/contracts/tools-v5.json", import.meta.url), "utf8"));
+delete tools[1].configuration_schema.properties.ivrs_enabled;
+delete tools[1].configuration_schema.properties.ivr_denylist;
 tools.find(t=>t.id==='pbx.find_destinations')!.editor={automatic:true};
 const modelCapabilities = JSON.parse(readFileSync(new URL("../../../var/www/html/freepbx/rest/lib/agents/contracts/provider-models-v2.json", import.meta.url), "utf8")).openai;
 const modelCatalog = {items:modelCapabilities.models,backend_models:modelCapabilities.backend_models,default_model:modelCapabilities.default,source:"provider_api",selection:"selectable"};

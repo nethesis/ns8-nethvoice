@@ -71,15 +71,10 @@ final class Schema
         $empty="SELECT CAST(NULL AS CHAR(64)) id,CAST(NULL AS CHAR(100)) name,CAST(NULL AS CHAR(500)) description WHERE 0";
         $db->exec("CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_queue_directory AS ".
             (in_array('queues_config',$tables,true)?"SELECT CONCAT('queue:',extension) id,descr name,'' description FROM asterisk.queues_config WHERE extension REGEXP '^[0-9]{1,20}$'".$active('queues'):$empty));
-        $db->exec("CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_ivr_directory AS ".
-            (in_array('ivr_details',$tables,true)?"SELECT CONCAT('ivr:',id) id,name,description FROM asterisk.ivr_details WHERE id>0".$active('ivr'):$empty));
-        $branches="SELECT CAST(NULL AS CHAR(64)) id,CAST(NULL AS CHAR(30)) selection,CAST(NULL AS CHAR(200)) destination WHERE 0";
-        if (in_array('ivr_details',$tables,true)) {
-            $branches="SELECT CONCAT('ivr:',id) id,'invalid' selection,invalid_destination destination FROM asterisk.ivr_details WHERE id>0".$active('ivr').
-                " UNION ALL SELECT CONCAT('ivr:',id),'timeout',timeout_destination FROM asterisk.ivr_details WHERE id>0".$active('ivr');
-            if (in_array('ivr_entries',$tables,true)) $branches.=" UNION ALL SELECT CONCAT('ivr:',ivr_id),selection,dest FROM asterisk.ivr_entries WHERE ivr_id>0".$active('ivr');
-        }
-        $db->exec("CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_ivr_branches AS ".$branches);
+        // Empty v8 views keep the pinned runtime readable during a matching-image upgrade.
+        $db->exec("CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_ivr_directory AS ".$empty);
+        $db->exec("CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_ivr_branches AS ".
+            "SELECT CAST(NULL AS CHAR(64)) id,CAST(NULL AS CHAR(30)) selection,CAST(NULL AS CHAR(200)) destination WHERE 0");
     }
 
 }

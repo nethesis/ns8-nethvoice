@@ -241,3 +241,40 @@ lint, formatting, seven unit tests, production build and all 29 browser tests.
 The browser rerun used writable Chrome configuration and a short temporary path
 to avoid host sandbox/socket-path launch failures. No product changes were needed.
 No deployment or real provider/audio acceptance was performed.
+
+
+## IVR routing removed — 2026-10-26
+
+The product decision removes IVRs from agent routing and the roadmap. Starting
+revisions are NethVoice `47cb49b1826dd80a4a16ffdd07b30de701353b25` and Satellite
+`f39996479009a8e9a0ff05d05ea6d0379f9d03f3`, both on `voice_agents`.
+
+Native inventory, REST searches, agent dialplan wrappers, runtime target reads,
+menu traversal, routing authorization, model advertisements and UI metadata now
+support extensions and queues only. Recent-caller callbacks remain independent.
+A saved v8 IVR flag cannot authorize discovery or transfer. OpenAI Realtime's
+strict advertisement projection accepts the known narrowed schema and continues
+to reject unknown schemas; other providers retain the runtime's one-of constraint.
+
+The immutable v8 schema/tool JSON files and existing publications are unchanged.
+Retired wire fields are inert. Two empty read-only compatibility views keep the
+currently pinned runtime's queries working during a matching-image upgrade;
+they expose no IVR inventory or branch data. Native FreePBX IVR records and
+administrator-selected VisualPlan fallback routes are preserved. Workspace
+instructions and the local release plan explicitly exclude future IVR activation.
+
+Validation passed: the disposable PHP/MariaDB/auth/native-dialplan/restore harness
+including **265 runtime tests**; **36 focused routing/greeting tests** and **18
+provider/callback tests**; UI type/lint/format checks, **seven UI unit tests**, the
+production build and browser regressions. Repeated installation preserves native
+IVR data, drafts, credentials, immutable publications and the canonical catalog.
+No commit, push, deployment or real provider calls were performed for this removal.
+
+
+The user subsequently authorized commit/push of the IVR removal. Satellite commit
+`03eb3dcf84eface5cc8eee3a24ca6cf026bb70dc` passed its
+[PR image workflow](https://github.com/nethesis/satellite/actions/runs/40350779523).
+NethVoice now pins `ghcr.io/nethesis/satellite:pr-56@sha256:ef50b10b07135e0a730587b1f7ab9779113b0f6536d793f591fbe08425bb73e4`
+and source `52b178eb28ffecc81f8dc5d4d724bb8730020097` for paired CI tests.
+The published merge tree matches the committed Satellite tree. A versioned
+Satellite release remains required before merging; no deployment was performed.

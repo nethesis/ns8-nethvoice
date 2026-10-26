@@ -51,7 +51,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         return $result;
     }
 
-    /** Native extensions, queues and IVRs; optional missing modules are unavailable. */
+    /** Native extensions and queues; optional missing modules are unavailable. */
     public function agentDirectory(): array {
         require_once __DIR__ . '/lib/AgentDirectory.php';
         return (new \AgentDirectory($this->FreePBX))->inventory();
