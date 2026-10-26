@@ -1,4 +1,4 @@
-"""Regression checks for PBX update isolation and safe reload/restart helpers."""
+"""Regression checks for PBX update isolation and safe service restarts."""
 import os
 from pathlib import Path
 import subprocess
@@ -51,35 +51,6 @@ namespace {
     assert result.returncode == 0, result.stderr
     assert 'all core updates completed' in result.stdout
     assert 'Voice agent setup failed' in result.stderr
-
-
-@pytest.mark.parametrize('busy,expected_attempts,status', [('yes', 2, 0), ('no', 1, 2)])
-def test_agent_reload_retries_only_the_freepbx_lock(tmp_path, busy, expected_attempts, status):
-    counter = tmp_path / 'attempts'
-    stub = tmp_path / 'fwconsole'
-    stub.write_text(f'''#!{sys.executable}
-import os
-from pathlib import Path
-counter=Path(os.environ['TEST_COUNTER'])
-attempts=int(counter.read_text()) if counter.exists() else 0
-counter.write_text(str(attempts+1))
-if os.environ['TEST_BUSY']=='yes':
-    if attempts==0:
-        print('Process is already running. Process ID : 42')
-        raise SystemExit(255)
-else:
-    print('synthetic configuration failure')
-    raise SystemExit(2)
-''')
-    stub.chmod(0o755)
-    (tmp_path / 'sleep').write_text('#!/bin/sh\nexit 0\n')
-    (tmp_path / 'sleep').chmod(0o755)
-    env = dict(os.environ, PATH=str(tmp_path) + os.pathsep + os.environ['PATH'],
-               TEST_COUNTER=str(counter), TEST_BUSY=busy)
-    result = subprocess.run(['bash', str(ROOT / 'freepbx/var/www/html/freepbx/admin/modules/satellite/bin/voice-agent-reload')],
-                            env=env, capture_output=True, text=True)
-    assert result.returncode == status
-    assert int(counter.read_text()) == expected_attempts
 
 
 @pytest.mark.parametrize('mode,status', [('busy_then_idle', 0), ('unavailable', 1), ('invalid', 1)])

@@ -81,10 +81,9 @@ watch(
 const profiles = useQuery({
   queryKey: ["monitoring-agents"],
   queryFn: () =>
-    request<{ items: { agent_id: string; name: string }[] }>(
-      "GET",
-      "/profiles",
-    ),
+    request<{
+      items: { agent_id: string; name: string; agent_type?: string }[];
+    }>("GET", "/profiles"),
 });
 const summary = useQuery({
   queryKey: ["monitoring-summary", common],
@@ -118,10 +117,12 @@ const runs = useQuery({
 const all = computed(() => ({ id: "", label: t("monitoring.all") }));
 const agentOptions = computed(() => [
   all.value,
-  ...(profiles.data.value?.items || []).map((a) => ({
-    id: a.agent_id,
-    label: a.name,
-  })),
+  ...(profiles.data.value?.items || [])
+    .filter((a) => a.agent_type !== "cleverai")
+    .map((a) => ({
+      id: a.agent_id,
+      label: a.name,
+    })),
 ]);
 const outcomes = [
   "running",

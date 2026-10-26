@@ -74,10 +74,19 @@ function close() {
 }
 async function save() {
   await task.run(async () => {
-    const trunk = {
-      ...form.value,
-      ...(form.value.provider === "openai" ? { sip_auth_mode: "none" } : {}),
-    };
+    const trunk =
+      form.value.provider === "cleverai"
+        ? {
+            name: form.value.name,
+            provider: "cleverai",
+            openai_project_id: form.value.openai_project_id,
+          }
+        : {
+            ...form.value,
+            ...(form.value.provider === "openai"
+              ? { sip_auth_mode: "none" }
+              : {}),
+          };
     await request<Trunk>(
       editing.value ? "PUT" : "POST",
       editing.value ? "/trunks/" + editing.value.binding_id : "/trunks",
@@ -134,11 +143,12 @@ async function synchronize() {
         :options="[
           { id: 'openai', label: 'OpenAI' },
           { id: 'grok', label: 'Grok' },
+          { id: 'cleverai', label: 'CleverAI' },
         ]"
         @update:model-value="changeProvider"
       />
       <NeTextInput
-        v-if="form.provider === 'openai'"
+        v-if="form.provider !== 'grok'"
         v-model="form.openai_project_id"
         :label="t('openaiProject')"
         required
@@ -177,6 +187,7 @@ async function synchronize() {
         autocomplete="new-password"
       />
       <NeTextInput
+        v-if="form.provider !== 'cleverai'"
         v-model="form.api_key"
         :label="t('providerApiKey')"
         type="password"
@@ -184,6 +195,7 @@ async function synchronize() {
         autocomplete="new-password"
       />
       <NeTextInput
+        v-if="form.provider !== 'cleverai'"
         v-model="form.webhook_secret"
         :label="t('webhookSigningSecret')"
         type="password"
@@ -191,7 +203,7 @@ async function synchronize() {
         autocomplete="new-password"
       />
     </div>
-    <p class="nv-muted">
+    <p v-if="form.provider !== 'cleverai'" class="nv-muted">
       {{
         t(
           environmentKey
@@ -202,8 +214,17 @@ async function synchronize() {
         )
       }}
     </p>
-    <p class="nv-muted">{{ t("providerSetupHelp") }}</p>
+    <p class="nv-muted">
+      {{
+        t(
+          form.provider === "cleverai"
+            ? "cleverAiTrunkHelp"
+            : "providerSetupHelp",
+        )
+      }}
+    </p>
     <NeTextInput
+      v-if="form.provider !== 'cleverai'"
       :model-value="webhookUrl"
       :label="t('webhookEndpoint')"
       readonly
@@ -225,7 +246,9 @@ async function synchronize() {
     >
       <h2>{{ trunk.name }}</h2>
       <p>{{ trunk.provider }} · {{ t("sync." + trunk.sync_status) }}</p>
-      <p class="nv-muted">{{ t("credentialsConfigured") }}</p>
+      <p v-if="trunk.provider !== 'cleverai'" class="nv-muted">
+        {{ t("credentialsConfigured") }}
+      </p>
       <div class="nv-action-bar">
         <NeButton
           v-if="trunk.sync_status !== 'synced'"

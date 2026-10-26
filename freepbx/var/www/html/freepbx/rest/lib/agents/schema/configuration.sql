@@ -87,7 +87,7 @@ CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_published AS
  WHERE a.enabled=1 AND a.removed=0 AND a.sync_status='synced';
 CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_runtime_bindings AS
  SELECT b.binding_id,b.provider,b.settings_json,b.secrets_encrypted,b.freepbx_trunk_id,CONCAT('VoiceAgentTrunk_',b.id) AS trunk_name
- FROM asterisk.voice_agent_bindings b WHERE b.removed=0 AND b.sync_status='synced';
+ FROM asterisk.voice_agent_bindings b WHERE b.removed=0 AND b.sync_status='synced' AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(b.settings_json,'$.execution')),'local')<>'cleverai';
 CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_runtime_tools AS
  SELECT tool_id,tool_version,manifest_json FROM asterisk.voice_agent_builtin_tools;
 CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_extension_directory AS
