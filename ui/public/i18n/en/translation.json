@@ -227,6 +227,8 @@
       "installing_nethvoice_proxy": "Installing NethVoice Proxy",
       "proxy_already_configured": "Proxy already configured on {node}",
       "proxy_already_configured_description": "You can change these settings on the Settings page of {proxyModule}.",
+      "proxy_already_configured_on_node": "Proxy already configured",
+      "proxy_already_configured_on_node_description": "A Proxy is already configured on this node. Adjustments are managed from the Proxy settings page.",
       "go_to_proxy_settings": "Go to proxy settings",
       "configuring_nethvoice_proxy": "Configuring NethVoice Proxy",
       "install_proxy": "Install Proxy",
