@@ -7,6 +7,11 @@ before Agents schema or seed changes. There is no automatic conversion or erase.
 Take a protected backup and use an explicitly reviewed test-instance reset, or install
 on a new instance. Never use the alpha installer to upgrade a development database.
 
+NethVoice currently wraps the published Satellite PR #56 image, pinned by digest
+in `build-images.sh`, and checks out its matching source revision in CI.
+**Before merging, replace that PR image with a versioned Satellite release and
+update the digest and CI revision together.**
+
 ## Architecture and ownership
 
 The standalone Vue application at `/freepbx/agents-ui/` uses the existing Wizard
@@ -21,6 +26,14 @@ configuration account. A separate account writes runs, events and encrypted debu
 transcripts to `asteriskcdrdb`. Native CDR/CEL and existing transcription retain their
 owners. Neither a configuration-push API nor a second agent configuration store exists.
 Provider adapters remain separate; all call control uses owned Asterisk ARI channels.
+One Python process in `satellite.service` owns the shared startup/shutdown lifecycle.
+Voice agents run with transcription disabled; either existing transcription flag
+starts the separate transcription module and private HTTP listener. The listeners
+retain their ports/authentication and distinct ARI applications. Transcription
+connection failures recover without restarting agent calls; fatal process failure
+affects both components. No configuration, credentials or stored data move.
+The pinned published image includes the shared lifecycle. NethVoice checks its
+imports and tests the matching source revision; older images are rejected.
 
 ## Configuration and activation
 
@@ -38,6 +51,12 @@ routable. VisualPlan selects its stable native destination and controls the fall
 output; an unconnected fallback uses Hangup. New agent opens the editor in a new tab.
 VisualPlan fallback changes preserve unrelated unpublished edits and validate cycles.
 Calls pin their snapshot and tool versions; edits never alter an active call.
+
+Native configuration changes request a PBX-wide reload through the shared
+`rest/lib/retrieveHelper.sh`, using the same background queue as other PBX changes.
+Synchronization status records native configuration and the reload request, not
+verified reload completion. Publication and routing still require a ready native
+trunk. Reload failures require PBX-wide diagnosis; Agents does not check them.
 
 The current tools are `pbx.find_destinations` v1, `pbx.transfer` v2,
 `pbx.find_recent_callers` v1 and `telephony.hangup` v1. The catalog's filename remains
@@ -121,3 +140,49 @@ See [testing](voice-agents-testing.md), [v8 contract](voice-agents-contract-v8.m
 and [validation record](voice-agents-validation.md). These checks do not replace
 live acceptance. Duplication, caller admission policies, richer graph workflows and
 custom connectors remain roadmap work; this cleanup adds no product features.
+
+## CleverAI (external conversations)
+
+Choose **CleverAI** as the trunk type and enter its display name and OpenAI project
+ID. It reuses the managed OpenAI SIP trunk, proxy, port and media settings.
+Configure the OpenAI incoming-call webhook **externally to point to CleverAI**,
+using the details supplied by CleverAI. NethVoice neither provisions CleverAI nor
+relays its webhooks. Do not enter an OpenAI API key or webhook secret in NethVoice
+for this trunk; environment credentials are not used or discovered for it.
+
+Create an agent of type **CleverAI** and choose its name and CleverAI trunk.
+**Save** requests the shared PBX reload and activates the configuration without a
+Publish step. The destination becomes selectable when synchronization and the
+native trunk are ready. Synchronization reports a reload request, not completion;
+if a destination is not ready, check the shared PBX reload. Configure its fallback
+output in VisualPlan; an unconnected output hangs up. Existing native identities
+(`agent:<agent_id>` and `voice-agent-<agent_id>,s,1`) are reused, with no custom
+numbered extension. Agent type is fixed at creation; builtin/custom ownership
+remains separate. In-use agent destinations and trunks cannot be deleted.
+
+CleverAI accepts the session and owns prompts, greeting, model, voice, language,
+tools and conversation monitoring. There are no local conversation controls,
+publications, agent runs, debug transcripts or usage records for these calls.
+Native PBX CDR and unrelated transcription continue normally. Transfers from
+CleverAI back into NethVoice are deferred; no REFER or transfer API is added.
+Local OpenAI/Grok agents retain their draft/Publish lifecycle.
+
+The native dialplan calls OpenAI directly through the selected managed trunk,
+without Stasis or a local provider session. A 20-second connection timeout,
+rejection, busy or other connection failure follows the VisualPlan fallback.
+Normal remote hangup ends the call. The resolved fallback is pinned before Dial
+so a concurrent save/reload cannot remove a temporary fallback wrapper.
+
+PBX channel state supplies inherited `X-OS-Caller` and `X-OS-Caller-Name` values;
+control bytes are removed and empty caller fields stay empty. `FROM_DID` supplies
+`X-OS-DID`; an empty DID falls back to the routing identity. The current proposed
+`X-OS-Extension` routing identity is the stable native `agent:<agent_id>` value.
+**External contract unresolved:** the experimental dialplan was not present in
+this workspace, and CleverAI acceptance/registration of this identity has not been
+confirmed. Do not treat the local identity or empty-header handling as verified
+CleverAI behavior. Confirm the mapping with CleverAI before a live rollout;
+experimental numbers such as 9907001 are not created or copied.
+
+This is additive metadata in the existing fresh-v8 configuration tables, with no
+schema conversion or development-database reset. Repeated installation preserves
+CleverAI edits as well as existing local credentials and immutable publications.
