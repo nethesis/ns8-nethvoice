@@ -69,9 +69,9 @@ class Satellite extends \FreePBX_Helpers implements \BMO
 
     public function applyAgentDialplan(): bool {
         needreload();
-        $output = []; $status = 1;
-        exec('/bin/bash '.escapeshellarg(__DIR__.'/bin/voice-agent-reload').' >/dev/null 2>&1', $output, $status);
-        return $status === 0;
+        // PBX-wide reloads are queued by the shared helper, without completion reporting.
+        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        return true;
     }
 
     public function agentTrunkExists(array $binding): bool {
@@ -96,6 +96,11 @@ class Satellite extends \FreePBX_Helpers implements \BMO
     public function agentDestinations(): array {
         require_once dirname(__DIR__, 3) . '/rest/lib/agents/Service.php';
         return (new \NethVoice\Agents\Service($this->db))->all();
+    }
+
+    public function cleverAiTransport(string $id): ?array {
+        require_once dirname(__DIR__, 3) . '/rest/lib/agents/Service.php';
+        return (new \NethVoice\Agents\Service($this->db))->cleverAiTransport($id);
     }
 
     public function agentDestinationInUse(string $id): bool {

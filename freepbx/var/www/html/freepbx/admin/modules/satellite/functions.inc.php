@@ -5,12 +5,12 @@ function satellite_get_config($engine) {
 }
 
 function satellite_get_config_late($engine) {
-    if ($engine === 'asterisk') satellite_generate_agent_dialplan();
     global $ext;
     global $amp_conf;
     global $db;
     switch($engine) {
         case "asterisk":
+        satellite_build_agent_dialplan();
         /* satellite STT real time Transcriptions*/
         if (!empty($_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED']) && $_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED'] == 'True') {
             $satellite_mixmonitor_options = 'br(/var/run/nethvoice/satellite-r-${UNIQUEID}-${CHANNEL(linkedid)}.wav)t(/var/run/nethvoice/satellite-t-${UNIQUEID}-${CHANNEL(linkedid)}.wav)i(${SATELLITE_LOCAL_MIXMON_ID})';
@@ -131,7 +131,7 @@ function satellite_getdestinfo($dest) {
 function satellite_check_destinations($dest = true) {
     $result=[];
     foreach (FreePBX::Satellite()->agentDestinations() as $agent) {
-        $target=$agent['published']['fallback_destination_id']??null;
+        $target=($agent['agent_type']??null)==='cleverai'?$agent['draft']['fallback_destination_id']:($agent['published']['fallback_destination_id']??null);
         if (!$target || $target==='hangup') continue;
         try { $native=(new \NethVoice\Agents\Native())->destination($target); }
         catch (\Throwable $error) { continue; }
@@ -139,22 +139,8 @@ function satellite_check_destinations($dest = true) {
     }
     return $result;
 }
-function satellite_generate_agent_dialplan() {
+function satellite_build_agent_dialplan() {
     global $ext;
-    // Validate the entire agent projection before adding any PBX contexts.
-    $buffer = new class {
-        public array $lines = [];
-        public function add(...$line): void { $this->lines[] = $line; }
-    };
-    try { satellite_build_agent_dialplan($buffer); }
-    catch (\Throwable $error) {
-        error_log('Voice agent dialplan skipped: ' . get_class($error));
-        return;
-    }
-    foreach ($buffer->lines as $line) $ext->add(...$line);
-}
-
-function satellite_build_agent_dialplan(object $ext): void {
     $ext->add('voice-agent-trunk-hangup','s','',new ext_hangup());
     $ext->add('voice-agent-trunk-hangup','_!','',new ext_hangup());
     $ext->add('voice-agent-headers','s','',new ext_noop('Correlate provider leg'));
@@ -170,6 +156,12 @@ function satellite_build_agent_dialplan(object $ext): void {
     $ext->add('voice-agent-provider','_!','',new ext_hangup());
     // The broad provider pattern must never originate again from the h extension.
     $ext->add('voice-agent-provider','h','',new ext_hangup());
+    // Inherited values originate on the PBX caller channel, never from SIP headers.
+    foreach (['X-OS-Caller'=>'${CLEVERAI_CALLER}', 'X-OS-Caller-Name'=>'${CLEVERAI_CALLER_NAME}',
+        'X-OS-DID'=>'${CLEVERAI_DID}', 'X-OS-Extension'=>'${CLEVERAI_IDENTITY}'] as $name=>$value) {
+        $ext->add('voice-agent-cleverai-headers','s','',new ext_set('PJSIP_HEADER(add,'.$name.')',$value));
+    }
+    $ext->add('voice-agent-cleverai-headers','s','',new ext_return());
     foreach (FreePBX::Satellite()->agentExtensions() as $target) {
         $number=substr($target['id'],strlen('extension:'));
         $ext->add('voice-agent-transfer',$number,'',new ext_set('TIMEOUT(absolute)','0'));
@@ -201,22 +193,43 @@ function satellite_build_agent_dialplan(object $ext): void {
         $context='voice-agent-'.$agent['agent_id'];
         // Keep saved native references safe even before the first publication.
         // These agents remain absent from the selectable destination list.
-        if (!$agent['published']) {
+        $external=($agent['agent_type']??null)==='cleverai';
+        if (!$external && !$agent['published']) {
             $ext->add($context,'s','',new ext_hangup());
             continue;
         }
         $ext->add($context,'s','',new ext_noop('Voice agent'));
-        $ext->add($context,'s','',new ext_set('__VOICE_AGENT_FALLBACK',satellite_agent_fallback_context($agent['agent_id'],$agent['published']['fallback_destination_id'])));
-        if ($agent['enabled']) {
-            $ext->add($context,'s','',new ext_answer());
-            $ext->add($context,'s','',new ext_set('TIMEOUT(absolute)','35'));
-            $ext->add($context,'s','',new ext_stasis('voice-agent','caller,'.$agent['agent_id']));
+        if ($external) {
+            // Pin the resolved destination itself: later saves/reloads cannot remove a wrapper mid-Dial.
+            try { $fallback=(new \NethVoice\Agents\Native())->destination($agent['draft']['fallback_destination_id']); }
+            catch (\Throwable $error) { $fallback='app-blackhole,hangup,1'; }
+            $ext->add($context,'s','',new ext_set('__CLEVERAI_FALLBACK',$fallback));
+            $transport=FreePBX::Satellite()->cleverAiTransport($agent['agent_id']);
+            if ($transport) {
+                // shortcut: native destination identity needs CleverAI acceptance verification before live rollout.
+                $ext->add($context,'s','',new ext_set('__CLEVERAI_IDENTITY','agent:'.$agent['agent_id']));
+                // Strip control bytes while retaining spaces and UTF-8 display names.
+                $ext->add($context,'s','',new ext_set('__CLEVERAI_CALLER','${FILTER(\\x20-\\x7e\\x80-\\xff,${CALLERID(num)})}'));
+                $ext->add($context,'s','',new ext_set('__CLEVERAI_CALLER_NAME','${FILTER(\\x20-\\x7e\\x80-\\xff,${CALLERID(name)})}'));
+                $ext->add($context,'s','',new ext_set('__CLEVERAI_DID','${FILTER(0-9+*#a-zA-Z_:-,${FROM_DID})}'));
+                $ext->add($context,'s','',new ext_execif('$["${CLEVERAI_DID}" = ""]','Set','__CLEVERAI_DID=${CLEVERAI_IDENTITY}'));
+                $ext->add($context,'s','',new ext_dial('PJSIP/'.$transport['trunk_name'].'/sip:'.$transport['project_id'].'@sip.api.openai.com:5061\\;transport=tls,20','b(voice-agent-cleverai-headers^s^1)'));
+                $ext->add($context,'s','',new ext_gotoif('$["${DIALSTATUS}" = "ANSWER" | "${DIALSTATUS}" = "CANCEL"]','finished'));
+            }
+        } else {
+            $ext->add($context,'s','',new ext_set('__VOICE_AGENT_FALLBACK',satellite_agent_fallback_context($agent['agent_id'],$agent['published']['fallback_destination_id'])));
+            if ($agent['enabled']) {
+                $ext->add($context,'s','',new ext_answer());
+                $ext->add($context,'s','',new ext_set('TIMEOUT(absolute)','35'));
+                $ext->add($context,'s','',new ext_stasis('voice-agent','caller,'.$agent['agent_id']));
+            }
         }
         $ext->add($context,'s','fallback',new ext_set('TIMEOUT(absolute)','0'));
-        // The pointer was pinned before Stasis, including the PBX safety watchdog.
-        $ext->add($context,'s','',new ext_goto('1','s','${VOICE_AGENT_FALLBACK}'));
+        // The fallback was pinned before the provider handoff.
+        $ext->add($context,'s','',$external?new ext_goto('${CLEVERAI_FALLBACK}'):new ext_goto('1','s','${VOICE_AGENT_FALLBACK}'));
+        if ($external) $ext->add($context,'s','finished',new ext_hangup());
         $ext->add($context,'T','',new ext_set('TIMEOUT(absolute)','0'));
-        $ext->add($context,'T','',new ext_goto('1','s','${VOICE_AGENT_FALLBACK}'));
+        $ext->add($context,'T','',$external?new ext_goto('${CLEVERAI_FALLBACK}'):new ext_goto('1','s','${VOICE_AGENT_FALLBACK}'));
     }
 }
 

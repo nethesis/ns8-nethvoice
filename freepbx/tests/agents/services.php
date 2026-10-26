@@ -7,10 +7,11 @@ $db = new PDO('mysql:host=127.0.0.1;port=' . getenv('M0_TEST_PORT'), 'root', '',
 $native = new class {
     public int $reloads = 0;
     public bool $exists=true;
+    public bool $ready=true;
     public function defaultLanguage(): string { return "it"; }
     public function trunkExists(array $row): bool { return $this->exists; }
-    public function trunkReady(array $row): bool { return $this->exists; }
-    public function destination(string $id): string { if ($id==="hangup") return "app-blackhole,hangup,1"; if ($id==="extension:203") return "from-did-direct,203,1"; if ($id==="native:ivr-7,s,1") return "ivr-7,s,1"; throw new RuntimeException("destination_unavailable",422); }
+    public function trunkReady(array $row): bool { return $this->exists && $this->ready; }
+    public function destination(string $id): string { if ($id==="hangup") return "app-blackhole,hangup,1"; if ($id==="extension:203") return "from-did-direct,203,1"; if ($id==="native:ivr-7,s,1") return "ivr-7,s,1"; if (preg_match("/^native:voice-agent-[a-z][a-z0-9_-]{0,47},s,1$/D",$id)) return substr($id,7); throw new RuntimeException("destination_unavailable",422); }
     public bool $applyOk=true;
     public bool $applyThrows=false;
     public function extensions(): array { return [['id'=>'extension:203','name'=>'Test extension']]; }
@@ -117,11 +118,23 @@ check($agent['published']['conversation']['instructions']===$originalInstruction
 check($agent['draft']['conversation']['instructions']===$unpublished['conversation']['instructions'],'draft_preserved');
 $native->exists=false;
 check(!$service->get('receptionist')['routable'],'native_drift_not_routable');
-check($service->trunks()[0]['sync_status']==='error','native_drift_visible');
+check($service->trunks()[0]['sync_status']==='synced','native_drift_does_not_report_reload_failure');
 check($service->synchronize('test-admin')['sync_status']==='synced','missing_native_recovered');
 check($agent['published']['contract_version']===8,'fallback_preserves_v8');
 check($service->get('receptionist')['enabled'],'publication_owns_activation');
 echo "Agent configuration services passed\n";
+
+// The shared PBX reload may still be queued after native configuration is saved.
+$native->ready=false;
+$queued=$service->saveTrunk(null,['name'=>'Queued provider','provider'=>'openai','openai_project_id'=>'proj_queued','api_key'=>'synthetic-api','webhook_secret'=>'whsec_'.base64_encode('synthetic-webhook')],0,'test-admin');
+check($queued['sync_status']==='synced','queued_reload_not_failed');
+check($service->synchronize('test-admin')['sync_status']==='synced','queued_reload_retry_not_failed');
+check(!$service->get('receptionist')['routable'],'queued_reload_not_routable_until_ready');
+$queuedDraft=$service->get('receptionist');
+denied(fn()=>$service->publish('receptionist',$queuedDraft['revision'],'test-admin'),'trunk_not_ready');
+$native->ready=true;
+check($service->get('receptionist')['routable'],'ready_after_queued_reload');
+$service->removeTrunk($queued['binding_id'],$queued['revision'],'test-admin');
 
 // A native trunk remains editable/removable when reload throws after creation.
 $native->applyThrows=true;

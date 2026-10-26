@@ -15,11 +15,16 @@ const query = useQuery({
 const rows = computed(() =>
   (query.data.value?.items || []).map((a) => ({
     ...a,
-    status: a.workflow_version
-      ? a.routable
-        ? "published"
-        : "pending"
-      : "draft",
+    status:
+      a.agent_type === "cleverai"
+        ? a.routable
+          ? "ready"
+          : "pending"
+        : a.workflow_version
+          ? a.routable
+            ? "published"
+            : "pending"
+          : "draft",
   })),
 );
 </script>
@@ -55,6 +60,9 @@ const rows = computed(() =>
           class="font-medium text-primary-700 dark:text-primary-400"
           >{{ row.name }}</RouterLink
         >
+        <p v-if="row.agent_type === 'cleverai'" class="nv-muted text-xs">
+          CleverAI
+        </p>
         <p v-if="row.kind === 'builtin'" class="nv-muted text-xs">
           {{ t("builtin") }}
         </p></template
