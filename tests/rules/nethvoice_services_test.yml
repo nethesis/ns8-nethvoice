@@ -25,6 +25,31 @@ tests:
               description_en: "Service freepbx (Asterisk) of module nethvoice1 on node 1 has been down for more than 10 minutes"
               description_it: "Il servizio freepbx (Asterisk) del modulo nethvoice1 sul nodo 1 non è attivo da più di 10 minuti"
 
+  # Series that appears already down at 9m (after an update, or a feature just
+  # turned on): "stopped" only 10 minutes later
+  - interval: 1m
+    input_series:
+      - series: 'nethvoice_service_up{module_id="nethvoice1",node="1",service="satellite"}'
+        values: '_x9 0x30'
+      - series: 'nethvoice_service_restarts_total{module_id="nethvoice1",node="1",service="satellite"}'
+        values: '_x9 0x30'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: ServiceDown
+        exp_alerts: []
+      - eval_time: 18m
+        alertname: ServiceDown
+        exp_alerts: []
+      - eval_time: 19m
+        alertname: ServiceDown
+        exp_alerts:
+          - exp_labels: {severity: critical, alertgroup: services, reason: stopped, service: satellite, module_id: nethvoice1, node: "1"}
+            exp_annotations:
+              summary_en: "Service satellite is down"
+              summary_it: "Il servizio satellite non è attivo"
+              description_en: "Service satellite of module nethvoice1 on node 1 has been down for more than 10 minutes"
+              description_it: "Il servizio satellite del modulo nethvoice1 sul nodo 1 non è attivo da più di 10 minuti"
+
   # Crash loop: 3 restarts in one export step, unit back up
   - interval: 1m
     input_series:

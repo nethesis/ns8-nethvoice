@@ -9,12 +9,16 @@
 # max_over_time is used instead of "for", so that a crash loop ending in the
 # systemd start limit hands over to "stopped" with no gap and no overlap.
 # The second crash_loop condition keeps it firing until that handover.
+# "offset 10m" requires the series to exist 10 minutes ago: a series that
+# appears already at 0 (right after an update, or a feature like Satellite
+# just turned on and not starting) waits 10 minutes too, instead of firing
+# at once.
 # Series come from export-metrics (pypkg/nvmetrics/systemd.py) every 5 minutes.
 groups:
   - name: services
     rules:
       - alert: ServiceDown
-        expr: max_over_time(nethvoice_service_up[10m]) == 0
+        expr: max_over_time(nethvoice_service_up[10m]) == 0 and nethvoice_service_up offset 10m
         labels:
           severity: critical
           alertgroup: services
@@ -30,7 +34,7 @@ groups:
             increase(nethvoice_service_restarts_total[10m]) >= 3
             or (increase(nethvoice_service_restarts_total[20m]) >= 3 and on(service) nethvoice_service_up == 0)
           )
-          unless on(service) max_over_time(nethvoice_service_up[10m]) == 0
+          unless on(service) (max_over_time(nethvoice_service_up[10m]) == 0 and nethvoice_service_up offset 10m)
         labels:
           severity: critical
           alertgroup: services
