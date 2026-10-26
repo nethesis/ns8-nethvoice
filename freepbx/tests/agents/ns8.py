@@ -23,9 +23,9 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
     before=os.getcwd()
     try:
         os.chdir(temporary)
-        runpy.run_path(str(root/'imageroot/bin/configure-voice-agents'))
+        runpy.run_path(str(root/'imageroot/actions/configure-module/29voice_agents'))
         first=dict(state['passwords.env'])
-        runpy.run_path(str(root/'imageroot/bin/configure-voice-agents'))
+        runpy.run_path(str(root/'imageroot/actions/configure-module/29voice_agents'))
         assert first==state['passwords.env']
         agent.allocate_ports.assert_called_once_with(1,'tcp',keep_existing=True)
         runtime_env=state['satellite.env']
@@ -34,7 +34,7 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
         assert len(runtime_env)==12
         assert runtime_env['VOICE_AGENT_MONITORING_RETENTION_DAYS']=='90'
         state['environment']['VOICE_AGENT_MONITORING_RETENTION_DAYS']='120'
-        runpy.run_path(str(root/'imageroot/bin/configure-voice-agents'))
+        runpy.run_path(str(root/'imageroot/actions/configure-module/29voice_agents'))
         assert state['satellite.env']['VOICE_AGENT_MONITORING_RETENTION_DAYS']=='120'
         assert runtime_env['OPENAI_API_KEY']=='synthetic-provider'
         assert runtime_env['DEEPGRAM_API_KEY']=='synthetic-deepgram'
@@ -46,8 +46,8 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
         assert route['url']=='http://127.0.0.1:30000' and route['path']=='/satellite-webhooks'
         assert route['instance']=='nethvoice_test-voice-agent-webhooks' and route['strip_prefix'] is False
         agent.set_route.reset_mock()
-        with patch('sys.argv',['configure-voice-agents','--secrets-only']):
-            try: runpy.run_path(str(root/'imageroot/bin/configure-voice-agents'))
+        with patch('sys.argv',['29voice_agents','--secrets-only']):
+            try: runpy.run_path(str(root/'imageroot/actions/configure-module/29voice_agents'))
             except SystemExit as result: assert result.code==0
         agent.set_route.assert_not_called()
         agent.allocate_ports.assert_called_once()
@@ -57,7 +57,7 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
             state['environment']['TCP_PORTS_RANGE']='31000-'+str(31000+total-1)
             agent.allocate_ports.reset_mock()
             agent.allocate_ports.side_effect=RuntimeError('max_ports_exceeded')
-            runpy.run_path(str(root/'imageroot/bin/configure-voice-agents'))
+            runpy.run_path(str(root/'imageroot/actions/configure-module/29voice_agents'))
             assert state['environment']['VOICE_AGENT_HTTP_PORT']=='31042'
             agent.allocate_ports.assert_not_called()
         # Older or differently laid-out installations need a new allocation.
@@ -68,10 +68,10 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
                 state['environment']['CHAT_GW_PORT']='31042'
             agent.allocate_ports.reset_mock()
             agent.allocate_ports.side_effect=None
-            runpy.run_path(str(root/'imageroot/bin/configure-voice-agents'))
+            runpy.run_path(str(root/'imageroot/actions/configure-module/29voice_agents'))
             assert state['environment']['VOICE_AGENT_HTTP_PORT']=='30000'
             agent.allocate_ports.assert_called_once_with(1,'tcp',keep_existing=True)
-            runpy.run_path(str(root/'imageroot/bin/configure-voice-agents'))
+            runpy.run_path(str(root/'imageroot/actions/configure-module/29voice_agents'))
             agent.allocate_ports.assert_called_once()
         # Repair a persisted chat conflict, including int/string env values.
         for chat_port in ('CHAT_C2S_PORT','CHAT_HTTP_PORT','CHAT_COMPONENT_PORT','CHAT_GW_PORT'):
@@ -79,18 +79,18 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
                 'TCP_PORTS_RANGE':'31000-31043',chat_port:31038,'VOICE_AGENT_HTTP_PORT':'31038'}
             agent.allocate_ports.reset_mock()
             agent.allocate_ports.side_effect=RuntimeError('max_ports_exceeded')
-            runpy.run_path(str(root/'imageroot/bin/configure-voice-agents'))
+            runpy.run_path(str(root/'imageroot/actions/configure-module/29voice_agents'))
             assert state['environment']['VOICE_AGENT_HTTP_PORT']=='31042'
             assert state['environment'][chat_port]==31038
             assert agent.set_route.call_args.args[0]['url']=='http://127.0.0.1:31042'
-            runpy.run_path(str(root/'imageroot/bin/configure-voice-agents'))
+            runpy.run_path(str(root/'imageroot/actions/configure-module/29voice_agents'))
             agent.allocate_ports.assert_not_called()
         # Allocation failure must leave the conflicting state and route intact.
         state['environment']={'NETHVOICE_HOST':'synthetic.example',
             'TCP_PORTS_RANGE':'31000-31041','CHAT_C2S_PORT':'31038','VOICE_AGENT_HTTP_PORT':'31038'}
         agent.set_route.reset_mock()
         try:
-            runpy.run_path(str(root/'imageroot/bin/configure-voice-agents'))
+            runpy.run_path(str(root/'imageroot/actions/configure-module/29voice_agents'))
         except RuntimeError as error:
             assert str(error)=='max_ports_exceeded'
         else:

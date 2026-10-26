@@ -11,7 +11,7 @@ Restart=always
 RestartSec=5
 TimeoutStopSec=45
 ExecStartPre=/bin/rm -f %t/satellite.pid %t/satellite.ctr-id
-ExecStartPre=runagent configure-voice-agents --secrets-only
+ExecStartPre=runagent %E/actions/configure-module/29voice_agents --secrets-only
 ExecStart=runagent /usr/bin/podman run \
     --detach \
     --init \
