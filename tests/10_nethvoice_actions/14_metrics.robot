@@ -35,6 +35,9 @@ Alerts are disabled by default
     Should Be Equal As Integers    ${rc}    0
     Should Not Contain    ${output}    nethvoice-
 
+Dashboard is published with alerts disabled
+    Dashboard should be published
+
 Alert rules are published
     Run task    module/${module_id}/set-alerts    {"alerts_enabled": true}    decode_json=False
     ${response} =    Run task    module/${module_id}/get-configuration    {}
@@ -96,18 +99,27 @@ Publishing unchanged rules sends no event
     ${output}    ${rc} =    Execute Command    runagent -m ${module_id} publish-metrics-config    return_stdout=False    return_stderr=True    return_rc=True
     Should Be Equal As Integers    ${rc}    0
     Should Contain    ${output}    alert rules unchanged
+    Should Contain    ${output}    dashboards unchanged
 
 Disabling alerts removes the rules
     Run task    module/${module_id}/set-alerts    {"alerts_enabled": false}    decode_json=False
     ${output}    ${rc} =    Execute Command    runagent redis-exec HKEYS module/${module_id}/metrics_alert_rules    return_rc=True
     Should Be Equal As Integers    ${rc}    0
     Should Not Contain    ${output}    nethvoice-
+    Dashboard should be published
     # Metrics are still exported
     ${output}    ${rc} =    Execute Command    runagent -m ${module_id} export-metrics    return_rc=True
     Should Be Equal As Integers    ${rc}    0
     Should Contain    ${output}    nethvoice_exporter_collector_up{collector="systemd"} 1
 
 *** Keywords ***
+Dashboard should be published
+    ${output}    ${rc} =    Execute Command    runagent redis-exec HGET module/${module_id}/metrics_dashboards nethvoice-overview    return_rc=True
+    Should Be Equal As Integers    ${rc}    0
+    Should Contain    ${output}    "uid": "ns8-${module_id}"
+    Should Contain    ${output}    "title": "NethVoice ${module_id}"
+    Should Not Contain    ${output}    __MODULE_ID__
+
 Asterisk and trunks collectors are up
     ${output}    ${rc} =    Execute Command    runagent -m ${module_id} export-metrics    return_rc=True
     Should Be Equal As Integers    ${rc}    0
