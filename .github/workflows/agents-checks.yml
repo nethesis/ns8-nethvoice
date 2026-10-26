@@ -40,6 +40,13 @@ jobs:
       - uses: actions/checkout@v6
         with:
           path: ns8-nethvoice
+      - name: Checkout Satellite source matching the build image
+        uses: actions/checkout@v6
+        with:
+          repository: nethesis/satellite
+          # PR #56 image source; update with the Satellite image in build-images.sh.
+          ref: 66253bf9345b4be369a24b07692b522a3c02998f
+          path: satellite
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -48,9 +55,8 @@ jobs:
           php-version: "8.2"
           extensions: pdo_mysql, mbstring, sodium
           coverage: none
-      - name: Fetch pinned runtime and native dialplan library
+      - name: Fetch native dialplan library
         run: |
-          bash satellite/fetch-source.sh "${GITHUB_WORKSPACE}/satellite"
           REMOTE_ARTIFACTS_MANIFEST="$PWD/freepbx/remote-artifacts.sha256" sh freepbx/fetch-remote-artifact freepbx-framework-bootstrap-release-17.0.33.2.tar.gz https://github.com/FreePBX/framework/archive/refs/tags/release/17.0.33.2.tar.gz
           mkdir -p "${RUNNER_TEMP}/framework"
           tar -xzf /tmp/freepbx-framework-bootstrap-release-17.0.33.2.tar.gz --strip-components=1 -C "${RUNNER_TEMP}/framework"
