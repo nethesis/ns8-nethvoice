@@ -436,6 +436,16 @@ cat > $FILE <<EOF
             "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/Phone_ActionURL&key=F_HOLD"
         }
     },
+    "^fanvil\\\s*W6(11|20)W": {
+        "urls": {
+            "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=\$NUMBER_DIGITS;ENTER",
+            "answer": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=OK",
+            "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_HOLD",
+            "dtmf": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=\$TONE",
+            "mute_unmute": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_MUTE",
+	    "cancel": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_CANCEL"
+        }
+    },
     "^fanvil.*": {
         "urls": {
             "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=\$NUMBER;ENTER",
