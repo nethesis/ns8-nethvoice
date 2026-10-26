@@ -18,7 +18,7 @@ final class RoutingPolicy
     }
     public static function permits(array $draft,string $id): bool
     {
-        if (!preg_match('/^(extension|queue|ivr):[0-9]{1,20}$/D',$id,$m)) return false;
+        if (!preg_match('/^(extension|queue):[0-9]{1,20}$/D',$id,$m)) return false;
         $transfer=null;
         foreach ($draft['tool_bindings']??[] as $binding) if ($binding['tool_id']==='pbx.transfer') $transfer=$binding;
         if (!$transfer || !$transfer['enabled']) return false;

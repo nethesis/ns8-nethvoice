@@ -52,9 +52,7 @@ function allowed(id: string) {
     : !!props.selected?.includes(id);
 }
 function destinationLabel(row: { id: string; name: string }) {
-  return row.id.startsWith("ivr:")
-    ? row.name
-    : row.name + " (" + row.id.split(":")[1] + ")";
+  return row.name + " (" + row.id.split(":")[1] + ")";
 }
 function toggle(id: string, enabled: boolean) {
   const listed = props.selectionMode === "denylist" ? !enabled : enabled;

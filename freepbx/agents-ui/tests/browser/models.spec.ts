@@ -2,6 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 const capabilities=JSON.parse(readFileSync(new URL('../../../var/www/html/freepbx/rest/lib/agents/contracts/provider-models-v2.json',import.meta.url),'utf8'));
 const tools=JSON.parse(readFileSync(new URL('../../../var/www/html/freepbx/rest/lib/agents/contracts/tools-v5.json',import.meta.url),'utf8'));
+delete tools[1].configuration_schema.properties.ivrs_enabled;
+delete tools[1].configuration_schema.properties.ivr_denylist;
 const live={items:capabilities.openai.models,backend_models:capabilities.openai.backend_models,default_model:capabilities.openai.default,source:'provider_api',selection:'selectable'};
 const managed={items:capabilities.grok.models,backend_models:[],default_model:'provider-default',source:'provider_managed',selection:'provider_managed'};
 const trunks=[{binding_id:'trunk_test',provider:'openai',name:'Shared OpenAI',revision:1,sync_status:'synced',openai_project_id:'proj_test',api_key_configured:true,webhook_secret_configured:true},{binding_id:'trunk_grok',provider:'grok',name:'Grok test',revision:1,sync_status:'synced',api_key_configured:true,webhook_secret_configured:true}];

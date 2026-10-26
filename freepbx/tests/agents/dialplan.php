@@ -48,8 +48,7 @@ assert(satellite_destinations()[0]['description']==='Agent: &lt;script&gt;test&l
 assert(satellite_getdestinfo('voice-agent-receptionist,s,1')['description']==='Agent: &lt;script&gt;test&lt;/script&gt;');
 assert(satellite_check_destinations()[0]['description']==='Agent: &lt;script&gt;test&lt;/script&gt; fallback');
 assert($render('voice-agent-transfer-queue','600')===['Set(TIMEOUT(absolute)=0)','UserEvent(VoiceAgentTransfer,token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:queue:600)','Goto(ext-queues,600,1)']);
-assert($render('voice-agent-transfer-ivr','7')===['Set(TIMEOUT(absolute)=0)','UserEvent(VoiceAgentTransfer,token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:ivr:7)','Goto(ivr-7,s,1)']);
-assert(!isset($ext->lines['voice-agent-transfer-ivr']['8']));
+assert(!isset($ext->lines['voice-agent-transfer-ivr']));
 
 $clever=$render('voice-agent-clever_test');
 assert(!str_contains(implode("\n",$clever),'Stasis('));
