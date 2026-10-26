@@ -1,10 +1,97 @@
-#!/bin/bash
+#!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-set -e
-exec 1>&2
-# The normal configure flow may keep FreePBX running with its previous env file.
-# Start the shared runtime only after its accounts exist in the current DB.
-systemctl --user daemon-reload
-manage-satellite
+"""Apply changed Satellite configuration after active calls finish."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import secrets
+import subprocess
+import sys
 
-systemctl --user enable --now voice-agent-retention.timer
+import agent
+
+
+def systemctl(*args):
+    run('systemctl', '--user', *args)
+
+
+def run(*args):
+    subprocess.run(list(args), check=True, stdout=sys.stderr)
+
+
+# FreePBX is ready; refresh credentials before checking whether a restart is needed.
+systemctl('daemon-reload')
+env = agent.read_envfile('environment')
+if 'VOICE_AGENT_MONITORING_RETENTION_DAYS' not in env:
+    agent.set_env('VOICE_AGENT_MONITORING_RETENTION_DAYS', '90')
+    env['VOICE_AGENT_MONITORING_RETENTION_DAYS'] = '90'
+passwords = agent.read_envfile('passwords.env')
+for name in ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN', 'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD'):
+    if not passwords.get(name):
+        passwords[name] = secrets.token_urlsafe(32)
+agent.write_envfile('passwords.env', passwords)
+os.chmod('passwords.env', 0o600)
+runtime_keys = ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN',
+                'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD',
+                'SATELLITE_ARI_PASSWORD')
+runtime_env = {name: passwords[name] for name in runtime_keys}
+for name in ('OPENAI_API_KEY', 'XAI_API_KEY', 'GROK_API_KEY',
+             'DEEPGRAM_API_KEY', 'SATELLITE_MQTT_PASSWORD'):
+    value = passwords.get(name) or os.environ.get(name)
+    if value:
+        runtime_env[name] = value
+runtime_env['VOICE_AGENT_MONITORING_RETENTION_DAYS'] = env.get('VOICE_AGENT_MONITORING_RETENTION_DAYS', '90')
+runtime_env['VOICE_AGENT_LIVE_WS_MAX_CALLS'] = env.get('VOICE_AGENT_LIVE_WS_MAX_CALLS', '4')
+runtime_env['API_TOKEN'] = passwords['SATELLITE_API_TOKEN']
+runtime_env['PGVECTOR_PASSWORD'] = passwords['SATELLITE_PGSQL_PASSWORD']
+agent.write_envfile('satellite.env', runtime_env)
+os.chmod('satellite.env', 0o600)
+
+module_dir = Path(os.environ['AGENT_INSTALL_DIR'])
+unit = (module_dir / 'systemd/user/satellite.service').read_text()
+settings = {name: os.getenv(name, '') for name in re.findall(r'\$\{([A-Z0-9_]+)\}', unit)}
+image = subprocess.run(['podman', 'image', 'inspect', '--format', '{{.Id}}',
+                        os.environ['NETHVOICE_SATELLITE_IMAGE']],
+                       capture_output=True, text=True, check=True).stdout.strip()
+fingerprint = hashlib.sha256(unit.encode() + json.dumps(settings, sort_keys=True).encode() +
+                             image.encode() + Path('satellite.env').read_bytes()).hexdigest()
+previous = Path('satellite-runtime.sha256')
+active = subprocess.run(['systemctl', '--user', 'is-active', '--quiet', 'satellite.service'], check=False)
+changed = (not previous.exists() or previous.read_text().strip() != fingerprint
+           or active.returncode != 0)
+if changed:
+    # A settings save must never tear down calls. Failure to query Asterisk is also
+    # a refusal to restart, rather than an assumption that it is idle.
+    run('restart-services-when-convenient', '--wait-only')
+    legacy = subprocess.run(['systemctl', '--user', 'show', 'voice-agent.service',
+                             '--property=LoadState', '--value'],
+                            capture_output=True, text=True, check=False)
+    if legacy.stdout.strip() == 'loaded':
+        systemctl('disable', '--now', 'voice-agent.service')
+    run('podman', 'rm', '--ignore', '-f', 'voice-agent')
+    systemctl('stop', 'satellite.service')
+    # Provision accounts only on a configuration change, outside routine restarts.
+    run('podman', 'exec', 'freepbx', 'php', '/var/www/html/freepbx/rest/lib/agents/install-runtime.php')
+    transcription = any(os.getenv(name, '').lower() == 'true' for name in (
+        'SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED'))
+    if transcription:
+        systemctl('enable', '--now', 'satellite-pgsql.service', 'satellite-mqtt.service')
+    else:
+        systemctl('disable', '--now', 'satellite-recordings-cleanup.timer')
+        systemctl('stop', 'satellite-recordings-cleanup.service')
+        systemctl('disable', '--now', 'satellite-mqtt.service')
+        # Preserve PostgreSQL for reads of historical transcripts.
+    systemctl('enable', 'satellite.service')
+    systemctl('start', 'satellite.service')
+    if transcription:
+        systemctl('disable', 'satellite-recordings-cleanup.service')
+        systemctl('enable', '--now', 'satellite-recordings-cleanup.timer')
+        systemctl('start', 'satellite-recordings-cleanup.service')
+    temporary = previous.with_suffix('.tmp')
+    temporary.write_text(fingerprint + '\n')
+    temporary.chmod(0o600)
+    temporary.replace(previous)
+
+systemctl('enable', '--now', 'voice-agent-retention.timer')

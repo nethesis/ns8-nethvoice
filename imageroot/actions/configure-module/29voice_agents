@@ -1,5 +1,56 @@
-#!/bin/bash
+#!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-set -e
-exec 1>&2
-configure-voice-agents
+"""Configure voice-agent ports, credentials and the public webhook route."""
+import os
+import re
+import secrets
+import sys
+import agent
+
+env = agent.read_envfile('environment')
+if 'VOICE_AGENT_MONITORING_RETENTION_DAYS' not in env:
+    agent.set_env('VOICE_AGENT_MONITORING_RETENTION_DAYS', '90')
+    env['VOICE_AGENT_MONITORING_RETENTION_DAYS'] = '90'
+occupied_ports = {str(value) for name, value in env.items()
+                  if name != 'VOICE_AGENT_HTTP_PORT' and re.search(r'PORT\d*$', name)}
+if '--secrets-only' not in sys.argv and (
+        not env.get('VOICE_AGENT_HTTP_PORT') or str(env['VOICE_AGENT_HTTP_PORT']) in occupied_ports):
+    # Fresh installs reserve slot 42 after chat's slots 38..41. Upgrades can
+    # have a different layout: never reuse a slot assigned to another service.
+    # Also repair the chat collision saved by earlier voice-agent versions.
+    port_range = (env.get('TCP_PORTS_RANGE') or os.getenv('TCP_PORTS_RANGE', '')).split('-')
+    if (len(port_range) == 2 and int(port_range[1]) - int(port_range[0]) >= 42
+            and str(int(port_range[0]) + 42) not in occupied_ports):
+        port = int(port_range[0]) + 42
+    else:
+        port = agent.allocate_ports(1, 'tcp', keep_existing=True)[0]
+    agent.set_env('VOICE_AGENT_HTTP_PORT', str(port))
+passwords = agent.read_envfile('passwords.env')
+for name in ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN', 'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD'):
+    if not passwords.get(name):
+        passwords[name] = secrets.token_urlsafe(32)
+agent.write_envfile('passwords.env', passwords)
+os.chmod('passwords.env', 0o600)
+runtime_keys = ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN',
+                'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD',
+                'SATELLITE_ARI_PASSWORD')
+runtime_env = {name: passwords[name] for name in runtime_keys}
+for name in ('OPENAI_API_KEY', 'XAI_API_KEY', 'GROK_API_KEY',
+             'DEEPGRAM_API_KEY', 'SATELLITE_MQTT_PASSWORD'):
+    value = passwords.get(name) or os.environ.get(name)
+    if value:
+        runtime_env[name] = value
+runtime_env['VOICE_AGENT_MONITORING_RETENTION_DAYS'] = env.get('VOICE_AGENT_MONITORING_RETENTION_DAYS', '90')
+runtime_env['VOICE_AGENT_LIVE_WS_MAX_CALLS'] = env.get('VOICE_AGENT_LIVE_WS_MAX_CALLS', '4')
+runtime_env['API_TOKEN'] = passwords['SATELLITE_API_TOKEN']
+runtime_env['PGVECTOR_PASSWORD'] = passwords['SATELLITE_PGSQL_PASSWORD']
+agent.write_envfile('satellite.env', runtime_env)
+os.chmod('satellite.env', 0o600)
+# Forward exactly the public provider prefix to a loopback-only listener.
+env = agent.read_envfile('environment')
+if '--secrets-only' in sys.argv:
+    sys.exit(0)
+agent.set_route({'instance': os.environ['MODULE_ID'] + '-voice-agent-webhooks',
+    'host': env['NETHVOICE_HOST'], 'path': '/satellite-webhooks',
+    'url': 'http://127.0.0.1:' + env['VOICE_AGENT_HTTP_PORT'], 'strip_prefix': False,
+    'http2https': True})
