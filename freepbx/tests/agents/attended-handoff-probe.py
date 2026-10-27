@@ -55,16 +55,17 @@ def main():
     try:
         for extension, applications in {
             'endpoint': ['Answer()', 'Wait(45)', 'Hangup()'],
-            'recipient': ['Set(TIMEOUT(absolute)=0)', 'Wait(45)', 'Hangup()'],
-            'handoff': ['Set(TIMEOUT(absolute)=0)',
+            'recipient': ['GotoIf($["${VOICE_AGENT_HANDOFF_TOKEN}"="" | "${VOICE_AGENT_HANDOFF_SELF}"!="${CHANNEL(uniqueid)}"]?rejected,1)', 'Set(TIMEOUT(absolute)=0)', 'Wait(10)', 'Hangup()'],
+            'handoff': ['GotoIf($["${VOICE_AGENT_HANDOFF_TOKEN}"="" | "${VOICE_AGENT_HANDOFF_SELF}"!="${CHANNEL(uniqueid)}"]?rejected,1)', 'Set(TIMEOUT(absolute)=0)',
                         'GotoIf($["${VOICE_AGENT_PROOF_TOKEN}"!="' + token + '"]?rejected,1)',
+                        'GotoIf($["${IMPORT(${VOICE_AGENT_PROOF_PEER},VOICE_AGENT_HANDOFF_TOKEN)}"!="${VOICE_AGENT_HANDOFF_TOKEN}" | "${IMPORT(${VOICE_AGENT_PROOF_PEER},VOICE_AGENT_HANDOFF_SELF)}"!="${VOICE_AGENT_HANDOFF_PEER_ID}" | "${IMPORT(${VOICE_AGENT_PROOF_PEER},VOICE_AGENT_HANDOFF_PEER_ID)}"!="${VOICE_AGENT_HANDOFF_SELF}"]?rejected,1)',
                         'Bridge(${VOICE_AGENT_PROOF_PEER},x)', 'Hangup()'],
             'rejected': ['Hangup()'],
         }.items():
             for priority, application in enumerate(applications, 1):
-                response = cli(f'dialplan add extension {extension},{priority},{application} into {context}')
+                response = cli(f'dialplan add extension {extension},{priority},{application.replace(" | ","|")} into {context}')
                 if ' added into ' not in response:
-                    raise RuntimeError('dialplan_setup_failed')
+                    raise RuntimeError('dialplan_setup_failed:'+extension+':'+str(priority)+':'+response[:200])
         # The private runner gets credentials from its existing environment. No
         # secrets or raw events leave the container; only bounded proof booleans.
         configuration = {'context': context, 'token': token, 'ids': channel_ids}
@@ -155,7 +156,7 @@ async def main():
             for identifier in (caller, recipient):
                 await req('POST', '/channels', params={
                     'endpoint': 'Local/endpoint@' + context + '/n', 'app': app,
-                    'channelId': identifier, 'timeout': 5}, json={'variables': {
+                    'channelId': identifier, 'timeout': 5, **({'originator':caller} if identifier==recipient else {})}, json={'variables': {
                         '__VOICE_AGENT_PROOF_TOKEN': CONFIG['token'], 'TIMEOUT(absolute)': '10'}})
             started = set()
             stage = 'await_answer'
@@ -168,10 +169,15 @@ async def main():
                     if event.get('type') == 'StasisStart' and event.get('channel', {}).get('id') in owned:
                         started.add(event['channel']['id'])
             names = {}
+            linked = {}
             for identifier in (caller, recipient):
                 channel = await req('GET', '/channels/' + quote(identifier, safe=''))
                 assert channel['state'] == 'Up', 'not_answered'
                 names[identifier] = channel['name']
+                linked[identifier] = (await req('GET','/channels/'+identifier+'/variable',params={'variable':'CHANNEL(linkedid)'}))['value']
+                await variable(identifier,'VOICE_AGENT_HANDOFF_TOKEN',CONFIG['token'])
+                await variable(identifier,'VOICE_AGENT_HANDOFF_SELF',identifier)
+                await variable(identifier,'VOICE_AGENT_HANDOFF_PEER_ID',recipient if identifier==caller else caller)
                 await req('POST', '/applications/' + app + '/subscription',
                           params={'eventSource': 'channel:' + identifier})
             stage = 'native_release'
@@ -227,6 +233,11 @@ async def main():
                               params={'variable': 'VOICE_AGENT_PROOF_TOKEN'})
             assert value['value'] == CONFIG['token'], 'attempt_correlation_lost'
         report['attempt_correlation_preserved'] = True
+        for identifier in (caller,recipient):
+            value=await req('GET','/channels/'+identifier+'/variable',params={'variable':'CHANNEL(linkedid)'})
+            assert value['value']==linked[identifier], 'linked_identity_changed'
+        assert len(set(linked.values()))==1, 'consultation_not_linked_to_caller'
+        report['linked_identity_preserved'] = True
     print(json.dumps(report))
 
 try:

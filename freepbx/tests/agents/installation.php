@@ -42,7 +42,7 @@ foreach ([1,2,4,9,15,20,27,33] as $boundary) {
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_drafts')->fetchColumn()===1);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_versions')->fetchColumn()===0);
     assert((int)$db->query("SELECT enabled FROM asterisk.voice_agent_agents WHERE agent_id='receptionist'")->fetchColumn()===0);
-    assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_builtin_tools')->fetchColumn()===4);
+    assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_builtin_tools')->fetchColumn()===5);
 }
 $db->exec('DROP DATABASE asterisk');$db->exec('DROP DATABASE asteriskcdrdb');
 echo "Fresh baseline rejects development databases unchanged and resumes interrupted setup\n";

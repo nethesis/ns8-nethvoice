@@ -1,127 +1,138 @@
-# Attended transfer integration gates
+# Attended transfer
 
-Attended transfer is **not implemented or enabled**. This record covers the
-independent caller greeting and the prerequisite investigation, not completion
-of the attended-transfer feature. The workspace plan remains local.
+This feature adds an opt-in consultation before transferring a caller to a person.
+Queues retain direct transfer. Existing v8 publications and tools-v5 remain
+unchanged; new settings use publication v9 and transfer tool v3 in tools-v6.
+Deploy matching NethVoice, Satellite, CTI server and chat gateway images before
+enabling it. The development Satellite image must become a versioned release
+before merge. Live acceptance gaps are listed below.
 
-## Implemented independently
+## Enable it for Receptionist
 
-Satellite captures the admitted ARI channel's PBX-resolved caller name, removes
-controls and bounds it to 256 UTF-8 bytes. Its opening asks the model to use a
-confident first name or a neutral greeting for missing, anonymous, numeric,
-company-only or ambiguous values. The configured greeting and language behavior
-remain in force. No phonebook query, first-name parser, stored identity or grant
-is added. Name selection and pronunciation are model behavior requiring human
-acceptance; automated tests verify the context and trust boundary.
+1. In **Agents**, create an **Internal consultation assistant**. Select its own
+   provider trunk, voice model, language, voice and instructions. For chat, enter
+   a text model supported by that provider, or use a GPT-Live backend model.
+   Save, publish and enable this assistant. It has no public VisualPlan destination,
+   public fallback route or general PBX tools.
+2. Open **Receptionist** and select **Attended transfer** under **Transfer to
+   people**. Authorize phone consultation, chat consultation, or both, and select
+   the published internal assistant.
+3. Keep the intended people in Receptionist's existing transfer grants. These
+   settings add no destinations. Save and publish Receptionist. New calls pin
+   both published agents; ongoing calls retain their existing versions.
+4. Test with consenting colleagues on the staging instance. To return to direct
+   transfers, explicitly select **Direct transfer**, save and publish.
 
-NethVoice already restricts extension directories to configured main extensions
-at `54b42f8714df2adce228b8696da70aeda6a33170`. That native behavior is retained.
-It does not yet prove unique recipient identity for a consultation: the new
-service read must reject multiple people sharing an extension, missing or multiple
-main-extension mappings, removed users and stale state. Device-to-main callback
-mapping remains call-bound and does not grant consultation permissions.
+No new public built-in agent is seeded. Internal assistants cannot be converted
+into public agents or deleted while a published public agent references them.
+Existing agents stay direct until an administrator publishes these settings.
 
-## Required upstream presence prerequisite
+## Call behavior
 
-The current NethVoice build consumes `nethcti-middleware:v0.7.0`. Its source at
-`1b89f9c0265e1093ac7d4d0465c1aaee2de88f30` has no scoped service read for
-consultation recipients. `/user/endpoints/all` is proxied through a logged-in
-user session, or the broad FreePBX administrator interface.
+The Receptionist obtains a concise reason, announces the consultation and places
+the caller on hold. The caller is detached from provider audio while held.
+A separate provider session talks privately to the colleague. Only a main
+extension uniquely belonging to one CTI person qualifies.
 
-The chat gateway's `internal/api/middleware.go` stores the most recently seen
-staff JWT in `lastJWT`; `Directory` and `Presence` depend on it. Its normal
-directory fallback from `mainextension` to a secondary extension is also
-unsuitable for consultation eligibility. Existing chat transport authentication
-does not supply authoritative, session-independent CTI presence or chat permission.
-The authorized staging instance does not run the new chat gateway/server either.
+When current CTI presence and native device state permit, the phone rings for at
+most 20 seconds. Busy, unavailable, no answer or an ordinary phone/provider failure
+falls back to authorized chat. An explicit decline is terminal. DND permits chat
+but forbids a new ring; a chat acceptance asks the colleague to become available
+and accept again within the original deadline. Forwarding and voicemail routes
+are excluded: the generated route dials only the person's native PJSIP devices,
+checks DND/forwarding and ignores endpoint redirect requests.
 
-These are unmet integration prerequisites, not permission to reuse a human login,
-pass an administrator token to Satellite, infer availability from registration,
-or reproduce CTI presence/profile policy in the consultation coordinator.
+The colleague may accept, decline, return a message or ask one question. The
+Receptionist temporarily resumes the caller conversation for that question and
+returns one bounded answer. A final decision may supersede the question. Hold
+updates occur around 20 and 40 seconds. Everything shares one 60-second budget,
+bounded by the caller's remaining session. Updates never reset it.
 
-The upstream change must provide a dedicated authenticated, private, versioned
-service read that works with zero human sessions. For one requested recipient it
-must return only a verified person identity, an unambiguous main extension,
-current effective presence, the authoritative chat permission and freshness.
-It must expose no SIP secrets, arbitrary user profiles or credential material.
-The existing CTI code must remain authoritative for effective presence and
-profile permissions. Unknown, stale or ambiguous results must not permit ringing.
+A phone answer or voicemail greeting is not acceptance. Backend actions require
+colleague input before a phone decision; the configured model interprets the
+colleague's explicit intent. Phone acceptance reuses the answered leg. Chat
+acceptance rings only after a fresh eligibility check. A result never silently
+becomes blind transfer. Failed consultations resume the working Receptionist.
+The same person cannot be retried automatically within the caller session.
 
-Deliver and test that prerequisite upstream, then verify its versioned image,
-source revision and digest before consuming it here. No new token, dormant
-consultation publication, configuration migration or public service route has
-been installed as a substitute for that dependency.
+## Private services and chat
 
-## Native handoff proof
+The CTI prerequisite is [nethcti-server PR #374](https://github.com/nethesis/nethcti-server/pull/374),
+pinned by source revision in `nethcti-server/Containerfile`. No middleware or
+staff-session workaround is used. A separate authenticated loopback listener
+returns only recipient identity, main extension, current effective presence,
+native device state, chat permission and observation time. Native freshness is
+checked on the existing ordered AMI connection. Unknown/stale identity fails
+closed. The current CTI user/profile components remain authoritative.
 
-`freepbx/tests/agents/attended-handoff-probe.py` is an explicit opt-in test for an
-authorized NS8 staging node. Run it on that node, outside the module container:
+The chat gateway has a separate authenticated loopback HTTP interface; it shares
+no routes with the public gateway. Satellite receives scoped recipient/chat keys,
+never a staff JWT, administrator token or broad XMPP component secret. Provisioning
+stores keys in protected module state and includes them in normal backup/restore.
+No reverse-proxy route exposes either private listener.
+
+The reserved XMPP identity is `voice-agent-assistant`. Human JWT login as that
+identity is forbidden and account retirement excludes it. Consultation messages
+contain a short `#REFERENCE` and expiry. Reply with that reference and a decision;
+bare yes, quoted references, wrong senders, rooms, expired and replayed replies
+cannot authorize connection. Gateway receipts contain bounded metadata and a body
+hash, not message text. Reconnects preserve send idempotency, never decisions.
+Unsolicited messages receive a bounded consultation-only explanation. DND push
+suppression uses the scoped native presence reader without a human login.
+
+## Native handoff and cleanup
+
+Both exact channels receive reciprocal unique IDs and an attempt token. After
+private media cleanup and a final grant check, the answered Local `;1` channel and
+caller enter bounded native contexts. `Bridge()` targets the complete channel
+name: a Local uniqueid alone can also match its `;2` peer. Success requires both
+exact channels in the same native basic bridge and both correlated `StasisEnd`
+events. An ARI acknowledgement or dialplan entry alone is insufficient.
+
+Native contexts clear the agent absolute timeout. Successful transfer releases
+human legs from Satellite cleanup. A correlated native failure returns the caller
+to the Receptionist; uncertain release records an uncertain outcome and leaves
+native ownership intact, without a competing fallback or second transfer.
+Restart reconciliation only removes consultation channels with persisted session
+ownership and matching role/attempt markers still in this application's Stasis.
+It never resumes an attempt or touches a native human bridge.
+
+One consultation is permitted per caller and per recipient. Private voice and
+text sessions count against runtime capacity and link to the caller's monitoring
+run. Monitoring records bounded states, outcomes and errors under existing
+retention/debug rules; transcripts remain disabled by default.
+
+## Validation evidence and remaining gates
+
+`freepbx/tests/agents/attended-handoff-probe.py` is an opt-in synthetic Local-channel
+proof for an explicitly authorized NS8 staging node:
 
 ```sh
 python3 attended-handoff-probe.py --authorized-test \
   --expected-host test-node --module nethvoice_test
 ```
 
-The script verifies zero calls, installs one random temporary CLI dialplan
-context, originates two answered synthetic Local channels through an independent
-test ARI application, and releases them into native `Bridge()`/waiting contexts.
-It requires both exact channels in one native basic bridge, Stasis release,
-survival of the test controller disconnect and the original absolute timeout,
-and preservation of the attempt token. Cleanup targets only its own Local names,
-subscriptions and temporary contexts (including Asterisk's generated `stasis-`
-context) and verifies unchanged container identities/restart counts
-and zero final calls. No FreePBX reload, staff/external call or paid provider
-connection is made. The synthetic native CDR/CEL history remains.
+On 2026-10-27 it passed on Asterisk 22.10.0 with the production reciprocal-token
+checks and 10-second native waiting context: both answered channels entered one
+basic bridge, both left Stasis, and the bridge survived controller disconnect for
+11 seconds, beyond the original absolute timeout. Attempt tokens and the shared caller/colleague linked ID survived.
+Cleanup removed only owned temporary channels/contexts and left zero calls, zero
+provider connections, zero extension calls and unchanged containers/restart counts.
+No FreePBX reload, service restart, human recording or transcript was collected.
+Synthetic CDR/CEL history remains. No persistent probe rollback is pending.
 
-Use the complete answered channel name including the Local `;1` suffix as the
-`Bridge()` target. The uniqueid is a prefix of the Local peer's uniqueid and can
-select `;2`; the native bridge must still be verified using both exact IDs.
-`Bridge()` accepts channel-name prefixes as documented by
-[Asterisk](https://docs.asterisk.org/Latest_API/API_Documentation/Dialplan_Applications/Bridge/).
-Neither an ARI acknowledgement nor a native entry event proves a human connection.
-The ARI application's `channel_ids` also includes passive channel subscriptions;
-use correlated `StasisEnd` events to prove release, not absence from that list.
+Automated coverage includes PHP/Python publication parity, immutable v8 assets,
+internal admission rejection, permission/concurrency/deadline limits, decline,
+phone-to-chat fallback, DND chat acceptance, one clarification, exact native bridge
+confirmation, uncertain-release safety, owned restart recovery, gateway sender/
+reference/expiry/reconnect checks, repeatable setup and existing transcription
+regressions. Browser checks exercise EN/IT opt-in settings and unchanged direct
+agents. See [testing](voice-agents-testing.md) for commands.
 
-On 2026-10-27, the corrected probe passed on installed Asterisk **22.10.0**:
-both answered exact channels entered a basic bridge, both emitted `StasisEnd`,
-and the same bridge survived controller disconnect for 11 seconds, beyond the
-original 10-second absolute timeout. Both attempt tokens were preserved. Cleanup
-removed the owned channels and context, left zero calls, and changed no container
-identities, start times or restart counts. The final report had every proof and
-cleanup boolean true, with zero provider connections and zero extension calls.
-FreePBX, Satellite and CTI middleware services remained active with zero restarts;
-Asterisk uptime and reload age were preserved. No NS8 configuration action was
-performed: the authorized temporary CLI/ARI probes are not API configuration
-audit entries. No credentials, recordings or transcripts were collected. The
-temporary changes were removed, so no persistent rollback action is pending.
-
-The installed image identities were FreePBX
-`ba0d3f6aae4017af900949246518908ca4d2f451c3921cb37221333ab4e82a44`
-and Satellite
-`7a760f4b61f99fe16aa50bda04108f97cd0cae4d793257cc5133f14e2f824f0f`.
-These existing staging images supplied Asterisk and ARI transport dependencies;
-they are not new feature builds. The greeting changes were not deployed.
-
-This isolated primitive test does not establish the proposed production route,
-forward/voicemail prevention, grant revalidation, actual Satellite shutdown,
-media privacy, human audio, provider behavior, or CDR/recording/transcription
-continuity through the final consultation flow. Those remain integration gates.
-
-## Validation and remaining delivery
-
-- Paired PHP/MariaDB/runtime foundation: 297 runtime tests passed, including the
-  five database cases skipped by the standalone suite, native dialplan generation,
-  repeat/interrupted installation, immutable contracts, restore and least privileges.
-- Satellite standalone foundation: 292 passed, five database cases skipped.
-- Greeting checks: 49 passed across EN/IT, malformed/hostile/oversized names,
-  pinned admission data, call isolation and Live SIP/primary WebSocket seeds.
-- Existing native PHP transcription regressions: nine passed.
-- The optional full Wizard HTTP authentication harness was not selected.
-
-No new publication/catalog version or consultation settings are enabled. Phone
-and chat coordination, isolated colleague sessions, deadlines, one clarification,
-confirmed production handoff, monitoring, EN/IT administration UI, paired-image
-validation and human listening acceptance remain unimplemented. Continue only
-after the upstream service prerequisite and the native integration gates have
-evidence. The existing development Satellite image must still be replaced with
-a versioned release before merge.
+The primitive proof does not replace end-to-end acceptance of the new image pair.
+Before enabling on a live PBX, record image digests and source revisions, prove
+service reads with no human login, real browser/mobile chat replies, all supported
+provider paths, actual Satellite-stop survival, linked-ID/CDR/recording continuity
+and transcription disabled plus each supported mode. Human listening must confirm
+pronunciation, hold quality, private audio isolation, reason accuracy, clarification,
+message relay and final audio. These results must not be inferred from unit tests.

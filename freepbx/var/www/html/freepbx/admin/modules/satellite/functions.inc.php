@@ -156,6 +156,29 @@ function satellite_build_agent_dialplan() {
     $ext->add('voice-agent-provider','_!','',new ext_hangup());
     // The broad provider pattern must never originate again from the h extension.
     $ext->add('voice-agent-provider','h','',new ext_hangup());
+    // Consultation routes never enter from-internal, voicemail or forwarding.
+    foreach (FreePBX::Satellite()->agentConsultationDevices() as $number=>$devices) {
+        $dial=implode('&',array_map(fn($device)=>'${PJSIP_DIAL_CONTACTS('.$device.')}',array_unique($devices)));
+        if (!$dial) continue;
+        $ext->add('voice-agent-consult',(string)$number,'',new ext_gotoif('$["${DB(DND/'.$number.')}" = "YES" | "${DB(CF/'.$number.')}" != ""]','blocked'));
+        $ext->add('voice-agent-consult',(string)$number,'',new ext_dial($dial,'20,i'));
+        $ext->add('voice-agent-consult',(string)$number,'blocked',new ext_hangup());
+    }
+    $ext->add('voice-agent-consult','h','',new ext_hangup());
+    // Reciprocal exact IDs and a single attempt token bind both native legs.
+    foreach (['voice-agent-handoff','voice-agent-handoff-wait'] as $context) {
+        $ext->add($context,'s','',new ext_gotoif('$["${VOICE_AGENT_HANDOFF_TOKEN}" = "" | "${VOICE_AGENT_HANDOFF_SELF}" != "${CHANNEL(uniqueid)}"]','failed'));
+        $ext->add($context,'s','',new ext_set('TIMEOUT(absolute)','0'));
+        if ($context==='voice-agent-handoff') {
+            $ext->add($context,'s','',new ext_gotoif('$["${IMPORT(${VOICE_AGENT_HANDOFF_PEER},VOICE_AGENT_HANDOFF_TOKEN)}" != "${VOICE_AGENT_HANDOFF_TOKEN}" | "${IMPORT(${VOICE_AGENT_HANDOFF_PEER},VOICE_AGENT_HANDOFF_SELF)}" != "${VOICE_AGENT_HANDOFF_PEER_ID}" | "${IMPORT(${VOICE_AGENT_HANDOFF_PEER},VOICE_AGENT_HANDOFF_PEER_ID)}" != "${VOICE_AGENT_HANDOFF_SELF}"]','failed'));
+            $ext->add($context,'s','',new ext_bridge('${VOICE_AGENT_HANDOFF_PEER},x'));
+            $ext->add($context,'s','',new ext_gotoif('$["${BRIDGERESULT}" != "SUCCESS"]','failed'));
+        } else $ext->add($context,'s','',new ext_wait('10'));
+        $ext->add($context,'s','',new ext_hangup());
+        $ext->add($context,'s','failed',new ext_set('TIMEOUT(absolute)','10'));
+        $ext->add($context,'s','',new ext_stasis('voice-agent','handoff_failed,${AGENT_SESSION_ID},${VOICE_AGENT_HANDOFF_TOKEN}'));
+        $ext->add($context,'s','',new ext_hangup());
+    }
     // Inherited values originate on the PBX caller channel, never from SIP headers.
     foreach (['X-OS-Caller'=>'${CLEVERAI_CALLER}', 'X-OS-Caller-Name'=>'${CLEVERAI_CALLER_NAME}',
         'X-OS-DID'=>'${CLEVERAI_DID}', 'X-OS-Extension'=>'${CLEVERAI_IDENTITY}'] as $name=>$value) {

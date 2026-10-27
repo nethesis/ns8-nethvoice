@@ -44,8 +44,8 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: nethesis/satellite
-          # PR #56 image source; update with the Satellite image in build-images.sh.
-          ref: 52b178eb28ffecc81f8dc5d4d724bb8730020097
+          # Attended-transfer source; update together with the build image pin.
+          ref: 0fc9ffe0af4436ba1e63c89d5569f624498dfab0
           path: satellite
       - uses: actions/setup-python@v6
         with:

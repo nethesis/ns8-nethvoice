@@ -124,9 +124,18 @@ func (ses *Session) send(ctx context.Context, to, body string, oob []string, typ
 	return ses.sendWith(ctx, to, body, oob, typ, "")
 }
 
+// SendID binds private gateway idempotency to the XMPP origin/message ID.
+func (ses *Session) SendID(ctx context.Context, id, to, body string) error {
+	_, err := ses.sendID(ctx, id, to, body, nil, stanza.ChatMessage, "")
+	return err
+}
+
 // sendWith: extra is markup made here, already escaped.
 func (ses *Session) sendWith(ctx context.Context, to, body string, oob []string, typ stanza.MessageType, extra string) (string, error) {
-	id := newID()
+	return ses.sendID(ctx, newID(), to, body, oob, typ, extra)
+}
+
+func (ses *Session) sendID(ctx context.Context, id, to, body string, oob []string, typ stanza.MessageType, extra string) (string, error) {
 	var sb strings.Builder
 	sb.WriteString("<body>")
 	_ = xml.EscapeText(&sb, []byte(body))
