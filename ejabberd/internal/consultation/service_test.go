@@ -91,6 +91,8 @@ func TestPrivateAuthCorrelationExpiryAndIdempotency(t *testing.T) {
 		{ID: "forged", From: "bob@chat.internal", To: good.To, Body: good.Body, At: at},
 		{ID: "bare", From: good.From, To: good.To, Body: "yes", At: at},
 		{ID: "quoted", From: good.From, To: good.To, Body: "> #ABCDEF12\nyes", At: at},
+		{ID: "email-quote", From: good.From, To: good.To, Body: "yes\nOn Tuesday the assistant wrote:\n#ABCDEF12 call consultation", At: at},
+		{ID: "html-quote", From: good.From, To: good.To, Body: "yes\n<blockquote>\n#ABCDEF12 call consultation\n</blockquote>", At: at},
 		{ID: "expired", From: good.From, To: good.To, Body: good.Body, At: now.Add(time.Hour)},
 		{ID: "old", From: good.From, To: good.To, Body: good.Body, At: now.Add(-time.Minute)},
 		{ID: "wrong-ref", From: good.From, To: good.To, Body: "#00000000 yes", At: at},

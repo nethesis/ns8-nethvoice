@@ -216,8 +216,9 @@ func (s *Service) replies(w http.ResponseWriter, r *http.Request) {
 				lines = append(lines, line)
 			}
 		}
-		body := strings.Join(lines, "\n")
-		if !regexp.MustCompile(`(?:^|\s)#` + m.Reference + `(?:\s|$|[.,:;!?])`).MatchString(body) {
+		body := strings.TrimSpace(strings.Join(lines, "\n"))
+		firstLine := strings.SplitN(body, "\n", 2)[0]
+		if !regexp.MustCompile(`(?:^|\s)#` + m.Reference + `(?:\s|$|[.,:;!?])`).MatchString(firstLine) {
 			continue
 		}
 		replies = append(replies, map[string]interface{}{"id": msg.ID, "sender": m.Recipient, "reference": m.Reference, "text": body, "at": msg.At})
