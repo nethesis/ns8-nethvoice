@@ -230,8 +230,8 @@ Every 5 minutes the node runs `export-metrics` and passes its output to the
 metrics app. The module publishes its alert rules from
 `imageroot/etc/metrics/alert-rules/` at create and update time.
 
-The alerts are a beta feature, disabled by default: enable them from the
-"Alerts beta" card of the Settings page, or with the `set-alerts` action:
+The alerts are disabled by default: enable them from the "Alerts" card of the
+Settings page, or with the `set-alerts` action:
 
     api-cli run module/nethvoice1/set-alerts --data '{"alerts_enabled": true}'
 

@@ -483,17 +483,11 @@
             </cv-tile>
           </cv-column>
         </cv-row>
-        <!-- built-in alerts (beta) -->
+        <!-- built-in alerts -->
         <cv-row>
           <cv-column>
             <cv-tile light>
               <h4 class="mb-4">{{ $t("settings.alerts_title") }}</h4>
-              <NsInlineNotification
-                kind="info"
-                :title="$t('settings.alerts_beta_title')"
-                :description="$t('settings.alerts_beta_description')"
-                :showCloseButton="false"
-              />
               <cv-form @submit.prevent="setAlerts">
                 <NsToggle
                   value="alertsEnabled"
@@ -618,7 +612,7 @@ export default {
       },
       // SSO (saml2/oidc) management is hidden unless enabled via the SSO_AUTH env
       sso_auth: false,
-      // built-in alerts (beta), see the set-alerts action
+      // built-in alerts, see the set-alerts action
       alerts_enabled: false,
       // saved value, restored on the switch when set-alerts fails
       alerts_enabled_saved: false,
