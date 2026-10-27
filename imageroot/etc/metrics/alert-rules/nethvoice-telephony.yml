@@ -11,7 +11,11 @@
 # (unknown) never fires. An IP trunk fires only when the provider does not
 # answer OPTIONS: when Asterisk could not qualify it, calls can still work. Series exist while freepbx runs; they come from
 # export-metrics (pypkg/nvmetrics/trunks.py) every 5 minutes, so "for: 10m"
-# means 3 failed checks in a row.
+# means 3 failed checks in a row. NethVoiceTrunkNotMonitored (warning)
+# marks a trunk Asterisk cannot qualify because its name is not a valid SIP
+# user and it has no From User: calls work, an outage is not seen, the
+# administrator renames it. Such a receive trunk stays offline while the
+# gateway is registered, so it does not fire not_registered.
 groups:
   - name: telephony
     rules:
@@ -28,7 +32,7 @@ groups:
           description_en: "Asterisk of {{ $labels.module_id }} has failed to register trunk {{ $labels.trunk }} for more than 10 minutes: calls through this trunk fail. This trunk does not use the NethVoice proxy. Check the trunk credentials and the provider reachability."
           description_it: "Asterisk di {{ $labels.module_id }} non riesce a registrare il fascio {{ $labels.trunk }} da più di 10 minuti: le chiamate su questo fascio falliscono. Questo fascio non usa il proxy NethVoice. Verificare le credenziali del fascio e la raggiungibilità del provider."
       - alert: NethVoiceTrunkUnreachable
-        expr: nethvoice_trunk_endpoint_state{registration="receive"} == 1
+        expr: nethvoice_trunk_endpoint_state{registration="receive"} == 1 unless on(module_id, node, trunk) nethvoice_trunk_name_invalid == 1
         for: 10m
         labels:
           severity: critical
@@ -51,3 +55,15 @@ groups:
           summary_it: "Il fascio {{ $labels.trunk }} di {{ $labels.module_id }} non è raggiungibile: nessuna risposta agli OPTIONS"
           description_en: "The provider of trunk {{ $labels.trunk }} has not answered the OPTIONS checks of {{ $labels.module_id }} for more than 10 minutes: calls through this trunk fail. Check the provider address and its reachability."
           description_it: "Il provider del fascio {{ $labels.trunk }} non risponde ai controlli OPTIONS di {{ $labels.module_id }} da più di 10 minuti: le chiamate su questo fascio falliscono. Verificare l'indirizzo del provider e la sua raggiungibilità."
+      - alert: NethVoiceTrunkNotMonitored
+        expr: nethvoice_trunk_name_invalid == 1
+        for: 10m
+        labels:
+          severity: warning
+          alertgroup: telephony
+          reason: name_invalid
+        annotations:
+          summary_en: "Trunk {{ $labels.trunk }} of {{ $labels.module_id }} is not monitored: invalid name"
+          summary_it: "Il fascio {{ $labels.trunk }} di {{ $labels.module_id }} non è monitorato: nome non valido"
+          description_en: "The name of trunk {{ $labels.trunk }} contains a space or another character not allowed in a SIP address, and the trunk has no From User: Asterisk of {{ $labels.module_id }} cannot send the OPTIONS checks to it, so an outage of its provider is not detected. Calls still work. Rename the trunk without spaces from FreePBX (Connectivity > Trunks), apply the configuration and update any custom dialplan that uses the old name. Do not set From User to work around this: it changes the caller ID of outgoing calls."
+          description_it: "Il nome del fascio {{ $labels.trunk }} contiene uno spazio o un altro carattere non ammesso in un indirizzo SIP, e il fascio non ha un From User: Asterisk di {{ $labels.module_id }} non può inviargli i controlli OPTIONS, quindi un guasto del provider non viene rilevato. Le chiamate funzionano. Rinominare il fascio senza spazi da FreePBX (Connectivity > Trunks), applicare la configurazione e aggiornare l'eventuale dialplan personalizzato che usa il vecchio nome. Non impostare From User per aggirare il problema: cambia il caller ID delle chiamate in uscita."

@@ -91,6 +91,10 @@ class ReadTrunksTest(unittest.TestCase):
         self.assertIn('MYSQL_PWD="$MARIADB_ROOT_PASSWORD"', args[5])
         self.assertEqual(args[7:], ["asterisk", trunks.query()])
 
+    def test_query_reads_from_user(self):
+        self.assertEqual(trunks.KEYWORDS[-1], "from_user")
+        self.assertIn("p.keyword = 'from_user'", trunks.query())
+
 
 class RegistrationUrisTest(unittest.TestCase):
     def test_built_from_server_and_username(self):
@@ -154,6 +158,54 @@ class RenderTest(unittest.TestCase):
     def test_reserved_labels_are_never_set(self):
         text = trunks.render(trunks.parse_rows(TRUNKS_TSV), ASTERISK_METRICS, ENV)
         self.assertNotRegex(text, r"(module|module_id|instance)=")
+
+
+class NameInvalidTest(unittest.TestCase):
+    def test_space_without_from_user(self):
+        t = trunk("Trunk Vodafone", registration="none", sip_server="192.0.2.20")
+        text = trunks.render([t], endpoints(("Trunk Vodafone", 1)), ENV)
+        self.assertIn('nethvoice_trunk_name_invalid{trunk="Trunk Vodafone"} 1\n', text)
+
+    def test_name_invalid_needs_empty_from_user(self):
+        t = trunk("Trunk Vodafone", registration="none", username="0123", from_user="0123", sip_server="192.0.2.20")
+        self.assertNotIn("nethvoice_trunk_name_invalid{", trunks.render([t], endpoints(("Trunk Vodafone", 2)), ENV))
+
+    def test_send_trunk_is_not_exported(self):
+        t = trunk("Trunk Vodafone", registration="send", sip_server="192.0.2.20")
+        self.assertNotIn("nethvoice_trunk_name_invalid{", trunks.render([t], endpoints(("Trunk Vodafone", 1)), ENV))
+
+    def test_missing_registration_is_send(self):
+        t = trunk("Trunk Vodafone", sip_server="192.0.2.20")
+        self.assertNotIn("nethvoice_trunk_name_invalid{", trunks.render([t], endpoints(("Trunk Vodafone", 1)), ENV))
+
+    def test_whitespace_from_user_is_empty(self):
+        self.assertTrue(trunks.name_invalid(trunk("Trunk Vodafone", registration="none", from_user=" ")))
+
+    def test_valid_name_is_not_exported(self):
+        for name in ("Ip1", "my.trunk-2", "+39071", "Ip(1)"):
+            t = trunk(name, registration="none", sip_server="192.0.2.20")
+            self.assertNotIn("nethvoice_trunk_name_invalid{", trunks.render([t], endpoints((name, 1)), ENV), name)
+
+    def test_name_invalid_without_endpoint_and_through_proxy(self):
+        t = trunk("Gw 1", registration="receive", outbound_proxy="sip:10.5.4.1:5060;lr")
+        self.assertIn('nethvoice_trunk_name_invalid{trunk="Gw 1"} 1\n', trunks.render([t], "", ENV))
+
+    def test_name_invalid_uses_fallback_name(self):
+        # Empty trunk_name, registration=none
+        line = "\t".join(["Chan 1", "", "none"] + [""] * (len(trunks.KEYWORDS) - 2))
+        self.assertTrue(trunks.name_invalid(trunks.parse_rows(line)[0]))
+
+    def test_trailing_newline_is_invalid(self):
+        self.assertTrue(trunks.name_invalid(trunk("Ip1\n", registration="none")))
+
+    def test_name_invalid_label_is_escaped(self):
+        t = trunk('a"b c', registration="none")
+        self.assertIn('nethvoice_trunk_name_invalid{trunk="a\\"b c"} 1\n', trunks.render([t], "", ENV))
+
+    def test_help_lines_are_always_present(self):
+        text = trunks.render([], "", ENV)
+        self.assertIn("# HELP nethvoice_trunk_name_invalid ", text)
+        self.assertIn("# TYPE nethvoice_trunk_name_invalid gauge\n", text)
 
 
 class QualifyTest(unittest.TestCase):

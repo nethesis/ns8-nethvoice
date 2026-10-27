@@ -509,6 +509,10 @@
                         {{ $t("settings.alerts_trunk_unreachable") }}
                       </li>
                       <li>
+                        <code>NethVoiceTrunkNotMonitored</code>:
+                        {{ $t("settings.alerts_trunk_not_monitored") }}
+                      </li>
+                      <li>
                         <code>NethVoiceDnsFailure</code>:
                         {{ $t("settings.alerts_dns_failure") }}
                       </li>

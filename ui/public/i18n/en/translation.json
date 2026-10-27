@@ -131,6 +131,7 @@
     "alerts_description": "When enabled, NethVoice checks its services, trunks, DNS names and AI keys every 5 minutes and raises these alerts:",
     "alerts_service_down": "a NethVoice service (for example FreePBX, MariaDB, CTI or Janus) is stopped or keeps restarting",
     "alerts_trunk_unreachable": "a SIP trunk cannot reach its provider or gateway",
+    "alerts_trunk_not_monitored": "a SIP trunk cannot be checked because its name contains a space (rename it)",
     "alerts_dns_failure": "the names of NethVoice, CTI or the proxy do not resolve on the DNS resolver of the node, or point to a wrong address",
     "alerts_dns_slow": "the DNS resolver of the node takes more than 3 seconds to answer",
     "alerts_ai_key": "the Deepgram or OpenAI key is rejected",

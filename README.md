@@ -247,6 +247,7 @@ still exported.
 | `NethVoiceAiKeyInvalid` | critical | with transcription on, Deepgram or OpenAI rejects the API key (HTTP 401; for OpenAI only with error code `invalid_api_key`, so a restricted key without the Models read scope is not reported) for 10 minutes |
 | `NethVoiceAiCreditExhausted` | critical | Satellite reports that a provider refused a call for lack of credit; clears after the next successful call |
 | `NethVoiceTrunkUnreachable` | critical | for 10 minutes a trunk that bypasses the proxy is not registered (`reason="registration_failed"`), the remote side of a `receive` trunk is not registered (`reason="not_registered"`), or the provider of an IP trunk that bypasses the proxy does not answer OPTIONS (`reason="qualify_failed"`; not when Asterisk could not send them) |
+| `NethVoiceTrunkNotMonitored` | warning | for 10 minutes an IP or `receive` pjsip trunk has a name Asterisk cannot use as SIP user (a space or another character outside letters, digits and `_ . + - ! ~ * ' ( )`) and no From User: Asterisk sends no OPTIONS to it, so its provider is never checked (`reason="name_invalid"`); `send` trunks are watched through their registration |
 
 Notes:
 
@@ -262,6 +263,19 @@ Notes:
   `pjsip.registration_custom.conf` is not checked. NethVoice exports
   `nethvoice_trunk_proxy_info{trunk,proxy_trunk}` so the proxy alerts can show
   the trunk name next to the address the proxy sees.
+- A trunk name is also the Asterisk endpoint name and, when the trunk has
+  no From User, the From user of the OPTIONS checks. With a space in the
+  name Asterisk logs "Unable to create outbound OPTIONS request" and never
+  checks the trunk: calls work, but `NethVoiceTrunkUnreachable` is not
+  raised for it (for a `receive` trunk the offline endpoint state is
+  ignored) and `NethVoiceTrunkNotMonitored` is raised instead. Fix: rename
+  the trunk without spaces from FreePBX (Connectivity > Trunks), apply the
+  configuration, then update custom dialplans or custom trunks that dial
+  `PJSIP/...@<old name>`, and expect the call history and the reports to
+  show the trunk under its new name from then on. The wizard warns while a
+  new name holds a space; the module never renames a trunk. Do not set From
+  User to work around it: it replaces the caller ID in the From header of
+  every call.
 - The DNS resolver of the node is the one in `/etc/resolv.conf`. A resolver
   that does not answer raises `NethVoiceDnsSlow`, not `NethVoiceDnsFailure`.
 - When a check cannot run (AI provider unreachable, freepbx

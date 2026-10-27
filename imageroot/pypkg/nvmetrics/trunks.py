@@ -5,7 +5,8 @@
 
 """State of the PJSIP trunks, read from Asterisk.
 
-Used by the NethVoiceTrunkUnreachable alert (etc/metrics/alert-rules/nethvoice-telephony.yml):
+Used by the NethVoiceTrunkUnreachable and NethVoiceTrunkNotMonitored alerts
+(etc/metrics/alert-rules/nethvoice-telephony.yml):
 
 - nethvoice_trunk_endpoint_state{trunk,via_proxy,registration}: state of the
   trunk endpoint (asterisk_endpoints_state): 0 unknown, 1 offline, 2 online.
@@ -27,6 +28,11 @@ Used by the NethVoiceTrunkUnreachable alert (etc/metrics/alert-rules/nethvoice-t
   registration AOR "<user>@<host>" (registration=send) or the contact
   address "<host>:<port>" (registration=none). The proxy alerts look up the
   trunk name with it.
+- nethvoice_trunk_name_invalid{trunk}: 1 when an IP or receive trunk has a
+  name that is not a valid SIP user and no From User: Asterisk cannot send
+  OPTIONS to it. Trunks with registration=send are left out: their
+  registration is checked instead. Used by the NethVoiceTrunkNotMonitored
+  alert.
 
 The trunk list comes from the FreePBX database, the states from the Asterisk
 metrics page. asterisk_pjsip_outbound_registration_status identifies a
@@ -55,6 +61,7 @@ KEYWORDS = (
     "authentication",
     "sip_server",
     "sip_server_port",
+    "from_user",
 )
 # Values of asterisk_pjsip_outbound_registration_status: 0 unregistered, 1 registered, 2 rejected
 REGISTERED = 1
@@ -64,6 +71,8 @@ _CONTACT_RE = re.compile(r"^\s*Contact:\s+(.+?)/sips?:\S*\s+\S+\s+(\S+)\s+\S+\s*
 _AOR_CONTACT_RE = re.compile(r"^\s*contact\s*:\s*(.*?)\s*$")
 # Marker printed before each "pjsip show aor" output
 _AOR_MARK = "#AOR "
+# Valid SIP user: ASCII letters, digits and the RFC 3261 unreserved marks
+NAME_RE = re.compile(r"^[A-Za-z0-9_.+!~*'()-]+$")
 
 
 def query():
@@ -221,6 +230,20 @@ def registration(trunk):
     return trunk["registration"] or "send"
 
 
+def name_invalid(trunk):
+    """Return True if Asterisk cannot send OPTIONS to the trunk.
+
+    Without From User the endpoint name is the From user of the OPTIONS: a
+    name that is not a valid SIP user gives an invalid URI. A send trunk is
+    checked through its registration, which does not use the endpoint name.
+    """
+    return (
+        not NAME_RE.fullmatch(trunk["name"])
+        and trunk["from_user"].strip() == ""
+        and registration(trunk) != "send"
+    )
+
+
 def via_proxy(trunk, env=os.environ):
     proxy = "sip:%s:%s" % (env.get("PROXY_IP", ""), env.get("PROXY_PORT", ""))
     return trunk["outbound_proxy"].split(";")[0] == proxy
@@ -260,6 +283,7 @@ def render(trunks, page, env=os.environ, contacts=None, aor_contacts=None):
     registered = []
     qualified = []
     mapped = []
+    invalid = []
     for trunk in trunks:
         name = promtext.escape(trunk["name"])
         bypass = not via_proxy(trunk, env)
@@ -282,6 +306,8 @@ def render(trunks, page, env=os.environ, contacts=None, aor_contacts=None):
                 mapped.append(
                     'nethvoice_trunk_proxy_info{trunk="%s",proxy_trunk="%s"} 1' % (name, promtext.escape(proxy_trunk))
                 )
+        if name_invalid(trunk):
+            invalid.append('nethvoice_trunk_name_invalid{trunk="%s"} 1' % name)
     lines = [
         "# HELP nethvoice_trunk_endpoint_state State of the trunk endpoint in Asterisk: 0 unknown, 1 offline, 2 online",
         "# TYPE nethvoice_trunk_endpoint_state gauge",
@@ -295,6 +321,10 @@ def render(trunks, page, env=os.environ, contacts=None, aor_contacts=None):
         "# HELP nethvoice_trunk_proxy_info Maps a trunk to the trunk label of the NethVoice proxy series",
         "# TYPE nethvoice_trunk_proxy_info gauge",
         *mapped,
+        "# HELP nethvoice_trunk_name_invalid 1 when an IP or receive trunk has a name that is not a valid SIP user"
+        " and no From User: Asterisk cannot send OPTIONS to it",
+        "# TYPE nethvoice_trunk_name_invalid gauge",
+        *invalid,
     ]
     return "\n".join(lines) + "\n"
 
