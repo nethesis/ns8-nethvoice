@@ -42,13 +42,8 @@ class Satellite extends \FreePBX_Helpers implements \BMO
 
     /** Native extension inventory; callers never provide dialplan strings. */
     public function agentExtensions(): array {
-        $result = [];
-        foreach ($this->FreePBX->Core->listUsers(false) as $user) {
-            $number = (string) ($user[0] ?? $user['extension'] ?? '');
-            if (!preg_match('/^[0-9]{1,20}$/D', $number)) continue;
-            $result[] = ['id' => 'extension:' . $number, 'name' => (string) ($user[1] ?? $user['name'] ?? $number)];
-        }
-        return $result;
+        require_once __DIR__ . '/lib/AgentDirectory.php';
+        return (new \AgentDirectory($this->FreePBX))->extensions();
     }
 
     /** Native extensions and queues; optional missing modules are unavailable. */

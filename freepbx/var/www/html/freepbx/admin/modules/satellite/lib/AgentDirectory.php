@@ -5,11 +5,22 @@ final class AgentDirectory
 {
     private object $pbx;
     public function __construct(object $pbx) { $this->pbx=$pbx; }
+    public function extensions(): array
+    {
+        require_once dirname(__DIR__,4).'/rest/lib/libExtensions.php';
+        $rows=[];
+        foreach ($this->pbx->Core->listUsers(false) as $user) {
+            $number=(string)($user[0]??$user['extension']??'');
+            if (!preg_match('/^[0-9]{1,20}$/D',$number) || isMainExtension($number)!==true) continue;
+            $rows[]=['id'=>'extension:'.$number,'name'=>(string)($user[1]??$user['name']??$number)];
+        }
+        return $rows;
+    }
     public function inventory(): array
     {
         $rows=[]; $modules=['extension'=>true,'queue'=>true];
-        foreach ($this->pbx->Core->listUsers(false) as $user) {
-            $row=$this->resource('extension',(string)($user[0]??$user['extension']??''),(string)($user[1]??$user['name']??''));
+        foreach ($this->extensions() as $user) {
+            $row=$this->resource('extension',substr($user['id'],10),$user['name']);
             if ($row) $rows[$row['id']]=$row;
         }
         try {
