@@ -7,7 +7,7 @@
 
 The satellite_* families of the satellite GET /metrics page
 (nethesis/satellite#55, protected by its API token) are copied unchanged.
-The NethVoiceAiCreditExhausted alert (etc/metrics/alert-rules/nethvoice-ai.yml)
+The NethVoiceAICreditExhausted alert (etc/metrics/alert-rules/nethvoice-ai.yml)
 uses:
 
 - satellite_ai_credit_exhausted{provider}: 1 if the provider said the credit

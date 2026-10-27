@@ -11,10 +11,10 @@ tests:
         values: '0x20'
     alert_rule_test:
       - eval_time: 9m
-        alertname: NethVoiceAiKeyInvalid
+        alertname: NethVoiceAIKeyInvalid
         exp_alerts: []
       - eval_time: 11m
-        alertname: NethVoiceAiKeyInvalid
+        alertname: NethVoiceAIKeyInvalid
         exp_alerts:
           - exp_labels: {severity: critical, alertgroup: ai, module_id: nethvoice1, node: "1", provider: deepgram}
             exp_annotations:
@@ -30,13 +30,13 @@ tests:
         values: '0x6 1x14'
     alert_rule_test:
       - eval_time: 6m
-        alertname: NethVoiceAiKeyInvalid
+        alertname: NethVoiceAIKeyInvalid
         exp_alerts: []
       - eval_time: 12m
-        alertname: NethVoiceAiKeyInvalid
+        alertname: NethVoiceAIKeyInvalid
         exp_alerts: []
       - eval_time: 20m
-        alertname: NethVoiceAiKeyInvalid
+        alertname: NethVoiceAIKeyInvalid
         exp_alerts: []
 
   # A valid key
@@ -46,7 +46,7 @@ tests:
         values: '1x20'
     alert_rule_test:
       - eval_time: 20m
-        alertname: NethVoiceAiKeyInvalid
+        alertname: NethVoiceAIKeyInvalid
         exp_alerts: []
 
   # Credit: unknown, then fine, then exhausted, then a successful call
@@ -56,13 +56,13 @@ tests:
         values: '-1x3 0x3 1x3 0x3'
     alert_rule_test:
       - eval_time: 10m
-        alertname: NethVoiceAiCreditExhausted
+        alertname: NethVoiceAICreditExhausted
         exp_alerts: []
       - eval_time: 25m
-        alertname: NethVoiceAiCreditExhausted
+        alertname: NethVoiceAICreditExhausted
         exp_alerts: []
       - eval_time: 40m
-        alertname: NethVoiceAiCreditExhausted
+        alertname: NethVoiceAICreditExhausted
         exp_alerts:
           - exp_labels: {severity: critical, alertgroup: ai, module_id: nethvoice1, node: "1", provider: openai}
             exp_annotations:
@@ -71,5 +71,5 @@ tests:
               description_en: "openai refused a request of nethvoice1 because the account has no credit left: transcriptions and summaries are not produced. Top up the account. The alert clears after the next successful call."
               description_it: "openai ha rifiutato una richiesta di nethvoice1 perché l'account non ha più credito: trascrizioni e riassunti non vengono prodotti. Ricaricare l'account. L'allarme si chiude dopo la prossima chiamata riuscita."
       - eval_time: 65m
-        alertname: NethVoiceAiCreditExhausted
+        alertname: NethVoiceAICreditExhausted
         exp_alerts: []

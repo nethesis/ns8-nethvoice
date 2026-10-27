@@ -11,7 +11,7 @@
 groups:
   - name: ai
     rules:
-      - alert: NethVoiceAiKeyInvalid
+      - alert: NethVoiceAIKeyInvalid
         expr: nethvoice_ai_key_valid == 0
         for: 10m
         labels:
@@ -24,7 +24,7 @@ groups:
           description_it: "{{ $labels.provider }} rifiuta la chiave API configurata in {{ $labels.module_id }}: trascrizioni e riassunti non vengono prodotti. Aggiornare la chiave nella pagina integrazioni di NethVoice."
       # Reported by satellite on real calls (nethesis/satellite#55): it stays
       # 1 until the next successful call. Fires at once, as calls already fail.
-      - alert: NethVoiceAiCreditExhausted
+      - alert: NethVoiceAICreditExhausted
         expr: satellite_ai_credit_exhausted == 1
         labels:
           severity: critical

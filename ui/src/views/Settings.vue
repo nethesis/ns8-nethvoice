@@ -521,11 +521,11 @@
                         {{ $t("settings.alerts_dns_slow") }}
                       </li>
                       <li>
-                        <code>NethVoiceAiKeyInvalid</code>:
+                        <code>NethVoiceAIKeyInvalid</code>:
                         {{ $t("settings.alerts_ai_key") }}
                       </li>
                       <li>
-                        <code>NethVoiceAiCreditExhausted</code>:
+                        <code>NethVoiceAICreditExhausted</code>:
                         {{ $t("settings.alerts_ai_credit") }}
                       </li>
                     </ul>

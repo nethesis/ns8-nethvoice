@@ -5,7 +5,7 @@
 
 """Validity of the AI provider API keys used by satellite.
 
-Used by the NethVoiceAiKeyInvalid alert (etc/metrics/alert-rules/nethvoice-ai.yml):
+Used by the NethVoiceAIKeyInvalid alert (etc/metrics/alert-rules/nethvoice-ai.yml):
 
 - nethvoice_ai_key_valid{provider}: 1 if the provider accepts the key, 0 if it
   rejects it (HTTP status in INVALID_STATUS; for OpenAI only with the error
