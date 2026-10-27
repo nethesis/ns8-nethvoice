@@ -9,8 +9,6 @@ import re
 import subprocess
 import sys
 
-import agent
-
 
 def systemctl(*args):
     run('systemctl', '--user', *args)
