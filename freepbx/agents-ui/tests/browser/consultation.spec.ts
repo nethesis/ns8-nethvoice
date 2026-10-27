@@ -7,6 +7,7 @@ function draft() {
   const value = read("published-v8.example.json");
   for (const key of ["agent_id", "destination_id", "workflow_version", "provider"]) delete value[key];
   value.provider_binding_id = null;
+  for (const binding of value.tool_bindings) binding.enabled = false;
   return value;
 }
 for (const language of ["en", "it"]) {
@@ -40,3 +41,28 @@ for (const language of ["en", "it"]) {
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   });
 }
+
+test("internal assistant has its own configuration and no public PBX tools", async ({page}) => {
+  const internal = draft();
+  Object.assign(internal,{contract_version:9,role:"consultation",chat_model:null,consultation:{mode:"direct",phone:false,chat:false,assistant_id:null},fallback_destination_id:"hangup"});
+  for (const binding of internal.tool_bindings) {binding.enabled=false;if(binding.tool_id==="pbx.transfer") binding.tool_version=3;}
+  let saved: any;
+  await page.addInitScript(() => {localStorage.setItem("secretkey",JSON.stringify({user:"administrator",hash:"synthetic"}));localStorage.setItem("nethvoice.agents.language","en");});
+  await page.route("**/freepbx/rest/agents/**",async route => {
+    const path=new URL(route.request().url()).pathname.split("/agents")[1];
+    if (route.request().method()==="POST") {saved=route.request().postDataJSON().profile;await route.fulfill({json:{...saved,agent_id:"internal",revision:1,kind:"custom",agent_type:"consultation",published:null}});return;}
+    await route.fulfill({json:path==="/access"?{csrf:"synthetic-csrf"}:path==="/catalog"?{tools,draft_defaults:draft(),consultation_defaults:internal,default_language:"en",languages:[{id:"en",label:"English"}],extensions:[],consultation_assistants:[]}:path==="/trunks"?{items:[]}:{...saved,agent_id:"internal",revision:1,kind:"custom",agent_type:"consultation",published:null}});
+  });
+  await page.goto("./#/agents/new");
+  await page.getByRole("button",{name:/^Agent type/}).click();
+  await page.getByRole("option",{name:"Internal consultation assistant",exact:true}).click();
+  await expect(page.getByText(/This assistant handles private colleague consultations only/)).toBeVisible();
+  await expect(page.getByRole("checkbox",{name:"Transfer to a permitted PBX destination",exact:true})).toHaveCount(0);
+  await expect(page.getByRole("button",{name:/^Transfer to people/})).toHaveCount(0);
+  await page.getByLabel("Name",{exact:true}).fill("Private assistant");
+  await page.getByLabel("Chat model ID (optional)",{exact:true}).fill("synthetic-text-model");
+  await page.getByRole("button",{name:"Save draft",exact:true}).click();
+  await expect.poll(()=>saved?.draft?.chat_model).toBe("synthetic-text-model");
+  expect(saved.draft.role).toBe("consultation");
+  expect(saved.draft.tool_bindings.every((binding: {enabled:boolean})=>!binding.enabled)).toBe(true);
+});
