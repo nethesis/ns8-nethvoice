@@ -9,7 +9,8 @@ before merge. Live acceptance gaps are listed below.
 
 ## Enable it for Receptionist
 
-1. In **Agents**, create an **Internal consultation assistant**. Select its own
+1. For chat consultations, enable NethVoice chat and verify the gateway is running.
+   In **Agents**, create an **Internal consultation assistant**. Select its own
    provider trunk, voice model, language, voice and instructions. For chat, enter
    a text model supported by that provider, or use a GPT-Live backend model.
    Save, publish and enable this assistant. It has no public VisualPlan destination,
@@ -73,7 +74,7 @@ No reverse-proxy route exposes either private listener.
 
 The reserved XMPP identity is `voice-agent-assistant`. Human JWT login as that
 identity is forbidden and account retirement excludes it. Consultation messages
-contain a short `#REFERENCE` and expiry. Reply with that reference and a decision;
+contain a short `#REFERENCE` and expiry. Start the first line of your reply with that reference and a decision;
 bare yes, quoted references, wrong senders, rooms, expired and replayed replies
 cannot authorize connection. Gateway receipts contain bounded metadata and a body
 hash, not message text. Reconnects preserve send idempotency, never decisions.
@@ -136,3 +137,35 @@ provider paths, actual Satellite-stop survival, linked-ID/CDR/recording continui
 and transcription disabled plus each supported mode. Human listening must confirm
 pronunciation, hold quality, private audio isolation, reason accuracy, clarification,
 message relay and final audio. These results must not be inferred from unit tests.
+
+## Image validation record (2026-10-27)
+
+The published Satellite PR image is pinned to
+`sha256:b2eecec8af67e58429f3b47e8f973bc2da2910ec27686b6d9ba0eca968232761`.
+Its verified source label is PR merge revision
+`4f184d2eb2aafa34613b76e75887cd91a6c15d60`; its tree equals feature head
+`bc343c4cd884b4b38f6a8eed12db2df343882b4e`. Paired CI checks out that exact
+image source. Satellite CI passed 490 tests, with six documented environment/
+database skips. NethVoice's final local paired validation passed 338 runtime/database tests,
+92 module tests plus 18 subtests, seven UI unit tests and 32 browser tests; final
+paired validation also covers the added recovery and chat-opening cases.
+
+Local builds completed for FreePBX, CTI server, chat gateway/ejabberd, Satellite
+and the NS8 module. The local builder lacks cache-mount support, so temporary
+Containerfiles omit only cache mounts; committed recipes retain their cache mounts. The CTI
+image uses NS8 prerequisite source `e7e66fb5081bf55e5f0ac77a5475a3cf7b487788`,
+passes its tests on the image's Node 14 runtime, and both changed JavaScript files
+match source SHA-256 hashes. Go tests, vet and the consultation race test pass.
+The module advertises 45 TCP ports. The built PHP and Python runtimes accept the
+same synthetic v9 publication. FreePBX's isolated runtime checks confirm PHP,
+G.729 and MP3 support. Existing native transcription tests pass 9/9.
+
+These artifacts have not been deployed by this implementation run. The authorized
+staging checks changed only temporary probe resources, left zero active calls
+and preserved service start/restart state. Chat was disabled on the staging
+instance at inspection. Updating the module/services and enabling chat requires
+a separately approved maintenance window; existing Receptionist publication
+remains unchanged. Live provider, browser/mobile chat, recording/transcription
+continuity, actual Satellite-stop and human listening acceptance remain pending.
+Merge the CTI prerequisite and replace the Satellite development image with a
+versioned release before merging the paired feature.
