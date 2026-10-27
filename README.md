@@ -223,7 +223,7 @@ The drop-in is lost when the module is updated or reinstalled.
 
 ## Monitoring and alerts
 
-Requirements: core 3.24.0 or later, metrics app 1.7.0-dev.1 or later. With an
+Requirements: core 3.24.0 or later, metrics app 1.7.0 or later. With an
 older metrics app the alert rules are ignored.
 
 Every 5 minutes the node runs `export-metrics` and passes its output to the
