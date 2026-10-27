@@ -3,6 +3,7 @@
   "extends": [
     "local>NethServer/.github:ns8-automerge"
   ],
+  "dependencyDashboard": true,
   "ignorePaths": [
     "**/node_modules/**",
     "**/bower_components/**",
@@ -23,17 +24,17 @@
       "enabled": false
     },
     {
-      "description": "FreePBX does not run on newer PHP releases: keep the PHP image on its minor version",
+      "description": "FreePBX 17 does not start on PHP 8.4+: PHP minor and major updates wait for approval in the Dependency Dashboard (move with FreePBX 18)",
       "matchFileNames": ["freepbx/**", "tancredi/**"],
       "matchDepNames": ["docker.io/library/php"],
       "matchUpdateTypes": ["major", "minor"],
-      "enabled": false
+      "dependencyDashboardApproval": true
     },
     {
-      "description": "Stay on the MariaDB 10.11 LTS: newer majors drop the mysql client and need a data upgrade",
+      "description": "MariaDB major upgrades need a tested data upgrade: they wait for approval in the Dependency Dashboard",
       "matchDepNames": ["mariadb"],
       "matchUpdateTypes": ["major"],
-      "enabled": false
+      "dependencyDashboardApproval": true
     }
   ]
 }
