@@ -30,7 +30,7 @@ these through the public gateway or reverse proxy. The NS8 module provisions the
 short-lived password internally; Satellite never receives the component secret.
 Receipts retain IDs, recipient/reference/expiry, state and a body hash, never message
 bodies. Unknown send status is not retried after reconnect. Replies require the
-verified sender and an unquoted `#REFERENCE` within the original deadline. The
+verified sender and an unquoted `#REFERENCE` in the first line within the original deadline. The
 transport carries text only; Satellite owns decisions, consent and call state.
 
 Run `go test ./...` for auth, sender/reference/expiry, DND, stale-state, idempotency
