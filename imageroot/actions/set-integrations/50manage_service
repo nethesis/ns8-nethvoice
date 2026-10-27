@@ -6,7 +6,6 @@ import json
 import os
 from pathlib import Path
 import re
-import secrets
 import subprocess
 import sys
 
@@ -21,33 +20,9 @@ def run(*args):
     subprocess.run(list(args), check=True, stdout=sys.stderr)
 
 
-env = agent.read_envfile('environment')
-if 'VOICE_AGENT_MONITORING_RETENTION_DAYS' not in env:
-    agent.set_env('VOICE_AGENT_MONITORING_RETENTION_DAYS', '90')
-    env['VOICE_AGENT_MONITORING_RETENTION_DAYS'] = '90'
-passwords = agent.read_envfile('passwords.env')
-for name in ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN', 'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD'):
-    if not passwords.get(name):
-        passwords[name] = secrets.token_urlsafe(32)
-agent.write_envfile('passwords.env', passwords)
-os.chmod('passwords.env', 0o600)
-runtime_keys = ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN',
-                'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD',
-                'SATELLITE_ARI_PASSWORD')
-runtime_env = {name: passwords[name] for name in runtime_keys}
-for name in ('OPENAI_API_KEY', 'XAI_API_KEY', 'GROK_API_KEY',
-             'DEEPGRAM_API_KEY', 'SATELLITE_MQTT_PASSWORD'):
-    value = passwords.get(name) or os.environ.get(name)
-    if value:
-        runtime_env[name] = value
-runtime_env['VOICE_AGENT_MONITORING_RETENTION_DAYS'] = env.get('VOICE_AGENT_MONITORING_RETENTION_DAYS', '90')
-runtime_env['VOICE_AGENT_LIVE_WS_MAX_CALLS'] = env.get('VOICE_AGENT_LIVE_WS_MAX_CALLS', '4')
-runtime_env['API_TOKEN'] = passwords['SATELLITE_API_TOKEN']
-runtime_env['PGVECTOR_PASSWORD'] = passwords['SATELLITE_PGSQL_PASSWORD']
-agent.write_envfile('satellite.env', runtime_env)
-os.chmod('satellite.env', 0o600)
-
 module_dir = Path(os.environ['AGENT_INSTALL_DIR'])
+# Keep every configuration path on the same least-privilege runtime projection.
+run(str(module_dir / 'actions/configure-module/29voice_agents'), '--secrets-only')
 unit = (module_dir / 'systemd/user/satellite.service').read_text()
 settings = {name: os.getenv(name, '') for name in re.findall(r'\$\{([A-Z0-9_]+)\}', unit)}
 image = subprocess.run(['podman', 'image', 'inspect', '--format', '{{.Id}}',
