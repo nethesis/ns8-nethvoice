@@ -36,6 +36,14 @@ class Services:
 
     def run(self, args, **kwargs):
         self.calls.append(args)
+        if args[0] == str(ROOT / 'imageroot/actions/configure-module/29voice_agents'):
+            assert args[1:] == ['--secrets-only']
+            with patch('sys.argv', args):
+                try:
+                    runpy.run_path(args[0])
+                except SystemExit as result:
+                    assert result.code == 0
+            return subprocess.CompletedProcess(args, 0)
         if args[0] == 'restart-services-when-convenient':
             assert args[1:] == ['--wait-only']
             if not self.idle:
@@ -92,7 +100,7 @@ def state(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv('NETHVOICE_SATELLITE_IMAGE', 'synthetic-image')
     monkeypatch.setenv('AGENT_INSTALL_DIR', str(ROOT / 'imageroot'))
-    values = {'environment': {}, 'passwords.env': {
+    values = {'environment': {'NETHVOICE_RECIPIENT_SERVICE_PORT':'31043','VOICE_AGENT_CHAT_PORT':'31044'}, 'passwords.env': {
         'SATELLITE_ARI_PASSWORD': 'synthetic-ari',
         'SATELLITE_API_TOKEN': 'synthetic-api',
         'SATELLITE_PGSQL_PASSWORD': 'synthetic-pg',
@@ -196,6 +204,7 @@ def test_credentials_are_filtered_and_changes_require_a_call_safe_restart(action
     secrets = dict(state['passwords.env'])
     fingerprint = Path('satellite-runtime.sha256').read_text()
     assert 'MARIADB_ROOT_PASSWORD' not in state['satellite.env']
+    assert all(state['satellite.env'].get('VOICE_AGENT_'+service+'_TOKEN') and state['satellite.env'].get('VOICE_AGENT_'+service+'_URL') for service in ('RECIPIENT','CHAT'))
     assert Path('satellite.env').stat().st_mode & 0o777 == 0o600
     assert Path('passwords.env').stat().st_mode & 0o777 == 0o600
     apply(services, action)
