@@ -5,15 +5,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-# Publish the module alert rules and dashboards for the metrics module, or
-# remove the rules if the alerts are disabled. Also linked from
-# update-module.d, to publish the rules and dashboards of a new image, and
-# from restore-module and clone-module, to apply the restored
-# NETHVOICE_ALERTS_ENABLED and the new MODULE_ID. A failure must not stop
-# them.
+# Publish the module alert rules for the metrics module, or remove them if
+# the alerts are disabled. Also linked from update-module.d, to publish the
+# rules of a new image, and from restore-module and clone-module, to apply
+# the restored NETHVOICE_ALERTS_ENABLED. A failure must not stop them.
 
 exec 1>&2
 
 if ! publish-metrics-config; then
-    echo "Warning: alert rules and dashboards not published"
+    echo "Warning: alert rules not published"
 fi
