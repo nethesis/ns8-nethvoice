@@ -519,6 +519,10 @@
                         {{ $t("settings.alerts_dns_failure") }}
                       </li>
                       <li>
+                        <code>NethVoiceDnsSlow</code>:
+                        {{ $t("settings.alerts_dns_slow") }}
+                      </li>
+                      <li>
                         <code>NethVoiceAiKeyInvalid</code>:
                         {{ $t("settings.alerts_ai_key") }}
                       </li>

@@ -3,10 +3,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # The NethVoice, CTI and proxy names must resolve on the resolver of the
-# node, and the proxy name must point to the proxy public or private IP. One
-# alert, the reason label tells which check failed. Series come from
-# export-metrics (pypkg/nvmetrics/dnscheck.py) every 5 minutes, so "for: 15m"
-# means 3 failed checks in a row.
+# node, the proxy name must point to the proxy public or private IP, and the
+# resolver must answer within 3 seconds. One failure alert, the reason label
+# tells which check failed. Series come from export-metrics
+# (pypkg/nvmetrics/dnscheck.py) every 5 minutes, so "for: 15m" means 3 failed
+# checks in a row.
 groups:
   - name: dns
     rules:
@@ -34,3 +35,14 @@ groups:
           summary_it: "{{ $labels.name }} non punta all'IP del proxy"
           description_en: "The DNS resolver of the node resolves {{ $labels.name }} to {{ $labels.records }}, but the proxy IP is {{ $labels.expected }}. Phones and providers may reach the wrong address. Update the DNS record."
           description_it: "Il resolver DNS del nodo risolve {{ $labels.name }} in {{ $labels.records }}, ma l'IP del proxy è {{ $labels.expected }}. Telefoni e provider potrebbero raggiungere l'indirizzo sbagliato. Aggiornare il record DNS."
+      - alert: NethVoiceDnsSlow
+        expr: nethvoice_dns_response_seconds > 3
+        for: 15m
+        labels:
+          severity: warning
+          alertgroup: dns
+        annotations:
+          summary_en: "Slow DNS resolution of {{ $labels.name }}"
+          summary_it: "Risoluzione DNS lenta di {{ $labels.name }}"
+          description_en: "The DNS resolver of the node took {{ $value | humanize }}s to resolve {{ $labels.name }} ({{ $labels.role }} of {{ $labels.module_id }}): calls and registrations may be delayed or fail. Check the resolver configuration and its upstream servers."
+          description_it: "Il resolver DNS del nodo ha impiegato {{ $value | humanize }}s per risolvere {{ $labels.name }} ({{ $labels.role }} di {{ $labels.module_id }}): chiamate e registrazioni potrebbero subire ritardi o fallire. Verificare la configurazione del resolver e i suoi server upstream."

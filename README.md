@@ -243,6 +243,7 @@ still exported.
 |---|---|---|
 | `ServiceDown` | critical | a service is stopped for 10 minutes (`reason="stopped"`) or restarted at least 3 times in 10 minutes (`reason="crash_loop"`) |
 | `NethVoiceDnsFailure` | warning | for 15 minutes a public name does not resolve on the DNS resolver of the node (`reason="not_resolved"`), or the proxy name does not point to the proxy public or private IP (`reason="ip_mismatch"`) |
+| `NethVoiceDnsSlow` | warning | for 15 minutes the DNS resolver of the node takes more than 3 seconds to resolve a public name, or does not answer within 5 seconds |
 | `NethVoiceAiKeyInvalid` | critical | with transcription on, Deepgram or OpenAI rejects the API key (HTTP 401; for OpenAI only with error code `invalid_api_key`, so a restricted key without the Models read scope is not reported) for 10 minutes |
 | `NethVoiceAiCreditExhausted` | critical | Satellite reports that a provider refused a call for lack of credit; clears after the next successful call |
 | `NethVoiceTrunkUnreachable` | critical | for 10 minutes a trunk that bypasses the proxy is not registered (`reason="registration_failed"`), the remote side of a `receive` trunk is not registered (`reason="not_registered"`), or the provider of an IP trunk that bypasses the proxy does not answer OPTIONS (`reason="qualify_failed"`; not when Asterisk could not send them) |
@@ -262,8 +263,7 @@ Notes:
   `nethvoice_trunk_proxy_info{trunk,proxy_trunk}` so the proxy alerts can show
   the trunk name next to the address the proxy sees.
 - The DNS resolver of the node is the one in `/etc/resolv.conf`. A resolver
-  that does not answer is not a `NethVoiceDnsFailure`: its response time is
-  exported as 5 seconds.
+  that does not answer raises `NethVoiceDnsSlow`, not `NethVoiceDnsFailure`.
 - When a check cannot run (AI provider unreachable, freepbx
   stopped) it is skipped and no alert fires:
   `nethvoice_exporter_collector_up{collector}` is 0.

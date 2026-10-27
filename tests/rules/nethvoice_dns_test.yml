@@ -49,3 +49,33 @@ tests:
               description_en: "The DNS resolver of the node resolves proxy.example.com to 198.51.100.9, but the proxy IP is 203.0.113.5,10.5.4.1. Phones and providers may reach the wrong address. Update the DNS record."
               description_it: "Il resolver DNS del nodo risolve proxy.example.com in 198.51.100.9, ma l'IP del proxy è 203.0.113.5,10.5.4.1. Telefoni e provider potrebbero raggiungere l'indirizzo sbagliato. Aggiornare il record DNS."
 
+  # The resolver answers slowly for 15 minutes
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_dns_response_seconds{module_id="nethvoice1",node="1",name="voice.example.com",role="nethvoice"}'
+        values: '5x10'
+    alert_rule_test:
+      - eval_time: 14m
+        alertname: NethVoiceDnsSlow
+        exp_alerts: []
+      - eval_time: 16m
+        alertname: NethVoiceDnsSlow
+        exp_alerts:
+          - exp_labels: {severity: warning, alertgroup: dns, module_id: nethvoice1, node: "1", name: voice.example.com, role: nethvoice}
+            exp_annotations:
+              summary_en: "Slow DNS resolution of voice.example.com"
+              summary_it: "Risoluzione DNS lenta di voice.example.com"
+              description_en: "The DNS resolver of the node took 5s to resolve voice.example.com (nethvoice of nethvoice1): calls and registrations may be delayed or fail. Check the resolver configuration and its upstream servers."
+              description_it: "Il resolver DNS del nodo ha impiegato 5s per risolvere voice.example.com (nethvoice di nethvoice1): chiamate e registrazioni potrebbero subire ritardi o fallire. Verificare la configurazione del resolver e i suoi server upstream."
+
+  # Answers within 3 seconds, or one slow answer, are not slow
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_dns_response_seconds{module_id="nethvoice1",node="1",name="voice.example.com",role="nethvoice"}'
+        values: '3x10'
+      - series: 'nethvoice_dns_response_seconds{module_id="nethvoice1",node="1",name="cti.example.com",role="cti"}'
+        values: '5 0.1x10'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: NethVoiceDnsSlow
+        exp_alerts: []
