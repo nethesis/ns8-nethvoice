@@ -1,5 +1,4 @@
 /*!40101 SET NAMES binary*/;
-/*!40014 SET FOREIGN_KEY_CHECKS=0*/;
 /*!40103 SET TIME_ZONE='+00:00' */;
 USE `asterisk`;
 INSERT INTO `gateway_models` (`id`,`model`,`manufacturer`,`tech`,`n_pri_trunks`,`n_isdn_trunks`,`n_fxo_trunks`,`n_fxs_ext`,`description`) VALUES
@@ -28,4 +27,13 @@ INSERT INTO `gateway_models` (`id`,`model`,`manufacturer`,`tech`,`n_pri_trunks`,
 (44,"gxw4232TLS","Grandstream","fxs",0,0,0,32,"GXW4232 SIP TLS 32 Porte FXS"),
 (45,"gxw4248","Grandstream","fxs",0,0,0,48,"GXW4216 SIP 48 Porte FXS"),
 (46,"gxw4248TLS","Grandstream","fxs",0,0,0,48,"GXW4216 SIP TLS 48 Porte FXS"),
-(48,"ht841TLS","Grandstream","fxo",0,0,4,0,"HT841 Analogico 4 Porte FXO");
+(48,"ht841TLS","Grandstream","fxo",0,0,4,0,"HT841 Analogico 4 Porte FXO")
+ON DUPLICATE KEY UPDATE
+`model`=VALUES(`model`),
+`manufacturer`=VALUES(`manufacturer`),
+`tech`=VALUES(`tech`),
+`n_pri_trunks`=VALUES(`n_pri_trunks`),
+`n_isdn_trunks`=VALUES(`n_isdn_trunks`),
+`n_fxo_trunks`=VALUES(`n_fxo_trunks`),
+`n_fxs_ext`=VALUES(`n_fxs_ext`),
+`description`=VALUES(`description`);

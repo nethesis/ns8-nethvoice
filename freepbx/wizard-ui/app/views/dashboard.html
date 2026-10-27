@@ -271,6 +271,26 @@
               <label class="control-label {{data.selExten.cf !== '' ? 'text-red': ''}}">{{data.selExten.cf !== '' ? 'ON - ' + data.selExten.cf : 'OFF'}}</label>
             </div>
           </div>
+          <div ng-if="data.selExten.type.indexOf('nethlink') === 0">
+            <div class="form-group">
+              <label class="col-sm-4 control-label">{{'NethLink version' | translate}}:</label>
+              <div class="col-sm-8">
+                <label class="control-label">{{data.selNethLink.nethlink_version || '-'}}</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-4 control-label">{{'Operating system' | translate}}:</label>
+              <div class="col-sm-8">
+                <label class="control-label">{{(data.selNethLink.os_type | osName) || '-'}}</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-4 control-label">{{'Last seen' | translate}}:</label>
+              <div class="col-sm-8">
+                <label class="control-label">{{data.selNethLink.timestamp || '-'}}</label>
+              </div>
+            </div>
+          </div>
         </form>
       </div>
       <div class="modal-footer">

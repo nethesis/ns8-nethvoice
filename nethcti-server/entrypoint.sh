@@ -19,6 +19,18 @@ cat > $FILE <<EOF
 }
 EOF
 
+# Optional trusted-SSO block, emitted only when a per-install mint secret is
+# provided (SSO off by default).
+SSO_JSON=""
+if [ -n "${NETHCTI_SSO_TRUSTED_SECRET}" ]; then
+  SSO_JSON=$(cat <<EOJ
+,
+  "sso_trusted_secret": "${NETHCTI_SSO_TRUSTED_SECRET}",
+  "sso_token_key": "${NETHCTI_SSO_TOKEN_KEY}",
+  "sso_user_allowlist": "${NETHCTI_SSO_USER_ALLOWLIST}"
+EOJ
+)
+fi
 FILE=/etc/nethcti/authentication.json
 cat > $FILE <<EOF
 {
@@ -31,7 +43,7 @@ cat > $FILE <<EOF
   "unauthe_call": {
           "status": "${NETHCTI_UNAUTHE_CALL:-disabled}",
           "allowed_ip": "${NETHCTI_UNAUTHE_CALL_IP:-127.0.0.1}"
-  }
+  }${SSO_JSON}
 }
 EOF
 
@@ -367,7 +379,7 @@ cat > $FILE <<EOF
 var customConfig = {
   BRAND_NAME: '${BRAND_NAME:=NethVoice}',
   BRAND_SITE: '${BRAND_SITE:=https://www.nethesis.it/soluzioni/nethvoice}',
-  BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethserver.org/projects/ns8/en/latest/nethvoice.html}',
+  BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethvoice.com/it/}',
   BASE_API_URL: '/freepbx/rest',
   BASE_API_URL_CTI: '/webrest',
   VPLAN_URL: '/freepbx/visualplan',
@@ -404,6 +416,9 @@ cat > $FILE <<EOF
 	    "cancel": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/servlet?key=CANCEL"
         }
     },
+    "^snom\\\s*D8[6-9][0-9]": {
+        "urls": {}
+    },
     "^snom.*": {
         "urls": {
             "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/command.htm?number=\$NUMBER",
@@ -419,6 +434,16 @@ cat > $FILE <<EOF
             "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/Phone_ActionURL&Command=1&Number=\$NUMBER&Account=1",
             "answer": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/Phone_ActionURL&key=OK",
             "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/Phone_ActionURL&key=F_HOLD"
+        }
+    },
+    "^fanvil\\\s*W6(11|20)W": {
+        "urls": {
+            "call": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=\$NUMBER_DIGITS;ENTER",
+            "answer": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=OK",
+            "hold_unhold": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_HOLD",
+            "dtmf": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=\$TONE",
+            "mute_unmute": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_MUTE",
+	    "cancel": "http://\$PHONE_USER:\$PHONE_PASS@\$PHONE_IP/cgi-bin/ConfigManApp.com?key=F_CANCEL"
         }
     },
     "^fanvil.*": {

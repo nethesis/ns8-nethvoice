@@ -16,7 +16,7 @@ if [ -z "$support_user" ] || [ -z "$session_id" ]; then
 fi
 
 podman exec mariadb bash -c '
-	mysql -u root -p$MARIADB_ROOT_PASSWORD asterisk -e "
+	mariadb -u root -p$MARIADB_ROOT_PASSWORD asterisk -e "
 	INSERT INTO ampusers (username, password_sha1, sections) 
 	VALUES (\"'"$support_user"'\", SHA1(\"'"$session_id"'\"), \"*\") 
 	ON DUPLICATE KEY UPDATE password_sha1=SHA1(\"'"$session_id"'\")

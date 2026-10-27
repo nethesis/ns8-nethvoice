@@ -67,7 +67,7 @@ def mysql(query):
         "mariadb",
         "sh",
         "-lc",
-        'exec mysql -uroot -p"$MARIADB_ROOT_PASSWORD" --batch --raw --skip-column-names -e "$1"',
+        'exec mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" --batch --raw --skip-column-names -e "$1"',
         "fias-gg-test",
         query,
     )

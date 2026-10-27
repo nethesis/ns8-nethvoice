@@ -1,37 +1,29 @@
 # Stage 1: Build Asterisk
-FROM docker.io/debian:11 as builder
+FROM docker.io/debian:trixie@sha256:4c25275446ca371766b8b093c696782eabce06263fccacb8d5d813b3dc44b308 as builder
 
 # Set fixed Asterisk version
-ARG ASTERISK_VERSION=18.26.3
-ARG PJSIP_VERSION=2.13.1
+ARG ASTERISK_VERSION=22.10.0
+ARG PJSIP_VERSION=2.17
+ARG JANSSON_VERSION=2.15.0
+ARG LIBJWT_VERSION=1.15.3
+ARG ASTERISK_G72X_COMMIT=5106838f3aabf8fe09fa3780a8e9d3ed4c2a0063
 ARG DEBIAN_FRONTEND=noninteractive
 ARG BUILDROOT=/usr/src/asterisk/build
 ARG LIBDIR=/usr/lib
 ARG DATADIR=/var/lib
 ARG MAKEARGS="DEBUG= OPTIMIZE= DESTDIR=${BUILDROOT} ASTVARRUNDIR=/var/run/asterisk ASTDATADIR=${DATADIR}/asterisk ASTVARLIBDIR=${DATADIR}/asterisk ASTDBDIR=${DATADIR}/asterisk/db NOISY_BUILD=1"
 COPY usr/src/asterisk /usr/src/asterisk
-# Bullseye LTS ended on 2026-08-31; no further official security updates are planned.
-# Third-party Extended LTS may support selected packages separately:
-# https://www.debian.org/News/2026/20260831
-# Restore reliable build downloads using archive.debian.org for bullseye and
-# bullseye-updates, plus the fixed 2026-09-01 snapshot for bullseye-security.
-# The snapshot avoids live-mirror package 404s and retains final LTS versions.
-# It does not extend Debian 11 security support. Any later fix requires changing
-# these sources; rebuilding cannot fetch updates beyond the fixed snapshot.
-# check-valid-until=no skips only snapshot metadata expiry; signature and checksum
-# verification remain enabled. See https://snapshot.debian.org/
-RUN sed -i \
-	-e 's|deb\.debian\.org/debian |archive.debian.org/debian |g' \
-	-e 's|http://deb\.debian\.org/debian-security |[check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260901T000000Z/ |g' \
-	/etc/apt/sources.list && \
-	apt-get update && \
-	apt-get install -y \
+# libcap can still arrive transitively from other build dependencies, so
+# disable Asterisk's CAP probe below. Rootless Podman cannot retain
+# CAP_NET_ADMIN after dropping to runuser=asterisk in this image.
+RUN apt-get update && \
+	apt-get install -y --no-install-recommends \
 		automake \
 		build-essential \
+		ca-certificates \
 		doxygen \
 		graphviz \
 		libasound2-dev \
-		libcap-dev \
 		libcurl4-openssl-dev \
 		libedit-dev \
 		libgcrypt20-dev \
@@ -44,7 +36,7 @@ RUN sed -i \
 		libltdl-dev \
 		liblua5.3-dev \
 		libmariadb-dev \
-		libncursesw5-dev \
+		libncurses-dev \
 		libneon27-dev \
 		libnewt-dev \
 		libogg-dev \
@@ -54,7 +46,7 @@ RUN sed -i \
 		libresample1-dev \
 		libsdl1.2-dev \
 		libsdl-image1.2-dev \
-		libsensors4-dev \
+		libsensors-dev \
 		libsnmp-dev \
 		libspandsp-dev \
 		libspeex-dev \
@@ -80,17 +72,20 @@ RUN cd /usr/src/asterisk && \
 	artifact_checksum=$(grep "  asterisk-${ASTERISK_VERSION}.tar.gz$" remote-artifacts.sha256) && \
 	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
 	tar xzf asterisk-${ASTERISK_VERSION}.tar.gz && \
+	cd asterisk-${ASTERISK_VERSION} && \
+	patch --batch --fuzz=0 -p1 < ../asterisk-22-lazymembers.patch && \
+	patch --batch --fuzz=0 -p1 < ../asterisk-22-mp3.patch && \
+	sed -i '/#include "asterisk.h"/i#define ASTMM_LIBC ASTMM_REDIRECT' addons/mp3/interface.c && \
+	cd .. && \
 	rm -f asterisk-${ASTERISK_VERSION}.tar.gz && \
 	mkdir cache && \
 	cd cache && \
 	wget -O pjproject-${PJSIP_VERSION}.tar.bz2 https://raw.githubusercontent.com/asterisk/third-party/master/pjproject/${PJSIP_VERSION}/pjproject-${PJSIP_VERSION}.tar.bz2 && \
+	wget -O jansson-${JANSSON_VERSION}.tar.bz2 https://raw.githubusercontent.com/asterisk/third-party/master/jansson/${JANSSON_VERSION}/jansson-${JANSSON_VERSION}.tar.bz2 && \
+	wget -O libjwt-${LIBJWT_VERSION}.tar.gz https://raw.githubusercontent.com/asterisk/third-party/master/libjwt/${LIBJWT_VERSION}/libjwt-${LIBJWT_VERSION}.tar.gz && \
 	cd .. && \
-	artifact_checksum=$(grep "  cache/pjproject-${PJSIP_VERSION}.tar.bz2$" remote-artifacts.sha256) && \
-	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
+	grep '  cache/' remote-artifacts.sha256 | sha256sum -c - && \
 	cd asterisk-${ASTERISK_VERSION} && \
-	patch -p1 < ../asterisk-18-mp3.patch && \
-	patch -p1 < ../lazymembers.patch && \
-	mv ../menuselect.make* ./ && \
 	perl -pi -e 's/^all:.*$/all:/' sounds/Makefile && \
 	perl -pi -e 's/^install:.*$/install:/' sounds/Makefile && \
 	mv main/fskmodem.c main/fskmodem.c.old && \
@@ -98,6 +93,7 @@ RUN cd /usr/src/asterisk && \
 	touch -r main/fskmodem.c.old main/fskmodem.c && \
 	rm main/fskmodem.c.old && \
 	chmod -x contrib/scripts/dbsep.cgi && \
+	sed -i '/AST_EXT_LIB_CHECK(\[CAP\], \[cap\], \[cap_from_text\], \[sys\/capability.h\])/d' configure.ac && \
 	export CFLAGS=" -Werror-implicit-function-declaration -DLUA_COMPAT_MODULE -fPIC" && \
 	export CXXFLAGS="-Werror-implicit-function-declaration -DLUA_COMPAT_MODULE -fPIC" && \
 	export FFLAGS="-Werror-implicit-function-declaration -DLUA_COMPAT_MODULE -fPIC" && \
@@ -122,8 +118,15 @@ RUN cd /usr/src/asterisk && \
 	./configure --without-imap --with-externals-cache=/usr/src/asterisk/cache --with-gsm=/usr --without-ilbc --with-libedit=yes --with-srtp --with-jansson-bundled --with-pjproject-bundled --with-libjwt-bundled LDFLAGS="${LDFLAGS}" NOISY_BUILD=1 CPPFLAGS="-fPIC" && \
 	make menuselect-tree && \
 	perl -n -i -e 'print unless /openr2/i' menuselect-tree && \
+	make menuselect.makeopts && \
+	menuselect/menuselect --disable BUILD_NATIVE menuselect.makeopts && \
+	menuselect/menuselect --enable app_voicemail_odbc menuselect.makeopts && \
+	menuselect/menuselect --enable format_mp3 menuselect.makeopts && \
+	menuselect/menuselect --enable res_prometheus menuselect.makeopts && \
 	make -j"$(nproc)" ${MAKEARGS} && \
 	make install ${MAKEARGS} && \
+	test -s ${BUILDROOT}${LIBDIR}/asterisk/modules/format_mp3.so && \
+	test -s ${BUILDROOT}${LIBDIR}/asterisk/modules/res_prometheus.so && \
 	make samples ${MAKEARGS} && \
 	install -D -p -m 0755 apps/app_voicemail_odbc.so ${BUILDROOT}${LIBDIR}/asterisk/modules/app_voicemail_odbc.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/libasteriskssl.so && \
@@ -166,59 +169,87 @@ RUN cd /usr/src/asterisk && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_pktccops.so && \
 	rm -rf ${BUILDROOT}${LIBDIR}/asterisk/modules/res_stasis_mailbox.so && \
 	cp -a contrib/ast-db-manage ${BUILDROOT}${DATADIR}/asterisk/ast-db-manage && \
-	wget -O codec_opus-18.0_1.3.0-x86_64.tar.gz http://downloads.digium.com/pub/telephony/codec_opus/asterisk-18.0/x86-64/codec_opus-18.0_1.3.0-x86_64.tar.gz && \
-	artifact_checksum=$(grep "  codec_opus-18.0_1.3.0-x86_64.tar.gz$" ../remote-artifacts.sha256) && \
+	wget -O codec_opus-22.0_1.3.0-x86_64.tar.gz http://downloads.digium.com/pub/telephony/codec_opus/asterisk-22.0/x86-64/codec_opus-22.0_1.3.0-x86_64.tar.gz && \
+	artifact_checksum=$(grep "  codec_opus-22.0_1.3.0-x86_64.tar.gz$" ../remote-artifacts.sha256) && \
 	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
-	tar xzf codec_opus-18.0_1.3.0-x86_64.tar.gz --strip-components=1 && \
-	wget -O codec_silk-18.0_1.0.3-x86_64.tar.gz http://downloads.digium.com/pub/telephony/codec_silk/asterisk-18.0/x86-64/codec_silk-18.0_1.0.3-x86_64.tar.gz && \
-	artifact_checksum=$(grep "  codec_silk-18.0_1.0.3-x86_64.tar.gz$" ../remote-artifacts.sha256) && \
+	tar xzf codec_opus-22.0_1.3.0-x86_64.tar.gz --strip-components=1 && \
+	wget -O codec_silk-22.0_1.0.3-x86_64.tar.gz http://downloads.digium.com/pub/telephony/codec_silk/asterisk-22.0/x86-64/codec_silk-22.0_1.0.3-x86_64.tar.gz && \
+	artifact_checksum=$(grep "  codec_silk-22.0_1.0.3-x86_64.tar.gz$" ../remote-artifacts.sha256) && \
 	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
-	tar xzf codec_silk-18.0_1.0.3-x86_64.tar.gz --strip-components=1 && \
-	wget -O codec_siren7-18.0_1.0.7-x86_64.tar.gz http://downloads.digium.com/pub/telephony/codec_siren7/asterisk-18.0/x86-64/codec_siren7-18.0_1.0.7-x86_64.tar.gz && \
-	artifact_checksum=$(grep "  codec_siren7-18.0_1.0.7-x86_64.tar.gz$" ../remote-artifacts.sha256) && \
+	tar xzf codec_silk-22.0_1.0.3-x86_64.tar.gz --strip-components=1 && \
+	wget -O codec_siren7-22.0_1.0.7-x86_64.tar.gz http://downloads.digium.com/pub/telephony/codec_siren7/asterisk-22.0/x86-64/codec_siren7-22.0_1.0.7-x86_64.tar.gz && \
+	artifact_checksum=$(grep "  codec_siren7-22.0_1.0.7-x86_64.tar.gz$" ../remote-artifacts.sha256) && \
 	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
-	tar xzf codec_siren7-18.0_1.0.7-x86_64.tar.gz --strip-components=1 && \
-	wget -O codec_siren14-18.0_1.0.7-x86_64.tar.gz http://downloads.digium.com/pub/telephony/codec_siren14/asterisk-18.0/x86-64/codec_siren14-18.0_1.0.7-x86_64.tar.gz && \
-	artifact_checksum=$(grep "  codec_siren14-18.0_1.0.7-x86_64.tar.gz$" ../remote-artifacts.sha256) && \
+	tar xzf codec_siren7-22.0_1.0.7-x86_64.tar.gz --strip-components=1 && \
+	wget -O codec_siren14-22.0_1.0.7-x86_64.tar.gz http://downloads.digium.com/pub/telephony/codec_siren14/asterisk-22.0/x86-64/codec_siren14-22.0_1.0.7-x86_64.tar.gz && \
+	artifact_checksum=$(grep "  codec_siren14-22.0_1.0.7-x86_64.tar.gz$" ../remote-artifacts.sha256) && \
 	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
-	tar xzf codec_siren14-18.0_1.0.7-x86_64.tar.gz --strip-components=1 && \
+	tar xzf codec_siren14-22.0_1.0.7-x86_64.tar.gz --strip-components=1 && \
 	cp *.so ${BUILDROOT}${LIBDIR}/asterisk/modules/ && \
 	cp codec_opus_config-en_US.xml ${BUILDROOT}${DATADIR}/asterisk/documentation/thirdparty/
 
-FROM docker.io/library/php:7.4-apache
+# Build G.729 against the same Asterisk headers as the server. The old bundled
+# Asterisk 18 binary has an incompatible ABI and requests an executable stack.
+RUN apt-get update && apt-get install -y --no-install-recommends libbcg729-dev libtool pkg-config && \
+	cd /usr/src/asterisk && \
+	wget -O asterisk-g72x-${ASTERISK_G72X_COMMIT}.tar.gz https://github.com/arkadijs/asterisk-g72x/archive/${ASTERISK_G72X_COMMIT}.tar.gz && \
+	artifact_checksum=$(grep "  asterisk-g72x-${ASTERISK_G72X_COMMIT}.tar.gz$" remote-artifacts.sha256) && \
+	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
+	tar xzf asterisk-g72x-${ASTERISK_G72X_COMMIT}.tar.gz && \
+	cd asterisk-g72x-${ASTERISK_G72X_COMMIT} && \
+	./autogen.sh && \
+	./configure --with-bcg729 --with-asterisk-includes=/usr/src/asterisk/asterisk-${ASTERISK_VERSION}/include CFLAGS="-O2 -fPIC" LDFLAGS="-Wl,-z,noexecstack" && \
+	make -j"$(nproc)" && \
+	install -D -m 0755 .libs/codec_g729.so ${BUILDROOT}${LIBDIR}/asterisk/modules/codec_g729.so
+
+FROM docker.io/library/php:8.2.35-apache-trixie@sha256:fa8966fbaaa06981e549e7a33eb8a68f4cf677d6a82e1d6350adc5d85fe8f740
 WORKDIR /var/lib/asterisk
 ARG DEBIAN_FRONTEND=noninteractive
-# Apply the same archived and frozen sources described in the build stage above.
-# This restores package availability without extending Debian 11 security support.
-RUN sed -i \
-	-e 's|deb\.debian\.org/debian |archive.debian.org/debian |g' \
-	-e 's|http://deb\.debian\.org/debian-security |[check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260901T000000Z/ |g' \
-	/etc/apt/sources.list && \
-	groupadd -g 991 -r asterisk && \
+RUN groupadd -g 991 -r asterisk && \
     useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk && \
 	apt-get update && \
-	apt-get install -y \
+	apt-get install -y --no-install-recommends \
         ca-certificates \
+        libcrypt1 \
+        libcurl4t64 \
+        libedit2 \
+        libgcc-s1 \
+        libgsm1 \
+        libodbc2 \
+        libogg0 \
+        libsqlite3-0 \
+        libssl3t64 \
+        libstdc++6 \
+        libsystemd0 \
+        libunbound8 \
+        libuuid1 \
+        libvorbis0a \
+        libvorbisenc2 \
+        libvorbisfile3 \
+        zlib1g \
 		cron \
+		libbcg729-0 \
 		curl \
 		tdsodbc \
 		gettext \
 		gnupg \
 		jq \
 		libldap2-dev \
-		libldap-2.4-2 \
+		libldap2 \
 		libsodium-dev \
 		logrotate \
 		mpg123 \
 		mycli \
 		nodejs \
 		npm \
-		pip \
+		patch \
+		python3-pip \
 		python3-pycurl \
 		python3-pyodbc \
 		python3-requests \
 		sox \
 		zip \
+		unzip \
 		vim \
 		supervisor \
 		wget \
@@ -230,11 +261,11 @@ RUN sed -i \
 		libsrtp2-1 \
 		libspeex1 \
 		libspeexdsp1 \
-		libneon27 \
+		libneon27t64 \
         libpq-dev \
-		libspandsp2 \
-		libsnmp40 \
-		libical3 \
+		libspandsp2t64 \
+		libsnmp40t64 \
+		libical3t64 \
 		libsox-fmt-mp3 \
 		sqlite3 \
 		unixodbc-dev \
@@ -242,6 +273,9 @@ RUN sed -i \
 		freetds-bin \
 		locales \
 		libicu-dev
+
+# User crontabs use /usr/bin:/bin, and legacy scripts also invoke PHP directly.
+RUN ln -s /usr/local/bin/php /usr/bin/php
 
 # Enable languages for FreePBX UI (all languages from the dropdown menu)
 RUN sed -i 's/^# *bg_BG.UTF-8 UTF-8/bg_BG.UTF-8 UTF-8/' /etc/locale.gen && \
@@ -270,6 +304,8 @@ RUN sed -i 's/^# *bg_BG.UTF-8 UTF-8/bg_BG.UTF-8 UTF-8/' /etc/locale.gen && \
 
 # Copy Asterisk files
 COPY --from=builder /usr/src/asterisk/build/./ /
+COPY check-asterisk-libraries.py /tmp/check-asterisk-libraries.py
+RUN ldconfig && python3 /tmp/check-asterisk-libraries.py && rm /tmp/check-asterisk-libraries.py
 COPY remote-artifacts.sha256 /tmp/remote-artifacts.sha256
 COPY fetch-remote-artifact /usr/local/bin/fetch-remote-artifact
 
@@ -311,7 +347,6 @@ COPY var/lib/asterisk /var/lib/asterisk
 COPY usr/bin/backup_astdb /usr/bin/backup_astdb
 COPY usr/bin/restore_astdb /usr/bin/restore_astdb
 COPY usr/local/bin/import-certificate /usr/local/bin/import-certificate
-COPY usr/lib/asterisk/modules/codec_g729.so /usr/lib/asterisk/modules/codec_g729.so
 
 RUN mkdir -p \
 	/etc/phonebook/sources.d/ \
@@ -322,9 +357,9 @@ RUN mkdir -p \
 	&& touch /etc/phonebook/sources.d/.nethvoice-volume-guard
 
 # Download framework module
-RUN sh /usr/local/bin/fetch-remote-artifact freepbx-framework-bootstrap-release-16.0.39.tar.gz https://github.com/FreePBX/framework/archive/refs/tags/release/16.0.39.tar.gz && \
-	tar xzf /tmp/freepbx-framework-bootstrap-release-16.0.39.tar.gz --strip-components=1 -C /var/www/html/freepbx/admin/modules/framework && \
-	rm -f /tmp/freepbx-framework-bootstrap-release-16.0.39.tar.gz && \
+RUN sh /usr/local/bin/fetch-remote-artifact freepbx-framework-bootstrap-release-17.0.33.2.tar.gz https://github.com/FreePBX/framework/archive/refs/tags/release/17.0.33.2.tar.gz && \
+	tar xzf /tmp/freepbx-framework-bootstrap-release-17.0.33.2.tar.gz --strip-components=1 -C /var/www/html/freepbx/admin/modules/framework && \
+	rm -f /tmp/freepbx-framework-bootstrap-release-17.0.33.2.tar.gz && \
 	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/htdocs/* /var/www/html/freepbx/ && \
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/enum.conf /etc/asterisk/ && \
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/musiconhold.conf /etc/asterisk/ && \
@@ -345,76 +380,105 @@ RUN install_module() { \
 		tar xzf "/tmp/${module_archive}" --strip-components=1 -C "${module_dir}" && \
 		rm -f "/tmp/${module_archive}"; \
 	}; \
-	install_module announcement https://github.com/FreePBX/announcement/archive/refs/tags/release/16.0.7.tar.gz && \
-	install_module arimanager https://github.com/FreePBX/arimanager/archive/refs/tags/release/16.0.13.tar.gz && \
-	install_module asterisk-cli https://github.com/FreePBX/asterisk-cli/archive/refs/tags/release/16.0.8.tar.gz && \
-	install_module asteriskinfo https://github.com/FreePBX/asteriskinfo/archive/refs/tags/release/16.0.10.tar.gz && \
-	install_module backup https://github.com/FreePBX/backup/archive/refs/tags/release/16.0.76.tar.gz && \
-	install_module blacklist https://github.com/FreePBX/blacklist/archive/refs/tags/release/16.0.21.tar.gz && \
-	install_module bulkhandler https://github.com/FreePBX/bulkhandler/archive/refs/tags/release/16.0.16.tar.gz && \
-	install_module calendar https://github.com/FreePBX/calendar/archive/refs/tags/release/16.0.34.2.tar.gz && \
-	install_module callback https://github.com/FreePBX/callback/archive/refs/tags/release/16.0.4.tar.gz && \
-	install_module callforward https://github.com/FreePBX/callforward/archive/refs/tags/release/16.0.6.tar.gz && \
-	install_module callrecording https://github.com/FreePBX/callrecording/archive/refs/tags/release/16.0.22.tar.gz && \
-	install_module callwaiting https://github.com/FreePBX/callwaiting/archive/refs/tags/release/16.0.5.tar.gz && \
-	install_module cdr https://github.com/FreePBX/cdr/archive/refs/tags/release/16.0.46.27.tar.gz && \
-	install_module cel https://github.com/FreePBX/cel/archive/refs/tags/release/16.0.20.tar.gz && \
-	install_module certman https://github.com/FreePBX/certman/archive/refs/tags/release/16.0.30.tar.gz && \
-	install_module conferences https://github.com/FreePBX/conferences/archive/refs/tags/release/16.0.9.tar.gz && \
-	install_module customappsreg https://github.com/FreePBX/customappsreg/archive/refs/tags/release/16.0.5.tar.gz && \
-	install_module daynight https://github.com/FreePBX/daynight/archive/refs/tags/release/16.0.3.tar.gz && \
-	install_module dashboard https://github.com/FreePBX/dashboard/archive/refs/tags/release/16.0.21.tar.gz && \
-	install_module disa https://github.com/FreePBX/disa/archive/refs/tags/release/16.0.5.tar.gz && \
-	install_module donotdisturb https://github.com/FreePBX/donotdisturb/archive/refs/tags/release/16.0.3.tar.gz && \
-	install_module fax https://github.com/FreePBX/fax/archive/refs/tags/release/16.0.13.tar.gz && \
-	install_module featurecodeadmin https://github.com/FreePBX/featurecodeadmin/archive/refs/tags/release/16.0.11.tar.gz && \
-	install_module filestore https://github.com/FreePBX/filestore/archive/refs/tags/release/16.0.18.5.tar.gz && \
-	install_module findmefollow https://github.com/FreePBX/findmefollow/archive/refs/tags/release/16.0.23.tar.gz && \
-	install_module framework https://github.com/FreePBX/framework/archive/refs/tags/release/16.0.40.21.tar.gz && \
-	install_module iaxsettings https://github.com/FreePBX/iaxsettings/archive/refs/tags/release/16.0.4.tar.gz && \
-	install_module infoservices https://github.com/FreePBX/infoservices/archive/refs/tags/release/16.0.2.tar.gz && \
-	install_module ivr https://github.com/FreePBX/ivr/archive/refs/tags/release/16.0.10.tar.gz && \
-	install_module languages https://github.com/FreePBX/languages/archive/refs/tags/release/16.0.4.tar.gz && \
-	install_module logfiles https://github.com/FreePBX/logfiles/archive/refs/tags/release/16.0.7.tar.gz && \
-	install_module manager https://github.com/FreePBX/manager/archive/refs/tags/release/16.0.24.tar.gz && \
-	install_module miscapps https://github.com/FreePBX/miscapps/archive/refs/tags/release/16.0.2.tar.gz && \
-	install_module music https://github.com/FreePBX/music/archive/refs/tags/release/16.0.4.tar.gz && \
-	install_module outroutemsg https://github.com/FreePBX/outroutemsg/archive/refs/tags/release/16.0.1.tar.gz && \
-	install_module parking https://github.com/FreePBX/parking/archive/refs/tags/release/16.0.4.tar.gz && \
-	install_module pm2 https://github.com/FreePBX/pm2/archive/refs/tags/release/16.0.8.tar.gz && \
-	install_module queueprio https://github.com/FreePBX/queueprio/archive/refs/tags/release/16.0.3.tar.gz && \
-	install_module ringgroups https://github.com/FreePBX/ringgroups/archive/refs/tags/release/16.0.11.tar.gz && \
-	install_module setcid https://github.com/FreePBX/setcid/archive/refs/tags/release/16.0.3.tar.gz && \
-	install_module sipsettings https://github.com/FreePBX/sipsettings/archive/refs/tags/release/16.0.27.tar.gz && \
-	install_module soundlang https://github.com/FreePBX/soundlang/archive/refs/tags/release/16.0.10.tar.gz && \
-	install_module timeconditions https://github.com/FreePBX/timeconditions/archive/refs/tags/release/16.0.11.tar.gz && \
-	install_module userman https://github.com/FreePBX/userman/archive/refs/tags/release/16.0.45.tar.gz && \
-	install_module vmblast https://github.com/FreePBX/vmblast/archive/refs/tags/release/16.0.11.tar.gz && \
-	install_module bosssecretary https://github.com/nethesis/freepbx-bosssecretary/archive/refs/tags/1.0.1.tar.gz && \
+	install_module announcement https://github.com/FreePBX/announcement/archive/refs/tags/release/17.0.2.1.tar.gz && \
+	install_module arimanager https://github.com/FreePBX/arimanager/archive/refs/tags/release/17.0.1.1.tar.gz && \
+	install_module asterisk-cli https://github.com/FreePBX/asterisk-cli/archive/refs/tags/release/17.0.2.tar.gz && \
+	install_module asteriskinfo https://github.com/FreePBX/asteriskinfo/archive/refs/tags/release/17.0.2.tar.gz && \
+	install_module backup https://github.com/FreePBX/backup/archive/refs/tags/release/17.0.14.tar.gz && \
+	install_module blacklist https://github.com/FreePBX/blacklist/archive/refs/tags/release/17.0.1.2.tar.gz && \
+	install_module bulkhandler https://github.com/FreePBX/bulkhandler/archive/refs/tags/release/17.0.7.1.tar.gz && \
+	install_module calendar https://github.com/FreePBX/calendar/archive/refs/tags/release/17.0.4.24.tar.gz && \
+	install_module callback https://github.com/FreePBX/callback/archive/refs/tags/release/17.0.2.1.tar.gz && \
+	install_module callforward https://github.com/FreePBX/callforward/archive/refs/tags/release/17.0.1.8.tar.gz && \
+	install_module callrecording https://github.com/FreePBX/callrecording/archive/refs/tags/release/17.0.3.9.tar.gz && \
+	install_module callwaiting https://github.com/FreePBX/callwaiting/archive/refs/tags/release/17.0.3.4.tar.gz && \
+	install_module cdr https://github.com/FreePBX/cdr/archive/refs/tags/release/17.0.11.3.tar.gz && \
+	install_module cel https://github.com/FreePBX/cel/archive/refs/tags/release/17.0.3.tar.gz && \
+	install_module certman https://github.com/FreePBX/certman/archive/refs/tags/release/17.0.3.15.tar.gz && \
+	install_module conferences https://github.com/FreePBX/conferences/archive/refs/tags/release/17.0.3.2.tar.gz && \
+	install_module customappsreg https://github.com/FreePBX/customappsreg/archive/refs/tags/release/17.0.1.tar.gz && \
+	install_module daynight https://github.com/FreePBX/daynight/archive/refs/tags/release/17.0.1.2.tar.gz && \
+	install_module dashboard https://github.com/FreePBX/dashboard/archive/refs/tags/release/17.0.5.tar.gz && \
+	install_module disa https://github.com/FreePBX/disa/archive/refs/tags/release/17.0.6.tar.gz && \
+	install_module donotdisturb https://github.com/FreePBX/donotdisturb/archive/refs/tags/release/17.0.2.3.tar.gz && \
+	install_module fax https://github.com/FreePBX/fax/archive/refs/tags/release/17.0.3.5.tar.gz && \
+	install_module featurecodeadmin https://github.com/FreePBX/featurecodeadmin/archive/refs/tags/release/17.0.2.tar.gz && \
+	install_module filestore https://github.com/FreePBX/filestore/archive/refs/tags/release/17.0.3.2.tar.gz && \
+	install_module findmefollow https://github.com/FreePBX/findmefollow/archive/refs/tags/release/17.0.4.15.tar.gz && \
+	install_module framework https://github.com/FreePBX/framework/archive/refs/tags/release/17.0.33.2.tar.gz && \
+	install_module iaxsettings https://github.com/FreePBX/iaxsettings/archive/refs/tags/release/17.0.2.tar.gz && \
+	install_module infoservices https://github.com/FreePBX/infoservices/archive/refs/tags/release/17.0.1.1.tar.gz && \
+	install_module ivr https://github.com/FreePBX/ivr/archive/refs/tags/release/17.0.9.tar.gz && \
+	install_module languages https://github.com/FreePBX/languages/archive/refs/tags/release/17.0.1.tar.gz && \
+	install_module logfiles https://github.com/FreePBX/logfiles/archive/refs/tags/release/17.0.5.tar.gz && \
+	install_module manager https://github.com/FreePBX/manager/archive/refs/tags/release/17.0.9.tar.gz && \
+	install_module miscapps https://github.com/FreePBX/miscapps/archive/refs/tags/release/17.0.3.tar.gz && \
+	install_module music https://github.com/FreePBX/music/archive/refs/tags/release/17.0.7.tar.gz && \
+	install_module outroutemsg https://github.com/FreePBX/outroutemsg/archive/refs/tags/release/17.0.1.tar.gz && \
+	install_module parking https://github.com/FreePBX/parking/archive/refs/tags/release/17.0.2.9.tar.gz && \
+	install_module pm2 https://github.com/FreePBX/pm2/archive/refs/tags/release/17.0.3.4.tar.gz && \
+	install_module queueprio https://github.com/FreePBX/queueprio/archive/refs/tags/release/17.0.1.4.tar.gz && \
+	install_module ringgroups https://github.com/FreePBX/ringgroups/archive/refs/tags/release/17.0.2.8.tar.gz && \
+	install_module setcid https://github.com/FreePBX/setcid/archive/refs/tags/release/17.0.1.2.tar.gz && \
+	install_module sipsettings https://github.com/FreePBX/sipsettings/archive/refs/tags/release/17.0.6.10.tar.gz && \
+	install_module soundlang https://github.com/FreePBX/soundlang/archive/refs/tags/release/17.0.5.tar.gz && \
+	install_module timeconditions https://github.com/FreePBX/timeconditions/archive/refs/tags/release/17.0.1.18.tar.gz && \
+	install_module userman https://github.com/FreePBX/userman/archive/refs/tags/release/17.0.8.tar.gz && \
+	install_module vmblast https://github.com/FreePBX/vmblast/archive/refs/tags/release/17.0.2.tar.gz && \
 	mkdir -p /var/www/html/freepbx/admin/modules/core && \
 	rm -fr /var/www/html/freepbx/admin/modules/core/* && \
-	install_module core https://github.com/nethesis/freepbx-core/archive/refs/tags/release/ns8/16.0.68.40-pl1.tar.gz && \
-	install_module customcontexts https://github.com/nethesis/freepbx-customcontexts/archive/refs/tags/release/13.0.3.4.tar.gz && \
-	install_module directdid https://github.com/nethesis/directdid/archive/1.1.8.tar.gz && \
-	install_module extraoptions https://github.com/nethesis/freepbx-extraoptions/archive/refs/tags/1.0.0.tar.gz && \
-	install_module googletts https://github.com/nethesis/googletts/archive/refs/tags/0.0.3.tar.gz && \
-	install_module nethdash https://github.com/nethesis/nethdash/archive/1.0.tar.gz && \
-	install_module paging https://github.com/nethesis/freepbx-paging/archive/refs/tags/release/ns8/16.0.11-pl.2.tar.gz && \
-	install_module queueexit https://github.com/nethesis/queueexit/archive/0.0.1.tar.gz && \
-	install_module queuemetrics https://github.com/nethesis/queuemetrics/archive/refs/tags/release/2.11.0.3.tar.gz && \
-	install_module queues https://github.com/nethesis/freepbx-queues/archive/refs/tags/release/16.0.28.tar.gz && \
-	install_module rapidcode https://github.com/nethesis/RapidCode/archive/refs/tags/1.0.1.tar.gz && \
-	install_module recordings https://github.com/nethesis/freepbx-recordings/archive/refs/tags/release/ns8/16.0.14-pl.2.tar.gz && \
-	install_module returnontransfer https://github.com/nethesis/returnontransfer/archive/refs/tags/1.2.0.tar.gz && \
-	install_module voicemail https://github.com/nethesis/freepbx-voicemail/archive/14.0.6.26.tar.gz
+	install_module core https://github.com/FreePBX/core/archive/refs/tags/release/17.0.18.54.tar.gz && \
+	install_module customcontexts https://github.com/FreePBX-ContributedModules/customcontexts/archive/refs/tags/release/17.0.1.3.tar.gz && \
+	install_module paging https://github.com/FreePBX/paging/archive/refs/tags/release/17.0.4.tar.gz && \
+	install_module queues https://github.com/FreePBX/queues/archive/refs/tags/release/17.0.4.tar.gz && \
+	install_module recordings https://github.com/FreePBX/recordings/archive/refs/tags/release/17.0.6.tar.gz && \
+	install_module voicemail https://github.com/FreePBX/voicemail/archive/refs/tags/release/17.0.5.35.tar.gz
+
+# Package PM2 dependencies so container replacement does not need npm access.
+COPY pm2/package-lock.json /var/www/html/freepbx/admin/modules/pm2/node/package-lock.json
+RUN cd /var/www/html/freepbx/admin/modules/pm2/node && \
+	npm_cache=$(mktemp -d) && \
+	npm ci --omit=dev --no-audit --no-fund --cache "${npm_cache}" && \
+	rm -rf "${npm_cache}"
+
+# Apply NethVoice compatibility fixes to pinned FreePBX modules.
+COPY patches /tmp/nethvoice-core-patches
+RUN for core_patch in /tmp/nethvoice-core-patches/freepbx-core-821*.patch; do \
+        patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < "$core_patch" || exit 1; \
+    done && \
+    patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-bindaddress.patch && \
+    patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/iaxsettings < /tmp/nethvoice-core-patches/freepbx-iaxsettings-preserve.patch && \
+    patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/paging < /tmp/nethvoice-core-patches/freepbx-paging-transfers.patch && \
+    rm -rf /tmp/nethvoice-core-patches
+
+# PHP 8.x compatibility: harden customcontexts against empty dialpattern array entries
+# (PHP 8 throws "Undefined array key 0" when indexing into an empty string).
+RUN sed -i 's|if (\$dialpattern\[\$key\]\[0\] == "_")|if (isset(\$dialpattern[\$key][0]) \&\& \$dialpattern[\$key][0] == "_")|g' \
+	/var/www/html/freepbx/admin/modules/customcontexts/functions.inc.php
+
+# customcontexts 17.0.1.3 already checks $sections correctly. Preserve the
+# independent $results checks used by its other database queries.
+
+# PHP 8.x compatibility: FreePBX framework DialplanHooks reads 'license' key
+# without isset() guard on non-commercial modules. Guard with ?? '' fallback.
+RUN sed -i 's|\$x\[\$funcarr\[0\]\]\[.license.\] == "Commercial"|(\$x[\$funcarr[0]]["license"] ?? "") == "Commercial"|' \
+	/var/www/html/freepbx/admin/libraries/BMO/DialplanHooks.class.php
 
 # Install Nethesis vendor modules
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/bosssecretary /var/www/html/freepbx/admin/modules/bosssecretary
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/directdid /var/www/html/freepbx/admin/modules/directdid
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/extraoptions /var/www/html/freepbx/admin/modules/extraoptions
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcqr /var/www/html/freepbx/admin/modules/nethcqr
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethcti3 /var/www/html/freepbx/admin/modules/nethcti3
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethdash /var/www/html/freepbx/admin/modules/nethdash
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/nethhotel /var/www/html/freepbx/admin/modules/nethhotel
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/pin /var/www/html/freepbx/admin/modules/pin
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/queueexit /var/www/html/freepbx/admin/modules/queueexit
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/queuemetrics /var/www/html/freepbx/admin/modules/queuemetrics
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/queueoptions /var/www/html/freepbx/admin/modules/queueoptions
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/rapidcode /var/www/html/freepbx/admin/modules/rapidcode
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/recallonbusy /var/www/html/freepbx/admin/modules/recallonbusy
+COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/returnontransfer /var/www/html/freepbx/admin/modules/returnontransfer
 COPY usr/sbin/recallonbusy /usr/sbin/recallonbusy
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/satellite /var/www/html/freepbx/admin/modules/satellite
 COPY --chown=asterisk:asterisk var/www/html/freepbx/admin/modules/visualplan /var/www/html/freepbx/admin/modules/visualplan
@@ -485,6 +549,7 @@ RUN chown -R asterisk:asterisk \
 	/var/www/html/freepbx/admin/assets/less/cache \
 	/var/www/html/freepbx/admin/images/ \
 	/var/www/html/freepbx/admin/modules/core/logs \
+	/var/www/html/freepbx/admin/modules/pm2/node \
 	/var/www/html/freepbx/admin/modules/pm2/node/logs \
 	/var/www/html/freepbx/admin/modules/pm2/node/node_modules \
 	/var/www/html/freepbx/admin/modules/*/assets/less/cache \
@@ -510,12 +575,23 @@ done
 # Replace FreepBX cron implementation with noop
 COPY var/www/html/freepbx/admin/libraries/BMO/Cron.class.php /var/www/html/freepbx/admin/libraries/BMO/Cron.class.php
 
+# PHP 8.2 compatibility: suppress Cron dynamic property deprecation in both
+# the framework source tree and the final admin library copy.
+RUN for cron_file in \
+	/var/www/html/freepbx/admin/modules/framework/amp_conf/htdocs/admin/libraries/BMO/Cron.class.php \
+	/var/www/html/freepbx/admin/libraries/BMO/Cron.class.php; do \
+	[ -f "${cron_file}" ] || continue; \
+	sed -i 's|\$this->freepbx = \$var1;|@\$this->freepbx = \$var1;|' "${cron_file}"; \
+done
+
 # Add branding
 COPY var/www/html/freepbx/admin/brand/* /var/www/html/freepbx/admin/brand/
 
-RUN ln -sf /var/lib/asterisk/bin/fwconsole /usr/bin/fwconsole
+# Preserve the path used by crontabs carried over from older FreePBX images.
+RUN ln -sf /var/lib/asterisk/bin/fwconsole /usr/bin/fwconsole && \
+	ln -sf /var/lib/asterisk/bin/fwconsole /usr/sbin/fwconsole
 
-RUN pip install mysql-connector-python configparser
+RUN pip install --break-system-packages mysql-connector-python configparser
 
 
 # Use PHP development ini configuration and enable logging on syslog
@@ -568,13 +644,16 @@ RUN a2dismod status
 RUN update-ca-certificates --fresh
 
 # Upgrade Apache to latest version to get security fixes
-RUN apt-get update && apt-get install -y --only-upgrade apache2 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends --only-upgrade apache2 && rm -rf /var/lib/apt/lists/*
 
 # Clean apt files
 RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,dpkg,cache,log}/* && touch /var/lib/dpkg/status
 
 # Rotate logs hourly
 RUN mv /etc/cron.daily/logrotate /etc/cron.hourly/logrotate
+
+# pam_unix logs a session open and close line for every cron run, "quiet" drops them
+RUN sed -i -E '/pam_unix\.so/ s/[[:space:]]*$/ quiet/' /etc/pam.d/common-session-noninteractive
 
 # Install centralized phonebook update script and CSV upload path
 COPY usr/share/phonebooks /usr/share/phonebooks
@@ -588,6 +667,7 @@ RUN echo "source \$VIMRUNTIME/defaults.vim\nset mouse-=a" >> /root/.vimrc
 COPY etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-default.conf
 COPY etc/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY freepbx_init.sh /freepbx_init.sh
+COPY apply-instance-bindings.php /apply-instance-bindings.php
 COPY etc/amportal.conf /etc
 COPY initdb.d/initdb.php /initdb.d/
 COPY initdb.d/migration.php /initdb.d/

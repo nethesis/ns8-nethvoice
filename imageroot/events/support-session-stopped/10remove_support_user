@@ -18,6 +18,6 @@ if [ -z "$support_user" ]; then
 fi
 
 podman exec mariadb bash -c '
-	mysql -u root -p$MARIADB_ROOT_PASSWORD asterisk -e "
+	mariadb -u root -p$MARIADB_ROOT_PASSWORD asterisk -e "
 	DELETE FROM ampusers WHERE username = \"'"$support_user"'\""'
 

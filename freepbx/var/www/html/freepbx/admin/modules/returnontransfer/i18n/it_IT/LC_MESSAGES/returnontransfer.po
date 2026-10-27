@@ -1,0 +1,50 @@
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: 2018-10-17 14:55+0200\n"
+"PO-Revision-Date: 2018-10-17 12:03+0100\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: it_IT\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.0.6\n"
+"X-Poedit-Basepath: ..\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Poedit-SearchPath-0: .\n"
+
+msgid "Blind transfer callback"
+msgstr "Ritorno del trasferimento cieco"
+
+msgid "Enable or disable blind transfer callback"
+msgstr "Abilita o disabilita il ritorno del trasferimento cieco"
+
+msgid "Timeout for blind transfered calls before they are returned to transferer"
+msgstr "Timeout prima che una chiamata trasferita torni al mittente se non risposta"
+
+msgid "Caller ID"
+msgstr "ID Chiamante"
+
+msgid "String to use as Caller ID for calls that return to transferer. ${xfer_exten} and ${CALLERID(name)} are variables replaced with extension returning the call and caller name"
+msgstr "La stringa che verrà mostrata per le chiamate trasferite che tornano al mittente. ${xfer_exten} e ${CALLERID(name)} sono le variabili sostituite con l'interno da cui la chiamata torna ed il nome del chiamante"
+
+msgid "Alertinfo"
+msgstr ""
+
+msgid "Use a different alertinfo for calls that return to transferer"
+msgstr "Usa una suoneria diversa per le chiamate che tornano"
+
+msgid "Return on Blind Transfer Options"
+msgstr "Opzioni per il ritorno delle chiamate su trasferimento cieco"
+
+msgid "Enabled"
+msgstr "Abilitato"
+
+msgid "Yes"
+msgstr "Sì"
+
+msgid "No"
+msgstr ""
+
