@@ -39,7 +39,7 @@
             "type": "boolean"
         },
         "alerts_enabled": {
-            "description": "Whether the built-in alert rules (beta) are published to the metrics app",
+            "description": "Whether the built-in alert rules are published to the metrics app",
             "type": "boolean"
         },
         "saml2": {

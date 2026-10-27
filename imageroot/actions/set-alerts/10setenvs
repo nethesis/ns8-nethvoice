@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-# Enable or disable the built-in alerts (beta). The next step publishes or
+# Enable or disable the built-in alerts. The next step publishes or
 # removes the alert rules accordingly.
 
 import json

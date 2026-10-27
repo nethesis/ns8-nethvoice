@@ -14,7 +14,7 @@
 # script are never touched. The hash is deleted by the core when the module
 # is removed.
 #
-# The alerts are a beta feature, off unless NETHVOICE_ALERTS_ENABLED is
+# The alerts are off unless NETHVOICE_ALERTS_ENABLED is
 # "True" (set-alerts action): when off, the owned fields are removed, while
 # export-metrics keeps sending the metrics.
 
