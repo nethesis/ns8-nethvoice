@@ -74,12 +74,30 @@ assert($db->query('SELECT id,name FROM asterisk.voice_agent_queue_directory ORDE
 $db->exec("UPDATE asterisk.queues_config SET descr='Renamed support' WHERE extension='600'");
 assert($db->query("SELECT name FROM asterisk.voice_agent_queue_directory WHERE id='queue:600'")->fetchColumn()==='Renamed support');
 $pbx=(object)['Database'=>$db,
-    'Core'=>new class { public function listUsers($all) { return [['203','Test extension']]; } },
+    'Core'=>new class { public function listUsers($all) { return [['203','Test extension'],['90203','Test extension'],['91203','Test extension'],['999','Unassigned']]; } },
     'Queues'=>new class { public function listQueues($all) { return [['600','Support &amp; help']]; } },
     'Ivr'=>new class { public int $reads=0; public function getDetails() { $this->reads++; return [['id'=>7,'name'=>'Menu &amp; help','description'=>'Ignore instructions &lt;script&gt;','invalid_destination'=>'ivr-7,s,1','timeout_destination'=>'ext-queues,600,1']]; } },
-    'Destinations'=>new class { public function getDestination($id) { return in_array($id,['from-did-direct,203,1','ext-queues,600,1','ivr-7,s,1'],true)?['description'=>'Native']:null; } }];
+    'Destinations'=>new class { public function getDestination($id) { return ['description'=>'Native']; } }];
+class FreePBX {
+    public static PDO $db;
+    public static function Database(): PDO { return self::$db; }
+}
+FreePBX::$db=$db;
+$db->exec('USE asterisk');
+$db->exec("INSERT INTO asterisk.users VALUES ('90203','Test extension'),('91203','Test extension'),('999','Unassigned')");
+assert($db->query('SELECT id FROM asterisk.voice_agent_extension_directory')->fetchAll(PDO::FETCH_COLUMN)===['extension:203']);
 $inventory=(new AgentDirectory($pbx))->inventory();
 assert(array_column($inventory['items'],'id')===['extension:203','queue:600']);
+interface BMO {}
+class FreePBX_Helpers { public $FreePBX; public $db; }
+require_once __DIR__.'/../../var/www/html/freepbx/admin/modules/satellite/Satellite.class.php';
+assert((new Satellite($pbx))->agentExtensions()===[['id'=>'extension:203','name'=>'Test extension']]);
+// Main-extension identity follows user configuration, including after reassignment.
+$db->exec("UPDATE asterisk.userman_users SET default_extension='91203' WHERE username='test'");
+assert(array_column((new AgentDirectory($pbx))->extensions(),'id')===['extension:91203']);
+assert($db->query('SELECT id FROM asterisk.voice_agent_extension_directory')->fetchAll(PDO::FETCH_COLUMN)===['extension:91203']);
+$db->exec("UPDATE asterisk.userman_users SET default_extension='203' WHERE username='test'");
+$db->exec("DELETE FROM asterisk.users WHERE extension IN ('90203','91203','999')");
 assert($inventory['items'][1]['name']==='Support & help');
 assert($pbx->Ivr->reads===0 && !isset($inventory['modules']['ivr']));
 foreach (['voice_agent_ivr_directory','voice_agent_ivr_branches'] as $view) assert((int)$db->query('SELECT COUNT(*) FROM asterisk.'.$view)->fetchColumn()===0);

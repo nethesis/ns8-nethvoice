@@ -91,8 +91,9 @@ CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_runtime_binding
 CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_runtime_tools AS
  SELECT tool_id,tool_version,manifest_json FROM asterisk.voice_agent_builtin_tools;
 CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_extension_directory AS
- SELECT CONCAT('extension:',extension) AS id,name FROM asterisk.users
- WHERE extension REGEXP '^[0-9]{1,20}$';
+ SELECT CONCAT('extension:',extension) AS id,name FROM asterisk.users u
+ WHERE extension REGEXP '^[0-9]{1,20}$'
+ AND EXISTS (SELECT 1 FROM asterisk.userman_users m WHERE m.default_extension=u.extension);
 CREATE TRIGGER IF NOT EXISTS asterisk.voice_agent_versions_no_update BEFORE UPDATE ON asterisk.voice_agent_versions FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='immutable_published_version';
 CREATE TRIGGER IF NOT EXISTS asterisk.voice_agent_versions_no_delete BEFORE DELETE ON asterisk.voice_agent_versions FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='immutable_published_version';
 CREATE TRIGGER IF NOT EXISTS asterisk.voice_agent_tools_no_update BEFORE UPDATE ON asterisk.voice_agent_builtin_tools FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='immutable_builtin_tool';

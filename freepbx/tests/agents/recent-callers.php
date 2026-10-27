@@ -28,15 +28,22 @@ foreach (['devices','trunks','trunk_dialpatterns','outbound_route_patterns'] as 
 }
 $db->exec(file_get_contents(__DIR__.'/../../../mariadb/docker-entrypoint-initdb.d/20_asteriskcdrdb.cdr-schema.sql'));
 $db->exec("INSERT INTO asterisk.devices (id,tech,user) VALUES ('203','pjsip','203')");
+$db->exec("INSERT INTO asterisk.users VALUES ('90203','Test extension'),('91203','Test extension'),('999','Unassigned')");
+$db->exec("INSERT INTO asterisk.devices (id,tech,user) VALUES ('90203','pjsip','90203'),('91203','pjsip','91203'),('999','pjsip','999')");
 $db->exec("INSERT INTO asterisk.trunks (trunkid,tech,channelid) VALUES (991,'pjsip','outbound-test')");
 Schema::install($db);
 Schema::install($db);
+assert($db->query('SELECT device_id,destination_id FROM asterisk.voice_agent_callback_devices ORDER BY device_id')->fetchAll(PDO::FETCH_ASSOC)===[
+    ['device_id'=>'203','destination_id'=>'extension:203'],
+    ['device_id'=>'90203','destination_id'=>'extension:203'],
+    ['device_id'=>'91203','destination_id'=>'extension:203'],
+]);
 assert($versions===$db->query('SELECT definition_json FROM asterisk.voice_agent_versions ORDER BY agent_id,workflow_version')->fetchAll(PDO::FETCH_COLUMN));
 assert($drafts===$db->query('SELECT definition_json FROM asterisk.voice_agent_drafts ORDER BY agent_id')->fetchAll(PDO::FETCH_COLUMN));
 foreach (['voice_agent_recent_cdr','voice_agent_callback_devices','voice_agent_callback_trunks','voice_agent_callback_patterns'] as $view) {
     $db->exec("GRANT SELECT ON asterisk.$view TO 'm0_reader'@'%'");
 }
-$insert=$db->prepare("INSERT INTO asteriskcdrdb.cdr (calldate,src,dst,channel,dstchannel,lastapp,lastdata,disposition,linkedid,uniqueid,sequence) VALUES (UTC_TIMESTAMP()-INTERVAL 2 HOUR,'203',?,'PJSIP/203-00000001','','Dial',?,'NO ANSWER',?,?,?)");
+$insert=$db->prepare("INSERT INTO asteriskcdrdb.cdr (calldate,src,dst,channel,dstchannel,lastapp,lastdata,disposition,linkedid,uniqueid,sequence) VALUES (UTC_TIMESTAMP()-INTERVAL 2 HOUR,'90203',?,'PJSIP/90203-00000001','','Dial',?,'NO ANSWER',?,?,?)");
 $insert->execute(['+390212345678','PJSIP/+390212345678@outbound-test,30','recent-one','recent-one',1]);
 $insert->execute(['+390299999999','SIP/user:synthetic-private@custom.invalid,30','unsafe-dial','unsafe-dial',0]);
 assert($db->query("SELECT lastdata FROM asterisk.voice_agent_recent_cdr WHERE uniqueid='unsafe-dial'")->fetchColumn()==='');

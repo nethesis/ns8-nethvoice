@@ -13,7 +13,13 @@ final class RecentCallerViews
         };
         $devices="SELECT CAST(NULL AS CHAR(20) CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci device_id,CAST(NULL AS CHAR(10) CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci tech,CAST(NULL AS CHAR(64) CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci destination_id WHERE 0";
         if (in_array('devices',$tables,true) && in_array('users',$tables,true)) {
-            $devices="SELECT d.id device_id,UPPER(d.tech) tech,CONCAT('extension:',u.extension) destination_id FROM asterisk.devices d JOIN asterisk.users u ON BINARY d.user=BINARY u.extension WHERE d.tech IN ('pjsip','sip','iax2') AND d.id REGEXP '^[0-9]{1,20}$' AND u.extension REGEXP '^[0-9]{1,20}$'";
+            // Match getMainExtension(): keep main extensions, otherwise strip the device prefix.
+            $devices="SELECT d.id device_id,UPPER(d.tech) tech,COALESCE(m.id,p.id) destination_id
+                FROM asterisk.devices d JOIN asterisk.users u ON BINARY d.user=BINARY u.extension
+                LEFT JOIN asterisk.voice_agent_extension_directory m ON BINARY m.id=BINARY CONCAT('extension:',u.extension)
+                LEFT JOIN asterisk.voice_agent_extension_directory p ON BINARY p.id=BINARY CONCAT('extension:',SUBSTRING(u.extension,3))
+                WHERE d.tech IN ('pjsip','sip','iax2') AND d.id REGEXP '^[0-9]{1,20}$'
+                AND u.extension REGEXP '^[0-9]{1,20}$' AND COALESCE(m.id,p.id) IS NOT NULL";
         }
         $view('voice_agent_callback_devices',$devices);
         $trunks="SELECT CAST(NULL AS CHAR(10) CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci tech,CAST(NULL AS CHAR(190) CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci peer WHERE 0";
