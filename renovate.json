@@ -16,9 +16,22 @@
   ],
   "packageRules": [
     {
-      "description": "nethcti-server is pinned to Node 14: major bumps break the build",
-      "matchFileNames": ["nethcti-server/**"],
+      "description": "nethcti-server and the reports UI build on Node 14: major bumps break node-sass",
+      "matchFileNames": ["nethcti-server/**", "reports/**"],
       "matchDepNames": ["docker.io/library/node"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "FreePBX does not run on newer PHP releases: keep the PHP image on its minor version",
+      "matchFileNames": ["freepbx/**", "tancredi/**"],
+      "matchDepNames": ["docker.io/library/php"],
+      "matchUpdateTypes": ["major", "minor"],
+      "enabled": false
+    },
+    {
+      "description": "Stay on the MariaDB 10.11 LTS: newer majors drop the mysql client and need a data upgrade",
+      "matchDepNames": ["mariadb"],
       "matchUpdateTypes": ["major"],
       "enabled": false
     }
