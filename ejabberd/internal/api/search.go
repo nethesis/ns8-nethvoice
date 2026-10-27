@@ -39,6 +39,29 @@ func (a *Archive) open() (*sql.DB, error) {
 
 const searchLimit = 200
 
+// Peers lists who I have chatted with, operators and groups, the latest chat first.
+func (a *Archive) Peers(jid, user string) ([]string, error) {
+	db, err := a.open()
+	if err != nil {
+		return nil, err
+	}
+	// A group's messages reach my archive as its subscriber, under the room's address.
+	rows, err := db.Query(`SELECT bare_peer FROM archive WHERE username = ? AND kind = 'chat' AND bare_peer <> ? GROUP BY bare_peer ORDER BY MAX(timestamp) DESC`, user, jid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var peers []string
+	for rows.Next() {
+		var p string
+		if err := rows.Scan(&p); err != nil {
+			return nil, err
+		}
+		peers = append(peers, p)
+	}
+	return peers, rows.Err()
+}
+
 // search answers GET /search?q=text[&peer=user|room]: my archived messages containing q, newest first.
 func (s *Server) search(w http.ResponseWriter, r *http.Request) {
 	user, _, err := s.bearerUser(r)

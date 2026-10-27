@@ -40,6 +40,8 @@ type Message struct {
 	OriginID string
 	RoomSID  string
 	Retract  string
+	// A read marker (XEP-0333 displayed): the message it covers, with every earlier one.
+	Displayed string
 }
 
 // Session is one authenticated client session.
@@ -172,12 +174,18 @@ func (ses *Session) DisablePush(ctx context.Context, service, node string) error
 // History returns archived messages. With afterID set it pages forward from
 // that archive id; otherwise it returns the newest `max` messages.
 func (ses *Session) History(ctx context.Context, afterID string, max int) (msgs []Message, complete bool, err error) {
-	return ses.query(ctx, "", afterID, max)
+	return ses.query(ctx, "", afterID, "", max)
+}
+
+// Before returns the `max` archived messages with an operator or a group older than
+// beforeID (the newest ones without it), oldest first.
+func (ses *Session) Before(ctx context.Context, with, beforeID string, max int) (msgs []Message, complete bool, err error) {
+	return ses.query(ctx, with, "", beforeID, max)
 }
 
 // Last returns the newest archived message exchanged with an operator or a group.
 func (ses *Session) Last(ctx context.Context, with string) (Message, error) {
-	msgs, _, err := ses.query(ctx, with, "", 1)
+	msgs, _, err := ses.query(ctx, with, "", "", 1)
 	if err != nil {
 		return Message{}, err
 	}
@@ -187,7 +195,7 @@ func (ses *Session) Last(ctx context.Context, with string) (Message, error) {
 	return msgs[len(msgs)-1], nil
 }
 
-func (ses *Session) query(ctx context.Context, with, afterID string, max int) (msgs []Message, complete bool, err error) {
+func (ses *Session) query(ctx context.Context, with, afterID, beforeID string, max int) (msgs []Message, complete bool, err error) {
 	qid := newID()
 	ses.mu.Lock()
 	ses.queries[qid] = nil
@@ -198,7 +206,7 @@ func (ses *Session) query(ctx context.Context, with, afterID string, max int) (m
 	if afterID != "" {
 		rsm = fmt.Sprintf(`<set xmlns="%s"><max>%d</max><after>%s</after></set>`, ns.RSM, max, text(afterID))
 	} else {
-		rsm = fmt.Sprintf(`<set xmlns="%s"><max>%d</max><before/></set>`, ns.RSM, max)
+		rsm = fmt.Sprintf(`<set xmlns="%s"><max>%d</max><before>%s</before></set>`, ns.RSM, max, text(beforeID))
 	}
 	filter := ""
 	if with != "" {
@@ -249,8 +257,9 @@ func (ses *Session) onResult(_ stanza.Message, t xmlstream.TokenReadEncoder) err
 					OOB  []struct {
 						URL string `xml:"url"`
 					} `xml:"jabber:x:oob x"`
-					Origin  idAttr `xml:"urn:xmpp:sid:0 origin-id"`
-					Retract idAttr `xml:"urn:xmpp:message-retract:1 retract"`
+					Origin    idAttr `xml:"urn:xmpp:sid:0 origin-id"`
+					Retract   idAttr `xml:"urn:xmpp:message-retract:1 retract"`
+					Displayed idAttr `xml:"urn:xmpp:chat-markers:0 displayed"`
 					// A group message reaches a subscriber wrapped in a pubsub event.
 					Event struct {
 						Items struct {
@@ -263,9 +272,10 @@ func (ses *Session) onResult(_ stanza.Message, t xmlstream.TokenReadEncoder) err
 									OOB  []struct {
 										URL string `xml:"url"`
 									} `xml:"jabber:x:oob x"`
-									Origin   idAttr   `xml:"urn:xmpp:sid:0 origin-id"`
-									StanzaID []idAttr `xml:"urn:xmpp:sid:0 stanza-id"`
-									Retract  idAttr   `xml:"urn:xmpp:message-retract:1 retract"`
+									Origin    idAttr   `xml:"urn:xmpp:sid:0 origin-id"`
+									StanzaID  []idAttr `xml:"urn:xmpp:sid:0 stanza-id"`
+									Retract   idAttr   `xml:"urn:xmpp:message-retract:1 retract"`
+									Displayed idAttr   `xml:"urn:xmpp:chat-markers:0 displayed"`
 								} `xml:"message"`
 							} `xml:"item"`
 						} `xml:"items"`
@@ -290,11 +300,11 @@ func (ses *Session) onResult(_ stanza.Message, t xmlstream.TokenReadEncoder) err
 		return files
 	}
 	msg := Message{ID: m.Result.ID, MsgID: fm.ID, From: address.Bare(fm.From), To: address.Bare(fm.To), Body: fm.Body, Files: urls(fm.OOB), At: at,
-		OriginID: fm.Origin.ID, Retract: fm.Retract.ID}
+		OriginID: fm.Origin.ID, Retract: fm.Retract.ID, Displayed: fm.Displayed.ID}
 	if fm.Event.Items.Node == ns.MucSubMessages {
 		inner := fm.Event.Items.Item.Message
 		msg.Room, msg.MsgID, msg.Body, msg.Files = address.Bare(fm.From), inner.ID, inner.Body, urls(inner.OOB)
-		msg.OriginID, msg.Retract = inner.Origin.ID, inner.Retract.ID
+		msg.OriginID, msg.Retract, msg.Displayed = inner.Origin.ID, inner.Retract.ID, inner.Displayed.ID
 		for _, sid := range inner.StanzaID {
 			if sid.By == msg.Room {
 				msg.RoomSID = sid.ID
