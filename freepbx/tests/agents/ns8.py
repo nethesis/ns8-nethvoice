@@ -51,6 +51,24 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
             except SystemExit as result: assert result.code==0
         agent.set_route.assert_not_called()
         agent.allocate_ports.assert_called_once()
+        # Integration saves must preserve the private consultation credentials/URLs.
+        expected_runtime=dict(state['satellite.env'])
+        helper=str(root/'imageroot/actions/configure-module/29voice_agents')
+        commands=[]
+        def process(args,**kwargs):
+            commands.append(args)
+            if args[0]==helper:
+                assert args[1:] == ['--secrets-only']
+                with patch('sys.argv',args):
+                    try: runpy.run_path(helper)
+                    except SystemExit as result: assert result.code==0
+            return SimpleNamespace(returncode=0,stdout='sha256:synthetic\n' if args[:3]==['podman','image','inspect'] else 'not-found')
+        with patch.dict(os.environ,{'AGENT_INSTALL_DIR':str(root/'imageroot'),'NETHVOICE_SATELLITE_IMAGE':'registry.invalid/synthetic:test'}),patch('subprocess.run',side_effect=process):
+            runpy.run_path(str(root/'imageroot/actions/set-integrations/50manage_service'))
+        assert state['satellite.env']==expected_runtime
+        assert any(args[0]==helper for args in commands)
+        assert all(state['satellite.env'].get('VOICE_AGENT_'+service+'_TOKEN') and state['satellite.env'].get('VOICE_AGENT_'+service+'_URL') for service in ('RECIPIENT','CHAT'))
+        assert 'MARIADB_ROOT_PASSWORD' not in state['satellite.env']
         # Reuse the dedicated slot without exceeding a fully allocated demand.
         for total in (43,44):
             state['environment'].pop('VOICE_AGENT_HTTP_PORT',None)
