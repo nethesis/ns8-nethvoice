@@ -7,6 +7,7 @@ for test in "$repo_root"/freepbx/tests/*.php; do
         paging_transfer_test.php) php "$test" "$sources/paging" "$sources/core" "$sources/framework" ;;
         forward_context_test.php|forward_identity_test.php|missing_device_dial_test.php|profile_pickup_test.php|recallonbusy_return_test.php) php "$test" "$sources/core" "$sources/framework" ;;
         unknown_peer_rejection_test.php) php "$test" "$sources/core" ;;
+        transfer_profile_test.php) php "$test" "$sources/framework" ;;
         *) php "$test" ;;
     esac
 done

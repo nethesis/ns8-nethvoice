@@ -234,6 +234,85 @@ function nethcti3_configure_attended_transfer_colp($ext) {
     $ext->add($sub, 's', 'end', new ext_return());
 }
 
+function nethcti3_is_route_context($context) {
+    return $context === 'outbound-allroutes' || strpos($context, 'outrt-') === 0;
+}
+
+function nethcti3_reaches_routes($ext, $context, $seen = []) {
+    $seen[$context] = true;
+    foreach ($ext->_includes[$context] ?? [] as $include) {
+        $name = $include['include'];
+        if (nethcti3_is_route_context($name) || (!isset($seen[$name]) && nethcti3_reaches_routes($ext, $name, $seen))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** Return the contexts included by $context without the outbound routes, expanding the ones that include them. */
+function nethcti3_internal_includes($ext, $context, &$seen = []) {
+    $includes = [];
+    foreach ($ext->_includes[$context] ?? [] as $include) {
+        $name = $include['include'];
+        if (nethcti3_is_route_context($name) || isset($seen[$name])) {
+            continue;
+        }
+        $seen[$name] = true;
+        if (nethcti3_reaches_routes($ext, $name)) {
+            $includes = array_merge($includes, nethcti3_internal_includes($ext, $name, $seen));
+        } else {
+            $includes[] = $name;
+        }
+    }
+    return $includes;
+}
+
+/** Send external transfer destinations through the transferer's profile, like the transferer's own calls (#7742). */
+function nethcti3_configure_transfer_profile($ext) {
+    $sub = 'func-nethvoice-transfer-context';
+    if (isset($ext->_exts[$sub])) {
+        return;
+    }
+    $dest = 'from-internal-xfer-dest';
+    $dial = 'Dial(Local/${EXTEN}@from-internal-xfer/n,,${DIAL_OPTIONS})';
+    $found = false;
+    foreach ($ext->_exts[$dest] ?? [] as $extension => $steps) {
+        foreach ($steps as $index => $step) {
+            if ($step['cmd']->output() !== $dial) {
+                continue;
+            }
+            // Keep Dial() right after the subroutine: the transferred leg CDR must still see a dial.
+            $ext->_exts[$dest][$extension][$index]['cmd'] = new ext_dial('Local/${EXTEN}@${NETHVOICE_TRANSFER_CONTEXT}/n', ',${DIAL_OPTIONS}');
+            $ext->splice($dest, trim($extension), (string) $index, new ext_gosub(1, 's', 'func-nethvoice-transfer-context', '${EXTEN}'));
+            $found = true;
+        }
+    }
+    if (!$found) {
+        error_log('NethCTI: Cannot find the Core transfer destination dial; skipping the transfer profile hook');
+        return;
+    }
+
+    // Destinations a transfer reaches without the outbound routes: these keep the transfer context.
+    // from-internal-xfer (extensions.conf) includes from-internal-custom and from-internal-additional.
+    $internal = 'nethvoice-xfer-internal';
+    $ext->addInclude($internal, 'from-internal-custom');
+    foreach (nethcti3_internal_includes($ext, 'from-internal-additional') as $include) {
+        $ext->addInclude($internal, $include);
+    }
+    // FreePBX writes only the contexts that have extensions.
+    $ext->add($internal, 'h', '', new ext_hangup());
+
+    // ARG1: destination. The transferer is TRANSFERERNAME on attended transfers, BLINDTRANSFER on blind ones.
+    $ext->add($sub, 's', '', new ext_set('NETHVOICE_TRANSFER_CONTEXT', 'from-internal-xfer'));
+    $ext->add($sub, 's', '', new ext_gotoif('$[${DIALPLAN_EXISTS(' . $internal . ',${ARG1},1)}]', 'done'));
+    $ext->add($sub, 's', '', new ext_set('LOCAL(transferer)', '${IF($["${TRANSFERERNAME}"!=""]?${TRANSFERERNAME}:${BLINDTRANSFER})}'));
+    $ext->add($sub, 's', '', new ext_set('LOCAL(owner)', '${CUT(CUT(transferer,/,2),-,1)}'));
+    $ext->add($sub, 's', '', new ext_gotoif('$["${owner}" = "" | "${DB(DEVICE/${owner}/user)}" = ""]', 'done'));
+    $ext->add($sub, 's', '', new ext_gosub(1, 's', 'func-nethvoice-forward-context', '${owner}'));
+    $ext->add($sub, 's', '', new ext_execif('$["${NETHVOICE_FORWARD_CONTEXT}" != "" & "${NETHVOICE_FORWARD_CONTEXT}" != "from-internal"]', 'Set', 'NETHVOICE_TRANSFER_CONTEXT=${NETHVOICE_FORWARD_CONTEXT}'));
+    $ext->add($sub, 's', 'done', new ext_return());
+}
+
 function nethcti3_get_config_late($engine) {
     global $ext;
     global $amp_conf;
@@ -241,6 +320,7 @@ function nethcti3_get_config_late($engine) {
     switch($engine) {
         case "asterisk":
             nethcti3_configure_forward_identity($ext);
+            nethcti3_configure_transfer_profile($ext);
 
             /* get featurecodes */
             $query='SELECT featurename,IF(customcode IS NULL OR customcode = "",defaultcode,customcode) as defaultcode FROM featurecodes WHERE ( modulename="nethcti3" OR modulename="donotdisturb" ) AND ( featurename="que_toggle") AND enabled="1"';
