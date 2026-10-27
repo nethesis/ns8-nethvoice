@@ -11,6 +11,7 @@ function fresh(PDO $db): void {
     $db->exec('CREATE DATABASE asterisk');
     $db->exec('CREATE DATABASE asteriskcdrdb');
     $db->exec('CREATE TABLE asterisk.users (extension VARCHAR(20) PRIMARY KEY,name VARCHAR(100))');
+    $db->exec('CREATE TABLE asterisk.userman_users (username VARCHAR(100),default_extension VARCHAR(20))');
 }
 foreach (['asterisk.voice_agent_schema','asterisk.voice_agent_agents','asteriskcdrdb.voice_agent_runs'] as $old) {
     fresh($db);
@@ -18,7 +19,7 @@ foreach (['asterisk.voice_agent_schema','asterisk.voice_agent_agents','asteriskc
     try { Schema::install($db);throw new LogicException('unsupported_database_adopted'); }
     catch (RuntimeException $e) { assert($e->getMessage()==='unsupported_development_database'); }
     assert((int)$db->query("SELECT sentinel FROM $old")->fetchColumn()===42);
-    assert((int)$db->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema IN ('asterisk','asteriskcdrdb')")->fetchColumn()===2);
+    assert((int)$db->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema IN ('asterisk','asteriskcdrdb')")->fetchColumn()===3);
 }
 class InterruptedInstall extends PDO {
     public int $remaining;

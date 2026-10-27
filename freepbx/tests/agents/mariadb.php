@@ -9,7 +9,9 @@ if ($db->query('SHOW DATABASES LIKE "asterisk"')->fetchColumn()) throw new Runti
 $db->exec('CREATE DATABASE asterisk');
 $db->exec('CREATE DATABASE asteriskcdrdb');
 $db->exec('CREATE TABLE asterisk.users (extension VARCHAR(20) PRIMARY KEY, name VARCHAR(100))');
+$db->exec('CREATE TABLE asterisk.userman_users (username VARCHAR(100),default_extension VARCHAR(20))');
 $db->exec("INSERT INTO asterisk.users VALUES ('203','Test extension')");
+$db->exec("INSERT INTO asterisk.userman_users VALUES ('test','203')");
 \NethVoice\Agents\Schema::install($db);
 assert($db->query("SELECT agent_id FROM asterisk.voice_agent_agents WHERE kind='builtin'")->fetchAll(PDO::FETCH_COLUMN)===['receptionist']);
 $seedPrompt=fn()=>$db->query("SELECT JSON_UNQUOTE(JSON_EXTRACT(definition_json,'$.conversation.instructions')) FROM asterisk.voice_agent_drafts WHERE agent_id='receptionist'")->fetchColumn();
