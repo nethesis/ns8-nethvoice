@@ -216,12 +216,17 @@ $data['ext-queues'] = nethvplan_loadRows('ext-queues', fn() => FreePBX::Queues()
 $data['app-daynight'] = nethvplan_loadRows('app-daynight', fn() => daynight_list(), 'ext', function ($row, &$block) {
     $daynight_obj = daynight_get_obj($row['ext']);
     if (!is_array($daynight_obj)) throw new UnexpectedValueException('Invalid day/night data');
+    $block['green_flow'] = $daynight_obj['day'] ?? null;
+    $block['red_flow'] = $daynight_obj['night'] ?? null;
+    if (!is_string($block['green_flow']) || !is_string($block['red_flow'])) {
+        throw new UnexpectedValueException('Incomplete day/night flows');
+    }
     $block = array(
         "name"=> $daynight_obj['fc_description'] ?? "",
         "control_code"=> "*28".$row['ext'],
         "ext"=> $row['ext'],
-        "green_flow"=> $daynight_obj['day'] ?? "",
-        "red_flow"=> $daynight_obj['night'] ?? ""
+        "green_flow"=> $daynight_obj['day'],
+        "red_flow"=> $daynight_obj['night']
     );
 });
 
