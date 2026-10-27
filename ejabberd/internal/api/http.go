@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -507,6 +508,7 @@ type sms struct {
 	SmsText     string `json:"sms_text"`
 	ContentType string `json:"content_type,omitempty"`
 	StreamID    string `json:"stream_id,omitempty"`
+	Displayed   bool   `json:"displayed,omitempty"` // read on another client: not new, not notified
 }
 
 // fetchMessages: archive after the last id the app knows, split into received and sent.
@@ -527,7 +529,16 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	var msgs []xmppc.Message
-	for page := 0; page < 5; page++ {
+	if after == "" {
+		// A new install: every chat, each with its latest messages, not just the newest page of the archive.
+		var err error
+		if msgs, err = s.everyChat(ctx, ses, in.Username); err != nil {
+			log.Printf("fetch %s: %v", in.Username, err)
+			fail(w, 502, "chat server error")
+			return
+		}
+	}
+	for page := 0; page < 5 && after != ""; page++ {
 		batch, complete, err := ses.History(ctx, after, 100)
 		if err != nil {
 			log.Printf("fetch %s: %v", in.Username, err)
@@ -535,8 +546,8 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		msgs = append(msgs, batch...)
-		if complete || len(batch) == 0 || after == "" {
-			break // without an id the app wants the newest page only
+		if complete || len(batch) == 0 {
+			break
 		}
 		after = batch[len(batch)-1].ID
 	}
@@ -552,6 +563,7 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 			gone[m.Room+"|"+m.Retract+"|"+m.Nick] = true
 		}
 	}
+	read := readUpTo(msgs, me, in.Username)
 	var known []store.AppMsg
 	for _, m := range msgs {
 		// What a retraction names the message by: the room's id in a group, else the sender's origin-id.
@@ -611,6 +623,7 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 				} else if item.ContentType != fileTransferType {
 					item.SmsText = author + ": " + emojify(m.Body)
 				}
+				item.Displayed = !m.At.After(read[peer])
 				received = append(received, item)
 			}
 			continue
@@ -624,11 +637,83 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 			sent = append(sent, item)
 		} else {
 			item.Sender = s.address(users, m.From)
+			item.Displayed = !m.At.After(read[peer])
 			received = append(received, item)
 		}
 	}
 	s.Store.PutAppMsgs(in.Username, known)
 	writeJSON(w, 200, map[string]any{"date": time.Now().UTC().Format(time.RFC3339), "received_smss": received, "sent_smss": sent})
+}
+
+// everyChat is the latest messages of each of my chats, newest chats first, merged oldest first.
+func (s *Server) everyChat(ctx context.Context, ses *xmppc.Session, user string) ([]xmppc.Message, error) {
+	peers, err := s.Archive.Peers(user+"@"+s.Host, user)
+	if err != nil {
+		return nil, err
+	}
+	var msgs []xmppc.Message
+	for i, peer := range peers {
+		if i == firstFetchChats {
+			break
+		}
+		// Read markers and reactions take archive slots too: page back until there is enough to show.
+		var chat []xmppc.Message
+		before, shown := "", 0
+		for page := 0; page < 4 && shown < firstFetchPerChat; page++ {
+			batch, complete, err := ses.Before(ctx, peer, before, 50)
+			if err != nil {
+				return nil, err
+			}
+			chat = append(batch, chat...)
+			for _, m := range batch {
+				if strings.TrimSpace(m.Body) != "" || len(m.Files) > 0 {
+					shown++
+				}
+			}
+			if complete || len(batch) == 0 {
+				break
+			}
+			before = batch[0].ID
+		}
+		msgs = append(msgs, chat...)
+	}
+	sort.SliceStable(msgs, func(i, j int) bool { return olderID(msgs[i].ID, msgs[j].ID) })
+	return msgs, nil
+}
+
+const (
+	firstFetchChats   = 100 // chats a new install gets
+	firstFetchPerChat = 30  // messages of each, at least
+)
+
+// readUpTo is, for each chat, the time of the newest message my read markers cover (sent from any of my clients).
+func readUpTo(msgs []xmppc.Message, me, user string) map[string]time.Time {
+	at := map[string]time.Time{} // a message's time by every id a marker can name it with
+	for _, m := range msgs {
+		for _, id := range []string{m.MsgID, m.OriginID, m.RoomSID} {
+			if id != "" {
+				at[id] = m.At
+			}
+		}
+	}
+	read := map[string]time.Time{}
+	for _, m := range msgs {
+		peer := m.To
+		if m.Room != "" {
+			peer = m.Room
+		}
+		if m.Displayed == "" || m.Room != "" && m.Nick != user || m.Room == "" && m.From != me {
+			continue
+		}
+		t, ok := at[m.Displayed]
+		if !ok {
+			t = m.At
+		}
+		if t.After(read[peer]) {
+			read[peer] = t
+		}
+	}
+	return read
 }
 
 // thread is a group's name as the app's address for it, asked once per request.
