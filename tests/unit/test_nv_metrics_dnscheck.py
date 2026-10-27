@@ -81,6 +81,9 @@ class RenderTest(unittest.TestCase):
             'nethvoice_dns_proxy_ip_match{expected="203.0.113.5",name="proxy.example.com",records="203.0.113.5"} 1\n',
             text,
         )
+        self.assertIn('nethvoice_dns_resolver_up{name="voice.example.com",role="nethvoice"} 1\n', text)
+        self.assertIn('nethvoice_dns_resolver_up{name="cti.example.com",role="cti"} 1\n', text)
+        self.assertIn('nethvoice_dns_resolver_up{name="proxy.example.com",role="proxy"} 1\n', text)
         self.assertIn('nethvoice_dns_response_seconds{name="voice.example.com",role="nethvoice"} 0.013\n', text)
         self.assertIn('nethvoice_dns_response_seconds{name="cti.example.com",role="cti"} 3.500\n', text)
         self.assertIn('nethvoice_dns_response_seconds{name="proxy.example.com",role="proxy"} 0.000\n', text)
@@ -93,6 +96,8 @@ class RenderTest(unittest.TestCase):
         }
         text = self.render(answers)
         self.assertIn('nethvoice_dns_resolves{name="voice.example.com",role="nethvoice"} 0\n', text)
+        # The resolver answered: it is up, and the answer has a time
+        self.assertIn('nethvoice_dns_resolver_up{name="voice.example.com",role="nethvoice"} 1\n', text)
         self.assertIn('nethvoice_dns_response_seconds{name="voice.example.com",role="nethvoice"} 0.000\n', text)
         # A name that does not resolve is not compared with the proxy IPs
         self.assertNotIn("nethvoice_dns_proxy_ip_match{", text)
@@ -119,20 +124,23 @@ class RenderTest(unittest.TestCase):
         text = self.render(answers, env={"NETHVOICE_PROXY_FQDN": "proxy.example.com"}, proxy_ips=())
         self.assertNotIn("nethvoice_dns_proxy_ip_match{", text)
 
-    def test_unanswered_name_is_slow(self):
+    def test_unanswered_name_is_resolver_down_not_slow(self):
         answers = {"voice.example.com": ["203.0.113.1"]}
         text = self.render(answers)
         self.assertIn('nethvoice_dns_resolves{name="voice.example.com",role="nethvoice"} 1\n', text)
+        self.assertIn('nethvoice_dns_resolver_up{name="voice.example.com",role="nethvoice"} 1\n', text)
+        self.assertIn('nethvoice_dns_resolver_up{name="cti.example.com",role="cti"} 0\n', text)
+        # No answer: no resolves series and no response time, the timeout is not a measurement
         self.assertNotIn('nethvoice_dns_resolves{name="cti.example.com"', text)
-        self.assertIn(
-            'nethvoice_dns_response_seconds{name="cti.example.com",role="cti"} %.3f\n' % dnscheck.LIFETIME,
-            text,
-        )
+        self.assertNotIn('nethvoice_dns_response_seconds{name="cti.example.com"', text)
 
-    def test_resolver_down_is_slow_not_unavailable(self):
+    def test_resolver_down_is_down_for_every_name(self):
         text = self.render({})
         self.assertNotIn("nethvoice_dns_resolves{", text)
-        self.assertEqual(text.count("nethvoice_dns_response_seconds{"), 3)
+        self.assertNotIn("nethvoice_dns_response_seconds{", text)
+        self.assertEqual(text.count("} 0\n"), 3)
+        self.assertEqual(text.count("nethvoice_dns_resolver_up{"), 3)
+        self.assertIn("# TYPE nethvoice_dns_resolver_up gauge\n", text)
 
     def test_empty_and_duplicate_names_are_skipped(self):
         env = {"NETHVOICE_HOST": "voice.example.com", "NETHCTI_UI_HOST": "voice.example.com", "NETHVOICE_PROXY_FQDN": ""}

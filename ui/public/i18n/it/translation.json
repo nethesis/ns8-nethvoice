@@ -131,7 +131,7 @@
     "alerts_service_down": "un servizio di NethVoice (ad esempio FreePBX, MariaDB, CTI o Janus) è fermo o si riavvia continuamente",
     "alerts_trunk_unreachable": "un fascio SIP non raggiunge il provider o il gateway",
     "alerts_trunk_not_monitored": "un fascio SIP non può essere controllato perché il nome contiene uno spazio (rinominarlo)",
-    "alerts_dns_failure": "i nomi di NethVoice, CTI o del proxy non sono risolti dal resolver DNS del nodo, o puntano a un indirizzo sbagliato",
+    "alerts_dns_failure": "i nomi di NethVoice, CTI o del proxy non sono risolti dal resolver DNS del nodo, puntano a un indirizzo sbagliato, o il resolver non risponde",
     "alerts_dns_slow": "il resolver DNS del nodo impiega più di 3 secondi a rispondere",
     "alerts_ai_key": "la chiave Deepgram o OpenAI è rifiutata",
     "alerts_ai_credit": "l'account del provider AI ha esaurito il credito",

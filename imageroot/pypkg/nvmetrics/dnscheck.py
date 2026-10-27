@@ -13,9 +13,12 @@ Used by the NethVoiceDnsFailure and NethVoiceDnsSlow alerts
 - nethvoice_dns_proxy_ip_match{name,expected,records}: 1 if the proxy name
   points to one of the proxy addresses (public or private, for split DNS),
   0 otherwise
+- nethvoice_dns_resolver_up{name,role}: 1 if the resolver answered the
+  query for the name (with records or not), 0 if it did not answer within
+  LIFETIME seconds
 - nethvoice_dns_response_seconds{name,role}: time taken by the resolver to
-  answer. A resolver that does not answer is reported as LIFETIME, and the
-  name has no nethvoice_dns_resolves series.
+  answer. A name the resolver did not answer has no response time and no
+  nethvoice_dns_resolves series: only nethvoice_dns_resolver_up 0.
 
 The resolver is the one of the node (/etc/resolv.conf).
 """
@@ -90,6 +93,7 @@ def render(env, query, proxy_ips, clock=time.monotonic):
     """Return the metrics in the Prometheus text format."""
     resolves = []
     ip_match = []
+    resolver_up = []
     response = []
     resolved = {}
     for variable, role in NAMES:
@@ -101,7 +105,9 @@ def render(env, query, proxy_ips, clock=time.monotonic):
         repeated = name in resolved
         if not repeated:
             resolved[name], seconds = lookup(name, query, clock)
-            response.append('nethvoice_dns_response_seconds{name="%s",role="%s"} %.3f' % (name, role, seconds))
+            resolver_up.append('nethvoice_dns_resolver_up{name="%s",role="%s"} %d' % (name, role, 0 if resolved[name] is None else 1))
+            if resolved[name] is not None:
+                response.append('nethvoice_dns_response_seconds{name="%s",role="%s"} %.3f' % (name, role, seconds))
         records = resolved[name]
         if records is None:
             continue
@@ -119,6 +125,9 @@ def render(env, query, proxy_ips, clock=time.monotonic):
         "# HELP nethvoice_dns_proxy_ip_match 1 if the proxy name points to a proxy IP",
         "# TYPE nethvoice_dns_proxy_ip_match gauge",
         *ip_match,
+        "# HELP nethvoice_dns_resolver_up 1 if the resolver of the node answered the query, 0 if it did not answer in time",
+        "# TYPE nethvoice_dns_resolver_up gauge",
+        *resolver_up,
         "# HELP nethvoice_dns_response_seconds Time taken by the resolver of the node to answer",
         "# TYPE nethvoice_dns_response_seconds gauge",
         *response,

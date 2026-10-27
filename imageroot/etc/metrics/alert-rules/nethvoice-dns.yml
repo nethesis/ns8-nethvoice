@@ -3,11 +3,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # The NethVoice, CTI and proxy names must resolve on the resolver of the
-# node, the proxy name must point to the proxy public or private IP, and the
-# resolver must answer within 3 seconds. One failure alert, the reason label
-# tells which check failed. Series come from export-metrics
-# (pypkg/nvmetrics/dnscheck.py) every 5 minutes, so "for: 15m" means 3 failed
-# checks in a row.
+# node, the proxy name must point to the proxy public or private IP, the
+# resolver must answer, and within 3 seconds. One failure alert, the reason
+# label tells which check failed. The slow alert is only for a resolver that
+# answers correctly: a name with a failure alert never has the slow one too.
+# Series come from export-metrics (pypkg/nvmetrics/dnscheck.py) every 5
+# minutes, so "for: 15m" means 3 failed checks in a row.
 groups:
   - name: dns
     rules:
@@ -35,8 +36,20 @@ groups:
           summary_it: "{{ $labels.name }} non punta all'IP del proxy"
           description_en: "The DNS resolver of the node resolves {{ $labels.name }} to {{ $labels.records }}, but the proxy IP is {{ $labels.expected }}. Phones and providers may reach the wrong address. Update the DNS record."
           description_it: "Il resolver DNS del nodo risolve {{ $labels.name }} in {{ $labels.records }}, ma l'IP del proxy è {{ $labels.expected }}. Telefoni e provider potrebbero raggiungere l'indirizzo sbagliato. Aggiornare il record DNS."
+      - alert: NethVoiceDnsFailure
+        expr: nethvoice_dns_resolver_up == 0
+        for: 15m
+        labels:
+          severity: warning
+          alertgroup: dns
+          reason: no_answer
+        annotations:
+          summary_en: "The DNS resolver does not answer for {{ $labels.name }}"
+          summary_it: "Il resolver DNS non risponde per {{ $labels.name }}"
+          description_en: "The DNS resolver of the node has not answered the queries for {{ $labels.name }} ({{ $labels.role }} of {{ $labels.module_id }}) within 5 seconds: NethVoice and its clients may not reach it, calls and registrations may fail. Check that the resolver in /etc/resolv.conf of the node is reachable and working."
+          description_it: "Il resolver DNS del nodo non ha risposto alle richieste per {{ $labels.name }} ({{ $labels.role }} di {{ $labels.module_id }}) entro 5 secondi: NethVoice e i suoi client potrebbero non raggiungerlo, chiamate e registrazioni potrebbero fallire. Verificare che il resolver in /etc/resolv.conf del nodo sia raggiungibile e funzionante."
       - alert: NethVoiceDnsSlow
-        expr: nethvoice_dns_response_seconds > 3
+        expr: nethvoice_dns_response_seconds > 3 unless on(module_id, node, name) (nethvoice_dns_resolves == 0 or nethvoice_dns_proxy_ip_match == 0 or nethvoice_dns_resolver_up == 0)
         for: 15m
         labels:
           severity: warning
