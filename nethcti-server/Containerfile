@@ -2,9 +2,11 @@
 FROM docker.io/library/alpine:3.24.2 as repofetcher
 WORKDIR /app
 RUN apk add --no-cache git
-ARG NETHCTI_SERVER_COMMIT=66d42385c335059fca7c3eaca48ff5a7301be1db
-RUN git clone https://github.com/nethesis/nethcti-server.git . \
-    && git checkout "${NETHCTI_SERVER_COMMIT}"
+ARG NETHCTI_SERVER_COMMIT=e7e66fb5081bf55e5f0ac77a5475a3cf7b487788
+RUN git init . \
+    && git remote add origin https://github.com/nethesis/nethcti-server.git \
+    && git fetch --depth=1 origin "${NETHCTI_SERVER_COMMIT}" \
+    && git checkout FETCH_HEAD
 
 # define base container for node environment
 FROM docker.io/library/node:14.21.1-alpine as base

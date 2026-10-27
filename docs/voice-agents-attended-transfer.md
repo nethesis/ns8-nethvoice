@@ -57,7 +57,7 @@ The same person cannot be retried automatically within the caller session.
 
 ## Private services and chat
 
-The CTI prerequisite is [nethcti-server PR #374](https://github.com/nethesis/nethcti-server/pull/374),
+The CTI prerequisite is [nethcti-server PR #375](https://github.com/nethesis/nethcti-server/pull/375),
 pinned by source revision in `nethcti-server/Containerfile`. No middleware or
 staff-session workaround is used. A separate authenticated loopback listener
 returns only recipient identity, main extension, current effective presence,
