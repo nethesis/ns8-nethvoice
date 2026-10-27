@@ -213,6 +213,50 @@ $children = request($childQuery);
 check(isset($children['ext-meetme%2']), 'Child expansion follows stale palette exits');
 check(!isset($children['from-did-direct%201']), 'Child expansion includes obsolete destination');
 
+// Incomplete day/night details must retain readable exits and reject saving after expansion.
+$daynightDetails = FreePBX::$rows['daynight_get_obj'];
+$data = $healthy;
+$loadErrors = [];
+$cachedDaynight = request(['getAll' => 'app-daynight'])[0];
+$incompleteDetails = [[], ['state' => 'DAY']];
+foreach (['day', 'night'] as $field) {
+    $partial = $daynightDetails;
+    unset($partial[$field]);
+    $incompleteDetails[] = $partial;
+    foreach ([null, false, 0, []] as $invalid) {
+        $incompleteDetails[] = array_replace($daynightDetails, [$field => $invalid]);
+    }
+}
+$failedDaynightGraphs = [];
+foreach ($incompleteDetails as $index => $details) {
+    FreePBX::$rows['daynight_get_obj'] = $details;
+    eval($loadData);
+    check(!empty($data['app-daynight']['0']['load_error']), "Day/night case $index: incomplete details accepted");
+    request(['readData' => 'app-daynight']);
+    check(http_response_code() === 503, "Day/night case $index: incomplete existence check accepted");
+    graph($data);
+    $children = request(['getChild' => base64_encode($cachedDaynight['id'])]);
+    $merged = array_merge([$cachedDaynight['id'] => $cachedDaynight], $children);
+    $source = $merged[$cachedDaynight['id']];
+    check($source['bgColor'] === '#c0392b' && !empty($source['userData']['visualplanError']), "Day/night case $index: cached source still healthy");
+    $destinations = array_column(array_filter($source['entities'], fn($entity) => $entity['type'] === 'output'), 'destination');
+    foreach (['day' => 'timeconditions%1', 'night' => 'ext-meetme%2'] as $field => $target) {
+        if (!is_string($details[$field] ?? null)) continue;
+        check(in_array($details[$field], $destinations, true) && isset($children[$target]), "Day/night case $index: readable $field flow lost");
+    }
+    $failedDaynightGraphs[] = array_values($merged);
+}
+foreach ([['', ''], ['', $daynightDetails['night']], [$daynightDetails['day'], '']] as [$day, $night]) {
+    FreePBX::$rows['daynight_get_obj'] = array_replace($daynightDetails, ['day' => $day, 'night' => $night]);
+    eval($loadData);
+    $source = request(['getAll' => 'app-daynight'])[0];
+    check(empty($source['userData']['visualplanError']), 'Explicitly empty day/night flow rejected');
+    check(array_column(array_filter($source['entities'], fn($entity) => $entity['type'] === 'output'), 'destination') === [$day, $night], 'Explicitly empty day/night flow changed');
+    request(['readData' => 'app-daynight']);
+    check(http_response_code() === 200, 'Valid day/night existence check rejected');
+}
+FreePBX::$rows['daynight_get_obj'] = $daynightDetails;
+
 // Cover palette and child expansion, plus a cyclic route and malformed destinations.
 $data = $healthy;
 $data['timegroups'] = [];
@@ -238,6 +282,7 @@ $payloads = [
     [['type' => 'Base', 'userData' => []]],
     [['type' => 'Base', 'userData' => []], ['type' => 'Base', 'userData' => ['visualplanError' => true]]],
     $failedSourceGraph,
+    ...$failedDaynightGraphs,
 ];
 foreach ($payloads as $index => $payload) {
     $script = '$jsonArray = json_decode($argv[1], true);' . $preflight . 'echo "accepted";';
