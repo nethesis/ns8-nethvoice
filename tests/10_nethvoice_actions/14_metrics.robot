@@ -35,15 +35,7 @@ Alerts are disabled by default
     Should Be Equal As Integers    ${rc}    0
     Should Not Contain    ${output}    nethvoice-
 
-Dashboard is not published automatically
-    ${output}    ${rc} =    Execute Command    runagent redis-exec HKEYS module/${module_id}/metrics_dashboards    return_rc=True
-    Should Be Equal As Integers    ${rc}    0
-    Should Not Contain    ${output}    nethvoice-
-
-Dashboard is installed by hand with alerts disabled
-    ${output}    ${rc} =    Execute Command    runagent -m ${module_id} publish-metrics-config --dashboards install    return_stdout=False    return_stderr=True    return_rc=True
-    Should Be Equal As Integers    ${rc}    0
-    Should Contain    ${output}    dashboards published
+Dashboard is published with alerts disabled
     Dashboard should be published
 
 Alert rules are published
@@ -107,6 +99,7 @@ Publishing unchanged rules sends no event
     ${output}    ${rc} =    Execute Command    runagent -m ${module_id} publish-metrics-config    return_stdout=False    return_stderr=True    return_rc=True
     Should Be Equal As Integers    ${rc}    0
     Should Contain    ${output}    alert rules unchanged
+    Should Contain    ${output}    dashboards unchanged
 
 Disabling alerts removes the rules
     Run task    module/${module_id}/set-alerts    {"alerts_enabled": false}    decode_json=False
@@ -118,14 +111,6 @@ Disabling alerts removes the rules
     ${output}    ${rc} =    Execute Command    runagent -m ${module_id} export-metrics    return_rc=True
     Should Be Equal As Integers    ${rc}    0
     Should Contain    ${output}    nethvoice_exporter_collector_up{collector="systemd"} 1
-
-Dashboard is removed by hand
-    ${output}    ${rc} =    Execute Command    runagent -m ${module_id} publish-metrics-config --dashboards remove    return_stdout=False    return_stderr=True    return_rc=True
-    Should Be Equal As Integers    ${rc}    0
-    Should Contain    ${output}    dashboards removed
-    ${output}    ${rc} =    Execute Command    runagent redis-exec HKEYS module/${module_id}/metrics_dashboards    return_rc=True
-    Should Be Equal As Integers    ${rc}    0
-    Should Not Contain    ${output}    nethvoice-
 
 *** Keywords ***
 Dashboard should be published

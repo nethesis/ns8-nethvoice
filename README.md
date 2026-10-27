@@ -293,24 +293,12 @@ runagent -m nethvoice1 export-metrics
 
 ### Dashboard
 
-Each instance can publish its own Grafana dashboard, "NethVoice <module_id>"
-(uid `ns8-<module_id>`), also when the alerts are disabled. The dashboard is
-in an early stage, so it is not installed automatically: install it by hand
-on each instance.
-
-```
-runagent -m nethvoice1 publish-metrics-config --dashboards install
-```
-
-The template is `imageroot/etc/metrics/dashboards/nethvoice-overview.json`:
-the command replaces `__MODULE_ID__` and stores it in the
-`module/<module_id>/metrics_dashboards` hash, then the metrics app restarts
-Grafana to load it. Run the same command again after a module update to load
-the new version. To remove the dashboard:
-
-```
-runagent -m nethvoice1 publish-metrics-config --dashboards remove
-```
+Each instance publishes its own Grafana dashboard, "NethVoice <module_id>"
+(uid `ns8-<module_id>`), also when the alerts are disabled. The template is
+`imageroot/etc/metrics/dashboards/nethvoice-overview.json`: at create, update,
+clone and restore time `publish-metrics-config` replaces `__MODULE_ID__` and
+stores it in the `module/<module_id>/metrics_dashboards` hash, then the
+metrics app restarts Grafana to load it.
 
 - Health now: services down, trunks failing, checks that could not run,
   whether the data is fresh, and the active (firing or pending) alerts of the

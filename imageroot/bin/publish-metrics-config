@@ -20,14 +20,8 @@
 #
 # The alerts are off unless NETHVOICE_ALERTS_ENABLED is "True" (set-alerts
 # action): when off, the owned rule fields are removed, while export-metrics
-# keeps sending the metrics.
-#
-# The dashboards are not published automatically yet: without arguments only
-# the rules are synced and the dashboards hash is left as it is. Install or
-# refresh them by hand with "--dashboards install", remove them with
-# "--dashboards remove".
+# keeps sending the metrics. The dashboards are always published.
 
-import argparse
 import fcntl
 import os
 import sys
@@ -110,24 +104,16 @@ def report(name, changed, fields):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Publish the alert rules, or the dashboards, for the metrics module")
-    parser.add_argument("--dashboards", choices=["install", "remove"],
-                        help="install (or refresh) or remove the dashboards instead of syncing the alert rules")
-    args = parser.parse_args()
     module_id = os.environ["MODULE_ID"]
-    if args.dashboards:
-        name = "dashboards"
-        fields = desired_dashboards(module_id) if args.dashboards == "install" else {}
-        do_publish = publish_dashboards
-    else:
-        name = "alert rules"
-        fields = desired_rules() if alerts_enabled() else {}
-        do_publish = publish
+    rules = desired_rules() if alerts_enabled() else {}
+    dashboards = desired_dashboards(module_id)
     with open(LOCK_FILE, "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         rdb = agent.redis_connect(privileged=True)
-        changed = do_publish(rdb, module_id, os.environ["AGENT_ID"], fields)
-    report(name, changed, fields)
+        rules_changed = publish(rdb, module_id, os.environ["AGENT_ID"], rules)
+        dashboards_changed = publish_dashboards(rdb, module_id, os.environ["AGENT_ID"], dashboards)
+    report("alert rules", rules_changed, rules)
+    report("dashboards", dashboards_changed, dashboards)
 
 
 if __name__ == "__main__":

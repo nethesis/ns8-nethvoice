@@ -6,13 +6,11 @@
 import importlib.machinery
 import importlib.util
 import json
-import os
 import re
 import sys
 import tempfile
 import types
 import unittest
-from unittest import mock
 from pathlib import Path
 
 
@@ -221,42 +219,6 @@ class DesiredDashboardsTest(unittest.TestCase):
             # Every NethVoice series is read for this instance only
             for selector in re.findall(r"\b(?:nethvoice_(?!proxy_)\w+|asterisk_\w+|satellite_\w+)\{([^}]*)\}", expr):
                 self.assertIn('module_id="nethvoice12"', selector, expr)
-
-
-class MainTest(unittest.TestCase):
-    def run_main(self, redis, *args):
-        script = load_script()
-        script.agent.redis_connect = lambda privileged: redis
-        env = {"MODULE_ID": "nethvoice1", "AGENT_ID": "module/nethvoice1", "NETHVOICE_ALERTS_ENABLED": "True"}
-        with tempfile.TemporaryDirectory() as workdir, \
-                mock.patch.dict(os.environ, env), \
-                mock.patch.object(sys, "argv", ["publish-metrics-config", *args]):
-            cwd = os.getcwd()
-            os.chdir(workdir)
-            try:
-                script.main()
-            finally:
-                os.chdir(cwd)
-
-    def test_default_run_leaves_dashboards_alone(self):
-        redis = FakeRedis({DASHBOARDS_KEY: {"nethvoice-old": "{}"}})
-        self.run_main(redis)
-        self.assertIn("nethvoice-services", redis.hashes[KEY])
-        self.assertEqual(redis.hashes[DASHBOARDS_KEY], {"nethvoice-old": "{}"})
-        self.assertNotIn(("publish", DASHBOARDS_EVENT, "{}"), redis.events())
-
-    def test_install_dashboards_leaves_rules_alone(self):
-        redis = FakeRedis()
-        self.run_main(redis, "--dashboards", "install")
-        self.assertIn("nethvoice-overview", redis.hashes[DASHBOARDS_KEY])
-        self.assertNotIn(KEY, redis.hashes)
-        self.assertEqual(redis.events(), [("publish", DASHBOARDS_EVENT, "{}")])
-
-    def test_remove_dashboards(self):
-        redis = FakeRedis({DASHBOARDS_KEY: {"nethvoice-overview": "{}", "other": "{}"}})
-        self.run_main(redis, "--dashboards", "remove")
-        self.assertEqual(redis.hashes[DASHBOARDS_KEY], {"other": "{}"})
-        self.assertEqual(redis.events(), [("publish", DASHBOARDS_EVENT, "{}")])
 
 
 if __name__ == "__main__":
