@@ -75,7 +75,7 @@ $service->saveVisualPlan(['receptionist'=>$enabled['revision']],function() use (
 });
 check($writes===1,'current_visualplan_saves_under_lock');
 check($enabled['published']['contract_version']===8,'typed_publication');
-check(array_map(fn($row)=>json_decode($row['manifest_json'],true),$db->query('SELECT manifest_json FROM asterisk.voice_agent_runtime_tools ORDER BY tool_id')->fetchAll(PDO::FETCH_ASSOC))===array_values((function($tools) { usort($tools,fn($a,$b)=>strcmp($a['id'],$b['id']));return $tools; })(json_decode(file_get_contents(__DIR__.'/../../var/www/html/freepbx/rest/lib/agents/contracts/tools-v5.json'),true))),'immutable_catalog_contract');
+check(array_map(fn($row)=>json_decode($row['manifest_json'],true),$db->query('SELECT manifest_json FROM asterisk.voice_agent_runtime_tools WHERE NOT (tool_id=\'pbx.transfer\' AND tool_version=3) ORDER BY tool_id')->fetchAll(PDO::FETCH_ASSOC))===array_values((function($tools) { usort($tools,fn($a,$b)=>strcmp($a['id'],$b['id']));return $tools; })(json_decode(file_get_contents(__DIR__.'/../../var/www/html/freepbx/rest/lib/agents/contracts/tools-v5.json'),true))),'immutable_catalog_contract');
 check(!$service->get($external['agent_id'])['draft']['tool_bindings'][1]['config']['extensions_enabled'], 'independent_grants');
 $reloads = $native->reloads;
 $draft['conversation']['instructions'] = 'Updated synthetic instructions';

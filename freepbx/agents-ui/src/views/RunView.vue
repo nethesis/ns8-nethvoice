@@ -63,6 +63,12 @@ const partial = computed(
   />
   <div v-if="query.data.value" class="nv-panel space-y-5">
     <RouterLink
+      v-if="query.data.value.parent_run_id"
+      :to="'/activity/' + query.data.value.parent_run_id"
+      class="text-primary-700"
+      >{{ t("callerRun") }}</RouterLink
+    >
+    <RouterLink
       :to="'/agents/' + query.data.value.agent_id"
       class="text-primary-700"
       >{{ query.data.value.agent_id }}</RouterLink

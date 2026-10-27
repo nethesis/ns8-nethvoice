@@ -24,6 +24,11 @@ final class Schema
                     if (trim($statement)!=='') $db->exec($statement);
                 }
             }
+            // Add support for explicitly published v9 snapshots; never rewrite
+            // an existing draft/publication or adopt a development database.
+            $check=$db->query("SELECT CHECK_CLAUSE FROM information_schema.CHECK_CONSTRAINTS WHERE CONSTRAINT_SCHEMA='asterisk' AND TABLE_NAME='voice_agent_versions' AND CONSTRAINT_NAME='voice_agent_contract_check'")->fetchColumn();
+            if (is_string($check) && !str_contains($check,'9')) $db->exec("ALTER TABLE asterisk.voice_agent_versions DROP CONSTRAINT voice_agent_contract_check, ADD CONSTRAINT voice_agent_contract_check CHECK (workflow_version>0 AND contract_version IN (8,9))");
+            $db->exec("ALTER TABLE asteriskcdrdb.voice_agent_runs ADD COLUMN IF NOT EXISTS parent_run_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL");
             self::directoryViews($db);
             RecentCallerViews::install($db);
             require_once __DIR__.'/Service.php';
@@ -33,6 +38,7 @@ final class Schema
                 foreach (json_decode(file_get_contents(__DIR__.'/contracts/tools-v5.json'),true,512,JSON_THROW_ON_ERROR) as $tool) {
                     $insert->execute([$tool['id'],$tool['version'],json_encode($tool,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
                 }
+                foreach (json_decode(file_get_contents(__DIR__.'/contracts/tools-v6.json'),true,512,JSON_THROW_ON_ERROR) as $tool) $insert->execute([$tool['id'],$tool['version'],json_encode($tool,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
                 $db->exec("INSERT IGNORE INTO asterisk.voice_agent_agents (agent_id,name,destination_id,kind) VALUES ('receptionist','Receptionist','agent:receptionist','builtin')");
                 $seed=$db->prepare("INSERT IGNORE INTO asterisk.voice_agent_drafts (agent_id,definition_json) VALUES ('receptionist',?)");
                 $seed->execute([json_encode(Service::receptionistDraft(),JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);

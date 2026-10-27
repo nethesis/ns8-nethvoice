@@ -20,11 +20,16 @@ const rows = computed(() =>
         ? a.routable
           ? "ready"
           : "pending"
-        : a.workflow_version
-          ? a.routable
-            ? "published"
-            : "pending"
-          : "draft",
+        : a.agent_type === "consultation" &&
+            a.enabled &&
+            a.workflow_version &&
+            a.sync_status === "synced"
+          ? "published"
+          : a.workflow_version
+            ? a.routable
+              ? "published"
+              : "pending"
+            : "draft",
   })),
 );
 </script>
@@ -62,6 +67,9 @@ const rows = computed(() =>
         >
         <p v-if="row.agent_type === 'cleverai'" class="nv-muted text-xs">
           CleverAI
+        </p>
+        <p v-if="row.agent_type === 'consultation'" class="nv-muted text-xs">
+          {{ t("internalAssistant") }}
         </p>
         <p v-if="row.kind === 'builtin'" class="nv-muted text-xs">
           {{ t("builtin") }}

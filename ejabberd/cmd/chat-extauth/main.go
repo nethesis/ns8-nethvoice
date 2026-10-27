@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/consultation"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/cti"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/logx"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/svcauth"
@@ -63,6 +64,9 @@ func handle(req string, who func(string) string, now time.Time) bool {
 		}
 		if svcauth.IsService(f[3]) {
 			return svcauth.Valid(secret, f[1], f[2], f[3], now)
+		}
+		if f[1] == consultation.Identity {
+			return false
 		}
 		return who(f[3]) == f[1]
 	case "isuser":

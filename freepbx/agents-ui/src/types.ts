@@ -1,6 +1,14 @@
 export type JsonObject = Record<string, unknown>;
 export interface Draft {
-  contract_version: 8;
+  contract_version: 8 | 9;
+  role?: "public" | "consultation";
+  chat_model?: string | null;
+  consultation?: {
+    mode: "direct" | "attended";
+    phone: boolean;
+    chat: boolean;
+    assistant_id: string | null;
+  };
   provider_binding_id: string | null;
   conversation: {
     model: string | null;
@@ -21,7 +29,7 @@ export interface CleverAiConfiguration {
   fallback_destination_id: string | null;
 }
 export interface Agent extends JsonObject {
-  agent_type?: "basic_voice" | "cleverai";
+  agent_type?: "basic_voice" | "cleverai" | "consultation";
   agent_id: string;
   name: string;
   kind: "builtin" | "custom";
@@ -52,6 +60,12 @@ export interface Trunk extends JsonObject {
 export interface Catalog {
   tools: ToolDefinition[];
   draft_defaults: Draft;
+  consultation_defaults: Draft;
+  consultation_assistants: {
+    agent_id: string;
+    name: string;
+    workflow_version: number;
+  }[];
   extensions: { id: string; name: string }[];
   providers: string[];
   default_language: string;
@@ -94,6 +108,7 @@ export interface ModelCatalog {
 }
 export interface Run extends JsonObject {
   run_id: string;
+  parent_run_id?: string | null;
   agent_id: string;
   agent_name?: string;
   workflow_version: number;

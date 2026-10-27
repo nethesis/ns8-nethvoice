@@ -48,6 +48,7 @@ agent_php "$freepbx_dir/tests/agents/native-bootstrap.php"
 agent_php "$freepbx_dir/tests/agents/recent-callers.php"
 agent_php "$freepbx_dir/tests/agents/monitoring.php"
 agent_php "$freepbx_dir/tests/agents/hangup.php"
+agent_php "$freepbx_dir/tests/agents/consultation.php"
 agent_php -d session.save_path="$test_tmp" "$freepbx_dir/tests/agents/access.php"
 if [[ -n "${M0_REST_AUTOLOAD:-}" ]]; then
     M0_TEST_DSN="${M0_TEST_DSN};dbname=asterisk" agent_php "$freepbx_dir/tests/agents/authentication.php"

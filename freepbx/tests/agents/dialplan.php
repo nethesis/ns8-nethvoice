@@ -6,6 +6,7 @@ require_once __DIR__.'/../../var/www/html/freepbx/rest/lib/agents/Native.php';
 class FreePBX {
     public static bool $broken = false;
     public static function Satellite() { return new class {
+        public function agentConsultationDevices() {return ['203'=>['203','91203']];}
         public function agentPublishedVersions() { return [['agent_id'=>'receptionist','workflow_version'=>1,'fallback_destination_id'=>'extension:203'],['agent_id'=>'custom_disabled','workflow_version'=>1,'fallback_destination_id'=>'extension:203']]; }
         public function cleverAiTransport($id) { return $id==='clever_test'?['trunk_name'=>'VoiceAgentTrunk_99','project_id'=>'proj_external']:null; }
         public function agentDirectory() { return ['items'=>[
@@ -49,6 +50,18 @@ assert(satellite_getdestinfo('voice-agent-receptionist,s,1')['description']==='A
 assert(satellite_check_destinations()[0]['description']==='Agent: &lt;script&gt;test&lt;/script&gt; fallback');
 assert($render('voice-agent-transfer-queue','600')===['Set(TIMEOUT(absolute)=0)','UserEvent(VoiceAgentTransfer,token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:queue:600)','Goto(ext-queues,600,1)']);
 assert(!isset($ext->lines['voice-agent-transfer-ivr']));
+$consult=$render('voice-agent-consult','203');
+assert(str_contains($consult[0],'DB(DND/203)') && str_contains($consult[0],'DB(CF/203)'));
+assert($consult[1]==='Dial(${PJSIP_DIAL_CONTACTS(203)}&${PJSIP_DIAL_CONTACTS(91203)},20,i)');
+assert($consult[2]==='Hangup()');
+assert(!preg_match('/from-internal|from-did-direct|[Vv]oice[Mm]ail/',implode("\n",$consult)));
+$handoff=$render('voice-agent-handoff');
+assert(in_array('Set(TIMEOUT(absolute)=0)',$handoff));
+assert(in_array('Bridge(${VOICE_AGENT_HANDOFF_PEER},x)',$handoff));
+assert(str_contains($handoff[2],'IMPORT(${VOICE_AGENT_HANDOFF_PEER},VOICE_AGENT_HANDOFF_TOKEN)'));
+assert(str_contains($handoff[2],'VOICE_AGENT_HANDOFF_PEER_ID'));
+assert(in_array('Wait(10)',$render('voice-agent-handoff-wait')));
+assert(in_array('Stasis(voice-agent,handoff_failed,${AGENT_SESSION_ID},${VOICE_AGENT_HANDOFF_TOKEN})',$handoff));
 
 $clever=$render('voice-agent-clever_test');
 assert(!str_contains(implode("\n",$clever),'Stasis('));

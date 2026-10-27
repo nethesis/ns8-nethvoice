@@ -22,7 +22,7 @@ final class RuntimeAccounts
                     foreach (['voice_agent_published','voice_agent_runtime_bindings','voice_agent_extension_directory','voice_agent_runtime_tools','voice_agent_queue_directory','voice_agent_ivr_directory','voice_agent_ivr_branches','voice_agent_callback_devices','voice_agent_callback_trunks','voice_agent_callback_patterns','voice_agent_recent_cdr'] as $view) $db->exec('GRANT SELECT ON asterisk.'.$view.' TO '.$identity);
                 } else {
                     $db->exec('GRANT SELECT,INSERT ON asteriskcdrdb.voice_agent_runs TO '.$identity);
-                    $db->exec('GRANT UPDATE (provider_call_id,ended_at,outcome,error_code,duration_ms,setup_duration_ms,first_output_ms,trace_status,usage_json,usage_complete) ON asteriskcdrdb.voice_agent_runs TO '.$identity);
+                    $db->exec('GRANT UPDATE (parent_run_id,provider_call_id,ended_at,outcome,error_code,duration_ms,setup_duration_ms,first_output_ms,trace_status,usage_json,usage_complete) ON asteriskcdrdb.voice_agent_runs TO '.$identity);
                     $db->exec('GRANT SELECT,INSERT ON asteriskcdrdb.voice_agent_run_events TO '.$identity);
                     $db->exec('GRANT SELECT,INSERT,UPDATE ON asteriskcdrdb.voice_agent_metric_hours TO '.$identity);
                     $db->exec('GRANT SELECT,INSERT,UPDATE ON asteriskcdrdb.voice_agent_runtime_health TO '.$identity);

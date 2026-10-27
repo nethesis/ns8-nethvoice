@@ -1,7 +1,7 @@
 # Voice agents testing
 
-Attended transfer is gated on upstream service-authenticated CTI access and
-native handoff proofs. See [integration status and the opt-in synthetic Local
+Attended transfer requires matching runtime, CTI and gateway images plus live
+acceptance. See [configuration, integration status and the synthetic Local
 channel probe](voice-agents-attended-transfer.md) before running staging tests.
 
 Use Python **3.12** (images pin 3.12.13), PHP with pdo_mysql/mbstring/sodium,

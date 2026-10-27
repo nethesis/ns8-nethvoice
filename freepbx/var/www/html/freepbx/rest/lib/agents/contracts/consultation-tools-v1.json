@@ -1,0 +1,49 @@
+[
+  {
+    "type": "function",
+    "name": "nv_consultation_decide_v1",
+    "description": "For this private consultation only: accept the caller, decline, reply with a message for the caller, or ask one clarification question. A phone answer is not consent. Do not accept on behalf of voicemail or another person. Never specify another destination.",
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "text"
+      ],
+      "properties": {
+        "decision": {
+          "type": "string",
+          "enum": [
+            "accept",
+            "decline",
+            "reply",
+            "question"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 1000
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "name": "nv_consultation_answer_v1",
+    "description": "Submit the caller’s concise answer to the current colleague clarification question. Available only after the backend requested one clarification; does not authorize a transfer.",
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "answer"
+      ],
+      "properties": {
+        "answer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    }
+  }
+]

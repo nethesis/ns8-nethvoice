@@ -87,7 +87,7 @@ final class Monitoring
         }
         return [implode(' AND ',$parts),$args];
     }
-    private const RUN_COLUMNS='r.run_id,r.agent_id,a.name AS agent_name,r.workflow_version,r.started_at,r.ended_at,r.outcome,r.error_code,r.monitoring_version,r.provider,r.adapter,r.model,r.duration_ms,r.setup_duration_ms,r.first_output_ms,r.trace_status,r.usage_json,r.usage_complete,(r.outcome=\'running\' AND COALESCE(r.deadline_at,DATE_ADD(r.started_at,INTERVAL 3660 SECOND))<NOW()) AS incomplete';
+    private const RUN_COLUMNS='r.run_id,r.parent_run_id,r.agent_id,a.name AS agent_name,r.workflow_version,r.started_at,r.ended_at,r.outcome,r.error_code,r.monitoring_version,r.provider,r.adapter,r.model,r.duration_ms,r.setup_duration_ms,r.first_output_ms,r.trace_status,r.usage_json,r.usage_complete,(r.outcome=\'running\' AND COALESCE(r.deadline_at,DATE_ADD(r.started_at,INTERVAL 3660 SECOND))<NOW()) AS incomplete';
     private static function row(array $row): array
     {
         $row['usage']=$row['usage_json']!==null?json_decode($row['usage_json'],true):null; unset($row['usage_json']);

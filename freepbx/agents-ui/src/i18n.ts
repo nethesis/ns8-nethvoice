@@ -1,6 +1,21 @@
 import { createI18n } from "vue-i18n";
 
 const en = {
+  callerRun: "Caller conversation",
+  internalAssistant: "Internal consultation assistant",
+  consultationSettings: "Consult colleagues before connecting",
+  consultationHelp:
+    "Applies to people only; queues keep direct transfer. Destination permissions still apply. Publish an internal assistant first, then save and publish these settings.",
+  peopleTransferMode: "Transfer to people",
+  directTransfer: "Direct transfer",
+  attendedTransfer: "Attended transfer",
+  allowPhoneConsultation: "Allow phone consultation",
+  allowChatConsultation: "Allow chat consultation",
+  internalAssistantHelp:
+    "This assistant handles private colleague consultations only. It has no public destination or PBX routing tools.",
+  consultationChatModel: "Chat model ID (optional)",
+  consultationChatModelHelp:
+    "Choose a text model available to this provider for chat decisions. Leave empty to use the configured GPT-Live backend. Voice-only models need a separate text model for chat.",
   agentType: "Agent type",
   saveExternal: "Save",
   cleverAiTrunkHelp:
@@ -128,6 +143,13 @@ const en = {
     pending: "Pending",
   },
   error: {
+    consultation_assistant_unavailable:
+      "Publish an available internal consultation assistant first.",
+    consultation_chat_model_required:
+      "Set a text model on the internal assistant before enabling chat consultation.",
+    internal_agent_not_public:
+      "Internal consultation assistants cannot be public destinations.",
+
     model_required: "Select a conversation model on the agent page.",
     invalid_model_options: "Check the options supported by the selected model.",
     backend_model_unavailable:
@@ -281,6 +303,20 @@ const en = {
     ended_by_agent: "Ended by agent",
   },
   runEvents: {
+    consultation_phone: "Calling colleague",
+    consultation_phone_failed: "Phone consultation unavailable",
+    consultation_chat: "Waiting for chat reply",
+    consultation_connecting: "Connecting answered colleague",
+    consultation_clarification: "Asking caller one question",
+    consultation_transferred: "Consultation connected",
+    consultation_uncertain: "Connection could not be confirmed",
+    consultation_replied: "Colleague message returned",
+    consultation_declined: "Colleague declined",
+    consultation_unavailable: "Colleague unavailable",
+    consultation_timed_out: "Consultation timed out",
+    consultation_cancelled: "Consultation cancelled",
+    consultation_failed: "Consultation failed",
+
     admitted: "Call admitted",
     provider_connected: "Provider connected",
     media_connected: "Audio connected",
@@ -442,6 +478,21 @@ const en = {
   maxOutputTokens: "Maximum backend output tokens",
 };
 const it: typeof en = {
+  callerRun: "Conversazione del chiamante",
+  internalAssistant: "Assistente interno per le consultazioni",
+  consultationSettings: "Consulta i colleghi prima di collegare",
+  consultationHelp:
+    "Si applica solo alle persone; le code mantengono il trasferimento diretto. Restano validi i permessi sulle destinazioni. Pubblica prima un assistente interno, poi salva e pubblica queste impostazioni.",
+  peopleTransferMode: "Trasferimento alle persone",
+  directTransfer: "Trasferimento diretto",
+  attendedTransfer: "Trasferimento con consultazione",
+  allowPhoneConsultation: "Consenti consultazione telefonica",
+  allowChatConsultation: "Consenti consultazione in chat",
+  internalAssistantHelp:
+    "Questo assistente gestisce solo consultazioni private con i colleghi. Non ha una destinazione pubblica né strumenti di instradamento PBX.",
+  consultationChatModel: "ID modello per la chat (facoltativo)",
+  consultationChatModelHelp:
+    "Scegli un modello di testo disponibile per questo fornitore. Lascia vuoto per usare il backend GPT-Live configurato. I modelli solo voce richiedono un modello di testo separato per la chat.",
   agentType: "Tipo di agente",
   saveExternal: "Salva",
   cleverAiTrunkHelp:
@@ -570,6 +621,13 @@ const it: typeof en = {
     pending: "In attesa",
   },
   error: {
+    consultation_assistant_unavailable:
+      "Pubblica prima un assistente interno disponibile.",
+    consultation_chat_model_required:
+      "Imposta un modello di testo sull’assistente interno prima di abilitare la consultazione in chat.",
+    internal_agent_not_public:
+      "Gli assistenti interni non possono essere destinazioni pubbliche.",
+
     model_required:
       "Seleziona un modello di conversazione nella pagina agente.",
     invalid_model_options:
@@ -724,6 +782,20 @@ const it: typeof en = {
     ended_by_agent: "Terminata dall’agente",
   },
   runEvents: {
+    consultation_phone: "Chiamata al collega",
+    consultation_phone_failed: "Consultazione telefonica non disponibile",
+    consultation_chat: "In attesa della risposta in chat",
+    consultation_connecting: "Collegamento al collega che ha risposto",
+    consultation_clarification: "Domanda al chiamante",
+    consultation_transferred: "Consultazione collegata",
+    consultation_uncertain: "Collegamento non confermato",
+    consultation_replied: "Messaggio del collega restituito",
+    consultation_declined: "Il collega ha rifiutato",
+    consultation_unavailable: "Collega non disponibile",
+    consultation_timed_out: "Tempo di consultazione scaduto",
+    consultation_cancelled: "Consultazione annullata",
+    consultation_failed: "Consultazione non riuscita",
+
     admitted: "Chiamata accettata",
     provider_connected: "Provider connesso",
     media_connected: "Audio connesso",
