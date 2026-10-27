@@ -31,6 +31,17 @@ messages, checking that entered fields and group controls are preserved.
 
 ### FreePBX 17 compatibility regressions
 
+Check mailbox cleanup during migration against a disposable MariaDB server
+with an empty root password (requires PHP with `pdo_mysql`):
+
+```bash
+php local_testing/mailbox_migration_test.php 'mysql:host=127.0.0.1;port=3306'
+```
+
+The test refuses an existing `asterisk` database, creates and removes its own
+synthetic fixture, and checks migration versions 1 and 2, repeated execution,
+valid and empty mailbox settings, and preservation of unrelated settings.
+
 Build the FreePBX image and run the focused regressions against its installed
 Slim 4 dependencies, patched Paging module, Core and framework:
 

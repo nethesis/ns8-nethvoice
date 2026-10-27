@@ -45,6 +45,13 @@ function setMigrationScriptVersion(\PDO $db, int $version): void
 	$stmt->execute([$version]);
 }
 
+# FreePBX 17 reads account whenever mailbox exists, even if its value is empty.
+# Run before the version guard to repair installations whose first reload failed.
+$db->exec("DELETE `mailbox` FROM `asterisk`.`sip` AS `mailbox`
+	LEFT JOIN `asterisk`.`sip` AS `account`
+	ON `account`.`id` = `mailbox`.`id` AND `account`.`keyword` = 'account'
+	WHERE `mailbox`.`keyword` = 'mailbox' AND `account`.`id` IS NULL");
+
 # check if migration is needed. Exit 0 if not
 $stmt = $db->prepare("SELECT `value` FROM `asterisk`.`admin` WHERE `variable` = 'MIGRATION_SCRIPT'");
 $stmt->execute();
