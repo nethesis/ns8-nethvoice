@@ -1,5 +1,9 @@
 # Voice agents testing
 
+Attended transfer is gated on upstream service-authenticated CTI access and
+native handoff proofs. See [integration status and the opt-in synthetic Local
+channel probe](voice-agents-attended-transfer.md) before running staging tests.
+
 Use Python **3.12** (images pin 3.12.13), PHP with pdo_mysql/mbstring/sodium,
 Docker and the supported Node version from the UI lockfile. No vendor credentials
 are needed for local tests. Keep both feature repositories side by side.
