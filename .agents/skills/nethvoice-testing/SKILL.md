@@ -719,7 +719,7 @@ cd <nethvoice_state_or_test_directory>
 
 MARIADB_ROOT_PASSWORD=$(grep '^MARIADB_ROOT_PASSWORD=' ./passwords.env) && export "${MARIADB_ROOT_PASSWORD?}"
 
-mariadb -uroot -p"${MARIADB_ROOT_PASSWORD#MARIADB_ROOT_PASSWORD=}" \
+mysql -uroot -p"${MARIADB_ROOT_PASSWORD#MARIADB_ROOT_PASSWORD=}" \
   -h 127.0.0.1 \
   -P "${NETHVOICE_MARIADB_PORT}" \
   -e 'SHOW DATABASES;'
@@ -728,14 +728,14 @@ mariadb -uroot -p"${MARIADB_ROOT_PASSWORD#MARIADB_ROOT_PASSWORD=}" \
 If the variable was exported directly as `MARIADB_ROOT_PASSWORD=value`, use:
 
 ```bash
-mariadb -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}"
+mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}"
 ```
 
 ### From inside the module/container
 
 ```bash
 runagent -m "$NV_MODULE" podman exec mariadb sh -lc '
-mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" -e "SHOW DATABASES;"
+mysql -uroot -p"$MARIADB_ROOT_PASSWORD" -e "SHOW DATABASES;"
 '
 ```
 
@@ -743,7 +743,7 @@ Useful read-only queries:
 
 ```bash
 runagent -m "$NV_MODULE" podman exec mariadb sh -lc '
-mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" -N -B asterisk <<SQL
+mysql -uroot -p"$MARIADB_ROOT_PASSWORD" -N -B asterisk <<SQL
 SELECT extension, name, outboundcid FROM users ORDER BY extension LIMIT 50;
 SELECT id, tech, dial, devicetype, user FROM devices ORDER BY id LIMIT 50;
 SELECT id, keyword, data FROM pjsip WHERE id IN ("201","202","203") ORDER BY id, keyword;
@@ -758,7 +758,7 @@ Find SIP credentials and Wizard-created device records without printing secrets:
 EXT_LIST='"201","202","203"'
 
 runagent -m "$NV_MODULE" podman exec mariadb sh -lc "
-mariadb -uroot -p\"\$MARIADB_ROOT_PASSWORD\" -N -B asterisk <<SQL
+mysql -uroot -p\"\$MARIADB_ROOT_PASSWORD\" -N -B asterisk <<SQL
 SELECT extension, name, outboundcid FROM users WHERE extension IN (${EXT_LIST}) ORDER BY extension;
 SELECT id, keyword, IF(keyword='secret','<secret-present>',data) AS data
 FROM sip
@@ -779,7 +779,7 @@ get_sip_secret() {
   local ext="$1"
   runagent -m "$NV_MODULE" podman exec mariadb sh -lc '
     ext="$1"
-    mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" -N -B asterisk \
+    mysql -uroot -p"$MARIADB_ROOT_PASSWORD" -N -B asterisk \
       -e "SELECT data FROM sip WHERE id='${ext}' AND keyword='secret' LIMIT 1;"
   ' sh "$ext"
 }
@@ -793,7 +793,7 @@ CDR/CEL validation:
 
 ```bash
 runagent -m "$NV_MODULE" podman exec mariadb sh -lc '
-mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" -N -B asteriskcdrdb <<SQL
+mysql -uroot -p"$MARIADB_ROOT_PASSWORD" -N -B asteriskcdrdb <<SQL
 SELECT calldate, src, dst, dcontext, channel, dstchannel, disposition, duration, billsec, uniqueid, linkedid
 FROM cdr
 ORDER BY calldate DESC
@@ -812,7 +812,7 @@ Find a test call by extension or linkedid:
 ```bash
 EXT="$EXT_A"
 runagent -m "$NV_MODULE" podman exec mariadb sh -lc "
-mariadb -uroot -p\"\$MARIADB_ROOT_PASSWORD\" -N -B asteriskcdrdb \
+mysql -uroot -p\"\$MARIADB_ROOT_PASSWORD\" -N -B asteriskcdrdb \
   -e \"SELECT calldate,src,dst,disposition,uniqueid,linkedid FROM cdr WHERE src='$EXT' OR dst='$EXT' ORDER BY calldate DESC LIMIT 20;\"
 "
 ```
@@ -941,7 +941,7 @@ for main in 201 202 203; do
 done
 
 runagent -m "$NV_MODULE" podman exec mariadb sh -lc '
-mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" -N -B asterisk <<SQL
+mysql -uroot -p"$MARIADB_ROOT_PASSWORD" -N -B asterisk <<SQL
 SELECT extension, name FROM users WHERE extension REGEXP "^(91|92|93|94|95|96|97|98)(201|202|203)$" ORDER BY extension;
 SELECT extension, type, IF(secret IS NULL OR secret="", "no-secret", "secret-present") AS secret_state
 FROM rest_devices_phones
@@ -1056,12 +1056,12 @@ After each call test:
 runagent -m "$NV_MODULE" podman exec freepbx asterisk -rx 'core show channels concise' > "${TEST_ID}-channels-after.txt"
 
 runagent -m "$NV_MODULE" podman exec mariadb sh -lc '
-mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" -N -B asteriskcdrdb \
+mysql -uroot -p"$MARIADB_ROOT_PASSWORD" -N -B asteriskcdrdb \
   -e "SELECT calldate,src,dst,disposition,duration,billsec,uniqueid,linkedid FROM cdr ORDER BY calldate DESC LIMIT 10;"
 ' > "${TEST_ID}-cdr.tsv"
 
 runagent -m "$NV_MODULE" podman exec mariadb sh -lc '
-mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" -N -B asteriskcdrdb \
+mysql -uroot -p"$MARIADB_ROOT_PASSWORD" -N -B asteriskcdrdb \
   -e "SELECT eventtime,eventtype,cid_num,exten,channame,peer,uniqueid,linkedid FROM cel ORDER BY eventtime DESC LIMIT 30;"
 ' > "${TEST_ID}-cel.tsv"
 ```
