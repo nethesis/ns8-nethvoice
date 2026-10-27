@@ -1,0 +1,1637 @@
+{
+  "uid": "ns8-__MODULE_ID__",
+  "title": "NethVoice __MODULE_ID__",
+  "description": "Health, activity and resources of NethVoice __MODULE_ID__ and of its NethVoice proxy.",
+  "tags": [
+    "nethvoice"
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "fiscalYearStartMonth": 0,
+  "links": [],
+  "preload": false,
+  "refresh": "5m",
+  "schemaVersion": 41,
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "version": 1,
+  "weekStart": "",
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "node",
+        "hide": 2,
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(nethvoice_exporter_collector_up{module_id=\"__MODULE_ID__\"}, node)",
+        "query": {
+          "qryType": 1,
+          "query": "label_values(nethvoice_exporter_collector_up{module_id=\"__MODULE_ID__\"}, node)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 1,
+        "regex": "",
+        "options": [],
+        "current": {}
+      },
+      {
+        "type": "query",
+        "name": "proxy",
+        "hide": 2,
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(nethvoice_proxy_exporter_collector_up{node=\"$node\"}, module_id)",
+        "query": {
+          "qryType": 1,
+          "query": "label_values(nethvoice_proxy_exporter_collector_up{node=\"$node\"}, module_id)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 1,
+        "regex": "",
+        "options": [],
+        "current": {}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Health now",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Services down",
+      "description": "NethVoice and NethVoice proxy services that are not running now. Disabled services and services never started are not counted.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(count(nethvoice_service_up{module_id=\"__MODULE_ID__\"} == 0) or vector(0)) + (count(nethvoice_proxy_service_up{module_id=\"$proxy\"} == 0) or vector(0))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "0",
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Trunks failing",
+      "description": "Trunks failing now, with the same checks as the NethVoiceTrunkUnreachable alert (the alert waits 10 minutes).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(count(nethvoice_trunk_registration_up{module_id=\"__MODULE_ID__\"} == 0) or vector(0)) + (count(nethvoice_trunk_qualify_up{module_id=\"__MODULE_ID__\"} == 0) or vector(0)) + (count(nethvoice_trunk_endpoint_state{module_id=\"__MODULE_ID__\", registration=\"receive\"} == 1) or vector(0)) + (count(nethvoice_proxy_trunk_registration_status_code{nethvoice=\"__MODULE_ID__\"} >= 300) or vector(0)) + (count(nethvoice_proxy_trunk_options_status_code{nethvoice=\"__MODULE_ID__\"} == 408) or vector(0))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "0",
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Checks skipped",
+      "description": "Checks that could not run (for example public DNS unreachable, or freepbx stopped). Their panels can show old or no data. See which ones in the Checks panel below.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(count(nethvoice_exporter_collector_up{module_id=\"__MODULE_ID__\"} == 0) or vector(0)) + (count(nethvoice_proxy_exporter_collector_up{module_id=\"$proxy\"} == 0) or vector(0))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "0",
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Data",
+      "description": "Fresh when the Asterisk uptime changed in the last 15 minutes. Stale means the metrics have not been updated: the other panels show old values. No data while freepbx is down.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "changes(asterisk_core_uptime_seconds{module_id=\"__MODULE_ID__\"}[15m])",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "noValue": "No data",
+          "mappings": [
+            {
+              "type": "range",
+              "options": {
+                "from": 0,
+                "to": 0,
+                "result": {
+                  "text": "Stale",
+                  "color": "red",
+                  "index": 0
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 1,
+                "to": null,
+                "result": {
+                  "text": "Fresh",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Active alerts",
+      "description": "Alerts of this NethVoice and of its NethVoice proxy that are firing, or pending (the condition is true, the alert waits before firing). Empty also when the alerts are disabled in Settings: no alert is evaluated then.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max by (alertname, alertstate, severity, reason, what, module_id) (label_join((ALERTS_FOR_STATE{module_id=\"__MODULE_ID__\"} or ALERTS_FOR_STATE{nethvoice=\"__MODULE_ID__\"} or ALERTS_FOR_STATE{module_id=\"$proxy\", nethvoice=\"\"}) * ignoring (alertstate) group_left (alertstate) (ALERTS{module_id=\"__MODULE_ID__\"} or ALERTS{nethvoice=\"__MODULE_ID__\"} or ALERTS{module_id=\"$proxy\", nethvoice=\"\"}), \"what\", \"\", \"service\", \"trunk\", \"name\", \"provider\")) * 1000",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No active alerts (or alerts disabled)",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "firing": {
+                        "text": "firing",
+                        "color": "red",
+                        "index": 0
+                      },
+                      "pending": {
+                        "text": "pending",
+                        "color": "orange",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Severity"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "critical": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "warning": {
+                        "color": "orange",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Since"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "State",
+            "desc": false
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "alertname": 0,
+              "severity": 1,
+              "alertstate": 2,
+              "reason": 3,
+              "what": 4,
+              "module_id": 5,
+              "Value": 6
+            },
+            "renameByName": {
+              "alertname": "Alert",
+              "severity": "Severity",
+              "alertstate": "State",
+              "reason": "Reason",
+              "what": "What",
+              "module_id": "Module",
+              "Value": "Since"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Services",
+      "description": "State of each service now. Crash loop: systemd restarted it at least 3 times in 10 minutes.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 16,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max by (service) (nethvoice_service_up{module_id=\"__MODULE_ID__\"}) + 2 * max by (service) (increase(nethvoice_service_restarts_total{module_id=\"__MODULE_ID__\"}[10m]) >= bool 3)",
+          "legendFormat": "{{service}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max by (service) (nethvoice_proxy_service_up{module_id=\"$proxy\"}) + 2 * max by (service) (increase(nethvoice_proxy_service_restarts_total{module_id=\"$proxy\"}[10m]) >= bool 3)",
+          "legendFormat": "proxy {{service}}",
+          "refId": "B",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "down",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "up",
+                  "color": "green",
+                  "index": 1
+                },
+                "2": {
+                  "text": "crash loop",
+                  "color": "dark-red",
+                  "index": 2
+                },
+                "3": {
+                  "text": "crash loop",
+                  "color": "orange",
+                  "index": 3
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "bargauge",
+      "title": "Restarts",
+      "description": "Automatic restarts done by systemd in the selected time range.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 11,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (service) (increase(nethvoice_service_restarts_total{module_id=\"__MODULE_ID__\"}[$__range])) > 0",
+          "legendFormat": "{{service}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (service) (increase(nethvoice_proxy_service_restarts_total{module_id=\"$proxy\"}[$__range])) > 0",
+          "legendFormat": "proxy {{service}}",
+          "refId": "B",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "min": 0,
+          "noValue": "No restarts",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 3
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "basic",
+        "orientation": "horizontal",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Checks",
+      "description": "Checks run by export-metrics every 5 minutes. Skipped: the check could not run, no alert fires for it.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 15,
+        "w": 8,
+        "h": 3
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max by (collector) (nethvoice_exporter_collector_up{module_id=\"__MODULE_ID__\"})",
+          "legendFormat": "{{collector}}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max by (collector) (nethvoice_proxy_exporter_collector_up{module_id=\"$proxy\"})",
+          "legendFormat": "proxy {{collector}}",
+          "refId": "B",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "skipped",
+                  "color": "orange",
+                  "index": 0
+                },
+                "1": {
+                  "text": "ran",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Trunks",
+      "description": "State of each trunk now, with the same checks as the NethVoiceTrunkUnreachable alert. Path proxy: the trunk goes through NethVoice proxy, which reports the last SIP code of the provider (408: no answer). Not checked: Asterisk could not check the trunk, or the proxy has no answer for it yet.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(label_replace(label_replace(max by (trunk) (nethvoice_trunk_registration_up{module_id=\"__MODULE_ID__\"}), \"type\", \"register\", \"\", \"\"), \"path\", \"direct\", \"\", \"\") or label_replace(label_replace(max by (trunk) (nethvoice_trunk_qualify_up{module_id=\"__MODULE_ID__\"}), \"type\", \"ip\", \"\", \"\"), \"path\", \"direct\", \"\", \"\") or max by (trunk, path, type) (label_replace(label_replace(label_replace(nethvoice_trunk_endpoint_state{module_id=\"__MODULE_ID__\", registration=\"receive\"} != bool 1, \"path\", \"proxy\", \"via_proxy\", \"true\"), \"path\", \"direct\", \"via_proxy\", \"false\"), \"type\", \"receive\", \"\", \"\")) or label_replace(label_replace((max by (trunk) (label_replace((nethvoice_proxy_trunk_registration_status_code{nethvoice=\"__MODULE_ID__\"} < bool 300), \"proxy_trunk\", \"$1\", \"trunk\", \"(.*)\") * on (proxy_trunk) group_left (trunk) max by (trunk, proxy_trunk) (nethvoice_trunk_proxy_info{module_id=\"__MODULE_ID__\"})) or max by (trunk) ((nethvoice_proxy_trunk_registration_status_code{nethvoice=\"__MODULE_ID__\"} < bool 300)) unless on (trunk) label_replace(max by (trunk, proxy_trunk) (nethvoice_trunk_proxy_info{module_id=\"__MODULE_ID__\"}), \"trunk\", \"$1\", \"proxy_trunk\", \"(.*)\")), \"type\", \"register\", \"\", \"\"), \"path\", \"proxy\", \"\", \"\") or label_replace(label_replace((max by (trunk) (label_replace((nethvoice_proxy_trunk_options_status_code{nethvoice=\"__MODULE_ID__\"} != bool 408), \"proxy_trunk\", \"$1\", \"trunk\", \"(.*)\") * on (proxy_trunk) group_left (trunk) max by (trunk, proxy_trunk) (nethvoice_trunk_proxy_info{module_id=\"__MODULE_ID__\"})) or max by (trunk) ((nethvoice_proxy_trunk_options_status_code{nethvoice=\"__MODULE_ID__\"} != bool 408)) unless on (trunk) label_replace(max by (trunk, proxy_trunk) (nethvoice_trunk_proxy_info{module_id=\"__MODULE_ID__\"}), \"trunk\", \"$1\", \"proxy_trunk\", \"(.*)\")), \"type\", \"ip\", \"\", \"\"), \"path\", \"proxy\", \"\", \"\")) or on (trunk) (max by (trunk, path, type) (label_replace(label_replace(label_replace(label_replace(label_replace(nethvoice_trunk_endpoint_state{module_id=\"__MODULE_ID__\"}, \"path\", \"proxy\", \"via_proxy\", \"true\"), \"path\", \"direct\", \"via_proxy\", \"false\"), \"type\", \"register\", \"registration\", \"send\"), \"type\", \"ip\", \"registration\", \"none\"), \"type\", \"receive\", \"registration\", \"receive\")) * 0 - 1)",
+          "legendFormat": "",
+          "refId": "state",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "label_replace(label_replace((max by (trunk) (label_replace((nethvoice_proxy_trunk_registration_status_code{nethvoice=\"__MODULE_ID__\"} ), \"proxy_trunk\", \"$1\", \"trunk\", \"(.*)\") * on (proxy_trunk) group_left (trunk) max by (trunk, proxy_trunk) (nethvoice_trunk_proxy_info{module_id=\"__MODULE_ID__\"})) or max by (trunk) ((nethvoice_proxy_trunk_registration_status_code{nethvoice=\"__MODULE_ID__\"} )) unless on (trunk) label_replace(max by (trunk, proxy_trunk) (nethvoice_trunk_proxy_info{module_id=\"__MODULE_ID__\"}), \"trunk\", \"$1\", \"proxy_trunk\", \"(.*)\")), \"type\", \"register\", \"\", \"\"), \"path\", \"proxy\", \"\", \"\") or label_replace(label_replace((max by (trunk) (label_replace((nethvoice_proxy_trunk_options_status_code{nethvoice=\"__MODULE_ID__\"} ), \"proxy_trunk\", \"$1\", \"trunk\", \"(.*)\") * on (proxy_trunk) group_left (trunk) max by (trunk, proxy_trunk) (nethvoice_trunk_proxy_info{module_id=\"__MODULE_ID__\"})) or max by (trunk) ((nethvoice_proxy_trunk_options_status_code{nethvoice=\"__MODULE_ID__\"} )) unless on (trunk) label_replace(max by (trunk, proxy_trunk) (nethvoice_trunk_proxy_info{module_id=\"__MODULE_ID__\"}), \"trunk\", \"$1\", \"proxy_trunk\", \"(.*)\")), \"type\", \"ip\", \"\", \"\"), \"path\", \"proxy\", \"\", \"\")",
+          "legendFormat": "",
+          "refId": "code",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "OK",
+                        "color": "green",
+                        "index": 0
+                      },
+                      "0": {
+                        "text": "failing",
+                        "color": "red",
+                        "index": 1
+                      },
+                      "-1": {
+                        "text": "not checked",
+                        "color": "text",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "State",
+            "desc": false
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "trunk": 0,
+              "path": 1,
+              "type": 2,
+              "Value #state": 3,
+              "Value #code": 4
+            },
+            "renameByName": {
+              "trunk": "Trunk",
+              "path": "Path",
+              "type": "Type",
+              "Value #state": "State",
+              "Value #code": "Last SIP code"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "row",
+      "title": "Trends",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Calls and channels",
+      "description": "Active calls and channels, sampled every 5 minutes: short calls between two samples are not shown here, see Calls per hour.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(asterisk_calls_count{module_id=\"__MODULE_ID__\"})",
+          "legendFormat": "calls",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(asterisk_channels_count{module_id=\"__MODULE_ID__\"})",
+          "legendFormat": "channels",
+          "refId": "B",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "min": 0,
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Calls per hour",
+      "description": "Calls handled by Asterisk in each hour.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(increase(asterisk_calls_sum{module_id=\"__MODULE_ID__\"}[1h]))",
+          "legendFormat": "calls",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "min": 0,
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "interval": "1h"
+    },
+    {
+      "id": 14,
+      "type": "state-timeline",
+      "title": "Trunks over time",
+      "description": "State of each trunk over time, same checks as the Trunks table.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 34,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(label_replace(label_replace(max by (trunk) (nethvoice_trunk_registration_up{module_id=\"__MODULE_ID__\"}), \"type\", \"register\", \"\", \"\"), \"path\", \"direct\", \"\", \"\") or label_replace(label_replace(max by (trunk) (nethvoice_trunk_qualify_up{module_id=\"__MODULE_ID__\"}), \"type\", \"ip\", \"\", \"\"), \"path\", \"direct\", \"\", \"\") or max by (trunk, path, type) (label_replace(label_replace(label_replace(nethvoice_trunk_endpoint_state{module_id=\"__MODULE_ID__\", registration=\"receive\"} != bool 1, \"path\", \"proxy\", \"via_proxy\", \"true\"), \"path\", \"direct\", \"via_proxy\", \"false\"), \"type\", \"receive\", \"\", \"\")) or label_replace(label_replace((max by (trunk) (label_replace((nethvoice_proxy_trunk_registration_status_code{nethvoice=\"__MODULE_ID__\"} < bool 300), \"proxy_trunk\", \"$1\", \"trunk\", \"(.*)\") * on (proxy_trunk) group_left (trunk) max by (trunk, proxy_trunk) (nethvoice_trunk_proxy_info{module_id=\"__MODULE_ID__\"})) or max by (trunk) ((nethvoice_proxy_trunk_registration_status_code{nethvoice=\"__MODULE_ID__\"} < bool 300)) unless on (trunk) label_replace(max by (trunk, proxy_trunk) (nethvoice_trunk_proxy_info{module_id=\"__MODULE_ID__\"}), \"trunk\", \"$1\", \"proxy_trunk\", \"(.*)\")), \"type\", \"register\", \"\", \"\"), \"path\", \"proxy\", \"\", \"\") or label_replace(label_replace((max by (trunk) (label_replace((nethvoice_proxy_trunk_options_status_code{nethvoice=\"__MODULE_ID__\"} != bool 408), \"proxy_trunk\", \"$1\", \"trunk\", \"(.*)\") * on (proxy_trunk) group_left (trunk) max by (trunk, proxy_trunk) (nethvoice_trunk_proxy_info{module_id=\"__MODULE_ID__\"})) or max by (trunk) ((nethvoice_proxy_trunk_options_status_code{nethvoice=\"__MODULE_ID__\"} != bool 408)) unless on (trunk) label_replace(max by (trunk, proxy_trunk) (nethvoice_trunk_proxy_info{module_id=\"__MODULE_ID__\"}), \"trunk\", \"$1\", \"proxy_trunk\", \"(.*)\")), \"type\", \"ip\", \"\", \"\"), \"path\", \"proxy\", \"\", \"\")) or on (trunk) (max by (trunk, path, type) (label_replace(label_replace(label_replace(label_replace(label_replace(nethvoice_trunk_endpoint_state{module_id=\"__MODULE_ID__\"}, \"path\", \"proxy\", \"via_proxy\", \"true\"), \"path\", \"direct\", \"via_proxy\", \"false\"), \"type\", \"register\", \"registration\", \"send\"), \"type\", \"ip\", \"registration\", \"none\"), \"type\", \"receive\", \"registration\", \"receive\")) * 0 - 1)",
+          "legendFormat": "{{trunk}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "OK",
+                  "color": "green",
+                  "index": 0
+                },
+                "0": {
+                  "text": "failing",
+                  "color": "red",
+                  "index": 1
+                },
+                "-1": {
+                  "text": "not checked",
+                  "color": "text",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "rowHeight": 0.8,
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "state-timeline",
+      "title": "Services over time",
+      "description": "Service up or down over time.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 34,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max by (service) (nethvoice_service_up{module_id=\"__MODULE_ID__\"})",
+          "legendFormat": "{{service}}",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max by (service) (nethvoice_proxy_service_up{module_id=\"$proxy\"})",
+          "legendFormat": "proxy {{service}}",
+          "refId": "B",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "down",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "up",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "rowHeight": 0.8,
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Phones online",
+      "description": "PJSIP endpoints other than trunks (extensions, apps, WebRTC) with at least one registered device, and all those configured.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 42,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "count((asterisk_endpoints_state{module_id=\"__MODULE_ID__\", resource!=\"anonymous\"} unless on (resource) label_replace(nethvoice_trunk_endpoint_state{module_id=\"__MODULE_ID__\"}, \"resource\", \"$1\", \"trunk\", \"(.*)\")) == 2) or vector(0)",
+          "legendFormat": "online",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "count((asterisk_endpoints_state{module_id=\"__MODULE_ID__\", resource!=\"anonymous\"} unless on (resource) label_replace(nethvoice_trunk_endpoint_state{module_id=\"__MODULE_ID__\"}, \"resource\", \"$1\", \"trunk\", \"(.*)\"))) or vector(0)",
+          "legendFormat": "configured",
+          "refId": "B",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "min": 0,
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "AI calls per hour",
+      "description": "Calls to the AI providers made by Satellite in each hour, by operation, successful or failed.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 42,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (operation, result) (increase(satellite_ai_calls_total{module_id=\"__MODULE_ID__\"}[1h])) > 0",
+          "legendFormat": "{{operation}} {{result}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "min": 0,
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".* failure"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "interval": "1h"
+    },
+    {
+      "id": 18,
+      "type": "row",
+      "title": "Resources",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 50,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "CPU by container",
+      "description": "CPU used by each container of NethVoice and its proxy, in cores.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 51,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (module, container) (rate(ns8_container_cpu_seconds_total{module=~\"__MODULE_ID__|$proxy\"}[$__rate_interval]))",
+          "legendFormat": "{{module}} {{container}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "fillOpacity": 0,
+            "lineWidth": 1,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Memory by container",
+      "description": "Memory used by each container of NethVoice and its proxy.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 51,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (module, container) (ns8_container_memory_usage_bytes{module=~\"__MODULE_ID__|$proxy\"})",
+          "legendFormat": "{{module}} {{container}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "custom": {
+            "fillOpacity": 0,
+            "lineWidth": 1,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "type": "stat",
+      "title": "OOM kills",
+      "description": "Containers killed because they ran out of memory, in the selected time range.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 59,
+        "w": 4,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(increase(ns8_container_oom_kills_total{module=~\"__MODULE_ID__|$proxy\"}[$__range])) or vector(0)",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "Disk used",
+      "description": "Disk used by NethVoice and its proxy: volumes, images and state.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 59,
+        "w": 20,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (module) (ns8_module_total_bytes{module=~\"__MODULE_ID__|$proxy\"})",
+          "legendFormat": "{{module}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    }
+  ]
+}
