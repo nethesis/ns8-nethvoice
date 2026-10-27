@@ -6,7 +6,7 @@ Resource  ../api.resource
 *** Test Cases ***
 Check if nethvoice can be configured correctly
     ${response} =  Run task    module/${module_id}/configure-module
-    ...    {"nethvoice_host": "voice.ns8.local", "nethcti_ui_host": "cti.ns8.local", "user_domain": "${users_domain}", "reports_international_prefix": "+39", "lets_encrypt": false }
+    ...    {"nethvoice_host": "Voice.NS8.local", "nethcti_ui_host": "CTI.ns8.LOCAL", "user_domain": "${users_domain}", "reports_international_prefix": "+39", "lets_encrypt": false }
     ...    decode_json=False
 
 Check if nethvoice is configured as expected
