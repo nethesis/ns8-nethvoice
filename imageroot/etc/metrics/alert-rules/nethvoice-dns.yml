@@ -2,35 +2,35 @@
 # Copyright (C) 2026 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# The NethVoice, CTI and proxy names must resolve on public DNS servers, and
-# the proxy name must point to the proxy public IP. Always on: sites with
-# split DNS get the warning too. One alert, the reason label tells which
-# check failed. Series come from export-metrics (pypkg/nvmetrics/dnscheck.py)
-# every 5 minutes, so "for: 15m" means 3 failed checks in a row.
+# The NethVoice, CTI and proxy names must resolve on the resolver of the
+# node, and the proxy name must point to the proxy public or private IP. One
+# alert, the reason label tells which check failed. Series come from
+# export-metrics (pypkg/nvmetrics/dnscheck.py) every 5 minutes, so "for: 15m"
+# means 3 failed checks in a row.
 groups:
   - name: dns
     rules:
-      - alert: NethVoicePublicDnsFailure
-        expr: nethvoice_public_dns_resolves == 0
+      - alert: NethVoiceDnsFailure
+        expr: nethvoice_dns_resolves == 0
         for: 15m
         labels:
           severity: warning
           alertgroup: dns
           reason: not_resolved
         annotations:
-          summary_en: "{{ $labels.name }} does not resolve on public DNS"
-          summary_it: "{{ $labels.name }} non è risolto dai DNS pubblici"
-          description_en: "Public DNS servers do not resolve {{ $labels.name }} ({{ $labels.role }} of {{ $labels.module_id }}): phones, apps and providers outside the LAN cannot reach it. Check the DNS records."
-          description_it: "I DNS pubblici non risolvono {{ $labels.name }} ({{ $labels.role }} di {{ $labels.module_id }}): telefoni, app e provider fuori dalla LAN non possono raggiungerlo. Verificare i record DNS."
-      - alert: NethVoicePublicDnsFailure
-        expr: nethvoice_public_dns_proxy_ip_match == 0
+          summary_en: "{{ $labels.name }} does not resolve"
+          summary_it: "{{ $labels.name }} non è risolto"
+          description_en: "The DNS resolver of the node does not resolve {{ $labels.name }} ({{ $labels.role }} of {{ $labels.module_id }}): NethVoice and its clients may not reach it. Check the DNS records and the resolver configuration."
+          description_it: "Il resolver DNS del nodo non risolve {{ $labels.name }} ({{ $labels.role }} di {{ $labels.module_id }}): NethVoice e i suoi client potrebbero non raggiungerlo. Verificare i record DNS e la configurazione del resolver."
+      - alert: NethVoiceDnsFailure
+        expr: nethvoice_dns_proxy_ip_match == 0
         for: 15m
         labels:
           severity: warning
           alertgroup: dns
           reason: ip_mismatch
         annotations:
-          summary_en: "{{ $labels.name }} does not point to the proxy public IP"
-          summary_it: "{{ $labels.name }} non punta all'IP pubblico del proxy"
-          description_en: "Public DNS resolves {{ $labels.name }} to {{ $labels.records }}, but the proxy public IP is {{ $labels.expected }}. Phones and providers outside the LAN may reach the wrong address. Update the DNS record."
-          description_it: "I DNS pubblici risolvono {{ $labels.name }} in {{ $labels.records }}, ma l'IP pubblico del proxy è {{ $labels.expected }}. Telefoni e provider fuori dalla LAN potrebbero raggiungere l'indirizzo sbagliato. Aggiornare il record DNS."
+          summary_en: "{{ $labels.name }} does not point to the proxy IP"
+          summary_it: "{{ $labels.name }} non punta all'IP del proxy"
+          description_en: "The DNS resolver of the node resolves {{ $labels.name }} to {{ $labels.records }}, but the proxy IP is {{ $labels.expected }}. Phones and providers may reach the wrong address. Update the DNS record."
+          description_it: "Il resolver DNS del nodo risolve {{ $labels.name }} in {{ $labels.records }}, ma l'IP del proxy è {{ $labels.expected }}. Telefoni e provider potrebbero raggiungere l'indirizzo sbagliato. Aggiornare il record DNS."

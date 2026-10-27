@@ -515,8 +515,8 @@
                         {{ $t("settings.alerts_trunk_unreachable") }}
                       </li>
                       <li>
-                        <code>NethVoicePublicDnsFailure</code>:
-                        {{ $t("settings.alerts_public_dns") }}
+                        <code>NethVoiceDnsFailure</code>:
+                        {{ $t("settings.alerts_dns_failure") }}
                       </li>
                       <li>
                         <code>NethVoiceAiKeyInvalid</code>:

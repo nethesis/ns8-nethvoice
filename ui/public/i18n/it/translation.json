@@ -129,10 +129,10 @@
     "saml2_default_button_label": "Accedi con SSO",
     "alerts_title": "Avvisi (beta)",
     "alerts_beta_title": "Funzione in beta",
-    "alerts_description": "Se abilitato, ogni 5 minuti NethVoice controlla i suoi servizi, i fasci, i nomi pubblici e le chiavi AI e genera questi avvisi:",
+    "alerts_description": "Se abilitato, ogni 5 minuti NethVoice controlla i suoi servizi, i fasci, i nomi DNS e le chiavi AI e genera questi avvisi:",
     "alerts_service_down": "un servizio di NethVoice (ad esempio FreePBX, MariaDB, CTI o Janus) è fermo o si riavvia continuamente",
     "alerts_trunk_unreachable": "un fascio SIP non raggiunge il provider o il gateway",
-    "alerts_public_dns": "i nomi pubblici di NethVoice, CTI o del proxy non sono risolti dai DNS pubblici, o puntano a un indirizzo sbagliato",
+    "alerts_dns_failure": "i nomi di NethVoice, CTI o del proxy non sono risolti dal resolver DNS del nodo, o puntano a un indirizzo sbagliato",
     "alerts_ai_key": "la chiave Deepgram o OpenAI è rifiutata",
     "alerts_ai_credit": "l'account del provider AI ha esaurito il credito",
     "alerts_where": "Gli avvisi attivi sono visibili nella pagina Nodi e, se il cluster ha una sottoscrizione, su my.nethesis.it."

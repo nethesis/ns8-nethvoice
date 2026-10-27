@@ -33,7 +33,7 @@ sys.stdout.write(runner.run([
     ("systemd", functools.partial(systemd.collect, units)),
     ("asterisk", functools.partial(asterisk.collect, asterisk_page)),
     ("trunks", functools.partial(trunks.collect, asterisk_page)),
-    ("public_dns", dnscheck.collect if dnscheck.enabled() else None),
+    ("dns", dnscheck.collect if dnscheck.enabled() else None),
     ("ai_keys", functools.partial(aikeys.collect, ai_keys) if aikeys.enabled(keys=ai_keys) else None),
     ("satellite", functools.partial(satellite.collect, token=satellite_token) if satellite.enabled() else None),
 ]))

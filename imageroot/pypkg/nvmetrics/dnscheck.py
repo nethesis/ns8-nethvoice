@@ -3,22 +3,25 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-"""Resolution of the NethVoice public names on public DNS servers.
+"""Resolution of the NethVoice public names on the resolver of the node.
 
-Used by the NethVoicePublicDnsFailure alert (etc/metrics/alert-rules/nethvoice-dns.yml):
+Used by the NethVoiceDnsFailure and NethVoiceDnsSlow alerts
+(etc/metrics/alert-rules/nethvoice-dns.yml):
 
-- nethvoice_public_dns_resolves{name,role}: 1 if the name has A records, 0 if
-  the public resolvers say it does not exist
-- nethvoice_public_dns_proxy_ip_match{name,expected,records}: 1 if the proxy
-  name points to the proxy public IP, 0 otherwise
+- nethvoice_dns_resolves{name,role}: 1 if the name has A records, 0 if the
+  resolver says it does not exist
+- nethvoice_dns_proxy_ip_match{name,expected,records}: 1 if the proxy name
+  points to one of the proxy addresses (public or private, for split DNS),
+  0 otherwise
+- nethvoice_dns_response_seconds{name,role}: time taken by the resolver to
+  answer. A resolver that does not answer is reported as LIFETIME, and the
+  name has no nethvoice_dns_resolves series.
 
-Names that no resolver answers for are not exported: blocked public DNS is
-"check unavailable", not a DNS failure.
+The resolver is the one of the node (/etc/resolv.conf).
 """
 
 import os
-
-from .runner import CheckUnavailable
+import time
 
 # (environment variable, role label)
 NAMES = (
@@ -26,8 +29,9 @@ NAMES = (
     ("NETHCTI_UI_HOST", "cti"),
     ("NETHVOICE_PROXY_FQDN", "proxy"),
 )
-RESOLVERS = ("1.1.1.1", "8.8.8.8")
-LIFETIME = 2
+# Seconds to wait for each name. Names are resolved one by one, so all of
+# them must fit in the runner deadline (runner.DEADLINE)
+LIFETIME = 5
 
 
 class NameNotFound(Exception):
@@ -38,13 +42,12 @@ class ResolverUnreachable(Exception):
     """The resolver did not answer."""
 
 
-def dns_query(name, resolver_ip):
-    """Return the A records of name, asking only resolver_ip."""
+def dns_query(name):
+    """Return the A records of name, asking the resolver of the node."""
     import dns.exception
     import dns.resolver
 
-    resolver = dns.resolver.Resolver(configure=False)
-    resolver.nameservers = [resolver_ip]
+    resolver = dns.resolver.Resolver()
     try:
         answer = resolver.resolve(name, "A", lifetime=LIFETIME)
     except dns.resolver.NoNameservers as ex:
@@ -60,60 +63,65 @@ def dns_query(name, resolver_ip):
     return [record.address for record in answer]
 
 
-def lookup(name, query=dns_query):
-    """Return the A records ([] if the name does not exist), or None if no resolver answered."""
-    for resolver_ip in RESOLVERS:
-        try:
-            return query(name, resolver_ip)
-        except NameNotFound:
-            return []
-        except ResolverUnreachable:
-            continue
-    return None
+def lookup(name, query=dns_query, clock=time.monotonic):
+    """Return (A records, seconds): records are [] if the name does not
+    exist, None if the resolver did not answer."""
+    start = clock()
+    try:
+        records = query(name)
+    except NameNotFound:
+        records = []
+    except ResolverUnreachable:
+        return None, LIFETIME
+    return records, clock() - start
 
 
-def proxy_public_ip(fqdn, providers):
-    """Return the public IP of the proxy with this FQDN, from its sip service record."""
+def proxy_addresses(fqdn, providers):
+    """Return the public and private IPs of the proxy with this FQDN, from its sip service record."""
     for provider in providers:
         if fqdn and provider.get("fqdn") == fqdn:
-            # Not "address": behind NAT it is the private IP, never in public DNS
-            return provider.get("public_address") or ""
-    return ""
+            # Behind NAT "address" is the private IP: split DNS may return it
+            addresses = [provider.get("public_address") or "", provider.get("address") or ""]
+            return [address for address in dict.fromkeys(addresses) if address]
+    return []
 
 
-def render(env, query, proxy_ip):
+def render(env, query, proxy_ips, clock=time.monotonic):
     """Return the metrics in the Prometheus text format."""
     resolves = []
     ip_match = []
+    response = []
     resolved = {}
     for variable, role in NAMES:
         name = env.get(variable, "")
         if not name:
             continue
         # A name used by more roles is resolved and reported once, but the
-        # proxy IP is compared also when the proxy shares its name
+        # proxy IPs are compared also when the proxy shares its name
         repeated = name in resolved
         if not repeated:
-            resolved[name] = lookup(name, query)
+            resolved[name], seconds = lookup(name, query, clock)
+            response.append('nethvoice_dns_response_seconds{name="%s",role="%s"} %.3f' % (name, role, seconds))
         records = resolved[name]
         if records is None:
             continue
         if not repeated:
-            resolves.append('nethvoice_public_dns_resolves{name="%s",role="%s"} %d' % (name, role, 1 if records else 0))
-        if role == "proxy" and proxy_ip and records:
+            resolves.append('nethvoice_dns_resolves{name="%s",role="%s"} %d' % (name, role, 1 if records else 0))
+        if role == "proxy" and proxy_ips and records:
             ip_match.append(
-                'nethvoice_public_dns_proxy_ip_match{expected="%s",name="%s",records="%s"} %d'
-                % (proxy_ip, name, ",".join(sorted(records)), 1 if proxy_ip in records else 0)
+                'nethvoice_dns_proxy_ip_match{expected="%s",name="%s",records="%s"} %d'
+                % (",".join(proxy_ips), name, ",".join(sorted(records)), 1 if set(proxy_ips) & set(records) else 0)
             )
-    if resolved and all(records is None for records in resolved.values()):
-        raise CheckUnavailable("no public DNS resolver answered")
     lines = [
-        "# HELP nethvoice_public_dns_resolves 1 if the public name resolves on public DNS servers",
-        "# TYPE nethvoice_public_dns_resolves gauge",
+        "# HELP nethvoice_dns_resolves 1 if the public name resolves on the resolver of the node",
+        "# TYPE nethvoice_dns_resolves gauge",
         *resolves,
-        "# HELP nethvoice_public_dns_proxy_ip_match 1 if the proxy name points to the proxy public IP",
-        "# TYPE nethvoice_public_dns_proxy_ip_match gauge",
+        "# HELP nethvoice_dns_proxy_ip_match 1 if the proxy name points to a proxy IP",
+        "# TYPE nethvoice_dns_proxy_ip_match gauge",
         *ip_match,
+        "# HELP nethvoice_dns_response_seconds Time taken by the resolver of the node to answer",
+        "# TYPE nethvoice_dns_response_seconds gauge",
+        *response,
     ]
     return "\n".join(lines) + "\n"
 
@@ -127,4 +135,4 @@ def collect():
 
     fqdn = os.environ.get("NETHVOICE_PROXY_FQDN", "")
     providers = agent.list_service_providers(agent.redis_connect(use_replica=True), "sip", "tcp", {"fqdn": fqdn}) if fqdn else []
-    return render(os.environ, dns_query, proxy_public_ip(fqdn, providers))
+    return render(os.environ, dns_query, proxy_addresses(fqdn, providers))

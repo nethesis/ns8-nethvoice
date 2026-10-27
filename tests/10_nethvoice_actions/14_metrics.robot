@@ -55,8 +55,9 @@ Service state is exported
     Should Contain    ${output}    nethvoice_service_up{service="freepbx"} 1
     Should Contain    ${output}    nethvoice_service_restarts_total{service="freepbx"}
     Should Contain    ${output}    nethvoice_exporter_collector_up{collector="systemd"} 1
-    # Public resolvers may be unreachable from the test machine: only the status line is sure
-    Should Contain    ${output}    nethvoice_exporter_collector_up{collector="public_dns"}
+    # The resolver may not know the test names, but it always gets a response time
+    Should Contain    ${output}    nethvoice_exporter_collector_up{collector="dns"} 1
+    Should Contain    ${output}    nethvoice_dns_response_seconds{
     Should Not Contain    ${output}    module=
 
 Asterisk and trunk metrics are exported

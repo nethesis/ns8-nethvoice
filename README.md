@@ -242,7 +242,7 @@ still exported.
 | Alert | Severity | Fires when |
 |---|---|---|
 | `ServiceDown` | critical | a service is stopped for 10 minutes (`reason="stopped"`) or restarted at least 3 times in 10 minutes (`reason="crash_loop"`) |
-| `NethVoicePublicDnsFailure` | warning | for 15 minutes a public name does not resolve on 1.1.1.1 and 8.8.8.8 (`reason="not_resolved"`), or the proxy name does not point to the proxy public IP (`reason="ip_mismatch"`) |
+| `NethVoiceDnsFailure` | warning | for 15 minutes a public name does not resolve on the DNS resolver of the node (`reason="not_resolved"`), or the proxy name does not point to the proxy public or private IP (`reason="ip_mismatch"`) |
 | `NethVoiceAiKeyInvalid` | critical | with transcription on, Deepgram or OpenAI rejects the API key (HTTP 401; for OpenAI only with error code `invalid_api_key`, so a restricted key without the Models read scope is not reported) for 10 minutes |
 | `NethVoiceAiCreditExhausted` | critical | Satellite reports that a provider refused a call for lack of credit; clears after the next successful call |
 | `NethVoiceTrunkUnreachable` | critical | for 10 minutes a trunk that bypasses the proxy is not registered (`reason="registration_failed"`), the remote side of a `receive` trunk is not registered (`reason="not_registered"`), or the provider of an IP trunk that bypasses the proxy does not answer OPTIONS (`reason="qualify_failed"`; not when Asterisk could not send them) |
@@ -261,7 +261,10 @@ Notes:
   `pjsip.registration_custom.conf` is not checked. NethVoice exports
   `nethvoice_trunk_proxy_info{trunk,proxy_trunk}` so the proxy alerts can show
   the trunk name next to the address the proxy sees.
-- When a check cannot run (public DNS or AI provider unreachable, freepbx
+- The DNS resolver of the node is the one in `/etc/resolv.conf`. A resolver
+  that does not answer is not a `NethVoiceDnsFailure`: its response time is
+  exported as 5 seconds.
+- When a check cannot run (AI provider unreachable, freepbx
   stopped) it is skipped and no alert fires:
   `nethvoice_exporter_collector_up{collector}` is 0.
 - The `asterisk_*` metrics of Asterisk (res_prometheus, password
