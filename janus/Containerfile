@@ -1,24 +1,10 @@
-FROM debian:bullseye-slim
+FROM docker.io/library/debian:trixie-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad AS builder
 
 ARG JANUS_TAG=v1.4.2
 ARG JANUS_REPO=https://github.com/meetecho/janus-gateway.git
 
-# Bullseye LTS ended on 2026-08-31; no further official security updates are planned.
-# Third-party Extended LTS may support selected packages separately:
-# https://www.debian.org/News/2026/20260831
-# Restore reliable build downloads using archive.debian.org for bullseye and
-# bullseye-updates, plus the fixed 2026-09-01 snapshot for bullseye-security.
-# The snapshot avoids live-mirror package 404s and retains final LTS versions.
-# It does not extend Debian 11 security support. Any later fix requires changing
-# these sources; rebuilding cannot fetch updates beyond the fixed snapshot.
-# check-valid-until=no skips only snapshot metadata expiry; signature and checksum
-# verification remain enabled. See https://snapshot.debian.org/
-RUN sed -i \
-	-e 's|deb\.debian\.org/debian |archive.debian.org/debian |g' \
-	-e 's|http://deb\.debian\.org/debian-security |[check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260901T000000Z/ |g' \
-	/etc/apt/sources.list && \
-	apt-get -y update && \
-	apt-get install -y \
+RUN apt-get -y update && \
+	apt-get install -y --no-install-recommends \
 		libavutil-dev \
 		libavformat-dev \
 		libavcodec-dev \
@@ -36,37 +22,17 @@ RUN sed -i \
 		libwebsockets-dev \
 		libnanomsg-dev \
 		librabbitmq-dev \
+		libnice-dev \
+		libsrtp2-dev \
 		pkg-config \
 		gengetopt \
 		libtool \
 		automake \
 		build-essential \
-		wget \
-		git \
-		gtk-doc-tools && \
+		ca-certificates \
+		git && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
-
-COPY remote-artifacts.sha256 /tmp/remote-artifacts.sha256
-
-RUN cd /tmp && \
-	wget -O v2.3.0.tar.gz https://github.com/cisco/libsrtp/archive/v2.3.0.tar.gz && \
-	artifact_checksum=$(grep "  v2.3.0.tar.gz$" remote-artifacts.sha256) && \
-	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
-	tar xfv v2.3.0.tar.gz && \
-	cd libsrtp-2.3.0 && \
-	./configure --prefix=/usr --enable-openssl && \
-	make -j"$(nproc)" shared_library && \
-	make install
-
-RUN cd /tmp && \
-	git clone https://gitlab.freedesktop.org/libnice/libnice && \
-	cd libnice && \
-	git checkout 0.1.17 && \
-	./autogen.sh && \
-	./configure --prefix=/usr && \
-	make -j"$(nproc)" && \
-	make install
 
 RUN cd /tmp && \
     git clone --depth 1 --branch ${JANUS_TAG} ${JANUS_REPO} && \
@@ -80,51 +46,39 @@ RUN cd /usr/local/src/janus-gateway && \
 	make install && \
 	make configs
 
-FROM debian:bullseye-slim
+FROM docker.io/library/debian:trixie-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
 
-
-# Apply the same archived and frozen sources described in the build stage above.
-# This restores package availability without extending Debian 11 security support.
-RUN sed -i \
-	-e 's|deb\.debian\.org/debian |archive.debian.org/debian |g' \
-	-e 's|http://deb\.debian\.org/debian-security |[check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260901T000000Z/ |g' \
-	/etc/apt/sources.list && \
-	apt-get -y update && \
-	apt-get install -y \
-		libmicrohttpd12 \
-		libavutil-dev \
-		libavformat-dev \
-		libavcodec-dev \
+RUN apt-get -y update && \
+	apt-get install -y --no-install-recommends \
+		libmicrohttpd12t64 \
+		libavutil59 \
+		libavformat61 \
+		libavcodec61 \
 		libjansson4 \
-		libssl1.1 \
-		libsofia-sip-ua0 \
-		libglib2.0-0 \
+		libssl3t64 \
+		libsofia-sip-ua0t64 \
+		libglib2.0-0t64 \
 		libopus0 \
 		libogg0 \
-		libcurl4 \
+		libcurl4t64 \
 		liblua5.3-0 \
-		libconfig9 \
-		libusrsctp1 \
-		libwebsockets16 \
+		libconfig11 \
+		libusrsctp2 \
+		libwebsockets19t64 \
 		libnanomsg5 \
-		librabbitmq4 && \
+		librabbitmq4 \
+		libnice10 \
+		libsrtp2-1 \
+		ca-certificates && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
-COPY --from=0 /usr/lib/libsrtp2.so.1 /usr/lib/libsrtp2.so.1
-RUN ln -s /usr/lib/libsrtp2.so.1 /usr/lib/libsrtp2.so
-
-COPY --from=0 /usr/lib/libnice.la /usr/lib/libnice.la
-COPY --from=0 /usr/lib/libnice.so.10.10.0 /usr/lib/libnice.so.10.10.0
-RUN ln -s /usr/lib/libnice.so.10.10.0 /usr/lib/libnice.so.10
-RUN ln -s /usr/lib/libnice.so.10.10.0 /usr/lib/libnice.so
-
-COPY --from=0 /usr/local/bin/janus /usr/local/bin/janus
-COPY --from=0 /usr/local/bin/janus-pp-rec /usr/local/bin/janus-pp-rec
-COPY --from=0 /usr/local/bin/janus-cfgconv /usr/local/bin/janus-cfgconv
-COPY --from=0 /usr/local/etc/janus /usr/local/etc/janus
-COPY --from=0 /usr/local/lib/janus /usr/local/lib/janus
-COPY --from=0 /usr/local/share/janus /usr/local/share/janus
+COPY --from=builder /usr/local/bin/janus /usr/local/bin/janus
+COPY --from=builder /usr/local/bin/janus-pp-rec /usr/local/bin/janus-pp-rec
+COPY --from=builder /usr/local/bin/janus-cfgconv /usr/local/bin/janus-cfgconv
+COPY --from=builder /usr/local/etc/janus /usr/local/etc/janus
+COPY --from=builder /usr/local/lib/janus /usr/local/lib/janus
+COPY --from=builder /usr/local/share/janus /usr/local/share/janus
 
 
 EXPOSE 10000-10200/udp
