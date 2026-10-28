@@ -44,6 +44,16 @@ $widgetArray = array_filter(
     }
 );
 
+// A placeholder lacks the data needed to safely recreate or update PBX settings.
+foreach ($widgetArray as $widget) {
+    if (!empty($widget['userData']['visualplanError'])) {
+        http_response_code(422);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'visualplan_error_blocks']);
+        exit;
+    }
+}
+
 $connectionArray = array_filter(
     $jsonArray,
     function ($w) {

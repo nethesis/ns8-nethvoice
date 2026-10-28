@@ -1,0 +1,45 @@
+# HELP asterisk_channels_count Current channel count.
+# TYPE asterisk_channels_count gauge
+asterisk_channels_count{eid="2a:51:c2:e1:72:38"} 0
+# HELP asterisk_calls_sum Total call count.
+# TYPE asterisk_calls_sum counter
+asterisk_calls_sum{eid="2a:51:c2:e1:72:38"} 0
+# HELP asterisk_calls_count Current call count.
+# TYPE asterisk_calls_count gauge
+asterisk_calls_count{eid="2a:51:c2:e1:72:38"} 0
+# HELP asterisk_endpoints_count Current endpoint count.
+# TYPE asterisk_endpoints_count gauge
+asterisk_endpoints_count{eid="2a:51:c2:e1:72:38"} 5
+# HELP asterisk_endpoints_state Individual endpoint states. 0=unknown; 1=offline; 2=online.
+# TYPE asterisk_endpoints_state gauge
+asterisk_endpoints_state{eid="2a:51:c2:e1:72:38",id="PJSIP/NvTestRecv",tech="PJSIP",resource="NvTestRecv"} 1
+asterisk_endpoints_state{eid="2a:51:c2:e1:72:38",id="PJSIP/NvTestSend",tech="PJSIP",resource="NvTestSend"} 1
+asterisk_endpoints_state{eid="2a:51:c2:e1:72:38",id="PJSIP/anonymous",tech="PJSIP",resource="anonymous"} 1
+asterisk_endpoints_state{eid="2a:51:c2:e1:72:38",id="PJSIP/NvTestIp",tech="PJSIP",resource="NvTestIp"} 1
+asterisk_endpoints_state{eid="2a:51:c2:e1:72:38",id="PJSIP/NvTestProxy",tech="PJSIP",resource="NvTestProxy"} 2
+# HELP asterisk_endpoints_channels_count Count of the number of channels currently existing that are associated with the endpoint.
+# TYPE asterisk_endpoints_channels_count gauge
+asterisk_endpoints_channels_count{eid="2a:51:c2:e1:72:38",id="PJSIP/NvTestRecv",tech="PJSIP",resource="NvTestRecv"} 0
+asterisk_endpoints_channels_count{eid="2a:51:c2:e1:72:38",id="PJSIP/NvTestSend",tech="PJSIP",resource="NvTestSend"} 0
+asterisk_endpoints_channels_count{eid="2a:51:c2:e1:72:38",id="PJSIP/anonymous",tech="PJSIP",resource="anonymous"} 0
+asterisk_endpoints_channels_count{eid="2a:51:c2:e1:72:38",id="PJSIP/NvTestIp",tech="PJSIP",resource="NvTestIp"} 0
+asterisk_endpoints_channels_count{eid="2a:51:c2:e1:72:38",id="PJSIP/NvTestProxy",tech="PJSIP",resource="NvTestProxy"} 0
+# HELP asterisk_bridges_count Current bridge count.
+# TYPE asterisk_bridges_count gauge
+asterisk_bridges_count{eid="2a:51:c2:e1:72:38"} 0
+# HELP asterisk_core_properties Asterisk instance properties. The value of this will always be 1.
+# TYPE asterisk_core_properties counter
+asterisk_core_properties{eid="2a:51:c2:e1:72:38",version="18.26.3",build_options="",build_date="2026-10-20 16:08:40 UTC",build_os="Linux",build_kernel="6.17.0-1022-azure",build_host="98c659b03f09"} 1
+# HELP asterisk_core_uptime_seconds Asterisk instance uptime in seconds.
+# TYPE asterisk_core_uptime_seconds counter
+asterisk_core_uptime_seconds{eid="2a:51:c2:e1:72:38"} 1017
+# HELP asterisk_core_last_reload_seconds Time since last Asterisk reload in seconds.
+# TYPE asterisk_core_last_reload_seconds counter
+asterisk_core_last_reload_seconds{eid="2a:51:c2:e1:72:38"} 240
+# HELP asterisk_pjsip_outbound_registration_status Current registration status. 0=Unregistered; 1=Registered; 2=Rejected.
+# TYPE asterisk_pjsip_outbound_registration_status gauge
+asterisk_pjsip_outbound_registration_status{eid="2a:51:c2:e1:72:38",username="sip:NvTestProxy@192.0.2.12:5060",domain="sip:192.0.2.12:5060",channel_type="PJSIP"} 2
+asterisk_pjsip_outbound_registration_status{eid="2a:51:c2:e1:72:38",username="sip:NvTestSend@192.0.2.10:5060",domain="sip:192.0.2.10:5060",channel_type="PJSIP"} 2
+# HELP asterisk_core_scrape_time_ms Total time taken to collect metrics, in milliseconds
+# TYPE asterisk_core_scrape_time_ms counter
+asterisk_core_scrape_time_ms{eid="2a:51:c2:e1:72:38"} 0

@@ -1,0 +1,153 @@
+rule_files:
+  - ../../imageroot/etc/metrics/alert-rules/nethvoice-telephony.yml
+
+evaluation_interval: 1m
+
+tests:
+  # A registration bypassing the proxy fails for 10 minutes
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_trunk_registration_up{module_id="nethvoice1",node="1",trunk="Direct2"}'
+        values: '0x20'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: NethVoiceTrunkUnreachable
+        exp_alerts: []
+      - eval_time: 11m
+        alertname: NethVoiceTrunkUnreachable
+        exp_alerts:
+          - exp_labels: {severity: critical, alertgroup: telephony, reason: registration_failed, module_id: nethvoice1, node: "1", trunk: Direct2}
+            exp_annotations:
+              summary_en: "Trunk Direct2 of nethvoice1 is unreachable: not registered"
+              summary_it: "Il fascio Direct2 di nethvoice1 non è raggiungibile: non registrato"
+              description_en: "Asterisk of nethvoice1 has failed to register trunk Direct2 for more than 10 minutes: calls through this trunk fail. This trunk does not use the NethVoice proxy. Check the trunk credentials and the provider reachability."
+              description_it: "Asterisk di nethvoice1 non riesce a registrare il fascio Direct2 da più di 10 minuti: le chiamate su questo fascio falliscono. Questo fascio non usa il proxy NethVoice. Verificare le credenziali del fascio e la raggiungibilità del provider."
+
+  # A registration that fails once, then works again
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_trunk_registration_up{module_id="nethvoice1",node="1",trunk="Direct2"}'
+        values: '0 1x20'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: NethVoiceTrunkUnreachable
+        exp_alerts: []
+
+  # A gateway that does not register
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_trunk_endpoint_state{module_id="nethvoice1",node="1",trunk="Gw1",via_proxy="true",registration="receive"}'
+        values: '1x20'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: NethVoiceTrunkUnreachable
+        exp_alerts: []
+      - eval_time: 11m
+        alertname: NethVoiceTrunkUnreachable
+        exp_alerts:
+          - exp_labels: {severity: critical, alertgroup: telephony, reason: not_registered, module_id: nethvoice1, node: "1", trunk: Gw1, via_proxy: "true", registration: receive}
+            exp_annotations:
+              summary_en: "Trunk Gw1 of nethvoice1 is unreachable: the remote side is not registered"
+              summary_it: "Il fascio Gw1 di nethvoice1 non è raggiungibile: il lato remoto non è registrato"
+              description_en: "The remote side of trunk Gw1 (for example a gateway) has had no valid registration to nethvoice1 for more than 10 minutes: calls through this trunk fail. Check the device, its credentials and the network path."
+              description_it: "Il lato remoto del fascio Gw1 (ad esempio un gateway) non ha una registrazione valida su nethvoice1 da più di 10 minuti: le chiamate su questo fascio falliscono. Verificare il dispositivo, le sue credenziali e il percorso di rete."
+
+  # A gateway with an invalid name: Asterisk cannot qualify its contact,
+  # the endpoint stays offline while the gateway is registered
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_trunk_endpoint_state{module_id="nethvoice1",node="1",trunk="Gw 1",via_proxy="true",registration="receive"}'
+        values: '1x20'
+      - series: 'nethvoice_trunk_name_invalid{module_id="nethvoice1",node="1",trunk="Gw 1"}'
+        values: '1x20'
+    alert_rule_test:
+      - eval_time: 11m
+        alertname: NethVoiceTrunkUnreachable
+        exp_alerts: []
+      - eval_time: 11m
+        alertname: NethVoiceTrunkNotMonitored
+        exp_alerts:
+          - exp_labels: {severity: warning, alertgroup: telephony, reason: name_invalid, module_id: nethvoice1, node: "1", trunk: Gw 1}
+            exp_annotations:
+              summary_en: "Trunk Gw 1 of nethvoice1 is not monitored: invalid name"
+              summary_it: "Il fascio Gw 1 di nethvoice1 non è monitorato: nome non valido"
+              description_en: "The name of trunk Gw 1 contains a space or another character not allowed in a SIP address, and the trunk has no From User: Asterisk of nethvoice1 cannot send the OPTIONS checks to it, so an outage of its provider is not detected. Calls still work. Rename the trunk without spaces from FreePBX (Connectivity > Trunks), apply the configuration and update any custom dialplan that uses the old name. Do not set From User to work around this: it changes the caller ID of outgoing calls."
+              description_it: "Il nome del fascio Gw 1 contiene uno spazio o un altro carattere non ammesso in un indirizzo SIP, e il fascio non ha un From User: Asterisk di nethvoice1 non può inviargli i controlli OPTIONS, quindi un guasto del provider non viene rilevato. Le chiamate funzionano. Rinominare il fascio senza spazi da FreePBX (Connectivity > Trunks), applicare la configurazione e aggiornare l'eventuale dialplan personalizzato che usa il vecchio nome. Non impostare From User per aggirare il problema: cambia il caller ID delle chiamate in uscita."
+
+  # An IP trunk that does not answer OPTIONS
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_trunk_qualify_up{module_id="nethvoice1",node="1",trunk="Ip1"}'
+        values: '0x20'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: NethVoiceTrunkUnreachable
+        exp_alerts: []
+      - eval_time: 11m
+        alertname: NethVoiceTrunkUnreachable
+        exp_alerts:
+          - exp_labels: {severity: critical, alertgroup: telephony, reason: qualify_failed, module_id: nethvoice1, node: "1", trunk: Ip1}
+            exp_annotations:
+              summary_en: "Trunk Ip1 of nethvoice1 is unreachable: no answer to OPTIONS"
+              summary_it: "Il fascio Ip1 di nethvoice1 non è raggiungibile: nessuna risposta agli OPTIONS"
+              description_en: "The provider of trunk Ip1 has not answered the OPTIONS checks of nethvoice1 for more than 10 minutes: calls through this trunk fail. Check the provider address and its reachability."
+              description_it: "Il provider del fascio Ip1 non risponde ai controlli OPTIONS di nethvoice1 da più di 10 minuti: le chiamate su questo fascio falliscono. Verificare l'indirizzo del provider e la sua raggiungibilità."
+
+  # Unknown state (qualify off) and online trunks never fire; an IP trunk
+  # offline because Asterisk did not qualify it (no qualify_up series) does
+  # not fire; the endpoint state of a trunk that registers to the provider is
+  # not an alert either
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_trunk_endpoint_state{module_id="nethvoice1",node="1",trunk="Ip2",via_proxy="true",registration="none"}'
+        values: '0x20'
+      - series: 'nethvoice_trunk_endpoint_state{module_id="nethvoice1",node="1",trunk="Ip3",via_proxy="true",registration="none"}'
+        values: '1x20'
+      - series: 'nethvoice_trunk_qualify_up{module_id="nethvoice1",node="1",trunk="Ip4"}'
+        values: '1x20'
+      - series: 'nethvoice_trunk_endpoint_state{module_id="nethvoice1",node="1",trunk="Gw2",via_proxy="true",registration="receive"}'
+        values: '2x20'
+      - series: 'nethvoice_trunk_endpoint_state{module_id="nethvoice1",node="1",trunk="Prov1",via_proxy="true",registration="send"}'
+        values: '1x20'
+    alert_rule_test:
+      - eval_time: 60m
+        alertname: NethVoiceTrunkUnreachable
+        exp_alerts: []
+
+  # A trunk Asterisk cannot qualify because of its name
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_trunk_name_invalid{module_id="nethvoice1",node="1",trunk="Trunk Vodafone"}'
+        values: '1x20'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: NethVoiceTrunkNotMonitored
+        exp_alerts: []
+      - eval_time: 11m
+        alertname: NethVoiceTrunkNotMonitored
+        exp_alerts:
+          - exp_labels: {severity: warning, alertgroup: telephony, reason: name_invalid, module_id: nethvoice1, node: "1", trunk: Trunk Vodafone}
+            exp_annotations:
+              summary_en: "Trunk Trunk Vodafone of nethvoice1 is not monitored: invalid name"
+              summary_it: "Il fascio Trunk Vodafone di nethvoice1 non è monitorato: nome non valido"
+              description_en: "The name of trunk Trunk Vodafone contains a space or another character not allowed in a SIP address, and the trunk has no From User: Asterisk of nethvoice1 cannot send the OPTIONS checks to it, so an outage of its provider is not detected. Calls still work. Rename the trunk without spaces from FreePBX (Connectivity > Trunks), apply the configuration and update any custom dialplan that uses the old name. Do not set From User to work around this: it changes the caller ID of outgoing calls."
+              description_it: "Il nome del fascio Trunk Vodafone contiene uno spazio o un altro carattere non ammesso in un indirizzo SIP, e il fascio non ha un From User: Asterisk di nethvoice1 non può inviargli i controlli OPTIONS, quindi un guasto del provider non viene rilevato. Le chiamate funzionano. Rinominare il fascio senza spazi da FreePBX (Connectivity > Trunks), applicare la configurazione e aggiornare l'eventuale dialplan personalizzato che usa il vecchio nome. Non impostare From User per aggirare il problema: cambia il caller ID delle chiamate in uscita."
+
+  # The series disappears after the rename: the alert resolves
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_trunk_name_invalid{module_id="nethvoice1",node="1",trunk="Trunk Vodafone"}'
+        values: '1x4 _x20'
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: NethVoiceTrunkNotMonitored
+        exp_alerts:
+          - exp_labels: {severity: warning, alertgroup: telephony, reason: name_invalid, module_id: nethvoice1, node: "1", trunk: Trunk Vodafone}
+            exp_annotations:
+              summary_en: "Trunk Trunk Vodafone of nethvoice1 is not monitored: invalid name"
+              summary_it: "Il fascio Trunk Vodafone di nethvoice1 non è monitorato: nome non valido"
+              description_en: "The name of trunk Trunk Vodafone contains a space or another character not allowed in a SIP address, and the trunk has no From User: Asterisk of nethvoice1 cannot send the OPTIONS checks to it, so an outage of its provider is not detected. Calls still work. Rename the trunk without spaces from FreePBX (Connectivity > Trunks), apply the configuration and update any custom dialplan that uses the old name. Do not set From User to work around this: it changes the caller ID of outgoing calls."
+              description_it: "Il nome del fascio Trunk Vodafone contiene uno spazio o un altro carattere non ammesso in un indirizzo SIP, e il fascio non ha un From User: Asterisk di nethvoice1 non può inviargli i controlli OPTIONS, quindi un guasto del provider non viene rilevato. Le chiamate funzionano. Rinominare il fascio senza spazi da FreePBX (Connectivity > Trunks), applicare la configurazione e aggiornare l'eventuale dialplan personalizzato che usa il vecchio nome. Non impostare From User per aggirare il problema: cambia il caller ID delle chiamate in uscita."
+      - eval_time: 40m
+        alertname: NethVoiceTrunkNotMonitored
+        exp_alerts: []

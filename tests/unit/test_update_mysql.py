@@ -15,7 +15,7 @@ class DatabasePreparationTest(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
-        mysql = self.root / 'mysql'
+        mysql = self.root / 'mariadb'
         mysql.write_text('#!/bin/sh\nprintf called >> "$TEST_CALLS"\nexit 91\n')
         mysql.chmod(0o755)
         self.env = dict(os.environ, PATH=str(self.root) + ':' + os.environ['PATH'],
@@ -54,7 +54,7 @@ class DatabasePreparationTest(unittest.TestCase):
     def test_permission_migrations_and_catalog_refresh_require_opt_in(self):
         for sql in (ROOT / 'mariadb/docker-entrypoint-initdb.d').glob('*.sql'):
             (self.root / sql.name).write_text('-- ' + sql.name)
-        (self.root / 'mysql').write_text('''#!/bin/bash
+        (self.root / 'mariadb').write_text('''#!/bin/bash
 printf '%s\\n' "$*" >> "$TEST_CALLS"
 if [[ "$*" == *'-e '* ]]; then
     case "$*" in

@@ -34,13 +34,14 @@ ExecStart=/usr/bin/podman run \
 	--env=PHONEBOOK* \
 	--env=ASTERISK_* \
 	--env=ASTMANAGERPORT \
+	--env=MARIADB_AUTO_UPGRADE=1 \
 	--network=host \
 	--tz=${TIMEZONE} \
 	${NETHVOICE_MARIADB_IMAGE} \
 	--port ${NETHVOICE_MARIADB_PORT}
 
 # Wait till db is initialized
-ExecStartPost=podman exec mariadb bash -c "while ! mysql -u${AMPDBUSER} -p${AMPDBPASS} -h127.0.0.1 -P${NETHVOICE_MARIADB_PORT} asterisk -e 'SHOW TABLES' 2> /dev/null > /dev/null; do sleep 5; done"
+ExecStartPost=podman exec mariadb bash -c "while ! mariadb -u${AMPDBUSER} -p${AMPDBPASS} -h127.0.0.1 -P${NETHVOICE_MARIADB_PORT} asterisk -e 'SHOW TABLES' 2> /dev/null > /dev/null; do sleep 5; done"
 
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/mariadb.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/mariadb.ctr-id

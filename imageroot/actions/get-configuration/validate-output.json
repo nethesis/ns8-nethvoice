@@ -38,6 +38,10 @@
             "description": "Whether SSO methods (saml2/oidc) are enabled in this module",
             "type": "boolean"
         },
+        "alerts_enabled": {
+            "description": "Whether the built-in alert rules are published to the metrics app",
+            "type": "boolean"
+        },
         "saml2": {
             "description": "SAML2 SSO settings",
             "type": "object"
