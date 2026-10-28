@@ -36,6 +36,7 @@ try {
     if (microtime(true) - $started > 2) throw new RuntimeException('stale_presence');
     echo json_encode(['version'=>1, 'recipient_id'=>$user['username'],
         'mainextension'=>$match[1], 'chat_allowed'=>$user['allowed'],
+        'voicemail_enabled'=>getMainExtensionVoicemailEnabled($match[1]),
         'observed_at'=>gmdate('Y-m-d\TH:i:s\Z', (int)$started)] + $presence, JSON_THROW_ON_ERROR);
 } catch (Throwable $error) {
     http_response_code(503);

@@ -56,6 +56,15 @@ assert(str_contains($consult[0],'DB(DND/203)') && str_contains($consult[0],'DB(C
 assert($consult[1]==='Dial(${PJSIP_DIAL_CONTACTS(203)}&${PJSIP_DIAL_CONTACTS(91203)},20,i)');
 assert($consult[2]==='Hangup()');
 assert(!preg_match('/from-internal|from-did-direct|[Vv]oice[Mm]ail/',implode("\n",$consult)));
+$voicemail=$render('voice-agent-voicemail','203');
+assert(str_contains($voicemail[0],'DB(AMPUSER/203/voicemail)'));
+assert(str_contains($voicemail[1],'VM_INFO(203@${VOICE_AGENT_MAILBOX_CONTEXT},exists)'));
+assert(str_contains($voicemail[1],'DIALPLAN_EXISTS(ext-local,vmu203,1)'));
+assert($voicemail[3]==='StopMusicOnHold()');
+assert($voicemail[4]==='UserEvent(VoiceAgentTransfer,token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:203,mode:voicemail)');
+assert($voicemail[5]==='Goto(ext-local,vmu203,1)');
+assert(str_contains($voicemail[7],'Stasis(voice-agent,voicemail_failed,'));
+assert(!preg_match('/Dial\(|from-internal|from-did-direct/',implode("\n",$voicemail)));
 $handoff=$render('voice-agent-handoff');
 assert(in_array('Set(TIMEOUT(absolute)=0)',$handoff));
 assert(in_array('Bridge(${VOICE_AGENT_HANDOFF_PEER},x)',$handoff));

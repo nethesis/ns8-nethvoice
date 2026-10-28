@@ -693,6 +693,24 @@ function getMainExtensionUser($extension) {
     return count($users) === 1 ? $users[0] : null;
 }
 
+// Expose availability only; mailbox passwords and addresses stay in FreePBX.
+function getMainExtensionVoicemailEnabled($extension) {
+    if (!preg_match('/\A[0-9]{1,20}\z/D', $extension)) {
+        throw new InvalidArgumentException('invalid_main_extension');
+    }
+    $stmt = FreePBX::Database()->prepare('SELECT voicemail FROM users WHERE extension = ? LIMIT 2');
+    $stmt->execute([$extension]);
+    $contexts = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+    $context = count($contexts) === 1 ? $contexts[0] : null;
+    if (!is_string($context) || in_array($context, ['', 'novm', 'disabled'], true)) return false;
+    try {
+        $mailbox = FreePBX::Voicemail()->getMailbox($extension, false);
+        return is_array($mailbox) && ($mailbox['vmcontext'] ?? null) === $context;
+    } catch (Throwable $error) {
+        return false;
+    }
+}
+
 // Read live main-extension hints and forwarding flags without the AstDB cache.
 function getMainExtensionPresence($extension) {
     global $astman;

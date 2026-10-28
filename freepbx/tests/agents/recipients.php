@@ -2,7 +2,15 @@
 // Disposable native-schema fixture; no running PBX or CTI process required.
 class FreePBX {
     public static $db;
+    public static $mailbox;
     public static function Database() { return self::$db; }
+    public static function Voicemail() { return new class {
+        public function getMailbox($extension, $cached) {
+            assert($extension==='203' && $cached===false);
+            if (FreePBX::$mailbox==='error') throw new RuntimeException('unavailable');
+            return FreePBX::$mailbox;
+        }
+    }; }
 }
 // These libraries include the installed FreePBX bootstrap, absent in this fixture.
 @require_once __DIR__.'/../../var/www/html/freepbx/rest/lib/libCTI.php';
@@ -12,7 +20,7 @@ $db->exec('CREATE DATABASE m0_recipients');
 $db->exec('USE m0_recipients');
 FreePBX::$db = $db;
 $schema = __DIR__.'/../../../mariadb/docker-entrypoint-initdb.d/';
-foreach (['userman_users', 'rest_users', 'rest_cti_profiles', 'rest_cti_macro_permissions',
+foreach (['users', 'userman_users', 'rest_users', 'rest_cti_profiles', 'rest_cti_macro_permissions',
     'rest_cti_permissions', 'rest_cti_profiles_macro_permissions',
     'rest_cti_macro_permissions_permissions', 'rest_cti_profiles_permissions'] as $table) {
     $db->exec(str_replace('USE `asterisk`;', 'USE `m0_recipients`;', file_get_contents($schema.'10_asterisk.'.$table.'-schema.sql')));
@@ -23,6 +31,21 @@ foreach (['rest_cti_profiles', 'rest_cti_macro_permissions', 'rest_cti_permissio
     $db->exec(str_replace('USE `asterisk`;', 'USE `m0_recipients`;', file_get_contents($schema.'50_asterisk.'.$table.'.sql')));
 }
 $db->exec("INSERT INTO userman_users (id,username,default_extension) VALUES (1,'alice','203'),(2,'bob','204')");
+$db->exec("INSERT INTO users (extension,voicemail) VALUES ('203','novm')");
+assert(getMainExtensionVoicemailEnabled('203')===false);
+FreePBX::$mailbox=['vmcontext'=>'default','pwd'=>'synthetic-secret','email'=>'alice@example.org'];
+foreach (['','novm','disabled'] as $disabled) {
+    $db->prepare('UPDATE users SET voicemail=?')->execute([$disabled]);
+    assert(getMainExtensionVoicemailEnabled('203')===false);
+}
+$db->exec("UPDATE users SET voicemail='default'");
+assert(getMainExtensionVoicemailEnabled('203')===true);
+foreach ([null,['vmcontext'=>'other'],'error'] as $mailbox) {
+    FreePBX::$mailbox=$mailbox;
+    assert(getMainExtensionVoicemailEnabled('203')===false);
+}
+assert(getMainExtensionVoicemailEnabled('999')===false);
+try { getMainExtensionVoicemailEnabled('203)'); assert(false); } catch (InvalidArgumentException $error) {}
 $profile = $db->query("SELECT id FROM rest_cti_profiles WHERE name='Standard'")->fetchColumn();
 assert($profile);
 $db->exec("INSERT INTO rest_users (user_id,profile_id) VALUES (1,$profile),(2,NULL)");

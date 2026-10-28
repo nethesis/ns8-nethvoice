@@ -146,10 +146,10 @@ message relay and final audio. These results must not be inferred from unit test
 ## Image validation record (2026-10-27)
 
 The published Satellite PR image is pinned to
-`sha256:b7ecb6cbc331325fbd9c93e1307337b49eece5d0db0c7d5546fd4c7ab68ba572`.
+`sha256:5f05a4c95b90913f231af6f4a64aaffa4e3915cc2785e83b83236301fc682363`.
 Its verified source label is PR merge revision
-`b0aab4c87e211c4b39d6695a83eec213b34ee31c`; its tree equals feature head
-`e2497b9bbb13f5eae003e9b35122a69a99dfa08e`. Paired CI checks out that exact
+`af24f5b45dcb20299b1aaa7094a6c04e600a7e07`; its tree equals feature head
+`f45572aa47b3be2918ae34f175b2832ca3a2a072`. Paired CI checks out that exact
 image source. Satellite CI passed 490 tests, with six documented environment/
 database skips. NethVoice's final local paired validation passed 338 runtime/database tests,
 92 module tests plus 18 subtests, seven UI unit tests and 32 browser tests; final
@@ -202,3 +202,19 @@ actual native recipient and a positive connected duration. Exact native attended
 handoffs also qualify; an unanswered call, voicemail or private consultation alone
 does not. The existing lookback, exclusions, confirmation and call-bound transfer
 references remain authoritative.
+
+Private refusal messages are relayed with attribution even when the colleague
+chooses decline. The handset ends automatically on the final decision, before
+provider accounting can delay it. The assistant opens with a short greeting,
+caller name and reason; there is no separate self-introduction.
+
+For an offline/DND colleague with voicemail enabled, Receptionist offers to leave
+a voicemail and waits for explicit caller agreement. A short-lived offer permits
+only that call's selected recipient, retaining the published transfer permission
+or valid recent-contact reference. Native identity and mailbox configuration are
+read through `libCTI.php` / `libExtensions.php`; mailbox credentials never leave
+FreePBX. A dedicated native wrapper rechecks mailbox existence using Asterisk's
+[`VM_INFO(...,exists)`](https://docs.asterisk.org/Certified-Asterisk_22.8_Documentation/API_Documentation/Dialplan_Functions/VM_INFO/)
+and the native unavailable-message route before acknowledging transfer. It stops
+hold music and enters voicemail without dialing the handset. A mailbox removed
+during handoff returns to the bounded native failure path.

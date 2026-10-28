@@ -190,6 +190,17 @@ function satellite_build_agent_dialplan() {
         $ext->add('voice-agent-transfer',$number,'',new ext_set('TIMEOUT(absolute)','0'));
         $ext->add('voice-agent-transfer',$number,'',new ext_userevent('VoiceAgentTransfer','token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:'.$number));
         $ext->add('voice-agent-transfer',$number,'',new ext_goto('1',$number,'from-did-direct'));
+        // Only an explicitly confirmed, call-bound offer enters this wrapper.
+        $context='voice-agent-voicemail';
+        $ext->add($context,$number,'',new ext_set('VOICE_AGENT_MAILBOX_CONTEXT','${DB(AMPUSER/'.$number.'/voicemail)}'));
+        $ext->add($context,$number,'',new ext_gotoif('$["${VOICE_AGENT_TRANSFER_TOKEN}" = "" | "${VM_INFO('.$number.'@${VOICE_AGENT_MAILBOX_CONTEXT},exists)}" != "1" | "${DIALPLAN_EXISTS(ext-local,vmu'.$number.',1)}" != "1"]','failed'));
+        $ext->add($context,$number,'',new ext_set('TIMEOUT(absolute)','0'));
+        $ext->add($context,$number,'',new ext_stopmusiconhold());
+        $ext->add($context,$number,'',new ext_userevent('VoiceAgentTransfer','token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:'.$number.',mode:voicemail'));
+        $ext->add($context,$number,'',new ext_goto('1','vmu'.$number,'ext-local'));
+        $ext->add($context,$number,'failed',new ext_set('TIMEOUT(absolute)','10'));
+        $ext->add($context,$number,'',new ext_stasis('voice-agent','voicemail_failed,${AGENT_SESSION_ID},${VOICE_AGENT_TRANSFER_TOKEN}'));
+        $ext->add($context,$number,'',new ext_hangup());
     }
     foreach (FreePBX::Satellite()->agentDirectory()['items'] as $target) {
         if (!$target['available'] || !preg_match('/^queue:([0-9]{1,20})$/D',$target['id'],$match)) continue;
