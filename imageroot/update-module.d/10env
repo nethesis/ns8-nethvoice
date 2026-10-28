@@ -204,3 +204,7 @@ if os.getenv('FREEPBX_LOG_LEVEL') is None:
 # info logged every RTP stream, ARI channel and HTTP request
 if os.getenv('SATELLITE_LOG_LEVEL') is None:
     agent.set_env('SATELLITE_LOG_LEVEL', 'WARNING')
+
+# Built-in alerts are off until enabled from the settings page
+if os.getenv('NETHVOICE_ALERTS_ENABLED') is None:
+    agent.set_env('NETHVOICE_ALERTS_ENABLED', 'False')

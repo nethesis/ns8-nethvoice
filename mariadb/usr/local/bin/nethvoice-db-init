@@ -16,9 +16,9 @@ for option in "$@"; do
 done
 mysql_args=(-u root)
 if ! $socket; then
-    mysql_args+=(-h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}")
+    mysql_args+=(-h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" --skip-ssl)
 fi
-db() { mysql "${mysql_args[@]}" "$@"; }
+db() { mariadb "${mysql_args[@]}" "$@"; }
 
 # Validate all allocated bindings before changing the database.
 for name in ASTERISK_RTPSTART ASTERISK_RTPEND ASTERISK_SIP_UDP_PORT ASTERISK_SIP_PORT ASTERISK_SIPS_PORT ASTERISK_IAX_PORT ASTERISK_WS_PORT ASTERISK_WSS_PORT ASTMANAGERPORT; do
