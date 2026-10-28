@@ -370,8 +370,8 @@ reponame="nethvoice-satellite"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
     # Development PR #57: replace with a versioned Satellite release before merging.
-    # Source af24f5b45dcb20299b1aaa7094a6c04e600a7e07; keep agents-checks.yml aligned.
-    satellite_image="${SATELLITE_IMAGE:-ghcr.io/nethesis/satellite:pr-57@sha256:5f05a4c95b90913f231af6f4a64aaffa4e3915cc2785e83b83236301fc682363}"
+    # Source 14fac4d00c76cfa67fb2e839aa507c640ac6611d; keep agents-checks.yml aligned.
+    satellite_image="${SATELLITE_IMAGE:-ghcr.io/nethesis/satellite:pr-57@sha256:8a60dc2fdf2b8029f5101aa22fa11b166da7d1e0d69c4b552c9d72fb6e409f65}"
     container=$(buildah from "$satellite_image")
     # Require the shared lifecycle before starting voice agents and optional transcription.
     if ! buildah run "${container}" -- python -c 'from main import run; from transcription import run as transcribe; from voice_agent.runner import app_from_env; from voice_agent.consultation import Consultations'; then
