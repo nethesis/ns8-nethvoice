@@ -54,6 +54,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /push/web/{node}", s.webUnsubscribe)
 	mux.HandleFunc("GET /push/mobile", s.mobile)
 	mux.HandleFunc("GET /users/inactive", s.inactive)
+	mux.HandleFunc("GET /conversations", s.conversations)
 	mux.HandleFunc("DELETE /conversations/{peer}", s.deleteConversation)
 	mux.HandleFunc("GET /search", s.search)
 	mux.HandleFunc("GET /prefs/host", s.chatHost)
