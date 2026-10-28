@@ -45,7 +45,7 @@ jobs:
         with:
           repository: nethesis/satellite
           # Attended-transfer source; update together with the build image pin.
-          ref: d897541c079c3e6ca85c2970b566b1600eece723
+          ref: b0aab4c87e211c4b39d6695a83eec213b34ee31c
           path: satellite
       - uses: actions/setup-python@v6
         with:

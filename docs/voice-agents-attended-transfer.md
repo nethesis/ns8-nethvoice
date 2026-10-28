@@ -146,10 +146,10 @@ message relay and final audio. These results must not be inferred from unit test
 ## Image validation record (2026-10-27)
 
 The published Satellite PR image is pinned to
-`sha256:b4f632b640a3bcc7b57b5e4f4410d77eec942db8938c89430fa0135538b0d57f`.
+`sha256:b7ecb6cbc331325fbd9c93e1307337b49eece5d0db0c7d5546fd4c7ab68ba572`.
 Its verified source label is PR merge revision
-`d897541c079c3e6ca85c2970b566b1600eece723`; its tree equals feature head
-`2a3960f589ab904a745b769f59b4d7cb26588bc9`. Paired CI checks out that exact
+`b0aab4c87e211c4b39d6695a83eec213b34ee31c`; its tree equals feature head
+`e2497b9bbb13f5eae003e9b35122a69a99dfa08e`. Paired CI checks out that exact
 image source. Satellite CI passed 490 tests, with six documented environment/
 database skips. NethVoice's final local paired validation passed 338 runtime/database tests,
 92 module tests plus 18 subtests, seven UI unit tests and 32 browser tests; final
@@ -190,3 +190,15 @@ rewriting historical events or publications. Bounded failure-stage codes use the
 existing event `error_code` field. Native fallback explicitly stops hold music,
 including when an ARI stop request fails. A failed caller recovery takes that
 fallback immediately instead of waiting for the full call deadline.
+
+The private opening now addresses the colleague and immediately identifies the
+waiting caller and concise reason using the available PBX context. GPT-Live gets
+this data in its speaking-model startup history, rather than only its delegated
+backend. Generic configured welcomes do not replace the consultation opening.
+
+Recent contacts include people reached when the external caller called in, as
+well as people who called them. Answered incoming history must identify the
+actual native recipient and a positive connected duration. Exact native attended
+handoffs also qualify; an unanswered call, voicemail or private consultation alone
+does not. The existing lookback, exclusions, confirmation and call-bound transfer
+references remain authoritative.

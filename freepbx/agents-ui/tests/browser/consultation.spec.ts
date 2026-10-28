@@ -25,12 +25,12 @@ for (const language of ["en", "it"]) {
       await route.fulfill({json: path === "/access" ? {csrf:"synthetic-csrf"} : path === "/catalog" ? {tools, draft_defaults:draft(), default_language:language, extensions:[], languages:[{id:language,label:language}], consultation_assistants:[{agent_id:"internal",name:"Private assistant"}]} : path === "/trunks" ? {items:[]} : path === "/destinations" ? {items:[],next_offset:null,modules:{},unavailable_ids:[]} : record});
     });
     await page.goto("./#/agents/receptionist");
-    const mode = page.getByRole("button",{name:language === "en" ? /^Transfer to people/ : /^Trasferimento alle persone/});
+    const mode = page.getByRole("combobox",{name:language === "en" ? "Transfer to people" : "Trasferimento alle persone",exact:true});
     await expect(mode).toBeVisible();
     expect(writes).toBe(0); expect(record.draft).toEqual(original);
     await mode.click();
     await page.getByRole("option",{name:language === "en" ? "Attended transfer" : "Trasferimento con consultazione",exact:true}).click();
-    const assistant = page.getByRole("button",{name:language === "en" ? /^Internal consultation assistant/ : /^Assistente interno per le consultazioni/});
+    const assistant = page.getByRole("combobox",{name:language === "en" ? "Internal consultation assistant" : "Assistente interno per le consultazioni",exact:true});
     await assistant.click(); await page.getByRole("option",{name:"Private assistant",exact:true}).click();
     await page.getByRole("button",{name:language === "en" ? "Save draft" : "Salva bozza",exact:true}).click();
     await expect.poll(()=>writes).toBe(1);
