@@ -4,6 +4,7 @@
 #
 
 import json
+import os
 import types
 import unittest
 from pathlib import Path
@@ -100,6 +101,99 @@ class SipPortsHandoffTest(unittest.TestCase):
         self.assertNotIn("SIP_PORTFORWARD_MIGRATED", self.env)
         self.assertNotIn("SIP_PROXY_TRUNKS_MIGRATED", self.env)
         self.agent.allocate_ports.assert_called_once_with(1000, "udp")
+
+    def test_configure_refreshes_aliases_on_already_migrated_instance(self):
+        old_uri, new_uri = "sip:10.0.0.1:5061", "sip:10.0.0.1:12002"
+        routes = [{"domain": domain, "address": [
+            {"uri": old_uri + ";transport=udp;lr", "description": "custom"},
+            {"uri": "sip:10.0.0.2:5061", "description": "other"},
+            {"uri": old_uri + ";transport=tcp", "description": "tcp"},
+        ]} for domain in ("alias-a.example.org", "alias-b.example.org")]
+        self.agent.list_service_providers = mock.Mock(return_value=[{
+            "host": "10.0.0.1", "fqdn": "proxy.example.org", "port": "5060",
+        }])
+        self.agent.tasks.run.side_effect = lambda **kw: {
+            "exit_code": 0, "output": routes if kw["action"] == "list-routes" else "",
+        }
+        with mock.patch.dict(os.environ, self.env | {"NETHVOICE_HOST": "pbx.example.org"}):
+            for _ in range(2):
+                self.agent.tasks.run.reset_mock()
+                self.run_script("60sip_proxy", "actions/configure-module")
+                writes = [c.kwargs["data"] for c in self.agent.tasks.run.call_args_list
+                          if c.kwargs["action"] == "add-route"]
+                self.assertEqual([r["domain"] for r in writes],
+                                 ["pbx.example.org", "alias-a.example.org", "alias-b.example.org"])
+                for route in writes[1:]:
+                    self.assertEqual(route["address"], [
+                        {"uri": new_uri + ";transport=udp;lr", "description": "custom"},
+                        {"uri": "sip:10.0.0.2:5061", "description": "other"},
+                        {"uri": old_uri + ";transport=tcp", "description": "tcp"},
+                    ])
+
+    def test_configure_refreshes_aliases_using_previous_udp_ports(self):
+        self.env.update(PREVIOUS_SIP_UDP_PORTS='["8000", "9000"]')
+        self.run_script("20allocate_ports")
+        routes = [{"domain": "alias.example.org", "address": [
+            {"uri": f"sip:10.0.0.1:{port}", "description": "custom"}
+            for port in ("12002", "8000", "9000")
+        ]}]
+        self.agent.list_service_providers = mock.Mock(return_value=[{
+            "host": "10.0.0.1", "fqdn": "proxy.example.org", "port": "5060",
+        }])
+        self.agent.tasks.run.side_effect = lambda **kw: {
+            "exit_code": 0, "output": routes if kw["action"] == "list-routes" else "",
+        }
+        with mock.patch.dict(os.environ, self.env | {"NETHVOICE_HOST": "pbx.example.org"}):
+            os.environ["AGENT_TASK_ACTION"] = "configure-module"
+            self.run_script("60sip_proxy", "actions/configure-module")
+            self.assertEqual(self.agent.tasks.run.call_args.kwargs["data"], {})
+            os.environ["AGENT_TASK_ACTION"] = "update-module"
+            self.run_script("60sip_proxy", "actions/configure-module")
+        self.assertEqual(self.agent.tasks.run.call_args.kwargs["data"], {
+            "domain": "alias.example.org", "address": [
+                {"uri": "sip:10.0.0.1:20999", "description": "custom"},
+            ] * 3,
+        })
+
+    def test_alias_failures_are_best_effort(self):
+        self.agent.list_service_providers = mock.Mock(return_value=[{
+            "host": "10.0.0.1", "fqdn": "proxy.example.org", "port": "5060",
+        }])
+        for failure in ("list-routes", "alias-a.example.org"):
+            for raises in (False, True):
+                with self.subTest(failure=failure, raises=raises):
+                    routes = [{"domain": domain, "address": [{
+                        "uri": "sip:10.0.0.1:5061", "description": "custom",
+                    }]} for domain in ("alias-a.example.org", "alias-b.example.org")]
+
+                    def proxy_task(*, action, data, **_):
+                        if action == failure or data.get("domain") == failure:
+                            if raises:
+                                raise RuntimeError("Proxy unavailable")
+                            return {"exit_code": 1}
+                        return {"exit_code": 0, "output": routes if action == "list-routes" else ""}
+
+                    self.agent.tasks.run.reset_mock()
+                    self.agent.tasks.run.side_effect = proxy_task
+                    with mock.patch.dict(os.environ, self.env | {"NETHVOICE_HOST": "pbx.example.org"}), \
+                            mock.patch("sys.stderr") as stderr:
+                        self.run_script("60sip_proxy", "actions/configure-module")
+                    writes = [c.kwargs["data"]["domain"] for c in self.agent.tasks.run.call_args_list
+                              if c.kwargs["action"] == "add-route"]
+                    self.assertEqual(writes, ["pbx.example.org"] if failure == "list-routes" else
+                                     ["pbx.example.org", "alias-a.example.org", "alias-b.example.org"])
+                    stderr.write.assert_called()
+
+    def test_main_route_failure_still_aborts_configuration(self):
+        self.agent.list_service_providers = mock.Mock(return_value=[{
+            "host": "10.0.0.1", "fqdn": "proxy.example.org", "port": "5060",
+        }])
+        self.agent.tasks.run.side_effect = None
+        self.agent.tasks.run.return_value = {"exit_code": 1}
+        with mock.patch.dict(os.environ, self.env | {"NETHVOICE_HOST": "pbx.example.org"}):
+            with self.assertRaises(AssertionError):
+                self.run_script("60sip_proxy", "actions/configure-module")
+        self.agent.tasks.run.assert_called_once()
 
     def test_success_clears_handoff(self):
         self.update()

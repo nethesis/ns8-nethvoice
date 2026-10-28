@@ -115,7 +115,7 @@ fi
 reponame="nethvoice-mariadb"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from docker.io/library/mariadb:10.11.19)
+    container=$(buildah from docker.io/library/mariadb:11.8.9)
     buildah add "${container}" mariadb/ /
 
     # Commit the image
@@ -369,7 +369,7 @@ fi
 reponame="nethvoice-satellite"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/satellite:0.2.4)
+    container=$(buildah from ghcr.io/nethesis/satellite:0.3.0)
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
     buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"

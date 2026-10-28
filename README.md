@@ -221,6 +221,77 @@ daemon-reload`.
 
 The drop-in is lost when the module is updated or reinstalled.
 
+## Monitoring and alerts
+
+Requirements: core 3.24.0 or later, metrics app 1.7.0 or later. With an
+older metrics app the alert rules are ignored.
+
+Every 5 minutes the node runs `export-metrics` and passes its output to the
+metrics app. The module publishes its alert rules from
+`imageroot/etc/metrics/alert-rules/` at create and update time.
+
+The alerts are disabled by default: enable them from the "Alerts" card of the
+Settings page, or with the `set-alerts` action:
+
+    api-cli run module/nethvoice1/set-alerts --data '{"alerts_enabled": true}'
+
+The switch is stored in `NETHVOICE_ALERTS_ENABLED` (`True`/`False`). When it
+is off the alert rules are removed from the metrics app; the metrics are
+still exported.
+
+| Alert | Severity | Fires when |
+|---|---|---|
+| `ServiceDown` | critical | a service is stopped for 10 minutes (`reason="stopped"`) or restarted at least 3 times in 10 minutes (`reason="crash_loop"`) |
+| `NethVoiceDnsFailure` | warning | for 15 minutes a public name does not resolve on the DNS resolver of the node (`reason="not_resolved"`), the proxy name does not point to the proxy public or private IP (`reason="ip_mismatch"`), or the resolver does not answer within 5 seconds (`reason="no_answer"`) |
+| `NethVoiceDnsSlow` | warning | for 15 minutes the DNS resolver of the node takes more than 3 seconds to resolve a public name; never together with `NethVoiceDnsFailure` for the same name |
+| `NethVoiceAIKeyInvalid` | critical | with transcription on, Deepgram or OpenAI rejects the API key (HTTP 401; for OpenAI only with error code `invalid_api_key`, so a restricted key without the Models read scope is not reported) for 10 minutes |
+| `NethVoiceAICreditExhausted` | critical | Satellite reports that a provider refused a call for lack of credit; clears after the next successful call |
+| `NethVoiceTrunkUnreachable` | critical | for 10 minutes a trunk that bypasses the proxy is not registered (`reason="registration_failed"`), the remote side of a `receive` trunk is not registered (`reason="not_registered"`), or the provider of an IP trunk that bypasses the proxy does not answer OPTIONS (`reason="qualify_failed"`; not when Asterisk could not send them) |
+| `NethVoiceTrunkNotMonitored` | warning | for 10 minutes an IP or `receive` pjsip trunk has a name Asterisk cannot use as SIP user (a space or another character outside letters, digits and `_ . + - ! ~ * ' ( )`) and no From User: Asterisk sends no OPTIONS to it, so its provider is never checked (`reason="name_invalid"`); `send` trunks are watched through their registration |
+
+Notes:
+
+- Services are read from systemd: freepbx (Asterisk), mariadb, janus,
+  nethcti-ui, nethcti-server, nethcti-middleware, phonebook, tancredi,
+  satellite, satellite-mqtt, satellite-pgsql, reports-api, reports-redis,
+  reports-ui, sftp, saml2-proxy, oauth2-proxy. Disabled services and services
+  never started are not watched.
+- Trunks that go through the proxy (registrations and IP trunk OPTIONS) are
+  checked by NethVoice proxy, only over UDP: over TCP and TLS Asterisk sends
+  from a random port and the proxy cannot tell which NethVoice instance a
+  trunk belongs to, so those trunks are not checked yet. A registration overridden in
+  `pjsip.registration_custom.conf` is not checked. NethVoice exports
+  `nethvoice_trunk_proxy_info{trunk,proxy_trunk}` so the proxy alerts can show
+  the trunk name next to the address the proxy sees.
+- A trunk name is also the Asterisk endpoint name and, when the trunk has
+  no From User, the From user of the OPTIONS checks. With a space in the
+  name Asterisk logs "Unable to create outbound OPTIONS request" and never
+  checks the trunk: calls work, but `NethVoiceTrunkUnreachable` is not
+  raised for it (for a `receive` trunk the offline endpoint state is
+  ignored) and `NethVoiceTrunkNotMonitored` is raised instead. Fix: rename
+  the trunk without spaces from FreePBX (Connectivity > Trunks), apply the
+  configuration, then update custom dialplans or custom trunks that dial
+  `PJSIP/...@<old name>`, and expect the call history and the reports to
+  show the trunk under its new name from then on. The wizard warns while a
+  new name holds a space; the module never renames a trunk. Do not set From
+  User to work around it: it replaces the caller ID in the From header of
+  every call.
+- The DNS resolver of the node is the one in `/etc/resolv.conf`. A resolver
+  that does not answer raises `NethVoiceDnsFailure` with
+  `reason="no_answer"` for every public name; it has no response time.
+- When a check cannot run (AI provider unreachable, freepbx
+  stopped) it is skipped and no alert fires:
+  `nethvoice_exporter_collector_up{collector}` is 0.
+- The `asterisk_*` metrics of Asterisk (res_prometheus, password
+  `ASTERISK_PROMETHEUS_PASSWORD` in `passwords.env`) and the `satellite_*`
+  metrics of Satellite are copied as they are and stored by the metrics app.
+
+Check the output by hand:
+
+```bash
+runagent -m nethvoice1 export-metrics
+```
+
 ## Uninstall
 
 To uninstall the instance:

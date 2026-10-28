@@ -139,9 +139,7 @@ foreach ([
 // installations. The migration.php script exits early once it has already run,
 // so its UPDATE branch never reaches already-migrated installs; doing it here
 // (update.php runs on every start and is idempotent) ensures the rename is
-// applied everywhere. Kept before the multi-statement query below: after a
-// multi-statement execute the PDO connection has pending result sets, which
-// would make this query silently fail.
+// applied everywhere.
 $stmt = $db->prepare("UPDATE `asterisk`.`rest_cti_permissions` SET `displayname` = 'Transcription and Summary', `description` = 'Calls transcription and summary' WHERE `id` = 5000 AND `displayname` = 'Speech-To-Text'");
 $stmt->execute();
 
@@ -171,4 +169,6 @@ if ((int) ($res['required_tables'] ?? 0) === 2) {
 				WHERE `emailto` LIKE '%@%')";
 	$stmt = $db->prepare($sql);
 	$stmt->execute();
+	// Two statements: read every result set, or the next query fails
+	while ($stmt->nextRowset()) {}
 }

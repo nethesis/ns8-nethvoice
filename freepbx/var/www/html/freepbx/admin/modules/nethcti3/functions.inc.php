@@ -197,6 +197,43 @@ function nethcti3_configure_forward_progress($ext) {
     $ext->splice('macro-dial-one', 'cf', (string) ($matches[0] + 1), new ext_ringing());
 }
 
+/** Keep the transferer identity instead of the outbound CID on the consultation leg of DTMF/AMI attended transfers. */
+function nethcti3_configure_attended_transfer_colp($ext) {
+    $tag = 'nethvoice-atxfer-colp';
+    $context = 'macro-user-callerid';
+    $steps = $ext->_exts[$context][' s '] ?? [];
+    if (in_array($tag, array_column($steps, 'tag'), true)) {
+        return;
+    }
+    $commands = array_map(fn($step) => $step['cmd']->output(), $steps);
+    $identity = array_search('ExecIf($["${REALCALLERIDNUM:1:2}" = ""]?Set(REALCALLERIDNUM=${CALLERID(number)}))', $commands, true);
+    $callerid = array_search('Set(CALLERID(all)="${AMPUSERCIDNAME}" <${AMPUSERCID}>)', $commands, true);
+    if ($identity === false || $callerid === false || $callerid < $identity) {
+        error_log('NethCTI: Cannot find the Core identity steps of macro-user-callerid; skipping the attended transfer identity hook');
+        return;
+    }
+    // The transferer device is in TRANSFERERNAME (e.g. PJSIP/201-00000012): resolve it before Core computes the
+    // identity, so CALLERID, cnum/cnam and the connected line announced to the transferer follow the Core rules.
+    $device = '${CUT(CUT(TRANSFERERNAME,/,2),-,1)}';
+    $consultation = '$["${TRANSFERERNAME}" != "" & "${DB(DEVICE/' . $device . '/user)}" != ""]';
+    $ext->splice($context, 's', (string) ($callerid + 1), new ext_execif($consultation, 'Set', '__NV_ATXFER_IDENTITY=${CALLERID(all)}'));
+    $ext->splice($context, 's', (string) $identity, new ext_execif($consultation, 'Set', 'REALCALLERIDNUM=' . $device), $tag);
+    $ext->splice($context, 's', (string) ($identity + 1), new ext_execif($consultation, 'Set', '__NV_ATXFER_TRANSFERER=${TRANSFERERNAME}'));
+    $ext->splice($context, 's', (string) ($identity + 2), new ext_execif($consultation, 'Set', '__CONNECTED_LINE_SEND_SUB=nethvoice-atxfer-colp,s,1'));
+    // Core makes Dial() ignore connected line updates on inbound calls (option I): on this leg the subroutine below
+    // takes care of them, and the one carrying the original caller when the transfer completes before the answer
+    // must reach the target.
+    $ext->splice('macro-dial-one', 's', 'dial', new ext_execif($consultation, 'Set', 'D_OPTIONS=${STRREPLACE(D_OPTIONS,I)}'), $tag);
+    // Connected line updates reaching the devices called by the consultation leg: the one mirroring the transferer
+    // channel CALLERID (rewritten by macro-outbound-callerid) is replaced by the restored identity, any other one
+    // (the original caller once the transfer completes) goes through untouched.
+    $sub = 'nethvoice-atxfer-colp';
+    $ext->add($sub, 's', '', new ext_gotoif('$["${CHANNEL(channeltype)}" = "Local"]', 'check'));
+    $ext->add($sub, 's', '', new ext_gotoif('$["${DB(DEVICE/${CHANNEL(endpoint)}/user)}" = ""]', 'end'));
+    $ext->add($sub, 's', 'check', new ext_execif('$["${CONNECTEDLINE(num)}" != "" & "${CONNECTEDLINE(num)}" = "${IMPORT(${NV_ATXFER_TRANSFERER},CALLERID(num))}"]', 'Set', 'CONNECTEDLINE(all,i)=${NV_ATXFER_IDENTITY}'));
+    $ext->add($sub, 's', 'end', new ext_return());
+}
+
 function nethcti3_get_config_late($engine) {
     global $ext;
     global $amp_conf;
@@ -232,6 +269,7 @@ function nethcti3_get_config_late($engine) {
             if (!isset($amp_conf['ATX_CID_OVERRIDE']) || $amp_conf['ATX_CID_OVERRIDE'] == 1) {
                 $ext->splice('macro-dial-one','s','dial', new ext_execif('$["${DB(AMPUSER/${ARG3}/cidname)}" != "" && "${DB(AMPUSER/${CALLERID(num)}/cidname)}" = "" && "${ATTENDEDTRANSFER}" != "" && "${DB(AMPUSER/${FROMEXTEN}/cidname)}" != ""]', 'Set', 'CALLERID(num)=${DB(AMPUSER/${FROMEXTEN}/cidnum)}'),'',-1);
                 $ext->splice('macro-dial-one','s','dial', new ext_execif('$["${DB(AMPUSER/${CALLERID(num)}/cidname)}" != "" && "${ATTENDEDTRANSFER}" != ""]', 'Set', 'CALLERID(name)=${DB(AMPUSER/${CALLERID(num)}/cidname)}'),'',-1);
+                nethcti3_configure_attended_transfer_colp($ext);
             }
             $nethcti3 = \FreePBX::Nethcti3();
             $trunks = FreePBX::Core()->listTrunks();
