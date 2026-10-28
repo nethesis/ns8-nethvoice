@@ -10,7 +10,8 @@ before merge. Live acceptance gaps are listed below.
 ## Enable it for Receptionist
 
 1. For chat consultations, enable NethVoice chat and verify the gateway is running.
-   In **Agents**, create an **Internal consultation assistant**. Select its own
+   In **Agents**, open the built-in **Consultation assistant**. Fresh installs
+   and upgrades create this internal draft automatically. Select its own
    provider trunk, voice model, language, voice and instructions. For chat, enter
    a text model supported by that provider, or use a GPT-Live backend model.
    Save, publish and enable this assistant. It has no public VisualPlan destination,
@@ -24,7 +25,9 @@ before merge. Live acceptance gaps are listed below.
 4. Test with consenting colleagues on the staging instance. To return to direct
    transfers, explicitly select **Direct transfer**, save and publish.
 
-No new public built-in agent is seeded. Internal assistants cannot be converted
+The default assistant starts disabled and unpublished until its provider and
+voice are configured. Repeated setup preserves administrator edits and existing
+custom assistants. Internal assistants cannot be converted
 into public agents or deleted while a published public agent references them.
 Existing agents stay direct until an administrator publishes these settings.
 

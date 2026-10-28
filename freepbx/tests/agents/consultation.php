@@ -46,4 +46,12 @@ try{$service->save($agent['agent_id'],['name'=>$agent['name'],'draft'=>$invalid]
 try{$service->setFallbacks([$agent['agent_id']=>['expected_revision'=>$agent['revision'],'destination_id'=>'native:voice-agent-'.$assistant['agent_id'].',s,1']],'synthetic-admin');assert(false);}catch(RuntimeException $error){assert($error->getMessage()==='internal_agent_not_public');}
 assert(in_array($assistant['agent_id'],array_column($service->catalog()['consultation_assistants'],'agent_id'),true));
 Schema::install($db);assert($service->get($agent['agent_id'])['published']===$agent['published']);
+$builtin=$service->get('consultation_assistant');
+$configured=$builtin['draft'];$configured['provider_binding_id']=$binding;
+$configured['conversation']=array_replace($example['conversation'],['instructions'=>$configured['conversation']['instructions']]);
+$builtin=$service->save($builtin['agent_id'],['name'=>'Configured builtin assistant','draft'=>$configured],$builtin['revision'],'synthetic-admin');
+$builtin=$service->publish($builtin['agent_id'],$builtin['revision'],'synthetic-admin');
+assert($builtin['enabled'] && !$builtin['routable'] && $builtin['published']['role']==='consultation');
+Schema::install($db);Schema::install($db);
+assert($service->get($builtin['agent_id'])===$builtin);
 echo "V9 consultations: opt-in permissions, internal admission boundary, immutable v8, publication and assistant references passed\n";
