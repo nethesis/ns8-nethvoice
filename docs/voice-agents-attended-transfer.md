@@ -155,7 +155,8 @@ paired validation also covers the added recovery and chat-opening cases.
 The recipient API now uses the standard CTI image without an upstream patch.
 Native-schema tests cover permission revocation, deleted/ambiguous main-extension
 owners, live presence and private request guards. The image smoke test verifies
-Apache bearer-header forwarding and denial without native services. The two runtime clients retain
+Apache bearer-header forwarding, denial without native services and real
+Asterisk manager reads of DND, forwarding and hint state. The two runtime clients retain
 their existing scoped HTTP contract. Go tests, vet and the consultation race test
 pass.
 The module advertises 45 TCP ports. The built PHP and Python runtimes accept the
