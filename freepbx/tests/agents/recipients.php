@@ -51,9 +51,11 @@ $astman = new class {
     public $cf = '';
     public $status = '0';
     public $fail = false;
-    public function GetVar($channel, $variable) {
-        assert($channel===null && in_array($variable,['DB(DND/203)','DB(CF/203)'],true));
-        return $this->fail ? ['Response'=>'Error'] : ['Response'=>'Success','Value'=>$variable==='DB(DND/203)'?$this->dnd:$this->cf];
+    public function Command($command) {
+        assert(in_array($command,['database get DND 203','database get CF 203'],true));
+        $value=$command==='database get DND 203'?$this->dnd:$this->cf;
+        return $this->fail ? ['Response'=>'Error'] : ['Response'=>'Success',
+            'data'=>"Privilege: Command\n".($value===''?"Database entry not found.\n":"Value: $value\n")];
     }
     public function ExtensionState($extension, $context) {
         assert($extension==='203' && $context==='ext-local');

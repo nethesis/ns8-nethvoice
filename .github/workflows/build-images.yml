@@ -79,7 +79,7 @@ jobs:
       - name: Check FreePBX runtime
         run: |
           if [[ " ${{ steps.build.outputs.images }} " == *"/nethvoice-freepbx "* ]]; then
-            for test in runtime_compatibility_test.sh prometheus_test.sh; do
+            for test in runtime_compatibility_test.sh prometheus_test.sh agents/recipients-http.sh; do
               podman run --rm --network=none \
                 --volume "${GITHUB_WORKSPACE}/freepbx/tests:/tests:ro" \
                 --entrypoint=bash "${REPOBASE}/nethvoice-freepbx:${IMAGETAG}" "/tests/${test}"

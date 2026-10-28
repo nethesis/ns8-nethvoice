@@ -62,7 +62,9 @@ if [[ -n "${VOICE_AGENT_EXTENSIONS_FILE:-}" ]]; then
     agent_php "$freepbx_dir/tests/agents/dialplan.php"
 fi
 if [[ -n "${VOICE_AGENT_TEST_PHP_IMAGE:-}" ]]; then
-    "$freepbx_dir/tests/agents/recipients-http.sh"
+    docker run --rm --network=none --entrypoint=bash \
+        -v "$freepbx_dir/tests:/tests:ro" "$VOICE_AGENT_TEST_PHP_IMAGE" \
+        /tests/agents/recipients-http.sh
     docker run --rm --network=host --entrypoint=php \
         -e M0_TEST_DSN="$M0_TEST_DSN;dbname=asterisk" \
         -e M0_REST_AUTOLOAD=/var/www/html/freepbx/rest/vendor/autoload.php \

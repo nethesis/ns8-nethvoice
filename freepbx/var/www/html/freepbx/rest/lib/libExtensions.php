@@ -701,11 +701,18 @@ function getMainExtensionPresence($extension) {
     }
     $values = [];
     foreach (['DND', 'CF'] as $family) {
-        $result = $astman->GetVar(null, 'DB('.$family.'/'.$extension.')');
-        if (($result['Response'] ?? '') !== 'Success' || !isset($result['Value'])) {
+        // Channel-less AMI GetVar(DB(...)) can return empty despite a set key.
+        $result = $astman->Command('database get '.$family.' '.$extension);
+        if (($result['Response'] ?? '') !== 'Success' || !isset($result['data'])) {
             throw new RuntimeException('extension_presence_unavailable');
         }
-        $values[$family] = $result['Value'];
+        if (preg_match('/^Value: (.*)$/m', $result['data'], $match)) {
+            $values[$family] = trim($match[1]);
+        } elseif (strpos($result['data'], 'Database entry not found.') !== false) {
+            $values[$family] = '';
+        } else {
+            throw new RuntimeException('extension_presence_unavailable');
+        }
     }
     $state = $astman->ExtensionState($extension, 'ext-local');
     if (($state['Response'] ?? '') !== 'Success' || !isset($state['Status'])) {
