@@ -39,6 +39,49 @@ func (a *Archive) open() (*sql.DB, error) {
 
 const searchLimit = 200
 
+// Peers lists who I have chatted with, operators and groups, the latest chat first.
+func (a *Archive) Peers(jid, user string) ([]string, error) {
+	db, err := a.open()
+	if err != nil {
+		return nil, err
+	}
+	// A group's messages reach my archive as its subscriber, under the room's address.
+	rows, err := db.Query(`SELECT bare_peer FROM archive WHERE username = ? AND kind = 'chat' AND bare_peer <> ? GROUP BY bare_peer ORDER BY MAX(timestamp) DESC`, user, jid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var peers []string
+	for rows.Next() {
+		var p string
+		if err := rows.Scan(&p); err != nil {
+			return nil, err
+		}
+		peers = append(peers, p)
+	}
+	return peers, rows.Err()
+}
+
+// conversations answers GET /conversations: everyone I have a chat with, the latest first,
+// so a client lists them all and not only those in its newest page of history.
+func (s *Server) conversations(w http.ResponseWriter, r *http.Request) {
+	user, _, err := s.bearerUser(r)
+	if err != nil {
+		fail(w, 401, "unauthorized")
+		return
+	}
+	peers, err := s.Archive.Peers(user+"@"+s.Host, user)
+	if err != nil {
+		log.Printf("conversations %s: %v", user, err)
+		fail(w, 500, "internal error")
+		return
+	}
+	if peers == nil {
+		peers = []string{}
+	}
+	writeJSON(w, 200, map[string]any{"peers": peers})
+}
+
 // search answers GET /search?q=text[&peer=user|room]: my archived messages containing q, newest first.
 func (s *Server) search(w http.ResponseWriter, r *http.Request) {
 	user, _, err := s.bearerUser(r)

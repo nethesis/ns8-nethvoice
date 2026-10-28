@@ -1,5 +1,5 @@
 # clone repository using alpine container
-FROM docker.io/library/alpine:3.24.2 as repofetcher
+FROM docker.io/library/alpine:3.24.3 as repofetcher
 WORKDIR /app
 RUN apk add --no-cache git
 ARG NETHCTI_SERVER_COMMIT=9e5423a54ba8392499194dac25e1447243824c62

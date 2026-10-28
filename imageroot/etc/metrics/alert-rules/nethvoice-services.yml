@@ -1,0 +1,46 @@
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# One alert for every broken service, as ServiceDown of NethSecurity. The
+# reason label tells why:
+# - stopped: the unit failed, or is enabled and not running, for 10 minutes
+# - crash_loop: systemd restarted it at least 3 times in 10 minutes
+# max_over_time is used instead of "for", so that a crash loop ending in the
+# systemd start limit hands over to "stopped" with no gap and no overlap.
+# The second crash_loop condition keeps it firing until that handover.
+# "offset 10m" requires the series to exist 10 minutes ago: a series that
+# appears already at 0 (right after an update, or a feature like Satellite
+# just turned on and not starting) waits 10 minutes too, instead of firing
+# at once.
+# Series come from export-metrics (pypkg/nvmetrics/systemd.py) every 5 minutes.
+groups:
+  - name: services
+    rules:
+      - alert: ServiceDown
+        expr: max_over_time(nethvoice_service_up[10m]) == 0 and nethvoice_service_up offset 10m
+        labels:
+          severity: critical
+          alertgroup: services
+          reason: stopped
+        annotations:
+          summary_en: 'Service {{ $labels.service }}{{ if eq $labels.service "freepbx" }} (Asterisk){{ end }} is down'
+          summary_it: 'Il servizio {{ $labels.service }}{{ if eq $labels.service "freepbx" }} (Asterisk){{ end }} non è attivo'
+          description_en: 'Service {{ $labels.service }}{{ if eq $labels.service "freepbx" }} (Asterisk){{ end }} of module {{ $labels.module_id }} on node {{ $labels.node }} has been down for more than 10 minutes'
+          description_it: 'Il servizio {{ $labels.service }}{{ if eq $labels.service "freepbx" }} (Asterisk){{ end }} del modulo {{ $labels.module_id }} sul nodo {{ $labels.node }} non è attivo da più di 10 minuti'
+      - alert: ServiceDown
+        expr: |
+          (
+            increase(nethvoice_service_restarts_total[10m]) >= 3
+            or (increase(nethvoice_service_restarts_total[20m]) >= 3 and on(service) nethvoice_service_up == 0)
+          )
+          unless on(service) (max_over_time(nethvoice_service_up[10m]) == 0 and nethvoice_service_up offset 10m)
+        labels:
+          severity: critical
+          alertgroup: services
+          reason: crash_loop
+        annotations:
+          summary_en: 'Service {{ $labels.service }}{{ if eq $labels.service "freepbx" }} (Asterisk){{ end }} keeps restarting'
+          summary_it: 'Il servizio {{ $labels.service }}{{ if eq $labels.service "freepbx" }} (Asterisk){{ end }} si riavvia continuamente'
+          description_en: 'Service {{ $labels.service }}{{ if eq $labels.service "freepbx" }} (Asterisk){{ end }} of module {{ $labels.module_id }} on node {{ $labels.node }} restarted at least 3 times in the last 10 minutes'
+          description_it: 'Il servizio {{ $labels.service }}{{ if eq $labels.service "freepbx" }} (Asterisk){{ end }} del modulo {{ $labels.module_id }} sul nodo {{ $labels.node }} si è riavviato almeno 3 volte negli ultimi 10 minuti'
