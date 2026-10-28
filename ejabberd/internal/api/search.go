@@ -62,6 +62,26 @@ func (a *Archive) Peers(jid, user string) ([]string, error) {
 	return peers, rows.Err()
 }
 
+// conversations answers GET /conversations: everyone I have a chat with, the latest first,
+// so a client lists them all and not only those in its newest page of history.
+func (s *Server) conversations(w http.ResponseWriter, r *http.Request) {
+	user, _, err := s.bearerUser(r)
+	if err != nil {
+		fail(w, 401, "unauthorized")
+		return
+	}
+	peers, err := s.Archive.Peers(user+"@"+s.Host, user)
+	if err != nil {
+		log.Printf("conversations %s: %v", user, err)
+		fail(w, 500, "internal error")
+		return
+	}
+	if peers == nil {
+		peers = []string{}
+	}
+	writeJSON(w, 200, map[string]any{"peers": peers})
+}
+
 // search answers GET /search?q=text[&peer=user|room]: my archived messages containing q, newest first.
 func (s *Server) search(w http.ResponseWriter, r *http.Request) {
 	user, _, err := s.bearerUser(r)
