@@ -54,11 +54,10 @@ test("internal assistant has its own configuration and no public PBX tools", asy
     await route.fulfill({json:path==="/access"?{csrf:"synthetic-csrf"}:path==="/catalog"?{tools,draft_defaults:draft(),consultation_defaults:internal,default_language:"en",languages:[{id:"en",label:"English"}],extensions:[],consultation_assistants:[]}:path==="/trunks"?{items:[]}:{...saved,agent_id:"internal",revision:1,kind:"custom",agent_type:"consultation",published:null}});
   });
   await page.goto("./#/agents/new");
-  await page.getByRole("button",{name:/^Agent type/}).click();
-  await page.getByRole("option",{name:"Internal consultation assistant",exact:true}).click();
+  await page.getByRole("radio",{name:"Internal consultation assistant",exact:true}).check();
   await expect(page.getByText(/This assistant handles private colleague consultations only/)).toBeVisible();
-  await expect(page.getByRole("checkbox",{name:"Transfer to a permitted PBX destination",exact:true})).toHaveCount(0);
-  await expect(page.getByRole("button",{name:/^Transfer to people/})).toHaveCount(0);
+  await expect(page.getByRole("switch",{name:"Transfer calls",exact:true})).toHaveCount(0);
+  await expect(page.getByRole("combobox",{name:"Transfer to people",exact:true})).toHaveCount(0);
   await page.getByLabel("Name",{exact:true}).fill("Private assistant");
   await page.getByLabel("Chat model ID (optional)",{exact:true}).fill("synthetic-text-model");
   await page.getByRole("button",{name:"Save draft",exact:true}).click();

@@ -37,8 +37,10 @@ imports and tests the matching source revision; older images are rejected.
 
 ## Configuration and activation
 
-Fresh installation seeds one disabled, unpublished **Receptionist**. Administrators
-can also create independent Basic Voice agents. Configure an OpenAI or Grok trunk,
+Fresh installation seeds disabled, unpublished **Receptionist** and internal
+**Consultation assistant** profiles. Upgrades add the assistant without replacing
+existing settings. Administrators can also create independent Basic Voice agents.
+Configure an OpenAI or Grok trunk,
 then choose the conversation model, voice, language, greeting, instructions and
 maximum duration on each agent page. Trunks carry credential references and native
 provider configuration, never conversation-model settings. Credentials are encrypted

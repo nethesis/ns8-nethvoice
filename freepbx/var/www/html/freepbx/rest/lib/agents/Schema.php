@@ -39,9 +39,13 @@ final class Schema
                     $insert->execute([$tool['id'],$tool['version'],json_encode($tool,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
                 }
                 foreach (json_decode(file_get_contents(__DIR__.'/contracts/tools-v6.json'),true,512,JSON_THROW_ON_ERROR) as $tool) $insert->execute([$tool['id'],$tool['version'],json_encode($tool,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
-                $db->exec("INSERT IGNORE INTO asterisk.voice_agent_agents (agent_id,name,destination_id,kind) VALUES ('receptionist','Receptionist','agent:receptionist','builtin')");
-                $seed=$db->prepare("INSERT IGNORE INTO asterisk.voice_agent_drafts (agent_id,definition_json) VALUES ('receptionist',?)");
-                $seed->execute([json_encode(Service::receptionistDraft(),JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
+                $agentSeed=$db->prepare("INSERT IGNORE INTO asterisk.voice_agent_agents (agent_id,name,destination_id,kind) VALUES (?,?,?,'builtin')");
+                $draftSeed=$db->prepare('INSERT IGNORE INTO asterisk.voice_agent_drafts (agent_id,definition_json) VALUES (?,?)');
+                foreach (['receptionist'=>['Receptionist',Service::receptionistDraft()],
+                          'consultation_assistant'=>['Consultation assistant',Service::consultationDraft()]] as $id=>[$name,$draft]) {
+                    $agentSeed->execute([$id,$name,'agent:'.$id]);
+                    $draftSeed->execute([$id,json_encode($draft,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
+                }
                 $db->commit();
             } catch (\Throwable $error) {
                 if ($db->inTransaction()) $db->rollBack();

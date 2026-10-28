@@ -13,7 +13,7 @@ $db->exec('CREATE TABLE asterisk.userman_users (username VARCHAR(100),default_ex
 $db->exec("INSERT INTO asterisk.users VALUES ('203','Test extension')");
 $db->exec("INSERT INTO asterisk.userman_users VALUES ('test','203')");
 \NethVoice\Agents\Schema::install($db);
-assert($db->query("SELECT agent_id FROM asterisk.voice_agent_agents WHERE kind='builtin'")->fetchAll(PDO::FETCH_COLUMN)===['receptionist']);
+assert($db->query("SELECT agent_id FROM asterisk.voice_agent_agents WHERE kind='builtin' ORDER BY agent_id")->fetchAll(PDO::FETCH_COLUMN)===['consultation_assistant','receptionist']);
 $seedPrompt=fn()=>$db->query("SELECT JSON_UNQUOTE(JSON_EXTRACT(definition_json,'$.conversation.instructions')) FROM asterisk.voice_agent_drafts WHERE agent_id='receptionist'")->fetchColumn();
 assert($seedPrompt()===\NethVoice\Agents\ReceptionistDefaults::INSTRUCTIONS);
 require_once __DIR__.'/../../var/www/html/freepbx/rest/lib/agents/Service.php';
@@ -30,6 +30,30 @@ assert($seedPrompt()==='');
 // Restore the canonical seed for subsequent service tests through an explicit test write.
 $q=$db->prepare("UPDATE asterisk.voice_agent_drafts SET definition_json=? WHERE agent_id='receptionist'");
 $q->execute([json_encode(\NethVoice\Agents\Service::receptionistDraft(),JSON_THROW_ON_ERROR)]);
+// An older installation gains the internal builtin without changing custom assistants.
+$assistant=\NethVoice\Agents\Service::consultationDraft();
+$db->exec("DELETE FROM asterisk.voice_agent_drafts WHERE agent_id='consultation_assistant'");
+$db->exec("DELETE FROM asterisk.voice_agent_agents WHERE agent_id='consultation_assistant'");
+$db->exec("INSERT INTO asterisk.voice_agent_agents (agent_id,name,destination_id) VALUES ('custom_consultation','Custom assistant','agent:custom_consultation')");
+$q=$db->prepare('INSERT INTO asterisk.voice_agent_drafts (agent_id,definition_json) VALUES (?,?)');
+$q->execute(['custom_consultation',json_encode($assistant,JSON_THROW_ON_ERROR)]);
+\NethVoice\Agents\Schema::install($db);
+\NethVoice\Agents\Schema::install($db);
+$readAssistant=fn()=>json_decode($db->query("SELECT definition_json FROM asterisk.voice_agent_drafts WHERE agent_id='consultation_assistant'")->fetchColumn(),true);
+assert($readAssistant()===$assistant);
+assert($db->query("SELECT definition_json FROM asterisk.voice_agent_drafts WHERE agent_id='custom_consultation'")->fetchColumn()===json_encode($assistant,JSON_THROW_ON_ERROR));
+assert((int)$db->query("SELECT enabled FROM asterisk.voice_agent_agents WHERE agent_id='consultation_assistant'")->fetchColumn()===0);
+// Preserve edits and intentional blanks, including settings outside the prompt.
+foreach (['Private operator prompt',''] as $prompt) {
+    $edited=$assistant;$edited['conversation']['instructions']=$prompt;$edited['conversation']['language']='fr';
+    $q=$db->prepare("UPDATE asterisk.voice_agent_drafts SET definition_json=? WHERE agent_id='consultation_assistant'");
+    $q->execute([json_encode($edited,JSON_THROW_ON_ERROR)]);
+    \NethVoice\Agents\Schema::install($db);
+    assert($readAssistant()===$edited);
+}
+$q->execute([json_encode($assistant,JSON_THROW_ON_ERROR)]);
+$db->exec("DELETE FROM asterisk.voice_agent_drafts WHERE agent_id='custom_consultation'");
+$db->exec("DELETE FROM asterisk.voice_agent_agents WHERE agent_id='custom_consultation'");
 $snapshot = json_decode(file_get_contents(__DIR__ . '/../../var/www/html/freepbx/rest/lib/agents/contracts/published-v8.example.json'), true);
 \NethVoice\Agents\PublishedContract::validate($snapshot);
 $db->exec("INSERT INTO asterisk.voice_agent_agents (agent_id, name, destination_id) VALUES ('basic_voice', 'Synthetic', 'agent:basic_voice')");
