@@ -2,15 +2,7 @@
 // Disposable native-schema fixture; no running PBX or CTI process required.
 class FreePBX {
     public static $db;
-    public static $mailbox;
     public static function Database() { return self::$db; }
-    public static function Voicemail() { return new class {
-        public function getMailbox($extension, $cached) {
-            assert($extension==='203' && $cached===false);
-            if (FreePBX::$mailbox==='error') throw new RuntimeException('unavailable');
-            return FreePBX::$mailbox;
-        }
-    }; }
 }
 // These libraries include the installed FreePBX bootstrap, absent in this fixture.
 @require_once __DIR__.'/../../var/www/html/freepbx/rest/lib/libCTI.php';
@@ -32,16 +24,23 @@ foreach (['rest_cti_profiles', 'rest_cti_macro_permissions', 'rest_cti_permissio
 }
 $db->exec("INSERT INTO userman_users (id,username,default_extension) VALUES (1,'alice','203'),(2,'bob','204')");
 $db->exec("INSERT INTO users (extension,voicemail) VALUES ('203','novm')");
+$astman=new class {
+    public $result=['Response'=>'Success','Value'=>'1'];
+    public function GetVar($channel,$variable) {
+        assert($channel===null && $variable==='VM_INFO(203@default,exists)');
+        if ($this->result==='error') throw new RuntimeException('unavailable');
+        return $this->result;
+    }
+};
 assert(getMainExtensionVoicemailEnabled('203')===false);
-FreePBX::$mailbox=['vmcontext'=>'default','pwd'=>'synthetic-secret','email'=>'alice@example.org'];
-foreach (['','novm','disabled'] as $disabled) {
+foreach (['','novm','disabled','default),password)','default\n'] as $disabled) {
     $db->prepare('UPDATE users SET voicemail=?')->execute([$disabled]);
     assert(getMainExtensionVoicemailEnabled('203')===false);
 }
 $db->exec("UPDATE users SET voicemail='default'");
 assert(getMainExtensionVoicemailEnabled('203')===true);
-foreach ([null,['vmcontext'=>'other'],'error'] as $mailbox) {
-    FreePBX::$mailbox=$mailbox;
+foreach ([[],['Response'=>'Success','Value'=>'0'],['Response'=>'Error','Value'=>'1'],'error'] as $mailbox) {
+    $astman->result=$mailbox;
     assert(getMainExtensionVoicemailEnabled('203')===false);
 }
 assert(getMainExtensionVoicemailEnabled('999')===false);
