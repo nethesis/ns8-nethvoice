@@ -5,7 +5,7 @@ COPY package.json .
 COPY yarn.lock .
 COPY .yarnrc.yml .
 RUN --mount=type=cache,id=nethvoice-ui-yarn,target=/var/cache/yarn \
-    corepack enable && \
+    npm install -g corepack && corepack enable && \
     YARN_CACHE_FOLDER=/var/cache/yarn yarn install --immutable
 # copy application
 COPY public public
