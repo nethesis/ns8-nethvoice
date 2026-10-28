@@ -146,10 +146,10 @@ message relay and final audio. These results must not be inferred from unit test
 ## Image validation record (2026-10-27)
 
 The published Satellite PR image is pinned to
-`sha256:b2eecec8af67e58429f3b47e8f973bc2da2910ec27686b6d9ba0eca968232761`.
+`sha256:83596ed7784d4ac77af97cc4131e70dc85397355c6cda5d88349099d5df0f47b`.
 Its verified source label is PR merge revision
-`4f184d2eb2aafa34613b76e75887cd91a6c15d60`; its tree equals feature head
-`bc343c4cd884b4b38f6a8eed12db2df343882b4e`. Paired CI checks out that exact
+`92548012f3d8dadd7744b86931a29b3e0008e854`; its tree equals feature head
+`12f637b52483a05eb73f74534b2061997fe47cee`. Paired CI checks out that exact
 image source. Satellite CI passed 490 tests, with six documented environment/
 database skips. NethVoice's final local paired validation passed 338 runtime/database tests,
 92 module tests plus 18 subtests, seven UI unit tests and 32 browser tests; final
