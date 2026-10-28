@@ -175,3 +175,18 @@ remains unchanged. Live provider, browser/mobile chat, recording/transcription
 continuity, actual Satellite-stop and human listening acceptance remain pending.
 Replace the Satellite development image with a versioned release before merging
 the paired feature.
+
+### Announcement and monitoring repair
+
+Satellite continues the pending Live tool response before the announcement and
+observes speech and subsequent quiet at the paced PBX media writer. It starts
+native Asterisk hold music before attempting the verified recipient's phone.
+Native idle hint state `0` is required alongside available effective presence.
+An acknowledgement or audio activity alone does not verify announcement wording;
+the listening checks above remain required.
+
+Fresh installation and repeated setup extend the consultation event enum without
+rewriting historical events or publications. Bounded failure-stage codes use the
+existing event `error_code` field. Native fallback explicitly stops hold music,
+including when an ARI stop request fails. A failed caller recovery takes that
+fallback immediately instead of waiting for the full call deadline.

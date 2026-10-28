@@ -206,6 +206,7 @@ function satellite_build_agent_dialplan() {
         if (isset($fallbackContexts[$context])) continue;
         $fallbackContexts[$context]=true;
         $ext->add($context,'s','',new ext_set('TIMEOUT(absolute)','0'));
+        $ext->add($context,'s','',new ext_stopmusiconhold());
         try { $key=(new \NethVoice\Agents\Native())->destination($version['fallback_destination_id']); }
         catch (\Throwable $error) { $key='app-blackhole,hangup,1'; }
         [$targetContext,$extension,$priority]=explode(',',$key);
