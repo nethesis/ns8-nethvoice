@@ -33,6 +33,7 @@ assert(in_array('Stasis(voice-agent,caller,receptionist)',$render('voice-agent-r
 assert(in_array('Set(TIMEOUT(absolute)=35)',$render('voice-agent-receptionist')));
 assert($render('voice-agent-receptionist','T')===['Set(TIMEOUT(absolute)=0)','Goto(${VOICE_AGENT_FALLBACK},s,1)']);
 assert(in_array('Goto(from-did-direct,203,1)',$render(satellite_agent_fallback_context('receptionist','extension:203'))));
+assert($render(satellite_agent_fallback_context('receptionist','extension:203'))===['Set(TIMEOUT(absolute)=0)','StopMusicOnHold()','Goto(from-did-direct,203,1)']);
 assert(in_array('Goto(${VOICE_AGENT_FALLBACK},s,1)',$render('voice-agent-receptionist')));
 assert(!in_array('Stasis(voice-agent,caller,custom_disabled)',$render('voice-agent-custom_disabled')));
 assert(in_array('Goto(${VOICE_AGENT_FALLBACK},s,1)',$render('voice-agent-custom_disabled')));

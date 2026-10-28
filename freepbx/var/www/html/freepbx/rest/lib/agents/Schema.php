@@ -29,6 +29,11 @@ final class Schema
             $check=$db->query("SELECT CHECK_CLAUSE FROM information_schema.CHECK_CONSTRAINTS WHERE CONSTRAINT_SCHEMA='asterisk' AND TABLE_NAME='voice_agent_versions' AND CONSTRAINT_NAME='voice_agent_contract_check'")->fetchColumn();
             if (is_string($check) && !str_contains($check,'9')) $db->exec("ALTER TABLE asterisk.voice_agent_versions DROP CONSTRAINT voice_agent_contract_check, ADD CONSTRAINT voice_agent_contract_check CHECK (workflow_version>0 AND contract_version IN (8,9))");
             $db->exec("ALTER TABLE asteriskcdrdb.voice_agent_runs ADD COLUMN IF NOT EXISTS parent_run_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL");
+            // CREATE IF NOT EXISTS does not update existing event enums. Keep
+            // their order (including legacy empty values) and extend in place.
+            preg_match('/`event_type` (enum\([^\n]+\)) NOT NULL,/',file_get_contents(__DIR__.'/schema/execution.sql'),$eventType);
+            $installedType=$db->query("SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='asteriskcdrdb' AND TABLE_NAME='voice_agent_run_events' AND COLUMN_NAME='event_type'")->fetchColumn();
+            if ($installedType!==$eventType[1]) $db->exec("ALTER TABLE asteriskcdrdb.voice_agent_run_events MODIFY event_type ".$eventType[1]." NOT NULL");
             self::directoryViews($db);
             RecentCallerViews::install($db);
             require_once __DIR__.'/Service.php';
