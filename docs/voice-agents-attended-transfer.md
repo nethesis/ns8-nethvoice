@@ -58,13 +58,15 @@ The same person cannot be retried automatically within the caller session.
 
 ## Private services and chat
 
-The CTI prerequisite is [nethcti-server PR #375](https://github.com/nethesis/nethcti-server/pull/375),
-pinned by source revision in `nethcti-server/Containerfile`. No middleware or
-staff-session workaround is used. A separate authenticated loopback listener
-returns only recipient identity, main extension, current effective presence,
-native device state, chat permission and observation time. Native freshness is
-checked on the existing ordered AMI connection. Unknown/stale identity fails
-closed. The current CTI user/profile components remain authoritative.
+FreePBX serves the recipient API through its existing Apache process on a
+separate authenticated loopback listener. `libExtensions.php` resolves exact,
+unambiguous main extensions and reads live Asterisk hints and forwarding flags;
+`libCTI.php` resolves native users and their current profile permissions. Chat
+requires both NethVoice CTI access and the profile's chat permission. No CTI
+server change, staff session or administrator token is required. The response
+contains only recipient identity, main extension, effective presence, device
+state, chat permission and observation time. Missing or ambiguous identities,
+failed native reads and stale observations fail closed.
 
 The chat gateway has a separate authenticated loopback HTTP interface; it shares
 no routes with the public gateway. Satellite receives scoped recipient/chat keys,
@@ -150,12 +152,12 @@ database skips. NethVoice's final local paired validation passed 338 runtime/dat
 92 module tests plus 18 subtests, seven UI unit tests and 32 browser tests; final
 paired validation also covers the added recovery and chat-opening cases.
 
-Local builds completed for FreePBX, CTI server, chat gateway/ejabberd, Satellite
-and the NS8 module. The local builder lacks cache-mount support, so temporary
-Containerfiles omit only cache mounts; committed recipes retain their cache mounts. The CTI
-image uses NS8 prerequisite source `e7e66fb5081bf55e5f0ac77a5475a3cf7b487788`,
-passes its tests on the image's Node 14 runtime, and both changed JavaScript files
-match source SHA-256 hashes. Go tests, vet and the consultation race test pass.
+The recipient API now uses the standard CTI image without an upstream patch.
+Native-schema tests cover permission revocation, deleted/ambiguous main-extension
+owners, live presence and private request guards. The image smoke test verifies
+Apache bearer-header forwarding and denial without native services. The two runtime clients retain
+their existing scoped HTTP contract. Go tests, vet and the consultation race test
+pass.
 The module advertises 45 TCP ports. The built PHP and Python runtimes accept the
 same synthetic v9 publication. FreePBX's isolated runtime checks confirm PHP,
 G.729 and MP3 support. Existing native transcription tests pass 9/9.
@@ -167,5 +169,5 @@ instance at inspection. Updating the module/services and enabling chat requires
 a separately approved maintenance window; existing Receptionist publication
 remains unchanged. Live provider, browser/mobile chat, recording/transcription
 continuity, actual Satellite-stop and human listening acceptance remain pending.
-Merge the CTI prerequisite and replace the Satellite development image with a
-versioned release before merging the paired feature.
+Replace the Satellite development image with a versioned release before merging
+the paired feature.

@@ -49,6 +49,7 @@ agent_php "$freepbx_dir/tests/agents/recent-callers.php"
 agent_php "$freepbx_dir/tests/agents/monitoring.php"
 agent_php "$freepbx_dir/tests/agents/hangup.php"
 agent_php "$freepbx_dir/tests/agents/consultation.php"
+agent_php "$freepbx_dir/tests/agents/recipients.php"
 agent_php -d session.save_path="$test_tmp" "$freepbx_dir/tests/agents/access.php"
 if [[ -n "${M0_REST_AUTOLOAD:-}" ]]; then
     M0_TEST_DSN="${M0_TEST_DSN};dbname=asterisk" agent_php "$freepbx_dir/tests/agents/authentication.php"
@@ -61,6 +62,7 @@ if [[ -n "${VOICE_AGENT_EXTENSIONS_FILE:-}" ]]; then
     agent_php "$freepbx_dir/tests/agents/dialplan.php"
 fi
 if [[ -n "${VOICE_AGENT_TEST_PHP_IMAGE:-}" ]]; then
+    "$freepbx_dir/tests/agents/recipients-http.sh"
     docker run --rm --network=host --entrypoint=php \
         -e M0_TEST_DSN="$M0_TEST_DSN;dbname=asterisk" \
         -e M0_REST_AUTOLOAD=/var/www/html/freepbx/rest/vendor/autoload.php \

@@ -37,7 +37,7 @@ type Recipient struct {
 	At        time.Time `json:"observed_at"`
 }
 
-// Reader talks only to the separate loopback CTI listener using a scoped key.
+// Reader talks only to the private FreePBX listener using a scoped key.
 func Reader(base, token string) (func(context.Context, string) (Recipient, error), error) {
 	u, err := url.Parse(base)
 	if err != nil || u.Scheme != "http" || u.Hostname() != "127.0.0.1" || u.Port() == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || len(token) < 32 {
@@ -227,7 +227,7 @@ func (s *Service) replies(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{"version": 1, "replies": replies})
 }
 
-// DND asks authoritative CTI state for known consultation recipients. It never
+// DND asks authoritative FreePBX state for known consultation recipients. It never
 // borrows a human JWT and does not override the gateway's ordinary DND check.
 func (s *Service) DND(ctx context.Context, user string) bool {
 	s.mu.Lock()
