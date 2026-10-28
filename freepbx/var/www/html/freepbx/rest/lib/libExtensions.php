@@ -695,6 +695,7 @@ function getMainExtensionUser($extension) {
 
 // Expose availability only; mailbox passwords and addresses stay in FreePBX.
 function getMainExtensionVoicemailEnabled($extension) {
+    global $astman;
     if (!preg_match('/\A[0-9]{1,20}\z/D', $extension)) {
         throw new InvalidArgumentException('invalid_main_extension');
     }
@@ -702,10 +703,11 @@ function getMainExtensionVoicemailEnabled($extension) {
     $stmt->execute([$extension]);
     $contexts = $stmt->fetchAll(\PDO::FETCH_COLUMN);
     $context = count($contexts) === 1 ? $contexts[0] : null;
-    if (!is_string($context) || in_array($context, ['', 'novm', 'disabled'], true)) return false;
+    if (!is_string($context) || in_array($context, ['', 'novm', 'disabled'], true)
+        || !preg_match('/\A[A-Za-z0-9_.-]{1,50}\z/D', $context)) return false;
     try {
-        $mailbox = FreePBX::Voicemail()->getMailbox($extension, false);
-        return is_array($mailbox) && ($mailbox['vmcontext'] ?? null) === $context;
+        $mailbox = $astman->GetVar(null, 'VM_INFO('.$extension.'@'.$context.',exists)');
+        return ($mailbox['Response'] ?? '') === 'Success' && ($mailbox['Value'] ?? '') === '1';
     } catch (Throwable $error) {
         return false;
     }

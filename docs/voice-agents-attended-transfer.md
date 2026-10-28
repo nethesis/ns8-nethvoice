@@ -212,8 +212,8 @@ For an offline/DND colleague with voicemail enabled, Receptionist offers to leav
 a voicemail and waits for explicit caller agreement. A short-lived offer permits
 only that call's selected recipient, retaining the published transfer permission
 or valid recent-contact reference. Native identity and mailbox configuration are
-read through `libCTI.php` / `libExtensions.php`; mailbox credentials never leave
-FreePBX. A dedicated native wrapper rechecks mailbox existence using Asterisk's
+read through `libCTI.php` / `libExtensions.php`. The recipient endpoint uses
+Asterisk mailbox existence, without loading mailbox passwords or addresses. A dedicated native wrapper rechecks mailbox existence using Asterisk's
 [`VM_INFO(...,exists)`](https://docs.asterisk.org/Certified-Asterisk_22.8_Documentation/API_Documentation/Dialplan_Functions/VM_INFO/)
 and the native unavailable-message route before acknowledging transfer. It stops
 hold music and enters voicemail without dialing the handset. A mailbox removed
