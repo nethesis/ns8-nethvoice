@@ -594,7 +594,7 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		known = append(known, store.AppMsg{SmsID: m.ID, Ref: ref, Peer: peer, Author: author})
-		item := sms{SmsID: m.ID, SendingDate: m.At.UTC().Format(time.RFC3339), SmsText: emojify(m.Body), ContentType: "text/plain"}
+		item := sms{SmsID: m.ID, SendingDate: m.At.UTC().Format(time.RFC3339), SmsText: emojify(appQuote(m.Body)), ContentType: "text/plain"}
 		// An attachment goes out in the app's own file transfer format, so it shows a player or a picture.
 		// Messages the app sent before the gateway converted them stay in that format: hand them back as such.
 		attached := len(m.Files) > 0
@@ -622,7 +622,13 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 					}
 					item.SmsText, item.ContentType = s.fileTransferText(ctx, m.Files, caption), fileTransferType
 				} else if item.ContentType != fileTransferType {
-					item.SmsText = author + ": " + emojify(m.Body)
+					text := emojify(appQuote(m.Body))
+					// A reply's quote takes its own lines, under the author.
+					if strings.HasPrefix(text, "┃") {
+						item.SmsText = author + ":\n" + text
+					} else {
+						item.SmsText = author + ": " + text
+					}
 				}
 				item.Displayed = !m.At.After(read[peer])
 				received = append(received, item)
