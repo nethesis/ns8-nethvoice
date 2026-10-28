@@ -36,6 +36,7 @@ const record = ref<Agent>();
 const name = ref("");
 const agentType = ref("basic_voice");
 const external = computed(() => agentType.value === "cleverai");
+const internal = computed(() => agentType.value === "consultation");
 const externalConfig = ref<CleverAiConfiguration>({
   execution: "cleverai",
   provider_binding_id: null,
@@ -61,6 +62,38 @@ const draft = ref<Draft>({
   debug: { transcription_enabled: false, retention_hours: 24 },
 });
 const baseline = ref("");
+watch(agentType, (value) => {
+  if (
+    creating.value &&
+    catalog.data.value &&
+    (value === "consultation"
+      ? catalog.data.value.consultation_defaults
+      : catalog.data.value.draft_defaults)
+  ) {
+    draft.value = JSON.parse(
+      JSON.stringify(
+        value === "consultation"
+          ? catalog.data.value.consultation_defaults
+          : catalog.data.value.draft_defaults,
+      ),
+    );
+    draft.value.conversation.language = catalog.data.value.default_language;
+  }
+});
+function transferMode(mode: string) {
+  if ((draft.value.consultation?.mode || "direct") === mode) return;
+  draft.value.contract_version = 9;
+  draft.value.role = "public";
+  draft.value.chat_model = null;
+  draft.value.consultation = {
+    mode: mode === "attended" ? "attended" : "direct",
+    phone: mode === "attended",
+    chat: false,
+    assistant_id: null,
+  };
+  for (const binding of draft.value.tool_bindings)
+    if (binding.tool_id === "pbx.transfer") binding.tool_version = 3;
+}
 const snapshot = () =>
   JSON.stringify({ name: name.value, draft: configuration.value });
 const dirty = computed(() => !!baseline.value && snapshot() !== baseline.value);
@@ -112,10 +145,12 @@ watch(
       if (pristine) draft.value.conversation.language = value.default_language;
       if (!draft.value.tool_bindings.length && value.draft_defaults) {
         const defaults = JSON.parse(
-          JSON.stringify(value.draft_defaults),
+          JSON.stringify(
+            internal.value ? value.consultation_defaults : value.draft_defaults,
+          ),
         ) as Draft;
-        draft.value.tool_bindings = defaults.tool_bindings;
-        draft.value.contract_version = defaults.contract_version;
+        draft.value = defaults;
+        draft.value.conversation.language = value.default_language;
       }
       if (pristine) baseline.value = snapshot();
     }
@@ -285,6 +320,7 @@ async function synchronize() {
         :disabled="!!record"
         :options="[
           { id: 'basic_voice', label: 'Basic Voice' },
+          { id: 'consultation', label: t('internalAssistant') },
           { id: 'cleverai', label: 'CleverAI' },
         ]"
       />
@@ -340,7 +376,55 @@ async function synchronize() {
           :rows="6"
           maxlength="32768"
         />
-        <section class="space-y-4">
+        <section v-if="!internal" class="space-y-4">
+          <h2>{{ t("consultationSettings") }}</h2>
+          <p class="nv-muted">{{ t("consultationHelp") }}</p>
+          <FieldSelect
+            :model-value="draft.consultation?.mode || 'direct'"
+            :label="t('peopleTransferMode')"
+            :options="[
+              { id: 'direct', label: t('directTransfer') },
+              { id: 'attended', label: t('attendedTransfer') },
+            ]"
+            @update:model-value="transferMode"
+          />
+          <template v-if="draft.consultation?.mode === 'attended'">
+            <NeToggle
+              v-model="draft.consultation.phone"
+              :label="t('allowPhoneConsultation')"
+            />
+            <NeToggle
+              v-model="draft.consultation.chat"
+              :label="t('allowChatConsultation')"
+            />
+            <FieldSelect
+              :model-value="draft.consultation.assistant_id || ''"
+              :label="t('internalAssistant')"
+              :options="[
+                { id: '', label: t('choose') },
+                ...(catalog.data.value?.consultation_assistants || []).map(
+                  (a) => ({ id: a.agent_id, label: a.name }),
+                ),
+              ]"
+              @update:model-value="
+                draft.consultation.assistant_id = $event || null
+              "
+            />
+          </template>
+        </section>
+        <section v-else class="space-y-4">
+          <p class="nv-muted">{{ t("internalAssistantHelp") }}</p>
+          <NeTextInput
+            :model-value="draft.chat_model || ''"
+            :label="t('consultationChatModel')"
+            maxlength="128"
+            @update:model-value="
+              draft.chat_model = String($event).trim() || null
+            "
+          />
+          <p class="nv-muted">{{ t("consultationChatModelHelp") }}</p>
+        </section>
+        <section v-if="!internal" class="space-y-4">
           <h2>{{ t("tools") }}</h2>
           <p class="nv-muted">{{ t("toolGrantsHelp") }}</p>
           <p class="nv-muted">

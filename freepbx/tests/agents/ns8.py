@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 root=Path(__file__).resolve().parents[3]
-state={'environment':{'NETHVOICE_HOST':'synthetic.example'},'passwords.env':{
+state={'environment':{'NETHVOICE_HOST':'synthetic.example','NETHVOICE_RECIPIENT_SERVICE_PORT':'30001','VOICE_AGENT_CHAT_PORT':'30002'},'passwords.env':{
     'SATELLITE_ARI_PASSWORD':'synthetic-ari','MARIADB_ROOT_PASSWORD':'synthetic-root',
     'OPENAI_API_KEY':'synthetic-provider','SATELLITE_API_TOKEN':'synthetic-api',
     'SATELLITE_PGSQL_PASSWORD':'synthetic-pg','SATELLITE_MQTT_PASSWORD':'synthetic-mqtt',
@@ -31,7 +31,7 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
         runtime_env=state['satellite.env']
         assert 'MARIADB_ROOT_PASSWORD' not in runtime_env
         assert runtime_env['VOICE_AGENT_LIVE_WS_MAX_CALLS']=='4'
-        assert len(runtime_env)==12
+        assert len(runtime_env)==16
         assert runtime_env['VOICE_AGENT_MONITORING_RETENTION_DAYS']=='90'
         state['environment']['VOICE_AGENT_MONITORING_RETENTION_DAYS']='120'
         runpy.run_path(str(root/'imageroot/actions/configure-module/29voice_agents'))
@@ -51,6 +51,24 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
             except SystemExit as result: assert result.code==0
         agent.set_route.assert_not_called()
         agent.allocate_ports.assert_called_once()
+        # Integration saves must preserve the private consultation credentials/URLs.
+        expected_runtime=dict(state['satellite.env'])
+        helper=str(root/'imageroot/actions/configure-module/29voice_agents')
+        commands=[]
+        def process(args,**kwargs):
+            commands.append(args)
+            if args[0]==helper:
+                assert args[1:] == ['--secrets-only']
+                with patch('sys.argv',args):
+                    try: runpy.run_path(helper)
+                    except SystemExit as result: assert result.code==0
+            return SimpleNamespace(returncode=0,stdout='sha256:synthetic\n' if args[:3]==['podman','image','inspect'] else 'not-found')
+        with patch.dict(os.environ,{'AGENT_INSTALL_DIR':str(root/'imageroot'),'NETHVOICE_SATELLITE_IMAGE':'registry.invalid/synthetic:test'}),patch('subprocess.run',side_effect=process):
+            runpy.run_path(str(root/'imageroot/actions/set-integrations/50manage_service'))
+        assert state['satellite.env']==expected_runtime
+        assert any(args[0]==helper for args in commands)
+        assert all(state['satellite.env'].get('VOICE_AGENT_'+service+'_TOKEN') and state['satellite.env'].get('VOICE_AGENT_'+service+'_URL') for service in ('RECIPIENT','CHAT'))
+        assert 'MARIADB_ROOT_PASSWORD' not in state['satellite.env']
         # Reuse the dedicated slot without exceeding a fully allocated demand.
         for total in (43,44):
             state['environment'].pop('VOICE_AGENT_HTTP_PORT',None)
@@ -75,7 +93,7 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
             agent.allocate_ports.assert_called_once()
         # Repair a persisted chat conflict, including int/string env values.
         for chat_port in ('CHAT_C2S_PORT','CHAT_HTTP_PORT','CHAT_COMPONENT_PORT','CHAT_GW_PORT'):
-            state['environment']={'NETHVOICE_HOST':'synthetic.example',
+            state['environment']={'NETHVOICE_HOST':'synthetic.example','NETHVOICE_RECIPIENT_SERVICE_PORT':'30001','VOICE_AGENT_CHAT_PORT':'30002',
                 'TCP_PORTS_RANGE':'31000-31043',chat_port:31038,'VOICE_AGENT_HTTP_PORT':'31038'}
             agent.allocate_ports.reset_mock()
             agent.allocate_ports.side_effect=RuntimeError('max_ports_exceeded')
@@ -86,7 +104,7 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
             runpy.run_path(str(root/'imageroot/actions/configure-module/29voice_agents'))
             agent.allocate_ports.assert_not_called()
         # Allocation failure must leave the conflicting state and route intact.
-        state['environment']={'NETHVOICE_HOST':'synthetic.example',
+        state['environment']={'NETHVOICE_HOST':'synthetic.example','NETHVOICE_RECIPIENT_SERVICE_PORT':'30001','VOICE_AGENT_CHAT_PORT':'30002',
             'TCP_PORTS_RANGE':'31000-31041','CHAT_C2S_PORT':'31038','VOICE_AGENT_HTTP_PORT':'31038'}
         agent.set_route.reset_mock()
         try:
@@ -104,7 +122,7 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
             return (40000,40999)
         agent.allocate_ports.reset_mock()
         agent.allocate_ports.side_effect=shrink_udp
-        with patch.dict(os.environ,{'TCP_PORTS_RANGE':'32000-32043','UDP_PORTS_RANGE':'40000-42999'}):
+        with patch.dict(os.environ,{'TCP_PORTS_RANGE':'32000-32044','UDP_PORTS_RANGE':'40000-42999'}):
             runpy.run_path(str(root/'imageroot/actions/create-module/05setenvs'))
         assert state['environment']['VOICE_AGENT_HTTP_PORT']==32042
         assert state['environment']['OAUTH2_PROXY_PORT']==32037
@@ -124,5 +142,5 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
         assert any(call['data']['instance']=='nethvoice_test-voice-agent-webhooks' for call in removed)
     finally:
         os.chdir(before)
-assert 'org.nethserver.tcp-ports-demand="44"' in (root/'Containerfile').read_text()
+assert 'org.nethserver.tcp-ports-demand="45"' in (root/'Containerfile').read_text()
 print('NS8 secret filtering, idempotent port allocation and exact webhook route passed')

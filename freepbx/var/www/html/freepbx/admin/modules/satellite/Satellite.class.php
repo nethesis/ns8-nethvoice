@@ -52,6 +52,19 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         return (new \AgentDirectory($this->FreePBX))->inventory();
     }
 
+    /** Native internal PJSIP devices belonging to each configured main extension. */
+    public function agentConsultationDevices(): array {
+        require_once dirname(__DIR__,3).'/rest/lib/libExtensions.php';
+        $main=array_column($this->agentExtensions(),'id'); $result=[];
+        foreach ($this->FreePBX->Core->getAllDevicesByType('pjsip') as $device) {
+            $id=(string)($device['id']??''); $user=(string)($device['user']??'');
+            if (!preg_match('/^[0-9]{1,20}$/D',$id) || !preg_match('/^[0-9]{1,20}$/D',$user)) continue;
+            $extension=(string)getMainExtension($user);
+            if (in_array('extension:'.$extension,$main,true)) $result[$extension][]=$id;
+        }
+        return $result;
+    }
+
     public function agentTrunk(string $operation, array $binding, ?array $previous): int {
         require_once __DIR__ . '/lib/AgentTrunkProvisioner.php';
         $native = new \AgentTrunkProvisioner($this->FreePBX->Core);
@@ -90,7 +103,7 @@ class Satellite extends \FreePBX_Helpers implements \BMO
     /** Library reads remain usable without booting the HTTP router. */
     public function agentDestinations(): array {
         require_once dirname(__DIR__, 3) . '/rest/lib/agents/Service.php';
-        return (new \NethVoice\Agents\Service($this->db))->all();
+        return array_values(array_filter((new \NethVoice\Agents\Service($this->db))->all(),fn($agent)=>$agent['agent_type']!=='consultation'));
     }
 
     public function cleverAiTransport(string $id): ?array {

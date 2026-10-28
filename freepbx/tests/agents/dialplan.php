@@ -6,6 +6,7 @@ require_once __DIR__.'/../../var/www/html/freepbx/rest/lib/agents/Native.php';
 class FreePBX {
     public static bool $broken = false;
     public static function Satellite() { return new class {
+        public function agentConsultationDevices() {return ['203'=>['203','91203']];}
         public function agentPublishedVersions() { return [['agent_id'=>'receptionist','workflow_version'=>1,'fallback_destination_id'=>'extension:203'],['agent_id'=>'custom_disabled','workflow_version'=>1,'fallback_destination_id'=>'extension:203']]; }
         public function cleverAiTransport($id) { return $id==='clever_test'?['trunk_name'=>'VoiceAgentTrunk_99','project_id'=>'proj_external']:null; }
         public function agentDirectory() { return ['items'=>[
@@ -32,6 +33,7 @@ assert(in_array('Stasis(voice-agent,caller,receptionist)',$render('voice-agent-r
 assert(in_array('Set(TIMEOUT(absolute)=35)',$render('voice-agent-receptionist')));
 assert($render('voice-agent-receptionist','T')===['Set(TIMEOUT(absolute)=0)','Goto(${VOICE_AGENT_FALLBACK},s,1)']);
 assert(in_array('Goto(from-did-direct,203,1)',$render(satellite_agent_fallback_context('receptionist','extension:203'))));
+assert($render(satellite_agent_fallback_context('receptionist','extension:203'))===['Set(TIMEOUT(absolute)=0)','StopMusicOnHold()','Goto(from-did-direct,203,1)']);
 assert(in_array('Goto(${VOICE_AGENT_FALLBACK},s,1)',$render('voice-agent-receptionist')));
 assert(!in_array('Stasis(voice-agent,caller,custom_disabled)',$render('voice-agent-custom_disabled')));
 assert(in_array('Goto(${VOICE_AGENT_FALLBACK},s,1)',$render('voice-agent-custom_disabled')));
@@ -49,6 +51,27 @@ assert(satellite_getdestinfo('voice-agent-receptionist,s,1')['description']==='A
 assert(satellite_check_destinations()[0]['description']==='Agent: &lt;script&gt;test&lt;/script&gt; fallback');
 assert($render('voice-agent-transfer-queue','600')===['Set(TIMEOUT(absolute)=0)','UserEvent(VoiceAgentTransfer,token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:queue:600)','Goto(ext-queues,600,1)']);
 assert(!isset($ext->lines['voice-agent-transfer-ivr']));
+$consult=$render('voice-agent-consult','203');
+assert(str_contains($consult[0],'DB(DND/203)') && str_contains($consult[0],'DB(CF/203)'));
+assert($consult[1]==='Dial(${PJSIP_DIAL_CONTACTS(203)}&${PJSIP_DIAL_CONTACTS(91203)},20,i)');
+assert($consult[2]==='Hangup()');
+assert(!preg_match('/from-internal|from-did-direct|[Vv]oice[Mm]ail/',implode("\n",$consult)));
+$voicemail=$render('voice-agent-voicemail','203');
+assert(str_contains($voicemail[0],'DB(AMPUSER/203/voicemail)'));
+assert(str_contains($voicemail[1],'VM_INFO(203@${VOICE_AGENT_MAILBOX_CONTEXT},exists)'));
+assert(str_contains($voicemail[1],'DIALPLAN_EXISTS(ext-local,vmu203,1)'));
+assert($voicemail[3]==='StopMusicOnHold()');
+assert($voicemail[4]==='UserEvent(VoiceAgentTransfer,token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:203,mode:voicemail)');
+assert($voicemail[5]==='Goto(ext-local,vmu203,1)');
+assert(str_contains($voicemail[7],'Stasis(voice-agent,voicemail_failed,'));
+assert(!preg_match('/Dial\(|from-internal|from-did-direct/',implode("\n",$voicemail)));
+$handoff=$render('voice-agent-handoff');
+assert(in_array('Set(TIMEOUT(absolute)=0)',$handoff));
+assert(in_array('Bridge(${VOICE_AGENT_HANDOFF_PEER},x)',$handoff));
+assert(str_contains($handoff[2],'IMPORT(${VOICE_AGENT_HANDOFF_PEER},VOICE_AGENT_HANDOFF_TOKEN)'));
+assert(str_contains($handoff[2],'VOICE_AGENT_HANDOFF_PEER_ID'));
+assert(in_array('Wait(10)',$render('voice-agent-handoff-wait')));
+assert(in_array('Stasis(voice-agent,handoff_failed,${AGENT_SESSION_ID},${VOICE_AGENT_HANDOFF_TOKEN})',$handoff));
 
 $clever=$render('voice-agent-clever_test');
 assert(!str_contains(implode("\n",$clever),'Stasis('));

@@ -15,7 +15,7 @@ $binding=$draft['tool_bindings'][3];assert($binding['tool_id']==='telephony.hang
 assert($binding['config']['playback_timeout_seconds']===5);
 // One current catalog; installation does not enable an agent binding.
 assert($db->query("SELECT COUNT(*) FROM asterisk.voice_agent_runtime_tools WHERE tool_id='telephony.hangup'")->fetchColumn()===1);
-assert($db->query("SELECT COUNT(*) FROM asterisk.voice_agent_runtime_tools")->fetchColumn()===4);
+assert($db->query("SELECT COUNT(*) FROM asterisk.voice_agent_runtime_tools")->fetchColumn()===5);
 $manifest=$db->query("SELECT manifest_json FROM asterisk.voice_agent_runtime_tools WHERE tool_id='telephony.hangup' AND tool_version=1")->fetchColumn();
 assert(json_decode($manifest,true)===json_decode(file_get_contents(__DIR__.'/../../var/www/html/freepbx/rest/lib/agents/contracts/tools-v5.json'),true)[3]);
 $snapshot=json_decode(file_get_contents(__DIR__.'/../../var/www/html/freepbx/rest/lib/agents/contracts/published-v8.example.json'),true);

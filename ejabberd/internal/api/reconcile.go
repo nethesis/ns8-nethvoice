@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/address"
+	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/consultation"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/logx"
 )
 
@@ -61,6 +62,9 @@ func (s *Server) Reconcile(ctx context.Context) {
 	active := 0
 	since := map[string]int64{}
 	for _, u := range known {
+		if u.Username == consultation.Identity {
+			continue
+		}
 		if cu, ok := dir.byUser[u.Username]; ok {
 			if u.MissingSince != 0 || u.Inactive || u.Name != cu.Name {
 				if u.MissingSince != 0 || u.Inactive {

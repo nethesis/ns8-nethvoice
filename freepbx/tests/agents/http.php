@@ -49,7 +49,7 @@ assert(!str_contains(json_encode($models),'api_key'));
 [$status]=api('POST','/profiles',['expected_revision'=>0,'profile'=>'invalid'],$csrf); assert($status===422);
 [$status]=api('POST','/profiles',['expected_revision'=>false,'profile'=>['name'=>'HTTP agent','draft'=>[]]],$csrf); assert($status===422);
 [$status]=api('POST','/profiles',['expected_revision'=>0,'profile'=>[],'unexpected'=>true],$csrf); assert($status===422);
-[$status,$catalog]=api('GET','/catalog'); assert($status===200 && count($catalog['tools'])===4 && $catalog['draft_defaults']['contract_version']===8);
+[$status,$catalog]=api('GET','/catalog'); assert($status===200 && count($catalog['tools'])===5 && $catalog['draft_defaults']['contract_version']===8);
 try { api('POST','/profiles/receptionist/enabled',['expected_revision'=>1,'enabled'=>true],$csrf); assert(false); } catch (\Slim\Exception\HttpNotFoundException $expected) {}
 [$status,$profiles]=api('GET','/profiles'); assert($status===200 && count($profiles['items'])>=2);
 $draft=\NethVoice\Agents\Service::emptyDraft();

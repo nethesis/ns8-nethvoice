@@ -167,6 +167,35 @@ chown -R asterisk:asterisk \
 	/etc/phonebook/sources.d \
 	/var/lib/nethvoice/phonebook/uploads
 
+# Reuse Apache for the private recipient API; never expose it through the wizard.
+rm -f /etc/apache2/sites-enabled/voice-agent-recipient.conf || exit $?
+if [[ -n "${NETHVOICE_RECIPIENT_SERVICE_PORT:-}" ]]; then
+    if [[ ! "${NETHVOICE_RECIPIENT_SERVICE_PORT}" =~ ^[1-9][0-9]{3,4}$ ]] ||
+        (( NETHVOICE_RECIPIENT_SERVICE_PORT < 1024 || NETHVOICE_RECIPIENT_SERVICE_PORT > 65535 )); then
+        echo 'Invalid recipient service port' >&2
+        exit 1
+    fi
+    mkdir -p /var/empty || exit $?
+    cat > /etc/apache2/sites-enabled/voice-agent-recipient.conf <<EOF || exit $?
+Listen 127.0.0.1:${NETHVOICE_RECIPIENT_SERVICE_PORT}
+<VirtualHost 127.0.0.1:${NETHVOICE_RECIPIENT_SERVICE_PORT}>
+    DocumentRoot /var/empty
+    PassEnv VOICE_AGENT_RECIPIENT_TOKEN NETHVOICE_RECIPIENT_SERVICE_PORT
+    AliasMatch ^/v1/recipients/[0-9]{1,20}$ /usr/libexec/voice-agent-recipient.php
+    <Directory /usr/libexec>
+        CGIPassAuth On
+        AllowOverride None
+        Options -Indexes
+        Require local
+    </Directory>
+    <Location />
+        Require local
+    </Location>
+    ErrorLog /dev/stderr
+</VirtualHost>
+EOF
+fi
+
 # Don't continue with initialization if the database is not ready
 if [[ -z "${AMPDBUSER}" || -z "${AMPDBPASS}" ]]; then
 

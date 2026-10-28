@@ -112,7 +112,16 @@ func (ses *Session) SendGroup(ctx context.Context, room, body string, oob ...str
 }
 
 func (ses *Session) send(ctx context.Context, to, body string, oob []string, typ stanza.MessageType) (string, error) {
-	id := newID()
+	return ses.sendID(ctx, newID(), to, body, oob, typ)
+}
+
+// SendID binds private gateway idempotency to the XMPP origin/message ID.
+func (ses *Session) SendID(ctx context.Context, id, to, body string) error {
+	_, err := ses.sendID(ctx, id, to, body, nil, stanza.ChatMessage)
+	return err
+}
+
+func (ses *Session) sendID(ctx context.Context, id, to, body string, oob []string, typ stanza.MessageType) (string, error) {
 	var sb strings.Builder
 	sb.WriteString("<body>")
 	_ = xml.EscapeText(&sb, []byte(body))

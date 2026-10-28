@@ -13,6 +13,7 @@ import (
 
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/address"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/api"
+	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/consultation"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/logx"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/push"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/store"
@@ -74,6 +75,52 @@ func main() {
 	router.Names = mw.Name
 	router.Address = mw.Extension
 	router.DND = func(ctx context.Context, username string) bool { return mw.Presence(ctx, username) == "dnd" }
+	var privateHTTP *http.Server
+	if listen := os.Getenv("CHAT_CONSULTATION_LISTEN"); listen != "" {
+		if !consultation.Loopback(listen) {
+			log.Fatal("invalid private consultation listener")
+		}
+		read, err := consultation.Reader(required("VOICE_AGENT_RECIPIENT_URL"), required("VOICE_AGENT_RECIPIENT_TOKEN"))
+		if err != nil {
+			log.Fatal("invalid recipient service")
+		}
+		open := func(ctx context.Context) (*xmppc.Session, error) {
+			return xmppc.Dial(ctx, c2s, host, consultation.Identity, svcauth.Password(secret, consultation.Identity, host, time.Now()))
+		}
+		private := &consultation.Service{Store: st, Host: host, Token: required("VOICE_AGENT_CHAT_TOKEN"), Read: read}
+		private.Send = func(ctx context.Context, id, to, body string) error {
+			ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+			defer cancel()
+			ses, err := open(ctx)
+			if err != nil {
+				return err
+			}
+			defer ses.Close()
+			return ses.SendID(ctx, id, to, body)
+		}
+		private.History = func(ctx context.Context) ([]xmppc.Message, error) {
+			ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+			defer cancel()
+			ses, err := open(ctx)
+			if err != nil {
+				return nil, err
+			}
+			defer ses.Close()
+			messages, _, err := ses.History(ctx, "", 100)
+			return messages, err
+		}
+		privateHTTP = &http.Server{Addr: listen, Handler: private.Handler(), ReadHeaderTimeout: 3 * time.Second, ReadTimeout: 5 * time.Second, WriteTimeout: 15 * time.Second, MaxHeaderBytes: 8192}
+		st.SeenUser(consultation.Identity, "Call consultation assistant")
+		router.DND = func(ctx context.Context, user string) bool {
+			return private.DND(ctx, user) || mw.Presence(ctx, user) == "dnd"
+		}
+		go private.Sweep(ctx)
+		go func() {
+			if err := privateHTTP.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Print("private consultation listener failed")
+			}
+		}()
+	}
 	router.ArchiveID = func(ctx context.Context, user, peer string) string {
 		ses, err := xmppc.Dial(ctx, c2s, host, user, svcauth.Password(secret, user, host, time.Now()))
 		if err != nil {
@@ -127,4 +174,7 @@ func main() {
 	shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_ = hs.Shutdown(shutdown)
+	if privateHTTP != nil {
+		_ = privateHTTP.Shutdown(shutdown)
+	}
 }
