@@ -10,7 +10,7 @@
     :previousLabel="core.$t('common.previous')"
     :nextLabel="nextButtonLabel || core.$t('common.next')"
     :isPreviousDisabled="!isPreviousEnabled"
-    :isNextDisabled="!isNextEnabled"
+    :isNextDisabled="!isNextEnabled || isLoadingProxyStatus"
     :isNextLoading="isNextLoading"
     @modal-hidden="$emit('hide')"
     @cancel="$emit('hide')"
@@ -33,56 +33,65 @@
         :description="error.getStatus"
         :showCloseButton="false"
       />
-      <NsProgress :stepId="step" :steps="progressSteps" class="progress" />
-      <AccountProviderStep
-        v-if="step == ACCOUNT_PROVIDER_STEP"
-        :nodeLabel="nodeLabel"
-        :accountProvider="accountProvider"
-        @set-step="step = $event"
-        @set-account-provider="accountProvider = $event"
-        @set-previous-enabled="isPreviousEnabled = $event"
-        @set-next-enabled="isNextEnabled = $event"
-        @set-next-loading="isNextLoading = $event"
-        @set-next-label="nextButtonLabel = $event"
-        @change-account-provider-type="accountProviderType = $event"
-        ref="accountProviderStep"
-      />
-      <OpenldapStep
-        v-if="step == OPENLDAP_STEP"
-        @set-step="step = $event"
-        @set-account-provider="accountProvider = $event"
-        @set-previous-enabled="isPreviousEnabled = $event"
-        @set-next-enabled="isNextEnabled = $event"
-        @set-next-loading="isNextLoading = $event"
-        @set-next-label="nextButtonLabel = $event"
-        ref="openldapStep"
-      />
-      <ProxyStep
-        v-if="step == PROXY_STEP"
-        :isProxyInstalled="isProxyInstalled"
-        :proxyModuleId="proxyModuleId"
-        :loadingNethvoiceDefaults="loading.getDefaults"
-        :nodeLabel="nodeLabel"
-        @set-proxy-module-id="proxyModuleId = $event"
-        @set-proxy-installed="isProxyInstalled = $event"
-        @set-step="step = $event"
-        @set-previous-enabled="isPreviousEnabled = $event"
-        @set-next-enabled="isNextEnabled = $event"
-        @set-next-loading="isNextLoading = $event"
-        @set-next-label="nextButtonLabel = $event"
-        ref="proxyStep"
-      />
-      <NethvoiceStep
-        v-if="step == NETHVOICE_STEP"
-        :accountProvider="accountProvider"
-        :isProxyAlreadyConfigured="isProxyAlreadyConfigured"
-        ref="nethvoiceStep"
-        @set-previous-enabled="isPreviousEnabled = $event"
-        @set-next-enabled="isNextEnabled = $event"
-        @set-next-loading="isNextLoading = $event"
-        @set-next-label="nextButtonLabel = $event"
-        @finish="$emit('configured')"
-      />
+      <cv-skeleton-text
+        v-if="isLoadingProxyStatus"
+        :paragraph="true"
+        heading
+        :line-count="7"
+        class="progress"
+      ></cv-skeleton-text>
+      <div v-show="!isLoadingProxyStatus">
+        <NsProgress :stepId="step" :steps="progressSteps" class="progress" />
+        <AccountProviderStep
+          v-if="step == ACCOUNT_PROVIDER_STEP"
+          :nodeLabel="nodeLabel"
+          :accountProvider="accountProvider"
+          @set-step="step = $event"
+          @set-account-provider="accountProvider = $event"
+          @set-previous-enabled="isPreviousEnabled = $event"
+          @set-next-enabled="isNextEnabled = $event"
+          @set-next-loading="isNextLoading = $event"
+          @set-next-label="nextButtonLabel = $event"
+          @change-account-provider-type="accountProviderType = $event"
+          ref="accountProviderStep"
+        />
+        <OpenldapStep
+          v-if="step == OPENLDAP_STEP"
+          @set-step="step = $event"
+          @set-account-provider="accountProvider = $event"
+          @set-previous-enabled="isPreviousEnabled = $event"
+          @set-next-enabled="isNextEnabled = $event"
+          @set-next-loading="isNextLoading = $event"
+          @set-next-label="nextButtonLabel = $event"
+          ref="openldapStep"
+        />
+        <ProxyStep
+          v-if="step == PROXY_STEP"
+          :isProxyInstalled="isProxyInstalled"
+          :proxyModuleId="proxyModuleId"
+          :loadingNethvoiceDefaults="loading.getDefaults"
+          :nodeLabel="nodeLabel"
+          @set-proxy-module-id="proxyModuleId = $event"
+          @set-proxy-installed="isProxyInstalled = $event"
+          @set-step="step = $event"
+          @set-previous-enabled="isPreviousEnabled = $event"
+          @set-next-enabled="isNextEnabled = $event"
+          @set-next-loading="isNextLoading = $event"
+          @set-next-label="nextButtonLabel = $event"
+          ref="proxyStep"
+        />
+        <NethvoiceStep
+          v-if="step == NETHVOICE_STEP"
+          :accountProvider="accountProvider"
+          :isProxyAlreadyConfigured="isProxyAlreadyConfigured"
+          ref="nethvoiceStep"
+          @set-previous-enabled="isPreviousEnabled = $event"
+          @set-next-enabled="isNextEnabled = $event"
+          @set-next-loading="isNextLoading = $event"
+          @set-next-label="nextButtonLabel = $event"
+          @finish="$emit('configured')"
+        />
+      </div>
     </template>
   </NsWizard>
 </template>
@@ -139,6 +148,7 @@ export default {
       loading: {
         getDefaults: false,
         getStatus: false,
+        getProxyConfig: false,
       },
       error: {
         getDefaults: "",
@@ -148,6 +158,9 @@ export default {
   },
   computed: {
     ...mapState(["core", "instanceName", "instanceStatus"]),
+    isLoadingProxyStatus() {
+      return this.loading.getDefaults || this.loading.getProxyConfig;
+    },
     nodeLabel() {
       if (this.instanceStatus && this.instanceStatus.node_ui_name) {
         return this.instanceStatus.node_ui_name;
@@ -363,6 +376,7 @@ export default {
       this.loading.getDefaults = false;
     },
     async getProxyConfig() {
+      this.loading.getProxyConfig = true;
       const taskAction = "get-configuration";
       const eventId = this.getUuid();
 
@@ -390,16 +404,19 @@ export default {
 
       if (err) {
         console.error(`error creating task ${taskAction}`, err);
+        this.loading.getProxyConfig = false;
       }
     },
     getProxyConfigAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
+      this.loading.getProxyConfig = false;
     },
     getProxyConfigCompleted(taskContext, taskResult) {
       const proxyConfig = taskResult.output;
       this.isProxyAlreadyConfigured = !!(
         proxyConfig.fqdn && !proxyConfig.fqdn.endsWith(".invalid")
       );
+      this.loading.getProxyConfig = false;
     },
   },
 };
