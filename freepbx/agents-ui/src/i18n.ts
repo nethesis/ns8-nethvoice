@@ -23,7 +23,7 @@ const en = {
   cleverAiAgentHelp:
     "CleverAI manages conversations, tools and monitoring. Save requests the PBX reload and makes this destination available when ready. Configure fallback in VisualPlan. Transfers back to NethVoice are not supported yet.",
   recentCallbacksHelp:
-    "Recent callbacks require Transfer and Recent callbacks to be enabled. A verified recent call can authorize a callback even when direct transfer to that extension is off. Lookup happens only when someone asks to return a call; the caller confirms or chooses a contact. Save and publish to activate draft changes.",
+    "Recent contacts require Transfer and Recent contacts to be enabled. Include people who called the caller and people they spoke with when they called in, within the configured lookback. Verified history can authorize a transfer even when direct transfer to that extension is off. The caller confirms or chooses a contact. Save and publish to activate draft changes.",
   routingPolicyHelp:
     "Enable a category, then choose its permitted destinations. Enabled extensions and queues can have an additional description for routing by purpose. Discovery is automatic.",
   searchDestinations: "Search destinations by name, number or purpose",
@@ -35,9 +35,9 @@ const en = {
     queues: "Search queues by name, number or purpose",
   },
   toolSettings: {
-    recent_callers_enabled: "Recent callbacks",
+    recent_callers_enabled: "Recent contacts",
     recent_caller_lookback_days: "Recent-call lookback (days)",
-    recent_caller_denylist: "Eligible callback extensions",
+    recent_caller_denylist: "Eligible contact extensions",
     max_results: "Maximum search results",
     extensions_enabled: "Direct extensions",
     extension_allowlist: "Approved extensions",
@@ -500,7 +500,7 @@ const it: typeof en = {
   cleverAiAgentHelp:
     "CleverAI gestisce conversazioni, strumenti e monitoraggio. Salva richiede il reload del PBX e rende disponibile la destinazione quando pronta. Configurare la destinazione alternativa in VisualPlan. I trasferimenti verso NethVoice non sono ancora supportati.",
   recentCallbacksHelp:
-    "Le richiamate richiedono Trasferimento e Richiamate recenti abilitati. Una chiamata recente verificata può autorizzare una richiamata anche se il trasferimento diretto all'interno è disabilitato. La ricerca avviene solo quando si chiede di richiamare; il chiamante conferma o sceglie un contatto. Salva e pubblica per attivare le modifiche.",
+    "I contatti recenti richiedono Trasferimento e Contatti recenti abilitati. Includono chi ha chiamato il chiamante e le persone con cui ha parlato chiamando lui, entro il periodo configurato. Lo storico verificato può autorizzare il trasferimento anche se quello diretto all'interno è disabilitato. Il chiamante conferma o sceglie un contatto. Salva e pubblica per attivare le modifiche.",
   routingPolicyHelp:
     "Abilita una categoria e scegli le destinazioni consentite. Per gli interni e le code abilitati puoi aggiungere una descrizione utile all’instradamento. La ricerca è automatica.",
   searchDestinations: "Cerca destinazioni per nome, numero o funzione",
@@ -512,9 +512,9 @@ const it: typeof en = {
     queues: "Cerca code per nome, numero o funzione",
   },
   toolSettings: {
-    recent_callers_enabled: "Richiamate recenti",
+    recent_callers_enabled: "Contatti recenti",
     recent_caller_lookback_days: "Periodo di ricerca (giorni)",
-    recent_caller_denylist: "Interni abilitati alle richiamate",
+    recent_caller_denylist: "Interni abilitati ai contatti recenti",
     max_results: "Numero massimo di risultati",
     extensions_enabled: "Interni diretti",
     extension_allowlist: "Interni autorizzati",

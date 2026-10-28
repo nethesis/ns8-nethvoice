@@ -133,7 +133,7 @@ test("recent callbacks default on with seven days and independent extension excl
     toggle(page, "Transfer to a permitted PBX destination"),
   ).toBeChecked();
   await expect(toggle(page, "Direct extensions")).not.toBeChecked();
-  await expect(toggle(page, "Recent callbacks")).toBeChecked();
+  await expect(toggle(page, "Recent contacts")).toBeChecked();
   await expect(
     page.getByLabel("Recent-call lookback (days)", { exact: true }),
   ).toHaveValue("7");
