@@ -50,6 +50,23 @@ class NethCTI {
 }
 
 
+// Read-only lookup: profile projection also maintains queue permissions.
+function getCTIUserPermission($userId, $macroPermission, $permission) {
+    $stmt = FreePBX::Database()->prepare('SELECT u.username, EXISTS (
+        SELECT 1 FROM rest_cti_profiles p
+        JOIN rest_cti_profiles_macro_permissions pm ON pm.profile_id = p.id
+        JOIN rest_cti_macro_permissions m ON m.id = pm.macro_permission_id
+        JOIN rest_cti_macro_permissions_permissions mp ON mp.macro_permission_id = m.id
+        JOIN rest_cti_permissions c ON c.id = mp.permission_id
+        JOIN rest_cti_profiles_permissions pp ON pp.profile_id = p.id AND pp.permission_id = c.id
+        WHERE p.id = r.profile_id AND m.name = ? AND c.name = ?
+    ) AS allowed FROM userman_users u JOIN rest_users r ON r.user_id = u.id WHERE u.id = ?');
+    $stmt->execute([$macroPermission, $permission, $userId]);
+    $user = $stmt->fetch(\PDO::FETCH_ASSOC);
+    if (!$user) return null;
+    return ['username'=>$user['username'], 'allowed'=>(bool)$user['allowed']];
+}
+
 /*Get All Available macro permissions*/
 function getAllAvailableMacroPermissions() {
     try {

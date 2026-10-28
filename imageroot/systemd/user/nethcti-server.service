@@ -32,8 +32,6 @@ ExecStart=/usr/bin/podman run \
     --volume=spool:/var/spool/asterisk:z \
     --volume=reports_config:/opt/nethvoice-report:z \
     --volume=/dev/log:/dev/log \
-    --volume=%E/state/voice-agent-recipient.token:/run/voice-agent-recipient.token:ro,Z \
-    --env=NETHVOICE_RECIPIENT_SERVICE_TOKEN_FILE=/run/voice-agent-recipient.token \
     --env-file=%E/state/passwords.env \
     --env=ASTMANAGERPORT \
     --env=APACHE_PORT \

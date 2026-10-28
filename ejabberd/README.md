@@ -23,7 +23,7 @@ Set it back to `0` the same way.
 The optional `CHAT_CONSULTATION_LISTEN=127.0.0.1:<port>` listener uses a separate
 route table and `VOICE_AGENT_CHAT_TOKEN` (at least 32 random characters). It exposes
 only authenticated consultation sends/replies. `VOICE_AGENT_RECIPIENT_URL` and
-`VOICE_AGENT_RECIPIENT_TOKEN` point to the scoped CTI loopback service. Never expose
+`VOICE_AGENT_RECIPIENT_TOKEN` point to the scoped FreePBX loopback service. Never expose
 these through the public gateway or reverse proxy. The NS8 module provisions them.
 
 `voice-agent-assistant` is a reserved XMPP service identity. The gateway derives its

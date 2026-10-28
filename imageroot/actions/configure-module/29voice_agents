@@ -43,10 +43,6 @@ if '--secrets-only' not in sys.argv:
                 port = str(agent.allocate_ports(1, 'tcp', keep_existing=True)[0])
             agent.set_env(name, port)
             env[name] = port
-    with open('voice-agent-recipient.token.tmp', 'w') as stream:
-        os.fchmod(stream.fileno(), 0o600)
-        stream.write(passwords['VOICE_AGENT_RECIPIENT_TOKEN'])
-    os.replace('voice-agent-recipient.token.tmp', 'voice-agent-recipient.token')
 runtime_keys = ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN',
                 'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD',
                 'SATELLITE_ARI_PASSWORD', 'VOICE_AGENT_RECIPIENT_TOKEN', 'VOICE_AGENT_CHAT_TOKEN')
