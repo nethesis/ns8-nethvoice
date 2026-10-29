@@ -36,7 +36,7 @@ func TestHandle(t *testing.T) {
 			t.Errorf("handle(%q) = %v, want %v", req, got, want)
 		}
 	}
-	if svcauth.Secret(func(k string) string { return map[string]string{"CHAT_COMPONENT_SECRET": "c"}[k] }) == "c" {
-		t.Error("service key equals the component secret")
+	if svcauth.Secret(func(k string) string { return map[string]string{"CHAT_COMPONENT_SECRET": "c"}[k] }) != "" {
+		t.Error("service key derived from the component secret")
 	}
 }

@@ -49,6 +49,7 @@ type Server struct {
 	linkReads  window // invite links looked up, by client address
 
 	guestWait guestWaiters
+	joining   roomLocks
 }
 
 // apiClient talks to ejabberd on loopback; it must never hang a request.
@@ -367,7 +368,7 @@ func (s *Server) acrobitsSession(w http.ResponseWriter, r *http.Request) (*acrob
 		return nil, nil, "", false
 	}
 	// One address guessing across many accounts, and one account from many addresses.
-	ip := clientIP(r)
+	ip := ipKey(clientIP(r))
 	if s.ipFails.count(ip) >= ipMaxFailures {
 		fail(w, 429, "too many failed logins, retry later")
 		return nil, nil, "", false
@@ -510,10 +511,19 @@ func clientIP(r *http.Request) string {
 	return host
 }
 
+// ipKey is what per-address limits count: an IPv6 client by its /64, which one host may rotate through.
+func ipKey(ip string) string {
+	if a := net.ParseIP(ip); a != nil && a.To4() == nil {
+		return a.Mask(net.CIDRMask(64, 128)).String() + "/64"
+	}
+	return ip
+}
+
 // window counts each user's events in the last minute.
 type window struct {
-	mu sync.Mutex
-	m  map[string][]time.Time
+	mu    sync.Mutex
+	m     map[string][]time.Time
+	swept time.Time
 }
 
 func (w *window) count(user string) int {
@@ -538,6 +548,15 @@ func (w *window) add(user string) {
 	defer w.mu.Unlock()
 	if w.m == nil {
 		w.m = map[string][]time.Time{}
+	}
+	// Keys seen once and never again (an address, say) go once their minute is over.
+	if now := time.Now(); now.Sub(w.swept) > time.Minute {
+		for k, ts := range w.m {
+			if len(ts) == 0 || now.Sub(ts[len(ts)-1]) >= time.Minute {
+				delete(w.m, k)
+			}
+		}
+		w.swept = now
 	}
 	w.m[user] = append(w.m[user], time.Now())
 }

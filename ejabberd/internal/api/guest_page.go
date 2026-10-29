@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -73,7 +74,7 @@ func (s *Server) guestPageHandler(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "guest page not installed", http.StatusServiceUnavailable)
 		return
 	}
-	guestHeaders(w)
+	s.guestHeaders(w)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Write(page)
@@ -87,19 +88,20 @@ func (s *Server) guestAssets() http.Handler {
 			http.NotFound(w, r) // files only, no listing
 			return
 		}
-		guestHeaders(w)
+		s.guestHeaders(w)
 		w.Header().Set("Cache-Control", "public, max-age=86400")
 		files.ServeHTTP(w, r)
 	})
 }
 
 // guestHeaders: the link is in the page's address, it must not leave through a referrer or a frame.
-func guestHeaders(w http.ResponseWriter) {
+func (s *Server) guestHeaders(w http.ResponseWriter) {
 	h := w.Header()
 	h.Set("Referrer-Policy", "no-referrer")
 	h.Set("X-Frame-Options", "DENY")
 	h.Set("X-Content-Type-Options", "nosniff")
-	h.Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
+	// Scripts only from the page's own build, not from anything uploaded to the same host.
+	h.Set("Content-Security-Policy", "default-src 'none'; script-src https://"+s.PublicHost+"/chat-gw/guest-app/; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
 }
 
 // guestChat: GET /guest/chat: who the page is, the room's name and who made it.
@@ -174,7 +176,7 @@ type guestReaction struct {
 type guestPage struct {
 	Messages    []guestMsg      `json:"messages"`
 	Reactions   []guestReaction `json:"reactions"`
-	Retractions []string        `json:"retractions"` // sids (or oids) taken back
+	Retractions []guestReaction `json:"retractions"` // sids (or oids) taken back, by whom (no emojis)
 	Complete    bool            `json:"complete"`    // nothing older
 	First       string          `json:"first"`       // archive ids of the page, whatever they hold: where the next one starts
 	Last        string          `json:"last"`
@@ -244,14 +246,14 @@ func (s *Server) readGuest(ctx context.Context, g *store.Guest, after, before st
 	if after != "" {
 		complete = false
 	}
-	page := &guestPage{Messages: []guestMsg{}, Reactions: []guestReaction{}, Retractions: []string{}, Complete: complete}
+	page := &guestPage{Messages: []guestMsg{}, Reactions: []guestReaction{}, Retractions: []guestReaction{}, Complete: complete}
 	if len(raw) > 0 {
 		page.First, page.Last = raw[0].ID, raw[len(raw)-1].ID
 	}
 	for _, m := range raw {
 		switch {
 		case m.Retract != "":
-			page.Retractions = append(page.Retractions, m.Retract)
+			page.Retractions = append(page.Retractions, guestReaction{Target: m.Retract, Nick: m.Nick, Emojis: []string{}})
 		case m.ReactTo != "":
 			page.Reactions = append(page.Reactions, guestReaction{Target: m.ReactTo, Nick: m.Nick, Emojis: m.Reactions})
 		case m.Body != "" || len(m.Files) > 0:
@@ -278,7 +280,7 @@ func (s *Server) guestMessage(g *store.Guest, m xmppc.Message) guestMsg {
 		}
 		// The quote is the fallback's span of the body (characters): shown apart, cut from the text.
 		chars := []rune(m.Body)
-		if m.QuoteEnd > m.QuoteStart && m.QuoteEnd <= len(chars) {
+		if m.QuoteStart >= 0 && m.QuoteEnd > m.QuoteStart && m.QuoteEnd <= len(chars) {
 			rep.Quote = strings.TrimSpace(strings.TrimPrefix(string(chars[m.QuoteStart:m.QuoteEnd]), ">"))
 			out.Body = strings.TrimSpace(string(chars[:m.QuoteStart]) + string(chars[m.QuoteEnd:]))
 		}
@@ -325,9 +327,17 @@ func (s *Server) guestSend(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ses.Close()
 	room := g.Room + "@" + address.MUC(s.Host)
+	// Who is quoted and what they said come from the room's archive, never from the page.
+	var target xmppc.Message
 	if req.Reply != nil {
-		quote := strings.Join(strings.Fields(req.Reply.Quote), " ")
-		_, err = ses.SendGroupReply(r.Context(), room, req.Body, req.Reply.ID, req.Reply.Author, quote, req.Files...)
+		target, ok = roomMessage(r.Context(), ses, room, req.Reply.ID)
+	}
+	if req.Reply != nil && ok {
+		quote := []rune(strings.Join(strings.Fields(s.guestMessage(g, target).Body), " "))
+		if len(quote) > 200 {
+			quote = append(quote[:199], '…')
+		}
+		_, err = ses.SendGroupReply(r.Context(), room, req.Body, req.Reply.ID, target.Nick, string(quote), req.Files...)
 	} else {
 		_, err = ses.SendGroup(r.Context(), room, req.Body, req.Files...)
 	}
@@ -389,10 +399,21 @@ func (s *Server) guestRetract(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusBadRequest, "bad message")
 		return
 	}
-	// Clients drop a retraction that is not from the message's own author; the room relays any.
+	if s.sends.over(g.ID, 20) {
+		fail(w, http.StatusTooManyRequests, "slow down")
+		return
+	}
+	// Only the guest's own messages: the room relays a retraction from anyone.
+	room := g.Room + "@" + address.MUC(s.Host)
 	ses, err := s.guestSession(r.Context(), g.ID)
 	if err == nil {
-		err = ses.Retract(r.Context(), g.Room+"@"+address.MUC(s.Host), req.SID, true)
+		m, found := roomMessage(r.Context(), ses, room, req.SID)
+		if !found || m.Nick != g.Nick {
+			ses.Close()
+			fail(w, http.StatusForbidden, "not your message")
+			return
+		}
+		err = ses.Retract(r.Context(), room, req.SID, true)
 		ses.Close()
 	}
 	if err != nil {
@@ -419,6 +440,11 @@ func (s *Server) guestUpload(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusBadRequest, "bad request")
 		return
 	}
+	// The file is served from the CTI's own address: nothing a browser renders as a page.
+	if !guestFileOK(req.Name, req.Type) {
+		fail(w, http.StatusUnsupportedMediaType, "file type not accepted")
+		return
+	}
 	if s.files.over(g.ID, 10) {
 		fail(w, http.StatusTooManyRequests, "slow down")
 		return
@@ -437,4 +463,37 @@ func (s *Server) guestUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"put": s.publicURL(put), "get": s.publicURL(get), "headers": headers})
+}
+
+// roomMessage finds one of the room's recent messages by the room's id or the sender's.
+func roomMessage(ctx context.Context, ses *xmppc.Session, room, ref string) (xmppc.Message, bool) {
+	before := ""
+	for range 4 {
+		page, complete, err := ses.RoomPage(ctx, room, "", before, 50)
+		if err != nil || len(page) == 0 {
+			break
+		}
+		for _, m := range page {
+			if m.Retract == "" && m.ReactTo == "" && (m.RoomSID == ref || m.ID == ref || m.OriginID == ref) {
+				return m, true
+			}
+		}
+		if complete {
+			break
+		}
+		before = page[0].ID
+	}
+	return xmppc.Message{}, false
+}
+
+// guestFileOK: a guest's upload by name and type; pages, vector images and scripts stay out.
+func guestFileOK(name, typ string) bool {
+	ext := strings.ToLower(path.Ext(name))
+	t := strings.ToLower(strings.TrimSpace(strings.Split(typ, ";")[0]))
+	switch ext {
+	case ".htm", ".html", ".xhtml", ".shtml", ".svg", ".svgz", ".xml", ".xsl", ".js", ".mjs", ".css", ".swf":
+		return false
+	}
+	return !strings.Contains(t, "html") && !strings.Contains(t, "svg") && !strings.Contains(t, "xml") &&
+		!strings.Contains(t, "javascript") && t != "text/css"
 }

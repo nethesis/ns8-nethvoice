@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"maps"
 	"net/http"
 	"regexp"
 	"strings"
@@ -23,6 +24,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/address"
+	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/cti"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/store"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/svcauth"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/xmppc"
@@ -103,6 +105,48 @@ func guestNick(name string, taken map[string]bool) string {
 		nick = fmt.Sprintf("%s %d", name, i)
 	}
 	return nick
+}
+
+// roomLocks: one join at a time per room, so the cap and the names hold.
+type roomLocks struct {
+	mu sync.Mutex
+	m  map[string]*sync.Mutex
+}
+
+func (l *roomLocks) lock(room string) (unlock func()) {
+	l.mu.Lock()
+	if l.m == nil {
+		l.m = map[string]*sync.Mutex{}
+	}
+	m := l.m[room]
+	if m == nil {
+		m = &sync.Mutex{}
+		l.m[room] = m
+	}
+	l.mu.Unlock()
+	m.Lock()
+	return m.Unlock
+}
+
+// operatorNamed tells whether name is a colleague's name or username: a guest never passes for one.
+func (s *Server) operatorNamed(name string) bool {
+	names := map[string]string{}
+	if c := s.MW.known(); c != nil {
+		for u, x := range c.byUser {
+			names[u] = x.Name
+		}
+	}
+	if s.CTIConfig != "" {
+		if n, err := cti.Names(s.CTIConfig); err == nil {
+			maps.Copy(names, n)
+		}
+	}
+	for u, n := range names {
+		if strings.EqualFold(u, name) || strings.EqualFold(strings.Join(strings.Fields(n), " "), name) {
+			return true
+		}
+	}
+	return false
 }
 
 // guestName: a display name, without control characters; spaces collapsed.
@@ -334,7 +378,7 @@ func (s *Server) linkInfo(w http.ResponseWriter, r *http.Request) {
 		Link string `json:"link"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&req)
-	if s.linkReads.over(clientIP(r), joinsPerMin*6) {
+	if s.linkReads.over(ipKey(clientIP(r)), joinsPerMin*6) {
 		fail(w, http.StatusTooManyRequests, "slow down")
 		return
 	}
@@ -356,7 +400,7 @@ func (s *Server) joinGuest(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusBadRequest, "bad request")
 		return
 	}
-	if s.joins.over(clientIP(r), joinsPerMin) {
+	if s.joins.over(ipKey(clientIP(r)), joinsPerMin) {
 		fail(w, http.StatusTooManyRequests, "slow down")
 		return
 	}
@@ -370,6 +414,11 @@ func (s *Server) joinGuest(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusBadRequest, "name required, 64 characters at most")
 		return
 	}
+	if s.operatorNamed(name) {
+		writeJSON(w, http.StatusConflict, map[string]string{"message": "name taken", "code": "name_taken"})
+		return
+	}
+	defer s.joining.lock(e.Room)()
 	list, err := s.Store.Guests(e.Room)
 	if err != nil {
 		fail(w, http.StatusInternalServerError, "not joined")
