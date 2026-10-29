@@ -5,6 +5,15 @@
 <template>
   <div>
     <template v-if="!isConfigureModuleValidationCompleted">
+      <NsInlineNotification
+        v-if="isProxyAlreadyConfigured"
+        kind="info"
+        :title="$t('welcome.proxy.proxy_already_configured_on_node')"
+        :description="
+          $t('welcome.proxy.proxy_already_configured_on_node_description')
+        "
+        :showCloseButton="false"
+      />
       <div class="mg-bottom-lg">
         {{ $t("welcome.configure_nethvoice_application") }}
       </div>
@@ -173,6 +182,10 @@ export default {
     accountProvider: {
       type: Object,
       default: null,
+    },
+    isProxyAlreadyConfigured: {
+      type: Boolean,
+      default: false,
     },
   },
   data() {
