@@ -28,6 +28,7 @@ ExecStart=/usr/bin/podman run \
     --volume=chat-api:/opt/ejabberd/api:z,U \
     --env=CHAT_MIDDLEWARE_URL=http://127.0.0.1:${NETHVOICE_MIDDLEWARE_PORT} \
     --env=CHAT_COMPONENT_SECRET \
+    --env=CHAT_SERVICE_SECRET \
     --env=CHAT_DEBUG=${CHAT_DEBUG} \
     "--env=ERL_OPTIONS=+sbwt none +sbwtdcpu none +sbwtdio none -start_epmd false -dist_listen false" \
     --network=host \

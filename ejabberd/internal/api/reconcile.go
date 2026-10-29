@@ -143,7 +143,7 @@ func (s *Server) leaveRoom(ctx context.Context, user, room, muc string) error {
 			owner = a.Affiliation == "owner"
 		case a.Affiliation == "owner":
 			otherOwner = true
-		case (a.Affiliation == "member" || a.Affiliation == "admin") && !s.Store.Away(u):
+		case (a.Affiliation == "member" || a.Affiliation == "admin") && !s.Store.Away(u) && !IsGuest(u): // a guest never inherits a room
 			added, _ := strconv.ParseFloat(a.Reason, 64)
 			members = append(members, cand{u, added})
 		}

@@ -267,7 +267,8 @@ passwords = {
     "SATELLITE_PGSQL_PASSWORD": gen_password(),
     "SATELLITE_API_TOKEN": gen_password(),
     "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN": gen_password(),
-    "CHAT_COMPONENT_SECRET": gen_password()
+    "CHAT_COMPONENT_SECRET": gen_password(),
+    "CHAT_SERVICE_SECRET": gen_password()
 }
 
 agent.write_envfile("passwords.env", passwords)

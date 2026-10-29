@@ -46,6 +46,7 @@ func Open(dir string) (*Store, error) {
 		// Deleted in the app for that person only.
 		`CREATE TABLE IF NOT EXISTS user_prefs (username TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY (username, key))`,
 		`CREATE TABLE IF NOT EXISTS app_hidden (username TEXT NOT NULL, sms_id TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (username, sms_id))`,
+		// People outside the PBX invited to a room by link.
 	} {
 		if _, err := db.Exec(q); err != nil {
 			return nil, err
@@ -58,7 +59,11 @@ func Open(dir string) (*Store, error) {
 	} {
 		_, _ = db.Exec(q)
 	}
-	return &Store{db}, nil
+	st := &Store{db}
+	if err := st.initExt(); err != nil {
+		return nil, err
+	}
+	return st, nil
 }
 
 func (s *Store) Meta(key string) (string, error) {
