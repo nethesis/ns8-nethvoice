@@ -33,6 +33,10 @@ services = [
     "middleware-cti-server-api",
     "sso-sp-handler",
     "sso-mint",
+    "chat-ws",
+    "chat-upload",
+    "chat-gw",
+    "chat-gw-pbx",
 ]
 
 # Remove traefik route

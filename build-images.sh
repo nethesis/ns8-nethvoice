@@ -115,7 +115,7 @@ fi
 reponame="nethvoice-mariadb"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from docker.io/library/mariadb:10.11.19)
+    container=$(buildah from docker.io/library/mariadb:11.8.9)
     buildah add "${container}" mariadb/ /
 
     # Commit the image
@@ -193,7 +193,7 @@ fi
 reponame="nethvoice-cti-middleware"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/nethcti-middleware:v0.5.21)
+    container=$(buildah from ghcr.io/nethesis/nethcti-middleware:v0.7.0)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
@@ -212,7 +212,7 @@ fi
 reponame="nethvoice-cti-ui"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v0.15.31)
+    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v1.2.8)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
@@ -346,13 +346,30 @@ else
     skip_build "${reponame}"
 fi
 
+#########################
+##      ejabberd       ##
+#########################
+reponame="nethvoice-ejabberd"
+if should_build "${reponame}"; then
+    start_timing "${reponame}"
+    pushd ejabberd
+    build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" \
+        --tag "${repobase}/${reponame}" \
+        --tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
+    popd
+    finish_timing
+    images+=("${repobase}/${reponame}")
+else
+    skip_build "${reponame}"
+fi
+
 ##########################
 ## Satellite AI STT/TTS ##
 ##########################
 reponame="nethvoice-satellite"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/satellite:0.2.4)
+    container=$(buildah from ghcr.io/nethesis/satellite:0.3.0)
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
     buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"

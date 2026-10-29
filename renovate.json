@@ -2,5 +2,39 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "local>NethServer/.github:ns8-automerge"
+  ],
+  "dependencyDashboard": true,
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/examples/**",
+    "**/__tests__/**",
+    "**/test/**",
+    "**/tests/**",
+    "**/__fixtures__/**",
+    "freepbx/wizard-ui/**"
+  ],
+  "packageRules": [
+    {
+      "description": "nethcti-server and the reports UI build on Node 14: major bumps break node-sass",
+      "matchFileNames": ["nethcti-server/**", "reports/**"],
+      "matchDepNames": ["docker.io/library/node"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "FreePBX 17 does not start on PHP 8.4+: PHP minor and major updates wait for approval in the Dependency Dashboard (move with FreePBX 18)",
+      "matchFileNames": ["freepbx/**", "tancredi/**"],
+      "matchDepNames": ["docker.io/library/php"],
+      "matchUpdateTypes": ["major", "minor"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "MariaDB major upgrades need a tested data upgrade: they wait for approval in the Dependency Dashboard",
+      "matchDepNames": ["mariadb"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    }
   ]
 }

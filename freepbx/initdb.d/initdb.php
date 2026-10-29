@@ -99,32 +99,6 @@ $deprecated = array(
 $sql = 'DELETE FROM `asterisk`.`freepbx_settings` WHERE `keyword` IN ("'.implode('","',$deprecated).'")';
 $db->query($sql);
 
-// Set port for Asterisk http server from environment
-if (!empty($_ENV['ASTERISK_WS_PORT'])) {
-	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPBINDPORT"';
-	$stmt = $db->prepare($sql);
-	$stmt->execute([$_ENV['ASTERISK_WS_PORT']]);
-	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPENABLED"';
-	$stmt = $db->prepare($sql);
-	$stmt->execute([1]);
-}
-
-// Set port for Asterisk WSS from environment
-if (!empty($_ENV['ASTERISK_WSS_PORT'])) {
-	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPTLSBINDPORT"';
-	$stmt = $db->prepare($sql);
-	$stmt->execute([$_ENV['ASTERISK_WSS_PORT']]);
-	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPTLSENABLE"';
-	$stmt = $db->prepare($sql);
-	$stmt->execute([1]);
-	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPTLSCERTFILE"';
-	$stmt = $db->prepare($sql);
-	$stmt->execute(['/etc/asterisk/keys/NethServer.crt']);
-	$sql = 'UPDATE `asterisk`.`freepbx_settings` SET `value` = ? WHERE `keyword` = "HTTPTLSPRIVATEKEY"';
-	$stmt = $db->prepare($sql);
-	$stmt->execute(['/etc/asterisk/keys/NethServer.key']);
-}
-
 // Create/update ARI account for Satellite
 if (!empty($_ENV['SATELLITE_ARI_PASSWORD'])) {
 	// Hash the password using crypt
@@ -146,10 +120,3 @@ if (!empty($_ENV['SATELLITE_ARI_PASSWORD'])) {
 	$stmt = $db->prepare($sql);
 	$stmt->execute([$hashedPassword]);
 }
-
-// Set IAX2 Port
-$sql = "INSERT INTO `asterisk`.`iaxsettings` (`keyword`, `data`) 
-        VALUES ('bindport', ?) 
-        ON DUPLICATE KEY UPDATE `data` = ?";
-$stmt = $db->prepare($sql);
-$stmt->execute([$_ENV['ASTERISK_IAX_PORT'],$_ENV['ASTERISK_IAX_PORT']]);

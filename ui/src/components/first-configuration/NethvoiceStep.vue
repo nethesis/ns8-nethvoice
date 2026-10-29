@@ -5,6 +5,15 @@
 <template>
   <div>
     <template v-if="!isConfigureModuleValidationCompleted">
+      <NsInlineNotification
+        v-if="isProxyAlreadyConfigured"
+        kind="info"
+        :title="$t('welcome.proxy.proxy_already_configured_on_node')"
+        :description="
+          $t('welcome.proxy.proxy_already_configured_on_node_description')
+        "
+        :showCloseButton="false"
+      />
       <div class="mg-bottom-lg">
         {{ $t("welcome.configure_nethvoice_application") }}
       </div>
@@ -174,6 +183,10 @@ export default {
       type: Object,
       default: null,
     },
+    isProxyAlreadyConfigured: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
@@ -235,6 +248,8 @@ export default {
   },
   methods: {
     validateConfigureModule() {
+      this.nethvoice_host = this.nethvoice_host.toLowerCase();
+      this.nethcti_ui_host = this.nethcti_ui_host.toLowerCase();
       this.clearErrors();
       this.validationErrorDetails = [];
       let isValidationOk = true;

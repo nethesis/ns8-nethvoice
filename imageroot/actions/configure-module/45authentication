@@ -170,6 +170,17 @@ def start_unit(unit, state_subdir):
     subprocess.run(['systemctl', '--user', 'restart', unit], check=False)
 
 
+def require_port(var):
+    # SSO ports are allocated at create/update time (05setenvs,
+    # 22allocate_sso_ports): never fall back to a fixed port, it may belong to
+    # another module
+    port = os.getenv(var)
+    if not port:
+        print(f"authentication: {var} is not allocated, cannot start the SSO front-door", file=sys.stderr)
+        sys.exit(3)
+    return port
+
+
 def apply_saml2():
     if not os.getenv('SAML2_IDP_METADATA_URL') or not CTI_HOST:
         print("authentication: saml2 selected but idp_metadata_url/cti host missing", file=sys.stderr)
@@ -187,7 +198,7 @@ def apply_saml2():
     set_env('NETHVOICE_SAML2_PROXY_IMAGE', derive_image('nethvoice-saml2-proxy'))
     start_unit('saml2-proxy.service', 'saml2-proxy')
 
-    sp_port = os.getenv('SAML2_PROXY_PORT', '20090')
+    sp_port = require_port('SAML2_PROXY_PORT')
     set_routes('/Shibboleth.sso', sp_port,
                'http://127.0.0.1:' + sp_port + '/sso-auth', 'Remote-User')
 
@@ -210,10 +221,7 @@ def apply_oidc():
     set_env('NETHCTI_SSO_USER_HEADER', 'X-Auth-Request-Preferred-Username')
     restart_trusted_mint()
 
-    # the unit reads OAUTH2_PROXY_PORT from the environment (no entrypoint to
-    # default it), so persist it before starting
-    op_port = os.getenv('OAUTH2_PROXY_PORT') or '20091'
-    set_env('OAUTH2_PROXY_PORT', op_port)
+    op_port = require_port('OAUTH2_PROXY_PORT')
     set_env('NETHVOICE_OAUTH2_PROXY_IMAGE', derive_image('nethvoice-oauth2-proxy'))
     start_unit('oauth2-proxy.service', 'oauth2-proxy')
 

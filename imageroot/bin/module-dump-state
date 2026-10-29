@@ -55,6 +55,16 @@ if podman exec freepbx ls -alh /var/lib/asterisk/sounds/nethcti >/dev/null 2>&1;
     podman cp freepbx:/var/lib/asterisk/sounds/nethcti/. asterisk_backup/var/lib/asterisk/sounds/nethcti
 fi
 
+# chat: consistent SQLite snapshots (the volumes belong to the container users)
+for pair in chat-data:chat.db chat-gw:chat-gw.db; do
+    vol=${pair%%:*}
+    file=${pair#*:}
+    dir=$(podman volume inspect "$vol" --format '{{.Mountpoint}}' 2>/dev/null) || continue
+    [ -f "$dir/$file" ] || continue
+    podman unshare python3 -c 'import sqlite3, sys; src = sqlite3.connect(sys.argv[1]); dst = sqlite3.connect(sys.argv[2]); src.backup(dst); dst.close(); src.close()' "$dir/$file" "$file.tmp"
+    mv -f "$file.tmp" "$file"
+done
+
 # satellite postgresql dump
 if systemctl --user --quiet is-active satellite-pgsql.service; then
     podman exec satellite-pgsql pg_dumpall -U satellite | gzip > satellite_postgresql.pg_dump.gz

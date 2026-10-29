@@ -37,6 +37,56 @@
               :line-count="8"
             ></cv-skeleton-text>
             <cv-form v-else @submit.prevent="setIntegrations">
+              <h4 class="mb-4">{{ $t("integrations.chat") }}</h4>
+              <NsToggle
+                :label="$t('integrations.chat_toggle')"
+                value="isChatEnabled"
+                :disabled="loading.setIntegrations"
+                v-model="isChatEnabled"
+              >
+                <template #tooltip>{{
+                  $t("integrations.chat_tooltip")
+                }}</template>
+                <template slot="text-left">{{
+                  $t("common.disabled")
+                }}</template>
+                <template slot="text-right">{{
+                  $t("common.enabled")
+                }}</template>
+              </NsToggle>
+              <!-- chat settings, only while the chat is enabled -->
+              <template v-if="isChatEnabled">
+                <NsTextInput
+                  :label="$t('integrations.chat_retention')"
+                  v-model="chatRetentionDays"
+                  type="number"
+                  :helper-text="$t('integrations.chat_retention_helper')"
+                  :invalid-message="error.chat_retention_days"
+                  :disabled="loading.setIntegrations"
+                  ref="chat_retention_days"
+                />
+                <NsTextInput
+                  :label="$t('integrations.chat_upload_quota')"
+                  v-model="chatUploadQuotaMb"
+                  type="number"
+                  :helper-text="$t('integrations.chat_upload_quota_helper')"
+                  :invalid-message="error.chat_upload_quota_mb"
+                  :disabled="loading.setIntegrations"
+                  ref="chat_upload_quota_mb"
+                />
+                <NsTextInput
+                  :label="$t('integrations.chat_upload_max_file')"
+                  v-model="chatUploadMaxFileMb"
+                  type="number"
+                  :invalid-message="error.chat_upload_max_file_mb"
+                  :disabled="loading.setIntegrations"
+                  ref="chat_upload_max_file_mb"
+                />
+              </template>
+              <h4 class="mb-4 section-title">
+                {{ $t("integrations.transcription_and_ai") }}
+              </h4>
+              <h5 class="mb-4">{{ $t("integrations.deepgram_section") }}</h5>
               <NsTextInput
                 :label="$t('integrations.deepgram_api_key')"
                 v-model.trim="deepgramApiKey"
@@ -104,6 +154,9 @@
                   {{ $t("common.enabled") }}
                 </template>
               </NsToggle>
+              <h5 class="mb-4 subsection-title">
+                {{ $t("integrations.openai_section") }}
+              </h5>
               <NsTextInput
                 :label="$t('integrations.openai_api_key')"
                 v-model.trim="openaiApiKey"
@@ -211,6 +264,10 @@ export default {
       isCallTranscriptionEnabled: false,
       isVoicemailTranscriptionEnabled: false,
       isCallSummaryEnabled: false,
+      isChatEnabled: false,
+      chatRetentionDays: "365",
+      chatUploadQuotaMb: "200",
+      chatUploadMaxFileMb: "25",
       loading: {
         getIntegrations: false,
         setIntegrations: false,
@@ -220,6 +277,9 @@ export default {
         setIntegrations: "",
         deepgram_api_key: "",
         openai_api_key: "",
+        chat_retention_days: "",
+        chat_upload_quota_mb: "",
+        chat_upload_max_file_mb: "",
       },
     };
   },
@@ -304,9 +364,57 @@ export default {
         integrations.satellite_voicemail_transcription_enabled || false;
       this.isCallSummaryEnabled =
         integrations.satellite_call_summary_enabled || false;
+      this.isChatEnabled = integrations.chat_enabled || false;
+      this.chatRetentionDays = String(integrations.chat_retention_days || 365);
+      this.chatUploadQuotaMb = String(integrations.chat_upload_quota_mb || 200);
+      this.chatUploadMaxFileMb = String(
+        integrations.chat_upload_max_file_mb || 25
+      );
       this.loading.getIntegrations = false;
     },
+    validateChat() {
+      this.error.chat_retention_days = "";
+      this.error.chat_upload_quota_mb = "";
+      this.error.chat_upload_max_file_mb = "";
+      if (!this.isChatEnabled) {
+        return true;
+      }
+      const days = Number(this.chatRetentionDays);
+      const quota = Number(this.chatUploadQuotaMb);
+      const maxFile = Number(this.chatUploadMaxFileMb);
+      if (!Number.isInteger(days) || days < 1 || days > 3650) {
+        this.error.chat_retention_days = this.$t(
+          "integrations.chat_retention_invalid"
+        );
+      } else if (!Number.isInteger(quota) || quota < 10 || quota > 100000) {
+        this.error.chat_upload_quota_mb = this.$t(
+          "integrations.chat_upload_quota_invalid"
+        );
+      } else if (!Number.isInteger(maxFile) || maxFile < 1 || maxFile > 1024) {
+        this.error.chat_upload_max_file_mb = this.$t(
+          "integrations.chat_upload_max_file_invalid"
+        );
+      } else if (maxFile > quota) {
+        this.error.chat_upload_max_file_mb = this.$t(
+          "integrations.chat_upload_max_file_over_quota"
+        );
+      }
+      for (const field of [
+        "chat_retention_days",
+        "chat_upload_quota_mb",
+        "chat_upload_max_file_mb",
+      ]) {
+        if (this.error[field]) {
+          this.focusElement(field);
+          return false;
+        }
+      }
+      return true;
+    },
     async setIntegrations() {
+      if (!this.validateChat()) {
+        return;
+      }
       const hasDeepgramApiKey = this.hasDeepgramApiKey;
       const hasOpenaiApiKey =
         this.hasOpenaiApiKey && this.isCallTranscriptionEnabled;
@@ -339,6 +447,12 @@ export default {
         this.createModuleTaskForApp(this.instanceName, {
           action: taskAction,
           data: {
+            chat_enabled: this.isChatEnabled,
+            ...(this.isChatEnabled && {
+              chat_retention_days: Number(this.chatRetentionDays),
+              chat_upload_quota_mb: Number(this.chatUploadQuotaMb),
+              chat_upload_max_file_mb: Number(this.chatUploadMaxFileMb),
+            }),
             deepgram_api_key: this.deepgramApiKey,
             openai_api_key: hasDeepgramApiKey ? this.openaiApiKey : "",
             satellite_call_transcription_enabled: hasDeepgramApiKey
@@ -415,6 +529,17 @@ export default {
 
 <style scoped lang="scss">
 @import "../styles/carbon-utils";
+
+// a line and some room between the chat and the transcription sections
+.section-title {
+  margin-top: $spacing-07;
+  padding-top: $spacing-07;
+  border-top: 1px solid $ui-03;
+}
+
+.subsection-title {
+  margin-top: $spacing-07;
+}
 
 // align the notification width to the text inputs above/below it
 .call-transcription-notification {

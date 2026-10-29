@@ -423,69 +423,6 @@ paths:
           application/json:
             schema:
               type: object
-  /configuration/voicemailgooglestt/{status}:
-    post:
-      summary: Toggle Google Speech-to-Text processing for voicemail attachments.
-      tags:
-      - Configuration
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-      description: When enabling, requires `google-auth.json` to already exist; otherwise
-        responds 412.
-      operationId: post_configuration_voicemailgooglestt_status
-      parameters:
-      - name: status
-        in: path
-        required: true
-        schema:
-          type: string
-          enum:
-          - enabled
-          - disabled
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-  /configuration/voicemailgooglestt:
-    get:
-      summary: Report whether voicemail transcription via Google STT is active.
-      tags:
-      - Configuration
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-              example: disabled
-      operationId: get_configuration_voicemailgooglestt
-  /configuration/googleauth:
-    post:
-      summary: Upload the Google Cloud authentication file used for voicemail transcription.
-      tags:
-      - Configuration
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-      description: 'Body: `{ "file": "<base64>" }`. The file is decoded to `/home/asterisk/google-auth.json`,
-        replacing any existing version.'
-      operationId: post_configuration_googleauth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
   /cti/profiles:
     get:
       summary: List CTI permission profiles with macro permissions attached.

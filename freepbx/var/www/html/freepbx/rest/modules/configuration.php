@@ -43,7 +43,7 @@ $app->get('/configuration/userprovider', function (Request $request, Response $r
     $domain = str_replace(',', '', $domain_raw);
 
     # Return user provider object
-    return $response->withJson(json_decode('{ "configured":1, "type":"ldap", "local":1, "domain": "'.$domain.'" }'), 200);
+    return jsonResponse($response, json_decode('{ "configured":1, "type":"ldap", "local":1, "domain": "'.$domain.'" }'), 200);
 });
 
 # get enabled mode
@@ -51,14 +51,14 @@ $app->get('/configuration/mode', function (Request $request, Response $response,
     $mode = getLegacyMode();
     # return 'unknown' if LegacyMode prop is not set
     if ( $mode == "" ) {
-        return $response->withJson(['result' => 'unknown'],200);
+        return jsonResponse($response, ['result' => 'unknown'],200);
     }
     exec("/usr/bin/rpm -q nethserver-directory", $out, $ret);
     # return true, if LegacyMode is enabled and nethserver-directory is installed
     if ($mode == "enabled" && $ret === 0) {
-        return $response->withJson(['result' => "legacy"],200);
+        return jsonResponse($response, ['result' => "legacy"],200);
     }
-    return $response->withJson(['result' => "uc"],200);
+    return jsonResponse($response, ['result' => "uc"],200);
 });
 
 #
@@ -71,7 +71,7 @@ $app->get('/configuration/networks', function (Request $request, Response $respo
 	} else {
 		$networks = [];
 	}
-	return $response->withJson($networks,200);
+	return jsonResponse($response, $networks,200);
 });
 
 $app->get('/configuration/wizard', function (Request $request, Response $response, $args) {
@@ -79,7 +79,7 @@ $app->get('/configuration/wizard', function (Request $request, Response $respons
         $dbh = FreePBX::Database();
         $sql = 'SELECT * FROM rest_wizard';
         $wizard = $dbh->sql($sql, 'getAll', \PDO::FETCH_ASSOC);
-        return $response->withJson($wizard, 200);
+        return jsonResponse($response, $wizard, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -95,12 +95,13 @@ $app->post('/configuration/wizard', function (Request $request, Response $respon
         // Restart nethcti-server if wizard is completed
         if ($step == 13) {
             // Restart Asterisk
-            system("/usr/sbin/asterisk -rx 'core restart when convenient' &> /dev/null");
+            system("/usr/sbin/asterisk -rx 'core restart when convenient' >/dev/null 2>&1");
             // Notify nethcti-server and nethcti-middleware restart
-            $file = fopen("/notify/restart_nethcti-server", 'w');
-            fclose($file);
-            $file = fopen("/notify/restart_nethcti-middleware", 'w');
-            fclose($file);
+            foreach (['restart_nethcti-server', 'restart_nethcti-middleware'] as $notification) {
+                if (@file_put_contents('/notify/'.$notification, '') === false) {
+                    throw new RuntimeException('Unable to create notification '.$notification);
+                }
+            }
         }
         // clean table
         sql('TRUNCATE `rest_wizard`');
@@ -123,7 +124,7 @@ $app->post('/configuration/wizard', function (Request $request, Response $respon
 * GET /configuration/externalip
 */
 $app->get('/configuration/externalip', function (Request $request, Response $response, $args) {
-    return $response->withJson(\FreePBX::create()->Sipsettings->getConfig('externip'),200);
+    return jsonResponse($response, \FreePBX::create()->Sipsettings->getConfig('externip'),200);
 });
 
 /*
@@ -154,7 +155,7 @@ $app->get('/configuration/suggestedip', function (Request $request, Response $re
     curl_close($ch);
     $ip_regexp = '/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/';
     if (preg_match($ip_regexp, $curl_result) === 1) {
-        return $response->withJson($curl_result,200);
+        return jsonResponse($response, $curl_result,200);
     }
     return $response->withStatus(500);
 });
@@ -164,7 +165,7 @@ $app->get('/configuration/suggestedip', function (Request $request, Response $re
 */
 $app->get('/configuration/allowexternalsips', function (Request $request, Response $response, $args) {
     //TODO remove this API
-    return $response->withJson('enabled',200);
+    return jsonResponse($response, 'enabled',200);
 });
 
 /*
@@ -179,7 +180,7 @@ $app->post('/configuration/allowexternalsips/{status:enabled|disabled}', functio
 * GET /configuration/localnetworks
 */
 $app->get('/configuration/localnetworks', function (Request $request, Response $response, $args) {
-    return $response->withJson(\FreePBX::create()->Sipsettings->getConfig('localnets'),200);
+    return jsonResponse($response, \FreePBX::create()->Sipsettings->getConfig('localnets'),200);
 });
 
 /*
@@ -191,70 +192,4 @@ $app->post('/configuration/localnetworks', function (Request $request, Response 
     global $astman;
     $astman->Command('core restart when convenient');
     return $response->withStatus(200);
-});
-
-#
-# POST /configuration/voicemailgooglestt/<enabled|disabled>
-#
-# enable or disable google speech STT for voicemail attachment
-#
-$app->post('/configuration/voicemailgooglestt/{status:enabled|disabled}', function (Request $request, Response $response, $args) {
-    $route = $request->getAttribute('route');
-    $status = $route->getArgument('status');
-    if ($status == 'enabled') {
-        if ( !file_exists('/home/asterisk/google-auth.json')) {
-            return $response->withJson('Missing authentication file',412);
-        }
-        $vm = \FreePBX::Voicemail()->getVoicemail(false);
-        $vm['general']['mailcmd'] = '/var/lib/asterisk/bin/googlestt_sendmail.php';
-        \FreePBX::Voicemail()->saveVoicemail($vm);
-        //reload
-        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-        return $response->withStatus(200);
-
-    } else if ($status == 'disabled') {
-        $vm = \FreePBX::Voicemail()->getVoicemail(false);
-        unset($vm['general']['mailcmd']);
-        \FreePBX::Voicemail()->saveVoicemail($vm);
-        //reload
-        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-        return $response->withStatus(200);
-    }
-    return $response->withStatus(500);
-});
-
-#
-# GET /configuration/voicemailgooglestt
-#
-# return google speech STT for voicemail attachment status
-#
-$app->get('/configuration/voicemailgooglestt', function (Request $request, Response $response, $args) {
-    $status = "disabled";
-    $vm = \FreePBX::Voicemail()->getVoicemail(false);
-    if ($vm['general']['mailcmd'] == "/var/lib/asterisk/bin/googlestt_sendmail.php") {
-        $status = "enabled";
-    }
-    return $response->withJson($status,200);
-});
-
-#
-# POST /configuration/googleauth
-#
-# upload the google's auth json file into a specific directory
-#
-$app->post('/configuration/googleauth', function (Request $request, Response $response, $args) {
-    try {
-        $params = $request->getParsedBody();
-        $base64file = preg_replace('/^data:[a-z\.\-\/]*;base64,/','',$params['file']);
-        $currentfile = '/home/asterisk/google-auth.json';
-        if (file_exists($currentfile)) {
-            unlink($currentfile);
-        }
-        $str = base64_decode($base64file);
-        file_put_contents($currentfile, $str);
-        return $response->withStatus(200);
-    } catch (Exception $e) {
-        error_log($e->getMessage());
-        return $response->withStatus(500);
-    }
 });

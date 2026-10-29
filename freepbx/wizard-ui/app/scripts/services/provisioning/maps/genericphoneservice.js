@@ -11,6 +11,19 @@
 angular.module('nethvoiceWizardUiApp')
   .service('GenericPhoneService', function (GenericPhoneUtilsService) {
 
+    // Only templates that implement the lldp_enable provisioning variable.
+    var lldpTemplates = [
+      "yealink.tmpl", "snom.tmpl", "snomD8XX.tmpl",
+      "gigasetP.tmpl", "gigasetP8XX.tmpl",
+      "akuvox.tmpl", "akuvox410w.tmpl", "akuvox480w.tmpl",
+      "fanvil-X3.tmpl", "fanvil-X5.tmpl", "fanvil-V67.tmpl",
+      "nethesis.tmpl", "sangoma.tmpl"
+    ];
+
+    this.isLldpSupported = function (variables) {
+      return lldpTemplates.indexOf(variables.tmpl_phone) !== -1
+    }
+
     this.map = function (variables) {
       let softkey_count = parseInt(variables.cap_softkey_count),
           softkey_type_blacklist = variables.cap_softkey_type_blacklist ? variables.cap_softkey_type_blacklist.split(",") : "",
@@ -39,7 +52,11 @@ angular.module('nethvoiceWizardUiApp')
             "blacklist":  date_formats_blacklist
           }
         },
-        "network": {},
+        "network": {
+          "lldp_enable": {
+            "visible": this.isLldpSupported(variables)
+          }
+        },
         "preferences": {
           "dss_transfer": {
             "blacklist": dss_transfer_blacklist
@@ -400,6 +417,15 @@ angular.module('nethvoiceWizardUiApp')
       return {
         "name":"network_settings_label",
         "items": [
+          {
+            "variable": "lldp_enable",
+            "description": "lldp_enable_label",
+            "type": "selectpicker",
+            "options": [
+              { "text": "Enabled", "value": "1" },
+              { "text": "Disabled", "value": "0" }
+            ]
+          },
           {
             "variable": "vlan_id_phone",
             "description": "vlan_id_phone_label",

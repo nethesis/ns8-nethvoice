@@ -23,7 +23,7 @@ $app->get('/magic/list', function (Request $request, Response $response, $args) 
 
     ... do your magic here ..
 
-    return $response->withJson($result);
+    return jsonResponse($response, $result);
 });
 ```
 

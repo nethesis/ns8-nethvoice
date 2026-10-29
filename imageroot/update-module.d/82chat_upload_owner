@@ -1,0 +1,9 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# NethVoice chat: fix the uploads volume of installations restored before the restore did it.
+exec "${AGENT_INSTALL_DIR}"/bin/chat-upload-owner

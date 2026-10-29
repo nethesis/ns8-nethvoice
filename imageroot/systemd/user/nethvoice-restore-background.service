@@ -1,0 +1,12 @@
+[Unit]
+Description=Restore historic NethVoice call data
+Requires=mariadb.service
+After=mariadb.service freepbx.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=%E/state
+EnvironmentFile=%E/state/environment
+EnvironmentFile=%E/state/agent.env
+ExecStart=runagent restore-background
+TimeoutStartSec=infinity

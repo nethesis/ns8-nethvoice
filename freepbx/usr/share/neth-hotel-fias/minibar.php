@@ -49,7 +49,7 @@ try {
     $query = "SELECT COUNT(*) as num FROM messages WHERE `cmd` = 'PS' AND `dir` = 'PMS'";
     $sth = $fiasdb->prepare($query);
     $rs = $sth->execute();
-    $res = $sth->fetchAll(PDO::FETCH_ASSOC)[0]['num'];
+    $res = $sth->fetchColumn();
     $psn = (int) $res + 1;
     // P# max length is 8 byte
     $psn = $psn % 99999999;

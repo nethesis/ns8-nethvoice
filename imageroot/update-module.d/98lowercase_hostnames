@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Hostnames saved before they were normalized can contain uppercase letters,
+# which break the mobile app registration (NethServer/dev#8190). Save the
+# configuration again, as the administrator would: configure-module stores the
+# hostnames in lowercase and updates the HTTP routes and the SIP route with them.
+
+import os
+import sys
+
+import agent
+import agent.tasks
+
+env = agent.read_envfile('environment')
+hosts = (env.get('NETHVOICE_HOST', ''), env.get('NETHCTI_UI_HOST', ''))
+if all(host == host.lower() for host in hosts):
+    sys.exit(0)
+
+response = agent.tasks.run(
+    agent_id=os.environ['AGENT_ID'],
+    action='get-configuration',
+    data={},
+)
+agent.assert_exp(response['exit_code'] == 0)
+
+print(f"Saving hostnames {hosts[0]} and {hosts[1]} in lowercase", file=sys.stderr)
+response = agent.tasks.run(
+    agent_id=os.environ['AGENT_ID'],
+    action='configure-module',
+    data=response['output'],
+    extra={'isNotificationHidden': True},
+)
+if response['exit_code'] == 2:
+    # Hostnames differing only in case: the administrator must choose new ones.
+    print(f"Hostnames not saved in lowercase: {response['output']}", file=sys.stderr)
+    sys.exit(0)
+agent.assert_exp(response['exit_code'] == 0)

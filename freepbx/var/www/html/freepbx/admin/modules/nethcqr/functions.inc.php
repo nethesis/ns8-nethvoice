@@ -353,6 +353,7 @@ function nethcqr_get_entries($id_cqr){
 function nethcqr_draw_entries($id_cqr){
     $headers = nethcqr_draw_entries_table_header();
     $cqr_entries = nethcqr_get_entries($id_cqr);
+    $entries = array();
     if ($cqr_entries)
         foreach ($cqr_entries as $k => $v) {
                         $entries[$k]= $v;
@@ -379,7 +380,7 @@ fclose ($openfile);
 function nethcqr_save_details($vals){
         global $db, $amp_conf;
         foreach($vals as $key => $value) {
-                $vals[$key] = $db->escapeSimple($value);
+                $vals[$key] = $db->escapeSimple((string) ($value ?? ''));
         }
     $id_cqr=$vals['id_cqr'];
         $name=$vals['name'];
@@ -483,5 +484,4 @@ function nethcqr_change_destination($old_dest, $new_dest) {
     $sql = "UPDATE nethcqr_entries SET dest = '$new_dest' WHERE dest = '$old_dest'";
         $db->query($sql);
 }
-
 

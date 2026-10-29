@@ -8,7 +8,7 @@
  * Controller of the nethvoiceWizardUiApp
  */
 angular.module('nethvoiceWizardUiApp')
-  .controller('ConfigurationsCtrl', function ($scope, $rootScope, $q, ConfigurationService, ProfileService, ModelService, DeviceService, UserService, PhoneService, DashboardService, $timeout) {
+  .controller('ConfigurationsCtrl', function ($scope, $rootScope, $q, ConfigurationService, ProfileService, ModelService, DeviceService, UserService, PhoneService, DashboardService, $timeout, GenericPhoneService) {
 
     $scope.view.changeRoute = true
     $scope.allUsers = []
@@ -265,6 +265,7 @@ angular.module('nethvoiceWizardUiApp')
             $scope.currentModel.storedVariables[variable] = res.data.variables[variable]
             $scope.currentModel.variables[variable] = res.data.variables[variable]
           }
+          $scope.currentModel.ui.map.network.lldp_enable.visible = GenericPhoneService.isLldpSupported($scope.currentModel.variables)
           $("#singleModelModal").modal("show")
         }, function () {
           console.log(err)
@@ -623,6 +624,29 @@ angular.module('nethvoiceWizardUiApp')
         })
       }
     }
+
+    $scope.openNethLinkInfo = function (username) {
+      UserService.getNethLinkInfo(username).then(function (res) {
+        if (res && res.data) {
+          $scope.currentNethLinkInfo = res.data
+          $scope.emptyNethLinkInfo = false
+        } else {
+          $scope.currentNethLinkInfo = null
+          $scope.emptyNethLinkInfo = true
+        }
+        $("#nethlinkInfoModal").modal("show")
+      }, function (err) {
+        console.log(err)
+        $scope.currentNethLinkInfo = null
+        $scope.emptyNethLinkInfo = true
+        $("#nethlinkInfoModal").modal("show")
+      })
+    }
+
+    $('#nethlinkInfoModal').on('hide.bs.modal', function () {
+      $scope.currentNethLinkInfo = null
+      $scope.emptyNethLinkInfo = false
+    })
 
     $scope.setProfile = function () {
       ProfileService.setUserProfile($scope.currentUser.id, {

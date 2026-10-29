@@ -1,0 +1,136 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: 2018-04-12 14:55+0200\n"
+"PO-Revision-Date: 2018-04-12 15:11+0200\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: it_IT\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.0.6\n"
+"X-Poedit-Basepath: ..\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: Queueexit.class.php:114
+msgid "Delete"
+msgstr "Elimina"
+
+#: Queueexit.class.php:117
+msgid "Reset"
+msgstr ""
+
+#: Queueexit.class.php:119
+msgid "Submit"
+msgstr "Conferma"
+
+#: Queueexit.class.php:177
+msgid "Edit Queue Exit"
+msgstr "Modifica Uscita Coda"
+
+#: Queueexit.class.php:180 views/bootnav.php:2
+msgid "Add Queue Exit"
+msgstr "Aggiungi Uscita Coda"
+
+#: Queueexit.class.php:185
+msgid "Queue Exit List"
+msgstr "Lista Uscite Coda"
+
+#: install.php:23
+msgid "Creating the database table"
+msgstr "Creazione tabella database"
+
+#: install.php:45
+msgid "Table Created"
+msgstr "Tabella creata"
+
+#: install.php:46 uninstall.php:36
+msgid "Something went wrong"
+msgstr "Qualcosa è andato storto"
+
+#: uninstall.php:24
+msgid "Removing the database table"
+msgstr "Rimozione tabella database"
+
+#: uninstall.php:34
+msgid "Table Deleted"
+msgstr "Tabella eliminata"
+
+#: views/bootnav.php:1
+msgid "List Queue Exit"
+msgstr "Lista Uscite Coda"
+
+#: views/default.php:2
+msgid "Queue Exit"
+msgstr "Uscita Coda"
+
+#: views/form.php:48
+msgid "Name"
+msgstr "Nome"
+
+#: views/form.php:56
+msgid "Give this Queue Exit a brief name to help you identify it."
+msgstr "Nome identificativo per aiutare l'identificazione."
+
+#: views/form.php:69
+msgid "Timeout Destination"
+msgstr "Destianzione Timeout"
+
+#: views/form.php:79
+msgid "Destination when call leave the queue because has reached maximum waiting time"
+msgstr "Destinazione quando la chiamata è uscita dalla coda perché ha raggiunto il tempo massimo di attesa"
+
+#: views/form.php:87
+msgid "Full Destination"
+msgstr "Destianzione Full"
+
+#: views/form.php:97
+msgid "Destination when call leave because queue has reached maximum number of waiting calls"
+msgstr "Destinazione quando la chiamata è uscita perché la coda ha raggiunto il numero massimo di chiamate in attesa"
+
+#: views/form.php:105
+msgid "Joinempty Destination"
+msgstr "Destinazione Joinempty"
+
+#: views/form.php:115
+msgid "Destination when call leave the queue because there wasn't any agent"
+msgstr "Destinazione quando la chiamata è uscita perché al momento del suo ingresso in coda non c'erano agenti collegati"
+
+#: views/form.php:123
+msgid "Leaveempty Destination"
+msgstr "Destianzione Leaveempty"
+
+#: views/form.php:133
+msgid "Destination when call leave the queue because during the waiting all available agent logged off"
+msgstr "Destinazione quando la chiamata è uscita dalla coda perché durante l'attesa tutti gli agenti disponibili si sono scollegati"
+
+#: views/form.php:141
+msgid "Joinunavail Destination"
+msgstr "Destinazione Joinunavail"
+
+#: views/form.php:151
+msgid "Destination when call leave the queue because there wasn't available agents"
+msgstr "Destinazione quando la chiamata è uscita dalla coda perché al momento del suo ingresso non c'erano agenti pronti a rispondere"
+
+#: views/form.php:159
+msgid "Leaveunavail Destination"
+msgstr "Destinazione Leaveunavail"
+
+#: views/form.php:169
+msgid "Destination when call leave the queue because during the waiting all available agents changed status"
+msgstr "Destinazione quando la chiamata è uscita dalla coda perché durante l'attesa tutti gli agenti pronti a rispondere hanno cambiato stato"
+
+#: views/form.php:177
+msgid "Continue Destination"
+msgstr "Destinazione Continue"
+
+#: views/form.php:187
+msgid "Destination when CONTINUE is value of QUEUESTATUS"
+msgstr "Destinazione quando la variabile QUEUESTATUS ha valore CONTINUE"
+
+#: views/grid.php:31
+msgid "Actions"
+msgstr "Azioni"
+

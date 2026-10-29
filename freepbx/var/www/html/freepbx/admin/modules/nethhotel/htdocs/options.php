@@ -19,11 +19,11 @@
 	<div style='margin: 10px; padding: 10px; float:left'>
 	<form>
 	  <label for='prefix'><?php echo _("Prefix ");?></label><!--Prefisso -->
-	  <input type="text" name="prefix" size="1" id="prefix" class="text ui-widget-content ui-corner-all" value='<?php echo $options['prefix']; ?>' />
+	  <input type="text" name="prefix" size="1" id="prefix" class="text ui-widget-content ui-corner-all" value='<?php echo htmlspecialchars((string) $options['prefix'], ENT_QUOTES, 'UTF-8'); ?>' />
 		<span style='font-size: 90%; margin-left: 10px'><?php echo _("(Return the same prefix in Routes in output)");?></span>	<br/><br/><!--(Riportare lo stesso prefisso nelle Rotte in Uscita)-->
 
 	  <label for='ext_pattern'><?php echo _("Internal pattern ");?></label><!--Pattern interni -->
-	  <input type="text" name="ext_pattern" size="5" id="ext_pattern" class="text ui-widget-content ui-corner-all" value='<?php echo $options['ext_pattern']; ?>'/>
+	  <input type="text" name="ext_pattern" size="5" id="ext_pattern" class="text ui-widget-content ui-corner-all" value='<?php echo htmlspecialchars((string) $options['ext_pattern'], ENT_QUOTES, 'UTF-8'); ?>'/>
 	  <span id='hbutton'><a href='#'><img src='images/help.png'/></a></span><br/><br/>
 	  <div id='help' class='help' style='display:none; padding: 3px; margin-bottom:10px'>
 		<?php echo _("The internal pattern describes the format that identifies the interiors.");?><!--Il pattern interni descrive il formato che identifica gli interni-->
@@ -43,7 +43,7 @@
 	  <label for='externalcalls'><?php echo _("Enable external call from rooms");?></label> <input type="checkbox" name="externalcalls" id="externalcalls" <?php echo $options['externalcalls']?'checked="checked"':''; ?>/><br/><br/><!--Abilita chiamate esterne -->
 	  <label for='internal_call_nocheckin'><?php echo _("Enable calls between rooms that have not performed the check-in ");?></label> <input type="checkbox" name="internal_call_nocheckin" id="internal_call_nocheckin" <?php echo $options['internal_call_nocheckin']?'checked="checked"':''; ?>/><br/><br/><!--Abilita chiamate fra camere che non hanno eseguito il check-in -->
 	  <label for='reception'><?php echo _("Internal to alarm clock doesn't answer ");?></label><!--Interno per allarmi sveglia non risposta -->
-	  <input type="text" name="reception" size="5" id="reception" class="text ui-widget-content ui-corner-all" value='<?php echo $options['reception']; ?>'/><br/><br/>
+	  <input type="text" name="reception" size="5" id="reception" class="text ui-widget-content ui-corner-all" value='<?php echo htmlspecialchars((string) $options['reception'], ENT_QUOTES, 'UTF-8'); ?>'/><br/><br/>
 	  <label for='enableclean'><?php echo _("Enable rooms cleaning");?></label> <input type="checkbox" name="enableclean" id="enableclean" <?php if (!isset($options['enableclean'])||$options['enableclean']==1) echo 'checked="checked"'; ?>/><br/><br/><!--Abilita codice pulizia camere-->
           <label for='clean'><?php echo _("Enable code cleaning rooms");?></label> <input type="checkbox" name="clean" id="clean" <?php echo $options['clean']?'checked="checked"':''; ?>/><br/><br/><!--Abilita codice pulizia camere-->
 
@@ -54,10 +54,10 @@
               <?php
                   $receptionLang = getReceptionAudioLang();
                   foreach ($supported_audio_langs as $lang) {
-                      echo "<option value=\"$lang\"";
+                      echo '<option value="'.htmlspecialchars((string) $lang, ENT_QUOTES, 'UTF-8').'"';
                           if ($receptionLang === $lang)
                               echo " selected";
-                      echo ">$lang</option>";
+                      echo '>'.htmlspecialchars((string) $lang, ENT_QUOTES, 'UTF-8').'</option>';
                   }
               ?>
               </select>

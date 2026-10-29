@@ -31,12 +31,19 @@ $sth = $dbh->prepare($sql);
 $sth->execute(array($tslow,$tshigh));
 
 $res = $sth->fetchAll();
+if (count($res) === 0) {
+    exit(0);
+}
 
 //get reception number
 $sql = 'SELECT value FROM roomsdb.options WHERE variable = ?';
 $sth = $dbh->prepare($sql);
 $sth->execute(array("reception"));
-$reception = $sth->fetchAll()[0][0];
+$reception = $sth->fetchColumn();
+if ($reception === false || $reception === '') {
+    error_log('Unable to create hotel alarms: reception is not configured');
+    exit(1);
+}
 
 foreach ($res as $alarm){
     //create call file
@@ -71,7 +78,16 @@ foreach ($res as $alarm){
         $filename = $reception.'-'.$alarm['timestamp'].".call";
     }
     $fname = tempnam("/tmp", 'alarm');
+    if ($fname === false) {
+        error_log('Unable to create a temporary hotel alarm file');
+        continue;
+    }
     $openfile = fopen($fname,"w");
+    if ($openfile === false) {
+        error_log('Unable to open temporary hotel alarm file '.$fname);
+        unlink($fname);
+        continue;
+    }
     fwrite($openfile,$file);
     fclose($openfile);
 
@@ -89,4 +105,3 @@ foreach ($res as $alarm){
     $sth = $dbh->prepare($sql);
     $sth->execute(array($alarm['extension'],$tslow,$tshigh));
 }
-

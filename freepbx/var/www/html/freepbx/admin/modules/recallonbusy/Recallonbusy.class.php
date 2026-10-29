@@ -122,7 +122,7 @@ class Recallonbusy extends \FreePBX_Helpers implements \BMO
 
 	public function doDialplanHook(&$ext, $engine, $priority)
 	{
-		include_once '/var/www/html/freepbx/rest/lib/libExtensions.php';
+		include_once dirname(__DIR__, 3) . '/rest/lib/libExtensions.php';
 		foreach (\FreePBX::Core()->getAllUsers() as $extension => $data) {
 		#	if (!isMainExtension($extension)) {
 		#		continue;
@@ -134,7 +134,17 @@ class Recallonbusy extends \FreePBX_Helpers implements \BMO
 		} else {
 			$ifstring = '$["${DB(AMPUSER/${AMPUSER}/cidnum)}" != "" & ("${DIALSTATUS}"="BUSY" | "${DIALSTATUS}"="CHANUNAVAIL") & "${DB(ROBconfig/${AMPUSER})}"="enabled" & "${DB(DND/${EXTTOCALL})}" != "YES"]';
 		}
-		$ext->splice('macro-exten-vm', 's', 20, new \ext_execif($ifstring,'MacroExit'));
+        $matches = [];
+        foreach ($ext->_exts['macro-exten-vm'][' s '] ?? [] as $index => $step) {
+            if ($step['cmd']->output() === 'GotoIf($["${ARG1}"="novm"]?s-${DIALSTATUS},1)') {
+                $matches[] = $index;
+            }
+        }
+        if (count($matches) === 1) {
+            $ext->splice('macro-exten-vm', 's', (string) $matches[0], new \ext_execif($ifstring, 'Return'));
+        } else {
+            error_log('RecallOnBusy: Cannot find Core voicemail branch; skipping busy-return hook');
+        }
 		$context = 'recall-on-busy';
 		$ext->add($context, 's', '', new \ext_agi('recallonbusy_set.php,${EXTTOCALL}'));
 		$ext->add($context, 's', '', new \ext_return());

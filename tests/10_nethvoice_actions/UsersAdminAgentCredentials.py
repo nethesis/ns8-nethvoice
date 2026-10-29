@@ -19,6 +19,7 @@ import os
 import secrets
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -135,6 +136,55 @@ def container_env(variable):
     return result.stdout.rstrip("\n")
 
 
+def wait_for_freepbx(timeout=600):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        result = subprocess.run(
+            ["podman", "exec", "freepbx", "test", "-f", "/var/run/nethvoice/freepbx-ready"],
+            text=True,
+            capture_output=True,
+            timeout=15,
+        )
+        if result.returncode == 0:
+            return
+        time.sleep(2)
+    raise RuntimeError("FreePBX initialization did not complete within " + str(timeout) + " seconds")
+
+
+def csv_import_failure(result, token):
+    status_text = "unavailable"
+    try:
+        status = subprocess.run(
+            ["podman", "exec", "freepbx", "cat", "/var/run/nethvoice/csvimport.code"],
+            text=True,
+            capture_output=True,
+            timeout=15,
+        )
+        if status.returncode == 0:
+            status_text = status.stdout
+    except (OSError, subprocess.TimeoutExpired):
+        pass  # Diagnostics must not hide the original importer failure.
+    details = {
+        "exitcode": result.returncode,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "status": status_text,
+    }
+    sensitive_values = {password, token, "Nethesis,1234"}
+    for values in (agent_env, environment, os.environ):
+        sensitive_values.update(
+            value for key, value in values.items()
+            if any(part in key.upper() for part in ("PASSWORD", "PASS", "SECRET", "TOKEN"))
+        )
+    # Redact before JSON escaping, including credentials containing quotes.
+    for value in sorted(sensitive_values, key=len, reverse=True):
+        if value:
+            for field in ("stdout", "stderr", "status"):
+                details[field] = details[field].replace(value, "[redacted]")
+                details[field] = details[field].replace(json.dumps(value)[1:-1], "[redacted]")
+    return "FreePBX CSV import failed: " + json.dumps(details)
+
+
 def check_contract():
     require("REDIS_USER" in agent_env, "REDIS_USER is missing from agent.env")
     require("REDIS_PASSWORD" in agent_env, "REDIS_PASSWORD is missing from agent.env")
@@ -190,6 +240,7 @@ def check_contract():
 
 
 def check_api_flow():
+    wait_for_freepbx()
     token = login()
     direct_user = "direct" + secrets.token_hex(4)
     csv_user = "csv" + secrets.token_hex(4)
@@ -220,7 +271,8 @@ def check_api_flow():
             capture_output=True,
             timeout=120,
         )
-        require(result.returncode == 0, "FreePBX CSV import failed")
+        if result.returncode != 0:
+            raise RuntimeError(csv_import_failure(result, token))
         require(user_exists(token, csv_user), "FreePBX-created user is missing")
         remove_user(token, csv_user)
         csv_removed = not user_exists(token, csv_user)

@@ -47,6 +47,7 @@ $app->post('/settings/defaultlanguage', function (Request $request, Response $re
         }
         FreePBX::create()->Core->config->set_conf_values(array('TONEZONE'=>$tonescheme),true,$amp_conf['AS_OVERRIDE_READONLY']);
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        return $response->withStatus(200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -67,7 +68,7 @@ $app->get('/settings/languages', function (Request $request, Response $response,
                 $res[$lang] = array('default' => false);
             }
         }
-        return $response->withJson($res,200);
+        return jsonResponse($response, $res,200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -78,6 +79,6 @@ $app->get('/settings/languages', function (Request $request, Response $response,
  * GET /settings/conferenceurl return the conference JitsiUrl
  */
 $app->get('/settings/conferenceurl', function (Request $request, Response $response, $args) {
-    return $response->withJson($_ENV['NETHVOICE_CONFERENCEURL'], 200);
+    return jsonResponse($response, $_ENV['NETHVOICE_CONFERENCEURL'], 200);
 });
 

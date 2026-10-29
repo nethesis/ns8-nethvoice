@@ -25,6 +25,7 @@ ExecStart=/usr/bin/podman run \
     --volume=/dev/log:/dev/log \
     --env-file=%E/state/passwords.env \
     --env=TANCREDIPORT \
+    --env=TANCREDI_LOG_LEVEL \
     --env=AMPDBUSER \
     --env=NETHVOICE_MARIADB_PORT \
     --env=NETHVOICE_HOST \

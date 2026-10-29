@@ -1,135 +1,24 @@
 #!/bin/bash
-
-#
-# Copyright (C) 2025 Nethesis S.r.l.
+# Copyright (C) 2026 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
-#
 
-set -e
+set -euo pipefail
+exec 1>&2
 
-# start mariadb container if not already running
-MARIADB_RUNNING=$(systemctl --user is-active mariadb || true)
-if [ "$MARIADB_RUNNING" != "active" ]; then
+# Run through runagent so newly allocated ports and proxy settings are visible.
+mariadb_running=$(systemctl --user is-active mariadb || true)
+if [[ "$mariadb_running" != active ]]; then
+    trap 'systemctl --user stop mariadb' EXIT
     systemctl --user start mariadb
 fi
 
-# Create roomsdb and fias databases, refresh provider and gateway defaults and apply DB fixes
-MARIADB_ROOT_PASSWORD=$(grep '^MARIADB_ROOT_PASSWORD=' ./passwords.env) && export "${MARIADB_ROOT_PASSWORD?}"
-
-podman exec -i mariadb bash <<'EOF'
-# Hotel
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/00_roomsdb-schema-create.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.alarmcalls-schema.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.alarms_history-schema.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.alarms-schema.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.codes-schema.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.extra_history-schema.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.extra-schema.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.groups_rooms-schema.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.history-schema.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.options-schema.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.rates-schema.sql
-RATES_COUNT=$(/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" -N -B -e 'SELECT COUNT(*) FROM roomsdb.rates')
-if [ "${RATES_COUNT}" -eq 0 ]; then
-    /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/45_roomsdb.defaults.sql
-fi
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.room_groups-schema.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_roomsdb.rooms-schema.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" -e "GRANT ALL on roomsdb.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'"
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/00_fias-schema-create.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_fias.messages-schema.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_fias.messagesparameters-schema.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/40_fias.reservations-schema.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" -e "GRANT ALL on fias.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'"
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" phonebook -e 'CREATE TABLE IF NOT EXISTS `sync_metadata` (`scope` varchar(255) NOT NULL, `last_sync_at` datetime DEFAULT NULL, PRIMARY KEY (`scope`)) ENGINE=MyISAM DEFAULT CHARSET=utf8'
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'INSERT INTO `rest_cti_permissions` (`id`,`name`,`displayname`,`description`) VALUES (10,"phonebook_level_0","Phonebook read only","View phonebook contacts"),(11,"phonebook_level_1","Phonebook private contacts","Create, edit and delete owned private contacts"),(12,"ad_phonebook","Advanced Phonebook","Read and write all contacts"),(14,"phonebook_level_2","Phonebook public and shared contacts","Create, edit and delete public and shared contacts") ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `displayname`=VALUES(`displayname`), `description`=VALUES(`description`)'
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`,`permission_id`) VALUES (2,10),(2,11),(2,12),(2,14) ON DUPLICATE KEY UPDATE `permission_id`=VALUES(`permission_id`)'
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'INSERT INTO `rest_cti_profiles_permissions` (`profile_id`,`permission_id`) SELECT `profile_id`, 10 FROM `rest_cti_profiles_macro_permissions` WHERE `macro_permission_id` = 2 ON DUPLICATE KEY UPDATE `permission_id`=VALUES(`permission_id`)'
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'INSERT INTO `rest_cti_profiles_permissions` (`profile_id`,`permission_id`) SELECT `profile_id`, 14 FROM `rest_cti_profiles_permissions` WHERE `permission_id` = 12 ON DUPLICATE KEY UPDATE `permission_id`=VALUES(`permission_id`)'
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" -e "INSERT IGNORE INTO \`asterisk\`.\`admin\` (\`variable\`, \`value\`) VALUES ('NETHVOICE_HOST','')"
-VM_CALLERID_LENGTH=$(/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" -N -B -e "SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'asteriskcdrdb' AND TABLE_NAME = 'voicemessages' AND COLUMN_NAME = 'callerid'")
-if [ -n "${VM_CALLERID_LENGTH}" ] && [ "${VM_CALLERID_LENGTH}" -lt 255 ]; then
-    /usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" -e "ALTER TABLE \`asteriskcdrdb\`.\`voicemessages\` MODIFY \`callerid\` varchar(255) DEFAULT ''"
-fi
-# VoIP Providers
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/10_asterisk.rest_pjsip_trunks_custom_flags.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'DROP TABLE IF EXISTS `providers`'
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'TRUNCATE TABLE `rest_pjsip_providers`'
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'TRUNCATE TABLE `rest_pjsip_trunks_custom_flags`'
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'TRUNCATE TABLE `rest_pjsip_trunks_defaults`'
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'TRUNCATE TABLE `rest_pjsip_trunks_specialopts`'
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/50_asterisk.rest_pjsip_providers.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/50_asterisk.rest_pjsip_trunks_custom_flags.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/50_asterisk.rest_pjsip_trunks_defaults.sql
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/50_asterisk.rest_pjsip_trunks_specialopts.sql
-# Gateway models: refresh the catalog without deleting configured gateways via foreign keys.
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" < /docker-entrypoint-initdb.d/50_asterisk.gateway_models.sql
-# NethCTI Server
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" nethcti3 -e 'DELETE FROM `auth` WHERE user LIKE "%_phone-island"'
-# Phonebook: add extended contact fields for existing installs
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" nethcti3 -e '
-ALTER TABLE cti_phonebook
-  ADD COLUMN IF NOT EXISTS firstname varchar(255) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS lastname varchar(255) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS job varchar(255) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS facebook varchar(255) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS instagram varchar(255) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS linkedin varchar(255) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS workphone2 varchar(25) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS cellphone2 varchar(25) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS otherphone varchar(25) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS otheremail varchar(255) DEFAULT NULL'
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" nethcti3 -e '
-ALTER TABLE cti_phonebook
-  ADD INDEX IF NOT EXISTS lastname_idx (lastname),
-  ADD INDEX IF NOT EXISTS wphone2_idx (workphone2),
-  ADD INDEX IF NOT EXISTS cphone2_idx (cellphone2),
-  ADD INDEX IF NOT EXISTS ophone_idx (otherphone),
-  ADD INDEX IF NOT EXISTS oemail_idx (otheremail)'
-# Centralized phonebook: keep the extended contact fields in sync for existing installs.
-# update-module and import-module do NOT run the configure-module schema step, so the centralized
-# table must be migrated here too, otherwise the middleware (which selects these columns) fails
-# every phonebook search with "Unknown column".
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" phonebook -e '
-ALTER TABLE phonebook
-  ADD COLUMN IF NOT EXISTS access varchar(255) NOT NULL DEFAULT "public",
-  ADD COLUMN IF NOT EXISTS firstname varchar(255) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS lastname varchar(255) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS job varchar(255) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS facebook varchar(255) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS instagram varchar(255) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS linkedin varchar(255) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS workphone2 varchar(25) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS cellphone2 varchar(25) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS otherphone varchar(25) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS otheremail varchar(255) DEFAULT NULL,
-  ADD INDEX IF NOT EXISTS lastname_idx (lastname),
-  ADD INDEX IF NOT EXISTS wphone2_idx (workphone2),
-  ADD INDEX IF NOT EXISTS cphone2_idx (cellphone2),
-  ADD INDEX IF NOT EXISTS ophone_idx (otherphone),
-  ADD INDEX IF NOT EXISTS oemail_idx (otheremail)'
-# Existing centralized rows (pre-sharing imports, legacy scripts, nethcti republish)
-# have empty access after the column is added: they were publicly visible, so mark them
-# public explicitly. Group-scoped rows carry 'group:...' and are left untouched.
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" phonebook -e 'UPDATE phonebook SET access = "public" WHERE access = ""'
-# Enable WebSocket transport
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e 'UPDATE kvstore_Sipsettings SET val="{\"wss\":{\"0.0.0.0\":\"on\"},\"udp\":{\"0.0.0.0\":\"on\"},\"tcp\":{\"0.0.0.0\":\"on\"},\"ws\":{\"0.0.0.0\":\"on\"},\"tls\":{\"0.0.0.0\":\"on\"}}" WHERE `key` = "binds"'
-/usr/bin/mysql -uroot -p"${MARIADB_ROOT_PASSWORD}" -h 127.0.0.1 -P "${NETHVOICE_MARIADB_PORT}" asterisk -e "
-INSERT INTO \`sipsettings\` (\`keyword\`,\`data\`,\`seq\`,\`type\`) VALUES
-    ('rtpstart','${ASTERISK_RTPSTART}',0,0),
-    ('rtpend','${ASTERISK_RTPEND}',0,0),
-    ('bindport','${ASTERISK_SIP_UDP_PORT}',1,0)
-ON DUPLICATE KEY UPDATE \`data\`=VALUES(\`data\`);
-UPDATE kvstore_Sipsettings SET val='${ASTERISK_RTPSTART}' WHERE \`key\`='rtpstart';
-UPDATE kvstore_Sipsettings SET val='${ASTERISK_RTPEND}' WHERE \`key\`='rtpend';
-UPDATE kvstore_Sipsettings SET val='${ASTERISK_SIP_UDP_PORT}' WHERE \`key\`='udpport-0.0.0.0';
-INSERT INTO \`iaxsettings\` (\`keyword\`,\`data\`,\`seq\`,\`type\`) VALUES ('bindport','${ASTERISK_IAX_PORT}',1,0)
-ON DUPLICATE KEY UPDATE \`data\`=VALUES(\`data\`);
-"
-exit 0
-EOF
-
-# stop mariadb container if it wasn't running before
-if [ "$MARIADB_RUNNING" != "active" ]; then
-    systemctl --user stop mariadb
-fi
+# Historic call data is independent of the configuration schema. Start its
+# resumable import only after the synchronous migrations have succeeded.
+# Use SQL from the new image before replacing the running database container.
+# This client never mounts the database volume.
+podman run --rm --network=host \
+    --env-file=./passwords.env \
+    --env=NETHVOICE_MARIADB_PORT --env=AMPDBUSER \
+    --env=ASTERISK_* --env=ASTMANAGERPORT --env=PROXY_IP --env=PROXY_PORT \
+    --entrypoint=/usr/local/bin/nethvoice-db-init \
+    "${NETHVOICE_MARIADB_IMAGE}" "$@"

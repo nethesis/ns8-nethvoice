@@ -11,8 +11,8 @@
 	<description>Recall a busy extension when it became available</description>
 	<changelog></changelog>
 	<info></info>
-	<licence>GPL</licence>
-	<licenselink>http://www.gnu.org/licenses/gpl-2.0.txt</licenselink>
+	<license>GPLv3+</license>
+	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
 	<depends>
 		<version>14.0.0</version>
 	</depends>

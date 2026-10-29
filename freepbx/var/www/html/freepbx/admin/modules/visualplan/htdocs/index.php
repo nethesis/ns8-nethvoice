@@ -243,10 +243,10 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
 	</pre>
 	<footer>
 		<p>
-			<a href="http://www.nethvoice.it" target="_blank">Copyright © 2016</a>
+			<a href="https://www.nethesis.it/soluzioni/nethvoice" target="_blank">Copyright © 2026</a>
 		</p>
 		<p class="right_floated">
-			<a href="https://docs.nethserver.org/projects/ns8/it/latest/nethvoice.html#inbound" target="_blank">Documentazione</a>
+			<a href="https://docs.nethvoice.com/it/docs/administrator-manual/configuration/wizard#in-entrata" target="_blank">Documentazione</a>
 		</p>
 	</footer>
 </body>

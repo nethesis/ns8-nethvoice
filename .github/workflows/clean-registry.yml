@@ -4,6 +4,9 @@ on:
   delete:
   workflow_dispatch:
 
+permissions:
+  packages: write
+
 jobs:
   delete_images:
     name: "Delete ghcr.io images ${{ github.event.ref }}"
@@ -12,5 +15,5 @@ jobs:
     steps:
       - uses: NethServer/ns8-github-actions/.github/actions/delete-image@v1
         with:
-          images: "kickstart"
-          delete_image_token: ${{ secrets.IMAGES_CLEANUP_TOKEN }}
+          images: "nethvoice nethvoice-mariadb nethvoice-freepbx nethvoice-tancredi nethvoice-cti-server nethvoice-cti-middleware nethvoice-cti-ui nethvoice-saml2-proxy nethvoice-oauth2-proxy nethvoice-janus nethvoice-phonebook nethvoice-reports-api nethvoice-reports-ui nethvoice-satellite nethvoice-sftp"
+          delete_image_token: ${{ secrets.GITHUB_TOKEN }}

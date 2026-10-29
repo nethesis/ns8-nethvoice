@@ -32,12 +32,6 @@ include_once 'lib/CronHelper.php';
 include_once 'lib/libExtensions.php';
 include_once 'lib/libCTI.php';
 
-//$app = new \Slim\App;
-$container = $app->getContainer();
-$container['cron'] = function ($container) {
-    return new CronHelper();
-};
-
 /**
  * Endpoint to reconfigure a phone extension.
  *
@@ -54,12 +48,17 @@ $container['cron'] = function ($container) {
 $app->post('/phones/reconfigure', function (Request $request, Response $response, $args) {
 	try {
 		global $astman;
-		$extension = $request->getParsedBody()['extension'];
-		$res = $astman->send_request('Command',array('Command'=>"pjsip send notify generic-reload endpoint $extension"));
-		if ($res['Response'] !== 'Success' || preg_match('/failed.$/m', $res['data']) || preg_match('/^Unable/m', $res['data'])) {
-			throw new Exception('Error reconfiguring extension '.$extension.': '.$res['data']);
+		$body = $request->getParsedBody();
+		if (!is_array($body) || empty($body['extension'])) {
+			return jsonResponse($response, array('error' => 'Extension is required'), 400);
 		}
-	} catch (Exception $e) {
+		$extension = $body['extension'];
+		$res = $astman->send_request('Command',array('Command'=>"pjsip send notify generic-reload endpoint $extension"));
+		$data = is_array($res) ? ($res['data'] ?? '') : '';
+		if (!is_array($res) || ($res['Response'] ?? '') !== 'Success' || preg_match('/failed.$/m', $data) || preg_match('/^Unable/m', $data)) {
+			throw new RuntimeException('Error reconfiguring extension '.$extension.': '.$data);
+		}
+	} catch (Throwable $e) {
 		return $response->withStatus(500);
 	}
 	return $response->withStatus(200);
@@ -67,7 +66,7 @@ $app->post('/phones/reconfigure', function (Request $request, Response $response
 
 $app->post('/phones/rps/{mac}', function (Request $request, Response $response, $args) {
     $body = $request->getParsedBody();
-    if(!$body['url']) {
+    if (!is_array($body) || empty($body['url'])) {
         return $response->withStatus(400);
     }
     $result = setFalconieriRPS($args['mac'], $body['url']);
@@ -79,11 +78,11 @@ $app->get('/phones/account/{mac}', function (Request $request, Response $respons
     $stmt = $dbh->prepare('SELECT `extension`,`secret` FROM `rest_devices_phones` WHERE `mac` = ?');
     $stmt->execute(array(str_replace('-',':',$args['mac'])));
     $res = $stmt->fetch(\PDO::FETCH_ASSOC);
-    return $response->withJson((object) $res , 200, JSON_FLAGS);
+    return jsonResponse($response, (object) $res , 200, JSON_FLAGS);
 });
 
 $app->get('/provisioning/engine', function (Request $request, Response $response, $args) {
-    return $response->withJson(getProvisioningEngine(), 200, JSON_FLAGS);
+    return jsonResponse($response, getProvisioningEngine(), 200, JSON_FLAGS);
 });
 
 $app->get('/phones/state', function (Request $request, Response $response, $args) {
@@ -94,7 +93,7 @@ $app->get('/phones/state', function (Request $request, Response $response, $args
         $state = $astman->ExtensionState($ext,'');
         $res[$ext] = $state;
     }
-    return $response->withJson($res, 200, JSON_FLAGS);
+    return jsonResponse($response, $res, 200, JSON_FLAGS);
 });
 
 $app->get('/extensions/{extension}/srtp', function (Request $request, Response $response, $args) {
@@ -103,10 +102,10 @@ $app->get('/extensions/{extension}/srtp', function (Request $request, Response $
     $stmt = $dbh->prepare($sql);
     $stmt->execute(array($args['extension']));
     $res = $stmt->fetch(\PDO::FETCH_ASSOC);
-    if ($res['srtp'] == '1') {
-        return $response->withJson(TRUE, 200, JSON_FLAGS);
+    if (is_array($res) && ($res['srtp'] ?? null) == '1') {
+        return jsonResponse($response, TRUE, 200, JSON_FLAGS);
     }
-    return $response->withJson(FALSE, 200, JSON_FLAGS);
+    return jsonResponse($response, FALSE, 200, JSON_FLAGS);
 });
 
 $app->post('/extensions/{extension}/srtp/{enabled}', function (Request $request, Response $response, $args) {
@@ -121,7 +120,7 @@ $app->post('/extensions/{extension}/srtp/{enabled}', function (Request $request,
 
 $app->post('/provisioning/connectivitycheck', function (Request $request, Response $response, $args) {
     // TODO remove
-    return $response->withJson(["valid_certificate"=>TRUE,"host_type"=>"FQDN","is_reachable"=>TRUE],200);
+    return jsonResponse($response, ["valid_certificate"=>TRUE,"host_type"=>"FQDN","is_reachable"=>TRUE],200);
 });
 
 function getFeaturcodes(){
@@ -136,4 +135,3 @@ function getFeaturcodes(){
     }
     return $featurecodes;
 }
-

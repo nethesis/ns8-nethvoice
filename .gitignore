@@ -3,9 +3,15 @@ build-timings.tsv
 AGENTS.md
 NS8-MODULE.md
 .github/agents/
+.agents/
+local_testing/fixtures/
+local_testing/artifacts/
 COMPONENTS.md
 deploys.sh
 DEVELOPMENT.md
 __pycache__/
 *.pyc
 .gitnexus
+
+/freepbx/var/www/html/freepbx/rest/vendor/
+/.test-sources/

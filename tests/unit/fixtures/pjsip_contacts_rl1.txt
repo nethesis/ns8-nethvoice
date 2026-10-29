@@ -1,0 +1,12 @@
+
+  Contact:  <Aor/ContactUri..............................> <Hash....> <Status> <RTT(ms)..>
+==========================================================================================
+
+  Contact:  91201/sip:98572361@178.99.206.29:34928         b54990611a Avail        44.435
+  Contact:  NvTestIp/sip:NvTestIp@192.0.2.11:5060          b7ec7a3785 Unavail         nan
+  Contact:  NvTestProxy/sip:NvTestProxy@192.0.2.12:5060    90784f8f42 Avail       943.413
+  Contact:  NvTestSend/sip:NvTestSend@192.0.2.10:5060      d271be6cb4 Unavail         nan
+  Contact:  test_opensoultion_marchio/sip:507211741005@sip 06597816de Avail        52.287
+
+Objects found: 5
+

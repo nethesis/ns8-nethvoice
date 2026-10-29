@@ -21,6 +21,7 @@ ExecStart=/usr/bin/podman run \
         --add-host=${NETHVOICE_HOST}:127.0.0.1 \
         --env-file=%E/state/passwords.env \
         --env REPORTS_INTERNATIONAL_PREFIX \
+        --env GIN_MODE=${REPORTS_GIN_MODE} \
         --env NETHVOICE_HOST \
         --env NETHVOICE_LDAP_SCHEMA \
         --env NETHVOICE_LDAP_BASE \
