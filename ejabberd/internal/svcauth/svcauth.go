@@ -16,6 +16,21 @@ const (
 	maxAge = 60 * time.Second
 )
 
+// Secret is the key service passwords are signed with: CHAT_SERVICE_SECRET, its own secret that
+// ejabberd's configuration never holds; derived from the component secret where it is not set yet.
+func Secret(getenv func(string) string) string {
+	if s := getenv("CHAT_SERVICE_SECRET"); s != "" {
+		return s
+	}
+	c := getenv("CHAT_COMPONENT_SECRET")
+	if c == "" {
+		return ""
+	}
+	h := hmac.New(sha256.New, []byte(c))
+	h.Write([]byte("svcauth"))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
 // Password returns the service password for user@host, valid for a minute.
 func Password(secret, user, host string, now time.Time) string {
 	ts := strconv.FormatInt(now.Unix(), 10)

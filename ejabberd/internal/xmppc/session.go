@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/address"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/ns"
@@ -42,6 +43,11 @@ type Message struct {
 	Retract  string
 	// A read marker (XEP-0333 displayed): the message it covers, with every earlier one.
 	Displayed string
+	// In a group: a reactions set (XEP-0444) to the message with that origin-id, empty takes them back;
+	// a reply (XEP-0461) with the quote's span in the body (XEP-0428 fallback, in characters).
+	ReactTo, ReplyID, ReplyTo string
+	Reactions                 []string
+	QuoteStart, QuoteEnd      int
 }
 
 // Session is one authenticated client session.
@@ -53,6 +59,7 @@ type Session struct {
 
 	mu      sync.Mutex
 	queries map[string][]Message // queryid -> collected results
+	rooms   map[string]string    // queryid -> the room whose own archive it reads
 }
 
 // Dial opens a plaintext c2s connection to addr and authenticates user@host with
@@ -88,7 +95,7 @@ func Dial(ctx context.Context, addr, host, user, password string) (*Session, err
 		return nil, fmt.Errorf("xmpp login %s: %w", user, err)
 	}
 	_ = conn.SetDeadline(time.Time{})
-	ses := &Session{s: s, conn: conn, me: s.LocalAddr(), host: host, queries: map[string][]Message{}}
+	ses := &Session{s: s, conn: conn, me: s.LocalAddr(), host: host, queries: map[string][]Message{}, rooms: map[string]string{}}
 	m := mux.New(stanza.NSClient, mux.Message(stanza.NormalMessage, xml.Name{Space: ns.MAM, Local: "result"}, mux.MessageHandlerFunc(ses.onResult)))
 	go func() { _ = s.Serve(m) }()
 	return ses, nil
@@ -114,11 +121,17 @@ func (ses *Session) SendGroup(ctx context.Context, room, body string, oob ...str
 }
 
 func (ses *Session) send(ctx context.Context, to, body string, oob []string, typ stanza.MessageType) (string, error) {
+	return ses.sendWith(ctx, to, body, oob, typ, "")
+}
+
+// sendWith: extra is markup made here, already escaped.
+func (ses *Session) sendWith(ctx context.Context, to, body string, oob []string, typ stanza.MessageType, extra string) (string, error) {
 	id := newID()
 	var sb strings.Builder
 	sb.WriteString("<body>")
 	_ = xml.EscapeText(&sb, []byte(body))
 	sb.WriteString("</body>")
+	sb.WriteString(extra)
 	fmt.Fprintf(&sb, `<origin-id xmlns="%s" id="%s"/><store xmlns="%s"/>`, ns.SID, id, ns.Hints)
 	for _, u := range oob {
 		sb.WriteString(`<x xmlns="` + ns.OOB + `"><url>`)
@@ -131,6 +144,31 @@ func (ses *Session) send(ctx context.Context, to, body string, oob []string, typ
 	}
 	msg := stanza.Message{To: dest, Type: typ, ID: id}
 	return id, ses.s.Send(ctx, msg.Wrap(xml.NewDecoder(strings.NewReader(sb.String()))))
+}
+
+// SendGroupReply posts body answering the message with origin-id id by author (XEP-0461); quote
+// goes before it as "> quote" for clients that only read the text (XEP-0428 marks its span).
+func (ses *Session) SendGroupReply(ctx context.Context, room, body, id, author, quote string, oob ...string) (string, error) {
+	fallback := "> " + quote + "\n"
+	extra := fmt.Sprintf(`<reply xmlns="%s" id="%s" to="%s"/><fallback xmlns="%s" for="%s"><body start="0" end="%d"/></fallback>`,
+		ns.Reply, attr(id), attr(room+"/"+author), ns.Fallback, ns.Reply, utf8.RuneCountInString(fallback))
+	return ses.sendWith(ctx, room, fallback+body, oob, stanza.GroupChatMessage, extra)
+}
+
+// ReactGroup sets my whole reactions set to a group message (XEP-0444); empty takes them back.
+func (ses *Session) ReactGroup(ctx context.Context, room, target string, emojis []string) error {
+	var sb strings.Builder
+	fmt.Fprintf(&sb, `<reactions xmlns="%s" id="%s">`, ns.Reactions, attr(target))
+	for _, e := range emojis {
+		sb.WriteString("<reaction>" + text(e) + "</reaction>")
+	}
+	fmt.Fprintf(&sb, `</reactions><store xmlns="%s"/>`, ns.Hints)
+	dest, err := jid.Parse(room)
+	if err != nil {
+		return err
+	}
+	msg := stanza.Message{To: dest, Type: stanza.GroupChatMessage, ID: newID()}
+	return ses.s.Send(ctx, msg.Wrap(xml.NewDecoder(strings.NewReader(sb.String()))))
 }
 
 // Retract takes back one of my messages for everyone (XEP-0424): ref is its origin-id, or the
@@ -174,18 +212,24 @@ func (ses *Session) DisablePush(ctx context.Context, service, node string) error
 // History returns archived messages. With afterID set it pages forward from
 // that archive id; otherwise it returns the newest `max` messages.
 func (ses *Session) History(ctx context.Context, afterID string, max int) (msgs []Message, complete bool, err error) {
-	return ses.query(ctx, "", afterID, "", max)
+	return ses.query(ctx, "", "", afterID, "", max)
+}
+
+// RoomPage reads a room's own archive, every message since it was made (a member may): after
+// afterID, or before beforeID (the newest without either), oldest first.
+func (ses *Session) RoomPage(ctx context.Context, room, afterID, beforeID string, max int) (msgs []Message, complete bool, err error) {
+	return ses.query(ctx, room, "", afterID, beforeID, max)
 }
 
 // Before returns the `max` archived messages with an operator or a group older than
 // beforeID (the newest ones without it), oldest first.
 func (ses *Session) Before(ctx context.Context, with, beforeID string, max int) (msgs []Message, complete bool, err error) {
-	return ses.query(ctx, with, "", beforeID, max)
+	return ses.query(ctx, "", with, "", beforeID, max)
 }
 
 // Last returns the newest archived message exchanged with an operator or a group.
 func (ses *Session) Last(ctx context.Context, with string) (Message, error) {
-	msgs, _, err := ses.query(ctx, with, "", "", 1)
+	msgs, _, err := ses.query(ctx, "", with, "", "", 1)
 	if err != nil {
 		return Message{}, err
 	}
@@ -195,12 +239,20 @@ func (ses *Session) Last(ctx context.Context, with string) (Message, error) {
 	return msgs[len(msgs)-1], nil
 }
 
-func (ses *Session) query(ctx context.Context, with, afterID, beforeID string, max int) (msgs []Message, complete bool, err error) {
+// query asks my archive, or with room set that room's.
+func (ses *Session) query(ctx context.Context, room, with, afterID, beforeID string, max int) (msgs []Message, complete bool, err error) {
 	qid := newID()
+	iq := stanza.IQ{Type: stanza.SetIQ}
+	if room != "" {
+		if iq.To, err = jid.Parse(room); err != nil {
+			return nil, false, err
+		}
+	}
 	ses.mu.Lock()
 	ses.queries[qid] = nil
+	ses.rooms[qid] = room
 	ses.mu.Unlock()
-	defer func() { ses.mu.Lock(); delete(ses.queries, qid); ses.mu.Unlock() }()
+	defer func() { ses.mu.Lock(); delete(ses.queries, qid); delete(ses.rooms, qid); ses.mu.Unlock() }()
 
 	var rsm string
 	if afterID != "" {
@@ -213,7 +265,7 @@ func (ses *Session) query(ctx context.Context, with, afterID, beforeID string, m
 		filter = fmt.Sprintf(`<x xmlns="%s" type="submit"><field var="FORM_TYPE" type="hidden"><value>%s</value></field><field var="with"><value>%s</value></field></x>`, ns.Data, ns.MAM, text(with))
 	}
 	payload := fmt.Sprintf(`<query xmlns="%s" queryid="%s">%s%s</query>`, ns.MAM, qid, filter, rsm)
-	r, err := ses.s.SendIQElement(ctx, xml.NewDecoder(strings.NewReader(payload)), stanza.IQ{Type: stanza.SetIQ})
+	r, err := ses.s.SendIQElement(ctx, xml.NewDecoder(strings.NewReader(payload)), iq)
 	if err != nil {
 		return nil, false, err
 	}
@@ -260,6 +312,22 @@ func (ses *Session) onResult(_ stanza.Message, t xmlstream.TokenReadEncoder) err
 					Origin    idAttr `xml:"urn:xmpp:sid:0 origin-id"`
 					Retract   idAttr `xml:"urn:xmpp:message-retract:1 retract"`
 					Displayed idAttr `xml:"urn:xmpp:chat-markers:0 displayed"`
+					// In a room's own archive, the message as the room sent it.
+					Reactions struct {
+						ID       string   `xml:"id,attr"`
+						Reaction []string `xml:"reaction"`
+					} `xml:"urn:xmpp:reactions:0 reactions"`
+					Reply struct {
+						ID string `xml:"id,attr"`
+						To string `xml:"to,attr"`
+					} `xml:"urn:xmpp:reply:0 reply"`
+					Fallback []struct {
+						For  string `xml:"for,attr"`
+						Body struct {
+							Start int `xml:"start,attr"`
+							End   int `xml:"end,attr"`
+						} `xml:"body"`
+					} `xml:"urn:xmpp:fallback:0 fallback"`
 					// A group message reaches a subscriber wrapped in a pubsub event.
 					Event struct {
 						Items struct {
@@ -276,6 +344,21 @@ func (ses *Session) onResult(_ stanza.Message, t xmlstream.TokenReadEncoder) err
 									StanzaID  []idAttr `xml:"urn:xmpp:sid:0 stanza-id"`
 									Retract   idAttr   `xml:"urn:xmpp:message-retract:1 retract"`
 									Displayed idAttr   `xml:"urn:xmpp:chat-markers:0 displayed"`
+									Reactions struct {
+										ID       string   `xml:"id,attr"`
+										Reaction []string `xml:"reaction"`
+									} `xml:"urn:xmpp:reactions:0 reactions"`
+									Reply struct {
+										ID string `xml:"id,attr"`
+										To string `xml:"to,attr"`
+									} `xml:"urn:xmpp:reply:0 reply"`
+									Fallback []struct {
+										For  string `xml:"for,attr"`
+										Body struct {
+											Start int `xml:"start,attr"`
+											End   int `xml:"end,attr"`
+										} `xml:"body"`
+									} `xml:"urn:xmpp:fallback:0 fallback"`
 								} `xml:"message"`
 							} `xml:"item"`
 						} `xml:"items"`
@@ -305,6 +388,13 @@ func (ses *Session) onResult(_ stanza.Message, t xmlstream.TokenReadEncoder) err
 		inner := fm.Event.Items.Item.Message
 		msg.Room, msg.MsgID, msg.Body, msg.Files = address.Bare(fm.From), inner.ID, inner.Body, urls(inner.OOB)
 		msg.OriginID, msg.Retract, msg.Displayed = inner.Origin.ID, inner.Retract.ID, inner.Displayed.ID
+		msg.ReactTo, msg.Reactions = inner.Reactions.ID, inner.Reactions.Reaction
+		msg.ReplyID, msg.ReplyTo = inner.Reply.ID, inner.Reply.To
+		for _, f := range inner.Fallback {
+			if f.For == ns.Reply {
+				msg.QuoteStart, msg.QuoteEnd = f.Body.Start, f.Body.End
+			}
+		}
 		for _, sid := range inner.StanzaID {
 			if sid.By == msg.Room {
 				msg.RoomSID = sid.ID
@@ -312,6 +402,23 @@ func (ses *Session) onResult(_ stanza.Message, t xmlstream.TokenReadEncoder) err
 		}
 		if i := strings.IndexByte(inner.From, '/'); i >= 0 {
 			msg.Nick = inner.From[i+1:]
+		}
+	}
+	ses.mu.Lock()
+	room := ses.rooms[m.Result.QueryID]
+	ses.mu.Unlock()
+	if room != "" {
+		// The room's own archive: its id is the room's id, the author the resource.
+		msg.Room, msg.RoomSID = room, m.Result.ID
+		if i := strings.IndexByte(fm.From, '/'); i >= 0 {
+			msg.Nick = fm.From[i+1:]
+		}
+		msg.ReactTo, msg.Reactions = fm.Reactions.ID, fm.Reactions.Reaction
+		msg.ReplyID, msg.ReplyTo = fm.Reply.ID, fm.Reply.To
+		for _, f := range fm.Fallback {
+			if f.For == ns.Reply {
+				msg.QuoteStart, msg.QuoteEnd = f.Body.Start, f.Body.End
+			}
 		}
 	}
 	if len(msg.Files) > 0 {

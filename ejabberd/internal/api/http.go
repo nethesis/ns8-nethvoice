@@ -37,11 +37,18 @@ type Server struct {
 	Archive     *Archive                                      // ejabberd's message archive, for text search
 	Retention   int                                           // days the archive keeps messages
 	CTIConfig   string                                        // the CTI's users.json and profiles.json, read-only; "" skips KickRevoked
+	Secret      string                                        // signs the service passwords the gateway logs in with
 
-	failures window // failed Acrobits logins, by username
-	ipFails  window // failed Acrobits logins, by client address
-	sends    window // messages from the app
-	files    window // attachments from the app
+	failures   window // failed Acrobits logins, by username
+	ipFails    window // failed Acrobits logins, by client address
+	sends      window // messages from the app
+	files      window // attachments from the app
+	invites    window // guests invited
+	guestCalls window // guest page calls
+	joins      window // guests joining, by client address
+	linkReads  window // invite links looked up, by client address
+
+	guestWait guestWaiters
 }
 
 // apiClient talks to ejabberd on loopback; it must never hang a request.
@@ -85,6 +92,22 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/client/fetch_messages", s.fetchMessages)
 	mux.HandleFunc("POST /api/client/send_message", s.sendMessage)
 	mux.HandleFunc("POST /api/client/push_token_report", s.pushTokenReport)
+	// People outside the PBX: operators make the room and its link, guests join by it.
+	mux.HandleFunc("POST /guests", s.createExtRoom)
+	mux.HandleFunc("GET /guests/{room}", s.getExtRoom)
+	mux.HandleFunc("POST /guests/{room}/link", s.newExtLink)
+	mux.HandleFunc("DELETE /guests/{room}", s.revokeExtLink)
+	mux.HandleFunc("DELETE /guests/{room}/{guest}", s.removeGuest)
+	mux.HandleFunc("GET /g/{$}", s.guestPageHandler)
+	mux.Handle("GET /guest-app/", s.guestAssets())
+	mux.HandleFunc("POST /guest/link", s.linkInfo)
+	mux.HandleFunc("POST /guest/join", s.joinGuest)
+	mux.HandleFunc("GET /guest/chat", s.guestChat)
+	mux.HandleFunc("GET /guest/messages", s.guestMessages)
+	mux.HandleFunc("POST /guest/messages", s.guestSend)
+	mux.HandleFunc("POST /guest/react", s.guestReact)
+	mux.HandleFunc("POST /guest/retract", s.guestRetract)
+	mux.HandleFunc("POST /guest/upload", s.guestUpload)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	return withCORS(mux)
 }
