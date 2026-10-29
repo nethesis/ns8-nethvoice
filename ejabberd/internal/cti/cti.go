@@ -11,6 +11,21 @@ import (
 	"strings"
 )
 
+type clientKey struct{}
+
+// WithClient carries the X-Forwarded-For of the request being served: the middleware rate-limits
+// by client and trusts the header from loopback, so a client's calls through us count as its own.
+func WithClient(ctx context.Context, forwardedFor string) context.Context {
+	return context.WithValue(ctx, clientKey{}, forwardedFor)
+}
+
+// SetClient puts the client of ctx, if any, on a request to the middleware.
+func SetClient(ctx context.Context, req *http.Request) {
+	if f, _ := ctx.Value(clientKey{}).(string); f != "" {
+		req.Header.Set("X-Forwarded-For", f)
+	}
+}
+
 // ErrUnauthorized: the middleware refused the token.
 var ErrUnauthorized = errors.New("unauthorized")
 
@@ -63,6 +78,7 @@ func Get(ctx context.Context, client *http.Client, base, token, path string, out
 		return err
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
+	SetClient(ctx, req)
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
