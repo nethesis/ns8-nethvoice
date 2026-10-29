@@ -25,9 +25,13 @@ const Grace = 24 * time.Hour
 // ejabberd runs a command of ejabberd's mod_http_api on loopback.
 func (s *Server) ejabberd(ctx context.Context, cmd string, args, out any) error {
 	body, _ := json.Marshal(args)
-	req, _ := http.NewRequestWithContext(ctx, "POST", s.EjabberdAPI+"/"+cmd, bytes.NewReader(body))
+	base, client := s.EjabberdAPI, apiClient
+	if sock, ok := strings.CutPrefix(base, "unix:"); ok {
+		base, client = "http://ejabberd/api", unixClient(sock)
+	}
+	req, _ := http.NewRequestWithContext(ctx, "POST", base+"/"+cmd, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := apiClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
