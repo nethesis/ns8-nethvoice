@@ -65,7 +65,7 @@ func main() {
 	}
 	mw := api.NewMiddleware(mwURL)
 	mw.OnSeen = st.SeenUser
-	srv := &api.Server{Host: host, C2SAddr: c2s, PushService: address.Push(host), VAPIDPublic: router.VAPIDPublic, Store: st, MW: mw, EjabberdAPI: ejabberdAPI, UploadURL: uploadURL, PublicHost: publicHost, Archive: &api.Archive{Path: archiveDB}, Retention: retention}
+	srv := &api.Server{Host: host, C2SAddr: c2s, PushService: address.Push(host), VAPIDPublic: router.VAPIDPublic, Store: st, MW: mw, EjabberdAPI: ejabberdAPI, UploadURL: uploadURL, PublicHost: publicHost, Archive: &api.Archive{Path: archiveDB}, Retention: retention, CTIConfig: env("CHAT_CTI_CONFIG", "")}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -111,6 +111,20 @@ func main() {
 			case <-time.After(wait):
 				rctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 				srv.Reconcile(rctx)
+				cancel()
+			}
+		}
+	}()
+
+	// Online without the chat any more: a minute after start, then every two minutes.
+	go func() {
+		for wait := time.Minute; ; wait = 2 * time.Minute {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(wait):
+				kctx, cancel := context.WithTimeout(ctx, time.Minute)
+				srv.KickRevoked(kctx)
 				cancel()
 			}
 		}

@@ -36,6 +36,7 @@ type Server struct {
 	RoomName    func(ctx context.Context, room string) string // cached room names (push component), "" when unknown
 	Archive     *Archive                                      // ejabberd's message archive, for text search
 	Retention   int                                           // days the archive keeps messages
+	CTIConfig   string                                        // the CTI's users.json and profiles.json, read-only; "" skips KickRevoked
 
 	failures window // failed Acrobits logins, by username
 	ipFails  window // failed Acrobits logins, by client address

@@ -24,6 +24,7 @@ ExecStart=/usr/bin/podman run \
     --volume=chat-gw:/data:Z \
     --volume=chat-data:/ejabberd:ro,z \
     --volume=chat-api:/ejabberd-api:z \
+    --volume=nethcti:/nethcti:ro,z \
     --env=CHAT_HOST=chat.internal \
     --env=CHAT_PUBLIC_HOST=${NETHCTI_UI_HOST} \
     --env=CHAT_LISTEN=127.0.0.1:${CHAT_GW_PORT} \
@@ -36,6 +37,7 @@ ExecStart=/usr/bin/podman run \
     --env=CHAT_EJABBERD_API=unix:/ejabberd-api/api.sock \
     --env=CHAT_DATA_DIR=/data \
     --env=CHAT_RETENTION_DAYS \
+    --env=CHAT_CTI_CONFIG=/nethcti \
     --network=host \
     --tz=${TIMEZONE} \
     --user=root \
