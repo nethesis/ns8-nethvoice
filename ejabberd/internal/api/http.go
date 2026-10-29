@@ -59,6 +59,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /search", s.search)
 	mux.HandleFunc("GET /prefs/host", s.chatHost)
 	mux.HandleFunc("PUT /prefs/host", s.chatHost)
+	// The app's provisioning proxy: my groups with their pictures, for the app's contacts.
+	mux.HandleFunc("GET /groups", s.groups)
 	// Acrobits mobile app: the three web services it is provisioned with.
 	mux.HandleFunc("POST /api/client/fetch_messages", s.fetchMessages)
 	mux.HandleFunc("POST /api/client/send_message", s.sendMessage)

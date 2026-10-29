@@ -18,4 +18,5 @@ const (
 	Retract        = "urn:xmpp:message-retract:1"
 	SID            = "urn:xmpp:sid:0"
 	Upload         = "urn:xmpp:http:upload:0"
+	VCard          = "vcard-temp"
 )

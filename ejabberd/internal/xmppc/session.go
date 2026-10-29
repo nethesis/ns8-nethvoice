@@ -416,6 +416,37 @@ func (ses *Session) RoomName(ctx context.Context, room string) string {
 	return room
 }
 
+// RoomAvatar is the picture in a room's vCard (what the chat sets for a group) as a
+// data URL, empty when the room has none.
+func (ses *Session) RoomAvatar(ctx context.Context, room string) string {
+	to, err := jid.Parse(room)
+	if err != nil {
+		return ""
+	}
+	payload := fmt.Sprintf(`<vCard xmlns="%s"/>`, ns.VCard)
+	r, err := ses.s.SendIQElement(ctx, xml.NewDecoder(strings.NewReader(payload)), stanza.IQ{Type: stanza.GetIQ, To: to})
+	if err != nil {
+		return ""
+	}
+	defer r.Close()
+	var res struct {
+		Type   string `xml:"vcard-temp vCard>PHOTO>TYPE"`
+		BinVal string `xml:"vcard-temp vCard>PHOTO>BINVAL"`
+	}
+	if err := xml.NewTokenDecoder(r).Decode(&res); err != nil {
+		return ""
+	}
+	data := strings.Join(strings.Fields(res.BinVal), "")
+	if data == "" {
+		return ""
+	}
+	mime := strings.TrimSpace(res.Type)
+	if mime == "" {
+		mime = "image/jpeg"
+	}
+	return "data:" + mime + ";base64," + data
+}
+
 // FindSent returns the archive id of a message this account just sent, by the
 // id it was sent with: the app matches its pending copy against it.
 func (ses *Session) FindSent(ctx context.Context, msgID string) string {
