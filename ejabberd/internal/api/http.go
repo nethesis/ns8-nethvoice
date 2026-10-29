@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"sort"
@@ -28,7 +29,7 @@ type Server struct {
 	VAPIDPublic string
 	Store       *store.Store
 	MW          *Middleware
-	EjabberdAPI string                                        // ejabberd's mod_http_api on loopback, for archive purges
+	EjabberdAPI string                                        // ejabberd's mod_http_api: unix:<socket path>, or an http URL
 	PublicHost  string                                        // the CTI host: attachment links point there, whatever host they were uploaded under
 	UploadURL   string                                        // ejabberd's upload service on loopback, for attachments relayed from the app
 	RoomName    func(ctx context.Context, room string) string // cached room names (push component), "" when unknown
@@ -42,6 +43,22 @@ type Server struct {
 
 // apiClient talks to ejabberd on loopback; it must never hang a request.
 var apiClient = &http.Client{Timeout: 10 * time.Second}
+
+// unixClient talks to ejabberd's admin API on its unix socket: only who shares the volume reaches it.
+var unixClient = func() func(string) *http.Client {
+	var once sync.Once
+	var c *http.Client
+	return func(sock string) *http.Client {
+		once.Do(func() {
+			c = &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{
+				DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+					return (&net.Dialer{}).DialContext(ctx, "unix", sock)
+				},
+			}}
+		})
+		return c
+	}
+}()
 
 // maxBody bounds every request body: the largest legitimate one is a chat message.
 const maxBody = 64 << 10
