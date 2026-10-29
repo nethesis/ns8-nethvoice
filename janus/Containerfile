@@ -1,4 +1,4 @@
-FROM docker.io/library/debian:trixie-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad AS builder
+FROM docker.io/library/debian:trixie-slim@sha256:f6b08b09a05725f9431502d3b5714f5c4576e82c1a84fa1debe0c24a7e0c3ec4 AS builder
 
 ARG JANUS_TAG=v1.4.2
 ARG JANUS_REPO=https://github.com/meetecho/janus-gateway.git
@@ -46,7 +46,7 @@ RUN cd /usr/local/src/janus-gateway && \
 	make install && \
 	make configs
 
-FROM docker.io/library/debian:trixie-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
+FROM docker.io/library/debian:trixie-slim@sha256:f6b08b09a05725f9431502d3b5714f5c4576e82c1a84fa1debe0c24a7e0c3ec4
 
 RUN apt-get -y update && \
 	apt-get install -y --no-install-recommends \
