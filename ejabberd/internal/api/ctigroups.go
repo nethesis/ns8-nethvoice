@@ -124,6 +124,18 @@ func (s *Server) syncRoom(ctx context.Context, slug, name string, members map[st
 	if err != nil {
 		return s.createRoom(ctx, slug, name, members)
 	}
+	// The gateway's rooms have members only. An owner or admin means someone made the room first,
+	// over XMPP, to keep the group's messages: it goes, and the group gets its own.
+	for _, a := range affs {
+		if a.Affiliation == "owner" || a.Affiliation == "admin" {
+			log.Printf("groups: %s has an %s (%s), not made by the gateway: made again", room, a.Affiliation, a.JID)
+			if err := s.ejabberd(ctx, "destroy_room", map[string]string{"name": room, "service": muc}, nil); err != nil && !roomMissing(err) {
+				log.Printf("groups: destroy %s: %v", slug, err)
+				return false
+			}
+			return s.createRoom(ctx, slug, name, members)
+		}
+	}
 	ok := true
 	current := map[string]bool{}
 	for _, a := range affs {
