@@ -29,6 +29,7 @@ type Middleware struct {
 
 	mu      sync.Mutex
 	tokens  map[string]cachedToken // sha256(user:password) -> jwt
+	whoami  map[string]cachedWho   // sha256(jwt) -> its owner, or why it was refused
 	users   *userCache
 	lastJWT string // the newest token seen valid, to refresh the user list for pushes
 
@@ -37,6 +38,16 @@ type Middleware struct {
 }
 
 const tokenTTL = 2 * time.Minute
+
+// whoTTL: how long a token's check is reused, as chat-extauth does; a refusal too, so a flood
+// of bad tokens costs the middleware one call each per minute at most.
+const whoTTL = time.Minute
+
+type cachedWho struct {
+	user string
+	err  error
+	till time.Time
+}
 
 type cachedToken struct {
 	jwt  string
@@ -61,7 +72,7 @@ type userCache struct {
 const presenceTTL = 15 * time.Second
 
 func NewMiddleware(url string) *Middleware {
-	return &Middleware{URL: url, client: &http.Client{Timeout: 10 * time.Second}, tokens: map[string]cachedToken{}}
+	return &Middleware{URL: url, client: &http.Client{Timeout: 10 * time.Second}, tokens: map[string]cachedToken{}, whoami: map[string]cachedWho{}}
 }
 
 // Login exchanges NethVoice credentials for a CTI JWT. The cache is short: a changed password stops working within tokenTTL.
@@ -77,6 +88,7 @@ func (m *Middleware) Login(ctx context.Context, username, password string) (stri
 	body, _ := json.Marshal(map[string]string{"username": username, "password": password})
 	req, _ := http.NewRequestWithContext(ctx, "POST", m.URL+"/login", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	cti.SetClient(ctx, req)
 	resp, err := m.client.Do(req)
 	if err != nil {
 		return "", err
@@ -119,12 +131,31 @@ func tokenKey(username, password string) string {
 
 // WhoAmI returns the username a JWT belongs to, the same check chat-extauth does.
 func (m *Middleware) WhoAmI(ctx context.Context, jwt string) (string, error) {
+	key := tokenKey("", jwt)
+	m.mu.Lock()
+	if c, ok := m.whoami[key]; ok && time.Now().Before(c.till) {
+		if c.err == nil {
+			m.lastJWT = jwt
+		}
+		m.mu.Unlock()
+		return c.user, c.err
+	}
+	m.mu.Unlock()
 	me, err := cti.WhoIs(ctx, m.client, m.URL, jwt)
+	if err == nil && !me.ChatAllowed() {
+		err = ErrForbidden
+	}
+	// Only answers: a middleware that did not answer is asked again next time.
+	if err == nil || errors.Is(err, ErrUnauthorized) || errors.Is(err, ErrForbidden) {
+		m.mu.Lock()
+		if len(m.whoami) > 10000 {
+			m.whoami = map[string]cachedWho{}
+		}
+		m.whoami[key] = cachedWho{user: me.Username, err: err, till: time.Now().Add(whoTTL)}
+		m.mu.Unlock()
+	}
 	if err != nil {
 		return "", err
-	}
-	if !me.ChatAllowed() {
-		return "", ErrForbidden
 	}
 	m.mu.Lock()
 	m.lastJWT = jwt

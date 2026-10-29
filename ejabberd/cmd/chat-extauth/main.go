@@ -25,6 +25,8 @@ var (
 	secret     = os.Getenv("CHAT_COMPONENT_SECRET")
 	nickRe     = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,63}$`)
 	client     = &http.Client{Timeout: 5 * time.Second}
+	// extauthClient: what the middleware counts these calls under (it trusts X-Forwarded-For from loopback).
+	extauthClient = "127.0.0.2"
 
 	cacheMu sync.Mutex
 	cache   = map[string]cached{} // token -> who it belongs to
@@ -86,24 +88,28 @@ func whoIs(token string) string {
 	}
 	cacheMu.Unlock()
 
-	me, err := cti.WhoIs(context.Background(), client, middleware, token)
+	// Its own address for the middleware's per-client limit: logins never share the gateway's.
+	ctx := cti.WithClient(context.Background(), extauthClient)
+	me, err := cti.WhoIs(ctx, client, middleware, token)
+	if err != nil && !errors.Is(err, cti.ErrUnauthorized) {
+		log.Printf("extauth: middleware: %v", err)
+		return "" // no answer: asked again next time
+	}
+	user := me.Username
 	if err != nil {
-		if !errors.Is(err, cti.ErrUnauthorized) {
-			log.Printf("extauth: middleware: %v", err)
-		}
-		return ""
-	}
-	if !me.ChatAllowed() {
+		user = ""
+	} else if !me.ChatAllowed() {
 		logx.Debugf("extauth: %s has no chat permission", me.Username)
-		return ""
+		user = ""
 	}
+	// A refusal is kept too: the same bad token again costs nothing.
 	cacheMu.Lock()
-	cache[token] = cached{user: me.Username, till: time.Now().Add(60 * time.Second)}
+	cache[token] = cached{user: user, till: time.Now().Add(60 * time.Second)}
 	if len(cache) > 10000 {
 		cache = map[string]cached{}
 	}
 	cacheMu.Unlock()
-	return me.Username
+	return user
 }
 
 func reply(ok bool) {
