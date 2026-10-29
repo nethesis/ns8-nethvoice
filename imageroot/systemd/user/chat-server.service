@@ -25,6 +25,7 @@ ExecStart=/usr/bin/podman run \
     --volume=%E/state/chat/ejabberd.yml:/opt/ejabberd/conf/ejabberd.yml:ro,z \
     --volume=chat-data:/opt/ejabberd/database:z \
     --volume=chat-upload:/opt/ejabberd/upload:Z \
+    --volume=chat-api:/opt/ejabberd/api:z,U \
     --env=CHAT_MIDDLEWARE_URL=http://127.0.0.1:${NETHVOICE_MIDDLEWARE_PORT} \
     --env=CHAT_COMPONENT_SECRET \
     --env=CHAT_DEBUG=${CHAT_DEBUG} \
