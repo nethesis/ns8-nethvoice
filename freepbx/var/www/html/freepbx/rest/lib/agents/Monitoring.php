@@ -43,14 +43,20 @@ final class Monitoring
         $from=$from->setTime((int)$from->format('H'),0);
         if ($to->format('i:s.u')!=='00:00.000000') $to=$to->modify('+1 hour')->setTime((int)$to->modify('+1 hour')->format('H'),0);
         $result=['from'=>$from->format('Y-m-d H:i:s'),'to'=>$to->format('Y-m-d H:i:s')];
-        foreach (['agent_id','query','error_code'] as $key) {
+        foreach (['query','error_code'] as $key) {
             if (!isset($query[$key]) || $query[$key]==='') continue;
             if (!is_string($query[$key]) || mb_strlen($query[$key])>($key==='query'?100:64)) self::fail();
-            if ($key==='agent_id' && !preg_match('/^[a-z][a-z0-9_-]{0,47}$/D',$query[$key])) self::fail();
             if ($key==='error_code' && !preg_match('/^[a-z0-9_]{1,64}$/D',$query[$key])) self::fail();
             $result[$key]=$query[$key];
         }
-        foreach (['provider'=>['openai','grok','unknown'],'adapter'=>['realtime','live','live_ws','unknown'],'outcome'=>self::OUTCOMES,'tool_id'=>self::TOOLS,'phase'=>self::PHASES] as $key=>$values) {
+        foreach (['agent_id'=>null,'provider'=>['openai','grok','unknown'],'adapter'=>['realtime','live','live_ws','unknown'],'outcome'=>self::OUTCOMES] as $key=>$values) {
+            if (!isset($query[$key]) || $query[$key]==='') continue;
+            $list=array_values(array_unique(explode(',',(string)$query[$key])));
+            if (count($list)>100) self::fail();
+            foreach ($list as $item) if ($values===null?!preg_match('/^[a-z][a-z0-9_-]{0,47}$/D',$item):!in_array($item,$values,true)) self::fail();
+            $result[$key]=$list;
+        }
+        foreach (['tool_id'=>self::TOOLS,'phase'=>self::PHASES] as $key=>$values) {
             if (!isset($query[$key]) || $query[$key]==='') continue;
             if (!in_array($query[$key],$values,true)) self::fail();
             $result[$key]=$query[$key];
@@ -70,8 +76,10 @@ final class Monitoring
         $parts=["$alias.$column>=?","$alias.$column<?"]; $args=[$filters['from'],$filters['to']];
         foreach (['agent_id','provider','adapter','outcome'] as $key) {
             if (!isset($filters[$key])) continue;
-            if ($filters[$key]==='unknown' && !$metrics && in_array($key,['provider','adapter'],true)) $parts[]="$alias.$key IS NULL";
-            else { $parts[]="$alias.$key=?"; $args[]=$filters[$key]; }
+            $values=$filters[$key]; $any=[];
+            if (!$metrics && in_array($key,['provider','adapter'],true) && in_array('unknown',$values,true)) { $any[]="$alias.$key IS NULL"; $values=array_values(array_diff($values,['unknown'])); }
+            if ($values) { $any[]="$alias.$key IN (".implode(',',array_fill(0,count($values),'?')).')'; array_push($args,...$values); }
+            $parts[]='('.implode(' OR ',$any).')';
         }
         if (isset($filters['error_code'])) {
             $parts[]="($alias.error_code=? OR EXISTS (SELECT 1 FROM asteriskcdrdb.voice_agent_run_events e WHERE e.run_id=$alias.run_id AND (e.error_code=? OR e.provider_code=? OR CONCAT('provider_http_',e.http_status)=?)))";
