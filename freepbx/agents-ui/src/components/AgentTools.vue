@@ -174,7 +174,7 @@ function number(key: string, value: string) {
           :label="t('agentTools.transfer')"
           @update:model-value="update('pbx.transfer', { enabled: $event })"
         />
-        <p class="text-tertiary-neutral mt-1 ml-14">
+        <p class="text-muted mt-1 ml-14">
           {{ t("agentTools.transferHelp") }}
         </p>
       </div>
@@ -200,7 +200,7 @@ function number(key: string, value: string) {
           <dl
             class="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-6 gap-y-2"
           >
-            <dt class="text-tertiary-neutral">
+            <dt class="text-muted">
               {{ t("destinations.extensions") }}
             </dt>
             <dd class="flex flex-wrap items-center gap-1.5">
@@ -214,7 +214,7 @@ function number(key: string, value: string) {
                 >{{ badge }}</NeBadgeV2
               >
             </dd>
-            <dt class="text-tertiary-neutral">
+            <dt class="text-muted">
               {{ t("destinations.queues") }}
             </dt>
             <dd class="flex flex-wrap items-center gap-1.5">
@@ -257,7 +257,7 @@ function number(key: string, value: string) {
             configure('pbx.transfer', { recent_callers_enabled: $event })
           "
         />
-        <p class="text-tertiary-neutral mt-1 ml-14">
+        <p class="text-muted mt-1 ml-14">
           {{ t("agentTools.recentHelp") }}
         </p>
       </div>
@@ -317,7 +317,7 @@ function number(key: string, value: string) {
           :label="t('agentTools.endCall')"
           @update:model-value="update('telephony.hangup', { enabled: $event })"
         />
-        <p class="text-tertiary-neutral mt-1 ml-14">
+        <p class="text-muted mt-1 ml-14">
           {{ t("agentTools.endCallHelp") }}
         </p>
       </div>

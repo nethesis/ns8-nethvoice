@@ -21,7 +21,7 @@ export interface CleverAiConfiguration {
   fallback_destination_id: string | null;
 }
 export interface Agent extends JsonObject {
-  agent_type?: "basic_voice" | "cleverai";
+  agent_type?: "basic_voice" | "cleverai" | "consultation";
   agent_id: string;
   name: string;
   kind: "builtin" | "custom";

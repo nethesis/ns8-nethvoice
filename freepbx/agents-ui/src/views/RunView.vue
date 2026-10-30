@@ -24,7 +24,7 @@ import CounterCard from "../components/CounterCard.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import type { Run, TraceEvent } from "../types";
 import { duration, formatTime, formatUtc, timeline } from "../monitoring";
-const { t, locale } = useI18n(),
+const { t, te, locale } = useI18n(),
   route = useRoute();
 const query = useQuery({
   queryKey: ["run", computed(() => route.params.id)],
@@ -78,7 +78,9 @@ function toggle(id: string) {
 function name(event: TraceEvent) {
   return event.phase
     ? t("monitoring.phasesMap." + event.phase)
-    : t("runEvents." + event.event_type);
+    : te("runEvents." + event.event_type)
+      ? t("runEvents." + event.event_type)
+      : event.event_type;
 }
 function start(event: TraceEvent) {
   return event.elapsed_ms != null
@@ -89,7 +91,9 @@ function details(event: TraceEvent) {
   const lines: string[] = [];
   if (event.tool_id)
     lines.push(
-      t("toolNames." + event.tool_id.replaceAll(".", "_")) +
+      (te("toolNames." + event.tool_id.replaceAll(".", "_"))
+        ? t("toolNames." + event.tool_id.replaceAll(".", "_"))
+        : event.tool_id) +
         (event.destination_id ? " · " + event.destination_id : ""),
     );
   if (event.result_count != null)
@@ -272,7 +276,7 @@ const partial = computed(
     </section>
     <section>
       <NeHeading tag="h5">{{ t("monitoring.timeline") }}</NeHeading>
-      <p class="text-tertiary-neutral mt-1 mb-3 max-w-2xl">
+      <p class="text-muted mt-1 mb-3 max-w-2xl">
         {{ t("monitoring.timelineHelp") }}
       </p>
       <NeInlineNotification
@@ -345,7 +349,7 @@ const partial = computed(
                   <p
                     v-for="line in details(phase.event)"
                     :key="line"
-                    class="text-tertiary-neutral wrap-break-word"
+                    class="text-muted wrap-break-word"
                   >
                     {{ line }}
                   </p>
@@ -376,7 +380,7 @@ const partial = computed(
                     <p
                       v-for="line in details(child)"
                       :key="line"
-                      class="text-tertiary-neutral wrap-break-word"
+                      class="text-muted wrap-break-word"
                     >
                       {{ line }}
                     </p>
@@ -398,7 +402,7 @@ const partial = computed(
             <NeTableRow v-if="!traceQuery.isLoading.value && !phases.length">
               <NeTableCell data-label="" />
               <NeTableCell :data-label="t('monitoring.phase')"
-                ><span class="text-tertiary-neutral">{{
+                ><span class="text-muted">{{
                   t("noResults")
                 }}</span></NeTableCell
               >
@@ -417,14 +421,14 @@ const partial = computed(
     </section>
     <section data-testid="trace-usage">
       <NeHeading tag="h5">{{ t("monitoring.usage") }}</NeHeading>
-      <p class="text-tertiary-neutral mt-1 mb-3 max-w-2xl">
+      <p class="text-muted mt-1 mb-3 max-w-2xl">
         {{ t("monitoring.usageHelp") }}
       </p>
-      <p v-if="!run.usage" class="text-tertiary-neutral">
+      <p v-if="!run.usage" class="text-muted">
         {{ t("monitoring.usageUnavailable") }}
       </p>
       <template v-else>
-        <p v-if="!run.usage_complete" class="text-tertiary-neutral mb-3">
+        <p v-if="!run.usage_complete" class="text-muted mb-3">
           {{ t("monitoring.usagePartial") }}
         </p>
         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
@@ -432,17 +436,20 @@ const partial = computed(
             v-for="(value, key) in run.usage"
             :key="key"
             :title="t('monitoring.usageKeys.' + key)"
-            :value="value.toLocaleString(String(locale))"
+            :value="
+              value.toLocaleString(String(locale)) +
+              (key === 'live_seconds' ? ' s' : '')
+            "
           />
         </div>
       </template>
     </section>
     <section>
       <NeHeading tag="h5">{{ t("debugTranscription") }}</NeHeading>
-      <p class="text-tertiary-neutral mt-1 mb-3 max-w-2xl">
+      <p class="text-muted mt-1 mb-3 max-w-2xl">
         {{ t("debugTranscriptHelp") }}
       </p>
-      <p v-if="!transcript" class="text-tertiary-neutral">
+      <p v-if="!transcript" class="text-muted">
         {{ t("noDebugTranscript") }}
       </p>
       <NeTextArea

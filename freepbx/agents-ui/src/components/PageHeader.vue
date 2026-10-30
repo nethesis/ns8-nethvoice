@@ -21,16 +21,21 @@ const router = useRouter();
     <slot name="badges" />
   </div>
   <div
-    class="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center"
+    :class="[
+      $slots.notice ? 'mb-4' : 'mb-8',
+      'flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center',
+    ]"
   >
     <div class="max-w-2xl">
-      <p v-if="description" class="text-tertiary-neutral mt-2">
+      <p v-if="description" class="text-muted mt-2">
         {{ description }}
       </p>
-      <slot name="notice" />
     </div>
     <div v-if="$slots.default" class="flex shrink-0 flex-wrap gap-4">
       <slot />
     </div>
+  </div>
+  <div v-if="$slots.notice" class="mb-8 max-w-6xl">
+    <slot name="notice" />
   </div>
 </template>

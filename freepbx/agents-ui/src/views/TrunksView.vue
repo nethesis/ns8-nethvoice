@@ -143,13 +143,15 @@ async function synchronize() {
         :key="trunk.binding_id"
       >
         <NeTableCell :data-label="t('name')"
-          ><button
-            type="button"
-            class="cursor-pointer justify-self-start text-left font-medium hover:underline"
-            @click="open(trunk)"
-          >
-            {{ trunk.name }}
-          </button></NeTableCell
+          ><div class="justify-self-start">
+            <button
+              type="button"
+              class="cursor-pointer text-left font-medium hover:underline"
+              @click="open(trunk)"
+            >
+              {{ trunk.name }}
+            </button>
+          </div></NeTableCell
         >
         <NeTableCell :data-label="t('provider')">{{
           providers[trunk.provider] || trunk.provider
