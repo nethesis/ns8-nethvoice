@@ -10,14 +10,16 @@ export function useTask() {
   const ui = useUi();
   async function run<T>(
     operation: () => Promise<T>,
-    notify = true,
+    notify: boolean | { title: string; description?: string } = true,
   ): Promise<T | undefined> {
     if (pending.value) return undefined;
     pending.value = true;
     error.value = "";
     try {
       const value = await operation();
-      if (notify) ui.notify(t("success"));
+      if (typeof notify === "object")
+        ui.notify(notify.title, notify.description);
+      else if (notify) ui.notify(t("success"));
       return value;
     } catch (failure) {
       const code = errorCode(failure);

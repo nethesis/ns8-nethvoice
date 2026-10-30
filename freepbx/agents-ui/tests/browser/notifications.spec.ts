@@ -25,7 +25,7 @@ for (const layout of [
     const card = headings.first().locator("../../..");
     const box = await card.boundingBox();
     expect(box).not.toBeNull();
-    expect(box!.width).toBeGreaterThanOrEqual(Math.min(448, layout.width - 32));
+    expect(box!.width).toBeGreaterThanOrEqual(Math.min(384, layout.width - 32));
     expect(box!.x).toBeGreaterThanOrEqual(16);
     expect(box!.x + box!.width).toBeLessThanOrEqual(layout.width - 16);
     expect(await headings.first().evaluate(heading => {

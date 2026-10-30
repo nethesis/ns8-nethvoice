@@ -82,13 +82,13 @@ test("hangup starts disabled and is enabled and saved per agent", async ({
   });
   await expect(enabled).not.toBeChecked();
   await expect(
-    page.getByLabel("Maximum goodbye playback (seconds)", { exact: true }),
+    page.getByLabel("Maximum goodbye duration", { exact: true }),
   ).toHaveCount(0);
   expect(writes).toHaveLength(0);
   expect(record.draft).toEqual(original);
   await enabled.locator("..").click();
   await page
-    .getByLabel("Maximum goodbye playback (seconds)", { exact: true })
+    .getByLabel("Maximum goodbye duration", { exact: true })
     .fill("4");
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await expect.poll(() => writes.length).toBe(1);

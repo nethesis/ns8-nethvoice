@@ -4,10 +4,23 @@ import { ref } from "vue";
 export const useUi = defineStore("ui", () => {
   const dark = ref(localStorage.getItem("nethvoice.agents.theme") !== "light");
   const notices = ref<
-    { id: string; kind: "success" | "error"; title: string; isShown: boolean }[]
+    {
+      id: string;
+      kind: "success" | "error";
+      title: string;
+      description?: string;
+      timestamp: Date;
+      isShown: boolean;
+    }[]
   >([]);
   function applyTheme() {
-    document.documentElement.classList.toggle("dark", dark.value);
+    const root = document.documentElement;
+    root.classList.add("theme-switching");
+    root.classList.toggle("dark", dark.value);
+    window.getComputedStyle(root).getPropertyValue("color");
+    window.requestAnimationFrame(() =>
+      root.classList.remove("theme-switching"),
+    );
   }
   function toggleTheme() {
     dark.value = !dark.value;
@@ -17,9 +30,20 @@ export const useUi = defineStore("ui", () => {
     );
     applyTheme();
   }
-  function notify(title: string, kind: "success" | "error" = "success") {
+  function notify(
+    title: string,
+    description?: string,
+    kind: "success" | "error" = "success",
+  ) {
     const id = crypto.randomUUID();
-    notices.value.push({ id, kind, title, isShown: true });
+    notices.value.push({
+      id,
+      kind,
+      title,
+      description,
+      timestamp: new Date(),
+      isShown: true,
+    });
     window.setTimeout(() => {
       notices.value = notices.value.filter((n) => n.id !== id);
     }, 7000);

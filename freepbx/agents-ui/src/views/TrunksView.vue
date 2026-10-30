@@ -1,109 +1,89 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { ref } from "vue";
 import { useQuery } from "@tanstack/vue-query";
 import {
   NeButton,
-  NeTextInput,
+  NeDropdown,
   NeInlineNotification,
+  NeModal,
+  NeTable,
+  NeTableBody,
+  NeTableCell,
+  NeTableHead,
+  NeTableHeadCell,
+  NeTableRow,
 } from "@nethesis/vue-components";
+import { faNetworkWired, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { useI18n } from "vue-i18n";
 import { request, queryClient } from "../api";
 import { useTask } from "../composables/useTask";
 import PageHeader from "../components/PageHeader.vue";
-import FieldSelect from "../components/FieldSelect.vue";
-import type { Catalog, Trunk } from "../types";
+import AppEmptyState from "../components/AppEmptyState.vue";
+import TrunkDrawer from "../components/TrunkDrawer.vue";
+import { menuIcon } from "../menuIcon";
+import StatusBadge from "../components/StatusBadge.vue";
+import type { Agent, Trunk } from "../types";
 const { t } = useI18n(),
   task = useTask();
 const query = useQuery({
   queryKey: ["trunks"],
   queryFn: () => request<{ items: Trunk[] }>("GET", "/trunks"),
 });
-const catalog = useQuery({
-  queryKey: ["catalog"],
-  queryFn: () => request<Catalog>("GET", "/catalog"),
+const agents = useQuery({
+  queryKey: ["agents"],
+  queryFn: () => request<{ items: Agent[] }>("GET", "/profiles"),
 });
-const environmentKey = computed(
-  () =>
-    catalog.data.value?.provider_credentials?.[form.value.provider]
-      ?.environment_available || false,
-);
 const editing = ref<Trunk>();
 const visible = ref(false);
-const form = ref({
-  name: "",
-  provider: "openai",
-  openai_project_id: "",
-  grok_phone_number: "",
-  sip_auth_mode: "none",
-  sip_auth_username: "",
-  sip_password: "",
-  api_key: "",
-  webhook_secret: "",
-});
-function changeProvider(provider: string) {
-  if (provider === form.value.provider) return;
-  form.value.provider = provider;
-  form.value.api_key = "";
-  form.value.webhook_secret = "";
-  form.value.sip_password = "";
-}
-const webhookUrl = computed(
-  () => window.location.origin + "/satellite-webhooks/" + form.value.provider,
-);
 function open(trunk?: Trunk) {
   editing.value = trunk;
   visible.value = true;
-  task.error.value = "";
-  form.value = {
-    name: trunk?.name || "",
-    provider: trunk?.provider || "openai",
-    openai_project_id: trunk?.openai_project_id || "",
-    grok_phone_number: trunk?.grok_phone_number || "",
-    sip_auth_mode: trunk?.sip_auth_mode || "none",
-    sip_auth_username: trunk?.sip_auth_username || "",
-    sip_password: "",
-    api_key: "",
-    webhook_secret: "",
-  };
 }
-function close() {
-  form.value.api_key = "";
-  form.value.webhook_secret = "";
-  form.value.sip_password = "";
-  visible.value = false;
+const providers: Record<string, string> = {
+  openai: "OpenAI",
+  grok: "Grok",
+  cleverai: "CleverAI",
+};
+function usage(trunk: Trunk) {
+  return (agents.data.value?.items || []).filter(
+    (agent) => agent.draft.provider_binding_id === trunk.binding_id,
+  ).length;
 }
-async function save() {
-  await task.run(async () => {
-    const trunk =
-      form.value.provider === "cleverai"
-        ? {
-            name: form.value.name,
-            provider: "cleverai",
-            openai_project_id: form.value.openai_project_id,
-          }
-        : {
-            ...form.value,
-            ...(form.value.provider === "openai"
-              ? { sip_auth_mode: "none" }
-              : {}),
-          };
-    await request<Trunk>(
-      editing.value ? "PUT" : "POST",
-      editing.value ? "/trunks/" + editing.value.binding_id : "/trunks",
-      { trunk, expected_revision: editing.value?.revision || 0 },
-    );
-    close();
-    await queryClient.invalidateQueries({ queryKey: ["trunks"] });
-  });
+function credentials(trunk: Trunk) {
+  if (trunk.provider === "cleverai") return t("credentialSource.project");
+  return t("credentialSource." + (trunk.api_key_source || "stored"));
 }
-async function remove(trunk: Trunk) {
-  if (!window.confirm(t("deleteTrunkConfirm"))) return;
-  await task.run(async () => {
-    await request("DELETE", "/trunks/" + trunk.binding_id, {
-      expected_revision: trunk.revision,
-    });
-    await queryClient.invalidateQueries({ queryKey: ["trunks"] });
-  });
+const removing = ref<Trunk>();
+function menu(trunk: Trunk) {
+  return [
+    {
+      id: "delete",
+      label: t("delete"),
+      icon: menuIcon(faTrash),
+      danger: true,
+      action: () => {
+        task.error.value = "";
+        removing.value = trunk;
+      },
+    },
+  ];
+}
+async function remove() {
+  const trunk = removing.value;
+  if (!trunk) return;
+  await task.run(
+    async () => {
+      await request("DELETE", "/trunks/" + trunk.binding_id, {
+        expected_revision: trunk.revision,
+      });
+      removing.value = undefined;
+      await queryClient.invalidateQueries({ queryKey: ["trunks"] });
+    },
+    {
+      title: t("trunkDeleted"),
+      description: t("trunkDeletedHelp", { name: trunk.name }),
+    },
+  );
 }
 async function synchronize() {
   await task.run(async () => {
@@ -114,156 +94,136 @@ async function synchronize() {
 </script>
 <template>
   <PageHeader :title="t('trunks')" :description="t('trunksHelp')"
-    ><NeButton kind="primary" @click="open()">{{
-      t("newTrunk")
-    }}</NeButton></PageHeader
+    ><NeButton
+      v-if="query.data.value?.items.length"
+      kind="primary"
+      size="lg"
+      @click="open()"
+      ><template #prefix
+        ><FontAwesomeIcon icon="circle-plus" aria-hidden="true" /></template
+      >{{ t("newTrunk") }}</NeButton
+    ></PageHeader
   >
   <NeInlineNotification
-    v-if="task.error.value || query.isError.value"
+    v-if="(task.error.value && !removing) || query.isError.value"
     kind="error"
     :title="task.error.value || t('error.request_failed')"
+    class="mb-6"
   />
-  <form
-    v-if="visible"
-    class="nv-panel mb-6 space-y-5 max-w-4xl"
-    @submit.prevent="save"
+  <AppEmptyState
+    v-if="query.isSuccess.value && !query.data.value?.items.length"
+    :title="t('noTrunks')"
+    :description="t('noTrunksHelp')"
+    :icon="faNetworkWired"
+    ><NeButton kind="primary" size="lg" @click="open()"
+      ><template #prefix
+        ><FontAwesomeIcon icon="circle-plus" aria-hidden="true" /></template
+      >{{ t("newTrunk") }}</NeButton
+    ></AppEmptyState
   >
-    <h2>{{ t(editing ? "editTrunk" : "newTrunk") }}</h2>
-    <div class="nv-field-grid">
-      <NeTextInput
-        v-model="form.name"
-        :label="t('name')"
-        required
-        maxlength="100"
-      />
-      <FieldSelect
-        :model-value="form.provider"
-        :label="t('provider')"
-        :disabled="!!editing"
-        :options="[
-          { id: 'openai', label: 'OpenAI' },
-          { id: 'grok', label: 'Grok' },
-          { id: 'cleverai', label: 'CleverAI' },
-        ]"
-        @update:model-value="changeProvider"
-      />
-      <NeTextInput
-        v-if="form.provider !== 'grok'"
-        v-model="form.openai_project_id"
-        :label="t('openaiProject')"
-        required
-        maxlength="128"
-      />
-      <NeTextInput
-        v-else
-        v-model="form.grok_phone_number"
-        :label="t('grokNumber')"
-        required
-        maxlength="32"
-      />
-      <FieldSelect
-        v-if="form.provider === 'grok'"
-        v-model="form.sip_auth_mode"
-        :label="t('sipAuthentication')"
-        :options="[
-          { id: 'none', label: t('sipAllowedAddresses') },
-          { id: 'digest', label: 'Digest' },
-        ]"
-      />
-      <NeTextInput
-        v-if="form.provider === 'grok' && form.sip_auth_mode === 'digest'"
-        v-model="form.sip_auth_username"
-        :label="t('sipUsername')"
-        required
-        maxlength="128"
-        autocomplete="off"
-      />
-      <NeTextInput
-        v-if="form.provider === 'grok' && form.sip_auth_mode === 'digest'"
-        v-model="form.sip_password"
-        :label="t('sipPassword')"
-        type="password"
-        maxlength="4096"
-        autocomplete="new-password"
-      />
-      <NeTextInput
-        v-if="form.provider !== 'cleverai'"
-        v-model="form.api_key"
-        :label="t('providerApiKey')"
-        type="password"
-        maxlength="4096"
-        autocomplete="new-password"
-      />
-      <NeTextInput
-        v-if="form.provider !== 'cleverai'"
-        v-model="form.webhook_secret"
-        :label="t('webhookSigningSecret')"
-        type="password"
-        maxlength="4096"
-        autocomplete="new-password"
-      />
-    </div>
-    <p v-if="form.provider !== 'cleverai'" class="nv-muted">
-      {{
-        t(
-          environmentKey
-            ? "environmentKeyHelp"
-            : editing
-              ? "secretKeepHelp"
-              : "secretRequiredHelp",
-        )
-      }}
-    </p>
-    <p class="nv-muted">
-      {{
-        t(
-          form.provider === "cleverai"
-            ? "cleverAiTrunkHelp"
-            : "providerSetupHelp",
-        )
-      }}
-    </p>
-    <NeTextInput
-      v-if="form.provider !== 'cleverai'"
-      :model-value="webhookUrl"
-      :label="t('webhookEndpoint')"
-      readonly
+  <NeTable
+    v-else-if="!query.isError.value"
+    :aria-label="t('trunks')"
+    :loading="query.isLoading.value"
+    :skeleton-columns="6"
+    :skeleton-rows="3"
+    card-breakpoint="xl"
+  >
+    <NeTableHead>
+      <NeTableHeadCell>{{ t("name") }}</NeTableHeadCell>
+      <NeTableHeadCell>{{ t("provider") }}</NeTableHeadCell>
+      <NeTableHeadCell>{{ t("state") }}</NeTableHeadCell>
+      <NeTableHeadCell>{{ t("credentials") }}</NeTableHeadCell>
+      <NeTableHeadCell>{{ t("agents") }}</NeTableHeadCell>
+      <NeTableHeadCell />
+    </NeTableHead>
+    <NeTableBody>
+      <NeTableRow
+        v-for="trunk in query.data.value?.items || []"
+        :key="trunk.binding_id"
+      >
+        <NeTableCell :data-label="t('name')"
+          ><button
+            type="button"
+            class="cursor-pointer justify-self-start text-left font-medium hover:underline"
+            @click="open(trunk)"
+          >
+            {{ trunk.name }}
+          </button></NeTableCell
+        >
+        <NeTableCell :data-label="t('provider')">{{
+          providers[trunk.provider] || trunk.provider
+        }}</NeTableCell>
+        <NeTableCell :data-label="t('state')"
+          ><div class="flex flex-col items-start gap-1">
+            <StatusBadge :status="trunk.sync_status" /><NeButton
+              v-if="trunk.sync_status !== 'synced'"
+              kind="tertiary"
+              size="sm"
+              class="-ml-2.5 whitespace-nowrap"
+              :loading="task.pending.value"
+              @click="synchronize"
+              ><template #prefix
+                ><FontAwesomeIcon
+                  icon="rotate-right"
+                  aria-hidden="true" /></template
+              >{{ t("retrySync") }}</NeButton
+            >
+          </div></NeTableCell
+        >
+        <NeTableCell :data-label="t('credentials')"
+          ><span
+            v-if="
+              trunk.provider !== 'cleverai' &&
+              trunk.api_key_source === 'missing'
+            "
+            class="flex items-center gap-2"
+            ><FontAwesomeIcon
+              icon="circle-xmark"
+              class="size-4 shrink-0 text-rose-700 dark:text-rose-500"
+              aria-hidden="true"
+            />{{ credentials(trunk) }}</span
+          ><template v-else>{{ credentials(trunk) }}</template></NeTableCell
+        >
+        <NeTableCell :data-label="t('agents')">{{ usage(trunk) }}</NeTableCell>
+        <NeTableCell :data-label="t('actions')"
+          ><div class="-ml-2.5 flex gap-2 xl:ml-0 xl:justify-end">
+            <NeButton kind="tertiary" @click="open(trunk)"
+              ><template #prefix
+                ><FontAwesomeIcon
+                  icon="pen-to-square"
+                  class="size-4"
+                  aria-hidden="true" /></template
+              >{{ t("edit") }}</NeButton
+            ><NeDropdown
+              :items="menu(trunk)"
+              align-to-right
+              :open-menu-aria-label="t('openMenu')"
+            /></div
+        ></NeTableCell>
+      </NeTableRow>
+    </NeTableBody>
+  </NeTable>
+  <TrunkDrawer :is-shown="visible" :trunk="editing" @close="visible = false" />
+  <NeModal
+    :visible="!!removing"
+    kind="warning"
+    :title="t('deleteTrunk')"
+    :primary-label="t('delete')"
+    primary-button-kind="danger"
+    :primary-button-loading="task.pending.value"
+    :primary-button-disabled="task.pending.value"
+    :cancel-label="t('cancel')"
+    :close-aria-label="t('close')"
+    @primary-click="remove"
+    @close="removing = undefined"
+  >
+    <p>{{ t("deleteTrunkHelp", { name: removing?.name }) }}</p>
+    <NeInlineNotification
+      v-if="task.error.value"
+      kind="error"
+      :title="task.error.value"
+      class="mt-4"
     />
-    <div class="nv-action-bar">
-      <NeButton type="submit" kind="primary" :loading="task.pending.value">{{
-        t("saveSettings")
-      }}</NeButton
-      ><NeButton :disabled="task.pending.value" @click="close">{{
-        t("cancel")
-      }}</NeButton>
-    </div>
-  </form>
-  <div class="grid gap-5 md:grid-cols-2">
-    <article
-      v-for="trunk in query.data.value?.items || []"
-      :key="trunk.binding_id"
-      class="nv-panel space-y-3"
-    >
-      <h2>{{ trunk.name }}</h2>
-      <p>{{ trunk.provider }} · {{ t("sync." + trunk.sync_status) }}</p>
-      <p v-if="trunk.provider !== 'cleverai'" class="nv-muted">
-        {{ t("credentialsConfigured") }}
-      </p>
-      <div class="nv-action-bar">
-        <NeButton
-          v-if="trunk.sync_status !== 'synced'"
-          :loading="task.pending.value"
-          @click="synchronize"
-          >{{ t("retrySync") }}</NeButton
-        >
-        <NeButton @click="open(trunk)">{{ t("edit") }}</NeButton
-        ><NeButton
-          kind="tertiary"
-          :disabled="task.pending.value"
-          @click="remove(trunk)"
-          >{{ t("delete") }}</NeButton
-        >
-      </div>
-    </article>
-  </div>
+  </NeModal>
 </template>

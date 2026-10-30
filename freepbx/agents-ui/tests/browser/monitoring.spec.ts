@@ -39,8 +39,10 @@ for (const scenario of [{language:'en',width:1440}, {language:'it',width:375}]) 
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
     await page.evaluate(()=>window.scrollTo(0,0));
     await page.screenshot({path:`/tmp/voice-agent-monitoring-${scenario.language}.png`,fullPage:true});
-    await page.getByRole('link',{name:scenario.language==='en'?'Open':'Apri',exact:true}).click();
+    await page.getByRole('button',{name:scenario.language==='en'?'Details':'Dettagli',exact:true}).click();
     await expect(page.getByTestId('trace-partial')).toBeVisible();
+    await expect(page.getByTestId('trace-timeline')).not.toContainText('503');
+    await page.getByTestId('trace-timeline').locator('button[aria-expanded="false"]').first().click();
     await expect(page.getByTestId('trace-timeline')).toContainText('503');
     await expect(page.getByTestId('trace-timeline')).toContainText('400');
     await expect(page.getByTestId('trace-usage')).toContainText('12');

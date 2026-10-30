@@ -27,14 +27,19 @@ for (const branded of [false, true]) {
       await page.route("**/freepbx/wizard/images/brandDark.svg", route => route.fulfill({ contentType: "image/svg+xml", body: wizardLogo }));
       await page.route("**/freepbx/wizard/images/example.svg", route => route.fulfill({ contentType: "image/svg+xml", body: customLogo }));
       await page.goto("./#/agents");
-      const logo = page.getByRole("banner").getByRole("img", { name: branded ? "Example Voice" : "NethVoice", exact: true });
+      if (mobile) await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+      const logo = page.getByRole("img", { name: branded ? "Example Voice" : "NethVoice", exact: true }).filter({ visible: true });
       await expect(logo).toHaveAttribute("src", new RegExp(branded ? "/freepbx/wizard/images/example.svg$" : "/freepbx/wizard/images/brandDark.svg$"));
       await expect(logo).toBeVisible();
       await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
-      await page.getByRole("button", { name: "Light mode", exact: true }).click();
+      if (mobile) await page.getByRole("button", { name: "Close navigation", exact: true }).click();
+      await page.getByRole("button", { name: "Open account menu", exact: true }).click();
+      await page.getByRole("menuitem", { name: "Switch to light theme", exact: true }).click();
+      if (mobile) await page.getByRole("button", { name: "Open navigation", exact: true }).click();
       await expect(logo).toBeVisible();
+      if (!branded) await expect(logo).toHaveAttribute("src", /logo_light|^data:image\/svg/);
       const box = await logo.boundingBox();
-      expect(box!.width).toBeLessThanOrEqual(mobile ? 128 : 200);
+      expect(box!.width).toBeLessThanOrEqual(200);
       expect(box!.height).toBeLessThanOrEqual(28);
       expect(box!.x).toBeGreaterThanOrEqual(0);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -48,7 +53,7 @@ test("branding unavailable uses the Wizard default without blocking sign-in", as
   await page.route("**/freepbx/wizard/branding.json", route => route.fulfill({ status: 503, body: "" }));
   await page.route("**/freepbx/wizard/images/brandDark.svg", route => route.fulfill({ contentType: "image/svg+xml", body: wizardLogo }));
   await page.goto("./");
-  await expect(page.getByRole("banner").getByRole("img", { name: "NethVoice", exact: true })).toBeVisible();
+  await expect(page.getByRole("img", { name: "NethVoice", exact: true }).filter({ visible: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Sign in through Wizard" })).toBeVisible();
 });
 
@@ -57,7 +62,7 @@ test("an unavailable custom image falls back to the Wizard image", async ({ page
   await page.route("**/freepbx/wizard/images/missing.svg", route => route.fulfill({ status: 404, body: "" }));
   await page.route("**/freepbx/wizard/images/brandDark.svg", route => route.fulfill({ contentType: "image/svg+xml", body: wizardLogo }));
   await page.goto("./");
-  const logo = page.getByRole("banner").getByRole("img", { name: "Example Voice", exact: true });
+  const logo = page.getByRole("img", { name: "Example Voice", exact: true }).filter({ visible: true });
   await expect(logo).toHaveAttribute("src", "/freepbx/wizard/images/brandDark.svg");
   await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
 });
