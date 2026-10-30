@@ -85,6 +85,10 @@ def configure_users_admin(domain, restart_if_changed=False):
 
     changed = previous_provider != selected_provider
     if changed and restart_if_changed:
+        # The middleware reads the URL for password expiration and change.
+        # Restarting it does not affect calls (clients just reconnect): do it now
+        result = agent.run_helper("systemctl", "--user", "try-restart", "nethcti-middleware.service")
+        agent.assert_exp(result.returncode == 0)
         result = agent.run_helper("restart-services-when-convenient", "freepbx")
         agent.assert_exp(result.returncode == 0)
 
