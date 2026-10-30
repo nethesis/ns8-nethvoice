@@ -85,4 +85,4 @@ fi
     cd "$repo_root"
     "$phpcs" --standard=tools/php-compatibility/phpcs.xml
 )
-echo 'PHPCompatibility check passed for PHP 8.2'
+echo 'PHPCompatibility check passed for PHP 8.3'
