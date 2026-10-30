@@ -73,11 +73,12 @@ watch(search, (value, _, cleanup) => {
   cleanup(() => clearTimeout(timer));
 });
 const windowEnd = ref(new Date());
+const ids = (options: Option[]) => options.map((o) => o.id).join(",");
 const common = computed(() => {
   const filters: Record<string, string> = {};
-  if (agentFilter.value[0]) filters.agent_id = agentFilter.value[0].id;
-  if (providerFilter.value[0]) filters.provider = providerFilter.value[0].id;
-  if (adapterFilter.value[0]) filters.adapter = adapterFilter.value[0].id;
+  if (agentFilter.value.length) filters.agent_id = ids(agentFilter.value);
+  if (providerFilter.value.length) filters.provider = ids(providerFilter.value);
+  if (adapterFilter.value.length) filters.adapter = ids(adapterFilter.value);
   if (period.value === "custom") {
     if (from.value)
       filters.from = new Date(from.value + "T00:00:00Z").toISOString();
@@ -100,7 +101,7 @@ const runFilters = computed(() => ({
   ...common.value,
   page: page.value,
   ...(debouncedSearch.value ? { query: debouncedSearch.value } : {}),
-  ...(outcomeFilter.value[0] ? { outcome: outcomeFilter.value[0].id } : {}),
+  ...(outcomeFilter.value.length ? { outcome: ids(outcomeFilter.value) } : {}),
 }));
 watch(
   [common, debouncedSearch, outcomeFilter],
@@ -151,9 +152,11 @@ const agentOptions = computed<Option[]>(() =>
     .map((a) => ({ id: a.agent_id, label: a.name })),
 );
 watch(agentOptions, (options) => {
-  const selected = agentFilter.value[0];
-  const match = selected && options.find((o) => o.id === selected.id);
-  if (match && match.label !== selected.label) agentFilter.value = [match];
+  const named = agentFilter.value.map(
+    (s) => options.find((o) => o.id === s.id) || s,
+  );
+  if (named.some((o, i) => o.label !== agentFilter.value[i].label))
+    agentFilter.value = named;
 });
 const providerOptions = computed<Option[]>(() => [
   { id: "openai", label: "OpenAI" },
@@ -456,21 +459,21 @@ function refresh() {
     />
     <NeDropdownFilterV2
       v-model="agentFilter"
-      kind="radio"
+      kind="checkbox"
       :label="t('agentFilter')"
       :options="agentOptions"
       v-bind="filterLabels"
     />
     <NeDropdownFilterV2
       v-model="providerFilter"
-      kind="radio"
+      kind="checkbox"
       :label="t('provider')"
       :options="providerOptions"
       v-bind="filterLabels"
     />
     <NeDropdownFilterV2
       v-model="adapterFilter"
-      kind="radio"
+      kind="checkbox"
       :label="t('monitoring.adapter')"
       :options="adapterOptions"
       v-bind="filterLabels"
@@ -678,7 +681,7 @@ function refresh() {
         />
         <NeDropdownFilterV2
           v-model="outcomeFilter"
-          kind="radio"
+          kind="checkbox"
           :label="t('outcome')"
           :options="outcomeOptions"
           v-bind="filterLabels"

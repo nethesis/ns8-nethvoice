@@ -6,7 +6,7 @@ assert(Monitoring::retentionDays() === 90);
 putenv('VOICE_AGENT_MONITORING_RETENTION_DAYS=30');
 assert(Monitoring::retentionDays() === 30);
 putenv('VOICE_AGENT_MONITORING_RETENTION_DAYS');
-foreach (['from'=>[], 'page'=>'0', 'provider'=>'untrusted', 'phase'=>'arbitrary', 'query'=>str_repeat('x',101)] as $key=>$bad) {
+foreach (['from'=>[], 'page'=>'0', 'provider'=>'untrusted', 'phase'=>'arbitrary', 'query'=>str_repeat('x',101), 'outcome'=>'failed,untrusted', 'agent_id'=>'receptionist,Bad', 'adapter'=>'live,'] as $key=>$bad) {
     try { Monitoring::filters([$key=>$bad]); assert(false); }
     catch (RuntimeException $e) { assert($e->getCode()===422); }
 }
@@ -16,6 +16,10 @@ $id='77777777-7777-4777-a777-777777777777';
 $db->prepare("INSERT INTO asteriskcdrdb.voice_agent_runs (run_id,agent_id,workflow_version,started_at,ended_at,outcome,retention_until,provider,adapter,model,monitoring_version,trace_status,duration_ms) VALUES (?,'receptionist',11,NOW()-INTERVAL 20 DAY,NOW()-INTERVAL 20 DAY,'transferred',NOW()+INTERVAL 70 DAY,'openai','realtime','synthetic-model',2,'complete',1200)")->execute([$id]);
 assert(count($monitor->runs(['query'=>$id])['items'])===1);
 assert(count($monitor->runs(['query'=>$id,'outcome'=>'failed'])['items'])===0);
+assert(count($monitor->runs(['query'=>$id,'outcome'=>'failed,transferred'])['items'])===1);
+assert(count($monitor->runs(['query'=>$id,'agent_id'=>'other_agent,receptionist','provider'=>'grok,openai','adapter'=>'live,realtime'])['items'])===1);
+assert(count($monitor->runs(['query'=>$id,'provider'=>'grok,unknown'])['items'])===0);
+assert(Monitoring::filters(['provider'=>'openai,openai,grok'])['provider']===['openai','grok']);
 assert(count($monitor->runs(['query'=>$id,'from'=>gmdate('Y-m-d\TH:i:s\Z',time()-86400)])['items'])===0);
 $row=$monitor->run($id); assert($row['duration_ms']==1200 && $row['trace_status']==='complete');
 assert(!isset($row['linkedid'],$row['provider_call_id']));

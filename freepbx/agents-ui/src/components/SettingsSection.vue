@@ -10,6 +10,8 @@ defineProps<{ title: string; description?: string }>();
         {{ description }}
       </p>
     </div>
-    <NeCard class="lg:col-span-2"><slot /></NeCard>
+    <NeCard class="min-w-0 overflow-x-clip! overflow-y-visible! lg:col-span-2"
+      ><slot
+    /></NeCard>
   </section>
 </template>
