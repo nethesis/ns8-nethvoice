@@ -8,7 +8,7 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags=-s -o /out/ ./cmd/...
 
 # The page guests chat from, built and published with the chat-island.
 FROM docker.io/library/golang:1.27.3-alpine AS guest
-ARG CHAT_ISLAND=0.1.64
+ARG CHAT_ISLAND=0.1.65
 RUN wget -qO- https://registry.npmjs.org/@nethesis/chat-island/-/chat-island-${CHAT_ISLAND}.tgz | tar xz -C /tmp && mv /tmp/package/dist-guest /guest
 
 FROM ghcr.io/processone/ejabberd:26.07
