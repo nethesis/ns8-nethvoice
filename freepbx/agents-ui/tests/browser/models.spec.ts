@@ -31,12 +31,14 @@ async function setup(page:Page,discovery?: (input:any,route:any)=>Promise<void>)
   });
   return profiles;
 }
-async function choose(page:Page,label:string,option:string) {await page.getByRole('button',{name:new RegExp('^'+label)}).click();await page.getByRole('option',{name:option,exact:true}).click();}
+const field=(page:Page,label:string)=>page.getByRole('combobox',{name:label,exact:true});
+async function open(page:Page,label:string) {await field(page,label).click();await field(page,label).fill('');}
+async function choose(page:Page,label:string,option:string) {await open(page,label);await page.getByRole('option',{name:option,exact:true}).click();}
 
 test('agent owns model, Live voice and advanced settings across save/reload/publication',async({page})=>{
   const profiles=await setup(page);
   await page.goto('./#/agents/receptionist');
-  await choose(page,'Conversation voice model','GPT Live 1 (gpt-live-1)');
+  await choose(page,'Voice model','GPT Live 1 gpt-live-1');
   await expect(page.getByText(/GPT-Live is experimental/)).toBeVisible();
   await choose(page,'Voice','Quartz');
   await choose(page,'GPT-Live companion model','GPT-6 Sol');
@@ -49,7 +51,7 @@ test('agent owns model, Live voice and advanced settings across save/reload/publ
   expect(profiles.receptionist.draft.conversation).toMatchObject({model:'gpt-live-1',voice:'quartz',options:{backend_model:'gpt-6-sol',reasoning_effort:'high',verbosity:'medium',service_tier:'priority',max_output_tokens:4096}});
   expect(profiles.second.draft.conversation.model).toBe('gpt-realtime-2.1');
   await page.reload();
-  await expect(page.getByRole('button',{name:/^Conversation voice model/})).toContainText('gpt-live-1');
+  await expect(field(page,'Voice model')).toHaveValue(/GPT Live 1/);
   await expect(page.getByLabel('Maximum backend output tokens',{exact:true})).toHaveValue('4096');
   await page.getByRole('button',{name:'Publish',exact:true}).click();
   expect(profiles.receptionist.published).toMatchObject({contract_version:8,conversation:{model:'gpt-live-1',voice:'quartz'}});
@@ -69,10 +71,10 @@ test('agent discovery keeps saved selections through empty, error and catalog fa
   await expect(page.getByText('The saved model is unavailable. It has been kept; choose another model explicitly to change it.',{exact:true})).toBeVisible();
   mode='error';await page.getByRole('button',{name:'Refresh models',exact:true}).click();
   await expect(page.getByText('Model discovery failed. Check the API credentials and refresh the list.',{exact:true})).toBeVisible();
-  await expect(page.getByRole('button',{name:/^Conversation voice model/})).toContainText('gpt-realtime-2.1');
+  await expect(field(page,'Voice model')).toHaveValue(/gpt-realtime-2.1/);
   mode='fallback';await page.getByRole('button',{name:'Refresh models',exact:true}).click();
   await expect(page.getByText(/Provider discovery is unavailable/)).toBeVisible();
-  await expect(page.getByRole('button',{name:/^Voice/})).toContainText('Marin');
+  await expect(field(page,'Voice')).toHaveValue(/Marin/);
 });
 
 test('late OpenAI discovery cannot overwrite another trunk or its provider-managed policy',async({page})=>{
@@ -80,36 +82,36 @@ test('late OpenAI discovery cannot overwrite another trunk or its provider-manag
   await setup(page,async(input,route)=>{if(input.provider==='openai'){await pending;await route.fulfill({json:live});}else await route.fulfill({json:managed});});
   await page.goto('./#/agents/receptionist');
   await expect(page.getByText('Loading compatible models…',{exact:true})).toBeVisible();
-  await choose(page,'Provider trunk','Grok test (grok)');
-  await expect(page.getByRole('button',{name:/^Conversation voice model/})).toContainText('Grok SIP');
-  await expect(page.getByRole('button',{name:/^Conversation voice model/})).toBeDisabled();
+  await choose(page,'Provider trunk','Grok test Grok');
+  await expect(field(page,'Voice model')).toHaveValue(/Grok SIP/);
+  await expect(field(page,'Voice model')).toBeDisabled();
   release();
   await expect(page.getByText(/Grok chooses the model/)).toBeVisible();
-  await expect(page.getByRole('button',{name:/^Conversation voice model/})).toContainText('Grok SIP');
-  await expect(page.getByRole('button',{name:/^Voice/})).not.toContainText('Marin');
+  await expect(field(page,'Voice model')).toHaveValue(/Grok SIP/);
+  await expect(field(page,'Voice')).not.toHaveValue(/Marin/);
 });
 
 test('changing model drops incompatible voice and options; trunk editor has no model control',async({page})=>{
   await setup(page);await page.goto('./#/agents/receptionist');
-  await choose(page,'Conversation voice model','GPT Live 1 (gpt-live-1)');
+  await choose(page,'Voice model','GPT Live 1 gpt-live-1');
   await choose(page,'Voice','Quartz');
-  await choose(page,'Conversation voice model','GPT Realtime 2 (gpt-realtime-2)');
-  await expect(page.getByRole('button',{name:/^Voice/})).not.toContainText('Quartz');
+  await choose(page,'Voice model','GPT Realtime 2 gpt-realtime-2');
+  await expect(field(page,'Voice')).not.toHaveValue(/Quartz/);
   await expect(page.getByLabel('Backend-task instructions',{exact:true})).toHaveCount(0);
   await page.getByRole('button',{name:'Save draft',exact:true}).click();
   await expect(page.getByRole('button',{name:'Publish',exact:true})).toBeEnabled();
   await page.goto('./#/trunks');
   await page.getByRole('button',{name:'Edit',exact:true}).first().click();
-  await expect(page.getByRole('button',{name:/^Conversation voice model/})).toHaveCount(0);
+  await expect(field(page,'Voice model')).toHaveCount(0);
 });
 
 test('each selected model displays exactly its own supported voice list',async({page})=>{
   await setup(page);await page.goto('./#/agents/receptionist');
   for(const model of capabilities.openai.models) {
-    if(model.id!=='gpt-realtime-2.1') await choose(page,'Conversation voice model',`${model.label} (${model.id})`);
-    await page.getByRole('button',{name:/^Voice/}).click();
+    if(model.id!=='gpt-realtime-2.1') await choose(page,'Voice model',`${model.label} ${model.id}`);
+    await field(page,'Voice').click();
     const list=page.getByRole('listbox');
-    await expect(list.getByRole('option')).toHaveCount(model.voices.length+1);
+    await expect(list.getByRole('option')).toHaveCount(model.voices.length);
     for(const voice of model.voices) await expect(list.getByRole('option',{name:voice.label,exact:true})).toBeVisible();
     if(model.adapter==='realtime') await expect(list.getByRole('option',{name:'Quartz',exact:true})).toHaveCount(0);
     await page.keyboard.press('Escape');
@@ -119,12 +121,12 @@ test('each selected model displays exactly its own supported voice list',async({
 
 test('voice and companion models have separate dropdowns',async({page})=>{
   await setup(page);await page.goto('./#/agents/receptionist');
-  await page.getByRole('button',{name:/^Conversation voice model/}).click();
+  await field(page,'Voice model').click();
   const list=page.getByRole('listbox');
   await expect(list.getByRole('option',{name:/GPT-6/})).toHaveCount(0);
-  await list.getByRole('option',{name:'GPT Live 1 (gpt-live-1)',exact:true}).click();
-  await expect(page.getByRole('button',{name:/^GPT-Live companion model/})).toContainText('GPT-6 Luna');
+  await list.getByRole('option',{name:'GPT Live 1 gpt-live-1',exact:true}).click();
+  await expect(field(page,'GPT-Live companion model')).toHaveValue(/GPT-6 Luna/);
   await choose(page,'GPT-Live companion model','GPT-6 Sol');
-  await choose(page,'Conversation voice model','GPT Realtime 2 (gpt-realtime-2)');
-  await expect(page.getByRole('button',{name:/^GPT-Live companion model/})).toHaveCount(0);
+  await choose(page,'Voice model','GPT Realtime 2 gpt-realtime-2');
+  await expect(field(page,'GPT-Live companion model')).toHaveCount(0);
 });

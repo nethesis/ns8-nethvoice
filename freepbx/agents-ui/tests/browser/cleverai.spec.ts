@@ -55,35 +55,32 @@ test("CleverAI trunk accepts only name and project, without local secrets or dis
     });
   });
   await page.goto("./#/trunks");
-  await page.getByRole("button", { name: "New trunk", exact: true }).click();
-  await page.getByRole("button", { name: /^Voice provider/ }).click();
-  await page.getByRole("option", { name: "CleverAI", exact: true }).click();
+  await page.getByRole("button", { name: "Create trunk", exact: true }).click();
+  await page.getByRole("radio", { name: "CleverAI", exact: true }).check();
   for (const label of [
     "Provider API key",
     "Webhook signing secret",
-    "Webhook endpoint",
+    "Provider webhook endpoint",
   ])
-    await expect(page.getByLabel(label, { exact: true })).toHaveCount(0);
+    await expect(page.getByLabel(label)).toHaveCount(0);
   await expect(
-    page.getByText(/Configure the OpenAI incoming-call webhook externally/),
+    page.getByText(/Point the OpenAI incoming-call webhook to CleverAI/),
   ).toBeVisible();
   await page.getByLabel("Name", { exact: true }).fill(externalTrunk.name);
   await page
     .getByLabel("OpenAI project ID", { exact: true })
     .fill("proj_external");
   await page
-    .getByRole("button", { name: "Save settings", exact: true })
+    .getByRole("button", { name: "Create", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: externalTrunk.name, exact: true }),
+    page.getByText(externalTrunk.name, { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Edit", exact: true }).click();
   await expect(
     page.getByLabel("OpenAI project ID", { exact: true }),
   ).toHaveValue("proj_external");
-  await expect(
-    page.getByLabel("Provider API key", { exact: true }),
-  ).toHaveCount(0);
+  await expect(page.getByLabel(/^Provider API key/)).toHaveCount(0);
 });
 
 test("CleverAI creates and edits through Save, filters trunks and exposes no local conversation or activity", async ({
@@ -145,8 +142,7 @@ test("CleverAI creates and edits through Save, filters trunks and exposes no loc
     });
   });
   await page.goto("./#/agents/new");
-  await page.getByRole("button", { name: /^Agent type/ }).click();
-  await page.getByRole("option", { name: "CleverAI", exact: true }).click();
+  await page.getByRole("radio", { name: "CleverAI", exact: true }).check();
   for (const label of [
     "Conversation instructions",
     "Greeting",
@@ -157,7 +153,7 @@ test("CleverAI creates and edits through Save, filters trunks and exposes no loc
   await expect(
     page.getByRole("heading", { name: "Tools", exact: true }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: /^Provider trunk/ }).click();
+  await page.getByRole("combobox", { name: "Provider trunk" }).click();
   await expect(page.getByRole("option", { name: /Local OpenAI/ })).toHaveCount(
     0,
   );
@@ -172,7 +168,7 @@ test("CleverAI creates and edits through Save, filters trunks and exposes no loc
     page.getByRole("button", { name: "Activity", exact: true }),
   ).toHaveCount(0);
   await expect(
-    page.getByText("Published version:", { exact: false }),
+    page.getByText("Published version", { exact: false }),
   ).toHaveCount(0);
   await page.reload();
   await expect(page.getByLabel("Name", { exact: true })).toHaveValue(
@@ -183,8 +179,16 @@ test("CleverAI creates and edits through Save, filters trunks and exposes no loc
   await expect(
     page.getByRole("button", { name: "Save", exact: true }),
   ).toBeDisabled();
-  page.on("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Open actions menu", exact: true })
+    .click();
+  await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .filter({ hasText: "Delete agent" })
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
   await expect(page).toHaveURL(/#\/agents$/);
   expect(mutations).toEqual([
     "/profiles",

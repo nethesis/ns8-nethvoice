@@ -8,7 +8,7 @@ import {
   NeTextInput,
   NeInlineNotification,
 } from "@nethesis/vue-components";
-import FieldSelect from "./FieldSelect.vue";
+import FieldCombobox from "./FieldCombobox.vue";
 import { request } from "../api";
 import type { Draft, ModelCatalog, Trunk } from "../types";
 const props = defineProps<{
@@ -51,7 +51,6 @@ const voices = useQuery({
     ),
 });
 const modelOptions = computed(() => [
-  { id: "", label: t("choose") },
   ...(props.modelValue.model && !selected.value
     ? [
         {
@@ -66,9 +65,8 @@ const modelOptions = computed(() => [
   ...(models.data.value?.items || []).map((item) => ({
     id: item.id,
     label:
-      item.id === "provider-default"
-        ? t("providerManagedModel")
-        : item.label + " (" + item.id + ")",
+      item.id === "provider-default" ? t("providerManagedModel") : item.label,
+    description: item.id === "provider-default" ? undefined : item.id,
   })),
 ]);
 const availableVoices = computed(() =>
@@ -84,7 +82,6 @@ const advancedFields = computed(() =>
   ),
 );
 const voiceOptions = computed(() => [
-  { id: "", label: t("choose") },
   ...availableVoices.value,
   ...(props.modelValue.voice &&
   !availableVoices.value.some((item) => item.id === props.modelValue.voice)
@@ -97,6 +94,23 @@ const voiceOptions = computed(() => [
       ]
     : []),
 ]);
+const modelHelper = computed(() => {
+  if (!props.binding) return t("modelHelp.noTrunk");
+  if (models.isFetching.value) return t("modelsLoading");
+  if (models.data.value && !models.data.value.items.length)
+    return t("modelsEmpty");
+  if (selected.value?.status === "experimental") return t("liveExperimental");
+  return t("modelHelp.ready");
+});
+const voiceHelper = computed(() =>
+  selected.value &&
+  (selected.value.voice_source !== "provider_api" || voices.data.value)
+    ? t("modelVoicesHelp", {
+        model: selected.value.label,
+        count: availableVoices.value.length,
+      })
+    : "",
+);
 function chooseModel(value: string) {
   const item = models.data.value?.items.find((item) => item.id === value);
   if (!item || value === props.modelValue.model) return;
@@ -164,51 +178,82 @@ function choices(key: string, values: string[]) {
 }
 </script>
 <template>
-  <section
-    class="space-y-4"
+  <div
+    class="grid grid-cols-1 gap-6 lg:grid-cols-2"
     aria-live="polite"
     :aria-busy="models.isFetching.value"
   >
-    <h2>{{ t("conversationSettings") }}</h2>
-    <div class="nv-field-grid">
-      <FieldSelect
-        :model-value="modelValue.model || ''"
-        :label="t('voiceModel')"
-        :options="modelOptions"
-        :disabled="
-          !binding ||
-          models.isPending.value ||
-          models.data.value?.selection === 'provider_managed'
-        "
-        @update:model-value="chooseModel"
-      />
-      <FieldSelect
-        :model-value="modelValue.voice"
-        :label="t('voiceName')"
-        :options="voiceOptions"
-        :disabled="
-          !selected ||
-          (selected.voice_source === 'provider_api' && voices.isPending.value)
-        "
-        @update:model-value="chooseVoice"
-      />
-    </div>
-    <p
-      v-if="
-        selected &&
-        (selected.voice_source !== 'provider_api' || voices.data.value)
+    <FieldCombobox
+      :model-value="modelValue.model || ''"
+      :label="t('voiceModel')"
+      :options="modelOptions"
+      :placeholder="t('modelHelp.placeholder')"
+      :helper-text="modelHelper"
+      :disabled="
+        !binding ||
+        models.isPending.value ||
+        models.data.value?.selection === 'provider_managed'
       "
-      class="nv-muted"
+      @update:model-value="chooseModel"
+    />
+    <FieldCombobox
+      :model-value="modelValue.voice"
+      :label="t('voiceName')"
+      :options="voiceOptions"
+      :placeholder="t('voicePlaceholder')"
+      :helper-text="voiceHelper"
+      :disabled="
+        !selected ||
+        (selected.voice_source === 'provider_api' && voices.isPending.value)
+      "
+      @update:model-value="chooseVoice"
+    />
+    <div class="-mt-3 flex flex-wrap items-center gap-2 lg:col-span-2">
+      <NeButton
+        :disabled="!binding"
+        :loading="models.isFetching.value"
+        kind="tertiary"
+        size="sm"
+        @click="models.refetch()"
+        ><template #prefix
+          ><FontAwesomeIcon icon="arrows-rotate" aria-hidden="true" /></template
+        >{{ t("refreshModels") }}</NeButton
+      ><NeButton
+        v-if="voices.isError.value"
+        kind="tertiary"
+        size="sm"
+        @click="voices.refetch()"
+        >{{ t("retry") }}</NeButton
+      >
+      <span v-if="models.data.value" class="text-tertiary-neutral text-xs">{{
+        t("modelSources." + models.data.value.source)
+      }}</span>
+    </div>
+    <NeInlineNotification
+      v-if="models.isError.value"
+      class="lg:col-span-2"
+      kind="error"
+      :title="t('modelsDiscoveryFailed')"
+    />
+    <NeInlineNotification
+      v-if="modelValue.model && models.data.value && !selected"
+      class="lg:col-span-2"
+      kind="warning"
+      :title="t('savedModelUnavailable')"
+    />
+    <NeInlineNotification
+      v-if="voices.isError.value"
+      class="lg:col-span-2"
+      kind="error"
+      :title="t('voiceCatalogError')"
+    />
+    <div
+      v-if="selected?.adapter === 'live' || selected?.options_schema.properties"
+      class="border-divider bg-elevation-1 grid grid-cols-1 gap-6 rounded-lg border p-4 lg:col-span-2 lg:grid-cols-2"
     >
-      {{
-        t("modelVoicesHelp", {
-          model: selected.label,
-          count: availableVoices.length,
-        })
-      }}
-    </p>
-    <div v-if="selected?.adapter === 'live'" class="space-y-4">
-      <FieldSelect
+      <FieldCombobox
+        v-if="selected?.adapter === 'live'"
+        class="lg:col-span-2"
         :model-value="String(modelValue.options?.backend_model ?? '')"
         :label="t('backendModel')"
         :options="
@@ -220,77 +265,40 @@ function choices(key: string, values: string[]) {
         :helper-text="t('companionModelHelp')"
         @update:model-value="setOption('backend_model', $event)"
       />
+      <template v-if="selected?.options_schema.properties">
+        <p class="text-tertiary-neutral lg:col-span-2">
+          {{ t("liveBackendHelp") }}
+        </p>
+        <div
+          v-for="(field, key) in advancedFields"
+          :key="key"
+          :class="{ 'lg:col-span-2': field['x-control'] === 'textarea' }"
+        >
+          <FieldCombobox
+            v-if="field.enum"
+            :model-value="String(modelValue.options?.[key] ?? '')"
+            :label="t(field.title)"
+            :options="choices(String(key), field.enum)"
+            @update:model-value="setOption(String(key), $event)"
+          />
+          <NeTextArea
+            v-else-if="field['x-control'] === 'textarea'"
+            :model-value="String(modelValue.options?.[key] ?? '')"
+            :label="t(field.title)"
+            :maxlength="field.maxLength"
+            @update:model-value="setOption(String(key), $event)"
+          />
+          <NeTextInput
+            v-else-if="field.type === 'integer'"
+            :model-value="String(modelValue.options?.[key] ?? '')"
+            :label="t(field.title)"
+            type="number"
+            :min="field.minimum"
+            :max="field.maximum"
+            @update:model-value="setOption(String(key), Number($event))"
+          />
+        </div>
+      </template>
     </div>
-    <p v-if="models.isFetching.value" class="nv-muted">
-      {{ t("modelsLoading") }}
-    </p>
-    <p v-if="models.data.value" class="nv-muted">
-      {{ t("modelSources." + models.data.value.source) }}
-    </p>
-    <p
-      v-if="models.data.value && !models.data.value.items.length"
-      class="nv-muted"
-    >
-      {{ t("modelsEmpty") }}
-    </p>
-    <NeInlineNotification
-      v-if="models.isError.value"
-      kind="error"
-      :title="t('modelsDiscoveryFailed')"
-    />
-    <NeInlineNotification
-      v-if="modelValue.model && models.data.value && !selected"
-      kind="warning"
-      :title="t('savedModelUnavailable')"
-    />
-    <NeInlineNotification
-      v-if="voices.isError.value"
-      kind="error"
-      :title="t('voiceCatalogError')"
-    />
-    <p v-if="selected?.status === 'experimental'" class="nv-muted">
-      {{ t("liveExperimental") }}
-    </p>
-    <NeButton
-      :disabled="!binding"
-      :loading="models.isFetching.value"
-      kind="tertiary"
-      @click="models.refetch()"
-      >{{ t("refreshModels") }}</NeButton
-    >
-    <NeButton
-      v-if="voices.isError.value"
-      kind="tertiary"
-      @click="voices.refetch()"
-      >{{ t("retry") }}</NeButton
-    >
-    <div v-if="selected?.options_schema.properties" class="space-y-4">
-      <p class="nv-muted">{{ t("liveBackendHelp") }}</p>
-      <div v-for="(field, key) in advancedFields" :key="key">
-        <FieldSelect
-          v-if="field.enum"
-          :model-value="String(modelValue.options?.[key] ?? '')"
-          :label="t(field.title)"
-          :options="choices(String(key), field.enum)"
-          @update:model-value="setOption(String(key), $event)"
-        />
-        <NeTextArea
-          v-else-if="field['x-control'] === 'textarea'"
-          :model-value="String(modelValue.options?.[key] ?? '')"
-          :label="t(field.title)"
-          :maxlength="field.maxLength"
-          @update:model-value="setOption(String(key), $event)"
-        />
-        <NeTextInput
-          v-else-if="field.type === 'integer'"
-          :model-value="String(modelValue.options?.[key] ?? '')"
-          :label="t(field.title)"
-          type="number"
-          :min="field.minimum"
-          :max="field.maximum"
-          @update:model-value="setOption(String(key), Number($event))"
-        />
-      </div>
-    </div>
-  </section>
+  </div>
 </template>

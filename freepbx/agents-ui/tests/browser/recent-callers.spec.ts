@@ -129,21 +129,39 @@ test("recent callbacks default on with seven days and independent extension excl
   page,
 }) => {
   const state = await fixture(page);
+  await expect(toggle(page, "Transfer calls")).toBeChecked();
+  await expect(page.getByText("None permitted", { exact: true }).first()).toBeVisible();
+  await expect(toggle(page, "Recent contacts")).toBeChecked();
   await expect(
-    toggle(page, "Transfer to a permitted PBX destination"),
-  ).toBeChecked();
-  await expect(toggle(page, "Direct extensions")).not.toBeChecked();
-  await expect(toggle(page, "Recent callbacks")).toBeChecked();
-  await expect(
-    page.getByLabel("Recent-call lookback (days)", { exact: true }),
+    page.getByLabel("Lookback period", { exact: true }),
   ).toHaveValue("7");
-  await expect(toggle(page, "Alice (203)")).toBeChecked();
   await expect(
-    page.getByLabel("Additional description (optional)"),
-  ).toHaveCount(0);
-  await toggle(page, "Alice (203)").locator("..").click();
+    page.getByRole("radio", { name: "All extensions", exact: true }),
+  ).toBeChecked();
   await page
-    .getByLabel("Recent-call lookback (days)", { exact: true })
+    .getByRole("radio", {
+      name: "All extensions except the selected ones",
+      exact: true,
+    })
+    .check();
+  const excluded = page.getByRole("combobox", {
+    name: "Excluded callback extensions",
+    exact: true,
+  });
+  await expect(excluded).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Remove Alice (203)", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel("Alice (203)", { exact: true })).toHaveCount(0);
+  await excluded.click();
+  await excluded.fill("Alice");
+  await page.getByRole("option", { name: "Alice (203)", exact: true }).click();
+  await excluded.press("Escape");
+  await expect(
+    page.getByRole("button", { name: "Remove Alice (203)", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Lookback period", { exact: true })
     .fill("10");
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await expect(
