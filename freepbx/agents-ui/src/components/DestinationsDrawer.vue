@@ -88,7 +88,7 @@ function selectTab(value: string) {
     @close="emit('close')"
   >
     <div class="flex flex-col gap-6">
-      <p class="text-tertiary-neutral">{{ t("destinations.help") }}</p>
+      <p class="text-muted">{{ t("destinations.help") }}</p>
       <NeTabs
         :tabs="tabs"
         :selected="tab"
@@ -109,7 +109,7 @@ function selectTab(value: string) {
         :clear-search-label="t('clear')"
       />
       <div class="-mt-2 flex items-center gap-2">
-        <span class="text-tertiary-neutral">{{
+        <span class="text-muted">{{
           t("destinations.selectedCount", { count, total: list.length })
         }}</span>
         <NeButton
@@ -132,7 +132,7 @@ function selectTab(value: string) {
         kind="error"
         :title="t('destinations.tooMany', { max: MAX_EXTENSIONS })"
       />
-      <p v-if="!visible.length" class="text-tertiary-neutral py-6 text-center">
+      <p v-if="!visible.length" class="text-muted py-6 text-center">
         {{ t("noOptions") }}
       </p>
       <ul v-else class="divide-divider -mt-2 divide-y">

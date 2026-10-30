@@ -299,10 +299,7 @@ function close() {
               <template #content>{{ t("trunkForm.copyEndpoint") }}</template>
             </NeTooltip>
           </div>
-          <p
-            id="webhook-endpoint-help"
-            class="text-tertiary-neutral mt-2 text-sm"
-          >
+          <p id="webhook-endpoint-help" class="text-muted mt-2 text-sm">
             {{
               t(
                 form.provider === "grok"

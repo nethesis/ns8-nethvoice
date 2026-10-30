@@ -6,7 +6,7 @@ defineProps<{ title: string; description?: string }>();
   <section class="grid grid-cols-1 gap-x-8 gap-y-4 lg:grid-cols-3">
     <div>
       <NeHeading tag="h6">{{ title }}</NeHeading>
-      <p v-if="description" class="text-tertiary-neutral mt-1">
+      <p v-if="description" class="text-muted mt-1">
         {{ description }}
       </p>
     </div>
