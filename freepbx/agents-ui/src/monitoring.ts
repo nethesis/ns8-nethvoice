@@ -4,7 +4,57 @@ export function duration(value: number | null | undefined): string {
   if (value == null) return "—";
   return value < 1000
     ? `${Math.round(value)} ms`
-    : `${(value / 1000).toFixed(2)} s`;
+    : `${Number((value / 1000).toFixed(2))} s`;
+}
+
+function dateLocale(locale: string): string {
+  return locale === "en" ? "en-GB" : locale;
+}
+
+function parseUtc(value: string): Date {
+  return new Date(
+    value.replace(" ", "T") + (/[zZ]|[+-]\d\d:?\d\d$/.test(value) ? "" : "Z"),
+  );
+}
+
+export function formatUtc(value: string, locale: string): string {
+  const date = parseUtc(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(dateLocale(locale), {
+    timeZone: "UTC",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+export function formatTime(value: string, locale: string): string {
+  const date = parseUtc(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleTimeString(dateLocale(locale), {
+    timeZone: "UTC",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+export function formatDay(
+  value: string,
+  locale: string,
+  month = false,
+): string {
+  const date = parseUtc(value + " 00:00:00");
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(dateLocale(locale), {
+    timeZone: "UTC",
+    ...(month ? {} : { day: "numeric" }),
+    month: month ? "long" : "short",
+    year: "numeric",
+  });
 }
 
 /** Collapse start/end observations without losing parent or first-observed order. */

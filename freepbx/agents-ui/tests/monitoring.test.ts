@@ -40,6 +40,6 @@ describe("monitoring presentation", () => {
   it("shows unavailable values distinctly from zero", () => {
     expect(duration(null)).toBe("—");
     expect(duration(0)).toBe("0 ms");
-    expect(duration(2500)).toBe("2.50 s");
+    expect(duration(2500)).toBe("2.5 s");
   });
 });

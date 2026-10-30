@@ -8,6 +8,8 @@ tools.find(t=>t.id==='pbx.find_destinations')!.editor={automatic:true};
 const modelCapabilities = JSON.parse(readFileSync(new URL("../../../var/www/html/freepbx/rest/lib/agents/contracts/provider-models-v2.json", import.meta.url), "utf8")).openai;
 const modelCatalog = {items:modelCapabilities.models,backend_models:modelCapabilities.backend_models,default_model:modelCapabilities.default,source:"provider_api",selection:"selectable"};
 
+const toggle=(page:Page,name:string)=>page.getByRole("checkbox",{name,exact:true});
+
 async function login(page: Page) {
   page.on("pageerror", error => { throw error; });
   await page.addInitScript(() => {
@@ -39,37 +41,35 @@ test("built-in agents render with v0.1 navigation and independent tool editing",
       if(path.endsWith("/publish")) internal={...internal,workflow_version:1,enabled:true,routable:true,published:{...internal.draft,workflow_version:1},sync_status:"synced",revision:internal.revision+1};
       await route.fulfill({json:internal}); return;
     }
-    const json = path==="/destinations" ? {items:[{id:"extension:203",name:"Test extension",type:"extension",available:true}],modules:{extension:true},unavailable_ids:[],next_offset:null} : path==="/access" ? {milestone:"v0.1-configuration",contract_version:8,capabilities:["agents","tools"],csrf:"synthetic-csrf"} : path==="/catalog" ? catalog : path==="/trunks" ? {items:trunks} : path.endsWith("/voices") ? {items:[{id:"ash",label:"ash"},{id:"ballad",label:"ballad"},{id:"coral",label:"coral"}]} : path==="/profiles" ? {items:[internal,external]} : internal;
+    const json = path==="/destinations" ? {items:url.searchParams.get("type")==="queue"?[]:[{id:"extension:203",name:"Test extension",type:"extension",available:true}],modules:{extension:true},unavailable_ids:[],next_offset:null} : path==="/access" ? {milestone:"v0.1-configuration",contract_version:8,capabilities:["agents","tools"],csrf:"synthetic-csrf"} : path==="/catalog" ? catalog : path==="/trunks" ? {items:trunks} : path.endsWith("/voices") ? {items:[{id:"ash",label:"ash"},{id:"ballad",label:"ballad"},{id:"coral",label:"coral"}]} : path==="/profiles" ? {items:[internal,external]} : internal;
     await route.fulfill({json});
   });
   await page.goto("./#/agents");
   for (const name of ["Dashboard","Extensions and devices","Routes / VisualPlan"]) await expect(page.getByRole("link",{name,exact:true})).toHaveCount(0);
   await expect(page.getByRole("link",{name:"Receptionist",exact:true})).toBeVisible();
   await expect(page.getByRole("link",{name:"Independent custom",exact:true})).toBeVisible();
-  await expect(page.getByRole("button",{name:"New agent",exact:true})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Create agent",exact:true})).toBeVisible();
   await expect(page.getByRole("link",{name:"Data sources",exact:true})).toHaveCount(0);
   await page.getByRole("link",{name:"Receptionist",exact:true}).click();
   await expect(page.getByLabel("Name",{exact:true})).toHaveValue("Receptionist");
   await page.getByLabel("Name",{exact:true}).fill("Receptionist test agent");
-  await expect(page.getByRole("checkbox",{name:"Find permitted PBX destinations",exact:true})).toHaveCount(0);
-  await page.getByRole("checkbox",{name:"Transfer to a permitted PBX destination",exact:true}).locator("..").click();
-
-  await page.getByRole("checkbox",{name:"Direct extensions",exact:true}).locator("..").click();
-  await page.getByLabel("Search extensions by name, number or purpose",{exact:true}).fill("203");
-  await page.getByRole("checkbox",{name:"Test extension (203)",exact:true}).locator("..").click();
-  await page.getByRole("button",{name:"Save draft",exact:true}).click();
-  await expect(page.getByRole("button",{name:"Publish",exact:true})).toBeEnabled();
+  await expect(toggle(page,"Find permitted PBX destinations")).toHaveCount(0);
+  await toggle(page,"Transfer calls").locator("..").click();
+  await page.getByRole("button",{name:"Manage destinations",exact:true}).click();
+  await page.getByRole("checkbox",{name:"Test extension",exact:true}).check();
+  await page.getByRole("button",{name:"Save",exact:true}).click();
+  await expect(page.getByText("Test extension (203)",{exact:true})).toBeVisible();
   await page.getByRole("button",{name:"Publish",exact:true}).click();
-  await expect(page.getByText("Published version: 1",{exact:false})).toBeVisible();
-  await expect(page.getByRole("button",{name:"Enable agent",exact:true})).toHaveCount(0);
-  await expect(page.getByRole("button",{name:"Disable agent",exact:true})).toHaveCount(0);
+  await expect(page.getByText("Published version 1",{exact:true})).toBeVisible();
   await expect(page.getByRole("button",{name:"Save draft",exact:true})).toBeDisabled();
+  await expect(page.getByRole("button",{name:"Publish",exact:true})).toBeDisabled();
   expect(mutations).toEqual(["/profiles/receptionist","/profiles/receptionist/publish"]);
   expect(internal.draft.tool_bindings.slice(0,2).every(binding=>binding.enabled)).toBe(true);
+  expect(internal.draft.tool_bindings[1].config.extensions_enabled).toBe(true);
   expect(internal.draft.tool_bindings[1].config.extension_allowlist).toEqual(["extension:203"]);
   expect(external.draft.tool_bindings.some(binding=>binding.enabled)).toBe(false);
   await page.reload();
-  await expect(page.getByRole("checkbox",{name:"Transfer to a permitted PBX destination",exact:true})).toBeChecked();
+  await expect(toggle(page,"Transfer calls")).toBeChecked();
   await page.screenshot({path:"/tmp/voice-agent-v01-editor.png",fullPage:true});
 });
 
@@ -88,18 +88,18 @@ test("provider credentials are write-only and cleared after saving", async ({pag
       expect(input.trunk).not.toHaveProperty("model");
       saved=true; await route.fulfill({json:trunks[0]}); return;
     }
-    await route.fulfill({json:path.endsWith("/access")?{csrf:"synthetic-csrf"}:{items:saved?trunks:[]}});
+    await route.fulfill({json:path.endsWith("/access")?{csrf:"synthetic-csrf"}:path.endsWith("/catalog")?catalog:path.endsWith("/profiles")?{items:[]}:{items:saved?trunks:[]}});
   });
   await page.goto("./#/trunks");
-  await page.getByRole("button",{name:"New trunk",exact:true}).click();
+  await page.getByRole("button",{name:"Create trunk",exact:true}).click();
   await page.getByLabel("Name",{exact:true}).fill("Test provider");
   await page.getByLabel("OpenAI project ID",{exact:true}).fill("proj_test");
-  await page.getByLabel("Provider API key",{exact:true}).fill("synthetic-provider-key");
+  await page.getByLabel(/^Provider API key/).fill("synthetic-provider-key");
   await page.getByLabel("Webhook signing secret",{exact:true}).fill("whsec_c3ludGhldGljLXNpZ25pbmctc2VjcmV0");
-  await page.getByRole("button",{name:"Save settings",exact:true}).click();
-  await expect(page.getByRole("heading",{name:"Test provider",exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"Create",exact:true}).click();
+  await expect(page.getByText("Test provider",{exact:true})).toBeVisible();
   await page.getByRole("button",{name:"Edit",exact:true}).click();
-  await expect(page.getByLabel("Provider API key",{exact:true})).toHaveValue("");
+  await expect(page.getByLabel(/^Provider API key/)).toHaveValue("");
   await expect(page.getByLabel("Webhook signing secret",{exact:true})).toHaveValue("");
   expect(await page.evaluate(()=>JSON.stringify(localStorage))).not.toContain("synthetic-provider-key");
 });
@@ -135,15 +135,16 @@ test("new Basic Voice draft saves, conflicts preserve edits, and runs show bound
     await route.fulfill({json});
   });
   await page.goto("./#/agents/new");
-  await expect(page.getByRole("checkbox",{name:"Find permitted PBX destinations",exact:true})).toHaveCount(0);
-  await expect(page.getByRole("checkbox",{name:"Transfer to a permitted PBX destination",exact:true})).not.toBeChecked();
-  await expect(page.getByRole("button",{name:/^Default language/})).toContainText("Italiano (it)");
-  await expect(page.getByRole("checkbox",{name:"Call transcription",exact:true})).not.toBeChecked();
-  await page.getByRole("checkbox",{name:"Call transcription",exact:true}).locator("..").click();
-  await page.getByLabel("Transcript retention (hours, 1–24)",{exact:true}).fill("2");
+  await expect(toggle(page,"Find permitted PBX destinations")).toHaveCount(0);
+  await expect(toggle(page,"Transfer calls")).not.toBeChecked();
+  await expect(page.getByRole("combobox",{name:"Default language"})).toHaveValue("Italiano (it)");
+  await expect(toggle(page,"Call transcription")).not.toBeChecked();
+  await toggle(page,"Call transcription").locator("..").click();
+  await page.getByLabel("Transcript retention",{exact:true}).fill("2");
   await page.getByLabel("Name",{exact:true}).fill("Basic test");
   await page.getByRole("button",{name:"Save draft",exact:true}).click();
   await expect(page).toHaveURL(/#\/agents\/agent_test$/);
+  expect(profile.draft.debug.retention_hours).toBe(2);
   conflict=true;
   await page.getByLabel("Name",{exact:true}).fill("Unsaved conflict");
   await page.getByRole("button",{name:"Save draft",exact:true}).click();
@@ -151,12 +152,14 @@ test("new Basic Voice draft saves, conflicts preserve edits, and runs show bound
   await expect(page.getByLabel("Name",{exact:true})).toHaveValue("Unsaved conflict");
   await page.getByRole("button",{name:"Reload saved settings",exact:true}).click();
   await expect(page.getByLabel("Name",{exact:true})).toHaveValue("Basic test");
-  await page.getByRole("button",{name:"Activity",exact:true}).click();
+  await page.getByRole("button",{name:"Back",exact:true}).click();
+  await page.getByRole("button",{name:"Open actions menu",exact:true}).click();
+  await page.getByRole("menuitem",{name:"View monitoring",exact:true}).click();
   await expect(page).toHaveURL(/agent_id=agent_test/);
-  await page.getByRole("button",{name:"Open",exact:true}).click();
+  await page.getByRole("button",{name:"Details",exact:true}).click();
   await expect(page.getByText("Transfer to a permitted PBX destination",{exact:false})).toBeVisible();
   await expect(page.getByText("extension:203",{exact:false})).toBeVisible();
   await expect(page.getByText("Approved directory matches: 0",{exact:true})).toBeVisible();
-  await expect(page.getByText("<script>synthetic transcript</script>",{exact:true})).toBeVisible();
-  expect(await page.locator(".nv-panel script").count()).toBe(0);
+  await expect(page.getByRole("textbox",{name:"Call transcription"})).toHaveValue(/<script>synthetic transcript<\/script>/);
+  expect(await page.locator("main script").count()).toBe(0);
 });

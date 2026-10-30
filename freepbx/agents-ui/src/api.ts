@@ -147,6 +147,11 @@ export function signIn() {
   );
   window.location.assign("/freepbx/wizard/#!/login");
 }
+export function signOut() {
+  localStorage.removeItem("secretkey");
+  clearAuth();
+  window.location.assign("/freepbx/wizard/#!/login");
+}
 window.addEventListener("storage", (event) => {
   if (event.key === "secretkey") {
     clearAuth();
