@@ -149,6 +149,15 @@ function nethcti3_get_config($engine) {
             $context = 'from-pstn-asserted';
             $ext->add($context, '_X!', '', new ext_set('CALLERID(num)','${CUT(CUT(PJSIP_HEADER(read,P-Asserted-Identity),@,1),:,2)}'));
             $ext->add($context, '_X!', '', new ext_goto('from-pstn,${EXTEN},1'));
+            /* Multi-number trunks whose provider sends the called DID in P-Preferred-Identity (#8179):
+               same structure as the Core from-pstn-toheader context, falling back to the called
+               number when the channel is not PJSIP or the header is missing. */
+            $context = 'from-pstn-preferredin';
+            $ext->add($context, '_.', '', new ext_noop('Attempting to extract DID from SIP P-Preferred-Identity header'));
+            $ext->add($context, '_.', '', new ext_gotoif('$["${CHANNEL(channeltype)}"!="PJSIP"]', 'from-pstn,${EXTEN},1'));
+            $ext->add($context, '_.', '', new ext_set('PPI_DID', '${CUT(CUT(PJSIP_HEADER(read,P-Preferred-Identity),@,1),:,2)}'));
+            $ext->add($context, '_.', '', new ext_gotoif('$["${PPI_DID}"=""]', 'from-pstn,${EXTEN},1'));
+            $ext->add($context, '_.', '', new ext_goto('from-pstn,${PPI_DID},1'));
         break;
     }
 }
