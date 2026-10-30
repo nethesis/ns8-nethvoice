@@ -19,7 +19,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       - name: Run LLDP UI tests
         run: node tests/unit/test_lldp_ui.cjs

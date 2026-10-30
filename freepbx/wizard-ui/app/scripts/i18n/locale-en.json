@@ -80,6 +80,7 @@
   "orderBy": "Order",
   "profiles": "users profiles",
   "vtrunks": "VOIP Trunks",
+  "Spaces and special characters in the trunk name are not recommended: use letters, digits, . - _": "Spaces and special characters in the trunk name are not recommended: use letters, digits, . - _",
   "gateptrunks": "gateway and physical trunks",
   "outroutes": "outbound routes",
   "tgroupstcond": "temporal groups and temporal conditions",

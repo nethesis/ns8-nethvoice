@@ -182,7 +182,11 @@ func (s *Server) storeUpload(ctx context.Context, ses *xmppc.Session, name, cont
 	if err != nil {
 		return "", err
 	}
-	req, _ := http.NewRequestWithContext(ctx, "PUT", s.loopbackUpload(put), bytes.NewReader(data))
+	local, ok := s.loopbackUpload(put)
+	if !ok {
+		return "", fmt.Errorf("upload: unexpected slot %q", put)
+	}
+	req, _ := http.NewRequestWithContext(ctx, "PUT", local, bytes.NewReader(data))
 	req.Host = hostOf(put) // ejabberd finds the slot by the virtual host it was issued for
 	req.ContentLength = int64(len(data))
 	req.Header.Set("Content-Type", contentType)
@@ -200,21 +204,34 @@ func (s *Server) storeUpload(ctx context.Context, ses *xmppc.Session, name, cont
 	return get, nil
 }
 
-// loopbackUpload turns https://<host>/upload/... into the local ejabberd listener, when one is configured.
-func (s *Server) loopbackUpload(public string) string {
-	if s.UploadURL == "" {
-		return public
+// uploadPath is the path of one of our uploads, /upload/<slot>/<name>, and nothing else: anyone can
+// put a link in a message, and the loopback listener behind /upload also serves ejabberd's admin API.
+func uploadPath(link string) (string, bool) {
+	u, err := url.Parse(link)
+	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Opaque != "" || u.User != nil || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" {
+		return "", false
 	}
-	if i := strings.Index(public, "/upload/"); i >= 0 {
-		return strings.TrimSuffix(s.UploadURL, "/") + public[i+len("/upload"):]
+	p := u.EscapedPath()
+	low := strings.ToLower(p)
+	if !strings.HasPrefix(p, "/upload/") || strings.Contains(p, "..") || strings.Contains(low, "%2e") || strings.Contains(low, "%2f") || strings.Contains(low, "%5c") || strings.ContainsAny(p, "\\;") || path.Clean(p) != p {
+		return "", false
 	}
-	return public
+	return p, true
+}
+
+// loopbackUpload turns https://<host>/upload/... into the local ejabberd listener; false for anything else.
+func (s *Server) loopbackUpload(public string) (string, bool) {
+	p, ok := uploadPath(public)
+	if !ok || s.UploadURL == "" {
+		return "", false
+	}
+	return strings.TrimSuffix(s.UploadURL, "/") + strings.TrimPrefix(p, "/upload"), true
 }
 
 // publicURL points an upload link at the current CTI host: links survive a host change.
 func (s *Server) publicURL(link string) string {
-	if i := strings.Index(link, "/upload/"); i >= 0 && s.PublicHost != "" {
-		return "https://" + s.PublicHost + link[i:]
+	if p, ok := uploadPath(link); ok && s.PublicHost != "" {
+		return "https://" + s.PublicHost + p
 	}
 	return link
 }
@@ -265,7 +282,8 @@ type fileInfo struct {
 
 func (s *Server) uploadInfo(ctx context.Context, link string) fileInfo {
 	// Only our upload service, always through loopback: any other link is not ours to fetch.
-	if s.UploadURL == "" || !strings.Contains(link, "/upload/") {
+	local, ok := s.loopbackUpload(link)
+	if !ok {
 		return fileInfo{}
 	}
 	if s.Store != nil {
@@ -275,7 +293,7 @@ func (s *Server) uploadInfo(ctx context.Context, link string) fileInfo {
 	}
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	req, _ := http.NewRequestWithContext(ctx, "GET", s.loopbackUpload(link), nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", local, nil)
 	req.Host = hostOf(link)
 	resp, err := fileClient.Do(req)
 	if err != nil {

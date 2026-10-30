@@ -8,13 +8,16 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/address"
+	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/cti"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/logx"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/store"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/xmppc"
@@ -27,20 +30,46 @@ type Server struct {
 	VAPIDPublic string
 	Store       *store.Store
 	MW          *Middleware
-	EjabberdAPI string                                        // ejabberd's mod_http_api on loopback, for archive purges
+	EjabberdAPI string                                        // ejabberd's mod_http_api: unix:<socket path>, or an http URL
 	PublicHost  string                                        // the CTI host: attachment links point there, whatever host they were uploaded under
 	UploadURL   string                                        // ejabberd's upload service on loopback, for attachments relayed from the app
 	RoomName    func(ctx context.Context, room string) string // cached room names (push component), "" when unknown
 	Archive     *Archive                                      // ejabberd's message archive, for text search
 	Retention   int                                           // days the archive keeps messages
+	CTIConfig   string                                        // the CTI's users.json and profiles.json, read-only; "" skips KickRevoked
+	Secret      string                                        // signs the service passwords the gateway logs in with
 
-	failures window // failed Acrobits logins
-	sends    window // messages from the app
-	files    window // attachments from the app
+	failures   window // failed Acrobits logins, by username
+	ipFails    window // failed Acrobits logins, by client address
+	sends      window // messages from the app
+	files      window // attachments from the app
+	invites    window // guests invited
+	guestCalls window // guest page calls
+	joins      window // guests joining, by client address
+	linkReads  window // invite links looked up, by client address
+
+	guestWait guestWaiters
+	joining   roomLocks
 }
 
 // apiClient talks to ejabberd on loopback; it must never hang a request.
 var apiClient = &http.Client{Timeout: 10 * time.Second}
+
+// unixClient talks to ejabberd's admin API on its unix socket: only who shares the volume reaches it.
+var unixClient = func() func(string) *http.Client {
+	var once sync.Once
+	var c *http.Client
+	return func(sock string) *http.Client {
+		once.Do(func() {
+			c = &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{
+				DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+					return (&net.Dialer{}).DialContext(ctx, "unix", sock)
+				},
+			}}
+		})
+		return c
+	}
+}()
 
 // maxBody bounds every request body: the largest legitimate one is a chat message.
 const maxBody = 64 << 10
@@ -53,14 +82,33 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /push/web/{node}", s.webUnsubscribe)
 	mux.HandleFunc("GET /push/mobile", s.mobile)
 	mux.HandleFunc("GET /users/inactive", s.inactive)
+	mux.HandleFunc("GET /conversations", s.conversations)
 	mux.HandleFunc("DELETE /conversations/{peer}", s.deleteConversation)
 	mux.HandleFunc("GET /search", s.search)
 	mux.HandleFunc("GET /prefs/host", s.chatHost)
 	mux.HandleFunc("PUT /prefs/host", s.chatHost)
+	// The app's provisioning proxy: my groups with their pictures, for the app's contacts.
+	mux.HandleFunc("GET /groups", s.groups)
 	// Acrobits mobile app: the three web services it is provisioned with.
 	mux.HandleFunc("POST /api/client/fetch_messages", s.fetchMessages)
 	mux.HandleFunc("POST /api/client/send_message", s.sendMessage)
 	mux.HandleFunc("POST /api/client/push_token_report", s.pushTokenReport)
+	// People outside the PBX: operators make the room and its link, guests join by it.
+	mux.HandleFunc("POST /guests", s.createExtRoom)
+	mux.HandleFunc("GET /guests/{room}", s.getExtRoom)
+	mux.HandleFunc("POST /guests/{room}/link", s.newExtLink)
+	mux.HandleFunc("DELETE /guests/{room}", s.revokeExtLink)
+	mux.HandleFunc("DELETE /guests/{room}/{guest}", s.removeGuest)
+	mux.HandleFunc("GET /g/{$}", s.guestPageHandler)
+	mux.Handle("GET /guest-app/", s.guestAssets())
+	mux.HandleFunc("POST /guest/link", s.linkInfo)
+	mux.HandleFunc("POST /guest/join", s.joinGuest)
+	mux.HandleFunc("GET /guest/chat", s.guestChat)
+	mux.HandleFunc("GET /guest/messages", s.guestMessages)
+	mux.HandleFunc("POST /guest/messages", s.guestSend)
+	mux.HandleFunc("POST /guest/react", s.guestReact)
+	mux.HandleFunc("POST /guest/retract", s.guestRetract)
+	mux.HandleFunc("POST /guest/upload", s.guestUpload)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	return withCORS(mux)
 }
@@ -91,6 +139,10 @@ func withCORS(h http.Handler) http.Handler {
 			return
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, maxBody)
+		// Traefik sets X-Forwarded-For; calls to the middleware for this request carry it.
+		if f := r.Header.Get("X-Forwarded-For"); f != "" {
+			r = r.WithContext(cti.WithClient(r.Context(), f))
+		}
 		h.ServeHTTP(w, r)
 	})
 }
@@ -315,6 +367,12 @@ func (s *Server) acrobitsSession(w http.ResponseWriter, r *http.Request) (*acrob
 		fail(w, 401, "username and password are required")
 		return nil, nil, "", false
 	}
+	// One address guessing across many accounts, and one account from many addresses.
+	ip := ipKey(clientIP(r))
+	if s.ipFails.count(ip) >= ipMaxFailures {
+		fail(w, 429, "too many failed logins, retry later")
+		return nil, nil, "", false
+	}
 	if s.throttled(in.Username) {
 		fail(w, 429, "too many failed logins, retry later")
 		return nil, nil, "", false
@@ -326,6 +384,7 @@ func (s *Server) acrobitsSession(w http.ResponseWriter, r *http.Request) (*acrob
 		if ses == nil {
 			if code == 401 {
 				s.failed(in.Username)
+				s.ipFails.add(ip)
 			}
 			fail(w, code, msg)
 			return nil, nil, "", false
@@ -339,6 +398,7 @@ func (s *Server) acrobitsSession(w http.ResponseWriter, r *http.Request) (*acrob
 		if err != nil {
 			if errors.Is(err, ErrUnauthorized) {
 				s.failed(in.Username)
+				s.ipFails.add(ip)
 				fail(w, 401, "invalid credentials")
 			} else {
 				log.Printf("acrobits %s: login: %v", in.Username, err)
@@ -433,14 +493,37 @@ func needsOTP(jwt string) bool {
 }
 
 // throttled limits password guessing through the Acrobits endpoints: five failures a minute per account.
-func (s *Server) throttled(user string) bool { return s.failures.count(user) >= 5 }
+// A username counts once whatever its case: the directory does not tell them apart.
+func (s *Server) throttled(user string) bool { return s.failures.count(strings.ToLower(user)) >= 5 }
 
-func (s *Server) failed(user string) { s.failures.add(user) }
+func (s *Server) failed(user string) { s.failures.add(strings.ToLower(user)) }
+
+// ipMaxFailures: failed logins per minute from one address, across accounts (offices share one).
+const ipMaxFailures = 20
+
+// clientIP is the address Traefik saw: the last X-Forwarded-For hop, the connection's without it.
+func clientIP(r *http.Request) string {
+	if f := r.Header.Get("X-Forwarded-For"); f != "" {
+		hops := strings.Split(f, ",")
+		return strings.TrimSpace(hops[len(hops)-1])
+	}
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	return host
+}
+
+// ipKey is what per-address limits count: an IPv6 client by its /64, which one host may rotate through.
+func ipKey(ip string) string {
+	if a := net.ParseIP(ip); a != nil && a.To4() == nil {
+		return a.Mask(net.CIDRMask(64, 128)).String() + "/64"
+	}
+	return ip
+}
 
 // window counts each user's events in the last minute.
 type window struct {
-	mu sync.Mutex
-	m  map[string][]time.Time
+	mu    sync.Mutex
+	m     map[string][]time.Time
+	swept time.Time
 }
 
 func (w *window) count(user string) int {
@@ -465,6 +548,15 @@ func (w *window) add(user string) {
 	defer w.mu.Unlock()
 	if w.m == nil {
 		w.m = map[string][]time.Time{}
+	}
+	// Keys seen once and never again (an address, say) go once their minute is over.
+	if now := time.Now(); now.Sub(w.swept) > time.Minute {
+		for k, ts := range w.m {
+			if len(ts) == 0 || now.Sub(ts[len(ts)-1]) >= time.Minute {
+				delete(w.m, k)
+			}
+		}
+		w.swept = now
 	}
 	w.m[user] = append(w.m[user], time.Now())
 }
@@ -507,6 +599,7 @@ type sms struct {
 	SmsText     string `json:"sms_text"`
 	ContentType string `json:"content_type,omitempty"`
 	StreamID    string `json:"stream_id,omitempty"`
+	Displayed   bool   `json:"displayed,omitempty"` // read on another client: not new, not notified
 }
 
 // fetchMessages: archive after the last id the app knows, split into received and sent.
@@ -527,7 +620,16 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	var msgs []xmppc.Message
-	for page := 0; page < 5; page++ {
+	if after == "" {
+		// A new install: every chat, each with its latest messages, not just the newest page of the archive.
+		var err error
+		if msgs, err = s.everyChat(ctx, ses, in.Username); err != nil {
+			log.Printf("fetch %s: %v", in.Username, err)
+			fail(w, 502, "chat server error")
+			return
+		}
+	}
+	for page := 0; page < 5 && after != ""; page++ {
 		batch, complete, err := ses.History(ctx, after, 100)
 		if err != nil {
 			log.Printf("fetch %s: %v", in.Username, err)
@@ -535,8 +637,8 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		msgs = append(msgs, batch...)
-		if complete || len(batch) == 0 || after == "" {
-			break // without an id the app wants the newest page only
+		if complete || len(batch) == 0 {
+			break
 		}
 		after = batch[len(batch)-1].ID
 	}
@@ -552,6 +654,7 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 			gone[m.Room+"|"+m.Retract+"|"+m.Nick] = true
 		}
 	}
+	read := readUpTo(msgs, me, in.Username)
 	var known []store.AppMsg
 	for _, m := range msgs {
 		// What a retraction names the message by: the room's id in a group, else the sender's origin-id.
@@ -581,7 +684,7 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		known = append(known, store.AppMsg{SmsID: m.ID, Ref: ref, Peer: peer, Author: author})
-		item := sms{SmsID: m.ID, SendingDate: m.At.UTC().Format(time.RFC3339), SmsText: emojify(m.Body), ContentType: "text/plain"}
+		item := sms{SmsID: m.ID, SendingDate: m.At.UTC().Format(time.RFC3339), SmsText: emojify(appQuote(m.Body)), ContentType: "text/plain"}
 		// An attachment goes out in the app's own file transfer format, so it shows a player or a picture.
 		// Messages the app sent before the gateway converted them stay in that format: hand them back as such.
 		attached := len(m.Files) > 0
@@ -609,8 +712,15 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 					}
 					item.SmsText, item.ContentType = s.fileTransferText(ctx, m.Files, caption), fileTransferType
 				} else if item.ContentType != fileTransferType {
-					item.SmsText = author + ": " + emojify(m.Body)
+					text := emojify(appQuote(m.Body))
+					// A reply's quote takes its own lines, under the author.
+					if strings.HasPrefix(text, "┃") {
+						item.SmsText = author + ":\n" + text
+					} else {
+						item.SmsText = author + ": " + text
+					}
 				}
+				item.Displayed = !m.At.After(read[peer])
 				received = append(received, item)
 			}
 			continue
@@ -624,11 +734,83 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 			sent = append(sent, item)
 		} else {
 			item.Sender = s.address(users, m.From)
+			item.Displayed = !m.At.After(read[peer])
 			received = append(received, item)
 		}
 	}
 	s.Store.PutAppMsgs(in.Username, known)
 	writeJSON(w, 200, map[string]any{"date": time.Now().UTC().Format(time.RFC3339), "received_smss": received, "sent_smss": sent})
+}
+
+// everyChat is the latest messages of each of my chats, newest chats first, merged oldest first.
+func (s *Server) everyChat(ctx context.Context, ses *xmppc.Session, user string) ([]xmppc.Message, error) {
+	peers, err := s.Archive.Peers(user+"@"+s.Host, user)
+	if err != nil {
+		return nil, err
+	}
+	var msgs []xmppc.Message
+	for i, peer := range peers {
+		if i == firstFetchChats {
+			break
+		}
+		// Read markers and reactions take archive slots too: page back until there is enough to show.
+		var chat []xmppc.Message
+		before, shown := "", 0
+		for page := 0; page < 4 && shown < firstFetchPerChat; page++ {
+			batch, complete, err := ses.Before(ctx, peer, before, 50)
+			if err != nil {
+				return nil, err
+			}
+			chat = append(batch, chat...)
+			for _, m := range batch {
+				if strings.TrimSpace(m.Body) != "" || len(m.Files) > 0 {
+					shown++
+				}
+			}
+			if complete || len(batch) == 0 {
+				break
+			}
+			before = batch[0].ID
+		}
+		msgs = append(msgs, chat...)
+	}
+	sort.SliceStable(msgs, func(i, j int) bool { return olderID(msgs[i].ID, msgs[j].ID) })
+	return msgs, nil
+}
+
+const (
+	firstFetchChats   = 100 // chats a new install gets
+	firstFetchPerChat = 30  // messages of each, at least
+)
+
+// readUpTo is, for each chat, the time of the newest message my read markers cover (sent from any of my clients).
+func readUpTo(msgs []xmppc.Message, me, user string) map[string]time.Time {
+	at := map[string]time.Time{} // a message's time by every id a marker can name it with
+	for _, m := range msgs {
+		for _, id := range []string{m.MsgID, m.OriginID, m.RoomSID} {
+			if id != "" {
+				at[id] = m.At
+			}
+		}
+	}
+	read := map[string]time.Time{}
+	for _, m := range msgs {
+		peer := m.To
+		if m.Room != "" {
+			peer = m.Room
+		}
+		if m.Displayed == "" || m.Room != "" && m.Nick != user || m.Room == "" && m.From != me {
+			continue
+		}
+		t, ok := at[m.Displayed]
+		if !ok {
+			t = m.At
+		}
+		if t.After(read[peer]) {
+			read[peer] = t
+		}
+	}
+	return read
 }
 
 // thread is a group's name as the app's address for it, asked once per request.

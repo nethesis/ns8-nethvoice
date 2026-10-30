@@ -1,0 +1,25 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Set NethVoice alerts",
+    "$id": "http://nethserver.org/json-schema/task/input/nethvoice/set-alerts",
+    "description": "Enable or disable the built-in NethVoice alerts",
+    "examples": [
+        {
+            "alerts_enabled": true
+        },
+        {
+            "alerts_enabled": false
+        }
+    ],
+    "type": "object",
+    "required": [
+        "alerts_enabled"
+    ],
+    "properties": {
+        "alerts_enabled": {
+            "description": "Publish the built-in alert rules to the metrics app",
+            "type": "boolean"
+        }
+    },
+    "additionalProperties": false
+}

@@ -14,5 +14,5 @@ MARIADB_ROOT_PASSWORD = agent.read_envfile("passwords.env")["MARIADB_ROOT_PASSWO
 SQL_QUERY = f"RENAME USER 'pbookuser'@'127.0.0.1' TO 'pbookuser';"
 
 # Do not check the return code, the query may fail if the user has already been renamed
-subprocess.run(['podman', 'exec', 'mariadb', 'mysql', 'asterisk', '-u', 'root', f'-p{MARIADB_ROOT_PASSWORD}', '-e', SQL_QUERY], capture_output=True)
+subprocess.run(['podman', 'exec', 'mariadb', 'mariadb', 'asterisk', '-u', 'root', f'-p{MARIADB_ROOT_PASSWORD}', '-e', SQL_QUERY], capture_output=True)
 

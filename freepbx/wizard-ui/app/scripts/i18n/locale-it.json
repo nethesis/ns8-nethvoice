@@ -34,6 +34,7 @@
   "Trunks": "Linee",
   "Trunk": "Fascio",
   "Trunk name": "Nome linea",
+  "Spaces and special characters in the trunk name are not recommended: use letters, digits, . - _": "Spazi e caratteri speciali nel nome della linea sono sconsigliati: usare lettere, cifre, . - _",
   "Routes": "Rotte",
   "Extensions": "Interni",
   "IP Address": "Indirizzo IP",

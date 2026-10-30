@@ -171,7 +171,7 @@ lt_wait_for_mariadb() {
 
   for ((i = 1; i <= retries; i++)); do
     if podman exec "${MARIADB_CONTAINER}" sh -lc \
-      "mysqladmin ping -h 127.0.0.1 -P ${NETHVOICE_MARIADB_PORT} -uroot -p\"${MARIADB_ROOT_PASSWORD}\" --silent >/dev/null 2>&1"
+      "mariadb-admin ping -h 127.0.0.1 -P ${NETHVOICE_MARIADB_PORT} -uroot -p\"${MARIADB_ROOT_PASSWORD}\" --silent >/dev/null 2>&1"
     then
       return 0
     fi
@@ -292,7 +292,7 @@ lt_wait_for_retrieve_conf() {
   lt_info 'Waiting for FreePBX to initialize (this can take several minutes)...'
   for i in $(seq 1 "${retries}"); do
     if podman exec "${MARIADB_CONTAINER}" sh -lc \
-      "mysql -uroot -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1 FROM asterisk.admin WHERE variable='need_reload' AND value='false'\" -s -N" | grep -q 1
+      "mariadb -uroot -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1 FROM asterisk.admin WHERE variable='need_reload' AND value='false'\" -s -N" | grep -q 1
     then
       lt_info 'FreePBX initialization complete.'
       return 0

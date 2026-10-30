@@ -38,9 +38,10 @@ func env(k, def string) string {
 func main() {
 	log.SetFlags(0)
 	// Addresses and ports come from the module unit: no defaults, a missing one stops here.
-	host := required("CHAT_HOST")              // the XMPP domain, chat.internal
-	publicHost := required("CHAT_PUBLIC_HOST") // the CTI host clients reach
-	secret := required("CHAT_COMPONENT_SECRET")
+	host := required("CHAT_HOST")               // the XMPP domain, chat.internal
+	publicHost := required("CHAT_PUBLIC_HOST")  // the CTI host clients reach
+	secret := required("CHAT_COMPONENT_SECRET") // the push component's password
+	service := svcauth.Secret(os.Getenv)        // service passwords: their own key
 	listen := required("CHAT_LISTEN")
 	c2s := required("CHAT_C2S_ADDR")
 	componentAddr := required("CHAT_COMPONENT_ADDR")
@@ -50,6 +51,7 @@ func main() {
 	dataDir := env("CHAT_DATA_DIR", "/data")
 	archiveDB := env("CHAT_ARCHIVE_DB", "/ejabberd/chat.db")
 	pnmURL := env("CHAT_PNM_URL", "https://pnm.cloudsoftphone.com/pnm2/send")
+	api.GuestAppDir = env("CHAT_GUEST_APP_DIR", api.GuestAppDir)
 	retention, err := strconv.Atoi(env("CHAT_RETENTION_DAYS", "365"))
 	if err != nil || retention < 1 {
 		retention = 365
@@ -65,7 +67,7 @@ func main() {
 	}
 	mw := api.NewMiddleware(mwURL)
 	mw.OnSeen = st.SeenUser
-	srv := &api.Server{Host: host, C2SAddr: c2s, PushService: address.Push(host), VAPIDPublic: router.VAPIDPublic, Store: st, MW: mw, EjabberdAPI: ejabberdAPI, UploadURL: uploadURL, PublicHost: publicHost, Archive: &api.Archive{Path: archiveDB}, Retention: retention}
+	srv := &api.Server{Host: host, C2SAddr: c2s, PushService: address.Push(host), VAPIDPublic: router.VAPIDPublic, Store: st, MW: mw, EjabberdAPI: ejabberdAPI, UploadURL: uploadURL, PublicHost: publicHost, Archive: &api.Archive{Path: archiveDB}, Retention: retention, Secret: service, CTIConfig: env("CHAT_CTI_CONFIG", "")}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -73,9 +75,10 @@ func main() {
 	srv.RoomName = push.RoomName
 	router.Names = mw.Name
 	router.Address = mw.Extension
+	router.Guest = srv.WakeGuest
 	router.DND = func(ctx context.Context, username string) bool { return mw.Presence(ctx, username) == "dnd" }
 	router.ArchiveID = func(ctx context.Context, user, peer string) string {
-		ses, err := xmppc.Dial(ctx, c2s, host, user, svcauth.Password(secret, user, host, time.Now()))
+		ses, err := xmppc.Dial(ctx, c2s, host, user, svcauth.Password(service, user, host, time.Now()))
 		if err != nil {
 			log.Printf("push: archive id for %s: %v", user, err)
 			return ""
@@ -111,6 +114,20 @@ func main() {
 			case <-time.After(wait):
 				rctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 				srv.Reconcile(rctx)
+				cancel()
+			}
+		}
+	}()
+
+	// Online without the chat any more: a minute after start, then every two minutes.
+	go func() {
+		for wait := time.Minute; ; wait = 2 * time.Minute {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(wait):
+				kctx, cancel := context.WithTimeout(ctx, time.Minute)
+				srv.KickRevoked(kctx)
 				cancel()
 			}
 		}

@@ -214,6 +214,11 @@ agent.set_env('NETHVOICE_MIDDLEWARE_GIN_MODE', 'debug')
 agent.set_env('BRAND_APPID', '')
 agent.set_env('CONFERENCE_JITSI_URL', 'https://jitsi.nethserver.net')
 agent.set_env('NETHCTI_ALERTS', 'true')
+agent.set_env('NETHCTI_ALERTS_MAX_CALLS_PER_OP', '2')
+agent.set_env('NETHCTI_ALERTS_MAX_CALLS', '10')
+agent.set_env('NETHCTI_ALERTS_MAX_HOLDTIME', '120')
+agent.set_env('NETHCTI_ALERTS_CALLERS_MAX_WAIT', '250')
+agent.set_env('NETHCTI_ALERTS_CHECK_INTERVAL', '30')
 agent.set_env('NETHCTI_AUTHENTICATION_ENABLED', 'true')
 agent.set_env('NETHCTI_AUTOC2C', 'enabled')
 agent.set_env('NETHCTI_JABBER_DOMAIN', '')
@@ -265,6 +270,7 @@ passwords = {
     "SATELLITE_API_TOKEN": gen_password(),
     "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN": gen_password(),
     "CHAT_COMPONENT_SECRET": gen_password(),
+    "CHAT_SERVICE_SECRET": gen_password(),
     "SATELLITE_AGENT_CONFIG_KEY": gen_password(),
     "VOICE_AGENT_RUNTIME_TOKEN": gen_password(),
     "VOICE_AGENT_CONFIG_PASSWORD": gen_password(),

@@ -183,6 +183,13 @@ example.Toolbar = Class.extend({
 
 			var writer = new draw2d.io.json.Writer();
 			writer.marshal(this.view, function (json) {
+				if (json.some(function (item) { return item.userData && item.userData.visualplanError; })) {
+					$('#errorer').children().eq(0).text(languages[browserLang]["toolbar_not_save_string"]);
+					$('#errorer').children().eq(1).text(languages[browserLang]["toolbar_error_blocks_string"]);
+					$('#errorer').fadeIn("slow");
+					setTimeout(function () { $('#errorer').fadeOut("slow"); }, 5000);
+					return;
+				}
 				// simply data
 				for (item in json) {
 					if (json[item].type == "Base") {
@@ -282,6 +289,7 @@ example.Toolbar = Class.extend({
 		this.disableButton(this.undoButton, true);
 		this.disableButton(this.redoButton, true);
 		this.disableButton(this.deleteButton, true);
+		this.disableButton(this.modifyButton, true);
 
 		this.html.append($("<div id='toolbar_hint'></div>"));
 
@@ -303,6 +311,7 @@ example.Toolbar = Class.extend({
 	 */
 	onSelectionChanged: function (emitter, figure) {
 		this.disableButton(this.deleteButton, figure === null);
+		this.disableButton(this.modifyButton, figure === null || !!(figure.getUserData() && figure.getUserData().visualplanError));
 	},
 
 	/**

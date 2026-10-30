@@ -142,6 +142,11 @@ angular.module('nethvoiceWizardUiApp')
       });
     }
 
+    $scope.trunkNameInvalid = false
+    $scope.checkTrunkName = function () {
+      $scope.trunkNameInvalid = !/^[A-Za-z0-9_.-]*$/.test($scope.trunk.name || '')
+    }
+
     $scope.create = function () {
       $scope.onSave = true
       if ($scope.trunk.provider === 'elevenlabs') {
@@ -160,6 +165,7 @@ angular.module('nethvoiceWizardUiApp')
             forceCodec: true,
             codecs: angular.copy(defaultCodecs)
           }
+          $scope.trunkNameInvalid = false
           $scope.availableCodecs = angular.copy(defaultCodecs)
         }, 1000)
         getVoipTrunksInfo()

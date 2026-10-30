@@ -20,6 +20,8 @@ config = {
     'user_domain': os.getenv('USER_DOMAIN', ''),
     'reports_international_prefix': os.getenv('REPORTS_INTERNATIONAL_PREFIX', ''),
     'subscription_systemid': os.getenv('SUBSCRIPTION_SYSTEMID', ''),
+    # built-in alerts, see the set-alerts action
+    'alerts_enabled': os.getenv('NETHVOICE_ALERTS_ENABLED', 'False') == 'True',
     # Authentication method: how users prove identity (independent from user_domain,
     # which stays the source of user records). Defaults to direct password.
     'authentication_method': os.getenv('AUTHENTICATION_METHOD', 'password'),

@@ -16,6 +16,10 @@ const (
 	maxAge = 60 * time.Second
 )
 
+// Secret is the key service passwords are signed with: CHAT_SERVICE_SECRET, its own secret that
+// ejabberd's configuration never holds. Unset, no service password is made or accepted.
+func Secret(getenv func(string) string) string { return getenv("CHAT_SERVICE_SECRET") }
+
 // Password returns the service password for user@host, valid for a minute.
 func Password(secret, user, host string, now time.Time) string {
 	ts := strconv.FormatInt(now.Unix(), 10)

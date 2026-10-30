@@ -1,6 +1,7 @@
 [Unit]
 Description=Satellite voice agents and optional transcription for NethVoice
 Wants=mariadb.service freepbx.service
+# Satellite exits when Asterisk ARI is not ready: start it after FreePBX
 After=mariadb.service freepbx.service satellite-mqtt.service satellite-pgsql.service
 
 [Service]
@@ -8,7 +9,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%E/state/environment
 WorkingDirectory=%E/state
 Restart=always
-RestartSec=5
+RestartSec=10s
 TimeoutStopSec=45
 ExecStartPre=/bin/rm -f %t/satellite.pid %t/satellite.ctr-id
 ExecStartPre=runagent %E/actions/configure-module/29voice_agents --secrets-only

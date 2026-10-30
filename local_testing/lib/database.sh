@@ -2,7 +2,7 @@
 
 lt_seed_freepbx_admin() {
   podman exec -i "${MARIADB_CONTAINER}" sh -lc \
-    "mysql -uroot -p\"${MARIADB_ROOT_PASSWORD}\"" >/dev/null 2>&1 <<SQL || true
+    "mariadb -uroot -p\"${MARIADB_ROOT_PASSWORD}\"" >/dev/null 2>&1 <<SQL || true
 USE asterisk;
 UPDATE ampusers
    SET password_sha1 = SHA1('${FREEPBX_ADMIN_PASSWORD}'),
@@ -13,7 +13,7 @@ SQL
 
 lt_set_need_reload() {
   podman exec -i "${MARIADB_CONTAINER}" sh -lc \
-    "mysql -uroot -p\"${MARIADB_ROOT_PASSWORD}\"" >/dev/null 2>&1 <<SQL || true
+    "mariadb -uroot -p\"${MARIADB_ROOT_PASSWORD}\"" >/dev/null 2>&1 <<SQL || true
 USE asterisk;
 UPDATE admin
    SET value = 'true'
@@ -28,14 +28,14 @@ lt_export_asterisk_dump() {
 
   lt_section 'Exporting Asterisk MariaDB dump'
   podman exec "${MARIADB_CONTAINER}" sh -lc \
-    "mysqldump -uroot -p\"${MARIADB_ROOT_PASSWORD}\" --single-transaction --routines --triggers --events --add-drop-database --databases asterisk --skip-comments --skip-dump-date" \
+    "mariadb-dump -uroot -p\"${MARIADB_ROOT_PASSWORD}\" --single-transaction --routines --triggers --events --add-drop-database --databases asterisk --skip-comments --skip-dump-date" \
     > "${output_path}"
 }
 
 lt_reset_asterisk_database() {
   lt_section 'Resetting Asterisk MariaDB database'
   podman exec -i "${MARIADB_CONTAINER}" sh -lc \
-    "mysql -uroot -p\"${MARIADB_ROOT_PASSWORD}\"" >/dev/null <<SQL
+    "mariadb -uroot -p\"${MARIADB_ROOT_PASSWORD}\"" >/dev/null <<SQL
 DROP DATABASE IF EXISTS \`${AMPDBNAME}\`;
 CREATE DATABASE \`${AMPDBNAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 SQL
@@ -50,7 +50,7 @@ lt_import_asterisk_dump() {
 
   lt_section 'Importing Asterisk MariaDB dump'
   podman exec -i "${MARIADB_CONTAINER}" sh -lc \
-    "mysql -uroot -p\"${MARIADB_ROOT_PASSWORD}\" \"${AMPDBNAME}\"" < "${input_path}"
+    "mariadb -uroot -p\"${MARIADB_ROOT_PASSWORD}\" \"${AMPDBNAME}\"" < "${input_path}"
 
   lt_sync_imported_dump_with_environment
   lt_set_need_reload
@@ -82,7 +82,7 @@ lt_seed_local_rest_users() {
     clear_password="${LOCAL_SEED_USER_PASSWORDS[$i]}"
 
     podman exec -i "${MARIADB_CONTAINER}" sh -lc \
-      "mysql -uroot -p\"${MARIADB_ROOT_PASSWORD}\"" >/dev/null <<SQL
+      "mariadb -uroot -p\"${MARIADB_ROOT_PASSWORD}\"" >/dev/null <<SQL
 USE asterisk;
 INSERT INTO userman_users (
   auth,
