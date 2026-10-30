@@ -1225,6 +1225,23 @@ a {
   padding-bottom: 0;
 }
 
+.nav-pf-vertical-alt .panel-collapse a.menu-item-left,
+.nav-pf-vertical-alt .panel-collapse a.menu-item-left:hover,
+.nav-pf-vertical-alt .panel-collapse a.menu-item-left:focus,
+.nav-pf-vertical-alt .panel-collapse a.menu-item-left:visited {
+  color: #fff;
+  text-decoration: none;
+}
+
+.nav-pf-vertical-alt .panel-collapse a.menu-item-left:focus {
+  outline: none;
+}
+
+.nav-pf-vertical-alt .panel-collapse a.menu-item-left:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: -2px;
+}
+
 .menu-item-left:hover {
   background: #404040;
 }
