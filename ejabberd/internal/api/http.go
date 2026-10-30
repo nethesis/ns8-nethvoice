@@ -95,6 +95,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/client/push_token_report", s.pushTokenReport)
 	// People outside the PBX: operators make the room and its link, guests join by it.
 	mux.HandleFunc("POST /guests", s.createExtRoom)
+	mux.HandleFunc("GET /guests", s.listExtRooms)
 	mux.HandleFunc("GET /guests/{room}", s.getExtRoom)
 	mux.HandleFunc("POST /guests/{room}/link", s.newExtLink)
 	mux.HandleFunc("DELETE /guests/{room}", s.revokeExtLink)
