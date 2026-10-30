@@ -1,5 +1,5 @@
 
-FROM docker.io/library/php:8.3.36-apache-bookworm@sha256:cbd3b3d9011668443d54ab40ec31db56c73d91b4c8198935d639aa80d2d815c1
+FROM docker.io/library/php:8.3.36-apache-bookworm@sha256:96f820bf68a6e443521586cdd29b9efa1b990df6105b0f8c5524a49492752676
 
 COPY etc /etc
 COPY usr /usr

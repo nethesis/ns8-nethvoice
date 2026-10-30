@@ -22,9 +22,12 @@ import (
 
 var (
 	middleware = os.Getenv("CHAT_MIDDLEWARE_URL") // set by the module unit, with its port
-	secret     = os.Getenv("CHAT_COMPONENT_SECRET")
+	secret     = svcauth.Secret(os.Getenv)
 	nickRe     = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,63}$`)
+	guestRe    = regexp.MustCompile(`^g~[0-9a-f]{12}$`) // a guest's account: only the gateway logs in to it
 	client     = &http.Client{Timeout: 5 * time.Second}
+	// extauthClient: what the middleware counts these calls under (it trusts X-Forwarded-For from loopback).
+	extauthClient = "127.0.0.2"
 
 	cacheMu sync.Mutex
 	cache   = map[string]cached{} // token -> who it belongs to
@@ -58,16 +61,16 @@ func handle(req string, who func(string) string, now time.Time) bool {
 	f := strings.SplitN(req, ":", 4) // the password may contain colons
 	switch f[0] {
 	case "auth":
-		if len(f) != 4 || !validNick(f[1]) {
+		if len(f) != 4 {
 			return false
 		}
 		if svcauth.IsService(f[3]) {
-			return svcauth.Valid(secret, f[1], f[2], f[3], now)
+			return (validNick(f[1]) || guestRe.MatchString(f[1])) && svcauth.Valid(secret, f[1], f[2], f[3], now)
 		}
-		return who(f[3]) == f[1]
+		return validNick(f[1]) && who(f[3]) == f[1]
 	case "isuser":
 		// Operators who never logged in must still get messages (offline storage, groups).
-		return len(f) >= 2 && validNick(f[1])
+		return len(f) >= 2 && (validNick(f[1]) || guestRe.MatchString(f[1]))
 	}
 	return false
 }
@@ -86,24 +89,28 @@ func whoIs(token string) string {
 	}
 	cacheMu.Unlock()
 
-	me, err := cti.WhoIs(context.Background(), client, middleware, token)
+	// Its own address for the middleware's per-client limit: logins never share the gateway's.
+	ctx := cti.WithClient(context.Background(), extauthClient)
+	me, err := cti.WhoIs(ctx, client, middleware, token)
+	if err != nil && !errors.Is(err, cti.ErrUnauthorized) {
+		log.Printf("extauth: middleware: %v", err)
+		return "" // no answer: asked again next time
+	}
+	user := me.Username
 	if err != nil {
-		if !errors.Is(err, cti.ErrUnauthorized) {
-			log.Printf("extauth: middleware: %v", err)
-		}
-		return ""
-	}
-	if !me.ChatAllowed() {
+		user = ""
+	} else if !me.ChatAllowed() {
 		logx.Debugf("extauth: %s has no chat permission", me.Username)
-		return ""
+		user = ""
 	}
+	// A refusal is kept too: the same bad token again costs nothing.
 	cacheMu.Lock()
-	cache[token] = cached{user: me.Username, till: time.Now().Add(60 * time.Second)}
+	cache[token] = cached{user: user, till: time.Now().Add(60 * time.Second)}
 	if len(cache) > 10000 {
 		cache = map[string]cached{}
 	}
 	cacheMu.Unlock()
-	return me.Username
+	return user
 }
 
 func reply(ok bool) {

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"sort"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/address"
+	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/cti"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/logx"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/store"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/xmppc"
@@ -28,20 +30,46 @@ type Server struct {
 	VAPIDPublic string
 	Store       *store.Store
 	MW          *Middleware
-	EjabberdAPI string                                        // ejabberd's mod_http_api on loopback, for archive purges
+	EjabberdAPI string                                        // ejabberd's mod_http_api: unix:<socket path>, or an http URL
 	PublicHost  string                                        // the CTI host: attachment links point there, whatever host they were uploaded under
 	UploadURL   string                                        // ejabberd's upload service on loopback, for attachments relayed from the app
 	RoomName    func(ctx context.Context, room string) string // cached room names (push component), "" when unknown
 	Archive     *Archive                                      // ejabberd's message archive, for text search
 	Retention   int                                           // days the archive keeps messages
+	CTIConfig   string                                        // the CTI's users.json and profiles.json, read-only; "" skips KickRevoked
+	Secret      string                                        // signs the service passwords the gateway logs in with
 
-	failures window // failed Acrobits logins
-	sends    window // messages from the app
-	files    window // attachments from the app
+	failures   window // failed Acrobits logins, by username
+	ipFails    window // failed Acrobits logins, by client address
+	sends      window // messages from the app
+	files      window // attachments from the app
+	invites    window // guests invited
+	guestCalls window // guest page calls
+	joins      window // guests joining, by client address
+	linkReads  window // invite links looked up, by client address
+
+	guestWait guestWaiters
+	joining   roomLocks
 }
 
 // apiClient talks to ejabberd on loopback; it must never hang a request.
 var apiClient = &http.Client{Timeout: 10 * time.Second}
+
+// unixClient talks to ejabberd's admin API on its unix socket: only who shares the volume reaches it.
+var unixClient = func() func(string) *http.Client {
+	var once sync.Once
+	var c *http.Client
+	return func(sock string) *http.Client {
+		once.Do(func() {
+			c = &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{
+				DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+					return (&net.Dialer{}).DialContext(ctx, "unix", sock)
+				},
+			}}
+		})
+		return c
+	}
+}()
 
 // maxBody bounds every request body: the largest legitimate one is a chat message.
 const maxBody = 64 << 10
@@ -65,6 +93,22 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/client/fetch_messages", s.fetchMessages)
 	mux.HandleFunc("POST /api/client/send_message", s.sendMessage)
 	mux.HandleFunc("POST /api/client/push_token_report", s.pushTokenReport)
+	// People outside the PBX: operators make the room and its link, guests join by it.
+	mux.HandleFunc("POST /guests", s.createExtRoom)
+	mux.HandleFunc("GET /guests/{room}", s.getExtRoom)
+	mux.HandleFunc("POST /guests/{room}/link", s.newExtLink)
+	mux.HandleFunc("DELETE /guests/{room}", s.revokeExtLink)
+	mux.HandleFunc("DELETE /guests/{room}/{guest}", s.removeGuest)
+	mux.HandleFunc("GET /g/{$}", s.guestPageHandler)
+	mux.Handle("GET /guest-app/", s.guestAssets())
+	mux.HandleFunc("POST /guest/link", s.linkInfo)
+	mux.HandleFunc("POST /guest/join", s.joinGuest)
+	mux.HandleFunc("GET /guest/chat", s.guestChat)
+	mux.HandleFunc("GET /guest/messages", s.guestMessages)
+	mux.HandleFunc("POST /guest/messages", s.guestSend)
+	mux.HandleFunc("POST /guest/react", s.guestReact)
+	mux.HandleFunc("POST /guest/retract", s.guestRetract)
+	mux.HandleFunc("POST /guest/upload", s.guestUpload)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	return withCORS(mux)
 }
@@ -95,6 +139,10 @@ func withCORS(h http.Handler) http.Handler {
 			return
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, maxBody)
+		// Traefik sets X-Forwarded-For; calls to the middleware for this request carry it.
+		if f := r.Header.Get("X-Forwarded-For"); f != "" {
+			r = r.WithContext(cti.WithClient(r.Context(), f))
+		}
 		h.ServeHTTP(w, r)
 	})
 }
@@ -319,6 +367,12 @@ func (s *Server) acrobitsSession(w http.ResponseWriter, r *http.Request) (*acrob
 		fail(w, 401, "username and password are required")
 		return nil, nil, "", false
 	}
+	// One address guessing across many accounts, and one account from many addresses.
+	ip := ipKey(clientIP(r))
+	if s.ipFails.count(ip) >= ipMaxFailures {
+		fail(w, 429, "too many failed logins, retry later")
+		return nil, nil, "", false
+	}
 	if s.throttled(in.Username) {
 		fail(w, 429, "too many failed logins, retry later")
 		return nil, nil, "", false
@@ -330,6 +384,7 @@ func (s *Server) acrobitsSession(w http.ResponseWriter, r *http.Request) (*acrob
 		if ses == nil {
 			if code == 401 {
 				s.failed(in.Username)
+				s.ipFails.add(ip)
 			}
 			fail(w, code, msg)
 			return nil, nil, "", false
@@ -343,6 +398,7 @@ func (s *Server) acrobitsSession(w http.ResponseWriter, r *http.Request) (*acrob
 		if err != nil {
 			if errors.Is(err, ErrUnauthorized) {
 				s.failed(in.Username)
+				s.ipFails.add(ip)
 				fail(w, 401, "invalid credentials")
 			} else {
 				log.Printf("acrobits %s: login: %v", in.Username, err)
@@ -437,14 +493,37 @@ func needsOTP(jwt string) bool {
 }
 
 // throttled limits password guessing through the Acrobits endpoints: five failures a minute per account.
-func (s *Server) throttled(user string) bool { return s.failures.count(user) >= 5 }
+// A username counts once whatever its case: the directory does not tell them apart.
+func (s *Server) throttled(user string) bool { return s.failures.count(strings.ToLower(user)) >= 5 }
 
-func (s *Server) failed(user string) { s.failures.add(user) }
+func (s *Server) failed(user string) { s.failures.add(strings.ToLower(user)) }
+
+// ipMaxFailures: failed logins per minute from one address, across accounts (offices share one).
+const ipMaxFailures = 20
+
+// clientIP is the address Traefik saw: the last X-Forwarded-For hop, the connection's without it.
+func clientIP(r *http.Request) string {
+	if f := r.Header.Get("X-Forwarded-For"); f != "" {
+		hops := strings.Split(f, ",")
+		return strings.TrimSpace(hops[len(hops)-1])
+	}
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	return host
+}
+
+// ipKey is what per-address limits count: an IPv6 client by its /64, which one host may rotate through.
+func ipKey(ip string) string {
+	if a := net.ParseIP(ip); a != nil && a.To4() == nil {
+		return a.Mask(net.CIDRMask(64, 128)).String() + "/64"
+	}
+	return ip
+}
 
 // window counts each user's events in the last minute.
 type window struct {
-	mu sync.Mutex
-	m  map[string][]time.Time
+	mu    sync.Mutex
+	m     map[string][]time.Time
+	swept time.Time
 }
 
 func (w *window) count(user string) int {
@@ -469,6 +548,15 @@ func (w *window) add(user string) {
 	defer w.mu.Unlock()
 	if w.m == nil {
 		w.m = map[string][]time.Time{}
+	}
+	// Keys seen once and never again (an address, say) go once their minute is over.
+	if now := time.Now(); now.Sub(w.swept) > time.Minute {
+		for k, ts := range w.m {
+			if len(ts) == 0 || now.Sub(ts[len(ts)-1]) >= time.Minute {
+				delete(w.m, k)
+			}
+		}
+		w.swept = now
 	}
 	w.m[user] = append(w.m[user], time.Now())
 }

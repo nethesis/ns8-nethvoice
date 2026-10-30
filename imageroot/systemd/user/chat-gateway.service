@@ -23,18 +23,22 @@ ExecStart=/usr/bin/podman run \
     --image-volume=ignore \
     --volume=chat-gw:/data:Z \
     --volume=chat-data:/ejabberd:ro,z \
+    --volume=chat-api:/ejabberd-api:z \
+    --volume=nethcti:/nethcti:ro,z \
     --env=CHAT_HOST=chat.internal \
     --env=CHAT_PUBLIC_HOST=${NETHCTI_UI_HOST} \
     --env=CHAT_LISTEN=127.0.0.1:${CHAT_GW_PORT} \
     --env=CHAT_C2S_ADDR=127.0.0.1:${CHAT_C2S_PORT} \
     --env=CHAT_COMPONENT_ADDR=127.0.0.1:${CHAT_COMPONENT_PORT} \
     --env=CHAT_COMPONENT_SECRET \
+    --env=CHAT_SERVICE_SECRET \
     --env=CHAT_DEBUG=${CHAT_DEBUG} \
     --env=CHAT_MIDDLEWARE_URL=http://127.0.0.1:${NETHVOICE_MIDDLEWARE_PORT} \
     --env=CHAT_UPLOAD_URL=http://127.0.0.1:${CHAT_HTTP_PORT}/upload \
-    --env=CHAT_EJABBERD_API=http://127.0.0.1:${CHAT_HTTP_PORT}/api \
+    --env=CHAT_EJABBERD_API=unix:/ejabberd-api/api.sock \
     --env=CHAT_DATA_DIR=/data \
     --env=CHAT_RETENTION_DAYS \
+    --env=CHAT_CTI_CONFIG=/nethcti \
     --network=host \
     --tz=${TIMEZONE} \
     --user=root \
