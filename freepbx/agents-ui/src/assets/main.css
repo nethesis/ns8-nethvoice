@@ -1,0 +1,132 @@
+@import "@fortawesome/fontawesome-svg-core/styles.css" layer(vendor);
+@import "tailwindcss";
+@import "@fontsource/poppins/400.css";
+@import "@fontsource/poppins/500.css";
+@import "@fontsource/poppins/600.css";
+@import "@nethesis/vue-components/theme.css";
+@source '../../node_modules/@nethesis/vue-components';
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary-50: var(--color-emerald-50);
+  --color-primary-100: var(--color-emerald-100);
+  --color-primary-200: var(--color-emerald-200);
+  --color-primary-300: var(--color-emerald-300);
+  --color-primary-400: var(--color-emerald-400);
+  --color-primary-500: var(--color-emerald-500);
+  --color-primary-600: var(--color-emerald-600);
+  --color-primary-700: var(--color-emerald-700);
+  --color-primary-800: var(--color-emerald-800);
+  --color-primary-900: var(--color-emerald-900);
+  --color-primary-950: var(--color-emerald-950);
+}
+
+:root {
+  --elevation-0: var(--color-white);
+  --elevation-1: var(--color-gray-50);
+  --elevation-2: var(--color-gray-100);
+  --primary-neutral: var(--color-gray-900);
+  --secondary-neutral: var(--color-gray-700);
+  --tertiary-neutral: var(--color-gray-600);
+  --muted: var(--color-gray-500);
+  --divider: var(--color-gray-200);
+  --line: var(--color-gray-300);
+  --accent: var(--color-primary-700);
+  --counter: var(--color-indigo-700);
+}
+
+.dark {
+  --elevation-0: var(--color-gray-950);
+  --elevation-1: var(--color-gray-900);
+  --elevation-2: var(--color-gray-800);
+  --primary-neutral: var(--color-gray-50);
+  --secondary-neutral: var(--color-gray-200);
+  --tertiary-neutral: var(--color-gray-400);
+  --muted: var(--color-gray-400);
+  --divider: var(--color-gray-700);
+  --line: var(--color-gray-700);
+  --accent: var(--color-primary-500);
+  --counter: var(--color-indigo-500);
+}
+
+@theme inline {
+  --color-elevation-0: var(--elevation-0);
+  --color-elevation-1: var(--elevation-1);
+  --color-elevation-2: var(--elevation-2);
+  --color-primary-neutral: var(--primary-neutral);
+  --color-secondary-neutral: var(--secondary-neutral);
+  --color-tertiary-neutral: var(--tertiary-neutral);
+  --color-muted: var(--muted);
+  --color-divider: var(--divider);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-counter: var(--counter);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  html,
+  body,
+  #app {
+    @apply min-h-full;
+  }
+  body {
+    @apply bg-elevation-1 text-secondary-neutral m-0 text-sm font-normal;
+  }
+}
+@layer components {
+  .nv-panel {
+    @apply bg-elevation-0 rounded-lg p-6 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/5;
+  }
+  .nv-muted {
+    @apply text-tertiary-neutral;
+  }
+  .nv-field-grid {
+    @apply grid gap-6 md:grid-cols-2;
+  }
+  .nv-stack {
+    @apply space-y-6;
+  }
+  .nv-action-bar {
+    @apply flex flex-wrap items-center gap-3;
+  }
+  .nv-section-header {
+    @apply border-divider mb-6 border-b pb-6;
+  }
+  .nv-subcard {
+    @apply border-line rounded-lg border p-5;
+  }
+  .nv-counter-title {
+    @apply text-tertiary-neutral flex items-center gap-3 text-sm uppercase;
+  }
+  .nv-counter {
+    @apply text-counter text-4xl leading-none font-medium;
+  }
+}
+
+.counter-card > div:last-child {
+  margin-top: auto;
+  align-items: flex-end;
+}
+
+.nav-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+ul[id^="headlessui-listbox-options"] {
+  z-index: 110;
+}
+
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}

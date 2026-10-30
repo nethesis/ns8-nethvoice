@@ -35,6 +35,7 @@ if call == os.environ.get('TEST_FAIL'): sys.exit(17)
             (directory / command).symlink_to(stub)
         result = subprocess.run(['bash', str(ROOT / 'imageroot/update-module.d/80restart')], cwd=directory,
                                 env=dict(os.environ, PATH=str(directory)+':'+os.environ['PATH'], TEST_FAIL=fail,
+                                         AGENT_INSTALL_DIR=str(ROOT / 'imageroot'),
                                          NETHVOICE_FREEPBX_IMAGE='test-freepbx'), capture_output=True, text=True)
         calls = [json.loads(line) for line in (directory / 'calls').read_text().splitlines()]
         return result, calls, directory

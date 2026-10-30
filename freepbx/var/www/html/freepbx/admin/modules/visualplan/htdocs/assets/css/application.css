@@ -380,6 +380,23 @@ button.mainmenu_btns:focus {
   background-color: #528ba7;
 }
 
+#satellite-agent-destination {
+  background-color: #528ba7;
+}
+
+#satellite-agent-destination::before {
+  font-family: 'FontAwesome';
+  content: "\f075";
+  margin: 0 3px;
+  margin-right: 13px;
+  font-size: 22px;
+  font-weight: 100;
+}
+
+#satellite-agent-destination:hover {
+  background-color: #639cb7;
+}
+
 /*annuncio*/
 
 #app-announcement {

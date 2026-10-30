@@ -259,6 +259,9 @@
           </a>
         </li>
         <div id="appsCollapse" class="panel-collapse collapse {{resolveActiveTab('apps',1) ? 'in' : ''}}">
+          <div ng-if="!wizard.isWizard" class="panel-body adjust-panel-body list-group-item collapse-menu">
+            <a href="/freepbx/agents-ui/" target="_blank" rel="noopener" class="list-group-item-value menu-item-left no-opacity full-width">Agent</a>
+          </div>
           <div ng-if="!wizard.isWizard" class="panel-body adjust-panel-body list-group-item collapse-menu {{resolveActiveTab('cards',2) ? 'active' : ''}}">
             <div ng-click="goTo('apps/cards')" class="list-group-item-value menu-item-left no-opacity full-width">{{'Customer cards' | translate | ellipsis:'1200'}}</div>
           </div>
