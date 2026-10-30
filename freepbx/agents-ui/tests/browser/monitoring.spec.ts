@@ -16,7 +16,7 @@ for (const scenario of [{language:'en',width:1440}, {language:'it',width:375}]) 
       localStorage.setItem('secretkey', JSON.stringify({user:'administrator',hash:'synthetic'}));
       localStorage.setItem('nethvoice.agents.language',language);
     }, scenario.language);
-    const searches:string[]=[];
+    const searches:string[]=[], outcomes:string[]=[];
     await page.route('**/freepbx/rest/agents/**', async route => {
       const url=new URL(route.request().url()), path=url.pathname.replace('/freepbx/rest/agents','');
       let json:unknown = {};
@@ -24,7 +24,7 @@ for (const scenario of [{language:'en',width:1440}, {language:'it',width:375}]) 
       else if(path==='/profiles') json={items:[{agent_id:'receptionist',name:'Receptionist'}]};
       else if(path==='/monitoring/summary') json={coverage:{total_runs:180,instrumented_runs:180,partial_runs:2,incomplete_runs:1},outcomes:[{outcome:'transferred',count:120},{outcome:'fallback',count:60}],trends:[{day:'2026-10-20',outcome:'transferred',count:120}],latencies:{run_duration:histogram,setup_duration:histogram,first_output:histogram},phases:[{id:'provider_sideband',status:'failed',...histogram}],tools:[{id:'pbx.transfer',status:'completed',...histogram}],errors:[{phase:'provider_sideband',error_code:'provider_http_503',count:2}]};
       else if(path==='/monitoring/health') json={stale:false,degraded:true,ari_connected:true,queue_depth:2,oldest_pending_seconds:5,dropped:1,retries:3,last_write_at:'2026-10-20 12:00:00'};
-      else if(path==='/runs') { searches.push(url.searchParams.get('query')||''); json={items:[run],has_more:false}; }
+      else if(path==='/runs') { searches.push(url.searchParams.get('query')||''); outcomes.push(url.searchParams.get('outcome')||''); json={items:[run],has_more:false}; }
       else if(path===`/runs/${runId}`) json=run;
       else if(path===`/runs/${runId}/trace`) json={items:[
         {event_id:'a',event_type:'trace_started',span_id:'parent',parent_span_id:null,phase:'tool',status:'running',elapsed_ms:100,duration_ms:null,occurred_at:'2026-10-20 12:00:00'},
@@ -36,6 +36,13 @@ for (const scenario of [{language:'en',width:1440}, {language:'it',width:375}]) 
     await expect(page.getByTestId('monitoring-health-warning')).toBeVisible();
     await page.getByTestId('run-search').fill('outside-first-page');
     await expect.poll(()=>searches.includes('outside-first-page')).toBe(true);
+    if(scenario.language==='en') {
+      await page.getByRole('button',{name:'Open filter Outcome'}).click();
+      await page.getByRole('checkbox',{name:'Transferred'}).check();
+      await page.getByRole('checkbox',{name:'Fallback'}).check();
+      await expect.poll(()=>outcomes.includes('transferred,fallback')).toBe(true);
+      await page.keyboard.press('Escape');
+    }
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
     await page.evaluate(()=>window.scrollTo(0,0));
     await page.screenshot({path:`/tmp/voice-agent-monitoring-${scenario.language}.png`,fullPage:true});
