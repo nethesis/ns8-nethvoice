@@ -116,6 +116,7 @@ const en = {
   agentTypes: {
     basic_voice: "Basic voice",
     cleverai: "CleverAI",
+    consultation: "Internal consultation assistant",
   },
   voicePlaceholder: "Select a voice",
   hideSecret: "Hide secret",
@@ -269,7 +270,7 @@ const en = {
   deleteTrunk: "Delete trunk",
   deleteTrunkHelp:
     'Trunk "{name}" will be deleted. Trunks used by an agent cannot be deleted.',
-  openMenu: "Open actions menu",
+  openMenu: "Open menu",
   viewActivity: "View monitoring",
   language: "Language",
   providerColumn: "Provider",
@@ -499,6 +500,7 @@ const en = {
     pbx_find_destinations: "Find permitted PBX destinations",
     pbx_transfer: "Transfer to a permitted PBX destination",
     telephony_hangup: "End the call",
+    pbx_find_recent_callers: "Find recent callers",
   },
   sync: {
     pending: "Synchronization pending",
@@ -618,7 +620,7 @@ const en = {
     search: "Filter by agent or run ID",
     timeline: "Call timeline",
     loadMore: "Load more events",
-    partialTrace: "This trace is incomplete",
+    partialTrace: "Incomplete trace",
     partialHelp:
       "Some observations were lost, truncated or interrupted. The call outcome is reported separately.",
     usage: "Provider-reported usage",
@@ -669,7 +671,7 @@ const en = {
       response_input_tokens: "Response input tokens",
       response_output_tokens: "Response output tokens",
       response_total_tokens: "Response total tokens",
-      live_seconds: "Live session seconds",
+      live_seconds: "Live session",
       backend_input_tokens: "Backend input tokens",
       backend_output_tokens: "Backend output tokens",
       backend_total_tokens: "Backend total tokens",
@@ -685,6 +687,7 @@ const en = {
     phase: "Phase",
     start: "Start",
     timelineHelp: "Start is the time from the beginning of the call.",
+    range: "{from} - {to}",
   },
   hangupToolHelp:
     "Enable End the call for this agent to let it close a completed conversation or honor a caller’s request to end it. Save and publish to apply.",
@@ -813,6 +816,7 @@ const it: typeof en = {
   agentTypes: {
     basic_voice: "Voce base",
     cleverai: "CleverAI",
+    consultation: "Assistente di consulenza interna",
   },
   voicePlaceholder: "Seleziona una voce",
   hideSecret: "Nascondi segreto",
@@ -967,7 +971,7 @@ const it: typeof en = {
   deleteTrunk: "Elimina trunk",
   deleteTrunkHelp:
     'Il trunk "{name}" verrà eliminato. I trunk usati da un agente non possono essere eliminati.',
-  openMenu: "Apri menu azioni",
+  openMenu: "Apri menu",
   viewActivity: "Visualizza monitoraggio",
   language: "Lingua",
   providerColumn: "Provider",
@@ -1199,6 +1203,7 @@ const it: typeof en = {
     pbx_find_destinations: "Cerca destinazioni PBX consentite",
     pbx_transfer: "Trasferisci a una destinazione PBX consentita",
     telephony_hangup: "Termina la chiamata",
+    pbx_find_recent_callers: "Cerca chiamanti recenti",
   },
   sync: {
     pending: "Sincronizzazione in attesa",
@@ -1318,7 +1323,7 @@ const it: typeof en = {
     search: "Filtra per agente o ID esecuzione",
     timeline: "Cronologia della chiamata",
     loadMore: "Carica altri eventi",
-    partialTrace: "Questa traccia è incompleta",
+    partialTrace: "Traccia incompleta",
     partialHelp:
       "Alcune osservazioni sono state perse, limitate o interrotte. L'esito della chiamata è riportato separatamente.",
     usage: "Consumo riportato dal provider",
@@ -1370,7 +1375,7 @@ const it: typeof en = {
       response_input_tokens: "Token in ingresso risposte",
       response_output_tokens: "Token in uscita risposte",
       response_total_tokens: "Token totali risposte",
-      live_seconds: "Secondi sessione Live",
+      live_seconds: "Sessione live",
       backend_input_tokens: "Token in ingresso backend",
       backend_output_tokens: "Token in uscita backend",
       backend_total_tokens: "Token totali backend",
@@ -1386,6 +1391,7 @@ const it: typeof en = {
     phase: "Fase",
     start: "Inizio",
     timelineHelp: "Inizio è il tempo trascorso dall'avvio della chiamata.",
+    range: "{from} - {to}",
   },
   hangupToolHelp:
     "Abilita Termina la chiamata per consentire a questo agente di chiudere una conversazione conclusa o rispettare la richiesta del chiamante. Salva e pubblica per applicare.",

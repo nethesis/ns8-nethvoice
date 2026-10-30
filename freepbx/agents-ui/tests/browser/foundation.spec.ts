@@ -153,7 +153,7 @@ test("new Basic Voice draft saves, conflicts preserve edits, and runs show bound
   await page.getByRole("button",{name:"Reload saved settings",exact:true}).click();
   await expect(page.getByLabel("Name",{exact:true})).toHaveValue("Basic test");
   await page.getByRole("button",{name:"Back",exact:true}).click();
-  await page.getByRole("button",{name:"Open actions menu",exact:true}).click();
+  await page.getByRole("button",{name:"Open menu",exact:true}).click();
   await page.getByRole("menuitem",{name:"View monitoring",exact:true}).click();
   await expect(page).toHaveURL(/agent_id=agent_test/);
   await page.getByRole("button",{name:"Details",exact:true}).click();

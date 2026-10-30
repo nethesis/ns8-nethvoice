@@ -33,7 +33,7 @@ import type {
   Performance,
 } from "../types";
 type Option = { id: string; label: string };
-const { t, locale } = useI18n(),
+const { t, te, locale } = useI18n(),
   route = useRoute(),
   router = useRouter();
 const filterLabels = computed(() => ({
@@ -289,9 +289,40 @@ const dayColumns = [
   "interrupted",
   "ended_by_agent",
 ];
+const phaseOrder = [
+  "snapshot",
+  "admission",
+  "binding",
+  "routing_context",
+  "origination",
+  "webhook_wait",
+  "provider_accept",
+  "provider_answer",
+  "provider_sideband",
+  "media_bridge",
+  "media_prepare",
+  "provider_start",
+  "provider_stream",
+  "greeting",
+  "provider_audio",
+  "response",
+  "tool",
+  "transfer",
+  "fallback",
+  "cleanup",
+];
+function label(key: string, fallback: string) {
+  return te(key) ? t(key) : fallback;
+}
+function rank(id: string) {
+  const index = phaseOrder.indexOf(id);
+  return index < 0 ? phaseOrder.length : index;
+}
 function aggregate(items: Performance[], tools: boolean) {
   const groups = new Map<string, Performance[]>();
-  for (const item of items)
+  for (const item of tools
+    ? items
+    : [...items].sort((a, b) => rank(a.id) - rank(b.id)))
     groups.set(item.id, [...(groups.get(item.id) || []), item]);
   return [...groups.entries()].map(([id, rows]) => {
     const count = (row: Performance) =>
@@ -302,9 +333,12 @@ function aggregate(items: Performance[], tools: boolean) {
       rows[0];
     return {
       id,
-      name: tools
-        ? t("toolNames." + id.replaceAll(".", "_"))
-        : t("monitoring.phasesMap." + id),
+      name: label(
+        tools
+          ? "toolNames." + id.replaceAll(".", "_")
+          : "monitoring.phasesMap." + id,
+        id,
+      ),
       count: rows.reduce((sum, row) => sum + count(row), 0),
       failed: rows
         .filter((row) => row.status === "failed" || row.status === "denied")
@@ -529,7 +563,7 @@ function refresh() {
       </section>
       <section>
         <NeHeading tag="h5">{{ t("monitoring.performance") }}</NeHeading>
-        <p class="text-tertiary-neutral mt-1 mb-3 max-w-2xl">
+        <p class="text-muted mt-1 mb-3 max-w-2xl">
           {{ t("monitoring.percentiles") }}
         </p>
         <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -564,9 +598,10 @@ function refresh() {
           <NeTableBody>
             <NeTableRow v-for="day in days" :key="day.day">
               <NeTableCell :data-label="t('monitoring.date')"
-                ><span class="text-primary-neutral font-medium">{{
-                  day.label
-                }}</span></NeTableCell
+                ><span
+                  class="text-primary-neutral font-medium whitespace-nowrap"
+                  >{{ day.label }}</span
+                ></NeTableCell
               >
               <NeTableCell :data-label="t('monitoring.calls')">{{
                 day.row.total
@@ -723,30 +758,57 @@ function refresh() {
           </NeTableRow>
         </NeTableBody>
         <template v-if="page > 1 || runs.data.value?.has_more" #paginator>
-          <nav
-            class="flex items-center justify-end gap-3"
-            :aria-label="t('pagination')"
+          <div
+            class="flex flex-col justify-between gap-6 border-t border-gray-300 bg-white px-6 py-3 text-sm text-gray-700 sm:flex-row sm:items-center dark:border-gray-600 dark:bg-gray-950 dark:text-gray-100"
           >
-            <NeButton
-              kind="tertiary"
-              size="sm"
-              :disabled="page === 1"
-              :aria-label="t('previousPage')"
-              @click="page--"
-              ><FontAwesomeIcon icon="chevron-left" aria-hidden="true"
-            /></NeButton>
-            <span class="text-secondary-neutral">{{
-              t("monitoring.page", { page })
+            <span>{{
+              t("monitoring.range", {
+                from: (page - 1) * 25 + 1,
+                to: (page - 1) * 25 + (runs.data.value?.items?.length || 0),
+              })
             }}</span>
-            <NeButton
-              kind="tertiary"
-              size="sm"
-              :disabled="!runs.data.value?.has_more"
-              :aria-label="t('nextPage')"
-              @click="page++"
-              ><FontAwesomeIcon icon="chevron-right" aria-hidden="true"
-            /></NeButton>
-          </nav>
+            <nav :aria-label="t('pagination')">
+              <ul class="flex h-10 items-center -space-x-px text-base">
+                <li>
+                  <button
+                    type="button"
+                    class="flex h-10 items-center justify-center border border-gray-300 bg-white px-4 leading-tight text-gray-500 hover:bg-gray-50 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-400 dark:hover:bg-gray-900 dark:hover:text-white ms-0 rounded-s-lg border-e-0"
+                    :disabled="page === 1"
+                    @click="page--"
+                  >
+                    <span class="sr-only">{{ t("previousPage") }}</span
+                    ><FontAwesomeIcon
+                      icon="chevron-left"
+                      class="size-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </li>
+                <li>
+                  <span
+                    aria-current="page"
+                    class="z-10 flex h-10 cursor-default items-center justify-center border border-gray-300 bg-gray-100 px-4 leading-tight text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    >{{ page }}</span
+                  >
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    class="flex h-10 items-center justify-center border border-gray-300 bg-white px-4 leading-tight text-gray-500 hover:bg-gray-50 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-400 dark:hover:bg-gray-900 dark:hover:text-white rounded-e-lg border-s-0"
+                    :disabled="!runs.data.value?.has_more"
+                    @click="page++"
+                  >
+                    <span class="sr-only">{{ t("nextPage") }}</span
+                    ><FontAwesomeIcon
+                      icon="chevron-right"
+                      class="size-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          </div>
         </template>
       </NeTable>
     </section>

@@ -225,7 +225,7 @@ function choices(key: string, values: string[]) {
         @click="voices.refetch()"
         >{{ t("retry") }}</NeButton
       >
-      <span v-if="models.data.value" class="text-tertiary-neutral text-xs">{{
+      <span v-if="models.data.value" class="text-muted text-xs">{{
         t("modelSources." + models.data.value.source)
       }}</span>
     </div>
@@ -266,7 +266,7 @@ function choices(key: string, values: string[]) {
         @update:model-value="setOption('backend_model', $event)"
       />
       <template v-if="selected?.options_schema.properties">
-        <p class="text-tertiary-neutral lg:col-span-2">
+        <p class="text-muted lg:col-span-2">
           {{ t("liveBackendHelp") }}
         </p>
         <div

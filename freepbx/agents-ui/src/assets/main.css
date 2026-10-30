@@ -8,28 +8,17 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-gray-50: #f9fafb;
-  --color-gray-100: #f3f4f6;
-  --color-gray-200: #e5e7eb;
-  --color-gray-300: #d1d5db;
-  --color-gray-400: #9ca3af;
-  --color-gray-500: #6b7280;
-  --color-gray-600: #4b5563;
-  --color-gray-700: #374151;
-  --color-gray-800: #1f2937;
-  --color-gray-900: #111827;
-  --color-gray-950: #030712;
-  --color-primary-50: #ecfdf5;
-  --color-primary-100: #d1fae5;
-  --color-primary-200: #a7f3d0;
-  --color-primary-300: #6ee7b7;
-  --color-primary-400: #34d399;
-  --color-primary-500: #10b981;
-  --color-primary-600: #059669;
-  --color-primary-700: #047857;
-  --color-primary-800: #065f46;
-  --color-primary-900: #064e3b;
-  --color-primary-950: #022c22;
+  --color-primary-50: var(--color-emerald-50);
+  --color-primary-100: var(--color-emerald-100);
+  --color-primary-200: var(--color-emerald-200);
+  --color-primary-300: var(--color-emerald-300);
+  --color-primary-400: var(--color-emerald-400);
+  --color-primary-500: var(--color-emerald-500);
+  --color-primary-600: var(--color-emerald-600);
+  --color-primary-700: var(--color-emerald-700);
+  --color-primary-800: var(--color-emerald-800);
+  --color-primary-900: var(--color-emerald-900);
+  --color-primary-950: var(--color-emerald-950);
 }
 
 :root {
@@ -39,6 +28,7 @@
   --primary-neutral: var(--color-gray-900);
   --secondary-neutral: var(--color-gray-700);
   --tertiary-neutral: var(--color-gray-600);
+  --muted: var(--color-gray-500);
   --divider: var(--color-gray-200);
   --line: var(--color-gray-300);
   --accent: var(--color-primary-700);
@@ -52,6 +42,7 @@
   --primary-neutral: var(--color-gray-50);
   --secondary-neutral: var(--color-gray-200);
   --tertiary-neutral: var(--color-gray-400);
+  --muted: var(--color-gray-400);
   --divider: var(--color-gray-700);
   --line: var(--color-gray-700);
   --accent: var(--color-primary-500);
@@ -65,6 +56,7 @@
   --color-primary-neutral: var(--primary-neutral);
   --color-secondary-neutral: var(--secondary-neutral);
   --color-tertiary-neutral: var(--tertiary-neutral);
+  --color-muted: var(--muted);
   --color-divider: var(--divider);
   --color-line: var(--line);
   --color-accent: var(--accent);
@@ -84,19 +76,7 @@
     @apply min-h-full;
   }
   body {
-    @apply bg-elevation-1 text-primary-neutral m-0 text-sm font-normal;
-  }
-  h1 {
-    @apply text-2xl leading-8 font-medium;
-  }
-  h2 {
-    @apply text-lg leading-7 font-medium;
-  }
-  h3 {
-    @apply text-base leading-6 font-medium;
-  }
-  label {
-    @apply block text-sm font-medium;
+    @apply bg-elevation-1 text-secondary-neutral m-0 text-sm font-normal;
   }
 }
 @layer components {

@@ -334,7 +334,6 @@ async function synchronize() {
         #notice
       >
         <NeInlineNotification
-          class="mt-4 max-w-2xl"
           kind="info"
           :title="t('agentForm.noTrunks')"
           :description="t('agentForm.noTrunksHelp')"
@@ -499,7 +498,7 @@ async function synchronize() {
                 v-model="draft.debug.transcription_enabled"
                 :label="t('debugTranscription')"
               />
-              <p class="text-tertiary-neutral mt-1 ml-14">
+              <p class="text-muted mt-1 ml-14">
                 {{ t("debugTranscriptionHelp") }}
               </p>
             </div>
@@ -530,7 +529,7 @@ async function synchronize() {
         <div
           class="flex max-w-6xl flex-wrap items-center justify-between gap-4"
         >
-          <span class="text-tertiary-neutral">{{ footer }}</span>
+          <span class="text-muted">{{ footer }}</span>
           <div class="flex flex-wrap gap-3">
             <NeButton kind="tertiary" @click="router.push('/agents')">{{
               t("cancel")

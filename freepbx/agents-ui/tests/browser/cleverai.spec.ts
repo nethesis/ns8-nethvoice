@@ -181,7 +181,7 @@ test("CleverAI creates and edits through Save, filters trunks and exposes no loc
   ).toBeDisabled();
   await page.getByRole("button", { name: "Back", exact: true }).click();
   await page
-    .getByRole("button", { name: "Open actions menu", exact: true })
+    .getByRole("button", { name: "Open menu", exact: true })
     .click();
   await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
   await page
