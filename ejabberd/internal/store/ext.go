@@ -73,6 +73,12 @@ func (s *Store) SetExtLink(room, link string, expires int64) error {
 	return err
 }
 
+// SetExtOwner: who manages the link and the guests, when the room changed hands.
+func (s *Store) SetExtOwner(room, owner string) error {
+	_, err := s.db.Exec(`UPDATE ext_rooms SET owner = ? WHERE room = ?`, owner, room)
+	return err
+}
+
 func (s *Store) RevokeExtLink(room string) error {
 	_, err := s.db.Exec(`UPDATE ext_rooms SET revoked = 1 WHERE room = ?`, room)
 	return err

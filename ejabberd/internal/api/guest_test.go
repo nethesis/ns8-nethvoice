@@ -74,3 +74,21 @@ func TestDropGoneExtRooms(t *testing.T) {
 		t.Errorf("live room's guests = %v", g)
 	}
 }
+
+// A colleague's name passes neither with other letters that look the same nor with case, accents or dots.
+func TestSkeleton(t *testing.T) {
+	want := skeleton("Mario Rossi")
+	for _, n := range []string{"mario rossi", "Mario  Rossi.", "Mаrio Rossi", "Mario R0ssi", "Màrio Rossi", "mario.rossi", "MARIO_ROSSI", "Mario Ross1"} {
+		if skeleton(n) != want {
+			t.Errorf("skeleton(%q) = %q, want %q", n, skeleton(n), want)
+		}
+	}
+	for _, n := range []string{"Maria Rossi", "Mario Bianchi", "Mario Rossi 2"} {
+		if skeleton(n) == want {
+			t.Errorf("skeleton(%q) matches Mario Rossi", n)
+		}
+	}
+	if skeleton("😀 !!") != "" {
+		t.Error("signs only should fold to nothing")
+	}
+}

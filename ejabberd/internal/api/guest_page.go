@@ -493,14 +493,19 @@ func roomMessage(ctx context.Context, ses *xmppc.Session, room, ref string) (xmp
 	return xmppc.Message{}, false
 }
 
-// guestFileOK: a guest's upload by name and type; pages, vector images and scripts stay out.
+// guestFiles: what people outside may send, by extension: pictures, documents without macros,
+// text, sound and video. Programs, scripts, archives and anything a browser renders as a page stay out.
+var guestFiles = map[string]bool{
+	".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true, ".heic": true, ".heif": true, ".avif": true, ".bmp": true, ".tif": true, ".tiff": true,
+	".pdf": true, ".doc": true, ".docx": true, ".xls": true, ".xlsx": true, ".ppt": true, ".pptx": true, ".odt": true, ".ods": true, ".odp": true, ".rtf": true,
+	".txt": true, ".csv": true, ".md": true, ".log": true,
+	".m4a": true, ".mp3": true, ".ogg": true, ".opus": true, ".oga": true, ".wav": true, ".aac": true, ".flac": true, ".weba": true,
+	".mp4": true, ".m4v": true, ".mov": true, ".webm": true,
+}
+
+// guestFileOK: a guest's upload by name and type: an accepted extension, and no type a browser runs.
 func guestFileOK(name, typ string) bool {
-	ext := strings.ToLower(path.Ext(name))
 	t := strings.ToLower(strings.TrimSpace(strings.Split(typ, ";")[0]))
-	switch ext {
-	case ".htm", ".html", ".xhtml", ".shtml", ".svg", ".svgz", ".xml", ".xsl", ".js", ".mjs", ".css", ".swf":
-		return false
-	}
-	return !strings.Contains(t, "html") && !strings.Contains(t, "svg") && !strings.Contains(t, "xml") &&
-		!strings.Contains(t, "javascript") && t != "text/css"
+	return guestFiles[strings.ToLower(path.Ext(name))] && !strings.Contains(t, "html") && !strings.Contains(t, "svg") &&
+		!strings.HasSuffix(t, "/xml") && !strings.Contains(t, "xsl") && !strings.Contains(t, "script") && t != "text/css"
 }

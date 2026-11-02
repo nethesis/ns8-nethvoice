@@ -705,7 +705,7 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 				sent = append(sent, item)
 			} else {
 				item.Sender = name
-				author := s.displayName(users, m.Nick)
+				author := address.Author(m.Nick, s.displayName(users, m.Nick))
 				if attached {
 					caption := author
 					if !namesOnly(m.Body, fileNames(m.Files), m.Files) {
