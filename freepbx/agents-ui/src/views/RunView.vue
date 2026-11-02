@@ -242,6 +242,12 @@ const partial = computed(
     :title="t('error.request_failed')"
   />
   <div v-if="run" class="flex flex-col gap-12">
+    <RouterLink
+      v-if="run.parent_run_id"
+      :to="'/activity/' + run.parent_run_id"
+      class="font-medium hover:underline"
+      >{{ t("callerRun") }}</RouterLink
+    >
     <NeCard>
       <dl
         class="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 xl:grid-cols-4"

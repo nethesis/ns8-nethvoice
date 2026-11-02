@@ -38,12 +38,14 @@ final class RecentCallerViews
         $view('voice_agent_callback_trunks',$trunks);
         $view('voice_agent_callback_patterns',$patterns);
         $cdr=$db->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='asteriskcdrdb' AND table_name='cdr'")->fetchColumn();
-        $columns=['calldate'=>'DATETIME','dst'=>'CHAR(80)','channel'=>'CHAR(80)','dstchannel'=>'CHAR(80)',
-            'lastapp'=>'CHAR(80)','lastdata'=>'CHAR(80)','disposition'=>'CHAR(45)','linkedid'=>'CHAR(32)','uniqueid'=>'CHAR(32)','sequence'=>'SIGNED'];
+        $columns=['calldate'=>'DATETIME','src'=>'CHAR(80)','dst'=>'CHAR(80)','channel'=>'CHAR(80)','dstchannel'=>'CHAR(80)',
+            'lastapp'=>'CHAR(80)','lastdata'=>'CHAR(80)','billsec'=>'SIGNED','disposition'=>'CHAR(45)','linkedid'=>'CHAR(32)','uniqueid'=>'CHAR(32)','sequence'=>'SIGNED'];
         $empty=implode(',',array_map(fn($name,$type)=>"CAST(NULL AS $type) $name",array_keys($columns),$columns));
         // Custom Dial strings can contain credentials. Expose only recognized
         // native number/peer forms, without options or arbitrary URIs.
-        $safeDial="CASE WHEN lastapp='Dial' AND SUBSTRING_INDEX(lastdata,',',1) REGEXP '^(PJSIP|SIP|IAX2)/([+]?[0-9]+@[A-Za-z0-9_.-]+|[A-Za-z0-9_.-]+/[+]?[0-9]+)$' THEN SUBSTRING_INDEX(lastdata,',',1) ELSE '' END AS lastdata";
+        $safeDial="CASE WHEN (lastapp='Dial' AND SUBSTRING_INDEX(lastdata,',',1) REGEXP '^(PJSIP|SIP|IAX2)/([+]?[0-9]+@[A-Za-z0-9_.-]+|[A-Za-z0-9_.-]+/[+]?[0-9]+)$')
+            OR (lastapp='Bridge' AND SUBSTRING_INDEX(lastdata,',',1) REGEXP '^Local/[0-9]{1,20}@voice-agent-consult-[a-fA-F0-9]+;1$')
+            THEN SUBSTRING_INDEX(lastdata,',',1) ELSE '' END AS lastdata";
         $projection=array_map(fn($column)=>$column==='lastdata'?$safeDial:$column,array_keys($columns));
         $view('voice_agent_recent_cdr',$cdr?'SELECT '.implode(',',$projection).' FROM asteriskcdrdb.cdr':"SELECT $empty WHERE 0");
     }

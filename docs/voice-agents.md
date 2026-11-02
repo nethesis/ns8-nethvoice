@@ -1,6 +1,6 @@
 # Voice agents alpha
 
-This implementation supports fresh installations of publication contract **v8** only.
+This implementation supports fresh installations of publication contracts **v8** and opt-in **v9**.
 Install the matching FreePBX and Satellite images together. An installation containing
 an earlier development schema is rejected with `unsupported_development_database`
 before Agents schema or seed changes. There is no automatic conversion or erase.
@@ -37,8 +37,10 @@ imports and tests the matching source revision; older images are rejected.
 
 ## Configuration and activation
 
-Fresh installation seeds one disabled, unpublished **Receptionist**. Administrators
-can also create independent Basic Voice agents. Configure an OpenAI or Grok trunk,
+Fresh installation seeds disabled, unpublished **Receptionist** and internal
+**Consultation assistant** profiles. Upgrades add the assistant without replacing
+existing settings. Administrators can also create independent Basic Voice agents.
+Configure an OpenAI or Grok trunk,
 then choose the conversation model, voice, language, greeting, instructions and
 maximum duration on each agent page. Trunks carry credential references and native
 provider configuration, never conversation-model settings. Credentials are encrypted
@@ -134,6 +136,11 @@ Rollback requires the saved images **and matching pre-reset data**; an old runti
 cannot read this fresh baseline. Rehearse restoration on disposable storage before
 claiming rollback has passed. Deployment receipts and sensitive recovery material
 belong outside published documentation.
+
+## Attended transfer
+
+See [attended transfer](voice-agents-attended-transfer.md) for internal assistant
+setup, Receptionist permissions, private service dependencies and acceptance gates.
 
 ## Verification and limits
 
