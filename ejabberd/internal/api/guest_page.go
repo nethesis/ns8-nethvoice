@@ -219,6 +219,13 @@ func (s *Server) guestMessages(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err != nil {
+		if ctx.Err() != nil {
+			return // the page went away
+		}
+		if s.roomGone(ctx, g.Room) {
+			fail(w, http.StatusGone, "the chat is gone")
+			return
+		}
 		log.Printf("guests: read %s: %v", g.ID, err)
 		fail(w, http.StatusBadGateway, "archive unavailable")
 		return

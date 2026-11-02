@@ -25,6 +25,7 @@ import (
 
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/address"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/cti"
+	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/logx"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/store"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/svcauth"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/xmppc"
@@ -474,6 +475,32 @@ func (s *Server) linkInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"title": e.Title, "room": e.Room, "open": code == 0})
+}
+
+// roomGone: the room was destroyed (its owner deleted the chat): its link and its guests go too.
+func (s *Server) roomGone(ctx context.Context, room string) bool {
+	err := s.ejabberd(ctx, "get_room_affiliations", map[string]string{"room": room, "service": address.MUC(s.Host)}, nil)
+	if err == nil || !roomMissing(err) {
+		return false
+	}
+	if err := s.Store.DeleteExtRoom(room); err != nil {
+		log.Printf("guests: drop %s: %v", room, err)
+		return true
+	}
+	logx.Debugf("guests: %s is gone: link and guests dropped", room)
+	return true
+}
+
+// DropGoneExtRooms: the rooms with guests deleted since the last round.
+func (s *Server) DropGoneExtRooms(ctx context.Context) {
+	rooms, err := s.Store.ExtRoomIDs()
+	if err != nil {
+		log.Printf("guests: %v", err)
+		return
+	}
+	for _, room := range rooms {
+		s.roomGone(ctx, room)
+	}
 }
 
 // joinGuest: POST /guest/join {"link", "name"}: a guest of their own in the link's room; their token back.

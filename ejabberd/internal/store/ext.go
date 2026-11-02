@@ -124,3 +124,12 @@ func (s *Store) RemoveGuest(id string) error {
 	_, err := s.db.Exec(`UPDATE ext_guests SET removed = 1 WHERE id = ?`, id)
 	return err
 }
+
+// DeleteExtRoom: a room destroyed since takes its link and its guests along.
+func (s *Store) DeleteExtRoom(room string) error {
+	_, err := s.db.Exec(`DELETE FROM ext_guests WHERE room = ?`, room)
+	if err == nil {
+		_, err = s.db.Exec(`DELETE FROM ext_rooms WHERE room = ?`, room)
+	}
+	return err
+}
