@@ -459,15 +459,36 @@ func (s *Server) removeGuest(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusNotFound, "no such guest")
 		return
 	}
-	if err := s.Store.RemoveGuest(g.ID); err != nil {
+	if err := s.dropGuest(r.Context(), g); err != nil {
 		fail(w, http.StatusInternalServerError, "not removed")
 		return
 	}
-	// No affiliation in a members-only room: ejabberd drops the subscription too.
-	_ = s.ejabberd(r.Context(), "set_room_affiliation", map[string]string{"room": e.Room, "service": address.MUC(s.Host), "user": g.ID, "host": s.Host, "affiliation": "none"}, nil)
-	s.WakeGuest(g.ID)
-	s.tellMembers(r.Context(), e.Room)
 	writeJSON(w, http.StatusOK, s.extInfo(e, user, ""))
+}
+
+// leaveGuest: POST /guest/leave: the guest leaves the room of their own accord; their page stops working.
+func (s *Server) leaveGuest(w http.ResponseWriter, r *http.Request) {
+	g, ok := s.guestFrom(w, r)
+	if !ok {
+		return
+	}
+	if err := s.dropGuest(r.Context(), g); err != nil {
+		fail(w, http.StatusInternalServerError, "not left")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// dropGuest takes a guest out of their room: removed or gone of their own accord, the same.
+func (s *Server) dropGuest(ctx context.Context, g *store.Guest) error {
+	if err := s.Store.RemoveGuest(g.ID); err != nil {
+		return err
+	}
+	// No affiliation in a members-only room: ejabberd drops the subscription too.
+	_ = s.ejabberd(ctx, "set_room_affiliation", map[string]string{"room": g.Room, "service": address.MUC(s.Host), "user": g.ID, "host": s.Host, "affiliation": "none"}, nil)
+	s.WakeGuest(g.ID)
+	s.tellMembers(ctx, g.Room)
+	return nil
 }
 
 // tellMembers: an invitation makes the operators' clients read the room's members again.

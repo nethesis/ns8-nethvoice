@@ -110,6 +110,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /guest/react", s.guestReact)
 	mux.HandleFunc("POST /guest/retract", s.guestRetract)
 	mux.HandleFunc("POST /guest/upload", s.guestUpload)
+	mux.HandleFunc("POST /guest/leave", s.leaveGuest)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	return withCORS(mux)
 }
