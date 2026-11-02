@@ -31,15 +31,16 @@ import (
 )
 
 const (
-	GuestPrefix   = "g~"   // guest accounts: no chat username has a ~ (chat-extauth refuses it)
-	ExtRoomPrefix = "ext-" // rooms with guests: clients badge them
-	GuestNodePfx  = "guest:"
-	guestTTL      = 30 * 24 * time.Hour
-	guestWait     = 25 * time.Second // a long poll with nothing new returns after this
-	guestPolls    = 3                // long polls open at once per guest
-	guestCalls    = 120              // page calls per guest per minute: a long poll is ~2
-	maxGuests     = 10               // guests in a room at once
-	joinsPerMin   = 10               // joins per client address per minute
+	GuestPrefix      = "g~"   // guest accounts: no chat username has a ~ (chat-extauth refuses it)
+	ExtRoomPrefix    = "ext-" // rooms with guests: clients badge them
+	ManualRoomPrefix = "g-"   // groups operators make by hand: the only ones they may open to guests
+	GuestNodePfx     = "guest:"
+	guestTTL         = 30 * 24 * time.Hour
+	guestWait        = 25 * time.Second // a long poll with nothing new returns after this
+	guestPolls       = 3                // long polls open at once per guest
+	guestCalls       = 120              // page calls per guest per minute: a long poll is ~2
+	maxGuests        = 10               // guests in a room at once
+	joinsPerMin      = 10               // joins per client address per minute
 )
 
 // IsGuest tells a guest account (local part or bare JID) from an operator.
@@ -176,6 +177,7 @@ func hashToken(token string) string {
 func newToken() string { return randomID() + randomID() } // 192 bits
 
 // createExtRoom: POST /guests {"name"}: a room named name, the operator its owner, and its invite link.
+// With "room", one of the operator's own groups is opened to people outside instead: its members stay.
 func (s *Server) createExtRoom(w http.ResponseWriter, r *http.Request) {
 	user, _, err := s.bearerUser(r)
 	if err != nil {
@@ -184,6 +186,7 @@ func (s *Server) createExtRoom(w http.ResponseWriter, r *http.Request) {
 	}
 	var req struct {
 		Name string `json:"name"`
+		Room string `json:"room"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		fail(w, http.StatusBadRequest, "bad request")
@@ -200,7 +203,14 @@ func (s *Server) createExtRoom(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	room, token, now := ExtRoomPrefix+randomID()[:12], newToken(), time.Now()
+	if req.Room != "" {
+		room = req.Room
+	}
 	ext := store.ExtRoom{Room: room, Title: title, Owner: user, Link: hashToken(token), Created: now.Unix(), Expires: now.Add(guestTTL).Unix()}
+	if req.Room != "" {
+		s.shareGroup(w, r, &ext, token)
+		return
+	}
 	opts := []map[string]string{
 		{"name": "title", "value": title},
 		{"name": "persistent", "value": "true"},
@@ -224,6 +234,82 @@ func (s *Server) createExtRoom(w http.ResponseWriter, r *http.Request) {
 	}
 	s.invite(ctx, room, []string{user})
 	writeJSON(w, http.StatusOK, s.extInfo(&ext, user, s.inviteLink(token)))
+}
+
+// shareGroup: a group made by hand (never a CTI group or queue), only by its owner, and only once.
+func (s *Server) shareGroup(w http.ResponseWriter, r *http.Request, ext *store.ExtRoom, token string) {
+	ctx := r.Context()
+	if !strings.HasPrefix(ext.Room, ManualRoomPrefix) || strings.ContainsAny(ext.Room, "@/") {
+		fail(w, http.StatusBadRequest, "not a group of yours")
+		return
+	}
+	e, err := s.Store.ExtRoom(ext.Room)
+	if err != nil || (e != nil && (!e.Revoked || e.Owner != ext.Owner)) {
+		fail(w, http.StatusConflict, "already shared")
+		return
+	}
+	var affs []struct {
+		Affiliation string `json:"affiliation"`
+		JID         string `json:"jid"`
+	}
+	if err := s.ejabberd(ctx, "get_room_affiliations", map[string]string{"room": ext.Room, "service": address.MUC(s.Host)}, &affs); err != nil {
+		fail(w, http.StatusNotFound, "no such group")
+		return
+	}
+	owner := false
+	for _, a := range affs {
+		owner = owner || (a.Affiliation == "owner" && address.Local(a.JID) == ext.Owner)
+	}
+	if !owner {
+		fail(w, http.StatusForbidden, "only the owner shares a group")
+		return
+	}
+	// Made private before: shared again with a new link, as it was.
+	if e != nil {
+		if err := s.Store.SetExtLink(e.Room, ext.Link, ext.Expires); err != nil {
+			fail(w, http.StatusInternalServerError, "room not saved")
+			return
+		}
+		e.Link, e.Expires, e.Revoked = ext.Link, ext.Expires, false
+		writeJSON(w, http.StatusOK, s.extInfo(e, ext.Owner, s.inviteLink(token)))
+		return
+	}
+	if err := s.Store.PutExtRoom(*ext); err != nil {
+		fail(w, http.StatusInternalServerError, "room not saved")
+		return
+	}
+	writeJSON(w, http.StatusOK, s.extInfo(ext, ext.Owner, s.inviteLink(token)))
+}
+
+// listExtRooms: GET /guests: the rooms open to people outside, for clients to mark.
+// A group made private again is left out once nobody from outside is in it.
+func (s *Server) listExtRooms(w http.ResponseWriter, r *http.Request) {
+	if _, _, err := s.bearerUser(r); err != nil {
+		fail(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	ids, err := s.Store.ExtRoomIDs()
+	if err != nil {
+		fail(w, http.StatusInternalServerError, "store")
+		return
+	}
+	rooms := []string{}
+	for _, id := range ids {
+		if e, err := s.Store.ExtRoom(id); err == nil && e != nil && (!e.Revoked || s.hasGuests(id)) {
+			rooms = append(rooms, id)
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"rooms": rooms})
+}
+
+func (s *Server) hasGuests(room string) bool {
+	list, _ := s.Store.Guests(room)
+	for _, g := range list {
+		if !g.Removed {
+			return true
+		}
+	}
+	return false
 }
 
 type guestEntry struct {

@@ -46,6 +46,24 @@ func (s *Store) extRoom(where string, arg any) (*ExtRoom, error) {
 	return &r, err
 }
 
+// ExtRoomIDs: every room open to people outside, so clients can mark them.
+func (s *Store) ExtRoomIDs() ([]string, error) {
+	rows, err := s.db.Query(`SELECT room FROM ext_rooms`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []string{}
+	for rows.Next() {
+		var r string
+		if err := rows.Scan(&r); err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
 func (s *Store) ExtRoom(room string) (*ExtRoom, error)       { return s.extRoom("room", room) }
 func (s *Store) ExtRoomByLink(link string) (*ExtRoom, error) { return s.extRoom("link", link) }
 
