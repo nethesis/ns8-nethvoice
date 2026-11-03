@@ -90,6 +90,6 @@ After building the Tancredi container, check its actual entrypoint with:
 bash tests/unit/test_tancredi_startup.sh localhost/nethvoice-tancredi:lldp-8167
 ```
 
-The Containerfile pins Tancredi 1.11.0, which includes the LLDP templates and
+The Containerfile pins Tancredi 1.11.1, which includes the LLDP templates and
 version 16 defaults. The release archive is verified against
 `remote-artifacts.sha256`.
