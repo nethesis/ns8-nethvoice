@@ -33,6 +33,8 @@ for (const scenario of [{language:'en',width:1440}, {language:'it',width:375}]) 
     });
     await page.goto('./#/activity');
     await expect(page.getByTestId('monitoring-total')).toHaveText('180');
+    await expect(page.getByTestId('documentation-link')).toHaveAttribute('href',`https://docs.nethvoice.com/${scenario.language==='it'?'it/':''}docs/administrator-manual/configuration/applications/voice_agents`);
+    await expect(page.getByTestId('documentation-link')).toHaveAttribute('target','_blank');
     await expect(page.getByTestId('monitoring-health-warning')).toBeVisible();
     await page.getByTestId('run-search').fill('outside-first-page');
     await expect.poll(()=>searches.includes('outside-first-page')).toBe(true);

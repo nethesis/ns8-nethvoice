@@ -35,7 +35,7 @@ const router = useRouter();
       <slot />
     </div>
   </div>
-  <div v-if="$slots.notice" class="mb-8 max-w-6xl">
+  <div v-if="$slots.notice" class="mb-8 max-w-2xl">
     <slot name="notice" />
   </div>
 </template>

@@ -10,7 +10,6 @@ import {
   NeSkeleton,
   NeToggle,
   NeBadgeV2,
-  NeRadioSelection,
 } from "@nethesis/vue-components";
 import { useI18n } from "vue-i18n";
 import { request, queryClient } from "../api";
@@ -353,7 +352,7 @@ async function synchronize() {
     />
     <form
       v-if="creating || record"
-      class="flex max-w-6xl flex-col gap-10"
+      class="flex max-w-2xl flex-col gap-10"
       novalidate
       @submit.prevent="save"
     >
@@ -403,25 +402,25 @@ async function synchronize() {
         :description="t('generalSettingsHelp')"
       >
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <NeRadioSelection
-            v-if="creating"
-            v-model="agentType"
-            class="lg:col-span-2"
-            :label="t('agentType')"
-            name="agentType"
-            :options="[
-              { id: 'basic_voice', label: t('agentTypes.basic_voice') },
-              { id: 'cleverai', label: t('agentTypes.cleverai') },
-            ]"
-          />
-          <NeTextInput
-            v-else
-            class="lg:col-span-2"
-            :label="t('agentType')"
-            :model-value="t('agentTypes.' + agentType)"
-            readonly
-            :helper-text="t('agentForm.typeLocked')"
-          />
+          <div class="grid grid-cols-1 gap-6 lg:col-span-2 lg:grid-cols-2">
+            <FieldCombobox
+              v-if="creating"
+              :model-value="agentType"
+              :label="t('agentType')"
+              :options="[
+                { id: 'basic_voice', label: t('agentTypes.basic_voice') },
+                { id: 'cleverai', label: t('agentTypes.cleverai') },
+              ]"
+              @update:model-value="agentType = $event || agentType"
+            />
+            <NeTextInput
+              v-else
+              :label="t('agentType')"
+              :model-value="t('agentTypes.' + agentType)"
+              readonly
+              :helper-text="t('agentForm.typeLocked')"
+            />
+          </div>
           <NeTextInput
             v-model="name"
             :label="t('name')"
@@ -461,6 +460,7 @@ async function synchronize() {
       </SettingsSection>
       <template v-if="!external">
         <SettingsSection
+          divider
           :title="t('conversationSettings')"
           :description="t('conversationSettingsHelp')"
         >
@@ -485,10 +485,15 @@ async function synchronize() {
             />
           </div>
         </SettingsSection>
-        <SettingsSection :title="t('tools')" :description="t('toolGrantsHelp')">
+        <SettingsSection
+          divider
+          :title="t('tools')"
+          :description="t('toolGrantsHelp')"
+        >
           <AgentTools v-model="draft.tool_bindings" />
         </SettingsSection>
         <SettingsSection
+          divider
           :title="t('debugSettings')"
           :description="t('agentForm.debugHelp')"
         >
@@ -527,7 +532,7 @@ async function synchronize() {
         class="bg-elevation-0 border-divider fixed right-0 bottom-0 left-0 z-10 border-t px-4 py-4 sm:px-8 lg:left-75"
       >
         <div
-          class="flex max-w-6xl flex-wrap items-center justify-between gap-4"
+          class="flex max-w-2xl flex-wrap items-center justify-between gap-4"
         >
           <span class="text-muted">{{ footer }}</span>
           <div class="flex flex-wrap gap-3">

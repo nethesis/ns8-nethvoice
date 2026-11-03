@@ -142,7 +142,7 @@ async function remove() {
     :search-keys="['name', 'typeLabel', 'trunk', 'agent_id']"
     :columns="[
       { key: 'name', label: t('name') },
-      { key: 'typeLabel', label: t('agentType') },
+      { key: 'typeLabel', label: t('kind') },
       { key: 'trunk', label: t('trunk') },
       { key: 'status', label: t('state') },
       { key: 'workflow_version', label: t('publishedVersion') },

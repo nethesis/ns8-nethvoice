@@ -9,6 +9,7 @@ import {
   NeModal,
   NeSkeleton,
   NeToastNotificationV2,
+  NeTooltip,
   type NeDropdownItem,
 } from "@nethesis/vue-components";
 import {
@@ -42,6 +43,12 @@ const items = [
 ];
 const active = (name: string) => route.path.startsWith("/" + name);
 const initials = computed(() => auth.user.slice(0, 1).toUpperCase());
+const docsUrl = computed(
+  () =>
+    "https://docs.nethvoice.com/" +
+    (String(locale.value).startsWith("it") ? "it/" : "") +
+    "docs/administrator-manual/configuration/applications/voice_agents",
+);
 const accountMenu = computed<NeDropdownItem[]>(() => [
   {
     id: "theme",
@@ -169,21 +176,40 @@ watch(
         </button>
         <span class="bg-line -my-px h-16 w-px lg:hidden" aria-hidden="true" />
         <div class="flex-1" />
-        <NeDropdown
-          :items="accountMenu"
-          align-to-right
-          :open-menu-aria-label="t('openAccountMenu')"
-        >
-          <template #button>
-            <NeAvatar size="sm" :initials="initials" :alt="auth.user" />
-          </template>
-          <template v-if="auth.user" #menuHeader>
-            <div class="px-4 pt-1 pb-3">
-              <p class="text-primary-neutral font-medium">{{ auth.user }}</p>
-            </div>
-            <hr class="border-divider mb-1" />
-          </template>
-        </NeDropdown>
+        <div class="flex items-center gap-6">
+          <NeTooltip trigger-event="mouseenter focus" placement="bottom">
+            <template #trigger>
+              <a
+                :href="docsUrl"
+                target="_blank"
+                rel="noopener"
+                class="text-secondary-neutral hover:text-primary-neutral focus-visible:outline-primary-500 flex items-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+                :aria-label="t('documentation')"
+                data-testid="documentation-link"
+                ><FontAwesomeIcon
+                  icon="circle-info"
+                  class="size-5"
+                  aria-hidden="true"
+              /></a>
+            </template>
+            <template #content>{{ t("documentation") }}</template>
+          </NeTooltip>
+          <NeDropdown
+            :items="accountMenu"
+            align-to-right
+            :open-menu-aria-label="t('openAccountMenu')"
+          >
+            <template #button>
+              <NeAvatar size="sm" :initials="initials" :alt="auth.user" />
+            </template>
+            <template v-if="auth.user" #menuHeader>
+              <div class="px-4 pt-1 pb-3">
+                <p class="text-primary-neutral font-medium">{{ auth.user }}</p>
+              </div>
+              <hr class="border-divider mb-1" />
+            </template>
+          </NeDropdown>
+        </div>
       </header>
       <main class="flex-1 px-4 py-6 sm:px-8">
         <NeSkeleton v-if="!auth.ready" :lines="8" />
