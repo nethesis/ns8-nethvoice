@@ -1225,7 +1225,5 @@ function nethvoice_report_config() {
     // Write the file
     if (file_put_contents("/opt/nethvoice-report/api/user_authorizations.json", json_encode($config)) === false) {
         error_log("Can't write 'user_authorizations.json' file");
-    } elseif (!touch('/notify/restart_reports-api')) {
-        error_log("Can't request nethvoice report restart");
     }
 }

@@ -5,3 +5,4 @@ done
 sleep 2
 
 touch /notify/reload_nethcti-server
+touch /notify/restart_reports-api

@@ -37,14 +37,14 @@ echo "$(basename "$0") $*" >> "$TEST_CALLS"
         self.assertFalse(flag.exists())
         self.assertIn('systemctl --user restart reports-api', self.calls.read_text())
 
-    def test_delayed_helper_only_notifies_cti(self):
+    def test_delayed_helper_notifies_cti_and_restarts_reports(self):
         script = (ROOT / 'freepbx/var/www/html/freepbx/rest/lib/ctiReloadHelper.sh').read_text()
         script = script.replace('/notify/', str(self.notify)+'/')
         result = subprocess.run(['bash', '-c', script], env=self.env,
                                 capture_output=True, text=True, timeout=5)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue((self.notify / 'reload_nethcti-server').exists())
-        self.assertFalse((self.notify / 'restart_reports-api').exists())
+        self.assertEqual((self.notify / 'restart_reports-api').read_text(), '')
 
 
 if __name__ == '__main__':
