@@ -37,10 +37,10 @@ namespace {
     // Cover new volumes, existing custom rules, and the legacy include on upgrades.
     foreach (['', "[blacklist]\ndirectory = $root/administrator\n[custom]\nfile = $root/custom,0600,root,root\n#include nethvoice_chown.conf"] as $existing) {
         file_put_contents($configFile, $existing);
-        exec('bash -c '.escapeshellarg($setup), $unused, $status);
+        exec('sh -c '.escapeshellarg($setup), $unused, $status);
         check($status === 0, 'configuration setup failed');
         $first = file_get_contents($configFile);
-        exec('bash -c '.escapeshellarg($setup), $unused, $status);
+        exec('sh -c '.escapeshellarg($setup), $unused, $status);
         check($status === 0 && $first === file_get_contents($configFile), 'configuration setup is not idempotent');
         check(!str_contains($first, '#include'), 'legacy include was not migrated');
         $command = $class->newInstanceWithoutConstructor();

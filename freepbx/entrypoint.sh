@@ -51,7 +51,7 @@ else
 fi
 
 # Keep the managed rules in the main file: FreePBX LoadConfig does not expand includes.
-if [[ -f /etc/asterisk/freepbx_chown.conf ]]; then
+if [ -f /etc/asterisk/freepbx_chown.conf ]; then
     sed -i '/^; BEGIN NethVoice managed permissions$/,/^; END NethVoice managed permissions$/d; /^#include nethvoice_chown.conf$/d' /etc/asterisk/freepbx_chown.conf || exit $?
 fi
 cat >> /etc/asterisk/freepbx_chown.conf <<'EOF' || exit $?
