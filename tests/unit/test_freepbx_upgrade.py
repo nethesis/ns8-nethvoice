@@ -29,7 +29,7 @@ if name == 'podman' and args[0] == 'run': print('configuration archive')
 if name == 'runagent' and args[0] == 'mysql-update-postprocess':
     assert list(Path('upgrade-backups').glob('*/complete')), 'migration before snapshot'
 if call == os.environ.get('TEST_FAIL'): sys.exit(17)
-if name == 'systemctl' and args[:2] == ['--user', 'start'] and os.environ.get('TEST_FAIL_UNIT') in args[2:]:
+if name == 'systemctl' and args[0] == '--user' and args[1] in ['start', 'restart'] and os.environ.get('TEST_FAIL_UNIT') in args[2:]:
     sys.exit(17)
 ''')
         stub.chmod(0o755)
@@ -52,24 +52,28 @@ if name == 'systemctl' and args[:2] == ['--user', 'start'] and os.environ.get('T
         stop = next(i for i, call in enumerate(calls) if call[:2] == ['restart-services-when-convenient', '--stop'])
         migrate = calls.index(['runagent', 'mysql-update-postprocess', '--migrate'])
         starts = [call[3:] for call in calls if call[:3] == ['systemctl', '--user', 'start']]
-        self.assertEqual(len(starts), 4)  # MariaDB, independent units, consumers, scheduled work.
-        self.assertEqual(set(starts[1]), {'freepbx', 'janus', 'nethcti-ui', 'satellite-pgsql', 'reports-redis'})
-        self.assertEqual(set(starts[2]), {'nethcti-server', 'nethcti-middleware', 'tancredi'})
-        self.assertEqual(set(starts[3]), {'watcher.path', 'phonebook-update.timer'})
+        self.assertEqual(len(starts), 3)  # MariaDB, independent units, scheduled work.
+        self.assertEqual(set(starts[1]), {'freepbx', 'janus', 'satellite-pgsql', 'reports-redis'})
+        self.assertEqual(set(starts[2]), {'watcher.path', 'phonebook-update.timer'})
+        consumers = next(call for call in calls if call[:3] == ['systemctl', '--user', 'restart'] and 'nethcti-server' in call)
+        self.assertEqual(set(consumers[3:]), {'nethcti-ui', 'nethcti-server', 'nethcti-middleware', 'tancredi'})
         pbx = next(i for i, call in enumerate(calls) if call[:3] == ['systemctl', '--user', 'start'] and 'freepbx' in call[3:])
-        cti = next(i for i, call in enumerate(calls) if call[:3] == ['systemctl', '--user', 'start'] and 'nethcti-server' in call[3:])
+        cti = calls.index(consumers)
         self.assertLess(stop, migrate)
         self.assertLess(migrate, pbx)
         self.assertLess(pbx, cti)
         self.assertTrue(list(directory.glob('upgrade-backups/*/succeeded')))
         self.assertFalse(any('fwconsole' in call for call in calls))
+        self.assertNotIn('nethcti-ui', calls[stop])
+        self.assertFalse(any(call[:3] == ['systemctl', '--user', 'stop'] and 'nethcti-ui' in call for call in calls))
+        self.assertLess(calls.index(['runagent', 'prepare-asterisk-config']), cti)
 
     def test_failed_initialization_or_migration_preserves_snapshot_and_stops_consumers(self):
         for fail, unit in [('runagent mysql-update-postprocess --migrate', ''), ('', 'freepbx'), ('', 'tancredi'), ('', 'watcher.path')]:
             with self.subTest(fail=fail, unit=unit):
                 result, calls, directory = self.run_upgrade(fail=fail, fail_unit=unit)
                 self.assertEqual(result.returncode, 17, result.stderr)
-                starts = [call[3:] for call in calls if call[:3] == ['systemctl', '--user', 'start']]
+                starts = [call[3:] for call in calls if call[:2] == ['systemctl', '--user'] and call[2] in ['start', 'restart']]
                 if fail or unit == 'freepbx':
                     self.assertFalse(any('nethcti-server' in group for group in starts))
                 if unit != 'watcher.path':
@@ -79,18 +83,19 @@ if name == 'systemctl' and args[:2] == ['--user', 'start'] and os.environ.get('T
                 self.assertIn('freepbx', stopped)
                 self.assertIn('nethcti-server', stopped)
                 self.assertIn('watcher.path', stopped)
+                self.assertEqual('nethcti-ui' in stopped, unit in ['tancredi', 'watcher.path'])
                 self.assertTrue(list(directory.glob('upgrade-backups/*/complete')))
                 self.assertFalse(list(directory.glob('upgrade-backups/*/succeeded')))
                 self.assertIn('recovery data:', result.stderr)
 
     def test_inactive_services_are_not_requested(self):
-        for active in [[], ['freepbx'], ['freepbx', 'nethcti-server']]:
+        for active in [[], ['freepbx'], ['freepbx', 'nethcti-server'], ['nethcti-ui']]:
             with self.subTest(active=active):
                 result, calls, directory = self.run_upgrade(active=active)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                starts = [call[3:] for call in calls if call[:3] == ['systemctl', '--user', 'start']]
+                starts = [call[3:] for call in calls if call[:2] == ['systemctl', '--user'] and call[2] in ['start', 'restart'] and call[3:] != ['mariadb']]
                 self.assertTrue(all(starts))
-                self.assertEqual([unit for group in starts[1:] for unit in group], active)
+                self.assertEqual([unit for group in starts for unit in group], active)
                 self.assertTrue(list(directory.glob('upgrade-backups/*/succeeded')))
 
 

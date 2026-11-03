@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+"""Whether the running reports API started after its generated configuration."""
+from pathlib import Path
+import subprocess
+import sys
+
+
+def config_is_current():
+    try:
+        state, started_ns = subprocess.check_output(
+            ['podman', 'inspect', 'reports-api', '--format', '{{.State.Status}} {{.State.StartedAt.UnixNano}}'],
+            text=True, stderr=subprocess.DEVNULL,
+        ).split()
+        if state != 'running':
+            return False
+        volume = subprocess.check_output(
+            ['podman', 'volume', 'inspect', 'reports_config', '--format', '{{.Mountpoint}}'],
+            text=True, stderr=subprocess.DEVNULL,
+        ).strip()
+        modified_ns = (Path(volume) / 'api/user_authorizations.json').stat().st_mtime_ns
+        # Keep ambiguous near-simultaneous writes on the safe side of the check.
+        return modified_ns < int(started_ns) - 1_000_000
+    except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError):
+        return False
+
+
+if __name__ == '__main__':
+    sys.exit(0 if config_is_current() else 1)

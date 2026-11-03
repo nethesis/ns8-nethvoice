@@ -41,7 +41,7 @@ ExecStart=/usr/bin/podman run \
 	--port ${NETHVOICE_MARIADB_PORT}
 
 # Wait till db is initialized
-ExecStartPost=podman exec mariadb bash -c "while ! mariadb -u${AMPDBUSER} -p${AMPDBPASS} -h127.0.0.1 -P${NETHVOICE_MARIADB_PORT} asterisk -e 'SHOW TABLES' 2> /dev/null > /dev/null; do sleep 5; done"
+ExecStartPost=podman exec mariadb bash -c "while ! mariadb -u${AMPDBUSER} -p${AMPDBPASS} -h127.0.0.1 -P${NETHVOICE_MARIADB_PORT} asterisk -e 'SHOW TABLES' 2> /dev/null > /dev/null; do sleep 1; done"
 
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/mariadb.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/mariadb.ctr-id

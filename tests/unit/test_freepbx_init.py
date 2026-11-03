@@ -21,7 +21,10 @@ class FreepbxInitTest(unittest.TestCase):
 echo "$(basename "$0") $*" >> "$TEST_CALLS"
 case "$(basename "$0")" in
 asterisk) echo 'Asterisk 22';;
-fwconsole) if [[ "$*" == 'ma list' ]]; then echo '| core | 17.0 | Disabled |'; fi;;
+fwconsole) if [[ "$*" == 'ma list' ]]; then
+    echo '| core | 17.0 | Disabled |'
+    if [[ -n "${TEST_HOTEL_STATUS:-}" ]]; then echo "| nethhotel | 3.6 | $TEST_HOTEL_STATUS |"; fi
+fi;;
 su) exit "${TEST_RELOAD_EXIT:-0}";;
 php) cat >/dev/null;;
 esac
@@ -82,6 +85,18 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
         self.assertIn('phonesRpsResetHelper', calls)
         self.assertIn('slow_database_updates.php', calls)
         self.assertTrue(self.ready.exists())
+
+    def test_hotel_is_only_installed_when_enabled(self):
+        for enabled, status in [('True', 'Disabled'), ('True', 'Enabled'), ('True', 'Not Installed'),
+                                ('False', 'Enabled'), ('False', 'Disabled'), ('False', 'Not Installed'), ('False', '')]:
+            with self.subTest(enabled=enabled, status=status):
+                self.calls.unlink(missing_ok=True)
+                result, calls = self.run_init(NETHVOICE_HOTEL=enabled, TEST_HOTEL_STATUS=status)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(calls.count('fwconsole moduleadmin install nethhotel\n'),
+                                 int(enabled == 'True' and status in ['Disabled', 'Not Installed']))
+                self.assertEqual(calls.count('fwconsole moduleadmin uninstall nethhotel\n'),
+                                 int(enabled == 'False' and status in ['Enabled', 'Disabled']))
 
 
 if __name__ == '__main__':
