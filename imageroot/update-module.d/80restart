@@ -20,8 +20,15 @@ for container in mariadb freepbx; do
 done
 printf '%s\n' "${active[@]}" > "$backup/active-services"
 if ((${#active[@]})); then restart-services-when-convenient --stop "${active[@]}"; fi
-# Report initialization failure before starting any downstream consumers.
-trap 'echo "Upgrade failed. Consumers remain stopped; recovery data: $backup" >&2' ERR
+# A failed parallel start can leave some units running. Stop them for recovery.
+upgrade_failed() {
+    local status=$?
+    trap - ERR
+    if ((${#active[@]})); then systemctl --user stop "${active[@]}" || true; fi
+    echo "Upgrade failed; recovery data: $backup" >&2
+    exit "$status"
+}
+trap upgrade_failed ERR
 systemctl --user start mariadb
 # Include non-transactional FreePBX tables under a global read lock.
 podman exec mariadb sh -ec 'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; exec mariadb-dump -u root --all-databases --lock-all-tables --routines --events' | gzip > "$backup/databases.sql.gz"
@@ -37,13 +44,24 @@ runagent mysql-update-postprocess --migrate
 # Rewrite saved bindings offline; never generate a v16 dialplan for Asterisk 22.
 runagent prepare-asterisk-config
 systemctl --user restart mariadb
-if [[ " ${active[*]} " == *' freepbx '* ]]; then
-    # ExecStartPost waits for freepbx-ready and fails on freepbx-failed.
-    systemctl --user start freepbx
-fi
+independent=()
+consumers=()
+deferred=()
 for service in "${active[@]}"; do
-    [[ $service == freepbx ]] || systemctl --user start "$service"
+    case "$service" in
+        freepbx|janus|nethcti-ui|satellite-pgsql|satellite-mqtt|reports-redis)
+            independent+=("$service") ;;
+        watcher.path|*.timer|nethvoice-restore-background)
+            deferred+=("$service") ;;
+        *) consumers+=("$service") ;;
+    esac
 done
+# Each blocking transaction lets systemd parallelize units and report failures.
+# FreePBX ExecStartPost still gates consumers on modules, user sync and reload.
+if ((${#independent[@]})); then systemctl --user start "${independent[@]}"; fi
+if ((${#consumers[@]})); then systemctl --user start "${consumers[@]}"; fi
+# Re-enable file notifications and scheduled work after application startup.
+if ((${#deferred[@]})); then systemctl --user start "${deferred[@]}"; fi
 touch "$backup/succeeded"
 echo "Upgrade recovery snapshot retained in $backup" >&2
 

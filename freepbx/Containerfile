@@ -368,7 +368,10 @@ RUN sh /usr/local/bin/fetch-remote-artifact freepbx-framework-bootstrap-release-
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/queues.conf /etc/asterisk/ && \
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/ucc_restrict.conf /etc/asterisk/ && \
 	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/agi-bin /var/lib/asterisk/ && \
-	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/bin /var/lib/asterisk/
+	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/bin /var/lib/asterisk/ && \
+	chown -R asterisk:asterisk /var/www/html/freepbx/admin && \
+	find /var/www/html/freepbx/admin -type d -exec chmod 0775 {} + && \
+	find /var/www/html/freepbx/admin -type f ! -perm /111 -exec chmod 0664 {} +
 
 # Download other modules
 RUN install_module() { \
@@ -378,7 +381,10 @@ RUN install_module() { \
 		mkdir -p "${module_dir}" && \
 		sh /usr/local/bin/fetch-remote-artifact "${module_archive}" "${module_url}" && \
 		tar xzf "/tmp/${module_archive}" --strip-components=1 -C "${module_dir}" && \
-		rm -f "/tmp/${module_archive}"; \
+		rm -f "/tmp/${module_archive}" && \
+		chown -R asterisk:asterisk "${module_dir}" && \
+		find "${module_dir}" -type d -exec chmod 0775 {} + && \
+		find "${module_dir}" -type f ! -perm /111 -exec chmod 0664 {} +; \
 	}; \
 	install_module announcement https://github.com/FreePBX/announcement/archive/refs/tags/release/17.0.2.1.tar.gz && \
 	install_module arimanager https://github.com/FreePBX/arimanager/archive/refs/tags/release/17.0.1.1.tar.gz && \
@@ -439,6 +445,9 @@ COPY pm2/package-lock.json /var/www/html/freepbx/admin/modules/pm2/node/package-
 RUN cd /var/www/html/freepbx/admin/modules/pm2/node && \
 	npm_cache=$(mktemp -d) && \
 	npm ci --omit=dev --no-audit --no-fund --cache "${npm_cache}" && \
+	chown -R asterisk:asterisk . && \
+	find . -type d -exec chmod 0775 {} + && \
+	find . -type f ! -perm /111 -exec chmod 0664 {} + && \
 	rm -rf "${npm_cache}"
 
 # Apply NethVoice compatibility fixes to pinned FreePBX modules.
@@ -449,6 +458,8 @@ RUN for core_patch in /tmp/nethvoice-core-patches/freepbx-core-821*.patch; do \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-bindaddress.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/iaxsettings < /tmp/nethvoice-core-patches/freepbx-iaxsettings-preserve.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/paging < /tmp/nethvoice-core-patches/freepbx-paging-transfers.patch && \
+    patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/framework < /tmp/nethvoice-core-patches/freepbx-framework-chown.patch && \
+    patch --batch --fuzz=0 -p3 -d /var/www/html/freepbx < /tmp/nethvoice-core-patches/freepbx-framework-chown.patch && \
     rm -rf /tmp/nethvoice-core-patches
 
 # PHP 8.x compatibility: harden customcontexts against empty dialpattern array entries
@@ -631,8 +642,13 @@ RUN --mount=type=cache,id=nethvoice-freepbx-composer,target=/var/cache/composer 
 	rm -fr /tmp/wizard
 
 # Compile FreePBX module translation files (.po to .mo)
-# Only compile files in proper i18n/LC_MESSAGES directories, skip vendor/test directories
-RUN find /var/www/html/freepbx/admin -path "*/i18n/*/LC_MESSAGES/*.po" -exec sh -c 'msgfmt -o "${1%.po}.mo" "$1" 2>/dev/null || true' _ {} \;
+# Only compile files in proper i18n/LC_MESSAGES directories, skip vendor/test directories.
+# Normalize remaining overlays without rewriting already-correct downloaded modules.
+# Preserve executable scripts; runtime chown still applies module-specific overrides.
+RUN find /var/www/html/freepbx/admin -path "*/i18n/*/LC_MESSAGES/*.po" -exec sh -c 'msgfmt -o "${1%.po}.mo" "$1" 2>/dev/null || true' _ {} \; && \
+    find /var/www/html/freepbx/admin \( -type f -o -type d \) \( ! -user asterisk -o ! -group asterisk \) -exec chown asterisk:asterisk {} + && \
+    find /var/www/html/freepbx/admin -type d ! -perm 0775 -exec chmod 0775 {} + && \
+    find /var/www/html/freepbx/admin -type f ! -perm /111 ! -perm 0664 -exec chmod 0664 {} +
 
 # enable apache rewrite module
 RUN a2enmod rewrite proxy* headers

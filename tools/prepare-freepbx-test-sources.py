@@ -33,6 +33,7 @@ for module in ('core', 'framework', 'paging', 'iaxsettings'):
     patches = sorted((root / 'freepbx/patches').glob('freepbx-core-821*.patch')) + [root / 'freepbx/patches/freepbx-core-bindaddress.patch'] if module == 'core' else {
         'paging': [root / 'freepbx/patches/freepbx-paging-transfers.patch'],
         'iaxsettings': [root / 'freepbx/patches/freepbx-iaxsettings-preserve.patch'],
+        'framework': [root / 'freepbx/patches/freepbx-framework-chown.patch'],
     }.get(module, [])
     for patch in patches:
         subprocess.run(['patch', '--batch', '--fuzz=0', '-p1', '-d', str(target), '-i', str(patch)], check=True)
