@@ -1,7 +1,6 @@
 --- a/amp_conf/htdocs/admin/libraries/Console/Chown.class.php
 +++ b/amp_conf/htdocs/admin/libraries/Console/Chown.class.php
-@@ -345,14 +345,14 @@
- 			case 'rdir':
+@@ -346,6 +346,6 @@
  				$fileMode = $this->stripExecute($fileMode);
  			case 'execdir':
 -				exec("find ".escapeshellarg($path)." -type d ".$skip." -exec chmod ".escapeshellarg(decoct($directoryMode & ~$umask))." {} +");
@@ -10,8 +9,7 @@
 +				exec("find ".escapeshellarg($path)." -type f ".$skip." ! -perm ".escapeshellarg(decoct($fileMode & ~$umask))." -exec chmod ".escapeshellarg(decoct($fileMode & ~$umask))." {} +");
  			break;
  			default:
- 				throw new \Exception("Unknown mode of ".$mode);
- 			break;
+@@ -354,5 +354,5 @@
  		}
  
 -		exec("find ".escapeshellarg($path)." \( -type f -o -type d \) ".$skip." -exec chown ".escapeshellarg($owner).":".escapeshellarg($group)." {} +");
