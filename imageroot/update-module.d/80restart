@@ -68,6 +68,10 @@ if ((${#independent[@]})); then systemctl --user start "${independent[@]}"; fi
 if ((${#consumers[@]})); then
     # Restart also replaces the UI that was left running during preparation.
     cleanup_services=("${active[@]}")
+    if [[ " ${consumers[*]} " == *" reports-api "* ]]; then
+        # FreePBX exported and notified synchronously; this start fulfils the request.
+        rm -f notify/restart_reports-api
+    fi
     systemctl --user restart "${consumers[@]}"
 fi
 # Re-enable file notifications and scheduled work after application startup.

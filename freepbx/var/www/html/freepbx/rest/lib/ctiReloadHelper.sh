@@ -5,5 +5,3 @@ done
 sleep 2
 
 touch /notify/reload_nethcti-server
-# Mark configuration reloads separately from explicit restart requests.
-printf 'config\n' > /notify/restart_reports-api

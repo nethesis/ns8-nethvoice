@@ -12,12 +12,7 @@
 for file in $(find notify/ -type f); do
     action=$(basename $file | cut -d'_' -f1)
     service=$(basename $file | cut -d'_' -f2)
-    reason=$(cat "$file")
     rm -f $file
-    # Startup can finish before the delayed FreePBX notification arrives.
-    if [[ $action == restart && $service == reports-api && $reason == config ]] && reports-config-is-current; then
-        continue
-    fi
     if [ "$action" = "reload" ]; then
         # Execute reload only if the service is running
         /usr/bin/systemctl --user is-active -q $service || continue
