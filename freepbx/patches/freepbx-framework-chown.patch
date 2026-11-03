@@ -1,6 +1,6 @@
 --- a/amp_conf/htdocs/admin/libraries/Console/Chown.class.php
 +++ b/amp_conf/htdocs/admin/libraries/Console/Chown.class.php
-@@ -345,15 +345,15 @@
+@@ -345,14 +345,14 @@
  			case 'rdir':
  				$fileMode = $this->stripExecute($fileMode);
  			case 'execdir':
@@ -18,4 +18,3 @@
 +		exec("find ".escapeshellarg($path)." \( -type f -o -type d \) ".$skip." \( ! -user ".escapeshellarg($owner)." -o ! -group ".escapeshellarg($group)." \) -exec chown ".escapeshellarg($owner).":".escapeshellarg($group)." {} +");
          return $blacklist;
  	}
- 
