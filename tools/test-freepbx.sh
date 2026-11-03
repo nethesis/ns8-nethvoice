@@ -8,7 +8,6 @@ for test in "$repo_root"/freepbx/tests/*.php; do
         forward_context_test.php|forward_identity_test.php|missing_device_dial_test.php|profile_pickup_test.php|recallonbusy_return_test.php) php "$test" "$sources/core" "$sources/framework" ;;
         unknown_peer_rejection_test.php) php "$test" "$sources/core" ;;
         transfer_profile_test.php) php "$test" "$sources/framework" ;;
-        chown_test.php) php "$test" "$sources/framework" ;;
         *) php "$test" ;;
     esac
 done

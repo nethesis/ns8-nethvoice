@@ -50,23 +50,14 @@ else
 	printf '[general]\nenabled = no\n' > /etc/asterisk/prometheus.conf
 fi
 
-# Keep the managed rules in the main file: FreePBX LoadConfig does not expand includes.
-if [ -f /etc/asterisk/freepbx_chown.conf ]; then
-    sed -i '/^; BEGIN NethVoice managed permissions$/,/^; END NethVoice managed permissions$/d; /^#include nethvoice_chown.conf$/d' /etc/asterisk/freepbx_chown.conf || exit $?
-fi
-cat >> /etc/asterisk/freepbx_chown.conf <<'EOF' || exit $?
-; BEGIN NethVoice managed permissions
-[blacklist]
-; Image-owned applications and framework install sources; keep generated files covered.
-directory = /var/www/html/freepbx/rest
-directory = /var/www/html/freepbx/visualplan
-directory = /var/www/html/freepbx/wizard
-directory = /var/www/html/freepbx/admin/modules/visualplan/htdocs
-directory = /var/www/html/freepbx/admin/modules/framework/amp_conf
+# Preserve the metrics credential permissions on later `fwconsole chown` runs.
+cat > /etc/asterisk/nethvoice_chown.conf <<'EOF'
 [custom]
 file = /etc/asterisk/prometheus.conf,0640,asterisk,asterisk
-; END NethVoice managed permissions
 EOF
+if ! grep -Fxq '#include nethvoice_chown.conf' /etc/asterisk/freepbx_chown.conf 2>/dev/null; then
+    printf '\n#include nethvoice_chown.conf\n' >> /etc/asterisk/freepbx_chown.conf
+fi
 
 # create asterisk.conf
 cat > /etc/asterisk/asterisk.conf <<EOF
@@ -347,6 +338,18 @@ Username: CHANGEME
 Secret: CHANGEME
 Debug : False
 CheckInterval: 20
+EOF
+fi
+
+# create freepbx chown configuration if it doesn't exist or is empty
+if [[ ! -s /etc/asterisk/freepbx_chown.conf ]]; then
+  cat > /etc/asterisk/freepbx_chown.conf <<EOF
+[blacklist]
+directory = /var/www/html/freepbx/rest
+directory = /var/www/html/freepbx/visualplan
+directory = /var/www/html/freepbx/wizard
+directory = /var/www/html/freepbx/admin/modules/visualplan/htdocs
+directory = /var/www/html/freepbx/admin/modules/framework/amp_conf
 EOF
 fi
 

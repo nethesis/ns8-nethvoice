@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class UpgradeTest(unittest.TestCase):
-    def run_upgrade(self, fail='', fail_unit='', active=None):
+    def run_upgrade(self, fail=''):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         directory = Path(temporary.name)
@@ -23,32 +23,18 @@ args = sys.argv[1:]
 call = ' '.join([name, *args])
 with open('calls', 'a') as output: output.write(json.dumps([name, *args])+'\\n')
 if name == 'systemctl' and args[:3] == ['--user', 'is-active', '--quiet']:
-    sys.exit(0 if args[3] in json.loads(os.environ['TEST_ACTIVE']) else 3)
+    sys.exit(0 if args[3] in ['freepbx', 'nethcti-server', 'tancredi'] else 3)
 if name == 'podman' and args[0] == 'exec': print('-- recoverable SQL dump')
 if name == 'podman' and args[0] == 'run': print('configuration archive')
 if name == 'runagent' and args[0] == 'mysql-update-postprocess':
     assert list(Path('upgrade-backups').glob('*/complete')), 'migration before snapshot'
-if name == 'systemctl' and args[:2] == ['--user', 'start'] and 'freepbx' in args[2:]:
-    Path('notify/restart_reports-api').touch()
-if name == 'systemctl' and args[:2] == ['--user', 'restart'] and 'reports-api' in args[2:]:
-    assert Path('notify/restart_reports-api').exists(), 'pending restart request discarded'
-    assert Path('notify/reload_nethcti-server').exists(), 'unrelated notification consumed'
 if call == os.environ.get('TEST_FAIL'): sys.exit(17)
-if name == 'systemctl' and args[0] == '--user' and args[1] in ['start', 'restart'] and os.environ.get('TEST_FAIL_UNIT') in args[2:]:
-    sys.exit(17)
 ''')
         stub.chmod(0o755)
         for command in ['systemctl', 'podman', 'runagent', 'restart-services-when-convenient']:
             (directory / command).symlink_to(stub)
-        (directory / 'notify').mkdir()
-        (directory / 'notify/reload_nethcti-server').touch()
         result = subprocess.run(['bash', str(ROOT / 'imageroot/update-module.d/80restart')], cwd=directory,
                                 env=dict(os.environ, PATH=str(directory)+':'+os.environ['PATH'], TEST_FAIL=fail,
-                                         TEST_FAIL_UNIT=fail_unit,
-                                         TEST_ACTIVE=json.dumps(active if active is not None else [
-                                             'freepbx', 'janus', 'nethcti-ui', 'satellite-pgsql', 'reports-redis',
-                                             'nethcti-server', 'nethcti-middleware', 'tancredi',
-                                             'watcher.path', 'phonebook-update.timer']),
                                          NETHVOICE_FREEPBX_IMAGE='test-freepbx'), capture_output=True, text=True)
         calls = [json.loads(line) for line in (directory / 'calls').read_text().splitlines()]
         return result, calls, directory
@@ -58,67 +44,23 @@ if name == 'systemctl' and args[0] == '--user' and args[1] in ['start', 'restart
         self.assertEqual(result.returncode, 0, result.stderr)
         stop = next(i for i, call in enumerate(calls) if call[:2] == ['restart-services-when-convenient', '--stop'])
         migrate = calls.index(['runagent', 'mysql-update-postprocess', '--migrate'])
-        starts = [call[3:] for call in calls if call[:3] == ['systemctl', '--user', 'start']]
-        self.assertEqual(len(starts), 3)  # MariaDB, independent units, scheduled work.
-        self.assertEqual(set(starts[1]), {'freepbx', 'janus', 'satellite-pgsql', 'reports-redis'})
-        self.assertEqual(set(starts[2]), {'watcher.path', 'phonebook-update.timer'})
-        consumers = next(call for call in calls if call[:3] == ['systemctl', '--user', 'restart'] and 'nethcti-server' in call)
-        self.assertEqual(set(consumers[3:]), {'nethcti-ui', 'nethcti-server', 'nethcti-middleware', 'tancredi'})
-        pbx = next(i for i, call in enumerate(calls) if call[:3] == ['systemctl', '--user', 'start'] and 'freepbx' in call[3:])
-        cti = calls.index(consumers)
+        pbx = calls.index(['systemctl', '--user', 'start', 'freepbx'])
+        cti = calls.index(['systemctl', '--user', 'start', 'nethcti-server'])
         self.assertLess(stop, migrate)
         self.assertLess(migrate, pbx)
         self.assertLess(pbx, cti)
         self.assertTrue(list(directory.glob('upgrade-backups/*/succeeded')))
         self.assertFalse(any('fwconsole' in call for call in calls))
-        self.assertNotIn('nethcti-ui', calls[stop])
-        self.assertFalse(any(call[:3] == ['systemctl', '--user', 'stop'] and 'nethcti-ui' in call for call in calls))
-        self.assertLess(calls.index(['runagent', 'prepare-asterisk-config']), cti)
 
     def test_failed_initialization_or_migration_preserves_snapshot_and_stops_consumers(self):
-        for fail, unit in [('runagent mysql-update-postprocess --migrate', ''), ('', 'freepbx'), ('', 'tancredi'), ('', 'watcher.path')]:
-            with self.subTest(fail=fail, unit=unit):
-                result, calls, directory = self.run_upgrade(fail=fail, fail_unit=unit)
+        for fail in ['systemctl --user start freepbx', 'runagent mysql-update-postprocess --migrate']:
+            with self.subTest(fail=fail):
+                result, calls, directory = self.run_upgrade(fail)
                 self.assertEqual(result.returncode, 17, result.stderr)
-                starts = [call[3:] for call in calls if call[:2] == ['systemctl', '--user'] and call[2] in ['start', 'restart']]
-                if fail or unit == 'freepbx':
-                    self.assertFalse(any('nethcti-server' in group for group in starts))
-                if unit != 'watcher.path':
-                    self.assertFalse(any('watcher.path' in group for group in starts))
-                stopped = calls[-1]
-                self.assertEqual(stopped[:3], ['systemctl', '--user', 'stop'])
-                self.assertIn('freepbx', stopped)
-                self.assertIn('nethcti-server', stopped)
-                self.assertIn('watcher.path', stopped)
-                self.assertEqual('nethcti-ui' in stopped, unit in ['tancredi', 'watcher.path'])
+                self.assertNotIn(['systemctl', '--user', 'start', 'nethcti-server'], calls)
                 self.assertTrue(list(directory.glob('upgrade-backups/*/complete')))
                 self.assertFalse(list(directory.glob('upgrade-backups/*/succeeded')))
                 self.assertIn('recovery data:', result.stderr)
-
-    def test_inactive_services_are_not_requested(self):
-        for active in [[], ['freepbx'], ['freepbx', 'nethcti-server'], ['nethcti-ui']]:
-            with self.subTest(active=active):
-                result, calls, directory = self.run_upgrade(active=active)
-                self.assertEqual(result.returncode, 0, result.stderr)
-                starts = [call[3:] for call in calls if call[:2] == ['systemctl', '--user'] and call[2] in ['start', 'restart'] and call[3:] != ['mariadb']]
-                self.assertTrue(all(starts))
-                self.assertEqual([unit for group in starts for unit in group], active)
-                self.assertTrue(list(directory.glob('upgrade-backups/*/succeeded')))
-
-    def test_reports_start_preserves_pending_restart_for_watcher(self):
-        result, calls, directory = self.run_upgrade(active=['freepbx', 'reports-api', 'reports-ui', 'watcher.path'])
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue((directory / 'notify/restart_reports-api').exists())
-        starts = [call for call in calls if call[:2] == ['systemctl', '--user'] and call[2] in ['start', 'restart']]
-        reports = next(call for call in starts if 'reports-api' in call[3:])
-        watcher = next(call for call in starts if 'watcher.path' in call[3:])
-        self.assertLess(calls.index(reports), calls.index(watcher))
-        self.assertEqual(sum('reports-api' in call[3:] for call in starts), 1)
-
-    def test_inactive_reports_notification_is_preserved(self):
-        result, calls, directory = self.run_upgrade(active=['freepbx', 'watcher.path'])
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue((directory / 'notify/restart_reports-api').exists())
 
 
 if __name__ == '__main__':

@@ -9,13 +9,8 @@ systemctl --user daemon-reload
 # Keep consumers stopped until the new schema AND FreePBX modules are ready.
 services=(watcher.path phonebook-update.timer nethvoice-hotel-alarms.timer nethvoice-calendar-sync.timer nethvoice-restore-background freepbx janus nethcti-server satellite-mqtt satellite-pgsql nethcti-middleware nethcti-ui phonebook reports-api reports-redis reports-ui tancredi satellite)
 active=()
-stop_services=()
 for service in "${services[@]}"; do
-    if systemctl --user is-active --quiet "$service"; then
-        active+=("$service")
-        # The UI does not access the database; keep serving it during preparation.
-        [[ $service == nethcti-ui ]] || stop_services+=("$service")
-    fi
+    if systemctl --user is-active --quiet "$service"; then active+=("$service"); fi
 done
 # Save the running image identities before systemd replaces their containers.
 mkdir -p upgrade-backups
@@ -24,17 +19,9 @@ for container in mariadb freepbx; do
     podman inspect --format '{{.ImageName}} {{.Image}}' "$container" > "$backup/$container-image" 2>/dev/null || true
 done
 printf '%s\n' "${active[@]}" > "$backup/active-services"
-if ((${#stop_services[@]})); then restart-services-when-convenient --stop "${stop_services[@]}"; fi
-cleanup_services=("${stop_services[@]}")
-# A failed parallel start can leave some units running. Stop them for recovery.
-upgrade_failed() {
-    local status=$?
-    trap - ERR
-    if ((${#cleanup_services[@]})); then systemctl --user stop "${cleanup_services[@]}" || true; fi
-    echo "Upgrade failed; recovery data: $backup" >&2
-    exit "$status"
-}
-trap upgrade_failed ERR
+if ((${#active[@]})); then restart-services-when-convenient --stop "${active[@]}"; fi
+# Report initialization failure before starting any downstream consumers.
+trap 'echo "Upgrade failed. Consumers remain stopped; recovery data: $backup" >&2' ERR
 systemctl --user start mariadb
 # Include non-transactional FreePBX tables under a global read lock.
 podman exec mariadb sh -ec 'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; exec mariadb-dump -u root --all-databases --lock-all-tables --routines --events' | gzip > "$backup/databases.sql.gz"
@@ -50,28 +37,13 @@ runagent mysql-update-postprocess --migrate
 # Rewrite saved bindings offline; never generate a v16 dialplan for Asterisk 22.
 runagent prepare-asterisk-config
 systemctl --user restart mariadb
-independent=()
-consumers=()
-deferred=()
-for service in "${active[@]}"; do
-    case "$service" in
-        freepbx|janus|satellite-pgsql|satellite-mqtt|reports-redis)
-            independent+=("$service") ;;
-        watcher.path|*.timer|nethvoice-restore-background)
-            deferred+=("$service") ;;
-        *) consumers+=("$service") ;;
-    esac
-done
-# Each blocking transaction lets systemd parallelize units and report failures.
-# FreePBX ExecStartPost still gates consumers on modules, user sync and reload.
-if ((${#independent[@]})); then systemctl --user start "${independent[@]}"; fi
-if ((${#consumers[@]})); then
-    # Restart also replaces the UI that was left running during preparation.
-    cleanup_services=("${active[@]}")
-    systemctl --user restart "${consumers[@]}"
+if [[ " ${active[*]} " == *' freepbx '* ]]; then
+    # ExecStartPost waits for freepbx-ready and fails on freepbx-failed.
+    systemctl --user start freepbx
 fi
-# Re-enable file notifications and scheduled work after application startup.
-if ((${#deferred[@]})); then systemctl --user start "${deferred[@]}"; fi
+for service in "${active[@]}"; do
+    [[ $service == freepbx ]] || systemctl --user start "$service"
+done
 touch "$backup/succeeded"
 echo "Upgrade recovery snapshot retained in $backup" >&2
 

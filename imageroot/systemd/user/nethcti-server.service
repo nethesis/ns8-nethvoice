@@ -51,8 +51,6 @@ ExecStart=/usr/bin/podman run \
     --tz=${TIMEZONE} \
     ${NETHVOICE_CTI_SERVER_IMAGE}
 
-# The CLI socket is created after application initialization.
-ExecStartPost=/usr/bin/podman exec nethcti-server timeout 60 sh -c "until test -S /run/nethvoice/nethcti.sock; do sleep 1; done"
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/nethcti-server.ctr-id
 ExecReload=/usr/bin/podman exec nethcti-server node /app/nethcti-cli reload
 PIDFile=%t/nethcti-server.pid
