@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { NeCard, NeHeading } from "@nethesis/vue-components";
-defineProps<{ title: string; description?: string }>();
+import { NeHeading } from "@nethesis/vue-components";
+defineProps<{ title: string; description?: string; divider?: boolean }>();
 </script>
 <template>
-  <section class="grid grid-cols-1 gap-x-8 gap-y-4 lg:grid-cols-3">
+  <section
+    :class="['flex flex-col gap-6', divider && 'border-divider border-t pt-10']"
+  >
     <div>
-      <NeHeading tag="h6">{{ title }}</NeHeading>
-      <p v-if="description" class="text-muted mt-1">
+      <NeHeading tag="h5">{{ title }}</NeHeading>
+      <p v-if="description" class="text-muted mt-1 max-w-2xl">
         {{ description }}
       </p>
     </div>
-    <NeCard class="min-w-0 overflow-x-clip! overflow-y-visible! lg:col-span-2"
-      ><slot
-    /></NeCard>
+    <slot />
   </section>
 </template>

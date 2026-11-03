@@ -535,9 +535,7 @@ function refresh() {
             class="flex flex-col gap-1"
           >
             <dt class="text-tertiary-neutral text-sm">{{ item.label }}</dt>
-            <dd
-              class="text-primary-neutral flex items-center gap-2 font-medium"
-            >
+            <dd class="text-primary-neutral flex items-center gap-2">
               <StatusBadge
                 v-if="item.status"
                 :status="item.status"
@@ -601,10 +599,9 @@ function refresh() {
           <NeTableBody>
             <NeTableRow v-for="day in days" :key="day.day">
               <NeTableCell :data-label="t('monitoring.date')"
-                ><span
-                  class="text-primary-neutral font-medium whitespace-nowrap"
-                  >{{ day.label }}</span
-                ></NeTableCell
+                ><span class="text-primary-neutral whitespace-nowrap">{{
+                  day.label
+                }}</span></NeTableCell
               >
               <NeTableCell :data-label="t('monitoring.calls')">{{
                 day.row.total
@@ -720,7 +717,7 @@ function refresh() {
             :key="run.run_id"
           >
             <NeTableCell :data-label="t('agentColumn')"
-              ><span class="text-primary-neutral font-medium">{{
+              ><span class="text-primary-neutral">{{
                 run.agent_name || run.agent_id
               }}</span></NeTableCell
             >

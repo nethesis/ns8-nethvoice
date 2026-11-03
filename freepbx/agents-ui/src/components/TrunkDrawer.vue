@@ -11,6 +11,7 @@ import {
   NeTooltip,
 } from "@nethesis/vue-components";
 import { useI18n } from "vue-i18n";
+import FieldCombobox from "./FieldCombobox.vue";
 import { request, queryClient } from "../api";
 import { useTask } from "../composables/useTask";
 import { useUi } from "../stores/ui";
@@ -173,13 +174,13 @@ function close() {
     @close="close"
   >
     <form class="flex flex-col gap-6" novalidate @submit.prevent="save">
-      <NeRadioSelection
-        v-model="provider"
+      <FieldCombobox
+        :model-value="provider"
         :label="t('provider')"
-        name="voiceProvider"
         :options="providers"
         :disabled="editing"
-        :description="editing ? t('trunkForm.providerLocked') : ''"
+        :helper-text="editing ? t('trunkForm.providerLocked') : ''"
+        @update:model-value="provider = $event || provider"
       />
       <NeInlineNotification
         v-if="form.provider === 'cleverai'"

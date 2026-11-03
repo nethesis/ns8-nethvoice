@@ -248,7 +248,7 @@ const partial = computed(
       >
         <div v-for="item in summary" :key="item.id" class="flex flex-col gap-1">
           <dt class="text-tertiary-neutral text-sm">{{ item.label }}</dt>
-          <dd class="text-primary-neutral font-medium wrap-break-word">
+          <dd class="text-primary-neutral wrap-break-word">
             <RouterLink
               v-if="item.id === 'agent'"
               :to="'/agents/' + run.agent_id"
@@ -343,7 +343,7 @@ const partial = computed(
                   </button>
                 </NeTableCell>
                 <NeTableCell :data-label="t('monitoring.phase')">
-                  <p class="text-primary-neutral font-medium">
+                  <p class="text-primary-neutral">
                     {{ name(phase.event) }}
                   </p>
                   <p
