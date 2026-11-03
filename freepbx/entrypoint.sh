@@ -50,14 +50,17 @@ else
 	printf '[general]\nenabled = no\n' > /etc/asterisk/prometheus.conf
 fi
 
-# Preserve the metrics credential permissions on later `fwconsole chown` runs.
-cat > /etc/asterisk/nethvoice_chown.conf <<'EOF'
+# Keep image-owned applications and install sources out of runtime permission repair.
+cat > /etc/asterisk/freepbx_chown.conf <<'EOF' || exit $?
+[blacklist]
+directory = /var/www/html/freepbx/rest
+directory = /var/www/html/freepbx/visualplan
+directory = /var/www/html/freepbx/wizard
+directory = /var/www/html/freepbx/admin/modules/visualplan/htdocs
+directory = /var/www/html/freepbx/admin/modules/framework/amp_conf
 [custom]
 file = /etc/asterisk/prometheus.conf,0640,asterisk,asterisk
 EOF
-if ! grep -Fxq '#include nethvoice_chown.conf' /etc/asterisk/freepbx_chown.conf 2>/dev/null; then
-    printf '\n#include nethvoice_chown.conf\n' >> /etc/asterisk/freepbx_chown.conf
-fi
 
 # create asterisk.conf
 cat > /etc/asterisk/asterisk.conf <<EOF
@@ -338,18 +341,6 @@ Username: CHANGEME
 Secret: CHANGEME
 Debug : False
 CheckInterval: 20
-EOF
-fi
-
-# create freepbx chown configuration if it doesn't exist or is empty
-if [[ ! -s /etc/asterisk/freepbx_chown.conf ]]; then
-  cat > /etc/asterisk/freepbx_chown.conf <<EOF
-[blacklist]
-directory = /var/www/html/freepbx/rest
-directory = /var/www/html/freepbx/visualplan
-directory = /var/www/html/freepbx/wizard
-directory = /var/www/html/freepbx/admin/modules/visualplan/htdocs
-directory = /var/www/html/freepbx/admin/modules/framework/amp_conf
 EOF
 fi
 
