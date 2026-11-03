@@ -73,6 +73,12 @@ func (s *Store) SetExtLink(room, link string, expires int64) error {
 	return err
 }
 
+// SetExtOwner: who manages the link and the guests, when the room changed hands.
+func (s *Store) SetExtOwner(room, owner string) error {
+	_, err := s.db.Exec(`UPDATE ext_rooms SET owner = ? WHERE room = ?`, owner, room)
+	return err
+}
+
 func (s *Store) RevokeExtLink(room string) error {
 	_, err := s.db.Exec(`UPDATE ext_rooms SET revoked = 1 WHERE room = ?`, room)
 	return err
@@ -122,5 +128,14 @@ func (s *Store) Guests(room string) ([]Guest, error) {
 
 func (s *Store) RemoveGuest(id string) error {
 	_, err := s.db.Exec(`UPDATE ext_guests SET removed = 1 WHERE id = ?`, id)
+	return err
+}
+
+// DeleteExtRoom: a room destroyed since takes its link and its guests along.
+func (s *Store) DeleteExtRoom(room string) error {
+	_, err := s.db.Exec(`DELETE FROM ext_guests WHERE room = ?`, room)
+	if err == nil {
+		_, err = s.db.Exec(`DELETE FROM ext_rooms WHERE room = ?`, room)
+	}
 	return err
 }

@@ -84,8 +84,8 @@ func TestWindowSweep(t *testing.T) {
 }
 
 func TestGuestFileOK(t *testing.T) {
-	ok := [][2]string{{"photo.jpg", "image/jpeg"}, {"note.m4a", "audio/mp4"}, {"doc.pdf", "application/pdf"}, {"a.txt", "text/plain"}}
-	bad := [][2]string{{"x.html", "text/plain"}, {"x.png", "text/html"}, {"x.svg", "image/svg+xml"}, {"x.SVG", ""}, {"x.js", "application/octet-stream"}, {"x", "application/xhtml+xml"}}
+	ok := [][2]string{{"photo.jpg", "image/jpeg"}, {"note.m4a", "audio/mp4"}, {"doc.pdf", "application/pdf"}, {"a.txt", "text/plain"}, {"voice-1.webm", "audio/webm"}, {"image.PNG", "image/png"}, {"offer.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}}
+	bad := [][2]string{{"x.html", "text/plain"}, {"x.png", "text/html"}, {"x.svg", "image/svg+xml"}, {"x.SVG", ""}, {"x.js", "application/octet-stream"}, {"x", "application/xhtml+xml"}, {"setup.exe", "application/octet-stream"}, {"x.hta", ""}, {"x.ps1", "text/plain"}, {"x.lnk", ""}, {"x.docm", ""}, {"x.zip", "application/zip"}, {"x.iso", ""}, {"x.pdf.exe", ""}, {"noext", "text/plain"}}
 	for _, c := range ok {
 		if !guestFileOK(c[0], c[1]) {
 			t.Errorf("%v refused", c)
