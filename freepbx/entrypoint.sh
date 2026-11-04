@@ -58,6 +58,10 @@ directory = /var/www/html/freepbx/visualplan
 directory = /var/www/html/freepbx/wizard
 directory = /var/www/html/freepbx/admin/modules/visualplan/htdocs
 directory = /var/www/html/freepbx/admin/modules/framework/amp_conf
+EOF
+
+# Keep NethVoice-managed rules separate from the FreePBX exclusions.
+cat > /etc/asterisk/nethvoice_chown.conf <<'EOF' || exit $?
 [custom]
 rdir = /var/www/html/freepbx/admin/assets,0775,asterisk,asterisk
 rdir = /var/www/html/freepbx/admin/modules/pm2/node/logs,0775,asterisk,asterisk
@@ -65,6 +69,8 @@ rdir = /var/spool/asterisk,0775,asterisk,asterisk
 rdir = /var/log/asterisk,0775,asterisk,asterisk
 file = /etc/asterisk/prometheus.conf,0640,asterisk,asterisk
 EOF
+# FreePBX's loader does not expand #include directives.
+cat /etc/asterisk/nethvoice_chown.conf >> /etc/asterisk/freepbx_chown.conf || exit $?
 
 # create asterisk.conf
 cat > /etc/asterisk/asterisk.conf <<EOF
