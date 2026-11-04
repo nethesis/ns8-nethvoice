@@ -107,11 +107,11 @@ fwconsole ma list | grep '^| ' | grep -v '^| Module'| awk '{print $2,$6}' > "$mo
 
 php /apply-instance-bindings.php --save-transports || exit $?
 
-# Bundled files already have image permissions; repair runtime paths once below.
+# Root installers create group-writable files in the image's setgid asset directories.
 for module in "${modules_to_install[@]}"; do
     if ! test -s "$module_status" || grep -q "$module " "$module_status" && ! grep -q "$module Enabled" "$module_status" ; then
         echo Installing module "$module"
-        fwconsole moduleadmin --skipchown install "$module" || exit $?
+        (umask 0002; fwconsole moduleadmin --skipchown install "$module") || exit $?
     fi
 done
 
@@ -121,23 +121,14 @@ for module_file in $(ls /freepbx_custom_modules); do
 	mkdir -p /var/www/html/freepbx/admin/modules/"${module}"
 	tar xzpf /freepbx_custom_modules/"${module_file}" --strip-component=1 -C /var/www/html/freepbx/admin/modules/${module}
 	echo Installing custom module "$module"
-    fwconsole moduleadmin install "$module" || exit $?
+    (umask 0002; fwconsole moduleadmin install "$module") || exit $?
 done
 
 # Remove obsolete modules if required
 for module in "${obsolete_modules[@]}"; do
     if grep -q "$module" "$module_status" ; then
         echo Removing obsolete module "$module"
-        fwconsole moduleadmin uninstall "$module" &>/dev/null || true # ignore errors, we know module files are missing
-    fi
-done
-
-# Module installation creates these caches, including directories absent in the image.
-for cache in /var/www/html/freepbx/admin/modules/*/assets/less/cache \
-    /var/www/html/freepbx/admin/modules/*/assets/less/*/cache \
-    /var/www/html/freepbx/admin/modules/*/ucp/assets/less/cache; do
-    if [[ -d "$cache" ]]; then
-        printf 'rdir = %s,0775,asterisk,asterisk\n' "$cache" >> /etc/asterisk/freepbx_chown.conf || exit $?
+        (umask 0002; fwconsole moduleadmin uninstall "$module") &>/dev/null || true # ignore errors, we know module files are missing
     fi
 done
 
