@@ -137,8 +137,7 @@ for cache in /var/www/html/freepbx/admin/modules/*/assets/less/cache \
     /var/www/html/freepbx/admin/modules/*/assets/less/*/cache \
     /var/www/html/freepbx/admin/modules/*/ucp/assets/less/cache; do
     if [[ -d "$cache" ]]; then
-        printf 'rdir = %s,0775,asterisk,asterisk\n' "$cache" | tee -a \
-            /etc/asterisk/nethvoice_chown.conf /etc/asterisk/freepbx_chown.conf > /dev/null || exit $?
+        printf 'rdir = %s,0775,asterisk,asterisk\n' "$cache" >> /etc/asterisk/freepbx_chown.conf || exit $?
     fi
 done
 
