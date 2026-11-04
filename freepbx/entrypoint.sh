@@ -59,6 +59,10 @@ directory = /var/www/html/freepbx/wizard
 directory = /var/www/html/freepbx/admin/modules/visualplan/htdocs
 directory = /var/www/html/freepbx/admin/modules/framework/amp_conf
 [custom]
+rdir = /var/www/html/freepbx/admin/assets,0775,asterisk,asterisk
+rdir = /var/www/html/freepbx/admin/modules/pm2/node/logs,0775,asterisk,asterisk
+rdir = /var/spool/asterisk,0775,asterisk,asterisk
+rdir = /var/log/asterisk,0775,asterisk,asterisk
 file = /etc/asterisk/prometheus.conf,0640,asterisk,asterisk
 EOF
 
@@ -137,7 +141,6 @@ sed -i '/^; Hide Asterisk logfile$/N;/\n\[logfiles\]$/N;/\nremove=Yes$/d' /etc/a
 install -d -o asterisk -g asterisk -m 0755 /var/log/asterisk /var/log/apache2
 
 chown -c asterisk:asterisk /etc/asterisk/*.conf
-chown -R asterisk:asterisk /var/www/html/freepbx/admin/modules/pm2/node
 
 # Configure ODBC for asteriskcdrdb
 cat > /etc/odbc.ini <<EOF

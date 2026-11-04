@@ -107,11 +107,11 @@ fwconsole ma list | grep '^| ' | grep -v '^| Module'| awk '{print $2,$6}' > "$mo
 
 php /apply-instance-bindings.php --save-transports || exit $?
 
-# Install required modules
+# Bundled files already have image permissions; repair runtime paths once below.
 for module in "${modules_to_install[@]}"; do
     if ! test -s "$module_status" || grep -q "$module " "$module_status" && ! grep -q "$module Enabled" "$module_status" ; then
         echo Installing module "$module"
-        fwconsole moduleadmin install "$module" || exit $?
+        fwconsole moduleadmin --skipchown install "$module" || exit $?
     fi
 done
 
@@ -132,8 +132,17 @@ for module in "${obsolete_modules[@]}"; do
     fi
 done
 
-# Fix permissions
-ionice -c2 -n7 nice -n 10 fwconsole chown
+# Module installation creates these caches, including directories absent in the image.
+for cache in /var/www/html/freepbx/admin/modules/*/assets/less/cache \
+    /var/www/html/freepbx/admin/modules/*/assets/less/*/cache \
+    /var/www/html/freepbx/admin/modules/*/ucp/assets/less/cache; do
+    if [[ -d "$cache" ]]; then
+        printf 'rdir = %s,0775,asterisk,asterisk\n' "$cache" >> /etc/asterisk/freepbx_chown.conf || exit $?
+    fi
+done
+
+# Apply registered runtime rules without scanning the entire web tree.
+ionice -c2 -n7 nice -n 10 fwconsole chown --module=framework
 
 # Disable signature check
 php -r 'include_once "/etc/freepbx_db.conf"; $db->query("UPDATE freepbx_settings SET value = 0 WHERE keyword = \"SIGNATURECHECK\"");'

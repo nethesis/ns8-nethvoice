@@ -360,7 +360,7 @@ RUN mkdir -p \
 RUN sh /usr/local/bin/fetch-remote-artifact freepbx-framework-bootstrap-release-17.0.33.2.tar.gz https://github.com/FreePBX/framework/archive/refs/tags/release/17.0.33.2.tar.gz && \
 	tar xzf /tmp/freepbx-framework-bootstrap-release-17.0.33.2.tar.gz --strip-components=1 -C /var/www/html/freepbx/admin/modules/framework && \
 	rm -f /tmp/freepbx-framework-bootstrap-release-17.0.33.2.tar.gz && \
-	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/htdocs/* /var/www/html/freepbx/ && \
+	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/htdocs/. /var/www/html/freepbx/ && \
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/enum.conf /etc/asterisk/ && \
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/musiconhold.conf /etc/asterisk/ && \
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/phpagi.conf /etc/asterisk/ && \
@@ -369,9 +369,9 @@ RUN sh /usr/local/bin/fetch-remote-artifact freepbx-framework-bootstrap-release-
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/ucc_restrict.conf /etc/asterisk/ && \
 	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/agi-bin /var/lib/asterisk/ && \
 	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/bin /var/lib/asterisk/ && \
-	chown -R asterisk:asterisk /var/www/html/freepbx/admin && \
-	find /var/www/html/freepbx/admin -type d -exec chmod 0775 {} + && \
-	find /var/www/html/freepbx/admin -type f ! -perm /111 -exec chmod 0664 {} +
+	chown -R asterisk:asterisk /var/www/html/freepbx && \
+	find /var/www/html/freepbx -type d -exec chmod 0755 {} + && \
+	find /var/www/html/freepbx -type f ! -perm /111 -exec chmod 0644 {} +
 
 # Download other modules
 RUN install_module() { \
@@ -383,8 +383,8 @@ RUN install_module() { \
 		tar xzf "/tmp/${module_archive}" --strip-components=1 -C "${module_dir}" && \
 		rm -f "/tmp/${module_archive}" && \
 		chown -R asterisk:asterisk "${module_dir}" && \
-		find "${module_dir}" -type d -exec chmod 0775 {} + && \
-		find "${module_dir}" -type f ! -perm /111 -exec chmod 0664 {} +; \
+		find "${module_dir}" -type d -exec chmod 0755 {} + && \
+		find "${module_dir}" -type f ! -perm /111 -exec chmod 0644 {} +; \
 	}; \
 	install_module announcement https://github.com/FreePBX/announcement/archive/refs/tags/release/17.0.2.1.tar.gz && \
 	install_module arimanager https://github.com/FreePBX/arimanager/archive/refs/tags/release/17.0.1.1.tar.gz && \
@@ -446,8 +446,8 @@ RUN cd /var/www/html/freepbx/admin/modules/pm2/node && \
 	npm_cache=$(mktemp -d) && \
 	npm ci --omit=dev --no-audit --no-fund --cache "${npm_cache}" && \
 	chown -R asterisk:asterisk . && \
-	find . -type d -exec chmod 0775 {} + && \
-	find . -type f ! -perm /111 -exec chmod 0664 {} + && \
+	find . -type d -exec chmod 0755 {} + && \
+	find . -type f ! -perm /111 -exec chmod 0644 {} + && \
 	rm -rf "${npm_cache}"
 
 # Apply NethVoice compatibility fixes to pinned FreePBX modules.
@@ -641,12 +641,25 @@ RUN --mount=type=cache,id=nethvoice-freepbx-composer,target=/var/cache/composer 
 
 # Compile FreePBX module translation files (.po to .mo)
 # Only compile files in proper i18n/LC_MESSAGES directories, skip vendor/test directories.
-# Normalize remaining overlays without rewriting already-correct downloaded modules.
-# Preserve executable scripts; runtime chown still applies module-specific overrides.
+# Match moduleadmin permissions so installation does not undo the image defaults.
 RUN find /var/www/html/freepbx/admin -path "*/i18n/*/LC_MESSAGES/*.po" -exec sh -c 'msgfmt -o "${1%.po}.mo" "$1" 2>/dev/null || true' _ {} \; && \
-    find /var/www/html/freepbx/admin \( -type f -o -type d \) \( ! -user asterisk -o ! -group asterisk \) -exec chown asterisk:asterisk {} + && \
-    find /var/www/html/freepbx/admin -type d ! -perm 0775 -exec chmod 0775 {} + && \
-    find /var/www/html/freepbx/admin -type f ! -perm /111 ! -perm 0664 -exec chmod 0664 {} +
+    install -d -o asterisk -g asterisk -m 0755 /var/www/html/freepbx/admin/libraries/BMO/signatures && \
+    install -o asterisk -g asterisk -m 0644 /dev/null /var/lib/asterisk/.npmrc && \
+    touch /var/www/html/freepbx/rest/config.inc.php /var/www/html/freepbx/wizard/scripts/custom.js && \
+    find /var/www/html/freepbx \( -type f -o -type d \) \( ! -user asterisk -o ! -group asterisk \) -exec chown asterisk:asterisk {} + && \
+    find /var/www/html/freepbx -type d ! -perm 0755 -exec chmod 0755 {} + && \
+    find /var/www/html/freepbx -type f -perm /111 ! -perm 0755 -exec chmod 0755 {} + && \
+    find /var/www/html/freepbx -type f ! -perm /111 ! -perm 0644 -exec chmod 0644 {} + && \
+    find /var/www/html/freepbx/admin/assets -type d -exec chmod 0775 {} + && \
+    find /var/www/html/freepbx/admin/assets -type f -exec chmod 0664 {} + && \
+    find /var/lib/asterisk \( -type f -o -type d \) \( ! -user asterisk -o ! -group asterisk \) -exec chown asterisk:asterisk {} + && \
+    find /var/lib/asterisk -type d ! -perm 0755 -exec chmod 0755 {} + && \
+    find /var/lib/asterisk -type f ! -perm 0644 -exec chmod 0644 {} + && \
+    find /var/lib/asterisk/bin /var/lib/asterisk/agi-bin \( -type f -o -type d \) -exec chmod 0775 {} + && \
+    find /var/lib/asterisk/.gnupg -type d -exec chmod 0775 {} + && \
+    find /var/lib/asterisk/.gnupg -type f -exec chmod 0664 {} + && \
+    chown root:root /var/lib/asterisk/bin/fwconsole && \
+    chmod 0755 /var/lib/asterisk/bin/fwconsole
 
 # enable apache rewrite module
 RUN a2enmod rewrite proxy* headers
