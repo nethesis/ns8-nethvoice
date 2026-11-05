@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	github.com/SherClockHolmes/webpush-go v1.4.0
+	golang.org/x/text v0.43.0
 	mellium.im/sasl v0.3.2
 	mellium.im/xmlstream v0.15.4
 	mellium.im/xmpp v0.23.0
@@ -22,7 +23,6 @@ require (
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
-	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/tools v0.52.0 // indirect
 	mellium.im/reader v0.1.0 // indirect
 	modernc.org/libc v1.79.0 // indirect

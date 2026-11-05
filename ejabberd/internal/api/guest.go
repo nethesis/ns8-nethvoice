@@ -23,23 +23,27 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"golang.org/x/text/unicode/norm"
+
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/address"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/cti"
+	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/logx"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/store"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/svcauth"
 	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/xmppc"
 )
 
 const (
-	GuestPrefix   = "g~"   // guest accounts: no chat username has a ~ (chat-extauth refuses it)
-	ExtRoomPrefix = "ext-" // rooms with guests: clients badge them
-	GuestNodePfx  = "guest:"
-	guestTTL      = 30 * 24 * time.Hour
-	guestWait     = 25 * time.Second // a long poll with nothing new returns after this
-	guestPolls    = 3                // long polls open at once per guest
-	guestCalls    = 120              // page calls per guest per minute: a long poll is ~2
-	maxGuests     = 10               // guests in a room at once
-	joinsPerMin   = 10               // joins per client address per minute
+	GuestPrefix      = "g~"   // guest accounts: no chat username has a ~ (chat-extauth refuses it)
+	ExtRoomPrefix    = "ext-" // rooms with guests: clients badge them
+	ManualRoomPrefix = "g-"   // groups operators make by hand: the only ones they may open to guests
+	GuestNodePfx     = "guest:"
+	guestTTL         = 30 * 24 * time.Hour
+	guestWait        = 25 * time.Second // a long poll with nothing new returns after this
+	guestPolls       = 3                // long polls open at once per guest
+	guestCalls       = 120              // page calls per guest per minute: a long poll is ~2
+	maxGuests        = 10               // guests in a room at once
+	joinsPerMin      = 10               // joins per client address per minute
 )
 
 // IsGuest tells a guest account (local part or bare JID) from an operator.
@@ -141,12 +145,42 @@ func (s *Server) operatorNamed(name string) bool {
 			maps.Copy(names, n)
 		}
 	}
+	want := skeleton(name)
+	if want == "" {
+		return false // only signs or emoji: nobody's name
+	}
 	for u, n := range names {
-		if strings.EqualFold(u, name) || strings.EqualFold(strings.Join(strings.Fields(n), " "), name) {
+		if skeleton(u) == want || skeleton(n) == want {
 			return true
 		}
 	}
 	return false
+}
+
+// lookalikes: letters of other scripts and signs that read as Latin ones.
+var lookalikes = strings.NewReplacer(
+	"а", "a", "е", "e", "о", "o", "р", "p", "с", "c", "у", "y", "х", "x", "і", "i", "ј", "j", "ѕ", "s", "ԁ", "d", "ӏ", "i", "һ", "h", "к", "k", "м", "m", "т", "t", "в", "b", "н", "h",
+	"α", "a", "β", "b", "ε", "e", "ι", "i", "κ", "k", "ν", "v", "ο", "o", "ρ", "p", "τ", "t", "υ", "u", "χ", "x", "ω", "w",
+	"0", "o", "1", "i", "3", "e", "4", "a", "5", "s", "7", "t", "l", "i", "|", "i", "rn", "m", "vv", "w",
+)
+
+// skeleton is a name as the eye reads it: no case, accents, spaces or punctuation, look-alikes folded,
+// so "Mario Rossi", "mario.rossi", "Mаrio Rossi." (a Cyrillic a) and "Mario  R0ssi" all come out the same.
+func skeleton(s string) string {
+	var b strings.Builder
+	for _, r := range norm.NFKD.String(strings.ToLower(s)) {
+		if !unicode.Is(unicode.Mn, r) {
+			b.WriteRune(r)
+		}
+	}
+	s = lookalikes.Replace(b.String())
+	b.Reset()
+	for _, r := range s {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // guestName: a display name, without control characters; spaces collapsed.
@@ -176,6 +210,7 @@ func hashToken(token string) string {
 func newToken() string { return randomID() + randomID() } // 192 bits
 
 // createExtRoom: POST /guests {"name"}: a room named name, the operator its owner, and its invite link.
+// With "room", one of the operator's own groups is opened to people outside instead: its members stay.
 func (s *Server) createExtRoom(w http.ResponseWriter, r *http.Request) {
 	user, _, err := s.bearerUser(r)
 	if err != nil {
@@ -184,6 +219,7 @@ func (s *Server) createExtRoom(w http.ResponseWriter, r *http.Request) {
 	}
 	var req struct {
 		Name string `json:"name"`
+		Room string `json:"room"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		fail(w, http.StatusBadRequest, "bad request")
@@ -200,7 +236,14 @@ func (s *Server) createExtRoom(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	room, token, now := ExtRoomPrefix+randomID()[:12], newToken(), time.Now()
+	if req.Room != "" {
+		room = req.Room
+	}
 	ext := store.ExtRoom{Room: room, Title: title, Owner: user, Link: hashToken(token), Created: now.Unix(), Expires: now.Add(guestTTL).Unix()}
+	if req.Room != "" {
+		s.shareGroup(w, r, &ext, token)
+		return
+	}
 	opts := []map[string]string{
 		{"name": "title", "value": title},
 		{"name": "persistent", "value": "true"},
@@ -226,6 +269,85 @@ func (s *Server) createExtRoom(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.extInfo(&ext, user, s.inviteLink(token)))
 }
 
+// shareGroup: a group made by hand (never a CTI group or queue), only by its owner, and only once.
+func (s *Server) shareGroup(w http.ResponseWriter, r *http.Request, ext *store.ExtRoom, token string) {
+	ctx := r.Context()
+	if !strings.HasPrefix(ext.Room, ManualRoomPrefix) || strings.ContainsAny(ext.Room, "@/") {
+		fail(w, http.StatusBadRequest, "not a group of yours")
+		return
+	}
+	e, err := s.Store.ExtRoom(ext.Room)
+	if err != nil || (e != nil && !e.Revoked) {
+		fail(w, http.StatusConflict, "already shared")
+		return
+	}
+	var affs []struct {
+		Affiliation string `json:"affiliation"`
+		JID         string `json:"jid"`
+	}
+	if err := s.ejabberd(ctx, "get_room_affiliations", map[string]string{"room": ext.Room, "service": address.MUC(s.Host)}, &affs); err != nil {
+		fail(w, http.StatusNotFound, "no such group")
+		return
+	}
+	owner := false
+	for _, a := range affs {
+		owner = owner || (a.Affiliation == "owner" && address.Local(a.JID) == ext.Owner)
+	}
+	if !owner {
+		fail(w, http.StatusForbidden, "only the owner shares a group")
+		return
+	}
+	// Made private before: shared again with a new link, as it was.
+	if e != nil {
+		if err := s.Store.SetExtLink(e.Room, ext.Link, ext.Expires); err == nil && e.Owner != ext.Owner {
+			err = s.Store.SetExtOwner(e.Room, ext.Owner)
+		}
+		if err != nil {
+			fail(w, http.StatusInternalServerError, "room not saved")
+			return
+		}
+		e.Link, e.Expires, e.Revoked, e.Owner = ext.Link, ext.Expires, false, ext.Owner
+		writeJSON(w, http.StatusOK, s.extInfo(e, ext.Owner, s.inviteLink(token)))
+		return
+	}
+	if err := s.Store.PutExtRoom(*ext); err != nil {
+		fail(w, http.StatusInternalServerError, "room not saved")
+		return
+	}
+	writeJSON(w, http.StatusOK, s.extInfo(ext, ext.Owner, s.inviteLink(token)))
+}
+
+// listExtRooms: GET /guests: the rooms open to people outside, for clients to mark.
+// A group made private again is left out once nobody from outside is in it.
+func (s *Server) listExtRooms(w http.ResponseWriter, r *http.Request) {
+	if _, _, err := s.bearerUser(r); err != nil {
+		fail(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	ids, err := s.Store.ExtRoomIDs()
+	if err != nil {
+		fail(w, http.StatusInternalServerError, "store")
+		return
+	}
+	rooms := []string{}
+	for _, id := range ids {
+		if e, err := s.Store.ExtRoom(id); err == nil && e != nil && (!e.Revoked || s.hasGuests(id)) {
+			rooms = append(rooms, id)
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"rooms": rooms})
+}
+
+func (s *Server) hasGuests(room string) bool {
+	list, _ := s.Store.Guests(room)
+	for _, g := range list {
+		if !g.Removed {
+			return true
+		}
+	}
+	return false
+}
+
 type guestEntry struct {
 	ID     string `json:"id"`
 	Name   string `json:"name"`
@@ -247,7 +369,8 @@ func (s *Server) extInfo(e *store.ExtRoom, user, link string) map[string]any {
 		"revoked": e.Revoked, "owner": e.Owner == user, "guests": guests}
 }
 
-// extRoomFor finds an external room the caller belongs to; owner: only the one who made it.
+// extRoomFor finds an external room the caller belongs to; owner: only whoever owns the room now. The one
+// who made it may have left the company: the colleague who inherited the group takes the link and the guests.
 func (s *Server) extRoomFor(w http.ResponseWriter, r *http.Request, owner bool) (*store.ExtRoom, string, bool) {
 	user, _, err := s.bearerUser(r)
 	if err != nil {
@@ -260,10 +383,6 @@ func (s *Server) extRoomFor(w http.ResponseWriter, r *http.Request, owner bool) 
 		fail(w, http.StatusNotFound, "not a room with guests")
 		return nil, "", false
 	}
-	if owner && e.Owner != user {
-		fail(w, http.StatusForbidden, "only who made it")
-		return nil, "", false
-	}
 	var affs []struct {
 		Affiliation string `json:"affiliation"`
 		JID         string `json:"jid"`
@@ -273,9 +392,21 @@ func (s *Server) extRoomFor(w http.ResponseWriter, r *http.Request, owner bool) 
 		return nil, "", false
 	}
 	for _, a := range affs {
-		if address.Local(a.JID) == user && a.Affiliation != "none" && a.Affiliation != "outcast" {
-			return e, user, true
+		if address.Local(a.JID) != user || a.Affiliation == "none" || a.Affiliation == "outcast" {
+			continue
 		}
+		if a.Affiliation == "owner" && e.Owner != user {
+			if err := s.Store.SetExtOwner(e.Room, user); err != nil {
+				fail(w, http.StatusInternalServerError, "not saved")
+				return nil, "", false
+			}
+			e.Owner = user
+		}
+		if owner && a.Affiliation != "owner" {
+			fail(w, http.StatusForbidden, "only the owner")
+			return nil, "", false
+		}
+		return e, user, true
 	}
 	fail(w, http.StatusForbidden, "not a member")
 	return nil, "", false
@@ -328,15 +459,36 @@ func (s *Server) removeGuest(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusNotFound, "no such guest")
 		return
 	}
-	if err := s.Store.RemoveGuest(g.ID); err != nil {
+	if err := s.dropGuest(r.Context(), g); err != nil {
 		fail(w, http.StatusInternalServerError, "not removed")
 		return
 	}
-	// No affiliation in a members-only room: ejabberd drops the subscription too.
-	_ = s.ejabberd(r.Context(), "set_room_affiliation", map[string]string{"room": e.Room, "service": address.MUC(s.Host), "user": g.ID, "host": s.Host, "affiliation": "none"}, nil)
-	s.WakeGuest(g.ID)
-	s.tellMembers(r.Context(), e.Room)
 	writeJSON(w, http.StatusOK, s.extInfo(e, user, ""))
+}
+
+// leaveGuest: POST /guest/leave: the guest leaves the room of their own accord; their page stops working.
+func (s *Server) leaveGuest(w http.ResponseWriter, r *http.Request) {
+	g, ok := s.guestFrom(w, r)
+	if !ok {
+		return
+	}
+	if err := s.dropGuest(r.Context(), g); err != nil {
+		fail(w, http.StatusInternalServerError, "not left")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// dropGuest takes a guest out of their room: removed or gone of their own accord, the same.
+func (s *Server) dropGuest(ctx context.Context, g *store.Guest) error {
+	if err := s.Store.RemoveGuest(g.ID); err != nil {
+		return err
+	}
+	// No affiliation in a members-only room: ejabberd drops the subscription too.
+	_ = s.ejabberd(ctx, "set_room_affiliation", map[string]string{"room": g.Room, "service": address.MUC(s.Host), "user": g.ID, "host": s.Host, "affiliation": "none"}, nil)
+	s.WakeGuest(g.ID)
+	s.tellMembers(ctx, g.Room)
+	return nil
 }
 
 // tellMembers: an invitation makes the operators' clients read the room's members again.
@@ -388,6 +540,32 @@ func (s *Server) linkInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"title": e.Title, "room": e.Room, "open": code == 0})
+}
+
+// roomGone: the room was destroyed (its owner deleted the chat): its link and its guests go too.
+func (s *Server) roomGone(ctx context.Context, room string) bool {
+	err := s.ejabberd(ctx, "get_room_affiliations", map[string]string{"room": room, "service": address.MUC(s.Host)}, nil)
+	if err == nil || !roomMissing(err) {
+		return false
+	}
+	if err := s.Store.DeleteExtRoom(room); err != nil {
+		log.Printf("guests: drop %s: %v", room, err)
+		return true
+	}
+	logx.Debugf("guests: %s is gone: link and guests dropped", room)
+	return true
+}
+
+// DropGoneExtRooms: the rooms with guests deleted since the last round.
+func (s *Server) DropGoneExtRooms(ctx context.Context) {
+	rooms, err := s.Store.ExtRoomIDs()
+	if err != nil {
+		log.Printf("guests: %v", err)
+		return
+	}
+	for _, room := range rooms {
+		s.roomGone(ctx, room)
+	}
 }
 
 // joinGuest: POST /guest/join {"link", "name"}: a guest of their own in the link's room; their token back.
@@ -470,6 +648,13 @@ func (s *Server) joinGuest(w http.ResponseWriter, r *http.Request) {
 		_ = s.ejabberd(ctx, "set_room_affiliation", map[string]string{"room": e.Room, "service": address.MUC(s.Host), "user": id, "host": s.Host, "affiliation": "none"}, nil)
 		fail(w, http.StatusBadGateway, "not joined")
 		return
+	}
+	// "X (external) joined" in the chat, in the guest's own name: everyone sees who came in by the link.
+	if ses, err := s.guestSession(ctx, id); err == nil {
+		if err := ses.Notice(ctx, e.Room+"@"+address.MUC(s.Host), "join", id); err != nil {
+			log.Printf("guests: join notice %s: %v", e.Room, err)
+		}
+		ses.Close()
 	}
 	s.tellMembers(ctx, e.Room)
 	writeJSON(w, http.StatusOK, map[string]any{"token": token, "room": e.Room})

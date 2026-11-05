@@ -95,6 +95,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/client/push_token_report", s.pushTokenReport)
 	// People outside the PBX: operators make the room and its link, guests join by it.
 	mux.HandleFunc("POST /guests", s.createExtRoom)
+	mux.HandleFunc("GET /guests", s.listExtRooms)
 	mux.HandleFunc("GET /guests/{room}", s.getExtRoom)
 	mux.HandleFunc("POST /guests/{room}/link", s.newExtLink)
 	mux.HandleFunc("DELETE /guests/{room}", s.revokeExtLink)
@@ -109,6 +110,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /guest/react", s.guestReact)
 	mux.HandleFunc("POST /guest/retract", s.guestRetract)
 	mux.HandleFunc("POST /guest/upload", s.guestUpload)
+	mux.HandleFunc("POST /guest/leave", s.leaveGuest)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	return withCORS(mux)
 }
@@ -704,7 +706,7 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 				sent = append(sent, item)
 			} else {
 				item.Sender = name
-				author := s.displayName(users, m.Nick)
+				author := address.Author(m.Nick, s.displayName(users, m.Nick))
 				if attached {
 					caption := author
 					if !namesOnly(m.Body, fileNames(m.Files), m.Files) {
