@@ -643,11 +643,13 @@ RUN --mount=type=cache,id=nethvoice-freepbx-composer,target=/var/cache/composer 
 # Only compile files in proper i18n/LC_MESSAGES directories, skip vendor/test directories.
 # Match moduleadmin permissions so installation does not undo the image defaults.
 # Shared asset and PM2 log directories inherit the asterisk group for root writers.
+# REST and Wizard code, including root-generated config, retain root ownership.
 RUN find /var/www/html/freepbx/admin -path "*/i18n/*/LC_MESSAGES/*.po" -exec sh -c 'msgfmt -o "${1%.po}.mo" "$1" 2>/dev/null || true' _ {} \; && \
     install -d -o asterisk -g asterisk -m 0755 /var/www/html/freepbx/admin/libraries/BMO/signatures && \
     install -o asterisk -g asterisk -m 0644 /dev/null /var/lib/asterisk/.npmrc && \
     touch /var/www/html/freepbx/rest/config.inc.php /var/www/html/freepbx/wizard/scripts/custom.js && \
-    find /var/www/html/freepbx \( -type f -o -type d \) \( ! -user asterisk -o ! -group asterisk \) -exec chown asterisk:asterisk {} + && \
+    find /var/www/html/freepbx \( -path /var/www/html/freepbx/rest -o -path /var/www/html/freepbx/wizard \) -prune -o \
+        \( -type f -o -type d \) \( ! -user asterisk -o ! -group asterisk \) -exec chown asterisk:asterisk {} + && \
     find /var/www/html/freepbx -type d ! -perm 0755 -exec chmod 0755 {} + && \
     find /var/www/html/freepbx -type f -perm /111 ! -perm 0755 -exec chmod 0755 {} + && \
     find /var/www/html/freepbx -type f ! -perm /111 ! -perm 0644 -exec chmod 0644 {} + && \
