@@ -644,6 +644,7 @@ RUN --mount=type=cache,id=nethvoice-freepbx-composer,target=/var/cache/composer 
 # Match moduleadmin permissions so installation does not undo the image defaults.
 # Shared asset and PM2 log directories inherit the asterisk group for root writers.
 # REST and Wizard code, including root-generated config, retain root ownership.
+# Strip upstream execute bits, then apply FreePBX's executable-directory and module-hook rules.
 RUN find /var/www/html/freepbx/admin -path "*/i18n/*/LC_MESSAGES/*.po" -exec sh -c 'msgfmt -o "${1%.po}.mo" "$1" 2>/dev/null || true' _ {} \; && \
     install -d -o asterisk -g asterisk -m 0755 /var/www/html/freepbx/admin/libraries/BMO/signatures && \
     install -o asterisk -g asterisk -m 0644 /dev/null /var/lib/asterisk/.npmrc && \
@@ -651,8 +652,17 @@ RUN find /var/www/html/freepbx/admin -path "*/i18n/*/LC_MESSAGES/*.po" -exec sh 
     find /var/www/html/freepbx \( -path /var/www/html/freepbx/rest -o -path /var/www/html/freepbx/wizard \) -prune -o \
         \( -type f -o -type d \) \( ! -user asterisk -o ! -group asterisk \) -exec chown asterisk:asterisk {} + && \
     find /var/www/html/freepbx -type d ! -perm 0755 -exec chmod 0755 {} + && \
-    find /var/www/html/freepbx -type f -perm /111 ! -perm 0755 -exec chmod 0755 {} + && \
-    find /var/www/html/freepbx -type f ! -perm /111 ! -perm 0644 -exec chmod 0644 {} + && \
+    find /var/www/html/freepbx \( -path /var/www/html/freepbx/rest -o -path /var/www/html/freepbx/wizard \) -prune -o \
+        -type f ! -perm 0644 -exec chmod 0644 {} + && \
+    for executable_dir in /var/www/html/freepbx/admin/modules/*/bin \
+        /var/www/html/freepbx/admin/modules/*/hooks /var/www/html/freepbx/admin/modules/*/agi-bin \
+        /var/www/html/freepbx/admin/modules/framework/amp_conf/bin \
+        /var/www/html/freepbx/admin/modules/framework/amp_conf/agi-bin \
+        /var/www/html/freepbx/admin/modules/pm2/node/node_modules/pm2/bin; do \
+        if test -d "$executable_dir"; then find "$executable_dir" -type f -exec chmod 0755 {} + || exit 1; fi; \
+    done && \
+    chmod 0755 /var/www/html/freepbx/admin/modules/dashboard/scheduler.php \
+        /var/www/html/freepbx/admin/modules/dashboard/netmon.php && \
     find /var/www/html/freepbx/admin/assets -type d -exec chmod 2775 {} + && \
     find /var/www/html/freepbx/admin/assets -type f -exec chmod 0664 {} + && \
     find /var/www/html/freepbx/admin/modules/*/assets /var/www/html/freepbx/admin/modules/*/ucp/assets \
