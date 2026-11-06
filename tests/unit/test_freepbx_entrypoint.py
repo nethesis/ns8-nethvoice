@@ -66,14 +66,15 @@ class FreepbxEntrypointTest(unittest.TestCase):
         self.assertEqual(self.run_startup().returncode, 0)
         self.assertFalse(self.link.exists())
 
-    def test_failed_repair_stops_startup(self):
+    def test_failed_repair_logs_error_and_continues_startup(self):
         self.link.symlink_to('/obsolete/extensions.conf')
         stub = self.root / 'ln'
         stub.write_text('#!/bin/sh\nexit 17\n')
         stub.chmod(0o755)
         result = self.run_startup(PATH=str(self.root) + ':' + os.environ['PATH'])
-        self.assertEqual(result.returncode, 17)
-        self.assertFalse(self.started.exists())
+        self.assertEqual(result.returncode, 0)
+        self.assertIn(f'Error: cannot repair {self.link}; continuing startup', result.stderr)
+        self.assertTrue(self.started.exists())
 
 
 if __name__ == '__main__':

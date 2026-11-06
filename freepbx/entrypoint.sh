@@ -12,7 +12,9 @@ rm -f /var/run/nethvoice/freepbx-ready /var/run/nethvoice/freepbx-failed || exit
 extensions_link=/etc/asterisk/extensions.conf
 extensions_target=/var/www/html/freepbx/admin/modules/core/etc/extensions.conf
 if [[ -L "$extensions_link" && "$(readlink "$extensions_link")" != "$extensions_target" ]]; then
-    ln -sfn "$extensions_target" "$extensions_link" || exit $?
+    if ! ln -sfn "$extensions_target" "$extensions_link"; then
+        echo "Error: cannot repair $extensions_link; continuing startup" >&2
+    fi
 fi
 
 # Configure asterisk manager
