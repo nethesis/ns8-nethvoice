@@ -535,7 +535,10 @@ EOF
 fi
 
 # migrate database
-php /initdb.d/migration.php
+if ! php /initdb.d/migration.php; then
+    echo 'Database migration failed' >&2
+    exit 1
+fi
 # update database
 php /initdb.d/update.php
 
