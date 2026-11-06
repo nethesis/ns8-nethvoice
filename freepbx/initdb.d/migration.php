@@ -5,6 +5,7 @@
 #
 
 include_once '/etc/freepbx_db.conf';
+$db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
 function migrateFrom14To17(\PDO $db): void
 {
@@ -269,72 +270,9 @@ if (count($extensions) > 0) {
 # add nethlink table if not exist
 $nethcti3db->query("CREATE TABLE IF NOT EXISTS `user_nethlink` (`user` varchar(255) NOT NULL UNIQUE,`extension` varchar(255) NOT NULL,`timestamp` varchar(255) DEFAULT NULL) ENGINE=MyISAM DEFAULT CHARSET=utf8");
 
-// Add proxy field to gateway configuration if it doesn't exist. Also detect a
-// previous partial run: ADD COLUMN is committed even if a later query fails.
-$sql = "SELECT `COLUMN_NAME`, `CHARACTER_MAXIMUM_LENGTH`
-	FROM `information_schema`.`COLUMNS`
-	WHERE `TABLE_SCHEMA` = 'asterisk'
-	AND `TABLE_NAME` = 'gateway_config'
-	AND `COLUMN_NAME` IN ('proxy', 'ipv4_green')";
-$stmt = $db->prepare($sql);
-$stmt->execute();
-$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-$gateway_columns = array_column($res, null, 'COLUMN_NAME');
-$proxy_column_exists = isset($gateway_columns['proxy']);
-$gateway_migration_needed = !$proxy_column_exists
-	|| (int) ($gateway_columns['ipv4_green']['CHARACTER_MAXIMUM_LENGTH'] ?? 0) < 255;
-
-if (!$proxy_column_exists) {
-	$db->query("ALTER TABLE `asterisk`.`gateway_config` ADD COLUMN `proxy` VARCHAR(255) DEFAULT NULL AFTER `mac`");
-}
-
-if ($gateway_migration_needed) {
-	// set default proxy for all existing gateways
-	$stmt = $db->prepare("UPDATE `asterisk`.`gateway_config` SET `proxy` = ? WHERE `proxy` IS NULL");
-	$stmt->execute(['sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT']]);
-	# use bigger field for gateways ip fields to allow also the use of hostnames
-	$db->query("ALTER TABLE `asterisk`.`gateway_config` MODIFY COLUMN `gateway` VARCHAR(255) DEFAULT NULL");
-	$db->query("ALTER TABLE `asterisk`.`gateway_config` MODIFY COLUMN `ipv4` VARCHAR(255) DEFAULT NULL");
-	$db->query("ALTER TABLE `asterisk`.`gateway_config` MODIFY COLUMN `ipv4_green` VARCHAR(255) DEFAULT NULL");
-	$db->query("ALTER TABLE `asterisk`.`gateway_config` MODIFY COLUMN `ipv4_new` VARCHAR(255) DEFAULT NULL");
-	// set pbx ip to NETHVOICE_HOST after widening the field
-	$stmt = $db->prepare("UPDATE `asterisk`.`gateway_config` SET `ipv4_green` = ?");
-	$stmt->execute([$_ENV['NETHVOICE_HOST']]);
-	$db->query("ALTER TABLE `asterisk`.`gateway_config_isdn` MODIFY COLUMN `secret` VARCHAR(255) DEFAULT NULL");
-	$db->query("ALTER TABLE `asterisk`.`gateway_config_fxo` MODIFY COLUMN `secret` VARCHAR(255) DEFAULT NULL");
-	$db->query("ALTER TABLE `asterisk`.`gateway_config_pri` MODIFY COLUMN `secret` VARCHAR(255) DEFAULT NULL");
-
-	// remove all but old gateways from gateway_config
-	$db->query("DELETE FROM `asterisk`.`gateway_models`");
-	$db->query('INSERT INTO `asterisk`.`gateway_models` (`id`,`model`,`manufacturer`,`tech`,`n_pri_trunks`,`n_isdn_trunks`,`n_fxo_trunks`,`n_fxs_ext`,`description`) VALUES
-		(11,"TRI_FXO_2","Patton","fxo",0,0,2,0,"TRINITY Analogico 2 Porte FXO"),
-		(12,"TRI_FXO_4","Patton","fxo",0,0,4,0,"TRINITY Analogico 4 Porte FXO"),
-		(13,"TRI_FXO_8","Patton","fxo",0,0,8,0,"TRINITY Analogico 8 Porte FXO"),
-		(16,"TRI_ISDN_1","Patton","isdn",0,1,0,0,"TRINITY ISDN 1 Porta"),
-		(17,"TRI_ISDN_2","Patton","isdn",0,2,0,0,"TRINITY ISDN 2 Porte"),
-		(18,"TRI_ISDN_4","Patton","isdn",0,4,0,0,"TRINITY ISDN 4 Porte"),
-		(19,"TRI_PRI_1","Patton","pri",1,0,0,0,"TRINITY PRI 1 Porta"),
-		(20,"TRI_PRI_2","Patton","pri",2,0,0,0,"TRINITY PRI 2 Porte"),
-		(21,"TRI_PRI_4","Patton","pri",4,0,0,0,"TRINITY PRI 4 Porte"),
-		(31,"ht801","Grandstream","fxs",0,0,0,1,"HT801 SIP 1 Porta FXS"),
-		(32,"ht801TLS","Grandstream","fxs",0,0,0,1,"HT801 SIP TLS 1 Porta FXS"),
-		(33,"ht802","Grandstream","fxs",0,0,0,2,"HT802 SIP 2 Porte FXS"),
-		(34,"ht802TLS","Grandstream","fxs",0,0,0,2,"HT802 SIP TLS 2 Porte FXS"),
-		(35,"ht812","Grandstream","fxs",0,0,0,2,"HT812 SIP 2 Porte FXS"),
-		(36,"ht812TLS","Grandstream","fxs",0,0,0,2,"HT812 SIP TLS 2 Porte FXS"),
-		(37,"ht814","Grandstream","fxs",0,0,0,4,"HT814 SIP 4 Porte FXS"),
-		(38,"ht814TLS","Grandstream","fxs",0,0,0,4,"HT814 SIP TLS 4 Porte FXS"),
-		(39,"gxw4216","Grandstream","fxs",0,0,0,16,"GXW4216 SIP 16 Porte FXS"),
-		(40,"gxw4216TLS","Grandstream","fxs",0,0,0,16,"GXW4216 SIP TLS 16 Porte FXS"),
-		(41,"gxw4224","Grandstream","fxs",0,0,0,24,"GXW4224 SIP 24 Porte FXS"),
-		(42,"gxw4224TLS","Grandstream","fxs",0,0,0,24,"GXW4224 SIP TLS 24 Porte FXS"),
-		(43,"gxw4232","Grandstream","fxs",0,0,0,32,"GXW4216 SIP 32 Porte FXS"),
-		(44,"gxw4232TLS","Grandstream","fxs",0,0,0,32,"GXW4232 SIP TLS 32 Porte FXS"),
-		(45,"gxw4248","Grandstream","fxs",0,0,0,48,"GXW4216 SIP 48 Porte FXS"),
-		(46,"gxw4248TLS","Grandstream","fxs",0,0,0,48,"GXW4216 SIP TLS 48 Porte FXS"),
-		(48,"ht841TLS","Grandstream","fxo",0,0,4,0,"HT841 Analogico 4 Porte FXO")'
-	);
-}
+// MariaDB preparation owns the model catalog; preserve its IDs and gateway references.
+require_once __DIR__ . '/gateway-migration.php';
+migrateGatewaySchema($db, 'sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'], $_ENV['NETHVOICE_HOST']);
 
 /* Migrate NethCQR */
 # change default configuration for phonebook database
