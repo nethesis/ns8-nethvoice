@@ -571,6 +571,13 @@ RUN chown asterisk:asterisk \
 	/var/www/html/freepbx/admin/assets/js/
 
 # Direct links to modules
+# Asterisk starts before retrieve_conf creates the module configuration links.
+RUN ln -s /var/www/html/freepbx/admin/modules/core/etc/extensions.conf /etc/asterisk/extensions.conf && \
+    touch /etc/asterisk/extensions_override_freepbx.conf \
+          /etc/asterisk/extensions_additional.conf \
+          /etc/asterisk/extensions_custom.conf && \
+    chown -h asterisk:asterisk /etc/asterisk/extensions*.conf
+
 RUN ln -s /var/www/html/freepbx/admin/modules/visualplan/htdocs /var/www/html/freepbx/visualplan \
 	&& ln -s /var/www/html/freepbx/admin/modules/nethhotel/htdocs /var/www/html/freepbx/hotel
 
@@ -713,6 +720,7 @@ COPY apply-instance-bindings.php /apply-instance-bindings.php
 COPY etc/amportal.conf /etc
 COPY initdb.d/initdb.php /initdb.d/
 COPY initdb.d/migration.php /initdb.d/
+COPY initdb.d/gateway-migration.php /initdb.d/
 COPY etc/logrotate.d/asterisk /etc/logrotate.d/asterisk
 COPY initdb.d/update.php /initdb.d/
 COPY initdb.d/slow_database_updates.php /initdb.d/
