@@ -73,6 +73,11 @@ assert($service->get($two['agent_id'])['enabled']===false);
 assert($db->query('SELECT id,name FROM asterisk.voice_agent_queue_directory ORDER BY id')->fetchAll(PDO::FETCH_ASSOC)[0]===['id'=>'queue:600','name'=>'Customer Support']);
 $db->exec("UPDATE asterisk.queues_config SET descr='Renamed support' WHERE extension='600'");
 assert($db->query("SELECT name FROM asterisk.voice_agent_queue_directory WHERE id='queue:600'")->fetchColumn()==='Renamed support');
+// The runtime merges both directories from its own connection collation.
+$db->exec('SET NAMES utf8mb4 COLLATE utf8mb4_bin');
+$merged=$db->query("SELECT id,name,'' description FROM asterisk.voice_agent_extension_directory UNION ALL SELECT id,name,description FROM asterisk.voice_agent_queue_directory ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+assert(in_array(['id'=>'queue:600','name'=>'Renamed support','description'=>''],$merged,true));
+$db->exec('SET NAMES utf8mb4');
 $pbx=(object)['Database'=>$db,
     'Core'=>new class { public function listUsers($all) { return [['203','Test extension'],['90203','Test extension'],['91203','Test extension'],['999','Unassigned']]; } },
     'Queues'=>new class { public function listQueues($all) { return [['600','Support &amp; help']]; } },
