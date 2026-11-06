@@ -50,7 +50,7 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
     def test_installs_modules_then_reloads_without_restarting_asterisk(self):
         result, calls = self.run_init()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertLess(calls.index('fwconsole moduleadmin install core'), calls.index('su asterisk'))
+        self.assertLess(calls.index('fwconsole moduleadmin --skipchown install core'), calls.index('su asterisk'))
         self.assertNotIn('core restart', calls)
         self.assertNotIn('HTTPTLSBINDADDRESS', calls)
         self.assertTrue(self.ready.exists())
@@ -64,7 +64,7 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
         self.assertTrue((self.root / "freepbx-failed").exists())
 
     def test_required_step_failures_stop_initialization(self):
-        for command in ['fwconsole moduleadmin install core',
+        for command in ['fwconsole moduleadmin --skipchown install core',
                         'fwconsole userman --syncall --force --verbose']:
             with self.subTest(command=command):
                 self.calls.unlink(missing_ok=True)
@@ -76,7 +76,7 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
                 self.assertFalse(self.ready.exists())
 
     def test_permission_fix_failure_does_not_skip_final_initialization(self):
-        result, calls = self.run_init(TEST_FAILURE='ionice -c2 -n7 nice -n 10 fwconsole chown')
+        result, calls = self.run_init(TEST_FAILURE='ionice -c2 -n7 nice -n 10 fwconsole chown --module=framework')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('su asterisk', calls)
         self.assertIn('phonesRpsResetHelper', calls)
