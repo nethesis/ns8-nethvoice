@@ -70,7 +70,7 @@ final class Schema
         };
         $empty="SELECT CAST(NULL AS CHAR(64)) id,CAST(NULL AS CHAR(100)) name,CAST(NULL AS CHAR(500)) description WHERE 0";
         $db->exec("CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_queue_directory AS ".
-            (in_array('queues_config',$tables,true)?"SELECT CONCAT('queue:',extension) id,descr name,'' description FROM asterisk.queues_config WHERE extension REGEXP '^[0-9]{1,20}$'".$active('queues'):$empty));
+            (in_array('queues_config',$tables,true)?"SELECT CONVERT(CONCAT('queue:',extension) USING utf8mb4) COLLATE utf8mb4_unicode_ci id,CONVERT(descr USING utf8mb4) COLLATE utf8mb4_unicode_ci name,CAST('' AS CHAR(500) CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci description FROM asterisk.queues_config WHERE extension REGEXP '^[0-9]{1,20}$'".$active('queues'):$empty));
         // Empty v8 views keep the pinned runtime readable during a matching-image upgrade.
         $db->exec("CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_ivr_directory AS ".$empty);
         $db->exec("CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_ivr_branches AS ".
