@@ -42,6 +42,8 @@ if ($handle = opendir(__DIR__. '/../..')) {
     closedir($handle);
 }
 
+require_once dirname(__DIR__, 4) . '/rest/lib/agents/VisualPlan.php';
+
 // read i18n data
 $lang = $_COOKIE['lang'] ?? '';
 if (empty($lang)) {
@@ -239,6 +241,21 @@ if ($data['codeavailable'] === null) {
     $loadErrors['codeavailable'] = true;
     $data['codeavailable'] = [];
 }
+
+// Saved agents, including built-ins, are projected from the PHP library.
+$agentData = nethvplan_attempt(function () use ($langArray) {
+    $agents = ['satellite-agent-destination' => [], 'voice-agents' => []];
+    foreach (FreePBX::Satellite()->agentDestinations() as $agent) {
+        $agents['satellite-agent-destination'][$agent['agent_id']] = $agent;
+        $agents['voice-agents'][$agent['agent_id']] = \NethVoice\Agents\VisualPlan::widget($agent, $langArray);
+    }
+    return $agents;
+}, null, 'voice-agents');
+if ($agentData === null) {
+    $loadErrors['satellite-agent-destination'] = $loadErrors['voice-agents'] = true;
+    $agentData = ['satellite-agent-destination' => [], 'voice-agents' => []];
+}
+$data += $agentData;
 
 // INITIALIZE DRAW2D OBJECT COMPONENTS
 $widgets = array(); // 
@@ -464,6 +481,7 @@ function nethvplan_cmpTime($a, $b)
 function nethvplan_getDestination($destination)
 {
     if (!is_string($destination)) return array('', '');
+    if (preg_match('/^voice-agent-([a-z][a-z0-9_-]{0,47}),s,1$/D', $destination, $match)) return ['satellite-agent-destination', $match[1]];
     if (preg_match('/ivr-*/', $destination)) {
         $values = explode(",", $destination);
         $dests = explode("-", $values[0]);
@@ -523,7 +541,8 @@ function nethvplan_isKnownDestinationType($dest)
         "ivr",
         "cqr",
         "ext-queues",
-        "ext-group"
+        "ext-group",
+        "satellite-agent-destination"
     );
 
     return in_array($dest, $knownDestinations);
@@ -585,6 +604,9 @@ function nethvplan_renderData($data, $dest, $id)
     }
 
     switch ($dest) {
+        case 'satellite-agent-destination':
+            return \NethVoice\Agents\VisualPlan::widget($data[$dest][$id], $langArray, (int)$xPos, (int)$yPos);
+
         case "incoming":
             $widget['type'] = "Base";
             $widget['id'] = "incoming%".$id;

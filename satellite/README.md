@@ -4,6 +4,58 @@ Satellite is a Python application that creates a bridge between Asterisk PBX and
 
 https://github.com/nethesis/satellite
 
+## Shared voice-agent runtime
+
+The published Satellite image runs `python /app/main.py` in the existing
+`satellite.service` container. One event loop owns startup, signals and shutdown.
+Voice-agent routing stays in `voice_agent/`; optional transcription stays in
+`transcription.py`, `asterisk_bridge.py`, `mqtt_client.py` and `api.py`.
+Transcription and its HTTP API start only when
+`SATELLITE_CALL_TRANSCRIPTION_ENABLED` or
+`SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED` is `True` (case insensitive).
+
+The two HTTP apps keep their existing loopback ports and authentication. Only
+exact signed webhook paths on the voice-agent listener are forwarded publicly;
+transcription endpoints are not mounted on that listener. Each component retains
+its own ARI connection and Stasis application (`voice-agent` versus `ARI_APP`).
+Transcription startup and MQTT/ARI reconnection failures recover locally without
+restarting agent calls. Shutdown stops both listeners, cancels transcription
+connection/connector tasks, closes RTP streams and terminates/reaps per-request
+transcription workers. PostgreSQL startup work runs outside the shared event loop.
+The process no longer supervises or restarts component subprocesses. A fatal
+process failure still affects both components; systemd restarts the application.
+
+The build consumes the published Satellite PR #56 image pinned in `build-images.sh`
+to `sha256:ef50b10b07135e0a730587b1f7ab9779113b0f6536d793f591fbe08425bb73e4`.
+Its source revision is `52b178eb28ffecc81f8dc5d4d724bb8730020097`; NethVoice CI
+checks out that exact revision for paired tests. The import check requires the
+shared application lifecycle. `SATELLITE_IMAGE` remains a development base override.
+**Replace the PR image with a versioned Satellite release before merging, updating
+the digest and matching CI source revision together.**
+No source download/build fallback or local source overlay is used by NethVoice.
+The application runs as UID/GID 65532; configuration, credentials and volumes keep
+their existing ownership and locations.
+
+Satellite stays enabled for agent webhooks and readiness even when no agent is
+enabled. An inactive built-in agent never admits a call. Keeping the listener
+available allows PHP-owned publication and enablement without giving PHP host
+service-management privileges. MQTT, recordings cleanup and transcription itself
+remain conditional on the transcription flags; PostgreSQL stays available for
+historical reads after transcription is disabled.
+
+The `configure-module/94voice_agents` and `set-integrations/50manage_service`
+action steps compare the unit, selected environment, filtered credentials and
+image identity before making changes. An unchanged settings save leaves the
+service and calls untouched. A changed configuration waits for no active calls;
+an unavailable Asterisk query refuses the restart. FreePBX restarts do not stop
+Satellite, which reconnects through ARI. Runtime account provisioning runs on
+configuration changes instead of every Satellite start.
+
+Upgrades disable and remove the former `voice-agent` container while retaining
+its event volume. The `:U` mount repairs legacy volume ownership for UID 65532;
+`:Z` preserves its private SELinux label. Credentials are filtered into
+`satellite.env`, without unrelated module secrets.
+
 ## Voicemail transcription
 
 Voicemail transcription is enabled by setting the environment variable `SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED` to `True` (also on NS8 interface)
@@ -117,3 +169,10 @@ export $(grep SATELLITE_MQTT_PASSWORD passwords.env); podman exec -it satellite-
 ```
 export $(grep SATELLITE_API_TOKEN passwords.env);curl "http://127.0.0.1:${SATELLITE_HTTP_PORT}/api/get_transcription" --show-error --request POST --form "multichannel=false" --form "encoding=linear16" --form "sample_rate=8000" --form "channels=1" --form "persist=false" --form "summary=false" --header "Authorization: Bearer ${SATELLITE_API_TOKEN}" --form "file=@test.wav;type=audio/wav"
 ```
+
+## Voice agents alpha
+
+Use the matching v8 runtime and fresh database baseline. See the maintained
+[voice agents guide](../docs/voice-agents.md). Configuration and tool permissions
+belong to each agent; publication activates it. The base image is pinned by
+digest in `build-images.sh`; CI tests its matching source revision.
