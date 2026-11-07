@@ -101,6 +101,8 @@ Note: when disabling, remove old imported extensions from phonebook table `mysql
 
 - `PROXY_IP` sip proxy host or ip to be used in extensions. Default is host
 - `PROXY_PORT` sip proxy port. Default is 5060
+- `NETHVOICE_PROXY_SIP_PORT` SIP port of the proxy that phones and gateways connect to. Default is 5060
+- `NETHVOICE_PROXY_SIPS_PORT` SIPS (TLS) port of the proxy that phones and gateways connect to. Default is 5061
 - `APACHE_PORT` Port used for httpd
 - `TANCREDIPORT` Port used bt Tancredi
 - `BRAND_NAME` Name for branding (default: NethVoice)

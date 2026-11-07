@@ -795,12 +795,16 @@ angular.module('nethvoiceWizardUiApp')
       $scope.hostname = window.location.hostname;
       $scope.deviceExtension = device.extension;
       $scope.passwordExtension = device.secret;
-      // Recupera NETHVOICE_PROXY_FQDN
+      // Recupera NETHVOICE_PROXY_FQDN e le porte SIP del proxy
       ModelService.getDefaults().then(function (res) {
         $scope.proxyUrl = res.data.outbound_proxy_1 || '';
+        $scope.proxySipPort = res.data.sip_udp_port || '5060';
+        $scope.proxySipsPort = res.data.sip_tls_port || '5061';
       }, function (err) {
         console.log(err);
         $scope.proxyUrl = '';
+        $scope.proxySipPort = '5060';
+        $scope.proxySipsPort = '5061';
       });
     }
 
