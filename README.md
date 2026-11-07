@@ -119,6 +119,21 @@ It raises an event named `phonebook-settings-changed` with the following payload
 
 Consumers of the events must then run the `get-phonebook-credentials` action on `module_id` to get the updated phonebook credentials.
 
+## Chat integration
+
+Other modules (e.g. WebTop) can embed the NethVoice chat. They read `NETHCTI_UI_HOST` and `CHAT_ENABLED`
+from the module environment (`module/<module_id>/environment` in Redis).
+
+The `set-integrations` action raises an event named `chat-settings-changed` with the following payload:
+
+- `module_id`: the module id
+- `node_id`: the node id
+- `module_uuid`: the module uuid
+- `chat_enabled`: whether the chat is enabled
+- `reason`: the reason for the change
+
+A change of the CTI host raises `pbx-settings-changed` (`configure-module`).
+
 ## NethCTI Middleware management
 
 The module includes a small CLI helper named `ctictl` to call administrative middleware endpoints defined under `/admin/*`.
