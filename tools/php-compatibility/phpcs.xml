@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
-<ruleset name="ns8-nethvoice PHP 8.2 compatibility">
-    <description>Check active NethVoice PHP sources for PHP 8.2 compatibility.</description>
+<ruleset name="ns8-nethvoice PHP 8.3 compatibility">
+    <description>Check active NethVoice PHP sources for PHP 8.3 compatibility.</description>
 
-    <config name="testVersion" value="8.2"/>
+    <config name="testVersion" value="8.3"/>
     <arg name="extensions" value="php"/>
     <arg name="parallel" value="8"/>
     <arg value="p"/>
