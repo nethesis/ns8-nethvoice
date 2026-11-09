@@ -1,0 +1,118 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2020 Nethesis S.r.l.
+# http://www.nethesis.it - nethserver@nethesis.it
+#
+# This script is part of NethServer.
+#
+# NethServer is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License,
+# or any later version.
+#
+# NethServer is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with NethServer.  If not, see COPYING.
+#
+
+password=$(perl -e "use NethServer::Password; print NethServer::Password::store('nethvoice_report');")
+
+# create schema
+/usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb < /opt/nethvoice-report/scripts/schema.sql
+/usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb < /opt/nethvoice-report/scripts/clean-prefix-function.sql
+
+# grant some accesses to asteriskcdrdb database
+/usr/bin/mysql --defaults-file=/root/.my.cnf -e "GRANT ALL on asteriskcdrdb.* to 'nethvoice_report'@'localhost' identified by '$password';"
+
+# grant read access to asterisk database
+/usr/bin/mysql --defaults-file=/root/.my.cnf -e "GRANT ALL on asterisk.* to 'nethvoice_report'@'localhost' identified by '$password';"
+
+# grant read access to phonebook database
+/usr/bin/mysql --defaults-file=/root/.my.cnf -e "GRANT SELECT on phonebook.* to 'nethvoice_report'@'localhost' identified by '$password';"
+
+# flush privileges
+/usr/bin/mysql --defaults-file=/root/.my.cnf -e "FLUSH PRIVILEGES"
+
+# expand user auth file
+scl enable rh-php56 /var/lib/asterisk/bin/retrieve_conf
+
+# fix bad user_authorizations.json owner
+/usr/bin/chown asterisk:asterisk /opt/nethvoice-report/api/user_authorizations.json
+
+# check if migration is necessary to fix tables and searches
+MIGRATE_RES=$(/usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "SHOW TABLES LIKE 'dashboard_cdr_%'")
+if [[ "x$MIGRATE_RES" == "x" ]]; then
+	# migration is needed: drop data_call table with bad fields. The table will be recreated overnight.
+	/usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "DROP TABLE data_call"
+	
+	# migration is needed: uniform collate charset
+	/usr/bin/mysql --defaults-file=/root/.my.cnf asterisk -e "ALTER TABLE rest_devices_phones convert TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+	# migration is needed: migrate save searches to new format.
+	/opt/nethvoice-report/tasks/tasks migrate-searches
+fi
+
+# Add INDEX for report_queue if it doesn't exist
+EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "SHOW KEYS FROM report_queue WHERE Key_name='uid'")
+if [[ $EXISTS == "" ]]; then
+        /usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "ALTER IGNORE TABLE report_queue ADD UNIQUE uid (id,timestamp_in,action,agent)"
+fi
+
+# Add "agents" column to report_queue table if it is needed
+EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "SHOW COLUMNS FROM report_queue LIKE 'agents'")
+if [[ $EXISTS == "" ]]; then
+        /usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "ALTER TABLE report_queue ADD COLUMN agents VARCHAR(100) NOT NULL DEFAULT ''"
+fi
+
+# Add "total_recall" and "data_caller_day" columns to data_caller_day table if needed
+TABLE_EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "SHOW TABLES LIKE 'data_caller_day'")
+if [[ ! -z $TABLE_EXISTS ]]; then
+    EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "SHOW COLUMNS FROM data_caller_day LIKE 'total_recall'")
+    if [[ $EXISTS == "" ]]; then
+        /usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "ALTER TABLE data_caller_day ADD COLUMN total_recall decimal(23,0) NOT NULL DEFAULT '0' AFTER qdescr"
+    fi
+    EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "SHOW COLUMNS FROM data_caller_day LIKE 'avg_recall'")
+    if [[ $EXISTS == "" ]]; then
+        /usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "ALTER TABLE data_caller_day ADD COLUMN avg_recall decimal(25,4) DEFAULT NULL AFTER total_recall"
+    fi
+fi
+
+# Add "recalled" and "recall_time" columns to data_call table if needed
+TABLE_EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "SHOW TABLES LIKE 'data_call'")
+if [[ ! -z $TABLE_EXISTS ]]; then
+    EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "SHOW COLUMNS FROM data_call LIKE 'recalled'")
+    if [[ $EXISTS == "" ]]; then
+        /usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "ALTER TABLE data_call ADD COLUMN recalled varchar(32) DEFAULT NULL"
+    fi
+    EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "SHOW COLUMNS FROM data_call LIKE 'recall_time'")
+    if [[ $EXISTS == "" ]]; then
+        /usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "ALTER TABLE data_call ADD COLUMN recall_time decimal(23,0) DEFAULT NULL"
+    fi
+    EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "SHOW COLUMNS FROM data_call LIKE 'recallTime'")
+    if [[ ! -z $EXISTS ]]; then
+        # Drop table if recallTime column exists
+        /usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "DROP TABLE data_call"
+        # Recreate data_call
+        FILE=/opt/nethvoice-report/api/views/data_call.sql
+        if [[ -f $FILE ]]; then
+            /usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb < $FILE
+        fi
+    fi
+fi
+
+# Recreate data_call table over night if agents field is missing or is in the wrong order
+TABLE_EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "SHOW TABLES LIKE 'data_call'")
+if [[ ! -z $TABLE_EXISTS ]]; then
+    EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "SHOW COLUMNS FROM data_call LIKE 'agents'")
+    COLUMNS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -B -N -e "SHOW COLUMNS FROM data_call" | awk '{print $1}' | xargs echo -n)
+    if [[ $EXISTS == "" || $COLUMNS == "period cid qname qdescr agent position hold duration result agents" ]]; then
+        # drop data_call table with bad fields. The table will be recreated overnight
+        /usr/bin/mysql --defaults-file=/root/.my.cnf asteriskcdrdb -e "DROP TABLE data_call"
+    fi
+fi
+

@@ -1,0 +1,28 @@
+{
+    "id": "nethvoice-report",
+    "name": "PBX Report",
+    "summary": "Queue and CDR/Costs reports",
+    "description": "Queue and CDR/Costs reports",
+    "url": "",
+    "homepage": "https://github.com/nethesis/nethvoice-report",
+    "provides": [
+        "nethvoice-report"
+    ],
+    "release": {
+        "version": "_RELEASE_"
+    },
+    "license": "GPL-3.0",
+    "bugs": {
+        "url": "https://github.com/Nethesis/dev/issues"
+    },
+    "author": {
+        "name": "Edoardo Spadoni, Andrea Leardini, Sebastian Marius Besel",
+        "url": "https://nethesis.it",
+        "email": "edoardo.spadoni@nethesis.it, andrea.leardini@nethesis.it, sebastian.besel@nethesis.it"
+    },
+    "infoapi": {
+        "path": "nethvoice-report/read"
+    },
+    "icon": "logo.png",
+    "external": true
+}
