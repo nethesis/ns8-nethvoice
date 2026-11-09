@@ -1,0 +1,8 @@
+/var/log/asterisk/nethcti.log {
+   missingok
+   create 0640 asterisk asterisk
+   sharedscripts
+   postrotate
+       /usr/bin/systemctl reload nethcti-server &> /dev/null
+   endscript
+}

@@ -1,0 +1,15 @@
+{
+  "name": "com_ipc",
+  "main": "arch_com_ipc.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "logger",
+      "com_nethcti_ws",
+      "com_nethcti_tcp"
+    ],
+    "provides": [
+      "comIpc"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "com_dbconn_rest",
+  "main": "arch_com_dbconn_rest.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "util",
+      "logger",
+      "dbconn"
+    ],
+    "provides": []
+  }
+}

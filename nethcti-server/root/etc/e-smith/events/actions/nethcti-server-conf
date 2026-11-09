@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Ensure the systemd unit is no longer masked during the post-restore-config event
+systemctl unmask nethcti-server
+
+/usr/bin/mysql --defaults-file=/root/.my.cnf < /usr/lib/node/nethcti-server/sql/db_tables/nethcti3.sql
+PASS=$(perl -e 'use NethServer::Password; my $ctidb_pwd = NethServer::Password::store("CTIDBPasswd"); print ($ctidb_pwd);')
+/usr/bin/mysql --defaults-file=/root/.my.cnf -e "GRANT ALL ON nethcti3.* TO nethcti@localhost  IDENTIFIED BY '$PASS';FLUSH PRIVILEGES;"
+/usr/bin/mysql --defaults-file=/root/.my.cnf -e "GRANT ALL ON phonebook.* TO nethcti@localhost  IDENTIFIED BY '$PASS';FLUSH PRIVILEGES;"
+
+# Insert default sources and customer card
+/usr/bin/mysql -unethcti -p$PASS -e "INSERT IGNORE INTO nethcti3.user_dbconn VALUES (1, 'localhost', '/var/lib/mysql/mysql.sock', 'mysql', 'nethcti', '$PASS', 'phonebook', NOW());"
+
+CDRDBUSER=$(/usr/bin/scl enable rh-php56 -- php -r "include_once('/etc/freepbx.conf');global \\\$amp_conf;echo (\\\$amp_conf['CDRDBUSER']?\\\$amp_conf['CDRDBUSER']:\\\$amp_conf['AMPDBUSER']);")
+CDRDBPASS=$(/usr/bin/scl enable rh-php56 -- php -r "include_once('/etc/freepbx.conf');global \\\$amp_conf;echo (\\\$amp_conf['CDRDBPASS']?\\\$amp_conf['CDRDBPASS']:\\\$amp_conf['AMPDBPASS']);")
+CDRDBNAME=$(/usr/bin/scl enable rh-php56 -- php -r "include_once('/etc/freepbx.conf');global \\\$amp_conf;echo (\\\$amp_conf['CDRDBNAME']?\\\$amp_conf['CDRDBNAME']:'asteriskcdrdb');")
+
+/usr/bin/mysql -unethcti -p$PASS -e "INSERT IGNORE INTO nethcti3.user_dbconn VALUES (2, 'localhost', '/var/lib/mysql/mysql.sock', 'mysql', '$CDRDBUSER', '$CDRDBPASS', '$CDRDBNAME', NOW());"
+/usr/bin/mysql -unethcti -p$PASS -e "UPDATE IGNORE nethcti3.user_dbconn SET name='$CDRDBNAME' WHERE name='' AND id = 2"
+
+/usr/bin/mysql -unethcti -p$PASS -e "INSERT IGNORE INTO nethcti3.customer_card VALUES (1, 'Identity', NOW(), \"select * from phonebook where REPLACE(homephone, ' ', '') like '%\$NUMBER' or REPLACE(workphone, ' ', '') like '%\$NUMBER' or REPLACE(cellphone, ' ', '') like '%\$NUMBER' or REPLACE(fax, ' ', '') like '%\$NUMBER'\", 'identity', 1, NULL);"
+/usr/bin/mysql -unethcti -p$PASS -e "INSERT IGNORE INTO nethcti3.customer_card VALUES (2, 'Last calls', NOW(), \"select DATE_FORMAT(calldate,'%d/%m/%Y') as date, DATE_FORMAT(calldate,'%H:%i:%S') as time, clid, src, dst, uniqueid,duration, time_format(billsec, '%H:%i:%S') as billsec, disposition,if(src='\$NUMBER','in','out') as direction from cdr where (src LIKE '%\$NUMBER' or dst LIKE '%\$NUMBER') and disposition = 'ANSWERED' order by calldate desc limit 0,10\", 'lastcalls', 2, NULL);"
+
+EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf -e "SHOW KEYS FROM asteriskcdrdb.queue_log WHERE Key_name='event'");
+if [[ $EXISTS == "" ]]; then
+  /usr/bin/mysql --defaults-file=/root/.my.cnf -e "ALTER TABLE asteriskcdrdb.queue_log ADD INDEX event(event)"
+fi
+EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf -e "SHOW KEYS FROM asteriskcdrdb.queue_log WHERE Key_name='ib1'");
+if [[ $EXISTS == "" ]]; then
+  /usr/bin/mysql --defaults-file=/root/.my.cnf -e "ALTER TABLE asteriskcdrdb.queue_log ADD INDEX ib1(agent,queuename)"
+fi
+EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf -e "SHOW KEYS FROM asteriskcdrdb.queue_log WHERE Key_name='callid_idx'");
+if [[ $EXISTS == "" ]]; then
+  /usr/bin/mysql --defaults-file=/root/.my.cnf -e "ALTER TABLE asteriskcdrdb.queue_log ADD INDEX callid_idx(callid)"
+fi
+EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf -e "SHOW KEYS FROM nethcti3.cti_phonebook WHERE Key_name='company_idx'");
+if [[ $EXISTS == "" ]]; then
+  /usr/bin/mysql --defaults-file=/root/.my.cnf -e "ALTER TABLE nethcti3.cti_phonebook ADD INDEX company_idx(company)"
+fi
+
+# Update SQL queries of default customer cards for issue #5870
+EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf -se "SELECT query FROM nethcti3.customer_card WHERE name='Identity'");
+if [[ $EXISTS == "select * from phonebook where homephone like '%\$NUMBER' or workphone like '%\$NUMBER' or cellphone like '%\$NUMBER' or fax like '%\$NUMBER'" ]]; then
+  $(/usr/bin/mysql --defaults-file=/root/.my.cnf -e "UPDATE nethcti3.customer_card SET query=\"select * from phonebook where REPLACE(homephone, ' ', '') like '%\$NUMBER' or REPLACE(workphone, ' ', '') like '%\$NUMBER' or REPLACE(cellphone, ' ', '') like '%\$NUMBER' or REPLACE(fax, ' ', '') like '%\$NUMBER'\" WHERE name='Identity'");
+fi
+EXISTS=$(/usr/bin/mysql --defaults-file=/root/.my.cnf -se "SELECT query FROM nethcti3.customer_card WHERE name='Last calls'");
+if [[ $EXISTS == "select DATE_FORMAT(calldate,'%d/%m/%Y') as date, DATE_FORMAT(calldate,'%H:%i:%S') as time, clid, src, dst, uniqueid,duration, time_format(billsec, '%H:%i:%S') as billsec, disposition,if(src='\$NUMBER','in','out') as direction from cdr where (src = '\$NUMBER' or dst = '\$NUMBER') and disposition = 'ANSWERED' order by calldate desc limit 0,10" ]]; then
+  $(/usr/bin/mysql --defaults-file=/root/.my.cnf -e "UPDATE nethcti3.customer_card SET query=\"select DATE_FORMAT(calldate,'%d/%m/%Y') as date, DATE_FORMAT(calldate,'%H:%i:%S') as time, clid, src, dst, uniqueid,duration, time_format(billsec, '%H:%i:%S') as billsec, disposition,if(src='\$NUMBER','in','out') as direction from cdr where (src LIKE '%\$NUMBER' or dst LIKE '%\$NUMBER') and disposition = 'ANSWERED' order by calldate desc limit 0,10\" WHERE name='Last calls'");
+fi

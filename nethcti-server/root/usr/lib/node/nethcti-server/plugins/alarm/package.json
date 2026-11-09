@@ -1,0 +1,13 @@
+{
+  "name": "alarm",
+  "main": "arch_alarm.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "logger",
+      "comIpc",
+      "astProxy"
+    ],
+    "provides": ["alarm"]
+  }
+}

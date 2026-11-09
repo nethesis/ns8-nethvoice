@@ -1,0 +1,9 @@
+    "user_settings": \{
+        "dbhost":     "localhost",
+        "dbport":     "/var/lib/mysql/mysql.sock",
+        "dbtype":     "mysql",
+        "dbuser":     "nethcti",
+        "dbpassword": "{$ctidb_pwd}",
+        "dbname":     "nethcti3"
+    \}
+\}

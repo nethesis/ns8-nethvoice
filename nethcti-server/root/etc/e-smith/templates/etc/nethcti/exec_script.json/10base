@@ -1,0 +1,26 @@
+{
+    my $cdrScript = ${'nethcti-server'}{'CdrScript'} || "";
+    my $cdrScriptCallIn = ${'nethcti-server'}{'CdrScriptCallIn'} || "";
+    my $cdrScriptTimeout = ${'nethcti-server'}{'CdrScriptTimeout'} || 5000;
+
+    $OUT = '{';
+    if ($cdrScript ne "") {
+        $OUT = $OUT . '
+    "cdr": {
+        "script": "' . $cdrScript . '",
+        "timeout": ' . $cdrScriptTimeout . '
+    }';
+        if ($cdrScriptCallIn ne "") {
+            $OUT = $OUT . ',';
+        }
+    }
+    if ($cdrScriptCallIn ne "") {
+        $OUT = $OUT . '
+    "callIn": {
+        "script": "' . $cdrScriptCallIn . '",
+        "timeout": ' . $cdrScriptTimeout . '
+    }';
+    }
+    $OUT = $OUT . '
+}';
+}

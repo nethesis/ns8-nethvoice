@@ -1,0 +1,13 @@
+{
+    "name": "profiling",
+    "main": "arch_profiling.js",
+    "private": true,
+    "plugin": {
+        "consumes": [
+            "logger",
+            "com_nethcti_ws",
+            "com_nethcti_tcp"
+        ],
+        "provides": [ "profiling" ]
+    }
+}
