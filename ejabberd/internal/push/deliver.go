@@ -32,6 +32,7 @@ type Router struct {
 	// dedupes push and fetch by it (push Id == sms_id). May be nil.
 	ArchiveID func(ctx context.Context, user, peer string) string
 	DND       func(ctx context.Context, username string) bool // in do not disturb: no push at all, may be nil
+	Guest     func(node string)                               // a message reached a guest: its page fetches, may be nil
 	client    *http.Client
 }
 
@@ -58,6 +59,11 @@ func NewRouter(st *store.Store, pnmURL string) (*Router, error) {
 }
 
 func (r *Router) Deliver(ctx context.Context, n Notification) {
+	// A guest's page fetches whatever arrived: a reaction or a retraction too.
+	if strings.HasPrefix(n.Node, "guest:") && r.Guest != nil {
+		r.Guest(n.Node)
+		return
+	}
 	// ejabberd also notifies for stanzas without a body sent to an offline user
 	// (a typing indicator, a reaction): nothing to show, so nothing to wake the device for.
 	if strings.TrimSpace(n.Body) == "" {
@@ -147,7 +153,8 @@ func (r *Router) text(sender, body string) string {
 	body = preview(body)
 	if address.IsRoom(sender) {
 		if i := strings.IndexByte(sender, '/'); i >= 0 {
-			return r.name(sender[i+1:]) + ": " + body
+			nick := sender[i+1:]
+			return address.Author(nick, r.name(nick)) + ": " + body
 		}
 	}
 	return body

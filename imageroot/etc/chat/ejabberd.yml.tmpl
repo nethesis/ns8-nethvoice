@@ -145,7 +145,7 @@ modules:
       "Access-Control-Allow-Methods": "GET,HEAD,PUT,OPTIONS"
       "Access-Control-Allow-Headers": "Content-Type"
       "X-Content-Type-Options": "nosniff"
-      "Content-Security-Policy": "default-src 'none'"
+      "Content-Security-Policy": "default-src 'none'; sandbox"
   mod_http_upload_quota:
     max_days: $CHAT_RETENTION_DAYS
   mod_disco: {}

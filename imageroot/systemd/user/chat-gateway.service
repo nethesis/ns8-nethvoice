@@ -31,6 +31,7 @@ ExecStart=/usr/bin/podman run \
     --env=CHAT_C2S_ADDR=127.0.0.1:${CHAT_C2S_PORT} \
     --env=CHAT_COMPONENT_ADDR=127.0.0.1:${CHAT_COMPONENT_PORT} \
     --env=CHAT_COMPONENT_SECRET \
+    --env=CHAT_SERVICE_SECRET \
     --env=CHAT_DEBUG=${CHAT_DEBUG} \
     --env=CHAT_MIDDLEWARE_URL=http://127.0.0.1:${NETHVOICE_MIDDLEWARE_PORT} \
     --env=CHAT_UPLOAD_URL=http://127.0.0.1:${CHAT_HTTP_PORT}/upload \

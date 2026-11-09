@@ -37,11 +37,19 @@ type Server struct {
 	Archive     *Archive                                      // ejabberd's message archive, for text search
 	Retention   int                                           // days the archive keeps messages
 	CTIConfig   string                                        // the CTI's users.json and profiles.json, read-only; "" skips KickRevoked
+	Secret      string                                        // signs the service passwords the gateway logs in with
 
-	failures window // failed Acrobits logins, by username
-	ipFails  window // failed Acrobits logins, by client address
-	sends    window // messages from the app
-	files    window // attachments from the app
+	failures   window // failed Acrobits logins, by username
+	ipFails    window // failed Acrobits logins, by client address
+	sends      window // messages from the app
+	files      window // attachments from the app
+	invites    window // guests invited
+	guestCalls window // guest page calls
+	joins      window // guests joining, by client address
+	linkReads  window // invite links looked up, by client address
+
+	guestWait guestWaiters
+	joining   roomLocks
 }
 
 // apiClient talks to ejabberd on loopback; it must never hang a request.
@@ -85,6 +93,25 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/client/fetch_messages", s.fetchMessages)
 	mux.HandleFunc("POST /api/client/send_message", s.sendMessage)
 	mux.HandleFunc("POST /api/client/push_token_report", s.pushTokenReport)
+	mux.HandleFunc("POST /api/client/account_removal_report", s.accountRemovalReport)
+	// People outside the PBX: operators make the room and its link, guests join by it.
+	mux.HandleFunc("POST /guests", s.createExtRoom)
+	mux.HandleFunc("GET /guests", s.listExtRooms)
+	mux.HandleFunc("GET /guests/{room}", s.getExtRoom)
+	mux.HandleFunc("POST /guests/{room}/link", s.newExtLink)
+	mux.HandleFunc("DELETE /guests/{room}", s.revokeExtLink)
+	mux.HandleFunc("DELETE /guests/{room}/{guest}", s.removeGuest)
+	mux.HandleFunc("GET /g/{$}", s.guestPageHandler)
+	mux.Handle("GET /guest-app/", s.guestAssets())
+	mux.HandleFunc("POST /guest/link", s.linkInfo)
+	mux.HandleFunc("POST /guest/join", s.joinGuest)
+	mux.HandleFunc("GET /guest/chat", s.guestChat)
+	mux.HandleFunc("GET /guest/messages", s.guestMessages)
+	mux.HandleFunc("POST /guest/messages", s.guestSend)
+	mux.HandleFunc("POST /guest/react", s.guestReact)
+	mux.HandleFunc("POST /guest/retract", s.guestRetract)
+	mux.HandleFunc("POST /guest/upload", s.guestUpload)
+	mux.HandleFunc("POST /guest/leave", s.leaveGuest)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	return withCORS(mux)
 }
@@ -344,7 +371,7 @@ func (s *Server) acrobitsSession(w http.ResponseWriter, r *http.Request) (*acrob
 		return nil, nil, "", false
 	}
 	// One address guessing across many accounts, and one account from many addresses.
-	ip := clientIP(r)
+	ip := ipKey(clientIP(r))
 	if s.ipFails.count(ip) >= ipMaxFailures {
 		fail(w, 429, "too many failed logins, retry later")
 		return nil, nil, "", false
@@ -487,10 +514,19 @@ func clientIP(r *http.Request) string {
 	return host
 }
 
+// ipKey is what per-address limits count: an IPv6 client by its /64, which one host may rotate through.
+func ipKey(ip string) string {
+	if a := net.ParseIP(ip); a != nil && a.To4() == nil {
+		return a.Mask(net.CIDRMask(64, 128)).String() + "/64"
+	}
+	return ip
+}
+
 // window counts each user's events in the last minute.
 type window struct {
-	mu sync.Mutex
-	m  map[string][]time.Time
+	mu    sync.Mutex
+	m     map[string][]time.Time
+	swept time.Time
 }
 
 func (w *window) count(user string) int {
@@ -515,6 +551,15 @@ func (w *window) add(user string) {
 	defer w.mu.Unlock()
 	if w.m == nil {
 		w.m = map[string][]time.Time{}
+	}
+	// Keys seen once and never again (an address, say) go once their minute is over.
+	if now := time.Now(); now.Sub(w.swept) > time.Minute {
+		for k, ts := range w.m {
+			if len(ts) == 0 || now.Sub(ts[len(ts)-1]) >= time.Minute {
+				delete(w.m, k)
+			}
+		}
+		w.swept = now
 	}
 	w.m[user] = append(w.m[user], time.Now())
 }
@@ -662,7 +707,7 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 				sent = append(sent, item)
 			} else {
 				item.Sender = name
-				author := s.displayName(users, m.Nick)
+				author := address.Author(m.Nick, s.displayName(users, m.Nick))
 				if attached {
 					caption := author
 					if !namesOnly(m.Body, fileNames(m.Files), m.Files) {
@@ -962,6 +1007,31 @@ func (s *Server) pushTokenReport(w http.ResponseWriter, r *http.Request) {
 	if old != nil {
 		_ = ses.DisablePush(ctx, s.PushService, legacy)
 		logx.Debugf("push token %s: legacy node retired", in.Username)
+	}
+	writeJSON(w, 200, map[string]string{"status": "ok"})
+}
+
+// accountRemovalReport: the app logged out or removed the account (Acrobits Account
+// Removal Reporter, no password then): the device token proves it, and its pushes stop.
+func (s *Server) accountRemovalReport(w http.ResponseWriter, r *http.Request) {
+	var in acrobitsReq
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		fail(w, 400, "invalid JSON")
+		return
+	}
+	user := strings.SplitN(in.Username, "@", 2)[0]
+	if user == "" || in.Selector == "" || in.TokenMsgs == "" {
+		fail(w, 400, "username, selector and token_msgs are required")
+		return
+	}
+	gone, err := s.Store.DeletePNMToken(user, in.Selector, in.TokenMsgs)
+	if err != nil {
+		log.Printf("account removal %s: %v", user, err)
+		fail(w, 500, "internal error")
+		return
+	}
+	if gone {
+		logx.Debugf("account removal %s: push token removed", user)
 	}
 	writeJSON(w, 200, map[string]string{"status": "ok"})
 }

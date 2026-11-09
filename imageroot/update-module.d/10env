@@ -208,3 +208,13 @@ if os.getenv('SATELLITE_LOG_LEVEL') is None:
 # Built-in alerts are off until enabled from the settings page
 if os.getenv('NETHVOICE_ALERTS_ENABLED') is None:
     agent.set_env('NETHVOICE_ALERTS_ENABLED', 'False')
+
+# Queue alarms work on NS8 since the thresholds release: turn them on once and
+# write the default thresholds, keeping any value already set by the admin
+if os.getenv('NETHCTI_ALERTS_MAX_CALLS') is None:
+    agent.set_env('NETHCTI_ALERTS', 'true')
+for key, value in (('NETHCTI_ALERTS_MAX_CALLS_PER_OP', '2'), ('NETHCTI_ALERTS_MAX_CALLS', '10'),
+                   ('NETHCTI_ALERTS_MAX_HOLDTIME', '120'), ('NETHCTI_ALERTS_CALLERS_MAX_WAIT', '250'),
+                   ('NETHCTI_ALERTS_CHECK_INTERVAL', '30')):
+    if os.getenv(key) is None:
+        agent.set_env(key, value)

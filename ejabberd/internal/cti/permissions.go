@@ -48,3 +48,24 @@ func ChatUsers(dir string) (map[string]bool, error) {
 	}
 	return allowed, nil
 }
+
+// Names reads each user's display name from the CTI's users.json.
+func Names(dir string) (map[string]string, error) {
+	var users map[string]struct {
+		Name string `json:"name"`
+	}
+	b, err := os.ReadFile(filepath.Join(dir, "users.json"))
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(b, &users); err != nil {
+		return nil, err
+	}
+	out := map[string]string{}
+	for u, v := range users {
+		if v.Name != "" {
+			out[u] = v.Name
+		}
+	}
+	return out, nil
+}

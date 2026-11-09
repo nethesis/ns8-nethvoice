@@ -50,8 +50,10 @@ func (s *Server) ejabberd(ctx context.Context, cmd string, args, out any) error 
 // disconnected and gets no pushes at once; after Grace it is retired: out of its groups
 // (the first member added inherits a group it owned), push registrations deleted.
 // Its history stays, for it and for everyone else, until the retention removes it.
+// Rooms with guests that were deleted meanwhile lose their link and guests.
 func (s *Server) Reconcile(ctx context.Context) {
 	s.Store.PruneAppMsgs(time.Now().AddDate(0, 0, -s.Retention-1)) // the archive no longer has them
+	s.DropGoneExtRooms(ctx)
 	dir, err := s.MW.Directory(ctx)
 	if err != nil || dir == nil || len(dir.byUser) == 0 {
 		return // no list, nothing to compare with: never act on a guess
@@ -143,7 +145,7 @@ func (s *Server) leaveRoom(ctx context.Context, user, room, muc string) error {
 			owner = a.Affiliation == "owner"
 		case a.Affiliation == "owner":
 			otherOwner = true
-		case (a.Affiliation == "member" || a.Affiliation == "admin") && !s.Store.Away(u):
+		case (a.Affiliation == "member" || a.Affiliation == "admin") && !s.Store.Away(u) && !IsGuest(u): // a guest never inherits a room
 			added, _ := strconv.ParseFloat(a.Reason, 64)
 			members = append(members, cand{u, added})
 		}

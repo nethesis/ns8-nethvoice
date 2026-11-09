@@ -27,7 +27,7 @@ jobs:
   run:
     name: "Run tests"
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
       statuses: write
     uses: NethServer/ns8-github-actions/.github/workflows/test-module-qemu.yml@v1

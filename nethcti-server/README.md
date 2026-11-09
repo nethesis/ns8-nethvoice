@@ -15,6 +15,11 @@ NethCTI Server container for NethServer 8
 - `CDRDBUSER` CDR MariaDB database user
 - `NETHCTI*`
     - `NETHCTI_ALERTS` true|false enable or disable alerts for queues. Default true
+    - `NETHCTI_ALERTS_MAX_CALLS_PER_OP` waiting calls per online agent over which the "queuefewop" alert is raised. Default 2
+    - `NETHCTI_ALERTS_MAX_CALLS` waiting calls over which the "queueload" and "queuemaxwait" alerts can be raised. Default 10
+    - `NETHCTI_ALERTS_MAX_HOLDTIME` average hold time in seconds over which the "queueholdtime" and "queueload" alerts are raised. Default 120
+    - `NETHCTI_ALERTS_CALLERS_MAX_WAIT` wait time in seconds of the first caller over which the "queuemaxwait" alert is raised. Default 250
+    - `NETHCTI_ALERTS_CHECK_INTERVAL` interval in seconds between two checks of the queues. Default 30
     - `NETHCTI_AMI_PASSWORD` password of AMI, Asterisk Manager Interface
     - `NETHCTI_AUTHENTICATION_ENABLED` true|false enable or disable authentication. Default true
     - `NETHCTI_AUTOC` enabled|disabled enable or disable auto click to call

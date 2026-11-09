@@ -5,18 +5,22 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-# Publish the module alert rules for the metrics module (ns8-metrics).
+# Publish the module alert rules and dashboards for the metrics module
+# (ns8-metrics).
 #
 # Every etc/metrics/alert-rules/nethvoice-*.yml file is one field of the Redis
-# hash module/<MODULE_ID>/metrics_alert_rules. The metrics-alert-rules-changed
-# event is sent only when a field really changes, so running this at every
-# update does not reload Prometheus for nothing. Fields not owned by this
-# script are never touched. The hash is deleted by the core when the module
-# is removed.
+# hash module/<MODULE_ID>/metrics_alert_rules, and every
+# etc/metrics/dashboards/nethvoice-*.json file is one field of
+# module/<MODULE_ID>/metrics_dashboards, with __MODULE_ID__ replaced: each
+# instance has its own dashboard. The metrics-alert-rules-changed and
+# metrics-dashboard-changed events are sent only when a field really changes,
+# so running this at every update does not reload Prometheus or restart
+# Grafana for nothing. Fields not owned by this script are never touched. The
+# hashes are deleted by the core when the module is removed.
 #
-# The alerts are off unless NETHVOICE_ALERTS_ENABLED is
-# "True" (set-alerts action): when off, the owned fields are removed, while
-# export-metrics keeps sending the metrics.
+# The alerts are off unless NETHVOICE_ALERTS_ENABLED is "True" (set-alerts
+# action): when off, the owned rule fields are removed, while export-metrics
+# keeps sending the metrics. The dashboards are always published.
 
 import fcntl
 import os
@@ -26,56 +30,90 @@ import agent
 
 FIELD_PREFIX = "nethvoice-"
 RULES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "etc", "metrics", "alert-rules")
+DASHBOARDS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "etc", "metrics", "dashboards")
+MODULE_ID_PLACEHOLDER = "__MODULE_ID__"
 LOCK_FILE = "metrics-config.lock"
+
+
+def owned_files(directory, suffix):
+    """Return {field: file text} for the shipped files of this module."""
+    files = {}
+    for name in sorted(os.listdir(directory)):
+        if name.startswith(FIELD_PREFIX) and name.endswith(suffix):
+            with open(os.path.join(directory, name), encoding="utf-8") as fp:
+                files[name[: -len(suffix)]] = fp.read()
+    return files
 
 
 def desired_rules(rules_dir=RULES_DIR):
     """Return {field: rule file text} for the shipped rule files."""
-    rules = {}
-    for name in sorted(os.listdir(rules_dir)):
-        if name.startswith(FIELD_PREFIX) and name.endswith(".yml"):
-            with open(os.path.join(rules_dir, name), encoding="utf-8") as fp:
-                rules[name[: -len(".yml")]] = fp.read()
-    return rules
+    return owned_files(rules_dir, ".yml")
+
+
+def desired_dashboards(module_id, dashboards_dir=DASHBOARDS_DIR):
+    """Return {field: dashboard JSON} of this instance for the shipped dashboards."""
+    return {
+        field: text.replace(MODULE_ID_PLACEHOLDER, module_id)
+        for field, text in owned_files(dashboards_dir, ".json").items()
+    }
 
 
 def alerts_enabled(environ=os.environ):
     return environ.get("NETHVOICE_ALERTS_ENABLED", "False") == "True"
 
 
-def publish(rdb, module_id, agent_id, rules):
-    """Sync the rules hash; return True if something changed."""
-    key = "module/%s/metrics_alert_rules" % module_id
+def sync(rdb, key, channel, fields):
+    """Sync the owned fields of a hash; return True if something changed."""
     current = rdb.hgetall(key)
     pipe = rdb.pipeline()
     changed = False
-    for field, text in rules.items():
+    for field, text in fields.items():
         if current.get(field) != text:
             pipe.hset(key, field, text)
             changed = True
     for field in current:
-        if field.startswith(FIELD_PREFIX) and field not in rules:
+        if field.startswith(FIELD_PREFIX) and field not in fields:
             pipe.hdel(key, field)
             changed = True
     if changed:
-        pipe.publish("%s/event/metrics-alert-rules-changed" % agent_id, "{}")
+        pipe.publish(channel, "{}")
         pipe.execute()
     return changed
 
 
-def main():
-    rules = desired_rules() if alerts_enabled() else {}
-    with open(LOCK_FILE, "w") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        rdb = agent.redis_connect(privileged=True)
-        changed = publish(rdb, os.environ["MODULE_ID"], os.environ["AGENT_ID"], rules)
+def publish(rdb, module_id, agent_id, rules):
+    """Sync the rules hash; return True if something changed."""
+    return sync(rdb, "module/%s/metrics_alert_rules" % module_id,
+                "%s/event/metrics-alert-rules-changed" % agent_id, rules)
+
+
+def publish_dashboards(rdb, module_id, agent_id, dashboards):
+    """Sync the dashboards hash; return True if something changed."""
+    return sync(rdb, "module/%s/metrics_dashboards" % module_id,
+                "%s/event/metrics-dashboard-changed" % agent_id, dashboards)
+
+
+def report(name, changed, fields):
     if not changed:
         state = "unchanged"
-    elif rules:
+    elif fields:
         state = "published"
     else:
         state = "removed"
-    print("alert rules %s" % state, file=sys.stderr)
+    print("%s %s" % (name, state), file=sys.stderr)
+
+
+def main():
+    module_id = os.environ["MODULE_ID"]
+    rules = desired_rules() if alerts_enabled() else {}
+    dashboards = desired_dashboards(module_id)
+    with open(LOCK_FILE, "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        rdb = agent.redis_connect(privileged=True)
+        rules_changed = publish(rdb, module_id, os.environ["AGENT_ID"], rules)
+        dashboards_changed = publish_dashboards(rdb, module_id, os.environ["AGENT_ID"], dashboards)
+    report("alert rules", rules_changed, rules)
+    report("dashboards", dashboards_changed, dashboards)
 
 
 if __name__ == "__main__":
