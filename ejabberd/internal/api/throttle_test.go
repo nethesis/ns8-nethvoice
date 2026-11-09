@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -95,5 +97,33 @@ func TestGuestFileOK(t *testing.T) {
 		if guestFileOK(c[0], c[1]) {
 			t.Errorf("%v accepted", c)
 		}
+	}
+}
+
+// Refused credentials are refused again without a login on the CTI; the right password still gets in.
+func TestLoginRefusedCache(t *testing.T) {
+	var calls atomic.Int32
+	mw := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		var in map[string]string
+		json.NewDecoder(r.Body).Decode(&in)
+		if in["password"] != "new" {
+			w.WriteHeader(401)
+			return
+		}
+		w.Write([]byte(`{"token":"jwt"}`))
+	}))
+	defer mw.Close()
+	m := NewMiddleware(mw.URL)
+	for i := 0; i < 5; i++ {
+		if _, err := m.Login(context.Background(), "mario", "old"); !errors.Is(err, ErrUnauthorized) {
+			t.Fatalf("old password: %v", err)
+		}
+	}
+	if calls.Load() != 1 {
+		t.Errorf("CTI asked %d times for the old password, want 1", calls.Load())
+	}
+	if jwt, err := m.Login(context.Background(), "mario", "new"); jwt != "jwt" || err != nil {
+		t.Errorf("new password: %q %v", jwt, err)
 	}
 }
