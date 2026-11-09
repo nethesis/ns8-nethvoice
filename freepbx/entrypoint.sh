@@ -8,6 +8,15 @@
 # A restarted container must not advertise readiness from a previous start.
 rm -f /var/run/nethvoice/freepbx-ready /var/run/nethvoice/freepbx-failed || exit $?
 
+# Migration can turn the image's absolute dialplan link into a relative link.
+extensions_link=/etc/asterisk/extensions.conf
+extensions_target=/var/www/html/freepbx/admin/modules/core/etc/extensions.conf
+if [[ -L "$extensions_link" && "$(readlink "$extensions_link")" != "$extensions_target" ]]; then
+    if ! ln -sfn "$extensions_target" "$extensions_link"; then
+        echo "Error: cannot repair $extensions_link; continuing startup" >&2
+    fi
+fi
+
 # Configure asterisk manager
 cat > /etc/asterisk/manager.conf <<EOF
 [general]
@@ -542,7 +551,10 @@ EOF
 fi
 
 # migrate database
-php /initdb.d/migration.php
+if ! php /initdb.d/migration.php; then
+    echo 'Database migration failed' >&2
+    exit 1
+fi
 # update database
 php /initdb.d/update.php
 

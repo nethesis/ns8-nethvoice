@@ -93,6 +93,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/client/fetch_messages", s.fetchMessages)
 	mux.HandleFunc("POST /api/client/send_message", s.sendMessage)
 	mux.HandleFunc("POST /api/client/push_token_report", s.pushTokenReport)
+	mux.HandleFunc("POST /api/client/account_removal_report", s.accountRemovalReport)
 	// People outside the PBX: operators make the room and its link, guests join by it.
 	mux.HandleFunc("POST /guests", s.createExtRoom)
 	mux.HandleFunc("GET /guests", s.listExtRooms)
@@ -110,6 +111,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /guest/react", s.guestReact)
 	mux.HandleFunc("POST /guest/retract", s.guestRetract)
 	mux.HandleFunc("POST /guest/upload", s.guestUpload)
+	mux.HandleFunc("POST /guest/leave", s.leaveGuest)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	return withCORS(mux)
 }
@@ -705,7 +707,7 @@ func (s *Server) fetchMessages(w http.ResponseWriter, r *http.Request) {
 				sent = append(sent, item)
 			} else {
 				item.Sender = name
-				author := s.displayName(users, m.Nick)
+				author := address.Author(m.Nick, s.displayName(users, m.Nick))
 				if attached {
 					caption := author
 					if !namesOnly(m.Body, fileNames(m.Files), m.Files) {
@@ -1005,6 +1007,31 @@ func (s *Server) pushTokenReport(w http.ResponseWriter, r *http.Request) {
 	if old != nil {
 		_ = ses.DisablePush(ctx, s.PushService, legacy)
 		logx.Debugf("push token %s: legacy node retired", in.Username)
+	}
+	writeJSON(w, 200, map[string]string{"status": "ok"})
+}
+
+// accountRemovalReport: the app logged out or removed the account (Acrobits Account
+// Removal Reporter, no password then): the device token proves it, and its pushes stop.
+func (s *Server) accountRemovalReport(w http.ResponseWriter, r *http.Request) {
+	var in acrobitsReq
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		fail(w, 400, "invalid JSON")
+		return
+	}
+	user := strings.SplitN(in.Username, "@", 2)[0]
+	if user == "" || in.Selector == "" || in.TokenMsgs == "" {
+		fail(w, 400, "username, selector and token_msgs are required")
+		return
+	}
+	gone, err := s.Store.DeletePNMToken(user, in.Selector, in.TokenMsgs)
+	if err != nil {
+		log.Printf("account removal %s: %v", user, err)
+		fail(w, 500, "internal error")
+		return
+	}
+	if gone {
+		logx.Debugf("account removal %s: push token removed", user)
 	}
 	writeJSON(w, 200, map[string]string{"status": "ok"})
 }
