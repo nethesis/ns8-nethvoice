@@ -24,15 +24,10 @@ jobs:
       - name: Run LLDP UI tests
         run: node tests/unit/test_lldp_ui.cjs
 
-      - name: Prepare pinned Tancredi sources
+      - name: Prepare Tancredi sources
         run: |
-          version=$(sed -n 's/^ARG TANCREDI_VERSION=//p' tancredi/Containerfile)
-          sources=$(mktemp -d)
-          curl -fL --retry 3 "https://github.com/nethesis/tancredi/archive/refs/tags/${version}.tar.gz" -o "${sources}/tancredi-${version}.tar.gz"
-          (cd "$sources" && sha256sum -c "${GITHUB_WORKSPACE}/tancredi/remote-artifacts.sha256")
-          tar xzf "${sources}/tancredi-${version}.tar.gz" -C "$sources"
-          echo "TANCREDI_ROOT=${sources}/tancredi-${version}" >> "$GITHUB_ENV"
-          composer install --working-dir="${sources}/tancredi-${version}" --no-dev --no-interaction --no-progress --prefer-dist
+          echo "TANCREDI_ROOT=${GITHUB_WORKSPACE}/tancredi/app" >> "$GITHUB_ENV"
+          composer install --working-dir=tancredi/app --no-dev --no-interaction --no-progress --prefer-dist
 
       - name: Run LLDP migration and rendering tests
         run: |
